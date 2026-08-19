@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+
+# Documents de référence et constitution du dépôt : leur mise en forme est
+# celle de leurs auteurs, Prettier n'a pas à la réécrire.
+CLAUDE.md
+docs
