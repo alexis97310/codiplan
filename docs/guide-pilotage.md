@@ -75,7 +75,7 @@ Un bon ticket tient en cinq lignes et comporte toujours :
 4. **les limites** — ce qui n'est explicitement pas dans le ticket ;
 5. **la commande de vérification** attendue.
 
-Le chapitre 6 de ce guide fournit les tickets des lots 0 à 3, soit le chemin critique jusqu'à la mise en service terrain.
+`docs/backlog.md` fournit les tickets des lots 0 à 3, soit le chemin critique jusqu'à la mise en service terrain.
 
 ### Pièce 4 — Les quatre gardiens
 
@@ -169,102 +169,7 @@ Ils sont identifiables à l'avance. Prévoyez d'y être présent.
 
 ---
 
-## 6. Backlog exécutable — lots 0 à 3
-
-Chemin critique jusqu'à la mise en service terrain. Format : `[identifiant] but — critères d'acceptation`.
-
-### Lot 0 — Socle (3 semaines)
-
-**L0-01 — Initialiser le dépôt.** Next.js 15 App Router, TypeScript strict, Tailwind, shadcn/ui, ESLint, Prettier, pnpm.
-*Acceptation :* `pnpm build` et `pnpm typecheck` passent ; la page d'accueil affiche « CODIPLAN ».
-
-**L0-02 — Chaîne de vérification.** Vitest, Playwright, script `pnpm verify` enchaînant typecheck, lint, test, test:isolation, build. Intégration continue déclenchée à chaque commit.
-*Acceptation :* `pnpm verify` passe ; un test volontairement faux fait échouer la commande et la CI.
-
-**L0-03 — Schéma multi-société.** Tables `societe`, `devise`, `utilisateur`, `utilisateur_societe`. Chaque table métier future portera `societe_id`.
-*Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés, l'une en XPF, l'autre en EUR.
-
-**L0-04 — Politiques RLS.** Sécurité au niveau des lignes sur toutes les tables portant `societe_id`, pilotée par une variable de session positionnée par la couche d'accès.
-*Acceptation :* une requête sans société positionnée retourne zéro ligne, et non l'ensemble des lignes.
-
-**L0-05 — Tests d'isolation.** Répertoire `tests/isolation/`. Pour chaque ressource : lecture, écriture et suppression tentées depuis une autre société.
-*Acceptation :* `pnpm test:isolation` couvre au moins 10 scénarios et passe ; retirer le filtre société dans le code fait échouer les tests.
-
-**L0-06 — Authentification et rôles.** Better Auth, sessions serveur, rôles par société via `utilisateur_societe`, MFA sur les rôles administrateur et direction.
-*Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé.
-
-**L0-07 — Module monétaire.** `lib/money` : `formatMoney`, `addMoney`, arrondi selon les décimales de la devise. Point de passage unique.
-*Acceptation :* tests unitaires — 7 000 XPF s'affiche « 7 000 XPF » sans décimale, 100 EUR affiche « 100,00 € » ; toute conversion ligne à ligne lève une erreur.
-
-**L0-08 — Module calendrier.** `lib/calendar` : calendriers par site, jours fériés paramétrables et travaillables, calcul des jours et heures ouvrés.
-*Acceptation :* tests — le samedi est ouvré pour Ducos et non pour Koné ; un férié marqué travaillé compte comme ouvré.
-
-**L0-09 — Thématisation par société.** Couleurs, logo et mentions issus du paramétrage de la société active.
-*Acceptation :* basculer de société change l'identité visuelle sans redéploiement.
-
-**L0-10 — Journal d'audit.** Table et intercepteur Prisma capturant création, modification et suppression avec valeurs avant/après.
-*Acceptation :* toute écriture sur une table sensible produit une ligne d'audit ; test automatisé.
-
-### Lot 1 — Référentiels, tarification, imports (4 semaines)
-
-**L1-01** Clients — CRUD, code Winpro comme clé de rapprochement, recherche.
-**L1-02** Sites — adresses, zones géographiques, consignes d'accès, calendriers d'ouverture, temps de trajet par agence.
-**L1-03** Contacts — rôles, préférences de notification.
-**L1-04** Techniciens — compétences, habilitations avec expiration, coût horaire, calendrier de travail.
-*Acceptation : une habilitation expirée est signalée ; test sur RG-PLA-04.*
-**L1-05** Familles et modèles de matériel — référentiel partageable (`societe_id` nullable), pièces d'usure, périodicités.
-**L1-06** Prestations et forfaits — catalogue conforme au §4.3, conditions d'application.
-*Acceptation : un forfait dont les conditions ne sont pas remplies n'est pas proposé ; test sur RG-TAR-06.*
-**L1-07** Taux horaire — valeur par société, surcharge par technicien, type et contrat, historisation.
-*Acceptation : modifier le taux ne change pas les interventions déjà valorisées ; test sur RG-TAR-04.*
-**L1-08** Moteur d'import — lecture Excel, mise en correspondance des colonnes, contrôle, rapport, application, annulation sous 24 h.
-*Acceptation : un fichier de 300 lignes avec 5 erreurs produit un rapport exact ; l'annulation restaure l'état antérieur ; tests sur RG-IMP-01 à 05.*
-**L1-09** Imports clients, sites, contacts, modèles, prestations — modèles Excel téléchargeables et documentés.
-**L1-10** Import de l'historique des ventes matériel — pré-création de fiches machines incomplètes.
-*Acceptation : les fiches créées sont marquées `complet = false` et remontent dans une file de complétion.*
-
-### Lot 2 — Parc et interventions (4 semaines)
-
-**L2-01** Fiche machine — création avec 3 champs obligatoires seulement (RG-PAR-02), unicité du couple modèle/n° de série par société.
-**L2-02** QR codes — génération, jeton, résolution, planche d'étiquettes imprimable.
-**L2-03** Compteurs — relevés, contrôle de non-régression (RG-PAR-04), projection d'atteinte de seuil.
-**L2-04** Documents machine — dépôt, visibilité client, marquage « embarqué mobile ».
-**L2-05** Historique machine — chronologie unifiée, conservée au changement de site (RG-PAR-03).
-**L2-06** Demandes — création, sources, horodatage de l'accusé de réception, qualification.
-**L2-07** Interventions — cycle de vie complet, transitions contrôlées.
-*Acceptation : chaque transition interdite est refusée avec un message explicite ; tests sur RG-INT-01 à 11.*
-**L2-08** Interventions multi-machines et multi-techniciens.
-**L2-09** Valorisation — forfait, temps passé, forfait plus heures excédentaires.
-**L2-10** File « en attente de pièce » — motif, référence attendue, date prévisionnelle, ancienneté.
-
-### Lot 3 — Planning et PWA (5 semaines)
-
-**L3-01** Vue calendrier ressources, glisser-déposer, redimensionnement.
-**L3-02** Contrôles à la pose — alertes non bloquantes, blocage strict sur habilitation expirée.
-**L3-03** File d'attente à planifier, tri par urgence et échéance, indicateur de risque.
-**L3-04** Absences, alerte de rupture de service à effectif unique, report groupé.
-**L3-05** Tournées — regroupement, ordonnancement, estimation des trajets.
-**L3-06** Socle PWA — manifeste, service worker, installabilité, écran hors-ligne.
-**L3-07** Cache local — IndexedDB, contenus du §13.2, synchronisation différentielle.
-**L3-08** File d'opérations et synchronisation — priorisation, reprise, indicateur d'état.
-*Acceptation : test bout en bout — intervention complète en mode avion puis synchronisation intégrale sans perte.*
-**L3-09** Résolution de conflits — application de I5, journalisation.
-*Acceptation : conflit simulé sur créneau et diagnostic, chacun résolu du bon côté.*
-**L3-10** Détection de doublons de machines créées hors ligne — signalement, jamais de suppression automatique.
-**L3-11** Scan QR et création de machine express — moins de 60 secondes, 3 champs.
-**L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.
-**L3-13** Saisie de rapport — checklist, temps, pièces, photos compressées, préconisations.
-**L3-14** Signature client — capture, horodatage, mention d'absence tracée.
-**L3-15** Génération et envoi du PDF — charte de la société émettrice, validation avant diffusion.
-*Acceptation : contrôle visuel humain obligatoire — aucun test automatique ne remplace ce point.*
-
-### Lots 4 à 7 — esquisse
-
-Le même format s'applique. Contrats et générateur de propositions (lot 4), portail client et tableaux de bord (lot 5), exports et flux BI (lot 6), console éditeur et abonnements (lot 7). Découpez-les au moment de les aborder : un backlog écrit six mois à l'avance est périmé quand on y arrive.
-
----
-
-## 7. Prompts d'amorçage
+## 6. Prompts d'amorçage
 
 ### Première session
 
@@ -290,7 +195,7 @@ Le même format s'applique. Contrats et générateur de propositions (lot 4), po
 
 ---
 
-## 8. Ce qui reste irréductiblement à vous
+## 7. Ce qui reste irréductiblement à vous
 
 Aucun dispositif ne délègue ces quatre choses.
 
@@ -301,7 +206,7 @@ Aucun dispositif ne délègue ces quatre choses.
 
 ---
 
-## 9. En une page
+## 8. En une page
 
 1. Construire la boucle de vérification **avant** le code métier — c'est elle qui rend l'autonomie possible.
 2. Poser le `CLAUDE.md` à la racine et y inscrire les invariants **et les sujets sur lesquels s'arrêter**.

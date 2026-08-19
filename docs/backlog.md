@@ -1,0 +1,146 @@
+# CODIPLAN — Backlog exécutable
+
+**Tickets des lots 0 à 3 — chemin critique jusqu'à la mise en service terrain**
+
+*Version 2 — intègre la note d'arbitrage n°1. Les tickets modifiés par un arbitrage portent la référence `[Dxx]`.*
+
+Format : `[identifiant] but — critères d'acceptation`. Chaque critère doit être vérifiable par une machine.
+Source de la règle métier : **chapitre 10 du cahier des charges**, complété par `docs/arbitrages.md` qui prévaut.
+
+---
+
+## Lot 0 — Socle (3 semaines)
+
+**L0-01 — Initialiser le dépôt.**
+Next.js 15 App Router, TypeScript strict, Tailwind, shadcn/ui, ESLint, Prettier, pnpm.
+*Acceptation :* `pnpm build` et `pnpm typecheck` passent ; la page d'accueil affiche « CODIPLAN ».
+
+**L0-02 — Chaîne de vérification. [D14]**
+Vitest, Playwright, et **deux portes distinctes** :
+`pnpm verify` = typecheck + lint + test + test:isolation + build — porte de chaque ticket.
+`pnpm verify:full` = verify + test:e2e — porte de chaque lot.
+CI **GitHub Actions** : `verify` à chaque commit, `verify:full` sur `main` et chaque nuit.
+*Acceptation :* les deux commandes passent ; un test volontairement faux fait échouer la commande et la CI.
+
+**L0-03 — Schéma multi-société. [D4] [D5]**
+Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_societe`, `utilisateur_client`.
+`agence` est nouvelle (D5) : code, libellé, adresse, fuseau, calendrier, actif.
+`parite` remplace `devise.parite_reference` (D20) : devise, date d'effet, taux, source.
+`utilisateur_client` (D10) : utilisateur, client, société, périmètre de sites.
+*Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés — l'une en XPF avec trois agences, l'autre en EUR — et au moins un compte portail rattaché à un client.
+
+**L0-04 — Politiques RLS. [D4]**
+Sécurité au niveau des lignes sur toutes les tables portant `societe_id`, pilotée par une variable de session.
+Forme imposée : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.
+*Acceptation :* une requête sans société positionnée retourne **zéro ligne sur les tables cloisonnées**, et **uniquement les référentiels de plateforme** sur les tables partagées (`devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`).
+
+**L0-05 — Tests d'isolation. [D22]**
+Répertoire `tests/isolation/`. Pour chaque ressource : lecture, écriture et suppression tentées depuis une autre société.
+Inclut obligatoirement : le chemin **`GET /machines/qr/{token}`**, qui doit refuser un jeton appartenant à une autre société ; l'accès d'un compte portail aux données d'un autre client ; le respect du périmètre de sites.
+*Acceptation :* au moins 12 scénarios, tous verts. **Vérification manuelle documentée** dans `docs/decisions/` : retirer un filtre société fait échouer les tests.
+
+**L0-06 — Authentification et rôles. [D21]**
+Better Auth, sessions serveur, MFA sur `admin_plateforme` et `direction`.
+Énumération canonique des rôles, complète dès maintenant : `admin_plateforme`, `editeur_commercial`, `editeur_support`, `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client`.
+Rôle PostgreSQL `codiplan_reporting` avec `BYPASSRLS`, en `SELECT` seul, réservé à `lib/reporting`.
+*Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé ; un test vérifie qu'aucun chemin hors `lib/reporting` n'utilise la connexion `codiplan_reporting`.
+
+**L0-07 — Module monétaire. [D19]**
+`lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon — et `convertForConsolidation(montant, source, cible, dateParite)`, réservée à `lib/reporting` et exigeant une date de parité explicite.
+*Acceptation :* `7 000 XPF` sans décimale, `100,00 €` avec deux ; arrondi au quart d'heure supérieur pour les durées ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.
+
+**L0-08 — Module calendrier. [D5] [D13]**
+`lib/calendar` : calendriers rattachés à l'**agence**, jours fériés hérités de la société et surchargeables par agence, booléen `travaille`, calcul des jours et heures ouvrés.
+Fonctions distinctes par usage : SLA (agence de l'intervention), majoration (agence du technicien), conflit à la pose (calendrier du technicien).
+*Acceptation :* le samedi est ouvré pour Ducos et non pour Koné ; un férié marqué travaillé compte comme ouvré ; un délai SLA de 4 h ouvrées démarré vendredi 16 h échoit lundi.
+
+**L0-09 — Thématisation par société.**
+Couleurs, logo et mentions issus du paramétrage de la société active.
+*Acceptation :* basculer de société change l'identité visuelle sans redéploiement.
+
+**L0-10 — Journal d'audit. [D32]**
+**Trigger PostgreSQL**, pas un intercepteur applicatif. Droits `UPDATE` et `DELETE` révoqués sur `journal_audit` pour le rôle applicatif.
+Périmètre : intervention, contrat, machine, paramétrage société, compte client. Plus les accès des rôles éditeur et les basculements de société.
+*Acceptation :* toute écriture sur une table sensible produit une ligne d'audit ; une tentative de suppression d'une ligne d'audit échoue au niveau de la base.
+
+**L0-11 — Module i18n. [D26]** *(nouveau)*
+`lib/i18n/fr.ts`, dictionnaire plat. Aucune chaîne visible en dur dans un composant.
+*Acceptation :* une règle ESLint signale toute chaîne littérale dans le JSX des composants.
+
+---
+
+## Lot 1 — Référentiels, tarification, imports (4 semaines)
+
+**L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche.
+**L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, `temps_trajet_min` par agence qui **fait foi** sur l'estimation par zone.
+**L1-03** Contacts — rôles, préférences de notification.
+**L1-04** Techniciens et habilitations. **[D9]**
+Trois tables : `habilitation`, `technicien_habilitation` (datée), `site_habilitation_requise` (avec booléen bloquant).
+*Acceptation :* l'affectation est **bloquée** — et non signalée — si le site exige une habilitation bloquante absente ou expirée à la date d'intervention. Test sur RG-PLA-04.
+**L1-05** Familles et modèles — `societe_id` nullable pour les référentiels de plateforme [D4] ; une copie portant un `societe_id` masque l'original.
+**L1-06** Prestations et forfaits — `societe_id NOT NULL`. Conditions d'application par zone, famille, type.
+*Acceptation :* un forfait dont les conditions ne sont pas remplies n'est pas proposé. Test sur RG-TAR-06.
+**L1-07** Taux horaire — par société, surchargeable, **historisé**.
+*Acceptation :* modifier le taux ne change pas les interventions déjà valorisées. Test sur RG-TAR-04.
+**L1-08** Moteur d'import. **[D15] [D31]**
+Format `.xlsx` uniquement. Version en cellule A1 (`CODIPLAN-<type>-v<n>`), en-têtes ligne 2, données ligne 3. Dates `JJ/MM/AAAA`, décimale virgule. Colonnes inconnues ignorées avec avertissement.
+Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou référencées depuis ; jamais de suppression en cascade ; seul le dernier lot est annulable.
+*Acceptation :* un fichier de 300 lignes avec 5 erreurs produit un rapport exact ; l'annulation restaure ce qui peut l'être et refuse le reste avec motif ; tests sur RG-IMP-01 à 05.
+**L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
+**L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
+
+---
+
+## Lot 2 — Parc et interventions (4 semaines)
+
+**L2-01** Fiche machine. **[D6] [D7]**
+**Quatre champs obligatoires** : `modele_id`, `client_id`, `site_id`, `numero_serie`. Numéro illisible → `SN-INCONNU-<référence>` et `complet = false`.
+`id` en UUID v7 généré côté client ; `numero` attribué par le serveur à la synchronisation ; affichage `Local-<6 car.>` tant qu'il est nul.
+*Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
+**L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Planches pré-générées pour le recensement.
+**L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
+**L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
+**L2-05** Historique machine — conservé au changement de site.
+**L2-06** Demandes — statuts `NOUVELLE`, `QUALIFIEE`, `TRANSFORMEE`, `CLOSE_SANS_SUITE` ; motifs `resolue_telephone`, `hors_perimetre`, `refus_client`, `doublon` [3.5]. Horodatage de l'accusé de réception en **heures ouvrées de l'agence** [D13].
+**L2-07** Cycle de vie des interventions. **[D8]**
+Huit statuts : `A_PLANIFIER`, `PLANIFIEE`, `AFFECTEE`, `EN_COURS`, `SUSPENDUE`, `TERMINEE`, `CLOTUREE`, `ANNULEE`. `statut_facturation` est une colonne **distincte**.
+Matrice des transitions autorisées : voir D8 du document d'arbitrage.
+*Acceptation :* chaque transition hors matrice est refusée avec un message explicite ; `SUSPENDUE` peut revenir vers `A_PLANIFIER`, `PLANIFIEE` et `EN_COURS` ; tests sur RG-INT-01 à 11.
+**L2-08** Interventions multi-machines et multi-techniciens. Machine facultative pour `expertise`, `installation` et **`recensement`** [D16].
+**L2-09** Valorisation. **[D11] [D12]**
+Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone, un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata.
+Ordre : forfaits → heures excédentaires → majoration → total HT.
+**L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
+
+---
+
+## Lot 3 — Planning et PWA (5 semaines)
+
+**L3-01** Vue calendrier ressources avec **Schedule-X** [D17], glisser-déposer, redimensionnement.
+**L3-02** Contrôles à la pose — avertissements non bloquants, **blocage strict** sur habilitation expirée [D9].
+**L3-03** File d'attente à planifier, tri par urgence et échéance.
+**L3-04** Absences, alerte de rupture de service à effectif unique, report groupé.
+**L3-05** Tournées — regroupement, ordonnancement, estimation des trajets.
+**L3-06** Socle PWA — manifeste, service worker, installabilité. **Pas de notifications push** [3.19].
+**L3-07** Cache local — IndexedDB, dont **le parc complet des clients visités sous 7 jours** [D22].
+**L3-08** File d'opérations et synchronisation — priorisation, reprise, indicateur d'état.
+*Acceptation :* test bout en bout — intervention complète en mode avion puis synchronisation intégrale sans perte.
+**L3-09** Résolution de conflits. **[D27]**
+Terrain sur l'exécution, back-office sur la planification, **statut par préséance** : `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > planification.
+*Acceptation :* une intervention annulée pendant sa réalisation hors ligne conserve temps, diagnostic, photos et signature, et le conflit est remonté.
+**L3-10** Doublons hors ligne — détection **et fusion**. **[D28]**
+La fiche la plus ancienne survit ; le `qr_token` de l'absorbée **redirige** vers elle ; historiques fusionnés ; divergences arbitrées champ par champ ; réversible 30 jours.
+**L3-11** Scan QR et création express — moins de 60 secondes. **Pas de reconnaissance de plaque** [D33] : photo conservée en pièce jointe, saisie manuelle.
+**L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.
+**L3-13** Saisie de rapport — checklist, temps, pièces, photos compressées, préconisations. Absence de checklist = condition satisfaite ; un point non conforme impose une préconisation [3.10].
+**L3-14** Signature client — `appareil_id` et `horodatage_terrain`, pas d'adresse IP [3.9].
+**L3-15** Génération et envoi du PDF. **Validation systématique** avant diffusion [D24]. Le **PDF serveur fait foi** ; la version locale porte la mention « provisoire ». **Aucun montant** sur le rapport [3.8].
+*Acceptation :* contrôle visuel humain obligatoire — aucun test automatique ne remplace ce point.
+
+---
+
+## Lots 4 à 7
+
+Même format, à découper au moment de les aborder. Contrats et générateur de propositions (lot 4), portail client et tableaux de bord (lot 5), exports et flux BI (lot 6), console éditeur et abonnements (lot 7).
+
+Un backlog écrit six mois à l'avance est périmé quand on y arrive.

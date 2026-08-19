@@ -1,19 +1,33 @@
 # CODIPLAN — Constitution du dépôt
 
-Ce fichier est lu automatiquement par Claude Code à chaque session. Il fait autorité sur tout le reste.
-Si une instruction de ce fichier contredit une demande ponctuelle, **signaler la contradiction avant d'agir**.
+Lu automatiquement par Claude Code à chaque session. Fait autorité sur tout le reste.
+Si une instruction d'ici contredit une demande ponctuelle, **signaler la contradiction avant d'agir**.
+
+*Version 2 — intègre la note d'arbitrage n°1 du 19 août 2026.*
 
 ---
 
 ## 1. Ce qu'est ce projet
 
-Plateforme web de gestion des plannings d'intervention de techniciens et du parc machines de leurs clients.
-Multi-société, multi-devise, avec une application mobile hors-ligne et une console éditeur, la solution étant destinée à être vendue.
-
-**Le cahier des charges fait foi** : `docs/cahier-des-charges.md` (v1.2, 23 chapitres).
-Toute question fonctionnelle se tranche en le relisant, pas en improvisant. Si le cahier des charges est muet ou ambigu sur un point, **s'arrêter et poser la question** plutôt que d'inventer une règle métier.
+Plateforme web de gestion des plannings d'intervention de techniciens et du parc machines de leurs clients. Multi-société, multi-devise, application mobile hors-ligne, console éditeur — la solution est destinée à être vendue.
 
 Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une partie du territoire, latence élevée vers l'hébergeur, monnaie sans décimale, fuseau UTC+11 sans changement d'heure.
+
+### Hiérarchie des sources — en cas de divergence
+
+| Rang | Source |
+|---|---|
+| 1 | `docs/arbitrages.md` — les décisions arrêtées |
+| 2 | `docs/cahier-des-charges.md` **chapitre 10** — les règles de gestion |
+| 3 | `docs/cahier-des-charges.md` **chapitre 11** — le modèle de données |
+| 4 | `docs/backlog.md` — les tickets |
+| 5 | Le reste du cahier des charges — narratif, jamais normatif |
+
+**Une règle métier ne s'écrit qu'au chapitre 10.** Une règle trouvée ailleurs et absente du chapitre 10 est non normative.
+
+`docs/maquette/CODIPLAN_Maquette.html` est une illustration d'intention, **pas une spécification**. Deux exceptions promues au rang de règle : le formatage monétaire et les codes couleur des statuts.
+
+Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question** plutôt qu'inventer une règle métier.
 
 ---
 
@@ -22,52 +36,67 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 | Couche | Choix | Ne pas substituer |
 |---|---|---|
 | Framework | Next.js 15, App Router, TypeScript strict | — |
-| Style | Tailwind CSS + shadcn/ui | Pas de librairie UI supplémentaire |
+| Style | Tailwind CSS + shadcn/ui | Pas de librairie UI supplémentaire, **hors composant calendrier** |
+| Calendrier | Schedule-X | Aucune dépendance payante en V1 |
 | Base | PostgreSQL 16 + Row Level Security | — |
 | ORM | Prisma | Pas de SQL brut hors migrations et politiques RLS |
-| Auth | Better Auth, sessions serveur, MFA sur rôles sensibles | — |
+| Auth | Better Auth, sessions serveur, MFA sur rôles sensibles | Pas Auth.js |
 | Validation | Zod, sur toute entrée serveur sans exception | — |
 | Tests unitaires | Vitest | — |
 | Tests bout en bout | Playwright | — |
-| Excel | SheetJS | — |
+| Excel | SheetJS — `.xlsx` uniquement, jamais de CSV | — |
 | PDF | React-PDF | — |
-| Gestionnaire de paquets | pnpm | Pas de npm ni yarn |
+| Stockage objet | Stockage S3-compatible de l'hébergeur | — |
+| Email | Resend | — |
+| File de jobs | Table PostgreSQL + tâche planifiée | Pas de service dédié |
+| CI | GitHub Actions | — |
+| Paquets | pnpm | Pas de npm ni yarn |
 
-**Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance doit être justifiée en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt que d'ajouter 200 Ko.
+**Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance se justifie en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt qu'ajouter 200 Ko.
 
 ---
 
 ## 3. Invariants non négociables
 
-Ces neuf règles ne se discutent pas. Une modification qui en viole une est un défaut, même si elle compile et que les tests passent.
+Dix règles. Une modification qui en viole une est un défaut, même si elle compile et que les tests passent.
 
 ### I1 — Cloisonnement multi-société
-Toute table métier porte `societe_id`. Toute requête est filtrée par société **côté serveur**, et la base applique en plus une politique RLS. Il n'existe aucun chemin de lecture qui ne porte pas le filtre.
-*Vérification : `pnpm test:isolation` doit rester vert.*
+Toute table métier porte `societe_id NOT NULL`, **sauf la liste close des référentiels de plateforme** : `devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`. Ceux-là portent `societe_id NULL`, sont lisibles par toutes les sociétés et modifiables par les seuls rôles éditeur. **Cette liste est fermée** — toute addition exige une décision explicite.
+Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
+*Vérification : `pnpm test:isolation`.*
 
 ### I2 — Jamais de conversion de devise ligne à ligne
-Les montants sont stockés dans la devise de la société avec leur code. La conversion n'existe que dans les agrégats de consolidation, à parité datée et explicite.
+Les montants sont stockés dans la devise de la société avec leur code. La seule fonction de conversion est `convertForConsolidation`, réservée à `lib/reporting`, et elle exige une date de parité explicite.
 
 ### I3 — Décimales portées par la devise
-XPF : zéro décimale. EUR : deux. Jamais de `toFixed(2)` en dur. Le formatage passe par `formatMoney(montant, devise)` et par rien d'autre.
+XPF : zéro décimale. EUR : deux. Jamais de `toFixed(2)` en dur. Tout formatage passe par `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon.
 
 ### I4 — Le terrain fonctionne sans réseau
-Toute fonctionnalité de l'application technicien doit être utilisable en mode avion : consultation, saisie, photos, signature, création de machine. Une fonctionnalité mobile qui exige le réseau est refusée.
+Toute fonctionnalité de l'application technicien est utilisable en mode avion : consultation, saisie, photos, signature, création de machine. Une fonctionnalité mobile qui exige le réseau est refusée.
 
-### I5 — Le terrain fait foi sur l'exécution, le back-office sur la planification
-Règle de résolution des conflits de synchronisation. Temps, diagnostic, checklist, photos, signature, création de machine → le terrain gagne. Affectation, créneau, priorité → le back-office gagne. Tout conflit est journalisé.
+### I5 — Préséance en cas de conflit de synchronisation
+**Terrain** : temps, diagnostic, checklist, photos, signature, création de machine.
+**Back-office** : affectation, créneau, priorité.
+**Statut** : par préséance — `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > statuts de planification. Le travail terrain n'est jamais perdu, même sur une intervention annulée ; le conflit est journalisé et remonté.
 
 ### I6 — Aucun import appliqué sans contrôle préalable
-Un import Excel produit d'abord un rapport (créations, modifications, rejets motivés), puis attend une validation explicite. Il reste annulable intégralement pendant 24 heures.
+Un import Excel produit d'abord un rapport (créations, modifications, rejets motivés), puis attend une validation explicite. L'annulation est **partielle et sûre** : refus motivé sur les lignes modifiées ou référencées depuis, jamais de suppression en cascade.
 
-### I7 — Calendriers propres à chaque site
-Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés sont paramétrés par site et peuvent être travaillés. **Aucun calendrier global codé en dur.**
+### I7 — Calendriers propres à chaque agence
+Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés sont portés par le calendrier de l'agence et peuvent être travaillés. **Aucun calendrier global codé en dur.**
+Calendrier de référence par usage : SLA → agence de l'intervention ; majoration → agence du technicien ; conflit à la pose → calendrier de travail du technicien ; site fermé → horaires du site, avertissement seulement.
 
 ### I8 — Traçabilité
-Toute création, modification ou suppression sur intervention, contrat, machine, paramétrage société ou compte client est journalisée avec auteur, horodatage et valeurs avant/après.
+Toute création, modification ou suppression sur intervention, contrat, machine, paramétrage société ou compte client est journalisée avec auteur, horodatage et valeurs avant/après. Le journal est protégé par trigger PostgreSQL, pas seulement par un intercepteur applicatif.
 
 ### I9 — Aucune donnée de production dans le dépôt
-Pas de client réel, pas de photo, pas de clé, pas de fichier `.env`. Les jeux de test sont générés par `prisma/seed.ts`.
+Pas de client réel, pas de photo, pas de clé, pas de `.env`. Les jeux de test viennent de `prisma/seed.ts`.
+
+### I10 — Identifiants : clé technique et numéro affiché sont distincts
+`id` est un UUID v7 généré sur l'appareil, y compris hors ligne, et porte toutes les relations et le `qr_token`. `numero` est attribué par le serveur, séquentiellement par société, à la première synchronisation. Tant qu'il est nul, l'interface affiche `Local-<6 caractères>` avec une pastille « non synchronisé ». **Le QR encode le jeton, jamais le numéro.**
+
+### Vocabulaire imposé
+**Agence** = établissement CODIMA (Ducos, Koné, Dolbeau). **Site** = lieu d'intervention chez un client. Ces deux mots ne sont jamais interchangeables.
 
 ---
 
@@ -77,32 +106,32 @@ Pas de client réel, pas de photo, pas de clé, pas de fichier `.env`. Les jeux 
 pnpm dev              # serveur de développement
 pnpm typecheck        # tsc --noEmit — zéro erreur exigé
 pnpm lint             # eslint — zéro avertissement exigé
-pnpm test             # vitest, tests unitaires
-pnpm test:isolation   # tests de cloisonnement multi-société (bloquant)
-pnpm test:e2e         # playwright
+pnpm test             # vitest
+pnpm test:isolation   # cloisonnement multi-société (bloquant)
+pnpm test:e2e         # playwright, dont le gardien hors-ligne
 pnpm db:migrate       # prisma migrate dev
-pnpm db:seed          # jeu de données de démonstration, 2 sociétés
+pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
 pnpm build            # build de production
-pnpm verify           # typecheck + lint + test + test:isolation + build
-```
 
-`pnpm verify` est la **porte de sortie de toute tâche**. Rien n'est terminé tant qu'elle échoue.
+pnpm verify           # typecheck + lint + test + test:isolation + build
+                      # → porte de sortie de CHAQUE TICKET
+pnpm verify:full      # verify + test:e2e
+                      # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
+```
 
 ---
 
 ## 5. Définition de « terminé »
 
-Une tâche n'est terminée que si **toutes** ces conditions sont réunies :
-
-1. `pnpm verify` passe sans erreur ni avertissement.
+1. `pnpm verify` passe sans erreur ni avertissement — et `pnpm verify:full` en fin de lot.
 2. Les critères d'acceptation du ticket sont couverts par au moins un test automatisé.
-3. Aucun `any`, aucun `@ts-ignore`, aucun `eslint-disable` ajouté sans commentaire justifiant la ligne.
+3. Aucun `any`, aucun `@ts-ignore`, aucun `eslint-disable` sans commentaire justifiant la ligne.
 4. Aucun `console.log` résiduel.
-5. L'interface est en français, avec la terminologie du glossaire (annexe A du cahier des charges).
+5. Interface en français, terminologie du glossaire, **aucune chaîne en dur dans un composant** — tout passe par `lib/i18n/fr.ts`.
 6. Les nouvelles requêtes portent le filtre société.
-7. Le message de commit décrit le *pourquoi*, pas le *quoi*.
+7. Le message de commit décrit le *pourquoi*.
 
-**Interdit absolu :** modifier, désactiver ou assouplir un test pour faire passer la vérification. Si un test échoue, c'est le code qui est faux — ou le test révèle une ambiguïté du cahier des charges, auquel cas il faut s'arrêter et le signaler.
+**Interdit absolu :** modifier, désactiver ou assouplir un test pour faire passer la vérification. Si un test échoue, c'est le code qui est faux — ou le test révèle une ambiguïté, auquel cas il faut s'arrêter et le signaler.
 
 ---
 
@@ -110,64 +139,54 @@ Une tâche n'est terminée que si **toutes** ces conditions sont réunies :
 
 ```
 app/
-  (back-office)/        écrans desktop — planning, parc, interventions, contrats
-  (mobile)/             PWA technicien
-  (portail)/            portail client
-  (editeur)/            console éditeur
-  api/
+  (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
 lib/
-  db/                   client Prisma, contexte société, helpers RLS
+  db/         client Prisma, contexte société, helpers RLS
   auth/
-  money/                formatage et arithmétique monétaire — point de passage unique
-  calendar/             calendriers de sites, jours fériés, jours ouvrés
-  sync/                 protocole de synchronisation hors-ligne
-  excel/                imports et exports
-  pdf/                  rapports et propositions
+  money/      formatage et arithmétique — point de passage unique
+  calendar/   calendriers d'agence, fériés, jours ouvrés
+  sync/       protocole hors-ligne
+  excel/      imports et exports
+  pdf/
+  reporting/  SEULE zone autorisée à convertir des devises
+  i18n/       dictionnaire fr.ts
 components/
-prisma/
-  schema.prisma
-  migrations/
-  seed.ts
+prisma/       schema.prisma, migrations/, seed.ts
 tests/
-  unit/
-  isolation/            cloisonnement multi-société — ne jamais alléger
-  e2e/
+  unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/
-  cahier-des-charges.md
-  decisions/            un fichier par décision technique structurante
+  cahier-des-charges.md  arbitrages.md  backlog.md  guide-pilotage.md
+  decisions/  maquette/
 ```
 
-**Conventions de nommage.** Le domaine métier est en français : `intervention`, `machine`, `contrat`, `societe`, `technicien`, `echeance`. Le code technique est en anglais : `createIntervention`, `useSyncQueue`. Ne pas mélanger dans un même identifiant.
+Le domaine métier est en français (`intervention`, `machine`, `societe`, `agence`), le code technique en anglais (`createIntervention`, `useSyncQueue`). Jamais mélangés dans un même identifiant.
 
 ---
 
 ## 7. Comment travailler
 
-- **Un ticket à la fois.** Lire le ticket, relire la section correspondante du cahier des charges, écrire le test, écrire le code, lancer `pnpm verify`, commiter.
-- **Test d'abord** pour toute règle de gestion. Les règles sont numérotées (RG-INT-01…) : le test porte le numéro de la règle en commentaire.
-- **Commits petits et atomiques.** Un ticket peut donner plusieurs commits ; un commit ne doit jamais couvrir deux tickets.
-- **Décisions techniques structurantes** → un fichier dans `docs/decisions/` : le contexte, les options écartées, le choix, les conséquences. Trois paragraphes suffisent.
-- **En cas de blocage** : ne pas contourner, ne pas simplifier le périmètre en silence. S'arrêter, décrire précisément ce qui bloque et les options envisagées.
+- **Un ticket à la fois.** Lire le ticket, relire le chapitre 10 correspondant et `docs/arbitrages.md`, écrire le test, écrire le code, `pnpm verify`, commiter, pousser sur `origin main`.
+- **Test d'abord** pour toute règle de gestion, avec le numéro de règle en commentaire.
+- **Commits atomiques.** Un commit ne couvre jamais deux tickets.
+- **Décisions structurantes** → un fichier dans `docs/decisions/` : contexte, options écartées, choix, conséquences. Trois paragraphes.
+- **En cas de blocage** : ne pas contourner, ne pas réduire le périmètre en silence. S'arrêter, décrire ce qui bloque et les options.
 
 ---
 
 ## 8. Points où il faut s'arrêter et demander
 
-Ne jamais trancher seul sur :
-
-- une **règle métier absente ou ambiguë** dans le cahier des charges ;
-- un **montant, un taux, un délai** non spécifié — ne pas inventer de valeur par défaut ;
-- un **changement de schéma de base** touchant `societe_id`, les devises ou les statuts d'intervention ;
-- l'**assouplissement d'un invariant** du chapitre 3 ;
+- une **règle métier absente ou ambiguë** au chapitre 10 et non tranchée dans `docs/arbitrages.md` ;
+- un **montant, un taux, un délai** non spécifié — ne jamais inventer de valeur par défaut ;
+- un **changement de schéma** touchant `societe_id`, les devises, les statuts d'intervention ou la liste close de I1 ;
+- l'**assouplissement d'un invariant** ;
 - l'ajout d'une **dépendance lourde** ou d'un service externe payant ;
-- tout ce qui touche à la **sécurité du cloisonnement** ou aux données personnelles.
+- tout ce qui touche au **cloisonnement** ou aux données personnelles.
 
 Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leurs conséquences, attendre.
 
 ---
 
-## 9. Erreurs déjà commises à ne pas refaire
+## 9. Erreurs à ne pas refaire
 
-Cette section se remplit au fil du projet. Chaque erreur corrigée y laisse une ligne, pour qu'elle ne se reproduise pas.
-
-- *(à compléter)*
+- **19/08/2026 — Ne jamais écrire la même règle métier à deux endroits.** Le cahier des charges v1.2 formulait certaines règles trois fois avec des variantes, ce qui a produit 60 points d'ambiguïté. Le chapitre 10 est la source unique ; tout le reste y renvoie.
+- **19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.** `code_winpro` est devenu `code_externe` : le produit est destiné à être vendu à des sociétés qui n'utilisent pas Winpro.
