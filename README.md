@@ -34,10 +34,22 @@ pnpm dev              # serveur de développement
 pnpm typecheck        # tsc --noEmit — zéro erreur exigé
 pnpm lint             # eslint — zéro avertissement exigé
 pnpm format           # prettier --write
+pnpm test             # vitest, projet « unit »
+pnpm test:isolation   # vitest, projet « isolation » — cloisonnement multi-société
+pnpm test:e2e         # playwright
 pnpm build            # build de production
+
+pnpm verify           # typecheck + lint + test + test:isolation + build
+                      # → porte de sortie de CHAQUE TICKET
+pnpm verify:full      # verify + test:e2e
+                      # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
 
-Les portes de vérification `pnpm verify` et `pnpm verify:full` sont armées au ticket L0-02.
+`pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
+
+## Intégration continue
+
+`.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa.
 
 ## Organisation
 
@@ -45,6 +57,7 @@ Les portes de vérification `pnpm verify` et `pnpm verify:full` sont armées au 
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          i18n/ (dictionnaire français), utils.ts
+tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
 
@@ -52,4 +65,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 — ticket **L0-01** fait. Aucune fonctionnalité métier, aucun schéma de base de données.
+Lot 0 — tickets **L0-01** (initialisation du dépôt) et **L0-02** (chaîne de vérification) faits. Aucune fonctionnalité métier, aucun schéma de base de données : ils commencent au ticket L0-03.

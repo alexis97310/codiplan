@@ -1,0 +1,82 @@
+name: CI
+
+# Arbitrage D14 — deux portes :
+#   verify       à chaque poussée et sur chaque proposition de fusion ;
+#   verify:full  sur main et chaque nuit.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  schedule:
+    # 15h00 UTC = 02h00 à Nouméa (UTC+11, sans changement d'heure).
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  verify:
+    name: verify
+    # Sur main et la nuit, verify est couvert par verify:full — inutile de le jouer deux fois.
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Vérifier le formatage
+        run: pnpm format:check
+
+      - name: pnpm verify
+        run: pnpm verify
+
+  verify-full:
+    name: verify:full
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Vérifier le formatage
+        run: pnpm format:check
+
+      - name: Installer le navigateur Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: pnpm verify:full
+        run: pnpm verify:full
+
+      - name: Rapport Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
