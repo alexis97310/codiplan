@@ -35,6 +35,13 @@ export default defineConfig({
           name: "isolation",
           environment: "node",
           include: ["tests/isolation/**/*.test.ts"],
+          // Base jetable provisionnée une fois avant la suite (L0-05).
+          globalSetup: ["./tests/isolation/setup/global.ts"],
+          // La préparation (migrate reset) et les scénarios partagent la même
+          // base : pas de parallélisme entre fichiers de ce projet.
+          fileParallelism: false,
+          testTimeout: 30000,
+          hookTimeout: 120000,
         },
       },
     ],

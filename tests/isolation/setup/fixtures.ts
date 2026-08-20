@@ -1,0 +1,110 @@
+/**
+ * Données déterministes et briques SQL partagées par le harnais d'isolation
+ * (ticket L0-05). Aucune donnée de production (I9) : deux sociétés fictives et
+ * leurs objets, tous en identifiants fixes lisibles.
+ *
+ * Les tables `client`, `site`, `machine`, `modele_materiel` sont des FIXTURES
+ * « contrat » : les vraies tables métier arrivent aux lots 1 et 2. Elles portent
+ * exactement la même politique de cloisonnement que les tables réelles et
+ * modèlent les chemins que L0-05 doit obligatoirement couvrir — résolution QR
+ * inter-société (D22), accès portail à un autre client et respect du périmètre
+ * de sites (D10). Quand les vraies tables seront livrées, elles devront honorer
+ * ce même contrat, réutilisant les mêmes constructeurs de politique ci-dessous.
+ */
+
+/** Rôle PostgreSQL non-owner, non-BYPASSRLS, sous lequel tournent les scénarios. */
+export const ROLE_APP = "codiplan_test_app";
+
+/** Variables de session lues par les politiques RLS. */
+export const VAR_SOCIETE = "app.societe_id";
+export const VAR_CLIENT = "app.client_id";
+export const VAR_PERIMETRE = "app.perimetre_sites";
+
+/** Sociétés A et B — cloisonnées l'une de l'autre. UUID v7 bien formés. */
+export const SOCIETE_A = "aaaaaaaa-0000-7000-8000-000000000001";
+export const SOCIETE_B = "bbbbbbbb-0000-7000-8000-000000000002";
+
+/** Clients (fixture). A1 et A2 appartiennent à la société A ; B1 à la société B. */
+export const CLIENT_A1 = "aaaaaaaa-0000-7000-8000-0000000000c1";
+export const CLIENT_A2 = "aaaaaaaa-0000-7000-8000-0000000000c2";
+export const CLIENT_B1 = "bbbbbbbb-0000-7000-8000-0000000000c1";
+
+/** Sites (fixture). Deux sites pour le client A1, un pour B1. */
+export const SITE_A1_S1 = "aaaaaaaa-0000-7000-8000-00000000551a";
+export const SITE_A1_S2 = "aaaaaaaa-0000-7000-8000-00000000551b";
+export const SITE_B1_S1 = "bbbbbbbb-0000-7000-8000-00000000551a";
+
+/** Machines (fixture) et leurs jetons QR (uniques globalement, D22). */
+export const MACHINE_A1 = "aaaaaaaa-0000-7000-8000-0000000000a1";
+export const MACHINE_A2 = "aaaaaaaa-0000-7000-8000-0000000000a2";
+export const MACHINE_B1 = "bbbbbbbb-0000-7000-8000-0000000000b1";
+export const QR_A1 = "qr-token-machine-a1";
+export const QR_A2 = "qr-token-machine-a2";
+export const QR_B1 = "qr-token-machine-b1";
+
+/** Modèles matériel (fixture) — référentiel plateforme surchargeable (D4). */
+export const MODELE_PLATEFORME = "00000000-0000-7000-8000-0000000000f0";
+export const MODELE_SURCHARGE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
+export const MODELE_SURCHARGE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
+
+/** Agences (fixture d'isolation, distinctes du seed applicatif). */
+export const AGENCE_A = "aaaaaaaa-0000-7000-8000-0000000000e1";
+export const AGENCE_B = "bbbbbbbb-0000-7000-8000-0000000000e2";
+
+/** Comptes portail (table réelle `utilisateur_client`). */
+export const UTILISATEUR_PORTAIL_A = "aaaaaaaa-0000-7000-8000-0000000000d1";
+export const UTILISATEUR_PORTAIL_B = "bbbbbbbb-0000-7000-8000-0000000000d2";
+export const PORTAIL_A_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d3";
+export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";
+
+/**
+ * Politique de cloisonnement société, forme imposée (D4), rendue « zéro ligne
+ * hors contexte » (voir la migration L0-04). Réutilisée à l'identique par les
+ * tables fixtures pour que le contrat testé soit le contrat réel.
+ */
+export function politiqueCloisonnementSql(table: string): string {
+  const clause = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '') OR "societe_id" IS NULL`;
+  return `
+    ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "cloisonnement_societe" ON "${table}"
+      USING (${clause}) WITH CHECK (${clause});
+  `;
+}
+
+/**
+ * Politique du parc pour un compte portail (D10, D22). Superpose au filtre
+ * société :
+ *   - `app.client_id` positionné (compte portail) ⇒ un seul client visible ;
+ *     absent (utilisateur interne) ⇒ tout le parc de la société ;
+ *   - `app.perimetre_sites` (liste d'UUID séparés par des virgules) ⇒ visibilité
+ *     restreinte à ces sites ; absent ⇒ tous les sites du client.
+ * Sert `client`, `site` et `machine` : la résolution QR passe par `machine` et
+ * hérite donc du même filtrage. `colonneClient` porte l'identité du client
+ * (`id` sur la table `client` elle-même, `client_id` ailleurs).
+ */
+export function politiqueParcSql(
+  table: string,
+  colonneClient: string,
+  colonneSite: string | null,
+): string {
+  const filtreSociete = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '')`;
+  const filtreClient = `(
+    NULLIF(current_setting('${VAR_CLIENT}', true), '') IS NULL
+    OR "${colonneClient}" = NULLIF(current_setting('${VAR_CLIENT}', true), '')
+  )`;
+  const filtreSite =
+    colonneSite === null
+      ? "true"
+      : `(
+    NULLIF(current_setting('${VAR_PERIMETRE}', true), '') IS NULL
+    OR "${colonneSite}" = ANY(
+      string_to_array(NULLIF(current_setting('${VAR_PERIMETRE}', true), ''), ',')
+    )
+  )`;
+  const clause = `${filtreSociete} AND ${filtreClient} AND ${filtreSite}`;
+  return `
+    ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "cloisonnement_parc" ON "${table}"
+      USING (${clause}) WITH CHECK (${clause});
+  `;
+}
