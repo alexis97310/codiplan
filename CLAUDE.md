@@ -61,19 +61,23 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 Dix règles. Une modification qui en viole une est un défaut, même si elle compile et que les tests passent.
 
 ### I1 — Cloisonnement multi-société
-Trois catégories de tables, et trois seulement.
+Quatre catégories de tables, et quatre seulement.
 
 **1. Tables métier** — `societe_id NOT NULL`. C'est le cas général, sans exception tacite.
 
 **2. Référentiels de plateforme** — `societe_id NULL`, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`.
 
-**3. Tables techniques d'authentification** *(D34)* — **pas de `societe_id` du tout**. Elles portent l'identité et la trace technique, jamais de la donnée métier : l'authentification doit pouvoir chercher un compte avant qu'aucune société ne soit active, et une bascule refusée de A vers B ne se range ni sous A ni sous B. **Liste close et énumérée** : `session`, `compte`, `verification`, `journal_acces`.
+**3. Tables techniques d'authentification** *(D34, D39)* — **pas de `societe_id` du tout**. Elles portent la trace technique de l'authentification, jamais de la donnée métier : l'authentification doit pouvoir chercher un compte avant qu'aucune société ne soit active, et une bascule refusée de A vers B ne se range ni sous A ni sous B. **Liste close et énumérée** : `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
 
 `journal_acces` porte `societe_id_source` et `societe_id_cible`, **informatives et nullables**. Elles répondent à une question et à une seule — « qui a tenté d'accéder à mes données » — et **ne filtrent jamais** : ni requête applicative, ni politique, ni index. Un test le prouve.
 
-**Les deux listes closes sont fermées** — toute addition exige un arbitrage explicite, jamais une décision de session.
+**4. Table d'identité de plateforme** *(D39)* — **pas de `societe_id` du tout** non plus. **Liste close, et elle ne contient qu'une table : `utilisateur`.**
 
-*Point ouvert, à arbitrer :* `utilisateur` et `second_facteur` ne portent pas non plus de `societe_id` et n'entrent dans aucune des trois catégories — D34 ne les nomme pas. Ne pas les ajouter de sa propre initiative ; le point est au registre de `docs/arbitrages.md`.
+Pourquoi une catégorie à elle seule, et non la troisième. Une session expire, une vérification se consomme, un second facteur se révoque : ces tables sont **purgeables**. Une identité est **durable**, elle porte des **données personnelles**, et elle sera **exposée dans la console éditeur au lot 7**. Une future politique de purge des tables techniques ne doit jamais pouvoir emporter les identités : ce sont deux régimes de conservation, donc deux catégories.
+
+**Règle attachée, et c'est elle qui rend son non-cloisonnement acceptable : aucune donnée métier sur `utilisateur`.** Fonction, agence de rattachement, habilitations, préférences — tout cela vit dans `utilisateur_societe`, qui est cloisonnée. `utilisateur` ne porte que ce qui sert à **trouver et authentifier** un compte. Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne métier y apparaît.
+
+**Les trois listes closes sont fermées** — toute addition exige un arbitrage explicite, jamais une décision de session.
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 *Vérification : `pnpm test:isolation`.*

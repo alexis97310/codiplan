@@ -298,7 +298,7 @@ Rattacher cette colonne à `admin_plateforme`, comme le faisait la version préc
 **Restrictions notables**
 
 - Tout accès est d'abord filtré par **société** : un utilisateur non habilité sur une société ne voit rien de cette société, quel que soit son rôle.
-- L'**administrateur de société** administre les comptes, les agences et les habilitations de **sa** société. Il ne lit pas les données financières : montants de vente, marges et éléments à facturer restent à la direction. Il n'est pas un rôle éditeur : il ne modifie pas les référentiels de plateforme (I1).
+- L'**administrateur de société** administre les comptes, les agences et les habilitations de **sa** société. Il ne lit pas les données financières : montants de vente, marges et éléments à facturer restent à la direction. Il n'est pas un rôle éditeur : il ne modifie pas les référentiels de plateforme (I1). **Son second facteur est obligatoire** (RG-DRO-05, D40) : compromettre ce seul compte permettrait de créer un accès n'importe où dans la société.
 - Le technicien ne voit que son planning et les machines des interventions qui lui sont ou lui ont été affectées, plus la recherche par QR code sur site. Il ne voit aucun montant de vente : il saisit des temps et des pièces.
 - L'ADV voit les montants de vente mais pas les marges.
 - Le client ne voit que ses propres sites, machines, interventions et documents, et uniquement les rapports validés.
@@ -750,6 +750,7 @@ Trois erreurs classiques, à écarter explicitement.
 | RG-DRO-02 | Un technicien n'accède qu'aux machines des interventions qui lui sont ou lui ont été affectées, plus la recherche par QR code sur site. |
 | RG-DRO-03 | Les montants de vente et les marges ne sont visibles que par les profils autorisés, selon la matrice du §5.2. |
 | RG-DRO-04 | Toute création, modification ou suppression sur une intervention, un contrat, une fiche machine ou un paramétrage société est journalisée avec auteur, horodatage et valeurs avant/après. |
+| RG-DRO-05 | Le second facteur est **obligatoire** pour les rôles `admin_plateforme`, `admin_societe` et `direction`. Pour `admin_societe`, la contrainte pèse sur un utilisateur du client : elle est **annoncée à l'ouverture de toute nouvelle société**, avant que le premier compte ne soit créé. Aucune société n'est ouverte sans que son administrateur ait été averti qu'une application d'authentification lui sera nécessaire. |
 
 ---
 
@@ -977,7 +978,7 @@ Volumétrie très modeste. Aucune contrainte de dimensionnement, y compris en mu
 | **Backend** | API Routes Next.js, contrats typés bout en bout | Un seul déploiement |
 | **Base de données** | PostgreSQL 16 avec sécurité au niveau des lignes | Cloisonnement multi-société garanti en base, pas seulement dans le code |
 | **ORM** | Prisma | Migrations versionnées, typage généré |
-| **Authentification** | Auth.js / Better Auth + MFA | Sessions, rôles par société, MFA sur les profils sensibles |
+| **Authentification** | Better Auth + MFA | Sessions, rôles par société, MFA sur les profils sensibles — `admin_plateforme`, `admin_societe`, `direction` (RG-DRO-05) |
 | **Stockage fichiers** | Stockage objet S3-compatible, préfixé par société | Photos, PDF, documents, fichiers d'import |
 | **Génération PDF** | React-PDF ou rendu serveur | Rapports et propositions à la charte de la société |
 | **Traitement Excel** | SheetJS côté serveur | Imports contrôlés et exports formatés |

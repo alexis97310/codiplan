@@ -170,6 +170,42 @@ describe("bascule de société — habilitation", () => {
 describe("bascule de société — second facteur", () => {
   afterAll(fermerClients);
 
+  it("refuse `admin_societe` sans second facteur, l'accepte avec (D40)", async () => {
+    // Il administre les comptes ET les habilitations de sa société : le
+    // compromettre permet de se créer un accès n'importe où chez ce client.
+    // C'est le seul rôle de la liste dont la contrainte pèse sur l'utilisateur
+    // d'un client, et non sur l'un des nôtres.
+    const utilisateurId = UTILISATEUR_PAR_ROLE[Role.admin_societe];
+    const sessionId = await ouvrirSession(utilisateurId);
+
+    const sans = await basculerSociete(
+      {
+        utilisateurId,
+        sessionId,
+        societeId: SOCIETE_A,
+        societeIdSource: null,
+        secondFacteurValide: false,
+      },
+      clientApp(),
+    );
+    expect(sans.accepte).toBe(false);
+    if (!sans.accepte) {
+      expect(sans.motif).toContain("second facteur");
+    }
+
+    const avec = await basculerSociete(
+      {
+        utilisateurId,
+        sessionId,
+        societeId: SOCIETE_A,
+        societeIdSource: null,
+        secondFacteurValide: true,
+      },
+      clientApp(),
+    );
+    expect(avec.accepte).toBe(true);
+  });
+
   it("refuse `direction` sans second facteur, l'accepte avec", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.direction];
     const sessionId = await ouvrirSession(utilisateurId);

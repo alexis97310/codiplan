@@ -13,6 +13,7 @@ import {
   ROLES_SECOND_FACTEUR_OBLIGATOIRE,
   schemaRole,
 } from "@/lib/auth/roles";
+import { peut } from "@/lib/auth/habilitations";
 
 /**
  * Énumération canonique des rôles (ticket L0-06 ; arbitrage gravité 4).
@@ -94,24 +95,41 @@ describe("familles de rôles", () => {
 });
 
 describe("second facteur obligatoire", () => {
-  it("l'exige sur `admin_plateforme` et `direction`, et sur eux seuls", () => {
+  it("l'exige sur `admin_plateforme`, `admin_societe` et `direction`, et sur eux seuls", () => {
+    // D40 — `admin_societe` rejoint la liste : il administre les comptes ET les
+    // habilitations de sa société, si bien que compromettre ce seul compte
+    // permet de se créer un accès n'importe où chez ce client.
     expect([...ROLES_SECOND_FACTEUR_OBLIGATOIRE]).toEqual([
       Role.admin_plateforme,
+      Role.admin_societe,
       Role.direction,
     ]);
 
     const exigeants = ROLES.filter(exigeSecondFacteur);
-    expect(exigeants).toEqual([Role.admin_plateforme, Role.direction]);
+    expect(exigeants).toEqual([
+      Role.admin_plateforme,
+      Role.admin_societe,
+      Role.direction,
+    ]);
+  });
+
+  it("l'exige de tout rôle capable d'administrer des utilisateurs", () => {
+    // La règle derrière la liste, plutôt que la liste elle-même : un futur rôle
+    // qui saurait ouvrir des comptes sans second facteur serait un trou, et ce
+    // scénario tombe avant qu'il n'existe.
+    for (const role of ROLES) {
+      if (peut(role, "administrer_utilisateurs")) {
+        expect(exigeSecondFacteur(role), `${role} administre des comptes`).toBe(
+          true,
+        );
+      }
+    }
   });
 
   it("ne l'exige pas des rôles opérationnels ni du portail", () => {
     for (const role of [
       Role.editeur_commercial,
       Role.editeur_support,
-      // D37 ne se prononce pas sur le second facteur d'`admin_societe` :
-      // l'étendre serait inventer une règle. Le point est ouvert, et il est
-      // porté au registre des arbitrages en attente.
-      Role.admin_societe,
       Role.responsable_materiel,
       Role.responsable_sav,
       Role.adv,

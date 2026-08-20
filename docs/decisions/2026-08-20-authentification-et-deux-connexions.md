@@ -174,7 +174,7 @@ serveur). Aucune autre.
 
 ## Suite — ce que le ticket L0-06b a corrigé
 
-La note d'arbitrage n°2 (20 août 2026) reprend quatre points laissés ouverts ici,
+La note d'arbitrage n°2 (20 août 2026) reprend six points laissés ouverts ici,
 et les tranche. Ce document reste le récit de L0-06 ; il n'est pas réécrit, mais
 il ne fait plus foi seul sur ces quatre points :
 
@@ -190,6 +190,16 @@ il ne fait plus foi seul sur ces quatre points :
   repli portable reste obligatoire, et les privilèges du rôle de consolidation
   sont désormais **contrôlés à chaque migration**. Voir
   `2026-08-20-consolidation-repli-portable.md`.
+- **D39** — les deux tables que D34 n'avait pas nommées sont rattachées :
+  `second_facteur` rejoint les tables techniques d'authentification, et
+  `utilisateur` reçoit une **quatrième catégorie**, à elle seule, avec la règle
+  qui la rend acceptable — **aucune donnée métier** dessus. Le paragraphe
+  ci-dessus qui rangeait les cinq tables ensemble n'est donc plus exact : leur
+  régime de conservation diffère.
+- **D40** — le second facteur devient obligatoire sur **`admin_societe`** en
+  plus des deux rôles cités plus haut, et cette obligation-là est une règle
+  produit (RG-DRO-05), pas seulement technique. Voir
+  `2026-08-20-second-facteur-admin-societe.md`.
 - **D37** — l'énumération des rôles passe à **dix** : `admin_societe` s'ajoute.
   Le point « la colonne Admin est celle d'`admin_plateforme` », défendu plus
   haut, est **renversé** : elle est de portée société et revient à

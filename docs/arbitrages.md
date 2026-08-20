@@ -475,6 +475,7 @@ Toutes acceptées, plus une trouvée en complément :
 | | |
 |---|---|
 | **Objet** | Trancher les questions ouvertes par l'authentification, les rôles et le rôle de consolidation |
+| **Portée** | D34 à D40 — les cinq premiers relevés à la livraison de L0-06, les deux derniers soumis puis arbitrés au cours de L0-06b |
 | **Statut** | Décisions arrêtées — même autorité que la note n°1, qu'elle complète et ne remplace pas |
 | **Date** | 20 août 2026 |
 | **Ticket** | L0-06b |
@@ -527,6 +528,30 @@ Le rôle voit **toutes** les sociétés et **peut se connecter**. Il n'a pas de 
 
 **Contrôle permanent**, ajouté au script de cloisonnement : `codiplan_reporting` ne détient **aucun privilège autre que `SELECT`**, vérifié par `information_schema.role_table_grants` et **non par déclaration**. Le contrôle échoue si un droit d'écriture apparaît un jour — et il échoue aussi s'il n'observe **rien**, un contrôle aveugle ressemblant beaucoup trop à la conformité.
 
+### D39 — `second_facteur` et `utilisateur`
+
+Les deux tables laissées hors catégorie par D34 sont rattachées, et **pas à la même**.
+
+**`second_facteur` est une omission, pas une décision.** C'est une table Better Auth de même nature que `compte` et `verification`. Elle rejoint la **troisième catégorie** de I1 — tables techniques d'authentification —, dont la liste close devient : `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
+
+**`utilisateur` est un cas différent, et reçoit sa propre catégorie**, la **quatrième** : **table d'identité de plateforme**. Liste close, et elle ne contient qu'elle.
+
+**Le motif, à écrire dans I1.** Une session expire, une vérification se consomme, un second facteur se révoque : ces tables sont **purgeables**. Une identité est **durable**, elle porte des **données personnelles**, et elle sera **exposée dans la console éditeur au lot 7**. Une future politique de purge des tables techniques ne doit jamais pouvoir emporter les identités. Ce sont deux régimes de conservation ; les ranger ensemble serait préparer une purge qui efface des personnes.
+
+**Règle attachée à cette catégorie, et c'est elle qui rend son non-cloisonnement acceptable : aucune donnée métier sur `utilisateur`.** Fonction, agence de rattachement, habilitations, préférences — tout cela vit dans `utilisateur_societe`, qui est cloisonnée. `utilisateur` ne porte que ce qui sert à **trouver et authentifier** un compte.
+
+Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne s'ajoute hors de la liste close, relations comprises — une relation `agence Agence` rattacherait une identité à un établissement aussi sûrement qu'un `agence_id`. Il est éprouvé d'abord sur un schéma fabriqué, comme le gardien des blocs `where:` de D34.
+
+### D40 — Second facteur obligatoire sur `admin_societe`
+
+`admin_societe` administre les **comptes** et les **habilitations** de sa société : compromettre ce seul compte permet de se créer un accès n'importe où chez ce client, sous n'importe quel rôle. La liste de L0-06 est étendue et devient : **`admin_plateforme`, `admin_societe`, `direction`**.
+
+**Une distinction que D37 n'avait pas vue.** Sur `admin_plateforme` et `direction`, la contrainte est **la nôtre** : nous l'imposons à nos propres salariés. Sur `admin_societe`, elle est **imposée à l'utilisateur d'un client payant**, qui ne l'a pas choisie et qui découvrira à sa première connexion qu'il lui faut une application d'authentification.
+
+C'est donc une **règle produit**, et pas seulement une règle technique : elle doit être **annoncée à l'ouverture de toute nouvelle société**. Elle est inscrite au chapitre 10 comme **RG-DRO-05**. Détail dans `docs/decisions/2026-08-20-second-facteur-admin-societe.md`.
+
+**Corollaire, au lot 7** : une procédure de déblocage d'un `admin_societe` ayant perdu son second facteur, exécutable par `admin_plateforme` seul et journalisée dans `journal_acces`. Une contrainte sans porte de sortie se paie en appels au support et finit par se faire contourner. Elle n'est **pas construite maintenant**.
+
 ---
 
 ## Ce qui reste à décider, et quand
@@ -535,20 +560,22 @@ Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
 
 | Échéance | Point |
 |---|---|
-| **Prochain arbitrage** | **Rattachement de `utilisateur` et `second_facteur`.** Elles ne portent pas de `societe_id` et n'entrent dans aucune des trois catégories de I1 : D34 ne les nomme pas. La liste des tables techniques d'authentification étant fermée, elles ne peuvent pas y être ajoutées sans décision |
-| **Prochain arbitrage** | **Second facteur obligatoire sur `admin_societe` ?** D37 crée le rôle sans se prononcer. Il administre les comptes de sa société, ce qui en fait un profil sensible au sens du §12.1 ; la liste de L0-06 (`admin_plateforme`, `direction`) est close et n'a pas été étendue |
+| **Prochain arbitrage** | **Rattachement de `parite`.** Elle ne porte pas de `societe_id` et n'entre dans aucune des quatre catégories de I1 : la liste close des référentiels de plateforme (D4) a été arrêtée **avant** que D20 ne crée cette table en remplacement de `devise.parite_reference`. Elle se comporte pourtant exactement comme `devise` — la parité légale du franc Pacifique est la même pour tous. Relevé en écrivant D39, non tranché : la liste est fermée |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
 | **Lot 5** | **Repli de consolidation portable (D36)** : fonction `SECURITY DEFINER`, et mot de passe de `codiplan_reporting` déposé dans `REPORTING_DATABASE_URL` |
+| **Lot 7** | **Déblocage d'un `admin_societe` ayant perdu son second facteur (D40)** : exécutable par `admin_plateforme` seul, journalisé dans `journal_acces` |
 | Lot 7 | Opérateur SMS, structure juridique, plafond de responsabilité ; durcissement de la visibilité des comptes entre sociétés |
 
 ---
 
 ## Une remarque sur la méthode
 
-**Ce que cette seconde note démontre.** Les soixante points de la note n°1 venaient d'une **lecture** ; les cinq qui suivent viennent d'une **livraison**. Écrire le code a fait apparaître ce qu'aucune relecture n'avait vu : une énumération fermée trop tôt, une catégorie de tables laissée à l'interprétation, un rôle de base de données traité comme une connexion ordinaire, et trois refus qui, mis côte à côte, formaient un annuaire de clients. Aucun de ces points n'était une erreur d'exécution — tous étaient des trous de spécification que seule l'exécution pouvait révéler.
+**Ce que cette seconde note démontre.** Les soixante points de la note n°1 venaient d'une **lecture** ; ceux qui précèdent viennent d'une **livraison**. Écrire le code a fait apparaître ce qu'aucune relecture n'avait vu : une énumération fermée trop tôt, une catégorie de tables laissée à l'interprétation, un rôle de base de données traité comme une connexion ordinaire, et trois refus qui, mis côte à côte, formaient un annuaire de clients. Aucun de ces points n'était une erreur d'exécution — tous étaient des trous de spécification que seule l'exécution pouvait révéler.
 
-La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant.**
+Deux d'entre eux — D39 et D40 — ont d'ailleurs été **soumis et non tranchés** dans un premier temps : la session qui les avait relevés s'est arrêtée devant une liste close et une règle de sécurité, comme le §8 du CLAUDE.md l'impose. Le troisième point de la même nature, le rattachement de `parite`, est relevé ici et attend son tour.
+
+La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant** — et ne jamais laisser une session compléter une liste close, fût-ce d'une évidence.
 
 *Note d'arbitrage n°2 — CODIPLAN — 20 août 2026*

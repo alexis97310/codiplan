@@ -133,6 +133,23 @@ model Agence {
 /// donc cette table pour `compte.mot_de_passe`, là où Better Auth le range
 /// (un utilisateur peut avoir plusieurs moyens d'authentification) ;
 /// `mfa_actif` porte le `twoFactorEnabled` du greffon second facteur.
+///
+/// **QUATRIÈME catégorie de I1 — table d'identité de plateforme (D39).** Elle
+/// est seule dans sa catégorie, et ne porte pas de `societe_id` : l'identité est
+/// unique au niveau plateforme (D35), les habilitations sont par société. Elle
+/// n'est pas rangée avec les tables techniques d'authentification parce qu'elle
+/// n'a pas leur régime de conservation : une session expire, une vérification se
+/// consomme, un second facteur se révoque — une identité est durable, porte des
+/// données personnelles, et sera exposée dans la console éditeur au lot 7. Une
+/// future purge des tables techniques ne doit pas pouvoir l'emporter.
+///
+/// **AUCUNE DONNÉE MÉTIER ICI.** C'est ce qui rend son non-cloisonnement
+/// acceptable, et ce n'est pas une recommandation : fonction, agence de
+/// rattachement, habilitations, préférences vivent dans `utilisateur_societe`,
+/// qui est cloisonnée. Cette table ne porte que ce qui sert à TROUVER et à
+/// AUTHENTIFIER un compte. Le gardien
+/// `tests/unit/auth/utilisateur-sans-donnee-metier.test.ts` lit ce fichier et
+/// échoue si une colonne s'ajoute ici sans arbitrage.
 model Utilisateur {
   id                 String    @id @db.Uuid
   nom                String
@@ -197,12 +214,22 @@ model UtilisateurClient {
 // `lib/auth/config.ts` déclare — la correspondance est explicite, jamais
 // devinée.
 //
-// Aucune de ces tables ne porte de `societe_id` : elles portent l'IDENTITÉ, pas
-// des données métier. Le cloisonnement société s'applique à `utilisateur_societe`
-// et `utilisateur_client`, qui disent qui est habilité où, et c'est par elles
-// que passe toute décision d'accès. La sécurité au niveau des lignes n'est donc
-// pas activée dessus — voir
+// Aucune de ces tables ne porte de `societe_id`. Elles forment la TROISIÈME
+// catégorie de I1 — les tables techniques d'authentification (D34, D39) : liste
+// close, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
+// Elles portent la trace technique, pas la donnée métier, et l'authentification
+// doit pouvoir chercher un compte avant qu'aucune société ne soit active.
+//
+// `utilisateur` n'en fait PAS partie : elle relève de la QUATRIÈME catégorie,
+// à elle seule (D39). Ces cinq tables-ci sont purgeables — une session expire,
+// une vérification se consomme, un second facteur se révoque ; une identité est
+// durable. Voir I1 et
 // docs/decisions/2026-08-20-authentification-et-deux-connexions.md.
+//
+// Le cloisonnement société s'applique à `utilisateur_societe` et
+// `utilisateur_client`, qui disent qui est habilité où, et c'est par elles que
+// passe toute décision d'accès. La sécurité au niveau des lignes n'est donc pas
+// activée sur les tables ci-dessous.
 
 /// Session serveur (I1, L0-06). Elle porte la société active et le rôle tenu
 /// sur cette société : c'est `societe_id_active` qui alimente `app.societe_id`

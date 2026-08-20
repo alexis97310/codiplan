@@ -63,6 +63,10 @@ Le minimum imposé est de douze scénarios.
 - `roles.test.ts` et `bascule-societe.test.ts` — **D37** : l'énumération compte
   désormais **dix** rôles, et `admin_societe` est éprouvé comme rôle interne —
   il voit sa société, et il ne modifie pas les référentiels de plateforme (I1).
+- `bascule-societe.test.ts` — **D40** : `admin_societe` est refusé sans second
+  facteur et accepté avec, sous le rôle applicatif réel. C'est le seul rôle de
+  la liste dont la contrainte pèse sur l'utilisateur d'un client, et non sur
+  l'un des nôtres (RG-DRO-05).
 
 ## Base de test
 
