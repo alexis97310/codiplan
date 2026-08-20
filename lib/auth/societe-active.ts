@@ -5,6 +5,7 @@ import { avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { type ContexteActif } from "./contexte";
+import { avecPlancherDeDuree, motifRefusUniforme } from "./reponse-uniforme";
 import { exigeSecondFacteur, Role } from "./roles";
 
 /**
@@ -24,6 +25,13 @@ import { exigeSecondFacteur, Role } from "./roles";
  * société active, si bien que l'absence d'habilitation se manifeste par zéro
  * ligne, quel que soit le chemin. La première barrière — le filtre applicatif —
  * et la seconde — la politique — disent alors la même chose.
+ *
+ * **Refus indiscernables (D35).** « Compte inconnu ou désactivé » et « aucune
+ * habilitation sur cette société » rendent le MÊME motif, sous le même plancher
+ * de durée que la connexion. Distinguer les deux revient à répondre à la
+ * question « cette société est-elle cliente de la plateforme, et untel y
+ * travaille-t-il ? », posée par quiconque possède un compte quelque part. Le
+ * motif réel reste écrit au journal des accès, qui est interne.
  */
 
 /** Issue d'une tentative de bascule. */
@@ -38,8 +46,12 @@ export type DemandeBascule = {
   sessionId: string;
   /** Société visée. */
   societeId: string;
-  /** Société active avant la bascule, `null` à la première activation. */
-  societeIdPrecedente: string | null;
+  /**
+   * Société active avant la bascule, `null` à la première activation. Elle est
+   * journalisée à titre INFORMATIF (D34) : elle dit d'où venait la tentative,
+   * elle ne filtre rien.
+   */
+  societeIdSource: string | null;
   /** Le second facteur a-t-il été validé à l'ouverture de la session ? */
   secondFacteurValide: boolean;
 };
@@ -73,7 +85,14 @@ async function lireRole(
   });
 }
 
-/** Écrit une ligne au journal des accès (D32). Table en ajout seul. */
+/**
+ * Écrit une ligne au journal des accès (D32). Table en ajout seul.
+ *
+ * `societe_id_source` et `societe_id_cible` sont posées ici, et lues nulle part
+ * pour filtrer (D34) : elles servent à répondre à « qui a tenté d'accéder à mes
+ * données ». Un refus de bascule de A vers B laisse ainsi une trace exploitable
+ * par les deux sociétés, alors qu'il ne se range ni sous l'une ni sous l'autre.
+ */
 async function journaliser(
   client: PrismaClient,
   demande: DemandeBascule,
@@ -87,7 +106,7 @@ async function journaliser(
       utilisateur_id: demande.utilisateurId,
       evenement,
       societe_id_cible: demande.societeId,
-      societe_id_precedente: demande.societeIdPrecedente,
+      societe_id_source: demande.societeIdSource,
       role,
       detail,
     },
@@ -105,36 +124,41 @@ export async function basculerSociete(
   demande: DemandeBascule,
   client: PrismaClient = clientParDefaut,
 ): Promise<ResultatBascule> {
+  return avecPlancherDeDuree(() => decider(demande, client));
+}
+
+/** Le travail lui-même. Chronométré par `basculerSociete`, jamais appelé nu. */
+async function decider(
+  demande: DemandeBascule,
+  client: PrismaClient,
+): Promise<ResultatBascule> {
   const utilisateur = await client.utilisateur.findUnique({
     where: { id: demande.utilisateurId },
     select: { actif: true },
   });
 
   if (utilisateur === null || !utilisateur.actif) {
-    const motif = "Compte inconnu ou désactivé.";
     await journaliser(
       client,
       demande,
       EvenementAcces.bascule_refusee,
       null,
-      motif,
+      "Compte inconnu ou désactivé.",
     );
-    return { accepte: false, motif };
+    return { accepte: false, motif: motifRefusUniforme() };
   }
 
   const role = await lireRole(client, demande.utilisateurId, demande.societeId);
 
   if (role === null) {
-    const motif =
-      "Aucune habilitation sur la société visée : la bascule est refusée.";
     await journaliser(
       client,
       demande,
       EvenementAcces.bascule_refusee,
       null,
-      motif,
+      "Aucune habilitation sur la société visée : la bascule est refusée.",
     );
-    return { accepte: false, motif };
+    return { accepte: false, motif: motifRefusUniforme() };
   }
 
   if (exigeSecondFacteur(role) && !demande.secondFacteurValide) {

@@ -20,7 +20,7 @@ import { z } from "zod";
 
 export { Role };
 
-/** Les neuf rôles, dans l'ordre de déclaration du schéma. */
+/** Les dix rôles, dans l'ordre de déclaration du schéma (D37). */
 export const ROLES: readonly Role[] = Object.freeze(Object.values(Role));
 
 /**
@@ -47,8 +47,17 @@ export const ROLES_EDITEUR: readonly Role[] = Object.freeze([
   Role.editeur_support,
 ]);
 
-/** Rôles internes à une société : ils s'exercent sur une société active. */
+/**
+ * Rôles internes à une société : ils s'exercent sur une société active.
+ *
+ * `admin_societe` est le dixième rôle, ajouté par D37. Il administre les
+ * comptes, les agences et les habilitations de SA société — et rien de plus :
+ * les données financières, montants de vente et marges, restent à la direction.
+ * C'est un rôle interne, pas un rôle éditeur : il ne modifie donc pas les
+ * référentiels de plateforme (I1). Son second facteur est obligatoire (D40).
+ */
 export const ROLES_INTERNES: readonly Role[] = Object.freeze([
+  Role.admin_societe,
   Role.direction,
   Role.responsable_materiel,
   Role.responsable_sav,
@@ -61,11 +70,27 @@ export const ROLE_PORTAIL: Role = Role.client;
 
 /**
  * Second facteur obligatoire (§12.1 « second facteur obligatoire pour les rôles
- * administrateur et direction », et §22.5 pour le super-administrateur
- * plateforme). La liste est fermée : l'ouvrir est une décision, pas un réflexe.
+ * administrateur et direction », §22.5 pour le super-administrateur plateforme,
+ * et D40 pour l'administrateur de société). La liste est fermée : l'ouvrir est
+ * une décision, pas un réflexe — D40 en est une.
+ *
+ * **Pourquoi `admin_societe` y figure.** Il administre les comptes ET les
+ * habilitations de sa société : compromettre ce seul compte permet de se créer
+ * un accès n'importe où chez ce client, sous n'importe quel rôle, sans laisser
+ * autre chose qu'une ligne d'administration d'apparence banale. C'est le compte
+ * dont la compromission coûte le plus cher chez un client.
+ *
+ * **Une différence de nature, à ne pas perdre de vue** (voir
+ * `docs/decisions/2026-08-20-second-facteur-admin-societe.md`) : sur
+ * `admin_plateforme` et `direction`, la contrainte est la nôtre, imposée à nos
+ * propres salariés. Sur `admin_societe`, elle est imposée à l'utilisateur d'un
+ * client payant, qui ne l'a pas choisie. Elle doit donc être annoncée à
+ * l'ouverture de toute nouvelle société — c'est une règle produit
+ * (RG-DRO-05), pas seulement une règle technique.
  */
 export const ROLES_SECOND_FACTEUR_OBLIGATOIRE: readonly Role[] = Object.freeze([
   Role.admin_plateforme,
+  Role.admin_societe,
   Role.direction,
 ]);
 

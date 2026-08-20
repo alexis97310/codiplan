@@ -5,6 +5,15 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 import { verifierRoleApplicatif } from "../lib/db/garde-role";
 import { avecSociete } from "../lib/db/rls";
 import {
+  ecartsPrivilegesConsolidation,
+  rapportPrivileges,
+  ROLE_CONSOLIDATION,
+  SQL_PRIVILEGES_CONSOLIDATION,
+  versPrivileges,
+  type LignePrivilege,
+  type PrivilegeAccorde,
+} from "./lib/privileges-consolidation";
+import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
   decompteVide,
@@ -47,6 +56,14 @@ import {
  *   — sans contexte société : zéro ligne sur chaque table cloisonnée ;
  *   — sous le contexte de chaque société : exactement ses lignes, ni plus
  *     (fuite entre sociétés), ni moins (données propres devenues invisibles).
+ *
+ * Enfin, un troisième contrôle, permanent, exigé par D38 : le rôle de
+ * consolidation `codiplan_reporting` ne détient AUCUN privilège autre que
+ * `SELECT`. Il voit toutes les sociétés et peut se connecter — c'est une clé
+ * passe-partout, et sa seule limite tient à ses droits. Cette limite est posée
+ * une fois par une migration ; elle est vérifiée ici à chaque exécution, par
+ * `information_schema.role_table_grants` et non par déclaration. Le jour où un
+ * droit d'écriture apparaît, l'étape échoue.
  *
  * Les témoins hors cloisonnement (`devise`, `parite`, `utilisateur`) restent
  * lisibles sans contexte (D4) : sans eux, une base vide ou une connexion muette
@@ -111,6 +128,43 @@ async function controlerSociete(
   });
 }
 
+/**
+ * Privilèges réellement accordés au rôle de consolidation (D38).
+ *
+ * Lus sous le rôle de MIGRATION, et pas sous le rôle applicatif : la vue ne
+ * montre que les droits dont le rôle connecté est bénéficiaire ou concédant, et
+ * c'est le rôle de migration qui a posé les `GRANT`. Sous `codiplan_app`, la
+ * requête rendrait zéro ligne — que `ecartsPrivilegesConsolidation` traite pour
+ * ce qu'elle est : un contrôle aveugle, donc un échec.
+ */
+async function lirePrivilegesConsolidation(
+  client: PrismaClient,
+): Promise<PrivilegeAccorde[]> {
+  const lignes = await client.$queryRawUnsafe<LignePrivilege[]>(
+    SQL_PRIVILEGES_CONSOLIDATION,
+    ROLE_CONSOLIDATION,
+  );
+
+  return versPrivileges(lignes);
+}
+
+/**
+ * URL du rôle de migration — celui qui a posé les `GRANT`, et le seul sous
+ * lequel le contrôle des privilèges de consolidation voie quelque chose.
+ */
+function urlMigration(): string {
+  const url = process.env.MIGRATION_DATABASE_URL;
+  if (url === undefined || url.trim().length === 0) {
+    throw new Error(
+      "MIGRATION_DATABASE_URL est vide : le contrôle permanent des privilèges " +
+        `de « ${ROLE_CONSOLIDATION} » (D38) ne peut pas être joué. Sous le ` +
+        "rôle applicatif, information_schema.role_table_grants est aveugle et " +
+        "rendrait zéro ligne — un vide qui ressemble trop à la conformité.",
+    );
+  }
+  return url;
+}
+
 function urlApplicative(): string {
   const url = process.env.DATABASE_URL;
   if (url === undefined || url.trim().length === 0) {
@@ -165,8 +219,12 @@ function rapport(
 }
 
 const url = urlApplicative();
+const migration = urlMigration();
 const inventaire = lireInventaire(readFileSync(FICHIER_INVENTAIRE, "utf8"));
 const prisma = new PrismaClient({ datasources: { db: { url } } });
+const prismaMigration = new PrismaClient({
+  datasources: { db: { url: migration } },
+});
 
 try {
   // Le garde-fou applicatif lui-même : si le rôle échappe aux politiques, il
@@ -183,9 +241,14 @@ try {
     rapport(diagnostic.role, diagnostic.base, inventaire, sansContexte),
   );
 
+  // D38 — les privilèges du rôle de consolidation, observés et non déclarés.
+  const privileges = await lirePrivilegesConsolidation(prismaMigration);
+  process.stdout.write(rapportPrivileges(privileges));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
+    ...ecartsPrivilegesConsolidation(privileges),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -205,8 +268,10 @@ try {
 
   process.stdout.write(
     "Cloisonnement vérifié sur la base hébergée : aucune ligne sans contexte, " +
-      "exactement les lignes de chaque société sous son contexte.\n",
+      "exactement les lignes de chaque société sous son contexte, et " +
+      `« ${ROLE_CONSOLIDATION} » en SELECT seul.\n`,
   );
 } finally {
   await prisma.$disconnect();
+  await prismaMigration.$disconnect();
 }

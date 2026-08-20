@@ -7,7 +7,7 @@ import {
   peutPleinement,
   type Capacite,
 } from "@/lib/auth/habilitations";
-import { Role, ROLES } from "@/lib/auth/roles";
+import { estRoleEditeur, estRoleInterne, Role, ROLES } from "@/lib/auth/roles";
 
 /**
  * Un scénario par rôle (ticket L0-06), prouvant ce que le rôle PEUT et ce qu'il
@@ -19,7 +19,10 @@ import { Role, ROLES } from "@/lib/auth/roles";
  * refusée, et le test le vérifie explicitement plus bas.
  *
  * Source : matrice du §5.2, à laquelle RG-DRO-03 renvoie, complétée du §22.5
- * pour les trois rôles éditeur, et corrigée par les arbitrages 3.8 et 3.17.
+ * pour les trois rôles éditeur, et corrigée par les arbitrages 3.8, 3.17 et
+ * D37. C'est D37 qui scinde la colonne « Admin » : les lignes du §5.2, toutes
+ * de portée société, reviennent à `admin_societe` ; `admin_plateforme` ne garde
+ * que ce qui est de portée plateforme, énuméré au §22.5.
  */
 type Scenario = {
   role: Role;
@@ -27,21 +30,57 @@ type Scenario = {
   nePeutPas: readonly Capacite[];
 };
 
+/**
+ * Les lignes du §5.2 — toutes de portée SOCIÉTÉ (D37). Les lignes de portée
+ * plateforme sont celles du §22.5, plus les référentiels de plateforme de I1 ;
+ * elles n'en font pas partie.
+ */
+const CAPACITES_SOCIETE: readonly Capacite[] = [
+  "consulter_planning",
+  "modifier_planning",
+  "creer_demande",
+  "qualifier_affecter",
+  "saisir_rapport",
+  "valider_rapport",
+  "cloturer_intervention",
+  "gerer_contrat",
+  "gerer_machine",
+  "consulter_parc_complet",
+  "voir_montants_vente",
+  "voir_marges",
+  "preparer_facturation",
+  "importer_exporter",
+  "parametrer_societe",
+  "administrer_utilisateurs",
+  "administrer_agences",
+  "consulter_journal_audit",
+];
+
 const SCENARIOS: readonly Scenario[] = [
   {
     // §22.5 — « Tout, y compris la création et la suppression de comptes
-    // clients. » C'est aussi la colonne « Admin » de la matrice §5.2.
+    // clients. » D37 : « tout » s'entend AU NIVEAU PLATEFORME. La colonne
+    // « Admin » du §5.2 ne lui appartient plus — elle est de portée société et
+    // revient à `admin_societe`. Sans quoi créer un compte chez un client
+    // passerait par l'éditeur, ce qui est intenable dès la première vente.
     role: Role.admin_plateforme,
     peut: [
-      "administrer_utilisateurs",
-      "parametrer_societe",
-      "consulter_journal_audit",
       "gerer_comptes_clients",
+      "gerer_abonnements",
+      "consulter_indicateurs_editeur",
+      "support_technique",
+      "connexion_en_tant_que",
       "modifier_referentiel_plateforme",
     ],
-    // Le seul refus de la colonne : le parc « propre », qui est la vue du
-    // portail client et n'a pas de sens pour un rôle interne.
-    nePeutPas: ["consulter_parc_propre"],
+    nePeutPas: [
+      "administrer_utilisateurs",
+      "administrer_agences",
+      "parametrer_societe",
+      "consulter_journal_audit",
+      "consulter_parc_complet",
+      "voir_marges",
+      "consulter_parc_propre",
+    ],
   },
   {
     // §22.5 — « Comptes, abonnements, facturation, indicateurs. Aucun accès aux
@@ -74,6 +113,31 @@ const SCENARIOS: readonly Scenario[] = [
       "gerer_abonnements",
       "administrer_utilisateurs",
       "voir_marges",
+    ],
+  },
+  {
+    // D37 — le dixième rôle. « Il administre comptes, agences et habilitations
+    // de SA société ; il ne lit pas les données financières, qui restent à
+    // direction. » Les habilitations sont des lignes d'`utilisateur_societe` :
+    // elles relèvent d'« administrer les utilisateurs ».
+    role: Role.admin_societe,
+    peut: [
+      "administrer_utilisateurs",
+      "administrer_agences",
+      "parametrer_societe",
+      "consulter_journal_audit",
+      "consulter_planning",
+    ],
+    nePeutPas: [
+      // Les données financières restent à la direction (D37).
+      "voir_montants_vente",
+      "voir_marges",
+      "preparer_facturation",
+      // Il administre SA société, pas la plateforme : ni les référentiels de
+      // plateforme (I1), ni les comptes clients de l'éditeur (§22.5).
+      "modifier_referentiel_plateforme",
+      "gerer_comptes_clients",
+      "consulter_parc_propre",
     ],
   },
   {
@@ -164,7 +228,7 @@ const SCENARIOS: readonly Scenario[] = [
 ];
 
 describe("matrice des rôles — un scénario par rôle", () => {
-  it("couvre les neuf rôles canoniques, sans oubli ni doublon", () => {
+  it("couvre les dix rôles canoniques, sans oubli ni doublon", () => {
     expect(SCENARIOS.map((scenario) => scenario.role)).toEqual([...ROLES]);
   });
 
@@ -235,5 +299,48 @@ describe("degrés d'accès", () => {
       Role.editeur_commercial,
       Role.editeur_support,
     ]);
+  });
+});
+
+describe("scission de la colonne « Admin » (D37)", () => {
+  it("aucune ligne du §5.2 ne revient à `admin_plateforme`", () => {
+    // Le principe du §22.5 : « un salarié de l'éditeur n'a aucun accès par
+    // défaut aux données d'un client ». La colonne « Admin » du §5.2 le
+    // contredisait ; elle est désormais celle d'`admin_societe`.
+    for (const capacite of CAPACITES_SOCIETE) {
+      expect(
+        niveau(Role.admin_plateforme, capacite),
+        `${capacite} est de portée société, elle ne revient pas à l'éditeur`,
+      ).toBe("aucun");
+    }
+  });
+
+  it("`admin_societe` reprend les lignes du §5.2, sauf les données financières", () => {
+    const financieres: readonly Capacite[] = [
+      "voir_montants_vente",
+      "voir_marges",
+      "preparer_facturation",
+    ];
+
+    for (const capacite of CAPACITES_SOCIETE) {
+      const attendu = financieres.includes(capacite) ? "aucun" : "complet";
+      expect(niveau(Role.admin_societe, capacite), capacite).toBe(attendu);
+    }
+  });
+
+  it("`admin_societe` reste un rôle interne, jamais un rôle éditeur", () => {
+    expect(estRoleInterne(Role.admin_societe)).toBe(true);
+    expect(estRoleEditeur(Role.admin_societe)).toBe(false);
+    // I1 — les référentiels de plateforme restent aux seuls rôles éditeur.
+    expect(peut(Role.admin_societe, "modifier_referentiel_plateforme")).toBe(
+      false,
+    );
+  });
+
+  it("le seul chemin de l'éditeur vers les données d'un client reste la « connexion en tant que »", () => {
+    expect(peut(Role.admin_plateforme, "connexion_en_tant_que")).toBe(true);
+    expect(niveau(Role.editeur_support, "connexion_en_tant_que")).toBe(
+      "restreint",
+    );
   });
 });

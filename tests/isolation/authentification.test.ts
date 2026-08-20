@@ -135,7 +135,7 @@ describe("connexion et session serveur", () => {
         utilisateurId: id,
         sessionId: session.id,
         societeId: SOCIETE_A,
-        societeIdPrecedente: null,
+        societeIdSource: null,
         secondFacteurValide: session.second_facteur_valide,
       },
       clientApp(),
