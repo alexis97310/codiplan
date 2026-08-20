@@ -17,6 +17,11 @@ export const fr = {
     "Plannings d'intervention et parc machines — Nouvelle-Calédonie.",
   "accueil.socle": "Socle technique en place. Aucune fonctionnalité métier.",
   "accueil.action": "Consulter la documentation",
+  // Message unique de tous les refus d'authentification (D35). Il ne dit ni si
+  // le compte existe, ni si le mot de passe est faux, ni si le compte est
+  // habilité quelque part : c'est exactement son objet.
+  "auth.refus":
+    "Accès refusé. Vérifiez vos identifiants ; si le problème persiste, contactez l'administrateur de votre société.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

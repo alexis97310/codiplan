@@ -22,14 +22,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Énumération canonique des rôles internes (arbitrage — gravité 4).
+/// Énumération canonique des rôles internes (arbitrage — gravité 4, puis D37).
 /// Complète dès maintenant même si l'authentification est câblée à L0-06.
 /// Le rôle `client` désigne un compte portail : il ne prend jamais de ligne
 /// dans `utilisateur_societe` (voir D10), il vit dans `utilisateur_client`.
+///
+/// `admin_societe` est le dixième rôle, ajouté par D37 : l'énumération avait été
+/// fermée avant l'arbitrage « il faut prévoir de vendre la solution », et il y
+/// manquait donc un administrateur AU NIVEAU SOCIÉTÉ. Sans lui, créer un compte
+/// chez un client passerait par l'éditeur — intenable dès la première vente.
+/// Il est déclaré entre les rôles éditeur et `direction` : c'est la frontière
+/// entre ce qui est au-dessus des sociétés et ce qui est dedans.
 enum Role {
   admin_plateforme
   editeur_commercial
   editeur_support
+  admin_societe
   direction
   responsable_materiel
   responsable_sav
@@ -295,19 +303,32 @@ enum EvenementAcces {
 ///
 /// Il enjambe les sociétés par nature — une bascule refusée de A vers B ne peut
 /// se ranger ni sous A ni sous B —, il ne porte donc pas de `societe_id NOT
-/// NULL` et n'est pas soumis au cloisonnement. C'est un journal technique, au
-/// même titre que `session`, et non une table métier au sens de I1.
+/// NULL` et n'est pas soumis au cloisonnement. C'est une **table technique
+/// d'authentification** au sens de la troisième catégorie de I1 (D34), au même
+/// titre que `session`, `compte` et `verification`, et non une table métier.
 /// Il est en ajout seul : la migration retire `UPDATE` et `DELETE` au rôle
 /// applicatif.
+///
+/// **`societe_id_source` et `societe_id_cible` sont INFORMATIVES** (D34). Elles
+/// répondent à une question, et à une seule : « qui a tenté d'accéder à mes
+/// données ». Elles ne filtrent jamais — ni ici, ni dans une politique RLS, ni
+/// dans une requête applicative. C'est pourquoi elles sont nullables, sans clé
+/// étrangère et sans index : une clé étrangère ou un index seraient la signature
+/// d'un usage de filtrage, et le premier filtre écrit sur elles ferait croire
+/// que le journal est cloisonné alors qu'il ne l'est pas. Le gardien
+/// `tests/unit/auth/journal-acces-informatif.test.ts` échoue si l'une d'elles
+/// apparaît dans un `where`.
 model JournalAcces {
-  id                    String         @id @db.Uuid
-  horodatage            DateTime       @default(now())
-  utilisateur_id        String         @db.Uuid
-  evenement             EvenementAcces
-  societe_id_cible      String?        @db.Uuid
-  societe_id_precedente String?        @db.Uuid
-  role                  Role?
-  detail                String?
+  id                String         @id @db.Uuid
+  horodatage        DateTime       @default(now())
+  utilisateur_id    String         @db.Uuid
+  evenement         EvenementAcces
+  /// Société active AVANT la tentative — informative, jamais filtrante (D34).
+  societe_id_source String?        @db.Uuid
+  /// Société VISÉE par la tentative — informative, jamais filtrante (D34).
+  societe_id_cible  String?        @db.Uuid
+  role              Role?
+  detail            String?
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
 

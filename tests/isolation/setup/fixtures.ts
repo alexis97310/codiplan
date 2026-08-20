@@ -71,7 +71,8 @@ export const AGENCE_B = "bbbbbbbb-0000-7000-8000-0000000000e2";
  * Un compte par rôle canonique (L0-06). Les identifiants portent le rang du
  * rôle dans l'énumération, pour rester lisibles à la lecture d'un échec.
  *
- * Les cinq rôles internes sont habilités sur la société A. Les trois rôles
+ * Les six rôles internes — `admin_societe` compris depuis D37 — sont habilités
+ * sur la société A. Les trois rôles
  * éditeur ne le sont sur AUCUNE société : c'est le principe du §22.5 — « un
  * salarié de l'éditeur n'a aucun accès par défaut aux données d'un client » —,
  * et c'est ce qui rend leur scénario négatif réel plutôt que théorique. Le rôle
@@ -81,6 +82,7 @@ export const UTILISATEUR_PAR_ROLE: Readonly<Record<Role, string>> = {
   admin_plateforme: "00000000-0000-7000-8000-000000000701",
   editeur_commercial: "00000000-0000-7000-8000-000000000702",
   editeur_support: "00000000-0000-7000-8000-000000000703",
+  admin_societe: "aaaaaaaa-0000-7000-8000-00000000070a",
   direction: "aaaaaaaa-0000-7000-8000-000000000704",
   responsable_materiel: "aaaaaaaa-0000-7000-8000-000000000705",
   responsable_sav: "aaaaaaaa-0000-7000-8000-000000000706",

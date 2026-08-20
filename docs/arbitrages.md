@@ -450,24 +450,11 @@ Toutes acceptées, plus une trouvée en complément :
 
 - **« six lots » → « sept lots (0 à 6) »**, et surtout **« 21 semaines » → « 25 semaines »** dans la note de révision — valeur résiduelle de la v1.0 que l'audit n'avait pas relevée.
 - **Better Auth** tranche définitivement, `Auth.js` disparaît du §12.1.
-- **Énumération canonique des rôles** : `admin_plateforme`, `editeur_commercial`, `editeur_support`, `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client`.
+- **Énumération canonique des rôles** : `admin_plateforme`, `editeur_commercial`, `editeur_support`, `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client`. *(Complétée par D37 : `admin_societe` s'y ajoute, en quatrième position — l'énumération compte dix rôles.)*
 - **`docs/decisions/`** créé avec un premier fichier reprenant D7, D13 et D21.
 - **Glossaire complété** : agence, tournée, échéancier, habilitation, préconisation, avenant, valorisation, recensement, forfait.
 - **CI désignée** : GitHub Actions.
 - **L0-05** : le critère « retirer le filtre société fait échouer les tests » devient une **vérification manuelle documentée**, à faire une fois au lot 0 et à consigner dans `docs/decisions/`. Un test de mutation automatisé serait disproportionné.
-
----
-
-## Ce qui reste à décider, et quand
-
-Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
-
-| Échéance | Point |
-|---|---|
-| Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
-| Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
-| Lot 4 | Grille tarifaire des contrats, types proposés en premier |
-| Lot 7 | Opérateur SMS, structure juridique, plafond de responsabilité |
 
 ---
 
@@ -478,3 +465,90 @@ Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
 **Ce qu'il faut en retenir pour la suite.** La faiblesse du cahier des charges n'était pas l'intention mais la redondance : la même règle écrite trois fois, avec des variantes. La décision D1 — le chapitre 10 comme source unique, tout le reste en dérive — supprime la cause plutôt que les symptômes. Elle doit être tenue à chaque évolution, sans quoi la liste se reconstituera.
 
 *Note d'arbitrage n°1 — CODIPLAN — 19 août 2026*
+
+---
+
+# CODIPLAN — Note d'arbitrage n°2
+
+**Réponses aux points soulevés par la livraison du ticket L0-06**
+
+| | |
+|---|---|
+| **Objet** | Trancher les questions ouvertes par l'authentification, les rôles et le rôle de consolidation |
+| **Statut** | Décisions arrêtées — même autorité que la note n°1, qu'elle complète et ne remplace pas |
+| **Date** | 20 août 2026 |
+| **Ticket** | L0-06b |
+
+### D34 — `journal_acces` et les tables techniques
+
+**La lecture faite à L0-06 est validée, et elle cesse d'être une interprétation.** L'invariant I1 gagne une **troisième catégorie, fermée et énumérée** : les **tables techniques d'authentification**, qui ne portent **pas de `societe_id` du tout**.
+
+**Aujourd'hui** : `session`, `compte`, `verification`, `journal_acces`. **Toute addition à cette liste passe par un arbitrage.**
+
+Ce ne sont pas des référentiels de plateforme — elles ne sont pas partagées, elles sont *hors* du cloisonnement. Elles portent l'identité et la trace technique : l'authentification cherche un compte avant qu'aucune société ne soit active, et une bascule refusée de A vers B ne se range ni sous A ni sous B.
+
+**`journal_acces` gagne deux colonnes, `societe_id_source` et `societe_id_cible`**, informatives et nullables. Elles répondent à une question, et à une seule : *qui a tenté d'accéder à mes données*. Elles **ne filtrent jamais** — ni requête applicative, ni politique, ni index, ni clé étrangère : un journal qui enjambe les sociétés ne peut pas être rangé sous l'une d'elles, et une requête qui filtrerait dessus donnerait l'apparence d'un cloisonnement qu'aucune politique ne garantit. Un test statique parcourt le dépôt et échoue si l'une d'elles apparaît dans un `where`, en Prisma comme en SQL.
+
+*(La colonne `societe_id_precedente` de L0-06 est renommée `societe_id_source` : c'est la même donnée, sous le nom que cet arbitrage retient.)*
+
+### D35 — Identités globales et réponses indiscernables
+
+**Une même personne travaille légitimement pour deux sociétés.** L'identité est **unique au niveau plateforme** — un compte, une adresse, un mot de passe —, les **habilitations sont par société**. C'est ce que L0-06 a construit ; c'est désormais une décision explicite, et non une conséquence de l'implémentation.
+
+**Ce qui ne peut pas attendre le lot 7.** Les réponses d'authentification doivent être **indiscernables**. Compte inexistant, mot de passe faux, compte sans habilitation : **même message, même ordre de grandeur de temps de réponse**. Sans quoi un client découvre, par la seule page de mot de passe oublié, quels de ses concurrents sont clients de la plateforme — sans mot de passe, sans effraction, sans trace anormale.
+
+Le message réel du refus reste écrit au journal des accès, qui est interne. Le refus « second facteur absent » reste distinct : il n'est atteignable qu'une fois le mot de passe validé et l'habilitation établie, il ne dit donc rien à un tiers.
+
+Un test le prouve, sur les deux chemins à la fois — connexion et activation de société.
+
+### D36 — Consolidation : `BYPASSRLS` accordé, repli obligatoire quand même
+
+**Vérification faite sur Neon le 20 août 2026** : `codiplan_reporting` porte bien `rolbypassrls = true`, `codiplan_app` porte `rolbypassrls = false`. Le chemin rapide de D21 fonctionne sur notre hébergement, et l'avertissement prévu dans la migration n'y est jamais déclenché. **Il reste en place** : il est destiné aux clients qui hébergeront ailleurs.
+
+**Le repli reste obligatoire, pour la portabilité — nous vendons la solution.** Chemin à construire au **lot 5** : une fonction `SECURITY DEFINER` appartenant au rôle **propriétaire**, `search_path` **fixe**, ne renvoyant que des **agrégats déjà consolidés**, `EXECUTE` accordé au seul `codiplan_reporting`. Aucune ligne ne sort, seulement des agrégats — ce qui rend l'invariant I2 structurellement impossible à violer.
+
+Détail dans `docs/decisions/2026-08-20-consolidation-repli-portable.md`.
+
+### D37 — Rôle `admin_societe`
+
+**L'énumération manquait d'un administrateur au niveau société.** Rattacher la colonne « Admin » du §5.2 à `admin_plateforme` signifiait que créer un compte chez un client passait par l'éditeur : intenable dès la première vente. L'énumération avait été fermée **avant** l'arbitrage « il faut prévoir de vendre la solution ».
+
+**`admin_societe` est le dixième rôle.** Il administre les **comptes, agences et habilitations de SA société**. Il **ne lit pas les données financières** — montants de vente, marges et éléments à facturer restent à la direction. Ce n'est pas un rôle éditeur : il ne modifie pas les référentiels de plateforme (I1).
+
+**La colonne « Admin » du §5.2 est scindée** : lignes de portée plateforme à `admin_plateforme`, lignes de portée société à `admin_societe`. Toutes les lignes du §5.2 étant de portée société, elles reviennent à `admin_societe` ; les capacités de portée plateforme sont celles du §22.5.
+
+**Le §5.2 du cahier des charges fait foi une fois corrigé — pas de rôle recopié ailleurs.**
+
+### D38 — `codiplan_reporting` est une clé passe-partout
+
+Le rôle voit **toutes** les sociétés et **peut se connecter**. Il n'a pas de mot de passe et n'en aura pas avant le lot 5. Il se traite comme ce qu'il est.
+
+**Règle, écrite aux interdits de `CLAUDE.md`** : son mot de passe ne sera **jamais** placé dans `DATABASE_URL` ni dans `MIGRATION_DATABASE_URL`, mais dans un secret **distinct**, `REPORTING_DATABASE_URL`, lu par le seul `lib/reporting`.
+
+**Contrôle permanent**, ajouté au script de cloisonnement : `codiplan_reporting` ne détient **aucun privilège autre que `SELECT`**, vérifié par `information_schema.role_table_grants` et **non par déclaration**. Le contrôle échoue si un droit d'écriture apparaît un jour — et il échoue aussi s'il n'observe **rien**, un contrôle aveugle ressemblant beaucoup trop à la conformité.
+
+---
+
+## Ce qui reste à décider, et quand
+
+Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
+
+| Échéance | Point |
+|---|---|
+| **Prochain arbitrage** | **Rattachement de `utilisateur` et `second_facteur`.** Elles ne portent pas de `societe_id` et n'entrent dans aucune des trois catégories de I1 : D34 ne les nomme pas. La liste des tables techniques d'authentification étant fermée, elles ne peuvent pas y être ajoutées sans décision |
+| **Prochain arbitrage** | **Second facteur obligatoire sur `admin_societe` ?** D37 crée le rôle sans se prononcer. Il administre les comptes de sa société, ce qui en fait un profil sensible au sens du §12.1 ; la liste de L0-06 (`admin_plateforme`, `direction`) est close et n'a pas été étendue |
+| Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
+| Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
+| Lot 4 | Grille tarifaire des contrats, types proposés en premier |
+| **Lot 5** | **Repli de consolidation portable (D36)** : fonction `SECURITY DEFINER`, et mot de passe de `codiplan_reporting` déposé dans `REPORTING_DATABASE_URL` |
+| Lot 7 | Opérateur SMS, structure juridique, plafond de responsabilité ; durcissement de la visibilité des comptes entre sociétés |
+
+---
+
+## Une remarque sur la méthode
+
+**Ce que cette seconde note démontre.** Les soixante points de la note n°1 venaient d'une **lecture** ; les cinq qui suivent viennent d'une **livraison**. Écrire le code a fait apparaître ce qu'aucune relecture n'avait vu : une énumération fermée trop tôt, une catégorie de tables laissée à l'interprétation, un rôle de base de données traité comme une connexion ordinaire, et trois refus qui, mis côte à côte, formaient un annuaire de clients. Aucun de ces points n'était une erreur d'exécution — tous étaient des trous de spécification que seule l'exécution pouvait révéler.
+
+La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant.**
+
+*Note d'arbitrage n°2 — CODIPLAN — 20 août 2026*

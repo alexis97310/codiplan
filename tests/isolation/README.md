@@ -35,7 +35,7 @@ Le minimum imposé est de douze scénarios.
 - `roles.test.ts` — **un scénario par rôle canonique**, prouvant à chaque fois ce
   que le rôle voit ET ce qu'il ne voit pas. L'énumération PostgreSQL est
   confrontée à l'énumération TypeScript, et `app_est_role_editeur()` au prédicat
-  `estRoleEditeur`, sur les neuf rôles.
+  `estRoleEditeur`, sur les dix rôles (neuf avant D37).
 - `bascule-societe.test.ts` — un compte habilité sur A ne bascule pas sur B ;
   le rôle est relu en base à chaque bascule ; acceptations **et** refus sont
   journalisés ; le journal des accès est en ajout seul.
@@ -46,6 +46,23 @@ Le minimum imposé est de douze scénarios.
   inscription, connexion, second facteur. Il éprouve la table de correspondance
   entre le vocabulaire de Better Auth et les colonnes du schéma, qui ne se relit
   pas mais s'exécute.
+
+## Ajouts du ticket L0-06b — arbitrages consécutifs
+
+- `reponses-indiscernables.test.ts` — **D35**. Les trois refus de l'arbitrage —
+  compte inexistant, mot de passe faux, compte sans habilitation — rendent le
+  **même message** et répondent dans le **même ordre de grandeur de temps**.
+  Mesuré contre la vraie base, sous le rôle applicatif réel : une uniformité
+  obtenue sur des doublures ne dirait rien du coût d'un hachage scrypt. Porte
+  aussi un témoin positif — un compte habilité entre bien.
+- `reporting.test.ts` — **D38**, deux scénarios de plus : `codiplan_reporting` ne
+  détient **aucun privilège autre que `SELECT`**, lu dans
+  `information_schema.role_table_grants` et non déclaré ; et il en détient bien
+  quelque chose, sans quoi le contrôle serait aveugle. Même requête et même règle
+  que `scripts/controle-cloisonnement.mts` joue contre la base hébergée.
+- `roles.test.ts` et `bascule-societe.test.ts` — **D37** : l'énumération compte
+  désormais **dix** rôles, et `admin_societe` est éprouvé comme rôle interne —
+  il voit sa société, et il ne modifie pas les référentiels de plateforme (I1).
 
 ## Base de test
 

@@ -61,7 +61,20 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 Dix règles. Une modification qui en viole une est un défaut, même si elle compile et que les tests passent.
 
 ### I1 — Cloisonnement multi-société
-Toute table métier porte `societe_id NOT NULL`, **sauf la liste close des référentiels de plateforme** : `devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`. Ceux-là portent `societe_id NULL`, sont lisibles par toutes les sociétés et modifiables par les seuls rôles éditeur. **Cette liste est fermée** — toute addition exige une décision explicite.
+Trois catégories de tables, et trois seulement.
+
+**1. Tables métier** — `societe_id NOT NULL`. C'est le cas général, sans exception tacite.
+
+**2. Référentiels de plateforme** — `societe_id NULL`, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+
+**3. Tables techniques d'authentification** *(D34)* — **pas de `societe_id` du tout**. Elles portent l'identité et la trace technique, jamais de la donnée métier : l'authentification doit pouvoir chercher un compte avant qu'aucune société ne soit active, et une bascule refusée de A vers B ne se range ni sous A ni sous B. **Liste close et énumérée** : `session`, `compte`, `verification`, `journal_acces`.
+
+`journal_acces` porte `societe_id_source` et `societe_id_cible`, **informatives et nullables**. Elles répondent à une question et à une seule — « qui a tenté d'accéder à mes données » — et **ne filtrent jamais** : ni requête applicative, ni politique, ni index. Un test le prouve.
+
+**Les deux listes closes sont fermées** — toute addition exige un arbitrage explicite, jamais une décision de session.
+
+*Point ouvert, à arbitrer :* `utilisateur` et `second_facteur` ne portent pas non plus de `societe_id` et n'entrent dans aucune des trois catégories — D34 ne les nomme pas. Ne pas les ajouter de sa propre initiative ; le point est au registre de `docs/arbitrages.md`.
+
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 *Vérification : `pnpm test:isolation`.*
 
@@ -133,6 +146,8 @@ pnpm verify:full      # verify + test:e2e
 
 **Interdit absolu :** modifier, désactiver ou assouplir un test pour faire passer la vérification. Si un test échoue, c'est le code qui est faux — ou le test révèle une ambiguïté, auquel cas il faut s'arrêter et le signaler.
 
+**Interdit absolu :** placer le mot de passe du rôle PostgreSQL `codiplan_reporting` dans `DATABASE_URL` ou dans `MIGRATION_DATABASE_URL` *(D38)*. Ce rôle voit **toutes** les sociétés et peut se connecter : c'est une clé passe-partout, et elle se range comme telle. Son mot de passe va dans un secret **distinct**, `REPORTING_DATABASE_URL`, lu par le seul `lib/reporting`. Il n'en a pas aujourd'hui, et n'en aura pas avant le lot 5. Deux gardiens le tiennent : un test statique refuse que la variable soit nommée hors de `lib/reporting/`, et `scripts/controle-cloisonnement.mts` vérifie à chaque migration, par `information_schema.role_table_grants` et non par déclaration, que le rôle ne détient **aucun privilège autre que `SELECT`**.
+
 ---
 
 ## 6. Organisation du code
@@ -190,4 +205,6 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 
 - **19/08/2026 — Ne jamais écrire la même règle métier à deux endroits.** Le cahier des charges v1.2 formulait certaines règles trois fois avec des variantes, ce qui a produit 60 points d'ambiguïté. Le chapitre 10 est la source unique ; tout le reste y renvoie.
 - **19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.** `code_winpro` est devenu `code_externe` : le produit est destiné à être vendu à des sociétés qui n'utilisent pas Winpro.
+- **20/08/2026 — Ne jamais fermer une énumération avant d'avoir tranché à qui l'on vend.** L'énumération des rôles a été arrêtée à neuf avant l'arbitrage « il faut prévoir de vendre la solution » ; il y manquait un administrateur au niveau société, si bien que créer un compte chez un client serait passé par l'éditeur. `admin_societe` est le dixième rôle (D37). Une énumération se ferme après la question « et chez le client ? », jamais avant.
+- **20/08/2026 — Un refus qui explique pourquoi est un renseignement.** « Compte inexistant », « mot de passe faux » et « compte sans habilitation » se répondaient différemment : cela suffisait à découvrir, depuis la seule page de mot de passe oublié, quels concurrents sont clients de la plateforme. Un seul message, un seul plancher de durée (D35).
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

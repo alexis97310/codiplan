@@ -37,6 +37,11 @@ import {
  *
  * Les trois rôles éditeur n'ont aucune habilitation, donc aucune société
  * active : c'est le principe du §22.5, et il rend leur négatif réel.
+ *
+ * Depuis D37, l'énumération compte dix rôles : `admin_societe` s'ajoute aux
+ * rôles internes. C'est le point de l'arbitrage — administrer une société est
+ * une affaire de société, pas d'éditeur — et le scénario négatif d'`admin_societe`
+ * sur les référentiels de plateforme est ce qui le rend vérifiable.
  */
 
 /** Lit les identifiants d'agences visibles dans le contexte courant. */
@@ -86,7 +91,7 @@ function idEcriture(rang: number): string {
 describe("énumération des rôles — base et TypeScript", () => {
   afterAll(fermerClients);
 
-  it("le type PostgreSQL porte exactement les neuf rôles, dans le même ordre", async () => {
+  it("le type PostgreSQL porte exactement les dix rôles, dans le même ordre", async () => {
     const valeurs = await clientOwner().$queryRawUnsafe<
       Array<{ valeur: string }>
     >(`
@@ -100,7 +105,7 @@ describe("énumération des rôles — base et TypeScript", () => {
     expect(valeurs.map((ligne) => ligne.valeur)).toEqual([...ROLES]);
   });
 
-  it("`app_est_role_editeur()` répond comme `estRoleEditeur` sur les neuf rôles", async () => {
+  it("`app_est_role_editeur()` répond comme `estRoleEditeur` sur les dix rôles", async () => {
     // La règle « seuls les rôles éditeur modifient les référentiels de
     // plateforme » est écrite deux fois — une fois en SQL, une fois en
     // TypeScript. Ce scénario est ce qui interdit qu'elles divergent.
@@ -170,6 +175,10 @@ describe("rôles internes — une société active, la leur", () => {
   afterAll(fermerClients);
 
   const internes = [
+    // D37 — `admin_societe` est un rôle INTERNE : il administre sa société,
+    // il ne modifie pas les référentiels de plateforme (I1). Le scénario
+    // négatif ci-dessous le prouve en base, pas seulement en TypeScript.
+    Role.admin_societe,
     Role.direction,
     Role.responsable_materiel,
     Role.responsable_sav,

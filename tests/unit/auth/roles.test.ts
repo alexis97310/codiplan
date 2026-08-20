@@ -18,7 +18,7 @@ import {
  * Énumération canonique des rôles (ticket L0-06 ; arbitrage gravité 4).
  *
  * La liste attendue est écrite ici EN TOUTES LETTRES, et c'est le seul endroit
- * du dépôt où elle l'est. C'est voulu : un test qui dériverait sa liste de la
+ * du dépôt où elle l'est. Elle compte dix rôles depuis D37. C'est voulu : un test qui dériverait sa liste de la
  * même source que le code ne vérifierait rien. Ici, la liste de l'arbitrage est
  * confrontée à ce que le schéma Prisma produit ; si l'une des deux bouge sans
  * l'autre, ce test tombe.
@@ -27,6 +27,9 @@ const LISTE_ARBITRAGE = [
   "admin_plateforme",
   "editeur_commercial",
   "editeur_support",
+  // Dixième rôle, ajouté par D37 : l'énumération avait été fermée avant
+  // l'arbitrage « il faut prévoir de vendre la solution ».
+  "admin_societe",
   "direction",
   "responsable_materiel",
   "responsable_sav",
@@ -36,7 +39,7 @@ const LISTE_ARBITRAGE = [
 ];
 
 describe("énumération canonique des rôles", () => {
-  it("compte exactement les neuf rôles de l'arbitrage, dans l'ordre", () => {
+  it("compte exactement les dix rôles de l'arbitrage, dans l'ordre", () => {
     expect([...ROLES]).toEqual(LISTE_ARBITRAGE);
   });
 
@@ -105,6 +108,10 @@ describe("second facteur obligatoire", () => {
     for (const role of [
       Role.editeur_commercial,
       Role.editeur_support,
+      // D37 ne se prononce pas sur le second facteur d'`admin_societe` :
+      // l'étendre serait inventer une règle. Le point est ouvert, et il est
+      // porté au registre des arbitrages en attente.
+      Role.admin_societe,
       Role.responsable_materiel,
       Role.responsable_sav,
       Role.adv,

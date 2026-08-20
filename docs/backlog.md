@@ -2,7 +2,7 @@
 
 **Tickets des lots 0 à 3 — chemin critique jusqu'à la mise en service terrain**
 
-*Version 2 — intègre la note d'arbitrage n°1. Les tickets modifiés par un arbitrage portent la référence `[Dxx]`.*
+*Version 3 — intègre les notes d'arbitrage n°1 et n°2. Les tickets modifiés par un arbitrage portent la référence `[Dxx]`.*
 
 Format : `[identifiant] but — critères d'acceptation`. Chaque critère doit être vérifiable par une machine.
 Source de la règle métier : **chapitre 10 du cahier des charges**, complété par `docs/arbitrages.md` qui prévaut.
@@ -42,9 +42,17 @@ Inclut obligatoirement : le chemin **`GET /machines/qr/{token}`**, qui doit refu
 
 **L0-06 — Authentification et rôles. [D21]**
 Better Auth, sessions serveur, MFA sur `admin_plateforme` et `direction`.
-Énumération canonique des rôles, complète dès maintenant : `admin_plateforme`, `editeur_commercial`, `editeur_support`, `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client`.
+Énumération canonique des rôles, complète dès maintenant : `admin_plateforme`, `editeur_commercial`, `editeur_support`, **`admin_societe`** [D37], `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client` — **dix rôles**.
 Rôle PostgreSQL `codiplan_reporting` avec `BYPASSRLS`, en `SELECT` seul, réservé à `lib/reporting`.
 *Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé ; un test vérifie qu'aucun chemin hors `lib/reporting` n'utilise la connexion `codiplan_reporting`.
+
+**L0-06b — Arbitrages consécutifs à L0-06. [D34] [D35] [D36] [D37] [D38]**
+Troisième catégorie de I1 — **tables techniques d'authentification**, liste close : `session`, `compte`, `verification`, `journal_acces` [D34].
+`journal_acces.societe_id_source` et `societe_id_cible`, informatives et nullables : elles répondent à « qui a tenté d'accéder à mes données », jamais à un filtre.
+Identités globales, habilitations par société ; **réponses d'authentification indiscernables** — compte inexistant, mot de passe faux, compte sans habilitation [D35].
+Dixième rôle `admin_societe`, colonne « Admin » du §5.2 scindée [D37].
+Mot de passe de `codiplan_reporting` dans `REPORTING_DATABASE_URL` seulement, et contrôle permanent de ses privilèges [D38].
+*Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles.
 
 **L0-07 — Module monétaire. [D19]**
 `lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon — et `convertForConsolidation(montant, source, cible, dateParite)`, réservée à `lib/reporting` et exigeant une date de parité explicite.

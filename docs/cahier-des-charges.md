@@ -257,41 +257,53 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 
 **Le client professionnel** — veut savoir quand le technicien passe, ce qui a été fait, et retrouver ses rapports sans téléphoner.
 
-**L'administrateur** — paramètre la plateforme et les sociétés, gère les comptes, surveille les journaux.
+**L'administrateur de société** — paramètre **sa** société, gère ses comptes, ses agences et les habilitations, surveille les journaux. C'est un utilisateur du client, pas un salarié de l'éditeur : chez un client qui vient d'acheter, c'est lui qui ouvre les comptes de ses collègues, sans rien demander à personne (D37). Il ne lit pas les données financières.
+
+**L'administrateur de plateforme** — salarié de l'éditeur. Il gère les comptes clients, les abonnements et le référentiel de plateforme. Il n'a **aucun accès par défaut** aux données d'un client : voir §22.5.
 
 ### 5.2 Matrice des rôles
 
-| Fonction | Admin | Direction | Resp. matériel | Resp. SAV | ADV | Technicien | Client |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Consulter le planning | ● | ● | ● | ● | ● | ○ | — |
-| Modifier le planning | ● | ● | ● | ● | ● | — | — |
-| Créer une demande | ● | ● | ● | ● | ● | ● | ● |
-| Qualifier / affecter | ● | ● | ● | ● | ● | — | — |
-| Saisir un rapport | ● | — | ● | ● | — | ● | — |
-| Valider un rapport | ● | ● | ● | ● | — | — | — |
-| Clôturer une intervention | ● | ● | ● | ● | ● | ○ | — |
-| Créer / modifier un contrat | ● | ● | ● | — | ○ | — | — |
-| Créer / modifier une machine | ● | ● | ● | ● | ● | ● | — |
-| Consulter le parc complet | ● | ● | ● | ● | ● | ○ | — |
-| Consulter son propre parc | — | — | — | — | — | — | ● |
-| Voir les montants de vente | ● | ● | ● | ● | ● | — | ○ |
-| Voir les marges | ● | ● | ● | ○ | — | — | — |
-| Préparer les éléments à facturer | ● | ● | ● | — | ● | — | — |
-| Importer / exporter en masse | ● | ● | ● | ○ | ● | — | — |
-| Paramétrer une société | ● | ○ | — | — | — | — | — |
-| Administrer les utilisateurs | ● | — | — | — | — | — | — |
-| Consulter le journal d'audit | ● | ● | — | — | — | — | — |
+*Corrigée par l'arbitrage D37 — la colonne « Admin » d'origine est **scindée**.*
+
+| Fonction | Admin plateforme | Admin société | Direction | Resp. matériel | Resp. SAV | ADV | Technicien | Client |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Consulter le planning | — | ● | ● | ● | ● | ● | ○ | — |
+| Modifier le planning | — | ● | ● | ● | ● | ● | — | — |
+| Créer une demande | — | ● | ● | ● | ● | ● | ● | ● |
+| Qualifier / affecter | — | ● | ● | ● | ● | ● | — | — |
+| Saisir un rapport | — | ● | — | ● | ● | — | ● | — |
+| Valider un rapport | — | ● | ● | ● | ● | — | — | — |
+| Clôturer une intervention | — | ● | ● | ● | ● | ● | ○ | — |
+| Créer / modifier un contrat | — | ● | ● | ● | — | ○ | — | — |
+| Créer / modifier une machine | — | ● | ● | ● | ● | ● | ● | — |
+| Consulter le parc complet | — | ● | ● | ● | ● | ● | ○ | — |
+| Consulter son propre parc | — | — | — | — | — | — | — | ● |
+| Voir les montants de vente | — | — | ● | ● | ● | ● | — | ○ |
+| Voir les marges | — | — | ● | ● | ○ | — | — | — |
+| Préparer les éléments à facturer | — | — | ● | ● | — | ● | — | — |
+| Importer / exporter en masse | — | ● | ● | ● | ○ | ● | — | — |
+| Paramétrer une société | — | ● | ○ | — | — | — | — | — |
+| Administrer les utilisateurs | — | ● | — | — | — | — | — | — |
+| Administrer les agences | — | ● | — | — | — | — | — | — |
+| Consulter le journal d'audit | — | ● | ● | — | — | — | — | — |
 
 ● accès complet ○ accès restreint (périmètre limité ou lecture seule) — pas d'accès
+
+**Cette matrice fait foi.** Les rôles ne sont recopiés nulle part ailleurs : `lib/auth/habilitations.ts` la transcrit ligne pour ligne, et un test compare la transcription au tableau ci-dessus, rôle par rôle.
+
+**La colonne « Admin » est scindée en deux (D37).** Toutes les lignes de cette matrice sont de **portée société** — elles décrivent ce qui se fait *à l'intérieur* d'une société : elles reviennent donc à `admin_societe`, l'administrateur du client. La colonne « Admin plateforme » est vide à dessein, et c'est le principe du §22.5 rendu visible : **un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client.** Les capacités de portée plateforme d'`admin_plateforme` sont énumérées au §22.5 et n'ont pas leur place ici.
+
+Rattacher cette colonne à `admin_plateforme`, comme le faisait la version précédente, revenait à faire passer par l'éditeur la création d'un compte chez un client : intenable dès la première vente.
 
 **Restrictions notables**
 
 - Tout accès est d'abord filtré par **société** : un utilisateur non habilité sur une société ne voit rien de cette société, quel que soit son rôle.
+- L'**administrateur de société** administre les comptes, les agences et les habilitations de **sa** société. Il ne lit pas les données financières : montants de vente, marges et éléments à facturer restent à la direction. Il n'est pas un rôle éditeur : il ne modifie pas les référentiels de plateforme (I1).
 - Le technicien ne voit que son planning et les machines des interventions qui lui sont ou lui ont été affectées, plus la recherche par QR code sur site. Il ne voit aucun montant de vente : il saisit des temps et des pièces.
 - L'ADV voit les montants de vente mais pas les marges.
 - Le client ne voit que ses propres sites, machines, interventions et documents, et uniquement les rapports validés.
 
-**Rôles éditeur.** La commercialisation de la solution (chapitre 22) introduit trois rôles supplémentaires — super-administrateur plateforme, administration commerciale éditeur, support éditeur — qui se situent **au-dessus** des sociétés et non à l'intérieur. Le principe qui les gouverne : un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client ; tout accès est demandé, motivé, limité dans le temps, journalisé et notifié. Voir §22.5.
+**Rôles éditeur.** La commercialisation de la solution (chapitre 22) introduit trois rôles supplémentaires — super-administrateur plateforme, administration commerciale éditeur, support éditeur — qui se situent **au-dessus** des sociétés et non à l'intérieur. Le principe qui les gouverne : un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client ; tout accès est demandé, motivé, limité dans le temps, journalisé et notifié. Le seul chemin vers les données d'un client est la « connexion en tant que », sur demande explicite, tracée et notifiée. Voir §22.5.
 
 ---
 
@@ -1428,11 +1440,11 @@ Espace d'administration réservé à l'éditeur, hors du périmètre de toute so
 
 ### 22.5 Rôles éditeur
 
-Trois rôles s'ajoutent à la matrice du §5.2, **au-dessus** des sociétés et non à l'intérieur.
+Trois rôles s'ajoutent à la matrice du §5.2, **au-dessus** des sociétés et non à l'intérieur. Ils ne se confondent pas avec `admin_societe`, qui est dedans (D37).
 
 | Rôle | Périmètre |
 |---|---|
-| **Super-administrateur plateforme** | Tout, y compris la création et la suppression de comptes clients. Second facteur obligatoire. Réservé à une ou deux personnes. |
+| **Super-administrateur plateforme** | Tout **au niveau plateforme** : création et suppression de comptes clients, abonnements, référentiels de plateforme. Second facteur obligatoire. Réservé à une ou deux personnes. Depuis D37, il ne détient **aucune** ligne de la matrice §5.2 : celles-ci sont de portée société et reviennent à `admin_societe`. |
 | **Administration commerciale éditeur** | Comptes, abonnements, facturation, indicateurs. Aucun accès aux données métier des clients. |
 | **Support éditeur** | Consultation technique et « connexion en tant que » sur demande explicite du client, avec traçabilité et notification. Aucun accès permanent aux données. |
 

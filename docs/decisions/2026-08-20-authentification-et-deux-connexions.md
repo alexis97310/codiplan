@@ -169,3 +169,31 @@ donc les droits de production, pas ceux du harnais.
 **Trois dépendances de plus** : `better-auth` (imposé par la stack), son greffon
 `two-factor` (inclus dans le paquet), et `zod` (imposé pour toute entrée
 serveur). Aucune autre.
+
+---
+
+## Suite — ce que le ticket L0-06b a corrigé
+
+La note d'arbitrage n°2 (20 août 2026) reprend quatre points laissés ouverts ici,
+et les tranche. Ce document reste le récit de L0-06 ; il n'est pas réécrit, mais
+il ne fait plus foi seul sur ces quatre points :
+
+- **D34** — « les tables d'identité ne sont pas cloisonnées, et c'est assumé »
+  devient une **catégorie explicite de I1**, fermée et énumérée : `session`,
+  `compte`, `verification`, `journal_acces`. La colonne `societe_id_precedente`
+  est renommée `societe_id_source` et forme, avec `societe_id_cible`, un couple
+  **informatif** qui ne filtre jamais.
+- **D35** — l'identité globale devient une décision explicite, et les refus
+  d'authentification deviennent **indiscernables**. Voir
+  `2026-08-20-identites-globales-et-reponses-indiscernables.md`.
+- **D36 et D38** — `BYPASSRLS` est bien accordé sur notre hébergement, mais le
+  repli portable reste obligatoire, et les privilèges du rôle de consolidation
+  sont désormais **contrôlés à chaque migration**. Voir
+  `2026-08-20-consolidation-repli-portable.md`.
+- **D37** — l'énumération des rôles passe à **dix** : `admin_societe` s'ajoute.
+  Le point « la colonne Admin est celle d'`admin_plateforme` », défendu plus
+  haut, est **renversé** : elle est de portée société et revient à
+  `admin_societe`. L'argument d'alors — « une capacité ne donne accès à rien tant
+  qu'aucune société n'est active » — restait vrai, mais il répondait à côté :
+  le problème n'était pas la fuite, c'était qu'ouvrir un compte chez un client
+  aurait exigé un salarié de l'éditeur.

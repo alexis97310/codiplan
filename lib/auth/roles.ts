@@ -20,7 +20,7 @@ import { z } from "zod";
 
 export { Role };
 
-/** Les neuf rôles, dans l'ordre de déclaration du schéma. */
+/** Les dix rôles, dans l'ordre de déclaration du schéma (D37). */
 export const ROLES: readonly Role[] = Object.freeze(Object.values(Role));
 
 /**
@@ -47,8 +47,17 @@ export const ROLES_EDITEUR: readonly Role[] = Object.freeze([
   Role.editeur_support,
 ]);
 
-/** Rôles internes à une société : ils s'exercent sur une société active. */
+/**
+ * Rôles internes à une société : ils s'exercent sur une société active.
+ *
+ * `admin_societe` est le dixième rôle, ajouté par D37. Il administre les
+ * comptes, les agences et les habilitations de SA société — et rien de plus :
+ * les données financières, montants de vente et marges, restent à la direction.
+ * C'est un rôle interne, pas un rôle éditeur : il ne modifie donc pas les
+ * référentiels de plateforme (I1).
+ */
 export const ROLES_INTERNES: readonly Role[] = Object.freeze([
+  Role.admin_societe,
   Role.direction,
   Role.responsable_materiel,
   Role.responsable_sav,
@@ -63,6 +72,14 @@ export const ROLE_PORTAIL: Role = Role.client;
  * Second facteur obligatoire (§12.1 « second facteur obligatoire pour les rôles
  * administrateur et direction », et §22.5 pour le super-administrateur
  * plateforme). La liste est fermée : l'ouvrir est une décision, pas un réflexe.
+ *
+ * **`admin_societe` n'y figure PAS**, et c'est un point ouvert, pas un oubli.
+ * D37 crée le rôle sans se prononcer sur son second facteur ; la liste vient du
+ * ticket L0-06 (« MFA sur `admin_plateforme` et `direction` ») et l'étendre
+ * serait inventer une règle. L'administrateur de société administre pourtant
+ * les comptes de sa société, ce qui en fait un profil sensible au sens de
+ * §12.1 : le point est porté au registre des arbitrages en attente
+ * (`docs/arbitrages.md`, « Ce qui reste à décider »).
  */
 export const ROLES_SECOND_FACTEUR_OBLIGATOIRE: readonly Role[] = Object.freeze([
   Role.admin_plateforme,
