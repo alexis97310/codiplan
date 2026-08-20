@@ -27,3 +27,6 @@ next-env.d.ts
 .DS_Store
 *.log
 .vercel
+
+# contrôle post-migration — inventaire produit par le workflow, jamais versionné
+/inventaire-controle.json

@@ -37,15 +37,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      # La connexion vient exclusivement du secret : jamais de valeur en clair
+      # La connexion vient exclusivement des secrets : jamais de valeur en clair
       # dans le dépôt (I9).
       #
-      # Ce secret porte l'URL du rôle PROPRIÉTAIRE : migrations et seed le
-      # conservent. À ne pas confondre avec la variable `DATABASE_URL` du service
-      # applicatif, qui porte, elle, l'URL du rôle non propriétaire
-      # `codiplan_app` (voir docs/decisions/2026-08-20-role-applicatif-et-force-rls.md).
-      # `DATABASE_URL` reste accepté en repli pour ne pas casser l'existant.
-      DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
+      # DEUX SECRETS, DEUX RÔLES, et aucun repli de l'un sur l'autre :
+      #   — MIGRATION_DATABASE_URL porte le rôle PRIVILÉGIÉ. Les migrations, le
+      #     seed et la purge en ont besoin : eux seuls font du DDL et écrivent le
+      #     socle. Ce rôle contourne les politiques de cloisonnement par nature,
+      #     c'est voulu, et c'est précisément pourquoi l'application ne doit
+      #     jamais l'utiliser.
+      #   — DATABASE_URL porte le rôle APPLICATIF `codiplan_app`, soumis aux
+      #     politiques. Seule l'étape de contrôle du cloisonnement s'en sert ici.
+      #
+      # Le repli `MIGRATION_DATABASE_URL || DATABASE_URL` a été retiré : depuis
+      # que DATABASE_URL porte le rôle applicatif, ce repli ferait tourner les
+      # migrations sous un rôle sans droits DDL — et masquerait un secret
+      # manquant derrière une erreur sans rapport.
+      # Voir docs/decisions/2026-08-20-inventaire-et-controle-de-cloisonnement.md.
+      DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v5
 
@@ -77,5 +86,31 @@ jobs:
       - name: Exécuter le seed
         run: pnpm db:seed
 
-      - name: Décompte de contrôle
-        run: pnpm exec tsx scripts/decompte-controle.mts
+      # ── Deux étapes, deux motifs d'échec distincts ────────────────────────
+      # 1. L'INVENTAIRE dit ce que la base contient. Il compte à plat, sous une
+      #    identité exemptée des politiques, et échoue s'il ne peut pas l'être :
+      #    un décompte filtré serait faux, et un inventaire faux est pire qu'un
+      #    inventaire absent.
+      # 2. Le CONTRÔLE DE CLOISONNEMENT dit ce que le rôle applicatif voit. Il
+      #    tourne sous DATABASE_URL — le rôle `codiplan_app`, soumis aux
+      #    politiques — et se confronte à l'inventaire.
+      # Confondre les deux, comme le faisait le décompte unique qu'elles
+      # remplacent, revient à mesurer les politiques à travers elles-mêmes.
+
+      - name: Inventaire à plat
+        run: pnpm exec tsx scripts/inventaire.mts
+
+      # Exécutée avec l'URL APPLICATIVE, jamais celle des migrations : le rôle
+      # de migration contourne les politiques, un contrôle joué sous lui ne
+      # prouverait rien. Le script refuse d'ailleurs de démarrer si les deux URL
+      # coïncident, ou si le rôle connecté échappe aux politiques.
+      #
+      # C'est l'angle mort que les tests d'isolation ne couvrent pas : ils
+      # éprouvent un PostgreSQL local jetable, donc les migrations écrites — pas
+      # la base hébergée, ni le rôle réellement déposé dans la configuration du
+      # service.
+      - name: Contrôle de cloisonnement (base hébergée, rôle applicatif)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: pnpm exec tsx scripts/controle-cloisonnement.mts
