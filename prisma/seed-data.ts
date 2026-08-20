@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import { Role } from "@/lib/auth/roles";
 
 /**
  * Jeu de données de démonstration (I9 — aucune donnée de production).
@@ -52,11 +52,14 @@ export type DeviseSeed = {
 export type HabilitationSeed = { societe_code: string; role: Role };
 
 export type UtilisateurInterneSeed = {
+  /** Nom affiché — Better Auth l'exige, et un compte sans nom ne se relit pas. */
+  nom: string;
   email: string;
   habilitations: HabilitationSeed[];
 };
 
 export type ComptePortailSeed = {
+  nom: string;
   email: string;
   societe_code: string;
   client_id: string;
@@ -155,15 +158,17 @@ export function societeParCode(code: string): SocieteSeed {
  */
 export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
   {
+    nom: "Direction de démonstration",
     email: "direction@codima.test",
     habilitations: [
-      { societe_code: "CODIMA-NC", role: "direction" },
-      { societe_code: "CODIMA-EU", role: "direction" },
+      { societe_code: "CODIMA-NC", role: Role.direction },
+      { societe_code: "CODIMA-EU", role: Role.direction },
     ],
   },
   {
+    nom: "ADV de démonstration",
     email: "adv@codima.test",
-    habilitations: [{ societe_code: "CODIMA-NC", role: "adv" }],
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.adv }],
   },
 ];
 
@@ -175,6 +180,7 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
  */
 export const COMPTES_PORTAIL: readonly ComptePortailSeed[] = [
   {
+    nom: "Contact portail de démonstration",
     email: "portail@example.test",
     societe_code: "CODIMA-NC",
     client_id: "0192f0a0-1000-7000-8000-000000000001",

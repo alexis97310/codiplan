@@ -1,65 +1,101 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
+import type { Role } from "@/lib/auth/roles";
+
 /**
- * Contexte société pour la sécurité au niveau des lignes (I1, ticket L0-04).
+ * Contexte de session pour la sécurité au niveau des lignes (I1, tickets L0-04
+ * et L0-06).
  *
- * Les politiques RLS lisent la variable de session PostgreSQL `app.societe_id`
- * (voir `prisma/migrations/.../rls_policies`). Ce module est le point de passage
- * unique qui la positionne, pour que le filtre base de données morde sur les
- * requêtes applicatives passant par un rôle restreint.
+ * Les politiques RLS lisent deux variables de session PostgreSQL :
+ *   - `app.societe_id` — le cloisonnement société (L0-04, forme imposée D4) ;
+ *   - `app.role` — le rôle tenu sur cette société, sans lequel l'écriture des
+ *     référentiels de plateforme ne saurait être réservée aux rôles éditeur
+ *     comme I1 l'exige (L0-06, fonction `app_est_role_editeur`).
  *
- * La variable est posée en `set_config(..., is_local => true)`, c'est-à-dire
- * portée à la transaction : elle est automatiquement remise à zéro au `COMMIT`
- * ou au `ROLLBACK`. Aucune fuite de contexte d'une requête à l'autre n'est donc
- * possible sur une connexion mutualisée — condition indispensable derrière un
- * pool.
+ * Ce module est le point de passage unique qui les positionne, pour que le
+ * filtre base de données morde sur les requêtes applicatives passant par un
+ * rôle restreint.
+ *
+ * Les variables sont posées en `set_config(..., is_local => true)`, c'est-à-dire
+ * portées à la transaction : elles sont automatiquement remises à zéro au
+ * `COMMIT` ou au `ROLLBACK`. Aucune fuite de contexte d'une requête à l'autre
+ * n'est donc possible sur une connexion mutualisée — condition indispensable
+ * derrière un pool.
  */
 
-/** Nom de la variable de session lue par les politiques RLS. */
+/** Nom de la variable de session portant la société active. */
 export const VARIABLE_SESSION_SOCIETE = "app.societe_id";
+
+/** Nom de la variable de session portant le rôle tenu sur cette société. */
+export const VARIABLE_SESSION_ROLE = "app.role";
 
 /** Client Prisma ou client de transaction — les deux exposent `$executeRawUnsafe`. */
 type ClientPrisma = PrismaClient | Prisma.TransactionClient;
 
 /**
- * Positionne `app.societe_id` sur la transaction courante.
+ * Positionne `app.societe_id` et `app.role` sur la transaction courante.
  *
  * `set_config` est utilisé plutôt que `SET LOCAL` parce qu'il accepte un
  * paramètre lié ($1) : la valeur ne transite jamais par de la concaténation de
  * chaîne, ce qui ferme la porte à toute injection dans la variable de session.
  *
- * La variable de session reste du texte — c'est le type de `current_setting` —
- * et ce sont les politiques qui la convertissent en `uuid` (forme D4). Corollaire
- * pour toute requête brute écrite ailleurs : un identifiant passé en paramètre
- * lié part en `text` et doit être casté sur place (`$1::uuid`), les colonnes
- * d'identifiants étant typées `uuid` depuis la migration
- * `20260820140000_identifiants_uuid`.
+ * Les variables de session restent du texte — c'est le type de
+ * `current_setting` — et ce sont les politiques et la fonction `app_role()` qui
+ * les convertissent en `uuid` et en `"Role"` (forme D4). Corollaire pour toute
+ * requête brute écrite ailleurs : un identifiant passé en paramètre lié part en
+ * `text` et doit être casté sur place (`$1::uuid`), les colonnes d'identifiants
+ * étant typées `uuid` depuis la migration `20260820140000_identifiants_uuid`.
+ *
+ * Un rôle absent est posé à la chaîne vide, que `NULLIF` ramène à `NULL` : le
+ * contexte est alors « société sans rôle », qui lit mais n'écrit aucun
+ * référentiel de plateforme.
  */
-async function poserContexteSociete(
+async function poserContexte(
   tx: ClientPrisma,
   societeId: string,
+  role: Role | null,
 ): Promise<void> {
   await tx.$executeRawUnsafe(
     "SELECT set_config($1, $2, true)",
     VARIABLE_SESSION_SOCIETE,
     societeId,
   );
+  await tx.$executeRawUnsafe(
+    "SELECT set_config($1, $2, true)",
+    VARIABLE_SESSION_ROLE,
+    role ?? "",
+  );
 }
 
 /**
- * Exécute `travail` dans une transaction dont le contexte société est positionné.
+ * Exécute `travail` dans une transaction portant société ET rôle.
  *
  * Toute requête émise sur le client de transaction fourni est alors soumise aux
- * politiques RLS avec `app.societe_id = societeId`. La transaction interactive
- * garantit qu'un seul et même connexion porte le contexte et les requêtes.
+ * politiques RLS avec `app.societe_id = societeId` et `app.role = role`. La
+ * transaction interactive garantit qu'une seule et même connexion porte le
+ * contexte et les requêtes.
+ */
+export function avecSocieteEtRole<T>(
+  prisma: PrismaClient,
+  societeId: string,
+  role: Role | null,
+  travail: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await poserContexte(tx, societeId, role);
+    return travail(tx);
+  });
+}
+
+/**
+ * Variante sans rôle, pour les chemins qui n'en ont pas : le seed et le
+ * contrôle de cloisonnement, qui écrivent le socle sous le rôle propriétaire.
+ * Un chemin de session passe toujours par `avecSocieteEtRole`.
  */
 export function avecSociete<T>(
   prisma: PrismaClient,
   societeId: string,
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await poserContexteSociete(tx, societeId);
-    return travail(tx);
-  });
+  return avecSocieteEtRole(prisma, societeId, null, travail);
 }

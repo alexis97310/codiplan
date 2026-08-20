@@ -30,6 +30,23 @@ chemins obligatoires de L0-05 :
 
 Le minimum imposé est de douze scénarios.
 
+## Ajouts du ticket L0-06 — authentification et rôles
+
+- `roles.test.ts` — **un scénario par rôle canonique**, prouvant à chaque fois ce
+  que le rôle voit ET ce qu'il ne voit pas. L'énumération PostgreSQL est
+  confrontée à l'énumération TypeScript, et `app_est_role_editeur()` au prédicat
+  `estRoleEditeur`, sur les neuf rôles.
+- `bascule-societe.test.ts` — un compte habilité sur A ne bascule pas sur B ;
+  le rôle est relu en base à chaque bascule ; acceptations **et** refus sont
+  journalisés ; le journal des accès est en ajout seul.
+- `reporting.test.ts` — le rôle `codiplan_reporting` (D21) lit les deux sociétés
+  à la fois, n'écrit rien et n'atteint aucune table de données personnelles ;
+  les deux gardes se contredisent sur `BYPASSRLS`, chacun pour son usage.
+- `authentification.test.ts` — parcours Better Auth complet contre la vraie base :
+  inscription, connexion, second facteur. Il éprouve la table de correspondance
+  entre le vocabulaire de Better Auth et les colonnes du schéma, qui ne se relit
+  pas mais s'exécute.
+
 ## Base de test
 
 Les scénarios tournent sur un **PostgreSQL local jetable**, recréé à chaque

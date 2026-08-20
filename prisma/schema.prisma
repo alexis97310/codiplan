@@ -94,6 +94,7 @@ model Societe {
   agences              Agence[]
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
+  sessions_actives     Session[]
 
   @@map("societe")
 }
@@ -117,18 +118,31 @@ model Agence {
 }
 
 /// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas
-/// portée ici mais par `utilisateur_societe`. Le hash du mot de passe et la MFA
-/// seront réellement câblés par Better Auth au ticket L0-06.
+/// portée ici mais par `utilisateur_societe`.
+///
+/// Ticket L0-06 : Better Auth est branché SUR cette table, et non sur une table
+/// `user` parallèle — un compte, une identité. Le hash du mot de passe quitte
+/// donc cette table pour `compte.mot_de_passe`, là où Better Auth le range
+/// (un utilisateur peut avoir plusieurs moyens d'authentification) ;
+/// `mfa_actif` porte le `twoFactorEnabled` du greffon second facteur.
 model Utilisateur {
   id                 String    @id @db.Uuid
+  nom                String
   email              String    @unique
-  mot_de_passe_hash  String?
+  email_verifie      Boolean   @default(false)
+  avatar_url         String?
   mfa_actif          Boolean   @default(false)
   actif              Boolean   @default(true)
   derniere_connexion DateTime?
+  cree_le            DateTime  @default(now())
+  modifie_le         DateTime  @updatedAt
 
-  societes UtilisateurSociete[]
-  clients  UtilisateurClient[]
+  societes         UtilisateurSociete[]
+  clients          UtilisateurClient[]
+  sessions         Session[]
+  comptes          Compte[]
+  seconds_facteurs SecondFacteur[]
+  acces_journalise JournalAcces[]
 
   @@map("utilisateur")
 }
@@ -165,4 +179,138 @@ model UtilisateurClient {
 
   @@unique([utilisateur_id, client_id])
   @@map("utilisateur_client")
+}
+
+// ── Authentification et rôles (ticket L0-06, arbitrages D21 et gravité 4) ────
+//
+// Better Auth est branché sur la table `utilisateur` ci-dessus ; les quatre
+// tables qui suivent sont les siennes, renommées dans la langue du schéma.
+// Leurs noms de champs Prisma sont ceux que la configuration de
+// `lib/auth/config.ts` déclare — la correspondance est explicite, jamais
+// devinée.
+//
+// Aucune de ces tables ne porte de `societe_id` : elles portent l'IDENTITÉ, pas
+// des données métier. Le cloisonnement société s'applique à `utilisateur_societe`
+// et `utilisateur_client`, qui disent qui est habilité où, et c'est par elles
+// que passe toute décision d'accès. La sécurité au niveau des lignes n'est donc
+// pas activée dessus — voir
+// docs/decisions/2026-08-20-authentification-et-deux-connexions.md.
+
+/// Session serveur (I1, L0-06). Elle porte la société active et le rôle tenu
+/// sur cette société : c'est `societe_id_active` qui alimente `app.societe_id`
+/// et `role_actif` qui alimente `app.role`. Une session sans société active ne
+/// lit rien — les politiques RLS renvoient zéro ligne sans contexte.
+model Session {
+  id                    String   @id @db.Uuid
+  token                 String   @unique
+  utilisateur_id        String   @db.Uuid
+  expire_le             DateTime
+  adresse_ip            String?
+  agent_utilisateur     String?
+  societe_id_active     String?  @db.Uuid
+  role_actif            Role?
+  second_facteur_valide Boolean  @default(false)
+  cree_le               DateTime @default(now())
+  modifie_le            DateTime @updatedAt
+
+  utilisateur    Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+  societe_active Societe?    @relation(fields: [societe_id_active], references: [id])
+
+  @@index([utilisateur_id])
+  @@map("session")
+}
+
+/// Moyen d'authentification rattaché à un compte (table `account` de Better
+/// Auth). Le mot de passe y est rangé sous forme de hash — jamais sur
+/// `utilisateur`. Les colonnes de jetons servent aux fournisseurs externes ;
+/// aucune n'est utilisée en V1, mais Better Auth exige leur présence.
+model Compte {
+  id                               String    @id @db.Uuid
+  utilisateur_id                   String    @db.Uuid
+  emetteur                         String
+  compte_externe_id                String
+  fournisseur_id                   String
+  mot_de_passe                     String?
+  jeton_acces                      String?
+  jeton_rafraichissement           String?
+  jeton_identite                   String?
+  jeton_acces_expire_le            DateTime?
+  jeton_rafraichissement_expire_le DateTime?
+  portee                           String?
+  cree_le                          DateTime  @default(now())
+  modifie_le                       DateTime  @updatedAt
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+
+  @@unique([emetteur, compte_externe_id])
+  @@index([utilisateur_id])
+  @@map("compte")
+}
+
+/// Jetons à usage unique de Better Auth : vérification d'adresse, réinitialisation
+/// de mot de passe, second facteur en attente.
+model Verification {
+  id          String   @id @db.Uuid
+  identifiant String
+  valeur      String
+  expire_le   DateTime
+  cree_le     DateTime @default(now())
+  modifie_le  DateTime @updatedAt
+
+  @@index([identifiant])
+  @@map("verification")
+}
+
+/// Second facteur TOTP et codes de secours (greffon `twoFactor`). Obligatoire
+/// pour les rôles `admin_plateforme` et `direction` — §22.5 et §12.1 du cahier
+/// des charges ; la règle est portée par `lib/auth/roles.ts`.
+model SecondFacteur {
+  id                  String    @id @db.Uuid
+  utilisateur_id      String    @db.Uuid
+  secret              String
+  codes_secours       String
+  verifie             Boolean   @default(true)
+  echecs_verification Int       @default(0)
+  verrouille_jusqu_a  DateTime?
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+
+  @@index([utilisateur_id])
+  @@index([secret])
+  @@map("second_facteur")
+}
+
+/// Événements d'accès journalisés (D32, dernier alinéa).
+enum EvenementAcces {
+  bascule_societe
+  bascule_refusee
+  requete_consolidation
+}
+
+/// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera
+/// les valeurs avant/après des écritures métier. Celui-ci enregistre ce que D32
+/// conserve des LECTURES : « les accès des rôles éditeur aux données d'une
+/// société cliente, et les basculements de société active », plus la
+/// journalisation des requêtes de consolidation exigée par D21.
+///
+/// Il enjambe les sociétés par nature — une bascule refusée de A vers B ne peut
+/// se ranger ni sous A ni sous B —, il ne porte donc pas de `societe_id NOT
+/// NULL` et n'est pas soumis au cloisonnement. C'est un journal technique, au
+/// même titre que `session`, et non une table métier au sens de I1.
+/// Il est en ajout seul : la migration retire `UPDATE` et `DELETE` au rôle
+/// applicatif.
+model JournalAcces {
+  id                    String         @id @db.Uuid
+  horodatage            DateTime       @default(now())
+  utilisateur_id        String         @db.Uuid
+  evenement             EvenementAcces
+  societe_id_cible      String?        @db.Uuid
+  societe_id_precedente String?        @db.Uuid
+  role                  Role?
+  detail                String?
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
+
+  @@index([utilisateur_id, horodatage])
+  @@map("journal_acces")
 }

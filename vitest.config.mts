@@ -35,6 +35,8 @@ export default defineConfig({
           name: "isolation",
           environment: "node",
           include: ["tests/isolation/**/*.test.ts"],
+          // Secret de signature de Better Auth, fixe et non confidentiel.
+          setupFiles: ["./tests/isolation/setup/env.ts"],
           // Base jetable provisionnée une fois avant la suite (L0-05).
           globalSetup: ["./tests/isolation/setup/global.ts"],
           // La préparation (migrate reset) et les scénarios partagent la même
