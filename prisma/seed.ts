@@ -97,8 +97,8 @@ async function seed(): Promise<void> {
     // cloisonnement (sa visibilité relève de l'authentification, L0-06).
     const enregistrement = await prisma.utilisateur.upsert({
       where: { email: utilisateur.email },
-      update: {},
-      create: { id: uuidv7(), email: utilisateur.email },
+      update: { nom: utilisateur.nom },
+      create: { id: uuidv7(), nom: utilisateur.nom, email: utilisateur.email },
     });
 
     for (const habilitation of utilisateur.habilitations) {
@@ -127,8 +127,8 @@ async function seed(): Promise<void> {
   for (const compte of COMPTES_PORTAIL) {
     const utilisateur = await prisma.utilisateur.upsert({
       where: { email: compte.email },
-      update: {},
-      create: { id: uuidv7(), email: compte.email },
+      update: { nom: compte.nom },
+      create: { id: uuidv7(), nom: compte.nom, email: compte.email },
     });
 
     const societeId = societeParCode(compte.societe_code).id;

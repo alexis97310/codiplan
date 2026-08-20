@@ -2,6 +2,8 @@ import { execSync } from "node:child_process";
 
 import { PrismaClient } from "@prisma/client";
 
+import { Role, ROLES } from "@/lib/auth/roles";
+
 import {
   AGENCE_A,
   AGENCE_B,
@@ -20,11 +22,13 @@ import {
   QR_A2,
   QR_B1,
   ROLE_APP,
+  ROLE_REPORTING,
   SITE_A1_S1,
   SITE_A1_S2,
   SITE_B1_S1,
   SOCIETE_A,
   SOCIETE_B,
+  UTILISATEUR_PAR_ROLE,
   UTILISATEUR_PORTAIL_A,
   UTILISATEUR_PORTAIL_B,
   politiqueCloisonnementSql,
@@ -102,11 +106,24 @@ export default async function setup(): Promise<void> {
     const roleExiste = await prisma.$queryRawUnsafe<Array<{ un: number }>>(
       "SELECT 1 AS un FROM pg_roles WHERE rolname = $1",
       ROLE_APP,
+      ROLE_REPORTING,
     );
     if (roleExiste.length === 0) {
       throw new Error(
         `Le rôle applicatif « ${ROLE_APP} » est absent après migration. ` +
           "Le rôle qui applique les migrations a-t-il l'attribut CREATEROLE ?",
+      );
+    }
+
+    // Idem pour le rôle de consolidation (D21), créé par la migration
+    // `20260820150000_authentification_et_roles`.
+    const roleReportingExiste = await prisma.$queryRawUnsafe<
+      Array<{ un: number }>
+    >("SELECT 1 AS un FROM pg_roles WHERE rolname = $1", ROLE_REPORTING);
+    if (roleReportingExiste.length === 0) {
+      throw new Error(
+        `Le rôle de consolidation « ${ROLE_REPORTING} » est absent après ` +
+          "migration. Les scénarios D21 ne peuvent pas être joués.",
       );
     }
 
@@ -150,12 +167,19 @@ export default async function setup(): Promise<void> {
     );
     await executerLot(prisma, politiqueCloisonnementSql("modele_materiel"));
 
-    // Droits du rôle applicatif sur l'ensemble des tables (réelles et fixtures).
+    // Droits du rôle applicatif sur les seules tables FIXTURES. Les tables
+    // réelles tiennent leurs droits des migrations, et d'elles seules : un
+    // « GRANT … ON ALL TABLES » rendrait ici au rôle applicatif ce que la
+    // migration lui a délibérément retiré — le droit de corriger ou d'effacer
+    // le journal des accès, par exemple —, et les scénarios éprouveraient des
+    // droits que la production n'accorde pas.
     await executerLot(
       prisma,
       `
       GRANT USAGE ON SCHEMA public TO "${ROLE_APP}";
-      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "${ROLE_APP}";
+      GRANT SELECT, INSERT, UPDATE, DELETE
+        ON "client", "site", "machine", "modele_materiel"
+        TO "${ROLE_APP}";
       `,
     );
 
@@ -225,8 +249,16 @@ export default async function setup(): Promise<void> {
     // Un utilisateur interne par société, avec son habilitation.
     await prisma.utilisateur.createMany({
       data: [
-        { id: UTILISATEUR_PORTAIL_A, email: "interne-a@iso.test" },
-        { id: UTILISATEUR_PORTAIL_B, email: "interne-b@iso.test" },
+        {
+          id: UTILISATEUR_PORTAIL_A,
+          nom: "Interne A",
+          email: "interne-a@iso.test",
+        },
+        {
+          id: UTILISATEUR_PORTAIL_B,
+          nom: "Interne B",
+          email: "interne-b@iso.test",
+        },
       ],
     });
     await prisma.utilisateurSociete.createMany({
@@ -235,13 +267,13 @@ export default async function setup(): Promise<void> {
           id: "aaaaaaaa-0000-7000-8000-0000000000f5",
           utilisateur_id: UTILISATEUR_PORTAIL_A,
           societe_id: SOCIETE_A,
-          role: "adv",
+          role: Role.adv,
         },
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000f6",
           utilisateur_id: UTILISATEUR_PORTAIL_B,
           societe_id: SOCIETE_B,
-          role: "adv",
+          role: Role.adv,
         },
       ],
     });
@@ -249,8 +281,16 @@ export default async function setup(): Promise<void> {
     // Comptes portail (D10) : chacun rattaché à un client de sa société.
     await prisma.utilisateur.createMany({
       data: [
-        { id: PORTAIL_A_CLIENT, email: "portail-a@iso.test" },
-        { id: PORTAIL_B_CLIENT, email: "portail-b@iso.test" },
+        {
+          id: PORTAIL_A_CLIENT,
+          nom: "Portail A",
+          email: "portail-a@iso.test",
+        },
+        {
+          id: PORTAIL_B_CLIENT,
+          nom: "Portail B",
+          email: "portail-b@iso.test",
+        },
       ],
     });
     await prisma.utilisateurClient.createMany({
@@ -294,6 +334,49 @@ export default async function setup(): Promise<void> {
         ('${MODELE_SURCHARGE_B}', '${SOCIETE_B}', 'Compresseur (surcharge B)');
       `,
     );
+
+    // ── Un compte par rôle canonique (L0-06) ─────────────────────────────────
+    // La boucle parcourt `ROLES`, l'énumération elle-même : ajouter un rôle sans
+    // lui donner de compte ferait échouer l'amorçage, pas passer un scénario en
+    // silence.
+    await prisma.utilisateur.createMany({
+      data: ROLES.map((role) => ({
+        id: UTILISATEUR_PAR_ROLE[role],
+        nom: `Compte ${role}`,
+        email: `${role}@iso.test`,
+        // Le second facteur est actif partout : les scénarios qui éprouvent son
+        // absence le font sur un contexte de session, pas sur le compte.
+        mfa_actif: true,
+      })),
+    });
+
+    // Les cinq rôles internes sont habilités sur la société A ; les trois rôles
+    // éditeur ne le sont nulle part (§22.5) ; `client` passe par le portail.
+    const rolesInternes = ROLES.filter(
+      (role) =>
+        role !== Role.admin_plateforme &&
+        role !== Role.editeur_commercial &&
+        role !== Role.editeur_support &&
+        role !== Role.client,
+    );
+    await prisma.utilisateurSociete.createMany({
+      data: rolesInternes.map((role, rang) => ({
+        id: `aaaaaaaa-0000-7000-8000-00000000071${rang}`,
+        utilisateur_id: UTILISATEUR_PAR_ROLE[role],
+        societe_id: SOCIETE_A,
+        role,
+      })),
+    });
+
+    await prisma.utilisateurClient.create({
+      data: {
+        id: "aaaaaaaa-0000-7000-8000-000000000720",
+        utilisateur_id: UTILISATEUR_PAR_ROLE[Role.client],
+        client_id: CLIENT_A1,
+        societe_id: SOCIETE_A,
+        perimetre_sites: [],
+      },
+    });
   } finally {
     await prisma.$disconnect();
   }

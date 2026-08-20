@@ -67,6 +67,16 @@ d'écrire — une recherche préalable par `code` serait elle-même filtrée. Le
 décompte de contrôle post-migration compte pour la même raison société par
 société, sous le contexte de chacune.
 
+## Révision du 20/08/2026 — ticket L0-06
+
+Le garde décrit ci-dessus refusait **toute** connexion portant `BYPASSRLS`.
+L'arbitrage D21 exige un rôle qui, lui, doit le porter : `codiplan_reporting`,
+réservé aux agrégats multi-sociétés de `lib/reporting`. Le garde ne juge donc
+plus l'attribut mais l'**usage** — la connexion applicative refuse `BYPASSRLS`,
+la connexion de consolidation l'exige, et chacune a sa propre fonction de
+décision. Ce qui est écrit ici de la connexion applicative reste vrai mot pour
+mot ; voir `2026-08-20-authentification-et-deux-connexions.md` pour la seconde.
+
 ## Conséquences
 
 Le cloisonnement ne repose plus sur la discipline du code applicatif seul. Une
