@@ -60,6 +60,13 @@ model Devise {
   @@map("devise")
 }
 
+/// Référentiel de plateforme (I1 — liste close, D41). Pas de `societe_id` :
+/// la parité légale du franc Pacifique est la même pour tout le monde, comme
+/// la devise elle-même. Elle manquait à la liste close de D4, arrêtée AVANT que
+/// D20 ne crée cette table — le gardien d'exhaustivité
+/// `tests/unit/db/categories-i1.test.ts` empêche désormais qu'un tel oubli
+/// puisse durer plus longtemps que le commit qui crée la table.
+///
 /// Parités datées pour la consolidation multi-devise (D20). Remplace
 /// `devise.parite_reference` / `parite_date`. Réservée à `lib/reporting`,
 /// jamais de conversion ligne à ligne (I2). Amorcée avec la seule parité

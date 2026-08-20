@@ -475,7 +475,7 @@ Toutes acceptées, plus une trouvée en complément :
 | | |
 |---|---|
 | **Objet** | Trancher les questions ouvertes par l'authentification, les rôles et le rôle de consolidation |
-| **Portée** | D34 à D40 — les cinq premiers relevés à la livraison de L0-06, les deux derniers soumis puis arbitrés au cours de L0-06b |
+| **Portée** | D34 à D41 — les cinq premiers relevés à la livraison de L0-06, les suivants soumis puis arbitrés au cours de L0-06b |
 | **Statut** | Décisions arrêtées — même autorité que la note n°1, qu'elle complète et ne remplace pas |
 | **Date** | 20 août 2026 |
 | **Ticket** | L0-06b |
@@ -552,6 +552,22 @@ C'est donc une **règle produit**, et pas seulement une règle technique : elle 
 
 **Corollaire, au lot 7** : une procédure de déblocage d'un `admin_societe` ayant perdu son second facteur, exécutable par `admin_plateforme` seul et journalisée dans `journal_acces`. Une contrainte sans porte de sortie se paie en appels au support et finit par se faire contourner. Elle n'est **pas construite maintenant**.
 
+### D41 — `parite` rejoint les référentiels de plateforme, et l'exhaustivité devient vérifiable
+
+**Le symptôme.** `parite` ne portait aucune catégorie. La liste close des référentiels de plateforme (D4) a été arrêtée **avant** que D20 ne crée cette table en remplacement de `devise.parite_reference`. Elle se comporte pourtant exactement comme `devise` — la parité légale du franc Pacifique est la même pour tout le monde. C'est un oubli à réparer, pas une décision à prendre : elle rejoint la liste, qui devient `devise`, **`parite`**, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+
+**La cause, et c'est elle qui compte.** C'est le **troisième** oubli du même type. `second_facteur` et `utilisateur` manquaient à D34 ; `parite` manquait à D4. À chaque fois le même enchaînement : une liste est fermée un jour, une décision ultérieure crée une table, et personne ne revient ranger la nouvelle venue. La liste garde l'autorité d'une décision et prend le contenu d'un oubli — ce qui est pire qu'une liste ouverte, parce qu'on ne la relit plus. Réparer le troisième cas à la main ne protège pas du quatrième.
+
+**Le gardien d'exhaustivité.** Il renverse la charge de la preuve. Les autres gardiens partent d'une liste et vérifient que le schéma s'y conforme ; celui-ci part du **schéma** — il énumère toutes les tables de `prisma/schema.prisma` — et exige que chacune appartienne à **exactement une** catégorie de I1.
+
+- **Zéro catégorie fait échouer** : c'est l'oubli, et il tombe désormais le jour où la table est écrite, pas trois arbitrages plus tard.
+- **Deux catégories font échouer aussi** : une table technique d'authentification qui se mettrait à porter `societe_id NOT NULL` cesserait d'être technique sans que personne ne l'ait décidé.
+- Le message d'échec **nomme la table et rappelle les quatre catégories**, pour qu'on n'ait pas à ouvrir le CLAUDE.md pour le comprendre.
+
+Il est éprouvé d'abord sur des schémas fabriqués — une table sans catégorie, une table à deux, et les quatre formes légitimes —, comme les gardiens de D34 et D39. Détail dans `docs/decisions/2026-08-20-gardien-exhaustivite-categories.md`.
+
+**Ce que le premier passage a trouvé.** Deux tables, et non une : `parite`, attendue, et **`societe`**, qui ne l'était pas. Voir le point ouvert ci-dessous.
+
 ---
 
 ## Ce qui reste à décider, et quand
@@ -560,7 +576,7 @@ Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
 
 | Échéance | Point |
 |---|---|
-| **Prochain arbitrage** | **Rattachement de `parite`.** Elle ne porte pas de `societe_id` et n'entre dans aucune des quatre catégories de I1 : la liste close des référentiels de plateforme (D4) a été arrêtée **avant** que D20 ne crée cette table en remplacement de `devise.parite_reference`. Elle se comporte pourtant exactement comme `devise` — la parité légale du franc Pacifique est la même pour tous. Relevé en écrivant D39, non tranché : la liste est fermée |
+| **Prochain arbitrage** | **Rédaction de la première catégorie de I1, pour `societe`.** Le gardien de D41 l'a trouvée hors catégorie : elle est bien cloisonnée — la politique de L0-04 s'écrit `id = app.societe_id` — mais **par son identité**, pas par une colonne `societe_id NOT NULL`. Rien n'est ouvert : le cloisonnement est en place et éprouvé. C'est la **rédaction** de I1 qui est incomplète, et la corriger touche un invariant. Le gardien nomme l'exception (`CLOISONNEE_PAR_IDENTITE`) plutôt que d'assouplir sa règle, en attendant |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
@@ -574,8 +590,10 @@ Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
 
 **Ce que cette seconde note démontre.** Les soixante points de la note n°1 venaient d'une **lecture** ; ceux qui précèdent viennent d'une **livraison**. Écrire le code a fait apparaître ce qu'aucune relecture n'avait vu : une énumération fermée trop tôt, une catégorie de tables laissée à l'interprétation, un rôle de base de données traité comme une connexion ordinaire, et trois refus qui, mis côte à côte, formaient un annuaire de clients. Aucun de ces points n'était une erreur d'exécution — tous étaient des trous de spécification que seule l'exécution pouvait révéler.
 
-Deux d'entre eux — D39 et D40 — ont d'ailleurs été **soumis et non tranchés** dans un premier temps : la session qui les avait relevés s'est arrêtée devant une liste close et une règle de sécurité, comme le §8 du CLAUDE.md l'impose. Le troisième point de la même nature, le rattachement de `parite`, est relevé ici et attend son tour.
+Deux d'entre eux — D39 et D40 — ont d'ailleurs été **soumis et non tranchés** dans un premier temps : la session qui les avait relevés s'est arrêtée devant une liste close et une règle de sécurité, comme le §8 du CLAUDE.md l'impose. Un troisième, `parite`, a suivi le même chemin et est devenu D41.
 
-La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant** — et ne jamais laisser une session compléter une liste close, fût-ce d'une évidence.
+**Ce que D41 ajoute à la méthode.** Les trois premiers oublis étaient le même oubli, répété : une liste fermée, une table créée plus tard, personne pour revenir la ranger. Tant qu'on réparait cas par cas, on ne réparait rien — le quatrième était déjà en route, et il est effectivement apparu au premier passage du gardien (`societe`). La leçon n'est pas « mieux relire les listes » : c'est **ne jamais laisser une liste close être la seule source de vérité sur ce qu'elle prétend couvrir.** Un gardien qui part de la réalité et interroge la liste vaut mieux que dix relectures de la liste.
+
+La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant** ; ne jamais laisser une session compléter une liste close, fût-ce d'une évidence ; et **doubler toute liste close d'un gardien d'exhaustivité** qui la confronte à ce qui existe.
 
 *Note d'arbitrage n°2 — CODIPLAN — 20 août 2026*

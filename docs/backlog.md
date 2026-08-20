@@ -46,7 +46,7 @@ Better Auth, sessions serveur, MFA sur `admin_plateforme` et `direction`.
 Rôle PostgreSQL `codiplan_reporting` avec `BYPASSRLS`, en `SELECT` seul, réservé à `lib/reporting`.
 *Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé ; un test vérifie qu'aucun chemin hors `lib/reporting` n'utilise la connexion `codiplan_reporting`.
 
-**L0-06b — Arbitrages consécutifs à L0-06. [D34] [D35] [D36] [D37] [D38] [D39] [D40]**
+**L0-06b — Arbitrages consécutifs à L0-06. [D34] [D35] [D36] [D37] [D38] [D39] [D40] [D41]**
 Troisième catégorie de I1 — **tables techniques d'authentification**, liste close : `session`, `compte`, `verification`, `journal_acces` [D34].
 `journal_acces.societe_id_source` et `societe_id_cible`, informatives et nullables : elles répondent à « qui a tenté d'accéder à mes données », jamais à un filtre.
 Identités globales, habilitations par société ; **réponses d'authentification indiscernables** — compte inexistant, mot de passe faux, compte sans habilitation [D35].
@@ -54,7 +54,8 @@ Dixième rôle `admin_societe`, colonne « Admin » du §5.2 scindée [D37].
 Mot de passe de `codiplan_reporting` dans `REPORTING_DATABASE_URL` seulement, et contrôle permanent de ses privilèges [D38].
 `second_facteur` rejoint les tables techniques d'authentification ; `utilisateur` reçoit la **quatrième catégorie** de I1, à elle seule, et ne porte **aucune donnée métier** [D39].
 Second facteur obligatoire étendu à `admin_societe` — `admin_plateforme`, `admin_societe`, `direction` [D40], règle produit **RG-DRO-05**.
-*Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur.
+`parite` rejoint les référentiels de plateforme, et surtout : **gardien d'exhaustivité** des catégories de I1, qui part du schéma et non des listes [D41].
+*Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur ; **toute table de `prisma/schema.prisma` appartient à exactement une catégorie de I1** — zéro comme deux font échouer la vérification.
 
 **L0-07 — Module monétaire. [D19]**
 `lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon — et `convertForConsolidation(montant, source, cible, dateParite)`, réservée à `lib/reporting` et exigeant une date de parité explicite.
