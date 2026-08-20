@@ -49,33 +49,4 @@ jobs:
         run: pnpm db:seed
 
       - name: Décompte de contrôle
-        run: |
-          cat > /tmp/decompte.mts <<'EOF'
-          import { PrismaClient } from "@prisma/client";
-
-          const prisma = new PrismaClient();
-
-          const societes = await prisma.societe.count();
-          const agences = await prisma.agence.count();
-          const comptesPortail = await prisma.utilisateurClient.count();
-          const pariteXpf = await prisma.parite.findFirst({
-            where: { devise_code: "XPF" },
-            orderBy: { date_effet: "asc" },
-          });
-
-          console.log("── Décompte de contrôle ──────────────────");
-          console.log("Sociétés        :", societes);
-          console.log("Agences         :", agences);
-          console.log("Comptes portail :", comptesPortail);
-          console.log(
-            "Parité XPF      :",
-            pariteXpf
-              ? `${pariteXpf.taux} XPF pour 1 EUR (effet ${pariteXpf.date_effet
-                  .toISOString()
-                  .slice(0, 10)}, source « ${pariteXpf.source} »)`
-              : "ABSENTE",
-          );
-
-          await prisma.$disconnect();
-          EOF
-          pnpm exec tsx /tmp/decompte.mts
+        run: pnpm exec tsx scripts/decompte-controle.mts
