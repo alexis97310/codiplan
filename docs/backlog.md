@@ -57,6 +57,13 @@ Second facteur obligatoire étendu à `admin_societe` — `admin_plateforme`, `a
 `parite` rejoint les référentiels de plateforme, et surtout : **gardien d'exhaustivité** des catégories de I1, qui part du schéma et non des listes [D41].
 *Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur ; **toute table de `prisma/schema.prisma` appartient à exactement une catégorie de I1** — zéro comme deux font échouer la vérification.
 
+**L0-06c — `societe`, quatrième catégorie de cas. [D42]**
+Rédaction de la **première catégorie de I1** : `societe` fait exception à la forme, non au fond — étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`) [D42].
+Rien n'était ouvert : la politique existait depuis L0-04, `force-rls.test.ts` l'éprouvait, l'inventaire comptait `societe` parmi les tables cloisonnées. C'est la phrase de l'invariant qui était incomplète.
+L'exception est **nommée** (`CLOISONNEE_PAR_IDENTITE`) plutôt que la règle élargie, et elle devient une **liste close de plus**, gardée comme les trois autres.
+Inscrit au CLAUDE.md : toute autre table métier porte `societe_id NOT NULL` ou passe par un arbitrage — **c'est l'objectif des lots 1 à 3, pas une friction à contourner**.
+*Acceptation :* le gardien d'exhaustivité de D41 ne relève plus aucune table hors catégorie ; le gardien de la liste d'exceptions **échoue sur toute entrée autre que `societe`** comme sur son retrait, avec le message « toute addition passe par un arbitrage, elle ne se décide pas dans un ticket », et il est éprouvé sur une addition fabriquée et sur une liste vidée.
+
 **L0-07 — Module monétaire. [D19]**
 `lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon — et `convertForConsolidation(montant, source, cible, dateParite)`, réservée à `lib/reporting` et exigeant une date de parité explicite.
 *Acceptation :* `7 000 XPF` sans décimale, `100,00 €` avec deux ; arrondi au quart d'heure supérieur pour les durées ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.

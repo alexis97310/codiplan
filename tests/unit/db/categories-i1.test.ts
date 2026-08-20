@@ -72,9 +72,45 @@ const IDENTITE_PLATEFORME = ["utilisateur"];
  * première catégorie — c'est la table que `societe_id` désigne —, mais la règle
  * mécanique « porte une colonne `societe_id` obligatoire » ne peut pas la voir.
  * L'exception est nommée ici plutôt que déduite : une exception qu'on lit vaut
- * mieux qu'une règle qu'on assouplit.
+ * mieux qu'une règle qu'on assouplit (D42).
+ *
+ * **C'est une liste close de plus, et elle est gardée comme les autres.** La
+ * série D34–D41 vient de montrer ce qui arrive à une liste close que personne ne
+ * surveille : elle garde l'autorité d'une décision et prend le contenu d'un
+ * oubli. Celle-ci est la plus exposée des quatre — elle dispense de la seule
+ * règle mécanique de I1, et la table suivante qui s'en réclamerait sortirait du
+ * cloisonnement par colonne sans que personne ne l'ait décidé. Le gardien
+ * `ecartsListeExceptions` échoue donc sur toute entrée autre que `societe`.
  */
 const CLOISONNEE_PAR_IDENTITE = ["societe"];
+
+/** L'unique entrée que D42 autorise. Recopiée : c'est la constitution, pas la liste. */
+const SEULE_EXCEPTION_ARBITREE = "societe";
+
+/**
+ * Écart de la liste d'exceptions elle-même. Rendu sous forme de liste, comme
+ * `ecartsCategories` : une liste vide est le seul état acceptable.
+ */
+export function ecartsListeExceptions(
+  liste: readonly string[] = CLOISONNEE_PAR_IDENTITE,
+): string[] {
+  const intruses = liste.filter((table) => table !== SEULE_EXCEPTION_ARBITREE);
+  const ecarts = intruses.map(
+    (table) =>
+      `« ${table} » a été ajoutée à CLOISONNEE_PAR_IDENTITE : toute addition ` +
+      "passe par un arbitrage, elle ne se décide pas dans un ticket.",
+  );
+
+  if (!liste.includes(SEULE_EXCEPTION_ARBITREE)) {
+    ecarts.push(
+      "CLOISONNEE_PAR_IDENTITE ne contient plus son unique entrée " +
+        `« ${SEULE_EXCEPTION_ARBITREE} » : toute modification passe par un ` +
+        "arbitrage, elle ne se décide pas dans un ticket.",
+    );
+  }
+
+  return ecarts;
+}
 
 type Categorie =
   | "métier (cloisonnée)"
@@ -242,6 +278,36 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
         { nom: "societe_id_active", type: "String?" },
       ]),
     ).toEqual(["technique d'authentification"]);
+  });
+
+  it("la liste des exceptions ne contient QUE `societe` (D42)", () => {
+    // La quatrième liste close de I1. Elle dispense de la seule règle mécanique
+    // de la première catégorie : une entrée de plus, et une table sortirait du
+    // cloisonnement par colonne sans décision.
+    expect(ecartsListeExceptions()).toEqual([]);
+    expect(CLOISONNEE_PAR_IDENTITE).toEqual(["societe"]);
+  });
+
+  it("le gardien de la liste sait ÉCHOUER sur une addition", () => {
+    // Sans cette vérification, le gardien de la liste serait un décor : il
+    // faut prouver qu'il voit l'entrée qu'aucun arbitrage n'a rangée.
+    const ecarts = ecartsListeExceptions(["societe", "parametrage_plateforme"]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("parametrage_plateforme");
+    expect(ecarts[0]).toContain(
+      "toute addition passe par un arbitrage, elle ne se décide pas dans un ticket.",
+    );
+  });
+
+  it("le gardien de la liste sait ÉCHOUER sur un retrait", () => {
+    // Le cas inverse : vider la liste rendrait `societe` hors catégorie sans
+    // qu'aucune décision ne l'ait voulu.
+    const ecarts = ecartsListeExceptions([]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("societe");
+    expect(ecarts[0]).toContain("arbitrage");
   });
 
   it("le SCHÉMA RÉEL ne laisse aucune table hors catégorie", () => {
