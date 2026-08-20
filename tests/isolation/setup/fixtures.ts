@@ -63,14 +63,17 @@ export const PORTAIL_A_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d3";
 export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";
 
 /**
- * Politique de cloisonnement société, forme imposée (D4), rendue « zéro ligne
- * hors contexte » (voir la migration L0-04). Réutilisée à l'identique par les
- * tables fixtures pour que le contrat testé soit le contrat réel.
+ * Politique de cloisonnement société, forme imposée (D4) — `::uuid` compris —,
+ * rendue « zéro ligne hors contexte » (voir la migration
+ * `20260820140000_identifiants_uuid`). Réutilisée à l'identique par les tables
+ * fixtures pour que le contrat testé soit le contrat réel. `FORCE` est posé
+ * comme sur les vraies tables cloisonnées.
  */
 export function politiqueCloisonnementSql(table: string): string {
-  const clause = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '') OR "societe_id" IS NULL`;
+  const clause = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '')::uuid OR "societe_id" IS NULL`;
   return `
     ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;
     CREATE POLICY "cloisonnement_societe" ON "${table}"
       USING (${clause}) WITH CHECK (${clause});
   `;
@@ -81,7 +84,8 @@ export function politiqueCloisonnementSql(table: string): string {
  * société :
  *   - `app.client_id` positionné (compte portail) ⇒ un seul client visible ;
  *     absent (utilisateur interne) ⇒ tout le parc de la société ;
- *   - `app.perimetre_sites` (liste d'UUID séparés par des virgules) ⇒ visibilité
+ *   - `app.perimetre_sites` (liste d'UUID séparés par des virgules, convertie en
+ *     `uuid[]`) ⇒ visibilité
  *     restreinte à ces sites ; absent ⇒ tous les sites du client.
  * Sert `client`, `site` et `machine` : la résolution QR passe par `machine` et
  * hérite donc du même filtrage. `colonneClient` porte l'identité du client
@@ -92,10 +96,10 @@ export function politiqueParcSql(
   colonneClient: string,
   colonneSite: string | null,
 ): string {
-  const filtreSociete = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '')`;
+  const filtreSociete = `"societe_id" = NULLIF(current_setting('${VAR_SOCIETE}', true), '')::uuid`;
   const filtreClient = `(
     NULLIF(current_setting('${VAR_CLIENT}', true), '') IS NULL
-    OR "${colonneClient}" = NULLIF(current_setting('${VAR_CLIENT}', true), '')
+    OR "${colonneClient}" = NULLIF(current_setting('${VAR_CLIENT}', true), '')::uuid
   )`;
   const filtreSite =
     colonneSite === null
@@ -103,12 +107,13 @@ export function politiqueParcSql(
       : `(
     NULLIF(current_setting('${VAR_PERIMETRE}', true), '') IS NULL
     OR "${colonneSite}" = ANY(
-      string_to_array(NULLIF(current_setting('${VAR_PERIMETRE}', true), ''), ',')
+      string_to_array(NULLIF(current_setting('${VAR_PERIMETRE}', true), ''), ',')::uuid[]
     )
   )`;
   const clause = `${filtreSociete} AND ${filtreClient} AND ${filtreSite}`;
   return `
     ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;
     CREATE POLICY "cloisonnement_parc" ON "${table}"
       USING (${clause}) WITH CHECK (${clause});
   `;

@@ -47,14 +47,16 @@ En intégration continue, un **service `postgres:16`** (auth `trust`, base
 
 Deux points de mise en œuvre méritent d'être notés :
 
-1. **Identifiants en `text`.** Le schéma L0-03 stocke les identifiants en `text`
-   (UUID v7 générés côté appareil, I10). La forme imposée par D4
-   (`... = current_setting('app.societe_id')::uuid`) est donc rendue en
-   comparaison text-à-text, sans cast — sémantiquement identique, mais sans quoi
-   PostgreSQL lèverait `operator does not exist: text = uuid`. Le membre est en
-   outre durci en `NULLIF(current_setting('app.societe_id', true), '')` pour que
-   « aucune société positionnée » renvoie **zéro ligne** au lieu de lever une
-   erreur, comme l'exige le critère d'acceptation.
+1. **Type des identifiants** — *révisé le 20/08/2026, correction de revue.*
+   Ce document indiquait initialement que les identifiants étaient stockés en
+   `text`, ce qui obligeait à écarter le `::uuid` de la forme imposée par D4.
+   Les colonnes sont désormais typées `uuid` et le cast est rétabli — voir
+   `2026-08-20-identifiants-uuid-natif.md`. Restent deux durcissements, à
+   sémantique identique : `current_setting(..., true)` pour que « aucune société
+   positionnée » renvoie **zéro ligne** au lieu de lever une erreur, comme
+   l'exige le critère d'acceptation, et `NULLIF(..., '')` pour qu'une variable
+   vide compte comme absente. Corollaire pratique : dans une requête brute, un
+   identifiant passé en paramètre lié doit être casté sur place (`$1::uuid`).
 2. **`FORCE ROW LEVEL SECURITY`** — *révisé le 20/08/2026, correction de revue.*
    Ce document indiquait initialement que FORCE n'était pas activé, le
    propriétaire devant écrire le socle sans contexte. La revue de L0-04 a montré

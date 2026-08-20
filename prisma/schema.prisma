@@ -7,6 +7,11 @@
 //
 // Sources : cahier des charges chapitre 11, et arbitrages D4, D5, D10, D20.
 // Les politiques Row Level Security relèvent du ticket L0-04, pas de celui-ci.
+//
+// Les identifiants sont typés `uuid` en base (`@db.Uuid`), pas `text` : ils
+// SONT des UUID v7 (I10), et la forme de politique imposée par D4 compare
+// `societe_id` à `current_setting('app.societe_id')::uuid`. Seul `devise.code`
+// reste `text` — c'est un code ISO, pas un identifiant technique.
 
 generator client {
   provider = "prisma-client-js"
@@ -37,7 +42,7 @@ enum Role {
 /// le franc Pacifique est le même partout, la table est lisible par toutes
 /// les sociétés. La parité datée vit dans `parite` (D20), plus dans `devise`.
 model Devise {
-  code      String   @id
+  code      String    @id
   libelle   String
   decimales Int
   symbole   String? // symbole si la devise en a un, sinon on affiche le code (D19)
@@ -55,7 +60,7 @@ model Devise {
 /// docs/decisions/2026-08-20-parite-xpf-fixe.md. Toute autre parité (taux de
 /// marché) reste arrêtée au lot reporting.
 model Parite {
-  id          String   @id
+  id          String   @id @db.Uuid
   devise_code String
   date_effet  DateTime @db.Date
   taux        Decimal  @db.Decimal(18, 8)
@@ -69,21 +74,21 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
-  id                            String   @id
-  code                          String   @unique // préfixe de numérotation
+  id                            String  @id @db.Uuid
+  code                          String  @unique // préfixe de numérotation
   raison_sociale                String
   pays                          String
   territoire                    String
   fuseau_horaire                String // ex. Pacific/Noumea
   devise_code                   String
-  taux_horaire_defaut           Decimal  @db.Decimal(18, 4)
-  majoration_hors_ouverture_pct Decimal  @db.Decimal(5, 2)
+  taux_horaire_defaut           Decimal @db.Decimal(18, 4)
+  majoration_hors_ouverture_pct Decimal @db.Decimal(5, 2)
   logo_url                      String?
   couleur_primaire              String // charte des documents générés
   couleur_secondaire            String
   mentions_legales              String? // pied des documents
   langue                        String // documente une intention, non exploitée en V1 (D26)
-  actif                         Boolean  @default(true)
+  actif                         Boolean @default(true)
 
   devise               Devise               @relation(fields: [devise_code], references: [code])
   agences              Agence[]
@@ -96,13 +101,13 @@ model Societe {
 /// Établissement CODIMA — Ducos, Koné, Dolbeau (D5). À ne jamais confondre
 /// avec un « site », qui est un lieu d'intervention chez un client.
 model Agence {
-  id             String  @id
-  societe_id     String
+  id             String  @id @db.Uuid
+  societe_id     String  @db.Uuid
   code           String // DUCOS, KONE, DOLBEAU
   libelle        String
   adresse        Json?
   fuseau_horaire String? // hérité de la société, surchargeable (D5)
-  calendrier_id  String? // calendrier d'ouverture — table posée au ticket L0-08
+  calendrier_id  String? @db.Uuid // calendrier d'ouverture — table posée au ticket L0-08
   actif          Boolean @default(true)
 
   societe Societe @relation(fields: [societe_id], references: [id])
@@ -115,7 +120,7 @@ model Agence {
 /// portée ici mais par `utilisateur_societe`. Le hash du mot de passe et la MFA
 /// seront réellement câblés par Better Auth au ticket L0-06.
 model Utilisateur {
-  id                 String    @id
+  id                 String    @id @db.Uuid
   email              String    @unique
   mot_de_passe_hash  String?
   mfa_actif          Boolean   @default(false)
@@ -131,9 +136,9 @@ model Utilisateur {
 /// Habilitation d'un utilisateur interne sur une société, avec son rôle.
 /// C'est cette table qui porte le multi-société (chapitre 11 §11.2).
 model UtilisateurSociete {
-  id             String @id
-  utilisateur_id String
-  societe_id     String
+  id             String @id @db.Uuid
+  utilisateur_id String @db.Uuid
+  societe_id     String @db.Uuid
   role           Role
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
@@ -148,11 +153,11 @@ model UtilisateurSociete {
 /// `client_id` est une référence logique — la table `client` est métier et
 /// arrive au lot 1 ; `perimetre_sites` vide signifie « tous les sites du client ».
 model UtilisateurClient {
-  id              String   @id
-  utilisateur_id  String
-  client_id       String
-  societe_id      String
-  perimetre_sites String[] @default([])
+  id              String   @id @db.Uuid
+  utilisateur_id  String   @db.Uuid
+  client_id       String   @db.Uuid
+  societe_id      String   @db.Uuid
+  perimetre_sites String[] @default([]) @db.Uuid
   actif           Boolean  @default(true)
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])

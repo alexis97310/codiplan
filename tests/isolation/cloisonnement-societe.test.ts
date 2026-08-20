@@ -39,21 +39,24 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne peut pas créer une agence pour la société B (WITH CHECK)", async () => {
+    // `$1::uuid` : les identifiants sont typés `uuid` en base, et un paramètre
+    // lié part en `text`. Sans le cast, l'échec attendu viendrait d'une erreur
+    // de type et non de la politique — le scénario serait vert pour rien.
     await expect(
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "agence" ("id", "societe_id", "code", "libelle")
-           VALUES ('aaaaaaaa-0000-7000-8000-0000000000ff', $1, 'PIRATE', 'Pirate')`,
+           VALUES ('aaaaaaaa-0000-7000-8000-0000000000ff', $1::uuid, 'PIRATE', 'Pirate')`,
           SOCIETE_B,
         ),
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/row-level security|violates/i);
   });
 
   it("la société A ne peut pas modifier une agence de la société B", async () => {
     const lignesAffectees = await avecSociete(SOCIETE_A, (tx) =>
       tx.$executeRawUnsafe(
-        `UPDATE "agence" SET "libelle" = 'détournée' WHERE "id" = $1`,
+        `UPDATE "agence" SET "libelle" = 'détournée' WHERE "id" = $1::uuid`,
         AGENCE_B,
       ),
     );
@@ -62,7 +65,10 @@ describe("cloisonnement société", () => {
 
   it("la société A ne peut pas supprimer une agence de la société B", async () => {
     const lignesAffectees = await avecSociete(SOCIETE_A, (tx) =>
-      tx.$executeRawUnsafe(`DELETE FROM "agence" WHERE "id" = $1`, AGENCE_B),
+      tx.$executeRawUnsafe(
+        `DELETE FROM "agence" WHERE "id" = $1::uuid`,
+        AGENCE_B,
+      ),
     );
     expect(lignesAffectees).toBe(0);
     // Contrôle : l'agence B est toujours là, vue depuis son propre contexte.

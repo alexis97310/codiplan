@@ -110,32 +110,33 @@ export default async function setup(): Promise<void> {
       );
     }
 
-    // Tables fixtures « contrat » — modèlent les vraies tables des lots 1 et 2.
+    // Tables fixtures « contrat » — modèlent les vraies tables des lots 1 et 2,
+    // types compris : identifiants en `uuid` natif, comme le schéma réel.
     await executerLot(
       prisma,
       `
       CREATE TABLE "client" (
-        "id" text PRIMARY KEY,
-        "societe_id" text NOT NULL,
+        "id" uuid PRIMARY KEY,
+        "societe_id" uuid NOT NULL,
         "raison_sociale" text NOT NULL
       );
       CREATE TABLE "site" (
-        "id" text PRIMARY KEY,
-        "societe_id" text NOT NULL,
-        "client_id" text NOT NULL,
+        "id" uuid PRIMARY KEY,
+        "societe_id" uuid NOT NULL,
+        "client_id" uuid NOT NULL,
         "libelle" text NOT NULL
       );
       CREATE TABLE "machine" (
-        "id" text PRIMARY KEY,
-        "societe_id" text NOT NULL,
-        "client_id" text NOT NULL,
-        "site_id" text NOT NULL,
+        "id" uuid PRIMARY KEY,
+        "societe_id" uuid NOT NULL,
+        "client_id" uuid NOT NULL,
+        "site_id" uuid NOT NULL,
         "qr_token" text NOT NULL UNIQUE,
         "numero_serie" text NOT NULL
       );
       CREATE TABLE "modele_materiel" (
-        "id" text PRIMARY KEY,
-        "societe_id" text,
+        "id" uuid PRIMARY KEY,
+        "societe_id" uuid,
         "libelle" text NOT NULL
       );
       `,

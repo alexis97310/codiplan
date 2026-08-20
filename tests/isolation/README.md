@@ -25,6 +25,8 @@ chemins obligatoires de L0-05 :
   ne s'écrit que sous son propre contexte, y compris depuis le seed.
 - `garde-role.test.ts` — le contrôle au démarrage accepte le rôle applicatif et
   refuse le rôle propriétaire de la base.
+- `identifiants-uuid.test.ts` — les colonnes d'identifiants sont typées `uuid`
+  et les quatre politiques de cloisonnement portent bien le `::uuid` de D4.
 
 Le minimum imposé est de douze scénarios.
 
