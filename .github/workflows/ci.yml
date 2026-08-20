@@ -26,6 +26,25 @@ jobs:
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # PostgreSQL local jetable pour `pnpm test:isolation` (L0-05). Jamais Neon :
+    # les tests d'isolation ne touchent que cette base éphémère, recréée à chaque
+    # exécution. Auth « trust » : le rôle applicatif restreint des tests
+    # (codiplan_test_app) se connecte sans mot de passe.
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@localhost:5432/codiplan_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: codiplan_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
 
@@ -50,6 +69,22 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # PostgreSQL local jetable pour `pnpm test:isolation`, inclus dans verify:full.
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@localhost:5432/codiplan_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: codiplan_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
 

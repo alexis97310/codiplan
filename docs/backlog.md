@@ -27,7 +27,7 @@ Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_soci
 `agence` est nouvelle (D5) : code, libellé, adresse, fuseau, calendrier, actif.
 `parite` remplace `devise.parite_reference` (D20) : devise, date d'effet, taux, source.
 `utilisateur_client` (D10) : utilisateur, client, société, périmètre de sites.
-*Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés — l'une en XPF avec trois agences, l'autre en EUR — et au moins un compte portail rattaché à un client.
+*Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés — CODIMA-NC en XPF avec ses trois agences (Ducos, Koné, Dolbeau) et CODIMA-EU en EUR avec son unique agence (Siège) —, soit **quatre agences au total**, et au moins un compte portail rattaché à un client.
 > Le critère « migration appliquée / seed exécuté » est validé par le déclenchement **manuel** du workflow `.github/workflows/db-migrate.yml`, **et non depuis une session cloud** : le proxy sortant de l'environnement cloud ne relaie pas le TCP, la base Neon y est donc injoignable (P1001). Voir `docs/decisions/2026-08-20-migration-par-github-actions.md`.
 
 **L0-04 — Politiques RLS. [D4]**
