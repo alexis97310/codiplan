@@ -49,8 +49,11 @@ model Devise {
 
 /// Parités datées pour la consolidation multi-devise (D20). Remplace
 /// `devise.parite_reference` / `parite_date`. Réservée à `lib/reporting`,
-/// jamais de conversion ligne à ligne (I2). Non peuplée au seed : la
-/// convention de base et de sens du taux est arrêtée au lot reporting.
+/// jamais de conversion ligne à ligne (I2). Amorcée avec la seule parité
+/// légale fixe du franc Pacifique (1 EUR = 119,331740 XPF) : le taux, porté
+/// par la ligne XPF, se lit « XPF pour 1 EUR » (base EUR) — voir
+/// docs/decisions/2026-08-20-parite-xpf-fixe.md. Toute autre parité (taux de
+/// marché) reste arrêtée au lot reporting.
 model Parite {
   id          String   @id
   devise_code String

@@ -55,6 +55,15 @@ export type ComptePortailSeed = {
   perimetre_sites: string[];
 };
 
+export type PariteSeed = {
+  devise_code: string;
+  /** Date d'effet ISO (YYYY-MM-DD). Jamais implicite (D20). */
+  date_effet: string;
+  /** Taux en chaîne décimale — jamais de flottant, l'arithmétique reste exacte. */
+  taux: string;
+  source: string;
+};
+
 /** Référentiel de plateforme (I1). XPF sans décimale, EUR à deux (I3, D19). */
 export const DEVISES: readonly DeviseSeed[] = [
   { code: "XPF", libelle: "Franc Pacifique", decimales: 0, symbole: null },
@@ -151,5 +160,21 @@ export const COMPTES_PORTAIL: readonly ComptePortailSeed[] = [
     societe_code: "CODIMA-NC",
     client_id: "0192f0a0-1000-7000-8000-000000000001",
     perimetre_sites: [],
+  },
+];
+
+/**
+ * Parité légale fixe du franc Pacifique (D20). Le franc CFP est arrimé à l'euro
+ * depuis son introduction : 1 EUR = 119,331740 XPF. Le taux est porté par la
+ * ligne XPF et se lit « XPF pour 1 EUR » — la base de consolidation est l'euro
+ * (convention arrêtée pour la ligne fixe, voir docs/decisions). `date_effet` est
+ * la date d'effet de la parité légale (introduction de l'euro), jamais implicite.
+ */
+export const PARITES: readonly PariteSeed[] = [
+  {
+    devise_code: "XPF",
+    date_effet: "1999-01-01",
+    taux: "119.331740",
+    source: "parité légale fixe",
   },
 ];
