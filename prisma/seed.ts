@@ -4,6 +4,7 @@ import { uuidv7 } from "../lib/db/uuid";
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
 } from "./seed-data";
@@ -29,6 +30,27 @@ async function seed(): Promise<void> {
         symbole: devise.symbole,
       },
       create: devise,
+    });
+  }
+
+  for (const parite of PARITES) {
+    const date_effet = new Date(parite.date_effet);
+
+    await prisma.parite.upsert({
+      where: {
+        devise_code_date_effet: {
+          devise_code: parite.devise_code,
+          date_effet,
+        },
+      },
+      update: { taux: parite.taux, source: parite.source },
+      create: {
+        id: uuidv7(),
+        devise_code: parite.devise_code,
+        date_effet,
+        taux: parite.taux,
+        source: parite.source,
+      },
     });
   }
 

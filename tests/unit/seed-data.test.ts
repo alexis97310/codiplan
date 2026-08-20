@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
 } from "@/prisma/seed-data";
@@ -59,6 +60,22 @@ describe("jeu de données du socle multi-société", () => {
     for (const compte of COMPTES_PORTAIL) {
       expect(compte.client_id.length).toBeGreaterThan(0);
       expect(codesSociete.has(compte.societe_code)).toBe(true);
+    }
+  });
+
+  it("amorce la parité légale fixe : 1 EUR = 119,331740 XPF (D20)", () => {
+    const parite = PARITES.find((p) => p.devise_code === "XPF");
+    expect(parite).toBeDefined();
+    // Taux porté par la ligne XPF, lu « XPF pour 1 EUR » (base EUR).
+    expect(parite?.taux).toBe("119.331740");
+    // Date d'effet de la parité légale (introduction de l'euro).
+    expect(parite?.date_effet).toBe("1999-01-01");
+    expect(parite?.source).toBe("parité légale fixe");
+
+    // Toute parité pointe une devise déclarée du référentiel.
+    const codesDevise = new Set(DEVISES.map((d) => d.code));
+    for (const p of PARITES) {
+      expect(codesDevise.has(p.devise_code)).toBe(true);
     }
   });
 
