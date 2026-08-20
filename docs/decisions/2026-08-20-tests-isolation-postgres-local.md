@@ -94,14 +94,33 @@ de sites.
 
 ### Amorcer le cluster local (session cloud / poste de développement)
 
+*Révisé le 20/08/2026, ticket L0-E : la procédure consignée ici était fausse.*
+
 ```bash
-export PATH="/usr/lib/postgresql/16/bin:$PATH"
-PGROOT=/var/lib/postgresql/codiplan-test   # répertoire accessible au compte postgres
-rm -rf "$PGROOT" && mkdir -p "$PGROOT" && chown -R postgres:postgres "$PGROOT" && chmod 700 "$PGROOT"
-su postgres -c "initdb -D '$PGROOT/data' -U postgres --auth=trust -E UTF8"
-su postgres -c "pg_ctl -D '$PGROOT/data' -o '-p 5433' -l '$PGROOT/log' -w start"
-psql 'postgresql://postgres@127.0.0.1:5433/postgres' -c 'CREATE DATABASE codiplan_test;'
+scripts/postgres-jetable.sh                     # détruit, recrée et démarre le cluster
 
 export TEST_DATABASE_URL='postgresql://postgres@127.0.0.1:5433/codiplan_test'
 pnpm test:isolation
 ```
+
+Le script accepte aussi `arret` et `etat`, et se règle par `PGJ_PORT`,
+`PGJ_ROOT`, `PGJ_BASE` et `PGJ_BIN`. Il est idempotent : le relancer repart d'un
+cluster neuf, ce qui est exactement ce qu'on attend d'une base jetable.
+
+**Pourquoi un script, et non la suite de commandes qui figurait ici.** Celle-ci
+commençait par `export PATH="/usr/lib/postgresql/16/bin:$PATH"` puis appelait
+`su postgres -c "initdb …"`. Or `su` **n'hérite pas du PATH de l'appelant** : il
+le réinitialise depuis `/etc/login.defs`, et `/usr/lib/postgresql/16/bin` n'y
+figure pas. Les deux commandes échouaient donc sur `initdb: command not found`
+— l'`export` de la première ligne n'y changeait rien. Il fallait écrire les
+chemins en absolu **à l'intérieur** de la chaîne passée à `su`. Une procédure
+fausse coûte plus cher qu'une procédure absente, parce qu'on lui fait confiance
+avant de la lire ; versionner le script referme le piège une fois pour toutes,
+et le numéro de version de PostgreSQL cesse d'être recopié à la main (le script
+retient la plus élevée installée).
+
+Deux points que le script tranche au passage, et qui n'étaient pas écrits :
+PostgreSQL refuse de démarrer sous `root`, d'où le détour par le compte système
+`postgres` quand la session est privilégiée — et seulement dans ce cas ; sur un
+poste de développement où l'on n'est pas `root`, le cluster appartient au compte
+courant et aucun `su` n'est nécessaire.
