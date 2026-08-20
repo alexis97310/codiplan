@@ -1,0 +1,160 @@
+// CODIPLAN — Schéma multi-société (ticket L0-03).
+//
+// Portée stricte du ticket : les sept tables du socle multi-société —
+// societe, agence, devise, parite, utilisateur, utilisateur_societe,
+// utilisateur_client. Aucune table métier au-delà (client, site, machine,
+// intervention… arrivent aux lots suivants).
+//
+// Sources : cahier des charges chapitre 11, et arbitrages D4, D5, D10, D20.
+// Les politiques Row Level Security relèvent du ticket L0-04, pas de celui-ci.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Énumération canonique des rôles internes (arbitrage — gravité 4).
+/// Complète dès maintenant même si l'authentification est câblée à L0-06.
+/// Le rôle `client` désigne un compte portail : il ne prend jamais de ligne
+/// dans `utilisateur_societe` (voir D10), il vit dans `utilisateur_client`.
+enum Role {
+  admin_plateforme
+  editeur_commercial
+  editeur_support
+  direction
+  responsable_materiel
+  responsable_sav
+  adv
+  technicien
+  client
+}
+
+/// Référentiel de plateforme (I1 — liste close). Pas de `societe_id` :
+/// le franc Pacifique est le même partout, la table est lisible par toutes
+/// les sociétés. La parité datée vit dans `parite` (D20), plus dans `devise`.
+model Devise {
+  code      String   @id
+  libelle   String
+  decimales Int
+  symbole   String? // symbole si la devise en a un, sinon on affiche le code (D19)
+  societes  Societe[]
+  parites   Parite[]
+
+  @@map("devise")
+}
+
+/// Parités datées pour la consolidation multi-devise (D20). Remplace
+/// `devise.parite_reference` / `parite_date`. Réservée à `lib/reporting`,
+/// jamais de conversion ligne à ligne (I2). Non peuplée au seed : la
+/// convention de base et de sens du taux est arrêtée au lot reporting.
+model Parite {
+  id          String   @id
+  devise_code String
+  date_effet  DateTime @db.Date
+  taux        Decimal  @db.Decimal(18, 8)
+  source      String
+  devise      Devise   @relation(fields: [devise_code], references: [code])
+
+  @@unique([devise_code, date_effet])
+  @@map("parite")
+}
+
+/// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
+/// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
+model Societe {
+  id                            String   @id
+  code                          String   @unique // préfixe de numérotation
+  raison_sociale                String
+  pays                          String
+  territoire                    String
+  fuseau_horaire                String // ex. Pacific/Noumea
+  devise_code                   String
+  taux_horaire_defaut           Decimal  @db.Decimal(18, 4)
+  majoration_hors_ouverture_pct Decimal  @db.Decimal(5, 2)
+  logo_url                      String?
+  couleur_primaire              String // charte des documents générés
+  couleur_secondaire            String
+  mentions_legales              String? // pied des documents
+  langue                        String // documente une intention, non exploitée en V1 (D26)
+  actif                         Boolean  @default(true)
+
+  devise               Devise               @relation(fields: [devise_code], references: [code])
+  agences              Agence[]
+  utilisateur_societes UtilisateurSociete[]
+  utilisateur_clients  UtilisateurClient[]
+
+  @@map("societe")
+}
+
+/// Établissement CODIMA — Ducos, Koné, Dolbeau (D5). À ne jamais confondre
+/// avec un « site », qui est un lieu d'intervention chez un client.
+model Agence {
+  id             String  @id
+  societe_id     String
+  code           String // DUCOS, KONE, DOLBEAU
+  libelle        String
+  adresse        Json?
+  fuseau_horaire String? // hérité de la société, surchargeable (D5)
+  calendrier_id  String? // calendrier d'ouverture — table posée au ticket L0-08
+  actif          Boolean @default(true)
+
+  societe Societe @relation(fields: [societe_id], references: [id])
+
+  @@unique([societe_id, code])
+  @@map("agence")
+}
+
+/// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas
+/// portée ici mais par `utilisateur_societe`. Le hash du mot de passe et la MFA
+/// seront réellement câblés par Better Auth au ticket L0-06.
+model Utilisateur {
+  id                 String    @id
+  email              String    @unique
+  mot_de_passe_hash  String?
+  mfa_actif          Boolean   @default(false)
+  actif              Boolean   @default(true)
+  derniere_connexion DateTime?
+
+  societes UtilisateurSociete[]
+  clients  UtilisateurClient[]
+
+  @@map("utilisateur")
+}
+
+/// Habilitation d'un utilisateur interne sur une société, avec son rôle.
+/// C'est cette table qui porte le multi-société (chapitre 11 §11.2).
+model UtilisateurSociete {
+  id             String @id
+  utilisateur_id String
+  societe_id     String
+  role           Role
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
+  societe     Societe     @relation(fields: [societe_id], references: [id])
+
+  @@unique([utilisateur_id, societe_id])
+  @@map("utilisateur_societe")
+}
+
+/// Rattachement d'un compte portail à un client (D10). Exclusif de
+/// `utilisateur_societe` : un compte portail n'a aucune ligne là-bas.
+/// `client_id` est une référence logique — la table `client` est métier et
+/// arrive au lot 1 ; `perimetre_sites` vide signifie « tous les sites du client ».
+model UtilisateurClient {
+  id              String   @id
+  utilisateur_id  String
+  client_id       String
+  societe_id      String
+  perimetre_sites String[] @default([])
+  actif           Boolean  @default(true)
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
+  societe     Societe     @relation(fields: [societe_id], references: [id])
+
+  @@unique([utilisateur_id, client_id])
+  @@map("utilisateur_client")
+}
