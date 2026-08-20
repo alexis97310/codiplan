@@ -1,0 +1,81 @@
+name: DB migrate & seed
+
+# Migration et amorçage de la base, déclenchés À LA MAIN uniquement.
+#
+# Le proxy sortant de l'environnement cloud ne relaie pas le TCP : la base
+# PostgreSQL (Neon) est injoignable depuis une session Claude Code. On applique
+# donc la migration et le seed depuis un exécuteur GitHub Actions.
+#
+# IMPÉRATIF (voir docs/decisions/2026-08-20-migration-par-github-actions.md) :
+# aucun déclenchement automatique. Une migration ne doit jamais partir toute
+# seule — ni sur push, ni sur pull_request, ni sur planification. Seul
+# workflow_dispatch est autorisé. Ne PAS ajouter d'autre déclencheur ici.
+on:
+  workflow_dispatch:
+
+# Une seule migration à la fois : deux exécutions concurrentes attaqueraient la
+# même base. On ne coupe pas celle en cours (cancel-in-progress: false) pour ne
+# jamais interrompre une migration au milieu.
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: migrate & seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # La connexion vient exclusivement du secret : jamais de valeur en clair
+      # dans le dépôt (I9).
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Appliquer la migration
+        run: pnpm prisma migrate deploy
+
+      - name: Exécuter le seed
+        run: pnpm db:seed
+
+      - name: Décompte de contrôle
+        run: |
+          cat > /tmp/decompte.mts <<'EOF'
+          import { PrismaClient } from "@prisma/client";
+
+          const prisma = new PrismaClient();
+
+          const societes = await prisma.societe.count();
+          const agences = await prisma.agence.count();
+          const comptesPortail = await prisma.utilisateurClient.count();
+          const pariteXpf = await prisma.parite.findFirst({
+            where: { devise_code: "XPF" },
+            orderBy: { date_effet: "asc" },
+          });
+
+          console.log("── Décompte de contrôle ──────────────────");
+          console.log("Sociétés        :", societes);
+          console.log("Agences         :", agences);
+          console.log("Comptes portail :", comptesPortail);
+          console.log(
+            "Parité XPF      :",
+            pariteXpf
+              ? `${pariteXpf.taux} XPF pour 1 EUR (effet ${pariteXpf.date_effet
+                  .toISOString()
+                  .slice(0, 10)}, source « ${pariteXpf.source} »)`
+              : "ABSENTE",
+          );
+
+          await prisma.$disconnect();
+          EOF
+          pnpm exec tsx /tmp/decompte.mts
