@@ -8,9 +8,15 @@ import type { Role } from "@prisma/client";
  * un compte portail rattaché à un client (critère d'acceptation L0-03).
  *
  * Ce module ne dépend pas de la base : il est directement vérifiable par un
- * test unitaire. Les identifiants techniques (UUID v7, I10) sont attribués à
- * l'écriture par `seed.ts` ; les clés naturelles ci-dessous (code, email)
- * rendent le seed idempotent.
+ * test unitaire. Les clés naturelles (code, email) rendent le seed idempotent.
+ *
+ * Les sociétés portent ici un identifiant FIXE, contrairement aux autres objets
+ * dont l'UUID v7 est attribué à l'écriture par `seed.ts`. Raison : depuis que
+ * `FORCE ROW LEVEL SECURITY` s'applique aussi au propriétaire, la politique de
+ * `societe` est `id = app.societe_id` — le seed doit donc connaître l'identifiant
+ * AVANT d'écrire, pour poser le contexte. Une recherche préalable par `code`
+ * serait elle-même filtrée : impossible. Ces identifiants restent des UUID v7
+ * bien formés (I10) et ne désignent que des sociétés fictives (I9).
  */
 
 export type AgenceSeed = {
@@ -20,6 +26,8 @@ export type AgenceSeed = {
 };
 
 export type SocieteSeed = {
+  /** UUID v7 fixe — voir l'entête du module. */
+  id: string;
   code: string;
   raison_sociale: string;
   pays: string;
@@ -75,6 +83,7 @@ export const DEVISES: readonly DeviseSeed[] = [
  * Taux horaire 7 000 XPF (chapitre 11 §11.2), majoration hors ouverture +50 % (D12).
  */
 const CODIMA_NC: SocieteSeed = {
+  id: "0192f0a0-0000-7000-8000-000000000001",
   code: "CODIMA-NC",
   raison_sociale: "CODIMA Nouvelle-Calédonie",
   pays: "Nouvelle-Calédonie",
@@ -107,6 +116,7 @@ const CODIMA_NC: SocieteSeed = {
 
 /** Seconde société, en EUR : démontre le multi-société et le multi-devise. */
 const CODIMA_EU: SocieteSeed = {
+  id: "0192f0a0-0000-7000-8000-000000000002",
   code: "CODIMA-EU",
   raison_sociale: "CODIMA Europe",
   pays: "France",
@@ -128,6 +138,15 @@ const CODIMA_EU: SocieteSeed = {
 };
 
 export const SOCIETES: readonly SocieteSeed[] = [CODIMA_NC, CODIMA_EU];
+
+/** Résout une société du jeu de démonstration par son code naturel. */
+export function societeParCode(code: string): SocieteSeed {
+  const societe = SOCIETES.find((s) => s.code === code);
+  if (societe === undefined) {
+    throw new Error(`Société inconnue dans le jeu de démonstration : ${code}`);
+  }
+  return societe;
+}
 
 /**
  * Utilisateurs internes. Le premier est habilité sur les deux sociétés :

@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
+import { avecSociete } from "../lib/db/rls";
+import { SOCIETES } from "../prisma/seed-data";
+
 /**
  * Décompte de contrôle post-migration (workflow « DB migrate & seed »).
  *
@@ -7,17 +10,36 @@ import { PrismaClient } from "@prisma/client";
  * migration et amorçage : nombre de sociétés, d'agences, de comptes portail et
  * première parité XPF connue. Purement lecture, aucune écriture.
  *
+ * Depuis `FORCE ROW LEVEL SECURITY`, le rôle propriétaire est lui aussi soumis
+ * au cloisonnement : un `count()` sans contexte renverrait zéro. Le decompte se
+ * fait donc société par société, sous le contexte de chacune — ce qui a le
+ * mérite de vérifier au passage, en conditions réelles, que le filet mord.
+ *
  * Versionné dans le dépôt (et non écrit dans /tmp) pour que `tsx`, exécuté
  * depuis la racine, résolve `@prisma/client` via le `node_modules` du dépôt.
  *
  * Sortie via `process.stdout.write` : `console.log` est banni (CLAUDE.md §5),
- * et ce décompte est une sortie de journal délibérée, pas une trace résiduelle.
+ * et ce decompte est une sortie de journal délibérée, pas une trace résiduelle.
  */
 const prisma = new PrismaClient();
 
-const societes = await prisma.societe.count();
-const agences = await prisma.agence.count();
-const comptesPortail = await prisma.utilisateurClient.count();
+let societes = 0;
+let agences = 0;
+let comptesPortail = 0;
+
+for (const societe of SOCIETES) {
+  const decompte = await avecSociete(prisma, societe.id, async (tx) => ({
+    societe: await tx.societe.count(),
+    agence: await tx.agence.count(),
+    portail: await tx.utilisateurClient.count(),
+  }));
+
+  societes += decompte.societe;
+  agences += decompte.agence;
+  comptesPortail += decompte.portail;
+}
+
+// Référentiel de plateforme : lisible par tous, hors cloisonnement (D4).
 const pariteXpf = await prisma.parite.findFirst({
   where: { devise_code: "XPF" },
   orderBy: { date_effet: "asc" },

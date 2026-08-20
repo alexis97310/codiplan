@@ -41,8 +41,9 @@ import { urlOwner } from "./db";
  * voir docs/decisions/2026-08-20-tests-isolation-postgres-local.md).
  *
  * Étapes : garde-fou sur l'URL, reprise à zéro du schéma (DROP + `migrate
- * deploy`), création du rôle applicatif restreint, des tables fixtures
- * « contrat » et de leurs politiques, puis amorçage déterministe des sociétés.
+ * deploy` — qui crée au passage le rôle applicatif restreint), contrôle de la
+ * présence de ce rôle, création des tables fixtures « contrat » et de leurs
+ * politiques, puis amorçage déterministe des sociétés.
  */
 
 function garantirBaseLocaleJetable(): string {
@@ -94,16 +95,18 @@ export default async function setup(): Promise<void> {
       stdio: "ignore",
     });
 
-    // Rôle applicatif restreint : non superutilisateur, non BYPASSRLS, afin
-    // d'être réellement soumis aux politiques. Idempotent (le rôle survit à un
-    // reset de schéma) — d'où le test d'existence préalable.
+    // Le rôle applicatif restreint n'est PAS créé ici : c'est la migration
+    // `20260820130000_force_rls_role_applicatif` qui le crée et lui accorde ses
+    // droits. Le harnais s'assure seulement qu'elle a bien fait son travail —
+    // sans quoi les scénarios éprouveraient un rôle de test, pas le vrai.
     const roleExiste = await prisma.$queryRawUnsafe<Array<{ un: number }>>(
       "SELECT 1 AS un FROM pg_roles WHERE rolname = $1",
       ROLE_APP,
     );
     if (roleExiste.length === 0) {
-      await prisma.$executeRawUnsafe(
-        `CREATE ROLE "${ROLE_APP}" LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`,
+      throw new Error(
+        `Le rôle applicatif « ${ROLE_APP} » est absent après migration. ` +
+          "Le rôle qui applique les migrations a-t-il l'attribut CREATEROLE ?",
       );
     }
 

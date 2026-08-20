@@ -28,7 +28,13 @@ jobs:
     env:
       # La connexion vient exclusivement du secret : jamais de valeur en clair
       # dans le dépôt (I9).
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      #
+      # Ce secret porte l'URL du rôle PROPRIÉTAIRE : migrations et seed le
+      # conservent. À ne pas confondre avec la variable `DATABASE_URL` du service
+      # applicatif, qui porte, elle, l'URL du rôle non propriétaire
+      # `codiplan_app` (voir docs/decisions/2026-08-20-role-applicatif-et-force-rls.md).
+      # `DATABASE_URL` reste accepté en repli pour ne pas casser l'existant.
+      DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL || secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v5
 

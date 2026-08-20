@@ -12,8 +12,13 @@
  * ce même contrat, réutilisant les mêmes constructeurs de politique ci-dessous.
  */
 
-/** Rôle PostgreSQL non-owner, non-BYPASSRLS, sous lequel tournent les scénarios. */
-export const ROLE_APP = "codiplan_test_app";
+/**
+ * Rôle PostgreSQL non propriétaire, non-BYPASSRLS, sous lequel tournent les
+ * scénarios. Ce n'est pas un rôle de test : c'est LE rôle applicatif, créé par
+ * la migration `20260820130000_force_rls_role_applicatif`. Les scénarios
+ * éprouvent donc les droits réellement accordés en production.
+ */
+export const ROLE_APP = "codiplan_app";
 
 /** Variables de session lues par les politiques RLS. */
 export const VAR_SOCIETE = "app.societe_id";

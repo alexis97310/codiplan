@@ -20,16 +20,22 @@ chemins obligatoires de L0-05 :
   (D22).
 - `portail-client.test.ts` — un compte portail ne voit que **son client** et
   respecte son **périmètre de sites** (D10).
+- `force-rls.test.ts` — `FORCE ROW LEVEL SECURITY` est bien posé sur les quatre
+  tables cloisonnées et **absent** des référentiels de plateforme ; une société
+  ne s'écrit que sous son propre contexte, y compris depuis le seed.
+- `garde-role.test.ts` — le contrôle au démarrage accepte le rôle applicatif et
+  refuse le rôle propriétaire de la base.
 
-Soit seize scénarios (le minimum imposé est douze).
+Le minimum imposé est de douze scénarios.
 
 ## Base de test
 
 Les scénarios tournent sur un **PostgreSQL local jetable**, recréé à chaque
 exécution et piloté par `TEST_DATABASE_URL` — **jamais Neon**, injoignable en TCP
-depuis une session cloud. Les scénarios passent par un rôle applicatif restreint
-(`codiplan_test_app`, non-owner, non-BYPASSRLS) pour que les politiques RLS
-mordent réellement. Détails et amorçage local :
+depuis une session cloud. Les scénarios passent par le rôle applicatif
+`codiplan_app` — non propriétaire, non-BYPASSRLS —, celui-là même que crée la
+migration `20260820130000_force_rls_role_applicatif` : les politiques RLS mordent
+donc réellement, et ce sont les droits de production qui sont éprouvés. Détails et amorçage local :
 `docs/decisions/2026-08-20-tests-isolation-postgres-local.md`.
 
 ```bash

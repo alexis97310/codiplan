@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { avecSociete } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import {
   COMPTES_PORTAIL,
@@ -7,6 +8,7 @@ import {
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
+  societeParCode,
 } from "./seed-data";
 
 /**
@@ -15,8 +17,16 @@ import {
  * Écrit le jeu de démonstration décrit dans `seed-data.ts` : deux sociétés —
  * l'une en XPF avec trois agences (Ducos, Koné, Dolbeau), l'autre en EUR — et
  * un compte portail rattaché à un client. Idempotent : les `upsert` portent sur
- * les clés naturelles (code, email), les UUID v7 (I10) ne sont attribués qu'à
- * la création.
+ * les clés naturelles (code, email, identifiant fixe de société), les UUID v7
+ * (I10) ne sont attribués qu'à la création.
+ *
+ * Le seed CONSERVE le rôle propriétaire — il instancie son propre client, sans
+ * passer par `lib/db/client`, dont le contrôle de démarrage refuserait ce rôle.
+ * Depuis `FORCE ROW LEVEL SECURITY`, ce rôle est néanmoins soumis aux politiques
+ * de cloisonnement : chaque écriture sur une table cloisonnée est donc encadrée
+ * par `avecSociete`, qui pose `app.societe_id`. Les référentiels de plateforme
+ * (`devise`, `parite`) et l'identité globale (`utilisateur`) ne sont pas
+ * cloisonnés et s'écrivent hors contexte.
  */
 const prisma = new PrismaClient();
 
@@ -55,35 +65,36 @@ async function seed(): Promise<void> {
   }
 
   for (const societe of SOCIETES) {
-    const { agences, ...champsSociete } = societe;
+    const { id, agences, ...champsSociete } = societe;
 
-    const enregistrement = await prisma.societe.upsert({
-      where: { code: societe.code },
-      update: champsSociete,
-      create: { id: uuidv7(), ...champsSociete },
-    });
-
-    for (const agence of agences) {
-      await prisma.agence.upsert({
-        where: {
-          societe_id_code: {
-            societe_id: enregistrement.id,
-            code: agence.code,
-          },
-        },
-        update: { libelle: agence.libelle, adresse: agence.adresse },
-        create: {
-          id: uuidv7(),
-          societe_id: enregistrement.id,
-          code: agence.code,
-          libelle: agence.libelle,
-          adresse: agence.adresse,
-        },
+    // La politique de `societe` est `id = app.societe_id` : une société ne peut
+    // s'écrire que sous son propre contexte, y compris depuis le seed.
+    await avecSociete(prisma, id, async (tx) => {
+      await tx.societe.upsert({
+        where: { id },
+        update: champsSociete,
+        create: { id, ...champsSociete },
       });
-    }
+
+      for (const agence of agences) {
+        await tx.agence.upsert({
+          where: { societe_id_code: { societe_id: id, code: agence.code } },
+          update: { libelle: agence.libelle, adresse: agence.adresse },
+          create: {
+            id: uuidv7(),
+            societe_id: id,
+            code: agence.code,
+            libelle: agence.libelle,
+            adresse: agence.adresse,
+          },
+        });
+      }
+    });
   }
 
   for (const utilisateur of UTILISATEURS_INTERNES) {
+    // `utilisateur` porte l'identité globale : pas de `societe_id`, pas de
+    // cloisonnement (sa visibilité relève de l'authentification, L0-06).
     const enregistrement = await prisma.utilisateur.upsert({
       where: { email: utilisateur.email },
       update: {},
@@ -91,25 +102,25 @@ async function seed(): Promise<void> {
     });
 
     for (const habilitation of utilisateur.habilitations) {
-      const societe = await prisma.societe.findUniqueOrThrow({
-        where: { code: habilitation.societe_code },
-      });
+      const societeId = societeParCode(habilitation.societe_code).id;
 
-      await prisma.utilisateurSociete.upsert({
-        where: {
-          utilisateur_id_societe_id: {
-            utilisateur_id: enregistrement.id,
-            societe_id: societe.id,
+      await avecSociete(prisma, societeId, (tx) =>
+        tx.utilisateurSociete.upsert({
+          where: {
+            utilisateur_id_societe_id: {
+              utilisateur_id: enregistrement.id,
+              societe_id: societeId,
+            },
           },
-        },
-        update: { role: habilitation.role },
-        create: {
-          id: uuidv7(),
-          utilisateur_id: enregistrement.id,
-          societe_id: societe.id,
-          role: habilitation.role,
-        },
-      });
+          update: { role: habilitation.role },
+          create: {
+            id: uuidv7(),
+            utilisateur_id: enregistrement.id,
+            societe_id: societeId,
+            role: habilitation.role,
+          },
+        }),
+      );
     }
   }
 
@@ -120,26 +131,26 @@ async function seed(): Promise<void> {
       create: { id: uuidv7(), email: compte.email },
     });
 
-    const societe = await prisma.societe.findUniqueOrThrow({
-      where: { code: compte.societe_code },
-    });
+    const societeId = societeParCode(compte.societe_code).id;
 
-    await prisma.utilisateurClient.upsert({
-      where: {
-        utilisateur_id_client_id: {
+    await avecSociete(prisma, societeId, (tx) =>
+      tx.utilisateurClient.upsert({
+        where: {
+          utilisateur_id_client_id: {
+            utilisateur_id: utilisateur.id,
+            client_id: compte.client_id,
+          },
+        },
+        update: { perimetre_sites: compte.perimetre_sites },
+        create: {
+          id: uuidv7(),
           utilisateur_id: utilisateur.id,
           client_id: compte.client_id,
+          societe_id: societeId,
+          perimetre_sites: compte.perimetre_sites,
         },
-      },
-      update: { perimetre_sites: compte.perimetre_sites },
-      create: {
-        id: uuidv7(),
-        utilisateur_id: utilisateur.id,
-        client_id: compte.client_id,
-        societe_id: societe.id,
-        perimetre_sites: compte.perimetre_sites,
-      },
-    });
+      }),
+    );
   }
 }
 
