@@ -63,7 +63,11 @@ Dix règles. Une modification qui en viole une est un défaut, même si elle com
 ### I1 — Cloisonnement multi-société
 Quatre catégories de tables, et quatre seulement.
 
-**1. Tables métier** — `societe_id NOT NULL`. C'est le cas général, sans exception tacite.
+**1. Tables métier** — `societe_id NOT NULL`. Cas général. `societe` fait exception à la forme, non au fond : étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`). *(D42)*
+
+**L'exception est nommée, pas déduite — et c'est une liste close de plus.** Le gardien la tient sous le nom `CLOISONNEE_PAR_IDENTITE` et **échoue si elle contient autre chose que son unique entrée `societe`** : toute addition passe par un arbitrage, elle ne se décide pas dans un ticket. Une exception qu'on lit vaut mieux qu'une règle qu'on élargit — élargir la règle à « cloisonnée d'une manière ou d'une autre » ferait entrer sans décision la table suivante qui s'en réclamerait.
+
+**Toute autre table métier porte donc `societe_id NOT NULL`, ou passe par un arbitrage.** Aux lots 1 à 3 — `client`, `site`, `machine`, `intervention`, `contrat` — ce n'est **pas une friction à contourner : c'est l'objectif**. Le seul moment où la question de cloisonnement se pose sans effort est celui où la table est créée ; un ticket qui la traite comme un obstacle la reporte de trois arbitrages.
 
 **2. Référentiels de plateforme** — `societe_id NULL` ou pas de `societe_id` du tout, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `parite` *(D41)*, `famille_materiel`, `modele_materiel`, `checklist_modele`.
 
@@ -77,7 +81,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 **Règle attachée, et c'est elle qui rend son non-cloisonnement acceptable : aucune donnée métier sur `utilisateur`.** Fonction, agence de rattachement, habilitations, préférences — tout cela vit dans `utilisateur_societe`, qui est cloisonnée. `utilisateur` ne porte que ce qui sert à **trouver et authentifier** un compte. Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne métier y apparaît.
 
-**Les trois listes closes sont fermées** — toute addition exige un arbitrage explicite, jamais une décision de session.
+**Les quatre listes closes sont fermées** — les trois catégories énumérées ci-dessus et l'exception `CLOISONNEE_PAR_IDENTITE` — toute addition exige un arbitrage explicite, jamais une décision de session.
 
 **Et l'exhaustivité est vérifiée, pas supposée** *(D41)*. Un gardien statique énumère toutes les tables de `prisma/schema.prisma` et exige que chacune appartienne à **exactement une** catégorie. Zéro échoue — c'est l'oubli ; deux échouent aussi — c'est la liste qui dit une chose et le schéma une autre. Trois oublis du même type s'étaient déjà succédé : une liste fermée un jour, une décision ultérieure qui crée une table sans revenir la ranger.
 

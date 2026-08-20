@@ -475,7 +475,7 @@ Toutes acceptées, plus une trouvée en complément :
 | | |
 |---|---|
 | **Objet** | Trancher les questions ouvertes par l'authentification, les rôles et le rôle de consolidation |
-| **Portée** | D34 à D41 — les cinq premiers relevés à la livraison de L0-06, les suivants soumis puis arbitrés au cours de L0-06b |
+| **Portée** | D34 à D42 — les cinq premiers relevés à la livraison de L0-06, les suivants soumis puis arbitrés au cours de L0-06b et L0-06c |
 | **Statut** | Décisions arrêtées — même autorité que la note n°1, qu'elle complète et ne remplace pas |
 | **Date** | 20 août 2026 |
 | **Ticket** | L0-06b |
@@ -566,17 +566,30 @@ C'est donc une **règle produit**, et pas seulement une règle technique : elle 
 
 Il est éprouvé d'abord sur des schémas fabriqués — une table sans catégorie, une table à deux, et les quatre formes légitimes —, comme les gardiens de D34 et D39. Détail dans `docs/decisions/2026-08-20-gardien-exhaustivite-categories.md`.
 
-**Ce que le premier passage a trouvé.** Deux tables, et non une : `parite`, attendue, et **`societe`**, qui ne l'était pas. Voir le point ouvert ci-dessous.
+**Ce que le premier passage a trouvé.** Deux tables, et non une : `parite`, attendue, et **`societe`**, qui ne l'était pas. Elle est tranchée par D42.
+
+### D42 — `societe` est cloisonnée par son identité : c'est la rédaction de I1 qui était incomplète
+
+**Rien n'était ouvert.** La politique de cloisonnement de `societe` existe depuis L0-04 et s'écrit `id = current_setting('app.societe_id')::uuid`. `tests/isolation/force-rls.test.ts` l'éprouve comme les autres. `scripts/inventaire.mts` compte `societe` **parmi les tables cloisonnées** — son type `TableFille` ne dit rien d'autre que « toutes les tables cloisonnées *sauf* `societe` », c'est-à-dire la forme particulière de cette table, jamais son exclusion. C'est donc la **phrase de l'invariant** qui était incomplète, pas le cloisonnement : « `societe_id NOT NULL`, sans exception tacite » ne peut pas décrire la table que `societe_id` **désigne**.
+
+**La rédaction retenue**, qui remplace celle de la première catégorie de I1 :
+
+> **1. Tables métier** — `societe_id NOT NULL`. Cas général. `societe` fait exception à la forme, non au fond : étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`).
+
+**L'exception est nommée, non déduite.** Le gardien de D41 la tient sous le nom `CLOISONNEE_PAR_IDENTITE` plutôt que d'élargir sa règle à « cloisonnée d'une manière ou d'une autre » — une règle élargie ne se relit pas, et la table suivante qui s'en réclamerait entrerait sans décision. Écartées de même : une cinquième catégorie, qui confondrait une forme de cloisonnement avec un régime de conservation ; et une colonne `societe_id` dupliquant la clé primaire, qui déformerait la base pour arranger un gardien.
+
+**C'est une liste close de plus, et elle est gardée comme les trois autres** — la plus exposée, même, puisqu'elle dispense de la seule règle mécanique de I1. Le gardien **échoue si elle contient autre chose que son unique entrée `societe`**, comme si elle la perd, avec ce message : *toute addition passe par un arbitrage, elle ne se décide pas dans un ticket.* Il est éprouvé sur une addition fabriquée et sur une liste vidée.
+
+**Et ce que D41 comptait comme un coût est inscrit comme l'objectif.** Chaque table des lots 1 à 3 — `client`, `site`, `machine`, `intervention`, `contrat` — portera `societe_id NOT NULL` ou passera par un arbitrage. Le CLAUDE.md l'écrit désormais **comme l'objectif et non comme une friction**, pour qu'aucun ticket futur ne cherche à le contourner. Détail dans `docs/decisions/2026-08-20-societe-cloisonnee-par-identite.md`.
 
 ---
 
 ## Ce qui reste à décider, et quand
 
-Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
+Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouvert — la rédaction de la première catégorie de I1 pour `societe` — est **tranché par D42** ; le gardien d'exhaustivité de D41 ne trouve plus aucune table hors catégorie. Les points suivants attendent leur lot :
 
 | Échéance | Point |
 |---|---|
-| **Prochain arbitrage** | **Rédaction de la première catégorie de I1, pour `societe`.** Le gardien de D41 l'a trouvée hors catégorie : elle est bien cloisonnée — la politique de L0-04 s'écrit `id = app.societe_id` — mais **par son identité**, pas par une colonne `societe_id NOT NULL`. Rien n'est ouvert : le cloisonnement est en place et éprouvé. C'est la **rédaction** de I1 qui est incomplète, et la corriger touche un invariant. Le gardien nomme l'exception (`CLOISONNEE_PAR_IDENTITE`) plutôt que d'assouplir sa règle, en attendant |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
@@ -593,6 +606,8 @@ Rien ne bloque plus le lot 0. Les points suivants attendent leur lot :
 Deux d'entre eux — D39 et D40 — ont d'ailleurs été **soumis et non tranchés** dans un premier temps : la session qui les avait relevés s'est arrêtée devant une liste close et une règle de sécurité, comme le §8 du CLAUDE.md l'impose. Un troisième, `parite`, a suivi le même chemin et est devenu D41.
 
 **Ce que D41 ajoute à la méthode.** Les trois premiers oublis étaient le même oubli, répété : une liste fermée, une table créée plus tard, personne pour revenir la ranger. Tant qu'on réparait cas par cas, on ne réparait rien — le quatrième était déjà en route, et il est effectivement apparu au premier passage du gardien (`societe`). La leçon n'est pas « mieux relire les listes » : c'est **ne jamais laisser une liste close être la seule source de vérité sur ce qu'elle prétend couvrir.** Un gardien qui part de la réalité et interroge la liste vaut mieux que dix relectures de la liste.
+
+**Ce que D42 y ajoute.** Le quatrième cas n'était pas un quatrième oubli : `societe` était cloisonnée, éprouvée, inventoriée — seule la phrase de l'invariant ne la décrivait pas. Un gardien qui part de la réalité ne trouve donc pas que des tables mal rangées : il trouve aussi **les règles dont la rédaction n'a jamais couvert ce qu'elles prétendaient couvrir**. D'où la seconde leçon : **un invariant qui a des exceptions doit les énumérer, pas les sous-entendre** — et énumérer une exception, c'est créer une liste close de plus, donc un gardien de plus.
 
 La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant** ; ne jamais laisser une session compléter une liste close, fût-ce d'une évidence ; et **doubler toute liste close d'un gardien d'exhaustivité** qui la confronte à ce qui existe.
 
