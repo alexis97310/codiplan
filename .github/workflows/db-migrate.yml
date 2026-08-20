@@ -12,6 +12,17 @@ name: DB migrate & seed
 # workflow_dispatch est autorisé. Ne PAS ajouter d'autre déclencheur ici.
 on:
   workflow_dispatch:
+    inputs:
+      # Purge des données de démonstration avant le seed. Par défaut FALSE :
+      # une exécution ordinaire du workflow n'efface jamais rien. Réservé à une
+      # base ne contenant que des données de démonstration — voir
+      # docs/decisions/2026-08-20-purge-des-donnees-de-demonstration.md, qui fixe
+      # la condition de retrait de cette option dès qu'une donnée réelle existera.
+      reinitialiser_demo:
+        description: "Purger les données de démonstration AVANT le seed (base de démonstration UNIQUEMENT)"
+        type: boolean
+        default: false
+        required: false
 
 # Une seule migration à la fois : deux exécutions concurrentes attaqueraient la
 # même base. On ne coupe pas celle en cours (cancel-in-progress: false) pour ne
@@ -50,6 +61,18 @@ jobs:
 
       - name: Appliquer la migration
         run: pnpm prisma migrate deploy
+
+      # Ne s'exécute QUE si l'entrée `reinitialiser_demo` a été cochée au
+      # déclenchement : `inputs.reinitialiser_demo` vaut le booléen `false` par
+      # défaut, la condition est donc fausse pour une exécution ordinaire. Le
+      # script pose lui-même une seconde barrière et refuse de purger sans la
+      # confirmation explicite ci-dessous. Placé APRÈS la migration : la purge
+      # suppose le schéma courant.
+      - name: Purger les données de démonstration
+        if: ${{ inputs.reinitialiser_demo }}
+        env:
+          PURGE_DEMONSTRATION_CONFIRMEE: "oui"
+        run: pnpm exec tsx scripts/purge-demonstration.mts
 
       - name: Exécuter le seed
         run: pnpm db:seed
