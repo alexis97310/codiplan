@@ -33,11 +33,13 @@ Un **PostgreSQL local jetable**, piloté par la variable `TEST_DATABASE_URL`,
 **jamais** `DATABASE_URL` (un garde-fou du harnais refuse une URL Neon ou
 identique à la production). Le `globalSetup` du projet Vitest « isolation »
 recrée intégralement le schéma à chaque exécution (dépose le schéma, réapplique
-les migrations dont la migration RLS), crée un rôle applicatif restreint
-`codiplan_test_app` — **non superutilisateur, non `BYPASSRLS`** —, provisionne
-les fixtures et amorce deux sociétés fictives. Les scénarios se connectent sous
-ce rôle restreint : c'est la seule façon de vérifier que les politiques mordent
-réellement, le propriétaire du schéma les contournant.
+les migrations, dont celle qui pose les politiques RLS et celle qui crée le rôle
+applicatif `codiplan_app` — **non propriétaire, non superutilisateur, non
+`BYPASSRLS`**), provisionne les fixtures et amorce deux sociétés fictives. Les
+scénarios se connectent sous ce rôle restreint : c'est la seule façon de vérifier
+que les politiques mordent réellement, et comme il s'agit du rôle applicatif réel
+et non d'un rôle créé pour les tests, ce sont les droits de production qui sont
+éprouvés.
 
 En intégration continue, un **service `postgres:16`** (auth `trust`, base
 `codiplan_test`) fournit cette base aux jobs `verify` et `verify:full` de
@@ -45,19 +47,26 @@ En intégration continue, un **service `postgres:16`** (auth `trust`, base
 
 Deux points de mise en œuvre méritent d'être notés :
 
-1. **Identifiants en `text`.** Le schéma L0-03 stocke les identifiants en `text`
-   (UUID v7 générés côté appareil, I10). La forme imposée par D4
-   (`... = current_setting('app.societe_id')::uuid`) est donc rendue en
-   comparaison text-à-text, sans cast — sémantiquement identique, mais sans quoi
-   PostgreSQL lèverait `operator does not exist: text = uuid`. Le membre est en
-   outre durci en `NULLIF(current_setting('app.societe_id', true), '')` pour que
-   « aucune société positionnée » renvoie **zéro ligne** au lieu de lever une
-   erreur, comme l'exige le critère d'acceptation.
-2. **`FORCE ROW LEVEL SECURITY` non activé.** Le propriétaire du schéma (rôle qui
-   applique migration et seed) doit continuer à écrire le socle sans positionner
-   de contexte. Les politiques mordent donc pour tout rôle non propriétaire —
-   posture du rôle de test, et posture qu'adoptera le rôle applicatif restreint
-   au ticket L0-06.
+1. **Type des identifiants** — *révisé le 20/08/2026, correction de revue.*
+   Ce document indiquait initialement que les identifiants étaient stockés en
+   `text`, ce qui obligeait à écarter le `::uuid` de la forme imposée par D4.
+   Les colonnes sont désormais typées `uuid` et le cast est rétabli — voir
+   `2026-08-20-identifiants-uuid-natif.md`. Restent deux durcissements, à
+   sémantique identique : `current_setting(..., true)` pour que « aucune société
+   positionnée » renvoie **zéro ligne** au lieu de lever une erreur, comme
+   l'exige le critère d'acceptation, et `NULLIF(..., '')` pour qu'une variable
+   vide compte comme absente. Corollaire pratique : dans une requête brute, un
+   identifiant passé en paramètre lié doit être casté sur place (`$1::uuid`).
+2. **`FORCE ROW LEVEL SECURITY`** — *révisé le 20/08/2026, correction de revue.*
+   Ce document indiquait initialement que FORCE n'était pas activé, le
+   propriétaire devant écrire le socle sans contexte. La revue de L0-04 a montré
+   que cela laissait le filet inopérant pour la connexion applicative par défaut.
+   FORCE est désormais activé sur les quatre tables cloisonnées, un rôle
+   applicatif non propriétaire est créé par migration, et le seed pose le
+   contexte société de chacune de ses écritures. Voir
+   `2026-08-20-role-applicatif-et-force-rls.md`. Le harnais d'isolation ne crée
+   plus son propre rôle : les scénarios tournent sous `codiplan_app`, le rôle
+   applicatif réel.
 
 ### Vérification manuelle par mutation (critère L0-05, arbitrage gravité 4)
 

@@ -27,6 +27,13 @@ type ClientPrisma = PrismaClient | Prisma.TransactionClient;
  * `set_config` est utilisé plutôt que `SET LOCAL` parce qu'il accepte un
  * paramètre lié ($1) : la valeur ne transite jamais par de la concaténation de
  * chaîne, ce qui ferme la porte à toute injection dans la variable de session.
+ *
+ * La variable de session reste du texte — c'est le type de `current_setting` —
+ * et ce sont les politiques qui la convertissent en `uuid` (forme D4). Corollaire
+ * pour toute requête brute écrite ailleurs : un identifiant passé en paramètre
+ * lié part en `text` et doit être casté sur place (`$1::uuid`), les colonnes
+ * d'identifiants étant typées `uuid` depuis la migration
+ * `20260820140000_identifiants_uuid`.
  */
 async function poserContexteSociete(
   tx: ClientPrisma,
