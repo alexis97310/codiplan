@@ -120,10 +120,27 @@ complément 2) : `appliquerEcarts` compose le **fait public** du territoire, pui
 l'**écart local** de l'agence. Jamais l'inverse — une agence ne décrète pas les
 fériés de son territoire, et la base le lui interdit déjà. L'écart porte
 `agence_id` et non `calendrier_id` : Ducos et Dolbeau partagent un calendrier et
-divergent sur un pont, ce que le jeu de démonstration porte exactement. Une clé
-étrangère **composite** vers `jour_ferie(id, date)` rend sûre la redondance de la
-date : un écart ne peut pas prétendre surcharger le 14 juillet en portant la
-date du 15.
+divergent sur un pont, ce que le jeu de démonstration porte exactement.
+
+**Deux contraintes de base tiennent l'écart, et elles sont éprouvées sur des
+violations réelles.** Un `UNIQUE (agence_id, date)` interdit deux écarts
+contradictoires le même jour pour la même agence — sans lui, une ligne
+« travaillé » et une ligne « chômé » coexisteraient et `appliquerEcarts` en
+retiendrait une **en silence**. Une clé étrangère **composite** vers
+`jour_ferie(id, date)` rend sûre la redondance de la date : un écart ne peut pas
+prétendre surcharger le 14 juillet en portant la date du 15. Les scénarios
+d'isolation les éprouvent sous les deux angles — deux écarts adossés au même
+férié, et un pont autonome posé sur un jour déjà surchargé —, et l'unicité a été
+retirée de la migration puis rétablie pour vérifier que les scénarios tombent
+bien sans elle.
+
+**Ce que ces deux contraintes ne ferment PAS**, et qui est soumis au registre :
+un écart peut s'adosser au férié d'un **autre territoire** tombant le même jour.
+La portée est faible — la composition se fait par date, et le libellé vient du
+fait public du bon territoire —, mais `jour_ferie_id` cesse d'être fiable comme
+« le fait public que cet écart surcharge ». Le fermer suppose un chaînage de
+clés étrangères passant par `agence(id, territoire)` : c'est un changement de
+schéma, donc un arbitrage, et non une décision de session.
 
 **L'horizon des fériés est glissant, extensible et contrôlé** (D46,
 complément 3). Le seed part de l'année en cours **lue dans le fuseau de la

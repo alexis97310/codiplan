@@ -2,8 +2,10 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import {
   chargerCalendrierAgence,
+  cleJour,
   estJourOuvre,
   estOuvert,
+  jourSuivant,
   lireCleJour,
   versInstant,
   type Calendrier,
@@ -343,5 +345,113 @@ describe("chargement du calendrier d'une agence (D5, D13, D46)", () => {
       }),
     );
     expect(calendrier).toBeNull();
+  });
+});
+
+describe("un seul écart par agence et par jour (D46, complément 2)", () => {
+  afterAll(fermerClients);
+
+  /**
+   * **Le trou que cette contrainte ferme.** Rien, dans les clés étrangères,
+   * n'empêcherait deux lignes pour la même agence et la même date — l'une
+   * disant « on travaille », l'autre « on chôme ». `appliquerEcarts` en
+   * retiendrait une **en silence**, celle que le tri aurait mise en dernier, et
+   * l'agence découvrirait son planning à l'usage.
+   *
+   * L'unicité de `(agence_id, date)` l'interdit en base. Elle est éprouvée ici
+   * sous les deux angles, parce que c'est le même trou vu des deux côtés : deux
+   * écarts adossés au même férié, et un pont autonome posé sur un jour déjà
+   * surchargé.
+   */
+
+  /** L'identifiant du férié que l'agence A travaille déjà (fixture). */
+  async function idFerieTravaille(): Promise<string> {
+    const ferie = await clientApp().jourFerie.findUniqueOrThrow({
+      where: {
+        territoire_date: {
+          territoire: TERRITOIRE_A,
+          date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`),
+        },
+      },
+      select: { id: true },
+    });
+    return ferie.id;
+  }
+
+  it("un SECOND écart sur la même date est refusé", async () => {
+    const jourFerieId = await idFerieTravaille();
+
+    await expect(
+      avecSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "calendrier_ferie"
+             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
+              "travaille", "motif")
+           VALUES ('aaaaaaaa-0000-7000-8000-0000000000e5', $1::uuid, $2::uuid,
+                   DATE '${FERIE_TRAVAILLE_A.date}', $3::uuid, false,
+                   'décision contraire')`,
+          SOCIETE_A,
+          AGENCE_A,
+          jourFerieId,
+        ),
+      ),
+    ).rejects.toThrow(/agence_id_date|duplicate key|unique/i);
+  });
+
+  it("un PONT autonome posé sur un jour déjà surchargé est refusé", async () => {
+    // Le même trou vu de l'autre côté : l'écart existant est adossé à un férié,
+    // celui-ci n'est adossé à rien. Sans l'unicité, les deux coexisteraient et
+    // se contrediraient.
+    await expect(
+      avecSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "calendrier_ferie"
+             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
+              "travaille", "motif")
+           VALUES ('aaaaaaaa-0000-7000-8000-0000000000e6', $1::uuid, $2::uuid,
+                   DATE '${FERIE_TRAVAILLE_A.date}', NULL, false,
+                   'pont autonome le même jour')`,
+          SOCIETE_A,
+          AGENCE_A,
+        ),
+      ),
+    ).rejects.toThrow(/agence_id_date|duplicate key|unique/i);
+  });
+
+  it("deux agences peuvent en revanche diverger le même jour", async () => {
+    // L'unicité porte sur (agence, date), pas sur la date : c'est précisément
+    // ce qui permet à Dolbeau de poser un pont que Ducos ne pose pas, alors
+    // qu'elles partagent un calendrier d'ouverture.
+    const ecarts = await avecSociete(SOCIETE_A, (tx) =>
+      tx.calendrierFerie.findMany({
+        where: { date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`) },
+        select: { agence_id: true },
+      }),
+    );
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]?.agence_id).toBe(AGENCE_A);
+  });
+
+  it("un écart dont la date diverge du férié qu'il surcharge est refusé", async () => {
+    // La clé étrangère COMPOSITE vers `jour_ferie(id, date)` : un écart ne peut
+    // pas prétendre surcharger un férié en portant une autre date que la
+    // sienne. Sans elle, la colonne `date` serait une divergence en attente.
+    const jourFerieId = await idFerieTravaille();
+    const lendemain = cleJour(jourSuivant(lireCleJour(FERIE_TRAVAILLE_A.date)));
+
+    await expect(
+      avecSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "calendrier_ferie"
+             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
+              "travaille", "motif")
+           VALUES ('aaaaaaaa-0000-7000-8000-0000000000e7', $1::uuid, $2::uuid,
+                   DATE '${lendemain}', $3::uuid, true, 'date divergente')`,
+          SOCIETE_A,
+          AGENCE_A,
+          jourFerieId,
+        ),
+      ),
+    ).rejects.toThrow(/jour_ferie_id_date|foreign key|violates/i);
   });
 });
