@@ -195,12 +195,15 @@ Décisions arrêtées, sur la base de vos réponses :
 | Point | Décision |
 |---|---|
 | **Arrondi** | Au **quart d'heure supérieur**, appliqué au total par technicien et par intervention, jamais ligne par ligne |
+| **Où vit l'arrondi** *(D45)* | Au **module de valorisation** (L2-09), jamais dans `lib/calendar` ni dans `lib/money` : c'est une politique de facturation, pas une question de temps |
 | **Multi-techniciens** | **Cumul** — 2 techniciens × 3 h = 6 h facturées |
 | **Temps d'attente** | **Non facturé** par défaut, `facturable = false` ; le responsable peut le basculer à `true` avec motif |
 | **Trajet** | Non facturé au temps ; couvert par le forfait de déplacement de la zone. En l'absence de forfait applicable, non facturé |
 | **Heures excédentaires** | Comptées sur le seul temps d'intervention, hors trajet et hors attente, par rapport à `forfait.heures_incluses` |
 | **Multi-machines** | **Un seul forfait de déplacement par intervention**, quel que soit le nombre de machines. Les forfaits de prestation, eux, sont par machine |
 | **Ordre de calcul** | forfaits applicables → heures excédentaires au taux horaire → majoration hors ouverture → total HT |
+
+*Ce que ce tableau ne tranche pas, et qu'il faudra trancher avant L2-09 :* « au total par technicien et par intervention » règle l'agrégation **à l'intérieur** d'une intervention — les lignes ne s'arrondissent pas une à une. Il ne dit rien de **plusieurs interventions dans la même journée**. Question ouverte D45, inscrite au registre « Ce qui reste à décider ».
 
 ### D12 — Majoration hors horaires (1.9)
 
@@ -288,14 +291,16 @@ Ils sont ajoutés à la stack imposée du CLAUDE.md, ce qui lève l'obligation d
 
 ### D19 — Formatage monétaire (3.1, 3.2)
 
-**Convention :** symbole si la devise en a un, code sinon. `100,00 €` et `7 000 XPF`. C'est ce qu'appliquait la maquette, et c'est promu au rang de règle.
+**Convention :** symbole si la devise en a un, code sinon. `100,00 €` et `7 000 XPF`. C'est ce qu'appliquait la maquette, et c'est promu au rang de règle. *(Le symbole du XPF — `XPF` ou `F` — est une question ouverte depuis D43 : elle sera tranchée à la conception du premier document destiné à un client, et toute réponse autre que `XPF` sera un **amendement de cette décision**. Voir le registre « Ce qui reste à décider ».)*
 
-**Frontière de conversion (3.2) :** `lib/money` expose deux fonctions distinctes et nommées sans ambiguïté :
+**Frontière de conversion (3.2)** — ***amendée le 21 août 2026 par D44.*** Les deux fonctions sont nommées sans ambiguïté et **ne vivent pas dans le même module** :
 
-- `formatMoney(montant, devise)` — jamais de conversion, utilisable partout ;
-- `convertForConsolidation(montant, deviseSource, deviseCible, dateParite)` — réservée aux agrégats, refuse d'être appelée sur un montant unitaire, et **exige une date de parité explicite**.
+- `formatMoney(montant, devise)` — dans **`lib/money`**, jamais de conversion, utilisable partout ;
+- `convertForConsolidation(montant, deviseSource, deviseCible, dateParite)` — dans **`lib/reporting`**, réservée aux agrégats, refuse d'être appelée sur un montant unitaire, et **exige une date de parité explicite**.
 
 Aucune autre fonction de conversion n'existe. Un test du gardien monétaire vérifie qu'aucun appel à `convertForConsolidation` n'existe hors de `lib/reporting`.
+
+*Rédaction d'origine, conservée pour mémoire : « `lib/money` expose deux fonctions distinctes ». Elle logeait la conversion dans `lib/money`, contre l'invariant I2 et le §6 du CLAUDE.md qui disent l'un et l'autre `lib/reporting`. Corrigée plutôt que contournée — voir D44.*
 
 ### D20 — Table des parités (2.6)
 
@@ -586,10 +591,14 @@ Il est éprouvé d'abord sur des schémas fabriqués — une table sans catégor
 
 ## Ce qui reste à décider, et quand
 
-Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouvert — la rédaction de la première catégorie de I1 pour `societe` — est **tranché par D42** ; le gardien d'exhaustivité de D41 ne trouve plus aucune table hors catégorie. Les points suivants attendent leur lot :
+**Registre unique du projet** — les notes n°1 à n°3 y déposent leurs points ouverts, et rien ne s'y range sans **échéance ou déclencheur explicite**.
+
+Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouvert — la rédaction de la première catégorie de I1 pour `societe` — est **tranché par D42** ; le gardien d'exhaustivité de D41 ne trouve plus aucune table hors catégorie. La note n°3 y ajoute deux points, l'un déclenché par un événement et l'autre par un ticket. Les points suivants attendent donc leur tour :
 
 | Échéance | Point |
 |---|---|
+| **Au premier document client** *(D43)* | **Symbole du XPF — `XPF` ou `F`.** Déclencheur explicite : la **conception du premier document destiné à un client** — devis, facture ou rapport d'intervention. D19 dit `7 000 XPF`, la maquette l'écrit ainsi, `prisma/seed-data.ts` porte `symbole: null` pour le XPF : rien à changer aujourd'hui. Si le choix se porte alors sur `F`, ce sera un **amendement de D19 et une ligne de seed** (`symbole: "F"`), jamais une modification discrète |
+| **Avant L2-09** *(D45)* | **L'arrondi au quart d'heure supérieur s'applique-t-il à chaque intervention ou au total d'une journée ?** Cinq passages de cinq minutes font **1 h 15** dans un cas et **30 minutes** dans l'autre. D11 règle l'agrégation à l'intérieur d'une intervention, pas entre interventions. C'est une **décision commerciale**, à prendre **avant** que la valorisation ne soit écrite, pas pendant |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
@@ -612,3 +621,52 @@ Deux d'entre eux — D39 et D40 — ont d'ailleurs été **soumis et non tranch�
 La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas seulement avant** ; ne jamais laisser une session compléter une liste close, fût-ce d'une évidence ; et **doubler toute liste close d'un gardien d'exhaustivité** qui la confronte à ce qui existe.
 
 *Note d'arbitrage n°2 — CODIPLAN — 20 août 2026*
+
+
+---
+
+# CODIPLAN — Note d'arbitrage n°3
+
+**Trois points relevés à la revue de la livraison D42**
+
+| | |
+|---|---|
+| **Objet** | Une source de rang 1 fausse, une frontière de module, et une question jamais posée |
+| **Portée** | D43 à D45 |
+| **Statut** | Décisions arrêtées — même autorité que les notes n°1 et n°2, qu'elle complète et ne remplace pas |
+| **Date** | 21 août 2026 |
+| **Ticket** | L0-06c |
+
+### D43 — `7 000 XPF`, et non `7 000 F` : un texte de ticket n'est pas une source de vérité
+
+**Le texte du ticket écrivait « F » par inadvertance**, contre D19 qui écrit `7 000 XPF` et qui est de **rang 1**. La session n'a rien changé au code : c'est la bonne conduite, et elle est ici confirmée comme règle. Un énoncé de ticket est de **rang 4** dans la hiérarchie du CLAUDE.md ; il ne peut pas amender un arbitrage, fût-ce par une lettre. Une session qui aurait « corrigé » le formatage aurait fait passer une décision commerciale — comment la monnaie s'affiche devant un client — pour une correction de détail.
+
+**Rien ne change dans le code.** D19 dit `7 000 XPF`, la maquette l'écrit ainsi, et `prisma/seed-data.ts` porte `symbole: null` pour le XPF, ce qui produit exactement cet affichage par la convention « symbole si la devise en a un, code sinon ».
+
+**Mais la question est réelle et elle est inscrite au registre**, avec son **déclencheur explicite** : elle sera tranchée à la **conception du premier document destiné à un client** — devis, facture ou rapport d'intervention. C'est là que la question se pose pour de bon, parce que c'est là qu'un lecteur néo-calédonien lit le montant. Et si le choix se porte alors sur `F`, ce sera un **amendement de D19 et une ligne de seed**, décidés comme tels — jamais une modification discrète glissée dans un ticket d'affichage.
+
+### D44 — D19 est corrigé, pas contourné : la conversion vit dans `lib/reporting`
+
+**L'invariant I2, le §6 du CLAUDE.md et le ticket disaient tous `lib/reporting`. D19 seul disait `lib/money`** — « `lib/money` expose deux fonctions distinctes », dont `convertForConsolidation`. Trois sources contre une, et la seule dissidente était de **rang 1**.
+
+**Une source de rang 1 qu'on sait fausse est plus dangereuse qu'une source absente.** Une source absente fait poser la question ; une source fausse fait confiance. Le prochain lecteur de D19 aurait logé la conversion dans `lib/money` **en respectant la hiérarchie**, et il aurait eu raison de le faire. C'est exactement la maladie que D1 devait éradiquer : la même règle écrite à deux endroits avec des variantes, jusqu'à ce que personne ne sache laquelle fait foi.
+
+**D19 est donc amendé, et non contourné.** La frontière de conversion s'écrit désormais : `formatMoney` dans `lib/money`, `convertForConsolidation` dans **`lib/reporting`**. La rédaction d'origine est conservée en note sous la décision — un amendement qui efface sa trace se rejoue au prochain doute. **Vérification faite sur les autres sources** : `docs/backlog.md` (L0-07) portait encore l'ancienne formulation, il est corrigé ; le CLAUDE.md (I2 et §6) et le chapitre 10 (RG-TAR-02) étaient déjà justes.
+
+### D45 — L'arrondi au quart d'heure appartient à la valorisation
+
+**Ni `lib/calendar`, ni `lib/money`.** Le calendrier répond à **« quand »** : jours ouvrés, horaires d'agence, fériés, fuseau. Il n'a pas à connaître la politique de facturation — sinon un changement de tarif pourra casser un planning, et le gardien calendrier se mettra à défendre deux règles qui n'ont aucune raison d'évoluer ensemble. Le module monétaire, lui, répond à **« combien s'écrit comment »** : formatage et arithmétique. L'arrondi au quart d'heure supérieur ne répond à aucune des deux questions : il dit **ce qu'on facture**, et il appartient au **module de valorisation** — ticket **L2-09**, où D11 est désormais rangé.
+
+**Et une question que personne n'avait posée.** L'arrondi au quart d'heure supérieur s'applique-t-il **à chaque intervention** ou **au total d'une journée** ? Cinq passages de cinq minutes font **1 h 15** dans le premier cas et **30 minutes** dans le second — un facteur deux et demi sur la facture, sur le type de tournée le plus courant en dépannage urbain. D11 dit « au total par technicien et par intervention, jamais ligne par ligne » : cela règle l'agrégation **à l'intérieur** d'une intervention, et ne dit rien **entre interventions**.
+
+C'est une **décision commerciale**, pas une modalité d'implémentation. Elle doit être prise **avant** que la valorisation ne soit écrite, pas pendant : une session qui découvrirait la question au milieu de L2-09 la trancherait par le plus simple à coder, et le premier client qui compterait ses quarts d'heure la découvrirait à sa facture. Inscrite au registre « Ce qui reste à décider » avec pour échéance **avant L2-09**.
+
+---
+
+## Une remarque sur la méthode
+
+**Les trois points ont la même forme : une règle qui n'était pas là où on la cherchait.** Le symbole du XPF dans un texte de ticket plutôt que dans D19 ; la frontière de conversion dans D19 en contradiction avec trois autres sources ; l'arrondi dans un module qui n'a aucune raison de le connaître. Aucun n'était un défaut de code — les trois étaient des défauts de **rangement**, et c'est le troisième ticket d'affilée où le rangement est le vrai sujet.
+
+**Ce que D44 ajoute à D1.** D1 disait : une règle ne s'écrit qu'à un seul endroit. D44 y ajoute le cas où le mal est déjà fait : **quand deux sources divergent, on corrige la fausse, on ne s'aligne pas sur la vraie en silence.** Contourner D19 — écrire le code juste et laisser la décision fausse — aurait produit un dépôt correct et une constitution menteuse. C'est la pire des deux erreurs, parce qu'elle ne se voit pas à l'exécution.
+
+*Note d'arbitrage n°3 — CODIPLAN — 21 août 2026*
