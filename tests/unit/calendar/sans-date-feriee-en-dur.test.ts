@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FERIES_FIXES, JOURS_FERIES } from "@/prisma/seed-data";
+import { FERIES_FIXES, FETES_MOBILES } from "@/prisma/seed-data";
 
 import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
 
@@ -34,12 +34,17 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
 const EXEMPTS_FICHIERS = ["prisma/seed-data.ts"];
 
 /**
- * Libellés de fériés, tirés du seed. Un libellé dans le code applicatif
- * signale un traitement particulier réservé à un jour nommé — exactement ce
- * qui doit vivre en base.
+ * Libellés de fériés, tirés du seed — fixes ET mobiles. Un libellé dans le code
+ * applicatif signale un traitement particulier réservé à un jour nommé —
+ * exactement ce qui doit vivre en base.
  */
 const LIBELLES = [
-  ...new Set(JOURS_FERIES.map((ferie) => ferie.libelle)),
+  ...new Set([
+    ...Object.values(FERIES_FIXES).flatMap((feries) =>
+      feries.map((ferie) => ferie.libelle),
+    ),
+    ...FETES_MOBILES.map((fete) => fete.libelle),
+  ]),
 ].sort();
 
 /**
@@ -87,12 +92,13 @@ const AUTORISES_A_CALCULER = ["prisma/"];
 
 function contientUnFragment(contenu: string): string | null {
   return (
-    FRAGMENTS_DE_DATE.find((fragment) => contenu.includes(fragment)) ?? null
+    FRAGMENTS_DE_DATE.find((fragment: string) => contenu.includes(fragment)) ??
+    null
   );
 }
 
 function contientUnLibelle(contenu: string): string | null {
-  return LIBELLES.find((libelle) => contenu.includes(libelle)) ?? null;
+  return LIBELLES.find((libelle: string) => contenu.includes(libelle)) ?? null;
 }
 
 describe("aucune date fériée en dur (point 4 du ticket L0-08)", () => {

@@ -1,20 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleJour,
   echeanceEnMinutesOuvrees,
   estJourOuvre,
   estOuvert,
+  jourSuivant,
   joursOuvres,
   lireCleJour,
   minutesHorsOuverture,
   minutesOuvrees,
+  plagesDuJour,
   prochainCreneauOuvert,
   versInstant,
   versLocal,
   type Calendrier,
 } from "@/lib/calendar";
 
-import { calendrierDeDemonstration } from "./calendriers-de-demonstration";
+import {
+  calendrierDeDemonstration,
+  ferieDeDemonstration,
+  premiereAnneeDeLHorizon,
+} from "./calendriers-de-demonstration";
 
 /**
  * Jours et heures ouvrés (ticket L0-08 point 5 ; invariant I7 ; RG-PLA-01,
@@ -61,12 +68,42 @@ function lectureLocale(calendrier: Calendrier, instant: Date): string {
   );
 }
 
-// Semaine ordinaire d'août 2026 : le lundi 17 au dimanche 23, aucun férié.
+// Semaine ordinaire d'août 2026 : le lundi 17 au dimanche 23. Les dates sont
+// FIXES à dessein — les jours de semaine le sont aussi, et c'est d'eux que
+// dépendent les critères 1 et 3. Aucun férié néo-calédonien ne tombe cette
+// semaine-là ; le scénario « la semaine choisie est bien ordinaire » le
+// vérifie plutôt que de le supposer, faute de quoi l'horizon glissant pourrait
+// un jour faire dire autre chose à ces dates sans que personne le voie.
 const LUNDI_17 = "2026-08-17";
 const VENDREDI_21 = "2026-08-21";
 const SAMEDI_22 = "2026-08-22";
 const DIMANCHE_23 = "2026-08-23";
 const LUNDI_24 = "2026-08-24";
+
+describe("la semaine de référence est bien ordinaire", () => {
+  it("aucun jour particulier ne tombe du 17 au 24 août", () => {
+    // Les critères 1 et 3 reposent sur des jours de semaine, pas sur des
+    // fériés. Si l'un d'eux le devenait — ou si l'horizon glissant venait à
+    // couvrir cette semaine autrement —, les scénarios suivants changeraient
+    // de sens en silence. On le constate ici, une fois.
+    for (const calendrier of [DUCOS, KONE]) {
+      for (const jour of [
+        LUNDI_17,
+        VENDREDI_21,
+        SAMEDI_22,
+        DIMANCHE_23,
+        LUNDI_24,
+      ]) {
+        expect(
+          calendrier.jours_particuliers.some(
+            (particulier) => particulier.date === jour,
+          ),
+          `${calendrier.code} : ${jour} est devenu un jour particulier`,
+        ).toBe(false);
+      }
+    }
+  });
+});
 
 describe("critère 1 — le samedi est ouvré pour Ducos, pas pour Koné", () => {
   it("Ducos ouvre le samedi matin", () => {
@@ -93,10 +130,24 @@ describe("critère 1 — le samedi est ouvré pour Ducos, pas pour Koné", () =>
 });
 
 describe("critère 2 — un férié travaillé compte comme ouvré (RG-PLA-02)", () => {
-  // Lundi de Pentecôte 2026 : le 25 mai. Le calendrier du siège le porte comme
-  // TRAVAILLÉ (journée de solidarité) ; l'Ascension, le 14 mai, reste chômée.
-  const PENTECOTE = "2026-05-25";
-  const ASCENSION = "2026-05-14";
+  // Les dates sont DÉRIVÉES de l'horizon glissant, jamais écrites : le lundi de
+  // Pentecôte tombe le 25 mai en 2026 et le 17 mai en 2027, et un scénario qui
+  // le figerait cesserait de porter sur les données du seed dès l'an prochain
+  // (D46, complément 3). L'agence SIEGE travaille ce férié — journée de
+  // solidarité ; l'Ascension, elle, reste chômée.
+  const ANNEE = premiereAnneeDeLHorizon("CODIMA-EU");
+  const PENTECOTE = ferieDeDemonstration(
+    "CODIMA-EU",
+    "SIEGE",
+    "Lundi de Pentecôte",
+    ANNEE,
+  );
+  const ASCENSION = ferieDeDemonstration(
+    "CODIMA-EU",
+    "SIEGE",
+    "Ascension",
+    ANNEE,
+  );
 
   it("le férié travaillé est un jour ouvré ordinaire", () => {
     expect(estJourOuvre(SIEGE, lireCleJour(PENTECOTE))).toBe(true);
@@ -111,19 +162,69 @@ describe("critère 2 — un férié travaillé compte comme ouvré (RG-PLA-02)",
 
   it("un férié chômé retire ses heures du décompte ouvré", () => {
     // Le siège ouvre 9 h – 12 h 30 et 14 h – 18 h, soit 7 h 30 par jour.
+    // L'Ascension tombe toujours un jeudi ; le jeudi précédent est ordinaire.
+    const jour = lireCleJour(ASCENSION);
+    const jeudiPrecedent = cleJour(jourSuivant(jour, -7));
+    const lendemain = cleJour(jourSuivant(jour, 1));
+
     const jeudiOrdinaire = minutesOuvrees(
       SIEGE,
-      instantLocal(SIEGE, "2026-05-07", 0),
-      instantLocal(SIEGE, "2026-05-08", 0),
+      instantLocal(SIEGE, jeudiPrecedent, 0),
+      instantLocal(SIEGE, cleJour(jourSuivant(jour, -6)), 0),
     );
     const jeudiAscension = minutesOuvrees(
       SIEGE,
       instantLocal(SIEGE, ASCENSION, 0),
-      instantLocal(SIEGE, "2026-05-15", 0),
+      instantLocal(SIEGE, lendemain, 0),
     );
 
     expect(jeudiOrdinaire).toBe(7 * 60 + 30);
     expect(jeudiAscension).toBe(0);
+  });
+});
+
+describe("le PONT — l'écart local sans fait public (D46, complément 2)", () => {
+  /**
+   * Dolbeau et Ducos partagent le calendrier `DEMO-NOUMEA` : mêmes horaires,
+   * même territoire, même fuseau. Seule Dolbeau porte le pont de la veille de
+   * Noël. C'est la démonstration, en données, que l'écart local appartient à
+   * l'AGENCE et non au calendrier — et c'est pourquoi `calendrier_ferie` porte
+   * `agence_id`.
+   */
+  const DOLBEAU = calendrierDeDemonstration("CODIMA-NC", "DOLBEAU");
+  const PONT = `${premiereAnneeDeLHorizon("CODIMA-NC")}-12-24`;
+
+  it("Dolbeau chôme le pont, Ducos travaille — mêmes horaires, même calendrier", () => {
+    const jour = lireCleJour(PONT);
+
+    // Le 24 décembre n'est férié nulle part : sans l'écart local, la journée
+    // suivrait simplement son jour de semaine.
+    expect(
+      DUCOS.jours_particuliers.some((particulier) => particulier.date === PONT),
+    ).toBe(false);
+
+    expect(estJourOuvre(DOLBEAU, jour)).toBe(
+      // Le pont ne retire quelque chose que si le jour était ouvré : un
+      // 24 décembre tombant un dimanche ne change rien, et le dire ainsi
+      // garde le scénario juste quelle que soit l'année.
+      false,
+    );
+    expect(estJourOuvre(DUCOS, jour)).toBe(
+      plagesDuJour(DUCOS, jour).length > 0,
+    );
+  });
+
+  it("le pont porte son motif, et son origine est l'agence", () => {
+    const particulier = DOLBEAU.jours_particuliers.find(
+      (candidat) => candidat.date === PONT,
+    );
+
+    expect(particulier).toEqual({
+      date: PONT,
+      libelle: "Pont de démonstration — veille de Noël",
+      ouvre: false,
+      origine: "agence",
+    });
   });
 });
 

@@ -339,3 +339,19 @@ export function maintenant(fuseau: Fuseau): {
   const instant = new Date(Date.now());
   return { instant, local: versLocal(instant, fuseau) };
 }
+
+/**
+ * L'année en cours dans un fuseau nommé.
+ *
+ * Sert à l'**horizon glissant des jours fériés** (D46, complément 3) : le seed
+ * ne fige pas une liste d'années, il part de l'année courante. Une table
+ * alimentée aujourd'hui cesserait autrement de connaître les fériés dans deux
+ * ans — sans être vide, donc sans qu'aucun test ne le voie.
+ *
+ * Le fuseau est exigé pour la même raison que partout ailleurs : le
+ * 1ᵉʳ janvier n'arrive pas au même instant à Nouméa et à Paris, et « l'année en
+ * cours » est une lecture locale.
+ */
+export function anneeCourante(fuseau: Fuseau): number {
+  return maintenant(fuseau).local.annee;
+}

@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { cleJour, lireFuseau, type Fuseau, type JourLocal } from "./fuseau";
-import { lireCalendrier, type Calendrier } from "./calendrier";
+import { appliquerEcarts, lireCalendrier, type Calendrier } from "./calendrier";
 
 /**
  * Résolution du calendrier d'une AGENCE depuis la base (ticket L0-08, D5, D13).
@@ -30,26 +30,39 @@ export function fuseauDeLAgence(agence: AgenceFuseau): Fuseau {
   return lireFuseau(agence.fuseau_horaire ?? agence.societe.fuseau_horaire);
 }
 
-/** Fenêtre de jours pour laquelle les fériés sont chargés. */
+/** Fenêtre de jours pour laquelle les jours particuliers sont chargés. */
 export type FenetreJours = { du: JourLocal; au: JourLocal };
 
 /**
- * Charge le calendrier d'ouverture d'une agence, fériés compris.
+ * Charge le calendrier d'ouverture d'une agence, jours particuliers compris.
+ *
+ * **L'ordre de lecture est celui de D46, complément 2** : le **fait public** du
+ * territoire est lu d'abord (`jour_ferie`), l'**écart local** de l'agence
+ * ensuite (`calendrier_ferie`), et `appliquerEcarts` les compose dans ce sens.
+ * Jamais l'inverse : une agence ne décrète pas les fériés de son territoire.
+ *
+ * **Le territoire vient de l'AGENCE, pas du fuseau et pas du calendrier**
+ * (D46, complément 1). Deux agences qui partagent un calendrier d'ouverture —
+ * Ducos et Dolbeau — peuvent relever de territoires différents, et deux agences
+ * qui partagent un fuseau aussi : `Europe/Paris` couvre plusieurs territoires
+ * aux fériés différents.
  *
  * **Le filtre société est explicite** (CLAUDE.md §5.6), en plus de la politique
  * RLS que la transaction applique déjà : une requête qui ne porterait le filtre
  * que dans la base serait juste aujourd'hui et fausse le jour où elle
  * s'exécuterait sous un rôle exempté.
  *
- * **Les fériés sont chargés sur une FENÊTRE**, jamais en totalité : la table
- * couvre plusieurs années et plusieurs territoires, et un calcul d'heures
- * ouvrées sur une semaine n'a que faire de 2028. La fenêtre est celle que
- * l'appelant s'apprête à parcourir.
+ * **Les jours particuliers sont chargés sur une FENÊTRE**, jamais en totalité :
+ * la table couvre plusieurs années et plusieurs territoires, et un calcul
+ * d'heures ouvrées sur une semaine n'a que faire de 2028.
  *
- * Rend `null` si l'agence n'existe pas dans la société, ou si elle n'a pas
- * encore de calendrier — ce dernier cas est un paramétrage incomplet, pas une
- * erreur : le module le signale à l'appelant plutôt que d'inventer des horaires
- * par défaut, ce que I7 interdit expressément.
+ * Rend `null` quand l'agence n'existe pas dans la société, ou qu'elle n'est pas
+ * complètement paramétrée — pas de calendrier, ou pas de territoire déclaré.
+ * Ce n'est pas une erreur, c'est un paramétrage incomplet, et le module le
+ * signale à l'appelant plutôt que d'inventer des horaires ou un territoire par
+ * défaut, ce que I7 et D46 interdisent l'un comme l'autre. Aucune de ces deux
+ * lacunes ne peut durer en silence : `scripts/horizon-feries.mts` nomme à
+ * chaque `verify:full` toute agence sans territoire.
  */
 export async function chargerCalendrierAgence(
   tx: Prisma.TransactionClient,
@@ -57,15 +70,18 @@ export async function chargerCalendrierAgence(
 ): Promise<Calendrier | null> {
   const { societeId, agenceId, fenetre } = parametres;
 
+  const du = new Date(`${cleJour(fenetre.du)}T00:00:00.000Z`);
+  const au = new Date(`${cleJour(fenetre.au)}T00:00:00.000Z`);
+
   const agence = await tx.agence.findFirst({
     where: { id: agenceId, societe_id: societeId },
     select: {
       fuseau_horaire: true,
+      territoire: true,
       societe: { select: { fuseau_horaire: true } },
       calendrier: {
         select: {
           code: true,
-          territoire: true,
           plages: {
             select: {
               jour_semaine: true,
@@ -73,43 +89,28 @@ export async function chargerCalendrierAgence(
               fin_minutes: true,
             },
           },
-          feries: {
-            select: {
-              travaille: true,
-              jour_ferie: { select: { date: true, libelle: true } },
-            },
-          },
         },
+      },
+      // 2. L'ÉCART LOCAL de l'agence — lu ici, appliqué APRÈS le fait public.
+      ecarts: {
+        where: { date: { gte: du, lte: au } },
+        select: { date: true, travaille: true, motif: true },
       },
     },
   });
 
-  if (agence === null || agence.calendrier === null) {
+  if (
+    agence === null ||
+    agence.calendrier === null ||
+    agence.territoire === null
+  ) {
     return null;
   }
 
-  const du = cleJour(fenetre.du);
-  const au = cleJour(fenetre.au);
-
-  // `jour_ferie` est un référentiel territorial (D46) : tous les fériés du
-  // territoire s'appliquent, et `calendrier_ferie` ne dit que l'exception —
-  // ceux que l'agence TRAVAILLE. Les deux lectures se rejoignent ici.
-  const surcharges = new Map<string, boolean>();
-  for (const surcharge of agence.calendrier.feries) {
-    surcharges.set(
-      cleJourDeDate(surcharge.jour_ferie.date),
-      surcharge.travaille,
-    );
-  }
-
-  const feriesTerritoriaux = await tx.jourFerie.findMany({
-    where: {
-      territoire: agence.calendrier.territoire,
-      date: {
-        gte: new Date(`${du}T00:00:00.000Z`),
-        lte: new Date(`${au}T00:00:00.000Z`),
-      },
-    },
+  // 1. LE FAIT PUBLIC du territoire. Il est lu en premier, et il est le même
+  //    pour toutes les sociétés qui opèrent là (D46).
+  const faitsPublics = await tx.jourFerie.findMany({
+    where: { territoire: agence.territoire, date: { gte: du, lte: au } },
     select: { date: true, libelle: true },
     orderBy: { date: "asc" },
   });
@@ -117,17 +118,19 @@ export async function chargerCalendrierAgence(
   return lireCalendrier({
     code: agence.calendrier.code,
     fuseau: fuseauDeLAgence(agence),
-    territoire: agence.calendrier.territoire,
+    territoire: agence.territoire,
     plages: agence.calendrier.plages,
-    feries: feriesTerritoriaux.map((ferie) => {
-      const date = cleJourDeDate(ferie.date);
-      return {
-        date,
-        libelle: ferie.libelle,
-        // Absence de surcharge = férié chômé (D13).
-        travaille: surcharges.get(date) ?? false,
-      };
-    }),
+    jours_particuliers: appliquerEcarts(
+      faitsPublics.map((fait) => ({
+        date: cleJourDeDate(fait.date),
+        libelle: fait.libelle,
+      })),
+      agence.ecarts.map((ecart) => ({
+        date: cleJourDeDate(ecart.date),
+        travaille: ecart.travaille,
+        motif: ecart.motif,
+      })),
+    ),
   });
 }
 

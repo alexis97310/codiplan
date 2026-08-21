@@ -19,6 +19,7 @@
  */
 export {
   aMinutes,
+  anneeCourante,
   cleJour,
   comparerJours,
   decalageMinutes,
@@ -62,13 +63,17 @@ export {
   type RegleHebdomadaire,
 } from "./recurrence";
 export {
+  appliquerEcarts,
   estChome,
-  ferieDuJour,
+  jourParticulier,
   lireCalendrier,
   plagesDuJourSemaine,
   schemaCalendrier,
+  schemaTerritoire,
   type Calendrier,
-  type FerieApplique,
+  type EcartAgence,
+  type FaitPublic,
+  type JourParticulier,
   type PlageOuverture,
 } from "./calendrier";
 export {
@@ -100,3 +105,12 @@ export {
   type AvertissementSiteFerme,
   type ConflitCalendrier,
 } from "./usages";
+export {
+  ecartsHorizon,
+  ecartsTerritoireManquant,
+  horizonSuffisant,
+  jourDansNMois,
+  jourExige,
+  MOIS_D_AVANCE_EXIGES,
+  type EtatHorizon,
+} from "./horizon";

@@ -599,6 +599,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 |---|---|
 | **Au premier document client** *(D43)* | **Symbole du XPF — `XPF` ou `F`.** Déclencheur explicite : la **conception du premier document destiné à un client** — devis, facture ou rapport d'intervention. D19 dit `7 000 XPF`, la maquette l'écrit ainsi, `prisma/seed-data.ts` porte `symbole: null` pour le XPF : rien à changer aujourd'hui. Si le choix se porte alors sur `F`, ce sera un **amendement de D19 et une ligne de seed** (`symbole: "F"`), jamais une modification discrète |
 | **Avant L2-09** *(D45)* | **L'arrondi au quart d'heure supérieur s'applique-t-il à chaque intervention ou au total d'une journée ?** Cinq passages de cinq minutes font **1 h 15** dans un cas et **30 minutes** dans l'autre. D11 règle l'agrégation à l'intérieur d'une intervention, pas entre interventions. C'est une **décision commerciale**, à prendre **avant** que la valorisation ne soit écrite, pas pendant |
+| **À la première demande d'un client concerné** *(D46)* | **Jours fériés INFRA-NATIONAUX.** Certains territoires en ont : l'Alsace-Moselle chôme le Vendredi saint et le 26 décembre, le reste de la métropole non ; plusieurs États fédéraux fonctionnent ainsi. Le modèle `(territoire, date)` **le permettra sans être refait** — par un code de subdivision, sur le patron d'ISO 3166-2. Rien n'est construit aujourd'hui : la question se tranchera quand un client la posera, et non par anticipation |
 | **Au paramétrage réel des agences** *(L0-08)* | **Horaires d'ouverture réels de Ducos, Koné et Dolbeau, et liste des fériés effectivement chômés par chacune.** Le seed porte des valeurs de **démonstration**, dites comme telles dans le libellé de chaque calendrier. Ce qui n'est PAS de la démonstration et doit le rester : Ducos ouvre le samedi, Koné non (RG-PLA-01). La saisie des vrais horaires est une opération de paramétrage, pas un développement |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
@@ -700,6 +701,54 @@ C'est une **décision commerciale**, pas une modalité d'implémentation. Elle d
 **L'option écartée, et son coût.** Porter les fériés dans la seule table `calendrier_ferie`, avec date et libellé, n'aurait touché à aucune liste close. Elle aurait aussi recopié la liste néo-calédonienne dans chaque calendrier de chaque agence de chaque société ; deux sociétés d'un même territoire auraient pu diverger sans que rien ne le signale, et ouvrir un territoire au lot 7 se serait fait calendrier par calendrier. Le ticket dit « par territoire » ; l'éviter aurait consisté à déformer la base pour ne pas avoir à prendre une décision.
 
 **Trois gardiens accompagnent la décision**, chacun éprouvé d'abord sur un cas fabriqué puis sur une violation réelle introduite temporairement : aucun identifiant de fuseau hors du schéma et de son seed, aucune date fériée en dur, aucune lecture de la date courante sans fuseau explicite. Détail dans `docs/decisions/2026-08-21-module-calendrier.md`.
+
+#### D46, complément 1 — le territoire n'est pas le fuseau, et ne s'en déduit jamais
+
+**`Europe/Paris` couvre plusieurs territoires aux jours fériés différents.** L'Alsace-Moselle y chôme le Vendredi saint et le 26 décembre, le reste de la métropole non. Un code qui écrirait `territoire = fuseau.startsWith("Pacific") ? "NC" : "FR"` aurait l'air juste sur les deux sociétés du jeu de démonstration et se tromperait chez le premier client strasbourgeois — **en silence**, puisque le planning proposerait simplement des créneaux un jour chômé.
+
+**L'agence porte donc DEUX attributs distincts et indépendants**, documentés côte à côte :
+
+| Attribut | Format | Question à laquelle il répond |
+|---|---|---|
+| `agence.fuseau_horaire` | identifiant IANA — `Pacific/Noumea` | **Quelle heure il est** |
+| `agence.territoire` | ISO 3166-1 alpha-2 — `NC`, `FR` | **Quels jours sont fériés** |
+
+Ni l'un ni l'autre ne se calcule à partir de l'autre. Le territoire quitte la table `calendrier`, où il avait été posé au premier jet : deux agences de territoires différents peuvent parfaitement partager des horaires, et le calendrier ne porte plus que des HEURES.
+
+**Le format est contrôlé, la liste des codes ne l'est pas.** Un `CHECK` en base et un schéma Zod exigent deux lettres majuscules ; aucune liste de pays n'est recopiée — elle vieillirait, et le ticket dit expressément qu'un client sur un autre territoire aura les siens.
+
+**Trois gardiens, et non un.** Le gardien statique `territoire-independant-du-fuseau` refuse toute rencontre des deux mots dans une même expression — affectation, signature de fonction, table de correspondance, `fuseau.split()`. Le jeu de fixtures d'isolation est rendu **adversaire** : l'agence B y surcharge son fuseau pour valoir celui de l'agence A tout en gardant un territoire différent, si bien que tout code qui déduirait l'un de l'autre tombe dans la suite d'isolation. Et un scénario unitaire éprouve le comportement : même fuseau, deux territoires, deux jeux de fériés.
+
+**`agence.territoire` est NULLABLE, et c'est délibéré.** Il n'existe aucun défaut légitime — un `DEFAULT 'NC'` serait un territoire codé en dur, exactement ce que le ticket interdit. Une agence sans territoire n'a donc pas de fériés ; mais cela ne dure pas en silence : `chargerCalendrierAgence` refuse de rendre un calendrier, et le contrôle d'horizon la nomme à chaque `verify:full`.
+
+#### D46, complément 2 — l'ordre de lecture, écrit noir sur blanc
+
+**Le fait public d'abord, l'écart local ensuite. Jamais l'inverse.**
+
+1. **`jour_ferie`** porte le **fait public du territoire** — ce qui EST férié. Référentiel de plateforme : lisible par tous, écrivable par les seuls rôles éditeur.
+2. **`calendrier_ferie`** porte **l'écart local** — ce que l'agence en fait. Table métier, `societe_id NOT NULL` **et `agence_id NOT NULL`**.
+
+Lire dans l'autre sens donnerait à une agence le pouvoir de décréter un férié pour son territoire, ce qui n'appartient à aucune entreprise — et que les politiques de la base refusent déjà. `appliquerEcarts`, dans `lib/calendar/calendrier.ts`, est **le seul endroit du dépôt où les deux sources se rencontrent** ; l'ordre y est écrit une fois pour toutes, et `tests/unit/calendar/ordre-de-lecture.test.ts` ne fait que le prouver, y compris par l'absurde.
+
+**`agence_id` et non `calendrier_id`**, bien que la table porte le mot « calendrier ». Plusieurs agences partagent un calendrier d'ouverture (D13), mais un pont est la décision d'**une** agence : Ducos et Dolbeau ouvrent aux mêmes heures et divergent sur la veille de Noël. Le jeu de démonstration porte précisément ce cas.
+
+**Deux écarts, une seule table.** Un **férié travaillé** (`jour_ferie_id` renseigné, `travaille = true` — RG-PLA-02) ; un **pont** propre à l'entreprise (`jour_ferie_id` nul, `travaille = false`), c'est-à-dire un jour ordinaire que l'agence chôme. Une **clé étrangère composite** vers `jour_ferie(id, date)` empêche la date de l'écart de diverger de celle du fait public qu'il surcharge : la redondance est rendue sûre par la base, pas par une convention.
+
+**L'écart ne crée pas d'horaires**, il autorise ou retire ceux du jour de semaine. Les horaires vivent dans `calendrier_plage`, à un seul endroit.
+
+#### D46, complément 3 — l'horizon des jours fériés
+
+**Le point que personne n'avait soulevé.** Les jours fériés sont **datés**. Une table alimentée aujourd'hui cessera de connaître les fériés dans deux ans, et le planning proposera des créneaux un 1ᵉʳ mai sans rien signaler. **Aucun test ordinaire ne le verra** : la table ne sera pas vide, elle sera **périmée** — et un décompte non nul ressemble beaucoup trop à des données justes.
+
+Trois pièces, et elles ne se séparent pas :
+
+1. **Un horizon GLISSANT dans le seed** — année en cours plus deux, l'année en cours étant lue **dans le fuseau de la société** (le 1ᵉʳ janvier n'arrive pas au même instant à Nouméa et à Paris). Jamais une liste d'années écrite à la main : elle serait juste aujourd'hui et fausse en 2029, et sa fausseté serait silencieuse.
+2. **Un script versionné pour étendre** — `pnpm feries:etendre`. Il ajoute les années manquantes pour les territoires déjà présents dans `agence`, sans jamais modifier une ligne existante, et **refuse d'extrapoler** un territoire inconnu de `FERIES_FIXES` : les fériés d'un nouveau territoire sont une décision, pas une déduction.
+3. **Un contrôle daté dans `verify:full`** — `pnpm feries:horizon`. Il échoue si un territoire présent dans la table `agence` a moins de **douze mois** de jours fériés devant lui, et **le message nomme le territoire et la dernière date connue**. Il échoue aussi sur une agence sans territoire, et sur zéro territoire — une base vide produit le même silence qu'une base à jour, ce qui n'est pas la même chose.
+
+Douze mois : c'est la durée d'un cycle d'échéances préventives (RG-CON-01) et celle d'une comparaison N/N-1 à jours ouvrés constants (chapitre 8). En deçà, un planning peut être posé au-delà de ce que la table connaît.
+
+**C'est le principe des gardiens du lot 0 appliqué au temps.** Une donnée qui se périme en silence vaut une liste close que personne ne surveille : elle garde l'autorité d'une donnée et prend le contenu d'un oubli. La leçon est inscrite au §9 du CLAUDE.md.
 
 ### D47 — RG-PLA-01 et RG-PLA-02 disent « site » là où D5 impose « agence »
 

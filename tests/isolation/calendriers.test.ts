@@ -6,24 +6,30 @@ import {
   estOuvert,
   lireCleJour,
   versInstant,
+  type Calendrier,
 } from "@/lib/calendar";
 
 import { avecSociete, clientApp, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   AGENCE_B,
+  ANNEE_FIXTURE,
   CALENDRIER_A,
   CALENDRIER_B,
-  JOUR_FERIE_A,
-  JOUR_FERIE_B,
+  FERIE_TRAVAILLE_A,
+  FUSEAU_AGENCE_B,
+  FUSEAU_SOCIETE_A,
+  PONT_A,
   SOCIETE_A,
   SOCIETE_B,
   TERRITOIRE_A,
+  TERRITOIRE_B,
+  feriesFixture,
 } from "./setup/fixtures";
 
 /**
- * Cloisonnement des calendriers, et non-cloisonnement des fériés
- * (ticket L0-08 ; invariant I1 ; arbitrages D13 et D46).
+ * Cloisonnement des calendriers, non-cloisonnement des fériés, et ordre de
+ * lecture (ticket L0-08 ; invariant I1 ; arbitrages D13 et D46).
  *
  * **Les quatre tables du ticket ne se rangent pas au même endroit, et c'est le
  * sujet.** `calendrier`, `calendrier_plage` et `calendrier_ferie` sont des
@@ -39,6 +45,23 @@ import {
  * Tous les scénarios passent par le rôle applicatif restreint (voir setup/db) :
  * les politiques mordent réellement.
  */
+
+/** La fenêtre couvre l'année en cours du jeu fixture, fériés et pont compris. */
+const FENETRE = {
+  du: lireCleJour(`${ANNEE_FIXTURE}-01-01`),
+  au: lireCleJour(`${ANNEE_FIXTURE}-12-31`),
+};
+
+function chargerA(): Promise<Calendrier | null> {
+  return avecSociete(SOCIETE_A, (tx) =>
+    chargerCalendrierAgence(tx, {
+      societeId: SOCIETE_A,
+      agenceId: AGENCE_A,
+      fenetre: FENETRE,
+    }),
+  );
+}
+
 describe("calendriers d'agence — cloisonnés (I1)", () => {
   afterAll(fermerClients);
 
@@ -64,18 +87,20 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     expect(trouve).toBeNull();
   });
 
-  it("la société A ne voit ni les plages ni les surcharges de fériés de B", async () => {
+  it("la société A ne voit ni les plages ni les écarts de B", async () => {
     const vues = await avecSociete(SOCIETE_A, async (tx) => ({
       plages: await tx.calendrierPlage.findMany({
         select: { societe_id: true },
       }),
-      feries: await tx.calendrierFerie.findMany({
+      ecarts: await tx.calendrierFerie.findMany({
         select: { societe_id: true },
       }),
     }));
 
     expect(vues.plages.map((plage) => plage.societe_id)).toEqual([SOCIETE_A]);
-    expect(vues.feries.map((ferie) => ferie.societe_id)).toEqual([SOCIETE_A]);
+    expect(new Set(vues.ecarts.map((ecart) => ecart.societe_id))).toEqual(
+      new Set([SOCIETE_A]),
+    );
   });
 
   it("la société A ne peut pas créer un calendrier pour la société B (WITH CHECK)", async () => {
@@ -85,10 +110,9 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     await expect(
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
-          `INSERT INTO "calendrier"
-             ("id", "societe_id", "code", "libelle", "territoire")
+          `INSERT INTO "calendrier" ("id", "societe_id", "code", "libelle")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000cf', $1::uuid,
-                   'PIRATE', 'Pirate', 'ISO-TERRITOIRE-B')`,
+                   'PIRATE', 'Pirate')`,
           SOCIETE_B,
         ),
       ),
@@ -107,19 +131,18 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     expect(lignesAffectees).toBe(0);
   });
 
-  it("la société A ne peut pas marquer travaillé un férié du calendrier de B", async () => {
-    // La surcharge « travaillé » est une décision d'agence (D13). Qu'une
+  it("la société A ne peut pas poser un écart local chez l'agence de B", async () => {
+    // L'écart local est une décision d'agence (D46, complément 2). Qu'une
     // société puisse la poser chez une autre reviendrait à ouvrir ses portes.
     await expect(
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
-             ("id", "societe_id", "calendrier_id", "jour_ferie_id", "travaille")
+             ("id", "societe_id", "agence_id", "date", "travaille")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000cd', $1::uuid, $2::uuid,
-                   $3::uuid, true)`,
+                   DATE '${ANNEE_FIXTURE}-03-02', false)`,
           SOCIETE_B,
-          CALENDRIER_B,
-          JOUR_FERIE_B,
+          AGENCE_B,
         ),
       ),
     ).rejects.toThrow(/row-level security|violates/i);
@@ -129,17 +152,21 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
 describe("jours fériés — référentiel de plateforme (D46)", () => {
   afterAll(fermerClients);
 
+  const PREMIER_A = feriesFixture(TERRITOIRE_A)[0]?.date ?? "";
+  const PREMIER_B = feriesFixture(TERRITOIRE_B)[0]?.date ?? "";
+
   it("`jour_ferie` reste lisible SANS contexte société", async () => {
     // Contrôle positif : sans lui, une base vide produirait les mêmes zéros
     // qu'un cloisonnement parfait, et les scénarios ci-dessus ne prouveraient
     // rien.
-    const feries = await clientApp().jourFerie.findMany({
-      select: { id: true },
+    const territoires = await clientApp().jourFerie.findMany({
+      select: { territoire: true },
+      distinct: ["territoire"],
     });
-    const ids = feries.map((ferie) => ferie.id);
 
-    expect(ids).toContain(JOUR_FERIE_A);
-    expect(ids).toContain(JOUR_FERIE_B);
+    expect(territoires.map((ligne) => ligne.territoire).sort()).toEqual(
+      [TERRITOIRE_A, TERRITOIRE_B].sort(),
+    );
   });
 
   it("les DEUX sociétés lisent les fériés des DEUX territoires", async () => {
@@ -147,88 +174,161 @@ describe("jours fériés — référentiel de plateforme (D46)", () => {
     // une donnée de société. Deux sociétés d'un même territoire n'ont aucune
     // raison d'en tenir deux listes divergentes.
     for (const societe of [SOCIETE_A, SOCIETE_B]) {
-      const ids = await avecSociete(societe, async (tx) =>
-        (await tx.jourFerie.findMany({ select: { id: true } })).map(
-          (ferie) => ferie.id,
+      const dates = await avecSociete(societe, async (tx) =>
+        (await tx.jourFerie.findMany({ select: { date: true } })).map((ferie) =>
+          ferie.date.toISOString().slice(0, 10),
         ),
       );
-      expect(ids, societe).toContain(JOUR_FERIE_A);
-      expect(ids, societe).toContain(JOUR_FERIE_B);
+      expect(dates, societe).toContain(PREMIER_A);
+      expect(dates, societe).toContain(PREMIER_B);
     }
   });
 
   it("un rôle NON éditeur ne peut pas écrire dans le référentiel", async () => {
     // Même régime que `devise` et `parite` (L0-06) : la lecture est ouverte,
-    // l'écriture appartient aux seuls rôles éditeur (I1).
+    // l'écriture appartient aux seuls rôles éditeur (I1). C'est aussi ce qui
+    // donne son sens à l'ordre de lecture — une société qui pourrait écrire
+    // dans `jour_ferie` décréterait un férié pour tout son territoire.
     await expect(
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "jour_ferie" ("id", "territoire", "date", "libelle")
-           VALUES ('00000000-0000-7000-8000-0000000000fc', 'ISO-TERRITOIRE-A',
-                   DATE '2026-06-17', 'Férié inventé')`,
+           VALUES ('00000000-0000-7000-8000-0000000000fc', $1,
+                   DATE '${ANNEE_FIXTURE}-03-03', 'Férié inventé')`,
+          TERRITOIRE_A,
         ),
       ),
     ).rejects.toThrow(/row-level security|violates/i);
   });
+
+  it("la base refuse un territoire qui n'est pas un code ISO alpha-2", async () => {
+    // Le contrôle de forme vit en base autant que dans Zod : un import mal
+    // formé n'a pas à pouvoir écrire « Nouvelle-Calédonie » là où `jour_ferie`
+    // attend `NC` (D46, complément 1).
+    // Sous contexte société : sans lui, la politique masquerait les lignes et
+    // l'UPDATE n'en toucherait aucune — le scénario serait vert sans avoir
+    // atteint la contrainte.
+    await expect(
+      avecSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `UPDATE "agence" SET "territoire" = 'NOUVELLE_CALEDONIE'
+            WHERE "id" = $1::uuid`,
+          AGENCE_A,
+        ),
+      ),
+    ).rejects.toThrow(/territoire_iso_alpha2|violates/i);
+  });
 });
 
-describe("chargement du calendrier d'une agence (D5, D13)", () => {
+describe("chargement du calendrier d'une agence (D5, D13, D46)", () => {
   afterAll(fermerClients);
 
-  /** Une fenêtre qui couvre le férié fictif du 15 juin 2026, un lundi. */
-  const FENETRE = {
-    du: lireCleJour("2026-06-01"),
-    au: lireCleJour("2026-06-30"),
-  };
-
-  it("assemble le fuseau de l'agence, ses plages et les fériés de son territoire", async () => {
-    const calendrier = await avecSociete(SOCIETE_A, (tx) =>
-      chargerCalendrierAgence(tx, {
-        societeId: SOCIETE_A,
-        agenceId: AGENCE_A,
-        fenetre: FENETRE,
-      }),
-    );
+  it("assemble le fuseau, le territoire et les plages de l'agence", async () => {
+    const calendrier = await chargerA();
 
     expect(calendrier).not.toBeNull();
-    // L'agence ne surcharge pas son fuseau : elle hérite de sa société (D5).
-    expect(calendrier?.fuseau).toBe("Pacific/Noumea");
+    // L'agence A ne surcharge pas son fuseau : elle hérite de sa société (D5).
+    expect(calendrier?.fuseau).toBe(FUSEAU_SOCIETE_A);
     expect(calendrier?.territoire).toBe(TERRITOIRE_A);
     expect(calendrier?.plages).toEqual([
       { jour_semaine: 1, debut_minutes: 480, fin_minutes: 720 },
     ]);
-    expect(calendrier?.feries).toEqual([
-      { date: "2026-06-15", libelle: "Férié fictif A", travaille: true },
-    ]);
   });
 
-  it("le férié TRAVAILLÉ reste un jour ouvré (D13, RG-PLA-02)", async () => {
-    const calendrier = await avecSociete(SOCIETE_A, (tx) =>
+  /**
+   * Le scénario adversaire de D46, complément 1. Les deux agences partagent le
+   * MÊME fuseau — B surcharge le sien pour valoir celui de A — et relèvent de
+   * territoires DIFFÉRENTS. Tout code qui déduirait l'un de l'autre tombe ici.
+   */
+  it("même fuseau, territoires différents : le territoire n'est pas le fuseau", async () => {
+    const a = await chargerA();
+    const b = await avecSociete(SOCIETE_B, (tx) =>
       chargerCalendrierAgence(tx, {
-        societeId: SOCIETE_A,
-        agenceId: AGENCE_A,
+        societeId: SOCIETE_B,
+        agenceId: AGENCE_B,
         fenetre: FENETRE,
       }),
     );
+
+    expect(a?.fuseau).toBe(FUSEAU_AGENCE_B);
+    expect(b?.fuseau).toBe(FUSEAU_AGENCE_B);
+    expect(a?.territoire).not.toBe(b?.territoire);
+
+    // Et les jours particuliers qui en découlent ne sont pas les mêmes.
+    const datesA = a?.jours_particuliers.map((jour) => jour.date) ?? [];
+    const datesB = b?.jours_particuliers.map((jour) => jour.date) ?? [];
+    expect(datesA.length).toBeGreaterThan(0);
+    expect(datesB.length).toBeGreaterThan(0);
+    expect(a?.jours_particuliers.map((jour) => jour.libelle)).not.toEqual(
+      b?.jours_particuliers.map((jour) => jour.libelle),
+    );
+  });
+
+  it("le fait public d'abord, l'écart local ensuite (D46, complément 2)", async () => {
+    const calendrier = await chargerA();
     if (calendrier === null) {
       throw new Error(
         "Calendrier introuvable : le scénario ne peut pas jouer.",
       );
     }
 
-    // Le 15 juin 2026 est un lundi, et le calendrier ouvre le lundi de 8 h à
-    // midi. La surcharge dit que l'agence travaille ce férié.
-    const lundiFerie = lireCleJour("2026-06-15");
-    expect(estJourOuvre(calendrier, lundiFerie)).toBe(true);
+    const travaille = calendrier.jours_particuliers.find(
+      (jour) => jour.date === FERIE_TRAVAILLE_A.date,
+    );
+    const pont = calendrier.jours_particuliers.find(
+      (jour) => jour.date === PONT_A,
+    );
+
+    // Le férié travaillé garde le LIBELLÉ du fait public — l'écart tranche,
+    // il ne renomme pas — et son origine dit que l'agence a eu le dernier mot.
+    expect(travaille).toEqual({
+      date: FERIE_TRAVAILLE_A.date,
+      libelle: FERIE_TRAVAILLE_A.libelle,
+      ouvre: true,
+      origine: "agence",
+    });
+
+    // Le pont n'a aucun fait public en face : c'est l'agence qui le nomme.
+    expect(pont).toEqual({
+      date: PONT_A,
+      libelle: "Pont de démonstration",
+      ouvre: false,
+      origine: "agence",
+    });
+  });
+
+  it("le férié TRAVAILLÉ reste un jour ouvré (RG-PLA-02)", async () => {
+    const calendrier = await chargerA();
+    if (calendrier === null) {
+      throw new Error(
+        "Calendrier introuvable : le scénario ne peut pas jouer.",
+      );
+    }
+
+    const jour = lireCleJour(FERIE_TRAVAILLE_A.date);
+    expect(estJourOuvre(calendrier, jour)).toBe(true);
     expect(
       estOuvert(
         calendrier,
         versInstant(
-          { ...lundiFerie, heures: 9, minutes: 0, secondes: 0 },
+          { ...jour, heures: 9, minutes: 0, secondes: 0 },
           calendrier.fuseau,
         ),
       ),
     ).toBe(true);
+  });
+
+  it("le PONT retire une journée pourtant ouverte selon les plages", async () => {
+    const calendrier = await chargerA();
+    if (calendrier === null) {
+      throw new Error(
+        "Calendrier introuvable : le scénario ne peut pas jouer.",
+      );
+    }
+
+    // Le pont tombe un lundi, seul jour où ce calendrier ouvre : sans l'écart
+    // local, la journée serait ouvrée. C'est ce qui rend le scénario probant.
+    expect(estJourOuvre(calendrier, lireCleJour(PONT_A))).toBe(false);
   });
 
   it("une agence d'une AUTRE société est introuvable, filtre applicatif compris", async () => {
@@ -243,22 +343,5 @@ describe("chargement du calendrier d'une agence (D5, D13)", () => {
       }),
     );
     expect(calendrier).toBeNull();
-  });
-
-  it("la société B charge son propre calendrier, et lui seul", async () => {
-    const calendrier = await avecSociete(SOCIETE_B, (tx) =>
-      chargerCalendrierAgence(tx, {
-        societeId: SOCIETE_B,
-        agenceId: AGENCE_B,
-        fenetre: FENETRE,
-      }),
-    );
-
-    expect(calendrier?.code).toBe("ISO-CAL-B");
-    expect(calendrier?.fuseau).toBe("Europe/Paris");
-    // Le férié du territoire B n'est pas surchargé : il reste chômé.
-    expect(calendrier?.feries).toEqual([
-      { date: "2026-06-16", libelle: "Férié fictif B", travaille: false },
-    ]);
   });
 });

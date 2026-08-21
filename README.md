@@ -57,9 +57,25 @@ pnpm test:isolation
 
 Voir [`docs/decisions/2026-08-20-tests-isolation-postgres-local.md`](docs/decisions/2026-08-20-tests-isolation-postgres-local.md).
 
+## Jours fériés — un horizon à entretenir
+
+Les jours fériés sont **datés**, et une table alimentée une fois se périme sans
+jamais être vide (D46). Deux commandes l'entretiennent :
+
+```bash
+pnpm feries:horizon   # chaque territoire a-t-il douze mois de fériés devant lui ?
+pnpm feries:etendre   # ajoute les années manquantes
+```
+
+Le contrôle est une étape de `pnpm verify:full` et s'exécute donc chaque nuit en
+intégration continue. Il nomme le territoire et sa dernière date connue. La base
+visée vient de `HORIZON_DATABASE_URL` si elle est renseignée, de
+`TEST_DATABASE_URL` sinon — une vérification locale ne part jamais d'elle-même
+vers la base hébergée.
+
 ## Intégration continue
 
-`.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa.
+`.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.
 
 ## Organisation
 
@@ -68,6 +84,7 @@ app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          auth/  calendar/  db/  i18n/  money/  reporting/  utils.ts
 prisma/       schema.prisma, migrations/, seed.ts
+scripts/      inventaire, contrôle de cloisonnement, horizon des fériés
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```

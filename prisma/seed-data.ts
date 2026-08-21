@@ -1,5 +1,5 @@
 import { Role } from "@/lib/auth/roles";
-import { cleJour } from "@/lib/calendar/fuseau";
+import { anneeCourante, cleJour } from "@/lib/calendar/fuseau";
 import { cleJourAdossePaques } from "@/lib/calendar/paques";
 import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
 
@@ -22,16 +22,43 @@ import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
  * bien formés (I10) et ne désignent que des sociétés fictives (I9).
  */
 
+/**
+ * Un écart local de l'agence sur le fait public (D46, complément 2).
+ *
+ * Deux formes : un **férié travaillé**, désigné par son libellé dans le
+ * référentiel du territoire ; ou un **pont**, désigné par sa date locale.
+ * L'une et l'autre produisent une ligne de `calendrier_ferie`.
+ */
+export type EcartAgenceSeed =
+  /** Un férié du territoire que l'agence TRAVAILLE, désigné par son libellé. */
+  | { ferie_libelle: string; travaille: true; motif: string }
+  /**
+   * Un PONT : un jour ordinaire que l'agence chôme, désigné par son mois et
+   * son quantième. Comme les fériés fixes, il se répète chaque année et suit
+   * donc l'horizon glissant — un pont figé à une date passée serait le défaut
+   * même que le complément 3 de D46 prévient.
+   */
+  | { mois: number; jour: number; travaille: false; motif: string };
+
 export type AgenceSeed = {
   code: string;
   libelle: string;
   adresse: { rue: string; commune: string };
   /**
+   * Territoire au sens des JOURS FÉRIÉS — code ISO 3166-1 alpha-2 (D46).
+   * **Indépendant du fuseau, et jamais déduit de lui.** Il est écrit ici agence
+   * par agence, précisément pour qu'aucun code ne puisse le calculer.
+   */
+  territoire: string;
+  /**
    * Code du calendrier d'ouverture rattaché (D5). Plusieurs agences peuvent
    * partager le même : c'est la forme que prend « héritage depuis la société
-   * avec surcharge possible par agence » (D13).
+   * avec surcharge possible par agence » (D13). Le calendrier porte les
+   * HEURES ; le territoire et les écarts appartiennent à l'agence.
    */
   calendrier_code: string;
+  /** Ce par quoi cette agence s'écarte du fait public de son territoire. */
+  ecarts: readonly EcartAgenceSeed[];
 };
 
 /** Une plage d'ouverture hebdomadaire, sous sa forme LOCALE (jamais UTC). */
@@ -42,17 +69,18 @@ export type PlageSeed = {
   fin_minutes: number;
 };
 
+/**
+ * Un calendrier d'ouverture : des HEURES, et rien d'autre.
+ *
+ * Ni territoire, ni fériés travaillés : ces deux-là appartiennent à l'AGENCE
+ * (D46, compléments 1 et 2). Deux agences de territoires différents peuvent
+ * partager les mêmes horaires, et deux agences du même calendrier peuvent
+ * diverger sur un pont.
+ */
 export type CalendrierSeed = {
   code: string;
   libelle: string;
-  /** Territoire dont les fériés s'appliquent — clé de `jour_ferie` (D46). */
-  territoire: string;
   plages: readonly PlageSeed[];
-  /**
-   * Libellés des fériés que cette agence TRAVAILLE (D13, RG-PLA-02). Tout ce
-   * qui n'y figure pas est chômé : la surcharge ne dit que l'exception.
-   */
-  feries_travailles: readonly string[];
 };
 
 export type SocieteSeed = {
@@ -113,15 +141,22 @@ export const DEVISES: readonly DeviseSeed[] = [
 ];
 
 /**
- * Territoires au sens des JOURS FÉRIÉS (D46).
+ * Territoires au sens des JOURS FÉRIÉS, en **code ISO 3166-1 alpha-2** (D46).
  *
- * À ne pas confondre avec `societe.territoire`, qui porte une circonscription
- * administrative (« Province Sud », « Métropole ») : deux notions voisines, deux
- * usages sans rapport. Le territoire des fériés est la juridiction qui décide
- * des jours chômés ; c'est lui qui sert de clé à `jour_ferie`.
+ * **Trois choses à ne pas confondre, et c'est tout le sujet du complément 1
+ * de D46 :**
+ *   — le **territoire** dit quels jours sont fériés — `NC`, `FR` ;
+ *   — le **fuseau** dit quelle heure il est — `Pacific/Noumea`,
+ *     `Europe/Paris` ;
+ *   — `societe.territoire` porte une **circonscription administrative**
+ *     (« Province Sud », « Métropole »), sans rapport avec les fériés.
+ *
+ * Le territoire ne se déduit JAMAIS du fuseau : `Europe/Paris` couvre plusieurs
+ * territoires aux fériés différents. Les deux sont écrits agence par agence,
+ * précisément pour qu'aucun code ne puisse calculer l'un depuis l'autre.
  */
-export const TERRITOIRE_NOUVELLE_CALEDONIE = "NOUVELLE_CALEDONIE";
-export const TERRITOIRE_FRANCE_METROPOLE = "FRANCE_METROPOLE";
+export const TERRITOIRE_NOUVELLE_CALEDONIE = "NC";
+export const TERRITOIRE_FRANCE_METROPOLE = "FR";
 
 /** Un férié à date fixe — le jour du calendrier grégorien, chaque année. */
 export type FerieFixeSeed = { mois: number; jour: number; libelle: string };
@@ -195,12 +230,34 @@ export const FETES_MOBILES: readonly { libelle: string; decalage: number }[] = [
 ];
 
 /**
- * Années amorcées par le seed. Trois ans suffisent à faire vivre le jeu de
- * démonstration ; l'alimentation des années suivantes est un travail
- * d'exploitation, pas de code — c'est précisément ce que « les fériés sont des
- * données » veut dire.
+ * Nombre d'années amorcées **au-delà** de l'année en cours.
+ *
+ * Deux, donc un horizon de deux à trois ans selon le mois. La borne basse — au
+ * 31 décembre, l'année en cours est épuisée et il reste exactement deux ans —
+ * dépasse largement les douze mois que `scripts/horizon-feries.mts` exige.
  */
-export const ANNEES_FERIES: readonly number[] = [2026, 2027, 2028];
+export const ANNEES_AU_DELA = 2;
+
+/**
+ * Les années couvertes par le seed, à partir d'une année de départ.
+ *
+ * **Horizon GLISSANT, jamais une liste figée** (D46, complément 3). Une liste
+ * `[2026, 2027, 2028]` écrite à la main serait juste aujourd'hui et fausse en
+ * 2029 — et sa fausseté serait silencieuse : la table ne serait pas vide, elle
+ * serait périmée, et le planning proposerait des créneaux un 1ᵉʳ mai sans rien
+ * signaler.
+ */
+export function anneesFeries(anneeDeDepart: number): number[] {
+  if (!Number.isInteger(anneeDeDepart)) {
+    throw new Error(
+      `Année de départ invalide : ${anneeDeDepart}. Attendu un entier.`,
+    );
+  }
+  return Array.from(
+    { length: ANNEES_AU_DELA + 1 },
+    (_, index) => anneeDeDepart + index,
+  );
+}
 
 /**
  * Les fériés d'un territoire pour une année : les fixes, plus les mobiles
@@ -239,15 +296,38 @@ export function feriesDuTerritoire(
   ];
 }
 
-/** Toutes les lignes de `jour_ferie` du jeu de démonstration. */
-export const JOURS_FERIES: readonly JourFerieSeed[] = Object.keys(FERIES_FIXES)
-  .flatMap((territoire) =>
-    ANNEES_FERIES.flatMap((annee) => feriesDuTerritoire(territoire, annee)),
-  )
-  .sort(
-    (a, b) =>
-      a.territoire.localeCompare(b.territoire) || a.date.localeCompare(b.date),
-  );
+/**
+ * Toutes les lignes de `jour_ferie` du jeu de démonstration, sur l'horizon
+ * glissant qui part de `anneeDeDepart`.
+ *
+ * Ce n'est **pas une constante** : une constante figerait l'horizon au jour où
+ * le module a été chargé pour la première fois, ce qui est exactement le défaut
+ * que le complément 3 de D46 prévient.
+ */
+export function joursFeries(anneeDeDepart: number): JourFerieSeed[] {
+  return Object.keys(FERIES_FIXES)
+    .flatMap((territoire) =>
+      anneesFeries(anneeDeDepart).flatMap((annee) =>
+        feriesDuTerritoire(territoire, annee),
+      ),
+    )
+    .sort(
+      (a, b) =>
+        a.territoire.localeCompare(b.territoire) ||
+        a.date.localeCompare(b.date),
+    );
+}
+
+/**
+ * L'horizon des fériés d'une société, calculé dans SON fuseau.
+ *
+ * « L'année en cours » est une lecture locale : le 1ᵉʳ janvier n'arrive pas au
+ * même instant à Nouméa et à Paris. Le fuseau vient donc de la société, jamais
+ * d'une constante — c'est la même règle que partout ailleurs dans ce dépôt.
+ */
+export function anneeDeDepartFeries(societe: SocieteSeed): number {
+  return anneeCourante(societe.fuseau_horaire);
+}
 
 /** Minutes locales depuis minuit — `heureLocale(7, 30)` vaut 450. */
 function heureLocale(heures: number, minutes = 0): number {
@@ -299,7 +379,6 @@ const CALENDRIERS_NC: CalendrierSeed[] = [
   {
     code: "DEMO-NOUMEA",
     libelle: "Nouméa — horaires de démonstration",
-    territoire: TERRITOIRE_NOUVELLE_CALEDONIE,
     plages: [
       ...semaineDeDemonstration(
         LUNDI,
@@ -314,45 +393,101 @@ const CALENDRIERS_NC: CalendrierSeed[] = [
         fin_minutes: heureLocale(11, 30),
       },
     ],
-    feries_travailles: [],
   },
   {
     code: "DEMO-KONE",
     libelle: "Koné — horaires de démonstration",
-    territoire: TERRITOIRE_NOUVELLE_CALEDONIE,
     plages: semaineDeDemonstration(
       LUNDI,
       SAMEDI - 1,
       [heureLocale(7, 30), heureLocale(11, 30)],
       [heureLocale(13), heureLocale(17)],
     ),
-    feries_travailles: [],
   },
 ];
 
-/**
- * Calendrier de démonstration de la société européenne.
- *
- * Il porte la seule surcharge de férié du jeu : le **lundi de Pentecôte est
- * travaillé**. C'est la journée de solidarité, pratique courante en métropole,
- * et c'est surtout la démonstration de RG-PLA-02 — « un férié n'est pas
- * systématiquement chômé ». Sans une ligne comme celle-ci, le booléen
- * `travaille` ne serait jamais éprouvé sur des données réelles.
- */
+/** Calendrier de démonstration de la société européenne. */
 const CALENDRIERS_EU: CalendrierSeed[] = [
   {
     code: "DEMO-SIEGE",
     libelle: "Siège — horaires de démonstration",
-    territoire: TERRITOIRE_FRANCE_METROPOLE,
     plages: semaineDeDemonstration(
       LUNDI,
       DIMANCHE - 2,
       [heureLocale(9), heureLocale(12, 30)],
       [heureLocale(14), heureLocale(18)],
     ),
-    feries_travailles: ["Lundi de Pentecôte"],
   },
 ];
+
+/**
+ * Un **pont** de démonstration : un jour ordinaire que l'agence chôme, sans
+ * qu'aucun férié ne tombe ce jour-là.
+ *
+ * C'est la seconde forme d'écart local (D46, complément 2), et la seule qui ne
+ * s'adosse à aucun fait public. Elle est portée par DOLBEAU seule, alors que
+ * Dolbeau et Ducos partagent le calendrier `DEMO-NOUMEA` : c'est la
+ * démonstration, en données, que l'écart appartient à l'AGENCE et non au
+ * calendrier — et c'est pourquoi `calendrier_ferie` porte `agence_id`.
+ *
+ * La veille de Noël chômée l'après-midi est le pont le plus banal qui soit ;
+ * c'est un choix de DÉMONSTRATION, pas une décision de CODIMA.
+ */
+const PONT_DE_DEMONSTRATION: EcartAgenceSeed = {
+  mois: 12,
+  jour: 24,
+  travaille: false,
+  motif: "Pont de démonstration — veille de Noël",
+};
+
+/**
+ * Les écarts locaux d'une agence, déroulés sur l'horizon glissant.
+ *
+ * Un férié travaillé est résolu par son libellé dans le référentiel du
+ * territoire — c'est le fait public qui donne la date, jamais l'agence
+ * (D46, complément 2) ; un pont porte la sienne.
+ */
+export function ecartsDeLAgence(
+  agence: AgenceSeed,
+  anneeDeDepart: number,
+): Array<{
+  date: string;
+  travaille: boolean;
+  motif: string;
+  ferie_libelle: string | null;
+}> {
+  return anneesFeries(anneeDeDepart).flatMap((annee) =>
+    agence.ecarts.map((ecart) => {
+      if ("ferie_libelle" in ecart) {
+        const feries = feriesDuTerritoire(agence.territoire, annee);
+        const ferie = feries.find(
+          (candidat) => candidat.libelle === ecart.ferie_libelle,
+        );
+        if (ferie === undefined) {
+          throw new Error(
+            `Agence ${agence.code} : le férié « ${ecart.ferie_libelle} » ` +
+              `n'existe pas sur le territoire ${agence.territoire} en ` +
+              `${annee}. Un écart local surcharge un fait public ; il ne le ` +
+              "crée pas.",
+          );
+        }
+        return {
+          date: ferie.date,
+          travaille: true,
+          motif: ecart.motif,
+          ferie_libelle: ecart.ferie_libelle,
+        };
+      }
+
+      return {
+        date: cleJour({ annee, mois: ecart.mois, jour: ecart.jour }),
+        travaille: false,
+        motif: ecart.motif,
+        ferie_libelle: null,
+      };
+    }),
+  );
+}
 
 /**
  * Société XPF : CODIMA en Nouvelle-Calédonie, avec ses trois agences (D5).
@@ -376,21 +511,29 @@ const CODIMA_NC: SocieteSeed = {
       code: "DUCOS",
       libelle: "Ducos",
       adresse: { rue: "Zone industrielle de Ducos", commune: "Nouméa" },
+      territoire: TERRITOIRE_NOUVELLE_CALEDONIE,
       calendrier_code: "DEMO-NOUMEA",
+      ecarts: [],
     },
     {
       code: "KONE",
       libelle: "Koné",
       adresse: { rue: "Zone VKP", commune: "Koné" },
+      territoire: TERRITOIRE_NOUVELLE_CALEDONIE,
       calendrier_code: "DEMO-KONE",
+      ecarts: [],
     },
     {
-      // Dolbeau partage le calendrier de Ducos : deux agences de Nouméa, un
-      // seul calendrier. C'est l'héritage de D13 dans sa forme la plus simple.
+      // Dolbeau partage le calendrier de Ducos — deux agences de Nouméa, un
+      // seul calendrier (D13) — et s'en écarte pourtant sur un pont. C'est
+      // exactement pourquoi l'écart local porte `agence_id` et non
+      // `calendrier_id` (D46, complément 2).
       code: "DOLBEAU",
       libelle: "Dolbeau",
       adresse: { rue: "Rue de Dolbeau", commune: "Nouméa" },
+      territoire: TERRITOIRE_NOUVELLE_CALEDONIE,
       calendrier_code: "DEMO-NOUMEA",
+      ecarts: [PONT_DE_DEMONSTRATION],
     },
   ],
   calendriers: CALENDRIERS_NC,
@@ -415,7 +558,20 @@ const CODIMA_EU: SocieteSeed = {
       code: "SIEGE",
       libelle: "Siège",
       adresse: { rue: "1 rue de la République", commune: "Lyon" },
+      territoire: TERRITOIRE_FRANCE_METROPOLE,
       calendrier_code: "DEMO-SIEGE",
+      // Le lundi de Pentecôte est TRAVAILLÉ : journée de solidarité, pratique
+      // courante en métropole, et surtout la démonstration de RG-PLA-02 — « un
+      // férié n'est pas systématiquement chômé ». Sans une ligne comme
+      // celle-ci, le booléen `travaille` ne serait jamais éprouvé sur des
+      // données réelles.
+      ecarts: [
+        {
+          ferie_libelle: "Lundi de Pentecôte",
+          travaille: true,
+          motif: "Journée de solidarité",
+        },
+      ],
     },
   ],
   calendriers: CALENDRIERS_EU,

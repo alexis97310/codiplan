@@ -99,6 +99,42 @@ comme les autres. La ligne de partage est celle du sens : **les faits du
 territoire sont communs, les décisions d'ouverture appartiennent à chaque
 société.**
 
+**Le territoire et le fuseau sont deux attributs de l'AGENCE, jamais l'un déduit
+de l'autre** (D46, complément 1). Le fuseau dit quelle heure il est, le
+territoire dit quels jours sont fériés — et `Europe/Paris` couvre plusieurs
+territoires aux fériés différents, l'Alsace-Moselle en étant l'exemple le plus
+proche. Le territoire quitte donc `calendrier`, où le premier jet l'avait posé :
+un calendrier ne porte plus que des HEURES, et deux agences de territoires
+différents peuvent parfaitement les partager. Le format est ISO 3166-1 alpha-2,
+contrôlé par un `CHECK` en base autant que par Zod ; la **liste** des codes n'est
+délibérément recopiée nulle part — elle vieillirait, et un client sur un autre
+territoire aura les siens.
+
+La colonne est **nullable**, faute de défaut légitime : un `DEFAULT 'NC'` serait
+un territoire codé en dur. Ce que cette permissivité coûte est repris ailleurs —
+`chargerCalendrierAgence` refuse de rendre un calendrier sans territoire, et le
+contrôle d'horizon nomme l'agence fautive à chaque `verify:full`.
+
+**L'ordre de lecture est écrit une fois, à un seul endroit** (D46,
+complément 2) : `appliquerEcarts` compose le **fait public** du territoire, puis
+l'**écart local** de l'agence. Jamais l'inverse — une agence ne décrète pas les
+fériés de son territoire, et la base le lui interdit déjà. L'écart porte
+`agence_id` et non `calendrier_id` : Ducos et Dolbeau partagent un calendrier et
+divergent sur un pont, ce que le jeu de démonstration porte exactement. Une clé
+étrangère **composite** vers `jour_ferie(id, date)` rend sûre la redondance de la
+date : un écart ne peut pas prétendre surcharger le 14 juillet en portant la
+date du 15.
+
+**L'horizon des fériés est glissant, extensible et contrôlé** (D46,
+complément 3). Le seed part de l'année en cours **lue dans le fuseau de la
+société**, jamais d'une liste d'années ; `pnpm feries:etendre` ajoute les années
+manquantes sans jamais extrapoler un territoire inconnu ; `pnpm feries:horizon`,
+étape de `verify:full`, échoue si un territoire présent dans `agence` a moins de
+douze mois d'avance, en nommant le territoire et sa dernière date connue. C'est
+la seule des quatre pièces du ticket qui vise un défaut **du temps** et non du
+code : une table de fériés ne devient pas vide, elle devient périmée, et un
+décompte non nul ressemble beaucoup trop à des données justes.
+
 **Une fonction par usage, nommée d'après son ORIGINE** (D13) : `echeanceSla`
 prend le calendrier de l'agence de l'intervention, `minutesHorsOuvertureTechnicien`
 celui de l'agence du technicien, `conflitPose` le calendrier de travail du
@@ -158,6 +194,13 @@ leçon est inscrite au §9 du CLAUDE.md.
   libellé de chaque calendrier. Les horaires réels des agences CODIMA sont
   inscrits au registre « ce qui reste à décider ». Ce qui n'est pas de la
   démonstration : Ducos ouvre le samedi, Koné non.
+- Le contrôle d'horizon s'exécute en intégration continue **contre une vraie
+  base** : les fixtures d'isolation portent elles aussi un horizon glissant, si
+  bien que `verify:full` le joue chaque nuit sur des lignes réelles. Une fixture
+  figée à des dates passées ferait échouer la porte, ce qui est l'objet.
+- Les jours fériés **infra-nationaux** — Alsace-Moselle, États fédéraux — sont
+  inscrits au registre sans être construits : le modèle `(territoire, date)` les
+  permettra par un code de subdivision, à trancher quand un client le demandera.
 - Deux divergences de rédaction ont été signalées et tranchées par la
   hiérarchie des sources, sans qu'aucune décision ne soit prise dans le code :
   1. **`jour_ferie` et la liste close** — soumise, non tranchée en session,

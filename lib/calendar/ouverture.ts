@@ -56,7 +56,14 @@ function refusHorizon(calendrier: Calendrier, geste: string): Error {
   );
 }
 
-/** Les plages effectivement ouvertes ce jour-là — vide si le jour est chômé. */
+/**
+ * Les plages effectivement ouvertes ce jour-là — vide si le jour est chômé.
+ *
+ * `estChome` a déjà appliqué le fait public PUIS l'écart local, dans cet ordre
+ * (D46, complément 2) : ici, un jour particulier ne se relit plus, il se
+ * constate. Un jour férié travaillé retrouve donc les plages de son jour de
+ * semaine, sans qu'aucune heure ne soit inventée pour lui.
+ */
 export function plagesDuJour(
   calendrier: Calendrier,
   jour: JourLocal,
@@ -69,7 +76,8 @@ export function plagesDuJour(
 
 /**
  * Ce jour local est-il ouvré ? C'est-à-dire : l'agence y ouvre-t-elle au moins
- * une plage, et le jour n'est-il pas un férié chômé (RG-PLA-01, RG-PLA-02) ?
+ * une plage, et le jour n'est-il ni un férié chômé, ni un pont (RG-PLA-01,
+ * RG-PLA-02) ?
  */
 export function estJourOuvre(calendrier: Calendrier, jour: JourLocal): boolean {
   return plagesDuJour(calendrier, jour).length > 0;
