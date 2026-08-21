@@ -169,7 +169,10 @@ lib/
   db/         client Prisma, contexte société, helpers RLS
   auth/
   money/      formatage et arithmétique — point de passage unique
-  calendar/   calendriers d'agence, fériés, jours ouvrés
+              jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
+  calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
+              jamais de règle de facturation : l'arrondi au quart d'heure
+              appartient à la valorisation (D45)
   sync/       protocole hors-ligne
   excel/      imports et exports
   pdf/

@@ -62,11 +62,14 @@ Rédaction de la **première catégorie de I1** : `societe` fait exception à la
 Rien n'était ouvert : la politique existait depuis L0-04, `force-rls.test.ts` l'éprouvait, l'inventaire comptait `societe` parmi les tables cloisonnées. C'est la phrase de l'invariant qui était incomplète.
 L'exception est **nommée** (`CLOISONNEE_PAR_IDENTITE`) plutôt que la règle élargie, et elle devient une **liste close de plus**, gardée comme les trois autres.
 Inscrit au CLAUDE.md : toute autre table métier porte `societe_id NOT NULL` ou passe par un arbitrage — **c'est l'objectif des lots 1 à 3, pas une friction à contourner**.
+Trois arbitrages relevés à la revue de cette livraison [D43] [D44] [D45] : le symbole du XPF reste `XPF` et la question part au registre avec son déclencheur ; **D19 est amendé** — la conversion vit dans `lib/reporting` ; l'arrondi au quart d'heure est rangé en L2-09.
 *Acceptation :* le gardien d'exhaustivité de D41 ne relève plus aucune table hors catégorie ; le gardien de la liste d'exceptions **échoue sur toute entrée autre que `societe`** comme sur son retrait, avec le message « toute addition passe par un arbitrage, elle ne se décide pas dans un ticket », et il est éprouvé sur une addition fabriquée et sur une liste vidée.
 
 **L0-07 — Module monétaire. [D19]**
-`lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon — et `convertForConsolidation(montant, source, cible, dateParite)`, réservée à `lib/reporting` et exigeant une date de parité explicite.
-*Acceptation :* `7 000 XPF` sans décimale, `100,00 €` avec deux ; arrondi au quart d'heure supérieur pour les durées ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.
+`lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon.
+`lib/reporting` : `convertForConsolidation(montant, source, cible, dateParite)`, exigeant une date de parité explicite. **La conversion vit dans `lib/reporting`, jamais dans `lib/money`** [D44] — D19 disait `lib/money` contre I2, le §6 et ce ticket ; il est amendé, pas contourné.
+L'arrondi au quart d'heure **ne fait pas partie de ce ticket** : c'est une politique de facturation, elle est rangée en L2-09 [D45].
+*Acceptation :* `7 000 XPF` sans décimale [D19] [D43], `100,00 €` avec deux ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.
 
 **L0-08 — Module calendrier. [D5] [D13]**
 `lib/calendar` : calendriers rattachés à l'**agence**, jours fériés hérités de la société et surchargeables par agence, booléen `travaille`, calcul des jours et heures ouvrés.
@@ -126,9 +129,11 @@ Huit statuts : `A_PLANIFIER`, `PLANIFIEE`, `AFFECTEE`, `EN_COURS`, `SUSPENDUE`, 
 Matrice des transitions autorisées : voir D8 du document d'arbitrage.
 *Acceptation :* chaque transition hors matrice est refusée avec un message explicite ; `SUSPENDUE` peut revenir vers `A_PLANIFIER`, `PLANIFIEE` et `EN_COURS` ; tests sur RG-INT-01 à 11.
 **L2-08** Interventions multi-machines et multi-techniciens. Machine facultative pour `expertise`, `installation` et **`recensement`** [D16].
-**L2-09** Valorisation. **[D11] [D12]**
+**L2-09** Valorisation. **[D11] [D12] [D45]**
 Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone, un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata.
 Ordre : forfaits → heures excédentaires → majoration → total HT.
+**L'arrondi au quart d'heure vit ici** [D45], et nulle part ailleurs — ni dans `lib/calendar`, ni dans `lib/money`. Raison : le calendrier répond à « quand » — jours ouvrés, horaires, fuseaux — et n'a pas à connaître la politique de facturation, sinon un changement de tarif pourra casser un planning ; le module monétaire formate et calcule, il ne décide pas ce qu'on facture.
+**À trancher AVANT d'écrire ce ticket** [D45] : l'arrondi s'applique-t-il à **chaque intervention** ou au **total d'une journée** ? Cinq passages de cinq minutes font 1 h 15 dans un cas et 30 minutes dans l'autre. Décision commerciale, inscrite au registre de `docs/arbitrages.md` — ne pas la trancher en séance.
 **L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
 
 ---
