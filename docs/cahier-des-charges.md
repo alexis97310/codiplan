@@ -702,8 +702,8 @@ Trois erreurs classiques, à écarter explicitement.
 
 | Réf | Règle |
 |---|---|
-| RG-PLA-01 | Le calendrier d'ouverture est propre à chaque site : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des sites. |
-| RG-PLA-02 | Les jours fériés sont paramétrés par société et par site, et peuvent être travaillés — un férié n'est pas systématiquement chômé. |
+| RG-PLA-01 | Le calendrier d'ouverture est propre à chaque **agence** : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des agences. *(Rédaction arrêtée par D47 : la version d'origine disait « site » en désignant des agences, mot que D5 avait déjà corrigé.)* |
+| RG-PLA-02 | Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé. *(Rédaction arrêtée par D47.)* |
 | RG-PLA-03 | Un chevauchement sur un même technicien est signalé mais reste possible : le planificateur garde la main. |
 | RG-PLA-04 | Une intervention ne peut être affectée à un technicien dont l'habilitation requise par le site est expirée. Blocage strict. |
 | RG-PLA-05 | Le temps de trajet inter-sites est estimé à partir de la zone géographique et intégré au calcul de charge. |
@@ -1197,7 +1197,7 @@ Ces contraintes conditionnent la conception, elles ne sont pas des détails de m
 
 **Monnaie.** Franc Pacifique sans décimale, avec une architecture ouverte à l'euro et à d'autres devises pour un déploiement hors territoire. Conversion uniquement sur les agrégats de consolidation, à parité datée.
 
-**Calendriers de sites.** Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés locaux sont paramétrés site par site et peuvent être travaillés. Un calendrier unique appliqué à tous les sites produit des chiffres faux.
+**Calendriers d'agences.** Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés du territoire peuvent être travaillés, agence par agence. Un calendrier unique appliqué à toutes les agences produit des chiffres faux. *(Vocabulaire corrigé par D5 puis D47 : Ducos, Koné et Dolbeau sont des agences CODIMA, pas des sites clients. La règle qui fait foi est RG-PLA-01.)*
 
 **Délais d'approvisionnement.** Un acheminement maritime de l'ordre de quatre mois rend le statut « en attente de pièce » structurel. Le pilotage de cette file est une fonction à part entière.
 
@@ -1362,7 +1362,7 @@ Recette organisée par lot, sur l'environnement dédié, avec des jeux de donné
 7. **Vérifier qu'un montant en XPF s'affiche sans décimale et un montant en EUR avec deux, et qu'aucune conversion n'est appliquée ligne à ligne.**
 8. Déplacer une machine d'un site à l'autre et vérifier l'intégrité de son historique.
 9. Vérifier qu'un compte client ne peut accéder à aucune donnée d'un autre client.
-10. Vérifier que le calendrier de Koné n'ouvre pas le samedi et que celui de Ducos l'ouvre.
+10. Vérifier que le calendrier de l'agence de Koné n'ouvre pas le samedi et que celui de Ducos l'ouvre.
 11. Vérifier qu'une absence du technicien unique déclenche l'alerte de rupture de service et propose le report groupé.
 12. Exporter les éléments à facturer, réimporter le fichier complété des numéros de facture, vérifier le passage au statut FACTURÉE.
 13. Générer un rapport PDF et contrôler sa conformité graphique à la charte de la société émettrice.

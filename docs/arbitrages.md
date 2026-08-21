@@ -599,6 +599,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 |---|---|
 | **Au premier document client** *(D43)* | **Symbole du XPF — `XPF` ou `F`.** Déclencheur explicite : la **conception du premier document destiné à un client** — devis, facture ou rapport d'intervention. D19 dit `7 000 XPF`, la maquette l'écrit ainsi, `prisma/seed-data.ts` porte `symbole: null` pour le XPF : rien à changer aujourd'hui. Si le choix se porte alors sur `F`, ce sera un **amendement de D19 et une ligne de seed** (`symbole: "F"`), jamais une modification discrète |
 | **Avant L2-09** *(D45)* | **L'arrondi au quart d'heure supérieur s'applique-t-il à chaque intervention ou au total d'une journée ?** Cinq passages de cinq minutes font **1 h 15** dans un cas et **30 minutes** dans l'autre. D11 règle l'agrégation à l'intérieur d'une intervention, pas entre interventions. C'est une **décision commerciale**, à prendre **avant** que la valorisation ne soit écrite, pas pendant |
+| **Au paramétrage réel des agences** *(L0-08)* | **Horaires d'ouverture réels de Ducos, Koné et Dolbeau, et liste des fériés effectivement chômés par chacune.** Le seed porte des valeurs de **démonstration**, dites comme telles dans le libellé de chaque calendrier. Ce qui n'est PAS de la démonstration et doit le rester : Ducos ouvre le samedi, Koné non (RG-PLA-01). La saisie des vrais horaires est une opération de paramétrage, pas un développement |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
@@ -670,3 +671,58 @@ C'est une **décision commerciale**, pas une modalité d'implémentation. Elle d
 **Ce que D44 ajoute à D1.** D1 disait : une règle ne s'écrit qu'à un seul endroit. D44 y ajoute le cas où le mal est déjà fait : **quand deux sources divergent, on corrige la fausse, on ne s'aligne pas sur la vraie en silence.** Contourner D19 — écrire le code juste et laisser la décision fausse — aurait produit un dépôt correct et une constitution menteuse. C'est la pire des deux erreurs, parce qu'elle ne se voit pas à l'exécution.
 
 *Note d'arbitrage n°3 — CODIPLAN — 21 août 2026*
+
+
+---
+
+# CODIPLAN — Note d'arbitrage n°4
+
+**Deux points soulevés par la livraison du module calendrier**
+
+| | |
+|---|---|
+| **Objet** | Une sixième entrée à une liste close, et une divergence de vocabulaire au chapitre 10 |
+| **Portée** | D46 et D47 |
+| **Statut** | Décisions arrêtées — même autorité que les notes n°1 à n°3, qu'elle complète et ne remplace pas |
+| **Date** | 21 août 2026 |
+| **Ticket** | L0-08 |
+
+### D46 — `jour_ferie` rejoint les référentiels de plateforme
+
+**Le point, soumis avant d'être tranché.** Le ticket L0-08 demande une table de jours fériés « par territoire et par date, alimentée par seed ». Une telle table ne porte pas de `societe_id` : elle est donc un **référentiel de plateforme** au sens de la deuxième catégorie de I1 — dont la liste est **close**. Le §8 du CLAUDE.md interdit qu'une session la complète, et le gardien d'exhaustivité de D41 aurait fait échouer la vérification. La session s'est donc arrêtée et a soumis la question, comme D39, D40 et D41 avant elle.
+
+**La décision.** `jour_ferie` **rejoint la liste close**, qui devient : `devise`, `parite`, **`jour_ferie`**, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+
+**Le raisonnement est celui de D41 pour `parite`, mot pour mot.** Le 14 juillet est un **fait du territoire**. Il ne dépend d'aucune société, et deux sociétés opérant en Nouvelle-Calédonie n'ont aucune raison d'en tenir deux listes qui pourraient diverger — pas plus qu'elles ne tiennent deux parités du franc Pacifique. La clé de la table est le couple `(territoire, date)` : c'est la juridiction qui décide des jours fériés, pas l'entreprise. Régime identique à `devise` et `parite` : **lecture pour toutes les sociétés, écriture réservée aux rôles éditeur**, pas de `FORCE ROW LEVEL SECURITY` pour que le propriétaire puisse amorcer le référentiel.
+
+**Ce que `jour_ferie` ne dit PAS, et qui reste cloisonné.** Elle dit ce qui **est férié**, jamais ce qui est **chômé**. RG-PLA-02 pose qu'« un férié n'est pas systématiquement chômé » et D13 que « le férié porte un booléen `travaille` », rattaché au calendrier de l'agence. Ce booléen vit donc dans **`calendrier_ferie`**, table métier portant `societe_id NOT NULL`, avec `calendrier` et `calendrier_plage`. **Trois tables cloisonnées, une seule partagée** — et c'est la ligne de partage qui compte : les faits du territoire sont communs, les décisions d'ouverture appartiennent à chaque société.
+
+**L'option écartée, et son coût.** Porter les fériés dans la seule table `calendrier_ferie`, avec date et libellé, n'aurait touché à aucune liste close. Elle aurait aussi recopié la liste néo-calédonienne dans chaque calendrier de chaque agence de chaque société ; deux sociétés d'un même territoire auraient pu diverger sans que rien ne le signale, et ouvrir un territoire au lot 7 se serait fait calendrier par calendrier. Le ticket dit « par territoire » ; l'éviter aurait consisté à déformer la base pour ne pas avoir à prendre une décision.
+
+**Trois gardiens accompagnent la décision**, chacun éprouvé d'abord sur un cas fabriqué puis sur une violation réelle introduite temporairement : aucun identifiant de fuseau hors du schéma et de son seed, aucune date fériée en dur, aucune lecture de la date courante sans fuseau explicite. Détail dans `docs/decisions/2026-08-21-module-calendrier.md`.
+
+### D47 — RG-PLA-01 et RG-PLA-02 disent « site » là où D5 impose « agence »
+
+**La divergence.** Le chapitre 10 — source de **rang 2** — écrit : « Le calendrier d'ouverture est propre à chaque **site** : Ducos du lundi au samedi, Koné du lundi au vendredi » (RG-PLA-01), et « les jours fériés sont paramétrés par société et par **site** » (RG-PLA-02). Or D5 — **rang 1** — a tranché que **Ducos, Koné et Dolbeau sont des agences CODIMA, pas des sites clients**, et a imposé le vocabulaire : « ces deux mots ne sont jamais interchangeables ». Les exemples cités par RG-PLA-01 sont donc des **agences** ; la règle dit « site » en désignant des agences.
+
+**Ce n'est pas une ambiguïté résiduelle, c'est le mot fautif que D5 avait déjà corrigé** — resté au chapitre 10 parce que D5 corrigeait le glossaire et non chaque règle. La hiérarchie des sources tranche seule : D5 l'emporte, I7 le confirme (« calendriers propres à chaque agence »), et le code n'avait aucune décision à prendre.
+
+**La rédaction retenue** pour RG-PLA-01 et RG-PLA-02, qui remplace celle du chapitre 10 :
+
+> **RG-PLA-01** — Le calendrier d'ouverture est propre à chaque **agence** : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des agences.
+>
+> **RG-PLA-02** — Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé.
+
+**Les horaires d'un SITE client ne disparaissent pas pour autant** : ils existent, la table `site` les portera au lot 1, et D13 leur donne leur place exacte — le contrôle « site fermé » produit un **avertissement, jamais un blocage**. La distinction est donc utile, et c'est une raison de plus pour que les deux mots ne se confondent pas.
+
+---
+
+## Une remarque sur la méthode
+
+**Le rangement, encore — et c'est le quatrième ticket d'affilée.** D46 est le cinquième cas d'une même série : une liste close, une table créée plus tard, et la question « où va-t-elle ? ». À la différence des quatre premiers, celui-ci **n'est pas un oubli** : le gardien d'exhaustivité de D41 a posé la question **le jour où la table a été écrite**, avant même qu'elle ne soit écrite. La série D34–D41 se réparait après coup ; celle-ci s'est arrêtée avant. C'est exactement ce que D41 promettait, et c'est la première fois qu'on l'observe.
+
+**Ce que D47 ajoute à D44.** D44 disait : quand deux sources divergent, on corrige la fausse. D47 en montre un cas où la fausse est de **rang 2** et la vraie de **rang 1** — l'ordre normal, donc, et pourtant la source fautive avait survécu à l'arbitrage qui la corrigeait. La leçon est étroite mais utile : **un arbitrage qui corrige un mot doit dire où ce mot est écrit**, sinon il corrige le glossaire et laisse les règles.
+
+**Et une épreuve qui a payé.** Les trois gardiens du ticket ont été éprouvés sur des violations réellement introduites dans le code, puis retirées. L'un des sept essais est passé au travers : l'interdiction d'appeler le calcul de Pâques depuis le métier ne voyait que la forme lointaine de l'import (`lib/calendar/paques`) et laissait passer la forme proche (`./paques`) — c'est-à-dire **la seule qui pouvait réellement être écrite**, puisque le métier voisin est dans le même répertoire. Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.
+
+*Note d'arbitrage n°4 — CODIPLAN — 21 août 2026*

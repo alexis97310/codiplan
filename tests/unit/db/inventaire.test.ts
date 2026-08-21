@@ -38,6 +38,9 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
     decomptes: {
       societe: 1,
       agence: 3,
+      calendrier: 2,
+      calendrier_plage: 11,
+      calendrier_ferie: 1,
       utilisateur_societe: 2,
       utilisateur_client: 1,
     },
@@ -54,6 +57,9 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
       decomptes: {
         societe: 1,
         agence: 1,
+        calendrier: 1,
+        calendrier_plage: 5,
+        calendrier_ferie: 0,
         utilisateur_societe: 1,
         utilisateur_client: 0,
       },
@@ -67,7 +73,12 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
     },
     societes,
     total: totaliser(societes),
-    hors_cloisonnement: { devise: 2, parite: 1, utilisateur: 4 },
+    hors_cloisonnement: {
+      devise: 2,
+      parite: 1,
+      jour_ferie: 24,
+      utilisateur: 4,
+    },
     ...surcharge,
   };
 }
@@ -77,6 +88,9 @@ describe("inventaire à plat", () => {
     expect(totaliser(inventaire().societes)).toEqual({
       societe: 2,
       agence: 4,
+      calendrier: 3,
+      calendrier_plage: 16,
+      calendrier_ferie: 1,
       utilisateur_societe: 3,
       utilisateur_client: 1,
     });
@@ -162,7 +176,7 @@ describe("contrôle de cloisonnement", () => {
 
   describe("témoins hors cloisonnement", () => {
     it("accepte des référentiels lus à l'identique", () => {
-      const attendu = { devise: 2, parite: 1, utilisateur: 4 };
+      const attendu = { devise: 2, parite: 1, jour_ferie: 24, utilisateur: 4 };
       expect(ecartsTemoins(attendu, { ...attendu })).toEqual([]);
     });
 
@@ -173,8 +187,8 @@ describe("contrôle de cloisonnement", () => {
      */
     it("refuse un référentiel devenu illisible sous le rôle applicatif", () => {
       const ecarts = ecartsTemoins(
-        { devise: 2, parite: 1, utilisateur: 4 },
-        { devise: 0, parite: 1, utilisateur: 4 },
+        { devise: 2, parite: 1, jour_ferie: 24, utilisateur: 4 },
+        { devise: 0, parite: 1, jour_ferie: 24, utilisateur: 4 },
       );
       expect(ecarts.join("\n")).toContain("témoin « devise »");
     });
@@ -188,14 +202,17 @@ describe("échange entre les deux étapes", () => {
   });
 
   it("refuse un inventaire tronqué plutôt que de le compléter", () => {
-    const ampute = inventaire();
-    expect(() =>
-      lireInventaire(
-        JSON.stringify({
-          ...ampute,
-          total: { societe: 2, agence: 4 },
-        }),
+    // La table retirée est nommée plutôt que déduite de l'ordre des clés :
+    // ainsi le scénario continue de dire ce qu'il éprouve — « une table
+    // manquante est refusée » — quand une table s'ajoute à l'inventaire.
+    const tronque = Object.fromEntries(
+      Object.entries(totaliser(inventaire().societes)).filter(
+        ([table]) => table !== "utilisateur_societe",
       ),
+    );
+
+    expect(() =>
+      lireInventaire(JSON.stringify({ ...inventaire(), total: tronque })),
     ).toThrow(/utilisateur_societe/);
   });
 
@@ -204,7 +221,12 @@ describe("échange entre les deux étapes", () => {
       lireInventaire(
         JSON.stringify({
           ...inventaire(),
-          hors_cloisonnement: { devise: -1, parite: 1, utilisateur: 4 },
+          hors_cloisonnement: {
+            devise: -1,
+            parite: 1,
+            jour_ferie: 24,
+            utilisateur: 4,
+          },
         }),
       ),
     ).toThrow(/devise/);

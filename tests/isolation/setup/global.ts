@@ -7,6 +7,15 @@ import { Role, ROLES } from "@/lib/auth/roles";
 import {
   AGENCE_A,
   AGENCE_B,
+  CALENDRIER_A,
+  CALENDRIER_B,
+  JOUR_FERIE_A,
+  JOUR_FERIE_B,
+  PLAGE_A,
+  PLAGE_B,
+  SURCHARGE_FERIE_A,
+  TERRITOIRE_A,
+  TERRITOIRE_B,
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
@@ -244,6 +253,86 @@ export default async function setup(): Promise<void> {
           libelle: "Siège",
         },
       ],
+    });
+
+    // Référentiel territorial des fériés (D46) : pas de `societe_id`, donc
+    // aucun contexte à poser — comme `devise`.
+    await prisma.jourFerie.createMany({
+      data: [
+        {
+          id: JOUR_FERIE_A,
+          territoire: TERRITOIRE_A,
+          date: new Date("2026-06-15T00:00:00.000Z"),
+          libelle: "Férié fictif A",
+          mobile: false,
+        },
+        {
+          id: JOUR_FERIE_B,
+          territoire: TERRITOIRE_B,
+          date: new Date("2026-06-16T00:00:00.000Z"),
+          libelle: "Férié fictif B",
+          mobile: false,
+        },
+      ],
+    });
+
+    // Calendriers d'ouverture — tables MÉTIER, `societe_id NOT NULL`.
+    await prisma.calendrier.createMany({
+      data: [
+        {
+          id: CALENDRIER_A,
+          societe_id: SOCIETE_A,
+          code: "ISO-CAL-A",
+          libelle: "Calendrier A",
+          territoire: TERRITOIRE_A,
+        },
+        {
+          id: CALENDRIER_B,
+          societe_id: SOCIETE_B,
+          code: "ISO-CAL-B",
+          libelle: "Calendrier B",
+          territoire: TERRITOIRE_B,
+        },
+      ],
+    });
+    await prisma.calendrierPlage.createMany({
+      data: [
+        {
+          id: PLAGE_A,
+          societe_id: SOCIETE_A,
+          calendrier_id: CALENDRIER_A,
+          jour_semaine: 1,
+          debut_minutes: 480,
+          fin_minutes: 720,
+        },
+        {
+          id: PLAGE_B,
+          societe_id: SOCIETE_B,
+          calendrier_id: CALENDRIER_B,
+          jour_semaine: 1,
+          debut_minutes: 540,
+          fin_minutes: 780,
+        },
+      ],
+    });
+    await prisma.calendrierFerie.createMany({
+      data: [
+        {
+          id: SURCHARGE_FERIE_A,
+          societe_id: SOCIETE_A,
+          calendrier_id: CALENDRIER_A,
+          jour_ferie_id: JOUR_FERIE_A,
+          travaille: true,
+        },
+      ],
+    });
+    await prisma.agence.updateMany({
+      where: { id: AGENCE_A },
+      data: { calendrier_id: CALENDRIER_A },
+    });
+    await prisma.agence.updateMany({
+      where: { id: AGENCE_B },
+      data: { calendrier_id: CALENDRIER_B },
     });
 
     // Un utilisateur interne par société, avec son habilitation.

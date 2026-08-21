@@ -107,6 +107,7 @@ model Societe {
 
   devise               Devise               @relation(fields: [devise_code], references: [code])
   agences              Agence[]
+  calendriers          Calendrier[]
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
   sessions_actives     Session[]
@@ -126,10 +127,137 @@ model Agence {
   calendrier_id  String? @db.Uuid // calendrier d'ouverture — table posée au ticket L0-08
   actif          Boolean @default(true)
 
-  societe Societe @relation(fields: [societe_id], references: [id])
+  societe    Societe     @relation(fields: [societe_id], references: [id])
+  calendrier Calendrier? @relation(fields: [calendrier_id], references: [id])
 
   @@unique([societe_id, code])
   @@map("agence")
+}
+
+// ── Calendriers d'agence et jours fériés (ticket L0-08, I7, D5, D13, D46) ────
+//
+// Le fuseau appartient à l'AGENCE — `agence.fuseau_horaire`, surchargeable,
+// hérité de la société (D5). Il est stocké au format IANA (`Pacific/Noumea`,
+// `Europe/Paris`), jamais sous forme de décalage numérique : un décalage est
+// une conséquence du fuseau et de la date, pas une donnée. Nouméa ne change pas
+// d'heure, Paris si — un `+11` figé en base serait faux la moitié de l'année.
+//
+// Tout instant est en `timestamptz`. Aucune table ci-dessous n'en porte : elles
+// portent des RÈGLES LOCALES (jour de semaine, minutes depuis minuit) et des
+// JOURS (date sans heure), qui n'ont pas de fuseau propre — c'est le calendrier
+// qui leur en donne un à la lecture. Une récurrence figée en instants UTC se
+// décalerait d'une heure deux fois par an à Paris (point 3 du ticket L0-08).
+
+/// Référentiel de plateforme (I1 — liste close, D46). PAS de `societe_id` :
+/// le 14 juillet est un fait du TERRITOIRE, identique pour toutes les sociétés
+/// qui y opèrent, exactement comme la parité légale du franc Pacifique (D41).
+/// La Nouvelle-Calédonie a ses fériés, la métropole les siens, et un client sur
+/// un autre territoire aura les siens — d'où la clé `(territoire, date)`.
+///
+/// **Cette table dit ce qui EST férié, jamais ce qui est chômé.** Un férié peut
+/// être travaillé (RG-PLA-02) : ce choix relève de l'agence et vit dans
+/// `calendrier_ferie`, qui est cloisonnée. La séparation est celle de D13 —
+/// « les jours fériés sont portés par le calendrier », le référentiel n'en
+/// fournit que les dates.
+///
+/// Alimentée par le seed (point 4 du ticket) : aucune date fériée n'est écrite
+/// dans le code, et le gardien
+/// `tests/unit/calendar/sans-date-feriee-en-dur.test.ts` le vérifie. Les fêtes
+/// mobiles adossées à Pâques sont CALCULÉES par `lib/calendar/paques.ts`, mais
+/// le calcul produit ces lignes ; il ne s'exécute jamais dans le métier.
+model JourFerie {
+  id         String   @id @db.Uuid
+  /// Territoire au sens des fériés — jamais la province administrative.
+  territoire String
+  /// Jour, sans heure : un férié n'est pas un instant.
+  date       DateTime @db.Date
+  libelle    String
+  /// Vrai pour les fêtes adossées à Pâques — trace l'origine de la ligne.
+  mobile     Boolean  @default(false)
+
+  calendrier_feries CalendrierFerie[]
+
+  @@unique([territoire, date])
+  @@index([territoire])
+  @@map("jour_ferie")
+}
+
+/// Calendrier d'ouverture d'une AGENCE (D5) — table métier, `societe_id NOT
+/// NULL`. À ne jamais confondre avec les horaires d'un SITE client, qui ne
+/// produisent qu'un avertissement (D13).
+///
+/// Plusieurs agences peuvent partager un calendrier : c'est la forme que prend
+/// « héritage depuis la société avec surcharge possible par agence » (D13) —
+/// la société pose un calendrier par défaut, l'agence qui en diffère reçoit le
+/// sien. Aucun calendrier global codé en dur (I7) : Ducos ouvre du lundi au
+/// samedi, Koné du lundi au vendredi, et rien dans le code ne le sait.
+model Calendrier {
+  id         String  @id @db.Uuid
+  societe_id String  @db.Uuid
+  code       String
+  libelle    String
+  /// Territoire dont les fériés s'appliquent — clé de `jour_ferie` (D46).
+  territoire String
+  actif      Boolean @default(true)
+
+  societe Societe           @relation(fields: [societe_id], references: [id])
+  agences Agence[]
+  plages  CalendrierPlage[]
+  feries  CalendrierFerie[]
+
+  @@unique([societe_id, code])
+  @@map("calendrier")
+}
+
+/// Une plage d'ouverture hebdomadaire — table métier, `societe_id NOT NULL`.
+///
+/// C'est une RÉCURRENCE stockée sous sa forme locale : un jour de semaine ISO
+/// et des minutes depuis minuit, jamais des instants UTC (point 3 du ticket).
+/// Le fuseau lui vient de l'agence à la lecture, si bien qu'« ouverture à 8 h »
+/// reste 8 h des deux côtés d'un changement d'heure.
+///
+/// Plusieurs plages par jour sont admises : la coupure de midi en est une. Un
+/// jour sans aucune plage est un jour fermé — il n'y a pas de booléen `ouvert`,
+/// qui pourrait contredire les plages.
+model CalendrierPlage {
+  id            String @id @db.Uuid
+  societe_id    String @db.Uuid
+  calendrier_id String @db.Uuid
+  /// Jour ISO 8601 — 1 lundi, 7 dimanche. La semaine commence le lundi.
+  jour_semaine  Int
+  /// Ouverture, en minutes locales depuis minuit. 8 h = 480.
+  debut_minutes Int
+  /// Fermeture, en minutes locales depuis minuit. Minuit = 1440.
+  fin_minutes   Int
+
+  calendrier Calendrier @relation(fields: [calendrier_id], references: [id], onDelete: Cascade)
+
+  @@unique([calendrier_id, jour_semaine, debut_minutes])
+  @@index([calendrier_id])
+  @@map("calendrier_plage")
+}
+
+/// Surcharge d'un jour férié par calendrier, donc par agence — table métier,
+/// `societe_id NOT NULL`. C'est ici que vit le booléen `travaille` de D13 :
+/// « un férié porte un booléen `travaille` », et RG-PLA-02 ajoute qu'« un férié
+/// n'est pas systématiquement chômé ».
+///
+/// Absence de ligne = férié chômé. La surcharge ne s'écrit donc que pour dire
+/// l'exception, jamais pour répéter la règle.
+model CalendrierFerie {
+  id            String  @id @db.Uuid
+  societe_id    String  @db.Uuid
+  calendrier_id String  @db.Uuid
+  jour_ferie_id String  @db.Uuid
+  /// Vrai si l'agence travaille ce jour férié (D13, RG-PLA-02).
+  travaille     Boolean @default(false)
+
+  calendrier Calendrier @relation(fields: [calendrier_id], references: [id], onDelete: Cascade)
+  jour_ferie JourFerie  @relation(fields: [jour_ferie_id], references: [id])
+
+  @@unique([calendrier_id, jour_ferie_id])
+  @@index([calendrier_id])
+  @@map("calendrier_ferie")
 }
 
 /// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas

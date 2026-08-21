@@ -66,7 +66,8 @@ Voir [`docs/decisions/2026-08-20-tests-isolation-postgres-local.md`](docs/decisi
 ```
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
-lib/          i18n/ (dictionnaire français), utils.ts
+lib/          auth/  calendar/  db/  i18n/  money/  reporting/  utils.ts
+prisma/       schema.prisma, migrations/, seed.ts
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
@@ -75,4 +76,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 — tickets **L0-01** (initialisation du dépôt) et **L0-02** (chaîne de vérification) faits. Aucune fonctionnalité métier, aucun schéma de base de données : ils commencent au ticket L0-03.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire) et **L0-08** (module calendrier). Aucune fonctionnalité métier : elles commencent au lot 1.

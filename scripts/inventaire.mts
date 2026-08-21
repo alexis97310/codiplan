@@ -59,7 +59,12 @@ type TableFille = Exclude<TableCloisonnee, "societe">;
 type GroupeSociete = { societe_id: string; _count: { _all: number } };
 
 /** Tables comptées hors cloisonnement, dans l'ordre du rapport. */
-const TABLES_TEMOINS = ["devise", "parite", "utilisateur"] as const;
+const TABLES_TEMOINS = [
+  "devise",
+  "parite",
+  "jour_ferie",
+  "utilisateur",
+] as const;
 
 type ContexteRole = { role: string; base: string; exempte: boolean };
 
@@ -232,6 +237,18 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
     by: ["societe_id"],
     _count: { _all: true },
   });
+  const parCalendrier = await tx.calendrier.groupBy({
+    by: ["societe_id"],
+    _count: { _all: true },
+  });
+  const parCalendrierPlage = await tx.calendrierPlage.groupBy({
+    by: ["societe_id"],
+    _count: { _all: true },
+  });
+  const parCalendrierFerie = await tx.calendrierFerie.groupBy({
+    by: ["societe_id"],
+    _count: { _all: true },
+  });
   const parUtilisateurSociete = await tx.utilisateurSociete.groupBy({
     by: ["societe_id"],
     _count: { _all: true },
@@ -242,12 +259,16 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
   });
 
   enregistrer("agence", parAgence);
+  enregistrer("calendrier", parCalendrier);
+  enregistrer("calendrier_plage", parCalendrierPlage);
+  enregistrer("calendrier_ferie", parCalendrierFerie);
   enregistrer("utilisateur_societe", parUtilisateurSociete);
   enregistrer("utilisateur_client", parUtilisateurClient);
 
   const temoins: DecompteHorsCloisonnement = {
     devise: await tx.devise.count(),
     parite: await tx.parite.count(),
+    jour_ferie: await tx.jourFerie.count(),
     utilisateur: await tx.utilisateur.count(),
   };
 

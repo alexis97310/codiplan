@@ -19,18 +19,22 @@
  */
 
 /**
- * Tables soumises au cloisonnement société, telles que la migration
- * `20260820130000_force_rls_role_applicatif` les a passées en `FORCE ROW LEVEL
- * SECURITY`. `societe` y figure : elle est cloisonnée par son identité
- * (`id = app.societe_id`), les trois autres par leur colonne `societe_id`.
+ * Tables soumises au cloisonnement société, telles que les migrations les ont
+ * passées en `FORCE ROW LEVEL SECURITY` — `20260820130000` pour les quatre
+ * premières, `20260821120000` pour les trois du calendrier. `societe` y
+ * figure : elle est cloisonnée par son identité (`id = app.societe_id`), les
+ * autres par leur colonne `societe_id`.
  *
- * Les référentiels de plateforme (`devise`, `parite`) et l'identité globale
- * (`utilisateur`) n'en sont pas : ils relèvent de la liste close de I1 ou de
- * l'authentification, et se comptent hors cloisonnement.
+ * Les référentiels de plateforme (`devise`, `parite`, `jour_ferie`) et
+ * l'identité globale (`utilisateur`) n'en sont pas : ils relèvent de la liste
+ * close de I1 ou de l'authentification, et se comptent hors cloisonnement.
  */
 export const TABLES_CLOISONNEES = [
   "societe",
   "agence",
+  "calendrier",
+  "calendrier_plage",
+  "calendrier_ferie",
   "utilisateur_societe",
   "utilisateur_client",
 ] as const;
@@ -40,10 +44,19 @@ export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];
 /** Nombre de lignes par table cloisonnée. */
 export type DecompteParTable = Record<TableCloisonnee, number>;
 
-/** Tables comptées hors cloisonnement — témoins de l'étape 2. */
+/**
+ * Tables comptées hors cloisonnement — témoins de l'étape 2.
+ *
+ * `jour_ferie` les rejoint au ticket L0-08 : c'est un référentiel de plateforme
+ * (D46), lisible par toutes les sociétés. Le compter parmi les témoins n'est
+ * pas décoratif — c'est ce qui prouve qu'il reste lisible SOUS le rôle
+ * applicatif et SANS contexte société, là où une table cloisonnée doit rendre
+ * zéro.
+ */
 export const TABLES_HORS_CLOISONNEMENT = [
   "devise",
   "parite",
+  "jour_ferie",
   "utilisateur",
 ] as const;
 
@@ -91,6 +104,9 @@ export function decompteVide(): DecompteParTable {
   return {
     societe: 0,
     agence: 0,
+    calendrier: 0,
+    calendrier_plage: 0,
+    calendrier_ferie: 0,
     utilisateur_societe: 0,
     utilisateur_client: 0,
   };

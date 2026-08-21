@@ -67,6 +67,23 @@ export const MODELE_SURCHARGE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
 export const AGENCE_A = "aaaaaaaa-0000-7000-8000-0000000000e1";
 export const AGENCE_B = "bbbbbbbb-0000-7000-8000-0000000000e2";
 
+/** Calendriers d'ouverture des deux agences (L0-08, D5, D13). */
+export const CALENDRIER_A = "aaaaaaaa-0000-7000-8000-0000000000ca";
+export const CALENDRIER_B = "bbbbbbbb-0000-7000-8000-0000000000cb";
+export const PLAGE_A = "aaaaaaaa-0000-7000-8000-0000000000c5";
+export const PLAGE_B = "bbbbbbbb-0000-7000-8000-0000000000c6";
+export const SURCHARGE_FERIE_A = "aaaaaaaa-0000-7000-8000-0000000000c7";
+
+/**
+ * Territoires et fériés — référentiel de plateforme (D46), donc SANS
+ * `societe_id` : les deux sociétés doivent le lire, et c'est ce que le
+ * scénario `calendriers.test.ts` éprouve.
+ */
+export const TERRITOIRE_A = "ISO-TERRITOIRE-A";
+export const TERRITOIRE_B = "ISO-TERRITOIRE-B";
+export const JOUR_FERIE_A = "00000000-0000-7000-8000-0000000000fa";
+export const JOUR_FERIE_B = "00000000-0000-7000-8000-0000000000fb";
+
 /**
  * Un compte par rôle canonique (L0-06). Les identifiants portent le rang du
  * rôle dans l'énumération, pour rester lisibles à la lecture d'un échec.

@@ -69,3 +69,29 @@ export function fichiersSource(
   }
   return resultat;
 }
+
+/**
+ * Le même code, commentaires retirés (ticket L0-08).
+ *
+ * **Pourquoi les gardiens en ont besoin.** Trois règles du ticket L0-08 se
+ * prouvent en cherchant des motifs dans les sources : un identifiant de fuseau,
+ * une date fériée, un accesseur local de `Date`. Or la documentation du module
+ * calendrier CITE ces motifs — c'est même ce qui la rend lisible : « ex.
+ * Pacific/Noumea », « jamais par getDay() ». Un gardien qui lirait le texte
+ * brut échouerait donc sur les commentaires qui expliquent la règle, et la
+ * seule façon de le faire passer serait d'appauvrir la documentation. C'est
+ * l'inverse de ce qu'on veut.
+ *
+ * Un commentaire ne peut pas coder en dur un fuseau : il n'est pas exécuté.
+ * Le retirer avant l'analyse n'affaiblit donc aucun des trois gardiens.
+ *
+ * **Le `//` d'une URL est épargné** : `https://…` n'ouvre pas un commentaire.
+ * L'analyse reste volontairement grossière — elle ne cherche pas à comprendre
+ * TypeScript, seulement à ne pas confondre prose et code — et elle est éprouvée
+ * sur des cas fabriqués par le gardien qui s'en sert.
+ */
+export function sansCommentaires(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "\n")
+    .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
+}
