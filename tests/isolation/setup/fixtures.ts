@@ -1,4 +1,13 @@
 import type { Role } from "@/lib/auth/roles";
+import {
+  anneeCourante,
+  cleJour,
+  jourSemaineIso,
+  jourSuivant,
+  lireCleJour,
+  LUNDI,
+  type JourLocal,
+} from "@/lib/calendar";
 
 /**
  * Données déterministes et briques SQL partagées par le harnais d'isolation
@@ -66,6 +75,39 @@ export const MODELE_SURCHARGE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
 /** Agences (fixture d'isolation, distinctes du seed applicatif). */
 export const AGENCE_A = "aaaaaaaa-0000-7000-8000-0000000000e1";
 export const AGENCE_B = "bbbbbbbb-0000-7000-8000-0000000000e2";
+
+/** Calendriers d'ouverture des deux agences (L0-08, D5, D13). */
+export const CALENDRIER_A = "aaaaaaaa-0000-7000-8000-0000000000ca";
+export const CALENDRIER_B = "bbbbbbbb-0000-7000-8000-0000000000cb";
+export const PLAGE_A = "aaaaaaaa-0000-7000-8000-0000000000c5";
+export const PLAGE_B = "bbbbbbbb-0000-7000-8000-0000000000c6";
+
+/**
+ * Fuseaux des deux sociétés fixtures.
+ *
+ * **L'agence B surcharge le sien pour valoir CELUI DE L'AGENCE A** (D5), alors
+ * que leurs TERRITOIRES diffèrent. La fixture est délibérément adversaire :
+ * deux agences qui partagent une heure et pas un calendrier de fêtes. Tout
+ * code qui déduirait le territoire du fuseau — ou l'inverse — tomberait ici,
+ * et non chez un client d'Alsace-Moselle deux ans plus tard (D46,
+ * complément 1).
+ */
+export const FUSEAU_SOCIETE_A = "Pacific/Noumea";
+export const FUSEAU_SOCIETE_B = "Europe/Paris";
+export const FUSEAU_AGENCE_B = FUSEAU_SOCIETE_A;
+
+/**
+ * Territoires fictifs, en codes ISO 3166-1 alpha-2 **réservés à l'usage
+ * privé** (`ZZ`, `XA`) : la norme garantit qu'aucun pays ne les portera jamais.
+ * Un jeu de test ne doit désigner aucun territoire réel (I9), et la forme reste
+ * celle que `jour_ferie` exige — deux lettres majuscules.
+ */
+export const TERRITOIRE_A = "ZZ";
+export const TERRITOIRE_B = "XA";
+
+/** Écarts locaux de l'agence A — un férié travaillé, et un pont. */
+export const SURCHARGE_FERIE_A = "aaaaaaaa-0000-7000-8000-0000000000c7";
+export const PONT_FIXTURE_A = "aaaaaaaa-0000-7000-8000-0000000000c8";
 
 /**
  * Un compte par rôle canonique (L0-06). Les identifiants portent le rang du
@@ -162,3 +204,71 @@ export function politiqueParcSql(
       USING (${clause}) WITH CHECK (${clause});
   `;
 }
+
+/**
+ * Jours fériés fictifs des deux territoires, sur un **horizon glissant**
+ * (D46, complément 3).
+ *
+ * Trois années à partir de l'année en cours, deux fériés par an. L'horizon est
+ * calculé, jamais écrit : une fixture figée à des dates passées ferait échouer
+ * `scripts/horizon-feries.mts` un jour de janvier, sans que personne comprenne
+ * pourquoi — et ce contrôle-là a précisément pour objet de refuser les données
+ * périmées. Il s'exécute à chaque `verify:full` sur cette base.
+ *
+ * Les deux fériés tombent un LUNDI, seul jour où les calendriers fixtures
+ * ouvrent : c'est ce qui permet d'éprouver « un férié travaillé compte comme
+ * ouvré » (RG-PLA-02) sur une date réelle plutôt que théorique.
+ */
+export const ANNEE_FIXTURE = anneeCourante(FUSEAU_SOCIETE_A);
+
+/** Les trois années couvertes — l'année en cours et les deux suivantes. */
+export const ANNEES_FIXTURE = [0, 1, 2].map(
+  (decalage) => ANNEE_FIXTURE + decalage,
+);
+
+/** Premier lundi du mois indiqué, en clé `AAAA-MM-JJ`. */
+function premierLundi(annee: number, mois: number): string {
+  let jour: JourLocal = { annee, mois, jour: 1 };
+  while (jourSemaineIso(jour) !== LUNDI) {
+    jour = jourSuivant(jour);
+  }
+  return cleJour(jour);
+}
+
+/** Un férié fictif du jeu d'isolation : sa date et son libellé. */
+export type FerieFixture = { date: string; libelle: string };
+
+/**
+ * Les fériés d'un territoire fixture, sur l'horizon glissant. Le premier lundi
+ * de juin et celui de décembre : deux dates par an, dont la dernière garantit
+ * plus de douze mois d'avance en toute saison.
+ */
+export function feriesFixture(territoire: string): FerieFixture[] {
+  return ANNEES_FIXTURE.flatMap((annee) => [
+    {
+      date: premierLundi(annee, 6),
+      libelle: `Férié fictif de juin ${territoire}`,
+    },
+    {
+      date: premierLundi(annee, 12),
+      libelle: `Férié fictif de décembre ${territoire}`,
+    },
+  ]);
+}
+
+/**
+ * Le férié que l'AGENCE A travaille : le premier de son territoire sur
+ * l'horizon. C'est l'écart local de D46, complément 2 — le fait public dit
+ * « férié », l'agence dit « on travaille », et l'ordre ne s'inverse pas.
+ */
+export const FERIE_TRAVAILLE_A = feriesFixture(TERRITOIRE_A)[0] as FerieFixture;
+
+/**
+ * Le PONT de l'agence A : un jour ordinaire qu'elle chôme, sans aucun férié en
+ * face. Seconde forme d'écart local, et la seule qui ne s'adosse à aucun fait
+ * public. Posé le lundi suivant le férié travaillé — donc un jour où le
+ * calendrier ouvre, sans quoi le pont ne retirerait rien.
+ */
+export const PONT_A = cleJour(
+  jourSuivant(lireCleJour(FERIE_TRAVAILLE_A.date), 7),
+);

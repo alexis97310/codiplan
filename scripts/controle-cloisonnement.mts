@@ -79,6 +79,9 @@ async function compterVisible(
   const decompte = decompteVide();
   decompte.societe = await client.societe.count();
   decompte.agence = await client.agence.count();
+  decompte.calendrier = await client.calendrier.count();
+  decompte.calendrier_plage = await client.calendrierPlage.count();
+  decompte.calendrier_ferie = await client.calendrierFerie.count();
   decompte.utilisateur_societe = await client.utilisateurSociete.count();
   decompte.utilisateur_client = await client.utilisateurClient.count();
   return decompte;
@@ -91,6 +94,7 @@ async function compterTemoins(
   return {
     devise: await client.devise.count(),
     parite: await client.parite.count(),
+    jour_ferie: await client.jourFerie.count(),
     utilisateur: await client.utilisateur.count(),
   };
 }

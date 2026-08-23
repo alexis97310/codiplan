@@ -69,7 +69,13 @@ Quatre catégories de tables, et quatre seulement.
 
 **Toute autre table métier porte donc `societe_id NOT NULL`, ou passe par un arbitrage.** Aux lots 1 à 3 — `client`, `site`, `machine`, `intervention`, `contrat` — ce n'est **pas une friction à contourner : c'est l'objectif**. Le seul moment où la question de cloisonnement se pose sans effort est celui où la table est créée ; un ticket qui la traite comme un obstacle la reporte de trois arbitrages.
 
-**2. Référentiels de plateforme** — `societe_id NULL` ou pas de `societe_id` du tout, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `parite` *(D41)*, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+**2. Référentiels de plateforme** — `societe_id NULL` ou pas de `societe_id` du tout, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `parite` *(D41)*, `jour_ferie` *(D46)*, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+
+`jour_ferie` dit ce qui **est férié** sur un territoire — un fait, comme la parité légale du franc Pacifique. Elle ne dit jamais ce qui est **chômé** : ce choix appartient à l'agence et vit dans `calendrier_ferie`, qui est cloisonnée *(D13, RG-PLA-02)*.
+
+**L'ordre de lecture ne s'inverse jamais** *(D46)* : le **fait public** du territoire d'abord (`jour_ferie`), l'**écart local** de l'agence ensuite (`calendrier_ferie` — un férié travaillé, un pont). Lire dans l'autre sens donnerait à une agence le pouvoir de décréter un férié pour son territoire.
+
+**Le territoire n'est pas le fuseau, et ne s'en déduit jamais** *(D46)*. L'agence porte deux attributs distincts et indépendants : son **fuseau** IANA (quelle heure il est) et son **territoire** en ISO 3166-1 alpha-2 (quels jours sont fériés). `Europe/Paris` couvre plusieurs territoires aux fériés différents. Ni l'un ni l'autre ne se calcule à partir de l'autre — un gardien statique le refuse.
 
 **3. Tables techniques d'authentification** *(D34, D39)* — **pas de `societe_id` du tout**. Elles portent la trace technique de l'authentification, jamais de la donnée métier : l'authentification doit pouvoir chercher un compte avant qu'aucune société ne soit active, et une bascule refusée de A vers B ne se range ni sous A ni sous B. **Liste close et énumérée** : `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
 
@@ -136,9 +142,12 @@ pnpm db:migrate       # prisma migrate dev
 pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
 pnpm build            # build de production
 
+pnpm feries:horizon   # les fériés de chaque territoire couvrent-ils 12 mois ? (D46)
+pnpm feries:etendre   # étend l'horizon des fériés en base
+
 pnpm verify           # typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
-pnpm verify:full      # verify + test:e2e
+pnpm verify:full      # verify + feries:horizon + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
 
@@ -171,6 +180,10 @@ lib/
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
+              fuseaux IANA, instants UTC, récurrences déroulées à la lecture
+              territoire ISO et fuseau : deux attributs de l'agence, jamais
+              l'un déduit de l'autre (D46)
+              seul endroit où la date courante se lit — et avec un fuseau (L0-08)
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
   sync/       protocole hors-ligne
@@ -196,6 +209,8 @@ Le domaine métier est en français (`intervention`, `machine`, `societe`, `agen
 - **Un ticket à la fois.** Lire le ticket, relire le chapitre 10 correspondant et `docs/arbitrages.md`, écrire le test, écrire le code, `pnpm verify`, commiter, pousser sur `origin main`.
 - **Test d'abord** pour toute règle de gestion, avec le numéro de règle en commentaire.
 - **Commits atomiques.** Un commit ne couvre jamais deux tickets.
+- **Une migration se réécrit tant qu'elle n'a pas touché une base réelle ; après, elle est immuable.** Avant sa première application hors des bases jetables, la corriger sur place vaut mieux que d'en ajouter une seconde : deux migrations dont la seconde défait la première se relisent mal. Une fois appliquée à une base réelle, elle ne se touche plus — on en ajoute une seconde, sans exception. Prisma tient déjà cette seconde moitié tout seul, par empreinte : modifier une migration déjà appliquée fait échouer `migrate deploy`. **Le jugement ne porte donc que sur l'avant-première-application** — et c'est le seul endroit où il faut l'exercer.
+- **Le README suit le dépôt, dans la même demande de fusion.** Un ticket qui ajoute un **module**, une **table** ou une **commande** met le README à jour avec le reste. Un README qui ment est le même défaut qu'une procédure fausse : on lui fait confiance, et il est lu par ceux qui connaissent le moins le projet.
 - **Décisions structurantes** → un fichier dans `docs/decisions/` : contexte, options écartées, choix, conséquences. Trois paragraphes.
 - **En cas de blocage** : ne pas contourner, ne pas réduire le périmètre en silence. S'arrêter, décrire ce qui bloque et les options.
 
@@ -221,4 +236,6 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 - **19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.** `code_winpro` est devenu `code_externe` : le produit est destiné à être vendu à des sociétés qui n'utilisent pas Winpro.
 - **20/08/2026 — Ne jamais fermer une énumération avant d'avoir tranché à qui l'on vend.** L'énumération des rôles a été arrêtée à neuf avant l'arbitrage « il faut prévoir de vendre la solution » ; il y manquait un administrateur au niveau société, si bien que créer un compte chez un client serait passé par l'éditeur. `admin_societe` est le dixième rôle (D37). Une énumération se ferme après la question « et chez le client ? », jamais avant.
 - **20/08/2026 — Un refus qui explique pourquoi est un renseignement.** « Compte inexistant », « mot de passe faux » et « compte sans habilitation » se répondaient différemment : cela suffisait à découvrir, depuis la seule page de mot de passe oublié, quels concurrents sont clients de la plateforme. Un seul message, un seul plancher de durée (D35).
+- **21/08/2026 — Une donnée datée se périme en silence ; il faut un gardien du TEMPS.** Les jours fériés sont datés. Une table alimentée une fois cesse de connaître les fériés deux ans plus tard **sans jamais être vide** : elle est périmée, le planning propose des créneaux un 1ᵉʳ mai, et aucun décompte ne le signale — un décompte non nul ressemble beaucoup trop à des données justes. D'où trois pièces indissociables *(D46)* : un **horizon glissant** dans le seed (jamais une liste d'années écrite à la main), un **script versionné** pour l'étendre, et un **contrôle daté** dans `verify:full` qui échoue en nommant le territoire et sa dernière date connue. C'est le principe des listes closes appliqué au temps : une donnée qui se périme en silence vaut une liste close que personne ne surveille.
+- **21/08/2026 — Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.** Les trois gardiens de L0-08 passaient tous leurs scénarios fabriqués. Mis à l'épreuve d'une violation réellement écrite dans le code puis retirée, l'un d'eux s'est révélé aveugle : l'interdiction d'appeler le calcul de Pâques depuis le métier ne reconnaissait que la forme lointaine de l'import (`lib/calendar/paques`) et laissait passer `./paques` — c'est-à-dire **la seule forme qu'un fichier voisin puisse écrire**. Un cas fabriqué prouve que le motif sait mordre ; seule une violation réelle prouve qu'il mord là où la faute se commet.
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

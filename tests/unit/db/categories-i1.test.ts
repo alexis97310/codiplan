@@ -51,6 +51,7 @@ const RAPPEL_CATEGORIES = [
 const REFERENTIELS_PLATEFORME = [
   "devise",
   "parite",
+  "jour_ferie",
   "famille_materiel",
   "modele_materiel",
   "checklist_modele",
@@ -325,12 +326,17 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
   it("le gardien parcourt bien tout le schéma — il ne s'exerce pas sur le vide", () => {
     const modeles = modelesDuSchema(lireSchema());
 
-    // Le socle L0-03 plus les tables d'authentification de L0-06.
-    expect(modeles.length).toBeGreaterThanOrEqual(12);
+    // Le socle L0-03, les tables d'authentification de L0-06, le calendrier
+    // de L0-08.
+    expect(modeles.length).toBeGreaterThanOrEqual(16);
     expect(modeles.map((modele) => modele.table)).toEqual(
       expect.arrayContaining([
         "societe",
         "agence",
+        "calendrier",
+        "calendrier_plage",
+        "calendrier_ferie",
+        "jour_ferie",
         "devise",
         "parite",
         "utilisateur",
@@ -359,7 +365,11 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
     // Une catégorie vide serait le signe que la règle de classement ne mord
     // pas : le gardien passerait au vert en rangeant tout au même endroit.
     expect(parCategorie.get("métier (cloisonnée)")).toContain("agence");
+    expect(parCategorie.get("métier (cloisonnée)")).toContain("calendrier");
     expect(parCategorie.get("référentiel de plateforme")).toContain("devise");
+    expect(parCategorie.get("référentiel de plateforme")).toContain(
+      "jour_ferie",
+    );
     expect(parCategorie.get("technique d'authentification")).toContain(
       "session",
     );

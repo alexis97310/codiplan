@@ -3,10 +3,23 @@ import { execSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 
 import { Role, ROLES } from "@/lib/auth/roles";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import {
   AGENCE_A,
   AGENCE_B,
+  CALENDRIER_A,
+  CALENDRIER_B,
+  FERIE_TRAVAILLE_A,
+  FUSEAU_AGENCE_B,
+  PLAGE_A,
+  PLAGE_B,
+  PONT_A,
+  PONT_FIXTURE_A,
+  SURCHARGE_FERIE_A,
+  TERRITOIRE_A,
+  TERRITOIRE_B,
+  feriesFixture,
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
@@ -242,6 +255,116 @@ export default async function setup(): Promise<void> {
           societe_id: SOCIETE_B,
           code: "SIEGE",
           libelle: "Siège",
+        },
+      ],
+    });
+
+    // ── 1. LE FAIT PUBLIC : le référentiel territorial des fériés (D46) ───
+    // Pas de `societe_id`, donc aucun contexte à poser — comme `devise`.
+    // L'horizon est GLISSANT (D46, complément 3) : `feriesFixture` part de
+    // l'année en cours, si bien que `scripts/horizon-feries.mts` trouve toujours
+    // plus de douze mois d'avance sur cette base — et échouerait si quelqu'un
+    // figeait ces dates.
+    await prisma.jourFerie.createMany({
+      data: [TERRITOIRE_A, TERRITOIRE_B].flatMap((territoire) =>
+        feriesFixture(territoire).map((ferie) => ({
+          id: uuidv7(),
+          territoire,
+          date: new Date(`${ferie.date}T00:00:00.000Z`),
+          libelle: ferie.libelle,
+          mobile: false,
+        })),
+      ),
+    });
+
+    // ── 2. Calendriers d'ouverture — des HEURES, et rien d'autre ──────────
+    // Ni territoire ni férié ici : ils appartiennent à l'agence (D46).
+    await prisma.calendrier.createMany({
+      data: [
+        {
+          id: CALENDRIER_A,
+          societe_id: SOCIETE_A,
+          code: "ISO-CAL-A",
+          libelle: "Calendrier A",
+        },
+        {
+          id: CALENDRIER_B,
+          societe_id: SOCIETE_B,
+          code: "ISO-CAL-B",
+          libelle: "Calendrier B",
+        },
+      ],
+    });
+    await prisma.calendrierPlage.createMany({
+      data: [
+        {
+          id: PLAGE_A,
+          societe_id: SOCIETE_A,
+          calendrier_id: CALENDRIER_A,
+          jour_semaine: 1,
+          debut_minutes: 480,
+          fin_minutes: 720,
+        },
+        {
+          id: PLAGE_B,
+          societe_id: SOCIETE_B,
+          calendrier_id: CALENDRIER_B,
+          jour_semaine: 1,
+          debut_minutes: 540,
+          fin_minutes: 780,
+        },
+      ],
+    });
+
+    // Territoire, fuseau et calendrier de chaque agence. L'agence B surcharge
+    // son fuseau pour valoir celui de l'agence A tout en gardant un TERRITOIRE
+    // différent : la fixture est adversaire, et tout code qui déduirait l'un de
+    // l'autre tombe ici (D46, complément 1).
+    await prisma.agence.update({
+      where: { id: AGENCE_A },
+      data: { calendrier_id: CALENDRIER_A, territoire: TERRITOIRE_A },
+    });
+    await prisma.agence.update({
+      where: { id: AGENCE_B },
+      data: {
+        calendrier_id: CALENDRIER_B,
+        territoire: TERRITOIRE_B,
+        fuseau_horaire: FUSEAU_AGENCE_B,
+      },
+    });
+
+    // ── 3. L'ÉCART LOCAL de l'agence A, et jamais avant le fait public ────
+    // Deux formes : un férié TRAVAILLÉ (adossé au fait public), et un PONT
+    // (aucun fait public en face).
+    const ferieTravaille = await prisma.jourFerie.findUniqueOrThrow({
+      where: {
+        territoire_date: {
+          territoire: TERRITOIRE_A,
+          date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`),
+        },
+      },
+      select: { id: true },
+    });
+
+    await prisma.calendrierFerie.createMany({
+      data: [
+        {
+          id: SURCHARGE_FERIE_A,
+          societe_id: SOCIETE_A,
+          agence_id: AGENCE_A,
+          date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`),
+          jour_ferie_id: ferieTravaille.id,
+          travaille: true,
+          motif: "Férié travaillé de démonstration",
+        },
+        {
+          id: PONT_FIXTURE_A,
+          societe_id: SOCIETE_A,
+          agence_id: AGENCE_A,
+          date: new Date(`${PONT_A}T00:00:00.000Z`),
+          jour_ferie_id: null,
+          travaille: false,
+          motif: "Pont de démonstration",
         },
       ],
     });

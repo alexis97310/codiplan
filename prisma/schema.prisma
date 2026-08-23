@@ -107,6 +107,7 @@ model Societe {
 
   devise               Devise               @relation(fields: [devise_code], references: [code])
   agences              Agence[]
+  calendriers          Calendrier[]
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
   sessions_actives     Session[]
@@ -122,14 +123,199 @@ model Agence {
   code           String // DUCOS, KONE, DOLBEAU
   libelle        String
   adresse        Json?
-  fuseau_horaire String? // hérité de la société, surchargeable (D5)
+  /// Fuseau IANA — `Pacific/Noumea`, `Europe/Paris`. Hérité de la société,
+  /// surchargeable (D5). Dit QUELLE HEURE il est.
+  fuseau_horaire String?
+  /// Territoire au sens des JOURS FÉRIÉS, en code ISO 3166-1 alpha-2 — `NC`,
+  /// `FR`. Clé de `jour_ferie` (D46). Dit QUELS JOURS SONT FÉRIÉS.
+  ///
+  /// **Indépendant du fuseau, et jamais déduit de lui** (D46, complément 1).
+  /// `Europe/Paris` couvre plusieurs territoires aux fériés différents ; deux
+  /// agences peuvent partager une heure et pas un calendrier de fêtes. Le
+  /// gardien `tests/unit/calendar/territoire-independant-du-fuseau.test.ts`
+  /// refuse toute dérivation de l'un vers l'autre.
+  ///
+  /// À ne pas confondre non plus avec `societe.territoire`, qui porte une
+  /// circonscription administrative (« Province Sud ») sans rapport avec les
+  /// fériés.
+  ///
+  /// Nullable faute de défaut légitime : un territoire par défaut serait un
+  /// territoire codé en dur. Une agence sans territoire n'a pas de fériés, et
+  /// cela ne passe pas inaperçu — `chargerCalendrierAgence` refuse de rendre un
+  /// calendrier, et `scripts/horizon-feries.mts` la nomme à chaque
+  /// `verify:full`.
+  territoire     String?
   calendrier_id  String? @db.Uuid // calendrier d'ouverture — table posée au ticket L0-08
   actif          Boolean @default(true)
 
-  societe Societe @relation(fields: [societe_id], references: [id])
+  societe    Societe           @relation(fields: [societe_id], references: [id])
+  calendrier Calendrier?       @relation(fields: [calendrier_id], references: [id])
+  ecarts     CalendrierFerie[]
 
   @@unique([societe_id, code])
+  @@index([territoire])
   @@map("agence")
+}
+
+// ── Calendriers d'agence et jours fériés (ticket L0-08, I7, D5, D13, D46) ────
+//
+// Le fuseau appartient à l'AGENCE — `agence.fuseau_horaire`, surchargeable,
+// hérité de la société (D5). Il est stocké au format IANA (`Pacific/Noumea`,
+// `Europe/Paris`), jamais sous forme de décalage numérique : un décalage est
+// une conséquence du fuseau et de la date, pas une donnée. Nouméa ne change pas
+// d'heure, Paris si — un `+11` figé en base serait faux la moitié de l'année.
+//
+// Tout instant est en `timestamptz`. Aucune table ci-dessous n'en porte : elles
+// portent des RÈGLES LOCALES (jour de semaine, minutes depuis minuit) et des
+// JOURS (date sans heure), qui n'ont pas de fuseau propre — c'est le calendrier
+// qui leur en donne un à la lecture. Une récurrence figée en instants UTC se
+// décalerait d'une heure deux fois par an à Paris (point 3 du ticket L0-08).
+
+/// Référentiel de plateforme (I1 — liste close, D46). PAS de `societe_id` :
+/// le 14 juillet est un fait du TERRITOIRE, identique pour toutes les sociétés
+/// qui y opèrent, exactement comme la parité légale du franc Pacifique (D41).
+/// La Nouvelle-Calédonie a ses fériés, la métropole les siens, et un client sur
+/// un autre territoire aura les siens — d'où la clé `(territoire, date)`.
+///
+/// **Cette table dit ce qui EST férié, jamais ce qui est chômé.** Un férié peut
+/// être travaillé (RG-PLA-02) : ce choix relève de l'agence et vit dans
+/// `calendrier_ferie`, qui est cloisonnée. La séparation est celle de D13 —
+/// « les jours fériés sont portés par le calendrier », le référentiel n'en
+/// fournit que les dates.
+///
+/// Alimentée par le seed (point 4 du ticket) : aucune date fériée n'est écrite
+/// dans le code, et le gardien
+/// `tests/unit/calendar/sans-date-feriee-en-dur.test.ts` le vérifie. Les fêtes
+/// mobiles adossées à Pâques sont CALCULÉES par `lib/calendar/paques.ts`, mais
+/// le calcul produit ces lignes ; il ne s'exécute jamais dans le métier.
+model JourFerie {
+  id         String   @id @db.Uuid
+  /// Territoire au sens des fériés, en code ISO 3166-1 alpha-2 — `NC`, `FR`.
+  /// Jamais la province administrative de `societe.territoire`, jamais un
+  /// fuseau : un territoire et un fuseau sont deux attributs indépendants de
+  /// l'agence (D46, complément 1).
+  territoire String
+  /// Jour, sans heure : un férié n'est pas un instant.
+  date       DateTime @db.Date
+  libelle    String
+  /// Vrai pour les fêtes adossées à Pâques — trace l'origine de la ligne.
+  mobile     Boolean  @default(false)
+
+  ecarts CalendrierFerie[]
+
+  @@unique([territoire, date])
+  /// Clé composite technique : elle permet à `calendrier_ferie` de référencer
+  /// le couple (jour férié, date) d'un seul geste, si bien que sa colonne
+  /// `date` ne peut pas diverger de celle du fait public qu'elle surcharge.
+  @@unique([id, date])
+  @@index([territoire])
+  @@map("jour_ferie")
+}
+
+/// Calendrier d'ouverture d'une AGENCE (D5) — table métier, `societe_id NOT
+/// NULL`. À ne jamais confondre avec les horaires d'un SITE client, qui ne
+/// produisent qu'un avertissement (D13).
+///
+/// Plusieurs agences peuvent partager un calendrier : c'est la forme que prend
+/// « héritage depuis la société avec surcharge possible par agence » (D13) —
+/// la société pose un calendrier par défaut, l'agence qui en diffère reçoit le
+/// sien. Aucun calendrier global codé en dur (I7) : Ducos ouvre du lundi au
+/// samedi, Koné du lundi au vendredi, et rien dans le code ne le sait.
+model Calendrier {
+  id         String  @id @db.Uuid
+  societe_id String  @db.Uuid
+  code       String
+  libelle    String
+  actif      Boolean @default(true)
+
+  societe Societe           @relation(fields: [societe_id], references: [id])
+  agences Agence[]
+  plages  CalendrierPlage[]
+
+  @@unique([societe_id, code])
+  @@map("calendrier")
+}
+
+/// Une plage d'ouverture hebdomadaire — table métier, `societe_id NOT NULL`.
+///
+/// C'est une RÉCURRENCE stockée sous sa forme locale : un jour de semaine ISO
+/// et des minutes depuis minuit, jamais des instants UTC (point 3 du ticket).
+/// Le fuseau lui vient de l'agence à la lecture, si bien qu'« ouverture à 8 h »
+/// reste 8 h des deux côtés d'un changement d'heure.
+///
+/// Plusieurs plages par jour sont admises : la coupure de midi en est une. Un
+/// jour sans aucune plage est un jour fermé — il n'y a pas de booléen `ouvert`,
+/// qui pourrait contredire les plages.
+model CalendrierPlage {
+  id            String @id @db.Uuid
+  societe_id    String @db.Uuid
+  calendrier_id String @db.Uuid
+  /// Jour ISO 8601 — 1 lundi, 7 dimanche. La semaine commence le lundi.
+  jour_semaine  Int
+  /// Ouverture, en minutes locales depuis minuit. 8 h = 480.
+  debut_minutes Int
+  /// Fermeture, en minutes locales depuis minuit. Minuit = 1440.
+  fin_minutes   Int
+
+  calendrier Calendrier @relation(fields: [calendrier_id], references: [id], onDelete: Cascade)
+
+  @@unique([calendrier_id, jour_semaine, debut_minutes])
+  @@index([calendrier_id])
+  @@map("calendrier_plage")
+}
+
+/// **L'ÉCART LOCAL** — ce par quoi une AGENCE s'écarte du fait public
+/// (D46, compléments 1 et 2). Table métier : `societe_id NOT NULL`, et
+/// `agence_id NOT NULL`.
+///
+/// **L'ordre de lecture, et il ne s'inverse jamais.**
+///   1. `jour_ferie` porte le **fait public du territoire** — ce qui EST férié.
+///   2. `calendrier_ferie` porte **l'écart local** — ce que l'agence en fait.
+/// Le fait public d'abord, l'écart local ensuite. Lire dans l'autre sens
+/// donnerait à une agence le pouvoir de décréter un férié pour son territoire,
+/// ce qui n'appartient à aucune entreprise. `appliquerEcarts` dans
+/// `lib/calendar/calendrier.ts` tient cet ordre, et un test le prouve.
+///
+/// **Pourquoi `agence_id` et non `calendrier_id`**, alors que la table porte le
+/// mot « calendrier » : plusieurs agences partagent un calendrier d'ouverture
+/// (D13), mais un pont ou un férié travaillé est la décision d'UNE agence.
+/// Ducos et Dolbeau ouvrent aux mêmes heures et peuvent parfaitement diverger
+/// sur le pont du 25 septembre.
+///
+/// **Deux écarts, une seule table.**
+///   — `jour_ferie_id` renseigné, `travaille = true` : l'agence TRAVAILLE ce
+///     férié (RG-PLA-02 — « un férié n'est pas systématiquement chômé »).
+///   — `jour_ferie_id` nul, `travaille = false` : un **pont** propre à
+///     l'entreprise, un jour ordinaire que l'agence chôme.
+/// Les deux combinaisons restantes sont licites et redondantes : elles répètent
+/// ce que le fait public ou les plages disent déjà.
+///
+/// **L'écart ne crée pas d'horaires**, il autorise ou retire ceux du jour de
+/// semaine. `travaille = true` un dimanche où aucune plage n'est déclarée
+/// n'ouvre rien — et c'est ce qu'on veut : les horaires vivent dans
+/// `calendrier_plage`, à un seul endroit.
+model CalendrierFerie {
+  id            String   @id @db.Uuid
+  societe_id    String   @db.Uuid
+  agence_id     String   @db.Uuid
+  /// Jour concerné, local. Présent même quand `jour_ferie_id` l'est aussi : un
+  /// pont n'a pas de fait public à désigner. La clé étrangère composite
+  /// ci-dessous empêche les deux dates de diverger.
+  date          DateTime @db.Date
+  /// Le fait public dont c'est l'écart, s'il y en a un. Nul pour un pont.
+  jour_ferie_id String?  @db.Uuid
+  /// L'agence travaille-t-elle ce jour-là ? Sans valeur par défaut : une ligne
+  /// d'écart qui ne dirait pas ce qu'elle décide n'aurait aucun sens.
+  travaille     Boolean
+  /// Motif libre — « pont de l'Ascension », « journée de solidarité ».
+  motif         String?
+
+  agence     Agence     @relation(fields: [agence_id], references: [id], onDelete: Cascade)
+  jour_ferie JourFerie? @relation(fields: [jour_ferie_id, date], references: [id, date])
+
+  @@unique([agence_id, date])
+  @@index([agence_id])
+  @@map("calendrier_ferie")
 }
 
 /// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas

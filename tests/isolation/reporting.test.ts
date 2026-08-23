@@ -179,12 +179,24 @@ describe("rôle de consolidation — privilèges observés, non déclarés (D38)
   it("détient bien quelque chose — sans quoi le contrôle serait aveugle", async () => {
     const observes = await privilegesObserves();
 
-    // Les quatre tables nommées par la migration L0-06. Un contrôle qui
+    // Le périmètre de consolidation, table par table. Un contrôle qui
     // n'observerait rien passerait au vert en ne prouvant rien : c'est
     // précisément le cas que `ecartsPrivilegesConsolidation` traite en échec.
+    //
+    // La liste est écrite EN TOUTES LETTRES, et c'est voulu : chaque ajout au
+    // périmètre de `codiplan_reporting` est une décision, jamais un effet de
+    // bord (D21, garde-fou n°1 — `ALTER DEFAULT PRIVILEGES` ne vise que le
+    // rôle applicatif). Quatre tables sont venues de la migration L0-06 ; les
+    // quatre du calendrier ont été ajoutées par L0-08 parce que D13 range les
+    // « jours ouvrés des indicateurs » sous « agence, agrégé par société », et
+    // qu'aucune d'elles ne porte de donnée personnelle.
     expect(observes.map((accorde) => accorde.table).sort()).toEqual([
       "agence",
+      "calendrier",
+      "calendrier_ferie",
+      "calendrier_plage",
       "devise",
+      "jour_ferie",
       "parite",
       "societe",
     ]);

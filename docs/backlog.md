@@ -71,8 +71,8 @@ Trois arbitrages relevés à la revue de cette livraison [D43] [D44] [D45] : le 
 L'arrondi au quart d'heure **ne fait pas partie de ce ticket** : c'est une politique de facturation, elle est rangée en L2-09 [D45].
 *Acceptation :* `7 000 XPF` sans décimale [D19] [D43], `100,00 €` avec deux ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.
 
-**L0-08 — Module calendrier. [D5] [D13]**
-`lib/calendar` : calendriers rattachés à l'**agence**, jours fériés hérités de la société et surchargeables par agence, booléen `travaille`, calcul des jours et heures ouvrés.
+**L0-08 — Module calendrier. [D5] [D13] [D46] [D47]**
+`lib/calendar` : calendriers rattachés à l'**agence**, jours fériés **portés par un référentiel territorial** `jour_ferie` (D46) et surchargeables par agence via le booléen `travaille`, calcul des jours et heures ouvrés. Fuseau IANA porté par l'agence, instants en `timestamptz`, récurrences stockées sous forme de règle locale et déroulées à la lecture.
 Fonctions distinctes par usage : SLA (agence de l'intervention), majoration (agence du technicien), conflit à la pose (calendrier du technicien).
 *Acceptation :* le samedi est ouvré pour Ducos et non pour Koné ; un férié marqué travaillé compte comme ouvré ; un délai SLA de 4 h ouvrées démarré vendredi 16 h échoit lundi.
 

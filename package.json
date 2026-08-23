@@ -21,8 +21,10 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate",
+    "feries:horizon": "tsx scripts/horizon-feries.mts",
+    "feries:etendre": "tsx scripts/etendre-feries.mts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
-    "verify:full": "pnpm verify && pnpm test:e2e"
+    "verify:full": "pnpm verify && pnpm feries:horizon && pnpm test:e2e"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
