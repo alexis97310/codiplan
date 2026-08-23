@@ -3,6 +3,11 @@ import { PrismaClient } from "@prisma/client";
 import { avecSociete } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import {
+  DELAIS_SEED,
+  DUREE_MAXIMALE_MS,
+  allersRetoursTransaction,
+} from "./seed-delais";
+import {
   COMPTES_PORTAIL,
   DEVISES,
   PARITES,
@@ -39,10 +44,59 @@ import {
  * par `avecSociete`, qui pose `app.societe_id`. Les référentiels de plateforme
  * (`devise`, `parite`) et l'identité globale (`utilisateur`) ne sont pas
  * cloisonnés et s'écrivent hors contexte.
+ *
+ * **Les délais des transactions sont fixés explicitement** (`seed-delais.ts`),
+ * et non laissés aux défauts de Prisma : ceux-ci valent pour un réseau local,
+ * pas pour une base à Sydney atteinte depuis un exécuteur GitHub. Voir
+ * `docs/decisions/2026-08-23-seed-transaction-latence-neon.md`.
+ *
+ * **Chaque section annonce ce qu'elle va faire AVANT de le faire.** L'ordre
+ * n'est pas un détail : la dernière ligne du journal désigne alors la section
+ * qui a échoué, et non la dernière qui a réussi. Un seed qui s'interrompt à
+ * l'autre bout du monde ne se déboguera jamais autrement.
  */
 const prisma = new PrismaClient();
 
+/** Origine monotone du journal — une DURÉE, jamais une date (gardien L0-08). */
+const DEBUT = performance.now();
+
+/**
+ * Une ligne de progression, préfixée du temps écoulé.
+ *
+ * Les secondes écoulées ne sont pas de la décoration : ce sont elles qui ont
+ * manqué pour lire l'incident du 23 août 2026, où la seule information
+ * disponible était « l'étape a duré 15 s ». Un écart d'une seconde entre deux
+ * lignes voisines DIT la latence, et la latence est ici la cause.
+ *
+ * `process.stdout.write` plutôt que `console.log`, banni par CLAUDE.md §5 et
+ * par la règle ESLint `no-console` — c'est la convention déjà suivie par tous
+ * les scripts de `scripts/`.
+ */
+function etape(message: string): void {
+  // Le dixième de seconde est composé à la main, par division entière : le
+  // gardien I3 refuse tout arrondi d'affichage écrit dans le code applicatif,
+  // et il a raison de ne pas distinguer une durée d'un montant — c'est la
+  // règle qui compte, pas l'intention de celui qui l'écrit.
+  //
+  // La sortie est donc de l'ARITHMÉTIQUE ENTIÈRE, et surtout PAS un passage
+  // par `lib/money` : une durée n'est pas un montant, et D45 sépare le temps
+  // de l'argent. Faire formater des secondes par le module monétaire pour
+  // contenter un gardien monétaire franchirait exactement la frontière que ce
+  // gardien existe pour tenir.
+  const millisecondes = Math.round(performance.now() - DEBUT);
+  const secondes = Math.floor(millisecondes / 1000);
+  const dixiemes = Math.floor((millisecondes % 1000) / 100);
+  const ecoule = `${secondes}.${dixiemes}`;
+  process.stdout.write(`[seed +${ecoule.padStart(6)} s] ${message}\n`);
+}
+
+/** « 1 ligne », « 2 lignes » — ce journal est lu par un humain. */
+function pluriel(nombre: number, mot: string): string {
+  return `${nombre} ${mot}${nombre > 1 ? "s" : ""}`;
+}
+
 async function seed(): Promise<void> {
+  etape(`devises — ${pluriel(DEVISES.length, "ligne")}`);
   for (const devise of DEVISES) {
     await prisma.devise.upsert({
       where: { code: devise.code },
@@ -55,6 +109,7 @@ async function seed(): Promise<void> {
     });
   }
 
+  etape(`parités — ${pluriel(PARITES.length, "ligne")}`);
   for (const parite of PARITES) {
     const date_effet = new Date(parite.date_effet);
 
@@ -96,8 +151,25 @@ async function seed(): Promise<void> {
       ...new Set(agences.map((agence) => agence.territoire)),
     ];
 
+    const annees = anneesFeries(anneeDeDepart);
+    const lignesFeries = territoires.reduce(
+      (total, territoire) =>
+        total +
+        annees.reduce(
+          (parAnnee, annee) =>
+            parAnnee + feriesDuTerritoire(territoire, annee).length,
+          0,
+        ),
+      0,
+    );
+    etape(
+      `${societe.code} — jours fériés : ${pluriel(lignesFeries, "ligne")} ` +
+        `(territoires ${territoires.join(", ")} ; horizon ${annees[0]}–` +
+        `${annees[annees.length - 1]})`,
+    );
+
     for (const territoire of territoires) {
-      for (const annee of anneesFeries(anneeDeDepart)) {
+      for (const annee of annees) {
         for (const ferie of feriesDuTerritoire(territoire, annee)) {
           const date = new Date(`${ferie.date}T00:00:00.000Z`);
 
@@ -120,126 +192,171 @@ async function seed(): Promise<void> {
     //
     // La politique de `societe` est `id = app.societe_id` : une société ne peut
     // s'écrire que sous son propre contexte, y compris depuis le seed.
-    await avecSociete(prisma, id, async (tx) => {
-      await tx.societe.upsert({
-        where: { id },
-        update: champsSociete,
-        create: { id, ...champsSociete },
-      });
+    //
+    // ── LES DÉLAIS, ET POURQUOI ILS SONT ÉCRITS ICI ───────────────────────
+    //
+    // Cette transaction enchaîne une trentaine d'écritures SÉQUENTIELLES : la
+    // société, ses calendriers, chaque plage horaire, chaque agence, chaque
+    // écart local. Chacune est un aller-retour complet vers la base. Le défaut
+    // de Prisma — 5 000 ms — les tient toutes en local, où un aller-retour
+    // coûte une milliseconde, et n'en tient qu'une vingtaine depuis un
+    // exécuteur GitHub vers Neon à Sydney, où il en coûte deux cents. Au-delà,
+    // le moteur ferme la transaction et la requête suivante échoue en P2028.
+    //
+    // On ne découpe PAS pour rentrer dans le défaut : le seed doit rester
+    // atomique — une société dotée de ses calendriers mais privée de ses
+    // agences est un état que rien ne rattrape. On dit donc combien de temps
+    // la transaction a le droit de durer. Le chiffre et son arithmétique sont
+    // dans `seed-delais.ts`, et un test les redemande à chaque fois que le
+    // seed grossit.
+    etape(
+      `${societe.code} — transaction cloisonnée : ouverture ` +
+        `(~${allersRetoursTransaction(societe)} allers-retours, ` +
+        `délai ${DUREE_MAXIMALE_MS / 1000} s)`,
+    );
 
-      // Les calendriers AVANT les agences : `agence.calendrier_id` les
-      // référence, et la clé étrangère posée par la migration L0-08 refuserait
-      // l'ordre inverse. Un calendrier ne porte que des HEURES — le territoire
-      // et les écarts appartiennent à l'agence (D46, compléments 1 et 2).
-      const identifiants = new Map<string, string>();
-
-      for (const calendrier of calendriers) {
-        const enregistre = await tx.calendrier.upsert({
-          where: { societe_id_code: { societe_id: id, code: calendrier.code } },
-          update: { libelle: calendrier.libelle },
-          create: {
-            id: uuidv7(),
-            societe_id: id,
-            code: calendrier.code,
-            libelle: calendrier.libelle,
-          },
+    await avecSociete(
+      prisma,
+      id,
+      async (tx) => {
+        await tx.societe.upsert({
+          where: { id },
+          update: champsSociete,
+          create: { id, ...champsSociete },
         });
-        identifiants.set(calendrier.code, enregistre.id);
 
-        for (const plage of calendrier.plages) {
-          await tx.calendrierPlage.upsert({
+        // Les calendriers AVANT les agences : `agence.calendrier_id` les
+        // référence, et la clé étrangère posée par la migration L0-08 refuserait
+        // l'ordre inverse. Un calendrier ne porte que des HEURES — le territoire
+        // et les écarts appartiennent à l'agence (D46, compléments 1 et 2).
+        const identifiants = new Map<string, string>();
+
+        etape(
+          `${societe.code} — calendriers : ${calendriers.length}, ` +
+            `plages : ${calendriers.reduce((total, calendrier) => total + calendrier.plages.length, 0)}`,
+        );
+
+        for (const calendrier of calendriers) {
+          const enregistre = await tx.calendrier.upsert({
             where: {
-              calendrier_id_jour_semaine_debut_minutes: {
+              societe_id_code: { societe_id: id, code: calendrier.code },
+            },
+            update: { libelle: calendrier.libelle },
+            create: {
+              id: uuidv7(),
+              societe_id: id,
+              code: calendrier.code,
+              libelle: calendrier.libelle,
+            },
+          });
+          identifiants.set(calendrier.code, enregistre.id);
+
+          for (const plage of calendrier.plages) {
+            await tx.calendrierPlage.upsert({
+              where: {
+                calendrier_id_jour_semaine_debut_minutes: {
+                  calendrier_id: enregistre.id,
+                  jour_semaine: plage.jour_semaine,
+                  debut_minutes: plage.debut_minutes,
+                },
+              },
+              update: { fin_minutes: plage.fin_minutes },
+              create: {
+                id: uuidv7(),
+                societe_id: id,
                 calendrier_id: enregistre.id,
                 jour_semaine: plage.jour_semaine,
                 debut_minutes: plage.debut_minutes,
+                fin_minutes: plage.fin_minutes,
               },
-            },
-            update: { fin_minutes: plage.fin_minutes },
-            create: {
-              id: uuidv7(),
-              societe_id: id,
-              calendrier_id: enregistre.id,
-              jour_semaine: plage.jour_semaine,
-              debut_minutes: plage.debut_minutes,
-              fin_minutes: plage.fin_minutes,
-            },
-          });
-        }
-      }
-
-      for (const agence of agences) {
-        const calendrierId = identifiants.get(agence.calendrier_code);
-        if (calendrierId === undefined) {
-          throw new Error(
-            `Agence ${agence.code} : calendrier « ${agence.calendrier_code} » ` +
-              "absent du jeu de démonstration de sa société.",
-          );
+            });
+          }
         }
 
-        const enregistree = await tx.agence.upsert({
-          where: { societe_id_code: { societe_id: id, code: agence.code } },
-          update: {
-            libelle: agence.libelle,
-            adresse: agence.adresse,
-            territoire: agence.territoire,
-            calendrier_id: calendrierId,
-          },
-          create: {
-            id: uuidv7(),
-            societe_id: id,
-            code: agence.code,
-            libelle: agence.libelle,
-            adresse: agence.adresse,
-            territoire: agence.territoire,
-            calendrier_id: calendrierId,
-          },
-        });
+        etape(
+          `${societe.code} — agences : ${agences.length}, écarts locaux : ` +
+            `${agences.reduce((total, agence) => total + ecartsDeLAgence(agence, anneeDeDepart).length, 0)}`,
+        );
 
-        // ── 3. L'ÉCART LOCAL, ensuite et jamais avant ────────────────────
-        //
-        // La lecture de `jour_ferie` traverse la transaction cloisonnée sans
-        // encombre : le référentiel est lisible par toutes les sociétés (D46).
-        // Un écart qui désignerait un férié inexistant est refusé par
-        // `ecartsDeLAgence` : un écart surcharge un fait public, il ne le crée
-        // pas.
-        for (const ecart of ecartsDeLAgence(agence, anneeDeDepart)) {
-          const date = new Date(`${ecart.date}T00:00:00.000Z`);
+        for (const agence of agences) {
+          const calendrierId = identifiants.get(agence.calendrier_code);
+          if (calendrierId === undefined) {
+            throw new Error(
+              `Agence ${agence.code} : calendrier « ${agence.calendrier_code} » ` +
+                "absent du jeu de démonstration de sa société.",
+            );
+          }
 
-          const ferie =
-            ecart.ferie_libelle === null
-              ? null
-              : await tx.jourFerie.findUnique({
-                  where: {
-                    territoire_date: { territoire: agence.territoire, date },
-                  },
-                  select: { id: true },
-                });
-
-          await tx.calendrierFerie.upsert({
-            where: {
-              agence_id_date: { agence_id: enregistree.id, date },
-            },
+          const enregistree = await tx.agence.upsert({
+            where: { societe_id_code: { societe_id: id, code: agence.code } },
             update: {
-              travaille: ecart.travaille,
-              motif: ecart.motif,
-              jour_ferie_id: ferie?.id ?? null,
+              libelle: agence.libelle,
+              adresse: agence.adresse,
+              territoire: agence.territoire,
+              calendrier_id: calendrierId,
             },
             create: {
               id: uuidv7(),
               societe_id: id,
-              agence_id: enregistree.id,
-              date,
-              jour_ferie_id: ferie?.id ?? null,
-              travaille: ecart.travaille,
-              motif: ecart.motif,
+              code: agence.code,
+              libelle: agence.libelle,
+              adresse: agence.adresse,
+              territoire: agence.territoire,
+              calendrier_id: calendrierId,
             },
           });
+
+          // ── 3. L'ÉCART LOCAL, ensuite et jamais avant ────────────────────
+          //
+          // La lecture de `jour_ferie` traverse la transaction cloisonnée sans
+          // encombre : le référentiel est lisible par toutes les sociétés (D46).
+          // Un écart qui désignerait un férié inexistant est refusé par
+          // `ecartsDeLAgence` : un écart surcharge un fait public, il ne le crée
+          // pas.
+          for (const ecart of ecartsDeLAgence(agence, anneeDeDepart)) {
+            const date = new Date(`${ecart.date}T00:00:00.000Z`);
+
+            const ferie =
+              ecart.ferie_libelle === null
+                ? null
+                : await tx.jourFerie.findUnique({
+                    where: {
+                      territoire_date: { territoire: agence.territoire, date },
+                    },
+                    select: { id: true },
+                  });
+
+            await tx.calendrierFerie.upsert({
+              where: {
+                agence_id_date: { agence_id: enregistree.id, date },
+              },
+              update: {
+                travaille: ecart.travaille,
+                motif: ecart.motif,
+                jour_ferie_id: ferie?.id ?? null,
+              },
+              create: {
+                id: uuidv7(),
+                societe_id: id,
+                agence_id: enregistree.id,
+                date,
+                jour_ferie_id: ferie?.id ?? null,
+                travaille: ecart.travaille,
+                motif: ecart.motif,
+              },
+            });
+          }
         }
-      }
-    });
+      },
+      DELAIS_SEED,
+    );
+
+    etape(`${societe.code} — transaction cloisonnée : validée`);
   }
 
+  etape(
+    `utilisateurs internes — ${pluriel(UTILISATEURS_INTERNES.length, "identité")}`,
+  );
   for (const utilisateur of UTILISATEURS_INTERNES) {
     // `utilisateur` porte l'identité globale : pas de `societe_id`, pas de
     // cloisonnement (sa visibilité relève de l'authentification, L0-06).
@@ -252,26 +369,31 @@ async function seed(): Promise<void> {
     for (const habilitation of utilisateur.habilitations) {
       const societeId = societeParCode(habilitation.societe_code).id;
 
-      await avecSociete(prisma, societeId, (tx) =>
-        tx.utilisateurSociete.upsert({
-          where: {
-            utilisateur_id_societe_id: {
+      await avecSociete(
+        prisma,
+        societeId,
+        (tx) =>
+          tx.utilisateurSociete.upsert({
+            where: {
+              utilisateur_id_societe_id: {
+                utilisateur_id: enregistrement.id,
+                societe_id: societeId,
+              },
+            },
+            update: { role: habilitation.role },
+            create: {
+              id: uuidv7(),
               utilisateur_id: enregistrement.id,
               societe_id: societeId,
+              role: habilitation.role,
             },
-          },
-          update: { role: habilitation.role },
-          create: {
-            id: uuidv7(),
-            utilisateur_id: enregistrement.id,
-            societe_id: societeId,
-            role: habilitation.role,
-          },
-        }),
+          }),
+        DELAIS_SEED,
       );
     }
   }
 
+  etape(`comptes portail — ${pluriel(COMPTES_PORTAIL.length, "rattachement")}`);
   for (const compte of COMPTES_PORTAIL) {
     const utilisateur = await prisma.utilisateur.upsert({
       where: { email: compte.email },
@@ -281,25 +403,31 @@ async function seed(): Promise<void> {
 
     const societeId = societeParCode(compte.societe_code).id;
 
-    await avecSociete(prisma, societeId, (tx) =>
-      tx.utilisateurClient.upsert({
-        where: {
-          utilisateur_id_client_id: {
+    await avecSociete(
+      prisma,
+      societeId,
+      (tx) =>
+        tx.utilisateurClient.upsert({
+          where: {
+            utilisateur_id_client_id: {
+              utilisateur_id: utilisateur.id,
+              client_id: compte.client_id,
+            },
+          },
+          update: { perimetre_sites: compte.perimetre_sites },
+          create: {
+            id: uuidv7(),
             utilisateur_id: utilisateur.id,
             client_id: compte.client_id,
+            societe_id: societeId,
+            perimetre_sites: compte.perimetre_sites,
           },
-        },
-        update: { perimetre_sites: compte.perimetre_sites },
-        create: {
-          id: uuidv7(),
-          utilisateur_id: utilisateur.id,
-          client_id: compte.client_id,
-          societe_id: societeId,
-          perimetre_sites: compte.perimetre_sites,
-        },
-      }),
+        }),
+      DELAIS_SEED,
     );
   }
+
+  etape("terminé");
 }
 
 seed()

@@ -68,23 +68,53 @@ async function poserContexte(
 }
 
 /**
+ * Les délais d'une transaction interactive, en millisecondes.
+ *
+ * Les noms sont ceux de Prisma, délibérément : ce type ne traduit rien, il
+ * rend seulement EXPLICITE ce que `$transaction` accepte déjà. Une traduction
+ * française aurait ajouté une couche à relire pour retrouver, en dessous, la
+ * documentation de Prisma.
+ *
+ *   - `maxWait` — attente maximale pour obtenir une connexion avant que la
+ *     transaction ne commence. Défaut Prisma : 2 000 ms.
+ *   - `timeout` — durée maximale de la transaction elle-même, du `BEGIN` au
+ *     `COMMIT`. Défaut Prisma : 5 000 ms.
+ *
+ * **Ces deux défauts sont des valeurs de RÉSEAU LOCAL.** Ils tiennent tant
+ * qu'un aller-retour coûte une milliseconde ; ils ne tiennent plus dès que la
+ * base est à Sydney et l'appelant ailleurs. Un chemin qui enchaîne beaucoup
+ * d'écritures dans une seule transaction doit donc les fixer lui-même — c'est
+ * le cas du seed, voir `prisma/seed-delais.ts`.
+ */
+export type DelaisTransaction = {
+  maxWait: number;
+  timeout: number;
+};
+
+/**
  * Exécute `travail` dans une transaction portant société ET rôle.
  *
  * Toute requête émise sur le client de transaction fourni est alors soumise aux
  * politiques RLS avec `app.societe_id = societeId` et `app.role = role`. La
  * transaction interactive garantit qu'une seule et même connexion porte le
  * contexte et les requêtes.
+ *
+ * `delais` est facultatif : omis, les défauts de Prisma s'appliquent, ce qui
+ * convient aux chemins de session — une requête applicative, servie depuis le
+ * même continent que la base, fait deux ou trois allers-retours. Le préciser
+ * est réservé aux chemins d'amorçage, longs et distants.
  */
 export function avecSocieteEtRole<T>(
   prisma: PrismaClient,
   societeId: string,
   role: Role | null,
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
+  delais?: DelaisTransaction,
 ): Promise<T> {
   return prisma.$transaction(async (tx) => {
     await poserContexte(tx, societeId, role);
     return travail(tx);
-  });
+  }, delais);
 }
 
 /**
@@ -96,6 +126,7 @@ export function avecSociete<T>(
   prisma: PrismaClient,
   societeId: string,
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
+  delais?: DelaisTransaction,
 ): Promise<T> {
-  return avecSocieteEtRole(prisma, societeId, null, travail);
+  return avecSocieteEtRole(prisma, societeId, null, travail, delais);
 }

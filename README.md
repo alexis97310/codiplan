@@ -73,6 +73,35 @@ visée vient de `HORIZON_DATABASE_URL` si elle est renseignée, de
 `TEST_DATABASE_URL` sinon — une vérification locale ne part jamais d'elle-même
 vers la base hébergée.
 
+## Amorçage de la base hébergée — la latence est la contrainte
+
+La base est à Sydney (`ap-southeast-2`) et les exécuteurs GitHub sont ailleurs :
+**chaque écriture coûte environ deux cents millisecondes**. La transaction
+cloisonnée du seed enchaîne une trentaine d'écritures séquentielles ; les délais
+par défaut de Prisma — 5 000 ms pour une transaction, 2 000 ms pour obtenir une
+connexion — sont des valeurs de réseau local et ne tiennent pas ici.
+
+`prisma/seed-delais.ts` les fixe donc explicitement, avec l'arithmétique qui les
+justifie, et `tests/unit/seed-delais.test.ts` échoue le jour où le seed grossit
+au-delà de son budget. Le seed reste **atomique** : on ne découpe pas la
+transaction pour rentrer dans un délai mal choisi.
+
+Le seed annonce chaque section **avant** de l'exécuter, préfixée du temps
+écoulé — la dernière ligne du journal désigne la section qui a échoué :
+
+```
+[seed +   0.2 s] CODIMA-NC — transaction cloisonnée : ouverture (~34 allers-retours, délai 120 s)
+[seed +   0.2 s] CODIMA-NC — calendriers : 2, plages : 21
+```
+
+**Si un jour le seed échoue en P2028** — « Transaction not found » — sans que le
+budget de temps l'explique, vérifier l'hôte de `MIGRATION_DATABASE_URL` : s'il contient `-pooler`, c'est le point
+d'entrée **mutualisé** de Neon, qui ne garantit pas qu'une même connexion serve
+toute une transaction interactive. Le remplacer par l'hôte **direct**, c'est-à-dire
+le même privé de `-pooler` (`ep-xxx-1234567-pooler.ap-southeast-2.aws.neon.tech`
+→ `ep-xxx-1234567.ap-southeast-2.aws.neon.tech`) ; tout le reste de l'URL est
+inchangé. Voir `docs/decisions/2026-08-23-seed-transaction-latence-neon.md`.
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.
@@ -83,7 +112,7 @@ vers la base hébergée.
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          auth/  calendar/  db/  i18n/  money/  reporting/  utils.ts
-prisma/       schema.prisma, migrations/, seed.ts
+prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement, horizon des fériés
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
