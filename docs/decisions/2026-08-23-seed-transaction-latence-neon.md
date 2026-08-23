@@ -49,23 +49,28 @@ seulement *qu'*il y a échec, elle prédit *où*, et l'endroit prédit est celui
 observé. Il faudrait une latence comprise entre 185 et 192 ms pour que le
 plafond tombe précisément là, et c'est celle que la durée totale mesure.
 
-La cause (b) est, elle, **restée une hypothèse non vérifiable depuis le dépôt** :
-la valeur de `MIGRATION_DATABASE_URL` est un secret, et une session ne la lit
-pas. Deux observations l'écartent néanmoins sans la réfuter :
+La cause (b) est **écartée**. Elle n'a pas été vérifiée sur le secret — la valeur
+de `MIGRATION_DATABASE_URL` ne se lit pas depuis le dépôt, et il n'y avait pas à
+la demander — mais elle n'avait pas besoin de l'être : deux observations la
+réfutent, et elles sont plus concluantes que ne le serait la lecture de l'hôte.
 
-1. Si les instructions d'une même transaction changeaient de connexion, les deux
-   `set_config($1, $2, true)` de `avecSociete` — qui sont **locaux à la
-   transaction** — seraient perdus. La toute première écriture, celle de
-   `societe`, tomberait alors sur la politique `id = app.societe_id` et
-   échouerait en violation de politique, non en P2028, et à la 4ᵉ instruction,
-   non à la 28ᵉ.
-2. `prisma migrate deploy` a réussi. Il prend un verrou consultatif de **session**
-   et le tient d'une instruction à l'autre — ce qu'un intermédiaire en mode
-   transaction ne permet pas.
+1. **Les instructions de cette transaction ont bien partagé une connexion.** Les
+   deux `set_config($1, $2, true)` de `avecSociete` sont **locaux à la
+   transaction**. Si une instruction ultérieure changeait de connexion, elle les
+   perdrait, et la toute première écriture — celle de `societe` — tomberait sur
+   la politique `id = app.societe_id` : **violation de politique à la 4ᵉ
+   instruction**. Or la transaction a exécuté vingt-sept instructions sous ce
+   contexte, dont vingt-et-une écritures cloisonnées de plages horaires, avant
+   d'échouer en P2028 à la 28ᵉ. Un intermédiaire en mode transaction ne produit
+   pas ce comportement ; il produit l'autre.
+2. **`prisma migrate deploy` a réussi.** Il prend un verrou consultatif de
+   **session** et le tient d'une instruction à l'autre — ce qu'un intermédiaire
+   en mode transaction ne permet pas.
 
-La correction porte donc sur (a), dans le code. La vérification de (b) reste
-à faire du côté du secret, une fois, à l'œil : si l'hôte contient `-pooler`,
-c'est le point d'entrée mutualisé, et il faut le remplacer par l'hôte direct.
+La correction porte donc sur (a), dans le code, et elle est complète : rien
+n'est en attente du côté du secret. Ce qui reste écrit dans le README n'est pas
+une réserve sur ce diagnostic, c'est une piste de dépannage pour un **futur**
+P2028 qui ne s'expliquerait pas par le budget de temps.
 
 ## Options écartées
 
@@ -147,11 +152,72 @@ s'en remettrait au délai par défaut. Il a été éprouvé en retirant réellem
 `DELAIS_SEED` du seed, pas seulement sur un cas fabriqué — CLAUDE.md §9,
 21 août 2026.
 
-### Ce qui reste ouvert
+### Un gardien qui a mordu au passage, et ce qu'on n'en a pas fait
 
-- Le seed est bavard : trente-quatre allers-retours pour écrire une société.
-  Tant que la latence est de deux cents millisecondes, cela coûte sept secondes.
-  Le jour où le socle grossira vraiment — lots 1 à 3 — le regroupement des
-  écritures redeviendra la bonne réponse, et le test de budget le dira.
-- L'hypothèse (b) n'est pas close. Elle se vérifie à l'œil sur le secret, et le
-  README dit quoi y chercher.
+Le journal de progression affiche des dixièmes de seconde. La première version
+les composait avec un arrondi d'affichage, et le gardien I3 — « jamais de
+décimales en dur, tout formatage passe par `formatMoney` » — l'a refusé.
+
+Il avait raison de ne pas distinguer une durée d'un montant : un gardien qui
+juge l'intention de celui qui écrit ne garde plus rien. Deux sorties étaient
+donc possibles, et une seule est acceptable. Faire passer la durée par
+`lib/money` aurait contenté le gardien **en franchissant la frontière que D45
+vient d'établir** entre le temps et l'argent — un module monétaire qui formate
+des secondes est le premier pas vers un module monétaire qui arrondit des
+heures. La sortie retenue est l'autre : le littéral de décimales a été
+**supprimé**, et le dixième de seconde se compose par division entière. Aucun
+import de `lib/money` n'existe dans `prisma/`, et il ne doit pas en apparaître.
+
+### Ce que le test de budget suppose, et ce qu'il faudra faire quand il avertira
+
+Un gardien qui repose sur une hypothèse non écrite est un gardien qu'on
+désarmera sans le savoir. Voici les siennes.
+
+**La latence retenue : 500 ms l'aller-retour** (`LATENCE_PESSIMISTE_MS`), contre
+**~190 ms mesurés** le 23 août 2026. Le facteur deux et demi n'est pas de la
+prudence décorative, il couvre trois choses nommables : la **gigue** d'un réseau
+transpacifique, qui ne tient aucune moyenne à la minute près ; le **réveil** d'une
+base Neon mise en veille, qui rallonge les premiers allers-retours d'une
+exécution ; et le fait que la mesure vient d'**une seule exécution, un seul jour,
+depuis un seul exécuteur**. Une valeur au plus près de la mesure produirait un
+gardien vert la veille de l'incident suivant.
+
+**Ce que le test vérifie, et ce qu'il ne vérifie pas.** Il vérifie que
+`allersRetoursTransaction(societe) × LATENCE_PESSIMISTE_MS < DUREE_MAXIMALE_MS`.
+Il ne vérifie pas que le seed passe : aucun test du dépôt ne le peut, pour les
+raisons dites plus haut. Il ne mesure rien non plus — il **recalcule un budget**.
+Son décompte suit la forme de `seed.ts` et se relit avec lui ; un décompte
+légèrement faux ne casse rien, un décompte absent laisserait revenir l'incident.
+
+**Ce qu'il faut faire le jour où il échoue — et ce qu'il ne faut surtout pas
+faire.** Relever `DUREE_MAXIMALE_MS` une seconde fois serait la mauvaise
+réponse : le délai n'est pas la grandeur qui a bougé, c'est le nombre
+d'allers-retours. Un délai qu'on relève à chaque avertissement finit par ne plus
+rien mesurer, et l'échec réapparaît sous une autre forme — un `timeout-minutes`
+de workflow, un verrou tenu trop longtemps.
+
+**La réponse structurelle est de réduire le nombre d'allers-retours**, et elle
+est déjà connue. Deux jeux de données du seed sont écrits **en bloc** — ils
+n'existent que comme ensembles, et personne n'en modifie une ligne isolément :
+
+| Données de référence écrites en bloc | Lignes aujourd'hui | Écritures |
+|---|---|---|
+| `jour_ferie` (2 territoires × 3 années) | 69 | 69, une par ligne |
+| `calendrier_plage` (3 calendriers) | 31 | 31, une par ligne |
+| **Total** | **100** | **100** |
+
+Ces cent instructions peuvent devenir une poignée d'écritures groupées, une par
+bloc. Dans la transaction qui a échoué, cela ramènerait à elles seules
+**trente-quatre allers-retours à quatorze** : vingt-et-une plages remplacées par
+une écriture.
+
+**Ce qui ne bouge pas.** Les `upsert` idempotents sur clé naturelle — `societe`,
+`agence`, `calendrier`, `utilisateur`, `utilisateur_societe`, `utilisateur_client`
+— restent tels quels. Ils portent l'idempotence du seed entité par entité, ils
+sont peu nombreux, et les regrouper échangerait une propriété qui compte contre
+quelques centaines de millisecondes qui ne comptent pas. L'atomicité ne bouge
+pas davantage : une écriture groupée s'exécute dans la même transaction.
+
+Ce travail est inscrit au backlog sous **L0-12**, avec pour déclencheur explicite
+le premier avertissement du test de budget. Une réserve qu'on sait déjà comment
+lever n'est pas une dette.

@@ -77,6 +77,12 @@ function etape(message: string): void {
   // gardien I3 refuse tout arrondi d'affichage écrit dans le code applicatif,
   // et il a raison de ne pas distinguer une durée d'un montant — c'est la
   // règle qui compte, pas l'intention de celui qui l'écrit.
+  //
+  // La sortie est donc de l'ARITHMÉTIQUE ENTIÈRE, et surtout PAS un passage
+  // par `lib/money` : une durée n'est pas un montant, et D45 sépare le temps
+  // de l'argent. Faire formater des secondes par le module monétaire pour
+  // contenter un gardien monétaire franchirait exactement la frontière que ce
+  // gardien existe pour tenir.
   const millisecondes = Math.round(performance.now() - DEBUT);
   const secondes = Math.floor(millisecondes / 1000);
   const dixiemes = Math.floor((millisecondes % 1000) / 100);

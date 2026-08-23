@@ -94,8 +94,8 @@ Le seed annonce chaque section **avant** de l'exécuter, préfixée du temps
 [seed +   0.2 s] CODIMA-NC — calendriers : 2, plages : 21
 ```
 
-**Si le seed échoue malgré tout en P2028** — « Transaction not found » — vérifier
-l'hôte de `MIGRATION_DATABASE_URL` : s'il contient `-pooler`, c'est le point
+**Si un jour le seed échoue en P2028** — « Transaction not found » — sans que le
+budget de temps l'explique, vérifier l'hôte de `MIGRATION_DATABASE_URL` : s'il contient `-pooler`, c'est le point
 d'entrée **mutualisé** de Neon, qui ne garantit pas qu'une même connexion serve
 toute une transaction interactive. Le remplacer par l'hôte **direct**, c'est-à-dire
 le même privé de `-pooler` (`ep-xxx-1234567-pooler.ap-southeast-2.aws.neon.tech`
