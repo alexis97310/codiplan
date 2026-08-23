@@ -599,7 +599,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 |---|---|
 | **Au premier document client** *(D43)* | **Symbole du XPF — `XPF` ou `F`.** Déclencheur explicite : la **conception du premier document destiné à un client** — devis, facture ou rapport d'intervention. D19 dit `7 000 XPF`, la maquette l'écrit ainsi, `prisma/seed-data.ts` porte `symbole: null` pour le XPF : rien à changer aujourd'hui. Si le choix se porte alors sur `F`, ce sera un **amendement de D19 et une ligne de seed** (`symbole: "F"`), jamais une modification discrète |
 | **Avant L2-09** *(D45)* | **L'arrondi au quart d'heure supérieur s'applique-t-il à chaque intervention ou au total d'une journée ?** Cinq passages de cinq minutes font **1 h 15** dans un cas et **30 minutes** dans l'autre. D11 règle l'agrégation à l'intérieur d'une intervention, pas entre interventions. C'est une **décision commerciale**, à prendre **avant** que la valorisation ne soit écrite, pas pendant |
-| **Avant le lot 1** *(L0-08)* | **SOUMIS, NON TRANCHÉ — un écart local peut s'adosser au férié d'un AUTRE territoire.** Constaté en base : une agence de territoire `NC` peut écrire dans `calendrier_ferie` une ligne dont le `jour_ferie_id` désigne un férié `FR` tombant le même jour (le 1ᵉʳ novembre, par exemple). La clé étrangère composite `(jour_ferie_id, date)` empêche les DATES de diverger, pas les TERRITOIRES. **Portée réelle : faible** — `appliquerEcarts` compose par date et tire le libellé du fait public du bon territoire, si bien que le comportement reste juste ; c'est `jour_ferie_id` qui cesse d'être fiable comme « le fait public que cet écart surcharge ». **Deux options.** *(a)* Fermer en base par chaînage de clés : `agence` gagne un `UNIQUE (id, territoire)`, `calendrier_ferie` gagne une colonne `territoire` liée à l'agence par `(agence_id, territoire)` et au fait public par `(jour_ferie_id, date, territoire)` — un pont, dont le `jour_ferie_id` est nul, reste permis par `MATCH SIMPLE`. Coût : une colonne dénormalisée de plus, et une agence sans territoire ne peut plus poser de pont. *(b)* Laisser la base ouverte et n'en faire qu'un contrôle applicatif. **Ce n'est pas une décision de session** : elle touche le schéma et la forme de I1 |
+| ~~**Avant le lot 1** *(L0-08)*~~ **TRANCHÉ le 23/08/2026** *(D48, ticket L0-09a)* | **Un écart local pouvait s'adosser au férié d'un AUTRE territoire.** Fermé en base par **chaînage de clés composites** — l'option *(a)*, celle qui ferme en base : `agence` gagne un `UNIQUE (id, territoire)`, `calendrier_ferie` gagne une colonne `territoire` liée à l'agence par `(agence_id, territoire)` et au fait public par `(jour_ferie_id, date, territoire)`. Conséquence assumée : **`agence.territoire` devient `NOT NULL`** — une clé étrangère dont une colonne vaut NULL n'est pas contrôlée en PostgreSQL, le verrou aurait été muet là où la donnée manque. Le pont reste possible (`jour_ferie_id` nul, `MATCH SIMPLE`). Ligne conservée au registre : un point tranché se raye, il ne s'efface pas |
 | **Avant le lot 1** *(L0-08)* | **Qui voit une nuit rouge ?** Les contrôles nocturnes sur `main` s'accumulent — `verify:full`, et le contrôle d'horizon des fériés depuis L0-08 — et personne ne consulte GitHub chaque matin. **Constaté, non supposé** : GitHub notifie bien par courriel l'échec d'une exécution (deux échecs de « DB migrate & seed » du 20 août sont arrivés dans la boîte du propriétaire) ; ces **deux notifications sont restées non lues**. L'alarme sonne donc, et dans une pièce vide. Deux points restent à vérifier avant le lot 1 : qu'un échec de l'exécution **planifiée** notifie comme un échec d'exécution manuelle (aucune nuit rouge ne s'est encore produite — une seule exécution planifiée a eu lieu, le 20 août, et elle a réussi) ; et que GitHub ne **désactive** pas la planification après une période d'inactivité du dépôt, ce que sa documentation prévoit. Un garde-fou dont l'alarme sonne dans une pièce vide n'en est pas un — et un garde-fou qui cesse de sonner sans le dire est pire |
 | **À la première demande d'un client concerné** *(D46)* | **Jours fériés INFRA-NATIONAUX.** Certains territoires en ont : l'Alsace-Moselle chôme le Vendredi saint et le 26 décembre, le reste de la métropole non ; plusieurs États fédéraux fonctionnent ainsi. Le modèle `(territoire, date)` **le permettra sans être refait** — par un code de subdivision, sur le patron d'ISO 3166-2. Rien n'est construit aujourd'hui : la question se tranchera quand un client la posera, et non par anticipation |
 | **Au paramétrage réel des agences** *(L0-08)* | **Horaires d'ouverture réels de Ducos, Koné et Dolbeau, et liste des fériés effectivement chômés par chacune.** Le seed porte des valeurs de **démonstration**, dites comme telles dans le libellé de chaque calendrier. Ce qui n'est PAS de la démonstration et doit le rester : Ducos ouvre le samedi, Koné non (RG-PLA-01). La saisie des vrais horaires est une opération de paramétrage, pas un développement |
@@ -777,3 +777,112 @@ Douze mois : c'est la durée d'un cycle d'échéances préventives (RG-CON-01) e
 **Et une épreuve qui a payé.** Les trois gardiens du ticket ont été éprouvés sur des violations réellement introduites dans le code, puis retirées. L'un des sept essais est passé au travers : l'interdiction d'appeler le calcul de Pâques depuis le métier ne voyait que la forme lointaine de l'import (`lib/calendar/paques`) et laissait passer la forme proche (`./paques`) — c'est-à-dire **la seule qui pouvait réellement être écrite**, puisque le métier voisin est dans le même répertoire. Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.
 
 *Note d'arbitrage n°4 — CODIPLAN — 21 août 2026*
+
+---
+
+# CODIPLAN — Note d'arbitrage n°5
+
+**Le point que la note n°4 avait laissé ouvert au registre**
+
+| | |
+|---|---|
+| **Objet** | Un écart local pouvait s'adosser au férié d'un autre territoire |
+| **Portée** | D48 |
+| **Statut** | Décision arrêtée — même autorité que les notes n°1 à n°4, qu'elle complète et ne remplace pas |
+| **Date** | 23 août 2026 |
+| **Ticket** | L0-09a |
+
+### D48 — Le territoire d'un jour férié référencé : chaînage de clés, et `agence.territoire` obligatoire
+
+**Le point, constaté en base et inscrit au registre.** La livraison de L0-08 a
+trouvé, et vérifié contre un vrai PostgreSQL, qu'une agence de territoire `NC`
+pouvait écrire dans `calendrier_ferie` une ligne dont le `jour_ferie_id`
+désignait un férié `FR` tombant le même jour. La clé étrangère composite
+`(jour_ferie_id, date)` empêche les **dates** de diverger, pas les
+**territoires**. La portée était faible — `appliquerEcarts` compose par date, le
+planning restait juste — mais `jour_ferie_id` cessait de vouloir dire ce que son
+nom annonce. Deux options avaient été soumises ; touchant le schéma et la forme
+de I1, elles ne se tranchaient pas en séance.
+
+**La décision : on ferme en base, par CHAÎNAGE DE CLÉS.** Même mécanique que
+celle qui empêche déjà les dates de diverger — c'est PostgreSQL qui refuse, et
+aucun chemin d'écriture n'y échappe. `calendrier_ferie` porte une colonne
+`territoire`, et deux clés étrangères composites la tiennent des deux côtés à la
+fois :
+
+| Clé | Cible | Contrôlée quand |
+|---|---|---|
+| `(agence_id, territoire)` | `agence(id, territoire)` | **toujours** — aucune colonne nullable |
+| `(jour_ferie_id, date, territoire)` | `jour_ferie(id, date, territoire)` | dès que `jour_ferie_id` est renseigné |
+
+L'agence fixe le territoire de l'écart, le fait public doit s'y conformer. Les
+deux clés ne peuvent pas être satisfaites en même temps par un férié d'ailleurs :
+faire concorder l'écart avec le fait public le fait diverger de son agence.
+
+**L'option écartée, et pourquoi.** Un contrôle applicatif aurait suffi
+aujourd'hui, où un seul chemin écrit dans cette table. Il y en aura d'autres :
+l'import Excel du lot 1, la synchronisation hors ligne du lot 2, la console
+éditeur du lot 7. Un contrôle applicatif protège les chemins qu'on connaît ; une
+contrainte de base protège aussi ceux qu'on écrira dans trois ans sans avoir relu
+D46.
+
+**`agence.territoire` devient `NOT NULL`, et c'est le cœur de la décision.** Une
+clé étrangère dont une colonne vaut NULL n'est **pas contrôlée** en PostgreSQL
+(`MATCH SIMPLE`, la règle par défaut) : le chaînage aurait été muet exactement là
+où la donnée manque, c'est-à-dire chez l'agence la moins bien paramétrée. Un
+verrou qui s'ouvre tout seul sur les cas mal renseignés est pire qu'une absence
+de verrou — il donne le sentiment d'une garantie. La migration **refuse de
+s'appliquer** si une ligne existante est vide, en nommant l'agence et sa société,
+plutôt que d'inventer une valeur : il n'existe aucun défaut légitime, et un
+`DEFAULT 'NC'` serait le territoire codé en dur que D46 interdit.
+
+**La redondance est dite, pas glissée.** Oui, le chaînage impose une colonne
+`territoire` sur `calendrier_ferie`. Elle ne porte aucune information nouvelle —
+elle est toujours celle de l'agence, et la base refuse toute autre valeur. Elle
+n'existe que pour rendre la contrainte **déclarative** : sans colonne portée par
+la ligne, aucune clé étrangère ne peut relier en un seul geste l'agence et le
+fait public. **Une redondance qui rend une contrainte déclarative n'est pas une
+duplication de données : c'est le prix du verrou.**
+
+**Ce que le NULL reste.** `jour_ferie_id` demeure nullable : c'est le **pont**, un
+jour ordinaire que l'agence chôme, sans fait public en face. `MATCH SIMPLE`, qui
+rendait l'option dangereuse sur `agence.territoire`, la rend ici utile — et le
+pont n'échappe pas pour autant à la première clé, qui tient son territoire.
+
+**Ce que le contrôle d'horizon perd, et pourquoi c'est un gain.** Le rapport
+« agence sans territoire » de `pnpm feries:horizon` disparaît : il existait parce
+que rien en base ne l'empêchait. La garantie a changé de nature — d'un rapport
+nocturne qui **nommait** une agence fautive à une contrainte qui l'**empêche**
+d'exister.
+
+#### D48, ce que l'épisode enseigne — une colonne nullable et le moment où elle devient obligatoire
+
+**Une colonne nullable posée « faute de défaut légitime » est un choix honnête,
+et elle devient obligatoire au moment où une contrainte s'appuie dessus. Ce
+moment est le bon, pas plus tard.**
+
+`agence.territoire` avait été posée nullable à bon droit : il n'existait aucune
+valeur par défaut qui ne soit pas un mensonge, et l'imposer d'emblée aurait fait
+échouer la migration sur une base portant déjà des agences. Elle est aujourd'hui
+renseignée partout, et le coût de l'obligation ne sera **jamais plus bas** :
+deux sociétés, quatre agences, uniquement des données de démonstration. Attendre,
+c'est le payer au centuple — et, entre-temps, laisser un verrou muet sur les
+lignes qu'il devait précisément protéger.
+
+Le corollaire vaut pour la suite : **poser une contrainte sur une colonne
+nullable, c'est poser une contrainte facultative**. Chaque fois qu'une clé
+composite s'appuiera sur une colonne « pas encore obligatoire », la question à
+trancher n'est pas « peut-on chaîner quand même » mais « rend-on la colonne
+obligatoire maintenant, ou renonce-t-on au chaînage ».
+
+**Et une épreuve, encore, plutôt qu'une déclaration.** Trois retraits réels, pas
+un cas fabriqué. Chaque refus du chaînage a, dans la suite d'isolation, un jumeau
+qui **retire réellement la contrainte** dans une transaction annulée et montre
+que l'écriture fautive passe alors — il rejoue à chaque `pnpm verify`. Le
+chaînage a ensuite été retiré de la migration elle-même : six scénarios sont
+passés au rouge. Enfin, les deux préalables de la migration ont été éprouvés sur
+une base réelle portant les données fautives — et le second a montré que la ligne
+« agence `NC`, férié `FR`, même date » **était bel et bien acceptée** par le
+schéma L0-08. Le défaut n'était pas théorique.
+
+*Note d'arbitrage n°5 — CODIPLAN — 23 août 2026*

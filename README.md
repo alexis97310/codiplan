@@ -73,6 +73,23 @@ visée vient de `HORIZON_DATABASE_URL` si elle est renseignée, de
 `TEST_DATABASE_URL` sinon — une vérification locale ne part jamais d'elle-même
 vers la base hébergée.
 
+### Le territoire d'une agence est obligatoire, et le chaînage l'exige
+
+`agence.territoire` est un code **ISO 3166-1 alpha-2** (`NC`, `FR`), et il est
+**obligatoire** depuis L0-09a (D48). Il n'a rien à voir avec le fuseau : un
+fuseau dit quelle heure il est, un territoire dit quels jours sont fériés, et
+`Europe/Paris` couvre plusieurs territoires aux fériés différents.
+
+Un écart local d'agence — un férié travaillé, un pont — ne peut s'adosser qu'à
+un férié **de son propre territoire**. Ce n'est pas un contrôle applicatif :
+`calendrier_ferie` porte une colonne `territoire` recopiée de son agence, et
+deux clés étrangères composites la tiennent des deux côtés à la fois. C'est
+PostgreSQL qui refuse, et le pont — sans férié en face — reste possible.
+
+Une agence sans territoire n'existe donc plus, et la migration qui a posé cette
+obligation **refuse de s'appliquer** sur une base où il en resterait une, en la
+nommant, plutôt que d'inventer une valeur par défaut.
+
 ## Amorçage de la base hébergée — la latence est la contrainte
 
 La base est à Sydney (`ap-southeast-2`) et les exécuteurs GitHub sont ailleurs :
@@ -122,4 +139,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire) et **L0-08** (module calendrier). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier) et **L0-09a** (le territoire d'un jour férié référencé). Aucune fonctionnalité métier : elles commencent au lot 1.

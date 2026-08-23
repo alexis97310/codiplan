@@ -107,7 +107,6 @@ export {
 } from "./usages";
 export {
   ecartsHorizon,
-  ecartsTerritoireManquant,
   horizonSuffisant,
   jourDansNMois,
   jourExige,

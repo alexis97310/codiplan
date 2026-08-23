@@ -12,7 +12,6 @@ import {
   cleJour,
   comparerJours,
   ecartsHorizon,
-  ecartsTerritoireManquant,
   horizonSuffisant,
   jourDansNMois,
   lireCleJour,
@@ -120,14 +119,15 @@ describe("la règle : douze mois d'avance, territoire par territoire", () => {
     ).toBe(false);
   });
 
-  it("une agence sans territoire est nommée (D46, complément 1)", () => {
-    const ecarts = ecartsTerritoireManquant([
-      { code: "KONE", societe: "CODIMA-NC" },
-    ]);
-    expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("KONE");
-    expect(ecarts[0]).toContain("CODIMA-NC");
-  });
+  /**
+   * **Le scénario « agence sans territoire » a quitté ce fichier, et c'est un
+   * renforcement** (D48). Il éprouvait un rapport nocturne qui NOMMAIT une
+   * agence sans territoire ; `agence.territoire` est NOT NULL depuis L0-09a, et
+   * la garantie est devenue une contrainte de base qui l'EMPÊCHE d'exister.
+   * Elle s'éprouve donc là où elle vit : `tests/isolation/territoire-chaine.test.ts`,
+   * qui prouve le refus contre un vrai PostgreSQL — et l'éprouve en retirant
+   * réellement la contrainte.
+   */
 });
 
 describe("le seed tient l'exigence — horizon GLISSANT, jamais figé", () => {

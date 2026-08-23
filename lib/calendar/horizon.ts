@@ -125,21 +125,14 @@ export function ecartsHorizon(etats: readonly EtatHorizon[]): string[] {
 }
 
 /**
- * Écarts de paramétrage : les agences qui ne déclarent aucun territoire.
+ * **Le contrôle « agence sans territoire » a disparu, et c'est un
+ * renforcement** (D48).
  *
- * C'est le pendant de la colonne `agence.territoire` nullable (D46,
- * complément 1) : il n'existe aucun territoire par défaut, une agence peut donc
- * rester sans, et rien dans la base ne l'en empêche. Ce contrôle est ce qui fait
- * que cela ne dure pas — il la nomme à chaque `verify:full`.
+ * Il existait parce que `agence.territoire` était nullable : rien en base ne
+ * l'empêchait, et ce rapport était ce qui faisait que le vide ne durait pas. La
+ * colonne est NOT NULL depuis L0-09a — le chaînage de `calendrier_ferie`
+ * s'appuie dessus, et une clé étrangère dont une colonne vaut NULL n'est pas
+ * contrôlée. La garantie a donc changé de nature : d'un rapport nocturne qui
+ * NOMMAIT une agence fautive, elle est devenue une contrainte qui l'EMPÊCHE
+ * d'exister. `tests/isolation/territoire-chaine.test.ts` prouve le refus.
  */
-export function ecartsTerritoireManquant(
-  agencesSansTerritoire: readonly { code: string; societe: string }[],
-): string[] {
-  return agencesSansTerritoire.map(
-    (agence) =>
-      `Agence « ${agence.code} » (société ${agence.societe}) ne déclare aucun ` +
-      "territoire : elle n'a donc aucun jour férié, et son calendrier ne peut " +
-      "pas être chargé. Le territoire est un code ISO 3166-1 alpha-2, " +
-      "indépendant du fuseau (D46).",
-  );
-}

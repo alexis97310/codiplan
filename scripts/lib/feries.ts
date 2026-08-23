@@ -60,10 +60,16 @@ export function clientHorizon(): PrismaClient {
   return new PrismaClient({ datasources: { db: { url: urlBase() } } });
 }
 
-/** Une agence, réduite à ce dont l'horizon a besoin. */
+/**
+ * Une agence, réduite à ce dont l'horizon a besoin.
+ *
+ * `territoire` n'est plus nullable : la colonne est NOT NULL en base depuis
+ * L0-09a (D48). Le contrôle « agence sans territoire » a donc disparu — non
+ * parce qu'on y renonce, mais parce que PostgreSQL le rend impossible.
+ */
 type AgenceHorizon = {
   code: string;
-  territoire: string | null;
+  territoire: string;
   fuseau_horaire: string | null;
   societe: { code: string; fuseau_horaire: string };
 };
@@ -89,15 +95,6 @@ export async function lireAgences(
   });
 }
 
-/** Les agences qui ne déclarent aucun territoire (D46, complément 1). */
-export function agencesSansTerritoire(
-  agences: readonly AgenceHorizon[],
-): { code: string; societe: string }[] {
-  return agences
-    .filter((agence) => agence.territoire === null)
-    .map((agence) => ({ code: agence.code, societe: agence.societe.code }));
-}
-
 /**
  * L'état de l'horizon, territoire par territoire.
  *
@@ -116,9 +113,6 @@ export async function lireHorizons(
   >();
 
   for (const agence of agences) {
-    if (agence.territoire === null) {
-      continue;
-    }
     const fuseau = agence.fuseau_horaire ?? agence.societe.fuseau_horaire;
     const aujourdhui = maintenant(fuseau).local;
     const connu = parTerritoire.get(agence.territoire);

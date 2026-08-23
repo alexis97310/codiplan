@@ -140,11 +140,13 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
-             ("id", "societe_id", "agence_id", "date", "travaille")
+             ("id", "societe_id", "agence_id", "territoire", "date",
+              "travaille")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000cd', $1::uuid, $2::uuid,
-                   DATE '${ANNEE_FIXTURE}-03-02', false)`,
+                   $3, DATE '${ANNEE_FIXTURE}-03-02', false)`,
           SOCIETE_B,
           AGENCE_B,
+          TERRITOIRE_B,
         ),
       ),
     ).rejects.toThrow(/row-level security|violates/i);
@@ -385,14 +387,15 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
-             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
-              "travaille", "motif")
+             ("id", "societe_id", "agence_id", "territoire", "date",
+              "jour_ferie_id", "travaille", "motif")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000e5', $1::uuid, $2::uuid,
-                   DATE '${FERIE_TRAVAILLE_A.date}', $3::uuid, false,
+                   $4, DATE '${FERIE_TRAVAILLE_A.date}', $3::uuid, false,
                    'décision contraire')`,
           SOCIETE_A,
           AGENCE_A,
           jourFerieId,
+          TERRITOIRE_A,
         ),
       ),
     ).rejects.toThrow(/agence_id_date|duplicate key|unique/i);
@@ -406,13 +409,14 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
-             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
-              "travaille", "motif")
+             ("id", "societe_id", "agence_id", "territoire", "date",
+              "jour_ferie_id", "travaille", "motif")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000e6', $1::uuid, $2::uuid,
-                   DATE '${FERIE_TRAVAILLE_A.date}', NULL, false,
+                   $3, DATE '${FERIE_TRAVAILLE_A.date}', NULL, false,
                    'pont autonome le même jour')`,
           SOCIETE_A,
           AGENCE_A,
+          TERRITOIRE_A,
         ),
       ),
     ).rejects.toThrow(/agence_id_date|duplicate key|unique/i);
@@ -443,13 +447,14 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
       avecSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
-             ("id", "societe_id", "agence_id", "date", "jour_ferie_id",
-              "travaille", "motif")
+             ("id", "societe_id", "agence_id", "territoire", "date",
+              "jour_ferie_id", "travaille", "motif")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000e7', $1::uuid, $2::uuid,
-                   DATE '${lendemain}', $3::uuid, true, 'date divergente')`,
+                   $4, DATE '${lendemain}', $3::uuid, true, 'date divergente')`,
           SOCIETE_A,
           AGENCE_A,
           jourFerieId,
+          TERRITOIRE_A,
         ),
       ),
     ).rejects.toThrow(/jour_ferie_id_date|foreign key|violates/i);
