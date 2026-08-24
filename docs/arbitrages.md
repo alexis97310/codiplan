@@ -786,8 +786,8 @@ Douze mois : c'est la durée d'un cycle d'échéances préventives (RG-CON-01) e
 
 | | |
 |---|---|
-| **Objet** | Un écart local pouvait s'adosser au férié d'un autre territoire, et ce que devient un calendrier quand l'agence change de territoire |
-| **Portée** | D48 et D49 |
+| **Objet** | Un écart local pouvait s'adosser au férié d'un autre territoire, ce que devient un calendrier quand l'agence change de territoire, et jusqu'où un refus a le droit de s'expliquer |
+| **Portée** | D48, D49 et D50 |
 | **Statut** | Décisions arrêtées — même autorité que les notes n°1 à n°4, qu'elle complète et ne remplace pas |
 | **Date** | 23 et 24 août 2026 |
 | **Ticket** | L0-09a |
@@ -947,5 +947,65 @@ sur la clé du fait public, et le motif d'erreur générique s'en accommodait. S
 le retrait réel l'a montré. C'est la deuxième fois en deux tickets — et c'est ce
 qui fait passer l'épreuve par retrait du rang de bonne pratique à celui de forme
 attendue, inscrite au §9 du CLAUDE.md.
+
+### D50 — Un message d'erreur est un canal d'information : il est soumis au cloisonnement
+
+**Le point, né d'une question posée sur D49.** Le chaînage porte `ON UPDATE
+RESTRICT` des deux côtés, mais un seul des deux refus a un déclencheur
+explicatif. Côté `jour_ferie` — une date de férié saisie de travers, corrigée un
+mois plus tard alors qu'une agence a posé un écart dessus — PostgreSQL répond en
+nommant une contrainte et un UUID. Un refus juste, illisible : exactement le
+défaut que D49 venait de corriger côté agence.
+
+**La demande était de recopier le modèle. La mesure a montré qu'il ne se
+transpose pas.** Un prototype à l'identique — `SECURITY INVOKER`, décompte des
+écarts —, exécuté sous le SEUL rôle qui peut écrire dans `jour_ferie`, voit
+**0 écart** là où la vérité en compte 1. L'écrivain est un rôle éditeur, qui par
+construction n'a aucune société active (§22.5) ; `calendrier_ferie` est
+cloisonnée en `FORCE ROW LEVEL SECURITY`, tandis que les contrôles d'intégrité
+référentielle s'exécutent hors RLS. C'est pourquoi la clé refuse correctement
+pendant que le déclencheur est aveugle. **Recopié, le jumeau serait du code mort
+dans le seul chemin réel.**
+
+**Et lui donner la vue serait une fuite.** Une fonction `SECURITY DEFINER`
+détenue par un rôle `BYPASSRLS` ferait d'un message d'erreur un lecteur
+inter-sociétés. **Un décompte apprendrait à un salarié de l'éditeur combien
+d'agences clientes chôment ce jour-là** — depuis un simple refus, sans avoir
+jamais lu une table.
+
+**La décision.** Le verrou reste, le message attend la console éditeur du lot 7
+(ticket L7-02). Et le principe est inscrit au CLAUDE.md, au pied de I1 : **un
+message d'erreur est un canal d'information, soumis au cloisonnement comme une
+requête.** Un refus a le droit d'être **lisible**, jamais d'être **informatif** :
+il dit ce qui bloque et la marche à suivre ; il ne compte pas et ne nomme pas ce
+que son destinataire n'a pas le droit de lire.
+
+**Ce qui rend la décision tenable, et c'est le point le plus important.**
+L'asymétrie — un déclencheur d'un côté, rien de l'autre — **ressemble de loin à
+un oubli**, et un oubli appelle quelqu'un pour le corriger, c'est-à-dire pour
+recopier le déclencheur en `SECURITY DEFINER`. La correction irait exactement
+dans la direction dangereuse. La note est donc posée **à l'endroit de la
+tentation** et pas seulement dans la décision : `COMMENT ON` sur la fonction, sur
+le déclencheur et sur la contrainte concernée, déposés dans la base même par la
+migration `20260824040000` — `\df+` les montre —, et dans le commentaire du
+modèle `CalendrierFerie` du schéma.
+
+**Un gardien vaut mieux qu'une note**, et celui-ci ferme la porte plutôt que de
+la signaler : `tests/unit/db/security-definer-sous-arbitrage.test.ts` échoue si
+une fonction `SECURITY DEFINER` apparaît dans une migration. La liste
+d'exceptions est **close et vide** ; le repli de consolidation de D36 (lot 5) y
+entrera par arbitrage, avec son nom écrit — jamais par une décision de session
+qui trouverait le gardien encombrant.
+
+**Deux épreuves, et la première a corrigé le gardien.** Écrit d'abord pour
+ignorer les commentaires `--`, il a refusé la note de D50 elle-même : la phrase
+qui énonce la règle vit dans une chaîne de `COMMENT ON`, et un gardien qui
+interdit d'écrire sa raison d'être apprend surtout à ne plus l'écrire. La coupure
+juste n'était pas « commentaires » mais **documentation contre exécution** —
+`COMMENT ON` ne crée rien, tout le reste est examiné, chaînes littérales
+comprises. Ensuite, la violation a été **réellement écrite** dans un fichier de
+migration, sous la forme qu'un correcteur bien intentionné lui donnerait — un
+jumeau `jour_ferie_correction_verrou_ecarts` —, et `pnpm test` est passé au
+rouge en la nommant.
 
 *Note d'arbitrage n°5 — CODIPLAN — 23 et 24 août 2026*

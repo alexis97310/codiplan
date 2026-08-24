@@ -136,6 +136,27 @@ laisserait passer — la clé étrangère, elle, contrôle l'intégrité hors RL
 refuserait quand même. Le pire cas est donc un message générique, jamais une
 écriture acceptée.
 
+## Suite — le refus côté `jour_ferie` n'a pas de voix, et c'est décidé (D50)
+
+`RESTRICT` a été posé des deux côtés, mais seul le refus côté agence a reçu son
+déclencheur explicatif. La symétrie du verrou n'a pas entraîné celle du message,
+et il a fallu une question pour s'en apercevoir.
+
+La mesure a tranché : sous le seul rôle qui écrit dans `jour_ferie` — un rôle
+éditeur, sans société active —, un déclencheur `SECURITY INVOKER` voit **0
+écart** là où la vérité en compte 1. `calendrier_ferie` est cloisonnée en `FORCE
+ROW LEVEL SECURITY` ; les contrôles d'intégrité référentielle, eux, s'exécutent
+hors RLS. Le jumeau serait du code mort, et lui donner la vue qui lui manque
+ferait d'un message d'erreur un lecteur inter-sociétés.
+
+**D50 tranche : le verrou reste, le message attend la console éditeur du lot 7**
+(ticket L7-02), avec son ambition bornée d'avance — dire que des écarts existent,
+jamais combien ni lesquels. Le principe général est au CLAUDE.md : un message
+d'erreur est un canal d'information, soumis au cloisonnement comme une requête.
+L'absence de jumeau est écrite à l'endroit de la tentation — `COMMENT ON` dans la
+base, commentaire du modèle dans le schéma — et un gardien statique refuse toute
+fonction `SECURITY DEFINER` en migration.
+
 ## Ce que l'épisode enseigne
 
 **Une action référentielle est une règle de gestion déguisée en modalité
