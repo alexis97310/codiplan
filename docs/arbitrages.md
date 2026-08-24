@@ -786,10 +786,10 @@ Douze mois : c'est la durée d'un cycle d'échéances préventives (RG-CON-01) e
 
 | | |
 |---|---|
-| **Objet** | Un écart local pouvait s'adosser au férié d'un autre territoire |
-| **Portée** | D48 |
-| **Statut** | Décision arrêtée — même autorité que les notes n°1 à n°4, qu'elle complète et ne remplace pas |
-| **Date** | 23 août 2026 |
+| **Objet** | Un écart local pouvait s'adosser au férié d'un autre territoire, et ce que devient un calendrier quand l'agence change de territoire |
+| **Portée** | D48 et D49 |
+| **Statut** | Décisions arrêtées — même autorité que les notes n°1 à n°4, qu'elle complète et ne remplace pas |
+| **Date** | 23 et 24 août 2026 |
 | **Ticket** | L0-09a |
 
 ### D48 — Le territoire d'un jour férié référencé : chaînage de clés, et `agence.territoire` obligatoire
@@ -885,4 +885,67 @@ une base réelle portant les données fautives — et le second a montré que la
 « agence `NC`, férié `FR`, même date » **était bel et bien acceptée** par le
 schéma L0-08. Le défaut n'était pas théorique.
 
-*Note d'arbitrage n°5 — CODIPLAN — 23 août 2026*
+### D49 — Le territoire d'une agence ne se change pas en silence : aucune propagation
+
+**Le point, soulevé par le chaînage de D48 et non tranché par lui.** Que se
+passe-t-il si le territoire d'une agence change ? Le cas est réel et banal — une
+faute de saisie corrigée trois semaines plus tard.
+
+**Il avait été répondu sans être décidé.** `ON UPDATE CASCADE` est le défaut de
+Prisma ; il avait été recopié dans la migration. **Vérifié en base, et non déduit
+du code**, voici ce qu'il produisait :
+
+| Contenu du calendrier de l'agence | Effet de `UPDATE agence SET territoire = …` |
+|---|---|
+| Uniquement des **ponts** | **Réécriture silencieuse** des écarts. `UPDATE 1`, pas un mot |
+| Au moins un **férié travaillé** | Échec, mais en désignant `jour_ferie` — pas le vrai problème |
+
+Une même correction qui **passe ou casse selon le contenu du calendrier**, et qui
+ne dit jamais ce qu'elle a fait. Le cas qui réussit est le plus dangereux :
+c'est celui qui ne prévient pas.
+
+**La décision : PAS de `ON UPDATE CASCADE`.** `RESTRICT` des deux côtés du
+chaînage. Un changement de territoire **invalide réellement** les écarts de
+calendrier de cette agence — ils désignent les fériés d'ailleurs. Le refus de
+PostgreSQL est le bon comportement : mieux vaut bloquer et forcer une décision
+humaine que laisser une correction anodine réécrire un calendrier en silence.
+`RESTRICT` vaut **aussi** vers `jour_ferie` : corriger la date d'un fait public
+ne doit pas réécrire en silence l'écart d'une société.
+
+**Un message à côté du verrou, jamais à sa place.** `RESTRICT` refuse en parlant
+de clés ; il dit que c'est interdit, pas quoi faire. Le déclencheur
+`agence_territoire_verrou_ecarts` lève avant lui, nomme l'agence, les deux
+territoires, le décompte des écarts et leurs dates extrêmes, et donne la marche
+à suivre. **Retiré, la clé refuse encore** — le verrou reste déclaratif, le
+déclencheur n'est qu'une voix, et un test éprouve les deux séparément.
+
+**La procédure** — traiter les écarts, PUIS changer le territoire — est écrite
+dans `docs/decisions/2026-08-24-territoire-agence-sans-propagation.md` et
+rappelée dans le message d'erreur lui-même. Une agence sans écart change de
+territoire sans obstacle : le verrou ne gêne que le cas où il y a réellement
+quelque chose à décider.
+
+#### D49, ce que l'épisode enseigne — une action référentielle est une règle de gestion déguisée
+
+**`ON UPDATE CASCADE` n'avait été décidé par personne.** C'était un défaut,
+recopié. Il répondait pourtant tout seul à une question qui appartient au
+métier : que devient un calendrier quand l'agence change de territoire ? **Une
+valeur par défaut qui répond à une question qu'on n'a pas posée est une décision
+prise par personne** — et c'est le même enchaînement que le délai de transaction
+de 5 000 ms qui avait fait échouer le seed, une valeur écrite pour une autre
+géographie et jamais choisie.
+
+Corollaire pratique : **toute clé étrangère nouvelle dit ses DEUX actions, et les
+justifie**. `ON DELETE` était déjà regardé — supprimer, c'est visible.
+`ON UPDATE` ne l'était pas, au motif que « les identifiants ne changent jamais ».
+C'est vrai des identifiants techniques ; c'est faux de toutes les colonnes
+métier qu'un chaînage fait entrer dans une clé.
+
+**Et l'épreuve par retrait a mordu sur elle-même.** Le premier gardien écrit pour
+D49 passait au vert **avec `CASCADE` rétabli** : la propagation échouait alors
+sur la clé du fait public, et le motif d'erreur générique s'en accommodait. Seul
+le retrait réel l'a montré. C'est la deuxième fois en deux tickets — et c'est ce
+qui fait passer l'épreuve par retrait du rang de bonne pratique à celui de forme
+attendue, inscrite au §9 du CLAUDE.md.
+
+*Note d'arbitrage n°5 — CODIPLAN — 23 et 24 août 2026*

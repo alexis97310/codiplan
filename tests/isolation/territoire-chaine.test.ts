@@ -67,7 +67,8 @@ async function idFerie(territoire: string, date: string): Promise<string> {
 
 /**
  * Exécute `travail` sous le PROPRIÉTAIRE du schéma, après avoir réellement
- * retiré `retrait` (une ou plusieurs instructions DDL), puis ANNULE tout.
+ * défait le verrou (`retrait` — une ou plusieurs instructions DDL, un retrait
+ * pur ou un remplacement par une variante permissive), puis ANNULE tout.
  *
  * C'est l'épreuve par retrait, automatisée. Le DDL est transactionnel en
  * PostgreSQL : la contrainte revient au `ROLLBACK`, et la base sort du scénario
@@ -299,5 +300,158 @@ describe("un écart ne s'adosse qu'à un férié de SON territoire (D48)", () =>
         insererEcartCroise(tx, ferieB, TERRITOIRE_A),
       ),
     ).rejects.toThrow(/foreign key|violates/i);
+  });
+});
+
+describe("changer le territoire d'une agence (D49)", () => {
+  afterAll(fermerClients);
+
+  /**
+   * **La question que le chaînage soulève, et le cas est réel** : une faute de
+   * saisie corrigée trois semaines plus tard. `ON UPDATE CASCADE` a été essayé
+   * et mesuré — sur une agence dont les écarts sont tous des ponts, la
+   * correction réécrivait leurs territoires **en silence**. D49 la retire :
+   * `ON UPDATE RESTRICT` des deux côtés. Un changement de territoire invalide
+   * réellement les écarts, et le refus de PostgreSQL est le bon comportement.
+   */
+
+  /** L'agence A porte deux écarts de fixture : un férié travaillé, un pont. */
+  function changerTerritoireDeA(tx: PrismaClient): Promise<number> {
+    return tx.$executeRawUnsafe(
+      `UPDATE "agence" SET "territoire" = $2 WHERE "id" = $1::uuid`,
+      AGENCE_A,
+      TERRITOIRE_B,
+    );
+  }
+
+  it("le changement est refusé tant qu'un écart subsiste", async () => {
+    await expect(avecSociete(SOCIETE_A, changerTerritoireDeA)).rejects.toThrow(
+      /refusé/i,
+    );
+  });
+
+  it("et le message dit QUOI FAIRE, pas seulement que c'est interdit", async () => {
+    // Un refus qui n'indique pas la sortie fait rouvrir la base pour comprendre.
+    // Le message est donc éprouvé sur ce qu'il apporte : l'agence nommée, les
+    // deux territoires, le décompte des écarts, la marche à suivre, et où lire
+    // la décision. Ce scénario échoue si quelqu'un raccourcit le message.
+    const erreur = await avecSociete(SOCIETE_A, changerTerritoireDeA).catch(
+      (cause: unknown) => String(cause),
+    );
+
+    expect(erreur).toContain("DUCOS");
+    expect(erreur).toContain(TERRITOIRE_A);
+    expect(erreur).toContain(TERRITOIRE_B);
+    expect(erreur).toMatch(/2 écart\(s\) de calendrier subsistent/);
+    expect(erreur).toContain("Marche à suivre");
+    expect(erreur).toContain("réadosser chaque férié travaillé");
+    expect(erreur).toContain(
+      "docs/decisions/2026-08-24-territoire-agence-sans-propagation.md",
+    );
+  });
+
+  it("la PROCÉDURE aboutit : écarts traités, puis territoire changé", async () => {
+    // Le contrôle positif de la procédure écrite dans la décision. Sans lui, un
+    // verrou qui refuserait TOUJOURS passerait les scénarios ci-dessus sans que
+    // personne ne remarque qu'on ne peut plus jamais corriger une saisie.
+    let lignes = -1;
+
+    await sansContrainte([], SOCIETE_A, async (tx) => {
+      await tx.$executeRawUnsafe(
+        `DELETE FROM "calendrier_ferie" WHERE "agence_id" = $1::uuid`,
+        AGENCE_A,
+      );
+      lignes = await changerTerritoireDeA(tx);
+    });
+
+    expect(lignes).toBe(1);
+  });
+
+  it("ÉPREUVE PAR RETRAIT : sans le déclencheur, la CLÉ refuse encore", async () => {
+    // Le déclencheur double la clé, il ne la remplace pas. Retiré, le refus
+    // demeure — avec le message générique de PostgreSQL. C'est ce qui autorise
+    // à ne voir dans le déclencheur qu'une voix : le verrou reste déclaratif.
+    //
+    // **Ce scénario a d'abord été vert pour la mauvaise raison, et l'épreuve
+    // l'a montré.** Écrit sur l'agence telle quelle — un férié travaillé et un
+    // pont —, il passait aussi avec `ON UPDATE CASCADE` : la propagation
+    // échouait alors sur la clé du FAIT PUBLIC, faute de férié correspondant
+    // sur le nouveau territoire, et le motif d'erreur générique s'en
+    // accommodait. Deux corrections le rendent discriminant : l'écart adossé
+    // est retiré d'abord — ne reste que le PONT, c'est-à-dire la configuration
+    // exacte où `CASCADE` réussissait en silence — et l'assertion exige LE nom
+    // de la clé de l'agence, pour qu'un refus venu de la clé du fait public ne
+    // puisse pas passer pour celui-ci.
+    //
+    // Le `DETAIL` de PostgreSQL — « is still referenced from table ... » — n'est
+    // PAS asservi : Prisma ne remonte que la ligne de message. Éprouvé, pas
+    // supposé.
+    let message = "";
+
+    await sansContrainte(
+      ['DROP TRIGGER "agence_territoire_verrou_ecarts" ON "agence"'],
+      SOCIETE_A,
+      async (tx) => {
+        await tx.$executeRawUnsafe(
+          `DELETE FROM "calendrier_ferie"
+            WHERE "agence_id" = $1::uuid AND "jour_ferie_id" IS NOT NULL`,
+          AGENCE_A,
+        );
+
+        message = await changerTerritoireDeA(tx).then(
+          () => "ACCEPTÉ",
+          (cause: unknown) => String(cause),
+        );
+      },
+    );
+
+    expect(message).not.toBe("ACCEPTÉ");
+    expect(message).toContain("calendrier_ferie_agence_id_territoire_fkey");
+  });
+
+  it("le défaut que D49 retire, rejoué : CASCADE réécrit en silence", async () => {
+    // DÉMONSTRATION, et non gardien : ce scénario installe lui-même la variante
+    // fautive, il resterait donc vert si quelqu'un remettait `CASCADE` dans la
+    // migration. C'est le scénario précédent qui garde le `RESTRICT` ; celui-ci
+    // montre ce qu'on perdrait, pour que la décision reste lisible dans dix
+    // mois sans avoir à refaire la mesure.
+    //
+    // Le défaut que D49 retire, rejoué. La clé est remplacée par sa variante
+    // `ON UPDATE CASCADE` et le déclencheur écarté ; l'agence n'a plus que son
+    // PONT — la configuration de Dolbeau dans le jeu de démonstration. La
+    // correction passe alors, `UPDATE 1`, et le territoire de l'écart a changé
+    // sans qu'un mot le dise.
+    let territoireApres = "";
+
+    await sansContrainte(
+      [
+        'DROP TRIGGER "agence_territoire_verrou_ecarts" ON "agence"',
+        'ALTER TABLE "calendrier_ferie" DROP CONSTRAINT "calendrier_ferie_agence_id_territoire_fkey"',
+        `ALTER TABLE "calendrier_ferie" ADD CONSTRAINT "calendrier_ferie_agence_id_territoire_fkey"
+           FOREIGN KEY ("agence_id", "territoire") REFERENCES "agence"("id", "territoire")
+           ON DELETE CASCADE ON UPDATE CASCADE`,
+      ],
+      SOCIETE_A,
+      async (tx) => {
+        // Ne reste que le pont : un écart adossé ferait échouer la propagation
+        // sur la clé du fait public, et masquerait la réécriture silencieuse.
+        await tx.$executeRawUnsafe(
+          `DELETE FROM "calendrier_ferie"
+            WHERE "agence_id" = $1::uuid AND "jour_ferie_id" IS NOT NULL`,
+          AGENCE_A,
+        );
+
+        expect(await changerTerritoireDeA(tx)).toBe(1);
+
+        const ecarts = await tx.$queryRawUnsafe<Array<{ territoire: string }>>(
+          `SELECT "territoire" FROM "calendrier_ferie" WHERE "agence_id" = $1::uuid`,
+          AGENCE_A,
+        );
+        territoireApres = ecarts[0]?.territoire ?? "";
+      },
+    );
+
+    // La preuve du silence : l'écart a suivi l'agence sans que rien ne le dise.
+    expect(territoireApres).toBe(TERRITOIRE_B);
   });
 });

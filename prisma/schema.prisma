@@ -312,6 +312,14 @@ model CalendrierPlage {
 /// Le pont reste possible : `jour_ferie_id` nul rend la seconde clé non
 /// contrôlée (`MATCH SIMPLE`, la règle par défaut de PostgreSQL), tandis que la
 /// première, dont aucune colonne n'est nullable, reste contrôlée toujours.
+///
+/// **AUCUNE PROPAGATION** (D49) : `onUpdate: Restrict` des deux côtés. Changer
+/// le territoire d'une agence est REFUSÉ tant qu'il lui reste un écart — un
+/// changement de territoire les invalide réellement, puisqu'ils désignent les
+/// fériés d'ailleurs. `Cascade` avait été essayé : sur une agence dont les
+/// écarts sont tous des ponts, il réécrivait leurs territoires en silence. Le
+/// déclencheur `agence_territoire_verrou_ecarts` double le refus d'un message
+/// qui dit quoi faire ; il ne le remplace pas.
 model CalendrierFerie {
   id            String   @id @db.Uuid
   societe_id    String   @db.Uuid
@@ -336,8 +344,8 @@ model CalendrierFerie {
   /// Motif libre — « pont de l'Ascension », « journée de solidarité ».
   motif         String?
 
-  agence     Agence     @relation(fields: [agence_id, territoire], references: [id, territoire], onDelete: Cascade)
-  jour_ferie JourFerie? @relation(fields: [jour_ferie_id, date, territoire], references: [id, date, territoire])
+  agence     Agence     @relation(fields: [agence_id, territoire], references: [id, territoire], onDelete: Cascade, onUpdate: Restrict)
+  jour_ferie JourFerie? @relation(fields: [jour_ferie_id, date, territoire], references: [id, date, territoire], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([agence_id, date])
   @@index([agence_id])

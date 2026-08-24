@@ -168,22 +168,110 @@ ALTER TABLE "calendrier_ferie" DROP CONSTRAINT "calendrier_ferie_jour_ferie_id_d
 -- écriture à chaque ligne et laisse croire à une garantie qui a déménagé.
 DROP INDEX "jour_ferie_id_date_key";
 
+-- ── AUCUNE PROPAGATION : `ON UPDATE RESTRICT` des deux côtés (D49) ────────
+-- C'est la question que le chaînage soulève : que se passe-t-il si le
+-- territoire d'une agence change ? Cas réel — une faute de saisie corrigée
+-- trois semaines plus tard.
+--
+-- `ON UPDATE CASCADE` a été essayé, et mesuré : sur une agence dont les écarts
+-- sont tous des PONTS, la correction réécrit leurs territoires en silence,
+-- `UPDATE 1`, sans un mot. Sur une agence qui travaille un férié, elle échoue —
+-- mais en désignant `jour_ferie`, c'est-à-dire pas le vrai problème. Une même
+-- correction qui passe ou casse selon le contenu du calendrier, et qui ne dit
+-- jamais ce qu'elle a fait : c'est le pire des deux comportements.
+--
+-- Un changement de territoire INVALIDE réellement les écarts de l'agence : ils
+-- désignent les fériés d'ailleurs. Le refus de PostgreSQL est donc le bon
+-- comportement — mieux vaut bloquer et forcer une décision humaine que laisser
+-- une correction anodine réécrire un calendrier en silence.
+--
+-- La procédure est écrite dans
+-- docs/decisions/2026-08-24-territoire-agence-sans-propagation.md, et le
+-- déclencheur du point 6 la rappelle dans le message d'erreur.
+
 -- Le couple : l'écart appartient à une agence, et il en porte le territoire.
 -- Aucune de ses deux colonnes n'est nullable, la clé est donc contrôlée
--- TOUJOURS. `ON UPDATE CASCADE` : si une agence change de territoire, ses ponts
--- suivent — et ses fériés travaillés font échouer la mise à jour, faute de fait
--- public correspondant sur le nouveau territoire. C'est le comportement voulu :
--- un déménagement d'agence se règle en reprenant ses écarts, pas en les
--- laissant pointer sur les fêtes d'ailleurs.
+-- TOUJOURS. `ON DELETE CASCADE` est conservé — supprimer une agence emporte ses
+-- écarts, qui n'ont aucun sens sans elle.
 ALTER TABLE "calendrier_ferie" ADD CONSTRAINT "calendrier_ferie_agence_id_territoire_fkey"
   FOREIGN KEY ("agence_id", "territoire") REFERENCES "agence"("id", "territoire")
-  ON DELETE CASCADE ON UPDATE CASCADE;
+  ON DELETE CASCADE ON UPDATE RESTRICT;
 
 -- Le triplet : le fait public surchargé, s'il y en a un. `jour_ferie_id` nul —
 -- le PONT — rend la clé non contrôlée (`MATCH SIMPLE`), et c'est l'usage qu'on
 -- veut garder. Renseigné, il ne peut désigner qu'un férié de MÊME date ET de
 -- MÊME territoire que l'écart, donc du territoire de l'agence.
+--
+-- `ON UPDATE RESTRICT` ici aussi, et pour la même raison : corriger la date ou
+-- le territoire d'un fait public ne doit pas réécrire en silence l'écart d'une
+-- agence. Le référentiel est écrit par l'éditeur, l'écart appartient à la
+-- société : l'un ne modifie pas l'autre sans que quelqu'un le décide.
 ALTER TABLE "calendrier_ferie" ADD CONSTRAINT "calendrier_ferie_jour_ferie_id_date_territoire_fkey"
   FOREIGN KEY ("jour_ferie_id", "date", "territoire")
   REFERENCES "jour_ferie"("id", "date", "territoire")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- ── 6. Le message, à côté du verrou — et jamais à sa place (D49) ───────────
+-- `ON UPDATE RESTRICT` refuse, mais son message parle de clés : « update or
+-- delete on table "agence" violates foreign key constraint ... is still
+-- referenced ». Il dit que c'est interdit, pas quoi faire. Ce déclencheur
+-- s'exécute AVANT le contrôle de la clé et lève le premier, avec le décompte
+-- des écarts, leurs dates extrêmes et la marche à suivre.
+--
+-- **Il ne remplace pas la clé, il la double.** Retiré, la clé refuse encore —
+-- avec le message générique. C'est l'ordre voulu : le verrou est déclaratif, le
+-- déclencheur n'est qu'une voix. Un test éprouve les deux séparément.
+--
+-- `SECURITY INVOKER` (le défaut) : le décompte passe donc par les politiques de
+-- cloisonnement, comme toute lecture applicative. Si elles masquaient les
+-- écarts, le décompte vaudrait zéro et le déclencheur laisserait passer — la
+-- clé étrangère, elle, contrôle l'intégrité hors RLS et refuserait quand même.
+-- Le pire cas est donc un message générique, jamais une écriture acceptée.
+
+CREATE FUNCTION "agence_territoire_verrou_ecarts"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  nombre BIGINT;
+  premiere DATE;
+  derniere DATE;
+BEGIN
+  -- Une écriture qui ne change pas le territoire n'est pas concernée : le seed
+  -- réécrit ses agences à chaque exécution, et il doit rester idempotent.
+  IF NEW."territoire" IS NOT DISTINCT FROM OLD."territoire" THEN
+    RETURN NEW;
+  END IF;
+
+  -- Un code MAL FORMÉ n'est pas l'affaire de ce déclencheur : c'est une autre
+  -- faute, et elle a déjà sa contrainte et son message
+  -- (`agence_territoire_iso_alpha2`). Sans ce passe-droit, un déclencheur
+  -- `BEFORE` lèverait le premier et répondrait « écarts subsistants » à
+  -- quelqu'un qui vient d'écrire « NOUVELLE_CALEDONIE » — un message juste sur
+  -- une question qu'on ne pose pas. On laisse donc filer vers le contrôle de
+  -- forme, qui refusera de toute façon.
+  IF NEW."territoire" !~ '^[A-Z]{2}$' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT count(*), min("date"), max("date")
+    INTO nombre, premiere, derniere
+    FROM "calendrier_ferie"
+   WHERE "agence_id" = OLD."id";
+
+  IF nombre > 0 THEN
+    RAISE EXCEPTION
+      'Territoire de l''agence % : changement % → % refusé. % écart(s) de calendrier subsistent (du % au %) et désignent les fériés de %. Un changement de territoire les invalide. Marche à suivre : traiter d''abord les écarts de cette agence — supprimer les ponts qui n''ont plus lieu d''être, et réadosser chaque férié travaillé au fait public du NOUVEAU territoire — puis changer le territoire. Voir docs/decisions/2026-08-24-territoire-agence-sans-propagation.md.',
+      OLD."code", OLD."territoire", NEW."territoire", nombre, premiere, derniere,
+      OLD."territoire";
+  END IF;
+
+  RETURN NEW;
+END
+$$;
+
+COMMENT ON FUNCTION "agence_territoire_verrou_ecarts"() IS
+  'Message actionnable devant le refus de ON UPDATE RESTRICT (D49). Double la clé étrangère, ne la remplace pas : retiré, la clé refuse encore.';
+
+CREATE TRIGGER "agence_territoire_verrou_ecarts"
+  BEFORE UPDATE ON "agence"
+  FOR EACH ROW
+  EXECUTE FUNCTION "agence_territoire_verrou_ecarts"();

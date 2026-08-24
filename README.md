@@ -90,6 +90,30 @@ Une agence sans territoire n'existe donc plus, et la migration qui a posé cette
 obligation **refuse de s'appliquer** sur une base où il en resterait une, en la
 nommant, plutôt que d'inventer une valeur par défaut.
 
+### Changer le territoire d'une agence — la procédure
+
+Le chaînage **ne propage rien** (D49) : changer le territoire d'une agence est
+**refusé** tant qu'il lui reste un écart de calendrier. Ce n'est pas une
+rigidité gratuite — un changement de territoire invalide réellement ces écarts,
+qui désignent les fériés d'ailleurs. Mieux vaut bloquer et forcer une décision
+humaine que laisser une correction anodine réécrire un calendrier en silence.
+
+1. **Constater** : le message du refus nomme l'agence, les deux territoires, le
+   nombre d'écarts et leurs dates extrêmes.
+2. **Décider écart par écart** — c'est le point, et cette décision appartient à
+   l'exploitant : un **pont** reste valable si la décision d'entreprise tient
+   sur le nouveau territoire ; un **férié travaillé** désigne un fait public qui
+   n'est plus le sien.
+3. **Traiter les écarts** : supprimer ceux qui tombent, réadosser les autres au
+   férié équivalent du **nouveau** territoire.
+4. **Changer le territoire.** L'écriture passe alors.
+5. **`pnpm feries:horizon`** : le nouveau territoire doit avoir douze mois de
+   fériés devant lui.
+
+Une agence **sans écart** change de territoire sans obstacle. Détail et
+justification :
+[`docs/decisions/2026-08-24-territoire-agence-sans-propagation.md`](docs/decisions/2026-08-24-territoire-agence-sans-propagation.md).
+
 ## Amorçage de la base hébergée — la latence est la contrainte
 
 La base est à Sydney (`ap-southeast-2`) et les exécuteurs GitHub sont ailleurs :
