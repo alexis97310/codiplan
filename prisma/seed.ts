@@ -326,6 +326,10 @@ async function seed(): Promise<void> {
                     select: { id: true },
                   });
 
+            // `territoire` est RECOPIÉ depuis l'agence, jamais saisi (D48) :
+            // c'est la colonne par laquelle le chaînage tient l'écart des deux
+            // côtés à la fois — vers l'agence, et vers le fait public. La base
+            // refuserait d'ailleurs toute autre valeur.
             await tx.calendrierFerie.upsert({
               where: {
                 agence_id_date: { agence_id: enregistree.id, date },
@@ -333,6 +337,7 @@ async function seed(): Promise<void> {
               update: {
                 travaille: ecart.travaille,
                 motif: ecart.motif,
+                territoire: agence.territoire,
                 jour_ferie_id: ferie?.id ?? null,
               },
               create: {
@@ -340,6 +345,7 @@ async function seed(): Promise<void> {
                 societe_id: id,
                 agence_id: enregistree.id,
                 date,
+                territoire: agence.territoire,
                 jour_ferie_id: ferie?.id ?? null,
                 travaille: ecart.travaille,
                 motif: ecart.motif,

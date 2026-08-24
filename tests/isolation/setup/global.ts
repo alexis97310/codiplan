@@ -242,6 +242,11 @@ export default async function setup(): Promise<void> {
       ],
     });
 
+    // Le territoire est posé DÈS LA CRÉATION : la colonne est NOT NULL depuis
+    // L0-09a (D48), parce que le chaînage de `calendrier_ferie` s'appuie dessus
+    // et qu'une clé étrangère dont une colonne vaut NULL n'est pas contrôlée.
+    // Le fuseau de l'agence B est surchargé plus bas, une fois son calendrier
+    // créé — territoire et fuseau restent deux attributs indépendants.
     await prisma.agence.createMany({
       data: [
         {
@@ -249,12 +254,14 @@ export default async function setup(): Promise<void> {
           societe_id: SOCIETE_A,
           code: "DUCOS",
           libelle: "Ducos",
+          territoire: TERRITOIRE_A,
         },
         {
           id: AGENCE_B,
           societe_id: SOCIETE_B,
           code: "SIEGE",
           libelle: "Siège",
+          territoire: TERRITOIRE_B,
         },
       ],
     });
@@ -316,19 +323,18 @@ export default async function setup(): Promise<void> {
       ],
     });
 
-    // Territoire, fuseau et calendrier de chaque agence. L'agence B surcharge
-    // son fuseau pour valoir celui de l'agence A tout en gardant un TERRITOIRE
-    // différent : la fixture est adversaire, et tout code qui déduirait l'un de
+    // Fuseau et calendrier de chaque agence. L'agence B surcharge son fuseau
+    // pour valoir celui de l'agence A tout en gardant le TERRITOIRE posé à la
+    // création : la fixture est adversaire, et tout code qui déduirait l'un de
     // l'autre tombe ici (D46, complément 1).
     await prisma.agence.update({
       where: { id: AGENCE_A },
-      data: { calendrier_id: CALENDRIER_A, territoire: TERRITOIRE_A },
+      data: { calendrier_id: CALENDRIER_A },
     });
     await prisma.agence.update({
       where: { id: AGENCE_B },
       data: {
         calendrier_id: CALENDRIER_B,
-        territoire: TERRITOIRE_B,
         fuseau_horaire: FUSEAU_AGENCE_B,
       },
     });
@@ -346,12 +352,17 @@ export default async function setup(): Promise<void> {
       select: { id: true },
     });
 
+    // `territoire` est recopié depuis l'agence (D48) : c'est la colonne par
+    // laquelle le chaînage tient l'écart des deux côtés à la fois. Le PONT la
+    // porte lui aussi, bien qu'il ne désigne aucun fait public — sa clé vers
+    // l'agence, elle, n'a aucune colonne nullable et reste donc contrôlée.
     await prisma.calendrierFerie.createMany({
       data: [
         {
           id: SURCHARGE_FERIE_A,
           societe_id: SOCIETE_A,
           agence_id: AGENCE_A,
+          territoire: TERRITOIRE_A,
           date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`),
           jour_ferie_id: ferieTravaille.id,
           travaille: true,
@@ -361,6 +372,7 @@ export default async function setup(): Promise<void> {
           id: PONT_FIXTURE_A,
           societe_id: SOCIETE_A,
           agence_id: AGENCE_A,
+          territoire: TERRITOIRE_A,
           date: new Date(`${PONT_A}T00:00:00.000Z`),
           jour_ferie_id: null,
           travaille: false,

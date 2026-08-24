@@ -1,7 +1,6 @@
-import { ecartsHorizon, ecartsTerritoireManquant } from "@/lib/calendar";
+import { ecartsHorizon } from "@/lib/calendar";
 
 import {
-  agencesSansTerritoire,
   clientHorizon,
   ligneEtat,
   lireAgences,
@@ -22,12 +21,13 @@ import {
  * d'au moins douze mois de jours fériés devant lui. Le message d'échec nomme le
  * territoire et la dernière date connue.
  *
- * **Deux échecs de plus, et ils comptent autant.** Une agence sans territoire
- * est signalée : la colonne est nullable faute de défaut légitime, et ce
- * contrôle est ce qui fait que le vide n'y dure pas. Et zéro territoire fait
- * échouer aussi — une base vide produit le même silence qu'une base à jour, ce
- * qui n'est pas la même chose. C'est la doctrine des gardiens du lot 0
- * appliquée au temps.
+ * **Zéro territoire fait échouer aussi** — une base vide produit le même
+ * silence qu'une base à jour, ce qui n'est pas la même chose. C'est la doctrine
+ * des gardiens du lot 0 appliquée au temps.
+ *
+ * **Ce contrôle ne signale plus les agences sans territoire** : il n'en existe
+ * plus. `agence.territoire` est NOT NULL depuis L0-09a (D48), et la garantie a
+ * changé de nature — d'un rapport nocturne à une contrainte de base.
  *
  * Sortie via `process.stdout.write` : `console.log` est banni (CLAUDE.md §5),
  * et ce rapport est une sortie de journal délibérée.
@@ -46,10 +46,7 @@ try {
     ].join("\n"),
   );
 
-  const ecarts = [
-    ...ecartsTerritoireManquant(agencesSansTerritoire(agences)),
-    ...ecartsHorizon(etats),
-  ];
+  const ecarts = ecartsHorizon(etats);
 
   if (ecarts.length > 0) {
     throw new Error(

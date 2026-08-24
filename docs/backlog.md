@@ -76,6 +76,13 @@ L'arrondi au quart d'heure **ne fait pas partie de ce ticket** : c'est une polit
 Fonctions distinctes par usage : SLA (agence de l'intervention), majoration (agence du technicien), conflit à la pose (calendrier du technicien).
 *Acceptation :* le samedi est ouvré pour Ducos et non pour Koné ; un férié marqué travaillé compte comme ouvré ; un délai SLA de 4 h ouvrées démarré vendredi 16 h échoit lundi.
 
+**L0-09a — Le territoire d'un jour férié référencé. [D48] [D49]**
+Fermeture du point que L0-08 avait soumis sans le trancher : un écart local pouvait s'adosser au férié d'un **autre territoire**. Fermé **en base**, par chaînage de clés composites — `agence` gagne un `UNIQUE (id, territoire)`, `calendrier_ferie` une colonne `territoire` liée à l'agence par `(agence_id, territoire)` et au fait public par `(jour_ferie_id, date, territoire)`.
+**`agence.territoire` devient `NOT NULL`** : une clé étrangère dont une colonne vaut NULL n'est pas contrôlée en PostgreSQL, le verrou aurait été muet là où la donnée manque. La migration **refuse de s'appliquer** sur une base portant une agence sans territoire, en la nommant — jamais de valeur inventée.
+La colonne `territoire` de `calendrier_ferie` est une **redondance assumée** : elle rend la contrainte déclarative, c'est le prix du verrou [D48].
+**Aucune propagation** [D49] : `ON UPDATE RESTRICT` des deux côtés. Changer le territoire d'une agence est **refusé** tant qu'il lui reste un écart — `CASCADE`, mesuré en base, réécrivait les écarts **en silence** sur une agence n'ayant que des ponts. Un déclencheur double le refus d'un message qui donne la **marche à suivre** ; retiré, la clé refuse encore.
+*Acceptation :* un écart adossé au férié d'un autre territoire est refusé par la base, dans les deux sens (en faisant concorder l'écart avec le fait public, c'est la clé vers l'agence qui mord) ; le **pont** — `jour_ferie_id` nul — reste possible ; une agence sans territoire est refusée ; **chaque refus est éprouvé en retirant réellement la contrainte**, dans une transaction annulée qui rejoue à chaque `pnpm verify` (forme désormais attendue de tout test de refus, §9 du CLAUDE.md) ; changer le territoire d'une agence est refusé tant qu'un écart subsiste, avec un message qui **dit quoi faire** — et le scénario échoue si quelqu'un raccourcit ce message.
+
 **L0-09 — Thématisation par société.**
 Couleurs, logo et mentions issus du paramétrage de la société active.
 *Acceptation :* basculer de société change l'identité visuelle sans redéploiement.

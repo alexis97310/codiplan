@@ -56,13 +56,16 @@ export type FenetreJours = { du: JourLocal; au: JourLocal };
  * la table couvre plusieurs années et plusieurs territoires, et un calcul
  * d'heures ouvrées sur une semaine n'a que faire de 2028.
  *
- * Rend `null` quand l'agence n'existe pas dans la société, ou qu'elle n'est pas
- * complètement paramétrée — pas de calendrier, ou pas de territoire déclaré.
- * Ce n'est pas une erreur, c'est un paramétrage incomplet, et le module le
- * signale à l'appelant plutôt que d'inventer des horaires ou un territoire par
- * défaut, ce que I7 et D46 interdisent l'un comme l'autre. Aucune de ces deux
- * lacunes ne peut durer en silence : `scripts/horizon-feries.mts` nomme à
- * chaque `verify:full` toute agence sans territoire.
+ * Rend `null` quand l'agence n'existe pas dans la société, ou qu'elle n'a pas
+ * de calendrier. Ce n'est pas une erreur, c'est un paramétrage incomplet, et le
+ * module le signale à l'appelant plutôt que d'inventer des horaires, ce que I7
+ * interdit.
+ *
+ * **Le territoire, lui, n'est plus un cas** : `agence.territoire` est NOT NULL
+ * depuis L0-09a (D48), parce que le chaînage de `calendrier_ferie` s'appuie
+ * dessus et qu'une clé étrangère dont une colonne vaut NULL n'est pas
+ * contrôlée. Une agence sans territoire n'existe plus en base ; il n'y a donc
+ * plus rien à rattraper ici.
  */
 export async function chargerCalendrierAgence(
   tx: Prisma.TransactionClient,
@@ -99,11 +102,7 @@ export async function chargerCalendrierAgence(
     },
   });
 
-  if (
-    agence === null ||
-    agence.calendrier === null ||
-    agence.territoire === null
-  ) {
+  if (agence === null || agence.calendrier === null) {
     return null;
   }
 

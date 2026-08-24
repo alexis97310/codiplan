@@ -139,12 +139,14 @@ model Agence {
   /// circonscription administrative (« Province Sud ») sans rapport avec les
   /// fériés.
   ///
-  /// Nullable faute de défaut légitime : un territoire par défaut serait un
-  /// territoire codé en dur. Une agence sans territoire n'a pas de fériés, et
-  /// cela ne passe pas inaperçu — `chargerCalendrierAgence` refuse de rendre un
-  /// calendrier, et `scripts/horizon-feries.mts` la nomme à chaque
-  /// `verify:full`.
-  territoire     String?
+  /// **OBLIGATOIRE depuis L0-09a (D48).** La colonne a été posée nullable à
+  /// L0-08, faute de défaut légitime — un `DEFAULT 'NC'` aurait été un
+  /// territoire codé en dur. Elle devient obligatoire au moment où une
+  /// contrainte s'appuie dessus : le chaînage de `calendrier_ferie` passe par
+  /// `(agence_id, territoire)`, et une clé étrangère dont une colonne vaut
+  /// NULL n'est pas contrôlée en PostgreSQL. Nullable, le verrou serait muet
+  /// exactement là où la donnée manque.
+  territoire     String
   calendrier_id  String? @db.Uuid // calendrier d'ouverture — table posée au ticket L0-08
   actif          Boolean @default(true)
 
@@ -153,6 +155,10 @@ model Agence {
   ecarts     CalendrierFerie[]
 
   @@unique([societe_id, code])
+  /// Clé composite technique — cible du chaînage de `calendrier_ferie` (D48).
+  /// `id` étant déjà la clé primaire, elle n'ajoute aucune unicité : elle rend
+  /// simplement le couple (agence, territoire) référençable d'un seul geste.
+  @@unique([id, territoire])
   @@index([territoire])
   @@map("agence")
 }
@@ -205,9 +211,12 @@ model JourFerie {
 
   @@unique([territoire, date])
   /// Clé composite technique : elle permet à `calendrier_ferie` de référencer
-  /// le couple (jour férié, date) d'un seul geste, si bien que sa colonne
-  /// `date` ne peut pas diverger de celle du fait public qu'elle surcharge.
-  @@unique([id, date])
+  /// le triplet (jour férié, date, territoire) d'un seul geste, si bien que ni
+  /// sa colonne `date` ni sa colonne `territoire` ne peuvent diverger du fait
+  /// public qu'il surcharge. Élargie du couple `(id, date)` au triplet en
+  /// L0-09a : la date ne divergeait plus, le territoire le pouvait encore
+  /// (D48).
+  @@unique([id, date, territoire])
   @@index([territoire])
   @@map("jour_ferie")
 }
@@ -294,6 +303,23 @@ model CalendrierPlage {
 /// semaine. `travaille = true` un dimanche où aucune plage n'est déclarée
 /// n'ouvre rien — et c'est ce qu'on veut : les horaires vivent dans
 /// `calendrier_plage`, à un seul endroit.
+///
+/// **LE CHAÎNAGE DE CLÉS (D48).** Un écart ne peut s'adosser qu'à un férié du
+/// territoire de son agence. Deux clés étrangères composites l'imposent, et
+/// c'est PostgreSQL qui refuse — aucun chemin d'écriture n'y échappe :
+///   — `(agence_id, territoire)` → `agence(id, territoire)` ;
+///   — `(jour_ferie_id, date, territoire)` → `jour_ferie(id, date, territoire)`.
+/// Le pont reste possible : `jour_ferie_id` nul rend la seconde clé non
+/// contrôlée (`MATCH SIMPLE`, la règle par défaut de PostgreSQL), tandis que la
+/// première, dont aucune colonne n'est nullable, reste contrôlée toujours.
+///
+/// **AUCUNE PROPAGATION** (D49) : `onUpdate: Restrict` des deux côtés. Changer
+/// le territoire d'une agence est REFUSÉ tant qu'il lui reste un écart — un
+/// changement de territoire les invalide réellement, puisqu'ils désignent les
+/// fériés d'ailleurs. `Cascade` avait été essayé : sur une agence dont les
+/// écarts sont tous des ponts, il réécrivait leurs territoires en silence. Le
+/// déclencheur `agence_territoire_verrou_ecarts` double le refus d'un message
+/// qui dit quoi faire ; il ne le remplace pas.
 model CalendrierFerie {
   id            String   @id @db.Uuid
   societe_id    String   @db.Uuid
@@ -302,6 +328,14 @@ model CalendrierFerie {
   /// pont n'a pas de fait public à désigner. La clé étrangère composite
   /// ci-dessous empêche les deux dates de diverger.
   date          DateTime @db.Date
+  /// Territoire de l'agence, RECOPIÉ ici (D48). C'est une redondance, et elle
+  /// est assumée : elle n'existe que pour rendre le chaînage DÉCLARATIF. Sans
+  /// colonne portée par la ligne, aucune clé étrangère ne peut relier en un
+  /// seul geste l'agence et le fait public, et la règle retomberait dans un
+  /// contrôle applicatif — c'est-à-dire dans un chemin d'écriture qu'on peut
+  /// oublier. Elle n'est jamais saisie : elle vient de l'agence, et les deux
+  /// clés étrangères la tiennent des deux côtés à la fois.
+  territoire    String
   /// Le fait public dont c'est l'écart, s'il y en a un. Nul pour un pont.
   jour_ferie_id String?  @db.Uuid
   /// L'agence travaille-t-elle ce jour-là ? Sans valeur par défaut : une ligne
@@ -310,8 +344,8 @@ model CalendrierFerie {
   /// Motif libre — « pont de l'Ascension », « journée de solidarité ».
   motif         String?
 
-  agence     Agence     @relation(fields: [agence_id], references: [id], onDelete: Cascade)
-  jour_ferie JourFerie? @relation(fields: [jour_ferie_id, date], references: [id, date])
+  agence     Agence     @relation(fields: [agence_id, territoire], references: [id, territoire], onDelete: Cascade, onUpdate: Restrict)
+  jour_ferie JourFerie? @relation(fields: [jour_ferie_id, date, territoire], references: [id, date, territoire], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([agence_id, date])
   @@index([agence_id])

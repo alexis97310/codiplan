@@ -73,6 +73,47 @@ visée vient de `HORIZON_DATABASE_URL` si elle est renseignée, de
 `TEST_DATABASE_URL` sinon — une vérification locale ne part jamais d'elle-même
 vers la base hébergée.
 
+### Le territoire d'une agence est obligatoire, et le chaînage l'exige
+
+`agence.territoire` est un code **ISO 3166-1 alpha-2** (`NC`, `FR`), et il est
+**obligatoire** depuis L0-09a (D48). Il n'a rien à voir avec le fuseau : un
+fuseau dit quelle heure il est, un territoire dit quels jours sont fériés, et
+`Europe/Paris` couvre plusieurs territoires aux fériés différents.
+
+Un écart local d'agence — un férié travaillé, un pont — ne peut s'adosser qu'à
+un férié **de son propre territoire**. Ce n'est pas un contrôle applicatif :
+`calendrier_ferie` porte une colonne `territoire` recopiée de son agence, et
+deux clés étrangères composites la tiennent des deux côtés à la fois. C'est
+PostgreSQL qui refuse, et le pont — sans férié en face — reste possible.
+
+Une agence sans territoire n'existe donc plus, et la migration qui a posé cette
+obligation **refuse de s'appliquer** sur une base où il en resterait une, en la
+nommant, plutôt que d'inventer une valeur par défaut.
+
+### Changer le territoire d'une agence — la procédure
+
+Le chaînage **ne propage rien** (D49) : changer le territoire d'une agence est
+**refusé** tant qu'il lui reste un écart de calendrier. Ce n'est pas une
+rigidité gratuite — un changement de territoire invalide réellement ces écarts,
+qui désignent les fériés d'ailleurs. Mieux vaut bloquer et forcer une décision
+humaine que laisser une correction anodine réécrire un calendrier en silence.
+
+1. **Constater** : le message du refus nomme l'agence, les deux territoires, le
+   nombre d'écarts et leurs dates extrêmes.
+2. **Décider écart par écart** — c'est le point, et cette décision appartient à
+   l'exploitant : un **pont** reste valable si la décision d'entreprise tient
+   sur le nouveau territoire ; un **férié travaillé** désigne un fait public qui
+   n'est plus le sien.
+3. **Traiter les écarts** : supprimer ceux qui tombent, réadosser les autres au
+   férié équivalent du **nouveau** territoire.
+4. **Changer le territoire.** L'écriture passe alors.
+5. **`pnpm feries:horizon`** : le nouveau territoire doit avoir douze mois de
+   fériés devant lui.
+
+Une agence **sans écart** change de territoire sans obstacle. Détail et
+justification :
+[`docs/decisions/2026-08-24-territoire-agence-sans-propagation.md`](docs/decisions/2026-08-24-territoire-agence-sans-propagation.md).
+
 ## Amorçage de la base hébergée — la latence est la contrainte
 
 La base est à Sydney (`ap-southeast-2`) et les exécuteurs GitHub sont ailleurs :
@@ -122,4 +163,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire) et **L0-08** (module calendrier). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier) et **L0-09a** (le territoire d'un jour férié référencé). Aucune fonctionnalité métier : elles commencent au lot 1.
