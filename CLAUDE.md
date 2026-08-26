@@ -96,6 +96,9 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 **Et l'exhaustivité est vérifiée, pas supposée** *(D41)*. Un gardien statique énumère toutes les tables de `prisma/schema.prisma` et exige que chacune appartienne à **exactement une** catégorie. Zéro échoue — c'est l'oubli ; deux échouent aussi — c'est la liste qui dit une chose et le schéma une autre. Trois oublis du même type s'étaient déjà succédé : une liste fermée un jour, une décision ultérieure qui crée une table sans revenir la ranger.
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
+
+**Un message d'erreur est un canal d'information : il est soumis au cloisonnement comme une requête** *(D50)*. Ce qu'un refus donne à lire est une réponse, et se compte comme telle. L'exemple qui a fait la règle : un déclencheur explicatif sur `jour_ferie`, qui dirait « 3 écarts référencent ce férié », **apprendrait à un salarié de l'éditeur combien d'agences clientes chôment ce jour-là** — depuis un simple refus, sans avoir jamais lu une table. Un refus a donc le droit d'être **lisible**, jamais d'être **informatif** : il dit ce qui bloque et la marche à suivre, il ne compte pas et ne nomme pas ce que son destinataire n'a pas le droit de lire. Et le raccourci qui le rendrait bavard — une fonction `SECURITY DEFINER` posée pour voir par-dessus les politiques — est refusé par un gardien statique dont la liste d'exceptions est close et vide.
+
 *Vérification : `pnpm test:isolation`.*
 
 ### I2 — Jamais de conversion de devise ligne à ligne

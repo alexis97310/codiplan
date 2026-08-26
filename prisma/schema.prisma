@@ -320,6 +320,21 @@ model CalendrierPlage {
 /// écarts sont tous des ponts, il réécrivait leurs territoires en silence. Le
 /// déclencheur `agence_territoire_verrou_ecarts` double le refus d'un message
 /// qui dit quoi faire ; il ne le remplace pas.
+///
+/// **UN SEUL DES DEUX REFUS A UNE VOIX, ET C'EST DÉLIBÉRÉ** (D50). Le refus
+/// côté `agence` a son déclencheur explicatif ; celui côté `jour_ferie` n'en a
+/// pas. **Ce n'est pas un oubli à corriger, et la correction irait dans la
+/// direction dangereuse.** L'écrivain de `jour_ferie` est un rôle éditeur, qui
+/// par construction n'a aucune société active : un déclencheur `SECURITY
+/// INVOKER` n'y verrait aucun écart — mesuré, 0 contre 1 — parce que
+/// `calendrier_ferie` est cloisonnée en `FORCE ROW LEVEL SECURITY`, alors que
+/// les contrôles d'intégrité référentielle, eux, s'exécutent hors RLS. Lui
+/// donner la vue qui lui manque ferait d'un message d'erreur un lecteur
+/// inter-sociétés : un décompte apprendrait à un salarié de l'éditeur combien
+/// d'agences clientes chôment ce jour-là. Le message viendra de la console
+/// éditeur au lot 7 (ticket L7-02), et il dira que des écarts existent — jamais
+/// combien, jamais lesquels. `tests/unit/db/security-definer-sous-arbitrage.test.ts`
+/// échoue si quelqu'un tente le raccourci.
 model CalendrierFerie {
   id            String   @id @db.Uuid
   societe_id    String   @db.Uuid
