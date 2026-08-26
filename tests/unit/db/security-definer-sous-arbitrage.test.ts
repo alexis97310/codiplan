@@ -78,10 +78,18 @@ export function migrations(): Migration[] {
  *   — les instructions `COMMENT ON … IS '…'`, qui ne créent rien : elles
  *     déposent du texte dans `pg_description`, et c'est précisément là que
  *     D50 veut que la note vive, à côté de l'objet concerné.
- * Tout le reste est examiné, **y compris les chaînes littérales** : un
- * `EXECUTE 'CREATE FUNCTION … SECURITY DEFINER …'` construit à la main reste
- * vu. C'est la limite honnête du gardien — il arrête la correction bien
- * intentionnée, pas un contournement délibéré.
+ * Tout le reste est examiné, **y compris les chaînes littérales** : la faute
+ * écrite dans un bloc `DO $$ … $$`, dans un `EXECUTE 'CREATE FUNCTION …
+ * SECURITY DEFINER …'` ou dans un `EXECUTE format(…)` est vue — mesuré, elle
+ * est refusée dans les trois cas.
+ *
+ * **La limite honnête du gardien est ailleurs, et c'est celle-ci : les deux
+ * mots assemblés à l'exécution.** `'SECURITY ' || 'DEFINER'` passe, et un nom
+ * construit à l'exécution aussi — mesuré également. Aucun contrôle textuel ne
+ * les verrait. Un gardien statique arrête donc la correction **bien
+ * intentionnée**, pas le contournement **décidé** ; l'exemple qui illustre
+ * cette limite doit être celui qui passe réellement, sans quoi le lecteur
+ * conclut que le gardien est plus faible qu'il n'est.
  *
  * Le motif de `COMMENT ON` va jusqu'à la chaîne fermante plutôt qu'au premier
  * `;` : un point-virgule à l'intérieur du texte couperait sinon l'instruction
