@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { PARITES } from "@/prisma/seed-data";
 
-import { fichiersSource } from "../outils/fichiers-source";
+import { RACINE, fichiersSource } from "../outils/fichiers-source";
 
 /**
  * Gardien n°2 du ticket L0-07 : **aucun littéral de parité ailleurs que dans le
@@ -66,6 +69,33 @@ function porteUnTaux(contenu: string, taux: readonly string[]): boolean {
 /** Un décimal à quatre chiffres ou plus après la virgule : la forme d'une parité. */
 const FORME_PARITE = /[0-9]+[.,][0-9]{4,}/;
 
+/**
+ * Exemption de la SEULE règle de forme, et de rien d'autre (ticket L0-09).
+ *
+ * `lib/theme/` porte les coefficients de luminance de WCAG 2.1 — `0,2126`,
+ * `0,7152`, `0,0722`, et le seuil `0,04045`. Ce sont des constantes d'une norme
+ * d'accessibilité, pas des taux : le module ne touche à aucun montant, à aucune
+ * devise, et le calcul de contraste n'a rien à consolider.
+ *
+ * **Pourquoi exempter plutôt que contourner.** Écrire ces coefficients sous
+ * forme de fractions pour passer sous le motif les rendrait incomparables au
+ * texte de la norme — et interdirait jusqu'à les CITER en commentaire, le motif
+ * lisant le fichier brut. C'est la faute que le gardien `SECURITY DEFINER` de
+ * D50 a commise puis corrigée : un gardien qui interdit d'écrire sa raison
+ * d'être apprend surtout à ne plus l'écrire.
+ *
+ * **Et l'exemption ne fait entrer aucun taux** : elle ne porte que sur la règle
+ * de FORME. La règle forte — aucun taux du seed nulle part dans le dépôt,
+ * `lib/theme/` compris — continue de s'appliquer, et un scénario l'éprouve
+ * avec une vraie parité écrite dans un vrai fichier du module.
+ */
+const EXEMPTS_FORME = ["lib/theme/"];
+
+/** Vrai si le chemin relève d'un module exempté de la règle de forme. */
+function exempteDeForme(chemin: string): boolean {
+  return EXEMPTS_FORME.some((prefixe) => chemin.startsWith(prefixe));
+}
+
 describe("aucun littéral de parité hors du seed (I2, D20)", () => {
   it("le seed déclare bien au moins une parité — sinon le gardien serait vide", () => {
     expect(PARITES.length).toBeGreaterThan(0);
@@ -88,6 +118,7 @@ describe("aucun littéral de parité hors du seed (I2, D20)", () => {
   it("aucun code applicatif ne porte de décimal en forme de parité", () => {
     const fautifs = fichiersSource(REPERTOIRES_APPLICATIFS)
       .filter((fichier) => !EXEMPTS.includes(fichier.chemin))
+      .filter((fichier) => !exempteDeForme(fichier.chemin))
       .filter((fichier) => FORME_PARITE.test(fichier.contenu))
       .map((fichier) => fichier.chemin);
 
@@ -109,6 +140,25 @@ describe("aucun littéral de parité hors du seed (I2, D20)", () => {
 
     expect(FORME_PARITE.test('const taux = "12.345678";')).toBe(true);
     expect(FORME_PARITE.test("le taux vaut 12,345678 unités")).toBe(true);
+  });
+
+  it("l'exemption de forme ne fait entrer aucun taux — éprouvée sur le fichier réel", () => {
+    // §9, forme 4 : une soustraction au périmètre se prouve AVEC une vraie
+    // faute dans le même fichier. La parité vient du seed, jamais d'un chiffre
+    // écrit ici — ce fichier ne cite aucun taux réel.
+    const interdits = PARITES.map((parite) => parite.taux);
+    const reel = readFileSync(join(RACINE, "lib/theme/couleur.ts"), "utf8");
+
+    expect(exempteDeForme("lib/theme/couleur.ts")).toBe(true);
+    expect(exempteDeForme("lib/themeur.ts")).toBe(false);
+    expect(exempteDeForme("lib/money/format.ts")).toBe(false);
+
+    // Tel quel, le fichier exempté ne porte aucun taux du seed.
+    expect(porteUnTaux(reel, interdits)).toBe(false);
+    // Une parité réellement écrite dedans reste prise par la règle forte.
+    expect(
+      porteUnTaux(`${reel}\nconst taux = ${interdits[0]};`, interdits),
+    ).toBe(true);
   });
 
   it("le gardien laisse passer un montant ordinaire — éprouvé sur un cas fabriqué", () => {

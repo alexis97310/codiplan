@@ -24,7 +24,11 @@ const IGNORES = new Set([
   "test-results",
 ]);
 
-const EXTENSIONS = [".ts", ".tsx", ".mts"];
+/** Extensions retenues par défaut : les sources TypeScript du dépôt. */
+export const EXTENSIONS_TS = [".ts", ".tsx", ".mts"] as const;
+
+/** Feuilles de style — périmètre du gardien des couleurs (L0-09). */
+export const EXTENSIONS_CSS = [".css"] as const;
 
 /** Un fichier source, chemin relatif à la racine et contenu. */
 export type FichierSource = {
@@ -33,17 +37,21 @@ export type FichierSource = {
   contenu: string;
 };
 
-function parcourir(repertoire: string, resultat: FichierSource[]): void {
+function parcourir(
+  repertoire: string,
+  resultat: FichierSource[],
+  extensions: readonly string[],
+): void {
   for (const entree of readdirSync(repertoire)) {
     if (IGNORES.has(entree)) {
       continue;
     }
     const complet = join(repertoire, entree);
     if (statSync(complet).isDirectory()) {
-      parcourir(complet, resultat);
+      parcourir(complet, resultat, extensions);
       continue;
     }
-    if (!EXTENSIONS.some((extension) => entree.endsWith(extension))) {
+    if (!extensions.some((extension) => entree.endsWith(extension))) {
       continue;
     }
     resultat.push({
@@ -54,7 +62,11 @@ function parcourir(repertoire: string, resultat: FichierSource[]): void {
 }
 
 /**
- * Tous les fichiers TypeScript des répertoires demandés.
+ * Tous les fichiers des répertoires demandés, filtrés par extension.
+ *
+ * `extensions` vaut les sources TypeScript par défaut ; le gardien des couleurs
+ * (L0-09) s'en sert aussi pour lire les feuilles de style, où une couleur
+ * s'écrit tout aussi bien.
  *
  * Le SQL des migrations est délibérément hors périmètre : la base a son propre
  * garde-fou, le type PostgreSQL `"Role"`, qui fait échouer une valeur inventée
@@ -62,10 +74,11 @@ function parcourir(repertoire: string, resultat: FichierSource[]): void {
  */
 export function fichiersSource(
   repertoires: readonly string[],
+  extensions: readonly string[] = EXTENSIONS_TS,
 ): FichierSource[] {
   const resultat: FichierSource[] = [];
   for (const repertoire of repertoires) {
-    parcourir(join(RACINE, repertoire), resultat);
+    parcourir(join(RACINE, repertoire), resultat, extensions);
   }
   return resultat;
 }

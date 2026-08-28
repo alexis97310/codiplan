@@ -1009,3 +1009,98 @@ jumeau `jour_ferie_correction_verrou_ecarts` —, et `pnpm test` est passé au
 rouge en la nommant.
 
 *Note d'arbitrage n°5 — CODIPLAN — 23 et 24 août 2026*
+
+---
+
+# CODIPLAN — Note d'arbitrage n°6
+
+**Une question de lisibilité posée par le ticket, et tranchée par le calcul**
+
+| | |
+|---|---|
+| **Objet** | Ce qu'on écrit sur la couleur qu'un client a choisie |
+| **Portée** | D51 |
+| **Statut** | Décision arrêtée — même autorité que les notes n°1 à n°5, qu'elle complète et ne remplace pas |
+| **Date** | 28 août 2026 |
+| **Ticket** | L0-09 |
+
+### D51 — Le contraste se calcule, il ne se refuse pas
+
+**Le point, posé par le ticket lui-même.** La charte d'une société est un
+paramétrage (RG-SOC-06) : un client change ses couleurs sans qu'on redéploie.
+Un client choisira donc un **jaune pâle**, et du texte blanc posé dessus sera
+illisible — dans une application qu'un technicien lit **au soleil**, sur un
+écran de téléphone. Deux voies étaient ouvertes : refuser la couleur à la
+saisie, ou choisir l'encre selon le fond.
+
+**Le chiffre, avant la décision.** Le seuil appliqué est **4,5:1** — WCAG 2.1,
+critère de succès 1.4.3 « Contrast (Minimum) », niveau AA, texte courant ;
+**3:1** pour le grand texte et pour les éléments non textuels (critères 1.4.3 et
+1.4.11). Mesuré sur le cas du ticket : du blanc sur `#fff9c4` donne **1,07:1**,
+soit quatre fois sous le seuil.
+
+**La décision : le choix automatique de l'encre**, et il se démontre plutôt
+qu'il ne se plaide. Entre le noir et le blanc, le meilleur des deux ne descend
+jamais sous **√21 ≈ 4,5826:1** sur aucun fond sRGB — le pire fond possible est
+celui de luminance relative `√(1,05 × 0,05) − 0,05 ≈ 0,1791`, qui contraste
+aussi mal avec l'un qu'avec l'autre, et c'est le minimum de la fonction.
+**4,58 > 4,5** : le seuil AA est franchi **par construction**. Sur le jaune pâle,
+l'encre calculée est noire et donne 19,60:1.
+
+**Pourquoi pas le refus à la saisie.** Il ne garantit rien de plus — le calcul
+garantit déjà le seuil — et il coûte davantage : la solution est **vendue**, et
+refuser une couleur revient à refuser l'identité visuelle d'un client, qui
+choisira alors « la couleur la plus proche que le logiciel accepte ». Surtout,
+un refus posé sur un formulaire ne tient que ce formulaire : la couleur est une
+donnée, elle arrivera aussi par un import, une reprise, une console d'éditeur.
+Le choix de l'encre, lui, est fait au **rendu** — le seul point par lequel tous
+les chemins d'écriture passent.
+
+**Ce qui reste refusé à la saisie est d'une autre nature** : une valeur qui
+n'est pas une couleur sRGB. Un schéma Zod et une contrainte `CHECK` en base la
+refusent, éprouvée par retrait comme le §9 l'exige. **Refus de forme, jamais de
+teinte.**
+
+**Le cas inverse est traité à part, et nommé.** Le choix de l'encre couvre le
+texte posé SUR la couleur. La couleur de société employée elle-même comme encre
+sur la surface de l'application reste illisible si elle est pâle : une troisième
+variable est donc calculée par déplacement de la seule **clarté**, teinte et
+saturation conservées. La couleur d'origine n'est jamais altérée — elle reste le
+fond.
+
+**Une société sans charte reçoit le thème neutre CODIPLAN**, défini une seule
+fois et identifié comme LE défaut. Les deux colonnes de couleur deviennent
+nullables pour cela : « société sans charte » doit être un état représentable,
+sinon le provisionnement d'un client inventerait deux couleurs, et plus personne
+ne distinguerait ensuite un choix d'un remplissage.
+
+Détail, mesures et options écartées :
+`docs/decisions/2026-08-28-thematisation-par-societe.md`.
+
+### Ce que la note n°6 ajoute au registre
+
+| Échéance | Point |
+|---|---|
+| **À la première demande d'un client** *(D51)* | **Logo de société.** Hors périmètre de L0-09, et pour une raison qui n'est pas la difficulté du rendu : l'afficher suppose un **stockage de fichiers**, décision d'architecture à part entière — hébergement, quotas, purge, accès cloisonné aux objets. La colonne `societe.logo_url` existe depuis L0-03 et le mécanisme de thème ne l'empêche pas : le logo entrera par le même chemin que les couleurs, une colonne lue de plus. Rien n'est construit aujourd'hui |
+| **Lot 3** *(D51)* | **Faut-il viser 7:1 sur l'application terrain ?** Le seuil AAA de WCAG 2.1 (critère 1.4.6) est de 7:1, et un écran de téléphone en plein soleil est le cas qui le justifierait. Il n'est **pas** atteignable par le seul choix noir/blanc : sur un fond de luminance moyenne, ce choix plafonne à 4,58:1 — c'est une propriété de la fonction, pas une limite d'implémentation. L'atteindre imposerait de **déplacer la couleur du client**, donc de trancher : à partir de quel écart la charte d'un client cesse-t-elle d'être la sienne ? À prendre **avec** le lot de l'application technicien, pas après |
+
+## Une remarque sur la méthode
+
+**Un gardien peut en contredire un autre, et ce n'est pas toujours une faute.**
+Le gardien des parités (L0-07) refuse tout décimal à quatre chiffres ou plus
+dans le code applicatif. Les coefficients de luminance de WCAG 2.1 — `0,2126`,
+`0,7152`, `0,0722` — ont exactement cette forme sans être des taux. Deux issues
+étaient possibles : contourner le motif en écrivant les coefficients sous forme
+de fractions, ou exempter le module.
+
+**Contourner aurait été la mauvaise.** Le motif lit le fichier brut : écrire
+`2126 / 10000` aurait rendu le code incomparable au texte de la norme **et
+interdit jusqu'à citer les coefficients en commentaire**. C'est exactement la
+faute que le gardien `SECURITY DEFINER` de D50 avait commise puis corrigée — un
+gardien qui interdit d'écrire sa raison d'être apprend surtout à ne plus
+l'écrire. L'exemption est donc posée sur la seule règle de **forme**, pour le
+seul répertoire `lib/theme/`, et **prouvée** : la règle forte — aucun taux du
+seed nulle part — continue de s'appliquer, et un scénario l'éprouve en écrivant
+une vraie parité dans le vrai fichier exempté (§9, forme 4).
+
+*Note d'arbitrage n°6 — CODIPLAN — 28 août 2026*

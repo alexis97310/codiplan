@@ -17,6 +17,11 @@ export const fr = {
     "Plannings d'intervention et parc machines — Nouvelle-Calédonie.",
   "accueil.socle": "Socle technique en place. Aucune fonctionnalité métier.",
   "accueil.action": "Consulter la documentation",
+  // Thématisation par société (L0-09). Le NOM de la société n'est jamais une
+  // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
+  // qui qualifient le thème vivent ici.
+  "theme.societe": "Charte de la société",
+  "theme.neutre": "Thème neutre CODIPLAN",
   // Message unique de tous les refus d'authentification (D35). Il ne dit ni si
   // le compte existe, ni si le mot de passe est faux, ni si le compte est
   // habilité quelque part : c'est exactement son objet.

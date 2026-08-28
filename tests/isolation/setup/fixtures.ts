@@ -49,6 +49,18 @@ export const VAR_PERIMETRE = "app.perimetre_sites";
 export const SOCIETE_A = "aaaaaaaa-0000-7000-8000-000000000001";
 export const SOCIETE_B = "bbbbbbbb-0000-7000-8000-000000000002";
 
+/**
+ * Chartes fixtures (L0-09). Les deux sociétés portent des couleurs
+ * DISTINCTES : sans cela, « le thème appliqué est celui de la société active »
+ * serait vert même si le code lisait toujours la même ligne.
+ *
+ * La charte de B est volontairement CLAIRE côté accentuation : son encre
+ * calculée est noire là où celle de A est blanche, si bien qu'une bascule
+ * change non seulement les fonds mais aussi les encres.
+ */
+export const CHARTE_A = { primaire: "#0b5cad", accent: "#f4a300" } as const;
+export const CHARTE_B = { primaire: "#7a1f3d", accent: "#c9f2d8" } as const;
+
 /** Clients (fixture). A1 et A2 appartiennent à la société A ; B1 à la société B. */
 export const CLIENT_A1 = "aaaaaaaa-0000-7000-8000-0000000000c1";
 export const CLIENT_A2 = "aaaaaaaa-0000-7000-8000-0000000000c2";

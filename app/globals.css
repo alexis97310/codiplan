@@ -19,6 +19,7 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -40,6 +41,7 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -65,9 +67,25 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Thématisation par société (L0-09). Ces six variables ne sont définies
+     NULLE PART dans une feuille de style : elles sont posées sur le document
+     par le serveur, à partir de la société active de la session
+     (lib/theme/variables.ts). Les nommer ici ne fait que les rendre
+     utilisables en classes Tailwind — bg-societe-primaire,
+     text-societe-primaire-encre — pour qu'aucun composant n'ait à écrire une
+     couleur. Une société sans charte reçoit le thème neutre CODIPLAN, défini
+     une seule fois dans lib/theme/defaut.ts. */
+  --color-societe-primaire: var(--societe-primaire);
+  --color-societe-primaire-encre: var(--societe-primaire-encre);
+  --color-societe-primaire-lisible: var(--societe-primaire-lisible);
+  --color-societe-accent: var(--societe-accent);
+  --color-societe-accent-encre: var(--societe-accent-encre);
+  --color-societe-accent-lisible: var(--societe-accent-lisible);
 }
 
 @layer base {
