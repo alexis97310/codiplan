@@ -94,6 +94,13 @@ export type SocieteSeed = {
   devise_code: string;
   taux_horaire_defaut: string;
   majoration_hors_ouverture_pct: string;
+  /**
+   * Charte de démonstration (L0-09). Les deux sociétés du seed portent des
+   * couleurs DISTINCTES : c'est ce qui rend visible qu'une bascule de société
+   * change l'identité visuelle. Ces couleurs ne sont pas celles de l'annexe C
+   * du cahier des charges — un jeu de démonstration ne porte aucune charte
+   * réelle (I9), et le vrai paramétrage est une opération d'exploitation.
+   */
   couleur_primaire: string;
   couleur_secondaire: string;
   langue: string;
@@ -550,8 +557,8 @@ const CODIMA_EU: SocieteSeed = {
   devise_code: "EUR",
   taux_horaire_defaut: "65.00",
   majoration_hors_ouverture_pct: "50",
-  couleur_primaire: "#0b5cad",
-  couleur_secondaire: "#f4a300",
+  couleur_primaire: "#7a1f3d",
+  couleur_secondaire: "#2f9e6b",
   langue: "fr",
   agences: [
     {

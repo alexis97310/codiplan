@@ -197,6 +197,10 @@ lib/
   excel/      imports et exports
   pdf/
   reporting/  SEULE zone autorisée à convertir des devises
+  theme/      charte de la société active — couleurs, encres, variables CSS
+              la lisibilité se CALCULE : seuil 4,5:1 (WCAG 2.1, 1.4.3 AA),
+              garanti par le choix noir/blanc, qui plancher à √21 ≈ 4,58 (D51)
+              seul endroit du code où une couleur s'écrit en clair
   i18n/       dictionnaire fr.ts
 components/
 prisma/       schema.prisma, migrations/, seed.ts
