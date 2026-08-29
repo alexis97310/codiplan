@@ -54,6 +54,13 @@ export type DemandeBascule = {
   societeIdSource: string | null;
   /** Le second facteur a-t-il été validé à l'ouverture de la session ? */
   secondFacteurValide: boolean;
+  /**
+   * Adresse de l'appelant, recopiée de la session (L0-10). FACULTATIVE, et
+   * c'est délibéré : elle n'autorise rien, elle ne filtre rien, et un appelant
+   * qui ne la connaît pas ne doit pas en inventer une. Absente, le contexte
+   * rendu porte `null` et le journal d'audit écrira `NULL`.
+   */
+  adresseIp?: string | null;
 };
 
 /** Rôle tenu par un compte sur une société, ou `null` s'il n'y est pas habilité. */
@@ -193,6 +200,7 @@ async function decider(
       societeId: demande.societeId,
       role,
       secondFacteurValide: demande.secondFacteurValide,
+      adresseIp: demande.adresseIp ?? null,
     },
   };
 }

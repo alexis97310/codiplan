@@ -3,7 +3,7 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 
 import { verifierRoleApplicatif } from "./garde-role";
-import { avecSocieteEtRole } from "./rls";
+import { avecContexteRls, avecSocieteEtRole } from "./rls";
 
 /**
  * Client Prisma applicatif (CLAUDE.md §6 — `lib/db`).
@@ -60,6 +60,11 @@ export function garantirRoleApplicatif(): Promise<void> {
  * Le contexte est d'abord validé (`exigerContexteActif`) : pas de société
  * active, pas de rôle, ou second facteur manquant sur un rôle qui l'exige, et
  * la transaction n'est pas même ouverte.
+ *
+ * C'est aussi ICI que l'auteur entre en base (L0-10, I8). Le déclencheur
+ * d'audit lit `app.utilisateur_id` ; ce chemin est le seul qui connaisse un
+ * utilisateur, donc le seul qui puisse le nommer. Les autres chemins écrivent
+ * un auteur nul — et sont journalisés quand même.
  */
 export async function avecContexteApplicatif<T>(
   contexte: ContexteSession,
@@ -67,7 +72,16 @@ export async function avecContexteApplicatif<T>(
 ): Promise<T> {
   const actif = exigerContexteActif(contexte);
   await garantirRoleApplicatif();
-  return avecSocieteEtRole(prisma, actif.societeId, actif.role, travail);
+  return avecContexteRls(
+    prisma,
+    {
+      societeId: actif.societeId,
+      role: actif.role,
+      auteurId: actif.utilisateurId,
+      adresseIp: actif.adresseIp,
+    },
+    travail,
+  );
 }
 
 /**

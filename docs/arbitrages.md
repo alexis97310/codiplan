@@ -1141,3 +1141,79 @@ jamais des faits. Le fait, ici, tient en quatre nombres et une référence de
 norme.
 
 *Note d'arbitrage n°6 — CODIPLAN — 28 août 2026*
+
+---
+
+# CODIPLAN — Registre ouvert par le ticket L0-10
+
+**Trois questions posées par le journal d'audit, et non tranchées en séance**
+
+| | |
+|---|---|
+| **Objet** | Ce que le journal d'audit laisse ouvert |
+| **Portée** | Registre — **aucune décision arrêtée ici** |
+| **Statut** | À arbitrer. Rien de ce qui suit n'a l'autorité des notes n°1 à n°6 |
+| **Date** | 29 août 2026 |
+| **Ticket** | L0-10 |
+
+Le ticket L0-10 est livré sous la **voie A** ci-dessous, la seule qui n'exige
+aucun arbitrage : aucune liste close n'a été élargie, aucune catégorie de I1 n'a
+été créée. Les trois questions attendent une décision écrite.
+
+### R1 — Le journal des RÉFÉRENTIELS DE PLATEFORME *(question ouverte)*
+
+Le journal porte `societe_id NOT NULL` et relève de la première catégorie de I1.
+`devise`, `parite` et `jour_ferie` n'ont aucune société à porter : ou bien le
+journal ne les couvre pas, ou bien son `societe_id` cesse d'être obligatoire, ou
+bien il faut une cinquième catégorie.
+
+| Voie | Ce qu'elle coûte | Ce qu'elle laisse |
+|---|---|---|
+| **A — ne pas les couvrir** *(implémentée)* | rien : c'est le périmètre de I8 et de D32, où ces trois tables n'ont jamais figuré | une correction éditeur sur un férié n'est pas tracée. Le trou est antérieur au ticket, et il a déjà une maison probable — `journal_acces`, qui enjambe les sociétés par construction (D34) |
+| **B — `societe_id` nullable** | un arbitrage, forcément : le gardien d'exhaustivité de D41 ne reconnaît la première catégorie qu'à un `societe_id` obligatoire, et une colonne nullable range la table dans **zéro** catégorie | **une brèche de lecture** : la forme D4 est `= app.societe_id OR societe_id IS NULL`, si bien qu'une ligne à société nulle serait lisible par toutes les sociétés — dans la table même qui porte les valeurs avant/après de tout le métier |
+| **C — cinquième catégorie de I1** | un arbitrage, une liste close de plus à surveiller, et la définition d'un cloisonnement propre | le risque exact que D42 a écarté : élargir la règle à « cloisonnée d'une manière ou d'une autre » ferait entrer sans décision la table suivante qui s'en réclamerait. Et le précédent va dans l'autre sens — `journal_acces` est en troisième catégorie **parce qu'il ne porte aucune valeur métier**, ce qui est faux du journal d'audit |
+
+**Recommandation portée par le ticket : la voie A.** Elle est la seule à ne
+demander aucun arbitrage, la seule conforme au périmètre déjà unifié par D32, et
+la seule où le cloisonnement en lecture est **structurel** — `NOT NULL` rend
+impossible la ligne lisible par tous, sans qu'aucune vigilance n'ait à s'exercer.
+Elle est en outre tenue par la base et non par une intention : le déclencheur
+**refuse d'écrire** sur une table qui n'expose aucune société, et deux scénarios
+d'isolation le mesurent.
+
+Mesures et conséquences détaillées :
+`docs/decisions/2026-08-29-journal-audit-par-declencheur.md`, section 3.
+
+### R2 — La POLITIQUE DE CONSERVATION du journal *(hors périmètre, à nommer)*
+
+Un journal grossit sans fin. Combien de temps le garde-t-on, et qu'en fait-on
+ensuite ? La question est **réglementaire autant que technique**. Le §15 du
+cahier des charges avance « conservé 5 ans » ; il est narratif, donc non normatif
+(D1), et le chiffre attend d'être ratifié.
+
+**Et le ticket vient de lui donner une conséquence technique qu'il vaut mieux
+nommer maintenant : purger suppose de supprimer, c'est-à-dire exactement la clé
+que l'ajout seul retire.** Aucun rôle ne peut aujourd'hui effacer une ligne du
+journal — ni `codiplan_app`, dont les privilèges d'écriture sont retirés, ni le
+propriétaire, faute de politique `DELETE` sous `FORCE ROW LEVEL SECURITY`. Une
+politique de conservation devra donc décider **qui** purge et **par quel
+chemin**, et ce chemin sera par construction une brèche dans la propriété qu'on
+vient d'établir. C'est une décision d'architecture, pas une tâche planifiée.
+
+Rien n'est construit aujourd'hui, et c'est délibéré : construire une purge avant
+d'avoir la durée reviendrait à inventer un délai (CLAUDE.md §8).
+
+### R3 — `utilisateur_societe` appartient-il au périmètre d'audit ? *(question ouverte)*
+
+I8 énumère « intervention, contrat, machine, paramétrage société, compte
+client ». L'habilitation d'un compte sur une société — donc ce qu'un utilisateur
+a le droit de faire — est manifestement sensible, et c'est **précisément pourquoi
+la ranger sans décision serait une faute** : « compte client » désigne le compte
+portail de D10, et la matrice du §5.2 distingue « Paramétrer une société »
+d'« Administrer les utilisateurs ».
+
+La table n'est donc **pas** couverte par L0-10, et
+`tests/unit/db/perimetre-audit.test.ts` échoue si quelqu'un l'y ajoute en séance.
+Élargir le périmètre de la traçabilité est un arbitrage.
+
+*Registre ouvert par le ticket L0-10 — CODIPLAN — 29 août 2026*

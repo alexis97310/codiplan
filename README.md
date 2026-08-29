@@ -195,6 +195,41 @@ le même privé de `-pooler` (`ep-xxx-1234567-pooler.ap-southeast-2.aws.neon.tec
 → `ep-xxx-1234567.ap-southeast-2.aws.neon.tech`) ; tout le reste de l'URL est
 inchangé. Voir `docs/decisions/2026-08-23-seed-transaction-latence-neon.md`.
 
+## Journal d'audit — écrit par la base, en ajout seul
+
+Toute création, modification ou suppression sur une table du périmètre de I8
+laisse une ligne dans `journal_audit` : société, entité, identifiant, action,
+auteur, horodatage, adresse, et la ligne **entière** avant et après. Elle est
+écrite par un **déclencheur PostgreSQL**, jamais par du code applicatif — aucun
+chemin d'écriture n'y échappe, pas même un `UPDATE` tapé à la main dans `psql`.
+
+Le périmètre couvert aujourd'hui : `societe`, `agence`, `calendrier`,
+`calendrier_plage`, `calendrier_ferie` (le paramétrage société) et
+`utilisateur_client` (le compte client). `machine`, `intervention` et `contrat`
+le rejoindront **dans la migration qui les crée** : le gardien
+`tests/unit/db/perimetre-audit.test.ts` le réclame dès que la table apparaît au
+schéma, plutôt que trois lots plus tard.
+
+**Le journal est en ajout seul.** Le rôle applicatif détient `SELECT` et
+`INSERT`, et rien d'autre : `UPDATE`, `DELETE` et `TRUNCATE` lui sont retirés, et
+aucune politique ne les autorise sous `FORCE ROW LEVEL SECURITY`. Deux verrous
+indépendants, contrôlés à chaque migration par `scripts/controle-cloisonnement.mts`
+— **par observation de `information_schema`, jamais par déclaration**, comme pour
+`codiplan_reporting`.
+
+**Le lire est cloisonné, et par rôle.** Une société ne lit que son propre
+journal ; dans sa société, seuls `admin_societe` et `direction` le lisent
+(matrice §5.2).
+
+**Pas de `SECURITY DEFINER`** : D50 reste close et vide. Ce contre quoi le
+journal protège est la réécriture de l'histoire, pas l'insertion d'une ligne — et
+`INSERT` sans `UPDATE` ni `DELETE` suffit à le garantir. Détail, options écartées
+et mesures : `docs/decisions/2026-08-29-journal-audit-par-declencheur.md`.
+
+Trois questions restent ouvertes et sont portées au registre de
+`docs/arbitrages.md` : le journal des référentiels de plateforme, la politique de
+conservation, et le cas d'`utilisateur_societe`.
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.
@@ -206,7 +241,7 @@ app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          auth/  calendar/  db/  i18n/  money/  reporting/  theme/  utils.ts
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
-scripts/      inventaire, contrôle de cloisonnement, horizon des fériés
+scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
@@ -215,4 +250,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé) et **L0-09** (thématisation par société). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société) et **L0-10** (journal d'audit). Aucune fonctionnalité métier : elles commencent au lot 1.

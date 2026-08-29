@@ -68,6 +68,25 @@ Le minimum imposé est de douze scénarios.
   la liste dont la contrainte pèse sur l'utilisateur d'un client, et non sur
   l'un des nôtres (RG-DRO-05).
 
+## Ajouts du ticket L0-10 — journal d'audit
+
+- `journal-audit.test.ts` — **I8, D32, D50**, en quatre temps.
+  **L'écriture n'est pas facultative** : toutes les écritures du fichier passent
+  par du SQL brut, hors de tout modèle Prisma — le chemin le plus hostile —, et
+  laissent la même ligne qu'une écriture applicative ; le jumeau **retire
+  réellement le déclencheur** pour montrer que c'est bien lui qui écrit.
+  **L'ajout seul** : les privilèges sont lus dans `information_schema` avec la
+  requête que joue `scripts/controle-cloisonnement.mts` contre la base hébergée,
+  `UPDATE` et `DELETE` sont refusés sous le rôle applicatif, et l'épreuve par
+  retrait se fait **en deux temps** — le privilège rendu, la politique mord
+  encore (zéro ligne réécrite) ; les deux verrous retirés, la réécriture passe.
+  **La lecture est cloisonnée, et par rôle** : une société ne voit pas le journal
+  d'une autre, et dans sa propre société seuls `admin_societe` et `direction` le
+  lisent (matrice §5.2).
+  **Le périmètre est tenu par la base** : poser le déclencheur sur un référentiel
+  de plateforme fait échouer la première écriture, avec un refus _lisible_ sans
+  être _informatif_ (D50) — le scénario vérifie qu'il ne nomme aucune société.
+
 ## Base de test
 
 Les scénarios tournent sur un **PostgreSQL local jetable**, recréé à chaque

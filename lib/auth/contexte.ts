@@ -21,6 +21,13 @@ export type ContexteSession = {
   role: Role | null;
   /** Le second facteur a été présenté et validé à l'ouverture de la session. */
   secondFacteurValide: boolean;
+  /**
+   * Adresse de l'appelant, telle que Better Auth l'a enregistrée sur la ligne
+   * `session` (L0-10). Elle n'autorise rien et ne filtre rien : elle alimente
+   * la colonne `adresse_ip` du journal d'audit, que le chapitre 11.2 demande.
+   * `null` quand la session n'en porte pas — jamais une valeur inventée.
+   */
+  adresseIp: string | null;
 };
 
 export const schemaContexteSession = z.object({
@@ -28,6 +35,7 @@ export const schemaContexteSession = z.object({
   societeId: z.uuid().nullable(),
   role: schemaRole.nullable(),
   secondFacteurValide: z.boolean(),
+  adresseIp: z.string().nullable(),
 });
 
 /** Contexte dont la société et le rôle sont établis : le seul qui lit quelque chose. */

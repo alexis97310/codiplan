@@ -62,6 +62,10 @@ export async function obtenirSession(
       societeId: role === null ? null : societeId,
       role: societeId === null ? null : role,
       secondFacteurValide,
+      // Better Auth la pose sur la ligne `session` (colonne `adresse_ip`, voir
+      // la correspondance de `lib/auth/config.ts`). Elle n'ouvre aucun droit :
+      // elle sert au seul journal d'audit (chapitre 11.2, L0-10).
+      adresseIp: resultat.session.ipAddress ?? null,
     },
   };
 }

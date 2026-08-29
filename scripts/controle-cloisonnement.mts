@@ -14,6 +14,16 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsPrivilegesJournal,
+  rapportPrivilegesJournal,
+  ROLE_APPLICATIF,
+  SQL_PRIVILEGES_JOURNAL,
+  TABLE_JOURNAL_AUDIT,
+  versPrivilegesJournal,
+  type LignePrivilegeJournal,
+  type PrivilegeJournal,
+} from "./lib/privileges-journal";
+import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
   decompteVide,
@@ -57,13 +67,39 @@ import {
  *   — sous le contexte de chaque société : exactement ses lignes, ni plus
  *     (fuite entre sociétés), ni moins (données propres devenues invisibles).
  *
- * Enfin, un troisième contrôle, permanent, exigé par D38 : le rôle de
+ * Puis deux contrôles permanents de PRIVILÈGES, tous deux lus dans
+ * `information_schema.role_table_grants` et non déclarés — le second est celui
+ * du ticket L0-10.
+ *
+ * Le premier, exigé par D38 : le rôle de
  * consolidation `codiplan_reporting` ne détient AUCUN privilège autre que
  * `SELECT`. Il voit toutes les sociétés et peut se connecter — c'est une clé
  * passe-partout, et sa seule limite tient à ses droits. Cette limite est posée
  * une fois par une migration ; elle est vérifiée ici à chaque exécution, par
  * `information_schema.role_table_grants` et non par déclaration. Le jour où un
  * droit d'écriture apparaît, l'étape échoue.
+ *
+ * Le second, exigé par L0-10 : le rôle applicatif `codiplan_app` ne détient sur
+ * `journal_audit` que `SELECT` et `INSERT`. Le journal d'audit est en AJOUT
+ * SEUL (I8, D32) — l'histoire s'écrit, elle ne se réécrit pas —, et cette
+ * propriété tient aux privilèges, à rien d'autre. Elle a besoin d'être
+ * surveillée exactement comme celle de `codiplan_reporting`, et pour une raison
+ * de plus : `ALTER DEFAULT PRIVILEGES` accorde d'avance `UPDATE` et `DELETE`
+ * sur toute table nouvelle, si bien que le droit d'écriture n'est pas absent
+ * par nature — il est RETIRÉ. Ce qu'une migration retire, une autre peut le
+ * rendre.
+ *
+ * Le contrôle échoue aussi sur un privilège MANQUANT : le déclencheur d'audit
+ * s'exécute en `SECURITY INVOKER`, donc avec les droits du rôle applicatif.
+ * Sans `INSERT`, ce n'est pas le journal qui se dégrade — c'est toute écriture
+ * métier qui échoue.
+ *
+ * `journal_audit` ne figure PAS parmi les tables comptées ci-dessus, et ce
+ * n'est pas un oubli : l'inventaire compare le socle amorcé par le seed à ce
+ * que le rôle applicatif en voit, tandis que le journal grossit à chaque
+ * écriture et n'est lisible que par deux rôles (§5.2). Un décompte y serait
+ * une comparaison entre deux chiffres qui n'ont aucune raison d'être égaux.
+ * Son cloisonnement est éprouvé là où il peut l'être : `tests/isolation/`.
  *
  * Les témoins hors cloisonnement (`devise`, `parite`, `utilisateur`) restent
  * lisibles sans contexte (D4) : sans eux, une base vide ou une connexion muette
@@ -150,6 +186,25 @@ async function lirePrivilegesConsolidation(
   );
 
   return versPrivileges(lignes);
+}
+
+/**
+ * Privilèges réellement accordés au rôle applicatif sur le journal d'audit
+ * (L0-10). Lus sous le rôle de MIGRATION, pour la même raison que ci-dessus :
+ * la vue ne montre que les droits dont le rôle connecté est bénéficiaire ou
+ * concédant, et c'est le rôle de migration qui a posé les `GRANT` et les
+ * `REVOKE`.
+ */
+async function lirePrivilegesJournal(
+  client: PrismaClient,
+): Promise<PrivilegeJournal[]> {
+  const lignes = await client.$queryRawUnsafe<LignePrivilegeJournal[]>(
+    SQL_PRIVILEGES_JOURNAL,
+    ROLE_APPLICATIF,
+    TABLE_JOURNAL_AUDIT,
+  );
+
+  return versPrivilegesJournal(lignes);
 }
 
 /**
@@ -249,10 +304,15 @@ try {
   const privileges = await lirePrivilegesConsolidation(prismaMigration);
   process.stdout.write(rapportPrivileges(privileges));
 
+  // L0-10 — l'ajout seul du journal d'audit, observé et non déclaré.
+  const privilegesJournal = await lirePrivilegesJournal(prismaMigration);
+  process.stdout.write(rapportPrivilegesJournal(privilegesJournal));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
     ...ecartsPrivilegesConsolidation(privileges),
+    ...ecartsPrivilegesJournal(privilegesJournal),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -272,8 +332,9 @@ try {
 
   process.stdout.write(
     "Cloisonnement vérifié sur la base hébergée : aucune ligne sans contexte, " +
-      "exactement les lignes de chaque société sous son contexte, et " +
-      `« ${ROLE_CONSOLIDATION} » en SELECT seul.\n`,
+      "exactement les lignes de chaque société sous son contexte, " +
+      `« ${ROLE_CONSOLIDATION} » en SELECT seul, et ` +
+      `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} ».\n`,
   );
 } finally {
   await prisma.$disconnect();

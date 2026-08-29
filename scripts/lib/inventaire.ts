@@ -28,6 +28,18 @@
  * Les référentiels de plateforme (`devise`, `parite`, `jour_ferie`) et
  * l'identité globale (`utilisateur`) n'en sont pas : ils relèvent de la liste
  * close de I1 ou de l'authentification, et se comptent hors cloisonnement.
+ *
+ * **`journal_audit` (L0-10) n'y figure pas non plus, et ce n'est pas un
+ * oubli.** Cette liste sert un DÉCOMPTE COMPARÉ : ce que le seed a écrit, face
+ * à ce que le rôle applicatif en voit sous le contexte de chaque société. Le
+ * journal ne se prête à aucun des deux termes — il grossit à chaque écriture
+ * plutôt qu'à chaque seed, et sa lecture n'est ouverte qu'à deux rôles (§5.2),
+ * si bien qu'un contexte sans rôle n'en verrait jamais rien. Comparer les deux
+ * chiffres reviendrait à exiger l'égalité de deux grandeurs qui n'ont aucune
+ * raison d'être égales, et l'étape échouerait sur une base parfaitement saine.
+ * Son cloisonnement est éprouvé là où il peut l'être — `tests/isolation/` —, et
+ * son ajout seul par un contrôle de privilèges dédié dans
+ * `scripts/controle-cloisonnement.mts`.
  */
 export const TABLES_CLOISONNEES = [
   "societe",
