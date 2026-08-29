@@ -149,6 +149,14 @@ contrainte `CHECK` en base. Voir
 [`docs/decisions/2026-08-28-thematisation-par-societe.md`](docs/decisions/2026-08-28-thematisation-par-societe.md)
 (D51).
 
+La variante `-lisible` — la couleur de société employée comme **texte** — est
+obtenue en déplaçant la seule clarté, teinte et saturation conservées, et elle
+**atteint le seuil de façon garantie** : les extrémités de la clarté HSL sont le
+noir et le blanc purs, et la direction est celle de l'encre lisible du fond, si
+bien que la fin de la course vaut au moins √21. Tout seuil ≤ √21 est donc
+atteint sur n'importe quel couple couleur/fond ; au-delà, la fonction **dit**
+qu'elle n'y arrive pas au lieu de le taire.
+
 **Une société sans charte** reçoit le thème neutre CODIPLAN, défini une seule
 fois dans `lib/theme/defaut.ts` et identifié comme LE défaut : les deux colonnes
 de couleur sont nullables, précisément pour qu'un provisionnement n'invente pas

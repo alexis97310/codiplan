@@ -205,6 +205,92 @@ describe("la couleur de société employée comme ENCRE sur la surface", () => {
     }
   });
 
+  it("GARANTIE (1) : la fin de la course est le noir ou le blanc PUR", () => {
+    // Le fait porteur. Si les extrémités de la clarté HSL n'étaient pas les
+    // couleurs pures, la garantie ci-dessous n'existerait pas — la course
+    // s'arrêterait sur « une couleur très sombre », de rapport inconnu.
+    // Éprouvé en exigeant 21:1, que seule l'extrémité atteint.
+    expect(ajusterPourContraste("#fff9c4", BLANC, 21).couleur).toBe("#000000");
+    expect(ajusterPourContraste("#7a1f3d", BLANC, 21).couleur).toBe("#000000");
+    expect(ajusterPourContraste("#0b5cad", "#000000", 21).couleur).toBe(
+      "#ffffff",
+    );
+    // Y compris sur une couleur très saturée, où la teinte pourrait laisser
+    // croire qu'un canal reste allumé.
+    expect(ajusterPourContraste("#00ff00", BLANC, 21).couleur).toBe("#000000");
+  });
+
+  it("GARANTIE (2) : tout seuil ≤ √21 est atteint, sur TOUT couple couleur/fond", () => {
+    // Le balayage porte sur les deux dimensions — la couleur ET le fond —
+    // parce que la garantie porte sur le couple. Un balayage sur fond blanc
+    // seulement n'aurait rien prouvé du fond sombre.
+    const fonds = [
+      "#ffffff",
+      "#000000",
+      "#767676",
+      "#5d60ff", // le pire fond balayé : celui qui atteint le plancher
+      "#fff9c4",
+      "#0b5cad",
+      "#1a1a2e",
+      "#00ff00",
+    ];
+    let couples = 0;
+
+    for (const fond of fonds) {
+      for (let r = 0; r < 256; r += 51) {
+        for (let v = 0; v < 256; v += 51) {
+          for (let b = 0; b < 256; b += 51) {
+            const couleur = `#${[r, v, b]
+              .map((canal) => canal.toString(16).padStart(2, "0"))
+              .join("")}`;
+            couples += 1;
+
+            const auSeuil = ajusterPourContraste(couleur, fond, SEUIL_TEXTE);
+            expect(auSeuil.atteint, `${couleur} sur ${fond} — seuil AA`).toBe(
+              true,
+            );
+            expect(auSeuil.rapport).toBeGreaterThanOrEqual(SEUIL_TEXTE);
+
+            // Et jusqu'au plancher théorique lui-même, pas seulement jusqu'à 4,5.
+            const auPlancher = ajusterPourContraste(
+              couleur,
+              fond,
+              PLANCHER_ENCRE,
+            );
+            expect(
+              auPlancher.atteint,
+              `${couleur} sur ${fond} — plancher √21`,
+            ).toBe(true);
+          }
+        }
+      }
+    }
+
+    expect(couples).toBeGreaterThan(1000);
+  });
+
+  it("GARANTIE (3) : la frontière est réelle — juste au-dessus de √21, elle cède", () => {
+    // Une garantie qui ne cède jamais nulle part est une garantie qu'on n'a pas
+    // éprouvée. Sur le pire fond — celui dont la luminance vaut le point
+    // d'équilibre —, un seuil d'un centième au-dessus du plancher devient hors
+    // d'atteinte, et la fonction le DIT au lieu de le taire.
+    const pireFond = "#5d60ff";
+    expect(
+      ajusterPourContraste(pireFond, pireFond, PLANCHER_ENCRE).atteint,
+    ).toBe(true);
+
+    const auDela = ajusterPourContraste(
+      pireFond,
+      pireFond,
+      PLANCHER_ENCRE + 0.01,
+    );
+    expect(auDela.atteint).toBe(false);
+    expect(auDela.rapport).toBeCloseTo(PLANCHER_ENCRE, 2);
+    // Et la course s'est bien arrêtée sur l'encre lisible de ce fond — le
+    // fait (2) de la garantie, observé à l'endroit exact où elle cède.
+    expect(auDela.couleur).toBe(encreLisible(pireFond));
+  });
+
   it("dit qu'il n'a pas atteint un seuil inatteignable, plutôt que d'échouer", () => {
     // 21:1 n'est atteignable que par le couple noir/blanc. Sur une surface
     // blanche, une couleur autre que le noir ne peut pas y arriver : le

@@ -20,7 +20,7 @@ import {
  *
  *   - entre le noir et le blanc, le MEILLEUR des deux ne descend jamais sous
  *     **√21 ≈ 4,58:1** quel que soit le fond sRGB. Le pire fond possible est
- *     celui dont la luminance relative vaut `√(1,05 × 0,05) − 0,05 ≈ 0,1791` :
+ *     celui dont la luminance relative vaut `√(1,05 × 0,05) − 0,05 ≈ 0,179` :
  *     il donne exactement le même rapport contre le noir et contre le blanc, et
  *     c'est le minimum de la fonction. **4,58 > 4,5** — le plancher exigé par
  *     WCAG 2.1, critère 1.4.3 « Contrast (Minimum) », niveau AA, texte courant.
@@ -44,6 +44,31 @@ import {
  * blanc reste illisible. D'où `ajusterPourContraste` : la teinte et la
  * saturation sont conservées, seule la clarté est déplacée jusqu'au seuil. La
  * couleur d'origine, elle, n'est jamais altérée : elle reste le fond.
+ *
+ * **Et ce déplacement est GARANTI, pas espéré.** Une clarté déplacée n'a aucune
+ * garantie a priori — c'est le noir et le blanc qui en ont une. Celle-ci
+ * repose sur trois faits, et sur eux seuls :
+ *
+ *   1. **les extrémités de la clarté HSL sont le noir et le blanc PURS**, quelles
+ *      que soient la teinte et la saturation : `C = (1 − |2L − 1|) × S` s'annule
+ *      en `L = 0` et en `L = 1`, et `m = L − C/2` y vaut 0 puis 1. La fin de la
+ *      course n'est donc pas « une couleur très sombre » : c'est exactement
+ *      `#000000` ou `#ffffff` ;
+ *   2. **la direction est celle de l'encre lisible du fond**, jamais devinée. La
+ *      fin de la course est donc l'encre lisible elle-même, dont le rapport vaut
+ *      au moins `PLANCHER_ENCRE` ;
+ *   3. **la course atteint toujours son extrémité** : 255 pas de 1/255 depuis
+ *      n'importe quelle clarté de [0, 1], bornés.
+ *
+ * Conséquence, et c'est la garantie : **tout seuil inférieur ou égal à
+ * `PLANCHER_ENCRE` est atteint, sur n'importe quel couple couleur/fond.** Le
+ * seuil AA de 4,5 en fait partie. Au-delà — 7:1, par exemple — le seuil peut
+ * être hors d'atteinte, et `atteint` le dit alors au lieu de le taire ; la
+ * frontière est mesurée dans `tests/unit/theme/contraste.test.ts`, qui la
+ * trouve exactement où le calcul l'annonce.
+ *
+ * Le parcours s'arrête au PREMIER pas qui franchit le seuil : la couleur rendue
+ * est donc la plus proche de celle du client parmi celles qui sont lisibles.
  */
 
 /**
@@ -75,11 +100,13 @@ export const ENCRE_CLAIRE = "#ffffff";
 export const LUMINANCE_PIRE_FOND = Math.sqrt(1.05 * 0.05) - 0.05;
 
 /**
- * Plancher garanti du choix noir/blanc : `√21 ≈ 4,5826`.
+ * Plancher garanti du choix noir/blanc : `√21 ≈ 4,58`.
  *
  * Ce n'est pas une mesure faite sur un échantillon, c'est la valeur de la
  * fonction en son minimum — et `tests/unit/theme/contraste.test.ts` la
- * retrouve par balayage exhaustif des teintes et des clartés.
+ * retrouve par balayage exhaustif des teintes et des clartés. C'est aussi le
+ * plafond de ce que `ajusterPourContraste` peut GARANTIR, pour la raison
+ * énoncée en tête de module.
  */
 export const PLANCHER_ENCRE = Math.sqrt(1.05 / 0.05);
 
@@ -169,11 +196,12 @@ export type Ajustement = {
  * pas son idéal continu.
  *
  * La direction n'est pas devinée : elle est celle de l'encre lisible du fond.
- * Elle garantit qu'à l'extrémité de la course — noir ou blanc — le rapport
- * atteint au moins `PLANCHER_ENCRE`, donc le seuil AA. Un seuil supérieur à ce
- * plancher peut, lui, rester hors d'atteinte : `atteint` le dit alors, et la
- * meilleure couleur trouvée est rendue plutôt qu'une erreur — un thème ne fait
- * jamais échouer un rendu.
+ * Elle garantit qu'à l'extrémité de la course — le noir ou le blanc PUR, voir
+ * les trois faits en tête de module — le rapport atteint au moins
+ * `PLANCHER_ENCRE`, donc le seuil AA. Un seuil supérieur à ce plancher peut,
+ * lui, rester hors d'atteinte : `atteint` le dit alors, et la meilleure couleur
+ * trouvée est rendue plutôt qu'une erreur — un thème ne fait jamais échouer un
+ * rendu.
  */
 export function ajusterPourContraste(
   couleur: string,
