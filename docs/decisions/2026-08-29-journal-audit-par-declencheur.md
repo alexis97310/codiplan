@@ -319,6 +319,8 @@ Le §9 du CLAUDE.md exige qu'un gardien soit mis à l'épreuve d'une violation
 | `tests/unit/db/perimetre-audit.test.ts` | le déclencheur d'`utilisateur_client` retiré de la vraie migration | **rouge**, en nommant `utilisateur_client` |
 | `tests/isolation/journal-audit.test.ts` (ajout seul) | le `REVOKE UPDATE, DELETE, TRUNCATE` retiré de la vraie migration | **rouge** sur deux scénarios — les privilèges observés, et l'écriture qui passe |
 | `tests/isolation/journal-audit.test.ts` (périmètre) | le refus « table sans société » retiré du corps du déclencheur | **rouge** sur les deux scénarios de périmètre |
+| `tests/isolation/journal-audit-partitions.test.ts` | le durcissement retiré de `journal_audit_partition_creer` | **rouge** sur trois scénarios |
+| contrôle permanent des partitions | une partition **réellement** créée nue, puis retirée | **rouge**, en nommant la partition et les deux défauts |
 
 Les six formes, pour `tablesDeclenchees` — le seul gardien de ce ticket qui
 inspecte du SQL :
@@ -383,6 +385,27 @@ de DDL — il appelle la fonction que pose la migration, celle qui crée **et**
 durcit. Un contrôle daté sans remède est un cul-de-sac ; un remède qui
 recopierait la création serait la garantie qu'une partition naisse un jour sans
 son durcissement.
+
+## 6 ter. Comment ces gardiens ont VRAIMENT échoué
+
+Trois fois dans ce ticket, un gardien est passé au vert **sans avoir rien
+regardé** — jamais parce que sa règle était fausse.
+
+1. **Une épreuve jouée sur une base vide.** L'`INSERT … SELECT FROM societe`
+   destiné à faire tomber une ligne dans la partition par défaut n'a inséré
+   **aucune ligne** : le contrôle est resté vert, et la violation n'avait pas eu
+   lieu. C'est la sonde « la partition peut-elle encore être créée ? » qui l'a
+   démasqué — pas le contrôle.
+2. **Le contrôle permanent interrogeait le parent.** Vert sur une partition
+   portant les quatre verbes et aucune RLS.
+3. **Un scénario ne lisait que `relforcerowsecurity`.** Il serait resté vert sur
+   une RLS inerte.
+
+D'où la leçon inscrite au §9 : **la vacuité est le mode de défaillance dominant
+de cette méthode, pas l'exception** — et ce qui la referme est un **témoin**,
+c'est-à-dire une assertion qui échoue quand le gardien n'a rien vu. Zéro
+privilège observé, zéro partition énumérée, zéro territoire contrôlé : tous des
+échecs. Un décompte nul ressemble toujours à un sans-faute.
 
 ## 7. Hors périmètre, porté au registre
 
@@ -462,6 +485,37 @@ cloisonnée, l'écriture est bien routée, et nommer la partition rend
 
 Corollaire écrit au §9 : **une garantie posée sur une table ne suit pas ses
 partitions, elle se repose sur chacune.**
+
+### Et la leçon s'est retournée contre son propre gardien
+
+Le contrôle permanent de l'ajout seul interrogeait
+`information_schema.role_table_grants` sur `table_name = 'journal_audit'` — **le
+parent, et lui seul.** Il avait donc exactement le défaut qu'on venait de
+décrire : il prouvait quelque chose d'une table qui ne dit rien de ses
+partitions. Une partition créée par un autre chemin que
+`journal_audit_partition_creer` — une migration future, une main humaine —
+passait dessous.
+
+**Mesuré sur le contrôle lui-même**, plutôt que supposé :
+
+| État de la base | Verdict du contrôle |
+|---|---|
+| partition créée nue — `DELETE,INSERT,SELECT,UPDATE`, aucune RLS | **VERT** *(avant correction)* |
+| la même | **ROUGE**, deux écarts nommés *(après)* |
+| privilèges retirés, `FORCE` posé, `ENABLE` oublié | **ROUGE** — un écart |
+| créée par `journal_audit_partition_creer` | **VERT** |
+
+Le contrôle énumère désormais les partitions via `pg_inherits` et exige de
+**chacune** : aucun privilège pour le rôle applicatif, et **les deux drapeaux**
+de RLS. Zéro partition observée est un échec — la table est partitionnée depuis
+sa création, elle en a forcément, et une énumération vide ne prouverait rien.
+
+**Les DEUX drapeaux, et c'est un second piège mesuré.** `FORCE ROW LEVEL
+SECURITY` seul ne suffit pas : PostgreSQL n'applique les politiques que si RLS
+est aussi **activée**. Avec `relrowsecurity = false` et `relforcerowsecurity =
+true`, la ligne reste **lisible** en nommant la partition. Le scénario
+d'isolation ne regardait d'abord que `FORCE` — il aurait laissé passer une RLS
+inerte, et il a été corrigé avec le contrôle.
 
 ### L'idempotence du seed — vérifiée, pas supposée
 

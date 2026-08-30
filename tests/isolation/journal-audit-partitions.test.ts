@@ -10,7 +10,13 @@ import {
 } from "@/lib/db/partitions";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import { ROLE_APPLICATIF } from "../../scripts/lib/privileges-journal";
+import {
+  ecartsDurcissementPartitions,
+  ROLE_APPLICATIF,
+  SQL_PARTITIONS_JOURNAL,
+  versPartitionsJournal,
+  type LignePartitionJournal,
+} from "../../scripts/lib/privileges-journal";
 import { avecSocieteEtRole, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
@@ -145,11 +151,17 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
     expect(privileges).toEqual([]);
   });
 
-  it("chaque partition force RLS — et le contrôle voit bien quelque chose", async () => {
+  it("chaque partition a RLS ACTIVÉE **et** FORCÉE — les deux drapeaux", async () => {
+    // Ce scénario ne regardait d'abord que `relforcerowsecurity`, et il aurait
+    // laissé passer une RLS inerte : mesuré en base, `FORCE` sans `ENABLE`
+    // laisse la ligne LISIBLE en nommant la partition. Les deux drapeaux sont
+    // donc exigés, ici comme dans le contrôle permanent.
     const partitions = await clientOwner().$queryRawUnsafe<
-      { nom: string; force: boolean }[]
+      { nom: string; activee: boolean; forcee: boolean }[]
     >(
-      `SELECT c.relname AS nom, c.relforcerowsecurity AS force
+      `SELECT c.relname AS nom,
+              c.relrowsecurity AS activee,
+              c.relforcerowsecurity AS forcee
          FROM pg_catalog.pg_class c
          JOIN pg_catalog.pg_inherits i ON i.inhrelid = c.oid
         WHERE i.inhparent = 'public.journal_audit'::regclass
@@ -158,7 +170,96 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
 
     // Le mois courant, douze d'avance, et le filet.
     expect(partitions.length).toBeGreaterThanOrEqual(14);
-    expect(partitions.filter((partition) => !partition.force)).toEqual([]);
+    expect(
+      partitions.filter((partition) => !partition.activee || !partition.forcee),
+    ).toEqual([]);
+  });
+
+  /** Le durcissement, lu comme `controle-cloisonnement.mts` le lit. */
+  async function partitionsObservees(tx?: PrismaClient) {
+    const client = tx ?? clientOwner();
+    const lignes = await client.$queryRawUnsafe<LignePartitionJournal[]>(
+      SQL_PARTITIONS_JOURNAL,
+      ROLE_APPLICATIF,
+    );
+    return versPartitionsJournal(lignes);
+  }
+
+  it("LE CONTRÔLE PERMANENT juge chaque partition, et il en voit", async () => {
+    // La même requête et la même règle que le script joue contre la base
+    // hébergée à chaque migration : les deux éprouvent la MÊME observation.
+    const partitions = await partitionsObservees();
+
+    expect(ecartsDurcissementPartitions(partitions)).toEqual([]);
+    // Et il ne s'exerce pas sur le vide — le témoin, sans quoi le scénario
+    // précédent serait vert pour la mauvaise raison.
+    expect(partitions.length).toBeGreaterThanOrEqual(14);
+  });
+
+  it("ÉPREUVE : une partition RÉELLEMENT créée nue fait échouer le contrôle", async () => {
+    // Le défaut tel qu'il se commettra : une migration future, ou une main
+    // humaine un soir de production, qui écrit `CREATE TABLE … PARTITION OF`
+    // sans passer par `journal_audit_partition_creer`. Mesuré avant correction,
+    // le contrôle permanent répondait VERT sur exactement cette partition.
+    let ecarts: string[] = [];
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `CREATE TABLE public."journal_audit_2099_01" PARTITION OF "journal_audit"
+           FOR VALUES FROM (timestamptz '2099-01-01 00:00:00+00')
+                        TO (timestamptz '2099-02-01 00:00:00+00')`,
+      );
+      ecarts = ecartsDurcissementPartitions(await partitionsObservees(tx));
+    });
+
+    // Deux écarts : les privilèges hérités d'ALTER DEFAULT PRIVILEGES, et
+    // l'absence de RLS. L'assertion NOMME la partition, sans quoi un écart venu
+    // d'ailleurs passerait pour celui-ci.
+    expect(ecarts).toHaveLength(2);
+    expect(ecarts.join("\n")).toContain("journal_audit_2099_01");
+    expect(ecarts.join("\n")).toContain("ALTER DEFAULT PRIVILEGES");
+    expect(ecarts.join("\n")).toContain("NON activée, NON forcée");
+  });
+
+  it("ÉPREUVE : une partition À MOITIÉ durcie est refusée elle aussi", async () => {
+    // La forme voisine, celle qu'un correcteur bien intentionné écrirait : il
+    // retire les privilèges, pose FORCE, et oublie ENABLE. Mesuré en base, la
+    // ligne reste alors lisible en nommant la partition.
+    let ecarts: string[] = [];
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `CREATE TABLE public."journal_audit_2099_02" PARTITION OF "journal_audit"
+           FOR VALUES FROM (timestamptz '2099-02-01 00:00:00+00')
+                        TO (timestamptz '2099-03-01 00:00:00+00')`,
+      );
+      await tx.$executeRawUnsafe(
+        `REVOKE ALL ON public."journal_audit_2099_02" FROM "${ROLE_APPLICATIF}"`,
+      );
+      await tx.$executeRawUnsafe(
+        `ALTER TABLE public."journal_audit_2099_02" FORCE ROW LEVEL SECURITY`,
+      );
+      ecarts = ecartsDurcissementPartitions(await partitionsObservees(tx));
+    });
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_audit_2099_02");
+    expect(ecarts[0]).toContain("NON activée, forcée");
+  });
+
+  it("la FONCTION du dépôt, elle, produit une partition qui passe le contrôle", async () => {
+    // Le témoin positif : sans lui, les deux épreuves ci-dessus prouveraient
+    // seulement que le contrôle sait dire non.
+    let ecarts: string[] = [];
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `SELECT "journal_audit_partition_creer"(date '2099-01-01')`,
+      );
+      ecarts = ecartsDurcissementPartitions(await partitionsObservees(tx));
+    });
+
+    expect(ecarts).toEqual([]);
   });
 
   it("ÉPREUVE : sans durcissement, une partition laisse TOUT passer", async () => {

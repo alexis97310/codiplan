@@ -95,10 +95,15 @@ Le minimum imposé est de douze scénarios.
   change. La table est bien `PARTITION BY RANGE` et sa clé primaire porte
   l'horodatage ; les écritures sont routées vers la partition du mois ; **aucune
   partition ne laisse au rôle applicatif le moindre privilège** et toutes forcent
-  RLS. Le jumeau rend à une partition les privilèges par défaut et lui retire
-  RLS — exactement ce qu'un `CREATE TABLE … PARTITION OF` nu aurait laissé — et
-  montre qu'alors la société A **lit et réécrit** les lignes d'audit d'une autre
-  société en nommant la partition. Un second jumeau retire la partition par
+  RLS — **les deux drapeaux**, `FORCE` sans `ENABLE` laissant les politiques
+  inappliquées. Le jumeau rend à une partition les privilèges par défaut et lui
+  retire RLS — exactement ce qu'un `CREATE TABLE … PARTITION OF` nu aurait
+  laissé — et montre qu'alors la société A **lit et réécrit** les lignes d'audit
+  d'une autre société en nommant la partition. Le contrôle permanent de
+  `controle-cloisonnement.mts` est joué ici sur la même requête, et éprouvé sur
+  une partition **réellement créée nue**, puis sur une partition à moitié
+  durcie, puis sur une partition produite par la fonction du dépôt — refus,
+  refus, acceptation. Un second jumeau retire la partition par
   défaut et montre que l'écriture hors plage est **refusée**, ce qui ferait
   échouer l'écriture métier. Enfin, les deux contrôles datés sont éprouvés sur la
   base réelle, et leur **indépendance** avec : l'horizon amputé fait mordre le

@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ecartsDurcissementPartitions,
   ecartsPrivilegesJournal,
   PRIVILEGES_ATTENDUS,
   ROLE_APPLICATIF,
+  SQL_PARTITIONS_JOURNAL,
   SQL_PRIVILEGES_JOURNAL,
   TABLE_JOURNAL_AUDIT,
+  versPartitionsJournal,
   versPrivilegesJournal,
+  type PartitionJournal,
   type PrivilegeJournal,
 } from "../../../scripts/lib/privileges-journal";
 
@@ -127,5 +131,157 @@ describe("le journal d'audit est en ajout seul (L0-10)", () => {
     // Recopiée ici : c'est la propriété qu'on garde, pas une commodité de
     // rédaction. L'élargir doit faire tomber ce test-ci.
     expect([...PRIVILEGES_ATTENDUS]).toEqual(["INSERT", "SELECT"]);
+  });
+});
+
+/**
+ * LE DURCISSEMENT DES PARTITIONS — la règle, éprouvée sans base.
+ *
+ * Ce contrôle existe parce que le précédent ne suffisait pas : il interroge le
+ * PARENT, et « une garantie posée sur une table ne suit pas ses partitions »
+ * (§9). Mesuré sur le contrôle lui-même avant correction : une partition créée
+ * nue portait `DELETE,INSERT,SELECT,UPDATE` sans aucune RLS, et le verdict
+ * était VERT.
+ */
+
+function partition(
+  surcharge: Partial<PartitionJournal> = {},
+): PartitionJournal {
+  return {
+    partition: "journal_audit_2026_08",
+    rlsActivee: true,
+    rlsForcee: true,
+    privileges: [],
+    ...surcharge,
+  };
+}
+
+describe("chaque partition du journal est durcie (L0-10)", () => {
+  it("une partition sans privilège et sous RLS forcée : aucun écart", () => {
+    expect(ecartsDurcissementPartitions([partition()])).toEqual([]);
+  });
+
+  it("ZÉRO partition observée est un ÉCHEC — la leçon du témoin", () => {
+    // La table est partitionnée depuis sa création : elle en a forcément. Une
+    // énumération vide ne prouve pas un sans-faute, elle prouve qu'on n'a rien
+    // regardé — et c'est précisément le mode de défaillance de cette méthode.
+    const ecarts = ecartsDurcissementPartitions([]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("aucune partition observée");
+    expect(ecarts[0]).toContain("MIGRATION_DATABASE_URL");
+  });
+
+  it("un privilège sur une partition est refusé, et nommé", () => {
+    const ecarts = ecartsDurcissementPartitions([
+      partition({
+        partition: "journal_audit_2099_01",
+        privileges: ["DELETE", "INSERT", "SELECT", "UPDATE"],
+      }),
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_audit_2099_01");
+    expect(ecarts[0]).toContain("DELETE, INSERT, SELECT, UPDATE");
+    expect(ecarts[0]).toContain("une AUTRE société");
+  });
+
+  it("LES DEUX DRAPEAUX sont exigés — FORCE seul ne suffit pas", () => {
+    // Mesuré en base : `relrowsecurity = false`, `relforcerowsecurity = true`,
+    // et la ligne reste lisible en nommant la partition. Un contrôle qui ne
+    // regarderait que FORCE laisserait passer une RLS inerte.
+    const ecarts = ecartsDurcissementPartitions([
+      partition({ rlsActivee: false, rlsForcee: true }),
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("NON activée, forcée");
+    expect(ecarts[0]).toContain(
+      "FORCE seul laisse les politiques inappliquées",
+    );
+  });
+
+  it("ENABLE seul ne suffit pas davantage — le propriétaire y échapperait", () => {
+    const ecarts = ecartsDurcissementPartitions([
+      partition({ rlsActivee: true, rlsForcee: false }),
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("activée, NON forcée");
+  });
+
+  it("une partition nue cumule les DEUX écarts", () => {
+    const ecarts = ecartsDurcissementPartitions([
+      partition({
+        rlsActivee: false,
+        rlsForcee: false,
+        privileges: ["SELECT"],
+      }),
+    ]);
+
+    expect(ecarts).toHaveLength(2);
+  });
+
+  it("une seule partition fautive parmi des saines suffit à faire échouer", () => {
+    // Le cas réel : quatorze partitions durcies par la migration, une quinzième
+    // créée par un autre chemin. Un contrôle qui jugerait « la plupart » ne
+    // servirait à rien.
+    const ecarts = ecartsDurcissementPartitions([
+      partition({ partition: "journal_audit_2026_08" }),
+      partition({ partition: "journal_audit_2026_09" }),
+      partition({ partition: "journal_audit_defaut" }),
+      partition({ partition: "journal_audit_2099_01", privileges: ["UPDATE"] }),
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_audit_2099_01");
+  });
+
+  it("les lignes brutes sont converties fidèlement, chaîne vide comprise", () => {
+    // Une partition SANS privilège rend une chaîne vide, pas `null` : la
+    // découper naïvement produirait `[""]`, c'est-à-dire un privilège fantôme
+    // qui ferait échouer toutes les partitions saines.
+    expect(
+      versPartitionsJournal([
+        {
+          partition: "journal_audit_2026_08",
+          rls_activee: true,
+          rls_forcee: true,
+          privileges: "",
+        },
+        {
+          partition: "journal_audit_2099_01",
+          rls_activee: false,
+          rls_forcee: false,
+          privileges: "SELECT,UPDATE",
+        },
+      ]),
+    ).toEqual([
+      {
+        partition: "journal_audit_2026_08",
+        rlsActivee: true,
+        rlsForcee: true,
+        privileges: [],
+      },
+      {
+        partition: "journal_audit_2099_01",
+        rlsActivee: false,
+        rlsForcee: false,
+        privileges: ["SELECT", "UPDATE"],
+      },
+    ]);
+  });
+
+  it("la requête énumère les PARTITIONS, et non le parent", () => {
+    // Le défaut corrigé : l'ancien contrôle filtrait sur `table_name` = le
+    // parent. Celui-ci part de `pg_inherits`, donc des partitions réelles.
+    expect(SQL_PARTITIONS_JOURNAL).toContain("pg_inherits");
+    expect(SQL_PARTITIONS_JOURNAL).toContain("relforcerowsecurity");
+    expect(SQL_PARTITIONS_JOURNAL).toContain("relrowsecurity");
+    // Le LEFT JOIN est ce qui permet à une partition SANS privilège
+    // d'apparaître : une jointure interne la ferait disparaître, et « aucune
+    // partition privilégiée » deviendrait « aucune partition ».
+    expect(SQL_PARTITIONS_JOURNAL).toContain("LEFT JOIN");
+    expect(SQL_PARTITIONS_JOURNAL).toContain("$1");
   });
 });

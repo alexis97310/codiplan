@@ -14,13 +14,19 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsDurcissementPartitions,
   ecartsPrivilegesJournal,
+  rapportPartitionsJournal,
   rapportPrivilegesJournal,
   ROLE_APPLICATIF,
+  SQL_PARTITIONS_JOURNAL,
   SQL_PRIVILEGES_JOURNAL,
   TABLE_JOURNAL_AUDIT,
+  versPartitionsJournal,
   versPrivilegesJournal,
+  type LignePartitionJournal,
   type LignePrivilegeJournal,
+  type PartitionJournal,
   type PrivilegeJournal,
 } from "./lib/privileges-journal";
 import {
@@ -93,6 +99,18 @@ import {
  * s'exécute en `SECURITY INVOKER`, donc avec les droits du rôle applicatif.
  * Sans `INSERT`, ce n'est pas le journal qui se dégrade — c'est toute écriture
  * métier qui échoue.
+ *
+ * Le troisième, et il corrige le second : le DURCISSEMENT DE CHAQUE PARTITION.
+ * Le contrôle précédent interroge `table_name = 'journal_audit'` — LE PARENT,
+ * et lui seul. Or « une garantie posée sur une table ne suit pas ses
+ * partitions » (§9) : une partition créée par un autre chemin que
+ * `journal_audit_partition_creer` — une migration future, une main humaine —
+ * porte les privilèges par défaut et aucune RLS, et le contrôle passait au
+ * vert. Mesuré sur le contrôle lui-même : partition créée nue, privilèges
+ * `DELETE,INSERT,SELECT,UPDATE`, RLS absente, verdict VERT. Le contrôle
+ * énumère donc désormais les partitions et exige de CHACUNE aucun privilège et
+ * les DEUX drapeaux de RLS — `FORCE` seul laisse les politiques inappliquées,
+ * mesuré également.
  *
  * `journal_audit` ne figure PAS parmi les tables comptées ci-dessus, et ce
  * n'est pas un oubli : l'inventaire compare le socle amorcé par le seed à ce
@@ -208,6 +226,22 @@ async function lirePrivilegesJournal(
 }
 
 /**
+ * Durcissement réellement appliqué à chaque partition du journal (L0-10).
+ * Lu sous le rôle de MIGRATION, pour la même raison que les deux contrôles
+ * précédents : c'est lui qui a posé les `GRANT` et les `REVOKE`.
+ */
+async function lirePartitionsJournal(
+  client: PrismaClient,
+): Promise<PartitionJournal[]> {
+  const lignes = await client.$queryRawUnsafe<LignePartitionJournal[]>(
+    SQL_PARTITIONS_JOURNAL,
+    ROLE_APPLICATIF,
+  );
+
+  return versPartitionsJournal(lignes);
+}
+
+/**
  * URL du rôle de migration — celui qui a posé les `GRANT`, et le seul sous
  * lequel le contrôle des privilèges de consolidation voie quelque chose.
  */
@@ -308,11 +342,17 @@ try {
   const privilegesJournal = await lirePrivilegesJournal(prismaMigration);
   process.stdout.write(rapportPrivilegesJournal(privilegesJournal));
 
+  // L0-10 — et le durcissement de CHAQUE partition : le contrôle ci-dessus ne
+  // regarde que le parent, qui ne dit rien de ses partitions (§9).
+  const partitionsJournal = await lirePartitionsJournal(prismaMigration);
+  process.stdout.write(rapportPartitionsJournal(partitionsJournal));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
     ...ecartsPrivilegesConsolidation(privileges),
     ...ecartsPrivilegesJournal(privilegesJournal),
+    ...ecartsDurcissementPartitions(partitionsJournal),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -333,8 +373,9 @@ try {
   process.stdout.write(
     "Cloisonnement vérifié sur la base hébergée : aucune ligne sans contexte, " +
       "exactement les lignes de chaque société sous son contexte, " +
-      `« ${ROLE_CONSOLIDATION} » en SELECT seul, et ` +
-      `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} ».\n`,
+      `« ${ROLE_CONSOLIDATION} » en SELECT seul, ` +
+      `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} », ` +
+      `et ses ${partitionsJournal.length} partitions toutes durcies.\n`,
   );
 } finally {
   await prisma.$disconnect();

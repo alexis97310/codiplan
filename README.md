@@ -245,11 +245,17 @@ déclencheur.
 
 Deux conséquences à connaître. La clé primaire est `("id", "horodatage")` :
 PostgreSQL exige la clé de partitionnement dans toute contrainte d'unicité. Et
-**chaque partition est durcie** — `REVOKE ALL`, `FORCE ROW LEVEL SECURITY` sans
+**chaque partition est durcie** — `REVOKE ALL`, RLS **activée et forcée**, sans
 politique — par la même fonction qui la crée : une partition est une table, elle
 hérite des privilèges par défaut mais pas des politiques du parent, et sans ce
 durcissement le rôle applicatif lirait, réécrirait et effacerait les lignes
 d'autres sociétés en nommant la partition (mesuré au ticket, §9 du CLAUDE.md).
+
+`scripts/controle-cloisonnement.mts` le vérifie à chaque migration, **partition
+par partition** et non sur le seul parent — lequel ne dit rien de ses
+partitions —, en exigeant de chacune aucun privilège et **les deux drapeaux** de
+RLS : `FORCE` sans `ENABLE` laisse les politiques inappliquées. Zéro partition
+observée est un échec.
 
 **Deux contrôles, pas un**, dans `pnpm verify:full` :
 
