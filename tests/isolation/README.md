@@ -83,6 +83,10 @@ Le minimum imposé est de douze scénarios.
   **La lecture est cloisonnée, et par rôle** : une société ne voit pas le journal
   d'une autre, et dans sa propre société seuls `admin_societe` et `direction` le
   lisent (matrice §5.2).
+  **Les habilitations sont couvertes** (D52) : accorder un droit, l'escalader
+  d'`adv` à `admin_societe`, puis le retirer laisse à chaque fois sa ligne —
+  avec l'auteur, le bénéficiaire et le rôle d'avant. C'est ce qui rend
+  vérifiable la procédure de déblocage de D40 (L7-01).
   **Le périmètre est tenu par la base** : poser le déclencheur sur un référentiel
   de plateforme fait échouer la première écriture, avec un refus _lisible_ sans
   être _informatif_ (D50) — le scénario vérifie qu'il ne nomme aucune société.

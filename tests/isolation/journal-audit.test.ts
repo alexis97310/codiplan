@@ -231,6 +231,101 @@ describe("le journal d'audit est écrit par la base (L0-10, I8, D32)", () => {
     });
   });
 
+  it("D52 : ACCORDER UN DROIT est journalisé — qui, quand, depuis quelle valeur", async () => {
+    // **L'acte le plus lourd de conséquences du système** : `utilisateur_societe`
+    // est la table par laquelle on se donne un accès. Accorder `admin_societe`
+    // à un compte, c'est lui donner le droit d'ouvrir des comptes chez le
+    // client. La question de l'auditeur — « qui a accordé ce droit, quand,
+    // depuis quelle valeur » — est celle qui rend VÉRIFIABLE la procédure de
+    // déblocage de D40 (ticket L7-01) : sans cette ligne, la procédure
+    // existerait sans preuve qu'elle a été suivie.
+    const auteur = UTILISATEUR_PAR_ROLE[Role.admin_societe];
+    const beneficiaire = uuidv7();
+    const habilitation = uuidv7();
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config('app.utilisateur_id', $1, true)",
+        auteur,
+      );
+
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur" ("id", "nom", "email", "modifie_le")
+         VALUES ($1::uuid, 'Nouvelle recrue', 'recrue-audit@iso.test', now())`,
+        beneficiaire,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur_societe" ("id", "utilisateur_id", "societe_id", "role")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+        habilitation,
+        beneficiaire,
+        SOCIETE_A,
+        Role.adv,
+      );
+      // L'ESCALADE : d'un rôle ordinaire à celui qui administre les comptes.
+      // Les rôles passent par l'énumération, jamais par une chaîne libre —
+      // `tests/unit/auth/roles-sans-chaine-libre.test.ts` (L0-06) l'exige, et
+      // la valeur est liée puis castée vers le type PostgreSQL « Role ».
+      await tx.$executeRawUnsafe(
+        `UPDATE "utilisateur_societe" SET "role" = $2::"Role"
+          WHERE "id" = $1::uuid`,
+        habilitation,
+        Role.admin_societe,
+      );
+
+      const lignes = await journalDe(tx, "utilisateur_societe", habilitation);
+
+      expect(lignes.map((ligne) => ligne.action)).toEqual([
+        "creation",
+        "modification",
+      ]);
+      // QUI a accordé le droit.
+      expect(lignes[1]?.utilisateur_id).toBe(auteur);
+      // À QUI.
+      expect(lignes[1]?.valeurs_apres?.utilisateur_id).toBe(beneficiaire);
+      // DEPUIS QUELLE VALEUR — la moitié de la question, et celle qu'un
+      // journal qui n'enregistrerait que l'état courant ne saurait pas rendre.
+      expect(lignes[1]?.valeurs_avant?.role).toBe(Role.adv);
+      expect(lignes[1]?.valeurs_apres?.role).toBe(Role.admin_societe);
+    });
+  });
+
+  it("D52 : RETIRER un droit l'est tout autant", async () => {
+    // La suppression d'une habilitation est le geste par lequel on efface une
+    // trace d'accès. Elle laisse la ligne entière AVANT, donc le rôle retiré.
+    const habilitation = uuidv7();
+    const beneficiaire = uuidv7();
+
+    await dansUneTransactionAnnulee(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur" ("id", "nom", "email", "modifie_le")
+         VALUES ($1::uuid, 'Départ', 'depart-audit@iso.test', now())`,
+        beneficiaire,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur_societe" ("id", "utilisateur_id", "societe_id", "role")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+        habilitation,
+        beneficiaire,
+        SOCIETE_A,
+        Role.direction,
+      );
+      await tx.$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE "id" = $1::uuid`,
+        habilitation,
+      );
+
+      const lignes = await journalDe(tx, "utilisateur_societe", habilitation);
+
+      expect(lignes.map((ligne) => ligne.action)).toEqual([
+        "creation",
+        "suppression",
+      ]);
+      expect(lignes[1]?.valeurs_avant?.role).toBe(Role.direction);
+      expect(lignes[1]?.valeurs_apres).toBeNull();
+    });
+  });
+
   it("l'auteur vient de la session — et vaut NULL quand il n'y en a pas", async () => {
     // Deux moitiés, et la seconde compte autant : une écriture sans session —
     // le seed, une tâche planifiée, une correction manuelle — est journalisée

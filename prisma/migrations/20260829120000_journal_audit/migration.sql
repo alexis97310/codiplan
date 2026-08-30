@@ -1,5 +1,13 @@
 -- CODIPLAN — Journal d'audit écrit par déclencheur, en ajout seul
--- (ticket L0-10 ; invariant I8 ; arbitrages D32 et D50 ; chapitre 11.2).
+-- (ticket L0-10 ; invariant I8 ; arbitrages D32, D50 et D52 ; chapitre 11.2).
+--
+-- D52 a été intégré ICI plutôt que dans une seconde migration, et c'est le
+-- CLAUDE.md §7 qui le demande : « une migration se réécrit tant qu'elle n'a pas
+-- touché une base réelle ». Celle-ci ne l'a pas fait — l'application à la base
+-- hébergée passe par le déclenchement manuel de `db-migrate.yml`, qui n'a pas
+-- eu lieu. Une seconde migration n'aurait ajouté qu'un déclencheur, mais aurait
+-- laissé deux fichiers à lire pour connaître un périmètre qui se lit d'un seul
+-- tenant. Après la première application, la règle s'inverse sans exception.
 --
 -- ── CE QUE CETTE MIGRATION ÉTABLIT ─────────────────────────────────────────
 --
@@ -42,15 +50,20 @@
 --
 -- ── LE PÉRIMÈTRE, ET POURQUOI IL S'ARRÊTE LÀ ───────────────────────────────
 --
--- I8, aligné par D32 : « intervention, contrat, machine, paramétrage société,
--- compte client ». Aujourd'hui, seules existent les tables de paramétrage
--- société — `societe`, `agence`, `calendrier`, `calendrier_plage`,
--- `calendrier_ferie` — et le compte client `utilisateur_client` (D10).
--- `intervention` (L2-07), `machine` (L2-01) et `contrat` (lot 4) rejoindront ce
--- déclencheur quand elles seront créées, et le gardien
+-- I8, aligné par D32 puis rendu EXPLICITE par D52 : le périmètre est désormais
+-- une liste de TABLES et non de notions. Il énumérait « paramétrage société »
+-- et « compte client », qu'il fallait interpréter ; `utilisateur_societe` est le
+-- cas qui l'a montré, et la source a été corrigée plutôt que l'interprétation
+-- (méthode de D44).
+--
+-- Sept tables existent aujourd'hui et portent toutes le déclencheur ci-dessous.
+-- `machine` (L2-01), `intervention` (L2-07) et `contrat` (lot 4) le recevront
+-- dans la migration qui les crée, et le gardien
 -- `tests/unit/db/perimetre-audit.test.ts` le RÉCLAME le jour où elles
 -- apparaissent au schéma : c'est la leçon du 20/08 — une liste close se
--- re-vérifie à chaque table créée, sinon elle devient fausse.
+-- re-vérifie à chaque table créée, sinon elle devient fausse. Le gardien est
+-- clos des DEUX côtés : un déclencheur posé sur une table hors liste échoue
+-- aussi, car élargir la traçabilité est un arbitrage.
 --
 -- Les référentiels de plateforme — `devise`, `parite`, `jour_ferie` — n'ont
 -- jamais figuré à ce périmètre et n'y entrent pas. Ils n'ont pas de société à
@@ -278,6 +291,18 @@ CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "calendrier_p
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
 CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "calendrier_ferie"
+  FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
+
+-- LES HABILITATIONS (D52). C'est la table par laquelle on se donne un accès :
+-- accorder `admin_societe` à un compte, c'est lui donner le droit d'ouvrir des
+-- comptes chez le client. « Qui a accordé ce droit, quand, depuis quelle
+-- valeur » est la question qu'un auditeur pose, et c'est elle qui rend
+-- VÉRIFIABLE la procédure de déblocage de D40 (ticket L7-01) : sans ce
+-- déclencheur, la procédure existerait sans preuve qu'elle a été suivie.
+--
+-- La table porte `societe_id NOT NULL` : elle entre au périmètre sans élargir
+-- aucune liste close, et sa ligne d'audit est cloisonnée comme les autres.
+CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "utilisateur_societe"
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
 -- « Compte client » : le compte portail rattaché à un client (D10).

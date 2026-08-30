@@ -123,7 +123,25 @@ Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés s
 Calendrier de référence par usage : SLA → agence de l'intervention ; majoration → agence du technicien ; conflit à la pose → calendrier de travail du technicien ; site fermé → horaires du site, avertissement seulement.
 
 ### I8 — Traçabilité
-Toute création, modification ou suppression sur intervention, contrat, machine, paramétrage société ou compte client est journalisée avec auteur, horodatage et valeurs avant/après. Le journal est protégé par trigger PostgreSQL, pas seulement par un intercepteur applicatif.
+Toute création, modification ou suppression sur une table du périmètre ci-dessous est journalisée avec auteur, horodatage et valeurs avant/après. Le journal est protégé par trigger PostgreSQL, pas seulement par un intercepteur applicatif.
+
+**Le périmètre est une LISTE DE TABLES, pas une liste de notions** *(D52)*. Il énumérait des entités — « paramétrage société », « compte client » — et il fallait donc l'interpréter pour savoir ce qui était couvert. `utilisateur_societe` est le cas qui l'a montré : la table des habilitations, dont la modification est l'acte le plus lourd de conséquences du système, n'était rangée nulle part avec certitude. On corrige la source plutôt que l'interprétation *(méthode de D44)* : la liste est désormais explicite, et une table s'y ajoute par arbitrage.
+
+| Table | Ce qu'elle porte | Lot |
+|---|---|---|
+| `societe` | paramétrage de la société | livrée |
+| `agence` | établissements *(D5)* | livrée |
+| `calendrier`, `calendrier_plage` | heures d'ouverture *(D13)* | livrée |
+| `calendrier_ferie` | écarts locaux de calendrier *(D46)* | livrée |
+| `utilisateur_societe` | **habilitations** — qui a accordé quel droit *(D52)* | livrée |
+| `utilisateur_client` | comptes portail *(D10)* | livrée |
+| `machine` | fiches machine | L2-01 |
+| `intervention` | interventions | L2-07 |
+| `contrat` | contrats | lot 4 |
+
+`utilisateur_societe` y entre parce que **c'est ainsi qu'on se donne un accès** : « qui a accordé ce droit, quand, depuis quelle valeur » est la question qu'un auditeur pose chez un client, et c'est elle qui rend vérifiable la procédure de déblocage de D40 *(L7-01)*. Elle porte `societe_id NOT NULL` : elle entre sans élargir aucune liste close.
+
+**La liste est close des DEUX côtés, et gardée.** `tests/unit/db/perimetre-audit.test.ts` part de cette table-ci : une table du périmètre présente au schéma sans déclencheur fait échouer la vérification **le jour où elle est créée** ; un déclencheur posé sur une table absente de la liste la fait échouer aussi — élargir la traçabilité est un arbitrage, jamais une décision de ticket.
 
 ### I9 — Aucune donnée de production dans le dépôt
 Pas de client réel, pas de photo, pas de clé, pas de `.env`. Les jeux de test viennent de `prisma/seed.ts`.

@@ -203,12 +203,19 @@ auteur, horodatage, adresse, et la ligne **entière** avant et après. Elle est
 écrite par un **déclencheur PostgreSQL**, jamais par du code applicatif — aucun
 chemin d'écriture n'y échappe, pas même un `UPDATE` tapé à la main dans `psql`.
 
-Le périmètre couvert aujourd'hui : `societe`, `agence`, `calendrier`,
-`calendrier_plage`, `calendrier_ferie` (le paramétrage société) et
-`utilisateur_client` (le compte client). `machine`, `intervention` et `contrat`
-le rejoindront **dans la migration qui les crée** : le gardien
+Le périmètre est une **liste de tables**, énumérée par I8 depuis D52 — et non
+une liste de notions qu'il faudrait interpréter. Sept tables aujourd'hui :
+`societe`, `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`,
+`utilisateur_societe` et `utilisateur_client`. `machine`, `intervention` et
+`contrat` le rejoindront **dans la migration qui les crée** : le gardien
 `tests/unit/db/perimetre-audit.test.ts` le réclame dès que la table apparaît au
-schéma, plutôt que trois lots plus tard.
+schéma, plutôt que trois lots plus tard — et il refuse aussi un déclencheur posé
+sur une table absente de la liste, car élargir la traçabilité est un arbitrage.
+
+`utilisateur_societe` y figure parce que **c'est ainsi qu'on se donne un
+accès** (D52) : « qui a accordé ce droit, quand, depuis quelle valeur » est la
+question de l'auditeur, et celle qui rend vérifiable la procédure de déblocage
+de D40.
 
 **Le journal est en ajout seul.** Le rôle applicatif détient `SELECT` et
 `INSERT`, et rien d'autre : `UPDATE`, `DELETE` et `TRUNCATE` lui sont retirés, et
@@ -226,9 +233,17 @@ journal protège est la réécriture de l'histoire, pas l'insertion d'une ligne 
 `INSERT` sans `UPDATE` ni `DELETE` suffit à le garantir. Détail, options écartées
 et mesures : `docs/decisions/2026-08-29-journal-audit-par-declencheur.md`.
 
-Trois questions restent ouvertes et sont portées au registre de
-`docs/arbitrages.md` : le journal des référentiels de plateforme, la politique de
-conservation, et le cas d'`utilisateur_societe`.
+**La purge ne sera pas une brèche** : on ne supprimera pas de lignes, on
+détachera des périodes. Une table partitionnée par mois se purge en détachant une
+partition — du DDL, pas du DML —, si bien qu'aucun rôle ne gagne jamais `DELETE`.
+La **durée** de conservation et l'**échéance** du partitionnement restent au
+registre de `docs/arbitrages.md`, avec la mesure du coût de conversion (0,11 s
+sur les 104 ko d'aujourd'hui, 2,4 s à 210 Mo, 17 s à 1 Go — chaque fois comme
+indisponibilité en écriture de toute l'application) et la recommandation de
+partitionner tout de suite.
+
+Reste ouvert au registre : le journal des référentiels de plateforme, et la durée
+de conservation.
 
 ## Intégration continue
 

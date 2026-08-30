@@ -1203,17 +1203,170 @@ vient d'établir. C'est une décision d'architecture, pas une tâche planifiée.
 Rien n'est construit aujourd'hui, et c'est délibéré : construire une purge avant
 d'avoir la durée reviendrait à inventer un délai (CLAUDE.md §8).
 
-### R3 — `utilisateur_societe` appartient-il au périmètre d'audit ? *(question ouverte)*
+**Le dilemme est écarté par l'arbitrage du 30 août : on ne supprimera pas de
+lignes, on détachera des périodes.** Une table partitionnée par mois se purge en
+détachant une partition — du DDL, pas du DML. Aucun rôle ne gagne jamais
+`DELETE`, la propriété d'ajout seul reste **littéralement** vraie, et la purge
+passe par le canal des migrations : tracée, délibérée, impossible par
+inadvertance. La mesure de son échéance est en note n°7 ci-dessous.
 
-I8 énumère « intervention, contrat, machine, paramétrage société, compte
-client ». L'habilitation d'un compte sur une société — donc ce qu'un utilisateur
-a le droit de faire — est manifestement sensible, et c'est **précisément pourquoi
-la ranger sans décision serait une faute** : « compte client » désigne le compte
-portail de D10, et la matrice du §5.2 distingue « Paramétrer une société »
-d'« Administrer les utilisateurs ».
+### R3 — `utilisateur_societe` appartient-il au périmètre d'audit ? — **TRANCHÉE par D52**
 
-La table n'est donc **pas** couverte par L0-10, et
-`tests/unit/db/perimetre-audit.test.ts` échoue si quelqu'un l'y ajoute en séance.
-Élargir le périmètre de la traçabilité est un arbitrage.
+Question portée le 29 août, arbitrée le 30 : **oui**. Voir la note d'arbitrage
+n°7 ci-dessous. La table est couverte depuis le même ticket, et le gardien
+`tests/unit/db/perimetre-audit.test.ts` la **réclame** au lieu de la refuser.
 
 *Registre ouvert par le ticket L0-10 — CODIPLAN — 29 août 2026*
+
+---
+
+# CODIPLAN — Note d'arbitrage n°7
+
+**Le périmètre de la traçabilité, et l'échéance de la purge**
+
+| | |
+|---|---|
+| **Objet** | Ce que le journal d'audit couvre, et comment il se purgera |
+| **Portée** | D52 ; réponse à R2 et R3 |
+| **Statut** | D52 : décision arrêtée, même autorité que les notes n°1 à n°6. La section « échéance » est une MESURE et une recommandation, pas une décision |
+| **Date** | 30 août 2026 |
+| **Ticket** | L0-10 |
+
+## D52 — `utilisateur_societe` entre au périmètre de l'audit, et I8 énumère désormais des TABLES
+
+**La décision.** `utilisateur_societe` est journalisée. C'est la table des
+habilitations, et **la modifier est l'acte le plus lourd de conséquences du
+système : c'est ainsi qu'on se donne un accès.** Accorder `admin_societe` à un
+compte, c'est lui donner le droit d'ouvrir des comptes chez le client.
+« Qui a accordé ce droit, quand, depuis quelle valeur » est la question qu'un
+auditeur posera chez un client, et c'est elle qui rend **vérifiable** la
+procédure de déblocage de D40 (ticket L7-01) : sans cette ligne, la procédure
+existerait sans preuve qu'elle a été suivie.
+
+La table porte `societe_id NOT NULL`. Elle entre donc **par la voie A de R1**,
+sans élargir aucune liste close, sans nouvelle catégorie de I1, et sa ligne
+d'audit est cloisonnée comme les autres.
+
+**Et surtout : on corrige la source du doute, pas le doute** *(méthode de D44)*.
+I8 énumérait des **notions** — « paramétrage société », « compte client » —
+qu'il fallait interpréter pour savoir ce qui était couvert. Une règle
+interprétable n'est pas une règle close : la session qui a livré L0-10 a eu
+raison de ne pas ranger seule `utilisateur_societe`, mais la prochaine table
+ambiguë reposera la même question, et rien ne garantit qu'on s'arrêtera une
+seconde fois. **I8 énumère désormais des TABLES**, chacune avec son lot, et
+l'ambiguïté disparaît là où elle était née.
+
+**Ce que l'énumération rend possible, et qui n'existait pas avant : la clôture
+DANS LES DEUX SENS.** Tant que le périmètre était une liste de notions, le
+gardien ne pouvait refuser qu'un élargissement **nommé d'avance** — il fallait
+avoir prévu la table qu'on craignait. Depuis D52, la comparaison est exacte :
+une table du périmètre présente au schéma sans déclencheur échoue, **et** un
+déclencheur posé sur une table absente de la liste échoue aussi, quelle qu'elle
+soit. Éprouvé dans les deux sens sur des violations réellement écrites dans la
+migration puis retirées — le déclencheur d'`utilisateur_societe` supprimé, puis
+un déclencheur ajouté sur `session`.
+
+**Une remarque de méthode, et c'est la quatrième fois.** Après
+`CLOISONNEE_PAR_IDENTITE`, la liste close des tables techniques et l'exemption
+des coefficients WCAG : **une règle est aussi close que sa formulation le
+permet.** Une liste de notions a l'autorité d'une décision et le contenu d'une
+interprétation — c'est le défaut du 19/08 sous une autre forme. Le remède est
+toujours le même : nommer, au lieu de laisser déduire.
+
+## L'échéance de la purge — MESURE et recommandation, pas décision
+
+*La voie est arrêtée : on détachera des partitions, on ne supprimera pas de
+lignes. Reste à savoir QUAND adopter le partitionnement, puisque PostgreSQL ne
+convertit pas une table ordinaire en table partitionnée sur place.*
+
+### Ce que la conversion exige réellement
+
+`CREATE TABLE … PARTITION BY RANGE` sur une table neuve, création des
+partitions mensuelles et d'une partition `DEFAULT`, `INSERT … SELECT` intégral,
+reconstruction des deux index, `DROP` de l'ancienne table et `RENAME`.
+
+Deux conséquences qui ne se voient pas dans cette énumération :
+
+1. **La clé primaire change.** PostgreSQL exige que la clé de partitionnement
+   appartienne à toute contrainte d'unicité : `PRIMARY KEY ("id")` devient
+   `PRIMARY KEY ("id", "horodatage")`. Aujourd'hui cela ne coûte rien —
+   **aucun code du dépôt ne lit `journal_audit` par le modèle Prisma**, tout
+   passe par du SQL. Au lot 5 ou 7, la console d'administration le lira.
+2. **La copie doit prendre `ACCESS EXCLUSIVE` D'EMBLÉE.** Sans le verrou, les
+   écritures survenues *pendant* la copie seraient **perdues** — la copie a déjà
+   lu la table. La durée de la conversion **est** donc une fenêtre
+   d'indisponibilité. Et elle ne porte pas que sur le journal : **toute écriture
+   métier insère dans `journal_audit` par le déclencheur**, si bien que la
+   fenêtre est une indisponibilité en écriture de **l'application entière**.
+
+### La mesure
+
+PostgreSQL 16, disque local, cache chaud. Procédure complète, verrou compris,
+deux exécutions par volume. Lignes de forme réelle : deux copies `jsonb` d'une
+ligne d'intervention plausible, soit ≈ 2,1 ko par ligne d'audit.
+
+| Volume | Taille de la table | Fenêtre d'indisponibilité |
+|---|---|---|
+| **50 lignes** — la démonstration, aujourd'hui | 104 ko | **0,11 s** et 0,14 s |
+| **100 000 lignes** — deux ans, hypothèse haute | 210 Mo | **2,4 s** et 3,4 s |
+| **500 000 lignes** — dix ans, ou plusieurs clients | 1 049 Mo | **17,0 s** et 17,4 s |
+
+*D'où vient le volume à deux ans.* Chapitre 11.3 : 600 à 1 500 interventions par
+an ; la matrice de transitions de D8 en compte huit statuts, soit une dizaine
+d'écritures par intervention en comptant rapport, valorisation et clôture — 15
+à 22 000 lignes par an. Plus les fiches machine (800 à 2 500, quelques écritures
+chacune), les contrats, le paramétrage et les comptes. **Ordre de grandeur réel :
+25 000 à 30 000 lignes par an, donc 50 000 à 60 000 à deux ans.** Les 100 000
+lignes mesurées sont donc une hypothèse **haute d'un facteur deux**, et les
+500 000 correspondent à dix ans ou à un parc client bien plus large.
+
+*Ce que ces chiffres ne disent pas.* Ils sont un **plancher**, pas une
+prévision : disque local, cache chaud, aucune concurrence. Sur un stockage
+réseau, le rapport entre les trois lignes tient — la conversion est linéaire en
+volume — mais les valeurs absolues montent.
+
+### Recommandation : **partitionner tout de suite**, dans un ticket dédié et immédiat
+
+Trois raisons, dans cet ordre.
+
+1. **Le coût est aujourd'hui de 0,11 seconde sur une table de 104 ko.** Il sera
+   de quelques secondes à deux ans, et de vingt à dix ans — chaque fois comme
+   **indisponibilité en écriture de toute l'application**, pas seulement du
+   journal. Ce n'est pas un coût qui s'amortit en attendant : il ne fait que
+   croître, linéairement, et il porte sur le service rendu aux clients.
+2. **L'échéance choisie tomberait au pire moment.** « Avant que la première
+   donnée de production réelle n'entre » signifie, en pratique : le jour où l'on
+   provisionne le premier client. C'est-à-dire le jour où l'on veut le moins
+   jouer une migration qui réécrit intégralement la table d'audit — et où l'on
+   sera le plus tenté de la reporter « après la mise en service ». Une échéance
+   qui se présente au moment le plus défavorable n'est pas une échéance, c'est
+   un report.
+3. **La clé primaire change, et c'est aujourd'hui que ce changement est
+   gratuit.** Aucun code ne lit `journal_audit` par le modèle Prisma. Chaque lot
+   qui passe rapproche du moment où quelque chose le lira.
+
+*Et pour être juste envers l'autre voie : elle est GARDABLE, contrairement à ce
+qu'on pourrait croire.* Un contrôle daté existerait — `controle-cloisonnement.mts`
+énumère déjà les sociétés à chaque migration contre la base hébergée, et pourrait
+échouer le jour où une société hors du jeu de démonstration apparaît alors que la
+table n'est pas partitionnée. C'est la condition que la décision du 20/08 sur la
+purge de démonstration a déjà écrite. L'argument contre le report n'est donc pas
+« on l'oublierait » — c'est le **coût croissant** et le **moment défavorable**.
+
+*Ce que le ticket devrait contenir, et rien de plus :* la conversion mesurée
+ci-dessus ; la clé primaire portée à `("id", "horodatage")` dans le schéma
+Prisma ; une partition `DEFAULT` **obligatoire**, sans quoi une écriture dont
+l'horodatage sort des partitions existantes échouerait — et ferait échouer
+l'écriture métier avec elle ; et un **contrôle d'horizon daté** sur le modèle de
+`pnpm feries:horizon`, qui échoue quand les partitions à venir ne couvrent plus
+douze mois. Cette dernière pièce n'est pas un ornement : c'est la leçon du
+21/08 appliquée aux partitions — **une donnée datée se périme en silence**, et
+une partition manquante ne se signale que par la première écriture qu'elle fait
+tomber dans la partition `DEFAULT`, d'où l'on ne peut plus la ressortir sans la
+déplacer à la main.
+
+**La durée de conservation elle-même reste ouverte (R2).** Le partitionnement ne
+la décide pas : il rend seulement la purge possible sans jamais accorder de
+`DELETE`. Le pas mensuel convient à toute durée exprimée en mois ou en années.
+
+*Note d'arbitrage n°7 — CODIPLAN — 30 août 2026*

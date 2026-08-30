@@ -7,26 +7,28 @@ import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
  * Gardien du PÉRIMÈTRE du journal d'audit (ticket L0-10, invariant I8,
  * arbitrage D32).
  *
- * **Ce qu'il répare, et ce n'est pas une table.** I8 énumère ce qui doit être
- * journalisé : « intervention, contrat, machine, paramétrage société, compte
- * client ». Trois de ces cinq entités n'ont pas encore de table — elles
- * arrivent aux lots 2 et 4. Une liste d'entités écrite aujourd'hui et des
- * tables créées dans six mois, c'est exactement l'enchaînement du 20/08 :
- * **la liste est fermée un jour, une décision ultérieure crée la table, et
- * personne ne revient l'y rattacher.** Le journal resterait vert, avec un
- * périmètre devenu faux — et un journal qui ne trace pas les interventions
- * ressemble beaucoup trop à un journal qui fonctionne.
+ * **Ce qu'il répare, et ce n'est pas une table.** Trois des tables de I8
+ * n'existent pas encore — elles arrivent aux lots 2 et 4. Une liste écrite
+ * aujourd'hui et des tables créées dans six mois, c'est exactement
+ * l'enchaînement du 20/08 : **la liste est fermée un jour, une décision
+ * ultérieure crée la table, et personne ne revient l'y rattacher.** Le journal
+ * resterait vert, avec un périmètre devenu faux — et un journal qui ne trace
+ * pas les interventions ressemble beaucoup trop à un journal qui fonctionne.
  *
  * **Le renversement.** Ce gardien ne part pas des déclencheurs pour vérifier
- * qu'ils sont légitimes ; il part du PÉRIMÈTRE DE I8 et exige que chaque entité
- * dont la table existe porte son déclencheur. Une table créée demain sans
- * déclencheur fait tomber la vérification le jour où elle est écrite, pas trois
- * lots plus tard.
+ * qu'ils sont légitimes ; il part du PÉRIMÈTRE DE I8 et exige que chaque table
+ * qui existe porte son déclencheur. Une table créée demain sans déclencheur
+ * fait tomber la vérification le jour où elle est écrite, pas trois lots plus
+ * tard.
  *
- * **Et il ferme la porte dans l'autre sens aussi.** Une table hors périmètre
- * qui recevrait le déclencheur élargirait I8 sans arbitrage — c'est le cas de
- * `utilisateur_societe`, porté au registre par ce ticket et volontairement non
- * couvert. Le gardien échoue si quelqu'un l'y ajoute en séance.
+ * **Et il est clos DES DEUX CÔTÉS depuis D52.** Tant que I8 énumérait des
+ * NOTIONS — « paramétrage société », « compte client » —, il fallait
+ * l'interpréter pour savoir ce qui était couvert, et le gardien ne pouvait
+ * refuser qu'un élargissement nommé d'avance. D52 a corrigé la source plutôt
+ * que l'interprétation (méthode de D44) : I8 énumère désormais des TABLES, et
+ * la comparaison devient exacte. Un déclencheur posé sur une table absente de
+ * la liste échoue, quelle qu'elle soit — élargir la traçabilité est un
+ * arbitrage, jamais une décision de ticket.
  */
 
 /** Ce que le déclencheur d'audit s'appelle, partout où il est posé. */
@@ -43,34 +45,25 @@ const NOM_DECLENCHEUR = "journal_audit";
  * n'existe pas encore.
  */
 const PERIMETRE_I8 = [
-  // « paramétrage société » — la société et tout ce qui la paramètre.
-  { entite: "paramétrage société", table: "societe", lot: null },
-  { entite: "paramétrage société", table: "agence", lot: null },
-  { entite: "paramétrage société", table: "calendrier", lot: null },
-  { entite: "paramétrage société", table: "calendrier_plage", lot: null },
-  { entite: "paramétrage société", table: "calendrier_ferie", lot: null },
-  // « compte client » — le compte portail rattaché à un client (D10).
-  { entite: "compte client", table: "utilisateur_client", lot: null },
-  // Les trois entités métier dont la table n'existe pas encore.
-  { entite: "machine", table: "machine", lot: "L2-01" },
-  { entite: "intervention", table: "intervention", lot: "L2-07" },
-  { entite: "contrat", table: "contrat", lot: "lot 4" },
+  { entite: "paramétrage de la société", table: "societe", lot: null },
+  { entite: "établissements", table: "agence", lot: null },
+  { entite: "heures d'ouverture", table: "calendrier", lot: null },
+  { entite: "heures d'ouverture", table: "calendrier_plage", lot: null },
+  {
+    entite: "écarts locaux de calendrier",
+    table: "calendrier_ferie",
+    lot: null,
+  },
+  // D52 — c'est par cette table qu'on se donne un accès. « Qui a accordé ce
+  // droit, quand, depuis quelle valeur » est la question de l'auditeur, et
+  // celle qui rend vérifiable la procédure de déblocage de D40 (L7-01).
+  { entite: "habilitations (D52)", table: "utilisateur_societe", lot: null },
+  { entite: "comptes portail (D10)", table: "utilisateur_client", lot: null },
+  // Les trois tables métier qui n'existent pas encore.
+  { entite: "fiches machine", table: "machine", lot: "L2-01" },
+  { entite: "interventions", table: "intervention", lot: "L2-07" },
+  { entite: "contrats", table: "contrat", lot: "lot 4" },
 ] as const;
-
-/**
- * Tables dont l'appartenance au périmètre est une QUESTION, portée au registre
- * par ce ticket et non tranchée en séance (CLAUDE.md §8).
- *
- * `utilisateur_societe` porte l'habilitation d'un compte sur une société — donc
- * ce qu'un utilisateur a le droit de faire. C'est manifestement sensible, et
- * c'est précisément pourquoi la ranger sans décision serait une faute : I8 dit
- * « compte client », et la matrice du §5.2 distingue « Paramétrer une société »
- * d'« Administrer les utilisateurs ». Élargir le périmètre est un arbitrage.
- *
- * Le gardien échoue donc si le déclencheur y apparaît : la question doit
- * revenir par le registre, jamais par un commit.
- */
-const SOUS_ARBITRAGE = ["utilisateur_societe"] as const;
 
 /**
  * Retire du SQL ce qui DOCUMENTE, pour ne garder que ce qui S'EXÉCUTE.
@@ -179,7 +172,6 @@ export function ecartsPerimetreAudit(
     table: string;
     lot: string | null;
   }[] = PERIMETRE_I8,
-  sousArbitrage: readonly string[] = SOUS_ARBITRAGE,
 ): string[] {
   const ecarts: string[] = [];
   const existantes = tablesDuSchema(schema);
@@ -201,13 +193,18 @@ export function ecartsPerimetreAudit(
     }
   }
 
-  for (const table of sousArbitrage) {
-    if (declenchees.includes(table)) {
+  // La clôture DANS L'AUTRE SENS, possible depuis D52 : I8 énumérant des
+  // tables, tout déclencheur posé ailleurs est un élargissement décidé en
+  // séance. La liste n'a plus besoin de nommer d'avance la table qu'on
+  // craignait — c'est le périmètre entier qui fait autorité.
+  const couvertes = perimetre.map((entree) => entree.table);
+  for (const table of declenchees) {
+    if (!couvertes.includes(table)) {
       ecarts.push(
-        `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors que ` +
-          "son appartenance au périmètre de I8 est une QUESTION portée au " +
-          "registre des arbitrages. Élargir le périmètre de la traçabilité " +
-          "est un arbitrage, il ne se décide pas dans un ticket.",
+        `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle ne figure PAS au périmètre d'audit de I8. Élargir la " +
+          "traçabilité est un arbitrage — la table s'ajoute d'abord à la " +
+          "liste de I8, dans le CLAUDE.md, et jamais l'inverse.",
       );
     }
   }
@@ -223,7 +220,7 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   it("le gardien lit réellement des déclencheurs — sinon il garde le vide", () => {
     // Un gardien qui ne trouve aucun déclencheur passerait au vert en
     // n'exigeant rien de personne.
-    expect(declenchees.length).toBeGreaterThanOrEqual(6);
+    expect(declenchees.length).toBeGreaterThanOrEqual(7);
     expect(declenchees).toContain("societe");
   });
 
@@ -270,19 +267,41 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   });
 
   it("ÉPREUVE : un élargissement silencieux du périmètre est refusé", () => {
-    // Le cas inverse, et il est aussi grave : ajouter `utilisateur_societe` au
-    // déclencheur répond en séance à une question qui appartient au registre.
-    const ecarts = ecartsPerimetreAudit(schema, [
-      ...declenchees,
+    // Le cas inverse, et il est aussi grave. Depuis D52 il n'a plus besoin
+    // d'être nommé d'avance : n'IMPORTE QUELLE table hors liste est refusée.
+    // Deux sujets, pris chacun dans une catégorie différente de I1, pour que
+    // le refus ne tienne pas à une particularité de l'une d'elles.
+    for (const intruse of ["session", "devise"]) {
+      const ecarts = ecartsPerimetreAudit(schema, [...declenchees, intruse]);
+
+      expect(ecarts, intruse).toHaveLength(1);
+      expect(ecarts[0]).toContain(intruse);
+      expect(ecarts[0]).toContain("ne figure PAS au périmètre d'audit de I8");
+    }
+  });
+
+  it("D52 : `utilisateur_societe` est RÉCLAMÉE, et non plus refusée", () => {
+    // Le sens du gardien s'est inversé sur cette table, et il faut que le
+    // renversement soit lisible dans le test lui-même : elle figure au
+    // périmètre, elle existe au schéma, elle DOIT donc porter le déclencheur.
+    expect(PERIMETRE_I8.map((entree) => entree.table)).toContain(
       "utilisateur_societe",
-    ]);
+    );
+    expect(declenchees).toContain("utilisateur_societe");
+
+    // Et son absence est bien un écart, nommé : c'est l'épreuve du
+    // renversement, pas seulement son constat.
+    const sansElle = declenchees.filter(
+      (table) => table !== "utilisateur_societe",
+    );
+    const ecarts = ecartsPerimetreAudit(schema, sansElle);
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("utilisateur_societe");
-    expect(ecarts[0]).toContain("registre des arbitrages");
+    expect(ecarts[0]).toContain("habilitations (D52)");
   });
 
-  it("les six tables couvertes aujourd'hui sont exactement celles attendues", () => {
+  it("les sept tables couvertes aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, pour qu'un déclencheur posé ailleurs se voie. La liste est
     // recopiée : c'est la constitution confrontée aux migrations, pas les
     // migrations confrontées à elles-mêmes.
@@ -293,6 +312,7 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
       "calendrier_plage",
       "societe",
       "utilisateur_client",
+      "utilisateur_societe",
     ]);
   });
 

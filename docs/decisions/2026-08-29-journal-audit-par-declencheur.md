@@ -1,7 +1,7 @@
 # Journal d'audit — écrit par la base, en ajout seul, sans `SECURITY DEFINER`
 
-*Ticket L0-10. Invariant I8, arbitrages D32 et D50, chapitre 11.2.*
-*29 août 2026.*
+*Ticket L0-10. Invariant I8, arbitrages D32, D50 et D52, chapitre 11.2.*
+*29 août 2026, complété le 30 par la note d'arbitrage n°7.*
 
 ---
 
@@ -103,6 +103,42 @@ s'exécutant en `SECURITY INVOKER`, un `INSERT` retiré ne dégraderait pas le
 journal — il ferait échouer **toute écriture métier**.
 
 ---
+
+## 2 bis. D52 — le périmètre énumère des TABLES, et `utilisateur_societe` en fait partie
+
+*Arbitré le 30 août, note n°7.*
+
+Le ticket avait porté au registre une question : `utilisateur_societe`
+appartient-elle au périmètre ? Réponse : **oui**. C'est la table des
+habilitations, et la modifier est **l'acte le plus lourd de conséquences du
+système — c'est ainsi qu'on se donne un accès**. « Qui a accordé ce droit,
+quand, depuis quelle valeur » est la question de l'auditeur, et celle qui rend
+**vérifiable** la procédure de déblocage de D40 (L7-01) : sans cette ligne, la
+procédure existerait sans preuve qu'elle a été suivie. La table porte
+`societe_id NOT NULL` : elle entre par la voie A, sans élargir aucune liste.
+
+**Et la cause du doute est réparée, pas contournée** *(méthode de D44)*. I8
+énumérait des **notions** — « paramétrage société », « compte client » — qu'il
+fallait interpréter. Une règle interprétable n'est pas close : la prochaine
+table ambiguë aurait reposé la même question. I8 énumère désormais des
+**tables**, chacune avec son lot.
+
+Conséquence sur le gardien, et elle est structurelle : **la clôture vaut
+désormais dans les deux sens.** Tant que le périmètre était une liste de
+notions, le gardien ne pouvait refuser qu'un élargissement *nommé d'avance*
+(`SOUS_ARBITRAGE`, qui ne contenait qu'une entrée : la table qu'on craignait).
+La comparaison est maintenant exacte — toute table déclenchée hors liste échoue,
+quelle qu'elle soit. Le gardien a été éprouvé dans les deux sens sur des
+violations **réellement écrites** dans la migration puis retirées : le
+déclencheur d'`utilisateur_societe` supprimé (rouge, en le nommant), puis un
+déclencheur ajouté sur `session` (rouge, en le nommant).
+
+**La migration a été corrigée SUR PLACE**, et c'est le §7 qui le demande : elle
+n'a pas touché de base réelle — l'application à la base hébergée passe par le
+déclenchement manuel de `db-migrate.yml`, qui n'a pas eu lieu. Une seconde
+migration n'aurait ajouté qu'un déclencheur, mais aurait laissé deux fichiers à
+lire pour un périmètre qui se lit d'un seul tenant. Après la première
+application, la règle s'inverse sans exception.
 
 ## 3. La question NON tranchée : les référentiels de plateforme
 
@@ -313,22 +349,53 @@ inspecte du SQL :
 ## 7. Hors périmètre, porté au registre
 
 **La politique de conservation.** Un journal grossit sans fin, et la question —
-combien de temps, et qu'en fait-on ensuite — est réglementaire autant que
-technique. Le §15 du cahier des charges avance « conservé 5 ans », mais il est
-narratif et donc non normatif (D1) : le chiffre attend d'être ratifié.
+combien de temps — est réglementaire autant que technique. Le §15 avance
+« conservé 5 ans », mais il est narratif donc non normatif (D1) : le chiffre
+attend d'être ratifié.
 
-Et la question a une conséquence technique que ce ticket vient de créer, et qu'il
-vaut mieux nommer maintenant : **purger suppose de supprimer, c'est-à-dire
-exactement la clé que l'ajout seul retire.** Il n'existe aujourd'hui aucun rôle
-capable d'effacer une ligne du journal — ni `codiplan_app` (privilèges retirés),
-ni le propriétaire (aucune politique `DELETE` sous `FORCE ROW LEVEL SECURITY`).
-Une politique de conservation devra donc décider **qui** purge et **par quel
-chemin**, et ce chemin sera par construction une brèche dans la propriété qu'on
-vient d'établir. C'est une décision d'architecture, pas un `cron`.
+Le ticket avait nommé un dilemme : **purger suppose de supprimer, c'est-à-dire
+exactement la clé que l'ajout seul retire.** *L'arbitrage du 30 août l'écarte* :
+on ne supprimera pas de lignes, **on détachera des périodes**. Une table
+partitionnée par mois se purge en détachant une partition — du DDL, pas du DML.
+Aucun rôle ne gagne jamais `DELETE`, la propriété d'ajout seul reste
+littéralement vraie, et la purge passe par le canal des migrations : tracée,
+délibérée, impossible par inadvertance.
 
-**`utilisateur_societe`.** L'habilitation d'un compte sur une société est
-manifestement sensible — et c'est précisément pourquoi la ranger sans décision
-serait une faute. I8 dit « compte client » ; la matrice du §5.2 distingue
-« Paramétrer une société » d'« Administrer les utilisateurs ». La table n'est
-donc **pas** couverte, et le gardien `perimetre-audit` échoue si quelqu'un l'y
-ajoute en séance.
+**Ce qui reste à décider est l'ÉCHÉANCE, et elle est mesurée.** PostgreSQL ne
+convertit pas une table ordinaire en table partitionnée sur place : il faut
+créer, copier, indexer, échanger — et prendre `ACCESS EXCLUSIVE` d'emblée, sans
+quoi les écritures survenues pendant la copie seraient perdues. La durée **est**
+donc une fenêtre d'indisponibilité, et elle ne porte pas que sur le journal :
+toute écriture métier y insérant par le déclencheur, c'est **l'application
+entière** qui est bloquée en écriture.
+
+| Volume | Taille | Fenêtre d'indisponibilité |
+|---|---|---|
+| 50 lignes — la démonstration, aujourd'hui | 104 ko | **0,11 s** et 0,14 s |
+| 100 000 lignes — deux ans, hypothèse haute | 210 Mo | **2,4 s** et 3,4 s |
+| 500 000 lignes — dix ans, ou plusieurs clients | 1 049 Mo | **17,0 s** et 17,4 s |
+
+*PostgreSQL 16, disque local, cache chaud, procédure complète verrou compris,
+deux exécutions par volume. Lignes de forme réelle : deux copies `jsonb` d'une
+intervention plausible, ≈ 2,1 ko par ligne. Ces chiffres sont un **plancher** —
+la conversion est linéaire en volume, les valeurs absolues montent sur un
+stockage réseau.*
+
+**Recommandation : partitionner tout de suite**, dans un ticket dédié et
+immédiat. Le coût est aujourd'hui de 0,11 seconde ; il ne fait que croître, et
+il porte sur le service rendu. L'échéance alternative — « avant la première
+donnée de production réelle » — tomberait le jour du provisionnement du premier
+client, c'est-à-dire au moment le plus défavorable pour jouer une migration qui
+réécrit toute la table : une échéance qui se présente là n'est pas une échéance,
+c'est un report. Et la clé primaire doit passer de `("id")` à
+`("id", "horodatage")` — gratuit aujourd'hui, **aucun code du dépôt ne lisant
+`journal_audit` par le modèle Prisma**, coûteux dès que la console le lira.
+
+Pour être juste envers l'autre voie : elle **serait** gardable —
+`controle-cloisonnement.mts` énumère déjà les sociétés à chaque migration contre
+la base hébergée et pourrait échouer dès qu'une société hors démonstration
+apparaît. L'argument contre le report n'est donc pas l'oubli, c'est le coût
+croissant et le moment défavorable.
+
+Détail, arithmétique du volume et contenu du ticket recommandé : note
+d'arbitrage n°7 dans `docs/arbitrages.md`.
