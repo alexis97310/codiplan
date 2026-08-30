@@ -1325,7 +1325,15 @@ prévision : disque local, cache chaud, aucune concurrence. Sur un stockage
 réseau, le rapport entre les trois lignes tient — la conversion est linéaire en
 volume — mais les valeurs absolues montent.
 
-### Recommandation : **partitionner tout de suite**, dans un ticket dédié et immédiat
+### Décision : **la table NAÎT partitionnée, dans L0-10** *(arrêtée le 30 août)*
+
+*La recommandation ci-dessous a été acceptée, et resserrée : pas de ticket
+ultérieur. La migration n'ayant touché aucune base réelle, le §7 permet de la
+corriger sur place — et **créée partitionnée, la migration de reprise n'existe
+jamais, ni la fenêtre d'indisponibilité qu'elle porterait.** Le meilleur moyen
+de ne pas payer une reprise est de n'avoir jamais à la faire.*
+
+### Recommandation d'origine : **partitionner tout de suite**
 
 Trois raisons, dans cet ordre.
 
@@ -1353,17 +1361,52 @@ table n'est pas partitionnée. C'est la condition que la décision du 20/08 sur 
 purge de démonstration a déjà écrite. L'argument contre le report n'est donc pas
 « on l'oublierait » — c'est le **coût croissant** et le **moment défavorable**.
 
-*Ce que le ticket devrait contenir, et rien de plus :* la conversion mesurée
-ci-dessus ; la clé primaire portée à `("id", "horodatage")` dans le schéma
-Prisma ; une partition `DEFAULT` **obligatoire**, sans quoi une écriture dont
-l'horodatage sort des partitions existantes échouerait — et ferait échouer
-l'écriture métier avec elle ; et un **contrôle d'horizon daté** sur le modèle de
-`pnpm feries:horizon`, qui échoue quand les partitions à venir ne couvrent plus
-douze mois. Cette dernière pièce n'est pas un ornement : c'est la leçon du
-21/08 appliquée aux partitions — **une donnée datée se périme en silence**, et
-une partition manquante ne se signale que par la première écriture qu'elle fait
-tomber dans la partition `DEFAULT`, d'où l'on ne peut plus la ressortir sans la
-déplacer à la main.
+*Ce qui a été livré, et rien de plus :* la table créée partitionnée ; la clé
+primaire portée à `("id", "horodatage")` — PostgreSQL exige la clé de
+partitionnement dans toute contrainte d'unicité ; une partition `DEFAULT`
+**obligatoire**, sans quoi une écriture dont l'horodatage sort des partitions
+existantes échouerait — et ferait échouer l'écriture métier avec elle, le
+déclencheur vivant dans sa transaction ; le mois courant et douze suivants ; et
+**deux** contrôles datés dans `verify:full`, un préventif et un détectif. **Et deux contrôles plutôt qu'un, c'est le point ajouté à la revue.** Le
+**préventif** — `pnpm audit:partitions`, horizon de douze mois, sur le modèle de
+`pnpm feries:horizon` — protège du problème. Le **détectif** — la partition
+`DEFAULT` doit être **vide** — prouve qu'il ne s'est pas produit, ce que le
+premier ne peut pas faire : si une partition a manqué, l'écriture a **réussi**,
+et la ligne rangée par défaut est le seul signal qui en subsiste. Les deux sont
+indépendants dans les deux sens, et c'est mesuré : l'horizon amputé fait mordre
+le préventif pendant que le détectif reste vert, une ligne rangée par défaut fait
+l'inverse. Mesuré aussi, le coût qui croît : **une fois une ligne du mois M
+rangée par défaut, PostgreSQL refuse de créer la partition de M** — « updated
+partition constraint for default partition would be violated by some row ». Le
+détectif ne signale donc pas une imperfection, il signale une réparation qui
+devient plus chère chaque jour.
+
+### Ce que la mise en œuvre a trouvé, et qui n'était pas dans la mesure
+
+**Un partitionnement naïf aurait détruit les deux invariants du ticket.** Mesuré
+avant d'être corrigé : une partition est une **table**, elle hérite donc
+d'`ALTER DEFAULT PRIVILEGES` — `SELECT, INSERT, UPDATE, DELETE` au rôle
+applicatif sur toute table nouvelle — et elle n'hérite **pas** des politiques du
+parent, qui ne s'appliquent que si l'on interroge le parent. Sous le rôle
+applicatif, contexte de la société A : par le parent, 1 ligne vue, le
+cloisonnement tient ; **en nommant la partition, 2 lignes vues dont celle d'une
+autre société, `UPDATE` les réécrit toutes, `DELETE` les efface.** Dans la table
+qui porte les valeurs avant/après de tout le métier.
+
+D'où le durcissement — `REVOKE ALL` et `FORCE ROW LEVEL SECURITY` sans politique
+— appliqué à chaque partition, présente et à venir, **par la même fonction qui la
+crée** : les séparer serait garantir qu'un jour une partition naisse sans l'un
+des deux. Le routage des lignes n'exige aucun privilège sur la partition (mesuré
+également), le durcissement ne coûte donc rien. La leçon est inscrite au §9 du
+CLAUDE.md.
+
+**L'idempotence du seed est INCHANGÉE — vérifiée, pas supposée.** Trois
+exécutions successives de `pnpm db:seed` sur une base vierge : 50 lignes d'audit
+après la première, 50 après la troisième, 50 identifiants distincts, toutes
+rangées dans la partition du mois courant et **aucune** par défaut. La clé
+composite ne touche rien, pour une raison simple : le seed n'écrit jamais
+`journal_audit`, c'est le déclencheur qui l'écrit — et seulement quand une ligne
+change réellement.
 
 **La durée de conservation elle-même reste ouverte (R2).** Le partitionnement ne
 la décide pas : il rend seulement la purge possible sans jamais accorder de

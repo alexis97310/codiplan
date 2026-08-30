@@ -346,6 +346,44 @@ inspecte du SQL :
 
 ---
 
+## 6 bis. Deux contrôles sur les partitions, et pourquoi pas un seul
+
+Un découpage mensuel doit être ENTRETENU. Deux contrôles, dans `verify:full`.
+
+**Le PRÉVENTIF** — `pnpm audit:partitions`, volet horizon : reste-t-il douze mois
+de partitions devant ? C'est exactement le contrôle des jours fériés (D46,
+complément 3), et la même doctrine : une donnée datée se périme en silence. La
+consécutivité compte, et pas seulement le nombre — un trou au milieu de
+l'horizon ne se voit pas dans un décompte, et c'est le cas qu'un simple « treize
+partitions » laisserait passer.
+
+**Le DÉTECTIF** — la partition par défaut doit être **vide**. Et c'est le point
+qui ne se déduit pas du premier : *le préventif protège du problème, il ne prouve
+pas qu'il ne s'est pas produit.* Si une partition a manqué — parce que le
+contrôle n'a pas tourné, parce qu'on a repoussé son échec —, l'écriture, elle, a
+**réussi** : la partition par défaut l'a rattrapée, et **rien d'autre ne s'en
+souvient**. La ligne rangée par défaut est la seule trace rétrospective.
+
+C'est la famille du jumeau d'un test de refus (§9, 24/08) : **une garantie qu'on
+ne peut pas constater après coup est une intention, pas une garantie.**
+
+**Leur indépendance est mesurée, dans les deux sens.** Les partitions d'avance
+réellement supprimées : le préventif mord, le détectif reste vert. Une ligne
+réellement rangée par défaut : le détectif mord, le préventif reste vert. Un seul
+contrôle aurait manqué l'un des deux cas.
+
+**Et le détectif ne signale pas une imperfection, il signale une réparation qui
+devient plus chère chaque jour.** Mesuré : une fois une ligne du mois M rangée
+par défaut, PostgreSQL **refuse** de créer la partition de M — « updated
+partition constraint for default partition would be violated by some row ». Il
+faut alors déplacer les lignes à la main.
+
+**Le remède est versionné** : `pnpm partitions:etendre`. Il n'écrit pas une ligne
+de DDL — il appelle la fonction que pose la migration, celle qui crée **et**
+durcit. Un contrôle daté sans remède est un cul-de-sac ; un remède qui
+recopierait la création serait la garantie qu'une partition naisse un jour sans
+son durcissement.
+
 ## 7. Hors périmètre, porté au registre
 
 **La politique de conservation.** Un journal grossit sans fin, et la question —
@@ -361,7 +399,7 @@ Aucun rôle ne gagne jamais `DELETE`, la propriété d'ajout seul reste
 littéralement vraie, et la purge passe par le canal des migrations : tracée,
 délibérée, impossible par inadvertance.
 
-**Ce qui reste à décider est l'ÉCHÉANCE, et elle est mesurée.** PostgreSQL ne
+**L'ÉCHÉANCE est tranchée : maintenant.** Voici la mesure qui l'a décidée. PostgreSQL ne
 convertit pas une table ordinaire en table partitionnée sur place : il faut
 créer, copier, indexer, échanger — et prendre `ACCESS EXCLUSIVE` d'emblée, sans
 quoi les écritures survenues pendant la copie seraient perdues. La durée **est**
@@ -381,21 +419,77 @@ intervention plausible, ≈ 2,1 ko par ligne. Ces chiffres sont un **plancher** 
 la conversion est linéaire en volume, les valeurs absolues montent sur un
 stockage réseau.*
 
-**Recommandation : partitionner tout de suite**, dans un ticket dédié et
-immédiat. Le coût est aujourd'hui de 0,11 seconde ; il ne fait que croître, et
-il porte sur le service rendu. L'échéance alternative — « avant la première
-donnée de production réelle » — tomberait le jour du provisionnement du premier
-client, c'est-à-dire au moment le plus défavorable pour jouer une migration qui
-réécrit toute la table : une échéance qui se présente là n'est pas une échéance,
-c'est un report. Et la clé primaire doit passer de `("id")` à
-`("id", "horodatage")` — gratuit aujourd'hui, **aucun code du dépôt ne lisant
-`journal_audit` par le modèle Prisma**, coûteux dès que la console le lira.
+**DÉCIDÉ (30 août) : la table NAÎT partitionnée, dans ce ticket même.** Pas de
+ticket ultérieur — la migration n'ayant touché aucune base réelle, le §7 permet
+de la corriger sur place, et **créée partitionnée, la migration de reprise
+n'existe jamais, ni la fenêtre d'indisponibilité qu'elle porterait.**
 
-Pour être juste envers l'autre voie : elle **serait** gardable —
-`controle-cloisonnement.mts` énumère déjà les sociétés à chaque migration contre
-la base hébergée et pourrait échouer dès qu'une société hors démonstration
-apparaît. L'argument contre le report n'est donc pas l'oubli, c'est le coût
-croissant et le moment défavorable.
+L'argument qui emporte la décision n'est pas le risque d'oubli. L'autre voie
+**serait** gardable : `controle-cloisonnement.mts` énumère déjà les sociétés à
+chaque migration contre la base hébergée, il aurait suffi qu'il échoue dès
+qu'une société hors démonstration apparaisse. C'est **le moment** qui tranche :
+« avant la première donnée de production réelle » signifie le jour du
+provisionnement du premier client, c'est-à-dire le jour où l'on veut le moins
+jouer une migration qui réécrit toute la table, et où l'on sera le plus tenté de
+la repousser « après la mise en service ». **Une échéance qui se présente au
+moment le plus défavorable n'est pas une échéance, c'est un report.** La
+formulation est inscrite au §9 du CLAUDE.md : elle vaut au-delà de ce ticket.
 
-Détail, arithmétique du volume et contenu du ticket recommandé : note
-d'arbitrage n°7 dans `docs/arbitrages.md`.
+### Ce que la mise en œuvre a trouvé, et qui n'était pas dans la mesure
+
+**Un partitionnement naïf aurait détruit les deux invariants de ce ticket.**
+Mesuré avant d'être corrigé. Une partition est une **table** : elle hérite
+d'`ALTER DEFAULT PRIVILEGES` — `SELECT, INSERT, UPDATE, DELETE` au rôle
+applicatif sur toute table nouvelle, y compris celle qu'un script créera dans
+dix-huit mois — et elle n'hérite **pas** des politiques du parent, qui ne
+s'appliquent que si l'on interroge le parent.
+
+| Sous le rôle applicatif, contexte société A | Résultat |
+|---|---|
+| lecture par le **parent** | 1 ligne — le cloisonnement tient |
+| lecture en **nommant la partition** | **2 lignes**, dont celle d'une autre société |
+| `UPDATE` en nommant la partition | **2 lignes réécrites** |
+| `DELETE` en nommant la partition | **2 lignes effacées** |
+
+Dans la table qui porte les valeurs avant/après de tout le métier. D'où le
+durcissement de chaque partition — `REVOKE ALL` et `FORCE ROW LEVEL SECURITY`
+sans politique propre —, appliqué **par la même fonction qui la crée** : les
+séparer, c'est garantir qu'un jour une partition naisse sans l'un des deux. Le
+routage des lignes n'exige aucun privilège sur la partition (mesuré aussi), le
+durcissement ne coûte donc rien : après lui, la lecture par le parent reste
+cloisonnée, l'écriture est bien routée, et nommer la partition rend
+« permission denied ».
+
+Corollaire écrit au §9 : **une garantie posée sur une table ne suit pas ses
+partitions, elle se repose sur chacune.**
+
+### L'idempotence du seed — vérifiée, pas supposée
+
+La clé primaire devient `("id", "horodatage")` : PostgreSQL exige la clé de
+partitionnement dans toute contrainte d'unicité. Conséquence à connaître, `id`
+seul n'est plus déclaré unique.
+
+Mesure sur base vierge : **50 lignes d'audit après le premier `pnpm db:seed`, 50
+après le troisième**, 50 identifiants distincts, toutes rangées dans la partition
+du mois courant, **aucune** par défaut. L'idempotence est intacte, et la raison
+est simple : le seed n'écrit jamais `journal_audit` — le déclencheur l'écrit, et
+seulement quand une ligne change réellement.
+
+### Les bornes sont en UTC, explicitement
+
+Un `date` converti en `timestamptz` l'est selon le fuseau de la session : la même
+migration jouée depuis Nouméa et depuis Paris poserait des bornes décalées de
+onze heures, et le mois d'une ligne dépendrait de l'endroit d'où la migration a
+été lancée. Le découpage d'un journal en périodes n'a aucune raison de suivre un
+fuseau local — il doit seulement être le **même partout**. Éprouvé : les mois
+couverts sont identiques lus depuis `UTC`, `Pacific/Noumea` et
+`America/New_York`.
+
+*Un défaut a été trouvé à la première application, et vaut d'être noté : ces
+fonctions figent `search_path = pg_catalog, public` pour ne pas dépendre de
+l'appelant, si bien qu'un `CREATE TABLE` au nom nu se résolvait dans
+`pg_catalog`. PostgreSQL a répondu « permission denied to create
+pg_catalog.journal_audit_… ». Le schéma est désormais écrit explicitement.*
+
+Détail et arithmétique du volume : note d'arbitrage n°7 dans
+`docs/arbitrages.md`.

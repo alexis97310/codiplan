@@ -697,7 +697,9 @@ model JournalAudit {
   /// UUID v7 de I10 — laquelle répond à « un identifiant créé hors ligne sur un
   /// appareil ». Une ligne d'audit n'est créée par aucun appareil : elle naît
   /// dans le déclencheur, du côté serveur, où la question ne se pose pas.
-  id             String      @id @db.Uuid
+  ///
+  /// **Il n'est PAS clé primaire à lui seul** : voir `@@id` en bas de modèle.
+  id             String      @db.Uuid
   /// Société de la ligne journalisée, recopiée d'elle. Jamais du contexte de
   /// session : c'est la ligne qui dit à qui elle appartient.
   societe_id     String      @db.Uuid
@@ -706,6 +708,7 @@ model JournalAudit {
   /// Identifiant de la ligne journalisée — sa colonne `id`.
   entite_id      String      @db.Uuid
   action         ActionAudit
+  /// Clé de PARTITIONNEMENT — la table est partitionnée par mois (L0-10).
   horodatage     DateTime    @default(now()) @db.Timestamptz(6)
   /// Auteur, lu dans `app.utilisateur_id` que pose `lib/db/rls.ts`. **Nullable
   /// à dessein** : une écriture faite hors de toute session — le seed, une
@@ -722,6 +725,22 @@ model JournalAudit {
   /// La ligne APRÈS l'écriture, en entier. Nulle à la suppression.
   valeurs_apres  Json?
 
+  /// **CLÉ PRIMAIRE COMPOSITE, et ce n'est pas un choix de modélisation.**
+  /// La table est partitionnée par mois sur `horodatage` (L0-10), et PostgreSQL
+  /// exige que la clé de partitionnement appartienne à toute contrainte
+  /// d'unicité. Conséquence à connaître : `id` seul n'est plus déclaré unique.
+  /// Rien ne référence `journal_audit.id` — le journal n'a aucune clé étrangère
+  /// et personne n'en pose vers lui —, et `gen_random_uuid()` rend la collision
+  /// négligeable.
+  ///
+  /// **Pourquoi la table naît partitionnée plutôt que de le devenir.**
+  /// PostgreSQL ne convertit pas une table ordinaire sur place : il faut créer,
+  /// copier, indexer, échanger, sous `ACCESS EXCLUSIVE` — donc bloquer en
+  /// écriture NON PAS le journal mais l'application entière, puisque toute
+  /// écriture métier y insère par le déclencheur. Mesuré : 0,11 s sur les
+  /// 104 ko d'aujourd'hui, 2,4 s à deux ans, 17 s à dix ans. Créée
+  /// partitionnée, cette reprise n'existe jamais.
+  @@id([id, horodatage])
   /// L'usage réel, et l'index est fait pour lui : « qui a changé ce statut
   /// d'intervention, et depuis quelle valeur » — une entité, son identifiant,
   /// dans l'ordre du temps.

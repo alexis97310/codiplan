@@ -91,6 +91,20 @@ Le minimum imposé est de douze scénarios.
   de plateforme fait échouer la première écriture, avec un refus _lisible_ sans
   être _informatif_ (D50) — le scénario vérifie qu'il ne nomme aucune société.
 
+- `journal-audit-partitions.test.ts` — **L0-10**, ce que le partitionnement
+  change. La table est bien `PARTITION BY RANGE` et sa clé primaire porte
+  l'horodatage ; les écritures sont routées vers la partition du mois ; **aucune
+  partition ne laisse au rôle applicatif le moindre privilège** et toutes forcent
+  RLS. Le jumeau rend à une partition les privilèges par défaut et lui retire
+  RLS — exactement ce qu'un `CREATE TABLE … PARTITION OF` nu aurait laissé — et
+  montre qu'alors la société A **lit et réécrit** les lignes d'audit d'une autre
+  société en nommant la partition. Un second jumeau retire la partition par
+  défaut et montre que l'écriture hors plage est **refusée**, ce qui ferait
+  échouer l'écriture métier. Enfin, les deux contrôles datés sont éprouvés sur la
+  base réelle, et leur **indépendance** avec : l'horizon amputé fait mordre le
+  préventif pendant que le détectif reste vert, une ligne rangée par défaut fait
+  l'inverse.
+
 ## Base de test
 
 Les scénarios tournent sur un **PostgreSQL local jetable**, recréé à chaque

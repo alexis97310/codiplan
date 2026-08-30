@@ -73,25 +73,54 @@
 -- docs/decisions/2026-08-29-journal-audit-par-declencheur.md ; deux d'entre
 -- elles exigent un arbitrage, et aucune liste close n'est élargie ici.
 
--- ── 1. La table ────────────────────────────────────────────────────────────
+-- ── 1. La table, PARTITIONNÉE DÈS SA NAISSANCE ────────────────────────────
 --
--- AUCUNE CLÉ ÉTRANGÈRE, ni sur `societe_id` ni sur `utilisateur_id`, et c'est
--- délibéré : le journal doit SURVIVRE à ce qu'il décrit. Une clé vers `societe`
--- rendrait la suppression d'une société soit impossible, soit non
+-- **Pourquoi partitionnée maintenant, et pas « quand il faudra purger ».** La
+-- conservation se règlera en DÉTACHANT des périodes, jamais en supprimant des
+-- lignes : `ALTER TABLE … DETACH PARTITION` est du DDL, il passe par le canal
+-- des migrations — tracé, délibéré, impossible par inadvertance —, et aucun
+-- rôle n''a jamais besoin de gagner `DELETE`. La propriété d''ajout seul reste
+-- littéralement vraie.
+--
+-- PostgreSQL ne convertit pas une table ordinaire en table partitionnée sur
+-- place : il faut créer, copier, indexer, échanger — et prendre `ACCESS
+-- EXCLUSIVE` d''emblée, sans quoi les écritures survenues pendant la copie sont
+-- PERDUES, la copie ayant déjà lu la table. La durée de cette reprise EST donc
+-- une fenêtre d''indisponibilité, et elle ne porte pas que sur le journal :
+-- toute écriture métier y insère par le déclencheur, c''est donc l''application
+-- entière qui est bloquée en écriture. Mesuré : 0,11 s sur les 104 ko
+-- d''aujourd''hui, 2,4 s à 210 Mo (deux ans), 17 s à 1 Go (dix ans).
+--
+-- **Le meilleur moyen de ne pas payer cette reprise est de n''avoir jamais à la
+-- faire.** Créée partitionnée, la migration de reprise n''existe pas, et la
+-- fenêtre d''indisponibilité non plus.
+--
+-- **La clé primaire devient `("id", "horodatage")`**, et ce n''est pas un choix :
+-- PostgreSQL exige que la clé de partitionnement appartienne à toute contrainte
+-- d''unicité. Conséquence à connaître : `id` seul n''est plus déclaré unique —
+-- deux lignes pourraient le partager si leurs horodatages diffèrent. Rien ne
+-- référence `journal_audit.id` (le journal survit à ce qu''il décrit, il n''a
+-- aucune clé étrangère et personne n''en pose vers lui), et `gen_random_uuid()`
+-- rend la collision négligeable. Le coût de ce changement est nul aujourd''hui :
+-- aucun code du dépôt ne lit `journal_audit` par le modèle Prisma.
+--
+-- AUCUNE CLÉ ÉTRANGÈRE, ni sur `societe_id` ni sur `utilisateur_id`, et c''est
+-- délibéré : le journal doit SURVIVRE à ce qu''il décrit. Une clé vers `societe`
+-- rendrait la suppression d''une société soit impossible, soit non
 -- journalisable — le déclencheur `AFTER DELETE` écrirait une ligne désignant
--- une société qui n'existe plus, et la clé refuserait l'écriture même qu'elle
--- est censée garantir. L'intégrité vient d'ailleurs et elle suffit : la valeur
+-- une société qui n''existe plus, et la clé refuserait l''écriture même qu''elle
+-- est censée garantir. L''intégrité vient d''ailleurs et elle suffit : la valeur
 -- est recopiée de la ligne source, dont la clé étrangère était contrôlée au
--- moment de l'écriture.
+-- moment de l''écriture.
 --
 -- La règle du CLAUDE.md §9 — « toute clé étrangère nouvelle dit ses DEUX
--- actions et les justifie » — est donc honorée par la négative : il n'y en a
+-- actions et les justifie » — est donc honorée par la négative : il n''y en a
 -- aucune, et voici pourquoi.
 
 CREATE TYPE "ActionAudit" AS ENUM ('creation', 'modification', 'suppression');
 
 CREATE TABLE "journal_audit" (
-  "id"             uuid PRIMARY KEY,
+  "id"             uuid NOT NULL,
   "societe_id"     uuid NOT NULL,
   "entite"         text NOT NULL,
   "entite_id"      uuid NOT NULL,
@@ -100,11 +129,14 @@ CREATE TABLE "journal_audit" (
   "utilisateur_id" uuid,
   "adresse_ip"     text,
   "valeurs_avant"  jsonb,
-  "valeurs_apres"  jsonb
-);
+  "valeurs_apres"  jsonb,
+  PRIMARY KEY ("id", "horodatage")
+) PARTITION BY RANGE ("horodatage");
 
 -- L'usage réel du ticket : « qui a changé ce statut d'intervention, et depuis
--- quelle valeur » — une entité, son identifiant, dans l'ordre du temps.
+-- quelle valeur » — une entité, son identifiant, dans l'ordre du temps. Un
+-- index posé sur la table partitionnée est propagé à chaque partition, présente
+-- et à venir.
 CREATE INDEX "journal_audit_societe_id_entite_entite_id_horodatage_idx"
   ON "journal_audit" ("societe_id", "entite", "entite_id", "horodatage");
 
@@ -113,7 +145,7 @@ CREATE INDEX "journal_audit_societe_id_horodatage_idx"
   ON "journal_audit" ("societe_id", "horodatage");
 
 COMMENT ON TABLE "journal_audit" IS
-  'Journal d''audit inaltérable (I8, D32). Écrit par le déclencheur journal_audit_tracer, jamais par le code applicatif. EN AJOUT SEUL : le rôle applicatif n''a ni UPDATE ni DELETE, et aucune politique ne les autorise. Pas de clé étrangère : le journal survit à ce qu''il décrit.';
+  'Journal d''audit inaltérable (I8, D32). Écrit par le déclencheur journal_audit_tracer, jamais par le code applicatif. EN AJOUT SEUL : le rôle applicatif n''a ni UPDATE ni DELETE, et aucune politique ne les autorise. Partitionnée par mois dès sa création : la conservation se réglera en DÉTACHANT des périodes, jamais en supprimant des lignes. Pas de clé étrangère : le journal survit à ce qu''il décrit.';
 
 COMMENT ON COLUMN "journal_audit"."utilisateur_id" IS
   'Auteur, lu dans app.utilisateur_id. NULL quand l''écriture vient d''un chemin sans session (seed, migration, correction manuelle) : le journal le dit plutôt que d''inventer un compte. La ligne existe quand même.';
@@ -323,7 +355,206 @@ CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "utilisateur_
 -- que la voie retenue au point 4 du ticket refuse. Écrire la limite vaut mieux
 -- que la combler par une ligne qui ne dirait rien.
 
--- ── 5. L'AJOUT SEUL, par les privilèges ────────────────────────────────────
+-- ── 5. LES PARTITIONS, ET LE TROU QU'ELLES OUVRIRAIENT SANS CE BLOC ───────
+--
+-- **MESURÉ AVANT D'ÊTRE CORRIGÉ, et le résultat est le motif de tout ce qui
+-- suit.** Une partition est une TABLE. Elle hérite donc de
+-- `ALTER DEFAULT PRIVILEGES` (migration 20260820130000), qui accorde d'avance
+-- `SELECT, INSERT, UPDATE, DELETE` au rôle applicatif sur toute table nouvelle
+-- — y compris sur une partition créée dans dix-huit mois par le script
+-- d'extension. Et elle n'hérite PAS de la sécurité au niveau des lignes : les
+-- politiques du parent s'appliquent quand on interroge le PARENT, jamais quand
+-- on nomme la partition.
+--
+-- Mesure, sur la forme naïve (partitions créées sans le durcissement ci-dessous),
+-- sous le rôle applicatif et avec le contexte de la société A posé :
+--   — par le parent   : 1 ligne vue — le cloisonnement tient ;
+--   — par la partition : 2 lignes vues, dont celle d'une AUTRE société ;
+--   — par la partition : `UPDATE` réécrit les 2 lignes, `DELETE` les efface.
+-- Autrement dit, partitionner naïvement aurait détruit exactement les deux
+-- propriétés que ce ticket construit : le cloisonnement de I1 et l'ajout seul
+-- de I8, dans la table qui porte les valeurs avant/après de tout le métier.
+--
+-- **Le durcissement, et pourquoi il ne coûte rien.** Le routage des lignes vers
+-- une partition N'EXIGE AUCUN privilège sur la partition : c'est la table
+-- nommée dans la requête — le parent — qui est contrôlée. Mesuré également :
+-- après `REVOKE ALL` et `FORCE ROW LEVEL SECURITY` sur les partitions, la
+-- lecture par le parent reste cloisonnée, l'écriture par le parent est bien
+-- routée, et nommer la partition rend « permission denied ».
+--
+-- **Une seule définition, deux appelants.** La création d'une partition et son
+-- durcissement sont indissociables : les séparer, c'est garantir qu'un jour une
+-- partition naîtra sans l'un des deux. La migration et
+-- `pnpm partitions:etendre` appellent donc LA MÊME fonction. Le SQL brut vit
+-- ici, dans une migration, comme le CLAUDE.md §2 l'exige — le script ne fait
+-- que l'appeler.
+
+CREATE FUNCTION "journal_audit_partition_durcir"(nom text) RETURNS void
+  LANGUAGE plpgsql
+  SET search_path = pg_catalog, public
+  AS $$
+BEGIN
+  -- Le rôle applicatif n'a RIEN à faire sur une partition : il n'adresse que le
+  -- parent. Tout privilège qu'il y détiendrait ne pourrait servir qu'à
+  -- contourner le parent, donc les politiques.
+  --
+  -- Le schéma est écrit EXPLICITEMENT (`public.%I`), et ce n'est pas un excès
+  -- de prudence : ces fonctions figent `search_path = pg_catalog, public` pour
+  -- ne pas dépendre du chemin de l'appelant, si bien qu'un nom nu se résoudrait
+  -- dans `pg_catalog`. Éprouvé à la première application : PostgreSQL a répondu
+  -- « permission denied to create pg_catalog.journal_audit_… ».
+  EXECUTE format('REVOKE ALL ON public.%I FROM "codiplan_app"', nom);
+  -- Ceinture et bretelles : RLS forcée SANS aucune politique propre. Nommer la
+  -- partition ne rend alors rien, même si un privilège réapparaissait.
+  EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', nom);
+  EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', nom);
+END
+$$;
+
+COMMENT ON FUNCTION "journal_audit_partition_durcir"(text) IS
+  'Retire au rôle applicatif tout privilège sur une partition et y force RLS sans politique. Mesuré : sans ce durcissement, le rôle applicatif lit, réécrit et efface les lignes d''une AUTRE société en nommant la partition — le cloisonnement et l''ajout seul ne tiennent que par le parent.';
+
+/*
+ * Crée la partition mensuelle qui contient `mois`, durcie, et rend son nom.
+ * IDEMPOTENTE : rappelée sur un mois déjà couvert, elle ne fait rien.
+ *
+ * **Les bornes sont en UTC, EXPLICITEMENT.** Un `date` converti en `timestamptz`
+ * l'est selon le fuseau de la session : la même migration jouée depuis Nouméa
+ * et depuis Paris poserait des bornes décalées de onze heures, et le mois d'une
+ * ligne dépendrait de l'endroit d'où la migration a été lancée. Le découpage
+ * d'un journal en périodes n'a aucune raison de suivre un fuseau local — il
+ * doit seulement être le MÊME partout. UTC est ce choix, et il est écrit ici
+ * plutôt que subi.
+ */
+CREATE FUNCTION "journal_audit_partition_creer"(mois date) RETURNS text
+  LANGUAGE plpgsql
+  SET search_path = pg_catalog, public
+  AS $$
+DECLARE
+  debut timestamp   := date_trunc('month', mois::timestamp);
+  nom   text        := 'journal_audit_' || to_char(debut, 'YYYY_MM');
+BEGIN
+  IF to_regclass('public.' || quote_ident(nom)) IS NOT NULL THEN
+    RETURN nom;
+  END IF;
+
+  EXECUTE format(
+    'CREATE TABLE public.%I PARTITION OF "journal_audit" FOR VALUES FROM (%L) TO (%L)',
+    nom,
+    debut AT TIME ZONE 'UTC',
+    (debut + interval '1 month') AT TIME ZONE 'UTC');
+
+  PERFORM "journal_audit_partition_durcir"(nom);
+  RETURN nom;
+END
+$$;
+
+/*
+ * Les mois couverts par une partition mensuelle, en clés `AAAA-MM` UTC.
+ *
+ * La convention de découpage vit ICI, à côté de ce qui crée les partitions, et
+ * pas dans le script qui les contrôle : deux endroits, ce serait deux
+ * conventions qui divergent le jour où l'une change. Le contrôle lit donc les
+ * BORNES réelles — jamais le nom de la table, qui n'est qu'une commodité et
+ * pourrait mentir.
+ *
+ * La partition par défaut est écartée : elle ne couvre aucun mois, elle
+ * rattrape ce qu'aucun mois ne couvre.
+ */
+CREATE FUNCTION "journal_audit_partitions_couvertes"()
+  RETURNS TABLE(mois text)
+  LANGUAGE sql
+  STABLE
+  SET search_path = pg_catalog, public
+  AS $$
+    SELECT to_char(
+             ((regexp_match(pg_get_expr(c.relpartbound, c.oid), '''([^'']+)'''))[1])::timestamptz
+               AT TIME ZONE 'UTC',
+             'YYYY-MM')
+      FROM pg_class c
+      JOIN pg_inherits i ON i.inhrelid = c.oid
+     WHERE i.inhparent = 'public.journal_audit'::regclass
+       AND c.relpartbound IS NOT NULL
+       AND pg_get_expr(c.relpartbound, c.oid) <> 'DEFAULT'
+     ORDER BY 1
+  $$;
+
+COMMENT ON FUNCTION "journal_audit_partitions_couvertes"() IS
+  'Mois couverts par une partition mensuelle, en clés AAAA-MM UTC, lus dans les BORNES réelles et jamais dans le nom des tables. Sert le contrôle préventif de pnpm audit:partitions.';
+
+/*
+ * Étend l'horizon des partitions à `mois_d_avance` mois devant le mois courant.
+ * Idempotente, et c'est ce qui permet de la rejouer sans réfléchir : elle ne
+ * crée que ce qui manque et rend le nombre de partitions créées.
+ *
+ * Appelée par la migration ci-dessous, et par `pnpm partitions:etendre` — le
+ * remède du contrôle d'horizon. Un contrôle daté sans remède versionné est un
+ * cul-de-sac (D46, complément 3).
+ */
+CREATE FUNCTION "journal_audit_partitions_etendre"(mois_d_avance integer DEFAULT 12)
+  RETURNS integer
+  LANGUAGE plpgsql
+  SET search_path = pg_catalog, public
+  AS $$
+DECLARE
+  mois   date;
+  creees integer := 0;
+BEGIN
+  IF mois_d_avance < 0 THEN
+    RAISE EXCEPTION 'journal_audit : un horizon de partitions ne se compte pas en mois négatifs (reçu %).', mois_d_avance;
+  END IF;
+
+  -- Le mois courant se lit en UTC, comme les bornes : sans quoi, la nuit du
+  -- premier du mois, le contrôle et la création ne parleraient pas du même mois.
+  FOR mois IN
+    SELECT generate_series(
+             date_trunc('month', now() AT TIME ZONE 'UTC'),
+             date_trunc('month', now() AT TIME ZONE 'UTC')
+               + make_interval(months => mois_d_avance),
+             interval '1 month')::date
+  LOOP
+    IF to_regclass('public.' || quote_ident('journal_audit_' || to_char(mois, 'YYYY_MM'))) IS NULL THEN
+      PERFORM "journal_audit_partition_creer"(mois);
+      creees := creees + 1;
+    END IF;
+  END LOOP;
+
+  RETURN creees;
+END
+$$;
+
+-- LA PARTITION PAR DÉFAUT — OBLIGATOIRE, et voici pourquoi ce n'est pas une
+-- précaution d'ingénieur prudent. Sans elle, une écriture dont l'horodatage
+-- sort des partitions existantes est REFUSÉE par PostgreSQL. Or l'insertion
+-- dans le journal se fait par le déclencheur, DANS LA MÊME TRANSACTION que
+-- l'écriture métier : ce n'est donc pas le journal qui tombe, c'est l'écriture
+-- métier qui l'a causée. Une intervention ne pourrait plus être clôturée parce
+-- qu'une partition manque. Un scénario d'isolation le mesure en retirant
+-- réellement cette partition.
+--
+-- Elle est le filet, jamais la destination : une ligne qui y tombe est la
+-- PREUVE qu'une partition a manqué, et c'est le seul signal qui subsiste après
+-- coup puisque l'écriture, elle, a réussi. D'où le contrôle DÉTECTIF de
+-- `pnpm audit:partitions`, qui exige qu'elle reste vide.
+--
+-- Et le piège qui rend ce contrôle urgent plutôt que cosmétique : une fois
+-- qu'une ligne du mois M est tombée dans la partition par défaut, la partition
+-- de M ne peut PLUS être créée — PostgreSQL refuse une partition dont la plage
+-- recouvre des lignes déjà rangées par défaut. Il faut alors les déplacer à la
+-- main.
+CREATE TABLE "journal_audit_defaut" PARTITION OF "journal_audit" DEFAULT;
+SELECT "journal_audit_partition_durcir"('journal_audit_defaut');
+
+COMMENT ON TABLE "journal_audit_defaut" IS
+  'Filet, jamais destination (L0-10). Sans partition par défaut, une écriture hors plage ferait échouer l''ÉCRITURE MÉTIER, le déclencheur d''audit étant dans sa transaction. Une ligne ici prouve qu''une partition a manqué : pnpm audit:partitions échoue tant qu''elle n''est pas vide, et la partition du mois concerné ne peut plus être créée sans déplacer ces lignes.';
+
+-- Le mois courant et les douze suivants. Douze, comme l'horizon des jours
+-- fériés (D46) et pour la même raison : c'est la profondeur à laquelle on
+-- planifie. `pnpm audit:partitions` échoue quand l'avance repasse sous ce
+-- seuil, `pnpm partitions:etendre` la rétablit.
+SELECT "journal_audit_partitions_etendre"(12);
+
+-- ── 6. L'AJOUT SEUL, par les privilèges ────────────────────────────────────
 --
 -- Le REVOKE n'est pas décoratif : `ALTER DEFAULT PRIVILEGES` (migration
 -- 20260820130000) accorde d'avance SELECT, INSERT, UPDATE et DELETE au rôle

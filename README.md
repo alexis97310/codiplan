@@ -233,17 +233,37 @@ journal protège est la réécriture de l'histoire, pas l'insertion d'une ligne 
 `INSERT` sans `UPDATE` ni `DELETE` suffit à le garantir. Détail, options écartées
 et mesures : `docs/decisions/2026-08-29-journal-audit-par-declencheur.md`.
 
-**La purge ne sera pas une brèche** : on ne supprimera pas de lignes, on
-détachera des périodes. Une table partitionnée par mois se purge en détachant une
-partition — du DDL, pas du DML —, si bien qu'aucun rôle ne gagne jamais `DELETE`.
-La **durée** de conservation et l'**échéance** du partitionnement restent au
-registre de `docs/arbitrages.md`, avec la mesure du coût de conversion (0,11 s
-sur les 104 ko d'aujourd'hui, 2,4 s à 210 Mo, 17 s à 1 Go — chaque fois comme
-indisponibilité en écriture de toute l'application) et la recommandation de
-partitionner tout de suite.
+**La table NAÎT partitionnée par mois**, et c'est ce qui rend la purge possible
+sans brèche : on ne supprimera pas de lignes, on **détachera des périodes** —
+`ALTER TABLE … DETACH PARTITION` est du DDL, il passe par le canal des
+migrations, et aucun rôle ne gagne jamais `DELETE`. Créée partitionnée, la
+migration de reprise n'existe jamais : PostgreSQL ne convertit pas une table sur
+place, et cette reprise coûterait 0,11 s aujourd'hui, 2,4 s à deux ans, 17 s à
+dix ans — chaque fois comme **indisponibilité en écriture de toute
+l'application**, puisque toute écriture métier insère dans le journal par le
+déclencheur.
 
-Reste ouvert au registre : le journal des référentiels de plateforme, et la durée
-de conservation.
+Deux conséquences à connaître. La clé primaire est `("id", "horodatage")` :
+PostgreSQL exige la clé de partitionnement dans toute contrainte d'unicité. Et
+**chaque partition est durcie** — `REVOKE ALL`, `FORCE ROW LEVEL SECURITY` sans
+politique — par la même fonction qui la crée : une partition est une table, elle
+hérite des privilèges par défaut mais pas des politiques du parent, et sans ce
+durcissement le rôle applicatif lirait, réécrirait et effacerait les lignes
+d'autres sociétés en nommant la partition (mesuré au ticket, §9 du CLAUDE.md).
+
+**Deux contrôles, pas un**, dans `pnpm verify:full` :
+
+| Contrôle                                                   | Ce qu'il dit                                   | Ce qu'il ne peut pas dire      |
+| ---------------------------------------------------------- | ---------------------------------------------- | ------------------------------ |
+| **préventif** — `pnpm audit:partitions`, horizon ≥ 12 mois | il reste des partitions devant                 | si une partition a déjà manqué |
+| **détectif** — la partition par défaut est vide            | aucune ligne n'est jamais tombée dans le filet | ce qui va manquer demain       |
+
+Le préventif protège du problème, le détectif prouve qu'il ne s'est pas produit :
+une partition manquante ne fait pas échouer l'écriture, elle la fait tomber par
+défaut. Le remède du premier est `pnpm partitions:etendre`.
+
+Reste ouvert au registre : le journal des référentiels de plateforme, et la
+**durée** de conservation.
 
 ## Intégration continue
 
