@@ -367,6 +367,35 @@ definition("site"); // « Lieu d'intervention chez un client… »
 
 Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à l'écran par une variable n'est pas lisible statiquement, et un libellé passé en **propriété** d'un composant non plus — la parade y est un type (`CleTraduction`, jamais `string`), pas un gardien. Détail dans [`docs/decisions/2026-08-31-vocabulaire-francais-centralise.md`](docs/decisions/2026-08-31-vocabulaire-francais-centralise.md).
 
+## Les règles de gestion et les arbitrages qui les amendent
+
+Le chapitre 10 du cahier des charges est la source **unique** des règles de
+gestion, et il est de rang 2 : un arbitrage (rang 1) peut le réécrire. Jusqu'au
+ticket R0-b, cette réécriture était une **promesse en prose** — dix règles
+avaient été amendées par une décision sans que le texte bouge, et rien ne
+pouvait le dire.
+
+Le câblage est désormais bidirectionnel et vérifié :
+
+- au chapitre 10, une règle amendée porte la mention `*(amendée par D6, D47)*` ;
+- dans `docs/arbitrages.md`, la décision porte en retour la ligne
+  `**Règles amendées :** RG-PAR-02` ;
+- `tests/unit/docs/cablage-arbitrages.test.ts` exige que les deux listes
+  s'accordent, et refuse en outre qu'une décision **affirme en prose** réécrire
+  une règle — « RG-xxx est réécrite », ou une rédaction donnée en citation —
+  sans la déclarer.
+
+**Le gardien part de TOUTES les règles et de TOUTES les décisions.** Se limiter
+aux règles qui portent déjà une mention aurait exclu exactement les dix qui
+étaient cassées : la mention est une assertion, jamais un critère de sélection.
+Il échoue sur zéro paire observée, et il est éprouvé dans les deux sens sur des
+ruptures écrites dans les documents réels. Rejoué sur l'état d'avant R0-b, il
+relève **treize écarts** ; sur l'état actuel, aucun.
+
+Sa limite est annoncée : un arbitrage qui amende une règle **sans jamais en
+écrire la référence** reste hors de portée d'un motif statique — seule la ligne
+`**Règles amendées :**`, posée à la main, le rattrape.
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
