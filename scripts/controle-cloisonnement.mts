@@ -14,6 +14,12 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsRlsDeclaree,
+  rapportRlsDeclaree,
+  SQL_ETAT_RLS,
+  type EtatRlsTable,
+} from "./lib/rls-declaree";
+import {
   ecartsDurcissementPartitions,
   ecartsPrivilegesJournal,
   rapportPartitionsJournal,
@@ -118,6 +124,19 @@ import {
  * écriture et n'est lisible que par deux rôles (§5.2). Un décompte y serait
  * une comparaison entre deux chiffres qui n'ont aucune raison d'être égaux.
  * Son cloisonnement est éprouvé là où il peut l'être : `tests/isolation/`.
+ *
+ * **Et un contrôle d'ATTRIBUT, le seul du script, parce qu'il est le seul qui
+ * puisse voir ce qu'il voit.** Tout le reste ci-dessus prouve par la LECTURE —
+ * de vraies lignes, sous de vrais rôles —, et c'est la preuve la plus forte
+ * qu'on puisse produire : elle ne peut pas rester verte sur une RLS éteinte.
+ * Mais elle est structurellement AVEUGLE à `FORCE ROW LEVEL SECURITY`, qui ne
+ * concerne que le PROPRIÉTAIRE des tables : une lecture faite sous
+ * `codiplan_app`, non propriétaire, ne peut pas le voir. Mesuré sur un
+ * propriétaire non superutilisateur — `FORCE` retiré, le rôle applicatif voit
+ * toujours zéro ligne sans contexte, et le propriétaire voit les deux sociétés.
+ * L'étape lit donc `pg_class` et exige les DEUX drapeaux sur les tables
+ * cloisonnées, leur absence sur les référentiels de plateforme, et le classement
+ * de toute table de `public` dans exactement une des trois listes.
  *
  * Les témoins hors cloisonnement (`devise`, `parite`, `utilisateur`) restent
  * lisibles sans contexte (D4) : sans eux, une base vide ou une connexion muette
@@ -242,6 +261,16 @@ async function lirePartitionsJournal(
 }
 
 /**
+ * État déclaré de la RLS, table par table (correction de revue L0-10).
+ * `pg_class` est lisible par tous ; on la lit sous le rôle de MIGRATION, comme
+ * les deux contrôles d'attribut voisins, pour que tous les contrôles qui
+ * observent la STRUCTURE le fassent depuis la même connexion.
+ */
+async function lireEtatRls(client: PrismaClient): Promise<EtatRlsTable[]> {
+  return client.$queryRawUnsafe<EtatRlsTable[]>(SQL_ETAT_RLS);
+}
+
+/**
  * URL du rôle de migration — celui qui a posé les `GRANT`, et le seul sous
  * lequel le contrôle des privilèges de consolidation voie quelque chose.
  */
@@ -347,12 +376,18 @@ try {
   const partitionsJournal = await lirePartitionsJournal(prismaMigration);
   process.stdout.write(rapportPartitionsJournal(partitionsJournal));
 
+  // L0-10 (revue) — l'état DÉCLARÉ de RLS : la seule preuve possible de FORCE,
+  // que la lecture sous le rôle applicatif ne peut pas produire.
+  const etatRls = await lireEtatRls(prismaMigration);
+  process.stdout.write(rapportRlsDeclaree(etatRls));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
     ...ecartsPrivilegesConsolidation(privileges),
     ...ecartsPrivilegesJournal(privilegesJournal),
     ...ecartsDurcissementPartitions(partitionsJournal),
+    ...ecartsRlsDeclaree(etatRls),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -375,7 +410,8 @@ try {
       "exactement les lignes de chaque société sous son contexte, " +
       `« ${ROLE_CONSOLIDATION} » en SELECT seul, ` +
       `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} », ` +
-      `et ses ${partitionsJournal.length} partitions toutes durcies.\n`,
+      `ses ${partitionsJournal.length} partitions toutes durcies, et les ` +
+      `${etatRls.length} tables du schéma dans l'état RLS que I1 exige.\n`,
   );
 } finally {
   await prisma.$disconnect();

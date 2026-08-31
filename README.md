@@ -271,6 +271,28 @@ défaut. Le remède du premier est `pnpm partitions:etendre`.
 Reste ouvert au registre : le journal des référentiels de plateforme, et la
 **durée** de conservation.
 
+## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
+
+Le cloisonnement se prouve d'abord par la **lecture** : les scénarios
+d'isolation et `scripts/controle-cloisonnement.mts` lisent de vraies lignes sous
+de vrais rôles. C'est la preuve la plus forte — une RLS éteinte n'y survit pas.
+
+Elle a pourtant un angle mort nommé. **`FORCE ROW LEVEL SECURITY` ne concerne que
+le propriétaire des tables** : une lecture faite sous le rôle applicatif, non
+propriétaire, ne peut pas le voir. Mesuré sur un propriétaire non
+superutilisateur — `FORCE` retiré, le rôle applicatif voit toujours zéro ligne
+sans contexte, et le propriétaire voit toutes les sociétés. Le cloisonnement
+paraît intact pendant que les migrations, le seed et toute connexion de
+maintenance lisent tout.
+
+Ce qui ne se prouve pas par la lecture se prouve donc par l'**attribut**, et il
+se lit en **deux drapeaux, jamais un** — `FORCE` sans `ENABLE` laisse la sécurité
+inerte. `scripts/lib/rls-declaree.ts` porte la règle, partagée par le contrôle de
+la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement est
+**clos par le schéma** : toute table de `public` relève d'exactement une des
+trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
+(`ENABLE` seul), technique sans RLS.
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.

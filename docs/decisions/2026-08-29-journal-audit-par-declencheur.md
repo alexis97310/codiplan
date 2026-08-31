@@ -407,6 +407,60 @@ c'est-à-dire une assertion qui échoue quand le gardien n'a rien vu. Zéro
 privilège observé, zéro partition énumérée, zéro territoire contrôlé : tous des
 échecs. Un décompte nul ressemble toujours à un sans-faute.
 
+## 6 quater. L'assertion faible, cherchée là où elle n'avait pas mordu
+
+Le durcissement des partitions a montré qu'une assertion sur
+`relforcerowsecurity` seul est creuse. **La question qui suit n'est pas « est-ce
+corrigé ici » mais « cette forme faible existe-t-elle ailleurs ».** Deux endroits
+mesurés.
+
+| Endroit | Ce qu'il inspectait | Verdict |
+|---|---|---|
+| `tests/isolation/force-rls.test.ts` | **les deux** drapeaux — mais sur **4 tables sur 8** | pas de défaut de drapeau, un défaut de couverture |
+| `scripts/controle-cloisonnement.mts` | **aucun** drapeau — il prouve par la lecture seule | angle mort réel sur `FORCE` |
+
+### La mesure, et ce qu'elle confirme
+
+Sur un propriétaire **non superutilisateur** — sans quoi rien ne serait visible,
+un superutilisateur court-circuitant RLS quoi qu'il arrive :
+
+| État de `societe` | rôle applicatif, sans contexte | PROPRIÉTAIRE, sans contexte |
+|---|---|---|
+| `ENABLE` + `FORCE` | 0 ligne | 0 ligne |
+| `ENABLE`, **`FORCE` retiré** | 0 ligne — *rien ne se voit* | **2 lignes** |
+| **`ENABLE` retiré** | **2 lignes** | 2 lignes |
+
+**La lecture est bien la preuve la plus forte, et le cloisonnement n'est pas en
+cause** : aucun test de comportement ne pouvait rester vert sur une RLS éteinte
+— la troisième ligne le montre, le rôle applicatif voit tout immédiatement.
+
+**Mais la lecture est structurellement aveugle à `FORCE`** (deuxième ligne), qui
+ne concerne que le propriétaire. Sous `codiplan_app`, non propriétaire, retirer
+`FORCE` ne change rien d'observable. Le contrôle de la base hébergée, qui lit
+sous ce rôle, ne pouvait donc pas le voir — et ce qu'il ne voit pas est que les
+migrations, le seed et toute connexion de maintenance liraient alors **toutes**
+les sociétés.
+
+C'est le seul endroit du dépôt où **l'attribut est la seule preuve possible**.
+`scripts/lib/rls-declaree.ts` la porte, partagée par les deux appelants, et exige
+les DEUX drapeaux.
+
+### La clôture, plutôt qu'une liste
+
+La liste du scénario d'isolation couvrait quatre tables sur huit — `calendrier`,
+`calendrier_plage`, `calendrier_ferie` et `journal_audit` manquaient, chacune
+ajoutée par un ticket qui n'était pas revenu la compléter. Réparer la liste
+n'aurait réparé que le symptôme. Le contrôle part donc du **schéma** : toute
+table de `public` doit relever d'exactement une des trois catégories d'état RLS
+— cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme (`ENABLE` seul),
+technique sans RLS —, et une table hors des trois le fait échouer en la nommant.
+Le renversement est celui de D41.
+
+*Éprouvé par retrait réel, dans des transactions annulées : `ENABLE` retiré de
+`societe` → refusé ; `FORCE` retiré d'`agence` → refusé, en nommant le
+propriétaire ; `FORCE` ajouté à `devise` → refusé, parce qu'il empêcherait le
+seed d'amorcer le référentiel (D4).*
+
 ## 7. Hors périmètre, porté au registre
 
 **La politique de conservation.** Un journal grossit sans fin, et la question —
