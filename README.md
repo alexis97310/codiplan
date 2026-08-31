@@ -43,6 +43,9 @@ pnpm verify           # typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
+
+pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ?
+                      # → hors de verify:full, et c'est tout son objet
 ```
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
@@ -293,6 +296,44 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
 
+### Et une troisième preuve : la FORME de la politique
+
+Les deux précédentes disent que la sécurité est **activée** ; ni l'une ni
+l'autre ne dit ce que la politique **laisse passer**. Une table peut porter les
+deux drapeaux et une politique `USING (true)` : l'attribut est irréprochable et
+le cloisonnement n'existe plus.
+
+Il y a **cinq formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
+
+| Forme           | Clause                                                      | Exemple                                |
+| --------------- | ----------------------------------------------------------- | -------------------------------------- |
+| **identité**    | `id = app.societe_id`                                       | `societe` (D42)                        |
+| **société**     | `societe_id = app.societe_id`                               | `agence`, `calendrier`                 |
+| **référentiel** | lecture `true`, écriture `app_est_role_editeur()`           | `devise`, `jour_ferie` (D4)            |
+| **parc**        | société **et** `app.client_id` **et** `app.perimetre_sites` | `client`, `site`, `machine` (D10, D22) |
+| **journal**     | `SELECT` habilité, `INSERT` seul                            | `journal_audit` (I8)                   |
+
+La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
+ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
+salarié de l'éditeur en le retirant à la société propriétaire.
+
+`scripts/lib/politiques-rls.ts` porte la règle, partagée par
+`tests/isolation/politiques-rls.test.ts` et le contrôle de la base hébergée. Elle
+est **mesurée dans `pg_policies`**, qui rend l'expression _analysée_ : la
+graphie, l'enveloppe `DO $$ … $$`, la pose en deux temps et le nom assemblé à
+l'exécution s'y dissolvent — c'est l'état final qui est lu.
+
+### Le contrat des fixtures d'isolation
+
+`client`, `site`, `machine` et `modele_materiel` existent comme **tables
+fixtures** du harnais, avec les politiques que les vraies tables porteront aux
+lots 1 et 2. Le contrat est déclaré dans `tests/isolation/setup/contrat.ts` et
+tenu par **trois gardiens indépendants** : la forme mesurée en base, la liste
+close `TABLES_PARC` dont le _retrait_ d'une entrée est refusé, et un **plancher
+de scénarios** par exigence de L0-05 qui ne se baisse jamais. Quand la vraie
+table arrive, le harnais s'efface devant elle et dit ce qui reste dû — sans quoi
+la réparation la plus naturelle réduisait la couverture en silence.
+
 ## Français — le dictionnaire est la source unique
 
 `lib/i18n/fr.ts` porte **toutes** les chaînes qu'un utilisateur lit (D26). Un composant, une page, un test de rendu n'en écrit aucune :
@@ -330,6 +371,23 @@ Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
 
+### Qui voit une nuit rouge — deux alarmes, et la seconde garde la première
+
+**Constaté, non supposé** : GitHub notifie bien par courriel l'échec d'une exécution, et les deux notifications d'échec du 20 août 2026 sont **restées non lues**. Pour un flux planifié, la notification part au dernier compte ayant modifié le `cron` — la même boîte. L'alarme sonnait, dans une pièce vide.
+
+| Job                 | Répond à                                                                                                                                                           | Aveugle à                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `alarme-nuit-rouge` | **une nuit a-t-elle rougi ?** — une _issue_ s'ouvre dans le dépôt dès que `verify:full` échoue hors proposition de fusion. Une issue par épisode, pas une par nuit | une planification **arrêtée** : elle ne produit aucune exécution, donc aucun échec, donc aucune issue |
+| `battement`         | **les nuits ont-elles cessé ?** — `pnpm battement` lit l'état du flux et l'âge de la dernière exécution planifiée                                                  | rien de ce que la première voit ; les deux sont indépendants dans les deux sens                       |
+
+`battement` **ne tourne pas sur la planification**, et c'est tout son objet : un contrôle qui ne s'exécute que lorsque la planification s'exécute ne peut pas constater qu'elle a cessé. Il s'accroche à l'activité humaine — proposition de fusion, poussée sur `main`. Sa limite est écrite plutôt que tue : si personne ne pousse rien, il ne tourne pas davantage ; il garantit qu'**au premier retour de quelqu'un**, l'écran soit rouge.
+
+### ⚠️ Avant de rendre ce dépôt public
+
+La planification nocturne ne survit à l'inactivité **que parce que le dépôt est privé**. GitHub désactive automatiquement les flux planifiés après **60 jours** sans activité, et cette règle **ne vise que les dépôts publics** ; un fork la remet en vigueur lui aussi, les flux planifiés d'un dépôt forké étant désactivés par défaut.
+
+La protection ne tient donc pas au fichier de flux : elle tient à un **attribut du dépôt**, qui change d'un clic et sans rien annoncer. C'est pourquoi la même mise en garde est écrite en tête de `.github/workflows/ci.yml` — là où quelqu'un qui change la visibilité la rencontrera —, et c'est le job `battement` qui rattrape le cas si elle est franchie quand même.
+
 ## Organisation
 
 ```
@@ -347,4 +405,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit) et **L0-11** (vocabulaire français centralisé). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation). Aucune fonctionnalité métier : elles commencent au lot 1.

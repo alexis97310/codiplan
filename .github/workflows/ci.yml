@@ -3,6 +3,26 @@ name: CI
 # Arbitrage D14 — deux portes :
 #   verify       à chaque poussée et sur chaque proposition de fusion ;
 #   verify:full  sur main et chaque nuit.
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ AVANT DE RENDRE CE DÉPÔT PUBLIC — LIRE CECI                              │
+# │                                                                          │
+# │ La planification `schedule` ci-dessous ne survit à l'inactivité QUE PARCE │
+# │ QUE LE DÉPÔT EST PRIVÉ. GitHub désactive automatiquement les flux         │
+# │ planifiés après 60 jours sans activité — et cette règle ne vise que les   │
+# │ dépôts PUBLICS. La protection ne tient donc pas à ce fichier : elle tient │
+# │ à un ATTRIBUT DU DÉPÔT, qui change d'un clic et sans rien annoncer. Un    │
+# │ fork la remet en vigueur lui aussi : les flux planifiés d'un dépôt forké  │
+# │ sont désactivés par défaut.                                              │
+# │                                                                          │
+# │ Rendre ce dépôt public, ou le forker, c'est accepter que la vérification  │
+# │ nocturne s'arrête un jour SANS QUE RIEN NE LE DISE — une planification    │
+# │ désactivée ne produit aucune exécution, donc aucun échec, donc aucune     │
+# │ alarme. Le job `battement` ci-dessous est là pour cela, et lui seul : il  │
+# │ tourne sur l'activité humaine et refuse un flux qui a cessé de battre.    │
+# │ Mesuré et écrit le 31/08/2026 — ticket R0-a, écart É12 de la revue R0 ;   │
+# │ voir le §9 du CLAUDE.md, « le silence a exactement la forme du succès ».  │
+# └──────────────────────────────────────────────────────────────────────────┘
 on:
   push:
     branches: ["**"]
@@ -115,3 +135,130 @@ jobs:
           path: playwright-report/
           retention-days: 7
           if-no-files-found: ignore
+
+  # ── (a) L'ALARME — une nuit rouge ouvre une ISSUE ───────────────────────────
+  #
+  # Écart É12 de la revue R0. Constaté, non supposé : GitHub notifie bien par
+  # courriel l'échec d'une exécution, et les DEUX notifications d'échec du
+  # 20 août sont restées NON LUES. Pour un flux planifié, la notification part
+  # au dernier compte ayant modifié le `cron` — ici la même boîte. L'alarme
+  # sonnait donc, dans une pièce vide.
+  #
+  # Une issue rend la question du courriel sans objet : elle est créée quoi
+  # qu'il arrive, elle vit DANS le dépôt, et sa notification suit un autre
+  # chemin que celui qui a laissé passer les deux échecs du 20 août.
+  #
+  # Elle ne se déclenche que sur les exécutions que PERSONNE NE REGARDE —
+  # planification, poussée sur `main`, déclenchement manuel. L'échec d'une
+  # proposition de fusion a déjà un lecteur : celui qui l'a ouverte.
+  alarme-nuit-rouge:
+    name: alarme — nuit rouge
+    needs: verify-full
+    if: always() && needs.verify-full.result == 'failure'
+    runs-on: ubuntu-latest
+    # `contents: read` est là pour la même raison qu'au job `battement` : le
+    # bloc remplace l'ensemble des droits. Ce job ne fait pas de `checkout`,
+    # mais `gh` résout le dépôt avant d'agir — et ce chemin-ci ne s'exécute
+    # QUE lorsque quelque chose est déjà cassé. C'est le pire moment pour
+    # découvrir qu'il manquait un droit.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Ouvrir ou compléter l'issue de nuit rouge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPOT: ${{ github.repository }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          DECLENCHEUR: ${{ github.event_name }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          MARQUEUR='[nuit-rouge]'
+          TITRE="$MARQUEUR verify:full a échoué"
+
+          # Le corps est assemblé par `printf`, jamais par un document en ligne :
+          # un `<<TEXTE` dont le délimiteur est indenté — et il l'est forcément,
+          # dans un bloc YAML — ne se referme pas. Éprouvé avec un `gh` factice
+          # avant d'être livré.
+          printf '%s\n' \
+            '`verify:full` a échoué.' \
+            '' \
+            "| | |" \
+            "|---|---|" \
+            "| Déclencheur | \`$DECLENCHEUR\` |" \
+            "| Exécution | $LIEN |" \
+            "| Commit | \`$COMMIT\` |" \
+            '' \
+            "Issue ouverte automatiquement (ticket R0-a, écart É12) : une alarme" \
+            "qui sonne dans une boîte de courriel que personne ne lit n'est pas" \
+            "une alarme. Elle se referme à la main, une fois la cause traitée." \
+            '' \
+            "Ce qu'elle ne peut PAS détecter, et qui a son propre contrôle : une" \
+            "planification **désactivée** ne produit aucune exécution, donc aucun" \
+            "échec, donc aucune issue. C'est le job \`battement\` qui garde ce" \
+            "cas-là — voir le §9 du CLAUDE.md." \
+            > corps-nuit-rouge.md
+
+          # Une issue par ÉPISODE, pas une par nuit : tant que la précédente est
+          # ouverte, on la complète. Sans cela, une semaine rouge produirait sept
+          # issues et l'alarme deviendrait le bruit qu'elle devait remplacer.
+          EXISTANTE=$(gh issue list --repo "$DEPOT" --state open --limit 50 \
+            --json number,title \
+            --jq "[.[] | select(.title | contains(\"$MARQUEUR\"))] | .[0].number // empty")
+
+          if [ -n "$EXISTANTE" ]; then
+            echo "Issue #$EXISTANTE déjà ouverte — ajout d'un commentaire."
+            gh issue comment "$EXISTANTE" --repo "$DEPOT" --body-file corps-nuit-rouge.md
+          else
+            gh issue create --repo "$DEPOT" --title "$TITRE" --body-file corps-nuit-rouge.md
+          fi
+
+  # ── (b) LE BATTEMENT — la vérification nocturne tourne-t-elle ENCORE ? ──────
+  #
+  # Le DÉTECTIF de l'alarme elle-même, et il est indépendant d'elle dans les
+  # deux sens. (a) dit qu'une nuit a rougi ; il est structurellement aveugle à
+  # une planification qui s'ARRÊTE, puisqu'un flux qui ne tourne pas ne produit
+  # aucun échec. Le silence a exactement la forme du succès.
+  #
+  # **Il ne tourne PAS sur `schedule`, et c'est tout son objet** : un contrôle
+  # qui ne s'exécute que lorsque la planification s'exécute ne peut pas
+  # constater qu'elle a cessé. Il s'accroche donc à l'activité HUMAINE, seul
+  # déclencheur qu'une désactivation ne touche pas.
+  #
+  # Sa limite, dite plutôt que tue : si personne ne pousse rien, il ne tourne
+  # pas davantage. Il ne garantit pas une détection en N heures — il garantit
+  # qu'AU PREMIER RETOUR de quelqu'un, l'écran soit rouge.
+  battement:
+    name: battement — la nuit bat-elle encore ?
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # UN BLOC `permissions:` N'EST PAS ADDITIF : il définit l'ENSEMBLE des
+    # droits du jeton, et tout ce qui n'y figure pas tombe à `none`. La
+    # première rédaction ne demandait que `actions: read` — `contents` est
+    # donc passé à `none`, et `actions/checkout` a reçu « Repository not
+    # found » sur ce dépôt privé. Mesuré par contraste sur la même exécution :
+    # le job `verify`, qui ne déclare aucun bloc, a cloné sans difficulté.
+    # Même famille que le `ON UPDATE CASCADE` de D49 — une valeur par défaut
+    # qui répond à une question qu'on n'a pas posée.
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm battement
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm battement

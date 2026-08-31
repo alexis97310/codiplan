@@ -14,6 +14,15 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsListeParc,
+  ecartsPolitiques,
+  rapportPolitiques,
+  SQL_COLONNE_SOCIETE,
+  SQL_POLITIQUES,
+  type ColonneSociete,
+  type PolitiqueObservee,
+} from "./lib/politiques-rls";
+import {
   ecartsRlsDeclaree,
   rapportRlsDeclaree,
   SQL_ETAT_RLS,
@@ -271,6 +280,30 @@ async function lireEtatRls(client: PrismaClient): Promise<EtatRlsTable[]> {
 }
 
 /**
+ * Les FORMES de politique, table par table (ticket R0-a, écart É9).
+ *
+ * `SQL_ETAT_RLS` ci-dessus dit que la sécurité est ACTIVÉE et FORCÉE ; il ne
+ * dit rien de ce que les politiques LAISSENT PASSER. Une table peut porter les
+ * deux drapeaux et une politique `USING (true)` : l'attribut est irréprochable
+ * et le cloisonnement n'existe plus. Les deux contrôles sont indépendants dans
+ * les deux sens, et il faut les deux.
+ *
+ * Lu sous le rôle de MIGRATION, comme les contrôles d'attribut voisins : tous
+ * ceux qui observent la STRUCTURE le font depuis la même connexion.
+ */
+async function lireFormesPolitiques(client: PrismaClient): Promise<{
+  colonnes: ColonneSociete[];
+  politiques: PolitiqueObservee[];
+}> {
+  return {
+    colonnes:
+      await client.$queryRawUnsafe<ColonneSociete[]>(SQL_COLONNE_SOCIETE),
+    politiques:
+      await client.$queryRawUnsafe<PolitiqueObservee[]>(SQL_POLITIQUES),
+  };
+}
+
+/**
  * URL du rôle de migration — celui qui a posé les `GRANT`, et le seul sous
  * lequel le contrôle des privilèges de consolidation voie quelque chose.
  */
@@ -381,6 +414,11 @@ try {
   const etatRls = await lireEtatRls(prismaMigration);
   process.stdout.write(rapportRlsDeclaree(etatRls));
 
+  // R0-a (É9) — et ce que ces politiques laissent passer : l'état déclaré ne
+  // dit rien de la FORME, et c'est la forme qui cloisonne.
+  const formes = await lireFormesPolitiques(prismaMigration);
+  process.stdout.write(rapportPolitiques(formes.colonnes, formes.politiques));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
@@ -388,6 +426,8 @@ try {
     ...ecartsPrivilegesJournal(privilegesJournal),
     ...ecartsDurcissementPartitions(partitionsJournal),
     ...ecartsRlsDeclaree(etatRls),
+    ...ecartsListeParc(),
+    ...ecartsPolitiques(formes.colonnes, formes.politiques),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -411,7 +451,9 @@ try {
       `« ${ROLE_CONSOLIDATION} » en SELECT seul, ` +
       `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} », ` +
       `ses ${partitionsJournal.length} partitions toutes durcies, et les ` +
-      `${etatRls.length} tables du schéma dans l'état RLS que I1 exige.\n`,
+      `${etatRls.length} tables du schéma dans l'état RLS que I1 exige, et ` +
+      `${formes.politiques.length} politiques toutes à la forme que I1 ` +
+      "impose à leur table.\n",
   );
 } finally {
   await prisma.$disconnect();

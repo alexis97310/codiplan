@@ -108,4 +108,30 @@ describe("la conversion de devise est réservée à lib/reporting (I2, D19)", ()
       ).toBe(false);
     }
   });
+
+  /**
+   * L'EXEMPTION EST-ELLE ENCORE ADOSSÉE À QUELQUE CHOSE ? (ticket R0-a, audit
+   * des gardiens qui sélectionnent)
+   *
+   * Une exemption est une SÉLECTION NÉGATIVE : elle retire du périmètre un
+   * chemin nommé. Le jour où ce fichier est renommé, déplacé ou scindé,
+   * l'entrée reste et ne protège plus rien — silencieusement, puisqu'une
+   * exemption qui ne s'applique à personne ne fait échouer personne. Et si un
+   * fichier NOUVEAU reprend ce chemin plus tard, il hérite d'une exemption que
+   * personne ne lui a accordée.
+   *
+   * Le témoin est le même que celui de `sans-date-courante-implicite`, le seul
+   * des cinq gardiens à exemption qui le portait déjà.
+   */
+  it("chaque fichier exempté existe encore — une exemption orpheline est une porte", () => {
+    const exemptes = fichiersSource(REPERTOIRES).filter((fichier) =>
+      EXEMPTS.includes(fichier.chemin),
+    );
+    expect(
+      exemptes.map((fichier) => fichier.chemin).sort(),
+      "une exemption nomme un chemin qui n'existe plus : la retirer, ou " +
+        "corriger le chemin. Elle ne protège plus rien aujourd'hui, et " +
+        "protégera le premier fichier qui reprendra ce nom.",
+    ).toEqual([...EXEMPTS].sort());
+  });
 });

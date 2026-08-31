@@ -46,9 +46,14 @@ import {
   UTILISATEUR_PAR_ROLE,
   UTILISATEUR_PORTAIL_A,
   UTILISATEUR_PORTAIL_B,
+} from "./fixtures";
+import {
+  CONTRAT_PARC,
+  CONTRAT_REFERENTIEL,
   politiqueCloisonnementSql,
   politiqueParcSql,
-} from "./fixtures";
+  type TableContrat,
+} from "./contrat";
 import { urlOwner } from "./db";
 
 /**
@@ -92,6 +97,69 @@ async function executerLot(prisma: PrismaClient, sql: string): Promise<void> {
       await prisma.$executeRawUnsafe(nettoyee);
     }
   }
+}
+
+/** La table existe-t-elle déjà dans le schéma `public` ? */
+async function tableExiste(
+  prisma: PrismaClient,
+  table: string,
+): Promise<boolean> {
+  const trouvee = await prisma.$queryRawUnsafe<Array<{ oid: string | null }>>(
+    "SELECT to_regclass($1)::text AS oid",
+    `public.${table}`,
+  );
+  return trouvee[0]?.oid !== null && trouvee[0]?.oid !== undefined;
+}
+
+/**
+ * Pose une table du contrat : la fixture tant que la vraie table n'existe pas,
+ * rien du tout ensuite.
+ *
+ * **Le message ci-dessous est le seul endroit du dépôt écrit pour une session
+ * qui n'existe pas encore.** C'est ici, et à cette seconde, que la mauvaise
+ * réparation se commettait : `CREATE TABLE "client"` échouait, et supprimer la
+ * fixture rendait tout vert sur moins de choses. Le harnais ne s'arrête donc
+ * plus — il passe la main, et dit ce qui reste dû.
+ */
+async function poserTableContrat(
+  prisma: PrismaClient,
+  contrat: TableContrat,
+): Promise<void> {
+  if (await tableExiste(prisma, contrat.table)) {
+    // La vraie table est arrivée (lot annoncé par `contrat.lot`). On ne touche
+    // ni à elle, ni à sa politique : c'est la migration qui les porte, et c'est
+    // elle que les scénarios doivent désormais éprouver.
+    process.stdout.write(
+      `Harnais d'isolation — « ${contrat.table} » existe au schéma : la ` +
+        `fixture s'efface devant la table réelle (${contrat.lot}).\n` +
+        "  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :\n" +
+        `  — la migration pose sur « ${contrat.table} » la politique de FORME ` +
+        "« parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),\n" +
+        "    et non la « forme imposée » de L0-04, qui est la clause société " +
+        "seule ;\n" +
+        "  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant " +
+        "(voir\n" +
+        "    EXIGENCES_L0_05 dans contrat.ts, et le gardien " +
+        "tests/unit/db/contrat-isolation.test.ts) ;\n" +
+        "  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.\n",
+    );
+    return;
+  }
+
+  await executerLot(
+    prisma,
+    `CREATE TABLE "${contrat.table}" (${contrat.colonnes})`,
+  );
+  await executerLot(
+    prisma,
+    contrat.colonneClient === ""
+      ? politiqueCloisonnementSql(contrat.table)
+      : politiqueParcSql(
+          contrat.table,
+          contrat.colonneClient,
+          contrat.colonneSite,
+        ),
+  );
 }
 
 export default async function setup(): Promise<void> {
@@ -142,45 +210,22 @@ export default async function setup(): Promise<void> {
       );
     }
 
-    // Tables fixtures « contrat » — modèlent les vraies tables des lots 1 et 2,
-    // types compris : identifiants en `uuid` natif, comme le schéma réel.
-    await executerLot(
-      prisma,
-      `
-      CREATE TABLE "client" (
-        "id" uuid PRIMARY KEY,
-        "societe_id" uuid NOT NULL,
-        "raison_sociale" text NOT NULL
-      );
-      CREATE TABLE "site" (
-        "id" uuid PRIMARY KEY,
-        "societe_id" uuid NOT NULL,
-        "client_id" uuid NOT NULL,
-        "libelle" text NOT NULL
-      );
-      CREATE TABLE "machine" (
-        "id" uuid PRIMARY KEY,
-        "societe_id" uuid NOT NULL,
-        "client_id" uuid NOT NULL,
-        "site_id" uuid NOT NULL,
-        "qr_token" text NOT NULL UNIQUE,
-        "numero_serie" text NOT NULL
-      );
-      CREATE TABLE "modele_materiel" (
-        "id" uuid PRIMARY KEY,
-        "societe_id" uuid,
-        "libelle" text NOT NULL
-      );
-      `,
-    );
-
-    await executerLot(prisma, politiqueParcSql("client", "id", null));
-    await executerLot(prisma, politiqueParcSql("site", "client_id", "id"));
-    await executerLot(
-      prisma,
-      politiqueParcSql("machine", "client_id", "site_id"),
-    );
-    await executerLot(prisma, politiqueCloisonnementSql("modele_materiel"));
+    // Tables du CONTRAT (ticket R0-a, écart É14). Elles modèlent les vraies
+    // tables des lots 1 et 2, types compris : identifiants en `uuid` natif,
+    // comme le schéma réel.
+    //
+    // **La fixture s'efface devant la vraie table, elle ne la remplace pas.**
+    // Le jour où la migration de L1-01 crée `client`, `poserTableContrat` ne
+    // crée plus rien et laisse la table réelle en place — avec SA politique,
+    // celle de la migration. Les gardiens la jugent alors exactement comme ils
+    // jugeaient la fixture : `politiques-rls.test.ts` exige la forme « parc »
+    // sans savoir laquelle des deux il regarde. C'est ce qui ferme le chemin
+    // que la revue R0 redoutait — la fixture supprimée, les scénarios pointés
+    // sur une table à politique société seule, et le portail disparu en
+    // silence.
+    for (const contrat of [...CONTRAT_PARC, ...CONTRAT_REFERENTIEL]) {
+      await poserTableContrat(prisma, contrat);
+    }
 
     // Droits du rôle applicatif sur les seules tables FIXTURES. Les tables
     // réelles tiennent leurs droits des migrations, et d'elles seules : un
