@@ -293,6 +293,39 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
 
+## Français — le dictionnaire est la source unique
+
+`lib/i18n/fr.ts` porte **toutes** les chaînes qu'un utilisateur lit (D26). Un composant, une page, un test de rendu n'en écrit aucune :
+
+```tsx
+import { t } from "@/lib/i18n";
+
+<h1>{t("accueil.titre")}</h1>;
+```
+
+**La coupure est écrite en tête de `lib/i18n/fr.ts`**, et elle se dit en deux lignes. Ce qu'un **humain** lit en se servant de l'application passe par le dictionnaire — texte, libellé d'action, titre de page, attribut lu par un lecteur d'écran, message d'erreur rendu à l'écran. Ce qu'un **développeur ou une machine** lit n'y passe pas — message de gardien, exception technique, trace, erreur de migration, libellé de test, nom de rôle ou de statut : les traduire brouillerait la recherche dans les journaux.
+
+Le vocabulaire imposé — **agence** (établissement CODIMA) et **site** (lieu d'intervention chez un client) — est défini sous les clés `vocabulaire.*`, avec son pluriel et une définition qui dit ce que la notion **n'est pas**. Le code nomme la notion, jamais le mot :
+
+```ts
+import { definition, mot } from "@/lib/i18n";
+
+mot("agence"); // « Agence »   —  mot("agence", true) → « Agences »
+definition("site"); // « Lieu d'intervention chez un client… »
+```
+
+### Deux gardiens, et leurs limites
+
+| Gardien                                              | Ce qu'il refuse                                                                                                                                          |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts` | toute chaîne écrite dans un emplacement **visible** : texte JSX, attribut lu par un humain, `metadata` de Next.js, texte attendu par une requête d'écran |
+| `tests/unit/i18n/vocabulaire-impose.test.ts`         | « agence » ou « site » écrits ailleurs que sous une clé `vocabulaire.*`                                                                                  |
+| `react/jsx-no-literals` (ESLint)                     | l'écho du premier dans l'éditeur, à la frappe — il en dit moins, jamais autre chose                                                                      |
+
+**Ce qui décide qu'un fichier est concerné se déduit, il ne s'énumère pas.** Le gardien lit tout le dépôt ; un fichier est concerné s'il porte l'une de trois marques — il contient du JSX, il exporte les `metadata` de Next.js, il interroge l'écran. Une page écrite demain l'est le jour où elle est écrite, sans qu'aucune liste soit à compléter. Il n'y a donc **aucune exemption de fichier** : le seul laissez-passer est une référence au dictionnaire, déduite des accesseurs réellement exportés par `lib/i18n` et résolue à travers les alias d'import.
+
+Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à l'écran par une variable n'est pas lisible statiquement, et un libellé passé en **propriété** d'un composant non plus — la parade y est un type (`CleTraduction`, jamais `string`), pas un gardien. Détail dans [`docs/decisions/2026-08-31-vocabulaire-francais-centralise.md`](docs/decisions/2026-08-31-vocabulaire-francais-centralise.md).
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.
@@ -303,6 +336,7 @@ trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de platefo
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          auth/  calendar/  db/  i18n/  money/  reporting/  theme/  utils.ts
+              i18n/ = dictionnaire français + vocabulaire imposé (agence, site)
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
@@ -313,4 +347,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société) et **L0-10** (journal d'audit). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit) et **L0-11** (vocabulaire français centralisé). Aucune fonctionnalité métier : elles commencent au lot 1.

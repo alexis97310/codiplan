@@ -46,9 +46,13 @@ function rendreSousTheme(source: typeof SOCIETE_A | null) {
 
 describe("bandeau d'identité de la société active", () => {
   it("affiche le nom de la société, qui est une donnée et non une chaîne du code", () => {
-    rendreSousTheme(SOCIETE_A);
+    // Le texte attendu est celui que le thème PORTE — jamais un littéral
+    // recopié dans le scénario (L0-11) : le nom d'une société est une donnée,
+    // et le libellé qui le qualifie vient du dictionnaire. Ni l'un ni l'autre
+    // ne s'écrit deux fois.
+    const a = rendreSousTheme(SOCIETE_A);
 
-    expect(screen.getByText("Société A")).toBeInTheDocument();
+    expect(screen.getByText(a.theme.nom)).toBeInTheDocument();
     expect(screen.getByText(fr["theme.societe"])).toBeInTheDocument();
   });
 
@@ -63,7 +67,7 @@ describe("bandeau d'identité de la société active", () => {
     // Le jaune pâle du ticket : l'encre bascule au noir, dans le rendu réel.
     expect(b.lire("--societe-primaire-encre")).toBe("#000000");
 
-    expect(screen.getByText("Société B")).toBeInTheDocument();
+    expect(screen.getByText(b.theme.nom)).toBeInTheDocument();
     expect(a.lire("--societe-primaire")).not.toBe(b.lire("--societe-primaire"));
   });
 
