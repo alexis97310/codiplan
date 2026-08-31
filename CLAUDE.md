@@ -152,6 +152,8 @@ Pas de client réel, pas de photo, pas de clé, pas de `.env`. Les jeux de test 
 ### Vocabulaire imposé
 **Agence** = établissement CODIMA (Ducos, Koné, Dolbeau). **Site** = lieu d'intervention chez un client. Ces deux mots ne sont jamais interchangeables.
 
+**Et ils ont un domicile dans le code** *(L0-11)* : les clés `vocabulaire.*` de `lib/i18n/fr.ts`, avec leur pluriel et une définition qui nomme ce que la notion **n'est pas**. Le code nomme la notion — `mot("agence")` —, jamais le mot ; un gardien refuse que l'un des deux soit écrit ailleurs dans le dictionnaire. C'est la leçon de D47 rendue mécanique : *un arbitrage qui corrige un mot doit dire où ce mot est écrit* — il est écrit là, et nulle part ailleurs. Ce qu'aucun gardien ne peut faire, et qui reste à la relecture : savoir laquelle des deux notions l'auteur voulait désigner.
+
 ---
 
 ## 4. Commandes
@@ -190,6 +192,8 @@ pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
 3. Aucun `any`, aucun `@ts-ignore`, aucun `eslint-disable` sans commentaire justifiant la ligne.
 4. Aucun `console.log` résiduel.
 5. Interface en français, terminologie du glossaire, **aucune chaîne en dur dans un composant** — tout passe par `lib/i18n/fr.ts`.
+   **La coupure est écrite une fois**, en tête du dictionnaire *(L0-11)* : ce qu'un **humain** lit en se servant de l'application y passe — texte, libellé, titre, attribut lu par un lecteur d'écran, message d'erreur **rendu à l'écran**, texte attendu par un test de rendu ; ce qu'un **développeur ou une machine** lit n'y passe pas — message de gardien, exception technique, trace, erreur de migration, nom de rôle ou de statut. Même famille que « documentation contre exécution » de D50 : c'est la **destination** du texte qui décide, jamais le fichier.
+   Le gardien lit tout le dépôt et **déduit** ce qui est concerné — trois marques : le fichier contient du JSX, il exporte les `metadata` de Next.js, il interroge l'écran. Aucune liste de répertoires à compléter, donc aucune liste à oublier.
 6. Les nouvelles requêtes portent le filtre société.
 7. Le message de commit décrit le *pourquoi*.
 
@@ -224,7 +228,9 @@ lib/
               la lisibilité se CALCULE : seuil 4,5:1 (WCAG 2.1, 1.4.3 AA),
               garanti par le choix noir/blanc, qui plancher à √21 ≈ 4,58 (D51)
               seul endroit du code où une couleur s'écrit en clair
-  i18n/       dictionnaire fr.ts
+  i18n/       dictionnaire fr.ts — SEUL endroit où une chaîne visible s'écrit
+              vocabulaire.ts : agence et site, définis une fois avec leur
+              distinction (D5, D47) ; le code nomme la notion, pas le mot
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

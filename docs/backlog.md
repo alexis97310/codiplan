@@ -94,9 +94,13 @@ Nom d'affichage, couleur d'identité et couleur d'accentuation issus du paramét
 Périmètre : intervention, contrat, machine, paramétrage société, compte client. Plus les accès des rôles éditeur et les basculements de société.
 *Acceptation :* toute écriture sur une table sensible produit une ligne d'audit ; une tentative de suppression d'une ligne d'audit échoue au niveau de la base.
 
-**L0-11 — Module i18n. [D26]** *(nouveau)*
-`lib/i18n/fr.ts`, dictionnaire plat. Aucune chaîne visible en dur dans un composant.
-*Acceptation :* une règle ESLint signale toute chaîne littérale dans le JSX des composants.
+**L0-11 — Vocabulaire français centralisé. [D26] [D5] [D47]**
+`lib/i18n/fr.ts`, dictionnaire plat, **source unique** de tout ce qu'un utilisateur lit. Aucune chaîne visible en dur — ni dans un composant, ni dans un attribut lu par un lecteur d'écran, ni dans les `metadata`, ni dans le texte attendu par un test de rendu.
+**La coupure est écrite une fois**, en tête du dictionnaire : ce qu'un humain lit en se servant de l'application y passe ; ce qu'un développeur ou une machine lit — gardien, exception technique, trace, migration — n'y passe pas. Même famille que « documentation contre exécution » de D50 : c'est la destination du texte qui décide, jamais le fichier.
+**Le vocabulaire imposé y a son domicile** : « agence » et « site » sont définis sous les clés `vocabulaire.*`, avec leur pluriel et une définition qui nomme ce que la notion n'est pas. Le code nomme la notion — `mot("agence")` —, jamais le mot. C'est la leçon de D47 rendue mécanique.
+**Ce qui décide qu'un fichier est concerné se DÉDUIT** — trois marques : il contient du JSX, il exporte des `metadata`, il interroge l'écran. Le gardien part du dépôt entier, pas d'une liste de répertoires qu'un ticket ultérieur aurait oublié de compléter : c'est le renversement de D41 appliqué aux fichiers.
+*Acceptation :* la règle ESLint `react/jsx-no-literals` signale toute chaîne littérale dans le JSX — elle est **l'écho** de la règle dans l'éditeur, et le gardien `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts` en est la portée réelle ; il est éprouvé sur les six formes du §9, dont les trois que le ticket nomme — chaîne dans un attribut, chaîne concaténée, texte d'un test de rendu — et sur huit greffes faites dans les **fichiers réels** où la faute se commettrait ; il échoue si l'une des trois marques ne reconnaît aucun fichier réel du dépôt ; ses limites sont annoncées, dont celle qu'il ne peut pas tenir — une chaîne qui arrive à l'écran par une variable venue d'un module.
+**Hors périmètre, au registre :** un client acheteur voudra peut-être son propre vocabulaire — « atelier » plutôt qu'« agence ». Le dispositif ne l'empêche pas (le code nomme la notion) ; il n'est pas construit.
 
 ---
 

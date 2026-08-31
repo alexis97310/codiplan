@@ -1,3 +1,4 @@
+import { t } from "../i18n/fr";
 import {
   SEUIL_NON_TEXTE,
   SEUIL_TEXTE,
@@ -65,8 +66,16 @@ export type ThemeSociete = {
   readonly accent: CouleurDeTheme;
 };
 
-/** Nom porté par le thème neutre. Le produit, pas une société. */
-export const NOM_NEUTRE = "CODIPLAN";
+/**
+ * Nom porté par le thème neutre. Le produit, pas une société.
+ *
+ * Il est AFFICHÉ — le bandeau d'identité le rend quand aucune société n'est
+ * active — et vient donc du dictionnaire (D26, ticket L0-11). C'est le cas de
+ * figure que le gardien des chaînes visibles ne peut pas voir : il lit là où le
+ * texte est écrit à l'écran, et celui-ci y arrive par une donnée. La règle vaut
+ * quand même, et elle s'applique ici à la main.
+ */
+export const NOM_NEUTRE = t("app.nom");
 
 function couleurDeTheme(hex: string, seuilLisible: number): CouleurDeTheme {
   const fond = normaliserHex(hex);
