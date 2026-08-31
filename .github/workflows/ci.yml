@@ -156,7 +156,13 @@ jobs:
     needs: verify-full
     if: always() && needs.verify-full.result == 'failure'
     runs-on: ubuntu-latest
+    # `contents: read` est là pour la même raison qu'au job `battement` : le
+    # bloc remplace l'ensemble des droits. Ce job ne fait pas de `checkout`,
+    # mais `gh` résout le dépôt avant d'agir — et ce chemin-ci ne s'exécute
+    # QUE lorsque quelque chose est déjà cassé. C'est le pire moment pour
+    # découvrir qu'il manquait un droit.
     permissions:
+      contents: read
       issues: write
     steps:
       - name: Ouvrir ou compléter l'issue de nuit rouge
@@ -228,7 +234,16 @@ jobs:
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # UN BLOC `permissions:` N'EST PAS ADDITIF : il définit l'ENSEMBLE des
+    # droits du jeton, et tout ce qui n'y figure pas tombe à `none`. La
+    # première rédaction ne demandait que `actions: read` — `contents` est
+    # donc passé à `none`, et `actions/checkout` a reçu « Repository not
+    # found » sur ce dépôt privé. Mesuré par contraste sur la même exécution :
+    # le job `verify`, qui ne déclare aucun bloc, a cloné sans difficulté.
+    # Même famille que le `ON UPDATE CASCADE` de D49 — une valeur par défaut
+    # qui répond à une question qu'on n'a pas posée.
     permissions:
+      contents: read
       actions: read
     steps:
       - uses: actions/checkout@v5
