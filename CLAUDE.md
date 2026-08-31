@@ -97,6 +97,24 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
+**Et cette politique a CINQ formes, pas une** *(R0-a)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les cinq, avec leur cas et une table qui les porte :
+
+| Forme | Clause | S'applique à | Exemple en base |
+|---|---|---|---|
+| **identité** | `id = app.societe_id` | `societe` SEULE — la table que `societe_id` désigne *(D42)* | `societe` |
+| **société** | `societe_id = app.societe_id` | toute table métier **ordinaire** | `agence`, `calendrier`, `utilisateur_societe` |
+| **référentiel** | lecture `USING (true)`, écriture `app_est_role_editeur()` | la liste close des référentiels de plateforme *(D4)* | `devise`, `parite`, `jour_ferie` |
+| **parc** | société **ET** `app.client_id` **ET** `app.perimetre_sites` | `client`, `site`, `machine` — le portail *(D10)* et le chemin QR *(D22)* | fixtures du harnais ; tables réelles aux lots 1 et 2 |
+| **journal** | `SELECT` société **et** habilitation ; `INSERT` seul ; ni `UPDATE` ni `DELETE` | `journal_audit` *(I8)* | `journal_audit` |
+
+**Celle qui NE s'applique JAMAIS à une table métier ordinaire est « référentiel »**, et ses deux moitiés sont fausses pour deux raisons distinctes. Sa lecture est `USING (true)` : toutes les sociétés lisent toutes les lignes — c'est la décision D4 sur `devise` (« le franc Pacifique est le même partout »), c'est la fin du cloisonnement sur `client`. Son écriture est `app_est_role_editeur()` : elle donne le droit au salarié de l'éditeur et le retire à la société propriétaire — l'objet même de la règle sur un référentiel, l'inverse exact de ce que le §22.5 promet au client sur une table métier.
+
+**La branche `OR societe_id IS NULL` de la forme imposée est un vestige, pas une licence.** Sur une colonne `societe_id NOT NULL` — donc sur toute table de la première catégorie — elle est **inerte** : aucune ligne ne peut la satisfaire. Les six tables du lot 0 la portent encore parce que L0-04 l'a écrite ; le gardien ne l'interdit pas, il **mesure son inertie**. Une table nouvelle s'écrit sans elle.
+
+**Et la forme est MESURÉE, pas déclarée** : `scripts/lib/politiques-rls.ts` lit `pg_policies`, qui rend l'expression *analysée*. Les formes 1, 2, 3 et 6 du §9 s'y dissolvent — graphie, enveloppe `DO $$ … $$`, pose en deux temps, nom assemblé à l'exécution : c'est l'état final qui est lu, jamais le texte qui l'installe. Le contrôle tourne sur la base jetable (`test:isolation`) **et** sur la base hébergée (`controle-cloisonnement`).
+
+**Le CONTRAT des fixtures d'isolation est structurel** *(R0-a, écart É14)*. `client`, `site` et `machine` existent aujourd'hui comme tables **fixtures** du harnais et portent la forme « parc ». Le jour où les vraies tables arrivent, la réparation la plus naturelle — supprimer la fixture et donner à la vraie table la clause société seule — **réduisait la couverture sans qu'aucun gardien ne s'en aperçoive**. Trois gardiens indépendants la refusent désormais : la **forme** mesurée dans `pg_policies` (fixture ou table réelle, sans faire la différence) ; la **liste close `TABLES_PARC`**, dont le RETRAIT d'une entrée est refusé — c'est le retrait qui ouvre la brèche, pas l'addition ; et le **plancher de scénarios** par exigence de L0-05 (`EXIGENCES_L0_05`), qui ne se baisse jamais. Les scénarios D10 et D22 doivent rester **plus nombreux** après la reprise, jamais moins.
+
 **Un message d'erreur est un canal d'information : il est soumis au cloisonnement comme une requête** *(D50)*. Ce qu'un refus donne à lire est une réponse, et se compte comme telle. L'exemple qui a fait la règle : un déclencheur explicatif sur `jour_ferie`, qui dirait « 3 écarts référencent ce férié », **apprendrait à un salarié de l'éditeur combien d'agences clientes chôment ce jour-là** — depuis un simple refus, sans avoir jamais lu une table. Un refus a donc le droit d'être **lisible**, jamais d'être **informatif** : il dit ce qui bloque et la marche à suivre, il ne compte pas et ne nomme pas ce que son destinataire n'a pas le droit de lire. Et le raccourci qui le rendrait bavard — une fonction `SECURITY DEFINER` posée pour voir par-dessus les politiques — est refusé par un gardien statique dont la liste d'exceptions est close et vide.
 
 *Vérification : `pnpm test:isolation`.*

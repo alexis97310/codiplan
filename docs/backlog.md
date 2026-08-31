@@ -32,7 +32,8 @@ Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_soci
 
 **L0-04 — Politiques RLS. [D4]**
 Sécurité au niveau des lignes sur toutes les tables portant `societe_id`, pilotée par une variable de session.
-Forme imposée : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.
+~~Forme imposée : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.~~
+> **CORRIGÉ le 31/08/2026 (ticket R0-a, écart É9 de la revue R0).** Cette phrase était **le texte de ticket le plus dangereux des trois lots** : elle énonce « la forme imposée » au singulier alors qu'il en existe **cinq**, et la recopier sur `client`, `site` ou `modele_materiel` écrit une politique fausse **dans le sens permissif — en obéissant**. Les cinq formes, leur cas d'emploi et la table qui les porte sont désormais **au CLAUDE.md, au pied de I1** ; celle qui ne s'applique jamais à une table métier ordinaire y est nommée (« référentiel »), avec la raison. La branche `OR societe_id IS NULL` est un **vestige inerte** sur une colonne `NOT NULL`, jamais une licence. Un gardien mesure la forme dans `pg_policies` — `tests/isolation/politiques-rls.test.ts` et `scripts/controle-cloisonnement.mts`.
 *Acceptation :* une requête sans société positionnée retourne **zéro ligne sur les tables cloisonnées**, et **uniquement les référentiels de plateforme** sur les tables partagées (`devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`).
 
 **L0-05 — Tests d'isolation. [D22]**
@@ -106,13 +107,15 @@ Périmètre : intervention, contrat, machine, paramétrage société, compte cli
 
 ## Lot 1 — Référentiels, tarification, imports (4 semaines)
 
-**L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche.
-**L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, `temps_trajet_min` par agence qui **fait foi** sur l'estimation par zone.
+> **AVANT L1-01, L1-02, L1-05 et L2-01 — le CONTRAT des fixtures d'isolation.** *(ticket R0-a, écart É14)* `client`, `site`, `machine` et `modele_materiel` existent déjà comme **tables fixtures** du harnais `tests/isolation/`, avec leurs politiques. Le jour où la vraie table est créée, le harnais **cesse de la fabriquer et la laisse en place** — il l'annonce sur sa sortie et dit ce qui reste dû. Ce qui reste dû : la migration pose la forme **« parc »** (société **ET** `app.client_id` **ET** `app.perimetre_sites`, D10/D22) sur `client`, `site` et `machine`, **et non** la clause société seule ; les scénarios de L0-05 se **reportent** sur la vraie table au lieu de partir avec la fixture. Trois gardiens le tiennent et refusent la réduction : la forme mesurée dans `pg_policies`, la liste close `TABLES_PARC`, et le plancher de `EXIGENCES_L0_05`. Voir `tests/isolation/setup/contrat.ts` et le pied de I1 au CLAUDE.md.
+
+**L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
+**L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, `temps_trajet_min` par agence qui **fait foi** sur l'estimation par zone. Forme de politique : **parc**, filtre de périmètre de sites compris.
 **L1-03** Contacts — rôles, préférences de notification.
 **L1-04** Techniciens et habilitations. **[D9]**
 Trois tables : `habilitation`, `technicien_habilitation` (datée), `site_habilitation_requise` (avec booléen bloquant).
 *Acceptation :* l'affectation est **bloquée** — et non signalée — si le site exige une habilitation bloquante absente ou expirée à la date d'intervention. Test sur RG-PLA-04.
-**L1-05** Familles et modèles — `societe_id` nullable pour les référentiels de plateforme [D4] ; une copie portant un `societe_id` masque l'original.
+**L1-05** Familles et modèles — `societe_id` nullable pour les référentiels de plateforme [D4] ; une copie portant un `societe_id` masque l'original. Forme de politique : **référentiel** — lecture ouverte, écriture aux seuls rôles éditeur —, et RLS **activée sans être forcée** (`TABLES_RLS_SIMPLE`) : c'est la seule des quatre tables fixtures qui ne relève pas du parc.
 **L1-06** Prestations et forfaits — `societe_id NOT NULL`. Conditions d'application par zone, famille, type.
 *Acceptation :* un forfait dont les conditions ne sont pas remplies n'est pas proposé. Test sur RG-TAR-06.
 **L1-07** Taux horaire — par société, surchargeable, **historisé**.
@@ -132,7 +135,7 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Quatre champs obligatoires** : `modele_id`, `client_id`, `site_id`, `numero_serie`. Numéro illisible → `SN-INCONNU-<référence>` et `complet = false`.
 `id` en UUID v7 généré côté client ; `numero` attribué par le serveur à la synchronisation ; affichage `Local-<6 car.>` tant qu'il est nul.
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
-**L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Planches pré-générées pour le recensement.
+**L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
 **L2-05** Historique machine — conservé au changement de site.
@@ -203,3 +206,10 @@ La console intercepte l'erreur `23503` sur `calendrier_ferie_jour_ferie_id_date_
 RG-DRO-05 rend le second facteur obligatoire sur `admin_societe`. Ce rôle est, chez un client, le seul à pouvoir administrer les comptes : son titulaire bloqué ne peut être débloqué par personne de sa société. Sans procédure, cela se règle par un appel au support puis par un second compte `admin_societe` créé « au cas où » — c'est-à-dire par le contournement de la mesure.
 Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`** — la seule table qui puisse la porter, puisqu'elle enjambe les sociétés par construction (D34).
 *Acceptation :* aucun autre rôle ne peut l'exécuter, y compris `direction` de la société concernée ; chaque déblocage laisse une ligne au journal des accès portant l'auteur, la société cible et le compte débloqué ; le compte débloqué doit réactiver un second facteur avant de retrouver ses droits d'administration.
+
+**L7-03 — Journalisation des accès des rôles ÉDITEUR aux données d'une société cliente. [D32]**
+**C'est l'unique maison de ce point** *(ticket R0-a, écart É2 de la revue R0)*. D32 réduit l'exigence du §15 — « toute consultation de données client par un utilisateur interne est journalisée » — à deux choses : **les basculements de société active**, livrés à L0-06 et éprouvés par `bascule-societe.test.ts`, et **les accès des rôles éditeur aux données d'une société cliente**, qui n'existaient nulle part. La moitié livrée faisait passer la seconde pour livrée aussi. Elle a désormais un ticket, un lot, et un seul des deux : ni ligne au registre, ni renvoi — un point rangé à trois endroits est un point qu'on croit rangé.
+**Pourquoi le lot 7, et pas plus tôt.** Le §22.5 est tenu : un rôle éditeur n'a **aucune** habilitation par défaut, et les scénarios d'isolation le prouvent aujourd'hui — il ne lit rien de cloisonné. Il n'y a donc **aucun accès éditeur à journaliser tant que la console éditeur n'existe pas**. Ce ticket naît avec elle, et avec L7-01 dont il enregistrera le déblocage.
+**Ce qui manque au socle, et qui est le vrai travail.** `EvenementAcces` porte `bascule_societe`, `bascule_refusee` et `requete_consolidation` : **aucune valeur ne peut porter un accès éditeur**. Le ticket ajoute la valeur à l'énumération, et rien d'autre au schéma — `journal_acces` porte déjà `societe_id_source` et `societe_id_cible`, **informatives et nullables** (D34), et c'est exactement à cette question qu'elles répondent : « qui a tenté d'accéder à mes données ». Elles ne filtrent toujours pas, et le gardien `journal-acces-informatif.test.ts` reste vert.
+**Ce que le ticket ne fait pas :** journaliser les lectures métier ordinaires d'un utilisateur **interne** d'une société. D32 les a écartées — le volume serait sans rapport avec la valeur, et le §15 est narratif donc non normatif (D1). Élargir ce périmètre serait un arbitrage.
+*Acceptation :* toute lecture, par un rôle éditeur, d'une donnée appartenant à une société cliente laisse une ligne dans `journal_acces` portant l'auteur, l'horodatage, le rôle et la société visée ; un test prouve qu'un rôle **interne** lisant les données de sa propre société n'en produit **aucune** ; les deux colonnes de société restent informatives — aucune requête, aucune politique, aucun index ne les prend pour filtre.

@@ -1,7 +1,16 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { avecSociete, fermerClients } from "./setup/db";
-import { MACHINE_A1, QR_A1, QR_B1, SOCIETE_A } from "./setup/fixtures";
+import { avecPortail, avecSociete, fermerClients } from "./setup/db";
+import { exigence } from "./setup/contrat";
+import {
+  CLIENT_A1,
+  MACHINE_A1,
+  QR_A1,
+  QR_A2,
+  QR_B1,
+  SITE_A1_S1,
+  SOCIETE_A,
+} from "./setup/fixtures";
 
 /**
  * Résolution d'un QR code entre sociétés (L0-05 obligatoire, D22).
@@ -11,6 +20,11 @@ import { MACHINE_A1, QR_A1, QR_B1, SOCIETE_A } from "./setup/fixtures";
  * l'endpoint `GET /machines/qr/{token}` arrive au lot 2 ; ici on verrouille le
  * filet base de données qui le sous-tend : sous le contexte d'une autre société,
  * la ligne est invisible, donc la résolution ne peut rien renvoyer à divulguer.
+ *
+ * **Les titres passent par `exigence()`** (ticket R0-a, écart É14) : c'est
+ * l'appel qui est compté par `tests/unit/db/contrat-isolation.test.ts`, et un
+ * scénario qui disparaît fait baisser un décompte au lieu de disparaître en
+ * silence.
  */
 function resoudreQr(societeId: string, token: string) {
   return avecSociete(societeId, (tx) =>
@@ -24,15 +38,54 @@ function resoudreQr(societeId: string, token: string) {
 describe("résolution QR inter-société", () => {
   afterAll(fermerClients);
 
-  it("refuse le jeton d'une machine appartenant à une autre société", async () => {
-    const resultat = await resoudreQr(SOCIETE_A, QR_B1);
-    expect(resultat).toHaveLength(0);
-  });
+  it(
+    exigence(
+      "qr_inter_societe",
+      "refuse le jeton d'une machine appartenant à une autre société",
+    ),
+    async () => {
+      const resultat = await resoudreQr(SOCIETE_A, QR_B1);
+      expect(resultat).toHaveLength(0);
+    },
+  );
 
-  it("résout le jeton d'une machine de sa propre société", async () => {
-    const resultat = await resoudreQr(SOCIETE_A, QR_A1);
-    expect(resultat).toHaveLength(1);
-    expect(resultat[0]?.id).toBe(MACHINE_A1);
-    expect(resultat[0]?.societe_id).toBe(SOCIETE_A);
-  });
+  it(
+    exigence(
+      "qr_inter_societe",
+      "résout le jeton d'une machine de sa propre société",
+    ),
+    async () => {
+      const resultat = await resoudreQr(SOCIETE_A, QR_A1);
+      expect(resultat).toHaveLength(1);
+      expect(resultat[0]?.id).toBe(MACHINE_A1);
+      expect(resultat[0]?.societe_id).toBe(SOCIETE_A);
+    },
+  );
+
+  it(
+    exigence(
+      "qr_inter_societe",
+      "un compte portail ne résout pas le jeton d'une machine hors de son périmètre",
+    ),
+    async () => {
+      // D22 rencontre D10 : le jeton est unique globalement, la machine A2
+      // appartient bien au client A1, et pourtant un compte portail restreint
+      // au site S1 ne doit pas la résoudre. Sans le filtre de périmètre, ce
+      // scénario passerait — c'est lui qui distingue « cloisonné par société »
+      // de « cloisonné par périmètre ».
+      const resultat = await avecPortail(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          perimetreSites: [SITE_A1_S1],
+        },
+        (tx) =>
+          tx.$queryRawUnsafe<Array<{ id: string }>>(
+            `SELECT "id" FROM "machine" WHERE "qr_token" = $1`,
+            QR_A2,
+          ),
+      );
+      expect(resultat).toHaveLength(0);
+    },
+  );
 });

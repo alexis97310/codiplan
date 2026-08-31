@@ -11,6 +11,7 @@ import {
   type EtatRlsTable,
 } from "../../scripts/lib/rls-declaree";
 import { avecSociete, clientOwner, fermerClients } from "./setup/db";
+import { TABLES_FIXTURES } from "./setup/contrat";
 import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 
 /**
@@ -49,8 +50,13 @@ const TABLES_CLOISONNEES = [...TABLES_RLS_FORCEE];
  * la fixture lui applique `politiqueCloisonnementSql`, donc `FORCE`, là où la
  * vraie table de L1-05 restera en RLS simple. L'écart est celui de la fixture,
  * pas de la règle.
+ *
+ * **La liste n'est plus recopiée** (ticket R0-a) : elle vient du CONTRAT, avec
+ * les DDL et les politiques que le harnais pose. Une table ajoutée au contrat
+ * sans être ajoutée ici aurait fait échouer la clôture ci-dessous — c'est
+ * l'enchaînement du 20/08, et il n'a plus de prise.
  */
-const FIXTURES_CONTRAT = ["client", "site", "machine", "modele_materiel"];
+const FIXTURES_CONTRAT = [...TABLES_FIXTURES];
 
 /** Les listes telles que ce harnais les voit — production plus fixtures. */
 const LISTES_HARNAIS = {

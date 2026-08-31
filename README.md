@@ -293,6 +293,44 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
 
+### Et une troisième preuve : la FORME de la politique
+
+Les deux précédentes disent que la sécurité est **activée** ; ni l'une ni
+l'autre ne dit ce que la politique **laisse passer**. Une table peut porter les
+deux drapeaux et une politique `USING (true)` : l'attribut est irréprochable et
+le cloisonnement n'existe plus.
+
+Il y a **cinq formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
+
+| Forme           | Clause                                                      | Exemple                                |
+| --------------- | ----------------------------------------------------------- | -------------------------------------- |
+| **identité**    | `id = app.societe_id`                                       | `societe` (D42)                        |
+| **société**     | `societe_id = app.societe_id`                               | `agence`, `calendrier`                 |
+| **référentiel** | lecture `true`, écriture `app_est_role_editeur()`           | `devise`, `jour_ferie` (D4)            |
+| **parc**        | société **et** `app.client_id` **et** `app.perimetre_sites` | `client`, `site`, `machine` (D10, D22) |
+| **journal**     | `SELECT` habilité, `INSERT` seul                            | `journal_audit` (I8)                   |
+
+La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
+ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
+salarié de l'éditeur en le retirant à la société propriétaire.
+
+`scripts/lib/politiques-rls.ts` porte la règle, partagée par
+`tests/isolation/politiques-rls.test.ts` et le contrôle de la base hébergée. Elle
+est **mesurée dans `pg_policies`**, qui rend l'expression _analysée_ : la
+graphie, l'enveloppe `DO $$ … $$`, la pose en deux temps et le nom assemblé à
+l'exécution s'y dissolvent — c'est l'état final qui est lu.
+
+### Le contrat des fixtures d'isolation
+
+`client`, `site`, `machine` et `modele_materiel` existent comme **tables
+fixtures** du harnais, avec les politiques que les vraies tables porteront aux
+lots 1 et 2. Le contrat est déclaré dans `tests/isolation/setup/contrat.ts` et
+tenu par **trois gardiens indépendants** : la forme mesurée en base, la liste
+close `TABLES_PARC` dont le _retrait_ d'une entrée est refusé, et un **plancher
+de scénarios** par exigence de L0-05 qui ne se baisse jamais. Quand la vraie
+table arrive, le harnais s'efface devant elle et dit ce qui reste dû — sans quoi
+la réparation la plus naturelle réduisait la couverture en silence.
+
 ## Français — le dictionnaire est la source unique
 
 `lib/i18n/fr.ts` porte **toutes** les chaînes qu'un utilisateur lit (D26). Un composant, une page, un test de rendu n'en écrit aucune :
@@ -347,4 +385,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit) et **L0-11** (vocabulaire français centralisé). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation). Aucune fonctionnalité métier : elles commencent au lot 1.
