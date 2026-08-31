@@ -41,7 +41,7 @@ pnpm build            # build de production
 
 pnpm verify           # typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
-pnpm verify:full      # verify + test:e2e
+pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
 
@@ -328,7 +328,7 @@ Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à
 
 ## Intégration continue
 
-`.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés et les tests bout en bout.
+`.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
 
 ## Organisation
 
@@ -347,4 +347,4 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06b** (socle multi-société, RLS, tests d'isolation, authentification et rôles), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit) et **L0-11** (vocabulaire français centralisé). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit) et **L0-11** (vocabulaire français centralisé). Aucune fonctionnalité métier : elles commencent au lot 1.
