@@ -24,6 +24,7 @@
     "feries:horizon": "tsx scripts/horizon-feries.mts",
     "feries:etendre": "tsx scripts/etendre-feries.mts",
     "audit:partitions": "tsx scripts/audit-partitions.mts",
+    "battement": "tsx scripts/battement-nocturne.mts",
     "partitions:etendre": "tsx scripts/etendre-partitions.mts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
     "verify:full": "pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e"

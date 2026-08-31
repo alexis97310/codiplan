@@ -43,6 +43,9 @@ pnpm verify           # typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
+
+pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ?
+                      # → hors de verify:full, et c'est tout son objet
 ```
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
@@ -367,6 +370,23 @@ Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
+
+### Qui voit une nuit rouge — deux alarmes, et la seconde garde la première
+
+**Constaté, non supposé** : GitHub notifie bien par courriel l'échec d'une exécution, et les deux notifications d'échec du 20 août 2026 sont **restées non lues**. Pour un flux planifié, la notification part au dernier compte ayant modifié le `cron` — la même boîte. L'alarme sonnait, dans une pièce vide.
+
+| Job                 | Répond à                                                                                                                                                           | Aveugle à                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `alarme-nuit-rouge` | **une nuit a-t-elle rougi ?** — une _issue_ s'ouvre dans le dépôt dès que `verify:full` échoue hors proposition de fusion. Une issue par épisode, pas une par nuit | une planification **arrêtée** : elle ne produit aucune exécution, donc aucun échec, donc aucune issue |
+| `battement`         | **les nuits ont-elles cessé ?** — `pnpm battement` lit l'état du flux et l'âge de la dernière exécution planifiée                                                  | rien de ce que la première voit ; les deux sont indépendants dans les deux sens                       |
+
+`battement` **ne tourne pas sur la planification**, et c'est tout son objet : un contrôle qui ne s'exécute que lorsque la planification s'exécute ne peut pas constater qu'elle a cessé. Il s'accroche à l'activité humaine — proposition de fusion, poussée sur `main`. Sa limite est écrite plutôt que tue : si personne ne pousse rien, il ne tourne pas davantage ; il garantit qu'**au premier retour de quelqu'un**, l'écran soit rouge.
+
+### ⚠️ Avant de rendre ce dépôt public
+
+La planification nocturne ne survit à l'inactivité **que parce que le dépôt est privé**. GitHub désactive automatiquement les flux planifiés après **60 jours** sans activité, et cette règle **ne vise que les dépôts publics** ; un fork la remet en vigueur lui aussi, les flux planifiés d'un dépôt forké étant désactivés par défaut.
+
+La protection ne tient donc pas au fichier de flux : elle tient à un **attribut du dépôt**, qui change d'un clic et sans rien annoncer. C'est pourquoi la même mise en garde est écrite en tête de `.github/workflows/ci.yml` — là où quelqu'un qui change la visibilité la rencontrera —, et c'est le job `battement` qui rattrape le cas si elle est franchie quand même.
 
 ## Organisation
 

@@ -157,3 +157,91 @@ Et un plancher de scénarios se baisse : un chiffre dans `contrat.ts`. C'est
 délibéré — le geste **se voit dans une revue**, là où la suppression d'un
 fichier de test ne se voyait pas. On ne rend pas un test creux impossible à un
 adversaire ; on le rend impossible **par accident**.
+
+---
+
+## 5. L'espèce nouvelle, et l'audit qu'elle a déclenché
+
+Le défaut trouvé au §4 n'est **pas** une assertion creuse : l'assertion était
+juste. C'est la **POPULATION** qui s'auto-sélectionnait pour exclure le cas à
+attraper. Filtrer sur `NOT NULL` fait sortir du périmètre la table qui perd son
+`NOT NULL` — c'est-à-dire le geste même qu'on surveille.
+
+**La forme générale, inscrite au §9 du CLAUDE.md :** *tout gardien dont le
+critère de sélection porte sur une propriété qu'il est censé faire respecter
+s'aveugle exactement là où il compte. Un `WHERE` qui recoupe l'assertion est un
+trou.* La question à poser à chaque filtre : **l'objet qui viole ma règle est-il
+encore dans ma population ?** La parade est toujours la même — élargir la
+population et faire de la propriété une **assertion**.
+
+Les gardiens **qui sélectionnent** ont été audités sous cet angle. Trois
+constats, et deux d'entre eux sont mesurés plutôt que raisonnés.
+
+### Ce qui a été corrigé (mécanique, aucune règle touchée)
+
+**Quatre listes d'exemption sur cinq ne prouvaient pas leur adossement.** Une
+exemption est une **sélection négative** : `sans-decimales-en-dur`,
+`sans-fuseau-en-dur`, `sans-date-feriee-en-dur` et `conversion-reservee`
+retirent du périmètre un chemin nommé. Le jour où ce fichier est renommé,
+déplacé ou scindé, l'entrée survit et ne protège plus rien — silencieusement,
+puisqu'une exemption qui ne s'applique à personne ne fait échouer personne — et
+le premier fichier qui reprendra ce chemin héritera d'une exemption que personne
+ne lui a accordée. `sans-date-courante-implicite` portait déjà le témoin ; les
+quatre autres le portent désormais. **Éprouvé** : l'exemption repointée vers
+`prisma/seed-donnees.ts` fait échouer le gardien en nommant le chemin mort.
+Aucune règle, aucune liste close, aucun périmètre n'a bougé.
+
+### Ce qui est rapporté et NON corrigé
+
+**1. Le gardien des chaînes visibles (L0-11) perd sa population par le geste
+même qui masque la faute — mesuré.** Sa population est faite des fichiers
+portant l'une des trois marques, dont « rend du JSX ». Or `litterauxVisibles`
+ne résout un identifiant que vers une constante **du même fichier**. Mesuré sur
+le vrai analyseur, avec le même texte français :
+
+| Écriture | Marques | Chaînes détectées |
+|---|---|---|
+| libellé écrit dans le composant | `rend du JSX` | **2** |
+| le même, sorti dans `libelles.ts` | **aucune** | 0 |
+| le composant qui le consomme | `rend du JSX` | **0** |
+
+La faute disparaît entièrement. Et le geste qui l'efface — « sortir les libellés
+dans un module de constantes » — est **exactement ce qu'un développeur pris par
+ce gardien ferait spontanément**. C'est la même espèce sous une autre forme :
+non pas un `WHERE` qui recoupe l'assertion, mais une population qu'on quitte en
+déplaçant la faute. Non corrigé : la parade demande de résoudre les constantes
+**à travers les imports** (graphe de modules, alias, ré-exports), ce qui n'est
+pas mécanique et étend le périmètre d'une règle du §5.5.
+
+**2. Le périmètre statique est une liste de cinq répertoires, recopiée dans huit
+gardiens.** `["app", "components", "lib", "prisma", "scripts"]`. Tout ce qui
+vit **à la racine** en sort. Aujourd'hui sans conséquence — seuls des fichiers
+de configuration s'y trouvent (`next.config.ts`, `prisma.config.ts`,
+`playwright.config.ts`, `vitest.config.mts`) — mais `middleware.ts` est un
+emplacement **standard** de l'App Router, et c'est le domicile naturel de la
+bascule de société. Il échapperait à huit gardiens à la fois, en silence. Non
+corrigé : élargir le périmètre change ce que huit règles couvrent, et deux
+d'entre elles deviendraient rouges sur des fichiers de configuration. **À
+trancher avant le premier `middleware.ts`, c'est-à-dire au lot 1.**
+
+### Ce qui a été vérifié et jugé SAIN — l'antidote, nommé
+
+L'audit ne rapporte pas que des trous : les cas sains disent quelle forme prend
+la parade, et il vaut mieux la nommer que la redécouvrir.
+
+- **Le détectif des partitions** ne compte les lignes de la partition par défaut
+  que si elle existe. Ce serait la même espèce — le contrôle dépend d'un filet
+  dont l'absence le rendrait vert — **si `ecartsPartitionDefaut` ne faisait pas
+  de cette absence un écart à part entière**. Elle en fait un, avec sa raison.
+- **`perimetre-audit`** saute les tables du périmètre absentes du schéma, ce qui
+  est une sélection ; le scénario « les entités encore sans table sont
+  exactement celles des lots à venir » ferme le trou en nommant la liste.
+- **Les exemptions par emplacement** — `lib/money/`, `lib/theme/`,
+  `lib/reporting/` — ne sont pas des angles morts : elles **sont** la règle
+  (« point de passage unique »), et `sans-couleur-en-dur` éprouve déjà la forme
+  4 du §9 sur la sienne.
+
+**Le motif commun de tous les cas sains est le TÉMOIN** : *zéro observé est un
+échec*. C'est déjà l'antidote de la vacuité ; l'audit montre qu'il est aussi
+celui de l'auto-sélection, à une condition — que le témoin porte sur la
+**population**, et non sur le résultat.
