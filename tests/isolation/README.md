@@ -68,6 +68,48 @@ Le minimum imposé est de douze scénarios.
   la liste dont la contrainte pèse sur l'utilisateur d'un client, et non sur
   l'un des nôtres (RG-DRO-05).
 
+## Ajouts du ticket L0-10 — journal d'audit
+
+- `journal-audit.test.ts` — **I8, D32, D50**, en quatre temps.
+  **L'écriture n'est pas facultative** : toutes les écritures du fichier passent
+  par du SQL brut, hors de tout modèle Prisma — le chemin le plus hostile —, et
+  laissent la même ligne qu'une écriture applicative ; le jumeau **retire
+  réellement le déclencheur** pour montrer que c'est bien lui qui écrit.
+  **L'ajout seul** : les privilèges sont lus dans `information_schema` avec la
+  requête que joue `scripts/controle-cloisonnement.mts` contre la base hébergée,
+  `UPDATE` et `DELETE` sont refusés sous le rôle applicatif, et l'épreuve par
+  retrait se fait **en deux temps** — le privilège rendu, la politique mord
+  encore (zéro ligne réécrite) ; les deux verrous retirés, la réécriture passe.
+  **La lecture est cloisonnée, et par rôle** : une société ne voit pas le journal
+  d'une autre, et dans sa propre société seuls `admin_societe` et `direction` le
+  lisent (matrice §5.2).
+  **Les habilitations sont couvertes** (D52) : accorder un droit, l'escalader
+  d'`adv` à `admin_societe`, puis le retirer laisse à chaque fois sa ligne —
+  avec l'auteur, le bénéficiaire et le rôle d'avant. C'est ce qui rend
+  vérifiable la procédure de déblocage de D40 (L7-01).
+  **Le périmètre est tenu par la base** : poser le déclencheur sur un référentiel
+  de plateforme fait échouer la première écriture, avec un refus _lisible_ sans
+  être _informatif_ (D50) — le scénario vérifie qu'il ne nomme aucune société.
+
+- `journal-audit-partitions.test.ts` — **L0-10**, ce que le partitionnement
+  change. La table est bien `PARTITION BY RANGE` et sa clé primaire porte
+  l'horodatage ; les écritures sont routées vers la partition du mois ; **aucune
+  partition ne laisse au rôle applicatif le moindre privilège** et toutes forcent
+  RLS — **les deux drapeaux**, `FORCE` sans `ENABLE` laissant les politiques
+  inappliquées. Le jumeau rend à une partition les privilèges par défaut et lui
+  retire RLS — exactement ce qu'un `CREATE TABLE … PARTITION OF` nu aurait
+  laissé — et montre qu'alors la société A **lit et réécrit** les lignes d'audit
+  d'une autre société en nommant la partition. Le contrôle permanent de
+  `controle-cloisonnement.mts` est joué ici sur la même requête, et éprouvé sur
+  une partition **réellement créée nue**, puis sur une partition à moitié
+  durcie, puis sur une partition produite par la fonction du dépôt — refus,
+  refus, acceptation. Un second jumeau retire la partition par
+  défaut et montre que l'écriture hors plage est **refusée**, ce qui ferait
+  échouer l'écriture métier. Enfin, les deux contrôles datés sont éprouvés sur la
+  base réelle, et leur **indépendance** avec : l'horizon amputé fait mordre le
+  préventif pendant que le détectif reste vert, une ligne rangée par défaut fait
+  l'inverse.
+
 ## Base de test
 
 Les scénarios tournent sur un **PostgreSQL local jetable**, recréé à chaque

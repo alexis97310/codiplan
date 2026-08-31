@@ -28,6 +28,7 @@ function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
     societeId: SOCIETE,
     role: Role.adv,
     secondFacteurValide: false,
+    adresseIp: null,
     ...surcharge,
   };
 }

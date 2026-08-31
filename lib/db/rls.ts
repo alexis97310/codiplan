@@ -12,6 +12,18 @@ import type { Role } from "@/lib/auth/roles";
  *     référentiels de plateforme ne saurait être réservée aux rôles éditeur
  *     comme I1 l'exige (L0-06, fonction `app_est_role_editeur`).
  *
+ * Deux autres s'y ajoutent au ticket L0-10, et elles ne sont lues par AUCUNE
+ * politique : le DÉCLENCHEUR d'audit les lit pour dire QUI écrit.
+ *   - `app.utilisateur_id` — l'auteur (I8 : « auteur, horodatage et valeurs
+ *     avant/après ») ;
+ *   - `app.adresse_ip` — l'adresse de l'appelant (chapitre 11.2), telle que
+ *     Better Auth l'a déjà enregistrée sur la session.
+ * Toutes deux peuvent être absentes : un chemin sans session — le seed, une
+ * tâche planifiée, une correction manuelle — n'a pas d'auteur, et le journal
+ * l'écrit `NULL` plutôt que d'inventer un compte (CLAUDE.md §8). L'écriture,
+ * elle, est journalisée quand même : c'est le déclencheur qui décide, pas
+ * l'appelant.
+ *
  * Ce module est le point de passage unique qui les positionne, pour que le
  * filtre base de données morde sur les requêtes applicatives passant par un
  * rôle restreint.
@@ -28,6 +40,30 @@ export const VARIABLE_SESSION_SOCIETE = "app.societe_id";
 
 /** Nom de la variable de session portant le rôle tenu sur cette société. */
 export const VARIABLE_SESSION_ROLE = "app.role";
+
+/** Nom de la variable de session portant l'auteur des écritures (L0-10, I8). */
+export const VARIABLE_SESSION_UTILISATEUR = "app.utilisateur_id";
+
+/** Nom de la variable de session portant l'adresse de l'appelant (chapitre 11.2). */
+export const VARIABLE_SESSION_ADRESSE_IP = "app.adresse_ip";
+
+/**
+ * Contexte de session posé sur la transaction : société, rôle, auteur, adresse.
+ *
+ * Un objet plutôt que quatre paramètres positionnels : `avecContexteRls(prisma,
+ * { societeId, role: null, auteurId: null }, …)` se relit, là où un quatrième
+ * `null` en fin de liste ne se relit plus.
+ */
+export type ContexteRls = {
+  /** Société active — alimente `app.societe_id`. */
+  societeId: string;
+  /** Rôle tenu sur cette société, `null` pour un chemin qui n'en a pas. */
+  role: Role | null;
+  /** Auteur des écritures, `null` hors session. Alimente `app.utilisateur_id`. */
+  auteurId?: string | null;
+  /** Adresse de l'appelant, `null` hors session. Alimente `app.adresse_ip`. */
+  adresseIp?: string | null;
+};
 
 /** Client Prisma ou client de transaction — les deux exposent `$executeRawUnsafe`. */
 type ClientPrisma = PrismaClient | Prisma.TransactionClient;
@@ -52,18 +88,27 @@ type ClientPrisma = PrismaClient | Prisma.TransactionClient;
  */
 async function poserContexte(
   tx: ClientPrisma,
-  societeId: string,
-  role: Role | null,
+  contexte: ContexteRls,
 ): Promise<void> {
   await tx.$executeRawUnsafe(
     "SELECT set_config($1, $2, true)",
     VARIABLE_SESSION_SOCIETE,
-    societeId,
+    contexte.societeId,
   );
   await tx.$executeRawUnsafe(
     "SELECT set_config($1, $2, true)",
     VARIABLE_SESSION_ROLE,
-    role ?? "",
+    contexte.role ?? "",
+  );
+  await tx.$executeRawUnsafe(
+    "SELECT set_config($1, $2, true)",
+    VARIABLE_SESSION_UTILISATEUR,
+    contexte.auteurId ?? "",
+  );
+  await tx.$executeRawUnsafe(
+    "SELECT set_config($1, $2, true)",
+    VARIABLE_SESSION_ADRESSE_IP,
+    contexte.adresseIp ?? "",
   );
 }
 
@@ -104,6 +149,23 @@ export type DelaisTransaction = {
  * même continent que la base, fait deux ou trois allers-retours. Le préciser
  * est réservé aux chemins d'amorçage, longs et distants.
  */
+export function avecContexteRls<T>(
+  prisma: PrismaClient,
+  contexte: ContexteRls,
+  travail: (tx: Prisma.TransactionClient) => Promise<T>,
+  delais?: DelaisTransaction,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await poserContexte(tx, contexte);
+    return travail(tx);
+  }, delais);
+}
+
+/**
+ * Variante sans auteur, pour les chemins qui n'en ont pas : le seed, le
+ * contrôle de cloisonnement, les tâches par société. Le journal d'audit y
+ * inscrit alors un auteur `NULL` — et la ligne existe quand même.
+ */
 export function avecSocieteEtRole<T>(
   prisma: PrismaClient,
   societeId: string,
@@ -111,10 +173,7 @@ export function avecSocieteEtRole<T>(
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
   delais?: DelaisTransaction,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await poserContexte(tx, societeId, role);
-    return travail(tx);
-  }, delais);
+  return avecContexteRls(prisma, { societeId, role }, travail, delais);
 }
 
 /**

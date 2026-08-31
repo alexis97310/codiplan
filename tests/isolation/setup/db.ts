@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import { Role as RoleCanonique, type Role } from "@/lib/auth/roles";
+import { avecContexteRls, type ContexteRls } from "@/lib/db/rls";
 
 import {
   ROLE_APP,
@@ -133,6 +134,25 @@ export function avecSocieteEtRole<T>(
     );
     return travail(tx as unknown as PrismaClient);
   });
+}
+
+/**
+ * Exécute `travail` sous le contexte COMPLET d'une session (L0-10) : société,
+ * rôle, **auteur** et **adresse**.
+ *
+ * À la différence des deux fonctions ci-dessus, celle-ci ne pose pas le
+ * contexte elle-même : elle délègue à `lib/db/rls.ts`, le module de production.
+ * C'est délibéré — le journal d'audit lit `app.utilisateur_id`, et ce qu'il
+ * faut éprouver n'est pas qu'une variable bien posée soit bien lue, c'est que
+ * le SEUL module qui la pose en production la pose réellement.
+ */
+export function avecContexteComplet<T>(
+  contexte: ContexteRls,
+  travail: (tx: PrismaClient) => Promise<T>,
+): Promise<T> {
+  return avecContexteRls(clientApp(), contexte, (tx) =>
+    travail(tx as unknown as PrismaClient),
+  );
 }
 
 /**

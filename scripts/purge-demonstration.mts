@@ -44,6 +44,21 @@ import { PrismaClient } from "@prisma/client";
  * Les référentiels de plateforme `devise` et `parite` ne sont PAS purgés : ils
  * relèvent de la liste close de I1, ne sont pas des données de démonstration, et
  * le seed les réécrit de façon idempotente par leur clé naturelle.
+ *
+ * **`journal_audit` n'est pas purgé non plus** (L0-10), et pour une raison qui
+ * n'est pas la même : le journal SURVIT à ce qu'il décrit — c'est sa propriété,
+ * et c'est pourquoi aucune clé étrangère ne le retient à ces tables. Le
+ * `TRUNCATE` ci-dessous n'échoue donc pas à cause de lui, et laisse derrière lui
+ * l'historique des sociétés de démonstration. Le seed réécrit les mêmes
+ * identifiants fixes : les lignes d'audit se rattachent aux sociétés recréées,
+ * et le journal raconte alors la purge en creux — une création après une
+ * création, sans suppression entre les deux. C'est exact et lisible.
+ *
+ * À noter, et c'est une limite connue plutôt qu'un défaut : un `TRUNCATE` ne
+ * déclenche pas le journal, qui est `FOR EACH ROW`. La purge elle-même n'est
+ * donc pas tracée. Elle est réservée au rôle propriétaire — `codiplan_app` n'a
+ * pas ce droit — et à un jeu de démonstration ; voir l'en-tête de la migration
+ * `20260829120000_journal_audit`.
  */
 export const TABLES_DEMONSTRATION = [
   "utilisateur_client",

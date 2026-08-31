@@ -14,6 +14,28 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsRlsDeclaree,
+  rapportRlsDeclaree,
+  SQL_ETAT_RLS,
+  type EtatRlsTable,
+} from "./lib/rls-declaree";
+import {
+  ecartsDurcissementPartitions,
+  ecartsPrivilegesJournal,
+  rapportPartitionsJournal,
+  rapportPrivilegesJournal,
+  ROLE_APPLICATIF,
+  SQL_PARTITIONS_JOURNAL,
+  SQL_PRIVILEGES_JOURNAL,
+  TABLE_JOURNAL_AUDIT,
+  versPartitionsJournal,
+  versPrivilegesJournal,
+  type LignePartitionJournal,
+  type LignePrivilegeJournal,
+  type PartitionJournal,
+  type PrivilegeJournal,
+} from "./lib/privileges-journal";
+import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
   decompteVide,
@@ -57,13 +79,64 @@ import {
  *   — sous le contexte de chaque société : exactement ses lignes, ni plus
  *     (fuite entre sociétés), ni moins (données propres devenues invisibles).
  *
- * Enfin, un troisième contrôle, permanent, exigé par D38 : le rôle de
+ * Puis deux contrôles permanents de PRIVILÈGES, tous deux lus dans
+ * `information_schema.role_table_grants` et non déclarés — le second est celui
+ * du ticket L0-10.
+ *
+ * Le premier, exigé par D38 : le rôle de
  * consolidation `codiplan_reporting` ne détient AUCUN privilège autre que
  * `SELECT`. Il voit toutes les sociétés et peut se connecter — c'est une clé
  * passe-partout, et sa seule limite tient à ses droits. Cette limite est posée
  * une fois par une migration ; elle est vérifiée ici à chaque exécution, par
  * `information_schema.role_table_grants` et non par déclaration. Le jour où un
  * droit d'écriture apparaît, l'étape échoue.
+ *
+ * Le second, exigé par L0-10 : le rôle applicatif `codiplan_app` ne détient sur
+ * `journal_audit` que `SELECT` et `INSERT`. Le journal d'audit est en AJOUT
+ * SEUL (I8, D32) — l'histoire s'écrit, elle ne se réécrit pas —, et cette
+ * propriété tient aux privilèges, à rien d'autre. Elle a besoin d'être
+ * surveillée exactement comme celle de `codiplan_reporting`, et pour une raison
+ * de plus : `ALTER DEFAULT PRIVILEGES` accorde d'avance `UPDATE` et `DELETE`
+ * sur toute table nouvelle, si bien que le droit d'écriture n'est pas absent
+ * par nature — il est RETIRÉ. Ce qu'une migration retire, une autre peut le
+ * rendre.
+ *
+ * Le contrôle échoue aussi sur un privilège MANQUANT : le déclencheur d'audit
+ * s'exécute en `SECURITY INVOKER`, donc avec les droits du rôle applicatif.
+ * Sans `INSERT`, ce n'est pas le journal qui se dégrade — c'est toute écriture
+ * métier qui échoue.
+ *
+ * Le troisième, et il corrige le second : le DURCISSEMENT DE CHAQUE PARTITION.
+ * Le contrôle précédent interroge `table_name = 'journal_audit'` — LE PARENT,
+ * et lui seul. Or « une garantie posée sur une table ne suit pas ses
+ * partitions » (§9) : une partition créée par un autre chemin que
+ * `journal_audit_partition_creer` — une migration future, une main humaine —
+ * porte les privilèges par défaut et aucune RLS, et le contrôle passait au
+ * vert. Mesuré sur le contrôle lui-même : partition créée nue, privilèges
+ * `DELETE,INSERT,SELECT,UPDATE`, RLS absente, verdict VERT. Le contrôle
+ * énumère donc désormais les partitions et exige de CHACUNE aucun privilège et
+ * les DEUX drapeaux de RLS — `FORCE` seul laisse les politiques inappliquées,
+ * mesuré également.
+ *
+ * `journal_audit` ne figure PAS parmi les tables comptées ci-dessus, et ce
+ * n'est pas un oubli : l'inventaire compare le socle amorcé par le seed à ce
+ * que le rôle applicatif en voit, tandis que le journal grossit à chaque
+ * écriture et n'est lisible que par deux rôles (§5.2). Un décompte y serait
+ * une comparaison entre deux chiffres qui n'ont aucune raison d'être égaux.
+ * Son cloisonnement est éprouvé là où il peut l'être : `tests/isolation/`.
+ *
+ * **Et un contrôle d'ATTRIBUT, le seul du script, parce qu'il est le seul qui
+ * puisse voir ce qu'il voit.** Tout le reste ci-dessus prouve par la LECTURE —
+ * de vraies lignes, sous de vrais rôles —, et c'est la preuve la plus forte
+ * qu'on puisse produire : elle ne peut pas rester verte sur une RLS éteinte.
+ * Mais elle est structurellement AVEUGLE à `FORCE ROW LEVEL SECURITY`, qui ne
+ * concerne que le PROPRIÉTAIRE des tables : une lecture faite sous
+ * `codiplan_app`, non propriétaire, ne peut pas le voir. Mesuré sur un
+ * propriétaire non superutilisateur — `FORCE` retiré, le rôle applicatif voit
+ * toujours zéro ligne sans contexte, et le propriétaire voit les deux sociétés.
+ * L'étape lit donc `pg_class` et exige les DEUX drapeaux sur les tables
+ * cloisonnées, leur absence sur les référentiels de plateforme, et le classement
+ * de toute table de `public` dans exactement une des trois listes.
  *
  * Les témoins hors cloisonnement (`devise`, `parite`, `utilisateur`) restent
  * lisibles sans contexte (D4) : sans eux, une base vide ou une connexion muette
@@ -150,6 +223,51 @@ async function lirePrivilegesConsolidation(
   );
 
   return versPrivileges(lignes);
+}
+
+/**
+ * Privilèges réellement accordés au rôle applicatif sur le journal d'audit
+ * (L0-10). Lus sous le rôle de MIGRATION, pour la même raison que ci-dessus :
+ * la vue ne montre que les droits dont le rôle connecté est bénéficiaire ou
+ * concédant, et c'est le rôle de migration qui a posé les `GRANT` et les
+ * `REVOKE`.
+ */
+async function lirePrivilegesJournal(
+  client: PrismaClient,
+): Promise<PrivilegeJournal[]> {
+  const lignes = await client.$queryRawUnsafe<LignePrivilegeJournal[]>(
+    SQL_PRIVILEGES_JOURNAL,
+    ROLE_APPLICATIF,
+    TABLE_JOURNAL_AUDIT,
+  );
+
+  return versPrivilegesJournal(lignes);
+}
+
+/**
+ * Durcissement réellement appliqué à chaque partition du journal (L0-10).
+ * Lu sous le rôle de MIGRATION, pour la même raison que les deux contrôles
+ * précédents : c'est lui qui a posé les `GRANT` et les `REVOKE`.
+ */
+async function lirePartitionsJournal(
+  client: PrismaClient,
+): Promise<PartitionJournal[]> {
+  const lignes = await client.$queryRawUnsafe<LignePartitionJournal[]>(
+    SQL_PARTITIONS_JOURNAL,
+    ROLE_APPLICATIF,
+  );
+
+  return versPartitionsJournal(lignes);
+}
+
+/**
+ * État déclaré de la RLS, table par table (correction de revue L0-10).
+ * `pg_class` est lisible par tous ; on la lit sous le rôle de MIGRATION, comme
+ * les deux contrôles d'attribut voisins, pour que tous les contrôles qui
+ * observent la STRUCTURE le fassent depuis la même connexion.
+ */
+async function lireEtatRls(client: PrismaClient): Promise<EtatRlsTable[]> {
+  return client.$queryRawUnsafe<EtatRlsTable[]>(SQL_ETAT_RLS);
 }
 
 /**
@@ -249,10 +367,27 @@ try {
   const privileges = await lirePrivilegesConsolidation(prismaMigration);
   process.stdout.write(rapportPrivileges(privileges));
 
+  // L0-10 — l'ajout seul du journal d'audit, observé et non déclaré.
+  const privilegesJournal = await lirePrivilegesJournal(prismaMigration);
+  process.stdout.write(rapportPrivilegesJournal(privilegesJournal));
+
+  // L0-10 — et le durcissement de CHAQUE partition : le contrôle ci-dessus ne
+  // regarde que le parent, qui ne dit rien de ses partitions (§9).
+  const partitionsJournal = await lirePartitionsJournal(prismaMigration);
+  process.stdout.write(rapportPartitionsJournal(partitionsJournal));
+
+  // L0-10 (revue) — l'état DÉCLARÉ de RLS : la seule preuve possible de FORCE,
+  // que la lecture sous le rôle applicatif ne peut pas produire.
+  const etatRls = await lireEtatRls(prismaMigration);
+  process.stdout.write(rapportRlsDeclaree(etatRls));
+
   const ecarts = [
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
     ...ecartsPrivilegesConsolidation(privileges),
+    ...ecartsPrivilegesJournal(privilegesJournal),
+    ...ecartsDurcissementPartitions(partitionsJournal),
+    ...ecartsRlsDeclaree(etatRls),
   ];
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
@@ -272,8 +407,11 @@ try {
 
   process.stdout.write(
     "Cloisonnement vérifié sur la base hébergée : aucune ligne sans contexte, " +
-      "exactement les lignes de chaque société sous son contexte, et " +
-      `« ${ROLE_CONSOLIDATION} » en SELECT seul.\n`,
+      "exactement les lignes de chaque société sous son contexte, " +
+      `« ${ROLE_CONSOLIDATION} » en SELECT seul, ` +
+      `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} », ` +
+      `ses ${partitionsJournal.length} partitions toutes durcies, et les ` +
+      `${etatRls.length} tables du schéma dans l'état RLS que I1 exige.\n`,
   );
 } finally {
   await prisma.$disconnect();

@@ -622,3 +622,131 @@ model JournalAcces {
   @@index([utilisateur_id, horodatage])
   @@map("journal_acces")
 }
+
+// ── Journal d'audit (ticket L0-10, invariant I8, arbitrages D32 et D50) ──────
+//
+// **Le journal est écrit par un DÉCLENCHEUR PostgreSQL, jamais par du code
+// applicatif.** C'est le principe de L0-04 et de D51 appliqué une troisième
+// fois : la garantie se place au point de passage obligé. Un intercepteur
+// Prisma ne couvre que les chemins qui passent par Prisma — il laisse dehors le
+// script de correction, l'import Excel, le `psql` d'un soir de production.
+// L'écriture d'une ligne d'audit n'est donc pas une politesse du service qui
+// écrit : c'est une conséquence de l'écriture elle-même (D32).
+//
+// **Le journal est en AJOUT SEUL.** Le rôle applicatif détient `SELECT` et
+// `INSERT`, et rien d'autre : `UPDATE` et `DELETE` lui sont retirés par la
+// migration, et aucune politique ne les autorise. L'histoire s'écrit, elle ne
+// se réécrit pas. Le contrôle est fait par observation — `information_schema`,
+// dans `scripts/controle-cloisonnement.mts` — et non par déclaration, comme
+// pour `codiplan_reporting` (D38).
+//
+// **PAS de `SECURITY DEFINER`, et c'est tranché** (ticket L0-10, point 3). La
+// forme classique serait un déclencheur `SECURITY DEFINER` appartenant au
+// propriétaire ; D50 l'interdit, sa liste d'exceptions est close et vide, et ce
+// ticket ne l'ouvre pas. Le raisonnement tient en une phrase : **ce contre quoi
+// nous protégeons est la RÉÉCRITURE de l'histoire, pas l'insertion d'une
+// ligne.** Une application compromise peut déjà mentir dans les tables métier —
+// le journal l'enregistrerait fidèlement. La propriété qui compte est l'ajout
+// seul, et `INSERT` sans `UPDATE` ni `DELETE` la donne, sous
+// `SECURITY INVOKER`.
+
+/// Nature de l'écriture journalisée. Trois valeurs, celles de I8 — « toute
+/// création, modification ou suppression ». `TG_OP` du déclencheur s'y traduit
+/// terme à terme, et rien d'autre n'y entre : une lecture n'est pas une
+/// écriture, et les lectures qui se journalisent ont leur propre table
+/// (`journal_acces`, D32 dernier alinéa).
+enum ActionAudit {
+  creation
+  modification
+  suppression
+}
+
+/// Journal d'audit (chapitre 11.2 ; I8 ; D32) — **table métier, PREMIÈRE
+/// catégorie de I1** : `societe_id NOT NULL`, politique de cloisonnement,
+/// `FORCE ROW LEVEL SECURITY`.
+///
+/// **POURQUOI `societe_id` EST OBLIGATOIRE, ET CE QUE CELA DÉCIDE.** Le journal
+/// n'enregistre que des lignes de tables cloisonnées ; il porte donc la société
+/// de la ligne qu'il décrit, et cette société existe toujours. La conséquence
+/// est qu'il **ne couvre pas les référentiels de plateforme** — `devise`,
+/// `parite`, `jour_ferie` —, qui n'ont pas de société à porter. Ce n'est pas un
+/// oubli : c'est le périmètre de I8 et de D32 (« intervention, contrat,
+/// machine, paramétrage société, compte client »), où ces trois tables n'ont
+/// jamais figuré. Et ce n'est pas une intention non plus : le déclencheur
+/// **refuse de s'exécuter** sur une table qui n'expose aucune société, en la
+/// nommant. Les deux autres voies — un `societe_id` nullable, une cinquième
+/// catégorie de I1 — sont mesurées dans
+/// `docs/decisions/2026-08-29-journal-audit-par-declencheur.md` ; elles exigent
+/// toutes deux un arbitrage, et aucune liste close n'est élargie ici.
+///
+/// **AUCUNE CLÉ ÉTRANGÈRE, ET C'EST DÉLIBÉRÉ.** Ni sur `societe_id`, ni sur
+/// `utilisateur_id`. Le journal doit **survivre à ce qu'il décrit** : une clé
+/// étrangère vers `societe` rendrait la suppression d'une société soit
+/// impossible, soit non journalisable — le déclencheur `AFTER DELETE`
+/// tenterait d'écrire une ligne désignant une société qui n'existe plus, et la
+/// clé refuserait l'écriture même qu'elle est censée garantir. L'intégrité
+/// vient d'ailleurs, et elle suffit : la valeur est **recopiée de la ligne
+/// source**, dont la clé étrangère, elle, était contrôlée au moment de
+/// l'écriture. À ne pas confondre avec les colonnes informatives de
+/// `journal_acces` (D34) : celles-là n'ont ni clé ni index parce qu'elles ne
+/// filtrent **jamais** ; `societe_id` ici filtre — c'est la clé du
+/// cloisonnement —, elle est donc indexée, et seule la clé étrangère est
+/// écartée.
+model JournalAudit {
+  /// Généré PAR LA BASE (`gen_random_uuid()`), et c'est la seule exception au
+  /// UUID v7 de I10 — laquelle répond à « un identifiant créé hors ligne sur un
+  /// appareil ». Une ligne d'audit n'est créée par aucun appareil : elle naît
+  /// dans le déclencheur, du côté serveur, où la question ne se pose pas.
+  ///
+  /// **Il n'est PAS clé primaire à lui seul** : voir `@@id` en bas de modèle.
+  id             String      @db.Uuid
+  /// Société de la ligne journalisée, recopiée d'elle. Jamais du contexte de
+  /// session : c'est la ligne qui dit à qui elle appartient.
+  societe_id     String      @db.Uuid
+  /// Nom de la table journalisée (`TG_TABLE_NAME`).
+  entite         String
+  /// Identifiant de la ligne journalisée — sa colonne `id`.
+  entite_id      String      @db.Uuid
+  action         ActionAudit
+  /// Clé de PARTITIONNEMENT — la table est partitionnée par mois (L0-10).
+  horodatage     DateTime    @default(now()) @db.Timestamptz(6)
+  /// Auteur, lu dans `app.utilisateur_id` que pose `lib/db/rls.ts`. **Nullable
+  /// à dessein** : une écriture faite hors de toute session — le seed, une
+  /// migration, une correction en `psql` — n'a pas d'auteur, et le journal le
+  /// dit par un `NULL` plutôt qu'en inventant un compte (CLAUDE.md §8). La
+  /// ligne existe quand même : une écriture sans auteur reste une écriture.
+  utilisateur_id String?     @db.Uuid
+  /// Adresse de l'appelant (chapitre 11.2), lue dans `app.adresse_ip`. Elle
+  /// vient de la session que Better Auth a déjà enregistrée, jamais d'un
+  /// en-tête recopié à la volée.
+  adresse_ip     String?
+  /// La ligne AVANT l'écriture, en entier. Nulle à la création.
+  valeurs_avant  Json?
+  /// La ligne APRÈS l'écriture, en entier. Nulle à la suppression.
+  valeurs_apres  Json?
+
+  /// **CLÉ PRIMAIRE COMPOSITE, et ce n'est pas un choix de modélisation.**
+  /// La table est partitionnée par mois sur `horodatage` (L0-10), et PostgreSQL
+  /// exige que la clé de partitionnement appartienne à toute contrainte
+  /// d'unicité. Conséquence à connaître : `id` seul n'est plus déclaré unique.
+  /// Rien ne référence `journal_audit.id` — le journal n'a aucune clé étrangère
+  /// et personne n'en pose vers lui —, et `gen_random_uuid()` rend la collision
+  /// négligeable.
+  ///
+  /// **Pourquoi la table naît partitionnée plutôt que de le devenir.**
+  /// PostgreSQL ne convertit pas une table ordinaire sur place : il faut créer,
+  /// copier, indexer, échanger, sous `ACCESS EXCLUSIVE` — donc bloquer en
+  /// écriture NON PAS le journal mais l'application entière, puisque toute
+  /// écriture métier y insère par le déclencheur. Mesuré : 0,11 s sur les
+  /// 104 ko d'aujourd'hui, 2,4 s à deux ans, 17 s à dix ans. Créée
+  /// partitionnée, cette reprise n'existe jamais.
+  @@id([id, horodatage])
+  /// L'usage réel, et l'index est fait pour lui : « qui a changé ce statut
+  /// d'intervention, et depuis quelle valeur » — une entité, son identifiant,
+  /// dans l'ordre du temps.
+  @@index([societe_id, entite, entite_id, horodatage])
+  /// Le journal filtrable de la console d'administration (§10.1) : toute
+  /// l'activité d'une société, la plus récente d'abord.
+  @@index([societe_id, horodatage])
+  @@map("journal_audit")
+}

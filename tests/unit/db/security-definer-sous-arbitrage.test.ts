@@ -1,9 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { RACINE } from "../outils/fichiers-source";
+import { migrationsSql, type Migration } from "../outils/migrations-sql";
 
 /**
  * Gardien de D50 : **aucune fonction `SECURITY DEFINER` dans une migration**,
@@ -39,9 +36,6 @@ import { RACINE } from "../outils/fichiers-source";
  * de session qui trouverait le gardien encombrant.
  */
 
-/** Le SQL des migrations : le seul endroit du dépôt qui puisse en créer une. */
-const MIGRATIONS = join(RACINE, "prisma", "migrations");
-
 /**
  * Fonctions `SECURITY DEFINER` autorisées, par arbitrage explicite.
  *
@@ -51,16 +45,12 @@ const MIGRATIONS = join(RACINE, "prisma", "migrations");
  */
 const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [];
 
-/** Un fichier de migration, nom du répertoire et contenu SQL. */
-type Migration = { chemin: string; sql: string };
-
+/**
+ * Les migrations à inspecter. La lecture vit dans `outils/migrations-sql.ts`
+ * depuis L0-10 : deux gardiens la partagent, chacun avec sa propre règle.
+ */
 export function migrations(): Migration[] {
-  return readdirSync(MIGRATIONS, { withFileTypes: true })
-    .filter((entree) => entree.isDirectory())
-    .map((entree) => ({
-      chemin: `prisma/migrations/${entree.name}/migration.sql`,
-      sql: readFileSync(join(MIGRATIONS, entree.name, "migration.sql"), "utf8"),
-    }));
+  return migrationsSql();
 }
 
 /**
