@@ -5,10 +5,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   EXEMPTIONS_AUDIT,
+  HORS_DOMAINE_AUDIT,
   NOM_DECLENCHEUR,
   ecartsExemptions,
+  ecartsListeHorsDomaine,
   perimetreAudit,
   tablesExemptees,
+  tablesHorsDomaine,
   tablesPremiereCategorieI1,
   type Exemption,
   type TableObservee,
@@ -179,12 +182,16 @@ export function ecartsPerimetreAudit(
   schema: string,
   declenchees: readonly string[],
   exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
+  horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
 ): string[] {
   const observees = observeesDuSchema(schema);
-  const perimetre = perimetreAudit(observees, exemptions);
+  const perimetre = perimetreAudit(observees, exemptions, horsDomaine);
   const exemptees = tablesExemptees(exemptions);
 
-  const ecarts: string[] = [...ecartsExemptions(observees, exemptions)];
+  const ecarts: string[] = [
+    ...ecartsListeHorsDomaine(horsDomaine),
+    ...ecartsExemptions(observees, exemptions),
+  ];
 
   for (const table of perimetre) {
     if (!declenchees.includes(table)) {
@@ -201,6 +208,16 @@ export function ecartsPerimetreAudit(
   }
 
   for (const table of declenchees) {
+    if (horsDomaine.includes(table)) {
+      ecarts.push(
+        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle est HORS DU DOMAINE d'audit — un gardien ne peut pas se " +
+          "garder lui-même (§9). Le journal n'est pas audité : il est " +
+          "INALTÉRABLE, et cela s'éprouve par tentative d'écriture, pas par " +
+          "un déclencheur qui écrirait dans la table qui le déclenche.",
+      );
+      continue;
+    }
     if (exemptees.includes(table)) {
       ecarts.push(
         `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
@@ -250,14 +267,20 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // pas par recopie : le périmètre EST la différence des deux ensembles.
     const categorie1 = tablesPremiereCategorieI1(observees);
     const exemptees = tablesExemptees();
+    const horsDomaine = tablesHorsDomaine();
 
     expect([...perimetre].sort()).toEqual(
-      categorie1.filter((table) => !exemptees.includes(table)).sort(),
+      categorie1
+        .filter(
+          (table) => !horsDomaine.includes(table) && !exemptees.includes(table),
+        )
+        .sort(),
     );
-    // Et l'exemption mord réellement : sans elle, le périmètre serait plus
-    // grand d'exactement les tables exemptées.
-    expect(perimetreAudit(observees, []).length).toBe(
-      perimetre.length + exemptees.length,
+    // Et les DEUX soustractions mordent réellement : sans elles, le périmètre
+    // serait plus grand d'exactement ce qu'elles retirent. Sans cette mesure,
+    // une frontière devenue inerte passerait inaperçue.
+    expect(perimetreAudit(observees, [], []).length).toBe(
+      perimetre.length + exemptees.length + horsDomaine.length,
     );
   });
 
@@ -330,17 +353,25 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
   });
 
   it("ÉPREUVE : un déclencheur posé sur une table EXEMPTÉE est refusé", () => {
-    // L'exemption n'est pas une permission de faire les deux : elle dit que la
-    // table n'est pas auditée. Un déclencheur qui s'y poserait quand même
-    // signifierait que l'exemption n'a plus lieu d'être — et il faut alors la
-    // retirer, pas la laisser mentir.
-    for (const exemptee of tablesExemptees()) {
-      const ecarts = ecartsPerimetreAudit(schema, [...declenchees, exemptee]);
+    // La liste d'exemptions étant vide, l'épreuve se joue sur une exemption
+    // FABRIQUÉE — sinon la boucle ne tournerait sur rien et le scénario serait
+    // creux (§9, la vacuité). L'exemption n'est pas une permission de faire les
+    // deux : elle dit que la table n'est pas auditée.
+    const fabriquee: Exemption[] = [
+      {
+        table: "agence",
+        motif: "rejouable",
+        justification:
+          "exemption fabriquée pour l'épreuve — reconstituable depuis une " +
+          "autre table auditée",
+      },
+    ];
 
-      expect(ecarts, exemptee).toHaveLength(1);
-      expect(ecarts[0]).toContain(exemptee);
-      expect(ecarts[0]).toContain("figure aux EXEMPTIONS");
-    }
+    const ecarts = ecartsPerimetreAudit(schema, declenchees, fabriquee);
+    const sienne = ecarts.filter((ecart) => ecart.includes("« agence »"));
+
+    expect(sienne).toHaveLength(1);
+    expect(sienne[0]).toContain("figure aux EXEMPTIONS");
   });
 
   it("ÉPREUVE : une exemption qui ne s'adosse à rien est refusée", () => {
@@ -363,7 +394,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
 
   it("ÉPREUVE : une exemption sans justification écrite est refusée", () => {
     const muette: Exemption[] = [
-      { table: "journal_audit", motif: "impossible", justification: "   " },
+      { table: "agence", motif: "rejouable", justification: "   " },
     ];
 
     const ecarts = ecartsExemptions(observees, muette);
@@ -371,22 +402,77 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     expect(ecarts[0]).toContain("sans justification écrite");
   });
 
-  it("les exemptions en vigueur sont justifiées, et se relisent", () => {
-    // Le contenu de la seule chose encore tenue à la main. Une exemption est un
-    // texte qu'un humain relit ; ce test exige qu'il y en ait un, pas qu'il soit
-    // bon — cela, seule la revue le dit.
+  it("la liste d'exemptions est VIDE, et c'est un état, pas un oubli", () => {
+    // Toute table métier cloisonnée du dépôt est auditée. Une liste vide qui
+    // reste vide est un meilleur signal qu'une liste à une entrée qu'on cesse
+    // de regarder : le jour où elle cessera de l'être, la relecture aura une
+    // raison d'avoir lieu.
+    expect(EXEMPTIONS_AUDIT).toEqual([]);
     expect(ecartsExemptions(observees)).toEqual([]);
-    for (const exemption of EXEMPTIONS_AUDIT) {
-      expect(exemption.justification.length, exemption.table).toBeGreaterThan(
-        80,
-      );
-    }
-    // `journal_audit` est exemptée pour IMPOSSIBILITÉ, et la justification cite
-    // la mesure. Un motif « rejouable » posé ici serait faux : rien ne
-    // reconstituerait le journal.
-    expect(tablesExemptees()).toEqual(["journal_audit"]);
-    expect(EXEMPTIONS_AUDIT[0]?.motif).toBe("impossible");
-    expect(EXEMPTIONS_AUDIT[0]?.justification).toContain("stack depth");
+  });
+
+  it("`journal_audit` est HORS DU DOMAINE, et non exemptée", () => {
+    // La distinction n'est pas de vocabulaire. Une exemption se plaide table
+    // par table, et « impossibilité » serait un argument réutilisable — pour du
+    // volume, une récursion indirecte, un verrou. La frontière, elle, ne vise
+    // qu'un objet, et le §9 la nommait avant que la question ne se pose.
+    expect(tablesHorsDomaine()).toEqual(["journal_audit"]);
+    expect(tablesExemptees()).not.toContain("journal_audit");
+    expect(perimetre).not.toContain("journal_audit");
+
+    // Et elle relève bien de la première catégorie : sans cela, la retirer du
+    // domaine ne retirerait rien, et ce test serait creux.
+    expect(tablesPremiereCategorieI1(observees)).toContain("journal_audit");
+  });
+
+  it("ÉPREUVE : le motif `impossible` n'existe plus", () => {
+    // Le geste par lequel un périmètre inversé redevient une liste d'admis :
+    // on rouvre un second motif, mesure à l'appui, et il a raison sur la forme.
+    const rouverte: Exemption[] = [
+      {
+        table: "client",
+        motif: "impossible" as unknown as Exemption["motif"],
+        justification:
+          "le déclencheur ferait déborder la pile, mesuré, promis, juré",
+      },
+    ];
+
+    const ecarts = ecartsExemptions(observees, rouverte);
+    expect(ecarts.some((ecart) => ecart.includes("qui n'existe pas"))).toBe(
+      true,
+    );
+    expect(ecarts.join("\n")).toContain("rejouable");
+  });
+
+  it("ÉPREUVE : la frontière refuse une ADDITION", () => {
+    // Faire du §9 un argument réutilisable rouvrirait par la prose la porte que
+    // D55 a fermée.
+    const ecarts = ecartsListeHorsDomaine(["journal_audit", "journal_acces"]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_acces");
+    expect(ecarts[0]).toContain("arbitrage");
+  });
+
+  it("ÉPREUVE : la frontière refuse un RETRAIT", () => {
+    // Le sens inverse : le gardien réclamerait alors un déclencheur sur le
+    // journal, dont il est mesuré qu'il fait déborder la pile.
+    const ecarts = ecartsListeHorsDomaine([]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_audit");
+    expect(ecarts[0]).toContain("ne figure plus hors du domaine");
+  });
+
+  it("ÉPREUVE : un déclencheur posé sur le journal lui-même est refusé", () => {
+    const ecarts = ecartsPerimetreAudit(schema, [
+      ...declenchees,
+      "journal_audit",
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("HORS DU DOMAINE");
+    expect(ecarts[0]).toContain("§9");
   });
 
   it("D52 : `utilisateur_societe` est auditée, et son absence est un écart", () => {

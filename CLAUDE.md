@@ -147,7 +147,11 @@ Toute création, modification ou suppression sur une table du périmètre est jo
 
 **L'exhaustivité n'est plus tenue par personne : elle est HÉRITÉE.** La première catégorie de I1 est déjà énumérée exhaustivement par le schéma, et le gardien de D41 exige que chaque table s'y range. Une table métier créée demain est donc auditée à sa naissance, et le gardien la réclame le jour où elle apparaît — sans qu'aucune liste ne soit à compléter.
 
-**Deux motifs d'exemption, et c'est une liste close.** `rejouable` — l'information perdue se reconstitue depuis une autre table auditée ; `impossible` — poser le déclencheur produit une base qui ne fonctionne pas, et cela se **mesure**. Ne sont **pas** des motifs : le volume (le journal est partitionné précisément pour cela), la sensibilité supposée, et jamais une table dont les lignes sont saisies par un humain.
+**UN SEUL motif d'exemption, et la liste est VIDE.** `rejouable` — l'information perdue se reconstitue depuis une autre table auditée. Ne sont **pas** des motifs : le volume (le journal est partitionné précisément pour cela), la sensibilité supposée, et jamais une table dont les lignes sont saisies par un humain. Une liste vide qui reste vide est un meilleur signal qu'une liste à une entrée qu'on cesse de regarder.
+
+**Le journal lui-même est HORS DU DOMAINE, et ce n'est pas une exemption.** Un motif d'exemption est une porte qu'on rouvre par argument ; la frontière est une **liste close d'une entrée, gardée dans les deux sens** — la forme de `CLOISONNEE_PAR_IDENTITE`. Et la raison est doctrinale : **un gardien ne peut pas se garder lui-même** (§9). La récursion mesurée — `stack depth limit exceeded` — n'en est que le symptôme.
+
+**Ce que ce retrait coûte est payé au même endroit, et ÉPROUVÉ.** Le journal n'est pas audité, il est **inaltérable** : `UPDATE` et `DELETE` retirés au rôle applicatif, doublés par l'absence de politique pour ces verbes sous `FORCE ROW LEVEL SECURITY`. C'est plus fort qu'une trace, et cela se prouve par **TENTATIVE** — sur la table mère, et sur **chaque partition** énumérée par `pg_inherits`, jamais sur la mère seule : une partition est une table, elle n'hérite ni des privilèges ni des politiques du parent. Le durcissement est posé par la fonction qui **crée** la partition, dans la même transaction.
 
 **Et tout cela n'a QU'UNE MAISON, celle que la machine lit** *(D53)* : `scripts/lib/perimetre-audit.ts`. L'invariant que vous lisez y renvoie, RG-DRO-04 y renvoie, le README y renvoie — aucun ne le recopie. Une recopie réintroduite ici est refusée par un gardien.
 
@@ -221,6 +225,8 @@ pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
 
 ## 6. Organisation du code
 
+**`(prévu)` marque ce qui n'existe pas encore.** L'arborescence dit deux choses de nature différente — ce qui EST et ce qui est PLANIFIÉ —, et sans cette marque le plan se fait passer pour un état. Elle rend les deux sens gardables : tout module non marqué doit exister, tout module qui existe doit être énuméré. Le jour où le module est écrit, la marque se retire avec le reste (`tests/unit/docs/organisation-du-code.test.ts`).
+
 ```
 app/
   (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
@@ -239,9 +245,9 @@ lib/
               seul endroit où la date courante se lit — et avec un fuseau (L0-08)
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
-  sync/       protocole hors-ligne
-  excel/      imports et exports
-  pdf/
+  sync/       (prévu) protocole hors-ligne
+  excel/      (prévu) imports et exports
+  pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS
               la lisibilité se CALCULE : seuil 4,5:1 (WCAG 2.1, 1.4.3 AA),
@@ -348,6 +354,14 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **La même question, posée un rang plus bas, a ouvert le contrôle du backlog.** `docs/backlog.md` est de rang 4 et cite des règles de rang 2 et des décisions de rang 1 ; rien ne vérifiait que ce qu'il en dit soit encore vrai — L1-08 portait « seul le dernier lot est annulable » après que D54 l'eut supprimé. Le contrôle est **étroit par construction** : un plan bouge sans cesse, une réciprocité complète coûterait plus qu'elle ne rapporterait, et le mode de défaillance réel est le ticket qui cite une règle **ayant changé depuis**. Chaque ticket citant une source porte donc l'empreinte du texte courant de ses sources — **clôture des amendements comprise**, car un ticket peut être rendu faux par une décision qu'il ne cite pas : L0-10 décrivait le périmètre d'audit en notions, comme D32 qu'il cite, alors que D52 puis D53 l'avaient remplacé. Le gardien ne prouve pas la cohérence, ce qu'aucun motif statique ne peut faire : **il force la relecture à l'instant où elle est due**, et il annonce que c'est tout ce qu'il fait.
 
   **Et le piège de la population s'y ferme par la STRUCTURE, non par un plancher.** Retirer une citation d'un ticket ne l'en fait pas sortir : l'empreinte porte sur l'**ensemble** des sources citées, en retirer une la fait changer — c'est un écart. Les retirer toutes laisse une estampille qui ne s'adosse plus à rien — écart aussi. Un chiffre plancher n'aurait été qu'une approximation ; ici la propriété se démontre. *(Même famille que le 01/09 sur les bornes : quand on sait mesurer, on ne garde pas l'approximation à côté.)*
+
+- **01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.** Espèce distincte de la recopie ci-dessus, et il faut la nommer séparément parce que la parade y est différente. Dans la recopie, une même DONNÉE est écrite deux fois, et l'on sait quoi comparer. Ici, un même CRITÈRE est **implémenté** deux fois, par deux modules légitimes, chacun écrit pour son usage — et rien, dans le code, ne dit qu'ils parlent de la même chose. Les deux sont verts. Aucun ne ment. Ils ne disent simplement plus la même chose.
+
+  **Mesuré sur la première catégorie de I1**, le jour de D55. `categoriesDeLaTable` la lit pour ranger chaque table dans l'une des quatre catégories ; `tablesPremiereCategorieI1` la lit pour en dériver le périmètre d'audit. Même définition — `societe_id` non nullable, plus `societe` par identité, moins les référentiels — écrite deux fois, dans deux fichiers, pour deux raisons. Qu'elles dérivent, et l'une dit « cette table est métier » pendant que l'autre dit « elle n'a pas à être auditée ». **Le défaut ne serait apparu ni dans l'une ni dans l'autre suite** : chacune resterait juste sur sa propre lecture, et le trou vivrait dans l'espace entre les deux, que personne n'habite.
+
+  **La question à poser, et c'est la même qu'à la recopie, un étage plus bas : *qu'est-ce qui les confronterait ?*** Si la réponse est « elles sont écrites pareil », ce n'est pas un contrôle — c'est une ressemblance, et une ressemblance ne survit pas au premier ticket qui touche l'une des deux. La parade est un test qui les fait **répondre l'une à côté de l'autre sur la population réelle**, table pour table, avec un témoin de non-vacuité : deux listes vides sont égales.
+
+  **Corollaire, et c'est lui qu'il faut retenir avant d'écrire la deuxième lecture :** la seconde implémentation d'un critère n'est jamais gratuite. Soit on la remplace par un appel à la première — ce qui est presque toujours possible et presque toujours meilleur —, soit on écrit, dans le même geste, ce qui les confrontera. Ce qu'on ne fait pas, c'est les laisser vivre côte à côte en comptant sur la relecture : c'est exactement ce que le 31/08 disait des documents, et le code n'a pas de privilège.
 
 - **01/09/2026 — UNE BORNE SUR LE TEMPS OU LE RANG EST SOUVENT L'APPROXIMATION D'UN CRITÈRE QU'ON NE SAVAIT PAS MESURER. QUAND LE CRITÈRE DEVIENT MESURABLE, L'APPROXIMATION NE SE CUMULE PAS : ELLE SE RETIRE.** RG-IMP-02 promettait une annulation d'import « pendant **24 heures** », et D15 ajoutait « seul le **dernier lot** est annulable ». Ni l'une ni l'autre ne mesurait quoi que ce soit — toutes deux pariaient sur la seule question qui compte : *cette annulation peut-elle encore faire des dégâts ?* Puis D15 a institué le critère qui la mesure vraiment, ligne par ligne : modifiée depuis, référencée depuis, refus motivé ; le reste est restauré. **Les deux bornes sont alors devenues du bruit défavorable** — elles refusent une annulation dont on peut prouver qu'elle est sans danger, et font perdre une journée à qui découvre son erreur le lendemain. D54 les supprime.
 

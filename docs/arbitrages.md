@@ -1652,13 +1652,14 @@ fermeture sans que personne n'ait rien à tenir : une table métier créée dema
 est auditée à sa naissance, et le gardien la réclame le jour où elle apparaît au
 schéma.
 
-**Les motifs d'exemption forment une liste close de DEUX, et le second n'est pas
-un choix.**
+**Le motif d'exemption est UNIQUE, et la liste est VIDE aujourd'hui.**
 
 | Motif | Ce qu'il exige |
 |---|---|
-| `rejouable` | L'information qu'une écriture non tracée ferait perdre se **reconstitue** depuis une autre table, elle-même auditée. Seul motif recevable pour une table ordinaire. |
-| `impossible` | Poser le déclencheur produit une base qui **ne fonctionne pas**. Ce n'est pas une dispense, c'est un constat — et il se **mesure** dans la justification, jamais ne se suppose. |
+| `rejouable` | L'information qu'une écriture non tracée ferait perdre se **reconstitue** depuis une autre table, elle-même auditée. C'est le seul motif recevable, et en ouvrir un second est un arbitrage. |
+
+Une liste vide qui reste vide est un meilleur signal qu'une liste à une entrée
+qu'on cesse de regarder.
 
 **Ce qui n'est PAS un motif**, et qui est écrit pour ne pas être réinventé :
 
@@ -1670,22 +1671,60 @@ un choix.**
 - **une table dont les lignes sont saisies par un HUMAIN.** Aucune exemption,
   jamais : c'est exactement là que « qui, quand, depuis quelle valeur » se pose.
 
-**Une seule exemption est en vigueur, et elle est du second motif.**
-`journal_audit` ne peut pas s'auditer lui-même : le déclencheur écrit dans la
-table qui le déclenche. **Mesuré** sur la base jetable — déclencheur posé sur
-`journal_audit`, une seule ligne insérée — PostgreSQL rend
-`ERROR: stack depth limit exceeded` et la transaction échoue. L'information
-n'est perdue nulle part pour autant : le journal est en **ajout seul** (I8,
-D32), ni `UPDATE` ni `DELETE` ne lui sont accordés, si bien qu'il n'existe
-aucune écriture à tracer au-delà de l'insertion qui, elle, EST déjà la trace.
+**`journal_audit` n'est PAS une exemption : elle est HORS DU DOMAINE.** La
+distinction n'est pas de vocabulaire. Un motif d'exemption est une porte qu'on
+rouvre par argument, et « impossibilité » serait élastique : quelqu'un plaidera
+un jour l'impossibilité pour cause de volume, de récursion indirecte ou de
+verrou, mesure à l'appui, et il aura raison sur la forme. La frontière, elle,
+est une **liste close d'une entrée, gardée dans les deux sens** — la forme de
+`CLOISONNEE_PAR_IDENTITE` (D42), et elle tient.
+
+**Et la raison est doctrinale, pas technique.** Elle porte déjà un nom au §9 du
+CLAUDE.md : **un gardien ne peut pas se garder lui-même.** La récursion existe —
+mesurée, déclencheur posé sur `journal_audit` et une ligne insérée, PostgreSQL
+rend `ERROR: stack depth limit exceeded` — mais elle n'en est que le SYMPTÔME.
+Même contournée par un second journal ou un déclencheur conditionnel, auditer le
+journal depuis le journal produirait un gardien vert par construction, donc sans
+valeur.
+
+**Ce que ce retrait coûte, et comment il est payé.** Écrire que le journal n'est
+pas tracé laisse un trou pour un lecteur futur, et le trou n'est acceptable que
+si la garantie de substitution est écrite au même endroit et **éprouvée** :
+le journal n'est pas audité, il est **INALTÉRABLE** — `UPDATE` et `DELETE`
+retirés au rôle applicatif depuis L0-10, doublés par l'absence de toute politique
+pour ces verbes sous `FORCE ROW LEVEL SECURITY`. C'est plus fort qu'une trace,
+pas plus faible : une trace dit ce qui a été changé, une inaltérabilité dit que
+rien ne l'a été. Trois exigences, et par TENTATIVE plutôt que par lecture de
+privilèges — une lecture ne regarde qu'un des deux verrous :
+
+1. `UPDATE` et `DELETE` tentés sur `journal_audit` sous `codiplan_app`, les deux
+   refusés ;
+2. les mêmes tentés sur **chaque partition**, énumérée par `pg_inherits` et
+   jamais sur la table mère — une partition est une table, elle n'hérite ni des
+   privilèges ni des politiques du parent, et c'était la faille mesurée à L0-10 ;
+3. le durcissement posé par la fonction qui **crée** la partition, dans la même
+   transaction — `journal_audit_partition_creer` appelle
+   `journal_audit_partition_durcir` avant de rendre. Mesuré : une partition
+   créée par cette fonction naît sans aucun privilège et sous RLS forcée.
+
+**La limite du troisième point, annoncée plutôt que tue.** Rendre l'état non
+durci *inproductible* demanderait un déclencheur d'événement (`ddl_command_end`),
+dont PostgreSQL réserve la création au superutilisateur — que le rôle de
+migration n'est pas sur la base hébergée. Le chemin du dépôt ne produit donc
+jamais de partition nue ; un `CREATE TABLE … PARTITION OF` écrit à la main, si —
+et c'est mesuré dans le scénario qui l'annonce. Ce qui reste alors est le
+contrôle **détectif** de `scripts/controle-cloisonnement.mts`, qui juge chaque
+partition à chaque migration : le couple préventif/détectif du 30/08.
 
 **C'est gardé, et des deux côtés.** `tests/unit/db/perimetre-audit.test.ts`
-réclame le déclencheur sur toute table métier non exemptée, refuse un
-déclencheur posé hors de la première catégorie de I1, refuse un déclencheur posé
-sur une table exemptée, et refuse une exemption qui ne s'adosse à aucune table
-existante — corollaire du 31/08 sur les sélections négatives. La propriété
-centrale est éprouvée sur une table fabriquée : une table métier nouvelle est
-réclamée **sans qu'aucune liste n'ait été touchée**.
+réclame le déclencheur sur toute table métier non exemptée ; refuse un
+déclencheur posé hors de la première catégorie de I1, sur une table exemptée, ou
+sur le journal lui-même ; refuse l'addition comme le RETRAIT d'une entrée à la
+frontière du domaine ; refuse un motif d'exemption inventé, une exemption sans
+justification écrite, et une exemption qui ne s'adosse à aucune table existante
+— corollaire du 31/08 sur les sélections négatives. La propriété centrale est
+éprouvée sur une table fabriquée : une table métier nouvelle est réclamée **sans
+qu'aucune liste n'ait été touchée**.
 
 **Conséquence immédiate, à traiter à son ticket et pas ici.** `taux_horaire`
 (L1-07) et `forfait` (L1-06) entreront au périmètre par la seule vertu de leur

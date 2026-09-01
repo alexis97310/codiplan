@@ -122,17 +122,30 @@ une liste d'exemptions écrites et justifiées. L'exhaustivité n'est plus tenue
 par personne : elle est héritée du gardien de D41, qui l'énumère déjà contre le
 schéma. `client` porte donc son déclencheur, posé dans la migration qui la crée.
 
-**Ce que l'inversion admet, et l'exemption qu'elle a rendue nécessaire** — le
-détail est dans D55 ; ici, la mesure : `journal_audit` ne peut pas s'auditer
-lui-même, et ce n'est pas une opinion. Déclencheur posé sur elle, une seule
-ligne insérée sur la base jetable :
+**Ce que l'inversion admet, et la frontière qu'elle a rendue nécessaire.**
+`journal_audit` est **hors du domaine**, et non exemptée : un motif d'exemption
+se rouvre par argument — « impossibilité » serait élastique —, une frontière est
+une liste close d'une entrée gardée dans les deux sens. La raison est doctrinale
+et antérieure au ticket : **un gardien ne peut pas se garder lui-même** (§9). La
+récursion est réelle — déclencheur posé, une ligne insérée sur la base jetable :
 
 ```
 ERROR:  stack depth limit exceeded
 HINT:  Increase the configuration parameter "max_stack_depth" …
 ```
 
-C'est le motif `impossible`, et c'est le seul cas d'exemption en vigueur.
+— mais elle n'en est que le symptôme. La liste d'exemptions, elle, est **vide**,
+et son unique motif recevable est `rejouable`.
+
+**Et ce retrait est payé comptant.** Le journal n'est pas audité, il est
+inaltérable, et cela est éprouvé par TENTATIVE : `UPDATE` et `DELETE` tentés sous
+le rôle applicatif sur la table mère, puis sur **chacune** des partitions
+énumérées par `pg_inherits`. Le durcissement est posé par la fonction qui crée la
+partition, dans la même transaction — mesuré. La limite est annoncée : un
+`CREATE TABLE … PARTITION OF` écrit à la main produit encore une partition nue,
+et la fermer demanderait un déclencheur d'événement, réservé au
+superutilisateur ; c'est le contrôle détectif de `controle-cloisonnement.mts` qui
+la rattrape.
 
 ## Les deux réserves à porter à L1-02
 

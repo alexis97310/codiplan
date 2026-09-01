@@ -12,17 +12,27 @@ import { describe, expect, it } from "vitest";
  * pas parce qu'il est en prose. Le ticket L1-01 a créé `lib/clients/` et a dû
  * l'y ajouter à la main ; rien n'aurait signalé l'oubli.
  *
- * **UN SEUL SENS EST GARDÉ, et il faut dire lequel.** Tout répertoire qui
- * EXISTE sous `lib/` doit être énuméré au §6. Le sens inverse — un module
- * énuméré qui n'existe pas — ne l'est PAS, et ce n'est pas un oubli : le §6
- * annonce aussi ce qui viendra. `sync/`, `excel/` et `pdf/` y figurent depuis
- * L0-01 et n'existeront qu'aux lots 3, 1 et 3. Les exiger ferait échouer la
- * vérification sur un dépôt parfaitement sain, et la « réparation » serait de
- * retirer du §6 le plan qu'il porte.
+ * **LES DEUX SENS SONT GARDÉS, et c'est la marque `(prévu)` qui le permet.**
+ * La première rédaction n'en gardait qu'un — tout module qui existe doit être
+ * énuméré — parce que le §6 mêlait deux choses de nature différente : ce qui
+ * EST et ce qui est PLANIFIÉ. `sync/`, `excel/` et `pdf/` y figurent depuis
+ * L0-01 et n'existent pas ; les exiger aurait fait échouer la vérification sur
+ * un dépôt sain, et la « réparation » aurait été de retirer du §6 le plan qu'il
+ * porte.
  *
- * Le mode de défaillance réel est donc bien celui qui est gardé : **un module
- * créé sans être déclaré**. Un module supprimé sans être retiré du §6 laisse
- * une ligne d'intention, ce que le §6 assume déjà.
+ * Le sens non gardé était pourtant un vrai trou : un module déclaré qui
+ * n'existera jamais ne se remarque pas, et ces trois-là traînaient depuis
+ * L0-01. La marque `(prévu)` sépare les deux natures, et les deux sens
+ * deviennent alors gardables :
+ *
+ *   1. tout module ÉNUMÉRÉ et NON marqué `(prévu)` doit exister ;
+ *   2. tout module qui EXISTE doit être énuméré ;
+ *   3. et un module marqué `(prévu)` qui EXISTE est un écart lui aussi — la
+ *      marque est devenue fausse le jour où le module a été écrit, et c'est le
+ *      ticket qui l'écrit qui doit la retirer.
+ *
+ * Le plan reste dans le §6, où il a sa place ; il cesse de se faire passer pour
+ * un état.
  *
  * **Le périmètre s'arrête à `lib/`, et c'est une limite du PARSEUR, pas un
  * choix de rigueur.** Le §6 y écrit un module par ligne, ce qui se lit sans
@@ -57,7 +67,16 @@ function arborescence(): string {
  * PREMIER mot d'une ligne indentée compte — s'il se termine par `/`, c'est un
  * module ; sinon, c'est la suite d'une description.
  */
-export function modulesEnumeres(bloc: string): string[] {
+export type ModuleEnumere = {
+  readonly nom: string;
+  /** La ligne porte-t-elle la marque `(prévu)` ? */
+  readonly prevu: boolean;
+};
+
+/** La marque, écrite une fois — les messages d'écart la citent. */
+export const MARQUE_PREVU = "(prévu)";
+
+export function modulesEnumeres(bloc: string): ModuleEnumere[] {
   const lignes = bloc.split("\n");
   const depart = lignes.findIndex((ligne) => /^lib\/\s*$/.test(ligne));
   if (depart === -1) {
@@ -67,13 +86,20 @@ export function modulesEnumeres(bloc: string): string[] {
     );
   }
 
-  const modules: string[] = [];
+  const modules: ModuleEnumere[] = [];
   for (const ligne of lignes.slice(depart + 1)) {
     if (ligne.trim().length === 0) continue;
     if (!/^\s/.test(ligne)) break;
-    const premier = ligne.trim().split(/\s+/)[0] ?? "";
+    const mots = ligne.trim().split(/\s+/);
+    const premier = mots[0] ?? "";
     if (premier.endsWith("/")) {
-      modules.push(premier.slice(0, -1));
+      modules.push({
+        nom: premier.slice(0, -1),
+        // La marque est cherchée sur la ligne de DÉCLARATION seule, jamais sur
+        // les lignes de description qui suivent : une description qui
+        // contiendrait le mot ne doit pas marquer le entree.
+        prevu: mots.slice(1).join(" ").startsWith(MARQUE_PREVU),
+      });
     }
   }
   return modules;
@@ -87,71 +113,149 @@ export function modulesSurDisque(): string[] {
     .sort();
 }
 
-/** Modules présents sur le disque et absents du §6. */
+/**
+ * Écarts entre l'énumération du §6 et le système de fichiers — DANS LES DEUX
+ * SENS, plus la marque devenue fausse.
+ */
 export function ecartsArborescence(
-  enumeres: readonly string[],
+  enumeres: readonly ModuleEnumere[],
   surDisque: readonly string[],
 ): string[] {
-  return surDisque
-    .filter((module) => !enumeres.includes(module))
-    .map(
-      (module) =>
-        `« lib/${module}/ » existe et n'est pas énuméré au §6 du CLAUDE.md. ` +
-        "Le §6 est une carte : une carte qui ment est le même défaut qu'une " +
-        "procédure fausse — on lui fait confiance, et elle est lue par ceux " +
-        "qui connaissent le moins le projet. Un ticket qui ajoute un module " +
-        "l'y déclare avec le reste.",
-    );
+  const ecarts: string[] = [];
+  const nomsEnumeres = enumeres.map((entree) => entree.nom);
+
+  // Sens 1 — il existe et n'est pas déclaré.
+  for (const nom of surDisque) {
+    if (!nomsEnumeres.includes(nom)) {
+      ecarts.push(
+        `« lib/${nom}/ » existe et n'est pas énuméré au §6 du CLAUDE.md. ` +
+          "Le §6 est une carte : une carte qui ment est le même défaut qu'une " +
+          "procédure fausse — on lui fait confiance, et elle est lue par ceux " +
+          "qui connaissent le moins le projet. Un ticket qui ajoute un module " +
+          "l'y déclare avec le reste.",
+      );
+    }
+  }
+
+  for (const entree of enumeres) {
+    const existe = surDisque.includes(entree.nom);
+
+    // Sens 2 — il est déclaré comme EXISTANT et n'existe pas.
+    if (!existe && !entree.prevu) {
+      ecarts.push(
+        `« lib/${entree.nom}/ » est énuméré au §6 sans la marque ` +
+          `« ${MARQUE_PREVU} » et n'existe pas. Le §6 dit deux choses de ` +
+          "nature différente — ce qui est, et ce qui est planifié : sans la " +
+          "marque, le plan se fait passer pour un état, et un module annoncé " +
+          "qui n'arrivera jamais ne se remarque pas.",
+      );
+    }
+
+    // Sens 3 — la marque a survécu au module qu'elle annonçait.
+    if (existe && entree.prevu) {
+      ecarts.push(
+        `« lib/${entree.nom}/ » porte la marque « ${MARQUE_PREVU} » au §6 et ` +
+          "existe pourtant. La marque est devenue fausse le jour où le module " +
+          "a été écrit : c'est le ticket qui l'écrit qui la retire, avec le " +
+          "reste de sa documentation.",
+      );
+    }
+  }
+
+  return ecarts;
 }
 
-describe("le §6 du CLAUDE.md énumère les modules qui existent", () => {
+describe("le §6 du CLAUDE.md et le disque s'accordent, dans les deux sens", () => {
   const enumeres = modulesEnumeres(arborescence());
   const surDisque = modulesSurDisque();
+  const noms = enumeres.map((entree) => entree.nom);
 
   it("le gardien a réellement lu les deux côtés", () => {
-    // Deux témoins. Un bloc introuvable lève déjà ; une branche vide des deux
-    // côtés rendrait un écart vide qui ressemblerait à un sans-faute (§9, 30/08).
+    // Trois témoins. Un bloc introuvable lève déjà ; une branche vide des deux
+    // côtés rendrait un écart vide qui ressemblerait à un sans-faute (§9,
+    // 30/08). Et si AUCUNE ligne ne portait la marque, le troisième sens ne
+    // serait jamais exercé — la marque doit donc exister quelque part.
     expect(enumeres.length).toBeGreaterThanOrEqual(8);
     expect(surDisque.length).toBeGreaterThanOrEqual(5);
-    // Et il lit bien des NOMS de modules, pas des mots de description.
-    expect(enumeres).toContain("db");
-    expect(enumeres).toContain("i18n");
+    expect(enumeres.filter((entree) => entree.prevu).length).toBeGreaterThan(0);
+    expect(noms).toContain("db");
+    expect(noms).toContain("i18n");
   });
 
-  it("chaque module présent sur le disque y est déclaré", () => {
+  it("les deux sens s'accordent, et la marque ne ment pas", () => {
     expect(ecartsArborescence(enumeres, surDisque)).toEqual([]);
   });
 
-  it("`lib/clients/` — le module qui a motivé ce gardien — y est", () => {
+  it("`lib/clients/` — le module qui a motivé ce gardien — y est, sans marque", () => {
     expect(surDisque).toContain("clients");
-    expect(enumeres).toContain("clients");
+    expect(
+      enumeres.find((entree) => entree.nom === "clients")?.prevu,
+    ).toBe(false);
+  });
+
+  it("les modules marqués sont exactement ceux qui n'existent pas encore", () => {
+    // La propriété qui rend les deux sens gardables, énoncée directement.
+    const prevus = enumeres
+      .filter((entree) => entree.prevu)
+      .map((entree) => entree.nom)
+      .sort();
+    const absents = noms.filter((nom) => !surDisque.includes(nom)).sort();
+
+    expect(prevus).toEqual(absents);
   });
 
   it("ÉPREUVE : un module créé sans être déclaré est refusé", () => {
-    // La faute telle qu'elle se commettra : L1-08 crée `lib/excel/`… qui est
-    // déjà annoncé. Prenons donc un module que le §6 n'annonce PAS.
-    const ecarts = ecartsArborescence(enumeres, [...surDisque, "notifications"]);
+    const ecarts = ecartsArborescence(enumeres, [
+      ...surDisque,
+      "notifications",
+    ]);
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("lib/notifications/");
     expect(ecarts[0]).toContain("§6");
   });
 
-  it("un module ANNONCÉ mais pas encore écrit ne fait PAS échouer", () => {
-    // La limite, éprouvée plutôt qu'affirmée : `sync/`, `excel/` et `pdf/` sont
-    // au §6 depuis L0-01 et n'existent pas. Un gardien qui les réclamerait
-    // rendrait le §6 incapable d'annoncer le plan.
-    const annoncesNonEcrits = enumeres.filter(
-      (module) => !surDisque.includes(module),
+  it("ÉPREUVE : un module déclaré SANS marque et absent est refusé", () => {
+    // Le sens que la première rédaction ne gardait pas, et le trou qu'il
+    // ferme : un module annoncé qui n'arrivera jamais ne se remarque pas.
+    const ecarts = ecartsArborescence(
+      [...enumeres, { nom: "fantome", prevu: false }],
+      surDisque,
     );
 
-    expect(annoncesNonEcrits.length).toBeGreaterThan(0);
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("lib/fantome/");
+    expect(ecarts[0]).toContain(MARQUE_PREVU);
+  });
+
+  it("ÉPREUVE : un module marqué `(prévu)` qui EXISTE est refusé", () => {
+    // Le troisième sens : la marque a survécu au module qu'elle annonçait.
+    // C'est ce qui arrivera à `excel/` au ticket L1-08 si personne n'y pense.
+    const ecarts = ecartsArborescence(
+      enumeres.map((entree) =>
+        entree.nom === "clients" ? { ...entree, prevu: true } : entree,
+      ),
+      surDisque,
+    );
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("lib/clients/");
+    expect(ecarts[0]).toContain("devenue fausse");
+  });
+
+  it("un module marqué et absent ne fait PAS échouer — le plan garde sa place", () => {
+    // La limite, éprouvée plutôt qu'affirmée : `sync/`, `excel/` et `pdf/` sont
+    // au §6 depuis L0-01 et n'existent pas. Le §6 doit pouvoir annoncer un
+    // plan sans que la vérification tombe.
+    const marquesAbsents = enumeres.filter(
+      (entree) => entree.prevu && !surDisque.includes(entree.nom),
+    );
+
+    expect(marquesAbsents.length).toBeGreaterThan(0);
     expect(ecartsArborescence(enumeres, surDisque)).toEqual([]);
   });
 
   it("ÉPREUVE : un §6 vidé de sa branche `lib/` lève plutôt que de passer", () => {
-    // Sans cela, supprimer l'arborescence rendrait le gardien vert : il
-    // n'énumérerait plus rien, et rien ne manquerait à rien.
     expect(() => modulesEnumeres("app/\n  api/\n")).toThrow(/lib\//);
   });
 });

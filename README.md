@@ -220,12 +220,19 @@ chaque table s'y range. Une table métier créée demain est donc réclamée par
 sans qu'aucune liste ne soit à compléter — et le déclencheur se pose dans la
 migration qui crée la table, jamais dans un rattrapage.
 
-**Deux motifs d'exemption, liste close.** `rejouable` — l'information perdue se
-reconstitue depuis une autre table auditée ; `impossible` — poser le déclencheur
-produit une base qui ne fonctionne pas, et cela se **mesure**. Ne sont pas des
-motifs : le volume (la table est partitionnée précisément pour cela), la
-sensibilité supposée, et jamais une table dont les lignes sont saisies par un
-humain. Une seule exemption est en vigueur, et elle est du second motif.
+**UN SEUL motif d'exemption, et la liste est VIDE.** `rejouable` — l'information
+perdue se reconstitue depuis une autre table auditée. Ne sont pas des motifs : le
+volume (la table est partitionnée précisément pour cela), la sensibilité
+supposée, et jamais une table dont les lignes sont saisies par un humain.
+
+**Le journal lui-même est HORS DU DOMAINE**, et ce n'est pas une exemption : un
+motif se rouvre par argument, une frontière est une liste close d'une entrée
+gardée dans les deux sens. La raison est doctrinale — **un gardien ne peut pas se
+garder lui-même** — et la récursion mesurée n'en est que le symptôme. Ce que ce
+retrait coûte est payé au même endroit : **le journal n'est pas audité, il est
+inaltérable**, et cela s'éprouve par TENTATIVE d'`UPDATE` et de `DELETE` sous le
+rôle applicatif — sur la table mère, et sur **chaque partition** énumérée par
+`pg_inherits`, jamais sur la mère seule.
 
 **La règle et ses exemptions n'ont qu'une maison, celle que la machine lit** :
 [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts). L'invariant
