@@ -1,5 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
+import {
+  NOM_DECLENCHEUR,
+  PERIMETRE_I8,
+  tablesDuPerimetre,
+  type EntreePerimetre,
+} from "../../../scripts/lib/perimetre-audit";
 import { migrationsSql } from "../outils/migrations-sql";
 import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
 
@@ -21,6 +30,15 @@ import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
  * fait tomber la vérification le jour où elle est écrite, pas trois lots plus
  * tard.
  *
+ * **La liste n'a qu'une maison, et ce n'est plus ici** *(D53)*. Elle était
+ * recopiée dans ce fichier « en toutes lettres », pour que la constitution soit
+ * confrontée au dépôt. Mais RIEN ne confrontait la recopie à la constitution :
+ * deux listes qui pouvaient diverger en silence — le défaut d'É8 une catégorie
+ * plus bas. Elle vit désormais dans `scripts/lib/perimetre-audit.ts`, seul
+ * endroit où elle s'écrit, et l'indépendance du gardien tient à ce qu'elle a
+ * toujours tenu : la liste est confrontée aux MIGRATIONS et au SCHÉMA, deux
+ * sources qu'elle ne contrôle pas.
+ *
  * **Et il est clos DES DEUX CÔTÉS depuis D52.** Tant que I8 énumérait des
  * NOTIONS — « paramétrage société », « compte client » —, il fallait
  * l'interpréter pour savoir ce qui était couvert, et le gardien ne pouvait
@@ -30,40 +48,6 @@ import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
  * la liste échoue, quelle qu'elle soit — élargir la traçabilité est un
  * arbitrage, jamais une décision de ticket.
  */
-
-/** Ce que le déclencheur d'audit s'appelle, partout où il est posé. */
-const NOM_DECLENCHEUR = "journal_audit";
-
-/**
- * Le périmètre de I8, recopié EN TOUTES LETTRES.
- *
- * La recopie est délibérée, comme celle des listes closes de I1 : un gardien
- * qui tirerait son périmètre de la même source que les migrations ne
- * vérifierait rien. Ici, c'est la constitution qui est confrontée au dépôt.
- *
- * `table` est le nom SQL attendu ; `lot` dit d'où elle viendra quand elle
- * n'existe pas encore.
- */
-const PERIMETRE_I8 = [
-  { entite: "paramétrage de la société", table: "societe", lot: null },
-  { entite: "établissements", table: "agence", lot: null },
-  { entite: "heures d'ouverture", table: "calendrier", lot: null },
-  { entite: "heures d'ouverture", table: "calendrier_plage", lot: null },
-  {
-    entite: "écarts locaux de calendrier",
-    table: "calendrier_ferie",
-    lot: null,
-  },
-  // D52 — c'est par cette table qu'on se donne un accès. « Qui a accordé ce
-  // droit, quand, depuis quelle valeur » est la question de l'auditeur, et
-  // celle qui rend vérifiable la procédure de déblocage de D40 (L7-01).
-  { entite: "habilitations (D52)", table: "utilisateur_societe", lot: null },
-  { entite: "comptes portail (D10)", table: "utilisateur_client", lot: null },
-  // Les trois tables métier qui n'existent pas encore.
-  { entite: "fiches machine", table: "machine", lot: "L2-01" },
-  { entite: "interventions", table: "intervention", lot: "L2-07" },
-  { entite: "contrats", table: "contrat", lot: "lot 4" },
-] as const;
 
 /**
  * Retire du SQL ce qui DOCUMENTE, pour ne garder que ce qui S'EXÉCUTE.
@@ -167,11 +151,7 @@ function tablesDuSchema(schema: string): string[] {
 export function ecartsPerimetreAudit(
   schema: string,
   declenchees: readonly string[],
-  perimetre: readonly {
-    entite: string;
-    table: string;
-    lot: string | null;
-  }[] = PERIMETRE_I8,
+  perimetre: readonly EntreePerimetre[] = PERIMETRE_I8,
 ): string[] {
   const ecarts: string[] = [];
   const existantes = tablesDuSchema(schema);
@@ -197,14 +177,15 @@ export function ecartsPerimetreAudit(
   // tables, tout déclencheur posé ailleurs est un élargissement décidé en
   // séance. La liste n'a plus besoin de nommer d'avance la table qu'on
   // craignait — c'est le périmètre entier qui fait autorité.
-  const couvertes = perimetre.map((entree) => entree.table);
+  const couvertes = tablesDuPerimetre(perimetre);
   for (const table of declenchees) {
     if (!couvertes.includes(table)) {
       ecarts.push(
         `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
           "qu'elle ne figure PAS au périmètre d'audit de I8. Élargir la " +
-          "traçabilité est un arbitrage — la table s'ajoute d'abord à la " +
-          "liste de I8, dans le CLAUDE.md, et jamais l'inverse.",
+          "traçabilité est un arbitrage — la table s'ajoute d'abord au " +
+          "périmètre, dans scripts/lib/perimetre-audit.ts, et jamais " +
+          "l'inverse.",
       );
     }
   }
@@ -284,9 +265,7 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
     // Le sens du gardien s'est inversé sur cette table, et il faut que le
     // renversement soit lisible dans le test lui-même : elle figure au
     // périmètre, elle existe au schéma, elle DOIT donc porter le déclencheur.
-    expect(PERIMETRE_I8.map((entree) => entree.table)).toContain(
-      "utilisateur_societe",
-    );
+    expect(tablesDuPerimetre()).toContain("utilisateur_societe");
     expect(declenchees).toContain("utilisateur_societe");
 
     // Et son absence est bien un écart, nommé : c'est l'épreuve du
@@ -388,5 +367,104 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
         graphie,
       ).toEqual(["intervention"]);
     }
+  });
+});
+
+/**
+ * D53 — LA LISTE N'A QU'UNE MAISON, et c'est vérifié plutôt que promis.
+ *
+ * Le périmètre est écrit une fois, dans `scripts/lib/perimetre-audit.ts`.
+ * L'invariant I8 du CLAUDE.md, la règle RG-DRO-04 du chapitre 10 et le README y
+ * RENVOIENT ; aucun ne l'énumère. Une recopie qui réapparaîtrait dans l'un des
+ * trois rétablirait exactement ce que D53 supprime : deux listes qui divergent
+ * en silence, dont l'une reste juste et l'autre devient fausse sans rougir.
+ *
+ * Le détecteur est éprouvé sur une recopie fabriquée — sans quoi « aucune
+ * recopie trouvée » et « le détecteur ne sait pas en trouver » se ressemblent
+ * trait pour trait (§9, la vacuité).
+ */
+const SOURCES_QUI_RENVOIENT = [
+  { fichier: "CLAUDE.md", section: /### I8 — Traçabilité[\s\S]*?(?=\n### )/ },
+  { fichier: "docs/cahier-des-charges.md", section: /^\| RG-DRO-04 \|.*$/m },
+  {
+    fichier: "README.md",
+    section: /^## Journal d'audit[\s\S]*?(?=\n## )/m,
+  },
+] as const;
+
+/**
+ * Quelles tables du périmètre un texte nomme.
+ *
+ * **Le critère est un SEUIL, pas zéro, et il faut dire pourquoi.** Citer une
+ * table pour porter un argument est légitime — I8 nomme `utilisateur_societe`
+ * parce que c'est le cas qui a fondé D52. Ce qui ne l'est pas, c'est de
+ * réénumérer la liste. Une recopie les nomme toutes ; un argument en nomme une
+ * ou deux. Le seuil est la MOITIÉ du périmètre, et il suit sa taille au lieu
+ * d'être un chiffre écrit à la main.
+ *
+ * Sa limite, annoncée plutôt que tue : une recopie partielle de quatre tables
+ * passerait. Le seuil arrête la recopie telle qu'elle se commet — on remet
+ * « la liste, pour la lisibilité » —, pas une citation abondante.
+ */
+export function tablesEnumerees(texte: string): string[] {
+  return tablesDuPerimetre().filter((table) =>
+    new RegExp(`\\b${table}\\b`).test(texte),
+  );
+}
+
+/** À partir de combien de tables nommées un texte recopie le périmètre. */
+export const SEUIL_RECOPIE = Math.ceil(PERIMETRE_I8.length / 2);
+
+describe("le périmètre n'est écrit qu'à un seul endroit (D53)", () => {
+  const CHEMIN = "scripts/lib/perimetre-audit.ts";
+
+  it("le périmètre lui-même est peuplé — sinon il n'y a rien à ne pas recopier", () => {
+    expect(PERIMETRE_I8.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(tablesDuPerimetre()).size).toBe(PERIMETRE_I8.length);
+    expect(NOM_DECLENCHEUR).toBe("journal_audit");
+  });
+
+  for (const { fichier, section } of SOURCES_QUI_RENVOIENT) {
+    it(`${fichier} renvoie au périmètre et ne le recopie pas`, () => {
+      const texte = readFileSync(join(process.cwd(), fichier), "utf8");
+      const extrait = section.exec(texte)?.[0];
+
+      // Témoin d'adossement : la section visée existe encore. Un motif qui ne
+      // trouve rien ne prouve rien — il passerait au vert sur un fichier vide.
+      expect(extrait, `section introuvable dans ${fichier}`).toBeTruthy();
+      expect(extrait).toContain(CHEMIN);
+
+      // Une recopie énumère la liste. Deux ou trois noms cités pour porter un
+      // argument ne sont pas une recopie ; la moitié du périmètre en est une.
+      const enumerees = tablesEnumerees(extrait ?? "");
+      expect(
+        enumerees.length,
+        `${fichier} réénumère le périmètre : ${enumerees.join(", ")}`,
+      ).toBeLessThan(SEUIL_RECOPIE);
+    });
+  }
+
+  it("ÉPREUVE : une recopie réintroduite est détectée", () => {
+    // La faute telle qu'elle se commettra : quelqu'un remet la liste « pour la
+    // lisibilité », et les deux listes repartent chacune de leur côté.
+    const recopie = `Le périmètre couvre ${tablesDuPerimetre().join(", ")}.`;
+
+    expect(tablesEnumerees(recopie)).toEqual(tablesDuPerimetre());
+    expect(tablesEnumerees(recopie).length).toBeGreaterThanOrEqual(
+      SEUIL_RECOPIE,
+    );
+
+    // Et une recopie PARTIELLE, exactement au seuil, est prise elle aussi :
+    // sans cette mesure, on ne saurait pas si le seuil mord ailleurs qu'au
+    // maximum.
+    const partielle = `Couvertes : ${tablesDuPerimetre()
+      .slice(0, SEUIL_RECOPIE)
+      .join(", ")}.`;
+    expect(tablesEnumerees(partielle).length).toBeGreaterThanOrEqual(
+      SEUIL_RECOPIE,
+    );
+
+    // Le renvoi, lui, ne nomme rien.
+    expect(tablesEnumerees("Le périmètre vit dans " + CHEMIN)).toEqual([]);
   });
 });

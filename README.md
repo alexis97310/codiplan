@@ -207,15 +207,18 @@ auteur, horodatage, adresse, et la ligne **entière** avant et après. Elle est
 chemin d'écriture n'y échappe, pas même un `UPDATE` tapé à la main dans `psql`.
 
 Le périmètre est une **liste de tables**, énumérée par I8 depuis D52 — et non
-une liste de notions qu'il faudrait interpréter. Sept tables aujourd'hui :
-`societe`, `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`,
-`utilisateur_societe` et `utilisateur_client`. `machine`, `intervention` et
-`contrat` le rejoindront **dans la migration qui les crée** : le gardien
+une liste de notions qu'il faudrait interpréter. **Elle n'a qu'une maison, celle
+que la machine lit** : [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts).
+L'invariant I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne la
+recopie, et un gardien refuse qu'une recopie y réapparaisse (D53).
+
+Sept tables y figurent aujourd'hui ; trois autres, qui viendront aux lots 2 et
+4, la rejoindront **dans la migration qui les crée** : le gardien
 `tests/unit/db/perimetre-audit.test.ts` le réclame dès que la table apparaît au
 schéma, plutôt que trois lots plus tard — et il refuse aussi un déclencheur posé
 sur une table absente de la liste, car élargir la traçabilité est un arbitrage.
 
-`utilisateur_societe` y figure parce que **c'est ainsi qu'on se donne un
+La table des habilitations y figure parce que **c'est ainsi qu'on se donne un
 accès** (D52) : « qui a accordé ce droit, quand, depuis quelle valeur » est la
 question de l'auditeur, et celle qui rend vérifiable la procédure de déblocage
 de D40.
@@ -366,6 +369,59 @@ definition("site"); // « Lieu d'intervention chez un client… »
 **Ce qui décide qu'un fichier est concerné se déduit, il ne s'énumère pas.** Le gardien lit tout le dépôt ; un fichier est concerné s'il porte l'une de trois marques — il contient du JSX, il exporte les `metadata` de Next.js, il interroge l'écran. Une page écrite demain l'est le jour où elle est écrite, sans qu'aucune liste soit à compléter. Il n'y a donc **aucune exemption de fichier** : le seul laissez-passer est une référence au dictionnaire, déduite des accesseurs réellement exportés par `lib/i18n` et résolue à travers les alias d'import.
 
 Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à l'écran par une variable n'est pas lisible statiquement, et un libellé passé en **propriété** d'un composant non plus — la parade y est un type (`CleTraduction`, jamais `string`), pas un gardien. Détail dans [`docs/decisions/2026-08-31-vocabulaire-francais-centralise.md`](docs/decisions/2026-08-31-vocabulaire-francais-centralise.md).
+
+## Les règles de gestion et les arbitrages qui les amendent
+
+Le chapitre 10 du cahier des charges est la source **unique** des règles de
+gestion, et il est de rang 2 : un arbitrage (rang 1) peut le réécrire. Jusqu'au
+ticket R0-b, cette réécriture était une **promesse en prose** — dix règles
+avaient été amendées par une décision sans que le texte bouge, et rien ne
+pouvait le dire.
+
+Le câblage est désormais bidirectionnel et vérifié :
+
+- au chapitre 10, une règle amendée porte la mention `*(amendée par D6, D47)*` ;
+- dans `docs/arbitrages.md`, la décision porte en retour la ligne
+  `**Règles amendées :** RG-PAR-02` ;
+- `tests/unit/docs/cablage-arbitrages.test.ts` exige que les deux listes
+  s'accordent, et refuse en outre qu'une décision **affirme en prose** réécrire
+  une règle — « RG-xxx est réécrite », ou une rédaction donnée en citation —
+  sans la déclarer.
+
+**Le gardien part de TOUTES les règles et de TOUTES les décisions.** Se limiter
+aux règles qui portent déjà une mention aurait exclu exactement les dix qui
+étaient cassées : la mention est une assertion, jamais un critère de sélection.
+Il échoue sur zéro paire observée, et il est éprouvé dans les deux sens sur des
+ruptures écrites dans les documents réels. Rejoué sur l'état d'avant R0-b, il
+relève **treize écarts** ; sur l'état actuel, aucun.
+
+Sa limite est annoncée : un arbitrage qui amende une règle **sans jamais en
+écrire la référence** reste hors de portée d'un motif statique — seule la ligne
+`**Règles amendées :**`, posée à la main, le rattrape.
+
+### Le backlog, un rang plus bas
+
+`docs/backlog.md` est de rang 4 et cite des règles de rang 2 et des décisions de
+rang 1. Le même silence s'y rejouait : L1-08 portait « seul le dernier lot est
+annulable » après que D54 l'eut supprimé.
+
+`tests/unit/docs/coherence-backlog.test.ts` pose un contrôle **étroit** — un plan
+bouge sans cesse, et le mode de défaillance réel est le ticket qui cite une règle
+**ayant changé depuis**. Chaque ticket citant une règle ou une décision porte
+l'empreinte du texte courant de ses sources :
+
+```
+*Relu contre les sources citées le 01/09/2026 — empreinte `961c49b1`.*
+```
+
+L'empreinte couvre la **clôture des amendements** — une décision amendée porte
+`**Amendé par Dxx.**`, et bouger l'amendeur réveille les tickets qui citent
+l'amendée. Sans quoi un ticket resterait vert alors qu'une décision qu'il ne cite
+pas l'a rendu faux.
+
+Ce gardien **ne prouve pas la cohérence** — aucun motif statique ne le peut. Il
+force la relecture à l'instant où elle est due. Un ticket qui ne cite rien n'est
+pas couvert : il sera lu contre le chapitre 10 le jour où on l'écrira.
 
 ## Intégration continue
 

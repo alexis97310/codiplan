@@ -21,7 +21,7 @@ Vitest, Playwright, et **deux portes distinctes** :
 `pnpm verify:full` = verify + test:e2e — porte de chaque lot.
 CI **GitHub Actions** : `verify` à chaque commit, `verify:full` sur `main` et chaque nuit.
 *Acceptation :* les deux commandes passent ; un test volontairement faux fait échouer la commande et la CI.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `a74b1692`.*
 **L0-03 — Schéma multi-société. [D4] [D5]**
 Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_societe`, `utilisateur_client`.
 `agence` est nouvelle (D5) : code, libellé, adresse, fuseau, calendrier, actif.
@@ -29,24 +29,24 @@ Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_soci
 `utilisateur_client` (D10) : utilisateur, client, société, périmètre de sites.
 *Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés — CODIMA-NC en XPF avec ses trois agences (Ducos, Koné, Dolbeau) et CODIMA-EU en EUR avec son unique agence (Siège) —, soit **quatre agences au total**, et au moins un compte portail rattaché à un client.
 > Le critère « migration appliquée / seed exécuté » est validé par le déclenchement **manuel** du workflow `.github/workflows/db-migrate.yml`, **et non depuis une session cloud** : le proxy sortant de l'environnement cloud ne relaie pas le TCP, la base Neon y est donc injoignable (P1001). Voir `docs/decisions/2026-08-20-migration-par-github-actions.md`.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `acd336a1`.*
 **L0-04 — Politiques RLS. [D4]**
 Sécurité au niveau des lignes sur toutes les tables portant `societe_id`, pilotée par une variable de session.
 ~~Forme imposée : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.~~
 > **CORRIGÉ le 31/08/2026 (ticket R0-a, écart É9 de la revue R0).** Cette phrase était **le texte de ticket le plus dangereux des trois lots** : elle énonce « la forme imposée » au singulier alors qu'il en existe **cinq**, et la recopier sur `client`, `site` ou `modele_materiel` écrit une politique fausse **dans le sens permissif — en obéissant**. Les cinq formes, leur cas d'emploi et la table qui les porte sont désormais **au CLAUDE.md, au pied de I1** ; celle qui ne s'applique jamais à une table métier ordinaire y est nommée (« référentiel »), avec la raison. La branche `OR societe_id IS NULL` est un **vestige inerte** sur une colonne `NOT NULL`, jamais une licence. Un gardien mesure la forme dans `pg_policies` — `tests/isolation/politiques-rls.test.ts` et `scripts/controle-cloisonnement.mts`.
 *Acceptation :* une requête sans société positionnée retourne **zéro ligne sur les tables cloisonnées**, et **uniquement les référentiels de plateforme** sur les tables partagées (`devise`, `famille_materiel`, `modele_materiel`, `checklist_modele`).
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `7605f8ac`.*
 **L0-05 — Tests d'isolation. [D22]**
 Répertoire `tests/isolation/`. Pour chaque ressource : lecture, écriture et suppression tentées depuis une autre société.
 Inclut obligatoirement : le chemin **`GET /machines/qr/{token}`**, qui doit refuser un jeton appartenant à une autre société ; l'accès d'un compte portail aux données d'un autre client ; le respect du périmètre de sites.
 *Acceptation :* au moins 12 scénarios, tous verts. **Vérification manuelle documentée** dans `docs/decisions/` : retirer un filtre société fait échouer les tests.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
 **L0-06 — Authentification et rôles. [D21]**
 Better Auth, sessions serveur, MFA sur `admin_plateforme` et `direction`.
 Énumération canonique des rôles, complète dès maintenant : `admin_plateforme`, `editeur_commercial`, `editeur_support`, **`admin_societe`** [D37], `direction`, `responsable_materiel`, `responsable_sav`, `adv`, `technicien`, `client` — **dix rôles**.
 Rôle PostgreSQL `codiplan_reporting` avec `BYPASSRLS`, en `SELECT` seul, réservé à `lib/reporting`.
 *Acceptation :* un utilisateur habilité sur A ne peut pas basculer sur B ; tout changement de société active est journalisé ; un test vérifie qu'aucun chemin hors `lib/reporting` n'utilise la connexion `codiplan_reporting`.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `708c208b`.*
 **L0-06b — Arbitrages consécutifs à L0-06. [D34] [D35] [D36] [D37] [D38] [D39] [D40] [D41]**
 Troisième catégorie de I1 — **tables techniques d'authentification**, liste close : `session`, `compte`, `verification`, `journal_acces` [D34].
 `journal_acces.societe_id_source` et `societe_id_cible`, informatives et nullables : elles répondent à « qui a tenté d'accéder à mes données », jamais à un filtre.
@@ -57,7 +57,7 @@ Mot de passe de `codiplan_reporting` dans `REPORTING_DATABASE_URL` seulement, et
 Second facteur obligatoire étendu à `admin_societe` — `admin_plateforme`, `admin_societe`, `direction` [D40], règle produit **RG-DRO-05**.
 `parite` rejoint les référentiels de plateforme, et surtout : **gardien d'exhaustivité** des catégories de I1, qui part du schéma et non des listes [D41].
 *Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur ; **toute table de `prisma/schema.prisma` appartient à exactement une catégorie de I1** — zéro comme deux font échouer la vérification.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `eb89ba53`.*
 **L0-06c — `societe`, quatrième catégorie de cas. [D42]**
 Rédaction de la **première catégorie de I1** : `societe` fait exception à la forme, non au fond — étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`) [D42].
 Rien n'était ouvert : la politique existait depuis L0-04, `force-rls.test.ts` l'éprouvait, l'inventaire comptait `societe` parmi les tables cloisonnées. C'est la phrase de l'invariant qui était incomplète.
@@ -65,36 +65,36 @@ L'exception est **nommée** (`CLOISONNEE_PAR_IDENTITE`) plutôt que la règle é
 Inscrit au CLAUDE.md : toute autre table métier porte `societe_id NOT NULL` ou passe par un arbitrage — **c'est l'objectif des lots 1 à 3, pas une friction à contourner**.
 Trois arbitrages relevés à la revue de cette livraison [D43] [D44] [D45] : le symbole du XPF reste `XPF` et la question part au registre avec son déclencheur ; **D19 est amendé** — la conversion vit dans `lib/reporting` ; l'arrondi au quart d'heure est rangé en L2-09.
 *Acceptation :* le gardien d'exhaustivité de D41 ne relève plus aucune table hors catégorie ; le gardien de la liste d'exceptions **échoue sur toute entrée autre que `societe`** comme sur son retrait, avec le message « toute addition passe par un arbitrage, elle ne se décide pas dans un ticket », et il est éprouvé sur une addition fabriquée et sur une liste vidée.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `9df55d82`.*
 **L0-07 — Module monétaire. [D19]**
 `lib/money` : `formatMoney(montant, devise)` — symbole si la devise en a un, code sinon.
 `lib/reporting` : `convertForConsolidation(montant, source, cible, dateParite)`, exigeant une date de parité explicite. **La conversion vit dans `lib/reporting`, jamais dans `lib/money`** [D44] — D19 disait `lib/money` contre I2, le §6 et ce ticket ; il est amendé, pas contourné.
 L'arrondi au quart d'heure **ne fait pas partie de ce ticket** : c'est une politique de facturation, elle est rangée en L2-09 [D45].
 *Acceptation :* `7 000 XPF` sans décimale [D19] [D43], `100,00 €` avec deux ; un appel à `convertForConsolidation` hors de `lib/reporting` fait échouer un test.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `37a32298`.*
 **L0-08 — Module calendrier. [D5] [D13] [D46] [D47]**
 `lib/calendar` : calendriers rattachés à l'**agence**, jours fériés **portés par un référentiel territorial** `jour_ferie` (D46) et surchargeables par agence via le booléen `travaille`, calcul des jours et heures ouvrés. Fuseau IANA porté par l'agence, instants en `timestamptz`, récurrences stockées sous forme de règle locale et déroulées à la lecture.
 Fonctions distinctes par usage : SLA (agence de l'intervention), majoration (agence du technicien), conflit à la pose (calendrier du technicien).
 *Acceptation :* le samedi est ouvré pour Ducos et non pour Koné ; un férié marqué travaillé compte comme ouvré ; un délai SLA de 4 h ouvrées démarré vendredi 16 h échoit lundi.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `4b434626`.*
 **L0-09a — Le territoire d'un jour férié référencé. [D48] [D49]**
 Fermeture du point que L0-08 avait soumis sans le trancher : un écart local pouvait s'adosser au férié d'un **autre territoire**. Fermé **en base**, par chaînage de clés composites — `agence` gagne un `UNIQUE (id, territoire)`, `calendrier_ferie` une colonne `territoire` liée à l'agence par `(agence_id, territoire)` et au fait public par `(jour_ferie_id, date, territoire)`.
 **`agence.territoire` devient `NOT NULL`** : une clé étrangère dont une colonne vaut NULL n'est pas contrôlée en PostgreSQL, le verrou aurait été muet là où la donnée manque. La migration **refuse de s'appliquer** sur une base portant une agence sans territoire, en la nommant — jamais de valeur inventée.
 La colonne `territoire` de `calendrier_ferie` est une **redondance assumée** : elle rend la contrainte déclarative, c'est le prix du verrou [D48].
 **Aucune propagation** [D49] : `ON UPDATE RESTRICT` des deux côtés. Changer le territoire d'une agence est **refusé** tant qu'il lui reste un écart — `CASCADE`, mesuré en base, réécrivait les écarts **en silence** sur une agence n'ayant que des ponts. Un déclencheur double le refus d'un message qui donne la **marche à suivre** ; retiré, la clé refuse encore.
 *Acceptation :* un écart adossé au férié d'un autre territoire est refusé par la base, dans les deux sens (en faisant concorder l'écart avec le fait public, c'est la clé vers l'agence qui mord) ; le **pont** — `jour_ferie_id` nul — reste possible ; une agence sans territoire est refusée ; **chaque refus est éprouvé en retirant réellement la contrainte**, dans une transaction annulée qui rejoue à chaque `pnpm verify` (forme désormais attendue de tout test de refus, §9 du CLAUDE.md) ; changer le territoire d'une agence est refusé tant qu'un écart subsiste, avec un message qui **dit quoi faire** — et le scénario échoue si quelqu'un raccourcit ce message.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `9b249a44`.*
 **L0-09 — Thématisation par société. [D51]**
 Nom d'affichage, couleur d'identité et couleur d'accentuation issus du paramétrage de la société active — jamais de l'agence : les agences partagent l'identité de leur société. Six variables CSS posées **côté serveur** depuis la société active de la session ; aucun fichier de style propre à une société, aucun nom de société dans le code. Une société sans charte reçoit le **thème neutre CODIPLAN**, défini une fois et identifié comme LE défaut — les deux colonnes de couleur deviennent nullables pour que « sans charte » soit un état représentable.
 **Lisibilité tranchée par le calcul, pas par un refus** [D51] : l'encre posée sur une couleur de société est choisie entre le noir et le blanc, ce qui garantit **√21 ≈ 4,58:1** sur n'importe quel fond sRGB, au-dessus du seuil **4,5:1** de WCAG 2.1 (critère 1.4.3, niveau AA, texte courant ; 3:1 pour le grand texte et le non-textuel, critères 1.4.3 et 1.4.11). Le seul refus à la saisie porte sur la FORME — ce qui n'est pas une couleur sRGB —, jamais sur la teinte.
 **Logo hors périmètre**, inscrit au registre : il suppose un stockage de fichiers, décision d'architecture à part entière. `societe.logo_url` existe déjà et le mécanisme ne l'empêche pas.
 *Acceptation :* basculer de société change l'identité visuelle sans redéploiement — éprouvé en base sur deux sociétés aux chartes distinctes, sous le rôle applicatif restreint ; une session active sur A n'obtient pas la charte de B même en demandant son identifiant, et le portail affiche la charte de la société qui le sert ; les cas extrêmes du contraste — très clair, très sombre, saturé — sont couverts, et le plancher 4,5826 est retrouvé par balayage exhaustif du cube sRGB ; le refus de forme est éprouvé **par retrait** de la contrainte, dans une transaction annulée ; le gardien « aucun littéral de couleur » est éprouvé sur les six formes du §9 **et sur trois violations réellement écrites** dans les fichiers où la faute se commettrait.
-
-**L0-10 — Journal d'audit. [D32]**
+*Relu contre les sources citées le 01/09/2026 — empreinte `d2ffc22d`.*
+**L0-10 — Journal d'audit. [D32] [D52] [D53]**
 **Trigger PostgreSQL**, pas un intercepteur applicatif. Droits `UPDATE` et `DELETE` révoqués sur `journal_audit` pour le rôle applicatif.
-Périmètre : intervention, contrat, machine, paramétrage société, compte client. Plus les accès des rôles éditeur et les basculements de société.
+Périmètre : **une liste close de TABLES** [D52], écrite une seule fois dans `scripts/lib/perimetre-audit.ts` [D53] — ni ici, ni au CLAUDE.md, ni au chapitre 10, qui y renvoient tous les trois. D32 l'énonçait en **notions** ; cette rédaction est périmée. Plus les accès des rôles éditeur (L7-03) et les basculements de société.
 *Acceptation :* toute écriture sur une table sensible produit une ligne d'audit ; une tentative de suppression d'une ligne d'audit échoue au niveau de la base.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `dc90c821`.*
 **L0-11 — Vocabulaire français centralisé. [D26] [D5] [D47]**
 `lib/i18n/fr.ts`, dictionnaire plat, **source unique** de tout ce qu'un utilisateur lit. Aucune chaîne visible en dur — ni dans un composant, ni dans un attribut lu par un lecteur d'écran, ni dans les `metadata`, ni dans le texte attendu par un test de rendu.
 **La coupure est écrite une fois**, en tête du dictionnaire : ce qu'un humain lit en se servant de l'application y passe ; ce qu'un développeur ou une machine lit — gardien, exception technique, trace, migration — n'y passe pas. Même famille que « documentation contre exécution » de D50 : c'est la destination du texte qui décide, jamais le fichier.
@@ -102,7 +102,7 @@ Périmètre : intervention, contrat, machine, paramétrage société, compte cli
 **Ce qui décide qu'un fichier est concerné se DÉDUIT** — trois marques : il contient du JSX, il exporte des `metadata`, il interroge l'écran. Le gardien part du dépôt entier, pas d'une liste de répertoires qu'un ticket ultérieur aurait oublié de compléter : c'est le renversement de D41 appliqué aux fichiers.
 *Acceptation :* la règle ESLint `react/jsx-no-literals` signale toute chaîne littérale dans le JSX — elle est **l'écho** de la règle dans l'éditeur, et le gardien `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts` en est la portée réelle ; il est éprouvé sur les six formes du §9, dont les trois que le ticket nomme — chaîne dans un attribut, chaîne concaténée, texte d'un test de rendu — et sur huit greffes faites dans les **fichiers réels** où la faute se commettrait ; il échoue si l'une des trois marques ne reconnaît aucun fichier réel du dépôt ; ses limites sont annoncées, dont celle qu'il ne peut pas tenir — une chaîne qui arrive à l'écran par une variable venue d'un module.
 **Hors périmètre, au registre :** un client acheteur voudra peut-être son propre vocabulaire — « atelier » plutôt qu'« agence ». Le dispositif ne l'empêche pas (le code nomme la notion) ; il n'est pas construit.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `1c57df06`.*
 ---
 
 ## Lot 1 — Référentiels, tarification, imports (4 semaines)
@@ -110,20 +110,27 @@ Périmètre : intervention, contrat, machine, paramétrage société, compte cli
 > **AVANT L1-01, L1-02, L1-05 et L2-01 — le CONTRAT des fixtures d'isolation.** *(ticket R0-a, écart É14)* `client`, `site`, `machine` et `modele_materiel` existent déjà comme **tables fixtures** du harnais `tests/isolation/`, avec leurs politiques. Le jour où la vraie table est créée, le harnais **cesse de la fabriquer et la laisse en place** — il l'annonce sur sa sortie et dit ce qui reste dû. Ce qui reste dû : la migration pose la forme **« parc »** (société **ET** `app.client_id` **ET** `app.perimetre_sites`, D10/D22) sur `client`, `site` et `machine`, **et non** la clause société seule ; les scénarios de L0-05 se **reportent** sur la vraie table au lieu de partir avec la fixture. Trois gardiens le tiennent et refusent la réduction : la forme mesurée dans `pg_policies`, la liste close `TABLES_PARC`, et le plancher de `EXIGENCES_L0_05`. Voir `tests/isolation/setup/contrat.ts` et le pied de I1 au CLAUDE.md.
 
 **L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
+*Relu contre les sources citées le 01/09/2026 — empreinte `9bbfd1a6`.*
 **L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, `temps_trajet_min` par agence qui **fait foi** sur l'estimation par zone. Forme de politique : **parc**, filtre de périmètre de sites compris.
+*Relu contre les sources citées le 01/09/2026 — empreinte `75d0ad83`.*
 **L1-03** Contacts — rôles, préférences de notification.
 **L1-04** Techniciens et habilitations. **[D9]**
 Trois tables : `habilitation`, `technicien_habilitation` (datée), `site_habilitation_requise` (avec booléen bloquant).
 *Acceptation :* l'affectation est **bloquée** — et non signalée — si le site exige une habilitation bloquante absente ou expirée à la date d'intervention. Test sur RG-PLA-04.
+*Relu contre les sources citées le 01/09/2026 — empreinte `f05ec2b7`.*
 **L1-05** Familles et modèles — `societe_id` nullable pour les référentiels de plateforme [D4] ; une copie portant un `societe_id` masque l'original. Forme de politique : **référentiel** — lecture ouverte, écriture aux seuls rôles éditeur —, et RLS **activée sans être forcée** (`TABLES_RLS_SIMPLE`) : c'est la seule des quatre tables fixtures qui ne relève pas du parc.
+*Relu contre les sources citées le 01/09/2026 — empreinte `7605f8ac`.*
 **L1-06** Prestations et forfaits — `societe_id NOT NULL`. Conditions d'application par zone, famille, type.
 *Acceptation :* un forfait dont les conditions ne sont pas remplies n'est pas proposé. Test sur RG-TAR-06.
+*Relu contre les sources citées le 01/09/2026 — empreinte `f58a8886`.*
 **L1-07** Taux horaire — par société, surchargeable, **historisé**.
 *Acceptation :* modifier le taux ne change pas les interventions déjà valorisées. Test sur RG-TAR-04.
-**L1-08** Moteur d'import. **[D15] [D31]**
+*Relu contre les sources citées le 01/09/2026 — empreinte `4373a609`.*
+**L1-08** Moteur d'import. **[D15] [D31] [D54]**
 Format `.xlsx` uniquement. Version en cellule A1 (`CODIPLAN-<type>-v<n>`), en-têtes ligne 2, données ligne 3. Dates `JJ/MM/AAAA`, décimale virgule. Colonnes inconnues ignorées avec avertissement.
-Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou référencées depuis ; jamais de suppression en cascade ; seul le dernier lot est annulable.
-*Acceptation :* un fichier de 300 lignes avec 5 erreurs produit un rapport exact ; l'annulation restaure ce qui peut l'être et refuse le reste avec motif ; tests sur RG-IMP-01 à 05.
+Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou référencées depuis ; jamais de suppression en cascade. **Ni délai ni rang de lot** [D54] : la fenêtre de 24 h et « seul le dernier lot est annulable » sont supprimées — le critère ligne à ligne mesure directement ce que ces deux bornes approchaient, et il traite mieux le cas des imports qui se recouvrent.
+*Acceptation :* un fichier de 300 lignes avec 5 erreurs produit un rapport exact ; l'annulation restaure ce qui peut l'être et refuse le reste avec motif ; l'annulation d'un lot **antérieur** réussit sur ses lignes intactes et refuse, avec leur motif, celles qu'un import ultérieur a touchées ; tests sur RG-IMP-01 à 05.
+*Relu contre les sources citées le 01/09/2026 — empreinte `961c49b1`.*
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
 
@@ -135,21 +142,27 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Quatre champs obligatoires** : `modele_id`, `client_id`, `site_id`, `numero_serie`. Numéro illisible → `SN-INCONNU-<référence>` et `complet = false`.
 `id` en UUID v7 généré côté client ; `numero` attribué par le serveur à la synchronisation ; affichage `Local-<6 car.>` tant qu'il est nul.
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
+*Relu contre les sources citées le 01/09/2026 — empreinte `c55287f9`.*
 **L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
+*Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
 **L2-05** Historique machine — conservé au changement de site.
 **L2-06** Demandes — statuts `NOUVELLE`, `QUALIFIEE`, `TRANSFORMEE`, `CLOSE_SANS_SUITE` ; motifs `resolue_telephone`, `hors_perimetre`, `refus_client`, `doublon` [3.5]. Horodatage de l'accusé de réception en **heures ouvrées de l'agence** [D13].
+*Relu contre les sources citées le 01/09/2026 — empreinte `3af03cc7`.*
 **L2-07** Cycle de vie des interventions. **[D8]**
 Huit statuts : `A_PLANIFIER`, `PLANIFIEE`, `AFFECTEE`, `EN_COURS`, `SUSPENDUE`, `TERMINEE`, `CLOTUREE`, `ANNULEE`. `statut_facturation` est une colonne **distincte**.
 Matrice des transitions autorisées : voir D8 du document d'arbitrage.
 *Acceptation :* chaque transition hors matrice est refusée avec un message explicite ; `SUSPENDUE` peut revenir vers `A_PLANIFIER`, `PLANIFIEE` et `EN_COURS` ; tests sur RG-INT-01 à 11.
+*Relu contre les sources citées le 01/09/2026 — empreinte `eaff32ce`.*
 **L2-08** Interventions multi-machines et multi-techniciens. Machine facultative pour `expertise`, `installation` et **`recensement`** [D16].
+*Relu contre les sources citées le 01/09/2026 — empreinte `88a7dc5a`.*
 **L2-09** Valorisation. **[D11] [D12] [D45]**
 Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone, un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata.
 Ordre : forfaits → heures excédentaires → majoration → total HT.
 **L'arrondi au quart d'heure vit ici** [D45], et nulle part ailleurs — ni dans `lib/calendar`, ni dans `lib/money`. Raison : le calendrier répond à « quand » — jours ouvrés, horaires, fuseaux — et n'a pas à connaître la politique de facturation, sinon un changement de tarif pourra casser un planning ; le module monétaire formate et calcule, il ne décide pas ce qu'on facture.
 **À trancher AVANT d'écrire ce ticket** [D45] : l'arrondi s'applique-t-il à **chaque intervention** ou au **total d'une journée** ? Cinq passages de cinq minutes font 1 h 15 dans un cas et 30 minutes dans l'autre. Décision commerciale, inscrite au registre de `docs/arbitrages.md` — ne pas la trancher en séance.
+*Relu contre les sources citées le 01/09/2026 — empreinte `1b85648b`.*
 **L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
 
 ---
@@ -157,26 +170,32 @@ Ordre : forfaits → heures excédentaires → majoration → total HT.
 ## Lot 3 — Planning et PWA (5 semaines)
 
 **L3-01** Vue calendrier ressources avec **Schedule-X** [D17], glisser-déposer, redimensionnement.
-**L3-02** Contrôles à la pose — avertissements non bloquants, **blocage strict** sur habilitation expirée [D9].
+*Relu contre les sources citées le 01/09/2026 — empreinte `9343bcce`.*
+**L3-02** Contrôles à la pose — **blocage strict** sur une habilitation **bloquante** absente ou expirée à la date d'intervention, **avertissement** sur une exigence non bloquante [D9], comme sur les autres contrôles. Voir RG-PLA-04.
+*Relu contre les sources citées le 01/09/2026 — empreinte `f05ec2b7`.*
 **L3-03** File d'attente à planifier, tri par urgence et échéance.
 **L3-04** Absences, alerte de rupture de service à effectif unique, report groupé.
 **L3-05** Tournées — regroupement, ordonnancement, estimation des trajets.
 **L3-06** Socle PWA — manifeste, service worker, installabilité. **Pas de notifications push** [3.19].
 **L3-07** Cache local — IndexedDB, dont **le parc complet des clients visités sous 7 jours** [D22].
+*Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
 **L3-08** File d'opérations et synchronisation — priorisation, reprise, indicateur d'état.
 *Acceptation :* test bout en bout — intervention complète en mode avion puis synchronisation intégrale sans perte.
 **L3-09** Résolution de conflits. **[D27]**
 Terrain sur l'exécution, back-office sur la planification, **statut par préséance** : `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > planification.
 *Acceptation :* une intervention annulée pendant sa réalisation hors ligne conserve temps, diagnostic, photos et signature, et le conflit est remonté.
+*Relu contre les sources citées le 01/09/2026 — empreinte `afd95cea`.*
 **L3-10** Doublons hors ligne — détection **et fusion**. **[D28]**
 La fiche la plus ancienne survit ; le `qr_token` de l'absorbée **redirige** vers elle ; historiques fusionnés ; divergences arbitrées champ par champ ; réversible 30 jours.
+*Relu contre les sources citées le 01/09/2026 — empreinte `e5c9d6be`.*
 **L3-11** Scan QR et création express — moins de 60 secondes. **Pas de reconnaissance de plaque** [D33] : photo conservée en pièce jointe, saisie manuelle.
+*Relu contre les sources citées le 01/09/2026 — empreinte `0c1dddde`.*
 **L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.
 **L3-13** Saisie de rapport — checklist, temps, pièces, photos compressées, préconisations. Absence de checklist = condition satisfaite ; un point non conforme impose une préconisation [3.10].
 **L3-14** Signature client — `appareil_id` et `horodatage_terrain`, pas d'adresse IP [3.9].
 **L3-15** Génération et envoi du PDF. **Validation systématique** avant diffusion [D24]. Le **PDF serveur fait foi** ; la version locale porte la mention « provisoire ». **Aucun montant** sur le rapport [3.8].
 *Acceptation :* contrôle visuel humain obligatoire — aucun test automatique ne remplace ce point.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `73c7382a`.*
 ---
 
 ## Lots 4 à 7
@@ -201,15 +220,16 @@ Deux jeux de données du seed sont écrits **en bloc**, ligne à ligne : `jour_f
 La console intercepte l'erreur `23503` sur `calendrier_ferie_jour_ferie_id_date_territoire_fkey` et la traduit. **Elle n'interroge pas `calendrier_ferie`** : c'est la clé étrangère qui a vu, pas elle.
 **L'AMBITION EST BORNÉE, ET C'EST LE CŒUR DU TICKET [D50].** Même dans la console, le message ne pourra **ni nommer les agences ni les compter** sans franchir le cloisonnement : l'éditeur n'a aucune société active, et un décompte lui apprendrait combien d'agences clientes chôment ce jour-là. Le message dira « ce jour férié est référencé par des écarts de calendrier, ils doivent être traités d'abord » — **et rien de plus**. L'objectif est un refus **LISIBLE**, pas un refus **INFORMATIF**. Une session qui promettrait le décompte retomberait sur le même mur, ou pire, le franchirait par une fonction `SECURITY DEFINER` — que `tests/unit/db/security-definer-sous-arbitrage.test.ts` refuse.
 *Acceptation :* la correction d'une date de férié référencée affiche un message en français nommant la marche à suivre, sans aucun décompte ni nom d'agence ; aucune requête de la console ne lit `calendrier_ferie` pour composer ce message ; le gardien de D50 reste vert.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `58941835`.*
 **L7-01 — Déblocage d'un `admin_societe` ayant perdu son second facteur. [D40]**
 RG-DRO-05 rend le second facteur obligatoire sur `admin_societe`. Ce rôle est, chez un client, le seul à pouvoir administrer les comptes : son titulaire bloqué ne peut être débloqué par personne de sa société. Sans procédure, cela se règle par un appel au support puis par un second compte `admin_societe` créé « au cas où » — c'est-à-dire par le contournement de la mesure.
 Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`** — la seule table qui puisse la porter, puisqu'elle enjambe les sociétés par construction (D34).
 *Acceptation :* aucun autre rôle ne peut l'exécuter, y compris `direction` de la société concernée ; chaque déblocage laisse une ligne au journal des accès portant l'auteur, la société cible et le compte débloqué ; le compte débloqué doit réactiver un second facteur avant de retrouver ses droits d'administration.
-
+*Relu contre les sources citées le 01/09/2026 — empreinte `d1cbe258`.*
 **L7-03 — Journalisation des accès des rôles ÉDITEUR aux données d'une société cliente. [D32]**
 **C'est l'unique maison de ce point** *(ticket R0-a, écart É2 de la revue R0)*. D32 réduit l'exigence du §15 — « toute consultation de données client par un utilisateur interne est journalisée » — à deux choses : **les basculements de société active**, livrés à L0-06 et éprouvés par `bascule-societe.test.ts`, et **les accès des rôles éditeur aux données d'une société cliente**, qui n'existaient nulle part. La moitié livrée faisait passer la seconde pour livrée aussi. Elle a désormais un ticket, un lot, et un seul des deux : ni ligne au registre, ni renvoi — un point rangé à trois endroits est un point qu'on croit rangé.
 **Pourquoi le lot 7, et pas plus tôt.** Le §22.5 est tenu : un rôle éditeur n'a **aucune** habilitation par défaut, et les scénarios d'isolation le prouvent aujourd'hui — il ne lit rien de cloisonné. Il n'y a donc **aucun accès éditeur à journaliser tant que la console éditeur n'existe pas**. Ce ticket naît avec elle, et avec L7-01 dont il enregistrera le déblocage.
 **Ce qui manque au socle, et qui est le vrai travail.** `EvenementAcces` porte `bascule_societe`, `bascule_refusee` et `requete_consolidation` : **aucune valeur ne peut porter un accès éditeur**. Le ticket ajoute la valeur à l'énumération, et rien d'autre au schéma — `journal_acces` porte déjà `societe_id_source` et `societe_id_cible`, **informatives et nullables** (D34), et c'est exactement à cette question qu'elles répondent : « qui a tenté d'accéder à mes données ». Elles ne filtrent toujours pas, et le gardien `journal-acces-informatif.test.ts` reste vert.
 **Ce que le ticket ne fait pas :** journaliser les lectures métier ordinaires d'un utilisateur **interne** d'une société. D32 les a écartées — le volume serait sans rapport avec la valeur, et le §15 est narratif donc non normatif (D1). Élargir ce périmètre serait un arbitrage.
 *Acceptation :* toute lecture, par un rôle éditeur, d'une donnée appartenant à une société cliente laisse une ligne dans `journal_acces` portant l'auteur, l'horodatage, le rôle et la société visée ; un test prouve qu'un rôle **interne** lisant les données de sa propre société n'en produit **aucune** ; les deux colonnes de société restent informatives — aucune requête, aucune politique, aucun index ne les prend pour filtre.
+*Relu contre les sources citées le 01/09/2026 — empreinte `c8fcb101`.*

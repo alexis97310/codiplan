@@ -660,6 +660,12 @@ Trois erreurs classiques, à écarter explicitement.
 
 ## 10. Règles de gestion
 
+*Chaque règle amendée par un arbitrage porte la mention `*(amendée par Dxx)*`, et
+l'arbitrage cité porte en retour la ligne `**Règles amendées :**`. Les deux
+listes sont vérifiées l'une par l'autre — `tests/unit/docs/cablage-arbitrages.test.ts`
+part de **toutes** les règles et de **tous** les arbitrages, et une absence de
+mention est un écart, jamais une sortie du périmètre.*
+
 ### RG — Multi-société
 
 | Réf | Règle |
@@ -686,7 +692,7 @@ Trois erreurs classiques, à écarter explicitement.
 
 | Réf | Règle |
 |---|---|
-| RG-INT-01 | Une intervention est rattachée à un client et à un site. La machine est obligatoire sauf pour les types « expertise » et « installation ». Si la machine n'existe pas, elle est créée avant de démarrer. |
+| RG-INT-01 | Une intervention est rattachée à un client et à un site. Elle porte au moins une machine, **sauf pour les types `expertise`, `installation` et `recensement`**. Si la machine n'existe pas, elle est créée avant de démarrer. *(amendée par D16)* |
 | RG-INT-02 | Une intervention ne peut passer à TERMINÉE que si le temps passé est renseigné et la checklist complétée. |
 | RG-INT-03 | Une intervention ne peut être CLÔTURÉE sans rapport validé. |
 | RG-INT-04 | La signature client est obligatoire pour clôturer, sauf motif d'exception tracé et notifié au responsable. |
@@ -695,18 +701,18 @@ Trois erreurs classiques, à écarter explicitement.
 | RG-INT-07 | Le temps de trajet est saisi séparément et n'est facturé que selon la règle du contrat, du forfait ou du barème applicable. |
 | RG-INT-08 | Une intervention hors horaires d'ouverture porte automatiquement la majoration paramétrée pour la société. |
 | RG-INT-09 | Une intervention de type garantie ne génère aucun montant client mais est valorisée au coût pour le suivi de rentabilité. |
-| RG-INT-10 | Une seconde intervention sur la même machine et le même symptôme dans les 30 jours est signalée comme « retour » et remonte au suivi qualité. |
+| RG-INT-10 | Une intervention de type `curatif` sur une machine ayant déjà fait l'objet d'une intervention `curatif` **clôturée** dans les 30 jours calendaires précédents est marquée `retour = true` et remonte au suivi qualité. *(amendée par D25)* |
 | RG-INT-11 | Une intervention de type recensement ne génère ni montant ni engagement de délai, mais produit une fiche de restitution client. |
 
 ### RG — Planning
 
 | Réf | Règle |
 |---|---|
-| RG-PLA-01 | Le calendrier d'ouverture est propre à chaque **agence** : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des agences. *(Rédaction arrêtée par D47 : la version d'origine disait « site » en désignant des agences, mot que D5 avait déjà corrigé.)* |
-| RG-PLA-02 | Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé. *(Rédaction arrêtée par D47.)* |
+| RG-PLA-01 | Le calendrier d'ouverture est propre à chaque **agence** : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des agences. *(amendée par D47 — la version d'origine disait « site » en désignant des agences, mot que D5 avait déjà corrigé.)* |
+| RG-PLA-02 | Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé. *(amendée par D47)* |
 | RG-PLA-03 | Un chevauchement sur un même technicien est signalé mais reste possible : le planificateur garde la main. |
-| RG-PLA-04 | Une intervention ne peut être affectée à un technicien dont l'habilitation requise par le site est expirée. Blocage strict. |
-| RG-PLA-05 | Le temps de trajet inter-sites est estimé à partir de la zone géographique et intégré au calcul de charge. |
+| RG-PLA-04 | L'affectation est **bloquée** si le site exige une habilitation marquée **bloquante** que le technicien n'a pas, ou dont la date d'expiration est antérieure à la date d'intervention. Une exigence non bloquante produit un **avertissement**. *(amendée par D9)* |
+| RG-PLA-05 | Le temps de trajet inter-sites est intégré au calcul de charge. La valeur saisie dans `site.temps_trajet_min` **fait foi** quand elle existe ; l'estimation à partir de la zone géographique n'est qu'un **défaut**, appliqué en son absence. *(amendée par D23)* |
 | RG-PLA-06 | Une absence validée bloque le créneau ; les interventions posées repassent en file à planifier avec alerte. Tant que l'effectif est d'un seul technicien, l'absence déclenche une alerte de rupture de service et propose le report groupé. |
 
 ### RG — Contrats
@@ -715,7 +721,7 @@ Trois erreurs classiques, à écarter explicitement.
 |---|---|
 | RG-CON-01 | Les échéances préventives sont générées à la création du contrat sur toute sa durée. |
 | RG-CON-02 | Une échéance non réalisée dans sa fenêtre de tolérance est marquée en dépassement et remonte en alerte quotidienne. |
-| RG-CON-03 | Une machine ne peut être couverte que par un seul contrat actif à la fois. |
+| RG-CON-03 | Une machine ne peut être couverte que par un seul contrat actif **de type commercial** à la fois. Un contrat de type `garantie` peut coexister avec un contrat commercial. Un contrat est **actif** lorsqu'il porte le statut `actif` **et** que la date du jour est comprise dans la fenêtre `contrat_ligne.date_entree` / `date_sortie`. *(amendée par D30)* |
 | RG-CON-04 | Le retrait d'une machine du périmètre fait l'objet d'un avenant daté ; les échéances futures correspondantes sont annulées. |
 | RG-CON-05 | L'alerte de renouvellement se déclenche à J-90 du terme, ou au préavis contractuel s'il est plus long. |
 | RG-CON-06 | Le crédit d'heures est décompté à la validation du rapport, jamais avant. |
@@ -726,7 +732,7 @@ Trois erreurs classiques, à écarter explicitement.
 | Réf | Règle |
 |---|---|
 | RG-PAR-01 | Le couple (modèle, numéro de série) est unique au sein d'une société. Un doublon est bloqué à la création et signalé au technicien sur le terrain. |
-| RG-PAR-02 | Les champs obligatoires à la création sont limités à : modèle, client, site. Tout le reste peut être complété ultérieurement. |
+| RG-PAR-02 | Les champs obligatoires à la création sont limités à **quatre** : modèle, client, site, **numéro de série**. Tout le reste peut être complété ultérieurement. Numéro de série illisible ou absent : il est saisi `SN-INCONNU-<référence interne>`, unique par construction, et la machine est marquée `complet = false`. La localisation et la photo de plaque restent facultatives. *(amendée par D6)* |
 | RG-PAR-03 | Une machine déplacée change de site mais conserve son identifiant et son historique intégral. |
 | RG-PAR-04 | Un relevé de compteur ne peut être inférieur au précédent, sauf motif de remplacement de compteur tracé. |
 | RG-PAR-05 | Une machine « ferraillée » ou « remplacée » sort des contrats et des échéanciers ; son historique reste consultable. |
@@ -737,20 +743,20 @@ Trois erreurs classiques, à écarter explicitement.
 | Réf | Règle |
 |---|---|
 | RG-IMP-01 | Aucun import n'est appliqué sans contrôle préalable présenté à l'utilisateur et validation explicite. |
-| RG-IMP-02 | Chaque chargement est identifié, journalisé et annulable intégralement pendant 24 heures. |
+| RG-IMP-02 | Chaque chargement est identifié, journalisé et **annulable, avec refus motivé sur les lignes modifiées ou référencées depuis**. L'annulation n'est bornée ni par un délai ni par le rang du lot : ce qui est sans danger est restauré, ce qui ne l'est pas est refusé avec son motif. *(amendée par D15, D54)* |
 | RG-IMP-03 | Les lignes rejetées sont retournées dans un fichier annoté, corrigeable et rechargeable. |
 | RG-IMP-04 | Un import ne peut créer de données que dans la société sur laquelle l'utilisateur est positionné. |
-| RG-IMP-05 | Le code client Winpro sert de clé de rapprochement à l'import. En son absence, la ligne est rejetée plutôt que dédoublonnée à l'aveugle. |
+| RG-IMP-05 | Le rapprochement à l'import se fait sur le **code externe** du client s'il existe, à défaut sur la **raison sociale normalisée**. Son absence ne suffit plus à rejeter la ligne. En cas d'ambiguïté, la ligne part en **rejet pour arbitrage humain** plutôt qu'en création silencieuse d'un doublon. *(amendée par D29)* |
 
 ### RG — Droits et confidentialité
 
 | Réf | Règle |
 |---|---|
 | RG-DRO-01 | Un client n'accède qu'aux données de son propre périmètre. Le contrôle est appliqué côté serveur, jamais seulement à l'affichage. |
-| RG-DRO-02 | Un technicien n'accède qu'aux machines des interventions qui lui sont ou lui ont été affectées, plus la recherche par QR code sur site. |
+| RG-DRO-02 | Un technicien accède aux machines des interventions qui lui sont ou lui ont été affectées, **et à l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours**, plus la résolution par QR code. *(amendée par D22)* |
 | RG-DRO-03 | Les montants de vente et les marges ne sont visibles que par les profils autorisés, selon la matrice du §5.2. |
-| RG-DRO-04 | Toute création, modification ou suppression sur une intervention, un contrat, une fiche machine ou un paramétrage société est journalisée avec auteur, horodatage et valeurs avant/après. |
-| RG-DRO-05 | Le second facteur est **obligatoire** pour les rôles `admin_plateforme`, `admin_societe` et `direction`. Pour `admin_societe`, la contrainte pèse sur un utilisateur du client : elle est **annoncée à l'ouverture de toute nouvelle société**, avant que le premier compte ne soit créé. Aucune société n'est ouverte sans que son administrateur ait été averti qu'une application d'authentification lui sera nécessaire. |
+| RG-DRO-04 | Toute création, modification ou suppression sur une table du **périmètre d'audit** est journalisée avec auteur, horodatage et valeurs avant/après. Le périmètre est une liste close de tables, écrite **une seule fois**, dans `scripts/lib/perimetre-audit.ts` : cette règle y renvoie, l'invariant I8 y renvoie, et une table ne s'y ajoute que par arbitrage. Le journal est écrit par un déclencheur PostgreSQL, jamais par la couche applicative. *(amendée par D32, D52, D53)* |
+| RG-DRO-05 | Le second facteur est **obligatoire** pour les rôles `admin_plateforme`, `admin_societe` et `direction`. Pour `admin_societe`, la contrainte pèse sur un utilisateur du client : elle est **annoncée à l'ouverture de toute nouvelle société**, avant que le premier compte ne soit créé. Aucune société n'est ouverte sans que son administrateur ait été averti qu'une application d'authentification lui sera nécessaire. *(amendée par D40 — règle introduite par cet arbitrage.)* |
 
 ---
 
@@ -822,6 +828,7 @@ Trois erreurs classiques, à écarter explicitement.
 | devise_code | text FK | XPF, EUR, … |
 | taux_horaire_defaut | numeric | 7 000 pour CODIMA SAV |
 | majoration_hors_ouverture_pct | numeric | |
+| libelle_code_externe | text | Libellé d'affichage de `client.code_externe` — « Code Winpro » chez CODIMA (D29) |
 | logo_url | text | |
 | couleur_primaire, couleur_secondaire | text | Charte des documents générés |
 | mentions_legales | text | Pied des documents |
@@ -836,8 +843,19 @@ Trois erreurs classiques, à écarter explicitement.
 | libelle | text | |
 | decimales | integer | 0 pour XPF, 2 pour EUR |
 | symbole | text | |
-| parite_reference | numeric | Pour consolidation uniquement |
-| parite_date | date | Parité datée, jamais implicite |
+
+*`parite_reference` et `parite_date` ont été **supprimées** de cette table par D20 :
+une parité est datée et multiple, elle ne tient pas dans une colonne. Elle vit
+dans la table `parite` ci-dessous.*
+
+**parite** *(D20, D41 — référentiel de plateforme)*
+
+| Colonne | Type | Description |
+|---|---|---|
+| devise_code | text FK | |
+| date_effet | date | Parité datée, jamais implicite |
+| taux | numeric | |
+| source | text | Origine de la parité |
 
 **forfait**
 
@@ -855,7 +873,7 @@ Trois erreurs classiques, à écarter explicitement.
 | cumulable_temps | boolean | |
 | actif | boolean | |
 
-**client** — `societe_id`, `code_winpro` (clé de rapprochement à l'import), raison sociale, RIDET, catégorie client, adresse de facturation, conditions de règlement, commercial référent, actif.
+**client** — `societe_id`, `code_externe` (clé de rapprochement à l'import ; `code_winpro` avant D29), raison sociale, RIDET, catégorie client, adresse de facturation, conditions de règlement, commercial référent, actif.
 
 **site** — `societe_id`, client, libellé, adresse, commune, zone géographique, latitude/longitude, consignes d'accès, horaires, contact principal, temps de trajet par agence.
 
@@ -942,7 +960,7 @@ Trois erreurs classiques, à écarter explicitement.
 
 **utilisateur** — email, hash du mot de passe, actif, dernière connexion, MFA. **utilisateur_societe** — utilisateur, société, rôle : c'est cette table qui porte l'habilitation multi-société.
 
-**import_lot** — société, type d'import, utilisateur, horodatage, nom du fichier, url du fichier source, lignes créées / modifiées / rejetées, statut (controle, applique, annule), date limite d'annulation.
+**import_lot** — société, type d'import, utilisateur, horodatage, nom du fichier, url du fichier source, lignes créées / modifiées / rejetées, statut (controle, applique, annule). *(`date_limite_annulation` est supprimée par D54 : l'annulation n'est plus bornée par un délai.)*
 
 **journal_audit** — société, entité, identifiant, action, utilisateur, horodatage, valeurs avant et après, adresse IP.
 

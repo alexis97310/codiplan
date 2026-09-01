@@ -110,6 +110,8 @@ Le gardien `tests/unit/calendar/` porte donc sur **`agence`**.
 
 **Localisation et photo de plaque restent facultatives.** Le cahier des charges les listait comme obligatoires au §8.1 et §13.3 : ces deux passages sont désormais non normatifs (voir D1).
 
+**Règles amendées :** RG-PAR-02
+
 ### D7 — Identifiants en création hors ligne (1.4)
 
 C'est le point le plus profond de l'audit. Décision :
@@ -171,6 +173,8 @@ Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
 **RG-PLA-04 est précisée :** l'affectation est **bloquée** si le site exige une habilitation marquée bloquante que le technicien n'a pas, ou dont la date d'expiration est antérieure à la date d'intervention. Une exigence non bloquante produit un avertissement.
 
 **Le ticket L1-04 est corrigé** : il disait « signalée », la règle dit « bloquée ». La règle l'emporte.
+
+**Règles amendées :** RG-PLA-04
 
 ### D10 — Rattachement des comptes portail (1.7)
 
@@ -252,10 +256,21 @@ Faire payer Playwright à chaque ticket ralentirait tout pour un bénéfice marg
 |---|---|
 | Ligne créée par l'import, modifiée depuis | **L'annulation est refusée** pour cette ligne, et le rapport le signale. Les autres lignes du lot sont annulées |
 | Ligne créée par l'import, référencée depuis (une machine rattachée à un client importé) | **Refus d'annuler** cette ligne. Jamais de suppression en cascade |
-| Deux imports se recouvrant | Seul **le dernier lot** est annulable. Annuler un lot antérieur est refusé |
+| Deux imports se recouvrant | *(retirée par D54)* — chaque ligne est jugée sur elle-même : celles qu'un import ultérieur a touchées sont refusées avec leur motif, les autres sont annulées |
 | Modifications apportées par l'import | Restauration des valeurs antérieures, conservées dans `import_lot_ligne.valeurs_avant` |
 
 **Principe :** l'annulation est **partielle et sûre** plutôt que totale et destructrice. Le rapport d'annulation liste exactement ce qui a été restauré et ce qui ne pouvait pas l'être. RG-IMP-02 est réécrite en ce sens — « annulable intégralement » devient « annulable, avec refus motivé sur les lignes modifiées ou référencées depuis ».
+
+**Amendé par D54.**
+
+La ligne « Deux imports se recouvrant » disait : « Seul **le
+dernier lot** est annulable. Annuler un lot antérieur est refusé » — rédaction
+d'origine conservée ici, un amendement qui efface sa trace se rejoue au prochain
+doute *(méthode de D44)*. Elle est retirée, comme la fenêtre de 24 heures de
+RG-IMP-02, pour la raison exposée en D54 : le critère ligne à ligne que cette
+décision même institue mesure directement ce que ces deux bornes approchaient.
+
+**Règles amendées :** RG-IMP-02
 
 ---
 
@@ -268,6 +283,8 @@ Faire payer Playwright à chaque ticket ralentirait tout pour un bénéfice marg
 > Une intervention est rattachée à un client et à un site. Elle porte au moins une machine, **sauf pour les types `expertise`, `installation` et `recensement`**.
 
 Le parcours P2 redevient cohérent : l'intervention de recensement est créée sans machine, et les machines créées pendant la visite lui sont rattachées au fur et à mesure.
+
+**Règles amendées :** RG-INT-01
 
 ### D17 — Composant calendrier (2.2)
 
@@ -292,6 +309,8 @@ Ils sont ajoutés à la stack imposée du CLAUDE.md, ce qui lève l'obligation d
 ### D19 — Formatage monétaire (3.1, 3.2)
 
 **Convention :** symbole si la devise en a un, code sinon. `100,00 €` et `7 000 XPF`. C'est ce qu'appliquait la maquette, et c'est promu au rang de règle. *(Le symbole du XPF — `XPF` ou `F` — est une question ouverte depuis D43 : elle sera tranchée à la conception du premier document destiné à un client, et toute réponse autre que `XPF` sera un **amendement de cette décision**. Voir le registre « Ce qui reste à décider ».)*
+
+**Amendé par D44.**
 
 **Frontière de conversion (3.2)** — ***amendée le 21 août 2026 par D44.*** Les deux fonctions sont nommées sans ambiguïté et **ne vivent pas dans le même module** :
 
@@ -330,11 +349,15 @@ C'est ce que la PWA met en cache, et c'est indispensable au recensement. La rest
 
 **Résolution QR (sous-question de l'audit, excellente) :** `qr_token` est unique globalement, mais `GET /machines/qr/{token}` **vérifie côté serveur que la machine appartient à la société active** et refuse sinon. Un test d'isolation dédié couvre ce chemin — c'était effectivement un contournement possible du filtre société.
 
+**Règles amendées :** RG-DRO-02
+
 ### D23 — Zones géographiques (2.9)
 
 Énumération arrêtée : `grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`.
 
 **Temps de trajet :** la valeur saisie dans `site.temps_trajet_min` fait foi quand elle existe ; l'estimation par zone n'est qu'un défaut quand elle est absente. RG-PLA-05 est précisée en ce sens.
+
+**Règles amendées :** RG-PLA-05
 
 ### D24 — Validation des rapports (2.10)
 
@@ -349,6 +372,8 @@ L'audit a raison : « le même symptôme » n'est pas implémentable sur du text
 > RG-INT-10 — Une intervention de type `curatif` sur une machine ayant déjà fait l'objet d'une intervention `curatif` **clôturée** dans les 30 jours calendaires précédents est marquée `retour = true` et remonte au suivi qualité.
 
 Le symptôme disparaît du critère. Les visites préventives ne comptent pas. Le point de départ est la **date de clôture** de l'intervention antérieure. C'est plus large que l'intention initiale, mais c'est déterministe, donc testable — et un faux positif coûte moins qu'une règle inapplicable.
+
+**Règles amendées :** RG-INT-10
 
 ### D26 — Internationalisation (2.12)
 
@@ -386,6 +411,8 @@ L'audit a parfaitement raison : nommer une colonne d'après l'ERP d'un seul clie
 
 Un client créé directement dans CODIPLAN sans code externe est donc rapproché par raison sociale au prochain import, ou signalé.
 
+**Règles amendées :** RG-IMP-05
+
 ### D30 — Contrat de garantie (2.16)
 
 **RG-CON-03 est précisée :**
@@ -393,6 +420,8 @@ Un client créé directement dans CODIPLAN sans code externe est donc rapproché
 > Une machine ne peut être couverte que par un seul contrat actif **de type commercial** à la fois. Un contrat de type `garantie` peut coexister avec un contrat commercial.
 
 **« Actif » est défini** : le contrat a le statut `actif` **et** la date du jour est comprise dans la fenêtre `contrat_ligne.date_entree` / `date_sortie`.
+
+**Règles amendées :** RG-CON-03
 
 ### D31 — Formats des imports Excel (2.17)
 
@@ -411,9 +440,13 @@ L'audit a raison : un intercepteur Prisma ne rend rien inaltérable. Décision e
 
 **Protection réelle.** Le journal est écrit par un **trigger PostgreSQL**, pas par la couche applicative. Les droits `UPDATE` et `DELETE` sur la table `journal_audit` sont révoqués pour le rôle applicatif. C'est ce qui donne un sens au mot « inaltérable ».
 
+**Amendé par D52, D53.**
+
 **Périmètre unifié** — I8 et RG-DRO-04 divergeaient. Le périmètre retenu est celui de I8 : `intervention`, `contrat`, `machine`, paramétrage société, compte client. RG-DRO-04 est alignée dessus.
 
 **Audit des lectures.** L'exigence du §15 — « toute consultation de données client par un utilisateur interne est journalisée » — est **réduite** : seuls sont journalisés les accès des **rôles éditeur** aux données d'une société cliente, et les basculements de société active. Journaliser toute lecture métier produirait un volume sans rapport avec sa valeur, et §15 est narratif donc non normatif (D1).
+
+**Règles amendées :** RG-DRO-04
 
 ### D33 — Reconnaissance de plaque signalétique (2.4)
 
@@ -554,6 +587,8 @@ Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne s'ajout
 **Une distinction que D37 n'avait pas vue.** Sur `admin_plateforme` et `direction`, la contrainte est **la nôtre** : nous l'imposons à nos propres salariés. Sur `admin_societe`, elle est **imposée à l'utilisateur d'un client payant**, qui ne l'a pas choisie et qui découvrira à sa première connexion qu'il lui faut une application d'authentification.
 
 C'est donc une **règle produit**, et pas seulement une règle technique : elle doit être **annoncée à l'ouverture de toute nouvelle société**. Elle est inscrite au chapitre 10 comme **RG-DRO-05**. Détail dans `docs/decisions/2026-08-20-second-facteur-admin-societe.md`.
+
+**Règles amendées :** RG-DRO-05
 
 **Corollaire, au lot 7** : une procédure de déblocage d'un `admin_societe` ayant perdu son second facteur, exécutable par `admin_plateforme` seul et journalisée dans `journal_acces`. Une contrainte sans porte de sortie se paie en appels au support et finit par se faire contourner. Elle n'est **pas construite maintenant**.
 
@@ -763,6 +798,8 @@ Douze mois : c'est la durée d'un cycle d'échéances préventives (RG-CON-01) e
 > **RG-PLA-01** — Le calendrier d'ouverture est propre à chaque **agence** : Ducos du lundi au samedi, Koné du lundi au vendredi. Aucun calendrier global unique n'est valide pour l'ensemble des agences.
 >
 > **RG-PLA-02** — Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé.
+
+**Règles amendées :** RG-PLA-01, RG-PLA-02
 
 **Les horaires d'un SITE client ne disparaissent pas pour autant** : ils existent, la table `site` les portera au lot 1, et D13 leur donne leur place exacte — le contrôle « site fermé » produit un **avertissement, jamais un blocage**. La distinction est donc utile, et c'est une raison de plus pour que les deux mots ne se confondent pas.
 
@@ -1273,6 +1310,8 @@ permet.** Une liste de notions a l'autorité d'une décision et le contenu d'une
 interprétation — c'est le défaut du 19/08 sous une autre forme. Le remède est
 toujours le même : nommer, au lieu de laisser déduire.
 
+**Règles amendées :** RG-DRO-04
+
 ## L'échéance de la purge — MESURE et recommandation, pas décision
 
 *La voie est arrêtée : on détachera des partitions, on ne supprimera pas de
@@ -1413,3 +1452,161 @@ la décide pas : il rend seulement la purge possible sans jamais accorder de
 `DELETE`. Le pas mensuel convient à toute durée exprimée en mois ou en années.
 
 *Note d'arbitrage n°7 — CODIPLAN — 30 août 2026*
+
+
+---
+
+# CODIPLAN — Registre ouvert par le ticket R0-b
+
+**Deux points du chapitre 10 qu'aucune décision ne rédige**
+
+| | |
+|---|---|
+| **Objet** | Ce que l'alignement des chapitres 10 et 11 n'a pas pu appliquer |
+| **Portée** | Registre — **aucune décision arrêtée ici** |
+| **Statut** | À arbitrer. Rien de ce qui suit n'a l'autorité des notes n°1 à n°7 |
+| **Date** | 31 août 2026 |
+| **Ticket** | R0-b, écart É8 de `docs/revue-r0-fin-de-lot-0.md` |
+
+Le ticket R0-b applique au texte les décisions déjà prises ; il n'en interprète
+aucune. Deux points ne sont pas rédigés par la décision qui les prescrit : ils
+sont laissés en l'état, signalés dans le texte, et posés ici.
+
+### R4 — La rédaction exacte de RG-DRO-04 — **TRANCHÉE par D53**
+
+D32 tranche : « le périmètre retenu est celui de I8 … RG-DRO-04 est **alignée
+dessus** ». À la date de D32, I8 énumérait des **notions** — intervention,
+contrat, machine, paramétrage société, compte client — et l'alignement se
+lisait tout seul. D52 a remplacé ces notions par une **liste de tables**, et
+c'est ce remplacement qui rouvre la question : *aligner sur une liste de tables*
+peut vouloir dire deux choses, et aucune des deux décisions ne dit laquelle.
+
+| Voie | Ce qu'elle donne | Ce qu'elle coûte |
+|---|---|---|
+| **A — RG-DRO-04 renvoie à I8** | « Toute création, modification ou suppression sur une table du périmètre de traçabilité **défini par l'invariant I8** est journalisée avec auteur, horodatage et valeurs avant/après. » Une seule écriture de la liste, donc aucun risque de divergence — c'est la leçon du 19/08 | une règle de **rang 2** qui renvoie au CLAUDE.md, lequel n'a pas de rang dans la hiérarchie du §1. Le chapitre 10 cesse d'être lisible seul |
+| **B — RG-DRO-04 énumère les dix tables** | le chapitre 10 reste lisible seul, conformément à « une règle métier ne s'écrit qu'au chapitre 10 » | **la même liste écrite à deux endroits** — le défaut du 19/08 exactement, et celui qui a produit soixante points d'ambiguïté. Il faudrait alors un gardien de plus pour tenir les deux listes accordées |
+| **C — l'inverse : I8 renvoie au chapitre 10** | la liste vit là où les règles métier vivent, et le CLAUDE.md la cite | I8 est un invariant du dépôt, pas seulement une règle produit ; le gardien `tests/unit/db/perimetre-audit.test.ts` lit aujourd'hui le CLAUDE.md |
+
+**Réponse : aucune des trois voies ci-dessus.** Voir **D53** — la liste n'a
+qu'une maison, et c'est celle que la machine lit.
+
+### R5 — La fenêtre de 24 heures de RG-IMP-02, et le rang de « seul le dernier lot est annulable » — **TRANCHÉE par D54**
+
+D15 prescrit une substitution **littérale** : « annulable intégralement »
+devient « annulable, avec refus motivé sur les lignes modifiées ou référencées
+depuis ». Elle a été appliquée telle quelle. Deux choses restent en suspens, et
+ni D15 ni le ticket L1-08 ne les tranchent :
+
+1. **La fenêtre de 24 heures survit-elle ?** La substitution ne la touche pas,
+   donc elle est restée. Elle a un point d'appui au chapitre 11
+   (`import_lot.date_limite_annulation`) mais **aucun critère d'acceptation ne
+   la vérifie** — c'est le constat de la revue R0 : elle « n'a plus de maison ».
+2. **Où vit « seul le dernier lot est annulable » ?** C'est une règle de gestion
+   au sens plein, elle figure dans le tableau de D15 et dans le critère
+   d'acceptation de L1-08 — mais **dans aucune RG du chapitre 10**. D15 ne dit
+   pas qu'elle y entre, et l'y écrire serait interpréter.
+
+Les deux se combinent, et c'est ce qui rend la question réelle : deux imports
+qui se recouvrent à moins de 24 heures d'intervalle rendent le premier
+inannulable **avant la fin de sa fenêtre**. Une règle qui promet 24 heures et
+une autre qui les retire ne peuvent pas cohabiter sans qu'on dise laquelle
+l'emporte.
+
+**Réponse : les deux bornes sont supprimées.** Voir **D54**.
+
+*Registre R0-b — CODIPLAN — 31 août 2026*
+
+
+---
+
+# CODIPLAN — Note d'arbitrage n°8
+
+**Où vit une liste close, et ce qu'on fait d'une borne devenue mesurable**
+
+| | |
+|---|---|
+| **Objet** | D53 et D54 — réponses à R4 et R5 du registre R0-b |
+| **Portée** | Décisions arrêtées, même autorité que les notes n°1 à n°7 |
+| **Date** | 1ᵉʳ septembre 2026 |
+| **Ticket** | R0-b |
+
+## D53 — Le périmètre d'audit n'a qu'une maison, et c'est celle que la machine lit
+
+**La décision.** Le périmètre du journal d'audit s'écrit **une seule fois**,
+dans `scripts/lib/perimetre-audit.ts`. **RG-DRO-04 est réécrite** pour y
+renvoyer, l'invariant I8 y renvoie, le README y renvoie ; **aucun ne le
+recopie**. La onzième table s'ajoutera à un seul endroit parce qu'il n'y en aura
+qu'un.
+
+**Pourquoi ni « énumérer » ni « renvoyer à I8 ».** Le registre R0-b posait la
+question entre deux voies, et toutes deux acceptaient la prémisse fausse : que
+la liste vive dans un document. Énumérer au chapitre 10 aurait écrit la même
+liste à deux endroits — le défaut du 19/08, celui qui a produit soixante points
+d'ambiguïté. Renvoyer à I8 aurait fait dépendre une règle de rang 2 d'un
+document sans rang, sans supprimer pour autant la vraie duplication : le
+gardien portait déjà, lui, une **troisième** copie.
+
+**Et cette troisième copie était le vrai défaut, découvert en répondant.** Le
+gardien `tests/unit/db/perimetre-audit.test.ts` recopiait le périmètre « en
+toutes lettres », délibérément, au motif que « c'est la constitution qui est
+confrontée au dépôt ». L'argument ne tient pas à l'examen : **rien ne
+confrontait la recopie à la constitution.** Deux listes qui pouvaient diverger
+en silence, dont l'une serait restée juste et l'autre serait devenue fausse sans
+rougir — c'est É8 une catégorie plus bas, et cela se serait produit le jour où
+une onzième table serait entrée par arbitrage.
+
+L'indépendance du gardien ne venait pas de la recopie. Elle vient de ce qu'il
+confronte la liste aux **migrations** et au **schéma**, deux sources qu'il ne
+contrôle pas — et cela n'a pas bougé.
+
+**L'objection « le chapitre 10 doit se lire seul » se règle par une référence
+explicite.** Un lecteur de RG-DRO-04 sait où est la liste ; il ne risque pas
+d'en lire une périmée, ce qui est exactement le risque qu'une recopie lui
+faisait courir. Une référence coûte un aller-retour ; une copie coûte une
+divergence.
+
+**C'est gardé.** Un test vérifie que le CLAUDE.md, le chapitre 10 et le README
+citent le chemin et n'énumèrent pas le périmètre, et il est éprouvé sur une
+recopie fabriquée : « aucune recopie trouvée » et « le détecteur ne sait pas en
+trouver » se ressemblent trait pour trait.
+
+**Règles amendées :** RG-DRO-04
+
+## D54 — La fenêtre de 24 heures et le rang du dernier lot sont supprimés
+
+**La décision.** **RG-IMP-02 est réécrite** : l'annulation d'un import n'est
+bornée **ni par un délai, ni par le rang du lot**. La règle « seul le dernier
+lot est annulable » est retirée de D15, et `import_lot.date_limite_annulation`
+disparaît du chapitre 11.
+
+**Ce que ces deux bornes approchaient.** Toutes deux répondaient, faute de
+mieux, à une seule question : *cette annulation peut-elle encore faire des
+dégâts ?* Vingt-quatre heures était une approximation du temps qu'il faut pour
+qu'une donnée importée soit reprise ; « seul le dernier lot » une approximation
+du recouvrement entre deux imports. Ni l'une ni l'autre ne mesurait quoi que ce
+soit — elles pariaient.
+
+**Or D15 amendé mesure la chose directement**, ligne par ligne : une ligne
+modifiée depuis l'import est refusée, une ligne référencée depuis est refusée, le
+reste est restauré. Garder les bornes par-dessus ce critère revient à **refuser
+une annulation dont on peut prouver qu'elle est sans danger**, et à faire perdre
+une journée à qui découvre son erreur le lendemain matin.
+
+**Et le critère mesuré traite MIEUX le cas qui avait motivé le rang.** Deux
+imports qui se recouvrent : la règle du dernier lot refusait le premier
+**en entier**, y compris ses lignes que le second n'a jamais touchées. Le
+critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et
+laisse passer les autres. La borne était donc à la fois plus permissive dans un
+sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait
+écrasé — et plus brutale dans l'autre. C'est cette conséquence qui justifie la
+suppression, et non un allègement.
+
+**Ce qui ne change pas.** L'annulation reste **partielle et sûre**, jamais
+totale et destructrice ; le rapport d'annulation liste toujours ce qui a été
+restauré et ce qui ne pouvait pas l'être ; et la traçabilité du lot
+(`import_lot`, `import_lot_ligne.valeurs_avant`) est inchangée — c'est elle qui
+rend le critère calculable, et c'est pourquoi la borne peut tomber.
+
+**Règles amendées :** RG-IMP-02
+
+*Note d'arbitrage n°8 — CODIPLAN — 1ᵉʳ septembre 2026*
