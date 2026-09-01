@@ -103,9 +103,51 @@ export type SocieteSeed = {
    */
   couleur_primaire: string;
   couleur_secondaire: string;
+  /**
+   * Libellé d'affichage de `client.code_externe` (D29). CODIMA dit « Code
+   * Winpro » ; une société qui n'a pas d'ERP nommé n'en dit rien, et reçoit le
+   * libellé générique du dictionnaire. Les deux cas sont représentés dans le
+   * jeu de démonstration — sans quoi la branche « société sans libellé » ne
+   * serait jamais empruntée.
+   */
+  libelle_code_externe: string | null;
   langue: string;
   agences: AgenceSeed[];
   calendriers: CalendrierSeed[];
+  /** Clients de démonstration (ticket L1-01). */
+  clients: ClientSeed[];
+};
+
+/**
+ * Un client de démonstration (ticket L1-01, I9).
+ *
+ * **Identifiant FIXE**, comme celui des sociétés et pour une raison voisine :
+ * `COMPTES_PORTAIL` doit pouvoir désigner un client par son identifiant avant
+ * que quoi que ce soit ne soit écrit, et un `upsert` par identifiant est ce qui
+ * rend le seed idempotent — rejouer corrige un libellé au lieu de créer une
+ * seconde fiche. Ce sont des UUID v7 bien formés (I10) désignant des sociétés
+ * fictives (I9).
+ *
+ * **Le libellé DIT qu'il s'agit d'une démonstration**, en toutes lettres et
+ * dans la raison sociale elle-même : une base de démonstration qu'on prendrait
+ * pour une base réelle est exactement ce que I9 prévient.
+ */
+export type ClientSeed = {
+  /** UUID v7 fixe — voir ci-dessus. */
+  id: string;
+  /**
+   * Code externe. `null` sur l'un des clients à dessein : D29 exige que son
+   * absence n'empêche rien, et une démonstration où tous les clients en portent
+   * un n'éprouverait jamais cette branche.
+   */
+  code_externe: string | null;
+  raison_sociale: string;
+  ridet: string | null;
+  categorie: string | null;
+  adresse_facturation: { rue: string; commune: string } | null;
+  conditions_reglement: string | null;
+  commercial_referent: string | null;
+  actif: boolean;
 };
 
 export type DeviseSeed = {
@@ -500,6 +542,81 @@ export function ecartsDeLAgence(
  * Société XPF : CODIMA en Nouvelle-Calédonie, avec ses trois agences (D5).
  * Taux horaire 7 000 XPF (chapitre 11 §11.2), majoration hors ouverture +50 % (D12).
  */
+/**
+ * Clients de démonstration de CODIMA-NC (ticket L1-01, I9).
+ *
+ * Le PREMIER porte l'identifiant que `COMPTES_PORTAIL` désigne depuis L0-03 :
+ * jusqu'à ce ticket, le compte portail de démonstration pointait vers un client
+ * qui n'existait pas — la table n'existait pas non plus. Il pointe désormais
+ * vers une fiche réelle, et le scénario du portail (D10) est jouable de bout en
+ * bout sur la base de démonstration.
+ *
+ * Trois cas, et chacun sert : un client avec code externe, un SANS (D29 —
+ * « son absence ne suffit plus à rejeter la ligne »), et un INACTIF (la colonne
+ * `actif` du chapitre 11.2, et le filtre `actifs_seulement` de la recherche).
+ */
+const CLIENTS_NC: ClientSeed[] = [
+  {
+    id: "0192f0a0-1000-7000-8000-000000000001",
+    code_externe: "DEMO-001",
+    raison_sociale: "Atelier Ducos (démonstration)",
+    ridet: null,
+    categorie: "Industrie",
+    adresse_facturation: {
+      rue: "1 rue de la Démonstration",
+      commune: "Nouméa",
+    },
+    conditions_reglement: "30 jours fin de mois",
+    commercial_referent: "Commercial de démonstration",
+    actif: true,
+  },
+  {
+    id: "0192f0a0-1000-7000-8000-000000000002",
+    code_externe: null,
+    raison_sociale: "Garage du Nord (démonstration, sans code externe)",
+    ridet: null,
+    categorie: "Automobile",
+    adresse_facturation: null,
+    conditions_reglement: null,
+    commercial_referent: null,
+    actif: true,
+  },
+  {
+    id: "0192f0a0-1000-7000-8000-000000000003",
+    code_externe: "DEMO-003",
+    raison_sociale: "Ancien client (démonstration, inactif)",
+    ridet: null,
+    categorie: null,
+    adresse_facturation: null,
+    conditions_reglement: null,
+    commercial_referent: null,
+    actif: false,
+  },
+];
+
+/**
+ * Clients de démonstration de CODIMA-EU.
+ *
+ * Le premier porte le MÊME code externe que celui de CODIMA-NC, et c'est le
+ * point : l'unicité est `(societe_id, code_externe)` et jamais le code seul.
+ * Deux sociétés vendues séparément ont chacune son ERP (RG-SOC-04) ; un seed
+ * qui ne le montrerait pas laisserait passer une unicité globale sans que rien
+ * ne rougisse.
+ */
+const CLIENTS_EU: ClientSeed[] = [
+  {
+    id: "0192f0a0-1000-7000-8000-000000000011",
+    code_externe: "DEMO-001",
+    raison_sociale: "Client européen (démonstration)",
+    ridet: null,
+    categorie: null,
+    adresse_facturation: { rue: "1 rue de la Démonstration", commune: "Lyon" },
+    conditions_reglement: null,
+    commercial_referent: null,
+    actif: true,
+  },
+];
+
 const CODIMA_NC: SocieteSeed = {
   id: "0192f0a0-0000-7000-8000-000000000001",
   code: "CODIMA-NC",
@@ -512,6 +629,8 @@ const CODIMA_NC: SocieteSeed = {
   majoration_hors_ouverture_pct: "50",
   couleur_primaire: "#0b5cad",
   couleur_secondaire: "#f4a300",
+  // CODIMA nomme son ERP : c'est le cas que D29 avait en tête.
+  libelle_code_externe: "Code Winpro",
   langue: "fr",
   agences: [
     {
@@ -544,6 +663,7 @@ const CODIMA_NC: SocieteSeed = {
     },
   ],
   calendriers: CALENDRIERS_NC,
+  clients: CLIENTS_NC,
 };
 
 /** Seconde société, en EUR : démontre le multi-société et le multi-devise. */
@@ -559,6 +679,10 @@ const CODIMA_EU: SocieteSeed = {
   majoration_hors_ouverture_pct: "50",
   couleur_primaire: "#7a1f3d",
   couleur_secondaire: "#2f9e6b",
+  // AUCUN libellé, et c'est délibéré : « société qui n'a pas nommé son ERP »
+  // doit être un état représenté, sinon le libellé générique n'est jamais
+  // affiché nulle part et sa branche n'est jamais empruntée.
+  libelle_code_externe: null,
   langue: "fr",
   agences: [
     {
@@ -582,6 +706,7 @@ const CODIMA_EU: SocieteSeed = {
     },
   ],
   calendriers: CALENDRIERS_EU,
+  clients: CLIENTS_EU,
 };
 
 export const SOCIETES: readonly SocieteSeed[] = [CODIMA_NC, CODIMA_EU];

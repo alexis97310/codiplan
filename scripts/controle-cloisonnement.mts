@@ -160,6 +160,7 @@ async function compterVisible(
 ): Promise<DecompteParTable> {
   const decompte = decompteVide();
   decompte.societe = await client.societe.count();
+  decompte.client = await client.client.count();
   decompte.agence = await client.agence.count();
   decompte.calendrier = await client.calendrier.count();
   decompte.calendrier_plage = await client.calendrierPlage.count();

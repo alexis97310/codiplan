@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import { avecSociete } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
@@ -132,7 +132,7 @@ async function seed(): Promise<void> {
   }
 
   for (const societe of SOCIETES) {
-    const { id, agences, calendriers, ...champsSociete } = societe;
+    const { id, agences, calendriers, clients, ...champsSociete } = societe;
 
     // ── 1. LE FAIT PUBLIC, d'abord (D46, complément 2) ────────────────────
     //
@@ -224,6 +224,38 @@ async function seed(): Promise<void> {
           update: champsSociete,
           create: { id, ...champsSociete },
         });
+
+        // ── Clients de démonstration (ticket L1-01) ─────────────────────────
+        //
+        // Écrits DANS la transaction cloisonnée, et pour deux raisons : la
+        // politique de `client` est de forme « parc », elle exige donc
+        // `app.societe_id` posé — le seed conserve le rôle propriétaire, et
+        // depuis `FORCE ROW LEVEL SECURITY` ce rôle y est soumis comme les
+        // autres ; et une société dotée de ses agences mais privée de ses
+        // clients est un état que rien ne rattrape.
+        //
+        // `upsert` sur l'identifiant FIXE : rejouer le seed corrige un libellé
+        // au lieu de créer une seconde fiche, et le compte portail de
+        // `COMPTES_PORTAIL` retrouve toujours le même client.
+        etape(`${societe.code} — clients de démonstration : ${clients.length}`);
+
+        for (const client of clients) {
+          const { id: clientId, adresse_facturation, ...champsClient } = client;
+
+          await tx.client.upsert({
+            where: { id: clientId },
+            update: {
+              ...champsClient,
+              adresse_facturation: adresse_facturation ?? Prisma.DbNull,
+            },
+            create: {
+              id: clientId,
+              societe_id: id,
+              ...champsClient,
+              adresse_facturation: adresse_facturation ?? Prisma.DbNull,
+            },
+          });
+        }
 
         // Les calendriers AVANT les agences : `agence.calendrier_id` les
         // référence, et la clé étrangère posée par la migration L0-08 refuserait

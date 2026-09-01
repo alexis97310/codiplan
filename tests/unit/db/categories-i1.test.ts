@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
+import { tablesPremiereCategorieI1 } from "../../../scripts/lib/perimetre-audit";
 
 /**
  * Gardien d'EXHAUSTIVITÉ des catégories de I1 (arbitrage D41).
@@ -175,6 +176,55 @@ export function ecartsCategories(schema: string): string[] {
     return [];
   });
 }
+
+describe("les DEUX lectures de la première catégorie s'accordent (D55)", () => {
+  /**
+   * **Ce test répond à la question « qu'est-ce qui confronterait les deux
+   * copies ? ».**
+   *
+   * La première catégorie de I1 est lue à deux endroits : ici, par
+   * `categoriesDeLaTable`, qui la range parmi les quatre catégories ; et dans
+   * `scripts/lib/perimetre-audit.ts`, par `tablesPremiereCategorieI1`, dont le
+   * périmètre d'audit inversé de D55 est la différence. Deux implémentations
+   * d'une même définition peuvent diverger — et si elles divergeaient, l'une
+   * dirait qu'une table est métier et l'autre qu'elle n'a pas à être auditée.
+   * Personne ne le verrait : les deux resteraient vertes, chacune sur sa
+   * lecture.
+   *
+   * La réponse n'est donc pas « la relecture », c'est ce test. Il tourne sur le
+   * SCHÉMA RÉEL, pas sur un cas fabriqué : c'est la seule population où la
+   * divergence compte.
+   */
+  it("s'accordent sur le schéma réel, table pour table", () => {
+    const schema = lireSchema();
+    const modeles = modelesDuSchema(schema);
+
+    const parCategories = modeles
+      .filter(({ table, champs }) =>
+        categoriesDeLaTable(table, champs).includes("métier (cloisonnée)"),
+      )
+      .map(({ table }) => table)
+      .sort();
+
+    const parPerimetre = tablesPremiereCategorieI1(
+      modeles.map(({ table, champs }) => {
+        const cloisonnement = champs.find(
+          (champ) => champ.nom === "societe_id",
+        );
+        return {
+          table,
+          societeIdObligatoire:
+            cloisonnement !== undefined && !cloisonnement.type.endsWith("?"),
+        };
+      }),
+    ).sort();
+
+    // Témoin : une population vide rendrait deux listes égales et vides, et le
+    // test serait vert sans avoir rien comparé.
+    expect(parCategories.length).toBeGreaterThanOrEqual(8);
+    expect(parPerimetre).toEqual(parCategories);
+  });
+});
 
 describe("chaque table appartient à exactement une catégorie de I1 (D41)", () => {
   it("le gardien sait ÉCHOUER sur une table sans catégorie", () => {

@@ -1,13 +1,11 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
-  ecartsListeParc,
   ecartsPolitiques,
   formeAttendue,
   RAPPEL_FORMES,
   SQL_COLONNE_SOCIETE,
   SQL_POLITIQUES,
-  TABLES_PARC,
   tablesPremiereCategorie,
   type ColonneSociete,
   type PolitiqueObservee,
@@ -331,35 +329,11 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect(siennes.join("\n")).toContain("RESTRICTIVE");
   });
 
-  it("la liste close du PARC ne contient que `client`, `site` et `machine`", () => {
-    expect(ecartsListeParc()).toEqual([]);
-    expect(TABLES_PARC.map((entree) => entree.table)).toEqual([
-      "client",
-      "site",
-      "machine",
-    ]);
-  });
-
-  it("le gardien de la liste du parc sait ÉCHOUER sur un RETRAIT", () => {
-    // C'est le retrait qui est dangereux, et c'est lui que É14 décrit : retirer
-    // `client` la ferait retomber sur la forme « société », qui passe.
-    const ecarts = ecartsListeParc(["site", "machine"]);
-
-    expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("client");
-    expect(ecarts[0]).toContain("RETIRÉE");
-  });
-
-  it("le gardien de la liste du parc sait ÉCHOUER sur une ADDITION", () => {
-    const ecarts = ecartsListeParc([
-      "client",
-      "site",
-      "machine",
-      "intervention",
-    ]);
-
-    expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("intervention");
-    expect(ecarts[0]).toContain("arbitrage");
-  });
+  // **La liste close `TABLES_PARC` n'est PLUS éprouvée ici.** `ecartsListeParc`
+  // est de la logique pure : elle ne lit ni `pg_policies`, ni la moindre ligne.
+  // La laisser derrière un PostgreSQL jetable rendait le deuxième des trois
+  // gardiens de R0-a muet pour une session qui ne lance que `pnpm test` — ce
+  // qui est précisément le leg (B) de l'épreuve de L1-01. Elle vit désormais
+  // dans `tests/unit/db/liste-parc.test.ts`, et un test ci-dessous vérifie
+  // qu'elle y est bien restée plutôt que d'avoir disparu en chemin.
 });

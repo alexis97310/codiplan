@@ -40,7 +40,7 @@ const analyse: Analyse = analyserCablage(CDC, ARBITRAGES);
  */
 const PLANCHER_REGLES = 40;
 const PLANCHER_DECISIONS = 50;
-const PLANCHER_PAIRES = 16;
+const PLANCHER_PAIRES = 17;
 const PLANCHER_PROSE = 15;
 
 /** Le câblage attendu, écrit ici pour être lu — et non déduit du document. */
@@ -61,6 +61,7 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D52", "RG-DRO-04"],
   ["D53", "RG-DRO-04"],
   ["D54", "RG-IMP-02"],
+  ["D55", "RG-DRO-04"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

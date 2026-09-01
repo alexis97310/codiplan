@@ -26,6 +26,9 @@ import {
   VAR_SOCIETE,
 } from "./setup/fixtures";
 
+/** Sentinelle d'annulation des scénarios de durcissement (D55). */
+class AnnulationDurcissement extends Error {}
+
 /**
  * **Le journal naît PARTITIONNÉ** (ticket L0-10), et ce fichier éprouve les
  * trois choses que le partitionnement change, contre un vrai PostgreSQL.
@@ -344,6 +347,254 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
     );
     expect(vues.map((ligne) => ligne.societe_id)).toEqual([SOCIETE_A]);
     expect(vues.map((ligne) => ligne.societe_id)).not.toContain(SOCIETE_B);
+  });
+
+  /**
+   * **LA GARANTIE DE SUBSTITUTION, PAYÉE COMPTANT** (D55).
+   *
+   * Depuis D55, `journal_audit` est HORS du domaine d'audit : elle n'est pas
+   * tracée, parce qu'un gardien ne peut pas se garder lui-même (§9). Écrire
+   * cela laisse un trou pour un lecteur futur, et le trou n'est acceptable que
+   * si la garantie qui le remplace est **mesurée** : le journal n'est pas
+   * audité, il est INALTÉRABLE.
+   *
+   * **Par TENTATIVE, jamais par lecture de privilèges.** `pg_privileges` dit ce
+   * que la base a accordé ; il ne dit pas ce qui se passe quand on essaie. Les
+   * deux verrous — le privilège retiré et l'absence de politique sous `FORCE
+   * ROW LEVEL SECURITY` — se lisent à deux endroits différents, et une lecture
+   * qui n'en regarderait qu'un serait juste et creuse. Une écriture refusée les
+   * traverse tous les deux sans avoir à les connaître.
+   *
+   * **Sur CHAQUE partition, énumérée par `pg_inherits`, jamais sur la mère.**
+   * Une partition EST une table : elle hérite d'`ALTER DEFAULT PRIVILEGES` — qui
+   * accorde les quatre verbes au rôle applicatif sur toute table nouvelle — et
+   * n'hérite NI des privilèges NI des politiques du parent. C'est exactement la
+   * faille mesurée à L0-10, et elle se rejouerait ici si l'on interrogeait la
+   * mère : la nommer, elle, donne le bon résultat pour la mauvaise raison.
+   */
+  describe("le journal n'est pas audité — il est INALTÉRABLE (D55)", () => {
+    /** Toutes les partitions, la partition par défaut comprise. */
+    async function partitions(): Promise<string[]> {
+      const lignes = await clientOwner().$queryRawUnsafe<{ nom: string }[]>(
+        `SELECT c.relname::text AS nom FROM pg_catalog.pg_class c
+           JOIN pg_catalog.pg_inherits i ON i.inhrelid = c.oid
+          WHERE i.inhparent = 'public.journal_audit'::regclass
+          ORDER BY c.relname`,
+      );
+      return lignes.map((ligne) => ligne.nom);
+    }
+
+    it("sur la table MÈRE : `UPDATE` et `DELETE` sont refusés en acte", async () => {
+      const [cible] = await clientOwner().$queryRawUnsafe<{ id: string }[]>(
+        `SELECT "id"::text AS "id" FROM "journal_audit"
+          WHERE "societe_id" = $1::uuid LIMIT 1`,
+        SOCIETE_A,
+      );
+      // Témoin : sans ligne à réécrire, un refus ne prouverait rien — il
+      // pourrait venir de l'absence de cible.
+      expect(cible?.id).toBeDefined();
+
+      await expect(
+        avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+          tx.$executeRawUnsafe(
+            `UPDATE "journal_audit" SET "adresse_ip" = 'falsifiée'
+              WHERE "id" = $1::uuid`,
+            cible?.id,
+          ),
+        ),
+      ).rejects.toThrow(/permission denied|row-level security/i);
+
+      await expect(
+        avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+          tx.$executeRawUnsafe(
+            `DELETE FROM "journal_audit" WHERE "id" = $1::uuid`,
+            cible?.id,
+          ),
+        ),
+      ).rejects.toThrow(/permission denied|row-level security/i);
+    });
+
+    it("sur CHAQUE partition : `UPDATE` et `DELETE` sont refusés en acte", async () => {
+      const toutes = await partitions();
+
+      // Témoin de non-vacuité, et il compte double ici : une énumération vide
+      // rendrait la boucle silencieuse, et « aucune partition n'a laissé
+      // passer » ressemblerait trait pour trait à « aucune partition n'a été
+      // regardée » (§9, 30/08).
+      expect(toutes.length).toBeGreaterThanOrEqual(13);
+      expect(toutes).toContain("journal_audit_defaut");
+
+      for (const partition of toutes) {
+        await expect(
+          avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+            tx.$executeRawUnsafe(
+              `UPDATE public."${partition}" SET "adresse_ip" = 'falsifiée'`,
+            ),
+          ),
+          `UPDATE sur ${partition}`,
+        ).rejects.toThrow(/permission denied/i);
+
+        await expect(
+          avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+            tx.$executeRawUnsafe(`DELETE FROM public."${partition}"`),
+          ),
+          `DELETE sur ${partition}`,
+        ).rejects.toThrow(/permission denied/i);
+      }
+    });
+
+    it("ÉPREUVE PAR RETRAIT : le durcissement ôté, les DEUX verbes passent", async () => {
+      // **Le jumeau de la boucle ci-dessus, et il porte sur le verrou visé.**
+      // Sans lui, « aucune partition n'a laissé passer » et « la tentative ne
+      // sait pas passer » se ressemblent trait pour trait — c'est la vacuité du
+      // §9, et elle a failli être commise ici : une première rédaction de ce
+      // jumeau desserrait la partition HORS transaction, et le harnais
+      // recréait le schéma avant que les tests ne tournent. Le desserrage était
+      // effacé, la boucle restait verte, et rien n'avait été prouvé.
+      //
+      // Le retrait se fait donc DANS la transaction, sous `SET LOCAL ROLE` :
+      // le DDL non validé est visible du rôle qui l'a posé, et le `ROLLBACK`
+      // rétablit tout.
+      const [cible] = await clientOwner().$queryRawUnsafe<{ nom: string }[]>(
+        `SELECT c.relname AS nom FROM pg_catalog.pg_class c
+           JOIN pg_catalog.pg_inherits i ON i.inhrelid = c.oid
+          WHERE i.inhparent = 'public.journal_audit'::regclass
+            AND c.relname ~ '^journal_audit_[0-9]'
+          ORDER BY c.relname LIMIT 1`,
+      );
+      const partition = cible?.nom as string;
+      expect(partition).toBeDefined();
+
+      let reecrites = -1;
+      let effacees = -1;
+
+      await dansUneTransactionAnnulee(async (tx) => {
+        await tx.$executeRawUnsafe(
+          `GRANT SELECT, INSERT, UPDATE, DELETE ON public."${partition}" TO "${ROLE_APPLICATIF}"`,
+        );
+        await tx.$executeRawUnsafe(
+          `ALTER TABLE public."${partition}" NO FORCE ROW LEVEL SECURITY`,
+        );
+        await tx.$executeRawUnsafe(
+          `ALTER TABLE public."${partition}" DISABLE ROW LEVEL SECURITY`,
+        );
+        await tx.$executeRawUnsafe(
+          "SELECT set_config($1, $2, true)",
+          VAR_SOCIETE,
+          SOCIETE_A,
+        );
+        await tx.$executeRawUnsafe(
+          "SELECT set_config($1, $2, true)",
+          VAR_ROLE,
+          Role.direction,
+        );
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE "${ROLE_APPLICATIF}"`);
+
+        reecrites = await tx.$executeRawUnsafe(
+          `UPDATE public."${partition}" SET "adresse_ip" = 'falsifiée'`,
+        );
+        effacees = await tx.$executeRawUnsafe(
+          `DELETE FROM public."${partition}"`,
+        );
+      });
+
+      // Les DEUX verbes passent. La boucle plus haut n'est donc pas verte
+      // parce qu'une tentative ne saurait pas aboutir : elle est verte parce
+      // que le durcissement mord.
+      expect(reecrites).toBeGreaterThan(0);
+      expect(effacees).toBeGreaterThan(0);
+    });
+
+    it("l'état NON DURCI n'est pas productible par le chemin du dépôt", async () => {
+      // **Le troisième temps, et le seul qui parle de l'AVENIR.** Une épreuve
+      // jouée sur les partitions d'aujourd'hui ne dit rien de celles de l'an
+      // prochain. Ce qui le dit, c'est que le durcissement soit posé par la
+      // fonction qui CRÉE la partition, dans la même transaction — comme le
+      // `REVOKE` et la RLS l'ont été à L0-10.
+      //
+      // Mesuré ici, et pas lu dans la migration : on crée une partition par la
+      // fonction du dépôt, puis on tente d'y écrire. Elle naît durcie.
+      const futur = "2099-07-01";
+      await clientOwner()
+        .$transaction(async (tx) => {
+          const [creee] = await tx.$queryRawUnsafe<{ nom: string }[]>(
+            `SELECT "journal_audit_partition_creer"($1::date) AS nom`,
+            futur,
+          );
+          const nom = creee?.nom ?? "";
+          expect(nom).toBe("journal_audit_2099_07");
+
+          // Le durcissement est là AVANT tout autre appel : aucune fenêtre entre
+          // la création et le retrait des droits.
+          const [prive] = await tx.$queryRawUnsafe<{ n: bigint }[]>(
+            `SELECT count(*) AS n FROM information_schema.role_table_grants
+            WHERE grantee = $1 AND table_schema = 'public' AND table_name = $2`,
+            ROLE_APPLICATIF,
+            nom,
+          );
+          expect(Number(prive?.n ?? -1)).toBe(0);
+
+          const [drapeaux] = await tx.$queryRawUnsafe<
+            { activee: boolean; forcee: boolean }[]
+          >(
+            `SELECT relrowsecurity AS activee, relforcerowsecurity AS forcee
+             FROM pg_catalog.pg_class WHERE oid = ('public.' || $1)::regclass`,
+            nom,
+          );
+          expect(drapeaux?.activee).toBe(true);
+          expect(drapeaux?.forcee).toBe(true);
+
+          // On annule : cette partition de 2099 n'a rien à faire dans la base.
+          throw new AnnulationDurcissement();
+        })
+        .catch((erreur: unknown) => {
+          if (!(erreur instanceof AnnulationDurcissement)) {
+            throw erreur;
+          }
+        });
+    });
+
+    it("LA LIMITE, annoncée : une partition posée À LA MAIN naît nue", async () => {
+      // **Ce que le dispositif ne peut pas tenir, et qui se dit plutôt que se
+      // tait.** Rendre l'état non durci INPRODUCTIBLE demanderait un
+      // déclencheur d'événement (`ddl_command_end`), et PostgreSQL en réserve
+      // la création au superutilisateur — dont le rôle de migration ne dispose
+      // pas sur la base hébergée. Le chemin du dépôt ne produit donc jamais de
+      // partition nue ; un `CREATE TABLE … PARTITION OF` écrit à la main, si.
+      //
+      // Ce qui reste, et qui n'est pas rien : le contrôle DÉTECTIF de
+      // `scripts/controle-cloisonnement.mts`, qui juge chaque partition à
+      // chaque migration. Le préventif protège du problème, le détectif prouve
+      // qu'il ne s'est pas produit — le couple du 30/08.
+      //
+      // La limite est MESURÉE, pas supposée : la partition nue est réellement
+      // créée, et elle laisse réellement passer.
+      let reecrites = -1;
+      await clientOwner()
+        .$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `CREATE TABLE public."journal_audit_2099_08"
+             PARTITION OF "journal_audit"
+             FOR VALUES FROM ('2099-08-01') TO ('2099-09-01')`,
+          );
+          const [prive] = await tx.$queryRawUnsafe<{ n: bigint }[]>(
+            `SELECT count(*) AS n FROM information_schema.role_table_grants
+            WHERE grantee = $1 AND table_schema = 'public' AND table_name = $2`,
+            ROLE_APPLICATIF,
+            "journal_audit_2099_08",
+          );
+          // Les quatre verbes, hérités d'`ALTER DEFAULT PRIVILEGES`.
+          reecrites = Number(prive?.n ?? -1);
+          throw new AnnulationDurcissement();
+        })
+        .catch((erreur: unknown) => {
+          if (!(erreur instanceof AnnulationDurcissement)) {
+            throw erreur;
+          }
+        });
+
+      expect(reecrites).toBeGreaterThan(0);
+    });
   });
 
   it("ÉPREUVE : sans partition par défaut, c'est l'ÉCRITURE MÉTIER qui échoue", async () => {

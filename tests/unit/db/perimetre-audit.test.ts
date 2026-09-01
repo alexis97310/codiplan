@@ -4,17 +4,24 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  EXEMPTIONS_AUDIT,
+  HORS_DOMAINE_AUDIT,
   NOM_DECLENCHEUR,
-  PERIMETRE_I8,
-  tablesDuPerimetre,
-  type EntreePerimetre,
+  ecartsExemptions,
+  ecartsListeHorsDomaine,
+  perimetreAudit,
+  tablesExemptees,
+  tablesHorsDomaine,
+  tablesPremiereCategorieI1,
+  type Exemption,
+  type TableObservee,
 } from "../../../scripts/lib/perimetre-audit";
 import { migrationsSql } from "../outils/migrations-sql";
 import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
 
 /**
  * Gardien du PÉRIMÈTRE du journal d'audit (ticket L0-10, invariant I8,
- * arbitrage D32).
+ * arbitrages D32, D52, D53, **D55**).
  *
  * **Ce qu'il répare, et ce n'est pas une table.** Trois des tables de I8
  * n'existent pas encore — elles arrivent aux lots 2 et 4. Une liste écrite
@@ -24,29 +31,29 @@ import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
  * resterait vert, avec un périmètre devenu faux — et un journal qui ne trace
  * pas les interventions ressemble beaucoup trop à un journal qui fonctionne.
  *
- * **Le renversement.** Ce gardien ne part pas des déclencheurs pour vérifier
- * qu'ils sont légitimes ; il part du PÉRIMÈTRE DE I8 et exige que chaque table
- * qui existe porte son déclencheur. Une table créée demain sans déclencheur
- * fait tomber la vérification le jour où elle est écrite, pas trois lots plus
- * tard.
+ * **Le renversement, deuxième temps (D55).** Ce gardien partait du périmètre —
+ * une liste d'ADMIS, tenue à la main — et exigeait que chaque table qui y
+ * figure porte son déclencheur. Il part désormais du SCHÉMA : toute table de la
+ * première catégorie de I1 est auditée, moins des exemptions justifiées. Une
+ * table métier créée demain est réclamée par le gardien **sans que personne
+ * n'ait rien ajouté nulle part** — l'exhaustivité est héritée du gardien de
+ * D41, qui la tient déjà contre le schéma.
  *
- * **La liste n'a qu'une maison, et ce n'est plus ici** *(D53)*. Elle était
- * recopiée dans ce fichier « en toutes lettres », pour que la constitution soit
- * confrontée au dépôt. Mais RIEN ne confrontait la recopie à la constitution :
- * deux listes qui pouvaient diverger en silence — le défaut d'É8 une catégorie
- * plus bas. Elle vit désormais dans `scripts/lib/perimetre-audit.ts`, seul
- * endroit où elle s'écrit, et l'indépendance du gardien tient à ce qu'elle a
- * toujours tenu : la liste est confrontée aux MIGRATIONS et au SCHÉMA, deux
- * sources qu'elle ne contrôle pas.
+ * Le défaut que cela ferme a été observé, pas imaginé : `client` (L1-01)
+ * naissait hors périmètre, non parce qu'on l'avait décidé, mais parce que
+ * personne n'avait ajouté la ligne.
  *
- * **Et il est clos DES DEUX CÔTÉS depuis D52.** Tant que I8 énumérait des
- * NOTIONS — « paramétrage société », « compte client » —, il fallait
- * l'interpréter pour savoir ce qui était couvert, et le gardien ne pouvait
- * refuser qu'un élargissement nommé d'avance. D52 a corrigé la source plutôt
- * que l'interprétation (méthode de D44) : I8 énumère désormais des TABLES, et
- * la comparaison devient exacte. Un déclencheur posé sur une table absente de
- * la liste échoue, quelle qu'elle soit — élargir la traçabilité est un
- * arbitrage, jamais une décision de ticket.
+ * **La règle n'a qu'une maison** *(D53, conservé par D55)* :
+ * `scripts/lib/perimetre-audit.ts`. Ce n'est plus la maison d'une liste — il
+ * n'y en a plus — mais celle d'une règle et de ses exceptions. L'indépendance
+ * du gardien tient à ce qu'elle a toujours tenu : la règle est confrontée aux
+ * MIGRATIONS et au SCHÉMA, deux sources qu'elle ne contrôle pas.
+ *
+ * **Et il reste clos DES DEUX CÔTÉS.** Un déclencheur posé sur une table qui
+ * n'est pas de la première catégorie de I1 — un référentiel de plateforme, une
+ * table technique d'authentification — est refusé, tout comme un déclencheur
+ * posé sur une table EXEMPTÉE : dans les deux cas, quelqu'un a élargi la
+ * traçabilité sans passer par la règle.
  */
 
 /**
@@ -135,57 +142,98 @@ export function tablesDeclenchees(
     .map(([table]) => table);
 }
 
-/** Noms des tables réellement déclarées au schéma Prisma. */
-function tablesDuSchema(schema: string): string[] {
-  return modelesDuSchema(schema).map((modele) => modele.table);
+/**
+ * Le schéma, réduit à ce dont le périmètre a besoin : le nom de chaque table et
+ * l'obligation de sa colonne `societe_id`.
+ *
+ * **Le `?` compte**, et c'est la même lecture que le gardien d'exhaustivité de
+ * D41 : un `societe_id String?` est la forme des référentiels surchargeables
+ * (D4), pas celle d'une table métier. Un test plus bas confronte les deux
+ * lectures sur le schéma réel — deux implémentations d'une même définition ne
+ * doivent pas pouvoir diverger en silence.
+ */
+export function observeesDuSchema(schema: string): TableObservee[] {
+  return modelesDuSchema(schema).map(({ table, champs }) => {
+    const cloisonnement = champs.find((champ) => champ.nom === "societe_id");
+    return {
+      table,
+      societeIdObligatoire:
+        cloisonnement !== undefined && !cloisonnement.type.endsWith("?"),
+    };
+  });
 }
 
 /**
- * Écarts entre le périmètre de I8 et ce que le dépôt fait réellement.
+ * Écarts entre ce que D55 exige et ce que le dépôt fait réellement.
  *
- * Deux motifs, et le second est celui qu'on oublie :
- *   1. une table du périmètre existe au schéma et ne porte AUCUN déclencheur ;
- *   2. une table sous arbitrage en porte un — le périmètre s'est élargi sans
- *      décision.
+ * Quatre motifs, et le premier est celui que l'inversion apporte :
+ *   1. une table de la première catégorie de I1 existe et ne porte AUCUN
+ *      déclencheur, sans figurer aux exemptions — c'est le cas de `client`
+ *      avant D55, et il ne demandait aucune liste pour être détecté ;
+ *   2. une table EXEMPTÉE porte quand même un déclencheur — l'exemption dit une
+ *      chose et la migration une autre ;
+ *   3. un déclencheur est posé hors de la première catégorie de I1 —
+ *      référentiel de plateforme, table technique : élargir la traçabilité est
+ *      un arbitrage ;
+ *   4. les écarts de la liste d'exemptions elle-même (`ecartsExemptions`), seule
+ *      chose qui reste tenue à la main.
  */
 export function ecartsPerimetreAudit(
   schema: string,
   declenchees: readonly string[],
-  perimetre: readonly EntreePerimetre[] = PERIMETRE_I8,
+  exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
+  horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
 ): string[] {
-  const ecarts: string[] = [];
-  const existantes = tablesDuSchema(schema);
+  const observees = observeesDuSchema(schema);
+  const perimetre = perimetreAudit(observees, exemptions, horsDomaine);
+  const exemptees = tablesExemptees(exemptions);
 
-  for (const { entite, table } of perimetre) {
-    if (!existantes.includes(table)) {
-      continue;
-    }
+  const ecarts: string[] = [
+    ...ecartsListeHorsDomaine(horsDomaine),
+    ...ecartsExemptions(observees, exemptions),
+  ];
+
+  for (const table of perimetre) {
     if (!declenchees.includes(table)) {
       ecarts.push(
-        `« ${table} » (${entite}) figure au périmètre d'audit de I8 et existe ` +
-          "au schéma, mais aucune migration n'y pose le déclencheur " +
-          `« ${NOM_DECLENCHEUR} ». Une table du périmètre créée sans son ` +
-          "déclencheur laisse un trou silencieux : le journal reste vert et " +
-          "cesse d'être complet. Le déclencheur se pose dans la migration qui " +
-          "crée la table, jamais dans une migration de rattrapage écrite " +
-          "quand quelqu'un s'en apercevra.",
+        `« ${table} » est une table métier cloisonnée (1ʳᵉ catégorie de I1) et ` +
+          `ne porte pas le déclencheur « ${NOM_DECLENCHEUR} ». Depuis D55 le ` +
+          "périmètre d'audit est INVERSÉ : une table métier est auditée par " +
+          "défaut, et n'y échappe que par une exemption écrite et justifiée " +
+          "dans scripts/lib/perimetre-audit.ts. Le déclencheur se pose dans la " +
+          "migration qui crée la table, jamais dans une migration de " +
+          "rattrapage écrite quand quelqu'un s'en apercevra.",
       );
     }
   }
 
-  // La clôture DANS L'AUTRE SENS, possible depuis D52 : I8 énumérant des
-  // tables, tout déclencheur posé ailleurs est un élargissement décidé en
-  // séance. La liste n'a plus besoin de nommer d'avance la table qu'on
-  // craignait — c'est le périmètre entier qui fait autorité.
-  const couvertes = tablesDuPerimetre(perimetre);
   for (const table of declenchees) {
-    if (!couvertes.includes(table)) {
+    if (horsDomaine.includes(table)) {
+      ecarts.push(
+        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle est HORS DU DOMAINE d'audit — un gardien ne peut pas se " +
+          "garder lui-même (§9). Le journal n'est pas audité : il est " +
+          "INALTÉRABLE, et cela s'éprouve par tentative d'écriture, pas par " +
+          "un déclencheur qui écrirait dans la table qui le déclenche.",
+      );
+      continue;
+    }
+    if (exemptees.includes(table)) {
+      ecarts.push(
+        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle figure aux EXEMPTIONS. L'exemption dit une chose et la " +
+          "migration une autre : soit l'exemption n'a plus lieu d'être et se " +
+          "retire, soit le déclencheur est de trop.",
+      );
+      continue;
+    }
+    if (!perimetre.includes(table)) {
       ecarts.push(
         `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
-          "qu'elle ne figure PAS au périmètre d'audit de I8. Élargir la " +
-          "traçabilité est un arbitrage — la table s'ajoute d'abord au " +
-          "périmètre, dans scripts/lib/perimetre-audit.ts, et jamais " +
-          "l'inverse.",
+          "qu'elle ne relève PAS de la première catégorie de I1 — c'est un " +
+          "référentiel de plateforme, une table technique, ou elle n'existe " +
+          "pas au schéma. Élargir la traçabilité au-delà des tables métier " +
+          "cloisonnées est un arbitrage, jamais une décision de ticket.",
       );
     }
   }
@@ -193,44 +241,72 @@ export function ecartsPerimetreAudit(
   return ecarts;
 }
 
-describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
+describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
   const fichiers = migrationsSql();
   const declenchees = tablesDeclenchees(fichiers);
   const schema = lireSchema();
+  const observees = observeesDuSchema(schema);
+  const perimetre = perimetreAudit(observees);
 
-  it("le gardien lit réellement des déclencheurs — sinon il garde le vide", () => {
-    // Un gardien qui ne trouve aucun déclencheur passerait au vert en
-    // n'exigeant rien de personne.
-    expect(declenchees.length).toBeGreaterThanOrEqual(7);
+  it("le gardien lit réellement des déclencheurs et des tables", () => {
+    // Trois témoins. Un gardien qui ne trouverait ni déclencheur, ni table, ni
+    // périmètre passerait au vert en n'exigeant rien de personne — et un
+    // décompte nul ressemble toujours à un sans-faute (§9, 30/08).
+    expect(declenchees.length).toBeGreaterThanOrEqual(8);
+    expect(observees.length).toBeGreaterThanOrEqual(15);
+    expect(perimetre.length).toBeGreaterThanOrEqual(8);
     expect(declenchees).toContain("societe");
   });
 
-  it("chaque table du périmètre existante au schéma porte son déclencheur", () => {
+  it("chaque table métier cloisonnée porte son déclencheur", () => {
     expect(ecartsPerimetreAudit(schema, declenchees)).toEqual([]);
   });
 
-  it("les entités encore sans table sont exactement celles des lots à venir", () => {
-    // Sans cette vérification, une table du périmètre pourrait DISPARAÎTRE du
-    // schéma — ou n'y être jamais rattachée — et le premier scénario resterait
-    // vert en la sautant. Ce qui est « à venir » doit être une liste courte et
-    // nommée, pas un reste.
-    const existantes = tablesDuSchema(schema);
-    const aVenir = PERIMETRE_I8.filter(
-      (entree) => !existantes.includes(entree.table),
-    );
+  it("le périmètre est CALCULÉ : catégorie 1 moins exemptions", () => {
+    // La propriété qui remplace l'ancienne liste. Elle se vérifie par identité,
+    // pas par recopie : le périmètre EST la différence des deux ensembles.
+    const categorie1 = tablesPremiereCategorieI1(observees);
+    const exemptees = tablesExemptees();
+    const horsDomaine = tablesHorsDomaine();
 
-    expect(aVenir.map((entree) => `${entree.table} (${entree.lot})`)).toEqual([
-      "machine (L2-01)",
-      "intervention (L2-07)",
-      "contrat (lot 4)",
+    expect([...perimetre].sort()).toEqual(
+      categorie1
+        .filter(
+          (table) => !horsDomaine.includes(table) && !exemptees.includes(table),
+        )
+        .sort(),
+    );
+    // Et les DEUX soustractions mordent réellement : sans elles, le périmètre
+    // serait plus grand d'exactement ce qu'elles retirent. Sans cette mesure,
+    // une frontière devenue inerte passerait inaperçue.
+    expect(perimetreAudit(observees, [], []).length).toBe(
+      perimetre.length + exemptees.length + horsDomaine.length,
+    );
+  });
+
+  it("les huit tables auditées aujourd'hui sont exactement celles attendues", () => {
+    // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
+    // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
+    // migrations, pas les migrations confrontées à elles-mêmes.
+    expect([...declenchees].sort()).toEqual([
+      "agence",
+      "calendrier",
+      "calendrier_ferie",
+      "calendrier_plage",
+      "client",
+      "societe",
+      "utilisateur_client",
+      "utilisateur_societe",
     ]);
   });
 
-  it("ÉPREUVE : une table du périmètre créée sans déclencheur est refusée", () => {
-    // La faute telle qu'elle se commettra réellement : le ticket L2-07 crée
-    // `intervention`, et personne ne pense au journal. Le schéma est fabriqué,
-    // mais la liste des déclencheurs est la VRAIE — c'est bien l'absence qui
-    // est éprouvée, pas une mise en scène complète.
+  it("ÉPREUVE : une table métier NOUVELLE est réclamée sans qu'on ait rien ajouté", () => {
+    // **C'est la propriété que D55 apporte, et elle se mesure ici.** Avant
+    // l'inversion, une table absente de la liste était hors périmètre en
+    // silence — c'est ce qui est arrivé à `client` (L1-01). Le schéma est
+    // fabriqué, la liste des déclencheurs est la VRAIE : c'est bien l'absence
+    // qui est éprouvée, et AUCUNE liste n'a été touchée pour que le gardien la
+    // réclame.
     const fabrique = `
       model Intervention {
         id         String @id @db.Uuid
@@ -244,32 +320,170 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("intervention");
-    expect(ecarts[0]).toContain("périmètre d'audit de I8");
+    expect(ecarts[0]).toContain("périmètre d'audit est INVERSÉ");
+  });
+
+  it("ÉPREUVE : une table NON cloisonnée n'est pas réclamée", () => {
+    // Le pendant du précédent, et il n'est pas décoratif : un gardien qui
+    // réclamerait un déclencheur sur tout ce qui existe échouerait sur
+    // `session` ou `devise`, et on l'aurait « réparé » en rouvrant une liste.
+    for (const modele of [
+      'model Devise2 { code String @id\n libelle String\n @@map("famille_materiel") }',
+      'model Jeton { id String @id @db.Uuid\n @@map("jeton_technique") }',
+      'model Copie { id String @id @db.Uuid\n societe_id String?\n @@map("checklist_modele") }',
+    ]) {
+      expect(
+        ecartsPerimetreAudit(schema + "\n" + modele, declenchees),
+        modele,
+      ).toEqual([]);
+    }
   });
 
   it("ÉPREUVE : un élargissement silencieux du périmètre est refusé", () => {
-    // Le cas inverse, et il est aussi grave. Depuis D52 il n'a plus besoin
-    // d'être nommé d'avance : n'IMPORTE QUELLE table hors liste est refusée.
-    // Deux sujets, pris chacun dans une catégorie différente de I1, pour que
-    // le refus ne tienne pas à une particularité de l'une d'elles.
+    // Le cas inverse, et il est aussi grave. Deux sujets, pris chacun dans une
+    // catégorie différente de I1, pour que le refus ne tienne pas à une
+    // particularité de l'une d'elles.
     for (const intruse of ["session", "devise"]) {
       const ecarts = ecartsPerimetreAudit(schema, [...declenchees, intruse]);
 
       expect(ecarts, intruse).toHaveLength(1);
       expect(ecarts[0]).toContain(intruse);
-      expect(ecarts[0]).toContain("ne figure PAS au périmètre d'audit de I8");
+      expect(ecarts[0]).toContain("ne relève PAS de la première catégorie");
     }
   });
 
-  it("D52 : `utilisateur_societe` est RÉCLAMÉE, et non plus refusée", () => {
-    // Le sens du gardien s'est inversé sur cette table, et il faut que le
-    // renversement soit lisible dans le test lui-même : elle figure au
-    // périmètre, elle existe au schéma, elle DOIT donc porter le déclencheur.
-    expect(tablesDuPerimetre()).toContain("utilisateur_societe");
+  it("ÉPREUVE : un déclencheur posé sur une table EXEMPTÉE est refusé", () => {
+    // La liste d'exemptions étant vide, l'épreuve se joue sur une exemption
+    // FABRIQUÉE — sinon la boucle ne tournerait sur rien et le scénario serait
+    // creux (§9, la vacuité). L'exemption n'est pas une permission de faire les
+    // deux : elle dit que la table n'est pas auditée.
+    const fabriquee: Exemption[] = [
+      {
+        table: "agence",
+        motif: "rejouable",
+        justification:
+          "exemption fabriquée pour l'épreuve — reconstituable depuis une " +
+          "autre table auditée",
+      },
+    ];
+
+    const ecarts = ecartsPerimetreAudit(schema, declenchees, fabriquee);
+    const sienne = ecarts.filter((ecart) => ecart.includes("« agence »"));
+
+    expect(sienne).toHaveLength(1);
+    expect(sienne[0]).toContain("figure aux EXEMPTIONS");
+  });
+
+  it("ÉPREUVE : une exemption qui ne s'adosse à rien est refusée", () => {
+    // Corollaire du 31/08 sur les sélections négatives : une exemption survit
+    // au renommage de sa table, ne protège plus rien, et le premier fichier qui
+    // reprendra ce nom en héritera sans que personne ne le lui ait accordé.
+    const fantome: Exemption[] = [
+      {
+        table: "table_disparue",
+        motif: "rejouable",
+        justification: "reconstituable depuis une autre table auditée",
+      },
+    ];
+
+    const ecarts = ecartsExemptions(observees, fantome);
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("table_disparue");
+    expect(ecarts[0]).toContain("ne s'applique à personne");
+  });
+
+  it("ÉPREUVE : une exemption sans justification écrite est refusée", () => {
+    const muette: Exemption[] = [
+      { table: "agence", motif: "rejouable", justification: "   " },
+    ];
+
+    const ecarts = ecartsExemptions(observees, muette);
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("sans justification écrite");
+  });
+
+  it("la liste d'exemptions est VIDE, et c'est un état, pas un oubli", () => {
+    // Toute table métier cloisonnée du dépôt est auditée. Une liste vide qui
+    // reste vide est un meilleur signal qu'une liste à une entrée qu'on cesse
+    // de regarder : le jour où elle cessera de l'être, la relecture aura une
+    // raison d'avoir lieu.
+    expect(EXEMPTIONS_AUDIT).toEqual([]);
+    expect(ecartsExemptions(observees)).toEqual([]);
+  });
+
+  it("`journal_audit` est HORS DU DOMAINE, et non exemptée", () => {
+    // La distinction n'est pas de vocabulaire. Une exemption se plaide table
+    // par table, et « impossibilité » serait un argument réutilisable — pour du
+    // volume, une récursion indirecte, un verrou. La frontière, elle, ne vise
+    // qu'un objet, et le §9 la nommait avant que la question ne se pose.
+    expect(tablesHorsDomaine()).toEqual(["journal_audit"]);
+    expect(tablesExemptees()).not.toContain("journal_audit");
+    expect(perimetre).not.toContain("journal_audit");
+
+    // Et elle relève bien de la première catégorie : sans cela, la retirer du
+    // domaine ne retirerait rien, et ce test serait creux.
+    expect(tablesPremiereCategorieI1(observees)).toContain("journal_audit");
+  });
+
+  it("ÉPREUVE : le motif `impossible` n'existe plus", () => {
+    // Le geste par lequel un périmètre inversé redevient une liste d'admis :
+    // on rouvre un second motif, mesure à l'appui, et il a raison sur la forme.
+    const rouverte: Exemption[] = [
+      {
+        table: "client",
+        motif: "impossible" as unknown as Exemption["motif"],
+        justification:
+          "le déclencheur ferait déborder la pile, mesuré, promis, juré",
+      },
+    ];
+
+    const ecarts = ecartsExemptions(observees, rouverte);
+    expect(ecarts.some((ecart) => ecart.includes("qui n'existe pas"))).toBe(
+      true,
+    );
+    expect(ecarts.join("\n")).toContain("rejouable");
+  });
+
+  it("ÉPREUVE : la frontière refuse une ADDITION", () => {
+    // Faire du §9 un argument réutilisable rouvrirait par la prose la porte que
+    // D55 a fermée.
+    const ecarts = ecartsListeHorsDomaine(["journal_audit", "journal_acces"]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_acces");
+    expect(ecarts[0]).toContain("arbitrage");
+  });
+
+  it("ÉPREUVE : la frontière refuse un RETRAIT", () => {
+    // Le sens inverse : le gardien réclamerait alors un déclencheur sur le
+    // journal, dont il est mesuré qu'il fait déborder la pile.
+    const ecarts = ecartsListeHorsDomaine([]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("journal_audit");
+    expect(ecarts[0]).toContain("ne figure plus hors du domaine");
+  });
+
+  it("ÉPREUVE : un déclencheur posé sur le journal lui-même est refusé", () => {
+    const ecarts = ecartsPerimetreAudit(schema, [
+      ...declenchees,
+      "journal_audit",
+    ]);
+
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("HORS DU DOMAINE");
+    expect(ecarts[0]).toContain("§9");
+  });
+
+  it("D52 : `utilisateur_societe` est auditée, et son absence est un écart", () => {
+    // Le cas qui a fondé D52 : la table des habilitations, dont la modification
+    // est l'acte le plus lourd de conséquences du système. Depuis D55 elle n'a
+    // plus besoin d'être nommée — elle porte `societe_id NOT NULL`, elle est
+    // donc auditée. Le renversement se lit ici : elle est réclamée par la
+    // RÈGLE, plus par une ligne de liste.
+    expect(perimetre).toContain("utilisateur_societe");
     expect(declenchees).toContain("utilisateur_societe");
 
-    // Et son absence est bien un écart, nommé : c'est l'épreuve du
-    // renversement, pas seulement son constat.
     const sansElle = declenchees.filter(
       (table) => table !== "utilisateur_societe",
     );
@@ -277,28 +491,15 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("utilisateur_societe");
-    expect(ecarts[0]).toContain("habilitations (D52)");
   });
 
-  it("les sept tables couvertes aujourd'hui sont exactement celles attendues", () => {
-    // Le décompte, pour qu'un déclencheur posé ailleurs se voie. La liste est
-    // recopiée : c'est la constitution confrontée aux migrations, pas les
-    // migrations confrontées à elles-mêmes.
-    expect([...declenchees].sort()).toEqual([
-      "agence",
-      "calendrier",
-      "calendrier_ferie",
-      "calendrier_plage",
-      "societe",
-      "utilisateur_client",
-      "utilisateur_societe",
-    ]);
+  it("L1-01 : `client` est auditée, et c'est le cas qui a motivé D55", () => {
+    expect(perimetre).toContain("client");
+    expect(declenchees).toContain("client");
   });
 
   it("ÉPREUVE : un déclencheur DÉPOSÉ ensuite ne compte plus (§9, forme 3)", () => {
-    // C'est l'état final qui compte, pas le verbe qui l'installe. Une migration
-    // de rattrapage qui déposerait le déclencheur sortirait la table du
-    // périmètre sans qu'aucune ligne de CREATE ne disparaisse.
+    // C'est l'état final qui compte, pas le verbe qui l'installe.
     const posee = {
       chemin: "prisma/migrations/1_pose/migration.sql",
       sql: 'CREATE TRIGGER "journal_audit" AFTER INSERT ON "societe" FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();',
@@ -313,9 +514,6 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   });
 
   it("ÉPREUVE : un déclencheur ENDORMI ne compte plus non plus (§9, forme 3)", () => {
-    // `DISABLE TRIGGER` laisse le déclencheur en place et inerte : le plus
-    // silencieux des trois, et celui qu'un gardien naïf ne verrait jamais. Les
-    // trois formes — le nom, `ALL`, `USER` — sont éprouvées.
     const posee = {
       chemin: "prisma/migrations/1_pose/migration.sql",
       sql: 'CREATE TRIGGER "journal_audit" AFTER INSERT ON "societe" FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();',
@@ -331,8 +529,6 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   });
 
   it("ÉPREUVE : la POSE depuis un bloc DO est vue (§9, forme 2)", () => {
-    // Les chaînes littérales restent dans le périmètre examiné : un
-    // déclencheur posé par `EXECUTE` est bel et bien posé.
     const parBloc = {
       chemin: "prisma/migrations/1_bloc/migration.sql",
       sql: `DO $$ BEGIN
@@ -344,8 +540,6 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   });
 
   it("ÉPREUVE : une pose CITÉE EN COMMENTAIRE ne compte pas (§9, forme 4)", () => {
-    // Le risque propre à ce gardien-ci est d'être trop PERMISSIF : une phrase
-    // qui cite la pose lui ferait croire à une couverture qui n'existe pas.
     const commentee = {
       chemin: "prisma/migrations/1_note/migration.sql",
       sql: '-- CREATE TRIGGER "journal_audit" AFTER INSERT ON "intervention" … viendra au lot 2.\nSELECT 1;',
@@ -355,8 +549,6 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
   });
 
   it("le motif reconnaît les graphies qu'un correcteur écrirait (§9, forme 1)", () => {
-    // Casse, guillemets, retour à la ligne, nom qualifié par le schéma : un
-    // motif qui ne voit qu'une forme laisse passer les autres.
     for (const graphie of [
       'CREATE TRIGGER "journal_audit" AFTER INSERT ON "intervention" FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();',
       "create trigger journal_audit after insert or update on intervention for each row execute function journal_audit_tracer();",
@@ -371,13 +563,15 @@ describe("le périmètre du journal d'audit suit I8 (L0-10, D32)", () => {
 });
 
 /**
- * D53 — LA LISTE N'A QU'UNE MAISON, et c'est vérifié plutôt que promis.
+ * D53, conservé par D55 — LA RÈGLE N'A QU'UNE MAISON, et c'est vérifié plutôt
+ * que promis.
  *
- * Le périmètre est écrit une fois, dans `scripts/lib/perimetre-audit.ts`.
+ * Le périmètre est défini une fois, dans `scripts/lib/perimetre-audit.ts`.
  * L'invariant I8 du CLAUDE.md, la règle RG-DRO-04 du chapitre 10 et le README y
- * RENVOIENT ; aucun ne l'énumère. Une recopie qui réapparaîtrait dans l'un des
- * trois rétablirait exactement ce que D53 supprime : deux listes qui divergent
- * en silence, dont l'une reste juste et l'autre devient fausse sans rougir.
+ * RENVOIENT ; aucun ne l'énumère. Depuis D55, il n'y a d'ailleurs plus de liste
+ * à recopier — mais la tentation change de forme : on recopierait désormais la
+ * liste CALCULÉE « pour la lisibilité », et elle deviendrait fausse à la
+ * première table métier suivante, sans rougir.
  *
  * Le détecteur est éprouvé sur une recopie fabriquée — sans quoi « aucune
  * recopie trouvée » et « le détecteur ne sait pas en trouver » se ressemblent
@@ -397,30 +591,22 @@ const SOURCES_QUI_RENVOIENT = [
  *
  * **Le critère est un SEUIL, pas zéro, et il faut dire pourquoi.** Citer une
  * table pour porter un argument est légitime — I8 nomme `utilisateur_societe`
- * parce que c'est le cas qui a fondé D52. Ce qui ne l'est pas, c'est de
- * réénumérer la liste. Une recopie les nomme toutes ; un argument en nomme une
- * ou deux. Le seuil est la MOITIÉ du périmètre, et il suit sa taille au lieu
- * d'être un chiffre écrit à la main.
- *
- * Sa limite, annoncée plutôt que tue : une recopie partielle de quatre tables
- * passerait. Le seuil arrête la recopie telle qu'elle se commet — on remet
- * « la liste, pour la lisibilité » —, pas une citation abondante.
+ * parce que c'est le cas qui a fondé D52, et `client` parce que c'est celui qui
+ * a fondé D55. Ce qui ne l'est pas, c'est de réénumérer le périmètre. Une
+ * recopie les nomme toutes ; un argument en nomme une ou deux.
  */
-export function tablesEnumerees(texte: string): string[] {
-  return tablesDuPerimetre().filter((table) =>
-    new RegExp(`\\b${table}\\b`).test(texte),
-  );
+export function tablesEnumerees(texte: string, calcule: readonly string[]) {
+  return calcule.filter((table) => new RegExp(`\\b${table}\\b`).test(texte));
 }
 
-/** À partir de combien de tables nommées un texte recopie le périmètre. */
-export const SEUIL_RECOPIE = Math.ceil(PERIMETRE_I8.length / 2);
-
-describe("le périmètre n'est écrit qu'à un seul endroit (D53)", () => {
+describe("le périmètre n'est défini qu'à un seul endroit (D53, D55)", () => {
   const CHEMIN = "scripts/lib/perimetre-audit.ts";
+  const calcule = perimetreAudit(observeesDuSchema(lireSchema()));
+  const seuil = Math.ceil(calcule.length / 2);
 
-  it("le périmètre lui-même est peuplé — sinon il n'y a rien à ne pas recopier", () => {
-    expect(PERIMETRE_I8.length).toBeGreaterThanOrEqual(10);
-    expect(new Set(tablesDuPerimetre()).size).toBe(PERIMETRE_I8.length);
+  it("le périmètre est peuplé — sinon il n'y a rien à ne pas recopier", () => {
+    expect(calcule.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(calcule).size).toBe(calcule.length);
     expect(NOM_DECLENCHEUR).toBe("journal_audit");
   });
 
@@ -434,37 +620,31 @@ describe("le périmètre n'est écrit qu'à un seul endroit (D53)", () => {
       expect(extrait, `section introuvable dans ${fichier}`).toBeTruthy();
       expect(extrait).toContain(CHEMIN);
 
-      // Une recopie énumère la liste. Deux ou trois noms cités pour porter un
-      // argument ne sont pas une recopie ; la moitié du périmètre en est une.
-      const enumerees = tablesEnumerees(extrait ?? "");
+      const enumerees = tablesEnumerees(extrait ?? "", calcule);
       expect(
         enumerees.length,
         `${fichier} réénumère le périmètre : ${enumerees.join(", ")}`,
-      ).toBeLessThan(SEUIL_RECOPIE);
+      ).toBeLessThan(seuil);
     });
   }
 
   it("ÉPREUVE : une recopie réintroduite est détectée", () => {
-    // La faute telle qu'elle se commettra : quelqu'un remet la liste « pour la
-    // lisibilité », et les deux listes repartent chacune de leur côté.
-    const recopie = `Le périmètre couvre ${tablesDuPerimetre().join(", ")}.`;
+    const recopie = `Le périmètre couvre ${calcule.join(", ")}.`;
 
-    expect(tablesEnumerees(recopie)).toEqual(tablesDuPerimetre());
-    expect(tablesEnumerees(recopie).length).toBeGreaterThanOrEqual(
-      SEUIL_RECOPIE,
+    expect(tablesEnumerees(recopie, calcule)).toEqual(calcule);
+    expect(tablesEnumerees(recopie, calcule).length).toBeGreaterThanOrEqual(
+      seuil,
     );
 
-    // Et une recopie PARTIELLE, exactement au seuil, est prise elle aussi :
-    // sans cette mesure, on ne saurait pas si le seuil mord ailleurs qu'au
-    // maximum.
-    const partielle = `Couvertes : ${tablesDuPerimetre()
-      .slice(0, SEUIL_RECOPIE)
-      .join(", ")}.`;
-    expect(tablesEnumerees(partielle).length).toBeGreaterThanOrEqual(
-      SEUIL_RECOPIE,
+    // Et une recopie PARTIELLE, exactement au seuil, est prise elle aussi.
+    const partielle = `Couvertes : ${calcule.slice(0, seuil).join(", ")}.`;
+    expect(tablesEnumerees(partielle, calcule).length).toBeGreaterThanOrEqual(
+      seuil,
     );
 
     // Le renvoi, lui, ne nomme rien.
-    expect(tablesEnumerees("Le périmètre vit dans " + CHEMIN)).toEqual([]);
+    expect(tablesEnumerees("Le périmètre vit dans " + CHEMIN, calcule)).toEqual(
+      [],
+    );
   });
 });

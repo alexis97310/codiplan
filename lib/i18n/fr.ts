@@ -61,6 +61,32 @@ export const fr = {
   // habilité quelque part : c'est exactement son objet.
   "auth.refus":
     "Accès refusé. Vérifiez vos identifiants ; si le problème persiste, contactez l'administrateur de votre société.",
+  // ── Référentiel client (ticket L1-01) ─────────────────────────────────────
+  // Ce que le PRODUIT dit. Ce qu'une SOCIÉTÉ dit est une donnée, lue en base :
+  // `societe.libelle_code_externe` remplace « client.code_externe » ci-dessous
+  // quand elle l'a renseigné (D29, lib/clients/code-externe.ts). Même coupure
+  // que la charte de L0-09 — le nom et les couleurs d'une société ne sont pas
+  // des constantes de compilation.
+  "client.titre": "Clients",
+  "client.raison_sociale": "Raison sociale",
+  // Libellé GÉNÉRIQUE, affiché à une société qui n'a pas nommé son ERP. « Code
+  // Winpro » est le libellé de CODIMA, pas celui du produit (D29).
+  "client.code_externe": "Code externe",
+  "client.ridet": "RIDET",
+  "client.categorie": "Catégorie",
+  "client.adresse_facturation": "Adresse de facturation",
+  "client.conditions_reglement": "Conditions de règlement",
+  "client.commercial_referent": "Commercial référent",
+  "client.actif": "Actif",
+  "client.recherche": "Rechercher un client",
+  "client.recherche.vide": "Aucun client ne correspond à cette recherche.",
+  // Refus rendus à l'écran : ils sont vus par un utilisateur, ils sont donc au
+  // dictionnaire. Le dépôt ne transporte qu'une CLÉ (`MotifRefusClient`) — une
+  // exception ne porte jamais de texte destiné à un humain.
+  "client.refus.code_externe_en_double":
+    "Ce code externe est déjà porté par une autre fiche de votre société. Le code identifie un client à l'import : deux fiches ne peuvent pas le partager.",
+  "client.refus.client_introuvable": "Cette fiche client est introuvable.",
+
   // ── Vocabulaire imposé (CLAUDE.md §3, arbitrages D5 et D47) ───────────────
   // Les SEULES entrées où les mots « agence » et « site » s'écrivent en toutes
   // lettres. Partout ailleurs dans ce fichier, ils se composent depuis ces

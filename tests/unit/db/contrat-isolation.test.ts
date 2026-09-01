@@ -8,7 +8,10 @@ import {
   TABLES_FIXTURES,
   type CleExigence,
 } from "../../isolation/setup/contrat";
-import { TABLES_PARC } from "../../../scripts/lib/politiques-rls";
+import {
+  ecartsListeParc,
+  TABLES_PARC,
+} from "../../../scripts/lib/politiques-rls";
 import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
 
 /**
@@ -105,6 +108,14 @@ export function ecartsCouverture(
   return ecarts;
 }
 
+/**
+ * Ce fichier-ci, nommé pour être RETIRÉ de la population du témoin de
+ * déplacement. Il appelle `ecartsListeParc` et ne doit donc pas se compter
+ * lui-même : une population qui contient l'observateur ne peut pas constater
+ * son absence (§9 du CLAUDE.md, 31/08).
+ */
+const FICHIER_OBSERVATEUR = "tests/unit/db/contrat-isolation.test.ts";
+
 describe("le contrat des fixtures d'isolation est structurel (R0-a, É14, L0-05)", () => {
   const sources = fichiersSource(["tests/isolation"]);
   const observees = marques(sources);
@@ -181,6 +192,59 @@ describe("le contrat des fixtures d'isolation est structurel (R0-a, É14, L0-05)
       expect(contrat?.colonneSite !== null, entree.table).toBe(
         entree.perimetre,
       );
+    }
+  });
+
+  it("le DEUXIÈME gardien est exécutable SANS base, et il l'est resté", () => {
+    // **Témoin de déplacement, et il ne peut pas vivre dans le fichier
+    // déplacé.** `ecartsListeParc` a quitté `tests/isolation/` pour
+    // `tests/unit/` au ticket L1-01 : c'est de la logique pure, et la laisser
+    // derrière un PostgreSQL jetable rendait le deuxième des trois gardiens
+    // muet pour `pnpm test`. Un test posé DANS le fichier déplacé disparaîtrait
+    // avec lui — il faut donc que quelqu'un d'autre constate qu'il est là.
+    //
+    // Ce que ce témoin attrape : la suppression du fichier, son retour dans
+    // `tests/isolation/`, ou un renommage qui laisserait la liste sans
+    // assertion. Ce qu'il n'attrape pas, et qui se dit : une assertion vidée de
+    // son contenu dans un fichier qui garderait l'appel.
+    // **CE fichier est exclu de la population, et c'est le point.** Il appelle
+    // lui-même `ecartsListeParc` deux lignes plus bas : sans cette exclusion,
+    // le témoin resterait vert alors même que le fichier déplacé aurait
+    // disparu. C'est le piège du 31/08 — une population qui contient
+    // l'observateur ne peut pas constater son absence.
+    const unitaires = fichiersSource(["tests/unit"]);
+    const moiMeme = unitaires.filter((source) =>
+      source.chemin.endsWith(FICHIER_OBSERVATEUR),
+    );
+    // Témoin d'adossement : l'exclusion nomme un chemin, et ce chemin existe.
+    // Une exemption qui ne s'applique à personne ne fait échouer personne.
+    expect(
+      moiMeme.map((source) => source.chemin),
+      `l'exclusion nomme « ${FICHIER_OBSERVATEUR} », qui n'existe plus : ` +
+        "elle ne protège rien, et le premier fichier qui reprendra ce nom en " +
+        "héritera sans que personne ne le lui ait accordé.",
+    ).toHaveLength(1);
+
+    const appelants = unitaires
+      .filter((source) => !source.chemin.endsWith(FICHIER_OBSERVATEUR))
+      .filter((source) =>
+        /\becartsListeParc\(/.test(sansCommentaires(source.contenu)),
+      );
+
+    expect(
+      appelants.map((source) => source.chemin),
+      "`ecartsListeParc` n'est plus asserté nulle part dans tests/unit/ (hors " +
+        "ce fichier) : le deuxième gardien du contrat R0-a exigerait de " +
+        "nouveau une base pour parler, ou ne parlerait plus du tout.",
+    ).not.toEqual([]);
+
+    // Et il refuse réellement quelque chose, plutôt que d'exister : le retrait
+    // de chacune des trois entrées est un écart nommé.
+    for (const partie of TABLES_PARC.map((entree) => entree.table)) {
+      const restantes = TABLES_PARC.map((entree) => entree.table).filter(
+        (table) => table !== partie,
+      );
+      expect(ecartsListeParc(restantes), partie).toHaveLength(1);
     }
   });
 

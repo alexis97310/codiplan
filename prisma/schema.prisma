@@ -98,6 +98,12 @@ model Societe {
   devise_code                   String
   taux_horaire_defaut           Decimal @db.Decimal(18, 4)
   majoration_hors_ouverture_pct Decimal @db.Decimal(5, 2)
+  /// Libellé d'affichage de `client.code_externe` — « Code Winpro » chez
+  /// CODIMA, autre chose ailleurs (D29, chapitre 11.2). NULLABLE et sans
+  /// valeur par défaut : nommer un défaut reviendrait à réintroduire dans le
+  /// produit le vocabulaire de l'ERP d'un seul client, ce que D29 corrige.
+  /// Absent, l'interface affiche le libellé générique du dictionnaire.
+  libelle_code_externe          String?
   /// Logo de la société. HORS PÉRIMÈTRE de L0-09 : l'afficher suppose un
   /// stockage de fichiers, décision d'architecture inscrite au registre des
   /// arbitrages. La colonne existe depuis L0-03 et le mécanisme de
@@ -128,6 +134,7 @@ model Societe {
   calendriers          Calendrier[]
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
+  clients              Client[]
   sessions_actives     Session[]
 
   @@map("societe")
@@ -383,6 +390,95 @@ model CalendrierFerie {
   @@unique([agence_id, date])
   @@index([agence_id])
   @@map("calendrier_ferie")
+}
+
+// ── Référentiel client (ticket L1-01, D29, chapitre 11.2) ───────────────────
+
+/// Fiche client — PREMIÈRE table métier du lot 1, et première table métier
+/// ordinaire du dépôt (I1, 1ʳᵉ catégorie) : `societe_id NOT NULL`, RLS activée
+/// ET forcée.
+///
+/// **Sa politique est de forme « PARC », jamais la clause société seule**
+/// (D10, D22). Le ticket L0-04 écrit « forme imposée » au singulier ; il y en a
+/// cinq, et recopier celle-là ici écrirait une politique fausse dans le sens
+/// permissif — en obéissant. Deux clients d'une MÊME société ne sont pas
+/// séparés par le filtre société : seul `app.client_id` les sépare, et sans lui
+/// un compte portail (D10) verrait la fiche de tous les autres clients de sa
+/// société. La clause posée par la migration est exactement celle que le
+/// harnais d'isolation posait sur la table fixture, de sorte que les scénarios
+/// de L0-05 se REPORTENT sur cette table au lieu de partir avec la fixture
+/// (contrat R0-a, écart É14).
+///
+/// `client` ne porte pas le filtre `app.perimetre_sites` : elle EST le client,
+/// il n'y a pas de site au-dessus d'elle. `site` (L1-02) et `machine` (L2-01)
+/// le porteront.
+///
+/// **Hors du périmètre d'audit de I8**, dont la liste — `scripts/lib/perimetre-audit.ts`
+/// — est close des deux côtés : y faire entrer `client` est un arbitrage, pas
+/// une décision de ticket (revue R0, écart É-b).
+model Client {
+  id                   String  @id @db.Uuid
+  societe_id           String  @db.Uuid
+  /// Clé de rapprochement à l'import (RG-IMP-05, amendée par D29). S'appelait
+  /// `code_winpro` avant D29 : le produit est vendu à des sociétés qui
+  /// n'utilisent pas Winpro, et une colonne ne se nomme pas d'après l'outil
+  /// d'un seul client.
+  ///
+  /// **Nullable**, parce que D29 l'exige : « son absence ne suffit plus à
+  /// rejeter la ligne ». Un client créé directement dans CODIPLAN n'en a pas,
+  /// et se rapproche par raison sociale au prochain import.
+  ///
+  /// **Unique DANS la société** quand il est présent — c'est la condition
+  /// d'existence de RG-IMP-05, non une précaution : deux fiches partageant un
+  /// code rendraient le rapprochement indéterminé sans qu'aucune erreur ne se
+  /// produise. Les NULL ne se heurtent pas dans un index unique PostgreSQL.
+  ///
+  /// Son LIBELLÉ d'affichage est paramétrable par société :
+  /// `societe.libelle_code_externe`.
+  code_externe         String?
+  /// Raison sociale. Obligatoire et non vide (contrainte `CHECK` en base : Zod
+  /// ne voit pas l'import Excel ni une correction manuelle).
+  ///
+  /// **Pas d'unicité**, et c'est une décision : RG-IMP-05 range l'ambiguïté de
+  /// raison sociale en « rejet pour arbitrage humain ». Une contrainte en base
+  /// transformerait cet arbitrage en refus, à la saisie plutôt qu'à l'import.
+  raison_sociale       String
+  /// Numéro d'identification des entreprises de Nouvelle-Calédonie. Aucun
+  /// contrôle de forme : le cahier des charges n'en donne aucun, et inventer un
+  /// motif refuserait des données justes.
+  ridet                String?
+  /// Catégorie client. **Texte libre, et délibérément pas une énumération** :
+  /// le chapitre 11 nomme la notion sans l'énumérer, le chapitre 10 est muet, et
+  /// fermer une énumération avant d'avoir tranché à qui l'on vend est l'erreur
+  /// du 20/08 (CLAUDE.md §9). L'énumérer sera un arbitrage.
+  categorie            String?
+  /// Adresse de facturation, en JSON comme `agence.adresse` : une adresse
+  /// calédonienne — boîte postale, tribu, commune — n'a pas la forme d'une
+  /// adresse métropolitaine, et figer des colonnes déciderait d'un format que
+  /// le cahier des charges ne donne pas.
+  adresse_facturation  Json?
+  /// Conditions de règlement. Texte libre pour la même raison que `categorie` :
+  /// aucune énumération n'est arrêtée.
+  conditions_reglement String?
+  /// Commercial référent, en TEXTE et non en clé étrangère vers `utilisateur`.
+  /// Le référent d'un client importé de l'ERP n'est pas nécessairement un compte
+  /// de la plateforme, et le lier à `utilisateur` déciderait le contraire. Le
+  /// jour où L1-04 livre les techniciens et les habilitations, le rattacher sera
+  /// un arbitrage — pas une conséquence.
+  commercial_referent  String?
+  actif                Boolean @default(true)
+
+  /// Les DEUX actions sont dites (CLAUDE.md §9, 24/08), et refusent toutes deux
+  /// plutôt que de propager. `Restrict` en suppression : effacer une société
+  /// emporterait son référentiel client. `Restrict` en mise à jour, et NON le
+  /// `Cascade` que Prisma pose par défaut — c'est la leçon de D49 : `societe.id`
+  /// est un UUID v7 technique (I10) qui ne change jamais, et `Cascade`
+  /// promettrait silencieusement de réécrire tout un parc client si cela
+  /// survenait.
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, code_externe])
+  @@map("client")
 }
 
 /// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas
