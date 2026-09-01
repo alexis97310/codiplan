@@ -136,6 +136,54 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # ── LA VEILLE DE LA BASE HÉBERGÉE — le détectif, à échéance fixe ────────────
+  #
+  # **Ce qu'elle répare, et il a été mesuré.** Les contrôles détectifs du dépôt
+  # — état RLS, formes de politique, privilèges du journal, durcissement des
+  # partitions, privilèges de consolidation, périmètre d'audit — ne
+  # s'exécutaient que dans `db-migrate.yml`, dont le déclencheur est
+  # `workflow_dispatch` ET LUI SEUL, par une décision explicite : une migration
+  # ne doit jamais partir toute seule. Et le `verify:full` ci-dessus tourne
+  # contre le PostgreSQL JETABLE du service ci-dessus, jamais contre Neon.
+  #
+  # Conséquence : le détectif n'avait jamais regardé l'endroit où la faute se
+  # produirait. Il ne voyait la base hébergée que lorsqu'un humain cliquait pour
+  # migrer — et entre deux migrations, il peut se passer des semaines. Une
+  # garantie dont le déclenchement dépend de l'initiative de quelqu'un n'est pas
+  # une garantie, c'est une intention.
+  #
+  # **Elle est en LECTURE SEULE, et par la base.** Toute la veille tient dans une
+  # transaction ouverte par `SET TRANSACTION READ ONLY` : PostgreSQL refuse alors
+  # les quatre verbes d'écriture ET tout le DDL. C'est ce qui rend acceptable de
+  # l'exécuter avec le rôle de MIGRATION — nécessaire parce que
+  # `information_schema.role_table_grants` n'est lisible que pour les droits dont
+  # le rôle connecté est bénéficiaire ou concédant (D38).
+  #
+  # Elle ne migre pas, n'amorce pas, ne purge pas. Un scénario d'isolation mesure
+  # l'effet du verrou plutôt que de le croire.
+  veille-hebergee:
+    name: veille — base hébergée
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm veille
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: pnpm veille
+
   # ── (a) L'ALARME — une nuit rouge ouvre une ISSUE ───────────────────────────
   #
   # Écart É12 de la revue R0. Constaté, non supposé : GitHub notifie bien par
@@ -153,8 +201,14 @@ jobs:
   # proposition de fusion a déjà un lecteur : celui qui l'a ouverte.
   alarme-nuit-rouge:
     name: alarme — nuit rouge
-    needs: verify-full
-    if: always() && needs.verify-full.result == 'failure'
+    # La veille rejoint la nuit : une base hébergée qui a dérivé est une nuit
+    # rouge au même titre qu'un `verify:full` cassé, et elle mérite la même
+    # issue. Sans cela, la veille aurait sonné dans la boîte de courriel que le
+    # 20 août a montrée vide.
+    needs: [verify-full, veille-hebergee]
+    if: >-
+      always() && (needs.verify-full.result == 'failure' ||
+      needs.veille-hebergee.result == 'failure')
     runs-on: ubuntu-latest
     # `contents: read` est là pour la même raison qu'au job `battement` : le
     # bloc remplace l'ensemble des droits. Ce job ne fait pas de `checkout`,
@@ -172,17 +226,19 @@ jobs:
           LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DECLENCHEUR: ${{ github.event_name }}
           COMMIT: ${{ github.sha }}
+          RESULTAT_VERIFY: ${{ needs.verify-full.result }}
+          RESULTAT_VEILLE: ${{ needs.veille-hebergee.result }}
         run: |
           set -euo pipefail
           MARQUEUR='[nuit-rouge]'
-          TITRE="$MARQUEUR verify:full a échoué"
+          TITRE="$MARQUEUR la vérification nocturne a échoué"
 
           # Le corps est assemblé par `printf`, jamais par un document en ligne :
           # un `<<TEXTE` dont le délimiteur est indenté — et il l'est forcément,
           # dans un bloc YAML — ne se referme pas. Éprouvé avec un `gh` factice
           # avant d'être livré.
           printf '%s\n' \
-            '`verify:full` a échoué.' \
+            "\`verify:full\` : $RESULTAT_VERIFY — veille de la base hébergée : $RESULTAT_VEILLE." \
             '' \
             "| | |" \
             "|---|---|" \

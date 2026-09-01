@@ -314,3 +314,127 @@ export function ecartsExemptions(
 
   return ecarts;
 }
+
+/**
+ * Les tables portant le déclencheur d'audit, telles que le CATALOGUE les
+ * montre — et non telles que les migrations les écrivent.
+ *
+ * Les deux lectures sont nécessaires et ne se remplacent pas. Le gardien
+ * statique lit les MIGRATIONS : il attrape le ticket qui crée une table sans
+ * son déclencheur, avant que la migration ne parte. Celle-ci lit la BASE : elle
+ * attrape ce qu'aucune migration ne raconte — un `DROP TRIGGER` passé à la main,
+ * une table créée hors migration, un `ALTER TABLE … DISABLE TRIGGER`. C'est le
+ * couple préventif/détectif du 30/08, appliqué au périmètre d'audit.
+ *
+ * `tgisinternal` écarte les déclencheurs que PostgreSQL pose lui-même pour les
+ * clés étrangères ; `tgenabled <> 'D'` écarte ceux qui sont endormis — un
+ * déclencheur désactivé n'écrit rien, et le compter reviendrait à croire une
+ * trace qui n'existe pas.
+ */
+export const SQL_DECLENCHEURS_AUDIT = `
+  SELECT "c"."relname"::text AS "table"
+    FROM "pg_catalog"."pg_trigger" "t"
+    JOIN "pg_catalog"."pg_class" "c" ON "c"."oid" = "t"."tgrelid"
+    JOIN "pg_catalog"."pg_namespace" "n" ON "n"."oid" = "c"."relnamespace"
+   WHERE "n"."nspname" = 'public'
+     AND "t"."tgname" = $1
+     AND NOT "t"."tgisinternal"
+     AND "t"."tgenabled" <> 'D'
+   ORDER BY "c"."relname"
+`;
+
+/**
+ * Écarts entre le périmètre d'audit et les déclencheurs réellement posés.
+ *
+ * **UNE SEULE implémentation, deux sources.** Le gardien statique lui passe le
+ * schéma Prisma et les migrations ; la veille de la base hébergée lui passe
+ * `pg_attribute` et `pg_trigger`. Écrire deux fois cette logique serait
+ * exactement l'espèce nommée au §9 du CLAUDE.md — deux lectures d'un même
+ * critère qui divergent en silence, aucune ne prétendant être l'autre.
+ *
+ * Quatre motifs :
+ *   1. une table métier cloisonnée sans déclencheur — le cas de `client` avant
+ *      D55, et il ne demandait aucune liste pour être détecté ;
+ *   2. un déclencheur sur le JOURNAL lui-même — il est hors du domaine (§9) ;
+ *   3. un déclencheur sur une table EXEMPTÉE — l'exemption dit une chose et la
+ *      base une autre ;
+ *   4. un déclencheur hors de la première catégorie de I1 — élargir la
+ *      traçabilité est un arbitrage.
+ */
+export function ecartsDeclencheurs(
+  observees: readonly TableObservee[],
+  declenchees: readonly string[],
+  exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
+  horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
+): string[] {
+  const perimetre = perimetreAudit(observees, exemptions, horsDomaine);
+  const exemptees = tablesExemptees(exemptions);
+
+  const ecarts: string[] = [
+    ...ecartsListeHorsDomaine(horsDomaine),
+    ...ecartsExemptions(observees, exemptions),
+  ];
+
+  for (const table of perimetre) {
+    if (!declenchees.includes(table)) {
+      ecarts.push(
+        `« ${table} » est une table métier cloisonnée (1ʳᵉ catégorie de I1) et ` +
+          `ne porte pas le déclencheur « ${NOM_DECLENCHEUR} ». Depuis D55 le ` +
+          "périmètre d'audit est INVERSÉ : une table métier est auditée par " +
+          "défaut, et n'y échappe que par une exemption écrite et justifiée " +
+          "dans scripts/lib/perimetre-audit.ts. Le déclencheur se pose dans la " +
+          "migration qui crée la table, jamais dans une migration de " +
+          "rattrapage écrite quand quelqu'un s'en apercevra.",
+      );
+    }
+  }
+
+  for (const table of declenchees) {
+    if (horsDomaine.includes(table)) {
+      ecarts.push(
+        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle est HORS DU DOMAINE d'audit — un gardien ne peut pas se " +
+          "garder lui-même (§9). Le journal n'est pas audité : il est " +
+          "INALTÉRABLE, et cela s'éprouve par tentative d'écriture, pas par " +
+          "un déclencheur qui écrirait dans la table qui le déclenche.",
+      );
+      continue;
+    }
+    if (exemptees.includes(table)) {
+      ecarts.push(
+        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle figure aux EXEMPTIONS. L'exemption dit une chose et la " +
+          "migration une autre : soit l'exemption n'a plus lieu d'être et se " +
+          "retire, soit le déclencheur est de trop.",
+      );
+      continue;
+    }
+    if (!perimetre.includes(table)) {
+      ecarts.push(
+        `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
+          "qu'elle ne relève PAS de la première catégorie de I1 — c'est un " +
+          "référentiel de plateforme, une table technique, ou elle n'existe " +
+          "pas au schéma. Élargir la traçabilité au-delà des tables métier " +
+          "cloisonnées est un arbitrage, jamais une décision de ticket.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/** Rapport de journal — ce que la veille a observé, avant tout verdict. */
+export function rapportDeclencheurs(
+  observees: readonly TableObservee[],
+  declenchees: readonly string[],
+): string {
+  const perimetre = perimetreAudit(observees);
+  return [
+    "Périmètre d'audit (calculé, non tenu — D55)",
+    `  ${perimetre.length} table(s) métier cloisonnée(s) à auditer, ` +
+      `${declenchees.length} déclencheur(s) observé(s) en base`,
+    `  hors du domaine : ${tablesHorsDomaine().join(", ")} ; ` +
+      `exemptions : ${tablesExemptees().length === 0 ? "aucune" : tablesExemptees().join(", ")}`,
+    "",
+  ].join("\n");
+}

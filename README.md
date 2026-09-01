@@ -234,6 +234,14 @@ inaltérable**, et cela s'éprouve par TENTATIVE d'`UPDATE` et de `DELETE` sous 
 rôle applicatif — sur la table mère, et sur **chaque partition** énumérée par
 `pg_inherits`, jamais sur la mère seule.
 
+**La fonction empêche l'oubli, le détectif rattrape la main.** Deux garanties de
+nature différente : `journal_audit_partition_creer` durcit dans la même
+transaction, donc aucun ticket ne crée de partition nue par le chemin du dépôt ;
+mais un `CREATE TABLE … PARTITION OF` tapé dans une console ne passe par aucune
+fonction. Tant que le rôle de migration n'est pas superutilisateur,
+`ddl_command_end` est hors de portée et l'état nu reste productible à la main —
+le jour où la base est auto-hébergée, le préventif remplacera le détectif.
+
 **La règle et ses exemptions n'ont qu'une maison, celle que la machine lit** :
 [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts). L'invariant
 I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne les recopie, et un
@@ -300,6 +308,34 @@ défaut. Le remède du premier est `pnpm partitions:etendre`.
 
 Reste ouvert au registre : le journal des référentiels de plateforme, et la
 **durée** de conservation.
+
+## Veille de la base hébergée — le détectif, chaque nuit
+
+`pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
+six contrôles d'observation contre la **vraie** base : état RLS, formes de
+politique, périmètre d'audit, ajout seul du journal, durcissement des partitions,
+privilèges de consolidation.
+
+**Ce qu'elle répare, et il a été mesuré.** Ces contrôles ne s'exécutaient que
+dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` **et lui
+seul** ; et le `verify:full` nocturne tourne contre un PostgreSQL **jetable**. Le
+détectif n'avait donc jamais regardé l'endroit où la faute se produit — il ne
+voyait la base hébergée que lorsqu'un humain cliquait pour migrer, et entre deux
+migrations il peut se passer des semaines. **Une garantie dont le déclenchement
+dépend de l'initiative de quelqu'un n'est pas une garantie, c'est une
+intention.**
+
+**Elle est en lecture seule par la base, pas par promesse.** Toute la veille
+tient dans une transaction ouverte par `SET TRANSACTION READ ONLY` — qui refuse
+les quatre verbes d'écriture **et tout le DDL**. La distinction avec
+`SET SESSION CHARACTERISTICS` n'est pas de style, elle a été mesurée : celle-ci
+ne verrouille pas la transaction en cours, et Prisma répartit ses requêtes sur un
+pool. C'est ce qui rend acceptable de l'exécuter avec le rôle de migration,
+nécessaire pour lire `information_schema.role_table_grants` (D38).
+
+Une veille rouge ouvre la **même issue** qu'un `verify:full` rouge. Éprouvée sur
+trois fautes réellement commises à la main sur une base — un `DROP TRIGGER`, une
+partition créée nue, un `GRANT UPDATE` de dépannage : les trois sont nommées.
 
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 

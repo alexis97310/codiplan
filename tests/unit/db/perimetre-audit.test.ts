@@ -7,6 +7,7 @@ import {
   EXEMPTIONS_AUDIT,
   HORS_DOMAINE_AUDIT,
   NOM_DECLENCHEUR,
+  ecartsDeclencheurs,
   ecartsExemptions,
   ecartsListeHorsDomaine,
   perimetreAudit,
@@ -164,19 +165,18 @@ export function observeesDuSchema(schema: string): TableObservee[] {
 }
 
 /**
- * Écarts entre ce que D55 exige et ce que le dépôt fait réellement.
+ * Écarts entre ce que D55 exige et ce que les MIGRATIONS font réellement.
  *
- * Quatre motifs, et le premier est celui que l'inversion apporte :
- *   1. une table de la première catégorie de I1 existe et ne porte AUCUN
- *      déclencheur, sans figurer aux exemptions — c'est le cas de `client`
- *      avant D55, et il ne demandait aucune liste pour être détecté ;
- *   2. une table EXEMPTÉE porte quand même un déclencheur — l'exemption dit une
- *      chose et la migration une autre ;
- *   3. un déclencheur est posé hors de la première catégorie de I1 —
- *      référentiel de plateforme, table technique : élargir la traçabilité est
- *      un arbitrage ;
- *   4. les écarts de la liste d'exemptions elle-même (`ecartsExemptions`), seule
- *      chose qui reste tenue à la main.
+ * **Ce n'est plus qu'une adaptation de source.** La logique vit dans
+ * `scripts/lib/perimetre-audit.ts`, appelée telle quelle : ce gardien-ci lui
+ * passe le schéma Prisma et les migrations, la veille de la base hébergée
+ * (`scripts/veille-hebergee.mts`) lui passe `pg_attribute` et `pg_trigger`.
+ *
+ * En écrire une seconde implémentation aurait été exactement l'espèce nommée au
+ * §9 du CLAUDE.md le jour même — deux lectures d'un même critère, chacune verte,
+ * qui divergent sans qu'aucune ne prétende être l'autre. Le corollaire disait :
+ * « soit on la remplace par un appel à la première, ce qui est presque toujours
+ * possible et presque toujours meilleur ». C'était possible ; c'est fait.
  */
 export function ecartsPerimetreAudit(
   schema: string,
@@ -184,61 +184,12 @@ export function ecartsPerimetreAudit(
   exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
   horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
 ): string[] {
-  const observees = observeesDuSchema(schema);
-  const perimetre = perimetreAudit(observees, exemptions, horsDomaine);
-  const exemptees = tablesExemptees(exemptions);
-
-  const ecarts: string[] = [
-    ...ecartsListeHorsDomaine(horsDomaine),
-    ...ecartsExemptions(observees, exemptions),
-  ];
-
-  for (const table of perimetre) {
-    if (!declenchees.includes(table)) {
-      ecarts.push(
-        `« ${table} » est une table métier cloisonnée (1ʳᵉ catégorie de I1) et ` +
-          `ne porte pas le déclencheur « ${NOM_DECLENCHEUR} ». Depuis D55 le ` +
-          "périmètre d'audit est INVERSÉ : une table métier est auditée par " +
-          "défaut, et n'y échappe que par une exemption écrite et justifiée " +
-          "dans scripts/lib/perimetre-audit.ts. Le déclencheur se pose dans la " +
-          "migration qui crée la table, jamais dans une migration de " +
-          "rattrapage écrite quand quelqu'un s'en apercevra.",
-      );
-    }
-  }
-
-  for (const table of declenchees) {
-    if (horsDomaine.includes(table)) {
-      ecarts.push(
-        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
-          "qu'elle est HORS DU DOMAINE d'audit — un gardien ne peut pas se " +
-          "garder lui-même (§9). Le journal n'est pas audité : il est " +
-          "INALTÉRABLE, et cela s'éprouve par tentative d'écriture, pas par " +
-          "un déclencheur qui écrirait dans la table qui le déclenche.",
-      );
-      continue;
-    }
-    if (exemptees.includes(table)) {
-      ecarts.push(
-        `« ${table} » porte le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
-          "qu'elle figure aux EXEMPTIONS. L'exemption dit une chose et la " +
-          "migration une autre : soit l'exemption n'a plus lieu d'être et se " +
-          "retire, soit le déclencheur est de trop.",
-      );
-      continue;
-    }
-    if (!perimetre.includes(table)) {
-      ecarts.push(
-        `« ${table} » a reçu le déclencheur « ${NOM_DECLENCHEUR} » alors ` +
-          "qu'elle ne relève PAS de la première catégorie de I1 — c'est un " +
-          "référentiel de plateforme, une table technique, ou elle n'existe " +
-          "pas au schéma. Élargir la traçabilité au-delà des tables métier " +
-          "cloisonnées est un arbitrage, jamais une décision de ticket.",
-      );
-    }
-  }
-
-  return ecarts;
+  return ecartsDeclencheurs(
+    observeesDuSchema(schema),
+    declenchees,
+    exemptions,
+    horsDomaine,
+  );
 }
 
 describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {

@@ -151,7 +151,9 @@ Toute création, modification ou suppression sur une table du périmètre est jo
 
 **Le journal lui-même est HORS DU DOMAINE, et ce n'est pas une exemption.** Un motif d'exemption est une porte qu'on rouvre par argument ; la frontière est une **liste close d'une entrée, gardée dans les deux sens** — la forme de `CLOISONNEE_PAR_IDENTITE`. Et la raison est doctrinale : **un gardien ne peut pas se garder lui-même** (§9). La récursion mesurée — `stack depth limit exceeded` — n'en est que le symptôme.
 
-**Ce que ce retrait coûte est payé au même endroit, et ÉPROUVÉ.** Le journal n'est pas audité, il est **inaltérable** : `UPDATE` et `DELETE` retirés au rôle applicatif, doublés par l'absence de politique pour ces verbes sous `FORCE ROW LEVEL SECURITY`. C'est plus fort qu'une trace, et cela se prouve par **TENTATIVE** — sur la table mère, et sur **chaque partition** énumérée par `pg_inherits`, jamais sur la mère seule : une partition est une table, elle n'hérite ni des privilèges ni des politiques du parent. Le durcissement est posé par la fonction qui **crée** la partition, dans la même transaction.
+**Ce que ce retrait coûte est payé au même endroit, et ÉPROUVÉ.** Le journal n'est pas audité, il est **inaltérable** : `UPDATE` et `DELETE` retirés au rôle applicatif, doublés par l'absence de politique pour ces verbes sous `FORCE ROW LEVEL SECURITY`. C'est plus fort qu'une trace, et cela se prouve par **TENTATIVE** — sur la table mère, et sur **chaque partition** énumérée par `pg_inherits`, jamais sur la mère seule : une partition est une table, elle n'hérite ni des privilèges ni des politiques du parent.
+
+**La FONCTION empêche l'oubli, le DÉTECTIF rattrape la main.** Deux garanties de nature différente, nommées séparément parce que la première ne couvre pas la seconde : `journal_audit_partition_creer` durcit dans la même transaction, donc aucun ticket ne peut créer une partition nue par le chemin du dépôt ; mais un `CREATE TABLE … PARTITION OF` tapé dans une console ne passe par aucune fonction. **Tant que le rôle de migration n'est pas superutilisateur, `ddl_command_end` est hors de portée et l'état nu reste productible à la main** — le jour où la base est auto-hébergée ou l'hébergeur ouvre les déclencheurs d'événement, le préventif remplace le détectif et cette phrase se retire. En attendant, le détectif tourne **chaque nuit sur la base réelle** (`pnpm veille`), et non plus seulement quand quelqu'un migre.
 
 **Et tout cela n'a QU'UNE MAISON, celle que la machine lit** *(D53)* : `scripts/lib/perimetre-audit.ts`. L'invariant que vous lisez y renvoie, RG-DRO-04 y renvoie, le README y renvoie — aucun ne le recopie. Une recopie réintroduite ici est refusée par un gardien.
 
@@ -190,6 +192,14 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
                       #   préventif — reste-t-il 12 mois de partitions devant ?
                       #   détectif  — la partition par défaut est-elle vide ?
 pnpm partitions:etendre # étend l'horizon des partitions du journal
+
+pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
+                      # les six contrôles d'observation — RLS, formes de
+                      # politique, périmètre d'audit, ajout seul du journal,
+                      # durcissement des partitions, privilèges de consolidation
+                      # — joués CHAQUE NUIT contre la vraie base, en LECTURE
+                      # SEULE (SET TRANSACTION READ ONLY). Le contrôle statique
+                      # ne voit pas ce qu'une main fait hors migration.
 
 pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ? (R0-a, É12)
                       # état du flux + âge de la dernière nuit. Tourne sur

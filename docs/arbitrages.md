@@ -1707,14 +1707,50 @@ privilèges — une lecture ne regarde qu'un des deux verrous :
    `journal_audit_partition_durcir` avant de rendre. Mesuré : une partition
    créée par cette fonction naît sans aucun privilège et sous RLS forcée.
 
-**La limite du troisième point, annoncée plutôt que tue.** Rendre l'état non
-durci *inproductible* demanderait un déclencheur d'événement (`ddl_command_end`),
-dont PostgreSQL réserve la création au superutilisateur — que le rôle de
-migration n'est pas sur la base hébergée. Le chemin du dépôt ne produit donc
-jamais de partition nue ; un `CREATE TABLE … PARTITION OF` écrit à la main, si —
-et c'est mesuré dans le scénario qui l'annonce. Ce qui reste alors est le
-contrôle **détectif** de `scripts/controle-cloisonnement.mts`, qui juge chaque
-partition à chaque migration : le couple préventif/détectif du 30/08.
+**LA FONCTION EMPÊCHE L'OUBLI, LE DÉTECTIF RATTRAPE LA MAIN.** Ce sont deux
+garanties de nature différente, et il faut les nommer séparément — sinon un
+lecteur futur croira que la première couvre la seconde. La fonction de création
+protège du **ticket distrait** : personne ne peut créer une partition par le
+chemin du dépôt sans la durcir, parce que c'est la même transaction. Le détectif
+protège du **geste manuel** : un `CREATE TABLE … PARTITION OF` tapé dans une
+console ne passe par aucune fonction, et rien de préventif ne peut l'arrêter.
+
+**La limite du troisième point, annoncée, avec sa CONDITION DE LEVÉE.** Rendre
+l'état non durci *inproductible* demanderait un déclencheur d'événement
+(`ddl_command_end`), dont PostgreSQL réserve la création au superutilisateur —
+que le rôle de migration n'est pas sur la base hébergée. La borne n'est donc pas
+un choix, c'est un privilège que l'hébergeur ne donne pas. Et parce qu'une limite
+héritée sans date se transmet indéfiniment, elle porte ici sa propre condition de
+retrait :
+
+> **Tant que le rôle de migration n'est pas superutilisateur, l'état nu reste
+> productible à la main, et c'est le détectif qui le rattrape. Le jour où la
+> base est auto-hébergée, ou le jour où l'hébergeur ouvre `ddl_command_end`, le
+> déclencheur d'événement remplace le détectif — et cette phrase se retire.**
+
+Une borne qui porte sa condition de retrait ne devient pas un vestige ; c'est ce
+que D54 disait des bornes de temps et de rang, appliqué à une borne d'exécution.
+
+**ET LE DÉTECTIF TOURNE MAINTENANT À ÉCHÉANCE FIXE, SUR LA VRAIE BASE.** Il ne
+le faisait pas, et c'est mesuré : les contrôles détectifs ne s'exécutaient que
+dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` **et lui
+seul** ; et le `verify:full` nocturne tourne contre un PostgreSQL **jetable**.
+Le détectif n'avait donc jamais regardé l'endroit où la faute se produit — il ne
+voyait la base hébergée que lorsqu'un humain cliquait pour migrer, et entre deux
+migrations il peut se passer des semaines. **Une garantie dont le déclenchement
+dépend de l'initiative de quelqu'un n'est pas une garantie, c'est une
+intention** — le même refus que celui opposé à la réparation « à lancer avant »
+de la clé étrangère de L1-02.
+
+`scripts/veille-hebergee.mts` (`pnpm veille`) joue donc les six contrôles
+d'observation chaque nuit contre la base réelle, et une veille rouge ouvre la
+même issue qu'un `verify:full` rouge. Elle est en **lecture seule par la base**,
+pas par promesse : toute la veille tient dans une transaction ouverte par
+`SET TRANSACTION READ ONLY`, qui refuse les quatre verbes d'écriture et tout le
+DDL. C'est ce qui rend acceptable de l'exécuter avec le rôle de migration,
+nécessaire pour lire `information_schema.role_table_grants` (D38). Éprouvée sur
+trois fautes réellement commises à la main sur une base : un `DROP TRIGGER`, une
+partition créée nue, un `GRANT UPDATE` de dépannage — les trois sont nommées.
 
 **C'est gardé, et des deux côtés.** `tests/unit/db/perimetre-audit.test.ts`
 réclame le déclencheur sur toute table métier non exemptée ; refuse un
