@@ -207,15 +207,18 @@ auteur, horodatage, adresse, et la ligne **entière** avant et après. Elle est
 chemin d'écriture n'y échappe, pas même un `UPDATE` tapé à la main dans `psql`.
 
 Le périmètre est une **liste de tables**, énumérée par I8 depuis D52 — et non
-une liste de notions qu'il faudrait interpréter. Sept tables aujourd'hui :
-`societe`, `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`,
-`utilisateur_societe` et `utilisateur_client`. `machine`, `intervention` et
-`contrat` le rejoindront **dans la migration qui les crée** : le gardien
+une liste de notions qu'il faudrait interpréter. **Elle n'a qu'une maison, celle
+que la machine lit** : [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts).
+L'invariant I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne la
+recopie, et un gardien refuse qu'une recopie y réapparaisse (D53).
+
+Sept tables y figurent aujourd'hui ; trois autres, qui viendront aux lots 2 et
+4, la rejoindront **dans la migration qui les crée** : le gardien
 `tests/unit/db/perimetre-audit.test.ts` le réclame dès que la table apparaît au
 schéma, plutôt que trois lots plus tard — et il refuse aussi un déclencheur posé
 sur une table absente de la liste, car élargir la traçabilité est un arbitrage.
 
-`utilisateur_societe` y figure parce que **c'est ainsi qu'on se donne un
+La table des habilitations y figure parce que **c'est ainsi qu'on se donne un
 accès** (D52) : « qui a accordé ce droit, quand, depuis quelle valeur » est la
 question de l'auditeur, et celle qui rend vérifiable la procédure de déblocage
 de D40.

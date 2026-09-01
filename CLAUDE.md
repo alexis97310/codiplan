@@ -141,25 +141,15 @@ Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Les jours fériés s
 Calendrier de référence par usage : SLA → agence de l'intervention ; majoration → agence du technicien ; conflit à la pose → calendrier de travail du technicien ; site fermé → horaires du site, avertissement seulement.
 
 ### I8 — Traçabilité
-Toute création, modification ou suppression sur une table du périmètre ci-dessous est journalisée avec auteur, horodatage et valeurs avant/après. Le journal est protégé par trigger PostgreSQL, pas seulement par un intercepteur applicatif.
+Toute création, modification ou suppression sur une table du périmètre est journalisée avec auteur, horodatage et valeurs avant/après. Le journal est protégé par trigger PostgreSQL, pas seulement par un intercepteur applicatif.
 
 **Le périmètre est une LISTE DE TABLES, pas une liste de notions** *(D52)*. Il énumérait des entités — « paramétrage société », « compte client » — et il fallait donc l'interpréter pour savoir ce qui était couvert. `utilisateur_societe` est le cas qui l'a montré : la table des habilitations, dont la modification est l'acte le plus lourd de conséquences du système, n'était rangée nulle part avec certitude. On corrige la source plutôt que l'interprétation *(méthode de D44)* : la liste est désormais explicite, et une table s'y ajoute par arbitrage.
 
-| Table | Ce qu'elle porte | Lot |
-|---|---|---|
-| `societe` | paramétrage de la société | livrée |
-| `agence` | établissements *(D5)* | livrée |
-| `calendrier`, `calendrier_plage` | heures d'ouverture *(D13)* | livrée |
-| `calendrier_ferie` | écarts locaux de calendrier *(D46)* | livrée |
-| `utilisateur_societe` | **habilitations** — qui a accordé quel droit *(D52)* | livrée |
-| `utilisateur_client` | comptes portail *(D10)* | livrée |
-| `machine` | fiches machine | L2-01 |
-| `intervention` | interventions | L2-07 |
-| `contrat` | contrats | lot 4 |
+**Et cette liste n'a QU'UNE MAISON, celle que la machine lit** *(D53)* : `scripts/lib/perimetre-audit.ts`. L'invariant que vous lisez y renvoie, RG-DRO-04 y renvoie, le README y renvoie — aucun ne la recopie. La onzième table s'ajoutera à un seul endroit parce qu'il n'y en aura qu'un. Une recopie réintroduite ici est refusée par un gardien.
 
 `utilisateur_societe` y entre parce que **c'est ainsi qu'on se donne un accès** : « qui a accordé ce droit, quand, depuis quelle valeur » est la question qu'un auditeur pose chez un client, et c'est elle qui rend vérifiable la procédure de déblocage de D40 *(L7-01)*. Elle porte `societe_id NOT NULL` : elle entre sans élargir aucune liste close.
 
-**La liste est close des DEUX côtés, et gardée.** `tests/unit/db/perimetre-audit.test.ts` part de cette table-ci : une table du périmètre présente au schéma sans déclencheur fait échouer la vérification **le jour où elle est créée** ; un déclencheur posé sur une table absente de la liste la fait échouer aussi — élargir la traçabilité est un arbitrage, jamais une décision de ticket.
+**La liste est close des DEUX côtés, et gardée.** `tests/unit/db/perimetre-audit.test.ts` part du périmètre : une table du périmètre présente au schéma sans déclencheur fait échouer la vérification **le jour où elle est créée** ; un déclencheur posé sur une table absente de la liste la fait échouer aussi — élargir la traçabilité est un arbitrage, jamais une décision de ticket.
 
 ### I9 — Aucune donnée de production dans le dépôt
 Pas de client réel, pas de photo, pas de clé, pas de `.env`. Les jeux de test viennent de `prisma/seed.ts`.
@@ -343,5 +333,13 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Le remède n'est pas la vigilance, c'est la RÉCIPROCITÉ.** Chaque règle nomme les arbitrages qui l'amendent, chaque arbitrage nomme les règles qu'il amende, et un gardien exige que les deux listes s'accordent — `tests/unit/docs/cablage-arbitrages.test.ts`. Deux listes qui se contrôlent l'une l'autre ne peuvent plus être fausses en silence : il faut désormais mentir des deux côtés. Corollaire général, au-delà des documents : **quand une décision prescrit un changement ailleurs qu'où elle s'écrit, l'autre moitié n'est jamais sous les yeux de la relecture qui l'adopte** — et rien ne la verra si rien n'est posté pour la voir.
 
   **Et le piège de la population, vu venir pour la première fois AVANT d'y tomber.** La façon naturelle d'écrire ce gardien est « pour chaque règle qui porte une mention d'amendement, vérifier que l'arbitrage cité la cite en retour ». Cette sélection exclut **exactement les dix règles cassées** — celles qui n'en portent aucune. C'est le `WHERE` qui recoupe l'assertion du 31/08, et la parade est la même : partir de l'**ensemble** des règles et de l'**ensemble** des arbitrages, faire de la mention une **assertion** et jamais un critère de sélection. Le gardien échoue en outre sur zéro paire observée, et il est éprouvé dans les deux sens sur des ruptures réellement écrites dans les documents réels — une déclaration retirée, une mention retirée, une référence qui ne s'adosse à rien, une mention mal formée. Sa limite est annoncée : un arbitrage qui amende une règle **sans jamais en écrire la référence** reste hors de portée d'un motif statique.
+
+  **Corollaire mesuré le 01/09, sur une liste close et non plus sur un document.** Le périmètre d'audit de I8 était écrit **trois** fois : dans le CLAUDE.md, dans le README, et « en toutes lettres » dans son propre gardien — cette dernière recopie étant délibérée et argumentée, « c'est la constitution qui est confrontée au dépôt ». L'argument ne tient pas : **rien ne confrontait la recopie à la constitution.** L'indépendance du gardien ne venait pas de là ; elle vient de ce qu'il confronte la liste aux **migrations** et au **schéma**, deux sources qu'il ne contrôle pas. D53 range la liste dans une seule maison — `scripts/lib/perimetre-audit.ts` — que les trois documents citent sans la recopier, et un gardien refuse qu'une recopie y réapparaisse. **Une liste close recopiée « pour la lisibilité » est deux listes**, et la seconde devient fausse le jour où la première grandit — sans rougir, comme les dix règles ci-dessus.
+
+- **01/09/2026 — UNE BORNE SUR LE TEMPS OU LE RANG EST SOUVENT L'APPROXIMATION D'UN CRITÈRE QU'ON NE SAVAIT PAS MESURER. QUAND LE CRITÈRE DEVIENT MESURABLE, L'APPROXIMATION NE SE CUMULE PAS : ELLE SE RETIRE.** RG-IMP-02 promettait une annulation d'import « pendant **24 heures** », et D15 ajoutait « seul le **dernier lot** est annulable ». Ni l'une ni l'autre ne mesurait quoi que ce soit — toutes deux pariaient sur la seule question qui compte : *cette annulation peut-elle encore faire des dégâts ?* Puis D15 a institué le critère qui la mesure vraiment, ligne par ligne : modifiée depuis, référencée depuis, refus motivé ; le reste est restauré. **Les deux bornes sont alors devenues du bruit défavorable** — elles refusent une annulation dont on peut prouver qu'elle est sans danger, et font perdre une journée à qui découvre son erreur le lendemain. D54 les supprime.
+
+  **Et le critère mesuré traite MIEUX le cas qui avait motivé la borne** — c'est le test à faire avant de la garder « par prudence ». Sur deux imports qui se recouvrent, la règle du dernier lot refusait le premier **en entier**, y compris ses lignes que le second n'a jamais touchées ; le critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et laisse passer les autres. La borne était donc **à la fois plus permissive** dans un sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait écrasé — **et plus brutale** dans l'autre. Une approximation conservée à côté de sa mesure n'ajoute pas de sécurité : elle en retire, et elle masque le fait qu'on sait désormais répondre.
+
+  *La question à poser à toute borne — un délai, un rang, un plafond, une fenêtre : quelle question ne savait-on pas poser le jour où on l'a écrite ? Si on sait la poser aujourd'hui, la borne n'est plus une garantie, c'est un vestige.*
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

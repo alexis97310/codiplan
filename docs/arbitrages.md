@@ -256,10 +256,17 @@ Faire payer Playwright à chaque ticket ralentirait tout pour un bénéfice marg
 |---|---|
 | Ligne créée par l'import, modifiée depuis | **L'annulation est refusée** pour cette ligne, et le rapport le signale. Les autres lignes du lot sont annulées |
 | Ligne créée par l'import, référencée depuis (une machine rattachée à un client importé) | **Refus d'annuler** cette ligne. Jamais de suppression en cascade |
-| Deux imports se recouvrant | Seul **le dernier lot** est annulable. Annuler un lot antérieur est refusé |
+| Deux imports se recouvrant | *(retirée par D54)* — chaque ligne est jugée sur elle-même : celles qu'un import ultérieur a touchées sont refusées avec leur motif, les autres sont annulées |
 | Modifications apportées par l'import | Restauration des valeurs antérieures, conservées dans `import_lot_ligne.valeurs_avant` |
 
 **Principe :** l'annulation est **partielle et sûre** plutôt que totale et destructrice. Le rapport d'annulation liste exactement ce qui a été restauré et ce qui ne pouvait pas l'être. RG-IMP-02 est réécrite en ce sens — « annulable intégralement » devient « annulable, avec refus motivé sur les lignes modifiées ou référencées depuis ».
+
+**Amendé par D54.** La ligne « Deux imports se recouvrant » disait : « Seul **le
+dernier lot** est annulable. Annuler un lot antérieur est refusé » — rédaction
+d'origine conservée ici, un amendement qui efface sa trace se rejoue au prochain
+doute *(méthode de D44)*. Elle est retirée, comme la fenêtre de 24 heures de
+RG-IMP-02, pour la raison exposée en D54 : le critère ligne à ligne que cette
+décision même institue mesure directement ce que ces deux bornes approchaient.
 
 **Règles amendées :** RG-IMP-02
 
@@ -1459,7 +1466,7 @@ Le ticket R0-b applique au texte les décisions déjà prises ; il n'en interpr�
 aucune. Deux points ne sont pas rédigés par la décision qui les prescrit : ils
 sont laissés en l'état, signalés dans le texte, et posés ici.
 
-### R4 — La rédaction exacte de RG-DRO-04 *(question ouverte — RG-DRO-04 porte la mention « Rédaction non appliquée »)*
+### R4 — La rédaction exacte de RG-DRO-04 — **TRANCHÉE par D53**
 
 D32 tranche : « le périmètre retenu est celui de I8 … RG-DRO-04 est **alignée
 dessus** ». À la date de D32, I8 énumérait des **notions** — intervention,
@@ -1474,13 +1481,10 @@ peut vouloir dire deux choses, et aucune des deux décisions ne dit laquelle.
 | **B — RG-DRO-04 énumère les dix tables** | le chapitre 10 reste lisible seul, conformément à « une règle métier ne s'écrit qu'au chapitre 10 » | **la même liste écrite à deux endroits** — le défaut du 19/08 exactement, et celui qui a produit soixante points d'ambiguïté. Il faudrait alors un gardien de plus pour tenir les deux listes accordées |
 | **C — l'inverse : I8 renvoie au chapitre 10** | la liste vit là où les règles métier vivent, et le CLAUDE.md la cite | I8 est un invariant du dépôt, pas seulement une règle produit ; le gardien `tests/unit/db/perimetre-audit.test.ts` lit aujourd'hui le CLAUDE.md |
 
-**Ce que le ticket a fait en attendant :** RG-DRO-04 conserve son texte
-d'origine, précédé de la mention **⚠ Rédaction non appliquée** qui dit
-pourquoi, et porte la mention `*(amendée par D32, D52)*` — le câblage enregistre
-que la règle **est** amendée, ce qui est vrai, indépendamment du fait que sa
-transcription reste à écrire.
+**Réponse : aucune des trois voies ci-dessus.** Voir **D53** — la liste n'a
+qu'une maison, et c'est celle que la machine lit.
 
-### R5 — La fenêtre de 24 heures de RG-IMP-02, et le rang de « seul le dernier lot est annulable » *(question ouverte)*
+### R5 — La fenêtre de 24 heures de RG-IMP-02, et le rang de « seul le dernier lot est annulable » — **TRANCHÉE par D54**
 
 D15 prescrit une substitution **littérale** : « annulable intégralement »
 devient « annulable, avec refus motivé sur les lignes modifiées ou référencées
@@ -1502,4 +1506,101 @@ inannulable **avant la fin de sa fenêtre**. Une règle qui promet 24 heures et
 une autre qui les retire ne peuvent pas cohabiter sans qu'on dise laquelle
 l'emporte.
 
+**Réponse : les deux bornes sont supprimées.** Voir **D54**.
+
 *Registre R0-b — CODIPLAN — 31 août 2026*
+
+
+---
+
+# CODIPLAN — Note d'arbitrage n°8
+
+**Où vit une liste close, et ce qu'on fait d'une borne devenue mesurable**
+
+| | |
+|---|---|
+| **Objet** | D53 et D54 — réponses à R4 et R5 du registre R0-b |
+| **Portée** | Décisions arrêtées, même autorité que les notes n°1 à n°7 |
+| **Date** | 1ᵉʳ septembre 2026 |
+| **Ticket** | R0-b |
+
+## D53 — Le périmètre d'audit n'a qu'une maison, et c'est celle que la machine lit
+
+**La décision.** Le périmètre du journal d'audit s'écrit **une seule fois**,
+dans `scripts/lib/perimetre-audit.ts`. **RG-DRO-04 est réécrite** pour y
+renvoyer, l'invariant I8 y renvoie, le README y renvoie ; **aucun ne le
+recopie**. La onzième table s'ajoutera à un seul endroit parce qu'il n'y en aura
+qu'un.
+
+**Pourquoi ni « énumérer » ni « renvoyer à I8 ».** Le registre R0-b posait la
+question entre deux voies, et toutes deux acceptaient la prémisse fausse : que
+la liste vive dans un document. Énumérer au chapitre 10 aurait écrit la même
+liste à deux endroits — le défaut du 19/08, celui qui a produit soixante points
+d'ambiguïté. Renvoyer à I8 aurait fait dépendre une règle de rang 2 d'un
+document sans rang, sans supprimer pour autant la vraie duplication : le
+gardien portait déjà, lui, une **troisième** copie.
+
+**Et cette troisième copie était le vrai défaut, découvert en répondant.** Le
+gardien `tests/unit/db/perimetre-audit.test.ts` recopiait le périmètre « en
+toutes lettres », délibérément, au motif que « c'est la constitution qui est
+confrontée au dépôt ». L'argument ne tient pas à l'examen : **rien ne
+confrontait la recopie à la constitution.** Deux listes qui pouvaient diverger
+en silence, dont l'une serait restée juste et l'autre serait devenue fausse sans
+rougir — c'est É8 une catégorie plus bas, et cela se serait produit le jour où
+une onzième table serait entrée par arbitrage.
+
+L'indépendance du gardien ne venait pas de la recopie. Elle vient de ce qu'il
+confronte la liste aux **migrations** et au **schéma**, deux sources qu'il ne
+contrôle pas — et cela n'a pas bougé.
+
+**L'objection « le chapitre 10 doit se lire seul » se règle par une référence
+explicite.** Un lecteur de RG-DRO-04 sait où est la liste ; il ne risque pas
+d'en lire une périmée, ce qui est exactement le risque qu'une recopie lui
+faisait courir. Une référence coûte un aller-retour ; une copie coûte une
+divergence.
+
+**C'est gardé.** Un test vérifie que le CLAUDE.md, le chapitre 10 et le README
+citent le chemin et n'énumèrent pas le périmètre, et il est éprouvé sur une
+recopie fabriquée : « aucune recopie trouvée » et « le détecteur ne sait pas en
+trouver » se ressemblent trait pour trait.
+
+**Règles amendées :** RG-DRO-04
+
+## D54 — La fenêtre de 24 heures et le rang du dernier lot sont supprimés
+
+**La décision.** **RG-IMP-02 est réécrite** : l'annulation d'un import n'est
+bornée **ni par un délai, ni par le rang du lot**. La règle « seul le dernier
+lot est annulable » est retirée de D15, et `import_lot.date_limite_annulation`
+disparaît du chapitre 11.
+
+**Ce que ces deux bornes approchaient.** Toutes deux répondaient, faute de
+mieux, à une seule question : *cette annulation peut-elle encore faire des
+dégâts ?* Vingt-quatre heures était une approximation du temps qu'il faut pour
+qu'une donnée importée soit reprise ; « seul le dernier lot » une approximation
+du recouvrement entre deux imports. Ni l'une ni l'autre ne mesurait quoi que ce
+soit — elles pariaient.
+
+**Or D15 amendé mesure la chose directement**, ligne par ligne : une ligne
+modifiée depuis l'import est refusée, une ligne référencée depuis est refusée, le
+reste est restauré. Garder les bornes par-dessus ce critère revient à **refuser
+une annulation dont on peut prouver qu'elle est sans danger**, et à faire perdre
+une journée à qui découvre son erreur le lendemain matin.
+
+**Et le critère mesuré traite MIEUX le cas qui avait motivé le rang.** Deux
+imports qui se recouvrent : la règle du dernier lot refusait le premier
+**en entier**, y compris ses lignes que le second n'a jamais touchées. Le
+critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et
+laisse passer les autres. La borne était donc à la fois plus permissive dans un
+sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait
+écrasé — et plus brutale dans l'autre. C'est cette conséquence qui justifie la
+suppression, et non un allègement.
+
+**Ce qui ne change pas.** L'annulation reste **partielle et sûre**, jamais
+totale et destructrice ; le rapport d'annulation liste toujours ce qui a été
+restauré et ce qui ne pouvait pas l'être ; et la traçabilité du lot
+(`import_lot`, `import_lot_ligne.valeurs_avant`) est inchangée — c'est elle qui
+rend le critère calculable, et c'est pourquoi la borne peut tomber.
+
+**Règles amendées :** RG-IMP-02
+
+*Note d'arbitrage n°8 — CODIPLAN — 1ᵉʳ septembre 2026*

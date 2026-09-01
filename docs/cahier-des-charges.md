@@ -666,10 +666,6 @@ listes sont vérifiées l'une par l'autre — `tests/unit/docs/cablage-arbitrage
 part de **toutes** les règles et de **tous** les arbitrages, et une absence de
 mention est un écart, jamais une sortie du périmètre.*
 
-*Une règle en attente de rédaction porte la mention **⚠ Rédaction non appliquée** :
-l'arbitrage qui l'amende est connu, sa transcription ne l'est pas encore. Il n'y en
-a **qu'une**, RG-DRO-04, et la question ouverte est posée au ticket R0-b.*
-
 ### RG — Multi-société
 
 | Réf | Règle |
@@ -747,7 +743,7 @@ a **qu'une**, RG-DRO-04, et la question ouverte est posée au ticket R0-b.*
 | Réf | Règle |
 |---|---|
 | RG-IMP-01 | Aucun import n'est appliqué sans contrôle préalable présenté à l'utilisateur et validation explicite. |
-| RG-IMP-02 | Chaque chargement est identifié, journalisé et **annulable, avec refus motivé sur les lignes modifiées ou référencées depuis**, pendant 24 heures. *(amendée par D15)* |
+| RG-IMP-02 | Chaque chargement est identifié, journalisé et **annulable, avec refus motivé sur les lignes modifiées ou référencées depuis**. L'annulation n'est bornée ni par un délai ni par le rang du lot : ce qui est sans danger est restauré, ce qui ne l'est pas est refusé avec son motif. *(amendée par D15, D54)* |
 | RG-IMP-03 | Les lignes rejetées sont retournées dans un fichier annoté, corrigeable et rechargeable. |
 | RG-IMP-04 | Un import ne peut créer de données que dans la société sur laquelle l'utilisateur est positionné. |
 | RG-IMP-05 | Le rapprochement à l'import se fait sur le **code externe** du client s'il existe, à défaut sur la **raison sociale normalisée**. Son absence ne suffit plus à rejeter la ligne. En cas d'ambiguïté, la ligne part en **rejet pour arbitrage humain** plutôt qu'en création silencieuse d'un doublon. *(amendée par D29)* |
@@ -759,7 +755,7 @@ a **qu'une**, RG-DRO-04, et la question ouverte est posée au ticket R0-b.*
 | RG-DRO-01 | Un client n'accède qu'aux données de son propre périmètre. Le contrôle est appliqué côté serveur, jamais seulement à l'affichage. |
 | RG-DRO-02 | Un technicien accède aux machines des interventions qui lui sont ou lui ont été affectées, **et à l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours**, plus la résolution par QR code. *(amendée par D22)* |
 | RG-DRO-03 | Les montants de vente et les marges ne sont visibles que par les profils autorisés, selon la matrice du §5.2. |
-| RG-DRO-04 | **⚠ Rédaction non appliquée.** Le texte ci-après est celui d'origine ; D32 l'aligne sur le périmètre de I8 et D52 a remplacé ce périmètre par une **liste de tables**. Aucune des deux décisions ne dit si RG-DRO-04 doit énumérer ces tables ou renvoyer à I8 — la question est posée au ticket R0-b et n'est pas tranchée. Texte d'origine : « Toute création, modification ou suppression sur une intervention, un contrat, une fiche machine ou un paramétrage société est journalisée avec auteur, horodatage et valeurs avant/après. » *(amendée par D32, D52)* |
+| RG-DRO-04 | Toute création, modification ou suppression sur une table du **périmètre d'audit** est journalisée avec auteur, horodatage et valeurs avant/après. Le périmètre est une liste close de tables, écrite **une seule fois**, dans `scripts/lib/perimetre-audit.ts` : cette règle y renvoie, l'invariant I8 y renvoie, et une table ne s'y ajoute que par arbitrage. Le journal est écrit par un déclencheur PostgreSQL, jamais par la couche applicative. *(amendée par D32, D52, D53)* |
 | RG-DRO-05 | Le second facteur est **obligatoire** pour les rôles `admin_plateforme`, `admin_societe` et `direction`. Pour `admin_societe`, la contrainte pèse sur un utilisateur du client : elle est **annoncée à l'ouverture de toute nouvelle société**, avant que le premier compte ne soit créé. Aucune société n'est ouverte sans que son administrateur ait été averti qu'une application d'authentification lui sera nécessaire. *(amendée par D40 — règle introduite par cet arbitrage.)* |
 
 ---
@@ -964,7 +960,7 @@ dans la table `parite` ci-dessous.*
 
 **utilisateur** — email, hash du mot de passe, actif, dernière connexion, MFA. **utilisateur_societe** — utilisateur, société, rôle : c'est cette table qui porte l'habilitation multi-société.
 
-**import_lot** — société, type d'import, utilisateur, horodatage, nom du fichier, url du fichier source, lignes créées / modifiées / rejetées, statut (controle, applique, annule), date limite d'annulation.
+**import_lot** — société, type d'import, utilisateur, horodatage, nom du fichier, url du fichier source, lignes créées / modifiées / rejetées, statut (controle, applique, annule). *(`date_limite_annulation` est supprimée par D54 : l'annulation n'est plus bornée par un délai.)*
 
 **journal_audit** — société, entité, identifiant, action, utilisateur, horodatage, valeurs avant et après, adresse IP.
 

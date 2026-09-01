@@ -39,9 +39,9 @@ const analyse: Analyse = analyserCablage(CDC, ARBITRAGES);
  * lieu de passer au vert sur une observation vide.
  */
 const PLANCHER_REGLES = 40;
-const PLANCHER_DECISIONS = 45;
-const PLANCHER_PAIRES = 14;
-const PLANCHER_PROSE = 13;
+const PLANCHER_DECISIONS = 50;
+const PLANCHER_PAIRES = 16;
+const PLANCHER_PROSE = 15;
 
 /** Le câblage attendu, écrit ici pour être lu — et non déduit du document. */
 const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
@@ -59,6 +59,8 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D47", "RG-PLA-01"],
   ["D47", "RG-PLA-02"],
   ["D52", "RG-DRO-04"],
+  ["D53", "RG-DRO-04"],
+  ["D54", "RG-IMP-02"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {
