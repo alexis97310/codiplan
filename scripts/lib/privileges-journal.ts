@@ -20,13 +20,31 @@
  * `codiplan_reporting` (D38), et elle appelle la même réponse : **observer, ne
  * pas déclarer.**
  *
- * **Pourquoi `information_schema.role_table_grants`.** C'est la vue qui dit ce
- * que la base a réellement accordé, et non ce que le dépôt croit avoir accordé.
- * Elle n'est lisible que pour les droits dont le rôle connecté est bénéficiaire
- * ou concédant : le contrôle s'exécute donc sous le rôle de MIGRATION, qui a
- * posé les `GRANT`. Sous un autre rôle, la requête rendrait zéro ligne — et le
- * vide ressemble beaucoup trop à la conformité pour qu'on l'accepte. D'où la
- * première règle ci-dessous : **zéro ligne est un échec.**
+ * **Pourquoi le CATALOGUE (`pg_class.relacl`) et non
+ * `information_schema.role_table_grants`.** Les deux disent ce que la base a
+ * réellement accordé, et non ce que le dépôt croit avoir accordé. Mais la vue
+ * normalisée n'est lisible que pour les droits dont le rôle CONNECTÉ est
+ * bénéficiaire ou concédant : elle exigeait donc le rôle de MIGRATION, celui
+ * qui a posé les `GRANT`. Mesuré : sous `codiplan_app`, elle rend **zéro
+ * ligne** pour les droits de `codiplan_reporting`, et le vide ressemble
+ * beaucoup trop à la conformité.
+ *
+ * Faire tourner chaque nuit un rôle capable de tout écrire, pour un travail qui
+ * ne demande que de lire un catalogue, était un prix qu'on n'avait aucune raison
+ * de payer. `aclexplode("relacl")` est lisible par n'importe quel rôle : la même
+ * observation se fait désormais sous `codiplan_app`, qui n'a ni `BYPASSRLS`, ni
+ * DDL, ni droit sur les tables qu'il n'utilise pas. Mesuré : 8 lignes pour
+ * `codiplan_reporting`, et `INSERT,SELECT` pour `codiplan_app` sur le journal —
+ * les mêmes qu'`information_schema` rendait au rôle privilégié.
+ *
+ * **La différence sémantique, dite plutôt que tue :** `relacl` porte les
+ * privilèges accordés DIRECTEMENT ; `role_table_grants` déplie en plus ceux
+ * qu'un rôle tient par appartenance à un autre. Les rôles du dépôt sont créés
+ * `NOINHERIT` et n'appartiennent à aucun groupe — la question ne se pose pas
+ * aujourd'hui, et le jour où un rôle serait rendu membre d'un autre, c'est un
+ * arbitrage, pas une conséquence.
+ *
+ * La première règle ci-dessous ne change pas : **zéro ligne est un échec.**
  */
 
 /** Rôle applicatif contrôlé (migration `20260820130000`). */
@@ -56,13 +74,16 @@ export const PRIVILEGES_ATTENDUS = ["INSERT", "SELECT"] as const;
  * paramètres liés, jamais interpolés.
  */
 export const SQL_PRIVILEGES_JOURNAL = `
-  SELECT "privilege_type"::text AS "privilege",
-         "is_grantable"::text   AS "transmissible"
-    FROM "information_schema"."role_table_grants"
-   WHERE "grantee" = $1
-     AND "table_schema" = 'public'
-     AND "table_name" = $2
-   ORDER BY "privilege_type"
+  SELECT "a"."privilege_type"::text                          AS "privilege",
+         CASE WHEN "a"."is_grantable" THEN 'YES' ELSE 'NO' END AS "transmissible"
+    FROM "pg_catalog"."pg_class" "c"
+    JOIN "pg_catalog"."pg_namespace" "n" ON "n"."oid" = "c"."relnamespace"
+    CROSS JOIN LATERAL aclexplode("c"."relacl") "a"
+    JOIN "pg_catalog"."pg_roles" "r" ON "r"."oid" = "a"."grantee"
+   WHERE "n"."nspname" = 'public'
+     AND "c"."relname" = $2
+     AND "r"."rolname" = $1
+   ORDER BY "a"."privilege_type"
 `;
 
 /** Ligne brute telle que la requête la rend. */
@@ -206,6 +227,14 @@ export function rapportPrivilegesJournal(
  * « aucune partition n'existe ». Le contrôle ne saurait plus distinguer les
  * deux.
  */
+/*
+ * `to_regclass` plutôt que `::regclass`, et ce n'est pas une préférence : sur
+ * une base où la table n'existe pas, le cast LÈVE, et l'erreur brute de
+ * PostgreSQL — « relation does not exist » — remplace le témoin de population.
+ * Mesuré sur un schéma vide : le contrôle échouait bien, mais en disant autre
+ * chose que ce qu'il avait à dire, et c'est le témoin qui nomme la cause
+ * probable (table absente, mauvaise base, rôle aveugle).
+ */
 export const SQL_PARTITIONS_JOURNAL = `
   SELECT "c"."relname"::text            AS "partition",
          "c"."relrowsecurity"           AS "rls_activee",
@@ -216,11 +245,13 @@ export const SQL_PARTITIONS_JOURNAL = `
          )                              AS "privileges"
     FROM "pg_catalog"."pg_class" "c"
     JOIN "pg_catalog"."pg_inherits" "i" ON "i"."inhrelid" = "c"."oid"
-    LEFT JOIN "information_schema"."role_table_grants" "g"
-      ON "g"."table_schema" = 'public'
-     AND "g"."table_name" = "c"."relname"
-     AND "g"."grantee" = $1
-   WHERE "i"."inhparent" = 'public.journal_audit'::regclass
+    LEFT JOIN LATERAL (
+      SELECT "a"."privilege_type"
+        FROM aclexplode("c"."relacl") "a"
+        JOIN "pg_catalog"."pg_roles" "r" ON "r"."oid" = "a"."grantee"
+       WHERE "r"."rolname" = $1
+    ) "g" ON true
+   WHERE "i"."inhparent" = to_regclass('public.journal_audit')
    GROUP BY "c"."relname", "c"."relrowsecurity", "c"."relforcerowsecurity"
    ORDER BY "c"."relname"
 `;

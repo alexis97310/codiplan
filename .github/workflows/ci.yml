@@ -152,20 +152,36 @@ jobs:
   # garantie dont le déclenchement dépend de l'initiative de quelqu'un n'est pas
   # une garantie, c'est une intention.
   #
-  # **Elle est en LECTURE SEULE, et par la base.** Toute la veille tient dans une
-  # transaction ouverte par `SET TRANSACTION READ ONLY` : PostgreSQL refuse alors
-  # les quatre verbes d'écriture ET tout le DDL. C'est ce qui rend acceptable de
-  # l'exécuter avec le rôle de MIGRATION — nécessaire parce que
+  # **Elle tourne sous le rôle APPLICATIF, le moins doté qui voie le catalogue.**
+  # Une première rédaction employait le rôle de MIGRATION, parce que
   # `information_schema.role_table_grants` n'est lisible que pour les droits dont
-  # le rôle connecté est bénéficiaire ou concédant (D38).
+  # le rôle connecté est bénéficiaire ou concédant. On exposait ainsi chaque
+  # nuit, dans un travail automatique, une accréditation capable de tout écrire —
+  # pour lire un catalogue. Les privilèges se lisent désormais dans
+  # `pg_class.relacl` (`aclexplode`), que n'importe quel rôle voit : mêmes
+  # lignes, mesuré, et plus aucun secret privilégié sur ce chemin.
+  #
+  # **Et elle est en LECTURE SEULE, par la base.** Toute la veille tient dans une
+  # transaction ouverte par `SET TRANSACTION READ ONLY` : PostgreSQL refuse alors
+  # les quatre verbes d'écriture ET tout le DDL. Le verrou protège de l'accident,
+  # le rôle protège de l'accréditation — ce ne sont pas les mêmes risques.
   #
   # Elle ne migre pas, n'amorce pas, ne purge pas. Un scénario d'isolation mesure
   # l'effet du verrou plutôt que de le croire.
+  #
+  # **DEUX ROUGES, PAS UN.** Neon suspend une base inactive, et le premier réveil
+  # peut expirer. Une veille qui rendrait le même rouge dans les deux cas
+  # apprendrait en trois semaines à ne plus être lue — et l'on aurait reconstruit
+  # É12 avec plus de machinerie. Le script sort en 75 (`EX_TEMPFAIL`) quand la
+  # base est INJOIGNABLE, en 1 quand elle a été jointe et qu'elle a dérivé. Le
+  # job publie la nature, et l'alarme n'ouvre pas la même issue.
   veille-hebergee:
     name: veille — base hébergée
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      nature: ${{ steps.veille.outputs.nature }}
     steps:
       - uses: actions/checkout@v5
 
@@ -180,9 +196,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: pnpm veille
+        id: veille
         env:
-          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
-        run: pnpm veille
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set +e
+          pnpm veille
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            nature=verte
+          elif [ "$code" -eq 75 ]; then
+            nature=liaison
+          else
+            nature=securite
+          fi
+          echo "nature=$nature" >> "$GITHUB_OUTPUT"
+          exit "$code"
 
   # ── (a) L'ALARME — une nuit rouge ouvre une ISSUE ───────────────────────────
   #
@@ -228,17 +258,34 @@ jobs:
           COMMIT: ${{ github.sha }}
           RESULTAT_VERIFY: ${{ needs.verify-full.result }}
           RESULTAT_VEILLE: ${{ needs.veille-hebergee.result }}
+          NATURE_VEILLE: ${{ needs.veille-hebergee.outputs.nature }}
         run: |
           set -euo pipefail
-          MARQUEUR='[nuit-rouge]'
-          TITRE="$MARQUEUR la vérification nocturne a échoué"
+          # DEUX marqueurs, donc DEUX fils d'issues. Une nuit injoignable est un
+          # incident d'EXPLOITATION ; une base qui a dérivé est un incident de
+          # SÉCURITÉ. Les mêler apprendrait à ne plus lire ni l'un ni l'autre.
+          if [ "$NATURE_VEILLE" = "liaison" ]; then
+            MARQUEUR='[veille-injoignable]'
+            TITRE="$MARQUEUR la base hébergée n'a pas pu être jointe"
+            NATURE="**Incident d'EXPLOITATION.** La veille n'a rien constaté : elle n'a pas pu regarder. Neon suspend une base inactive et le premier réveil peut expirer — ce rouge ne dit RIEN de l'état de la base."
+          elif [ "$NATURE_VEILLE" = "securite" ]; then
+            MARQUEUR='[veille-securite]'
+            TITRE="$MARQUEUR la base hébergée a DÉRIVÉ"
+            NATURE="**Incident de SÉCURITÉ.** La base a été jointe et observée : elle s'écarte de ce que le dépôt exige. Ces écarts ne viennent d'aucune migration — ce sont des gestes passés à la main."
+          else
+            MARQUEUR='[nuit-rouge]'
+            TITRE="$MARQUEUR la vérification nocturne a échoué"
+            NATURE="**Vérification nocturne rouge.**"
+          fi
 
           # Le corps est assemblé par `printf`, jamais par un document en ligne :
           # un `<<TEXTE` dont le délimiteur est indenté — et il l'est forcément,
           # dans un bloc YAML — ne se referme pas. Éprouvé avec un `gh` factice
           # avant d'être livré.
           printf '%s\n' \
-            "\`verify:full\` : $RESULTAT_VERIFY — veille de la base hébergée : $RESULTAT_VEILLE." \
+            "$NATURE" \
+            '' \
+            "\`verify:full\` : $RESULTAT_VERIFY — veille de la base hébergée : $RESULTAT_VEILLE ($NATURE_VEILLE)." \
             '' \
             "| | |" \
             "|---|---|" \

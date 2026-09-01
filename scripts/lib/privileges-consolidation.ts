@@ -35,13 +35,16 @@ export const ROLE_CONSOLIDATION = "codiplan_reporting";
  * paramètre (`$1`), jamais interpolé.
  */
 export const SQL_PRIVILEGES_CONSOLIDATION = `
-  SELECT "table_name"::text     AS "table",
-         "privilege_type"::text AS "privilege",
-         "is_grantable"::text   AS "transmissible"
-    FROM "information_schema"."role_table_grants"
-   WHERE "grantee" = $1
-     AND "table_schema" = 'public'
-   ORDER BY "table_name", "privilege_type"
+  SELECT "c"."relname"::text                                 AS "table",
+         "a"."privilege_type"::text                          AS "privilege",
+         CASE WHEN "a"."is_grantable" THEN 'YES' ELSE 'NO' END AS "transmissible"
+    FROM "pg_catalog"."pg_class" "c"
+    JOIN "pg_catalog"."pg_namespace" "n" ON "n"."oid" = "c"."relnamespace"
+    CROSS JOIN LATERAL aclexplode("c"."relacl") "a"
+    JOIN "pg_catalog"."pg_roles" "r" ON "r"."oid" = "a"."grantee"
+   WHERE "n"."nspname" = 'public'
+     AND "r"."rolname" = $1
+   ORDER BY "c"."relname", "a"."privilege_type"
 `;
 
 /** Ligne brute telle que la requête la rend. */

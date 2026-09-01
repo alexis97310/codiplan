@@ -367,8 +367,31 @@ export function ecartsDeclencheurs(
   exemptions: readonly Exemption[] = EXEMPTIONS_AUDIT,
   horsDomaine: readonly string[] = HORS_DOMAINE_AUDIT,
 ): string[] {
+  // TÉMOIN DE POPULATION, et c'est la faute déjà commise deux fois : « aucune
+  // table sans déclencheur » est vert que la réponse soit zéro parce qu'il n'y
+  // en a pas, ou zéro parce que la requête n'a rien vu — mauvais schéma,
+  // mauvais filtre, connexion sur la mauvaise base. Les cinq autres contrôles
+  // du dépôt portaient déjà cette garde ; celui-ci ne l'avait pas.
+  if (observees.length === 0) {
+    return [
+      "aucune table observée : le périmètre d'audit n'a rien établi. Schéma " +
+        "vide, mauvaise base, ou requête jouée hors du schéma attendu — dans " +
+        "les trois cas, « aucune table sans déclencheur » ne prouve rien.",
+    ];
+  }
+
   const perimetre = perimetreAudit(observees, exemptions, horsDomaine);
   const exemptees = tablesExemptees(exemptions);
+
+  // Second témoin, plus étroit : des tables observées mais AUCUNE de la
+  // première catégorie de I1 signifie que le critère de cloisonnement n'a rien
+  // reconnu — une colonne `societe_id` renommée, par exemple.
+  if (perimetre.length === 0 && horsDomaine.length === 0) {
+    return [
+      "aucune table métier cloisonnée parmi les tables observées : le " +
+        "périmètre d'audit est vide, et il n'a donc rien gardé.",
+    ];
+  }
 
   const ecarts: string[] = [
     ...ecartsListeHorsDomaine(horsDomaine),
@@ -431,8 +454,9 @@ export function rapportDeclencheurs(
   const perimetre = perimetreAudit(observees);
   return [
     "Périmètre d'audit (calculé, non tenu — D55)",
-    `  ${perimetre.length} table(s) métier cloisonnée(s) à auditer, ` +
-      `${declenchees.length} déclencheur(s) observé(s) en base`,
+    `  ${observees.length} table(s) observée(s), ${perimetre.length} ` +
+      `métier cloisonnée(s) à auditer, ${declenchees.length} déclencheur(s) ` +
+      "observé(s)",
     `  hors du domaine : ${tablesHorsDomaine().join(", ")} ; ` +
       `exemptions : ${tablesExemptees().length === 0 ? "aucune" : tablesExemptees().join(", ")}`,
     "",

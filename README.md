@@ -325,17 +325,32 @@ migrations il peut se passer des semaines. **Une garantie dont le déclenchement
 dépend de l'initiative de quelqu'un n'est pas une garantie, c'est une
 intention.**
 
-**Elle est en lecture seule par la base, pas par promesse.** Toute la veille
-tient dans une transaction ouverte par `SET TRANSACTION READ ONLY` — qui refuse
-les quatre verbes d'écriture **et tout le DDL**. La distinction avec
-`SET SESSION CHARACTERISTICS` n'est pas de style, elle a été mesurée : celle-ci
-ne verrouille pas la transaction en cours, et Prisma répartit ses requêtes sur un
-pool. C'est ce qui rend acceptable de l'exécuter avec le rôle de migration,
-nécessaire pour lire `information_schema.role_table_grants` (D38).
+**Deux protections, contre deux risques différents.** Le **rôle** protège de
+l'accréditation : la veille se connecte avec `codiplan_app`, le moins doté qui
+voie encore le catalogue — ni superutilisateur, ni `BYPASSRLS`, ni DDL. Cela
+suppose de lire les privilèges dans `pg_class.relacl` (`aclexplode`) et non dans
+`information_schema.role_table_grants`, aveugle à ce que le rôle connecté n'a ni
+reçu ni concédé ; mesuré, les deux rendent les mêmes lignes. Le **verrou**
+protège de l'accident : toute la veille tient dans une transaction ouverte par
+`SET TRANSACTION READ ONLY`, qui refuse les quatre verbes d'écriture **et tout le
+DDL**. La distinction avec `SET SESSION CHARACTERISTICS` n'est pas de style, elle
+a été mesurée : celle-ci ne verrouille pas la transaction en cours, et Prisma
+répartit ses requêtes sur un pool.
 
-Une veille rouge ouvre la **même issue** qu'un `verify:full` rouge. Éprouvée sur
-trois fautes réellement commises à la main sur une base — un `DROP TRIGGER`, une
-partition créée nue, un `GRANT UPDATE` de dépannage : les trois sont nommées.
+**Deux rouges, pas un.** Neon suspend une base inactive et le premier réveil peut
+expirer. Une veille qui rendrait le même rouge dans les deux cas apprendrait en
+trois semaines à ne plus être lue. Le script sort en **75** (`EX_TEMPFAIL`) quand
+la base est **injoignable** — incident d'exploitation, il ne dit rien de l'état
+de la base — et en **1** quand elle a été jointe et qu'elle a **dérivé** —
+incident de sécurité. Trois fils d'issues distincts : `[veille-injoignable]`,
+`[veille-securite]`, `[nuit-rouge]`.
+
+**Chaque contrôle refuse une population vide**, et le rapport dit ses effectifs :
+« 0 faute sur 14 partitions » est une preuve, « 0 faute » n'en est pas une.
+
+Éprouvée sur trois fautes réellement commises à la main sur une base — un
+`DROP TRIGGER`, une partition créée nue, un `GRANT UPDATE` de dépannage : les
+trois sont nommées.
 
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 

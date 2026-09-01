@@ -197,9 +197,13 @@ pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
                       # les six contrôles d'observation — RLS, formes de
                       # politique, périmètre d'audit, ajout seul du journal,
                       # durcissement des partitions, privilèges de consolidation
-                      # — joués CHAQUE NUIT contre la vraie base, en LECTURE
-                      # SEULE (SET TRANSACTION READ ONLY). Le contrôle statique
-                      # ne voit pas ce qu'une main fait hors migration.
+                      # — joués CHAQUE NUIT contre la vraie base, sous le rôle
+                      # APPLICATIF et en LECTURE SEULE (SET TRANSACTION READ
+                      # ONLY). Le contrôle statique ne voit pas ce qu'une main
+                      # fait hors migration. Deux rouges distincts : 75 si la
+                      # base est INJOIGNABLE (exploitation), 1 si elle a DÉRIVÉ
+                      # (sécurité) — les mêler apprendrait à ne lire ni l'un
+                      # ni l'autre.
 
 pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ? (R0-a, É12)
                       # état du flux + âge de la dernière nuit. Tourne sur

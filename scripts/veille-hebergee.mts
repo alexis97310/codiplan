@@ -125,28 +125,84 @@ import {
 export const INSTRUCTION_LECTURE_SEULE = "SET TRANSACTION READ ONLY";
 
 /**
- * L'URL du rôle de MIGRATION, et le refus explicite de s'en passer.
+ * L'URL du rôle APPLICATIF — le moins doté qui voie encore le catalogue.
  *
- * Sans elle, `information_schema.role_table_grants` rendrait zéro ligne et les
- * deux contrôles de privilèges passeraient au vert en n'ayant rien observé.
- * Zéro ligne est un échec (D38) — mais mieux vaut refuser de partir que
- * produire un rapport vert et creux.
+ * **Ce n'était pas le cas de la première rédaction, et c'était un vrai
+ * défaut.** Elle se connectait avec le rôle de MIGRATION, parce que
+ * `information_schema.role_table_grants` n'est lisible que pour les droits dont
+ * le rôle connecté est bénéficiaire ou concédant — mesuré : sous
+ * `codiplan_app`, elle rend zéro ligne pour les droits de `codiplan_reporting`.
+ * On exposait donc chaque nuit, dans un travail automatique, une accréditation
+ * capable de tout écrire, pour faire un travail qui ne demande que de lire un
+ * catalogue. Le verrou `READ ONLY` protège de l'accident ; il ne protège pas de
+ * l'accréditation elle-même.
+ *
+ * `aclexplode("relacl")` est lisible par n'importe quel rôle, et rend la même
+ * observation. La veille se connecte donc avec `codiplan_app` : ni superuser,
+ * ni `BYPASSRLS`, ni DDL, ni le moindre droit sur une table qu'il n'utilise pas.
+ * Aucun rôle n'a été créé pour ce ticket.
  */
 export function urlVeille(
   environnement: Record<string, string | undefined>,
 ): string {
-  const url = environnement.MIGRATION_DATABASE_URL;
+  const url = environnement.DATABASE_URL;
   if (url === undefined || url.trim().length === 0) {
     throw new Error(
-      "MIGRATION_DATABASE_URL est vide : la veille ne peut pas lire " +
-        "information_schema.role_table_grants, et les contrôles de privilèges " +
-        "rendraient zéro ligne — un vide qui ressemble trop à la conformité. " +
-        "La session est passée en LECTURE SEULE : ce rôle privilégié n'y écrit " +
-        "rien.",
+      "DATABASE_URL est vide : la veille n'a pas de base à observer. Elle " +
+        "attend l'URL du rôle APPLICATIF — le moins doté qui voie le " +
+        "catalogue —, jamais celle du rôle de migration : un travail qui ne " +
+        "fait que lire n'a aucune raison de porter une accréditation capable " +
+        "d'écrire.",
     );
   }
   return url;
 }
+
+/**
+ * Codes de sortie — parce que ROUGE PARCE QUE FAUTE et ROUGE PARCE
+ * QU'INJOIGNABLE ne sont pas la même nuit.
+ *
+ * Neon suspend une base inactive, et le premier réveil peut expirer. Une veille
+ * qui rendrait le même rouge dans les deux cas apprendrait en trois semaines à
+ * ne plus être lue — et l'on aurait reconstruit l'écart É12 avec plus de
+ * machinerie. Une nuit injoignable est un incident d'EXPLOITATION ; une
+ * partition nue est un incident de SÉCURITÉ. Le flux lit ces codes et n'ouvre
+ * pas la même issue.
+ */
+export const CODE_SORTIE_ECART = 1;
+/** `EX_TEMPFAIL` de `sysexits.h` : la chose a échoué, mais peut-être pas la chose. */
+export const CODE_SORTIE_LIAISON = 75;
+
+/**
+ * Codes Prisma d'une base qu'on n'a pas pu joindre — par opposition à une base
+ * jointe qui a répondu quelque chose de faux.
+ *
+ * `P1001` injoignable, `P1002` délai de connexion dépassé, `P1008` délai
+ * d'opération dépassé, `P1017` le serveur a fermé la connexion. Les quatre
+ * décrivent la LIAISON, jamais l'état de la base.
+ */
+export const CODES_LIAISON = ["P1001", "P1002", "P1008", "P1017"];
+
+/** L'échec est-il de liaison, ou constaté sur une base bel et bien jointe ? */
+export function estPanneDeLiaison(erreur: unknown): boolean {
+  if (erreur instanceof EcartConstate) {
+    return false;
+  }
+  const nom = erreur instanceof Error ? erreur.name : "";
+  if (nom === "PrismaClientInitializationError") {
+    return true;
+  }
+  const code: unknown = (erreur as { errorCode?: unknown; code?: unknown })
+    ?.errorCode;
+  const alternatif: unknown = (erreur as { code?: unknown })?.code;
+  return (
+    (typeof code === "string" && CODES_LIAISON.includes(code)) ||
+    (typeof alternatif === "string" && CODES_LIAISON.includes(alternatif))
+  );
+}
+
+/** Un écart CONSTATÉ sur une base jointe — c'est un incident de sécurité. */
+export class EcartConstate extends Error {}
 
 /** Un contrôle : ce qu'il a observé, ce qu'il en dit, et ce qu'il refuse. */
 type Controle = {
@@ -243,26 +299,35 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
       process.stdout.write(controle.rapport);
     }
 
-    // TÉMOIN GLOBAL. Une base injoignable, un schéma vide ou une requête jouée
-    // ailleurs qu'on ne croit produiraient des observations vides — et six
-    // contrôles verts sur du vide ressemblent trait pour trait à six contrôles
-    // verts sur une base saine (§9, 30/08).
-    if (colonnes.length === 0 || politiques.length === 0) {
-      throw new Error(
-        "La veille n'a RIEN observé : aucune table ou aucune politique dans " +
-          "le schéma « public » de la base hébergée. Base vide, mauvaise base, " +
-          "ou requête jouée hors du schéma attendu — dans les trois cas, un " +
-          "rapport vert ne prouverait rien.",
-      );
-    }
-
+    // TÉMOIN GLOBAL — et il s'AJOUTE aux écarts au lieu de les court-circuiter.
+    //
+    // Une base injoignable, un schéma vide ou une requête jouée ailleurs qu'on
+    // ne croit produiraient des observations vides, et six contrôles verts sur
+    // du vide ressemblent trait pour trait à six contrôles verts sur une base
+    // saine (§9, 30/08). Chacun des six porte donc SA PROPRE garde de
+    // population — le sixième, le périmètre d'audit, ne l'avait pas.
+    //
+    // Une première rédaction levait ici, avant de lire les six. Le message
+    // était juste et la démonstration incomplète : on ne voyait pas que chaque
+    // contrôle avait, lui aussi, refusé le vide. Le témoin global est donc un
+    // écart de plus, en tête, et les six parlent derrière lui.
     const ecarts = controles.flatMap((controle) =>
       controle.ecarts.map((ecart) => `[${controle.nom}] ${ecart}`),
     );
 
+    if (colonnes.length === 0 || politiques.length === 0) {
+      ecarts.unshift(
+        "[veille] la veille n'a RIEN observé : aucune table ou aucune " +
+          "politique dans le schéma « public ». Base vide, mauvaise base, ou " +
+          "requête jouée hors du schéma attendu — dans les trois cas, un " +
+          "rapport vert ne prouverait rien.",
+      );
+    }
+
     if (ecarts.length > 0) {
-      throw new Error(
-        "La base hébergée s'est écartée de ce que le dépôt exige :\n" +
+      throw new EcartConstate(
+        "INCIDENT DE SÉCURITÉ — la base hébergée s'est écartée de ce que le " +
+          "dépôt exige :\n" +
           ecarts.map((ecart) => `  — ${ecart}`).join("\n") +
           "\n\nCes écarts ne viennent d'aucune migration : ce sont des gestes " +
           "passés à la main sur la base. C'est exactement ce que cette veille " +
@@ -271,9 +336,17 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
       );
     }
 
+    // « 0 faute sur 13 partitions » est une preuve ; « 0 faute » n'en est pas
+    // une. Le rapport final dit donc ce qu'il a VU, pas seulement ce qu'il n'a
+    // pas trouvé.
     process.stdout.write(
-      `Veille de la base hébergée : ${controles.length} contrôles, aucun écart. ` +
-        "Lecture seule, aucune écriture émise.\n",
+      `Veille de la base hébergée : ${controles.length} contrôles, aucun écart, ` +
+        `sur ${colonnes.length} table(s), ${politiques.length} politique(s), ` +
+        `${etatRls.length} état(s) RLS, ${declencheurs.length} déclencheur(s), ` +
+        `${partitions.length} partition(s), ` +
+        `${privilegesJournal.length} privilège(s) de journal et ` +
+        `${consolidation.length} de consolidation. ` +
+        "Rôle applicatif, transaction en lecture seule.\n",
     );
   }
 }
@@ -289,5 +362,21 @@ const invoqueeDirectement =
   import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (invoqueeDirectement) {
-  await veiller();
+  try {
+    await veiller();
+  } catch (erreur: unknown) {
+    const liaison = estPanneDeLiaison(erreur);
+    const message = erreur instanceof Error ? erreur.message : String(erreur);
+
+    process.stderr.write(
+      liaison
+        ? "INCIDENT D'EXPLOITATION — la base hébergée est INJOIGNABLE. La " +
+            "veille n'a rien constaté : elle n'a pas pu regarder. Neon suspend " +
+            "une base inactive et le premier réveil peut expirer ; ce rouge-ci " +
+            "ne dit RIEN de l'état de la base.\n" +
+            `${message}\n`
+        : `${message}\n`,
+    );
+    process.exit(liaison ? CODE_SORTIE_LIAISON : CODE_SORTIE_ECART);
+  }
 }

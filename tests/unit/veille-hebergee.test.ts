@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  CODES_LIAISON,
+  CODE_SORTIE_ECART,
+  CODE_SORTIE_LIAISON,
+  EcartConstate,
   INSTRUCTION_LECTURE_SEULE,
+  estPanneDeLiaison,
   urlVeille,
 } from "../../scripts/veille-hebergee.mjs";
 
@@ -39,7 +44,7 @@ describe("la veille de la base hébergée (D55)", () => {
   describe("elle est branchée, et sur une échéance", () => {
     it("le flux la déclare comme job", () => {
       position("veille-hebergee:");
-      position("run: pnpm veille");
+      position("pnpm veille");
     });
 
     it("elle tourne à ÉCHÉANCE FIXE, pas seulement à la main", () => {
@@ -53,18 +58,46 @@ describe("la veille de la base hébergée (D55)", () => {
       expect(CI).toContain('- cron: "0 15 * * *"');
     });
 
-    it("elle reçoit le secret du rôle de migration, et lui seul", () => {
+    it("elle reçoit le secret du rôle APPLICATIF, jamais celui de migration", () => {
+      // **Le point le plus important de ce gardien.** Lire `pg_inherits`,
+      // `pg_policies` et les ACL ne demande aucun droit particulier. Faire
+      // porter à un travail automatique nocturne une accréditation capable de
+      // tout écrire serait payer un prix qu'on n'a aucune raison de payer — et
+      // le verrou READ ONLY protège de l'accident, pas de l'accréditation.
       const bloc = CI.slice(
         position("veille-hebergee:"),
         position("alarme-nuit-rouge:"),
       );
-      expect(bloc).toContain(
-        "MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}",
-      );
+      expect(bloc).toContain("DATABASE_URL: ${{ secrets.DATABASE_URL }}");
+      expect(bloc).not.toContain("secrets.MIGRATION_DATABASE_URL");
       // Elle ne migre pas et n'amorce pas : ces mots n'ont rien à faire ici.
       expect(bloc).not.toContain("migrate deploy");
       expect(bloc).not.toContain("db:seed");
       expect(bloc).not.toContain("PURGE_DEMONSTRATION_CONFIRMEE");
+    });
+
+    it("elle publie la NATURE de son rouge, et l'alarme la lit", () => {
+      const bloc = CI.slice(
+        position("veille-hebergee:"),
+        position("alarme-nuit-rouge:"),
+      );
+      expect(bloc).toContain("nature: ${{ steps.veille.outputs.nature }}");
+      expect(bloc).toContain("nature=liaison");
+      expect(bloc).toContain("nature=securite");
+      expect(CI).toContain("needs.veille-hebergee.outputs.nature");
+    });
+
+    it("les deux rouges ouvrent DEUX fils d'issues distincts", () => {
+      // Une nuit injoignable est un incident d'EXPLOITATION ; une base qui a
+      // dérivé est un incident de SÉCURITÉ. Les mêler apprendrait en trois
+      // semaines à ne plus lire ni l'un ni l'autre.
+      for (const marqueur of [
+        "[veille-injoignable]",
+        "[veille-securite]",
+        "[nuit-rouge]",
+      ]) {
+        expect(CI, marqueur).toContain(marqueur);
+      }
     });
 
     it("une nuit de veille rouge ouvre la MÊME issue qu'un verify:full rouge", () => {
@@ -120,17 +153,59 @@ describe("la veille de la base hébergée (D55)", () => {
   });
 
   describe("elle refuse de partir aveugle", () => {
-    it("exige MIGRATION_DATABASE_URL plutôt que de rendre zéro ligne", () => {
-      // Sous un autre rôle, `information_schema.role_table_grants` rendrait
-      // zéro ligne, et les deux contrôles de privilèges passeraient au vert en
-      // n'ayant rien observé. Mieux vaut refuser de partir (D38).
-      expect(() => urlVeille({})).toThrow(/MIGRATION_DATABASE_URL/);
-      expect(() => urlVeille({ MIGRATION_DATABASE_URL: "   " })).toThrow(
-        /zéro ligne/,
+    it("exige une base à observer, et c'est celle du rôle applicatif", () => {
+      expect(() => urlVeille({})).toThrow(/DATABASE_URL/);
+      expect(() => urlVeille({ DATABASE_URL: "   " })).toThrow(
+        /rôle APPLICATIF/,
       );
-      expect(urlVeille({ MIGRATION_DATABASE_URL: "postgres://x" })).toBe(
-        "postgres://x",
+      expect(urlVeille({ DATABASE_URL: "postgres://x" })).toBe("postgres://x");
+      // Et elle ne se rabat PAS sur le secret privilégié s'il traîne dans
+      // l'environnement : un repli silencieux vers le rôle de migration serait
+      // exactement le défaut qu'on vient de retirer.
+      expect(() =>
+        urlVeille({ MIGRATION_DATABASE_URL: "postgres://privilegie" }),
+      ).toThrow(/DATABASE_URL/);
+    });
+  });
+
+  describe("rouge parce que faute, rouge parce qu'injoignable", () => {
+    it("distingue les deux, et par le CODE DE SORTIE", () => {
+      // `EX_TEMPFAIL` de sysexits.h. Deux codes, parce que le flux doit pouvoir
+      // choisir son fil d'issues sans lire un message.
+      expect(CODE_SORTIE_ECART).toBe(1);
+      expect(CODE_SORTIE_LIAISON).toBe(75);
+      expect(CODE_SORTIE_ECART).not.toBe(CODE_SORTIE_LIAISON);
+    });
+
+    it("un écart CONSTATÉ n'est jamais pris pour une panne de liaison", () => {
+      // Le sens qui compte : une base jointe et fautive ne doit pas se ranger
+      // dans le fil « injoignable », où elle finirait par ne plus être lue.
+      expect(estPanneDeLiaison(new EcartConstate("la base a dérivé"))).toBe(
+        false,
       );
+      expect(estPanneDeLiaison(new Error("n'importe quoi"))).toBe(false);
+    });
+
+    it("les codes Prisma de LIAISON sont reconnus", () => {
+      // Témoin : une liste vide rendrait `estPanneDeLiaison` toujours faux, et
+      // toute nuit injoignable serait classée « sécurité ».
+      expect(CODES_LIAISON.length).toBeGreaterThanOrEqual(4);
+      for (const code of CODES_LIAISON) {
+        expect(estPanneDeLiaison({ errorCode: code }), code).toBe(true);
+        expect(estPanneDeLiaison({ code }), code).toBe(true);
+      }
+      // Et l'erreur d'initialisation de Prisma, qui n'a pas toujours de code.
+      const initiale = new Error("Can't reach database server");
+      initiale.name = "PrismaClientInitializationError";
+      expect(estPanneDeLiaison(initiale)).toBe(true);
+    });
+
+    it("un code Prisma qui n'est PAS de liaison ne s'y range pas", () => {
+      // Sans ce sens-là, tout échec deviendrait « injoignable » et le fil
+      // sécurité ne recevrait jamais rien.
+      for (const code of ["P2002", "P2025", "P1000"]) {
+        expect(estPanneDeLiaison({ errorCode: code }), code).toBe(false);
+      }
     });
   });
 });
