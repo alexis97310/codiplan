@@ -440,7 +440,7 @@ L'audit a raison : un intercepteur Prisma ne rend rien inaltérable. Décision e
 
 **Protection réelle.** Le journal est écrit par un **trigger PostgreSQL**, pas par la couche applicative. Les droits `UPDATE` et `DELETE` sur la table `journal_audit` sont révoqués pour le rôle applicatif. C'est ce qui donne un sens au mot « inaltérable ».
 
-**Amendé par D52, D53.**
+**Amendé par D52, D53, D55.**
 
 **Périmètre unifié** — I8 et RG-DRO-04 divergeaient. Le périmètre retenu est celui de I8 : `intervention`, `contrat`, `machine`, paramétrage société, compte client. RG-DRO-04 est alignée dessus.
 
@@ -1271,6 +1271,8 @@ n°7 ci-dessous. La table est couverte depuis le même ticket, et le gardien
 
 ## D52 — `utilisateur_societe` entre au périmètre de l'audit, et I8 énumère désormais des TABLES
 
+**Amendé par D55.**
+
 **La décision.** `utilisateur_societe` est journalisée. C'est la table des
 habilitations, et **la modifier est l'acte le plus lourd de conséquences du
 système : c'est ainsi qu'on se donne un accès.** Accorder `admin_societe` à un
@@ -1532,6 +1534,8 @@ l'emporte.
 
 ## D53 — Le périmètre d'audit n'a qu'une maison, et c'est celle que la machine lit
 
+**Amendé par D55.**
+
 **La décision.** Le périmètre du journal d'audit s'écrit **une seule fois**,
 dans `scripts/lib/perimetre-audit.ts`. **RG-DRO-04 est réécrite** pour y
 renvoyer, l'invariant I8 y renvoie, le README y renvoie ; **aucun ne le
@@ -1610,3 +1614,85 @@ rend le critère calculable, et c'est pourquoi la borne peut tomber.
 **Règles amendées :** RG-IMP-02
 
 *Note d'arbitrage n°8 — CODIPLAN — 1ᵉʳ septembre 2026*
+
+## D55 — Le périmètre d'audit est INVERSÉ : audité par défaut, exempté par écrit
+
+**La décision.** **RG-DRO-04 est réécrite.** Le périmètre du journal d'audit
+cesse d'être une **liste d'admis** et devient une **règle avec exceptions** :
+toute table de la **première catégorie de I1** — table métier cloisonnée,
+`societe_id NOT NULL`, plus `societe` qui est cloisonnée par son identité (D42)
+— est auditée, **moins une liste d'exemptions explicitement justifiées**. Elle
+vit au même endroit qu'avant, `scripts/lib/perimetre-audit.ts` : D53 n'est pas
+défait, il est conservé — ce fichier n'est simplement plus la maison d'une
+liste, mais celle d'une règle.
+
+**Ce que la liste d'admis faisait, et que ni D52 ni D53 n'ont corrigé.** D52 a
+corrigé son CONTENU — des tables plutôt que des notions. D53 a corrigé sa
+MAISON — un fichier plutôt que trois. Ni l'un ni l'autre n'a touché à son
+**sens**, et c'est le sens qui dérivait : une liste d'admis tenue à la main
+oublie, par construction, la table que personne n'y a ajoutée. C'est
+exactement l'enchaînement du 20/08 — la liste est fermée un jour, une décision
+ultérieure crée une table, personne ne revient la ranger — appliqué au
+périmètre qui prétendait le corriger.
+
+**Le cas qui l'a montré en acte.** Le ticket L1-01 crée `client`. Elle porte
+`societe_id NOT NULL`, ses lignes sont saisies par un humain, et « qui a changé
+la raison sociale de ce compte, quand, depuis quelle valeur » est une question
+d'auditeur. Elle naissait pourtant **hors périmètre** — non parce que quelqu'un
+l'avait décidé, mais parce que personne n'avait ajouté la ligne. La revue R0
+l'avait d'ailleurs vu venir (écart É-b) et posait la question pour
+`taux_horaire` et `forfait` : trois tables, un seul défaut, et il n'est pas dans
+leur contenu.
+
+**Pourquoi l'inversion ne crée pas une nouvelle liste à tenir.** La première
+catégorie de I1 est déjà énumérée **exhaustivement par le schéma**, et le
+gardien d'exhaustivité de D41 exige que chaque table du schéma appartienne à
+exactement une catégorie. Le périmètre d'audit **hérite** donc de cette
+fermeture sans que personne n'ait rien à tenir : une table métier créée demain
+est auditée à sa naissance, et le gardien la réclame le jour où elle apparaît au
+schéma.
+
+**Les motifs d'exemption forment une liste close de DEUX, et le second n'est pas
+un choix.**
+
+| Motif | Ce qu'il exige |
+|---|---|
+| `rejouable` | L'information qu'une écriture non tracée ferait perdre se **reconstitue** depuis une autre table, elle-même auditée. Seul motif recevable pour une table ordinaire. |
+| `impossible` | Poser le déclencheur produit une base qui **ne fonctionne pas**. Ce n'est pas une dispense, c'est un constat — et il se **mesure** dans la justification, jamais ne se suppose. |
+
+**Ce qui n'est PAS un motif**, et qui est écrit pour ne pas être réinventé :
+
+- **« c'est bruyant ».** Le journal est partitionné depuis L0-10 précisément
+  pour que le volume ne soit jamais un argument. La conservation détache des
+  périodes ; elle ne trie pas les tables.
+- **« la table est peu sensible ».** C'est une appréciation, et elle se révise
+  au premier client qui pose la question.
+- **une table dont les lignes sont saisies par un HUMAIN.** Aucune exemption,
+  jamais : c'est exactement là que « qui, quand, depuis quelle valeur » se pose.
+
+**Une seule exemption est en vigueur, et elle est du second motif.**
+`journal_audit` ne peut pas s'auditer lui-même : le déclencheur écrit dans la
+table qui le déclenche. **Mesuré** sur la base jetable — déclencheur posé sur
+`journal_audit`, une seule ligne insérée — PostgreSQL rend
+`ERROR: stack depth limit exceeded` et la transaction échoue. L'information
+n'est perdue nulle part pour autant : le journal est en **ajout seul** (I8,
+D32), ni `UPDATE` ni `DELETE` ne lui sont accordés, si bien qu'il n'existe
+aucune écriture à tracer au-delà de l'insertion qui, elle, EST déjà la trace.
+
+**C'est gardé, et des deux côtés.** `tests/unit/db/perimetre-audit.test.ts`
+réclame le déclencheur sur toute table métier non exemptée, refuse un
+déclencheur posé hors de la première catégorie de I1, refuse un déclencheur posé
+sur une table exemptée, et refuse une exemption qui ne s'adosse à aucune table
+existante — corollaire du 31/08 sur les sélections négatives. La propriété
+centrale est éprouvée sur une table fabriquée : une table métier nouvelle est
+réclamée **sans qu'aucune liste n'ait été touchée**.
+
+**Conséquence immédiate, à traiter à son ticket et pas ici.** `taux_horaire`
+(L1-07) et `forfait` (L1-06) entreront au périmètre par la seule vertu de leur
+`societe_id NOT NULL`, comme la revue R0 le souhaitait. Aucune décision ne reste
+à prendre pour cela ; c'est le sens de l'inversion.
+
+**Règles amendées :** RG-DRO-04
+
+*Note d'arbitrage n°9 — CODIPLAN — 1ᵉʳ septembre 2026*
+

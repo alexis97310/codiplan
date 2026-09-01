@@ -92,12 +92,6 @@ cloud, donc invérifiable d'ici ; et l'autre moitié du chaînage,
 et l'autre au ticket suivant scinderait une seule décision — que devient un
 compte portail quand son client disparaît ? — en deux migrations.
 
-**Pas de déclencheur d'audit.** `client` ne figure pas au périmètre de I8, qui
-est une liste close des deux côtés : un déclencheur posé sur une table hors liste
-est refusé. L'y faire entrer est un arbitrage, jamais une décision de ticket, et
-la revue R0 l'avait relevé en propre (écart É-b). Conséquence assumée et écrite
-plutôt que tue : **la suppression d'une fiche client ne laisse aucune trace.**
-
 **Pas de `SELECT` pour `codiplan_reporting`.** Ce rôle voit toutes les sociétés :
 c'est une clé passe-partout, et chaque table qu'on lui ouvre est une décision.
 La consolidation aura besoin de `client` — le §2.2 demande la marge par client —
@@ -110,11 +104,61 @@ coquille authentifiée — L0-06 s'est arrêté à la couche serveur, et la seul
 existante est l'accueil de L0-01. Ce ticket livre donc la couche serveur
 complète (`lib/clients/`), et l'écran viendra avec la coquille qui l'accueillera.
 
+## L'arbitrage qui en est sorti : D55, le périmètre d'audit inversé
+
+La première rédaction de ce ticket laissait `client` **hors** du périmètre
+d'audit de I8, et le motivait correctement : la liste était close des deux
+côtés, un déclencheur posé sur une table hors liste était refusé, et l'y faire
+entrer était un arbitrage. Tout cela était vrai, et passait à côté du défaut.
+
+**Le défaut n'était pas dans le contenu de la liste, il était dans son sens.**
+Une liste d'ADMIS tenue à la main oublie, par construction, la table que
+personne n'y a ajoutée — et `client` en est la démonstration : elle naissait hors
+périmètre non par décision, mais par omission. D52 avait corrigé le contenu de
+la liste, D53 sa maison ; ni l'un ni l'autre son sens.
+
+**D55 inverse.** Toute table de la première catégorie de I1 est auditée, moins
+une liste d'exemptions écrites et justifiées. L'exhaustivité n'est plus tenue
+par personne : elle est héritée du gardien de D41, qui l'énumère déjà contre le
+schéma. `client` porte donc son déclencheur, posé dans la migration qui la crée.
+
+**Ce que l'inversion admet, et l'exemption qu'elle a rendue nécessaire** — le
+détail est dans D55 ; ici, la mesure : `journal_audit` ne peut pas s'auditer
+lui-même, et ce n'est pas une opinion. Déclencheur posé sur elle, une seule
+ligne insérée sur la base jetable :
+
+```
+ERROR:  stack depth limit exceeded
+HINT:  Increase the configuration parameter "max_stack_depth" …
+```
+
+C'est le motif `impossible`, et c'est le seul cas d'exemption en vigueur.
+
+## Les deux réserves à porter à L1-02
+
+Elles sont écrites ici parce que la décision sur la clé étrangère y est prise, et
+qu'un corollaire non écrit est un corollaire perdu.
+
+**1. La ligne orpheline n'est pas un empêchement, c'est la démonstration.** La
+base de démonstration contient une ligne de `utilisateur_client` qui référence un
+client inexistant. C'est exactement ce que la clé étrangère aurait interdit :
+l'argument « on ne peut pas la poser à cause de cette ligne » se retourne en
+« cette ligne est la preuve qu'il fallait la poser ». Elle se traite comme une
+donnée à réparer, jamais comme une raison de renoncer.
+
+**2. La réparation vit DANS la migration, pas dans une consigne.** « La base
+hébergée est injoignable depuis une session cloud » ne doit pas devenir une
+vérification déléguée à quelqu'un qui l'oubliera. La migration de L1-02 répare
+ou recrée elle-même la ligne de démonstration, puis pose la clé ; si l'état réel
+n'est pas celui qu'elle attend, elle échoue bruyamment et on le voit. Aucune
+étape manuelle, aucun contrôle « à lancer avant ».
+
 ## Conséquences
 
 `client` entre dans `TABLES_CLOISONNEES` (donc dans `TABLES_RLS_FORCEE`), dans
-le décompte de l'inventaire et du contrôle de cloisonnement, et dans la purge des
-données de démonstration. Le contrôle de la base hébergée mesure désormais
+le décompte de l'inventaire et du contrôle de cloisonnement, dans la purge des
+données de démonstration, et — depuis D55 — dans le périmètre d'audit, sans que
+personne n'ait eu à l'ajouter nulle part. Le contrôle de la base hébergée mesure désormais
 « 1 « parc » » parmi les formes de politique, sur une table réelle et non sur une
 fixture.
 

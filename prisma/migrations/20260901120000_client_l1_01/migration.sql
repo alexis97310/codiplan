@@ -10,6 +10,7 @@
 --    `societe_id NOT NULL`, RLS activée ET forcée.
 -- 3. Sa politique, qui est de forme « PARC » et non « société ». Voir plus bas :
 --    c'est le point que la revue R0 a désigné comme le plus dangereux du lot 1.
+-- 4. Son déclencheur d'audit, réclamé par le périmètre INVERSÉ de D55.
 --
 -- ── LA FORME DE LA POLITIQUE, ET POURQUOI CE N'EST PAS LA CLAUSE SOCIÉTÉ ───
 --
@@ -82,12 +83,6 @@
 -- en deux migrations. Elle est portée au registre des points ouverts du ticket.
 --
 -- ── CE QUI N'EST PAS ICI, ET POURQUOI ──────────────────────────────────────
---
--- **Aucun déclencheur d'audit.** `client` ne figure pas au périmètre de I8
--- (`scripts/lib/perimetre-audit.ts`), qui est une liste CLOSE DES DEUX CÔTÉS :
--- un déclencheur posé sur une table hors liste est refusé par
--- `tests/unit/db/perimetre-audit.test.ts`. L'y faire entrer est un arbitrage,
--- jamais une décision de ticket — la revue R0 l'a noté en propre (écart É-b).
 --
 -- **Aucune énumération de catégorie client.** Le chapitre 11 nomme la colonne
 -- « catégorie client » et ne l'énumère pas ; le chapitre 10 est muet. Fermer
@@ -226,6 +221,30 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "client" TO "codiplan_app";
 -- migration du lot qui s'en sert, et
 -- `tests/isolation/reporting.test.ts` — qui énumère ce périmètre en toutes
 -- lettres — rendra cette addition visible en revue.
+
+-- ── 7. Le déclencheur d'audit (I8, D55) ────────────────────────────────────
+--
+-- **Il est ici parce que le périmètre d'audit est INVERSÉ, pas parce que
+-- quelqu'un a ajouté « client » à une liste.** Jusqu'à D55, I8 portait une
+-- liste d'ADMIS tenue à la main : `client` en était absente, non par décision
+-- mais parce que personne n'y avait pensé, et le gardien aurait REFUSÉ ce
+-- déclencheur. Depuis D55, toute table de la première catégorie de I1 — table
+-- métier, `societe_id NOT NULL` — est auditée, moins une liste d'exemptions
+-- explicitement justifiées. `client` n'en est pas exemptée : ses lignes sont
+-- saisies par un humain, et « qui a changé la raison sociale de ce compte,
+-- quand, depuis quelle valeur » est une question qu'un auditeur pose.
+--
+-- Le déclencheur se pose DANS la migration qui crée la table, jamais dans une
+-- migration de rattrapage écrite quand quelqu'un s'en apercevra : c'est la
+-- règle de L0-10, et le gardien statique la réclame le jour où la table
+-- apparaît au schéma.
+--
+-- Sans argument : `journal_audit_tracer()` lit alors `societe_id`, qui est la
+-- colonne de cloisonnement de cette table. L'argument `'id'` est réservé à
+-- `societe`, seule table cloisonnée par son identité (D42).
+
+CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "client"
+  FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
 COMMENT ON TABLE "client" IS
   'Fiche client — table métier cloisonnée (I1, 1re categorie). Politique de forme « parc » : societe ET app.client_id (D10, D22), jamais la clause societe seule.';

@@ -206,22 +206,39 @@ auteur, horodatage, adresse, et la ligne **entière** avant et après. Elle est
 écrite par un **déclencheur PostgreSQL**, jamais par du code applicatif — aucun
 chemin d'écriture n'y échappe, pas même un `UPDATE` tapé à la main dans `psql`.
 
-Le périmètre est une **liste de tables**, énumérée par I8 depuis D52 — et non
-une liste de notions qu'il faudrait interpréter. **Elle n'a qu'une maison, celle
-que la machine lit** : [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts).
-L'invariant I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne la
-recopie, et un gardien refuse qu'une recopie y réapparaisse (D53).
+**Le périmètre est INVERSÉ : audité par défaut, exempté par écrit** (D55).
+Toute table métier cloisonnée — première catégorie de I1 — est auditée, moins
+une liste d'exemptions explicitement justifiées. Ce n'est pas un changement de
+contenu mais de **sens** : une liste d'admis tenue à la main oublie, par
+construction, la table que personne n'y a ajoutée. La fiche client l'a montré en
+acte au lot 1 — elle naissait hors périmètre, non par décision mais par oubli.
 
-Sept tables y figurent aujourd'hui ; trois autres, qui viendront aux lots 2 et
-4, la rejoindront **dans la migration qui les crée** : le gardien
-`tests/unit/db/perimetre-audit.test.ts` le réclame dès que la table apparaît au
-schéma, plutôt que trois lots plus tard — et il refuse aussi un déclencheur posé
-sur une table absente de la liste, car élargir la traçabilité est un arbitrage.
+**L'exhaustivité n'est plus tenue par personne : elle est héritée.** La première
+catégorie de I1 est déjà énumérée par le schéma, et le gardien de D41 exige que
+chaque table s'y range. Une table métier créée demain est donc réclamée par
+`tests/unit/db/perimetre-audit.test.ts` **le jour où elle apparaît au schéma**,
+sans qu'aucune liste ne soit à compléter — et le déclencheur se pose dans la
+migration qui crée la table, jamais dans un rattrapage.
 
-La table des habilitations y figure parce que **c'est ainsi qu'on se donne un
+**Deux motifs d'exemption, liste close.** `rejouable` — l'information perdue se
+reconstitue depuis une autre table auditée ; `impossible` — poser le déclencheur
+produit une base qui ne fonctionne pas, et cela se **mesure**. Ne sont pas des
+motifs : le volume (la table est partitionnée précisément pour cela), la
+sensibilité supposée, et jamais une table dont les lignes sont saisies par un
+humain. Une seule exemption est en vigueur, et elle est du second motif.
+
+**La règle et ses exemptions n'ont qu'une maison, celle que la machine lit** :
+[`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts). L'invariant
+I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne les recopie, et un
+gardien refuse qu'une recopie y réapparaisse (D53). Le gardien est clos des deux
+côtés : un déclencheur posé hors de la première catégorie de I1, ou sur une
+table exemptée, est refusé — élargir ou restreindre la traçabilité est un
+arbitrage.
+
+La table des habilitations est auditée parce que **c'est ainsi qu'on se donne un
 accès** (D52) : « qui a accordé ce droit, quand, depuis quelle valeur » est la
 question de l'auditeur, et celle qui rend vérifiable la procédure de déblocage
-de D40.
+de D40. Depuis D55 elle n'a plus besoin d'être nommée pour l'être.
 
 **Le journal est en ajout seul.** Le rôle applicatif détient `SELECT` et
 `INSERT`, et rien d'autre : `UPDATE`, `DELETE` et `TRUNCATE` lui sont retirés, et
@@ -478,6 +495,9 @@ Lot 1 commencé : **L1-01** — la fiche `client`, première table métier. Elle
 `societe_id NOT NULL` et la politique de forme **« parc »** (société **et**
 `app.client_id`, D10/D22), jamais la clause société seule ; `code_externe` (D29)
 est unique **par société** et son libellé d'affichage est paramétrable
-(`societe.libelle_code_externe`). Le module applicatif est `lib/clients/`. La
-fiche n'est **pas** au périmètre d'audit de I8 : l'y faire entrer est un
-arbitrage, pas une décision de ticket.
+(`societe.libelle_code_externe`). Le module applicatif est `lib/clients/`.
+
+Et **D55** en est sorti : le périmètre d'audit de I8 est désormais **inversé** —
+audité par défaut, exempté par écrit. `client` naissait hors périmètre non par
+décision mais par omission, et c'est le sens de la liste qui était en cause, pas
+son contenu.

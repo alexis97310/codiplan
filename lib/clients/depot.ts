@@ -189,11 +189,11 @@ export async function modifierClient(
  * qu'il ne cesse d'avoir existé. La suppression existe pour la fiche créée par
  * erreur, et pour elle seule.
  *
- * **Point ouvert, et il est écrit plutôt que tu :** `client` ne figure pas au
- * périmètre d'audit de I8 (`scripts/lib/perimetre-audit.ts`, liste close des
- * deux côtés), si bien qu'une suppression ne laisse aucune trace. L'y faire
- * entrer est un arbitrage, pas une décision de ticket — la revue R0 l'a relevé
- * en propre (écart É-b).
+ * **Et la suppression LAISSE une trace** — depuis D55, qui a inversé le
+ * périmètre d'audit de I8 : `client` est une table métier cloisonnée, elle est
+ * donc auditée par défaut, et le déclencheur écrit les valeurs d'avant dans
+ * `journal_audit`. C'est ce qui rend cette suppression acceptable : elle est
+ * réversible par la lecture.
  */
 export async function supprimerClient(
   contexte: ContexteSession,
