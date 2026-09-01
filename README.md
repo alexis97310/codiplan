@@ -399,6 +399,30 @@ Sa limite est annoncée : un arbitrage qui amende une règle **sans jamais en
 écrire la référence** reste hors de portée d'un motif statique — seule la ligne
 `**Règles amendées :**`, posée à la main, le rattrape.
 
+### Le backlog, un rang plus bas
+
+`docs/backlog.md` est de rang 4 et cite des règles de rang 2 et des décisions de
+rang 1. Le même silence s'y rejouait : L1-08 portait « seul le dernier lot est
+annulable » après que D54 l'eut supprimé.
+
+`tests/unit/docs/coherence-backlog.test.ts` pose un contrôle **étroit** — un plan
+bouge sans cesse, et le mode de défaillance réel est le ticket qui cite une règle
+**ayant changé depuis**. Chaque ticket citant une règle ou une décision porte
+l'empreinte du texte courant de ses sources :
+
+```
+*Relu contre les sources citées le 01/09/2026 — empreinte `961c49b1`.*
+```
+
+L'empreinte couvre la **clôture des amendements** — une décision amendée porte
+`**Amendé par Dxx.**`, et bouger l'amendeur réveille les tickets qui citent
+l'amendée. Sans quoi un ticket resterait vert alors qu'une décision qu'il ne cite
+pas l'a rendu faux.
+
+Ce gardien **ne prouve pas la cohérence** — aucun motif statique ne le peut. Il
+force la relecture à l'instant où elle est due. Un ticket qui ne cite rien n'est
+pas couvert : il sera lu contre le chapitre 10 le jour où on l'écrira.
+
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.

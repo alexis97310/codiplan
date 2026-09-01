@@ -30,6 +30,8 @@ export type Regle = {
 export type Decision = {
   readonly ref: string;
   readonly titre: string;
+  /** Le corps brut de la section, tel qu'il est écrit. */
+  readonly corps: string;
   /** Règles citées par la ligne `**Règles amendées :**`. Vide si aucune. */
   readonly reglesDeclarees: readonly string[];
   /**
@@ -263,6 +265,7 @@ export function lireDecisions(arbitrages: string): {
     decisions.push({
       ref,
       titre,
+      corps: texte,
       reglesDeclarees: uniqueTriee(declarees),
       reglesAffirmeesEnProse: uniqueTriee(enProse),
     });

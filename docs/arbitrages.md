@@ -261,7 +261,9 @@ Faire payer Playwright à chaque ticket ralentirait tout pour un bénéfice marg
 
 **Principe :** l'annulation est **partielle et sûre** plutôt que totale et destructrice. Le rapport d'annulation liste exactement ce qui a été restauré et ce qui ne pouvait pas l'être. RG-IMP-02 est réécrite en ce sens — « annulable intégralement » devient « annulable, avec refus motivé sur les lignes modifiées ou référencées depuis ».
 
-**Amendé par D54.** La ligne « Deux imports se recouvrant » disait : « Seul **le
+**Amendé par D54.**
+
+La ligne « Deux imports se recouvrant » disait : « Seul **le
 dernier lot** est annulable. Annuler un lot antérieur est refusé » — rédaction
 d'origine conservée ici, un amendement qui efface sa trace se rejoue au prochain
 doute *(méthode de D44)*. Elle est retirée, comme la fenêtre de 24 heures de
@@ -307,6 +309,8 @@ Ils sont ajoutés à la stack imposée du CLAUDE.md, ce qui lève l'obligation d
 ### D19 — Formatage monétaire (3.1, 3.2)
 
 **Convention :** symbole si la devise en a un, code sinon. `100,00 €` et `7 000 XPF`. C'est ce qu'appliquait la maquette, et c'est promu au rang de règle. *(Le symbole du XPF — `XPF` ou `F` — est une question ouverte depuis D43 : elle sera tranchée à la conception du premier document destiné à un client, et toute réponse autre que `XPF` sera un **amendement de cette décision**. Voir le registre « Ce qui reste à décider ».)*
+
+**Amendé par D44.**
 
 **Frontière de conversion (3.2)** — ***amendée le 21 août 2026 par D44.*** Les deux fonctions sont nommées sans ambiguïté et **ne vivent pas dans le même module** :
 
@@ -435,6 +439,8 @@ Décisions de mécanique, les colonnes elles-mêmes étant définies ticket par 
 L'audit a raison : un intercepteur Prisma ne rend rien inaltérable. Décision en trois points.
 
 **Protection réelle.** Le journal est écrit par un **trigger PostgreSQL**, pas par la couche applicative. Les droits `UPDATE` et `DELETE` sur la table `journal_audit` sont révoqués pour le rôle applicatif. C'est ce qui donne un sens au mot « inaltérable ».
+
+**Amendé par D52, D53.**
 
 **Périmètre unifié** — I8 et RG-DRO-04 divergeaient. Le périmètre retenu est celui de I8 : `intervention`, `contrat`, `machine`, paramétrage société, compte client. RG-DRO-04 est alignée dessus.
 
