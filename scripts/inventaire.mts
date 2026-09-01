@@ -233,6 +233,10 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
     }
   };
 
+  const parClient = await tx.client.groupBy({
+    by: ["societe_id"],
+    _count: { _all: true },
+  });
   const parAgence = await tx.agence.groupBy({
     by: ["societe_id"],
     _count: { _all: true },
@@ -258,6 +262,7 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
     _count: { _all: true },
   });
 
+  enregistrer("client", parClient);
   enregistrer("agence", parAgence);
   enregistrer("calendrier", parCalendrier);
   enregistrer("calendrier_plage", parCalendrierPlage);

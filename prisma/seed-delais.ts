@@ -83,9 +83,9 @@ export const DELAIS_SEED: DelaisTransaction = {
  * rien ; un décompte absent laisserait revenir l'incident.
  *
  * Ce qui est compté, dans l'ordre où `seed.ts` l'émet : le `BEGIN`, les deux
- * `set_config` de `avecSociete`, la société, chaque calendrier, chaque plage,
- * chaque agence, chaque écart local, la lecture du férié que certains écarts
- * résolvent, et le `COMMIT`.
+ * `set_config` de `avecSociete`, la société, chaque client de démonstration
+ * (L1-01), chaque calendrier, chaque plage, chaque agence, chaque écart local,
+ * la lecture du férié que certains écarts résolvent, et le `COMMIT`.
  */
 export function allersRetoursTransaction(societe: SocieteSeed): number {
   const anneeDeDepart = anneeDeDepartFeries(societe);
@@ -110,6 +110,7 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     1 + // BEGIN
     2 + // set_config app.societe_id, app.role
     1 + // societe.upsert
+    societe.clients.length +
     societe.calendriers.length +
     plages +
     societe.agences.length +

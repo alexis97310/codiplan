@@ -140,6 +140,13 @@ export type TableContrat = {
  */
 export const CONTRAT_PARC: readonly TableContrat[] = [
   {
+    // **La fixture s'est effacée au ticket L1-01** : la migration
+    // `20260901120000_client_l1_01` a créé la vraie table, et `global.ts` ne
+    // fabrique plus rien ici. L'entrée RESTE, et son maintien est l'objet même
+    // de la liste close : la retirer ferait retomber `client` sur la forme
+    // « société », qui passe, et le filtre portail de D10 disparaîtrait sans
+    // qu'aucun scénario ne rougisse. `colonnes` n'est plus lue — elle est
+    // conservée telle quelle, comme trace de ce que la fixture modélisait.
     table: "client",
     lot: "L1-01",
     colonneClient: "id",
@@ -229,8 +236,13 @@ export const EXIGENCES_L0_05 = [
     cle: "portail_autre_client",
     intitule: "un compte portail et les données d'un autre client",
     source: "D10",
+    // Le plancher est passé de 4 à 5 au ticket L1-01, et c'est le sens du
+    // contrat : les scénarios D10 devaient être PLUS nombreux après la reprise,
+    // jamais moins. Le cinquième est `tests/isolation/client.test.ts`, qui
+    // prouve PAR LECTURE ce que la clause société seule laisserait fuir — là où
+    // `politiques-rls.test.ts` prouve seulement que le gardien s'en apercevrait.
     table: "client",
-    plancher: 4,
+    plancher: 5,
   },
   {
     cle: "perimetre_sites",

@@ -114,6 +114,7 @@ describe("purge des données de démonstration", () => {
     it("vide les tables de démonstration, les référençantes d'abord", () => {
       expect([...TABLES_DEMONSTRATION]).toEqual([
         "utilisateur_client",
+        "client",
         "utilisateur_societe",
         "agence",
         "societe",

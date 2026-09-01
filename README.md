@@ -328,14 +328,22 @@ l'exécution s'y dissolvent — c'est l'état final qui est lu.
 
 ### Le contrat des fixtures d'isolation
 
-`client`, `site`, `machine` et `modele_materiel` existent comme **tables
-fixtures** du harnais, avec les politiques que les vraies tables porteront aux
-lots 1 et 2. Le contrat est déclaré dans `tests/isolation/setup/contrat.ts` et
-tenu par **trois gardiens indépendants** : la forme mesurée en base, la liste
-close `TABLES_PARC` dont le _retrait_ d'une entrée est refusé, et un **plancher
-de scénarios** par exigence de L0-05 qui ne se baisse jamais. Quand la vraie
-table arrive, le harnais s'efface devant elle et dit ce qui reste dû — sans quoi
-la réparation la plus naturelle réduisait la couverture en silence.
+`site`, `machine` et `modele_materiel` existent comme **tables fixtures** du
+harnais, avec les politiques que les vraies tables porteront aux lots 1 et 2. Le
+contrat est déclaré dans `tests/isolation/setup/contrat.ts` et tenu par **trois
+gardiens indépendants** : la forme mesurée en base, la liste close `TABLES_PARC`
+dont le _retrait_ d'une entrée est refusé, et un **plancher de scénarios** par
+exigence de L0-05 qui ne se baisse jamais. Quand la vraie table arrive, le
+harnais s'efface devant elle et dit ce qui reste dû — sans quoi la réparation la
+plus naturelle réduisait la couverture en silence.
+
+**`client` est la première à avoir franchi ce passage** (L1-01), et le contrat a
+tenu : la migration lui donne la forme « parc », la fixture s'est effacée, les
+scénarios portail se sont reportés sur la vraie table, et le plancher de D10 est
+passé de 4 à 5 scénarios — plus nombreux après la reprise, jamais moins. Les
+trois gardiens ont été éprouvés à cette occasion sur la réparation naïve
+réellement écrite ; le détail est dans
+`docs/decisions/2026-09-01-premiere-table-metier-client.md`.
 
 ## Français — le dictionnaire est la source unique
 
@@ -449,7 +457,10 @@ La protection ne tient donc pas au fichier de flux : elle tient à un **attribut
 ```
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
-lib/          auth/  calendar/  db/  i18n/  money/  reporting/  theme/  utils.ts
+lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/  theme/
+              utils.ts
+              clients/ = référentiel client (L1-01) : saisie Zod, dépôt cloisonné,
+              libellé du code externe paramétrable par société (D29)
               i18n/ = dictionnaire français + vocabulaire imposé (agence, site)
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
@@ -461,4 +472,12 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation). Aucune fonctionnalité métier : elles commencent au lot 1.
+Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation).
+
+Lot 1 commencé : **L1-01** — la fiche `client`, première table métier. Elle porte
+`societe_id NOT NULL` et la politique de forme **« parc »** (société **et**
+`app.client_id`, D10/D22), jamais la clause société seule ; `code_externe` (D29)
+est unique **par société** et son libellé d'affichage est paramétrable
+(`societe.libelle_code_externe`). Le module applicatif est `lib/clients/`. La
+fiche n'est **pas** au périmètre d'audit de I8 : l'y faire entrer est un
+arbitrage, pas une décision de ticket.

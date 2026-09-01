@@ -225,6 +225,9 @@ app/
 lib/
   db/         client Prisma, contexte société, helpers RLS
   auth/
+  clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
+              libellé du code externe paramétrable par société (D29)
+              la politique de `client` est de forme « parc », jamais société seule
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »

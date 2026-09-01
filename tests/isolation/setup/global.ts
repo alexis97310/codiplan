@@ -124,7 +124,7 @@ async function tableExiste(
 async function poserTableContrat(
   prisma: PrismaClient,
   contrat: TableContrat,
-): Promise<void> {
+): Promise<boolean> {
   if (await tableExiste(prisma, contrat.table)) {
     // La vraie table est arrivée (lot annoncé par `contrat.lot`). On ne touche
     // ni à elle, ni à sa politique : c'est la migration qui les porte, et c'est
@@ -143,7 +143,7 @@ async function poserTableContrat(
         "tests/unit/db/contrat-isolation.test.ts) ;\n" +
         "  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.\n",
     );
-    return;
+    return false;
   }
 
   await executerLot(
@@ -160,6 +160,7 @@ async function poserTableContrat(
           contrat.colonneSite,
         ),
   );
+  return true;
 }
 
 export default async function setup(): Promise<void> {
@@ -223,8 +224,14 @@ export default async function setup(): Promise<void> {
     // que la revue R0 redoutait — la fixture supprimée, les scénarios pointés
     // sur une table à politique société seule, et le portail disparu en
     // silence.
+    // `client` est arrivée pour de bon au ticket L1-01 : `poserTableContrat`
+    // ne crée plus sa fixture et laisse la table réelle — avec SA politique,
+    // celle de la migration — se faire juger par les mêmes gardiens.
+    const fixturesPosees: string[] = [];
     for (const contrat of [...CONTRAT_PARC, ...CONTRAT_REFERENTIEL]) {
-      await poserTableContrat(prisma, contrat);
+      if (await poserTableContrat(prisma, contrat)) {
+        fixturesPosees.push(contrat.table);
+      }
     }
 
     // Droits du rôle applicatif sur les seules tables FIXTURES. Les tables
@@ -233,15 +240,21 @@ export default async function setup(): Promise<void> {
     // migration lui a délibérément retiré — le droit de corriger ou d'effacer
     // le journal des accès, par exemple —, et les scénarios éprouveraient des
     // droits que la production n'accorde pas.
-    await executerLot(
-      prisma,
-      `
-      GRANT USAGE ON SCHEMA public TO "${ROLE_APP}";
-      GRANT SELECT, INSERT, UPDATE, DELETE
-        ON "client", "site", "machine", "modele_materiel"
-        TO "${ROLE_APP}";
-      `,
-    );
+    // La liste est celle des fixtures RÉELLEMENT posées, jamais une liste
+    // écrite à la main : le jour où une vraie table remplace une fixture, ses
+    // droits viennent de la migration et d'elle seule. Re-`GRANT`er ici sur une
+    // table réelle rendrait au rôle applicatif ce que la migration aurait pu
+    // lui retirer, et les scénarios éprouveraient des droits que la production
+    // n'accorde pas — c'est déjà la raison pour laquelle il n'y a pas de
+    // « GRANT … ON ALL TABLES » ici.
+    await executerLot(prisma, `GRANT USAGE ON SCHEMA public TO "${ROLE_APP}"`);
+    if (fixturesPosees.length > 0) {
+      const cibles = fixturesPosees.map((table) => `"${table}"`).join(", ");
+      await executerLot(
+        prisma,
+        `GRANT SELECT, INSERT, UPDATE, DELETE ON ${cibles} TO "${ROLE_APP}"`,
+      );
+    }
 
     // ── Amorçage déterministe (I9 — données fictives) ────────────────────────
     await prisma.devise.createMany({
@@ -494,14 +507,21 @@ export default async function setup(): Promise<void> {
       ],
     });
 
-    // Fixtures parc : clients, sites, machines des deux sociétés.
+    // Amorçage du parc : clients, sites, machines des deux sociétés.
+    //
+    // Depuis L1-01, `client` est la VRAIE table — la fixture s'est effacée
+    // devant elle. Les colonnes écrites ici sont donc les siennes, et
+    // `code_externe` est renseigné à dessein : les deux sociétés portent
+    // délibérément le MÊME code externe, ce que l'unicité `(societe_id,
+    // code_externe)` doit permettre et qu'une unicité globale interdirait
+    // (RG-SOC-04, D29). Un scénario l'éprouve dans `cloisonnement-societe`.
     await executerLot(
       prisma,
       `
-      INSERT INTO "client" ("id", "societe_id", "raison_sociale") VALUES
-        ('${CLIENT_A1}', '${SOCIETE_A}', 'Client A1'),
-        ('${CLIENT_A2}', '${SOCIETE_A}', 'Client A2'),
-        ('${CLIENT_B1}', '${SOCIETE_B}', 'Client B1');
+      INSERT INTO "client" ("id", "societe_id", "code_externe", "raison_sociale") VALUES
+        ('${CLIENT_A1}', '${SOCIETE_A}', 'C-001', 'Client A1'),
+        ('${CLIENT_A2}', '${SOCIETE_A}', 'C-002', 'Client A2'),
+        ('${CLIENT_B1}', '${SOCIETE_B}', 'C-001', 'Client B1');
       INSERT INTO "site" ("id", "societe_id", "client_id", "libelle") VALUES
         ('${SITE_A1_S1}', '${SOCIETE_A}', '${CLIENT_A1}', 'Site A1-1'),
         ('${SITE_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', 'Site A1-2'),

@@ -37,6 +37,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
     code: "CODIMA-NC",
     decomptes: {
       societe: 1,
+      client: 2,
       agence: 3,
       calendrier: 2,
       calendrier_plage: 11,
@@ -56,6 +57,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
       code: "CODIMA-EU",
       decomptes: {
         societe: 1,
+        client: 1,
         agence: 1,
         calendrier: 1,
         calendrier_plage: 5,
@@ -87,6 +89,7 @@ describe("inventaire à plat", () => {
   it("totalise le détail société par société", () => {
     expect(totaliser(inventaire().societes)).toEqual({
       societe: 2,
+      client: 3,
       agence: 4,
       calendrier: 3,
       calendrier_plage: 16,

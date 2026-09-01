@@ -62,6 +62,7 @@ import { PrismaClient } from "@prisma/client";
  */
 export const TABLES_DEMONSTRATION = [
   "utilisateur_client",
+  "client",
   "utilisateur_societe",
   "agence",
   "societe",

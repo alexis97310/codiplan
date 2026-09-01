@@ -25,6 +25,12 @@
  * figure : elle est cloisonnée par son identité (`id = app.societe_id`), les
  * autres par leur colonne `societe_id`.
  *
+ * `client` les rejoint au ticket L1-01 : c'est la première table métier du lot
+ * 1, cloisonnée par `societe_id` comme les autres. Sa POLITIQUE est de forme
+ * « parc » et non « société » (D10, D22), mais cette liste-ci ne juge pas la
+ * forme — elle sert un décompte comparé —, et le décompte est le même : sans
+ * `app.client_id`, un utilisateur interne voit tout le parc de sa société.
+ *
  * Les référentiels de plateforme (`devise`, `parite`, `jour_ferie`) et
  * l'identité globale (`utilisateur`) n'en sont pas : ils relèvent de la liste
  * close de I1 ou de l'authentification, et se comptent hors cloisonnement.
@@ -43,6 +49,7 @@
  */
 export const TABLES_CLOISONNEES = [
   "societe",
+  "client",
   "agence",
   "calendrier",
   "calendrier_plage",
@@ -115,6 +122,7 @@ export const FICHIER_INVENTAIRE = "inventaire-controle.json";
 export function decompteVide(): DecompteParTable {
   return {
     societe: 0,
+    client: 0,
     agence: 0,
     calendrier: 0,
     calendrier_plage: 0,
