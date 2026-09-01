@@ -4,13 +4,17 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  TABLES_DEMONSTRATION,
+  EXCEPTIONS_PURGE,
   VALEUR_CONFIRMATION,
   VARIABLE_CONFIRMATION,
   confirmationDonnee,
+  ecartsExceptions,
   instructionPurge,
   messagePurge,
+  tablesAPurger,
+  tablesEpargnees,
 } from "../../scripts/purge-demonstration.mjs";
+import { lireSchema, modelesDuSchema } from "./outils/schema-prisma";
 
 // Vitest s'exécute depuis la racine du dépôt.
 const workflow = readFileSync(
@@ -110,46 +114,156 @@ describe("purge des données de démonstration", () => {
     });
   });
 
-  describe("portée de la purge", () => {
-    it("vide les tables de démonstration, les référençantes d'abord", () => {
-      expect([...TABLES_DEMONSTRATION]).toEqual([
-        "utilisateur_client",
-        "client",
-        "utilisateur_societe",
-        "agence",
-        "societe",
-        "utilisateur",
-      ]);
+  describe("portée de la purge — fermée par le SCHÉMA", () => {
+    /**
+     * **Ce que ce gardien répare, et ce n'est pas une table.** La liste des
+     * tables purgées était fermée à la main et n'avait pas suivi les trois
+     * tables du calendrier depuis L0-08. Mesuré en base :
+     *
+     *     ERROR:  cannot truncate a table referenced in a foreign key constraint
+     *     DETAIL:  Table "calendrier_ferie" references "agence".
+     *
+     * L'échec était bruyant — donc l'option était inopérante plutôt que
+     * dangereuse — mais c'est la même maladie que I1, que le périmètre d'audit
+     * et que les citations du backlog. La corriger d'une ligne l'aurait
+     * recassée au module suivant.
+     *
+     * **Le renversement de D41, appliqué à la purge :** le contrôle part du
+     * SCHÉMA et exige que chaque table y soit purgée OU exemptée. Zéro échoue
+     * — c'est l'oubli ; deux échouent aussi — une table exemptée qui serait
+     * quand même purgée n'existerait pas, la différence d'ensembles l'interdit,
+     * mais une exception qui ne s'adosse à rien est refusée séparément.
+     */
+    const tablesDuSchema = modelesDuSchema(lireSchema())
+      .map((modele) => modele.table)
+      // La table de Prisma n'est pas dans le schéma Prisma : elle existe en
+      // base et le script l'y verra. On l'ajoute donc à la population, sans
+      // quoi son exception paraîtrait ne s'adosser à rien.
+      .concat("_prisma_migrations");
+
+    it("le gardien a réellement lu un schéma", () => {
+      // Témoin : une population vide rendrait « aucune table oubliée » vrai
+      // sans avoir rien regardé (§9, 30/08).
+      expect(tablesDuSchema.length).toBeGreaterThanOrEqual(15);
+      expect(tablesDuSchema).toContain("societe");
+      expect(EXCEPTIONS_PURGE.length).toBeGreaterThanOrEqual(4);
     });
 
-    it("épargne les référentiels de plateforme (liste close, I1)", () => {
-      for (const referentiel of ["devise", "parite"]) {
+    it("toute table du schéma est PURGÉE ou EXEMPTÉE, jamais ni l'un ni l'autre", () => {
+      const purgees = tablesAPurger(tablesDuSchema);
+      const epargnees = tablesEpargnees();
+
+      for (const table of tablesDuSchema) {
+        const dansUne =
+          (purgees.includes(table) ? 1 : 0) +
+          (epargnees.includes(table) ? 1 : 0);
         expect(
-          TABLES_DEMONSTRATION as readonly string[],
-          `référentiel de plateforme purgé à tort : ${referentiel}`,
-        ).not.toContain(referentiel);
+          dansUne,
+          `« ${table} » n'est ni purgée ni exemptée : la liste de la purge a ` +
+            "cessé de suivre le schéma, et c'est ainsi qu'elle s'est cassée à " +
+            "L0-08.",
+        ).toBe(1);
       }
+    });
+
+    it("les trois tables du calendrier — l'oubli de L0-08 — sont purgées", () => {
+      // Le cas nommé. Il ne s'agit pas de vérifier trois lignes ajoutées à la
+      // main : elles sont purgées parce qu'elles sont au schéma et hors
+      // exceptions, et ce test le constate là où le défaut s'était produit.
+      const purgees = tablesAPurger(tablesDuSchema);
+      for (const table of [
+        "calendrier",
+        "calendrier_plage",
+        "calendrier_ferie",
+      ]) {
+        expect(purgees, table).toContain(table);
+      }
+    });
+
+    it("ÉPREUVE : une table métier NOUVELLE est purgée sans qu'on ait rien ajouté", () => {
+      // La propriété qui remplace l'ancienne liste, éprouvée sur une table
+      // fabriquée : aucune liste n'a été touchée pour qu'elle soit prise.
+      const purgees = tablesAPurger([...tablesDuSchema, "intervention"]);
+      expect(purgees).toContain("intervention");
+    });
+
+    it("épargne les référentiels de plateforme et le journal (liste close, I1)", () => {
+      const purgees = tablesAPurger(tablesDuSchema);
+      for (const epargnee of [
+        "devise",
+        "parite",
+        "jour_ferie",
+        "journal_audit",
+        "_prisma_migrations",
+      ]) {
+        expect(purgees, epargnee).not.toContain(epargnee);
+      }
+    });
+
+    it("chaque exception porte un motif et une justification écrite", () => {
+      expect(ecartsExceptions(tablesDuSchema)).toEqual([]);
+      for (const exception of EXCEPTIONS_PURGE) {
+        expect(exception.justification.length, exception.table).toBeGreaterThan(
+          60,
+        );
+        expect(["referentiel", "survit"], exception.table).toContain(
+          exception.motif,
+        );
+      }
+    });
+
+    it("ÉPREUVE : une exception qui ne s'adosse à rien est refusée", () => {
+      // Corollaire du 31/08 : une exception survit au renommage de sa table,
+      // ne protège plus rien, et la prochaine table qui reprendra ce nom en
+      // héritera sans que personne ne le lui ait accordé.
+      const ecarts = ecartsExceptions(tablesDuSchema, [
+        {
+          table: "table_disparue",
+          motif: "referentiel",
+          justification:
+            "une justification suffisamment longue pour passer le contrôle de longueur",
+        },
+      ]);
+
+      expect(ecarts).toHaveLength(1);
+      expect(ecarts[0]).toContain("table_disparue");
+      expect(ecarts[0]).toContain("ne s'applique à personne");
     });
 
     it("n'efface jamais en cascade — une table oubliée doit faire échouer", () => {
-      const instruction = instructionPurge();
+      const tables = tablesAPurger(tablesDuSchema);
+      const instruction = instructionPurge(tables);
 
       expect(instruction).not.toContain("CASCADE");
-      for (const table of TABLES_DEMONSTRATION) {
+      for (const table of tables) {
         expect(instruction).toContain(`"${table}"`);
       }
       expect(instruction.startsWith("TRUNCATE TABLE ")).toBe(true);
+    });
+
+    it("ÉPREUVE : une purge SANS cible lève plutôt que de passer", () => {
+      // Un `TRUNCATE` sans table ne prouverait rien, et une base vide
+      // ressemblerait à une purge réussie.
+      expect(() => instructionPurge([])).toThrow(/Aucune table à purger/);
     });
   });
 
   describe("journal", () => {
     it("annonce explicitement la purge et son périmètre", () => {
-      const message = messagePurge();
+      const tables = tablesAPurger(
+        modelesDuSchema(lireSchema()).map((modele) => modele.table),
+      );
+      const message = messagePurge(tables);
 
       expect(message).toContain("PURGE DES DONNÉES DE DÉMONSTRATION");
       expect(message).toContain("reinitialiser_demo");
-      for (const table of TABLES_DEMONSTRATION) {
+      // Ce qui est vidé ET ce qui est épargné : un journal qui ne dirait que
+      // le premier laisserait croire que rien n'a survécu.
+      for (const table of tables) {
         expect(message).toContain(table);
+      }
+      for (const epargnee of tablesEpargnees()) {
+        expect(message).toContain(epargnee);
       }
     });
   });
