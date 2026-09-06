@@ -304,23 +304,6 @@ async function lireFormesPolitiques(client: PrismaClient): Promise<{
   };
 }
 
-/**
- * URL du rôle de migration — celui qui a posé les `GRANT`, et le seul sous
- * lequel le contrôle des privilèges de consolidation voie quelque chose.
- */
-function urlMigration(): string {
-  const url = process.env.MIGRATION_DATABASE_URL;
-  if (url === undefined || url.trim().length === 0) {
-    throw new Error(
-      "MIGRATION_DATABASE_URL est vide : le contrôle permanent des privilèges " +
-        `de « ${ROLE_CONSOLIDATION} » (D38) ne peut pas être joué. Sous le ` +
-        "rôle applicatif, information_schema.role_table_grants est aveugle et " +
-        "rendrait zéro ligne — un vide qui ressemble trop à la conformité.",
-    );
-  }
-  return url;
-}
-
 function urlApplicative(): string {
   const url = process.env.DATABASE_URL;
   if (url === undefined || url.trim().length === 0) {
@@ -374,13 +357,18 @@ function rapport(
   ].join("\n");
 }
 
+// **Le rôle de MIGRATION n'est plus nécessaire ici, et l'exiger était devenu
+// un vestige.** Les contrôles de privilèges lisaient
+// `information_schema.role_table_grants`, aveugle à ce que le rôle connecté
+// n'a ni reçu ni concédé : il fallait donc le rôle qui avait posé les `GRANT`.
+// Ils lisent désormais `pg_class.relacl` par `aclexplode`, que n'importe quel
+// rôle peut lire — mesuré, mêmes lignes. Une exigence dont la raison a disparu
+// n'ajoute pas de sécurité : elle en retire, en faisant porter à une étape
+// automatique une accréditation capable de tout écrire pour un travail qui ne
+// fait que lire. Tout se joue sous le rôle APPLICATIF.
 const url = urlApplicative();
-const migration = urlMigration();
 const inventaire = lireInventaire(readFileSync(FICHIER_INVENTAIRE, "utf8"));
 const prisma = new PrismaClient({ datasources: { db: { url } } });
-const prismaMigration = new PrismaClient({
-  datasources: { db: { url: migration } },
-});
 
 try {
   // Le garde-fou applicatif lui-même : si le rôle échappe aux politiques, il
@@ -398,26 +386,26 @@ try {
   );
 
   // D38 — les privilèges du rôle de consolidation, observés et non déclarés.
-  const privileges = await lirePrivilegesConsolidation(prismaMigration);
+  const privileges = await lirePrivilegesConsolidation(prisma);
   process.stdout.write(rapportPrivileges(privileges));
 
   // L0-10 — l'ajout seul du journal d'audit, observé et non déclaré.
-  const privilegesJournal = await lirePrivilegesJournal(prismaMigration);
+  const privilegesJournal = await lirePrivilegesJournal(prisma);
   process.stdout.write(rapportPrivilegesJournal(privilegesJournal));
 
   // L0-10 — et le durcissement de CHAQUE partition : le contrôle ci-dessus ne
   // regarde que le parent, qui ne dit rien de ses partitions (§9).
-  const partitionsJournal = await lirePartitionsJournal(prismaMigration);
+  const partitionsJournal = await lirePartitionsJournal(prisma);
   process.stdout.write(rapportPartitionsJournal(partitionsJournal));
 
   // L0-10 (revue) — l'état DÉCLARÉ de RLS : la seule preuve possible de FORCE,
   // que la lecture sous le rôle applicatif ne peut pas produire.
-  const etatRls = await lireEtatRls(prismaMigration);
+  const etatRls = await lireEtatRls(prisma);
   process.stdout.write(rapportRlsDeclaree(etatRls));
 
   // R0-a (É9) — et ce que ces politiques laissent passer : l'état déclaré ne
   // dit rien de la FORME, et c'est la forme qui cloisonne.
-  const formes = await lireFormesPolitiques(prismaMigration);
+  const formes = await lireFormesPolitiques(prisma);
   process.stdout.write(rapportPolitiques(formes.colonnes, formes.politiques));
 
   const ecarts = [
@@ -458,5 +446,4 @@ try {
   );
 } finally {
   await prisma.$disconnect();
-  await prismaMigration.$disconnect();
 }

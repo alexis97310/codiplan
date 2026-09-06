@@ -141,11 +141,27 @@ et son unique motif recevable est `rejouable`.
 inaltérable, et cela est éprouvé par TENTATIVE : `UPDATE` et `DELETE` tentés sous
 le rôle applicatif sur la table mère, puis sur **chacune** des partitions
 énumérées par `pg_inherits`. Le durcissement est posé par la fonction qui crée la
-partition, dans la même transaction — mesuré. La limite est annoncée : un
-`CREATE TABLE … PARTITION OF` écrit à la main produit encore une partition nue,
-et la fermer demanderait un déclencheur d'événement, réservé au
-superutilisateur ; c'est le contrôle détectif de `controle-cloisonnement.mts` qui
-la rattrape.
+partition, dans la même transaction — mesuré.
+
+**La fonction empêche l'oubli, le détectif rattrape la main.** Ce sont deux
+garanties de nature différente, et les nommer séparément évite qu'un lecteur
+futur croie que la première couvre la seconde. La fonction protège du ticket
+distrait ; un `CREATE TABLE … PARTITION OF` tapé dans une console ne passe par
+aucune fonction. La limite porte donc sa condition de levée : *tant que le rôle
+de migration n'est pas superutilisateur, `ddl_command_end` est hors de portée et
+l'état nu reste productible à la main ; le jour où la base est auto-hébergée ou
+l'hébergeur ouvre les déclencheurs d'événement, le préventif remplace le
+détectif et la phrase se retire.*
+
+**Et le détectif ne tournait pas.** Mesuré au même moment : les contrôles
+détectifs ne s'exécutaient que dans `db-migrate.yml`, `workflow_dispatch` et lui
+seul, et le `verify:full` nocturne tourne contre un PostgreSQL jetable. Le
+détectif n'avait jamais regardé la base hébergée sans qu'un humain clique.
+`scripts/veille-hebergee.mts` (`pnpm veille`) l'y fait tourner chaque nuit, en
+lecture seule par la base — et une première rédaction portait une faute que le
+scénario d'isolation a révélée : `SET SESSION CHARACTERISTICS` ne verrouille pas
+la transaction en cours, et Prisma répartit sur un pool. C'est
+`SET TRANSACTION READ ONLY`, première instruction d'une transaction unique.
 
 ## Les deux réserves à porter à L1-02
 
