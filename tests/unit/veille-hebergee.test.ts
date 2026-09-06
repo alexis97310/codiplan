@@ -146,8 +146,7 @@ const HORS_OBSERVATION: readonly {
   },
   {
     fonction: "ecartsTemoins",
-    justification:
-      "témoins de l'inventaire comparé, indissociables de lui.",
+    justification: "témoins de l'inventaire comparé, indissociables de lui.",
   },
   {
     fonction: "ecartsListeParc",
@@ -364,7 +363,10 @@ describe("la veille de la base hébergée (D55)", () => {
       // La faute écrite plutôt qu'imaginée (§9, 24/08) : on retire de la source
       // l'appel au contrôle des FORMES de politique — celui qui attrape la
       // politique de `client` desserrée à la main.
-      const ampute = VEILLE.replace(/ecartsPolitiques\s*\(/g, "voidPolitiques(");
+      const ampute = VEILLE.replace(
+        /ecartsPolitiques\s*\(/g,
+        "voidPolitiques(",
+      );
 
       // LA SONDE : le retrait a-t-il réellement eu lieu ?
       expect(ampute).not.toBe(VEILLE);

@@ -39,7 +39,7 @@ pnpm test:isolation   # vitest, projet « isolation » — cloisonnement multi-s
 pnpm test:e2e         # playwright
 pnpm build            # build de production
 
-pnpm verify           # typecheck + lint + test + test:isolation + build
+pnpm verify           # format:check + typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI

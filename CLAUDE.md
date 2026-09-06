@@ -214,8 +214,13 @@ pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ? (R0-a, 
                       # contrôle qui ne s'exécute que quand elle s'exécute ne
                       # peut pas constater qu'elle a cessé.
 
-pnpm verify           # typecheck + lint + test + test:isolation + build
-                      # → porte de sortie de CHAQUE TICKET
+pnpm verify           # format:check + typecheck + lint + test + test:isolation
+                      # + build → porte de sortie de CHAQUE TICKET
+                      # `format:check` en fait partie depuis l'incident du
+                      # 02/09 : la CI le jouait à part, si bien qu'un `verify`
+                      # vert et sincère pouvait être rouge en CI. La porte du
+                      # ticket et la porte de la CI gardent la MÊME chose, et
+                      # un gardien l'exige (tests/unit/chaine-verification).
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
@@ -371,6 +376,12 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **La même question, posée un rang plus bas, a ouvert le contrôle du backlog.** `docs/backlog.md` est de rang 4 et cite des règles de rang 2 et des décisions de rang 1 ; rien ne vérifiait que ce qu'il en dit soit encore vrai — L1-08 portait « seul le dernier lot est annulable » après que D54 l'eut supprimé. Le contrôle est **étroit par construction** : un plan bouge sans cesse, une réciprocité complète coûterait plus qu'elle ne rapporterait, et le mode de défaillance réel est le ticket qui cite une règle **ayant changé depuis**. Chaque ticket citant une source porte donc l'empreinte du texte courant de ses sources — **clôture des amendements comprise**, car un ticket peut être rendu faux par une décision qu'il ne cite pas : L0-10 décrivait le périmètre d'audit en notions, comme D32 qu'il cite, alors que D52 puis D53 l'avaient remplacé. Le gardien ne prouve pas la cohérence, ce qu'aucun motif statique ne peut faire : **il force la relecture à l'instant où elle est due**, et il annonce que c'est tout ce qu'il fait.
 
   **Et le piège de la population s'y ferme par la STRUCTURE, non par un plancher.** Retirer une citation d'un ticket ne l'en fait pas sortir : l'empreinte porte sur l'**ensemble** des sources citées, en retirer une la fait changer — c'est un écart. Les retirer toutes laisse une estampille qui ne s'adosse plus à rien — écart aussi. Un chiffre plancher n'aurait été qu'une approximation ; ici la propriété se démontre. *(Même famille que le 01/09 sur les bornes : quand on sait mesurer, on ne garde pas l'approximation à côté.)*
+
+- **02/09/2026 — UNE PORTE QUI NE GARDE PAS CE QUE GARDE LA PORTE SUIVANTE PRODUIT DES VERTS SINCÈRES ET FAUX.** `pnpm verify` est « la porte de sortie de chaque ticket » ; la CI, elle, jouait `format:check` dans une étape à part. Mesuré sur l'état exact que la CI a refusé : **`pnpm verify` sort en 0 et ne prononce jamais le mot « prettier »**. La session qui a annoncé « verify vert, 600 tests » ne s'était donc trompée sur rien — elle avait franchi une porte qui ne jugeait pas ce que la suivante juge. C'est la divergence du 01/09, appliquée non plus à deux lectures d'un critère mais **aux portes elles-mêmes**, et elle est plus insidieuse : ici, personne ne ment et le rapport est exact.
+
+  **Le remède n'est pas d'ajouter l'étape manquante — c'est de rendre l'écart impossible.** `format:check` entre dans `verify` (l'incident), et un gardien exige que **toute commande jouée par un job de CI soit couverte, transitivement, par la porte correspondante** (la classe). Éprouvé sur la faute réelle, rejouée : `verify` amputé de `format:check` et l'étape rendue à la CI, le gardien rougit en nommant la commande orpheline.
+
+  *Corollaire de rapport, qui vaut même quand les portes coïncident :* **on ne rapporte un vert que sur l'état effectivement poussé**, jamais sur celui d'avant la dernière retouche. Un vert mesuré à un instant et annoncé pour un autre est un vert inventé, quelle que soit la bonne foi.
 
 - **01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.** Espèce distincte de la recopie ci-dessus, et il faut la nommer séparément parce que la parade y est différente. Dans la recopie, une même DONNÉE est écrite deux fois, et l'on sait quoi comparer. Ici, un même CRITÈRE est **implémenté** deux fois, par deux modules légitimes, chacun écrit pour son usage — et rien, dans le code, ne dit qu'ils parlent de la même chose. Les deux sont verts. Aucun ne ment. Ils ne disent simplement plus la même chose.
 

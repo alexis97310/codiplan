@@ -27,7 +27,7 @@
     "battement": "tsx scripts/battement-nocturne.mts",
     "veille": "tsx scripts/veille-hebergee.mts",
     "partitions:etendre": "tsx scripts/etendre-partitions.mts",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
+    "verify": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
     "verify:full": "pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e"
   },
   "dependencies": {
