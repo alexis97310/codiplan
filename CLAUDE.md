@@ -194,9 +194,12 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
 pnpm partitions:etendre # étend l'horizon des partitions du journal
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
-                      # les six contrôles d'observation — RLS, formes de
-                      # politique, périmètre d'audit, ajout seul du journal,
-                      # durcissement des partitions, privilèges de consolidation
+                      # les contrôles d'observation — six aujourd'hui : RLS,
+                      # formes de politique, périmètre d'audit, ajout seul du
+                      # journal, durcissement des partitions, privilèges de
+                      # consolidation ; la liste est FERMÉE CONTRE scripts/lib/,
+                      # inversée comme le périmètre d'audit, et six n'est qu'un
+                      # instantané (tests/unit/veille-hebergee.test.ts)
                       # — joués CHAQUE NUIT contre la vraie base, sous le rôle
                       # APPLICATIF et en LECTURE SEULE (SET TRANSACTION READ
                       # ONLY). Le contrôle statique ne voit pas ce qu'une main
@@ -382,5 +385,13 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Et le critère mesuré traite MIEUX le cas qui avait motivé la borne** — c'est le test à faire avant de la garder « par prudence ». Sur deux imports qui se recouvrent, la règle du dernier lot refusait le premier **en entier**, y compris ses lignes que le second n'a jamais touchées ; le critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et laisse passer les autres. La borne était donc **à la fois plus permissive** dans un sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait écrasé — **et plus brutale** dans l'autre. Une approximation conservée à côté de sa mesure n'ajoute pas de sécurité : elle en retire, et elle masque le fait qu'on sait désormais répondre.
 
   *La question à poser à toute borne — un délai, un rang, un plafond, une fenêtre : quelle question ne savait-on pas poser le jour où on l'a écrite ? Si on sait la poser aujourd'hui, la borne n'est plus une garantie, c'est un vestige.*
+
+- **06/09/2026 — UN CHIFFRE JUSTE, DANS UN RAPPORT VRAI, QUI FAIT CONCLURE FAUX : LE GARDIEN N'EST PAS CREUX, C'EST CE QU'IL RACONTE DE LUI-MÊME QUI L'EST.** Espèce nouvelle, et il faut la nommer à côté de la vacuité du 30/08 parce que le remède n'a rien à voir. Dans la vacuité, l'assertion ne regarde rien et le vert est faux. **Ici tout est juste** — la mesure, le verdict, le texte — et c'est le LECTEUR qui repart avec une conclusion fausse.
+
+  Mesuré sur le rapport de la veille. Il rendait « 9 tables de la 1ʳᵉ catégorie : 6 société, 1 parc, 1 journal, 1 identité », sous un titre annonçant « observées dans pg_policies, non déclarées », au milieu de lignes qui, elles, venaient bien de la base. Ce décompte-là porte sur la forme **attendue** : il est calculé depuis `TABLES_PARC`, une liste close du dépôt, et **rien de ce qui arrive en base ne peut le déplacer**. Éprouvé en desserrant réellement la politique de `client` : le verdict est tombé en nommant la table et le filtre perdu, et le décompte est resté « 1 parc », impassible. Un lecteur du rapport — le directeur d'exploitation, en l'occurrence — l'a lu comme une mesure et a conclu que la veille comptait au lieu de contrôler. **N'importe qui l'aurait lu comme une mesure**, et c'est le critère : un chiffre affiché à côté de chiffres observés se lit comme observé.
+
+  **La règle qui en sort, et elle est mécanique : toute ligne d'un rapport dit de quel côté du miroir elle vient — la base, ou l'attendu.** Corollaire, plus tranchant que la règle : **une ligne qui ne peut pas bouger sous une faute n'est jamais présentée à côté de celles qui le peuvent.** Soit on la nomme pour ce qu'elle est — une population, un témoin de non-vacuité —, soit on la remplace par ce qui bouge. Le rapport nomme désormais les tables de chaque forme et de chaque catégorie d'état RLS : un décompte se lit en trois secondes et ne se vérifie pas, un nom se vérifie.
+
+  *La question à poser à chaque ligne qu'un contrôle imprime : si la faute que je surveille était commise à l'instant, cette ligne changerait-elle ? Si la réponse est non, elle n'a rien à faire dans la colonne des observations.* Et la parenté avec le 30/08 est exacte, un cran plus haut : un gardien ne peut pas se garder lui-même, et il ne peut pas davantage relire son propre rapport avec les yeux de celui qui n'a pas écrit le code.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

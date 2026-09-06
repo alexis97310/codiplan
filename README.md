@@ -312,9 +312,20 @@ Reste ouvert au registre : le journal des référentiels de plateforme, et la
 ## Veille de la base hébergée — le détectif, chaque nuit
 
 `pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
-six contrôles d'observation contre la **vraie** base : état RLS, formes de
-politique, périmètre d'audit, ajout seul du journal, durcissement des partitions,
-privilèges de consolidation.
+les contrôles d'observation contre la **vraie** base — six aujourd'hui : état
+RLS, formes de politique, périmètre d'audit, ajout seul du journal, durcissement
+des partitions, privilèges de consolidation.
+
+**Six est un instantané, pas une liste.** Le périmètre de la veille est
+**inversé** comme celui de l'audit (D55) : toute fonction d'écart que
+`scripts/lib/` déclare est un contrôle de veille par défaut, et n'y échappe que
+par une exclusion écrite et justifiée. La liste vit dans
+[`tests/unit/veille-hebergee.test.ts`](tests/unit/veille-hebergee.test.ts), et
+elle est fermée contre le répertoire lui-même : un septième contrôle écrit et
+jamais câblé fait échouer la vérification le jour où il est écrit. Une première
+rédaction du gardien exigeait « six », un nombre écrit à la main — elle
+attrapait le contrôle qu'on décâble et laissait passer celui qu'on n'a jamais
+câblé.
 
 **Ce qu'elle répare, et il a été mesuré.** Ces contrôles ne s'exécutaient que
 dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` **et lui
