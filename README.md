@@ -374,6 +374,16 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
 
+**L'`ENABLE` seul du milieu est une décision, pas un reste** (D4). `FORCE` ne
+concerne que le PROPRIÉTAIRE des tables, et c'est lui qui amorce les
+référentiels de plateforme : le seed devrait poser un contexte société pour
+écrire la parité du franc Pacifique ou le 14 juillet, qui n'appartiennent à
+aucune société. L'asymétrie est gardée **dans les deux sens** — un référentiel
+qui perdrait `ENABLE` est un écart, un référentiel qui gagnerait `FORCE` en est
+un autre, et chacun a son épreuve écrite. Elle se lit aussi dans le rapport
+nocturne, qui **nomme** les tables de chaque catégorie plutôt que de les
+compter : un décompte se lit en trois secondes et ne se vérifie pas.
+
 ### Et une troisième preuve : la FORME de la politique
 
 Les deux précédentes disent que la sécurité est **activée** ; ni l'une ni

@@ -33,6 +33,44 @@ const CI = readFileSync(
   "utf8",
 );
 
+/**
+ * Le SOURCE de la veille, lu comme texte.
+ *
+ * Le ticket L0-04 aurait dit « le script appelle les six contrôles » ; il les
+ * appelle en effet. Mais **rien ne le tenait** : en retirer un de la liste
+ * `controles` ne casse aucune compilation, ne fait rougir aucun scénario, et
+ * la veille continue de rendre un vert — sur cinq contrôles au lieu de six. Les
+ * fonctions pures, elles, restent gardées par leurs propres épreuves : ce qui
+ * ne l'était pas, c'est le CÂBLAGE. Même famille que É12 : le silence a
+ * exactement la forme du succès.
+ */
+const VEILLE = readFileSync(
+  join(process.cwd(), "scripts/veille-hebergee.mts"),
+  "utf8",
+);
+
+/**
+ * Les six fonctions d'écart que la veille doit appeler, chacune nommée par le
+ * contrôle qu'elle porte. Recopiées ? Non : ce sont les six symboles réellement
+ * exportés par `scripts/lib/`, et le test ci-dessous les confronte au source de
+ * la veille, qui est une source qu'il ne contrôle pas.
+ */
+const CONTROLES_ATTENDUS = [
+  "ecartsRlsDeclaree",
+  "ecartsPolitiques",
+  "ecartsDeclencheurs",
+  "ecartsPrivilegesJournal",
+  "ecartsDurcissementPartitions",
+  "ecartsPrivilegesConsolidation",
+] as const;
+
+/** Les contrôles réellement CÂBLÉS dans un source de veille donné. */
+function controlesCables(source: string): string[] {
+  return CONTROLES_ATTENDUS.filter((nom) =>
+    new RegExp(`\\b${nom}\\s*\\(`).test(source),
+  );
+}
+
 /** Position d'un fragment dans le flux, en échouant s'il est absent. */
 function position(fragment: string): number {
   const index = CI.indexOf(fragment);
@@ -165,6 +203,35 @@ describe("la veille de la base hébergée (D55)", () => {
       expect(() =>
         urlVeille({ MIGRATION_DATABASE_URL: "postgres://privilegie" }),
       ).toThrow(/DATABASE_URL/);
+    });
+  });
+
+  describe("elle appelle réellement les SIX contrôles", () => {
+    it("chacun est câblé, et ils sont six", () => {
+      // Le témoin d'abord : cinq contrôles câblés sur six ressemblent trait
+      // pour trait à six, puisque le sixième ne dit rien quand il n'est pas là.
+      expect(controlesCables(VEILLE)).toEqual([...CONTROLES_ATTENDUS]);
+      // Et la liste `controles` en déclare autant qu'il y a de contrôles : un
+      // appel présent mais rangé hors du tableau ne serait jamais joué.
+      expect(VEILLE.match(/^\s+ecarts: /gm) ?? []).toHaveLength(
+        CONTROLES_ATTENDUS.length,
+      );
+    });
+
+    it("ÉPREUVE PAR RETRAIT : un contrôle décâblé est vu", () => {
+      // La faute écrite plutôt qu'imaginée (§9, 24/08) : on retire de la source
+      // l'appel au contrôle des FORMES de politique — celui qui attrape la
+      // politique de `client` desserrée à la main —, et l'on vérifie que le
+      // gardien ne s'en accommode pas. Sans cette épreuve, le test ci-dessus
+      // pourrait être vert pour une autre raison que la sienne.
+      const ampute = VEILLE.replace(/ecartsPolitiques\s*\(/g, "voidPolitiques(");
+
+      // LA SONDE : le retrait a-t-il réellement eu lieu ?
+      expect(ampute).not.toBe(VEILLE);
+      expect(controlesCables(ampute)).toHaveLength(
+        CONTROLES_ATTENDUS.length - 1,
+      );
+      expect(controlesCables(ampute)).not.toContain("ecartsPolitiques");
     });
   });
 
