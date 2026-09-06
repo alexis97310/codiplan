@@ -662,32 +662,61 @@ export function ecartsPolitiques(
     }
   }
 
-  return ecarts;
+  // Une politique `ALL` garde des DEUX côtés — `qual` et `with_check` —, et une
+  // faute écrite dans les deux clauses produit deux fois le même message mot
+  // pour mot. Un doublon n'ajoute aucune information et abîme le seul canal par
+  // lequel l'alarme parle : un lecteur qui voit deux lignes identiques cherche
+  // la différence entre elles. Deux écarts DISTINCTS restent distincts.
+  return [...new Set(ecarts)];
 }
 
 /**
- * Rapport de journal — ce qui a été observé, avant tout verdict. Le décompte
- * par forme est le témoin lisible : une forme à zéro dit que le contrôle n'a
- * pas regardé ce qu'il croit regarder.
+ * Rapport de journal — ce qui a été observé, avant tout verdict, et TABLE PAR
+ * TABLE NOMMÉE.
+ *
+ * **Ce que le décompte seul ne disait pas.** Une première rédaction rendait
+ * « 9 tables de la 1ʳᵉ catégorie : 6 société, 1 parc, 1 journal, 1 identité ».
+ * Le verdict, lui, était déjà table par table — `ecartsPolitiques` confronte
+ * chaque table à `formeAttendue(table)` et nomme le filtre perdu —, mais le
+ * rapport ne permettait pas de s'en assurer, et il invitait à une lecture
+ * fausse : croire que le décompte MESURE la conformité. Il ne la mesure pas, et
+ * il ne peut pas la mesurer. **Le décompte porte sur la forme ATTENDUE, jamais
+ * sur la forme observée** — `formeAttendue` lit `TABLES_PARC`, une liste close
+ * du dépôt, que rien de ce qui se passe en base ne peut déplacer.
+ *
+ * *Mesuré le 06/09/2026, sur une base d'épreuve façonnée à l'identique de la
+ * base hébergée : la politique « parc » de `client` remplacée à la main par une
+ * clause société seule — la faute exacte que cette veille existe pour attraper,
+ * puisqu'elle contourne le dépôt. Le décompte est resté « 1 parc », inchangé ;
+ * le verdict est tombé en nommant `client` et le filtre `app.client_id` perdu,
+ * et la veille est sortie en code 1. Le contrôle mordait ; c'est le rapport qui
+ * ne le donnait pas à lire.*
+ *
+ * Le décompte reste — c'est le témoin de non-vacuité : une forme à zéro dit que
+ * le contrôle n'a pas regardé ce qu'il croit regarder. Les noms s'y ajoutent,
+ * parce qu'un décompte ne se vérifie pas et qu'un nom se vérifie.
  */
 export function rapportPolitiques(
   colonnes: readonly ColonneSociete[],
   politiques: readonly PolitiqueObservee[],
 ): string {
   const premiereCategorie = tablesPremiereCategorie(colonnes);
-  const parForme = new Map<Forme, number>();
+  const parForme = new Map<Forme, string[]>();
   for (const colonne of premiereCategorie) {
     const forme = formeAttendue(colonne.table);
-    parForme.set(forme, (parForme.get(forme) ?? 0) + 1);
+    parForme.set(forme, [...(parForme.get(forme) ?? []), colonne.table]);
   }
 
-  const detail = [...parForme.entries()]
-    .map(([forme, nombre]) => `${nombre} « ${forme} »`)
-    .join(", ");
+  const lignes = [...parForme.entries()].map(
+    ([forme, tables]) =>
+      `    ${forme.padEnd(11)} (${tables.length}) : ${[...tables].sort().join(", ")}`,
+  );
 
   return [
     "Formes de politique RLS (observées dans pg_policies, non déclarées)",
-    `  ${premiereCategorie.length} table(s) de la 1ʳᵉ catégorie de I1 : ${detail}`,
+    `  ${premiereCategorie.length} table(s) de la 1ʳᵉ catégorie de I1, chacune ` +
+      "confrontée à SA forme attendue :",
+    ...lignes,
     `  ${politiques.length} politique(s) lue(s) au total`,
     "",
   ].join("\n");

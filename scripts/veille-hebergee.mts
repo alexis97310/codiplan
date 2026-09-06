@@ -80,6 +80,14 @@ import {
  * d'isolation jouent sur la base jetable. Une seconde rédaction serait l'espèce
  * du §9 : deux lectures d'un même critère qui divergent en silence.
  *
+ * **Et la liste ci-dessous n'est PAS tenue à la main : elle est fermée contre
+ * `scripts/lib/`.** Toute fonction d'écart que ce répertoire déclare est un
+ * contrôle de veille par défaut, et n'y échappe que par une exclusion écrite —
+ * périmètre inversé, exactement comme celui de l'audit (D55). Le gardien et la
+ * liste des exclusions vivent dans `tests/unit/veille-hebergee.test.ts`, et
+ * c'est leur seule maison : un contrôle écrit demain et jamais câblé y fait
+ * échouer la vérification le jour où il est écrit.
+ *
  * ## LECTURE SEULE, et par la BASE plutôt que par la promesse
  *
  * La session est passée en `READ ONLY` avant toute autre instruction. Ce n'est
@@ -96,11 +104,11 @@ import {
  *
  * ## Ce qu'il ne fait PAS
  *
- * Ni migration, ni seed, ni purge, ni inventaire comparé — ce dernier exige
- * d'écrire un fichier d'échange entre deux étapes et appartient à
- * `db-migrate.yml`, où il a un sens : il compare ce que le seed VIENT d'écrire
- * à ce que le rôle applicatif en voit. Une veille nocturne n'a rien écrit ; il
- * n'y a rien à comparer.
+ * Ni migration, ni seed, ni purge. Les contrôles de `scripts/lib/` qu'elle ne
+ * joue pas — l'inventaire comparé, le battement, les gardiens de listes du
+ * dépôt — sont énumérés et JUSTIFIÉS un par un dans `HORS_OBSERVATION`
+ * (`tests/unit/veille-hebergee.test.ts`). La raison ne se recopie pas ici : deux
+ * copies que rien ne confronte divergent en silence (§9, 01/09).
  *
  * Sortie via `process.stdout.write` : `console.log` est banni (CLAUDE.md §5).
  */

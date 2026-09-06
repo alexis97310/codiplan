@@ -1742,9 +1742,11 @@ dépend de l'initiative de quelqu'un n'est pas une garantie, c'est une
 intention** — le même refus que celui opposé à la réparation « à lancer avant »
 de la clé étrangère de L1-02.
 
-`scripts/veille-hebergee.mts` (`pnpm veille`) joue donc les six contrôles
-d'observation chaque nuit contre la base réelle, et une veille rouge ouvre la
-même issue qu'un `verify:full` rouge. Elle est en **lecture seule par la base**,
+`scripts/veille-hebergee.mts` (`pnpm veille`) joue donc chaque nuit, contre la
+base réelle, tous les contrôles d'observation que `scripts/lib/` déclare — six
+aujourd'hui, et le périmètre est **inversé** comme celui de l'audit : câblé par
+défaut, exclu par écrit. Une veille rouge ouvre la même issue qu'un
+`verify:full` rouge. Elle est en **lecture seule par la base**,
 pas par promesse : toute la veille tient dans une transaction ouverte par
 `SET TRANSACTION READ ONLY`, qui refuse les quatre verbes d'écriture et tout le
 DDL. C'est ce qui rend acceptable de l'exécuter avec le rôle de migration,

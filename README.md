@@ -39,7 +39,7 @@ pnpm test:isolation   # vitest, projet « isolation » — cloisonnement multi-s
 pnpm test:e2e         # playwright
 pnpm build            # build de production
 
-pnpm verify           # typecheck + lint + test + test:isolation + build
+pnpm verify           # format:check + typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
@@ -312,9 +312,20 @@ Reste ouvert au registre : le journal des référentiels de plateforme, et la
 ## Veille de la base hébergée — le détectif, chaque nuit
 
 `pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
-six contrôles d'observation contre la **vraie** base : état RLS, formes de
-politique, périmètre d'audit, ajout seul du journal, durcissement des partitions,
-privilèges de consolidation.
+les contrôles d'observation contre la **vraie** base — six aujourd'hui : état
+RLS, formes de politique, périmètre d'audit, ajout seul du journal, durcissement
+des partitions, privilèges de consolidation.
+
+**Six est un instantané, pas une liste.** Le périmètre de la veille est
+**inversé** comme celui de l'audit (D55) : toute fonction d'écart que
+`scripts/lib/` déclare est un contrôle de veille par défaut, et n'y échappe que
+par une exclusion écrite et justifiée. La liste vit dans
+[`tests/unit/veille-hebergee.test.ts`](tests/unit/veille-hebergee.test.ts), et
+elle est fermée contre le répertoire lui-même : un septième contrôle écrit et
+jamais câblé fait échouer la vérification le jour où il est écrit. Une première
+rédaction du gardien exigeait « six », un nombre écrit à la main — elle
+attrapait le contrôle qu'on décâble et laissait passer celui qu'on n'a jamais
+câblé.
 
 **Ce qu'elle répare, et il a été mesuré.** Ces contrôles ne s'exécutaient que
 dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` **et lui
@@ -373,6 +384,16 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 **clos par le schéma** : toute table de `public` relève d'exactement une des
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
+
+**L'`ENABLE` seul du milieu est une décision, pas un reste** (D4). `FORCE` ne
+concerne que le PROPRIÉTAIRE des tables, et c'est lui qui amorce les
+référentiels de plateforme : le seed devrait poser un contexte société pour
+écrire la parité du franc Pacifique ou le 14 juillet, qui n'appartiennent à
+aucune société. L'asymétrie est gardée **dans les deux sens** — un référentiel
+qui perdrait `ENABLE` est un écart, un référentiel qui gagnerait `FORCE` en est
+un autre, et chacun a son épreuve écrite. Elle se lit aussi dans le rapport
+nocturne, qui **nomme** les tables de chaque catégorie plutôt que de les
+compter : un décompte se lit en trois secondes et ne se vérifie pas.
 
 ### Et une troisième preuve : la FORME de la politique
 

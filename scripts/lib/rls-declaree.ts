@@ -215,19 +215,51 @@ export function ecartsRlsDeclaree(
   return ecarts;
 }
 
-/** Rapport de journal — l'état déclaré, et ce qui s'en écarte. */
+/**
+ * Rapport de journal — l'état déclaré, table par table et NOMMÉE.
+ *
+ * **Une première rédaction ne rendait que trois décomptes** : « 9 ENABLE+FORCE,
+ * 3 ENABLE seul, 6 sans RLS ». Le verdict était juste — `ecartsRlsDeclaree`
+ * confronte déjà chaque table à la liste où elle se range —, mais le rapport ne
+ * permettait pas de le relire : un lecteur de la veille voyait une asymétrie
+ * (trois tables sans `FORCE`) sans pouvoir dire lesquelles, ni si c'était une
+ * décision ou un reste. Un décompte se lit en trois secondes et ne se vérifie
+ * pas ; un nom se vérifie.
+ *
+ * **Et l'asymétrie du milieu est une DÉCISION, écrite ici plutôt que déduite.**
+ * Les référentiels de plateforme portent `ENABLE` sans `FORCE` (D4) : `FORCE`
+ * ne concerne que le PROPRIÉTAIRE des tables, et c'est lui qui amorce ces
+ * référentiels — le seed échouerait s'il devait poser un contexte société pour
+ * écrire la parité du franc Pacifique, qui n'appartient à aucune société. Les
+ * deux sens sont gardés : un référentiel qui perdrait `ENABLE` est un écart,
+ * un référentiel qui gagnerait `FORCE` en est un autre.
+ *
+ * Le classement rendu ici est celui que la base MONTRE, jamais celui que les
+ * listes déclarent : une table qui dérive change de groupe dans le rapport en
+ * même temps qu'elle fait rougir le verdict, et son nom se lit des deux côtés.
+ */
 export function rapportRlsDeclaree(observees: readonly EtatRlsTable[]): string {
-  const forcees = observees.filter(
-    (etat) => etat.activee && etat.forcee,
-  ).length;
-  const simples = observees.filter(
-    (etat) => etat.activee && !etat.forcee,
-  ).length;
+  const noms = (retenue: (etat: EtatRlsTable) => boolean): string => {
+    const tables = observees
+      .filter(retenue)
+      .map((etat) => etat.table)
+      .sort();
+    return tables.length === 0 ? "aucune" : tables.join(", ");
+  };
+
+  const forcees = observees.filter((etat) => etat.activee && etat.forcee);
+  const simples = observees.filter((etat) => etat.activee && !etat.forcee);
+  const sans = observees.filter((etat) => !etat.activee);
 
   return [
     "État déclaré de la sécurité au niveau des lignes (observé, non déclaré)",
-    `  ${forcees} table(s) ENABLE+FORCE, ${simples} ENABLE seul, ` +
-      `${observees.length - forcees - simples} sans RLS`,
+    `  ${forcees.length} cloisonnée(s), ENABLE+FORCE : ` +
+      `${noms((etat) => etat.activee && etat.forcee)}`,
+    `  ${simples.length} référentiel(s) de plateforme, ENABLE seul — jamais ` +
+      `FORCE, le propriétaire les amorce (D4) : ` +
+      `${noms((etat) => etat.activee && !etat.forcee)}`,
+    `  ${sans.length} technique(s) sans RLS (I1, catégories 3 et 4) : ` +
+      `${noms((etat) => !etat.activee)}`,
     "",
   ].join("\n");
 }

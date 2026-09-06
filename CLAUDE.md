@@ -194,9 +194,12 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
 pnpm partitions:etendre # étend l'horizon des partitions du journal
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
-                      # les six contrôles d'observation — RLS, formes de
-                      # politique, périmètre d'audit, ajout seul du journal,
-                      # durcissement des partitions, privilèges de consolidation
+                      # les contrôles d'observation — six aujourd'hui : RLS,
+                      # formes de politique, périmètre d'audit, ajout seul du
+                      # journal, durcissement des partitions, privilèges de
+                      # consolidation ; la liste est FERMÉE CONTRE scripts/lib/,
+                      # inversée comme le périmètre d'audit, et six n'est qu'un
+                      # instantané (tests/unit/veille-hebergee.test.ts)
                       # — joués CHAQUE NUIT contre la vraie base, sous le rôle
                       # APPLICATIF et en LECTURE SEULE (SET TRANSACTION READ
                       # ONLY). Le contrôle statique ne voit pas ce qu'une main
@@ -211,8 +214,13 @@ pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ? (R0-a, 
                       # contrôle qui ne s'exécute que quand elle s'exécute ne
                       # peut pas constater qu'elle a cessé.
 
-pnpm verify           # typecheck + lint + test + test:isolation + build
-                      # → porte de sortie de CHAQUE TICKET
+pnpm verify           # format:check + typecheck + lint + test + test:isolation
+                      # + build → porte de sortie de CHAQUE TICKET
+                      # `format:check` en fait partie depuis l'incident du
+                      # 02/09 : la CI le jouait à part, si bien qu'un `verify`
+                      # vert et sincère pouvait être rouge en CI. La porte du
+                      # ticket et la porte de la CI gardent la MÊME chose, et
+                      # un gardien l'exige (tests/unit/chaine-verification).
 pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
                       # → porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
@@ -369,6 +377,12 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 
   **Et le piège de la population s'y ferme par la STRUCTURE, non par un plancher.** Retirer une citation d'un ticket ne l'en fait pas sortir : l'empreinte porte sur l'**ensemble** des sources citées, en retirer une la fait changer — c'est un écart. Les retirer toutes laisse une estampille qui ne s'adosse plus à rien — écart aussi. Un chiffre plancher n'aurait été qu'une approximation ; ici la propriété se démontre. *(Même famille que le 01/09 sur les bornes : quand on sait mesurer, on ne garde pas l'approximation à côté.)*
 
+- **02/09/2026 — UNE PORTE QUI NE GARDE PAS CE QUE GARDE LA PORTE SUIVANTE PRODUIT DES VERTS SINCÈRES ET FAUX.** `pnpm verify` est « la porte de sortie de chaque ticket » ; la CI, elle, jouait `format:check` dans une étape à part. Mesuré sur l'état exact que la CI a refusé : **`pnpm verify` sort en 0 et ne prononce jamais le mot « prettier »**. La session qui a annoncé « verify vert, 600 tests » ne s'était donc trompée sur rien — elle avait franchi une porte qui ne jugeait pas ce que la suivante juge. C'est la divergence du 01/09, appliquée non plus à deux lectures d'un critère mais **aux portes elles-mêmes**, et elle est plus insidieuse : ici, personne ne ment et le rapport est exact.
+
+  **Le remède n'est pas d'ajouter l'étape manquante — c'est de rendre l'écart impossible.** `format:check` entre dans `verify` (l'incident), et un gardien exige que **toute commande jouée par un job de CI soit couverte, transitivement, par la porte correspondante** (la classe). Éprouvé sur la faute réelle, rejouée : `verify` amputé de `format:check` et l'étape rendue à la CI, le gardien rougit en nommant la commande orpheline.
+
+  *Corollaire de rapport, qui vaut même quand les portes coïncident :* **on ne rapporte un vert que sur l'état effectivement poussé**, jamais sur celui d'avant la dernière retouche. Un vert mesuré à un instant et annoncé pour un autre est un vert inventé, quelle que soit la bonne foi.
+
 - **01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.** Espèce distincte de la recopie ci-dessus, et il faut la nommer séparément parce que la parade y est différente. Dans la recopie, une même DONNÉE est écrite deux fois, et l'on sait quoi comparer. Ici, un même CRITÈRE est **implémenté** deux fois, par deux modules légitimes, chacun écrit pour son usage — et rien, dans le code, ne dit qu'ils parlent de la même chose. Les deux sont verts. Aucun ne ment. Ils ne disent simplement plus la même chose.
 
   **Mesuré sur la première catégorie de I1**, le jour de D55. `categoriesDeLaTable` la lit pour ranger chaque table dans l'une des quatre catégories ; `tablesPremiereCategorieI1` la lit pour en dériver le périmètre d'audit. Même définition — `societe_id` non nullable, plus `societe` par identité, moins les référentiels — écrite deux fois, dans deux fichiers, pour deux raisons. Qu'elles dérivent, et l'une dit « cette table est métier » pendant que l'autre dit « elle n'a pas à être auditée ». **Le défaut ne serait apparu ni dans l'une ni dans l'autre suite** : chacune resterait juste sur sa propre lecture, et le trou vivrait dans l'espace entre les deux, que personne n'habite.
@@ -382,5 +396,13 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Et le critère mesuré traite MIEUX le cas qui avait motivé la borne** — c'est le test à faire avant de la garder « par prudence ». Sur deux imports qui se recouvrent, la règle du dernier lot refusait le premier **en entier**, y compris ses lignes que le second n'a jamais touchées ; le critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et laisse passer les autres. La borne était donc **à la fois plus permissive** dans un sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait écrasé — **et plus brutale** dans l'autre. Une approximation conservée à côté de sa mesure n'ajoute pas de sécurité : elle en retire, et elle masque le fait qu'on sait désormais répondre.
 
   *La question à poser à toute borne — un délai, un rang, un plafond, une fenêtre : quelle question ne savait-on pas poser le jour où on l'a écrite ? Si on sait la poser aujourd'hui, la borne n'est plus une garantie, c'est un vestige.*
+
+- **06/09/2026 — UN CHIFFRE JUSTE, DANS UN RAPPORT VRAI, QUI FAIT CONCLURE FAUX : LE GARDIEN N'EST PAS CREUX, C'EST CE QU'IL RACONTE DE LUI-MÊME QUI L'EST.** Espèce nouvelle, et il faut la nommer à côté de la vacuité du 30/08 parce que le remède n'a rien à voir. Dans la vacuité, l'assertion ne regarde rien et le vert est faux. **Ici tout est juste** — la mesure, le verdict, le texte — et c'est le LECTEUR qui repart avec une conclusion fausse.
+
+  Mesuré sur le rapport de la veille. Il rendait « 9 tables de la 1ʳᵉ catégorie : 6 société, 1 parc, 1 journal, 1 identité », sous un titre annonçant « observées dans pg_policies, non déclarées », au milieu de lignes qui, elles, venaient bien de la base. Ce décompte-là porte sur la forme **attendue** : il est calculé depuis `TABLES_PARC`, une liste close du dépôt, et **rien de ce qui arrive en base ne peut le déplacer**. Éprouvé en desserrant réellement la politique de `client` : le verdict est tombé en nommant la table et le filtre perdu, et le décompte est resté « 1 parc », impassible. Un lecteur du rapport — le directeur d'exploitation, en l'occurrence — l'a lu comme une mesure et a conclu que la veille comptait au lieu de contrôler. **N'importe qui l'aurait lu comme une mesure**, et c'est le critère : un chiffre affiché à côté de chiffres observés se lit comme observé.
+
+  **La règle qui en sort, et elle est mécanique : toute ligne d'un rapport dit de quel côté du miroir elle vient — la base, ou l'attendu.** Corollaire, plus tranchant que la règle : **une ligne qui ne peut pas bouger sous une faute n'est jamais présentée à côté de celles qui le peuvent.** Soit on la nomme pour ce qu'elle est — une population, un témoin de non-vacuité —, soit on la remplace par ce qui bouge. Le rapport nomme désormais les tables de chaque forme et de chaque catégorie d'état RLS : un décompte se lit en trois secondes et ne se vérifie pas, un nom se vérifie.
+
+  *La question à poser à chaque ligne qu'un contrôle imprime : si la faute que je surveille était commise à l'instant, cette ligne changerait-elle ? Si la réponse est non, elle n'a rien à faire dans la colonne des observations.* Et la parenté avec le 30/08 est exacte, un cran plus haut : un gardien ne peut pas se garder lui-même, et il ne peut pas davantage relire son propre rapport avec les yeux de celui qui n'a pas écrit le code.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

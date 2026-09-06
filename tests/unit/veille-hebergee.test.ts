@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -32,6 +32,158 @@ const CI = readFileSync(
   join(process.cwd(), ".github/workflows/ci.yml"),
   "utf8",
 );
+
+/**
+ * Le SOURCE de la veille, lu comme texte.
+ *
+ * Le ticket L0-04 aurait dit « le script appelle les six contrôles » ; il les
+ * appelle en effet. Mais **rien ne le tenait** : en retirer un de la liste
+ * `controles` ne casse aucune compilation, ne fait rougir aucun scénario, et
+ * la veille continue de rendre un vert — sur cinq contrôles au lieu de six. Les
+ * fonctions pures, elles, restent gardées par leurs propres épreuves : ce qui
+ * ne l'était pas, c'est le CÂBLAGE. Même famille que É12 : le silence a
+ * exactement la forme du succès.
+ */
+const VEILLE = readFileSync(
+  join(process.cwd(), "scripts/veille-hebergee.mts"),
+  "utf8",
+);
+
+/**
+ * Le PÉRIMÈTRE DE LA VEILLE EST INVERSÉ, sur le modèle de D55 : toute fonction
+ * d'écart de `scripts/lib/` est un contrôle de veille **par défaut**, et n'y
+ * échappe que par une exclusion écrite et justifiée.
+ *
+ * **Une première rédaction exigeait SIX contrôles, et six était un nombre écrit
+ * à la main.** Elle attrapait le contrôle qu'on décâble ; elle laissait passer
+ * celui qu'on écrit sans jamais le câbler — la veille aurait rendu un vert sur
+ * six comme elle rendait un vert sur cinq, et personne ne s'en serait aperçu.
+ * C'est la maladie que ce dépôt a déjà soignée quatre fois : une liste close
+ * tenue à la main devient fausse le jour où quelqu'un crée l'objet suivant sans
+ * revenir la ranger (§9, 20/08 et 01/09).
+ *
+ * **La source contre laquelle elle est fermée est le répertoire lui-même** —
+ * une source que ce gardien ne contrôle pas et qui ne se plie pas à ce qu'il
+ * déclare. Écrire `ecartsQuelqueChose` dans `scripts/lib/` suffit désormais à
+ * l'exiger dans la veille, sans que personne n'ait à y penser.
+ */
+const LIB = join(process.cwd(), "scripts/lib");
+
+/** Le source de chaque module de `scripts/lib/`, par nom de fichier. */
+const SOURCES_LIB: ReadonlyMap<string, string> = new Map(
+  readdirSync(LIB)
+    .filter((fichier) => fichier.endsWith(".ts"))
+    .map((fichier) => [fichier, readFileSync(join(LIB, fichier), "utf8")]),
+);
+
+/**
+ * Les fonctions d'écart DÉCLARÉES par `scripts/lib/`, lues au source.
+ *
+ * Les deux formes d'export sont reconnues — `export function ecartsX(` et
+ * `export const ecartsX =` —, et le motif est délibérément LARGE : élargir la
+ * population est la parade au `WHERE` qui recoupe l'assertion (§9, 31/08). Une
+ * fonction qu'on ne veut pas voir ici sort par une exclusion écrite, jamais en
+ * échappant au motif.
+ */
+function controlesDeclares(
+  sources: ReadonlyMap<string, string> = SOURCES_LIB,
+): string[] {
+  const trouves = new Set<string>();
+  for (const source of sources.values()) {
+    for (const trouve of source.matchAll(
+      /^export (?:function|const) (ecarts[A-Za-z0-9_]*)\b/gm,
+    )) {
+      trouves.add(trouve[1]);
+    }
+  }
+  return [...trouves].sort();
+}
+
+/**
+ * Les contrôles HORS OBSERVATION — la seule chose qui reste tenue à la main,
+ * donc la seule qui puisse dériver, et c'est pour cela qu'elle est gardée dans
+ * les deux sens.
+ *
+ * **Un seul motif recevable**, et c'est celui que le titre porte : la fonction
+ * ne juge pas une OBSERVATION de la base hébergée sous transaction en lecture
+ * seule. En ajouter un second est le geste par lequel un périmètre inversé
+ * redevient une liste d'admis, un argument à la fois (D55, mot pour mot).
+ *
+ * C'est ici que vit la justification, et **nulle part ailleurs** : le source de
+ * la veille y renvoie plutôt que de la recopier (§9, 01/09 — deux copies que
+ * rien ne confronte).
+ */
+const HORS_OBSERVATION: readonly {
+  fonction: string;
+  justification: string;
+}[] = [
+  {
+    fonction: "ecartsBattement",
+    justification:
+      "n'observe pas la base : elle lit l'âge de la dernière exécution " +
+      "planifiée dans le flux CI. C'est le battement de cœur de la veille, " +
+      "pas un de ses contrôles — et une veille qui se surveillerait " +
+      "elle-même ne dirait rien le jour où elle cesse de tourner (É12).",
+  },
+  {
+    fonction: "ecartsInventaire",
+    justification:
+      "exige d'ÉCRIRE puis de comparer : elle confronte ce que le seed VIENT " +
+      "d'écrire à ce que le rôle applicatif en voit. La veille est en lecture " +
+      "seule et n'a rien écrit ; il n'y aurait rien à comparer.",
+  },
+  {
+    fonction: "ecartsSansContexte",
+    justification:
+      "même inventaire comparé : elle juge un décompte obtenu après un seed, " +
+      "que la veille ne joue pas.",
+  },
+  {
+    fonction: "ecartsAvecContexte",
+    justification:
+      "même inventaire comparé : elle juge un décompte obtenu après un seed, " +
+      "que la veille ne joue pas.",
+  },
+  {
+    fonction: "ecartsTemoins",
+    justification: "témoins de l'inventaire comparé, indissociables de lui.",
+  },
+  {
+    fonction: "ecartsListeParc",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_PARC`), pas la base. Aucune main " +
+      "posée sur PostgreSQL ne peut la déplacer ; c'est le contrôle statique " +
+      "qui la tient, et la veille observerait une constante.",
+  },
+  {
+    fonction: "ecartsListeHorsDomaine",
+    justification:
+      "garde une LISTE DU DÉPÔT (la frontière du domaine d'audit), pas la base.",
+  },
+  {
+    fonction: "ecartsExemptions",
+    justification:
+      "garde une LISTE DU DÉPÔT (les exemptions d'audit), pas la base.",
+  },
+];
+
+/** Les contrôles que la veille DOIT câbler : déclarés, moins les exclusions. */
+function controlesAttendus(
+  declares: readonly string[] = controlesDeclares(),
+  exclus: readonly string[] = HORS_OBSERVATION.map((e) => e.fonction),
+): string[] {
+  return declares.filter((nom) => !exclus.includes(nom)).sort();
+}
+
+/** Les contrôles réellement CÂBLÉS dans un source de veille donné. */
+function controlesCables(
+  source: string,
+  declares: readonly string[] = controlesDeclares(),
+): string[] {
+  return declares
+    .filter((nom) => new RegExp(`\\b${nom}\\s*\\(`).test(source))
+    .sort();
+}
 
 /** Position d'un fragment dans le flux, en échouant s'il est absent. */
 function position(fragment: string): number {
@@ -165,6 +317,85 @@ describe("la veille de la base hébergée (D55)", () => {
       expect(() =>
         urlVeille({ MIGRATION_DATABASE_URL: "postgres://privilegie" }),
       ).toThrow(/DATABASE_URL/);
+    });
+  });
+
+  describe("elle appelle TOUS les contrôles que `scripts/lib/` déclare", () => {
+    it("le périmètre est INVERSÉ : câblé par défaut, exclu par écrit", () => {
+      // Le témoin d'abord, et il porte sur la POPULATION : zéro fonction
+      // énumérée ressemblerait trait pour trait à un sans-faute (§9, 30/08).
+      // Quatorze aujourd'hui, dont huit hors observation.
+      const declares = controlesDeclares();
+      expect(declares.length).toBeGreaterThanOrEqual(14);
+      expect(SOURCES_LIB.size).toBeGreaterThanOrEqual(10);
+
+      // Le cœur : déclarés moins exclus = câblés, en ÉGALITÉ d'ensembles. Un
+      // contrôle écrit et jamais câblé fait échouer ici, le jour où il est
+      // écrit — c'est ce que « six » ne pouvait pas faire.
+      expect(controlesCables(VEILLE)).toEqual(controlesAttendus());
+      expect(controlesAttendus().length).toBeGreaterThanOrEqual(6);
+
+      // Et la liste `controles` en déclare autant qu'il y a de contrôles : un
+      // appel présent mais rangé hors du tableau ne serait jamais joué.
+      expect(VEILLE.match(/^\s+ecarts: /gm) ?? []).toHaveLength(
+        controlesAttendus().length,
+      );
+    });
+
+    it("chaque exclusion s'adosse à une fonction qui EXISTE, et se justifie", () => {
+      // Le corollaire du 31/08 sur les sélections négatives : une exclusion qui
+      // ne s'applique à personne ne fait échouer personne. Elle survit au
+      // renommage de sa fonction, ne protège plus rien, et la prochaine
+      // fonction qui reprendra ce nom en héritera sans que personne ne le lui
+      // ait accordé.
+      const declares = controlesDeclares();
+      expect(HORS_OBSERVATION.length).toBeGreaterThan(0);
+      for (const exclusion of HORS_OBSERVATION) {
+        expect(declares, exclusion.fonction).toContain(exclusion.fonction);
+        expect(
+          exclusion.justification.trim().length,
+          exclusion.fonction,
+        ).toBeGreaterThan(40);
+      }
+    });
+
+    it("ÉPREUVE PAR RETRAIT : un contrôle décâblé est vu", () => {
+      // La faute écrite plutôt qu'imaginée (§9, 24/08) : on retire de la source
+      // l'appel au contrôle des FORMES de politique — celui qui attrape la
+      // politique de `client` desserrée à la main.
+      const ampute = VEILLE.replace(
+        /ecartsPolitiques\s*\(/g,
+        "voidPolitiques(",
+      );
+
+      // LA SONDE : le retrait a-t-il réellement eu lieu ?
+      expect(ampute).not.toBe(VEILLE);
+      expect(controlesCables(ampute)).not.toContain("ecartsPolitiques");
+      expect(controlesCables(ampute)).not.toEqual(controlesAttendus());
+    });
+
+    it("ÉPREUVE PAR AJOUT : un SEPTIÈME contrôle écrit et non câblé est vu", () => {
+      // **Le cas que « six » laissait passer**, et la raison d'être de ce
+      // ticket. On ajoute au source d'un module de `scripts/lib/` une fonction
+      // d'écart telle qu'un lot 3 l'écrirait, et l'on n'y touche pas à la
+      // veille. Le gardien doit la réclamer.
+      const septieme = "ecartsPrivilegesDeSauvegarde";
+      const sources = new Map(SOURCES_LIB);
+      const [nom, texte] = [...sources.entries()][0];
+      sources.set(
+        nom,
+        `${texte}\nexport function ${septieme}(): string[] {\n  return [];\n}\n`,
+      );
+
+      // LA SONDE : la fonction a-t-elle réellement été déclarée ?
+      const declares = controlesDeclares(sources);
+      expect(declares).toContain(septieme);
+      expect(declares).toHaveLength(controlesDeclares().length + 1);
+
+      // Et elle est EXIGÉE sans que personne ne l'ait inscrite nulle part.
+      const attendus = controlesAttendus(declares);
+      expect(attendus).toContain(septieme);
+      expect(controlesCables(VEILLE, declares)).not.toEqual(attendus);
     });
   });
 
