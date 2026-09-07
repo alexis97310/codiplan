@@ -467,4 +467,19 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 
   *Corollaire sur les FORMULES DE TICKET :* le backlog disait « `temps_trajet_min` **par agence** », ce qui se lit « une valeur par couple ». L'exploitation voulait dire « depuis l'agence dont le site dépend ». Une formule qui admet deux lectures dont l'une double la table est une ambiguïté, pas un raccourci — et elle se corrige dans le backlog, pas seulement dans le code.
 
+- **07/09/2026 — AFFIRMER UN ÉTAT OBSERVABLE AU LIEU DE L'OBSERVER. Ce n'est plus l'accident de l'un ou de l'autre : c'est une PENTE DU DISPOSITIF, et elle a quatre occurrences en quatre jours.** Espèce à nommer séparément de la vacuité du 30/08 et du vert surprenant du 07/09, parce que le défaut n'est pas dans un gardien : il est dans la CONVERSATION qui pilote les gardiens. Un état du dépôt, de la base ou de la CI est **observable en une commande** — un `cat`, un `SELECT`, un `EXPLAIN`, un appel d'API. Et c'est précisément parce qu'il est bon marché à observer qu'on ne l'observe pas : on l'énonce de mémoire, avec la forme grammaticale d'un fait.
+
+  **Les quatre, deux de chaque côté, sur des objets sans rapport.**
+
+  | Qui | Ce qui a été affirmé | Ce que l'observation a rendu |
+  |---|---|---|
+  | Exploitation | « une sous-requête d'existence **à chaque ligne lue** » — un coût, énoncé pour trancher une forme de politique | `EXPLAIN` : *hash semi-join*, **une** visite du parent, 0,2 ms sous 190 ms de latence |
+  | Exploitation | « la migration de #32 **n'est pas appliquée** » | Elle l'était |
+  | Session | « la politique sur `utilisateur` est en vigueur et l'authentification passe dessous » | `relrowsecurity` valait **`f`** — le harnais avait recréé la base, la mesure ne parlait de rien |
+  | Session | « vos quatre réponses **sont au backlog** » | Elles étaient dans le message de l'exploitation ; le fichier n'avait pas été rouvert |
+
+  **Ce qui rend la pente structurelle, et non morale : nous parlons de fichiers que nous ne relisons pas.** La conversation porte des dizaines d'états — une branche, une migration, une ligne de backlog, un drapeau RLS, un résultat de CI — et chacun a été vrai *au moment où il a été observé*. Le dépôt bouge, la mémoire ne bouge pas avec lui, et rien dans une phrase ne distingue « je viens de le lire » de « je l'ai lu avant-hier ». **Un état affirmé de mémoire a exactement la forme d'un état observé** — même famille que le silence qui a la forme du succès (31/08) et que le chiffre attendu présenté à côté des chiffres observés (06/09).
+
+  **La règle, et elle est symétrique : quand l'un de nous énonce un état du dépôt, de la base ou de la CI comme un fait, l'autre le traite comme une HYPOTHÈSE à vérifier, et dit quand elle est fausse.** Elle vaut dans les deux sens, y compris de la session vers l'exploitation — c'est l'exploitation qui l'a demandée, et la première des quatre occurrences a été corrigée ainsi. Corollaire à l'écriture : **on n'écrit pas « c'est au dépôt » sans avoir rouvert le fichier dans le même geste**, et une mesure se rend avec ce qui l'a produite — la commande, la requête, le décompte — jamais seule. Ce que cette règle ne prétend pas : aucun gardien ne peut la tenir. Elle vit entre deux relectures, là où le §9 a déjà mis la revue *(30/08 — un gardien ne peut pas se garder lui-même)*.
+
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.
