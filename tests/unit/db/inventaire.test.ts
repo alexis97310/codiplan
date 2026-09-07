@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
+  TABLES_HORS_CLOISONNEMENT,
   decompteVide,
   ecartsAvecContexte,
   ecartsInventaire,
@@ -16,6 +17,7 @@ import {
   type Inventaire,
   type LigneInventaire,
 } from "@/scripts/lib/inventaire";
+import { TABLES_RLS_FORCEE } from "@/scripts/lib/rls-declaree";
 
 /**
  * Inventaire à plat et contrôle de cloisonnement (I1).
@@ -83,7 +85,6 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
       devise: 2,
       parite: 1,
       jour_ferie: 24,
-      utilisateur: 4,
     },
     ...surcharge,
   };
@@ -196,8 +197,8 @@ describe("contrôle de cloisonnement", () => {
      */
     it("refuse un référentiel devenu illisible sous le rôle applicatif", () => {
       const ecarts = ecartsTemoins(
-        { devise: 2, parite: 1, jour_ferie: 24, utilisateur: 4 },
-        { devise: 0, parite: 1, jour_ferie: 24, utilisateur: 4 },
+        { devise: 2, parite: 1, jour_ferie: 24 },
+        { devise: 0, parite: 1, jour_ferie: 24 },
       );
       expect(ecarts.join("\n")).toContain("témoin « devise »");
     });
@@ -234,7 +235,6 @@ describe("échange entre les deux étapes", () => {
             devise: -1,
             parite: 1,
             jour_ferie: 24,
-            utilisateur: 4,
           },
         }),
       ),
@@ -311,5 +311,50 @@ describe("fichier d'échange", () => {
   it("n'est jamais versionné (I9)", () => {
     const gitignore = readFileSync(join(process.cwd(), ".gitignore"), "utf8");
     expect(gitignore).toContain(FICHIER_INVENTAIRE);
+  });
+});
+
+/**
+ * LES DEUX LISTES NE PEUVENT PLUS SE CONTREDIRE (ticket L1-02c).
+ *
+ * **Ce gardien répare un rouge réel, survenu en migration.** `utilisateur` est
+ * restée dans `TABLES_HORS_CLOISONNEMENT` après avoir reçu sa RLS : le contrôle
+ * de la base hébergée l'a nommée — « 3 ligne(s) à l'inventaire, 0 lue(s) sous le
+ * rôle applicatif » —, et il avait raison. Aucune suite LOCALE ne pouvait
+ * l'attraper : les témoins de l'inventaire exigent d'écrire puis de comparer, ce
+ * que `test:isolation` ne fait pas. Le seul environnement où le défaut existait
+ * était le seul qui ne soit jamais exercé (§9, 23/08).
+ *
+ * La confrontation se fait ici, contre une source que ce fichier ne contrôle
+ * pas : l'état RLS déclaré. Une table sous RLS forcée rend zéro sans contexte —
+ * elle ne peut donc pas être un témoin « hors cloisonnement ».
+ */
+describe("les témoins hors cloisonnement ne sont pas sous RLS forcée", () => {
+  it("n'observe aucune contradiction", () => {
+    const forcees: readonly string[] = TABLES_RLS_FORCEE;
+    const contradictions = TABLES_HORS_CLOISONNEMENT.filter((table) =>
+      forcees.includes(table),
+    );
+    expect(
+      contradictions,
+      `témoins « hors cloisonnement » pourtant sous RLS forcée : ${contradictions.join(", ")}. ` +
+        "Une table sous RLS forcée rend ZÉRO ligne sans contexte : elle ne peut " +
+        "pas servir de témoin de lecture libre, et le contrôle de la base " +
+        "hébergée la nommera en pleine migration.",
+    ).toEqual([]);
+  });
+
+  it("a réellement comparé deux listes peuplées — témoin de non-vacuité", () => {
+    // Deux listes vides ne se contredisent jamais (§9, 01/09).
+    expect(TABLES_HORS_CLOISONNEMENT.length).toBeGreaterThan(0);
+    expect(TABLES_RLS_FORCEE.length).toBeGreaterThan(5);
+  });
+
+  it("ÉPREUVE : la contradiction RÉELLE d'avant ce ticket est refusée", () => {
+    // `utilisateur` dans les deux listes — l'état exact qui a fait rougir la
+    // migration du 07/09/2026.
+    const forcees: readonly string[] = TABLES_RLS_FORCEE;
+    const avant = [...TABLES_HORS_CLOISONNEMENT, "utilisateur"];
+    expect(avant.filter((t) => forcees.includes(t))).toEqual(["utilisateur"]);
   });
 });

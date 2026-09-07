@@ -59,12 +59,7 @@ type TableFille = Exclude<TableCloisonnee, "societe">;
 type GroupeSociete = { societe_id: string; _count: { _all: number } };
 
 /** Tables comptées hors cloisonnement, dans l'ordre du rapport. */
-const TABLES_TEMOINS = [
-  "devise",
-  "parite",
-  "jour_ferie",
-  "utilisateur",
-] as const;
+const TABLES_TEMOINS = ["devise", "parite", "jour_ferie"] as const;
 
 type ContexteRole = { role: string; base: string; exempte: boolean };
 
@@ -274,7 +269,6 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
     devise: await tx.devise.count(),
     parite: await tx.parite.count(),
     jour_ferie: await tx.jourFerie.count(),
-    utilisateur: await tx.utilisateur.count(),
   };
 
   const inventaire = [...decomptes.entries()]
