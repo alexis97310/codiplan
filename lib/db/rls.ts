@@ -121,6 +121,34 @@ export const VARIABLE_SESSION_AUTH_UTILISATEUR =
   "app.authentification_utilisateur_id";
 
 /**
+ * Le JETON de session que l'appelant présente (L1-02d).
+ *
+ * **Un jeton de session est une désignation, et c'en est même l'exemple pur** :
+ * une valeur opaque et imprévisible que seul son porteur connaît. Le lire ne
+ * rend jamais plus que ce que l'appelant savait déjà — c'est la définition de
+ * la forme, et elle s'applique ici sans être élargie d'un pouce.
+ *
+ * Elle désigne aussi l'IDENTITÉ de cette session, et c'est ce qui répare
+ * `obtenirSession` : Better Auth lit la session et son utilisateur en UNE
+ * requête jointe, si bien que la politique d'identité doit reconnaître ce
+ * chemin — sans quoi la lecture rend `null` et personne n'a plus de session.
+ * Mesuré le 07/09/2026 : `getSession` rendait NULL sur un compte fraîchement
+ * connecté, avec deux lignes de session bien présentes en base.
+ */
+export const VARIABLE_SESSION_AUTH_JETON = "app.authentification_jeton_session";
+
+/**
+ * L'IDENTIFIANT d'une vérification — jeton de courriel, défi de second facteur,
+ * confiance d'appareil (L1-02d).
+ *
+ * Même nature que le jeton de session : une valeur opaque, présentée par celui
+ * qui la détient. `verification` n'a aucune autre clé d'accès — elle n'est
+ * jamais parcourue, jamais listée.
+ */
+export const VARIABLE_SESSION_AUTH_IDENTIFIANT =
+  "app.authentification_identifiant";
+
+/**
  * Contexte de session posé sur la transaction : société, rôle, auteur, adresse.
  *
  * Un objet plutôt que quatre paramètres positionnels : `avecContexteRls(prisma,
@@ -185,6 +213,8 @@ const POSE: readonly {
   // contexte ordinaire. C'est leur pose la plus importante — celle qui REFERME.
   { variable: VARIABLE_SESSION_AUTH_EMAIL, valeur: () => "" },
   { variable: VARIABLE_SESSION_AUTH_UTILISATEUR, valeur: () => "" },
+  { variable: VARIABLE_SESSION_AUTH_JETON, valeur: () => "" },
+  { variable: VARIABLE_SESSION_AUTH_IDENTIFIANT, valeur: () => "" },
 ];
 
 /**

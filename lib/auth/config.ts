@@ -6,7 +6,7 @@ import { twoFactor } from "better-auth/plugins";
 import { prisma } from "@/lib/db/client";
 
 import {
-  avecDesignationIdentite,
+  avecDesignationAuth,
   type ContexteAdministratif,
 } from "./lecture-identite";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -107,7 +107,7 @@ export function creerAuth(
     // NOMMER la ligne qu'elle demande, dans sa propre transaction. L'adaptateur
     // n'est pas déformé — il reçoit un client Prisma, et c'est tout ce qu'il
     // connaît.
-    database: prismaAdapter(avecDesignationIdentite(client, administration), {
+    database: prismaAdapter(avecDesignationAuth(client, administration), {
       provider: "postgresql",
     }),
     advanced: {
@@ -165,7 +165,13 @@ export function creerAuth(
       session: {
         create: {
           before: async (session) => {
-            const utilisateur = await client.utilisateur.findUnique({
+            // L'ENVELOPPE, ET PAS LE CLIENT NU (L1-02d). `utilisateur` est
+            // cloisonnée : une lecture non désignée rendrait `null`, et le
+            // `?? false` ci-dessous aurait transformé ce refus en « pas de
+            // second facteur ». Un défaut silencieux, dans le sens permissif.
+            const utilisateur = await avecDesignationAuth(
+              client,
+            ).utilisateur.findUnique({
               where: { id: session.userId },
               select: { mfa_actif: true },
             });
@@ -182,6 +188,18 @@ export function creerAuth(
     plugins: [
       twoFactor({
         issuer: "CODIPLAN",
+        // LES CODES DE SECOURS NE SONT PAS STOCKÉS EN CLAIR (L1-02d, décision
+        // d'exploitation du 08/09/2026). *Un code de secours est un identifiant
+        // de connexion.* Le greffon ne les chiffre QUE si on le demande — son
+        // défaut est le texte brut, et c'est ce que le dépôt portait.
+        //
+        // Ce que cette option fait exactement, dit plutôt que supposé : un
+        // CHIFFREMENT symétrique par la clé de signature, et non une empreinte.
+        // La bibliothèque n'offre pas d'empreinte — les codes doivent être
+        // rendus à l'utilisateur une fois, puis comparés. Conséquence à
+        // connaître : une copie de la base seule ne les livre plus ; une copie
+        // de la base ET du secret, si.
+        backupCodeOptions: { storeBackupCodes: "encrypted" },
         schema: {
           user: {
             modelName: "utilisateur",

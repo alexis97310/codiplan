@@ -390,6 +390,17 @@ la base hébergée et par `tests/isolation/force-rls.test.ts`, et le classement 
 trois catégories — cloisonnée (`ENABLE` + `FORCE`), référentiel de plateforme
 (`ENABLE` seul), technique sans RLS.
 
+**La troisième est VIDE depuis L1-02d, et c'est un ticket, pas un hasard**
+(D59). Elle portait les cinq tables techniques d'authentification —
+`session`, `compte`, `verification`, `second_facteur`, `journal_acces` — qui ne
+portaient aucune RLS et donnaient les quatre verbes au rôle applicatif. Mesuré
+sous un contexte de `technicien` : une empreinte de mot de passe et un jeton de
+session lus, n'importe quelle ligne de `second_facteur` effacée, toutes sociétés
+confondues. Elles portent désormais la forme « désignation », chacune avec la
+clé de son chemin d'accès réel. **La liste vide n'est pas supprimée pour autant**
+: elle est la branche où atterrirait une table qui perdrait sa RLS, et vide elle
+dit « aucune table du dépôt n'est sans plancher ».
+
 **L'`ENABLE` seul du milieu est une décision, pas un reste** (D4). `FORCE` ne
 concerne que le PROPRIÉTAIRE des tables, et c'est lui qui amorce les
 référentiels de plateforme : le seed devrait poser un contexte société pour

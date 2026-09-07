@@ -2,48 +2,72 @@ import type { PrismaClient } from "@prisma/client";
 
 import {
   VARIABLE_SESSION_AUTH_EMAIL,
+  VARIABLE_SESSION_AUTH_IDENTIFIANT,
+  VARIABLE_SESSION_AUTH_JETON,
   VARIABLE_SESSION_AUTH_UTILISATEUR,
   VARIABLE_SESSION_ROLE,
   VARIABLE_SESSION_SOCIETE,
 } from "@/lib/db/rls";
 
 /**
- * LA VÉRIFICATION D'IDENTIFIANTS, ET SA BORNE (ticket L1-02c).
+ * LA DÉSIGNATION DES TABLES D'AUTHENTIFICATION (tickets L1-02c puis L1-02d).
  *
  * ## Pourquoi ce module existe
  *
- * `utilisateur` est cloisonnée en base depuis L1-02c. Mais l'authentification
- * **précède** la société : chercher « existe-t-il un compte pour ce courriel »
- * se fait à un moment où aucune société n'est connue et ne peut l'être. Sous
- * une politique de société seule, la lecture rend zéro et personne ne se
- * connecte — mesuré.
+ * L'authentification **précède** la société : chercher « existe-t-il un compte
+ * pour ce courriel » se fait à un moment où aucune société n'est connue et ne
+ * peut l'être. Sous une politique de société seule, la lecture rend zéro et
+ * personne ne se connecte — mesuré.
  *
- * La politique porte donc une branche « DÉSIGNATION » : l'appelant ne peut lire
- * que **la ligne qu'il nommait déjà**. Ce module est ce qui la nomme.
+ * Les politiques de ces tables portent donc la forme « DÉSIGNATION » :
+ * l'appelant ne peut lire que **la ligne qu'il nommait déjà**. Ce module est ce
+ * qui la nomme, et il couvre les CINQ tables depuis L1-02d — `utilisateur`,
+ * `session`, `compte`, `verification`, `second_facteur`.
  *
- * ## Ce qu'il fait, et pourquoi une transaction
+ * ## Ce que chaque table accepte comme désignation, et d'où on le sait
  *
- * Chaque lecture de `utilisateur` part dans **sa propre transaction**, qui pose
- * la variable de désignation tirée du `where` de la requête — puis la laisse
- * mourir au `COMMIT`.
+ * Pas d'une lecture de la bibliothèque : d'une **trace des requêtes réellement
+ * émises**, mesurée le 07/09/2026 sur l'inscription, la connexion et la lecture
+ * de session.
  *
- * **La transaction n'est pas une précaution de style : c'est la garantie.**
+ * | Table | Clé de désignation | Variable posée |
+ * |---|---|---|
+ * | `utilisateur` | courriel, identifiant | `app.authentification_email`, `…_utilisateur_id` |
+ * | `session` | jeton | `app.authentification_jeton_session` |
+ * | `compte` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
+ * | `verification` | identifiant opaque | `app.authentification_identifiant` |
+ * | `second_facteur` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
+ *
+ * ## LE DÉFAUT QUE LA TRACE A RÉVÉLÉ, ET QU'AUCUNE RELECTURE N'AURAIT VU
+ *
+ * `getSession` rendait **NULL** pour tout compte fraîchement connecté — donc
+ * `obtenirSession` aussi, donc toute page authentifiée. Personne ne s'en était
+ * aperçu : aucune page ne s'en sert encore.
+ *
+ * La cause n'est pas celle qu'on suppose. Better Auth lit la session avec
+ * `join: { user: true }`, et Prisma rend cela par **DEUX instructions SQL pour
+ * UNE seule opération de client** (`session.findFirst({ include })`) — mesuré.
+ * L'extension ci-dessous ne voit donc jamais d'opération `utilisateur` : elle
+ * voit une opération `session`. La lecture d'identité partait sans désignation
+ * et rendait zéro, et Better Auth en concluait « pas de session ».
+ *
+ * D'où la forme de la réparation : **le jeton de session désigne aussi son
+ * identité.** La politique de `utilisateur` porte cette branche, et elle ne
+ * rend jamais plus que ce que l'appelant savait — il détient le jeton.
+ *
+ * ## Ce qu'il ne fait pas
+ *
+ * Il ne pose rien quand la requête ne DÉSIGNE personne : une lecture sans clé
+ * part sans variable, et la politique la refuse. C'est voulu — un balayage
+ * n'est pas une vérification d'identifiants.
+ *
+ * ## Une transaction, et ce n'est pas une précaution de style
+ *
  * Mesuré : `set_config(…, is_local => false)` **persiste sur la connexion** et
  * serait lu par la requête suivante — d'un AUTRE utilisateur, derrière un
  * pooler. Ce serait pire que le mal qu'on répare. `set_config(…, is_local =>
  * true)` meurt au `COMMIT` **et** au `ROLLBACK`, et un scénario le vérifie en
  * relisant la variable sur la connexion après coup.
- *
- * ## Ce qu'il ne fait pas
- *
- * Il n'écrit rien et n'ouvre aucune écriture : la branche de désignation est en
- * `SELECT` seul. Ouvrir une identité est un acte administratif, gouverné par sa
- * propre expression `WITH CHECK` — voir la migration `20260907130000`.
- *
- * Et il ne pose rien quand la requête ne DÉSIGNE personne : une lecture sans
- * `where` sur le courriel ni sur l'identifiant part sans variable, et la
- * politique la refuse. C'est voulu — un balayage n'est pas une vérification
- * d'identifiants.
  *
  * ## L'adaptateur de Better Auth n'est pas déformé
  *
@@ -51,21 +75,17 @@ import {
  * une extension du client, pas une modification de la bibliothèque.
  */
 
-/** Le `where` d'une requête Prisma, réduit à ce qui DÉSIGNE une ligne. */
-type Designation = { readonly email: string; readonly id: string };
+/** Une variable de désignation et la valeur qu'une requête lui donne. */
+export type Designation = {
+  readonly variable: string;
+  readonly valeur: string;
+};
 
 /**
- * Extrait la désignation d'un `where` Prisma.
- *
- * Deux formes sont reconnues, et ce sont celles que Better Auth émet
- * réellement — mesurées en traçant une connexion : `{ email: "x" }` et
- * `{ email: { equals: "x" } }` pour la recherche par courriel, `{ id: "…" }`
- * pour la relecture de l'identité qu'il vient de trouver.
- *
- * Toute autre forme rend une désignation VIDE, et la politique refuse. C'est le
- * bon sens du défaut : ce qui n'est pas reconnu ne passe pas.
+ * Lit un champ de `where` sous les deux formes que Prisma produit :
+ * `{ champ: "x" }` et `{ champ: { equals: "x" } }`.
  */
-function courrielDe(champ: unknown): string {
+function texteDe(champ: unknown): string {
   if (typeof champ === "string") {
     return champ;
   }
@@ -73,59 +93,190 @@ function courrielDe(champ: unknown): string {
   return typeof egal === "string" ? egal : "";
 }
 
-export function designationDe(args: unknown, operation = ""): Designation {
+/**
+ * Aplatit un `where` en la liste des objets dont les champs sont CONJOINTS.
+ *
+ * **Mesuré, et c'est le genre de détail qui rend un gardien creux.** L'adaptateur
+ * de Better Auth n'émet pas toujours un `where` plat : dès qu'il compose
+ * plusieurs conditions, il écrit `{ AND: [{…}, {…}] }`. Le SQL rendu est
+ * identique — `a = $1 AND b = $2` — si bien que rien ne le laisse voir depuis la
+ * trace des requêtes. La lecture d'une clé au premier niveau seul rendait donc
+ * une désignation VIDE, la transaction n'était pas ouverte, et la politique
+ * refusait : `findCredentialAccount` ne trouvait plus le compte, et l'appelant
+ * lisait « Invalid password » — un message juste sur une cause fausse.
+ *
+ * Seule la CONJONCTION est parcourue. Une clé trouvée sous un `OR` ne bornerait
+ * rien : la requête pourrait rendre autre chose que la ligne nommée.
+ */
+function aplatirConjonction(
+  ou: Record<string, unknown> | undefined,
+): Record<string, unknown>[] {
+  if (ou === undefined || ou === null) {
+    return [];
+  }
+  const et = ou.AND;
+  const enfants = Array.isArray(et)
+    ? et.flatMap((membre) =>
+        aplatirConjonction(membre as Record<string, unknown>),
+      )
+    : aplatirConjonction(et as Record<string, unknown> | undefined);
+  return [ou, ...enfants];
+}
+
+/**
+ * Les clés de désignation de chaque modèle : le champ Prisma qui la porte, et
+ * la variable de session qu'elle alimente.
+ *
+ * **Liste close, et c'est elle qui borne la forme.** Y ajouter une entrée
+ * ouvrirait une clé d'accès nouvelle à une table d'authentification : c'est un
+ * arbitrage, jamais une décision de session.
+ */
+type Cle = { readonly champ: string; readonly variable: string };
+
+const CLES: Readonly<
+  Record<
+    string,
+    { readonly ou: readonly Cle[]; readonly creation: readonly Cle[] }
+  >
+> = {
+  utilisateur: {
+    ou: [
+      { champ: "email", variable: VARIABLE_SESSION_AUTH_EMAIL },
+      { champ: "id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+    creation: [
+      { champ: "email", variable: VARIABLE_SESSION_AUTH_EMAIL },
+      { champ: "id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+  },
+  session: {
+    // EN LECTURE, le jeton et LUI SEUL. Donner ici `utilisateur_id` laisserait
+    // lire toutes les sessions d'un compte dont on ne connaît que
+    // l'identifiant — or un identifiant n'est pas un secret, un jeton l'est.
+    ou: [{ champ: "token", variable: VARIABLE_SESSION_AUTH_JETON }],
+    // À LA CRÉATION, l'identité en plus : c'est ce qui rend le `WITH CHECK`
+    // d'ouverture non tautologique — une session ne s'ouvre que pour l'identité
+    // que le chemin d'authentification vient de désigner.
+    creation: [
+      { champ: "token", variable: VARIABLE_SESSION_AUTH_JETON },
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+  },
+  compte: {
+    ou: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+    creation: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+  },
+  verification: {
+    ou: [{ champ: "identifiant", variable: VARIABLE_SESSION_AUTH_IDENTIFIANT }],
+    creation: [
+      { champ: "identifiant", variable: VARIABLE_SESSION_AUTH_IDENTIFIANT },
+    ],
+  },
+  secondFacteur: {
+    ou: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+    creation: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+  },
+  // ── `journal_acces`, ET POURQUOI UNE TABLE EN AJOUT SEUL EST ICI ─────────
+  //
+  // La déduction la range avec `journal_audit` : une TRACE, pas un matériau
+  // d'authentification. On voulait donc lui donner l'ajout SEUL, sans aucune
+  // politique de lecture — plus fort que « lisible sous désignation ».
+  //
+  // **Mesuré : c'est impossible à travers Prisma.** `INSERT … RETURNING` est
+  // soumis à la politique de LECTURE (leçon de L1-02c), et sans politique de
+  // SELECT l'écriture elle-même est refusée — « new row violates row-level
+  // security policy ». `journal_audit` y échappe parce qu'un DÉCLENCHEUR
+  // l'écrit ; `journal_acces` est écrite par du code applicatif.
+  //
+  // La lecture est donc bornée à la désignation plutôt qu'absente. C'est
+  // strictement plus fort que l'état d'avant — où le rôle applicatif lisait
+  // TOUTES les lignes de tous les comptes — et strictement plus faible que
+  // l'ajout seul. L'écart est écrit ici plutôt que tu, et il porte son
+  // alternative : un journal réellement en ajout seul demanderait un
+  // déclencheur, ou du SQL brut que le §2 interdit hors migration.
+  journalAcces: {
+    ou: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+    creation: [
+      { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
+    ],
+  },
+};
+
+/** Les modèles que l'enveloppe couvre — dérivés de `CLES`, jamais recopiés. */
+export const MODELES_DESIGNES: readonly string[] = Object.keys(CLES);
+
+/**
+ * Extrait les désignations d'une requête Prisma.
+ *
+ * Le `where` d'abord ; le `data` seulement pour les opérations qui CRÉENT.
+ *
+ * **Le cas `create` a été mesuré, il n'est pas une précaution.** Prisma n'émet
+ * pas un `INSERT` nu : il émet `INSERT … RETURNING`, et **PostgreSQL soumet le
+ * `RETURNING` à la politique de LECTURE**. Une ligne qu'on vient d'écrire n'est
+ * pas encore désignée : la lecture la refuse, et l'insertion échoue — alors même
+ * que le `WITH CHECK` l'autorisait. Le même `INSERT` écrit à la main, sans
+ * `RETURNING`, passe sous le même contexte.
+ *
+ * Restreint aux créations : une désignation tirée du `data` d'un `update`
+ * laisserait nommer la ligne d'autrui, et l'`update` devrait de toute façon
+ * franchir son `USING` — mais on ne s'appuie pas sur un verrou voisin pour
+ * justifier une ouverture (§9, 24/08).
+ */
+export function designationsDe(
+  modele: string,
+  operation: string,
+  args: unknown,
+): Designation[] {
+  const cles = CLES[modele];
+  if (cles === undefined) {
+    return [];
+  }
+
   const requete = args as
     | { where?: Record<string, unknown>; data?: Record<string, unknown> }
     | undefined;
 
-  const ou = requete?.where;
-  if (ou !== undefined && ou !== null) {
-    const email = courrielDe(ou.email);
-    const id = typeof ou.id === "string" ? ou.id : "";
-    if (email !== "" || id !== "") {
-      return { email, id };
-    }
+  const lire = (
+    lu: Record<string, unknown> | undefined,
+    dans: readonly Cle[],
+  ): Designation[] => {
+    const sources = aplatirConjonction(lu);
+    return dans
+      .map((cle) => ({
+        variable: cle.variable,
+        valeur: sources.reduce(
+          (trouve, source) =>
+            trouve !== "" ? trouve : texteDe(source[cle.champ]),
+          "",
+        ),
+      }))
+      .filter((designation) => designation.valeur !== "");
+  };
+
+  const duWhere = lire(requete?.where, cles.ou);
+  if (duWhere.length > 0) {
+    return duWhere;
   }
 
-  // ── LE CAS `create`, ET IL A ÉTÉ MESURÉ ────────────────────────────────
-  //
-  // Prisma n'émet pas un `INSERT` nu : il émet `INSERT … RETURNING`, et
-  // **PostgreSQL soumet le `RETURNING` à la politique de LECTURE**. Une
-  // identité qu'on vient d'ouvrir n'a encore ni habilitation ni société : la
-  // lecture la refuse, et l'insertion échoue — alors même que le `WITH CHECK`
-  // l'autorisait. Mesuré : le même `INSERT` écrit à la main, sans `RETURNING`,
-  // passe sous le même contexte.
-  //
-  // L'administrateur DÉSIGNE donc l'identité qu'il ouvre : c'est le courriel
-  // qu'il vient de saisir, et la forme « désignation » ne rend jamais plus que
-  // ce que l'appelant savait déjà. `upsert` n'en a pas besoin — son `where`
-  // porte déjà le courriel, et c'est pourquoi le seed passait là où `create`
-  // échouait.
-  //
-  // Restreint aux opérations d'ÉCRITURE qui créent : une désignation tirée du
-  // `data` d'un `update` laisserait nommer la ligne d'autrui, et l'`update`
-  // devrait de toute façon franchir son `USING` — mais on ne s'appuie pas sur
-  // un verrou voisin pour justifier une ouverture (§9, 24/08).
   if (operation === "create" || operation === "createMany") {
     const donnees = requete?.data;
     if (donnees !== undefined && donnees !== null && !Array.isArray(donnees)) {
-      return {
-        email: courrielDe(donnees.email),
-        id: typeof donnees.id === "string" ? donnees.id : "",
-      };
+      return lire(donnees, cles.creation);
     }
   }
 
-  return { email: "", id: "" };
+  return [];
 }
-
-/** L'instruction qui pose les deux désignations, bornée à la transaction. */
-const SQL_DESIGNATION =
-  "SELECT set_config($1, $2, true), set_config($3, $4, true)";
-
-/** L'instruction qui pose le contexte d'ADMINISTRATION, bornée elle aussi. */
-const SQL_ADMINISTRATION =
-  "SELECT set_config($1, $2, true), set_config($3, $4, true)";
 
 /**
  * Le contexte sous lequel une identité est OUVERTE (L1-02c).
@@ -143,62 +294,92 @@ export type ContexteAdministratif = {
   readonly role: string;
 };
 
+/** Construit l'instruction qui pose N désignations en UN aller-retour. */
+function instruction(designations: readonly Designation[]): {
+  sql: string;
+  parametres: string[];
+} {
+  const fragments = designations.map(
+    (_, rang) => `set_config($${2 * rang + 1}, $${2 * rang + 2}, true)`,
+  );
+  return {
+    sql: `SELECT ${fragments.join(", ")}`,
+    parametres: designations.flatMap((d) => [d.variable, d.valeur]),
+  };
+}
+
 /**
- * Enveloppe un client Prisma pour que toute lecture de `utilisateur` nomme la
- * ligne qu'elle demande.
+ * Enveloppe un client Prisma pour que toute opération sur une table
+ * d'authentification NOMME la ligne qu'elle demande.
  *
- * Le client rendu est celui qu'on passe à Better Auth. Les autres modèles ne
- * sont pas touchés : `session`, `compte` et `verification` n'ont pas de
- * politique (troisième catégorie de I1, D34).
+ * Le client rendu est celui qu'on passe à Better Auth.
  */
-export function avecDesignationIdentite(
+export function avecDesignationAuth(
   base: PrismaClient,
   administration?: ContexteAdministratif,
 ): PrismaClient {
-  return base.$extends({
-    query: {
-      utilisateur: {
-        async $allOperations({ operation, args, query }) {
-          const { email, id } = designationDe(args, operation);
-          const designe = email !== "" || id !== "";
+  const enveloppe = async (
+    modele: string,
+    operation: string,
+    args: unknown,
+    query: (a: unknown) => Promise<unknown>,
+  ): Promise<unknown> => {
+    const designations = designationsDe(modele, operation, args);
 
-          // Rien de désigné et aucun contexte d'administration : on ne pose
-          // rien, et la politique refuse. Ne pas poser est ici la décision
-          // sûre — poser une chaîne vide ouvrirait exactement autant, mais
-          // laisserait croire qu'on a désigné.
-          if (!designe && administration === undefined) {
-            return query(args);
-          }
+    // Rien de désigné et aucun contexte d'administration : on ne pose rien, et
+    // la politique refuse. Ne pas poser est ici la décision sûre — poser une
+    // chaîne vide ouvrirait exactement autant, mais laisserait croire qu'on a
+    // désigné.
+    if (designations.length === 0 && administration === undefined) {
+      return query(args);
+    }
 
-          return base.$transaction(async (tx) => {
-            if (designe) {
-              await tx.$executeRawUnsafe(
-                SQL_DESIGNATION,
-                VARIABLE_SESSION_AUTH_EMAIL,
-                email,
-                VARIABLE_SESSION_AUTH_UTILISATEUR,
-                id,
-              );
-            }
-            if (administration !== undefined) {
-              await tx.$executeRawUnsafe(
-                SQL_ADMINISTRATION,
-                VARIABLE_SESSION_SOCIETE,
-                administration.societeId,
-                VARIABLE_SESSION_ROLE,
-                administration.role,
-              );
-            }
-            const modele = (
-              tx as unknown as Record<
-                string,
-                Record<string, (a: unknown) => Promise<unknown>>
-              >
-            ).utilisateur;
-            return modele[operation]!(args);
-          });
-        },
+    return base.$transaction(async (tx) => {
+      const aPoser: Designation[] = [...designations];
+      if (administration !== undefined) {
+        aPoser.push(
+          {
+            variable: VARIABLE_SESSION_SOCIETE,
+            valeur: administration.societeId,
+          },
+          { variable: VARIABLE_SESSION_ROLE, valeur: administration.role },
+        );
+      }
+      const { sql, parametres } = instruction(aPoser);
+      await tx.$executeRawUnsafe(sql, ...parametres);
+
+      const modeles = tx as unknown as Record<
+        string,
+        Record<string, (a: unknown) => Promise<unknown>>
+      >;
+      return modeles[modele]![operation]!(args);
+    });
+  };
+
+  const query: Record<string, unknown> = {};
+  for (const modele of MODELES_DESIGNES) {
+    query[modele] = {
+      async $allOperations({
+        operation,
+        args,
+        query: suite,
+      }: {
+        operation: string;
+        args: unknown;
+        query: (a: unknown) => Promise<unknown>;
+      }) {
+        return enveloppe(modele, operation, args, suite);
       },
-    },
-  }) as unknown as PrismaClient;
+    };
+  }
+
+  // L'extension est construite en PARCOURANT `CLES` plutôt qu'écrite modèle par
+  // modèle : la liste des tables couvertes et le comportement sont alors le
+  // MÊME objet, et non deux choses qui se ressemblent (§9, 01/09). Le prix est
+  // cette conversion — le type de `$extends` énumère les modèles, un objet
+  // construit à l'exécution ne peut pas le satisfaire statiquement.
+  const extension = { query } as unknown as Parameters<
+    PrismaClient["$extends"]
+  >[0];
+  return base.$extends(extension) as unknown as PrismaClient;
 }

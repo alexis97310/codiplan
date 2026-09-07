@@ -1,7 +1,7 @@
 import { EvenementAcces, type PrismaClient } from "@prisma/client";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
-import { avecDesignationIdentite } from "./lecture-identite";
+import { avecDesignationAuth } from "./lecture-identite";
 import { avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -43,8 +43,15 @@ export type ResultatBascule =
 export type DemandeBascule = {
   /** Compte qui demande la bascule. */
   utilisateurId: string;
-  /** Ligne `session` à mettre à jour. */
-  sessionId: string;
+  /**
+   * JETON de la session à mettre à jour — jamais son identifiant (L1-02d).
+   *
+   * `session` porte désormais la forme « désignation », et sa clé est le jeton :
+   * une valeur opaque que seul son porteur connaît. L'identifiant, lui, est un
+   * UUID v7 — ordonné dans le temps, donc pas un secret. Adresser la session
+   * par son jeton n'est pas une contrainte subie : c'est la forme juste.
+   */
+  jetonSession: string;
   /** Société visée. */
   societeId: string;
   /**
@@ -108,7 +115,7 @@ async function journaliser(
   role: Role | null,
   detail: string,
 ): Promise<void> {
-  await client.journalAcces.create({
+  await avecDesignationAuth(client).journalAcces.create({
     data: {
       id: uuidv7(),
       utilisateur_id: demande.utilisateurId,
@@ -150,9 +157,7 @@ async function decider(
   // Sans l'enveloppe, elle rendrait `null` et toute bascule serait refusée pour
   // « compte inactif » : un refus juste dans sa forme et faux dans son motif,
   // c'est-à-dire le pire.
-  const utilisateur = await avecDesignationIdentite(
-    client,
-  ).utilisateur.findUnique({
+  const utilisateur = await avecDesignationAuth(client).utilisateur.findUnique({
     where: { id: demande.utilisateurId },
     select: { actif: true },
   });
@@ -193,8 +198,8 @@ async function decider(
     return { accepte: false, motif };
   }
 
-  await client.session.update({
-    where: { id: demande.sessionId },
+  await avecDesignationAuth(client).session.update({
+    where: { token: demande.jetonSession },
     data: { societe_id_active: demande.societeId, role_actif: role },
   });
 

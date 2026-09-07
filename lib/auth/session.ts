@@ -27,8 +27,13 @@ const schemaChampsSession = z.object({
 
 /** Session serveur telle que l'application la manipule. */
 export type SessionServeur = {
-  /** Identifiant de la ligne `session`, requis pour basculer de société. */
-  sessionId: string;
+  /**
+   * JETON de la session, requis pour basculer de société (L1-02d).
+   *
+   * Le jeton et non l'identifiant : `session` porte la forme « désignation », et
+   * sa clé est cette valeur opaque. Un UUID v7 n'en serait pas une.
+   */
+  jetonSession: string;
   contexte: ContexteSession;
 };
 
@@ -54,7 +59,7 @@ export async function obtenirSession(
     : false;
 
   return {
-    sessionId: resultat.session.id,
+    jetonSession: resultat.session.token,
     contexte: {
       utilisateurId: resultat.user.id,
       // Société et rôle vont ensemble : l'un sans l'autre ne veut rien dire,
