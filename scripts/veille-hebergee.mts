@@ -14,6 +14,9 @@ import {
   SQL_POLITIQUES,
   ecartsPolitiques,
   ecartsWithCheckExplicite,
+  SQL_COLONNES_PERIMETRE,
+  ecartsPerimetreNullable,
+  type ColonnePerimetre,
   rapportPolitiques,
   type ColonneSociete,
   type PolitiqueObservee,
@@ -270,6 +273,9 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     const expressions = await prisma.$queryRawUnsafe<ExpressionObservee[]>(
       SQL_DEMANDES_CONTEXTE,
     );
+    const colonnesPerimetre = await prisma.$queryRawUnsafe<ColonnePerimetre[]>(
+      SQL_COLONNES_PERIMETRE,
+    );
 
     const observees: TableObservee[] = colonnes.map((colonne) => ({
       table: colonne.table,
@@ -311,6 +317,23 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         nom: "privilèges du rôle de consolidation",
         rapport: rapportPrivileges(versPrivileges(consolidation)),
         ecarts: ecartsPrivilegesConsolidation(versPrivileges(consolidation)),
+      },
+      {
+        // La colonne de périmètre d'une table du parc peut être NULLABLE — une
+        // ligne sans site est alors une ligne du CLIENT. Sans la branche
+        // `IS NULL`, elle DISPARAÎT pour tout compte portail restreint, et la
+        // faute ne casse rien de visible (L1-03).
+        nom: "branche `IS NULL` sur une colonne de périmètre nullable",
+        rapport:
+          "Colonnes de périmètre nullables — observées dans " +
+          "information_schema : " +
+          `${
+            colonnesPerimetre
+              .filter((c) => c.table === "contact" && c.colonne === "site_id")
+              .map((c) => `${c.table}.${c.colonne}=${c.nullable}`)
+              .join(", ") || "(aucune)"
+          }\n`,
+        ecarts: ecartsPerimetreNullable(colonnesPerimetre, politiques),
       },
       {
         // Une politique qui n'énonce qu'un `USING` légifère EN SILENCE sur les

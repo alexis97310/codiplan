@@ -51,6 +51,7 @@ export const TABLES_CLOISONNEES = [
   "societe",
   "client",
   "site",
+  "contact",
   "agence",
   "calendrier",
   "calendrier_plage",

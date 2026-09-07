@@ -273,6 +273,16 @@ lib/
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
+  contacts/   interlocuteurs d'un client (L1-03) — saisie Zod
+              un contact appartient au CLIENT, le site est FACULTATIF : sans
+              site, c'est un contact du client, et il ne disparaît PAS pour un
+              compte portail restreint (le comptable survit à la restriction
+              d'un atelier)
+              les rôles et les canaux sont clos ICI et pas en base : une société
+              tierce aura d'autres rôles, une énumération en base ferait de leur
+              ajout une migration — le raisonnement des zones, en sens inverse
+              `signataire` est un rôle de l'ensemble, jamais une colonne à part
+              (RG-INT-04) ; aucun envoi n'est écrit ici, L1-03 pose la DONNÉE
   sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
               cloisonné, zones géographiques de D23
               la politique de `site` est de forme « parc » AVEC le filtre de

@@ -414,7 +414,7 @@ Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 | **identité**     | `id = app.societe_id`                                                              | `societe` (D42)                                          |
 | **société**      | `societe_id = app.societe_id`                                                      | `agence`, `calendrier`                                   |
 | **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                  | `devise`, `jour_ferie` (D4)                              |
-| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine` (D10, D22)                   |
+| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine`, `contact` (D10, D22, L1-03) |
 | **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                     |
 | **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b) |
 | **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c)                                   |
@@ -607,7 +607,16 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 1 entamé. **L1-02c** cloisonne les **identités par la base** : `utilisateur`
+Lot 1 entamé. **L1-03** pose les **contacts** d'un client. Un contact appartient
+au client, avec un rattachement de site **facultatif** — et cette nullité porte
+du sens : _un contact sans site ne doit pas disparaître pour un compte portail
+restreint à certains sites, sinon on perd le comptable en restreignant un
+atelier._ La forme de politique est **déduite, et ce n'est pas une huitième** :
+c'est « parc », avec la disjonction que la nullité impose. Un gardien l'exige
+désormais dès que la colonne de périmètre est nullable — la nullabilité venant
+d'`information_schema`, une source qu'il ne contrôle pas.
+
+**L1-02c** cloisonne les **identités par la base** : `utilisateur`
 ne l'était que par l'application, et une garantie qui ne vit que là n'en est pas
 une. La difficulté était réelle — l'authentification **précède** la société —, et
 elle se résout en séparant deux lectures qu'on avait confondues : la

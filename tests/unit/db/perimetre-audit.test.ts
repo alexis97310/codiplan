@@ -235,7 +235,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les dix tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les onze tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -254,6 +254,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "calendrier_ferie",
       "calendrier_plage",
       "client",
+      "contact",
       "site",
       "societe",
       "utilisateur_client",
