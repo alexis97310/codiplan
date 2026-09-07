@@ -357,6 +357,8 @@ C'est ce que la PWA met en cache, et c'est indispensable au recensement. La rest
 
 **Temps de trajet :** la valeur saisie dans `site.temps_trajet_min` fait foi quand elle existe ; l'estimation par zone n'est qu'un défaut quand elle est absente. RG-PLA-05 est précisée en ce sens.
 
+**Amendé par D56.**
+
 **Règles amendées :** RG-PLA-05
 
 ### D24 — Validation des rapports (2.10)
@@ -1773,3 +1775,28 @@ qu'aucune liste n'ait été touchée**.
 
 *Note d'arbitrage n°9 — CODIPLAN — 1ᵉʳ septembre 2026*
 
+## D56 — Le temps de trajet ne voyage jamais seul : le site nomme son agence de rattachement
+
+*Ticket L1-02, 6 septembre 2026.*
+
+**La question.** D23 (rang 1) et RG-PLA-05 (rang 2) écrivent `site.temps_trajet_min` — une valeur portée par le site. Le chapitre 11.2 (rang 3) et le backlog (rang 4) écrivaient « temps de trajet **par agence** », ce qui se lit naturellement « une valeur par couple (site, agence) ». La hiérarchie des sources tranchait pour le scalaire, mais l'écart restait ouvert : à Ducos et à Koné, le même site n'est pas à la même distance.
+
+**Ce que l'exploitation a répondu.** Un site dépend d'une **agence et d'une seule, toujours la même**. Le scalaire est donc juste, et D23 avait raison ; « par agence » ne disait pas « une valeur par couple », il disait « le trajet depuis l'agence dont le site dépend ».
+
+**Mais il manquait l'origine, et c'est l'objet de cette décision.** `temps_trajet_min = 45` ne dit pas d'où l'on part. Tant que le rattachement n'est pas dans la donnée, ce nombre n'est interprétable que par quelqu'un qui connaît déjà la réponse — et le jour où une quatrième agence ouvre, personne ne sait quelles valeurs revoir. **Un nombre dont la signification dépend d'une autre colonne ne doit jamais voyager seul.**
+
+`site` porte donc `agence_id`, **obligatoire**. La question de la nullité s'est posée au moment où elle coûte le moins (CLAUDE.md §9, 23/08) : une colonne nullable aurait rendu le chaînage composite facultatif — en `MATCH SIMPLE`, une clé étrangère dont une colonne vaut NULL n'est pas contrôlée — et surtout elle aurait laissé exister exactement les sites que cette décision veut faire disparaître, ceux dont le temps de trajet ne dit pas son origine.
+
+**Le chaînage est COMPOSITE**, `(societe_id, agence_id)` vers `(societe_id, id)`, sur le modèle de D48 : sans la société dans la clé, un site pourrait se rattacher à l'agence d'une autre société, les contrôles d'intégrité référentielle contournant les politiques RLS par construction. Les deux actions refusent — `ON DELETE RESTRICT` (une agence dont des sites dépendent ne s'efface pas ; `SET NULL` est impossible, la colonne étant `NOT NULL`) et `ON UPDATE RESTRICT` (D49 : `agence.id` est un UUID v7 technique qui ne change jamais).
+
+**Et la dépendance est TENUE, pas seulement écrite.** Un commentaire ne refuse rien. Le déclencheur `site_trajet_suit_agence` refuse de changer `agence_id` en laissant `temps_trajet_min` inchangé ; Zod pose la même exigence à l'entrée serveur, pour que le refus soit rendu à l'utilisateur avec son champ. Les deux ne se remplacent pas : Zod ne voit ni l'import Excel de L1-08 ni une correction faite à la main, et la base ne rend pas de message affichable. Ce qui reste permis est délibéré : fournir la nouvelle valeur, ou `NULL` pour revenir à l'estimation par zone. **Le déclencheur n'exige pas qu'on mesure — il exige qu'on décide.**
+
+Le message nomme le verrou en toutes lettres, parce que Prisma n'expose pas le champ `constraint` d'une erreur de déclencheur : sans le nom dans le texte, aucune assertion ne pourrait citer la contrainte qu'elle éprouve. Il dit la marche à suivre et ne nomme ni agence ni client — un refus a le droit d'être lisible, jamais d'être informatif (D50).
+
+**Où la dépendance est écrite, et c'est le point de méthode.** Elle l'est là où quelqu'un la lira, et à quatre endroits qui ne s'adressent pas aux mêmes lecteurs : la règle RG-PLA-05 pour qui cherche le métier ; `prisma/schema.prisma` pour qui lit le modèle ; un `COMMENT ON COLUMN` pour qui ouvre une console sans jamais ouvrir le dépôt ; et le déclencheur pour qui n'aura rien lu du tout.
+
+**Ce que cette décision NE crée pas.** Aucune table `site_temps_trajet`, et la question ne se rouvre pas : elle supposait plusieurs valeurs pour un même site, ce que l'exploitation exclut. Le point de `TABLES_PARC` sur les tables filles (registre) reste ouvert pour son propre compte.
+
+**Règles amendées :** RG-PLA-05
+
+*Note d'arbitrage n°10 — CODIPLAN — 6 septembre 2026*

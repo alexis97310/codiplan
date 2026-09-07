@@ -70,6 +70,11 @@
 
 CREATE UNIQUE INDEX "client_societe_id_id_key" ON "client" ("societe_id", "id");
 
+-- Et la même chose sur `agence`, cible du chaînage de rattachement (D56). Même
+-- raisonnement : sans la société DANS la clé, un site pourrait se rattacher à
+-- l'agence d'une AUTRE société.
+CREATE UNIQUE INDEX "agence_societe_id_id_key" ON "agence" ("societe_id", "id");
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 2. LA RÉPARATION, PUIS LA CLÉ `utilisateur_client → client`
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -323,18 +328,31 @@ ALTER TABLE "utilisateur_client"
 -- être migrée dans trois semaines, et deux représentations d'un contact
 -- coexisteraient entre-temps. Un ticket à la fois (CLAUDE.md §7).
 --
--- **`temps_trajet_min` est porté par le SITE, et non par un couple
--- (site, agence).** D23 (rang 1) et RG-PLA-05 (rang 2) écrivent l'un comme
--- l'autre `site.temps_trajet_min` ; le chapitre 11.2 (rang 3) et le backlog
--- (rang 4) disent « par agence ». La hiérarchie des sources du CLAUDE.md
--- tranche pour les deux premiers. L'écart est réel et il est porté au registre
--- des arbitrages du ticket plutôt que résolu en séance — une table
--- `site_temps_trajet` reste ajoutable sans rien défaire ici.
+-- ── `temps_trajet_min` ET `agence_id` NE VOYAGENT JAMAIS SÉPARÉMENT (D56) ──
+--
+-- D23 (rang 1) et RG-PLA-05 (rang 2) écrivent tous deux `site.temps_trajet_min`
+-- — une valeur portée par le site, non par un couple (site, agence). Le
+-- chapitre 11.2 (rang 3) et le backlog (rang 4) disaient « par agence », ce qui
+-- se lisait « une valeur par agence ». **L'exploitation a tranché : un site
+-- dépend d'une agence et d'une seule, toujours la même.** Le scalaire est donc
+-- juste, et « par agence » voulait dire « depuis l'agence dont le site dépend ».
+--
+-- **Mais un nombre dont la signification dépend d'une autre colonne ne doit
+-- jamais voyager seul.** « 45 » ne dit pas d'où l'on part. Sans le
+-- rattachement dans la donnée, la valeur n'est interprétable que par quelqu'un
+-- qui connaît déjà la réponse — et le jour où une quatrième agence ouvre,
+-- personne ne sait quelles valeurs revoir. D'où `agence_id`, et d'où le
+-- déclencheur posé plus bas : changer l'agence sans revoir le temps de trajet
+-- est REFUSÉ, pas signalé.
 
 CREATE TABLE "site" (
   "id" UUID NOT NULL,
   "societe_id" UUID NOT NULL,
   "client_id" UUID NOT NULL,
+  -- L'agence DONT CE SITE DÉPEND (D56). Obligatoire : voir le bloc « temps de
+  -- trajet » plus bas — un site dont on ne sait pas de quelle agence il dépend
+  -- porte un temps de trajet qui ne veut rien dire.
+  "agence_id" UUID NOT NULL,
   "libelle" TEXT NOT NULL,
   "adresse" JSONB,
   "commune" TEXT,
@@ -411,6 +429,67 @@ ALTER TABLE "site" ADD CONSTRAINT "site_client_fkey"
   FOREIGN KEY ("societe_id", "client_id") REFERENCES "client" ("societe_id", "id")
   ON DELETE RESTRICT ON UPDATE RESTRICT;
 
+-- Chaînage COMPOSITE vers l'agence de rattachement (D56), même forme et même
+-- raison : sans la société dans la clé, un site pourrait se rattacher à
+-- l'agence d'une AUTRE société.
+-- `ON DELETE RESTRICT` : une agence dont des sites dépendent ne s'efface pas —
+--   `CASCADE` emporterait le parc, `SET NULL` est impossible (colonne NOT NULL).
+-- `ON UPDATE RESTRICT` : `agence.id` est un UUID v7 technique (I10) qui ne
+--   change jamais, et une agence ne change pas de société.
+ALTER TABLE "site" ADD CONSTRAINT "site_agence_fkey"
+  FOREIGN KEY ("societe_id", "agence_id") REFERENCES "agence" ("societe_id", "id")
+  ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+CREATE INDEX "site_societe_id_agence_id_idx" ON "site" ("societe_id", "agence_id");
+
+-- ── LE TEMPS DE TRAJET SUIT SON AGENCE, ET LA BASE LE TIENT (D56) ──────────
+--
+-- Écrire la dépendance dans un commentaire ne suffit pas : un commentaire ne
+-- refuse rien. Ce déclencheur refuse de changer `agence_id` en laissant
+-- `temps_trajet_min` inchangé — le nombre décrirait alors un trajet depuis une
+-- agence dont le site ne dépend plus, et RIEN ne le signalerait ensuite.
+--
+-- Ce qui reste PERMIS, et c'est délibéré : fournir la nouvelle valeur dans la
+-- même instruction, ou la mettre à `NULL` pour revenir à l'estimation par zone
+-- (D23). Le déclencheur n'exige pas qu'on mesure ; il exige qu'on décide.
+--
+-- **Le message dit la marche à suivre, et rien de plus** (D50) : un refus a le
+-- droit d'être lisible, jamais d'être informatif. Il ne nomme aucune agence,
+-- aucun client, aucun décompte — il n'apprend rien à qui le lit sur ce qu'il
+-- n'a pas le droit de lire. Même forme que le déclencheur de D49.
+--
+-- Aucun `SECURITY DEFINER` : la fonction s'exécute avec les droits de
+-- l'appelant, elle ne lit aucune autre table, et elle n'a donc rien à voir
+-- par-dessus les politiques.
+
+CREATE FUNCTION "site_trajet_suit_agence"() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW."agence_id" IS DISTINCT FROM OLD."agence_id"
+     AND OLD."temps_trajet_min" IS NOT NULL
+     AND NEW."temps_trajet_min" IS NOT DISTINCT FROM OLD."temps_trajet_min" THEN
+    -- **Le nom du verrou est DANS le message, et ce n'est pas une redondance
+    -- avec `CONSTRAINT` ci-dessous.** Mesuré : Prisma n'expose pas le champ
+    -- `constraint` d'une erreur levée par un déclencheur — il ne rend que le
+    -- SQLSTATE et le texte. Sans le nom dans le texte, aucune assertion ne
+    -- pourrait nommer la contrainte qu'elle éprouve, et « un refus venu
+    -- d'ailleurs passerait pour le bon » (CLAUDE.md §9, 24/08). C'est le même
+    -- obstacle qu'à L1-01 sur l'index unique ; ici il se contourne, parce que
+    -- c'est nous qui écrivons le message.
+    --
+    -- `CONSTRAINT` reste posé pour `psql` et pour tout client qui, lui, le lit.
+    RAISE EXCEPTION
+      'site_trajet_suit_agence — Le temps de trajet est mesuré DEPUIS l''agence de rattachement du site : changer l''agence sans revoir temps_trajet_min laisserait un nombre qui ne veut plus rien dire. Fournir la nouvelle valeur — ou NULL pour revenir à l''estimation par zone — dans la même instruction.'
+      USING ERRCODE = 'check_violation',
+            CONSTRAINT = 'site_trajet_suit_agence';
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER "trajet_suit_agence" BEFORE UPDATE ON "site"
+  FOR EACH ROW EXECUTE FUNCTION "site_trajet_suit_agence"();
+
 -- ── La sécurité au niveau des lignes : forme « parc », périmètre COMPRIS ───
 --
 -- Les DEUX drapeaux, jamais un seul (CLAUDE.md §9, 31/08) : `ENABLE` fait
@@ -480,6 +559,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "site" TO "codiplan_app";
 
 CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "site"
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
+
+-- La dépendance est écrite LÀ OÙ QUELQU'UN LA LIRA : dans le schéma Prisma,
+-- dans ce fichier, et ici — sur la colonne elle-même, de sorte qu'un `\d+ site`
+-- dans une console la donne à lire à qui n'ouvrira jamais le dépôt.
+COMMENT ON COLUMN "site"."temps_trajet_min" IS
+  'Temps de trajet de reference en minutes, DEPUIS site.agence_id (D23, D56, RG-PLA-05). Ce nombre ne veut rien dire sans son agence : le declencheur trajet_suit_agence refuse de changer agence_id sans revoir cette valeur. NULL = pas de mesure, estimation par zone.';
+
+COMMENT ON COLUMN "site"."agence_id" IS
+  'Agence DONT CE SITE DEPEND (D56). Un site depend d''une agence et d''une seule, toujours la meme. C''est l''origine du temps de trajet porte par temps_trajet_min.';
 
 COMMENT ON TABLE "site" IS
   'Site d''intervention chez un client — table métier cloisonnée (I1, 1re categorie). Politique de forme « parc » avec le filtre de PERIMETRE : societe ET app.client_id ET app.perimetre_sites (D10, D22, RG-DRO-01). Un site n''est jamais une agence (D5, D47).';

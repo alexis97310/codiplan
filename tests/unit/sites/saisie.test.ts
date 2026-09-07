@@ -19,13 +19,24 @@ import {
  */
 
 const CLIENT = "0192f0a0-1000-7000-8000-000000000001";
+const AGENCE = "0192f0a0-0000-7000-8000-0000000000a1";
+const AGENCE_BIS = "0192f0a0-0000-7000-8000-0000000000a2";
 
-/** La saisie minimale d'un site : un client et un nom. */
-const MINIMALE = { client_id: CLIENT, libelle: "Atelier principal" };
+/**
+ * La saisie minimale d'un site : un client, une AGENCE DE RATTACHEMENT et un
+ * nom. Le rattachement y est entré au ticket L1-02 avec D56 — il n'a pas de
+ * valeur par défaut, la choisir reviendrait à décider d'où part le temps de
+ * trajet.
+ */
+const MINIMALE = {
+  client_id: CLIENT,
+  agence_id: AGENCE,
+  libelle: "Atelier principal",
+};
 
 describe("saisie d'un site (L1-02)", () => {
   describe("libellé et client", () => {
-    it("exige les deux", () => {
+    it("exige les trois", () => {
       expect(schemaCreationSite.safeParse({}).success).toBe(false);
       expect(schemaCreationSite.safeParse({ client_id: CLIENT }).success).toBe(
         false,
@@ -33,6 +44,15 @@ describe("saisie d'un site (L1-02)", () => {
       expect(schemaCreationSite.safeParse({ libelle: "Atelier" }).success).toBe(
         false,
       );
+      // Sans agence de rattachement (D56) : refusé. Un site dépend d'une
+      // agence et d'une seule, et il n'existe aucune valeur par défaut qui ne
+      // soit pas un mensonge.
+      expect(
+        schemaCreationSite.safeParse({
+          client_id: CLIENT,
+          libelle: "Atelier",
+        }).success,
+      ).toBe(false);
     });
 
     it("refuse un libellé vide ou fait de blancs", () => {
@@ -200,6 +220,51 @@ describe("saisie d'un site (L1-02)", () => {
     });
   });
 
+  describe("le temps de trajet ne voyage jamais seul (D56)", () => {
+    it("refuse de changer le rattachement sans revoir le temps de trajet", () => {
+      // Le nombre décrirait un trajet depuis une agence dont le site ne dépend
+      // plus. Le refus porte le CHAMP fautif, pour que l'écran sache quoi
+      // signaler.
+      const rendu = schemaModificationSite.safeParse({ agence_id: AGENCE_BIS });
+      expect(rendu.success).toBe(false);
+      if (!rendu.success) {
+        expect(rendu.error.issues[0]?.path).toEqual(["temps_trajet_min"]);
+      }
+    });
+
+    it("accepte le changement quand une nouvelle valeur est fournie", () => {
+      expect(
+        schemaModificationSite.safeParse({
+          agence_id: AGENCE_BIS,
+          temps_trajet_min: 90,
+        }).success,
+      ).toBe(true);
+    });
+
+    it("accepte le retour à l'estimation par zone — `null` est une décision", () => {
+      // Le schéma n'exige pas qu'on MESURE : il exige qu'on DÉCIDE. `null`
+      // signifie « je ne mesure pas, estime depuis la zone » (D23), et c'est
+      // une réponse aussi valable qu'un nombre.
+      expect(
+        schemaModificationSite.safeParse({
+          agence_id: AGENCE_BIS,
+          temps_trajet_min: null,
+        }).success,
+      ).toBe(true);
+    });
+
+    it("laisse passer une modification qui ne touche PAS au rattachement", () => {
+      // Le contrôle ne gêne que là où il a une raison de gêner — sans quoi il
+      // serait une friction, pas une garantie.
+      expect(
+        schemaModificationSite.safeParse({ commune: "Bourail" }).success,
+      ).toBe(true);
+      expect(
+        schemaModificationSite.safeParse({ temps_trajet_min: 30 }).success,
+      ).toBe(true);
+    });
+  });
+
   describe("modification", () => {
     it("accepte une modification partielle SANS effacer le reste", () => {
       // Le défaut trouvé par un test à L1-01 : un `.default(null)` posé côté
@@ -237,6 +302,41 @@ describe("saisie d'un site (L1-02)", () => {
   });
 
   describe("recherche", () => {
+    it("LE CRITÈRE DES HORAIRES : le jour où on les INTERROGE, le JSON n'est plus le bon choix", () => {
+      // **Une borne qui porte sa condition, et non une date.** Les horaires
+      // sont portés par `site` en JSON, et c'est le bon choix tant qu'on ne
+      // fait que les LIRE avec le site : ils héritent alors de la politique
+      // « parc » de leur parent, et le périmètre les protège sans qu'aucune
+      // forme de politique nouvelle soit nécessaire.
+      //
+      // Le jour où il faut CHERCHER ou FILTRER des sites d'après leurs
+      // horaires — « quels sites sont ouverts le samedi matin ? » —, le JSON
+      // cesse d'être le bon choix : l'interrogation devient tortueuse,
+      // l'indexation aussi, et la table fille devient justifiée. Elle
+      // déclenchera alors le critère de la sixième forme
+      // (`tests/unit/db/tables-filles.test.ts`).
+      //
+      // Ce scénario est ce déclencheur : il rougit à l'instant où un critère
+      // de recherche portant sur les horaires est ajouté, et renvoie ici.
+      const criteres = Object.keys(schemaRechercheSite.shape);
+
+      // TÉMOIN : le contrôle lit bien les critères réels. Sans lui, un
+      // `shape` devenu vide rendrait le scénario vert pour toujours.
+      expect(criteres).toContain("zone_geo");
+      expect(criteres.length).toBeGreaterThan(3);
+
+      expect(
+        criteres.filter((cle) => /horaire|ouvert|ferme/i.test(cle)),
+        "un critère de recherche porte désormais sur les horaires. Ils sont " +
+          "stockés en JSON sur `site`, ce qui est le bon choix tant qu'on ne " +
+          "fait que les lire avec leur site — pas pour les interroger. C'est " +
+          "le critère enregistré au ticket L1-02 : les sortir dans une table " +
+          "fille, qui déclenchera alors la sixième forme de politique " +
+          "(« filiation »). Voir docs/decisions/" +
+          "2026-09-06-site-et-la-cle-du-compte-portail.md.",
+      ).toEqual([]);
+    });
+
     it("borne le nombre de résultats plutôt que de le laisser au défaut de personne", () => {
       expect(schemaRechercheSite.parse({}).limite).toBe(
         LIMITE_RECHERCHE_PAR_DEFAUT,

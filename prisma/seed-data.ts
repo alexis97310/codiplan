@@ -147,6 +147,14 @@ export type SocieteSeed = {
 export type SiteSeed = {
   /** UUID v7 fixe — voir ci-dessus. */
   id: string;
+  /**
+   * **Code de l'agence dont ce site dépend** (D56) — pas son identifiant : les
+   * agences sont `upsert`ées par `(societe_id, code)` et n'ont pas d'UUID fixe
+   * au jeu de démonstration. Le seed le résout, et ÉCHOUE en nommant le site si
+   * le code est inconnu : un site dépend d'une agence et d'une seule, il n'y a
+   * pas de valeur par défaut.
+   */
+  agence_code: string;
   libelle: string;
   commune: string | null;
   /**
@@ -622,6 +630,7 @@ const CLIENTS_NC: ClientSeed[] = [
     sites: [
       {
         id: "0192f0a0-4000-7000-8000-000000000001",
+        agence_code: "DUCOS",
         libelle: "Atelier principal (démonstration)",
         commune: "Nouméa",
         zone_geo: "grand_noumea",
@@ -641,6 +650,10 @@ const CLIENTS_NC: ClientSeed[] = [
       },
       {
         id: "0192f0a0-4000-7000-8000-000000000002",
+        // Rattaché à KONÉ et non à Ducos : deux sites du MÊME client dépendant
+        // d'agences différentes, ce qui est le cas réel et ce qui rend le
+        // rattachement lisible dans la démonstration.
+        agence_code: "KONE",
         libelle: "Dépôt de brousse (démonstration)",
         commune: "Bourail",
         zone_geo: "cote_ouest",
@@ -675,6 +688,7 @@ const CLIENTS_NC: ClientSeed[] = [
     sites: [
       {
         id: "0192f0a0-4000-7000-8000-000000000003",
+        agence_code: "KONE",
         libelle: "Garage de Koné (démonstration)",
         commune: "Koné",
         zone_geo: "nord",
@@ -704,6 +718,7 @@ const CLIENTS_NC: ClientSeed[] = [
     sites: [
       {
         id: "0192f0a0-4000-7000-8000-000000000004",
+        agence_code: "DOLBEAU",
         libelle: "Ancien chantier (démonstration, inactif)",
         commune: "Poindimié",
         zone_geo: "cote_est",
@@ -748,6 +763,7 @@ const CLIENTS_EU: ClientSeed[] = [
     sites: [
       {
         id: "0192f0a0-4000-7000-8000-000000000011",
+        agence_code: "SIEGE",
         libelle: "Site de Lyon (démonstration)",
         commune: "Lyon",
         zone_geo: null,

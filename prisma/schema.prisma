@@ -179,8 +179,14 @@ model Agence {
   societe    Societe           @relation(fields: [societe_id], references: [id])
   calendrier Calendrier?       @relation(fields: [calendrier_id], references: [id])
   ecarts     CalendrierFerie[]
+  sites      Site[]
 
   @@unique([societe_id, code])
+  /// Clé composite technique — cible du chaînage de `site` (L1-02, D56). `id`
+  /// étant déjà la clé primaire, elle n'ajoute aucune unicité : elle rend le
+  /// couple (société, agence) référençable d'un seul geste, de sorte qu'un site
+  /// ne puisse pas se rattacher à l'agence d'une AUTRE société.
+  @@unique([societe_id, id])
   /// Clé composite technique — cible du chaînage de `calendrier_ferie` (D48).
   /// `id` étant déjà la clé primaire, elle n'ajoute aucune unicité : elle rend
   /// simplement le couple (agence, territoire) référençable d'un seul geste.
@@ -509,6 +515,19 @@ model Site {
   id               String   @id @db.Uuid
   societe_id       String   @db.Uuid
   client_id        String   @db.Uuid
+  /// **L'agence dont ce site dépend** (D56). Un site dépend d'une agence et
+  /// d'une seule, toujours la même — c'est ce que l'exploitation a confirmé, et
+  /// c'est ce que le backlog voulait dire par « temps de trajet par agence » :
+  /// non pas une valeur par couple, mais le trajet depuis l'agence dont le site
+  /// dépend.
+  ///
+  /// **OBLIGATOIRE, et la question s'est posée au bon moment** (CLAUDE.md §9,
+  /// 23/08). Une colonne nullable aurait rendu le chaînage composite
+  /// facultatif : en `MATCH SIMPLE`, une clé étrangère dont une colonne vaut
+  /// NULL n'est pas contrôlée. Surtout, elle aurait laissé exister des sites
+  /// dont `temps_trajet_min` ne dit pas d'où l'on part — c'est-à-dire le
+  /// défaut même que D56 corrige.
+  agence_id        String   @db.Uuid
   /// Libellé du site. Obligatoire et non vide (contrainte `CHECK` en base).
   ///
   /// **Aucune unicité**, et c'est une décision de même nature que celle prise
@@ -567,15 +586,22 @@ model Site {
   /// site et le périmètre les protège par construction. I7 borne le risque : les
   /// horaires d'un site produisent un AVERTISSEMENT, jamais un blocage.
   horaires         Json?
-  /// Temps de trajet de référence, en minutes.
+  /// Temps de trajet de référence, en minutes, **DEPUIS `agence_id`** (D23,
+  /// D56, RG-PLA-05).
   ///
-  /// **Le nom et la forme viennent de D23 (rang 1) et de RG-PLA-05 (rang 2),
-  /// qui écrivent tous deux `site.temps_trajet_min` — une valeur portée par le
-  /// site.** Le chapitre 11.2 (rang 3) et le backlog (rang 4) disent « par
-  /// agence » ; la hiérarchie des sources tranche en faveur des deux premiers,
-  /// et l'écart est porté au registre des arbitrages du ticket plutôt que
-  /// résolu en séance. La valeur saisie **fait foi** ; l'estimation par zone
-  /// n'est qu'un défaut appliqué en son absence (D23).
+  /// **Ce nombre ne veut rien dire seul, et c'est tout l'objet de D56.** « 45 »
+  /// ne dit pas d'où l'on part. Tant que le rattachement n'était pas dans la
+  /// donnée, la valeur n'était interprétable que par quelqu'un qui connaissait
+  /// déjà la réponse — et le jour où une quatrième agence ouvre, personne
+  /// n'aurait su quelles valeurs revoir. La dépendance est donc écrite ici, à
+  /// côté du nombre, et surtout TENUE : le déclencheur
+  /// `site_trajet_suit_agence` refuse de changer `agence_id` sans que
+  /// `temps_trajet_min` soit revu dans la même instruction, et Zod pose la
+  /// même exigence à l'entrée serveur.
+  ///
+  /// La valeur saisie **fait foi** ; l'estimation par zone n'est qu'un défaut
+  /// appliqué en son absence (D23). `NULL` est donc une valeur pleine : « je ne
+  /// mesure pas, estime depuis la zone ».
   temps_trajet_min Int?
   actif            Boolean  @default(true)
 
@@ -593,8 +619,21 @@ model Site {
   /// d'administration. `Restrict` en mise à jour : ni `client.id` ni
   /// `client.societe_id` ne changent (I10, RG-SOC-04).
   client  Client  @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Chaînage COMPOSITE vers l'agence de rattachement (D56), sur le modèle de
+  /// D48 : `(societe_id, agence_id)` vers `(societe_id, id)`. Une clé sur
+  /// `agence_id` seul laisserait un site se rattacher à l'agence d'une AUTRE
+  /// société — les contrôles d'intégrité référentielle contournent les
+  /// politiques RLS par construction en PostgreSQL.
+  ///
+  /// `Restrict` en suppression : une agence dont des sites dépendent ne
+  /// s'efface pas — `Cascade` emporterait le parc, et `SetNull` est impossible,
+  /// la colonne étant `NOT NULL`. `Restrict` en mise à jour : `agence.id` est
+  /// un UUID v7 technique (I10) qui ne change jamais, et une agence ne change
+  /// pas de société.
+  agence  Agence  @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([societe_id, client_id])
+  @@index([societe_id, agence_id])
   @@map("site")
 }
 

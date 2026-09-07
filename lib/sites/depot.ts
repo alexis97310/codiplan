@@ -38,6 +38,8 @@ import {
 export type FicheSite = {
   id: string;
   client_id: string;
+  /** L'agence dont le site dépend — l'ORIGINE de `temps_trajet_min` (D56). */
+  agence_id: string;
   libelle: string;
   adresse: Prisma.JsonValue | null;
   commune: string | null;
@@ -54,6 +56,9 @@ export type FicheSite = {
 const CHAMPS_FICHE = {
   id: true,
   client_id: true,
+  // `agence_id` est rendu AVEC `temps_trajet_min`, et jamais sans : un nombre
+  // dont la signification dépend d'une autre colonne ne voyage pas seul (D56).
+  agence_id: true,
   libelle: true,
   adresse: true,
   commune: true,
@@ -76,7 +81,11 @@ const CHAMPS_FICHE = {
  * ailleurs, ce que D50 refuse : un message d'erreur est un canal d'information,
  * soumis au cloisonnement comme une requête.
  */
-export type MotifRefusSite = "client_hors_perimetre" | "fiche_introuvable";
+export type MotifRefusSite =
+  | "client_hors_perimetre"
+  | "agence_hors_societe"
+  | "trajet_a_revoir"
+  | "fiche_introuvable";
 
 export type ResultatEcriture =
   | { readonly accepte: true; readonly fiche: FicheSite }
@@ -94,6 +103,15 @@ const CONTRAINTE_BASE = "P2010";
 function motifDeLErreur(erreur: unknown): MotifRefusSite | null {
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) {
     return null;
+  }
+  // Le déclencheur de D56 est reconnu par la CONTRAINTE qu'il nomme, et non par
+  // son texte : le message est destiné à un humain et vit au dictionnaire, il
+  // n'a pas à être reconnu par une comparaison de chaîne.
+  if (/site_trajet_suit_agence/.test(erreur.message)) {
+    return "trajet_a_revoir";
+  }
+  if (/site_agence_fkey/.test(erreur.message)) {
+    return "agence_hors_societe";
   }
   if (
     erreur.code === VIOLATION_CLE_ETRANGERE ||

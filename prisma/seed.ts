@@ -237,18 +237,17 @@ async function seed(): Promise<void> {
         // `upsert` sur l'identifiant FIXE : rejouer le seed corrige un libellé
         // au lieu de créer une seconde fiche, et le compte portail de
         // `COMPTES_PORTAIL` retrouve toujours le même client.
-        etape(
-          `${societe.code} — clients de démonstration : ${clients.length}, ` +
-            `sites : ${clients.reduce((total, client) => total + client.sites.length, 0)}`,
-        );
+        etape(`${societe.code} — clients de démonstration : ${clients.length}`);
 
         for (const client of clients) {
-          const {
-            id: clientId,
-            adresse_facturation,
-            sites,
-            ...champsClient
-          } = client;
+          // Les SITES ne sont pas écrits ici : ils le sont plus bas, une fois
+          // les agences connues (D56). `champsClient` est donc construit sans
+          // eux — explicitement plutôt que par une variable inutilisée, qui
+          // demanderait à ESLint de fermer les yeux sur ce qu'il a raison de
+          // signaler.
+          const { id: clientId, adresse_facturation, sites, ...reste } = client;
+          void sites;
+          const champsClient = reste;
 
           await tx.client.upsert({
             where: { id: clientId },
@@ -263,33 +262,6 @@ async function seed(): Promise<void> {
               adresse_facturation: adresse_facturation ?? Prisma.DbNull,
             },
           });
-
-          // ── Sites de démonstration (ticket L1-02) ────────────────────────
-          //
-          // Écrits juste après LEUR client, dans la même transaction : la clé
-          // étrangère composite `(societe_id, client_id)` refuse l'ordre
-          // inverse, et la politique « parc » de `site` exige `app.societe_id`
-          // posé — que la transaction porte déjà.
-          //
-          // `upsert` sur l'identifiant FIXE, pour la même raison que les
-          // clients : rejouer le seed corrige un libellé au lieu de créer un
-          // second lieu, et `COMPTES_PORTAIL.perimetre_sites` retrouve toujours
-          // le même identifiant.
-          for (const site of sites) {
-            const { id: siteId, horaires, ...champsSite } = site;
-
-            await tx.site.upsert({
-              where: { id: siteId },
-              update: { ...champsSite, horaires: horaires ?? Prisma.DbNull },
-              create: {
-                id: siteId,
-                societe_id: id,
-                client_id: clientId,
-                ...champsSite,
-                horaires: horaires ?? Prisma.DbNull,
-              },
-            });
-          }
         }
 
         // Les calendriers AVANT les agences : `agence.calendrier_id` les
@@ -297,6 +269,12 @@ async function seed(): Promise<void> {
         // l'ordre inverse. Un calendrier ne porte que des HEURES — le territoire
         // et les écarts appartiennent à l'agence (D46, compléments 1 et 2).
         const identifiants = new Map<string, string>();
+        // Les identifiants d'agence, résolus par CODE. Les agences n'ont pas
+        // d'identifiant fixe au jeu de démonstration — elles sont `upsert`ées
+        // par `(societe_id, code)` —, et les sites doivent pouvoir nommer la
+        // leur (D56). C'est aussi ce qui impose l'ordre : les agences AVANT les
+        // sites, comme les calendriers avant les agences.
+        const identifiantsAgences = new Map<string, string>();
 
         etape(
           `${societe.code} — calendriers : ${calendriers.length}, ` +
@@ -372,6 +350,7 @@ async function seed(): Promise<void> {
               calendrier_id: calendrierId,
             },
           });
+          identifiantsAgences.set(agence.code, enregistree.id);
 
           // ── 3. L'ÉCART LOCAL, ensuite et jamais avant ────────────────────
           //
@@ -419,6 +398,51 @@ async function seed(): Promise<void> {
               },
             });
           }
+        }
+
+        // ── 4. Les SITES, après les agences et jamais avant (L1-02, D56) ───
+        //
+        // L'ordre est une contrainte de la base : `site` porte deux clés
+        // étrangères composites, l'une vers son client, l'autre vers son
+        // AGENCE de rattachement. Les clients sont écrits plus haut, les
+        // agences juste au-dessus ; les sites viennent donc en dernier.
+        //
+        // `upsert` sur l'identifiant FIXE, comme les clients : rejouer le seed
+        // corrige un libellé au lieu de créer un second lieu, et
+        // `COMPTES_PORTAIL.perimetre_sites` retrouve toujours le même
+        // identifiant.
+        const sites = clients.flatMap((client) =>
+          client.sites.map((site) => ({ site, clientId: client.id })),
+        );
+        etape(`${societe.code} — sites de démonstration : ${sites.length}`);
+
+        for (const { site, clientId } of sites) {
+          const { id: siteId, horaires, agence_code, ...champsSite } = site;
+          const agenceId = identifiantsAgences.get(agence_code);
+          if (agenceId === undefined) {
+            throw new Error(
+              `Site ${siteId} : agence « ${agence_code} » absente du jeu de ` +
+                "démonstration de sa société. Un site dépend d'une agence et " +
+                "d'une seule (D56) ; il n'y a pas de valeur par défaut.",
+            );
+          }
+
+          await tx.site.upsert({
+            where: { id: siteId },
+            update: {
+              ...champsSite,
+              agence_id: agenceId,
+              horaires: horaires ?? Prisma.DbNull,
+            },
+            create: {
+              id: siteId,
+              societe_id: id,
+              client_id: clientId,
+              agence_id: agenceId,
+              ...champsSite,
+              horaires: horaires ?? Prisma.DbNull,
+            },
+          });
         }
       },
       DELAIS_SEED,

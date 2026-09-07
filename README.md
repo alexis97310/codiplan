@@ -619,4 +619,27 @@ impossibilité mesurée, non un report : PostgreSQL 16 ne sait pas contraindre l
 `FOREIGN KEY (EACH ELEMENT OF …)`, ni `CHECK` avec sous-requête. Les sorties
 sont portées au registre des arbitrages.
 
+**D56** en est sorti : `site` nomme son **agence de rattachement**, et
+`temps_trajet_min` est le trajet depuis elle. Le backlog disait « par agence »,
+ce qui se lisait « une valeur par couple » ; l'exploitation a tranché — un site
+dépend d'une agence et d'une seule. **Un nombre dont la signification dépend
+d'une autre colonne ne doit jamais voyager seul** : la dépendance est écrite à
+quatre endroits qui ne s'adressent pas aux mêmes lecteurs (la règle, le schéma,
+un `COMMENT ON COLUMN`, le déclencheur), et surtout elle est TENUE — changer le
+rattachement sans revoir le temps de trajet est refusé par la base, pas signalé.
+
+Deux **bornes qui portent leur condition** plutôt qu'une date sont enregistrées
+et mécaniques : les zones deviennent un référentiel cloisonné le jour où une
+seconde géographie les emploie ; les horaires sortent du JSON le jour où on les
+interroge. Une **sixième forme** de politique — « filiation », une fille est
+visible si son parent l'est — est tranchée en principe, non construite, et son
+critère d'appel est la première table fille réelle. Son coût est mesuré :
+7,1 → 10,5 ms sur un balayage de 100 000 lignes filles, et c'est un _hash
+semi-join_, pas une sous-requête par ligne.
+
+Et une **classe** de défaut est nommée : un bloc de garde de migration qui lit
+sous `FORCE ROW LEVEL SECURITY` voit zéro et se croit rassuré — il ne se trompe
+pas, il ne regarde rien. `scripts/lib/gardes-migration.ts` porte la règle et
+l'inventaire des migrations déjà appliquées qui la violent : une seule.
+
 Voir `docs/decisions/2026-09-06-site-et-la-cle-du-compte-portail.md`.

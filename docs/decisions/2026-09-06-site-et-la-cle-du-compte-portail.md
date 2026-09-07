@@ -174,7 +174,90 @@ silencieuse du 01/09.
 L1-03 livre les contacts avec leurs rôles. Une colonne de texte posée
 aujourd'hui devrait être migrée dans trois semaines.
 
-## Les trois points portés à l'arbitrage
+## Ce que les arbitrages du 07/09 ont tranché
+
+Les quatre points ci-dessous étaient ouverts à la livraison ; ils sont fermés,
+et ce qu'ils ont produit est resté dans ce ticket.
+
+**1. `temps_trajet_min` — scalaire, confirmé, et il lui manquait son origine.**
+L'exploitation a répondu : un site dépend d'une **agence et d'une seule**,
+toujours la même. Le scalaire est donc juste, et « par agence » ne disait pas
+« une valeur par couple ». Mais le nombre ne disait pas d'où l'on part : `site`
+porte désormais `agence_id`, obligatoire, chaîné en composite, et un déclencheur
+refuse d'en changer sans revoir le temps de trajet. Voir **D56** — la règle
+RG-PLA-05 est réécrite, le backlog corrigé, et les deux sont câblés.
+
+**2. Les zones — ne pas fermer en base, et la bascule porte sa condition.**
+Le raisonnement est retenu tel quel. À terme, les zones ne sont ni un type ni
+une énumération : ce sont un **référentiel par société**, une table cloisonnée
+que chaque société peuple avec sa géographie. Le critère de bascule est
+enregistré et **mécanique** : le jour où une société ayant sa propre géographie
+emploie les zones, `tests/unit/sites/zones.test.ts` rougit et renvoie ici. Pas
+une date — un fait observable.
+
+**3. Les tables filles — le principe est tranché, la construction reportée.**
+Une fille est visible si son parent l'est : c'est une **sixième forme**,
+« filiation », dont la clause s'adosse à la clé étrangère qui la rattache, et
+fermée par le schéma comme le reste. Elle n'est pas construite ; le critère qui
+l'appellera est la première table fille réelle, et `ecartsTablesFilles` le tient
+depuis le schéma. Son coût est **mesuré** et non annoncé (5 000 sites,
+100 000 lignes filles) : balayage d'une société 7,1 → 10,5 ms ; lecture des
+lignes d'un seul parent 0,04 → 0,26 ms. Deux corrections que la mesure apporte —
+ce n'est **pas** « une sous-requête à chaque ligne lue », PostgreSQL en fait un
+*hash semi-join* et ne visite le parent qu'une fois ; et le facteur ×6 de
+l'accès pointé impressionne plus que son coût absolu, qui disparaît sous les
+190 ms de latence vers Sydney.
+
+Le critère a trouvé quelque chose dès son écriture, et ce n'était pas prévu :
+**`utilisateur_client` est devenue fille de `client`** en recevant sa clé
+étrangère. Elle n'est pas une fille au sens de cette forme — c'est
+l'HABILITATION qui donne accès au parc, pas une donnée du parc, et la faire
+hériter de la visibilité de son client serait circulaire. Elle est donc rangée
+dans une liste close et gardée (`RATTACHEES_HORS_FILIATION`). **Mais sa vraie
+question est ouverte, et elle est portée au registre** : sous la forme
+« société » qu'elle porte, un compte portail du client A peut lire la ligne
+d'habilitation d'un compte du client B de la même société. Cela précède ce
+ticket — la table portait déjà `client_id` et cette politique ; la clé étrangère
+n'a rien ouvert, elle a rendu la question visible.
+
+Le critère qui sortira les **horaires** du JSON est enregistré de la même façon :
+le jour où un critère de recherche porte sur eux, `tests/unit/sites/saisie.test.ts`
+rougit. Tant qu'on ne fait que les lire avec leur site, le JSON est le bon choix.
+
+**4. `perimetre_sites` — normaliser, et c'est un ticket à part.** La table de
+jointure est retenue : elle met la garantie là où elle ne rouille pas. Le ticket
+est **L1-02b**, avec ses deux exigences — la lecture du périmètre voyage avec les
+instructions qui posent déjà le contexte (`set_config` accepte une sous-requête,
+`lib/db/rls.ts` en pose déjà quatre) et l'aller-retour est mesuré ; et
+`app.perimetre_sites` reste exactement la forme que lisent les politiques.
+Séparé parce qu'il touche la plomberie du portail — `lib/db/rls.ts`, la couche
+d'authentification, le harnais — et non le référentiel des sites, et parce qu'un
+commit ne couvre jamais deux tickets.
+
+## Le bloc de garde de 20260823130000 : une classe, pas un incident
+
+Relevé hors périmètre à la livraison, et l'inventaire a été fait. **Une seule
+migration déjà appliquée porte le défaut** — `20260823130000`, avec deux blocs.
+Elle est immuable, et il n'y a rien à reprendre : ce qu'elle perd est la
+LISIBILITÉ du refus, pas le refus — les contraintes qui suivent (`SET NOT NULL`,
+les clés composites) échouent d'elles-mêmes sur un état fautif, avec un message
+de PostgreSQL qui ne dit ni quelle agence ni quoi faire.
+
+Ce qui est écrit, c'est la **règle** : tout bloc de garde qui lit une table sous
+`FORCE` doit rendre visible le mécanisme qui pourrait l'aveugler — lever le
+drapeau, le rendre dans la même transaction, et **refuser de compter tant que la
+levée n'est pas constatée**. `scripts/lib/gardes-migration.ts` la tient et porte
+l'inventaire, clos des deux côtés ; le gardien est éprouvé sur la faute écrite
+dans la forme qu'elle prendrait réellement, sur la levée sans témoin, sur un bloc
+qui ne lit aucune table cloisonnée, et sur trois graphies.
+
+## Les points restés au registre
+
+**1. `utilisateur_client` sous la forme « société ».** Voir plus haut : un compte
+portail lit-il l'habilitation d'un compte d'un autre client de la même société ?
+La question est antérieure au ticket, elle a été rendue visible par lui.
+
+**2. Les anciens points, tels qu'ils étaient posés à la livraison :**
 
 **1. `temps_trajet_min` : porté par le site, ou par le couple (site, agence) ?**
 D23 (rang 1) et RG-PLA-05 (rang 2) écrivent tous deux `site.temps_trajet_min` —

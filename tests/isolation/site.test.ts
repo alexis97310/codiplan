@@ -11,6 +11,8 @@ import {
   fermerClients,
 } from "./setup/db";
 import {
+  AGENCE_A,
+  AGENCE_B,
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
@@ -53,6 +55,15 @@ class Annulation extends Error {}
 const SITE_NEUF = "aaaaaaaa-0000-7000-8000-0000000000e1";
 
 /**
+ * Une SECONDE agence de la société A, créée dans les transactions annulées.
+ *
+ * Elle est indispensable aux scénarios de D56 : sans une agence de la MÊME
+ * société vers laquelle rattacher, la clé étrangère composite mordrait avant le
+ * déclencheur, et l'épreuve serait verte pour la mauvaise raison.
+ */
+const AGENCE_A_BIS = "aaaaaaaa-0000-7000-8000-0000000000e9";
+
+/**
  * Exécute `travail` sous le PROPRIÉTAIRE, après avoir réellement défait le
  * verrou nommé, puis ANNULE tout.
  *
@@ -84,27 +95,37 @@ async function sansVerrou(
   }
 }
 
-/** Insère un site par SQL brut — le chemin que rien ne filtre côté code. */
+/**
+ * Insère un site par SQL brut — le chemin que rien ne filtre côté code.
+ *
+ * `agenceId` est OBLIGATOIRE depuis D56, comme la colonne : un site dépend
+ * d'une agence et d'une seule. Le défaut est celui de la société A, de sorte
+ * que les scénarios qui n'éprouvent pas le rattachement n'aient pas à le dire.
+ */
 function insererSite(
   tx: PrismaClient,
   valeurs: {
     id: string;
     societeId: string;
     clientId: string;
+    agenceId?: string;
     libelle: string;
     latitude?: number | null;
     longitude?: number | null;
+    tempsTrajet?: number | null;
   },
 ): Promise<number> {
   return tx.$executeRawUnsafe(
-    `INSERT INTO "site" ("id", "societe_id", "client_id", "libelle", "latitude", "longitude")
-     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6)`,
+    `INSERT INTO "site" ("id", "societe_id", "client_id", "agence_id", "libelle", "latitude", "longitude", "temps_trajet_min")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8)`,
     valeurs.id,
     valeurs.societeId,
     valeurs.clientId,
+    valeurs.agenceId ?? (valeurs.societeId === SOCIETE_B ? AGENCE_B : AGENCE_A),
     valeurs.libelle,
     valeurs.latitude ?? null,
     valeurs.longitude ?? null,
+    valeurs.tempsTrajet ?? null,
   );
 }
 
@@ -346,6 +367,186 @@ describe("le site d'intervention (L1-02)", () => {
 
     // Le verrou qui a mordu est bien celui des SITES, nommé.
     expect(message).toMatch(/site_client_fkey/);
+  });
+
+  // ── 3 bis. LE RATTACHEMENT, ET LE NOMBRE QUI EN DÉPEND (D56) ─────────────
+
+  it("un site ne peut pas se rattacher à l'agence d'une AUTRE société", async () => {
+    // Même raison que pour le client, et même forme composite : sans la société
+    // dans la clé, le rattachement traverserait le cloisonnement — les
+    // contrôles d'intégrité référentielle contournent les politiques RLS par
+    // construction.
+    await expect(
+      avecSociete(SOCIETE_A, (tx) =>
+        insererSite(tx, {
+          id: SITE_NEUF,
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          agenceId: AGENCE_B,
+          libelle: "Rattaché à l'établissement du voisin",
+        }),
+      ),
+    ).rejects.toThrow(/site_agence_fkey/);
+  });
+
+  it("ÉPREUVE PAR RETRAIT : sans la clé, le rattachement croisé passe", async () => {
+    // Le jumeau retire LA contrainte visée. Les deux autres clés — vers
+    // `societe` et vers `client` — restent en place et laisseraient passer
+    // cette même ligne : c'est ce qui rend l'épreuve concluante.
+    let lignes = -1;
+
+    await sansVerrou(
+      ['ALTER TABLE "site" DROP CONSTRAINT "site_agence_fkey"'],
+      SOCIETE_A,
+      async (tx) => {
+        lignes = await insererSite(tx, {
+          id: SITE_NEUF,
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          agenceId: AGENCE_B,
+          libelle: "Rattaché à l'établissement du voisin",
+        });
+      },
+    );
+
+    expect(lignes).toBe(1);
+  });
+
+  it("changer le rattachement sans revoir le temps de trajet est REFUSÉ", async () => {
+    // **Le cœur de D56.** `SITE_A1_S1` porte un temps de trajet de 25 minutes
+    // depuis l'agence A. Le rattacher ailleurs en laissant ce 25 laisserait un
+    // nombre qui décrit un trajet depuis un établissement dont le site ne
+    // dépend plus — et plus rien, ensuite, ne le signalerait. C'est très
+    // exactement « un nombre dont la signification dépend d'une autre colonne
+    // ne doit jamais voyager seul ».
+    //
+    // Une SECONDE agence de la société A est nécessaire pour l'éprouver : sans
+    // elle, la clé étrangère mordrait avant le déclencheur et le scénario
+    // serait vert pour la mauvaise raison (CLAUDE.md §9, 24/08).
+    let message = "";
+
+    await sansVerrou(
+      [
+        `INSERT INTO "agence" ("id", "societe_id", "code", "libelle", "territoire")
+           VALUES ('${AGENCE_A_BIS}'::uuid, '${SOCIETE_A}'::uuid, 'ISO-A2', 'Agence A bis', 'NC')`,
+      ],
+      SOCIETE_A,
+      async (tx) => {
+        try {
+          await tx.$executeRawUnsafe(
+            `UPDATE "site" SET "agence_id" = $1::uuid WHERE "id" = $2::uuid`,
+            AGENCE_A_BIS,
+            SITE_A1_S1,
+          );
+        } catch (erreur) {
+          message = erreur instanceof Error ? erreur.message : String(erreur);
+        }
+      },
+    );
+
+    // **Le verrou est NOMMÉ, et il a fallu le rendre nommable.** Prisma
+    // n'expose pas le champ `constraint` d'une erreur levée par un
+    // déclencheur — c'est le même obstacle qu'à L1-01 sur l'index unique. La
+    // différence est qu'ici le message est écrit par nous : le nom y est donc
+    // porté explicitement, et l'assertion peut le citer au lieu de se contenter
+    // d'un SQLSTATE partagé par toutes les contraintes `CHECK`.
+    expect(message).toMatch(/site_trajet_suit_agence/);
+    // SQLSTATE 23514 — violation de CHECK. Ni une clé étrangère (23503), ni la
+    // politique (42501), ni une unicité (23505) : trois refus qui auraient pu
+    // se produire sur cette même instruction.
+    expect(message).toMatch(/23514/);
+    expect(message).not.toMatch(/fkey/);
+  });
+
+  it("le même changement PASSE quand le temps de trajet est revu", async () => {
+    // Le déclencheur n'exige pas qu'on mesure : il exige qu'on décide. Les deux
+    // décisions sont admises — une nouvelle valeur, ou `NULL` pour revenir à
+    // l'estimation par zone (D23).
+    let avecNouvelleValeur = -1;
+    let avecRetourALEstimation = -1;
+
+    await sansVerrou(
+      [
+        `INSERT INTO "agence" ("id", "societe_id", "code", "libelle", "territoire")
+           VALUES ('${AGENCE_A_BIS}'::uuid, '${SOCIETE_A}'::uuid, 'ISO-A2', 'Agence A bis', 'NC')`,
+      ],
+      SOCIETE_A,
+      async (tx) => {
+        avecNouvelleValeur = await tx.$executeRawUnsafe(
+          `UPDATE "site" SET "agence_id" = $1::uuid, "temps_trajet_min" = 90 WHERE "id" = $2::uuid`,
+          AGENCE_A_BIS,
+          SITE_A1_S1,
+        );
+        avecRetourALEstimation = await tx.$executeRawUnsafe(
+          `UPDATE "site" SET "agence_id" = $1::uuid, "temps_trajet_min" = NULL WHERE "id" = $2::uuid`,
+          AGENCE_A,
+          SITE_A1_S1,
+        );
+      },
+    );
+
+    expect(avecNouvelleValeur).toBe(1);
+    expect(avecRetourALEstimation).toBe(1);
+  });
+
+  it("un site SANS temps de trajet change librement de rattachement", async () => {
+    // `SITE_A1_S2` n'en porte pas : il n'y a aucun nombre à invalider, donc
+    // rien à revoir. Le déclencheur ne gêne que là où il a une raison de gêner —
+    // sans quoi il serait une friction, pas une garantie.
+    let lignes = -1;
+
+    await sansVerrou(
+      [
+        `INSERT INTO "agence" ("id", "societe_id", "code", "libelle", "territoire")
+           VALUES ('${AGENCE_A_BIS}'::uuid, '${SOCIETE_A}'::uuid, 'ISO-A2', 'Agence A bis', 'NC')`,
+      ],
+      SOCIETE_A,
+      async (tx) => {
+        lignes = await tx.$executeRawUnsafe(
+          `UPDATE "site" SET "agence_id" = $1::uuid WHERE "id" = $2::uuid`,
+          AGENCE_A_BIS,
+          SITE_A1_S2,
+        );
+      },
+    );
+
+    expect(lignes).toBe(1);
+  });
+
+  it("ÉPREUVE PAR RETRAIT : sans le déclencheur, le nombre survit à son agence", async () => {
+    // Le jumeau, et c'est lui qui donne son poids au scénario précédent : sans
+    // le déclencheur, l'`UPDATE` passe et le site garde un « 25 » qui ne
+    // désigne plus rien. Aucune erreur, aucune trace — c'est la forme que le
+    // défaut prendrait réellement.
+    let lignes = -1;
+    let trajetSurvivant: number | null = -1;
+
+    await sansVerrou(
+      [
+        'DROP TRIGGER "trajet_suit_agence" ON "site"',
+        `INSERT INTO "agence" ("id", "societe_id", "code", "libelle", "territoire")
+           VALUES ('${AGENCE_A_BIS}'::uuid, '${SOCIETE_A}'::uuid, 'ISO-A2', 'Agence A bis', 'NC')`,
+      ],
+      SOCIETE_A,
+      async (tx) => {
+        lignes = await tx.$executeRawUnsafe(
+          `UPDATE "site" SET "agence_id" = $1::uuid WHERE "id" = $2::uuid`,
+          AGENCE_A_BIS,
+          SITE_A1_S1,
+        );
+        const lues = await tx.$queryRawUnsafe<
+          Array<{ temps_trajet_min: number | null }>
+        >(
+          `SELECT "temps_trajet_min" FROM "site" WHERE "id" = $1::uuid`,
+          SITE_A1_S1,
+        );
+        trajetSurvivant = lues[0]?.temps_trajet_min ?? null;
+      },
+    );
+
+    expect(lignes).toBe(1);
+    // Le nombre a survécu à l'agence qui lui donnait son sens.
+    expect(trajetSurvivant).toBe(25);
   });
 
   // ── 4. Le libellé, contrôlé EN BASE ───────────────────────────────────────

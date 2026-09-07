@@ -111,8 +111,14 @@ Périmètre **INVERSÉ** [D55] : toute table métier cloisonnée est auditée pa
 
 **L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
 *Relu contre les sources citées le 01/09/2026 — empreinte `9bbfd1a6`.*
-**L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, `temps_trajet_min` par agence qui **fait foi** sur l'estimation par zone. Forme de politique : **parc**, filtre de périmètre de sites compris.
-*Relu contre les sources citées le 01/09/2026 — empreinte `75d0ad83`.*
+**L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, **agence de rattachement** et `temps_trajet_min` qui **fait foi** sur l'estimation par zone. ~~`temps_trajet_min` **par agence**~~ [D56] : cette formule se lisait « une valeur par couple (site, agence) », et ce n'est pas ce qu'elle voulait dire. Un site dépend d'une **agence et d'une seule**, toujours la même ; `temps_trajet_min` est un **scalaire**, et c'est le trajet **depuis l'agence de rattachement du site**. Le site nomme donc son agence (`site.agence_id`, obligatoire), et le nombre perd son sens si ce rattachement change sans être revu — la base le refuse. Forme de politique : **parc**, filtre de périmètre de sites compris.
+*Relu contre les sources citées le 07/09/2026 — empreinte `5c56a2d6`.*
+**L1-02b** Normaliser `utilisateur_client.perimetre_sites` en table de jointure. **[D10]**
+Arbitrage du 07/09/2026, issu de L1-02 : des trois voies possibles, une seule met la garantie là où elle ne rouille pas. PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un tableau — mesuré sur les trois formes déclaratives —, et un couple de déclencheurs serait une clé étrangère écrite à la main. La table de jointure porte une **vraie** clé étrangère, composite comme les autres.
+Deux exigences, et la seconde est une contrainte de forme : la lecture du périmètre doit **voyager avec les instructions qui posent déjà le contexte** plutôt qu'ajouter un aller-retour — `set_config` accepte une sous-requête, `lib/db/rls.ts` en pose déjà quatre — et l'aller-retour ajouté doit être **mesuré**, pas estimé (leçon du 23/08 : à 190 ms vers Sydney, un aller-retour se calcule) ; et `app.perimetre_sites` reste **exactement** la forme que lisent les politiques — la normalisation change d'où vient la valeur, jamais ce que voient les politiques. **Aucune des cinq formes ne bouge.**
+*Acceptation :* la clé étrangère refuse un périmètre désignant un site inexistant ou d'une autre société, éprouvée par retrait ; le nombre d'allers-retours de `lib/db/rls.ts` est inchangé, et un test le compte ; les scénarios de périmètre de L0-05 restent au moins aussi nombreux.
+*Relu contre les sources citées le 07/09/2026 — empreinte `983d5203`.*
+
 **L1-03** Contacts — rôles, préférences de notification.
 **L1-04** Techniciens et habilitations. **[D9]**
 Trois tables : `habilitation`, `technicien_habilitation` (datée), `site_habilitation_requise` (avec booléen bloquant).

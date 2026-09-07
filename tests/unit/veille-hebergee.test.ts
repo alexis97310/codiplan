@@ -165,6 +165,30 @@ const HORS_OBSERVATION: readonly {
     justification:
       "garde une LISTE DU DÉPÔT (les exemptions d'audit), pas la base.",
   },
+  {
+    fonction: "ecartsGardes",
+    justification:
+      "lit les FICHIERS DE MIGRATION du dépôt, jamais la base : elle vérifie " +
+      "qu'un bloc de garde rend visible le mécanisme qui pourrait " +
+      "l'aveugler. Une migration est immuable une fois appliquée, donc aucune " +
+      "main posée sur PostgreSQL ne peut déplacer ce qu'elle juge — et la " +
+      "veille, en lecture seule, observerait un fichier qu'elle ne lit pas.",
+  },
+  {
+    fonction: "ecartsListeRattachees",
+    justification:
+      "garde une LISTE DU DÉPÔT (les tables rattachées au parc dont la " +
+      "question n'est pas la filiation), pas la base.",
+  },
+  {
+    fonction: "ecartsTablesFilles",
+    justification:
+      "juge le SCHÉMA PRISMA — l'existence d'une première table fille du " +
+      "parc, critère de la sixième forme de politique. C'est un contrôle " +
+      "statique : la base ne peut pas faire apparaître une clé étrangère que " +
+      "le dépôt ne déclare pas, et si elle le pouvait, c'est le contrôle des " +
+      "FORMES qui le dirait, pas celui-ci.",
+  },
 ];
 
 /** Les contrôles que la veille DOIT câbler : déclarés, moins les exclusions. */

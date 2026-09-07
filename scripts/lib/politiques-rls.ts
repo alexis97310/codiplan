@@ -68,6 +68,53 @@
  */
 
 /**
+ * ## LA SIXIÈME FORME, DÉCIDÉE ET NON CONSTRUITE — « filiation »
+ *
+ * *Arbitrage du 07/09/2026, ticket L1-02. Le principe est tranché ; la forme
+ * n'existe pas encore, et c'est délibéré.*
+ *
+ * **Le problème qu'elle résout.** Une table FILLE d'une table du parc — les
+ * horaires d'un site, ses temps de trajet par prestation, ses contacts —
+ * porterait `societe_id NOT NULL` et relèverait donc de la première catégorie
+ * de I1. Aucune des cinq formes ne lui va : la forme « société » laisserait un
+ * compte portail restreint au site S1 lire les lignes filles du site S2 du même
+ * client, et recopier la forme « parc » sur elle est impossible — la fille ne
+ * porte pas `client_id`, et l'y ajouter dupliquerait un rattachement que la clé
+ * étrangère tient déjà.
+ *
+ * **Le principe, tranché : une fille est visible si son parent l'est.** La
+ * clause s'adosse à la clé étrangère qui la rattache, jamais à une recopie des
+ * colonnes du parent :
+ *
+ *     EXISTS (SELECT 1 FROM <parent> p WHERE p.<pk> = <fille>.<fk>)
+ *
+ * — le parent portant déjà sa propre politique, la visibilité se propage sans
+ * qu'aucun filtre soit réécrit. **Fermée par le SCHÉMA, comme le reste** :
+ * c'est la clé étrangère qui dit qui est le parent, pas une liste que quelqu'un
+ * tiendrait à jour.
+ *
+ * **CE QU'ELLE COÛTE, mesuré et non annoncé.** *(base locale, 5 000 sites sur
+ * 10 sociétés, 100 000 lignes filles, index sur la clé étrangère.)*
+ *
+ * | Lecture | Sans filiation | Avec |
+ * |---|---|---|
+ * | balayage d'une société (10 000 lignes) | 7,1 ms | 10,5 ms |
+ * | les lignes d'UN parent — l'accès réel | 0,04 ms | 0,26 ms |
+ *
+ * Deux choses que la mesure corrige, et c'est pour cela qu'on mesure plutôt
+ * qu'on estime. **Ce n'est PAS « une sous-requête à chaque ligne lue »** :
+ * PostgreSQL transforme l'`EXISTS` en *hash semi-join* et ne visite le parent
+ * qu'une fois — le surcoût est celui d'une jointure, pas d'une boucle. Et le
+ * facteur relatif de l'accès pointé (×6) impressionne bien plus que son coût
+ * absolu (0,2 ms), qui disparaît sous les 190 ms de latence vers Sydney.
+ *
+ * **LE CRITÈRE QUI L'APPELLERA : la première table fille réelle.** Pas une
+ * date. `ecartsTablesFilles` ci-dessous le tient — il part du schéma, repère
+ * toute table portant une clé étrangère vers une table du parc, et rougit en
+ * renvoyant ici. Tant qu'il n'y en a aucune, il n'y a rien à construire.
+ */
+
+/**
  * Les cinq formes. Le message d'échec les cite : un développeur qui découvre ce
  * gardien doit comprendre ce qu'on lui demande sans ouvrir le CLAUDE.md.
  */
@@ -720,4 +767,131 @@ export function rapportPolitiques(
     `  ${politiques.length} politique(s) lue(s) au total`,
     "",
   ].join("\n");
+}
+
+/**
+ * Une table du schéma, et les tables qu'elle référence par clé étrangère.
+ * Fournie par le lecteur de schéma Prisma — ce module ne lit rien lui-même.
+ */
+export type TableEtParents = {
+  readonly table: string;
+  readonly parents: readonly string[];
+};
+
+/**
+ * LE CRITÈRE DE LA SIXIÈME FORME — la première table fille réelle d'une table
+ * du parc.
+ *
+ * *Voir l'en-tête de ce module, section « la sixième forme ».* Le principe est
+ * tranché, la forme n'est pas construite, et **ce contrôle est ce qui
+ * l'appellera** : une borne qui porte sa condition plutôt qu'une date (§9,
+ * 01/09). Tant qu'aucune fille n'existe, il ne demande rien.
+ *
+ * **La population part du SCHÉMA, jamais d'une liste.** C'est la clé étrangère
+ * qui dit qui est le parent : une table fille créée demain est reconnue le jour
+ * où elle est écrite, sans qu'aucune liste soit à compléter. Une table du parc
+ * qui en référence une autre n'en est pas une fille au sens de cette forme —
+ * `site` référence `client`, et les deux portent déjà « parc ».
+ */
+/**
+ * Les tables rattachées au parc dont la question N'EST PAS celle de la
+ * filiation. Liste close, justifiée, et gardée des deux côtés.
+ *
+ * **Une seule entrée, et c'est le critère lui-même qui l'a trouvée** — elle
+ * n'a pas été prévue. `utilisateur_client` a reçu au ticket L1-02 sa clé
+ * étrangère vers `client` (D56 en est voisin, la décision est de L1-02), et le
+ * contrôle l'a aussitôt signalée comme première table fille du parc.
+ *
+ * Elle n'en est pas une **au sens de cette forme**, et la distinction est de
+ * fond, pas de commodité. La filiation dit : *une donnée du parc est visible si
+ * son parent l'est.* `utilisateur_client` n'est pas une donnée du parc — c'est
+ * l'HABILITATION qui donne accès au parc, celle-là même dont la politique tire
+ * `app.client_id`. La faire hériter de la visibilité de son client serait
+ * circulaire.
+ *
+ * **Sa vraie question est autre, et elle est ouverte** : sous la forme
+ * « société » qu'elle porte, un compte portail du client A peut lire la ligne
+ * d'habilitation d'un compte du client B de la même société. Ce n'est pas la
+ * filiation, c'est `utilisateur_id = <le compte courant>` — et cela précède ce
+ * ticket : la table portait déjà `client_id` et cette politique. La clé
+ * étrangère n'a rien ouvert, elle a rendu la question VISIBLE. Portée au
+ * registre des arbitrages.
+ */
+export const RATTACHEES_HORS_FILIATION = ["utilisateur_client"] as const;
+
+/** L'unique entrée que l'arbitrage autorise. Recopiée : c'est la doctrine. */
+const SEULE_RATTACHEE_ARBITREE = "utilisateur_client";
+
+/**
+ * Écarts de la liste ci-dessus — additions comme retraits, sur le modèle de
+ * `ecartsListeParc` et de `ecartsListeHorsDomaine`.
+ *
+ * L'addition est le geste dangereux ici : y ranger une table ferait taire le
+ * critère sur une vraie table fille, ce qui est exactement ce qu'il existe pour
+ * empêcher.
+ */
+export function ecartsListeRattachees(
+  liste: readonly string[] = RATTACHEES_HORS_FILIATION,
+): string[] {
+  const ecarts = liste
+    .filter((table) => table !== SEULE_RATTACHEE_ARBITREE)
+    .map(
+      (table) =>
+        `« ${table} » a été rangée hors de la filiation : c'est le geste qui ` +
+        "fait taire le critère sur une vraie table fille. Toute addition passe " +
+        "par un arbitrage, elle ne se décide pas dans un ticket.",
+    );
+
+  if (!liste.includes(SEULE_RATTACHEE_ARBITREE)) {
+    ecarts.push(
+      `« ${SEULE_RATTACHEE_ARBITREE} » ne figure plus hors de la filiation : ` +
+        "le critère la réclamerait comme table fille, alors que sa question " +
+        "est celle de l'habilitation et non celle de la visibilité héritée.",
+    );
+  }
+
+  return ecarts;
+}
+
+export function ecartsTablesFilles(
+  observees: readonly TableEtParents[],
+  horsFiliation: readonly string[] = RATTACHEES_HORS_FILIATION,
+): string[] {
+  if (observees.length === 0) {
+    return [
+      "aucune table observée : le critère de la sixième forme n'a rien " +
+        "établi. Schéma vide, ou lecture jouée hors du schéma attendu.",
+    ];
+  }
+
+  const parc: readonly string[] = TABLES_PARC.map((entree) => entree.table);
+
+  return [
+    ...ecartsListeRattachees(horsFiliation),
+    ...observees
+      .filter(
+        (observee) =>
+          !parc.includes(observee.table) &&
+          !horsFiliation.includes(observee.table) &&
+          observee.parents.some((parent) => parc.includes(parent)),
+      )
+      .map((observee) => {
+        const parents = observee.parents.filter((parent) =>
+          parc.includes(parent),
+        );
+        return (
+          `« ${observee.table} » est la PREMIÈRE table fille d'une table du ` +
+          `parc (${parents.join(", ")}), et le critère de la sixième forme de ` +
+          "politique est donc atteint. Elle ne prend NI la forme « société » — " +
+          "qui laisserait un compte portail restreint à un site lire les lignes " +
+          "filles d'un autre —, NI la forme « parc », qu'elle ne peut pas porter " +
+          "sans dupliquer un rattachement que sa clé étrangère tient déjà. Le " +
+          "principe est tranché depuis L1-02 : une fille est visible si son " +
+          "parent l'est, par une clause adossée à sa clé étrangère " +
+          "(`EXISTS (SELECT 1 FROM <parent> …)`). Son coût est mesuré et écrit " +
+          "en tête de ce module. Construire la forme, l'ajouter à `Forme` et à " +
+          "`RAPPEL_FORMES`, puis retirer cette table de ce message."
+        );
+      }),
+  ];
 }

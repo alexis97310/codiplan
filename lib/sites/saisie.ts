@@ -91,7 +91,8 @@ const plageHoraire = z
 const horaires = z.array(plageHoraire).nullable();
 
 /**
- * Temps de trajet de référence, en minutes (D23, RG-PLA-05).
+ * Temps de trajet de référence, en minutes, DEPUIS l'agence de rattachement
+ * (D23, D56, RG-PLA-05).
  *
  * Il **FAIT FOI** quand il existe ; l'estimation par zone n'est qu'un défaut
  * appliqué en son absence. Zéro est une valeur légitime — un site situé à
@@ -122,6 +123,13 @@ const tempsTrajet = z
 export const schemaCreationSite = z
   .object({
     client_id: z.uuid(),
+    /**
+     * L'agence dont le site dépend (D56). Obligatoire, comme en base : un site
+     * dépend d'une agence et d'une seule, et il n'existe aucune valeur par
+     * défaut qui ne soit pas un mensonge — la choisir pour l'utilisateur
+     * reviendrait à décider d'où part le temps de trajet.
+     */
+    agence_id: z.uuid(),
     libelle,
     adresse: adresse.default(null),
     commune: texteFacultatif.default(null),
@@ -152,6 +160,11 @@ export type CreationSite = z.output<typeof schemaCreationSite>;
  */
 export const schemaModificationSite = z
   .object({
+    /**
+     * Le rattachement PEUT changer — une agence ouvre, un secteur est
+     * redécoupé — mais jamais seul : voir le `superRefine` ci-dessous.
+     */
+    agence_id: z.uuid().optional(),
     libelle: libelle.optional(),
     adresse: adresse.optional(),
     commune: texteFacultatif.optional(),
@@ -163,7 +176,35 @@ export const schemaModificationSite = z
     temps_trajet_min: tempsTrajet.optional(),
     actif: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((saisie, contexte) => {
+    // ── LE TEMPS DE TRAJET NE VOYAGE JAMAIS SEUL (D56) ────────────────────
+    //
+    // Changer l'agence de rattachement sans revoir `temps_trajet_min`
+    // laisserait un nombre qui décrit un trajet depuis une agence dont le site
+    // ne dépend plus — et plus rien, ensuite, ne le signalerait.
+    //
+    // **Cette exigence est posée DEUX fois, et ce n'est pas une redondance
+    // décorative.** Ici, pour que le refus soit rendu à l'utilisateur avec le
+    // champ fautif ; et en base, par le déclencheur `trajet_suit_agence`, pour
+    // que l'import Excel de L1-08 et une correction faite à la main la
+    // traversent aussi. C'est le principe de I1 appliqué à autre chose que le
+    // cloisonnement.
+    //
+    // Ce qui reste permis : fournir la nouvelle valeur, ou `null` pour revenir
+    // à l'estimation par zone (D23). On n'exige pas qu'on mesure, on exige
+    // qu'on décide.
+    if (
+      saisie.agence_id !== undefined &&
+      !Object.hasOwn(saisie, "temps_trajet_min")
+    ) {
+      contexte.addIssue({
+        code: "custom",
+        path: ["temps_trajet_min"],
+        message: "temps_trajet_min_exige_avec_agence",
+      });
+    }
+  });
 export type ModificationSite = z.output<typeof schemaModificationSite>;
 
 /**
