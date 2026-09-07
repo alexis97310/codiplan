@@ -313,7 +313,7 @@ describe("saisie d'un site (L1-02)", () => {
       // horaires — « quels sites sont ouverts le samedi matin ? » —, le JSON
       // cesse d'être le bon choix : l'interrogation devient tortueuse,
       // l'indexation aussi, et la table fille devient justifiée. Elle
-      // déclenchera alors le critère de la sixième forme
+      // déclenchera alors le critère de la forme « filiation »
       // (`tests/unit/db/tables-filles.test.ts`).
       //
       // Ce scénario est ce déclencheur : il rougit à l'instant où un critère
@@ -331,7 +331,7 @@ describe("saisie d'un site (L1-02)", () => {
           "stockés en JSON sur `site`, ce qui est le bon choix tant qu'on ne " +
           "fait que les lire avec leur site — pas pour les interroger. C'est " +
           "le critère enregistré au ticket L1-02 : les sortir dans une table " +
-          "fille, qui déclenchera alors la sixième forme de politique " +
+          "fille, qui déclenchera alors la forme « filiation » " +
           "(« filiation »). Voir docs/decisions/" +
           "2026-09-06-site-et-la-cle-du-compte-portail.md.",
       ).toEqual([]);

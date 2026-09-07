@@ -511,17 +511,67 @@ async function seed(): Promise<void> {
               client_id: compte.client_id,
             },
           },
-          update: { perimetre_sites: compte.perimetre_sites },
+          // Le périmètre est une TABLE depuis L1-02b : il s'écrit ci-dessous,
+          // pas ici. `perimetre_sites` n'existe plus — PostgreSQL 16 ne savait
+          // pas contraindre les éléments d'un tableau, si bien que la colonne
+          // acceptait un site inexistant ou d'une autre société.
+          update: {},
           create: {
             id: uuidv7(),
             utilisateur_id: utilisateur.id,
             client_id: compte.client_id,
             societe_id: societeId,
-            perimetre_sites: compte.perimetre_sites,
           },
         }),
       DELAIS_SEED,
     );
+
+    // Le périmètre, réécrit en entier à chaque amorçage : le seed est
+    // idempotent, et un périmètre partiellement à jour serait un périmètre
+    // ÉLARGI ou RÉTRÉCI sans que personne l'ait demandé. Deux allers-retours,
+    // et le second ne part que s'il y a quelque chose à écrire.
+    const habilitation = await avecSociete(
+      prisma,
+      societeId,
+      (tx) =>
+        tx.utilisateurClient.findUniqueOrThrow({
+          where: {
+            utilisateur_id_client_id: {
+              utilisateur_id: utilisateur.id,
+              client_id: compte.client_id,
+            },
+          },
+          select: { id: true },
+        }),
+      DELAIS_SEED,
+    );
+
+    await avecSociete(
+      prisma,
+      societeId,
+      (tx) =>
+        tx.utilisateurClientSite.deleteMany({
+          where: { utilisateur_client_id: habilitation.id },
+        }),
+      DELAIS_SEED,
+    );
+
+    if (compte.perimetre_sites.length > 0) {
+      await avecSociete(
+        prisma,
+        societeId,
+        (tx) =>
+          tx.utilisateurClientSite.createMany({
+            data: compte.perimetre_sites.map((site_id) => ({
+              id: uuidv7(),
+              societe_id: societeId,
+              utilisateur_client_id: habilitation.id,
+              site_id,
+            })),
+          }),
+        DELAIS_SEED,
+      );
+    }
   }
 
   etape("terminé");

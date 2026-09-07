@@ -46,6 +46,8 @@ import {
   UTILISATEUR_PAR_ROLE,
   UTILISATEUR_PORTAIL_A,
   UTILISATEUR_PORTAIL_B,
+  PORTAIL_A2_CLIENT,
+  PERIMETRE_A1_S1,
 } from "./fixtures";
 import {
   CONTRAT_PARC,
@@ -477,6 +479,14 @@ export default async function setup(): Promise<void> {
     await prisma.utilisateur.createMany({
       data: [
         {
+          // Le VOISIN, avec une identité RECONNAISSABLE : c'est elle que la
+          // jointure sur `utilisateur` rendait au compte portail de A1 sous la
+          // forme « société » (mesuré le 07/09/2026).
+          id: PORTAIL_A2_CLIENT,
+          nom: "Portail du client A2",
+          email: "portail-a2@iso.test",
+        },
+        {
           id: PORTAIL_A_CLIENT,
           nom: "Portail A",
           email: "portail-a@iso.test",
@@ -537,16 +547,36 @@ export default async function setup(): Promise<void> {
           utilisateur_id: PORTAIL_A_CLIENT,
           client_id: CLIENT_A1,
           societe_id: SOCIETE_A,
-          perimetre_sites: [],
+        },
+        {
+          // Le VOISIN : un autre client de la MÊME société (L1-02b). C'est lui
+          // que la forme « société » laissait lire au compte portail de A1, et
+          // c'est lui qui rend la fermeture démontrable.
+          id: "aaaaaaaa-0000-7000-8000-0000000000f9",
+          utilisateur_id: PORTAIL_A2_CLIENT,
+          client_id: CLIENT_A2,
+          societe_id: SOCIETE_A,
         },
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000f8",
           utilisateur_id: PORTAIL_B_CLIENT,
           client_id: CLIENT_B1,
           societe_id: SOCIETE_B,
-          perimetre_sites: [],
         },
       ],
+    });
+
+    // Le PÉRIMÈTRE, désormais une table (L1-02b). Le compte portail de A1 est
+    // restreint au site S1 alors que son client en a deux : c'est la seule
+    // branche de D10 que ni le filtre société ni le filtre client ne savent
+    // produire, et un périmètre vide ne la démontrerait pas.
+    await prisma.utilisateurClientSite.create({
+      data: {
+        id: PERIMETRE_A1_S1,
+        societe_id: SOCIETE_A,
+        utilisateur_client_id: "aaaaaaaa-0000-7000-8000-0000000000f7",
+        site_id: SITE_A1_S1,
+      },
     });
 
     // ── Un compte par rôle canonique (L0-06) ─────────────────────────────────
@@ -588,7 +618,6 @@ export default async function setup(): Promise<void> {
         utilisateur_id: UTILISATEUR_PAR_ROLE[Role.client],
         client_id: CLIENT_A1,
         societe_id: SOCIETE_A,
-        perimetre_sites: [],
       },
     });
   } finally {

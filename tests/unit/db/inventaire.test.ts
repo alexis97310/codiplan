@@ -45,6 +45,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       calendrier_ferie: 1,
       utilisateur_societe: 2,
       utilisateur_client: 1,
+      utilisateur_client_site: 1,
     },
     ...surcharge,
   };
@@ -66,6 +67,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         calendrier_ferie: 0,
         utilisateur_societe: 1,
         utilisateur_client: 0,
+        utilisateur_client_site: 0,
       },
     }),
   ];
@@ -99,6 +101,7 @@ describe("inventaire à plat", () => {
       calendrier_ferie: 1,
       utilisateur_societe: 3,
       utilisateur_client: 1,
+      utilisateur_client_site: 1,
     });
   });
 

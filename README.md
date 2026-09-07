@@ -407,19 +407,28 @@ l'autre ne dit ce que la politique **laisse passer**. Une table peut porter les
 deux drapeaux et une politique `USING (true)` : l'attribut est irréprochable et
 le cloisonnement n'existe plus.
 
-Il y a **cinq formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
+Il y a **six formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 
-| Forme           | Clause                                                      | Exemple                                |
-| --------------- | ----------------------------------------------------------- | -------------------------------------- |
-| **identité**    | `id = app.societe_id`                                       | `societe` (D42)                        |
-| **société**     | `societe_id = app.societe_id`                               | `agence`, `calendrier`                 |
-| **référentiel** | lecture `true`, écriture `app_est_role_editeur()`           | `devise`, `jour_ferie` (D4)            |
-| **parc**        | société **et** `app.client_id` **et** `app.perimetre_sites` | `client`, `site`, `machine` (D10, D22) |
-| **journal**     | `SELECT` habilité, `INSERT` seul                            | `journal_audit` (I8)                   |
+| Forme            | Clause                                                           | Exemple                                                  |
+| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| **identité**     | `id = app.societe_id`                                            | `societe` (D42)                                          |
+| **société**      | `societe_id = app.societe_id`                                    | `agence`, `calendrier`                                   |
+| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                | `devise`, `jour_ferie` (D4)                              |
+| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`      | `client`, `site`, `machine` (D10, D22)                   |
+| **journal**      | `SELECT` habilité, `INSERT` seul                                 | `journal_audit` (I8)                                     |
+| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne ) | `utilisateur_client`, `utilisateur_client_site` (L1-02b) |
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
 salarié de l'éditeur en le retirant à la société propriétaire.
+
+La forme **« habilitation »** vise les tables qui **donnent** accès au parc,
+jamais les données du parc. Leur donner la forme « parc » serait circulaire :
+cette forme lit `app.perimetre_sites`, et c'est de ces tables-là que la variable
+est calculée. Le **discriminant** est `app.client_id`, posée pour un compte
+portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les
+habilitations de sa société, ce qu'une clause « sa propre ligne » sans
+discriminant lui aurait retiré.
 
 `scripts/lib/politiques-rls.ts` porte la règle, partagée par
 `tests/isolation/politiques-rls.test.ts` et le contrôle de la base hébergée. Elle
@@ -584,6 +593,13 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
+Lot 1 entamé. **L1-02b** ferme deux choses d'un coup : le périmètre de sites
+devient une table (`utilisateur_client_site`) avec une vraie clé étrangère, et
+le contexte de session est enfin **armé** — `lib/db/rls.ts` posait quatre
+variables là où les politiques en réclamaient six, si bien que les scénarios
+d'isolation étaient verts parce que le harnais armait une garantie que la
+production n'armait pas.
+
 Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation).
 
 Lot 1 commencé : **L1-01** et **L1-02**.
@@ -618,11 +634,14 @@ diagnostic écrit naïvement compte zéro orphelin sans en avoir cherché un seu
 En local, le rôle de migration est superutilisateur et contourne RLS : le défaut
 n'existait que là où rien ne l'aurait exercé.
 
-`utilisateur_client.perimetre_sites` reste **sans** clé étrangère, et c'est une
-impossibilité mesurée, non un report : PostgreSQL 16 ne sait pas contraindre les
-éléments d'un tableau — ni `FOREIGN KEY` sur la colonne, ni
-`FOREIGN KEY (EACH ELEMENT OF …)`, ni `CHECK` avec sous-requête. Les sorties
-sont portées au registre des arbitrages.
+`utilisateur_client.perimetre_sites` restait alors **sans** clé étrangère, par
+une impossibilité mesurée : PostgreSQL 16 ne sait pas contraindre les éléments
+d'un tableau — ni `FOREIGN KEY` sur la colonne, ni
+`FOREIGN KEY (EACH ELEMENT OF …)`, ni `CHECK` avec sous-requête. **L1-02b l'a
+fermée** : le périmètre est une table, `utilisateur_client_site`, avec une vraie
+clé composite vers `site (societe_id, id)`. La colonne a disparu dans la même
+transaction que la reprise — deux sources d'un même périmètre divergeraient en
+silence.
 
 **D56** en est sorti : `site` nomme son **agence de rattachement**, et
 `temps_trajet_min` est le trajet depuis elle. Le backlog disait « par agence »,
@@ -636,7 +655,7 @@ rattachement sans revoir le temps de trajet est refusé par la base, pas signal�
 Deux **bornes qui portent leur condition** plutôt qu'une date sont enregistrées
 et mécaniques : les zones deviennent un référentiel cloisonné le jour où une
 seconde géographie les emploie ; les horaires sortent du JSON le jour où on les
-interroge. Une **sixième forme** de politique — « filiation », une fille est
+interroge. Une forme de plus — « filiation », une fille est
 visible si son parent l'est — est tranchée en principe, non construite, et son
 critère d'appel est la première table fille réelle. Son coût est mesuré :
 7,1 → 10,5 ms sur un balayage de 100 000 lignes filles, et c'est un _hash

@@ -90,7 +90,6 @@ describe("preuve VIVANTE : le module de production pose ce qu'il déclare", () =
         auteurId: null,
         adresseIp: null,
         clientId: null,
-        perimetreSites: [],
       },
       async (tx) => {
         const lignes: string[] = [];

@@ -149,6 +149,14 @@ const HORS_OBSERVATION: readonly {
     justification: "témoins de l'inventaire comparé, indissociables de lui.",
   },
   {
+    fonction: "ecartsListeHabilitation",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_HABILITATION`), pas la base — même " +
+      "raison que `ecartsListeParc` juste en dessous. La FORME que cette " +
+      "liste commande, elle, est bien observée : `ecartsPolitiques` la mesure " +
+      "dans `pg_policies`, et c'est là que la veille mord.",
+  },
+  {
     fonction: "ecartsListeParc",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_PARC`), pas la base. Aucune main " +
@@ -184,7 +192,7 @@ const HORS_OBSERVATION: readonly {
     fonction: "ecartsTablesFilles",
     justification:
       "juge le SCHÉMA PRISMA — l'existence d'une première table fille du " +
-      "parc, critère de la sixième forme de politique. C'est un contrôle " +
+      "parc, critère de la forme « filiation ». C'est un contrôle " +
       "statique : la base ne peut pas faire apparaître une clé étrangère que " +
       "le dépôt ne déclare pas, et si elle le pouvait, c'est le contrôle des " +
       "FORMES qui le dirait, pas celui-ci.",

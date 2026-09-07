@@ -127,10 +127,16 @@ export const RAPPEL_FORMES = [
     "`client`, `site`, `machine` (D10, D22).",
   "journal    — SELECT habilité, INSERT seul, ni UPDATE ni DELETE : " +
     "`journal_audit` (I8).",
+  "habilitation — société ET (pas un compte portail OU sa propre ligne) : " +
+    "`utilisateur_client`, `utilisateur_client_site` (L1-02b). Le " +
+    "discriminant est `app.client_id`, posée pour un compte portail et pour " +
+    "lui seul ; la restriction s'ancre sur `app.utilisateur_id`, ou sur " +
+    "l'habilitation parente pour la table de périmètre.",
 ].join("\n  ");
 
 /** Les formes que ce gardien sait exiger. */
-export type Forme = "identité" | "société" | "parc" | "journal";
+export type Forme =
+  "identité" | "société" | "parc" | "journal" | "habilitation";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -168,6 +174,78 @@ const PARC_ARBITRE = ["client", "site", "machine"];
 
 /** Le journal d'audit : lecture habilitée, ajout seul (I8, L0-10). */
 export const TABLES_JOURNAL = ["journal_audit"] as const;
+
+/**
+ * Les tables d'HABILITATION — la SIXIÈME forme construite (L1-02b, arbitrage du
+ * 07/09/2026).
+ *
+ * **Ce ne sont pas des données du parc : ce sont les tables qui DONNENT accès
+ * au parc.** C'est ce qui exclut la forme « parc » pour elles, et l'exclut pour
+ * une raison de fond plutôt que de commodité : la forme « parc » lit
+ * `app.perimetre_sites`, et `app.perimetre_sites` est calculée EN LISANT ces
+ * tables. Une politique qui lit la variable que sa propre lecture alimente ne
+ * se referme jamais.
+ *
+ * La forme compose DEUX AXES :
+ *
+ *     société  ET  ( pas un compte portail  OU  sa propre ligne )
+ *
+ * Le discriminant est `app.client_id`, posée pour un compte portail et pour lui
+ * seul. Sans lui, la clause « sa propre ligne » retirerait à un
+ * `admin_societe` la vue des habilitations de SA société, qu'il doit avoir.
+ *
+ * **Elle vient d'une mesure, pas d'une intuition.** Sous la forme « société »
+ * que `utilisateur_client` portait, un compte portail du client A1 lisait les
+ * lignes d'habilitation des comptes du client A2 de la même société, en tirait
+ * par jointure leurs `nom` et `email`, et énumérait par là les autres clients
+ * de la société. Mesuré le 07/09/2026 sous le rôle applicatif — les trois
+ * réponses sont oui.
+ *
+ * **Liste close, gardée dans les deux sens** (`ecartsListeHabilitation`). Le
+ * RETRAIT est ici le geste dangereux, comme pour le parc : retirer une entrée
+ * fait retomber la table sur la forme « société », qui passe — et la fuite
+ * mesurée revient sans qu'aucun scénario ne rougisse.
+ */
+export const TABLES_HABILITATION = [
+  { table: "utilisateur_client", ancre: "utilisateur" },
+  { table: "utilisateur_client_site", ancre: "parent" },
+] as const;
+
+/** Les deux entrées que l'arbitrage du 07/09/2026 autorise. Recopiées. */
+const HABILITATION_ARBITREE = ["utilisateur_client", "utilisateur_client_site"];
+
+/**
+ * Écarts de la liste d'habilitation elle-même — additions comme retraits.
+ *
+ * Même forme que `ecartsListeParc`, et pour la même raison : c'est le retrait
+ * qui ouvre la brèche.
+ */
+export function ecartsListeHabilitation(
+  liste: readonly string[] = TABLES_HABILITATION.map((entree) => entree.table),
+): string[] {
+  const ecarts = liste
+    .filter((table) => !HABILITATION_ARBITREE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée parmi les tables d'habilitation : elle ` +
+        "échapperait au filtre client de la forme « parc » sans porter la " +
+        "restriction « sa propre ligne ». Toute addition passe par un " +
+        "arbitrage, elle ne se décide pas dans un ticket.",
+    );
+
+  for (const attendue of HABILITATION_ARBITREE) {
+    if (!liste.includes(attendue)) {
+      ecarts.push(
+        `« ${attendue} » ne figure plus parmi les tables d'habilitation : ` +
+          "elle retomberait sur la forme « société », qui PASSE — et la fuite " +
+          "mesurée le 07/09/2026 reviendrait sans qu'aucun scénario ne " +
+          "rougisse. C'est le retrait qui ouvre la brèche, pas l'addition.",
+      );
+    }
+  }
+
+  return ecarts;
+}
 
 /**
  * Référentiels de plateforme (I1, 2ᵉ catégorie). Ils ne relèvent PAS de la
@@ -326,6 +404,19 @@ function filtrePerimetre(clause: string): boolean {
   return /'app\.perimetre_sites'/.test(clause);
 }
 
+/** L'ancrage « sa propre ligne » : le compte courant (L1-02b). */
+function ancreUtilisateur(clause: string): boolean {
+  return /'app\.utilisateur_id'/.test(clause);
+}
+
+/** L'ancrage par l'habilitation PARENTE, pour la table de périmètre (L1-02b). */
+function ancreParent(clause: string): boolean {
+  return (
+    /\bexists\s*\(/i.test(normaliser(clause)) &&
+    /utilisateur_client/.test(clause)
+  );
+}
+
 /** L'habilitation de lecture du journal d'audit (§5.2). */
 function habilitationJournal(clause: string): boolean {
   return /\bapp_peut_consulter_journal_audit\s*\(/i.test(clause);
@@ -406,6 +497,9 @@ export function formeAttendue(table: string): Forme {
   }
   if ((TABLES_JOURNAL as readonly string[]).includes(table)) {
     return "journal";
+  }
+  if (TABLES_HABILITATION.some((entree) => entree.table === table)) {
+    return "habilitation";
   }
   return "société";
 }
@@ -604,6 +698,103 @@ function ecartsJournal(
 }
 
 /**
+ * Écarts de la forme « HABILITATION » — la sixième (L1-02b).
+ *
+ * Trois exigences, et chacune répare une fuite différente.
+ *
+ *   1. L'ancrage SOCIÉTÉ, comme partout ailleurs.
+ *   2. Le DISCRIMINANT `app.client_id`. Sans lui, la clause serait soit
+ *      « société » seule — et un compte portail lirait les habilitations des
+ *      autres clients de sa société, la fuite mesurée le 07/09/2026 —, soit
+ *      « sa propre ligne » pour tout le monde, ce qui retirerait à un
+ *      `admin_societe` la vue des habilitations de SA société.
+ *   3. La RESTRICTION, ancrée soit sur `app.utilisateur_id` (la table
+ *      d'habilitation elle-même), soit sur l'habilitation parente par un
+ *      `EXISTS` (la table de périmètre). La seconde n'est pas une faveur : la
+ *      sous-requête est elle-même soumise aux politiques, si bien que la règle
+ *      est écrite UNE fois et se recompose — plutôt que deux clauses jumelles
+ *      qui divergeront (§9, 01/09).
+ *
+ * La forme « parc » est explicitement refusée ici, et c'est le refus qui
+ * compte : elle lit `app.perimetre_sites`, laquelle est calculée EN LISANT ces
+ * tables. Une politique qui lit la variable que sa propre lecture alimente ne
+ * se referme jamais.
+ */
+function ecartsHabilitation(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const ecarts: string[] = [];
+  const entree = TABLES_HABILITATION.find((e) => e.table === table);
+
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "habilitation") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+        continue;
+      }
+
+      if (!ancre(clause, "societe_id")) {
+        ecarts.push(
+          entete(table, "habilitation") +
+            `la politique « ${politique.nom} » n'est pas ancrée sur ` +
+            "`societe_id = app.societe_id` : une société lirait les " +
+            "habilitations d'une autre.",
+        );
+      }
+
+      if (!filtreClient(clause)) {
+        ecarts.push(
+          entete(table, "habilitation") +
+            `la politique « ${politique.nom} » a PERDU le discriminant ` +
+            "`app.client_id`. Sans lui, il n'y a plus de forme « habilitation » " +
+            "du tout : soit la clause retombe sur « société » seule, et un " +
+            "compte portail lit les habilitations des autres clients de sa " +
+            "société — leurs identités par jointure, et la liste de ces " +
+            "clients par `DISTINCT` (mesuré le 07/09/2026) —, soit elle " +
+            "restreint tout le monde à sa propre ligne, et `admin_societe` " +
+            "perd la vue des habilitations de SA société.",
+        );
+      }
+
+      if (filtrePerimetre(clause)) {
+        ecarts.push(
+          entete(table, "habilitation") +
+            `la politique « ${politique.nom} » lit app.perimetre_sites. ` +
+            "C'est CIRCULAIRE : cette variable est calculée en lisant cette " +
+            "table même. Une politique qui lit la variable que sa propre " +
+            "lecture alimente ne se referme jamais.",
+        );
+      }
+
+      const restreint =
+        entree?.ancre === "parent"
+          ? ancreParent(clause)
+          : ancreUtilisateur(clause);
+      if (!restreint) {
+        ecarts.push(
+          entete(table, "habilitation") +
+            `la politique « ${politique.nom} » a perdu sa RESTRICTION. ` +
+            (entree?.ancre === "parent"
+              ? "Le périmètre doit s'adosser à l'habilitation parente par un " +
+                "`EXISTS (SELECT 1 FROM utilisateur_client …)`, dont la " +
+                "sous-requête est elle-même soumise aux politiques."
+              : "Elle doit s'ancrer sur `app.utilisateur_id` — « sa propre " +
+                "ligne » —, sans quoi le discriminant `app.client_id` ne " +
+                "discrimine plus rien."),
+        );
+      }
+    }
+  }
+
+  return ecarts;
+}
+
+/**
  * Écarts entre ce que I1 exige et ce que la base porte réellement.
  *
  * Le renversement de D41, appliqué aux politiques : le contrôle part des
@@ -704,6 +895,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsIdentite(table, siennes));
     } else if (forme === "journal") {
       ecarts.push(...ecartsJournal(table, siennes));
+    } else if (forme === "habilitation") {
+      ecarts.push(...ecartsHabilitation(table, siennes));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }
@@ -782,7 +975,7 @@ export type TableEtParents = {
  * LE CRITÈRE DE LA SIXIÈME FORME — la première table fille réelle d'une table
  * du parc.
  *
- * *Voir l'en-tête de ce module, section « la sixième forme ».* Le principe est
+ * *Voir l'en-tête de ce module, section « la forme filiation ».* Le principe est
  * tranché, la forme n'est pas construite, et **ce contrôle est ce qui
  * l'appellera** : une borne qui porte sa condition plutôt qu'une date (§9,
  * 01/09). Tant qu'aucune fille n'existe, il ne demande rien.
@@ -817,10 +1010,30 @@ export type TableEtParents = {
  * étrangère n'a rien ouvert, elle a rendu la question VISIBLE. Portée au
  * registre des arbitrages.
  */
-export const RATTACHEES_HORS_FILIATION = ["utilisateur_client"] as const;
+export const RATTACHEES_HORS_FILIATION = [
+  "utilisateur_client",
+  "utilisateur_client_site",
+] as const;
 
-/** L'unique entrée que l'arbitrage autorise. Recopiée : c'est la doctrine. */
-const SEULE_RATTACHEE_ARBITREE = "utilisateur_client";
+/**
+ * Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine.
+ *
+ * **La seconde est arrivée avec L1-02b, et c'est la MÊME décision appliquée à
+ * la table que la normalisation crée** — pas une décision nouvelle.
+ * `utilisateur_client_site` référence `site`, qui est du parc : le critère la
+ * réclamerait comme table fille. Elle n'en est pas une, exactement pour la
+ * raison écrite ci-dessus — c'est une HABILITATION, pas une donnée du parc, et
+ * la faire hériter de la visibilité d'un site serait circulaire au carré : le
+ * site n'est visible que si `app.perimetre_sites` le nomme, et
+ * `app.perimetre_sites` est calculée en lisant cette table.
+ *
+ * Les deux portent la forme « habilitation », la sixième, qui est la réponse à
+ * leur vraie question — celle que le commentaire ci-dessus laissait ouverte.
+ */
+const HORS_FILIATION_ARBITREES = [
+  "utilisateur_client",
+  "utilisateur_client_site",
+];
 
 /**
  * Écarts de la liste ci-dessus — additions comme retraits, sur le modèle de
@@ -834,7 +1047,7 @@ export function ecartsListeRattachees(
   liste: readonly string[] = RATTACHEES_HORS_FILIATION,
 ): string[] {
   const ecarts = liste
-    .filter((table) => table !== SEULE_RATTACHEE_ARBITREE)
+    .filter((table) => !HORS_FILIATION_ARBITREES.includes(table))
     .map(
       (table) =>
         `« ${table} » a été rangée hors de la filiation : c'est le geste qui ` +
@@ -842,12 +1055,14 @@ export function ecartsListeRattachees(
         "par un arbitrage, elle ne se décide pas dans un ticket.",
     );
 
-  if (!liste.includes(SEULE_RATTACHEE_ARBITREE)) {
-    ecarts.push(
-      `« ${SEULE_RATTACHEE_ARBITREE} » ne figure plus hors de la filiation : ` +
-        "le critère la réclamerait comme table fille, alors que sa question " +
-        "est celle de l'habilitation et non celle de la visibilité héritée.",
-    );
+  for (const attendue of HORS_FILIATION_ARBITREES) {
+    if (!liste.includes(attendue)) {
+      ecarts.push(
+        `« ${attendue} » ne figure plus hors de la filiation : le critère la ` +
+          "réclamerait comme table fille, alors que sa question est celle de " +
+          "l'habilitation et non celle de la visibilité héritée.",
+      );
+    }
   }
 
   return ecarts;
@@ -859,7 +1074,7 @@ export function ecartsTablesFilles(
 ): string[] {
   if (observees.length === 0) {
     return [
-      "aucune table observée : le critère de la sixième forme n'a rien " +
+      "aucune table observée : le critère de la forme « filiation » n'a rien " +
         "établi. Schéma vide, ou lecture jouée hors du schéma attendu.",
     ];
   }
@@ -881,7 +1096,7 @@ export function ecartsTablesFilles(
         );
         return (
           `« ${observee.table} » est la PREMIÈRE table fille d'une table du ` +
-          `parc (${parents.join(", ")}), et le critère de la sixième forme de ` +
+          `parc (${parents.join(", ")}), et le critère de la forme « filiation » de ` +
           "politique est donc atteint. Elle ne prend NI la forme « société » — " +
           "qui laisserait un compte portail restreint à un site lire les lignes " +
           "filles d'un autre —, NI la forme « parc », qu'elle ne peut pas porter " +
@@ -890,7 +1105,9 @@ export function ecartsTablesFilles(
           "parent l'est, par une clause adossée à sa clé étrangère " +
           "(`EXISTS (SELECT 1 FROM <parent> …)`). Son coût est mesuré et écrit " +
           "en tête de ce module. Construire la forme, l'ajouter à `Forme` et à " +
-          "`RAPPEL_FORMES`, puis retirer cette table de ce message."
+          "`RAPPEL_FORMES`, puis retirer cette table de ce message. La forme " +
+          "« habilitation » de L1-02b n'est PAS celle-là : elle répond à « qui " +
+          "est ce compte », celle-ci répond à « son parent est-il visible »."
         );
       }),
   ];

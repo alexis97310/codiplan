@@ -121,12 +121,16 @@ export type ContexteRls = {
    * renseignement : c'est l'information « ce n'est pas un compte portail ».**
    */
   clientId?: string | null;
-  /**
-   * Périmètre de sites de ce compte portail (RG-DRO-01), alimentant
-   * `app.perimetre_sites`. Vide = tous les sites du client, jamais aucun.
-   */
-  perimetreSites?: readonly string[];
 };
+
+/*
+ * **`perimetreSites` n'est PAS un champ de ce type, et c'est une décision.**
+ * Le périmètre est DÉRIVÉ de `utilisateur_client_site` (L1-02b), il n'est pas
+ * fourni par l'appelant. Le laisser fournir aurait donné deux sources à une
+ * même valeur — celle de la base et celle du code —, et deux sources d'un même
+ * fait divergent en silence parce qu'aucune ne prétend être l'autre (§9,
+ * 01/09). L'appelant dit QUI il est ; la base dit ce que cela lui donne.
+ */
 
 /**
  * CE QUE CE MODULE POSE — liste close, et le comportement la PARCOURT.
@@ -151,10 +155,11 @@ const POSE: readonly {
   { variable: VARIABLE_SESSION_UTILISATEUR, valeur: (c) => c.auteurId ?? "" },
   { variable: VARIABLE_SESSION_ADRESSE_IP, valeur: (c) => c.adresseIp ?? "" },
   { variable: VARIABLE_SESSION_CLIENT, valeur: (c) => c.clientId ?? "" },
-  {
-    variable: VARIABLE_SESSION_PERIMETRE,
-    valeur: (c) => (c.perimetreSites ?? []).join(","),
-  },
+  // Posée à vide ici, puis REMPLIE par `SQL_PERIMETRE` pour un compte portail.
+  // Elle figure dans cette liste parce qu'elle doit être DÉFINIE dans tous les
+  // cas : sur une connexion mutualisée, une variable non posée hérite de ce que
+  // la transaction précédente y a laissé.
+  { variable: VARIABLE_SESSION_PERIMETRE, valeur: () => "" },
 ];
 
 /**
@@ -217,13 +222,60 @@ export function instructionContexte(contexte: ContexteRls): {
   };
 }
 
-/** Positionne les six variables de session sur la transaction courante. */
+/**
+ * LA LECTURE DU PÉRIMÈTRE VOYAGE DANS LE `set_config` — zéro aller-retour ajouté.
+ *
+ * `app.perimetre_sites` vient désormais de `utilisateur_client_site` (L1-02b) et
+ * non plus d'un tableau. La façon naïve de la remplir serait : lire la table,
+ * puis poser la variable — DEUX allers-retours, dont un ajouté. `set_config`
+ * accepte une sous-requête : la lecture voyage donc DANS l'instruction qui pose,
+ * et n'en coûte aucun de plus.
+ *
+ * **La forme de la valeur ne bouge pas d'un caractère** — liste d'UUID jointe
+ * par des virgules —, parce que ce sont les politiques qui la lisent et
+ * qu'aucune des formes en vigueur ne doit changer. La normalisation change d'où
+ * vient la valeur, jamais ce que voient les politiques.
+ *
+ * **Cette instruction n'est émise que pour un compte portail.** Un utilisateur
+ * interne n'a pas de périmètre : lui faire lire cette table serait un
+ * aller-retour dépensé pour obtenir la chaîne vide que la première instruction
+ * a déjà posée.
+ *
+ * Elle s'exécute APRÈS la pose du contexte, et c'est indispensable : sa lecture
+ * est soumise aux politiques que la première instruction vient d'armer. C'est
+ * aussi ce qui la rend sûre — elle ne peut lire que les habilitations que
+ * l'appelant a le droit de voir.
+ */
+const SQL_PERIMETRE = `SELECT set_config($1, coalesce((
+  SELECT string_agg("ucs"."site_id"::text, ',' ORDER BY "ucs"."site_id")
+    FROM "utilisateur_client_site" "ucs"
+    JOIN "utilisateur_client" "uc" ON "uc"."id" = "ucs"."utilisateur_client_id"
+   WHERE "uc"."utilisateur_id" = NULLIF($2, '')::uuid
+     AND "uc"."client_id" = NULLIF($3, '')::uuid
+     AND "uc"."actif"
+), ''), true)`;
+
+/**
+ * Positionne les six variables de session sur la transaction courante.
+ *
+ * UNE instruction pour un utilisateur interne, DEUX pour un compte portail —
+ * contre quatre pour tout le monde avant L1-02b.
+ */
 async function poserContexte(
   tx: ClientPrisma,
   contexte: ContexteRls,
 ): Promise<void> {
   const { sql, parametres } = instructionContexte(contexte);
   await tx.$executeRawUnsafe(sql, ...parametres);
+
+  if (contexte.clientId) {
+    await tx.$executeRawUnsafe(
+      SQL_PERIMETRE,
+      VARIABLE_SESSION_PERIMETRE,
+      contexte.auteurId ?? "",
+      contexte.clientId,
+    );
+  }
 }
 
 /**

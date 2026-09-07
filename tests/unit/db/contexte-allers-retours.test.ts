@@ -52,7 +52,6 @@ const CONTEXTE: ContexteRls = {
   auteurId: "aaaaaaaa-0000-7000-8000-0000000000d3",
   adresseIp: "203.0.113.9",
   clientId: "aaaaaaaa-0000-7000-8000-0000000000c1",
-  perimetreSites: ["aaaaaaaa-0000-7000-8000-00000000551a"],
 };
 
 async function emissionsDe(contexte: ContexteRls): Promise<Emission[]> {
@@ -64,16 +63,43 @@ async function emissionsDe(contexte: ContexteRls): Promise<Emission[]> {
   return emissions;
 }
 
-describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
-  it("émet UNE instruction pour SIX variables", async () => {
-    const emissions = await emissionsDe(CONTEXTE);
+/** Un utilisateur interne : pas de compte portail, donc pas de périmètre. */
+const CONTEXTE_INTERNE: ContexteRls = {
+  societeId: "aaaaaaaa-0000-7000-8000-000000000001",
+  role: null,
+};
 
-    expect(emissions).toHaveLength(1);
-    expect(emissions.length).toBeLessThan(ALLERS_RETOURS_AVANT);
-    // Témoin de non-vacuité : le client factice a bien été traversé. Zéro
-    // émission ressemblerait trait pour trait à « une seule », et passerait le
+describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
+  it("UN aller-retour pour un utilisateur interne, DEUX pour un compte portail", async () => {
+    const interne = await emissionsDe(CONTEXTE_INTERNE);
+    const portail = await emissionsDe(CONTEXTE);
+
+    expect(interne).toHaveLength(1);
+    expect(portail).toHaveLength(2);
+
+    // Le seul chiffre qui compte pour ce ticket : « zéro aller-retour ajouté ».
+    // Il est tenu avec de la marge, la pose ayant cessé d'émettre une
+    // instruction par variable.
+    expect(portail.length).toBeLessThan(ALLERS_RETOURS_AVANT);
+
+    // Témoins de non-vacuité : le client factice a bien été traversé, et la
+    // seconde instruction est bien la LECTURE du périmètre. Zéro émission
+    // ressemblerait trait pour trait à « une seule », et passerait le
     // `toBeLessThan` ci-dessus (§9, 30/08).
-    expect(emissions[0]?.sql).toContain("set_config");
+    expect(interne[0]?.sql).toContain("set_config");
+    expect(portail[1]?.sql).toContain("utilisateur_client_site");
+  });
+
+  it("la lecture du périmètre VOYAGE dans le set_config, elle ne s'y ajoute pas", async () => {
+    const [, perimetre] = await emissionsDe(CONTEXTE);
+
+    // La sous-requête est DANS l'instruction qui pose : une lecture séparée
+    // aurait coûté un aller-retour de plus, ce que le ticket interdit.
+    expect(perimetre?.sql).toContain("set_config");
+    expect(perimetre?.sql).toContain("SELECT string_agg");
+    // Et la FORME de la valeur ne bouge pas : liste jointe par des virgules,
+    // exactement ce que lisent les politiques. Aucune des formes ne bouge.
+    expect(perimetre?.sql).toContain("','");
   });
 
   it("pose RÉELLEMENT les six variables, avec leurs valeurs", async () => {
@@ -92,7 +118,10 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
     );
     expect(valeurs[0]).toBe(CONTEXTE.societeId);
     expect(valeurs[4]).toBe(CONTEXTE.clientId);
-    expect(valeurs[5]).toBe("aaaaaaaa-0000-7000-8000-00000000551a");
+    // Le périmètre part VIDE et sera rempli par la seconde instruction : il
+    // doit être DÉFINI dans tous les cas, une variable non posée héritant sur
+    // une connexion mutualisée de ce que la transaction précédente y a laissé.
+    expect(valeurs[5]).toBe("");
   });
 
   it("une absence est posée à la chaîne vide, jamais omise", async () => {
