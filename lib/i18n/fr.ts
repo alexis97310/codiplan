@@ -87,6 +87,69 @@ export const fr = {
     "Ce code externe est déjà porté par une autre fiche de votre société. Le code identifie un client à l'import : deux fiches ne peuvent pas le partager.",
   "client.refus.client_introuvable": "Cette fiche client est introuvable.",
 
+  // ── Référentiel des sites d'intervention (ticket L1-02) ───────────────────
+  //
+  // **Aucune de ces entrées n'écrit le mot imposé, et ce n'est pas un choix de
+  // style.** « Site » se définit UNE fois, sous « vocabulaire.site », et se
+  // compose partout ailleurs depuis `mot("site")` — un gardien refuse qu'il
+  // soit écrit ici (D5, D47, L0-11). Les libellés ci-dessous sont donc ceux des
+  // CHAMPS, jamais celui de la notion : c'est la couche de rendu qui assemble
+  // « Sites » ou « Rechercher un site » à partir du vocabulaire.
+  "site.libelle": "Libellé",
+  "site.client": "Client",
+  // Le rattachement (D56) — l'établissement CODIMA dont le site dépend.
+  //
+  // **La valeur n'écrit pas le mot imposé, et c'est la règle de L0-11 qui
+  // l'exige** : « agence » se définit une fois, sous `vocabulaire.agence`, et
+  // se compose ailleurs depuis `mot("agence")`. Un libellé complet se rend donc
+  // `${mot("agence")} — ${t("site.rattachement")}`, jamais en écrivant la
+  // notion ici. Le gardien l'a refusé sur la première rédaction, à raison.
+  "site.rattachement": "Rattachement",
+  "site.adresse": "Adresse",
+  "site.commune": "Commune",
+  "site.zone_geo": "Zone géographique",
+  "site.latitude": "Latitude",
+  "site.longitude": "Longitude",
+  // Décisives pour les sites miniers : badge, EPI, induction sécurité,
+  // autorisation préalable (chapitre 2.9).
+  "site.consignes_acces": "Consignes d'accès et de sécurité",
+  "site.horaires": "Horaires d'accès",
+  // Le temps saisi FAIT FOI ; l'estimation par zone n'est qu'un défaut (D23,
+  // RG-PLA-05). Le libellé le dit, pour que personne ne croie à une estimation.
+  // Et il dit D'OÙ L'ON PART (D56) : un nombre dont la signification dépend
+  // d'une autre colonne ne voyage jamais seul, pas même à l'écran. Le mot
+  // imposé n'y est pas écrit — voir « site.rattachement » ci-dessus.
+  "site.temps_trajet_min": "Temps de trajet depuis le rattachement (minutes)",
+  "site.temps_trajet_min.aide":
+    "Laisser vide pour utiliser l'estimation par zone géographique.",
+  "site.actif": "Actif",
+  "site.recherche.vide": "Aucun résultat ne correspond à cette recherche.",
+  // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
+  // Nouvelle-Calédonie : ils vivent au dictionnaire parce qu'un humain les lit,
+  // et la valeur stockée reste le code technique (`grand_noumea`), qui ne se
+  // traduit pas.
+  "site.zone.grand_noumea": "Grand Nouméa",
+  "site.zone.sud": "Sud",
+  "site.zone.cote_est": "Côte Est",
+  "site.zone.cote_ouest": "Côte Ouest",
+  "site.zone.nord": "Nord",
+  "site.zone.iles": "Îles",
+  // Refus rendus à l'écran. Le dépôt ne transporte qu'une CLÉ
+  // (`MotifRefusSite`) — une exception ne porte jamais de texte destiné à un
+  // humain. « Hors de votre périmètre » ne distingue pas le client inexistant
+  // du client d'une autre société : les séparer apprendrait qu'un identifiant
+  // existe ailleurs, ce que D50 refuse.
+  "site.refus.client_hors_perimetre":
+    "Ce client n'existe pas dans votre périmètre.",
+  "site.refus.fiche_introuvable": "Cette fiche est introuvable.",
+  "site.refus.agence_hors_societe":
+    "Ce rattachement n'existe pas dans votre société.",
+  // Le refus de D56, rendu à l'écran. Il dit la marche à suivre, comme celui de
+  // la base — et il ne nomme ni l'ancien rattachement ni le nouveau : un refus a
+  // le droit d'être lisible, jamais d'être informatif (D50).
+  "site.refus.trajet_a_revoir":
+    "Le temps de trajet est mesuré depuis le rattachement. En changer sans revoir ce temps laisserait une valeur qui ne veut plus rien dire : saisissez le nouveau temps, ou videz le champ pour revenir à l'estimation par zone.",
+
   // ── Vocabulaire imposé (CLAUDE.md §3, arbitrages D5 et D47) ───────────────
   // Les SEULES entrées où les mots « agence » et « site » s'écrivent en toutes
   // lettres. Partout ailleurs dans ce fichier, ils se composent depuis ces

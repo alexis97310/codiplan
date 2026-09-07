@@ -62,6 +62,11 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D53", "RG-DRO-04"],
   ["D54", "RG-IMP-02"],
   ["D55", "RG-DRO-04"],
+  // D56 (ticket L1-02) : le temps de trajet est mesuré depuis l'agence de
+  // rattachement du site, et il perd son sens si ce rattachement change sans
+  // être revu. C'est une réécriture de RG-PLA-05, donc une paire — et c'est ce
+  // scénario qui l'a réclamée, pas une relecture.
+  ["D56", "RG-PLA-05"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

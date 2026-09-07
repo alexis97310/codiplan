@@ -132,6 +132,53 @@ export type SocieteSeed = {
  * dans la raison sociale elle-même : une base de démonstration qu'on prendrait
  * pour une base réelle est exactement ce que I9 prévient.
  */
+/**
+ * Un site de démonstration (ticket L1-02).
+ *
+ * **Le libellé DIT qu'il s'agit d'une démonstration**, comme la raison sociale
+ * des clients : une base de démonstration qu'on prendrait pour une base réelle
+ * est exactement ce que I9 prévient.
+ *
+ * Les identifiants sont des UUID v7 FIXES, pour la même raison que ceux des
+ * clients : `COMPTES_PORTAIL.perimetre_sites` doit pouvoir désigner un site
+ * avant que quoi que ce soit ne soit écrit, et l'`upsert` par identifiant est
+ * ce qui rend le seed idempotent.
+ */
+export type SiteSeed = {
+  /** UUID v7 fixe — voir ci-dessus. */
+  id: string;
+  /**
+   * **Code de l'agence dont ce site dépend** (D56) — pas son identifiant : les
+   * agences sont `upsert`ées par `(societe_id, code)` et n'ont pas d'UUID fixe
+   * au jeu de démonstration. Le seed le résout, et ÉCHOUE en nommant le site si
+   * le code est inconnu : un site dépend d'une agence et d'une seule, il n'y a
+   * pas de valeur par défaut.
+   */
+  agence_code: string;
+  libelle: string;
+  commune: string | null;
+  /**
+   * Zone de D23, ou `null`. **Le `null` n'est pas un remplissage manquant :
+   * c'est le cas que les six zones ne savent pas décrire.** Le site européen du
+   * jeu de démonstration le porte à dessein — `grand_noumea` n'a aucun sens à
+   * Paris —, et c'est la démonstration en acte de l'arbitrage ouvert par ce
+   * ticket : l'énumération de D23 est la géographie d'UN territoire.
+   */
+  zone_geo: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  consignes_acces: string | null;
+  /** Plages hebdomadaires, même forme que `calendrier_plage` (jour ISO, minutes). */
+  horaires: Array<{
+    jour_semaine: number;
+    debut_minutes: number;
+    fin_minutes: number;
+  }> | null;
+  /** Fait foi sur l'estimation par zone quand il est renseigné (D23, RG-PLA-05). */
+  temps_trajet_min: number | null;
+  actif: boolean;
+};
+
 export type ClientSeed = {
   /** UUID v7 fixe — voir ci-dessus. */
   id: string;
@@ -148,6 +195,13 @@ export type ClientSeed = {
   conditions_reglement: string | null;
   commercial_referent: string | null;
   actif: boolean;
+  /**
+   * Les sites de ce client (L1-02). Imbriqués sous le client plutôt que listés
+   * à côté : c'est la clé étrangère composite `(societe_id, client_id)` qui les
+   * y rattache en base, et une liste à plat aurait à répéter ce rattachement —
+   * donc à pouvoir le contredire.
+   */
+  sites: SiteSeed[];
 };
 
 export type DeviseSeed = {
@@ -569,6 +623,55 @@ const CLIENTS_NC: ClientSeed[] = [
     conditions_reglement: "30 jours fin de mois",
     commercial_referent: "Commercial de démonstration",
     actif: true,
+    // DEUX sites chez le même client, et c'est ce qui rend le périmètre
+    // démontrable : seul `app.perimetre_sites` les sépare — ni la société, ni
+    // le client (D10, RG-DRO-01). Le compte portail de démonstration est
+    // restreint au premier.
+    sites: [
+      {
+        id: "0192f0a0-4000-7000-8000-000000000001",
+        agence_code: "DUCOS",
+        libelle: "Atelier principal (démonstration)",
+        commune: "Nouméa",
+        zone_geo: "grand_noumea",
+        latitude: -22.2758,
+        longitude: 166.4572,
+        consignes_acces:
+          "Badge visiteur à l'accueil. EPI obligatoires : casque, chaussures de sécurité.",
+        // Lundi au vendredi, 7 h – 11 h 30 puis 13 h – 16 h. La coupure de midi
+        // est deux plages, comme dans `calendrier_plage` : un jour sans plage
+        // est un jour fermé, il n'y a pas de booléen qui pourrait les contredire.
+        horaires: [1, 2, 3, 4, 5].flatMap((jour) => [
+          { jour_semaine: jour, debut_minutes: 420, fin_minutes: 690 },
+          { jour_semaine: jour, debut_minutes: 780, fin_minutes: 960 },
+        ]),
+        temps_trajet_min: 25,
+        actif: true,
+      },
+      {
+        id: "0192f0a0-4000-7000-8000-000000000002",
+        // Rattaché à KONÉ et non à Ducos : deux sites du MÊME client dépendant
+        // d'agences différentes, ce qui est le cas réel et ce qui rend le
+        // rattachement lisible dans la démonstration.
+        agence_code: "KONE",
+        libelle: "Dépôt de brousse (démonstration)",
+        commune: "Bourail",
+        zone_geo: "cote_ouest",
+        latitude: -21.5686,
+        longitude: 165.4936,
+        consignes_acces: null,
+        // Horaires NON renseignés — `null`, et non une liste vide. Les deux ne
+        // disent pas la même chose : `null` = « on ne sait pas », liste vide =
+        // « aucune ouverture ». Le premier ne doit produire aucun avertissement
+        // (I7), le second en produit un.
+        horaires: null,
+        // Temps de trajet ABSENT à dessein : c'est la branche où l'estimation
+        // par zone s'applique comme DÉFAUT (D23, RG-PLA-05). Une démonstration
+        // où tous les sites en portent un n'éprouverait jamais cette branche.
+        temps_trajet_min: null,
+        actif: true,
+      },
+    ],
   },
   {
     id: "0192f0a0-1000-7000-8000-000000000002",
@@ -580,6 +683,23 @@ const CLIENTS_NC: ClientSeed[] = [
     conditions_reglement: null,
     commercial_referent: null,
     actif: true,
+    // Le site d'un AUTRE client de la même société : c'est lui que le filtre
+    // `app.client_id` doit masquer au compte portail du premier client.
+    sites: [
+      {
+        id: "0192f0a0-4000-7000-8000-000000000003",
+        agence_code: "KONE",
+        libelle: "Garage de Koné (démonstration)",
+        commune: "Koné",
+        zone_geo: "nord",
+        latitude: -21.0594,
+        longitude: 164.8619,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: 180,
+        actif: true,
+      },
+    ],
   },
   {
     id: "0192f0a0-1000-7000-8000-000000000003",
@@ -591,6 +711,25 @@ const CLIENTS_NC: ClientSeed[] = [
     conditions_reglement: null,
     commercial_referent: null,
     actif: false,
+    // Un client inactif garde ses sites : `actif` dit qu'on ne travaille plus
+    // pour lui, jamais que ses lieux n'ont pas existé. Le site l'est aussi, ce
+    // qui donne au filtre `actifs_seulement` de la recherche une ligne à
+    // écarter.
+    sites: [
+      {
+        id: "0192f0a0-4000-7000-8000-000000000004",
+        agence_code: "DOLBEAU",
+        libelle: "Ancien chantier (démonstration, inactif)",
+        commune: "Poindimié",
+        zone_geo: "cote_est",
+        latitude: null,
+        longitude: null,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: null,
+        actif: false,
+      },
+    ],
   },
 ];
 
@@ -614,6 +753,28 @@ const CLIENTS_EU: ClientSeed[] = [
     conditions_reglement: null,
     commercial_referent: null,
     actif: true,
+    // **Le site européen porte `zone_geo: null`, et c'est la démonstration en
+    // acte de l'arbitrage ouvert par L1-02.** Les six zones de D23 —
+    // `grand_noumea`, `cote_est`… — sont la géographie de la
+    // Nouvelle-Calédonie ; aucune ne décrit Lyon. Si l'énumération avait été
+    // fermée en base, cette ligne aurait obligé soit à inventer une zone, soit
+    // à migrer la contrainte le jour du premier client hors territoire. Elle
+    // est la raison pour laquelle la liste est tenue à l'entrée serveur.
+    sites: [
+      {
+        id: "0192f0a0-4000-7000-8000-000000000011",
+        agence_code: "SIEGE",
+        libelle: "Site de Lyon (démonstration)",
+        commune: "Lyon",
+        zone_geo: null,
+        latitude: 45.764,
+        longitude: 4.8357,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: 40,
+        actif: true,
+      },
+    ],
   },
 ];
 
@@ -753,7 +914,14 @@ export const COMPTES_PORTAIL: readonly ComptePortailSeed[] = [
     email: "portail@example.test",
     societe_code: "CODIMA-NC",
     client_id: "0192f0a0-1000-7000-8000-000000000001",
-    perimetre_sites: [],
+    // **Périmètre RESTREINT à un seul des deux sites du client, depuis L1-02.**
+    // Il était vide — « tous les sites » —, ce qui rendait la branche la plus
+    // intéressante de D10 indémontrable : un périmètre vide ne prouve pas que
+    // le filtre morde. Le compte portail de démonstration voit donc l'atelier
+    // principal et NON le dépôt de brousse, alors que les deux appartiennent au
+    // même client et à la même société. C'est très exactement ce que ni le
+    // filtre société ni le filtre client ne savent faire.
+    perimetre_sites: ["0192f0a0-4000-7000-8000-000000000001"],
   },
 ];
 

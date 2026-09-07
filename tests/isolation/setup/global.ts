@@ -488,6 +488,48 @@ export default async function setup(): Promise<void> {
         },
       ],
     });
+    // Amorçage du parc : clients, sites, machines des deux sociétés.
+    //
+    // Ce bloc vient APRÈS les agences depuis le ticket L1-02 : `site` porte une
+    // clé étrangère composite vers son agence de RATTACHEMENT (D56), et un site
+    // sans rattachement n'existe pas — son temps de trajet ne dirait pas d'où
+    // l'on part. `SITE_A1_S1` en porte un, `SITE_A1_S2` non : les deux branches
+    // de D23 — valeur qui fait foi, estimation par zone — sont représentées.
+    //
+    // Depuis L1-01, `client` est la VRAIE table — la fixture s'est effacée
+    // devant elle. Les colonnes écrites ici sont donc les siennes, et
+    // `code_externe` est renseigné à dessein : les deux sociétés portent
+    // délibérément le MÊME code externe, ce que l'unicité `(societe_id,
+    // code_externe)` doit permettre et qu'une unicité globale interdirait
+    // (RG-SOC-04, D29). Un scénario l'éprouve dans `cloisonnement-societe`.
+    await executerLot(
+      prisma,
+      `
+      INSERT INTO "client" ("id", "societe_id", "code_externe", "raison_sociale") VALUES
+        ('${CLIENT_A1}', '${SOCIETE_A}', 'C-001', 'Client A1'),
+        ('${CLIENT_A2}', '${SOCIETE_A}', 'C-002', 'Client A2'),
+        ('${CLIENT_B1}', '${SOCIETE_B}', 'C-001', 'Client B1');
+      INSERT INTO "site" ("id", "societe_id", "client_id", "agence_id", "libelle", "temps_trajet_min") VALUES
+        ('${SITE_A1_S1}', '${SOCIETE_A}', '${CLIENT_A1}', '${AGENCE_A}', 'Site A1-1', 25),
+        ('${SITE_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', '${AGENCE_A}', 'Site A1-2', NULL),
+        ('${SITE_B1_S1}', '${SOCIETE_B}', '${CLIENT_B1}', '${AGENCE_B}', 'Site B1-1', 40);
+      INSERT INTO "machine" ("id", "societe_id", "client_id", "site_id", "qr_token", "numero_serie") VALUES
+        ('${MACHINE_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1'),
+        ('${MACHINE_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2'),
+        ('${MACHINE_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1');
+      INSERT INTO "modele_materiel" ("id", "societe_id", "libelle") VALUES
+        ('${MODELE_PLATEFORME}', NULL, 'Compresseur (plateforme)'),
+        ('${MODELE_SURCHARGE_A}', '${SOCIETE_A}', 'Compresseur (surcharge A)'),
+        ('${MODELE_SURCHARGE_B}', '${SOCIETE_B}', 'Compresseur (surcharge B)');
+      `,
+    );
+
+    // Les habilitations portail viennent APRÈS le parc, et l'ordre est devenu
+    // une contrainte de la base au ticket L1-02 : `utilisateur_client` porte
+    // désormais une clé étrangère COMPOSITE `(societe_id, client_id)` vers
+    // `client (societe_id, id)`. Écrire l'habilitation avant son client échoue
+    // maintenant — c'est très exactement ce que la clé existe pour interdire,
+    // et la ligne orpheline de la base de démonstration en était la preuve.
     await prisma.utilisateurClient.createMany({
       data: [
         {
@@ -506,36 +548,6 @@ export default async function setup(): Promise<void> {
         },
       ],
     });
-
-    // Amorçage du parc : clients, sites, machines des deux sociétés.
-    //
-    // Depuis L1-01, `client` est la VRAIE table — la fixture s'est effacée
-    // devant elle. Les colonnes écrites ici sont donc les siennes, et
-    // `code_externe` est renseigné à dessein : les deux sociétés portent
-    // délibérément le MÊME code externe, ce que l'unicité `(societe_id,
-    // code_externe)` doit permettre et qu'une unicité globale interdirait
-    // (RG-SOC-04, D29). Un scénario l'éprouve dans `cloisonnement-societe`.
-    await executerLot(
-      prisma,
-      `
-      INSERT INTO "client" ("id", "societe_id", "code_externe", "raison_sociale") VALUES
-        ('${CLIENT_A1}', '${SOCIETE_A}', 'C-001', 'Client A1'),
-        ('${CLIENT_A2}', '${SOCIETE_A}', 'C-002', 'Client A2'),
-        ('${CLIENT_B1}', '${SOCIETE_B}', 'C-001', 'Client B1');
-      INSERT INTO "site" ("id", "societe_id", "client_id", "libelle") VALUES
-        ('${SITE_A1_S1}', '${SOCIETE_A}', '${CLIENT_A1}', 'Site A1-1'),
-        ('${SITE_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', 'Site A1-2'),
-        ('${SITE_B1_S1}', '${SOCIETE_B}', '${CLIENT_B1}', 'Site B1-1');
-      INSERT INTO "machine" ("id", "societe_id", "client_id", "site_id", "qr_token", "numero_serie") VALUES
-        ('${MACHINE_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1'),
-        ('${MACHINE_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2'),
-        ('${MACHINE_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1');
-      INSERT INTO "modele_materiel" ("id", "societe_id", "libelle") VALUES
-        ('${MODELE_PLATEFORME}', NULL, 'Compresseur (plateforme)'),
-        ('${MODELE_SURCHARGE_A}', '${SOCIETE_A}', 'Compresseur (surcharge A)'),
-        ('${MODELE_SURCHARGE_B}', '${SOCIETE_B}', 'Compresseur (surcharge B)');
-      `,
-    );
 
     // ── Un compte par rôle canonique (L0-06) ─────────────────────────────────
     // La boucle parcourt `ROLES`, l'énumération elle-même : ajouter un rôle sans

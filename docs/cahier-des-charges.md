@@ -712,7 +712,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-PLA-02 | Les jours fériés sont **des données du territoire** (D46) ; leur caractère chômé ou travaillé est paramétré **par agence**, via le calendrier. Un férié n'est pas systématiquement chômé. *(amendée par D47)* |
 | RG-PLA-03 | Un chevauchement sur un même technicien est signalé mais reste possible : le planificateur garde la main. |
 | RG-PLA-04 | L'affectation est **bloquée** si le site exige une habilitation marquée **bloquante** que le technicien n'a pas, ou dont la date d'expiration est antérieure à la date d'intervention. Une exigence non bloquante produit un **avertissement**. *(amendée par D9)* |
-| RG-PLA-05 | Le temps de trajet inter-sites est intégré au calcul de charge. La valeur saisie dans `site.temps_trajet_min` **fait foi** quand elle existe ; l'estimation à partir de la zone géographique n'est qu'un **défaut**, appliqué en son absence. *(amendée par D23)* |
+| RG-PLA-05 | Le temps de trajet inter-sites est intégré au calcul de charge. La valeur saisie dans `site.temps_trajet_min` **fait foi** quand elle existe ; l'estimation à partir de la zone géographique n'est qu'un **défaut**, appliqué en son absence. Cette valeur est le trajet **depuis l'agence de rattachement du site** (`site.agence_id`) : un site dépend d'une agence et d'une seule, et le temps de trajet **perd son sens si ce rattachement change sans être revu** — la base le refuse. *(amendée par D23, D56)* |
 | RG-PLA-06 | Une absence validée bloque le créneau ; les interventions posées repassent en file à planifier avec alerte. Tant que l'effectif est d'un seul technicien, l'absence déclenche une alerte de rupture de service et propose le report groupé. |
 
 ### RG — Contrats
