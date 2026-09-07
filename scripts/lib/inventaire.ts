@@ -73,12 +73,26 @@ export type DecompteParTable = Record<TableCloisonnee, number>;
  * pas décoratif — c'est ce qui prouve qu'il reste lisible SOUS le rôle
  * applicatif et SANS contexte société, là où une table cloisonnée doit rendre
  * zéro.
+ *
+ * **`utilisateur` en est SORTIE au ticket L1-02c**, et la façon dont elle en est
+ * sortie mérite d'être dite : personne ne l'a retirée, **c'est le contrôle de la
+ * base hébergée qui l'a réclamé**, en pleine migration — « témoin
+ * “utilisateur” : 3 ligne(s) à l'inventaire, 0 lue(s) sous le rôle applicatif ».
+ * Le rouge était juste : la table est désormais cloisonnée, elle DOIT rendre
+ * zéro sans contexte, et c'est le témoin qui mentait.
+ *
+ * **Aucune suite locale ne pouvait l'attraper**, et c'est l'angle mort que ce
+ * script existe pour couvrir : `test:isolation` ne joue pas les témoins de
+ * l'inventaire, qui exigent d'ÉCRIRE puis de comparer. Le seul environnement où
+ * le défaut existait était le seul qui ne soit jamais exercé — §9 du 23/08, mot
+ * pour mot. La liste ci-dessous est donc confrontée à `TABLES_RLS_FORCEE` par
+ * `tests/unit/db/inventaire.test.ts` : une table ne peut plus être à la fois
+ * « hors cloisonnement » et « sous RLS forcée ».
  */
 export const TABLES_HORS_CLOISONNEMENT = [
   "devise",
   "parite",
   "jour_ferie",
-  "utilisateur",
 ] as const;
 
 export type TableHorsCloisonnement = (typeof TABLES_HORS_CLOISONNEMENT)[number];

@@ -147,7 +147,7 @@ import {
  * cloisonnées, leur absence sur les référentiels de plateforme, et le classement
  * de toute table de `public` dans exactement une des trois listes.
  *
- * Les témoins hors cloisonnement (`devise`, `parite`, `utilisateur`) restent
+ * Les témoins hors cloisonnement (`devise`, `parite`, `jour_ferie`) restent
  * lisibles sans contexte (D4) : sans eux, une base vide ou une connexion muette
  * produirait les mêmes zéros qu'un cloisonnement parfait.
  *
@@ -178,7 +178,6 @@ async function compterTemoins(
     devise: await client.devise.count(),
     parite: await client.parite.count(),
     jour_ferie: await client.jourFerie.count(),
-    utilisateur: await client.utilisateur.count(),
   };
 }
 
