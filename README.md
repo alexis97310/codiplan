@@ -420,15 +420,15 @@ le cloisonnement n'existe plus.
 
 Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 
-| Forme            | Clause                                                                             | Exemple                                                  |
-| ---------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **identité**     | `id = app.societe_id`                                                              | `societe` (D42)                                          |
-| **société**      | `societe_id = app.societe_id`                                                      | `agence`, `calendrier`                                   |
-| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                  | `devise`, `jour_ferie` (D4)                              |
-| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine`, `contact` (D10, D22, L1-03) |
-| **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                     |
-| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b) |
-| **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c)                                   |
+| Forme            | Clause                                                                             | Exemple                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **identité**     | `id = app.societe_id`                                                              | `societe` (D42)                                                                        |
+| **société**      | `societe_id = app.societe_id`                                                      | `agence`, `calendrier`                                                                 |
+| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                  | `devise`, `jour_ferie` (D4)                                                            |
+| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine`, `contact` (D10, D22, L1-03)                               |
+| **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                                                   |
+| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
+| **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
@@ -439,8 +439,18 @@ pour les opérations qui **précèdent** le contexte de locataire —
 l'authentification, et rien d'autre. Chercher « existe-t-il un compte pour ce
 courriel » se fait quand aucune société n'est connue et ne peut l'être. Elle
 n'autorise que la lecture de **la ligne que l'appelant nommait déjà**, et ne rend
-donc jamais plus que ce qu'il savait avant d'interroger. Liste close à une
-entrée, gardée dans les deux sens.
+donc jamais plus que ce qu'il savait avant d'interroger. Liste close — une entrée
+à L1-02c, **cinq** depuis L1-02d —, gardée dans les deux sens.
+
+Ce qui la tient n'est pas la clé mais le fait qu'**aucun chemin ne laisse choisir
+sa valeur** : un identifiant d'utilisateur est un UUID v7, donc pas un secret. La
+moitié gardable de cette propriété est la **pose** — les variables
+`app.authentification_*` ne s'écrivent que dans `lib/db/rls.ts`, qui les remet à
+vide, et `lib/auth/lecture-identite.ts`, qui les renseigne depuis le `where` de
+la requête ; `tests/unit/auth/pose-de-designation.test.ts` refuse tout autre
+fichier applicatif. La moitié non gardable est la **provenance** : la valeur est
+dérivée d'un contexte authentifié, jamais reçue d'un appelant — écrit au
+CLAUDE.md faute de pouvoir être décidé par un motif (L1-02e).
 
 Et une politique qui n'énonce qu'un `USING` **légifère en silence sur les
 écritures** : PostgreSQL y fait valoir la même expression. Toute politique
