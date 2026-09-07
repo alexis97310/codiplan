@@ -38,17 +38,35 @@ import {
  * | `verification` | identifiant opaque | `app.authentification_identifiant` |
  * | `second_facteur` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
  *
- * ## CE QUE LA TRACE MONTRE DE `getSession`, ET CE QU'ELLE NE MONTRE PAS
+ * ## CE QUE LA TRACE MONTRE DE `getSession`, ET LA CAUSE ENFIN ISOLÉE (L1-02e)
  *
  * Elle montre **deux opérations de client distinctes** — `session` désignée par
  * son jeton, puis `utilisateur` désignée par son identifiant —, chacune dans sa
  * propre transaction. C'est ce chemin-là que l'enveloppe garde.
  *
- * Elle ne montre PAS pourquoi `getSession` rendait `null` avant L1-02d : ce
- * défaut a été mesuré deux fois, avec témoin, et sa cause n'a pas été isolée.
- * Une explication avait été écrite — la lecture jointe de la bibliothèque —, et
- * le jumeau l'a démentie. Ce qui garde cette chaîne n'est donc pas une
- * explication mais un APPELANT : `tests/isolation/chaine-session.test.ts`.
+ * **Et la seconde s'écrit `Utilisateur.findFirst { where: { id: { equals: … } } }`.**
+ * Là est la cause du `NULL` que L1-02d avait constaté sans l'expliquer, et que
+ * D59 déclarait hors de portée. L'enveloppe de L1-02c lisait la forme
+ * `{ equals }` **pour le courriel seul** ; l'identifiant, lui, était lu nu
+ * (`typeof ou.id === "string"`). La désignation partait donc vide,
+ * `utilisateur_lecture` refusait, et Better Auth concluait « pas de session ».
+ *
+ * *Mesuré, et par le jumeau* : l'ancien module remis en place depuis
+ * l'historique et les cinq tables ramenées sans RLS, `getSession` rend `null`
+ * alors que le cookie est présent — le défaut est reproduit ; **une seule
+ * ligne** changée dans cet ancien module — l'identifiant lu comme le courriel —
+ * et il rend une session, sans que rien d'autre bouge. L'état de la base a été
+ * écarté au passage : sous le code courant, `getSession` répond dans les deux
+ * états.
+ *
+ * **C'est pourquoi la connexion marchait quand la relecture ne marchait pas :
+ * deux clés, une seule forme reconnue.** `texteDe` lit désormais les deux
+ * formes pour **toutes** les clés, et `tests/unit/auth/formes-d-appel.test.ts`
+ * l'exige clé par clé, en dérivant sa liste de `CLES_DESIGNATION`.
+ *
+ * Ce qui garde cette chaîne reste néanmoins un APPELANT plutôt qu'une
+ * explication — `tests/isolation/chaine-session.test.ts` : un appelant attrape
+ * aussi les causes qu'on n'avait pas prévues.
  *
  * ## Ce qu'il ne fait pas
  *
@@ -79,6 +97,12 @@ export type Designation = {
 /**
  * Lit un champ de `where` sous les deux formes que Prisma produit :
  * `{ champ: "x" }` et `{ champ: { equals: "x" } }`.
+ *
+ * **Les DEUX, pour TOUTES les clés — et c'est la cause isolée à L1-02e.** Le
+ * module de L1-02c traitait `{ equals }` pour le courriel et lisait
+ * l'identifiant nu ; `getSession` relit l'identité sous la seconde forme, et
+ * rendait `null`. Une fonction par clé aurait laissé ce genre d'écart naître à
+ * chaque ajout : il n'y en a qu'une, et un gardien l'exige clé par clé.
  */
 function texteDe(champ: unknown): string {
   if (typeof champ === "string") {
@@ -128,7 +152,13 @@ function aplatirConjonction(
  */
 type Cle = { readonly champ: string; readonly variable: string };
 
-const CLES: Readonly<
+/**
+ * Exportée depuis L1-02e — pour que le gardien des formes d'appel DÉRIVE sa
+ * population de cette liste au lieu de la recopier. Une liste close recopiée
+ * « pour la lisibilité » devient fausse le jour où la première grandit, sans
+ * rougir (§9, 01/09).
+ */
+export const CLES_DESIGNATION: Readonly<
   Record<
     string,
     { readonly ou: readonly Cle[]; readonly creation: readonly Cle[] }
@@ -207,8 +237,9 @@ const CLES: Readonly<
   },
 };
 
-/** Les modèles que l'enveloppe couvre — dérivés de `CLES`, jamais recopiés. */
-export const MODELES_DESIGNES: readonly string[] = Object.keys(CLES);
+/** Les modèles que l'enveloppe couvre — dérivés de `CLES_DESIGNATION`, jamais recopiés. */
+export const MODELES_DESIGNES: readonly string[] =
+  Object.keys(CLES_DESIGNATION);
 
 /**
  * Extrait les désignations d'une requête Prisma.
@@ -232,7 +263,7 @@ export function designationsDe(
   operation: string,
   args: unknown,
 ): Designation[] {
-  const cles = CLES[modele];
+  const cles = CLES_DESIGNATION[modele];
   if (cles === undefined) {
     return [];
   }
@@ -368,7 +399,7 @@ export function avecDesignationAuth(
     };
   }
 
-  // L'extension est construite en PARCOURANT `CLES` plutôt qu'écrite modèle par
+  // L'extension est construite en PARCOURANT `CLES_DESIGNATION` plutôt qu'écrite modèle par
   // modèle : la liste des tables couvertes et le comportement sont alors le
   // MÊME objet, et non deux choses qui se ressemblent (§9, 01/09). Le prix est
   // cette conversion — le type de `$extends` énumère les modèles, un objet
