@@ -216,6 +216,114 @@ export const TABLES_JOURNAL = ["journal_audit"] as const;
  * fait retomber la table sur la forme « société », qui passe — et la fuite
  * mesurée revient sans qu'aucun scénario ne rougisse.
  */
+/**
+ * La forme « DÉSIGNATION » — la septième, et **la borne s'écrit avant le nom**
+ * (L1-02c, décision d'exploitation du 07/09/2026).
+ *
+ * *Nommer cette forme sans la borner serait pire que de ne pas la nommer :
+ * elle ressemble à une porte de service.* Voici donc d'abord ce qu'elle n'est
+ * pas.
+ *
+ * **Elle ne vaut QUE pour les opérations qui PRÉCÈDENT le contexte de
+ * locataire** — c'est-à-dire l'authentification, et rien d'autre. Le motif
+ * d'addition recevable est unique et étroit : *l'opération se produit avant
+ * qu'une société soit connue, et par construction ne peut pas l'être.* « C'est
+ * plus simple ainsi », « le contexte n'est pas encore posé à cet endroit » et
+ * « on le posera plus tard » ne sont pas des motifs : ce sont des descriptions
+ * du code, pas des propriétés de l'opération.
+ *
+ * Ce qu'elle autorise, et c'est tout : lire **la ligne que l'appelant nommait
+ * déjà**. Elle ne rend donc jamais plus que ce que l'appelant savait avant
+ * d'interroger — c'est ce qui la distingue d'une exemption. Mesuré le
+ * 07/09/2026 : une AUTRE ligne nommément demandée rend zéro, un balayage
+ * `LIKE '%'` rend la seule ligne nommée, une variable vide rend zéro.
+ *
+ * **Liste close à UNE entrée, gardée dans les deux sens.** L'addition est ici
+ * le geste dangereux — c'est elle qui transformerait une borne en passage.
+ */
+export const TABLES_DESIGNATION = ["utilisateur"] as const;
+
+/** L'unique entrée que l'arbitrage autorise. Recopiée : c'est la doctrine. */
+const SEULE_DESIGNATION_ARBITREE = "utilisateur";
+
+/** Écarts de la liste « désignation » — additions comme retraits. */
+export function ecartsListeDesignation(
+  liste: readonly string[] = TABLES_DESIGNATION,
+): string[] {
+  const ecarts = liste
+    .filter((table) => table !== SEULE_DESIGNATION_ARBITREE)
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « désignation ». Le seul ` +
+        "motif recevable est que l'opération se produise AVANT qu'une société " +
+        "soit connue, et ne puisse pas l'être — l'authentification, et rien " +
+        "d'autre. Toute addition passe par un arbitrage : c'est elle qui " +
+        "transformerait une borne en porte de service.",
+    );
+
+  if (!liste.includes(SEULE_DESIGNATION_ARBITREE)) {
+    ecarts.push(
+      `« ${SEULE_DESIGNATION_ARBITREE} » ne figure plus sous la forme ` +
+        "« désignation » : la branche d'authentification n'aurait plus de " +
+        "forme, et la table retomberait sur une clause de société — sous " +
+        "laquelle personne ne peut plus se connecter (mesuré).",
+    );
+  }
+
+  return ecarts;
+}
+
+/**
+ * **UNE POLITIQUE QUI N'ÉNONCE QU'UN `USING` LÉGIFÈRE EN SILENCE SUR LES
+ * ÉCRITURES** (L1-02c, décision d'exploitation du 07/09/2026).
+ *
+ * PostgreSQL fait alors valoir la même expression en `WITH CHECK`. Ce n'est pas
+ * un détail de syntaxe : c'est une décision prise par personne, exactement
+ * comme l'`ON UPDATE CASCADE` par défaut de Prisma (§9, 24/08).
+ *
+ * **Et elle se trompe dans un sens qu'on ne voit pas venir.** Mesuré sur
+ * `utilisateur` : sous une expression de lecture reprise en écriture, la
+ * création de compte est REFUSÉE — au moment où l'identité est insérée, son
+ * habilitation n'existe pas encore. Une expression d'écriture dérivée de la
+ * lecture échoue pour cette seule raison, et le message ne dit rien de tout
+ * cela.
+ *
+ * La règle vaut **au-delà de cette table** : toute politique couvrant une
+ * écriture énonce son `WITH CHECK`, **même quand il répète le `USING`** — pour
+ * que ce soit une DÉCISION et non une conséquence.
+ */
+export function ecartsWithCheckExplicite(
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  if (politiques.length === 0) {
+    return [
+      "aucune politique observée : la règle du `WITH CHECK` explicite n'a rien " +
+        "gardé. Un décompte nul ressemble toujours à un sans-faute.",
+    ];
+  }
+
+  return politiques
+    .filter((politique) => {
+      const commande = politique.commande.toUpperCase();
+      return (
+        (commande === "ALL" ||
+          commande === "INSERT" ||
+          commande === "UPDATE") &&
+        (politique.ecriture ?? null) === null
+      );
+    })
+    .map(
+      (politique) =>
+        `« ${politique.table} » — la politique « ${politique.nom} » couvre ` +
+        `${politique.commande} sans énoncer de \`WITH CHECK\`. PostgreSQL y ` +
+        "fait alors valoir le `USING`, et c'est une décision prise par " +
+        "personne. L'écrire, même s'il répète le `USING` : une expression " +
+        "d'écriture n'a pas les mêmes contraintes qu'une expression de " +
+        "lecture — au moment d'une insertion, ce que la lecture exige " +
+        "n'existe pas encore.",
+    );
+}
+
 export const TABLES_HABILITATION = [
   { table: "utilisateur_client", ancre: "utilisateur" },
   { table: "utilisateur_client_site", ancre: "parent" },
@@ -845,7 +953,12 @@ export function ecartsPolitiques(
     ];
   }
 
-  const ecarts: string[] = [];
+  // `ecartsWithCheckExplicite` n'est PAS appelée ici, et c'est délibéré : elle
+  // porte sur TOUTES les politiques, pas sur les seules tables de la première
+  // catégorie de I1, et elle est câblée séparément dans la veille. L'appeler
+  // aussi d'ici ferait rendre deux fois le même écart — un lecteur qui voit
+  // deux lignes identiques cherche la seconde faute.
+  const ecarts: string[] = [...ecartsListeDesignation()];
 
   // La contradiction inverse : un référentiel de plateforme qui porterait
   // `societe_id NOT NULL` relèverait de deux catégories à la fois (D41).

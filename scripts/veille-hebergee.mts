@@ -13,6 +13,7 @@ import {
   SQL_COLONNE_SOCIETE,
   SQL_POLITIQUES,
   ecartsPolitiques,
+  ecartsWithCheckExplicite,
   rapportPolitiques,
   type ColonneSociete,
   type PolitiqueObservee,
@@ -310,6 +311,23 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         nom: "privilèges du rôle de consolidation",
         rapport: rapportPrivileges(versPrivileges(consolidation)),
         ecarts: ecartsPrivilegesConsolidation(versPrivileges(consolidation)),
+      },
+      {
+        // Une politique qui n'énonce qu'un `USING` légifère EN SILENCE sur les
+        // écritures : PostgreSQL y fait valoir la même expression. Mesuré sur
+        // `utilisateur` (L1-02c) — une expression de lecture reprise en
+        // écriture refuse la création, parce qu'au moment de l'insertion ce que
+        // la lecture exige n'existe pas encore.
+        nom: "WITH CHECK explicite sur les politiques d'écriture",
+        rapport:
+          "WITH CHECK explicite — politiques d'écriture observées : " +
+          `${politiques
+            .filter((p) =>
+              ["ALL", "INSERT", "UPDATE"].includes(p.commande.toUpperCase()),
+            )
+            .map((p) => `${p.table}/${p.nom}`)
+            .join(", ")}\n`,
+        ecarts: ecartsWithCheckExplicite(politiques),
       },
       {
         // L'armement du cloisonnement, et non plus seulement sa définition

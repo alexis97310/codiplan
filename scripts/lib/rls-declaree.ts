@@ -55,6 +55,14 @@ import { TABLES_CLOISONNEES } from "./inventaire";
 export const TABLES_RLS_FORCEE = [
   ...TABLES_CLOISONNEES,
   "journal_audit",
+  // `utilisateur` rejoint la RLS FORCÉE au ticket L1-02c, et elle n'est ni
+  // cloisonnée par société ni un journal : elle ne porte AUCUN `societe_id` —
+  // RG-SOC-03, une même personne travaille légitimement pour deux sociétés —
+  // et se cloisonne par DEUX formes qui ne se recouvrent pas, « désignation »
+  // avant que la société soit connue et « rattachement » après. Elle est donc
+  // nommée ici séparément : la dériver de `TABLES_CLOISONNEES` l'aurait fait
+  // entrer dans un décompte par société auquel elle ne se prête pas.
+  "utilisateur",
 ] as const;
 
 /**
@@ -66,9 +74,17 @@ export const TABLES_RLS_SIMPLE = ["devise", "parite", "jour_ferie"] as const;
 
 /**
  * Tables SANS aucune RLS : les tables techniques d'authentification (troisième
- * catégorie de I1, D34) et l'identité de plateforme (quatrième, D39). Elles ne
- * portent pas de `societe_id` et l'authentification doit pouvoir chercher un
- * compte avant qu'aucune société ne soit active.
+ * catégorie de I1, D34) — et elles seules depuis L1-02c. Elles portent la trace
+ * TECHNIQUE de l'authentification, jamais de la donnée personnelle durable :
+ * une session expire, une vérification se consomme, un second facteur se
+ * révoque.
+ *
+ * **L'identité de plateforme (quatrième catégorie, D39) en est SORTIE.** Elle y
+ * figurait pour une raison juste — l'authentification doit pouvoir chercher un
+ * compte avant qu'aucune société ne soit active — mais la conclusion tirée de
+ * cette raison était trop large : ce n'est pas « aucune politique » qu'il
+ * fallait, c'est une politique dont une branche PRÉCÈDE la société. C'est la
+ * forme « désignation » de L1-02c.
  *
  * Les énumérer plutôt que les ignorer est ce qui rend le contrôle TOTAL : une
  * table cloisonnée qui perdrait sa RLS atterrirait ici, et serait nommée.
@@ -79,7 +95,6 @@ export const TABLES_SANS_RLS = [
   "verification",
   "second_facteur",
   "journal_acces",
-  "utilisateur",
 ] as const;
 
 /**

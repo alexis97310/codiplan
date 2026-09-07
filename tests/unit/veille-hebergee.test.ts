@@ -149,6 +149,13 @@ const HORS_OBSERVATION: readonly {
     justification: "témoins de l'inventaire comparé, indissociables de lui.",
   },
   {
+    fonction: "ecartsListeDesignation",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_DESIGNATION`), pas la base — même " +
+      "raison que `ecartsListeParc`. La FORME qu'elle commande est bien " +
+      "observée : `ecartsPolitiques` la mesure dans `pg_policies`.",
+  },
+  {
     fonction: "ecartsListeHabilitation",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_HABILITATION`), pas la base — même " +

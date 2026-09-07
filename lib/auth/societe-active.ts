@@ -1,6 +1,7 @@
 import { EvenementAcces, type PrismaClient } from "@prisma/client";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
+import { avecDesignationIdentite } from "./lecture-identite";
 import { avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -139,7 +140,19 @@ async function decider(
   demande: DemandeBascule,
   client: PrismaClient,
 ): Promise<ResultatBascule> {
-  const utilisateur = await client.utilisateur.findUnique({
+  // ── LA LECTURE D'IDENTITÉ DÉSIGNE SA LIGNE (L1-02c) ─────────────────────
+  //
+  // `utilisateur` est cloisonnée en base, et cette lecture-ci PRÉCÈDE encore la
+  // société : c'est justement ce que la bascule est en train d'établir. Elle
+  // relève donc de la forme « désignation » — l'identifiant vient de la
+  // session, l'appelant le tient déjà, et la lecture ne rend rien de plus.
+  //
+  // Sans l'enveloppe, elle rendrait `null` et toute bascule serait refusée pour
+  // « compte inactif » : un refus juste dans sa forme et faux dans son motif,
+  // c'est-à-dire le pire.
+  const utilisateur = await avecDesignationIdentite(
+    client,
+  ).utilisateur.findUnique({
     where: { id: demande.utilisateurId },
     select: { actif: true },
   });

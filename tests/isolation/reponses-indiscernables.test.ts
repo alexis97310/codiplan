@@ -35,6 +35,17 @@ import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
  */
 const auth = creerAuth(clientApp());
 
+/**
+ * L'instance qui OUVRE un compte (L1-02c). Personne ne crée son propre compte :
+ * l'ouverture est un acte administratif, sous une société et par le rôle qui
+ * administre — matrice §5.2. Le harnais emprunte donc le MÊME chemin que la
+ * production, plutôt que de s'accorder une porte que la production n'a pas.
+ */
+const authAdmin = creerAuth(clientApp(), {
+  societeId: SOCIETE_A,
+  role: Role.admin_societe,
+});
+
 const MOT_DE_PASSE = "mot-de-passe-de-test-suffisamment-long";
 const EMAIL_HABILITE = "indiscernable-habilite@iso.test";
 const EMAIL_ORPHELIN = "indiscernable-orphelin@iso.test";
@@ -113,7 +124,7 @@ describe("réponses d'authentification indiscernables (D35)", () => {
   beforeAll(async () => {
     // Un compte habilité sur A — le témoin positif, sans lequel le scénario
     // prouverait seulement que tout est refusé.
-    const habilite = await auth.api.signUpEmail({
+    const habilite = await authAdmin.api.signUpEmail({
       body: {
         email: EMAIL_HABILITE,
         password: MOT_DE_PASSE,
@@ -132,7 +143,7 @@ describe("réponses d'authentification indiscernables (D35)", () => {
 
     // Un compte qui existe, dont le mot de passe est bon, et qui n'est habilité
     // nulle part : c'est lui qui porte le troisième cas de D35.
-    const orphelin = await auth.api.signUpEmail({
+    const orphelin = await authAdmin.api.signUpEmail({
       body: {
         email: EMAIL_ORPHELIN,
         password: MOT_DE_PASSE,

@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
-import { avecSociete } from "../lib/db/rls";
+import { Role } from "../lib/auth/roles";
+import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import {
   DELAIS_SEED,
@@ -455,13 +456,49 @@ async function seed(): Promise<void> {
     `utilisateurs internes — ${pluriel(UTILISATEURS_INTERNES.length, "identité")}`,
   );
   for (const utilisateur of UTILISATEURS_INTERNES) {
-    // `utilisateur` porte l'identité globale : pas de `societe_id`, pas de
-    // cloisonnement (sa visibilité relève de l'authentification, L0-06).
-    const enregistrement = await prisma.utilisateur.upsert({
-      where: { email: utilisateur.email },
-      update: { nom: utilisateur.nom },
-      create: { id: uuidv7(), nom: utilisateur.nom, email: utilisateur.email },
-    });
+    // ── L'IDENTITÉ EST OUVERTE PAR UN ADMINISTRATEUR (L1-02c) ──────────────
+    //
+    // `utilisateur` porte l'identité globale — pas de `societe_id`, RG-SOC-03 —
+    // mais elle est cloisonnée EN BASE depuis L1-02c, et `FORCE ROW LEVEL
+    // SECURITY` s'applique au PROPRIÉTAIRE, donc au seed. L'écriture sans
+    // contexte était refusée : c'était attendu, pas un imprévu.
+    //
+    // Le seed fait donc ce que fera l'application — l'ouverture d'une identité
+    // est un acte administratif, sous un contexte de société, par un rôle qui
+    // administre (matrice §5.2, ligne « Administrer les utilisateurs » :
+    // `admin_societe` seul). La société est celle de sa PREMIÈRE habilitation :
+    // c'est bien elle qui ouvre le compte.
+    //
+    // Et l'identité et son habilitation voyagent dans la MÊME transaction : au
+    // moment où l'identité est insérée, son habilitation n'existe pas encore —
+    // c'est l'ordre des opérations, et c'est pourquoi l'expression d'écriture
+    // ne dérive pas de l'expression de lecture.
+    const premiere = utilisateur.habilitations[0];
+    if (premiere === undefined) {
+      throw new Error(
+        `Le seed ne peut pas ouvrir l'identité ${utilisateur.email} : aucune ` +
+          "habilitation ne dit quelle société l'ouvre. Une identité sans " +
+          "habilitation n'a personne pour l'administrer.",
+      );
+    }
+    const societeOuvrante = societeParCode(premiere.societe_code).id;
+
+    const enregistrement = await avecSocieteEtRole(
+      prisma,
+      societeOuvrante,
+      Role.admin_societe,
+      (tx) =>
+        tx.utilisateur.upsert({
+          where: { email: utilisateur.email },
+          update: { nom: utilisateur.nom },
+          create: {
+            id: uuidv7(),
+            nom: utilisateur.nom,
+            email: utilisateur.email,
+          },
+        }),
+      DELAIS_SEED,
+    );
 
     for (const habilitation of utilisateur.habilitations) {
       const societeId = societeParCode(habilitation.societe_code).id;
@@ -492,11 +529,21 @@ async function seed(): Promise<void> {
 
   etape(`comptes portail — ${pluriel(COMPTES_PORTAIL.length, "rattachement")}`);
   for (const compte of COMPTES_PORTAIL) {
-    const utilisateur = await prisma.utilisateur.upsert({
-      where: { email: compte.email },
-      update: { nom: compte.nom },
-      create: { id: uuidv7(), nom: compte.nom, email: compte.email },
-    });
+    // Même acte administratif : un compte de portail est DÉLIVRÉ par la société
+    // à son client, il ne s'auto-crée pas.
+    const societeOuvrante = societeParCode(compte.societe_code).id;
+    const utilisateur = await avecSocieteEtRole(
+      prisma,
+      societeOuvrante,
+      Role.admin_societe,
+      (tx) =>
+        tx.utilisateur.upsert({
+          where: { email: compte.email },
+          update: { nom: compte.nom },
+          create: { id: uuidv7(), nom: compte.nom, email: compte.email },
+        }),
+      DELAIS_SEED,
+    );
 
     const societeId = societeParCode(compte.societe_code).id;
 
