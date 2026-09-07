@@ -237,10 +237,18 @@ async function seed(): Promise<void> {
         // `upsert` sur l'identifiant FIXE : rejouer le seed corrige un libellé
         // au lieu de créer une seconde fiche, et le compte portail de
         // `COMPTES_PORTAIL` retrouve toujours le même client.
-        etape(`${societe.code} — clients de démonstration : ${clients.length}`);
+        etape(
+          `${societe.code} — clients de démonstration : ${clients.length}, ` +
+            `sites : ${clients.reduce((total, client) => total + client.sites.length, 0)}`,
+        );
 
         for (const client of clients) {
-          const { id: clientId, adresse_facturation, ...champsClient } = client;
+          const {
+            id: clientId,
+            adresse_facturation,
+            sites,
+            ...champsClient
+          } = client;
 
           await tx.client.upsert({
             where: { id: clientId },
@@ -255,6 +263,33 @@ async function seed(): Promise<void> {
               adresse_facturation: adresse_facturation ?? Prisma.DbNull,
             },
           });
+
+          // ── Sites de démonstration (ticket L1-02) ────────────────────────
+          //
+          // Écrits juste après LEUR client, dans la même transaction : la clé
+          // étrangère composite `(societe_id, client_id)` refuse l'ordre
+          // inverse, et la politique « parc » de `site` exige `app.societe_id`
+          // posé — que la transaction porte déjà.
+          //
+          // `upsert` sur l'identifiant FIXE, pour la même raison que les
+          // clients : rejouer le seed corrige un libellé au lieu de créer un
+          // second lieu, et `COMPTES_PORTAIL.perimetre_sites` retrouve toujours
+          // le même identifiant.
+          for (const site of sites) {
+            const { id: siteId, horaires, ...champsSite } = site;
+
+            await tx.site.upsert({
+              where: { id: siteId },
+              update: { ...champsSite, horaires: horaires ?? Prisma.DbNull },
+              create: {
+                id: siteId,
+                societe_id: id,
+                client_id: clientId,
+                ...champsSite,
+                horaires: horaires ?? Prisma.DbNull,
+              },
+            });
+          }
         }
 
         // Les calendriers AVANT les agences : `agence.calendrier_id` les

@@ -248,8 +248,16 @@ export const EXIGENCES_L0_05 = [
     cle: "perimetre_sites",
     intitule: "respect du périmètre de sites",
     source: "D10",
+    // Le plancher est passé de 2 à 4 au ticket L1-02, et c'est le sens du
+    // contrat : les scénarios de périmètre devaient être PLUS nombreux après la
+    // reprise de la fixture par la vraie table, jamais moins. Les deux
+    // nouveaux sont dans `tests/isolation/site.test.ts` — l'un prouve PAR
+    // LECTURE ce que la politique amputée du troisième filtre laisserait fuir,
+    // là où `politiques-rls.test.ts` prouve seulement que le gardien s'en
+    // apercevrait ; l'autre porte sur l'ÉCRITURE, que les scénarios de
+    // périmètre ne couvraient pas du tout.
     table: "site",
-    plancher: 2,
+    plancher: 4,
   },
 ] as const;
 

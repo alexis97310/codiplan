@@ -87,6 +87,49 @@ export const fr = {
     "Ce code externe est déjà porté par une autre fiche de votre société. Le code identifie un client à l'import : deux fiches ne peuvent pas le partager.",
   "client.refus.client_introuvable": "Cette fiche client est introuvable.",
 
+  // ── Référentiel des sites d'intervention (ticket L1-02) ───────────────────
+  //
+  // **Aucune de ces entrées n'écrit le mot imposé, et ce n'est pas un choix de
+  // style.** « Site » se définit UNE fois, sous « vocabulaire.site », et se
+  // compose partout ailleurs depuis `mot("site")` — un gardien refuse qu'il
+  // soit écrit ici (D5, D47, L0-11). Les libellés ci-dessous sont donc ceux des
+  // CHAMPS, jamais celui de la notion : c'est la couche de rendu qui assemble
+  // « Sites » ou « Rechercher un site » à partir du vocabulaire.
+  "site.libelle": "Libellé",
+  "site.client": "Client",
+  "site.adresse": "Adresse",
+  "site.commune": "Commune",
+  "site.zone_geo": "Zone géographique",
+  "site.latitude": "Latitude",
+  "site.longitude": "Longitude",
+  // Décisives pour les sites miniers : badge, EPI, induction sécurité,
+  // autorisation préalable (chapitre 2.9).
+  "site.consignes_acces": "Consignes d'accès et de sécurité",
+  "site.horaires": "Horaires d'accès",
+  // Le temps saisi FAIT FOI ; l'estimation par zone n'est qu'un défaut (D23,
+  // RG-PLA-05). Le libellé le dit, pour que personne ne croie à une estimation.
+  "site.temps_trajet_min": "Temps de trajet de référence (minutes)",
+  "site.actif": "Actif",
+  "site.recherche.vide": "Aucun résultat ne correspond à cette recherche.",
+  // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
+  // Nouvelle-Calédonie : ils vivent au dictionnaire parce qu'un humain les lit,
+  // et la valeur stockée reste le code technique (`grand_noumea`), qui ne se
+  // traduit pas.
+  "site.zone.grand_noumea": "Grand Nouméa",
+  "site.zone.sud": "Sud",
+  "site.zone.cote_est": "Côte Est",
+  "site.zone.cote_ouest": "Côte Ouest",
+  "site.zone.nord": "Nord",
+  "site.zone.iles": "Îles",
+  // Refus rendus à l'écran. Le dépôt ne transporte qu'une CLÉ
+  // (`MotifRefusSite`) — une exception ne porte jamais de texte destiné à un
+  // humain. « Hors de votre périmètre » ne distingue pas le client inexistant
+  // du client d'une autre société : les séparer apprendrait qu'un identifiant
+  // existe ailleurs, ce que D50 refuse.
+  "site.refus.client_hors_perimetre":
+    "Ce client n'existe pas dans votre périmètre.",
+  "site.refus.fiche_introuvable": "Cette fiche est introuvable.",
+
   // ── Vocabulaire imposé (CLAUDE.md §3, arbitrages D5 et D47) ───────────────
   // Les SEULES entrées où les mots « agence » et « site » s'écrivent en toutes
   // lettres. Partout ailleurs dans ce fichier, ils se composent depuis ces

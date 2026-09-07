@@ -424,7 +424,7 @@ l'exécution s'y dissolvent — c'est l'état final qui est lu.
 
 ### Le contrat des fixtures d'isolation
 
-`site`, `machine` et `modele_materiel` existent comme **tables fixtures** du
+`machine` et `modele_materiel` existent comme **tables fixtures** du
 harnais, avec les politiques que les vraies tables porteront aux lots 1 et 2. Le
 contrat est déclaré dans `tests/isolation/setup/contrat.ts` et tenu par **trois
 gardiens indépendants** : la forme mesurée en base, la liste close `TABLES_PARC`
@@ -440,6 +440,14 @@ passé de 4 à 5 scénarios — plus nombreux après la reprise, jamais moins. L
 trois gardiens ont été éprouvés à cette occasion sur la réparation naïve
 réellement écrite ; le détail est dans
 `docs/decisions/2026-09-01-premiere-table-metier-client.md`.
+
+**`site` a franchi le même passage à L1-02**, et elle y ajoute ce que `client`
+ne pouvait pas porter : le **troisième** filtre. Sur `client`, la forme « parc »
+n'a que deux moitiés — il n'y a pas de site au-dessus d'un client. Sur `site`
+les trois mordent, et le troisième est le seul qui sépare deux sites d'un MÊME
+client : ni la société ni `app.client_id` ne les distinguent. Le plancher du
+périmètre de sites est passé de 2 à 4 scénarios. Voir
+`docs/decisions/2026-09-06-site-et-la-cle-du-compte-portail.md`.
 
 ## Français — le dictionnaire est la source unique
 
@@ -553,10 +561,13 @@ La protection ne tient donc pas au fichier de flux : elle tient à un **attribut
 ```
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
-lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/  theme/
-              utils.ts
+lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/
+              sites/  theme/  utils.ts
               clients/ = référentiel client (L1-01) : saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
+              sites/ = référentiel des sites d'intervention (L1-02) : saisie Zod,
+              dépôt cloisonné, zones géographiques de D23 — closes à l'entrée
+              serveur et délibérément pas en base
               i18n/ = dictionnaire français + vocabulaire imposé (agence, site)
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
@@ -570,7 +581,9 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation).
 
-Lot 1 commencé : **L1-01** — la fiche `client`, première table métier. Elle porte
+Lot 1 commencé : **L1-01** et **L1-02**.
+
+**L1-01** — la fiche `client`, première table métier. Elle porte
 `societe_id NOT NULL` et la politique de forme **« parc »** (société **et**
 `app.client_id`, D10/D22), jamais la clause société seule ; `code_externe` (D29)
 est unique **par société** et son libellé d'affichage est paramétrable
@@ -580,3 +593,30 @@ Et **D55** en est sorti : le périmètre d'audit de I8 est désormais **inversé
 audité par défaut, exempté par écrit. `client` naissait hors périmètre non par
 décision mais par omission, et c'est le sens de la liste qui était en cause, pas
 son contenu.
+
+**L1-02** — la table `site`, et la clé étrangère que L1-01 avait laissée en
+suspens. `site` porte la forme « parc » **avec** le filtre de périmètre : c'est
+la table où les trois filtres mordent ensemble. Le module applicatif est
+`lib/sites/`, et l'énumération des zones de D23 y est close **à l'entrée
+serveur**, pas en base — six valeurs qui sont la géographie d'un seul
+territoire.
+
+`utilisateur_client.client_id` chaîne enfin vers `client`, par une clé
+**composite** `(societe_id, client_id)` : une clé sur le client seul aurait
+laissé un compte portail désigner le client d'une autre société. La migration
+**répare elle-même** l'habilitation de démonstration devenue orpheline, et
+refuse de s'appliquer si l'état réel n'est pas celui qu'elle décrit. Elle porte
+un **témoin de non-vacuité** que la mesure a rendu nécessaire : sous
+`FORCE ROW LEVEL SECURITY`, un propriétaire non superutilisateur — la
+configuration de la base hébergée — ne voit AUCUNE ligne, si bien qu'un bloc de
+diagnostic écrit naïvement compte zéro orphelin sans en avoir cherché un seul.
+En local, le rôle de migration est superutilisateur et contourne RLS : le défaut
+n'existait que là où rien ne l'aurait exercé.
+
+`utilisateur_client.perimetre_sites` reste **sans** clé étrangère, et c'est une
+impossibilité mesurée, non un report : PostgreSQL 16 ne sait pas contraindre les
+éléments d'un tableau — ni `FOREIGN KEY` sur la colonne, ni
+`FOREIGN KEY (EACH ELEMENT OF …)`, ni `CHECK` avec sous-requête. Les sorties
+sont portées au registre des arbitrages.
+
+Voir `docs/decisions/2026-09-06-site-et-la-cle-du-compte-portail.md`.

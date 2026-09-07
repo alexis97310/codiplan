@@ -488,25 +488,6 @@ export default async function setup(): Promise<void> {
         },
       ],
     });
-    await prisma.utilisateurClient.createMany({
-      data: [
-        {
-          id: "aaaaaaaa-0000-7000-8000-0000000000f7",
-          utilisateur_id: PORTAIL_A_CLIENT,
-          client_id: CLIENT_A1,
-          societe_id: SOCIETE_A,
-          perimetre_sites: [],
-        },
-        {
-          id: "bbbbbbbb-0000-7000-8000-0000000000f8",
-          utilisateur_id: PORTAIL_B_CLIENT,
-          client_id: CLIENT_B1,
-          societe_id: SOCIETE_B,
-          perimetre_sites: [],
-        },
-      ],
-    });
-
     // Amorçage du parc : clients, sites, machines des deux sociétés.
     //
     // Depuis L1-01, `client` est la VRAIE table — la fixture s'est effacée
@@ -536,6 +517,31 @@ export default async function setup(): Promise<void> {
         ('${MODELE_SURCHARGE_B}', '${SOCIETE_B}', 'Compresseur (surcharge B)');
       `,
     );
+
+    // Les habilitations portail viennent APRÈS le parc, et l'ordre est devenu
+    // une contrainte de la base au ticket L1-02 : `utilisateur_client` porte
+    // désormais une clé étrangère COMPOSITE `(societe_id, client_id)` vers
+    // `client (societe_id, id)`. Écrire l'habilitation avant son client échoue
+    // maintenant — c'est très exactement ce que la clé existe pour interdire,
+    // et la ligne orpheline de la base de démonstration en était la preuve.
+    await prisma.utilisateurClient.createMany({
+      data: [
+        {
+          id: "aaaaaaaa-0000-7000-8000-0000000000f7",
+          utilisateur_id: PORTAIL_A_CLIENT,
+          client_id: CLIENT_A1,
+          societe_id: SOCIETE_A,
+          perimetre_sites: [],
+        },
+        {
+          id: "bbbbbbbb-0000-7000-8000-0000000000f8",
+          utilisateur_id: PORTAIL_B_CLIENT,
+          client_id: CLIENT_B1,
+          societe_id: SOCIETE_B,
+          perimetre_sites: [],
+        },
+      ],
+    });
 
     // ── Un compte par rôle canonique (L0-06) ─────────────────────────────────
     // La boucle parcourt `ROLES`, l'énumération elle-même : ajouter un rôle sans

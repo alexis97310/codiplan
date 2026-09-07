@@ -88,7 +88,17 @@ describe("la veille de la base hébergée n'écrit rien (D55)", () => {
   it("ÉPREUVE PAR RETRAIT : sans le verrou, la même écriture PASSE", async () => {
     // Le jumeau. Sans lui, « l'écriture a été refusée » et « cette écriture ne
     // marche pas de toute façon » se ressemblent trait pour trait (§9).
-    let effacees = -1;
+    //
+    // **Le jumeau portait `DELETE FROM "client"` jusqu'au ticket L1-02, et il
+    // a cessé d'éprouver ce qu'il croyait éprouver le jour où `site` et
+    // `utilisateur_client` ont reçu leur clé étrangère vers `client`.** Le
+    // `DELETE` échouait alors sur un verrou VOISIN — `violates foreign key
+    // constraint` — et non sur le verrou visé. C'est la troisième exigence du
+    // 24/08, mot pour mot : le jumeau doit placer le scénario dans la
+    // configuration où le défaut RÉUSSIT, jamais dans celle où il échoue
+    // autrement. L'`UPDATE` est repris de la même liste de verbes refusés
+    // ci-dessus, et rien d'autre que le verrou ne peut le retenir.
+    let touchees = -1;
 
     class Annulation extends Error {}
     try {
@@ -98,7 +108,9 @@ describe("la veille de la base hébergée n'écrit rien (D55)", () => {
           "SELECT set_config('app.societe_id', $1, true)",
           SOCIETE_A,
         );
-        effacees = await tx.$executeRawUnsafe(`DELETE FROM "client"`);
+        touchees = await tx.$executeRawUnsafe(
+          `UPDATE "client" SET "raison_sociale" = 'Renommée par la veille'`,
+        );
         throw new Annulation();
       });
     } catch (erreur) {
@@ -107,6 +119,6 @@ describe("la veille de la base hébergée n'écrit rien (D55)", () => {
       }
     }
 
-    expect(effacees).toBeGreaterThan(0);
+    expect(touchees).toBeGreaterThan(0);
   });
 });

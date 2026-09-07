@@ -38,6 +38,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
     decomptes: {
       societe: 1,
       client: 2,
+      site: 3,
       agence: 3,
       calendrier: 2,
       calendrier_plage: 11,
@@ -58,6 +59,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
       decomptes: {
         societe: 1,
         client: 1,
+        site: 1,
         agence: 1,
         calendrier: 1,
         calendrier_plage: 5,
@@ -90,6 +92,7 @@ describe("inventaire à plat", () => {
     expect(totaliser(inventaire().societes)).toEqual({
       societe: 2,
       client: 3,
+      site: 4,
       agence: 4,
       calendrier: 3,
       calendrier_plage: 16,

@@ -1,0 +1,299 @@
+import { Prisma } from "@prisma/client";
+
+import { type ContexteSession } from "@/lib/auth/contexte";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
+
+import {
+  type CreationSite,
+  type ModificationSite,
+  type RechercheSite,
+} from "./saisie";
+
+/**
+ * Les accès au site d'intervention — création, lecture, modification,
+ * suppression, recherche (ticket L1-02).
+ *
+ * **Aucun filtre société n'est écrit ici, et aucun filtre de PÉRIMÈTRE non
+ * plus.** Toutes les fonctions passent par `avecContexteApplicatif`, qui ouvre
+ * une transaction sous le rôle applicatif NON propriétaire en posant
+ * `app.societe_id`, `app.role`, et — pour un compte portail — `app.client_id`
+ * et `app.perimetre_sites`. La politique de `site` est de forme « parc » avec
+ * les TROIS filtres : société, client, périmètre de sites. Un `findMany` sans
+ * `where` ne rend donc que les sites de la société active ; pour un compte
+ * portail, ceux de son client ; et si son périmètre est restreint, ceux de son
+ * périmètre seulement. C'est RG-DRO-01, tenue par la base.
+ *
+ * C'est le doublement exigé par I1 : filtre côté serveur — ici le CONTEXTE,
+ * qu'aucun chemin applicatif ne peut contourner — ET politique en base.
+ *
+ * **Les refus sont typés, pas levés.** Un client inexistant ou hors société est
+ * une réponse attendue, pas une anomalie technique : il remonte comme un
+ * résultat que l'appelant sait rendre, et le texte de l'écran vient du
+ * dictionnaire — une exception ne transporte jamais de texte destiné à un
+ * humain.
+ */
+
+/** Un site tel qu'il est rendu. */
+export type FicheSite = {
+  id: string;
+  client_id: string;
+  libelle: string;
+  adresse: Prisma.JsonValue | null;
+  commune: string | null;
+  zone_geo: string | null;
+  latitude: Prisma.Decimal | null;
+  longitude: Prisma.Decimal | null;
+  consignes_acces: string | null;
+  horaires: Prisma.JsonValue | null;
+  temps_trajet_min: number | null;
+  actif: boolean;
+};
+
+/** Colonnes rendues. `societe_id` n'en est pas : l'appelant est déjà dans sa société. */
+const CHAMPS_FICHE = {
+  id: true,
+  client_id: true,
+  libelle: true,
+  adresse: true,
+  commune: true,
+  zone_geo: true,
+  latitude: true,
+  longitude: true,
+  consignes_acces: true,
+  horaires: true,
+  temps_trajet_min: true,
+  actif: true,
+} as const;
+
+/**
+ * Motif d'un refus. Une CLÉ, jamais une phrase : la couche de rendu choisit son
+ * texte au dictionnaire, et un message technique ne se traduit pas.
+ *
+ * `client_hors_perimetre` couvre DEUX situations que le dépôt ne distingue pas
+ * volontairement — le client n'existe pas, et le client appartient à une autre
+ * société. Les séparer apprendrait à un appelant qu'un identifiant existe
+ * ailleurs, ce que D50 refuse : un message d'erreur est un canal d'information,
+ * soumis au cloisonnement comme une requête.
+ */
+export type MotifRefusSite = "client_hors_perimetre" | "fiche_introuvable";
+
+export type ResultatEcriture =
+  | { readonly accepte: true; readonly fiche: FicheSite }
+  | { readonly accepte: false; readonly motif: MotifRefusSite };
+
+/** Violation de contrainte d'intégrité référentielle — ici, la clé composite. */
+const VIOLATION_CLE_ETRANGERE = "P2003";
+
+/** Ligne absente, ou hors du périmètre que la politique laisse voir. */
+const ENREGISTREMENT_ABSENT = "P2025";
+
+/** Violation d'une contrainte contrôlée par la base (CHECK, WITH CHECK de RLS). */
+const CONTRAINTE_BASE = "P2010";
+
+function motifDeLErreur(erreur: unknown): MotifRefusSite | null {
+  if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) {
+    return null;
+  }
+  if (
+    erreur.code === VIOLATION_CLE_ETRANGERE ||
+    erreur.code === CONTRAINTE_BASE
+  ) {
+    return "client_hors_perimetre";
+  }
+  if (erreur.code === ENREGISTREMENT_ABSENT) {
+    return "fiche_introuvable";
+  }
+  return null;
+}
+
+/**
+ * Crée un site pour un client de la société active.
+ *
+ * L'identifiant est un UUID v7 attribué ICI et non par la base (I10) : c'est la
+ * règle qui permettra à l'application mobile d'en générer un hors ligne.
+ *
+ * **Le client n'est pas vérifié par une requête préalable, et c'est délibéré.**
+ * Un `findFirst` suivi d'un `create` laisse une fenêtre entre les deux, et il
+ * dupliquerait en TypeScript un contrôle que la clé étrangère composite
+ * `(societe_id, client_id)` tient déjà, sans fenêtre. Le refus de la base est
+ * traduit en motif ; il n'est pas prévenu.
+ */
+export async function creerSite(
+  contexte: ContexteSession,
+  saisie: CreationSite,
+): Promise<ResultatEcriture> {
+  const { adresse, horaires, ...reste } = saisie;
+  try {
+    const fiche = await avecContexteApplicatif(contexte, (tx) =>
+      tx.site.create({
+        data: {
+          id: uuidv7(),
+          societe_id: exigerSocieteActive(contexte),
+          ...reste,
+          adresse: adresse ?? Prisma.DbNull,
+          horaires: horaires ?? Prisma.DbNull,
+        },
+        select: CHAMPS_FICHE,
+      }),
+    );
+    return { accepte: true, fiche };
+  } catch (erreur: unknown) {
+    const motif = motifDeLErreur(erreur);
+    if (motif === null) {
+      throw erreur;
+    }
+    return { accepte: false, motif };
+  }
+}
+
+/** Lit un site par son identifiant. `null` s'il n'est pas dans le périmètre. */
+export async function lireSite(
+  contexte: ContexteSession,
+  id: string,
+): Promise<FicheSite | null> {
+  return avecContexteApplicatif(contexte, (tx) =>
+    tx.site.findFirst({ where: { id }, select: CHAMPS_FICHE }),
+  );
+}
+
+/**
+ * Modifie un site.
+ *
+ * Une fiche hors périmètre — autre société, autre client, hors du périmètre de
+ * sites d'un compte portail — lève `P2025`, rendu en « introuvable ». Le refus
+ * ne dit pas si elle existe ailleurs : un message est un canal d'information,
+ * soumis au cloisonnement comme une requête (D50).
+ */
+export async function modifierSite(
+  contexte: ContexteSession,
+  id: string,
+  saisie: ModificationSite,
+): Promise<ResultatEcriture> {
+  // `undefined` signifie « ne touche pas à cette colonne », `null` signifie
+  // « efface-la ». Prisma distingue les deux par `Prisma.DbNull`, et les
+  // confondre effacerait une adresse à chaque modification qui ne la mentionne
+  // pas — c'est le défaut trouvé par un test à L1-01.
+  const { adresse, horaires, ...reste } = saisie;
+
+  try {
+    const fiche = await avecContexteApplicatif(contexte, (tx) =>
+      tx.site.update({
+        where: { id },
+        data: {
+          ...reste,
+          ...(adresse === undefined
+            ? {}
+            : { adresse: adresse ?? Prisma.DbNull }),
+          ...(horaires === undefined
+            ? {}
+            : { horaires: horaires ?? Prisma.DbNull }),
+        },
+        select: CHAMPS_FICHE,
+      }),
+    );
+    return { accepte: true, fiche };
+  } catch (erreur: unknown) {
+    const motif = motifDeLErreur(erreur);
+    if (motif === null) {
+      throw erreur;
+    }
+    return { accepte: false, motif };
+  }
+}
+
+/**
+ * Supprime un site.
+ *
+ * **La voie ordinaire est la DÉSACTIVATION** — `actif = false` —, parce qu'un
+ * lieu cesse d'être visité bien plus souvent qu'il ne cesse d'avoir existé, et
+ * parce que ses interventions passées le nomment. La suppression existe pour la
+ * fiche créée par erreur, et pour elle seule.
+ *
+ * **Et elle LAISSE une trace** : `site` est une table métier cloisonnée, donc
+ * auditée depuis D55, et le déclencheur écrit les valeurs d'avant dans
+ * `journal_audit`. C'est ce qui la rend acceptable — elle est réversible par la
+ * lecture.
+ */
+export async function supprimerSite(
+  contexte: ContexteSession,
+  id: string,
+): Promise<{ readonly accepte: boolean; readonly motif?: MotifRefusSite }> {
+  try {
+    await avecContexteApplicatif(contexte, (tx) =>
+      tx.site.delete({ where: { id } }),
+    );
+    return { accepte: true };
+  } catch (erreur: unknown) {
+    const motif = motifDeLErreur(erreur);
+    if (motif === null) {
+      throw erreur;
+    }
+    return { accepte: false, motif };
+  }
+}
+
+/**
+ * Recherche.
+ *
+ * Le texte est cherché dans le libellé ET dans la commune : ce sont les deux
+ * façons dont un lieu se désigne au téléphone. Les fiches sont rendues par
+ * libellé, ce qui est l'ordre d'une liste lue par un humain.
+ */
+export async function rechercherSites(
+  contexte: ContexteSession,
+  criteres: RechercheSite,
+): Promise<FicheSite[]> {
+  const filtreTexte =
+    criteres.texte === null
+      ? {}
+      : {
+          OR: [
+            {
+              libelle: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              commune: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
+        };
+
+  return avecContexteApplicatif(contexte, (tx) =>
+    tx.site.findMany({
+      where: {
+        ...filtreTexte,
+        ...(criteres.client_id === null
+          ? {}
+          : { client_id: criteres.client_id }),
+        ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
+        ...(criteres.actifs_seulement ? { actif: true } : {}),
+      },
+      orderBy: [{ libelle: "asc" }, { id: "asc" }],
+      take: criteres.limite,
+      select: CHAMPS_FICHE,
+    }),
+  );
+}
+
+/**
+ * La société active, ou une exception technique.
+ *
+ * `avecContexteApplicatif` refuse déjà un contexte sans société — ce contrôle
+ * est là pour que le TYPE soit `string` au moment d'écrire `societe_id`. Le
+ * message est destiné à un développeur : il ne passe pas par le dictionnaire.
+ */
+function exigerSocieteActive(contexte: ContexteSession): string {
+  if (contexte.societeId === null) {
+    throw new Error(
+      "Aucune société active : `avecContexteApplicatif` aurait dû refuser " +
+        "cette transaction avant d'en arriver ici.",
+    );
+  }
+  return contexte.societeId;
+}

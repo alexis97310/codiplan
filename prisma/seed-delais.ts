@@ -111,6 +111,11 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     2 + // set_config app.societe_id, app.role
     1 + // societe.upsert
     societe.clients.length +
+    // Les sites de L1-02 : un `upsert` chacun, dans la MÊME transaction que
+    // leurs clients — la clé étrangère composite les y oblige, et un site
+    // écrit hors de la transaction de sa société serait refusé par la
+    // politique « parc ». Ils comptent donc dans le budget de latence.
+    societe.clients.reduce((total, client) => total + client.sites.length, 0) +
     societe.calendriers.length +
     plages +
     societe.agences.length +

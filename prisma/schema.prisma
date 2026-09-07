@@ -136,6 +136,7 @@ model Societe {
   utilisateur_clients  UtilisateurClient[]
   clients              Client[]
   sessions_actives     Session[]
+  sites                Site[]
 
   @@map("societe")
 }
@@ -475,10 +476,126 @@ model Client {
   /// est un UUID v7 technique (I10) qui ne change jamais, et `Cascade`
   /// promettrait silencieusement de réécrire tout un parc client si cela
   /// survenait.
-  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  societe Societe             @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sites   Site[]
+  comptes UtilisateurClient[]
 
   @@unique([societe_id, code_externe])
+  /// Clé composite technique — cible du chaînage de `site` et de
+  /// `utilisateur_client` (L1-02, sur le modèle de D48). `id` étant déjà la clé
+  /// primaire, elle n'ajoute aucune unicité : elle rend simplement le couple
+  /// (société, client) référençable d'un seul geste, de sorte qu'une ligne
+  /// fille ne puisse pas désigner le client d'une AUTRE société. Les contrôles
+  /// d'intégrité référentielle contournent les politiques RLS par construction
+  /// en PostgreSQL : sans la société dans la clé, le verrou serait muet
+  /// exactement là où le cloisonnement doit mordre.
+  @@unique([societe_id, id])
   @@map("client")
+}
+
+/// Site d'intervention chez un client (ticket L1-02, chapitre 11.2, D23).
+///
+/// Table métier ordinaire de la PREMIÈRE catégorie de I1 : `societe_id NOT
+/// NULL`, RLS activée ET forcée, politique de forme « PARC » — société ET
+/// `app.client_id` ET `app.perimetre_sites`. C'est la seule des cinq formes
+/// dont les trois filtres mordent tous les trois ici : `site` est la table par
+/// laquelle le périmètre de sites d'un compte portail (D10) se lit.
+///
+/// **« Site » n'est jamais « agence ».** Un site est un lieu d'intervention
+/// chez un CLIENT ; une agence est un établissement CODIMA. Les deux mots ne
+/// sont pas interchangeables (CLAUDE.md, vocabulaire imposé ; D5, D47), et leur
+/// définition vit sous les clés `vocabulaire.*` de `lib/i18n/fr.ts`.
+model Site {
+  id               String   @id @db.Uuid
+  societe_id       String   @db.Uuid
+  client_id        String   @db.Uuid
+  /// Libellé du site. Obligatoire et non vide (contrainte `CHECK` en base).
+  ///
+  /// **Aucune unicité**, et c'est une décision de même nature que celle prise
+  /// sur `client.raison_sociale` à L1-01 : rien au chapitre 10 n'en fait une
+  /// clé, et une contrainte en base transformerait en refus de saisie ce que
+  /// RG-IMP-05 range en rapprochement puis arbitrage humain. Deux ateliers
+  /// « Zone industrielle » chez le même client sont un cas réel.
+  libelle          String
+  /// Adresse du site, en JSON comme `client.adresse_facturation` et
+  /// `agence.adresse` : une adresse calédonienne — boîte postale, tribu,
+  /// commune — n'a pas la forme d'une adresse métropolitaine, et figer des
+  /// colonnes déciderait d'un format que le cahier des charges ne donne pas.
+  adresse          Json?
+  /// Commune. Colonne à part de l'adresse parce que le chapitre 11.2 la nomme
+  /// séparément : c'est un critère de regroupement, pas une ligne d'adresse.
+  commune          String?
+  /// Zone géographique (D23) — `grand_noumea`, `sud`, `cote_est`, `cote_ouest`,
+  /// `nord`, `iles`.
+  ///
+  /// **Du TEXTE, et l'énumération n'est pas fermée en base.** D23 arrête bien
+  /// la liste, et `lib/sites/zones.ts` la tient close à l'entrée serveur — Zod,
+  /// sur tous les chemins sans exception (CLAUDE.md §2). Mais ces six valeurs
+  /// sont celles d'UN territoire : `grand_noumea` n'a aucun sens pour une
+  /// société vendue en métropole, et CODIMA-EU en est déjà une au jeu de
+  /// démonstration. Les figer en `CHECK` ou en type énuméré ferait de la
+  /// géographie de la Nouvelle-Calédonie une contrainte du produit — c'est la
+  /// forme exacte de l'erreur du 19/08 (`code_winpro`) et de celle du 20/08
+  /// (fermer une énumération avant d'avoir tranché à qui l'on vend). Le point
+  /// est porté au registre des arbitrages du ticket.
+  zone_geo         String?
+  /// Latitude en degrés décimaux (WGS 84). `Decimal(9,6)` — six décimales
+  /// valent environ onze centimètres, ce qui excède tout besoin d'un site
+  /// d'intervention. Les bornes sont contraintes en base : ce n'est pas une
+  /// règle de gestion mais la définition même de la mesure.
+  latitude         Decimal? @db.Decimal(9, 6)
+  /// Longitude en degrés décimaux (WGS 84). Voir `latitude`.
+  longitude        Decimal? @db.Decimal(9, 6)
+  /// Consignes d'accès et de sécurité — badge, EPI, induction sécurité,
+  /// autorisation préalable. Le chapitre 2 les dit « décisives pour les sites
+  /// miniers ». Texte libre : ce sont des phrases écrites par un humain pour un
+  /// humain, jamais un critère de calcul.
+  consignes_acces  String?
+  /// Horaires d'accès du site, en JSON — une liste de plages hebdomadaires de
+  /// même forme que `calendrier_plage` (jour ISO 1-7, minutes locales depuis
+  /// minuit), tenue close par Zod dans `lib/sites/saisie.ts`.
+  ///
+  /// **En JSON et non dans une table, et c'est une décision qu'il faut lire.**
+  /// Une table fille `site_horaire` serait plus juste sur le papier ; elle
+  /// porterait `societe_id NOT NULL`, entrerait donc dans la première catégorie
+  /// de I1, et réclamerait une FORME de politique. Or aucune des cinq ne lui
+  /// va : la forme « société » laisserait un compte portail restreint au site
+  /// S1 lire les horaires du site S2 du même client — le filtre de périmètre
+  /// vit dans la forme « parc », et étendre `TABLES_PARC` est un ARBITRAGE, pas
+  /// une décision de ticket (`scripts/lib/politiques-rls.ts`). Portées par
+  /// `site` elle-même, ces données héritent de la politique « parc » de leur
+  /// site et le périmètre les protège par construction. I7 borne le risque : les
+  /// horaires d'un site produisent un AVERTISSEMENT, jamais un blocage.
+  horaires         Json?
+  /// Temps de trajet de référence, en minutes.
+  ///
+  /// **Le nom et la forme viennent de D23 (rang 1) et de RG-PLA-05 (rang 2),
+  /// qui écrivent tous deux `site.temps_trajet_min` — une valeur portée par le
+  /// site.** Le chapitre 11.2 (rang 3) et le backlog (rang 4) disent « par
+  /// agence » ; la hiérarchie des sources tranche en faveur des deux premiers,
+  /// et l'écart est porté au registre des arbitrages du ticket plutôt que
+  /// résolu en séance. La valeur saisie **fait foi** ; l'estimation par zone
+  /// n'est qu'un défaut appliqué en son absence (D23).
+  temps_trajet_min Int?
+  actif            Boolean  @default(true)
+
+  /// Les DEUX actions sont dites (CLAUDE.md §9, 24/08), et refusent toutes deux
+  /// plutôt que de propager. `Restrict` en suppression : effacer une société
+  /// emporterait ses sites. `Restrict` en mise à jour, et NON le `Cascade` de
+  /// Prisma — `societe.id` est un UUID v7 technique (I10) qui ne change jamais.
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// Chaînage COMPOSITE vers le client, sur le modèle de D48 : `(societe_id,
+  /// client_id)` vers `(societe_id, id)`. Une clé sur `client_id` seul
+  /// laisserait un site désigner le client d'une AUTRE société — les contrôles
+  /// d'intégrité référentielle contournent les politiques RLS par construction
+  /// en PostgreSQL. `Restrict` en suppression : un client qui a des sites ne
+  /// s'efface pas, et `Cascade` effacerait un parc entier sur un geste
+  /// d'administration. `Restrict` en mise à jour : ni `client.id` ni
+  /// `client.societe_id` ne changent (I10, RG-SOC-04).
+  client  Client  @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, client_id])
+  @@map("site")
 }
 
 /// Compte d'accès (chapitre 11 §11.2). L'habilitation multi-société n'est pas
@@ -545,8 +662,29 @@ model UtilisateurSociete {
 
 /// Rattachement d'un compte portail à un client (D10). Exclusif de
 /// `utilisateur_societe` : un compte portail n'a aucune ligne là-bas.
-/// `client_id` est une référence logique — la table `client` est métier et
-/// arrive au lot 1 ; `perimetre_sites` vide signifie « tous les sites du client ».
+///
+/// **`client_id` a cessé d'être une référence logique au ticket L1-02.** Elle
+/// l'était depuis L0-03 faute de table `client`, et l'est restée à L1-01 : la
+/// base de démonstration portait alors une ligne désignant un client
+/// inexistant, et poser la clé y aurait fait échouer la migration. Cette ligne
+/// n'était pas l'empêchement, elle était la DÉMONSTRATION — c'est exactement ce
+/// que la contrainte interdit. La migration de L1-02 la traite comme une donnée
+/// à réparer, puis pose la clé.
+///
+/// **Le chaînage est COMPOSITE — `(societe_id, client_id)` vers
+/// `(societe_id, id)`, sur le modèle de D48.** Une clé sur `client_id` seul
+/// laisserait un compte portail désigner le client d'une AUTRE société : les
+/// contrôles d'intégrité référentielle contournent les politiques RLS par
+/// construction en PostgreSQL, et le verrou serait alors muet là précisément où
+/// le cloisonnement doit mordre.
+///
+/// **`perimetre_sites` reste SANS clé étrangère, et ce n'est pas un oubli.**
+/// PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un tableau : il n'existe
+/// pas de `FOREIGN KEY (EACH ELEMENT OF …)`, et la mesure est consignée dans la
+/// note de décision du ticket. Ce n'est donc pas un arbitrage qu'on repousse,
+/// c'est une impossibilité déclarative — et la sortie (normaliser en table, ou
+/// doubler par un déclencheur) est un arbitrage à part entière, posé au registre.
+/// `perimetre_sites` vide signifie « tous les sites du client ».
 model UtilisateurClient {
   id              String   @id @db.Uuid
   utilisateur_id  String   @db.Uuid
@@ -557,6 +695,14 @@ model UtilisateurClient {
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
   societe     Societe     @relation(fields: [societe_id], references: [id])
+  /// Les DEUX actions sont dites (CLAUDE.md §9, 24/08), et refusent toutes deux.
+  /// `Restrict` en suppression : effacer un client dont des comptes portail
+  /// dépendent est refusé — `Cascade` retirerait des habilitations sans que
+  /// personne ne l'ait demandé, et `SetNull` est impossible, la colonne étant
+  /// `NOT NULL`. `Restrict` en mise à jour : `client.id` est un UUID v7
+  /// technique (I10) qui ne change jamais, et `client.societe_id` ne change pas
+  /// davantage — un client ne déménage pas d'une société à l'autre (RG-SOC-04).
+  client      Client      @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([utilisateur_id, client_id])
   @@map("utilisateur_client")

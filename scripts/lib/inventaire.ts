@@ -50,6 +50,7 @@
 export const TABLES_CLOISONNEES = [
   "societe",
   "client",
+  "site",
   "agence",
   "calendrier",
   "calendrier_plage",
@@ -120,16 +121,18 @@ export const FICHIER_INVENTAIRE = "inventaire-controle.json";
 
 /** Décompte à zéro sur toutes les tables cloisonnées. */
 export function decompteVide(): DecompteParTable {
-  return {
-    societe: 0,
-    client: 0,
-    agence: 0,
-    calendrier: 0,
-    calendrier_plage: 0,
-    calendrier_ferie: 0,
-    utilisateur_societe: 0,
-    utilisateur_client: 0,
-  };
+  // **DÉRIVÉ de `TABLES_CLOISONNEES`, et non recopié.** Une seconde liste
+  // écrite à la main ici aurait été la même maladie que le périmètre d'audit
+  // d'avant D55 et que la purge d'avant #29 : deux listes qui disent la même
+  // chose, dont l'une grandit un jour sans l'autre. Elle a d'ailleurs commencé
+  // à diverger au ticket L1-02 — `site` manquait ici et le total sortait à
+  // `NaN`, ce qu'aucun message ne nommait. Ce qui les confrontait était le
+  // typage, et le typage seul : `Record<TableCloisonnee, number>` refuse la clé
+  // manquante, mais rien n'empêchait d'ajouter la ligne au lieu de retirer la
+  // liste. Elle est retirée.
+  return Object.fromEntries(
+    TABLES_CLOISONNEES.map((table) => [table, 0]),
+  ) as DecompteParTable;
 }
 
 /** Somme des décomptes de chaque société. */

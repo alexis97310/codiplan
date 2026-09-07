@@ -235,16 +235,26 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les huit tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
+    //
+    // **`site` s'y ajoute au ticket L1-02, et la façon dont elle s'y est
+    // ajoutée est ce que D55 promettait.** Aucune liste du dépôt n'a été
+    // touchée pour l'y faire entrer : c'est CE scénario qui a rougi en la
+    // nommant, parce que la migration pose le déclencheur et que le périmètre
+    // se calcule depuis le schéma. Mettre à jour l'attendu d'une assertion
+    // n'est pas tenir une liste d'admis — l'ancienne liste décidait du
+    // périmètre, celle-ci ne fait que le constater, et elle rougit dans les
+    // DEUX sens.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
       "calendrier_ferie",
       "calendrier_plage",
       "client",
+      "site",
       "societe",
       "utilisateur_client",
       "utilisateur_societe",

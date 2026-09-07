@@ -258,6 +258,13 @@ lib/
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
+  sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
+              cloisonné, zones géographiques de D23
+              la politique de `site` est de forme « parc » AVEC le filtre de
+              périmètre : c'est la table où les trois filtres mordent ensemble,
+              et le troisième est le seul qui sépare deux sites d'un même client
+              l'énumération des zones est close ICI, à l'entrée serveur, et
+              délibérément pas en base — six valeurs d'UN territoire
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
