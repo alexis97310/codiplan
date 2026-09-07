@@ -1,3 +1,10 @@
+import {
+  VARIABLE_SESSION_CLIENT,
+  VARIABLE_SESSION_PERIMETRE,
+  VARIABLE_SESSION_ROLE,
+  VARIABLE_SESSION_SOCIETE,
+} from "@/lib/db/rls";
+
 /**
  * LE CONTRAT DES FIXTURES D'ISOLATION — ce que le harnais doit continuer de
  * couvrir quand les vraies tables arriveront (ticket R0-a, écart É14 de la
@@ -48,11 +55,25 @@
  * permet au gardien statique de `tests/unit/` de le lire sans ouvrir de base.
  */
 
-/** Variables de session lues par les politiques RLS. */
-export const VAR_SOCIETE = "app.societe_id";
-export const VAR_ROLE = "app.role";
-export const VAR_CLIENT = "app.client_id";
-export const VAR_PERIMETRE = "app.perimetre_sites";
+/**
+ * Variables de session lues par les politiques RLS — **réexportées depuis le
+ * chemin de production, jamais redéclarées ici** (L1-02b).
+ *
+ * Elles étaient définies en toutes lettres dans ce fichier, et c'est ce qui a
+ * permis au harnais de poser `app.client_id` pendant que `lib/db/rls.ts` ne la
+ * posait pas : deux listes qui pouvaient diverger, et qui ont divergé, sans
+ * qu'aucun test ne rougisse. Le harnais tire désormais ses noms de la SEULE
+ * source qui les pose en production — ce qui rend structurellement impossible
+ * qu'il arme une variable que la production ignore.
+ *
+ * `lib/db/rls.ts` n'importe que des types : ce module reste sans dépendance
+ * d'exécution, ce qui permet au gardien statique de `tests/unit/` de le lire
+ * sans ouvrir de base.
+ */
+export const VAR_SOCIETE = VARIABLE_SESSION_SOCIETE;
+export const VAR_ROLE = VARIABLE_SESSION_ROLE;
+export const VAR_CLIENT = VARIABLE_SESSION_CLIENT;
+export const VAR_PERIMETRE = VARIABLE_SESSION_PERIMETRE;
 
 /**
  * Politique de cloisonnement société, forme imposée (D4) — `::uuid` compris —,

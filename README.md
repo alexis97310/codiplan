@@ -312,16 +312,21 @@ Reste ouvert au registre : le journal des référentiels de plateforme, et la
 ## Veille de la base hébergée — le détectif, chaque nuit
 
 `pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
-les contrôles d'observation contre la **vraie** base — six aujourd'hui : état
+les contrôles d'observation contre la **vraie** base — sept aujourd'hui : état
 RLS, formes de politique, périmètre d'audit, ajout seul du journal, durcissement
-des partitions, privilèges de consolidation.
+des partitions, privilèges de consolidation, **armement du contexte de session**.
 
-**Six est un instantané, pas une liste.** Le périmètre de la veille est
+Le dernier est arrivé avec L1-02b et il regarde autre chose que les six autres :
+ceux-là disent que les politiques sont JUSTES, celui-ci dit que quelqu'un pose
+les variables qu'elles lisent. Une politique dont personne ne pose la variable ne
+garde rien — et, sur la forme « parc », elle OUVRE.
+
+**Sept est un instantané, pas une liste.** Le périmètre de la veille est
 **inversé** comme celui de l'audit (D55) : toute fonction d'écart que
 `scripts/lib/` déclare est un contrôle de veille par défaut, et n'y échappe que
 par une exclusion écrite et justifiée. La liste vit dans
 [`tests/unit/veille-hebergee.test.ts`](tests/unit/veille-hebergee.test.ts), et
-elle est fermée contre le répertoire lui-même : un septième contrôle écrit et
+elle est fermée contre le répertoire lui-même : un huitième contrôle écrit et
 jamais câblé fait échouer la vérification le jour où il est écrit. Une première
 rédaction du gardien exigeait « six », un nombre écrit à la main — elle
 attrapait le contrôle qu'on décâble et laissait passer celui qu'on n'a jamais

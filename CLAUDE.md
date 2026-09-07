@@ -194,12 +194,13 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
 pnpm partitions:etendre # étend l'horizon des partitions du journal
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
-                      # les contrôles d'observation — six aujourd'hui : RLS,
+                      # les contrôles d'observation — sept aujourd'hui : RLS,
                       # formes de politique, périmètre d'audit, ajout seul du
                       # journal, durcissement des partitions, privilèges de
-                      # consolidation ; la liste est FERMÉE CONTRE scripts/lib/,
-                      # inversée comme le périmètre d'audit, et six n'est qu'un
-                      # instantané (tests/unit/veille-hebergee.test.ts)
+                      # consolidation, ARMEMENT DU CONTEXTE (L1-02b) ; la liste
+                      # est FERMÉE CONTRE scripts/lib/, inversée comme le
+                      # périmètre d'audit, et sept n'est qu'un instantané
+                      # (tests/unit/veille-hebergee.test.ts)
                       # — joués CHAQUE NUIT contre la vraie base, sous le rôle
                       # APPLICATIF et en LECTURE SEULE (SET TRANSACTION READ
                       # ONLY). Le contrôle statique ne voit pas ce qu'une main

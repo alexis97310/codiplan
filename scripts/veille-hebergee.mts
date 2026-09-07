@@ -39,6 +39,13 @@ import {
   type LignePrivilegeJournal,
 } from "./lib/privileges-journal";
 import {
+  SQL_DEMANDES_CONTEXTE,
+  demandesContexte,
+  ecartsContexteArme,
+  rapportContexte,
+  type ExpressionObservee,
+} from "./lib/contexte-rls";
+import {
   SQL_ETAT_RLS,
   ecartsRlsDeclaree,
   rapportRlsDeclaree,
@@ -236,7 +243,7 @@ async function veiller(): Promise<void> {
   }
 }
 
-/** Les six contrôles, joués sur un instantané unique et verrouillé. */
+/** Les contrôles d'observation, joués sur un instantané unique et verrouillé. */
 async function observer(prisma: Prisma.TransactionClient): Promise<void> {
   {
     const colonnes =
@@ -258,6 +265,9 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     const consolidation = await prisma.$queryRawUnsafe<LignePrivilege[]>(
       SQL_PRIVILEGES_CONSOLIDATION,
       "codiplan_reporting",
+    );
+    const expressions = await prisma.$queryRawUnsafe<ExpressionObservee[]>(
+      SQL_DEMANDES_CONTEXTE,
     );
 
     const observees: TableObservee[] = colonnes.map((colonne) => ({
@@ -300,6 +310,17 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         nom: "privilèges du rôle de consolidation",
         rapport: rapportPrivileges(versPrivileges(consolidation)),
         ecarts: ecartsPrivilegesConsolidation(versPrivileges(consolidation)),
+      },
+      {
+        // L'armement du cloisonnement, et non plus seulement sa définition
+        // (L1-02b). Les cinq contrôles ci-dessus disent que les politiques sont
+        // JUSTES ; celui-ci dit que quelqu'un pose les variables qu'elles
+        // lisent. Une politique dont personne ne pose la variable ne garde rien
+        // — et, sur la forme « parc », elle OUVRE.
+        nom: "armement du contexte de session",
+        rapport:
+          rapportContexte(demandesContexte(expressions)).join("\n") + "\n",
+        ecarts: ecartsContexteArme(demandesContexte(expressions)),
       },
     ];
 
