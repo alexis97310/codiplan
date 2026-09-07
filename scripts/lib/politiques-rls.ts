@@ -164,13 +164,108 @@ export const CLOISONNEE_PAR_IDENTITE = ["societe"] as const;
  * ligne ajoutée en séance.
  */
 export const TABLES_PARC = [
-  { table: "client", perimetre: false },
-  { table: "site", perimetre: true },
-  { table: "machine", perimetre: true },
+  { table: "client", perimetre: false, colonnePerimetre: null },
+  { table: "site", perimetre: true, colonnePerimetre: "id" },
+  { table: "machine", perimetre: true, colonnePerimetre: "site_id" },
+  // `contact` rejoint le parc au ticket L1-03. Sa colonne de périmètre est
+  // NULLABLE, et c'est la première du dépôt : un contact sans site est un
+  // contact du CLIENT. Voir `ecartsPerimetreNullable`.
+  { table: "contact", perimetre: true, colonnePerimetre: "site_id" },
 ] as const;
 
-/** Les trois entrées que D10 et D22 autorisent aujourd'hui. Recopiées. */
-const PARC_ARBITRE = ["client", "site", "machine"];
+/** Les quatre entrées que D10, D22 et L1-03 autorisent aujourd'hui. Recopiées. */
+const PARC_ARBITRE = ["client", "site", "machine", "contact"];
+
+/**
+ * LA COLONNE DE PÉRIMÈTRE PEUT ÊTRE NULLABLE, ET ALORS LA CLAUSE DOIT LE DIRE
+ * (ticket L1-03).
+ *
+ * `site` et `machine` ne posaient pas la question : leur colonne de périmètre
+ * est `NOT NULL`. `contact` est la première dont elle ne l'est pas — un contact
+ * sans site est un contact du CLIENT, pas un contact orphelin.
+ *
+ * **Sans la branche `IS NULL`, la faute ne casse RIEN de visible** : la liste
+ * se raccourcit pour un compte portail restreint à certains sites, et personne
+ * ne sait ce qui manque. *On perdrait le comptable en restreignant un atelier.*
+ * C'est le piège que l'exploitation a nommé le 07/09/2026, avant qu'il ne se
+ * produise — et c'est exactement le genre de chose qu'une relecture laisse
+ * passer parce qu'elle ne produit aucun rouge.
+ *
+ * La NULLABILITÉ vient d'`information_schema`, une source que ce module ne
+ * contrôle pas : rendre la colonne `NOT NULL` sortirait la table de l'exigence,
+ * ce qui serait le `WHERE` qui recoupe l'assertion (§9, 31/08) — mais ce
+ * changement-là serait un changement de MODÈLE, visible et refusé ailleurs.
+ */
+export const SQL_COLONNES_PERIMETRE = `
+  SELECT "c"."table_name" AS "table",
+         "c"."column_name" AS "colonne",
+         ("c"."is_nullable" = 'YES') AS "nullable"
+    FROM "information_schema"."columns" "c"
+   WHERE "c"."table_schema" = 'public'
+   ORDER BY 1, 2
+`;
+
+export type ColonnePerimetre = {
+  readonly table: string;
+  readonly colonne: string;
+  readonly nullable: boolean;
+};
+
+/**
+ * Écarts : une table du parc dont la colonne de périmètre est NULLABLE doit
+ * porter la branche `<colonne> IS NULL` dans sa clause.
+ */
+export function ecartsPerimetreNullable(
+  colonnes: readonly ColonnePerimetre[],
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  if (colonnes.length === 0) {
+    return [
+      "aucune colonne observée : l'exigence de la branche `IS NULL` sur une " +
+        "colonne de périmètre nullable n'a rien gardé. Un décompte nul " +
+        "ressemble toujours à un sans-faute.",
+    ];
+  }
+
+  const ecarts: string[] = [];
+
+  for (const entree of TABLES_PARC) {
+    if (entree.perimetre !== true || entree.colonnePerimetre === null) {
+      continue;
+    }
+    const colonne = colonnes.find(
+      (c) => c.table === entree.table && c.colonne === entree.colonnePerimetre,
+    );
+    if (colonne === undefined || !colonne.nullable) {
+      continue;
+    }
+
+    for (const politique of politiques.filter(
+      (p) => p.table === entree.table,
+    )) {
+      for (const clause of clausesGardiennes(politique)) {
+        const motif = new RegExp(
+          `\\b${entree.colonnePerimetre}\\s+is\\s+null\\b`,
+          "i",
+        );
+        if (!motif.test(normaliser(clause))) {
+          ecarts.push(
+            entete(entree.table, "parc") +
+              `sa colonne de périmètre « ${entree.colonnePerimetre} » est ` +
+              `NULLABLE, et la politique « ${politique.nom} » ne porte pas la ` +
+              `branche \`${entree.colonnePerimetre} IS NULL\`. Une ligne SANS ` +
+              "valeur sur l'axe du périmètre DISPARAÎT alors pour tout compte " +
+              "portail restreint — et la faute ne casse rien de visible : la " +
+              "liste se raccourcit, et personne ne sait ce qui manque. On " +
+              "perdrait le comptable en restreignant un atelier.",
+          );
+        }
+      }
+    }
+  }
+
+  return ecarts;
+}
 
 /** Le journal d'audit : lecture habilitée, ajout seul (I8, L0-10). */
 export const TABLES_JOURNAL = ["journal_audit"] as const;

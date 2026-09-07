@@ -273,6 +273,16 @@ lib/
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
+  contacts/   interlocuteurs d'un client (L1-03) — saisie Zod
+              un contact appartient au CLIENT, le site est FACULTATIF : sans
+              site, c'est un contact du client, et il ne disparaît PAS pour un
+              compte portail restreint (le comptable survit à la restriction
+              d'un atelier)
+              les rôles et les canaux sont clos ICI et pas en base : une société
+              tierce aura d'autres rôles, une énumération en base ferait de leur
+              ajout une migration — le raisonnement des zones, en sens inverse
+              `signataire` est un rôle de l'ensemble, jamais une colonne à part
+              (RG-INT-04) ; aucun envoi n'est écrit ici, L1-03 pose la DONNÉE
   sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
               cloisonné, zones géographiques de D23
               la politique de `site` est de forme « parc » AVEC le filtre de
@@ -432,6 +442,12 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   *Mesuré le 06/09, propriétaire non superutilisateur, deux lignes en table : `FORCE` actif → **0 ligne vue** ; `NO FORCE` → 2 ; superutilisateur → 2.* Et c'est la seconde moitié qui fait le piège : **en local, le rôle de migration est superutilisateur et contourne RLS.** Le bloc voit tout ici et rien sur la base hébergée — le seul environnement où le défaut existe est le seul qui ne soit jamais exercé, exactement comme le délai de transaction du 23/08.
 
   **La règle, et elle ne vise pas une réparation : tout bloc de garde qui lit une table sous `FORCE` doit rendre visible le mécanisme qui pourrait l'aveugler.** Lever le drapeau pour la durée du diagnostic et le rendre dans la même transaction ; et surtout **refuser de compter tant que la levée n'est pas constatée**. Le témoin porte sur le MÉCANISME, jamais sur un décompte — un décompte légitimement nul le rendrait muet, ce qui est précisément le cas qu'on veut distinguer. `scripts/lib/gardes-migration.ts` tient la règle et l'INVENTAIRE des migrations déjà appliquées qui la violent : une seule, `20260823130000`, avec deux blocs, immuable et sans reprise à faire — ce qu'elle perd est la lisibilité du refus, pas le refus, la contrainte qui suit échouant d'elle-même. **Un défaut connu et inventorié n'est pas le même objet qu'un défaut connu et unique.**
+
+- **07/09/2026 — LA DIVERGENCE ENTRE DEUX CHEMINS EST UN INSTRUMENT, PAS UN INCONVÉNIENT.** Le §9 nomme déjà la divergence comme un DÉFAUT — deux implémentations d'un même contrat, chacune verte, qui s'écartent en silence (01/09). Voici son autre face : **quand deux chemins qui devraient se ressembler ne se ressemblent pas, l'écart désigne l'endroit exact où une hypothèse est fausse.** C'est le seul instrument qui fonctionne sur un système dont on ne connaît pas la règle.
+
+  Mesuré deux fois le 07/09, sur des objets sans rapport. **(1)** `signUpEmail` échouait sous une politique d'écriture, mais le SEED passait — même table, même politique, même rôle. La seule différence : le seed appelle `upsert`, qui porte un `where`, là où l'inscription appelle `create`, qui n'en a pas. L'écart a désigné la cause : **Prisma n'émet pas un `INSERT` nu mais un `INSERT … RETURNING`, et PostgreSQL soumet le `RETURNING` à la politique de LECTURE.** Une création refusait alors que son `WITH CHECK` l'autorisait, et aucun message ne le disait. **(2)** `TABLES_HORS_CLOISONNEMENT` contredisait la base, et **aucune suite locale ne pouvait l'attraper** — les témoins de l'inventaire exigent d'écrire puis de comparer, ce que `test:isolation` ne fait pas. Seul le contrôle de la base hébergée regardait là ; il a échoué exactement où il était seul à regarder, et c'est la définition d'un contrôle qui sert.
+
+  **Corollaire de méthode.** Quand une épreuve échoue ici et passe là, ne cherchez pas d'abord laquelle a tort : cherchez **ce qui diffère entre les deux appels**, et faites-en varier une chose à la fois. Et corollaire de conception : **un contrôle qui n'échoue jamais là où les autres échouent déjà ne prouve rien.** Celui qui mérite d'exister est celui qui regarde où personne d'autre ne regarde.
 
 - **07/09/2026 — UN RÉSULTAT QUI VOUS SURPREND EN BIEN EST UN SOUPÇON SUR LA MESURE AVANT D'ÊTRE UN FAIT SUR LE MONDE.** Espèce à nommer séparément de la vacuité du 30/08, parce que le SIGNAL est différent — et c'est le seul signal qu'un gardien creux émette jamais.
 

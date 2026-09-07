@@ -33,12 +33,16 @@ import {
  * réduit la couverture en silence.
  */
 describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
-  it("ne contient que `client`, `site` et `machine`", () => {
+  it("ne contient que `client`, `site`, `machine` et `contact`", () => {
     expect(ecartsListeParc()).toEqual([]);
     expect(TABLES_PARC.map((entree) => entree.table)).toEqual([
       "client",
       "site",
       "machine",
+      // `contact` rejoint le parc au ticket L1-03, et sa colonne de périmètre
+      // est la PREMIÈRE nullable du dépôt : un contact sans site est un contact
+      // du client.
+      "contact",
     ]);
   });
 
@@ -51,11 +55,11 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       Object.fromEntries(
         TABLES_PARC.map((entree) => [entree.table, entree.perimetre]),
       ),
-    ).toEqual({ client: false, site: true, machine: true });
+    ).toEqual({ client: false, site: true, machine: true, contact: true });
   });
 
   it("ÉCHOUE sur un RETRAIT — le geste que É14 décrit", () => {
-    const ecarts = ecartsListeParc(["site", "machine"]);
+    const ecarts = ecartsListeParc(["site", "machine", "contact"]);
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("client");
@@ -66,7 +70,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     // Sans cette mesure, le gardien pourrait ne mordre que sur l'entrée qui a
     // motivé son écriture — et laisser partir `site` ou `machine` en silence
     // aux tickets L1-02 et L2-01, où la même faute se commettra.
-    for (const partie of ["client", "site", "machine"]) {
+    for (const partie of ["client", "site", "machine", "contact"]) {
       const restantes = TABLES_PARC.map((entree) => entree.table).filter(
         (table) => table !== partie,
       );
@@ -85,6 +89,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       "client",
       "site",
       "machine",
+      "contact",
       "intervention",
     ]);
 
@@ -93,9 +98,9 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     expect(ecarts[0]).toContain("arbitrage");
   });
 
-  it("ÉCHOUE sur une liste VIDE, et le dit trois fois", () => {
+  it("ÉCHOUE sur une liste VIDE, et le dit quatre fois", () => {
     // Le cas dégénéré : vider la liste ferait sortir les trois tables du
     // périmètre du gardien de forme sans qu'aucune ne soit nommée ailleurs.
-    expect(ecartsListeParc([])).toHaveLength(3);
+    expect(ecartsListeParc([])).toHaveLength(4);
   });
 });

@@ -40,6 +40,7 @@ import {
   ROLE_REPORTING,
   SITE_A1_S1,
   SITE_A1_S2,
+  SITE_A2_S1,
   SITE_B1_S1,
   SOCIETE_A,
   SOCIETE_B,
@@ -48,6 +49,8 @@ import {
   UTILISATEUR_PORTAIL_B,
   PORTAIL_A2_CLIENT,
   PERIMETRE_A1_S1,
+  CONTACT_A1_COMPTABLE,
+  CONTACT_A1_ATELIER,
 } from "./fixtures";
 import {
   CONTRAT_PARC,
@@ -522,11 +525,15 @@ export default async function setup(): Promise<void> {
       INSERT INTO "site" ("id", "societe_id", "client_id", "agence_id", "libelle", "temps_trajet_min") VALUES
         ('${SITE_A1_S1}', '${SOCIETE_A}', '${CLIENT_A1}', '${AGENCE_A}', 'Site A1-1', 25),
         ('${SITE_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', '${AGENCE_A}', 'Site A1-2', NULL),
+        ('${SITE_A2_S1}', '${SOCIETE_A}', '${CLIENT_A2}', '${AGENCE_A}', 'Site A2-1', 15),
         ('${SITE_B1_S1}', '${SOCIETE_B}', '${CLIENT_B1}', '${AGENCE_B}', 'Site B1-1', 40);
       INSERT INTO "machine" ("id", "societe_id", "client_id", "site_id", "qr_token", "numero_serie") VALUES
         ('${MACHINE_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1'),
         ('${MACHINE_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2'),
         ('${MACHINE_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1');
+      INSERT INTO "contact" ("id", "societe_id", "client_id", "site_id", "nom", "roles", "canaux", "email") VALUES
+        ('${CONTACT_A1_COMPTABLE}', '${SOCIETE_A}', '${CLIENT_A1}', NULL, 'Comptable du client', ARRAY['comptabilite'], ARRAY['email'], 'compta@a1.test'),
+        ('${CONTACT_A1_ATELIER}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', 'Chef d''atelier S2', ARRAY['contact_technique','signataire'], ARRAY['email'], 'atelier@a1.test');
       INSERT INTO "modele_materiel" ("id", "societe_id", "libelle") VALUES
         ('${MODELE_PLATEFORME}', NULL, 'Compresseur (plateforme)'),
         ('${MODELE_SURCHARGE_A}', '${SOCIETE_A}', 'Compresseur (surcharge A)'),

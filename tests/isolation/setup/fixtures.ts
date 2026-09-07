@@ -84,6 +84,10 @@ export const CLIENT_B1 = "bbbbbbbb-0000-7000-8000-0000000000c1";
 /** Sites (fixture). Deux sites pour le client A1, un pour B1. */
 export const SITE_A1_S1 = "aaaaaaaa-0000-7000-8000-00000000551a";
 export const SITE_A1_S2 = "aaaaaaaa-0000-7000-8000-00000000551b";
+/** Un site du client A2 — MÊME société que A1. Sans lui, l'épreuve de la clé
+ * triple (société, client, site) ne pourrait pas distinguer « autre client » de
+ * « autre société », et prouverait la mauvaise chose. */
+export const SITE_A2_S1 = "aaaaaaaa-0000-7000-8000-00000000552a";
 export const SITE_B1_S1 = "bbbbbbbb-0000-7000-8000-00000000551a";
 
 /** Machines (fixture) et leurs jetons QR (uniques globalement, D22). */
@@ -178,6 +182,17 @@ export const PORTAIL_A2_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d6";
 
 /** L'entrée de périmètre du compte portail A1 : le site S1, et lui seul. */
 export const PERIMETRE_A1_S1 = "aaaaaaaa-0000-7000-8000-0000000000e1";
+
+/**
+ * Deux contacts du client A1 (L1-03), et c'est leur COUPLE qui démontre.
+ *
+ * `CONTACT_A1_COMPTABLE` n'a AUCUN site : c'est un contact du client.
+ * `CONTACT_A1_ATELIER` est rattaché à `SITE_A1_S2`, hors du périmètre du compte
+ * portail. Un seul des deux disparaît pour ce compte — et si les deux
+ * disparaissaient, on aurait perdu le comptable en restreignant un atelier.
+ */
+export const CONTACT_A1_COMPTABLE = "aaaaaaaa-0000-7000-8000-0000000000f1";
+export const CONTACT_A1_ATELIER = "aaaaaaaa-0000-7000-8000-0000000000f2";
 
 /**
  * Jours fériés fictifs des deux territoires, sur un **horizon glissant**

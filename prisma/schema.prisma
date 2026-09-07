@@ -135,6 +135,7 @@ model Societe {
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
   perimetres_portail   UtilisateurClientSite[]
+  contacts             Contact[]
   clients              Client[]
   sessions_actives     Session[]
   sites                Site[]
@@ -483,9 +484,10 @@ model Client {
   /// est un UUID v7 technique (I10) qui ne change jamais, et `Cascade`
   /// promettrait silencieusement de réécrire tout un parc client si cela
   /// survenait.
-  societe Societe             @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sites   Site[]
-  comptes UtilisateurClient[]
+  societe  Societe             @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sites    Site[]
+  comptes  UtilisateurClient[]
+  contacts Contact[]
 
   @@unique([societe_id, code_externe])
   /// Clé composite technique — cible du chaînage de `site` et de
@@ -635,7 +637,11 @@ model Site {
 
   /// Cible du chaînage composite depuis `utilisateur_client_site` (L1-02b).
   perimetres UtilisateurClientSite[]
+  contacts   Contact[]
 
+  /// Cible du chaînage TRIPLE depuis `contact` : un contact rattaché à un site
+  /// doit l'être à un site DE SON CLIENT, et c'est la clé qui le tient.
+  @@unique([societe_id, client_id, id])
   /// Sans la société DANS la clé, un périmètre pourrait désigner le site d'une
   /// AUTRE société — et les contrôles d'intégrité référentielle contournent les
   /// politiques RLS par construction.
@@ -1088,4 +1094,60 @@ model JournalAudit {
   /// l'activité d'une société, la plus récente d'abord.
   @@index([societe_id, horodatage])
   @@map("journal_audit")
+}
+
+/// Contact d'un client (L1-03, chapitre 3 M1, RG-INT-04, RG-INT-05).
+///
+/// **Un contact appartient au CLIENT, avec un rattachement de site FACULTATIF**
+/// (décision d'exploitation du 07/09/2026). Le donneur d'ordre et le comptable
+/// sont ceux du client ; chez un client à plusieurs sites, certains
+/// interlocuteurs ne concernent qu'un site. `site_id` nul PORTE DU SENS — il
+/// dit « contact du client » — et un tel contact ne disparaît pas pour un
+/// compte portail restreint à certains sites.
+///
+/// Politique de forme « parc », avec la DISJONCTION que cette nullité impose.
+model Contact {
+  id         String  @id @db.Uuid
+  societe_id String  @db.Uuid
+  client_id  String  @db.Uuid
+  /// NULL = contact du CLIENT. Non nul = contact d'un site, filtré par le
+  /// périmètre. Le site doit appartenir au même client : la clé composite
+  /// `(societe_id, client_id, site_id)` le tient déclarativement.
+  site_id    String? @db.Uuid
+
+  nom       String
+  fonction  String?
+  telephone String?
+  mobile    String?
+  email     String?
+
+  /// Ensemble, jamais un scalaire : le donneur d'ordre est souvent aussi le
+  /// signataire. `String[]` et non un type énuméré — une société tierce aura
+  /// d'autres rôles, et une énumération en base ferait de leur ajout une
+  /// migration. La liste connue est close à l'entrée serveur. RG-INT-04 lit
+  /// « signataire » ICI : il n'y a pas de colonne à part.
+  roles String[]
+
+  /// Canaux de notification. Un seul est implémenté — `email` —, et aucune
+  /// passerelle SMS n'est en service ni décidée. Le modèle ne fait pas du SMS
+  /// une migration : le jour où une passerelle existe, `sms` s'ajoute à la
+  /// liste close de l'entrée serveur. Critère de bascule non daté, au registre.
+  canaux String[] @default(["email"])
+
+  actif Boolean @default(true)
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Restrict` en suppression : effacer un client dont des contacts dépendent
+  /// est refusé — RG-INT-04 s'appuie sur eux. `Restrict` en mise à jour :
+  /// `client.id` est un UUID v7 technique et un client ne déménage pas d'une
+  /// société à l'autre (RG-SOC-04).
+  client  Client  @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Restrict` en suppression. **`SetNull` aurait été le piège** : il
+  /// transformerait EN SILENCE un contact de site en contact de client,
+  /// c'est-à-dire l'élargirait à tous les comptes portail du client (§9, 24/08).
+  site    Site?   @relation(fields: [societe_id, client_id, site_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, client_id])
+  @@index([societe_id, site_id])
+  @@map("contact")
 }

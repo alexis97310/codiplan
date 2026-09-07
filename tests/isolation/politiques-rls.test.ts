@@ -151,6 +151,7 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect(parForme.get("société")).toContain("utilisateur_societe");
     expect([...(parForme.get("parc") ?? [])].sort()).toEqual([
       "client",
+      "contact",
       "machine",
       "site",
     ]);
