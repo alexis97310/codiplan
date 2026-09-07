@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
+import { avecDesignationIdentite } from "@/lib/auth/lecture-identite";
 import { Role } from "@/lib/auth/roles";
 import { basculerSociete } from "@/lib/auth/societe-active";
 
@@ -19,10 +20,30 @@ import { SOCIETE_A } from "./setup/fixtures";
  */
 const auth = creerAuth(clientApp());
 
+/**
+ * L'instance qui OUVRE un compte (L1-02c). Personne ne crée son propre compte :
+ * l'ouverture est un acte administratif, sous une société et par le rôle qui
+ * administre — matrice §5.2. Le harnais emprunte donc le MÊME chemin que la
+ * production, plutôt que de s'accorder une porte que la production n'a pas.
+ */
+const authAdmin = creerAuth(clientApp(), {
+  societeId: SOCIETE_A,
+  role: Role.admin_societe,
+});
+
+/** Lecture d'identité par le chemin de production : elle NOMME la ligne. */
+const lectureIdentite = avecDesignationIdentite(clientApp());
+
+/** Écriture d'identité : acte administratif, sous société et rôle. */
+const ecritureIdentite = avecDesignationIdentite(clientApp(), {
+  societeId: SOCIETE_A,
+  role: Role.admin_societe,
+});
+
 const MOT_DE_PASSE = "mot-de-passe-de-test-suffisamment-long";
 
 async function inscrire(email: string, nom: string): Promise<string> {
-  const resultat = await auth.api.signUpEmail({
+  const resultat = await authAdmin.api.signUpEmail({
     body: { email, password: MOT_DE_PASSE, name: nom },
   });
   return resultat.user.id;
@@ -35,7 +56,12 @@ describe("inscription", () => {
     const email = "inscription@iso.test";
     const id = await inscrire(email, "Nouvel arrivant");
 
-    const utilisateur = await clientApp().utilisateur.findUniqueOrThrow({
+    // La lecture passe par le CHEMIN DE PRODUCTION (L1-02c) : `utilisateur` est
+    // cloisonnée en base, et `FORCE` s'applique au propriétaire comme au rôle
+    // applicatif. Une lecture sans contexte rendrait zéro — c'est la garantie,
+    // pas un obstacle. L'enveloppe nomme la ligne, exactement comme le fera
+    // l'application.
+    const utilisateur = await lectureIdentite.utilisateur.findUniqueOrThrow({
       where: { email },
     });
 
@@ -157,9 +183,25 @@ describe("second facteur", () => {
     const email = "second-facteur@iso.test";
     const id = await inscrire(email, "Compte second facteur");
 
+    // L'habilitation d'abord, la configuration ensuite — et c'est l'ORDRE de
+    // production (L1-02c) : `utilisateur_modification` ne laisse modifier que
+    // les identités habilitées sur la société active. Une identité tout juste
+    // ouverte et pas encore rattachée n'est modifiable par personne, ce qui est
+    // le bon sens du défaut.
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: "aaaaaaaa-0000-7000-8000-000000000732",
+        utilisateur_id: id,
+        societe_id: SOCIETE_A,
+        role: Role.adv,
+      },
+    });
+
     // `mfa_actif` EST le `twoFactorEnabled` du greffon : l'activer suffit à ce
-    // que la connexion s'arrête au premier facteur.
-    await clientApp().utilisateur.update({
+    // que la connexion s'arrête au premier facteur. Modifier une identité est
+    // un acte administratif : `utilisateur_modification` exige une société
+    // active et le rôle qui administre.
+    await ecritureIdentite.utilisateur.update({
       where: { id },
       data: { mfa_actif: true },
     });

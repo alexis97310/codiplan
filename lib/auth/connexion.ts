@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma as clientParDefaut } from "@/lib/db/client";
 
 import { auth, type Auth } from "./config";
+import { avecDesignationIdentite } from "./lecture-identite";
 import { avecPlancherDeDuree, motifRefusUniforme } from "./reponse-uniforme";
 
 /**
@@ -111,15 +112,36 @@ export async function tenterConnexion(
       return refus();
     }
 
+    // ── DEUX LECTURES, ET NON UNE JOINTURE (L1-02c) ────────────────────────
+    //
+    // Cette ligne lisait `utilisateur` par une relation IMBRIQUÉE OBLIGATOIRE
+    // depuis `session`. Depuis que `utilisateur` porte une politique, Prisma
+    // lève « Field utilisateur is required to return data, got null » : la
+    // relation est filtrée, et il refuse de rendre une ligne incomplète.
+    //
+    // La séparation n'est pas un contournement, c'est la forme juste. La
+    // session se lit par son jeton — `session` n'a pas de politique (troisième
+    // catégorie de I1, D34). L'identité se lit par son IDENTIFIANT, que
+    // l'appelant tient déjà de la réponse de Better Auth : c'est très
+    // exactement la forme « désignation », et l'enveloppe de
+    // `lib/auth/lecture-identite.ts` la nomme.
     const session = await client.session.findUnique({
       where: { token: ouverte.data.token },
-      select: { id: true, utilisateur: { select: { actif: true } } },
+      select: { id: true, utilisateur_id: true },
     });
+
+    const identite =
+      session === null
+        ? null
+        : await avecDesignationIdentite(client).utilisateur.findUnique({
+            where: { id: session.utilisateur_id },
+            select: { actif: true },
+          });
 
     // Compte désactivé : Better Auth ne connaît pas `utilisateur.actif`, qui est
     // à nous. La session qu'il vient d'ouvrir est retirée — sans quoi un compte
     // désactivé garderait un jeton valide —, et le refus reste le même.
-    if (session === null || !session.utilisateur.actif) {
+    if (session === null || identite === null || !identite.actif) {
       await client.session.deleteMany({
         where: { token: ouverte.data.token },
       });

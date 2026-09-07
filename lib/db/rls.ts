@@ -100,6 +100,27 @@ export const VARIABLE_SESSION_CLIENT = "app.client_id";
 export const VARIABLE_SESSION_PERIMETRE = "app.perimetre_sites";
 
 /**
+ * Nom de la variable nommant la ligne d'identité que la VÉRIFICATION
+ * D'IDENTIFIANTS a le droit de lire, par son courriel (L1-02c).
+ *
+ * **C'est la forme « désignation », et sa borne est dans son nom** : elle ne
+ * vaut que pour les opérations qui PRÉCÈDENT le contexte de locataire —
+ * l'authentification, et rien d'autre. Elle n'autorise que la ligne que
+ * l'appelant nommait DÉJÀ : elle ne rend jamais plus que ce qu'il savait avant
+ * d'interroger.
+ *
+ * Elle figure dans `POSE` — donc posée à VIDE par tout contexte ordinaire — et
+ * c'est indispensable : sur une connexion mutualisée, une variable non posée
+ * hérite de ce que la transaction précédente y a laissé. `lib/auth/lecture-identite.ts`
+ * la renseigne, et seulement à l'intérieur de sa propre transaction.
+ */
+export const VARIABLE_SESSION_AUTH_EMAIL = "app.authentification_email";
+
+/** Même chose, par identifiant : Better Auth relit l'identité qu'il vient de trouver. */
+export const VARIABLE_SESSION_AUTH_UTILISATEUR =
+  "app.authentification_utilisateur_id";
+
+/**
  * Contexte de session posé sur la transaction : société, rôle, auteur, adresse.
  *
  * Un objet plutôt que quatre paramètres positionnels : `avecContexteRls(prisma,
@@ -160,6 +181,10 @@ const POSE: readonly {
   // cas : sur une connexion mutualisée, une variable non posée hérite de ce que
   // la transaction précédente y a laissé.
   { variable: VARIABLE_SESSION_PERIMETRE, valeur: () => "" },
+  // Les deux désignations d'authentification : TOUJOURS remises à vide par un
+  // contexte ordinaire. C'est leur pose la plus importante — celle qui REFERME.
+  { variable: VARIABLE_SESSION_AUTH_EMAIL, valeur: () => "" },
+  { variable: VARIABLE_SESSION_AUTH_UTILISATEUR, valeur: () => "" },
 ];
 
 /**

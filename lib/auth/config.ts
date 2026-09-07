@@ -4,6 +4,11 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { twoFactor } from "better-auth/plugins";
 
 import { prisma } from "@/lib/db/client";
+
+import {
+  avecDesignationIdentite,
+  type ContexteAdministratif,
+} from "./lecture-identite";
 import { uuidv7 } from "@/lib/db/uuid";
 
 /**
@@ -90,11 +95,21 @@ export const CHAMPS_SECOND_FACTEUR = {
  * monter sur la base jetable des tests d'isolation, avec le rôle applicatif
  * réel, sans dupliquer la configuration éprouvée en production.
  */
-export function creerAuth(client: PrismaClient = prisma) {
+export function creerAuth(
+  client: PrismaClient = prisma,
+  administration?: ContexteAdministratif,
+) {
   return betterAuth({
     appName: "CODIPLAN",
     secret: process.env[VARIABLE_SECRET],
-    database: prismaAdapter(client, { provider: "postgresql" }),
+    // L'ENVELOPPE DE DÉSIGNATION (L1-02c). `utilisateur` est cloisonnée en
+    // base, et l'authentification précède la société : chaque lecture doit
+    // NOMMER la ligne qu'elle demande, dans sa propre transaction. L'adaptateur
+    // n'est pas déformé — il reçoit un client Prisma, et c'est tout ce qu'il
+    // connaît.
+    database: prismaAdapter(avecDesignationIdentite(client, administration), {
+      provider: "postgresql",
+    }),
     advanced: {
       database: {
         // I10 — clé technique UUID v7, y compris pour les tables d'identité.

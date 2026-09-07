@@ -407,20 +407,34 @@ l'autre ne dit ce que la politique **laisse passer**. Une table peut porter les
 deux drapeaux et une politique `USING (true)` : l'attribut est irréprochable et
 le cloisonnement n'existe plus.
 
-Il y a **six formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
+Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 
-| Forme            | Clause                                                           | Exemple                                                  |
-| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
-| **identité**     | `id = app.societe_id`                                            | `societe` (D42)                                          |
-| **société**      | `societe_id = app.societe_id`                                    | `agence`, `calendrier`                                   |
-| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                | `devise`, `jour_ferie` (D4)                              |
-| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`      | `client`, `site`, `machine` (D10, D22)                   |
-| **journal**      | `SELECT` habilité, `INSERT` seul                                 | `journal_audit` (I8)                                     |
-| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne ) | `utilisateur_client`, `utilisateur_client_site` (L1-02b) |
+| Forme            | Clause                                                                             | Exemple                                                  |
+| ---------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **identité**     | `id = app.societe_id`                                                              | `societe` (D42)                                          |
+| **société**      | `societe_id = app.societe_id`                                                      | `agence`, `calendrier`                                   |
+| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                  | `devise`, `jour_ferie` (D4)                              |
+| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine` (D10, D22)                   |
+| **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                     |
+| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b) |
+| **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c)                                   |
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
 salarié de l'éditeur en le retirant à la société propriétaire.
+
+La forme **« désignation »** porte sa **borne avant son nom** : elle ne vaut que
+pour les opérations qui **précèdent** le contexte de locataire —
+l'authentification, et rien d'autre. Chercher « existe-t-il un compte pour ce
+courriel » se fait quand aucune société n'est connue et ne peut l'être. Elle
+n'autorise que la lecture de **la ligne que l'appelant nommait déjà**, et ne rend
+donc jamais plus que ce qu'il savait avant d'interroger. Liste close à une
+entrée, gardée dans les deux sens.
+
+Et une politique qui n'énonce qu'un `USING` **légifère en silence sur les
+écritures** : PostgreSQL y fait valoir la même expression. Toute politique
+couvrant une écriture énonce donc son `WITH CHECK`, **même quand il répète le
+`USING`** — pour que ce soit une décision et non une conséquence.
 
 La forme **« habilitation »** vise les tables qui **donnent** accès au parc,
 jamais les données du parc. Leur donner la forme « parc » serait circulaire :
@@ -593,7 +607,16 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 1 entamé. **L1-02b** ferme deux choses d'un coup : le périmètre de sites
+Lot 1 entamé. **L1-02c** cloisonne les **identités par la base** : `utilisateur`
+ne l'était que par l'application, et une garantie qui ne vit que là n'en est pas
+une. La difficulté était réelle — l'authentification **précède** la société —, et
+elle se résout en séparant deux lectures qu'on avait confondues : la
+**vérification d'identifiants**, qui porte déjà en entrée la seule ligne qu'elle a
+le droit de voir, et la **lecture d'identités**, qui est une opération de
+locataire. Au passage, l'inscription en libre-service est **fermée** : personne ne
+crée son propre compte, jamais — ce n'est pas une restriction, c'est le métier.
+
+**L1-02b** ferme deux choses d'un coup : le périmètre de sites
 devient une table (`utilisateur_client_site`) avec une vraie clé étrangère, et
 le contexte de session est enfin **armé** — `lib/db/rls.ts` posait quatre
 variables là où les politiques en réclamaient six, si bien que les scénarios

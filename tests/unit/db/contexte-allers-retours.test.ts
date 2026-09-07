@@ -102,7 +102,7 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
     expect(perimetre?.sql).toContain("','");
   });
 
-  it("pose RÉELLEMENT les six variables, avec leurs valeurs", async () => {
+  it("pose RÉELLEMENT toutes les variables, avec leurs valeurs", async () => {
     const [emission] = await emissionsDe(CONTEXTE);
     const noms = (emission?.parametres ?? []).filter(
       (valeur, rang) => rang % 2 === 0,
@@ -111,7 +111,11 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
     // C'est ici que la liste close et le comportement se confrontent : la
     // seconde n'est pas écrite à côté de la première, elle en est tirée.
     expect(noms).toEqual([...VARIABLES_CONTEXTE]);
-    expect(noms).toHaveLength(6);
+    // Huit depuis L1-02c : les deux DÉSIGNATIONS d'authentification s'ajoutent,
+    // et leur pose la plus importante est celle qui les REMET À VIDE — sur une
+    // connexion mutualisée, une variable non posée hérite de ce que la
+    // transaction précédente y a laissé.
+    expect(noms).toHaveLength(8);
 
     const valeurs = (emission?.parametres ?? []).filter(
       (valeur, rang) => rang % 2 === 1,
@@ -137,8 +141,8 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
       (valeur, rang) => rang % 2 === 1,
     );
 
-    expect(valeurs).toHaveLength(6);
-    expect(valeurs.slice(1)).toEqual(["", "", "", "", ""]);
+    expect(valeurs).toHaveLength(8);
+    expect(valeurs.slice(1)).toEqual(["", "", "", "", "", "", ""]);
   });
 
   it("les paramètres sont LIÉS : aucune valeur dans le texte SQL", () => {
