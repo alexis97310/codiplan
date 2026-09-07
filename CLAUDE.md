@@ -291,6 +291,14 @@ lib/
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
+  habilitations/ qualifications des techniciens (L1-04) — saisie Zod, et
+              RG-PLA-04 : l'affectation est BLOQUÉE, jamais signalée
+              rien n'est clos ici, à l'inverse des zones et des rôles de
+              contact : une société suit des qualifications qu'aucune
+              nomenclature ne connaît (D60). La liste réglementaire française
+              est un AMORÇAGE du seed, pas une énumération
+              la règle vit ici et non en base : elle dépend d'une date
+              d'intervention que la base ne connaît pas encore
   contacts/   interlocuteurs d'un client (L1-03) — saisie Zod
               un contact appartient au CLIENT, le site est FACULTATIF : sans
               site, c'est un contact du client, et il ne disparaît PAS pour un

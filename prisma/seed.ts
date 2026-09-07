@@ -11,6 +11,7 @@ import {
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  HABILITATIONS_AMORCAGE,
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
@@ -442,6 +443,39 @@ async function seed(): Promise<void> {
               agence_id: agenceId,
               ...champsSite,
               horaires: horaires ?? Prisma.DbNull,
+            },
+          });
+        }
+
+        // ── L'AMORÇAGE DES HABILITATIONS (D60, L1-04) ───────────────────────
+        //
+        // Ce n'est PAS de la démonstration : les codes et libellés sont des
+        // faits — NF C 18-510, recommandation R489. Ce qui est de la
+        // démonstration, ailleurs dans ce seed, est dit comme tel ; ici, c'est
+        // le point de départ que toute société reçoit à son ouverture, et
+        // qu'elle peut ensuite compléter ou réduire.
+        //
+        // Les durées de validité restent NULLES : la périodicité de recyclage
+        // est une pratique d'entreprise, pas une valeur que la norme chiffre.
+        // L'inventer serait inventer une donnée métier (§8). `NULL` se lit
+        // « n'expire pas » et ne bloque personne à tort.
+        //
+        // Idempotence par la clé unique `(societe_id, code)` et non par un
+        // identifiant fixe : ces lignes existent une fois par société.
+        etape(
+          `${societe.code} — amorçage des habilitations : ${HABILITATIONS_AMORCAGE.length}`,
+        );
+        for (const habilitation of HABILITATIONS_AMORCAGE) {
+          await tx.habilitation.upsert({
+            where: {
+              societe_id_code: { societe_id: id, code: habilitation.code },
+            },
+            update: { libelle: habilitation.libelle },
+            create: {
+              id: uuidv7(),
+              societe_id: id,
+              code: habilitation.code,
+              libelle: habilitation.libelle,
             },
           });
         }

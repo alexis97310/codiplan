@@ -132,11 +132,16 @@ export const RAPPEL_FORMES = [
     "discriminant est `app.client_id`, posée pour un compte portail et pour " +
     "lui seul ; la restriction s'ancre sur `app.utilisateur_id`, ou sur " +
     "l'habilitation parente pour la table de périmètre.",
+  "filiation  — `EXISTS (SELECT 1 FROM <parent> WHERE <parent>.id = " +
+    "<fille>.<fk>)` : une fille est visible si son parent l'est. " +
+    "`site_habilitation_requise` (L1-04). AUCUNE clause de société n'y est " +
+    "ajoutée — elle serait une seconde source du même fait ; c'est la clé " +
+    "étrangère composite qui empêche la fille de dériver de son parent.",
 ].join("\n  ");
 
 /** Les formes que ce gardien sait exiger. */
 export type Forme =
-  "identité" | "société" | "parc" | "journal" | "habilitation";
+  "identité" | "société" | "parc" | "journal" | "habilitation" | "filiation";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -752,6 +757,9 @@ export function formeAttendue(table: string): Forme {
   if (TABLES_HABILITATION.some((entree) => entree.table === table)) {
     return "habilitation";
   }
+  if (TABLES_FILIATION.some((entree) => entree.table === table)) {
+    return "filiation";
+  }
   return "société";
 }
 
@@ -1153,6 +1161,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsJournal(table, siennes));
     } else if (forme === "habilitation") {
       ecarts.push(...ecartsHabilitation(table, siennes));
+    } else if (forme === "filiation") {
+      ecarts.push(...ecartsFiliation(table, siennes));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }
@@ -1242,6 +1252,120 @@ export type TableEtParents = {
  * qui en référence une autre n'en est pas une fille au sens de cette forme —
  * `site` référence `client`, et les deux portent déjà « parc ».
  */
+/**
+ * LA SIXIÈME FORME, CONSTRUITE AU TICKET L1-04 — « filiation ».
+ *
+ * *Une fille est visible si son parent l'est.* Le principe était tranché depuis
+ * L1-02 et la forme délibérément NON construite : le critère qui l'appelait
+ * était **la première table fille réelle d'une table du parc**, une borne qui
+ * porte sa condition plutôt qu'une date. `site_habilitation_requise` est cette
+ * table.
+ *
+ * `parent` et `cle` disent l'adossement : la clause s'écrit
+ * `EXISTS (SELECT 1 FROM <parent> WHERE <parent>.id = <fille>.<cle>)`, et rien
+ * d'autre. **Aucune clause de société n'y est ajoutée**, et c'est une décision :
+ * elle serait redondante avec celle que le parent porte déjà, donc une seconde
+ * source du même fait (§9, 01/09). Ce qui empêche une fille de dériver de la
+ * société de son parent n'est pas une clause mais la clé étrangère composite,
+ * contrôlée par la base et exempte de RLS par construction.
+ *
+ * **Liste close, gardée dans les deux sens** — comme `TABLES_PARC`, et pour la
+ * même raison : c'est le RETRAIT qui ouvre la brèche. Une fille qui perdrait
+ * cette forme retomberait sur « société », et un compte portail restreint au
+ * site S1 lirait les lignes filles du site S2.
+ */
+export const TABLES_FILIATION = [
+  { table: "site_habilitation_requise", parent: "site", cle: "site_id" },
+] as const;
+
+/** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
+const FILIATION_ARBITREE = ["site_habilitation_requise"];
+
+/** Écarts de la liste « filiation » — additions comme retraits. */
+export function ecartsListeFiliation(
+  liste: readonly string[] = TABLES_FILIATION.map((entree) => entree.table),
+): string[] {
+  const ecarts = liste
+    .filter((table) => !FILIATION_ARBITREE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « filiation ». Elle ne vaut ` +
+        "que pour une table FILLE d'une table du parc — une donnée du parc " +
+        "dont la visibilité doit suivre celle de son parent. Une table qui " +
+        "DONNE accès au parc relève de la forme « habilitation », jamais de " +
+        "celle-ci : l'y ranger serait circulaire.",
+    );
+
+  for (const arbitree of FILIATION_ARBITREE) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « filiation » : elle ` +
+          "retomberait sur la clause de société seule, et un compte portail " +
+          "restreint au site S1 lirait les exigences du site S2 du même " +
+          "client. Le RETRAIT est ici le geste dangereux — il ne casse rien " +
+          "de visible.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/**
+ * Écarts de la forme « filiation » : la clause doit s'adosser au PARENT.
+ *
+ * Deux exigences, et la seconde est celle qu'on oublie : la sous-requête nomme
+ * le parent ET la clé étrangère de la fille. Une clause qui nommerait le parent
+ * sans le joindre sur la bonne colonne serait vraie dès qu'un seul parent
+ * existe — c'est-à-dire toujours.
+ */
+function ecartsFiliation(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const entree = TABLES_FILIATION.find(
+    (candidate) => candidate.table === table,
+  );
+  if (entree === undefined) {
+    return [];
+  }
+
+  const ecarts: string[] = [];
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      // MINUSCULES : `pg_policies` rend `EXISTS` en capitales, et la première
+      // rédaction cherchait `exists`. Le gardien rougissait sur une clause
+      // JUSTE — c'est la « graphie » du §9 (26/08), rencontrée du côté du
+      // lecteur cette fois, et attrapée par son propre scénario.
+      const normalisee = normaliser(clause).toLowerCase();
+      if (
+        !normalisee.includes("exists") ||
+        !normalisee.includes(entree.parent) ||
+        !normalisee.includes(entree.cle)
+      ) {
+        ecarts.push(
+          entete(table, "filiation") +
+            `la politique « ${politique.nom} » ne s'adosse pas à son parent ` +
+            `« ${entree.parent} » par sa clé « ${entree.cle} ». La forme ` +
+            "attendue est `EXISTS (SELECT 1 FROM " +
+            `${entree.parent} WHERE ${entree.parent}.id = ${table}.${entree.cle})\` — ` +
+            "la visibilité du parent se propage alors sans qu'aucun filtre soit " +
+            "réécrit. Une clause de société seule laisserait un compte portail " +
+            "restreint à un site lire les lignes filles d'un autre.",
+        );
+      }
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "filiation") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+      }
+    }
+  }
+  return ecarts;
+}
+
 /**
  * Les tables rattachées au parc dont la question N'EST PAS celle de la
  * filiation. Liste close, justifiée, et gardée des deux côtés.
@@ -1343,14 +1467,24 @@ export function ecartsTablesFilles(
   }
 
   const parc: readonly string[] = TABLES_PARC.map((entree) => entree.table);
+  // Celles qui PORTENT déjà la forme sortent du message : il appelle la forme,
+  // il ne la réclame pas deux fois. Leur clause est jugée par `ecartsFiliation`,
+  // et leur liste est close dans les deux sens par `ecartsListeFiliation` — le
+  // périmètre n'est donc pas rétréci, il est déplacé vers un contrôle plus
+  // exigeant.
+  const construites: readonly string[] = TABLES_FILIATION.map(
+    (entree) => entree.table,
+  );
 
   return [
     ...ecartsListeRattachees(horsFiliation),
+    ...ecartsListeFiliation(),
     ...observees
       .filter(
         (observee) =>
           !parc.includes(observee.table) &&
           !horsFiliation.includes(observee.table) &&
+          !construites.includes(observee.table) &&
           observee.parents.some((parent) => parc.includes(parent)),
       )
       .map((observee) => {
