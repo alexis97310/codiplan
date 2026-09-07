@@ -283,6 +283,24 @@ ALTER TABLE "utilisateur_client" DROP COLUMN "perimetre_sites";
 -- La branche `OR societe_id IS NULL` de L0-04 n'est pas reprise : sur une
 -- colonne `NOT NULL` elle est inerte, et une table nouvelle s'écrit sans elle.
 
+-- ── CE QUE LA CLAUSE LAISSE VOIR, ET POURQUOI CE N'EST PAS UN DÉFAUT ───────
+--
+-- La restriction s'ancre sur `app.utilisateur_id`, PAS sur `app.client_id`.
+-- Conséquence, relevée à la revue et RATIFIÉE par l'exploitation le
+-- 07/09/2026 : un compte habilité sur DEUX clients de la même société voit ses
+-- deux lignes d'habilitation, même quand `app.client_id` n'en désigne qu'un.
+--
+-- **C'est correct, et c'est écrit ici pour que personne ne « corrige » un jour
+-- ce qui n'est pas cassé.** Ces lignes sont des faits sur le COMPTE, pas sur
+-- les données du client : un compte a le droit de connaître ses propres
+-- habilitations — c'est même ce qui lui permettra de changer de client. Ce
+-- qu'il ne doit pas voir, ce sont les habilitations d'AUTRUI, et c'est
+-- exactement ce que la clause tient.
+--
+-- Resserrer sur `app.client_id` serait donc une régression déguisée en
+-- durcissement : elle retirerait au compte la vue de ce qui le concerne, sans
+-- rien retirer de ce qui concerne les autres.
+
 DROP POLICY "cloisonnement_societe" ON "utilisateur_client";
 
 CREATE POLICY "cloisonnement_habilitation" ON "utilisateur_client"

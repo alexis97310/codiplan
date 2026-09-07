@@ -194,6 +194,16 @@ export const TABLES_JOURNAL = ["journal_audit"] as const;
  * seul. Sans lui, la clause « sa propre ligne » retirerait à un
  * `admin_societe` la vue des habilitations de SA société, qu'il doit avoir.
  *
+ * **Ce que la clause laisse voir, et qui n'est pas un défaut** *(ratifié le
+ * 07/09/2026)*. La restriction s'ancre sur `app.utilisateur_id`, pas sur
+ * `app.client_id` : un compte habilité sur DEUX clients de la même société voit
+ * ses deux lignes, même quand `app.client_id` n'en désigne qu'un. Ces lignes
+ * sont des faits sur le COMPTE, pas sur les données du client — un compte a le
+ * droit de connaître ses propres habilitations, c'est ce qui lui permettra de
+ * changer de client. Ce qu'il ne doit pas voir, ce sont les habilitations
+ * d'AUTRUI, et c'est ce que la clause tient. Resserrer sur `app.client_id`
+ * serait une régression déguisée en durcissement.
+ *
  * **Elle vient d'une mesure, pas d'une intuition.** Sous la forme « société »
  * que `utilisateur_client` portait, un compte portail du client A1 lisait les
  * lignes d'habilitation des comptes du client A2 de la même société, en tirait
@@ -1018,8 +1028,15 @@ export const RATTACHEES_HORS_FILIATION = [
 /**
  * Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine.
  *
- * **La seconde est arrivée avec L1-02b, et c'est la MÊME décision appliquée à
- * la table que la normalisation crée** — pas une décision nouvelle.
+ * **La seconde est RATIFIÉE par l'exploitation le 07/09/2026**, et la façon
+ * dont elle l'a été est ce que la liste close existe pour produire. Le ticket
+ * L1-02b l'a ajoutée en appliquant la décision de sa table mère ; la session
+ * a REFUSÉ de la tenir pour acquise et l'a portée au registre, la liste
+ * disant « toute addition passe par un arbitrage » ; l'exploitation a
+ * répondu : *`utilisateur_client_site` est une habilitation, pas une donnée
+ * du parc, exactement comme sa table mère.* **Le mécanisme a fonctionné comme
+ * prévu — la liste a exigé qu'on la regarde**, et c'est tout ce qu'une liste
+ * close sait faire de bien.
  * `utilisateur_client_site` référence `site`, qui est du parc : le critère la
  * réclamerait comme table fille. Elle n'en est pas une, exactement pour la
  * raison écrite ci-dessus — c'est une HABILITATION, pas une donnée du parc, et
