@@ -250,6 +250,63 @@ describe("l'ÉCRITURE a son expression à elle", () => {
     ).rejects.toThrow(/row-level security/);
   });
 
+  it("RENDEZ-VOUS : un rôle SANS société active est refusé, et ce n'est pas décidé", async () => {
+    // ── CE SCÉNARIO N'EST PAS UNE GARANTIE : C'EST UN RENDEZ-VOUS ──────────
+    //
+    // Il constate un refus que PERSONNE n'a arbitré. La politique
+    // `utilisateur_ouverture` exige une société active ; les trois rôles
+    // ÉDITEUR n'en ont aucune, par construction (§22.5 — un salarié de
+    // l'éditeur n'a aucun accès par défaut aux données d'un client). La console
+    // éditeur du lot 7 devra pourtant ouvrir la PREMIÈRE identité d'une société
+    // cliente : il n'y a personne d'autre pour le faire.
+    //
+    // **Construire ce chemin aujourd'hui figerait la forme du provisionnement
+    // avant qu'on en sache la première chose.** Ce qui est mûr, c'est le refus.
+    // Sans ce scénario, celui qui écrira la console recevrait un « new row
+    // violates row-level security policy » sans jamais savoir que c'était une
+    // décision — une EMBUSCADE. Avec lui, il reçoit un rendez-vous.
+    //
+    // Le jour où ce scénario tombe, le message ci-dessous est ce qu'il faut
+    // lire : la branche éditeur n'est pas un oubli, elle est au registre.
+    const refus = clientApp().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config('app.role', $1, true)",
+        Role.editeur_support,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur" ("id","nom","email","modifie_le")
+           VALUES (gen_random_uuid(), 'Première identité', 'premiere@societe-cliente.test', now())`,
+      );
+    });
+
+    await expect(
+      refus,
+      "L'OUVERTURE D'UNE IDENTITÉ PAR UN RÔLE SANS SOCIÉTÉ ACTIVE N'EST PAS " +
+        "DÉCIDÉE — voir le registre de `docs/arbitrages.md`, ligne « console " +
+        "éditeur ». Si ce scénario tombe, c'est que quelqu'un a ouvert la " +
+        "branche éditeur : elle demande un arbitrage, pas une rustine.",
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("et le refus ne tient pas au HASARD d'un rôle : c'est bien l'absence de société", async () => {
+    // La contre-épreuve, sans laquelle le scénario ci-dessus prouverait
+    // seulement qu'`editeur_support` n'administre pas. Le MÊME rôle éditeur,
+    // avec une société posée, est refusé lui aussi — donc les deux conditions
+    // mordent, et c'est bien un couple.
+    const avecSociete = clientApp().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config('app.societe_id', $1, true), set_config('app.role', $2, true)",
+        SOCIETE_A,
+        Role.editeur_support,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "utilisateur" ("id","nom","email","modifie_le")
+           VALUES (gen_random_uuid(), 'Éditeur avec société', 'editeur-societe@iso.test', now())`,
+      );
+    });
+    await expect(avecSociete).rejects.toThrow(/row-level security/);
+  });
+
   it("AUCUNE suppression n'est possible, et c'est une décision", async () => {
     // Sous `FORCE`, un verbe sans politique est refusé pour tout le monde.
     // L'absence est écrite dans la migration plutôt que subie.
