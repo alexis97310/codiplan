@@ -129,11 +129,12 @@ model Societe {
   langue                        String // documente une intention, non exploitée en V1 (D26)
   actif                         Boolean @default(true)
 
-  devise               Devise               @relation(fields: [devise_code], references: [code])
+  devise               Devise                  @relation(fields: [devise_code], references: [code])
   agences              Agence[]
   calendriers          Calendrier[]
   utilisateur_societes UtilisateurSociete[]
   utilisateur_clients  UtilisateurClient[]
+  perimetres_portail   UtilisateurClientSite[]
   clients              Client[]
   sessions_actives     Session[]
   sites                Site[]
@@ -632,6 +633,13 @@ model Site {
   /// pas de société.
   agence  Agence  @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
+  /// Cible du chaînage composite depuis `utilisateur_client_site` (L1-02b).
+  perimetres UtilisateurClientSite[]
+
+  /// Sans la société DANS la clé, un périmètre pourrait désigner le site d'une
+  /// AUTRE société — et les contrôles d'intégrité référentielle contournent les
+  /// politiques RLS par construction.
+  @@unique([societe_id, id])
   @@index([societe_id, client_id])
   @@index([societe_id, agence_id])
   @@map("site")
@@ -725,12 +733,17 @@ model UtilisateurSociete {
 /// doubler par un déclencheur) est un arbitrage à part entière, posé au registre.
 /// `perimetre_sites` vide signifie « tous les sites du client ».
 model UtilisateurClient {
-  id              String   @id @db.Uuid
-  utilisateur_id  String   @db.Uuid
-  client_id       String   @db.Uuid
-  societe_id      String   @db.Uuid
-  perimetre_sites String[] @default([]) @db.Uuid
-  actif           Boolean  @default(true)
+  id             String  @id @db.Uuid
+  utilisateur_id String  @db.Uuid
+  client_id      String  @db.Uuid
+  societe_id     String  @db.Uuid
+  actif          Boolean @default(true)
+
+  /// Le périmètre de sites (RG-DRO-01) — une TABLE depuis L1-02b, plus un
+  /// `String[]`. PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un
+  /// tableau : la colonne acceptait un site inexistant ou d'une autre société,
+  /// et un périmètre qui désigne le site d'une autre société ne restreint rien.
+  perimetre UtilisateurClientSite[]
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
   societe     Societe     @relation(fields: [societe_id], references: [id])
@@ -744,7 +757,52 @@ model UtilisateurClient {
   client      Client      @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([utilisateur_id, client_id])
+  /// Cible du chaînage composite depuis `utilisateur_client_site` : sans la
+  /// société DANS la clé, un périmètre pourrait s'adosser à l'habilitation
+  /// d'une AUTRE société, et les contrôles d'intégrité référentielle
+  /// contournent les politiques RLS par construction.
+  @@unique([societe_id, id])
   @@map("utilisateur_client")
+}
+
+/// Le PÉRIMÈTRE DE SITES d'un compte portail (L1-02b, D10, RG-DRO-01).
+///
+/// Une ligne = un site que ce compte a le droit de voir. AUCUNE ligne = tous
+/// les sites de son client, **jamais aucun** : c'est la convention que lit
+/// `app.perimetre_sites`, et l'inverser retirerait tous les droits au lieu de
+/// les ouvrir.
+///
+/// Table métier de la PREMIÈRE catégorie de I1 — `societe_id NOT NULL`, RLS
+/// activée et forcée, auditée par défaut (D55). Sa politique est de forme
+/// « habilitation », la sixième : société ET, pour un compte portail seulement,
+/// les lignes dont il voit l'habilitation parente.
+model UtilisateurClientSite {
+  id                    String @id @db.Uuid
+  societe_id            String @db.Uuid
+  utilisateur_client_id String @db.Uuid
+  site_id               String @db.Uuid
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// `Cascade` en suppression, et c'est la SEULE des trois clés qui propage :
+  /// le périmètre n'a aucune vie propre, il ne signifie rien sans
+  /// l'habilitation qu'il restreint. `Restrict` obligerait à le vider à la main
+  /// avant de retirer un compte portail — une étape que quelqu'un oubliera. La
+  /// cascade reste auditée : le déclencheur de I8 est `FOR EACH ROW`.
+  /// `Restrict` en mise à jour : ni l'identifiant ni la société d'une
+  /// habilitation ne changent (RG-SOC-04).
+  habilitation UtilisateurClient @relation(fields: [societe_id, utilisateur_client_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  /// `Restrict` en suppression : effacer un site qu'un périmètre nomme est
+  /// refusé. `Cascade` élargirait le périmètre EN SILENCE — retirer la ligne
+  /// qui restreint revient à lever la restriction —, et c'est le pire sens dans
+  /// lequel une action référentielle puisse se tromper (§9, 24/08).
+  /// `Restrict` en mise à jour : `site.id` est un UUID v7 technique (I10).
+  site Site @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([utilisateur_client_id, site_id])
+  @@index([societe_id, utilisateur_client_id])
+  @@map("utilisateur_client_site")
 }
 
 // ── Authentification et rôles (ticket L0-06, arbitrages D21 et gravité 4) ────

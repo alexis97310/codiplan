@@ -685,7 +685,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-TAR-02 | Aucune conversion n'est appliquée ligne à ligne. La conversion n'intervient que sur les agrégats de consolidation, à parité datée et paramétrée. |
 | RG-TAR-03 | Le nombre de décimales est une propriété de la devise. XPF : zéro décimale. EUR : deux. |
 | RG-TAR-04 | Le taux horaire est historisé. Un changement de taux ne modifie pas les interventions déjà valorisées. |
-| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. |
+| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. **Le temps passé est arrondi au quart d'heure supérieur PAR INTERVENTION**, jamais sur le total d'une journée : cinq passages de cinq minutes font **1 h 15**, et non 30 minutes. *(amendée par D57)* |
 | RG-TAR-06 | Un forfait ne s'applique que si ses conditions sont remplies — zone, famille de matériel, type d'intervention. |
 
 ### RG — Interventions

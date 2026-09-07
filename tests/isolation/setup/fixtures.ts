@@ -167,6 +167,19 @@ export const PORTAIL_A_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d3";
 export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";
 
 /**
+ * Un compte portail du client A2 — le VOISIN, dans la MÊME société (L1-02b).
+ *
+ * Sans lui, la forme « habilitation » serait indémontrable : il n'y aurait rien
+ * d'autre à voir que sa propre ligne, et un scénario qui ne voit qu'une ligne
+ * là où il n'en existe qu'une ne prouve rien. C'est le témoin de non-vacuité de
+ * la fuite mesurée le 07/09/2026.
+ */
+export const PORTAIL_A2_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d6";
+
+/** L'entrée de périmètre du compte portail A1 : le site S1, et lui seul. */
+export const PERIMETRE_A1_S1 = "aaaaaaaa-0000-7000-8000-0000000000e1";
+
+/**
  * Jours fériés fictifs des deux territoires, sur un **horizon glissant**
  * (D46, complément 3).
  *

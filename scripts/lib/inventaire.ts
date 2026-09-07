@@ -57,6 +57,7 @@ export const TABLES_CLOISONNEES = [
   "calendrier_ferie",
   "utilisateur_societe",
   "utilisateur_client",
+  "utilisateur_client_site",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

@@ -67,6 +67,8 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // être revu. C'est une réécriture de RG-PLA-05, donc une paire — et c'est ce
   // scénario qui l'a réclamée, pas une relecture.
   ["D56", "RG-PLA-05"],
+  // D57 tranche l'arrondi au quart d'heure : PAR INTERVENTION (07/09/2026).
+  ["D57", "RG-TAR-05"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

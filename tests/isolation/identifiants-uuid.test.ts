@@ -42,7 +42,8 @@ const POLITIQUES_CLOISONNEMENT = [
   ["societe", "cloisonnement_identite"],
   ["agence", "cloisonnement_societe"],
   ["utilisateur_societe", "cloisonnement_societe"],
-  ["utilisateur_client", "cloisonnement_societe"],
+  ["utilisateur_client", "cloisonnement_habilitation"],
+  ["utilisateur_client_site", "cloisonnement_habilitation"],
 ] as const;
 
 function typeColonne(table: string, colonne: string): Promise<ColonneType[]> {
@@ -78,12 +79,25 @@ describe("identifiants en uuid natif", () => {
     },
   );
 
-  it("utilisateur_client.perimetre_sites est un tableau d'uuid (D10)", async () => {
+  it("le périmètre de sites est un uuid — et une CLÉ, depuis L1-02b (D10)", async () => {
+    // Cette garantie portait sur `utilisateur_client.perimetre_sites uuid[]`.
+    // Elle n'est pas retirée : elle est déplacée et RENFORCÉE. Le tableau
+    // garantissait le type de ses éléments et rien d'autre — PostgreSQL 16 ne
+    // sait pas contraindre les éléments d'un tableau, si bien qu'un site
+    // inexistant ou d'une autre société y entrait sans obstacle.
     const [description] = await typeColonne(
+      "utilisateur_client_site",
+      "site_id",
+    );
+    expect(description?.udt_name).toBe("uuid");
+
+    // Et la colonne d'origine a bien DISPARU : deux sources d'un même périmètre
+    // divergeraient en silence (§9, 01/09).
+    const [ancienne] = await typeColonne(
       "utilisateur_client",
       "perimetre_sites",
     );
-    expect(description?.udt_name).toBe("_uuid");
+    expect(ancienne).toBeUndefined();
   });
 
   it("devise.code reste du texte : c'est un code ISO, pas un identifiant", async () => {

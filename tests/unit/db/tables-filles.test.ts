@@ -61,7 +61,7 @@ function tablesEtParents(): TableEtParents[] {
   });
 }
 
-describe("le critère de la sixième forme de politique — « filiation »", () => {
+describe("le critère de la forme « FILIATION », pas encore construite", () => {
   const observees = tablesEtParents();
 
   it("le gardien a réellement lu un schéma, et il y voit des rattachements", () => {
@@ -111,10 +111,18 @@ describe("le critère de la sixième forme de politique — « filiation »", ()
     // modifient sont refusés. L'addition est ici le geste dangereux — c'est
     // celui qui ferait taire le critère sur une vraie table fille.
     expect(ecartsListeRattachees()).toEqual([]);
+    // Une ADDITION : `site_horaire` rangée là ferait taire le critère sur une
+    // vraie table fille. Un écart, et les deux entrées arbitrées restent.
     expect(
-      ecartsListeRattachees(["utilisateur_client", "site_horaire"]),
+      ecartsListeRattachees([
+        "utilisateur_client",
+        "utilisateur_client_site",
+        "site_horaire",
+      ]),
     ).toHaveLength(1);
-    expect(ecartsListeRattachees([])).toHaveLength(1);
+    // Un RETRAIT, et la liste vidée : les DEUX entrées manquantes sont nommées.
+    expect(ecartsListeRattachees(["utilisateur_client"])).toHaveLength(1);
+    expect(ecartsListeRattachees([])).toHaveLength(2);
   });
 
   it("ÉPREUVE : ranger une vraie fille hors filiation est REFUSÉ", () => {
@@ -123,7 +131,7 @@ describe("le critère de la sixième forme de politique — « filiation »", ()
     // Le contrôle rougit sur la liste elle-même, et non sur la table.
     const ecarts = ecartsTablesFilles(
       [...observees, { table: "site_horaire", parents: ["site"] }],
-      ["utilisateur_client", "site_horaire"],
+      ["utilisateur_client", "utilisateur_client_site", "site_horaire"],
     );
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("fait taire le critère");
@@ -140,7 +148,7 @@ describe("le critère de la sixième forme de politique — « filiation »", ()
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("site_horaire");
-    expect(ecarts[0]).toContain("sixième forme");
+    expect(ecarts[0]).toContain("« filiation »");
     // Le message dit ce qu'il ne faut PAS faire, et c'est le plus important :
     // les deux réparations plausibles sont nommées et refusées.
     expect(ecarts[0]).toContain("« société »");
@@ -160,7 +168,14 @@ describe("le critère de la sixième forme de politique — « filiation »", ()
 
   it("échoue si la liste du parc devenait vide — la population se vérifie", () => {
     expect(TABLES_PARC.length).toBeGreaterThan(0);
-    expect(RATTACHEES_HORS_FILIATION).toHaveLength(1);
+    // Deux entrées depuis L1-02b : `utilisateur_client_site` référence `site`,
+    // du parc, et le critère la réclamerait comme table fille. Elle n'en est
+    // pas une pour la raison déjà écrite ici — une habilitation n'est pas une
+    // donnée du parc, c'est ce qui DONNE accès au parc.
+    expect([...RATTACHEES_HORS_FILIATION].sort()).toEqual([
+      "utilisateur_client",
+      "utilisateur_client_site",
+    ]);
     expect(ecartsTablesFilles([])).toHaveLength(1);
   });
 });

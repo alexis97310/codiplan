@@ -97,7 +97,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
-**Et cette politique a CINQ formes, pas une** *(R0-a)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les cinq, avec leur cas et une table qui les porte :
+**Et cette politique a SIX formes, pas une** *(R0-a ; la sixième, L1-02b)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les six, avec leur cas et une table qui les porte :
 
 | Forme | Clause | S'applique à | Exemple en base |
 |---|---|---|---|
@@ -106,6 +106,9 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 | **référentiel** | lecture `USING (true)`, écriture `app_est_role_editeur()` | la liste close des référentiels de plateforme *(D4)* | `devise`, `parite`, `jour_ferie` |
 | **parc** | société **ET** `app.client_id` **ET** `app.perimetre_sites` | `client`, `site`, `machine` — le portail *(D10)* et le chemin QR *(D22)* | fixtures du harnais ; tables réelles aux lots 1 et 2 |
 | **journal** | `SELECT` société **et** habilitation ; `INSERT` seul ; ni `UPDATE` ni `DELETE` | `journal_audit` *(I8)* | `journal_audit` |
+| **habilitation** | société **ET** ( pas de `app.client_id` **OU** sa propre ligne ) | `utilisateur_client`, `utilisateur_client_site` — ce qui DONNE accès au parc *(L1-02b)* | `utilisateur_client` |
+
+**La sixième n'est pas une variante de « parc » : elle en est l'INVERSE fonctionnel** *(L1-02b)*. La forme « parc » lit `app.perimetre_sites` ; les tables d'habilitation sont celles d'où cette variable est CALCULÉE. Leur donner la forme « parc » serait circulaire — une politique qui lit la variable que sa propre lecture alimente ne se referme jamais. Leur laisser la clause société seule était la fuite mesurée le 07/09/2026 : un compte portail du client A lisait les lignes d'habilitation des comptes du client B de la même société, en tirait leurs identités par jointure, et énumérait par là les autres clients. Le **discriminant** est `app.client_id`, posée pour un compte portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les habilitations de SA société, ce qu'une clause « sa propre ligne » sans discriminant lui aurait retiré.
 
 **Celle qui NE s'applique JAMAIS à une table métier ordinaire est « référentiel »**, et ses deux moitiés sont fausses pour deux raisons distinctes. Sa lecture est `USING (true)` : toutes les sociétés lisent toutes les lignes — c'est la décision D4 sur `devise` (« le franc Pacifique est le même partout »), c'est la fin du cloisonnement sur `client`. Son écriture est `app_est_role_editeur()` : elle donne le droit au salarié de l'éditeur et le retire à la société propriétaire — l'objet même de la règle sur un référentiel, l'inverse exact de ce que le §22.5 promet au client sur une table métier.
 
@@ -116,6 +119,8 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 **Le CONTRAT des fixtures d'isolation est structurel** *(R0-a, écart É14)*. `client`, `site` et `machine` existent aujourd'hui comme tables **fixtures** du harnais et portent la forme « parc ». Le jour où les vraies tables arrivent, la réparation la plus naturelle — supprimer la fixture et donner à la vraie table la clause société seule — **réduisait la couverture sans qu'aucun gardien ne s'en aperçoive**. Trois gardiens indépendants la refusent désormais : la **forme** mesurée dans `pg_policies` (fixture ou table réelle, sans faire la différence) ; la **liste close `TABLES_PARC`**, dont le RETRAIT d'une entrée est refusé — c'est le retrait qui ouvre la brèche, pas l'addition ; et le **plancher de scénarios** par exigence de L0-05 (`EXIGENCES_L0_05`), qui ne se baisse jamais. Les scénarios D10 et D22 doivent rester **plus nombreux** après la reprise, jamais moins.
 
 **Un message d'erreur est un canal d'information : il est soumis au cloisonnement comme une requête** *(D50)*. Ce qu'un refus donne à lire est une réponse, et se compte comme telle. L'exemple qui a fait la règle : un déclencheur explicatif sur `jour_ferie`, qui dirait « 3 écarts référencent ce férié », **apprendrait à un salarié de l'éditeur combien d'agences clientes chôment ce jour-là** — depuis un simple refus, sans avoir jamais lu une table. Un refus a donc le droit d'être **lisible**, jamais d'être **informatif** : il dit ce qui bloque et la marche à suivre, il ne compte pas et ne nomme pas ce que son destinataire n'a pas le droit de lire. Et le raccourci qui le rendrait bavard — une fonction `SECURITY DEFINER` posée pour voir par-dessus les politiques — est refusé par un gardien statique dont la liste d'exceptions est close et vide.
+
+**Et une politique juste dont personne ne pose la variable ne garde RIEN** *(L1-02b)*. Les formes ci-dessus lisent six variables `app.*` ; `lib/db/rls.ts` n'en posait que quatre, et le harnais d'isolation posait les deux autres. Les scénarios étaient donc verts parce que le HARNAIS armait une garantie que la PRODUCTION n'armait pas — deux implémentations d'un même contrat, chacune verte, divergeant en silence (§9, 01/09), et dans le sens permissif : sans `app.client_id`, la forme « parc » se lit « utilisateur interne » et OUVRE. Deux gardiens ferment les deux sens, contre `pg_policies` et contre le répertoire du harnais : `scripts/lib/contexte-rls.ts`, `tests/isolation/contexte-arme.test.ts`, `tests/unit/db/contexte-harnais.test.ts`. **Toute variable réclamée par une politique est posée par le chemin de production, et le harnais n'en arme aucune de plus.**
 
 *Vérification : `pnpm test:isolation`.*
 
@@ -194,12 +199,13 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
 pnpm partitions:etendre # étend l'horizon des partitions du journal
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
-                      # les contrôles d'observation — six aujourd'hui : RLS,
+                      # les contrôles d'observation — sept aujourd'hui : RLS,
                       # formes de politique, périmètre d'audit, ajout seul du
                       # journal, durcissement des partitions, privilèges de
-                      # consolidation ; la liste est FERMÉE CONTRE scripts/lib/,
-                      # inversée comme le périmètre d'audit, et six n'est qu'un
-                      # instantané (tests/unit/veille-hebergee.test.ts)
+                      # consolidation, ARMEMENT DU CONTEXTE (L1-02b) ; la liste
+                      # est FERMÉE CONTRE scripts/lib/, inversée comme le
+                      # périmètre d'audit, et sept n'est qu'un instantané
+                      # (tests/unit/veille-hebergee.test.ts)
                       # — joués CHAQUE NUIT contre la vraie base, sous le rôle
                       # APPLICATIF et en LECTURE SEULE (SET TRANSACTION READ
                       # ONLY). Le contrôle statique ne voit pas ce qu'une main
@@ -417,6 +423,10 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   *Mesuré le 06/09, propriétaire non superutilisateur, deux lignes en table : `FORCE` actif → **0 ligne vue** ; `NO FORCE` → 2 ; superutilisateur → 2.* Et c'est la seconde moitié qui fait le piège : **en local, le rôle de migration est superutilisateur et contourne RLS.** Le bloc voit tout ici et rien sur la base hébergée — le seul environnement où le défaut existe est le seul qui ne soit jamais exercé, exactement comme le délai de transaction du 23/08.
 
   **La règle, et elle ne vise pas une réparation : tout bloc de garde qui lit une table sous `FORCE` doit rendre visible le mécanisme qui pourrait l'aveugler.** Lever le drapeau pour la durée du diagnostic et le rendre dans la même transaction ; et surtout **refuser de compter tant que la levée n'est pas constatée**. Le témoin porte sur le MÉCANISME, jamais sur un décompte — un décompte légitimement nul le rendrait muet, ce qui est précisément le cas qu'on veut distinguer. `scripts/lib/gardes-migration.ts` tient la règle et l'INVENTAIRE des migrations déjà appliquées qui la violent : une seule, `20260823130000`, avec deux blocs, immuable et sans reprise à faire — ce qu'elle perd est la lisibilité du refus, pas le refus, la contrainte qui suit échouant d'elle-même. **Un défaut connu et inventorié n'est pas le même objet qu'un défaut connu et unique.**
+
+- **07/09/2026 — CONFIRMATION, sur son auteur, au ticket suivant : la règle des blocs de garde a payé son écriture en un jour.** L'entrée ci-dessus sur `FORCE ROW LEVEL SECURITY` a été écrite le 07/09 au ticket L1-02. Le lendemain, à L1-02b, la migration du périmètre lisait DEUX tables sous `FORCE` — l'habilitation et `site` — et son auteur n'avait levé le drapeau que sur la première. Sur la base hébergée, le bloc aurait vu **zéro site**, conclu que TOUS les périmètres étaient orphelins, et **refusé une migration parfaitement saine** ; en local, le rôle de migration étant superutilisateur, il n'aurait rien montré. C'est `tests/unit/db/gardes-migration.test.ts` qui a nommé `site`, pas la relecture et pas la base.
+
+  **Ce qu'il faut en retenir n'est pas que la règle est juste — c'est le DÉLAI.** Une règle inscrite au §9 se vérifie d'ordinaire des mois plus tard, sur quelqu'un d'autre ; celle-ci a mordu en vingt-quatre heures, sur la personne qui venait de l'écrire. **Connaître une règle ne protège pas de l'enfreindre** : seul le gardien protège, et c'est l'argument pour en écrire un plutôt que de noter la leçon. Corollaire de méthode, à opposer à toute session qui proposerait « on fera attention » : l'auteur d'une règle est le premier à en avoir besoin.
 
 - **07/09/2026 — UN NOMBRE DONT LA SIGNIFICATION DÉPEND D'UNE AUTRE COLONNE NE DOIT JAMAIS VOYAGER SEUL.** `site.temps_trajet_min` valait « 45 » et ne disait pas d'où l'on part. La valeur était juste, la colonne bien nommée, la règle RG-PLA-05 exacte — et le nombre n'était interprétable que par quelqu'un qui connaissait déjà la réponse. Le jour où une quatrième agence ouvre, personne n'aurait su quelles valeurs revoir. **Ce n'est pas une donnée manquante, c'est une donnée dont le RÉFÉRENTIEL est implicite**, et l'implicite ne survit pas au départ de celui qui le portait.
 
