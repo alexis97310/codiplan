@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { auth } from "./config";
+import { auth, type Auth } from "./config";
 import { type ContexteSession } from "./contexte";
 import { schemaRole } from "./roles";
 
@@ -27,19 +27,33 @@ const schemaChampsSession = z.object({
 
 /** Session serveur telle que l'application la manipule. */
 export type SessionServeur = {
-  /** Identifiant de la ligne `session`, requis pour basculer de société. */
-  sessionId: string;
+  /**
+   * JETON de la session, requis pour basculer de société (L1-02d).
+   *
+   * Le jeton et non l'identifiant : `session` porte la forme « désignation », et
+   * sa clé est cette valeur opaque. Un UUID v7 n'en serait pas une.
+   */
+  jetonSession: string;
   contexte: ContexteSession;
 };
 
 /**
  * Renvoie la session serveur associée aux en-têtes de la requête, ou `null`
  * si personne n'est authentifié.
+ *
+ * **`instance` est prise en paramètre pour une raison qui est le ticket L1-02d**
+ * — et non par goût de l'injection. Cette fonction n'avait AUCUN appelant : pas
+ * une page, pas un scénario. Elle a donc rendu `null` pour tout compte connecté
+ * pendant un ticket entier sans que rien ne rougisse. *Le dépôt ne peut pas
+ * détecter les régressions d'une couche qui n'a pas d'appelant.* Le paramètre
+ * lui en donne un — `tests/isolation/chaine-session.test.ts` —, sans écran et
+ * sans attendre le premier.
  */
 export async function obtenirSession(
   entetes: Headers,
+  instance: Auth = auth(),
 ): Promise<SessionServeur | null> {
-  const resultat = await auth().api.getSession({ headers: entetes });
+  const resultat = await instance.api.getSession({ headers: entetes });
   if (resultat === null) {
     return null;
   }
@@ -54,7 +68,7 @@ export async function obtenirSession(
     : false;
 
   return {
-    sessionId: resultat.session.id,
+    jetonSession: resultat.session.token,
     contexte: {
       utilisateurId: resultat.user.id,
       // Société et rôle vont ensemble : l'un sans l'autre ne veut rien dire,

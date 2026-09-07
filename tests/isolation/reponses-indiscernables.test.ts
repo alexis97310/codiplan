@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { tenterConnexion } from "@/lib/auth/connexion";
 import { PLANCHER_REPONSE_MS } from "@/lib/auth/reponse-uniforme";
 import { Role } from "@/lib/auth/roles";
@@ -8,7 +9,12 @@ import { basculerSociete } from "@/lib/auth/societe-active";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n/fr";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  clientApp,
+  clientOwner,
+  fermerClients,
+  observerSousProprietaire,
+} from "./setup/db";
 import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 
 /**
@@ -90,10 +96,11 @@ async function refusConnexion(
 /** Cas 3 — refus à l'activation d'une société sur laquelle le compte n'est rien. */
 async function refusHabilitation(utilisateurId: string): Promise<string> {
   const sessionId = uuidv7();
-  await clientApp().session.create({
+  const jetonSession = `jeton-${sessionId}`;
+  await avecDesignationAuth(clientApp()).session.create({
     data: {
       id: sessionId,
-      token: `jeton-${sessionId}`,
+      token: jetonSession,
       utilisateur_id: utilisateurId,
       expire_le: new Date("2030-01-01T00:00:00Z"),
       modifie_le: new Date("2026-08-20T00:00:00Z"),
@@ -103,7 +110,7 @@ async function refusHabilitation(utilisateurId: string): Promise<string> {
   const resultat = await basculerSociete(
     {
       utilisateurId,
-      sessionId,
+      jetonSession,
       societeId: SOCIETE_B,
       societeIdSource: null,
       secondFacteurValide: true,
@@ -169,7 +176,7 @@ describe("réponses d'authentification indiscernables (D35)", () => {
     const bascule = await basculerSociete(
       {
         utilisateurId: habiliteId,
-        sessionId: resultat.sessionId,
+        jetonSession: resultat.jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: true,
@@ -235,7 +242,11 @@ describe("réponses d'authentification indiscernables (D35)", () => {
     // L'uniformité est tournée vers l'extérieur. À l'intérieur, la trace dit ce
     // qui s'est réellement passé — sans quoi « qui a tenté d'accéder à mes
     // données » resterait sans réponse (D34).
-    const journal = await clientApp().journalAcces.findMany({
+    const journal = await observerSousProprietaire(
+      "relire le journal des accès, dont la lecture est bornée à la " +
+        "désignation depuis L1-02d : le harnais observe le contenu de la " +
+        "trace, il n'en tire aucune conclusion de cloisonnement",
+    ).journalAcces.findMany({
       where: { utilisateur_id: orphelinId },
       orderBy: { horodatage: "asc" },
     });

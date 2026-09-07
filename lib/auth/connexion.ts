@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma as clientParDefaut } from "@/lib/db/client";
 
 import { auth, type Auth } from "./config";
-import { avecDesignationIdentite } from "./lecture-identite";
+import { avecDesignationAuth } from "./lecture-identite";
 import { avecPlancherDeDuree, motifRefusUniforme } from "./reponse-uniforme";
 
 /**
@@ -49,7 +49,7 @@ export type DemandeConnexion = z.infer<typeof schemaDemandeConnexion>;
 export type ResultatConnexion =
   | {
       readonly issue: "session";
-      readonly sessionId: string;
+      readonly jetonSession: string;
       readonly utilisateurId: string;
     }
   | { readonly issue: "second_facteur_requis" }
@@ -125,7 +125,7 @@ export async function tenterConnexion(
     // l'appelant tient déjà de la réponse de Better Auth : c'est très
     // exactement la forme « désignation », et l'enveloppe de
     // `lib/auth/lecture-identite.ts` la nomme.
-    const session = await client.session.findUnique({
+    const session = await avecDesignationAuth(client).session.findUnique({
       where: { token: ouverte.data.token },
       select: { id: true, utilisateur_id: true },
     });
@@ -133,7 +133,7 @@ export async function tenterConnexion(
     const identite =
       session === null
         ? null
-        : await avecDesignationIdentite(client).utilisateur.findUnique({
+        : await avecDesignationAuth(client).utilisateur.findUnique({
             where: { id: session.utilisateur_id },
             select: { actif: true },
           });
@@ -142,7 +142,7 @@ export async function tenterConnexion(
     // à nous. La session qu'il vient d'ouvrir est retirée — sans quoi un compte
     // désactivé garderait un jeton valide —, et le refus reste le même.
     if (session === null || identite === null || !identite.actif) {
-      await client.session.deleteMany({
+      await avecDesignationAuth(client).session.deleteMany({
         where: { token: ouverte.data.token },
       });
       return refus();
@@ -150,7 +150,7 @@ export async function tenterConnexion(
 
     return {
       issue: "session",
-      sessionId: session.id,
+      jetonSession: ouverte.data.token,
       utilisateurId: ouverte.data.user.id,
     };
   });

@@ -121,6 +121,33 @@ export const VARIABLE_SESSION_AUTH_UTILISATEUR =
   "app.authentification_utilisateur_id";
 
 /**
+ * Le JETON de session que l'appelant présente (L1-02d).
+ *
+ * **Un jeton de session est une désignation, et c'en est même l'exemple pur** :
+ * une valeur opaque et imprévisible que seul son porteur connaît. Le lire ne
+ * rend jamais plus que ce que l'appelant savait déjà — c'est la définition de
+ * la forme, et elle s'applique ici sans être élargie d'un pouce.
+ *
+ * Elle ne désigne QUE la session, et pas son identité : mesuré, `getSession`
+ * émet deux opérations de client distinctes, et l'identité y est désignée par
+ * son propre identifiant. Une branche avait été ajoutée à `utilisateur_lecture`
+ * pour ce chemin ; le jumeau l'a démentie — retirée, la chaîne reste verte — et
+ * elle a donc été supprimée plutôt que gardée « au cas où ».
+ */
+export const VARIABLE_SESSION_AUTH_JETON = "app.authentification_jeton_session";
+
+/**
+ * L'IDENTIFIANT d'une vérification — jeton de courriel, défi de second facteur,
+ * confiance d'appareil (L1-02d).
+ *
+ * Même nature que le jeton de session : une valeur opaque, présentée par celui
+ * qui la détient. `verification` n'a aucune autre clé d'accès — elle n'est
+ * jamais parcourue, jamais listée.
+ */
+export const VARIABLE_SESSION_AUTH_IDENTIFIANT =
+  "app.authentification_identifiant";
+
+/**
  * Contexte de session posé sur la transaction : société, rôle, auteur, adresse.
  *
  * Un objet plutôt que quatre paramètres positionnels : `avecContexteRls(prisma,
@@ -185,6 +212,8 @@ const POSE: readonly {
   // contexte ordinaire. C'est leur pose la plus importante — celle qui REFERME.
   { variable: VARIABLE_SESSION_AUTH_EMAIL, valeur: () => "" },
   { variable: VARIABLE_SESSION_AUTH_UTILISATEUR, valeur: () => "" },
+  { variable: VARIABLE_SESSION_AUTH_JETON, valeur: () => "" },
+  { variable: VARIABLE_SESSION_AUTH_IDENTIFIANT, valeur: () => "" },
 ];
 
 /**

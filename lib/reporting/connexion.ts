@@ -1,5 +1,6 @@
 import { EvenementAcces, PrismaClient } from "@prisma/client";
 
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import type { Role } from "@/lib/auth/roles";
 import { prisma as clientApplicatif } from "@/lib/db/client";
 import { verifierRoleReporting } from "@/lib/db/garde-role";
@@ -99,7 +100,7 @@ export async function avecConsolidation<T>(
 ): Promise<T> {
   await garantirRoleConsolidation();
 
-  await clientApplicatif.journalAcces.create({
+  await avecDesignationAuth(clientApplicatif).journalAcces.create({
     data: {
       id: uuidv7(),
       utilisateur_id: origine.utilisateurId,

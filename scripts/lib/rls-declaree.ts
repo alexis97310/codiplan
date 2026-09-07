@@ -63,6 +63,20 @@ export const TABLES_RLS_FORCEE = [
   // nommée ici séparément : la dériver de `TABLES_CLOISONNEES` l'aurait fait
   // entrer dans un décompte par société auquel elle ne se prête pas.
   "utilisateur",
+  // ── LA TROISIÈME CATÉGORIE DE I1 REJOINT LA RLS FORCÉE (L1-02d) ───────────
+  //
+  // Décision d'exploitation du 08/09/2026, prise pour la CATÉGORIE ENTIÈRE et
+  // non pour la table mesurée : « traiter une table et laisser ses quatre
+  // voisines dans le même état, c'est réparer une liste au lieu de la fermer ».
+  //
+  // Elles sont nommées ici SÉPARÉMENT, et pas dérivées de `TABLES_CLOISONNEES` :
+  // elles ne portent aucun `societe_id` et ne se prêtent à aucun décompte par
+  // société. Ce qu'elles portent est un ATTRIBUT, et il est le même.
+  "session",
+  "compte",
+  "verification",
+  "second_facteur",
+  "journal_acces",
 ] as const;
 
 /**
@@ -73,29 +87,26 @@ export const TABLES_RLS_FORCEE = [
 export const TABLES_RLS_SIMPLE = ["devise", "parite", "jour_ferie"] as const;
 
 /**
- * Tables SANS aucune RLS : les tables techniques d'authentification (troisième
- * catégorie de I1, D34) — et elles seules depuis L1-02c. Elles portent la trace
- * TECHNIQUE de l'authentification, jamais de la donnée personnelle durable :
- * une session expire, une vérification se consomme, un second facteur se
- * révoque.
+ * Tables SANS aucune RLS. **ELLE EST VIDE DEPUIS L1-02d, ET C'EST LE TICKET.**
  *
- * **L'identité de plateforme (quatrième catégorie, D39) en est SORTIE.** Elle y
- * figurait pour une raison juste — l'authentification doit pouvoir chercher un
- * compte avant qu'aucune société ne soit active — mais la conclusion tirée de
- * cette raison était trop large : ce n'est pas « aucune politique » qu'il
- * fallait, c'est une politique dont une branche PRÉCÈDE la société. C'est la
- * forme « désignation » de L1-02c.
+ * Elle portait les cinq tables techniques d'authentification (troisième
+ * catégorie de I1, D34). L'exemption était un VESTIGE : elles avaient été
+ * laissées sans plancher pour la même raison que `utilisateur` —
+ * l'authentification précède la société, et nous ne savions pas exprimer une
+ * garantie avant le contexte. Nous savons depuis L1-02c : c'est la forme
+ * « désignation ». *Une borne posée faute de mieux ne se reconduit pas dès que
+ * le mieux existe.*
  *
- * Les énumérer plutôt que les ignorer est ce qui rend le contrôle TOTAL : une
- * table cloisonnée qui perdrait sa RLS atterrirait ici, et serait nommée.
+ * **La garder plutôt que la supprimer est délibéré.** Elle n'est pas une liste
+ * d'exemptions à remplir : elle est la troisième branche d'une partition
+ * EXCLUSIVE, celle où atterrirait une table qui perdrait sa RLS. Vide, elle dit
+ * « aucune table du dépôt n'est sans plancher » — et le jour où une y tombe,
+ * elle est nommée au lieu de disparaître du contrôle.
+ *
+ * Un test l'éprouve dans les deux sens : une table sans RLS y est nommée, et
+ * une addition à la liste est refusée comme un arbitrage.
  */
-export const TABLES_SANS_RLS = [
-  "session",
-  "compte",
-  "verification",
-  "second_facteur",
-  "journal_acces",
-] as const;
+export const TABLES_SANS_RLS = [] as const;
 
 /**
  * La requête, écrite une seule fois et partagée par

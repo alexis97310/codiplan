@@ -1,11 +1,16 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
-import { avecDesignationIdentite } from "@/lib/auth/lecture-identite";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { Role } from "@/lib/auth/roles";
 import { basculerSociete } from "@/lib/auth/societe-active";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  clientApp,
+  clientOwner,
+  fermerClients,
+  observerSousProprietaire,
+} from "./setup/db";
 import { SOCIETE_A } from "./setup/fixtures";
 
 /**
@@ -32,10 +37,10 @@ const authAdmin = creerAuth(clientApp(), {
 });
 
 /** Lecture d'identité par le chemin de production : elle NOMME la ligne. */
-const lectureIdentite = avecDesignationIdentite(clientApp());
+const lectureIdentite = avecDesignationAuth(clientApp());
 
 /** Écriture d'identité : acte administratif, sous société et rôle. */
-const ecritureIdentite = avecDesignationIdentite(clientApp(), {
+const ecritureIdentite = avecDesignationAuth(clientApp(), {
   societeId: SOCIETE_A,
   role: Role.admin_societe,
 });
@@ -85,7 +90,10 @@ describe("inscription", () => {
   it("range le mot de passe dans `compte`, jamais sur `utilisateur`", async () => {
     const id = await inscrire("motdepasse@iso.test", "Compte mot de passe");
 
-    const comptes = await clientApp().compte.findMany({
+    // `compte` porte la forme « désignation » depuis L1-02d, et sa clé est
+    // l'identifiant de l'utilisateur : la lecture passe donc par l'enveloppe de
+    // production, exactement comme la vérification d'identifiants.
+    const comptes = await avecDesignationAuth(clientApp()).compte.findMany({
       where: { utilisateur_id: id },
     });
 
@@ -106,13 +114,18 @@ describe("connexion et session serveur", () => {
 
     // L'inscription ouvre déjà une session : on compte donc l'écart, plutôt
     // que de figer un total qui dépendrait de ce comportement.
-    const avant = await clientApp().session.count({
-      where: { utilisateur_id: id },
-    });
+    const avant = await observerSousProprietaire(
+      "dénombrer les sessions d'un compte : `session` se désigne par son JETON " +
+        "depuis L1-02d, jamais par l'identifiant de son compte, et un " +
+        "dénombrement par compte n'est donc plus un chemin de production",
+    ).session.count({ where: { utilisateur_id: id } });
 
     await auth.api.signInEmail({ body: { email, password: MOT_DE_PASSE } });
 
-    const sessions = await clientApp().session.findMany({
+    const sessions = await observerSousProprietaire(
+      "relire les sessions d'un compte pour vérifier qu'une seule s'est " +
+        "ajoutée — dénombrement par compte, hors chemin de production",
+    ).session.findMany({
       where: { utilisateur_id: id },
       orderBy: { cree_le: "desc" },
     });
@@ -151,15 +164,19 @@ describe("connexion et session serveur", () => {
       },
     });
 
-    await auth.api.signInEmail({ body: { email, password: MOT_DE_PASSE } });
-    const session = await clientApp().session.findFirstOrThrow({
-      where: { utilisateur_id: id },
+    const ouverte = await auth.api.signInEmail({
+      body: { email, password: MOT_DE_PASSE },
     });
+    // La session se relit par son JETON (L1-02d) : `session` porte la forme
+    // « désignation », et un balayage par `utilisateur_id` rendrait zéro.
+    const session = await avecDesignationAuth(
+      clientApp(),
+    ).session.findFirstOrThrow({ where: { token: ouverte.token } });
 
     const resultat = await basculerSociete(
       {
         utilisateurId: id,
-        sessionId: session.id,
+        jetonSession: session.token,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: session.second_facteur_valide,
@@ -168,9 +185,9 @@ describe("connexion et session serveur", () => {
     );
 
     expect(resultat.accepte).toBe(true);
-    const apres = await clientApp().session.findUniqueOrThrow({
-      where: { id: session.id },
-    });
+    const apres = await avecDesignationAuth(
+      clientApp(),
+    ).session.findUniqueOrThrow({ where: { token: session.token } });
     expect(apres.societe_id_active).toBe(SOCIETE_A);
     expect(apres.role_actif).toBe(Role.adv);
   });
@@ -208,15 +225,24 @@ describe("second facteur", () => {
 
     // L'inscription a déjà ouvert une session, avant l'activation : on repart
     // d'une ardoise vierge pour que le décompte qui suit ne dise qu'une chose.
-    await clientApp().session.deleteMany({ where: { utilisateur_id: id } });
+    await clientOwner().session.deleteMany({ where: { utilisateur_id: id } });
+    const sessionsAvantDefi = await observerSousProprietaire(
+      "figer le décompte de sessions AVANT le défi, pour le comparer après",
+    ).session.count({ where: { utilisateur_id: id } });
 
     const resultat = await auth.api.signInEmail({
       body: { email, password: MOT_DE_PASSE },
     });
 
     expect(resultat).toMatchObject({ twoFactorRedirect: true });
-    await expect(
-      clientApp().session.findMany({ where: { utilisateur_id: id } }),
-    ).resolves.toHaveLength(0);
+    // On COMPARE deux décomptes plutôt que d'en affirmer un nul : sous le
+    // propriétaire, zéro ne distingue pas « la ligne n'existe pas » de « elle
+    // est masquée » — et seule la seconde serait une affirmation de
+    // cloisonnement (L1-02d, `scripts/lib/observation-proprietaire.ts`).
+    const apres = await observerSousProprietaire(
+      "dénombrer les sessions d'un compte après un défi de second facteur : " +
+        "le dénombrement par compte n'est pas un chemin de production",
+    ).session.count({ where: { utilisateur_id: id } });
+    expect(apres).toBe(sessionsAvantDefi);
   });
 });

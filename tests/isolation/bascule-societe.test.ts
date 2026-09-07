@@ -6,7 +6,14 @@ import { Role } from "@/lib/auth/roles";
 import { basculerSociete } from "@/lib/auth/societe-active";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import { avecSocieteEtRole, clientApp, fermerClients } from "./setup/db";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
+
+import {
+  avecSocieteEtRole,
+  clientApp,
+  fermerClients,
+  observerSousProprietaire,
+} from "./setup/db";
 import {
   AGENCE_A,
   SOCIETE_A,
@@ -23,23 +30,43 @@ import {
  * l'habilitation est relue à travers les politiques RLS, comme en production.
  */
 
-/** Crée une session serveur vierge pour un compte, et renvoie son identifiant. */
+/**
+ * Crée une session serveur vierge pour un compte, et renvoie son JETON.
+ *
+ * Le jeton et non l'identifiant : `session` porte la forme « désignation »
+ * depuis L1-02d, et sa clé est cette valeur opaque. La création passe par
+ * l'ENVELOPPE de production — le harnais n'emprunte pas un chemin que
+ * l'application n'a pas (§9, 01/09 : un harnais plus riche que la production
+ * est un harnais qui ment).
+ */
 async function ouvrirSession(utilisateurId: string): Promise<string> {
   const id = uuidv7();
-  await clientApp().session.create({
+  const token = `jeton-${id}`;
+  await avecDesignationAuth(clientApp()).session.create({
     data: {
       id,
-      token: `jeton-${id}`,
+      token,
       utilisateur_id: utilisateurId,
       expire_le: new Date("2030-01-01T00:00:00Z"),
       modifie_le: new Date("2026-08-20T00:00:00Z"),
     },
   });
-  return id;
+  return token;
 }
 
+/**
+ * Le journal des accès se lit sous le PROPRIÉTAIRE depuis L1-02d, et c'est le
+ * ticket : `journal_acces` est en AJOUT SEUL, sans aucune politique de lecture.
+ * Le rôle applicatif ne peut donc plus la lire — un scénario dédié le constate
+ * (`categorie-authentification.test.ts`). Ici le harnais OBSERVE, il ne joue pas
+ * un chemin de production.
+ */
 async function journalDe(utilisateurId: string) {
-  return clientApp().journalAcces.findMany({
+  return observerSousProprietaire(
+    "relire le journal des accès : il est en lecture BORNÉE À LA DÉSIGNATION " +
+      "depuis L1-02d, et le harnais observe ici sans jouer un chemin de " +
+      "production — aucune conclusion de cloisonnement n'en est tirée",
+  ).journalAcces.findMany({
     where: { utilisateur_id: utilisateurId },
     orderBy: { horodatage: "asc" },
   });
@@ -50,12 +77,12 @@ describe("bascule de société — habilitation", () => {
 
   it("un utilisateur habilité sur A bascule sur A, et son rôle est relu en base", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.adv];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     const resultat = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -70,8 +97,10 @@ describe("bascule de société — habilitation", () => {
     // Le rôle n'a pas été fourni par l'appelant : il vient de la base.
     expect(resultat.contexte.role).toBe(Role.adv);
 
-    const session = await clientApp().session.findUniqueOrThrow({
-      where: { id: sessionId },
+    const session = await avecDesignationAuth(
+      clientApp(),
+    ).session.findUniqueOrThrow({
+      where: { token: jetonSession },
     });
     expect(session.societe_id_active).toBe(SOCIETE_A);
     expect(session.role_actif).toBe(Role.adv);
@@ -79,12 +108,12 @@ describe("bascule de société — habilitation", () => {
 
   it("le même utilisateur ne peut PAS basculer sur B, et la session reste sur A", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.technicien];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     const accepte = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -96,7 +125,7 @@ describe("bascule de société — habilitation", () => {
     const refuse = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_B,
         societeIdSource: SOCIETE_A,
         secondFacteurValide: false,
@@ -114,8 +143,10 @@ describe("bascule de société — habilitation", () => {
     // `reponses-indiscernables.test.ts` éprouve les trois cas ensemble.
     expect(refuse.motif).toBe(motifRefusUniforme());
 
-    const session = await clientApp().session.findUniqueOrThrow({
-      where: { id: sessionId },
+    const session = await avecDesignationAuth(
+      clientApp(),
+    ).session.findUniqueOrThrow({
+      where: { token: jetonSession },
     });
     expect(session.societe_id_active).toBe(SOCIETE_A);
   });
@@ -127,13 +158,13 @@ describe("bascule de société — habilitation", () => {
       Role.editeur_support,
     ]) {
       const utilisateurId = UTILISATEUR_PAR_ROLE[role];
-      const sessionId = await ouvrirSession(utilisateurId);
+      const jetonSession = await ouvrirSession(utilisateurId);
 
       for (const societeId of [SOCIETE_A, SOCIETE_B]) {
         const resultat = await basculerSociete(
           {
             utilisateurId,
-            sessionId,
+            jetonSession,
             societeId,
             societeIdSource: null,
             secondFacteurValide: true,
@@ -147,12 +178,12 @@ describe("bascule de société — habilitation", () => {
 
   it("un compte portail bascule sur sa société, avec le rôle `client` (D10)", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.client];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     const resultat = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -176,12 +207,12 @@ describe("bascule de société — second facteur", () => {
     // C'est le seul rôle de la liste dont la contrainte pèse sur l'utilisateur
     // d'un client, et non sur l'un des nôtres.
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.admin_societe];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     const sans = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -196,7 +227,7 @@ describe("bascule de société — second facteur", () => {
     const avec = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: true,
@@ -208,12 +239,12 @@ describe("bascule de société — second facteur", () => {
 
   it("refuse `direction` sans second facteur, l'accepte avec", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.direction];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     const sans = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -228,7 +259,7 @@ describe("bascule de société — second facteur", () => {
     const avec = await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: true,
@@ -244,12 +275,12 @@ describe("bascule de société — journalisation (D32)", () => {
 
   it("journalise l'acceptation, avec la société d'avant et celle d'après", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.responsable_sav];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -267,12 +298,12 @@ describe("bascule de société — journalisation (D32)", () => {
 
   it("journalise aussi le REFUS — un refus non tracé ne se voit jamais", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.responsable_materiel];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_B,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -288,11 +319,11 @@ describe("bascule de société — journalisation (D32)", () => {
 
   it("le journal est en ajout seul : ni correction ni effacement", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.adv];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
     await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: false,
@@ -321,12 +352,12 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
 
   it("après bascule, le contexte lu depuis la session ouvre bien la société", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.direction];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
     await basculerSociete(
       {
         utilisateurId,
-        sessionId,
+        jetonSession,
         societeId: SOCIETE_A,
         societeIdSource: null,
         secondFacteurValide: true,
@@ -334,8 +365,10 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
       clientApp(),
     );
 
-    const session = await clientApp().session.findUniqueOrThrow({
-      where: { id: sessionId },
+    const session = await avecDesignationAuth(
+      clientApp(),
+    ).session.findUniqueOrThrow({
+      where: { token: jetonSession },
     });
 
     const contexte = {
@@ -357,10 +390,12 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
 
   it("une session sans société active ne lit rien de cloisonné", async () => {
     const utilisateurId = UTILISATEUR_PAR_ROLE[Role.adv];
-    const sessionId = await ouvrirSession(utilisateurId);
+    const jetonSession = await ouvrirSession(utilisateurId);
 
-    const session = await clientApp().session.findUniqueOrThrow({
-      where: { id: sessionId },
+    const session = await avecDesignationAuth(
+      clientApp(),
+    ).session.findUniqueOrThrow({
+      where: { token: jetonSession },
     });
     expect(session.societe_id_active).toBeNull();
 

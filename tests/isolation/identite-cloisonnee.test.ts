@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
-import { avecDesignationIdentite } from "@/lib/auth/lecture-identite";
+import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import { Role } from "@/lib/auth/roles";
 import { avecContexteRls } from "@/lib/db/rls";
 
@@ -9,6 +9,7 @@ import {
   ecartsListeDesignation,
   ecartsWithCheckExplicite,
   SQL_POLITIQUES,
+  TABLES_DESIGNATION,
   type PolitiqueObservee,
 } from "../../scripts/lib/politiques-rls";
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -72,7 +73,7 @@ describe("TÉMOIN PRÉALABLE — la politique est en vigueur, et elle mord", () 
 });
 
 describe("la forme « DÉSIGNATION » — et sa borne, éprouvée par tentative", () => {
-  const designation = avecDesignationIdentite(clientApp());
+  const designation = avecDesignationAuth(clientApp());
 
   it("rend la ligne NOMMÉE, et elle seule", async () => {
     const vue = await designation.utilisateur.findFirst({
@@ -211,9 +212,9 @@ describe("l'ÉCRITURE a son expression à elle", () => {
     });
     expect(cree).toBeTruthy();
 
-    const relu = await avecDesignationIdentite(
-      clientApp(),
-    ).utilisateur.findFirst({ where: { email: adresse } });
+    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst({
+      where: { email: adresse },
+    });
     expect(relu?.email).toBe(adresse);
   });
 
@@ -377,13 +378,17 @@ describe("jumeaux — les deux gardiens mordent", () => {
     expect(ecartsListeDesignation()).toEqual([]);
 
     // L'ADDITION — le geste qui transformerait la borne en porte de service.
-    const ajoutee = ecartsListeDesignation(["utilisateur", "client"]);
+    // La liste arbitrée en compte CINQ depuis L1-02d ; c'est l'entrée EN TROP
+    // qui doit être nommée, et elle seule.
+    const ajoutee = ecartsListeDesignation([...TABLES_DESIGNATION, "client"]);
     expect(ajoutee).toHaveLength(1);
     expect(ajoutee[0]).toContain("porte de service");
 
-    // Le RETRAIT — la branche d'authentification perdrait sa forme.
+    // Le RETRAIT — chaque table arbitrée qui disparaît est nommée, et le
+    // décompte suit la liste plutôt qu'un chiffre écrit à la main : baisser
+    // l'un sans l'autre serait le plancher qui s'affaisse en silence.
     const videe = ecartsListeDesignation([]);
-    expect(videe).toHaveLength(1);
+    expect(videe).toHaveLength(TABLES_DESIGNATION.length);
     expect(videe[0]).toContain("plus se connecter");
   });
 });

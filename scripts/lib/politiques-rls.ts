@@ -333,20 +333,55 @@ export const TABLES_JOURNAL = ["journal_audit"] as const;
  * 07/09/2026 : une AUTRE ligne nommément demandée rend zéro, un balayage
  * `LIKE '%'` rend la seule ligne nommée, une variable vide rend zéro.
  *
- * **Liste close à UNE entrée, gardée dans les deux sens.** L'addition est ici
- * le geste dangereux — c'est elle qui transformerait une borne en passage.
+ * **Liste close, gardée dans les deux sens.** L'addition est ici le geste
+ * dangereux — c'est elle qui transformerait une borne en passage.
+ *
+ * ## ELLE PASSE DE UNE À CINQ ENTRÉES AU TICKET L1-02d, PAR ARBITRAGE
+ *
+ * *Décision d'exploitation du 08/09/2026.* Les quatre tables techniques
+ * d'authentification rejoignent `utilisateur`, et elles satisfont le motif
+ * étroit sans qu'on ait à l'élargir d'un pouce : **elles sont lues avant qu'une
+ * société soit connue, et par construction elle ne peut pas l'être** — c'est
+ * l'authentification elle-même.
+ *
+ * L'exemption dont elles bénéficiaient était un VESTIGE, et l'exploitation l'a
+ * dit dans ces termes : elles avaient été laissées sans plancher pour la même
+ * raison que `utilisateur` avant L1-02c — nous ne savions pas exprimer une
+ * garantie avant le contexte. *Une borne posée faute de mieux ne se reconduit
+ * pas dès que le mieux existe.*
+ *
+ * Chaque clé de désignation est DÉDUITE du chemin d'accès réel, tracé et non
+ * supposé : le JETON pour `session`, l'identifiant d'utilisateur pour `compte`
+ * et `second_facteur`, l'identifiant opaque pour `verification`.
+ *
+ * `journal_acces` n'y entre PAS, et c'est le résultat de la déduction, pas un
+ * oubli : c'est une TRACE, pas un matériau d'authentification. Elle reçoit la
+ * forme du journal — ajout seul —, amputée de la clause de société que D34 lui
+ * interdit de porter.
  */
-export const TABLES_DESIGNATION = ["utilisateur"] as const;
+export const TABLES_DESIGNATION = [
+  "utilisateur",
+  "session",
+  "compte",
+  "verification",
+  "second_facteur",
+] as const;
 
-/** L'unique entrée que l'arbitrage autorise. Recopiée : c'est la doctrine. */
-const SEULE_DESIGNATION_ARBITREE = "utilisateur";
+/** Les entrées que les arbitrages autorisent. Recopiées : c'est la doctrine. */
+const DESIGNATIONS_ARBITREES = [
+  "utilisateur",
+  "session",
+  "compte",
+  "verification",
+  "second_facteur",
+];
 
 /** Écarts de la liste « désignation » — additions comme retraits. */
 export function ecartsListeDesignation(
   liste: readonly string[] = TABLES_DESIGNATION,
 ): string[] {
   const ecarts = liste
-    .filter((table) => table !== SEULE_DESIGNATION_ARBITREE)
+    .filter((table) => !DESIGNATIONS_ARBITREES.includes(table))
     .map(
       (table) =>
         `« ${table} » a été rangée sous la forme « désignation ». Le seul ` +
@@ -356,13 +391,16 @@ export function ecartsListeDesignation(
         "transformerait une borne en porte de service.",
     );
 
-  if (!liste.includes(SEULE_DESIGNATION_ARBITREE)) {
-    ecarts.push(
-      `« ${SEULE_DESIGNATION_ARBITREE} » ne figure plus sous la forme ` +
-        "« désignation » : la branche d'authentification n'aurait plus de " +
-        "forme, et la table retomberait sur une clause de société — sous " +
-        "laquelle personne ne peut plus se connecter (mesuré).",
-    );
+  for (const arbitree of DESIGNATIONS_ARBITREES) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « désignation » : la ` +
+          "branche d'authentification n'aurait plus de forme, et la table " +
+          "retomberait soit sur une clause de société — sous laquelle " +
+          "personne ne peut plus se connecter (mesuré) —, soit sur aucune " +
+          "politique du tout, ce qui était l'état que L1-02d a fermé.",
+      );
+    }
   }
 
   return ecarts;

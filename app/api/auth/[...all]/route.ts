@@ -1,7 +1,7 @@
 import { toNextJsHandler } from "better-auth/next-js";
 
 import { auth } from "@/lib/auth/config";
-import { estCheminInscription } from "@/lib/auth/inscription-fermee";
+import { estCheminFerme } from "@/lib/auth/inscription-fermee";
 
 /**
  * Points d'entrée de Better Auth (ticket L0-06 ; inscription fermée par L1-02c).
@@ -19,12 +19,20 @@ import { estCheminInscription } from "@/lib/auth/inscription-fermee";
  * d'inscription en libre-service dans ce produit, et il ne doit pas y en
  * avoir : ce n'est pas une restriction, c'est le métier.**
  *
- * Ce gestionnaire étant un *attrape-tout*, il exposait `/sign-up/email` sans
- * que personne l'ait décidé. La surface est refermée ici, au plus près de
+ * **ET LA GESTION DU SECOND FACTEUR PAR LE SUJET (L1-02d).**
+ * `/two-factor/disable` retirait le second facteur du compte connecté — la
+ * transition que D58 refuse d'ouvrir. `/two-factor/enable` est fermé avec lui :
+ * l'enrôlement est décidé, mais il s'écrira comme un chemin à nous, borné par sa
+ * politique, plutôt qu'en rallumant un générique dont on hériterait le jumeau.
+ * Les chemins de VÉRIFICATION restent ouverts : les fermer interdirait la
+ * connexion de tout compte portant un second facteur.
+ *
+ * Ce gestionnaire étant un *attrape-tout*, il exposait ces chemins sans que
+ * personne l'ait décidé. La surface est refermée ici, au plus près de
  * l'extérieur.
  */
 function fermerInscription(requete: Request): Response | null {
-  if (!estCheminInscription(new URL(requete.url).pathname)) {
+  if (!estCheminFerme(new URL(requete.url).pathname)) {
     return null;
   }
   // 404, et pas 403 : un refus qui explique pourquoi est un renseignement

@@ -111,11 +111,16 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
     // C'est ici que la liste close et le comportement se confrontent : la
     // seconde n'est pas écrite à côté de la première, elle en est tirée.
     expect(noms).toEqual([...VARIABLES_CONTEXTE]);
-    // Huit depuis L1-02c : les deux DÉSIGNATIONS d'authentification s'ajoutent,
-    // et leur pose la plus importante est celle qui les REMET À VIDE — sur une
-    // connexion mutualisée, une variable non posée hérite de ce que la
-    // transaction précédente y a laissé.
-    expect(noms).toHaveLength(8);
+    // DIX depuis L1-02d : les quatre DÉSIGNATIONS d'authentification — courriel,
+    // identifiant d'utilisateur, jeton de session, identifiant de vérification —
+    // s'ajoutent aux six premières. Leur pose la plus importante est celle qui
+    // les REMET À VIDE : sur une connexion mutualisée, une variable non posée
+    // hérite de ce que la transaction précédente y a laissé.
+    //
+    // Le décompte suit la liste close plutôt qu'un chiffre écrit à la main —
+    // sinon la ligne au-dessus et celle-ci diraient deux choses, et il faudrait
+    // corriger les deux (§9, 01/09).
+    expect(noms).toHaveLength(VARIABLES_CONTEXTE.length);
 
     const valeurs = (emission?.parametres ?? []).filter(
       (valeur, rang) => rang % 2 === 1,
@@ -141,8 +146,11 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
       (valeur, rang) => rang % 2 === 1,
     );
 
-    expect(valeurs).toHaveLength(8);
-    expect(valeurs.slice(1)).toEqual(["", "", "", "", "", "", ""]);
+    expect(valeurs).toHaveLength(VARIABLES_CONTEXTE.length);
+    // Toutes vides sauf la société, qui est la seule fournie ici.
+    expect(valeurs.slice(1)).toEqual(
+      Array.from({ length: VARIABLES_CONTEXTE.length - 1 }, () => ""),
+    );
   });
 
   it("les paramètres sont LIÉS : aucune valeur dans le texte SQL", () => {

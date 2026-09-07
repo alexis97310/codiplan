@@ -1,6 +1,12 @@
 /**
- * L'INSCRIPTION EN LIBRE-SERVICE N'EXISTE PAS (ticket L1-02c, décision
- * d'exploitation du 07/09/2026).
+ * CE QUE LA SURFACE HTTP N'OFFRE PAS (tickets L1-02c puis L1-02d).
+ *
+ * Deux décisions d'exploitation, une même doctrine — **dans un produit où
+ * l'accès est délivré, le libre-service n'est pas une surface à borner, c'est
+ * une exception à justifier transition par transition** (D58). On n'ouvre pas
+ * ce qu'on saura refermer ; on ouvre ce qu'on a une raison d'ouvrir.
+ *
+ * ## L'INSCRIPTION EN LIBRE-SERVICE N'EXISTE PAS (L1-02c, 07/09/2026).
  *
  * *Personne ne crée son propre compte. Jamais, dans aucun mode.* Un compte de
  * portail est délivré par CODIMA à un client ; un compte interne est ouvert par
@@ -23,16 +29,66 @@
  */
 
 /**
- * Les chemins d'inscription de Better Auth, en liste close.
+ * ## ET LA GESTION DU SECOND FACTEUR PAR LE SUJET NON PLUS (L1-02d, 08/09/2026).
  *
- * `/sign-up/email` est le seul aujourd'hui — aucun fournisseur externe n'est
- * déclaré (`emailAndPassword` seul dans `lib/auth/config.ts`). La liste porte
- * ce qui existe, et un gardien refuse qu'un chemin d'inscription apparaisse
- * sans y entrer.
+ * `/two-factor/disable` désactive le second facteur du compte connecté : il met
+ * `mfa_actif` à `false` **puis supprime la ligne de `second_facteur`**. C'est
+ * très exactement la transition que D58 refuse d'ouvrir — *un compte peut
+ * modifier ce qui parle de lui, jamais ce qui gouverne son accès.* Le retrait
+ * d'un second facteur est un acte administratif : L7-01, `admin_plateforme`
+ * seul, journalisé.
+ *
+ * `/two-factor/enable` est fermé aussi, et pour une raison différente qu'il faut
+ * dire : la transition d'enrôlement, elle, est DÉCIDÉE. Mais ce point d'entrée
+ * générique porte le mot de passe en corps de requête et ouvre la porte jumelle
+ * dans le même greffon ; l'enrôlement s'écrira comme un chemin à nous, borné par
+ * `second_facteur_enrolement`, plutôt qu'en rallumant un générique dont on
+ * hériterait aussi le contraire.
+ *
+ * **Pourquoi ce n'était pas déjà fermé, et pourquoi il fallait le faire
+ * MAINTENANT.** Ces deux points d'entrée étaient INERTES — mesuré le 07/09,
+ * `Unauthorized` sur les deux — mais pas par décision : l'intergiciel de session
+ * du greffon lisait l'identité jointe à la session, ce que la politique de
+ * L1-02c filtrait. *Une fermeture par effet de bord n'est pas une fermeture,
+ * c'est un accident qui nous arrange.* Et L1-02d répare précisément cette
+ * lecture : les deux points d'entrée allaient donc se RALLUMER tout seuls. La
+ * fermeture délibérée arrive avec la réparation, dans le même geste.
+ *
+ * **Ce qui n'est PAS fermé, et c'est délibéré** : les chemins de VÉRIFICATION du
+ * second facteur (`/two-factor/verify-totp` et ses voisins). Ils servent à
+ * présenter le facteur, pas à le gouverner — les fermer interdirait la connexion
+ * de tout compte qui en porte un.
  */
+
+/**
+ * Les chemins fermés, en liste close.
+ *
+ * `/sign-up` couvre `/sign-up/email` — le seul aujourd'hui, aucun fournisseur
+ * externe n'étant déclaré. Les deux autres sont nommés exactement : un préfixe
+ * `/two-factor` aurait emporté la vérification avec eux.
+ *
+ * La liste porte ce qui existe, et un gardien refuse qu'un chemin d'inscription
+ * ou de gouvernance du second facteur apparaisse sans y entrer.
+ */
+export const CHEMINS_FERMES: readonly string[] = [
+  "/sign-up",
+  "/two-factor/enable",
+  "/two-factor/disable",
+];
+
+/** Conservé sous son ancien nom : la moitié « inscription » de la liste. */
 export const CHEMINS_INSCRIPTION: readonly string[] = ["/sign-up"];
 
-/** Vrai si ce chemin ouvre une inscription — quel que soit le préfixe de montage. */
+/** Vrai si ce chemin est fermé — quel que soit le préfixe de montage. */
+export function estCheminFerme(chemin: string): boolean {
+  const normalise = chemin.replace(/\/+$/, "");
+  return CHEMINS_FERMES.some(
+    (interdit) =>
+      normalise.endsWith(interdit) || normalise.includes(`${interdit}/`),
+  );
+}
+
+/** Vrai si ce chemin ouvre une inscription. Conservé pour ce qu'il nomme. */
 export function estCheminInscription(chemin: string): boolean {
   const normalise = chemin.replace(/\/+$/, "");
   return CHEMINS_INSCRIPTION.some(

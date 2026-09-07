@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  CHEMINS_FERMES,
   CHEMINS_INSCRIPTION,
+  estCheminFerme,
   estCheminInscription,
 } from "../../../lib/auth/inscription-fermee";
 
@@ -40,6 +42,7 @@ describe("le chemin d'inscription est reconnu", () => {
     expect(estCheminInscription("/api/auth/sign-in/email")).toBe(false);
     expect(estCheminInscription("/api/auth/sign-out")).toBe(false);
     expect(estCheminInscription("/api/auth/two-factor/verify")).toBe(false);
+    expect(estCheminInscription("/api/auth/two-factor/disable")).toBe(false);
     expect(estCheminInscription("/api/auth/get-session")).toBe(false);
   });
 
@@ -51,12 +54,46 @@ describe("le chemin d'inscription est reconnu", () => {
   });
 });
 
+describe("la gouvernance du second facteur est fermée aussi (L1-02d)", () => {
+  it("ferme les DEUX points d'entrée que le sujet ne doit pas atteindre", () => {
+    // `/two-factor/disable` retire le second facteur du compte connecté : la
+    // transition que D58 refuse d'ouvrir. `/two-factor/enable` part avec lui —
+    // l'enrôlement est décidé, mais il s'écrira comme un chemin à nous.
+    expect(estCheminFerme("/api/auth/two-factor/disable")).toBe(true);
+    expect(estCheminFerme("/api/auth/two-factor/enable")).toBe(true);
+    expect(estCheminFerme("/api/auth/sign-up/email")).toBe(true);
+  });
+
+  it("laisse la VÉRIFICATION ouverte — la fermer interdirait la connexion", () => {
+    // La contre-épreuve, et elle n'est pas décorative : un préfixe `/two-factor`
+    // aurait emporté ces chemins, et tout compte portant un second facteur
+    // n'aurait plus jamais pu se connecter.
+    expect(estCheminFerme("/api/auth/two-factor/verify-totp")).toBe(false);
+    expect(estCheminFerme("/api/auth/two-factor/verify-backup-code")).toBe(
+      false,
+    );
+    expect(estCheminFerme("/api/auth/sign-in/email")).toBe(false);
+    expect(estCheminFerme("/api/auth/get-session")).toBe(false);
+  });
+
+  it("la liste close porte exactement les trois chemins arbitrés", () => {
+    // TÉMOIN : une liste vide reconnaîtrait zéro chemin et ce fichier resterait
+    // vert.
+    expect(CHEMINS_FERMES.length).toBeGreaterThan(0);
+    expect([...CHEMINS_FERMES]).toEqual([
+      "/sign-up",
+      "/two-factor/enable",
+      "/two-factor/disable",
+    ]);
+  });
+});
+
 describe("la ROUTE ferme réellement, et le gardien le lit", () => {
   it("le gestionnaire appelle la fermeture avant de déléguer", () => {
     // Le contrôle porte sur le CÂBLAGE : la fonction peut être juste et n'être
     // appelée par personne — c'est la maladie que ce dépôt a nommée sur la
     // veille. On exige donc que les deux verbes la traversent.
-    expect(ROUTE).toContain("estCheminInscription");
+    expect(ROUTE).toContain("estCheminFerme");
     for (const verbe of ["GET", "POST"]) {
       const bloc = new RegExp(
         `export async function ${verbe}\\([^)]*\\)[^{]*\\{[\\s\\S]*?\\n\\}`,
