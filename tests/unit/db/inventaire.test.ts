@@ -49,6 +49,9 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       utilisateur_societe: 2,
       utilisateur_client: 1,
       utilisateur_client_site: 1,
+      habilitation: 4,
+      technicien_habilitation: 2,
+      site_habilitation_requise: 1,
     },
     ...surcharge,
   };
@@ -72,6 +75,9 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         utilisateur_societe: 1,
         utilisateur_client: 0,
         utilisateur_client_site: 0,
+        habilitation: 4,
+        technicien_habilitation: 0,
+        site_habilitation_requise: 0,
       },
     }),
   ];
@@ -106,6 +112,9 @@ describe("inventaire à plat", () => {
       utilisateur_societe: 3,
       utilisateur_client: 1,
       utilisateur_client_site: 1,
+      habilitation: 8,
+      technicien_habilitation: 2,
+      site_habilitation_requise: 1,
     });
   });
 

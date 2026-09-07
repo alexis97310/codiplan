@@ -1,6 +1,7 @@
 import type { DelaisTransaction } from "../lib/db/rls";
 
 import {
+  HABILITATIONS_AMORCAGE,
   type SocieteSeed,
   anneeDeDepartFeries,
   ecartsDeLAgence,
@@ -116,6 +117,11 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     // écrit hors de la transaction de sa société serait refusé par la
     // politique « parc ». Ils comptent donc dans le budget de latence.
     societe.clients.reduce((total, client) => total + client.sites.length, 0) +
+    // L'amorçage des habilitations de L1-04 : un `upsert` par entrée, et par
+    // société. Il n'est pas déduit d'une donnée de la société — c'est la MÊME
+    // liste pour toutes —, mais il coûte les mêmes allers-retours, et le budget
+    // se compte, il ne s'estime pas (§9, 23/08).
+    HABILITATIONS_AMORCAGE.length +
     societe.calendriers.length +
     plages +
     societe.agences.length +

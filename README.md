@@ -618,7 +618,24 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 1 entamé. **L1-03** pose les **contacts** d'un client. Un contact appartient
+Lot 1 entamé. **L1-04** pose les **habilitations** : la qualification
+(`habilitation`), l'instance datée d'un technicien (`technicien_habilitation`) et
+l'exigence d'un site (`site_habilitation_requise`), plus RG-PLA-04 dans
+`lib/habilitations/` — _l'affectation est **bloquée**, jamais signalée_.
+
+Deux décisions y sont visibles. **`habilitation` est une table métier
+cloisonnée, pas un référentiel de plateforme** (D60) : une nomenclature
+nationale est un fait de la France, pas un fait de la plateforme, et une société
+suit aussi des qualifications que nulle norme ne connaît. La liste réglementaire
+française est un **amorçage** posé à l'ouverture d'une société. Et
+`site_habilitation_requise` est **la première table fille réelle du parc**, donc
+la première à porter la sixième forme de politique — **« filiation »**, tranchée
+à L1-02 et construite ici : _une fille est visible si son parent l'est._ Son
+jumeau remplace la clause par celle de « société » et montre l'exigence du site
+S2 réapparaître pour un compte portail restreint à S1 — la faute n'aurait rien
+cassé de visible, elle aurait **allongé** la liste.
+
+**L1-03** pose les **contacts** d'un client. Un contact appartient
 au client, avec un rattachement de site **facultatif** — et cette nullité porte
 du sens : _un contact sans site ne doit pas disparaître pour un compte portail
 restreint à certains sites, sinon on perd le comptable en restreignant un

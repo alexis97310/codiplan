@@ -940,3 +940,54 @@ export const PARITES: readonly PariteSeed[] = [
     source: "parité légale fixe",
   },
 ];
+
+/**
+ * L'AMORÇAGE DES HABILITATIONS (D60, ticket L1-04).
+ *
+ * **Ce n'est pas un référentiel de plateforme, c'est un point de départ.**
+ * `habilitation` est une table métier cloisonnée : chaque société possède sa
+ * liste et peut la compléter ou la réduire. Celle-ci lui est posée à l'ouverture
+ * — aujourd'hui par le seed, demain par le provisionnement du lot 7 — pour
+ * qu'aucune société ne parte d'une page blanche.
+ *
+ * **Les codes et les libellés sont des FAITS**, ceux de la norme NF C 18-510
+ * pour l'électrique et de la recommandation R489 pour les chariots. Ils ne sont
+ * pas inventés, et c'est ce qui les distingue du reste du jeu de démonstration.
+ *
+ * **Les DURÉES DE VALIDITÉ, elles, sont laissées NULLES, et c'est une
+ * décision.** La périodicité de recyclage est une pratique d'entreprise, pas une
+ * obligation chiffrée par la norme : l'écrire ici reviendrait à inventer une
+ * valeur métier que personne n'a arbitrée (CLAUDE.md §8 — « un montant, un taux,
+ * un délai non spécifié : ne jamais inventer de valeur par défaut »). `NULL` se
+ * lit « n'expire pas », ce qui ne bloque personne à tort ; la vraie périodicité
+ * se saisit au paramétrage, et la question est au registre.
+ *
+ * **Aucun identifiant fixe ici, à l'inverse des clients et des sites.** Ces
+ * lignes existent une fois PAR SOCIÉTÉ : un identifiant fixe les ferait entrer
+ * en collision. L'idempotence vient de la clé unique `(societe_id, code)`, qui
+ * donne exactement la même propriété — rejouer le seed corrige un libellé au
+ * lieu de créer une seconde habilitation.
+ */
+export type HabilitationAmorcageSeed = {
+  readonly code: string;
+  readonly libelle: string;
+};
+
+export const HABILITATIONS_AMORCAGE: readonly HabilitationAmorcageSeed[] = [
+  {
+    code: "B0",
+    libelle: "Exécutant non électricien — travaux d'ordre non électrique",
+  },
+  {
+    code: "B1V",
+    libelle: "Exécutant électricien — travaux au voisinage, basse tension",
+  },
+  {
+    code: "BR",
+    libelle: "Chargé d'intervention générale — basse tension",
+  },
+  {
+    code: "R489-3",
+    libelle: "Chariot élévateur frontal en porte-à-faux (CACES R489 cat. 3)",
+  },
+];

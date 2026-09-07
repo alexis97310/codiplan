@@ -173,6 +173,14 @@ const HORS_OBSERVATION: readonly {
       "dans `pg_policies`, et c'est là que la veille mord.",
   },
   {
+    fonction: "ecartsListeFiliation",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_FILIATION`), pas la base — même " +
+      "raison que `ecartsListeParc`. La FORME qu'elle commande est observée : " +
+      "`ecartsPolitiques` mesure la clause de filiation dans `pg_policies`, et " +
+      "c'est là que la veille mord.",
+  },
+  {
     fonction: "ecartsListeParc",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_PARC`), pas la base. Aucune main " +

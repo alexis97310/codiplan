@@ -59,6 +59,12 @@ export const TABLES_CLOISONNEES = [
   "utilisateur_societe",
   "utilisateur_client",
   "utilisateur_client_site",
+  // L1-04 : les trois tables d'habilitation. `habilitation` est une table
+  // MÉTIER et non un référentiel de plateforme (D60) — une nomenclature
+  // nationale est un fait de la France, pas un fait de la plateforme.
+  "habilitation",
+  "technicien_habilitation",
+  "site_habilitation_requise",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

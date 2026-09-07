@@ -129,16 +129,19 @@ model Societe {
   langue                        String // documente une intention, non exploitée en V1 (D26)
   actif                         Boolean @default(true)
 
-  devise               Devise                  @relation(fields: [devise_code], references: [code])
-  agences              Agence[]
-  calendriers          Calendrier[]
-  utilisateur_societes UtilisateurSociete[]
-  utilisateur_clients  UtilisateurClient[]
-  perimetres_portail   UtilisateurClientSite[]
-  contacts             Contact[]
-  clients              Client[]
-  sessions_actives     Session[]
-  sites                Site[]
+  devise                Devise                    @relation(fields: [devise_code], references: [code])
+  agences               Agence[]
+  calendriers           Calendrier[]
+  utilisateur_societes  UtilisateurSociete[]
+  utilisateur_clients   UtilisateurClient[]
+  perimetres_portail    UtilisateurClientSite[]
+  contacts              Contact[]
+  habilitations         Habilitation[]
+  techniciens_habilites TechnicienHabilitation[]
+  sites_habilitations   SiteHabilitationRequise[]
+  clients               Client[]
+  sessions_actives      Session[]
+  sites                 Site[]
 
   @@map("societe")
 }
@@ -636,8 +639,9 @@ model Site {
   agence  Agence  @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   /// Cible du chaînage composite depuis `utilisateur_client_site` (L1-02b).
-  perimetres UtilisateurClientSite[]
-  contacts   Contact[]
+  perimetres             UtilisateurClientSite[]
+  contacts               Contact[]
+  habilitations_requises SiteHabilitationRequise[]
 
   /// Cible du chaînage TRIPLE depuis `contact` : un contact rattaché à un site
   /// doit l'être à un site DE SON CLIENT, et c'est la clé qui le tient.
@@ -708,6 +712,8 @@ model UtilisateurSociete {
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
   societe     Societe     @relation(fields: [societe_id], references: [id])
+
+  habilitations TechnicienHabilitation[]
 
   @@unique([utilisateur_id, societe_id])
   @@map("utilisateur_societe")
@@ -1150,4 +1156,112 @@ model Contact {
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
   @@map("contact")
+}
+
+/// Habilitation — la QUALIFICATION elle-même (D9, D60, ticket L1-04).
+///
+/// **Table MÉTIER cloisonnée, et non un référentiel de plateforme** (D60). Les
+/// habilitations électriques françaises sont réglementaires et nationales, ce
+/// qui plaidait pour un référentiel ; mais *une nomenclature nationale est un
+/// fait de la France, pas un fait de la plateforme*, et le produit est destiné à
+/// être vendu ailleurs. La forme « référentiel » dit « ceci vaut pour tout le
+/// monde » — ce n'est pas vrai ici. Et une société suivra des qualifications qui
+/// ne sont pas réglementaires du tout : « formé sur telle presse ».
+///
+/// La liste réglementaire garde sa valeur comme AMORÇAGE : une société qui
+/// s'ouvre la reçoit par défaut et peut la compléter ou la réduire.
+model Habilitation {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Code court, unique dans la société — « B1V », « CACES R489-3 ».
+  code    String
+  libelle String
+
+  /// Durée de validité en mois, NULLE quand l'habilitation n'expire pas.
+  /// Elle ne CALCULE rien : c'est une aide à la saisie, la date d'expiration
+  /// étant portée par chaque instance. Deux sources d'un même fait divergent en
+  /// silence — ici la seule qui décide est `technicien_habilitation`.
+  duree_validite_mois Int?
+
+  actif Boolean @default(true)
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  techniciens TechnicienHabilitation[]
+  sites       SiteHabilitationRequise[]
+
+  /// Cible des chaînages composites : elle rend le couple (société,
+  /// habilitation) référençable d'un seul geste, de sorte qu'une exigence de
+  /// site ou une habilitation de technicien ne puisse pas désigner
+  /// l'habilitation d'une AUTRE société — les contrôles d'intégrité
+  /// référentielle contournant les politiques RLS par construction.
+  @@unique([societe_id, id])
+  @@unique([societe_id, code])
+  @@map("habilitation")
+}
+
+/// L'habilitation D'UN technicien, datée (D9, ticket L1-04).
+///
+/// **Elle se rattache à `utilisateur_societe`, jamais à `utilisateur` seul.**
+/// Une habilitation est tenue par une personne EN TANT QUE salarié d'une
+/// société ; le chaînage composite `(utilisateur_id, societe_id)` garantit
+/// déclarativement qu'on ne peut pas habiliter quelqu'un qui n'appartient pas à
+/// la société — c'est la leçon de D48, une contrainte posée sur ce qui la rend
+/// vraie plutôt que sur une recopie.
+///
+/// **UNE ligne par couple, et l'historique vit au journal d'audit.** Un
+/// renouvellement met à jour les dates ; I8 en conserve les valeurs avant/après.
+/// Garder une ligne par renouvellement aurait donné deux sources au même fait —
+/// « quelle est l'habilitation courante » — et obligé chaque lecture à choisir.
+model TechnicienHabilitation {
+  id              String @id @db.Uuid
+  societe_id      String @db.Uuid
+  utilisateur_id  String @db.Uuid
+  habilitation_id String @db.Uuid
+
+  date_obtention  DateTime  @db.Date
+  /// NULLE quand l'habilitation n'expire pas. **`NULL` ne veut pas dire
+  /// « expirée »** : RG-PLA-04 compare une date à la date d'intervention, et une
+  /// habilitation sans échéance n'est jamais en retard.
+  date_expiration DateTime? @db.Date
+
+  societe      Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Restrict` des deux côtés : retirer quelqu'un d'une société alors qu'il y
+  /// porte des habilitations est refusé — c'est une décision d'exploitation, pas
+  /// un effet de bord (D49 : une action référentielle est une règle de gestion
+  /// déguisée en modalité technique).
+  technicien   UtilisateurSociete @relation(fields: [utilisateur_id, societe_id], references: [utilisateur_id, societe_id], onDelete: Restrict, onUpdate: Restrict)
+  habilitation Habilitation       @relation(fields: [societe_id, habilitation_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, utilisateur_id, habilitation_id])
+  @@index([societe_id, utilisateur_id])
+  @@map("technicien_habilitation")
+}
+
+/// L'habilitation EXIGÉE par un site (D9, RG-PLA-04, ticket L1-04).
+///
+/// **Première table FILLE réelle d'une table du parc**, et donc celle qui
+/// appelle la sixième forme de politique — « filiation » —, tranchée à L1-02 et
+/// construite ici : *une fille est visible si son parent l'est*. La forme
+/// « société » aurait laissé un compte portail restreint au site S1 lire les
+/// exigences du site S2 ; la forme « parc » aurait exigé de recopier `client_id`,
+/// un rattachement que la clé étrangère tient déjà.
+model SiteHabilitationRequise {
+  id              String @id @db.Uuid
+  societe_id      String @db.Uuid
+  site_id         String @db.Uuid
+  habilitation_id String @db.Uuid
+
+  /// **Bloquant ou non — c'est tout RG-PLA-04.** Bloquant : l'affectation est
+  /// REFUSÉE. Non bloquant : elle produit un avertissement et passe.
+  bloquant Boolean @default(true)
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  site         Site         @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  habilitation Habilitation @relation(fields: [societe_id, habilitation_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, site_id, habilitation_id])
+  @@index([societe_id, site_id])
+  @@map("site_habilitation_requise")
 }
