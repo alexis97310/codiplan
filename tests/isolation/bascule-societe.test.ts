@@ -11,8 +11,8 @@ import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 import {
   avecSocieteEtRole,
   clientApp,
-  clientOwner,
   fermerClients,
+  observerSousProprietaire,
 } from "./setup/db";
 import {
   AGENCE_A,
@@ -62,7 +62,11 @@ async function ouvrirSession(utilisateurId: string): Promise<string> {
  * un chemin de production.
  */
 async function journalDe(utilisateurId: string) {
-  return clientOwner().journalAcces.findMany({
+  return observerSousProprietaire(
+    "relire le journal des accès : il est en lecture BORNÉE À LA DÉSIGNATION " +
+      "depuis L1-02d, et le harnais observe ici sans jouer un chemin de " +
+      "production — aucune conclusion de cloisonnement n'en est tirée",
+  ).journalAcces.findMany({
     where: { utilisateur_id: utilisateurId },
     orderBy: { horodatage: "asc" },
   });

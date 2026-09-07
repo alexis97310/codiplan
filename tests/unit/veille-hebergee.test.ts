@@ -118,6 +118,15 @@ const HORS_OBSERVATION: readonly {
   justification: string;
 }[] = [
   {
+    fonction: "ecartsObservationProprietaire",
+    justification:
+      "n'observe pas la base : elle lit le TEXTE des scénarios d'isolation et " +
+      "refuse qu'une assertion de vacuité s'appuie sur une lecture faite sous " +
+      "le propriétaire. C'est un gardien du harnais, pas un contrôle de " +
+      "dérive de la base hébergée — la veille tourne sous le rôle applicatif " +
+      "et n'a aucun fichier à lire.",
+  },
+  {
     fonction: "ecartsBattement",
     justification:
       "n'observe pas la base : elle lit l'âge de la dernière exécution " +

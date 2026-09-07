@@ -66,6 +66,44 @@ export function clientOwner(): PrismaClient {
   return owner;
 }
 
+/**
+ * LIRE SOUS LE PROPRIÉTAIRE, EN LE DISANT — et la règle qui va avec (L1-02d).
+ *
+ * **AUCUNE ASSERTION DE CLOISONNEMENT NE SE TIRE D'UNE LECTURE SOUS LE
+ * PROPRIÉTAIRE.** Le propriétaire n'est pas soumis aux mêmes règles que le rôle
+ * applicatif — et sur la base jetable il est même superutilisateur, donc exempt
+ * de RLS. Une épreuve qui conclurait « la table est bien cloisonnée » depuis une
+ * lecture faite ici prouverait un cloisonnement **sous des privilèges que la
+ * production n'a pas**. C'est la faute SYMÉTRIQUE de celle que L1-02b a fermée :
+ * là, le harnais armait une garantie que la production n'armait pas ; ici, il la
+ * mesurerait sous une identité que la production n'a pas.
+ *
+ * Ce que le propriétaire a le droit de faire dans un scénario, et rien d'autre :
+ *   — **amorcer** une population (écrire les lignes que la mesure va regarder) ;
+ *   — **observer** un état que le rôle applicatif ne peut légitimement pas
+ *     atteindre — un décompte total, une colonne d'une table en ajout seul, un
+ *     témoin de non-vacuité.
+ *
+ * Cette fonction est pour le second cas. Elle ne fait rien de plus que
+ * `clientOwner()` : elle oblige à écrire POURQUOI, et un gardien statique refuse
+ * qu'une assertion de vacuité s'appuie dessus
+ * (`tests/unit/db/observation-proprietaire.test.ts`).
+ *
+ * @param raison ce que cette lecture observe, et pourquoi le rôle applicatif ne
+ *   peut pas la faire. Une phrase, pas un mot.
+ */
+export function observerSousProprietaire(raison: string): PrismaClient {
+  if (raison.trim().length < 20) {
+    throw new Error(
+      "observerSousProprietaire attend une RAISON écrite : ce que cette " +
+        "lecture observe, et pourquoi le rôle applicatif ne peut pas la " +
+        "faire. Une lecture sous le propriétaire qui ne se justifie pas est " +
+        "une assertion de cloisonnement qui s'ignore.",
+    );
+  }
+  return clientOwner();
+}
+
 export function clientApp(): PrismaClient {
   app ??= new PrismaClient({ datasources: { db: { url: urlApp() } } });
   return app;

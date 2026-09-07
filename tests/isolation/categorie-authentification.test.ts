@@ -271,7 +271,13 @@ describe("LA BORNE — nommer une ligne n'en ouvre aucune autre", () => {
     expect(balayage.map((b) => b.token)).toEqual([JETON_SUJET]);
   });
 
-  it("le jeton désigne SON identité, et elle seule", async () => {
+  it("… et il ne désigne QUE la session : l'identité se nomme par son id", async () => {
+    // Une branche avait été ajoutée à `utilisateur_lecture` pour que le jeton
+    // désigne aussi son identité. Le jumeau l'a démentie — retirée, la chaîne
+    // complète restait verte — et elle a été supprimée : une branche inutile
+    // dans une politique d'identité est un élargissement sans objet. Ce
+    // scénario constate l'état retenu, pour qu'on ne la remette pas par
+    // habitude.
     await poserPopulation();
     const identites = await clientApp().$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
@@ -282,7 +288,56 @@ describe("LA BORNE — nommer une ligne n'en ouvre aucune autre", () => {
         `SELECT "id" FROM "utilisateur"`,
       );
     });
-    expect(identites.map((i) => i.id)).toEqual([SUJET]);
+    expect(identites).toHaveLength(0);
+  });
+});
+
+describe("RENDEZ-VOUS — L7-01 devra ouvrir la suppression, et lui seul", () => {
+  it("le retrait d'un second facteur n'est ouvert à PERSONNE, et c'est décidé", async () => {
+    // ── CE SCÉNARIO N'EST PAS UNE GARANTIE : C'EST UN RENDEZ-VOUS ──────────
+    //
+    // `second_facteur` n'a AUCUNE politique de suppression : sous `FORCE`, le
+    // verbe est refusé pour tout le monde — le sujet comme l'administrateur.
+    // C'est le bon défaut, et il est tenu.
+    //
+    // Mais L7-01 existe précisément pour débloquer un `admin_societe` qui a
+    // perdu son second facteur, et il est aujourd'hui INIMPLÉMENTABLE. Ce n'est
+    // pas un défaut : c'est une échéance. Sans ce scénario, celui qui écrira
+    // L7-01 recevrait ZÉRO LIGNE sans explication — le refus d'une politique de
+    // suppression est silencieux — et chercherait un bug là où il y a une
+    // décision. Une EMBUSCADE. Avec lui, il reçoit un rendez-vous.
+    await poserPopulation();
+
+    const efface = await avecContexteRls(
+      clientApp(),
+      { societeId: SOCIETE_A, role: Role.admin_plateforme, auteurId: ADMIN },
+      (tx) =>
+        tx.$executeRawUnsafe(
+          `DELETE FROM "second_facteur" WHERE "utilisateur_id" = $1::uuid`,
+          SUJET,
+        ),
+    );
+
+    expect(
+      efface,
+      "LE RETRAIT D'UN SECOND FACTEUR VIENT DE RÉUSSIR. Il n'est ouvert à " +
+        "PERSONNE aujourd'hui — ni au sujet, ni à un administrateur — et c'est " +
+        "une décision (D58, D59). Si ce scénario tombe, c'est que quelqu'un a " +
+        "ouvert une politique de suppression sur `second_facteur`. L7-01 devra " +
+        "en ouvrir UNE, et elle sera la SEULE : `admin_plateforme` seul, " +
+        "journalisée dans `journal_acces`, avec réactivation obligatoire d'un " +
+        "second facteur avant retour des droits d'administration. Tout autre " +
+        "élargissement demande un arbitrage, pas une rustine.",
+    ).toBe(0);
+
+    // Et la contre-épreuve : le refus ne tient pas au hasard du rôle choisi.
+    // Aucun des dix rôles n'ouvre ce verbe, parce qu'aucune politique ne le
+    // couvre — c'est le VERBE qui est fermé, pas un rôle qui manque.
+    const [politiques] = await clientOwner().$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*) AS n FROM pg_policies
+        WHERE tablename = 'second_facteur' AND cmd = 'DELETE'`,
+    );
+    expect(Number(politiques?.n)).toBe(0);
   });
 });
 

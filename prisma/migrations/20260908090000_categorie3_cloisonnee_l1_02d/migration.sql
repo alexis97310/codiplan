@@ -42,21 +42,29 @@
 --   `journal_acces`  → ce n'est PAS la même espèce. Voir la section qui lui est
 --                      consacrée.
 --
--- ── LE DÉFAUT QUE LA TRACE A RÉVÉLÉ, ET QUE CETTE MIGRATION RÉPARE ─────────
+-- ── UN DÉFAUT QUE CE TICKET A TROUVÉ, ET CE QU'ON EN SAIT EXACTEMENT ──────
 --
--- `getSession` rendait **NULL** pour tout compte fraîchement connecté — donc
--- toute page authentifiée. Mesuré, avec témoin : deux lignes de session bien
--- présentes en base, la jointure `session × utilisateur` sans désignation
--- rendant zéro. Personne ne s'en était aperçu : aucune page ne s'en sert encore.
+-- Avant cette migration, `getSession` rendait **NULL** pour tout compte
+-- fraîchement connecté — donc toute page authentifiée. Mesuré deux fois, avec
+-- témoin : les lignes de session étaient bien présentes en base. Personne ne
+-- s'en était aperçu : aucune page ne s'en sert encore.
 --
--- La cause n'est pas celle qu'on suppose. Better Auth lit la session avec
--- `join: { user: true }`, et Prisma rend cela par DEUX instructions SQL pour UNE
--- SEULE opération de client. L'enveloppe de désignation ne voyait donc jamais
--- d'opération `utilisateur` : elle voyait une opération `session`.
+-- Après cette migration, la chaîne fonctionne, et la trace dit COMMENT :
+-- `getSession` émet **deux opérations de client distinctes**, chacune désignée
+-- pour son compte — `session` par son JETON, `utilisateur` par son IDENTIFIANT.
 --
--- D'où la branche ajoutée à `utilisateur_lecture` : **le jeton de session
--- désigne aussi son identité.** Elle ne rend jamais plus que ce que l'appelant
--- savait — il détient le jeton.
+-- **Ce qui n'est PAS établi, et qui se dit plutôt que se raconte : la cause
+-- exacte du NULL d'avant.** Une première explication avait été écrite ici — la
+-- lecture jointe de Better Auth, qu'une branche de `utilisateur_lecture` aurait
+-- réparée. Le JUMEAU l'a démentie : cette branche retirée, la chaîne complète
+-- reste verte. Elle a donc été supprimée plutôt que gardée « au cas où » — une
+-- branche inutile dans une politique d'identité est un élargissement sans
+-- objet. Isoler la cause d'origine demanderait de rejouer l'ANCIEN code contre
+-- l'ANCIENNE base : ni l'un ni l'autre n'existe plus ensemble.
+--
+-- Ce qui garde désormais la chaîne n'est donc pas une explication mais un
+-- APPELANT : `tests/isolation/chaine-session.test.ts` ouvre une session, la
+-- relit, bascule de société et la relit encore. C'est ce qui manquait.
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 1. SESSION
@@ -311,42 +319,3 @@ CREATE POLICY "journal_acces_lecture" ON "journal_acces"
 
 COMMENT ON TABLE "journal_acces" IS
   'Journal des accès — connexions, bascules, refus. Depuis L1-02d : ajout libre, lecture BORNÉE À LA DÉSIGNATION, ni modification ni suppression (aucune politique, donc refusées sous FORCE ROW LEVEL SECURITY). Ce n''est pas une table de matériau d''authentification mais une TRACE, de la même espèce que journal_audit ; elle ne peut pas porter la clause de société de celui-ci, ses colonnes de société étant informatives et jamais filtrantes (D34). L''ajout seul a été voulu puis mesuré impossible : INSERT … RETURNING est soumis à la politique de lecture, et Prisma ne pouvait plus écrire du tout. La lecture « qui a tenté d''accéder à mes données » est une fonction de la console du lot 7.';
-
--- ═══════════════════════════════════════════════════════════════════════════
--- 6. LE JETON DE SESSION DÉSIGNE AUSSI SON IDENTITÉ
--- ═══════════════════════════════════════════════════════════════════════════
---
--- La branche ajoutée à `utilisateur_lecture`. Elle ne rend jamais plus que ce
--- que l'appelant savait : il détient le jeton. La sous-requête est elle-même
--- soumise à la politique de `session`, si bien que la règle est écrite UNE fois
--- et se recompose — plutôt que deux clauses jumelles qui divergeront (§9, 01/09).
-
-ALTER POLICY "utilisateur_lecture" ON "utilisateur"
-  USING (
-    -- Forme « DÉSIGNATION » — la ligne que l'appelant nommait déjà.
-    "email" = NULLIF(current_setting('app.authentification_email', true), '')
-    OR "id" = NULLIF(current_setting('app.authentification_utilisateur_id', true), '')::uuid
-    -- … y compris quand il la nomme par le JETON de sa session (L1-02d).
-    OR EXISTS (
-      SELECT 1 FROM "session" "s"
-       WHERE "s"."utilisateur_id" = "utilisateur"."id"
-         AND "s"."token" = NULLIF(current_setting('app.authentification_jeton_session', true), '')
-    )
-    -- Forme « RATTACHEMENT » — une identité de la société active.
-    OR (
-      NULLIF(current_setting('app.societe_id', true), '') IS NOT NULL
-      AND (
-        (
-          NULLIF(current_setting('app.client_id', true), '') IS NULL
-          AND EXISTS (
-            SELECT 1 FROM "utilisateur_societe" "us"
-             WHERE "us"."utilisateur_id" = "utilisateur"."id"
-          )
-        )
-        OR EXISTS (
-          SELECT 1 FROM "utilisateur_client" "uc"
-           WHERE "uc"."utilisateur_id" = "utilisateur"."id"
-        )
-      )
-    )
-  );

@@ -9,7 +9,12 @@ import { basculerSociete } from "@/lib/auth/societe-active";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n/fr";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  clientApp,
+  clientOwner,
+  fermerClients,
+  observerSousProprietaire,
+} from "./setup/db";
 import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 
 /**
@@ -237,9 +242,11 @@ describe("réponses d'authentification indiscernables (D35)", () => {
     // L'uniformité est tournée vers l'extérieur. À l'intérieur, la trace dit ce
     // qui s'est réellement passé — sans quoi « qui a tenté d'accéder à mes
     // données » resterait sans réponse (D34).
-    // Sous le PROPRIÉTAIRE depuis L1-02d : `journal_acces` est en ajout seul,
-    // sans politique de lecture. Le harnais observe, il ne joue pas un chemin.
-    const journal = await clientOwner().journalAcces.findMany({
+    const journal = await observerSousProprietaire(
+      "relire le journal des accès, dont la lecture est bornée à la " +
+        "désignation depuis L1-02d : le harnais observe le contenu de la " +
+        "trace, il n'en tire aucune conclusion de cloisonnement",
+    ).journalAcces.findMany({
       where: { utilisateur_id: orphelinId },
       orderBy: { horodatage: "asc" },
     });

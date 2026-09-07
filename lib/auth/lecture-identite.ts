@@ -38,22 +38,17 @@ import {
  * | `verification` | identifiant opaque | `app.authentification_identifiant` |
  * | `second_facteur` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
  *
- * ## LE DÉFAUT QUE LA TRACE A RÉVÉLÉ, ET QU'AUCUNE RELECTURE N'AURAIT VU
+ * ## CE QUE LA TRACE MONTRE DE `getSession`, ET CE QU'ELLE NE MONTRE PAS
  *
- * `getSession` rendait **NULL** pour tout compte fraîchement connecté — donc
- * `obtenirSession` aussi, donc toute page authentifiée. Personne ne s'en était
- * aperçu : aucune page ne s'en sert encore.
+ * Elle montre **deux opérations de client distinctes** — `session` désignée par
+ * son jeton, puis `utilisateur` désignée par son identifiant —, chacune dans sa
+ * propre transaction. C'est ce chemin-là que l'enveloppe garde.
  *
- * La cause n'est pas celle qu'on suppose. Better Auth lit la session avec
- * `join: { user: true }`, et Prisma rend cela par **DEUX instructions SQL pour
- * UNE seule opération de client** (`session.findFirst({ include })`) — mesuré.
- * L'extension ci-dessous ne voit donc jamais d'opération `utilisateur` : elle
- * voit une opération `session`. La lecture d'identité partait sans désignation
- * et rendait zéro, et Better Auth en concluait « pas de session ».
- *
- * D'où la forme de la réparation : **le jeton de session désigne aussi son
- * identité.** La politique de `utilisateur` porte cette branche, et elle ne
- * rend jamais plus que ce que l'appelant savait — il détient le jeton.
+ * Elle ne montre PAS pourquoi `getSession` rendait `null` avant L1-02d : ce
+ * défaut a été mesuré deux fois, avec témoin, et sa cause n'a pas été isolée.
+ * Une explication avait été écrite — la lecture jointe de la bibliothèque —, et
+ * le jumeau l'a démentie. Ce qui garde cette chaîne n'est donc pas une
+ * explication mais un APPELANT : `tests/isolation/chaine-session.test.ts`.
  *
  * ## Ce qu'il ne fait pas
  *

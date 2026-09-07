@@ -128,12 +128,11 @@ export const VARIABLE_SESSION_AUTH_UTILISATEUR =
  * rend jamais plus que ce que l'appelant savait déjà — c'est la définition de
  * la forme, et elle s'applique ici sans être élargie d'un pouce.
  *
- * Elle désigne aussi l'IDENTITÉ de cette session, et c'est ce qui répare
- * `obtenirSession` : Better Auth lit la session et son utilisateur en UNE
- * requête jointe, si bien que la politique d'identité doit reconnaître ce
- * chemin — sans quoi la lecture rend `null` et personne n'a plus de session.
- * Mesuré le 07/09/2026 : `getSession` rendait NULL sur un compte fraîchement
- * connecté, avec deux lignes de session bien présentes en base.
+ * Elle ne désigne QUE la session, et pas son identité : mesuré, `getSession`
+ * émet deux opérations de client distinctes, et l'identité y est désignée par
+ * son propre identifiant. Une branche avait été ajoutée à `utilisateur_lecture`
+ * pour ce chemin ; le jumeau l'a démentie — retirée, la chaîne reste verte — et
+ * elle a donc été supprimée plutôt que gardée « au cas où ».
  */
 export const VARIABLE_SESSION_AUTH_JETON = "app.authentification_jeton_session";
 
