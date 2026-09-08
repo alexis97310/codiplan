@@ -597,6 +597,21 @@ portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les
 habilitations de sa société, ce qu'une clause « sa propre ligne » sans
 discriminant lui aurait retiré.
 
+> **`app.client_id` n'a aujourd'hui aucun poseur de production, et le chemin du
+> portail est donc FERMÉ par un refus** _(09/09/2026)_. La forme « parc » traite
+> une valeur vide comme « utilisateur interne » : le filtre de client
+> **disparaît**. Or `avecContexteApplicatif` — le seul chemin de production qui
+> ouvre une transaction cloisonnée depuis une session — ne peut pas la
+> renseigner, `ContexteSession` ne portant aucun champ de client. Mesuré sur la
+> base jetable, sous `codiplan_app` et après deux témoins : un compte portail du
+> client `c2` lit **2 machines du client `c1`** ; le même contexte avec
+> `app.client_id` posé rend **0**. `motifRefusContexte` refuse donc le rôle du
+> portail — quatrième motif —, et `tests/isolation/portail-sans-client.test.ts`
+> le montre tomber. _Le gardien de L1-02b vérifie qu'une variable est **posée**,
+> pas qu'elle est **renseignable**._ D'où doit venir `client_id` — de l'appelant
+> ou de la base, comme `app.perimetre_sites` — est une question **inscrite** au
+> registre du 09/09 (§13), pas tranchée.
+
 `scripts/lib/politiques-rls.ts` porte la règle, partagée par
 `tests/isolation/politiques-rls.test.ts` et le contrôle de la base hébergée. Elle
 est **mesurée dans `pg_policies`**, qui rend l'expression _analysée_ : la
