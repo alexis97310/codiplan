@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  FAMILLES_HABILITATION,
+  HABILITATIONS_AMORCAGE,
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
@@ -84,5 +86,72 @@ describe("jeu de données du socle multi-société", () => {
     for (const compte of COMPTES_PORTAIL) {
       expect(emailsInternes.has(compte.email)).toBe(false);
     }
+  });
+});
+
+/**
+ * L'AMORÇAGE DES HABILITATIONS COUVRE LES TROIS FAMILLES SUIVIES (L1-04b).
+ *
+ * **Ce que ce gardien attrape, et il ne l'attrape que parce que la famille est
+ * écrite.** Une liste amorcée sur l'électrique seul se lit comme un catalogue
+ * complet : elle n'est pas vide, aucun décompte ne rougit, et personne ne
+ * s'aperçoit que deux tiers du métier manquent. *Un décompte non nul ressemble
+ * beaucoup trop à des données justes* (§9, 21/08). La famille n'existe donc pas
+ * pour classer — elle existe pour rendre l'incomplétude VISIBLE.
+ *
+ * **Et les durées de validité restent NULLES, par décision.** La périodicité de
+ * recyclage est une pratique d'entreprise, pas un chiffre de la norme (D60,
+ * CLAUDE.md §8). Le gardien l'exige plutôt que de la subir : le jour où une
+ * session « rendrait service » en écrivant douze ou vingt-quatre mois, elle
+ * inventerait une valeur métier que personne n'a arbitrée, et RG-PLA-04
+ * refuserait des affectations sur une expiration fabriquée.
+ */
+describe("l'amorçage des habilitations (L1-04b, D60)", () => {
+  it("les TROIS familles sont peuplées — aucune ne peut rester vide", () => {
+    for (const famille of FAMILLES_HABILITATION) {
+      const entrees = HABILITATIONS_AMORCAGE.filter(
+        (habilitation) => habilitation.famille === famille,
+      );
+      expect(
+        entrees.length,
+        `la famille « ${famille} » n'est pas amorcée : une société qui s'ouvre ` +
+          "recevrait un catalogue qui a l'air complet et ne l'est pas.",
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("et aucune famille inconnue ne s'y glisse — la liste est close des deux côtés", () => {
+    const connues = new Set<string>(FAMILLES_HABILITATION);
+    const inconnues = HABILITATIONS_AMORCAGE.filter(
+      (habilitation) => !connues.has(habilitation.famille),
+    );
+    expect(inconnues).toEqual([]);
+  });
+
+  it("les codes sont uniques — la clé (societe_id, code) le refuserait", () => {
+    const codes = HABILITATIONS_AMORCAGE.map(
+      (habilitation) => habilitation.code,
+    );
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it("aucune entrée ne porte de durée de validité — on n'invente pas un délai", () => {
+    // Le type ne PORTE pas ce champ, et c'est la forme la plus forte du refus :
+    // il n'y a pas de valeur à mettre à `null`, il n'y a rien du tout. Ce test
+    // le constate sur les objets réels, pour que le retirer du type ne suffise
+    // pas à faire passer un ajout par une autre porte.
+    for (const habilitation of HABILITATIONS_AMORCAGE) {
+      expect(Object.keys(habilitation).sort()).toEqual([
+        "code",
+        "famille",
+        "libelle",
+      ]);
+    }
+  });
+
+  it("le gardien a bien regardé quelque chose — témoin de non-vacuité", () => {
+    expect(HABILITATIONS_AMORCAGE.length).toBeGreaterThanOrEqual(
+      FAMILLES_HABILITATION.length * 2,
+    );
   });
 });
