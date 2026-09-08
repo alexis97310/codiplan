@@ -68,13 +68,36 @@ docs/
 | Table | Justification |
 |---|---|
 | `devise` | Le franc Pacifique est le même partout |
-| `famille_materiel` | Un compresseur est un compresseur |
-| `modele_materiel` | Idem, avec possibilité de surcharge par société |
-| `checklist_modele` | Attachée au modèle, suit son régime |
+| ~~`famille_materiel`~~ | ~~Un compresseur est un compresseur~~ — **RETIRÉE le 08/09/2026, voir ci-dessous** |
+| ~~`modele_materiel`~~ | ~~Idem, avec possibilité de surcharge par société~~ — **RETIRÉE** |
+| ~~`checklist_modele`~~ | ~~Attachée au modèle, suit son régime~~ — **RETIRÉE, par cette justification même** |
 
 **Tout le reste porte `societe_id NOT NULL`** — y compris `prestation` et `forfait`, qui sont commerciaux et donc propres à chaque société.
 
-**Mécanique retenue.** Un modèle de plateforme (`societe_id NULL`) est visible par toutes les sociétés. Une société qui veut l'adapter en crée une copie portant son `societe_id` ; la copie masque l'original. La politique RLS s'écrit : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.
+~~**Mécanique retenue.** Un modèle de plateforme (`societe_id NULL`) est visible par toutes les sociétés. Une société qui veut l'adapter en crée une copie portant son `societe_id` ; la copie masque l'original.~~
+
+> ### AMENDÉ le 08/09/2026 — le mécanisme est RETIRÉ, pas arbitré (ticket L1-05)
+>
+> **Cette décision se contredisait**, et la contradiction a été mesurée à l'ouverture de L1-05 :
+>
+> | D4 dit | D4 dit aussi | Incompatible parce que |
+> |---|---|---|
+> | ces tables sont « modifiables par les seuls **rôles éditeur** » | « une **société** qui veut l'adapter en crée une copie » | une société qui ne peut pas écrire ne peut pas créer de copie |
+> | clause `societe_id = app.societe_id OR societe_id IS NULL` | forme « référentiel » du CLAUDE.md = lecture `USING (true)` | ce ne sont pas la même clause : sous la seconde, **la copie de A est lisible par B** |
+>
+> Et un troisième point, qui n'est pas une contradiction mais un **manque** : « la copie masque l'original » est une règle de **SÉLECTION**, pas de visibilité par ligne. RLS filtre des lignes ; il ne sait pas dire « cache X parce que Y existe ». Rien n'avait jamais dit où cette règle vivrait.
+>
+> **Une contradiction interne dans une décision de rang 1 signale qu'elle a été écrite avant que quiconque essaie de l'appliquer.** L'exploitation retire donc le mécanisme plutôt que d'arbitrer entre ses moitiés.
+>
+> **`famille_materiel`, `modele_materiel` et `checklist_modele` sont des tables MÉTIER cloisonnées**, `societe_id NOT NULL`, forme « société ». La liste close des référentiels de plateforme devient : `devise`, `parite`, `jour_ferie`. `checklist_modele` n'existe pas encore et sort par la justification que D4 lui donnait — « attachée au modèle, suit son régime » : elle naîtra cloisonnée.
+>
+> **La raison, et c'est la quatrième fois que ce dépôt tranche dans ce sens** — zones géographiques (L1-02), rôles de contact (L1-03), habilitations (D60), et ici : *une nomenclature partagée fige un territoire dans un produit destiné à être vendu ailleurs.* Et une raison de plus, propre à celle-ci : **chez CODIMA les modèles ne viendront pas d'un catalogue d'éditeur mais de leur propre fichier de suivi** — équipement, marque, modèle, numéro de série. Ce sont des données saisies, pas un référentiel reçu.
+>
+> **Une conséquence disparaît avec le mécanisme**, et elle avait été mesurée avant d'être évitée : L2-01 rend `modele_id` obligatoire sur une machine. Sous le masquage, une société qui copiait un modèle laissait ses machines déjà créées pointer vers un modèle que sa propre société ne voyait plus.
+>
+> **Un effet de bord mesuré, et écrit plutôt que tu** : après ce retrait, **plus aucun référentiel de plateforme ne porte de colonne `societe_id`** — `devise`, `parite` et `jour_ferie` n'en ont pas. La phrase de I1 « `societe_id` NULL **ou pas de `societe_id` du tout** » reste vraie, mais sa première moitié n'a plus aucun exemplaire. La branche du gardien qui la reconnaît survit à son dernier cas, et `tests/unit/db/categories-i1.test.ts` porte le témoin qui le dit.
+>
+> **Le catalogue de plateforme, s'il existe un jour, sera un AMORÇAGE** — comme la liste réglementaire des habilitations (D60) : posé à l'ouverture d'une société, complété ou réduit par elle, et aucune migration le jour d'un nouveau territoire.
 
 **Le critère d'acceptation de L0-04 est corrigé** : « une requête sans société positionnée retourne zéro ligne **sur les tables cloisonnées**, et uniquement les référentiels de plateforme sur les tables partagées ».
 

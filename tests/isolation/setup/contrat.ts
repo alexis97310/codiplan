@@ -226,24 +226,22 @@ export const CONTRAT_PARC: readonly TableContrat[] = [
 ] as const;
 
 /**
- * Les référentiels que le harnais modèle en fixture. `modele_materiel` porte ici
- * `politiqueCloisonnementSql` — donc `FORCE` —, là où la vraie table de L1-05
- * restera en RLS simple (D4). L'écart est celui de la fixture, pas de la règle,
- * et `force-rls.test.ts` le dit à l'endroit où il se voit.
+ * Les référentiels que le harnais modelait en fixture — **la liste est VIDE
+ * depuis L1-05, et c'est le ticket.**
+ *
+ * Elle portait `modele_materiel`, avec un écart assumé : la fixture lui posait
+ * `FORCE`, là où la vraie table devait rester en RLS simple. L'amendement à D4
+ * du 08/09/2026 a retiré ce régime — `famille_materiel` et `modele_materiel`
+ * sont désormais des tables MÉTIER cloisonnées, réelles, avec `FORCE` et la
+ * forme « société ». L'écart n'existe plus parce que la règle a changé, pas
+ * parce qu'on l'a effacé.
+ *
+ * **La liste reste plutôt que de disparaître**, et vide : les trois autres
+ * référentiels de plateforme — `devise`, `parite`, `jour_ferie` — sont des
+ * tables RÉELLES depuis le lot 0. Aucun référentiel n'a besoin d'être modelé, et
+ * c'est un fait à constater, pas une case à supprimer.
  */
-export const CONTRAT_REFERENTIEL: readonly TableContrat[] = [
-  {
-    table: "modele_materiel",
-    lot: "L1-05",
-    colonneClient: "",
-    colonneSite: null,
-    colonnes: `
-      "id" uuid PRIMARY KEY,
-      "societe_id" uuid,
-      "libelle" text NOT NULL
-    `,
-  },
-] as const;
+export const CONTRAT_REFERENTIEL: readonly TableContrat[] = [] as const;
 
 /** Toutes les tables fixtures du harnais — parc et référentiel. */
 export const TABLES_FIXTURES = [

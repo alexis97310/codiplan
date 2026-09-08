@@ -370,6 +370,21 @@ incident de sécurité. Trois fils d'issues distincts : `[veille-injoignable]`,
 `DROP TRIGGER`, une partition créée nue, un `GRANT UPDATE` de dépannage : les
 trois sont nommées.
 
+## Familles et modèles — un mécanisme retiré plutôt qu'arbitré
+
+`famille_materiel` et `modele_materiel` sont des **tables métier cloisonnées**, `societe_id NOT NULL`, forme « société », RLS forcée, auditées. Elles étaient destinées à la deuxième catégorie de I1 — référentiels de plateforme — et **D4 est amendé** :
+
+| D4 disait                                                  | D4 disait aussi                                          | Incompatible parce que                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| « modifiables par les seuls **rôles éditeur** »            | « une **société** qui veut l'adapter en crée une copie » | une société qui ne peut pas écrire ne peut pas créer de copie          |
+| clause `societe_id = app.societe_id OR societe_id IS NULL` | forme « référentiel » = lecture `USING (true)`           | ce ne sont pas la même clause : **la copie de A serait lisible par B** |
+
+Et « la copie masque l'original » est une règle de **sélection**, que RLS ne sait pas porter. _Une contradiction interne dans une décision de rang 1 signale qu'elle a été écrite avant que quiconque essaie de l'appliquer_ : le mécanisme est retiré, pas arbitré.
+
+**Le seed n'amorce rien** — la liste des familles et des modèles appartient à l'exploitation. Le catalogue de plateforme, s'il existe un jour, sera un amorçage, comme la liste réglementaire des habilitations.
+
+**Un effet de bord, mesuré et écrit :** après ce retrait, plus aucun référentiel de plateforme ne porte de colonne `societe_id`. La phrase de I1 « `societe_id` NULL **ou pas de `societe_id` du tout** » reste vraie, mais sa première moitié n'a plus d'exemplaire — un témoin le dit, à l'endroit où on pourrait la lire comme la preuve qu'un cas existe.
+
 ## Le second facteur — son plancher, et l'issue de secours qu'il condamnait
 
 La bibliothèque d'authentification lit une ligne par sa clé de désignation, puis **réécrit celle qu'elle vient d'obtenir en la nommant par son `id`**. Mesuré sur les huit flux réels : 69 opérations, dont **7 nomment un `id`, et les 7 sont des écritures**. Or `id` n'est clé de désignation d'aucune table d'authentification : la politique lisait une chaîne vide et refusait — **silencieusement**, un refus de RLS étant zéro ligne et non une erreur.

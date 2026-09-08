@@ -898,7 +898,9 @@ dans la table `parite` ci-dessous.*
 | source_creation | enum | terrain, recensement, import, back_office |
 | complet | boolean | Fiche minimale ou complète — pilote les relances |
 
-**modele_materiel** — `societe_id` **nullable** : un modèle sans société est partagé par toute la plateforme. Famille, marque, référence, caractéristiques, périodicité en jours, périodicité au compteur, checklist type, pièces d'usure.
+**modele_materiel** — ~~`societe_id` **nullable** : un modèle sans société est partagé par toute la plateforme.~~ *(amendé par D4 le 08/09/2026 — `societe_id` **NOT NULL**, table métier cloisonnée : le mécanisme « référentiel + copie masquante » est retiré, il se contredisait.)* Famille, marque, référence, caractéristiques, périodicité en jours, périodicité au compteur, checklist type, pièces d'usure.
+
+**famille_materiel** — `societe_id` **NOT NULL**, code, libellé, actif *(D4 amendé)*.
 
 **contrat** — `societe_id`, numéro, client, type, dates, tacite reconduction, préavis, montant, `devise_code`, périodicité de facturation, indexation, SLA, taux horaire hors forfait, crédit d'heures initial, statut.
 

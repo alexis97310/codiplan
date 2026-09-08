@@ -52,6 +52,8 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       habilitation: 4,
       technicien_habilitation: 2,
       site_habilitation_requise: 1,
+      famille_materiel: 1,
+      modele_materiel: 1,
     },
     ...surcharge,
   };
@@ -78,6 +80,8 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         habilitation: 4,
         technicien_habilitation: 0,
         site_habilitation_requise: 0,
+        famille_materiel: 0,
+        modele_materiel: 0,
       },
     }),
   ];
@@ -115,6 +119,8 @@ describe("inventaire à plat", () => {
       habilitation: 8,
       technicien_habilitation: 2,
       site_habilitation_requise: 1,
+      famille_materiel: 1,
+      modele_materiel: 1,
     });
   });
 

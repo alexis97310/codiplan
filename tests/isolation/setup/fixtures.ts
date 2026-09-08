@@ -99,9 +99,19 @@ export const QR_A2 = "qr-token-machine-a2";
 export const QR_B1 = "qr-token-machine-b1";
 
 /** Modèles matériel (fixture) — référentiel plateforme surchargeable (D4). */
-export const MODELE_PLATEFORME = "00000000-0000-7000-8000-0000000000f0";
-export const MODELE_SURCHARGE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
-export const MODELE_SURCHARGE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
+/**
+ * Familles et modèles de matériel — RÉELS depuis L1-05, plus fixtures.
+ *
+ * Les trois identifiants d'avant modelaient le schéma « plateforme + surcharge »
+ * que l'amendement à D4 a RETIRÉ le 08/09/2026 : `MODELE_PLATEFORME` portait
+ * `societe_id NULL`, et les deux autres étaient ses copies masquantes. Il n'y a
+ * plus de ligne sans société — chaque société a les siennes, et c'est tout ce
+ * qu'il y a à éprouver.
+ */
+export const FAMILLE_A = "aaaaaaaa-0000-7000-8000-0000000000f0";
+export const FAMILLE_B = "bbbbbbbb-0000-7000-8000-0000000000f0";
+export const MODELE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
+export const MODELE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
 
 /** Agences (fixture d'isolation, distinctes du seed applicatif). */
 export const AGENCE_A = "aaaaaaaa-0000-7000-8000-0000000000e1";

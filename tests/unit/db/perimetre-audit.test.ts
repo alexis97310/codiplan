@@ -235,7 +235,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quatorze tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les seize tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -248,6 +248,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // n'est pas tenir une liste d'admis — l'ancienne liste décidait du
     // périmètre, celle-ci ne fait que le constater, et elle rougit dans les
     // DEUX sens.
+    //
+    // **`famille_materiel` et `modele_materiel` s'y ajoutent au ticket L1-05, et
+    // par le même chemin.** Elles étaient destinées à la DEUXIÈME catégorie de
+    // I1 — référentiels de plateforme, hors périmètre d'audit ; l'amendement à
+    // D4 en fait des tables métier cloisonnées, et elles sont donc entrées au
+    // périmètre sans qu'on ait touché la moindre liste d'admis.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
@@ -255,7 +261,9 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "calendrier_plage",
       "client",
       "contact",
+      "famille_materiel",
       "habilitation",
+      "modele_materiel",
       "site",
       "site_habilitation_requise",
       "societe",
