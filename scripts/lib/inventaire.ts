@@ -76,6 +76,9 @@ export const TABLES_CLOISONNEES = [
   // commercial, donc propre à chaque société — D4 le dit déjà de `prestation`
   // et `forfait`.
   "taux_horaire",
+  // L1-06 : le catalogue de forfaits. Table VIDE — la liste appartient à
+  // l'exploitation, et l'inventer serait inventer une donnée métier.
+  "forfait",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

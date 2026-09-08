@@ -367,6 +367,16 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
+              forfaits.ts : RG-TAR-06, les trois axes d'un forfait (L1-06)
+              l'ABSENCE de condition sur un axe n'est pas une condition qui
+              échoue — un forfait sans zone s'applique partout, et c'est le cas
+              majoritaire ; une valeur d'intervention absente face à une
+              condition posée n'est PAS remplie
+              le troisième axe est INERTE — les types d'intervention n'existent
+              nulle part, le lot 2 les décidera ; la règle est écrite entière
+              pour n'avoir pas à changer ce jour-là
+              la liste des zones se LIT dans sites/zones.ts, jamais ne s'y
+              recopie ; le catalogue naît VIDE, les valeurs sont à l'exploitation
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
