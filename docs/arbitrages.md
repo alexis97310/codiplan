@@ -2282,3 +2282,33 @@ Inventer une date d'effet écrirait une **histoire fausse** plutôt qu'une histo
 ### Une conséquence immédiate
 
 `societe.taux_horaire_defaut` est **retirée** le même jour (Q3) : elle était la seconde source d'un fait dont `taux_horaire` est désormais la seule.
+
+---
+
+## D69 — Les trois silences de D31, ratifiés ; et la paire du rapport, réparée
+
+*Décision d'exploitation, 9 septembre 2026 (question Q6). Elle ne change rien au refus, elle change ce que le rapport DIT.*
+
+### Ce qui est ratifié tel quel
+
+Les trois cas sur lesquels D31 se tait sont traités **par le refus**, et le refus est la bonne lecture — c'est la seule qui ne détruit rien :
+
+| Cas | Ce que D31 dit | Ce qui est ratifié |
+|---|---|---|
+| version **postérieure** | rien — D31 ne parle que de l'« antérieure » | **refus** : lire un v3 avec du code v2 suppose ce que v3 a changé |
+| **en-tête en double** | rien | **refus** : lire la seconde écraserait la première, et rien ne dirait laquelle a gagné |
+| colonne **obligatoire absente** | rien | **refus au niveau du fichier**, avant toute ligne : trois cents rejets identiques là où une phrase suffit |
+
+**L'appariement exact après élagage est ratifié aussi** : *une tolérance choisit à la place de celui qui a écrit le fichier, et un import de masse est précisément le moment où l'on ne veut pas qu'un outil devine.*
+
+### CE QUI EST RÉPARÉ, ET POUR QUI
+
+Un en-tête mal orthographié ressortait **deux fois** dans le rapport — « colonne obligatoire absente » et « colonne inconnue » —, et cette paire se lisait sans explication. *Le rapport est lu par quelqu'un qui n'a pas le schéma en tête : c'est lui qu'il faut servir, pas la complétude du diagnostic.*
+
+Quand une colonne obligatoire manque **et** qu'un en-tête inconnu lui ressemble, les deux sont désormais dits **en une seule anomalie qui les nomme tous les deux**, et l'en-tête sort de la liste des inconnues : il n'est pas silencié, il est **expliqué**.
+
+### La distinction qui tient la réparation, et qu'il ne faut pas perdre
+
+**La ressemblance ne déplace RIEN.** Elle n'apparie pas, ne lit aucune colonne, ne change aucune donnée : elle ne fabrique qu'une phrase. *Une tolérance choisit ; une explication décrit.* Un scénario le mesure explicitement — après le message, la colonne reste **illisible** —, parce que c'est exactement là que la réparation pourrait se transformer en la décision que l'exploitation vient de refuser.
+
+Deux formes de ressemblance, choisies sur ce qu'un tableur produit réellement : la même chaîne **à la casse, aux accents et à la ponctuation près**, et la **faute de frappe** jusqu'à deux caractères sur un nom assez long pour que ce ne soit pas un hasard. Et **un intrus n'explique qu'une seule colonne manquante** : sans cette borne, un fichier ayant perdu sa ligne d'en-têtes verrait le même intrus cité partout.

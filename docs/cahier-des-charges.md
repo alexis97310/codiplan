@@ -968,6 +968,46 @@ dans la table `parite` ci-dessous.*
 
 **sync_journal** — appareil, technicien, opérations reçues, conflits détectés, résolution appliquée.
 
+**import_lot_ligne** — `societe_id`, lot d'import, numéro de ligne dans le fichier, action (creation, modification, rejet), entité et identifiant visés, motif du rejet, et **`valeurs_avant`** : c'est cette colonne que D15 exige pour restaurer une ligne à l'annulation. *(Ajoutée le 09/09/2026. **D15, de rang 1, la prescrivait depuis le 19/08/2026** — « restauration des valeurs antérieures, conservées dans `import_lot_ligne.valeurs_avant` » — et le chapitre 11 ne la portait pas : ce n'était pas une décision à prendre, c'était une omission à réparer. La table n'existe pas encore au schéma ; elle naîtra avec L1-08b.)*
+
+#### Les tables du socle, ajoutées le 09/09/2026
+
+*Seize tables existaient au schéma sans figurer ici. Ce n'était pas seize décisions manquantes : c'était **la même omission, seize fois** — un ticket crée une table, et personne ne revient compléter le chapitre 11. Un gardien confronte désormais `prisma/schema.prisma` à cette section et réclame la table le jour où elle apparaît.*
+
+**agence** — `societe_id`, code, libellé, adresse, **fuseau horaire IANA**, **territoire ISO 3166-1 alpha-2**, calendrier de travail, actif. *Le fuseau et le territoire sont deux attributs distincts et indépendants — `Europe/Paris` couvre plusieurs territoires aux fériés différents, et ni l'un ni l'autre ne se déduit de l'autre (D46). `territoire` est `NOT NULL` parce qu'une clé étrangère dont une colonne vaut NULL n'est pas contrôlée (D48).* **Agence** = établissement CODIMA, jamais un site client (D5).
+
+**calendrier** — `societe_id`, code, libellé, actif. Le calendrier de travail d'une ou plusieurs agences (I7).
+
+**calendrier_plage** — `societe_id`, calendrier, jour de la semaine, minute de début, minute de fin. Les heures d'ouverture, déroulées à la lecture.
+
+**calendrier_ferie** — `societe_id`, agence, date, **territoire recopié de l'agence**, jour férié référencé (nul pour un pont), travaillé, motif. *L'ÉCART LOCAL d'une agence sur le fait public : un férié travaillé, un pont. Chaîné par deux clés composites — `(agence_id, territoire)` et `(jour_ferie_id, date, territoire)` — en `ON UPDATE RESTRICT` des deux côtés (D48, D49).*
+
+**jour_ferie** — territoire, date, libellé, mobile. **Référentiel de plateforme** (D46), sans `societe_id`. Il dit ce qui **est férié** sur un territoire — un fait, comme la parité légale ; jamais ce qui est **chômé**, qui appartient à l'agence et vit dans `calendrier_ferie`. *L'ordre de lecture ne s'inverse jamais.*
+
+**contact** — `societe_id`, client, **site facultatif**, nom, fonction, téléphone, mobile, courriel, rôles, canaux, actif. *Un contact appartient au CLIENT ; sans site, il ne disparaît pas pour un compte portail restreint — le comptable survit à la restriction d'un atelier.* `signataire` est un rôle de l'ensemble, jamais une colonne à part (RG-INT-04).
+
+**taux_horaire** — `societe_id`, **date d'effet**, montant **entier** en unités les plus fines, code de devise. *Une table et non une colonne : une intervention se facture au taux en vigueur à SA date (RG-TAR-04), et une facture qui change quand le tarif change est une facture fausse.* Amende `societe.taux_horaire_defaut`, retirée le 09/09/2026 (Q3).
+
+**technicien_habilitation** — `societe_id`, technicien, habilitation, date d'obtention, date d'expiration. RG-PLA-04 : l'affectation est **bloquée**, jamais signalée.
+
+**site_habilitation_requise** — `societe_id`, site, habilitation, bloquant. Ce qu'un site exige de qui y intervient.
+
+**utilisateur_client** — utilisateur, client, `societe_id`, actif. L'habilitation d'un compte **portail** (D10) ; exclusive de `utilisateur_societe`.
+
+**utilisateur_client_site** — `societe_id`, habilitation portail, site. Le périmètre de sites d'un compte portail. *Vide = tous les sites du client.*
+
+**session** — jeton, utilisateur, expiration, adresse IP, agent, **société active**, **rôle actif**, second facteur validé. C'est cette ligne, et rien d'autre, qui détermine `app.societe_id`.
+
+**compte** — utilisateur, émetteur, identifiant externe, fournisseur, **empreinte du mot de passe**, jetons et leurs expirations, portée.
+
+**verification** — identifiant opaque, valeur, expiration. Porte les jetons à usage unique et daté — dont le **jeton de premier accès** du geste d'amorçage (D65).
+
+**second_facteur** — utilisateur, secret, codes de secours **chiffrés**, vérifié, échecs de vérification, verrouillage, **verrouillages consécutifs**. *Aucune politique de suppression : le retrait d'un second facteur est un acte administratif (D58, D62, D64).*
+
+**journal_acces** — horodatage, utilisateur, événement, `societe_id_source`, `societe_id_cible`, rôle, détail. *Les deux colonnes de société sont **informatives et nullables** : elles répondent à « qui a tenté d'accéder à mes données » et ne filtrent JAMAIS (D34).* Elle porte les basculements de société, les requêtes de consolidation, **l'ouverture d'une identité** (D65) et **le déverrouillage d'un second facteur** (D66).
+
+*Les quatre tables `session`, `compte`, `verification` et `second_facteur` sont la **troisième catégorie de I1** — techniques d'authentification, sans aucun `societe_id`, cloisonnées par la forme « désignation » (D34, D59). `journal_acces` les rejoint par sa catégorie et s'en distingue par sa nature : c'est une **trace**, pas un matériau d'authentification.*
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.
