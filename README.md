@@ -434,6 +434,14 @@ Trois défauts en découlaient, et le premier était le plus cher : **un compte 
 
 Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04**, livré le 09/09/2026 (D66) — voir la section suivante. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
 
+## Le chapitre 11 nomme-t-il toute table qui existe ?
+
+L'écart signalé était `import_lot_ligne`, prescrite par **D15 (rang 1)** et absente du **chapitre 11 (rang 3)** : le rang 1 l'emporte, donc la table existera — _ce n'était pas une décision à prendre, c'était une omission à réparer._ La question posée ensuite — « y en a-t-il d'autres ? » — a rendu **seize** : `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`, `jour_ferie`, `contact`, `taux_horaire`, `technicien_habilitation`, `site_habilitation_requise`, `utilisateur_client`, `utilisateur_client_site`, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
+
+Ce n'était pas seize décisions manquantes : **la même omission, seize fois** — un ticket crée une table, et personne ne revient compléter le chapitre. Le remède est celui de D41 : **renverser la charge et partir du schéma**, une source que le gardien ne contrôle pas (`scripts/lib/modele-de-donnees.ts`).
+
+**Il ne contrôle qu'UN SENS, et il l'annonce.** Une table nommée au chapitre sans exister au schéma est légitime — le chapitre décrit le modèle complet, dont la plus grande part n'est pas construite. Il ne voit donc pas le défaut d'origine : aucun motif statique ne peut décider qu'une phrase de prose prescrit une table. _Un gardien qui annonce sa limite vaut mieux qu'un gardien qu'on croit complet._
+
 ## La neuvième forme de politique — « adhésion », et le sélecteur qui ne pouvait afficher que des UUID
 
 D61 rend à un compte la **liste** des sociétés où il est habilité ; il lui manquait de quoi en **nommer** une. `societe` étant de forme « identité » (D42), la lecture rendait **zéro ligne sans société active — pas même en nommant l'identifiant qu'on possède déjà** (mesuré, avec témoin : 0, 0, et 2 lignes réellement en base). **Un sélecteur ne pouvait proposer que des UUID.**

@@ -49,6 +49,7 @@ export const ANOMALIES = [
   "marqueur_version_posterieure",
   "entete_en_double",
   "colonne_obligatoire_absente",
+  "colonne_obligatoire_absente_ressemblance",
   "date_format",
   "date_hors_plage",
   "date_avec_heure",
@@ -344,12 +345,102 @@ export type Appariement = {
  * produirait trois cents rejets identiques là où une phrase suffit.
  *
  * **L'appariement est EXACT après élagage des espaces** — ni casse ignorée, ni
- * accents dépliés. Une tolérance est une décision, et elle se paie une fois : le
- * jour où deux colonnes ne diffèrent que par la casse, la tolérance choisit à la
- * place de celui qui a écrit le fichier. En l'état, un en-tête mal orthographié
- * ressort DEUX fois dans le rapport — « colonne obligatoire absente » et
- * « colonne inconnue » —, et cette paire se lit sans explication.
+ * accents dépliés. Ratifié par l'exploitation le 09/09/2026 : *une tolérance
+ * choisit à la place de celui qui a écrit le fichier, et un import de masse est
+ * précisément le moment où l'on ne veut pas qu'un outil devine.*
+ *
+ * ## LA PAIRE EST RÉPARÉE, ET LA RESSEMBLANCE NE SERT QU'AU MESSAGE
+ *
+ * Un en-tête mal orthographié ressortait **deux fois** dans le rapport —
+ * « colonne obligatoire absente » et « colonne inconnue » — et cette paire se
+ * lisait sans explication. *Le rapport est lu par quelqu'un qui n'a pas le
+ * schéma en tête : c'est lui qu'il faut servir, pas la complétude du
+ * diagnostic.*
+ *
+ * Quand une colonne obligatoire manque **et** qu'un en-tête inconnu lui
+ * ressemble, les deux sont dits **en une seule anomalie qui les nomme tous les
+ * deux**, et l'en-tête sort de la liste des inconnues : il n'est pas silencié,
+ * il est expliqué.
+ *
+ * **La ressemblance ne déplace RIEN.** Elle n'apparie pas, ne lit pas la
+ * colonne, ne change aucune donnée : elle ne fabrique qu'une phrase. C'est ce
+ * qui la distingue d'une tolérance — *une tolérance choisit, une explication
+ * décrit.* Le jour où quelqu'un voudra s'en servir pour apparier, il devra
+ * prendre la décision que l'exploitation vient de refuser.
  */
+/**
+ * Ramène un en-tête à ce qui reste quand la casse, les accents et la
+ * ponctuation ont disparu. **Sert UNIQUEMENT à expliquer**, jamais à apparier.
+ */
+function empreinteLisible(nom: string): string {
+  return nom
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Distance d'édition, bornée : au-delà de `plafond` elle rend `plafond + 1`.
+ *
+ * Bornée parce qu'on ne veut pas la valeur exacte : on veut savoir si deux
+ * en-têtes sont assez proches pour qu'une phrase les rapproche. Une distance
+ * non bornée coûterait plus et ne dirait rien de plus.
+ */
+function distance(a: string, b: string, plafond: number): number {
+  if (Math.abs(a.length - b.length) > plafond) {
+    return plafond + 1;
+  }
+  let precedente = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    const courante = [i, ...Array<number>(b.length).fill(0)];
+    for (let j = 1; j <= b.length; j += 1) {
+      courante[j] = Math.min(
+        precedente[j]! + 1,
+        courante[j - 1]! + 1,
+        precedente[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    precedente = courante;
+  }
+  return precedente[b.length]!;
+}
+
+/**
+ * L'en-tête inconnu qui ressemble le plus à `attendue`, ou `null`.
+ *
+ * Deux formes de ressemblance, et elles couvrent ce qu'un tableur produit
+ * réellement : la **même chaîne à la casse, aux accents et à la ponctuation
+ * près** — c'est le cas majoritaire —, et la **faute de frappe**, jusqu'à deux
+ * caractères, sur un nom assez long pour que ce ne soit pas un hasard.
+ *
+ * En cas d'égalité, le premier en-tête du fichier gagne : le résultat ne dépend
+ * pas de l'ordre dans lequel les colonnes attendues sont déclarées.
+ */
+function ressemblanceLaPlusProche(
+  attendue: string,
+  candidats: readonly string[],
+): string | null {
+  const cible = empreinteLisible(attendue);
+  if (cible === "") {
+    return null;
+  }
+  let meilleur: { nom: string; ecart: number } | null = null;
+  for (const candidat of candidats) {
+    const forme = empreinteLisible(candidat);
+    const ecart =
+      forme === cible
+        ? 0
+        : cible.length >= 4 && forme.length >= 4
+          ? distance(cible, forme, 2)
+          : 3;
+    if (ecart <= 2 && (meilleur === null || ecart < meilleur.ecart)) {
+      meilleur = { nom: candidat, ecart };
+    }
+  }
+  return meilleur?.nom ?? null;
+}
+
 export function apparierColonnes(
   entetes: readonly (Cellule | undefined)[],
   attendues: readonly ColonneAttendue[],
@@ -377,14 +468,36 @@ export function apparierColonnes(
     }
   });
 
+  // Un en-tête inconnu n'explique qu'UNE colonne manquante : sans cela, un
+  // fichier qui aurait perdu sa ligne d'en-têtes verrait le même intrus cité
+  // partout, et le rapport dirait dix fois la même chose.
+  const disponibles = new Set(inconnues);
+
   for (const colonne of attendues) {
-    if (colonne.obligatoire && !indices.has(colonne.nom)) {
+    if (!colonne.obligatoire || indices.has(colonne.nom)) {
+      continue;
+    }
+    const proche = ressemblanceLaPlusProche(colonne.nom, [...disponibles]);
+    if (proche === null) {
       anomalies.push({
         code: "colonne_obligatoire_absente",
         colonne: colonne.nom,
       });
+      continue;
     }
+    disponibles.delete(proche);
+    anomalies.push({
+      code: "colonne_obligatoire_absente_ressemblance",
+      colonne: colonne.nom,
+      valeur: proche,
+    });
   }
 
-  return { indices, inconnues, anomalies };
+  // L'en-tête qui a servi à expliquer sort des « inconnues » : il n'est pas
+  // silencié, il est NOMMÉ une fois au lieu de deux.
+  return {
+    indices,
+    inconnues: inconnues.filter((nom) => disponibles.has(nom)),
+    anomalies,
+  };
 }

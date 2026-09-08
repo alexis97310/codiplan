@@ -181,6 +181,13 @@ const HORS_OBSERVATION: readonly {
       "c'est là que la veille mord.",
   },
   {
+    fonction: "ecartsModeleDeDonnees",
+    justification:
+      "confronte DEUX DOCUMENTS du dépôt — `prisma/schema.prisma` et le " +
+      "chapitre 11 —, jamais la base. Aucune main posée sur PostgreSQL ne " +
+      "peut la déplacer ; c'est le contrôle statique qui la tient.",
+  },
+  {
     fonction: "ecartsListeAdhesion",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_ADHESION`), pas la base — même " +
