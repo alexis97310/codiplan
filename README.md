@@ -703,7 +703,25 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 ## État d'avancement
 
-Lot 1 entamé. **L1-04** pose les **habilitations** : la qualification
+**Lot 0 terminé. Lot 1 livré jusqu'au bout de ce qu'il pouvait livrer** — ce qui reste y est **bloqué sur une décision**, jamais sur du travail :
+
+| Reste du lot 1                     | Ce qui bloque                                                                                                                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **L1-08b** — le moteur d'import    | la liaison au classeur exige SheetJS, dont le paquet npm porte deux avis de sécurité HAUTS **sans correctif atteignable depuis npm**, l'un déclenché **à la lecture d'un fichier apporté** — l'usage exact du ticket |
+| **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                         |
+| **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                     |
+
+Deux autres chantiers attendent une décision et non du code : le **geste d'ouverture du premier compte** — mesuré, proposé, jamais posé, parce que sa forme touche les droits — et **L7-04**, inconstruisible tant qu'aucun `admin_societe` ne peut se connecter.
+
+**L'état ticket par ticket se lit dans [`docs/backlog.md`](docs/backlog.md), et nulle part ailleurs.** Il est de rang 4, et c'est lui que les gardiens confrontent aux règles et aux arbitrages : une seconde liste recopiée ici deviendrait fausse au premier ticket livré, sans rougir — c'est le §9 du 01/09. Ce qui suit n'énumère donc pas les tickets : ce sont les **décisions** que chacun a rendues visibles, et qui survivent à leur ticket.
+
+**L1-08a** pose la **grammaire des imports** avant la liaison au classeur, et cette séparation est le fruit de la mesure de sécurité ci-dessus : le jour où la liaison arrive, elle n'aura **aucune règle à porter**. Deux formes y sont tranchées — un nombre lu ne rend **jamais un flottant** (I3 serait enfreint une ligne après nous), et une date se lit **en UTC** (UTC+11 décale le jour d'un cran).
+
+**L1-06** et **L1-07** posent la **tarification**, mécanisme d'un côté et valeurs de l'autre : les deux tables naissent **vides**, parce que les montants appartiennent à l'exploitation. `tauxEnVigueur` rend `null` plutôt que zéro — _un taux manquant ne se lit jamais « gratuit »_ — et aucune fonction « le taux courant » n'existe : elle serait juste aujourd'hui et fausse demain.
+
+**L1-05** retire un mécanisme au lieu de l'arbitrer : D4 se contredisait dans sa propre page, et `famille_materiel` et `modele_materiel` deviennent des **tables métier cloisonnées**. Quatrième fois que le dépôt tranche ainsi — _une nomenclature partagée fige un territoire dans un produit destiné à être vendu ailleurs._
+
+**L1-04** pose les **habilitations** : la qualification
 (`habilitation`), l'instance datée d'un technicien (`technicien_habilitation`) et
 l'exigence d'un site (`site_habilitation_requise`), plus RG-PLA-04 dans
 `lib/habilitations/` — _l'affectation est **bloquée**, jamais signalée_.
@@ -745,9 +763,9 @@ variables là où les politiques en réclamaient six, si bien que les scénarios
 d'isolation étaient verts parce que le harnais armait une garantie que la
 production n'armait pas.
 
-Lot 0 en cours. Faits : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation).
+Lot 0, pour mémoire — les fondations, toutes livrées : **L0-01** (initialisation du dépôt), **L0-02** (chaîne de vérification), **L0-03** à **L0-06c** (socle multi-société, RLS, tests d'isolation, authentification et rôles, `societe` cloisonnée par son identité), **L0-07** (module monétaire), **L0-08** (module calendrier), **L0-09a** (le territoire d'un jour férié référencé), **L0-09** (thématisation par société), **L0-10** (journal d'audit), **L0-11** (vocabulaire français centralisé) et **R0-a** (les formes de politique RLS, le contrat des fixtures d'isolation).
 
-Lot 1 commencé : **L1-01** et **L1-02**.
+Et les deux premières tables métier du lot 1 :
 
 **L1-01** — la fiche `client`, première table métier. Elle porte
 `societe_id NOT NULL` et la politique de forme **« parc »** (société **et**
