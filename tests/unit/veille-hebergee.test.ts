@@ -181,6 +181,15 @@ const HORS_OBSERVATION: readonly {
       "c'est là que la veille mord.",
   },
   {
+    fonction: "ecartsListeAdhesion",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_ADHESION`), pas la base — même " +
+      "raison que `ecartsListeParc`. La FORME qu'elle commande, elle, est " +
+      "observée : `ecartsPolitiques` mesure dans `pg_policies` que la branche " +
+      "« mes sociétés » existe, qu'elle est en `SELECT` seul, et que " +
+      "l'ancrage d'identité de D42 n'a pas disparu avec elle.",
+  },
+  {
     fonction: "ecartsListeAppartenance",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_APPARTENANCE`), pas la base — même " +

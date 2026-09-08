@@ -2218,3 +2218,67 @@ Un `UPDATE` sans `WHERE` s'appuie **entièrement** sur sa politique : celle-ci u
 ### Ce que le geste ne fait pas
 
 Il n'accorde aucun accès, ne touche pas au secret, ne remet pas `verifie` à `false`, et **n'ouvre pas de console**. La trace est écrite **même quand rien n'a été rompu** : une tentative de déverrouillage est un accès administratif à un compte tiers, et ce qu'elle a trouvé ne change pas ce qu'elle était.
+
+---
+
+## D67 — La neuvième forme de politique : « adhésion », et le sélecteur qui ne pouvait afficher que des UUID
+
+*Décision d'exploitation, 9 septembre 2026 (question Q8). Première moitié du ticket L2-11 ; la seconde est un écran.*
+
+### Le mur, mesuré avant d'être abattu
+
+D61 a rendu à un compte la **liste** des sociétés où il est habilité. Il lui manquait de quoi en **nommer** une : `societe` est de forme « identité » (`id = app.societe_id`, D42), si bien que sans société active la lecture rend **zéro ligne — pas même en nommant l'identifiant qu'on possède déjà**. Mesuré le 08/09/2026 sous le rôle applicatif, avec témoin : 0 à l'aveugle, 0 en nommant les deux, **2 lignes réellement en base**.
+
+**Un sélecteur de société ne pouvait donc proposer que des UUID.** Le livrer aurait fermé le ticket sans lever l'impasse — elle aurait seulement changé de forme.
+
+### La forme, et ce qui a été écarté
+
+Une politique de `SELECT` **et de `SELECT` seul**, symétrique de celle que D61 a posée sur `utilisateur_societe` : un compte lit les lignes des sociétés où il est habilité, et rien d'autre. La sous-requête traverse `utilisateur_societe`, elle-même bornée par la forme « appartenance » : la règle est écrite **une fois** et se recompose, plutôt que deux clauses jumelles qui divergeront.
+
+**Ce qui a été écarté :** un libellé **recopié** dans `utilisateur_societe`. Il aurait évité la politique, et serait devenu faux au premier renommage **sans rougir** — la divergence silencieuse du §9 (01/09), la maladie que ce dépôt a déjà soignée cinq fois. Et « pas de sélecteur du tout » était un report qui serait tombé sur la direction, premier cas d'un compte habilité sur deux sociétés.
+
+### LE COÛT, NOMMÉ COMME D61 A NOMMÉ LE SIEN
+
+*Une personne apprend le NOM des sociétés dont elle connaît déjà la liste.* C'est un libellé de plus sur un ensemble qu'elle possède. Elle n'obtient ni les données de ces sociétés, ni leurs habilitations, ni l'existence d'aucune autre société — mesuré, avec témoin : un compte habilité sur **une seule** société lit **une seule** ligne, alors que la base en porte davantage.
+
+### Ce qui la borne est la COMMANDE, pas la clause
+
+La même branche sur une écriture laisserait un compte **renommer** une société, changer sa devise, ou s'en attacher une. Elle est donc en `SELECT` et en `SELECT` seul ; l'écriture reste entièrement gouvernée par la forme « identité ». Un gardien le vérifie **commande par commande**, et une épreuve le montre sur la faute telle qu'elle se commettrait — *en « simplifiant » vers `FOR ALL` pour que ce soit cohérent.*
+
+**Liste close gardée dans les deux sens : `TABLES_ADHESION`.** Le retrait est le sens silencieux — il fait retomber `societe` sur la forme « identité » seule, qui passe tous les gardiens de forme, et le mur revient sans qu'aucun scénario ne rougisse.
+
+### Une conséquence sur le gardien lui-même, écrite parce qu'elle surprend
+
+**La forme « identité » n'est plus une forme à elle seule dans le gardien** : elle est la moitié que « adhésion » exige. La laisser vivre à côté aurait produit une branche sans aucune table — *et un gardien qui ne garde rien passe au vert sans avoir rien regardé* (§9, 30/08). La clause, elle, est intacte : `ecartsAdhesion` refuse toute politique qui ne serait ancrée ni sur `id = app.societe_id`, ni sur `app.utilisateur_id`, et **échoue si aucune ne porte l'ancrage d'identité**.
+
+---
+
+## D68 — Le taux horaire de référence de CODIMA NC, et ce qui bloque n'est PAS le montant
+
+*Décision d'exploitation, 9 septembre 2026. Corrige la source, pas la valeur.*
+
+### Ce que la nuit du 08/09 avait mesuré
+
+La consigne disait « le taux de 7 000 XPF est déjà décidé au rang 1 — reprends-le de là ». **Mesuré : il n'y était pas.**
+
+| Où `7 000 XPF` apparaissait | Rang | Ce que c'était |
+|---|---|---|
+| D19 / D43 | **1** | un exemple de **FORMATAGE**, pas un tarif |
+| `docs/cahier-des-charges.md` §1 | **5** — narratif, jamais normatif | « Taux horaire 7 000 XPF » |
+| `prisma/seed-data.ts` | exécutable | une valeur d'amorçage |
+
+*La consigne était juste sur le fond et fausse sur la source*, et la session ne l'a reprise de nulle part. **Ce refus était le bon**, et il est ratifié : une valeur monétaire ne se promeut pas d'un narratif à une règle.
+
+### La décision
+
+**Le taux horaire de référence de CODIMA NC est de 7 000 XPF HORS TAXES.** Confirmé par l'exploitation, et arrêté ici, au rang 1. La mention « hors taxes » fait partie de la décision : un taux dont on ne sait pas s'il porte la taxe est un taux qu'on ne peut pas facturer.
+
+### CE QUI BLOQUE EST LA DATE D'EFFET, ET C'EST ÉCRIT POUR QU'ON NE LE RELISE PAS DE TRAVERS
+
+La table `taux_horaire` reste **VIDE**. Ce n'est pas le montant qui manque : c'est sa **date d'effet**, que l'exploitation demande et n'a pas encore. Et `taux_horaire` l'exige, parce que RG-TAR-04 l'exige — *une intervention se facture au taux en vigueur à SA date, et une facture qui change quand le tarif change est une facture fausse.*
+
+Inventer une date d'effet écrirait une **histoire fausse** plutôt qu'une histoire absente : toutes les interventions antérieures à cette date inventée se retrouveraient sans taux, ou avec le mauvais. `tauxEnVigueur` rend donc `null`, et *un taux manquant ne se lit jamais « gratuit »*.
+
+### Une conséquence immédiate
+
+`societe.taux_horaire_defaut` est **retirée** le même jour (Q3) : elle était la seconde source d'un fait dont `taux_horaire` est désormais la seule.

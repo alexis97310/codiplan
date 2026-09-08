@@ -246,6 +246,63 @@ export type Habilitation = {
  * reste de forme « identité » (D42) — seule la société active se nomme. Une
  * liste d'identifiants suffit à activer, et n'apprend rien de plus.
  */
+/**
+ * Une société où le compte est habilité, AVEC son nom (D67, ticket L2-11).
+ */
+export type SocieteDuCompte = {
+  readonly societeId: string;
+  readonly role: Role;
+  /**
+   * Raison sociale, lue en base sous la forme « adhésion ». `null` si la
+   * politique n'a rien rendu — la valeur n'est jamais inventée.
+   */
+  readonly raisonSociale: string | null;
+};
+
+/**
+ * Les sociétés d'un compte, AVEC LEUR NOM (D67).
+ *
+ * **Ce que `habilitationsDuCompte` ne pouvait pas rendre.** `societe` était de
+ * forme « identité » (D42) : sans société active, la lecture rendait zéro ligne
+ * — *pas même en nommant l'identifiant qu'on possède déjà* (mesuré le
+ * 08/09/2026, avec témoin : 0, 0, et 2 lignes réellement en base). Un sélecteur
+ * ne pouvait donc proposer que des UUID.
+ *
+ * D67 ajoute à `societe` une politique de `SELECT` **et de `SELECT` seul**,
+ * ancrée sur `app.utilisateur_id` à travers la table d'habilitation. Cette
+ * fonction est ce qui la lit.
+ *
+ * **Le coût est nommé** : une personne apprend le NOM des sociétés dont D61 lui
+ * donne déjà la liste. Ni leurs données, ni leurs habilitations, ni
+ * l'existence d'aucune autre société.
+ *
+ * **Deux lectures plutôt qu'une jointure, et c'est délibéré.** Chacune est
+ * bornée par SA forme — les habilitations par « appartenance », les noms par
+ * « adhésion » — et l'on voit alors ce que chacune rend. Une jointure ferait
+ * porter à une seule requête deux garanties distinctes, et masquerait laquelle
+ * a filtré.
+ */
+export async function societesDuCompte(
+  utilisateurId: string,
+  client: PrismaClient = clientParDefaut,
+): Promise<SocieteDuCompte[]> {
+  const habilitations = await habilitationsDuCompte(utilisateurId, client);
+  if (habilitations.length === 0) {
+    return [];
+  }
+  const noms = await avecIdentite(client, utilisateurId, (tx) =>
+    tx.societe.findMany({
+      where: { id: { in: habilitations.map((h) => h.societeId) } },
+      select: { id: true, raison_sociale: true },
+    }),
+  );
+  const parId = new Map(noms.map((n) => [n.id, n.raison_sociale]));
+  return habilitations.map((habilitation) => ({
+    ...habilitation,
+    raisonSociale: parId.get(habilitation.societeId) ?? null,
+  }));
+}
+
 export async function habilitationsDuCompte(
   utilisateurId: string,
   client: PrismaClient = clientParDefaut,

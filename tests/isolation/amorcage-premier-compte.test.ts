@@ -56,10 +56,10 @@ const courriel = (quoi: string): string =>
 async function creerSocieteVierge(id: string, code: string): Promise<void> {
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "societe" (id, code, raison_sociale, pays, territoire,
-       fuseau_horaire, devise_code, taux_horaire_defaut,
+       fuseau_horaire, devise_code,
        majoration_hors_ouverture_pct, langue, actif)
      VALUES ($1::uuid, $2, $3, 'NC', 'NC', 'Pacific/Noumea', 'XPF',
-             0, 0, 'fr', true)`,
+             0, 'fr', true)`,
     id,
     code,
     `Société vierge ${code}`,

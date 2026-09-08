@@ -119,7 +119,9 @@
  * gardien doit comprendre ce qu'on lui demande sans ouvrir le CLAUDE.md.
  */
 export const RAPPEL_FORMES = [
-  "identité   — `id = app.societe_id` : `societe` seule (D42).",
+  "identité   — `id = app.societe_id` : la CLAUSE que `societe` porte (D42). " +
+    "Depuis D67 elle est une moitié de la forme « adhésion », jamais une forme " +
+    "à elle seule : `societe` porte les deux.",
   "société    — `societe_id = app.societe_id` : toute table métier ordinaire.",
   "référentiel — lecture `true`, écriture `app_est_role_editeur()` : liste " +
     "close de I1 (D4). NE S'APPLIQUE JAMAIS à une table métier.",
@@ -132,6 +134,10 @@ export const RAPPEL_FORMES = [
     "discriminant est `app.client_id`, posée pour un compte portail et pour " +
     "lui seul ; la restriction s'ancre sur `app.utilisateur_id`, ou sur " +
     "l'habilitation parente pour la table de périmètre.",
+  "adhésion   — identité pour TOUT LE MONDE, plus SES PROPRES SOCIÉTÉS en " +
+    "SELECT seul : `societe` (D67). Sans elle, un sélecteur ne peut afficher " +
+    "que des UUID ; avec elle sur une écriture, un compte renommerait une " +
+    "société.",
   "filiation  — `EXISTS (SELECT 1 FROM <parent> WHERE <parent>.id = " +
     "<fille>.<fk>)` : une fille est visible si son parent l'est. " +
     "`site_habilitation_requise` (L1-04). AUCUNE clause de société n'y est " +
@@ -141,13 +147,13 @@ export const RAPPEL_FORMES = [
 
 /** Les formes que ce gardien sait exiger. */
 export type Forme =
-  | "identité"
   | "société"
   | "parc"
   | "journal"
   | "habilitation"
   | "filiation"
-  | "appartenance";
+  | "appartenance"
+  | "adhésion";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -534,6 +540,69 @@ export function ecartsListeHabilitation(
  */
 export const TABLES_APPARTENANCE = ["utilisateur_societe"] as const;
 
+/**
+ * LA NEUVIÈME FORME — « ADHÉSION » (D67, ticket L2-11).
+ *
+ * `societe` est de forme « identité » (`id = app.societe_id`, D42). Mesuré le
+ * 08/09/2026, avec témoin : sans société active, la lecture rend **zéro ligne —
+ * pas même en nommant l'identifiant qu'on possède déjà** (0 à l'aveugle, 0 en
+ * nommant les deux, 2 lignes réellement en base). D61 rend la LISTE des
+ * sociétés d'un compte ; il manquait de quoi en NOMMER une, et **un sélecteur
+ * ne pouvait proposer que des UUID.**
+ *
+ * **Ce que la forme ajoute** : une politique de `SELECT` ancrée sur
+ * `app.utilisateur_id` par la table d'habilitation, qui rend à un compte les
+ * lignes des sociétés où il est habilité. Le coût se nomme, comme D61 a nommé
+ * le sien : *une personne apprend le NOM des sociétés dont elle connaît déjà la
+ * liste.* Ni leurs données, ni leurs habilitations, ni l'existence d'aucune
+ * autre société.
+ *
+ * **Et ce qu'elle refuse, qui est le cœur du gardien** : la même branche sur une
+ * commande d'ÉCRITURE laisserait un compte **renommer** une société, ou s'en
+ * attacher une. Elle n'est donc tolérée qu'en `SELECT`, et le gardien le
+ * vérifie commande par commande — l'épreuve joue la faute telle qu'elle se
+ * commettrait, en « simplifiant » vers `FOR ALL`.
+ */
+export const TABLES_ADHESION = ["societe"] as const;
+
+/** L'unique entrée que l'arbitrage D67 autorise. Recopiée, et gardée. */
+const ADHESION_ARBITREE = ["societe"];
+
+/**
+ * Écarts de la liste d'adhésion elle-même — additions comme retraits.
+ *
+ * Le RETRAIT est le sens silencieux, comme pour `TABLES_APPARTENANCE` : il
+ * ferait retomber `societe` sur la forme « identité » seule, qui passe tous les
+ * gardiens — et le mur du sélecteur reviendrait sans qu'aucun scénario ne
+ * rougisse. L'ADDITION, elle, étendrait à une autre table une lecture hors de
+ * sa société.
+ */
+export function ecartsListeAdhesion(
+  liste: readonly string[] = TABLES_ADHESION,
+): string[] {
+  const ecarts = liste
+    .filter((table) => !ADHESION_ARBITREE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée parmi les tables d'adhésion : une de ses ` +
+        "lignes deviendrait lisible HORS de sa société, sur la seule identité " +
+        "de l'appelant. Toute addition passe par un arbitrage, elle ne se " +
+        "décide pas dans un ticket.",
+    );
+
+  for (const attendue of ADHESION_ARBITREE) {
+    if (!liste.includes(attendue)) {
+      ecarts.push(
+        `« ${attendue} » ne figure plus parmi les tables d'adhésion : elle ` +
+          "retomberait sur la forme « identité » seule, et aucun sélecteur ne " +
+          "pourrait plus afficher autre chose qu'un UUID — le mur que D67 abat.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
 /** L'unique entrée que l'arbitrage D61 autorise. Recopiée, et gardée. */
 const APPARTENANCE_ARBITREE = ["utilisateur_societe"];
 
@@ -823,8 +892,18 @@ export function tablesPremiereCategorie(
 
 /** La forme attendue d'une table de la première catégorie de I1. */
 export function formeAttendue(table: string): Forme {
-  if ((CLOISONNEE_PAR_IDENTITE as readonly string[]).includes(table)) {
-    return "identité";
+  // « ADHÉSION » A REMPLACÉ « IDENTITÉ » COMME FORME DE `societe` (D67), et
+  // elle ne l'affaiblit pas : elle EXIGE l'ancrage `id = app.societe_id` par un
+  // témoin de non-vacuité, et y ajoute la borne de la branche « mes sociétés ».
+  // Une forme « identité » distincte n'aurait plus aucune table, et un gardien
+  // qui ne garde rien passe au vert sans avoir rien regardé (§9, 30/08).
+  //
+  // Le jour où une table entrerait dans `CLOISONNEE_PAR_IDENTITE` sans entrer
+  // dans `TABLES_ADHESION` — ce que les deux listes closes refusent —, elle
+  // retomberait sur la forme « société », qui exigerait un ancrage
+  // `societe_id` qu'elle n'a pas : le refus serait BRUYANT, jamais silencieux.
+  if ((TABLES_ADHESION as readonly string[]).includes(table)) {
+    return "adhésion";
   }
   if (TABLES_PARC.some((entree) => entree.table === table)) {
     return "parc";
@@ -847,37 +926,6 @@ export function formeAttendue(table: string): Forme {
 /** Préfixe commun des messages : la table, sa forme, et le rappel. */
 function entete(table: string, forme: Forme): string {
   return `« ${table} » relève de la première catégorie de I1 et doit porter la forme « ${forme} » — `;
-}
-
-/** Écarts de la forme « identité » (D42). */
-function ecartsIdentite(
-  table: string,
-  politiques: readonly PolitiqueObservee[],
-): string[] {
-  const ecarts: string[] = [];
-
-  for (const politique of politiques) {
-    for (const clause of clausesGardiennes(politique)) {
-      if (!ancre(clause, "id")) {
-        ecarts.push(
-          entete(table, "identité") +
-            `la politique « ${politique.nom} » n'est pas ancrée sur ` +
-            "`id = app.societe_id`. `societe` n'a pas de colonne `societe_id` : " +
-            "elle EST la société, et c'est son `id` qui la cloisonne (D42).",
-        );
-      }
-      if (ouvertureTotale(clause) || roleEditeur(clause)) {
-        ecarts.push(
-          entete(table, "identité") +
-            `la politique « ${politique.nom} » porte la forme « référentiel » ` +
-            "(`true` en lecture, `app_est_role_editeur()` en écriture). C'est " +
-            "la forme qui NE s'applique JAMAIS à une table métier.",
-        );
-      }
-    }
-  }
-
-  return ecarts;
 }
 
 /** Écarts des formes « société » et « parc » — la seconde ajoute à la première. */
@@ -976,6 +1024,95 @@ function ecartsSociete(
  * permissive s'ajoute aux autres par OU — elle élargit, elle ne restreint
  * jamais —, si bien qu'une seule mal ancrée suffit à défaire la table.
  */
+/**
+ * Écarts de la forme « ADHÉSION » (D67) — `societe` et elle seule.
+ *
+ * Deux moitiés, et le gardien exige les DEUX : l'ancrage d'identité
+ * (`id = app.societe_id`, D42) qui gouverne tout, plus la branche « mes
+ * sociétés » — ancrée sur `app.utilisateur_id` — **en `SELECT` et en `SELECT`
+ * seul**. La même branche sur une écriture laisserait un compte renommer une
+ * société, ou s'en attacher une.
+ */
+function ecartsAdhesion(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const ecarts: string[] = [];
+  let ancreesIdentite = 0;
+  let mesSocietesEnLecture = 0;
+
+  for (const politique of politiques) {
+    const commande = politique.commande.toUpperCase();
+    for (const clause of clausesGardiennes(politique)) {
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "adhésion") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+        continue;
+      }
+
+      if (ancre(clause, "id")) {
+        ancreesIdentite += 1;
+        continue;
+      }
+
+      // Non ancrée sur l'identité : c'est la branche « mes sociétés », et elle
+      // n'est tolérée qu'à DEUX conditions, toutes deux vérifiées ici.
+      if (!ancreUtilisateur(clause)) {
+        ecarts.push(
+          entete(table, "adhésion") +
+            `la politique « ${politique.nom} » n'est ancrée NI sur ` +
+            "`id = app.societe_id`, NI sur `app.utilisateur_id`. Une politique " +
+            "permissive non ancrée s'ajoute aux autres par OU : elle élargit, " +
+            "elle ne restreint jamais.",
+        );
+        continue;
+      }
+
+      if (commande !== "SELECT") {
+        // LE CŒUR DU GARDIEN, et la faute telle qu'elle se commettrait : en
+        // « simplifiant » vers FOR ALL.
+        ecarts.push(
+          entete(table, "adhésion") +
+            `la politique « ${politique.nom} » porte l'ancrage « mes ` +
+            `sociétés » sur ${commande}, et non sur SELECT seul. Un compte ` +
+            "pourrait alors ÉCRIRE la ligne d'une société où il est habilité — " +
+            "la renommer, changer sa devise, ou s'en attacher une. La branche " +
+            "de D67 est une lecture, et rien d'autre.",
+        );
+        continue;
+      }
+
+      mesSocietesEnLecture += 1;
+    }
+  }
+
+  // TÉMOINS DE NON-VACUITÉ, dans les deux sens — et aucun des deux ne se
+  // signale tout seul. Zéro ancrage d'identité, c'est le cloisonnement de la
+  // table racine perdu ; zéro branche « mes sociétés », c'est le mur du
+  // sélecteur revenu, et il ne fait rougir aucun scénario existant.
+  if (politiques.length > 0 && ancreesIdentite === 0) {
+    ecarts.push(
+      entete(table, "adhésion") +
+        "aucune politique n'est ancrée sur `id = app.societe_id`. La table " +
+        "racine du cloisonnement ne se garde plus elle-même (D42).",
+    );
+  }
+  if (politiques.length > 0 && mesSocietesEnLecture === 0) {
+    ecarts.push(
+      entete(table, "adhésion") +
+        "aucune politique de SELECT n'est ancrée sur `app.utilisateur_id`. La " +
+        "branche de D67 a disparu : plus aucun compte ne peut lire le NOM des " +
+        "sociétés où il est habilité, et un sélecteur ne peut proposer que des " +
+        "UUID — le mur que D67 abat, revenu en silence.",
+    );
+  }
+
+  return ecarts;
+}
+
 function ecartsAppartenance(
   table: string,
   politiques: readonly PolitiqueObservee[],
@@ -1340,9 +1477,7 @@ export function ecartsPolitiques(
     }
 
     const forme = formeAttendue(table);
-    if (forme === "identité") {
-      ecarts.push(...ecartsIdentite(table, siennes));
-    } else if (forme === "journal") {
+    if (forme === "journal") {
       ecarts.push(...ecartsJournal(table, siennes));
     } else if (forme === "habilitation") {
       ecarts.push(...ecartsHabilitation(table, siennes));
@@ -1350,6 +1485,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsFiliation(table, siennes));
     } else if (forme === "appartenance") {
       ecarts.push(...ecartsAppartenance(table, siennes, colonne));
+    } else if (forme === "adhésion") {
+      ecarts.push(...ecartsAdhesion(table, siennes));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }

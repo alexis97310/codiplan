@@ -378,7 +378,7 @@ Le montant est un **entier** dans l'unité la plus fine de la devise — 7000 po
 
 **La table naît VIDE, et c'est délibéré.** Le taux de CODIMA est connu — 7 000 XPF —, mais **sa date d'effet ne l'est pas**, et c'est elle que la table exige. L'inventer serait inventer une donnée métier (§8). Tant qu'aucune ligne n'existe, `tauxEnVigueur` rend `null` : un taux manquant ne se lit **jamais** « gratuit ».
 
-**Ce qui n'est pas fait, et pourquoi :** `societe.taux_horaire_defaut` reste en place. C'est un `DECIMAL(18,4)` qui porte `65.0000` pour CODIMA-EU là où la forme entière vaut `6500` — _ce ne sont pas les mêmes nombres_. Déplacer cette valeur est une migration de donnée monétaire, et elle appartient à l'exploitation.
+**`societe.taux_horaire_defaut` A ÉTÉ RETIRÉE le 09/09/2026 (Q3).** Elle portait `65.0000` pour CODIMA-EU là où la forme entière vaut `6500` — _ce ne sont pas les mêmes nombres_, et deux sources d'un même fait divergeaient donc **avant même d'avoir été lues**. La prémisse a été mesurée avant d'être payée : l'inventaire de la base hébergée (run #31) rend **deux sociétés de démonstration, aucun site, aucun contact, aucune intervention** — `7000` et `65` sont des valeurs d'amorçage du seed, pas des tarifs de clients. Un bloc de garde refuse la migration si une société porte une valeur autre que celles du seed.
 
 ## La grammaire des imports, écrite avant la liaison au classeur
 
@@ -433,6 +433,14 @@ Trois défauts en découlaient, et le premier était le plus cher : **un compte 
 **L'`id` ouvre les écritures, jamais les lectures**, et le report ne franchit pas deux requêtes. **Oublier d'ouvrir un échange casse la fonctionnalité ; cela n'ouvre jamais rien** — c'est le seul sens de défaillance acceptable pour un mécanisme de ce genre.
 
 Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04**, livré le 09/09/2026 (D66) — voir la section suivante. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
+
+## La neuvième forme de politique — « adhésion », et le sélecteur qui ne pouvait afficher que des UUID
+
+D61 rend à un compte la **liste** des sociétés où il est habilité ; il lui manquait de quoi en **nommer** une. `societe` étant de forme « identité » (D42), la lecture rendait **zéro ligne sans société active — pas même en nommant l'identifiant qu'on possède déjà** (mesuré, avec témoin : 0, 0, et 2 lignes réellement en base). **Un sélecteur ne pouvait proposer que des UUID.**
+
+D67 ajoute une politique de `SELECT` **et de `SELECT` seul**, ancrée sur `app.utilisateur_id` à travers la table d'habilitation. **Le coût se nomme, comme D61 a nommé le sien** : _une personne apprend le NOM des sociétés dont elle connaît déjà la liste_ — ni leurs données, ni leurs habilitations, ni l'existence d'aucune autre. Mesuré : un compte habilité sur **une seule** société lit **une seule** ligne, alors que la base en porte davantage.
+
+**Ce qui la borne est la commande, pas la clause.** La même branche sur une écriture laisserait un compte renommer une société ou s'en attacher une ; un gardien le vérifie commande par commande, et une épreuve joue la faute telle qu'elle se commettrait — en « simplifiant » vers `FOR ALL`. Liste close gardée dans les deux sens : `TABLES_ADHESION`, dont le **retrait** est le sens silencieux.
 
 ## Le déverrouillage d'un compte parvenu à l'ESCALADE — sans jamais ouvrir une lecture
 

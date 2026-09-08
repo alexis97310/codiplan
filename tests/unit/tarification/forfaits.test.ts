@@ -145,7 +145,6 @@ describe("la saisie d'un forfait", () => {
     expect(lu.zone_geo).toBeNull();
     expect(lu.famille_id).toBeNull();
     expect(lu.type_intervention).toBeNull();
-    expect(lu.heures_incluses_minutes).toBeNull();
     expect(lu.actif).toBe(true);
   });
 
@@ -196,13 +195,16 @@ describe("la saisie d'un forfait", () => {
     }
   });
 
-  it("refuse des heures incluses nulles ou négatives", () => {
-    expect(() =>
-      schemaForfait.parse({ ...valide, heures_incluses_minutes: 0 }),
-    ).toThrow();
-    expect(
-      schemaForfait.parse({ ...valide, heures_incluses_minutes: 120 })
-        .heures_incluses_minutes,
-    ).toBe(120);
+  it("N'ADMET PLUS d'heures incluses — un forfait s'ajoute toujours aux heures", () => {
+    // Arbitrage du 09/09/2026 (Q4) : un forfait est un montant fixe qui vient
+    // EN PLUS du temps passé ; il n'absorbe aucune heure, et la notion d'heure
+    // excédentaire ne s'applique pas à lui. La colonne qui modélisait le cas
+    // inverse a été retirée — *une colonne qui modélise un cas qui n'existe pas
+    // est pire qu'une colonne absente*.
+    const lu = schemaForfait.parse({
+      ...valide,
+      heures_incluses_minutes: 120,
+    }) as Record<string, unknown>;
+    expect(lu.heures_incluses_minutes).toBeUndefined();
   });
 });
