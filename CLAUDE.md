@@ -134,6 +134,12 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 
 *La moitié gardable est la POSE.* Les variables `app.authentification_*` ne se posent que depuis les fichiers qui **composent le contexte** — `lib/db/rls.ts`, qui les remet à vide, et `lib/auth/lecture-identite.ts`, qui les renseigne depuis le `where` de la requête. Jamais depuis un chemin de requête, jamais depuis une valeur venue de l'extérieur. Liste close, gardée par `tests/unit/auth/pose-de-designation.test.ts`.
 
+**Et une écriture peut NOMMER une ligne sans la désigner** *(D64)*. La bibliothèque d'authentification lit une ligne par sa clé de désignation, puis **réécrit celle qu'elle vient d'obtenir en la nommant par son `id`** — mesuré : sur les huit flux réels, 69 opérations, dont 7 nomment un `id`, et **les 7 sont des écritures**. `id` n'étant clé de désignation d'aucune de ces tables, la politique lisait une chaîne vide et refusait **en silence**.
+
+*Ce qui répare n'est pas une clé de plus, c'est un REPORT* — `lib/auth/echange.ts`. À l'intérieur d'une requête entrante, une écriture qui nomme une ligne par sa clé primaire reçoit ce que la même requête avait déjà désigné : **le `where` dit QUELLE ligne, la politique dit à QUI elle est.** Aucune politique n'a changé ; elles exigeaient déjà la seconde moitié. **L'`id` ouvre donc les écritures et JAMAIS les lectures**, et le report ne franchit pas deux requêtes. Un point d'entrée qui oublierait d'ouvrir un échange **casse la fonctionnalité, il n'ouvre jamais rien** : c'est le seul sens de défaillance acceptable ici, et c'est ce qui rend la liste des ouvertures gardable sans être une promesse.
+
+*Ce qui n'est pas exprimable est écrit plutôt qu'habillé :* sur `second_facteur` la seconde moitié est bien **l'appartenance au compte**, la colonne existant ; sur `verification` elle ne l'est pas — la table n'a pas de colonne de compte et `valeur` porte un **compteur** sur la ligne des tentatives (mesuré). Ce qui y compose est l'**identifiant opaque déjà présenté**, qui est un secret là où un `id` n'en est pas un. Au moins aussi fort contre le rejeu, **et pas la même garantie**.
+
 *La moitié non gardable est la PROVENANCE*, et elle s'écrit ici parce qu'aucun motif statique ne peut la décider : **la valeur d'une désignation est dérivée d'un contexte authentifié, jamais reçue d'un appelant.** Le jour où un chemin la recevra de l'extérieur, la borne deviendra nominale — et rien ne le dira. C'est à lire avant d'ajouter un chemin, pas après.
 
 **Et chaque table ne se désigne QUE par sa propre clé** *(L1-02d)*. Une branche avait été ajoutée à `utilisateur_lecture` pour que le jeton de session désigne aussi son identité ; le **jumeau l'a démentie** — retirée, la chaîne complète reste verte —, et elle a été supprimée plutôt que gardée « au cas où ». *Une branche inutile dans une politique d'identité est un élargissement sans objet.*
@@ -307,6 +313,10 @@ lib/
               la politique ne reconnaît pas (L1-02f)
               arrivee.ts : ce qu'un écran a le droit de dire — qui vous êtes,
               pour quelle société, et rien d'autre
+              echange.ts : le REPORT d'une désignation à l'intérieur d'UNE
+              requête (D64) — l'`id` par lequel la bibliothèque réécrit une
+              ligne dit QUELLE ligne, la politique dit à QUI elle est ;
+              l'`id` ouvre les écritures, JAMAIS les lectures
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
@@ -560,5 +570,15 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **La règle : une impossibilité s'énonce avec son COÛT, ou pas du tout.** « Il faudrait rejouer X contre Y » n'est pas une conclusion, c'est un devis — et un devis se chiffre avant d'être refusé. La question à poser à toute phrase de cette famille : *combien de temps pour essayer ?* Si la réponse est « moins d'une heure », l'impossibilité n'en est pas une, c'est un renoncement.
 
   **Corollaire sur le REJEU.** Il est plus souvent à portée qu'on ne le croit, et pour une raison mécanique : le dépôt garde tout le code, et une migration ne touche qu'une poignée d'objets — donc l'état d'avant se reconstruit en défaisant ce qu'elle a fait, pas en rebâtissant la base. Le rejeu est éprouvé quand il **REPRODUIT** le défaut ; sans cette reproduction, on ne mesure rien (§9, 30/08 — la violation a-t-elle bien eu lieu ?).
+
+- **08/09/2026 — UN CLIQUET QUI CONDAMNE AUSSI L'ISSUE DE SECOURS N'EST PAS UN CLIQUET, C'EST UN ENFERMEMENT. Quand on ferme un verbe pour empêcher un RETRAIT, on regarde ce que ce verbe portait d'autre.** L1-02d avait retiré à `second_facteur` toute politique de suppression, et c'était juste : *un compte peut modifier ce qui parle de lui, jamais ce qui gouverne son accès* (D58). Mais la même famille d'écritures portait autre chose que le retrait — **la consommation d'un code de secours**, qui est un usage et non un désenrôlement. Mesuré à D64 : le code de secours était **validé**, puis l'écriture qui le consomme était refusée, et l'appelant recevait `409`. Ajouté au défi de second facteur qui ne se consommait pas non plus, cela donnait un compte enrôlé **sans aucune porte de sortie** — ni le code, ni le code de secours — alors que l'enrôlement était ouvert depuis la veille.
+
+  **Ce qui rend cette faute générale, et non une distraction : le raisonnement portait sur une INTENTION (« interdire de retirer ») et la fermeture portait sur un VERBE (« aucun `DELETE`, aucun `UPDATE` non désigné »).** Un verbe est plus large qu'une intention, toujours ; l'écart entre les deux est exactement ce qu'on ne voit pas au moment où l'on ferme, parce qu'on relit son intention et non sa portée. Corollaire pratique, à faire avant de fermer un verbe : **énumérer ce que ce verbe fait aujourd'hui**, chemin par chemin, et non ce qu'on veut lui interdire. La trace des opérations réellement émises le donne en une exécution ; la relecture ne le donne jamais.
+
+  *Parenté :* c'est la vacuité du 30/08 prise par l'autre bout. Là, un gardien ne regardait rien et passait au vert ; ici, une fermeture regarde plus large qu'elle ne croit et **casse en silence** — car un refus de RLS est zéro ligne, pas une erreur.
+
+- **08/09/2026 — POSTGRESQL APPLIQUE LES POLITIQUES DE `SELECT` AU `WHERE` D'UN `UPDATE` : un jumeau qui ne retire qu'une des deux moitiés mesure le refus du voisin.** Mesuré à D64, sur le jumeau censé prouver que la clause d'appartenance de `second_facteur` mordait. La politique d'`UPDATE` retirée et remplacée par `USING (true)`, l'écriture sur la ligne d'autrui **échouait quand même** — zéro ligne. Ce n'est pas la politique d'écriture qui refusait : c'est celle de LECTURE, qui filtre les lignes que le `WHERE` peut atteindre.
+
+  Deux conséquences, et la seconde est la plus utile. **La garantie est plus forte qu'annoncé** — l'appartenance est exigée deux fois, une fois pour trouver la ligne et une fois pour l'écrire —, et cela ne se savait pas avant de l'avoir mise en échec. Et **un jumeau qui « ne viole rien » n'est pas une bonne nouvelle** : c'est le signal qu'il ne vise pas le verrou qu'on croit. C'est la règle du 24/08 (« le jumeau retire LE verrou visé, pas un voisin ») rejouée dans le sens inverse — ici le voisin ne fait pas échouer à la place, il **réussit à refuser** à la place, ce qui ressemble à s'y méprendre à une garantie éprouvée.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

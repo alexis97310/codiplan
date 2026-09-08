@@ -1,3 +1,4 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { tenterConnexion } from "@/lib/auth/connexion";
 import {
   basculerSociete,
@@ -25,7 +26,7 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
  * portait la forme « société », et la question « sur quelles sociétés suis-je
  * habilité ? » rendait zéro ligne tant qu'une société n'était pas déjà active.
  */
-export async function POST(requete: Request): Promise<Response> {
+async function traiter(requete: Request): Promise<Response> {
   const formulaire = await requete.formData();
   const resultat = await tenterConnexion({
     email: champ(formulaire, "email"),
@@ -67,4 +68,18 @@ export async function POST(requete: Request): Promise<Response> {
  */
 export async function GET(): Promise<Response> {
   return redirection("/connexion");
+}
+
+/**
+ * L'ÉCHANGE D'AUTHENTIFICATION EST OUVERT ICI (ticket D62).
+ *
+ * La bibliothèque réécrit par leur `id` des lignes qu'elle vient de lire par
+ * leur clé de désignation. Sans échange ouvert, ces écritures ne reçoivent
+ * aucun report, la politique lit une variable vide et refuse — silencieusement.
+ * L'oubli casse donc la fonctionnalité ; il n'ouvre jamais rien.
+ * Voir `lib/auth/echange.ts`.
+ */
+
+export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
 }

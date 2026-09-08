@@ -1,3 +1,4 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { auth } from "@/lib/auth/config";
 import {
   basculerSociete,
@@ -17,7 +18,7 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
  * l'enrôlement l'a mise, et le code accepté ici est exactement celui
  * qu'accepterait l'enrôlement.
  */
-export async function POST(requete: Request): Promise<Response> {
+async function traiter(requete: Request): Promise<Response> {
   const formulaire = await requete.formData();
   const code = champ(formulaire, "code");
 
@@ -60,4 +61,18 @@ export async function POST(requete: Request): Promise<Response> {
   }
 
   return redirection("/arrivee", cookies);
+}
+
+/**
+ * L'ÉCHANGE D'AUTHENTIFICATION EST OUVERT ICI (ticket D62).
+ *
+ * La bibliothèque réécrit par leur `id` des lignes qu'elle vient de lire par
+ * leur clé de désignation. Sans échange ouvert, ces écritures ne reçoivent
+ * aucun report, la politique lit une variable vide et refuse — silencieusement.
+ * L'oubli casse donc la fonctionnalité ; il n'ouvre jamais rien.
+ * Voir `lib/auth/echange.ts`.
+ */
+
+export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
 }
