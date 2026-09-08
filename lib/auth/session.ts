@@ -25,7 +25,34 @@ const schemaChampsSession = z.object({
   second_facteur_valide: z.boolean().nullish(),
 });
 
+/**
+ * L'identité que la session porte déjà (L1-02f).
+ *
+ * `getSession` rend l'utilisateur avec sa session — deux opérations de client,
+ * mais une seule pour l'appelant. La page d'arrivée n'a donc AUCUNE lecture à
+ * ajouter pour dire qui vous êtes : elle lit ce qui est déjà là.
+ *
+ * `twoFactorEnabled` est le nom que le greffon donne à `mfa_actif` (voir la
+ * correspondance de `lib/auth/config.ts`). Relu par un schéma comme le reste :
+ * absent, il vaut `false`, ce qui envoie vers l'enrôlement plutôt que de
+ * laisser passer un compte dont on ne sait rien.
+ */
+const schemaIdentite = z.object({
+  name: z.string().nullish(),
+  email: z.string().nullish(),
+  twoFactorEnabled: z.boolean().nullish(),
+});
+
 /** Session serveur telle que l'application la manipule. */
+export type IdentiteSession = {
+  /** Nom de la personne connectée. */
+  readonly nom: string;
+  /** Son adresse électronique — l'identifiant qu'elle a saisi. */
+  readonly email: string;
+  /** Le compte porte-t-il un second facteur ? `mfa_actif` en base. */
+  readonly mfaActif: boolean;
+};
+
 export type SessionServeur = {
   /**
    * JETON de la session, requis pour basculer de société (L1-02d).
@@ -35,6 +62,8 @@ export type SessionServeur = {
    */
   jetonSession: string;
   contexte: ContexteSession;
+  /** Qui est connecté — lu de la réponse, sans lecture supplémentaire. */
+  identite: IdentiteSession;
 };
 
 /**
@@ -67,8 +96,17 @@ export async function obtenirSession(
     ? (champs.data.second_facteur_valide ?? false)
     : false;
 
+  const identite = schemaIdentite.safeParse(resultat.user);
+
   return {
     jetonSession: resultat.session.token,
+    identite: {
+      nom: identite.success ? (identite.data.name ?? "") : "",
+      email: identite.success ? (identite.data.email ?? "") : "",
+      mfaActif: identite.success
+        ? (identite.data.twoFactorEnabled ?? false)
+        : false,
+    },
     contexte: {
       utilisateurId: resultat.user.id,
       // Société et rôle vont ensemble : l'un sans l'autre ne veut rien dire,

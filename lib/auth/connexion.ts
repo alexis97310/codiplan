@@ -51,8 +51,28 @@ export type ResultatConnexion =
       readonly issue: "session";
       readonly jetonSession: string;
       readonly utilisateurId: string;
+      /**
+       * Les `Set-Cookie` que Better Auth a produits, à reporter tels quels sur
+       * la réponse HTTP (L1-02f).
+       *
+       * **Ils sont rendus plutôt que refabriqués**, et c'est la seule forme
+       * juste : le cookie porte une signature calculée avec la clé de
+       * l'instance, ses attributs (`HttpOnly`, `SameSite`, `Secure`, la durée)
+       * viennent de la configuration, et les reconstruire ici aurait été une
+       * seconde implémentation d'un même contrat — celle qui diverge en
+       * silence (§9, 01/09).
+       */
+      readonly cookies: readonly string[];
     }
-  | { readonly issue: "second_facteur_requis" }
+  | {
+      readonly issue: "second_facteur_requis";
+      /**
+       * Le cookie de défi que le greffon vient de poser. Sans lui, la
+       * présentation du code n'a rien à quoi se rattacher : c'est LUI qui
+       * désigne la tentative en cours.
+       */
+      readonly cookies: readonly string[];
+    }
   | { readonly issue: "refus"; readonly motif: string };
 
 /**
@@ -88,23 +108,34 @@ export async function tenterConnexion(
       return refus();
     }
 
+    // `asResponse` plutôt que le corps seul (L1-02f) : c'est la RÉPONSE qui
+    // porte les `Set-Cookie`, et une page de connexion n'a rien à offrir sans
+    // eux. Le corps se relit ensuite par les mêmes schémas qu'avant.
     let reponse: unknown;
+    let cookies: readonly string[] = [];
     try {
-      reponse = await instance.api.signInEmail({
+      const brute = await instance.api.signInEmail({
         body: {
           email: demande.data.email,
           password: demande.data.motDePasse,
         },
+        asResponse: true,
       });
+      if (brute.status !== 200) {
+        return refus();
+      }
+      cookies = brute.headers.getSetCookie?.() ?? [];
+      reponse = await brute.json();
     } catch {
-      // Compte inexistant ou mot de passe faux : Better Auth lève dans les deux
-      // cas, et c'est bien ce qu'on veut — il n'y a rien à distinguer.
+      // Compte inexistant ou mot de passe faux : Better Auth lève ou répond
+      // hors 200 selon le cas, et c'est bien ce qu'on veut — il n'y a rien à
+      // distinguer.
       return refus();
     }
 
     if (schemaSecondFacteur.safeParse(reponse).success) {
       // Atteignable seulement avec le bon mot de passe : ne dit rien à un tiers.
-      return { issue: "second_facteur_requis" };
+      return { issue: "second_facteur_requis", cookies };
     }
 
     const ouverte = schemaSessionOuverte.safeParse(reponse);
@@ -152,6 +183,7 @@ export async function tenterConnexion(
       issue: "session",
       jetonSession: ouverte.data.token,
       utilisateurId: ouverte.data.user.id,
+      cookies,
     };
   });
 }

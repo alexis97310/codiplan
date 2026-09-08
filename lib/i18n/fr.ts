@@ -61,6 +61,50 @@ export const fr = {
   // habilité quelque part : c'est exactement son objet.
   "auth.refus":
     "Accès refusé. Vérifiez vos identifiants ; si le problème persiste, contactez l'administrateur de votre société.",
+  // ── Le premier écran (ticket L1-02f) ──────────────────────────────────────
+  // Sobre assumé : ce qu'un humain lit pour entrer, et rien de plus. La charte
+  // de la société vient du thème (L0-09) ; aucune couleur ne s'écrit ici.
+  "connexion.titre": "Connexion",
+  "connexion.accroche": "Identifiez-vous pour accéder à votre société.",
+  "connexion.email": "Adresse électronique",
+  "connexion.mot_de_passe": "Mot de passe",
+  "connexion.valider": "Se connecter",
+  "connexion.code": "Code à six chiffres",
+  "connexion.code.accroche":
+    "Saisissez le code affiché par votre application d'authentification.",
+  "connexion.code.valider": "Valider le code",
+  "connexion.apres_enrolement":
+    "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
+
+  // Enrôlement du second facteur — la seule transition en libre-service (D58).
+  "enrolement.titre": "Activer votre second facteur",
+  "enrolement.accroche":
+    "Votre rôle exige un second facteur d'authentification. Cette étape est obligatoire et ne se fait qu'une fois.",
+  "enrolement.definitif":
+    "Un second facteur s'active ; il ne se retire pas. Seul un administrateur de la plateforme peut le révoquer, sur demande.",
+  "enrolement.mot_de_passe": "Confirmez votre mot de passe pour révéler la clé",
+  "enrolement.reveler": "Révéler la clé",
+  "enrolement.cle": "Clé à saisir dans votre application d'authentification",
+  "enrolement.cle.aide":
+    "Ajoutez cette clé à votre application d'authentification, puis saisissez le code qu'elle affiche.",
+  "enrolement.codes_secours": "Codes de secours",
+  "enrolement.codes_secours.aide":
+    "Notez-les maintenant : ils ne seront plus affichés. Chacun ne sert qu'une fois, si vous perdez votre application.",
+  "enrolement.code": "Code affiché par votre application",
+  "enrolement.confirmer": "Confirmer l'activation",
+  "enrolement.code_invalide":
+    "Ce code n'est pas valide. Vérifiez l'heure de votre appareil, puis réessayez avec le code affiché à l'instant.",
+
+  // Page d'arrivée — qui vous êtes, pour quelle société, et rien d'autre.
+  "arrivee.titre": "Vous êtes connecté",
+  "arrivee.compte": "Compte",
+  "arrivee.email": "Adresse électronique",
+  "arrivee.societe": "Société active",
+  "arrivee.role": "Rôle",
+  "arrivee.sans_societe":
+    "Aucune société active. Le choix d'une société parmi plusieurs arrivera avec le back-office ; si vous n'êtes habilité nulle part, contactez l'administrateur de votre société.",
+  "arrivee.deconnexion": "Se déconnecter",
+
   // ── Référentiel client (ticket L1-01) ─────────────────────────────────────
   // Ce que le PRODUIT dit. Ce qu'une SOCIÉTÉ dit est une donnée, lue en base :
   // `societe.libelle_code_externe` remplace « client.code_externe » ci-dessous
@@ -170,4 +214,16 @@ export type CleTraduction = keyof typeof fr;
 /** Retourne la chaîne française associée à une clé du dictionnaire. */
 export function t(cle: CleTraduction): string {
   return fr[cle];
+}
+
+/**
+ * Une chaîne venue de L'EXTÉRIEUR désigne-t-elle une clé du dictionnaire ?
+ *
+ * Le premier écran reporte ses refus d'une route vers une page par un paramètre
+ * d'URL (L1-02f). Ce paramètre est une CLÉ, jamais un texte : sans ce filtre,
+ * n'importe qui ferait écrire n'importe quoi à la page en forgeant un lien.
+ * Une chaîne inconnue n'affiche rien du tout.
+ */
+export function estCleTraduction(valeur: string): valeur is CleTraduction {
+  return Object.hasOwn(fr, valeur);
 }

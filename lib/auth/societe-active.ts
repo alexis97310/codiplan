@@ -2,7 +2,7 @@ import { EvenementAcces, type PrismaClient } from "@prisma/client";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
 import { avecDesignationAuth } from "./lecture-identite";
-import { avecSocieteEtRole } from "@/lib/db/rls";
+import { avecIdentite, avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { type ContexteActif } from "./contexte";
@@ -221,4 +221,44 @@ async function decider(
       adresseIp: demande.adresseIp ?? null,
     },
   };
+}
+
+/** Une habilitation d'un compte : la société, et le rôle qu'il y tient. */
+export type Habilitation = {
+  readonly societeId: string;
+  readonly role: Role;
+};
+
+/**
+ * LES SOCIÉTÉS SUR LESQUELLES UN COMPTE EST HABILITÉ (ticket L1-02f, D61).
+ *
+ * **Cette lecture n'existait pas, et son absence était un mur.** La connexion
+ * n'établit que l'identité ; `basculerSociete` exige qu'on lui NOMME la société
+ * visée ; et `utilisateur_societe` portait la forme « société », si bien que la
+ * question rendait zéro ligne tant qu'une société n'était pas déjà active. Un
+ * cercle parfait, contre lequel le premier écran est venu buter.
+ *
+ * Elle s'appuie sur la huitième forme de politique — « appartenance » —, ancrée
+ * sur `app.utilisateur_id` et en `SELECT` seul : le compte lit SES lignes,
+ * jamais celles d'autrui, et il ne peut pas en écrire.
+ *
+ * **Ce qu'elle ne rend pas, et c'est délibéré** : le NOM des sociétés. `societe`
+ * reste de forme « identité » (D42) — seule la société active se nomme. Une
+ * liste d'identifiants suffit à activer, et n'apprend rien de plus.
+ */
+export async function habilitationsDuCompte(
+  utilisateurId: string,
+  client: PrismaClient = clientParDefaut,
+): Promise<Habilitation[]> {
+  const lignes = await avecIdentite(client, utilisateurId, (tx) =>
+    tx.utilisateurSociete.findMany({
+      where: { utilisateur_id: utilisateurId },
+      select: { societe_id: true, role: true },
+      orderBy: { societe_id: "asc" },
+    }),
+  );
+  return lignes.map((ligne) => ({
+    societeId: ligne.societe_id,
+    role: ligne.role,
+  }));
 }

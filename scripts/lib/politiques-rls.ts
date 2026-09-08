@@ -141,7 +141,13 @@ export const RAPPEL_FORMES = [
 
 /** Les formes que ce gardien sait exiger. */
 export type Forme =
-  "identité" | "société" | "parc" | "journal" | "habilitation" | "filiation";
+  | "identité"
+  | "société"
+  | "parc"
+  | "journal"
+  | "habilitation"
+  | "filiation"
+  | "appartenance";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -504,6 +510,68 @@ export function ecartsListeHabilitation(
 }
 
 /**
+ * LA HUITIÈME FORME — « appartenance » (D61, ticket L1-02f).
+ *
+ * **Le mur qu'elle abat, mesuré avant d'être contourné.** Un compte qui vient
+ * de se connecter n'a aucune société active : la connexion n'établit que
+ * l'identité (D35), et `basculerSociete` exige qu'on lui NOMME la société
+ * visée. Or `utilisateur_societe` portait la forme « société », si bien que la
+ * question « sur quelles sociétés suis-je habilité ? » rendait **zéro ligne**
+ * tant qu'une société n'était pas déjà active. Aucun chemin ne permettait donc
+ * à un utilisateur réel d'atteindre sa propre société.
+ *
+ * **Ce que la forme ajoute** : une politique de `SELECT` ancrée sur l'identité
+ * connectée — `utilisateur_id = app.utilisateur_id` —, qui rend à un compte SES
+ * lignes d'habilitation, toutes sociétés confondues, et jamais celles d'autrui.
+ * C'est la première fois qu'une ligne de la première catégorie de I1 devient
+ * lisible hors de sa société ; cela s'écrit plutôt que de se glisser dans une
+ * politique existante.
+ *
+ * **Et ce qu'elle refuse, qui est le cœur du gardien** : la même branche sur
+ * une commande d'ÉCRITURE laisserait un compte s'attribuer le rôle de son choix
+ * sur la société de son choix. La branche « sa propre ligne » n'est donc
+ * tolérée qu'en `SELECT`, et le gardien le vérifie commande par commande.
+ */
+export const TABLES_APPARTENANCE = ["utilisateur_societe"] as const;
+
+/** L'unique entrée que l'arbitrage D61 autorise. Recopiée, et gardée. */
+const APPARTENANCE_ARBITREE = ["utilisateur_societe"];
+
+/**
+ * Écarts de la liste d'appartenance elle-même — additions comme retraits.
+ *
+ * Même forme que `ecartsListeParc` et `ecartsListeHabilitation`, et pour la
+ * même raison dans les deux sens : l'addition étend une exception au
+ * cloisonnement société, le retrait ferait retomber la table sur la forme
+ * « société » — qui PASSE, et le premier écran redeviendrait inatteignable
+ * sans qu'aucun scénario ne rougisse.
+ */
+export function ecartsListeAppartenance(
+  liste: readonly string[] = TABLES_APPARTENANCE,
+): string[] {
+  const ecarts = liste
+    .filter((table) => !APPARTENANCE_ARBITREE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée parmi les tables d'appartenance : une de ` +
+        "ses lignes deviendrait lisible HORS de sa société. Toute addition " +
+        "passe par un arbitrage, elle ne se décide pas dans un ticket.",
+    );
+
+  for (const attendue of APPARTENANCE_ARBITREE) {
+    if (!liste.includes(attendue)) {
+      ecarts.push(
+        `« ${attendue} » ne figure plus parmi les tables d'appartenance : ` +
+          "elle retomberait sur la forme « société », et aucun compte ne " +
+          "pourrait plus découvrir sa propre société — le mur que D61 abat.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/**
  * Référentiels de plateforme (I1, 2ᵉ catégorie). Ils ne relèvent PAS de la
  * première catégorie : le gardien les nomme seulement pour refuser la
  * contradiction — un référentiel qui porterait `societe_id NOT NULL` serait
@@ -760,6 +828,9 @@ export function formeAttendue(table: string): Forme {
   if (TABLES_FILIATION.some((entree) => entree.table === table)) {
     return "filiation";
   }
+  if ((TABLES_APPARTENANCE as readonly string[]).includes(table)) {
+    return "appartenance";
+  }
   return "société";
 }
 
@@ -880,6 +951,110 @@ function ecartsSociete(
         "sans politique n'est pas ouverte — elle est fermée —, mais " +
         "l'application ne peut plus l'exercer : c'est une panne, pas un " +
         "cloisonnement.",
+    );
+  }
+
+  return ecarts;
+}
+
+/**
+ * Écarts de la forme « appartenance » (D61) — société pour tout le monde, PLUS
+ * sa propre ligne EN LECTURE SEULE pour le sujet.
+ *
+ * La forme se juge politique par politique, et la question posée à chacune est
+ * la même : *par quoi est-elle ancrée, et sur quelle commande ?* Une politique
+ * permissive s'ajoute aux autres par OU — elle élargit, elle ne restreint
+ * jamais —, si bien qu'une seule mal ancrée suffit à défaire la table.
+ */
+function ecartsAppartenance(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+  colonne: ColonneSociete,
+): string[] {
+  const ecarts: string[] = [];
+  let ancreesSociete = 0;
+  let proprelLigneEnLecture = 0;
+
+  for (const politique of politiques) {
+    const commande = politique.commande.toUpperCase();
+    for (const clause of clausesGardiennes(politique)) {
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "appartenance") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+        continue;
+      }
+
+      if (ancre(clause, "societe_id")) {
+        ancreesSociete += 1;
+        if (branchePlateforme(clause) && !colonne.obligatoire) {
+          ecarts.push(
+            entete(table, "appartenance") +
+              `la politique « ${politique.nom} » porte la branche ` +
+              "`OR societe_id IS NULL` alors que la colonne est NULLABLE.",
+          );
+        }
+        continue;
+      }
+
+      // Non ancrée sur la société : c'est la branche « sa propre ligne », et
+      // elle n'est tolérée qu'à DEUX conditions, toutes deux vérifiées ici.
+      if (!ancreUtilisateur(clause)) {
+        ecarts.push(
+          entete(table, "appartenance") +
+            `la politique « ${politique.nom} » n'est ancrée NI sur ` +
+            "`societe_id = app.societe_id`, NI sur `app.utilisateur_id`. Une " +
+            "politique permissive non ancrée s'ajoute aux autres par OU : " +
+            "elle élargit, elle ne restreint jamais.",
+        );
+        continue;
+      }
+
+      if (commande !== "SELECT") {
+        // LE CŒUR DU GARDIEN. Une branche « sa propre ligne » sur une commande
+        // d'écriture laisse un compte s'attribuer le rôle de son choix sur la
+        // société de son choix — c'est-à-dire se promouvoir.
+        ecarts.push(
+          entete(table, "appartenance") +
+            `la politique « ${politique.nom} » porte l'ancrage « sa propre ` +
+            `ligne » sur ${commande}, et non sur SELECT seul. Un compte ` +
+            "pourrait alors ÉCRIRE sa propre habilitation : s'attribuer le " +
+            "rôle de son choix sur la société de son choix. La branche de " +
+            "D61 est une lecture, et rien d'autre.",
+        );
+        continue;
+      }
+
+      proprelLigneEnLecture += 1;
+    }
+  }
+
+  // TÉMOINS DE NON-VACUITÉ, dans les deux sens. Zéro politique ancrée sur la
+  // société, c'est le cloisonnement perdu ; zéro branche « sa propre ligne »,
+  // c'est le mur de D61 revenu — et aucun des deux ne se signale tout seul.
+  if (politiques.length > 0 && ancreesSociete === 0) {
+    ecarts.push(
+      entete(table, "appartenance") +
+        "aucune de ses politiques n'est ancrée sur " +
+        "`societe_id = app.societe_id` : le cloisonnement société a disparu, " +
+        "et il ne reste que la branche d'identité.",
+    );
+  }
+  if (politiques.length > 0 && proprelLigneEnLecture === 0) {
+    ecarts.push(
+      entete(table, "appartenance") +
+        "aucune de ses politiques ne porte la branche « sa propre ligne » en " +
+        "`SELECT`. La table retombe sur la forme « société », et aucun compte " +
+        "ne peut plus découvrir sa propre société — le mur que D61 abat.",
+    );
+  }
+
+  if (politiques.length > 0 && !couvreToutesCommandes(politiques)) {
+    ecarts.push(
+      entete(table, "appartenance") +
+        "ses politiques ne couvrent pas les quatre commandes.",
     );
   }
 
@@ -1163,6 +1338,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsHabilitation(table, siennes));
     } else if (forme === "filiation") {
       ecarts.push(...ecartsFiliation(table, siennes));
+    } else if (forme === "appartenance") {
+      ecarts.push(...ecartsAppartenance(table, siennes, colonne));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }

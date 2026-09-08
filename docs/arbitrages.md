@@ -1969,3 +1969,47 @@ Elle n'ouvre **pas** la transition d'enrôlement de D58. Elle en pose le planche
 **La décision.** Table **métier**, `societe_id NOT NULL`, comme les autres. La liste réglementaire française garde sa valeur, **comme AMORÇAGE** : une société qui s'ouvre reçoit la liste par défaut, qu'elle peut ensuite compléter ou réduire. On a le bénéfice des deux, et aucune migration le jour d'un nouveau territoire.
 
 **Une différence avec les zones, soulignée pour qu'elle ne se lise pas comme une contradiction.** Les zones ont été enregistrées avec un déclencheur de bascule parce qu'elles **existaient déjà** sous une autre forme. `habilitation` n'existe pas encore : elle naît donc directement dans sa forme juste. **On ne reporte que ce qui est déjà là.**
+
+---
+
+## D61 — La huitième forme de politique : « appartenance », et le mur qu'elle abat
+
+*Décision d'exploitation, 8 septembre 2026. Prise en cours de ticket L1-02f, sur une mesure qui a arrêté la session.*
+
+### Le mur, mesuré avant d'être contourné
+
+**Aucun chemin ne permettait à un compte de découvrir sur quelles sociétés il est habilité.** La connexion n'établit que l'identité — c'est D35, et c'est juste : *une même personne travaille légitimement pour deux sociétés.* `basculerSociete` exige donc qu'on lui NOMME la société visée. Et `utilisateur_societe` portait la forme « société » (`societe_id = app.societe_id`), si bien que la question « sur quelles sociétés suis-je habilité ? » rendait **zéro ligne tant qu'une société n'était pas déjà active**.
+
+Un cercle parfait. Il n'avait jamais mordu parce qu'aucun écran n'existait : les scénarios passent l'identifiant de la société en dur, ce qu'un test peut faire et qu'un utilisateur ne peut pas. **Le premier écran est venu buter dessus au premier essai**, et c'est la seconde fois dans ce lot qu'une couche sans appelant cachait un défaut (§9, 08/09).
+
+### Ce qui est arbitré
+
+Une politique de `SELECT` sur `utilisateur_societe`, ancrée sur l'identité connectée : *un compte lit SES lignes d'habilitation, toutes sociétés confondues ; jamais celles d'autrui.*
+
+**Le coût est nommé plutôt que tu.** C'est la première fois qu'une ligne de la **première catégorie de I1** devient lisible hors de sa société. Ce qui rend la chose acceptable n'est pas qu'elle soit petite, c'est ce qu'elle porte : la liste des sociétés d'une personne est un fait sur **l'identité**, pas une donnée d'exploitation d'une société — de la même famille que « existe-t-il un compte pour ce courriel », que D35 a déjà tranché. Elle ne rend ni les NOMS de ces sociétés (`societe` reste de forme « identité », D42), ni aucune de leurs données.
+
+### Ce qui la borne est la COMMANDE, et non la clause
+
+C'est le point de conception, et il décide de tout. `cloisonnement_societe` couvre les QUATRE commandes ; y ajouter `OR utilisateur_id = app.utilisateur_id` aurait laissé un compte **ÉCRIRE sa propre habilitation** — c'est-à-dire s'attribuer le rôle de son choix sur la société de son choix, `admin_societe` compris. La branche est donc une politique **distincte**, en `SELECT` et en `SELECT` seul.
+
+Le gardien le vérifie commande par commande, et deux épreuves le montrent sur les fautes telles qu'elles se commettraient : l'une « simplifie » la politique vers `FOR ALL` — refusée en nommant la promotion ; l'autre la retire comme redondante — refusée aussi, parce que **le retrait est le sens silencieux** : la table retombe sur la forme « société », qui passe tous les gardiens de forme, et le mur revient sans que rien ne rougisse.
+
+### Ce que cette décision ne fait pas
+
+Elle n'ouvre **aucun sélecteur de société**. Le premier écran active automatiquement la société d'un compte qui n'en a qu'une — il n'y a alors aucun choix à faire —, et se contente de DIRE qu'aucune n'est active quand il y en a plusieurs. Le sélecteur est un écran de back-office ; il viendra avec lui.
+
+---
+
+## D62 — Le compteur d'échecs du second facteur est INERTE, et le rendez-vous est pris
+
+*Décision d'exploitation, 8 septembre 2026. Trouvée en mesurant l'enrôlement, tranchée avec lui.*
+
+**Ce qui a été mesuré.** `recordTwoFactorFailure`, `resetTwoFactorFailures` et `assertTwoFactorNotLocked` désignent la ligne de `second_facteur` par son `id`, qui n'est pas une clé de désignation de cette table — seul `utilisateur_id` l'est. Leurs écritures sont donc **refusées en silence** : zéro ligne, aucune erreur. `echecs_verification` ne s'incrémente jamais et `verrouille_jusqu_a` ne se pose jamais.
+
+**Ce que cela coûte, dit sans l'adoucir.** Il n'y a **aucune limitation de débit** sur la présentation d'un code TOTP : un code à six chiffres se devine en 10⁶ essais, et rien ne verrouille jamais le compte. C'est la seule protection de la fenêtre de trente secondes, et elle n'existe pas.
+
+**Ce que cela ne coûte pas aujourd'hui, et pourquoi le rendez-vous est acceptable.** Aucun compte ne portait de second facteur avant L1-02f — la garantie ne protégeait donc rien. C'est la distinction que D58 avait déjà posée : *ce n'est pas une fuite, c'est une absence de plancher*, et elle devient exploitable le jour où le premier compte s'enrôle.
+
+**Déclencheur explicite : le premier `admin_societe` réellement enrôlé sur une société cliente.** Ce n'est pas « quand on y pensera » : c'est un état observable, et le même jour que celui où RG-DRO-05 commence à mordre.
+
+**Ce que le ticket devra trancher, et qui n'est pas tranché ici.** Ou bien `second_facteur` reçoit une clé de désignation par `id` — addition à une liste close, et un `id` de `second_facteur` est un UUID v7, donc **pas un secret** : la borne y serait *nominale*, exactement la réserve déjà inscrite au registre pour `journal_acces` ; ou bien les deux compteurs sont écrits par nous, par `utilisateur_id`, comme L1-02f l'a fait des deux drapeaux d'enrôlement. **Aucune des deux ne se décide dans un ticket.**
