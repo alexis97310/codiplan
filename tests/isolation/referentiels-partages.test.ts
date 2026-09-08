@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { avecSociete, clientApp, clientOwner, fermerClients } from "./setup/db";
+import { sousSociete, clientApp, clientOwner, fermerClients } from "./setup/db";
 
 /** Sortie forcée d'une transaction de jumeau : le `ROLLBACK` défait le DDL. */
 class Annulation extends Error {}
@@ -52,7 +52,7 @@ describe("référentiels de plateforme", () => {
    * se voit pas dans une revue, le voir changer, si.
    */
   it("un modèle appartient à sa société, et A ne voit jamais celui de B", async () => {
-    const modeles = await avecSociete(SOCIETE_A, (tx) =>
+    const modeles = await sousSociete(SOCIETE_A, (tx) =>
       tx.$queryRawUnsafe<Array<{ id: string }>>(
         `SELECT "id" FROM "modele_materiel" ORDER BY "id"`,
       ),
@@ -67,7 +67,7 @@ describe("référentiels de plateforme", () => {
     ).toBe(false);
 
     // TÉMOIN DE NON-VACUITÉ : le modèle de B EXISTE, et B le voit.
-    const chezB = await avecSociete(SOCIETE_B, (tx) =>
+    const chezB = await sousSociete(SOCIETE_B, (tx) =>
       tx.$queryRawUnsafe<Array<{ id: string }>>(
         `SELECT "id" FROM "modele_materiel"`,
       ),
@@ -80,7 +80,7 @@ describe("référentiels de plateforme", () => {
     // base et exempte de RLS par construction : sans la société dans la clé, le
     // verrou serait muet là où le cloisonnement doit mordre.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "modele_materiel" ("id","societe_id","famille_id","marque","reference")
              VALUES (gen_random_uuid(), $1::uuid, $2::uuid, 'Atlas', 'GA-22')`,

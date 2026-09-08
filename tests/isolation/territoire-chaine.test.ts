@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import type { PrismaClient } from "@prisma/client";
 
-import { avecSociete, clientApp, clientOwner, fermerClients } from "./setup/db";
+import { sousSociete, clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   AGENCE_B,
@@ -131,7 +131,7 @@ describe("agence.territoire est OBLIGATOIRE (D48)", () => {
    */
   it("la base refuse une agence sans territoire", async () => {
     await expect(
-      avecSociete(SOCIETE_B, (tx) =>
+      sousSociete(SOCIETE_B, (tx) =>
         tx.$executeRawUnsafe(
           `UPDATE "agence" SET "territoire" = NULL WHERE "id" = $1::uuid`,
           AGENCE_B,
@@ -163,7 +163,7 @@ describe("agence.territoire est OBLIGATOIRE (D48)", () => {
     expect(lignes).toBe(1);
 
     // Et la transaction annulée n'a rien laissé derrière elle.
-    const agence = await avecSociete(SOCIETE_B, (tx) =>
+    const agence = await sousSociete(SOCIETE_B, (tx) =>
       tx.agence.findUniqueOrThrow({
         where: { id: AGENCE_B },
         select: { territoire: true },
@@ -194,7 +194,7 @@ describe("un écart ne s'adosse qu'à un férié de SON territoire (D48)", () =>
     const ferieB = await idFerie(TERRITOIRE_B, DATE_LIBRE);
 
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererEcartCroise(tx, ferieB, TERRITOIRE_A),
       ),
     ).rejects.toThrow(/jour_ferie_id_date_territoire|foreign key|violates/i);
@@ -208,7 +208,7 @@ describe("un écart ne s'adosse qu'à un férié de SON territoire (D48)", () =>
     const ferieB = await idFerie(TERRITOIRE_B, DATE_LIBRE);
 
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererEcartCroise(tx, ferieB, TERRITOIRE_B),
       ),
     ).rejects.toThrow(/agence_id_territoire|foreign key|violates/i);
@@ -256,7 +256,7 @@ describe("un écart ne s'adosse qu'à un férié de SON territoire (D48)", () =>
     // C'est ce qui empêche la colonne `territoire` de devenir un champ libre
     // sur les lignes sans `jour_ferie_id`.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
              ("id", "societe_id", "agence_id", "territoire", "date",
@@ -296,7 +296,7 @@ describe("un écart ne s'adosse qu'à un férié de SON territoire (D48)", () =>
     // nouveau refusée. Sans cette seconde moitié, un retrait mal annulé
     // laisserait la suite entière s'exécuter sans verrou.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererEcartCroise(tx, ferieB, TERRITOIRE_A),
       ),
     ).rejects.toThrow(/foreign key|violates/i);
@@ -325,7 +325,7 @@ describe("changer le territoire d'une agence (D49)", () => {
   }
 
   it("le changement est refusé tant qu'un écart subsiste", async () => {
-    await expect(avecSociete(SOCIETE_A, changerTerritoireDeA)).rejects.toThrow(
+    await expect(sousSociete(SOCIETE_A, changerTerritoireDeA)).rejects.toThrow(
       /refusé/i,
     );
   });
@@ -335,7 +335,7 @@ describe("changer le territoire d'une agence (D49)", () => {
     // Le message est donc éprouvé sur ce qu'il apporte : l'agence nommée, les
     // deux territoires, le décompte des écarts, la marche à suivre, et où lire
     // la décision. Ce scénario échoue si quelqu'un raccourcit le message.
-    const erreur = await avecSociete(SOCIETE_A, changerTerritoireDeA).catch(
+    const erreur = await sousSociete(SOCIETE_A, changerTerritoireDeA).catch(
       (cause: unknown) => String(cause),
     );
 

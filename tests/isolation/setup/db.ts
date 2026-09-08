@@ -139,12 +139,27 @@ export type ContextePortail = {
 /**
  * Exécute `travail` sous le contexte d'un utilisateur interne de `societeId`.
  * Aucun `client_id` posé : le parc entier de la société est visible.
+ *
+ * ## POURQUOI CE NOM, ET PAS `avecSociete` — la leçon du 09/09/2026
+ *
+ * Ces deux aides s'appelaient `avecSociete` et `avecSocieteEtRole`, **exactement
+ * comme les fonctions de `lib/db/rls.ts`** — avec un argument de moins et un
+ * contrat différent. Un fichier de scénarios qui importe des deux modules
+ * choisit alors sans le savoir : appeler celle du harnais avec les arguments de
+ * la production passe un client Prisma là où un identifiant est attendu, et
+ * Prisma récurse sans fin en tentant de le sérialiser. *Le message rendu —
+ * « Maximum call stack size exceeded » — est juste et sa cause est ailleurs.*
+ *
+ * Le préfixe `sous` marque ce que ces aides sont : **le contexte SOUS lequel un
+ * scénario s'exécute**. Un gardien statique refuse désormais qu'un nom soit
+ * exporté à la fois par ce module et par `lib/db/rls.ts`
+ * (`tests/unit/db/noms-du-harnais.test.ts`).
  */
-export function avecSociete<T>(
+export function sousSociete<T>(
   societeId: string,
   travail: (tx: PrismaClient) => Promise<T>,
 ): Promise<T> {
-  return avecSocieteEtRole(societeId, null, travail);
+  return sousSocieteEtRole(societeId, null, travail);
 }
 
 /**
@@ -154,7 +169,7 @@ export function avecSociete<T>(
  * société active et dont on veut précisément vérifier qu'ils ne lisent rien de
  * cloisonné.
  */
-export function avecSocieteEtRole<T>(
+export function sousSocieteEtRole<T>(
   societeId: string | null,
   role: Role | null,
   travail: (tx: PrismaClient) => Promise<T>,

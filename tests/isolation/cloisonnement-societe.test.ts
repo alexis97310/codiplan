@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { avecSociete, clientApp, fermerClients } from "./setup/db";
+import { sousSociete, clientApp, fermerClients } from "./setup/db";
 import { AGENCE_B, SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 
 /**
@@ -24,7 +24,7 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne lit que ses propres agences", async () => {
-    const agences = await avecSociete(SOCIETE_A, (tx) =>
+    const agences = await sousSociete(SOCIETE_A, (tx) =>
       tx.agence.findMany({ select: { id: true, societe_id: true } }),
     );
     expect(agences).toHaveLength(1);
@@ -32,7 +32,7 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne voit pas l'agence de la société B", async () => {
-    const trouvee = await avecSociete(SOCIETE_A, (tx) =>
+    const trouvee = await sousSociete(SOCIETE_A, (tx) =>
       tx.agence.findUnique({ where: { id: AGENCE_B } }),
     );
     expect(trouvee).toBeNull();
@@ -43,7 +43,7 @@ describe("cloisonnement société", () => {
     // lié part en `text`. Sans le cast, l'échec attendu viendrait d'une erreur
     // de type et non de la politique — le scénario serait vert pour rien.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "agence" ("id", "societe_id", "code", "libelle")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000ff', $1::uuid, 'PIRATE', 'Pirate')`,
@@ -54,7 +54,7 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne peut pas modifier une agence de la société B", async () => {
-    const lignesAffectees = await avecSociete(SOCIETE_A, (tx) =>
+    const lignesAffectees = await sousSociete(SOCIETE_A, (tx) =>
       tx.$executeRawUnsafe(
         `UPDATE "agence" SET "libelle" = 'détournée' WHERE "id" = $1::uuid`,
         AGENCE_B,
@@ -64,7 +64,7 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne peut pas supprimer une agence de la société B", async () => {
-    const lignesAffectees = await avecSociete(SOCIETE_A, (tx) =>
+    const lignesAffectees = await sousSociete(SOCIETE_A, (tx) =>
       tx.$executeRawUnsafe(
         `DELETE FROM "agence" WHERE "id" = $1::uuid`,
         AGENCE_B,
@@ -72,14 +72,14 @@ describe("cloisonnement société", () => {
     );
     expect(lignesAffectees).toBe(0);
     // Contrôle : l'agence B est toujours là, vue depuis son propre contexte.
-    const toujoursLa = await avecSociete(SOCIETE_B, (tx) =>
+    const toujoursLa = await sousSociete(SOCIETE_B, (tx) =>
       tx.agence.findUnique({ where: { id: AGENCE_B } }),
     );
     expect(toujoursLa?.id).toBe(AGENCE_B);
   });
 
   it("la société A ne voit pas les habilitations (`utilisateur_societe`) de la société B", async () => {
-    const habilitations = await avecSociete(SOCIETE_A, (tx) =>
+    const habilitations = await sousSociete(SOCIETE_A, (tx) =>
       tx.utilisateurSociete.findMany({ select: { societe_id: true } }),
     );
     expect(habilitations.length).toBeGreaterThan(0);
@@ -87,7 +87,7 @@ describe("cloisonnement société", () => {
   });
 
   it("la société A ne voit pas les rattachements portail (`utilisateur_client`) de la société B", async () => {
-    const rattachements = await avecSociete(SOCIETE_A, (tx) =>
+    const rattachements = await sousSociete(SOCIETE_A, (tx) =>
       tx.utilisateurClient.findMany({ select: { societe_id: true } }),
     );
     expect(rattachements.length).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe("cloisonnement société", () => {
   });
 
   it("sur `societe`, la société A ne voit qu'elle-même", async () => {
-    const societes = await avecSociete(SOCIETE_A, (tx) =>
+    const societes = await sousSociete(SOCIETE_A, (tx) =>
       tx.societe.findMany({ select: { id: true } }),
     );
     expect(societes).toHaveLength(1);

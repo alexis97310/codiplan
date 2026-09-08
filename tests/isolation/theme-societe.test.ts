@@ -8,8 +8,8 @@ import { variablesCss } from "@/lib/theme/variables";
 
 import {
   avecPortail,
-  avecSociete,
-  avecSocieteEtRole,
+  sousSociete,
+  sousSocieteEtRole,
   clientOwner,
   fermerClients,
 } from "./setup/db";
@@ -50,7 +50,7 @@ async function dansUneTransactionAnnulee(
   travail: (tx: PrismaClient) => Promise<void>,
 ): Promise<void> {
   try {
-    await avecSociete(societeId, async (tx) => {
+    await sousSociete(societeId, async (tx) => {
       await travail(tx);
       throw new Annulation();
     });
@@ -95,10 +95,10 @@ describe("le thème suit la société active, et rien d'autre (L0-09, I1)", () =
   afterAll(fermerClients);
 
   it("chaque société reçoit SA charte", async () => {
-    const themeA = await avecSociete(SOCIETE_A, (tx) =>
+    const themeA = await sousSociete(SOCIETE_A, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_A),
     );
-    const themeB = await avecSociete(SOCIETE_B, (tx) =>
+    const themeB = await sousSociete(SOCIETE_B, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_B),
     );
 
@@ -112,8 +112,8 @@ describe("le thème suit la société active, et rien d'autre (L0-09, I1)", () =
 
   it("la bascule change le rendu — jusqu'aux encres calculées", async () => {
     const [themeA, themeB] = await Promise.all([
-      avecSociete(SOCIETE_A, (tx) => lireThemeCloisonne(tx, SOCIETE_A)),
-      avecSociete(SOCIETE_B, (tx) => lireThemeCloisonne(tx, SOCIETE_B)),
+      sousSociete(SOCIETE_A, (tx) => lireThemeCloisonne(tx, SOCIETE_A)),
+      sousSociete(SOCIETE_B, (tx) => lireThemeCloisonne(tx, SOCIETE_B)),
     ]);
 
     expect(variablesCss(themeA)).not.toEqual(variablesCss(themeB));
@@ -131,7 +131,7 @@ describe("le thème suit la société active, et rien d'autre (L0-09, I1)", () =
     // paramètre d'URL, un en-tête, une reprise de code. La politique ne laisse
     // voir que la société du contexte : la lecture rend zéro ligne, donc le
     // thème neutre, et jamais les couleurs de B.
-    const vol = await avecSociete(SOCIETE_A, (tx) =>
+    const vol = await sousSociete(SOCIETE_A, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_B),
     );
 
@@ -160,7 +160,7 @@ describe("le thème suit la société active, et rien d'autre (L0-09, I1)", () =
     // `app.societe_id`, la politique ne rend rien, et le thème neutre
     // s'applique. Lu sous le rôle APPLICATIF — le propriétaire du schéma est
     // superutilisateur sur la base jetable et contournerait les politiques.
-    const theme = await avecSocieteEtRole(null, null, (tx) =>
+    const theme = await sousSocieteEtRole(null, null, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_A),
     );
 
@@ -173,7 +173,7 @@ describe("la forme d'une couleur est contrôlée EN BASE (L0-09)", () => {
 
   it("refuse ce qui n'est pas une couleur sRGB", async () => {
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `UPDATE "societe" SET "couleur_primaire" = 'bleu marine' WHERE "id" = $1::uuid`,
           SOCIETE_A,
@@ -204,7 +204,7 @@ describe("la forme d'une couleur est contrôlée EN BASE (L0-09)", () => {
     expect(lignes).toBe(1);
 
     // Et la transaction annulée n'a rien laissé derrière elle.
-    const theme = await avecSociete(SOCIETE_A, (tx) =>
+    const theme = await sousSociete(SOCIETE_A, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_A),
     );
     expect(theme.primaire.fond).toBe(CHARTE_A.primaire);
@@ -232,7 +232,7 @@ describe("la forme d'une couleur est contrôlée EN BASE (L0-09)", () => {
     // produit — seules les couleurs manquent.
     expect(theme.nom).toBe("Société A");
 
-    const apres = await avecSociete(SOCIETE_A, (tx) =>
+    const apres = await sousSociete(SOCIETE_A, (tx) =>
       lireThemeCloisonne(tx, SOCIETE_A),
     );
     expect(apres.primaire.fond).toBe(CHARTE_A.primaire);

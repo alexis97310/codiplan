@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { avecPortail, avecSociete, fermerClients } from "./setup/db";
+import { avecPortail, sousSociete, fermerClients } from "./setup/db";
 import { exigence } from "./setup/contrat";
 import {
   CLIENT_A1,
@@ -27,7 +27,7 @@ import {
  * silence.
  */
 function resoudreQr(societeId: string, token: string) {
-  return avecSociete(societeId, (tx) =>
+  return sousSociete(societeId, (tx) =>
     tx.$queryRawUnsafe<Array<{ id: string; societe_id: string }>>(
       `SELECT "id", "societe_id" FROM "machine" WHERE "qr_token" = $1`,
       token,

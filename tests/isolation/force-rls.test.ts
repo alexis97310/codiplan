@@ -10,7 +10,7 @@ import {
   TABLES_RLS_SIMPLE,
   type EtatRlsTable,
 } from "../../scripts/lib/rls-declaree";
-import { avecSociete, clientOwner, fermerClients } from "./setup/db";
+import { sousSociete, clientOwner, fermerClients } from "./setup/db";
 import { TABLES_FIXTURES } from "./setup/contrat";
 import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 
@@ -199,7 +199,7 @@ describe("FORCE ROW LEVEL SECURITY", () => {
     // Le propriétaire du schéma des tests est superutilisateur, ce qui court-
     // circuite RLS quoi qu'il arrive : la preuve se fait donc sous le rôle
     // applicatif, seul représentatif de la connexion de service.
-    const societes = await avecSociete(SOCIETE_A, (tx) =>
+    const societes = await sousSociete(SOCIETE_A, (tx) =>
       tx.societe.findMany({ select: { id: true } }),
     );
     expect(societes.map((s) => s.id)).toEqual([SOCIETE_A]);
@@ -222,18 +222,18 @@ describe("FORCE ROW LEVEL SECURITY", () => {
 
     // Sous le contexte d'une AUTRE société, l'écriture est refusée.
     await expect(
-      avecSociete(SOCIETE_B, (tx) =>
+      sousSociete(SOCIETE_B, (tx) =>
         tx.societe.create({ data: { id: nouvelle, ...champs } }),
       ),
     ).rejects.toThrow();
 
     // Sous son propre contexte — ce que fait le seed — elle passe.
-    const creee = await avecSociete(nouvelle, (tx) =>
+    const creee = await sousSociete(nouvelle, (tx) =>
       tx.societe.create({ data: { id: nouvelle, ...champs } }),
     );
     expect(creee.id).toBe(nouvelle);
 
-    await avecSociete(nouvelle, (tx) =>
+    await sousSociete(nouvelle, (tx) =>
       tx.societe.delete({ where: { id: nouvelle } }),
     );
   });
