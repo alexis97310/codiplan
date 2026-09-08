@@ -262,15 +262,28 @@ describe("les colonnes — inconnues ignorées, obligatoires exigées", () => {
     ]);
   });
 
-  it("l'appariement est EXACT — et la faute d'orthographe ressort DEUX fois", () => {
+  it("l'appariement est EXACT — et la faute d'orthographe est dite UNE fois", () => {
     // Ni casse ignorée, ni accents dépliés : une tolérance choisirait à la place
-    // de celui qui a écrit le fichier. En l'état, la paire « obligatoire
-    // absente » + « inconnue » se lit sans explication.
+    // de celui qui a écrit le fichier — RATIFIÉ par l'exploitation le
+    // 09/09/2026.
+    //
+    // ~~En l'état, la paire « obligatoire absente » + « inconnue » se lit sans
+    // explication.~~ **RÉPARÉ le même jour (Q6)** : les deux sont dits en une
+    // seule anomalie qui les nomme tous les deux, et l'en-tête sort des
+    // inconnues — il n'est pas silencié, il est expliqué. L'appariement, lui,
+    // n'a pas bougé d'un pouce : la colonne reste illisible, et les scénarios
+    // « Q6 » plus bas le mesurent.
     const lu = apparierColonnes([texte("raison sociale")], attendues);
-    expect(lu.inconnues).toEqual(["raison sociale"]);
+    expect(lu.inconnues).toEqual([]);
     expect(lu.anomalies).toEqual([
-      { code: "colonne_obligatoire_absente", colonne: "Raison sociale" },
+      {
+        code: "colonne_obligatoire_absente_ressemblance",
+        colonne: "Raison sociale",
+        valeur: "raison sociale",
+      },
     ]);
+    // L'appariement n'a PAS eu lieu — c'est la moitié qui compte.
+    expect(lu.indices.has("Raison sociale")).toBe(false);
   });
 
   it("une colonne sans en-tête est ignorée sans bruit", () => {
@@ -316,5 +329,112 @@ describe("chaque code d'anomalie a son libellé, et réciproquement", () => {
         ),
     );
     expect(orphelins).toEqual([]);
+  });
+});
+
+/**
+ * LA PAIRE RÉPARÉE — Q6, ratifiée et corrigée par l'exploitation le 09/09/2026.
+ *
+ * L'appariement reste EXACT : *une tolérance choisit à la place de celui qui a
+ * écrit le fichier, et un import de masse est précisément le moment où l'on ne
+ * veut pas qu'un outil devine.* Ce qui change est le RAPPORT — un en-tête mal
+ * orthographié ressortait deux fois, « colonne obligatoire absente » et
+ * « colonne inconnue », et cette paire se lisait sans explication.
+ *
+ * **Ce que ces scénarios doivent tenir, et le second est le plus important :**
+ * la paire est dite en une seule anomalie qui nomme les deux, ET la
+ * ressemblance ne déplace RIEN — elle n'apparie pas.
+ */
+describe("Q6 — la colonne manquante et l'en-tête qui lui ressemble", () => {
+  const attendues = [
+    { nom: "Code client", obligatoire: true },
+    { nom: "Raison sociale", obligatoire: true },
+  ];
+  const entetes = (...noms: string[]) => noms.map((texte) => ({ texte }));
+
+  it("les nomme TOUS LES DEUX en une seule anomalie", () => {
+    const lu = apparierColonnes(
+      entetes("code client", "Raison sociale"),
+      attendues,
+    );
+    expect(lu.anomalies).toHaveLength(1);
+    expect(lu.anomalies[0]?.code).toBe(
+      "colonne_obligatoire_absente_ressemblance",
+    );
+    expect(lu.anomalies[0]?.colonne).toBe("Code client");
+    expect(lu.anomalies[0]?.valeur).toBe("code client");
+  });
+
+  it("et l'en-tête sort des « inconnues » — nommé une fois, jamais deux", () => {
+    const lu = apparierColonnes(
+      entetes("code client", "Raison sociale"),
+      attendues,
+    );
+    expect(lu.inconnues).toEqual([]);
+  });
+
+  it("LA RESSEMBLANCE N'APPARIE RIEN — la colonne reste illisible", () => {
+    // Le point qui distingue une explication d'une tolérance. Si ce scénario
+    // rougissait, l'appariement serait devenu approximatif sans décision.
+    const lu = apparierColonnes(
+      entetes("code client", "Raison sociale"),
+      attendues,
+    );
+    expect(lu.indices.has("Code client")).toBe(false);
+    expect(lu.indices.has("code client")).toBe(false);
+  });
+
+  it("elle reconnaît les accents, la casse et la ponctuation", () => {
+    for (const graphie of ["CODE CLIENT", "code_client", "Codé Client"]) {
+      const lu = apparierColonnes(
+        entetes(graphie, "Raison sociale"),
+        attendues,
+      );
+      expect(lu.anomalies[0]?.code, graphie).toBe(
+        "colonne_obligatoire_absente_ressemblance",
+      );
+    }
+  });
+
+  it("et une faute de frappe, jusqu'à deux caractères", () => {
+    const lu = apparierColonnes(
+      entetes("Code cleint", "Raison sociale"),
+      attendues,
+    );
+    expect(lu.anomalies[0]?.code).toBe(
+      "colonne_obligatoire_absente_ressemblance",
+    );
+  });
+
+  it("mais PAS un en-tête sans rapport — sinon la phrase mentirait", () => {
+    const lu = apparierColonnes(
+      entetes("Commentaire libre", "Raison sociale"),
+      attendues,
+    );
+    expect(lu.anomalies).toHaveLength(1);
+    expect(lu.anomalies[0]?.code).toBe("colonne_obligatoire_absente");
+    // L'en-tête sans rapport reste un avertissement de colonne inconnue.
+    expect(lu.inconnues).toEqual(["Commentaire libre"]);
+  });
+
+  it("un SEUL intrus n'explique qu'UNE colonne manquante", () => {
+    // Sans cette borne, un fichier qui aurait perdu sa ligne d'en-têtes verrait
+    // le même intrus cité partout, et le rapport dirait dix fois la même chose.
+    const lu = apparierColonnes(entetes("code client"), attendues);
+    const codes = lu.anomalies.map((a) => a.code).sort();
+    expect(codes).toEqual([
+      "colonne_obligatoire_absente",
+      "colonne_obligatoire_absente_ressemblance",
+    ]);
+  });
+
+  it("aucune colonne manquante : rien n'est inventé", () => {
+    const lu = apparierColonnes(
+      entetes("Code client", "Raison sociale", "Note interne"),
+      attendues,
+    );
+    expect(lu.anomalies).toEqual([]);
+    expect(lu.inconnues).toEqual(["Note interne"]);
+    expect(lu.indices.get("Code client")).toBe(0);
   });
 });

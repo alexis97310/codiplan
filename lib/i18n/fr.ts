@@ -229,6 +229,12 @@ export const fr = {
     "Deux colonnes portent le même en-tête. Renommez ou supprimez la colonne en trop : sans cela, l'une des deux serait ignorée sans qu'on sache laquelle.",
   "import.anomalie.colonne_obligatoire_absente":
     "Une colonne obligatoire manque au fichier. Vérifiez que la ligne d'en-têtes du modèle n'a pas été modifiée.",
+  // LA PAIRE, DITE EN UNE PHRASE. Une colonne obligatoire manque, et un en-tête
+  // du fichier lui ressemble : les signaler séparément laissait le lecteur
+  // rapprocher lui-même deux lignes du rapport. L'appariement reste EXACT — la
+  // ressemblance explique, elle ne choisit pas.
+  "import.anomalie.colonne_obligatoire_absente_ressemblance":
+    "Une colonne obligatoire manque, et une colonne du fichier lui ressemble sans être identique. Corrigez son en-tête pour qu'il soit exactement celui du modèle : l'orthographe, les accents et la casse comptent.",
   "import.anomalie.date_format":
     "Cette date n'est pas au format attendu. Le seul format accepté est JJ/MM/AAAA — par exemple 03/04/2026.",
   "import.anomalie.date_hors_plage": "Cette date n'existe pas au calendrier.",
