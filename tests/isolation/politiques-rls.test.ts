@@ -146,7 +146,12 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
       const forme = formeAttendue(colonne.table);
       parForme.set(forme, [...(parForme.get(forme) ?? []), colonne.table]);
     }
-    expect(parForme.get("identité")).toEqual(["societe"]);
+    // `societe` a QUITTÉ la forme « identité » à Q8 (D67) : elle porte la
+    // neuvième, « adhésion », qui EXIGE l'ancrage d'identité et y ajoute la
+    // branche « mes sociétés » en SELECT seul. Le témoin la NOMME plutôt que de
+    // compter, pour qu'un déplacement ultérieur se voie (§9, 06/09).
+    expect(parForme.get("adhésion")).toEqual(["societe"]);
+    expect(parForme.get("identité")).toBeUndefined();
     expect(parForme.get("société")).toContain("agence");
     // `utilisateur_societe` a QUITTÉ la forme « société » à L1-02f (D61) : elle
     // porte la huitième, « appartenance ». Le témoin le nomme plutôt que de
@@ -289,6 +294,43 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect(siennes.join("\n")).toContain(
       "perdu le filtre `app.perimetre_sites`",
     );
+  });
+
+  it("ÉPREUVE : la branche « mes sociétés » sur une ÉCRITURE est refusée (D67)", async () => {
+    // LA faute que la neuvième forme existe pour arrêter, et elle se commet en
+    // SIMPLIFIANT : une session étend la branche de lecture aux quatre
+    // commandes « pour que ce soit cohérent ». Un compte pourrait alors ÉCRIRE
+    // la ligne d'une société où il est habilité — la renommer, changer sa
+    // devise, ou s'en attacher une.
+    const observation = await sousLaFaute([
+      'DROP POLICY "societe_mes_societes" ON "societe"',
+      'CREATE POLICY "societe_mes_societes" ON "societe" FOR ALL USING (' +
+        'EXISTS (SELECT 1 FROM "utilisateur_societe" "us" WHERE "us"."societe_id" = "societe"."id" ' +
+        "AND \"us\".\"utilisateur_id\" = NULLIF(current_setting('app.utilisateur_id', true), '')::uuid)) " +
+        'WITH CHECK (EXISTS (SELECT 1 FROM "utilisateur_societe" "us" WHERE "us"."societe_id" = "societe"."id" ' +
+        "AND \"us\".\"utilisateur_id\" = NULLIF(current_setting('app.utilisateur_id', true), '')::uuid))",
+    ]);
+
+    const siennes = observation.ecarts.filter((ecart) =>
+      ecart.includes("« societe »"),
+    );
+    expect(siennes.length).toBeGreaterThan(0);
+    expect(siennes.join("\n")).toContain("et non sur SELECT seul");
+  });
+
+  it("ÉPREUVE : la branche « mes sociétés » RETIRÉE est refusée elle aussi (D67)", async () => {
+    // Le sens SILENCIEUX : sans elle, `societe` retombe sur la forme
+    // « identité » seule, qui ne casse rien de visible — et le mur du sélecteur
+    // revient sans qu'aucun scénario ne rougisse.
+    const observation = await sousLaFaute([
+      'DROP POLICY "societe_mes_societes" ON "societe"',
+    ]);
+
+    const siennes = observation.ecarts.filter((ecart) =>
+      ecart.includes("« societe »"),
+    );
+    expect(siennes.length).toBeGreaterThan(0);
+    expect(siennes.join("\n")).toContain("le mur que D67 abat");
   });
 
   it("ÉPREUVE : `societe` qui perdrait son cloisonnement par identité est refusée (D42)", async () => {
