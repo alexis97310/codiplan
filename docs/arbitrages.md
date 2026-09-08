@@ -2172,3 +2172,49 @@ Elle n'ouvre qu'un `INSERT` sur `utilisateur`. **Ouvrir une identité n'accorde 
 ### Ce qui reste ouvert
 
 Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la route générique de Better Auth. **Aucune PAGE ne le rend** aujourd'hui : le premier accès se termine par un appel d'API, pas par un écran. C'est écrit ici plutôt que découvert le jour de la mise en ligne.
+
+---
+
+## D66 — L7-04 : déverrouiller sans jamais ouvrir une lecture, et ce que la mesure a changé à la forme
+
+*Décision d'exploitation, 9 septembre 2026 (question Q2). Ferme l'impasse que D64 avait laissée ouverte et nommée.*
+
+### L'état qu'on ferme
+
+Au troisième verrouillage enchaîné, `second_facteur_escalade` remplace la date d'expiration par une sentinelle : le verrouillage cesse d'expirer. **L'état est atteignable en trente codes faux, et aucun chemin n'en sortait** — le déclencheur laissait déjà passer la remise à zéro, mais aucune politique n'accordait le droit de l'écrire.
+
+Le fond était tranché et ne l'est pas rediscuté : **`admin_societe` de la société concernée, journalisé, et cela ne rend que le droit de RÉESSAYER.** Le facteur est intact, la personne devra présenter un code valide, elle n'a rien à réenrôler. C'est ce qui distingue L7-04 de L7-01, qui rend un accès **perdu** — et c'est pourquoi il n'appartient pas à l'éditeur : *exiger un appel extérieur un vendredi soir pour une gêne d'exploitation, c'est organiser le contournement de la mesure.*
+
+### CE QUI A CHANGÉ, ET QUI N'EST PAS UN DÉTAIL D'IMPLÉMENTATION
+
+La forme évidente — une politique d'`UPDATE` pour l'administrateur, et du code qui écrit `WHERE utilisateur_id = <sujet>` — **ne fonctionne pas, et elle échoue en silence.** Mesuré le 09/09/2026, sous le rôle applicatif :
+
+| Ce qui a été essayé | Lignes écrites |
+|---|---|
+| politique d'`UPDATE` seule, `UPDATE … WHERE utilisateur_id = $1` | **0** |
+| politique de `SELECT` ajoutée, même `UPDATE` | 1 |
+| `UPDATE … SET <constantes>` **sans clause `WHERE`** | **1** |
+| `updateMany` de Prisma **sans `where`** | count **1** |
+
+**PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE`** (§9, 08/09). La deuxième ligne aurait donc exigé d'**ouvrir la lecture de `second_facteur` à l'administrateur** — et la mesure dit exactement ce que cela lui donnerait : `[{"secret":"…","codes_secours":"…"}]`, c'est-à-dire **le matériel du second facteur de la personne qu'il est censé dépanner.** Un `admin_societe` aurait pu générer des codes valides au nom d'un membre de sa société : *une prise de contrôle, pas un déverrouillage.*
+
+**La sortie est la troisième ligne, et c'est la divergence qui l'a désignée** — *quand deux chemins qui devraient se ressembler ne se ressemblent pas, l'écart désigne l'endroit exact où une hypothèse est fausse* (§9, 07/09). Ici les deux chemins étaient « avec `WHERE` » et « sans ». Un `UPDATE` dont le `SET` ne porte que des constantes et qui n'a pas de `WHERE` **ne lit aucune colonne** : les politiques de `SELECT` ne s'y appliquent pas, et c'est le `USING` de la politique d'`UPDATE`, seul, qui choisit les lignes.
+
+**Aucune lecture de `second_facteur` n'est donc ouverte à qui que ce soit.** L'administrateur ne peut ni lire le secret, ni lire les codes de secours, ni même constater que la ligne existe — un scénario le mesure, avec témoin.
+
+### Ce qui désigne la ligne, et pourquoi la variable ne suffit jamais seule
+
+Puisqu'il n'y a pas de `WHERE`, c'est `app.deverrouillage_sujet_id` qui dit QUELLE ligne. C'est la forme de D64 prise un cran plus loin : *la variable dit quelle ligne, la politique dit qui a le droit et dans quel état.* Trois exigences s'ajoutent, et aucune n'est décorative — `admin_societe` seul ; le sujet **habilité sur la société active** ; et la ligne **déjà à la sentinelle**. Cette politique ne peut donc atteindre aucune ligne saine.
+
+La variable est posée par le seul chemin de production qui compose le contexte, et **remise à vide par tout contexte ordinaire** — comme les désignations d'authentification. C'est cette pose-là qui compte : sur une connexion mutualisée, une variable non posée hérite de ce que la transaction précédente y a laissé.
+
+### Le prix d'un `UPDATE` sans `WHERE`, payé par deux filets de natures différentes
+
+Un `UPDATE` sans `WHERE` s'appuie **entièrement** sur sa politique : celle-ci un jour élargie, il écrirait toute la table, et personne ne le verrait. Deux filets, et ils ne sont pas redondants :
+
+- **en base**, un déclencheur écrit **à l'envers** — sous un contexte de déverrouillage, tout est refusé sauf les trois colonnes du verrouillage. Une colonne ajoutée demain est protégée le jour où elle apparaît, sans que personne n'ait à compléter une liste. C'est le renversement de D55, appliqué aux colonnes ;
+- **dans le code**, le geste **annule** dès que le décompte n'est pas exactement un. On n'écrit pas « probablement bon ».
+
+### Ce que le geste ne fait pas
+
+Il n'accorde aucun accès, ne touche pas au secret, ne remet pas `verifie` à `false`, et **n'ouvre pas de console**. La trace est écrite **même quand rien n'a été rompu** : une tentative de déverrouillage est un accès administratif à un compte tiers, et ce qu'elle a trouvé ne change pas ce qu'elle était.

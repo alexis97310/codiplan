@@ -432,7 +432,21 @@ Trois défauts en découlaient, et le premier était le plus cher : **un compte 
 
 **L'`id` ouvre les écritures, jamais les lectures**, et le report ne franchit pas deux requêtes. **Oublier d'ouvrir un échange casse la fonctionnalité ; cela n'ouvre jamais rien** — c'est le seul sens de défaillance acceptable pour un mécanisme de ce genre.
 
-Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04** — non construit à ce jour. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
+Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04**, livré le 09/09/2026 (D66) — voir la section suivante. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
+
+## Le déverrouillage d'un compte parvenu à l'ESCALADE — sans jamais ouvrir une lecture
+
+Au troisième verrouillage enchaîné, le verrouillage du second facteur cesse d'expirer. L'état est atteignable en **trente codes faux**, et il n'en existait **aucune sortie**. L7-04 la pose : `admin_societe` de la société concernée, journalisé. _Déverrouiller n'accorde aucun accès_ — la personne devra présenter un code valide, et n'a **rien** à réenrôler.
+
+**La forme évidente ne fonctionne pas, et c'est le contenu du ticket** (D66). PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE` : écrire `WHERE utilisateur_id = <sujet>` aurait exigé d'ouvrir la LECTURE de `second_facteur` à l'administrateur — mesuré, cela lui rend `secret` et `codes_secours`, c'est-à-dire **une prise de contrôle et non un déverrouillage**.
+
+| Ce qui a été essayé, sous le rôle applicatif                | Lignes écrites                 |
+| ----------------------------------------------------------- | ------------------------------ |
+| politique d'`UPDATE` seule, `UPDATE … WHERE utilisateur_id` | **0**                          |
+| politique de `SELECT` ajoutée, même `UPDATE`                | 1 — _et l'admin lit le secret_ |
+| `UPDATE … SET <constantes>` **sans clause `WHERE`**         | **1**                          |
+
+Le geste écrit donc un `UPDATE` **sans `WHERE`** : il ne lit aucune colonne, et c'est le `USING` de la politique — seul — qui choisit la ligne, désignée par `app.deverrouillage_sujet_id`. **Aucune lecture n'est ouverte à personne.** Deux filets pour le prix d'un `UPDATE` sans `WHERE` : en base, un déclencheur écrit **à l'envers** qui refuse toute colonne autre que les trois du verrouillage ; dans le code, l'annulation dès que le décompte n'est pas exactement un.
 
 ## Le geste d'ouverture du PREMIER compte — un cliquet, jamais une autorité qu'on s'accorde
 
@@ -716,6 +730,8 @@ lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/
               sites/  theme/  utils.ts
               auth/amorcage.ts = le geste d'ouverture du PREMIER compte (D65),
               exception admise tant qu'aucun chemin administratif n'existe
+              auth/deverrouillage.ts = L7-04, rompre la série de verrouillages
+              d'un compte parvenu à l'escalade (D66) — sans ouvrir de lecture
               clients/ = référentiel client (L1-01) : saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               sites/ = référentiel des sites d'intervention (L1-02) : saisie Zod,
@@ -743,7 +759,7 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 | **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                         |
 | **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                     |
 
-Deux autres chantiers attendent une décision et non du code : le **geste d'ouverture du premier compte** — mesuré, proposé, jamais posé, parce que sa forme touche les droits — et **L7-04**, inconstruisible tant qu'aucun `admin_societe` ne peut se connecter.
+Ces deux chantiers-là sont **livrés depuis le 09/09/2026** : le **geste d'ouverture du premier compte** (D65) et **L7-04** (D66), qui en dépendait.
 
 **L'état ticket par ticket se lit dans [`docs/backlog.md`](docs/backlog.md), et nulle part ailleurs.** Il est de rang 4, et c'est lui que les gardiens confrontent aux règles et aux arbitrages : une seconde liste recopiée ici deviendrait fausse au premier ticket livré, sans rougir — c'est le §9 du 01/09. Ce qui suit n'énumère donc pas les tickets : ce sont les **décisions** que chacun a rendues visibles, et qui survivent à leur ticket.
 
