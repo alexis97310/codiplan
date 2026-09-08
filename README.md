@@ -769,11 +769,11 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 **Lot 0 terminé. Lot 1 livré jusqu'au bout de ce qu'il pouvait livrer** — ce qui reste y est **bloqué sur une décision**, jamais sur du travail :
 
-| Reste du lot 1                     | Ce qui bloque                                                                                                                                                                                                        |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **L1-08b** — le moteur d'import    | la liaison au classeur exige SheetJS, dont le paquet npm porte deux avis de sécurité HAUTS **sans correctif atteignable depuis npm**, l'un déclenché **à la lecture d'un fichier apporté** — l'usage exact du ticket |
-| **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                         |
-| **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                     |
+| Reste du lot 1                     | Ce qui bloque                                                                                                                                                                                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **L1-08b** — le moteur d'import    | le §2 **ne nomme plus SheetJS** (amendé le 09/09/2026) : il exige une bibliothèque de lecture `.xlsx` **maintenue**. Les deux voies sont **mesurées et comparées** au registre du 09/09 — le choix engage la chaîne d'approvisionnement et appartient à l'exploitation |
+| **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                                                                           |
+| **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                                                                       |
 
 Ces deux chantiers-là sont **livrés depuis le 09/09/2026** : le **geste d'ouverture du premier compte** (D65) et **L7-04** (D66), qui en dépendait.
 
