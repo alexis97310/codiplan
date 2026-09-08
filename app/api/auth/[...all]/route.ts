@@ -1,6 +1,7 @@
 import { toNextJsHandler } from "better-auth/next-js";
 
 import { auth } from "@/lib/auth/config";
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { estCheminFerme } from "@/lib/auth/inscription-fermee";
 
 /**
@@ -41,14 +42,27 @@ function fermerInscription(requete: Request): Response | null {
   return new Response(null, { status: 404 });
 }
 
+/**
+ * L'ÉCHANGE D'AUTHENTIFICATION EST OUVERT ICI (ticket D62).
+ *
+ * La bibliothèque réécrit par leur `id` des lignes qu'elle vient de lire par
+ * leur clé de désignation. Sans échange ouvert, ces écritures ne reçoivent
+ * aucun report, la politique lit une variable vide et refuse — silencieusement.
+ * L'oubli casse donc la fonctionnalité ; il n'ouvre jamais rien.
+ * Voir `lib/auth/echange.ts`.
+ */
 export async function GET(requete: Request): Promise<Response> {
-  return (
-    fermerInscription(requete) ?? toNextJsHandler(auth().handler).GET(requete)
+  return dansUnEchangeAuth(
+    async () =>
+      fermerInscription(requete) ??
+      (await toNextJsHandler(auth().handler).GET(requete)),
   );
 }
 
 export async function POST(requete: Request): Promise<Response> {
-  return (
-    fermerInscription(requete) ?? toNextJsHandler(auth().handler).POST(requete)
+  return dansUnEchangeAuth(
+    async () =>
+      fermerInscription(requete) ??
+      (await toNextJsHandler(auth().handler).POST(requete)),
   );
 }

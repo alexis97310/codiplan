@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
+import { designationsReportees, retenirDesignations } from "./echange";
 import {
   VARIABLE_SESSION_AUTH_EMAIL,
   VARIABLE_SESSION_AUTH_IDENTIFIANT,
@@ -258,6 +259,39 @@ export const MODELES_DESIGNES: readonly string[] =
  * franchir son `USING` — mais on ne s'appuie pas sur un verrou voisin pour
  * justifier une ouverture (§9, 24/08).
  */
+/**
+ * Les verbes qui ÉCRIVENT. `create` n'a pas de `where` et n'est donc pas ici.
+ *
+ * *L'`id` ouvre les écritures, jamais les lectures* — arbitrage du 08/09/2026,
+ * dicté par la mesure : sur les huit flux réels, **aucune lecture** ne désigne
+ * par `id`, et en ouvrir une serait élargir sans nécessité.
+ */
+const VERBES_ECRITURE: readonly string[] = [
+  "update",
+  "updateMany",
+  "upsert",
+  "delete",
+  "deleteMany",
+];
+
+/**
+ * Vrai si cette opération nomme UNE ligne par sa clé primaire, pour l'écrire.
+ *
+ * C'est la seule situation où le report d'échange s'applique : le `where` dit
+ * QUELLE ligne, le report dit à QUI elle est — et c'est la politique, en base,
+ * qui exige la seconde moitié. Ni l'une ni l'autre ne suffit seule.
+ */
+export function ecritUneLigneNommeeParSaCle(
+  operation: string,
+  args: unknown,
+): boolean {
+  if (!VERBES_ECRITURE.includes(operation)) {
+    return false;
+  }
+  const ou = (args as { where?: Record<string, unknown> } | undefined)?.where;
+  return aplatirConjonction(ou).some((source) => texteDe(source.id) !== "");
+}
+
 export function designationsDe(
   modele: string,
   operation: string,
@@ -350,7 +384,23 @@ export function avecDesignationAuth(
     args: unknown,
     query: (a: unknown) => Promise<unknown>,
   ): Promise<unknown> => {
-    const designations = designationsDe(modele, operation, args);
+    const duWhere = designationsDe(modele, operation, args);
+
+    // ── CE QUE L'OPÉRATION DÉSIGNE ELLE-MÊME EST RETENU POUR L'ÉCHANGE ─────
+    //
+    // Et seulement cela : le report ne transporte jamais que ce qu'une requête
+    // a lu dans son propre `where`. Il ne fabrique aucune valeur.
+    retenirDesignations(duWhere);
+
+    // ── ET CE QU'ELLE NE DÉSIGNE PAS, L'ÉCHANGE PEUT LE LUI RENDRE ────────
+    //
+    // Uniquement pour une ÉCRITURE qui nomme une ligne par sa clé primaire —
+    // c'est le cas mesuré, et le seul. Le `where` dit QUELLE ligne, le report
+    // dit à QUI elle est, et c'est la politique qui exige la seconde moitié.
+    const designations =
+      duWhere.length === 0 && ecritUneLigneNommeeParSaCle(operation, args)
+        ? designationsReportees()
+        : duWhere;
 
     // Rien de désigné et aucun contexte d'administration : on ne pose rien, et
     // la politique refuse. Ne pas poser est ici la décision sûre — poser une

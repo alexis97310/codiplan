@@ -1,3 +1,4 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { confirmerEnrolement, preparerEnrolement } from "@/lib/auth/enrolement";
 import { obtenirSession } from "@/lib/auth/session";
 
@@ -15,7 +16,7 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
  * aucune politique de suppression (D59) et le cliquet de `utilisateur` refuse
  * le retour du drapeau à `false` (L1-02f).
  */
-export async function POST(requete: Request): Promise<Response> {
+async function traiter(requete: Request): Promise<Response> {
   const formulaire = await requete.formData();
   const session = await obtenirSession(requete.headers);
   if (session === null) {
@@ -53,4 +54,18 @@ export async function POST(requete: Request): Promise<Response> {
   // La session qui a enrôlé a été fermée : on repart de la connexion, et le
   // second facteur y sera demandé.
   return redirectionAvecMotif("/connexion", "connexion.apres_enrolement");
+}
+
+/**
+ * L'ÉCHANGE D'AUTHENTIFICATION EST OUVERT ICI (ticket D62).
+ *
+ * La bibliothèque réécrit par leur `id` des lignes qu'elle vient de lire par
+ * leur clé de désignation. Sans échange ouvert, ces écritures ne reçoivent
+ * aucun report, la politique lit une variable vide et refuse — silencieusement.
+ * L'oubli casse donc la fonctionnalité ; il n'ouvre jamais rien.
+ * Voir `lib/auth/echange.ts`.
+ */
+
+export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
 }

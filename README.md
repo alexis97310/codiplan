@@ -370,6 +370,23 @@ incident de sécurité. Trois fils d'issues distincts : `[veille-injoignable]`,
 `DROP TRIGGER`, une partition créée nue, un `GRANT UPDATE` de dépannage : les
 trois sont nommées.
 
+## Le second facteur — son plancher, et l'issue de secours qu'il condamnait
+
+La bibliothèque d'authentification lit une ligne par sa clé de désignation, puis **réécrit celle qu'elle vient d'obtenir en la nommant par son `id`**. Mesuré sur les huit flux réels : 69 opérations, dont **7 nomment un `id`, et les 7 sont des écritures**. Or `id` n'est clé de désignation d'aucune table d'authentification : la politique lisait une chaîne vide et refusait — **silencieusement**, un refus de RLS étant zéro ligne et non une erreur.
+
+Trois défauts en découlaient, et le premier était le plus cher : **un compte enrôlé ne pouvait plus se connecter du tout**, même avec le bon code ; le code de secours échouait en `409` _après avoir été validé_ ; et le compteur d'échecs restait inerte.
+
+`lib/auth/echange.ts` répare la **pose**, pas les politiques — elles étaient justes. À l'intérieur d'une requête entrante, une écriture qui nomme une ligne par sa clé primaire reçoit ce que la même requête avait déjà désigné :
+
+| Table            | Ce que le `where` dit | Ce que la politique exige           |
+| ---------------- | --------------------- | ----------------------------------- |
+| `second_facteur` | QUELLE ligne (`id`)   | à QUI elle est (`utilisateur_id`)   |
+| `verification`   | QUELLE ligne (`id`)   | quel SECRET l'ouvre (`identifiant`) |
+
+**L'`id` ouvre les écritures, jamais les lectures**, et le report ne franchit pas deux requêtes. **Oublier d'ouvrir un échange casse la fonctionnalité ; cela n'ouvre jamais rien** — c'est le seul sens de défaillance acceptable pour un mécanisme de ce genre.
+
+Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04** — non construit à ce jour. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
+
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 
 Le cloisonnement se prouve d'abord par la **lecture** : les scénarios

@@ -919,6 +919,13 @@ model SecondFacteur {
   echecs_verification Int       @default(0)
   verrouille_jusqu_a  DateTime?
 
+  /// Verrouillages temporaires ENCHAÎNÉS, sans connexion réussie entre eux (D62).
+  /// Écrite par le seul déclencheur `second_facteur_escalade` : l'application ne
+  /// la pose jamais, et le déclencheur ignore ce qu'un appelant y mettrait. Au
+  /// troisième, le verrouillage cesse d'expirer — le déblocage devient l'acte
+  /// administratif L7-04.
+  verrouillages_consecutifs Int @default(0)
+
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
 
   @@index([utilisateur_id])

@@ -2029,3 +2029,72 @@ Elle n'ouvre **aucun sélecteur de société**. Le premier écran active automat
 **Ce n'est donc PAS un défaut du code**, et c'est ce qui le rend dangereux : le code est juste, la donnée manque. Le remède n'est pas un correctif mais un **paramétrage**, et il n'a pas de déclencheur technique — aucun test ne peut rougir sur une donnée que personne n'a saisie.
 
 **Le rendez-vous, faute de déclencheur automatique :** au paramétrage de la première société cliente, la saisie des durées de validité fait partie de la mise en service, au même titre que les calendriers d'agence. Tant qu'elle n'est pas faite, l'exploitation sait que RG-PLA-04 ne tient qu'à moitié — et le sait parce que c'est écrit ici.
+
+---
+
+## D64 — Le plancher du second facteur : la composition, l'escalade, et le cliquet qui condamnait l'issue de secours
+
+*Décision d'exploitation, 8 septembre 2026. Ferme D62, et corrige un effet que personne n'avait vu.*
+
+### Ce que la mesure a trouvé, et qui n'était pas ce qu'on cherchait
+
+D62 annonçait un compteur inerte. La mesure a trouvé la cause commune de **trois** défauts, et le premier était bien plus coûteux que celui qu'on venait chercher.
+
+La bibliothèque lit une ligne par sa clé de désignation, puis **réécrit celle qu'elle vient d'obtenir en la nommant par son `id`**. Mesuré sur les huit flux réels : **69 opérations, dont 7 nomment un `id`, et les 7 sont des ÉCRITURES** — aucune lecture, dans aucun flux, ne désigne par `id`. Or `id` n'est une clé de désignation d'aucune de ces tables. L'écriture partait donc sans variable, la politique lisait une chaîne vide, et le refus était **silencieux** : zéro ligne, aucune erreur.
+
+Conséquences, mesurées puis reproduites :
+
+1. **le défi de second facteur ne se consommait jamais**, si bien qu'un compte enrôlé ne pouvait plus se connecter **du tout**, même avec le bon code ;
+2. **le code de secours échouait en `409` après avoir été validé** ;
+3. le compteur d'échecs de D62 ne s'incrémentait jamais.
+
+### La forme : rien de nouveau en base, tout dans la POSE
+
+La réparation ne touche **aucune politique**. `second_facteur_modification` exigeait déjà `utilisateur_id = app.authentification_utilisateur_id` ; `verification_consommation` exigeait déjà `identifiant = app.authentification_identifiant`. Ces clauses étaient justes ; personne ne les nourrissait.
+
+Ce qui manquait est un **report d'échange** : au moment d'une écriture qui nomme une ligne par sa clé primaire, l'enveloppe repose ce que la même requête entrante avait déjà désigné. La sonde l'a mesuré avant que rien ne soit écrit : **aux quatre écritures par `id`, le compte avait déjà été désigné dans le même échange**, sans exception.
+
+**La clause compose donc deux choses, et c'est le cœur de l'arbitrage** — *le danger n'est pas la devinette (`uuidv7()` laisse 74 bits aléatoires) mais la REJOUABILITÉ : un `id` sorti d'une trace ou d'un journal peut resservir.*
+
+| Table | Ce que le `where` dit | Ce que la politique exige |
+|---|---|---|
+| `second_facteur` | QUELLE ligne (`id`) | à QUI elle est (`utilisateur_id`) |
+| `verification` | QUELLE ligne (`id`) | quel SECRET l'ouvre (`identifiant`) |
+
+**Et l'`id` n'ouvre JAMAIS une lecture** — ni maintenant ni « au cas où ». La mesure le dictait : puisque aucune lecture ne désigne par `id`, en ouvrir une serait élargir sans nécessité.
+
+### Ce qui n'est PAS exprimable, et qui est dit plutôt qu'habillé
+
+Sur `second_facteur`, la seconde moitié est bien **l'appartenance au compte** : la colonne existe. **Sur `verification`, elle ne l'est pas.** La table n'a pas de colonne de compte, et le lien passe par `valeur`, qui ne porte l'identifiant de l'utilisateur que pour *certaines* lignes : mesuré, la ligne `2fa-attempts-…` porte un **compteur** (`"0"`). Une clause « `valeur` = le compte » casserait le décompte des tentatives.
+
+Ce qui compose sur `verification` est donc l'**identifiant opaque déjà présenté** — vingt caractères aléatoires portés par un cookie signé, c'est-à-dire un secret, là où un `id` n'en est pas un. C'est au moins aussi fort contre le rejeu, **et ce n'est pas la même garantie** : il faut le lire ainsi.
+
+### Une garantie plus forte qu'annoncée, découverte en la mettant en échec
+
+Le jumeau qui retire l'appartenance a d'abord **échoué à violer quoi que ce soit** : zéro ligne écrite alors qu'on venait de retirer la politique d'`UPDATE`. La raison : **PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE`**. L'appartenance est donc exigée deux fois — une fois pour trouver la ligne, une fois pour l'écrire — et un jumeau qui n'en retire qu'une mesure le refus du voisin (§9, 24/08). Il retire désormais les deux.
+
+### Le calibrage, et la raison écrite plutôt que le chiffre seul
+
+**Dix échecs consécutifs, quinze minutes, escalade au troisième verrouillage enchaîné.**
+
+L'arithmétique borne la discussion. La fenêtre de vérification est de ±1 période — mesuré : `createOTP().verify()` ne reçoit pas d'option et retient `window = 1` —, donc **trois codes sont valides à tout instant** et l'espace utile est 3,3·10⁵, pas 10⁶. À dix échecs par quinze minutes, un attaquant qui détient **déjà** le mot de passe dispose d'environ 350 000 codes par an : près de deux chances sur trois d'aboutir en un an. **Aucune paire (seuil, durée) supportable ne ferme cette arithmétique** — c'est l'escalade qui la ferme, en plafonnant l'attaque soutenue à trente codes au total.
+
+*Dix et pas trois* : la bibliothèque ne compare que **cinq** codes par défi. Un seuil de cinq verrouillerait au moment même où le défi s'épuise — une seule session maladroite suffirait. Dix laisse deux défis entiers de fautes de frappe.
+
+*Quinze minutes* : le verrouillage temporaire se purge seul, et c'est ce qui compte. Un `admin_societe` est, chez son client, le seul à pouvoir administrer les comptes ; personne dans sa société ne peut le débloquer.
+
+### L'escalade vit en BASE, et pas dans une route
+
+La vérification a **trois** chemins — `/two-factor/verify-totp`, `/verify-backup-code`, `/verify-otp` — atteignables depuis l'extérieur par le gestionnaire attrape-tout. Une escalade écrite dans notre route ne serait donc pas au point de passage obligé : deux des trois la contourneraient. Un déclencheur `BEFORE UPDATE`, lui, est franchi par les trois, et **il compte dans la même instruction que le verrouillage qu'il compte**.
+
+**Le point délicat, et il a failli rendre la garantie creuse.** « Trois verrouillages CONSÉCUTIFS » suppose de distinguer une connexion réussie d'une simple expiration du verrou. Or la bibliothèque produit dans les deux cas la **même nouvelle ligne** — c'est le piège du 08/09 au §9. Un déclencheur ne voit pas la forme de l'appel, mais il voit l'**ancienne** ligne, et elle suffit : la purge d'un verrou expiré part de `verrouille_jusqu_a` non nul, la remise à zéro après succès part de `NULL`. Sans cette distinction, la purge aurait remis la série à zéro toutes les quinze minutes et **l'escalade ne se serait jamais déclenchée**.
+
+### Ce que le déblocage est, et ce qu'il n'est pas — L7-04
+
+Exécuté par l'**`admin_societe` de la société concernée**, journalisé. *Déverrouiller n'accorde aucun accès : la personne devra toujours présenter un code valide.* C'est une gêne d'exploitation, pas un événement de sécurité, et exiger l'administrateur de plateforme pour une gêne d'exploitation ferait dépendre CODIMA d'un appel extérieur un vendredi soir.
+
+**La différence de fond avec L7-01, et c'est elle qu'il faut retenir : L7-01 rend un accès PERDU, L7-04 ne rend que le droit de RÉESSAYER.**
+
+### Ce qui reste ouvert
+
+Le ticket L7-04 n'est pas construit. Tant qu'il ne l'est pas, **un compte parvenu à l'escalade n'a aucun chemin de sortie** : aucune politique n'accorde aujourd'hui le droit de remettre la série à zéro, et le déclencheur se contente de laisser passer ce geste quand il viendra. C'est un état atteignable en trente codes faux, et il est écrit ici plutôt que découvert.
