@@ -606,6 +606,16 @@ definition("site"); // « Lieu d'intervention chez un client… »
 
 Les limites sont annoncées : une chaîne qui **vient d'un module** et arrive à l'écran par une variable n'est pas lisible statiquement, et un libellé passé en **propriété** d'un composant non plus — la parade y est un type (`CleTraduction`, jamais `string`), pas un gardien. Détail dans [`docs/decisions/2026-08-31-vocabulaire-francais-centralise.md`](docs/decisions/2026-08-31-vocabulaire-francais-centralise.md).
 
+## Les exemptions des gardiens s'adossent à quelque chose qui existe
+
+Un gardien qui exempte un chemin pose une **sélection négative**, et elle pourrit en silence : le fichier est renommé, l'entrée survit, elle ne protège plus rien — et le premier fichier qui reprendra ce nom héritera d'une exemption que personne ne lui a accordée. Le §9 du CLAUDE.md pose la règle depuis le 31/08 : _toute liste d'exemption porte le témoin de son adossement._
+
+**Mesuré le 08/09 : neuf listes d'exemption existaient, et quatre ne portaient aucun témoin** — les quatre créées après que la règle a été écrite. Aucune n'était orpheline ; ce qui manquait était ce qui le dirait quand elles le deviendraient.
+
+Le témoin n'est donc plus tenu liste par liste, mais par **un gardien unique qui déduit sa population du dépôt** — une exemption écrite dans six mois y entre d'elle-même. Il couvre les **deux formes**, et la seconde est celle qu'on oubliait : un préfixe de répertoire doit désigner un répertoire qui existe **et qui contient encore un fichier** — un répertoire vidé exempte toujours, et n'exempte plus rien. Trois jumeaux le montrent en le faisant tomber : un fichier exempté renommé, un préfixe vidé, et son propre motif rendu aveugle.
+
+Sa limite est annoncée : il reconnaît une exemption **à son nom**, donc une liste baptisée autrement ou calculée à l'exécution lui échappe. Il arrête la distraction, pas le contournement.
+
 ## Les règles de gestion et les arbitrages qui les amendent
 
 Le chapitre 10 du cahier des charges est la source **unique** des règles de
