@@ -214,7 +214,6 @@ describe("FORCE ROW LEVEL SECURITY", () => {
       territoire: "Province Nord",
       fuseau_horaire: "Pacific/Noumea",
       devise_code: "XPF",
-      taux_horaire_defaut: "7000",
       majoration_hors_ouverture_pct: "50",
       couleur_primaire: "#0b5cad",
       couleur_secondaire: "#f4a300",

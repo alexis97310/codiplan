@@ -92,7 +92,6 @@ export type SocieteSeed = {
   territoire: string;
   fuseau_horaire: string;
   devise_code: string;
-  taux_horaire_defaut: string;
   majoration_hors_ouverture_pct: string;
   /**
    * Charte de démonstration (L0-09). Les deux sociétés du seed portent des
@@ -786,7 +785,6 @@ const CODIMA_NC: SocieteSeed = {
   territoire: "Province Sud",
   fuseau_horaire: "Pacific/Noumea",
   devise_code: "XPF",
-  taux_horaire_defaut: "7000",
   majoration_hors_ouverture_pct: "50",
   couleur_primaire: "#0b5cad",
   couleur_secondaire: "#f4a300",
@@ -836,7 +834,6 @@ const CODIMA_EU: SocieteSeed = {
   territoire: "Métropole",
   fuseau_horaire: "Europe/Paris",
   devise_code: "EUR",
-  taux_horaire_defaut: "65.00",
   majoration_hors_ouverture_pct: "50",
   couleur_primaire: "#7a1f3d",
   couleur_secondaire: "#2f9e6b",

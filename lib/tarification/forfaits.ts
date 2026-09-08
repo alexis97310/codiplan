@@ -34,6 +34,26 @@ import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
  * RG-TAR-05 donne l'ORDRE du calcul, jamais la composition. C'est au registre.
  */
 
+/**
+ * UN FORFAIT S'AJOUTE TOUJOURS AUX HEURES (arbitrage du 09/09/2026, Q4).
+ *
+ * *Un forfait est un montant fixe qui vient EN PLUS du temps passé.* Il
+ * n'absorbe jamais d'heures ; **la notion d'heure excédentaire ne s'applique pas
+ * aux forfaits.** C'est ce qui manquait à RG-TAR-05, qui donne l'ordre du calcul
+ * sans dire ce qu'un forfait consomme du temps.
+ *
+ * **Conséquence : `heures_incluses_minutes` a été RETIRÉE.** Elle avait été
+ * posée à L1-06 sans consommateur, en attendant cette décision ; le cas qu'elle
+ * modélisait n'existe pas. *Une colonne qui modélise un cas qui n'existe pas est
+ * pire qu'une colonne absente* — quelqu'un finirait par « l'implémenter », et
+ * il implémenterait une règle que personne n'a décidée.
+ *
+ * **La réciproque, écrite parce qu'elle sera un jour invoquée :** si une société
+ * a un jour besoin qu'un forfait inclue du temps, ce sera un besoin réel avec un
+ * cas réel derrière — un contrat, un client, un devis à honorer —, jamais
+ * « la colonne existait déjà ».
+ */
+
 /** Les natures de forfait, telles que la base les énumère. */
 export const TYPES_FORFAIT = [
   "deplacement",
@@ -67,9 +87,6 @@ export const schemaForfait = z.object({
    * de la dire. Négatif, non — ce serait un avoir, qui n'est pas un forfait.
    */
   montant_mineur: z.number().int().nonnegative(),
-
-  /** EN MINUTES : RG-TAR-05 arrondit au quart d'heure, D57 le tranche. */
-  heures_incluses_minutes: z.number().int().positive().nullable().default(null),
 
   /**
    * La liste des zones est close ICI et pas en base — six valeurs d'UN

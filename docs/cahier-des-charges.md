@@ -826,7 +826,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | pays, territoire | text | |
 | fuseau_horaire | text | Ex. Pacific/Noumea |
 | devise_code | text FK | XPF, EUR, … |
-| taux_horaire_defaut | numeric | 7 000 pour CODIMA SAV |
+| ~~taux_horaire_defaut~~ | ~~numeric~~ | *(retirée le 09/09/2026 — Q3. Deux sources d'un même fait divergeaient en valeur ; le taux vit désormais dans `taux_horaire`, **historisé par date d'effet** (RG-TAR-04). Une facture qui change quand le tarif change est une facture fausse.)* |
 | majoration_hors_ouverture_pct | numeric | |
 | libelle_code_externe | text | Libellé d'affichage de `client.code_externe` — « Code Winpro » chez CODIMA (D29) |
 | logo_url | text | |
