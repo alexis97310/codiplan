@@ -360,6 +360,17 @@ lib/
               et le troisième est le seul qui sépare deux sites d'un même client
               l'énumération des zones est close ICI, à l'entrée serveur, et
               délibérément pas en base — six valeurs d'UN territoire
+  machines/   la fiche machine (L2-01) — saisie Zod, et les QUATRE champs
+              obligatoires de D6 : modèle, client, site, numéro de série
+              le numéro illisible se saisit `SN-INCONNU-<référence>` avec
+              `complet = false` — JAMAIS `NULL` : deux `NULL` sont distincts
+              pour un index unique, et une colonne nullable ferait de
+              l'unicité une passoire sur les fiches les moins renseignées
+              `complet` est DÉDUIT du numéro, jamais accepté depuis l'entrée
+              ne fabrique NI `id`, NI `qr_token`, NI `numero` : les deux
+              premiers naissent sur l'appareil (D7, I10), le troisième est
+              attribué par le serveur — et personne ne l'attribue encore, le
+              compteur par société venant avec la synchronisation
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie

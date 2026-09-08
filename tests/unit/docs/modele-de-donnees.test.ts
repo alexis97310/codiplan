@@ -57,8 +57,11 @@ describe("le chapitre 11 nomme toute table qui existe au schéma", () => {
     // encore construite. Exiger la réciproque ferait échouer le gardien sur le
     // PLAN, c'est-à-dire sur ce que le chapitre est.
     expect(ecartsModeleDeDonnees(schema, cahier)).toEqual([]);
-    expect(tablesDuChapitre11(cahier)).toContain("machine");
-    expect(tablesDuSchema(schema)).not.toContain("machine");
+    // `machine` a QUITTÉ cet exemple au ticket L2-01 : elle existe désormais au
+    // schéma. `contrat` la remplace — et le jour où elle existera aussi, ce
+    // scénario réclamera son remplaçant plutôt que de passer au vert.
+    expect(tablesDuChapitre11(cahier)).toContain("contrat");
+    expect(tablesDuSchema(schema)).not.toContain("contrat");
   });
 
   it("il ÉCHOUE plutôt que de comparer à rien — dans les deux sens", () => {

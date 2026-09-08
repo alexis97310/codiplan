@@ -147,6 +147,7 @@ model Societe {
   modeles_materiel      ModeleMateriel[]
   taux_horaires         TauxHoraire[]
   forfaits              Forfait[]
+  machines              Machine[]
 
   @@map("societe")
 }
@@ -496,6 +497,7 @@ model Client {
   sites    Site[]
   comptes  UtilisateurClient[]
   contacts Contact[]
+  machines Machine[]
 
   @@unique([societe_id, code_externe])
   /// Clé composite technique — cible du chaînage de `site` et de
@@ -647,6 +649,7 @@ model Site {
   perimetres             UtilisateurClientSite[]
   contacts               Contact[]
   habilitations_requises SiteHabilitationRequise[]
+  machines               Machine[]
 
   /// Cible du chaînage TRIPLE depuis `contact` : un contact rattaché à un site
   /// doit l'être à un site DE SON CLIENT, et c'est la clé qui le tient.
@@ -1213,6 +1216,100 @@ enum TypeForfait {
 /// **La table existe, elle naît VIDE.** Quels forfaits mettre au catalogue et à
 /// quels montants est une question d'exploitation — elle est au registre depuis
 /// l'ouverture du projet, et l'inventer serait inventer une donnée métier.
+/// Fiche machine du parc installé (ticket L2-01, arbitrages D6 et D7).
+///
+/// **Table métier de la première catégorie de I1**, forme de politique
+/// « parc » — société ET `app.client_id` ET `app.perimetre_sites` (D10, D22).
+/// La clause est EXACTEMENT celle que le harnais d'isolation posait sur la
+/// table fixture, de sorte que la couverture éprouvée depuis L0-05 se reporte
+/// sans rien perdre (contrat R0-a).
+///
+/// **QUATRE champs obligatoires** (D6) : `modele_id`, `client_id`, `site_id`,
+/// `numero_serie`. Le numéro illisible se saisit `SN-INCONNU-<référence>` avec
+/// `complet = false`, **jamais NULL** : deux `NULL` sont distincts pour un
+/// index unique, et une colonne nullable ferait de l'unicité une passoire.
+///
+/// **La clé technique et le numéro affiché sont deux choses** (D7, I10) : `id`
+/// est un UUID v7 généré sur l'appareil, `numero` est attribué par le serveur à
+/// la synchronisation. **Le QR encode le jeton, jamais le numéro.**
+model Machine {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Les quatre obligatoires de D6.
+  modele_id    String @db.Uuid
+  client_id    String @db.Uuid
+  site_id      String @db.Uuid
+  numero_serie String
+
+  /// Dérivé de l'`id`, jamais du numéro (D7, I10). Unique GLOBALEMENT : le
+  /// lecteur de QR le présente seul, avant qu'aucune société ne soit connue.
+  qr_token String @unique
+
+  /// Attribué par le SERVEUR à la première synchronisation ; NUL en attendant.
+  /// **Aucun code ne l'attribue aujourd'hui** — le compteur par société
+  /// appartient à la synchronisation (lot 3).
+  numero Int?
+
+  /// La référence que le technicien compose quand la plaque est illisible.
+  reference_interne String?
+
+  localisation         String?
+  date_mise_en_service DateTime? @db.Date
+  date_vente           DateTime? @db.Date
+  facture_origine      String?
+  garantie_fin         DateTime? @db.Date
+
+  statut               StatutMachine         @default(en_service)
+  criticite            CriticiteMachine      @default(normale)
+  machine_remplacee_id String?               @db.Uuid
+  source_creation      SourceCreationMachine @default(back_office)
+
+  /// Fiche minimale ou complète — c'est elle qui pilote la file de complétion.
+  complet Boolean @default(true)
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe           Societe        @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client            Client         @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site              Site           @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  modele            ModeleMateriel @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine_remplacee Machine?       @relation("MachineRemplacee", fields: [societe_id, machine_remplacee_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  remplacantes      Machine[]      @relation("MachineRemplacee")
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, modele_id, numero_serie])
+  @@unique([societe_id, numero])
+  @@index([societe_id, client_id])
+  @@index([societe_id, site_id])
+  @@map("machine")
+}
+
+/// Cycle de vie d'un actif du parc (chapitre 11.2).
+enum StatutMachine {
+  en_service
+  en_panne
+  arretee
+  remplacee
+  ferraillee
+}
+
+/// Ce que l'arrêt de la machine coûte au client.
+enum CriticiteMachine {
+  bloquante
+  importante
+  normale
+}
+
+/// Par quel chemin la fiche est née — utile à la file de complétion.
+enum SourceCreationMachine {
+  terrain
+  recensement
+  import
+  back_office
+}
+
 model Forfait {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -1337,8 +1434,9 @@ model ModeleMateriel {
 
   actif Boolean @default(true)
 
-  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe  Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille  FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machines Machine[]
 
   /// Cible du chaînage composite que `machine` posera à son tour (L2-01).
   @@unique([societe_id, id])

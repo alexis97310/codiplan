@@ -883,9 +883,11 @@ dans la table `parite` ci-dessous.*
 |---|---|---|
 | id | uuid PK | |
 | societe_id | uuid FK | |
-| reference_interne | text | Unique par société, porté par le QR |
+| ~~reference_interne~~ | text | ~~Unique par société, porté par le QR~~ *(amendé le 09/09/2026 — L2-01. **Le QR encode le `qr_token`, jamais autre chose** (I10, D7) : cette ligne disait le contraire. `reference_interne` reste, NULLABLE, pour ce que D6 lui donne à porter — la référence que le technicien compose quand la plaque est illisible, `SN-INCONNU-<référence>`.)* |
+| numero | integer | **Numéro AFFICHÉ**, attribué par le SERVEUR séquentiellement par société à la première synchronisation (D7, I10). `NULL` en attendant ; l'interface affiche alors `Local-<6 caractères>`. **Aucun code ne l'attribue à ce jour** — le compteur appartient à la synchronisation, lot 3 |
+| cree_le, modifie_le | timestamptz | |
 | modele_id | uuid FK | |
-| numero_serie | text | Unique par (société, modèle) |
+| numero_serie | text | **OBLIGATOIRE** (D6), unique par (société, modèle). Plaque illisible → `SN-INCONNU-<référence>` et `complet = false` : *jamais `NULL`*, deux `NULL` étant distincts pour un index unique |
 | client_id, site_id | uuid FK | |
 | localisation | text | |
 | date_mise_en_service | date | Facultatif à la création |

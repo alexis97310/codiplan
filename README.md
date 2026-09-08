@@ -434,6 +434,16 @@ Trois défauts en découlaient, et le premier était le plus cher : **un compte 
 
 Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04**, livré le 09/09/2026 (D66) — voir la section suivante. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
 
+## La fiche machine — la TROISIÈME fixture s'efface, et le contrat est honoré
+
+`machine` était une table du harnais depuis L0-05, et c'est elle qui portait la résolution QR inter-société de D22. **La réparation la plus naturelle — supprimer la fixture et donner à la vraie table la clause société seule — aurait réduit la couverture sans qu'aucun gardien ne s'en aperçoive** (écart É14 de la revue R0). La clause écrite dans la migration est donc **exactement** celle que le harnais posait : les scénarios de `qr-code.test.ts` et de `portail-client.test.ts` s'y sont reportés **sans qu'une ligne change**, et les planchers de `EXIGENCES_L0_05` **montent** — `qr_inter_societe` de 3 à 5, `perimetre_sites` de 4 à 6.
+
+**Quatre champs obligatoires, et non trois** (D6) : `modele_id`, `client_id`, `site_id`, `numero_serie`. Le numéro de série redevient obligatoire, ce qui rend l'unicité `(société, modèle, n° de série)` définissable. La plaque illisible se saisit `SN-INCONNU-<référence>` avec `complet = false` — **jamais `NULL`** : sous un index unique, deux `NULL` sont distincts, et une colonne nullable aurait laissé passer autant de doublons qu'on veut, _précisément sur les fiches les moins bien renseignées_.
+
+**Le jeton du QR est unique GLOBALEMENT**, et pas par société : le lecteur le présente **seul**, avant qu'aucune société ne soit connue, et une collision rendrait la résolution ambiguë au moment exact où l'on ne peut pas la lever. Le contrôle de société vient **après**, et c'est la politique qui le fait (D22).
+
+**Ce qui n'est pas fait, et qui est écrit plutôt que tu :** personne n'attribue `numero`. La colonne existe et son unicité par société est posée ; le compteur appartient à la **synchronisation (lot 3)**, et l'inventer ici poserait une règle que personne n'a décidée.
+
 ## Le chapitre 11 nomme-t-il toute table qui existe ?
 
 L'écart signalé était `import_lot_ligne`, prescrite par **D15 (rang 1)** et absente du **chapitre 11 (rang 3)** : le rang 1 l'emporte, donc la table existera — _ce n'était pas une décision à prendre, c'était une omission à réparer._ La question posée ensuite — « y en a-t-il d'autres ? » — a rendu **seize** : `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`, `jour_ferie`, `contact`, `taux_horaire`, `technicien_habilitation`, `site_habilitation_requise`, `utilisateur_client`, `utilisateur_client_site`, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
@@ -742,8 +752,8 @@ La protection ne tient donc pas au fichier de flux : elle tient à un **attribut
 ```
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
-lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/
-              sites/  theme/  utils.ts
+lib/          auth/  calendar/  clients/  db/  i18n/  machines/  money/
+              reporting/  sites/  theme/  utils.ts
               auth/amorcage.ts = le geste d'ouverture du PREMIER compte (D65),
               exception admise tant qu'aucun chemin administratif n'existe
               auth/deverrouillage.ts = L7-04, rompre la série de verrouillages

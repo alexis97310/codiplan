@@ -526,10 +526,6 @@ export default async function setup(): Promise<void> {
         ('${SITE_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', '${AGENCE_A}', 'Site A1-2', NULL),
         ('${SITE_A2_S1}', '${SOCIETE_A}', '${CLIENT_A2}', '${AGENCE_A}', 'Site A2-1', 15),
         ('${SITE_B1_S1}', '${SOCIETE_B}', '${CLIENT_B1}', '${AGENCE_B}', 'Site B1-1', 40);
-      INSERT INTO "machine" ("id", "societe_id", "client_id", "site_id", "qr_token", "numero_serie") VALUES
-        ('${MACHINE_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1'),
-        ('${MACHINE_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2'),
-        ('${MACHINE_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1');
       INSERT INTO "contact" ("id", "societe_id", "client_id", "site_id", "nom", "roles", "canaux", "email") VALUES
         ('${CONTACT_A1_COMPTABLE}', '${SOCIETE_A}', '${CLIENT_A1}', NULL, 'Comptable du client', ARRAY['comptabilite'], ARRAY['email'], 'compta@a1.test'),
         ('${CONTACT_A1_ATELIER}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', 'Chef d''atelier S2', ARRAY['contact_technique','signataire'], ARRAY['email'], 'atelier@a1.test');
@@ -539,6 +535,15 @@ export default async function setup(): Promise<void> {
       INSERT INTO "modele_materiel" ("id", "societe_id", "famille_id", "marque", "reference") VALUES
         ('${MODELE_A}', '${SOCIETE_A}', '${FAMILLE_A}', 'Atlas', 'GA-11'),
         ('${MODELE_B}', '${SOCIETE_B}', '${FAMILLE_B}', 'Atlas', 'GA-11');
+      -- LES MACHINES VIENNENT APRÈS LES MODÈLES depuis L2-01, et l'ordre est
+      -- devenu une contrainte de la base : machine porte une clé étrangère
+      -- COMPOSITE (societe_id, modele_id) vers modele_materiel. modele_id est
+      -- l'un des QUATRE champs obligatoires de D6 — la fixture n'en avait pas,
+      -- la vraie table l'exige.
+      INSERT INTO "machine" ("id", "societe_id", "modele_id", "client_id", "site_id", "qr_token", "numero_serie", "modifie_le") VALUES
+        ('${MACHINE_A1}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1', now()),
+        ('${MACHINE_A2}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2', now()),
+        ('${MACHINE_B1}', '${SOCIETE_B}', '${MODELE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1', now());
       `,
     );
 

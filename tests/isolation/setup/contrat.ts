@@ -267,8 +267,16 @@ export const EXIGENCES_L0_05 = [
     cle: "qr_inter_societe",
     intitule: "résolution QR inter-société",
     source: "D22",
+    // Le plancher passe de 3 à 5 au ticket L2-01, et c'est le sens du contrat :
+    // les scénarios D22 devaient être PLUS nombreux après la reprise de la
+    // fixture par la vraie table, jamais moins. Les deux nouveaux sont dans
+    // `tests/isolation/machine.test.ts` — l'un prouve PAR LECTURE que le jeton
+    // d'une autre société ne se résout pas, avec le témoin qui montre qu'il se
+    // résout sous la sienne ; l'autre éprouve l'unicité GLOBALE du jeton, sans
+    // laquelle la résolution serait ambiguë au moment exact où aucune société
+    // n'est encore connue.
     table: "machine",
-    plancher: 3,
+    plancher: 5,
   },
   {
     cle: "portail_autre_client",
@@ -294,8 +302,12 @@ export const EXIGENCES_L0_05 = [
     // là où `politiques-rls.test.ts` prouve seulement que le gardien s'en
     // apercevrait ; l'autre porte sur l'ÉCRITURE, que les scénarios de
     // périmètre ne couvraient pas du tout.
+    // Puis de 4 à 6 au ticket L2-01, pour la même raison : `machine` est la
+    // troisième et dernière fixture du parc à s'effacer, et le troisième filtre
+    // devait y gagner deux scénarios — la LECTURE bornée au site, et l'ÉCRITURE
+    // que le `WITH CHECK` refuse.
     table: "site",
-    plancher: 4,
+    plancher: 6,
   },
 ] as const;
 
