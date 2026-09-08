@@ -380,6 +380,16 @@ Le montant est un **entier** dans l'unité la plus fine de la devise — 7000 po
 
 **Ce qui n'est pas fait, et pourquoi :** `societe.taux_horaire_defaut` reste en place. C'est un `DECIMAL(18,4)` qui porte `65.0000` pour CODIMA-EU là où la forme entière vaut `6500` — _ce ne sont pas les mêmes nombres_. Déplacer cette valeur est une migration de donnée monétaire, et elle appartient à l'exploitation.
 
+## La grammaire des imports, écrite avant la liaison au classeur
+
+`lib/excel/format.ts` porte les six mécaniques de D31 — marqueur `CODIPLAN-<type>-v<n>` en `A1`, en-têtes ligne 2, données ligne 3, dates `JJ/MM/AAAA`, décimale virgule, colonnes inconnues ignorées avec avertissement. **Aucune dépendance, aucune base** : il travaille sur une grille de cellules abstraite.
+
+**Ce découpage n'est pas d'esthète.** La liaison à SheetJS est en attente d'arbitrage : le paquet `xlsx` du registre npm est figé à `0.18.5`, et deux avis de gravité HAUTE le visent sans version corrigée atteignable depuis npm — dont CVE-2023-30533, une pollution de prototype qui se déclenche **à la lecture d'un fichier fabriqué**, c'est-à-dire dans l'usage exact de ce ticket. Ce que le découpage garantit en attendant : le jour où la liaison arrive, **elle n'a aucune règle à porter**.
+
+Deux formes qui ne vont pas de soi. **Un nombre lu ne rend jamais un flottant** : les chiffres et leur échelle (`« 1234,56 »` → `{123456n, 2}`). Rendre `1234.56` obligerait le premier appelant à remultiplier par cent — l'arithmétique flottante que I3 interdit, une ligne après nous. **Une date se lit en UTC**, jamais par un `Date` local : UTC+11 décale le jour d'un cran, et un import saisi le 1ᵉʳ se rangerait au 31 du mois précédent.
+
+Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et inscrits au registre : une version postérieure, un en-tête en double, une colonne obligatoire absente.
+
 ## Le catalogue de forfaits, et l'axe qui dort
 
 `forfait` porte les trois axes de RG-TAR-06 — zone, famille de matériel, type d'intervention — et la règle qui décide. Le montant y prend la même forme que le taux horaire : un **entier** avec son code de devise, refusé s'il s'écarte de celle de sa société. **Zéro est permis** — une prestation offerte est un forfait à zéro, et c'est la façon de la dire ; négatif non, ce serait un avoir.

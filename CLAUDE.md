@@ -387,7 +387,19 @@ lib/
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
   sync/       (prévu) protocole hors-ligne
-  excel/      (prévu) imports et exports
+  excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
+              format.ts : marqueur de version, dates, nombres, colonnes
+              AUCUNE dépendance : la liaison à SheetJS est en attente
+              d'arbitrage, le paquet npm étant figé sur une version que deux
+              avis de sécurité HAUTS visent sans correctif atteignable — la
+              mesure et la question sont au registre du 08/09
+              un nombre lu ne rend JAMAIS un flottant : les chiffres et leur
+              échelle, pour que I3 ne soit pas enfreint une ligne après nous
+              une date se lit en UTC, jamais par un Date local — UTC+11 décale
+              le jour d'un cran, et un import du 1er se rangerait au 31
+              rend des CODES, jamais du texte : les libellés sont au
+              dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
+              un humain (I6, RG-IMP-01)
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS

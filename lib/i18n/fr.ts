@@ -207,6 +207,42 @@ export const fr = {
   "vocabulaire.site.pluriel": "Sites",
   "vocabulaire.site.definition":
     "Lieu d'intervention chez un client. Ses horaires produisent un avertissement, jamais un blocage. Ce n'est jamais un établissement CODIMA : celui-là est une agence.",
+
+  // ── LES ANOMALIES D'IMPORT (L1-08, D31) ───────────────────────────────
+  //
+  // `lib/excel/format.ts` ne rend que des CODES ; les libellés sont ici, parce
+  // que le rapport de contrôle est lu par un humain (I6, RG-IMP-01). Chaque
+  // libellé dit ce qui bloque ET la marche à suivre : un refus a le droit
+  // d'être lisible, jamais d'être informatif sur ce que son destinataire n'a
+  // pas le droit de lire (D50) — ici il ne parle que du fichier apporté.
+  "import.anomalie.marqueur_absent":
+    "Ce fichier n'est pas un modèle CODIPLAN : sa première cellule ne porte pas de marqueur de format. Téléchargez le modèle correspondant au type d'import et recommencez la saisie dedans.",
+  "import.anomalie.marqueur_illisible":
+    "Le marqueur de format de ce fichier est abîmé. La première cellule doit contenir le marqueur du modèle, inchangé — retéléchargez le modèle et recopiez-y vos lignes.",
+  "import.anomalie.marqueur_autre_type":
+    "Ce fichier est un modèle CODIPLAN, mais pas celui de cet import. Vérifiez le type d'import choisi, ou téléchargez le modèle correspondant.",
+  "import.anomalie.marqueur_version_anterieure":
+    "Ce fichier suit une version antérieure du modèle. Téléchargez la version en cours et recopiez-y vos lignes : les colonnes ont changé depuis.",
+  "import.anomalie.marqueur_version_posterieure":
+    "Ce fichier suit une version du modèle plus récente que celle que cette application sait lire. Il n'est pas lu plutôt que d'être lu de travers.",
+  "import.anomalie.entete_en_double":
+    "Deux colonnes portent le même en-tête. Renommez ou supprimez la colonne en trop : sans cela, l'une des deux serait ignorée sans qu'on sache laquelle.",
+  "import.anomalie.colonne_obligatoire_absente":
+    "Une colonne obligatoire manque au fichier. Vérifiez que la ligne d'en-têtes du modèle n'a pas été modifiée.",
+  "import.anomalie.date_format":
+    "Cette date n'est pas au format attendu. Le seul format accepté est JJ/MM/AAAA — par exemple 03/04/2026.",
+  "import.anomalie.date_hors_plage": "Cette date n'existe pas au calendrier.",
+  "import.anomalie.date_avec_heure":
+    "Cette cellule porte une heure en plus de la date. Mettez la colonne au format date seule.",
+  "import.anomalie.nombre_format":
+    "Ce nombre n'est pas au format attendu. Utilisez la virgule comme séparateur décimal, sans séparateur de milliers.",
+  "import.anomalie.nombre_separateur_milliers":
+    "Ce nombre contient un séparateur de milliers. Écrivez-le sans espace : 1234,56 et non 1 234,56.",
+  "import.anomalie.nombre_point_decimal":
+    "Ce nombre utilise le point comme séparateur décimal. Utilisez la virgule : 1234,56 et non 1234.56.",
+  "import.anomalie.cellule_vide": "Cette cellule est vide.",
+  "import.avertissement.colonne_inconnue":
+    "Cette colonne ne fait pas partie du modèle : elle est ignorée, et n'empêche pas l'import.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
