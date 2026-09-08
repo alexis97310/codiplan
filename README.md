@@ -380,6 +380,18 @@ Le montant est un **entier** dans l'unité la plus fine de la devise — 7000 po
 
 **Ce qui n'est pas fait, et pourquoi :** `societe.taux_horaire_defaut` reste en place. C'est un `DECIMAL(18,4)` qui porte `65.0000` pour CODIMA-EU là où la forme entière vaut `6500` — _ce ne sont pas les mêmes nombres_. Déplacer cette valeur est une migration de donnée monétaire, et elle appartient à l'exploitation.
 
+## Le catalogue de forfaits, et l'axe qui dort
+
+`forfait` porte les trois axes de RG-TAR-06 — zone, famille de matériel, type d'intervention — et la règle qui décide. Le montant y prend la même forme que le taux horaire : un **entier** avec son code de devise, refusé s'il s'écarte de celle de sa société. **Zéro est permis** — une prestation offerte est un forfait à zéro, et c'est la façon de la dire ; négatif non, ce serait un avoir.
+
+**Le cas qui décide de la justesse de la règle n'est pas celui où une condition échoue, c'est celui où il n'y en a pas.** Un forfait sans zone s'applique partout, et le confondre avec « aucune zone ne convient » retirerait du catalogue tous les forfaits généraux — la majorité. Réciproquement, une valeur d'intervention **absente** face à une condition posée n'est pas remplie : appliquer un forfait de zone à une intervention dont la zone est inconnue facturerait un déplacement que personne n'a constaté.
+
+**Le troisième axe est inerte, et c'est écrit plutôt que tu.** Les types d'intervention n'existent nulle part dans ce dépôt — ni énumération, ni liste close, ni table —, et le lot 2 les décidera. La règle est pourtant écrite entière et éprouvée sur les trois axes, pour n'avoir pas à changer ce jour-là. Même forme que D63 : _ce n'est pas un défaut du code, c'est une donnée qui n'existe pas, et rien ne rougira tout seul._
+
+**La table naît vide.** Quels forfaits mettre au catalogue et à quels montants appartient à l'exploitation. Et ce module ne **valorise** rien : ce qu'un forfait consomme du temps passé — à partir de quand une heure devient excédentaire — n'est tranché nulle part.
+
+Deux limites mesurées : PostgreSQL **refuse toute sous-requête dans un `CHECK`** (`0A000`), donc « sans doublon » passe par une fonction `IMMUTABLE` ; et écrire chez une autre société est refusé **par le déclencheur de devise avant le `WITH CHECK`** — un `BEFORE` précède la politique. La garantie est donc exigée deux fois, et un second scénario va chercher le `WITH CHECK` derrière lui, déclencheur ôté.
+
 ## Familles et modèles — un mécanisme retiré plutôt qu'arbitré
 
 `famille_materiel` et `modele_materiel` sont des **tables métier cloisonnées**, `societe_id NOT NULL`, forme « société », RLS forcée, auditées. Elles étaient destinées à la deuxième catégorie de I1 — référentiels de plateforme — et **D4 est amendé** :

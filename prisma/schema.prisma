@@ -57,6 +57,7 @@ model Devise {
   societes      Societe[]
   parites       Parite[]
   taux_horaires TauxHoraire[]
+  forfaits      Forfait[]
 
   @@map("devise")
 }
@@ -146,6 +147,7 @@ model Societe {
   familles_materiel     FamilleMateriel[]
   modeles_materiel      ModeleMateriel[]
   taux_horaires         TauxHoraire[]
+  forfaits              Forfait[]
 
   @@map("societe")
 }
@@ -1181,6 +1183,61 @@ model Contact {
 ///
 /// La liste réglementaire garde sa valeur comme AMORÇAGE : une société qui
 /// s'ouvre la reçoit par défaut et peut la compléter ou la réduire.
+/// Nature d'un forfait (chapitre 11).
+///
+/// **Une énumération EN BASE, et c'est le raisonnement des zones à l'endroit.**
+/// Les zones et les rôles de contact sont clos à l'entrée serveur parce qu'ils
+/// décrivent un territoire ou une organisation, et qu'une société tierce en aura
+/// d'autres. Ces quatre natures décrivent ce qu'un forfait FAIT dans le moteur
+/// de valorisation, et le lot 2 s'appuiera dessus.
+enum TypeForfait {
+  deplacement
+  mise_en_service
+  controle
+  prestation
+}
+
+/// Catalogue de forfaits d'une société (ticket L1-06, chapitre 4.3, RG-TAR-06).
+///
+/// **La table existe, elle naît VIDE.** Quels forfaits mettre au catalogue et à
+/// quels montants est une question d'exploitation — elle est au registre depuis
+/// l'ouverture du projet, et l'inventer serait inventer une donnée métier.
+model Forfait {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  code    String
+  libelle String
+  type    TypeForfait
+
+  /// Entier dans l'unité la plus fine, avec sa devise (I2, I3). Le chapitre 11
+  /// l'écrit `numeric` ; la décision du 08/09/2026 l'amende.
+  montant_mineur BigInt
+  devise_code    String
+
+  /// EN MINUTES et en entier : RG-TAR-05 arrondit au quart d'heure supérieur
+  /// (D57), et comparer un arrondi à un flottant facture de travers.
+  heures_incluses_minutes Int?
+
+  /// Les trois axes de RG-TAR-06. `NULL` veut dire « sans condition sur cet
+  /// axe », jamais « aucune valeur ne convient ».
+  zone_geo          String[]
+  famille_id        String?  @db.Uuid
+  /// INERTE : les types d'intervention n'existent nulle part encore.
+  type_intervention String[]
+
+  cumulable_temps Boolean
+  actif           Boolean @default(true)
+
+  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  devise  Devise           @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  famille FamilleMateriel? @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, code])
+  @@index([societe_id, actif])
+  @@map("forfait")
+}
+
 /// Taux horaire d'une société, HISTORISÉ par date d'effet (ticket L1-07,
 /// RG-TAR-04).
 ///
@@ -1235,8 +1292,9 @@ model FamilleMateriel {
 
   actif Boolean @default(true)
 
-  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  modeles ModeleMateriel[]
+  societe  Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modeles  ModeleMateriel[]
+  forfaits Forfait[]
 
   /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
   /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
