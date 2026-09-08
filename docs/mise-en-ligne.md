@@ -4,7 +4,7 @@
 
 **Ce document ne configure rien.** Aucun hébergeur n'a été contacté, aucun compte n'a été créé, aucune variable n'a été déposée. C'est une procédure à exécuter par l'exploitation.
 
-**À lire avant tout : le [§5 — Ce qui est risqué à exposer en l'état](#5--ce-qui-est-risque-a-exposer-en-letat).** Trois des points qui y figurent ont été mesurés le jour où cette note a été écrite, et l'un d'eux rend l'application **inutilisable en production** tant qu'il n'est pas tranché. Mettre en ligne d'abord et lire ensuite ferait découvrir ces points par un utilisateur.
+**À lire avant tout : le [§5 — Ce qui est risqué à exposer en l'état](#5--ce-qui-est-risque-a-exposer-en-letat).** Ses points ont été mesurés, jamais supposés. **Deux d'entre eux ont été réparés depuis** — l'enfermement du second facteur et l'absence de plancher (L1-02g, D64) — et restent écrits, barrés, pour que celui qui a lu cette note avant le 08/09 constate ce qui a changé. **Le §5.1 tient toujours, et il suffit à lui seul : personne ne peut se connecter.** Mettre en ligne d'abord et lire ensuite ferait découvrir ces points par un utilisateur.
 
 ---
 
@@ -118,27 +118,24 @@ Et il n'existe aucun chemin pour en créer un : *personne ne crée son propre co
 
 **Conséquence, dite sans l'adoucir : le site serait en ligne et personne ne pourrait y entrer.** Ce n'est pas une faille — c'est l'inverse — mais c'est une mise en ligne sans usage.
 
-### 5.2 — Un compte qui enrôle son second facteur est ENFERMÉ. C'est le point qui ferait mal dès le premier jour.
+### 5.2 — ~~Un compte qui enrôle son second facteur est ENFERMÉ~~ — RÉPARÉ le 08/09/2026 (L1-02g, D64)
 
-**Mesuré, et prouvé par son jumeau.** Un compte réellement enrôlé (les deux drapeaux posés en base, la reconnexion réclame bien le facteur) présente ensuite **le bon code** à `/two-factor/verify-totp` : la réponse est **HTTP 401 `INVALID_TWO_FACTOR_COOKIE`**. Elle l'est aussi pour un code faux : **aucun code n'est jamais comparé.**
+**Ce point est levé.** Il était exact, et c'était le plus coûteux de cette note : un compte enrôlé recevait `401` en présentant le **bon** code, et le code de secours échouait en `409` **après avoir été validé** — aucune porte de sortie, et le cliquet interdisant le retour en arrière.
 
-*La cause est isolée.* Le défi de second facteur est porté par deux lignes de `verification`, que la bibliothèque **consomme en les désignant par leur `id`** (`internalAdapter.consumeVerificationValue` → `consumeOne` sur `{ id }`). Or `id` n'est pas une clé de désignation de `verification` — seul `identifiant` l'est (L1-02d). La suppression est donc **refusée en silence** : zéro ligne, aucune erreur, la bibliothèque conclut « cookie invalide ». *Vérifié après coup : les deux lignes de `verification` sont toujours là.*
+*La cause était bien celle qui avait été isolée* : la bibliothèque consommait le défi en le désignant par son `id`, qui n'est pas une clé de désignation. La réparation ne touche **aucune politique** — elles exigeaient déjà la bonne seconde moitié ; ce qui manquait était la **pose**. Voir `lib/auth/echange.ts` et D64.
 
-*Le jumeau le dit sans ambiguïté* (§9, 24/08) : `ALTER TABLE "verification" DISABLE ROW LEVEL SECURITY`, et la même requête, avec le même code, répond **HTTP 200** et ouvre la session. Le drapeau est rendu dans la même transaction.
+*Mesuré sur la chaîne réelle, sous le rôle applicatif* : le bon code ouvre une session, le code de secours aussi. Le paragraphe est conservé barré plutôt que supprimé — quelqu'un qui a lu cette note avant le 08/09 doit pouvoir constater ce qui a changé.
 
-**Ce que cela coûte.** RG-DRO-05 impose le second facteur à `admin_plateforme`, `admin_societe` et `direction`. Le premier de ces comptes qui suit le parcours d'enrôlement — qui fonctionne, lui, et qui pose un **cliquet** que rien ne desserre (D58) — ne pourra **plus jamais** se connecter. Le déblocage est un acte administratif qui a un ticket, **L7-01, non construit**.
+### 5.3 — Le plancher du second facteur existe désormais, et ce qu'il ne couvre pas
 
-**C'est un arbitrage en attente, pas un correctif à écrire en séance** : le réparer demande de décider comment `verification` se consomme sous RLS, et c'est la même question que D62 laisse ouverte pour `second_facteur`. Voir le registre de session du 08/09/2026.
+**D62 est fermé.** Dix échecs consécutifs verrouillent le compte quinze minutes ; trois verrouillages enchaînés sans connexion réussie entre eux et le verrouillage **cesse d'expirer**. Mesuré en essayant, pas en lisant : dix codes comparés, puis `429`.
 
-### 5.3 — Le plancher du second facteur est inerte (D62), et ce qui reste est une limite par ADRESSE, en mémoire
+**Ce qui reste à connaître avant d'exposer, et qui est un état atteignable :**
 
-C'est D62, et le rendez-vous s'est refermé le jour où l'enrôlement a été livré.
+- **un compte parvenu à l'escalade n'a aucun chemin de sortie.** Le ticket de déverrouillage — **L7-04**, `admin_societe` de la société concernée — **n'est pas construit**. L'état s'atteint en trente codes faux. La base laisse déjà passer le geste ; ce qui manque est le droit.
+- la limite par **adresse IP** de la bibliothèque (3 requêtes / 10 s sur `/two-factor/*`) reste, elle, **en mémoire du processus** : elle disparaît au redémarrage et n'est pas partagée entre instances. Elle n'est plus la seule protection, mais elle ne compte toujours pas pour un attaquant distribué.
+- **s'assurer que `NODE_ENV=production` est bien posé chez l'hébergeur.** `next start` le pose ; une commande de démarrage exotique pourrait ne pas le faire, et cette limite-là serait alors désactivée.
 
-**Mesuré**, la chaîne de connexion étant placée dans l'état où elle fonctionne (§ 5.2 levé) : **cinq** codes faux sont comparés par défi ; le sixième reçoit `TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE` et le défi est consommé. Une nouvelle connexion par mot de passe rouvre un défi, et **cinq codes de plus**. Huit défis enchaînés : **quarante codes faux comparés, aucun verrouillage**, `second_facteur.echecs_verification` reste à **0** et `verrouille_jusqu_a` à **NULL**. La boucle s'est arrêtée parce que le scénario le lui a dit, pas parce que le système a refusé.
-
-**Le compteur par COMPTE n'existe donc pas.** Ce qui reste en production est la limite de débit de la bibliothèque, active seulement quand `NODE_ENV=production` : **3 requêtes par 10 secondes** sur `/two-factor/*` et sur `/sign-in*`, **par adresse IP**, stockée **en mémoire du processus**. Elle disparaît à chaque redémarrage, n'est pas partagée entre instances, et ne coûte rien à un attaquant qui change d'adresse. *Un code à six chiffres se devine en 10⁶ essais.*
-
-**S'assurer que `NODE_ENV=production` est bien posé chez l'hébergeur.** `next start` le pose ; une commande de démarrage exotique pourrait ne pas le faire, et cette limite-là serait alors désactivée aussi.
 
 ### 5.4 — Un compte habilité sur plusieurs sociétés arrive dans une impasse
 
@@ -155,7 +152,7 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 
 ## 6 — La procédure, dans l'ordre
 
-1. **Trancher les points 5.1 et 5.2.** Tant qu'ils tiennent, la mise en ligne produit un site où personne n'entre — et où le premier qui entrerait s'enfermerait.
+1. **Trancher le point 5.1.** Tant qu'il tient, la mise en ligne produit un site où personne n'entre : aucun compte de la base hébergée ne porte de mot de passe, et aucun écran n'en ouvre. Lire aussi le 5.3 : un compte parvenu à l'escalade n'a pas encore de chemin de sortie.
 2. Choisir la région de l'hébergeur au plus près de **`ap-southeast-2`**.
 3. Engendrer `BETTER_AUTH_SECRET` (≥ 32 octets aléatoires) et le déposer chez l'hébergeur **seulement**.
 4. Recopier le secret de dépôt `DATABASE_URL` dans la variable `DATABASE_URL` de l'hébergeur. **Ne pas y mettre `MIGRATION_DATABASE_URL`.**
