@@ -951,6 +951,11 @@ enum EvenementAcces {
   /// Elle vaudra telle quelle pour le chemin administratif du lot 7 : la valeur
   /// nomme donc l'ÉVÉNEMENT, jamais le chemin, qui va dans `detail`.
   ouverture_identite
+  /// Déverrouillage d'un compte parvenu à l'ESCALADE du second facteur
+  /// (L7-04 / D66). *Déverrouiller n'accorde aucun accès* : la personne devra
+  /// toujours présenter un code valide. C'est ce qui distingue L7-04 de L7-01,
+  /// qui rend un accès PERDU.
+  deverrouillage_second_facteur
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera

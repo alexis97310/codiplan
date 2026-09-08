@@ -144,6 +144,29 @@ export const VARIABLE_SESSION_AUTH_JETON = "app.authentification_jeton_session";
  * qui la détient. `verification` n'a aucune autre clé d'accès — elle n'est
  * jamais parcourue, jamais listée.
  */
+/**
+ * LE SUJET D'UN DÉVERROUILLAGE ADMINISTRATIF (L7-04 / D66).
+ *
+ * **Elle DÉSIGNE une ligne, elle n'autorise rien** — c'est la forme de D64 : la
+ * variable dit QUELLE ligne, la politique dit QUI a le droit et DANS QUEL ÉTAT.
+ * Seule, elle ne rend rien : `second_facteur_deverrouillage` exige en plus
+ * `admin_societe`, un sujet habilité sur la société active, et une ligne déjà à
+ * la sentinelle de l'escalade.
+ *
+ * **Pourquoi une variable plutôt qu'une clause `where`.** Mesuré le 09/09/2026 :
+ * PostgreSQL applique les politiques de `SELECT` au `WHERE` d'un `UPDATE`, si
+ * bien qu'un `UPDATE … WHERE utilisateur_id = <sujet>` aurait exigé d'OUVRIR la
+ * lecture de `second_facteur` à l'administrateur — c'est-à-dire de lui donner le
+ * secret et les codes de secours de la personne qu'il dépanne. Un `UPDATE` sans
+ * `WHERE` et à `SET` constants ne lit aucune colonne : le `USING` de la
+ * politique choisit seul les lignes, et aucune lecture n'est ouverte.
+ *
+ * Comme les désignations d'authentification, elle est **remise à vide** par tout
+ * contexte ordinaire : c'est sa pose la plus importante, celle qui referme.
+ */
+export const VARIABLE_SESSION_DEVERROUILLAGE_SUJET =
+  "app.deverrouillage_sujet_id";
+
 export const VARIABLE_SESSION_AUTH_IDENTIFIANT =
   "app.authentification_identifiant";
 
@@ -169,6 +192,12 @@ export type ContexteRls = {
    * renseignement : c'est l'information « ce n'est pas un compte portail ».**
    */
   clientId?: string | null;
+  /**
+   * Sujet d'un déverrouillage administratif (L7-04), `null` partout ailleurs.
+   * Alimente `app.deverrouillage_sujet_id`. **Elle désigne, elle n'autorise
+   * pas** : la politique exige en plus le rôle, l'habilitation et l'état.
+   */
+  deverrouillageSujetId?: string | null;
 };
 
 /*
@@ -214,6 +243,13 @@ const POSE: readonly {
   { variable: VARIABLE_SESSION_AUTH_UTILISATEUR, valeur: () => "" },
   { variable: VARIABLE_SESSION_AUTH_JETON, valeur: () => "" },
   { variable: VARIABLE_SESSION_AUTH_IDENTIFIANT, valeur: () => "" },
+  // Le sujet d'un déverrouillage administratif (L7-04). Vide partout ailleurs,
+  // et c'est cette pose-là qui compte : sur une connexion mutualisée, une
+  // variable non posée hérite de ce que la transaction précédente y a laissé.
+  {
+    variable: VARIABLE_SESSION_DEVERROUILLAGE_SUJET,
+    valeur: (c) => c.deverrouillageSujetId ?? "",
+  },
 ];
 
 /**
