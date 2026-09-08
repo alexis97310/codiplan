@@ -65,15 +65,28 @@ export function garantirRoleApplicatif(): Promise<void> {
  * d'audit lit `app.utilisateur_id` ; ce chemin est le seul qui connaisse un
  * utilisateur, donc le seul qui puisse le nommer. Les autres chemins écrivent
  * un auteur nul — et sont journalisés quand même.
+ *
+ * **`client` est pris en paramètre pour la même raison que l'`instance` de
+ * `obtenirSession` (L1-02d)** : une couche sans appelant ne se garde pas. Ce
+ * chemin sert désormais la page d'arrivée, et le scénario qui prouve le
+ * cloisonnement À TRAVERS L'APPLICATION doit pouvoir l'emprunter contre la base
+ * jetable — sans quoi il éprouverait une variante écrite pour lui.
  */
 export async function avecContexteApplicatif<T>(
   contexte: ContexteSession,
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
+  client?: PrismaClient,
 ): Promise<T> {
   const actif = exigerContexteActif(contexte);
-  await garantirRoleApplicatif();
+  // Le CONTRÔLE DE RÔLE ne vaut que pour la connexion du module (L1-02f) : un
+  // client fourni est celui d'un scénario d'isolation, qui se connecte déjà
+  // sous le rôle applicatif restreint et l'a prouvé à son propre démarrage.
+  // Le lui rejouer ici contrôlerait la MAUVAISE connexion.
+  if (client === undefined) {
+    await garantirRoleApplicatif();
+  }
   return avecContexteRls(
-    prisma,
+    client ?? prisma,
     {
       societeId: actif.societeId,
       role: actif.role,

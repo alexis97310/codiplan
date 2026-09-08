@@ -397,6 +397,33 @@ export function avecSocieteEtRole<T>(
 }
 
 /**
+ * Contexte d'IDENTITÉ SEULE — aucune société active (ticket L1-02f).
+ *
+ * **Ce n'est pas une variante de confort, c'est le seul contexte qui existe
+ * entre la connexion et la première activation de société.** La connexion
+ * n'établit que l'identité (D35) ; `basculerSociete` exige qu'on lui NOMME la
+ * société visée ; et la seule lecture qui puisse la nommer est celle des
+ * habilitations du compte, sous la huitième forme de politique — « appartenance »,
+ * ancrée sur `app.utilisateur_id` et non sur `app.societe_id` (D61).
+ *
+ * `app.societe_id` part donc à VIDE, ce qui n'est pas une omission : les
+ * politiques la lisent par `NULLIF(…, '')`, et une société vide signifie
+ * exactement « aucune ». Toute table cloisonnée rend alors zéro ligne — c'est
+ * le comportement voulu, et un scénario le mesure.
+ */
+export function avecIdentite<T>(
+  prisma: PrismaClient,
+  utilisateurId: string,
+  travail: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return avecContexteRls(
+    prisma,
+    { societeId: "", role: null, auteurId: utilisateurId },
+    travail,
+  );
+}
+
+/**
  * Variante sans rôle, pour les chemins qui n'en ont pas : le seed et le
  * contrôle de cloisonnement, qui écrivent le socle sous le rôle propriétaire.
  * Un chemin de session passe toujours par `avecSocieteEtRole`.

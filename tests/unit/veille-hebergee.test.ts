@@ -181,6 +181,14 @@ const HORS_OBSERVATION: readonly {
       "c'est là que la veille mord.",
   },
   {
+    fonction: "ecartsListeAppartenance",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_APPARTENANCE`), pas la base — même " +
+      "raison que `ecartsListeParc`. La FORME qu'elle commande, elle, est " +
+      "observée : `ecartsPolitiques` mesure dans `pg_policies` que la branche " +
+      "« sa propre ligne » existe et qu'elle est en `SELECT` seul.",
+  },
+  {
     fonction: "ecartsListeParc",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_PARC`), pas la base. Aucune main " +

@@ -109,7 +109,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
-**Et cette politique a SEPT formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les sept, avec leur cas et une table qui les porte :
+**Et cette politique a HUIT formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les huit, avec leur cas et une table qui les porte :
 
 | Forme | Clause | S'applique à | Exemple en base |
 |---|---|---|---|
@@ -120,6 +120,7 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 | **journal** | `SELECT` société **et** habilitation ; `INSERT` seul ; ni `UPDATE` ni `DELETE` | `journal_audit` *(I8)* | `journal_audit` |
 | **habilitation** | société **ET** ( pas de `app.client_id` **OU** sa propre ligne ) | `utilisateur_client`, `utilisateur_client_site` — ce qui DONNE accès au parc *(L1-02b)* | `utilisateur_client` |
 | **désignation** | la ligne que l'appelant NOMMAIT DÉJÀ, **plus** un rattachement à la société active pour `utilisateur` | `utilisateur` *(L1-02c)*, puis les quatre tables techniques d'authentification *(L1-02d)* — et uniquement pour ce qui PRÉCÈDE la société | `utilisateur`, `session`, `compte`, `verification`, `second_facteur` |
+| **appartenance** | société pour tout le monde, **plus** SA PROPRE LIGNE en `SELECT` SEUL | `utilisateur_societe` *(D61)* — la table qui dit sur quelles sociétés une identité est habilitée | `utilisateur_societe` |
 
 **La sixième n'est pas une variante de « parc » : elle en est l'INVERSE fonctionnel** *(L1-02b)*. La forme « parc » lit `app.perimetre_sites` ; les tables d'habilitation sont celles d'où cette variable est CALCULÉE. Leur donner la forme « parc » serait circulaire — une politique qui lit la variable que sa propre lecture alimente ne se referme jamais. Leur laisser la clause société seule était la fuite mesurée le 07/09/2026 : un compte portail du client A lisait les lignes d'habilitation des comptes du client B de la même société, en tirait leurs identités par jointure, et énumérait par là les autres clients. Le **discriminant** est `app.client_id`, posée pour un compte portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les habilitations de SA société, ce qu'une clause « sa propre ligne » sans discriminant lui aurait retiré.
 
@@ -136,6 +137,12 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 *La moitié non gardable est la PROVENANCE*, et elle s'écrit ici parce qu'aucun motif statique ne peut la décider : **la valeur d'une désignation est dérivée d'un contexte authentifié, jamais reçue d'un appelant.** Le jour où un chemin la recevra de l'extérieur, la borne deviendra nominale — et rien ne le dira. C'est à lire avant d'ajouter un chemin, pas après.
 
 **Et chaque table ne se désigne QUE par sa propre clé** *(L1-02d)*. Une branche avait été ajoutée à `utilisateur_lecture` pour que le jeton de session désigne aussi son identité ; le **jumeau l'a démentie** — retirée, la chaîne complète reste verte —, et elle a été supprimée plutôt que gardée « au cas où ». *Une branche inutile dans une politique d'identité est un élargissement sans objet.*
+
+**La huitième abat un MUR, et il avait été mesuré avant d'être contourné** *(D61, ticket L1-02f)*. La connexion n'établit que l'identité (D35) ; `basculerSociete` exige qu'on lui NOMME la société visée ; et `utilisateur_societe` portait la forme « société », si bien que la question « sur quelles sociétés suis-je habilité ? » rendait **zéro ligne** tant qu'une société n'était pas déjà active. **Aucun chemin ne permettait donc à un utilisateur réel d'atteindre sa propre société** — le premier écran est venu buter dessus.
+
+La forme ajoute une politique de `SELECT` ancrée sur l'identité connectée : *un compte lit SES lignes d'habilitation, toutes sociétés confondues ; jamais celles d'autrui.* C'est la première fois qu'une ligne de la **première catégorie de I1** devient lisible hors de sa société, et **le coût est nommé** : la liste des sociétés d'une personne est lisible par cette personne. Elle ne rend ni leurs NOMS — `societe` reste de forme « identité » —, ni aucune de leurs données.
+
+**Et ce qui la borne est la COMMANDE, pas la clause** : la même branche sur une écriture laisserait un compte s'attribuer le rôle de son choix sur la société de son choix. Elle est donc en `SELECT` et en `SELECT` seul, l'écriture restant entièrement gouvernée par la clause de société ; un gardien le vérifie commande par commande, et une épreuve le montre sur la faute telle qu'elle se commettrait — en « simplifiant » vers `FOR ALL`. Liste close gardée dans les deux sens : `TABLES_APPARTENANCE`, dont le **retrait** est le sens silencieux — il fait retomber la table sur la forme « société », qui passe tous les gardiens, et le mur revient.
 
 **Et une politique qui n'énonce qu'un `USING` LÉGIFÈRE EN SILENCE sur les écritures** *(L1-02c)*. PostgreSQL y fait valoir la même expression en `WITH CHECK` — une décision prise par personne, exactement comme l'`ON UPDATE CASCADE` par défaut de Prisma. Mesuré : sous une expression de lecture reprise en écriture, la **création de compte est refusée**, parce qu'au moment où l'identité est insérée son habilitation n'existe pas encore. **Toute politique couvrant une écriture énonce donc son `WITH CHECK`, même quand il répète le `USING`** — pour que ce soit une décision et non une conséquence. Gardé par `ecartsWithCheckExplicite`, sur la base jetable et sur la base hébergée.
 
@@ -294,6 +301,12 @@ lib/
               `utilisateur` : chacune ne se lit qu'en NOMMANT sa ligne
               la surface HTTP est une liste close de chemins FERMÉS, jamais
               une liste de chemins ouverts (D58)
+              enrolement.ts : la SEULE transition en libre-service (D58) —
+              elle POSE, elle ne retire jamais ; les deux drapeaux y sont
+              écrits par nous, la bibliothèque les désignant par un `id` que
+              la politique ne reconnaît pas (L1-02f)
+              arrivee.ts : ce qu'un écran a le droit de dire — qui vous êtes,
+              pour quelle société, et rien d'autre
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule

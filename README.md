@@ -429,6 +429,7 @@ Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 | **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                                                   |
 | **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
 | **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
+| **appartenance** | société pour tout le monde, **plus** sa propre ligne en `SELECT` SEUL              | `utilisateur_societe` (D61)                                                            |
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au
@@ -456,6 +457,14 @@ Et une politique qui n'énonce qu'un `USING` **légifère en silence sur les
 écritures** : PostgreSQL y fait valoir la même expression. Toute politique
 couvrant une écriture énonce donc son `WITH CHECK`, **même quand il répète le
 `USING`** — pour que ce soit une décision et non une conséquence.
+
+La forme **« appartenance »** existe pour une raison mesurée : sans elle, aucun
+chemin ne permettait à un compte de découvrir sur quelles sociétés il est
+habilité — la connexion n'établit que l'identité, `basculerSociete` exige qu'on
+lui nomme la société, et `utilisateur_societe` rendait zéro ligne tant qu'aucune
+n'était active. Elle est en **`SELECT` seul** : la même branche sur une écriture
+laisserait un compte s'attribuer le rôle de son choix sur la société de son
+choix.
 
 La forme **« habilitation »** vise les tables qui **donnent** accès au parc,
 jamais les données du parc. Leur donner la forme « parc » serait circulaire :

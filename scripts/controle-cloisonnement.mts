@@ -14,6 +14,7 @@ import {
   type PrivilegeAccorde,
 } from "./lib/privileges-consolidation";
 import {
+  ecartsListeAppartenance,
   ecartsListeParc,
   ecartsPolitiques,
   rapportPolitiques,
@@ -415,6 +416,7 @@ try {
     ...ecartsDurcissementPartitions(partitionsJournal),
     ...ecartsRlsDeclaree(etatRls),
     ...ecartsListeParc(),
+    ...ecartsListeAppartenance(),
     ...ecartsPolitiques(formes.colonnes, formes.politiques),
   ];
   for (const societe of inventaire.societes) {

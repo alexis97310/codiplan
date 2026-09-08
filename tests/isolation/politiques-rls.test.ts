@@ -148,7 +148,10 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     }
     expect(parForme.get("identité")).toEqual(["societe"]);
     expect(parForme.get("société")).toContain("agence");
-    expect(parForme.get("société")).toContain("utilisateur_societe");
+    // `utilisateur_societe` a QUITTÉ la forme « société » à L1-02f (D61) : elle
+    // porte la huitième, « appartenance ». Le témoin le nomme plutôt que de
+    // compter, pour qu'un déplacement ultérieur se voie (§9, 06/09).
+    expect(parForme.get("appartenance")).toEqual(["utilisateur_societe"]);
     expect([...(parForme.get("parc") ?? [])].sort()).toEqual([
       "client",
       "contact",
@@ -156,6 +159,59 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
       "site",
     ]);
     expect(parForme.get("journal")).toEqual(["journal_audit"]);
+  });
+
+  it("ÉPREUVE : la branche « sa propre ligne » sur une ÉCRITURE est refusée (D61)", async () => {
+    // LA faute que la huitième forme existe pour arrêter, et elle se commet en
+    // simplifiant : une session étend la branche de lecture aux quatre
+    // commandes « pour que ce soit cohérent ». Un compte pourrait alors ÉCRIRE
+    // sa propre habilitation — s'attribuer le rôle de son choix sur la société
+    // de son choix.
+    const observation = await sousLaFaute([
+      'DROP POLICY "utilisateur_societe_mes_habilitations" ON "utilisateur_societe"',
+      'CREATE POLICY "utilisateur_societe_mes_habilitations" ON "utilisateur_societe" ' +
+        "FOR ALL USING (\"utilisateur_id\" = NULLIF(current_setting('app.utilisateur_id', true), '')::uuid) " +
+        "WITH CHECK (\"utilisateur_id\" = NULLIF(current_setting('app.utilisateur_id', true), '')::uuid)",
+    ]);
+
+    // LA SONDE — la faute a-t-elle bien eu lieu ?
+    expect(
+      observation.politiques.find(
+        (p) =>
+          p.table === "utilisateur_societe" &&
+          p.nom === "utilisateur_societe_mes_habilitations" &&
+          p.commande.toUpperCase() === "ALL",
+      ),
+    ).toBeDefined();
+
+    expect(
+      observation.ecarts.filter((ecart) =>
+        /s.attribuer le rôle de son choix/.test(ecart),
+      ),
+    ).not.toEqual([]);
+  });
+
+  it("ÉPREUVE : retirer la branche « sa propre ligne » est refusé aussi (D61)", async () => {
+    // Le sens INVERSE, et c'est celui qui se commettrait sans y penser : une
+    // session « nettoie » une politique qu'elle croit redondante, et le mur
+    // revient — aucun compte ne peut plus découvrir sa propre société.
+    const observation = await sousLaFaute([
+      'DROP POLICY "utilisateur_societe_mes_habilitations" ON "utilisateur_societe"',
+    ]);
+
+    expect(
+      observation.politiques.find(
+        (p) =>
+          p.table === "utilisateur_societe" &&
+          p.nom === "utilisateur_societe_mes_habilitations",
+      ),
+    ).toBeUndefined();
+
+    expect(
+      observation.ecarts.filter((ecart) =>
+        /branche « sa propre ligne » en `SELECT`/.test(ecart),
+      ),
+    ).not.toEqual([]);
   });
 
   it("ÉPREUVE : la forme « référentiel » réellement posée sur une table métier est refusée", async () => {
