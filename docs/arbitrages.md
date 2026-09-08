@@ -2013,3 +2013,19 @@ Elle n'ouvre **aucun sélecteur de société**. Le premier écran active automat
 **Déclencheur explicite : le premier `admin_societe` réellement enrôlé sur une société cliente.** Ce n'est pas « quand on y pensera » : c'est un état observable, et le même jour que celui où RG-DRO-05 commence à mordre.
 
 **Ce que le ticket devra trancher, et qui n'est pas tranché ici.** Ou bien `second_facteur` reçoit une clé de désignation par `id` — addition à une liste close, et un `id` de `second_facteur` est un UUID v7, donc **pas un secret** : la borne y serait *nominale*, exactement la réserve déjà inscrite au registre pour `journal_acces` ; ou bien les deux compteurs sont écrits par nous, par `utilisateur_id`, comme L1-02f l'a fait des deux drapeaux d'enrôlement. **Aucune des deux ne se décide dans un ticket.**
+
+---
+
+## D63 — Les durées de validité restent NULLES, et ce que leur absence coûte
+
+*Décision d'exploitation, 8 septembre 2026. Confirme l'arbitrage ouvert à L1-04 et en chiffre le coût, plutôt que de le laisser au silence.*
+
+**La décision ne bouge pas, et elle était juste.** Une périodicité de recyclage est une **pratique d'entreprise**, pas un chiffre que la norme donne : l'écrire dans l'amorçage reviendrait à inventer une valeur métier que personne n'a arbitrée (CLAUDE.md §8 — *un montant, un taux, un délai non spécifié : ne jamais inventer de valeur par défaut*). Les durées seront **saisies**, société par société.
+
+**Ce que l'absence coûte, dit en une phrase :** RG-PLA-04 ne peut refuser une affectation que sur l'**absence** d'une habilitation, jamais sur son **expiration**.
+
+**Et voici pourquoi il fallait l'écrire.** `date_expiration` nulle se lit « n'expire pas » — ce qui est le bon défaut, il ne bloque personne à tort. Mais tant qu'aucune date n'est saisie, **rien n'expire jamais**, et la moitié « ou expirée » de la règle est inerte sans que rien ne le signale. *Le silence a exactement la forme du succès* (§9, 31/08) : le blocage fonctionne, les scénarios sont verts, et personne ne s'apercevra que la seconde moitié dort — jusqu'au jour où un technicien interviendra sous une habilitation périmée et où l'on cherchera le défaut dans le moteur de planning plutôt que dans une colonne vide.
+
+**Ce n'est donc PAS un défaut du code**, et c'est ce qui le rend dangereux : le code est juste, la donnée manque. Le remède n'est pas un correctif mais un **paramétrage**, et il n'a pas de déclencheur technique — aucun test ne peut rougir sur une donnée que personne n'a saisie.
+
+**Le rendez-vous, faute de déclencheur automatique :** au paramétrage de la première société cliente, la saisie des durées de validité fait partie de la mise en service, au même titre que les calendriers d'agence. Tant qu'elle n'est pas faite, l'exploitation sait que RG-PLA-04 ne tient qu'à moitié — et le sait parce que c'est écrit ici.

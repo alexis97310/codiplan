@@ -950,9 +950,17 @@ export const PARITES: readonly PariteSeed[] = [
  * — aujourd'hui par le seed, demain par le provisionnement du lot 7 — pour
  * qu'aucune société ne parte d'une page blanche.
  *
- * **Les codes et les libellés sont des FAITS**, ceux de la norme NF C 18-510
- * pour l'électrique et de la recommandation R489 pour les chariots. Ils ne sont
- * pas inventés, et c'est ce qui les distingue du reste du jeu de démonstration.
+ * **TROIS FAMILLES, parce que CODIMA en suit trois** (décision d'exploitation du
+ * 08/09/2026) : les habilitations électriques, les CACES et engins, et le
+ * travail en hauteur. L'amorçage n'en couvrait qu'une et demie ; une liste
+ * amorcée sur l'électrique seul se lit comme un catalogue complet, et personne
+ * ne s'aperçoit que deux tiers du métier manquent.
+ *
+ * **Les codes et les libellés sont des FAITS** — symboles de la norme NF C
+ * 18-510, catégories des recommandations R489, R482, R484, R486 et R408 de la
+ * CNAM. Ils ne sont pas inventés, et c'est ce qui les distingue du reste du jeu
+ * de démonstration. **Une seule entrée n'est pas réglementaire**, le port du
+ * harnais, et son libellé le DIT : c'est l'illustration en acte de D60.
  *
  * **Les DURÉES DE VALIDITÉ, elles, sont laissées NULLES, et c'est une
  * décision.** La périodicité de recyclage est une pratique d'entreprise, pas une
@@ -968,26 +976,138 @@ export const PARITES: readonly PariteSeed[] = [
  * donne exactement la même propriété — rejouer le seed corrige un libellé au
  * lieu de créer une seconde habilitation.
  */
+/**
+ * Les trois FAMILLES que CODIMA suit réellement (décision d'exploitation du
+ * 08/09/2026, ticket L1-04b).
+ *
+ * **La famille n'est PAS une colonne de `habilitation`, et c'est délibéré.**
+ * Elle organise l'AMORÇAGE, pas la table : une société qui ajoutera « formé sur
+ * telle presse » n'aura aucune famille à choisir, et D60 dit très exactement
+ * cela — *une société suit aussi des qualifications qu'aucune nomenclature ne
+ * connaît.* La poser en base ferait de l'ajout d'une famille une migration, ce
+ * qui est le raisonnement des zones pris à l'envers.
+ *
+ * Ce qu'elle permet, en revanche, c'est un gardien : les trois familles doivent
+ * être PEUPLÉES. Une liste amorcée sur l'électrique seul se lirait comme un
+ * catalogue complet, et personne ne s'apercevrait que deux tiers du métier
+ * manquent — un décompte non nul ressemble beaucoup trop à des données justes
+ * (§9, 21/08).
+ */
+export type FamilleHabilitation = "electrique" | "caces_engins" | "hauteur";
+
+export const FAMILLES_HABILITATION: readonly FamilleHabilitation[] = [
+  "electrique",
+  "caces_engins",
+  "hauteur",
+];
+
 export type HabilitationAmorcageSeed = {
   readonly code: string;
   readonly libelle: string;
+  readonly famille: FamilleHabilitation;
 };
 
 export const HABILITATIONS_AMORCAGE: readonly HabilitationAmorcageSeed[] = [
+  // ── ÉLECTRIQUE — symboles de la norme NF C 18-510 ────────────────────────
   {
     code: "B0",
+    famille: "electrique",
     libelle: "Exécutant non électricien — travaux d'ordre non électrique",
   },
   {
+    code: "H0V",
+    famille: "electrique",
+    libelle: "Non électricien au voisinage renforcé — haute tension",
+  },
+  {
+    code: "BS",
+    famille: "electrique",
+    libelle: "Chargé d'intervention élémentaire — basse tension",
+  },
+  {
+    code: "BE-MANOEUVRE",
+    famille: "electrique",
+    libelle: "Chargé d'opérations spécifiques — manœuvre, basse tension",
+  },
+  {
     code: "B1V",
+    famille: "electrique",
     libelle: "Exécutant électricien — travaux au voisinage, basse tension",
   },
   {
+    code: "B2V",
+    famille: "electrique",
+    libelle: "Chargé de travaux au voisinage — basse tension",
+  },
+  {
     code: "BR",
+    famille: "electrique",
     libelle: "Chargé d'intervention générale — basse tension",
   },
   {
+    code: "BC",
+    famille: "electrique",
+    libelle: "Chargé de consignation — basse tension",
+  },
+  {
+    code: "HC",
+    famille: "electrique",
+    libelle: "Chargé de consignation — haute tension",
+  },
+
+  // ── CACES ET ENGINS — recommandations R489, R482, R484 de la CNAM ────────
+  {
+    code: "R489-1B",
+    famille: "caces_engins",
+    libelle: "Gerbeur à conducteur porté (CACES R489 cat. 1B)",
+  },
+  {
     code: "R489-3",
+    famille: "caces_engins",
     libelle: "Chariot élévateur frontal en porte-à-faux (CACES R489 cat. 3)",
+  },
+  {
+    code: "R489-5",
+    famille: "caces_engins",
+    libelle: "Chariot élévateur à mât rétractable (CACES R489 cat. 5)",
+  },
+  {
+    code: "R482-A",
+    famille: "caces_engins",
+    libelle: "Engin de chantier compact (CACES R482 cat. A)",
+  },
+  {
+    code: "R484-1",
+    famille: "caces_engins",
+    libelle: "Pont roulant et portique à commande au sol (CACES R484 cat. 1)",
+  },
+
+  // ── TRAVAIL EN HAUTEUR — recommandations R486 et R408 ────────────────────
+  {
+    code: "R486-A",
+    famille: "hauteur",
+    libelle: "PEMP du groupe A — élévation verticale (CACES R486 cat. A)",
+  },
+  {
+    code: "R486-B",
+    famille: "hauteur",
+    libelle:
+      "PEMP du groupe B — élévation multidirectionnelle (CACES R486 cat. B)",
+  },
+  {
+    code: "R408",
+    famille: "hauteur",
+    libelle: "Montage, démontage et vérification d'échafaudage de pied (R408)",
+  },
+  {
+    // LA SEULE ENTRÉE NON RÉGLEMENTAIRE, et elle est là pour ce qu'elle
+    // ILLUSTRE autant que pour ce qu'elle sert : D60 dit qu'une société suit
+    // des qualifications qu'aucune nomenclature ne chiffre. Le port du harnais
+    // en est une — il relève de la formation d'entreprise, et son libellé le
+    // dit plutôt que de se donner l'allure d'un code officiel.
+    code: "HARNAIS",
+    famille: "hauteur",
+    libelle:
+      "Port du harnais et systèmes d'arrêt de chute — formation d'entreprise, hors nomenclature",
   },
 ];
