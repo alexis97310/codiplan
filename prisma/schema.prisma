@@ -50,12 +50,13 @@ enum Role {
 /// le franc Pacifique est le même partout, la table est lisible par toutes
 /// les sociétés. La parité datée vit dans `parite` (D20), plus dans `devise`.
 model Devise {
-  code      String    @id
-  libelle   String
-  decimales Int
-  symbole   String? // symbole si la devise en a un, sinon on affiche le code (D19)
-  societes  Societe[]
-  parites   Parite[]
+  code          String        @id
+  libelle       String
+  decimales     Int
+  symbole       String? // symbole si la devise en a un, sinon on affiche le code (D19)
+  societes      Societe[]
+  parites       Parite[]
+  taux_horaires TauxHoraire[]
 
   @@map("devise")
 }
@@ -144,6 +145,7 @@ model Societe {
   sites                 Site[]
   familles_materiel     FamilleMateriel[]
   modeles_materiel      ModeleMateriel[]
+  taux_horaires         TauxHoraire[]
 
   @@map("societe")
 }
@@ -1179,6 +1181,41 @@ model Contact {
 ///
 /// La liste réglementaire garde sa valeur comme AMORÇAGE : une société qui
 /// s'ouvre la reçoit par défaut et peut la compléter ou la réduire.
+/// Taux horaire d'une société, HISTORISÉ par date d'effet (ticket L1-07,
+/// RG-TAR-04).
+///
+/// *Une intervention se facture au taux en vigueur à SA date, pas au taux
+/// d'aujourd'hui. Une facture qui change quand le tarif change est une facture
+/// fausse.* Une colonne ne peut pas porter cela : elle porte la valeur de
+/// maintenant. Il faut une ligne par date d'effet, et la lecture choisit la plus
+/// récente qui ne soit pas postérieure à la date cherchée.
+model TauxHoraire {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Le jour à partir duquel ce taux s'applique. Une DATE et non un instant :
+  /// un tarif change un jour, pas à une heure.
+  date_effet DateTime @db.Date
+
+  /// Valeur ENTIÈRE, dans l'unité la plus fine de la devise — la forme de
+  /// `Montant` dans `lib/money` : 7000 pour 7 000 XPF, 6500 pour 65,00 EUR.
+  /// Jamais un flottant : les décimales sont une propriété de la devise (I3).
+  montant_mineur BigInt
+
+  /// Il accompagne le montant, toujours (I2) : un taux lu sans sa devise est un
+  /// nombre, et un nombre n'est pas un montant. Un déclencheur refuse qu'il
+  /// s'écarte de celui de sa société — la redondance est un CONSTAT contraint,
+  /// pas une seconde source.
+  devise_code String
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  devise  Devise  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, date_effet])
+  @@index([societe_id, date_effet(sort: Desc)])
+  @@map("taux_horaire")
+}
+
 /// Famille de matériel suivie par une société (ticket L1-05).
 ///
 /// **Table MÉTIER cloisonnée, et non référentiel de plateforme.** D4 est amendé
