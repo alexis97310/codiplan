@@ -241,11 +241,14 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 
 ## Lot 2 — Parc et interventions (4 semaines)
 
-**L2-01** Fiche machine. **[D6] [D7]**
+**L2-01** Fiche machine. **[D6] [D7] [D10] [D22] [D55]**
 **Quatre champs obligatoires** : `modele_id`, `client_id`, `site_id`, `numero_serie`. Numéro illisible → `SN-INCONNU-<référence>` et `complet = false`.
 `id` en UUID v7 généré côté client ; `numero` attribué par le serveur à la synchronisation ; affichage `Local-<6 car.>` tant qu'il est nul.
+**LIVRÉ le 09/09/2026.** La TROISIÈME et dernière fixture du parc s'est effacée devant la vraie table, et le contrat de R0-a a été honoré : la clause de politique est **exactement** celle que le harnais posait, si bien que les scénarios de `qr-code.test.ts` et de `portail-client.test.ts` s'y sont reportés **sans qu'une ligne change**. Les planchers de `EXIGENCES_L0_05` MONTENT — `qr_inter_societe` de 3 à 5, `perimetre_sites` de 4 à 6.
+**Ce qui n'est PAS fait, et qui est écrit plutôt que tu :** **personne n'attribue `numero`.** La colonne existe, son unicité par société est posée, et le compteur par société appartient à la **synchronisation (lot 3)** — l'inventer ici poserait une règle que personne n'a décidée. Toute fiche créée aujourd'hui porte donc `numero = NULL`, ce qui est exactement l'état que D7 décrit pour une machine non synchronisée.
+**Un écart de rang corrigé au passage :** le chapitre 11 écrivait que `reference_interne` était « portée par le QR ». **I10 et D7 disent le contraire** — le QR encode le `qr_token`, jamais autre chose. La ligne est amendée, et `numero` entre au chapitre 11, où elle manquait.
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
-*Relu contre les sources citées le 01/09/2026 — empreinte `c55287f9`.*
+*Relu contre les sources citées le 09/09/2026 — empreinte `1628cf9c`.*
 **L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
 *Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
