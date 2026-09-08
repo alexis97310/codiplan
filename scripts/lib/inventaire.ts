@@ -72,6 +72,10 @@ export const TABLES_CLOISONNEES = [
   // pas écrire ne peut pas créer de copie.
   "famille_materiel",
   "modele_materiel",
+  // L1-07 : le taux horaire, HISTORISÉ par date d'effet. Un tarif est
+  // commercial, donc propre à chaque société — D4 le dit déjà de `prestation`
+  // et `forfait`.
+  "taux_horaire",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

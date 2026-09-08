@@ -370,6 +370,16 @@ incident de sécurité. Trois fils d'issues distincts : `[veille-injoignable]`,
 `DROP TRIGGER`, une partition créée nue, un `GRANT UPDATE` de dépannage : les
 trois sont nommées.
 
+## Le taux horaire est historisé, et la table naît vide
+
+`taux_horaire` porte une ligne par **date d'effet** (RG-TAR-04). _Une intervention se facture au taux en vigueur à sa date, pas au taux d'aujourd'hui : une facture qui change quand le tarif change est une facture fausse._ Une colonne ne peut pas porter cela — elle porte la valeur de maintenant.
+
+Le montant est un **entier** dans l'unité la plus fine de la devise — 7000 pour 7 000 XPF, 6500 pour 65,00 EUR —, exactement la forme de `Montant` dans `lib/money`, et il **ne voyage jamais sans son code de devise** (I2, I3). Un déclencheur refuse qu'il s'écarte de la devise de sa société.
+
+**La table naît VIDE, et c'est délibéré.** Le taux de CODIMA est connu — 7 000 XPF —, mais **sa date d'effet ne l'est pas**, et c'est elle que la table exige. L'inventer serait inventer une donnée métier (§8). Tant qu'aucune ligne n'existe, `tauxEnVigueur` rend `null` : un taux manquant ne se lit **jamais** « gratuit ».
+
+**Ce qui n'est pas fait, et pourquoi :** `societe.taux_horaire_defaut` reste en place. C'est un `DECIMAL(18,4)` qui porte `65.0000` pour CODIMA-EU là où la forme entière vaut `6500` — _ce ne sont pas les mêmes nombres_. Déplacer cette valeur est une migration de donnée monétaire, et elle appartient à l'exploitation.
+
 ## Familles et modèles — un mécanisme retiré plutôt qu'arbitré
 
 `famille_materiel` et `modele_materiel` sont des **tables métier cloisonnées**, `societe_id NOT NULL`, forme « société », RLS forcée, auditées. Elles étaient destinées à la deuxième catégorie de I1 — référentiels de plateforme — et **D4 est amendé** :

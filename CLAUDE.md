@@ -358,6 +358,15 @@ lib/
               c'est le raisonnement des zones PRIS À L'ENVERS — les zones sont
               closes parce qu'elles ne bougeront pas, les familles bougeront à
               chaque société
+  tarification/ taux horaire HISTORISÉ par date d'effet (L1-07, RG-TAR-04)
+              une intervention se facture au taux en vigueur à SA date : une
+              facture qui change quand le tarif change est une facture fausse
+              AUCUNE fonction « le taux courant » — elle serait juste
+              aujourd'hui et fausse demain, et le premier appelant pressé la
+              prendrait pour une intervention du mois dernier
+              rend un Montant, jamais un nombre : entier, et avec sa devise
+              ne combine RIEN — la composition d'un forfait et d'un taux n'est
+              pas tranchée, elle est au registre
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
