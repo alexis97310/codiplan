@@ -44,13 +44,17 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 | Validation | Zod, sur toute entrée serveur sans exception | — |
 | Tests unitaires | Vitest | — |
 | Tests bout en bout | Playwright | — |
-| Excel | SheetJS — `.xlsx` uniquement, jamais de CSV | — |
+| Excel | ~~SheetJS~~ — une bibliothèque de lecture `.xlsx` **MAINTENUE** ; `.xlsx` uniquement, jamais de CSV *(amendé le 09/09/2026 — voir ci-dessous)* | — |
 | PDF | React-PDF | — |
 | Stockage objet | Stockage S3-compatible de l'hébergeur | — |
 | Email | Resend | — |
 | File de jobs | Table PostgreSQL + tâche planifiée | Pas de service dédié |
 | CI | GitHub Actions | — |
 | Paquets | pnpm | Pas de npm ni yarn |
+
+**Le §2 nommait SheetJS, et il a été écrit quand SheetJS était sur npm** *(amendement du 09/09/2026)*. Le paquet `xlsx` y est figé sur `0.18.5` — c'est ce que le registre annonce comme `latest` —, et **deux avis de sécurité HAUTS le visent sans correctif atteignable depuis npm** : `patched_versions: <0.0.0` pour les deux, l'éditeur ne publiant plus que sur sa propre distribution. Le premier, CVE-2023-30533, est une pollution de prototype **qui se déclenche à la lecture d'un fichier apporté** — l'usage exact et unique de ce module. *« Borner par l'usage » ne borne rien quand l'usage EST le vecteur.*
+
+**Ce n'est donc pas une contrainte qu'on contourne, c'est une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
 
 **Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance se justifie en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt qu'ajouter 200 Ko.
 
@@ -396,10 +400,10 @@ lib/
   sync/       (prévu) protocole hors-ligne
   excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
               format.ts : marqueur de version, dates, nombres, colonnes
-              AUCUNE dépendance : la liaison à SheetJS est en attente
-              d'arbitrage, le paquet npm étant figé sur une version que deux
-              avis de sécurité HAUTS visent sans correctif atteignable — la
-              mesure et la question sont au registre du 08/09
+              AUCUNE dépendance : la liaison au CLASSEUR est en attente
+              d'arbitrage. Le §2 ne nomme plus SheetJS (amendé le 09/09) : il
+              exige une bibliothèque de lecture .xlsx MAINTENUE. La comparaison
+              des deux voies est au registre du 09/09
               un nombre lu ne rend JAMAIS un flottant : les chiffres et leur
               échelle, pour que I3 ne soit pas enfreint une ligne après nous
               une date se lit en UTC, jamais par un Date local — UTC+11 décale
