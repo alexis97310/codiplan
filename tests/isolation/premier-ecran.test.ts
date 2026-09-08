@@ -285,6 +285,120 @@ describe("ENRÔLEMENT REQUIS — le jugement, et son ordre", () => {
   });
 });
 
+/**
+ * L'IMPASSE MULTI-SOCIÉTÉ — un RENDEZ-VOUS, pas une embuscade (ticket L2-11).
+ *
+ * ## Ce que ce fichier constate, et pourquoi il ne le répare pas
+ *
+ * D61 l'a écrit noir sur blanc : *cette décision n'ouvre aucun sélecteur de
+ * société.* Le premier écran active la société d'un compte qui n'en a qu'une, et
+ * se contente de DIRE qu'aucune n'est active quand il y en a plusieurs. Le
+ * sélecteur est un écran de back-office, et il viendra avec lui.
+ *
+ * **Le coût de cette phrase n'était écrit nulle part, et c'est ce qui la rendait
+ * dangereuse.** Un compte habilité sur deux sociétés se connecte, arrive, et ne
+ * peut RIEN faire : aucun chemin de l'application ne lui donne une société
+ * active, et sans société active aucune donnée cloisonnée ne se lit. Ce n'est
+ * pas une gêne, c'est une impasse — et elle est aujourd'hui sans conséquence
+ * seulement parce qu'aucun compte réel n'est dans ce cas.
+ *
+ * *Le premier le sera probablement celui de la direction* : une personne
+ * habilitée à la fois sur CODIMA-NC et sur CODIMA-EU. Le jour où ce compte est
+ * ouvert, l'impasse cesse d'être théorique — et elle se découvrira à l'écran,
+ * pas dans un document.
+ *
+ * **Même traitement que la console éditeur (L1-02c) et que L7-01** : une épreuve
+ * qui constate l'impasse et la NOMME. *Le silence a exactement la forme du
+ * succès* (§9, 31/08) — une limite qu'aucun scénario ne prononce se découvre en
+ * exploitation, et le rendez-vous devient une embuscade.
+ *
+ * Ce fichier ne construit pas le sélecteur : ce serait un écran de lot 2 écrit
+ * en avance, exactement ce que l'étroitesse de L1-02f refusait.
+ */
+describe("L'IMPASSE MULTI-SOCIÉTÉ — constatée et nommée (L2-11)", () => {
+  it("deux habilitations : le compte arrive sans société active, et aucun chemin ne lui en donne une", async () => {
+    const { email, utilisateurId } = await compte("impasse", [
+      { societeId: SOCIETE_A, role: Role.adv },
+      { societeId: SOCIETE_B, role: Role.adv },
+    ]);
+    const entetes = await connecter(email);
+
+    // TÉMOIN : le compte VOIT bien ses deux habilitations — c'est le mur que
+    // D61 a abattu. Sans lui, « aucune société active » se confondrait avec
+    // « aucune habilitation », qui est un tout autre cas.
+    const siennes = await habilitationsDuCompte(utilisateurId, clientApp());
+    expect(siennes).toHaveLength(2);
+
+    // ── CE QUE LE CHEMIN DE CONNEXION FAIT, ET C'EST TOUT CE QU'IL FAIT ────
+    //
+    // `app/api/session/connexion/route.ts` n'active que sur EXACTEMENT une
+    // habilitation. Ici il y en a deux : rien n'est activé, et rien dans
+    // l'application ne propose de choisir.
+    const etat = await etatArrivee(entetes, auth, clientApp());
+    expect(
+      etat.issue,
+      "un compte habilité sur plusieurs sociétés doit arriver SANS société " +
+        "active : l'activation automatique serait un choix fait à sa place.",
+    ).toBe("sans_societe");
+
+    // ── ET L'IMPASSE EST TOTALE ───────────────────────────────────────────
+    //
+    // Sans société active, aucune donnée cloisonnée ne se lit. Ce n'est pas une
+    // liste vide qu'un écran afficherait comme « aucun résultat » : c'est
+    // l'ensemble du produit qui est hors de portée.
+    const session = await obtenirSession(entetes, auth);
+    expect(session!.contexte.societeId).toBeNull();
+    const agences = await avecContexteRls(
+      clientApp(),
+      { societeId: "", role: null, auteurId: utilisateurId },
+      (tx) => tx.agence.findMany({ select: { id: true } }),
+    );
+    expect(
+      agences,
+      "RENDEZ-VOUS L2-11 — le sélecteur de société. Tant qu'il n'existe pas, " +
+        "un compte habilité sur plusieurs sociétés ne peut RIEN lire : il n'a " +
+        "aucun moyen d'en activer une. Voir docs/backlog.md, section « Tickets " +
+        "déjà arrêtés hors du chemin critique ».",
+    ).toEqual([]);
+
+    // TÉMOIN DE NON-VACUITÉ : les agences EXISTENT. Sans lui, « zéro » ne
+    // distinguerait pas « hors de portée » de « rien à lire » (§9, 30/08).
+    const sousA = await avecContexteRls(
+      clientApp(),
+      { societeId: SOCIETE_A, role: Role.adv, auteurId: utilisateurId },
+      (tx) => tx.agence.findMany({ select: { id: true } }),
+    );
+    expect(sousA.length).toBeGreaterThan(0);
+  });
+
+  it("la seule sortie existante est de NOMMER la société — ce qu'aucun écran ne permet", async () => {
+    const { email, utilisateurId } = await compte("impasse-sortie", [
+      { societeId: SOCIETE_A, role: Role.adv },
+      { societeId: SOCIETE_B, role: Role.adv },
+    ]);
+    const entetes = await connecter(email);
+    const session = await obtenirSession(entetes, auth);
+
+    // `basculerSociete` fonctionne : le verrou n'est pas là. Ce qui manque est
+    // l'ÉCRAN qui laisse désigner la société — un test peut passer
+    // l'identifiant en dur, un utilisateur ne le peut pas (D61).
+    const bascule = await basculerSociete(
+      {
+        utilisateurId,
+        jetonSession: session!.jetonSession,
+        societeId: SOCIETE_B,
+        societeIdSource: null,
+        secondFacteurValide: false,
+      },
+      clientApp(),
+    );
+    expect(bascule.accepte).toBe(true);
+
+    const apres = await etatArrivee(entetes, auth, clientApp());
+    expect(apres.issue).toBe("arrivee");
+  });
+});
+
 /** Le nom d'une société, lu sous son propre contexte — la seule façon. */
 async function nomDeLaSociete(societeId: string): Promise<string> {
   const societe = await avecContexteRls(

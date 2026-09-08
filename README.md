@@ -18,6 +18,8 @@ Contexte d'exploitation : Nouvelle-Calédonie — réseau mobile absent sur une 
 
 Les choix techniques structurants sont consignés dans [`docs/decisions/`](docs/decisions/).
 
+La mise en ligne — variables d'environnement, secrets, ce que l'hébergeur doit savoir, et ce qui est risqué à exposer en l'état — est décrite dans [`docs/mise-en-ligne.md`](docs/mise-en-ligne.md).
+
 ## Démarrer
 
 Node 22 (voir `.nvmrc`) et pnpm 10. **Pas de npm ni de yarn.**
