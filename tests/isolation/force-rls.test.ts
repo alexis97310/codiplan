@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { afterAll, describe, expect, it } from "vitest";
 
 /** Sentinelle d'annulation : elle fait retomber la transaction, sans erreur. */
@@ -40,23 +43,48 @@ import { SOCIETE_A, SOCIETE_B } from "./setup/fixtures";
 const TABLES_CLOISONNEES = [...TABLES_RLS_FORCEE];
 
 /**
- * Tables FIXTURES « contrat » du harnais (L0-05) : elles modèlent les vraies
- * tables des lots 1 et 2 et portent délibérément les mêmes politiques, `FORCE`
- * compris. Elles n'existent pas au schéma Prisma — elles n'ont donc rien à
- * faire dans les listes de production, et le contrôle de la base hébergée ne
- * les connaît pas. C'est ici, et ici seulement, qu'on les ajoute.
+ * Les tables qui existent RÉELLEMENT au schéma Prisma.
  *
- * `modele_materiel` y figure bien qu'elle modèle un référentiel de plateforme :
- * la fixture lui applique `politiqueCloisonnementSql`, donc `FORCE`, là où la
- * vraie table de L1-05 restera en RLS simple. L'écart est celui de la fixture,
- * pas de la règle.
- *
- * **La liste n'est plus recopiée** (ticket R0-a) : elle vient du CONTRAT, avec
- * les DDL et les politiques que le harnais pose. Une table ajoutée au contrat
- * sans être ajoutée ici aurait fait échouer la clôture ci-dessous — c'est
- * l'enchaînement du 20/08, et il n'a plus de prise.
+ * Lue ici plutôt que déclarée : c'est la source que ce fichier ne contrôle pas,
+ * et c'est elle qui dit si une entrée du contrat est encore une fixture.
  */
-const FIXTURES_CONTRAT = [...TABLES_FIXTURES];
+const TABLES_REELLES = new Set(
+  [
+    ...readFileSync(
+      join(import.meta.dirname, "..", "..", "prisma", "schema.prisma"),
+      "utf8",
+    ).matchAll(/@@map\("([a-z_][a-z0-9_]*)"\)/g),
+  ].map((trouve) => trouve[1]!),
+);
+
+/**
+ * Tables FIXTURES « contrat » du harnais (L0-05) qui n'ont PAS ENCORE de table
+ * réelle. Elles modèlent les vraies tables des lots 1 et 2 et portent
+ * délibérément les mêmes politiques, `FORCE` compris ; elles n'existent pas au
+ * schéma Prisma, n'ont donc rien à faire dans les listes de production, et le
+ * contrôle de la base hébergée ne les connaît pas.
+ *
+ * ## LE FILTRE `sansTableReelle` EST LA RÉPARATION D'UN MASQUAGE MESURÉ (L2-01)
+ *
+ * Cette liste était `[...TABLES_FIXTURES]`, sans filtre. Le contrat ne retire
+ * pas une entrée quand la vraie table naît — c'est même sa règle, le RETRAIT
+ * étant le geste qui ouvre la brèche —, si bien que **le harnais complétait
+ * silencieusement la liste de production avec des tables devenues réelles.**
+ *
+ * Mesuré le 09/09/2026 : `machine` a manqué à `TABLES_CLOISONNEES` le jour de
+ * sa livraison. **Ici, tout était vert** — la fixture bouchait le trou — et
+ * c'est le contrôle de la BASE HÉBERGÉE qui a refusé, ne connaissant que la
+ * liste de production. *Un contrôle qui n'échoue jamais là où les autres
+ * échouent déjà ne prouve rien* (§9, 07/09) : celui-là a servi, et celui-ci
+ * mentait.
+ *
+ * Le filtre part du SCHÉMA PRISMA — une source que ce fichier ne contrôle pas :
+ * dès qu'une table du contrat y apparaît, elle sort d'ici et doit être rangée
+ * dans les listes de production, comme sur la base hébergée.
+ */
+const FIXTURES_CONTRAT = TABLES_FIXTURES.filter(
+  (table) => !TABLES_REELLES.has(table),
+);
 
 /** Les listes telles que ce harnais les voit — production plus fixtures. */
 const LISTES_HARNAIS = {
