@@ -65,6 +65,13 @@ export const TABLES_CLOISONNEES = [
   "habilitation",
   "technicien_habilitation",
   "site_habilitation_requise",
+  // L1-05 : familles et modèles de matériel. Elles étaient destinées à la
+  // DEUXIÈME catégorie de I1 — référentiels de plateforme —, et l'amendement à
+  // D4 du 08/09/2026 en fait des tables métier cloisonnées. Le mécanisme
+  // « référentiel + copie masquante » se contredisait : une société qui ne peut
+  // pas écrire ne peut pas créer de copie.
+  "famille_materiel",
+  "modele_materiel",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

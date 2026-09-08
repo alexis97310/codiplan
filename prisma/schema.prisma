@@ -142,6 +142,8 @@ model Societe {
   clients               Client[]
   sessions_actives      Session[]
   sites                 Site[]
+  familles_materiel     FamilleMateriel[]
+  modeles_materiel      ModeleMateriel[]
 
   @@map("societe")
 }
@@ -1177,6 +1179,72 @@ model Contact {
 ///
 /// La liste réglementaire garde sa valeur comme AMORÇAGE : une société qui
 /// s'ouvre la reçoit par défaut et peut la compléter ou la réduire.
+/// Famille de matériel suivie par une société (ticket L1-05).
+///
+/// **Table MÉTIER cloisonnée, et non référentiel de plateforme.** D4 est amendé
+/// le 08/09/2026 : le schéma « référentiel + copie masquante » se contredisait
+/// — une société qui ne peut pas écrire ne peut pas créer de copie — et « la
+/// copie masque l'original » suppose une règle de SÉLECTION que RLS ne sait pas
+/// porter. Quatrième fois que ce dépôt tranche dans ce sens, après les zones,
+/// les rôles de contact et les habilitations : *une nomenclature partagée fige
+/// un territoire dans un produit destiné à être vendu ailleurs.*
+model FamilleMateriel {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Code court, unique dans la société.
+  code    String
+  libelle String
+
+  actif Boolean @default(true)
+
+  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modeles ModeleMateriel[]
+
+  /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
+  /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
+  /// puisse pas désigner la famille d'une AUTRE société.
+  @@unique([societe_id, id])
+  @@unique([societe_id, code])
+  @@map("famille_materiel")
+}
+
+/// Modèle de matériel suivi par une société (ticket L1-05).
+///
+/// Chez CODIMA les modèles viennent du fichier de suivi — équipement, marque,
+/// modèle, numéro de série — et non d'un catalogue d'éditeur : **ce sont des
+/// données saisies, pas un référentiel reçu.** Le catalogue de plateforme, s'il
+/// existe un jour, sera un AMORÇAGE, comme la liste réglementaire des
+/// habilitations.
+model ModeleMateriel {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+  famille_id String @db.Uuid
+
+  marque    String
+  reference String
+
+  /// Caractéristiques libres (chapitre 11). Leur contenu n'est fixé par
+  /// personne : ce n'est pas au modèle de données de l'inventer.
+  caracteristiques Json?
+
+  /// NULLES quand la maintenance n'est pas périodique. Aucune valeur par
+  /// défaut : une périodicité est une décision d'exploitation (CLAUDE.md §8).
+  periodicite_jours    Int?
+  periodicite_compteur Int?
+
+  actif Boolean @default(true)
+
+  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Cible du chaînage composite que `machine` posera à son tour (L2-01).
+  @@unique([societe_id, id])
+  @@unique([societe_id, marque, reference])
+  @@index([societe_id, famille_id])
+  @@map("modele_materiel")
+}
+
 model Habilitation {
   id         String @id @db.Uuid
   societe_id String @db.Uuid

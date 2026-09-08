@@ -254,8 +254,9 @@ describe("le contrat des fixtures d'isolation est structurel (R0-a, É14, L0-05)
     for (const attendue of EXIGENCES_L0_05) {
       expect(TABLES_FIXTURES, attendue.cle).toContain(attendue.table);
     }
-    expect(CONTRAT_REFERENTIEL.map((entree) => entree.table)).toEqual([
-      "modele_materiel",
-    ]);
+    // Le contrat référentiel est VIDE depuis L1-05 : `modele_materiel` est une
+    // table métier réelle, et les trois référentiels de plateforme restants
+    // existent au schéma depuis le lot 0. Rien à modeler.
+    expect(CONTRAT_REFERENTIEL.map((entree) => entree.table)).toEqual([]);
   });
 });

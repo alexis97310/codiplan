@@ -576,14 +576,24 @@ export function ecartsListeAppartenance(
  * première catégorie : le gardien les nomme seulement pour refuser la
  * contradiction — un référentiel qui porterait `societe_id NOT NULL` serait
  * dans deux catégories à la fois, ce que D41 interdit.
+ *
+ * **ELLE A PERDU TROIS ENTRÉES le 08/09/2026** — `famille_materiel`,
+ * `modele_materiel` et `checklist_modele` —, et c'est un RETRAIT à une liste
+ * close, donc un arbitrage. D4 se contredisait : il rangeait ces tables parmi
+ * les référentiels « modifiables par les seuls rôles éditeur » et écrivait dans
+ * la même page qu'« une société qui veut l'adapter en crée une copie ». Une
+ * société qui ne peut pas écrire ne peut pas créer de copie. L'exploitation a
+ * retiré le mécanisme plutôt que d'arbitrer entre ses moitiés : elles sont
+ * désormais des tables métier cloisonnées (L1-05).
+ *
+ * `checklist_modele` n'existe pas encore ; elle sort par la justification que D4
+ * lui donnait — « attachée au modèle, suit son régime » —, et naîtra donc
+ * cloisonnée.
  */
 export const REFERENTIELS_PLATEFORME = [
   "devise",
   "parite",
   "jour_ferie",
-  "famille_materiel",
-  "modele_materiel",
-  "checklist_modele",
 ] as const;
 
 /**

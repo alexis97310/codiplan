@@ -49,14 +49,25 @@ const RAPPEL_CATEGORIES = [
  * qui tirerait ses listes de la même source que le code ne vérifierait rien.
  * Ici, c'est la constitution qui est confrontée au schéma.
  */
-const REFERENTIELS_PLATEFORME = [
-  "devise",
-  "parite",
-  "jour_ferie",
-  "famille_materiel",
-  "modele_materiel",
-  "checklist_modele",
-];
+/**
+ * Les référentiels de plateforme qui portent encore une colonne de société.
+ *
+ * La population part de la LISTE CLOSE et non du schéma : une table qui
+ * quitterait la liste sortirait de la mesure au lieu de la faire échouer — le
+ * piège du `WHERE` qui recoupe l'assertion (§9, 31/08).
+ */
+function referentielsAvecColonneDeSociete(): string[] {
+  const modeles = modelesDuSchema(lireSchema());
+  return REFERENTIELS_PLATEFORME.filter((table) =>
+    modeles
+      .filter((modele) => modele.table === table)
+      .some((modele) =>
+        modele.champs.some((champ) => champ.nom === "societe_id"),
+      ),
+  );
+}
+
+const REFERENTIELS_PLATEFORME = ["devise", "parite", "jour_ferie"];
 
 const TECHNIQUES_AUTHENTIFICATION = [
   "session",
@@ -272,11 +283,10 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
         @@map("intervention")
       }
 
-      model ModeleMateriel {
-        id         String  @id @db.Uuid
-        societe_id String? @db.Uuid
+      model JourFerie {
+        id String @id @db.Uuid
 
-        @@map("modele_materiel")
+        @@map("jour_ferie")
       }
 
       model Verification {
@@ -295,14 +305,14 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
     expect(ecartsCategories(fabrique)).toEqual([]);
   });
 
-  it("un référentiel surchargeable reste un référentiel — le `?` compte", () => {
-    // `modele_materiel` portera `societe_id NULL` (D4) : la copie d'une société
-    // masque le modèle de plateforme. Le confondre avec une table métier
-    // rendrait la deuxième catégorie inapplicable.
+  it("un référentiel se reconnaît SANS colonne de société, et avec une colonne nullable", () => {
+    // I1 dit « `societe_id` NULL **ou pas de `societe_id` du tout** ». Les deux
+    // formes comptent, et la seconde est la seule qui ait un exemplaire.
+    expect(categoriesDeLaTable("jour_ferie", [])).toEqual([
+      "référentiel de plateforme",
+    ]);
     expect(
-      categoriesDeLaTable("modele_materiel", [
-        { nom: "societe_id", type: "String?" },
-      ]),
+      categoriesDeLaTable("devise", [{ nom: "societe_id", type: "String?" }]),
     ).toEqual(["référentiel de plateforme"]);
 
     expect(
@@ -310,6 +320,26 @@ describe("chaque table appartient à exactement une catégorie de I1 (D41)", () 
         { nom: "societe_id", type: "String" },
       ]),
     ).toEqual(["métier (cloisonnée)"]);
+  });
+
+  it("MESURE — la forme « colonne nullable » n'a plus AUCUN exemplaire au schéma", () => {
+    // Conséquence de l'amendement à D4 du 08/09/2026, mesurée plutôt que
+    // supposée : `famille_materiel`, `modele_materiel` et `checklist_modele`
+    // étaient les seules tables que I1 destinait à porter un `societe_id`
+    // NULLABLE. Elles sont parties ; `devise`, `parite` et `jour_ferie` n'ont
+    // pas de colonne de société du tout.
+    //
+    // **La branche du gardien survit à son dernier exemplaire, et c'est
+    // délibéré** : c'est elle qui rend vraie la phrase de I1. Ce scénario est le
+    // témoin qui dit qu'elle ne garde plus rien de réel aujourd'hui — pour que
+    // personne ne la lise comme la preuve qu'un cas existe.
+    const nullables = referentielsAvecColonneDeSociete();
+    expect(
+      nullables,
+      "un référentiel de plateforme porte de nouveau une colonne de société : " +
+        "la note ci-dessus a cessé d'être vraie, et le mécanisme retiré par " +
+        "l'amendement à D4 revient peut-être par la fenêtre.",
+    ).toEqual([]);
   });
 
   it("les colonnes de société INFORMATIVES ne rangent rien (D34)", () => {

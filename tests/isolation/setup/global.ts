@@ -28,9 +28,10 @@ import {
   MACHINE_A1,
   MACHINE_A2,
   MACHINE_B1,
-  MODELE_PLATEFORME,
-  MODELE_SURCHARGE_A,
-  MODELE_SURCHARGE_B,
+  FAMILLE_A,
+  FAMILLE_B,
+  MODELE_A,
+  MODELE_B,
   PORTAIL_A_CLIENT,
   PORTAIL_B_CLIENT,
   QR_A1,
@@ -534,10 +535,12 @@ export default async function setup(): Promise<void> {
       INSERT INTO "contact" ("id", "societe_id", "client_id", "site_id", "nom", "roles", "canaux", "email") VALUES
         ('${CONTACT_A1_COMPTABLE}', '${SOCIETE_A}', '${CLIENT_A1}', NULL, 'Comptable du client', ARRAY['comptabilite'], ARRAY['email'], 'compta@a1.test'),
         ('${CONTACT_A1_ATELIER}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', 'Chef d''atelier S2', ARRAY['contact_technique','signataire'], ARRAY['email'], 'atelier@a1.test');
-      INSERT INTO "modele_materiel" ("id", "societe_id", "libelle") VALUES
-        ('${MODELE_PLATEFORME}', NULL, 'Compresseur (plateforme)'),
-        ('${MODELE_SURCHARGE_A}', '${SOCIETE_A}', 'Compresseur (surcharge A)'),
-        ('${MODELE_SURCHARGE_B}', '${SOCIETE_B}', 'Compresseur (surcharge B)');
+      INSERT INTO "famille_materiel" ("id", "societe_id", "code", "libelle") VALUES
+        ('${FAMILLE_A}', '${SOCIETE_A}', 'COMP', 'Compresseurs'),
+        ('${FAMILLE_B}', '${SOCIETE_B}', 'COMP', 'Compresseurs');
+      INSERT INTO "modele_materiel" ("id", "societe_id", "famille_id", "marque", "reference") VALUES
+        ('${MODELE_A}', '${SOCIETE_A}', '${FAMILLE_A}', 'Atlas', 'GA-11'),
+        ('${MODELE_B}', '${SOCIETE_B}', '${FAMILLE_B}', 'Atlas', 'GA-11');
       `,
     );
 

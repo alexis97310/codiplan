@@ -16,9 +16,8 @@ import {
   MACHINE_A1,
   MACHINE_A2,
   MACHINE_B1,
-  MODELE_PLATEFORME,
-  MODELE_SURCHARGE_A,
-  MODELE_SURCHARGE_B,
+  MODELE_A,
+  MODELE_B,
   SOCIETE_A,
 } from "./setup/fixtures";
 
@@ -55,7 +54,29 @@ async function agencesVisibles(
   return agences.map((agence) => agence.id);
 }
 
-/** Lit les identifiants de modèles visibles dans le contexte courant. */
+/**
+ * Lit les identifiants d'un RÉFÉRENTIEL DE PLATEFORME dans le contexte courant.
+ *
+ * **`jour_ferie` a remplacé `modele_materiel` au ticket L1-05**, et le
+ * remplacement est le ticket : le modèle n'est plus un référentiel de
+ * plateforme, l'amendement à D4 en a fait une table métier cloisonnée. Ce
+ * fichier éprouve ce que peuvent les rôles ÉDITEUR sur la deuxième catégorie de
+ * I1 ; il lui faut donc une table qui y soit encore.
+ */
+async function referentielsVisibles(
+  societeId: string | null,
+  role: Role,
+): Promise<string[]> {
+  const feries = await avecSocieteEtRole(societeId, role, (tx) =>
+    tx.$queryRawUnsafe<Array<{ id: string }>>(`SELECT "id" FROM "jour_ferie"`),
+  );
+  return feries.map((ferie) => ferie.id);
+}
+
+/**
+ * Lit les identifiants de modèles visibles — table MÉTIER cloisonnée depuis
+ * L1-05. Un rôle éditeur, qui n'a aucune société active, n'en voit AUCUN.
+ */
 async function modelesVisibles(
   societeId: string | null,
   role: Role,
@@ -68,17 +89,28 @@ async function modelesVisibles(
   return modeles.map((modele) => modele.id);
 }
 
-/** Tente d'écrire un référentiel de plateforme (`societe_id NULL`). */
+/**
+ * Tente d'écrire un référentiel de plateforme.
+ *
+ * La DATE est dérivée du rang, et le TERRITOIRE est propre à ce fichier :
+ * `jour_ferie` porte `UNIQUE (territoire, date)`, et la base jetable est
+ * PARTAGÉE par tous les fichiers de la suite. Une date commune ferait échouer le
+ * deuxième rôle — ou le fichier voisin — sur une collision d'unicité plutôt que
+ * sur un refus de politique, et le scénario mesurerait le refus du voisin
+ * (§9, 08/09). Mesuré : `journal-audit.test.ts` écrit déjà en `ZZ`.
+ */
 function ecrirePlateforme(
   societeId: string | null,
   role: Role,
   id: string,
+  rang: number,
 ): Promise<unknown> {
   return avecSocieteEtRole(societeId, role, (tx) =>
     tx.$executeRawUnsafe(
-      `INSERT INTO "modele_materiel" ("id", "societe_id", "libelle")
-       VALUES ($1::uuid, NULL, 'Écriture de plateforme')`,
+      `INSERT INTO "jour_ferie" ("id", "territoire", "date", "libelle", "mobile")
+       VALUES ($1::uuid, 'ZR', DATE '2098-01-01' + $2::int, 'Écriture de plateforme', false)`,
       id,
+      rang,
     ),
   );
 }
@@ -148,24 +180,42 @@ describe("rôles éditeur — au-dessus des sociétés, dedans jamais (§22.5)",
   editeurs.forEach((role, rang) => {
     describe(role, () => {
       it("VOIT les référentiels de plateforme", async () => {
-        const visibles = await modelesVisibles(null, role);
-        expect(visibles).toContain(MODELE_PLATEFORME);
+        const visibles = await referentielsVisibles(null, role);
+        // TÉMOIN : la table est peuplée. Sans lui, « le rôle voit tout ce
+        // qu'il y a » serait vrai d'une table vide.
+        expect(visibles.length).toBeGreaterThan(0);
       });
 
       it("PEUT écrire un référentiel de plateforme (I1)", async () => {
         const id = idEcriture(rang);
-        await expect(ecrirePlateforme(null, role, id)).resolves.toBe(1);
+        await expect(ecrirePlateforme(null, role, id, rang)).resolves.toBe(1);
 
-        const visibles = await modelesVisibles(null, role);
+        const visibles = await referentielsVisibles(null, role);
         expect(visibles).toContain(id);
+
+        // ── ET LE SCÉNARIO REPREND CE QU'IL A ÉCRIT ───────────────────────
+        //
+        // La base jetable est PARTAGÉE par toute la suite, et `jour_ferie` est
+        // énumérée exhaustivement ailleurs (`calendriers.test.ts` compare la
+        // liste des territoires à un ensemble exact). Une ligne laissée ici
+        // ferait rougir un scénario voisin sur une population qu'il ne
+        // contrôle pas — mesuré, pas supposé.
+        //
+        // La reprise se fait sous le PROPRIÉTAIRE : le rôle applicatif n'a pas
+        // à savoir défaire ce qu'un scénario a écrit.
+        await clientOwner().$executeRawUnsafe(
+          `DELETE FROM "jour_ferie" WHERE "id" = $1::uuid`,
+          id,
+        );
       });
 
       it("NE VOIT aucune donnée cloisonnée — aucune société active", async () => {
         expect(await agencesVisibles(null, role)).toEqual([]);
-        // Ni la surcharge d'une société, qui est cloisonnée comme le reste.
-        const visibles = await modelesVisibles(null, role);
-        expect(visibles).not.toContain(MODELE_SURCHARGE_A);
-        expect(visibles).not.toContain(MODELE_SURCHARGE_B);
+        // ET AUCUN MODÈLE, ce qui est NOUVEAU depuis L1-05 : `modele_materiel`
+        // était un référentiel de plateforme, un rôle éditeur en voyait donc la
+        // ligne partagée. L'amendement à D4 en fait une table métier, et un
+        // rôle éditeur — qui n'a aucune société active — n'en voit plus rien.
+        expect(await modelesVisibles(null, role)).toEqual([]);
       });
     });
   });
@@ -188,24 +238,22 @@ describe("rôles internes — une société active, la leur", () => {
 
   internes.forEach((role, rang) => {
     describe(role, () => {
-      it("VOIT l'agence de sa société et les référentiels de plateforme", async () => {
+      it("VOIT l'agence de sa société, ses modèles, et les référentiels", async () => {
         expect(await agencesVisibles(SOCIETE_A, role)).toEqual([AGENCE_A]);
-
-        const visibles = await modelesVisibles(SOCIETE_A, role);
-        expect(visibles).toContain(MODELE_PLATEFORME);
-        expect(visibles).toContain(MODELE_SURCHARGE_A);
+        expect(
+          (await referentielsVisibles(SOCIETE_A, role)).length,
+        ).toBeGreaterThan(0);
+        expect(await modelesVisibles(SOCIETE_A, role)).toContain(MODELE_A);
       });
 
-      it("NE VOIT ni l'agence ni la surcharge de l'autre société", async () => {
+      it("NE VOIT ni l'agence ni le modèle de l'autre société", async () => {
         expect(await agencesVisibles(SOCIETE_A, role)).not.toContain(AGENCE_B);
-        expect(await modelesVisibles(SOCIETE_A, role)).not.toContain(
-          MODELE_SURCHARGE_B,
-        );
+        expect(await modelesVisibles(SOCIETE_A, role)).not.toContain(MODELE_B);
       });
 
       it("NE PEUT PAS écrire un référentiel de plateforme (I1)", async () => {
         await expect(
-          ecrirePlateforme(SOCIETE_A, role, idEcriture(50 + rang)),
+          ecrirePlateforme(SOCIETE_A, role, idEcriture(50 + rang), 50 + rang),
         ).rejects.toThrow(/row-level security|violates/i);
       });
     });
@@ -245,7 +293,7 @@ describe("rôle client — le portail, et rien d'autre (D10)", () => {
 
   it("NE PEUT PAS écrire un référentiel de plateforme (I1)", async () => {
     await expect(
-      ecrirePlateforme(SOCIETE_A, Role.client, idEcriture(90)),
+      ecrirePlateforme(SOCIETE_A, Role.client, idEcriture(90), 90),
     ).rejects.toThrow(/row-level security|violates/i);
   });
 });

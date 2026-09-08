@@ -69,7 +69,11 @@ Quatre catégories de tables, et quatre seulement.
 
 **Toute autre table métier porte donc `societe_id NOT NULL`, ou passe par un arbitrage.** Aux lots 1 à 3 — `client`, `site`, `machine`, `intervention`, `contrat` — ce n'est **pas une friction à contourner : c'est l'objectif**. Le seul moment où la question de cloisonnement se pose sans effort est celui où la table est créée ; un ticket qui la traite comme un obstacle la reporte de trois arbitrages.
 
-**2. Référentiels de plateforme** — `societe_id NULL` ou pas de `societe_id` du tout, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `parite` *(D41)*, `jour_ferie` *(D46)*, `famille_materiel`, `modele_materiel`, `checklist_modele`.
+**2. Référentiels de plateforme** — `societe_id NULL` ou pas de `societe_id` du tout, lisibles par toutes les sociétés, modifiables par les seuls rôles éditeur. **Liste close et énumérée** : `devise`, `parite` *(D41)*, `jour_ferie` *(D46)*.
+
+**Elle a PERDU trois entrées le 08/09/2026** — ~~`famille_materiel`~~, ~~`modele_materiel`~~, ~~`checklist_modele`~~ *(D4 amendé, ticket L1-05)*. D4 se contredisait : il les rangeait sous « modifiables par les seuls rôles éditeur » et écrivait dans la même page qu'« une société qui veut l'adapter en crée une copie ». *Une société qui ne peut pas écrire ne peut pas créer de copie.* Et « la copie masque l'original » est une règle de **sélection**, que RLS ne sait pas porter. Le mécanisme est **retiré**, pas arbitré : ce sont des tables métier cloisonnées. Quatrième fois que ce dépôt tranche ainsi — zones, rôles de contact, habilitations, et ici.
+
+**Et un effet de bord mesuré :** après ce retrait, **plus aucun référentiel ne porte de colonne `societe_id`**. La première moitié de la phrase ci-dessus — « `societe_id` NULL » — reste vraie sans avoir d'exemplaire, et un témoin le dit à l'endroit où on pourrait la lire comme la preuve qu'un cas existe.
 
 `jour_ferie` dit ce qui **est férié** sur un territoire — un fait, comme la parité légale du franc Pacifique. Elle ne dit jamais ce qui est **chômé** : ce choix appartient à l'agence et vit dans `calendrier_ferie`, qui est cloisonnée *(D13, RG-PLA-02)*.
 
@@ -345,6 +349,15 @@ lib/
               et le troisième est le seul qui sépare deux sites d'un même client
               l'énumération des zones est close ICI, à l'entrée serveur, et
               délibérément pas en base — six valeurs d'UN territoire
+  materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
+              énumération : ni familles, ni marques, ni références. D4 est
+              amendé — le mécanisme « référentiel de plateforme + copie
+              masquante » est RETIRÉ, il se contredisait. Chez CODIMA les
+              modèles viennent du fichier de suivi, pas d'un catalogue
+              d'éditeur : ce sont des données saisies
+              c'est le raisonnement des zones PRIS À L'ENVERS — les zones sont
+              closes parce qu'elles ne bougeront pas, les familles bougeront à
+              chaque société
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
