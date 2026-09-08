@@ -11,7 +11,7 @@ import {
   type Calendrier,
 } from "@/lib/calendar";
 
-import { avecSociete, clientApp, fermerClients } from "./setup/db";
+import { sousSociete, clientApp, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   AGENCE_B,
@@ -55,7 +55,7 @@ const FENETRE = {
 };
 
 function chargerA(): Promise<Calendrier | null> {
-  return avecSociete(SOCIETE_A, (tx) =>
+  return sousSociete(SOCIETE_A, (tx) =>
     chargerCalendrierAgence(tx, {
       societeId: SOCIETE_A,
       agenceId: AGENCE_A,
@@ -75,7 +75,7 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
   });
 
   it("la société A ne lit que son propre calendrier", async () => {
-    const calendriers = await avecSociete(SOCIETE_A, (tx) =>
+    const calendriers = await sousSociete(SOCIETE_A, (tx) =>
       tx.calendrier.findMany({ select: { id: true, societe_id: true } }),
     );
     expect(calendriers).toHaveLength(1);
@@ -83,14 +83,14 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
   });
 
   it("la société A ne voit pas le calendrier de la société B", async () => {
-    const trouve = await avecSociete(SOCIETE_A, (tx) =>
+    const trouve = await sousSociete(SOCIETE_A, (tx) =>
       tx.calendrier.findUnique({ where: { id: CALENDRIER_B } }),
     );
     expect(trouve).toBeNull();
   });
 
   it("la société A ne voit ni les plages ni les écarts de B", async () => {
-    const vues = await avecSociete(SOCIETE_A, async (tx) => ({
+    const vues = await sousSociete(SOCIETE_A, async (tx) => ({
       plages: await tx.calendrierPlage.findMany({
         select: { societe_id: true },
       }),
@@ -110,7 +110,7 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     // lié part en `text`. Sans le cast, l'échec viendrait d'une erreur de type
     // et non de la politique — le scénario serait vert pour rien.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier" ("id", "societe_id", "code", "libelle")
            VALUES ('aaaaaaaa-0000-7000-8000-0000000000cf', $1::uuid,
@@ -122,7 +122,7 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
   });
 
   it("la société A ne peut pas modifier le calendrier de la société B", async () => {
-    const lignesAffectees = await avecSociete(SOCIETE_A, (tx) =>
+    const lignesAffectees = await sousSociete(SOCIETE_A, (tx) =>
       tx.$executeRawUnsafe(
         `UPDATE "calendrier" SET "libelle" = 'détourné' WHERE "id" = $1::uuid`,
         CALENDRIER_B,
@@ -137,7 +137,7 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     // L'écart local est une décision d'agence (D46, complément 2). Qu'une
     // société puisse la poser chez une autre reviendrait à ouvrir ses portes.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
              ("id", "societe_id", "agence_id", "territoire", "date",
@@ -178,7 +178,7 @@ describe("jours fériés — référentiel de plateforme (D46)", () => {
     // une donnée de société. Deux sociétés d'un même territoire n'ont aucune
     // raison d'en tenir deux listes divergentes.
     for (const societe of [SOCIETE_A, SOCIETE_B]) {
-      const dates = await avecSociete(societe, async (tx) =>
+      const dates = await sousSociete(societe, async (tx) =>
         (await tx.jourFerie.findMany({ select: { date: true } })).map((ferie) =>
           ferie.date.toISOString().slice(0, 10),
         ),
@@ -194,7 +194,7 @@ describe("jours fériés — référentiel de plateforme (D46)", () => {
     // donne son sens à l'ordre de lecture — une société qui pourrait écrire
     // dans `jour_ferie` décréterait un férié pour tout son territoire.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "jour_ferie" ("id", "territoire", "date", "libelle")
            VALUES ('00000000-0000-7000-8000-0000000000fc', $1,
@@ -213,7 +213,7 @@ describe("jours fériés — référentiel de plateforme (D46)", () => {
     // l'UPDATE n'en toucherait aucune — le scénario serait vert sans avoir
     // atteint la contrainte.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `UPDATE "agence" SET "territoire" = 'NOUVELLE_CALEDONIE'
             WHERE "id" = $1::uuid`,
@@ -246,7 +246,7 @@ describe("chargement du calendrier d'une agence (D5, D13, D46)", () => {
    */
   it("même fuseau, territoires différents : le territoire n'est pas le fuseau", async () => {
     const a = await chargerA();
-    const b = await avecSociete(SOCIETE_B, (tx) =>
+    const b = await sousSociete(SOCIETE_B, (tx) =>
       chargerCalendrierAgence(tx, {
         societeId: SOCIETE_B,
         agenceId: AGENCE_B,
@@ -339,7 +339,7 @@ describe("chargement du calendrier d'une agence (D5, D13, D46)", () => {
     // Deux barrières se superposent : le `where` porte `societe_id` (CLAUDE.md
     // §5.6) et la politique RLS masque la ligne. Le scénario ne dit pas
     // laquelle a joué — il dit que le résultat est `null`, et c'est l'objet.
-    const calendrier = await avecSociete(SOCIETE_A, (tx) =>
+    const calendrier = await sousSociete(SOCIETE_A, (tx) =>
       chargerCalendrierAgence(tx, {
         societeId: SOCIETE_A,
         agenceId: AGENCE_B,
@@ -384,7 +384,7 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
     const jourFerieId = await idFerieTravaille();
 
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
              ("id", "societe_id", "agence_id", "territoire", "date",
@@ -406,7 +406,7 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
     // celui-ci n'est adossé à rien. Sans l'unicité, les deux coexisteraient et
     // se contrediraient.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
              ("id", "societe_id", "agence_id", "territoire", "date",
@@ -426,7 +426,7 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
     // L'unicité porte sur (agence, date), pas sur la date : c'est précisément
     // ce qui permet à Dolbeau de poser un pont que Ducos ne pose pas, alors
     // qu'elles partagent un calendrier d'ouverture.
-    const ecarts = await avecSociete(SOCIETE_A, (tx) =>
+    const ecarts = await sousSociete(SOCIETE_A, (tx) =>
       tx.calendrierFerie.findMany({
         where: { date: new Date(`${FERIE_TRAVAILLE_A.date}T00:00:00.000Z`) },
         select: { agence_id: true },
@@ -444,7 +444,7 @@ describe("un seul écart par agence et par jour (D46, complément 2)", () => {
     const lendemain = cleJour(jourSuivant(lireCleJour(FERIE_TRAVAILLE_A.date)));
 
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "calendrier_ferie"
              ("id", "societe_id", "agence_id", "territoire", "date",

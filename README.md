@@ -787,6 +787,8 @@ Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, 
 
 Ces deux chantiers-là sont **livrés depuis le 09/09/2026** : le **geste d'ouverture du premier compte** (D65) et **L7-04** (D66), qui en dépendait.
 
+**Le LOT 2 est entamé** : **L2-01** — la fiche machine — a été livré le 09/09/2026, et avec lui la **troisième et dernière fixture du parc s'est effacée** devant sa table réelle. Le contrat de R0-a est honoré de bout en bout : `client`, `site` et `machine` sont désormais des tables réelles portant la forme « parc », et les planchers de scénarios ont **monté** à chaque reprise, jamais baissé.
+
 **L'état ticket par ticket se lit dans [`docs/backlog.md`](docs/backlog.md), et nulle part ailleurs.** Il est de rang 4, et c'est lui que les gardiens confrontent aux règles et aux arbitrages : une seconde liste recopiée ici deviendrait fausse au premier ticket livré, sans rougir — c'est le §9 du 01/09. Ce qui suit n'énumère donc pas les tickets : ce sont les **décisions** que chacun a rendues visibles, et qui survivent à leur ticket.
 
 **L1-08a** pose la **grammaire des imports** avant la liaison au classeur, et cette séparation est le fruit de la mesure de sécurité ci-dessus : le jour où la liaison arrive, elle n'aura **aucune règle à porter**. Deux formes y sont tranchées — un nombre lu ne rend **jamais un flottant** (I3 serait enfreint une ligne après nous), et une date se lit **en UTC** (UTC+11 décale le jour d'un cran).

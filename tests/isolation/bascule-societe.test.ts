@@ -9,7 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
 
 import {
-  avecSocieteEtRole,
+  sousSocieteEtRole,
   clientApp,
   fermerClients,
   observerSousProprietaire,
@@ -380,7 +380,7 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
     };
     expect(motifRefusContexte(contexte)).toBeNull();
 
-    const agences = await avecSocieteEtRole(
+    const agences = await sousSocieteEtRole(
       contexte.societeId,
       contexte.role,
       (tx) => tx.agence.findMany({ select: { id: true } }),
@@ -409,7 +409,7 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
     // L'application refuse d'ouvrir la transaction…
     expect(motifRefusContexte(contexte)).toContain("Aucune société active");
     // …et la base, à qui l'on force la main, ne rend rien.
-    const agences = await avecSocieteEtRole(null, null, (tx) =>
+    const agences = await sousSocieteEtRole(null, null, (tx) =>
       tx.agence.findMany({ select: { id: true } }),
     );
     expect(agences).toEqual([]);

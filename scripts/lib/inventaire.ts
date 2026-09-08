@@ -76,6 +76,13 @@ export const TABLES_CLOISONNEES = [
   // commercial, donc propre à chaque société — D4 le dit déjà de `prestation`
   // et `forfait`.
   "taux_horaire",
+  // L2-01 : la fiche machine. TROISIÈME et dernière fixture du parc à s'effacer
+  // devant sa table réelle. **Elle a manqué ici le jour de sa livraison**, et
+  // c'est le contrôle de la BASE HÉBERGÉE qui l'a dit — le harnais, lui,
+  // complétait la liste avec les fixtures du contrat et ne pouvait pas le voir.
+  // Voir `tests/isolation/force-rls.test.ts`, où la fixture ne masque plus une
+  // table réelle.
+  "machine",
   // L1-06 : le catalogue de forfaits. Table VIDE — la liste appartient à
   // l'exploitation, et l'inventer serait inventer une donnée métier.
   "forfait",

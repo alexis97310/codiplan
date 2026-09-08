@@ -4,7 +4,7 @@ import { estRoleEditeur, Role, ROLES } from "@/lib/auth/roles";
 
 import {
   avecPortail,
-  avecSocieteEtRole,
+  sousSocieteEtRole,
   clientOwner,
   fermerClients,
 } from "./setup/db";
@@ -48,7 +48,7 @@ async function agencesVisibles(
   societeId: string | null,
   role: Role,
 ): Promise<string[]> {
-  const agences = await avecSocieteEtRole(societeId, role, (tx) =>
+  const agences = await sousSocieteEtRole(societeId, role, (tx) =>
     tx.agence.findMany({ select: { id: true } }),
   );
   return agences.map((agence) => agence.id);
@@ -67,7 +67,7 @@ async function referentielsVisibles(
   societeId: string | null,
   role: Role,
 ): Promise<string[]> {
-  const feries = await avecSocieteEtRole(societeId, role, (tx) =>
+  const feries = await sousSocieteEtRole(societeId, role, (tx) =>
     tx.$queryRawUnsafe<Array<{ id: string }>>(`SELECT "id" FROM "jour_ferie"`),
   );
   return feries.map((ferie) => ferie.id);
@@ -81,7 +81,7 @@ async function modelesVisibles(
   societeId: string | null,
   role: Role,
 ): Promise<string[]> {
-  const modeles = await avecSocieteEtRole(societeId, role, (tx) =>
+  const modeles = await sousSocieteEtRole(societeId, role, (tx) =>
     tx.$queryRawUnsafe<Array<{ id: string }>>(
       `SELECT "id" FROM "modele_materiel"`,
     ),
@@ -105,7 +105,7 @@ function ecrirePlateforme(
   id: string,
   rang: number,
 ): Promise<unknown> {
-  return avecSocieteEtRole(societeId, role, (tx) =>
+  return sousSocieteEtRole(societeId, role, (tx) =>
     tx.$executeRawUnsafe(
       `INSERT INTO "jour_ferie" ("id", "territoire", "date", "libelle", "mobile")
        VALUES ($1::uuid, 'ZR', DATE '2098-01-01' + $2::int, 'Écriture de plateforme', false)`,
@@ -142,7 +142,7 @@ describe("énumération des rôles — base et TypeScript", () => {
     // plateforme » est écrite deux fois — une fois en SQL, une fois en
     // TypeScript. Ce scénario est ce qui interdit qu'elles divergent.
     for (const role of ROLES) {
-      const [ligne] = await avecSocieteEtRole(null, role, (tx) =>
+      const [ligne] = await sousSocieteEtRole(null, role, (tx) =>
         tx.$queryRawUnsafe<Array<{ editeur: boolean }>>(
           `SELECT "app_est_role_editeur"() AS "editeur"`,
         ),
@@ -154,7 +154,7 @@ describe("énumération des rôles — base et TypeScript", () => {
   });
 
   it("hors contexte, `app_role()` est nul et aucun rôle n'est éditeur", async () => {
-    const [ligne] = await avecSocieteEtRole(null, null, (tx) =>
+    const [ligne] = await sousSocieteEtRole(null, null, (tx) =>
       tx.$queryRawUnsafe<Array<{ role: string | null; editeur: boolean }>>(
         `SELECT "app_role"()::text AS "role", "app_est_role_editeur"() AS "editeur"`,
       ),

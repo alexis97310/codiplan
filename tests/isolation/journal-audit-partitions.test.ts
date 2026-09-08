@@ -17,7 +17,7 @@ import {
   versPartitionsJournal,
   type LignePartitionJournal,
 } from "../../scripts/lib/privileges-journal";
-import { avecSocieteEtRole, clientOwner, fermerClients } from "./setup/db";
+import { sousSocieteEtRole, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
   SOCIETE_A,
@@ -334,13 +334,13 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
     );
 
     await expect(
-      avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+      sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
         tx.$queryRawUnsafe(`SELECT 1 FROM public."${cible?.nom}"`),
       ),
     ).rejects.toThrow(/permission denied/i);
 
     // Et l'accès légitime, par le parent, continue de ne rendre que sa société.
-    const vues = await avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+    const vues = await sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
       tx.$queryRawUnsafe<{ societe_id: string }[]>(
         'SELECT DISTINCT "societe_id"::text AS "societe_id" FROM "journal_audit"',
       ),
@@ -395,7 +395,7 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
       expect(cible?.id).toBeDefined();
 
       await expect(
-        avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+        sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
           tx.$executeRawUnsafe(
             `UPDATE "journal_audit" SET "adresse_ip" = 'falsifiée'
               WHERE "id" = $1::uuid`,
@@ -405,7 +405,7 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
       ).rejects.toThrow(/permission denied|row-level security/i);
 
       await expect(
-        avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+        sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
           tx.$executeRawUnsafe(
             `DELETE FROM "journal_audit" WHERE "id" = $1::uuid`,
             cible?.id,
@@ -426,7 +426,7 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
 
       for (const partition of toutes) {
         await expect(
-          avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+          sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
             tx.$executeRawUnsafe(
               `UPDATE public."${partition}" SET "adresse_ip" = 'falsifiée'`,
             ),
@@ -435,7 +435,7 @@ describe("le journal d'audit naît partitionné (L0-10)", () => {
         ).rejects.toThrow(/permission denied/i);
 
         await expect(
-          avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+          sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
             tx.$executeRawUnsafe(`DELETE FROM public."${partition}"`),
           ),
           `DELETE sur ${partition}`,

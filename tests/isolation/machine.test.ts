@@ -5,7 +5,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import {
   avecPortail,
-  avecSociete,
+  sousSociete,
   clientOwner,
   fermerClients,
   observerSousProprietaire,
@@ -111,7 +111,7 @@ describe("les QUATRE obligatoires sont tenus EN BASE, pas seulement par Zod", ()
   it("une machine sans modèle est refusée", async () => {
     expect(
       await refus(
-        avecSociete(SOCIETE_A, (tx) =>
+        sousSociete(SOCIETE_A, (tx) =>
           tx.$executeRawUnsafe(
             `INSERT INTO "machine" ("id","societe_id","client_id","site_id","qr_token","numero_serie","modifie_le")
              VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,'QR-NEUF','SN-NEUF',now())`,
@@ -127,7 +127,7 @@ describe("les QUATRE obligatoires sont tenus EN BASE, pas seulement par Zod", ()
 
   it("un numéro de série VIDE est refusé — le NULL déguisé", async () => {
     const motif = await refus(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "machine" ("id","societe_id","modele_id","client_id","site_id","qr_token","numero_serie","modifie_le")
              VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'QR-VIDE','   ',now())`,
@@ -148,7 +148,7 @@ describe("les QUATRE obligatoires sont tenus EN BASE, pas seulement par Zod", ()
     // RG-PAR-01, rendue DÉFINISSABLE par D6 : c'est parce que le numéro de série
     // est obligatoire que cette unicité peut exister sans trou.
     const motif = await refus(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(
           `INSERT INTO "machine" ("id","societe_id","modele_id","client_id","site_id","qr_token","numero_serie","modifie_le")
              VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'QR-DOUBLON','SN-A1',now())`,
@@ -206,7 +206,7 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
       "le jeton d'une machine de B ne se résout pas sous le contexte de A",
     ),
     async () => {
-      const vues = await avecSociete(SOCIETE_A, (tx) =>
+      const vues = await sousSociete(SOCIETE_A, (tx) =>
         tx.machine.findMany({
           where: { qr_token: QR_B1 },
           select: { id: true },
@@ -214,7 +214,7 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
       );
       expect(vues).toEqual([]);
       // TÉMOIN : le jeton existe bien, et il se résout sous SA société.
-      const sienne = await avecSociete(SOCIETE_B, (tx) =>
+      const sienne = await sousSociete(SOCIETE_B, (tx) =>
         tx.machine.findMany({
           where: { qr_token: QR_B1 },
           select: { id: true },
@@ -236,7 +236,7 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
       // contrôle de société vient APRÈS, et c'est la politique qui le fait.
       expect(
         await refus(
-          avecSociete(SOCIETE_A, (tx) =>
+          sousSociete(SOCIETE_A, (tx) =>
             tx.$executeRawUnsafe(
               `INSERT INTO "machine" ("id","societe_id","modele_id","client_id","site_id","qr_token","numero_serie","modifie_le")
                  VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'SN-COLLISION',now())`,
@@ -332,7 +332,7 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
       expect(motif).toContain("row-level security policy");
 
       // TÉMOIN : la machine n'a pas bougé.
-      const apres = await avecSociete(SOCIETE_A, (tx) =>
+      const apres = await sousSociete(SOCIETE_A, (tx) =>
         tx.machine.findMany({
           where: { id: MACHINE_A1 },
           select: { site_id: true },
@@ -347,7 +347,7 @@ describe("les chaînages composites — une machine ne franchit pas la société
   it("elle ne peut pas désigner le CLIENT d'une autre société", async () => {
     expect(
       await refus(
-        avecSociete(SOCIETE_A, (tx) =>
+        sousSociete(SOCIETE_A, (tx) =>
           tx.$executeRawUnsafe(
             `INSERT INTO "machine" ("id","societe_id","modele_id","client_id","site_id","qr_token","numero_serie","modifie_le")
                VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'QR-XSOC','SN-XSOC',now())`,
@@ -366,7 +366,7 @@ describe("les chaînages composites — une machine ne franchit pas la société
   it("elle ne peut pas désigner le MODÈLE d'une autre société", async () => {
     expect(
       await refus(
-        avecSociete(SOCIETE_A, (tx) =>
+        sousSociete(SOCIETE_A, (tx) =>
           tx.$executeRawUnsafe(
             `INSERT INTO "machine" ("id","societe_id","modele_id","client_id","site_id","qr_token","numero_serie","modifie_le")
                VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,'QR-XMOD','SN-XMOD',now())`,
@@ -409,7 +409,7 @@ describe("les chaînages composites — une machine ne franchit pas la société
   it("une machine ne se remplace pas ELLE-MÊME", async () => {
     expect(
       await refus(
-        avecSociete(SOCIETE_A, (tx) =>
+        sousSociete(SOCIETE_A, (tx) =>
           tx.machine.updateMany({
             where: { id: MACHINE_A1 },
             data: { machine_remplacee_id: MACHINE_A1 },
@@ -425,7 +425,7 @@ describe("le numéro affiché — D7, I10", () => {
     // Ce n'est pas un défaut du code, c'est une donnée qui n'existe pas : le
     // compteur par société appartient à la synchronisation (lot 3). Écrit ici
     // pour que rien ne le fasse passer pour un oubli.
-    const numeros = await avecSociete(SOCIETE_A, (tx) =>
+    const numeros = await sousSociete(SOCIETE_A, (tx) =>
       tx.machine.findMany({ select: { numero: true } }),
     );
     expect(numeros.every((m) => m.numero === null)).toBe(true);
@@ -461,7 +461,7 @@ describe("l'audit couvre la fiche machine (I8, D55)", () => {
       `SELECT count(*)::int AS n FROM "journal_audit" WHERE "entite" = 'machine'`,
     );
 
-    await avecSociete(SOCIETE_A, (tx) =>
+    await sousSociete(SOCIETE_A, (tx) =>
       tx.machine.updateMany({
         where: { id: MACHINE_A1 },
         data: { localisation: `Atelier ${Date.now()}` },

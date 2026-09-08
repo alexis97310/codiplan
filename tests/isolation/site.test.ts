@@ -5,7 +5,7 @@ import type { PrismaClient } from "@prisma/client";
 import { exigence } from "./setup/contrat";
 import {
   avecPortail,
-  avecSociete,
+  sousSociete,
   clientApp,
   clientOwner,
   fermerClients,
@@ -136,7 +136,7 @@ describe("le site d'intervention (L1-02)", () => {
 
   it("un utilisateur de A ne peut pas écrire un site de B", async () => {
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererSite(tx, {
           id: SITE_NEUF,
           societeId: SOCIETE_B,
@@ -290,7 +290,7 @@ describe("le site d'intervention (L1-02)", () => {
     // nomme la contrainte — contrairement à l'unicité de L1-01, PostgreSQL la
     // donne ici.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererSite(tx, {
           id: SITE_NEUF,
           societeId: SOCIETE_A,
@@ -377,7 +377,7 @@ describe("le site d'intervention (L1-02)", () => {
     // contrôles d'intégrité référentielle contournent les politiques RLS par
     // construction.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererSite(tx, {
           id: SITE_NEUF,
           societeId: SOCIETE_A,
@@ -553,7 +553,7 @@ describe("le site d'intervention (L1-02)", () => {
 
   it("la base refuse un libellé vide", async () => {
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererSite(tx, {
           id: SITE_NEUF,
           societeId: SOCIETE_A,
@@ -590,7 +590,7 @@ describe("le site d'intervention (L1-02)", () => {
     // 166,45, que la borne attrape : c'est la faute de saisie la plus fréquente
     // sur des coordonnées, et elle est silencieuse sans contrainte.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererSite(tx, {
           id: SITE_NEUF,
           societeId: SOCIETE_A,

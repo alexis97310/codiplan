@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { avecSociete, clientOwner, fermerClients } from "./setup/db";
+import { sousSociete, clientOwner, fermerClients } from "./setup/db";
 import { SOCIETE_A } from "./setup/fixtures";
 
 /**
@@ -122,12 +122,12 @@ describe("forme D4 des politiques de cloisonnement", () => {
     // Conséquence assumée du typage : une valeur de contexte qui n'est pas un
     // UUID lève, au lieu de ne rien remonter. Un contexte corrompu se voit.
     await expect(
-      avecSociete("pas-un-uuid", (tx) => tx.agence.findMany()),
+      sousSociete("pas-un-uuid", (tx) => tx.agence.findMany()),
     ).rejects.toThrow();
   });
 
   it("le contexte reste fonctionnel avec un uuid bien formé", async () => {
-    const agences = await avecSociete(SOCIETE_A, (tx) =>
+    const agences = await sousSociete(SOCIETE_A, (tx) =>
       tx.agence.findMany({ select: { societe_id: true } }),
     );
     expect(agences.every((a) => a.societe_id === SOCIETE_A)).toBe(true);

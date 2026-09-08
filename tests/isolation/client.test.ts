@@ -4,7 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import {
   avecPortail,
-  avecSociete,
+  sousSociete,
   clientApp,
   clientOwner,
   fermerClients,
@@ -122,7 +122,7 @@ describe("la fiche client (L1-01)", () => {
     // `WITH CHECK`, une société pourrait DÉPOSER des lignes chez une autre —
     // qu'elle ne relirait jamais, mais que l'autre lirait.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererClient(tx, {
           id: CLIENT_NEUF,
           societeId: SOCIETE_B,
@@ -165,13 +165,13 @@ describe("la fiche client (L1-01)", () => {
     // globale les aurait rendus impossibles à coexister : deux sociétés vendues
     // séparément ont chacune son ERP, et leurs codes n'ont aucune raison de ne
     // pas se recouvrir.
-    const codeA = await avecSociete(SOCIETE_A, (tx) =>
+    const codeA = await sousSociete(SOCIETE_A, (tx) =>
       tx.$queryRawUnsafe<Array<{ code_externe: string | null }>>(
         `SELECT "code_externe" FROM "client" WHERE "id" = $1::uuid`,
         CLIENT_A1,
       ),
     );
-    const codeB = await avecSociete(SOCIETE_B, (tx) =>
+    const codeB = await sousSociete(SOCIETE_B, (tx) =>
       tx.$queryRawUnsafe<Array<{ code_externe: string | null }>>(
         `SELECT "code_externe" FROM "client" WHERE "id" = $1::uuid`,
         CLIENT_B1,
@@ -208,7 +208,7 @@ describe("la fiche client (L1-01)", () => {
     //   3. le JUMEAU juste en dessous retire cet index NOMMÉMENT, et l'écriture
     //      passe alors.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererClient(tx, {
           id: CLIENT_NEUF,
           societeId: SOCIETE_A,
@@ -294,7 +294,7 @@ describe("la fiche client (L1-01)", () => {
     // redondance : Zod ne voit ni l'import Excel de L1-08, ni une correction
     // faite à la main en `psql`.
     await expect(
-      avecSociete(SOCIETE_A, (tx) =>
+      sousSociete(SOCIETE_A, (tx) =>
         insererClient(tx, {
           id: CLIENT_NEUF,
           societeId: SOCIETE_A,

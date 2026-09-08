@@ -16,8 +16,8 @@ import {
 } from "../../scripts/lib/privileges-journal";
 import {
   avecContexteComplet,
-  avecSociete,
-  avecSocieteEtRole,
+  sousSociete,
+  sousSocieteEtRole,
   clientOwner,
   fermerClients,
 } from "./setup/db";
@@ -494,7 +494,7 @@ describe("le journal d'audit est en AJOUT SEUL (L0-10, I8)", () => {
     expect(cible?.id).toBeDefined();
 
     await expect(
-      avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+      sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
         tx.$executeRawUnsafe(
           `UPDATE "journal_audit" SET "adresse_ip" = 'falsifiée'
             WHERE "id" = $1::uuid`,
@@ -504,7 +504,7 @@ describe("le journal d'audit est en AJOUT SEUL (L0-10, I8)", () => {
     ).rejects.toThrow(/permission denied|droit/i);
 
     await expect(
-      avecSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
+      sousSocieteEtRole(SOCIETE_A, Role.direction, (tx) =>
         tx.$executeRawUnsafe(
           `DELETE FROM "journal_audit" WHERE "id" = $1::uuid`,
           cible?.id,
@@ -605,7 +605,7 @@ describe("la lecture du journal est cloisonnée, et par rôle (L0-10, D50)", () 
     societeId: string,
     role: Role | null,
   ): Promise<{ societe_id: string }[]> {
-    return avecSocieteEtRole(societeId, role, (tx) =>
+    return sousSocieteEtRole(societeId, role, (tx) =>
       tx.$queryRawUnsafe<{ societe_id: string }[]>(
         `SELECT DISTINCT "societe_id"::text AS "societe_id" FROM "journal_audit"`,
       ),
@@ -638,7 +638,7 @@ describe("la lecture du journal est cloisonnée, et par rôle (L0-10, D50)", () 
   it("sans rôle, et sans société, rien du tout", async () => {
     expect(await lignesVues(SOCIETE_A, null)).toEqual([]);
     expect(
-      await avecSociete(SOCIETE_A, (tx) =>
+      await sousSociete(SOCIETE_A, (tx) =>
         tx.$queryRawUnsafe<unknown[]>('SELECT 1 FROM "journal_audit"'),
       ),
     ).toEqual([]);
