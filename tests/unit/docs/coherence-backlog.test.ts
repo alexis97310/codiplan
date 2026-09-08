@@ -12,7 +12,7 @@ import {
  * Ticket R0-b — le backlog (rang 4) cite des règles (rang 2) et des décisions
  * (rang 1), et rien ne vérifiait que ce qu'il en dit soit encore vrai.
  *
- * C'est É8 une catégorie plus bas, et il s'était déjà rejoué : L1-08 portait
+ * C'est É8 une catégorie plus bas, et il s'était déjà rejoué : L1-08b portait
  * « seul le dernier lot est annulable » après que D54 l'eut supprimé.
  *
  * **Ce que ce gardien tient, et ce qu'il ne tient pas.** La cohérence de sens
@@ -56,8 +56,8 @@ describe("le backlog est cohérent avec les sources qu'il cite", () => {
 
   it("déplie les plages de règles — c'est le cas qui a motivé le contrôle", () => {
     // « tests sur RG-IMP-01 à 05 » cite RG-IMP-02, la règle que D54 a changée.
-    // Sans le dépliage, L1-08 serait resté vert sur la faute même qu'on corrige.
-    const l108 = analyse.tickets.find((t) => t.ref === "L1-08");
+    // Sans le dépliage, L1-08b serait resté vert sur la faute même qu'on corrige.
+    const l108 = analyse.tickets.find((t) => t.ref === "L1-08b");
     expect(l108?.sourcesCitees).toContain("RG-IMP-02");
     expect(l108?.sourcesCitees).toContain("RG-IMP-05");
 
@@ -80,7 +80,7 @@ describe("jumeaux — le gardien mord sur des ruptures réelles", () => {
     expect(cdcRompu, "la règle visée n'a pas été modifiée").not.toEqual(CDC);
 
     const ecarts = analyserBacklog(BACKLOG, cdcRompu, ARBITRAGES).ecarts;
-    const surL108 = ecarts.filter((e) => e.startsWith("L1-08 :"));
+    const surL108 = ecarts.filter((e) => e.startsWith("L1-08b :"));
     expect(surL108, ecarts.join("\n")).toHaveLength(1);
     expect(surL108[0]).toContain("a CHANGÉ depuis la dernière relecture");
     expect(surL108[0]).toContain("RG-IMP-02");
@@ -116,17 +116,17 @@ describe("jumeaux — le gardien mord sur des ruptures réelles", () => {
   });
 
   it("refuse le RETRAIT d'une citation plutôt que de laisser le ticket sortir", () => {
-    // Le piège de la population, éprouvé : retirer `[D31]` de L1-08 ne le fait
+    // Le piège de la population, éprouvé : retirer `[D31]` de L1-08b ne le fait
     // pas quitter le périmètre, cela change l'ensemble de ses sources — donc
     // son empreinte.
     const backlogRompu = BACKLOG.replace(
-      "**L1-08** Moteur d'import. **[D15] [D31] [D54]**",
-      "**L1-08** Moteur d'import. **[D15] [D54]**",
+      "**L1-08b** Le MOTEUR d'import — lecture du classeur, rapport, application, annulation. **[D15] [D31] [D54]**",
+      "**L1-08b** Le MOTEUR d'import — lecture du classeur, rapport, application, annulation. **[D15] [D54]**",
     );
     expect(backlogRompu).not.toEqual(BACKLOG);
 
     const ecarts = analyserBacklog(backlogRompu, CDC, ARBITRAGES).ecarts;
-    expect(ecarts.filter((e) => e.startsWith("L1-08 :"))).toHaveLength(1);
+    expect(ecarts.filter((e) => e.startsWith("L1-08b :"))).toHaveLength(1);
   });
 
   it("refuse une estampille qui ne s'adosse plus à rien", () => {
