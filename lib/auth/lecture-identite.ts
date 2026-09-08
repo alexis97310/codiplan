@@ -350,8 +350,18 @@ export function designationsDe(
 export type ContexteAdministratif = {
   /** La société qui ouvre le compte. */
   readonly societeId: string;
-  /** Le rôle sous lequel elle l'ouvre. */
-  readonly role: string;
+  /**
+   * Le rôle sous lequel elle l'ouvre.
+   *
+   * **`null` est une valeur, pas un oubli — et c'est le geste d'AMORÇAGE**
+   * (Q1 / D65). La toute première identité d'une société s'ouvre alors qu'il
+   * n'existe encore personne à être : aucun rôle ne peut être tenu, et en poser
+   * un serait s'attribuer une autorité que personne n'a accordée. La base
+   * admet ce cas par une branche qui se détruit en s'exerçant
+   * (`app_societe_active_vierge()`), et l'appelant DIT qu'il n'a pas de rôle
+   * plutôt que d'omettre le champ.
+   */
+  readonly role: string | null;
 };
 
 /** Construit l'instruction qui pose N désignations en UN aller-retour. */
@@ -418,7 +428,13 @@ export function avecDesignationAuth(
             variable: VARIABLE_SESSION_SOCIETE,
             valeur: administration.societeId,
           },
-          { variable: VARIABLE_SESSION_ROLE, valeur: administration.role },
+          {
+            variable: VARIABLE_SESSION_ROLE,
+            // Posée à vide plutôt qu'omise : `NULLIF(…, '')` la lit comme
+            // absente, et une variable écrite dit ce qu'une variable tue ne
+            // dit pas.
+            valeur: administration.role ?? "",
+          },
         );
       }
       const { sql, parametres } = instruction(aPoser);

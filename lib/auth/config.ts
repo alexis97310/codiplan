@@ -147,6 +147,35 @@ export const CHAMPS_SECOND_FACTEUR = {
 } as const;
 
 /**
+ * LE CANAL DE REMISE D'UN JETON DE PREMIER ACCÈS (Q1 / D65, 09/09/2026).
+ *
+ * ## Ce que ce paramètre ouvre, et ce qu'il laisse fermé
+ *
+ * Better Auth n'expose `/request-password-reset` **que si**
+ * `emailAndPassword.sendResetPassword` est fourni — mesuré le 09/09/2026 :
+ * sans lui, l'appel est refusé par `RESET_PASSWORD_DISABLED`, sur un courriel
+ * existant comme sur un courriel inexistant. **L'instance de production ne le
+ * fournit pas et ne doit jamais le fournir** : il n'existe donc aucun moyen,
+ * depuis un navigateur, de faire émettre un jeton pour un compte quelconque.
+ *
+ * Le geste d'amorçage, lui, construit **sa propre instance** en passant ce
+ * canal. Il obtient ainsi un jeton par la mécanique de la bibliothèque —
+ * une ligne de `verification`, **à usage unique et datée** — plutôt qu'en
+ * fabriquant une ligne à la main sur un format qu'il aurait deviné.
+ *
+ * **La CONSOMMATION, elle, reste sur l'instance de production, et c'est
+ * mesuré :** `/reset-password` n'exige pas ce canal ; il valide le jeton et
+ * refuse `INVALID_TOKEN` sur un jeton inventé. Émettre et consommer sont donc
+ * deux droits distincts, et un seul est ouvert au monde.
+ *
+ * Signature : la bibliothèque appelle ce canal avec l'URL complète et le jeton.
+ */
+export type CanalPremierAcces = (remise: {
+  readonly url: string;
+  readonly jeton: string;
+}) => Promise<void>;
+
+/**
  * Construit l'instance d'authentification.
  *
  * Prend son client Prisma en paramètre pour que les scénarios puissent la
@@ -156,6 +185,7 @@ export const CHAMPS_SECOND_FACTEUR = {
 export function creerAuth(
   client: PrismaClient = prisma,
   administration?: ContexteAdministratif,
+  canalPremierAcces?: CanalPremierAcces,
 ) {
   return betterAuth({
     appName: "CODIPLAN",
@@ -176,7 +206,27 @@ export function creerAuth(
     },
     // Mot de passe : le seul moyen d'authentification de la V1. Aucun
     // fournisseur externe n'est déclaré — en ajouter un serait une décision.
-    emailAndPassword: { enabled: true },
+    //
+    // `sendResetPassword` n'est fourni QUE par le geste d'amorçage (Q1 / D65),
+    // sur son instance à lui. Sur l'instance de production il est absent, et
+    // `/request-password-reset` répond alors `RESET_PASSWORD_DISABLED` —
+    // mesuré. Il n'y a donc aucune émission de jeton en libre-service.
+    emailAndPassword: {
+      enabled: true,
+      ...(canalPremierAcces === undefined
+        ? {}
+        : {
+            sendResetPassword: async ({
+              url,
+              token,
+            }: {
+              url: string;
+              token: string;
+            }) => {
+              await canalPremierAcces({ url, jeton: token });
+            },
+          }),
+    },
     user: {
       modelName: "utilisateur",
       fields: CHAMPS_UTILISATEUR,

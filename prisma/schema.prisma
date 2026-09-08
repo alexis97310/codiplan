@@ -944,6 +944,13 @@ enum EvenementAcces {
   bascule_societe
   bascule_refusee
   requete_consolidation
+  /// L'OUVERTURE D'UNE IDENTITÉ EST UN ÉVÉNEMENT D'ACCÈS (Q1 / D65,
+  /// 09/09/2026). Règle générale, et la raison est mécanique : une identité
+  /// n'appartient à AUCUNE société, alors que `journal_audit` est cloisonné par
+  /// société et partitionné — l'y faire entrer casserait son partitionnement.
+  /// Elle vaudra telle quelle pour le chemin administratif du lot 7 : la valeur
+  /// nomme donc l'ÉVÉNEMENT, jamais le chemin, qui va dans `detail`.
+  ouverture_identite
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera

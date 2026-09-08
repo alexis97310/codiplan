@@ -2121,3 +2121,54 @@ Exécuté par l'**`admin_societe` de la société concernée**, journalisé. *D�
 ### Ce qui reste ouvert
 
 Le ticket L7-04 n'est pas construit. Tant qu'il ne l'est pas, **un compte parvenu à l'escalade n'a aucun chemin de sortie** : aucune politique n'accorde aujourd'hui le droit de remettre la série à zéro, et le déclencheur se contente de laisser passer ce geste quand il viendra. C'est un état atteignable en trente codes faux, et il est écrit ici plutôt que découvert.
+
+---
+
+## D65 — Le geste d'ouverture du PREMIER compte : un cliquet en base, jamais une autorité que le script s'accorde
+
+*Décision d'exploitation, 9 septembre 2026. Débloque tout le reste : avant elle, personne ne pouvait se connecter à CODIPLAN.*
+
+### L'impasse, et le refus qui était juste
+
+`utilisateur_ouverture` exigeait une société active **et** `app_peut_administrer_identites()`, c'est-à-dire le rôle `admin_societe` (D37). Pour la **première** identité d'une société, il n'existe personne à être : aucun compte n'y est habilité, donc aucun rôle ne peut être tenu. Aucun compte de la base hébergée ne portait de mot de passe, et rien ne pouvait en poser un.
+
+La session de la nuit du 08/09 avait **refusé de poser le geste**, et le motif du refus est retenu tel quel : un script d'amorçage qui poserait lui-même `app.role = 'admin_societe'` **s'attribuerait une autorité que personne ne lui a accordée**. Ce n'est pas un contournement de RLS — la politique serait satisfaite — c'est une **auto-habilitation**, et elle appartient à l'exploitation.
+
+### La troisième voie : la base admet un cas, et le cas se détruit en s'exerçant
+
+Entre « le script s'octroie un rôle » et « rien n'est possible », il y a la forme retenue :
+
+> Une identité peut être ouverte sans rôle qui administre **si et seulement si la société visée ne porte AUCUNE habilitation.**
+
+Pas « aucun administrateur » — **aucune habilitation, quelle qu'elle soit**. Le script n'affirme donc plus rien : il ne pose aucun rôle, ne se déclare rien, et passe `role: null`. Il franchit une porte que la base ouvre, et **l'acte lui-même la referme** : la première habilitation créée rend la branche inapplicable pour toujours.
+
+**Ce n'est pas une auto-habilitation, c'est un CLIQUET** — la même forme que celui de l'escalade du second facteur (D62) : un état qui ne se rouvre pas tout seul.
+
+### Ce que la branche ne donne pas
+
+Elle n'ouvre qu'un `INSERT` sur `utilisateur`. **Ouvrir une identité n'accorde rien** : sans ligne de `utilisateur_societe`, le compte ne lit aucune donnée cloisonnée. Ce qui accorde est l'habilitation, gouvernée par la clause de société — et la branche est déjà refermée quand elle s'écrit.
+
+### Pourquoi la lecture qui décide est FIDÈLE, et non seulement plausible
+
+`app_societe_active_vierge()` est `SECURITY INVOKER` : sa sous-requête est soumise aux politiques de `utilisateur_societe`, ce qui pourrait en théorie **masquer** des lignes et répondre « vierge » à tort — le sens permissif. Ce n'est pas atteignable, et la raison est exacte : la politique `cloisonnement_societe` porte `societe_id = app.societe_id`, et le `WHERE` de la fonction porte la **même** condition ; les deux coïncident. La seule autre politique de la table, `utilisateur_societe_mes_habilitations` (D61), n'**ajoute** que des lignes — une addition ne peut que fermer la branche.
+
+### Les quatre points du geste, arrêtés
+
+1. **Aucun mot de passe ne transite.** Better Auth en exige un à la création : il est tiré au hasard, utilisé une fois, et **jamais rendu à personne**. Ce qui est remis est un **jeton de premier accès** — une ligne de `verification` émise par la mécanique de la bibliothèque, donc **à usage unique et datée** —, imprimé une fois par le script et transmis hors bande.
+2. **La trace est un ÉVÉNEMENT D'ACCÈS, et c'est une règle générale.** *La création et la suppression d'une identité vont à `journal_acces`, jamais à `journal_audit`.* La raison est mécanique et non doctrinale : **une identité n'appartient à aucune société**, alors que `journal_audit` est cloisonné par société et partitionné — l'y faire entrer casserait son partitionnement. **Cette règle vaudra telle quelle pour le chemin administratif d'ouverture de compte du lot 7.** La valeur ajoutée à `EvenementAcces` nomme donc l'ÉVÉNEMENT (`ouverture_identite`) et non le chemin, qui va dans `detail` : une valeur d'énumération qui nommerait un script provisoire deviendrait un vestige le jour où le script disparaît.
+3. **Le refus de servir deux fois existe déjà en base** — `utilisateur.email` est `@unique`. Le geste ne le rattrape pas.
+4. **La condition de retrait est GARDÉE PAR LA MACHINE, et c'est le point le plus important.** *Le jour où le chemin administratif d'ouverture de compte existe, ce geste disparaît* : `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. La porte se referme le jour où la porte principale s'ouvre, et c'est la machine qui le constate — pas une intention.
+
+### La session laissée ouverte par l'inscription : une EXIGENCE, pas une note
+
+`signUpEmail` **ouvre une session** au nom du compte créé — mesuré la nuit du 08/09, une ligne de `session` après l'appel. *Celui qui ouvre un compte en repartirait avec une session à ce nom.* **Une porte d'amorçage qui laisse une session ouverte derrière elle est pire que celle qu'on voulait éviter.** Le geste la ferme explicitement, par le chemin de la bibliothèque, et un scénario compte les sessions avant et après.
+
+### Ce que l'écriture a fait apparaître, et qui n'était pas prévu
+
+**Émettre un jeton et le consommer sont deux droits distincts, et un seul est ouvert au monde.** Mesuré le 09/09 : Better Auth n'expose `/request-password-reset` que si `emailAndPassword.sendResetPassword` est fourni — sans lui, `RESET_PASSWORD_DISABLED`, sur un courriel existant comme inexistant. L'instance de PRODUCTION ne le fournit pas et ne doit jamais le fournir ; le geste construit **sa propre instance** avec ce canal. `/reset-password`, lui, n'exige rien de tel et refuse `INVALID_TOKEN` sur un jeton inventé. **Personne ne peut donc faire émettre un jeton de premier accès depuis un navigateur.**
+
+**Et la relecture de l'identité passe par la DÉSIGNATION, pas par la société.** Mesuré : sous un simple contexte de société, `utilisateur_lecture` refuse la ligne qu'on vient de créer — la branche « rattachement » exige une habilitation, et l'identité n'en a pas encore. Le geste nomme donc la ligne par le courriel qu'il vient de saisir.
+
+### Ce qui reste ouvert
+
+Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la route générique de Better Auth. **Aucune PAGE ne le rend** aujourd'hui : le premier accès se termine par un appel d'API, pas par un écran. C'est écrit ici plutôt que découvert le jour de la mise en ligne.

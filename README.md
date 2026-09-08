@@ -434,6 +434,23 @@ Trois défauts en découlaient, et le premier était le plus cher : **un compte 
 
 Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, avec **escalade au troisième verrouillage enchaîné** : au-delà, le verrouillage cesse d'expirer et le déblocage devient l'acte administratif **L7-04** — non construit à ce jour. Les trois valeurs et la raison de leur calibrage sont dans `lib/auth/config.ts` ; l'escalade est tenue par un déclencheur PostgreSQL, seul point que les **trois** chemins de vérification franchissent. Voir D64.
 
+## Le geste d'ouverture du PREMIER compte — un cliquet, jamais une autorité qu'on s'accorde
+
+`utilisateur_ouverture` exigeait une société active **et** le rôle qui administre. Pour la **première** identité d'une société, il n'existe personne à être : **personne ne pouvait se connecter à CODIPLAN**, et rien ne pouvait y remédier.
+
+Un script qui poserait lui-même `app.role = 'admin_societe'` s'attribuerait une autorité que personne ne lui a accordée. La sortie n'est donc pas là : **c'est la BASE qui admet un cas, et le cas se détruit en s'exerçant** (D65). La politique reçoit une seconde branche — _une identité s'ouvre sans rôle qui administre si et seulement si la société ne porte AUCUNE habilitation_ —, et la première habilitation créée la rend inapplicable pour toujours. Le geste passe `role: null` : il ne se déclare rien.
+
+**Ouvrir une identité n'accorde rien.** Sans ligne de `utilisateur_societe`, le compte ne lit aucune donnée cloisonnée ; ce qui accorde est l'habilitation, gouvernée par la clause de société.
+
+```bash
+AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm tsx scripts/amorcage-premier-compte.mts \
+  --societe <uuid> --email <courriel> --nom "<nom>" --base https://…
+```
+
+Le geste **ne pose aucun mot de passe qui transite** : il en tire un au hasard, ne le rend à personne, et imprime **une fois** une URL de premier accès portant un jeton à usage unique et daté. Il ferme aussi la session que `signUpEmail` ouvre — _une porte d'amorçage qui laisse une session ouverte derrière elle est pire que celle qu'on voulait éviter._ La trace va à `journal_acces` sous `ouverture_identite`, jamais à `journal_audit` : une identité n'appartient à aucune société, et le journal d'audit est cloisonné et partitionné.
+
+**Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
+
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 
 Le cloisonnement se prouve d'abord par la **lecture** : les scénarios
@@ -697,6 +714,8 @@ app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
 lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/
               sites/  theme/  utils.ts
+              auth/amorcage.ts = le geste d'ouverture du PREMIER compte (D65),
+              exception admise tant qu'aucun chemin administratif n'existe
               clients/ = référentiel client (L1-01) : saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               sites/ = référentiel des sites d'intervention (L1-02) : saisie Zod,
@@ -705,6 +724,9 @@ lib/          auth/  calendar/  clients/  db/  i18n/  money/  reporting/
               i18n/ = dictionnaire français + vocabulaire imposé (agence, site)
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
+              amorcage-premier-compte.mts = l'ouverture de la PREMIÈRE identité
+              d'une société (D65) — provisoire par construction, son retrait est
+              gardé par la machine
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
