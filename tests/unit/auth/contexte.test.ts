@@ -7,7 +7,7 @@ import {
   schemaContexteSession,
   type ContexteSession,
 } from "@/lib/auth/contexte";
-import { Role } from "@/lib/auth/roles";
+import { ROLES, Role } from "@/lib/auth/roles";
 
 /**
  * Contexte de session (ticket L0-06, point 2) : « une session sans société ne
@@ -78,12 +78,61 @@ describe("contexte de session", () => {
     ).toBeNull();
   });
 
-  it("n'exige rien de plus des rôles opérationnels", () => {
-    for (const role of [Role.adv, Role.technicien, Role.client]) {
+  it("n'exige rien de plus des rôles opérationnels INTERNES", () => {
+    for (const role of [Role.adv, Role.technicien]) {
       expect(
         motifRefusContexte(contexte({ role, secondFacteurValide: false })),
       ).toBeNull();
     }
+  });
+
+  /**
+   * CE SCÉNARIO RETOURNE UNE ASSERTION ÉCRITE À L0-06, et il faut le dire.
+   *
+   * La boucle ci-dessus portait `Role.client` et exigeait `null` : « le rôle du
+   * portail n'appelle aucune exigence de plus ». C'était vrai de ce que L0-06
+   * regardait — le second facteur —, et faux de ce que D10 avait posé un ticket
+   * plus tôt. La ligne n'est pas retirée pour faire passer la vérification :
+   * **le refus qu'elle interdisait est délibéré, mesuré, et il FERME.**
+   *
+   * Ce qu'il ferme : `app.client_id` n'a aucun poseur de production, et la forme
+   * « parc » lit une valeur vide comme « utilisateur interne ». Un compte
+   * portail qui atteindrait ce chemin lirait le parc entier de sa société —
+   * mesuré à 2 machines d'un client dont il n'est pas habilité, contre 0 quand
+   * la variable est posée (voir `tests/isolation/portail-sans-client.test.ts`,
+   * qui le montre en base ET le montre revenir quand on retire ce refus).
+   */
+  it("REFUSE le rôle du portail : `app.client_id` n'a aucun poseur", () => {
+    const motif = motifRefusContexte(
+      contexte({ role: Role.client, secondFacteurValide: false }),
+    );
+    expect(motif).toContain("app.client_id");
+    expect(motif).toContain("parc ENTIER");
+    // Et le second facteur n'y change rien : ce n'est pas une question de
+    // force d'authentification, c'est une variable que personne ne renseigne.
+    expect(
+      motifRefusContexte(
+        contexte({ role: Role.client, secondFacteurValide: true }),
+      ),
+    ).toContain("app.client_id");
+    expect(() => exigerContexteActif(contexte({ role: Role.client }))).toThrow(
+      /app\.client_id/,
+    );
+  });
+
+  /**
+   * TÉMOIN DE NON-VACUITÉ, et il vise le sens qui compte : le refus doit être
+   * ÉTROIT. Un refus qui tomberait sur tous les rôles fermerait l'application
+   * entière et passerait l'assertion ci-dessus sans rien prouver.
+   */
+  it("et ce refus ne touche QU'UN rôle sur les dix", () => {
+    const refuses = ROLES.filter(
+      (role) =>
+        motifRefusContexte(
+          contexte({ role, secondFacteurValide: true }),
+        )?.includes("app.client_id") === true,
+    );
+    expect(refuses).toEqual([Role.client]);
   });
 
   it("`exigerContexteActif` lève avec le motif, et renvoie le contexte sinon", () => {
