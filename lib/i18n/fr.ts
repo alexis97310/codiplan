@@ -55,6 +55,63 @@ export const fr = {
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.
 
+  // ── Premier accès (L2-15, complément de D65) ──────────────────────────────
+  "premier_acces.titre": "Choisir votre mot de passe",
+  "premier_acces.accroche":
+    "Ce lien est à usage unique. Le mot de passe que vous choisissez ici sera le vôtre : la porte de premier accès se referme ensuite pour toujours.",
+  "premier_acces.mot_de_passe": "Nouveau mot de passe",
+  "premier_acces.valider": "Choisir ce mot de passe",
+  "premier_acces.pose":
+    "Mot de passe enregistré. Connectez-vous avec votre adresse et ce mot de passe.",
+  "premier_acces.sans_jeton.titre": "Lien de premier accès manquant",
+  "premier_acces.sans_jeton.invitation":
+    "Ouvrez le lien qui vous a été transmis. Un lien expiré se remplace par un nouveau, demandé à l'exploitation.",
+  // ── Fiche d'intervention (L2-14, RG-TAR-05, D11, D57, D74, D77) ───────────
+  "intervention.titre": "Intervention",
+  "intervention.accroche":
+    "Temps réel, temps facturé, main-d'œuvre au taux figé à la qualification, forfaits, total hors taxes.",
+  "intervention.liste.titre": "Interventions",
+  "intervention.liste.accroche":
+    "Ouvrez une intervention pour lire le détail de sa valorisation.",
+  "intervention.vide.titre": "Aucune intervention",
+  "intervention.vide.invitation":
+    "Qualifiez une demande pour créer une intervention et lui poser un créneau.",
+  "intervention.introuvable.titre": "Intervention introuvable",
+  "intervention.introuvable.invitation":
+    "Cet identifiant ne désigne rien que vous puissiez lire. Revenez à la liste pour en choisir une.",
+  "intervention.client": "Client",
+  "intervention.site": "Lieu d'intervention",
+  "intervention.statut": "Statut",
+  "intervention.mode": "Mode de valorisation",
+  "intervention.temps.titre": "Temps pointé",
+  "intervention.temps.aucun": "Aucun temps pointé.",
+  "intervention.temps.reel": "Temps réel",
+  "intervention.temps.facture": "Temps facturé",
+  "intervention.temps.trajet": "dont trajet",
+  "intervention.temps.non_facturable": "dont non facturable",
+  "intervention.type.trajet": "Trajet",
+  "intervention.type.intervention": "Intervention",
+  "intervention.type.attente": "Attente",
+  "intervention.type.pause": "Pause",
+  "intervention.non_facture": "non facturé",
+  // L'ARRONDI EST ÉNONCÉ À L'ENDROIT OÙ IL S'APPLIQUE (RG-TAR-05, D11, D57) —
+  // au quart d'heure, une seule fois sur l'intervention entière, et le temps
+  // cumulé par technicien avant l'arrondi. La granularité est celle de la
+  // règle : elle n'est pas un détail d'affichage.
+  "intervention.arrondi":
+    "Arrondi au quart d'heure supérieur, appliqué une seule fois sur l'intervention entière et non sur chaque tâche. Le temps est cumulé par technicien avant l'arrondi.",
+  "intervention.main_doeuvre": "Main-d'œuvre",
+  "intervention.taux": "Taux horaire appliqué",
+  "intervention.taux.absent": "non figé",
+  "intervention.taux.aide":
+    "Le taux est figé à la qualification : une facture qui change quand le tarif change est une facture fausse.",
+  "intervention.forfaits": "Forfaits",
+  "intervention.forfaits.aucun": "Aucun forfait appliqué.",
+  "intervention.forfaits.aide":
+    "Un forfait s'ajoute toujours aux heures ; il n'en absorbe jamais.",
+  "intervention.total_ht": "Total hors taxes",
+  "intervention.majoration.absente":
+    "La majoration des heures non ouvrées n'est pas appliquée ici : son taux n'est relié à aucune ligne de temps. Ce total est donc minoré pour une intervention hors ouverture.",
   // ── Techniciens (L2-13, D9, D76) ──────────────────────────────────────────
   // Le mot « productivité » n'entre pas ici, et un gardien le refuse : il
   // ferait lire un rendement là où il y a du temps occupé (D76).
@@ -149,6 +206,7 @@ export const fr = {
   "navigation.planning": "Planning",
   "navigation.clients": "Clients et parc",
   "navigation.techniciens": "Techniciens",
+  "navigation.interventions": "Interventions",
   "navigation.retour": "Retour à l'arrivée",
   "theme.societe": "Charte de la société",
   "theme.neutre": "Thème neutre CODIPLAN",

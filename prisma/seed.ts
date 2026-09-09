@@ -18,6 +18,7 @@ import {
   PLANNING_DEMONSTRATION,
   SOCIETES,
   TECHNICIENS_DEMONSTRATION,
+  TEMPS_DEMONSTRATION,
   UTILISATEURS_INTERNES,
   anneeDeDepartFeries,
   ecartsDeLAgence,
@@ -100,6 +101,21 @@ function etape(message: string): void {
 function pluriel(nombre: number, mot: string): string {
   return `${nombre} ${mot}${nombre > 1 ? "s" : ""}`;
 }
+
+/**
+ * Le drapeau qui fait sauter les identités de démonstration.
+ *
+ * Il sert UN ordre et un seul, et cet ordre est écrit au README :
+ *
+ *     pnpm db:migrate
+ *     SEED_SANS_IDENTITES=oui pnpm db:seed     # sociétés, référentiels, parc
+ *     …amorçage du premier compte (geste d'exploitation, D65)…
+ *     pnpm db:seed                             # les identités et le planning
+ *
+ * Sans lui, la base neuve n'a aucun compte connectable et la porte d'amorçage
+ * est déjà refermée. Voir le bloc explicatif à l'endroit où il agit.
+ */
+export const VARIABLE_SANS_IDENTITES = "SEED_SANS_IDENTITES";
 
 async function seed(): Promise<void> {
   etape(`devises — ${pluriel(DEVISES.length, "ligne")}`);
@@ -490,6 +506,27 @@ async function seed(): Promise<void> {
     etape(`${societe.code} — transaction cloisonnée : validée`);
   }
 
+  if (process.env[VARIABLE_SANS_IDENTITES] === "oui") {
+    // ── LA PORTE D'AMORÇAGE, ET POURQUOI CE DRAPEAU EXISTE ────────────────
+    //
+    // **Mesuré le 11/09/2026 : un `pnpm db:seed` sur une base neuve laisse une
+    // base sans AUCUN compte connectable.** Les identités de démonstration
+    // sont écrites — quatre `utilisateur`, cinq `utilisateur_societe` — mais
+    // aucune ne porte de moyen de connexion : ouvrir un compte est un acte
+    // administratif (D65), pas une ligne de seed. Et leur seule présence
+    // REFERME la porte : `ouvrirPremierCompte` refuse dès qu'une société porte
+    // une habilitation, ce qui est exactement le cliquet voulu.
+    //
+    // Les deux règles sont justes ; c'est leur RENCONTRE qui bloque, et elle ne
+    // se voit qu'en essayant de se connecter. Le drapeau ouvre l'ordre qui
+    // manquait — semer, amorcer, re-semer — **sans toucher au cliquet et sans
+    // qu'aucun compte ne s'ouvre ici** : ouvrir un compte reste un geste qui
+    // appartient à l'exploitation.
+    etape(`identités de démonstration : PASSÉES (${VARIABLE_SANS_IDENTITES})`);
+    etape("terminé");
+    return;
+  }
+
   etape(
     `utilisateurs internes — ${pluriel(UTILISATEURS_INTERNES.length, "identité")}`,
   );
@@ -842,6 +879,62 @@ async function semerLePlanning(): Promise<void> {
           update: champs,
           create: { id: bloc.id, societe_id: societe.id, ...champs },
         });
+      },
+      DELAIS_SEED,
+    );
+  }
+
+  // LE TEMPS POINTÉ. Il vient après les interventions — `intervention_temps`
+  // est la table FILLE, et sa politique de forme « filiation » exige que le
+  // parent soit visible pour que la ligne le soit (D82).
+  //
+  // Le TAUX HORAIRE est figé sur l'intervention au moment où le temps est
+  // pointé (RG-TAR-04) : c'est ce geste-là qui rend la fiche lisible, et le
+  // rappeler à la lecture donnerait une facture qui change avec le tarif.
+  const taux = await avecSociete(
+    prisma,
+    societe.id,
+    (tx) =>
+      tx.tauxHoraire.findFirst({
+        orderBy: { date_effet: "desc" },
+        select: { montant_mineur: true },
+      }),
+    DELAIS_SEED,
+  );
+
+  for (const temps of TEMPS_DEMONSTRATION) {
+    const bloc = PLANNING_DEMONSTRATION[temps.bloc];
+    const technicienId = TECHNICIENS_DEMONSTRATION[bloc.technicien].id;
+    const debutBloc = instantAMinutes(jour, bloc.debut_minutes, fuseau);
+    const debut = new Date(
+      debutBloc.getTime() + temps.decalage_minutes * 60_000,
+    );
+    const fin = new Date(debut.getTime() + temps.duree_minutes * 60_000);
+
+    await avecSociete(
+      prisma,
+      societe.id,
+      async (tx) => {
+        const champs = {
+          intervention_id: bloc.id,
+          technicien_id: technicienId,
+          type: temps.type,
+          debut,
+          fin,
+          duree_min: temps.duree_minutes,
+          facturable: temps.facturable,
+        };
+        await tx.interventionTemps.upsert({
+          where: { id: temps.id },
+          update: champs,
+          create: { id: temps.id, societe_id: societe.id, ...champs },
+        });
+        if (taux !== null) {
+          await tx.intervention.update({
+            where: { id: bloc.id },
+            data: { taux_horaire_applique: taux.montant_mineur },
+          });
+        }
       },
       DELAIS_SEED,
     );

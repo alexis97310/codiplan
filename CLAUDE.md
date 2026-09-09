@@ -443,6 +443,17 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
+              valorisation.ts : RG-TAR-05, D11, D57, D74, D77 — l'arrondi au
+              QUART D'HEURE SUPÉRIEUR, une seule fois sur l'intervention
+              entière, le temps cumulé PAR TECHNICIEN avant l'arrondi
+              « au quart d'heure supérieur » n'est PAS `arrondirAuPlusProche` :
+              celui-là est l'arrondi commercial des montants, et l'employer ici
+              ferait tomber 7 minutes à zéro — deux règles, un même mot
+              le TRAJET ne porte jamais de minute facturée, quoi qu'en dise la
+              colonne `facturable` : D74 est de rang 1, la colonne est une donnée
+              la MAJORATION heures non ouvrées n'y est PAS, et c'est écrit :
+              son taux n'est relié à aucune ligne de temps, et l'appliquer au
+              jugé donnerait une facture fausse
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis
@@ -479,6 +490,13 @@ lib/
               rend des CODES, jamais du texte : les libellés sont au
               dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
               un humain (I6, RG-IMP-01)
+  interventions/ la FICHE d'intervention (L2-14) — lecture et assemblage, jamais
+              de calcul : les montants viennent de tarification/valorisation.ts
+              une intervention se NOMME, elle ne se cherche pas : un identifiant
+              inconnu et l'intervention d'une autre société rendent LA MÊME
+              chose (D35, D50) — les distinguer ferait un oracle
+              le forfait nommé sur la ligne est REPASSÉ par RG-TAR-06 : sa
+              condition a pu cesser d'être remplie, un site qui change de zone
   parc/       le parc d'un client : ses lieux, leur rattachement, leur trajet,
               leurs forfaits, leurs machines (L2-12)
               le TRAJET ne voyage jamais seul (D56) — un nombre dont la

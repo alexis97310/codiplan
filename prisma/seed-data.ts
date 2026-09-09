@@ -948,6 +948,82 @@ export type BlocSeed = {
   statut_facturation: "non_facturable" | "a_facturer" | "facturee";
 };
 
+/**
+ * Le temps pointé sur une intervention de démonstration.
+ *
+ * **Les quatre natures y sont**, et le trajet en particulier : sans lui, la
+ * fiche montrerait un temps réel égal au temps facturé, et la règle la plus
+ * facile à oublier — *le trajet est du temps réel qui ne se facture pas*
+ * (D74) — n'aurait rien à illustrer.
+ */
+export type TempsSeed = {
+  id: string;
+  /** Rang du bloc dans `PLANNING_DEMONSTRATION`. */
+  bloc: number;
+  type: "trajet" | "intervention" | "attente" | "pause";
+  /** Décalage en minutes par rapport au début du créneau. Peut être négatif. */
+  decalage_minutes: number;
+  duree_minutes: number;
+  facturable: boolean;
+};
+
+export const TEMPS_DEMONSTRATION: readonly TempsSeed[] = [
+  // Le dépannage : un trajet, puis deux tâches courtes. Les deux tâches font
+  // 55 minutes réelles ; cumulées PAR TECHNICIEN puis arrondies (D11, D57),
+  // elles font 1 heure facturée — et non deux fois un quart d'heure de plus.
+  {
+    id: "0192f0a0-8000-7000-8000-000000000001",
+    bloc: 0,
+    type: "trajet",
+    decalage_minutes: -25,
+    duree_minutes: 25,
+    facturable: false,
+  },
+  {
+    id: "0192f0a0-8000-7000-8000-000000000002",
+    bloc: 0,
+    type: "intervention",
+    decalage_minutes: 0,
+    duree_minutes: 35,
+    facturable: true,
+  },
+  {
+    id: "0192f0a0-8000-7000-8000-000000000003",
+    bloc: 0,
+    type: "intervention",
+    decalage_minutes: 35,
+    duree_minutes: 20,
+    facturable: true,
+  },
+  // L'attente de pièce : du temps réel que personne ne facture.
+  {
+    id: "0192f0a0-8000-7000-8000-000000000004",
+    bloc: 0,
+    type: "attente",
+    decalage_minutes: 55,
+    duree_minutes: 20,
+    facturable: false,
+  },
+  // La visite préventive au forfait : le forfait s'AJOUTE aux heures (D77).
+  {
+    id: "0192f0a0-8000-7000-8000-000000000005",
+    bloc: 1,
+    type: "intervention",
+    decalage_minutes: 0,
+    duree_minutes: 110,
+    facturable: true,
+  },
+  // L'atelier : du temps d'intervention sur une intervention NON facturable.
+  {
+    id: "0192f0a0-8000-7000-8000-000000000006",
+    bloc: 2,
+    type: "intervention",
+    decalage_minutes: 0,
+    duree_minutes: 150,
+    facturable: true,
+  },
+];
+
 export type TechnicienSeed = {
   id: string;
   email: string;

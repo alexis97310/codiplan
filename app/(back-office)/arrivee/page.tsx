@@ -77,6 +77,7 @@ function NavigationLot2() {
         {(
           [
             ["/planning", t("navigation.planning")],
+            ["/interventions", t("navigation.interventions")],
             ["/clients", t("navigation.clients")],
             ["/techniciens", t("navigation.techniciens")],
           ] as const
