@@ -2175,6 +2175,20 @@ Elle n'ouvre qu'un `INSERT` sur `utilisateur`. **Ouvrir une identité n'accorde 
 
 Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la route générique de Better Auth. **Aucune PAGE ne le rend** aujourd'hui : le premier accès se termine par un appel d'API, pas par un écran. C'est écrit ici plutôt que découvert le jour de la mise en ligne.
 
+### Complément du 10/09/2026 — la RÉÉMISSION, et le fait qui la borne
+
+*Décision d'exploitation du 09/09 : la durée du jeton reste à une heure, la voie de réémission se construit. Construite dans la nuit du 10/09.*
+
+**L'enfermement, mesuré avant d'être réparé.** Deux scénarios existaient, chacun de son côté — *le second appel du geste sur la même société est refusé* et *l'instance de production n'émet aucun jeton*. Ensemble : **jeton expiré ⇒ le compte existe, personne ne peut lui donner de mot de passe, et rien ne peut en émettre un autre.** Le cliquet qui protège l'ouverture condamnait l'issue de secours (§9, 08/09).
+
+**Le geste, et son cliquet PLUS ÉTROIT que celui de l'amorçage.** `--reemettre` ne regarde pas les habilitations : il lit un fait de la ligne de `compte` de l'identité visée — **`mot_de_passe IS NULL`** — et refuse dès qu'une empreinte existe. Il ne sert donc qu'une identité qui n'a **jamais** servi, et il se ferme au premier usage réel, pour toujours. *Mesuré sur la même identité, avant et après ; le jumeau remet le fait en place et montre la réémission repasser.* Il n'ouvre aucune identité, ne pose aucun rôle, **ne rouvre jamais le chemin d'ouverture**, ne laisse aucune session, et trace `reemission_premier_acces` dans `journal_acces` — l'événement, jamais le chemin (point 2).
+
+**Ce que ce complément change au geste d'amorçage, et c'est à ratifier plutôt qu'à lire en passant.** Pour que le fait soit OBSERVABLE, l'amorçage **efface désormais l'empreinte du mot de passe jetable** après l'inscription : une empreinte jetable a la même forme qu'une empreinte choisie, et rien n'aurait distingué « n'a jamais servi » de « a servi ». *Mesuré :* la bibliothèque refuse la connexion d'un compte dont l'empreinte est nulle, et la réinitialisation par jeton l'écrit sans exiger qu'elle existe. Le point 1 reste vrai et devient plus fort — non seulement le mot de passe jetable ne transite pas, mais son empreinte ne survit pas au geste.
+
+**Pourquoi ce fait-là.** Il est le seul à être à la fois lisible par le geste — `compte` se désigne par l'identifiant de l'utilisateur — et irréversible par construction — aucun chemin du produit ne remet une empreinte à `NULL`. Une trace du journal aurait fait d'une trace un verrou ; une session est effacée à son expiration ; un horodatage de modification bouge pour d'autres raisons.
+
+**Ce que le geste ne sait pas faire, écrit plutôt que tu.** Invalider un jeton précédent encore vivant : `verification` ne se lit que par l'identifiant opaque qu'on présente, et le geste ne l'a pas gardé. Deux jetons peuvent donc être valides pendant l'heure du premier — la fenêtre est celle qui existait déjà.
+
 ---
 
 ## D66 — L7-04 : déverrouiller sans jamais ouvrir une lecture, et ce que la mesure a changé à la forme

@@ -330,6 +330,10 @@ lib/
               `utilisateur` : chacune ne se lit qu'en NOMMANT sa ligne
               la surface HTTP est une liste close de chemins FERMÉS, jamais
               une liste de chemins ouverts (D58)
+              amorcage.ts : l'ouverture du PREMIER compte (D65), et la
+              RÉÉMISSION de son jeton (10/09) — son cliquet est un FAIT de
+              `compte`, `mot_de_passe IS NULL`, que l'amorçage laisse et que
+              le premier mot de passe choisi referme pour toujours
               enrolement.ts : la SEULE transition en libre-service (D58) —
               elle POSE, elle ne retire jamais ; les deux drapeaux y sont
               écrits par nous, la bibliothèque les désignant par un `id` que

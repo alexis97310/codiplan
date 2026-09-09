@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ouvrirPremierCompte, RefusAmorcage } from "@/lib/auth/amorcage";
+import {
+  ouvrirPremierCompte,
+  reemettreJetonPremierAcces,
+  RefusAmorcage,
+  RefusReemission,
+} from "@/lib/auth/amorcage";
 import { creerAuth } from "@/lib/auth/config";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { Role } from "@/lib/auth/roles";
@@ -414,5 +419,208 @@ describe("le jeton de premier accès", () => {
         body: { email: courriel("geste"), redirectTo: "/x" },
       }),
     ).rejects.toThrow();
+  });
+});
+
+/**
+ * LA RÉÉMISSION DU JETON DE PREMIER ACCÈS (10/09/2026, complément de D65).
+ *
+ * L'enfermement mesuré la veille : jeton expiré ⇒ le compte existe, personne
+ * ne peut lui donner de mot de passe, et rien ne peut en émettre un autre. Ce
+ * qu'on éprouve ici est la voie de retour, ET son cliquet — qui se mesure
+ * comme celui de l'amorçage : sur la MÊME identité, avant et après le premier
+ * usage réel, jamais sur deux identités qui se ressemblent.
+ *
+ * Le cliquet est un FAIT de la ligne de `compte` — `mot_de_passe IS NULL` —
+ * et non une politique : son jumeau ne retire donc pas un verrou de la base,
+ * il remet ce fait en place sous le propriétaire, et regarde la réémission
+ * repasser. C'est la seule façon de prouver que c'est ce fait-là qui gouverne,
+ * et pas un voisin.
+ */
+describe("la réémission du jeton de premier accès", () => {
+  const SOCIETE_REEMISSION = uuidv7();
+  const email = courriel("reemission");
+  let identiteId = "";
+
+  beforeAll(async () => {
+    await creerSocieteVierge(
+      SOCIETE_REEMISSION,
+      `AMOR4-${SOCIETE_REEMISSION.slice(0, 8)}`,
+    );
+    const ouverture = await ouvrirPremierCompte(clientApp(), {
+      societeId: SOCIETE_REEMISSION,
+      email,
+      nom: "Réémission",
+    });
+    identiteId = ouverture.utilisateurId;
+  });
+
+  /** L'empreinte portée par le moyen de connexion de l'identité, observée. */
+  async function empreinte(): Promise<string | null> {
+    const [ligne] = await observerSousProprietaire(
+      "l'empreinte du mot de passe n'est pas lisible sous le rôle applicatif " +
+        "sans désignation : on observe ici l'ÉTAT que l'amorçage laisse.",
+    ).$queryRawUnsafe<{ mot_de_passe: string | null }[]>(
+      `SELECT mot_de_passe FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      identiteId,
+    );
+    return ligne === undefined ? "<aucune ligne>" : ligne.mot_de_passe;
+  }
+
+  it("TÉMOIN — l'amorçage laisse un moyen de connexion SANS empreinte", async () => {
+    // Sans cette observation, un cliquet fondé sur `mot_de_passe IS NULL`
+    // pourrait être vert parce que la colonne ne serait jamais lue.
+    expect(await empreinte()).toBeNull();
+  });
+
+  it("l'identité sans mot de passe ne se connecte avec RIEN", async () => {
+    // L'effacement de l'empreinte jetable n'est pas qu'un marqueur : il retire
+    // un moyen de connexion que personne n'avait choisi. Mesuré : la
+    // bibliothèque refuse, quel que soit le mot de passe présenté.
+    const production = creerAuth(clientApp());
+    await expect(
+      dansUnEchangeAuth(() =>
+        production.api.signInEmail({
+          body: { email, password: "NImporteQuoi1!" },
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("réémet un jeton, le trace, et ne laisse aucune session", async () => {
+    const reemis = await reemettreJetonPremierAcces(clientApp(), {
+      societeId: SOCIETE_REEMISSION,
+      email,
+    });
+    expect(reemis.utilisateurId).toBe(identiteId);
+    expect(reemis.urlPremierAcces).toMatch(/\/reset-password\/[^/?]{16,}/);
+
+    const [sessions] = await observerSousProprietaire(
+      "le décompte des sessions d'une identité n'est pas lisible sous le rôle " +
+        "applicatif : `session` ne se lit que par son JETON (L1-02d).",
+    ).$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM "session" WHERE utilisateur_id = $1::uuid`,
+      identiteId,
+    );
+    expect(sessions?.n).toBe(0);
+
+    const traces = await observerSousProprietaire(
+      "`journal_acces` n'est lisible que sous désignation ; on l'observe ici " +
+        "pour ce qu'elle porte, pas pour la lire.",
+    ).$queryRawUnsafe<{ evenement: string; cible: string }[]>(
+      `SELECT evenement::text, societe_id_cible::text AS cible
+         FROM "journal_acces" WHERE utilisateur_id = $1::uuid ORDER BY id`,
+      identiteId,
+    );
+    expect(traces.map((t) => t.evenement)).toEqual([
+      "ouverture_identite",
+      "reemission_premier_acces",
+    ]);
+    expect(traces[1]?.cible).toBe(SOCIETE_REEMISSION);
+  });
+
+  it("le jeton réémis ouvre réellement le compte — puis le cliquet CLAQUE", async () => {
+    const reemis = await reemettreJetonPremierAcces(clientApp(), {
+      societeId: SOCIETE_REEMISSION,
+      email,
+    });
+    const jeton = new URL(
+      reemis.urlPremierAcces,
+      "http://amorcage.invalid",
+    ).pathname
+      .split("/")
+      .pop();
+    expect(jeton).toBeTruthy();
+
+    const production = creerAuth(clientApp());
+    await dansUnEchangeAuth(() =>
+      production.api.resetPassword({
+        body: { newPassword: "MotDePasseChoisi2!", token: jeton! },
+      }),
+    );
+    const connexion = await dansUnEchangeAuth(() =>
+      production.api.signInEmail({
+        body: { email, password: "MotDePasseChoisi2!" },
+      }),
+    );
+    expect(connexion.user.email).toBe(email);
+
+    // Le FAIT a changé : une empreinte existe désormais.
+    expect(await empreinte()).not.toBeNull();
+
+    // Et le refus se mesure APRÈS le succès, sur la MÊME identité.
+    await expect(
+      reemettreJetonPremierAcces(clientApp(), {
+        societeId: SOCIETE_REEMISSION,
+        email,
+      }),
+    ).rejects.toThrow(/déjà un mot de passe/);
+  });
+
+  it("JUMEAU — le fait remis en place, la réémission REPASSE ; le fait rendu, le refus revient", async () => {
+    // On ne retire pas un voisin : on remet exactement ce que le cliquet lit.
+    // Le geste lit sur sa propre connexion, donc le fait est remis POUR DE
+    // VRAI sous le propriétaire — l'empreinte est mise de côté, effacée, puis
+    // RENDUE. Si la réémission repasse entre les deux, c'est bien
+    // `mot_de_passe IS NULL` qui gouverne, et rien d'autre.
+    const empreinteChoisie = await empreinte();
+    expect(empreinteChoisie).not.toBeNull();
+
+    const effacees = await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = NULL WHERE utilisateur_id = $1::uuid`,
+      identiteId,
+    );
+    expect(effacees).toBe(1);
+    try {
+      const reemis = await reemettreJetonPremierAcces(clientApp(), {
+        societeId: SOCIETE_REEMISSION,
+        email,
+      });
+      expect(reemis.utilisateurId).toBe(identiteId);
+    } finally {
+      const rendues = await clientOwner().$executeRawUnsafe(
+        `UPDATE "compte" SET mot_de_passe = $2 WHERE utilisateur_id = $1::uuid`,
+        identiteId,
+        empreinteChoisie,
+      );
+      expect(rendues).toBe(1);
+    }
+
+    // TÉMOIN : le fait est rendu, et le refus avec lui.
+    expect(await empreinte()).toBe(empreinteChoisie);
+    await expect(
+      reemettreJetonPremierAcces(clientApp(), {
+        societeId: SOCIETE_REEMISSION,
+        email,
+      }),
+    ).rejects.toBeInstanceOf(RefusReemission);
+  });
+
+  it("refuse une identité inconnue, et une identité étrangère à la société", async () => {
+    await expect(
+      reemettreJetonPremierAcces(clientApp(), {
+        societeId: SOCIETE_REEMISSION,
+        email: courriel("inconnue"),
+      }),
+    ).rejects.toBeInstanceOf(RefusReemission);
+
+    // L'identité ouverte sur SOCIETE_VIERGE n'est pas habilitée ici.
+    await expect(
+      reemettreJetonPremierAcces(clientApp(), {
+        societeId: SOCIETE_REEMISSION,
+        email: courriel("geste"),
+      }),
+    ).rejects.toThrow(/n'est pas habilitée/);
+  });
+
+  it("ne rouvre JAMAIS le chemin d'ouverture", async () => {
+    // La société porte une habilitation : la branche d'amorçage est refermée,
+    // et une réémission — réussie ou refusée — n'y change rien.
+    expect(
+      await labaseAccepteUneIdentite(
+        SOCIETE_REEMISSION,
+        courriel("apres-reemission"),
+      ),
+    ).toBe(false);
   });
 });

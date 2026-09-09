@@ -220,6 +220,34 @@ async function ouvrir(
     );
   }
 
+  // ── 2 bis. LE MOT DE PASSE JETABLE EST EFFACÉ, ET C'EST LE CLIQUET DE LA
+  //          RÉÉMISSION (10/09/2026) ────────────────────────────────────────
+  //
+  // `signUpEmail` a rangé l'EMPREINTE du mot de passe jetable dans `compte`.
+  // Personne ne connaît ce mot de passe, mais son empreinte reste un moyen de
+  // connexion — et surtout elle rend l'état « cette identité n'a jamais servi »
+  // INOBSERVABLE : une empreinte jetable a la même forme qu'une empreinte
+  // choisie. Elle est donc effacée. Mesuré : la bibliothèque refuse la
+  // connexion d'un compte dont l'empreinte est nulle (`INVALID_EMAIL_OR_PASSWORD`),
+  // et la réinitialisation par jeton l'écrit sans exiger qu'elle existe.
+  //
+  // **`mot_de_passe IS NULL` devient ainsi le FAIT que la réémission lit** :
+  // aucun mot de passe n'existe tant que la personne n'en a pas choisi un, et
+  // dès qu'elle l'a fait, l'état ne revient jamais. Le décompte est une
+  // assertion : une modification qui ne toucherait pas exactement une ligne
+  // laisserait une empreinte derrière elle, et le geste s'arrête.
+  const effacees = await avecDesignationAuth(client).compte.updateMany({
+    where: { utilisateur_id: utilisateurId },
+    data: { mot_de_passe: null },
+  });
+  if (effacees.count !== 1) {
+    throw new RefusAmorcage(
+      `L'empreinte du mot de passe jetable n'a pas été effacée (${effacees.count} ` +
+        "ligne modifiée au lieu d'une) : le geste s'arrête plutôt que de laisser " +
+        "un moyen de connexion que personne n'a choisi.",
+    );
+  }
+
   // ── 3. LA SESSION OUVERTE PAR `signUpEmail` EST REFERMÉE (D2) ────────────
   //
   // Par le chemin de la bibliothèque, avec le cookie qu'elle vient de poser :
@@ -299,4 +327,180 @@ async function ouvrir(
   });
 
   return { utilisateurId, role, urlPremierAcces: url, sessionsRefermees };
+}
+
+/**
+ * LA RÉÉMISSION DU JETON DE PREMIER ACCÈS (10/09/2026, complément de D65).
+ *
+ * ## L'enfermement, mesuré avant d'être réparé
+ *
+ * Le jeton de premier accès vit une heure. Deux scénarios existaient, chacun
+ * de son côté, et personne ne les avait mis côte à côte : *le second appel du
+ * geste sur la même société est refusé* et *l'instance de production n'émet
+ * aucun jeton*. Ensemble : **jeton expiré ⇒ le compte existe, personne ne peut
+ * lui donner de mot de passe, et rien ne peut en émettre un autre.** Le cliquet
+ * qui protège l'ouverture condamnait l'issue de secours (§9, 08/09).
+ *
+ * ## LE CLIQUET, PLUS ÉTROIT QUE CELUI DE L'AMORÇAGE
+ *
+ * Ce geste ne regarde pas les habilitations de la société — elles existent, la
+ * porte d'amorçage est déjà refermée. Il lit UN fait, sur la ligne de `compte`
+ * de l'identité visée : **`mot_de_passe IS NULL`**. C'est l'état dans lequel
+ * l'amorçage laisse le moyen de connexion, et la première réinitialisation par
+ * jeton l'efface pour toujours. Il ne peut donc servir qu'une identité qui n'a
+ * JAMAIS servi, et il se ferme au premier usage réel — la forme de D65,
+ * appliquée à un cas plus étroit.
+ *
+ * *Pourquoi ce fait-là et pas un autre :* il est le seul qui soit à la fois
+ * LISIBLE par le geste — `compte` se désigne par l'identifiant de l'utilisateur
+ * — et IRRÉVERSIBLE par construction — aucun chemin du produit ne remet une
+ * empreinte à `NULL`. Une trace du journal aurait fait d'une trace un verrou ;
+ * une session aurait été effacée à son expiration ; l'horodatage de
+ * modification aurait bougé pour d'autres raisons.
+ *
+ * ## Ce qu'il ne fait PAS
+ *
+ * Il n'ouvre aucune identité, ne touche à aucune habilitation, ne pose aucun
+ * rôle, et **ne rouvre jamais le chemin d'ouverture** : `utilisateur_ouverture`
+ * n'est pas lue ici. Il ne peut pas non plus INVALIDER un jeton précédent
+ * encore vivant — `verification` ne se lit que par l'identifiant opaque qu'on
+ * présente, et le geste ne l'a pas gardé. Un jeton réémis pendant l'heure du
+ * premier laisse donc deux jetons valides jusqu'à l'expiration du premier ;
+ * c'est écrit ici plutôt que tu, et la fenêtre est celle qui existait déjà.
+ *
+ * Comme l'ouverture, il ne laisse aucune session et trace dans `journal_acces`
+ * — `reemission_premier_acces`, auteur l'identité elle-même, société cible.
+ */
+
+/** Ce que la réémission refuse, avec le motif. */
+export class RefusReemission extends Error {}
+
+/** Ce que la réémission rend. */
+export type Reemission = {
+  readonly utilisateurId: string;
+  /** L'URL de premier accès, à remettre HORS BANDE. Imprimée une fois. */
+  readonly urlPremierAcces: string;
+};
+
+/**
+ * Réémet un jeton de premier accès pour une identité qui n'a jamais servi.
+ *
+ * @param client client Prisma sous le rôle APPLICATIF — même exigence que
+ *   `ouvrirPremierCompte`, et pour la même raison.
+ */
+export async function reemettreJetonPremierAcces(
+  client: PrismaClient,
+  demande: {
+    readonly societeId: string;
+    readonly email: string;
+    readonly redirection?: string;
+  },
+): Promise<Reemission> {
+  return dansUnEchangeAuth(() => reemettre(client, demande));
+}
+
+async function reemettre(
+  client: PrismaClient,
+  demande: {
+    readonly societeId: string;
+    readonly email: string;
+    readonly redirection?: string;
+  },
+): Promise<Reemission> {
+  // ── 1. L'IDENTITÉ, DÉSIGNÉE PAR LE COURRIEL QU'ON VIENT DE SAISIR ───────
+  const identite = await avecDesignationAuth(client).utilisateur.findUnique({
+    where: { email: demande.email },
+    select: { id: true },
+  });
+  if (identite === null) {
+    throw new RefusReemission(
+      `Aucune identité ne porte le courriel ${demande.email}. La réémission ` +
+        "nomme une identité existante : elle n'en ouvre aucune.",
+    );
+  }
+
+  // ── 2. LA SOCIÉTÉ EXISTE, ET L'IDENTITÉ Y EST HABILITÉE ──────────────────
+  //
+  // Lu sous le contexte de la société : c'est ce qui ancre le geste à une
+  // société et ce qui permet de refuser LISIBLEMENT. Ce n'est pas le cliquet.
+  const etat = await avecSociete(client, demande.societeId, async (tx) => {
+    const societe = await tx.societe.findUnique({
+      where: { id: demande.societeId },
+      select: { raison_sociale: true },
+    });
+    const habilitations = await tx.utilisateurSociete.count({
+      where: { societe_id: demande.societeId, utilisateur_id: identite.id },
+    });
+    return { societe, habilitations };
+  });
+  if (etat.societe === null) {
+    throw new RefusReemission(
+      `Aucune société ne porte l'identifiant ${demande.societeId}.`,
+    );
+  }
+  if (etat.habilitations === 0) {
+    throw new RefusReemission(
+      `L'identité ${demande.email} n'est pas habilitée sur la société ` +
+        `« ${etat.societe.raison_sociale} » : la réémission ne sert qu'une ` +
+        "identité ouverte par le geste d'amorçage, sur SA société.",
+    );
+  }
+
+  // ── 3. LE CLIQUET : AUCUN MOT DE PASSE N'EXISTE ──────────────────────────
+  const compte = await avecDesignationAuth(client).compte.findFirst({
+    where: { utilisateur_id: identite.id },
+    select: { mot_de_passe: true },
+  });
+  if (compte === null) {
+    throw new RefusReemission(
+      `L'identité ${demande.email} ne porte aucun moyen de connexion : ce ` +
+        "n'est pas l'état que le geste d'amorçage laisse, et la réémission " +
+        "s'arrête plutôt que de poursuivre sur un état qu'elle ne comprend pas.",
+    );
+  }
+  if (compte.mot_de_passe !== null) {
+    throw new RefusReemission(
+      `L'identité ${demande.email} porte déjà un mot de passe : elle a servi ` +
+        "au moins une fois, et la réémission est FERMÉE pour toujours. Un mot " +
+        "de passe oublié se traite par le chemin ordinaire, jamais par ce geste.",
+    );
+  }
+
+  // ── 4. LE JETON, PAR UNE INSTANCE QUI N'EST PAS CELLE DE PRODUCTION ─────
+  let url = "";
+  const emetteur = creerAuth(
+    client,
+    { societeId: demande.societeId, role: null },
+    async (remise) => {
+      url = remise.url;
+    },
+  );
+  await emetteur.api.requestPasswordReset({
+    body: {
+      email: demande.email,
+      redirectTo: demande.redirection ?? "/premier-acces",
+    },
+  });
+  if (url === "") {
+    throw new RefusReemission(
+      "Aucun jeton de premier accès n'a été réémis : le geste échoue plutôt " +
+        "que de rendre une réémission muette.",
+    );
+  }
+
+  // ── 5. LA TRACE — UN ÉVÉNEMENT D'ACCÈS, COMME L'OUVERTURE ───────────────
+  await avecDesignationAuth(client).journalAcces.create({
+    data: {
+      id: uuidv7(),
+      utilisateur_id: identite.id,
+      evenement: "reemission_premier_acces",
+      societe_id_cible: demande.societeId,
+      detail:
+        "réémission du jeton de premier accès — l'identité n'avait jamais " +
+        "servi (aucun mot de passe), le jeton précédent est présumé expiré ou " +
+        "perdu ; geste d'exploitation, complément de D65.",
+    },
+  });
+
+  return { utilisateurId: identite.id, urlPremierAcces: url };
 }
