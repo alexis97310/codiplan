@@ -50,6 +50,10 @@
 
 **La consigne qui disait l'agence est retirée par son auteur**, et le retrait est écrit : *une agence dessert plusieurs zones à des distances différentes.*
 
+**LA MIGRATION A ÉTÉ ÉPROUVÉE SUR UNE BASE QUI PORTE DES LIGNES, pas seulement sur une base vide.** Le catalogue naît vide, donc le rétro-remplissage n'aurait jamais été exercé — *le seul environnement où le défaut existe est le seul qui ne soit jamais exercé* (§9, 23/08). Base reconstruite à l'état d'AVANT, trois forfaits posés, migration appliquée : `A-DEP → 1`, `B-DEP → 2` pour le déplacement, `C-CTL → 1` pour le contrôle. **Le rétro-remplissage conserve EXACTEMENT l'ordre d'avant** — `code` croissant, par société et par nature — de sorte qu'aucune facture ne change.
+
+**Et le témoin du bloc de garde MORD, ce qui a été vérifié plutôt que supposé.** `FORCE` remis, le bloc rejoué : `ERROR: FORCE est encore actif`. *Ce qui NE peut pas se mesurer ici est dit : le rôle local est superutilisateur et contourne RLS, donc la NÉCESSITÉ de la levée ne s'observe pas en local — seul le mécanisme du témoin s'observe.* C'est exactement l'angle mort que le §9 du 07/09 décrit, et la raison pour laquelle le témoin porte sur le mécanisme et jamais sur un décompte.
+
 *Vérifiable à `84f7827`.*
 
 ---
