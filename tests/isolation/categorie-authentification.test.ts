@@ -13,7 +13,7 @@ import {
   ROLE_APP,
   SOCIETE_A,
   UTILISATEUR_PAR_ROLE,
-  UTILISATEUR_PORTAIL_A,
+  PORTAIL_A_CLIENT,
 } from "./setup/fixtures";
 
 /**
@@ -206,7 +206,12 @@ describe("CE QUE CHAQUE CONTEXTE VOIT — la mesure, table par table", () => {
       {
         societeId: SOCIETE_A,
         role: Role.client,
-        auteurId: UTILISATEUR_PORTAIL_A,
+        // LE COMPTE PORTAIL, ET NON L'INTERNE (D70). Ce scénario portait
+        // `UTILISATEUR_PORTAIL_A` — un nom qui désignait le compte INTERNE,
+        // sans aucune ligne dans `utilisateur_client`. Le contexte armé ici
+        // ne pouvait donc pas exister en production, et rien ne le disait :
+        // c'est la validation de D70 qui l'a refusé, un ticket plus tard.
+        auteurId: PORTAIL_A_CLIENT,
         clientId: CLIENT_A1,
       },
       async (tx) => ({

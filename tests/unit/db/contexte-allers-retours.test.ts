@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   VARIABLES_CONTEXTE,
   avecContexteRls,
@@ -83,23 +86,59 @@ describe("la pose du contexte n'a pas coûté un aller-retour de plus", () => {
     expect(portail.length).toBeLessThan(ALLERS_RETOURS_AVANT);
 
     // Témoins de non-vacuité : le client factice a bien été traversé, et la
-    // seconde instruction est bien la LECTURE du périmètre. Zéro émission
+    // seconde instruction est bien la DÉSIGNATION du client. Zéro émission
     // ressemblerait trait pour trait à « une seule », et passerait le
     // `toBeLessThan` ci-dessus (§9, 30/08).
     expect(interne[0]?.sql).toContain("set_config");
-    expect(portail[1]?.sql).toContain("utilisateur_client_site");
+    expect(portail[1]?.sql).toContain("app_poser_perimetre_client");
   });
 
-  it("la lecture du périmètre VOYAGE dans le set_config, elle ne s'y ajoute pas", async () => {
-    const [, perimetre] = await emissionsDe(CONTEXTE);
+  /**
+   * CE SCÉNARIO A CHANGÉ DE LIEU, PAS DE PROPRIÉTÉ (D70), et il faut le dire.
+   *
+   * Il exigeait que la lecture du périmètre voyage DANS le `set_config` —
+   * `SELECT string_agg(…)`, valeur jointe par des virgules — parce qu'une
+   * lecture séparée aurait coûté un aller-retour de plus. **D70 a déplacé cette
+   * lecture dans une fonction**, qui valide en outre la désignation : la forme
+   * a bougé, la propriété non — un appel là où il y avait une instruction, et
+   * le corps d'une fonction ne coûte aucun aller-retour.
+   *
+   * Ce n'est donc pas un test assoupli pour faire passer la vérification :
+   * **c'est la même exigence, lue là où le code est parti.** Elle porte
+   * désormais sur la MIGRATION, une source que ce fichier ne contrôle pas — et
+   * c'est ce qui la garde honnête (§9, 01/09).
+   */
+  it("la lecture du périmètre voyage TOUJOURS dans un seul aller-retour", async () => {
+    const [, designation] = await emissionsDe(CONTEXTE);
 
-    // La sous-requête est DANS l'instruction qui pose : une lecture séparée
-    // aurait coûté un aller-retour de plus, ce que le ticket interdit.
-    expect(perimetre?.sql).toContain("set_config");
-    expect(perimetre?.sql).toContain("SELECT string_agg");
-    // Et la FORME de la valeur ne bouge pas : liste jointe par des virgules,
-    // exactement ce que lisent les politiques. Aucune des formes ne bouge.
-    expect(perimetre?.sql).toContain("','");
+    // Un APPEL, et rien d'autre : ni lecture préalable, ni pose séparée.
+    expect(designation?.sql).toContain("app_poser_perimetre_client");
+    expect(designation?.sql).not.toContain("string_agg");
+    expect(designation?.parametres).toHaveLength(2);
+
+    const corps = readFileSync(
+      join(
+        process.cwd(),
+        "prisma/migrations/20260909160000_designation_du_client_portail/migration.sql",
+      ),
+      "utf8",
+    );
+    // La lecture est bien DANS la fonction, et la FORME de la valeur ne bouge
+    // pas : liste jointe par des virgules, exactement ce que lisent les
+    // politiques. C'est ce que L1-02b avait verrouillé, et qui doit survivre au
+    // déménagement.
+    expect(corps).toContain("SELECT string_agg");
+    expect(corps).toContain("','");
+    expect(corps).toContain("set_config('app.perimetre_sites'");
+    // Et le verrou que D70 ajoute au même endroit : sans lui, la désignation
+    // serait une parole sur l'honneur.
+    expect(corps).toContain("RAISE EXCEPTION");
+    // *Ce fichier ne vérifie PAS l'absence de `SECURITY DEFINER`*, et c'est
+    // délibéré : le gardien de D50 le fait déjà, sur TOUTES les migrations et
+    // avec la seule coupure légitime — documentation contre exécution (§9,
+    // 26/08). Une seconde lecture naïve du même critère est pire qu'aucune :
+    // celle-ci tombait sur la phrase de la migration qui EXPLIQUE pourquoi la
+    // fonction n'est pas `DEFINER`.
   });
 
   it("pose RÉELLEMENT toutes les variables, avec leurs valeurs", async () => {

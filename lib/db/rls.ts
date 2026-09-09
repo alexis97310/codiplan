@@ -232,7 +232,8 @@ const POSE: readonly {
   { variable: VARIABLE_SESSION_UTILISATEUR, valeur: (c) => c.auteurId ?? "" },
   { variable: VARIABLE_SESSION_ADRESSE_IP, valeur: (c) => c.adresseIp ?? "" },
   { variable: VARIABLE_SESSION_CLIENT, valeur: (c) => c.clientId ?? "" },
-  // Posée à vide ici, puis REMPLIE par `SQL_PERIMETRE` pour un compte portail.
+  // Posée à vide ici, puis REMPLIE par `app_poser_perimetre_client` pour un
+  // compte portail (D70) — après que ce même appel a VALIDÉ la désignation.
   // Elle figure dans cette liste parce qu'elle doit être DÉFINIE dans tous les
   // cas : sur une connexion mutualisée, une variable non posée hérite de ce que
   // la transaction précédente y a laissé.
@@ -313,37 +314,33 @@ export function instructionContexte(contexte: ContexteRls): {
 }
 
 /**
- * LA LECTURE DU PÉRIMÈTRE VOYAGE DANS LE `set_config` — zéro aller-retour ajouté.
+ * LA DÉSIGNATION DU CLIENT — l'appelant DÉSIGNE, la base DISPOSE (D70).
  *
- * `app.perimetre_sites` vient désormais de `utilisateur_client_site` (L1-02b) et
- * non plus d'un tableau. La façon naïve de la remplir serait : lire la table,
- * puis poser la variable — DEUX allers-retours, dont un ajouté. `set_config`
- * accepte une sous-requête : la lecture voyage donc DANS l'instruction qui pose,
- * et n'en coûte aucun de plus.
+ * ## Ce que cet appel remplace, et pourquoi il ne coûte rien de plus
  *
- * **La forme de la valeur ne bouge pas d'un caractère** — liste d'UUID jointe
- * par des virgules —, parce que ce sont les politiques qui la lisent et
- * qu'aucune des formes en vigueur ne doit changer. La normalisation change d'où
- * vient la valeur, jamais ce que voient les politiques.
+ * Il prend la place de l'instruction qui posait `app.perimetre_sites` depuis
+ * `utilisateur_client_site` (L1-02b) : **un appel là où il y avait une
+ * instruction**, et toujours aucune pour un utilisateur interne. Ce qu'il
+ * AJOUTE est la validation qui manquait — le client désigné doit figurer parmi
+ * les habilitations de ce compte —, et elle voyage dans le même aller-retour.
  *
- * **Cette instruction n'est émise que pour un compte portail.** Un utilisateur
- * interne n'a pas de périmètre : lui faire lire cette table serait un
- * aller-retour dépensé pour obtenir la chaîne vide que la première instruction
- * a déjà posée.
+ * ## Pourquoi la validation est en BASE et non ici
  *
- * Elle s'exécute APRÈS la pose du contexte, et c'est indispensable : sa lecture
- * est soumise aux politiques que la première instruction vient d'armer. C'est
- * aussi ce qui la rend sûre — elle ne peut lire que les habilitations que
- * l'appelant a le droit de voir.
+ * Parce qu'elle doit être soumise aux politiques de l'appelant. La fonction est
+ * `SECURITY INVOKER` : elle ne peut confirmer qu'une habilitation que l'appelant
+ * a lui-même le droit de lire. Écrite ici, en TypeScript, elle aurait été une
+ * lecture de plus dont rien ne garantissait qu'elle regarde la même chose que
+ * les politiques — *deux lectures d'un même critère divergent en silence*
+ * (§9, 01/09).
+ *
+ * ## Elle LÈVE, elle ne rend jamais un contexte vide
+ *
+ * Un `app.client_id` vide se lit « utilisateur interne » dans la forme « parc »
+ * et OUVRE tout le parc de la société. Une désignation refusée qui retomberait
+ * en silence sur la chaîne vide rouvrirait donc exactement le trou qu'elle
+ * ferme. L'exception annule la transaction entière : rien n'est lu ensuite.
  */
-const SQL_PERIMETRE = `SELECT set_config($1, coalesce((
-  SELECT string_agg("ucs"."site_id"::text, ',' ORDER BY "ucs"."site_id")
-    FROM "utilisateur_client_site" "ucs"
-    JOIN "utilisateur_client" "uc" ON "uc"."id" = "ucs"."utilisateur_client_id"
-   WHERE "uc"."utilisateur_id" = NULLIF($2, '')::uuid
-     AND "uc"."client_id" = NULLIF($3, '')::uuid
-     AND "uc"."actif"
-), ''), true)`;
+const SQL_DESIGNATION_CLIENT = `SELECT "app_poser_perimetre_client"($1::uuid, $2::uuid)`;
 
 /**
  * Positionne les six variables de session sur la transaction courante.
@@ -358,10 +355,21 @@ async function poserContexte(
   const { sql, parametres } = instructionContexte(contexte);
   await tx.$executeRawUnsafe(sql, ...parametres);
 
+  // **L'ORDRE EST UNE DÉCISION** (D70). `app.client_id` est posée par
+  // l'instruction ci-dessus, AVANT d'être validée par celle-ci. La politique
+  // « habilitation » s'écrit *société ET (`app.client_id` absent OU ma propre
+  // ligne)* : valider avant de poser ferait lire sous la branche « absent »,
+  // c'est-à-dire sous le régime de l'utilisateur INTERNE, qui voit TOUTES les
+  // habilitations de la société. Poser d'abord RESSERRE la validation à ses
+  // propres lignes.
+  //
+  // Ce que l'inversion coûte : entre les deux, la variable porte une valeur non
+  // vérifiée. **Rien ne doit s'exécuter dans cette fenêtre** — c'est la raison
+  // pour laquelle ces deux instructions sont adjacentes et le resteront, et un
+  // scénario d'isolation éprouve qu'un refus annule la transaction entière.
   if (contexte.clientId) {
     await tx.$executeRawUnsafe(
-      SQL_PERIMETRE,
-      VARIABLE_SESSION_PERIMETRE,
+      SQL_DESIGNATION_CLIENT,
       contexte.auteurId ?? "",
       contexte.clientId,
     );

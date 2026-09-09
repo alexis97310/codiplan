@@ -33,6 +33,23 @@ export type ContexteSession = {
    * `null` quand la session n'en porte pas — jamais une valeur inventée.
    */
   adresseIp: string | null;
+  /**
+   * Client pour lequel un compte PORTAIL agit — `null` pour tout autre rôle.
+   *
+   * **C'est une DÉSIGNATION, pas une autorisation** (D70). Elle alimente
+   * `app.client_id`, et la base refuse la pose si ce client ne figure pas
+   * parmi les habilitations de ce compte — `app_poser_perimetre_client` lève,
+   * dans la même transaction que la pose. *Ce champ dit POUR QUI le compte
+   * agit ; la base dit s'il en a le droit.*
+   *
+   * Pourquoi l'appelant le fournit plutôt que la base ne le dérive : la
+   * dérivation N'EST PAS UNIQUE. `utilisateur_client` porte
+   * `UNIQUE (utilisateur_id, client_id)` et non `(utilisateur_id, societe_id)`
+   * — un même compte tient légitimement plusieurs clients d'une même société
+   * (éprouvé en base). La base ne peut donc pas choisir à la place du compte
+   * sans inventer une règle que personne n'a décidée.
+   */
+  clientId: string | null;
 };
 
 export const schemaContexteSession = z.object({
@@ -41,6 +58,7 @@ export const schemaContexteSession = z.object({
   role: schemaRole.nullable(),
   secondFacteurValide: z.boolean(),
   adresseIp: z.string().nullable(),
+  clientId: z.uuid().nullable(),
 });
 
 /** Contexte dont la société et le rôle sont établis : le seul qui lit quelque chose. */
@@ -63,10 +81,10 @@ export type ContexteActif = ContexteSession & {
  *      a le droit d'y faire, et laisserait `app.role` vide ;
  *   3. **second facteur absent** sur un rôle qui l'exige (`admin_plateforme`,
  *      `direction`) ;
- *   4. **rôle du portail** — et ce quatrième refus est le seul qui ferme un
- *      trou MESURÉ plutôt qu'il n'explicite une absence. Voir ci-dessous.
+ *   4. **rôle du portail SANS client désigné**, et
+ *   5. **client désigné par un rôle qui n'est pas celui du portail**.
  *
- * ## LE QUATRIÈME REFUS : `app.client_id` N'A AUCUN POSEUR DE PRODUCTION
+ * ## LES DEUX DERNIERS : L'APPARIEMENT RÔLE ↔ CLIENT *(D70)*
  *
  * La forme « parc » des politiques (D10, D22) lit trois variables — société,
  * `app.client_id`, `app.perimetre_sites` — et sa deuxième clause s'écrit
@@ -74,43 +92,27 @@ export type ContexteActif = ContexteSession & {
  * variable vide DÉSACTIVE donc le filtre**, ce qui est voulu : c'est ainsi
  * qu'un utilisateur interne voit le parc entier de sa société.
  *
- * Or `avecContexteApplicatif` — le seul chemin de production qui ouvre une
- * transaction cloisonnée depuis une session — **ne peut pas la renseigner** :
- * `ContexteSession` ne porte aucun champ de client, et `POSE` l'écrit donc
- * toujours à vide. *Un compte portail qui atteindrait ce chemin lirait le parc
- * entier de sa société, tous clients confondus.*
+ * Le 09/09, `avecContexteApplicatif` ne savait pas la renseigner : un compte
+ * portail qui atteignait ce chemin lisait le parc entier. *Mesuré sous
+ * `codiplan_app`, après deux témoins — rôle non privilégié, zéro ligne sans
+ * contexte : un compte portail du client `c2` lisait **2 machines du client
+ * `c1`** ; le même contexte, `app.client_id` posé, rendait **0**.*
  *
- * **Mesuré sur la base jetable**, sous `codiplan_app` (ni superutilisateur, ni
- * `BYPASSRLS`), deux témoins d'abord — le rôle est restreint, et sans contexte
- * la table rend zéro ligne :
+ * **La réparation n'est ni « l'appelant fournit » ni « la base dérive » : les
+ * deux.** L'appelant DÉSIGNE — `clientId` ci-dessus —, et la base DISPOSE :
+ * `app_poser_perimetre_client` refuse la pose si le client désigné ne figure
+ * pas parmi les habilitations de ce compte, dans la même transaction. C'est
+ * exactement la forme de `app.societe_id`.
  *
- * | Contexte posé | Ce que lit un compte portail du client `c2` |
- * | --- | --- |
- * | société + rôle `client`, `app.client_id` **vide** *(ce que pose la production)* | **2 machines du client `c1`** |
- * | le même, `app.client_id` **posé** *(ce qu'arme le harnais)* | **0 ligne** |
+ * *Pourquoi pas la base seule :* la dérivation n'est pas unique — un compte
+ * tient légitimement plusieurs clients d'une même société (éprouvé en base).
+ * *Pourquoi pas l'appelant seul :* une valeur qui désigne ne vient jamais de
+ * l'extérieur sans être validée (L1-02e).
  *
- * **C'est la faute que L1-02b a fermée, revenue d'un étage plus haut.** Là, le
- * harnais armait une variable que la production n'armait pas ; ici, la
- * production la POSE — le gardien de `scripts/lib/contexte-rls.ts` est donc
- * vert, et il a raison — mais **rien ne peut lui donner de valeur**. *Un
- * gardien qui vérifie qu'une variable est posée ne vérifie pas qu'elle est
- * renseignable.*
- *
- * **Pourquoi un REFUS et pas un branchement.** D'où doit venir `client_id` —
- * de l'appelant, comme la société, ou de la base, comme `app.perimetre_sites`
- * qui se dérive déjà de `utilisateur_client_site` — est une décision de
- * cloisonnement, et elle est INSCRITE, pas prise ici. En attendant, le chemin
- * ferme : *une garantie manquante se signale par un refus, jamais par une
- * lecture réussie.*
- *
- * **Ce que ce refus ne casse pas, et c'est mesuré aussi** : aucun compte
- * portail ne peut aujourd'hui atteindre ce chemin. `utilisateur_societe` ne
- * porte AUCUNE ligne de rôle `client` (D10 — un compte portail se rattache par
- * `utilisateur_client`), si bien que `habilitationsDuCompte` ne lui rend rien
- * et que le refus n° 1 tombe avant celui-ci. **Cette fermeture-là est une
- * conséquence, pas une garantie** : elle disparaît le jour où quelqu'un donne
- * une société active à un compte portail, ce qui est exactement le premier
- * geste du ticket qui construira le portail.
+ * **Et les deux sens sont fermés.** Le portail sans client rouvrirait la
+ * branche « utilisateur interne » ; un rôle interne AVEC client déplacerait en
+ * silence le discriminant de la forme « habilitation » (L1-02b), qui distingue
+ * précisément le compte portail de tous les autres.
  */
 export function motifRefusContexte(contexte: ContexteSession): string | null {
   if (contexte.societeId === null) {
@@ -131,13 +133,23 @@ export function motifRefusContexte(contexte: ContexteSession): string | null {
       "session. Activer le second facteur sur le compte, puis se reconnecter."
     );
   }
-  if (estRolePortail(contexte.role)) {
+  // ── QUATRIÈME ET CINQUIÈME MOTIFS : L'APPARIEMENT RÔLE ↔ CLIENT (D70) ──
+  //
+  // Ils ferment les deux sens, et le second est celui qu'on oublie.
+  if (estRolePortail(contexte.role) && contexte.clientId === null) {
     return (
-      "Rôle du portail client : ce chemin ne sait pas poser `app.client_id`, " +
-      "et la forme « parc » traite une valeur vide comme « utilisateur " +
-      "interne » — la transaction lirait le parc ENTIER de la société. Le " +
-      "chemin du portail reste à construire, et l'origine de `client_id` est " +
-      "une décision inscrite au registre, pas un défaut de renseignement."
+      "Rôle du portail sans client désigné : `app.client_id` resterait vide, " +
+      "et la forme « parc » lit une valeur vide comme « utilisateur interne » " +
+      "— la transaction ouvrirait le parc ENTIER de la société. Un compte " +
+      "portail désigne toujours le client pour lequel il agit."
+    );
+  }
+  if (!estRolePortail(contexte.role) && contexte.clientId !== null) {
+    return (
+      `Le rôle « ${contexte.role} » n'est pas un rôle du portail et ne ` +
+      "désigne aucun client : `app.client_id` est posée pour un compte " +
+      "portail et pour lui seul (D10). Une désignation ailleurs déplacerait " +
+      "en silence ce que la forme « habilitation » discrimine."
     );
   }
   return null;
