@@ -2,11 +2,13 @@
 
 *Écrite le 08/09/2026 à la demande de l'exploitation, **réécrite le 09/09/2026** pour être suivie **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt**. Chaque valeur dit d'où elle vient ; chaque affirmation d'état a été **mesurée sur ce dépôt**, jamais supposée.*
 
+**Deux gestes ont été AJOUTÉS le 09/09/2026** — « 3 bis » et « 9 bis » —, et ils portent ce numéro plutôt qu'un rang plein pour que la procédure reste la même procédure : ils ne s'intercalent pas, ils comblent. *Ils ont été trouvés en jouant la chaîne de bout en bout sur une base neuve, pas en la relisant.*
+
 **Ce document ne configure rien.** Aucun hébergeur n'a été contacté, aucun compte créé, aucune variable déposée. C'est une procédure à exécuter.
 
 ---
 
-## 0 — La procédure en huit gestes, et rien d'autre
+## 0 — La procédure en huit gestes (plus deux, découverts le 09/09), et rien d'autre
 
 *Si vous ne lisez qu'une section, lisez celle-ci. Les suivantes expliquent chaque geste.*
 
