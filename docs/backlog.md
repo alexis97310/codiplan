@@ -250,7 +250,11 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
 *Relu contre les sources citées le 09/09/2026 — empreinte `1628cf9c`.*
 **L2-02** QR codes — le jeton est dérivé de l'`id`, jamais du numéro. Résolution serveur avec **contrôle de société** [D22]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
-*Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
+**LIVRÉ EN PARTIE le 09/09/2026 — la dérivation et la résolution ; PAS l'impression.**
+`lib/machines/qr.ts` dérive le jeton de l'`id` — `sha256` d'un domaine versionné, base32, 26 caractères —, déterministe et calculable **hors ligne** (I4) : c'est ce qui permet de réimprimer l'étiquette d'une machine créée en mode avion. `lib/machines/resolution.ts` et `GET /api/machines/qr/{jeton}` résolvent **sous le contexte**, le contrôle de société étant fait par la politique et non par une comparaison écrite au-dessus. Les planchers de `EXIGENCES_L0_05` **montent** — `qr_inter_societe` de 5 à 8, `perimetre_sites` de 6 à 7.
+**Trois choses écrites plutôt que tues.** L'entropie du jeton est celle de l'`id` — **74 bits** —, jamais celle de sa longueur. Un jeton inconnu et le jeton d'une autre société rendent **la même chose**, faute de quoi ce chemin serait un oracle (D35, D50). Et la lecture ne contrôle **pas la forme** du jeton : il est stocké, et un contrôle de forme lierait les scans du jour à la dérivation du jour.
+**CE QUI RESTE, et pourquoi :** les **planches pré-générées** attendent une décision d'exploitation — planches autocollantes standard ou imprimante portable dédiée —, qui est la **question ouverte n° 6** du cahier des charges. Ce n'est pas un format à choisir mais un fait de terrain à constater. **Et une question inscrite** : le jeton est un identifiant aujourd'hui ; RG-DRO-02 promettant au technicien la résolution QR *en plus* de son périmètre, il deviendra un secret le jour où cette restriction sera implémentée — et une dérivation publique cesserait alors de borner.
+*Relu contre les sources citées le 09/09/2026 — empreinte `8e7c2855`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
 **L2-05** Historique machine — conservé au changement de site.

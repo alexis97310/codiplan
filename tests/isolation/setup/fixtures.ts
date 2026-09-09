@@ -1,3 +1,5 @@
+import { jetonDeMachine } from "@/lib/machines/qr";
+
 import type { Role } from "@/lib/auth/roles";
 import {
   anneeCourante,
@@ -94,9 +96,21 @@ export const SITE_B1_S1 = "bbbbbbbb-0000-7000-8000-00000000551a";
 export const MACHINE_A1 = "aaaaaaaa-0000-7000-8000-0000000000a1";
 export const MACHINE_A2 = "aaaaaaaa-0000-7000-8000-0000000000a2";
 export const MACHINE_B1 = "bbbbbbbb-0000-7000-8000-0000000000b1";
-export const QR_A1 = "qr-token-machine-a1";
-export const QR_A2 = "qr-token-machine-a2";
-export const QR_B1 = "qr-token-machine-b1";
+/**
+ * LES JETONS QR SONT DÉRIVÉS, comme la production les fabrique (L2-02, D7).
+ *
+ * Ils valaient `"qr-token-machine-a1"` — une chaîne qu'aucun chemin de
+ * production ne peut produire. Ce n'était pas une faute au moment où elle a été
+ * écrite : la dérivation n'existait pas. Elle en serait devenue une, et de la
+ * famille de L1-02b — *un harnais qui éprouve autre chose que ce que la
+ * production fabrique.*
+ *
+ * `jetonDeMachine` est appelée ici plutôt que recopiée : une seconde
+ * implémentation du même critère diverge en silence (§9, 01/09).
+ */
+export const QR_A1 = jetonDeMachine(MACHINE_A1);
+export const QR_A2 = jetonDeMachine(MACHINE_A2);
+export const QR_B1 = jetonDeMachine(MACHINE_B1);
 
 /** Modèles matériel (fixture) — référentiel plateforme surchargeable (D4). */
 /**
