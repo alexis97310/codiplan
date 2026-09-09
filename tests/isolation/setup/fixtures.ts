@@ -1,5 +1,3 @@
-import { jetonDeMachine } from "@/lib/machines/qr";
-
 import type { Role } from "@/lib/auth/roles";
 import {
   anneeCourante,
@@ -97,20 +95,37 @@ export const MACHINE_A1 = "aaaaaaaa-0000-7000-8000-0000000000a1";
 export const MACHINE_A2 = "aaaaaaaa-0000-7000-8000-0000000000a2";
 export const MACHINE_B1 = "bbbbbbbb-0000-7000-8000-0000000000b1";
 /**
- * LES JETONS QR SONT DÉRIVÉS, comme la production les fabrique (L2-02, D7).
+ * LES JETONS QR DES FIXTURES — fixes, et de la FORME que la production produit.
  *
- * Ils valaient `"qr-token-machine-a1"` — une chaîne qu'aucun chemin de
- * production ne peut produire. Ce n'était pas une faute au moment où elle a été
- * écrite : la dérivation n'existait pas. Elle en serait devenue une, et de la
- * famille de L1-02b — *un harnais qui éprouve autre chose que ce que la
- * production fabrique.*
+ * ## Ils ont eu trois valeurs en une journée, et la troisième est la bonne
  *
- * `jetonDeMachine` est appelée ici plutôt que recopiée : une seconde
- * implémentation du même critère diverge en silence (§9, 01/09).
+ * `"qr-token-machine-a1"` d'abord — une chaîne qu'aucun chemin de production ne
+ * peut produire. Puis `jetonDeMachine(MACHINE_A1)`, quand le jeton se dérivait.
+ * Puis `engendrerJetonQr()` quand il est devenu un secret (D71) — **et cette
+ * troisième version était FAUSSE**, pour une raison qui n'a rien à voir avec le
+ * cloisonnement : `globalSetup` et les fichiers de scénarios n'exécutent pas la
+ * même instance de ce module. Chacun tirait ses propres jetons, et rien de ce
+ * qui était semé n'était retrouvé. *Une valeur aléatoire au niveau d'un module
+ * n'est stable que dans un processus.*
+ *
+ * ## Pourquoi des littéraux, et pourquoi ce n'est PAS un affaiblissement
+ *
+ * J'avais écrit qu'un jeton figé « redeviendrait une valeur que le dépôt
+ * connaît, donc un jeton qui n'éprouve pas ce qu'on veut éprouver ». C'était
+ * une confusion : **la propriété « le jeton est un secret » est celle du
+ * GÉNÉRATEUR**, et elle s'éprouve sur lui — `tests/unit/machines/qr.test.ts`
+ * mesure qu'il ne se répète jamais, que les 32 caractères sortent tous, et que
+ * la dérivation rétablie fait rougir cinq scénarios. Ce que les fixtures
+ * doivent être, c'est **stables et de la bonne forme** : ce sont des jetons
+ * déjà stockés, exactement ce que la résolution rencontre en base.
+ *
+ * Ils portent donc 26 caractères de l'alphabet base32, comme la production les
+ * tire, et `tests/isolation/resolution-qr.test.ts` le vérifie plutôt que de le
+ * supposer.
  */
-export const QR_A1 = jetonDeMachine(MACHINE_A1);
-export const QR_A2 = jetonDeMachine(MACHINE_A2);
-export const QR_B1 = jetonDeMachine(MACHINE_B1);
+export const QR_A1 = "K7QMZ4TXWB2NRJ5FHCV3PDGSA6";
+export const QR_A2 = "P3XNVB7KQZ4MRT2WJFHD5CGSA6";
+export const QR_B1 = "W5ZJQ2NRTKB7XMVP4HFDC3GSA6";
 
 /** Modèles matériel (fixture) — référentiel plateforme surchargeable (D4). */
 /**

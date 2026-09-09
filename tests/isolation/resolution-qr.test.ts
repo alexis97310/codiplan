@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { jetonDeMachine } from "@/lib/machines/qr";
+import { engendrerJetonQr, estFormeDeJeton } from "@/lib/machines/qr";
 import { resoudreParJeton } from "@/lib/machines/resolution";
 
 import { exigence } from "./setup/contrat";
@@ -46,6 +46,19 @@ describe("résolution d'un jeton QR par le chemin de production", () => {
     clientId: null,
   };
 
+  it("les jetons du harnais ont la FORME que la production produit", () => {
+    // Les fixtures sont des littéraux — un jeton déjà stocké, ce que la
+    // résolution rencontre en base. Ce qui doit être vrai d'eux n'est pas
+    // d'être secrets (c'est la propriété du GÉNÉRATEUR, éprouvée sur lui) mais
+    // d'avoir la forme que la production produit : sans ce témoin, le harnais
+    // éprouverait la résolution sur des valeurs qu'aucun chemin réel ne crée —
+    // la faute de L1-02b, prise par le bout des données.
+    for (const jeton of [QR_A1, QR_A2, QR_B1]) {
+      expect(estFormeDeJeton(jeton), jeton).toBe(true);
+    }
+    expect(new Set([QR_A1, QR_A2, QR_B1]).size).toBe(3);
+  });
+
   it(
     exigence(
       "qr_inter_societe",
@@ -86,7 +99,7 @@ describe("résolution d'un jeton QR par le chemin de production", () => {
       // oracle — *ce jeton existe-t-il quelque part ?* —, c'est-à-dire un moyen
       // d'apprendre depuis un compte quelconque qu'une machine étiquetée
       // appartient à un concurrent.
-      const inconnu = jetonDeMachine("0192f0a0-1000-7000-8000-00000000ffff");
+      const inconnu = engendrerJetonQr();
       const autrui = QR_B1;
       expect(await resoudreParJeton(INTERNE, inconnu, clientApp())).toBeNull();
       expect(await resoudreParJeton(INTERNE, autrui, clientApp())).toBeNull();

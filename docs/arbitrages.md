@@ -145,12 +145,14 @@ C'est le point le plus profond de l'audit. Décision :
 - **Numéro affiché** : `numero`, `NULL` tant que l'enregistrement n'a pas été synchronisé. Attribué **côté serveur**, séquentiellement par société, à la première synchronisation réussie.
 - **Affichage hors ligne** : tant que `numero` est nul, l'interface affiche `Local-<6 derniers caractères de l'UUID>`, avec une pastille « non synchronisé ».
 
-**Cas de l'étiquette QR posée hors ligne.** Le QR encode le `qr_token`, dérivé de l'UUID, jamais le numéro affiché. L'étiquette reste donc valide quel que soit le numéro attribué ensuite. Deux régimes possibles pour l'impression :
+**Cas de l'étiquette QR posée hors ligne.** Le QR encode le `qr_token`, ~~dérivé de l'UUID~~ **TIRÉ AU SORT** *(amendé par D71 — voir ci-dessous)*, jamais le numéro affiché. L'étiquette reste donc valide quel que soit le numéro attribué ensuite. Deux régimes possibles pour l'impression :
 
 - planches de QR pré-imprimées, avec des jetons pré-générés et téléchargés sur l'appareil avant le départ — recommandé pour les campagnes de recensement ;
 - impression à la demande sur imprimante portable, à partir du jeton local.
 
 Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
+
+**D7 SE CONTREDISAIT, et D71 le répare** *(09/09/2026)*. Les deux moitiés ci-dessus sont incompatibles : « dérivé de l'UUID » exige que le jeton se calcule depuis l'`id`, et « jetons **pré-générés** et téléchargés sur l'appareil **avant le départ** » exige qu'il existe **avant** la machine. *Un jeton pré-généré avant le départ ne peut pas être dérivé de l'identifiant d'une machine qui n'existe pas encore.* La seconde moitié est celle dont l'usage réel a besoin — le recensement en série —, et c'est celle qui reste. **Amendé par D71.**
 
 ### D8 — Cycle de vie de l'intervention (1.5)
 
@@ -2337,3 +2339,25 @@ Deux formes de ressemblance, choisies sur ce qu'un tableur produit réellement :
 
 *Aucune règle du chapitre 10 n'est amendée : D70 pose une MÉCANIQUE de
 cloisonnement, elle ne change aucune règle de gestion.*
+
+---
+
+### D71 — Le jeton QR est un SECRET, et il doit naître capable de l'être (09/09/2026)
+
+**Contexte.** L2-02 avait livré un jeton **dérivé** de l'`id` — `sha256` d'un domaine versionné —, en écrivant honnêtement ce qu'il était : *un identifiant, pas un secret*. La mesure le confirmait : résoudre un jeton n'ouvrait rien de plus, un compte hors périmètre ne résolvait pas la machine, et connaître le jeton équivalait à connaître l'`id`. La question était **inscrite** au registre : *RG-DRO-02 promet au technicien « la résolution par QR code » EN PLUS de son périmètre ; le jour où cette restriction sera implémentée, le jeton deviendra ce qui la LÈVE, c'est-à-dire un secret — et une dérivation publique cesserait de borner quoi que ce soit.*
+
+**Décision de l'exploitation : le jeton se génère comme un secret DÈS MAINTENANT.** Entropie suffisante, non dérivable de l'identifiant, non devinable. Pas plus tard, pas quand RG-DRO-02 sera implémentée.
+
+**La raison est ASYMÉTRIQUE, et c'est elle qui décide.** Le faire maintenant ne coûte rien : c'est une façon de tirer une valeur, pas une architecture. Le faire plus tard coûte de **réétiqueter physiquement tout le parc**, chez des clients, à travers la Nouvelle-Calédonie. *Entre un coût nul aujourd'hui et une campagne physique demain, il n'y a pas d'arbitrage à rendre.*
+
+**La règle générale, qui vaut au-delà de ce jeton :** *une valeur dont on sait qu'on lui demandera un jour de porter une autorité doit naître capable de la porter. Un identifiant qu'on promeut en secret après coup n'est pas un secret — c'est un identifiant que tout le monde a déjà vu.*
+
+**D7 se contredisait, et cette décision le répare plutôt qu'elle ne le contredit.** « Dérivé de l'UUID » et « jetons pré-générés téléchargés avant le départ » ne peuvent pas être vrais ensemble. La moitié conservée est celle que la campagne de recensement exige — et `engendrerPlancheDeJetons` la rend enfin réalisable, ce que la dérivation interdisait.
+
+**Ce que la dérivation apportait, et ce que sa perte coûte : rien.** L'argument qui la portait était le RECALCUL — réimprimer l'étiquette d'une machine créée hors ligne dont le jeton n'aurait jamais été synchronisé. Il ne coûte rien parce que **le jeton voyage avec la fiche** : il naît sur l'appareil dans la même ligne que l'`id`. Le seul cas qu'un recalcul aurait sauvé — « l'appareil a perdu le jeton mais garde l'`id` » — ne peut pas se produire.
+
+**I4 est tenu.** `randomBytes` ne demande aucun réseau : un tirage local satisfait le mode avion aussi bien qu'une dérivation, et mieux — il n'exige pas que l'`id` existe déjà.
+
+**Conséquences.** 130 bits **tous tirés**, contre 74 hérités de l'UUID auparavant : *c'est la première fois que la longueur de ce jeton mesure quelque chose*. Le rendez-vous inscrit au registre du 09/09 est **levé** — il n'y a plus de décision à prendre avant la première campagne de recensement. Les scénarios de déterminisme ont **disparu**, et leur disparition est le ticket : *un secret déterministe n'en est pas un*. **Vu tomber** : la source aléatoire remplacée par une dérivation, cinq scénarios rougissent.
+
+*Aucune règle du chapitre 10 n'est amendée : D71 amende D7, qui est de rang 1.*
