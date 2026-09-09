@@ -313,10 +313,20 @@ describe("câblage du workflow", () => {
   it("exécute le contrôle avec l'URL applicative, pas celle des migrations", () => {
     const etape = workflow.slice(position("- name: Contrôle de cloisonnement"));
 
-    expect(etape).toContain("DATABASE_URL: ${{ secrets.DATABASE_URL }}");
-    expect(etape).toContain(
-      "MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}",
-    );
+    // Depuis le 09/09/2026, la base visée dépend de l'entrée « cible » : les
+    // deux URL sont composées par l'étape de choix, qui REFUSE plutôt que de se
+    // rabattre. L'intention du gardien ne bouge pas — le contrôle tourne sous
+    // le rôle APPLICATIF — et l'assertion la suit là où la valeur se compose.
+    expect(etape).toContain("DATABASE_URL: ${{ env.URL_APPLICATIVE }}");
+    expect(etape).toContain("MIGRATION_DATABASE_URL: ${{ env.DATABASE_URL }}");
+    expect(
+      workflow,
+      "URL_APPLICATIVE ne se compose qu'à partir d'un secret APPLICATIF",
+    ).toContain('applicatif="$SECRET_APPLICATIF_PRODUCTION"');
+    expect(
+      etape,
+      "jamais le rôle des migrations pour le contrôle",
+    ).not.toContain("secrets.MIGRATION_DATABASE_URL");
   });
 
   /**
@@ -333,10 +343,24 @@ describe("câblage du workflow", () => {
       .filter((ligneYaml) => !ligneYaml.trim().startsWith("#"))
       .join("\n");
 
+    // LE REPLI A CHANGÉ DE COSTUME, ET IL EST TOUJOURS REFUSÉ. L'expression
+    // `cible == 'production' && secrets.PRODUCTION_… || secrets.…` a l'air d'un
+    // ternaire ; elle n'en est pas un quand la première valeur est VIDE — `&&`
+    // rend alors la chaîne vide et `||` rend la seconde. Un secret de
+    // production absent ferait donc migrer LA DÉMONSTRATION, sans que rien ne
+    // soit vide et sans que rien ne le dise. *Écrite le 09/09/2026, cette
+    // faute a été attrapée par ce gardien-ci.*
     expect(env).toContain(
-      "DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}",
+      "SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}",
     );
-    expect(env).not.toContain("||");
+    expect(env).toContain(
+      "SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}",
+    );
+    expect(env, "aucune expression ne choisit un secret").not.toContain("||");
+
+    // Et le choix se fait dans un shell, où « absent » ARRÊTE.
+    expect(workflow).toContain("refuser plutôt que se rabattre");
+    expect(workflow).toContain("Aucun repli n'est prévu");
   });
 });
 

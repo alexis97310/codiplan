@@ -2665,3 +2665,143 @@ RG-TAR-05 devient :
 **Ce que cette décision ne crée pas.** Aucune table `intervention_machine`, `intervention_temps` ni `intervention_piece` : elles sont au chapitre 11 et appartiennent au lot 3. `numero` existe et **personne ne l'attribue** — le compteur par société appartient à la synchronisation (I10), comme pour `machine`. Le journal des **déplacements** n'est pas une table de plus : c'est `journal_audit`, que le périmètre inversé de D55 réclame le jour où la table apparaît, et qui porte les valeurs avant et après.
 
 *Aucune règle du chapitre 10 n'est amendée : cette décision met en œuvre RG-DRO-01 et RG-DRO-02 sans en réécrire le texte, et elle ne porte donc pas de ligne de déclaration — en porter une vide serait déclarer un câblage qui n'existe pas.*
+
+---
+
+## D85 — L'HORLOGE N'ENTRE PAS DANS LE CLOISONNEMENT
+
+*Décision de session, 9 septembre 2026, prise sous protocole d'absence. **Elle est réversible et sa condition de réouverture est écrite** — c'est ce qui la rend prenable sans l'exploitation.*
+
+**CE QUI A ÉTÉ CHERCHÉ, ET LA DIFFÉRENCE ENTRE « JE N'EN AI PAS TROUVÉ » ET « IL N'Y EN A PAS ».** La question posée était : *ce principe existe-t-il écrit dans le dépôt, sous un numéro ou sans ?* La recherche a porté sur le **texte**, jamais sur un numéro : `grep -rniE "horloge"` sur tout le dépôt hors `node_modules`, puis `matérialis`, puis les fonctions temporelles de PostgreSQL dans les migrations.
+
+Ce qu'elle rend — et c'est une mesure, pas un souvenir :
+
+| Où le mot apparaît | Ce qui y est écrit | Est-ce le principe ? |
+| --- | --- | --- |
+| `docs/arbitrages.md`, D84 | *« RG-DRO-02 dépend de l'horloge, ce qui en ferait une dixième forme »* | **Non.** C'est un **motif**, invoqué pour une table et une règle. |
+| `docs/arbitrages.md`, registre du 11/09 | la même phrase, comme mesure préalable à D84 | Non. |
+| `README.md` ligne 473, migration `20260909200000` ligne 205 | la même phrase, recopiée à l'endroit de la table | Non. |
+| `CLAUDE.md` §9, 09/09 | *« lire une horloge »* — le rapport d'une durée | Sans rapport. |
+| Partout ailleurs | l'horloge de la BASE contre celle de Node, l'heure d'été | Sans rapport. |
+
+**Le principe n'existait donc PAS comme principe.** Il existait quatre fois comme **argument d'une décision particulière** — ce qui est exactement la forme qu'a une règle avant d'en être une : elle est vraie à chaque fois qu'on l'invoque, et rien ne la rend opposable la fois où personne ne l'invoque. Et la **seconde moitié** — *un fait de cloisonnement dépendant du temps se MATÉRIALISE* — n'existait **nulle part** : `grep -rniE "matérialis"` rend deux occurrences, l'une sur le seed, l'autre sur une vue matérialisée de consolidation. Aucune ne parle de cela.
+
+*Ce n'est donc pas « je n'en ai pas trouvé » : c'est « il n'y en a pas », et la différence tient à ce que la recherche a porté sur le texte de chacune des deux moitiés, pas sur le numéro d'une décision.*
+
+**CE QUI EST ARRÊTÉ.**
+
+> **Aucune politique de cloisonnement n'évalue l'heure.** Le cloisonnement répond à *« qui a le droit de lire cette ligne »*, et cette réponse ne doit pas changer d'elle-même : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure.
+>
+> **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.**
+
+**Ce que « évaluer l'heure » désigne, sans ambiguïté possible.** L'expression d'une politique — `USING` ou `WITH CHECK` — n'appelle ni `now()`, ni `current_date`, ni `current_timestamp`, ni `clock_timestamp()`, ni `localtimestamp`, ni `statement_timestamp()`, ni `transaction_timestamp()`, directement ou par une fonction qui les appelle. **Une politique peut lire une colonne DE TYPE date sans évaluer l'heure** : `date_planifiee` est une donnée écrite par quelqu'un ; `now()` est une valeur que personne n'a écrite. *C'est la provenance qui décide, jamais le type.*
+
+**L'ÉTAT MESURÉ, avec son témoin.** 58 politiques `CREATE POLICY` dans `prisma/migrations/`, **zéro** évaluant le temps. Le témoin est le premier chiffre : un gardien qui trouverait zéro politique rendrait aussi « zéro violation », et *un décompte nul ressemble toujours à un sans-faute* (§9, 30/08). Le gardien est `tests/unit/db/horloge-hors-cloisonnement.test.ts`.
+
+**POURQUOI CE N'EST PAS UNE PRÉFÉRENCE DE STYLE.** Trois conséquences, chacune déjà rencontrée ailleurs dans ce dépôt :
+
+1. **Le jumeau cesse de mesurer.** Le §9 (24/08) exige que tout refus s'accompagne d'un jumeau qui retire le verrou et montre la faute passer. Sous une politique horaire, un jumeau vert ne distingue plus « le verrou a cédé » de « l'horloge a bougé » — et il ne le dit pas, il passe.
+2. **L'audit se contredit lui-même.** `pnpm veille` lit la base sous le rôle applicatif et compare à l'attendu. Une visibilité qui change à minuit rend deux verdicts opposés sur un état identique, et le §9 (06/09) dit ce qu'un rapport ainsi fait produit chez son lecteur.
+3. **La faute est SILENCIEUSE dans le sens permissif.** Une politique horaire ne lève pas : elle rend un autre ensemble de lignes. C'est la forme exacte de la fuite mesurée le 07/09 sur `utilisateur_client`, avec en plus l'impossibilité de la reproduire à volonté.
+
+**CE QUE LA MATÉRIALISATION VEUT DIRE, sur le cas réel qui l'attend.** RG-DRO-02 promet au technicien *« l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours »*. La forme horaire s'écrit `date_planifiee <= now()::date + 7` et tombe sous l'interdiction. La forme matérialisée s'écrit : une table `technicien_perimetre_actif` — ou une colonne — qu'un travail planifié écrit chaque nuit, que la politique **lit**, et dont la trace dit **quand** elle a été écrite. La fenêtre se déplace alors par une **écriture**, qui se date, se journalise, se rejoue et s'éprouve deux fois de suite avec le même verdict. *La restriction n'est pas affaiblie : elle est rendue observable.*
+
+**Ce que cela coûte, nommé.** Un décalage : le périmètre d'un technicien est celui qu'un travail a écrit, pas celui de la seconde présente. C'est le prix, et il est plus faible que celui d'une garantie qu'aucun jumeau ne peut mesurer. *Le §9 (01/09) dit qu'une approximation ne se garde pas à côté de sa mesure ; ici c'est l'inverse et il faut l'écrire : on préfère un fait daté à une vérité instantanée qu'on ne sait pas contrôler.*
+
+**CE QUE CETTE DÉCISION NE FAIT PAS.** Elle ne touche à **aucune** politique existante — il n'y en a aucune à corriger, c'est la mesure ci-dessus. Elle ne rouvre pas D84 : elle en **généralise le motif** et lui donne le rang que ce motif avait déjà en fait. Elle n'interdit pas au **code applicatif** de lire l'heure : la restriction des 7 jours reste applicative, elle y est légitime, et `lib/calendar` reste le seul endroit où la date courante se lit (L0-08). Elle ne dit rien des **déclencheurs** ni des **contraintes de cycle de vie** : ceux-là s'exécutent au moment d'une écriture, et une écriture est précisément ce que l'horloge a le droit de dater.
+
+**CONDITION DE RÉOUVERTURE, et elle se vérifie sans s'interpréter.** *S'il existe un cas où le cloisonnement doit se fermer **sans aucun écrivain** — ni travail planifié, ni évènement, ni acteur —, le principe est faux et cette décision est due à réécriture.* Un tel cas est reconnaissable à une propriété : personne, humain ni machine, n'a de raison d'écrire au moment où la fermeture doit prendre effet. *Nous n'en connaissons pas ; nous ne prétendons pas qu'il n'en existe pas.* Le premier qui se présentera devra être décrit avec sa mesure, comme D84 l'a été.
+
+*Aucune règle du chapitre 10 n'est amendée : cette décision porte sur la FORME des politiques, et pas sur ce qu'une règle promet. Elle ne porte donc pas de ligne de déclaration — en porter une vide serait déclarer un câblage qui n'existe pas.*
+
+---
+
+## D86 — Le forfait porte un RANG explicite, et « le premier applicable » cesse d'être un ordre du hasard
+
+*Ratification d'exploitation du 9 septembre 2026, complétée par la session. La ratification porte sur le PRINCIPE ; le rang, sa forme et son verrou sont la mise en œuvre.*
+
+**CE QUI ÉTAIT FAUX, ET CE N'EST PAS UNE MODALITÉ D'IMPLÉMENTATION.** Le registre du 09/09 avait tranché *« le premier forfait applicable l'emporte »* et laissé la condition de réouverture suivante : *le jour où deux forfaits de déplacement se disputeront la même zone, ce sera un arbitrage, pas un `orderBy` choisi en séance.* L'exploitation ratifie le principe et refuse le mot : **« premier » n'était pas défini.** Le code ordonnait par `code`, c'est-à-dire par l'**alphabet** ; avant lui, l'ordre naturel eût été celui d'**insertion**, c'est-à-dire le **passé**. Dans les deux cas, *deux interventions identiques se factureraient différemment selon un fait sans rapport avec le tarif* — la casse d'un code, ou la minute où quelqu'un a saisi une ligne six mois plus tôt. **Un tarif qui dépend de cela ne se défend pas devant un client.**
+
+**CE QUI EST ARRÊTÉ.**
+
+1. **Le forfait porte un RANG explicite, stocké, modifiable** — `forfait.rang`, entier strictement positif, **sans valeur par défaut**. Le plus petit l'emporte : « rang 1 » se lit « le premier », et un forfait plus spécifique s'insère devant sans renuméroter ce qui le suit. *Un défaut aurait été une décision prise par personne* — c'est le §9 du 24/08 sur les actions référentielles, appliqué à un nombre.
+2. **L'égalité de rang est un état INTERDIT, et c'est la BASE qui refuse** — index unique `(societe_id, type, rang)`. Le choix entre « la base refuse » et « un contrôle signale » se tranche par une seule question : *que se passe-t-il si personne ne lit le signal ?* La facture part. Un état d'où sort un montant faux se refuse à l'écriture.
+3. **La clé porte le TYPE, et ce n'est pas un détail** : le rang ne se compare qu'entre forfaits de **même nature** — un déplacement n'est jamais en concurrence avec une prestation. Un rang unique sur tout le catalogue obligerait à renuméroter des lignes sans rapport, et *une contrainte qui force un geste inutile finit par être contournée*.
+
+**CE QUE LA BASE NE SAIT PAS REFUSER, ET POURQUOI ON NE LE LUI DEMANDE PAS.** L'énoncé exact — *« deux forfaits de même rang applicables au même cas »* — est un recouvrement sur trois axes où **l'absence de condition vaut « toutes les valeurs »**. Une contrainte d'exclusion sur `zone_geo && zone_geo` dirait l'inverse : pour PostgreSQL un tableau vide ne recouvre rien, alors qu'il signifie ici « partout ». Il faudrait encoder la négation dans la colonne, et *une contrainte dont l'expression inverse le sens de sa colonne est une contrainte que personne ne relit.* **L'unicité du rang par nature est plus FORTE** — elle interdit aussi les égalités entre forfaits disjoints —, totale et lisible : elle rend le cas litigieux **impossible** au lieu de le détecter.
+
+**LE FORFAIT SE DÉDUIT DE LA ZONE DU SITE, ET LA CONSIGNE QUI DISAIT L'AGENCE EST RETIRÉE.** *Une agence dessert plusieurs zones à des distances différentes* : faire porter le forfait par l'agence facturerait le même déplacement pour le Grand Nouméa et pour la brousse. C'est aussi ce que la règle écrite dit depuis L1-06 — les conditions d'un forfait portent sur la **zone**, la famille et le type, jamais sur l'agence (RG-TAR-06, D23). *La consigne d'exploitation qui nommait l'agence est retirée par son auteur ; la correction est écrite ici pour que le retrait se relise, et non seulement dans le code qui n'a jamais suivi la consigne.*
+
+**UN DÉFAUT D'ARGENT TROUVÉ EN CHEMIN, ET IL ÉTAIT PLUS GRAVE QUE L'ORDRE.** *Mesuré avant d'être corrigé* : `forfaitApplicable` lisait « aucune condition » sous la forme `null`, celle que la **saisie Zod** écrit. La **base** ne peut pas l'écrire — une liste scalaire PostgreSQL n'est pas nullable, Prisma rend toujours un `String[]`, et l'absence de condition y est le tableau **VIDE**. Le tableau vide tombait donc dans la branche « une condition est posée », et **le forfait général — celui que le module documente comme le cas le plus courant — ne s'appliquait JAMAIS** par le chemin de production. *C'est la frontière du §9 (08/09) : deux formes d'un même fait, dont une seule était lue, et le SQL n'en laissait rien voir.* La note du schéma qui écrivait « `NULL` veut dire sans condition » pour les trois axes était fausse pour deux d'entre eux ; elle est corrigée.
+
+**UN ÉCRAN, PARCE QU'UN TARIF QU'ON NE PEUT PAS INSPECTER EST UN TARIF QU'ON NE PEUT PAS DÉFENDRE.** `/parametres/forfaits` montre, pour une zone choisie, le catalogue de chaque nature avec son rang, ses conditions et **trois verdicts** — retenu, applicable mais devancé, écarté. *Le deuxième est celui qui manque partout ailleurs* : sans lui, un forfait absent d'une facture paraît exclu par ses conditions alors qu'il l'est par son rang. **L'écran ne recalcule rien** : il appelle `forfaitRetenu`, la fonction que la création d'intervention appelle — un écran qui referait le tri serait une seconde lecture d'un même critère (§9, 01/09), et il montrerait un forfait pendant que la facture en porterait un autre.
+
+**LE JUMEAU DEMANDÉ, ET CE QU'IL MESURE.** Deux forfaits qui se recouvrent, **facturation identique quel que soit l'ordre de création des lignes** : les **six** permutations de trois candidats sont jouées, ce qui démontre la propriété au lieu de l'échantillonner, avec un témoin qui refuse « six fois la même absence ». S'y ajoutent, en base, le refus de l'égalité de rang **et** son jumeau — l'index retiré dans une transaction annulée, deux forfaits de déplacement se disputent le rang 7, et la violation a bien eu lieu. Et le **cas qui doit rester vert pour sa propre raison** (§9, 11/09) : deux **natures** différentes partagent le rang 7 sans rougir — une unicité sur `(societe_id, rang)` seule aurait fait tomber ce scénario.
+
+**CONDITION DE RÉOUVERTURE, et elle se vérifie sans s'interpréter.** *Le jour où l'ordre d'application devra dépendre d'autre chose que d'un nombre réglé par l'exploitation — la spécificité des conditions, par exemple, « le plus précis l'emporte » —, ce sera un amendement de RG-TAR-06 et non un tri choisi en séance.* La spécificité a été écartée ici pour une raison mesurable : elle n'est pas un ordre total (un forfait conditionné par zone et un forfait conditionné par famille ne se comparent pas), et *un ordre partiel présenté comme une règle de facturation laisse exactement le trou qu'on vient de refermer*.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-TAR-06 dit qu'un forfait s'applique si ses conditions sont remplies, et cette décision dit lequel l'emporte quand plusieurs les remplissent — elle complète sans réécrire. Le chapitre 11 gagne la colonne `rang`.*
+
+---
+
+## D87 — La documentation des machines : au MODÈLE ou à la MACHINE, deux classes de visibilité, et un bac de réception qui PROPOSE
+
+*Décision d'exploitation du 9 septembre 2026, inscrite par la session. **Elle est écrite, pas construite** — c'est le lot 8 du backlog. Une décision qui n'existe que dans une conversation n'existe pas : la conversation se ferme.*
+
+**CE QUI EST ARRÊTÉ, EN CINQ POINTS.**
+
+1. **Un document s'accroche AU MODÈLE ou À LA MACHINE, jamais aux deux, et c'est le SCHÉMA qui l'interdit.** Notice, fiche technique, manuel d'atelier sont identiques pour tous les exemplaires : ils vivent sur le modèle. Certificat de conformité, procès-verbal de mise en service sont propres à un exemplaire : ils vivent sur la machine. *Le ticket L2-04 avait déjà mesuré la forme qui marche* — deux colonnes nullables et `num_nonnulls(...) = 1` —, et celle qui piège : une colonne `entite_id` avec deux clés étrangères est **acceptée au DDL et refuse toute ligne légitime**. Cette mesure est acquise et ne se refait pas.
+2. **L'écran d'une machine affiche l'UNION** de ses documents et de ceux de son modèle. *C'est ce qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais pouvoir le corriger.*
+3. **DEUX classes de visibilité, `client` et `interne`, produites par le schéma.** *À cinq valeurs, personne ne classe juste* : une classification qu'on hésite à appliquer est appliquée au hasard, et un document mal classé est pire qu'un document absent. C'est la même famille que les listes closes de I1 — une valeur s'ajoute par arbitrage, jamais dans un ticket.
+4. **Le cloisonnement d'un document est HÉRITÉ de sa machine — société, site, habilitation — et la classe ne fait que le RÉTRÉCIR.** *Ce n'est pas un nouvel axe, et il ne faut pas inventer une forme de politique de plus* : la forme « parc » existe, D84 vient de la donner à `intervention`, et une dixième forme est un arbitrage, jamais un effet de bord. **Ce qui reste ouvert et n'est pas tranché ici** : un document de MODÈLE n'a ni machine ni site, et son cloisonnement est celui de `modele_materiel`, table métier cloisonnée depuis le retrait du mécanisme « référentiel de plateforme + copie masquante ». *La question s'instruit avec sa mesure au moment du ticket, comme D84 l'a été.*
+5. **Fiche en base, octets dans un stockage d'objets, même région que la base. Jamais de PDF dans PostgreSQL.** Et **`date_document` et `date_expiration` dès le premier jour**, même inutilisées : *trois minutes maintenant, une migration douloureuse plus tard* — c'est la leçon du 30/08 sur les échéances qui tombent au pire moment, prise par le bon bout.
+
+**LE BAC DE RÉCEPTION EST L'ENTRÉE PRINCIPALE, ET SA RÈGLE CARDINALE EST DE PROPOSER SANS JAMAIS CLASSER SEUL.** Les documents existants sont numériques mais **rangés en vrac**, sans structure exploitable. Six exigences, et la troisième est celle qui décide du reste : dédupliquer **par empreinte avant** de rapprocher ; afficher **la première page** à côté du choix — *la couverture porte la marque et le modèle, l'œil fait le travail, pas la reconnaissance de caractères* ; **proposer, jamais classer seul** ; téléversement **reprenable** — plusieurs gigaoctets depuis Nouméa, ça se coupe ; traiter **les modèles d'abord**, une notice classée servant toutes les machines du modèle d'un coup ; **tranches de dix minutes**, reprise au même endroit, aucun travail partiel perdu, compteur visible — *ce travail sera délégué, et un travail délégué qui perd une session perd la personne avec.*
+
+**POURQUOI LE RAPPROCHEMENT AUTOMATIQUE EST REFUSÉ, ET CE N'EST PAS UN ARGUMENT DE QUALITÉ DE DONNÉES.** *Un rapprochement faux accroche la notice d'un compresseur à un pont élévateur, et personne ne le voit avant qu'un technicien suive la mauvaise procédure.* **C'est de la sécurité.** Le mode de défaillance n'est pas « une fiche est mal remplie » : c'est un geste dangereux exécuté avec confiance. *Même famille que le badge « à planifier » sur une ligne datée — un objet qui a l'air juste et qui ne l'est pas —, avec un blessé au bout.*
+
+**HORS V1, nommé pour que personne ne l'ajoute en passant :** import automatique en masse, chaînes de versions, liens vers les sites constructeurs, téléversement depuis le téléphone.
+
+**CONDITION DE RÉOUVERTURE.** *Le jour où une troisième classe de visibilité est réclamée avec un cas réel derrière — un document que le client peut voir mais pas télécharger, par exemple —, c'est un arbitrage, et il devra dire ce que la troisième valeur fait à celui qui classe.* La question à lui poser sera celle qui a fermé la liste à deux : *qui classera, et se trompera-t-il moins avec trois choix qu'avec deux ?*
+
+*Aucune règle du chapitre 10 n'est amendée : le chapitre décrit déjà `document` comme une entité du modèle ; cette décision en arrête la forme et la visibilité. Le chapitre 11 recevra les colonnes au moment du ticket.*
+
+---
+
+## D88 — Le registre des VGP : CODIPLAN n'affirme jamais la conformité, il enregistre ce qu'on lui a dit
+
+*Décision d'exploitation du 9 septembre 2026, inscrite par la session. **Écrite, pas construite** — c'est le lot 9 du backlog.*
+
+**LE FAIT DONT TOUT DÉCOULE, ET IL EST D'EXPLOITATION, PAS DE CONCEPTION.** Les vérifications générales périodiques (APAVE, Bureau Veritas) sont **commandées par les CLIENTS, pas par CODIMA**. CODIMA ne les déclenche pas, ne les reçoit pas de droit, et n'apprend leur résultat que si on le lui dit. *Tout ce qui suit est la conséquence de cette phrase, et une conception qui l'oublierait produirait un registre qui ment.*
+
+**CE QUI EST ARRÊTÉ.**
+
+1. **CODIPLAN NE CALCULE JAMAIS LA CONFORMITÉ.** Il enregistre ce que l'organisme agréé a écrit, et ne calcule que des **dates**. *« Conforme » ne s'affiche que parce qu'APAVE l'a écrit.* Déduire la conformité d'une règle que le produit porterait serait engager une responsabilité que personne ne lui a donnée — et le faire dans un logiciel vendu à d'autres sociétés, sur d'autres territoires, avec d'autres textes.
+2. **Ce n'est pas un registre de conformité : c'est un REGISTRE DE CE QU'ON NOUS A DIT.** Chaque écran porte **la date de la dernière information reçue**. Sans nouvelles : **« sans information depuis X »** — jamais « à jour », jamais « en retard », **jamais blanc**. *Le danger est qu'un registre à moitié rempli ressemble à un registre complet* : c'est le §9 du 06/09 — un chiffre juste qui fait conclure faux —, et c'est exactement le zéro de `/sante` lu comme « installation vide », à l'échelle d'un parc de machines.
+3. **L'assujettissement se déclare À LA FAMILLE et se propage, mais PAS par une case à cocher : TROIS valeurs** — `soumis` · `non_soumis`, et `verifie` · `a_determiner`. **Une famille nouvelle naît « à déterminer ».** *Une case décochée est indiscernable d'une famille jamais examinée*, et un pont élévateur sortirait du registre en silence. **Les « à déterminer » apparaissent dans une liste visible** : c'est la moitié détective du couple, et sans elle la troisième valeur ne sert à rien — *une garantie qu'on ne peut pas constater après coup est une intention* (§9, 30/08).
+4. **Déclarer « soumis » rend obligatoires la PÉRIODICITÉ et LA RÉFÉRENCE DU TEXTE qui la fonde.** Sans le texte, la périodicité est un chiffre que personne ne peut défendre.
+5. **AUCUNE PÉRIODICITÉ EN DUR.** Elle dépend du matériel et du texte applicable ; **la Nouvelle-Calédonie a son propre code du travail**, et la solution sera vendue ailleurs. **C'est une donnée saisie par un humain** — même famille que le taux horaire (D68) et que la majoration hors ouverture : le §8 interdit d'inventer un délai.
+6. **Le MODÈLE peut préciser** — les caractéristiques techniques vivent là. **La MACHINE peut faire exception, avec MOTIF ÉCRIT OBLIGATOIRE.** Une exception sans sa raison est une exception que personne ne pourra rejuger.
+7. **La déclaration est JOURNALISÉE : qui, quand, sur quelle base.** Pas une table de plus — `journal_audit`, par déclencheur, comme le reste (I8, D55).
+8. **Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre UNE CAMPAGNE DATÉE avec un compteur qui descend.** *Un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte plus qu'il ne rapporte* — c'est écrit au §9 depuis le 11/09, et deux cents alertes le jour d'une déclaration sont la panne par le bruit, la plus sûre de toutes.
+9. **Le rapport de VGP est de classe `client`** au sens de D87 : *l'obligation pèse sur celui qui utilise le matériel, le rapport lui appartient.*
+10. **Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.** *C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.* Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
+11. **Le TECHNICIEN saisit sur site ce qu'il voit — vignette, date — en cinq secondes, pendant une intervention.** *C'est ce qui remplira le registre, et rien d'autre ne le remplira* : personne ne saisira deux cents fiches un dimanche. La saisie fonctionne **hors ligne** (I4), comme tout ce que le terrain fait.
+
+**HORS V1 :** la commande des visites aux organismes. *Elle viendra le jour où l'exploitation vendra ce service — et c'est le registre rempli qui le lui permettra.* L'ordre compte : le registre est ce qui rend le service vendable, pas l'inverse.
+
+**CONDITION DE RÉOUVERTURE.** *Le jour où CODIMA commandera elle-même des visites — c'est-à-dire le jour où elle vendra ce service —, la phrase dont tout découle cesse d'être vraie, et cette décision est due à réécriture entière.* Le registre deviendrait alors partiellement un registre de faits connus de première main, et la distinction « ce qu'on nous a dit » / « ce que nous savons » devrait être portée par la donnée, pas par une note.
+
+*Aucune règle du chapitre 10 n'est amendée : ce lot n'existe pas encore au cahier des charges, et cette décision est ce qui l'y fera entrer.*
+
+---
+
+## Point de vigilance commun à D87 et D88 — ce dont CODIMA RÉPOND, à instruire avant le portail
+
+*Écrit comme point de vigilance et **non comme blocage**, à la demande de l'exploitation.*
+
+**Le jour où le portail sert à un client un certificat de conformité ou un état de VGP, la question de ce dont CODIMA répond se pose.** Publier un document réglementaire, même reçu d'un tiers, n'est pas la même chose que publier un compte rendu d'intervention : **le client peut s'en prévaloir**, et un document périmé, mal rattaché ou incomplet devient une affirmation de CODIMA plutôt qu'une simple mise à disposition.
+
+**Ce que cela ne bloque pas :** les deux lots se construisent entièrement sans cette réponse. Le bac de réception, le rattachement, le registre, la saisie terrain — rien n'en dépend.
+
+**Ce que cela bloque :** l'ouverture de ces deux lots **sur le portail client**. *Avis à prendre avant, jamais après.* Et le déclencheur se vérifie sans s'interpréter : **le premier écran de portail qui affiche un document de classe `client` provenant d'un organisme tiers.**

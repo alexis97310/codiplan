@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import {
   forfaitApplicable,
+  forfaitRetenu,
   schemaForfait,
   TYPES_FORFAIT,
   type ConditionsForfait,
@@ -136,6 +137,7 @@ describe("la saisie d'un forfait", () => {
     code: "DEP-NORD",
     libelle: "Déplacement Nord",
     type: "deplacement",
+    rang: 1,
     montant_mineur: 12000,
     cumulable_temps: true,
   };
@@ -206,5 +208,151 @@ describe("la saisie d'un forfait", () => {
       heures_incluses_minutes: 120,
     }) as Record<string, unknown>;
     expect(lu.heures_incluses_minutes).toBeUndefined();
+  });
+});
+
+/**
+ * LA FORME QUE LA BASE REND, ET CELLE QUE LA SAISIE ÉCRIT (09/09/2026).
+ *
+ * Zod écrit `null` pour « aucune condition ». **La base ne le peut pas** : une
+ * liste scalaire PostgreSQL n'est pas nullable, Prisma rend toujours un
+ * `String[]`, et l'absence de condition y est le tableau VIDE. La règle ne
+ * lisait que la première forme — mesuré : le forfait général, celui que ce
+ * module documente comme le cas le plus courant, ne s'appliquait JAMAIS par le
+ * chemin de production.
+ */
+describe("les deux écritures de « aucune condition »", () => {
+  const TELLE_QUE_LA_BASE_REND: ConditionsForfait = {
+    zone_geo: [],
+    famille_id: null,
+    type_intervention: [],
+  };
+
+  it("le tableau VIDE vaut « aucune condition », comme le null", () => {
+    expect(forfaitApplicable(TELLE_QUE_LA_BASE_REND, PARTOUT)).toBe(true);
+  });
+
+  it("et il s'applique même quand l'intervention ne sait rien", () => {
+    // Sans condition, il n'y a rien à vérifier : c'est le forfait général.
+    expect(
+      forfaitApplicable(TELLE_QUE_LA_BASE_REND, {
+        zone: null,
+        familleId: null,
+        typeIntervention: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("mais une liste NON vide reste une condition — le vert doit être mérité", () => {
+    // Le cas qui doit rester ROUGE à côté du cas qui doit rester vert : sans
+    // lui, « tout est satisfait » passerait pour la règle (§9, 11/09).
+    expect(
+      forfaitApplicable(
+        { ...TELLE_QUE_LA_BASE_REND, zone_geo: ["nord"] },
+        PARTOUT,
+      ),
+    ).toBe(false);
+  });
+});
+
+/**
+ * D86 — LE RANG DÉCIDE, ET L'ORDRE DES LIGNES NE DÉCIDE PLUS RIEN.
+ */
+describe("le forfait retenu quand plusieurs s'appliquent", () => {
+  const GENERAL = { id: "b", rang: 20, ...SANS_CONDITION };
+  const SUD = { id: "a", rang: 10, ...SANS_CONDITION, zone_geo: ["sud"] };
+  const NORD = { id: "c", rang: 5, ...SANS_CONDITION, zone_geo: ["nord"] };
+
+  it("le PLUS PETIT rang applicable l'emporte", () => {
+    // NORD a le plus petit rang mais ne s'applique pas : c'est bien parmi les
+    // APPLICABLES que le rang décide, et non parmi tous.
+    expect(forfaitRetenu([NORD, GENERAL, SUD], PARTOUT)?.id).toBe("a");
+  });
+
+  it("le général l'emporte quand aucun forfait de zone ne convient", () => {
+    expect(
+      forfaitRetenu([NORD, GENERAL, SUD], { ...PARTOUT, zone: "iles" })?.id,
+    ).toBe("b");
+  });
+
+  it("rend null quand aucun ne s'applique", () => {
+    expect(forfaitRetenu([NORD, SUD], { ...PARTOUT, zone: "iles" })).toBeNull();
+  });
+
+  /**
+   * LE JUMEAU DEMANDÉ PAR L'EXPLOITATION : deux forfaits qui se recouvrent,
+   * facturation IDENTIQUE quel que soit l'ordre de création des lignes.
+   *
+   * Les six permutations sont jouées, et pas seulement deux : c'est l'ensemble
+   * des ordres possibles, donc la propriété est démontrée et non échantillonnée.
+   */
+  it("le résultat ne dépend d'AUCUN ordre des lignes", () => {
+    const permutations = [
+      [GENERAL, SUD, NORD],
+      [GENERAL, NORD, SUD],
+      [SUD, GENERAL, NORD],
+      [SUD, NORD, GENERAL],
+      [NORD, GENERAL, SUD],
+      [NORD, SUD, GENERAL],
+    ];
+    const retenus = permutations.map((p) => forfaitRetenu(p, PARTOUT)?.id);
+    expect(retenus).toEqual(["a", "a", "a", "a", "a", "a"]);
+
+    // TÉMOIN : sans lui, une règle qui rendrait toujours `null` passerait ce
+    // scénario — six fois la même absence est aussi une égalité.
+    expect(new Set(retenus).size).toBe(1);
+    expect(retenus[0]).toBe("a");
+  });
+
+  it("l'ordre d'ALPHABET, lui, aurait donné un autre forfait", () => {
+    // La mesure de ce que D86 change : `orderBy code` — ici l'ordre des `id` —
+    // aurait retenu « a » par hasard ; en renommant, il retient « b ».
+    const parAlphabet = [GENERAL, SUD]
+      .filter((f) => forfaitApplicable(f, PARTOUT))
+      .sort((x, y) => (x.id < y.id ? -1 : 1));
+    expect(parAlphabet[0]?.id).toBe("a");
+    const renommes = [
+      { ...GENERAL, id: "aa" },
+      { ...SUD, id: "zz" },
+    ];
+    expect(
+      renommes
+        .filter((f) => forfaitApplicable(f, PARTOUT))
+        .sort((x, y) => (x.id < y.id ? -1 : 1))[0]?.id,
+      "l'alphabet a changé de gagnant sans qu'aucun tarif ne change",
+    ).toBe("aa");
+    // Le rang, lui, ne bouge pas : c'est toute la décision.
+    expect(forfaitRetenu(renommes, PARTOUT)?.id).toBe("zz");
+  });
+
+  it("un rang dupliqué ne rend pas l'arbitraire invisible", () => {
+    // La base l'interdit ; si une restauration l'avait perdu, la règle reste
+    // DÉTERMINISTE plutôt que dépendante de l'ordre de la requête.
+    const ex_aequo = [
+      { ...GENERAL, id: "z", rang: 10 },
+      { ...SUD, id: "a", rang: 10 },
+    ];
+    expect(forfaitRetenu(ex_aequo, PARTOUT)?.id).toBe("a");
+    expect(forfaitRetenu([...ex_aequo].reverse(), PARTOUT)?.id).toBe("a");
+  });
+});
+
+describe("le rang à la saisie", () => {
+  const valide = {
+    code: "DEP-NORD",
+    libelle: "Déplacement Nord",
+    type: "deplacement",
+    montant_mineur: 12000,
+    cumulable_temps: true,
+  };
+
+  it("est OBLIGATOIRE — aucun défaut ne se déguise en décision", () => {
+    expect(() => schemaForfait.parse(valide)).toThrow();
+  });
+
+  it("refuse zéro et le négatif : « 1 » se lit « le premier »", () => {
+    expect(() => schemaForfait.parse({ ...valide, rang: 0 })).toThrow();
+    expect(() => schemaForfait.parse({ ...valide, rang: -1 })).toThrow();
+    expect(schemaForfait.parse({ ...valide, rang: 1 }).rang).toBe(1);
   });
 });

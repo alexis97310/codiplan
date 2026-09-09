@@ -2,24 +2,27 @@
 
 *Écrite le 08/09/2026 à la demande de l'exploitation, **réécrite le 09/09/2026** pour être suivie **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt**. Chaque valeur dit d'où elle vient ; chaque affirmation d'état a été **mesurée sur ce dépôt**, jamais supposée.*
 
+**Deux gestes ont été AJOUTÉS le 09/09/2026** — « 3 bis » et « 9 bis » —, et ils portent ce numéro plutôt qu'un rang plein pour que la procédure reste la même procédure : ils ne s'intercalent pas, ils comblent. *Ils ont été trouvés en jouant la chaîne de bout en bout sur une base neuve, pas en la relisant.*
+
 **Ce document ne configure rien.** Aucun hébergeur n'a été contacté, aucun compte créé, aucune variable déposée. C'est une procédure à exécuter.
 
 ---
 
-## 0 — La procédure en huit gestes, et rien d'autre
+## 0 — La procédure en huit gestes (plus deux, découverts le 09/09), et rien d'autre
 
 *Si vous ne lisez qu'une section, lisez celle-ci. Les suivantes expliquent chaque geste.*
 
-1. **Créer une base PostgreSQL 16** chez l'hébergeur de votre choix, dans la région la plus proche de la Nouvelle-Calédonie.
+1. **Créer une base PostgreSQL 16 NEUVE** chez l'hébergeur de votre choix, dans la région la plus proche de la Nouvelle-Calédonie. **Neuve, et pas celle qui existe** — celle qui existe est la base de DÉMONSTRATION, et §2 dit pourquoi on n'y branche pas la production.
 2. **Créer un compte** chez l'hébergeur d'application et **y rattacher ce dépôt**.
-3. **Déposer trois variables** chez l'hébergeur d'application : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (§1). *Trois, et trois seulement.*
-4. **Appliquer les migrations**, une seule commande : `pnpm db:deploy` (§7).
+3. **Déposer trois variables** chez l'hébergeur d'application : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (§1). *Trois, et trois seulement.* **`DATABASE_URL` est la connexion de votre base NEUVE, jamais le secret du dépôt du même nom** (§2).
+3 bis. **Déposer deux secrets DANS LE DÉPÔT** : `PRODUCTION_MIGRATION_DATABASE_URL` et `PRODUCTION_DATABASE_URL` (§2). Sans eux, le geste 4 refuse de partir.
+4. **Appliquer les migrations depuis GitHub**, en six clics, sans terminal (§7).
 5. **Déployer.** La commande de construction est `pnpm build` ; elle ne touche pas la base.
 6. **Ouvrir `/sante`** — sans compte, depuis le téléphone. Elle doit dire **oui** trois fois (§8).
-7. **Ouvrir le premier compte réel**, une seule commande (§9). Elle imprime **une fois** une URL de premier accès.
+7. **Ouvrir le premier compte réel depuis GitHub**, en six clics également (§9). Le flux imprime **une fois** une URL de premier accès.
 8. **Suivre cette URL**, choisir un mot de passe, activer le second facteur. **Vous êtes en ligne.**
 
-**Les gestes 1, 2, 3 et 7 exigent un compte, un secret ou un paiement : ils vous appartiennent, et personne d'autre ne peut les faire à votre place.**
+**Les gestes 1, 2, 3 et 3 bis exigent un compte, un secret ou un paiement : ils vous appartiennent, et personne d'autre ne peut les faire à votre place.** Les gestes 4 et 7 exigeaient un terminal jusqu'au 09/09/2026 ; ils sont désormais **cliquables depuis un téléphone**, et §9 dit ce que cela coûte.
 
 ---
 
@@ -39,7 +42,7 @@ Trois, et trois seulement. Elles sont lues **à l'exécution**, jamais à la con
 
 | Variable | À quoi elle sert | Où trouver sa valeur | **Ce qui casse si elle manque ou est fausse** |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | **La seule connexion que l'application ouvre.** Elle doit porter le rôle `codiplan_app` — ni propriétaire, ni superutilisateur, ni `BYPASSRLS`. | **Déjà dans les secrets du dépôt, sous le nom `DATABASE_URL`.** La même chaîne, telle quelle. | **Absente ou injoignable : toute page authentifiée rend 500.** Voir le symptôme exact ci-dessous — il ne dit pas « base injoignable », et c'est tout le problème. |
+| `DATABASE_URL` | **La seule connexion que l'application ouvre.** Elle doit porter le rôle `codiplan_app` — ni propriétaire, ni superutilisateur, ni `BYPASSRLS`. | **La connexion de VOTRE BASE NEUVE**, avec le rôle `codiplan_app` et le mot de passe que vous lui aurez posé (§2). ~~Déjà dans les secrets du dépôt~~ — **c'est faux et cela vous brancherait sur la base de démonstration.** | **Absente ou injoignable : toute page authentifiée rend 500.** Voir le symptôme exact ci-dessous — il ne dit pas « base injoignable », et c'est tout le problème. |
 | `BETTER_AUTH_SECRET` | Signe les cookies de session et **chiffre les codes de secours** du second facteur. | **À engendrer, propre à cet environnement** — au moins 32 octets aléatoires. Il n'existe nulle part aujourd'hui : ce n'est **pas** un secret du dépôt. | **Absente : personne ne reste connecté.** La connexion paraît réussir, la page suivante redemande le mot de passe. **Changée après coup : toutes les sessions tombent, et les codes de secours déjà émis deviennent illisibles.** |
 | `BETTER_AUTH_URL` | URL publique de l'application. Better Auth en tire ses redirections et l'attribut `Secure` des cookies. | L'URL **https** que l'hébergeur attribue, sans barre finale. Ex. `https://codiplan.example.com`. | **Fausse : la connexion boucle.** Le cookie est posé pour un autre domaine, la redirection ramène à la page de connexion, indéfiniment. |
 
@@ -60,7 +63,15 @@ Ce que l'on voit : **`HTTP 500` sur `POST /api/auth/…`**, c'est-à-dire sur la
 **Ce que `DATABASE_URL` doit contenir, exactement.**
 `postgresql://codiplan_app:<mot de passe>@<hôte Neon>/<base>?sslmode=require`
 
-Le rôle `codiplan_app` est créé par la migration `20260820130000_force_rls_role_applicatif` **sans mot de passe** ; celui qui est en service a été posé à la main hors dépôt, et c'est lui qui est dans le secret `DATABASE_URL`. Il n'y a donc rien à redécouvrir : on recopie le secret.
+Le rôle `codiplan_app` est créé par la migration `20260820130000_force_rls_role_applicatif` **sans mot de passe**. Sur la base de démonstration, un mot de passe lui a été posé à la main hors dépôt, et c'est lui qui vit dans le secret `DATABASE_URL` du dépôt.
+
+**Sur votre base NEUVE, ce mot de passe n'existe pas encore, et personne ne peut le poser à votre place.** Après le geste 4 — la migration crée le rôle —, ouvrez la console SQL de votre hébergeur et jouez :
+
+```sql
+ALTER ROLE codiplan_app WITH LOGIN PASSWORD '<un mot de passe long, tiré au hasard>';
+```
+
+C'est ce mot de passe qui compose la `DATABASE_URL` de l'hébergeur d'application **et** le secret de dépôt `PRODUCTION_DATABASE_URL`. *La note précédente disait « on recopie le secret » : c'était vrai de la démonstration et faux de la production, et c'est le genre de phrase qui fait brancher une production sur une base de démonstration sans que rien ne s'en aperçoive.*
 
 **Si l'on se trompe de rôle, l'application refuse de servir — et c'est voulu.** `lib/db/garde-role.ts` interroge la base au premier accès cloisonné et rejette une connexion superutilisateur, `BYPASSRLS`, ou propriétaire de la base : sous un de ces rôles, les politiques de cloisonnement ne mordraient pas (I1). Un refus au démarrage vaut mieux qu'un cloisonnement muet.
 
@@ -77,12 +88,28 @@ Le rôle `codiplan_app` est créé par la migration `20260820130000_force_rls_ro
 
 ---
 
-## 2 — Ce qui est déjà dans les secrets du dépôt, et sous quel nom
+## 2 — DEUX BASES, ET IL FAUT SAVOIR LAQUELLE EST LAQUELLE
 
-| Secret | Rôle PostgreSQL | Qui le lit | À recopier chez l'hébergeur ? |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | `codiplan_app` (applicatif, soumis aux politiques) | `db-migrate.yml` (étape de contrôle du cloisonnement), `ci.yml` (veille nocturne) | **Oui** — c'est la variable n° 1 du tableau ci-dessus. |
-| `MIGRATION_DATABASE_URL` | propriétaire (DDL, seed, purge) | `db-migrate.yml` | **Non, jamais.** |
+*Cette section a été réécrite le 09/09/2026 : la précédente disait au geste 1 de créer une base, puis au geste 3 de recopier le secret `DATABASE_URL` du dépôt — **or ce secret pointe la base qui existe déjà**. Quelqu'un qui suivait la note branchait donc sa production sur la base de démonstration, sans qu'aucune page ne le lui dise.*
+
+**LA BASE DE DÉMONSTRATION EST CELLE QUI EXISTE.** C'est `neondb`, celle que désignent les secrets historiques `DATABASE_URL` et `MIGRATION_DATABASE_URL`. Elle porte **deux sociétés fictives** — `CODIMA-NC` en XPF et `CODIMA-EU` en EUR — que `pnpm db:seed` y réinstalle à chaque exécution du flux de migration. *Mesuré le 09/09/2026 à 21:41 UTC, dans le journal du run #40 de « DB migrate & seed » : `societe : 2`, `CODIMA-EU` et `CODIMA-NC`.*
+
+**LA BASE DE PRODUCTION EST CELLE QUE VOUS CRÉEZ AU GESTE 1.** Elle est vide, elle n'a jamais vu le seed, et **elle ne le verra jamais** : le flux de migration porte désormais une entrée `cible`, et sur `production` l'étape de seed est **sautée** (un gardien statique le vérifie, `tests/unit/ci/cible-de-migration.test.ts`).
+
+**CE QUE DEVIENT LE SECRET EXISTANT : rien. Il ne bouge pas, et il ne se recopie nulle part.**
+
+| Secret du dépôt | Quelle base | Rôle PostgreSQL | Qui le lit | À recopier chez l'hébergeur d'application ? |
+| --- | --- | --- | --- | --- |
+| `DATABASE_URL` | **démonstration** | `codiplan_app` | `db-migrate.yml` (contrôle du cloisonnement), `ci.yml` (veille nocturne) | **NON.** Le recopier brancherait la production sur la démonstration. |
+| `MIGRATION_DATABASE_URL` | **démonstration** | propriétaire (DDL, seed, purge) | `db-migrate.yml` | **Non, jamais.** |
+| `PRODUCTION_DATABASE_URL` | **production** | `codiplan_app` | `db-migrate.yml`, cible `production` | Sa valeur est la même chaîne que la variable `DATABASE_URL` de l'hébergeur — mais on la dépose **des deux côtés**, on ne la « recopie » pas depuis le dépôt. |
+| `PRODUCTION_MIGRATION_DATABASE_URL` | **production** | propriétaire | `db-migrate.yml`, cible `production` | **Non, jamais.** |
+
+**Les deux secrets `PRODUCTION_*` n'existent pas encore : c'est le geste 3 bis.** Tant qu'ils manquent, le flux de migration **refuse** de partir sur la cible `production` en nommant le secret manquant — il ne retombe pas sur la démonstration, et l'absence de repli est délibérée : *un repli silencieux ferait migrer la démonstration en croyant migrer la production.*
+
+**Pourquoi garder la base de démonstration.** Elle porte les données que le seed écrit, elle est l'objet de la veille nocturne, et elle est le seul endroit où l'on peut **répéter un geste avant de le jouer pour de bon** — l'ouverture du premier compte, notamment. La supprimer économiserait quelques francs et retirerait le seul terrain d'essai.
+
+**Où déposer un secret de dépôt, en clics :** `github.com/alexis97310/codiplan` → onglet **Settings** → menu de gauche **Secrets and variables** → **Actions** → bouton vert **New repository secret** → nom, valeur, **Add secret**.
 
 `GITHUB_TOKEN` est fourni par GitHub, il n'a pas à être créé.
 
@@ -225,23 +252,41 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 1. **Lire le 5.1 en entier avant de jouer le geste d'amorçage** — les deux encadrés surtout. Il n'est plus vrai que personne ne peut entrer : le geste existe. Ce qui reste à savoir tient en deux phrases. *Le jeton entre dans le journal du flux si la commande est jouée en CI, et il y est une clé vivante pendant une heure.* ~~*S'il expire, il n'y a aucune voie de retour.*~~ *S'il expire, `--reemettre` en rend un autre, tant que personne n'a choisi de mot de passe (10/09/2026).* Ne pas le déclencher sans être disponible pour l'utiliser dans l'heure — ou le jouer hors CI, auquel cas le journal n'existe pas.
 2. Choisir la région de l'hébergeur au plus près de **`ap-southeast-2`**.
 3. Engendrer `BETTER_AUTH_SECRET` (≥ 32 octets aléatoires) et le déposer chez l'hébergeur **seulement**.
-4. Recopier le secret de dépôt `DATABASE_URL` dans la variable `DATABASE_URL` de l'hébergeur. **Ne pas y mettre `MIGRATION_DATABASE_URL`.**
+4. **Ne PAS recopier le secret de dépôt `DATABASE_URL`** — il pointe la base de DÉMONSTRATION (§2). La variable `DATABASE_URL` de l'hébergeur porte la connexion de **votre base neuve**, rôle `codiplan_app`, avec le mot de passe que vous aurez posé à la main après le geste 4 (§1). Et déposer dans le DÉPÔT les deux secrets `PRODUCTION_MIGRATION_DATABASE_URL` et `PRODUCTION_DATABASE_URL`.
 5. Poser `BETTER_AUTH_URL` sur l'URL https attribuée, sans barre finale.
 6. Configurer : Node **22**, pnpm **10.33.0**, installation `pnpm install --frozen-lockfile`, construction `pnpm build`, démarrage `pnpm start`. **Aucune commande de base de données dans la construction.**
 7. Vérifier que `NODE_ENV` vaut `production`.
 8. Déployer, puis ouvrir `/` : la page d'accueil doit s'afficher. Elle ne touche pas la base — c'est le premier signe que le service tourne, pas que la base répond.
 9. Ouvrir `/connexion` et soumettre n'importe quoi : le refus doit être **uniforme** (D35). S'il apparaît une erreur de connexion à la base, c'est `DATABASE_URL` ; s'il apparaît un refus de rôle, c'est que la chaîne ne porte pas `codiplan_app`.
-10. **Ouvrir la première identité** avec `scripts/amorcage-premier-compte.mts` — `AMORCAGE_PREMIER_COMPTE_CONFIRME=oui`, `--societe`, `--email`, `--nom`, `--role`. Relire le 5.1 d'abord. **Utiliser l'URL rendue dans l'heure.**
+9 bis. **Amorcer la base** : flux **Amorcer une base (référentiels et première société)**, cible `production` — devises et parités, puis la société avec ses sept valeurs. Noter l'identifiant rendu. *Sans ce geste, le suivant n'a aucune société à nommer* (§9).
+10. **Ouvrir la première identité** : flux **Ouvrir le PREMIER compte** depuis un navigateur (§9), ou `scripts/amorcage-premier-compte.mts` depuis un poste. Relire le 5.1 d'abord. **Utiliser l'URL rendue dans l'heure.**
 11. **Vérifier que la porte s'est refermée derrière vous** : rejouer la même commande sur la même société doit être **refusé**, et rouvrir l'URL déjà consommée ne doit **rien** ouvrir. Ce sont les deux seules choses à constater après coup, et elles se constatent en trente secondes.
 12. **Si l'URL a expiré avant d'être ouverte** : rejouer le script avec `--reemettre --societe --email`. Il refuse dès qu'un mot de passe existe — si c'est le cas, l'identité a servi, et un mot de passe oublié se traite par le chemin ordinaire, jamais par ce geste. Deux constats après coup : la nouvelle URL ouvre le compte, et la même commande rejouée **après** le choix du mot de passe est refusée.
 13. **Le taux horaire n'est pas posé par le geste d'amorçage — il a SON geste**, séparé (décision du 09/09, construit le 10/09) : `TAUX_INITIAL_CONFIRME=oui pnpm tsx scripts/taux-initial.mts --societe <uuid> --montant 7000` — le montant dans l'unité la plus fine de la devise de la société (D68 : 7 000 XPF hors taxes pour CODIMA NC), `--date AAAA-MM-JJ` facultative, à défaut le jour du geste dans le fuseau de la société. **Relire le montant formaté que le script répète** : il refuse ensuite de rejouer, et une erreur d'échelle se corrige par le chemin ordinaire. Tant qu'aucune ligne de `taux_horaire` n'existe, RG-TAR-04 n'a rien à appliquer et aucune intervention ne se valorise.
 
 ---
 
-## 7 — Les migrations, une seule commande
+## 7 — Les migrations, depuis GitHub, en six clics
+
+*Réécrit le 09/09/2026 : la version précédente donnait une commande, donc un terminal, donc un ordinateur. La note se veut suivable depuis un téléphone ; ce geste l'est désormais.*
+
+**LE CHEMIN EXACT, EN CLICS.**
+
+1. Ouvrir `github.com/alexis97310/codiplan` (connecté).
+2. Onglet **Actions**, en haut.
+3. Dans la colonne de gauche, **DB migrate & seed**.
+4. À droite de la ligne bleue *« This workflow has a workflow_dispatch event trigger »*, bouton **Run workflow**.
+5. Dans le panneau : **Use workflow from** → `main` ; **cible** → **production** ; **reinitialiser_demo** → laisser décoché.
+6. Bouton vert **Run workflow**. Rafraîchir la page : une exécution apparaît. Ouvrir-la, ouvrir le job **migrate & seed**, et attendre. *Environ deux minutes — mesuré : 1 min 42 s pour le run #40 du 09/09/2026, 21:39:52 → 21:41:34 UTC.*
+
+**Ce que l'on doit voir, étape par étape :** *Appliquer la migration* en vert, *Exécuter le seed (démonstration UNIQUEMENT)* **sautée** — c'est le signe que la cible `production` a bien été comprise —, puis *Inventaire à plat* et *Contrôle de cloisonnement* en vert. **Le contrôle de cloisonnement est la ligne qui compte** : il se connecte sous le rôle applicatif et vérifie qu'aucune ligne n'est lisible sans contexte de société.
+
+**Le mot « seed » du nom du flux ne vaut que pour la démonstration.** Sur la cible `production`, l'étape est sautée et la purge aussi. C'est une garantie du flux, pas une intention : un gardien statique la vérifie à chaque `pnpm verify`.
+
+**Si vous préférez un terminal**, la commande reste vraie et n'a pas changé :
 
 ```bash
-DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:deploy
+DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE de votre base NEUVE>" pnpm db:deploy
 ```
 
 `pnpm db:deploy` est `prisma migrate deploy` : il applique **les migrations manquantes, dans l'ordre, sans jamais en réécrire une déjà appliquée** — Prisma le refuse par empreinte, et c'est une garantie, pas une gêne.
@@ -252,7 +297,9 @@ DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:deploy
 
 **Ce que l'on doit voir quand ça marche :** `All migrations have been successfully applied.` **Quand ça rate :** `P1001` si la base ne répond pas, `P3009` si une migration précédente a échoué et doit être résolue à la main.
 
-**Les données de démonstration ne s'installent PAS en production.** `pnpm db:seed` crée deux sociétés fictives ; il n'a rien à faire sur une base réelle.
+**Les données de démonstration ne s'installent PAS en production.** `pnpm db:seed` crée deux sociétés fictives ; il n'a rien à faire sur une base réelle. *Cette phrase était une recommandation ; depuis le 09/09/2026 c'est le flux qui la tient — voir l'entrée `cible` ci-dessus.*
+
+**Et c'est ici que se trouvent les identifiants de société dont le geste 7 a besoin.** L'étape *Inventaire à plat* les imprime, sous la forme `CODE (uuid)`. Sur une base de production neuve, l'inventaire ne nomme **aucune** société : il n'y en a pas encore, et c'est le point suivant — voir §9, *« et la société, d'où vient-elle ? »*.
 
 ---
 
@@ -269,13 +316,71 @@ DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:deploy
 
 **Cette page ne tombe jamais avec ce qu'elle surveille.** Avec une base injoignable, elle s'affiche quand même et répond « non » : *une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien.* Un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute (`tests/unit/db/sante.test.ts`).
 
+### SI L'ON S'EST TROMPÉ DE BASE — ce que `/sante` dit, et ce qu'elle NE PEUT PAS dire
+
+*Ajouté le 09/09/2026, parce que la question a une réponse en deux moitiés et que n'en donner qu'une tromperait.*
+
+| Sur quelle base on est tombé | Ce que `/sante` affiche | La page suffit-elle ? |
+| --- | --- | --- |
+| **Une base jamais migrée** (la vôtre, avant le geste 4) | « Les migrations sont à jour : **non** », **et elle nomme la migration manquante** | **Oui.** C'est le cas qu'elle attrape. |
+| **Une base injoignable** (chaîne fausse, hôte fermé) | « La base de données répond : **non** » — c'est le `P1001` du §1 | **Oui.** |
+| **Une chaîne portant le mauvais RÔLE** (propriétaire, superutilisateur) | « Le rôle de connexion est le bon : **non** » | **Oui**, et l'application refuse de servir par ailleurs. |
+| **LA BASE DE DÉMONSTRATION, à la place de la vôtre** | **oui, oui, oui.** Trois lignes vertes. | **NON. Elle ne peut pas le savoir, et c'est écrit plutôt que tu.** |
+
+**Pourquoi elle ne le peut pas, et pourquoi on ne le lui ajoutera pas.** La base de démonstration est en parfaite santé : elle répond, le rôle est le bon, les migrations sont à jour. Les trois questions de `/sante` portent sur l'**état** d'une base, jamais sur son **identité** — et lui faire dire laquelle c'est reviendrait à afficher un nom d'hôte ou un nom de base sur une page **sans compte**, ce que D50 interdit : *un message d'erreur est un canal d'information, soumis au cloisonnement comme une requête.* Compter les sociétés ne le dirait pas davantage : la page répond déjà « non lisible d'ici », et c'est le cloisonnement qui mord.
+
+**Le signe qui, lui, ne trompe pas :** sur la base de démonstration, **une connexion réussit avec un compte de démonstration** ; sur la vôtre, **rien n'ouvre** tant que le geste 7 n'a pas été joué. Si vous parvenez à entrer avant d'avoir ouvert votre premier compte, vous êtes sur la démonstration.
+
+**Et la vraie parade est en amont, pas sur cette page :** les deux bases ont des **secrets distincts** (§2), et le flux de migration exige qu'on **nomme sa cible**. On ne se trompe pas de base par distraction quand il faut la désigner.
+
 **Et elle ne montre jamais d'adresse, de nom d'hôte, de nom de base ni d'identifiant.** Elle est sans compte, donc lisible par n'importe qui : *un message d'erreur est un canal d'information, soumis au cloisonnement comme une requête* (D50). Le message brut d'un pilote PostgreSQL nomme l'hébergeur et la région ; il est réécrit avant d'arriver à l'écran, et un scénario le vérifie.
 
 ---
 
 ## 9 — Ouvrir le PREMIER compte réel
 
-Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien** : dans ce produit, un accès est délivré, jamais réclamé (D58). Le premier compte d'une société s'ouvre par un geste, une seule fois :
+Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien** : dans ce produit, un accès est délivré, jamais réclamé (D58).
+
+### ET LA SOCIÉTÉ, D'OÙ VIENT-ELLE ? — deux gestes qui manquaient, mesurés le 09/09/2026
+
+*Le geste ci-dessous réclame `--societe <uuid>`. **Sur une base neuve, aucune société n'existe et rien dans le dépôt n'en créait** : `prisma/seed.ts` en écrit deux, mais il est réservé à la démonstration. La procédure était impossible à suivre jusqu'au bout, et personne ne s'en était aperçu parce que la seule base existante en portait déjà.*
+
+*Et le trou allait un cran plus bas.* Une société porte une **devise**, or `devise` et `parite` sont des **référentiels de plateforme** — des faits, pas des données de démonstration (D4) — et ils n'étaient écrits, eux aussi, que par le seed. *Mesuré sur une base neuve migrée sans seed : le geste de création de société refuse en disant « la devise XPF n'est pas au référentiel de plateforme ». Le refus était juste, et c'est lui qui a rendu le trou visible.*
+
+**Deux gestes existent désormais, séparés parce qu'ils n'ont ni les mêmes défaillances ni les mêmes cliquets**, et un flux GitHub les porte tous les deux : **Actions → Amorcer une base (référentiels et première société) → Run workflow**, cible `production`, confirmation `oui`.
+
+| Geste | Ce qu'il écrit | Son cliquet |
+| --- | --- | --- |
+| `scripts/referentiels-plateforme.mts` | les **devises** et les **parités**, par `upsert` — rejouable sans dommage | aucun : ce sont des faits, les réécrire ne coûte rien |
+| `scripts/societe-initiale.mts` | **une** société, et ses sept valeurs viennent toutes de vous | refuse si une société porte déjà ce code |
+
+**Aucune des sept valeurs n'a de défaut, et c'est délibéré** : code, raison sociale, pays, territoire, fuseau, devise, langue, et la **majoration hors ouverture** — qui est un **pourcentage**, c'est-à-dire un prix. Le §8 du CLAUDE.md interdit d'inventer un taux ; un défaut ici en inventerait un.
+
+**Les JOURS FÉRIÉS ne sont dans aucun des deux**, et ce n'est pas un oubli : leur horizon est **glissant** et se calcule **par territoire**, donc depuis les agences (D46). Le geste existe déjà : `pnpm feries:etendre` une fois qu'une agence existe, puis `pnpm feries:horizon` pour constater les douze mois. **Sans lui, le planning proposerait des créneaux un 1ᵉʳ mai.**
+
+**La chaîne complète a été jouée le 09/09/2026 sur une base neuve migrée SANS seed**, et elle va jusqu'au bout : référentiels posés (2 devises, 1 parité), société ouverte, première identité ouverte, URL de premier accès imprimée, porte refermée derrière elle.
+
+### LE GESTE, DEPUIS UN NAVIGATEUR — le chemin exact, en clics
+
+*Ajouté le 09/09/2026 : ce geste exigeait un terminal, donc un ordinateur, donc quelqu'un d'autre.*
+
+1. `github.com/alexis97310/codiplan` → onglet **Actions**.
+2. Colonne de gauche : **Ouvrir le PREMIER compte**.
+3. Bouton **Run workflow**.
+4. **cible** → `production` ; **confirmation** → taper `oui` ; **societe** → l'identifiant rendu par le geste précédent ; **email**, **nom**, **role** (`admin_societe`), **base** → l'URL https de votre application, sans barre finale.
+5. Bouton vert **Run workflow**.
+6. Ouvrir l'exécution : **l'URL de premier accès est dans le résumé, en haut de la page** — et dans le journal de l'étape. **Suivez-la tout de suite.**
+
+**CE QUE CE CHEMIN COÛTE, ET IL FAUT LE LIRE AVANT DE CLIQUER.** L'URL porte un jeton à usage unique valable **une heure**. Jouée en CI, elle entre dans le **journal d'exécution** : elle est donc lisible, pendant cette heure, **par quiconque a accès en lecture à ce dépôt**. Ce n'est acceptable qu'à deux conditions, toutes deux vérifiables :
+
+1. **le dépôt est PRIVÉ** — voir « ⚠️ Avant de rendre ce dépôt public » au README ;
+2. **l'URL est suivie dans l'heure**, et le mot de passe choisi immédiatement : un jeton consommé n'ouvre plus rien.
+
+*Si l'une des deux n'est pas tenue, jouez le script depuis un poste — le journal n'existe alors pas.* Et si le jeton expire avant d'être suivi, l'entrée **reemettre** du même flux en rend un autre, **tant que personne n'a choisi de mot de passe**.
+
+### Le geste, depuis un terminal
+
+Le premier compte d'une société s'ouvre par un geste, une seule fois :
 
 ```bash
 AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \

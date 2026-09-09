@@ -32,7 +32,17 @@ type Options = {
   readonly devise?: string;
   readonly montant?: number;
   readonly zones?: string[] | null;
+  readonly rang?: number;
+  readonly type?: string;
 };
+
+/**
+ * Le rang est NOT NULL depuis D86, et l'égalité est refusée par la base. Les
+ * fixtures qui ne s'y intéressent pas en reçoivent donc un DISTINCT, tiré d'un
+ * compteur : ce n'est pas une règle de tarification, c'est de quoi écrire une
+ * ligne sans buter sur un verrou dont le scénario ne parle pas.
+ */
+let prochainRang = 1;
 
 function poser(societeId: string, options: Options = {}): Promise<unknown> {
   const {
@@ -41,6 +51,8 @@ function poser(societeId: string, options: Options = {}): Promise<unknown> {
     devise = "XPF",
     montant = 12000,
     zones = null,
+    rang = prochainRang++,
+    type = "deplacement",
   } = options;
   return avecContexteRls(
     clientApp(),
@@ -49,9 +61,9 @@ function poser(societeId: string, options: Options = {}): Promise<unknown> {
       tx.$executeRawUnsafe(
         `INSERT INTO "forfait"
            ("id","societe_id","code","libelle","type","montant_mineur",
-            "devise_code","famille_id","zone_geo","cumulable_temps")
-         VALUES ($1::uuid, $2::uuid, $3, $3, 'deplacement', $4::bigint,
-                 $5, $6::uuid, $7::text[], false)`,
+            "devise_code","famille_id","zone_geo","cumulable_temps","rang")
+         VALUES ($1::uuid, $2::uuid, $3, $3, $8::"TypeForfait", $4::bigint,
+                 $5, $6::uuid, $7::text[], false, $9::int)`,
         uuidv7(),
         societeId,
         code,
@@ -59,6 +71,8 @@ function poser(societeId: string, options: Options = {}): Promise<unknown> {
         devise,
         familleId,
         zones,
+        type,
+        rang,
       ),
   );
 }
@@ -138,9 +152,9 @@ describe("le catalogue est propre à chaque société — forme « société »"
           tx.$executeRawUnsafe(
             `INSERT INTO "forfait"
                ("id","societe_id","code","libelle","type","montant_mineur",
-                "devise_code","cumulable_temps")
+                "devise_code","cumulable_temps","rang")
              VALUES ($1::uuid, $2::uuid, 'INTRUS', 'Intrus', 'controle', 1,
-                     'EUR', false)`,
+                     'EUR', false, 1)`,
             uuidv7(),
             SOCIETE_B,
           ),
@@ -165,9 +179,9 @@ describe("le catalogue est propre à chaque société — forme « société »"
         await tx.$executeRawUnsafe(
           `INSERT INTO "forfait"
              ("id","societe_id","code","libelle","type","montant_mineur",
-              "devise_code","cumulable_temps")
+              "devise_code","cumulable_temps","rang")
            VALUES (gen_random_uuid(), '${SOCIETE_B}'::uuid, 'INTRUS', 'Intrus',
-                   'controle', 1, 'EUR', false)`,
+                   'controle', 1, 'EUR', false, 2)`,
         );
         throw new Annulation("AUCUN REFUS");
       })
@@ -221,6 +235,44 @@ describe("les verrous de la base", () => {
   });
 });
 
+/**
+ * D86 — L'ÉGALITÉ DE RANG EST UN ÉTAT INTERDIT, ET C'EST LA BASE QUI REFUSE.
+ *
+ * *Deux interventions identiques ne peuvent pas se facturer différemment selon
+ * l'ordre de saisie des forfaits six mois plus tôt.* Le rang rend l'ordre
+ * explicite ; l'unicité par `(societe_id, type, rang)` le rend TOTAL, donc
+ * indépendant de l'ordre des lignes.
+ */
+describe("le rang d'application (D86)", () => {
+  it("deux forfaits de MÊME nature ne partagent pas un rang", async () => {
+    await poser(SOCIETE_A, { code: "RANG-7", rang: 7 });
+    const message = await poser(SOCIETE_A, {
+      code: "RANG-7-BIS",
+      rang: 7,
+    }).then(
+      () => "AUCUN REFUS",
+      (e: unknown) => String((e as Error).message),
+    );
+    expect(message).toContain("23505");
+  });
+
+  it("mais deux NATURES différentes partagent le rang 7 — le rang se compare entre pairs", async () => {
+    // TÉMOIN, et c'est le cas qui doit rester vert POUR SA PROPRE RAISON
+    // (§9, 11/09) : un déplacement n'est jamais en concurrence avec une
+    // prestation. Une unicité sur (societe_id, rang) seule ferait rougir ce
+    // scénario, et obligerait à renuméroter des lignes sans rapport.
+    await expect(
+      poser(SOCIETE_A, { code: "RANG-7-CONTROLE", rang: 7, type: "controle" }),
+    ).resolves.toBeDefined();
+  });
+
+  it("et le rang 7 existe aussi chez B — l'unicité est par société", async () => {
+    await expect(
+      poser(SOCIETE_B, { code: "RANG-7-B", rang: 7, devise: "EUR" }),
+    ).resolves.toBeDefined();
+  });
+});
+
 describe("les jumeaux — chaque refus s'accompagne du retrait de SON verrou", () => {
   /** Rejoue une écriture fautive après avoir défait un verrou, puis annule. */
   async function sansLeVerrou(
@@ -249,9 +301,9 @@ describe("les jumeaux — chaque refus s'accompagne du retrait de SON verrou", (
       `ALTER TABLE "forfait" DROP CONSTRAINT "forfait_famille_fkey"`,
       `INSERT INTO "forfait"
          ("id","societe_id","code","libelle","type","montant_mineur",
-          "devise_code","famille_id","cumulable_temps")
+          "devise_code","famille_id","cumulable_temps","rang")
        VALUES (gen_random_uuid(), '${SOCIETE_A}'::uuid, 'JUMEAU-FK', 'x',
-               'controle', 1, 'XPF', '${FAMILLE_B}'::uuid, false)`,
+               'controle', 1, 'XPF', '${FAMILLE_B}'::uuid, false, 91)`,
     );
     // LA VIOLATION A BIEN EU LIEU : un forfait de A pointe une famille de B.
     expect(passees).toBe(1);
@@ -268,9 +320,9 @@ describe("les jumeaux — chaque refus s'accompagne du retrait de SON verrou", (
       `DROP INDEX "forfait_societe_id_code_key"`,
       `INSERT INTO "forfait"
          ("id","societe_id","code","libelle","type","montant_mineur",
-          "devise_code","cumulable_temps")
+          "devise_code","cumulable_temps","rang")
        VALUES (gen_random_uuid(), '${SOCIETE_A}'::uuid, 'DEP-SUD', 'x',
-               'controle', 1, 'XPF', false)`,
+               'controle', 1, 'XPF', false, 92)`,
     );
     expect(passees).toBe(1);
 
@@ -286,9 +338,9 @@ describe("les jumeaux — chaque refus s'accompagne du retrait de SON verrou", (
       `DROP TRIGGER "forfait_devise_de_la_societe" ON "forfait"`,
       `INSERT INTO "forfait"
          ("id","societe_id","code","libelle","type","montant_mineur",
-          "devise_code","cumulable_temps")
+          "devise_code","cumulable_temps","rang")
        VALUES (gen_random_uuid(), '${SOCIETE_A}'::uuid, 'JUMEAU-DEVISE', 'x',
-               'controle', 1, 'EUR', false)`,
+               'controle', 1, 'EUR', false, 93)`,
     );
     // LA VIOLATION A BIEN EU LIEU : une société en XPF porte un forfait en EUR.
     expect(passees).toBe(1);
@@ -333,5 +385,24 @@ describe("les jumeaux — chaque refus s'accompagne du retrait de SON verrou", (
         WHERE tablename = 'forfait' AND policyname = 'cloisonnement_societe'`,
     );
     expect(présente?.q).toContain("app.societe_id");
+  });
+  it("retirez l'unicité du rang, et deux forfaits se disputent le rang 7", async () => {
+    const passees = await sansLeVerrou(
+      `DROP INDEX "forfait_societe_id_type_rang_key"`,
+      `INSERT INTO "forfait"
+         ("id","societe_id","code","libelle","type","montant_mineur",
+          "devise_code","cumulable_temps","rang")
+       VALUES (gen_random_uuid(), '${SOCIETE_A}'::uuid, 'JUMEAU-RANG', 'x',
+               'deplacement', 1, 'XPF', false, 7)`,
+    );
+    // LA VIOLATION A BIEN EU LIEU : deux forfaits de déplacement de la même
+    // société portent le rang 7, et plus rien ne dit lequel l'emporte.
+    expect(passees).toBe(1);
+
+    const [present] = await clientOwner().$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*) AS n FROM pg_indexes
+        WHERE indexname = 'forfait_societe_id_type_rang_key'`,
+    );
+    expect(Number(present?.n)).toBe(1);
   });
 });

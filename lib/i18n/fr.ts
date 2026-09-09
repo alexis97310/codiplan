@@ -366,6 +366,44 @@ export const fr = {
   "mode_valorisation.temps_passe": "Temps passé",
   "mode_valorisation.forfait_plus_heures": "Forfait plus heures",
 
+  // ── Les zones géographiques (D23) et le catalogue de forfaits (D86) ───────
+  //
+  // Les six zones sont closes dans `lib/sites/zones.ts` ; ce sont leurs
+  // LIBELLÉS qui vivent ici, parce qu'un humain les lit à l'écran.
+  "zone.grand_noumea": "Grand Nouméa",
+  "zone.sud": "Sud",
+  "zone.cote_est": "Côte Est",
+  "zone.cote_ouest": "Côte Ouest",
+  "zone.nord": "Nord",
+  "zone.iles": "Îles",
+
+  "type_forfait.deplacement": "Déplacement",
+  "type_forfait.mise_en_service": "Mise en service",
+  "type_forfait.controle": "Contrôle",
+  "type_forfait.prestation": "Prestation",
+
+  "forfaits.titre": "Forfaits applicables",
+  "forfaits.sous_titre":
+    "Pour une zone donnée, quels forfaits s'appliquent et dans quel ordre.",
+  "forfaits.zone": "Zone géographique",
+  "forfaits.voir": "Voir",
+  "forfaits.vide":
+    "Le catalogue est vide. Aucun forfait ne se facture tant qu'aucun n'est saisi.",
+  "forfaits.rang": "Rang",
+  "forfaits.code": "Forfait",
+  "forfaits.montant": "Montant",
+  "forfaits.conditions": "Conditions",
+  "forfaits.verdict": "Pour cette zone",
+  "forfaits.sans_condition": "Aucune — s'applique partout",
+  "forfaits.condition_famille": "Une famille de matériel",
+  "forfaits.retenu": "Retenu",
+  "forfaits.applicable_apres":
+    "Applicable, mais un rang plus petit passe avant",
+  "forfaits.ecarte": "Écarté — ses conditions ne sont pas remplies",
+  "forfaits.inactif": "Inactif",
+  "forfaits.explication_rang":
+    "Le plus petit rang l'emporte. Deux forfaits de même nature ne peuvent pas partager un rang : la base le refuse, pour que deux interventions identiques ne se facturent jamais différemment selon l'ordre où les forfaits ont été saisis.",
+
   // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
   //
   // « Agence » et « site » ne s'écrivent pas ici : le code nomme la notion.

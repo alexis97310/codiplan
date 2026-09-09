@@ -337,6 +337,113 @@ Même format, à découper au moment de les aborder. Contrats et générateur de
 
 Un backlog écrit six mois à l'avance est périmé quand on y arrive.
 
+## Lot 8 — Documentation des machines
+
+*Inscrit au plan le 09/09/2026 sur consigne d'exploitation. **Écrit, pas construit** — un lot qui n'existe que dans une conversation n'existe pas.*
+
+**Ce lot remplace le ticket L2-04**, qui posait la bonne question — la forme polymorphe de `document` — et n'en tirait pas un périmètre. La mesure de L2-04 reste acquise et ne se refait pas : *une colonne `entite_id` avec deux clés étrangères est un piège qui a l'air d'un verrou et rend la table inutilisable ; une colonne nullable par cible avec `num_nonnulls(...) = 1` fonctionne.*
+
+**L8-01** Le rattachement d'un document : au MODÈLE ou à la MACHINE, jamais aux deux.
+Un document s'accroche **au modèle** — notice, fiche technique, manuel d'atelier, identiques pour tous les exemplaires — **ou à la machine** — certificat de conformité, procès-verbal de mise en service, propres à un exemplaire. **Jamais aux deux, et c'est le SCHÉMA qui l'interdit**, pas une validation applicative : deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1`, la forme que L2-04 a mesurée comme fonctionnelle.
+*Acceptation :* une ligne à deux cibles est refusée par la contrainte NOMMÉE ; une ligne sans cible aussi ; le jumeau retire la contrainte et montre la ligne à deux cibles passer.
+
+**L8-02** L'écran d'une machine affiche l'UNION de ses documents et de ceux de son modèle.
+**C'est ce qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais pouvoir le corriger.** La distinction reste visible à l'écran — un document de modèle se corrige une fois pour toutes, un document de machine n'existe que là.
+*Acceptation :* un document ajouté au modèle apparaît sur toutes ses machines sans qu'aucune ligne ne soit copiée ; sa correction se voit partout.
+
+**L8-03** Deux classes de visibilité, et deux seulement : `client` et `interne`.
+**Liste close, produite par le SCHÉMA** — une énumération PostgreSQL, comme les statuts. *À cinq valeurs, personne ne classe juste* : une classification que l'on hésite à appliquer est appliquée au hasard, et un document mal classé est pire qu'un document absent.
+*Acceptation :* toute valeur hors des deux est refusée par la base.
+
+**L8-04** Le cloisonnement d'un document est HÉRITÉ de sa machine, et la classe ne fait que le RÉTRÉCIR.
+Société, site, habilitation : un document suit sa machine, **et rien n'est inventé ici**. La classe `interne` retire l'accès au portail ; elle n'ajoute aucun axe. **N'inventez pas une forme de politique de plus** — la forme « parc » existe, `intervention` vient de la prendre, et une dixième forme est un arbitrage, jamais un effet de bord.
+**Ce qui reste ouvert et n'est pas tranché ici :** un document de MODÈLE n'a pas de machine, donc pas de site. Son cloisonnement est celui de `modele_materiel`, qui est une table métier cloisonnée depuis que le mécanisme « référentiel + copie masquante » a été retiré. *La question à instruire au moment du ticket, avec sa mesure, est celle-ci et pas une autre.*
+*Acceptation :* un compte portail ne voit d'un document que ce que sa machine lui laisse voir ; aucune politique nouvelle n'apparaît dans le contrôle des formes.
+
+**L8-05** Fiche en base, octets dans un stockage d'objets, **même région que la base**.
+**Jamais de PDF dans PostgreSQL.** La région est la même pour la raison qui a déjà coûté un incident : la latence vers Sydney se paye à chaque aller-retour, et un objet qui traverse le Pacifique deux fois n'arrive pas.
+*Acceptation :* aucune colonne binaire sur `document` ; la région du stockage est vérifiée par le contrôle de mise en ligne.
+
+**L8-06** `date_document` et `date_expiration` **dès le premier jour**, même inutilisées.
+*Trois minutes maintenant, une migration douloureuse plus tard.* Ce n'est pas une colonne « au cas où » : un certificat porte une date d'émission et une date de fin de validité, et le lot 9 s'en servira.
+*Acceptation :* les deux colonnes existent et sont nullables ; aucun code ne les lit encore, et c'est écrit plutôt que tu.
+
+**L8-07** LE BAC DE RÉCEPTION — l'entrée principale du lot, et la partie qui décide de sa réussite.
+Les documents existants sont **numériques mais rangés en vrac**, sans structure exploitable. Le bac les reçoit et **propose** ; il ne classe jamais seul.
+- **Dédupliquer par empreinte AVANT de rapprocher** : deux fois le même PDF est un seul document, et le découvrir après le rapprochement fait deux fois le travail.
+- **Afficher LA PREMIÈRE PAGE à côté du choix.** La couverture porte la marque et le modèle ; **l'œil fait le travail, pas la reconnaissance de caractères.** Aucune dépendance d'OCR en V1.
+- **Proposer, jamais classer seul.** *Un rapprochement faux accroche la notice d'un compresseur à un pont élévateur, et personne ne le voit avant qu'un technicien suive la mauvaise procédure.* **C'est une question de sécurité, pas de qualité de données**, et c'est ce qui interdit l'automatisme silencieux.
+- **Téléversement REPRENABLE** : plusieurs gigaoctets depuis Nouméa, ça se coupe.
+- **Traiter les MODÈLES d'abord** : une notice classée sert toutes les machines du modèle d'un coup.
+- **Tranches de dix minutes**, reprise là où l'on s'est arrêté, **aucun travail partiel perdu**, compteur visible. *Ce travail sera délégué*, et un travail délégué qui perd une session perd la personne avec.
+*Acceptation :* une session interrompue reprend au même document ; deux fichiers identiques ne produisent qu'une fiche ; aucun rapprochement n'est appliqué sans un geste humain.
+
+**HORS V1, et nommé pour que personne ne l'ajoute en passant :** import automatique en masse, chaînes de versions, liens vers les sites constructeurs, téléversement depuis le téléphone.
+
+---
+
+## Lot 9 — Registre des VGP
+
+*Inscrit au plan le 09/09/2026 sur consigne d'exploitation. **Écrit, pas construit.***
+
+**Vérifications générales périodiques** (APAVE, Bureau Veritas). **Chez CODIMA, ce sont les CLIENTS qui commandent ces visites, pas CODIMA. Tout ce lot découle de là.**
+
+**L9-01** CODIPLAN NE CALCULE JAMAIS LA CONFORMITÉ.
+Il **enregistre ce que l'organisme agréé a écrit**, et ne calcule que des **dates**. *« Conforme » ne s'affiche que parce qu'APAVE l'a écrit.* Un logiciel qui déduirait la conformité d'une règle qu'il porte engagerait une responsabilité que personne ne lui a donnée.
+*Acceptation :* aucune fonction du dépôt ne rend un verdict de conformité ; le seul calcul est une échéance.
+
+**L9-02** CE N'EST PAS UN REGISTRE DE CONFORMITÉ, C'EST UN REGISTRE DE CE QU'ON NOUS A DIT.
+Chaque écran porte **la date de la dernière information reçue**. Sans nouvelles : **« sans information depuis X »** — jamais « à jour », jamais « en retard », **jamais blanc**. *Le danger est qu'un registre à moitié rempli ressemble à un registre complet* — c'est le zéro de `/sante` lu comme « installation vide », à l'échelle d'un parc.
+*Acceptation :* aucun écran du lot ne rend un état sans le dater ; l'absence d'information a un libellé propre, distinct de « conforme » et de « non conforme ».
+
+**L9-03** L'assujettissement se déclare À LA FAMILLE et se propage — **mais PAS par une case à cocher**.
+**TROIS valeurs** : `soumis` · `non_soumis`, et `verifie` · `a_determiner`. **Une famille nouvelle naît « à déterminer »**, parce qu'*une case décochée est indiscernable d'une famille jamais examinée*, et qu'un pont élévateur sortirait du registre en silence. **Les « à déterminer » apparaissent dans une liste visible** : c'est la moitié détective du couple, et sans elle la valeur ne sert à rien.
+*Acceptation :* une famille créée porte `a_determiner` sans qu'on l'ait demandé ; la liste des indéterminés est atteignable en un clic depuis le registre.
+
+**L9-04** Déclarer « soumis » rend OBLIGATOIRES la périodicité et **la référence du texte qui la fonde**.
+Sans le texte, la périodicité est un chiffre que personne ne peut défendre.
+*Acceptation :* la base refuse `soumis` sans périodicité ni référence.
+
+**L9-05** AUCUNE PÉRIODICITÉ EN DUR.
+Elle dépend du matériel et du texte applicable ; **la Nouvelle-Calédonie a son propre code du travail**, et la solution sera vendue sur d'autres territoires. **C'est une donnée saisie par un humain**, comme la majoration hors ouverture et le taux horaire.
+*Acceptation :* aucune constante de durée dans le code du lot ; un gardien statique le vérifie, sur le modèle de celui des couleurs.
+
+**L9-06** Le MODÈLE peut préciser, la MACHINE peut faire exception — **avec motif écrit obligatoire**.
+Les caractéristiques techniques vivent sur le modèle, donc c'est là que la précision a un sens. L'exception au niveau d'un exemplaire existe — un usage particulier, une modification — et **elle ne se pose jamais sans sa raison**.
+*Acceptation :* une exception sans motif est refusée par la base.
+
+**L9-07** La déclaration est JOURNALISÉE : qui, quand, **sur quelle base**.
+Pas une table de plus : `journal_audit`, par déclencheur, avec les valeurs avant et après. « Sur quelle base » est la référence du texte de L9-04.
+*Acceptation :* toute déclaration d'assujettissement est retrouvable avec son auteur et sa justification.
+
+**L9-08** Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre **UNE CAMPAGNE DATÉE avec un compteur qui descend**.
+*Un gardien dont on ignore les alertes coûte plus qu'il ne rapporte* — c'est déjà écrit au §9 du CLAUDE.md, et deux cents alertes le jour d'une déclaration, c'est la panne par le bruit, la plus sûre.
+*Acceptation :* une déclaration produit un objet unique, daté, avec un reste-à-faire visible ; aucune notification par machine.
+
+**L9-09** Le rapport de VGP est de classe `client`.
+**L'obligation pèse sur celui qui utilise le matériel : le rapport lui appartient.** C'est la classe de L8-03, et c'est tout — le lot 9 ne crée aucun axe de visibilité.
+*Acceptation :* un compte portail retrouve les rapports de ses machines, et rien d'autre.
+
+**L9-10** Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.
+**C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.** Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
+*Acceptation :* une observation saisie produit une intervention en file d'attente, rattachée à la machine et au rapport qui l'a motivée.
+
+**L9-11** Le TECHNICIEN saisit sur site ce qu'il voit — **vignette, date — en cinq secondes**, pendant une intervention.
+**C'est ce qui remplira le registre**, et rien d'autre ne le remplira : personne ne saisira deux cents fiches un dimanche. La saisie doit fonctionner **hors ligne**, comme tout ce que le terrain fait.
+*Acceptation :* la saisie tient en deux champs et se fait en mode avion ; elle se synchronise comme le reste.
+
+**HORS V1 :** la commande des visites aux organismes. *Elle viendra le jour où l'exploitation vendra ce service — et c'est le registre rempli qui le lui permettra.*
+
+---
+
+## POINT DE VIGILANCE COMMUN AUX LOTS 8 ET 9 — à instruire avant le portail
+
+**Le jour où le portail sert à un client un certificat de conformité ou un état de VGP, la question de ce dont CODIMA RÉPOND se pose.** Publier un document réglementaire, même reçu d'un tiers, n'est pas la même chose que publier un compte rendu d'intervention : le client peut s'en prévaloir, et un document périmé ou mal rattaché devient une affirmation de CODIMA.
+
+**Ce n'est pas un blocage**, et ce n'est pas une question technique : c'est un **avis à prendre avant d'ouvrir le portail sur ces deux lots**. Les deux lots se construisent sans lui ; c'est la publication qui l'attend.
+
+---
+
 ### Tickets déjà arrêtés hors du chemin critique
 
 Ils ne sont pas à construire maintenant ; ils sont écrits parce qu'un arbitrage les a rendus obligatoires, et qu'un corollaire non écrit est un corollaire perdu.

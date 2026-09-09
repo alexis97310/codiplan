@@ -1,0 +1,178 @@
+name: Amorcer une base (référentiels et première société)
+
+# LES DEUX GESTES QUI PRÉCÈDENT L'OUVERTURE DU PREMIER COMPTE.
+#
+# Découverts en mesurant la chaîne de mise en ligne le 09/09/2026, sur une base
+# neuve migrée SANS seed :
+#   — `devise` était vide, donc aucune société ne pouvait être créée ;
+#   — aucune société n'existait, donc `--societe <uuid>` n'avait rien à nommer.
+# La procédure était impossible à suivre jusqu'au bout, et personne ne s'en
+# était aperçu parce que la seule base existante portait déjà les deux.
+#
+# Chaque geste est SÉPARÉ et se coche : un geste de référentiel et un geste
+# d'identité ne partagent ni leurs défaillances, ni leurs cliquets — c'est la
+# raison qui a séparé le taux horaire de l'amorçage (décision du 09/09).
+#
+# IMPÉRATIF, comme partout ici : aucun déclenchement automatique.
+on:
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: "Quelle base ?"
+        type: choice
+        required: true
+        default: production
+        options:
+          - production
+          - demonstration
+      confirmation:
+        description: "Taper « oui » pour confirmer"
+        type: string
+        required: true
+        default: "non"
+      poser_referentiels:
+        description: "Poser les devises et parités (sans objet si elles y sont déjà)"
+        type: boolean
+        required: false
+        default: true
+      creer_societe:
+        description: "Ouvrir une société — décocher si elle existe déjà"
+        type: boolean
+        required: false
+        default: false
+      code:
+        description: "Code de la société (préfixe de numérotation, ex. CODIMA-NC)"
+        type: string
+        required: false
+        default: ""
+      raison_sociale:
+        description: "Raison sociale"
+        type: string
+        required: false
+        default: ""
+      pays:
+        description: "Pays, ISO 3166-1 alpha-2 (ex. NC)"
+        type: string
+        required: false
+        default: ""
+      territoire:
+        description: "Territoire des jours fériés, ISO 3166-1 alpha-2 — JAMAIS déduit du fuseau (D46)"
+        type: string
+        required: false
+        default: ""
+      fuseau:
+        description: "Fuseau IANA (ex. Pacific/Noumea)"
+        type: string
+        required: false
+        default: ""
+      devise:
+        description: "Devise, ISO 4217 (ex. XPF)"
+        type: string
+        required: false
+        default: ""
+      langue:
+        description: "Langue, deux lettres (ex. fr) — documente une intention, non exploitée en V1 (D26)"
+        type: string
+        required: false
+        default: ""
+      majoration:
+        description: "Majoration hors ouverture, en POURCENTAGE — aucune valeur par défaut : c'est un prix"
+        type: string
+        required: false
+        default: ""
+
+concurrency:
+  group: amorcage-base
+  cancel-in-progress: false
+
+jobs:
+  amorcer:
+    name: amorcer la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Bruts : c'est l'étape de choix qui tranche. Une expression
+      # `cible == 'production' && secrets.PRODUCTION_… || secrets.…` retombe
+      # SILENCIEUSEMENT sur la démonstration quand le secret de production est
+      # vide — mesuré en écrivant ce flux, et attrapé par le gardien de
+      # l'inventaire, qui refuse tout repli entre les deux secrets.
+      SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
+      SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+    steps:
+      - name: Refuser sans confirmation explicite
+        if: ${{ inputs.confirmation != 'oui' }}
+        run: |
+          echo "::error::Le champ « confirmation » doit valoir exactement « oui »."
+          exit 1
+
+      - name: Choisir la base, et refuser plutôt que se rabattre
+        env:
+          CIBLE: ${{ inputs.cible }}
+        run: |
+          set -euo pipefail
+          if [ "$CIBLE" = "production" ]; then
+            migration="$SECRET_MIGRATION_PRODUCTION"
+            prefixe="PRODUCTION_"
+          else
+            migration="$SECRET_MIGRATION_DEMONSTRATION"
+            prefixe=""
+          fi
+          if [ -z "$migration" ]; then
+            echo "::error::Le secret ${prefixe}MIGRATION_DATABASE_URL n'existe pas. Aucun repli n'est prévu : déposez-le, ou changez de cible."
+            exit 1
+          fi
+          echo "DATABASE_URL=$migration" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Poser les référentiels de plateforme
+        if: ${{ inputs.poser_referentiels }}
+        env:
+          REFERENTIELS_PLATEFORME_CONFIRMES: "oui"
+        run: pnpm exec tsx scripts/referentiels-plateforme.mts
+
+      # Le script porte son cliquet : il refuse si une société porte déjà ce
+      # code, et il n'invente AUCUNE des sept valeurs — la majoration est un
+      # pourcentage, lui donner un défaut déciderait d'un prix (CLAUDE.md §8).
+      - name: Ouvrir la première société
+        if: ${{ inputs.creer_societe }}
+        env:
+          SOCIETE_INITIALE_CONFIRMEE: "oui"
+          CODE: ${{ inputs.code }}
+          RAISON: ${{ inputs.raison_sociale }}
+          PAYS: ${{ inputs.pays }}
+          TERRITOIRE: ${{ inputs.territoire }}
+          FUSEAU: ${{ inputs.fuseau }}
+          DEVISE: ${{ inputs.devise }}
+          LANGUE: ${{ inputs.langue }}
+          MAJORATION: ${{ inputs.majoration }}
+        run: |
+          set -euo pipefail
+          pnpm exec tsx scripts/societe-initiale.mts \
+            --code "$CODE" --raison-sociale "$RAISON" --pays "$PAYS" \
+            --territoire "$TERRITOIRE" --fuseau "$FUSEAU" --devise "$DEVISE" \
+            --langue "$LANGUE" --majoration "$MAJORATION" \
+            | tee /tmp/societe.txt
+
+      # L'identifiant de la société est ce que le geste suivant réclame. Il
+      # n'est pas un secret — c'est un UUID de ligne — et il se relit en base ;
+      # le porter au résumé évite de fouiller le journal depuis un téléphone.
+      - name: Reporter l'identifiant de la société
+        if: ${{ always() && inputs.creer_societe }}
+        run: |
+          {
+            echo "## Société ouverte"
+            echo
+            echo '```'
+            cat /tmp/societe.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
+            echo '```'
+            echo
+            echo "Reportez l'identifiant dans le flux **Ouvrir le PREMIER compte**."
+          } >> "$GITHUB_STEP_SUMMARY"

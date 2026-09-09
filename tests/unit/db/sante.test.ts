@@ -1,4 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
+
+import { TABLES_CLOISONNEES } from "@/scripts/lib/inventaire";
+
+import { RACINE } from "../outils/fichiers-source";
 
 import { lireSante } from "@/lib/db/sante";
 
@@ -73,4 +80,59 @@ describe("la page de santé ne tombe pas avec ce qu'elle surveille", () => {
       process.env.DATABASE_URL = avant;
     }
   }, 30000);
+});
+
+/**
+ * L'INVARIANT DU SECOND DÉFAUT DES CAPTURES, FORMULÉ PLUTÔT QUE RÉPARÉ.
+ *
+ * La page affichait « Sociétés : 0 » sur une base qui en portait deux. Le
+ * chiffre était juste au sens de la requête et faux au sens où on le lisait —
+ * *un zéro se lit « installation vide »*. La réparation dit « non lisible
+ * d'ici » ; **ce qui manquait est la règle qui empêche d'y revenir**, car la
+ * correction bien intentionnée s'écrit toute seule : « il suffirait de compter
+ * les sociétés ».
+ *
+ * La règle : **la sonde ne compte AUCUNE table cloisonnée.** Elle est sans
+ * compte, elle lit sous le rôle applicatif sans société active, et toute table
+ * cloisonnée lui rend zéro — ou lui rendrait tout, si l'on « réparait » en
+ * déposant une connexion privilégiée sur une page publique.
+ *
+ * La population vient de `scripts/lib/inventaire.ts`, **une source que ce
+ * gardien ne contrôle pas** (§9, 01/09) : une table cloisonnée créée demain
+ * entre d'elle-même dans le périmètre.
+ */
+describe("la sonde ne publie aucun décompte d'une table cloisonnée", () => {
+  const source = readFileSync(join(RACINE, "lib", "db", "sante.ts"), "utf8");
+
+  it("lit réellement le module — le témoin de non-vacuité", () => {
+    expect(source.length).toBeGreaterThan(500);
+    expect(TABLES_CLOISONNEES.length).toBeGreaterThan(10);
+  });
+
+  it("aucune table cloisonnée n'est interrogée", () => {
+    const citees = TABLES_CLOISONNEES.filter((table) =>
+      new RegExp(`\\b(?:from|join)\\s+"?${table}"?\\b`, "i").test(source),
+    );
+    expect(
+      citees,
+      "un décompte lu sans société active rend zéro, et « Sociétés : 0 » se " +
+        "lit « installation vide » — la conclusion opposée à la vraie",
+    ).toEqual([]);
+  });
+
+  it("mais `_prisma_migrations`, elle, EST interrogée — le vert doit être mérité", () => {
+    // Le cas qui doit rester vert pour sa propre raison (§9, 11/09) : la sonde
+    // DOIT lire quelque chose, et cette table n'est pas cloisonnée. Un gardien
+    // qui interdirait toute lecture serait vert aussi, et décrirait une sonde
+    // qui ne sonde rien.
+    expect(/from\s+_prisma_migrations/i.test(source)).toBe(true);
+  });
+
+  it("et la sonde ne fait AUCUN décompte, d'aucune table", () => {
+    // `lisible: true` existe dans le TYPE — c'est la branche qu'une future
+    // page authentifiée remplira. Ce qui est interdit ici est de la
+    // CONSTRUIRE : la sonde ne compte rien, donc elle n'appelle aucun `count`.
+    expect(source).toContain("decompteNonLisible()");
+    expect(source).not.toMatch(/\.count\s*\(|count\s*\(\s*\*\s*\)/i);
+  });
 });
