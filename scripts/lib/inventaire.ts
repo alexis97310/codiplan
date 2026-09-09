@@ -86,6 +86,10 @@ export const TABLES_CLOISONNEES = [
   // L1-06 : le catalogue de forfaits. Table VIDE — la liste appartient à
   // l'exploitation, et l'inventer serait inventer une donnée métier.
   "forfait",
+  // Lot 2, D84 : l'ordre d'intervention. Forme « parc », le PLANCHER mesuré —
+  // la clause de société seule est exclue par RG-DRO-01, un compte portail
+  // lirait les interventions des autres clients de sa propre société.
+  "intervention",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

@@ -417,6 +417,25 @@ lib/
               aucune vérification de FORME à la lecture — le jeton lu est une
               donnée STOCKÉE, et contrôler sa forme lierait les scans du jour à
               la génération du jour ; seule une borne de TAILLE demeure
+  interventions/ l'ORDRE D'INTERVENTION et le planning agissant (lot 2, D84)
+              saisie.ts : Zod sur toute entrée ; l'agence, le forfait de
+              déplacement, le numéro et le statut NE SE SAISISSENT PAS — les
+              deux premiers se déduisent du site, le troisième appartient à la
+              synchronisation (I10), le quatrième au créneau
+              cycle-de-vie.ts : ce qui est permis et ce qui est REFUSÉ, avec la
+              raison écrite. Il ne GARDE rien — la base garde, par
+              `intervention_cycle_de_vie` : une action refusée à l'écran mais
+              acceptée par la base est un trou
+              annulee > cloturee, jamais l'inverse : I5 donne à l'annulation la
+              préséance, et une intervention clôturée par erreur doit pouvoir
+              être annulée
+              depot.ts : les cinq actions sous contexte cloisonné, forme
+              « parc » (D84) — aucune comparaison de société écrite au-dessus
+              de la politique, ce serait une seconde lecture du même critère
+              l'instant courant se lit dans le FUSEAU DE L'AGENCE (L0-08), qui
+              est celle qui décide du calendrier de référence (I7)
+              le JOURNAL des déplacements n'est pas une table de plus : c'est
+              `journal_audit`, par déclencheur, avec les valeurs avant et après
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie

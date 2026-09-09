@@ -2637,3 +2637,29 @@ RG-TAR-05 devient :
 **Deux interventions courtes sur le même site le même jour facturent aujourd'hui deux heures.** Le plancher s'applique **par intervention**, comme l'arrondi de D57. La question — *le plancher s'applique-t-il par intervention, ou par site et par jour ?* — est inscrite au registre « Ce qui reste à décider » **sans réponse par défaut déguisée** : la conséquence chiffrée est écrite là-bas, et c'est l'exploitation qui tranchera.
 
 **Règles amendées :** RG-TAR-05
+
+---
+
+## D84 — `intervention` prend la forme « parc », et la restriction des 7 jours reste applicative
+
+*Décision de session, 9 septembre 2026, prise sous protocole d'absence. **Elle est réversible et sa condition de réouverture est écrite** — c'est ce qui la rend prenable sans l'exploitation.*
+
+**CE QUI ÉTAIT BLOQUÉ, ET DEPUIS QUAND.** Tout le lot 2 converge sur une table qui n'existait pas, et ce qui la retenait n'était pas ses colonnes : c'était sa **forme de politique**, un arbitrage de cloisonnement. Il était inscrit au registre depuis le 11/09 avec sa mesure déjà faite : *la clause de société seule est exclue par mesure (RG-DRO-01) ; le plancher est « parc » ; RG-DRO-02 serait la dixième forme, exprimable en RLS mais dépendante de l'horloge.* Quatre nuits de suite, rien du lot 2 n'a été construit.
+
+**CE QUI EST ARRÊTÉ.** `intervention` reçoit la forme **« parc »** — société **ET** `app.client_id` **ET** `app.perimetre_sites` —, celle que portent déjà `client`, `site` et `machine`. La colonne de périmètre est `site_id` : une intervention a lieu sur un site.
+
+**Pourquoi le plancher et pas plus.** C'est **la forme la plus restrictive qui existe déjà**. Elle n'ajoute aucune dixième forme, elle ne dépend pas de l'horloge, et elle est éprouvée par les scénarios d'isolation depuis L0-05. *Une décision de session doit être celle qui ferme le plus, pas celle qui arrange le mieux.*
+
+**Pourquoi pas la clause de société seule.** Mesuré le 07/09 sur `utilisateur_client`, et le raisonnement est identique : un compte portail du client A lirait les interventions du client B de la même société, en tirerait leurs sites et leurs machines par jointure, et énumérerait par là les autres clients. RG-DRO-01 — *« un client n'accède qu'aux données de son propre périmètre »* — l'exclut.
+
+**CE QUI N'EST PAS EXPRIMÉ EN BASE, ET C'EST ÉCRIT PLUTÔT QUE TU.** RG-DRO-02 donne à un technicien l'accès *« à l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours »*. Cette restriction **dépend de l'horloge** : une politique qui la porterait serait la **dixième** forme, et une politique dont le verdict change à minuit sans qu'aucune écriture n'ait lieu est une garantie qu'aucun jumeau ne peut éprouver deux fois de suite. Elle reste donc **applicative**, exactement comme elle l'est déjà pour `machine` : au niveau de la base, un rôle interne voit les interventions de sa société ; c'est la couche serveur qui restreint la vue d'un technicien.
+
+**Le coût est nommé** : un technicien qui contournerait la couche applicative verrait les interventions de toute sa société. C'est l'état d'aujourd'hui pour `machine`, et cette décision ne l'aggrave pas — elle ne le répare pas non plus.
+
+**CONDITION DE RÉOUVERTURE, et elle se vérifie sans s'interpréter.** *Le jour où un rôle de technicien reçoit un accès direct à l'API sans passer par nos points d'entrée serveur — ou le jour où l'exploitation demande que RG-DRO-02 morde en base — la forme « parc » ne suffit plus, et la dixième forme devient un arbitrage dû.* Elle exigera alors d'écrire ce qu'une politique dépendante de l'horloge signifie pour un jumeau : ce qui est refusé aujourd'hui doit l'être encore demain, ou le gardien ne mesure rien.
+
+**LES DEUX VERROUS DE CYCLE DE VIE SONT EN BASE, ET C'EST LE CŒUR.** *Une action refusée à l'écran mais acceptée par la base est un trou* — un écran se contourne par une requête, un déclencheur ne se contourne pas. `intervention_cycle_de_vie` refuse donc, en base : **toute** modification d'une intervention `annulee` ; toute modification d'une intervention `cloturee` **autre que son annulation** — I5 donne à `ANNULEE` la préséance sur `CLOTUREE`, et la lui retirer ici contredirait un invariant ; et **la clôture sans temps saisi**, `temps_reel_min` étant l'entrée de D83.
+
+**Ce que cette décision ne crée pas.** Aucune table `intervention_machine`, `intervention_temps` ni `intervention_piece` : elles sont au chapitre 11 et appartiennent au lot 3. `numero` existe et **personne ne l'attribue** — le compteur par société appartient à la synchronisation (I10), comme pour `machine`. Le journal des **déplacements** n'est pas une table de plus : c'est `journal_audit`, que le périmètre inversé de D55 réclame le jour où la table apparaît, et qui porte les valeurs avant et après.
+
+*Aucune règle du chapitre 10 n'est amendée : cette décision met en œuvre RG-DRO-01 et RG-DRO-02 sans en réécrire le texte, et elle ne porte donc pas de ligne de déclaration — en porter une vide serait déclarer un câblage qui n'existe pas.*

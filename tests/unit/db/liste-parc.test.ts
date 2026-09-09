@@ -33,7 +33,7 @@ import {
  * réduit la couverture en silence.
  */
 describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
-  it("ne contient que `client`, `site`, `machine` et `contact`", () => {
+  it("ne contient que `client`, `site`, `machine`, `contact` et `intervention`", () => {
     expect(ecartsListeParc()).toEqual([]);
     expect(TABLES_PARC.map((entree) => entree.table)).toEqual([
       "client",
@@ -43,6 +43,12 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       // est la PREMIÈRE nullable du dépôt : un contact sans site est un contact
       // du client.
       "contact",
+      // `intervention` rejoint le parc au lot 2, PAR L'ARBITRAGE QUE LA LISTE
+      // RÉCLAMAIT — D84. Elle était jusqu'ici le cas NOMMÉ de l'épreuve
+      // d'addition ci-dessous : la liste a exigé qu'on la regarde, un
+      // arbitrage a répondu, et l'entrée a changé de côté. C'est tout ce
+      // qu'une liste close sait faire de bien.
+      "intervention",
     ]);
   });
 
@@ -55,11 +61,22 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       Object.fromEntries(
         TABLES_PARC.map((entree) => [entree.table, entree.perimetre]),
       ),
-    ).toEqual({ client: false, site: true, machine: true, contact: true });
+    ).toEqual({
+      client: false,
+      site: true,
+      machine: true,
+      contact: true,
+      intervention: true,
+    });
   });
 
   it("ÉCHOUE sur un RETRAIT — le geste que É14 décrit", () => {
-    const ecarts = ecartsListeParc(["site", "machine", "contact"]);
+    const ecarts = ecartsListeParc([
+      "site",
+      "machine",
+      "contact",
+      "intervention",
+    ]);
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("client");
@@ -70,7 +87,13 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     // Sans cette mesure, le gardien pourrait ne mordre que sur l'entrée qui a
     // motivé son écriture — et laisser partir `site` ou `machine` en silence
     // aux tickets L1-02 et L2-01, où la même faute se commettra.
-    for (const partie of ["client", "site", "machine", "contact"]) {
+    for (const partie of [
+      "client",
+      "site",
+      "machine",
+      "contact",
+      "intervention",
+    ]) {
       const restantes = TABLES_PARC.map((entree) => entree.table).filter(
         (table) => table !== partie,
       );
@@ -83,24 +106,33 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
   });
 
   it("ÉCHOUE sur une ADDITION — elle passe par un arbitrage", () => {
-    // `intervention` est le cas nommé : D10 donne au portail la vue de ses
-    // interventions, et son entrée au parc sera un arbitrage du lot 2.
+    // L'ÉPREUVE A CHANGÉ DE SUJET, et c'est le signe que le mécanisme a
+    // fonctionné. `intervention` était le cas nommé ici jusqu'au 09/09/2026 ;
+    // D84 l'a arbitrée, elle est passée dans la liste, et une épreuve qui
+    // l'aurait gardée pour cible aurait cessé de rejouer une VIOLATION — elle
+    // aurait mesuré un cas devenu légitime, en restant verte (§9, 11/09).
+    //
+    // Le nouveau cas nommé est `contrat` : le chapitre 11 la porte, elle
+    // n'existe pas encore au schéma, et le portail la verra un jour. Son
+    // entrée au parc sera un arbitrage, jamais une ligne ajoutée en séance.
     const ecarts = ecartsListeParc([
       "client",
       "site",
       "machine",
       "contact",
       "intervention",
+      "contrat",
     ]);
 
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("intervention");
+    expect(ecarts[0]).toContain("contrat");
     expect(ecarts[0]).toContain("arbitrage");
   });
 
-  it("ÉCHOUE sur une liste VIDE, et le dit quatre fois", () => {
-    // Le cas dégénéré : vider la liste ferait sortir les trois tables du
-    // périmètre du gardien de forme sans qu'aucune ne soit nommée ailleurs.
-    expect(ecartsListeParc([])).toHaveLength(4);
+  it("ÉCHOUE sur une liste VIDE, et le dit CINQ fois", () => {
+    // Le cas dégénéré : vider la liste ferait sortir toutes les tables du
+    // périmètre du gardien de forme sans qu'aucune ne soit nommée ailleurs. Le
+    // décompte suit la liste — cinq depuis l'entrée d'`intervention` (D84).
+    expect(ecartsListeParc([])).toHaveLength(5);
   });
 });

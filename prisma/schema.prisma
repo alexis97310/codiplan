@@ -50,6 +50,8 @@ enum Role {
 /// le franc Pacifique est le même partout, la table est lisible par toutes
 /// les sociétés. La parité datée vit dans `parite` (D20), plus dans `devise`.
 model Devise {
+  interventions Intervention[]
+
   code          String        @id
   libelle       String
   decimales     Int
@@ -91,6 +93,8 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
+  interventions Intervention[]
+
   id                            String  @id @db.Uuid
   code                          String  @unique // préfixe de numérotation
   raison_sociale                String
@@ -155,6 +159,8 @@ model Societe {
 /// Établissement CODIMA — Ducos, Koné, Dolbeau (D5). À ne jamais confondre
 /// avec un « site », qui est un lieu d'intervention chez un client.
 model Agence {
+  interventions Intervention[]
+
   id             String  @id @db.Uuid
   societe_id     String  @db.Uuid
   code           String // DUCOS, KONE, DOLBEAU
@@ -435,6 +441,8 @@ model CalendrierFerie {
 /// — est close des deux côtés : y faire entrer `client` est un arbitrage, pas
 /// une décision de ticket (revue R0, écart É-b).
 model Client {
+  interventions Intervention[]
+
   id                   String  @id @db.Uuid
   societe_id           String  @db.Uuid
   /// Clé de rapprochement à l'import (RG-IMP-05, amendée par D29). S'appelait
@@ -525,6 +533,8 @@ model Client {
 /// sont pas interchangeables (CLAUDE.md, vocabulaire imposé ; D5, D47), et leur
 /// définition vit sous les clés `vocabulaire.*` de `lib/i18n/fr.ts`.
 model Site {
+  interventions Intervention[]
+
   id               String   @id @db.Uuid
   societe_id       String   @db.Uuid
   client_id        String   @db.Uuid
@@ -1248,6 +1258,8 @@ enum TypeForfait {
 /// est un UUID v7 généré sur l'appareil, `numero` est attribué par le serveur à
 /// la synchronisation. **Le QR encode le jeton, jamais le numéro.**
 model Machine {
+  interventions Intervention[]
+
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
@@ -1331,7 +1343,127 @@ enum SourceCreationMachine {
   back_office
 }
 
+/// L'ORDRE D'INTERVENTION (lot 2, D84). Table métier de la première catégorie
+/// de I1, de forme « parc » : c'est le PLANCHER mesuré, et RG-DRO-01 exclut la
+/// clause de société seule — un compte portail lirait les interventions des
+/// autres clients de sa propre société.
+model Intervention {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Attribué par le SERVEUR, séquentiellement par société (I10). NUL en
+  /// attendant : **aucun code ne l'attribue aujourd'hui**, le compteur par
+  /// société appartient à la synchronisation, comme pour `machine`.
+  numero Int?
+
+  /// Le triplet du parc. `machine_id` est FACULTATIF : une intervention peut
+  /// naître avant que la machine ne soit identifiée (dépannage à l'aveugle),
+  /// et `intervention_machine` du chapitre 11 viendra au lot 3.
+  client_id  String  @db.Uuid
+  site_id    String  @db.Uuid
+  machine_id String? @db.Uuid
+
+  /// DÉDUITE du site, jamais saisie (D56 : le site porte son rattachement).
+  agence_id String @db.Uuid
+
+  type     TypeIntervention
+  priorite PrioriteIntervention @default(p3)
+  statut   StatutIntervention   @default(a_planifier)
+
+  date_planifiee    DateTime? @db.Date
+  creneau_debut     DateTime?
+  creneau_fin       DateTime?
+  duree_estimee_min Int?
+
+  /// Le technicien affecté — une IDENTITÉ, la table `technicien` du chapitre 11
+  /// n'existant pas encore (CLAUDE.md §6, marque `(prévu)`).
+  technicien_id String? @db.Uuid
+
+  mode_valorisation ModeValorisation @default(temps_passe)
+
+  /// Le forfait de déplacement, DÉDUIT de la zone du site et jamais saisi à la
+  /// main (D23, RG-TAR-06).
+  forfait_deplacement_id String? @db.Uuid
+
+  /// Le temps RÉELLEMENT passé, saisi à la clôture. C'est l'entrée de D83 :
+  /// arrondi au quart d'heure supérieur, puis plancher d'une heure.
+  temps_reel_min Int?
+
+  /// Le total hors taxes, ENTIER dans l'unité la plus fine, avec sa devise
+  /// (I2, I3) — figé à la clôture, jamais recalculé après.
+  montant_ht  BigInt?
+  devise_code String?
+
+  motif_annulation String?
+  cloturee_le      DateTime?
+  annulee_le       DateTime?
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine Machine? @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  forfait Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  devise  Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, numero])
+  @@index([societe_id, date_planifiee])
+  @@index([societe_id, technicien_id, date_planifiee])
+  @@index([societe_id, client_id])
+  @@index([societe_id, site_id])
+  @@map("intervention")
+}
+
+/// La nature de l'intervention (chapitre 11.2).
+enum TypeIntervention {
+  preventif_contrat
+  preventif_hors_contrat
+  curatif
+  installation
+  garantie
+  controle_reglementaire
+  expertise
+  reprise
+  recensement
+}
+
+/// Le niveau d'urgence, qui pilote le SLA (chapitre 10, RG-SLA).
+enum PrioriteIntervention {
+  p1
+  p2
+  p3
+  p4
+}
+
+/// Le cycle de vie, et son ORDRE DE PRÉSÉANCE est celui de I5 :
+/// `annulee` > `cloturee` > `terminee` > `en_cours` > `suspendue` > les statuts
+/// de planification. Les codes couleur de l'annexe D sont promus au rang de
+/// règle (CLAUDE.md §1) et vivent dans `lib/i18n/fr.ts`.
+enum StatutIntervention {
+  a_planifier
+  planifiee
+  envoyee
+  en_cours
+  suspendue
+  terminee
+  cloturee
+  annulee
+}
+
+/// Comment l'intervention se valorise (RG-TAR-05, D83).
+enum ModeValorisation {
+  forfait
+  temps_passe
+  forfait_plus_heures
+}
+
 model Forfait {
+  interventions Intervention[]
+
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
@@ -1359,6 +1491,9 @@ model Forfait {
   famille FamilleMateriel? @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, code])
+  /// Chaînage composite : une intervention ne peut porter que le forfait de
+  /// SA société — le couple est ce qui le garantit en base (D48, même forme).
+  @@unique([societe_id, id])
   @@index([societe_id, actif])
   @@map("forfait")
 }

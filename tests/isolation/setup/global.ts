@@ -25,6 +25,9 @@ import {
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
+  INTERVENTION_A1,
+  INTERVENTION_A2,
+  INTERVENTION_B1,
   MACHINE_A1,
   MACHINE_A2,
   MACHINE_B1,
@@ -544,6 +547,13 @@ export default async function setup(): Promise<void> {
         ('${MACHINE_A1}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1', now()),
         ('${MACHINE_A2}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2', now()),
         ('${MACHINE_B1}', '${SOCIETE_B}', '${MODELE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1', now());
+      -- LES INTERVENTIONS (lot 2, D84). Elles viennent après le parc : leurs
+      -- clés étrangères composites (societe_id, client_id), (societe_id,
+      -- site_id) et (societe_id, agence_id) l'exigent.
+      INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "modifie_le") VALUES
+        ('${INTERVENTION_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
+        ('${INTERVENTION_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
+        ('${INTERVENTION_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'curatif', 'planifiee', now());
       `,
     );
 

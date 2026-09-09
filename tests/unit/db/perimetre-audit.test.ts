@@ -235,7 +235,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les dix-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -260,6 +260,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // par un humain, souvent sur le terrain et hors ligne : « qui a changé
     // cela, quand, depuis quelle valeur » est exactement la question qu'un
     // litige pose.
+    //
+    // **`intervention` s'y ajoute au lot 2, et c'est la CINQUIÈME fois.** Elle
+    // est de surcroît la table où l'audit paie le plus : le journal des
+    // DÉPLACEMENTS demandé par l'exploitation — qui, quand, d'où vers où —
+    // n'est pas une table de plus à écrire, c'est `journal_audit` faisant son
+    // travail, avec les valeurs avant et après.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
@@ -270,6 +276,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "famille_materiel",
       "forfait",
       "habilitation",
+      "intervention",
       "machine",
       "modele_materiel",
       "site",
@@ -290,19 +297,27 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // fabriqué, la liste des déclencheurs est la VRAIE : c'est bien l'absence
     // qui est éprouvée, et AUCUNE liste n'a été touchée pour que le gardien la
     // réclame.
+    //
+    // **LA TABLE FABRIQUÉE A CHANGÉ le 09/09/2026, et le changement est le
+    // signe que l'épreuve servait.** C'était `intervention` ; le lot 2 l'a
+    // créée, avec son déclencheur, réclamé par ce gardien même. Garder
+    // `intervention` pour cible aurait fait cesser l'épreuve de rejouer une
+    // VIOLATION — elle aurait mesuré un cas devenu conforme, en restant verte
+    // (§9, 11/09). La cible est désormais `contrat` : le chapitre 11 la porte,
+    // elle n'existe pas au schéma, et elle sera métier et cloisonnée.
     const fabrique = `
-      model Intervention {
+      model Contrat {
         id         String @id @db.Uuid
         societe_id String @db.Uuid
 
-        @@map("intervention")
+        @@map("contrat")
       }
     `;
 
     const ecarts = ecartsPerimetreAudit(schema + fabrique, declenchees);
 
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("intervention");
+    expect(ecarts[0]).toContain("contrat");
     expect(ecarts[0]).toContain("périmètre d'audit est INVERSÉ");
   });
 
