@@ -1,3 +1,4 @@
+import { Panneau } from "@/components/charte/socle";
 import { Button } from "@/components/ui/button";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
@@ -27,20 +28,22 @@ export function Formulaire({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-12">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-5 px-4 py-12 sm:px-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{titre}</h1>
+        <h1 className="text-2xl">{titre}</h1>
         {accroche === undefined ? null : (
-          <p className="text-muted-foreground text-sm">{accroche}</p>
+          <p className="text-gris max-w-[60ch] text-sm">{accroche}</p>
         )}
       </div>
-      {/* `method="post"` sur une route : le formulaire fonctionne sans
-          JavaScript, et la réponse porte ses `Set-Cookie` sans qu'aucune couche
-          ne s'interpose. */}
-      <form action={action} method="post" className="flex flex-col gap-4">
-        {children}
-        <Button type="submit">{valider}</Button>
-      </form>
+      <Panneau>
+        {/* `method="post"` sur une route : le formulaire fonctionne sans
+            JavaScript, et la réponse porte ses `Set-Cookie` sans qu'aucune
+            couche ne s'interpose. */}
+        <form action={action} method="post" className="flex flex-col gap-4">
+          {children}
+          <Button type="submit">{valider}</Button>
+        </form>
+      </Panneau>
     </main>
   );
 }
@@ -65,7 +68,7 @@ export function Champ({
         required
         pattern={motif}
         autoComplete={type === "password" ? "current-password" : "on"}
-        className="border-input bg-background rounded-md border px-3 py-2 text-sm font-normal"
+        className="border-trait bg-acier rounded-sm border px-3 py-2 text-sm font-normal"
       />
     </label>
   );
@@ -86,7 +89,7 @@ export function Message({ motif }: { motif?: string }) {
   return (
     <p
       role="status"
-      className="border-input text-muted-foreground rounded-md border px-3 py-2 text-sm"
+      className="border-trait bg-acier text-gris rounded-sm border px-3 py-2 text-sm"
     >
       {t(motif)}
     </p>

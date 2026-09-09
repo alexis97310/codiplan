@@ -120,7 +120,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 | les habilitations de technicien | `technicien_habilitation` *(L1-04)* |
 | le rattachement portail et son périmètre | `utilisateur_client`, `utilisateur_client_site` *(D10, D79)* |
 | la **fonction** | `(prévu)` — aucune colonne ne la porte |
-| l'**agence de rattachement** | `(prévu)` — la table `technicien` du chapitre 11 la porte, et **elle n'existe pas** ; D72 en dépend |
+| l'**agence de rattachement** | `technicien.agence_id` *(L2-10)* — la table du chapitre 11 existe depuis le 11/09/2026, et sa marque est tombée le jour même. D72 ne dépend plus d'une absence |
 | les **préférences** | `(prévu)` — aucune colonne ne la porte |
 
 **Les deux sens sont gardés**, comme au §6 : une colonne énumérée sans marque doit exister au schéma, et une notion marquée `(prévu)` qui recevrait une colonne rendrait la marque fausse le jour même. Voir `tests/unit/docs/donnees-du-cote-cloisonne.test.ts`.
@@ -131,7 +131,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
-**Et cette politique a NEUF formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les neuf, avec leur cas et une table qui les porte :
+**Et cette politique a DIX formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67 ; la dixième, D82)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les dix, avec leur cas et une table qui les porte :
 
 | Forme | Clause | S'applique à | Exemple en base |
 |---|---|---|---|
@@ -144,6 +144,13 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 | **désignation** | la ligne que l'appelant NOMMAIT DÉJÀ, **plus** un rattachement à la société active pour `utilisateur` | `utilisateur` *(L1-02c)*, puis les quatre tables techniques d'authentification *(L1-02d)* — et uniquement pour ce qui PRÉCÈDE la société | `utilisateur`, `session`, `compte`, `verification`, `second_facteur` |
 | **appartenance** | société pour tout le monde, **plus** SA PROPRE LIGNE en `SELECT` SEUL | `utilisateur_societe` *(D61)* — la table qui dit sur quelles sociétés une identité est habilitée | `utilisateur_societe` |
 | **adhésion** | identité pour tout le monde, **plus** SES PROPRES SOCIÉTÉS en `SELECT` SEUL | `societe` *(D67)* — sans elle, un sélecteur ne peut afficher que des UUID | `societe` |
+| **filiation** | société **ET** `EXISTS (SELECT 1 FROM <parent> …)` sur la clé étrangère | une table FILLE d'une table du parc — une donnée du parc qui n'a pas de rattachement propre, mais un PARENT *(D82)* | `intervention_temps` |
+
+**La dixième était ÉCRITE ET ATTENDUE avant d'être construite, et c'est ce qui la distingue des neuf autres** *(D82, ticket L2-10)*. Le principe était tranché depuis L1-02 — *une fille est visible si son parent l'est* —, son coût mesuré (*hash semi-join*, UNE visite du parent et non une par ligne lue), et un critère posé dans `scripts/lib/politiques-rls.ts` la réclamait au jour où la première fille réelle apparaîtrait. `intervention_temps` est cette fille : une ligne de temps n'a pas de rattachement propre au parc, elle a un parent.
+
+**Ce qui a été écarté est la forme « parc », et l'écarter a coûté deux colonnes.** La rédaction de première main portait `client_id` et `site_id` sur la ligne de temps, chaînés au parent par une clé composite qui rendait la divergence impossible. L'argument ne répond qu'à moitié : *il rend la divergence impossible, il ne rend pas la duplication utile* — ce sont deux colonnes qui répètent un fait que `intervention` porte déjà (§9, 01/09). Et la sous-requête étant **elle-même soumise aux politiques du parent**, qui est de forme « parc », le périmètre du portail mord une fois et se propage : la duplication n'achetait rien.
+
+**La clause de société est CONSERVÉE à côté de la filiation**, comme sur `site_habilitation_requise` : elle est indexée, elle ne coûte rien, et elle refuse une écriture inter-société avant que la sous-requête soit évaluée. *La filiation n'est pas un remplacement du cloisonnement, elle est ce qui s'y ajoute.* Liste close gardée dans les deux sens : `TABLES_FILIATION`, dont le **retrait** est le sens silencieux — il fait retomber la table sur la forme « société », qui passe tous les gardiens, et un compte portail restreint au site S1 lit alors les temps passés sur le site S2.
 
 **La sixième n'est pas une variante de « parc » : elle en est l'INVERSE fonctionnel** *(L1-02b)*. La forme « parc » lit `app.perimetre_sites` ; les tables d'habilitation sont celles d'où cette variable est CALCULÉE. Leur donner la forme « parc » serait circulaire — une politique qui lit la variable que sa propre lecture alimente ne se referme jamais. Leur laisser la clause société seule était la fuite mesurée le 07/09/2026 : un compte portail du client A lisait les lignes d'habilitation des comptes du client B de la même société, en tirait leurs identités par jointure, et énumérait par là les autres clients. Le **discriminant** est `app.client_id`, posée pour un compte portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les habilitations de SA société, ce qu'une clause « sa propre ligne » sans discriminant lui aurait retiré.
 

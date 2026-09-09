@@ -33,7 +33,7 @@ import {
  * réduit la couverture en silence.
  */
 describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
-  it("ne contient que `client`, `site`, `machine` et `contact`", () => {
+  it("ne contient que `client`, `site`, `machine`, `contact` et `intervention`", () => {
     expect(ecartsListeParc()).toEqual([]);
     expect(TABLES_PARC.map((entree) => entree.table)).toEqual([
       "client",
@@ -43,6 +43,12 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       // est la PREMIÈRE nullable du dépôt : un contact sans site est un contact
       // du client.
       "contact",
+      // `intervention` rejoint le parc au ticket L2-10, par l'arbitrage D82 —
+      // que le module ANNONÇAIT : « le jour où intervention rejoindra le parc,
+      // ce sera un arbitrage, pris au lot 2, jamais une ligne ajoutée en
+      // séance ». Elle porte client_id et site_id en propre, comme `machine` :
+      // c'est une table DU parc, pas une table FILLE du parc.
+      "intervention",
     ]);
   });
 
@@ -55,11 +61,22 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       Object.fromEntries(
         TABLES_PARC.map((entree) => [entree.table, entree.perimetre]),
       ),
-    ).toEqual({ client: false, site: true, machine: true, contact: true });
+    ).toEqual({
+      client: false,
+      site: true,
+      machine: true,
+      contact: true,
+      intervention: true,
+    });
   });
 
   it("ÉCHOUE sur un RETRAIT — le geste que É14 décrit", () => {
-    const ecarts = ecartsListeParc(["site", "machine", "contact"]);
+    const ecarts = ecartsListeParc([
+      "site",
+      "machine",
+      "contact",
+      "intervention",
+    ]);
 
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("client");
@@ -70,7 +87,13 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     // Sans cette mesure, le gardien pourrait ne mordre que sur l'entrée qui a
     // motivé son écriture — et laisser partir `site` ou `machine` en silence
     // aux tickets L1-02 et L2-01, où la même faute se commettra.
-    for (const partie of ["client", "site", "machine", "contact"]) {
+    for (const partie of [
+      "client",
+      "site",
+      "machine",
+      "contact",
+      "intervention",
+    ]) {
       const restantes = TABLES_PARC.map((entree) => entree.table).filter(
         (table) => table !== partie,
       );
@@ -83,24 +106,30 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
   });
 
   it("ÉCHOUE sur une ADDITION — elle passe par un arbitrage", () => {
-    // `intervention` est le cas nommé : D10 donne au portail la vue de ses
-    // interventions, et son entrée au parc sera un arbitrage du lot 2.
+    // Le sujet de cette épreuve a CHANGÉ au ticket L2-10, et il fallait qu'il
+    // change : `intervention` était l'addition non arbitrée tant qu'elle ne
+    // l'était pas, et D82 l'a arbitrée. Une épreuve qui continuerait de
+    // l'employer serait devenue verte pour la mauvaise raison — la table est
+    // désormais LICITE. `demande` prend sa place, pour la raison exacte qui
+    // faisait la force de la précédente : le chapitre 11.2 la décrit, elle
+    // portera client_id et site_id, et son entrée au parc sera un arbitrage.
     const ecarts = ecartsListeParc([
       "client",
       "site",
       "machine",
       "contact",
       "intervention",
+      "demande",
     ]);
 
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("intervention");
+    expect(ecarts[0]).toContain("demande");
     expect(ecarts[0]).toContain("arbitrage");
   });
 
-  it("ÉCHOUE sur une liste VIDE, et le dit quatre fois", () => {
-    // Le cas dégénéré : vider la liste ferait sortir les trois tables du
+  it("ÉCHOUE sur une liste VIDE, et le dit cinq fois", () => {
+    // Le cas dégénéré : vider la liste ferait sortir les cinq tables du
     // périmètre du gardien de forme sans qu'aucune ne soit nommée ailleurs.
-    expect(ecartsListeParc([])).toHaveLength(4);
+    expect(ecartsListeParc([])).toHaveLength(5);
   });
 });

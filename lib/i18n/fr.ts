@@ -54,6 +54,13 @@ export const fr = {
   // Thématisation par société (L0-09). Le NOM de la société n'est jamais une
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.
+
+  // ── Navigation (L2-10) ────────────────────────────────────────────────────
+  "navigation.titre": "Écrans",
+  "navigation.planning": "Planning",
+  "navigation.clients": "Clients et parc",
+  "navigation.techniciens": "Techniciens",
+  "navigation.retour": "Retour à l'arrivée",
   "theme.societe": "Charte de la société",
   "theme.neutre": "Thème neutre CODIPLAN",
   // Message unique de tous les refus d'authentification (D35). Il ne dit ni si

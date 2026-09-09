@@ -39,6 +39,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // question et un incident — c'est-à-dire par des objets SANS NUMÉRO, que ce
   // gardien ne pouvait pas tenir. Numéroter est le geste qui les lui rend.
   ["D10", "D79"],
+  // L2-10, nuit du 11/09/2026 : `intervention` entre au parc et
+  // `intervention_temps` inaugure la forme « filiation ». D10 promettait au
+  // portail la vue de ses interventions ; D82 est le geste qui l'ouvre.
+  ["D10", "D82"],
   ["D11", "D77"],
   ["D13", "D46"],
   ["D14", "D78"],

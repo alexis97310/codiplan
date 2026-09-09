@@ -62,4 +62,3 @@ export const MARQUEURS: readonly RegExp[] = [
 export function porteUneCouleur(texte: string): boolean {
   return MARQUEURS.some((marqueur) => marqueur.test(texte));
 }
-

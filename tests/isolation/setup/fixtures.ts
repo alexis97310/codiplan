@@ -222,6 +222,22 @@ export const UTILISATEUR_PAR_ROLE: Readonly<Record<Role, string>> = {
 export const UTILISATEUR_INTERNE_A = "aaaaaaaa-0000-7000-8000-0000000000d1";
 export const UTILISATEUR_INTERNE_B = "bbbbbbbb-0000-7000-8000-0000000000d2";
 
+/**
+ * Le PLANNING de la société A — techniciens, interventions, temps (L2-10, D82).
+ *
+ * Deux interventions du MÊME client A1, sur DEUX sites différents : c'est le
+ * seul montage qui rende la forme « filiation » démontrable. Un compte portail
+ * restreint au site S1 doit lire le temps passé sur S1 et **pas** celui passé
+ * sur S2 — et il n'y a rien sur la ligne de temps qui dise le site, la clause
+ * l'obtenant du PARENT. Une seule intervention ne prouverait rien : le filtre
+ * serait vrai par vacuité.
+ */
+export const TECHNICIEN_A = "aaaaaaaa-0000-7000-8000-0000000007a1";
+export const INTERVENTION_A1_S1 = "aaaaaaaa-0000-7000-8000-0000000009a1";
+export const INTERVENTION_A1_S2 = "aaaaaaaa-0000-7000-8000-0000000009a2";
+export const TEMPS_A1_S1 = "aaaaaaaa-0000-7000-8000-0000000008a1";
+export const TEMPS_A1_S2 = "aaaaaaaa-0000-7000-8000-0000000008a2";
+
 /** Comptes PORTAIL (une ligne dans `utilisateur_client`, jamais dans `utilisateur_societe`). */
 export const PORTAIL_A_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d3";
 export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";

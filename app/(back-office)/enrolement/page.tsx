@@ -48,9 +48,7 @@ export default async function PageEnrolement({
         valider={t("enrolement.reveler")}
       >
         <Message motif={motif === "" ? undefined : motif} />
-        <p className="text-muted-foreground text-sm">
-          {t("enrolement.definitif")}
-        </p>
+        <p className="text-gris text-sm">{t("enrolement.definitif")}</p>
         <input type="hidden" name="etape" value="preparer" />
         <Champ
           nom="motDePasse"
@@ -71,20 +69,23 @@ export default async function PageEnrolement({
       <Message motif={motif === "" ? undefined : motif} />
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">{t("enrolement.cle")}</span>
-        <code className="bg-muted rounded-md px-3 py-2 font-mono text-sm break-all">
+        <span className="text-sm font-bold">{t("enrolement.cle")}</span>
+        {/* Pas de chasse fixe (charte, §Polices) : la clé se RECOPIE, elle ne
+            s'aligne pas en colonne. Ce dont la transcription a besoin est de
+            l'espacement entre caractères, pas d'une chasse constante. */}
+        <code className="bg-acier border-trait rounded-sm border px-3 py-2 text-sm tracking-[0.14em] break-all">
           {cle}
         </code>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">
+        <span className="text-sm font-bold">
           {t("enrolement.codes_secours")}
         </span>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-gris text-sm">
           {t("enrolement.codes_secours.aide")}
         </p>
-        <ul className="bg-muted grid grid-cols-2 gap-1 rounded-md px-3 py-2 font-mono text-sm">
+        <ul className="bg-acier border-trait grid grid-cols-2 gap-1 rounded-sm border px-3 py-2 text-sm tracking-[0.10em]">
           {codesSecours.map((code) => (
             <li key={code}>{code}</li>
           ))}

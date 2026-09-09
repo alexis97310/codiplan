@@ -209,6 +209,8 @@ Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
 
 **Amendé par D79.**
 
+**Amendé par D82.**
+
 **Table `utilisateur_client`**, qui manquait :
 
 | Colonne | Type |
@@ -2583,3 +2585,74 @@ Un client a plusieurs sites, dans des villes différentes — c'est le cas coura
 **Pourquoi la forme « habilitation » et non « parc ».** La forme « parc » LIT `app.perimetre_sites` ; `utilisateur_client_site` est l'une des deux tables d'où cette variable est **calculée**. Lui donner la forme « parc » serait circulaire — *une politique qui lit la variable que sa propre lecture alimente ne se referme jamais.* Et lui laisser la clause de société seule était la fuite mesurée le 07/09 : un compte portail du client A lisait les habilitations des comptes du client B de la même société, et énumérait par là les autres clients.
 
 **Ce que la numérotation change.** Rien au fond : la table existe, la forme est posée, la ligne de D10 est barrée et datée depuis le 10/09. Elle rend la paire `D10 ← D79` tenable par la machine.
+
+---
+
+## D80 — Lecture du classeur : `read-excel-file`, adopté et NON PORTANT
+
+*Décision d'exploitation du 9 septembre 2026, prise pendant la nuit du protocole et écrite ici plutôt que dans un message.*
+
+*Elle n'amende aucune décision numérotée : elle achève l'amendement du §2 du CLAUDE.md du 09/09/2026, qui a barré SheetJS sans nommer de remplaçant.*
+
+**Le fond.** La bibliothèque de lecture `.xlsx` du §2 est **`read-excel-file`**.
+
+**Ce qui a tranché, et ce qui a été retiré en chemin.** Le critère annoncé était « rendre le sérial » — la valeur brute du tableur, à convertir nous-mêmes. Ce critère était un **mandataire** : ce qu'il servait vraiment était le motif « qu'aucune date ne glisse d'un jour sous UTC+11 ». La mesure montre le motif satisfait **sans** le mandataire — la bibliothèque rend une date déjà construite, et elle la construit juste. *Quand un mandataire et son motif divergent, c'est le motif qui tranche, et le mandataire est RETIRÉ, pas réinterprété.*
+
+**Et le critère avait perdu sa porte de sortie.** La branche de repli — reprendre SheetJS depuis la distribution de son éditeur — est **mesurée impraticable** : `cdn.sheetjs.com` est refusé par le mandataire sortant du réseau. *Un critère dont la porte de sortie est condamnée ne tranche plus, il ratifie.*
+
+**RÉSERVE, et elle est la moitié importante de cette décision : `read-excel-file` est adopté mais NON PORTANT.** La comparaison n'a lu **aucun classeur produit par Excel** — LibreOffice a refusé les deux fichiers d'épreuve. *La population comparée exclut le seul producteur qui compte.* Rien de l'import de masse ne se construit dessus avant qu'un vrai classeur Excel ait été lu de bout en bout, avec **quatre mesures nommées** : décalage de fuseau sous UTC+11, bogue d'année bissextile de 1900, date contre date-heure, date stockée en texte. Le classeur sera fourni par l'exploitation.
+
+**La voie sans dépendance — 94 lignes, `.xlsx` étant un ZIP de XML — reste un repli ÉCRIT et non construit.**
+
+**Condition de réouverture.** Deux, et chacune suffit : *(1)* l'une des quatre mesures échoue sur le classeur réel ; *(2)* `read-excel-file` cesse d'être maintenue au sens du §2, c'est-à-dire porte un avis de sécurité sans correctif atteignable depuis npm — le critère exact qui a fait tomber SheetJS.
+
+---
+
+## D81 — L'HORLOGE N'ENTRE PAS DANS LE CLOISONNEMENT
+
+*Décision d'exploitation du 9 septembre 2026.*
+
+*Elle n'amende aucune décision numérotée : elle pose un principe, et l'applique à RG-DRO-02.*
+
+**Le fond.** **Aucune politique de cloisonnement n'évalue l'heure.** Le cloisonnement répond à « qui a le droit de lire cette ligne », et cette réponse ne doit pas changer d'elle-même : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture ait eu lieu**, et le vert d'un test devient une fonction de l'heure.
+
+**Le mécanisme, quand un fait de cloisonnement dépend du temps : il est MATÉRIALISÉ.** Une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. *L'horloge ne touche que le travail.* On y gagne trois choses, et la troisième est celle qu'on n'attend pas : une politique **déterministe** ; une fermeture d'accès devenue **évènement daté et observable** plutôt que seuil franchi en silence ; et une **panne du travail visible** sous forme de colonne périmée — là où une politique qui lit l'horloge ne tombe jamais en panne, elle se contente d'être fausse.
+
+**Application à RG-DRO-02.** L'expiration d'une habilitation est une règle **d'AFFECTATION**, pas de **LECTURE**. Elle refuse déjà l'affectation (RG-PLA-04, `lib/habilitations/affectation.ts`) ; elle ne doit **pas en plus masquer des lignes**. C'est ce qui permet à une affectation refusée de rester VISIBLE à sa place, avec son motif écrit (D73) — une ligne qui disparaît ne se conteste pas.
+
+**Condition de réouverture, telle qu'elle m'a été demandée.** *S'il existe un cas où le cloisonnement doit se fermer sans aucun écrivain — ni travail, ni évènement, ni acteur — le principe est faux.*
+
+**Ce que j'ai cherché, et la distinction que je dois tenir entre « je n'en ai pas trouvé » et « il n'y en a pas ».** J'ai parcouru les tables du schéma à la recherche d'un fait de cloisonnement dont la bascule n'aurait aucun écrivain possible. Quatre candidats, et les quatre ont un écrivain :
+
+| Candidat | L'écrivain |
+|---|---|
+| habilitation expirée | le travail nocturne, ou l'affectation elle-même — et D81 tranche qu'elle ne cloisonne pas |
+| session expirée | l'authentification, qui purge ; et la désignation par jeton ne lit pas l'heure |
+| contrat échu, garantie échue | la facturation, l'échéancier — des acteurs, tous deux à venir |
+| compte suspendu (§22.3) | la console éditeur — un acte administratif, jamais un seuil |
+
+**Un cas résiste, et je l'écris parce qu'il est le plus proche du contre-exemple : la PURGE RÉGLEMENTAIRE.** Une donnée personnelle dont la durée de conservation expire doit cesser d'être lisible, et la loi ne dépend d'aucun travail. Mais il reste **écrivable** — c'est un travail de purge qui l'efface, et une politique qui la masquerait sans l'effacer ne satisferait pas l'obligation de toute façon. Il ne réfute donc pas le principe ; il en montre la limite : *le principe suppose qu'un travail puisse tourner.*
+
+**Je n'ai donc pas trouvé de contre-exemple. Je ne dis pas qu'il n'y en a pas** — je n'ai parcouru que les tables qui existent et le chapitre 22, et une obligation légale d'un territoire que nous ne connaissons pas encore est exactement le genre de chose qui échappe à cette recherche.
+
+---
+
+## D82 — `intervention` entre au PARC, `intervention_temps` inaugure la forme « FILIATION »
+
+*Décision de session du 11 septembre 2026, prise sous protocole de nuit, ticket L2-10. Réversible, et sa condition de réouverture est écrite.*
+
+**Décisions amendées :** D10
+
+**Le fond, en deux moitiés.**
+
+**(1) `intervention` rejoint `TABLES_PARC`** — la cinquième entrée. `scripts/lib/politiques-rls.ts` l'ANNONÇAIT : *« le jour où `intervention` rejoindra le parc — D10 donne au portail la vue de ses interventions —, ce sera un arbitrage, pris au lot 2, jamais une ligne ajoutée en séance. »* C'est ce jour, et c'est cet arbitrage. Une intervention porte `client_id` et `site_id` **en propre** — elle se produit chez un client, sur un site —, exactement comme `machine` : c'est une table **DU** parc, pas une table **FILLE** du parc.
+
+**(2) `intervention_temps` porte la DIXIÈME forme de politique, « filiation ».** Elle est la **première table fille réelle** d'une table du parc, et le critère posé à L1-02 la réclamait au jour où elle apparaîtrait. *Une fille est visible si son parent l'est* : `EXISTS (SELECT 1 FROM intervention WHERE …)`, adossé à la clé étrangère.
+
+**Ce qui a été écarté, et ce que l'écarter a coûté.** La rédaction de première main donnait à `intervention_temps` la forme « parc », au prix de deux colonnes `client_id` et `site_id` recopiées du parent et chaînées à lui par une clé composite. L'argument « la clé rend la divergence impossible » ne répond qu'à moitié : *il rend la divergence impossible, il ne rend pas la duplication utile.* Et la sous-requête étant **elle-même soumise aux politiques du parent**, qui est de forme « parc », le périmètre du portail mord une fois et se propage — la duplication n'achetait rien. Les deux colonnes sont retirées.
+
+**Mesuré, et non supposé.** Le jumeau de `tests/isolation/filiation-temps.test.ts` retire réellement la filiation et la remplace par la clause de société seule — la faute qu'un correcteur bien intentionné commettrait. Sous la faute, un compte portail restreint au site S1 lit **les deux** lignes de temps, dont celle du site S2 ; sous la politique, il n'en lit **qu'une**. *La violation a bien eu lieu.*
+
+**Ce que cette décision coûte, nommé.** Un compte portail voit désormais ses interventions et le temps passé dessus — c'est ce que D10 promet, et c'est la première fois qu'une donnée d'exploitation traverse vers le client. Aucun écran de portail ne l'expose aujourd'hui : la porte est ouverte en base, elle n'est franchie nulle part.
+
+**Condition de réouverture.** *Si l'exploitation décide que le temps passé ne doit pas être visible du client — la durée d'une visite étant une information commerciale —, la réouverture ne se fait PAS en retirant la forme « filiation »*, qui ferait retomber la table sur la clause de société seule et **élargirait** l'accès. Elle se fait en retirant `intervention` de `TABLES_PARC` et en lui rendant la forme « société » : la filiation suit alors le parent et se referme d'elle-même. *C'est la propriété qu'on achète en faisant hériter plutôt qu'en recopiant.*

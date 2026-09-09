@@ -32,8 +32,30 @@ const EXEMPTS = [
   "tests/unit/auth/roles-sans-chaine-libre.test.ts",
 ];
 
-/** Les rôles recherchés comme littéraux — tous sauf `client`, voir l'entête. */
-const ROLES_RECHERCHES = ROLES.filter((role) => role !== Role.client);
+/**
+ * Les rôles recherchés comme littéraux — tous sauf `client` ET `technicien`.
+ *
+ * **`technicien` rejoint `client` au ticket L2-10, et pour la raison exacte
+ * qui avait fait écarter `client`** : le chapitre 11.2 nomme `technicien` une
+ * TABLE, créée par cette migration, et son nom apparaît donc légitimement entre
+ * guillemets — dans le SQL brut, dans la liste des tables auditées, dans un
+ * `@@map`. Le motif ne sait pas distinguer un nom de rôle d'un nom de table :
+ * ce sont les mêmes lettres.
+ *
+ * **Ce n'est pas un trou, c'est un déplacement**, et il est le même que pour
+ * `client` : le rôle reste couvert d'une part par la recherche d'AFFECTATION
+ * ci-dessous — `role = "technicien"` est prise —, d'autre part par le typage,
+ * un rôle étant partout de type `Role`, si bien que `"technicien"` ne
+ * compilerait qu'aux endroits où un rôle est attendu, endroits que la seconde
+ * recherche couvre.
+ *
+ * *Ce que cela coûte, écrit plutôt que tu : un littéral `"technicien"` passé
+ * là où un `Role` n'est pas exigé par le type — un tableau de `string`, une
+ * comparaison lâche — n'est plus vu par la première recherche.*
+ */
+const ROLES_RECHERCHES = ROLES.filter(
+  (role) => role !== Role.client && role !== Role.technicien,
+);
 
 describe("aucun rôle en chaîne libre", () => {
   const fichiers = fichiersSource(REPERTOIRES).filter(

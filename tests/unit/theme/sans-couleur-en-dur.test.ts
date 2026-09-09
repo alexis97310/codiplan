@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { MARQUEURS, porteUneCouleur } from "../outils/couleurs";
+import { porteUneCouleur } from "../outils/couleurs";
 import {
   EXTENSIONS_CSS,
   RACINE,

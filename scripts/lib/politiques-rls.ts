@@ -176,9 +176,13 @@ export const CLOISONNEE_PAR_IDENTITE = ["societe"] as const;
  * échouer aucun scénario, et **réduit silencieusement** ce que le harnais
  * couvre. C'est l'écart É14 de la revue R0, rendu mécanique.
  *
- * Le jour où `intervention` rejoindra le parc — D10 donne au portail la vue de
- * ses interventions —, ce sera un **arbitrage**, pris au lot 2, jamais une
- * ligne ajoutée en séance.
+ * **`intervention` a rejoint le parc au ticket L2-10, par l'arbitrage D82** — la
+ * ligne ci-dessus l'annonçait, et c'est ainsi qu'elle est entrée : pas comme une
+ * ligne ajoutée en séance, mais comme la décision que D10 appelait. Une
+ * intervention porte `client_id` et `site_id` en propre — elle se produit chez
+ * un client, sur un site —, exactement comme `machine` ; elle n'est donc pas une
+ * table FILLE du parc mais une table DU parc, et c'est ce qui la distingue de
+ * `intervention_temps`, qui est la première fille réelle.
  */
 export const TABLES_PARC = [
   { table: "client", perimetre: false, colonnePerimetre: null },
@@ -188,10 +192,14 @@ export const TABLES_PARC = [
   // NULLABLE, et c'est la première du dépôt : un contact sans site est un
   // contact du CLIENT. Voir `ecartsPerimetreNullable`.
   { table: "contact", perimetre: true, colonnePerimetre: "site_id" },
+  // `intervention` rejoint le parc au ticket L2-10 (D82). Sa colonne de
+  // périmètre est `site_id`, `NOT NULL` : une intervention se produit sur un
+  // site, jamais « chez le client en général ».
+  { table: "intervention", perimetre: true, colonnePerimetre: "site_id" },
 ] as const;
 
-/** Les quatre entrées que D10, D22 et L1-03 autorisent aujourd'hui. Recopiées. */
-const PARC_ARBITRE = ["client", "site", "machine", "contact"];
+/** Les cinq entrées que D10, D22, L1-03 et D82 autorisent aujourd'hui. Recopiées. */
+const PARC_ARBITRE = ["client", "site", "machine", "contact", "intervention"];
 
 /**
  * LA COLONNE DE PÉRIMÈTRE PEUT ÊTRE NULLABLE, ET ALORS LA CLAUSE DOIT LE DIRE
@@ -1600,10 +1608,21 @@ export type TableEtParents = {
  */
 export const TABLES_FILIATION = [
   { table: "site_habilitation_requise", parent: "site", cle: "site_id" },
+  // `intervention_temps` au ticket L2-10 (D82) : une ligne de temps n'a pas de
+  // rattachement propre au parc, elle a un PARENT. Lui donner `client_id` et
+  // `site_id` aurait été une seconde source d'un fait que `intervention` porte
+  // déjà ; la sous-requête, elle, est soumise aux politiques du parent — qui est
+  // de forme « parc » —, si bien que le périmètre du portail mord une fois et
+  // se propage.
+  {
+    table: "intervention_temps",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
-const FILIATION_ARBITREE = ["site_habilitation_requise"];
+const FILIATION_ARBITREE = ["site_habilitation_requise", "intervention_temps"];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */
 export function ecartsListeFiliation(

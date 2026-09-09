@@ -223,6 +223,25 @@ export const CONTRAT_PARC: readonly TableContrat[] = [
       "nom" text NOT NULL
     `,
   },
+  {
+    // **Née VRAIE table au ticket L2-10** (D82) — jamais une fixture, comme
+    // `contact`. L'entrée est ici pour la seule raison qui vaille : `CONTRAT_PARC`
+    // et `TABLES_PARC` sont confrontées l'une à l'autre, et une table du parc
+    // absente de l'une des deux serait posée par l'un sans être jugée par
+    // l'autre. Une intervention se produit chez un client, SUR un site : sa
+    // colonne de périmètre est `NOT NULL`.
+    table: "intervention",
+    lot: "L2-10",
+    colonneClient: "client_id",
+    colonneSite: "site_id",
+    colonnes: `
+      "id" uuid PRIMARY KEY,
+      "societe_id" uuid NOT NULL,
+      "client_id" uuid NOT NULL,
+      "site_id" uuid NOT NULL,
+      "libelle" text NOT NULL
+    `,
+  },
 ] as const;
 
 /**

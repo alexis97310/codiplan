@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { EnTete, Mesure, Page, Panneau } from "@/components/charte/socle";
 import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { t } from "@/lib/i18n/fr";
@@ -8,8 +9,13 @@ import { t } from "@/lib/i18n/fr";
 /**
  * PAGE D'ARRIVÉE (ticket L1-02f) — qui vous êtes, pour quelle société.
  *
- * **Et rien d'autre.** Pas de liste de clients, pas de navigation, pas de menu :
- * chaque donnée de plus serait un écran de lot 2 écrit en avance.
+ * **Elle porte désormais une NAVIGATION, et c'est un changement daté du
+ * 11/09/2026.** Sa rédaction disait « pas de navigation, pas de menu : chaque
+ * donnée de plus serait un écran de lot 2 écrit en avance ». Les écrans du lot
+ * 2 existent ; la phrase est devenue fausse le jour où ils ont été construits,
+ * et un point d'entrée qui ne mène nulle part est un cul-de-sac, pas une
+ * discipline. Elle ne porte toujours AUCUNE donnée métier : des liens, et rien
+ * de plus.
  *
  * La raison sociale n'est pas recopiée de la session : elle est LUE en base sous
  * le contexte cloisonné, par `etatArrivee`. La politique de `societe` est de
@@ -29,47 +35,74 @@ export default async function PageArrivee() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t("arrivee.titre")}
-      </h1>
+    <Page>
+      <EnTete titre={t("arrivee.titre")} />
 
-      <dl className="flex flex-col gap-3 text-sm">
-        <Ligne libelle={t("arrivee.compte")} valeur={etat.arrivee.nom} />
-        <Ligne libelle={t("arrivee.email")} valeur={etat.arrivee.email} />
-      </dl>
+      <Panneau>
+        <dl className="flex flex-col gap-3">
+          <Mesure libelle={t("arrivee.compte")} valeur={etat.arrivee.nom} />
+          <Mesure libelle={t("arrivee.email")} valeur={etat.arrivee.email} />
+        </dl>
+      </Panneau>
 
       {etat.issue === "sans_societe" ? (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-gris max-w-[60ch] text-sm">
           {t("arrivee.sans_societe")}
         </p>
       ) : (
         <Societe arrivee={etat.arrivee} />
       )}
 
+      <NavigationLot2 />
+
       <form action="/api/session/deconnexion" method="post">
         <Button type="submit" variant="outline">
           {t("arrivee.deconnexion")}
         </Button>
       </form>
-    </main>
+    </Page>
   );
 }
 
-function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
+/**
+ * Les écrans atteignables depuis l'arrivée.
+ *
+ * Des LIENS, jamais des données : cette page lit une société et une identité,
+ * et rien d'autre. Chaque destination fait sa propre lecture cloisonnée.
+ */
+function NavigationLot2() {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-muted-foreground">{libelle}</dt>
-      <dd className="font-medium">{valeur}</dd>
-    </div>
+    <nav aria-label={t("navigation.titre")}>
+      <ul className="border-trait flex flex-wrap gap-x-6 gap-y-2 border-t pt-4">
+        {(
+          [
+            ["/planning", t("navigation.planning")],
+            ["/clients", t("navigation.clients")],
+            ["/techniciens", t("navigation.techniciens")],
+          ] as const
+        ).map(([href, libelle]) => (
+          <li key={href}>
+            <a href={href} className="text-bleu font-bold underline">
+              {libelle}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
 function Societe({ arrivee }: { arrivee: Arrivee }) {
   return (
-    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-lg px-4 py-3 text-sm">
-      <Ligne libelle={t("arrivee.societe")} valeur={arrivee.societe ?? ""} />
-      <Ligne libelle={t("arrivee.role")} valeur={arrivee.role ?? ""} />
+    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-sm px-4 py-3 text-sm">
+      <div className="flex items-baseline justify-between gap-4">
+        <dt>{t("arrivee.societe")}</dt>
+        <dd className="font-bold">{arrivee.societe ?? ""}</dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-4">
+        <dt>{t("arrivee.role")}</dt>
+        <dd className="font-bold">{arrivee.role ?? ""}</dd>
+      </div>
     </dl>
   );
 }

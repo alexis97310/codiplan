@@ -160,8 +160,19 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect([...(parForme.get("parc") ?? [])].sort()).toEqual([
       "client",
       "contact",
+      // `intervention` rejoint le parc à L2-10 (D82) — elle se produit chez un
+      // client, SUR un site, comme `machine`.
+      "intervention",
       "machine",
       "site",
+    ]);
+    // La DIXIÈME forme, peuplée pour la première fois à L2-10 : une fille est
+    // visible si son parent l'est. Le témoin la NOMME, pour qu'un retrait se
+    // voie — c'est le retrait qui est le geste dangereux, il fait retomber la
+    // table sur la clause de société seule sans rien casser de visible.
+    expect([...(parForme.get("filiation") ?? [])].sort()).toEqual([
+      "intervention_temps",
+      "site_habilitation_requise",
     ]);
     expect(parForme.get("journal")).toEqual(["journal_audit"]);
   });

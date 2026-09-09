@@ -235,7 +235,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les dix-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-deux tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -260,6 +260,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // par un humain, souvent sur le terrain et hors ligne : « qui a changé
     // cela, quand, depuis quelle valeur » est exactement la question qu'un
     // litige pose.
+    //
+    // **`technicien`, `intervention` et `intervention_temps` s'y ajoutent au
+    // ticket L2-10, et c'est la CINQUIÈME fois que ce scénario réclame des
+    // tables de lui-même.** Un créneau déplacé, un temps corrigé, un taux figé à
+    // la qualification : « qui a changé cela, quand, depuis quelle valeur » est
+    // la question même d'un litige de facturation.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
@@ -270,12 +276,15 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "famille_materiel",
       "forfait",
       "habilitation",
+      "intervention",
+      "intervention_temps",
       "machine",
       "modele_materiel",
       "site",
       "site_habilitation_requise",
       "societe",
       "taux_horaire",
+      "technicien",
       "technicien_habilitation",
       "utilisateur_client",
       "utilisateur_client_site",
@@ -290,19 +299,24 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // fabriqué, la liste des déclencheurs est la VRAIE : c'est bien l'absence
     // qui est éprouvée, et AUCUNE liste n'a été touchée pour que le gardien la
     // réclame.
+    // La table fabriquée a CHANGÉ au ticket L2-10 : `intervention` était le
+    // sujet naturel tant qu'elle n'existait pas, et elle existe désormais —
+    // une épreuve qui fabrique une table réelle ne prouve plus l'absence, elle
+    // la contredit. `demande` prend sa place, et pour la même raison qu'elle :
+    // le chapitre 11.2 la décrit, et elle n'est pas encore au schéma.
     const fabrique = `
-      model Intervention {
+      model Demande {
         id         String @id @db.Uuid
         societe_id String @db.Uuid
 
-        @@map("intervention")
+        @@map("demande")
       }
     `;
 
     const ecarts = ecartsPerimetreAudit(schema + fabrique, declenchees);
 
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("intervention");
+    expect(ecarts[0]).toContain("demande");
     expect(ecarts[0]).toContain("périmètre d'audit est INVERSÉ");
   });
 

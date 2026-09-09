@@ -111,8 +111,7 @@
      place manque — colonnes du planning, grilles denses. Le repli est nommé
      ici et pas ailleurs : si les deux balises <link> échouent, l'application
      reste lisible. JAMAIS de chasse fixe pour des données. */
-  --font-sans:
-    "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-etroit:
     "Archivo Narrow", "Archivo", "Helvetica Neue", Arial, sans-serif;
 }

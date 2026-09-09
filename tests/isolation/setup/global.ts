@@ -25,6 +25,8 @@ import {
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
+  INTERVENTION_A1_S1,
+  INTERVENTION_A1_S2,
   MACHINE_A1,
   MACHINE_A2,
   MACHINE_B1,
@@ -46,6 +48,9 @@ import {
   SOCIETE_A,
   SOCIETE_B,
   UTILISATEUR_PAR_ROLE,
+  TECHNICIEN_A,
+  TEMPS_A1_S1,
+  TEMPS_A1_S2,
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_INTERNE_B,
   PORTAIL_A2_CLIENT,
@@ -633,6 +638,29 @@ export default async function setup(): Promise<void> {
         societe_id: SOCIETE_A,
       },
     });
+
+    // LE PLANNING vient EN DERNIER, et l'ordre est une contrainte de la base :
+    // `technicien` porte une clé étrangère composite vers `utilisateur_societe`,
+    // dont les lignes de rôle ne sont écrites que ci-dessus. Écrire le
+    // technicien avant son rattachement échoue — c'est exactement ce que la clé
+    // existe pour interdire (L1-04, et la même leçon qu'à L1-02).
+    await executerLot(
+      prisma,
+      `
+      -- LE PLANNING (L2-10, D82). Deux interventions du MÊME client A1 sur DEUX
+      -- sites : c'est le seul montage qui rende la forme « filiation »
+      -- démontrable. Une seule ne prouverait rien — le filtre serait vrai par
+      -- vacuité (§9, 30/08).
+      INSERT INTO "technicien" ("id", "societe_id", "utilisateur_id", "agence_id") VALUES
+        ('${TECHNICIEN_A}', '${SOCIETE_A}', '${UTILISATEUR_PAR_ROLE[Role.technicien]}', '${AGENCE_A}');
+      INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "libelle", "devise_code", "technicien_referent_id") VALUES
+        ('${INTERVENTION_A1_S1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'Visite S1', 'XPF', '${TECHNICIEN_A}'),
+        ('${INTERVENTION_A1_S2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'curatif', 'Visite S2', 'XPF', '${TECHNICIEN_A}');
+      INSERT INTO "intervention_temps" ("id", "societe_id", "intervention_id", "technicien_id", "type", "debut", "fin", "duree_min", "facturable") VALUES
+        ('${TEMPS_A1_S1}', '${SOCIETE_A}', '${INTERVENTION_A1_S1}', '${TECHNICIEN_A}', 'intervention', now(), now() + interval '90 minutes', 90, true),
+        ('${TEMPS_A1_S2}', '${SOCIETE_A}', '${INTERVENTION_A1_S2}', '${TECHNICIEN_A}', 'intervention', now(), now() + interval '60 minutes', 60, true);
+      `,
+    );
   } finally {
     await prisma.$disconnect();
   }

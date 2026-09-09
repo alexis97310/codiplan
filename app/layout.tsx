@@ -44,10 +44,19 @@ export default async function RootLayout({
             seule requête portant les deux familles fait perdre les DEUX quand
             elle échoue. Séparées, l'échec de l'une laisse l'autre. Le repli
             — 'Helvetica Neue', Arial — est nommé dans app/globals.css. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font --
+            la règle veut une police déclarée une fois pour toute l'application,
+            ce qui est précisément le cas ici : cette balise est dans la mise en
+            page RACINE. L'avertissement vise le routeur `pages/`, où chaque
+            page portait sa propre balise ; il n'a pas de sens sous App Router. */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap"
         />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font --
+            même raison. Et la balise est SÉPARÉE de la précédente à dessein
+            (charte, §Polices) : réunies, l'échec de la requête ferait perdre
+            les deux familles au lieu d'une. */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400..700&display=swap"
