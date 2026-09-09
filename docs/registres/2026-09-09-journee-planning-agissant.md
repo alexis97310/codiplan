@@ -138,11 +138,25 @@ D83 pose le plancher et le laisse **par intervention**, c'est-à-dire par la mai
 
 ---
 
+## 8 — CE QUE LA JOURNÉE A INSCRIT AU §9, ET IL N'Y EN A QU'UN
+
+**Un défaut peut être invisible à toute assertion et évident sur une image.**
+
+Trois lignes portaient le badge « À planifier » **et** une date au 14 septembre, rangées parmi les posées. Chaque moitié était juste — le statut suivait sa règle, la section suivait la date — et **rien dans le dépôt ne formulait qu'elles doivent s'accorder**. Aucun scénario ne pouvait rougir : *on n'écrit pas d'assertion sur un invariant qu'on n'a pas encore vu.*
+
+La règle qui en sort est modeste exprès : **quand un écran est écrit, il est REGARDÉ, pas seulement exercé.** Un scénario de rendu prouve qu'un texte est présent ; il ne prouve pas que la page a du sens. L'image met tout côte à côte, et c'est le seul instrument qui montre une incohérence qu'on n'attendait pas.
+
+*Le corollaire, mesuré le même jour :* **un seed idempotent suppose que toute ligne est réécrivable**, et cette hypothèse devient fausse le jour où une table porte un verrou de cycle de vie. L'`upsert` a buté en `23514` sur les lignes `cloturee` et `annulee` qu'il venait de poser — *le verrou faisait son travail sur le premier chemin venu, y compris le nôtre.* Le seed ne réécrit plus : il **s'abstient**.
+
+---
+
 ## OÙ REPRENDRE
 
 *Écrit en DERNIER et à la fin du fichier : une session neuve lit la fin d'un registre, pas son milieu.*
 
 **L'état :** la branche `claude/protocole-session-absent-79grtr` porte tout le travail du jour, poussée. La proposition de fusion est **#85**. Arbre propre.
+
+**Les captures sont à `docs/captures/`** — 32 images, huit écrans, deux thèmes, deux largeurs, et leur README porte l'empreinte du commit photographié.
 
 **Ce qu'une session neuve doit savoir avant de mesurer quoi que ce soit :**
 
