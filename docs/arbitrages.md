@@ -2665,3 +2665,51 @@ RG-TAR-05 devient :
 **Ce que cette décision ne crée pas.** Aucune table `intervention_machine`, `intervention_temps` ni `intervention_piece` : elles sont au chapitre 11 et appartiennent au lot 3. `numero` existe et **personne ne l'attribue** — le compteur par société appartient à la synchronisation (I10), comme pour `machine`. Le journal des **déplacements** n'est pas une table de plus : c'est `journal_audit`, que le périmètre inversé de D55 réclame le jour où la table apparaît, et qui porte les valeurs avant et après.
 
 *Aucune règle du chapitre 10 n'est amendée : cette décision met en œuvre RG-DRO-01 et RG-DRO-02 sans en réécrire le texte, et elle ne porte donc pas de ligne de déclaration — en porter une vide serait déclarer un câblage qui n'existe pas.*
+
+---
+
+## D85 — L'HORLOGE N'ENTRE PAS DANS LE CLOISONNEMENT
+
+*Décision de session, 9 septembre 2026, prise sous protocole d'absence. **Elle est réversible et sa condition de réouverture est écrite** — c'est ce qui la rend prenable sans l'exploitation.*
+
+**CE QUI A ÉTÉ CHERCHÉ, ET LA DIFFÉRENCE ENTRE « JE N'EN AI PAS TROUVÉ » ET « IL N'Y EN A PAS ».** La question posée était : *ce principe existe-t-il écrit dans le dépôt, sous un numéro ou sans ?* La recherche a porté sur le **texte**, jamais sur un numéro : `grep -rniE "horloge"` sur tout le dépôt hors `node_modules`, puis `matérialis`, puis les fonctions temporelles de PostgreSQL dans les migrations.
+
+Ce qu'elle rend — et c'est une mesure, pas un souvenir :
+
+| Où le mot apparaît | Ce qui y est écrit | Est-ce le principe ? |
+| --- | --- | --- |
+| `docs/arbitrages.md`, D84 | *« RG-DRO-02 dépend de l'horloge, ce qui en ferait une dixième forme »* | **Non.** C'est un **motif**, invoqué pour une table et une règle. |
+| `docs/arbitrages.md`, registre du 11/09 | la même phrase, comme mesure préalable à D84 | Non. |
+| `README.md` ligne 473, migration `20260909200000` ligne 205 | la même phrase, recopiée à l'endroit de la table | Non. |
+| `CLAUDE.md` §9, 09/09 | *« lire une horloge »* — le rapport d'une durée | Sans rapport. |
+| Partout ailleurs | l'horloge de la BASE contre celle de Node, l'heure d'été | Sans rapport. |
+
+**Le principe n'existait donc PAS comme principe.** Il existait quatre fois comme **argument d'une décision particulière** — ce qui est exactement la forme qu'a une règle avant d'en être une : elle est vraie à chaque fois qu'on l'invoque, et rien ne la rend opposable la fois où personne ne l'invoque. Et la **seconde moitié** — *un fait de cloisonnement dépendant du temps se MATÉRIALISE* — n'existait **nulle part** : `grep -rniE "matérialis"` rend deux occurrences, l'une sur le seed, l'autre sur une vue matérialisée de consolidation. Aucune ne parle de cela.
+
+*Ce n'est donc pas « je n'en ai pas trouvé » : c'est « il n'y en a pas », et la différence tient à ce que la recherche a porté sur le texte de chacune des deux moitiés, pas sur le numéro d'une décision.*
+
+**CE QUI EST ARRÊTÉ.**
+
+> **Aucune politique de cloisonnement n'évalue l'heure.** Le cloisonnement répond à *« qui a le droit de lire cette ligne »*, et cette réponse ne doit pas changer d'elle-même : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure.
+>
+> **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.**
+
+**Ce que « évaluer l'heure » désigne, sans ambiguïté possible.** L'expression d'une politique — `USING` ou `WITH CHECK` — n'appelle ni `now()`, ni `current_date`, ni `current_timestamp`, ni `clock_timestamp()`, ni `localtimestamp`, ni `statement_timestamp()`, ni `transaction_timestamp()`, directement ou par une fonction qui les appelle. **Une politique peut lire une colonne DE TYPE date sans évaluer l'heure** : `date_planifiee` est une donnée écrite par quelqu'un ; `now()` est une valeur que personne n'a écrite. *C'est la provenance qui décide, jamais le type.*
+
+**L'ÉTAT MESURÉ, avec son témoin.** 58 politiques `CREATE POLICY` dans `prisma/migrations/`, **zéro** évaluant le temps. Le témoin est le premier chiffre : un gardien qui trouverait zéro politique rendrait aussi « zéro violation », et *un décompte nul ressemble toujours à un sans-faute* (§9, 30/08). Le gardien est `tests/unit/db/horloge-hors-cloisonnement.test.ts`.
+
+**POURQUOI CE N'EST PAS UNE PRÉFÉRENCE DE STYLE.** Trois conséquences, chacune déjà rencontrée ailleurs dans ce dépôt :
+
+1. **Le jumeau cesse de mesurer.** Le §9 (24/08) exige que tout refus s'accompagne d'un jumeau qui retire le verrou et montre la faute passer. Sous une politique horaire, un jumeau vert ne distingue plus « le verrou a cédé » de « l'horloge a bougé » — et il ne le dit pas, il passe.
+2. **L'audit se contredit lui-même.** `pnpm veille` lit la base sous le rôle applicatif et compare à l'attendu. Une visibilité qui change à minuit rend deux verdicts opposés sur un état identique, et le §9 (06/09) dit ce qu'un rapport ainsi fait produit chez son lecteur.
+3. **La faute est SILENCIEUSE dans le sens permissif.** Une politique horaire ne lève pas : elle rend un autre ensemble de lignes. C'est la forme exacte de la fuite mesurée le 07/09 sur `utilisateur_client`, avec en plus l'impossibilité de la reproduire à volonté.
+
+**CE QUE LA MATÉRIALISATION VEUT DIRE, sur le cas réel qui l'attend.** RG-DRO-02 promet au technicien *« l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours »*. La forme horaire s'écrit `date_planifiee <= now()::date + 7` et tombe sous l'interdiction. La forme matérialisée s'écrit : une table `technicien_perimetre_actif` — ou une colonne — qu'un travail planifié écrit chaque nuit, que la politique **lit**, et dont la trace dit **quand** elle a été écrite. La fenêtre se déplace alors par une **écriture**, qui se date, se journalise, se rejoue et s'éprouve deux fois de suite avec le même verdict. *La restriction n'est pas affaiblie : elle est rendue observable.*
+
+**Ce que cela coûte, nommé.** Un décalage : le périmètre d'un technicien est celui qu'un travail a écrit, pas celui de la seconde présente. C'est le prix, et il est plus faible que celui d'une garantie qu'aucun jumeau ne peut mesurer. *Le §9 (01/09) dit qu'une approximation ne se garde pas à côté de sa mesure ; ici c'est l'inverse et il faut l'écrire : on préfère un fait daté à une vérité instantanée qu'on ne sait pas contrôler.*
+
+**CE QUE CETTE DÉCISION NE FAIT PAS.** Elle ne touche à **aucune** politique existante — il n'y en a aucune à corriger, c'est la mesure ci-dessus. Elle ne rouvre pas D84 : elle en **généralise le motif** et lui donne le rang que ce motif avait déjà en fait. Elle n'interdit pas au **code applicatif** de lire l'heure : la restriction des 7 jours reste applicative, elle y est légitime, et `lib/calendar` reste le seul endroit où la date courante se lit (L0-08). Elle ne dit rien des **déclencheurs** ni des **contraintes de cycle de vie** : ceux-là s'exécutent au moment d'une écriture, et une écriture est précisément ce que l'horloge a le droit de dater.
+
+**CONDITION DE RÉOUVERTURE, et elle se vérifie sans s'interpréter.** *S'il existe un cas où le cloisonnement doit se fermer **sans aucun écrivain** — ni travail planifié, ni évènement, ni acteur —, le principe est faux et cette décision est due à réécriture.* Un tel cas est reconnaissable à une propriété : personne, humain ni machine, n'a de raison d'écrire au moment où la fermeture doit prendre effet. *Nous n'en connaissons pas ; nous ne prétendons pas qu'il n'en existe pas.* Le premier qui se présentera devra être décrit avec sa mesure, comme D84 l'a été.
+
+*Aucune règle du chapitre 10 n'est amendée : cette décision porte sur la FORME des politiques, et pas sur ce qu'une règle promet. Elle ne porte donc pas de ligne de déclaration — en porter une vide serait déclarer un câblage qui n'existe pas.*

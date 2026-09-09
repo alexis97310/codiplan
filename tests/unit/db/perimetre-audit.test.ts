@@ -17,7 +17,7 @@ import {
   type Exemption,
   type TableObservee,
 } from "../../../scripts/lib/perimetre-audit";
-import { migrationsSql } from "../outils/migrations-sql";
+import { migrationsSql, sansCommentairesSql } from "../outils/migrations-sql";
 import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
 
 /**
@@ -72,12 +72,6 @@ import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
  * déclencheur posé depuis un bloc `DO $$ … $$` ou un `EXECUTE format(…)` est
  * bel et bien posé.
  */
-export function sansCommentairesSql(sql: string): string {
-  return sql
-    .split("\n")
-    .map((ligne) => ligne.replace(/--.*$/, ""))
-    .join("\n");
-}
 
 /**
  * Tables sur lesquelles le déclencheur d'audit est POSÉ ET ACTIF, migrations

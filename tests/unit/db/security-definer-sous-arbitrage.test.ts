@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { migrationsSql, type Migration } from "../outils/migrations-sql";
+import {
+  migrationsSql,
+  sansCommentairesSql,
+  type Migration,
+} from "../outils/migrations-sql";
 
 /**
  * Gardien de D50 : **aucune fonction `SECURITY DEFINER` dans une migration**,
@@ -86,13 +90,6 @@ export function migrations(): Migration[] {
  * en deux et laisserait sa fin dans le périmètre examiné. Les quotes doublées
  * de SQL sont prises en compte.
  */
-export function sansCommentairesSql(sql: string): string {
-  return sql
-    .split("\n")
-    .map((ligne) => ligne.replace(/--.*$/, ""))
-    .join("\n")
-    .replace(/comment\s+on\b[^']*'(?:[^']|'')*'\s*;/gi, "");
-}
 
 /**
  * Le motif. Insensible à la casse, et tolérant sur les espaces : PostgreSQL
