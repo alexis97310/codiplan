@@ -145,7 +145,9 @@ Chemin exact **en clics** pour les migrations, et un flux **Ouvrir le PREMIER co
 
 **Les deux côtés sont désormais exhaustifs par construction**, et le contrôle est **éprouvé en local sous le rôle applicatif** : CODIMA-NC lit **4 sites, 18 habilitations, 6 interventions** sous son contexte, exactement ce que l'inventaire compte. *Pour la première fois, le contrôle de la base hébergée vérifie vraiment `site`, `machine` et `intervention`* — vingt-deux tables au lieu de huit.
 
-*Vérifiable à la tête de la proposition #89.*
+**ET LA MESURE FINALE, SUR LA BASE HÉBERGÉE, EST VERTE — pour la première fois avec un contrôle qui regarde.** Run #43 de « DB migrate & seed », sur `699d33f`, 22:55:18 → 22:57:15 UTC : *« aucune ligne sans contexte, exactement les lignes de chaque société sous son contexte »*, **22 tables** confrontées à leur forme, 52 politiques, 14 partitions durcies. **La base hébergée est saine**, et ce n'est plus une conclusion tirée de zéros.
+
+*Vérifiable à `699d33f`.*
 
 ---
 
@@ -202,7 +204,9 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 
 *Ce paragraphe est ajouté APRÈS la fusion, sur `main` : la ligne qui dit une fusion ne peut pas s'écrire avant d'être vraie — et c'est l'inscription du jour au §9, appliquée à elle-même.*
 
-**La migration du rang est partie vers la base de démonstration** par « DB migrate & seed », cible `demonstration`, aussitôt après la fusion.
+**La migration du rang est appliquée à la base de démonstration** — run #41, 22:22:08 → 22:23:42 UTC, `Applying migration 20260910030000_forfait_rang_d86`.
+
+**Deux propositions ont suivi, et elles ne sont pas de la couture : #88 et #89 réparent le CONTRÔLE qui regarde la base hébergée**, aveugle sur quatorze tables des deux côtés de sa comparaison. Fusionnées à `7a0dc82` et `699d33f`. **Dernière mesure : run #43, vert, 22 tables réellement vérifiées.**
 
 **Ce qu'une session neuve doit savoir avant de mesurer quoi que ce soit :**
 
@@ -213,4 +217,5 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 **Les deux premières choses à faire, dans cet ordre :**
 
 1. **Répondre sur le plancher par site et par jour.** Une phrase suffit, et elle change ce qu'un client paie.
-2. **Lire le journal du dernier « DB migrate & seed »** — c'est le seul endroit d'où l'on puisse affirmer quoi que ce soit sur la base hébergée, et il dit si la migration du rang y est passée.
+2. **La collision d'identifiants du seed** : `INTERVENTIONS_DEMONSTRATION` porte des identifiants FIXES, donc la seconde société n'en reçoit aucune — `0 écrite(s) sur 6 prévue(s)`. Le rapport le dit désormais ; **ce que la démonstration doit montrer à la seconde société appartient à l'exploitation**, et c'est la seule chose qui manque pour le réparer.
+3. **Lire le journal du dernier « DB migrate & seed »** — c'est le seul endroit d'où l'on puisse affirmer quoi que ce soit sur la base hébergée.
