@@ -261,6 +261,14 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Relu contre les sources citées le 10/09/2026 — empreinte `01b2854a`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
+**UN RENDEZ-VOUS PLUTÔT QU'UNE EMBUSCADE, posé le 11/09/2026 avec ses mesures.** Le chapitre 11 décrit `document` comme une **entité polymorphe** rattachée à machine, contrat, client **ou** intervention. C'est la classe exacte de `perimetre_sites uuid[]` (D79) : *une forme que la base ne sait pas contraindre*. Trois formes mesurées sur PostgreSQL 16, base jetable :
+| Forme | Ce que la base en fait |
+|---|---|
+| une colonne `entite_id` + deux clés étrangères | **acceptée au DDL**, et elle **refuse toute ligne légitime** — la valeur devrait exister dans les DEUX tables (`violates foreign key constraint "fk_client"` sur un document de machine). *Pire qu'une absence de verrou : elle a l'air d'un verrou et rend la table inutilisable* |
+| une colonne `entite_id` + un `CHECK` qui interroge la table cible | **refusée** — `cannot use subquery in check constraint` |
+| **une colonne NULLABLE par cible + `num_nonnulls(...) = 1`** | **fonctionne** : de vraies clés étrangères, et exactement une cible — la deuxième insertion à deux cibles est refusée par la contrainte nommée |
+**Ce n'est pas tranché ici** : le choix de forme engage le modèle, et la **politique** de `document` pose en outre la même question que `intervention` — RG-DRO-01 veut qu'un client ne voie que ses propres documents. Deux des quatre cibles n'existent pas encore. *Ce qui est acquis, et qui évite de le redécouvrir : la première forme est un piège mesuré, la troisième marche.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `e24d4b2f`.*
 **L2-05** Historique machine — conservé au changement de site.
 **L2-06** Demandes — statuts `NOUVELLE`, `QUALIFIEE`, `TRANSFORMEE`, `CLOSE_SANS_SUITE` ; motifs `resolue_telephone`, `hors_perimetre`, `refus_client`, `doublon` [3.5]. Horodatage de l'accusé de réception en **heures ouvrées de l'agence** [D13].
 *Relu contre les sources citées le 10/09/2026 — empreinte `a74cbc41`.*
