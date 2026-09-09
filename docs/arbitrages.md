@@ -2381,3 +2381,97 @@ cloisonnement, elle ne change aucune règle de gestion.*
 **Conséquences.** 130 bits **tous tirés**, contre 74 hérités de l'UUID auparavant : *c'est la première fois que la longueur de ce jeton mesure quelque chose*. Le rendez-vous inscrit au registre du 09/09 est **levé** — il n'y a plus de décision à prendre avant la première campagne de recensement. Les scénarios de déterminisme ont **disparu**, et leur disparition est le ticket : *un secret déterministe n'en est pas un*. **Vu tomber** : la source aléatoire remplacée par une dérivation, cinq scénarios rougissent.
 
 *Aucune règle du chapitre 10 n'est amendée : D71 amende D7, qui est de rang 1.*
+
+# CODIPLAN — Six décisions de l'exploitation, inscrites dans la nuit du 10 septembre 2026
+
+*Décisions arrêtées par l'exploitation le 09/09/2026 (protocole de nuit), inscrites par la session le 10/09 avec la mesure préalable exigée pour la première. Même autorité que les notes précédentes. **Aucun écran n'est construit** : ces points entrent au backlog, à construire au lot 3. Là où la session INTERPRÈTE — une règle de priorité, une forme de table —, c'est écrit comme tel, à ratifier à la relecture.*
+
+## D72 — Le planning est une JOURNÉE, l'intervention se pose sur un CRÉNEAU, et les horaires se paramètrent par agence avec exception par technicien
+
+### La mesure préalable, exigée avant de proposer une table de plus
+
+**Ce que `calendrier`, `calendrier_plage` et `calendrier_ferie` portent déjà** — lu dans `prisma/schema.prisma`, `lib/calendar/` et `prisma/seed-data.ts`, pas dans le cahier :
+
+| Table | Ce qu'elle porte | Ce qu'elle ne porte pas |
+|---|---|---|
+| `calendrier` | un **jeu d'horaires nommé** par société (`code`, `libelle`, `actif`), partagé par plusieurs agences — Ducos et Dolbeau partagent `DEMO-NOUMEA`, Koné a le sien | aucun horaire lui-même, aucun rattachement à une personne |
+| `calendrier_plage` | les **horaires hebdomadaires** : jour ISO, minute d'ouverture, minute de fermeture — plusieurs plages par jour (coupure de midi), un jour sans plage est fermé ; règle LOCALE, le fuseau vient de l'agence à la lecture | aucune date : c'est une récurrence |
+| `calendrier_ferie` | les **jours travaillés ou chômés par AGENCE** : un férié travaillé (`travaille = true` sur un fait public) ou un pont (`jour_ferie_id` nul, `travaille = false`) — unique par (agence, date), chaîné au territoire (D48) | aucun horaire : l'écart autorise ou retire les plages du jour, il n'en invente pas |
+| `agence.calendrier_id` | le rattachement de l'agence à son jeu d'horaires — **nullable** | — |
+| `lib/calendar` | tout ce que le planning demande : `plagesDuJour`, `creneauxDuJour`, `estOuvert`, `prochainCreneauOuvert`, `minutesOuvrees`, `minutesHorsOuverture`, `joursOuvres` ; et `usages.ts` nomme déjà **`conflitPose(calendrierTravailTechnicien, …)`** — D13 | ce paramètre n'a **aucune source** : rien au schéma ne porte le calendrier d'un technicien |
+
+**Conclusion de la mesure : les horaires de travail et jours travaillés PAR AGENCE existent depuis le lot 0, sous ces trois tables, et rien n'est à ajouter pour eux.** Ce qui manque, et qui est mesuré :
+
+1. **le technicien n'a pas d'agence** — `utilisateur_societe` ne porte que `utilisateur_id`, `societe_id`, `role`. Le CLAUDE.md (I1) écrit pourtant « fonction, agence de rattachement… vivent dans `utilisateur_societe` », D12 et D13 disent « agence du technicien », et le chapitre 11 prévoit une table **`technicien`** (utilisateur, société, **agence**, coût horaire, véhicule, actif) qui n'existe pas. *Trois documents affirment un état que le schéma n'a pas* — la pente du 07/09 ;
+2. **aucune exception par technicien** : ni table, ni colonne, alors que D13 la nomme pour la détection de conflit.
+
+### La décision
+
+**Le planning s'affiche par JOURNÉE.** Une intervention se pose sur un **créneau horaire** — un début et une fin, en instants, sur le calendrier du technicien affecté. *(Le narratif du cahier, §« Vue calendrier », dit « semaine par défaut » ; il est de rang 5 et n'est pas normatif — D1. La journée est la vue par défaut ; les autres granularités restent des vues, jamais l'unité de pose.)*
+
+**Les horaires de travail et les jours travaillés sont paramétrables PAR AGENCE** — c'est ce qui existe : `calendrier` + `calendrier_plage` pour les heures, `calendrier_ferie` pour les jours, `agence.calendrier_id` pour le rattachement. Rien n'est ajouté ici.
+
+**Avec EXCEPTION PAR TECHNICIEN, qui prime.** *Forme proposée par la session, à ratifier :* l'exception est un **jeu d'horaires propre** — une ligne de `calendrier` de plus, portée par le technicien (`technicien.calendrier_id`, nullable, sur la table que le chapitre 11 prévoit). Elle réutilise `calendrier_plage` telle quelle : rien de nouveau à inventer pour dire « mi-temps » ou « travaille le samedi ». Ce qu'elle ne fait PAS : décider des fériés et des ponts, qui restent ceux de l'AGENCE du technicien — l'écart local est la décision de l'agence (D46), jamais d'une personne.
+
+### La règle de priorité, et ce qu'elle fait quand aucune exception n'existe
+
+> **Le calendrier de travail d'un technicien est : ses horaires propres s'il en a (`technicien.calendrier_id`), sinon les horaires de son agence (`agence.calendrier_id`) ; dans les deux cas, les jours particuliers — fériés, ponts, fériés travaillés — sont ceux de son agence, et le fuseau et le territoire viennent de son agence.**
+>
+> Quand aucune exception n'existe, c'est donc **exactement le calendrier de l'agence** — l'état d'aujourd'hui, inchangé. Quand l'agence elle-même n'a pas de calendrier (`calendrier_id` nul), le planning **refuse de poser** et dit que le paramétrage est incomplet : aucun horaire n'est inventé (I7), et `chargerCalendrierAgence` rend déjà `null` dans ce cas.
+
+**Dépendances, à construire au lot 3 avant l'écran :** la table `technicien` du chapitre 11 (avec `agence_id` obligatoire pour un technicien), `technicien.calendrier_id` nullable, et la résolution `calendrierDeTravail(technicien)` qui écrit la règle ci-dessus une fois. **L3-01** et **L3-02** sont amendés en conséquence ; **L3-04** (absences) reste la seule exception datée d'un technicien — une absence bloque le créneau, elle ne change pas ses horaires.
+
+**Une question que la règle ne tranche pas, inscrite :** D12 et D13 calculent la **majoration hors ouverture** sur le calendrier de l'**agence** du technicien. Si un technicien a des horaires propres — travaille le samedi —, une intervention posée un samedi est-elle « hors ouverture » pour la facturation ? *La session lit :* oui, la majoration suit l'AGENCE (D12, D13 inchangés), l'exception n'est qu'un fait de planification. Ce n'est pas tranché ici.
+
+*Aucune décision amendée — D13 n'est pas contredite : le « calendrier de travail du technicien » qu'elle nomme reçoit une source.*
+
+## D73 — Une affectation refusée S'AFFICHE et NOMME son motif
+
+**La règle.** Quand RG-PLA-04 bloque une affectation, l'écran dit **quelle habilitation** manque ou a expiré, et **à quelle date** — « habilitation BR absente », « habilitation CACES expirée le 12/08/2026 » —, jamais « impossible ».
+
+**La distinction, écrite parce que D50 pourrait se lire contre elle :** *un refus se tait quand il protège d'un tiers ; il s'explique quand il s'adresse à celui qui peut corriger.* D50 borne ce qu'un refus **donne à lire** à ce que son destinataire a le droit de lire — son exemple est un salarié de l'éditeur qui apprendrait, par un décompte, combien d'agences clientes chôment un jour. Ici, le planificateur lit déjà les habilitations de ses techniciens et les exigences de ses sites — tables de sa société, formes « société » et « parc » —, et c'est lui qui corrigera : en affectant quelqu'un d'autre, ou en faisant renouveler l'habilitation. Un refus qui lui cache ce qu'il a le droit de voir ne protège personne ; il fait perdre une matinée. **D50 et D73 sont la même règle vue des deux côtés : le refus dit tout ce que son destinataire peut lire, et rien de ce qu'il ne peut pas.** Le message vient du dictionnaire (`lib/i18n/fr.ts`, L0-11) et nomme le code de l'habilitation, jamais une donnée d'une autre société.
+
+*Aucune décision ni règle amendée — RG-PLA-04 dit « bloquée » ; D73 dit comment le blocage se présente.*
+
+## D74 — Le TRAJET est un FORFAIT : le temps de trajet ne s'ajoute JAMAIS aux heures facturées
+
+**La règle.** Le déplacement se facture par un **forfait conditionné par zone** (RG-TAR-06, `forfait` de type déplacement, un seul par intervention — D11). **Le temps de trajet ne s'ajoute jamais aux heures facturées**, ni par contrat, ni par barème, ni par bascule manuelle : une ligne `intervention_temps` de type `trajet` n'est jamais facturable.
+
+**Ce que cela change, et c'est le point important : `site.temps_trajet_min` devient une donnée de PLANIFICATION et rien d'autre.** Elle sert au calcul de charge et à l'ordonnancement des tournées (RG-PLA-05, L3-05). Sans cette phrase, quelqu'un l'additionnerait un jour aux heures et facturerait le déplacement deux fois — une fois par le forfait, une fois au temps. Elle est écrite **aux endroits où on la lira au moment de s'en servir**, sur le modèle de D56 : la règle métier (RG-PLA-05 et RG-INT-07), le schéma (`prisma/schema.prisma`), la base (`COMMENT ON COLUMN`), le code qui la rend (`lib/sites/depot.ts`) et l'aide du champ à l'écran (`site.temps_trajet_min.aide`).
+
+**Ce que D74 confirme sans le changer :** D11 (« Trajet — non facturé au temps ; couvert par le forfait de déplacement de la zone ; en l'absence de forfait applicable, non facturé »), D12 (assiette de la majoration : main-d'œuvre seule).
+
+**Ce que D74 CONTREDIT, et qui est amendé :** RG-INT-07 laissait une porte — « facturé selon la règle du contrat, du forfait ou du barème applicable » — par laquelle un contrat aurait pu facturer le trajet **au temps**. Elle est fermée.
+
+**Règles amendées :** RG-INT-07, RG-PLA-05
+
+## D75 — « Sites » entre au menu
+
+Un client a plusieurs sites, dans des villes différentes — c'est le cas courant, pas l'exception. La table existe depuis L1-02 avec sa saisie Zod et son dépôt cloisonné ; **il manque l'écran** : liste des sites d'un client, fiche, création, modification — avec le rattachement à l'agence et le temps de trajet **présentés comme une donnée de planification** (D74). Au lot 3 : ticket **L3-16**.
+
+*Aucune décision amendée.*
+
+## D76 — Le TAUX D'OCCUPATION, et le mot qu'il ne faut pas employer
+
+**Le rapport.** Par technicien et par semaine : le **nombre d'interventions**, et le **taux d'occupation = heures d'intervention ÷ heures travaillées**.
+
+**Ce qu'il mesure, et pourquoi il ne s'appelle PAS « taux de productivité ».** Tout le temps passé en intervention compte — **y compris non facturé** : garantie, geste commercial, reprise, recensement. C'est une **occupation**. « Productivité » ferait lire un **rendement** — du temps facturé, ou de la marge — là où il y a du temps occupé, et quelqu'un déciderait sur ce chiffre. Le mot est **taux d'occupation, partout** : le cahier l'emploie déjà (§« Activité », §« Direction »), le dictionnaire le porte avec **sa formule à côté du nom**, et un gardien refuse que « productivité » entre dans le dictionnaire.
+
+**DÉPEND de D72 :** « heures travaillées » n'existe pas tant que le calendrier de travail du technicien n'est pas résolu — c'est `minutesOuvreesAgence` appliquée au calendrier de D72, sur la semaine, absences déduites (L3-04). Au lot 3, après D72 : ticket **L3-17**.
+
+*Aucune décision amendée.*
+
+## F — Ce que ces six décisions contredisent, et ce qu'elles ne contredisent pas
+
+| Décision | Contredit | Verdict |
+|---|---|---|
+| **D72** | le narratif « semaine par défaut » (cahier, rang 5) | non normatif (D1) — la journée l'emporte, écrit dans D72 |
+| **D72** | D13, I7, RG-PLA-01, RG-PLA-02 | **aucune** contradiction — D72 donne une source à ce que D13 nommait déjà |
+| **D72** | l'affirmation du CLAUDE.md (I1) et de D12/D13 que le technicien A une agence | **pas une contradiction de règle, une affirmation sans schéma** — la table `technicien` du chapitre 11 la porte ; à construire |
+| **D73** | D50, D35 | **aucune** — même règle vue de l'autre côté, écrite dans D73 |
+| **D74** | **RG-INT-07** (« selon la règle du contrat… ») | **OUI**, sur un point : la porte du trajet facturé au temps par contrat — **amendée** |
+| **D74** | D11, D12, RG-TAR-06, RG-PLA-05 | **aucune** — D11 disait déjà « non facturé au temps » |
+| **D75** | — | aucune |
+| **D76** | le cahier | **aucune** — le cahier dit déjà « taux d'occupation » (§Activité, §Direction) ; « productivité terrain » n'y est qu'un objectif, jamais un indicateur |
+
+**Et une question que F fait apparaître, inscrite au registre :** l'exception par technicien de D72 s'applique-t-elle à l'**assiette de la majoration** (D12, D13 : agence du technicien) ? La session lit que non. À trancher avant L2-09.
