@@ -261,3 +261,27 @@ par l'enrôlement du second facteur : `admin_plateforme`, `admin_societe` et
   occurrences de « 11/09/2026 » subsistent dans `docs/` et le CLAUDE.md, écrites
   par des sessions antérieures. Non corrigées — le plafond de méta-travail de la
   nuit l'interdisait, et une reprise de ce volume mérite sa propre décision.
+
+---
+
+## 8. Une base de données pour deux usages — 12:50 → 13:00 UTC
+
+*Un incident de la nuit, écrit parce qu'il a failli me faire rapporter un rouge
+pour un vert et un vert pour un rouge.*
+
+J'ai fait tourner `pnpm verify` et la démonstration sur **la même base**
+`codiplan_test`. `test:isolation` recrée le schéma à chaque exécution — c'est sa
+définition, une base jetable — et le seed de démonstration écrivait dedans au
+même moment. Résultat : un `verify` rouge sur `reporting.test.ts` (des agences en
+trop, venues de la démonstration) et un seed rouge en `P2003` (des fixtures
+d'isolation en travers du parc de démonstration). **Deux rouges, aucun défaut de
+code.**
+
+**Ce qu'il faut en retenir** : `TEST_DATABASE_URL` et le `DATABASE_URL` de
+l'application ne désignent jamais la même base. Le README le disait déjà pour
+Neon ; il le dit maintenant pour deux bases locales. La démonstration a été
+rejouée sur `codiplan_demo`, et les six écrans s'y ouvrent.
+
+*Parenté : c'est la divergence comme instrument (§9, 07/09), prise à l'envers —
+deux chemins qui ne devaient PAS se ressembler partageaient une ressource, et
+chacun rendait l'autre faux.*
