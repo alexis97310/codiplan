@@ -34,7 +34,14 @@ const PLANCHER_PROSE = 3;
 const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // [amendée, amendante]
   ["D7", "D71"],
+  // Les trois paires numérotées le 11/09/2026 : elles existaient dans le
+  // texte depuis le 07, le 09 et le 02/09, portées par un ticket, une
+  // question et un incident — c'est-à-dire par des objets SANS NUMÉRO, que ce
+  // gardien ne pouvait pas tenir. Numéroter est le geste qui les lui rend.
+  ["D10", "D79"],
+  ["D11", "D77"],
   ["D13", "D46"],
+  ["D14", "D78"],
   ["D15", "D54"],
   ["D19", "D44"],
   ["D23", "D56"],
