@@ -173,10 +173,32 @@ describe("les deux portes gardent la même chose", () => {
   it("ÉPREUVE : une étape de CI hors de la porte est refusée", () => {
     // La faute telle qu'elle s'est commise : `format:check` joué par la CI et
     // absent de `verify`. On la rejoue sur une porte amputée.
+    //
+    // **Et l'épreuve JOUE L'ASSERTION, elle ne compare pas deux ensembles**
+    // (11/09/2026). La première rédaction se contentait de constater que la
+    // porte amputée ne portait plus `format:check` : elle montrait la DONNÉE
+    // du défaut, jamais que le contrôle l'aurait refusée — *la violation
+    // a-t-elle bien eu lieu ?* (§9, 30/08). Le verdict est donc recalculé ici
+    // par la même expression que le contrôle lui-même.
+    const verdict = (bloc: string, couvertes: Set<string>): boolean =>
+      scriptsInvoques(bloc).every((commande) => couvertes.has(commande));
+
     const porteAmputee = new Set(
       [...couverture("verify")].filter((nom) => nom !== "format:check"),
     );
     expect(porteAmputee.has("format:check")).toBe(false);
-    expect(couverture("verify").has("format:check")).toBe(true);
+
+    // **LA FAUTE A DEUX MOITIÉS, et n'en rejouer qu'une ne viole rien.**
+    // Mesuré le 11/09/2026 : le job `verify` de la CI n'invoque plus
+    // `format:check` — c'est justement ce que la réparation du 02/09 a fait —,
+    // si bien qu'amputer la PORTE ne produit aucune violation. Il faut rendre
+    // à la CI l'étape séparée qu'elle avait, sinon l'épreuve mesure le vide
+    // (§9, 30/08 : la violation a-t-elle bien eu lieu ?).
+    const jobDAlors = `${job("verify")}\n      - run: pnpm format:check\n`;
+    expect(scriptsInvoques(jobDAlors)).toContain("format:check");
+
+    expect(verdict(jobDAlors, porteAmputee)).toBe(false); // le contrôle REFUSE
+    expect(verdict(jobDAlors, couverture("verify"))).toBe(true); // porte saine : il accepte
+    expect(verdict(job("verify"), couverture("verify"))).toBe(true); // l'état réel
   });
 });
