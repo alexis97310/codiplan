@@ -39,9 +39,23 @@ export default async function RootLayout({
 
   return (
     <html lang="fr">
+      <head>
+        {/* DEUX balises SÉPARÉES, et c'est délibéré (charte, §Polices) : une
+            seule requête portant les deux familles fait perdre les DEUX quand
+            elle échoue. Séparées, l'échec de l'une laisse l'autre. Le repli
+            — 'Helvetica Neue', Arial — est nommé dans app/globals.css. */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400..700&display=swap"
+        />
+      </head>
       <body
         className="min-h-dvh antialiased"
-        data-theme={theme.origine}
+        data-origine-theme={theme.origine}
         style={variablesCss(theme)}
       >
         <div className="mx-auto max-w-5xl px-6 pt-6">

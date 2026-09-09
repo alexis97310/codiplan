@@ -359,7 +359,7 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     const licites = [
       // Des classes, des rôles, des attributs techniques, une URL.
       '<div className="flex items-center gap-4 rounded-lg px-4 py-3" />',
-      '<html lang="fr" data-theme="defaut" />',
+      '<html lang="fr" data-origine-theme="defaut" />',
       '<a href="https://exemple.test/docs" download />',
       '<Button asChild variant="outline" size="sm" />',
       // Le premier argument d'une requête par rôle est un RÔLE ARIA.

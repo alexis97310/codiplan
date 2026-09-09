@@ -1,0 +1,85 @@
+/**
+ * LES JETONS DE LA CHARTE — le SEUL fichier du dépôt où une couleur s'écrit.
+ *
+ * `docs/charte-visuelle.md` est le texte, ce fichier en est l'application. Tout
+ * le reste du dépôt nomme un jeton et n'écrit jamais une valeur : un gardien le
+ * tient (`tests/unit/theme/charte-jetons.test.ts`), et il refuse une couleur
+ * écrite AILLEURS QU'ICI — y compris dans une déclaration de variable, y compris
+ * dans `app/globals.css`, qui n'a le droit que d'aliaser.
+ *
+ * **Pourquoi un fichier à part plutôt qu'un bloc de `globals.css`.** Une
+ * exemption qui nomme une FORME d'écriture (« une couleur est licite dans une
+ * déclaration de variable ») exempte cette forme partout ; il suffit alors
+ * d'écrire `--rouge-provisoire: #f00` dans n'importe quelle feuille pour passer.
+ * Une exemption qui nomme UN FICHIER se lit d'un coup d'œil et se compte : la
+ * palette entière tient dans une page, et son diff est la charte qui change.
+ *
+ * **Trois états de thème, dans cet ordre, et la règle qui va avec** : aucune
+ * couleur n'a sa seule définition dans un bloc `@media`. La palette complète est
+ * sur `:root` nu ; le sombre ne fait que REDÉFINIR. Un navigateur qui ne
+ * comprendrait pas la requête média rend donc le thème clair entier, jamais un
+ * thème à trous.
+ *
+ * `:root` est l'élément `html`. L'attribut `data-origine-theme` que le serveur
+ * pose sur `body` dit d'où vient la charte de SOCIÉTÉ (L0-09) — c'est un autre
+ * objet, il ne se lit pas ici.
+ */
+
+:root {
+  /* Surfaces et encres. */
+  --acier: #e8eae6; /* fond de page — gris machine froid */
+  --plaque: #f8f9f7; /* surface, papier, panneau */
+  --noir: #000000; /* encre, titres, filets structurants */
+  --gris: #59615c; /* texte secondaire */
+  --trait: #c3c9c3; /* filets, séparateurs */
+
+  /* Les quatre signaux. Une couleur qui apparaît désigne un état. */
+  --bleu: #14487e; /* action, sélection, lien, intervention facturée */
+  --vert: #1f6b45; /* conforme, valide, travail interne */
+  --ambre: #8f5a02; /* forfait, avertissement */
+  --oxyde: #a32b1f; /* refus, expiration, danger */
+
+  /* Fonds teintés — la même couleur, diluée dans la surface. */
+  --bleu-fond: color-mix(in srgb, var(--bleu) 9%, transparent);
+  --vert-fond: color-mix(in srgb, var(--vert) 10%, transparent);
+  --ambre-fond: color-mix(in srgb, var(--ambre) 13%, transparent);
+  --oxyde-fond: color-mix(in srgb, var(--oxyde) 7%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --acier: #141715;
+    --plaque: #1e2220;
+    --noir: #f2f4f1;
+    --gris: #9aa39d;
+    --trait: #343a36;
+
+    --bleu: #8cb8ec;
+    --vert: #79c08f;
+    --ambre: #e0a93f;
+    --oxyde: #e38878;
+
+    --bleu-fond: color-mix(in srgb, var(--bleu) 13%, transparent);
+    --vert-fond: color-mix(in srgb, var(--vert) 13%, transparent);
+    --ambre-fond: color-mix(in srgb, var(--ambre) 15%, transparent);
+    --oxyde-fond: color-mix(in srgb, var(--oxyde) 10%, transparent);
+  }
+}
+
+:root[data-theme="dark"] {
+  --acier: #141715;
+  --plaque: #1e2220;
+  --noir: #f2f4f1;
+  --gris: #9aa39d;
+  --trait: #343a36;
+
+  --bleu: #8cb8ec;
+  --vert: #79c08f;
+  --ambre: #e0a93f;
+  --oxyde: #e38878;
+
+  --bleu-fond: color-mix(in srgb, var(--bleu) 13%, transparent);
+  --vert-fond: color-mix(in srgb, var(--vert) 13%, transparent);
+  --ambre-fond: color-mix(in srgb, var(--ambre) 15%, transparent);
+  --oxyde-fond: color-mix(in srgb, var(--oxyde) 10%, transparent);
+}

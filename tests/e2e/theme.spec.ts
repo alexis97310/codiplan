@@ -16,12 +16,12 @@ test("le thème part avec le HTML, et vaut le thème neutre sans session", async
 }) => {
   const brut = await (await request.get("/")).text();
   expect(brut).toContain("--societe-primaire");
-  expect(brut).toContain('data-theme="defaut"');
+  expect(brut).toContain('data-origine-theme="defaut"');
 
   await page.goto("/");
 
   const corps = page.locator("body");
-  await expect(corps).toHaveAttribute("data-theme", "defaut");
+  await expect(corps).toHaveAttribute("data-origine-theme", "defaut");
 
   const primaire = await corps.evaluate((element) =>
     getComputedStyle(element).getPropertyValue("--societe-primaire").trim(),

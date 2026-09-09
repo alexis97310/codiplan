@@ -18,6 +18,7 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 | Rang | Source |
 |---|---|
 | 1 | `docs/arbitrages.md` — les décisions arrêtées |
+| 1 | `docs/charte-visuelle.md` — **tout écran s'adosse à `docs/charte-visuelle.md` ; aucune couleur n'est écrite en dur dans un composant.** La charte dit la grammaire de l'interface ; `app/jetons.css` en est l'unique application, et c'est le seul fichier du dépôt où une valeur de couleur s'écrit. Deux exemptions nommées, et pas une de plus : la palette elle-même, et `lib/theme/`, qui est le mécanisme de la charte de SOCIÉTÉ (L0-09, D51) — un autre objet. Gardé par `tests/unit/theme/charte-jetons.test.ts`, mis en échec sur le dépôt réel dans les deux directions |
 | 2 | `docs/cahier-des-charges.md` **chapitre 10** — les règles de gestion |
 | 3 | `docs/cahier-des-charges.md` **chapitre 11** — le modèle de données |
 | 4 | `docs/backlog.md` — les tickets |

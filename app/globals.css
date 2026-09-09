@@ -1,57 +1,77 @@
 @import "tailwindcss";
+@import "./jetons.css";
 
-@custom-variant dark (&:is(.dark *));
+/**
+ * Feuille racine — elle N'ÉCRIT AUCUNE COULEUR, elle ne fait qu'ALIASER les
+ * jetons de `app/jetons.css` (charte visuelle, docs/charte-visuelle.md).
+ *
+ * Deux familles de variables cohabitent, et elles n'ont pas la même source :
+ *  - les jetons de la CHARTE — acier, plaque, noir, gris, trait, bleu, vert,
+ *    ambre, oxyde — écrits une fois dans `jetons.css` ;
+ *  - les six variables de la charte de SOCIÉTÉ (L0-09), posées sur le document
+ *    par le serveur depuis la table `societe`. Elles ne sont définies dans
+ *    aucune feuille de style, et un gardien le vérifie.
+ */
+
+/* Le sombre par CHOIX se lit sur `:root`, jamais sur une classe posée par un
+   script : le thème part avec le HTML (L0-09), il ne s'applique pas après coup. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
+  /* RÈGLE 3 de la charte : le rayon encode le TYPE d'objet, il n'est pas
+     uniforme. Trois valeurs, et pas une quatrième « pour faire joli ». */
+  --rayon-document: 0px;
+  --rayon-bloc: 2px;
+  --rayon-telephone: 26px;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* Le rayon par défaut des composants d'interface est celui d'un bloc. */
+  --radius: var(--rayon-bloc);
+
+  /* Alias shadcn/ui → jetons de la charte. Aucune valeur, que des renvois. */
+  --background: var(--acier);
+  --foreground: var(--noir);
+  --card: var(--plaque);
+  --card-foreground: var(--noir);
+  --popover: var(--plaque);
+  --popover-foreground: var(--noir);
+  --primary: var(--noir);
+  --primary-foreground: var(--plaque);
+  --secondary: var(--plaque);
+  --secondary-foreground: var(--noir);
+  --muted: var(--plaque);
+  --muted-foreground: var(--gris);
+  --accent: var(--bleu-fond);
+  --accent-foreground: var(--noir);
+  --destructive: var(--oxyde);
+  --destructive-foreground: var(--plaque);
+  --border: var(--trait);
+  --input: var(--trait);
+  --ring: var(--bleu);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: var(--rayon-document);
+  --radius-md: var(--rayon-bloc);
+  --radius-lg: var(--rayon-bloc);
+  --radius-xl: var(--rayon-telephone);
+
+  /* Les jetons de la charte, utilisables en classes : bg-acier, text-gris,
+     border-trait, bg-bleu-fond… Un composant nomme un jeton, jamais une
+     couleur. */
+  --color-acier: var(--acier);
+  --color-plaque: var(--plaque);
+  --color-noir: var(--noir);
+  --color-gris: var(--gris);
+  --color-trait: var(--trait);
+  --color-bleu: var(--bleu);
+  --color-vert: var(--vert);
+  --color-ambre: var(--ambre);
+  --color-oxyde: var(--oxyde);
+  --color-bleu-fond: var(--bleu-fond);
+  --color-vert-fond: var(--vert-fond);
+  --color-ambre-fond: var(--ambre-fond);
+  --color-oxyde-fond: var(--oxyde-fond);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -86,13 +106,47 @@
   --color-societe-accent: var(--societe-accent);
   --color-societe-accent-encre: var(--societe-accent-encre);
   --color-societe-accent-lisible: var(--societe-accent-lisible);
+
+  /* POLICES (charte, §Polices). Archivo pour tout ; Archivo Narrow là où la
+     place manque — colonnes du planning, grilles denses. Le repli est nommé
+     ici et pas ailleurs : si les deux balises <link> échouent, l'application
+     reste lisible. JAMAIS de chasse fixe pour des données. */
+  --font-sans:
+    "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-etroit:
+    "Archivo Narrow", "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    /* RÈGLE 12 : les chiffres sont tabulaires PARTOUT. Une colonne de montants
+       dont les chiffres n'ont pas la même chasse ne s'aligne pas, et un total
+       faux se voit moins. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* RÈGLE 13 : le focus clavier est VISIBLE. Non négociable — c'est le seul
+     repère de qui n'utilise pas de souris. */
+  :focus-visible {
+    outline: 2px solid var(--bleu);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    font-stretch: 118%;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+    text-wrap: balance;
   }
 }

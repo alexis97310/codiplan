@@ -32,7 +32,7 @@ const SOCIETE_B = {
 function rendreSousTheme(source: typeof SOCIETE_A | null) {
   const theme = themeDeSociete(source);
   const { container } = render(
-    <div style={variablesCss(theme)} data-theme={theme.origine}>
+    <div style={variablesCss(theme)} data-origine-theme={theme.origine}>
       <BandeauSociete theme={theme} />
     </div>,
   );
@@ -60,7 +60,7 @@ describe("bandeau d'identité de la société active", () => {
     const a = rendreSousTheme(SOCIETE_A);
     expect(a.lire("--societe-primaire")).toBe("#0b5cad");
     expect(a.lire("--societe-primaire-encre")).toBe("#ffffff");
-    expect(a.racine.dataset.theme).toBe("societe");
+    expect(a.racine.dataset.origineTheme).toBe("societe");
 
     const b = rendreSousTheme(SOCIETE_B);
     expect(b.lire("--societe-primaire")).toBe("#fff9c4");
@@ -74,7 +74,7 @@ describe("bandeau d'identité de la société active", () => {
   it("sans société active, c'est le thème neutre, et il se dit tel quel", () => {
     const neutre = rendreSousTheme(null);
 
-    expect(neutre.racine.dataset.theme).toBe("defaut");
+    expect(neutre.racine.dataset.origineTheme).toBe("defaut");
     expect(screen.getByText(THEME_DEFAUT.nom)).toBeInTheDocument();
     expect(screen.getByText(fr["theme.neutre"])).toBeInTheDocument();
     expect(neutre.lire("--societe-primaire")).toBe(THEME_DEFAUT.primaire.fond);
