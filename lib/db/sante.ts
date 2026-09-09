@@ -118,17 +118,19 @@ export async function lireSante(): Promise<EtatSante> {
 
     return {
       baseJointe: { ok: true, detail: null },
-      roleApplicatif: role === undefined
-        ? { ok: false, detail: null }
-        : {
-            ok:
-              role.role === ROLE_ATTENDU &&
-              !role.superutilisateur &&
-              !role.contourne,
-            detail: role.role === ROLE_ATTENDU
-              ? null
-              : `Le rôle connecté n'est pas « ${ROLE_ATTENDU} ».`,
-          },
+      roleApplicatif:
+        role === undefined
+          ? { ok: false, detail: null }
+          : {
+              ok:
+                role.role === ROLE_ATTENDU &&
+                !role.superutilisateur &&
+                !role.contourne,
+              detail:
+                role.role === ROLE_ATTENDU
+                  ? null
+                  : `Le rôle connecté n'est pas « ${ROLE_ATTENDU} ».`,
+            },
       migrations:
         manquante === undefined
           ? { ok: true, detail: null }
