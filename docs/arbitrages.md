@@ -129,13 +129,17 @@ Le gardien `tests/unit/calendar/` porte donc sur **`agence`**.
 
 **RG-PAR-02 est réécrite en conséquence.** Le numéro de série redevient obligatoire, ce qui rend RG-PAR-01 définissable et supprime le risque de doublons silencieux au recensement.
 
-**Cas du numéro illisible ou absent** — il existe, la maquette le montrait déjà. Le technicien saisit `SN-INCONNU-<référence interne>`, valeur unique par construction, et la machine est marquée `complet = false`, ce qui la fait remonter dans la file de complétion. Un contrôle d'unicité SQL classique suffit, sans NULL et donc sans trou.
+**Cas du numéro illisible ou absent** — il existe, la maquette le montrait déjà. Le technicien saisit `SN-INCONNU-<référence interne>`, ~~valeur unique par construction~~ **valeur unique par CONTRAINTE** *(précisé le 10/09/2026 — mesuré : `reference_interne` est SAISIE, texte libre facultatif dans `lib/machines/saisie.ts`, jamais engendrée ni importée ; une valeur saisie par un humain n'est unique par aucune construction)*, et la machine est marquée `complet = false`, ce qui la fait remonter dans la file de complétion. Un contrôle d'unicité SQL classique suffit, sans NULL et donc sans trou.
 
 **Localisation et photo de plaque restent facultatives.** Le cahier des charges les listait comme obligatoires au §8.1 et §13.3 : ces deux passages sont désormais non normatifs (voir D1).
+
+**`reference_interne` est unique PAR SOCIÉTÉ ET LORSQU'ELLE EST PRÉSENTE** *(décision d'exploitation du 09/09/2026, inscrite le 10/09)*. Toutes les machines n'en ont pas ; deux machines d'une même société n'en partagent jamais une. Le chapitre 11 le disait — « unique par société » — et la ligne avait été barrée entière à L2-01 en corrigeant « porté par le QR » ; la moitié vraie est restaurée. **La contrainte n'est pas encore posée** : l'exploitation a demandé la mesure de l'origine de la valeur AVANT la migration — elle est rendue au registre du 10/09, avec l'index partiel prêt à poser.
 
 **Règles amendées :** RG-PAR-02
 
 ### D7 — Identifiants en création hors ligne (1.4)
+
+**Amendé par D71.**
 
 C'est le point le plus profond de l'audit. Décision :
 
@@ -210,7 +214,7 @@ Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
 | utilisateur_id | uuid FK |
 | client_id | uuid FK |
 | societe_id | uuid FK |
-| perimetre_sites | uuid[] — vide = tous les sites du client |
+| ~~perimetre_sites~~ | ~~uuid[] — vide = tous les sites du client~~ *(amendé le 07/09/2026 par le ticket L1-02b, marqué le 10/09 : PostgreSQL ne sait pas contraindre les éléments d'un tableau — remplacée par la table `utilisateur_client_site`, forme « habilitation »)* |
 | actif | boolean |
 
 Un compte portail n'a **aucune entrée** dans `utilisateur_societe` : les deux tables sont exclusives. La politique RLS du portail filtre sur `client_id`, et sur `site_id` si `perimetre_sites` est renseigné.
@@ -228,7 +232,7 @@ Décisions arrêtées, sur la base de vos réponses :
 | **Multi-techniciens** | **Cumul** — 2 techniciens × 3 h = 6 h facturées |
 | **Temps d'attente** | **Non facturé** par défaut, `facturable = false` ; le responsable peut le basculer à `true` avec motif |
 | **Trajet** | Non facturé au temps ; couvert par le forfait de déplacement de la zone. En l'absence de forfait applicable, non facturé |
-| **Heures excédentaires** | Comptées sur le seul temps d'intervention, hors trajet et hors attente, par rapport à `forfait.heures_incluses` |
+| **Heures excédentaires** | Comptées sur le seul temps d'intervention, hors trajet et hors attente, ~~par rapport à `forfait.heures_incluses`~~ *(amendé le 09/09/2026 par la question Q4, marquée le 10/09 : la colonne est RETIRÉE — un forfait s'ajoute TOUJOURS aux heures, la notion d'heure incluse n'existe plus ; voir L1-06)* |
 | **Multi-machines** | **Un seul forfait de déplacement par intervention**, quel que soit le nombre de machines. Les forfaits de prestation, eux, sont par machine |
 | **Ordre de calcul** | forfaits applicables → heures excédentaires au taux horaire → majoration hors ouverture → total HT |
 
@@ -245,6 +249,8 @@ Décisions arrêtées, sur la base de vos réponses :
 | **Intervention à cheval** | **Au prorata**, quart d'heure par quart d'heure |
 
 ### D13 — Calendrier de référence (1.10)
+
+**Amendé par D46.**
 
 C'est le point qui conditionne le gardien calendrier. Décision, par usage :
 
@@ -265,8 +271,11 @@ C'est le point qui conditionne le gardien calendrier. Décision, par usage :
 **Deux portes, pas une :**
 
 ```bash
-pnpm verify        # typecheck + lint + test + test:isolation + build
+pnpm verify        # format:check + typecheck + lint + test + test:isolation + build
                    # porte de sortie de CHAQUE ticket
+                   # (`format:check` y est entré le 02/09/2026 — incident de la
+                   #  porte qui ne gardait pas ce que garde la suivante, §9 ;
+                   #  marqué ici le 10/09, sans décision numérotée)
 pnpm verify:full   # verify + test:e2e (dont le gardien hors-ligne)
                    # porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
@@ -359,7 +368,7 @@ Aucune autre fonction de conversion n'existe. Un test du gardien monétaire vér
 Trois garde-fous, sans lesquels ce rôle serait une porte dérobée :
 
 1. Il n'a que le droit `SELECT`, sur aucune table portant de données personnelles détaillées.
-2. Toute requête passant par lui est journalisée avec l'utilisateur d'origine.
+2. Toute requête passant par lui est journalisée avec l'utilisateur d'origine — **par l'APPLICATION, sur sa propre connexion (`codiplan_app`), AVANT la requête de consolidation, et jamais par le rôle de consolidation** *(précisé le 10/09/2026)*. Sans cette précision, les garde-fous 1 et 2 se contredisaient : journaliser est une écriture, et un rôle qui n'a que `SELECT` ne peut pas l'écrire. Mesuré : `lib/reporting/connexion.ts` écrit `journal_acces` par `avecDesignationAuth(clientApplicatif)` avant d'ouvrir la connexion de consolidation, et le rôle de consolidation reçoit `permission denied` sur un `INSERT` dans `journal_acces` — un scénario le tient. D38 reste vraie telle quelle.
 3. Un test d'isolation vérifie qu'aucun chemin applicatif hors `lib/reporting` n'utilise cette connexion.
 
 **Les rôles éditeur (§22.5) suivent le même mécanisme** et sont créés dès le lot 0 dans l'énumération des rôles, même si la console éditeur n'arrive qu'au lot 7. L'audit a raison : la dette se prend au lot 0.
@@ -427,6 +436,8 @@ Cas concret de l'audit : l'ADV annule pendant que le technicien réalise l'inter
 - L'opération est journalisée et **réversible pendant 30 jours**.
 
 Le ticket L3-10 est étendu en conséquence : il ne couvrait que le signalement.
+
+**`fusionnee` entre dans `StatutMachine` le 10/09/2026** — l'énumération avait été fermée à L2-01 à cinq valeurs sans relire cette décision, et le rang 1 l'emporte. **Ce que la valeur veut dire, et qui l'écrira, écrit ici pour qu'elle ne s'implémente pas de travers :** c'est l'état TERMINAL de la fiche absorbée — elle sort du parc actif, des contrats et des échéanciers comme `remplacee` et `ferraillee` (RG-PAR-05), elle conserve son `qr_token`, et la résolution d'un QR qui la désigne rend la SURVIVANTE. Son seul PRODUCTEUR est la fusion de L3-10 (lot 3) ; ses LECTEURS sont la résolution QR (`lib/machines/resolution.ts`, à amender à L3-10) et les listes du parc, qui l'excluent. La réversibilité de 30 jours rend à la fiche son statut d'avant. **Jusqu'à L3-10, rien ne la produit et rien ne la lit** — même situation que `heures_incluses_minutes` ; si l'exploitation préfère amender D28 plutôt que porter une valeur sans producteur pendant un lot, c'est inscrit au registre.
 
 ### D29 — Code Winpro (2.15)
 
@@ -718,6 +729,8 @@ La conséquence pratique : **arbitrer après le premier ticket d'un domaine, pas
 
 ### D44 — D19 est corrigé, pas contourné : la conversion vit dans `lib/reporting`
 
+**Décisions amendées :** D19
+
 **L'invariant I2, le §6 du CLAUDE.md et le ticket disaient tous `lib/reporting`. D19 seul disait `lib/money`** — « `lib/money` expose deux fonctions distinctes », dont `convertForConsolidation`. Trois sources contre une, et la seule dissidente était de **rang 1**.
 
 **Une source de rang 1 qu'on sait fausse est plus dangereuse qu'une source absente.** Une source absente fait poser la question ; une source fausse fait confiance. Le prochain lecteur de D19 aurait logé la conversion dans `lib/money` **en respectant la hiérarchie**, et il aurait eu raison de le faire. C'est exactement la maladie que D1 devait éradiquer : la même règle écrite à deux endroits avec des variantes, jusqu'à ce que personne ne sache laquelle fait foi.
@@ -758,6 +771,8 @@ C'est une **décision commerciale**, pas une modalité d'implémentation. Elle d
 | **Ticket** | L0-08 |
 
 ### D46 — `jour_ferie` rejoint les référentiels de plateforme
+
+**Décisions amendées :** D13
 
 **Le point, soumis avant d'être tranché.** Le ticket L0-08 demande une table de jours fériés « par territoire et par date, alimentée par seed ». Une telle table ne porte pas de `societe_id` : elle est donc un **référentiel de plateforme** au sens de la deuxième catégorie de I1 — dont la liste est **close**. Le §8 du CLAUDE.md interdit qu'une session la complète, et le gardien d'exhaustivité de D41 aurait fait échouer la vérification. La session s'est donc arrêtée et a soumis la question, comme D39, D40 et D41 avant elle.
 
@@ -1303,6 +1318,8 @@ n°7 ci-dessous. La table est couverte depuis le même ticket, et le gardien
 
 ## D52 — `utilisateur_societe` entre au périmètre de l'audit, et I8 énumère désormais des TABLES
 
+**Décisions amendées :** D32
+
 **Amendé par D55.**
 
 **La décision.** `utilisateur_societe` est journalisée. C'est la table des
@@ -1566,6 +1583,8 @@ l'emporte.
 
 ## D53 — Le périmètre d'audit n'a qu'une maison, et c'est celle que la machine lit
 
+**Décisions amendées :** D32
+
 **Amendé par D55.**
 
 **La décision.** Le périmètre du journal d'audit s'écrit **une seule fois**,
@@ -1610,6 +1629,8 @@ trouver » se ressemblent trait pour trait.
 
 ## D54 — La fenêtre de 24 heures et le rang du dernier lot sont supprimés
 
+**Décisions amendées :** D15
+
 **La décision.** **RG-IMP-02 est réécrite** : l'annulation d'un import n'est
 bornée **ni par un délai, ni par le rang du lot**. La règle « seul le dernier
 lot est annulable » est retirée de D15, et `import_lot.date_limite_annulation`
@@ -1648,6 +1669,8 @@ rend le critère calculable, et c'est pourquoi la borne peut tomber.
 *Note d'arbitrage n°8 — CODIPLAN — 1ᵉʳ septembre 2026*
 
 ## D55 — Le périmètre d'audit est INVERSÉ : audité par défaut, exempté par écrit
+
+**Décisions amendées :** D32, D52, D53
 
 **La décision.** **RG-DRO-04 est réécrite.** Le périmètre du journal d'audit
 cesse d'être une **liste d'admis** et devient une **règle avec exceptions** :
@@ -1806,6 +1829,8 @@ qu'aucune liste n'ait été touchée**.
 *Note d'arbitrage n°9 — CODIPLAN — 1ᵉʳ septembre 2026*
 
 ## D56 — Le temps de trajet ne voyage jamais seul : le site nomme son agence de rattachement
+
+**Décisions amendées :** D23
 
 *Ticket L1-02, 6 septembre 2026.*
 
@@ -2363,6 +2388,8 @@ cloisonnement, elle ne change aucune règle de gestion.*
 ---
 
 ### D71 — Le jeton QR est un SECRET, et il doit naître capable de l'être (09/09/2026)
+
+**Décisions amendées :** D7
 
 **Contexte.** L2-02 avait livré un jeton **dérivé** de l'`id` — `sha256` d'un domaine versionné —, en écrivant honnêtement ce qu'il était : *un identifiant, pas un secret*. La mesure le confirmait : résoudre un jeton n'ouvrait rien de plus, un compte hors périmètre ne résolvait pas la machine, et connaître le jeton équivalait à connaître l'`id`. La question était **inscrite** au registre : *RG-DRO-02 promet au technicien « la résolution par QR code » EN PLUS de son périmètre ; le jour où cette restriction sera implémentée, le jeton deviendra ce qui la LÈVE, c'est-à-dire un secret — et une dérivation publique cesserait de borner quoi que ce soit.*
 

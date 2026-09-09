@@ -883,7 +883,7 @@ dans la table `parite` ci-dessous.*
 |---|---|---|
 | id | uuid PK | |
 | societe_id | uuid FK | |
-| ~~reference_interne~~ | text | ~~Unique par société, porté par le QR~~ *(amendé le 09/09/2026 — L2-01. **Le QR encode le `qr_token`, jamais autre chose** (I10, D7) : cette ligne disait le contraire. `reference_interne` reste, NULLABLE, pour ce que D6 lui donne à porter — la référence que le technicien compose quand la plaque est illisible, `SN-INCONNU-<référence>`.)* |
+| reference_interne | text | **Unique par société lorsqu'elle est présente** — nullable, unicité par CONTRAINTE (D6, précisé le 10/09/2026 : la valeur est SAISIE, rien ne la rend unique sinon un index). ~~porté par le QR~~ *(amendé le 09/09/2026 — L2-01. **Le QR encode le `qr_token`, jamais autre chose** (I10, D7) : cette ligne disait le contraire. `reference_interne` reste, NULLABLE, pour ce que D6 lui donne à porter — la référence que le technicien compose quand la plaque est illisible, `SN-INCONNU-<référence>`.)* |
 | numero | integer | **Numéro AFFICHÉ**, attribué par le SERVEUR séquentiellement par société à la première synchronisation (D7, I10). `NULL` en attendant ; l'interface affiche alors `Local-<6 caractères>`. **Aucun code ne l'attribue à ce jour** — le compteur appartient à la synchronisation, lot 3 |
 | cree_le, modifie_le | timestamptz | |
 | modele_id | uuid FK | |
@@ -893,7 +893,7 @@ dans la table `parite` ci-dessous.*
 | date_mise_en_service | date | Facultatif à la création |
 | date_vente, facture_origine | date, text | |
 | garantie_fin | date | |
-| statut | enum | en_service, en_panne, arretee, remplacee, ferraillee |
+| statut | enum | en_service, en_panne, arretee, remplacee, ferraillee, **fusionnee** (D28 — la fiche absorbée par une fusion de doublons ; ajoutée le 10/09/2026, le rang 1 l'emportant sur l'énumération fermée à L2-01) |
 | criticite | enum | bloquante, importante, normale |
 | machine_remplacee_id | uuid FK | |
 | qr_token | text unique | |

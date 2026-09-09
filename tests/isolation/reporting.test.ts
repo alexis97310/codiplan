@@ -5,6 +5,7 @@ import {
   verifierRoleApplicatif,
   verifierRoleReporting,
 } from "@/lib/db/garde-role";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import {
   ecartsPrivilegesConsolidation,
@@ -114,6 +115,24 @@ describe("rôle de consolidation — ce qu'il NE PEUT PAS", () => {
 
     await expect(
       clientReporting().agence.deleteMany({ where: { societe_id: SOCIETE_A } }),
+    ).rejects.toThrow(/permission denied/i);
+  });
+
+  it("ne peut pas ÉCRIRE le journal des accès — la journalisation est l'affaire de l'APPLICATION (D21, précisé le 10/09/2026)", async () => {
+    // D21 disait « il n'a que SELECT » ET « toute requête passant par lui est
+    // journalisée » — journaliser est une écriture, et les deux ne peuvent pas
+    // être vrais du MÊME rôle. Ce qui les réconcilie est QUI écrit : c'est
+    // `avecConsolidation` (lib/reporting/connexion.ts), sur la connexion
+    // applicative, AVANT la requête de consolidation. Ce scénario tient la
+    // moitié que la base peut tenir : le rôle de consolidation ne peut pas
+    // écrire cette table. L'autre moitié — que l'application l'écrit bien —
+    // est le code lui-même, et le gardien statique de `connexion-reservee`.
+    await expect(
+      clientReporting().$executeRawUnsafe(
+        `INSERT INTO "journal_acces" ("id", "utilisateur_id", "evenement", "detail")
+         VALUES ($1::uuid, $1::uuid, 'requete_consolidation', 'tentative sous le rôle de consolidation')`,
+        uuidv7(),
+      ),
     ).rejects.toThrow(/permission denied/i);
   });
 

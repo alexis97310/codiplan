@@ -1308,6 +1308,12 @@ enum StatutMachine {
   arretee
   remplacee
   ferraillee
+  /// La fiche ABSORBÉE par une fusion de doublons (D28) — état terminal : hors
+  /// du parc actif, des contrats et des échéanciers ; garde son `qr_token`,
+  /// dont la résolution rend la SURVIVANTE. Seul producteur : la fusion de
+  /// L3-10. Ajoutée le 10/09/2026, le rang 1 l'emportant sur une énumération
+  /// fermée sans relire la décision qui la nommait.
+  fusionnee
 }
 
 /// Ce que l'arrêt de la machine coûte au client.
