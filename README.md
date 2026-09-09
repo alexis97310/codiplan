@@ -808,18 +808,12 @@ La protection ne tient donc pas au fichier de flux : elle tient à un **attribut
 ```
 app/          routes Next.js (App Router)
 components/   composants, dont components/ui pour shadcn/ui
-lib/          auth/  calendar/  clients/  db/  i18n/  machines/  money/
-              reporting/  sites/  theme/  utils.ts
+lib/          l'ÉNUMÉRATION des modules et ce que chacun porte est au
+              CLAUDE.md §6, et elle n'est pas recopiée ici — voir plus bas
               auth/amorcage.ts = le geste d'ouverture du PREMIER compte (D65),
               exception admise tant qu'aucun chemin administratif n'existe
               auth/deverrouillage.ts = L7-04, rompre la série de verrouillages
               d'un compte parvenu à l'escalade (D66) — sans ouvrir de lecture
-              clients/ = référentiel client (L1-01) : saisie Zod, dépôt cloisonné,
-              libellé du code externe paramétrable par société (D29)
-              sites/ = référentiel des sites d'intervention (L1-02) : saisie Zod,
-              dépôt cloisonné, zones géographiques de D23 — closes à l'entrée
-              serveur et délibérément pas en base
-              i18n/ = dictionnaire français + vocabulaire imposé (agence, site)
 prisma/       schema.prisma, migrations/, seed.ts, seed-data.ts, seed-delais.ts
 scripts/      inventaire, contrôle de cloisonnement (privilèges compris), horizon des fériés
               amorcage-premier-compte.mts = l'ouverture de la PREMIÈRE identité
@@ -829,17 +823,19 @@ tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanc
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
 
+> **L'énumération des modules de `lib/` A ÉTÉ RETIRÉE D'ICI le 11/09/2026, et elle n'est pas remplacée.** Elle était recopiée du CLAUDE.md §6, et elle avait **dérivé** : `lib/` porte **quinze** modules, ce bloc en nommait **dix** — `contacts/`, `excel/`, `habilitations/`, `materiel/` et `tarification/` manquaient, alors que la prose de ce même README les décrit plus bas. C'est le §9 du 01/09 en acte : _une liste close recopiée « pour la lisibilité » devient fausse le jour où la première grandit, sans rougir._ Le §6 la porte seul, et un gardien tient les deux sens, marque `(prévu)` comprise (`tests/unit/docs/organisation-du-code.test.ts`). **Retirer la seconde liste vaut mieux que la garder et la garder** — il n'y a plus rien à confronter.
+
 Le domaine métier s'écrit en français (`intervention`, `machine`, `societe`, `agence`), le code technique en anglais (`createIntervention`, `useSyncQueue`). Jamais mélangés dans un même identifiant.
 
 ## État d'avancement
 
 **Lot 0 terminé. Lot 1 livré jusqu'au bout de ce qu'il pouvait livrer** — ce qui reste y est **bloqué sur une décision**, jamais sur du travail :
 
-| Reste du lot 1                     | Ce qui bloque                                                                                                                                                                                                                                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **L1-08b** — le moteur d'import    | le §2 **ne nomme plus SheetJS** (amendé le 09/09/2026) : il exige une bibliothèque de lecture `.xlsx` **maintenue**. Les deux voies sont **mesurées et comparées** au registre du 09/09 — le choix engage la chaîne d'approvisionnement et appartient à l'exploitation |
-| **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                                                                           |
-| **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                                                                       |
+| Reste du lot 1                     | Ce qui bloque                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **L1-08b** — le moteur d'import    | le §2 **ne nomme plus SheetJS** (amendé le 09/09/2026) : il exige une bibliothèque de lecture `.xlsx` **maintenue**. **La comparaison est faite et tient en un mot** — [`docs/decisions/2026-09-11-lecture-du-classeur-comparaison.md`](docs/decisions/2026-09-11-lecture-du-classeur-comparaison.md) : quatre voies lues sur deux vrais fichiers, la condition de l'arbitrage **ne tranche pas nettement**, et la branche de repli est **impraticable** — `cdn.sheetjs.com` est refusé par le mandataire sortant des sessions. Le choix engage la chaîne d'approvisionnement et appartient à l'exploitation |
+| **L1-09** — modèles Excel          | même liaison                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **L1-10** — import de l'historique | dépend de L1-08b                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Ces deux chantiers-là sont **livrés depuis le 09/09/2026** : le **geste d'ouverture du premier compte** (D65) et **L7-04** (D66), qui en dépendait.
 
