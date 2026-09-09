@@ -2299,6 +2299,12 @@ Inventer une date d'effet écrirait une **histoire fausse** plutôt qu'une histo
 
 `societe.taux_horaire_defaut` est **retirée** le même jour (Q3) : elle était la seconde source d'un fait dont `taux_horaire` est désormais la seule.
 
+### Complément du 10/09/2026 — la date d'effet est ARRÊTÉE, et le mécanisme est un geste SÉPARÉ
+
+**La date d'effet est la mise en service de CODIPLAN** — décidée par l'exploitation le 09/09. Pour une société vendue plus tard, « le jour où elle entre en service » est le jour de son amorçage : la formule se généralise.
+
+**Le mécanisme n'est PAS le geste d'amorçage**, et c'est l'objection de la session que l'exploitation a retenue : un geste de sécurité qui écrirait un tarif couple deux défaillances sans rapport — un problème de tarif bloquerait le seul chemin d'entrée, ou le geste cesserait d'être atomique — et deux cliquets sans rapport dans un même geste finissent par être relus l'un pour l'autre. **`scripts/taux-initial.mts`** écrit la première ligne de `taux_horaire` à une date fournie (à défaut, le jour du geste dans le fuseau de la société), dans la devise de la société, et **refuse dès que la société porte un taux**. Ni le montant ni la date ne sont codés dans le dépôt. Même moment dans la procédure, même date en pratique, défaillances séparées.
+
 ---
 
 ## D69 — Les trois silences de D31, ratifiés ; et la paire du rapport, réparée

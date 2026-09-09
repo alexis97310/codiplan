@@ -422,6 +422,9 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
+              taux-initial.ts : le PREMIER taux d'une société, geste
+              d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
+              taux existe ; ni montant ni date codés ici, tous deux fournis
               forfaits.ts : RG-TAR-06, les trois axes d'un forfait (L1-06)
               l'ABSENCE de condition sur un axe n'est pas une condition qui
               échoue — un forfait sans zone s'applique partout, et c'est le cas
