@@ -109,7 +109,20 @@ Quatre catégories de tables, et quatre seulement.
 
 Pourquoi une catégorie à elle seule, et non la troisième. Une session expire, une vérification se consomme, un second facteur se révoque : ces tables sont **purgeables**. Une identité est **durable**, elle porte des **données personnelles**, et elle sera **exposée dans la console éditeur au lot 7**. Une future politique de purge des tables techniques ne doit jamais pouvoir emporter les identités : ce sont deux régimes de conservation, donc deux catégories.
 
-**Règle attachée, et c'est elle qui rend son non-cloisonnement acceptable : aucune donnée métier sur `utilisateur`.** Fonction, agence de rattachement, habilitations, préférences — tout cela vit dans `utilisateur_societe`, qui est cloisonnée. `utilisateur` ne porte que ce qui sert à **trouver et authentifier** un compte. Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne métier y apparaît.
+**Règle attachée, et c'est elle qui rend son non-cloisonnement acceptable : aucune donnée métier sur `utilisateur`.** Tout cela vit du côté cloisonné, et `utilisateur` ne porte que ce qui sert à **trouver et authentifier** un compte. Un gardien statique lit `prisma/schema.prisma` et échoue si une colonne métier y apparaît.
+
+**Et « du côté cloisonné » S'ÉNUMÈRE, avec la marque `(prévu)` du §6** *(réparé le 11/09/2026)*. La rédaction précédente disait « fonction, agence de rattachement, habilitations, préférences — tout cela **vit dans** `utilisateur_societe` » : au présent, comme un état. **Mesuré au schéma : `utilisateur_societe` porte `utilisateur_id`, `societe_id` et `role`, et rien d'autre.** Trois des quatre notions n'avaient aucune colonne nulle part — *la constitution affirmait un état que le schéma n'a pas*, ce qui est la pente du §9 du 07/09 appliquée à elle-même. La règle ne bouge pas d'un mot ; c'est son énumération qui devient exacte, et gardable :
+
+| Ce qui vit du côté cloisonné | Où, aujourd'hui |
+|---|---|
+| le rôle | `utilisateur_societe.role` |
+| les habilitations de technicien | `technicien_habilitation` *(L1-04)* |
+| le rattachement portail et son périmètre | `utilisateur_client`, `utilisateur_client_site` *(D10, D79)* |
+| la **fonction** | `(prévu)` — aucune colonne ne la porte |
+| l'**agence de rattachement** | `(prévu)` — la table `technicien` du chapitre 11 la porte, et **elle n'existe pas** ; D72 en dépend |
+| les **préférences** | `(prévu)` — aucune colonne ne la porte |
+
+**Les deux sens sont gardés**, comme au §6 : une colonne énumérée sans marque doit exister au schéma, et une notion marquée `(prévu)` qui recevrait une colonne rendrait la marque fausse le jour même. Voir `tests/unit/docs/donnees-du-cote-cloisonne.test.ts`.
 
 **Les quatre listes closes sont fermées** — les trois catégories énumérées ci-dessus et l'exception `CLOISONNEE_PAR_IDENTITE` — toute addition exige un arbitrage explicite, jamais une décision de session.
 

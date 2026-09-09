@@ -57,7 +57,7 @@ Mot de passe de `codiplan_reporting` dans `REPORTING_DATABASE_URL` seulement, et
 Second facteur obligatoire étendu à `admin_societe` — `admin_plateforme`, `admin_societe`, `direction` [D40], règle produit **RG-DRO-05**.
 `parite` rejoint les référentiels de plateforme, et surtout : **gardien d'exhaustivité** des catégories de I1, qui part du schéma et non des listes [D41].
 *Acceptation :* un test prouve qu'aucune requête applicative ne filtre sur `societe_id_source` ni `societe_id_cible` ; un test prouve que les trois refus rendent le même message et répondent dans le même ordre de grandeur de temps ; le contrôle de cloisonnement échoue si `codiplan_reporting` détient un privilège autre que `SELECT`, lu dans `information_schema.role_table_grants` ; les scénarios positifs et négatifs couvrent les dix rôles ; un gardien statique échoue si une colonne s'ajoute à `utilisateur` hors de sa liste close ; tout rôle capable d'administrer des utilisateurs exige un second facteur ; **toute table de `prisma/schema.prisma` appartient à exactement une catégorie de I1** — zéro comme deux font échouer la vérification.
-*Relu contre les sources citées le 01/09/2026 — empreinte `eb89ba53`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `fb44a35c`.*
 **L0-06c — `societe`, quatrième catégorie de cas. [D42]**
 Rédaction de la **première catégorie de I1** : `societe` fait exception à la forme, non au fond — étant la table que `societe_id` désigne, elle est cloisonnée par son identité (`id = app.societe_id`) [D42].
 Rien n'était ouvert : la politique existait depuis L0-04, `force-rls.test.ts` l'éprouvait, l'inventaire comptait `societe` parmi les tables cloisonnées. C'est la phrase de l'invariant qui était incomplète.
@@ -141,7 +141,7 @@ Arbitrage du 07/09/2026 : *les identités doivent être cloisonnées par la base
 **Ce qui reste ouvert, et qui n'est pas de ce ticket :** l'ouverture par la **console éditeur** de la première identité d'une société cliente (lot 7) — un rôle éditeur n'a aucune société active, elle exigera sa propre branche ; et les chemins de **modification en libre-service** (enrôlement du second facteur, vérification d'adresse), qui n'ont aujourd'hui aucune branche et qu'aucun flux mesuré n'emprunte.
 
 ~~**Ne se fusionne pas seule**~~ — L1-02b est partie seule le 07/09/2026, l'exploitation étant revenue sur sa propre règle : elle visait à ce que l'ARBITRAGE soit pris d'un bloc, pas à ce que le code attende. Vérifié avant la fusion : rien n'était à moitié armé — six variables réclamées, six posées.
-*Relu contre les sources citées le 07/09/2026 — empreinte `f9d0db84`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `b88998a0`.*
 
 **L1-02e** La POSE de la désignation, rendue gardable. **[D58] [D59]**
 Demande d'exploitation du 08/09/2026, et sa formulation est la borne : *« ce qui tient n'est pas la clé, c'est qu'aucun chemin ne laisse choisir sa valeur »* — **mais un invariant qui repose sur ce qu'aucun ticket futur ne fera est un invariant qui tombera, et sans bruit.**
