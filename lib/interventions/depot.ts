@@ -7,7 +7,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { verdictAffectation } from "@/lib/habilitations/affectation";
 import { montant, type Montant } from "@/lib/money";
-import { forfaitApplicable } from "@/lib/tarification/forfaits";
+import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 import { valoriserTempsPasse } from "@/lib/tarification/valorisation";
 
@@ -172,12 +172,19 @@ export async function creerIntervention(
 }
 
 /**
- * Le forfait de déplacement applicable, DÉDUIT de la zone du site.
+ * Le forfait de déplacement applicable, DÉDUIT de la ZONE DU SITE.
  *
- * La liste des forfaits est lue sous le contexte, puis filtrée par la règle
- * déjà écrite et déjà éprouvée de RG-TAR-06. **Le premier applicable l'emporte**
- * — le catalogue naît vide, et le jour où deux forfaits de déplacement se
- * disputeront la même zone, ce sera un arbitrage, pas un `orderBy` choisi ici.
+ * **De la zone, et jamais de l'agence** *(ratifié le 09/09/2026)* : une agence
+ * dessert plusieurs zones à des distances différentes, et faire porter le
+ * forfait par l'agence facturerait le même déplacement pour Nouméa et pour la
+ * brousse. Les conditions d'un forfait portent sur la zone, la famille et le
+ * type — jamais sur l'agence (RG-TAR-06, D23).
+ *
+ * **Le forfait retenu est celui de plus petit RANG** (D86). La lecture ordonne
+ * par rang, et la règle retrie : la garantie est ainsi portée par la RÈGLE et
+ * non par la lecture — un appelant qui oublierait le `orderBy` obtiendrait le
+ * même forfait. *« Le premier applicable » se lisait auparavant dans l'ordre de
+ * l'alphabet des codes, ce qui n'est pas une décision de tarification.*
  */
 async function forfaitDeDeplacement(
   tx: Prisma.TransactionClient,
@@ -188,19 +195,18 @@ async function forfaitDeDeplacement(
     where: { type: "deplacement", actif: true },
     select: {
       id: true,
+      rang: true,
       zone_geo: true,
       famille_id: true,
       type_intervention: true,
     },
-    orderBy: { code: "asc" },
+    orderBy: { rang: "asc" },
   });
-  const retenu = candidats.find((f) =>
-    forfaitApplicable(f, {
-      zone,
-      familleId: null,
-      typeIntervention,
-    }),
-  );
+  const retenu = forfaitRetenu(candidats, {
+    zone,
+    familleId: null,
+    typeIntervention,
+  });
   return retenu?.id ?? null;
 }
 

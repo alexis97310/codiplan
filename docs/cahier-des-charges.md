@@ -230,6 +230,7 @@ Le XPF n'a pas de décimale, l'EUR en a deux : le nombre de décimales est une p
 | Type | Déplacement, mise en service, contrôle, prestation packagée |
 | Montant | Dans la devise de la société |
 | Conditions d'application | Zone géographique, famille de matériel, type d'intervention |
+| Rang | Ordre d'application quand plusieurs forfaits conviennent — le plus petit l'emporte *(D86)* |
 | Heures incluses | Au-delà, bascule au taux horaire |
 | Cumulable | Avec le temps passé, ou exclusif |
 
@@ -865,6 +866,7 @@ dans la table `parite` ci-dessous.*
 | societe_id | uuid FK | |
 | code, libelle | text | |
 | type | enum | deplacement, mise_en_service, controle, prestation |
+| rang | int | **Ordre d'application quand plusieurs forfaits conviennent (D86)** — le plus petit l'emporte. Unique par `(societe_id, type, rang)` : l'égalité est un état interdit, refusé par la base |
 | montant | numeric | Dans la devise de la société |
 | heures_incluses | numeric | |
 | zone_geo | enum[] | Conditions d'application |

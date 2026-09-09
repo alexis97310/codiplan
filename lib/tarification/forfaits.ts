@@ -82,6 +82,15 @@ export const schemaForfait = z.object({
   type: z.enum(TYPES_FORFAIT),
 
   /**
+   * L'ORDRE D'APPLICATION, explicite et saisi (D86). Sans défaut : *le rang
+   * est une décision de tarification*, et une valeur par défaut serait une
+   * décision prise par personne — c'est le §9 du 24/08 sur les actions
+   * référentielles, appliqué à un nombre. Strictement positif, pour que « 1 »
+   * se lise « le premier ».
+   */
+  rang: z.number().int().positive(),
+
+  /**
    * Le montant, en unités les plus fines de la devise de la société. **Zéro est
    * permis** : une prestation offerte est un forfait à zéro, et c'est la façon
    * de la dire. Négatif, non — ce serait un avoir, qui n'est pas un forfait.
@@ -137,12 +146,28 @@ export type ConditionsForfait = {
  * satisfait pas** : on ne suppose pas ce qu'on ne sait pas. C'est le sens de
  * RG-TAR-06 — *le forfait ne s'applique QUE SI ses conditions sont remplies*, et
  * une condition qu'on ne peut pas vérifier n'est pas remplie.
+ *
+ * **« Aucune condition » a DEUX écritures, et c'est mesuré plutôt que supposé**
+ * *(09/09/2026)*. La saisie Zod l'écrit `null` ; la BASE ne le peut pas — une
+ * liste scalaire PostgreSQL n'est pas nullable, Prisma rend toujours un
+ * `String[]`, et l'absence de condition y est donc le tableau **VIDE**. Cette
+ * fonction ne voyait que la première : `[]` tombait dans la branche « une
+ * condition est posée », `[].includes(zone)` rendait `false`, et **le forfait
+ * général — celui qui n'a aucune condition de zone, c'est-à-dire le cas que ce
+ * module documente comme le plus courant — ne s'appliquait JAMAIS** par le
+ * chemin de production. Mesuré avant d'être corrigé, sur `forfaitApplicable`
+ * appelée avec la forme que Prisma rend.
+ *
+ * *C'est la frontière du §9 (08/09) : deux formes d'un même fait, dont une
+ * seule était lue — et le SQL, lui, n'en laissait rien voir.* La saisie
+ * refusant `[]` (`nonempty`), le vide en base ne peut vouloir dire qu'une
+ * chose, et les deux écritures se lisent ici **au même endroit**.
  */
 function axeSatisfait(
   condition: readonly string[] | null,
   valeur: string | null,
 ): boolean {
-  if (condition === null) {
+  if (condition === null || condition.length === 0) {
     return true;
   }
   return valeur !== null && condition.includes(valeur);
@@ -167,4 +192,80 @@ export function forfaitApplicable(
     ) &&
     axeSatisfait(forfait.type_intervention, intervention.typeIntervention)
   );
+}
+
+/**
+ * LE RANG — ce qui décide QUEL forfait l'emporte quand plusieurs s'appliquent
+ * *(arbitrage D86, 09/09/2026)*.
+ *
+ * **« Le premier applicable l'emporte » ne définissait pas « premier ».** La
+ * lecture ordonnait par `code`, ce qui est un ordre d'ALPHABET ; avant cela
+ * c'eût été l'ordre d'insertion, qui est un ordre de PASSÉ. Dans les deux cas,
+ * *deux interventions identiques se factureraient différemment selon un fait
+ * sans rapport avec le tarif* — la casse d'un code, ou la minute où quelqu'un a
+ * saisi une ligne six mois plus tôt. **Un tarif qui dépend de cela ne se défend
+ * pas devant un client.**
+ *
+ * Le rang est donc **explicite, stocké, modifiable** — une colonne que
+ * l'exploitation règle, jamais une propriété dérivée. **Le plus petit rang
+ * l'emporte** : on lit « rang 1 » comme « le premier », et un forfait plus
+ * spécifique s'insère devant sans renuméroter ce qui le suit.
+ *
+ * **L'ÉGALITÉ DE RANG EST UN ÉTAT INTERDIT, et c'est la BASE qui le refuse** —
+ * `@@unique([societe_id, type, rang])`. Deux raisons de préférer le refus au
+ * signalement : un contrôle qui signale laisse la facture partir, et *le rang
+ * ne se compare qu'entre forfaits de MÊME NATURE* — un déplacement n'est jamais
+ * en concurrence avec une prestation, et exiger un rang unique sur tout le
+ * catalogue obligerait à renuméroter des lignes sans rapport.
+ *
+ * **Ce que la base NE sait PAS refuser, et pourquoi on ne le lui demande pas.**
+ * L'énoncé exact — *« deux forfaits de même rang APPLICABLES AU MÊME CAS »* —
+ * est un recouvrement sur trois axes où **l'absence de condition vaut « toutes
+ * les valeurs »**. Une contrainte d'exclusion sur `zone_geo && zone_geo` dirait
+ * l'inverse : pour PostgreSQL, un tableau vide ne recouvre rien, alors qu'il
+ * signifie ici « partout ». Il faudrait encoder la négation dans la colonne, et
+ * *une contrainte dont l'expression inverse le sens de sa colonne est une
+ * contrainte que personne ne relit.* L'unicité du rang par nature est plus
+ * FORTE (elle interdit aussi les égalités entre forfaits disjoints), totale, et
+ * lisible — elle rend le cas litigieux **impossible** au lieu de le détecter.
+ */
+export type ForfaitCandidat = ConditionsForfait & {
+  readonly id: string;
+  readonly rang: number;
+};
+
+/**
+ * RG-TAR-06 — LE forfait applicable, celui de plus petit rang.
+ *
+ * **Le résultat ne dépend pas de l'ordre des candidats**, et c'est la propriété
+ * qui compte : la liste vient d'une requête, et une requête n'a pas d'ordre
+ * qu'on ne lui a pas demandé. Le tri est fait ici plutôt que dans le `orderBy`
+ * seul, de sorte que la garantie soit **portée par la règle** et non par la
+ * lecture — un appelant qui oublierait le `orderBy` obtiendrait le même
+ * forfait.
+ *
+ * L'égalité de rang étant refusée en base, l'ordre est **total** et il n'y a
+ * pas de départage à écrire. S'il en apparaissait un — une base restaurée sans
+ * sa contrainte, par exemple —, la fonction reste déterministe en départageant
+ * par `id`, ce qui vaut mieux qu'un résultat qui change d'une requête à
+ * l'autre ; ce n'est pas une règle de tarification, c'est un refus de rendre
+ * l'arbitraire invisible.
+ */
+export function forfaitRetenu<T extends ForfaitCandidat>(
+  candidats: readonly T[],
+  intervention: ConditionsIntervention,
+): T | null {
+  const applicables = candidats
+    .filter((forfait) => forfaitApplicable(forfait, intervention))
+    .sort((a, b) =>
+      a.rang === b.rang ? compare(a.id, b.id) : a.rang - b.rang,
+    );
+  return applicables[0] ?? null;
+}
+
+function compare(a: string, b: string): number {
+  if (a === b) {
+    return 0;
+  }
+  return a < b ? -1 : 1;
 }

@@ -484,6 +484,13 @@ lib/
               pour n'avoir pas à changer ce jour-là
               la liste des zones se LIT dans sites/zones.ts, jamais ne s'y
               recopie ; le catalogue naît VIDE, les valeurs sont à l'exploitation
+              le RANG décide quand plusieurs conviennent (D86) : explicite,
+              stocké, modifiable, le plus petit l'emporte — jamais l'ordre
+              d'insertion, jamais l'alphabet d'un code
+              l'égalité de rang est un état INTERDIT, refusé par la base sur
+              (societe_id, type, rang) : le rang ne se compare qu'entre pairs
+              « aucune condition » a DEUX écritures — `null` à la saisie, le
+              tableau VIDE en base — et les deux se lisent ICI
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
