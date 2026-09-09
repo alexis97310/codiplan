@@ -48,6 +48,7 @@ import {
 import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
+  type TableCloisonnee,
   decompteVide,
   ecartsAvecContexte,
   ecartsSansContexte,
@@ -155,19 +156,58 @@ import {
  * Sortie via `process.stdout.write` : `console.log` est banni (CLAUDE.md §5).
  */
 
-/** Décompte des tables cloisonnées visibles depuis le client fourni. */
+/**
+ * Décompte des tables cloisonnées visibles depuis le client fourni.
+ *
+ * **LES DEUX CÔTÉS DE LA COMPARAISON PORTAIENT LA MÊME CÉCITÉ** *(mesuré le
+ * 09/09/2026)*. Cette fonction comptait HUIT tables, l'inventaire en groupait
+ * sept, et `TABLES_CLOISONNEES` en compte vingt-deux : les quatorze autres
+ * restaient à zéro **des deux côtés**, si bien que la confrontation comparait
+ * zéro à zéro et concluait au vert. *Le seul contrôle qui regarde la base
+ * hébergée ne prouvait rien sur `site`, `machine` ni `intervention`* — les
+ * tables qui portent la forme « parc ».
+ *
+ * **Et réparer UN SEUL côté produit un rouge FAUX**, ce qui a été mesuré aussi :
+ * l'inventaire réparé annonçait 4 sites, celui-ci en voyait 0, et le message
+ * accusait la base — *« la société ne voit pas toutes ses propres lignes »* —
+ * alors que le rôle applicatif n'avait tout simplement pas été interrogé. **Une
+ * comparaison n'est réparée que des deux côtés à la fois.**
+ *
+ * La charge est renversée ici comme là : `Record<TableCloisonnee, …>` est
+ * EXHAUSTIF par construction, et une table ajoutée à la liste close ne compile
+ * plus tant que sa lecture n'est pas écrite.
+ */
 async function compterVisible(
   client: Prisma.TransactionClient,
 ): Promise<DecompteParTable> {
+  const lectures: Record<TableCloisonnee, () => Promise<number>> = {
+    societe: () => client.societe.count(),
+    client: () => client.client.count(),
+    site: () => client.site.count(),
+    contact: () => client.contact.count(),
+    agence: () => client.agence.count(),
+    calendrier: () => client.calendrier.count(),
+    calendrier_plage: () => client.calendrierPlage.count(),
+    calendrier_ferie: () => client.calendrierFerie.count(),
+    utilisateur_societe: () => client.utilisateurSociete.count(),
+    utilisateur_client: () => client.utilisateurClient.count(),
+    utilisateur_client_site: () => client.utilisateurClientSite.count(),
+    habilitation: () => client.habilitation.count(),
+    technicien_habilitation: () => client.technicienHabilitation.count(),
+    site_habilitation_requise: () => client.siteHabilitationRequise.count(),
+    famille_materiel: () => client.familleMateriel.count(),
+    modele_materiel: () => client.modeleMateriel.count(),
+    taux_horaire: () => client.tauxHoraire.count(),
+    machine: () => client.machine.count(),
+    forfait: () => client.forfait.count(),
+    intervention: () => client.intervention.count(),
+    technicien_calendrier: () => client.technicienCalendrier.count(),
+  };
+
   const decompte = decompteVide();
-  decompte.societe = await client.societe.count();
-  decompte.client = await client.client.count();
-  decompte.agence = await client.agence.count();
-  decompte.calendrier = await client.calendrier.count();
-  decompte.calendrier_plage = await client.calendrierPlage.count();
-  decompte.calendrier_ferie = await client.calendrierFerie.count();
-  decompte.utilisateur_societe = await client.utilisateurSociete.count();
-  decompte.utilisateur_client = await client.utilisateurClient.count();
+  for (const table of TABLES_CLOISONNEES) {
+    decompte[table] = await lectures[table]();
+  }
   return decompte;
 }
 
