@@ -615,6 +615,13 @@ model Site {
   /// La valeur saisie **fait foi** ; l'estimation par zone n'est qu'un défaut
   /// appliqué en son absence (D23). `NULL` est donc une valeur pleine : « je ne
   /// mesure pas, estime depuis la zone ».
+  ///
+  /// **DONNÉE DE PLANIFICATION, ET RIEN D'AUTRE (D74).** Elle sert au calcul
+  /// de charge et aux tournées. Elle ne s'ajoute JAMAIS aux heures facturées :
+  /// le déplacement se facture par un forfait conditionné par zone
+  /// (RG-INT-07, RG-TAR-06), et l'additionner aux heures facturerait le
+  /// déplacement deux fois. Écrit ici parce que c'est ici qu'on la lira le
+  /// jour où on voudra s'en servir.
   temps_trajet_min Int?
   actif            Boolean  @default(true)
 

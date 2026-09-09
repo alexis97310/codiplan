@@ -164,8 +164,10 @@ export const fr = {
   // d'une autre colonne ne voyage jamais seul, pas même à l'écran. Le mot
   // imposé n'y est pas écrit — voir « site.rattachement » ci-dessus.
   "site.temps_trajet_min": "Temps de trajet depuis le rattachement (minutes)",
+  // D74 : c'est une donnée de PLANIFICATION. L'aide le dit à celui qui saisit,
+  // pour que personne ne croie renseigner un temps facturable.
   "site.temps_trajet_min.aide":
-    "Laisser vide pour utiliser l'estimation par zone géographique.",
+    "Sert au calcul de charge et aux tournées, jamais à la facturation : le déplacement se facture par forfait de zone. Laisser vide pour utiliser l'estimation par zone géographique.",
   "site.actif": "Actif",
   "site.recherche.vide": "Aucun résultat ne correspond à cette recherche.",
   // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
@@ -207,6 +209,16 @@ export const fr = {
   "vocabulaire.site.pluriel": "Sites",
   "vocabulaire.site.definition":
     "Lieu d'intervention chez un client. Ses horaires produisent un avertissement, jamais un blocage. Ce n'est jamais un établissement CODIMA : celui-là est une agence.",
+  // ── Le TAUX D'OCCUPATION (D76) — le nom, et sa formule à côté du nom ──────
+  // Tout le temps passé en intervention compte, même non facturé — garantie,
+  // geste commercial, reprise, recensement. C'est une OCCUPATION, jamais un
+  // rendement : le mot « productivité » ferait décider sur un chiffre qui ne
+  // mesure pas ce qu'il laisse croire, et un gardien refuse qu'il entre ici.
+  "vocabulaire.taux_occupation": "Taux d'occupation",
+  "vocabulaire.taux_occupation.formule":
+    "heures d'intervention ÷ heures travaillées",
+  "vocabulaire.taux_occupation.definition":
+    "Part du temps travaillé passée en intervention, sur la période. Tout le temps d'intervention compte, facturé ou non — garantie, geste commercial, reprise, recensement. Ce n'est pas un rendement : rien n'y dit ce qui a été facturé.",
 
   // ── LES ANOMALIES D'IMPORT (L1-08, D31) ───────────────────────────────
   //

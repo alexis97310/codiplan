@@ -69,6 +69,12 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D56", "RG-PLA-05"],
   // D57 tranche l'arrondi au quart d'heure : PAR INTERVENTION (07/09/2026).
   ["D57", "RG-TAR-05"],
+  // D74 (nuit du 10/09/2026) : le trajet est un FORFAIT, le temps de trajet ne
+  // s'ajoute jamais aux heures facturées — RG-INT-07 laissait un contrat le
+  // facturer au temps, et RG-PLA-05 dit désormais que `temps_trajet_min` est
+  // une donnée de planification et rien d'autre.
+  ["D74", "RG-INT-07"],
+  ["D74", "RG-PLA-05"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

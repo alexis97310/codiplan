@@ -267,7 +267,7 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 Huit statuts : `A_PLANIFIER`, `PLANIFIEE`, `AFFECTEE`, `EN_COURS`, `SUSPENDUE`, `TERMINEE`, `CLOTUREE`, `ANNULEE`. `statut_facturation` est une colonne **distincte**.
 Matrice des transitions autorisées : voir D8 du document d'arbitrage.
 *Acceptation :* chaque transition hors matrice est refusée avec un message explicite ; `SUSPENDUE` peut revenir vers `A_PLANIFIER`, `PLANIFIEE` et `EN_COURS` ; tests sur RG-INT-01 à 11.
-*Relu contre les sources citées le 01/09/2026 — empreinte `eaff32ce`.*
+*Relu contre les sources citées le 10/09/2026 — empreinte `3ac22bd6`.*
 **L2-08** Interventions multi-machines et multi-techniciens. Machine facultative pour `expertise`, `installation` et **`recensement`** [D16].
 *Relu contre les sources citées le 01/09/2026 — empreinte `88a7dc5a`.*
 **L2-09** Valorisation. **[D11] [D12] [D45]**
@@ -282,13 +282,17 @@ Ordre : forfaits → heures excédentaires → majoration → total HT.
 
 ## Lot 3 — Planning et PWA (5 semaines)
 
-**L3-01** Vue calendrier ressources avec **Schedule-X** [D17], glisser-déposer, redimensionnement.
-*Relu contre les sources citées le 01/09/2026 — empreinte `9343bcce`.*
-**L3-02** Contrôles à la pose — **blocage strict** sur une habilitation **bloquante** absente ou expirée à la date d'intervention, **avertissement** sur une exigence non bloquante [D9], comme sur les autres contrôles. Voir RG-PLA-04.
-*Relu contre les sources citées le 01/09/2026 — empreinte `f05ec2b7`.*
+**L3-01** Vue calendrier ressources avec **Schedule-X** [D17], glisser-déposer, redimensionnement. **[D72]**
+**LE PLANNING EST UNE JOURNÉE, PAS UNE SEMAINE** (D72, 09/09/2026). La vue par défaut est le jour ; une intervention se pose sur un **créneau horaire** — début et fin en instants — sur le calendrier de travail du technicien affecté. Les horaires et jours travaillés se paramètrent **par agence** — `calendrier`, `calendrier_plage`, `calendrier_ferie`, qui existent depuis L0-08 : rien à ajouter pour eux — **avec exception par technicien, qui prime** : `technicien.calendrier_id` (nullable), sur la table `technicien` du chapitre 11 qui n'existe pas encore et porte l'agence de rattachement. Règle de priorité écrite une fois dans `lib/calendar` : horaires propres s'il en a, sinon ceux de son agence ; fériés et ponts toujours ceux de son agence ; agence sans calendrier ⇒ refus de poser, aucun horaire inventé (I7).
+*Dépend de :* la table `technicien` (utilisateur, société, **agence**, actif — chapitre 11), à créer au lot 3 avant l'écran.
+*Relu contre les sources citées le 10/09/2026 — empreinte `2f11cb5b`.*
+**L3-02** Contrôles à la pose — **blocage strict** sur une habilitation **bloquante** absente ou expirée à la date d'intervention, **avertissement** sur une exigence non bloquante [D9], comme sur les autres contrôles. Voir RG-PLA-04. **[D73]**
+**UNE AFFECTATION REFUSÉE S'AFFICHE ET NOMME SON MOTIF** (D73, 09/09/2026) : « habilitation BR absente », « habilitation CACES expirée le 12/08/2026 » — jamais « impossible ». Le planificateur lit déjà ces deux tables ; un refus qui lui cacherait ce qu'il a le droit de voir ne protège personne. Le message vient du dictionnaire et nomme le code de l'habilitation, jamais une donnée d'une autre société (D50).
+*Relu contre les sources citées le 10/09/2026 — empreinte `98564d12`.*
 **L3-03** File d'attente à planifier, tri par urgence et échéance.
 **L3-04** Absences, alerte de rupture de service à effectif unique, report groupé.
-**L3-05** Tournées — regroupement, ordonnancement, estimation des trajets.
+**L3-05** Tournées — regroupement, ordonnancement, estimation des trajets. **[D74]** L'estimation lit `site.temps_trajet_min`, **donnée de planification et rien d'autre** : le trajet ne s'ajoute jamais aux heures facturées, le déplacement se facture par forfait de zone (RG-INT-07, RG-PLA-05).
+*Relu contre les sources citées le 10/09/2026 — empreinte `a29dca26`.*
 **L3-06** Socle PWA — manifeste, service worker, installabilité. **Pas de notifications push** [3.19].
 **L3-07** Cache local — IndexedDB, dont **le parc complet des clients visités sous 7 jours** [D22].
 *Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
@@ -306,6 +310,10 @@ La fiche la plus ancienne survit ; le `qr_token` de l'absorbée **redirige** ver
 **L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.
 **L3-13** Saisie de rapport — checklist, temps, pièces, photos compressées, préconisations. Absence de checklist = condition satisfaite ; un point non conforme impose une préconisation [3.10].
 **L3-14** Signature client — `appareil_id` et `horodatage_terrain`, pas d'adresse IP [3.9].
+**L3-16** Écran « Sites ». **[D75]** Un client a plusieurs sites, dans des villes différentes — c'est le cas courant. La table, la saisie Zod et le dépôt existent depuis L1-02 ; il manque l'écran : sites d'un client, fiche, création, modification, avec le rattachement à l'agence et le temps de trajet présentés comme une donnée de planification (D74). *Acceptation :* un compte portail ne voit que les sites de son périmètre (RG-DRO-01) ; changer le rattachement sans revoir le temps de trajet est refusé à l'écran avec le message de D56.
+*Relu contre les sources citées le 10/09/2026 — empreinte `08be10cb`.*
+**L3-17** Le TAUX D'OCCUPATION par technicien. **[D76]** Par semaine : nombre d'interventions, et **heures d'intervention ÷ heures travaillées** — tout le temps d'intervention compte, facturé ou non. Le nom vient du dictionnaire (`vocabulaire.taux_occupation`, formule à côté), et **jamais « productivité »** — un gardien le tient. **DÉPEND de D72 / L3-01** : les heures travaillées sont celles du calendrier de travail du technicien, absences déduites (L3-04). *Acceptation :* une intervention de garantie compte dans le numérateur ; un technicien sans calendrier résolu n'a pas de taux — jamais zéro.
+*Relu contre les sources citées le 10/09/2026 — empreinte `7af72f40`.*
 **L3-15** Génération et envoi du PDF. **Validation systématique** avant diffusion [D24]. Le **PDF serveur fait foi** ; la version locale porte la mention « provisoire ». **Aucun montant** sur le rapport [3.8].
 *Acceptation :* contrôle visuel humain obligatoire — aucun test automatique ne remplace ce point.
 *Relu contre les sources citées le 01/09/2026 — empreinte `73c7382a`.*

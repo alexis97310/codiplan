@@ -48,6 +48,12 @@ export type FicheSite = {
   longitude: Prisma.Decimal | null;
   consignes_acces: string | null;
   horaires: Prisma.JsonValue | null;
+  /**
+   * DONNÉE DE PLANIFICATION, ET RIEN D'AUTRE (D74) : charge et tournées. Elle
+   * ne s'ajoute jamais aux heures facturées — le déplacement se facture par
+   * forfait de zone (RG-INT-07). Un appelant qui l'additionnerait aux heures
+   * facturerait le déplacement deux fois.
+   */
   temps_trajet_min: number | null;
   actif: boolean;
 };
