@@ -66,10 +66,12 @@ Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison 
 
 | Porte | État |
 | --- | --- |
-| `pnpm test` | **971 scénarios**, 0 échec |
+| **CI sur la fusion** | **verte** — `verify` réussi sur `5e48468`, 20:59:53 → 21:04:29 |
+| `pnpm test` | **982 scénarios**, 0 échec |
 | `pnpm test:isolation` | **523 scénarios**, 0 échec |
 | `pnpm typecheck` / `pnpm lint` / `format:check` | 0 erreur, 0 avertissement |
 | `pnpm build` | passe, **19 routes** |
+| `pnpm db:deploy` sur une base NEUVE | **46 tables** créées de rien — la promesse du §6 de la note de mise en ligne, vérifiée plutôt qu'annoncée |
 
 **CI verte sur `af22a91`** (run #353/#354, 20:13:34 → 20:19:01). Les runs des commits suivants étaient en cours à l'écriture de cette ligne.
 
@@ -159,7 +161,9 @@ La règle qui en sort est modeste exprès : **quand un écran est écrit, il est
 
 *Écrit en DERNIER et à la fin du fichier : une session neuve lit la fin d'un registre, pas son milieu.*
 
-**L'état :** la branche `claude/protocole-session-absent-79grtr` porte tout le travail du jour, poussée. La proposition de fusion est **#85**. Arbre propre.
+**L'état :** **#85 est FUSIONNÉE dans `main`** — `454b84b`, le 09/09/2026 à 21:05 UTC. CI verte sur `5e48468` avant la fusion : `verify` réussi, 20:59:53 → 21:04:29. Arbre propre, aucune proposition ouverte.
+
+*La ligne de la PR qui porte ce texte ne peut pas s'écrire avant d'être vraie : ce paragraphe est ajouté APRÈS la fusion, sur `main`.*
 
 **Les captures sont à `docs/captures/`** — 36 images, neuf écrans, deux thèmes, deux largeurs, et leur README porte l'empreinte du commit photographié.
 
@@ -171,5 +175,5 @@ La règle qui en sort est modeste exprès : **quand un écran est écrit, il est
 
 **Les deux premières choses à faire, dans cet ordre :**
 
-1. **Appliquer les deux migrations du jour à la base réelle**, par le flux `db-migrate.yml` — elles ne sont passées que sur une base locale jetable.
+1. **Appliquer les deux migrations du jour à la base réelle**, par le flux `db-migrate.yml` — elles ne sont passées que sur une base locale jetable, et sur une base NEUVE où elles construisent les 46 tables sans rien supposer.
 2. **Répondre sur le plancher par site et par jour** (§5). Une phrase suffit, et elle change ce qu'un client paie.
