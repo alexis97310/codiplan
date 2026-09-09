@@ -139,7 +139,13 @@ Chemin exact **en clics** pour les migrations, et un flux **Ouvrir le PREMIER co
 
 **UN SECOND DÉFAUT EST TOMBÉ AVEC LE PREMIER.** Le seed imprimait `CODIMA-EU — interventions de démonstration : 6` alors que **zéro** y était écrite : les identifiants de `INTERVENTIONS_DEMONSTRATION` sont **FIXES**, donc déjà pris par CODIMA-NC, et la seconde société les saute tous. Le compte était celui des lignes **prévues**, imprimé **avant** la boucle. Il est désormais celui des lignes **écrites** — `0 écrite(s) sur 6 prévue(s)` —, et l'écart se voit au lieu de se taire. **La collision d'identifiants n'est PAS réparée** : décider ce que la démonstration doit montrer à la seconde société appartient à l'exploitation, et c'est écrit plutôt que tu.
 
-*Vérifiable à la tête de la proposition #88.*
+**ET LA RÉPARATION D'UN SEUL CÔTÉ A PRODUIT UN ROUGE FAUX — mesuré dans l'heure qui a suivi.** Le flux rejoué avec l'inventaire réparé est tombé en **échec**, avec six lignes de la forme *« société CODIMA-NC, site : 4 ligne(s) attendue(s), 0 observée(s) — la société ne voit pas toutes ses propres lignes »*. **Le message accuse la base.** Or `scripts/controle-cloisonnement.mts` portait **la même cécité, sur les mêmes tables** : il comptait HUIT tables et laissait les quatorze autres à zéro. *Le rôle applicatif n'avait tout simplement pas été interrogé.*
+
+**La leçon tient en une phrase, et elle est écrite dans le code plutôt qu'au §9, dont le quota du jour est pris : une comparaison n'est réparée que des DEUX côtés à la fois.** Réparer le côté « attendu » seul transforme une cécité silencieuse en accusation fausse — et une accusation fausse contre le cloisonnement est le pire des deux, parce qu'elle fait chercher un trou qui n'existe pas.
+
+**Les deux côtés sont désormais exhaustifs par construction**, et le contrôle est **éprouvé en local sous le rôle applicatif** : CODIMA-NC lit **4 sites, 18 habilitations, 6 interventions** sous son contexte, exactement ce que l'inventaire compte. *Pour la première fois, le contrôle de la base hébergée vérifie vraiment `site`, `machine` et `intervention`* — vingt-deux tables au lieu de huit.
+
+*Vérifiable à la tête de la proposition #89.*
 
 ---
 
