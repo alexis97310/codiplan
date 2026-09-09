@@ -58,7 +58,7 @@ Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison 
 
 ### Les captures
 
-**32 images** — huit écrans × deux thèmes × deux largeurs — produites en parcourant les chemins **réels**. Le thème sombre suit désormais la préférence du système : `.dark` était une classe que personne ne posait.
+**36 images** — neuf écrans × deux thèmes × deux largeurs — produites en parcourant les chemins **réels**. Le thème sombre suit désormais la préférence du système : `.dark` était une classe que personne ne posait.
 
 ---
 
@@ -88,6 +88,11 @@ Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison 
 3. Le vocabulaire imposé a refusé « site » et « agence » écrits dans le dictionnaire — le code nomme la **notion**.
 4. Les couleurs de statut ont été **déplacées dans `lib/theme/`** : une couleur ne s'écrit en clair qu'à un seul endroit. C'est le gardien qui l'a dit, pas la relecture.
 5. Le chapitre 11 a exigé d'être complété pour les deux tables nouvelles.
+
+**DEUX DÉFAUTS N'ONT ÉTÉ VUS QU'EN REGARDANT LES IMAGES, et aucune assertion n'aurait pu les attraper.**
+
+1. **Trois lignes portaient le badge « À planifier » ET une date**, rangées parmi les posées. La règle de statut ne regardait que le créneau ; une intervention datée sans heure restait dans la file. *Chaque moitié était juste, et rien ne formulait qu'elles doivent s'accorder.* Corrigé, avec ses scénarios : « à planifier » veut dire « sans date », et rien d'autre.
+2. **`/sante` affichait « Sociétés : 0 » sur une base qui en portait deux.** Le compte se faisait sous la connexion applicative sans société active ; `societe` est de forme « identité » et `utilisateur` de forme « désignation », l'une comme l'autre rendant zéro. **Le chiffre était juste au sens de la requête et faux au sens où on le lisait** — un zéro se lit « installation vide ». La page dit désormais *« non lisible d'ici »* avec sa raison, et **c'est plus fort qu'un nombre** : que le décompte soit refusé prouve que le cloisonnement mord.
 
 **DEUX ÉPREUVES ONT CHANGÉ DE CIBLE, et c'est le signe que le mécanisme sert.** `liste-parc` et `perimetre-audit` prenaient `intervention` pour exemple d'une addition **non arbitrée**. D84 l'a arbitrée : garder cette cible aurait fait **cesser les deux épreuves de rejouer une violation** — elles auraient mesuré un cas devenu légitime, **en restant vertes**. C'est le §9 du 11/09, rencontré en chemin. Les deux visent désormais `contrat`, qui n'existe pas.
 
@@ -156,7 +161,7 @@ La règle qui en sort est modeste exprès : **quand un écran est écrit, il est
 
 **L'état :** la branche `claude/protocole-session-absent-79grtr` porte tout le travail du jour, poussée. La proposition de fusion est **#85**. Arbre propre.
 
-**Les captures sont à `docs/captures/`** — 32 images, huit écrans, deux thèmes, deux largeurs, et leur README porte l'empreinte du commit photographié.
+**Les captures sont à `docs/captures/`** — 36 images, neuf écrans, deux thèmes, deux largeurs, et leur README porte l'empreinte du commit photographié.
 
 **Ce qu'une session neuve doit savoir avant de mesurer quoi que ce soit :**
 
