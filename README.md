@@ -480,6 +480,16 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## La mise en ligne — une commande, une page, un geste
+
+`docs/mise-en-ligne.md` se suit **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt** : huit gestes numérotés en tête, et chaque section explique celui qui la précède. Trois variables d'environnement, avec **ce qui casse quand chacune manque** — et le symptôme exact quand `DATABASE_URL` est fausse, parce qu'il égare : _un `HTTP 500` sur une route d'authentification, qui se lit comme un bogue d'authentification alors que le journal dit `P1001`._
+
+Les migrations s'appliquent par **une seule commande**, `pnpm db:deploy`, sur une base neuve comme sur une base en service.
+
+**`/sante` répond sans compte**, et elle dit en clair : la base répond-elle, le rôle de connexion est-il le bon, les migrations sont-elles à jour et laquelle manque, combien de sociétés et de comptes. **Elle ne tombe jamais avec ce qu'elle surveille** — avec une base injoignable elle s'affiche quand même et répond « non », et un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute. _Une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien._ Et elle ne montre **jamais** d'adresse, de nom de base ni d'identifiant : elle est sans compte, donc lisible par n'importe qui.
+
+**La PWA n'est PAS installable, et rien n'y prépare** — mesuré le 09/09/2026 : ni `public/manifest.json`, ni agent de service, ni icône, ni répertoire `public/`. Ce n'est pas un réglage manquant, c'est le lot 3 (M7). Trois choses sont à écrire, dans cet ordre : un manifeste avec ses icônes, un agent de service qui met en cache la coquille de l'application, et la file de synchronisation hors ligne de I4 — la troisième est le vrai travail, les deux premières sont une heure.
+
 ## Le paramétrage par agence — parce qu'aucun calendrier n'est codé en dur
 
 I7 est catégorique : _Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. **Aucun calendrier global codé en dur.**_ Les horaires et les jours travaillés vivaient déjà dans `calendrier` et `calendrier_plage` depuis le lot 0. Il manquait le **pas des créneaux** — sans lui, la grille du planning aurait été une constante dans un composant, c'est-à-dire un réglage que personne ne peut changer — et le cas du **technicien dont la disponibilité n'est pas celle de son agence**.

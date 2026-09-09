@@ -259,6 +259,9 @@ pnpm test             # vitest
 pnpm test:isolation   # cloisonnement multi-société (bloquant)
 pnpm test:e2e         # playwright, dont le gardien hors-ligne
 pnpm db:migrate       # prisma migrate dev
+pnpm db:deploy        # prisma migrate deploy — LA commande de mise en ligne :
+                      # applique les migrations manquantes sur une base neuve
+                      # ou existante, sans jamais en réécrire une appliquée
 pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
 pnpm build            # build de production
 
@@ -332,6 +335,11 @@ app/
   (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
 lib/
   db/         client Prisma, contexte société, helpers RLS
+              sante.ts : l'état de l'installation, pour la page SANS COMPTE
+              /sante — il NE LÈVE JAMAIS : une sonde qui tombe en même temps
+              que ce qu'elle surveille ne surveille rien
+              et il ne rend aucun secret — ni hôte, ni base, ni identifiant :
+              le message brut d'un pilote nomme l'hébergeur et la région (D50)
               `app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la
               base dans la même transaction (D70) — jamais dérivée, la
               dérivation n'étant pas unique ; jamais crue, une désignation

@@ -394,6 +394,25 @@ export const fr = {
   "jour.5": "vendredi",
   "jour.6": "samedi",
   "jour.7": "dimanche",
+
+  // ── La page de santé, sans compte (mise en ligne) ─────────────────────────
+  "sante.titre": "État de l'installation",
+  "sante.sous_titre":
+    "Quatre questions, quatre réponses. Cette page ne demande aucun compte et ne montre jamais d'adresse, de nom de base ni d'identifiant.",
+  "sante.base": "La base de données répond",
+  "sante.role": "Le rôle de connexion est le bon",
+  "sante.role_explication":
+    "L'application doit se connecter avec un rôle non propriétaire, faute de quoi le cloisonnement entre sociétés ne s'applique pas.",
+  "sante.migrations": "Les migrations sont à jour",
+  "sante.migration_manquante": "Migration non appliquée",
+  "sante.societes": "Sociétés enregistrées",
+  "sante.comptes": "Comptes enregistrés",
+  "sante.oui": "oui",
+  "sante.non": "non",
+  "sante.inconnu": "inconnu",
+  "sante.tout_va_bien": "L'installation répond et paraît complète.",
+  "sante.quelque_chose_cloche":
+    "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

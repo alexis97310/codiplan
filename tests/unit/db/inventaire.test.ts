@@ -58,6 +58,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       modele_materiel: 1,
       machine: 1,
       intervention: 0,
+      technicien_calendrier: 0,
     },
     ...surcharge,
   };
@@ -90,6 +91,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         modele_materiel: 0,
         machine: 0,
         intervention: 0,
+        technicien_calendrier: 0,
       },
     }),
   ];
@@ -133,6 +135,7 @@ describe("inventaire à plat", () => {
       modele_materiel: 1,
       machine: 1,
       intervention: 0,
+      technicien_calendrier: 0,
     });
   });
 
