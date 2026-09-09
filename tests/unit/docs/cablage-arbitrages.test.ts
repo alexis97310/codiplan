@@ -75,6 +75,9 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // une donnée de planification et rien d'autre.
   ["D74", "RG-INT-07"],
   ["D74", "RG-PLA-05"],
+  // D83 (09/09/2026) ajoute le PLANCHER d'une heure à l'arrondi de D57, et
+  // écrit la portée — ni forfait, ni trajet, ni travail interne.
+  ["D83", "RG-TAR-05"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

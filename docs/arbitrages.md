@@ -714,6 +714,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 | **Lot 5** | **Repli de consolidation portable (D36)** : fonction `SECURITY DEFINER`, et mot de passe de `codiplan_reporting` déposé dans `REPORTING_DATABASE_URL`.<br>**ET DEUX GARDIENS DU LOT 0 LE REFUSERONT** *(inscrit le 31/08/2026, ticket R0-a, écart É1 de la revue R0)*. **La première ligne du repli portable fait passer `pnpm verify` au rouge, deux fois.** C'est le comportement voulu des deux gardiens ; ce qui manquait, c'est que le lot 5 le sache **avant** de commencer plutôt que de le découvrir dans l'urgence.<br>1. `motifRefusReporting` (`lib/db/garde-role.ts`) **refuse la connexion de consolidation quand `BYPASSRLS` manque** — « sans lequel la consolidation multi-sociétés ne lirait que la société active ». Or le repli de D36 existe **précisément pour l'hébergeur qui ne peut pas accorder `BYPASSRLS`** : le garde refusera donc exactement la configuration que le repli est fait pour servir. Remède prévu : `motifRefusReporting` distingue **chemin rapide** et **repli**, et n'exige `BYPASSRLS` que du premier.<br>2. `tests/unit/db/security-definer-sous-arbitrage.test.ts` **échoue sur toute fonction `SECURITY DEFINER` apparaissant dans une migration**, liste d'exceptions **close et vide**. Le repli **EST** une fonction `SECURITY DEFINER`. Remède prévu : D36 entre **nommément** dans la liste d'exceptions de D50 — ce qui est un arbitrage, pas une décision de ticket, et doit donc être pris avant l'écriture du repli. |
 | **Lot 7** | **Déblocage d'un `admin_societe` ayant perdu son second facteur (D40)** : exécutable par `admin_plateforme` seul, journalisé dans `journal_acces` |
 | Lot 7 | Opérateur SMS, structure juridique, plafond de responsabilité ; durcissement de la visibilité des comptes entre sociétés |
+| **Question POSÉE le 09/09/2026, sans réponse par défaut** *(D83)* | **Le plancher d'une heure s'applique-t-il PAR INTERVENTION, ou PAR SITE ET PAR JOUR ?** D83 pose le plancher et le laisse **par intervention**, comme l'arrondi de D57 — c'est-à-dire par la maille déjà tranchée, et non par un choix nouveau. **La conséquence chiffrée, mesurée :** deux interventions courtes sur le même site le même jour facturent **deux heures** ; sous la maille « site et jour » elles en factureraient **une**. Un facteur deux sur un mode d'exploitation ordinaire — la tournée qui repasse l'après-midi finir le matin. *Ce n'est pas une modalité d'implémentation : c'est le prix que paie un client, et c'est pourquoi rien n'est tranché ici.* Aucune valeur par défaut n'est déguisée en réponse : le code d'aujourd'hui applique la maille de D57, et le jour où l'exploitation répond « par site et par jour », c'est un **amendement de D83** et non un réglage. Déclencheur : la première facture réelle portant deux interventions le même jour sur le même site |
 
 ---
 
@@ -1887,6 +1888,10 @@ Le message nomme le verrou en toutes lettres, parce que Prisma n'expose pas le c
 
 ## D57 — L'arrondi au quart d'heure supérieur s'applique PAR INTERVENTION
 
+**Amendé par D83.**
+
+> *D83 (09/09/2026) — la MAILLE tranchée ici ne bouge pas ; D83 lui ajoute un **plancher d'une heure** et écrit la portée. La ligne « cinq passages de cinq minutes font 1 h 15 » devient donc **cinq heures** : c'est le plancher, pas un changement de maille.*
+
 *Décision d'exploitation, 7 septembre 2026. Ferme la question ouverte par D45, inscrite au registre avec pour échéance « avant L2-09 ».*
 
 **La question, telle qu'elle était posée.** D11 règle l'agrégation **à l'intérieur** d'une intervention — les lignes ne s'arrondissent pas une à une, le temps est cumulé par technicien puis arrondi. Il ne disait rien de **plusieurs interventions dans la même journée**. La question n'était pas une modalité d'implémentation : c'est le prix que paie un client, et les deux réponses ne donnent pas le même.
@@ -2583,3 +2588,52 @@ Un client a plusieurs sites, dans des villes différentes — c'est le cas coura
 **Pourquoi la forme « habilitation » et non « parc ».** La forme « parc » LIT `app.perimetre_sites` ; `utilisateur_client_site` est l'une des deux tables d'où cette variable est **calculée**. Lui donner la forme « parc » serait circulaire — *une politique qui lit la variable que sa propre lecture alimente ne se referme jamais.* Et lui laisser la clause de société seule était la fuite mesurée le 07/09 : un compte portail du client A lisait les habilitations des comptes du client B de la même société, et énumérait par là les autres clients.
 
 **Ce que la numérotation change.** Rien au fond : la table existe, la forme est posée, la ligne de D10 est barrée et datée depuis le 10/09. Elle rend la paire `D10 ← D79` tenable par la machine.
+
+---
+
+## D80bis — *(correction d'exploitation, 9 septembre 2026)* La veille atteint bien la base hébergée ; la limite du partitionnement reste couverte
+
+*Une ligne, et elle rectifie une consigne de l'exploitation.* Il avait été écrit que la veille n'atteignait plus la base hébergée et demandé que la limite du partitionnement soit déclarée à découvert : **c'était un état observable affirmé sans être observé** — la mesure l'a démenti, l'instruction est retirée, et la limite reste couverte comme elle l'était. *L'espèce est déjà au §9 du CLAUDE.md (07/09) ; rien n'y est ajouté.*
+
+---
+
+## D83 — Arrondi au quart d'heure supérieur ET plancher d'une heure, appliqués UNE SEULE FOIS sur l'intervention entière
+
+*Décision d'exploitation, 9 septembre 2026. Elle complète D57, qui avait tranché la MAILLE de l'arrondi sans jamais poser de plancher.*
+
+**Décisions amendées :** D57
+
+**CE QUI EST ARRÊTÉ.**
+
+RG-TAR-05 devient :
+
+> Le temps d'intervention est arrondi **au quart d'heure supérieur**. La main-d'œuvre facturée ne peut être inférieure à **une heure** au taux en vigueur. **Arrondi puis plancher s'appliquent une seule fois, sur l'intervention entière, jamais tâche par tâche.**
+
+**L'ordre est écrit, et il n'est pas indifférent à la relecture.** Arrondir puis plancher, dans cet ordre. Sur les valeurs d'aujourd'hui les deux ordres coïncident — le plancher, 60 minutes, est lui-même un multiple du pas de 15 — mais l'écrire fige la lecture, et le jour où le plancher cesserait d'être un multiple du pas, la règle resterait lisible au lieu de devenir ambiguë.
+
+**LA PORTÉE, écrite pour qu'elle ne dérive pas.**
+
+| Ce qui est valorisé | Arrondi | Plancher | Pourquoi |
+|---|---|---|---|
+| **temps passé** | oui | **oui** | c'est la main-d'œuvre facturée à l'heure, et le seul cas où les deux mordent |
+| **forfait** | sans objet | **non** | *le prix d'un forfait ne dépend pas de la durée* ; un plancher horaire facturerait une heure par-dessus un prix déjà convenu |
+| **trajet** | sans objet | **non** | non facturé à l'heure — c'est une donnée de planification (D74, RG-PLA-05) |
+| **travail interne** | sans objet | **non** | facturé à personne |
+
+**Une intervention étalée sur deux jours reste UNE intervention** : un seul arrondi, un seul plancher. C'est la conséquence directe de « sur l'intervention entière », et elle est écrite parce que c'est le cas où la relecture hésite.
+
+**Ce que D83 ne change pas de D57.** La maille reste l'intervention, jamais la journée : cinq passages de cinq minutes chez le même client dans la même journée sont cinq interventions. Avec le plancher, ils facturent désormais **cinq heures** là où D57 seul en facturait 1 h 15 — l'écart avec la lecture « par journée » (30 minutes, écartée) s'agrandit encore, et c'est voulu : un déplacement a un coût que la durée du geste ne mesure pas.
+
+**OÙ CELA VIT DANS LE CODE.**
+
+`lib/tarification/valorisation.ts` — le domaine tarifaire, pas `lib/calendar` (qui répond à « quand ») ni `lib/money` (qui formate et calcule sans décider ce qu'on facture). Le module n'expose **aucune** fonction générale « valoriser une intervention » : il expose la valorisation du **temps passé**, et l'appelant doit avoir décidé du mode avant de l'appeler. *Une fonction qui aurait accepté un mode en argument aurait porté la composition forfait + heures excédentaires, qui n'est pas tranchée et reste au registre.*
+
+**LE JUMEAU QUI COMPTE, et il est double.**
+
+**12 minutes facturent une heure** ; **3 h 47 facturent 4 h 00**. Aucun des deux ne suffit seul : le premier passe déjà si l'on n'a écrit que le plancher — l'arrondi (12 → 15) y est invisible ; le second passe déjà si l'on n'a écrit que l'arrondi — le plancher ne mord pas à 227 minutes. *Si l'un passe sans l'autre, la règle est mal posée.* Les deux mises en échec sont écrites à côté d'eux, chacune rejouant la règle amputée de la moitié que l'autre éprouve. `tests/unit/tarification/valorisation.test.ts`.
+
+**CE QUI RESTE OUVERT, et n'est pas tranché ici.**
+
+**Deux interventions courtes sur le même site le même jour facturent aujourd'hui deux heures.** Le plancher s'applique **par intervention**, comme l'arrondi de D57. La question — *le plancher s'applique-t-il par intervention, ou par site et par jour ?* — est inscrite au registre « Ce qui reste à décider » **sans réponse par défaut déguisée** : la conséquence chiffrée est écrite là-bas, et c'est l'exploitation qui tranchera.
+
+**Règles amendées :** RG-TAR-05

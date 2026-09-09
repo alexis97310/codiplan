@@ -50,6 +50,9 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   ["D32", "D55"],
   ["D52", "D55"],
   ["D53", "D55"],
+  // D83 (09/09/2026) ajoute le PLANCHER d'une heure à la maille tranchée par
+  // D57 : la maille ne bouge pas, le prix change.
+  ["D57", "D83"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

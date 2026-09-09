@@ -435,6 +435,13 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
+              valorisation.ts : RG-TAR-05 amendée par D83 — arrondi au quart
+              d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE SEULE
+              FOIS sur l'intervention entière et jamais tâche par tâche
+              aucune fonction « valoriser une intervention » : le mode est
+              décidé par l'appelant, la composition forfait + excédent n'étant
+              pas tranchée — et le plancher ne vise NI le forfait, NI le
+              trajet, NI le travail interne, aucun n'étant facturé à l'heure
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis
