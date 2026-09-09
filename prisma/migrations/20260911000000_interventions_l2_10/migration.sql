@@ -5,6 +5,15 @@
 -- arbitrages D10, D22, D49, D55, D81.
 -- ═══════════════════════════════════════════════════════════════════════════
 --
+-- **Le préfixe `20260911000000` est un ORDRE, pas une date.** Il doit suivre
+-- `20260910020000`, qui crée des tables dont celle-ci dépend ; le renommer en
+-- `202609090…` la ferait passer AVANT elles, et la migration échouerait. Les
+-- deux migrations qui la précèdent portent elles-mêmes une date postérieure au
+-- jour où elles ont été écrites — même dérive que celle mesurée sur les
+-- registres (`tests/unit/docs/dates-des-registres.test.ts`). *Celle-ci a été
+-- écrite le 9 septembre 2026, date LUE et confirmée par une horloge
+-- extérieure.*
+--
 -- ## Pourquoi ces trois tables ensemble
 --
 -- Le planning est le cœur du produit, et il n'existait AUCUNE table pour le

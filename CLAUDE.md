@@ -120,7 +120,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 | les habilitations de technicien | `technicien_habilitation` *(L1-04)* |
 | le rattachement portail et son périmètre | `utilisateur_client`, `utilisateur_client_site` *(D10, D79)* |
 | la **fonction** | `(prévu)` — aucune colonne ne la porte |
-| l'**agence de rattachement** | `technicien.agence_id` *(L2-10)* — la table du chapitre 11 existe depuis le 11/09/2026, et sa marque est tombée le jour même. D72 ne dépend plus d'une absence |
+| l'**agence de rattachement** | `technicien.agence_id` *(L2-10)* — la table du chapitre 11 existe depuis le 09/09/2026, et sa marque est tombée le jour même. D72 ne dépend plus d'une absence |
 | les **préférences** | `(prévu)` — aucune colonne ne la porte |
 
 **Les deux sens sont gardés**, comme au §6 : une colonne énumérée sans marque doit exister au schéma, et une notion marquée `(prévu)` qui recevrait une colonne rendrait la marque fausse le jour même. Voir `tests/unit/docs/donnees-du-cote-cloisonne.test.ts`.

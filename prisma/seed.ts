@@ -509,7 +509,7 @@ async function seed(): Promise<void> {
   if (process.env[VARIABLE_SANS_IDENTITES] === "oui") {
     // ── LA PORTE D'AMORÇAGE, ET POURQUOI CE DRAPEAU EXISTE ────────────────
     //
-    // **Mesuré le 11/09/2026 : un `pnpm db:seed` sur une base neuve laisse une
+    // **Mesuré le 09/09/2026 : un `pnpm db:seed` sur une base neuve laisse une
     // base sans AUCUN compte connectable.** Les identités de démonstration
     // sont écrites — quatre `utilisateur`, cinq `utilisateur_societe` — mais
     // aucune ne porte de moyen de connexion : ouvrir un compte est un acte

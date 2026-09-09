@@ -2639,7 +2639,11 @@ Un client a plusieurs sites, dans des villes différentes — c'est le cas coura
 
 ## D82 — `intervention` entre au PARC, `intervention_temps` inaugure la forme « FILIATION »
 
-*Décision de session du 11 septembre 2026, prise sous protocole de nuit, ticket L2-10. Réversible, et sa condition de réouverture est écrite.*
+*Décision de session du 9 septembre 2026, prise sous protocole de nuit, ticket L2-10.*
+
+*La date est LUE (`date -u`), et confirmée par une horloge extérieure : la dernière exécution planifiée de la CI, lue par l'API de GitHub, est datée du `2026-09-08T15:13:34Z`. Les registres du dépôt portaient des dates postérieures d'un à deux jours — voir `tests/unit/docs/dates-des-registres.test.ts`.*
+
+*Ticket L2-10. Réversible, et sa condition de réouverture est écrite.*
 
 **Décisions amendées :** D10
 

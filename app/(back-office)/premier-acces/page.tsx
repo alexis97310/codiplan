@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n/fr";
  * LE PREMIER ACCÈS (ticket L2-15) — la page que l'URL d'amorçage désignait
  * depuis D65, et qui n'existait pas.
  *
- * **Mesuré le 11/09/2026 : l'URL imprimée par `scripts/amorcage-premier-compte`
+ * **Mesuré le 09/09/2026 : l'URL imprimée par `scripts/amorcage-premier-compte`
  * conduisait à un 404.** Le compte s'ouvrait, la porte se refermait derrière
  * lui, et personne ne pouvait s'en servir — *une garantie qu'on ne peut pas
  * emprunter n'en est pas une.*

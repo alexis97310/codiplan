@@ -29,6 +29,41 @@ pnpm install
 pnpm dev            # http://localhost:3000
 ```
 
+### Ouvrir un écran sur une base neuve — l'ORDRE compte
+
+Un `pnpm db:seed` seul laisse une base **sans aucun compte connectable**, et ce
+n'est pas un défaut : les identités de démonstration n'ont pas de moyen de
+connexion — ouvrir un compte est un acte administratif (D65) — et leur seule
+présence **referme** la porte d'amorçage, qui n'ouvre que la PREMIÈRE identité
+d'une société. Les deux règles sont justes ; c'est leur rencontre qui bloque.
+`SEED_SANS_IDENTITES` ouvre l'ordre qui manquait :
+
+```bash
+pnpm db:migrate
+SEED_SANS_IDENTITES=oui pnpm db:seed           # sociétés, référentiels, parc
+
+TAUX_INITIAL_CONFIRME=oui pnpm tsx scripts/taux-initial.mts \
+  --societe <uuid-societe> --montant 9500      # sinon la fiche affiche « non figé »
+
+AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm tsx scripts/amorcage-premier-compte.mts \
+  --societe <uuid-societe> --email vous@exemple.test --nom "Vous" --role adv
+# → imprime UNE FOIS l'URL de premier accès ; elle mène à /premier-acces
+
+pnpm db:seed                                   # identités, planning, temps pointé
+pnpm dev
+```
+
+**Deux pièges, tous deux mesurés le 9 septembre 2026 :**
+
+- **`DATABASE_URL` doit porter le rôle APPLICATIF `codiplan_app`**, jamais le
+  propriétaire. Sous le propriétaire, `garantirRoleApplicatif` refuse — c'est son
+  travail — puis **ferme le client partagé** : toute page authentifiée rend alors
+  500 avec `Response from the Engine was empty`, et le message ne dit pas
+  pourquoi.
+- **`--role adv`** pour atteindre un écran sans passer par l'enrôlement du second
+  facteur. `admin_plateforme`, `admin_societe` et `direction` l'exigent, et c'est
+  voulu : la page d'arrivée redirige vers `/enrolement` tant qu'il manque.
+
 ## Commandes
 
 ```bash
@@ -40,6 +75,11 @@ pnpm test             # vitest, projet « unit »
 pnpm test:isolation   # vitest, projet « isolation » — cloisonnement multi-société
 pnpm test:e2e         # playwright
 pnpm build            # build de production
+
+pnpm db:migrate       # prisma migrate dev
+pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
+                      # SEED_SANS_IDENTITES=oui saute les identités de
+                      # démonstration, pour laisser la porte d'amorçage ouverte
 
 pnpm verify           # format:check + typecheck + lint + test + test:isolation + build
                       # → porte de sortie de CHAQUE TICKET
@@ -465,6 +505,38 @@ Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, a
 **Et la lecture ne contrôle PAS la forme du jeton.** Le jeton lu est une donnée **stockée** : contrôler sa forme lierait les scans d'aujourd'hui à la génération d'aujourd'hui, et le jour où celle-ci changerait de longueur, les étiquettes déjà collées cesseraient de se résoudre **en silence**. Seule une borne de **taille** demeure.
 
 **L'impression des étiquettes n'est pas construite** — la GÉNÉRATION l'est. Ce qui manque n'est pas un format mais un **fait de terrain** : planches autocollantes standard, ou imprimante portable dédiée. C'est la question ouverte n° 6 du cahier des charges.
+
+## Les écrans — et la charte qui les tient
+
+**`docs/charte-visuelle.md` est de rang 1**, au même titre que les arbitrages :
+tout écran s'y adosse, et **aucune couleur n'est écrite en dur dans un
+composant**. La palette entière tient dans `app/jetons.css` — le SEUL fichier du
+dépôt où une valeur de couleur s'écrit —, et `tests/unit/theme/charte-jetons.test.ts`
+refuse une couleur ailleurs.
+
+_Ce gardien est plus étroit que celui de L0-09, et délibérément : celui-là exempte
+une FORME d'écriture — une couleur est licite dans une déclaration de variable —,
+si bien qu'écrire `--rouge-provisoire: #f00` dans n'importe quelle feuille
+passait. Celui-ci exempte UN FICHIER, ce qui se compte et se relit._
+
+Six écrans, tous sur données réelles :
+
+| Écran                    | Ce qu'il prouve                                                                                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/planning`              | pas de 15 minutes, heures tirées du calendrier de l'agence — ou du technicien quand il en a un (D72) ; les cinq natures de bloc ; le trajet VISIBLE et marqué non facturé (D74) ; une affectation refusée affichée à sa place avec sa raison (D73) |
+| `/interventions/<id>`    | temps réel, temps facturé, l'arrondi énoncé À L'ENDROIT où il s'applique, main-d'œuvre au taux figé à la qualification, forfaits, total hors taxes                                                                                                 |
+| `/clients`               | le trajet rendu AVEC son rattachement, jamais seul (D56) ; les forfaits dont les conditions sont remplies (RG-TAR-06)                                                                                                                              |
+| `/techniciens`           | l'EFFET d'une échéance et non la date seule ; le taux d'occupation avec sa formule et ses quatre composantes, jamais le pourcentage seul (D76)                                                                                                     |
+| `/arrivee`, `/connexion` | qui vous êtes, pour quelle société — et rien d'autre                                                                                                                                                                                               |
+| `/premier-acces`         | la page vers laquelle l'amorçage pointait depuis D65, et qui n'existait pas                                                                                                                                                                        |
+
+**Aucun montant n'est calculé dans un composant.** Tout vient de
+`lib/tarification/valorisation.ts`, et arrive formaté par `formatMoney` : la
+devise décide des décimales (I3).
+
+**L'arrondi est au QUART d'heure supérieur** (RG-TAR-05 amendée par D57), une
+seule fois sur l'intervention entière, le temps cumulé PAR TECHNICIEN avant
+l'arrondi (D11). _Cinq passages de cinq minutes font 1 h 15, jamais 30 minutes._
 
 ## Le chapitre 11 nomme-t-il toute table qui existe ?
 

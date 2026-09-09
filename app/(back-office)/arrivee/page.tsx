@@ -10,7 +10,7 @@ import { t } from "@/lib/i18n/fr";
  * PAGE D'ARRIVÉE (ticket L1-02f) — qui vous êtes, pour quelle société.
  *
  * **Elle porte désormais une NAVIGATION, et c'est un changement daté du
- * 11/09/2026.** Sa rédaction disait « pas de navigation, pas de menu : chaque
+ * 09/09/2026.** Sa rédaction disait « pas de navigation, pas de menu : chaque
  * donnée de plus serait un écran de lot 2 écrit en avance ». Les écrans du lot
  * 2 existent ; la phrase est devenue fausse le jour où ils ont été construits,
  * et un point d'entrée qui ne mène nulle part est un cul-de-sac, pas une
