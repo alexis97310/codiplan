@@ -92,6 +92,12 @@ export async function avecContexteApplicatif<T>(
       role: actif.role,
       auteurId: actif.utilisateurId,
       adresseIp: actif.adresseIp,
+      // LA DÉSIGNATION (D70). `exigerContexteActif` a déjà refusé les deux
+      // appariements fautifs — un compte portail sans client, un rôle interne
+      // avec —, et `app_poser_perimetre_client` refusera la POSE si ce client
+      // n'est pas habilité pour ce compte. *L'appelant désigne, la base
+      // dispose.*
+      clientId: actif.clientId,
     },
     travail,
   );

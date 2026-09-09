@@ -597,20 +597,30 @@ portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les
 habilitations de sa société, ce qu'une clause « sa propre ligne » sans
 discriminant lui aurait retiré.
 
-> **`app.client_id` n'a aujourd'hui aucun poseur de production, et le chemin du
-> portail est donc FERMÉ par un refus** _(09/09/2026)_. La forme « parc » traite
-> une valeur vide comme « utilisateur interne » : le filtre de client
-> **disparaît**. Or `avecContexteApplicatif` — le seul chemin de production qui
-> ouvre une transaction cloisonnée depuis une session — ne peut pas la
-> renseigner, `ContexteSession` ne portant aucun champ de client. Mesuré sur la
-> base jetable, sous `codiplan_app` et après deux témoins : un compte portail du
-> client `c2` lit **2 machines du client `c1`** ; le même contexte avec
-> `app.client_id` posé rend **0**. `motifRefusContexte` refuse donc le rôle du
-> portail — quatrième motif —, et `tests/isolation/portail-sans-client.test.ts`
-> le montre tomber. _Le gardien de L1-02b vérifie qu'une variable est **posée**,
-> pas qu'elle est **renseignable**._ D'où doit venir `client_id` — de l'appelant
-> ou de la base, comme `app.perimetre_sites` — est une question **inscrite** au
-> registre du 09/09 (§13), pas tranchée.
+> **`app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la base**
+> _(D70, 09/09/2026)_. La forme « parc » traite une valeur vide comme
+> « utilisateur interne » : le filtre de client **disparaît**. Or
+> `avecContexteApplicatif` — le seul chemin de production qui ouvre une
+> transaction cloisonnée depuis une session — ne savait pas la renseigner.
+> _Mesuré sur la base jetable, sous `codiplan_app` et après deux témoins : un
+> compte portail du client `c2` lisait **2 machines du client `c1`** ; le même
+> contexte avec `app.client_id` posé rendait **0**._
+>
+> Ni « l'appelant fournit » ni « la base dérive » — **un faux couple**. La
+> dérivation n'est pas unique : `utilisateur_client` porte
+> `UNIQUE (utilisateur_id, client_id)`, un compte tient légitimement plusieurs
+> clients d'une même société (éprouvé en base). Et une valeur venue de
+> l'extérieur ne borne rien sans validation (L1-02e). **L'appelant DÉSIGNE, la
+> base DISPOSE** : `ContexteSession.clientId` dit pour quel client le compte
+> agit ; `app_poser_perimetre_client` — `SECURITY INVOKER`, donc lue sous les
+> politiques de l'appelant — **lève** si ce client n'est pas parmi ses
+> habilitations, et ne retombe jamais sur la chaîne vide, qui rouvrirait la
+> branche « utilisateur interne ». L'**ordre** est décidé : la variable est
+> posée avant d'être validée, parce que valider d'abord ferait lire sous le
+> régime de l'utilisateur interne. L'appariement rôle ↔ client est fermé **des
+> deux côtés**, et `tests/isolation/designation-client.test.ts` le montre
+> tomber. _Le gardien de L1-02b vérifie qu'une variable est **posée** ; il ne
+> vérifiait pas qu'elle est **renseignable**._
 
 `scripts/lib/politiques-rls.ts` porte la règle, partagée par
 `tests/isolation/politiques-rls.test.ts` et le contrôle de la base hébergée. Elle

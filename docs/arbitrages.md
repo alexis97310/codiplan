@@ -2312,3 +2312,28 @@ Quand une colonne obligatoire manque **et** qu'un en-tête inconnu lui ressemble
 **La ressemblance ne déplace RIEN.** Elle n'apparie pas, ne lit aucune colonne, ne change aucune donnée : elle ne fabrique qu'une phrase. *Une tolérance choisit ; une explication décrit.* Un scénario le mesure explicitement — après le message, la colonne reste **illisible** —, parce que c'est exactement là que la réparation pourrait se transformer en la décision que l'exploitation vient de refuser.
 
 Deux formes de ressemblance, choisies sur ce qu'un tableur produit réellement : la même chaîne **à la casse, aux accents et à la ponctuation près**, et la **faute de frappe** jusqu'à deux caractères sur un nom assez long pour que ce ne soit pas un hasard. Et **un intrus n'explique qu'une seule colonne manquante** : sans cette borne, un fichier ayant perdu sa ligne d'en-têtes verrait le même intrus cité partout.
+
+---
+
+### D70 — L'appelant désigne, la base dispose : la pose de `app.client_id` (09/09/2026)
+
+**Contexte.** Le registre du 09/09 (§13) a mesuré qu'`app.client_id` — la variable dont dépend le cloisonnement du portail — **n'avait aucun poseur de production**. `ContexteSession` ne portait aucun champ de client, et la forme « parc » traite une valeur vide comme « utilisateur interne » : le filtre disparaît. *Mesuré sous `codiplan_app`, après deux témoins (rôle non privilégié, zéro ligne sans contexte) : un compte portail du client `c2` lisait **2 machines du client `c1`** ; le même contexte, `app.client_id` posé, rendait **0**.* Le registre posait la question comme un couple — l'appelant fournit, ou la base dérive.
+
+**C'en était un FAUX, et la mesure le dit.** *Pas la base seule* : la dérivation n'est pas unique. `utilisateur_client` porte `UNIQUE (utilisateur_id, client_id)` et non `(utilisateur_id, societe_id)` — **éprouvé en base : une seconde habilitation insérée pour le même compte dans la même société est acceptée, et il en porte alors deux.** La base ne peut pas choisir sans inventer une règle que personne n'a décidée. *Pas l'appelant seul* : c'est l'invariant que L1-02c et L1-02e ont protégé — une valeur qui désigne ne vient jamais de l'extérieur sans être validée.
+
+**Décision.** **L'appelant DÉSIGNE, la base DISPOSE.** `ContexteSession` porte un champ `clientId` **obligatoire** — le compte dit pour quel client il agit —, et `app_poser_perimetre_client(utilisateur, client)` refuse la pose si ce client ne figure pas parmi les habilitations actives de ce compte, **dans la même transaction que la pose**. C'est exactement la forme de `app.societe_id`, et la seule qui compose les deux contraintes au lieu d'en sacrifier une.
+
+**Trois propriétés, chacune décidée et non subie.**
+
+**Elle LÈVE, elle ne rend jamais un contexte vide.** Une désignation refusée qui retomberait sur la chaîne vide rouvrirait la branche « utilisateur interne » et ouvrirait tout le parc — le trou même qu'on ferme. L'exception annule la transaction entière ; un scénario mesure que le travail ne commence même pas.
+
+**Elle est `SECURITY INVOKER`, et c'est le cœur.** Sa lecture de `utilisateur_client` est soumise aux politiques de l'appelant : elle ne peut confirmer qu'une habilitation qu'il a lui-même le droit de voir. Une fonction `DEFINER` aurait validé contre la table entière, et la désignation serait redevenue une parole sur l'honneur — outre qu'un gardien statique la refuse (D50).
+
+**L'ORDRE des deux gestes est une décision.** `app.client_id` est posée **avant** d'être validée. La politique « habilitation » s'écrit *société ET (`app.client_id` absent OU ma propre ligne)* : valider d'abord ferait lire sous la branche « absent », c'est-à-dire sous le régime de l'utilisateur interne, qui voit **toutes** les habilitations de la société. Poser d'abord RESSERRE la validation à ses propres lignes. Ce que l'inversion coûte est nommé : une fenêtre d'une instruction où la variable porte une valeur non vérifiée, dans laquelle **rien ne s'exécute**.
+
+**Et l'appariement est fermé DANS LES DEUX SENS.** Un rôle du portail sans client désigné est refusé (il rouvrirait la branche « utilisateur interne ») ; un rôle interne qui désigne un client l'est aussi (il déplacerait en silence le discriminant de la forme « habilitation », L1-02b). Un gardien vérifie que l'appariement ne concerne qu'un rôle sur les dix, dans les deux sens.
+
+**Conséquences.** Le coût en allers-retours est **nul** : l'appel remplace l'instruction qui posait déjà le périmètre (L1-02b). Le quatrième motif de refus posé le 09/09 — « le rôle du portail ne peut pas ouvrir de transaction » — est **remplacé** par l'appariement : le portail devient constructible, sous validation. `lib/auth/session.ts` et `lib/auth/societe-active.ts` posent `clientId: null` — l'état honnête : la désignation est un geste de requête, pas une propriété de session, et une session de rôle `client` reste donc refusée tant que le portail n'est pas construit. **Vu tomber** : la validation retirée de la migration, trois scénarios rougissent ; le jumeau montre qu'un compte du client A1 désignant le client A2 lit alors sa ligne.
+
+*Aucune règle du chapitre 10 n'est amendée : D70 pose une MÉCANIQUE de
+cloisonnement, elle ne change aucune règle de gestion.*

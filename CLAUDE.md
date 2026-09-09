@@ -179,6 +179,8 @@ La forme ajoute une politique de `SELECT` ancrée sur l'identité connectée à 
 
 **Et une politique juste dont personne ne pose la variable ne garde RIEN** *(L1-02b)*. Les formes ci-dessus lisent six variables `app.*` ; `lib/db/rls.ts` n'en posait que quatre, et le harnais d'isolation posait les deux autres. Les scénarios étaient donc verts parce que le HARNAIS armait une garantie que la PRODUCTION n'armait pas — deux implémentations d'un même contrat, chacune verte, divergeant en silence (§9, 01/09), et dans le sens permissif : sans `app.client_id`, la forme « parc » se lit « utilisateur interne » et OUVRE. Deux gardiens ferment les deux sens, contre `pg_policies` et contre le répertoire du harnais : `scripts/lib/contexte-rls.ts`, `tests/isolation/contexte-arme.test.ts`, `tests/unit/db/contexte-harnais.test.ts`. **Toute variable réclamée par une politique est posée par le chemin de production, et le harnais n'en arme aucune de plus.**
 
+**Et POSÉE ne suffit pas : elle doit être RENSEIGNABLE** *(D70)*. `app.client_id` figurait dans la liste des poses — le gardien de L1-02b était vert, et il avait raison — mais **rien ne pouvait lui donner de valeur** : un compte portail lisait donc le parc entier de sa société (mesuré : 2 machines d'un client dont il n'était pas habilité, contre 0 une fois la variable posée). La réparation n'est ni « l'appelant fournit » ni « la base dérive » — **c'est un faux couple**, et la mesure le dit : la dérivation n'est pas unique (`utilisateur_client` porte `UNIQUE (utilisateur_id, client_id)`, un compte tient plusieurs clients d'une même société), et une valeur venue de l'extérieur ne vaut rien sans validation (L1-02e). **L'appelant DÉSIGNE, la base DISPOSE** : `ContexteSession.clientId` dit pour quel client le compte agit, et `app_poser_perimetre_client` — `SECURITY INVOKER`, donc lue sous les politiques de l'appelant — **lève** si ce client n'est pas parmi ses habilitations. Elle ne retombe jamais sur la chaîne vide, qui rouvrirait la branche « utilisateur interne ». L'**ordre** est une décision : la variable est posée AVANT d'être validée, parce que valider d'abord ferait lire sous la branche « absent » de la forme « habilitation », c'est-à-dire sous le régime de l'utilisateur interne. Et l'appariement est fermé **des deux côtés** — portail sans client refusé, rôle interne avec client refusé.
+
 *Vérification : `pnpm test:isolation`.*
 
 ### I2 — Jamais de conversion de devise ligne à ligne
@@ -317,6 +319,12 @@ app/
   (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
 lib/
   db/         client Prisma, contexte société, helpers RLS
+              `app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la
+              base dans la même transaction (D70) — jamais dérivée, la
+              dérivation n'étant pas unique ; jamais crue, une désignation
+              non validée ne bornant rien
+              une désignation refusée LÈVE : un contexte vide rouvrirait la
+              branche « utilisateur interne » de la forme « parc »
   auth/       authentification, et la DÉSIGNATION des cinq tables qui la portent
               (L1-02d) — `session`, `compte`, `verification`, `second_facteur`,
               `utilisateur` : chacune ne se lit qu'en NOMMANT sa ligne
@@ -655,7 +663,9 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
 
   **La faute n'a pas été rouverte : elle a RECULÉ D'UN CRAN**, de la pose vers la source, et elle est repartie invisible. Et c'est mécanique : *« la variable est posée »* est une exigence sur un **geste**, *« le filtre mord pour un compte portail »* est une exigence sur un **fait**. Un gardien écrit sur le geste est satisfait par un geste vide.
 
-  **La règle : quand vous fermez un trou, demandez ce que votre gardien exige — un geste ou un fait. S'il exige un geste, nommez le fait qu'il est censé produire, et demandez ce qui le vérifie.** Ici : « `app.client_id` est posée » ne dit rien ; « un compte portail ne lit que le parc de son client » se mesure, et c'est ce que `tests/isolation/portail-sans-client.test.ts` mesure désormais — avec son jumeau, qui montre les deux machines revenir dès que le refus est retiré.
+  **La règle : quand vous fermez un trou, demandez ce que votre gardien exige — un geste ou un fait. S'il exige un geste, nommez le fait qu'il est censé produire, et demandez ce qui le vérifie.** Ici : « `app.client_id` est posée » ne dit rien ; « un compte portail ne lit que le parc de son client » se mesure, et c'est ce que `tests/isolation/designation-client.test.ts` mesure désormais — avec son jumeau, qui montre un compte du client A1 lire la ligne du client A2 dès que la validation est retirée.
+
+  **Et la réparation a suivi le lendemain, sans que la règle change** *(D70)*. Le trou n'était pas « il manque un poseur » mais « la garantie était énoncée sur un geste » : `app.client_id` est désormais **renseignable** — l'appelant la DÉSIGNE, la base la VALIDE contre les habilitations du compte dans la même transaction, et refuse plutôt que de rendre un contexte vide. *Le fait a remplacé le geste : « un compte portail ne lit que le parc de son client » se mesure maintenant, à travers le chemin de production.*
 
   *Parenté :* c'est la population auto-sélectionnée du 31/08 vue par la sortie plutôt que par l'entrée. Là, le `WHERE` faisait sortir l'objet fautif de la population ; ici, la FORMULATION fait sortir le cas fautif de ce qui est exigé.
 

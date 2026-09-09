@@ -46,8 +46,8 @@ import {
   SOCIETE_A,
   SOCIETE_B,
   UTILISATEUR_PAR_ROLE,
-  UTILISATEUR_PORTAIL_A,
-  UTILISATEUR_PORTAIL_B,
+  UTILISATEUR_INTERNE_A,
+  UTILISATEUR_INTERNE_B,
   PORTAIL_A2_CLIENT,
   PERIMETRE_A1_S1,
   CONTACT_A1_COMPTABLE,
@@ -449,12 +449,12 @@ export default async function setup(): Promise<void> {
     await prisma.utilisateur.createMany({
       data: [
         {
-          id: UTILISATEUR_PORTAIL_A,
+          id: UTILISATEUR_INTERNE_A,
           nom: "Interne A",
           email: "interne-a@iso.test",
         },
         {
-          id: UTILISATEUR_PORTAIL_B,
+          id: UTILISATEUR_INTERNE_B,
           nom: "Interne B",
           email: "interne-b@iso.test",
         },
@@ -464,13 +464,13 @@ export default async function setup(): Promise<void> {
       data: [
         {
           id: "aaaaaaaa-0000-7000-8000-0000000000f5",
-          utilisateur_id: UTILISATEUR_PORTAIL_A,
+          utilisateur_id: UTILISATEUR_INTERNE_A,
           societe_id: SOCIETE_A,
           role: Role.adv,
         },
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000f6",
-          utilisateur_id: UTILISATEUR_PORTAIL_B,
+          utilisateur_id: UTILISATEUR_INTERNE_B,
           societe_id: SOCIETE_B,
           role: Role.adv,
         },

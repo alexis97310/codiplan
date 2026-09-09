@@ -174,9 +174,26 @@ export const UTILISATEUR_PAR_ROLE: Readonly<Record<Role, string>> = {
   client: "aaaaaaaa-0000-7000-8000-000000000709",
 };
 
-/** Comptes portail (table réelle `utilisateur_client`). */
-export const UTILISATEUR_PORTAIL_A = "aaaaaaaa-0000-7000-8000-0000000000d1";
-export const UTILISATEUR_PORTAIL_B = "bbbbbbbb-0000-7000-8000-0000000000d2";
+/**
+ * UN NOM QUI DISAIT L'INVERSE DE CE QU'IL TENAIT — corrigé le 09/09/2026 (D70).
+ *
+ * `UTILISATEUR_PORTAIL_A` désignait le compte **interne** : « Interne A »,
+ * `interne-a@iso.test`, rôle `adv` dans `utilisateur_societe`, et **zéro** ligne
+ * dans `utilisateur_client` (mesuré). Le compte portail, lui, s'appelait
+ * `PORTAIL_A_CLIENT`.
+ *
+ * Ce que le nom a coûté : `categorie-authentification.test.ts` armait un
+ * contexte de rôle `client` **sur le compte interne**, c'est-à-dire un contexte
+ * qui ne peut pas exister en production. Personne ne l'a vu pendant un ticket
+ * entier — jusqu'à ce que la validation de D70 le refuse.
+ *
+ * *Un nom de fixture affirme une propriété ; rien ne le confrontait à la
+ * donnée.* `tests/isolation/fixtures-conformes.test.ts` le fait désormais.
+ */
+export const UTILISATEUR_INTERNE_A = "aaaaaaaa-0000-7000-8000-0000000000d1";
+export const UTILISATEUR_INTERNE_B = "bbbbbbbb-0000-7000-8000-0000000000d2";
+
+/** Comptes PORTAIL (une ligne dans `utilisateur_client`, jamais dans `utilisateur_societe`). */
 export const PORTAIL_A_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d3";
 export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";
 

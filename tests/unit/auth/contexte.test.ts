@@ -21,6 +21,7 @@ import { ROLES, Role } from "@/lib/auth/roles";
  */
 const SOCIETE = "0192f0a0-1000-7000-8000-0000000000a1";
 const UTILISATEUR = "0192f0a0-1000-7000-8000-0000000000b2";
+const CLIENT = "0192f0a0-1000-7000-8000-0000000000c3";
 
 function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
   return {
@@ -29,6 +30,7 @@ function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
     role: Role.adv,
     secondFacteurValide: false,
     adresseIp: null,
+    clientId: null,
     ...surcharge,
   };
 }
@@ -87,52 +89,77 @@ describe("contexte de session", () => {
   });
 
   /**
-   * CE SCÉNARIO RETOURNE UNE ASSERTION ÉCRITE À L0-06, et il faut le dire.
+   * CES SCÉNARIOS RETOURNENT UNE ASSERTION ÉCRITE À L0-06, et il faut le dire.
    *
    * La boucle ci-dessus portait `Role.client` et exigeait `null` : « le rôle du
    * portail n'appelle aucune exigence de plus ». C'était vrai de ce que L0-06
    * regardait — le second facteur —, et faux de ce que D10 avait posé un ticket
    * plus tôt. La ligne n'est pas retirée pour faire passer la vérification :
-   * **le refus qu'elle interdisait est délibéré, mesuré, et il FERME.**
+   * **l'appariement rôle ↔ client est délibéré, mesuré, et il FERME.**
    *
-   * Ce qu'il ferme : `app.client_id` n'a aucun poseur de production, et la forme
-   * « parc » lit une valeur vide comme « utilisateur interne ». Un compte
-   * portail qui atteindrait ce chemin lirait le parc entier de sa société —
-   * mesuré à 2 machines d'un client dont il n'est pas habilité, contre 0 quand
-   * la variable est posée (voir `tests/isolation/portail-sans-client.test.ts`,
-   * qui le montre en base ET le montre revenir quand on retire ce refus).
+   * Ce qu'il ferme (D70) : `app.client_id` est le discriminant de la forme
+   * « parc » ET de la forme « habilitation ». Vide sur un compte portail, il
+   * ouvre le parc entier de la société — mesuré à 2 machines d'un client dont
+   * ce compte n'est pas habilité, contre 0 quand la variable est posée. Posé
+   * sur un rôle interne, il déplace en silence ce que la forme
+   * « habilitation » discrimine.
    */
-  it("REFUSE le rôle du portail : `app.client_id` n'a aucun poseur", () => {
+  it("REFUSE le rôle du portail SANS client désigné", () => {
     const motif = motifRefusContexte(
-      contexte({ role: Role.client, secondFacteurValide: false }),
+      contexte({ role: Role.client, clientId: null }),
     );
     expect(motif).toContain("app.client_id");
     expect(motif).toContain("parc ENTIER");
-    // Et le second facteur n'y change rien : ce n'est pas une question de
-    // force d'authentification, c'est une variable que personne ne renseigne.
+    // Le second facteur n'y change rien : ce n'est pas une question de force
+    // d'authentification, c'est une variable que personne ne renseignait.
     expect(
       motifRefusContexte(
-        contexte({ role: Role.client, secondFacteurValide: true }),
+        contexte({
+          role: Role.client,
+          clientId: null,
+          secondFacteurValide: true,
+        }),
       ),
     ).toContain("app.client_id");
-    expect(() => exigerContexteActif(contexte({ role: Role.client }))).toThrow(
-      /app\.client_id/,
+  });
+
+  it("ACCEPTE le rôle du portail QUAND un client est désigné", () => {
+    // Sans ce scénario, le refus ci-dessus pourrait être total et personne ne
+    // le verrait : un verrou qui ferme tout n'est pas un verrou, c'est une
+    // panne. C'est le témoin de non-vacuité du refus.
+    expect(
+      motifRefusContexte(contexte({ role: Role.client, clientId: CLIENT })),
+    ).toBeNull();
+  });
+
+  it("REFUSE un client désigné par un rôle qui n'est pas celui du portail", () => {
+    const motif = motifRefusContexte(
+      contexte({ role: Role.adv, clientId: CLIENT }),
     );
+    expect(motif).toContain("n'est pas un rôle du portail");
   });
 
   /**
-   * TÉMOIN DE NON-VACUITÉ, et il vise le sens qui compte : le refus doit être
-   * ÉTROIT. Un refus qui tomberait sur tous les rôles fermerait l'application
-   * entière et passerait l'assertion ci-dessus sans rien prouver.
+   * TÉMOIN DE NON-VACUITÉ, et il vise le sens qui compte : l'appariement doit
+   * être ÉTROIT. Un refus qui tomberait sur tous les rôles fermerait
+   * l'application entière et passerait les assertions ci-dessus sans rien
+   * prouver.
    */
-  it("et ce refus ne touche QU'UN rôle sur les dix", () => {
-    const refuses = ROLES.filter(
+  it("et l'appariement ne concerne QU'UN rôle sur les dix, dans les deux sens", () => {
+    const sansClient = ROLES.filter(
       (role) =>
         motifRefusContexte(
-          contexte({ role, secondFacteurValide: true }),
+          contexte({ role, clientId: null, secondFacteurValide: true }),
         )?.includes("app.client_id") === true,
     );
-    expect(refuses).toEqual([Role.client]);
+    const avecClient = ROLES.filter(
+      (role) =>
+        motifRefusContexte(
+          contexte({ role, clientId: CLIENT, secondFacteurValide: true }),
+        )?.includes("rôle du portail") === true,
+    );
+    expect(sansClient).toEqual([Role.client]);
+    expect(avecClient).toEqual(ROLES.filter((role) => role !== Role.client));
   });
 
   it("`exigerContexteActif` lève avec le motif, et renvoie le contexte sinon", () => {

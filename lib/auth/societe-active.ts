@@ -219,6 +219,10 @@ async function decider(
       role,
       secondFacteurValide: demande.secondFacteurValide,
       adresseIp: demande.adresseIp ?? null,
+      // Aucun client désigné : basculer de société n'est pas désigner un client
+      // (D70). Un compte portail qui agirait pour un client le désignera au
+      // moment de la requête, jamais au moment de la bascule.
+      clientId: null,
     },
   };
 }

@@ -377,6 +377,7 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
       role: session.role_actif,
       secondFacteurValide: true,
       adresseIp: null,
+      clientId: null,
     };
     expect(motifRefusContexte(contexte)).toBeNull();
 
@@ -405,6 +406,7 @@ describe("la société de la session est ce qui alimente app.societe_id", () => 
       role: session.role_actif,
       secondFacteurValide: false,
       adresseIp: null,
+      clientId: null,
     };
     // L'application refuse d'ouvrir la transaction…
     expect(motifRefusContexte(contexte)).toContain("Aucune société active");

@@ -118,6 +118,19 @@ export async function obtenirSession(
       // la correspondance de `lib/auth/config.ts`). Elle n'ouvre aucun droit :
       // elle sert au seul journal d'audit (chapitre 11.2, L0-10).
       adresseIp: resultat.session.ipAddress ?? null,
+      /**
+       * **AUCUN CLIENT DÉSIGNÉ, ET C'EST L'ÉTAT HONNÊTE** (D70).
+       *
+       * La ligne `session` ne porte pas de client, et rien ne doit lui en
+       * inventer un : la désignation est un geste du compte portail — « j'agis
+       * pour ce client » —, pas une propriété de sa session.
+       *
+       * Ce que cela produit aujourd'hui : une session de rôle `client` est
+       * REFUSÉE par `motifRefusContexte`, faute de désignation. C'est voulu et
+       * c'est bruyant. *Le chemin du portail reste à construire ; ce qu'il
+       * apportera est la désignation, pas une permission.*
+       */
+      clientId: null,
     },
   };
 }
