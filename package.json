@@ -20,6 +20,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "feries:horizon": "tsx scripts/horizon-feries.mts",
     "feries:etendre": "tsx scripts/etendre-feries.mts",

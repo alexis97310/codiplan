@@ -1,10 +1,35 @@
 # CODIPLAN — Note de mise en ligne
 
-*Écrite le 08/09/2026, à la demande de l'exploitation. Elle se suit sans réfléchir : chaque valeur dit d'où elle vient, et chaque affirmation d'état a été **mesurée sur ce dépôt**, jamais supposée.*
+*Écrite le 08/09/2026 à la demande de l'exploitation, **réécrite le 09/09/2026** pour être suivie **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt**. Chaque valeur dit d'où elle vient ; chaque affirmation d'état a été **mesurée sur ce dépôt**, jamais supposée.*
 
-**Ce document ne configure rien.** Aucun hébergeur n'a été contacté, aucun compte n'a été créé, aucune variable n'a été déposée. C'est une procédure à exécuter par l'exploitation.
+**Ce document ne configure rien.** Aucun hébergeur n'a été contacté, aucun compte créé, aucune variable déposée. C'est une procédure à exécuter.
 
-**À lire avant tout : le [§5 — Ce qui est risqué à exposer en l'état](#5--ce-qui-est-risque-a-exposer-en-letat).** Ses points ont été mesurés, jamais supposés. **Deux d'entre eux ont été réparés depuis** — l'enfermement du second facteur et l'absence de plancher (L1-02g, D64) — et restent écrits, barrés, pour que celui qui a lu cette note avant le 08/09 constate ce qui a changé. **Le §5.1 tient toujours, et il suffit à lui seul : personne ne peut se connecter.** Mettre en ligne d'abord et lire ensuite ferait découvrir ces points par un utilisateur.
+---
+
+## 0 — La procédure en huit gestes, et rien d'autre
+
+*Si vous ne lisez qu'une section, lisez celle-ci. Les suivantes expliquent chaque geste.*
+
+1. **Créer une base PostgreSQL 16** chez l'hébergeur de votre choix, dans la région la plus proche de la Nouvelle-Calédonie.
+2. **Créer un compte** chez l'hébergeur d'application et **y rattacher ce dépôt**.
+3. **Déposer trois variables** chez l'hébergeur d'application : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (§1). *Trois, et trois seulement.*
+4. **Appliquer les migrations**, une seule commande : `pnpm db:deploy` (§7).
+5. **Déployer.** La commande de construction est `pnpm build` ; elle ne touche pas la base.
+6. **Ouvrir `/sante`** — sans compte, depuis le téléphone. Elle doit dire **oui** trois fois (§8).
+7. **Ouvrir le premier compte réel**, une seule commande (§9). Elle imprime **une fois** une URL de premier accès.
+8. **Suivre cette URL**, choisir un mot de passe, activer le second facteur. **Vous êtes en ligne.**
+
+**Les gestes 1, 2, 3 et 7 exigent un compte, un secret ou un paiement : ils vous appartiennent, et personne d'autre ne peut les faire à votre place.**
+
+---
+
+## 0 bis — Quel hébergeur, en une phrase
+
+**Recommandation : Vercel pour l'application, Neon pour la base** — c'est ce que le dépôt suppose déjà (les migrations sont jouées par un flux GitHub Actions qui vise Neon, et `next build` est la commande native de Vercel), donc **c'est le chemin où il reste le moins de choses à découvrir**.
+
+**Ce qui changerait avec un autre :** rien dans le code — l'application est un Next.js standard qui lit trois variables et parle à un PostgreSQL 16 — mais il faudrait **choisir où tourne la tâche planifiée nocturne** (`pnpm veille`, `pnpm audit:partitions`), que GitHub Actions porte aujourd'hui, et **vérifier que la latence vers la base reste tenable** : le seed a déjà échoué une fois pour cette seule raison (§9 du CLAUDE.md, 23/08).
+
+---
 
 ---
 
@@ -12,11 +37,25 @@
 
 Trois, et trois seulement. Elles sont lues **à l'exécution**, jamais à la construction.
 
-| Variable | Rôle | D'où vient la valeur |
-| --- | --- | --- |
-| `DATABASE_URL` | **La seule connexion que l'application ouvre.** Elle doit porter le rôle `codiplan_app` — ni propriétaire, ni superutilisateur, ni `BYPASSRLS`. | **Déjà dans les secrets du dépôt, sous le nom `DATABASE_URL`.** La même chaîne, telle quelle. |
-| `BETTER_AUTH_SECRET` | Signe les cookies de session et **chiffre les codes de secours** du second facteur. | **À engendrer, propre à cet environnement** — au moins 32 octets aléatoires. Il n'existe nulle part aujourd'hui : ce n'est **pas** un secret du dépôt. |
-| `BETTER_AUTH_URL` | URL publique de l'application. Better Auth en tire ses redirections et l'attribut `Secure` des cookies. | L'URL **https** que l'hébergeur attribue, sans barre finale. Ex. `https://codiplan.example.com`. |
+| Variable | À quoi elle sert | Où trouver sa valeur | **Ce qui casse si elle manque ou est fausse** |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | **La seule connexion que l'application ouvre.** Elle doit porter le rôle `codiplan_app` — ni propriétaire, ni superutilisateur, ni `BYPASSRLS`. | **Déjà dans les secrets du dépôt, sous le nom `DATABASE_URL`.** La même chaîne, telle quelle. | **Absente ou injoignable : toute page authentifiée rend 500.** Voir le symptôme exact ci-dessous — il ne dit pas « base injoignable », et c'est tout le problème. |
+| `BETTER_AUTH_SECRET` | Signe les cookies de session et **chiffre les codes de secours** du second facteur. | **À engendrer, propre à cet environnement** — au moins 32 octets aléatoires. Il n'existe nulle part aujourd'hui : ce n'est **pas** un secret du dépôt. | **Absente : personne ne reste connecté.** La connexion paraît réussir, la page suivante redemande le mot de passe. **Changée après coup : toutes les sessions tombent, et les codes de secours déjà émis deviennent illisibles.** |
+| `BETTER_AUTH_URL` | URL publique de l'application. Better Auth en tire ses redirections et l'attribut `Secure` des cookies. | L'URL **https** que l'hébergeur attribue, sans barre finale. Ex. `https://codiplan.example.com`. | **Fausse : la connexion boucle.** Le cookie est posé pour un autre domaine, la redirection ramène à la page de connexion, indéfiniment. |
+
+### LE SYMPTÔME EXACT quand `DATABASE_URL` est fausse, et pourquoi il égare
+
+**Mesuré le 09/09/2026, en développement, avec une `DATABASE_URL` héritée de l'environnement et pointant sur une base injoignable.**
+
+Ce que l'on voit : **`HTTP 500` sur `POST /api/auth/…`**, c'est-à-dire sur la connexion, l'enrôlement, tout. Ce que l'on ne voit pas : le mot « base ». Le journal du serveur, lui, porte `PrismaClientInitializationError` avec le code **`P1001`** et le nom d'hôte.
+
+**Le piège est là, et il coûte cher : le 500 tombe sur une route d'authentification, et il se lit comme un bogue d'authentification.** *Deux réparations ont été tentées du mauvais côté avant qu'on ne regarde le journal.* La règle qui en sort : **devant un 500 sur une route d'authentification, lire le code Prisma AVANT de toucher au code d'authentification** — `P1001` veut dire « la base ne répond pas », et rien d'autre.
+
+**Le second piège, plus discret : une variable déjà présente dans l'environnement l'emporte sur le fichier `.env`.** C'est exactement ce qui s'est produit — le fichier était juste, l'environnement portait autre chose, et le fichier n'a jamais été lu.
+
+**Et si l'on se trompe de RÔLE plutôt que d'hôte, le symptôme est tout autre : l'application refuse de servir, et c'est voulu.** `lib/db/garde-role.ts` interroge la base au premier accès cloisonné et rejette une connexion superutilisateur, `BYPASSRLS`, ou propriétaire : sous un de ces rôles, les politiques de cloisonnement ne mordraient pas (I1), et **toutes les sociétés se verraient entre elles**. Un refus au démarrage vaut mieux qu'un cloisonnement muet.
+
+**Dans les deux cas, `/sante` répond sans compte et dit lequel des deux c'est** (§8). C'est la page à ouvrir en premier.
 
 **Ce que `DATABASE_URL` doit contenir, exactement.**
 `postgresql://codiplan_app:<mot de passe>@<hôte Neon>/<base>?sslmode=require`
@@ -196,3 +235,75 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 11. **Vérifier que la porte s'est refermée derrière vous** : rejouer la même commande sur la même société doit être **refusé**, et rouvrir l'URL déjà consommée ne doit **rien** ouvrir. Ce sont les deux seules choses à constater après coup, et elles se constatent en trente secondes.
 12. **Si l'URL a expiré avant d'être ouverte** : rejouer le script avec `--reemettre --societe --email`. Il refuse dès qu'un mot de passe existe — si c'est le cas, l'identité a servi, et un mot de passe oublié se traite par le chemin ordinaire, jamais par ce geste. Deux constats après coup : la nouvelle URL ouvre le compte, et la même commande rejouée **après** le choix du mot de passe est refusée.
 13. **Le taux horaire n'est pas posé par le geste d'amorçage — il a SON geste**, séparé (décision du 09/09, construit le 10/09) : `TAUX_INITIAL_CONFIRME=oui pnpm tsx scripts/taux-initial.mts --societe <uuid> --montant 7000` — le montant dans l'unité la plus fine de la devise de la société (D68 : 7 000 XPF hors taxes pour CODIMA NC), `--date AAAA-MM-JJ` facultative, à défaut le jour du geste dans le fuseau de la société. **Relire le montant formaté que le script répète** : il refuse ensuite de rejouer, et une erreur d'échelle se corrige par le chemin ordinaire. Tant qu'aucune ligne de `taux_horaire` n'existe, RG-TAR-04 n'a rien à appliquer et aucune intervention ne se valorise.
+
+---
+
+## 7 — Les migrations, une seule commande
+
+```bash
+DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:deploy
+```
+
+`pnpm db:deploy` est `prisma migrate deploy` : il applique **les migrations manquantes, dans l'ordre, sans jamais en réécrire une déjà appliquée** — Prisma le refuse par empreinte, et c'est une garantie, pas une gêne.
+
+**Sur une base NEUVE, il n'y a rien de plus à faire :** la première migration crée le rôle applicatif `codiplan_app`, les suivantes posent les tables, les politiques de cloisonnement et les déclencheurs d'audit.
+
+**Le rôle à employer ici est le PROPRIÉTAIRE, pas l'applicatif.** Une migration fait du DDL ; le rôle applicatif n'en a pas le droit, et c'est exactement ce qu'on veut le reste du temps. C'est le seul geste de toute cette procédure où le rôle privilégié sert.
+
+**Ce que l'on doit voir quand ça marche :** `All migrations have been successfully applied.` **Quand ça rate :** `P1001` si la base ne répond pas, `P3009` si une migration précédente a échoué et doit être résolue à la main.
+
+**Les données de démonstration ne s'installent PAS en production.** `pnpm db:seed` crée deux sociétés fictives ; il n'a rien à faire sur une base réelle.
+
+---
+
+## 8 — `/sante` — ce qu'on doit voir quand ça marche, et quand ça rate
+
+**Ouvrez `https://<votre URL>/sante` depuis le téléphone. Aucun compte n'est demandé.**
+
+| Ligne | Ce qu'elle doit dire | Si elle dit « non » |
+| --- | --- | --- |
+| **La base de données répond** | oui | `DATABASE_URL` est absente, fausse, ou la base ne répond pas. C'est le `P1001` du §1. |
+| **Le rôle de connexion est le bon** | oui | La connexion porte le propriétaire ou un rôle privilégié : **le cloisonnement entre sociétés ne s'appliquerait pas**. À corriger avant toute autre chose. |
+| **Les migrations sont à jour** | oui | Elle **nomme la migration manquante**. Rejouez le §7. |
+| **Sociétés / Comptes** | **« non lisible d'ici »**, avec sa raison | **Ce n'est pas un défaut, et surtout ce n'est pas un zéro.** Le compte se ferait sous la connexion applicative et sans société active ; les politiques de cloisonnement rendent alors zéro, et *un zéro se lirait « installation vide »* — la conclusion opposée à la vraie. **Que cette page ne puisse pas les compter prouve que le cloisonnement fonctionne.** Pour connaître ces nombres, il faut se connecter. |
+
+**Cette page ne tombe jamais avec ce qu'elle surveille.** Avec une base injoignable, elle s'affiche quand même et répond « non » : *une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien.* Un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute (`tests/unit/db/sante.test.ts`).
+
+**Et elle ne montre jamais d'adresse, de nom d'hôte, de nom de base ni d'identifiant.** Elle est sans compte, donc lisible par n'importe qui : *un message d'erreur est un canal d'information, soumis au cloisonnement comme une requête* (D50). Le message brut d'un pilote PostgreSQL nomme l'hébergeur et la région ; il est réécrit avant d'arriver à l'écran, et un scénario le vérifie.
+
+---
+
+## 9 — Ouvrir le PREMIER compte réel
+
+Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien** : dans ce produit, un accès est délivré, jamais réclamé (D58). Le premier compte d'une société s'ouvre par un geste, une seule fois :
+
+```bash
+AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \
+DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" \
+pnpm tsx scripts/amorcage-premier-compte.mts \
+  --societe <identifiant de la société> \
+  --email <votre adresse> \
+  --nom "<votre nom>" \
+  --role admin_societe \
+  --base https://<votre URL>
+```
+
+**Ce qu'il imprime, et qu'il n'imprimera jamais deux fois :** une **URL de premier accès**, portant un jeton à usage unique et daté. *Elle n'est relisible nulle part* — ni en base sous cette forme, ni dans un journal. Copiez-la immédiatement.
+
+**Ce qu'il n'imprime pas :** aucun mot de passe. Le geste en tire un au hasard, ne le rend à personne, et le rend inutile en émettant le jeton.
+
+**La porte se referme derrière lui**, et le message le dit : dès que la société porte une habilitation, ce geste refuse de s'exécuter à nouveau. Les comptes suivants s'ouvrent par un administrateur de la société.
+
+**Si le jeton expire ou se perd**, et **seulement pour une identité qui n'a jamais servi**, il se réémet :
+
+```bash
+AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \
+DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" \
+pnpm tsx scripts/amorcage-premier-compte.mts \
+  --reemettre --societe <identifiant> --email <adresse> --base https://<votre URL>
+```
+
+**Ce que l'on doit voir ensuite, en suivant l'URL :** un écran de choix de mot de passe, puis — le rôle `admin_societe` l'exigeant (RG-DRO-05) — **l'activation du second facteur**, qui affiche **une seule fois** une clé et des codes de secours. *Notez-les : un second facteur s'active et ne se retire pas ; seul un administrateur de la plateforme peut le révoquer.* Puis la page d'arrivée, qui nomme votre société.
+
+**Quand ça rate :** un refus lisible qui nomme sa raison — société inconnue, société déjà pourvue d'une habilitation, variable de confirmation absente. Aucun de ces refus n'est silencieux.
+

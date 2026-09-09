@@ -259,6 +259,9 @@ pnpm test             # vitest
 pnpm test:isolation   # cloisonnement multi-société (bloquant)
 pnpm test:e2e         # playwright, dont le gardien hors-ligne
 pnpm db:migrate       # prisma migrate dev
+pnpm db:deploy        # prisma migrate deploy — LA commande de mise en ligne :
+                      # applique les migrations manquantes sur une base neuve
+                      # ou existante, sans jamais en réécrire une appliquée
 pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
 pnpm build            # build de production
 
@@ -332,6 +335,11 @@ app/
   (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
 lib/
   db/         client Prisma, contexte société, helpers RLS
+              sante.ts : l'état de l'installation, pour la page SANS COMPTE
+              /sante — il NE LÈVE JAMAIS : une sonde qui tombe en même temps
+              que ce qu'elle surveille ne surveille rien
+              et il ne rend aucun secret — ni hôte, ni base, ni identifiant :
+              le message brut d'un pilote nomme l'hébergeur et la région (D50)
               `app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la
               base dans la même transaction (D70) — jamais dérivée, la
               dérivation n'étant pas unique ; jamais crue, une désignation
@@ -417,6 +425,25 @@ lib/
               aucune vérification de FORME à la lecture — le jeton lu est une
               donnée STOCKÉE, et contrôler sa forme lierait les scans du jour à
               la génération du jour ; seule une borne de TAILLE demeure
+  interventions/ l'ORDRE D'INTERVENTION et le planning agissant (lot 2, D84)
+              saisie.ts : Zod sur toute entrée ; l'agence, le forfait de
+              déplacement, le numéro et le statut NE SE SAISISSENT PAS — les
+              deux premiers se déduisent du site, le troisième appartient à la
+              synchronisation (I10), le quatrième au créneau
+              cycle-de-vie.ts : ce qui est permis et ce qui est REFUSÉ, avec la
+              raison écrite. Il ne GARDE rien — la base garde, par
+              `intervention_cycle_de_vie` : une action refusée à l'écran mais
+              acceptée par la base est un trou
+              annulee > cloturee, jamais l'inverse : I5 donne à l'annulation la
+              préséance, et une intervention clôturée par erreur doit pouvoir
+              être annulée
+              depot.ts : les cinq actions sous contexte cloisonné, forme
+              « parc » (D84) — aucune comparaison de société écrite au-dessus
+              de la politique, ce serait une seconde lecture du même critère
+              l'instant courant se lit dans le FUSEAU DE L'AGENCE (L0-08), qui
+              est celle qui décide du calendrier de référence (I7)
+              le JOURNAL des déplacements n'est pas une table de plus : c'est
+              `journal_audit`, par déclencheur, avec les valeurs avant et après
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
@@ -435,6 +462,13 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
+              valorisation.ts : RG-TAR-05 amendée par D83 — arrondi au quart
+              d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE SEULE
+              FOIS sur l'intervention entière et jamais tâche par tâche
+              aucune fonction « valoriser une intervention » : le mode est
+              décidé par l'appelant, la composition forfait + excédent n'étant
+              pas tranchée — et le plancher ne vise NI le forfait, NI le
+              trajet, NI le travail interne, aucun n'étant facturé à l'heure
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis
@@ -455,6 +489,16 @@ lib/
               territoire ISO et fuseau : deux attributs de l'agence, jamais
               l'un déduit de l'autre (D46)
               seul endroit où la date courante se lit — et avec un fuseau (L0-08)
+              parametrage.ts : horaires, jours travaillés, PAS DE CRÉNEAU —
+              réglés par agence et jamais écrits dans un composant (I7)
+              l'exception par technicien est un RATTACHEMENT à un autre
+              calendrier, jamais une copie de plages : recopier ferait deux
+              lectures d'un même critère
+              et elle ne MAJORE rien — elle dit quand on travaille, pas à quel
+              prix ; la majoration relève de RG-TAR et de l'agence du technicien
+              une grille de créneaux ne DÉBORDE jamais sa plage : un dernier
+              créneau à cheval sur la fermeture proposerait un rendez-vous que
+              l'agence ne peut pas tenir
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
   sync/       (prévu) protocole hors-ligne
@@ -474,6 +518,10 @@ lib/
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS
+              statuts.ts : les couleurs des huit statuts d'intervention
+              (annexe D, promue au rang de règle par le §1) — une RÈGLE du
+              produit et non une charte : « en cours » est rouge chez tout le
+              monde, c'est un code de lecture partagé, pas une préférence
               la lisibilité se CALCULE : seuil 4,5:1 (WCAG 2.1, 1.4.3 AA),
               garanti par le choix noir/blanc, qui plancher à √21 ≈ 4,58 (D51)
               seul endroit du code où une couleur s'écrit en clair
@@ -751,4 +799,14 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Et la classe reste OUVERTE, avec son critère de réouverture écrit** — sans quoi « écarté » deviendrait « oublié » : *le jour où une convention de qualification rend l'association décision ↔ énumération EXPLICITE, le gardien se réécrit sans heuristique ni exemption, et il est dû.* Le critère se vérifie, il ne s'interprète pas. Voir le registre « Ce qui reste à décider ».
 
 - **10/09/2026 — UNE CORRECTION QUI BARRE LA LIGNE ENTIÈRE EMPORTE LA MOITIÉ VRAIE AVEC LA FAUSSE.** À L2-01, le chapitre 11 disait de `reference_interne` « unique par société, porté par le QR ». La seconde moitié était fausse (le QR encode `qr_token`, I10) ; la ligne a été barrée **entière**, et « unique par société » — la propriété sur laquelle D6 s'appuie — est partie avec. Personne ne l'a vu : une ligne barrée a l'air d'une ligne traitée. *La correction vise un mot ; elle barre le mot, jamais la ligne.* Restaurée le 10/09.
+- **09/09/2026 — UN DÉFAUT PEUT ÊTRE INVISIBLE À TOUTE ASSERTION ET ÉVIDENT SUR UNE IMAGE : la capture d'écran attrape ce qu'aucune règle n'a été FORMULÉE pour attraper.** Espèce à nommer à côté de la vacuité du 30/08, parce que le gardien n'est pas creux — **il n'existe pas**, et personne ne s'en est aperçu.
+
+  Mesuré en photographiant le premier planning. Trois lignes portaient le badge **« À planifier »** et une **date au 14 septembre**, rangées dans la section des interventions **posées**. La règle de statut ne regardait que le `creneau_debut` ; une intervention datée sans heure restait donc dans la file d'attente. **Chaque moitié était juste** — le statut suivait sa règle, la section suivait la date — et *rien, dans le dépôt, ne formulait qu'elles doivent s'accorder.* Aucun scénario ne pouvait rougir : on n'écrit pas d'assertion sur un invariant qu'on n'a pas encore vu.
+
+  **Ce qui rend l'espèce distincte, et pourquoi elle ne se referme pas par un gardien de plus.** Un gardien éprouve une règle qu'on a su écrire. Ici la règle manquante est **« le badge et la ligne où il s'affiche disent la même chose »** — une propriété de la RENCONTRE de deux calculs, qu'aucun des deux ne connaît. On ne la formule qu'après l'avoir vue ; et on ne la voit qu'en **regardant le résultat à côté de son contexte**, ce qu'une assertion ne fait jamais : elle interroge une valeur, seule.
+
+  **La règle, et elle est modeste exprès : quand un écran est écrit, il est REGARDÉ — pas seulement exercé.** Un scénario de rendu qui interroge l'écran prouve qu'un texte est présent ; il ne prouve pas que la page a du sens. *L'image, elle, met tout côte à côte, et c'est le seul instrument qui montre une incohérence qu'on n'attendait pas.* C'est la même famille que la question posée de l'extérieur (30/08) — un gardien ne peut pas se garder lui-même —, appliquée non plus au gardien mais à **l'absence de gardien**.
+
+  *Corollaire, mesuré le même jour sur un autre objet :* **un seed idempotent suppose que toute ligne est réécrivable, et cette hypothèse devient fausse le jour où une table porte un verrou de cycle de vie.** L'`upsert` du seed a buté en `23514` sur les lignes `cloturee` et `annulee` qu'il venait de poser — *le verrou faisait son travail sur le premier chemin venu, y compris le nôtre.* Le seed ne réécrit donc plus : **il s'abstient**, ce qui est le bon sens de défaillance pour une donnée de démonstration.
+
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

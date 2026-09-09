@@ -261,6 +261,159 @@ export const fr = {
   "import.anomalie.cellule_vide": "Cette cellule est vide.",
   "import.avertissement.colonne_inconnue":
     "Cette colonne ne fait pas partie du modèle : elle est ignorée, et n'empêche pas l'import.",
+
+  // ── Le planning et les interventions (lot 2, D84) ────────────────────────
+  "planning.titre": "Planning des interventions",
+  "planning.sous_titre":
+    "Ce qui est posé, ce qui attend d'être posé, et ce qui a été fait.",
+  "planning.file_attente": "À planifier",
+  "planning.vide": "Aucune intervention sur cette période.",
+  "planning.creer": "Créer une intervention",
+  "planning.retour": "Retour au planning",
+  // La flèche fait partie du LIBELLÉ lu à voix haute : elle est ici, comme
+  // tout ce qu'un humain lit (L0-11), et non écrite en dur dans le composant.
+  "planning.retour_fleche": "← Retour au planning",
+  "planning.periode": "Période affichée",
+
+  "intervention.titre": "Intervention",
+  "intervention.reference": "Référence",
+  "intervention.client": "Client",
+  "intervention.machine": "Machine",
+  // ── Les notions IMPOSÉES ne s'écrivent pas ici ───────────────────────────
+  //
+  // « agence » et « site » se définissent une seule fois, dans les entrées
+  // `vocabulaire.*` (D5, D47, L0-11). Le code nomme la NOTION — `mot("site")`,
+  // `mot("agence")` — et jamais le mot ; les clés ci-dessous portent donc ce
+  // qui les entoure, et le composant compose.
+  "intervention.deduit_du_lieu":
+    "Déduit du lieu d'intervention — cela ne se saisit pas.",
+  "intervention.refus.lieu_inconnu":
+    "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
+  "intervention.refus.lieu_sans_rattachement":
+    "Ce lieu n'est rattaché à aucun établissement. Le rattachement de l'intervention en est déduit : renseignez-le d'abord.",
+  "intervention.refus.habilitation":
+    "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
+  "intervention.type": "Nature",
+  "intervention.priorite": "Priorité",
+  "intervention.statut": "Statut",
+  "intervention.date": "Date planifiée",
+  "intervention.creneau": "Créneau",
+  "intervention.technicien": "Technicien",
+  "intervention.aucun_technicien": "Aucun technicien affecté",
+  "intervention.duree_estimee": "Durée estimée",
+  "intervention.mode_valorisation": "Mode de valorisation",
+  "intervention.forfait_deplacement": "Forfait de déplacement",
+  "intervention.sans_numero":
+    "Le numéro est attribué par le serveur à la première synchronisation.",
+
+  "intervention.action.affecter": "Affecter un technicien",
+  "intervention.action.deplacer": "Déplacer",
+  "intervention.action.cloturer": "Clôturer",
+  "intervention.action.annuler": "Annuler l'intervention",
+  "intervention.action.creer": "Créer",
+
+  "intervention.cloture.temps_reel": "Temps réellement passé (minutes)",
+  "intervention.cloture.arrondi": "Arrondi au quart d'heure supérieur",
+  "intervention.cloture.plancher": "Plancher d'une heure appliqué",
+  "intervention.cloture.facture": "Temps facturé",
+  "intervention.cloture.taux": "Taux horaire en vigueur à cette date",
+  "intervention.cloture.total": "Total hors taxes",
+  "intervention.cloture.explication":
+    "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
+
+  "intervention.annulation.motif": "Motif de l'annulation",
+  "intervention.annulation.obligatoire":
+    "Le motif est obligatoire. Une annulation n'efface rien : elle se justifie.",
+
+  "intervention.refus.inconnue":
+    "Cette intervention n'existe pas, ou elle n'est pas dans votre périmètre.",
+  "intervention.refus.annulee_figee":
+    "Cette intervention est annulée : elle ne se modifie plus. Une annulation n'efface rien et ne se défait pas.",
+  "intervention.refus.cloturee_figee":
+    "Cette intervention est clôturée : elle ne se modifie plus sans trace. Seule son annulation reste possible.",
+  "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
+  "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
+  "intervention.refus.temps_manquant":
+    "Saisissez le temps réellement passé avant de clôturer. C'est lui qui détermine ce qui est facturé.",
+  "intervention.refus.taux_absent":
+    "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
+
+  "statut.a_planifier": "À planifier",
+  "statut.planifiee": "Planifiée",
+  "statut.envoyee": "Envoyée",
+  "statut.en_cours": "En cours",
+  "statut.suspendue": "Suspendue",
+  "statut.terminee": "Terminée",
+  "statut.cloturee": "Clôturée",
+  "statut.annulee": "Annulée",
+
+  "type_intervention.preventif_contrat": "Préventif sous contrat",
+  "type_intervention.preventif_hors_contrat": "Préventif hors contrat",
+  "type_intervention.curatif": "Curatif",
+  "type_intervention.installation": "Installation",
+  "type_intervention.garantie": "Garantie",
+  "type_intervention.controle_reglementaire": "Contrôle réglementaire",
+  "type_intervention.expertise": "Expertise",
+  "type_intervention.reprise": "Reprise",
+  "type_intervention.recensement": "Recensement",
+
+  "priorite.p1": "P1 — critique",
+  "priorite.p2": "P2 — haute",
+  "priorite.p3": "P3 — normale",
+  "priorite.p4": "P4 — basse",
+
+  "mode_valorisation.forfait": "Forfait",
+  "mode_valorisation.temps_passe": "Temps passé",
+  "mode_valorisation.forfait_plus_heures": "Forfait plus heures",
+
+  // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
+  //
+  // « Agence » et « site » ne s'écrivent pas ici : le code nomme la notion.
+  "parametres.titre": "Réglage des horaires d'ouverture",
+  "parametres.sous_titre":
+    "Les jours travaillés, les horaires et le pas des créneaux. Chaque établissement a les siens : rien n'est écrit dans l'application.",
+  "parametres.calendrier": "Calendrier",
+  "parametres.jours": "Jours travaillés",
+  "parametres.horaires": "Horaires",
+  "parametres.pas": "Pas des créneaux (minutes)",
+  "parametres.pas_enregistrer": "Enregistrer le pas",
+  "parametres.creneaux_exemple": "Créneaux proposés un jour ouvré",
+  "parametres.sans_calendrier":
+    "Aucun calendrier n'est rattaché : aucun créneau ne peut être proposé.",
+  "parametres.exception_technicien": "Exception par technicien",
+  "parametres.exception_explication":
+    "Un technicien peut recevoir un autre calendrier de la société — un temps partiel, une alternance, un renfort du matin. C'est un rattachement, jamais une copie d'horaires : les horaires changent à un seul endroit.",
+  "parametres.exception_aucune": "Aucune exception enregistrée.",
+  "parametres.refus_pas":
+    "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
+
+  "jour.1": "lundi",
+  "jour.2": "mardi",
+  "jour.3": "mercredi",
+  "jour.4": "jeudi",
+  "jour.5": "vendredi",
+  "jour.6": "samedi",
+  "jour.7": "dimanche",
+
+  // ── La page de santé, sans compte (mise en ligne) ─────────────────────────
+  "sante.titre": "État de l'installation",
+  "sante.sous_titre":
+    "Quatre questions, quatre réponses. Cette page ne demande aucun compte et ne montre jamais d'adresse, de nom de base ni d'identifiant.",
+  "sante.base": "La base de données répond",
+  "sante.role": "Le rôle de connexion est le bon",
+  "sante.role_explication":
+    "L'application doit se connecter avec un rôle non propriétaire, faute de quoi le cloisonnement entre sociétés ne s'applique pas.",
+  "sante.migrations": "Les migrations sont à jour",
+  "sante.migration_manquante": "Migration non appliquée",
+  "sante.societes": "Sociétés enregistrées",
+  "sante.comptes": "Comptes enregistrés",
+  "sante.oui": "oui",
+  "sante.non": "non",
+  "sante.inconnu": "inconnu",
+  "sante.non_lisible": "non lisible d’ici",
+  "sante.tout_va_bien": "L'installation répond et paraît complète.",
+  "sante.quelque_chose_cloche":
+    "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

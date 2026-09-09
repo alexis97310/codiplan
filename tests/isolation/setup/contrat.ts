@@ -223,6 +223,24 @@ export const CONTRAT_PARC: readonly TableContrat[] = [
       "nom" text NOT NULL
     `,
   },
+  {
+    // **Née VRAIE table au lot 2**, comme `contact` — jamais une fixture.
+    // L'entrée est ici pour la raison qui rend cette liste utile : elle est
+    // confrontée à `TABLES_PARC`, et une table du parc absente de l'une des
+    // deux serait posée par l'un sans être jugée par l'autre. Sa colonne de
+    // périmètre est `site_id` : une intervention a lieu sur un site.
+    table: "intervention",
+    lot: "L2-D84",
+    colonneClient: "client_id",
+    colonneSite: "site_id",
+    colonnes: `
+      "id" uuid PRIMARY KEY,
+      "societe_id" uuid NOT NULL,
+      "client_id" uuid NOT NULL,
+      "site_id" uuid NOT NULL,
+      "statut" text NOT NULL
+    `,
+  },
 ] as const;
 
 /**

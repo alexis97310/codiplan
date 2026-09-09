@@ -160,6 +160,9 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect([...(parForme.get("parc") ?? [])].sort()).toEqual([
       "client",
       "contact",
+      // `intervention` rejoint la forme « parc » au lot 2, par D84 — l'arbitrage
+      // que `TABLES_PARC` réclamait nommément depuis R0-a.
+      "intervention",
       "machine",
       "site",
     ]);

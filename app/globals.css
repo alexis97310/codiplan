@@ -47,6 +47,43 @@
   --ring: oklch(0.556 0 0);
 }
 
+/*
+ * LE THÈME SOMBRE SUIT LA PRÉFÉRENCE DU SYSTÈME, et il n'y a rien à cliquer.
+ *
+ * `.dark` reste la classe qui FORCE le thème sombre — c'est elle qu'un futur
+ * sélecteur posera. Mais tant qu'aucun sélecteur n'existe, une classe que
+ * personne ne pose est un thème que personne ne voit : les mêmes jetons sont
+ * donc redéclarés sous `prefers-color-scheme: dark`, et `.light` reste la
+ * porte de sortie explicite pour qui voudra rester en clair.
+ *
+ * Aucune couleur nouvelle n'est écrite ici : ce bloc REPREND les jetons de
+ * `.dark`, il n'en invente aucun. Une couleur ne s'écrit en clair que dans
+ * `lib/theme` et dans ce fichier (CLAUDE.md §6).
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

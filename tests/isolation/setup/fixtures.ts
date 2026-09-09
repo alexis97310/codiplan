@@ -91,6 +91,19 @@ export const SITE_A2_S1 = "aaaaaaaa-0000-7000-8000-00000000552a";
 export const SITE_B1_S1 = "bbbbbbbb-0000-7000-8000-00000000551a";
 
 /** Machines (fixture) et leurs jetons QR (uniques globalement, D22). */
+/**
+ * LES INTERVENTIONS DU HARNAIS (lot 2, D84).
+ *
+ * Trois, choisies pour que les TROIS filtres de la forme « parc » se séparent :
+ * `INTERVENTION_A1` est du client A1 sur le site du périmètre — la seule qu'un
+ * compte portail restreint doit voir ; `INTERVENTION_A2` est du MÊME client sur
+ * un AUTRE site, et c'est elle qui prouve que le filtre de périmètre mord ;
+ * `INTERVENTION_B1` est d'une autre société.
+ */
+export const INTERVENTION_A1 = "aaaaaaaa-0000-7000-8000-0000000000f1";
+export const INTERVENTION_A2 = "aaaaaaaa-0000-7000-8000-0000000000f2";
+export const INTERVENTION_B1 = "bbbbbbbb-0000-7000-8000-0000000000f1";
+
 export const MACHINE_A1 = "aaaaaaaa-0000-7000-8000-0000000000a1";
 export const MACHINE_A2 = "aaaaaaaa-0000-7000-8000-0000000000a2";
 export const MACHINE_B1 = "bbbbbbbb-0000-7000-8000-0000000000b1";

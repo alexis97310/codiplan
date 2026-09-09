@@ -466,6 +466,46 @@ Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, a
 
 **L'impression des étiquettes n'est pas construite** — la GÉNÉRATION l'est. Ce qui manque n'est pas un format mais un **fait de terrain** : planches autocollantes standard, ou imprimante portable dédiée. C'est la question ouverte n° 6 du cahier des charges.
 
+## Le planning agissant — la table `intervention`, et sa forme de politique
+
+`intervention` est la table sur laquelle tout le lot 2 converge, et ce qui la retenait n'était **pas** ses colonnes : c'était sa **forme de politique**, un arbitrage de cloisonnement que quatre sessions avaient à juste titre refusé de prendre en séance. **D84** la tranche — forme **« parc »**, société **ET** `app.client_id` **ET** `app.perimetre_sites` —, écrit son coût et sa condition de réouverture, et fait entrer la table dans `TABLES_PARC`, où un commentaire l'attendait nommément depuis la revue R0.
+
+La clause de société **seule** est exclue par mesure : un compte portail y lirait les interventions des autres clients de sa propre société, et en tirerait leurs sites et leurs machines par jointure. La restriction des **7 jours** de RG-DRO-02 n'est **pas** exprimée en base — elle dépend de l'horloge, ce qui en ferait une dixième forme dont aucun jumeau ne peut mesurer deux fois le même verdict — et reste applicative, comme elle l'est déjà pour `machine`.
+
+**Deux verrous de cycle de vie sont dans la BASE, pas seulement à l'écran.** _Une action refusée à l'écran mais acceptée par la base est un trou_ : un écran se contourne par une requête, un déclencheur ne se contourne pas. `intervention_cycle_de_vie` refuse toute modification d'une intervention **annulée** ; toute modification d'une intervention **clôturée** autre que son annulation — I5 donne à `ANNULEE` la préséance sur `CLOTUREE`, et la lui retirer contredirait un invariant ; et la **clôture sans temps saisi**, `temps_reel_min` étant l'entrée de l'arrondi et du plancher de D83.
+
+**Le journal des déplacements n'est pas une table de plus.** Qui, quand, d'où vers où : c'est `journal_audit`, que le périmètre inversé de D55 réclame le jour où la table apparaît, avec les valeurs avant et après.
+
+Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle de vie qui **explique** les refus, et le dépôt qui les applique sous le contexte cloisonné. **L'agence, le forfait de déplacement, le numéro et le statut ne se saisissent pas** — les deux premiers se déduisent du lieu d'intervention, le troisième appartient à la synchronisation (I10), le quatrième au créneau.
+
+Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
+
+## La mise en ligne — une commande, une page, un geste
+
+`docs/mise-en-ligne.md` se suit **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt** : huit gestes numérotés en tête, et chaque section explique celui qui la précède. Trois variables d'environnement, avec **ce qui casse quand chacune manque** — et le symptôme exact quand `DATABASE_URL` est fausse, parce qu'il égare : _un `HTTP 500` sur une route d'authentification, qui se lit comme un bogue d'authentification alors que le journal dit `P1001`._
+
+Les migrations s'appliquent par **une seule commande**, `pnpm db:deploy`, sur une base neuve comme sur une base en service.
+
+**`/sante` répond sans compte**, et elle dit en clair : la base répond-elle, le rôle de connexion est-il le bon, les migrations sont-elles à jour et laquelle manque. **Elle ne compte NI les sociétés NI les comptes, et elle dit pourquoi** : la lecture se ferait sans société active, les politiques rendraient **zéro**, et _un zéro se lirait « installation vide »_ — la conclusion opposée à la vraie (§9, 06/09). Mesuré à l'écran avant d'être corrigé. Ce qu'elle affiche à la place est plus fort qu'un nombre : que le décompte soit refusé **prouve que le cloisonnement mord sur cette connexion**. **Elle ne tombe jamais avec ce qu'elle surveille** — avec une base injoignable elle s'affiche quand même et répond « non », et un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute. _Une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien._ Et elle ne montre **jamais** d'adresse, de nom de base ni d'identifiant : elle est sans compte, donc lisible par n'importe qui.
+
+**La PWA n'est PAS installable, et rien n'y prépare** — mesuré le 09/09/2026 : ni `public/manifest.json`, ni agent de service, ni icône, ni répertoire `public/`. Ce n'est pas un réglage manquant, c'est le lot 3 (M7). Trois choses sont à écrire, dans cet ordre : un manifeste avec ses icônes, un agent de service qui met en cache la coquille de l'application, et la file de synchronisation hors ligne de I4 — la troisième est le vrai travail, les deux premières sont une heure.
+
+## Le paramétrage par agence — parce qu'aucun calendrier n'est codé en dur
+
+I7 est catégorique : _Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. **Aucun calendrier global codé en dur.**_ Les horaires et les jours travaillés vivaient déjà dans `calendrier` et `calendrier_plage` depuis le lot 0. Il manquait le **pas des créneaux** — sans lui, la grille du planning aurait été une constante dans un composant, c'est-à-dire un réglage que personne ne peut changer — et le cas du **technicien dont la disponibilité n'est pas celle de son agence**.
+
+`calendrier.pas_creneau_minutes` porte le pas, **par calendrier donc par agence** : rien ne dit que Ducos et Koné découpent leur journée pareil. 30 minutes est une valeur d'**amorçage**, réglable à l'écran `/parametres/agences`, jamais une règle métier.
+
+`technicien_calendrier` porte l'exception — un temps partiel, une alternance, un renfort du matin. **C'est un rattachement à un autre calendrier de la même société, jamais une copie de plages** : recopier aurait fait deux lectures d'un même critère, et la seconde aurait cessé d'être vraie au premier changement d'horaires. Et **elle ne majore rien** : une exception dit _quand_ le technicien travaille, jamais _à quel prix_ — la majoration relève de RG-TAR et de l'agence du technicien (I7), et l'y mêler ferait payer au client la souplesse d'un contrat de travail.
+
+**Une grille de créneaux ne déborde jamais sa plage.** Un créneau n'est proposé que s'il tient entièrement avant la fermeture : _une grille qui déborde est pire qu'une grille courte — la seconde se voit, la première se découvre sur place._ Le cas qui décide de la justesse n'est donc pas celui où le pas divise la plage, c'est celui où il ne la divise pas.
+
+## Les captures d'écran, et ce qu'elles ne prouvent pas
+
+`docs/captures/` porte les images de chaque écran, en thème clair et sombre, à 1280 px et 390 px. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.
+
+_Elles montrent que les écrans s'affichent. Elles ne prouvent pas qu'ils fonctionnent, et elles vieillissent._ La seconde étape de l'enrôlement, celle qui affiche la clé TOTP et les codes de secours, n'est **jamais** photographiée : un secret dans une image du dépôt est un secret publié.
+
 ## Le chapitre 11 nomme-t-il toute table qui existe ?
 
 L'écart signalé était `import_lot_ligne`, prescrite par **D15 (rang 1)** et absente du **chapitre 11 (rang 3)** : le rang 1 l'emporte, donc la table existera — _ce n'était pas une décision à prendre, c'était une omission à réparer._ La question posée ensuite — « y en a-t-il d'autres ? » — a rendu **seize** : `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`, `jour_ferie`, `contact`, `taux_horaire`, `technicien_habilitation`, `site_habilitation_requise`, `utilisateur_client`, `utilisateur_client_site`, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.

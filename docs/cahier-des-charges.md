@@ -685,7 +685,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-TAR-02 | Aucune conversion n'est appliquée ligne à ligne. La conversion n'intervient que sur les agrégats de consolidation, à parité datée et paramétrée. |
 | RG-TAR-03 | Le nombre de décimales est une propriété de la devise. XPF : zéro décimale. EUR : deux. |
 | RG-TAR-04 | Le taux horaire est historisé. Un changement de taux ne modifie pas les interventions déjà valorisées. |
-| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. **Le temps passé est arrondi au quart d'heure supérieur PAR INTERVENTION**, jamais sur le total d'une journée : cinq passages de cinq minutes font **1 h 15**, et non 30 minutes. *(amendée par D57)* |
+| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. **Le temps d'intervention est arrondi AU QUART D'HEURE SUPÉRIEUR**, et **la main-d'œuvre facturée ne peut être inférieure à UNE HEURE** au taux en vigueur. **Arrondi puis plancher s'appliquent UNE SEULE FOIS, sur l'intervention ENTIÈRE**, jamais tâche par tâche — et par intervention, jamais sur le total d'une journée : cinq passages de cinq minutes font **5 heures**, et non 30 minutes. Le plancher ne s'applique **ni au forfait** (le prix d'un forfait ne dépend pas de la durée), **ni au trajet**, **ni au travail interne** — aucun des trois n'est facturé à l'heure. Une intervention étalée sur deux jours reste **une** intervention : un seul arrondi, un seul plancher. *(amendée par D57, D83)* |
 | RG-TAR-06 | Un forfait ne s'applique que si ses conditions sont remplies — zone, famille de matériel, type d'intervention. |
 
 ### RG — Interventions
@@ -978,9 +978,11 @@ dans la table `parite` ci-dessous.*
 
 **agence** — `societe_id`, code, libellé, adresse, **fuseau horaire IANA**, **territoire ISO 3166-1 alpha-2**, calendrier de travail, actif. *Le fuseau et le territoire sont deux attributs distincts et indépendants — `Europe/Paris` couvre plusieurs territoires aux fériés différents, et ni l'un ni l'autre ne se déduit de l'autre (D46). `territoire` est `NOT NULL` parce qu'une clé étrangère dont une colonne vaut NULL n'est pas contrôlée (D48).* **Agence** = établissement CODIMA, jamais un site client (D5).
 
-**calendrier** — `societe_id`, code, libellé, actif. Le calendrier de travail d'une ou plusieurs agences (I7).
+**calendrier** — `societe_id`, code, libellé, actif, **`pas_creneau_minutes`**. Le calendrier de travail d'une ou plusieurs agences (I7). Le pas de créneau est une valeur **par calendrier**, donc par agence : rien ne dit que Ducos et Koné découpent leur journée pareil, et le mettre en dur dans l'application le rendrait irréglable.
 
 **calendrier_plage** — `societe_id`, calendrier, jour de la semaine, minute de début, minute de fin. Les heures d'ouverture, déroulées à la lecture.
+
+**technicien_calendrier** — `societe_id`, utilisateur, calendrier. **L'exception d'horaires par technicien** : un temps partiel, une alternance, un renfort du matin. C'est un **rattachement** à un autre calendrier de la même société, jamais une copie de plages — recopier ferait deux lectures d'un même critère, et la seconde cesserait d'être vraie au premier changement d'horaires. Elle ne **majore** rien : une exception dit *quand* le technicien travaille, jamais *à quel prix*.
 
 **calendrier_ferie** — `societe_id`, agence, date, **territoire recopié de l'agence**, jour férié référencé (nul pour un pont), travaillé, motif. *L'ÉCART LOCAL d'une agence sur le fait public : un férié travaillé, un pont. Chaîné par deux clés composites — `(agence_id, territoire)` et `(jour_ferie_id, date, territoire)` — en `ON UPDATE RESTRICT` des deux côtés (D48, D49).*
 

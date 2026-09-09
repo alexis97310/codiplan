@@ -188,10 +188,22 @@ export const TABLES_PARC = [
   // NULLABLE, et c'est la première du dépôt : un contact sans site est un
   // contact du CLIENT. Voir `ecartsPerimetreNullable`.
   { table: "contact", perimetre: true, colonnePerimetre: "site_id" },
+  // `intervention` REJOINT LE PARC au ticket du lot 2, PAR L'ARBITRAGE QUE CE
+  // COMMENTAIRE RÉCLAMAIT — D84, 09/09/2026. La note ci-dessus disait : « le
+  // jour où `intervention` rejoindra le parc, ce sera un arbitrage, pris au
+  // lot 2, jamais une ligne ajoutée en séance. » C'est cet arbitrage, et il est
+  // écrit avec sa condition de réouverture.
+  //
+  // Sa colonne de périmètre est `site_id` : une intervention a lieu sur un
+  // site, comme une machine y est installée. Elle n'est PAS une table
+  // « fille » au sens de la forme « filiation » — elle ne DÉDUIT pas son
+  // rattachement d'un parent, elle le PORTE, `client_id` et `site_id` étant des
+  // colonnes de premier rang du chapitre 11.2, exactement comme sur `machine`.
+  { table: "intervention", perimetre: true, colonnePerimetre: "site_id" },
 ] as const;
 
-/** Les quatre entrées que D10, D22 et L1-03 autorisent aujourd'hui. Recopiées. */
-const PARC_ARBITRE = ["client", "site", "machine", "contact"];
+/** Les cinq entrées que D10, D22, L1-03 et D84 autorisent aujourd'hui. Recopiées. */
+const PARC_ARBITRE = ["client", "site", "machine", "contact", "intervention"];
 
 /**
  * LA COLONNE DE PÉRIMÈTRE PEUT ÊTRE NULLABLE, ET ALORS LA CLAUSE DOIT LE DIRE
