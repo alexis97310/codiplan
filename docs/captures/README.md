@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `abbb6df5e4e41c82571f2f7188a065249900eab7` (`abbb6df`) — lue dans `git rev-parse HEAD`, jamais de mémoire |
-| **Date de la prise** | 09/09/2026, 19:25 UTC — lue à l'horloge du conteneur, jamais déduite |
+| **Commit photographié** | `d878df86625db34dcd16613f9371c6b1fb6d0c01` (`d878df8`) — lue dans `git rev-parse HEAD`, jamais de mémoire |
+| **Date de la prise** | 09/09/2026, 20:13 UTC — lue à l'horloge du conteneur, jamais déduite |
 | **Base** | une base PostgreSQL 16 locale et jetable, remplie par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed, ouverte par `scripts/amorcage-premier-compte.mts` |
 
