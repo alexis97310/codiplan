@@ -444,6 +444,24 @@ Le plancher lui-même est de **dix échecs consécutifs pour quinze minutes**, a
 
 **Ce qui n'est pas fait, et qui est écrit plutôt que tu :** personne n'attribue `numero`. La colonne existe et son unicité par société est posée ; le compteur appartient à la **synchronisation (lot 3)**, et l'inventer ici poserait une règle que personne n'a décidée.
 
+## Le scan d'un QR — le jeton, et le chemin qui le résout
+
+**Le jeton se DÉRIVE de l'`id`** (D7, I10), et la contrainte qui décide de la forme est I4 : _la création d'une machine se fait en mode avion._ Le calcul est donc fait **sur l'appareil, sans réseau et sans secret** — ce qui exclut toute dérivation à clé. Ce que « dérivé » apporte et qu'un tirage au hasard n'apporterait pas : l'appareil peut **recalculer** le jeton à partir du seul `id`, si bien qu'une étiquette réimprimée pour une machine jamais synchronisée reste la même.
+
+`sha256("codiplan:machine:qr:v1:" + id)`, en base32, tronqué à 26 caractères. **La version est dans le préfixe et ne périme aucune étiquette** : le jeton est _stocké_, la dérivation ne sert qu'à la création.
+
+> **L'entropie est celle de l'`id`, et le hachage n'en ajoute aucune.** Un UUID v7 porte 74 bits aléatoires ; le jeton en est une fonction publique, donc sa force contre la devinette est de **74 bits**, quelle que soit sa longueur. Vingt-six caractères valent 130 bits — assez pour que la troncature ne retire rien, et c'est **la seule raison du chiffre**. _Le lire comme une marge de sécurité serait une lecture fausse_ (§9, 06/09). Ce que le hachage apporte réellement : il n'est **pas inversible** — une étiquette photographiée ne rend pas l'`id`, ni l'horodatage de création qu'un UUID v7 contient.
+
+**Ce jeton est un IDENTIFIANT, pas un secret — aujourd'hui.** Résoudre un jeton ne donne accès à rien de plus : la lecture passe par les mêmes politiques que toute autre, et un compte hors périmètre ne résout pas la machine (mesuré). Mais **RG-DRO-02 promet au technicien « la résolution par QR code » EN PLUS de son périmètre** ; le jour où cette restriction sera implémentée — elle ne l'est pas —, le jeton deviendra ce qui la lève, c'est-à-dire un secret, et une dérivation publique cesserait de borner quoi que ce soit. La question est **inscrite**, pas tranchée.
+
+**Le contrôle de société de D22 n'est pas écrit dans le code** : `resoudreParJeton` lit **sous le contexte**, et la politique de forme « parc » décide. Une comparaison écrite au-dessus serait une seconde lecture du même critère, et deux lectures d'un même critère divergent en silence (§9, 01/09).
+
+**Un jeton inconnu et le jeton d'une autre société rendent la MÊME chose.** Les distinguer ferait de ce chemin un oracle — _ce jeton existe-t-il quelque part ?_ —, c'est-à-dire un moyen d'apprendre depuis un compte quelconque qu'une machine étiquetée appartient à un concurrent (D35, D50). Un scénario mesure l'indiscernabilité, avec le témoin qui montre qu'un jeton légitime, lui, se résout.
+
+**Et la lecture ne contrôle PAS la forme du jeton.** La première version le faisait ; c'était une erreur qui ne se serait vue que bien plus tard. Le jeton lu est une donnée **stockée** : contrôler sa forme à la lecture lierait les scans d'aujourd'hui à la dérivation d'aujourd'hui, et le jour où celle-ci changerait de longueur, les étiquettes déjà collées cesseraient de se résoudre **en silence**. Seule une borne de **taille** demeure, qui n'est pas un contrôle d'accès.
+
+**L'impression des étiquettes n'est pas construite**, et c'est un rendez-vous plutôt qu'un manque : ce qui bloque n'est pas un format mais un **fait de terrain** — planches autocollantes standard, ou imprimante portable dédiée. C'est la question ouverte n° 6 du cahier des charges, et elle appartient à l'exploitation.
+
 ## Le chapitre 11 nomme-t-il toute table qui existe ?
 
 L'écart signalé était `import_lot_ligne`, prescrite par **D15 (rang 1)** et absente du **chapitre 11 (rang 3)** : le rang 1 l'emporte, donc la table existera — _ce n'était pas une décision à prendre, c'était une omission à réparer._ La question posée ensuite — « y en a-t-il d'autres ? » — a rendu **seize** : `agence`, `calendrier`, `calendrier_plage`, `calendrier_ferie`, `jour_ferie`, `contact`, `taux_horaire`, `technicien_habilitation`, `site_habilitation_requise`, `utilisateur_client`, `utilisateur_client_site`, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.

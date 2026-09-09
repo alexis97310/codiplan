@@ -379,6 +379,24 @@ lib/
               premiers naissent sur l'appareil (D7, I10), le troisième est
               attribué par le serveur — et personne ne l'attribue encore, le
               compteur par société venant avec la synchronisation
+              qr.ts : le jeton se DÉRIVE de l'`id` (L2-02, D7) — déterministe,
+              calculable hors ligne, sans secret : c'est ce qui permet de
+              RÉIMPRIMER l'étiquette d'une machine créée en mode avion
+              non inversible : une étiquette photographiée ne rend pas l'`id`
+              son entropie est celle de l'`id` — 74 bits —, jamais celle de sa
+              longueur ; la lire comme une mesure de solidité serait faux
+              c'est un IDENTIFIANT, pas un secret — et ce peut changer :
+              RG-DRO-02 promet au technicien la résolution QR EN PLUS de son
+              périmètre, et ce jour-là le jeton deviendra ce qui la lève
+              resolution.ts : le contrôle de société de D22 n'est PAS écrit
+              ici — on lit SOUS le contexte, et la politique décide ; une
+              comparaison écrite au-dessus serait une seconde lecture du même
+              critère, qui diverge en silence
+              un jeton inconnu et le jeton d'une autre société rendent LA MÊME
+              chose : les distinguer ferait un oracle (D35, D50)
+              aucune vérification de FORME à la lecture — le jeton lu est une
+              donnée STOCKÉE, et contrôler sa forme lierait les scans du jour à
+              la dérivation du jour ; seule une borne de TAILLE demeure
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie

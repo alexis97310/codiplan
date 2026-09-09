@@ -275,8 +275,16 @@ export const EXIGENCES_L0_05 = [
     // résout sous la sienne ; l'autre éprouve l'unicité GLOBALE du jeton, sans
     // laquelle la résolution serait ambiguë au moment exact où aucune société
     // n'est encore connue.
+    //
+    // Puis de 5 à 8 au ticket L2-02, et c'est un changement de NATURE autant
+    // que de nombre : les cinq précédents éprouvent le FILET — la ligne d'une
+    // autre société est invisible sous un contexte armé à la main. Les trois
+    // nouveaux, dans `tests/isolation/resolution-qr.test.ts`, éprouvent le
+    // CHEMIN que D22 nomme — `resoudreParJeton`, celui que la route appelle —,
+    // dont l'INDISCERNABILITÉ entre un jeton inconnu et le jeton d'autrui.
+    // *Une suite qui éprouve tous les maillons n'éprouve pas la chaîne.*
     table: "machine",
-    plancher: 5,
+    plancher: 8,
   },
   {
     cle: "portail_autre_client",
@@ -306,8 +314,12 @@ export const EXIGENCES_L0_05 = [
     // troisième et dernière fixture du parc à s'effacer, et le troisième filtre
     // devait y gagner deux scénarios — la LECTURE bornée au site, et l'ÉCRITURE
     // que le `WITH CHECK` refuse.
+    // Puis de 6 à 7 au ticket L2-02 : le septième mesure que le QR ne LÈVE pas
+    // le périmètre — un compte portail ne résout pas le jeton d'une machine de
+    // SON client posée sur un site hors de son périmètre. D10 rencontre D22, et
+    // c'est le seul scénario où le troisième filtre décide seul.
     table: "site",
-    plancher: 6,
+    plancher: 7,
   },
 ] as const;
 
