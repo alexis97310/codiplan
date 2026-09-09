@@ -156,7 +156,7 @@ export async function creerIntervention(
         agence_id: site.agence_id,
         type: saisie.type,
         priorite: saisie.priorite,
-        statut: statutALaCreation(saisie.creneau_debut),
+        statut: statutALaCreation(saisie.date_planifiee, saisie.creneau_debut),
         date_planifiee: saisie.date_planifiee,
         creneau_debut: saisie.creneau_debut,
         creneau_fin: saisie.creneau_fin,
@@ -271,6 +271,26 @@ export async function affecterTechnicien(
 }
 
 /**
+ * Le statut après un déplacement — il ne change que sur les DEUX bords de la
+ * file d'attente, et jamais ailleurs.
+ *
+ * Retirer la date remet dans la file ; en donner une l'en sort. Un statut plus
+ * avancé — envoyée, en cours, suspendue — n'est pas touché : *déplacer une
+ * intervention en cours ne la replanifie pas, elle est en cours.*
+ */
+function statutApresDeplacement(
+  actuel: StatutIntervention,
+  datePlanifiee: Date | null,
+  creneauDebut: Date | null,
+): StatutIntervention {
+  const sansPose = datePlanifiee === null && creneauDebut === null;
+  if (sansPose) {
+    return actuel === "planifiee" ? "a_planifier" : actuel;
+  }
+  return actuel === "a_planifier" ? "planifiee" : actuel;
+}
+
+/**
  * DÉPLACER — changer de créneau, changer de technicien, ou les deux.
  *
  * Le journal du déplacement — qui, quand, d'où vers où — n'est pas écrit ici :
@@ -304,12 +324,15 @@ export async function deplacerIntervention(
         creneau_debut: saisie.creneau_debut,
         creneau_fin: saisie.creneau_fin,
         technicien_id: saisie.technicien_id,
-        statut:
-          saisie.creneau_debut === null
-            ? "a_planifier"
-            : ligne.statut === "a_planifier"
-              ? "planifiee"
-              : (ligne.statut as StatutIntervention),
+        // Le déplacement REND une intervention à la file d'attente quand on
+        // lui retire sa date, et l'en sort quand on lui en donne une. Il ne
+        // touche à aucun autre statut : déplacer une intervention `en_cours`
+        // ne la replanifie pas, elle est en cours.
+        statut: statutApresDeplacement(
+          ligne.statut as StatutIntervention,
+          saisie.date_planifiee,
+          saisie.creneau_debut,
+        ),
       },
       select: CHAMPS_LIGNE,
     });

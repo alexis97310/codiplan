@@ -1108,3 +1108,81 @@ export const HABILITATIONS_AMORCAGE: readonly HabilitationAmorcageSeed[] = [
       "Port du harnais et systèmes d'arrêt de chute — formation d'entreprise, hors nomenclature",
   },
 ];
+
+/**
+ * LES INTERVENTIONS DE DÉMONSTRATION (lot 2, D84).
+ *
+ * **Ce sont des données de DÉMONSTRATION, dites comme telles**, et elles
+ * disparaissent avec `scripts/purge-demonstration.mts` comme les clients et les
+ * sites. Un planning vide ne démontre rien : il ne dit pas si les couleurs de
+ * statut se lisent, si la file d'attente se distingue des lignes posées, ni si
+ * le calcul de RG-TAR-05 s'affiche.
+ *
+ * **Les six couvrent ce qu'un écran doit savoir montrer** : une ligne sans date
+ * — la file d'attente de l'annexe D —, des lignes posées à des statuts
+ * différents, une clôturée qui porte un temps réel, et une annulée qui reste
+ * visible. *Une annulation n'efface rien.*
+ *
+ * **Aucun montant n'est écrit ici.** Le total hors taxes est CALCULÉ à la
+ * clôture, au taux en vigueur à la date de l'intervention (RG-TAR-04) ; l'écrire
+ * dans le seed poserait un chiffre que personne n'a décidé, et il divergerait du
+ * calcul au premier changement de tarif.
+ *
+ * **Les identifiants sont FIXES**, comme ceux des clients et des sites : rejouer
+ * le seed corrige une ligne au lieu d'en créer une seconde.
+ *
+ * **Les dates sont en UTC**, jamais construites par un `Date` local : UTC+11
+ * décale le jour d'un cran, et une intervention du 1er se rangerait au 31.
+ */
+export const INTERVENTIONS_DEMONSTRATION = [
+  {
+    id: "0192f0a0-6000-7000-8000-000000000001",
+    type: "curatif" as const,
+    priorite: "p1" as const,
+    statut: "a_planifier" as const,
+    date_planifiee: null,
+    temps_reel_min: null,
+  },
+  {
+    id: "0192f0a0-6000-7000-8000-000000000002",
+    type: "preventif_contrat" as const,
+    priorite: "p3" as const,
+    statut: "planifiee" as const,
+    date_planifiee: new Date(Date.UTC(2026, 8, 14)),
+    temps_reel_min: null,
+  },
+  {
+    id: "0192f0a0-6000-7000-8000-000000000003",
+    type: "installation" as const,
+    priorite: "p2" as const,
+    statut: "en_cours" as const,
+    date_planifiee: new Date(Date.UTC(2026, 8, 10)),
+    temps_reel_min: null,
+  },
+  {
+    id: "0192f0a0-6000-7000-8000-000000000004",
+    type: "curatif" as const,
+    priorite: "p4" as const,
+    statut: "terminee" as const,
+    date_planifiee: new Date(Date.UTC(2026, 8, 8)),
+    temps_reel_min: 95,
+  },
+  {
+    id: "0192f0a0-6000-7000-8000-000000000005",
+    type: "controle_reglementaire" as const,
+    priorite: "p3" as const,
+    statut: "cloturee" as const,
+    date_planifiee: new Date(Date.UTC(2026, 8, 4)),
+    // Douze minutes : c'est le cas de D83 mis sous les yeux — arrondi à un
+    // quart d'heure, puis relevé au plancher d'une heure.
+    temps_reel_min: 12,
+  },
+  {
+    id: "0192f0a0-6000-7000-8000-000000000006",
+    type: "garantie" as const,
+    priorite: "p3" as const,
+    statut: "annulee" as const,
+    date_planifiee: new Date(Date.UTC(2026, 8, 2)),
+    temps_reel_min: null,
+  },
+];

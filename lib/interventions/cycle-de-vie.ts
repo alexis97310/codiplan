@@ -101,13 +101,22 @@ export function peutAnnuler(statut: StatutIntervention): Verdict {
 }
 
 /**
- * Le statut qu'une création prend, DÉDUIT du créneau et jamais saisi.
+ * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *
- * Sans créneau, l'intervention entre dans la file d'attente — c'est la ligne
- * « À planifier / Gris / File d'attente » de l'annexe D.
+ * **« À planifier » veut dire « sans date », et rien d'autre.** L'annexe D en
+ * fait la file d'attente ; une intervention qui porte une date n'y est plus,
+ * même si l'heure exacte reste à fixer.
+ *
+ * *La première rédaction ne regardait que le créneau, et une intervention datée
+ * sans heure restait « à planifier » — mesuré à l'écran : trois lignes datées du
+ * 14 septembre, marquées « à planifier », rangées parmi les posées.* Un statut
+ * qui contredit la ligne où il s'affiche est pire qu'un statut absent.
  */
 export function statutALaCreation(
+  datePlanifiee: Date | null,
   creneauDebut: Date | null,
 ): StatutIntervention {
-  return creneauDebut === null ? "a_planifier" : "planifiee";
+  return datePlanifiee === null && creneauDebut === null
+    ? "a_planifier"
+    : "planifiee";
 }

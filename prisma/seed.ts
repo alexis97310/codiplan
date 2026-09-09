@@ -12,6 +12,7 @@ import {
   COMPTES_PORTAIL,
   DEVISES,
   HABILITATIONS_AMORCAGE,
+  INTERVENTIONS_DEMONSTRATION,
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
@@ -443,6 +444,81 @@ async function seed(): Promise<void> {
               agence_id: agenceId,
               ...champsSite,
               horaires: horaires ?? Prisma.DbNull,
+            },
+          });
+        }
+
+        // ── 5. Les INTERVENTIONS de démonstration (lot 2, D84) ─────────────
+        //
+        // **Pourquoi le seed en pose, alors qu'il n'a posé aucune machine.**
+        // Un planning vide ne démontre rien : il ne dit pas si les couleurs de
+        // statut se lisent, si la file d'attente se distingue des lignes
+        // posées, ni si le calcul de RG-TAR-05 s'affiche. *Ce sont des DONNÉES
+        // DE DÉMONSTRATION, dites comme telles*, et elles disparaissent avec
+        // `scripts/purge-demonstration.mts` comme les clients et les sites.
+        //
+        // Elles viennent APRÈS les sites, et l'ordre est une contrainte de la
+        // base : `intervention` porte trois clés étrangères composites — vers
+        // son client, son lieu et son agence de rattachement.
+        //
+        // **L'agence n'est pas choisie ici** : elle est reprise du site, comme
+        // le fait le chemin de production. La choisir séparément ferait deux
+        // lectures d'un même critère, et le seed finirait par démontrer autre
+        // chose que ce que l'application fait.
+        //
+        // Les dates sont posées en UTC et jamais par un `Date` local : UTC+11
+        // décale le jour d'un cran, et une intervention du 1er se rangerait au
+        // 31 (I3 n'est pas seul à souffrir des fuseaux).
+        const sitesEcrits = sites.map(({ site, clientId }) => ({
+          siteId: site.id,
+          clientId,
+          agenceId: identifiantsAgences.get(site.agence_code),
+        }));
+        const interventions = INTERVENTIONS_DEMONSTRATION.map(
+          (modele, rang) => ({
+            ...modele,
+            lieu: sitesEcrits[rang % sitesEcrits.length],
+          }),
+        ).filter((i) => i.lieu !== undefined && i.lieu.agenceId !== undefined);
+
+        etape(
+          `${societe.code} — interventions de démonstration : ${interventions.length}`,
+        );
+        for (const intervention of interventions) {
+          const lieu = intervention.lieu;
+          if (lieu === undefined || lieu.agenceId === undefined) {
+            continue;
+          }
+          // **PAS D'`upsert` ICI, ET LA RAISON EST UN VERROU DE LA BASE.**
+          // Deux lignes de démonstration sont `cloturee` et `annulee`, et
+          // `intervention_cycle_de_vie` refuse toute modification de l'une
+          // comme de l'autre (D84). Un `upsert` rejoué buterait dessus —
+          // *mesuré, le seed a échoué en `23514` la première fois.*
+          //
+          // Ce n'est pas une gêne à contourner : c'est le verrou qui fait son
+          // travail sur le premier chemin venu, y compris le nôtre. Le seed
+          // reste donc idempotent d'une autre façon — **il ne réécrit pas, il
+          // s'abstient** —, et c'est le bon sens de défaillance : une ligne
+          // de démonstration déjà posée n'a aucune raison de changer.
+          const deja = await tx.intervention.findUnique({
+            where: { id: intervention.id },
+            select: { id: true },
+          });
+          if (deja !== null) {
+            continue;
+          }
+          await tx.intervention.create({
+            data: {
+              id: intervention.id,
+              societe_id: id,
+              client_id: lieu.clientId,
+              site_id: lieu.siteId,
+              agence_id: lieu.agenceId,
+              statut: intervention.statut,
+              type: intervention.type,
+              priorite: intervention.priorite,
+              date_planifiee: intervention.date_planifiee,
+              temps_reel_min: intervention.temps_reel_min,
             },
           });
         }
