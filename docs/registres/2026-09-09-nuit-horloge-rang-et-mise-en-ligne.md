@@ -121,6 +121,28 @@ Chemin exact **en clics** pour les migrations, et un flux **Ouvrir le PREMIER co
 
 ---
 
+## 3 bis — LE CONTRÔLE QUI COMPTAIT ZÉRO LÀ OÙ IL Y AVAIT DES LIGNES
+
+*Trouvé en relisant le journal du run qui applique la migration du rang — c'est-à-dire en regardant un rapport plutôt qu'en lançant un test.*
+
+**L'écart, brut.** Le seed annonce `CODIMA-NC — sites de démonstration : 4` et `interventions : 6` ; l'inventaire du même run, quinze secondes plus tard, imprime `site : 0` et `intervention : 0`. Deux chiffres, dans le même journal, qui ne peuvent pas être vrais ensemble.
+
+**Ce que la mesure a désigné, et ce n'est pas ce qu'on croyait.** Base locale reconstruite, seed joué, puis DEUX lectures côte à côte : `psql` rend **5 sites et 6 interventions** ; `scripts/inventaire.mts` rend **0 et 0** sur la même base, à la même minute. *La base n'a rien : c'est le CONTRÔLE qui est aveugle.*
+
+**La cause, isolée en une lecture.** `compterAPlat` groupait **SEPT** tables quand `TABLES_CLOISONNEES` en compte **vingt-deux**. Les quinze autres restaient à la valeur de `decompteVide()` — **zéro, pour toujours** — et le rapport les imprimait dans la colonne des observations.
+
+**CE QUE CELA COÛTAIT, ET C'EST LE POINT.** Le contrôle de cloisonnement **se confronte à cet inventaire** : il comparait donc **zéro à zéro** et concluait au vert. *Le seul contrôle qui regarde la base hébergée ne prouvait RIEN sur `site`, `machine` et `intervention`* — c'est-à-dire sur les trois tables qui portent la forme « parc », celle dont D84 vient de faire un arbitrage. **La règle était juste et l'observation était creuse** : la vacuité du §9 (30/08), dans un contrôle d'exploitation plutôt que dans un test.
+
+**Et c'est la maladie du 20/08, à la lettre :** *une liste close se re-vérifie à chaque table créée, sinon elle devient fausse.* Chaque ticket ajoutait sa table à `TABLES_CLOISONNEES` — donc à la **ligne imprimée** — et personne ne revenait écrire son **compteur**. La ligne apparaissait ; le chiffre restait zéro.
+
+**La réparation renverse la charge, comme D41 et D55.** Le rapprochement passe par un `Record<TableFille, …>`, **exhaustif par construction** : une table ajoutée à la liste close **ne compile plus** tant que son regroupement n'est pas écrit. *Le gardien n'est pas un test, c'est le typage — et il sonne le jour de la création, pas le jour où quelqu'un relit un journal.* Vérifié après coup : l'inventaire rend **5 et 6**, exactement ce que `psql` compte.
+
+**UN SECOND DÉFAUT EST TOMBÉ AVEC LE PREMIER.** Le seed imprimait `CODIMA-EU — interventions de démonstration : 6` alors que **zéro** y était écrite : les identifiants de `INTERVENTIONS_DEMONSTRATION` sont **FIXES**, donc déjà pris par CODIMA-NC, et la seconde société les saute tous. Le compte était celui des lignes **prévues**, imprimé **avant** la boucle. Il est désormais celui des lignes **écrites** — `0 écrite(s) sur 6 prévue(s)` —, et l'écart se voit au lieu de se taire. **La collision d'identifiants n'est PAS réparée** : décider ce que la démonstration doit montrer à la seconde société appartient à l'exploitation, et c'est écrit plutôt que tu.
+
+*Vérifiable à la tête de la proposition #88.*
+
+---
+
 ## 4 — LES DEUX LOTS INSCRITS AU PLAN
 
 **Écrits, pas construits** — au backlog **et** aux arbitrages, *parce qu'un lot qui n'existe que dans une conversation n'existe pas : la conversation se ferme.*
