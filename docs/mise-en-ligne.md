@@ -110,13 +110,42 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 
 *Demandé franchement, répondu franchement. Les trois premiers points ont été **mesurés** le 08/09/2026 sur la base jetable, sous le rôle applicatif réel, par la chaîne que l'application emprunte.*
 
-### 5.1 — Personne ne peut se connecter. Aucun compte n'a de mot de passe.
+### 5.1 — ~~Personne ne peut se connecter~~ — UN GESTE EXISTE depuis le 09/09/2026 (Q1, D65)
 
-**Mesuré :** `prisma/seed.ts` crée des **identités** (`utilisateur`) et des **habilitations** (`utilisateur_societe`, `utilisateur_client`) — il n'écrit **aucune ligne de `compte`**, donc **aucune empreinte de mot de passe**. Aucun des comptes de la base hébergée ne peut donc présenter d'identifiants.
+**Le constat était exact, et il ne l'est plus.** `prisma/seed.ts` n'écrit toujours **aucune ligne de `compte`**, donc aucune empreinte de mot de passe, et `/sign-up` reste fermé. Ce qui a changé : **il existe désormais un geste pour ouvrir la PREMIÈRE identité d'une société** — `scripts/amorcage-premier-compte.mts`.
 
-Et il n'existe aucun chemin pour en créer un : *personne ne crée son propre compte, jamais* (D58, L1-02c), `/sign-up` est fermé sur la surface HTTP, et **l'écran d'ouverture administrative d'un compte n'existe pas encore** — L1-02c l'a explicitement laissé hors de son périmètre. Le seul appelant de `auth.api.signUpEmail` aujourd'hui est le harnais de tests.
+**Ce n'est pas un script qui s'arroge une autorité : c'est la BASE qui admet un cas, et ce cas se détruit en s'exerçant.** La politique d'ouverture de `utilisateur` accepte une identité sans rôle administrateur *si et seulement si* la société visée ne porte **aucune habilitation**. Dès que la première est posée, la même insertion est refusée — mesuré dans les deux sens, et le jumeau montre le refus disparaître quand la branche est retirée.
 
-**Conséquence, dite sans l'adoucir : le site serait en ligne et personne ne pourrait y entrer.** Ce n'est pas une faille — c'est l'inverse — mais c'est une mise en ligne sans usage.
+**Le geste ne pose aucun mot de passe.** Il rend une **URL de premier accès** portant un jeton à usage unique et daté, imprimée une fois.
+
+> #### ⚠️ CE JETON ATTERRIT DANS UN JOURNAL, ET C'EST UNE EXPOSITION ASSUMÉE
+>
+> Si la commande est jouée depuis un flux GitHub Actions, **l'URL entre dans le journal d'exécution du flux** — c'est-à-dire exactement le genre de journal qu'on voulait éviter. La borne est réelle et elle tient à trois choses, qui doivent être vraies **toutes les trois** :
+>
+> 1. **le dépôt est privé** — un dépôt public rendrait ce journal lisible de tous ;
+> 2. **seule l'exploitation peut déclencher ce flux** ;
+> 3. **le jeton est à usage unique**, et il est **daté**.
+>
+> **Durée de vie mesurée le 09/09/2026, lue en base et non dans la documentation : 1 heure** (`expire_le − cree_le = 00:59:59.999`). C'est le défaut de la bibliothèque ; le dépôt ne le règle pas.
+>
+> **Une fois le jeton consommé, l'URL du journal n'ouvre plus rien** — un second usage est refusé, mesuré (`tests/isolation/amorcage-premier-compte.test.ts`, « est à usage unique, et il ouvre réellement le compte »).
+>
+> **Ce qui reste vrai pendant l'heure : la ligne du journal EST une clé.** Qui la lit dans cette fenêtre, avant l'exploitation, ouvre le compte. Si cela ne convient pas, jouer la commande **hors CI** — depuis un poste ayant accès à la base — et le journal n'existe pas.
+
+> #### ⚠️ ET SI L'HEURE PASSE, IL N'Y A AUCUNE VOIE DE RETOUR — mesuré
+>
+> Deux scénarios existants le disent, chacun de son côté, et personne ne les avait mis côte à côte :
+>
+> | Ce qui est mesuré | Où |
+> | --- | --- |
+> | le **second appel** du geste sur la même société est refusé | « le second appel sur la MÊME société est refusé, lisiblement » |
+> | l'instance de **production** ne peut émettre **aucun** jeton | « l'instance de PRODUCTION ne peut émettre aucun jeton » |
+>
+> Mis ensemble : **jeton expiré ⇒ le compte existe, personne ne peut lui donner de mot de passe, et rien ne peut en émettre un autre.** Le cliquet qui protège l'ouverture condamne aussi l'issue de secours — *c'est l'espèce nommée au §9 le 08/09.*
+>
+> **Conséquence pratique, et c'est pourquoi la durée n'a PAS été raccourcie :** raccourcir le jeton sans voie de réémission augmente la probabilité de cet enfermement. La question est **inscrite** au registre du 09/09 (suite) avec deux options chiffrées, pas tranchée ici.
+>
+> **En attendant : ouvrir le lien dans l'heure, et ne pas déclencher le geste sans être disponible pour l'utiliser.**
 
 ### 5.2 — ~~Un compte qui enrôle son second facteur est ENFERMÉ~~ — RÉPARÉ le 08/09/2026 (L1-02g, D64)
 
@@ -132,7 +161,7 @@ Et il n'existe aucun chemin pour en créer un : *personne ne crée son propre co
 
 **Ce qui reste à connaître avant d'exposer, et qui est un état atteignable :**
 
-- **un compte parvenu à l'escalade n'a aucun chemin de sortie.** Le ticket de déverrouillage — **L7-04**, `admin_societe` de la société concernée — **n'est pas construit**. L'état s'atteint en trente codes faux. La base laisse déjà passer le geste ; ce qui manque est le droit.
+- ~~**un compte parvenu à l'escalade n'a aucun chemin de sortie.**~~ **LEVÉ le 09/09/2026 (L7-04, D66).** `admin_societe` de la société concernée peut déverrouiller, l'acte est journalisé, et il **rend le droit de réessayer, jamais un accès**. La sortie **n'ouvre aucune lecture** sur `second_facteur` : l'écriture ne nomme aucune ligne — un `UPDATE` sans `WHERE` ne lit aucune colonne et échappe donc aux politiques de `SELECT` —, ce qui évitait qu'un déverrouillage devienne une prise de contrôle (l'administrateur y aurait lu le secret TOTP et les codes de secours). Ce paragraphe est conservé barré : qui a lu cette note avant le 09/09 doit pouvoir constater ce qui a changé.
 - la limite par **adresse IP** de la bibliothèque (3 requêtes / 10 s sur `/two-factor/*`) reste, elle, **en mémoire du processus** : elle disparaît au redémarrage et n'est pas partagée entre instances. Elle n'est plus la seule protection, mais elle ne compte toujours pas pour un attaquant distribué.
 - **s'assurer que `NODE_ENV=production` est bien posé chez l'hébergeur.** `next start` le pose ; une commande de démarrage exotique pourrait ne pas le faire, et cette limite-là serait alors désactivée.
 
@@ -152,7 +181,7 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 
 ## 6 — La procédure, dans l'ordre
 
-1. **Trancher le point 5.1.** Tant qu'il tient, la mise en ligne produit un site où personne n'entre : aucun compte de la base hébergée ne porte de mot de passe, et aucun écran n'en ouvre. Lire aussi le 5.3 : un compte parvenu à l'escalade n'a pas encore de chemin de sortie.
+1. **Lire le 5.1 en entier avant de jouer le geste d'amorçage** — les deux encadrés surtout. Il n'est plus vrai que personne ne peut entrer : le geste existe. Ce qui reste à savoir tient en deux phrases. *Le jeton entre dans le journal du flux si la commande est jouée en CI, et il y est une clé vivante pendant une heure.* *S'il expire, il n'y a aucune voie de retour.* Ne pas le déclencher sans être disponible pour l'utiliser dans l'heure — ou le jouer hors CI, auquel cas le journal n'existe pas.
 2. Choisir la région de l'hébergeur au plus près de **`ap-southeast-2`**.
 3. Engendrer `BETTER_AUTH_SECRET` (≥ 32 octets aléatoires) et le déposer chez l'hébergeur **seulement**.
 4. Recopier le secret de dépôt `DATABASE_URL` dans la variable `DATABASE_URL` de l'hébergeur. **Ne pas y mettre `MIGRATION_DATABASE_URL`.**
@@ -161,3 +190,6 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 7. Vérifier que `NODE_ENV` vaut `production`.
 8. Déployer, puis ouvrir `/` : la page d'accueil doit s'afficher. Elle ne touche pas la base — c'est le premier signe que le service tourne, pas que la base répond.
 9. Ouvrir `/connexion` et soumettre n'importe quoi : le refus doit être **uniforme** (D35). S'il apparaît une erreur de connexion à la base, c'est `DATABASE_URL` ; s'il apparaît un refus de rôle, c'est que la chaîne ne porte pas `codiplan_app`.
+10. **Ouvrir la première identité** avec `scripts/amorcage-premier-compte.mts` — `AMORCAGE_PREMIER_COMPTE_CONFIRME=oui`, `--societe`, `--email`, `--nom`, `--role`. Relire le 5.1 d'abord. **Utiliser l'URL rendue dans l'heure.**
+11. **Vérifier que la porte s'est refermée derrière vous** : rejouer la même commande sur la même société doit être **refusé**, et rouvrir l'URL déjà consommée ne doit **rien** ouvrir. Ce sont les deux seules choses à constater après coup, et elles se constatent en trente secondes.
+12. **Le taux horaire n'est pas posé par ce geste** — voir le registre du 09/09 (suite), §4. Le montant est arrêté (7 000 XPF HT, D68) et sa date d'effet aussi (la mise en service) ; c'est le MÉCANISME d'écriture qui attend un mot de l'exploitation. Tant qu'aucune ligne de `taux_horaire` n'existe, RG-TAR-04 n'a rien à appliquer et aucune intervention ne se valorise.
