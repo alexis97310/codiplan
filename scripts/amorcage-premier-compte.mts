@@ -8,6 +8,8 @@ import {
 } from "@/lib/auth/amorcage";
 import { estRole, Role } from "@/lib/auth/roles";
 
+import { argument } from "./lib/arguments";
+
 /**
  * AMORÇAGE — ouverture de la première identité d'une société (Q1 / D65).
  *
@@ -64,15 +66,6 @@ import { estRole, Role } from "@/lib/auth/roles";
  */
 
 export const VARIABLE_CONFIRMATION = "AMORCAGE_PREMIER_COMPTE_CONFIRME";
-
-/** Lit `--clef valeur` dans une ligne de commande. */
-export function argument(argv: readonly string[], clef: string): string | null {
-  const rang = argv.indexOf(`--${clef}`);
-  if (rang === -1) {
-    return null;
-  }
-  return argv[rang + 1] ?? null;
-}
 
 const dire = (ligne: string): void => {
   process.stdout.write(`${ligne}\n`);
