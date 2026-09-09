@@ -341,6 +341,28 @@ export function maintenant(fuseau: Fuseau): {
 }
 
 /**
+ * `08:15` — l'heure LOCALE d'un instant, dans un fuseau nommé.
+ *
+ * **Elle vit ici parce que `Intl.DateTimeFormat` vit ici**, et pas ailleurs
+ * (L0-08) : c'est le point de passage unique où un fuseau est nommé. Un écran
+ * qui construirait son propre formateur écrirait l'heure de l'APPAREIL, et le
+ * planning d'un technicien en déplacement se décalerait — c'est très exactement
+ * ce que le gardien `sans-date-courante-implicite` refuse, et l'ajouter en
+ * exemption aurait élargi la règle au lieu de la servir.
+ *
+ * Le format est `HH:mm` sur 24 heures : une heure de planning ne se lit pas en
+ * « 8:15 PM », et le zéro de tête garde les colonnes alignées.
+ */
+export function heureLocale(instant: Date, fuseau: Fuseau): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: fuseau,
+  }).format(instant);
+}
+
+/**
  * L'année en cours dans un fuseau nommé.
  *
  * Sert à l'**horizon glissant des jours fériés** (D46, complément 3) : le seed

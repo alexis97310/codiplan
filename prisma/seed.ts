@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { Role } from "../lib/auth/roles";
+import { cleJour, instantAMinutes, maintenant } from "../lib/calendar";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import {
@@ -11,9 +12,12 @@ import {
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  HABILITATION_EXIGEE_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
   PARITES,
+  PLANNING_DEMONSTRATION,
   SOCIETES,
+  TECHNICIENS_DEMONSTRATION,
   UTILISATEURS_INTERNES,
   anneeDeDepartFeries,
   ecartsDeLAgence,
@@ -655,7 +659,193 @@ async function seed(): Promise<void> {
     }
   }
 
+  // ── LE PLANNING DE DÉMONSTRATION (L2-11) ───────────────────────────────
+  //
+  // Il vient EN DERNIER, et l'ordre est une contrainte de la base :
+  // `technicien` porte une clé étrangère composite vers `utilisateur_societe`,
+  // et `intervention` en porte cinq — client, site, agence, technicien,
+  // forfait. Rien de tout cela n'existe avant les sections ci-dessus.
+  //
+  // **Les heures sont relatives à AUJOURD'HUI**, dans le fuseau de la société.
+  // Une date figée rendrait l'écran vide dès le lendemain — et personne ne le
+  // verrait avant de l'ouvrir. C'est la leçon de D46 appliquée à un jeu
+  // d'essai : *une donnée datée se périme en silence.*
+  await semerLePlanning();
+
   etape("terminé");
+}
+
+/**
+ * Techniciens, exigence de site et interventions du jour, pour la société XPF.
+ *
+ * **Ce jeu existe pour que l'écran PROUVE quelque chose**, pas pour qu'il soit
+ * rempli : les cinq natures de bloc y sont, dont le refus d'affectation, qui
+ * est ce que le planning doit savoir faire de plus difficile (D73).
+ */
+async function semerLePlanning(): Promise<void> {
+  const societe = societeParCode("CODIMA-NC");
+  const fuseau = societe.fuseau_horaire;
+  const jour = maintenant(fuseau).local;
+
+  etape(
+    `planning de démonstration — ${pluriel(PLANNING_DEMONSTRATION.length, "intervention")}`,
+  );
+
+  const identifiants = new Map<string, string>();
+
+  for (const technicien of TECHNICIENS_DEMONSTRATION) {
+    const enregistre = await avecSociete(
+      prisma,
+      societe.id,
+      async (tx) => {
+        const membre = await tx.utilisateur.findUnique({
+          where: { email: technicien.email },
+          select: { id: true },
+        });
+        if (membre === null) {
+          return null;
+        }
+        const agence = await tx.agence.findFirst({
+          where: { code: technicien.agence_code },
+          select: { id: true, calendrier_id: true },
+        });
+        if (agence === null) {
+          return null;
+        }
+        return { utilisateurId: membre.id, agence };
+      },
+      DELAIS_SEED,
+    );
+
+    if (enregistre === null) {
+      continue;
+    }
+
+    // L'EXCEPTION d'horaires de D72 : le second technicien reçoit le
+    // calendrier de l'AUTRE agence, ce qui suffit à rendre la surcharge
+    // visible à l'écran sans inventer un troisième calendrier.
+    const calendrierPropre = technicien.calendrier_propre
+      ? await avecSociete(
+          prisma,
+          societe.id,
+          (tx) =>
+            tx.calendrier.findFirst({
+              where: { id: { not: enregistre.agence.calendrier_id ?? "" } },
+              select: { id: true },
+            }),
+          DELAIS_SEED,
+        )
+      : null;
+
+    await avecSociete(
+      prisma,
+      societe.id,
+      (tx) =>
+        tx.technicien.upsert({
+          where: { id: technicien.id },
+          update: {
+            agence_id: enregistre.agence.id,
+            calendrier_id: calendrierPropre?.id ?? null,
+          },
+          create: {
+            id: technicien.id,
+            societe_id: societe.id,
+            utilisateur_id: enregistre.utilisateurId,
+            agence_id: enregistre.agence.id,
+            calendrier_id: calendrierPropre?.id ?? null,
+          },
+        }),
+      DELAIS_SEED,
+    );
+    identifiants.set(technicien.email, technicien.id);
+  }
+
+  if (identifiants.size === 0) {
+    return;
+  }
+
+  // L'EXIGENCE qui fait le refus. Elle est posée sur le site de l'atelier, et
+  // le second technicien ne détient pas cette habilitation : l'affectation est
+  // BLOQUÉE (RG-PLA-04), et l'écran l'affiche à sa place avec sa raison.
+  await avecSociete(
+    prisma,
+    societe.id,
+    async (tx) => {
+      const habilitation = await tx.habilitation.findFirst({
+        where: { code: HABILITATION_EXIGEE_DEMONSTRATION },
+        select: { id: true },
+      });
+      if (habilitation === null) {
+        return;
+      }
+      await tx.siteHabilitationRequise.upsert({
+        where: {
+          societe_id_site_id_habilitation_id: {
+            societe_id: societe.id,
+            site_id: PLANNING_DEMONSTRATION[3].site_id,
+            habilitation_id: habilitation.id,
+          },
+        },
+        update: { bloquant: true },
+        create: {
+          id: uuidv7(),
+          societe_id: societe.id,
+          site_id: PLANNING_DEMONSTRATION[3].site_id,
+          habilitation_id: habilitation.id,
+          bloquant: true,
+        },
+      });
+    },
+    DELAIS_SEED,
+  );
+
+  for (const bloc of PLANNING_DEMONSTRATION) {
+    const technicienId =
+      identifiants.get(TECHNICIENS_DEMONSTRATION[bloc.technicien].email) ??
+      null;
+    if (technicienId === null) {
+      continue;
+    }
+
+    const debut = instantAMinutes(jour, bloc.debut_minutes, fuseau);
+    const fin = new Date(debut.getTime() + bloc.duree_minutes * 60_000);
+
+    await avecSociete(
+      prisma,
+      societe.id,
+      async (tx) => {
+        const site = await tx.site.findFirst({
+          where: { id: bloc.site_id },
+          select: { agence_id: true },
+        });
+        if (site === null) {
+          return;
+        }
+        const champs = {
+          client_id: bloc.client_id,
+          site_id: bloc.site_id,
+          agence_id: site.agence_id,
+          type: bloc.type,
+          libelle: bloc.libelle,
+          date_planifiee: new Date(`${cleJour(jour)}T00:00:00.000Z`),
+          creneau_debut: debut,
+          creneau_fin: fin,
+          duree_estimee_min: bloc.duree_minutes,
+          technicien_referent_id: technicienId,
+          mode_valorisation: bloc.mode_valorisation,
+          statut_facturation: bloc.statut_facturation,
+          statut: "planifiee" as const,
+          devise_code: societe.devise_code,
+        };
+        await tx.intervention.upsert({
+          where: { id: bloc.id },
+          update: champs,
+          create: { id: bloc.id, societe_id: societe.id, ...champs },
+        });
+      },
+      DELAIS_SEED,
+    );
+  }
 }
 
 seed()

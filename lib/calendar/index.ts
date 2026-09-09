@@ -24,6 +24,7 @@ export {
   comparerJours,
   decalageMinutes,
   estFuseauConnu,
+  heureLocale,
   instantAMinutes,
   jourDe,
   jourSuivant,

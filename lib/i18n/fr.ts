@@ -55,6 +55,42 @@ export const fr = {
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.
 
+  // ── Planning (L2-11, D72, D73, D74) ───────────────────────────────────────
+  "planning.titre": "Planning",
+  // Le mot « agence » ne s'écrit PAS ici : il se définit une fois dans les
+  // entrées `vocabulaire.*` et se compose ailleurs depuis `mot("agence")`
+  // (D5, D47). Ces trois phrases disent donc « rattachement », qui est la
+  // notion, et laissent le mot à son domicile.
+  "planning.accroche":
+    "Une colonne par technicien, un pas de quinze minutes. Les heures viennent du calendrier de rattachement — ou de celui du technicien, quand il en a un.",
+  "planning.jour_precedent": "Jour précédent",
+  "planning.jour_suivant": "Jour suivant",
+  "planning.aujourdhui": "Aujourd'hui",
+  "planning.colonne_heures": "Heure",
+  "planning.calendrier_propre": "horaires propres",
+  "planning.ferme": "Fermé ce jour",
+  "planning.ferme.aide":
+    "Le calendrier de ce technicien n'ouvre aucune plage ce jour-là. Ouvrir une plage se fait sur son calendrier de rattachement, ou sur le sien.",
+  "planning.vide.titre": "Aucun technicien à planifier",
+  "planning.vide.invitation":
+    "Rattachez un technicien pour ouvrir sa colonne. Sans rattachement, il n'a ni heures ni majoration.",
+  "planning.aucun_bloc.titre": "Journée libre",
+  "planning.aucun_bloc.invitation":
+    "Aucune intervention n'est posée sur cette journée. Qualifiez une demande pour en poser une.",
+  "planning.deborde": "déborde des heures d'ouverture",
+  "planning.legende": "Légende",
+  "planning.legende.facture": "Facturée au temps passé",
+  "planning.legende.forfait": "Forfait",
+  "planning.legende.trajet": "Trajet — non facturé",
+  "planning.legende.interne": "Travail interne, non facturable",
+  "planning.legende.refus": "Affectation refusée",
+  "planning.non_facture": "non facturé",
+  "planning.refus.absente": "absente",
+  "planning.refus.expiree": "expirée",
+  "planning.refus.prefixe": "Affectation refusée",
+  "planning.refus.remede":
+    "Attribuez l'habilitation au technicien, ou affectez quelqu'un d'autre.",
+  "planning.avertissement": "Habilitation non bloquante manquante",
   // ── Navigation (L2-10) ────────────────────────────────────────────────────
   "navigation.titre": "Écrans",
   "navigation.planning": "Planning",

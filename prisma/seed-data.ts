@@ -897,7 +897,143 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
     email: "adv@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.adv }],
   },
+  // DEUX techniciens, et le second n'est pas décoratif : le planning ne prouve
+  // rien avec une seule colonne. C'est lui qui porte l'EXCEPTION d'horaires de
+  // D72 — un calendrier propre, distinct de celui de son agence — et c'est lui
+  // dont l'habilitation manquante fait le refus d'affectation de D73.
+  {
+    nom: "Technicien de démonstration",
+    email: "technicien@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
+  {
+    nom: "Second technicien de démonstration",
+    email: "technicien2@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
 ];
+
+/**
+ * LE PLANNING DE DÉMONSTRATION (L2-11).
+ *
+ * **Les cinq natures de bloc y sont présentes**, et c'est la seule raison de ce
+ * jeu : un planning qui ne montrerait que des interventions facturées ne
+ * prouverait ni le trajet non facturé (D74), ni le forfait, ni le travail
+ * interne, ni surtout le REFUS d'affectation (D73), qui est ce que l'écran doit
+ * savoir faire de plus difficile.
+ *
+ * **Les heures sont RELATIVES au jour courant**, jamais des dates figées : une
+ * date écrite en dur rend le planning vide le lendemain de la démonstration, et
+ * personne ne le remarque avant d'ouvrir l'écran. C'est la leçon des jours
+ * fériés (D46) appliquée à un jeu d'essai — *une donnée datée se périme en
+ * silence.*
+ */
+export type BlocSeed = {
+  id: string;
+  /** Rang du technicien dans `TECHNICIENS_DEMONSTRATION`. */
+  technicien: 0 | 1;
+  site_id: string;
+  client_id: string;
+  libelle: string;
+  type:
+    | "curatif"
+    | "preventif_hors_contrat"
+    | "installation"
+    | "recensement"
+    | "controle_reglementaire";
+  /** Minutes locales depuis minuit — le jour est celui du seed. */
+  debut_minutes: number;
+  duree_minutes: number;
+  mode_valorisation: "forfait" | "temps_passe" | "forfait_plus_heures";
+  statut_facturation: "non_facturable" | "a_facturer" | "facturee";
+};
+
+export type TechnicienSeed = {
+  id: string;
+  email: string;
+  agence_code: string;
+  /** Vrai pour celui qui porte l'exception d'horaires de D72. */
+  calendrier_propre: boolean;
+};
+
+export const TECHNICIENS_DEMONSTRATION: readonly TechnicienSeed[] = [
+  {
+    id: "0192f0a0-7000-7000-8000-000000000001",
+    email: "technicien@codima.test",
+    agence_code: "DUCOS",
+    calendrier_propre: false,
+  },
+  {
+    id: "0192f0a0-7000-7000-8000-000000000002",
+    email: "technicien2@codima.test",
+    agence_code: "DUCOS",
+    calendrier_propre: true,
+  },
+];
+
+const SITE_ATELIER = "0192f0a0-4000-7000-8000-000000000001";
+const CLIENT_ATELIER = "0192f0a0-1000-7000-8000-000000000001";
+
+export const PLANNING_DEMONSTRATION: readonly BlocSeed[] = [
+  {
+    id: "0192f0a0-9000-7000-8000-000000000001",
+    technicien: 0,
+    site_id: SITE_ATELIER,
+    client_id: CLIENT_ATELIER,
+    libelle: "Dépannage compresseur",
+    type: "curatif",
+    debut_minutes: 8 * 60,
+    duree_minutes: 90,
+    mode_valorisation: "temps_passe",
+    statut_facturation: "a_facturer",
+  },
+  {
+    id: "0192f0a0-9000-7000-8000-000000000002",
+    technicien: 0,
+    site_id: SITE_ATELIER,
+    client_id: CLIENT_ATELIER,
+    libelle: "Visite préventive annuelle",
+    type: "preventif_hors_contrat",
+    debut_minutes: 13 * 60 + 30,
+    duree_minutes: 120,
+    mode_valorisation: "forfait",
+    statut_facturation: "a_facturer",
+  },
+  {
+    id: "0192f0a0-9000-7000-8000-000000000003",
+    technicien: 1,
+    site_id: SITE_ATELIER,
+    client_id: CLIENT_ATELIER,
+    libelle: "Remise en état d'un moteur à l'atelier",
+    type: "installation",
+    debut_minutes: 9 * 60,
+    duree_minutes: 150,
+    mode_valorisation: "temps_passe",
+    statut_facturation: "non_facturable",
+  },
+  {
+    // CELLE-CI EST REFUSÉE : le site exige une habilitation que le second
+    // technicien ne détient pas. Elle s'affiche à sa place, en oxyde, avec la
+    // raison écrite (D73) — elle ne disparaît jamais en silence.
+    id: "0192f0a0-9000-7000-8000-000000000004",
+    technicien: 1,
+    site_id: SITE_ATELIER,
+    client_id: CLIENT_ATELIER,
+    libelle: "Contrôle réglementaire du pont élévateur",
+    type: "controle_reglementaire",
+    debut_minutes: 14 * 60,
+    duree_minutes: 60,
+    mode_valorisation: "temps_passe",
+    statut_facturation: "a_facturer",
+  },
+];
+
+/**
+ * Le code de l'habilitation que le site exige et que le second technicien n'a
+ * pas. Elle vient de l'amorçage réglementaire — ce n'est pas une valeur
+ * inventée pour la démonstration, c'est une exigence réelle.
+ */
+export const HABILITATION_EXIGEE_DEMONSTRATION = "B1V";
 
 /**
  * Compte portail rattaché à un client de la société XPF (D10).

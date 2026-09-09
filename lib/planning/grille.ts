@@ -190,7 +190,9 @@ export function positionner(
   const borneDebut = Math.max(debutMinutes, grille.debutMinutes);
   const borneFin = Math.min(finMinutes, grille.finMinutes);
 
-  const depuis = Math.floor((auPas(borneDebut) - grille.debutMinutes) / PAS_MINUTES);
+  const depuis = Math.floor(
+    (auPas(borneDebut) - grille.debutMinutes) / PAS_MINUTES,
+  );
   const pas = Math.max(
     1,
     Math.ceil((auPasSuperieur(borneFin) - auPas(borneDebut)) / PAS_MINUTES),

@@ -139,6 +139,29 @@
     outline-offset: 2px;
   }
 
+  /* RÈGLE 5 : UN SEUL moment orchestré dans tout le produit — le remplissage
+     du planning, colonne par colonne, 140 ms de décalage par colonne (le
+     décalage est posé en ligne par le composant, qui seul connaît le rang).
+     Rien d'autre ne bouge de soi-même. */
+  [data-remplissage="colonne"] {
+    animation: remplissage-colonne 260ms ease-out backwards;
+  }
+
+  @keyframes remplissage-colonne {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  /* Et il se supprime ENTIÈREMENT, pas se raccourcit : « reduce » n'est pas
+     « un peu moins ». */
+  @media (prefers-reduced-motion: reduce) {
+    [data-remplissage="colonne"] {
+      animation: none;
+    }
+  }
+
   h1,
   h2,
   h3 {

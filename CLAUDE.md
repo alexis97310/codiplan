@@ -479,6 +479,25 @@ lib/
               rend des CODES, jamais du texte : les libellés sont au
               dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
               un humain (I6, RG-IMP-01)
+  planning/   la GRILLE du planning (L2-11, D72) — géométrie PURE d'un côté,
+              lecture cloisonnée de l'autre, et jamais les deux dans un composant
+              grille.ts : pas de 15 minutes NOMMÉ, bornes tirées des plages du
+              calendrier — aucun horaire en dur, I7 ; un jour sans plage n'a pas
+              de grille, c'est un jour fermé et l'écran le dit
+              un créneau qui déborde des heures d'ouverture n'est jamais tronqué
+              en silence : la position le SIGNALE, c'est une information de
+              gestion
+              depot.ts : le REFUS d'affectation est CALCULÉ, jamais stocké
+              (D81) — l'horloge n'entre pas dans le cloisonnement, une
+              habilitation expirée refuse l'affectation et ne masque aucune ligne
+              RG-PLA-04 est évaluée à la DATE DE L'INTERVENTION, pas à celle du
+              jour affiché : une habilitation qui expire demain autorise
+              l'intervention d'hier
+              le refus voyage NOMMÉ — le domaine raisonne en identifiants, un
+              écran doit écrire « BR absente » ; la traduction se fait ici, une
+              fois, jamais dans le composant
+              le TRAJET est un bloc à part entière (D74), posé avant
+              l'intervention, marqué non facturé
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS
