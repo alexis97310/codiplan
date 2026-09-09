@@ -43,6 +43,25 @@
  * gardien ferme la classe la plus peuplée — celle où la table EXISTE — et
  * annonce que l'autre reste à la relecture. *Un gardien qui annonce sa limite
  * vaut mieux qu'un gardien qu'on croit complet.*
+ *
+ * ## Sa direction PERMISSIVE, mesurée le 11/09/2026, et non refermée
+ *
+ * Le §9 dit désormais qu'un gardien rougit quand il doit **et** ne reste vert
+ * que quand il le doit. Ce gardien-ci reconnaît une table à un mot **en gras**
+ * dans la section 11.2 : il compte donc comme « nommée » toute table dont le
+ * nom coïnciderait avec un mot mis en valeur pour une autre raison. *Mesuré :*
+ * la section porte **55** jetons en gras, dont **six** ne sont ni des tables ni
+ * des noms de tables planifiées — `entier`, `nullable`, `portail`,
+ * `recensement`, `trace`, `fusionnee`. Une table qui porterait l'un de ces six
+ * noms serait tenue pour documentée sans l'être.
+ *
+ * **La restriction évidente — n'accepter le gras qu'en DÉBUT DE LIGNE — a été
+ * mesurée et écartée** : elle écarte bien les six, et elle perd **deux tables
+ * réelles**, `utilisateur_societe` et `habilitation`, que le chapitre nomme au
+ * milieu d'une phrase. La poser exigerait de réécrire le rang 3, ce qui n'est
+ * pas une décision de gardien. *La faille est donc écrite plutôt que refermée,
+ * avec la liste exacte des six collisions : c'est ce qu'un futur auteur de
+ * table doit lire avant de choisir un nom.*
  */
 
 /** Le titre de la section qui énumère les tables. */
