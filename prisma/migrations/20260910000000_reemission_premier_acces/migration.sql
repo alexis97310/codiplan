@@ -1,0 +1,33 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- LA RÉÉMISSION DU JETON DE PREMIER ACCÈS
+-- Décision d'exploitation du 09/09/2026, complément de D65. Nuit du 10/09.
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- ## L'enfermement que cette migration accompagne
+--
+-- Le jeton de premier accès émis par le geste d'amorçage vit UNE HEURE — le
+-- défaut de la bibliothèque, lu en base (`expire_le − cree_le = 00:59:59.999`).
+-- Deux scénarios existaient, chacun de son côté : le second appel du geste sur
+-- la même société est refusé, et l'instance de production n'émet aucun jeton.
+-- Mis ensemble : **jeton expiré ⇒ le compte existe, personne ne peut lui donner
+-- de mot de passe, et rien ne peut en émettre un autre.** Le cliquet qui protège
+-- l'ouverture condamnait aussi l'issue de secours (§9, 08/09).
+--
+-- ## Ce que cette migration fait, et ce qu'elle ne fait PAS
+--
+-- Elle n'ajoute AUCUNE politique, AUCUNE branche, AUCUN droit. Le geste de
+-- réémission emprunte exactement les chemins que le geste d'amorçage emprunte
+-- déjà — la désignation par courriel, la modification du moyen de connexion
+-- désigné par son identité, l'émission d'un jeton par une instance qui n'est
+-- pas celle de production. Ce qui le BORNE ne vit pas ici : c'est un fait de
+-- la ligne de `compte` — `mot_de_passe IS NULL`, l'état dans lequel l'amorçage
+-- laisse désormais le moyen de connexion, et que la première réinitialisation
+-- referme pour toujours.
+--
+-- Elle ajoute une valeur à l'énumération des événements d'accès, et rien
+-- d'autre : une réémission est un ÉVÉNEMENT D'ACCÈS, comme l'ouverture (D65,
+-- point 2) — une identité n'appartient à aucune société, et `journal_audit`
+-- est cloisonné par société et partitionné. La valeur nomme l'événement, jamais
+-- le chemin, qui va dans `detail`.
+
+ALTER TYPE "EvenementAcces" ADD VALUE 'reemission_premier_acces';

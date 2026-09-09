@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 
-import { ouvrirPremierCompte, RefusAmorcage } from "@/lib/auth/amorcage";
+import {
+  ouvrirPremierCompte,
+  reemettreJetonPremierAcces,
+  RefusAmorcage,
+  RefusReemission,
+} from "@/lib/auth/amorcage";
 import { estRole, Role } from "@/lib/auth/roles";
 
 /**
@@ -21,7 +26,7 @@ import { estRole, Role } from "@/lib/auth/roles";
  *
  * ## Ce qu'il imprime, et ce qu'il n'imprime jamais
  *
- * Il imprime **une fois** l'URL de premier accès. Elle porte un jeton à usage
+ * Il imprime **une fois** l'URL de premier accès — à l'ouverture comme à la réémission. Elle porte un jeton à usage
  * unique et daté, et **elle n'est relisible nulle part** : ni en base sous cette
  * forme, ni dans un journal. Elle se transmet HORS BANDE, par le canal de
  * l'exploitation.
@@ -37,6 +42,14 @@ import { estRole, Role } from "@/lib/auth/roles";
  *     pnpm tsx scripts/amorcage-premier-compte.mts \
  *       --societe <uuid> --email <courriel> --nom "<nom>" [--role admin_societe] \
  *       [--base https://…]
+ *
+ * Et la RÉÉMISSION d'un jeton expiré ou perdu, pour une identité qui n'a
+ * JAMAIS servi (10/09/2026, complément de D65) :
+ *
+ *     AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \
+ *     DATABASE_URL=… \
+ *     pnpm tsx scripts/amorcage-premier-compte.mts \
+ *       --reemettre --societe <uuid> --email <courriel> [--base https://…]
  *
  * La variable de confirmation suit le précédent de
  * `scripts/purge-demonstration.mts` : un geste qui touche aux droits ne
@@ -81,11 +94,26 @@ async function principal(): Promise<number> {
   const nom = argument(argv, "nom");
   const roleDemande = argument(argv, "role");
   const base = argument(argv, "base");
+  const reemettre = argv.includes("--reemettre");
+
+  if (reemettre) {
+    if (societeId === null || email === null) {
+      dire(
+        "Usage : --reemettre --societe <uuid> --email <courriel> [--base https://…]",
+      );
+      return 2;
+    }
+    if (base !== null) {
+      process.env.BETTER_AUTH_URL = base;
+    }
+    return reemission(societeId, email);
+  }
 
   if (societeId === null || email === null || nom === null) {
     dire(
       'Usage : --societe <uuid> --email <courriel> --nom "<nom>" ' +
-        "[--role admin_societe] [--base https://…]",
+        "[--role admin_societe] [--base https://…]\n" +
+        "        --reemettre --societe <uuid> --email <courriel> [--base https://…]",
     );
     return 2;
   }
@@ -130,6 +158,53 @@ async function principal(): Promise<number> {
     return 0;
   } catch (erreur) {
     if (erreur instanceof RefusAmorcage) {
+      dire(`Refus : ${erreur.message}`);
+      return 1;
+    }
+    throw erreur;
+  } finally {
+    await client.$disconnect();
+  }
+}
+
+/**
+ * LA RÉÉMISSION (10/09/2026, complément de D65).
+ *
+ * Le jeton de premier accès vit une heure. Expiré, il ne laissait AUCUNE voie
+ * de retour : le second appel du geste est refusé, et la production n'émet
+ * rien. Ce chemin la rend, sous un cliquet plus étroit que celui de l'amorçage :
+ * il ne sert qu'une identité qui n'a JAMAIS servi — `compte.mot_de_passe` nul,
+ * l'état dans lequel l'amorçage laisse le moyen de connexion — et il se ferme
+ * pour toujours dès qu'un mot de passe existe. Il ne rouvre jamais le chemin
+ * d'ouverture, et il imprime l'URL UNE fois, comme l'ouverture.
+ */
+async function reemission(societeId: string, email: string): Promise<number> {
+  const client = new PrismaClient();
+  try {
+    const reemis = await reemettreJetonPremierAcces(client, {
+      societeId,
+      email,
+    });
+    dire("");
+    dire("Jeton de premier accès RÉÉMIS.");
+    dire(`  identifiant   : ${reemis.utilisateurId}`);
+    dire("");
+    dire("  URL DE PREMIER ACCÈS — imprimée UNE FOIS, jamais relisible :");
+    dire(`  ${reemis.urlPremierAcces}`);
+    dire("");
+    dire(
+      "  À transmettre hors bande. Le jeton est à usage unique et daté. Un " +
+        "jeton précédent encore vivant reste valide jusqu'à son expiration : " +
+        "ce geste ne sait pas l'invalider.",
+    );
+    dire("");
+    dire(
+      "  Ce geste se FERME pour toujours dès qu'un mot de passe est choisi : " +
+        "un mot de passe oublié se traite par le chemin ordinaire.",
+    );
+    return 0;
+  } catch (erreur) {
+    if (erreur instanceof RefusReemission) {
       dire(`Refus : ${erreur.message}`);
       return 1;
     }

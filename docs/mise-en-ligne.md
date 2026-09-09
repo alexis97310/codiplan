@@ -132,7 +132,9 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 >
 > **Ce qui reste vrai pendant l'heure : la ligne du journal EST une clé.** Qui la lit dans cette fenêtre, avant l'exploitation, ouvre le compte. Si cela ne convient pas, jouer la commande **hors CI** — depuis un poste ayant accès à la base — et le journal n'existe pas.
 
-> #### ⚠️ ET SI L'HEURE PASSE, IL N'Y A AUCUNE VOIE DE RETOUR — mesuré
+> #### ⚠️ ~~ET SI L'HEURE PASSE, IL N'Y A AUCUNE VOIE DE RETOUR~~ — UNE VOIE EXISTE depuis le 10/09/2026, et son cliquet est plus étroit
+>
+> **Le constat ci-dessous était exact, et il ne l'est plus.** Le même script porte désormais `--reemettre` : il réémet un jeton de premier accès pour une identité **qui n'a jamais servi**, et pour elle seule. Le cliquet lit un FAIT de la ligne de `compte` — `mot_de_passe IS NULL`, l'état dans lequel l'amorçage laisse le moyen de connexion depuis ce jour (l'empreinte du mot de passe jetable est **effacée**, mesuré : l'identité ne se connecte alors avec rien). La première réinitialisation écrit une empreinte, et **la réémission est fermée pour toujours** — mesuré sur la même identité, avant et après, et le jumeau montre qu'elle repasse quand le fait est remis en place. Elle ne rouvre jamais le chemin d'ouverture, ne laisse aucune session, et trace `reemission_premier_acces` dans `journal_acces`. **Ce qu'elle ne sait pas faire :** invalider un jeton précédent encore vivant — deux jetons peuvent donc être valides pendant l'heure du premier. Le paragraphe d'origine est conservé barré, pour qui a lu cette note avant le 10/09.
 >
 > Deux scénarios existants le disent, chacun de son côté, et personne ne les avait mis côte à côte :
 >
@@ -143,9 +145,9 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 >
 > Mis ensemble : **jeton expiré ⇒ le compte existe, personne ne peut lui donner de mot de passe, et rien ne peut en émettre un autre.** Le cliquet qui protège l'ouverture condamne aussi l'issue de secours — *c'est l'espèce nommée au §9 le 08/09.*
 >
-> **Conséquence pratique, et c'est pourquoi la durée n'a PAS été raccourcie :** raccourcir le jeton sans voie de réémission augmente la probabilité de cet enfermement. La question est **inscrite** au registre du 09/09 (suite) avec deux options chiffrées, pas tranchée ici.
+> ~~**Conséquence pratique, et c'est pourquoi la durée n'a PAS été raccourcie :** raccourcir le jeton sans voie de réémission augmente la probabilité de cet enfermement. La question est **inscrite** au registre du 09/09 (suite) avec deux options chiffrées, pas tranchée ici.~~ **Tranché le 09/09 par l'exploitation : la durée reste à une heure, la réémission se construit — elle l'est.**
 >
-> **En attendant : ouvrir le lien dans l'heure, et ne pas déclencher le geste sans être disponible pour l'utiliser.**
+> ~~**En attendant : ouvrir le lien dans l'heure, et ne pas déclencher le geste sans être disponible pour l'utiliser.**~~ Ouvrir le lien dans l'heure reste la bonne habitude ; s'il expire, `--reemettre` en rend un autre tant que personne n'a choisi de mot de passe.
 
 ### 5.2 — ~~Un compte qui enrôle son second facteur est ENFERMÉ~~ — RÉPARÉ le 08/09/2026 (L1-02g, D64)
 
@@ -181,7 +183,7 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 
 ## 6 — La procédure, dans l'ordre
 
-1. **Lire le 5.1 en entier avant de jouer le geste d'amorçage** — les deux encadrés surtout. Il n'est plus vrai que personne ne peut entrer : le geste existe. Ce qui reste à savoir tient en deux phrases. *Le jeton entre dans le journal du flux si la commande est jouée en CI, et il y est une clé vivante pendant une heure.* *S'il expire, il n'y a aucune voie de retour.* Ne pas le déclencher sans être disponible pour l'utiliser dans l'heure — ou le jouer hors CI, auquel cas le journal n'existe pas.
+1. **Lire le 5.1 en entier avant de jouer le geste d'amorçage** — les deux encadrés surtout. Il n'est plus vrai que personne ne peut entrer : le geste existe. Ce qui reste à savoir tient en deux phrases. *Le jeton entre dans le journal du flux si la commande est jouée en CI, et il y est une clé vivante pendant une heure.* ~~*S'il expire, il n'y a aucune voie de retour.*~~ *S'il expire, `--reemettre` en rend un autre, tant que personne n'a choisi de mot de passe (10/09/2026).* Ne pas le déclencher sans être disponible pour l'utiliser dans l'heure — ou le jouer hors CI, auquel cas le journal n'existe pas.
 2. Choisir la région de l'hébergeur au plus près de **`ap-southeast-2`**.
 3. Engendrer `BETTER_AUTH_SECRET` (≥ 32 octets aléatoires) et le déposer chez l'hébergeur **seulement**.
 4. Recopier le secret de dépôt `DATABASE_URL` dans la variable `DATABASE_URL` de l'hébergeur. **Ne pas y mettre `MIGRATION_DATABASE_URL`.**
@@ -192,4 +194,5 @@ Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active u
 9. Ouvrir `/connexion` et soumettre n'importe quoi : le refus doit être **uniforme** (D35). S'il apparaît une erreur de connexion à la base, c'est `DATABASE_URL` ; s'il apparaît un refus de rôle, c'est que la chaîne ne porte pas `codiplan_app`.
 10. **Ouvrir la première identité** avec `scripts/amorcage-premier-compte.mts` — `AMORCAGE_PREMIER_COMPTE_CONFIRME=oui`, `--societe`, `--email`, `--nom`, `--role`. Relire le 5.1 d'abord. **Utiliser l'URL rendue dans l'heure.**
 11. **Vérifier que la porte s'est refermée derrière vous** : rejouer la même commande sur la même société doit être **refusé**, et rouvrir l'URL déjà consommée ne doit **rien** ouvrir. Ce sont les deux seules choses à constater après coup, et elles se constatent en trente secondes.
-12. **Le taux horaire n'est pas posé par ce geste** — voir le registre du 09/09 (suite), §4. Le montant est arrêté (7 000 XPF HT, D68) et sa date d'effet aussi (la mise en service) ; c'est le MÉCANISME d'écriture qui attend un mot de l'exploitation. Tant qu'aucune ligne de `taux_horaire` n'existe, RG-TAR-04 n'a rien à appliquer et aucune intervention ne se valorise.
+12. **Si l'URL a expiré avant d'être ouverte** : rejouer le script avec `--reemettre --societe --email`. Il refuse dès qu'un mot de passe existe — si c'est le cas, l'identité a servi, et un mot de passe oublié se traite par le chemin ordinaire, jamais par ce geste. Deux constats après coup : la nouvelle URL ouvre le compte, et la même commande rejouée **après** le choix du mot de passe est refusée.
+13. **Le taux horaire n'est pas posé par ce geste** — voir le registre du 09/09 (suite), §4. Le montant est arrêté (7 000 XPF HT, D68) et sa date d'effet aussi (la mise en service) ; c'est le MÉCANISME d'écriture qui attend un mot de l'exploitation. Tant qu'aucune ligne de `taux_horaire` n'existe, RG-TAR-04 n'a rien à appliquer et aucune intervention ne se valorise.

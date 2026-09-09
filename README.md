@@ -509,6 +509,15 @@ AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm tsx scripts/amorcage-premier-compte.mt
 
 Le geste **ne pose aucun mot de passe qui transite** : il en tire un au hasard, ne le rend à personne, et imprime **une fois** une URL de premier accès portant un jeton à usage unique et daté. Il ferme aussi la session que `signUpEmail` ouvre — _une porte d'amorçage qui laisse une session ouverte derrière elle est pire que celle qu'on voulait éviter._ La trace va à `journal_acces` sous `ouverture_identite`, jamais à `journal_audit` : une identité n'appartient à aucune société, et le journal d'audit est cloisonné et partitionné.
 
+**Et si l'URL expire avant d'être ouverte** — elle vit une heure —, le même script la **réémet**, pour une identité qui n'a jamais servi et pour elle seule (10/09/2026, complément de D65) :
+
+```bash
+AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm tsx scripts/amorcage-premier-compte.mts \
+  --reemettre --societe <uuid> --email <courriel> --base https://…
+```
+
+Son cliquet est un **fait** de la ligne de `compte` — `mot_de_passe IS NULL`, l'état dans lequel l'amorçage laisse le moyen de connexion depuis qu'il efface l'empreinte du mot de passe jetable. La première réinitialisation écrit une empreinte, et la réémission est fermée pour toujours ; un mot de passe oublié se traite par le chemin ordinaire. Elle ne rouvre jamais le chemin d'ouverture, ne laisse aucune session, et trace `reemission_premier_acces`.
+
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
 
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort

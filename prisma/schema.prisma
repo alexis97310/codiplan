@@ -953,6 +953,14 @@ enum EvenementAcces {
   /// Elle vaudra telle quelle pour le chemin administratif du lot 7 : la valeur
   /// nomme donc l'ÉVÉNEMENT, jamais le chemin, qui va dans `detail`.
   ouverture_identite
+  /// RÉÉMISSION du jeton de premier accès d'une identité qui n'a JAMAIS servi
+  /// (10/09/2026, complément de D65). Le jeton d'amorçage vit une heure ; expiré,
+  /// il ne laissait aucune voie de retour — le second appel du geste étant
+  /// refusé, et l'instance de production n'émettant rien. Ce geste la rend.
+  /// Son cliquet est plus ÉTROIT que celui de l'amorçage : il se ferme dès qu'un
+  /// mot de passe existe, et pour toujours. L'événement nomme ce qui s'est
+  /// passé — un jeton de plus a été émis —, jamais le chemin.
+  reemission_premier_acces
   /// Déverrouillage d'un compte parvenu à l'ESCALADE du second facteur
   /// (L7-04 / D66). *Déverrouiller n'accorde aucun accès* : la personne devra
   /// toujours présenter un code valide. C'est ce qui distingue L7-04 de L7-01,
