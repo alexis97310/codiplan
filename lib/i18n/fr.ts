@@ -55,6 +55,59 @@ export const fr = {
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.
 
+  // ── Techniciens (L2-13, D9, D76) ──────────────────────────────────────────
+  // Le mot « productivité » n'entre pas ici, et un gardien le refuse : il
+  // ferait lire un rendement là où il y a du temps occupé (D76).
+  "techniciens.titre": "Techniciens",
+  "techniciens.accroche":
+    "Habilitations et leur échéance, composition des heures du mois. Une habilitation périmée reste affichée : elle refuse une affectation, elle ne se cache pas.",
+  "techniciens.vide.titre": "Aucun technicien",
+  "techniciens.vide.invitation":
+    "Rattachez un compte pour ouvrir sa fiche. Sans rattachement, ni heures ni majoration.",
+  "techniciens.habilitations": "Habilitations",
+  "techniciens.habilitations.aucune":
+    "Aucune habilitation enregistrée. Une affectation vers un lieu qui en exige une sera refusée.",
+  "techniciens.sans_echeance": "n'expire pas",
+  "techniciens.valable_jours": "valable encore",
+  "techniciens.expiree_depuis": "expirée depuis",
+  "techniciens.jours": "jours",
+  "techniciens.heures.titre": "Heures du mois",
+  "techniciens.heures.intervention": "Intervention",
+  "techniciens.heures.trajet": "Trajet",
+  "techniciens.heures.atelier": "Atelier",
+  "techniciens.heures.autres": "Autres",
+  "techniciens.heures.travaillees": "Heures travaillées",
+  "techniciens.heures.aucune":
+    "Aucune heure saisie ce mois-ci. La barre se remplira à la première intervention pointée.",
+  "techniciens.occupation": "Taux d'occupation",
+  // Le taux n'est pas « 0 % » quand rien n'est connu : zéro serait une mesure,
+  // et il n'y en a pas. Un tiret dit l'absence de mesure, ce que zéro ne dit pas.
+  "techniciens.occupation.indisponible": "non mesurable",
+  "techniciens.occupation.formule":
+    "taux d'occupation = heures d'intervention ÷ heures travaillées",
+  "techniciens.occupation.absences":
+    "Les absences ne sont pas déduites des heures travaillées : la table qui les porte n'existe pas encore. Le taux est donc minoré pour un technicien absent.",
+  "techniciens.horaires_propres": "horaires propres",
+  // ── Clients, sites et parc (L2-12, D56, RG-TAR-06) ────────────────────────
+  "parc.titre": "Clients et parc",
+  "parc.accroche":
+    "Chaque lieu d'intervention, son rattachement, son temps de trajet et les forfaits dont les conditions sont remplies.",
+  "parc.vide.titre": "Aucun client",
+  "parc.vide.invitation":
+    "Créez un client pour ouvrir son parc. Un import Excel produit d'abord un rapport, jamais une écriture directe.",
+  "parc.sites_vide.titre": "Aucun lieu d'intervention",
+  "parc.sites_vide.invitation":
+    "Ajoutez un lieu d'intervention pour poser des machines et planifier une visite.",
+  "parc.machines": "Machines",
+  "parc.rattachement": "Rattachement",
+  "parc.trajet": "Trajet",
+  "parc.trajet.aide":
+    "Le temps de trajet se compte depuis le rattachement du lieu, et se relit avec lui : seul, le nombre ne dit pas d'où l'on part.",
+  "parc.trajet.absent": "non renseigné",
+  "parc.zone": "Zone",
+  "parc.forfaits": "Forfaits applicables",
+  "parc.forfaits.aucun": "Aucun forfait ne remplit ses conditions ici.",
+  "parc.minutes": "min",
   // ── Planning (L2-11, D72, D73, D74) ───────────────────────────────────────
   "planning.titre": "Planning",
   // Le mot « agence » ne s'écrit PAS ici : il se définit une fois dans les

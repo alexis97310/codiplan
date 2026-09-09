@@ -479,6 +479,29 @@ lib/
               rend des CODES, jamais du texte : les libellés sont au
               dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
               un humain (I6, RG-IMP-01)
+  parc/       le parc d'un client : ses lieux, leur rattachement, leur trajet,
+              leurs forfaits, leurs machines (L2-12)
+              le TRAJET ne voyage jamais seul (D56) — un nombre dont la
+              signification dépend d'une autre colonne se rend AVEC elle, et
+              l'écran les affiche ensemble
+              le forfait est CALCULÉ par lib/tarification, jamais recopié :
+              recopier RG-TAR-06 ici en ferait une seconde lecture d'un même
+              critère, qui diverge en silence
+              aucun montant formaté à la main — formatMoney seul (I3)
+  techniciens/ habilitations datées et composition des heures du mois
+              (L2-13, D9, D76)
+              une habilitation périmée reste LUE et AFFICHÉE avec son effet
+              (D81) : elle refuse une affectation, elle ne masque pas sa ligne —
+              et celui qui doit la renouveler ne la verrait plus
+              le taux d'occupation ne voyage JAMAIS seul (D76) : les quatre
+              composantes, les deux termes du rapport, la formule à côté du nom
+              — jamais le pourcentage
+              « atelier » n'est pas un type de temps en base : c'est du temps
+              d'INTERVENTION sur une intervention non facturable, et ce que
+              cette lecture confond est écrit plutôt que tu
+              les ABSENCES ne sont pas déduites des heures travaillées — la
+              table n'existe pas ; le taux est donc minoré, et c'est dit à
+              l'écran plutôt que corrigé en silence
   planning/   la GRILLE du planning (L2-11, D72) — géométrie PURE d'un côté,
               lecture cloisonnée de l'autre, et jamais les deux dans un composant
               grille.ts : pas de 15 minutes NOMMÉ, bornes tirées des plages du
