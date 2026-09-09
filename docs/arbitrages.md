@@ -2741,3 +2741,67 @@ Ce qu'elle rend — et c'est une mesure, pas un souvenir :
 **CONDITION DE RÉOUVERTURE, et elle se vérifie sans s'interpréter.** *Le jour où l'ordre d'application devra dépendre d'autre chose que d'un nombre réglé par l'exploitation — la spécificité des conditions, par exemple, « le plus précis l'emporte » —, ce sera un amendement de RG-TAR-06 et non un tri choisi en séance.* La spécificité a été écartée ici pour une raison mesurable : elle n'est pas un ordre total (un forfait conditionné par zone et un forfait conditionné par famille ne se comparent pas), et *un ordre partiel présenté comme une règle de facturation laisse exactement le trou qu'on vient de refermer*.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-TAR-06 dit qu'un forfait s'applique si ses conditions sont remplies, et cette décision dit lequel l'emporte quand plusieurs les remplissent — elle complète sans réécrire. Le chapitre 11 gagne la colonne `rang`.*
+
+---
+
+## D87 — La documentation des machines : au MODÈLE ou à la MACHINE, deux classes de visibilité, et un bac de réception qui PROPOSE
+
+*Décision d'exploitation du 9 septembre 2026, inscrite par la session. **Elle est écrite, pas construite** — c'est le lot 8 du backlog. Une décision qui n'existe que dans une conversation n'existe pas : la conversation se ferme.*
+
+**CE QUI EST ARRÊTÉ, EN CINQ POINTS.**
+
+1. **Un document s'accroche AU MODÈLE ou À LA MACHINE, jamais aux deux, et c'est le SCHÉMA qui l'interdit.** Notice, fiche technique, manuel d'atelier sont identiques pour tous les exemplaires : ils vivent sur le modèle. Certificat de conformité, procès-verbal de mise en service sont propres à un exemplaire : ils vivent sur la machine. *Le ticket L2-04 avait déjà mesuré la forme qui marche* — deux colonnes nullables et `num_nonnulls(...) = 1` —, et celle qui piège : une colonne `entite_id` avec deux clés étrangères est **acceptée au DDL et refuse toute ligne légitime**. Cette mesure est acquise et ne se refait pas.
+2. **L'écran d'une machine affiche l'UNION** de ses documents et de ceux de son modèle. *C'est ce qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais pouvoir le corriger.*
+3. **DEUX classes de visibilité, `client` et `interne`, produites par le schéma.** *À cinq valeurs, personne ne classe juste* : une classification qu'on hésite à appliquer est appliquée au hasard, et un document mal classé est pire qu'un document absent. C'est la même famille que les listes closes de I1 — une valeur s'ajoute par arbitrage, jamais dans un ticket.
+4. **Le cloisonnement d'un document est HÉRITÉ de sa machine — société, site, habilitation — et la classe ne fait que le RÉTRÉCIR.** *Ce n'est pas un nouvel axe, et il ne faut pas inventer une forme de politique de plus* : la forme « parc » existe, D84 vient de la donner à `intervention`, et une dixième forme est un arbitrage, jamais un effet de bord. **Ce qui reste ouvert et n'est pas tranché ici** : un document de MODÈLE n'a ni machine ni site, et son cloisonnement est celui de `modele_materiel`, table métier cloisonnée depuis le retrait du mécanisme « référentiel de plateforme + copie masquante ». *La question s'instruit avec sa mesure au moment du ticket, comme D84 l'a été.*
+5. **Fiche en base, octets dans un stockage d'objets, même région que la base. Jamais de PDF dans PostgreSQL.** Et **`date_document` et `date_expiration` dès le premier jour**, même inutilisées : *trois minutes maintenant, une migration douloureuse plus tard* — c'est la leçon du 30/08 sur les échéances qui tombent au pire moment, prise par le bon bout.
+
+**LE BAC DE RÉCEPTION EST L'ENTRÉE PRINCIPALE, ET SA RÈGLE CARDINALE EST DE PROPOSER SANS JAMAIS CLASSER SEUL.** Les documents existants sont numériques mais **rangés en vrac**, sans structure exploitable. Six exigences, et la troisième est celle qui décide du reste : dédupliquer **par empreinte avant** de rapprocher ; afficher **la première page** à côté du choix — *la couverture porte la marque et le modèle, l'œil fait le travail, pas la reconnaissance de caractères* ; **proposer, jamais classer seul** ; téléversement **reprenable** — plusieurs gigaoctets depuis Nouméa, ça se coupe ; traiter **les modèles d'abord**, une notice classée servant toutes les machines du modèle d'un coup ; **tranches de dix minutes**, reprise au même endroit, aucun travail partiel perdu, compteur visible — *ce travail sera délégué, et un travail délégué qui perd une session perd la personne avec.*
+
+**POURQUOI LE RAPPROCHEMENT AUTOMATIQUE EST REFUSÉ, ET CE N'EST PAS UN ARGUMENT DE QUALITÉ DE DONNÉES.** *Un rapprochement faux accroche la notice d'un compresseur à un pont élévateur, et personne ne le voit avant qu'un technicien suive la mauvaise procédure.* **C'est de la sécurité.** Le mode de défaillance n'est pas « une fiche est mal remplie » : c'est un geste dangereux exécuté avec confiance. *Même famille que le badge « à planifier » sur une ligne datée — un objet qui a l'air juste et qui ne l'est pas —, avec un blessé au bout.*
+
+**HORS V1, nommé pour que personne ne l'ajoute en passant :** import automatique en masse, chaînes de versions, liens vers les sites constructeurs, téléversement depuis le téléphone.
+
+**CONDITION DE RÉOUVERTURE.** *Le jour où une troisième classe de visibilité est réclamée avec un cas réel derrière — un document que le client peut voir mais pas télécharger, par exemple —, c'est un arbitrage, et il devra dire ce que la troisième valeur fait à celui qui classe.* La question à lui poser sera celle qui a fermé la liste à deux : *qui classera, et se trompera-t-il moins avec trois choix qu'avec deux ?*
+
+*Aucune règle du chapitre 10 n'est amendée : le chapitre décrit déjà `document` comme une entité du modèle ; cette décision en arrête la forme et la visibilité. Le chapitre 11 recevra les colonnes au moment du ticket.*
+
+---
+
+## D88 — Le registre des VGP : CODIPLAN n'affirme jamais la conformité, il enregistre ce qu'on lui a dit
+
+*Décision d'exploitation du 9 septembre 2026, inscrite par la session. **Écrite, pas construite** — c'est le lot 9 du backlog.*
+
+**LE FAIT DONT TOUT DÉCOULE, ET IL EST D'EXPLOITATION, PAS DE CONCEPTION.** Les vérifications générales périodiques (APAVE, Bureau Veritas) sont **commandées par les CLIENTS, pas par CODIMA**. CODIMA ne les déclenche pas, ne les reçoit pas de droit, et n'apprend leur résultat que si on le lui dit. *Tout ce qui suit est la conséquence de cette phrase, et une conception qui l'oublierait produirait un registre qui ment.*
+
+**CE QUI EST ARRÊTÉ.**
+
+1. **CODIPLAN NE CALCULE JAMAIS LA CONFORMITÉ.** Il enregistre ce que l'organisme agréé a écrit, et ne calcule que des **dates**. *« Conforme » ne s'affiche que parce qu'APAVE l'a écrit.* Déduire la conformité d'une règle que le produit porterait serait engager une responsabilité que personne ne lui a donnée — et le faire dans un logiciel vendu à d'autres sociétés, sur d'autres territoires, avec d'autres textes.
+2. **Ce n'est pas un registre de conformité : c'est un REGISTRE DE CE QU'ON NOUS A DIT.** Chaque écran porte **la date de la dernière information reçue**. Sans nouvelles : **« sans information depuis X »** — jamais « à jour », jamais « en retard », **jamais blanc**. *Le danger est qu'un registre à moitié rempli ressemble à un registre complet* : c'est le §9 du 06/09 — un chiffre juste qui fait conclure faux —, et c'est exactement le zéro de `/sante` lu comme « installation vide », à l'échelle d'un parc de machines.
+3. **L'assujettissement se déclare À LA FAMILLE et se propage, mais PAS par une case à cocher : TROIS valeurs** — `soumis` · `non_soumis`, et `verifie` · `a_determiner`. **Une famille nouvelle naît « à déterminer ».** *Une case décochée est indiscernable d'une famille jamais examinée*, et un pont élévateur sortirait du registre en silence. **Les « à déterminer » apparaissent dans une liste visible** : c'est la moitié détective du couple, et sans elle la troisième valeur ne sert à rien — *une garantie qu'on ne peut pas constater après coup est une intention* (§9, 30/08).
+4. **Déclarer « soumis » rend obligatoires la PÉRIODICITÉ et LA RÉFÉRENCE DU TEXTE qui la fonde.** Sans le texte, la périodicité est un chiffre que personne ne peut défendre.
+5. **AUCUNE PÉRIODICITÉ EN DUR.** Elle dépend du matériel et du texte applicable ; **la Nouvelle-Calédonie a son propre code du travail**, et la solution sera vendue ailleurs. **C'est une donnée saisie par un humain** — même famille que le taux horaire (D68) et que la majoration hors ouverture : le §8 interdit d'inventer un délai.
+6. **Le MODÈLE peut préciser** — les caractéristiques techniques vivent là. **La MACHINE peut faire exception, avec MOTIF ÉCRIT OBLIGATOIRE.** Une exception sans sa raison est une exception que personne ne pourra rejuger.
+7. **La déclaration est JOURNALISÉE : qui, quand, sur quelle base.** Pas une table de plus — `journal_audit`, par déclencheur, comme le reste (I8, D55).
+8. **Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre UNE CAMPAGNE DATÉE avec un compteur qui descend.** *Un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte plus qu'il ne rapporte* — c'est écrit au §9 depuis le 11/09, et deux cents alertes le jour d'une déclaration sont la panne par le bruit, la plus sûre de toutes.
+9. **Le rapport de VGP est de classe `client`** au sens de D87 : *l'obligation pèse sur celui qui utilise le matériel, le rapport lui appartient.*
+10. **Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.** *C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.* Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
+11. **Le TECHNICIEN saisit sur site ce qu'il voit — vignette, date — en cinq secondes, pendant une intervention.** *C'est ce qui remplira le registre, et rien d'autre ne le remplira* : personne ne saisira deux cents fiches un dimanche. La saisie fonctionne **hors ligne** (I4), comme tout ce que le terrain fait.
+
+**HORS V1 :** la commande des visites aux organismes. *Elle viendra le jour où l'exploitation vendra ce service — et c'est le registre rempli qui le lui permettra.* L'ordre compte : le registre est ce qui rend le service vendable, pas l'inverse.
+
+**CONDITION DE RÉOUVERTURE.** *Le jour où CODIMA commandera elle-même des visites — c'est-à-dire le jour où elle vendra ce service —, la phrase dont tout découle cesse d'être vraie, et cette décision est due à réécriture entière.* Le registre deviendrait alors partiellement un registre de faits connus de première main, et la distinction « ce qu'on nous a dit » / « ce que nous savons » devrait être portée par la donnée, pas par une note.
+
+*Aucune règle du chapitre 10 n'est amendée : ce lot n'existe pas encore au cahier des charges, et cette décision est ce qui l'y fera entrer.*
+
+---
+
+## Point de vigilance commun à D87 et D88 — ce dont CODIMA RÉPOND, à instruire avant le portail
+
+*Écrit comme point de vigilance et **non comme blocage**, à la demande de l'exploitation.*
+
+**Le jour où le portail sert à un client un certificat de conformité ou un état de VGP, la question de ce dont CODIMA répond se pose.** Publier un document réglementaire, même reçu d'un tiers, n'est pas la même chose que publier un compte rendu d'intervention : **le client peut s'en prévaloir**, et un document périmé, mal rattaché ou incomplet devient une affirmation de CODIMA plutôt qu'une simple mise à disposition.
+
+**Ce que cela ne bloque pas :** les deux lots se construisent entièrement sans cette réponse. Le bac de réception, le rattachement, le registre, la saisie terrain — rien n'en dépend.
+
+**Ce que cela bloque :** l'ouverture de ces deux lots **sur le portail client**. *Avis à prendre avant, jamais après.* Et le déclencheur se vérifie sans s'interpréter : **le premier écran de portail qui affiche un document de classe `client` provenant d'un organisme tiers.**
