@@ -480,6 +480,16 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Le paramétrage par agence — parce qu'aucun calendrier n'est codé en dur
+
+I7 est catégorique : _Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. **Aucun calendrier global codé en dur.**_ Les horaires et les jours travaillés vivaient déjà dans `calendrier` et `calendrier_plage` depuis le lot 0. Il manquait le **pas des créneaux** — sans lui, la grille du planning aurait été une constante dans un composant, c'est-à-dire un réglage que personne ne peut changer — et le cas du **technicien dont la disponibilité n'est pas celle de son agence**.
+
+`calendrier.pas_creneau_minutes` porte le pas, **par calendrier donc par agence** : rien ne dit que Ducos et Koné découpent leur journée pareil. 30 minutes est une valeur d'**amorçage**, réglable à l'écran `/parametres/agences`, jamais une règle métier.
+
+`technicien_calendrier` porte l'exception — un temps partiel, une alternance, un renfort du matin. **C'est un rattachement à un autre calendrier de la même société, jamais une copie de plages** : recopier aurait fait deux lectures d'un même critère, et la seconde aurait cessé d'être vraie au premier changement d'horaires. Et **elle ne majore rien** : une exception dit _quand_ le technicien travaille, jamais _à quel prix_ — la majoration relève de RG-TAR et de l'agence du technicien (I7), et l'y mêler ferait payer au client la souplesse d'un contrat de travail.
+
+**Une grille de créneaux ne déborde jamais sa plage.** Un créneau n'est proposé que s'il tient entièrement avant la fermeture : _une grille qui déborde est pire qu'une grille courte — la seconde se voit, la première se découvre sur place._ Le cas qui décide de la justesse n'est donc pas celui où le pas divise la plage, c'est celui où il ne la divise pas.
+
 ## Les captures d'écran, et ce qu'elles ne prouvent pas
 
 `docs/captures/` porte les images de chaque écran, en thème clair et sombre, à 1280 px et 390 px. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.

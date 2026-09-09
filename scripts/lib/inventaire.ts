@@ -90,6 +90,10 @@ export const TABLES_CLOISONNEES = [
   // la clause de société seule est exclue par RG-DRO-01, un compte portail
   // lirait les interventions des autres clients de sa propre société.
   "intervention",
+  // Lot 2 : l'exception d'horaires par technicien. Table métier ORDINAIRE,
+  // forme « société » — elle n'ouvre aucun accès, elle décrit une
+  // disponibilité.
+  "technicien_calendrier",
 ] as const;
 
 export type TableCloisonnee = (typeof TABLES_CLOISONNEES)[number];

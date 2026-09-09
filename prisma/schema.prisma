@@ -93,6 +93,8 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
+  technicien_calendriers TechnicienCalendrier[]
+
   interventions Intervention[]
 
   id                            String  @id @db.Uuid
@@ -286,12 +288,57 @@ model Calendrier {
   libelle    String
   actif      Boolean @default(true)
 
-  societe Societe           @relation(fields: [societe_id], references: [id])
-  agences Agence[]
-  plages  CalendrierPlage[]
+  /// LE PAS DE CRÉNEAU, en minutes locales — ce que le planning propose comme
+  /// grille (lot 2). Une valeur PAR CALENDRIER, donc par agence : Ducos ouvre
+  /// du lundi au samedi et Koné du lundi au vendredi (I7), et rien ne dit
+  /// qu'elles découpent leur journée pareil.
+  ///
+  /// **La valeur par défaut n'est pas une règle métier** : 30 minutes est une
+  /// valeur d'AMORÇAGE que l'exploitation change à l'écran de réglage. Elle est
+  /// écrite ici plutôt que dans un composant, parce qu'une valeur en dur dans
+  /// un composant n'est réglable par personne.
+  pas_creneau_minutes Int @default(30)
+
+  societe     Societe                @relation(fields: [societe_id], references: [id])
+  agences     Agence[]
+  plages      CalendrierPlage[]
+  techniciens TechnicienCalendrier[]
 
   @@unique([societe_id, code])
   @@map("calendrier")
+}
+
+/// L'EXCEPTION D'HORAIRES PAR TECHNICIEN (lot 2).
+///
+/// Un technicien à temps partiel, un apprenti en alternance, un renfort qui ne
+/// vient que le matin : leur disponibilité n'est pas celle de leur agence, et
+/// I7 interdit tout calendrier global codé en dur — la même raison vaut un
+/// cran plus bas.
+///
+/// **C'est un RATTACHEMENT, pas une copie d'horaires.** Le technicien reçoit un
+/// AUTRE calendrier de la même société, avec ses propres plages ; il n'a pas
+/// des plages à lui, écrites à côté de celles d'un calendrier. Recopier les
+/// plages aurait fait deux lectures d'un même critère (§9, 01/09), et la
+/// seconde aurait cessé d'être vraie au premier changement d'horaires.
+///
+/// **Ce que cette table NE dit PAS : elle ne majore rien.** Une exception
+/// d'horaires dit quand le technicien travaille, jamais à quel prix — la
+/// majoration relève de RG-TAR et de l'agence du technicien (I7), et l'y mêler
+/// ferait payer au client la souplesse d'un contrat de travail.
+model TechnicienCalendrier {
+  societe_id     String @db.Uuid
+  utilisateur_id String @db.Uuid
+  calendrier_id  String @db.Uuid
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe    Societe    @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  calendrier Calendrier @relation(fields: [calendrier_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([societe_id, utilisateur_id])
+  @@index([societe_id, calendrier_id])
+  @@map("technicien_calendrier")
 }
 
 /// Une plage d'ouverture hebdomadaire — table métier, `societe_id NOT NULL`.

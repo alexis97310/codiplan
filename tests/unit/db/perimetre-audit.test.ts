@@ -235,7 +235,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-et-une tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -266,6 +266,10 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // DÉPLACEMENTS demandé par l'exploitation — qui, quand, d'où vers où —
     // n'est pas une table de plus à écrire, c'est `journal_audit` faisant son
     // travail, avec les valeurs avant et après.
+    //
+    // **`technicien_calendrier` s'y ajoute avec le paramétrage par agence**, et
+    // par le même chemin. Elle le mérite : « depuis quand ce technicien est-il
+    // à mi-temps » est une question de paie autant que de planning.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
@@ -283,6 +287,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "site_habilitation_requise",
       "societe",
       "taux_horaire",
+      "technicien_calendrier",
       "technicien_habilitation",
       "utilisateur_client",
       "utilisateur_client_site",

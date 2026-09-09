@@ -365,6 +365,35 @@ export const fr = {
   "mode_valorisation.forfait": "Forfait",
   "mode_valorisation.temps_passe": "Temps passé",
   "mode_valorisation.forfait_plus_heures": "Forfait plus heures",
+
+  // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
+  //
+  // « Agence » et « site » ne s'écrivent pas ici : le code nomme la notion.
+  "parametres.titre": "Réglage des horaires d'ouverture",
+  "parametres.sous_titre":
+    "Les jours travaillés, les horaires et le pas des créneaux. Chaque établissement a les siens : rien n'est écrit dans l'application.",
+  "parametres.calendrier": "Calendrier",
+  "parametres.jours": "Jours travaillés",
+  "parametres.horaires": "Horaires",
+  "parametres.pas": "Pas des créneaux (minutes)",
+  "parametres.pas_enregistrer": "Enregistrer le pas",
+  "parametres.creneaux_exemple": "Créneaux proposés un jour ouvré",
+  "parametres.sans_calendrier":
+    "Aucun calendrier n'est rattaché : aucun créneau ne peut être proposé.",
+  "parametres.exception_technicien": "Exception par technicien",
+  "parametres.exception_explication":
+    "Un technicien peut recevoir un autre calendrier de la société — un temps partiel, une alternance, un renfort du matin. C'est un rattachement, jamais une copie d'horaires : les horaires changent à un seul endroit.",
+  "parametres.exception_aucune": "Aucune exception enregistrée.",
+  "parametres.refus_pas":
+    "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
+
+  "jour.1": "lundi",
+  "jour.2": "mardi",
+  "jour.3": "mercredi",
+  "jour.4": "jeudi",
+  "jour.5": "vendredi",
+  "jour.6": "samedi",
+  "jour.7": "dimanche",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

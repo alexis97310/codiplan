@@ -481,6 +481,16 @@ lib/
               territoire ISO et fuseau : deux attributs de l'agence, jamais
               l'un déduit de l'autre (D46)
               seul endroit où la date courante se lit — et avec un fuseau (L0-08)
+              parametrage.ts : horaires, jours travaillés, PAS DE CRÉNEAU —
+              réglés par agence et jamais écrits dans un composant (I7)
+              l'exception par technicien est un RATTACHEMENT à un autre
+              calendrier, jamais une copie de plages : recopier ferait deux
+              lectures d'un même critère
+              et elle ne MAJORE rien — elle dit quand on travaille, pas à quel
+              prix ; la majoration relève de RG-TAR et de l'agence du technicien
+              une grille de créneaux ne DÉBORDE jamais sa plage : un dernier
+              créneau à cheval sur la fermeture proposerait un rendez-vous que
+              l'agence ne peut pas tenir
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
   sync/       (prévu) protocole hors-ligne

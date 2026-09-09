@@ -978,9 +978,11 @@ dans la table `parite` ci-dessous.*
 
 **agence** — `societe_id`, code, libellé, adresse, **fuseau horaire IANA**, **territoire ISO 3166-1 alpha-2**, calendrier de travail, actif. *Le fuseau et le territoire sont deux attributs distincts et indépendants — `Europe/Paris` couvre plusieurs territoires aux fériés différents, et ni l'un ni l'autre ne se déduit de l'autre (D46). `territoire` est `NOT NULL` parce qu'une clé étrangère dont une colonne vaut NULL n'est pas contrôlée (D48).* **Agence** = établissement CODIMA, jamais un site client (D5).
 
-**calendrier** — `societe_id`, code, libellé, actif. Le calendrier de travail d'une ou plusieurs agences (I7).
+**calendrier** — `societe_id`, code, libellé, actif, **`pas_creneau_minutes`**. Le calendrier de travail d'une ou plusieurs agences (I7). Le pas de créneau est une valeur **par calendrier**, donc par agence : rien ne dit que Ducos et Koné découpent leur journée pareil, et le mettre en dur dans l'application le rendrait irréglable.
 
 **calendrier_plage** — `societe_id`, calendrier, jour de la semaine, minute de début, minute de fin. Les heures d'ouverture, déroulées à la lecture.
+
+**technicien_calendrier** — `societe_id`, utilisateur, calendrier. **L'exception d'horaires par technicien** : un temps partiel, une alternance, un renfort du matin. C'est un **rattachement** à un autre calendrier de la même société, jamais une copie de plages — recopier ferait deux lectures d'un même critère, et la seconde cesserait d'être vraie au premier changement d'horaires. Elle ne **majore** rien : une exception dit *quand* le technicien travaille, jamais *à quel prix*.
 
 **calendrier_ferie** — `societe_id`, agence, date, **territoire recopié de l'agence**, jour férié référencé (nul pour un pont), travaillé, motif. *L'ÉCART LOCAL d'une agence sur le fait public : un férié travaillé, un pont. Chaîné par deux clés composites — `(agence_id, territoire)` et `(jour_ferie_id, date, territoire)` — en `ON UPDATE RESTRICT` des deux côtés (D48, D49).*
 
