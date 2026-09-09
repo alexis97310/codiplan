@@ -484,6 +484,16 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Amorcer une base de PRODUCTION — deux gestes qui manquaient
+
+**Mesuré le 09/09/2026 sur une base neuve migrée SANS seed, et la chaîne était coupée deux crans plus bas qu'on ne le croyait.** L'ouverture du premier compte réclame `--societe <uuid>` ; or aucune société n'existe sur une base neuve et rien dans le dépôt n'en créait. Et une société porte une **devise** — or `devise` et `parite` sont des **référentiels de plateforme**, des FAITS et non de la démonstration (D4), et ils n'étaient écrits, eux aussi, que par `prisma/seed.ts`.
+
+`pnpm db:referentiels` pose devises et parités par `upsert` ; `pnpm db:societe-initiale` ouvre **une** société et **n'invente aucune de ses sept valeurs** — la majoration hors ouverture est un pourcentage, c'est-à-dire un prix, et le §8 interdit d'en inventer un. Les deux sont portés par le flux GitHub **Amorcer une base**, cliquable depuis un téléphone. **Les jours fériés ne sont dans ni l'un ni l'autre** : leur horizon est glissant et se calcule par territoire, donc depuis les agences — `pnpm feries:etendre` reste le geste, et les recopier ici serait une seconde lecture d'un même critère.
+
+_La chaîne complète a été jouée de bout en bout sur une base neuve : référentiels, société, première identité, URL de premier accès, porte refermée derrière elle._
+
+**Et le flux de migration nomme désormais sa CIBLE.** `demonstration` — la base qui existe, celle que le seed peuple et que la veille observe — ou `production`, qui a ses propres secrets et où **le seed est sauté**. _Le choix ne se fait pas dans une expression : `cible == 'production' && secrets.PRODUCTION_… || secrets.…` a l'air d'un ternaire et n'en est pas un quand la première valeur est vide — un secret de production absent ferait migrer la démonstration, sans que rien ne soit vide ni ne le dise. Le choix se fait dans un shell, où « absent » ARRÊTE._
+
 ## La mise en ligne — une commande, une page, un geste
 
 `docs/mise-en-ligne.md` se suit **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt** : huit gestes numérotés en tête, et chaque section explique celui qui la précède. Trois variables d'environnement, avec **ce qui casse quand chacune manque** — et le symptôme exact quand `DATABASE_URL` est fausse, parce qu'il égare : _un `HTTP 500` sur une route d'authentification, qui se lit comme un bogue d'authentification alors que le journal dit `P1001`._

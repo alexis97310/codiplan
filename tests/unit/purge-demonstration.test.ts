@@ -73,10 +73,19 @@ describe("purge des données de démonstration", () => {
       );
       const etapeSeed = position("- name: Exécuter le seed");
 
+      const conditionPurge = workflow.slice(etapePurge, etapeSeed);
       expect(
-        workflow.slice(etapePurge, etapeSeed),
+        conditionPurge,
         "l'étape de purge doit être conditionnée par l'entrée",
-      ).toContain("if: ${{ inputs.reinitialiser_demo }}");
+      ).toContain("inputs.reinitialiser_demo");
+      // Depuis le 09/09/2026, une SECONDE condition : la purge ne vise jamais
+      // la base de production. L'assertion s'est resserrée, pas relâchée — elle
+      // portait sur la graphie exacte d'une condition simple, et une graphie
+      // exacte refuse aussi ce qui est plus fort qu'elle.
+      expect(
+        conditionPurge,
+        "la purge ne doit jamais viser la base de production",
+      ).toContain("inputs.cible != 'production'");
       expect(etapePurge).toBeLessThan(etapeSeed);
       expect(etapePurge).toBeGreaterThan(
         position("- name: Appliquer la migration"),

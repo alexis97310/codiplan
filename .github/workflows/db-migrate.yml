@@ -13,6 +13,26 @@ name: DB migrate & seed
 on:
   workflow_dispatch:
     inputs:
+      # DEUX BASES, DEUX JEUX DE SECRETS, ET AUCUN REPLI DE L'UNE SUR L'AUTRE.
+      #
+      # La base que les secrets historiques désignent est celle de
+      # DÉMONSTRATION : c'est elle que le seed peuple de deux sociétés fictives,
+      # c'est elle que la veille nocturne observe. La PRODUCTION est une base
+      # NEUVE, avec ses propres secrets — et sur elle, le seed NE S'EXÉCUTE
+      # JAMAIS : « les données de démonstration ne s'installent pas en
+      # production » n'est pas une recommandation de la note de mise en ligne,
+      # c'est ce que cette entrée rend vrai.
+      #
+      # Le choix est EXPLICITE et sans défaut silencieux : la valeur par défaut
+      # est la démonstration, c'est-à-dire le cas où une erreur ne coûte rien.
+      cible:
+        description: "Quelle base ? La production n'est JAMAIS amorcée par le seed."
+        type: choice
+        required: true
+        default: demonstration
+        options:
+          - demonstration
+          - production
       # Purge des données de démonstration avant le seed. Par défaut FALSE :
       # une exécution ordinaire du workflow n'efface jamais rien. Réservé à une
       # base ne contenant que des données de démonstration — voir
@@ -54,8 +74,52 @@ jobs:
       # migrations sous un rôle sans droits DDL — et masquerait un secret
       # manquant derrière une erreur sans rapport.
       # Voir docs/decisions/2026-08-20-inventaire-et-controle-de-cloisonnement.md.
-      DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+      # Les QUATRE secrets sont exposés bruts ; c'est l'étape suivante qui
+      # choisit, parce qu'une expression ne sait pas distinguer « absent » de
+      # « autre chose » — voir sa note.
+      SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
+      SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+      SECRET_APPLICATIF_DEMONSTRATION: ${{ secrets.DATABASE_URL }}
+      SECRET_APPLICATIF_PRODUCTION: ${{ secrets.PRODUCTION_DATABASE_URL }}
     steps:
+      # ── LE CHOIX DE LA BASE, ET POURQUOI IL N'EST PAS UNE EXPRESSION ──────
+      #
+      # L'idiome `inputs.cible == 'production' && secrets.PRODUCTION_… ||
+      # secrets.…` a l'air d'un ternaire. Il N'EN EST PAS UN quand la première
+      # valeur est VIDE : `&&` rend alors la chaîne vide, `||` rend la seconde,
+      # et un secret de production absent ferait migrer LA DÉMONSTRATION en
+      # croyant migrer la production — silencieusement, puisque la variable
+      # n'est pas vide. *C'est le repli que le gardien de l'inventaire refuse
+      # depuis le 20/08, retrouvé sous un autre costume, et c'est lui qui l'a
+      # attrapé.*
+      #
+      # Le choix se fait donc ICI, dans un shell, où « absent » se distingue de
+      # « autre chose », et où l'absence ARRÊTE.
+      - name: Choisir la base, et refuser plutôt que se rabattre
+        env:
+          CIBLE: ${{ inputs.cible }}
+        run: |
+          set -euo pipefail
+          if [ "$CIBLE" = "production" ]; then
+            migration="$SECRET_MIGRATION_PRODUCTION"
+            applicatif="$SECRET_APPLICATIF_PRODUCTION"
+            prefixe="PRODUCTION_"
+          else
+            migration="$SECRET_MIGRATION_DEMONSTRATION"
+            applicatif="$SECRET_APPLICATIF_DEMONSTRATION"
+            prefixe=""
+          fi
+          if [ -z "$migration" ]; then
+            echo "::error::Le secret ${prefixe}MIGRATION_DATABASE_URL n'existe pas. Aucun repli n'est prévu : déposez-le, ou changez de cible."
+            exit 1
+          fi
+          if [ -z "$applicatif" ]; then
+            echo "::error::Le secret ${prefixe}DATABASE_URL n'existe pas. Le contrôle de cloisonnement en a besoin : il se joue sous le rôle applicatif, jamais sous celui des migrations."
+            exit 1
+          fi
+          echo "DATABASE_URL=$migration" >> "$GITHUB_ENV"
+          echo "URL_APPLICATIVE=$applicatif" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v4
@@ -78,12 +142,17 @@ jobs:
       # confirmation explicite ci-dessous. Placé APRÈS la migration : la purge
       # suppose le schéma courant.
       - name: Purger les données de démonstration
-        if: ${{ inputs.reinitialiser_demo }}
+        if: ${{ inputs.reinitialiser_demo && inputs.cible != 'production' }}
         env:
           PURGE_DEMONSTRATION_CONFIRMEE: "oui"
         run: pnpm exec tsx scripts/purge-demonstration.mts
 
-      - name: Exécuter le seed
+      # SAUTÉE EN PRODUCTION, et c'est le cœur de l'entrée « cible ». Le seed
+      # crée deux sociétés fictives ; sur une base réelle, il n'a rien à faire.
+      # Un gardien statique vérifie que cette condition ne disparaît pas
+      # (tests/unit/ci/cible-de-migration.test.ts).
+      - name: Exécuter le seed (démonstration UNIQUEMENT)
+        if: ${{ inputs.cible != 'production' }}
         run: pnpm db:seed
 
       # ── Deux étapes, deux motifs d'échec distincts ────────────────────────
@@ -111,6 +180,6 @@ jobs:
       # service.
       - name: Contrôle de cloisonnement (base hébergée, rôle applicatif)
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          DATABASE_URL: ${{ env.URL_APPLICATIVE }}
+          MIGRATION_DATABASE_URL: ${{ env.DATABASE_URL }}
         run: pnpm exec tsx scripts/controle-cloisonnement.mts

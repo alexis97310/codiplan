@@ -265,6 +265,15 @@ pnpm db:deploy        # prisma migrate deploy — LA commande de mise en ligne :
                       # applique les migrations manquantes sur une base neuve
                       # ou existante, sans jamais en réécrire une appliquée
 pnpm db:seed          # deux sociétés, l'une en XPF, l'autre en EUR
+                      # DÉMONSTRATION UNIQUEMENT — le flux de migration le
+                      # SAUTE sur la cible « production » (gardien :
+                      # tests/unit/ci/cible-de-migration.test.ts)
+pnpm db:referentiels  # devises et parités sur une base qui n'a PAS vu le seed
+                      # ce sont des FAITS (I1, 2e catégorie), pas de la
+                      # démonstration — et sans eux aucune société n'existe
+pnpm db:societe-initiale # LA première société d'une base de production
+                      # aucune de ses sept valeurs n'a de défaut : la
+                      # majoration est un POURCENTAGE, donc un prix (§8)
 pnpm build            # build de production
 
 pnpm feries:horizon   # les fériés de chaque territoire couvrent-ils 12 mois ? (D46)
