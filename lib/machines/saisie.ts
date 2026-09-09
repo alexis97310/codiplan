@@ -67,6 +67,9 @@ export const STATUTS_MACHINE = [
   "arretee",
   "remplacee",
   "ferraillee",
+  // D28 : la fiche absorbée par une fusion. Seul producteur, L3-10 ; la saisie
+  // ne la choisit jamais à la main — voir la note ci-dessous.
+  "fusionnee",
 ] as const;
 
 export const CRITICITES_MACHINE = [
