@@ -170,7 +170,11 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 
 *Écrit en dernier et à la fin : une session neuve lit la fin d'un registre, pas son milieu.*
 
-**L'état :** proposition **#87** ouverte sur `main` à `fda75dc`, quatre commits — `35eeebc`, `84f7827`, `4a0e37b`, `03a3300`. *La ligne qui dira sa fusion ne peut pas s'écrire avant d'être vraie ; elle s'ajoute après, sur `main`.*
+**L'état : #87 est FUSIONNÉE dans `main`** — `2eadfd3`, le 09/09/2026 à 22:21 UTC. **CI verte sur `5faa11a` avant la fusion** : run #382, 22:14:49 → 22:20:55 UTC. Six commits — `35eeebc` (D85), `84f7827` (D86), `4a0e37b` (la mise en ligne), `03a3300` (les deux lots), `c82ba86`, `5faa11a`.
+
+*Ce paragraphe est ajouté APRÈS la fusion, sur `main` : la ligne qui dit une fusion ne peut pas s'écrire avant d'être vraie — et c'est l'inscription du jour au §9, appliquée à elle-même.*
+
+**La migration du rang est partie vers la base de démonstration** par « DB migrate & seed », cible `demonstration`, aussitôt après la fusion.
 
 **Ce qu'une session neuve doit savoir avant de mesurer quoi que ce soit :**
 
@@ -180,5 +184,5 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 
 **Les deux premières choses à faire, dans cet ordre :**
 
-1. **Rejouer « DB migrate & seed » sur `main` après la fusion**, cible `demonstration` — la migration `20260910030000_forfait_rang_d86` ajoute une colonne `NOT NULL` et un index unique, et elle n'est passée que sur des bases jetables.
-2. **Répondre sur le plancher par site et par jour.** Une phrase suffit, et elle change ce qu'un client paie.
+1. **Répondre sur le plancher par site et par jour.** Une phrase suffit, et elle change ce qu'un client paie.
+2. **Lire le journal du dernier « DB migrate & seed »** — c'est le seul endroit d'où l'on puisse affirmer quoi que ce soit sur la base hébergée, et il dit si la migration du rang y est passée.
