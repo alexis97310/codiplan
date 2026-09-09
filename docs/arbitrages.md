@@ -2591,7 +2591,9 @@ Un client a plusieurs sites, dans des villes différentes — c'est le cas coura
 
 ---
 
-## D80bis — *(correction d'exploitation, 9 septembre 2026)* La veille atteint bien la base hébergée ; la limite du partitionnement reste couverte
+## Correction d'exploitation du 9 septembre 2026 — *sans numéro, et c'est voulu* : la veille atteint bien la base hébergée
+
+*Cette entrée ne porte PAS de numéro `Dnn`. Elle n'arbitre rien : elle RETIRE une instruction fondée sur une prémisse fausse, et un numéro l'aurait fait ranger parmi les décisions. **D80, D81 et D82 n'existent pas** — la file de travail du jour les citait, la mesure dit qu'aucune n'a jamais été écrite, et occuper l'un de ces numéros ici aurait rendu leur écriture future ambiguë.*
 
 *Une ligne, et elle rectifie une consigne de l'exploitation.* Il avait été écrit que la veille n'atteignait plus la base hébergée et demandé que la limite du partitionnement soit déclarée à découvert : **c'était un état observable affirmé sans être observé** — la mesure l'a démenti, l'instruction est retirée, et la limite reste couverte comme elle l'était. *L'espèce est déjà au §9 du CLAUDE.md (07/09) ; rien n'y est ajouté.*
 
