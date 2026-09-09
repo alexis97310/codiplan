@@ -481,9 +481,21 @@ async function seed(): Promise<void> {
           }),
         ).filter((i) => i.lieu !== undefined && i.lieu.agenceId !== undefined);
 
-        etape(
-          `${societe.code} — interventions de démonstration : ${interventions.length}`,
-        );
+        // **LE COMPTE EST CELUI DES LIGNES ÉCRITES, PAS DES LIGNES PRÉVUES**
+        // *(mesuré le 09/09/2026)*. La ligne précédente annonçait
+        // `interventions.length` AVANT la boucle : elle disait « 6 » pour
+        // CODIMA-EU alors que **zéro** y était écrite, les identifiants de
+        // `INTERVENTIONS_DEMONSTRATION` étant FIXES et déjà pris par CODIMA-NC.
+        // Le journal du flux de migration l'imprimait ainsi à chaque exécution,
+        // à côté de chiffres, eux, observés — *un chiffre qui ne peut pas
+        // bouger sous la faute, présenté dans la colonne des observations*
+        // (§9, 06/09).
+        //
+        // **La collision d'identifiants n'est PAS réparée ici**, et c'est écrit
+        // plutôt que tu : décider ce que la démonstration doit montrer à la
+        // seconde société appartient à l'exploitation. Ce qui est réparé est le
+        // RAPPORT — désormais, l'écart se voit au lieu de se taire.
+        let ecrites = 0;
         for (const intervention of interventions) {
           const lieu = intervention.lieu;
           if (lieu === undefined || lieu.agenceId === undefined) {
@@ -521,7 +533,12 @@ async function seed(): Promise<void> {
               temps_reel_min: intervention.temps_reel_min,
             },
           });
+          ecrites += 1;
         }
+        etape(
+          `${societe.code} — interventions de démonstration : ${ecrites} ` +
+            `écrite(s) sur ${interventions.length} prévue(s)`,
+        );
 
         // ── L'AMORÇAGE DES HABILITATIONS (D60, L1-04) ───────────────────────
         //

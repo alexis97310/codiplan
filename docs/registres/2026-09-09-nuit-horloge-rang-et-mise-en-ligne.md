@@ -121,6 +121,28 @@ Chemin exact **en clics** pour les migrations, et un flux **Ouvrir le PREMIER co
 
 ---
 
+## 3 bis — LE CONTRÔLE QUI COMPTAIT ZÉRO LÀ OÙ IL Y AVAIT DES LIGNES
+
+*Trouvé en relisant le journal du run qui applique la migration du rang — c'est-à-dire en regardant un rapport plutôt qu'en lançant un test.*
+
+**L'écart, brut.** Le seed annonce `CODIMA-NC — sites de démonstration : 4` et `interventions : 6` ; l'inventaire du même run, quinze secondes plus tard, imprime `site : 0` et `intervention : 0`. Deux chiffres, dans le même journal, qui ne peuvent pas être vrais ensemble.
+
+**Ce que la mesure a désigné, et ce n'est pas ce qu'on croyait.** Base locale reconstruite, seed joué, puis DEUX lectures côte à côte : `psql` rend **5 sites et 6 interventions** ; `scripts/inventaire.mts` rend **0 et 0** sur la même base, à la même minute. *La base n'a rien : c'est le CONTRÔLE qui est aveugle.*
+
+**La cause, isolée en une lecture.** `compterAPlat` groupait **SEPT** tables quand `TABLES_CLOISONNEES` en compte **vingt-deux**. Les quinze autres restaient à la valeur de `decompteVide()` — **zéro, pour toujours** — et le rapport les imprimait dans la colonne des observations.
+
+**CE QUE CELA COÛTAIT, ET C'EST LE POINT.** Le contrôle de cloisonnement **se confronte à cet inventaire** : il comparait donc **zéro à zéro** et concluait au vert. *Le seul contrôle qui regarde la base hébergée ne prouvait RIEN sur `site`, `machine` et `intervention`* — c'est-à-dire sur les trois tables qui portent la forme « parc », celle dont D84 vient de faire un arbitrage. **La règle était juste et l'observation était creuse** : la vacuité du §9 (30/08), dans un contrôle d'exploitation plutôt que dans un test.
+
+**Et c'est la maladie du 20/08, à la lettre :** *une liste close se re-vérifie à chaque table créée, sinon elle devient fausse.* Chaque ticket ajoutait sa table à `TABLES_CLOISONNEES` — donc à la **ligne imprimée** — et personne ne revenait écrire son **compteur**. La ligne apparaissait ; le chiffre restait zéro.
+
+**La réparation renverse la charge, comme D41 et D55.** Le rapprochement passe par un `Record<TableFille, …>`, **exhaustif par construction** : une table ajoutée à la liste close **ne compile plus** tant que son regroupement n'est pas écrit. *Le gardien n'est pas un test, c'est le typage — et il sonne le jour de la création, pas le jour où quelqu'un relit un journal.* Vérifié après coup : l'inventaire rend **5 et 6**, exactement ce que `psql` compte.
+
+**UN SECOND DÉFAUT EST TOMBÉ AVEC LE PREMIER.** Le seed imprimait `CODIMA-EU — interventions de démonstration : 6` alors que **zéro** y était écrite : les identifiants de `INTERVENTIONS_DEMONSTRATION` sont **FIXES**, donc déjà pris par CODIMA-NC, et la seconde société les saute tous. Le compte était celui des lignes **prévues**, imprimé **avant** la boucle. Il est désormais celui des lignes **écrites** — `0 écrite(s) sur 6 prévue(s)` —, et l'écart se voit au lieu de se taire. **La collision d'identifiants n'est PAS réparée** : décider ce que la démonstration doit montrer à la seconde société appartient à l'exploitation, et c'est écrit plutôt que tu.
+
+*Vérifiable à la tête de la proposition #88.*
+
+---
+
 ## 4 — LES DEUX LOTS INSCRITS AU PLAN
 
 **Écrits, pas construits** — au backlog **et** aux arbitrages, *parce qu'un lot qui n'existe que dans une conversation n'existe pas : la conversation se ferme.*
@@ -170,7 +192,11 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 
 *Écrit en dernier et à la fin : une session neuve lit la fin d'un registre, pas son milieu.*
 
-**L'état :** proposition **#87** ouverte sur `main` à `fda75dc`, quatre commits — `35eeebc`, `84f7827`, `4a0e37b`, `03a3300`. *La ligne qui dira sa fusion ne peut pas s'écrire avant d'être vraie ; elle s'ajoute après, sur `main`.*
+**L'état : #87 est FUSIONNÉE dans `main`** — `2eadfd3`, le 09/09/2026 à 22:21 UTC. **CI verte sur `5faa11a` avant la fusion** : run #382, 22:14:49 → 22:20:55 UTC. Six commits — `35eeebc` (D85), `84f7827` (D86), `4a0e37b` (la mise en ligne), `03a3300` (les deux lots), `c82ba86`, `5faa11a`.
+
+*Ce paragraphe est ajouté APRÈS la fusion, sur `main` : la ligne qui dit une fusion ne peut pas s'écrire avant d'être vraie — et c'est l'inscription du jour au §9, appliquée à elle-même.*
+
+**La migration du rang est partie vers la base de démonstration** par « DB migrate & seed », cible `demonstration`, aussitôt après la fusion.
 
 **Ce qu'une session neuve doit savoir avant de mesurer quoi que ce soit :**
 
@@ -180,5 +206,5 @@ Inchangé depuis le registre précédent, et la conséquence chiffrée aussi : d
 
 **Les deux premières choses à faire, dans cet ordre :**
 
-1. **Rejouer « DB migrate & seed » sur `main` après la fusion**, cible `demonstration` — la migration `20260910030000_forfait_rang_d86` ajoute une colonne `NOT NULL` et un index unique, et elle n'est passée que sur des bases jetables.
-2. **Répondre sur le plancher par site et par jour.** Une phrase suffit, et elle change ce qu'un client paie.
+1. **Répondre sur le plancher par site et par jour.** Une phrase suffit, et elle change ce qu'un client paie.
+2. **Lire le journal du dernier « DB migrate & seed »** — c'est le seul endroit d'où l'on puisse affirmer quoi que ce soit sur la base hébergée, et il dit si la migration du rang y est passée.
