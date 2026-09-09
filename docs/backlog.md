@@ -17,19 +17,19 @@ Next.js 15 App Router, TypeScript strict, Tailwind, shadcn/ui, ESLint, Prettier,
 
 **L0-02 — Chaîne de vérification. [D14]**
 Vitest, Playwright, et **deux portes distinctes** :
-`pnpm verify` = ~~typecheck + lint + test + test:isolation + build~~ **format:check + typecheck + lint + test + test:isolation + build** — porte de chaque ticket *(`format:check` y est entré le 02/09/2026 — la CI le jouait à part, et un `verify` vert pouvait être rouge en CI ; D14 marquée le 10/09)*.
+`pnpm verify` = ~~typecheck + lint + test + test:isolation + build~~ **format:check + typecheck + lint + test + test:isolation + build** — porte de chaque ticket *(`format:check` y est entré le 02/09/2026 — la CI le jouait à part, et un `verify` vert pouvait être rouge en CI ; D14 marquée le 10/09, l'incident **numéroté D78** le 11/09)*.
 `pnpm verify:full` = verify + test:e2e — porte de chaque lot.
 CI **GitHub Actions** : `verify` à chaque commit, `verify:full` sur `main` et chaque nuit.
 *Acceptation :* les deux commandes passent ; un test volontairement faux fait échouer la commande et la CI.
-*Relu contre les sources citées le 10/09/2026 — empreinte `84364616`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `b8b84049`.*
 **L0-03 — Schéma multi-société. [D4] [D5]**
 Tables `societe`, `agence`, `devise`, `parite`, `utilisateur`, `utilisateur_societe`, `utilisateur_client`.
 `agence` est nouvelle (D5) : code, libellé, adresse, fuseau, calendrier, actif.
 `parite` remplace `devise.parite_reference` (D20) : devise, date d'effet, taux, source.
-`utilisateur_client` (D10) : utilisateur, client, société, ~~périmètre de sites~~ *(le périmètre est devenu la table `utilisateur_client_site` à L1-02b — PostgreSQL ne sait pas contraindre les éléments d'un tableau ; D10 marquée le 10/09/2026)*.
+`utilisateur_client` (D10) : utilisateur, client, société, ~~périmètre de sites~~ *(le périmètre est devenu la table `utilisateur_client_site` à L1-02b — PostgreSQL ne sait pas contraindre les éléments d'un tableau ; D10 marquée le 10/09/2026, l'amendement **numéroté D79** le 11/09/2026)*.
 *Acceptation :* migration appliquée ; `pnpm db:seed` crée deux sociétés — CODIMA-NC en XPF avec ses trois agences (Ducos, Koné, Dolbeau) et CODIMA-EU en EUR avec son unique agence (Siège) —, soit **quatre agences au total**, et au moins un compte portail rattaché à un client.
 > Le critère « migration appliquée / seed exécuté » est validé par le déclenchement **manuel** du workflow `.github/workflows/db-migrate.yml`, **et non depuis une session cloud** : le proxy sortant de l'environnement cloud ne relaie pas le TCP, la base Neon y est donc injoignable (P1001). Voir `docs/decisions/2026-08-20-migration-par-github-actions.md`.
-*Relu contre les sources citées le 10/09/2026 — empreinte `50b56562`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `002f8dfe`.*
 **L0-04 — Politiques RLS. [D4]**
 Sécurité au niveau des lignes sur toutes les tables portant `societe_id`, pilotée par une variable de session.
 ~~Forme imposée : `societe_id = current_setting('app.societe_id')::uuid OR societe_id IS NULL`.~~
@@ -110,14 +110,14 @@ Périmètre **INVERSÉ** [D55] : toute table métier cloisonnée est auditée pa
 > **AVANT L1-01, L1-02, L1-05 et L2-01 — le CONTRAT des fixtures d'isolation.** *(ticket R0-a, écart É14)* `client`, `site`, `machine` et `modele_materiel` existent déjà comme **tables fixtures** du harnais `tests/isolation/`, avec leurs politiques. Le jour où la vraie table est créée, le harnais **cesse de la fabriquer et la laisse en place** — il l'annonce sur sa sortie et dit ce qui reste dû. Ce qui reste dû : la migration pose la forme **« parc »** (société **ET** `app.client_id` **ET** `app.perimetre_sites`, D10/D22) sur `client`, `site` et `machine`, **et non** la clause société seule ; les scénarios de L0-05 se **reportent** sur la vraie table au lieu de partir avec la fixture. Trois gardiens le tiennent et refusent la réduction : la forme mesurée dans `pg_policies`, la liste close `TABLES_PARC`, et le plancher de `EXIGENCES_L0_05`. Voir `tests/isolation/setup/contrat.ts` et le pied de I1 au CLAUDE.md.
 
 **L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
-*Relu contre les sources citées le 10/09/2026 — empreinte `b389793a`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `89bbfd39`.*
 **L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, **agence de rattachement** et `temps_trajet_min` qui **fait foi** sur l'estimation par zone. ~~`temps_trajet_min` **par agence**~~ [D56] : cette formule se lisait « une valeur par couple (site, agence) », et ce n'est pas ce qu'elle voulait dire. Un site dépend d'une **agence et d'une seule**, toujours la même ; `temps_trajet_min` est un **scalaire**, et c'est le trajet **depuis l'agence de rattachement du site**. Le site nomme donc son agence (`site.agence_id`, obligatoire), et le nombre perd son sens si ce rattachement change sans être revu — la base le refuse. Forme de politique : **parc**, filtre de périmètre de sites compris.
 *Relu contre les sources citées le 10/09/2026 — empreinte `9cce9327`.*
-**L1-02b** Normaliser `utilisateur_client.perimetre_sites` en table de jointure. **[D10]**
-Arbitrage du 07/09/2026, issu de L1-02 : des trois voies possibles, une seule met la garantie là où elle ne rouille pas. PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un tableau — mesuré sur les trois formes déclaratives —, et un couple de déclencheurs serait une clé étrangère écrite à la main. La table de jointure porte une **vraie** clé étrangère, composite comme les autres.
+**L1-02b** Normaliser `utilisateur_client.perimetre_sites` en table de jointure. **[D10] [D79]**
+Arbitrage du 07/09/2026, issu de L1-02, **numéroté D79 le 11/09/2026** — l'amendement qu'il porte est de rang 1, et un ticket n'a pas de numéro de décision : des trois voies possibles, une seule met la garantie là où elle ne rouille pas. PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un tableau — mesuré sur les trois formes déclaratives —, et un couple de déclencheurs serait une clé étrangère écrite à la main. La table de jointure porte une **vraie** clé étrangère, composite comme les autres.
 Deux exigences, et la seconde est une contrainte de forme : la lecture du périmètre doit **voyager avec les instructions qui posent déjà le contexte** plutôt qu'ajouter un aller-retour — `set_config` accepte une sous-requête, `lib/db/rls.ts` en pose déjà quatre — et l'aller-retour ajouté doit être **mesuré**, pas estimé (leçon du 23/08 : à 190 ms vers Sydney, un aller-retour se calcule) ; et `app.perimetre_sites` reste **exactement** la forme que lisent les politiques — la normalisation change d'où vient la valeur, jamais ce que voient les politiques. **Aucune des cinq formes ne bouge.**
 *Acceptation :* la clé étrangère refuse un périmètre désignant un site inexistant ou d'une autre société, éprouvée par retrait ; le nombre d'allers-retours de `lib/db/rls.ts` est inchangé, et un test le compte ; les scénarios de périmètre de L0-05 restent au moins aussi nombreux.
-*Relu contre les sources citées le 10/09/2026 — empreinte `02806b38`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `823a6955`.*
 
 > **L1-02b NE PART PAS SEUL : il voyage avec l'arbitrage sur la forme de politique de `utilisateur_client`.** *(mesure du 07/09/2026, base jetable locale, rôle `codiplan_app`)*
 >
@@ -249,7 +249,7 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Ce qui n'est PAS fait, et qui est écrit plutôt que tu :** **personne n'attribue `numero`.** La colonne existe, son unicité par société est posée, et le compteur par société appartient à la **synchronisation (lot 3)** — l'inventer ici poserait une règle que personne n'a décidée. Toute fiche créée aujourd'hui porte donc `numero = NULL`, ce qui est exactement l'état que D7 décrit pour une machine non synchronisée.
 **Un écart de rang corrigé au passage :** le chapitre 11 écrivait que `reference_interne` était « portée par le QR ». **I10 et D7 disent le contraire** — le QR encode le `qr_token`, jamais autre chose. La ligne est amendée, et `numero` entre au chapitre 11, où elle manquait.
 *Acceptation :* unicité (société, modèle, n° de série) sans NULL ; aucun doublon silencieux possible.
-*Relu contre les sources citées le 10/09/2026 — empreinte `39305629`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `105d14a8`.*
 **L2-02** QR codes — le jeton est ~~dérivé de l'`id`~~ **TIRÉ AU SORT** (D71), jamais du numéro. Résolution serveur avec **contrôle de société** [D22] [D7] [D71]. Le filet base de données est déjà éprouvé sur la fixture `machine` ; les scénarios se reportent sur la vraie table, ils ne disparaissent pas avec la fixture (contrat R0-a). Planches pré-générées pour le recensement.
 **LIVRÉ EN PARTIE le 09/09/2026 — la dérivation et la résolution ; PAS l'impression.**
 `lib/machines/qr.ts` **tire** le jeton au sort — `randomBytes`, base32, 26 caractères, soit **130 bits tous aléatoires** —, calculable **hors ligne** (I4) : `randomBytes` ne demande aucun réseau. `lib/machines/resolution.ts` et `GET /api/machines/qr/{jeton}` résolvent **sous le contexte**, le contrôle de société étant fait par la politique et non par une comparaison écrite au-dessus. Les planchers de `EXIGENCES_L0_05` **montent** — `qr_inter_societe` de 5 à 8, `perimetre_sites` de 6 à 7.
@@ -270,12 +270,12 @@ Matrice des transitions autorisées : voir D8 du document d'arbitrage.
 *Relu contre les sources citées le 10/09/2026 — empreinte `3ac22bd6`.*
 **L2-08** Interventions multi-machines et multi-techniciens. Machine facultative pour `expertise`, `installation` et **`recensement`** [D16].
 *Relu contre les sources citées le 01/09/2026 — empreinte `88a7dc5a`.*
-**L2-09** Valorisation. **[D11] [D12] [D45] [D57] [D74]**
-Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone **et jamais facturé au temps** [D74], un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata. **Les « heures excédentaires » de D11 sont, depuis Q4 (09/09/2026), TOUTES les heures d'intervention** : un forfait s'ajoute toujours aux heures, `forfait.heures_incluses` n'existe plus.
+**L2-09** Valorisation. **[D11] [D12] [D45] [D57] [D74] [D77]**
+Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone **et jamais facturé au temps** [D74], un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata. **Les « heures excédentaires » de D11 sont, depuis Q4 (09/09/2026, **numérotée D77** le 11/09), TOUTES les heures d'intervention** : un forfait s'ajoute toujours aux heures, `forfait.heures_incluses` n'existe plus.
 Ordre : forfaits → heures excédentaires → majoration → total HT.
 **L'arrondi au quart d'heure vit ici** [D45], et nulle part ailleurs — ni dans `lib/calendar`, ni dans `lib/money`. Raison : le calendrier répond à « quand » — jours ouvrés, horaires, fuseaux — et n'a pas à connaître la politique de facturation, sinon un changement de tarif pourra casser un planning ; le module monétaire formate et calcule, il ne décide pas ce qu'on facture.
 ~~**À trancher AVANT d'écrire ce ticket** [D45] : l'arrondi s'applique-t-il à **chaque intervention** ou au **total d'une journée** ?~~ **TRANCHÉ le 07/09/2026 [D57] : PAR INTERVENTION** — cinq passages de cinq minutes font 1 h 15.
-*Relu contre les sources citées le 10/09/2026 — empreinte `1d1836be`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `3f7c4815`.*
 **L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
 
 ---
@@ -304,7 +304,8 @@ Terrain sur l'exécution, back-office sur la planification, **statut par présé
 *Relu contre les sources citées le 01/09/2026 — empreinte `afd95cea`.*
 **L3-10** Doublons hors ligne — détection **et fusion**. **[D28]**
 La fiche la plus ancienne survit ; le `qr_token` de l'absorbée **redirige** vers elle ; historiques fusionnés ; divergences arbitrées champ par champ ; réversible 30 jours. **Ce ticket est le SEUL PRODUCTEUR du statut `fusionnee`** (D28, valeur ajoutée à l'énumération le 10/09/2026) : il l'écrit sur la fiche absorbée, et amende `lib/machines/resolution.ts` pour qu'un QR qui la désigne rende la survivante ; jusque-là, rien ne produit ni ne lit cette valeur.
-*Relu contre les sources citées le 10/09/2026 — empreinte `628be763`.*
+**CE QUE CE TICKET DÉDUPLIQUE, nommé le 11/09/2026** (D28, décision d'exploitation) : le parc se construit par **deux chemins qui ne se connaissent pas** — l'import de masse de L1-10 et le recensement terrain (D16, planches de L2-02, hors ligne par I4). La même machine y sera saisie deux fois, une fois par le fichier et une fois devant elle : **ce n'est pas une erreur à prévenir, c'est l'arithmétique d'un parc alimenté des deux côtés.** Deux conséquences à ne pas redécouvrir ici : la fiche du **fichier** survit presque toujours (créée en premier), donc c'est celle du **terrain** qui est absorbée — et c'est elle qui porte le `qr_token` de l'étiquette réellement collée, ce qui fait de la redirection la condition pour ne pas réétiqueter le parc ; et la divergence majoritaire sera `numero_serie`, `SN-INCONNU-<référence>` (D6) face au numéro exact du fichier, donc **le premier champ que la présentation côte à côte doit faire choisir**.
+*Relu contre les sources citées le 11/09/2026 — empreinte `22a1fa76`.*
 **L3-11** Scan QR et création express — moins de 60 secondes. **Pas de reconnaissance de plaque** [D33] : photo conservée en pièce jointe, saisie manuelle.
 *Relu contre les sources citées le 01/09/2026 — empreinte `0c1dddde`.*
 **L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.

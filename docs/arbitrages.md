@@ -207,6 +207,8 @@ Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
 
 ### D10 — Rattachement des comptes portail (1.7)
 
+**Amendé par D79.**
+
 **Table `utilisateur_client`**, qui manquait :
 
 | Colonne | Type |
@@ -214,7 +216,7 @@ Ce mécanisme s'applique à l'identique aux interventions, demandes et rapports.
 | utilisateur_id | uuid FK |
 | client_id | uuid FK |
 | societe_id | uuid FK |
-| ~~perimetre_sites~~ | ~~uuid[] — vide = tous les sites du client~~ *(amendé le 07/09/2026 par le ticket L1-02b, marqué le 10/09 : PostgreSQL ne sait pas contraindre les éléments d'un tableau — remplacée par la table `utilisateur_client_site`, forme « habilitation »)* |
+| ~~perimetre_sites~~ | ~~uuid[] — vide = tous les sites du client~~ *(amendé le 07/09/2026 par le ticket L1-02b, marqué le 10/09, **numéroté D79 le 11/09** : PostgreSQL ne sait pas contraindre les éléments d'un tableau — remplacée par la table `utilisateur_client_site`, forme « habilitation »)* |
 | actif | boolean |
 
 Un compte portail n'a **aucune entrée** dans `utilisateur_societe` : les deux tables sont exclusives. La politique RLS du portail filtre sur `client_id`, et sur `site_id` si `perimetre_sites` est renseigné.
@@ -222,6 +224,8 @@ Un compte portail n'a **aucune entrée** dans `utilisateur_societe` : les deux t
 **Cette table est créée au lot 0**, pas au lot 5 : sans elle, la politique RLS est incomplète et les tests d'isolation ne couvrent pas le scénario 9.
 
 ### D11 — Formule de valorisation (1.8)
+
+**Amendé par D77.**
 
 Décisions arrêtées, sur la base de vos réponses :
 
@@ -232,7 +236,7 @@ Décisions arrêtées, sur la base de vos réponses :
 | **Multi-techniciens** | **Cumul** — 2 techniciens × 3 h = 6 h facturées |
 | **Temps d'attente** | **Non facturé** par défaut, `facturable = false` ; le responsable peut le basculer à `true` avec motif |
 | **Trajet** | Non facturé au temps ; couvert par le forfait de déplacement de la zone. En l'absence de forfait applicable, non facturé |
-| **Heures excédentaires** | Comptées sur le seul temps d'intervention, hors trajet et hors attente, ~~par rapport à `forfait.heures_incluses`~~ *(amendé le 09/09/2026 par la question Q4, marquée le 10/09 : la colonne est RETIRÉE — un forfait s'ajoute TOUJOURS aux heures, la notion d'heure incluse n'existe plus ; voir L1-06)* |
+| **Heures excédentaires** | Comptées sur le seul temps d'intervention, hors trajet et hors attente, ~~par rapport à `forfait.heures_incluses`~~ *(amendé le 09/09/2026 par la question Q4, marquée le 10/09, **numérotée D77 le 11/09** : la colonne est RETIRÉE — un forfait s'ajoute TOUJOURS aux heures, la notion d'heure incluse n'existe plus ; voir L1-06)* |
 | **Multi-machines** | **Un seul forfait de déplacement par intervention**, quel que soit le nombre de machines. Les forfaits de prestation, eux, sont par machine |
 | **Ordre de calcul** | forfaits applicables → heures excédentaires au taux horaire → majoration hors ouverture → total HT |
 
@@ -268,6 +272,8 @@ C'est le point qui conditionne le gardien calendrier. Décision, par usage :
 
 ### D14 — Portée de `pnpm verify` (1.11)
 
+**Amendé par D78.**
+
 **Deux portes, pas une :**
 
 ```bash
@@ -275,7 +281,7 @@ pnpm verify        # format:check + typecheck + lint + test + test:isolation + b
                    # porte de sortie de CHAQUE ticket
                    # (`format:check` y est entré le 02/09/2026 — incident de la
                    #  porte qui ne gardait pas ce que garde la suivante, §9 ;
-                   #  marqué ici le 10/09, sans décision numérotée)
+                   #  marqué ici le 10/09, NUMÉROTÉ D78 le 11/09)
 pnpm verify:full   # verify + test:e2e (dont le gardien hors-ligne)
                    # porte de sortie de CHAQUE LOT, et exécution nocturne en CI
 ```
@@ -438,6 +444,17 @@ Cas concret de l'audit : l'ADV annule pendant que le technicien réalise l'inter
 Le ticket L3-10 est étendu en conséquence : il ne couvrait que le signalement.
 
 **`fusionnee` entre dans `StatutMachine` le 10/09/2026** — l'énumération avait été fermée à L2-01 à cinq valeurs sans relire cette décision, et le rang 1 l'emporte. **Ce que la valeur veut dire, et qui l'écrira, écrit ici pour qu'elle ne s'implémente pas de travers :** c'est l'état TERMINAL de la fiche absorbée — elle sort du parc actif, des contrats et des échéanciers comme `remplacee` et `ferraillee` (RG-PAR-05), elle conserve son `qr_token`, et la résolution d'un QR qui la désigne rend la SURVIVANTE. Son seul PRODUCTEUR est la fusion de L3-10 (lot 3) ; ses LECTEURS sont la résolution QR (`lib/machines/resolution.ts`, à amender à L3-10) et les listes du parc, qui l'excluent. La réversibilité de 30 jours rend à la fiche son statut d'avant. **Jusqu'à L3-10, rien ne la produit et rien ne la lit** — même situation que `heures_incluses_minutes` ; si l'exploitation préfère amender D28 plutôt que porter une valeur sans producteur pendant un lot, c'est inscrit au registre.
+
+**LE PRODUCTEUR EST NOMMÉ, et ce n'est pas un ticket : c'est un FAIT DE CONSTRUCTION DU PARC** *(décision d'exploitation du 11/09/2026 — elle ferme la question ouverte au registre)*. La valeur n'est pas orpheline en attendant L3-10 ; ce qui manquait était de dire **d'où viendront les doublons**, et la réponse est dans la manière même dont ce parc se remplit : **il se construit par DEUX chemins indépendants qui ne se connaissent pas.**
+
+| Chemin | Ce qu'il crée | Ce qu'il ignore de l'autre |
+|---|---|---|
+| l'**import de masse** — L1-10, l'historique des ventes matériel, fiches `complet = false` | une fiche par ligne du fichier de suivi | il ne sait pas si la machine a déjà été recensée sur le terrain |
+| le **recensement** — `SourceCreationMachine.recensement`, D16 et les planches de jetons de L2-02 | une fiche par machine trouvée devant soi | le technicien ne peut pas savoir si le fichier la portait déjà, et **hors ligne il ne peut rien vérifier** (I4) |
+
+**La même machine sera donc saisie deux fois** — une fois par le fichier, une fois devant elle — et ce n'est pas une erreur d'exploitation à prévenir : c'est la conséquence arithmétique d'un parc alimenté des deux côtés. *La DÉDUPLICATION du parc est donc l'usage réel de la fusion*, et elle est ce qui écrit `StatutMachine.fusionnee`. **Le producteur existe avant le ticket qui le code** ; ce que L3-10 livrera est l'écran et la mécanique de cette déduplication, pas le besoin.
+
+*Deux conséquences, écrites pour L3-10 plutôt que redécouvertes :* la fiche du **fichier** est presque toujours la plus ancienne par date de création, donc **c'est elle qui survit** et la fiche du terrain qui est absorbée — or c'est la fiche du terrain qui porte le `qr_token` de l'étiquette réellement collée sur la machine. La règle du `qr_token` conservé qui redirige n'est donc pas un raffinement : **c'est elle qui rend la déduplication praticable sans réétiqueter le parc.** Et le cas majoritaire de divergence sera `numero_serie` — `SN-INCONNU-<référence>` côté terrain (D6) face au numéro exact du fichier —, ce qui est très exactement le champ que la présentation côte à côte doit faire choisir en premier.
 
 ### D29 — Code Winpro (2.15)
 
@@ -683,10 +700,10 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 | **Au paramétrage réel des agences** *(L0-08)* | **Horaires d'ouverture réels de Ducos, Koné et Dolbeau, et liste des fériés effectivement chômés par chacune.** Le seed porte des valeurs de **démonstration**, dites comme telles dans le libellé de chaque calendrier. Ce qui n'est PAS de la démonstration et doit le rester : Ducos ouvre le samedi, Koné non (RG-PLA-01). La saisie des vrais horaires est une opération de paramétrage, pas un développement |
 | Lot 1 | Colonnes exactes de chaque modèle d'import ; montants du catalogue de forfaits |
 | **Au premier mot de l'exploitation** *(nuit du 10/09/2026)* | **L'index d'unicité de `reference_interne`, MESURÉ et prêt.** D6 promet une valeur unique ; l'exploitation a tranché **unique par société ET lorsqu'elle est présente**, et a demandé la mesure de son origine AVANT la migration. *Mesuré :* la valeur est **SAISIE** — `lib/machines/saisie.ts` la lit en texte libre facultatif, le seed n'écrit aucune machine, l'import n'existe pas. D6 dit donc « unique par **contrainte** », et la contrainte n'est pas posée. Elle tient en une ligne : `CREATE UNIQUE INDEX "machine_societe_reference_interne_key" ON "machine" ("societe_id", "reference_interne") WHERE "reference_interne" IS NOT NULL;`. L'index est **partiel**, donc écrit en SQL et non dans `schema.prisma` — un `@@unique` accepterait autant de `NULL` qu'on veut, ce qui n'est pas faux mais ne dit pas « lorsqu'elle est présente ». La base hébergée ne porte **aucune machine** (inventaire n°37) : rien à réparer avant. **Un mot suffit** |
-| **Avant la prochaine décision qui en amende une autre** *(nuit du 10/09/2026)* | **TROIS DÉCISIONS DE RANG 1 SONT AMENDÉES PAR AUTRE CHOSE QU'UNE DÉCISION.** Le gardien `amendements-arbitrages` tient les paires décision ↔ décision ; il ne peut rien tenir de ce qui n'a pas de numéro. Or D11 est amendée par la **question Q4** (retrait de `forfait.heures_incluses`), D14 par l'**incident du 02/09** (`format:check` entre dans `verify`), et D10 par le **ticket L1-02b** (`perimetre_sites` devient une table). Les trois sont marquées dans le texte, datées, et **hors de portée du gardien**. Faut-il les numéroter — D77, D78, D79 — pour qu'il les tienne, ou accepter qu'une décision de rang 1 puisse être amendée par un objet sans numéro ? *Lecture de la session : les numéroter, trois lignes chacune ; une amendante sans numéro est très exactement ce que ce gardien ne voit pas, et l'on vient de mesurer ce que coûte ce qu'il ne voit pas* |
-| **Avec la prochaine énumération créée** *(nuit du 10/09/2026)* | **AUCUN GARDIEN NE TIENT « une valeur d'énumération nommée par une décision de rang 1 existe au schéma ».** C'est l'écart de D28 (`fusionnee`), et le gardien décision ↔ décision ne pouvait pas le voir : l'écart est entre une décision et une énumération. Trois voies mesurées au registre du 10/09 §5 — (a) l'association par le mot-notion, qui **attrape le défaut** mais laisse **onze faux** dont sept que rien ne retire ; (b) l'association déclarée au schéma, qui les supprime tous mais dont **quatre entrées sur sept diraient « aucune décision »**, c'est-à-dire une liste d'admis avec sa porte de sortie ; (c) une convention de rédaction — toute décision qui nomme une valeur écrit `` `Enum.valeur` ``, qualifié —, qui rend le gardien mécanique et sans exemption. *Lecture de la session : (c), même famille que D56 — une valeur qui voyage sans son énumération est un jeton dont la signification dépend d'un contexte que la machine ne lit pas* |
+| ~~**Avant la prochaine décision qui en amende une autre** *(nuit du 10/09/2026)*~~ **TRANCHÉ le 11/09/2026 — NUMÉROTÉES.** Q4 devient **D77** (D11), l'incident du 02/09 devient **D78** (D14), le ticket L1-02b devient **D79** (D10). Les trois paires sont câblées des deux côtés et **tenues par le gardien** — mesuré en retirant chaque marque : `D79 déclare amender D10, mais D10 ne porte pas « **Amendé par D79.** »` d'un côté, `D14 se dit amendée par D78, mais D78 ne déclare pas …` de l'autre. Aucun fond n'a changé : ce qui change est que la machine peut désormais les tenir. Ligne conservée : un point tranché se raye, il ne s'efface pas | ~~**TROIS DÉCISIONS DE RANG 1 SONT AMENDÉES PAR AUTRE CHOSE QU'UNE DÉCISION.** Le gardien `amendements-arbitrages` tient les paires décision ↔ décision ; il ne peut rien tenir de ce qui n'a pas de numéro. Or D11 est amendée par la **question Q4** (retrait de `forfait.heures_incluses`), D14 par l'**incident du 02/09** (`format:check` entre dans `verify`), et D10 par le **ticket L1-02b** (`perimetre_sites` devient une table). Les trois sont marquées dans le texte, datées, et **hors de portée du gardien**. Faut-il les numéroter — D77, D78, D79 — pour qu'il les tienne, ou accepter qu'une décision de rang 1 puisse être amendée par un objet sans numéro ? *Lecture de la session : les numéroter, trois lignes chacune ; une amendante sans numéro est très exactement ce que ce gardien ne voit pas, et l'on vient de mesurer ce que coûte ce qu'il ne voit pas*~~ |
+| **Quand une convention de qualification existera** *(nuit du 10/09/2026 — REFUS RATIFIÉ le 11/09/2026)* | **AUCUN GARDIEN NE TIENT « une valeur d'énumération nommée par une décision de rang 1 existe au schéma ».** C'est l'écart de D28 (`fusionnee`), et le gardien décision ↔ décision ne pouvait pas le voir : l'écart est entre une décision et une énumération. Trois voies mesurées au registre du 10/09 §5 — (a) l'association par le mot-notion, qui **attrape le défaut** mais laisse **onze faux** dont sept que rien ne retire ; (b) l'association déclarée au schéma, qui les supprime tous mais dont **quatre entrées sur sept diraient « aucune décision »**, c'est-à-dire une liste d'admis avec sa porte de sortie ; (c) une convention de rédaction — toute décision qui nomme une valeur écrit `` `Enum.valeur` ``, qualifié —, qui rend le gardien mécanique et sans exemption. *Lecture de la session : (c), même famille que D56 — une valeur qui voyage sans son énumération est un jeton dont la signification dépend d'un contexte que la machine ne lit pas*.<br>**RATIFIÉ le 11/09/2026 : ne rien livrer.** L'exploitation retient le refus et en tire la règle, inscrite au §9 du CLAUDE.md — *un gardien dont le taux de fausses alertes conduit à l'ignorer coûte plus qu'il ne rapporte ; c'est É12 sous un autre costume, une alarme qu'on apprend à ne plus lire.* **La classe reste OUVERTE**, et son **critère de réouverture est écrit pour être vérifié, non interprété** : le jour où les décisions de rang 1 qualifient les valeurs d'énumération qu'elles nomment (`` `Enum.valeur` ``), l'association devient explicite, le gardien se réécrit **sans heuristique ni exemption**, et il est dû. *Ce qui reste vrai en attendant : `StatutMachine.fusionnee` est au schéma, D28 est alignée, le CAS est bouché ; c'est la CLASSE qui dort* |
 | **Avant L2-09** *(nuit du 10/09/2026, issu de D72)* | **L'EXCEPTION D'HORAIRES PAR TECHNICIEN S'APPLIQUE-T-ELLE À L'ASSIETTE DE LA MAJORATION ?** D12 et D13 calculent la majoration hors ouverture sur le calendrier de l'**agence** du technicien. D72 donne au technicien des horaires PROPRES qui priment pour la planification. Un technicien qui travaille le samedi par exception : son intervention du samedi est-elle majorée ? *Lecture de la session : NON — la majoration suit l'AGENCE, D12 et D13 inchangés, l'exception n'étant qu'un fait de planification. Une majoration qui suivrait l'individu ferait varier le prix facturé au client selon le technicien envoyé* |
-| **À l'ouverture de L3-10** *(nuit du 10/09/2026, issu de D28)* | **`fusionnee` N'A NI PRODUCTEUR NI LECTEUR JUSQU'À L3-10.** La valeur est ajoutée parce que le rang 1 l'exige, et ce qu'elle veut dire est écrit dans D28 — état terminal de la fiche absorbée, seul producteur la fusion de L3-10, lecteurs la résolution QR et les listes du parc. Mais c'est la situation de `heures_incluses_minutes`, retirée le 09/09 précisément pour cela : *une valeur qui modélise un cas que rien ne produit s'implémente un jour de travers*. **Si l'exploitation préfère amender D28 plutôt que porter une valeur inerte pendant un lot, c'est ici que ça se décide** |
+| ~~**À l'ouverture de L3-10** *(nuit du 10/09/2026, issu de D28)*~~ **TRANCHÉ le 11/09/2026** — la valeur RESTE, et son producteur est NOMMÉ : la **déduplication du parc**, conséquence d'un parc alimenté par l'import de masse (L1-10) ET par le recensement terrain (D16, L2-02), deux chemins qui ne se connaissent pas. Voir D28. Ligne conservée : un point tranché se raye, il ne s'efface pas | ~~**`fusionnee` N'A NI PRODUCTEUR NI LECTEUR JUSQU'À L3-10.** La valeur est ajoutée parce que le rang 1 l'exige, et ce qu'elle veut dire est écrit dans D28 — état terminal de la fiche absorbée, seul producteur la fusion de L3-10, lecteurs la résolution QR et les listes du parc. Mais c'est la situation de `heures_incluses_minutes`, retirée le 09/09 précisément pour cela : *une valeur qui modélise un cas que rien ne produit s'implémente un jour de travers*. **Si l'exploitation préfère amender D28 plutôt que porter une valeur inerte pendant un lot, c'est ici que ça se décide**~~ |
 | **Quand quelqu'un touchera au parseur des décisions** *(nuit du 10/09/2026)* | **`lireDecisions` FERME UNE SECTION AU PREMIER SOUS-TITRE.** Mesuré : le corps de D65 s'arrête avant son premier `###`, celui de D68 aussi — l'empreinte que les tickets du backlog calculent ne couvre donc que le **préambule** de chaque décision citée, et un complément écrit sous un sous-titre ne réveille aucune estampille. Deux conséquences tenues aujourd'hui : les marques d'amendement se posent dans le préambule, et une décision dont le fond change sous un sous-titre ne prévient personne. Élargir le corps jusqu'au titre suivant de MÊME NIVEAU est le correctif ; il réveillerait des dizaines d'estampilles d'un coup, donc il vient avec la relecture qui va avec — un ticket à lui seul, jamais un effet de bord |
 | Lot 3 | Reconnaissance de plaque signalétique — **retirée du périmètre V1** faute de solution hors ligne raisonnable ; à réévaluer si un moteur embarqué léger apparaît |
 | Lot 4 | Grille tarifaire des contrats, types proposés en premier |
@@ -2214,7 +2231,19 @@ Le lien de premier accès conduit à `/reset-password/<jeton>`, servi par la rou
 
 **Le geste, et son cliquet PLUS ÉTROIT que celui de l'amorçage.** `--reemettre` ne regarde pas les habilitations : il lit un fait de la ligne de `compte` de l'identité visée — **`mot_de_passe IS NULL`** — et refuse dès qu'une empreinte existe. Il ne sert donc qu'une identité qui n'a **jamais** servi, et il se ferme au premier usage réel, pour toujours. *Mesuré sur la même identité, avant et après ; le jumeau remet le fait en place et montre la réémission repasser.* Il n'ouvre aucune identité, ne pose aucun rôle, **ne rouvre jamais le chemin d'ouverture**, ne laisse aucune session, et trace `reemission_premier_acces` dans `journal_acces` — l'événement, jamais le chemin (point 2).
 
-**Ce que ce complément change au geste d'amorçage, et c'est à ratifier plutôt qu'à lire en passant.** Pour que le fait soit OBSERVABLE, l'amorçage **efface désormais l'empreinte du mot de passe jetable** après l'inscription : une empreinte jetable a la même forme qu'une empreinte choisie, et rien n'aurait distingué « n'a jamais servi » de « a servi ». *Mesuré :* la bibliothèque refuse la connexion d'un compte dont l'empreinte est nulle, et la réinitialisation par jeton l'écrit sans exiger qu'elle existe. Le point 1 reste vrai et devient plus fort — non seulement le mot de passe jetable ne transite pas, mais son empreinte ne survit pas au geste.
+**Ce que ce complément change au geste d'amorçage — RATIFIÉ le 11/09/2026, et le raisonnement est CORRIGÉ.** L'amorçage **efface l'empreinte du mot de passe jetable** après l'inscription. La justification écrite la nuit du 10/09 était « pour que le fait soit observable » — c'est-à-dire *je modifie l'état pour que mon verrou fonctionne*, **et ce serait une mauvaise habitude même avec un bon résultat**. La bonne raison est l'inverse, et l'exploitation l'a rendue telle quelle : **l'empreinte jetable était un MENSONGE DANS LA DONNÉE.** Un compte qui n'a pas de mot de passe ne doit pas en porter un ; l'effacer rend la donnée VRAIE. Le cliquet devient possible **en conséquence** de cette réparation, jamais l'inverse. Le point 1 en sort plus fort : non seulement le mot de passe jetable ne transite pas, mais son empreinte ne survit pas au geste.
+
+**Et la mesure qui pouvait tout renverser a été faite** *(nuit du 11/09/2026)*. Écrire `NULL` dans une colonne d'empreinte ne vaut que si **une empreinte nulle refuse TOUTE tentative** : si elle comparait vrai une seule fois, l'effacement aurait ouvert une porte en croyant en fermer une. Trois tentatives sur le chemin réel, sur l'identité amorcée elle-même :
+
+| Mot de passe présenté | Ce qui refuse | Message |
+|---|---|---|
+| une chaîne quelconque | `sign-in.mjs`, `if (!currentPassword)` — la bibliothèque journalise « Password not found » | `Invalid email or password` |
+| la chaîne **vide** | le même, **la validation d'entrée ne l'arrête pas** : elle atteint le compte et bute sur la même garde | `Invalid email or password` |
+| la valeur **nulle** | la **validation d'entrée** — elle n'atteint jamais le compte | `[body.password] Invalid input: expected string, received null` |
+
+**Trois refus, deux mécanismes distincts**, et aucune session ouverte (témoin : zéro ligne de `session` après les trois). Une seconde couche, indépendante, a été mesurée sous la garde : `verifyPassword` **ne rend pas `false` sur une empreinte nulle, elle LÈVE** (`TypeError` sur `null`, `Invalid password hash` sur `""` et sur une chaîne malformée) — un refus par exception, là où un `false` pourrait se négliger. Le témoin de non-vacuité est dans le même fichier : la même fonction rend `true` sur une empreinte réelle. Voir `tests/unit/auth/empreinte-nulle.test.ts` et `tests/isolation/amorcage-premier-compte.test.ts`.
+
+*Ce que la mise en échec a appris, et qui n'était pas prévu :* l'effacement neutralisé dans le code, **un seul scénario rougit — le TÉMOIN**, et les trois tentatives restent vertes. C'est juste : elles ne mesurent pas l'effacement, elles mesurent qu'une empreinte nulle refuse ; face à l'empreinte jetable laissée en place, elles échouent pour une autre raison — personne ne connaît ce mot de passe. **Deux affirmations, deux gardiens**, et le jumeau qui les sépare remet une empreinte RÉELLE et montre la connexion passer, puis la rend nulle et voit le refus revenir.
 
 **Pourquoi ce fait-là.** Il est le seul à être à la fois lisible par le geste — `compte` se désigne par l'identifiant de l'utilisateur — et irréversible par construction — aucun chemin du produit ne remet une empreinte à `NULL`. Une trace du journal aurait fait d'une trace un verrou ; une session est effacée à son expiration ; un horodatage de modification bouge pour d'autres raisons.
 
@@ -2508,3 +2537,45 @@ Un client a plusieurs sites, dans des villes différentes — c'est le cas coura
 | **D76** | le cahier | **aucune** — le cahier dit déjà « taux d'occupation » (§Activité, §Direction) ; « productivité terrain » n'y est qu'un objectif, jamais un indicateur |
 
 **Et une question que F fait apparaître, inscrite au registre :** l'exception par technicien de D72 s'applique-t-elle à l'**assiette de la majoration** (D12, D13 : agence du technicien) ? La session lit que non. À trancher avant L2-09.
+
+---
+
+## D77 — Le forfait s'AJOUTE toujours aux heures : `forfait.heures_incluses` est retirée
+
+*Décision d'exploitation du 9 septembre 2026, prise sous le nom de « question Q4 ». **Numérotée le 11/09/2026** — non pour changer son fond, qui ne bouge pas d'un mot, mais parce qu'une décision de rang 1 amendée par un objet SANS NUMÉRO est hors de portée du gardien `amendements-arbitrages`, et que l'on vient de mesurer ce que coûte ce qu'un gardien ne voit pas (§9, 10/09).*
+
+**Décisions amendées :** D11
+
+**Le fond.** Un forfait s'ajoute **toujours** au temps facturé ; il n'en absorbe jamais une partie. La colonne `forfait.heures_incluses` — qui aurait décompté des heures « déjà comprises » dans le forfait — est **RETIRÉE** du modèle. Les heures excédentaires de D11 se comptent donc sur le seul temps d'intervention, hors trajet et hors attente, sans aucune soustraction préalable.
+
+**Pourquoi le retrait plutôt qu'un défaut à zéro.** Une colonne qui vaudrait zéro partout modélise un cas que **rien ne produit** : elle s'implémenterait un jour de travers, par quelqu'un qui la trouverait au schéma et lui chercherait un sens. C'est le motif qui a fait retirer `heures_incluses_minutes` le 09/09, et c'est le même ici — *une valeur inerte n'est pas neutre, elle est une invitation.*
+
+**Ce que la numérotation change, et ce qu'elle ne change pas.** Elle ne rouvre rien : la marque était déjà posée dans le tableau de D11, datée du 09/09. Elle rend seulement la paire **tenable par la machine** — `D11 ← D77`, des deux côtés. *Voir L1-06, qui porte le catalogue de forfaits sans jamais lire d'heures incluses.*
+
+---
+
+## D78 — `format:check` entre dans `pnpm verify` : une porte garde ce que garde la porte suivante
+
+*Incident du 2 septembre 2026, tranché le jour même. **Numéroté le 11/09/2026**, pour la même raison que D77 : un incident n'a pas de numéro, et le gardien ne tient que ce qui en a un.*
+
+**Décisions amendées :** D14
+
+**Le fond.** `pnpm verify` porte désormais `format:check` en première étape. Avant l'incident, la CI le jouait dans un job à part : **`pnpm verify` sortait en 0 sans jamais prononcer le mot « prettier »**, si bien qu'un ticket pouvait franchir sa porte de sortie, sincèrement vert, et être refusé par la CI une minute plus tard.
+
+**Ce qui a été retenu au-delà du correctif.** Le remède n'est pas d'avoir ajouté l'étape manquante — c'est d'avoir rendu l'écart **impossible** : un gardien (`tests/unit/chaine-verification`) exige que toute commande jouée par un job de CI soit couverte, transitivement, par la porte correspondante. *Une porte qui ne garde pas ce que garde la porte suivante produit des verts sincères et faux* — inscrit au §9 du CLAUDE.md le 02/09.
+
+**Ce que la numérotation change.** Rien au fond, déjà appliqué depuis le 02/09 et écrit dans D14, dans le CLAUDE.md §4 et dans le README. Elle rend la paire `D14 ← D78` tenable par la machine.
+
+---
+
+## D79 — `perimetre_sites` devient une TABLE : PostgreSQL ne sait pas contraindre les éléments d'un tableau
+
+*Mesure et correctif du 7 septembre 2026, portés par le ticket L1-02b. **Numérotés le 11/09/2026** — un ticket n'a pas de numéro de décision, et l'amendement qu'il porte est de rang 1.*
+
+**Décisions amendées :** D10
+
+**Le fond.** D10 donnait à `utilisateur_client` une colonne `perimetre_sites uuid[]`, « vide = tous les sites du client ». Un tableau d'identifiants **ne peut porter aucune clé étrangère** : PostgreSQL ne contraint pas les éléments d'un tableau. Un périmètre pouvait donc désigner un site inexistant, un site d'un autre client, ou un site d'une autre société — et **rien en base ne l'aurait dit**. La colonne est remplacée par la table **`utilisateur_client_site`**, chaînée, cloisonnée, et de forme **« habilitation »** (la sixième forme de politique, I1).
+
+**Pourquoi la forme « habilitation » et non « parc ».** La forme « parc » LIT `app.perimetre_sites` ; `utilisateur_client_site` est l'une des deux tables d'où cette variable est **calculée**. Lui donner la forme « parc » serait circulaire — *une politique qui lit la variable que sa propre lecture alimente ne se referme jamais.* Et lui laisser la clause de société seule était la fuite mesurée le 07/09 : un compte portail du client A lisait les habilitations des comptes du client B de la même société, et énumérait par là les autres clients.
+
+**Ce que la numérotation change.** Rien au fond : la table existe, la forme est posée, la ligne de D10 est barrée et datée depuis le 10/09. Elle rend la paire `D10 ← D79` tenable par la machine.

@@ -220,22 +220,34 @@ async function ouvrir(
     );
   }
 
-  // ── 2 bis. LE MOT DE PASSE JETABLE EST EFFACÉ, ET C'EST LE CLIQUET DE LA
-  //          RÉÉMISSION (10/09/2026) ────────────────────────────────────────
+  // ── 2 bis. L'EMPREINTE DU MOT DE PASSE JETABLE EST UN MENSONGE DANS LA
+  //          DONNÉE, ET ELLE EST EFFACÉE (10/09/2026, raison corrigée le
+  //          11/09/2026) ────────────────────────────────────────────────────
   //
   // `signUpEmail` a rangé l'EMPREINTE du mot de passe jetable dans `compte`.
-  // Personne ne connaît ce mot de passe, mais son empreinte reste un moyen de
-  // connexion — et surtout elle rend l'état « cette identité n'a jamais servi »
-  // INOBSERVABLE : une empreinte jetable a la même forme qu'une empreinte
-  // choisie. Elle est donc effacée. Mesuré : la bibliothèque refuse la
-  // connexion d'un compte dont l'empreinte est nulle (`INVALID_EMAIL_OR_PASSWORD`),
-  // et la réinitialisation par jeton l'écrit sans exiger qu'elle existe.
+  // **Un compte qui n'a pas de mot de passe ne doit pas en porter un** : la
+  // colonne affirme un fait qui est faux, et elle laisse derrière elle un
+  // moyen de connexion que personne n'a choisi. L'effacer rend la donnée
+  // VRAIE — c'est la seule raison, et elle se suffit.
   //
-  // **`mot_de_passe IS NULL` devient ainsi le FAIT que la réémission lit** :
+  // *La justification écrite la nuit du 10/09 était « pour rendre le fait
+  // observable ». Elle est retirée :* modifier un état pour qu'un verrou
+  // fonctionne est une mauvaise habitude même quand le résultat est bon.
+  // **`mot_de_passe IS NULL` devient lisible EN CONSÉQUENCE de la
+  // réparation, jamais l'inverse** — et c'est ce fait que la réémission lit :
   // aucun mot de passe n'existe tant que la personne n'en a pas choisi un, et
-  // dès qu'elle l'a fait, l'état ne revient jamais. Le décompte est une
-  // assertion : une modification qui ne toucherait pas exactement une ligne
-  // laisserait une empreinte derrière elle, et le geste s'arrête.
+  // dès qu'elle l'a fait, l'état ne revient jamais.
+  //
+  // *Mesuré (11/09/2026, trois tentatives sur le chemin réel) :* une empreinte
+  // nulle refuse une chaîne quelconque, la chaîne vide et la valeur nulle —
+  // les deux premières sur `if (!currentPassword)`, la troisième sur la
+  // validation d'entrée —, et aucune n'ouvre de session. Sous cette garde,
+  // `verifyPassword` ne rend pas `false` sur une empreinte nulle : elle LÈVE.
+  // Voir `tests/unit/auth/empreinte-nulle.test.ts`.
+  //
+  // Le décompte est une assertion : une modification qui ne toucherait pas
+  // exactement une ligne laisserait une empreinte derrière elle, et le geste
+  // s'arrête.
   const effacees = await avecDesignationAuth(client).compte.updateMany({
     where: { utilisateur_id: utilisateurId },
     data: { mot_de_passe: null },

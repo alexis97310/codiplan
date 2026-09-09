@@ -473,18 +473,103 @@ describe("la réémission du jeton de premier accès", () => {
     expect(await empreinte()).toBeNull();
   });
 
-  it("l'identité sans mot de passe ne se connecte avec RIEN", async () => {
+  it("l'identité sans mot de passe ne se connecte avec RIEN — trois tentatives", async () => {
     // L'effacement de l'empreinte jetable n'est pas qu'un marqueur : il retire
-    // un moyen de connexion que personne n'avait choisi. Mesuré : la
-    // bibliothèque refuse, quel que soit le mot de passe présenté.
+    // un moyen de connexion que personne n'avait choisi. Encore faut-il que
+    // l'empreinte NULLE refuse TOUTE tentative : si elle comparait vrai une
+    // seule fois, l'effacement aurait OUVERT une porte en croyant en fermer
+    // une (exigence de l'exploitation, 11/09/2026).
+    //
+    // Les trois tentatives ne sont pas refusées par le même mécanisme, et
+    // c'est écrit ici plutôt que tu : les deux premières atteignent le compte
+    // et butent sur `if (!currentPassword)` ; la troisième n'atteint jamais
+    // le compte — la validation d'entrée la refuse avant. Trois refus, deux
+    // causes. Ce qu'aucune ne fait : ouvrir une session.
     const production = creerAuth(clientApp());
+    const tentative = async (motDePasse: unknown): Promise<string> => {
+      try {
+        await dansUnEchangeAuth(() =>
+          production.api.signInEmail({
+            // La troisième tentative présente une valeur que le contrat
+            // TypeScript interdit : c'est exactement ce qu'un appelant non
+            // typé (un formulaire, une requête HTTP) peut envoyer.
+            body: { email, password: motDePasse } as never,
+          }),
+        );
+        return "ACCEPTÉE";
+      } catch (erreur) {
+        return `refusée: ${erreur instanceof Error ? erreur.constructor.name + " " + erreur.message : String(erreur)}`;
+      }
+    };
+
+    // Les messages sont NOMMÉS, pas seulement comptés : un refus venu
+    // d'ailleurs passerait pour le bon (§9, 24/08). Les deux premiers sont le
+    // refus d'authentification lui-même — uniforme, comme D35 l'exige ; le
+    // troisième est la validation d'entrée, et il n'atteint jamais le compte.
+    expect([
+      await tentative("NImporteQuoi1!"),
+      await tentative(""),
+      await tentative(null),
+    ]).toEqual([
+      "refusée: APIError Invalid email or password",
+      "refusée: APIError Invalid email or password",
+      "refusée: Error [body.password] Invalid input: expected string, received null",
+    ]);
+
+    // TÉMOIN — aucune session n'a été ouverte par ces trois tentatives.
+    const [sessions] = await observerSousProprietaire(
+      "le décompte des sessions d'une identité n'est pas lisible sous le rôle " +
+        "applicatif : `session` ne se lit que par son JETON (L1-02d).",
+    ).$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*) AS n FROM "session" WHERE utilisateur_id = $1::uuid`,
+      identiteId,
+    );
+    expect(Number(sessions?.n ?? -1)).toBe(0);
+  });
+
+  it("JUMEAU — une empreinte RÉELLE remise, la connexion PASSE ; rendue nulle, elle refuse", async () => {
+    // Sans ce jumeau, les trois refus ci-dessus seraient verts sur une
+    // identité qui ne peut de toute façon pas se connecter — pour une raison
+    // que personne n'aurait cherchée (§9, 08/09 : le voisin qui refuse à la
+    // place du verrou visé). On remet donc EXACTEMENT ce que l'amorçage a
+    // effacé : une empreinte, et une seule.
+    const { hashPassword } = await import("@better-auth/utils/password");
+    const choisi = "UnMotDePasseChoisi1!";
+    const posees = await clientOwner().$executeRawUnsafe(
+      `UPDATE "compte" SET mot_de_passe = $2 WHERE utilisateur_id = $1::uuid`,
+      identiteId,
+      await hashPassword(choisi),
+    );
+    expect(posees).toBe(1);
+
+    const production = creerAuth(clientApp());
+    try {
+      const connexion = await dansUnEchangeAuth(() =>
+        production.api.signInEmail({ body: { email, password: choisi } }),
+      );
+      expect(connexion.user.email).toBe(email);
+    } finally {
+      // L'empreinte est rendue NULLE, et la session que ce succès a ouverte
+      // est effacée : le scénario suivant compte les sessions de cette
+      // identité, et une session laissée ici le rendrait faux.
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "session" WHERE utilisateur_id = $1::uuid`,
+        identiteId,
+      );
+      const effacees = await clientOwner().$executeRawUnsafe(
+        `UPDATE "compte" SET mot_de_passe = NULL WHERE utilisateur_id = $1::uuid`,
+        identiteId,
+      );
+      expect(effacees).toBe(1);
+    }
+
+    // TÉMOIN — l'état est rendu, et le refus revient avec lui.
+    expect(await empreinte()).toBeNull();
     await expect(
       dansUnEchangeAuth(() =>
-        production.api.signInEmail({
-          body: { email, password: "NImporteQuoi1!" },
-        }),
+        production.api.signInEmail({ body: { email, password: choisi } }),
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/Invalid email or password/);
   });
 
   it("réémet un jeton, le trace, et ne laisse aucune session", async () => {
