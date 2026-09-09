@@ -33,13 +33,25 @@ export type Reponse = {
   readonly detail: string | null;
 };
 
+/**
+ * Un DÉCOMPTE, et ce qu'il vaut.
+ *
+ * `lisible: false` n'est pas « zéro » : c'est *« cette connexion n'a pas le
+ * droit de compter »*. Les confondre serait la faute du §9 (06/09) — un chiffre
+ * juste, dans un rapport vrai, qui fait conclure faux : **un zéro se lit comme
+ * une installation vide**, alors qu'il dit ici que le cloisonnement fonctionne.
+ */
+export type Decompte =
+  | { readonly lisible: true; readonly valeur: number }
+  | { readonly lisible: false; readonly motif: string };
+
 /** Ce que la page affiche, en entier. */
 export type EtatSante = {
   readonly baseJointe: Reponse;
   readonly roleApplicatif: Reponse;
   readonly migrations: Reponse;
-  readonly societes: number | null;
-  readonly comptes: number | null;
+  readonly societes: Decompte;
+  readonly comptes: Decompte;
 };
 
 /**
@@ -83,8 +95,8 @@ export async function lireSante(): Promise<EtatSante> {
       baseJointe: { ok: false, detail: "La configuration est absente." },
       roleApplicatif: { ok: false, detail: null },
       migrations: { ok: false, detail: null },
-      societes: null,
-      comptes: null,
+      societes: decompteNonLisible(),
+      comptes: decompteNonLisible(),
     };
   }
 
@@ -113,8 +125,8 @@ export async function lireSante(): Promise<EtatSante> {
     // des NOMBRES, jamais une ligne. `societe` est de forme « identité » — sans
     // contexte, elle rend zéro sous le rôle applicatif —, et c'est pour cela
     // que le décompte passe par un agrégat que la politique laisse compter.
-    const societes = await compter(prisma, "societe");
-    const comptes = await compter(prisma, "utilisateur");
+    const societes = decompteNonLisible();
+    const comptes = decompteNonLisible();
 
     return {
       baseJointe: { ok: true, detail: null },
@@ -143,25 +155,41 @@ export async function lireSante(): Promise<EtatSante> {
       baseJointe: { ok: false, detail: motifSansSecret(erreur) },
       roleApplicatif: { ok: false, detail: null },
       migrations: { ok: false, detail: null },
-      societes: null,
-      comptes: null,
+      societes: decompteNonLisible(),
+      comptes: decompteNonLisible(),
     };
   } finally {
     await prisma.$disconnect().catch(() => undefined);
   }
 }
 
-/** Un décompte, ou `null` si la lecture échoue — jamais une exception. */
-async function compter(
-  prisma: PrismaClient,
-  table: string,
-): Promise<number | null> {
-  try {
-    const lignes = await prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
-      `SELECT count(*)::bigint AS n FROM "${table}"`,
-    );
-    return lignes[0] === undefined ? null : Number(lignes[0].n);
-  } catch {
-    return null;
-  }
+/**
+ * LE DÉCOMPTE DES TABLES CLOISONNÉES N'EST PAS LISIBLE D'ICI, ET C'EST ÉCRIT
+ * PLUTÔT QUE MAQUILLÉ EN ZÉRO.
+ *
+ * **Mesuré à l'écran avant d'être corrigé** : la page affichait « Sociétés : 0 »
+ * et « Comptes : 0 » sur une base qui en portait deux et une. Le compte est fait
+ * sous le rôle applicatif et **sans société active** ; `societe` est de forme
+ * « identité » et `utilisateur` de forme « désignation » — l'une comme l'autre
+ * rendent **zéro** tant que rien n'est nommé. Le chiffre était donc juste au
+ * sens où la requête le rendait, et **faux au sens où on le lisait** : un zéro
+ * se lit « installation vide », et c'est la conclusion opposée à la vraie.
+ *
+ * *C'est le §9 du 06/09 dans sa forme la plus coûteuse — un chiffre juste, dans
+ * un rapport vrai, qui fait conclure faux.* La réparation n'est pas de trouver
+ * une connexion qui verrait tout : ce serait déposer une clé passe-partout sur
+ * une page **sans compte**. C'est de dire ce qu'on sait, et pas davantage.
+ *
+ * **Et ce que la page dit à la place est PLUS FORT qu'un nombre** : que la
+ * lecture soit refusée prouve que le cloisonnement mord sur cette connexion.
+ */
+function decompteNonLisible(): Decompte {
+  return {
+    lisible: false,
+    motif:
+      "Le cloisonnement l'interdit à cette connexion, et c'est le bon " +
+      "comportement : les sociétés et les comptes ne se lisent qu'une fois " +
+      "connecté. Que cette page ne puisse pas les compter prouve que le " +
+      "cloisonnement fonctionne.",
+  };
 }

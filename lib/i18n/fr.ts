@@ -410,6 +410,7 @@ export const fr = {
   "sante.oui": "oui",
   "sante.non": "non",
   "sante.inconnu": "inconnu",
+  "sante.non_lisible": "non lisible d’ici",
   "sante.tout_va_bien": "L'installation répond et paraît complète.",
   "sante.quelque_chose_cloche":
     "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",

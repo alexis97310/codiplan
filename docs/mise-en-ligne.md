@@ -265,7 +265,7 @@ DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:deploy
 | **La base de données répond** | oui | `DATABASE_URL` est absente, fausse, ou la base ne répond pas. C'est le `P1001` du §1. |
 | **Le rôle de connexion est le bon** | oui | La connexion porte le propriétaire ou un rôle privilégié : **le cloisonnement entre sociétés ne s'appliquerait pas**. À corriger avant toute autre chose. |
 | **Les migrations sont à jour** | oui | Elle **nomme la migration manquante**. Rejouez le §7. |
-| **Sociétés / Comptes** | des nombres | `inconnu` veut dire que la lecture a échoué — c'est la conséquence d'une des trois lignes précédentes, pas un défaut de plus. |
+| **Sociétés / Comptes** | **« non lisible d'ici »**, avec sa raison | **Ce n'est pas un défaut, et surtout ce n'est pas un zéro.** Le compte se ferait sous la connexion applicative et sans société active ; les politiques de cloisonnement rendent alors zéro, et *un zéro se lirait « installation vide »* — la conclusion opposée à la vraie. **Que cette page ne puisse pas les compter prouve que le cloisonnement fonctionne.** Pour connaître ces nombres, il faut se connecter. |
 
 **Cette page ne tombe jamais avec ce qu'elle surveille.** Avec une base injoignable, elle s'affiche quand même et répond « non » : *une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien.* Un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute (`tests/unit/db/sante.test.ts`).
 

@@ -38,8 +38,12 @@ describe("la page de santé ne tombe pas avec ce qu'elle surveille", () => {
       expect(etat.baseJointe.ok).toBe(false);
       expect(etat.roleApplicatif.ok).toBe(false);
       expect(etat.migrations.ok).toBe(false);
-      expect(etat.societes).toBeNull();
-      expect(etat.comptes).toBeNull();
+      // Les décomptes ne disent JAMAIS zéro : ni ici, où la base ne répond
+      // pas, ni sur une base saine, où les politiques les refusent à une
+      // connexion sans société active. *Un zéro se lit « installation vide »*,
+      // ce qui serait la conclusion opposée à la vraie (§9, 06/09).
+      expect(etat.societes.lisible).toBe(false);
+      expect(etat.comptes.lisible).toBe(false);
     } finally {
       process.env.DATABASE_URL = avant;
     }
@@ -52,6 +56,8 @@ describe("la page de santé ne tombe pas avec ce qu'elle surveille", () => {
     try {
       const etat = await lireSante();
       const texte = JSON.stringify(etat);
+      // Et le motif du décompte n'en porte pas davantage : il est rendu au
+      // lecteur exactement comme le reste de la page.
 
       // Les quatre choses qu'un message brut de pilote aurait emportées.
       expect(texte).not.toContain("hote-secret");

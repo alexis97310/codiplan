@@ -1,4 +1,4 @@
-import { lireSante, type Reponse } from "@/lib/db/sante";
+import { lireSante, type Decompte, type Reponse } from "@/lib/db/sante";
 import { t } from "@/lib/i18n/fr";
 
 /**
@@ -63,8 +63,8 @@ export default async function PageSante() {
               : `${t("sante.migration_manquante")} : ${etat.migrations.detail}`
           }
         />
-        <LigneNombre libelle={t("sante.societes")} valeur={etat.societes} />
-        <LigneNombre libelle={t("sante.comptes")} valeur={etat.comptes} />
+        <LigneNombre libelle={t("sante.societes")} decompte={etat.societes} />
+        <LigneNombre libelle={t("sante.comptes")} decompte={etat.comptes} />
       </dl>
     </main>
   );
@@ -97,19 +97,33 @@ function LigneReponse({
   );
 }
 
+/**
+ * UN DÉCOMPTE, OU LA RAISON POUR LAQUELLE IL N'EN EST PAS UN.
+ *
+ * **Jamais un zéro à la place d'un refus.** La page affichait « Sociétés : 0 »
+ * sur une base qui en portait deux : le compte est fait sans société active, et
+ * les politiques rendent zéro. Le chiffre était juste au sens de la requête et
+ * **faux au sens où on le lisait** — *un zéro se lit « installation vide »*, ce
+ * qui est la conclusion opposée à la vraie (§9, 06/09).
+ */
 function LigneNombre({
   libelle,
-  valeur,
+  decompte,
 }: {
   libelle: string;
-  valeur: number | null;
+  decompte: Decompte;
 }) {
   return (
-    <div className="border-border flex items-baseline justify-between gap-4 rounded-md border px-3 py-2">
-      <dt>{libelle}</dt>
-      <dd className="font-medium">
-        {valeur === null ? t("sante.inconnu") : String(valeur)}
-      </dd>
+    <div className="border-border flex flex-col gap-1 rounded-md border px-3 py-2">
+      <div className="flex items-baseline justify-between gap-4">
+        <dt>{libelle}</dt>
+        <dd className="font-medium">
+          {decompte.lisible ? String(decompte.valeur) : t("sante.non_lisible")}
+        </dd>
+      </div>
+      {decompte.lisible ? null : (
+        <p className="text-muted-foreground text-xs">{decompte.motif}</p>
+      )}
     </div>
   );
 }

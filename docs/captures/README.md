@@ -47,6 +47,10 @@ Chaque écran est photographié en **thème clair** et en **thème sombre**, à 
 | `intervention-cloturee--clair--390.png` | Une intervention clôturée : l'arrondi et le plancher de D83 sous les yeux, et les trois actions désormais refusées, avec leur raison. — thème clair, téléphone. |
 | `intervention-cloturee--sombre--1280.png` | Une intervention clôturée : l'arrondi et le plancher de D83 sous les yeux, et les trois actions désormais refusées, avec leur raison. — thème sombre, poste de travail. |
 | `intervention-cloturee--sombre--390.png` | Une intervention clôturée : l'arrondi et le plancher de D83 sous les yeux, et les trois actions désormais refusées, avec leur raison. — thème sombre, téléphone. |
+| `sante--clair--1280.png` | La page d'état de l'installation, **sans compte** — thème clair, poste de travail. |
+| `sante--clair--390.png` | La page d'état de l'installation, **sans compte** — thème clair, téléphone. |
+| `sante--sombre--1280.png` | La page d'état de l'installation, **sans compte** — thème sombre, poste de travail. |
+| `sante--sombre--390.png` | La page d'état de l'installation, **sans compte** — thème sombre, téléphone. |
 
 ## Les écrans qui manquent, et ce n'est pas un oubli de prise de vue
 
