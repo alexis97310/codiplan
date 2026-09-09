@@ -439,12 +439,24 @@ export async function annulerIntervention(
   });
 }
 
-/** Le planning d'une période — tout ce qui est visible dans le périmètre. */
+/** Une ligne de planning, avec ce qu'il faut pour la lire sans l'ouvrir. */
+export type LignePlanning = LigneIntervention & {
+  readonly client: { raison_sociale: string };
+  readonly site: { libelle: string };
+};
+
+/**
+ * Le planning d'une période — tout ce qui est visible dans le périmètre.
+ *
+ * Les libellés voyagent avec les lignes : une liste d'UUID n'est pas un
+ * planning, et les faire chercher un par un par l'écran ferait autant de
+ * requêtes que de lignes.
+ */
 export async function listerPlanning(
   contexte: ContexteSession,
   du: Date,
   au: Date,
-): Promise<readonly LigneIntervention[]> {
+): Promise<readonly LignePlanning[]> {
   return avecContexteApplicatif(contexte, (tx) =>
     tx.intervention.findMany({
       where: {
@@ -457,17 +469,134 @@ export async function listerPlanning(
         ],
       },
       orderBy: [{ date_planifiee: "asc" }, { creneau_debut: "asc" }],
-      select: CHAMPS_LIGNE,
+      select: {
+        ...CHAMPS_LIGNE,
+        client: { select: { raison_sociale: true } },
+        site: { select: { libelle: true } },
+      },
     }),
   );
 }
 
-/** Une intervention, par son identifiant. `null` si hors périmètre. */
+/**
+ * LA FICHE COMPLÈTE — libellés lus, et décomposition de D83 sous les yeux.
+ *
+ * Deux choses que la ligne brute ne porte pas, et que l'écran ne doit pas
+ * fabriquer :
+ *
+ * **Les LIBELLÉS.** Une fiche qui affiche des UUID n'est pas une fiche. Ils
+ * sont lus par jointure SOUS le contexte : un identifiant hors périmètre ne
+ * rend pas de libellé, et l'écran affiche alors le tiret plutôt qu'un nom
+ * qu'il n'a pas le droit de connaître.
+ *
+ * **La DÉCOMPOSITION de RG-TAR-05 amendée par D83** — temps réel, arrondi au
+ * quart d'heure supérieur, plancher d'une heure, temps facturé, taux, total.
+ * *C'est la demande explicite de l'exploitation : voir l'arrondi et le plancher
+ * s'appliquer sous les yeux.* Elle est calculée par la MÊME fonction que la
+ * clôture, jamais recalculée à l'écran — deux lectures d'un même critère
+ * divergent en silence (§9, 01/09).
+ */
+export async function lireFicheIntervention(
+  contexte: ContexteSession,
+  id: string,
+): Promise<{
+  readonly ligne: LigneIntervention;
+  readonly client: string | null;
+  readonly lieu: string | null;
+  readonly rattachement: string | null;
+  readonly forfait: string | null;
+  readonly devise: {
+    code: string;
+    decimales: number;
+    symbole: string | null;
+  } | null;
+  readonly valorisation: ValorisationAffichee | null;
+} | null> {
+  return avecContexteApplicatif(contexte, async (tx) => {
+    const ligne = await tx.intervention.findFirst({
+      where: { id },
+      select: {
+        ...CHAMPS_LIGNE,
+        client: { select: { raison_sociale: true } },
+        site: { select: { libelle: true } },
+        agence: { select: { libelle: true } },
+        forfait: { select: { libelle: true } },
+        devise: { select: { code: true, decimales: true, symbole: true } },
+      },
+    });
+    if (ligne === null) {
+      return null;
+    }
+    const { client, site, agence, forfait, devise, ...brute } = ligne;
+
+    let valorisation: ValorisationAffichee | null = null;
+    if (brute.temps_reel_min !== null && brute.temps_reel_min > 0) {
+      const instant = await instantDeLAgence(tx, brute.agence_id);
+      const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
+      if (taux !== null) {
+        const v = valoriserTempsPasse(brute.temps_reel_min, taux.taux);
+        valorisation = {
+          minutesReelles: v.minutesReelles,
+          minutesArrondies: v.minutesArrondies,
+          minutesFacturees: v.minutesFacturees,
+          plancherApplique: v.plancherApplique,
+          tauxHoraire: v.tauxHoraire,
+          mainDoeuvre: v.mainDoeuvre,
+        };
+      }
+    }
+
+    return {
+      ligne: brute,
+      client: client.raison_sociale,
+      lieu: site.libelle,
+      rattachement: agence.libelle,
+      forfait: forfait?.libelle ?? null,
+      devise,
+      valorisation,
+    };
+  });
+}
+
+/** Ce que l'écran affiche du calcul de D83, sans le refaire. */
+export type ValorisationAffichee = {
+  readonly minutesReelles: number;
+  readonly minutesArrondies: number;
+  readonly minutesFacturees: number;
+  readonly plancherApplique: boolean;
+  readonly tauxHoraire: Montant;
+  readonly mainDoeuvre: Montant;
+};
+
+/**
+ * Une intervention, par son identifiant, AVEC SA DEVISE. `null` si hors
+ * périmètre.
+ *
+ * La devise voyage avec le montant, toujours (I2) — et c'est elle qui porte le
+ * nombre de décimales (I3). *L'écran ne doit jamais avoir à savoir que le XPF
+ * n'en a pas* : le lui faire décider serait un `toFixed(2)` déguisé, écrit une
+ * fois ici et faux ailleurs.
+ */
 export async function lireIntervention(
   contexte: ContexteSession,
   id: string,
-): Promise<LigneIntervention | null> {
+): Promise<
+  | (LigneIntervention & {
+      readonly devise: {
+        code: string;
+        decimales: number;
+        symbole: string | null;
+      } | null;
+    })
+  | null
+> {
   return avecContexteApplicatif(contexte, (tx) =>
-    tx.intervention.findFirst({ where: { id }, select: CHAMPS_LIGNE }),
+    tx.intervention.findFirst({
+      where: { id },
+      select: {
+        ...CHAMPS_LIGNE,
+        devise: { select: { code: true, decimales: true, symbole: true } },
+      },
+    }),
   );
 }

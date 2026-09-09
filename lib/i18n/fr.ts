@@ -270,6 +270,9 @@ export const fr = {
   "planning.vide": "Aucune intervention sur cette période.",
   "planning.creer": "Créer une intervention",
   "planning.retour": "Retour au planning",
+  // La flèche fait partie du LIBELLÉ lu à voix haute : elle est ici, comme
+  // tout ce qu'un humain lit (L0-11), et non écrite en dur dans le composant.
+  "planning.retour_fleche": "← Retour au planning",
   "planning.periode": "Période affichée",
 
   "intervention.titre": "Intervention",

@@ -500,6 +500,10 @@ lib/
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS
+              statuts.ts : les couleurs des huit statuts d'intervention
+              (annexe D, promue au rang de règle par le §1) — une RÈGLE du
+              produit et non une charte : « en cours » est rouge chez tout le
+              monde, c'est un code de lecture partagé, pas une préférence
               la lisibilité se CALCULE : seuil 4,5:1 (WCAG 2.1, 1.4.3 AA),
               garanti par le choix noir/blanc, qui plancher à √21 ≈ 4,58 (D51)
               seul endroit du code où une couleur s'écrit en clair
