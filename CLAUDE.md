@@ -473,9 +473,13 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
-              valorisation.ts : RG-TAR-05 amendée par D83 — arrondi au quart
-              d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE SEULE
-              FOIS sur l'intervention entière et jamais tâche par tâche
+              valorisation.ts : RG-TAR-05 amendée par D83 et D89 — arrondi au
+              quart d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE
+              SEULE FOIS sur l'intervention entière et jamais tâche par tâche
+              le plancher est PAR INTERVENTION, SANS EXCEPTION (D89) : deux
+              interventions le même jour sur le même site font DEUX heures, y
+              compris si la seconde achève la première — la variante « sauf
+              reprise rattachée » est écrite au registre, pas construite
               aucune fonction « valoriser une intervention » : le mode est
               décidé par l'appelant, la composition forfait + excédent n'étant
               pas tranchée — et le plancher ne vise NI le forfait, NI le

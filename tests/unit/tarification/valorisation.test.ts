@@ -143,3 +143,65 @@ describe("le montant, en arithmétique entière", () => {
     expect(v.mainDoeuvre.valeur).toBe(BigInt(6825));
   });
 });
+
+describe("D89 — le plancher s'applique PAR INTERVENTION, sans exception", () => {
+  /**
+   * **Décision d'exploitation du 10/09/2026**, qui ferme la question laissée
+   * ouverte par D83 : *le plancher d'une heure s'applique-t-il par
+   * intervention, ou par site et par jour ?*
+   *
+   * La réponse est **par intervention, sans exception** — y compris quand la
+   * seconde intervention achève la première. Ce que la maille dit en retour :
+   * *un déplacement a un coût que la durée du geste ne mesure pas.*
+   *
+   * **Le scénario porte sur la MAILLE, pas sur la fonction.** Il valorise deux
+   * fois et somme, comme le fera l'appelant réel — c'est la seule forme qui
+   * puisse tomber si un futur appelant additionne les minutes avant d'appeler.
+   */
+  const VINGT_MINUTES = 20;
+
+  it("deux interventions de 20 min le même jour sur le même site font DEUX heures", () => {
+    const premiere = valoriserTempsPasse(VINGT_MINUTES, TAUX);
+    const seconde = valoriserTempsPasse(VINGT_MINUTES, TAUX);
+
+    expect(premiere.minutesFacturees).toBe(PLANCHER_MINUTES);
+    expect(seconde.minutesFacturees).toBe(PLANCHER_MINUTES);
+    expect(premiere.minutesFacturees + seconde.minutesFacturees).toBe(120);
+    expect(premiere.plancherApplique).toBe(true);
+    expect(seconde.plancherApplique).toBe(true);
+  });
+
+  it("LE JUMEAU : agrégées avant l'appel, les deux ne feraient qu'UNE heure", () => {
+    // La faute telle qu'elle se commettrait — un appelant qui additionne les
+    // minutes des deux interventions avant de valoriser, « puisque c'est le
+    // même site le même jour ». 40 minutes arrondissent à 45, le plancher les
+    // relève à 60 : UNE heure au lieu de deux, un facteur deux sur la facture.
+    // Si le scénario ci-dessus passait avec ce chiffre, la règle serait mal
+    // posée.
+    const agregee = valoriserTempsPasse(VINGT_MINUTES * 2, TAUX);
+    expect(agregee.minutesFacturees).toBe(60);
+    expect(agregee.minutesFacturees).not.toBe(120);
+  });
+
+  it("la reprise qui achève la précédente n'est PAS une exception", () => {
+    // La variante écartée par D89 — « sauf reprise rattachée à la précédente »
+    // — est écrite comme variante connue et n'est pas construite. Rien, dans
+    // la valorisation, ne connaît de lien entre deux interventions : ce
+    // scénario constate cette absence plutôt que de la supposer.
+    const aller = valoriserTempsPasse(35, TAUX);
+    const reprise = valoriserTempsPasse(10, TAUX);
+    expect(aller.minutesFacturees).toBe(PLANCHER_MINUTES);
+    expect(reprise.minutesFacturees).toBe(PLANCHER_MINUTES);
+    expect(aller.minutesFacturees + reprise.minutesFacturees).toBe(120);
+  });
+
+  it("le plancher ne s'applique qu'UNE fois par intervention — pas deux", () => {
+    // La direction permissive, à côté des rouges : une intervention longue ne
+    // reçoit AUCUN plancher, et son montant est celui de l'arrondi seul. Le
+    // gardien reste vert pour sa propre raison, pas parce qu'il ne regarde
+    // rien.
+    const longue = valoriserTempsPasse(227, TAUX);
+    expect(longue.minutesFacturees).toBe(240);
+    expect(longue.plancherApplique).toBe(false);
+  });
+});
