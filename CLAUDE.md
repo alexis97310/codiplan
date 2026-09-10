@@ -370,6 +370,14 @@ lib/
               RÉÉMISSION de son jeton (10/09) — son cliquet est un FAIT de
               `compte`, `mot_de_passe IS NULL`, que l'amorçage laisse et que
               le premier mot de passe choisi referme pour toujours
+              premier-acces.ts : l'écran où l'on CHOISIT ce mot de passe —
+              l'amorçage y redirigeait depuis le 09/09 et il RENDAIT 404
+              (mesuré le 11/09) ; c'est la seule porte d'une base neuve, le
+              seed n'attribuant aucun mot de passe
+              les deux contrôles de SAISIE viennent avant le jeton : une
+              discordance qui brûlerait le jeton coûterait un aller-retour
+              humain, un lien de premier accès se transmettant hors bande
+              un jeton inconnu et un jeton mort rendent LE MÊME refus (D35)
               enrolement.ts : la SEULE transition en libre-service (D58) —
               elle POSE, elle ne retire jamais ; les deux drapeaux y sont
               écrits par nous, la bibliothèque les désignant par un `id` que

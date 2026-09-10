@@ -80,6 +80,16 @@ type Ecran = {
   readonly temoin: string;
   /** Pourquoi cet écran peut légitimement être refusé, quand c'est structurel. */
   readonly refusConnu?: string;
+  /**
+   * L'écran N'EXISTE QUE TANT QUE LE SECOND FACTEUR N'EST PAS ACTIVÉ.
+   *
+   * Il ne se photographie donc pas dans la boucle ordinaire, qui tourne sous
+   * une session déjà enrôlée : il se photographie AVANT, dans sa propre passe.
+   * *Le refus du 10/09 disait « il faudrait une seconde identité » — c'était
+   * une impossibilité affirmée sans son coût (§9, 08/09). Il n'en faut pas :
+   * il faut prendre la photo plus tôt.*
+   */
+  readonly avantEnrolement?: boolean;
 };
 
 const ECRANS: readonly Ecran[] = [
@@ -115,12 +125,13 @@ const ECRANS: readonly Ecran[] = [
     quoi: "L'activation du second facteur, où atterrit un rôle sensible avant tout le reste.",
     authentifie: true,
     temoin: "second facteur",
+    avantEnrolement: true,
     refusConnu:
-      "REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans " +
-      "cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran " +
-      "n'existe donc plus quand vient son tour d'être photographié. Le " +
-      "photographier demanderait une seconde identité, jamais enrôlée, " +
-      "et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.",
+      "Cet écran se photographie AVANT l'activation du second facteur, dans " +
+      "sa propre passe : la session enrôlée qui sert au reste de la prise de " +
+      "vue ne le voit plus. S'il est refusé, la cause est donc que LE COMPTE " +
+      "PORTE DÉJÀ un second facteur — repartir d'une base fraîchement semée " +
+      "(`pnpm db:seed`), la clé d'un enrôlement passé n'étant pas rejouable.",
   },
   {
     nom: "arrivee",
@@ -340,6 +351,88 @@ async function photographier(
   }
 }
 
+/**
+ * LA PASSE D'AVANT-ENRÔLEMENT — quatre connexions, et pas une seconde identité.
+ *
+ * **Ce que le refus du 10/09 disait, et ce que la mesure dit.** Il annonçait
+ * qu'un écran d'enrôlement ne pouvait être photographié « qu'avec une seconde
+ * identité, jamais enrôlée ». C'était une impossibilité énoncée sans son coût
+ * (§9, 08/09) : *il ne faut pas une autre identité, il faut prendre la photo
+ * plus tôt.* Un compte devient enrôlé au moment de l'ACTIVATION, jamais à la
+ * connexion — se connecter quatre fois avant elle donne les quatre images.
+ *
+ * La passe s'exécute donc AVANT `seConnecter`, et elle n'active rien. Elle
+ * échoue proprement si le compte porte déjà un second facteur : l'écran ne
+ * portera pas son témoin, et le refus dira quoi faire.
+ *
+ * *Le coût est de quatre connexions supplémentaires. Il est payé une fois par
+ * prise de vue, et il achète l'écran par lequel passe TOUT compte à rôle
+ * sensible — celui qu'on ne pouvait pas montrer.*
+ */
+async function photographierAvantEnrolement(
+  navigateur: Browser,
+  ecran: Ecran,
+  prises: string[],
+  manquants: string[],
+): Promise<void> {
+  // UNE SEULE CONNEXION POUR LES QUATRE IMAGES, et ce n'est pas une économie
+  // de confort. **Mesuré le 11/09/2026 :** quatre connexions coup sur coup,
+  // suivies de celles de `seConnecter`, épuisent la limite de débit que Better
+  // Auth pose sur `/sign-in/email` ; les connexions suivantes reçoivent un
+  // statut hors 200, `tenterConnexion` les traite pour ce qu'elles sont — un
+  // refus —, et **les douze captures authentifiées tombent sans que rien ne
+  // dise pourquoi**. *Un refus de débit et un mot de passe faux sont
+  // indiscernables, par construction (D35) : c'est la bonne règle, et c'est
+  // elle qui rend l'épuisement invisible.*
+  const ouverture = await navigateur.newContext({ locale: "fr-FR" });
+  let etat: Awaited<
+    ReturnType<Awaited<ReturnType<Browser["newContext"]>>["storageState"]>
+  > | null = null;
+  let refus: string | null = null;
+  try {
+    const page = await ouverture.newPage();
+    // Connexion NUE : ni défi de second facteur — le compte n'en a pas
+    // encore —, ni activation. C'est tout l'objet de cette passe.
+    await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
+    await page.fill('input[name="email"]', COURRIEL);
+    await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState("networkidle");
+    etat = await ouverture.storageState();
+  } catch (erreur) {
+    refus = String(erreur).slice(0, 200);
+  } finally {
+    await ouverture.close();
+  }
+
+  for (const theme of THEMES) {
+    for (const format of LARGEURS) {
+      const nom = `${ecran.nom}--${theme.nom}--${format.nom}`;
+      let contexte = null;
+      try {
+        if (etat === null) {
+          throw new Error(`session absente — ${refus ?? "cause inconnue"}`);
+        }
+        contexte = await navigateur.newContext({
+          viewport: { width: format.largeur, height: format.hauteur },
+          colorScheme: theme.schema,
+          locale: "fr-FR",
+          storageState: etat,
+        });
+        await photographier(navigateur, ecran, theme, format, contexte);
+        prises.push(nom);
+      } catch (erreur) {
+        manquants.push(
+          `${nom} : ${String(erreur).slice(0, 200)}` +
+            (ecran.refusConnu === undefined ? "" : `\n  ${ecran.refusConnu}`),
+        );
+      } finally {
+        await contexte?.close();
+      }
+    }
+  }
+}
+
 async function principal(): Promise<number> {
   mkdirSync(SORTIE, { recursive: true });
   const commit = empreinte();
@@ -363,6 +456,16 @@ async function principal(): Promise<number> {
     ReturnType<Awaited<ReturnType<Browser["newContext"]>>["storageState"]>
   > | null = null;
   let refusSession: string | null = null;
+
+  // AVANT TOUT LE RESTE : les écrans qui n'existent que tant que le second
+  // facteur n'est pas activé. `seConnecter` l'active — l'ordre n'est donc pas
+  // une commodité, c'est la condition d'existence de ces images.
+  if (COURRIEL !== "" && MOT_DE_PASSE !== "") {
+    for (const ecran of ECRANS.filter((e) => e.avantEnrolement === true)) {
+      await photographierAvantEnrolement(navigateur, ecran, prises, manquants);
+    }
+  }
+
   if (COURRIEL !== "" && MOT_DE_PASSE !== "") {
     const contexte = await navigateur.newContext({ locale: "fr-FR" });
     try {
@@ -379,7 +482,7 @@ async function principal(): Promise<number> {
   }
 
   try {
-    for (const ecran of ECRANS) {
+    for (const ecran of ECRANS.filter((e) => e.avantEnrolement !== true)) {
       for (const theme of THEMES) {
         for (const format of LARGEURS) {
           let contexte = null;

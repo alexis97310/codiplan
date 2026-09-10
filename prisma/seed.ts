@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
+import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
@@ -97,6 +98,63 @@ function etape(message: string): void {
 /** « 1 ligne », « 2 lignes » — ce journal est lu par un humain. */
 function pluriel(nombre: number, mot: string): string {
   return `${nombre} ${mot}${nombre > 1 ? "s" : ""}`;
+}
+
+/**
+ * LE MOYEN DE CONNEXION AU REPOS — sans lui, la base de démonstration a des
+ * données et AUCUNE PORTE.
+ *
+ * **Mesuré le 11/09/2026 :** après `pnpm db:seed`, la table `compte` porte
+ * **zéro ligne**. Les cinq identités de démonstration existent, elles sont
+ * habilitées, elles ont un planning garni — et **aucune ne peut se connecter**.
+ * Le geste d'amorçage refuse (« la société porte déjà des habilitations » : il
+ * n'ouvre que la PREMIÈRE identité), et la réémission refuse aussi
+ * (« l'identité ne porte aucun moyen de connexion »). *Les deux refus sont
+ * justes ; c'est l'état qu'ils lisent qui manquait.*
+ *
+ * Ce que cette fonction pose est **exactement l'état que l'amorçage laisse
+ * derrière lui** — un compte à mot de passe NUL. C'est le cliquet de D65, dans
+ * son sens ouvert : personne ne peut se connecter avec, et la réémission sait
+ * s'en servir pour délivrer une URL de premier accès. *Aucun mot de passe
+ * n'entre au dépôt, et il n'en existe aucun tant qu'une personne n'en a pas
+ * choisi un ; dès qu'elle l'a fait, l'état ne revient jamais (D65).*
+ *
+ * Les trois valeurs ne sont pas devinées : elles sont MESURÉES sur un compte
+ * réellement ouvert par `signUpEmail` — `emetteur = "local:credential"`,
+ * `fournisseur_id = "credential"`, `compte_externe_id` = l'identifiant de
+ * l'identité. Écrire autre chose ferait une ligne que la bibliothèque ne
+ * reconnaîtrait pas, et le refus arriverait au premier `/premier-acces`.
+ *
+ * La création passe par la DÉSIGNATION : la politique `compte_ouverture` exige
+ * `app.authentification_utilisateur_id`, que `avecDesignationAuth` renseigne
+ * depuis le `data` d'un `create` (L1-02d). Une écriture faite sans elle serait
+ * refusée EN SILENCE — zéro ligne, pas d'erreur.
+ */
+async function poserLeMoyenDeConnexionAuRepos(
+  prisma: PrismaClient,
+  utilisateurId: string,
+): Promise<void> {
+  const designe = avecDesignationAuth(prisma);
+  const existant = await designe.compte.findFirst({
+    where: { utilisateur_id: utilisateurId },
+    select: { id: true },
+  });
+  // LE SEED NE RÉÉCRIT PAS : si un compte existe, il porte peut-être un mot de
+  // passe CHOISI, et le cliquet de D65 ne se rouvre jamais. Même sens de
+  // défaillance que l'abstention du 09/09 sur les interventions verrouillées.
+  if (existant !== null) {
+    return;
+  }
+  await designe.compte.create({
+    data: {
+      id: uuidv7(),
+      utilisateur_id: utilisateurId,
+      emetteur: "local:credential",
+      compte_externe_id: utilisateurId,
+      fournisseur_id: "credential",
+      mot_de_passe: null,
+    },
+  });
 }
 
 async function seed(): Promise<void> {
@@ -661,6 +719,8 @@ async function seed(): Promise<void> {
       DELAIS_SEED,
     );
 
+    await poserLeMoyenDeConnexionAuRepos(prisma, enregistrement.id);
+
     for (const habilitation of utilisateur.habilitations) {
       const societeId = societeParCode(habilitation.societe_code).id;
 
@@ -705,6 +765,10 @@ async function seed(): Promise<void> {
         }),
       DELAIS_SEED,
     );
+
+    // Un compte portail a la même porte que les autres : celle qui n'existe
+    // pas tant que personne n'a choisi de mot de passe.
+    await poserLeMoyenDeConnexionAuRepos(prisma, utilisateur.id);
 
     const societeId = societeParCode(compte.societe_code).id;
 

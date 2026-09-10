@@ -76,6 +76,26 @@ export const fr = {
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
+  // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
+  // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
+  // seule porte d'entrée d'une base neuve rendait 404.
+  "premier_acces.titre": "Choisissez votre mot de passe",
+  "premier_acces.accroche":
+    "Ce lien ne sert qu'une fois. Le mot de passe que vous choisissez ici est le vôtre : personne d'autre ne le connaît, et il ne peut plus être réémis par ce chemin.",
+  "premier_acces.mot_de_passe": "Nouveau mot de passe",
+  "premier_acces.confirmation": "Confirmez le mot de passe",
+  "premier_acces.valider": "Enregistrer et se connecter",
+  "premier_acces.sans_jeton":
+    "Ce lien de premier accès est incomplet. Demandez-en un nouveau à la personne qui vous l'a transmis.",
+  "premier_acces.refuse":
+    "Ce lien n'est plus valide, ou le mot de passe n'a pas été accepté. Demandez un nouveau lien à la personne qui vous l'a transmis.",
+  "premier_acces.discordance":
+    "Les deux mots de passe saisis ne sont pas identiques.",
+  "premier_acces.trop_court":
+    "Le mot de passe doit compter au moins huit caractères.",
+  "premier_acces.abouti":
+    "Votre mot de passe est enregistré. Connectez-vous avec.",
+
   // Enrôlement du second facteur — la seule transition en libre-service (D58).
   "enrolement.titre": "Activer votre second facteur",
   "enrolement.accroche":
