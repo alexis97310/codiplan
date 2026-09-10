@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createOTP } from "@better-auth/utils/otp";
@@ -78,6 +78,8 @@ type Ecran = {
   readonly authentifie: boolean;
   /** Un texte qui doit être présent : le script REFUSE si l'écran n'est pas le bon. */
   readonly temoin: string;
+  /** Pourquoi cet écran peut légitimement être refusé, quand c'est structurel. */
+  readonly refusConnu?: string;
 };
 
 const ECRANS: readonly Ecran[] = [
@@ -113,6 +115,12 @@ const ECRANS: readonly Ecran[] = [
     quoi: "L'activation du second facteur, où atterrit un rôle sensible avant tout le reste.",
     authentifie: true,
     temoin: "second facteur",
+    refusConnu:
+      "REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans " +
+      "cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran " +
+      "n'existe donc plus quand vient son tour d'être photographié. Le " +
+      "photographier demanderait une seconde identité, jamais enrôlée, " +
+      "et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.",
   },
   {
     nom: "arrivee",
@@ -346,6 +354,7 @@ async function principal(): Promise<number> {
   const navigateur = await chromium.launch();
   const prises: string[] = [];
   const manquants: string[] = [];
+  const obsoletes: string[] = [];
 
   // LA SESSION EST OUVERTE UNE FOIS ET RÉUTILISÉE. Se connecter à chaque
   // capture ferait douze connexions pour six écrans, et douze occasions
@@ -392,7 +401,10 @@ async function principal(): Promise<number> {
             prises.push(`${ecran.nom}--${theme.nom}--${format.nom}.png`);
           } catch (erreur) {
             manquants.push(
-              `${ecran.nom}--${theme.nom}--${format.nom} : ${String(erreur).slice(0, 160)}`,
+              `${ecran.nom}--${theme.nom}--${format.nom} : ${String(erreur).slice(0, 160)}` +
+                (ecran.refusConnu === undefined
+                  ? ""
+                  : `\n  ${ecran.refusConnu}`),
             );
           } finally {
             if (contexte !== null) {
@@ -406,14 +418,29 @@ async function principal(): Promise<number> {
     await navigateur.close();
   }
 
+  // ── LES IMAGES QUE CETTE PRISE N'A PAS PRODUITES SONT RETIRÉES ──────────
+  //
+  // **Sinon le répertoire ment par accumulation** : une image d'un écran
+  // supprimé ou renommé survit, le README ne la décrit plus, et elle se relit
+  // comme une preuve de ce que l'application affiche. *C'est la maladie de ce
+  // dépôt tout entier — une liste qu'on ajoute et qu'on ne retire jamais.*
+  const gardees = new Set(prises);
+  for (const fichier of readdirSync(SORTIE)) {
+    if (fichier.endsWith(".png") && !gardees.has(fichier)) {
+      unlinkSync(join(SORTIE, fichier));
+      obsoletes.push(fichier);
+    }
+  }
+
   writeFileSync(
     join(SORTIE, "README.md"),
-    redigerReadme(commit, quand, prises, manquants),
+    redigerReadme(commit, quand, prises, manquants, obsoletes),
     "utf8",
   );
 
   process.stdout.write(
-    `${prises.length} capture(s) prise(s), ${manquants.length} refusée(s). ` +
+    `${prises.length} capture(s) prise(s), ${manquants.length} refusée(s), ` +
+      `${obsoletes.length} retirée(s). ` +
       `Commit photographié : ${commit.court}.\n`,
   );
   if (cleActivee !== "") {
@@ -437,6 +464,7 @@ function redigerReadme(
   quand: string,
   prises: readonly string[],
   manquants: readonly string[],
+  obsoletes: readonly string[],
 ): string {
   const lignes = [
     "# Captures d'écran — ce que l'application affiche aujourd'hui",
@@ -465,6 +493,17 @@ function redigerReadme(
     );
   } else {
     lignes.push("*Aucun refus à cette prise.*", "");
+  }
+
+  if (obsoletes.length > 0) {
+    lignes.push(
+      "### Retirées à cette prise",
+      "",
+      "Ces images ne correspondent plus à aucun écran photographié. **Elles sont supprimées plutôt que laissées** : une image que le README ne décrit plus se relit quand même comme une preuve de ce que l'application affiche.",
+      "",
+      ...obsoletes.map((o) => `- \`${o}\``),
+      "",
+    );
   }
 
   lignes.push(

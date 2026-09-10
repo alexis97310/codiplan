@@ -878,6 +878,10 @@ scripts/      inventaire, contrôle de cloisonnement (privilèges compris), hori
               lib/tables-comptees.ts = LA population de l'inventaire, PRODUITE
               par le schéma : toute table y est comptée, témoin, ou exemptée
               nommément avec son motif
+              captures.mts = les captures d'écran, prises par une COMMANDE et
+              non à la main (10/09) — chaque écran porte un TÉMOIN lu sur le
+              texte RENDU, et une image qui ne le porte pas est refusée plutôt
+              que rangée sous un nom qu'elle dément
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
               fixtures/dates-excel.xlsx = un VRAI classeur Excel réduit PAR
               RETRAIT — plus une seule chaîne de caractères, et chaque cellule

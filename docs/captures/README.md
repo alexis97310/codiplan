@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `07105ce488c83808479646ade1851f691142f063` (`07105ce`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-10 04:14 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `7bd2ba75d9bc6762d5bc88891438ede3d972bb37` (`7bd2ba7`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-10 04:20 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -15,10 +15,14 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
 
 ### Refusées à cette prise
 
-- `enrolement--clair--1280 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.`
-- `enrolement--clair--390 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.`
-- `enrolement--sombre--1280 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.`
-- `enrolement--sombre--390 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.`
+- `enrolement--clair--1280 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.
+  REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran n'existe donc plus quand vient son tour d'être photographié. Le photographier demanderait une seconde identité, jamais enrôlée, et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.`
+- `enrolement--clair--390 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.
+  REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran n'existe donc plus quand vient son tour d'être photographié. Le photographier demanderait une seconde identité, jamais enrôlée, et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.`
+- `enrolement--sombre--1280 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.
+  REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran n'existe donc plus quand vient son tour d'être photographié. Le photographier demanderait une seconde identité, jamais enrôlée, et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.`
+- `enrolement--sombre--390 : Error: « enrolement » ne porte pas son témoin « second facteur » : ce n'est pas l'écran attendu, et la capture est refusée.
+  REFUS STRUCTUREL, et non un défaut : pour atteindre les écrans cloisonnés, cette prise de vue ACTIVE le second facteur — l'écran n'existe donc plus quand vient son tour d'être photographié. Le photographier demanderait une seconde identité, jamais enrôlée, et c'est ce qu'il faudra écrire le jour où cet écran devra figurer.`
 
 ## Les images
 

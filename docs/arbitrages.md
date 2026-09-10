@@ -2905,6 +2905,24 @@ C'est donc `lib/excel/format.ts` qui l'écarte, et il l'écarte comme une **ABSE
 
 ---
 
+## Constat d'exploitation du 10 septembre 2026 — *sans numéro* : une politique ouverte n'est pas un accès rendu
+
+*Cette entrée n'arbitre rien : elle CONSTATE un écart entre ce que la base permet et ce que l'application fait, et elle le range là où les prochaines décisions du même genre le chercheront.*
+
+**D61 (08/09) rend à un compte la LISTE de ses sociétés ; D67 (10/09) leur NOM.** Les deux politiques ont été posées, mesurées, gardées par un contrôle de forme, et éprouvées par des scénarios d'isolation. `societesDuCompte`, la fonction écrite pour les lire, existait. **Et elle n'était importée nulle part.**
+
+*Mesuré le 10/09/2026 en photographiant la page d'arrivée d'un compte de démonstration habilité sur deux sociétés :* « Aucune société active. Le choix d'une société parmi plusieurs arrivera avec le back-office. » Ce compte n'atteignait **aucun** écran cloisonné — le planning, la création d'intervention et la fiche redirigent tous vers l'arrivée faute de société active. *Le mur que D61 disait avoir abattu tenait encore, un étage plus haut.*
+
+**Ce qui rend le constat utile au-delà de son cas** : deux décisions successives ont été prises, chacune avec sa mesure, son coût nommé et son gardien — et le geste qui les rend utiles n'appartenait à aucune des deux. **Une politique RLS ouverte est une permission, pas une fonctionnalité.** C'est la parenté exacte du §9 du 08/09 — *un défaut invisible parce que ce qu'il casse n'existe pas encore* — vu par l'autre bout : ici ce n'est pas un appelant qui manque à une couche, c'est un ÉCRAN qui manque à une permission.
+
+**Et rien ne pouvait le dire, sauf une image.** Aucun scénario n'échouait : les politiques rendaient exactement ce qu'on leur demandait, la fonction faisait ce qu'elle promettait, la page affichait un texte parfaitement grammatical. *La règle absente était « une permission ouverte a un chemin », et on ne l'écrit qu'après l'avoir vue.* Voir le §9 du CLAUDE.md, 09/09.
+
+**Ce qui a été fait le jour même :** l'écran de choix, un formulaire HTML sans JavaScript, et la route `/api/session/societe` qui ne juge rien — `basculerSociete` porte déjà toute la décision.
+
+**Ce qui reste à faire, et qui n'est pas tranché ici :** l'écran ne permet pas encore de CHANGER de société une fois l'une active depuis un autre écran que l'arrivée. Un compte doit repasser par `/arrivee`. C'est suffisant pour aujourd'hui et insuffisant le jour où le back-office aura une navigation.
+
+---
+
 ## Point de vigilance commun à D87 et D88 — ce dont CODIMA RÉPOND, à instruire avant le portail
 
 *Écrit comme point de vigilance et **non comme blocage**, à la demande de l'exploitation.*
