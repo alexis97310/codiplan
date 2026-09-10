@@ -1,0 +1,131 @@
+name: Nuit — mode automatique
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LA NUIT AUTOMATIQUE
+#
+# Elle lit le protocole et la file, prend le premier travail non bloqué, le
+# construit, ouvre sa proposition, fusionne au vert, écrit son registre, et
+# enchaîne jusqu'à épuisement du budget.
+#
+# SON `prompt` TIENT EN TROIS LIGNES, ET C'EST L'OBJET DU CHANTIER : tout ce
+# qui était recopié à l'identique en tête de chaque consigne depuis dix jours
+# est désormais DANS LE DÉPÔT — `docs/protocole-session.md`, rang 1. Un
+# prompt long ici serait une deuxième copie de ce document, et les deux
+# divergeraient en silence (§9 du CLAUDE.md, 01/09).
+#
+# ─── UN FLUX PLANIFIÉ NE PART QUE DEPUIS LA BRANCHE PAR DÉFAUT ──────────────
+# GitHub n'exécute `schedule` que sur la branche par défaut. Ce fichier ne
+# déclenche donc RIEN tant qu'il n'est pas sur `main` : le vérifier après la
+# fusion fait partie de la mise en service, cela ne se suppose pas.
+#
+# ─── QUI EST L'AUTEUR D'UNE EXÉCUTION PLANIFIÉE ─────────────────────────────
+# GitHub attribue une exécution `schedule` à un compte du dépôt — en pratique
+# le dernier à avoir modifié le `cron`. L'action REFUSE un compte robot, pour
+# qu'une session ne puisse pas se déclencher elle-même en boucle. Si la
+# première nuit échoue sur ce refus, le remède tient en une ligne : ajouter
+# `allowed_bots: "<le compte nommé dans le journal>"` à l'étape ci-dessous.
+# Ce n'est pas supposé ici : c'est écrit pour être lu le jour où cela arrive.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # 16h00 UTC = 03h00 à Nouméa (UTC+11, sans changement d'heure).
+    # UNE HEURE APRÈS la vérification nocturne de `ci.yml` (15h00 UTC) : la
+    # nuit part ainsi d'un `main` dont l'état vient d'être mesuré, et n'a pas
+    # à le supposer.
+    - cron: "0 16 * * *"
+
+  # Lançable À LA MAIN, depuis un téléphone. Les deux bornes du budget sont
+  # des ENTRÉES et non des constantes : les relever ou les abaisser un soir
+  # ne demande pas de modifier ce fichier — donc pas de proposition, pas de
+  # fusion, pas d'attente.
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Budget en minutes (le travail est coupé au-delà)"
+        type: string
+        required: false
+        default: "120"
+      tours:
+        description: "Budget en tours de conversation (--max-turns)"
+        type: string
+        required: false
+        default: "150"
+      consigne:
+        description: "Consigne SUPPLÉMENTAIRE pour cette nuit (facultatif)"
+        type: string
+        required: false
+        default: ""
+
+# DEUX NUITS NE SE CHEVAUCHENT JAMAIS. On n'annule pas celle en cours : une
+# session coupée au milieu laisse une branche à moitié écrite et une
+# proposition ouverte que personne ne reprendra.
+concurrency:
+  group: nuit
+  cancel-in-progress: false
+
+jobs:
+  nuit:
+    name: nuit
+    runs-on: ubuntu-latest
+    # PREMIER GARDE-FOU. Une nuit qui s'emballe coûte de l'argent réel, et le
+    # budget en tours ne borne pas le temps passé dans une seule commande.
+    timeout-minutes: ${{ fromJSON(inputs.minutes || '120') }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Historique complet : la nuit rebase, lit des empreintes et
+          # compare des branches.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          # POURQUOI CE JETON EST ICI, ET POURQUOI CE N'EST PAS `github_token`.
+          #
+          # `github_token` n'est PAS passé à l'action : sans lui, elle
+          # s'authentifie comme l'application GitHub Claude, et les commits
+          # qu'elle POUSSE déclenchent la CI. C'est la garantie que la nuit
+          # ne peut pas fusionner sans vérification.
+          #
+          # `GH_TOKEN` sert au seul `gh` — ouvrir une proposition, la
+          # fusionner, ouvrir un ticket `arbitrage`. Le coût est nommé : un
+          # commit de fusion produit avec ce jeton ne déclenche pas la CI sur
+          # `main`. Ce n'est pas la vérification qui est perdue — elle a eu
+          # lieu sur la BRANCHE, poussée par l'application — et `verify:full`
+          # sur `main` reste couvert par la planification de `ci.yml`.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Jeton d'ABONNEMENT, pas clé d'API.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # TROIS LIGNES. Le reste est dans le dépôt.
+          prompt: |
+            Lis docs/protocole-session.md et docs/backlog.md. Prends le premier travail non bloqué de la file (`pnpm file` te le nomme), construis-le, ouvre ta proposition, fusionne au vert, écris ton registre. Enchaîne jusqu'à épuisement du budget.
+            Ouvre un ticket étiqueté `arbitrage` pour toute décision qui appartient à Alexis, au lieu de t'arrêter.
+            ${{ inputs.consigne }}
+
+          claude_args: |
+            --max-turns ${{ inputs.tours || '150' }}
+            --allowedTools "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,WebFetch,WebSearch"
+
+          # AUCUN NOM DE MODÈLE N'EST FIGÉ ICI, et c'est délibéré : un
+          # identifiant de modèle écrit de mémoire vieillit sans le dire, et
+          # l'action prend le modèle par défaut de Claude Code, qui suit.

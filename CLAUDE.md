@@ -18,10 +18,13 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 | Rang | Source |
 |---|---|
 | 1 | `docs/arbitrages.md` — les décisions arrêtées |
+| 1 | `docs/protocole-session.md` — **comment une session travaille** |
 | 2 | `docs/cahier-des-charges.md` **chapitre 10** — les règles de gestion |
 | 3 | `docs/cahier-des-charges.md` **chapitre 11** — le modèle de données |
 | 4 | `docs/backlog.md` — les tickets |
 | 5 | Le reste du cahier des charges — narratif, jamais normatif |
+
+**Les deux sources de rang 1 ne se recouvrent pas** *(écrit le 10/09/2026)*. `arbitrages.md` dit **ce qui a été décidé** ; `protocole-session.md` dit **comment une session travaille** — qui décide quoi, les deux seuls cas d'arrêt, la forme d'un ticket `arbitrage`, l'économie de contexte, la forme du rapport. Elles sont à égalité parce qu'aucune ne peut trancher l'autre : une contradiction entre les deux est un **défaut à signaler**, jamais une préséance à appliquer. Ces sept sections étaient recopiées à l'identique en tête de chaque consigne depuis dix jours ; *une règle recopiée à la main est une règle qui s'érode.*
 
 **Une règle métier ne s'écrit qu'au chapitre 10.** Une règle trouvée ailleurs et absente du chapitre 10 est non normative.
 
@@ -301,6 +304,14 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
                       #   préventif — reste-t-il 12 mois de partitions devant ?
                       #   détectif  — la partition par défaut est-elle vide ?
 pnpm partitions:etendre # étend l'horizon des partitions du journal
+
+pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
+                      # la file de nuit se LIT, elle ne s'interprète pas :
+                      # trois états — LIBRE, LIVRÉ, BLOQUÉ — <motif> —, posés
+                      # sur la ligne qui suit le titre du ticket. Un ticket
+                      # sans marqueur, ou un BLOQUÉ sans motif, fait échouer
+                      # `pnpm verify`. La POPULATION est dérivée du document :
+                      # un ticket écrit demain y entre ce jour-là.
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
                       # les contrôles d'observation — ONZE aujourd'hui : RLS,
@@ -992,5 +1003,13 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   *Corollaire de rapport, et il vaut sans attendre la réparation :* une comparaison dont les deux côtés sont vides **sur une table** n'est ni un écart ni une preuve — `forfait` naît vide par décision. Elle est **nommée** et retranchée de ce que le rapport affirme. Ce qui a coûté deux jours n'est pas le zéro : c'est la phrase « exactement les lignes de chaque société sous son contexte », vraie de sept tables et imprimée pour vingt et une.
 
 - **13/09/2026 — UNE CONSIGNE MESURÉE FAUSSE SE REFUSE, ET LE REFUS SE MOTIVE.** L'exploitation avait demandé que le lot 8 livre le stockage derrière une interface avec une implémentation locale. La réponse a été un refus : *c'eût été une interface sans appelant*, la maladie même que le portail venait de soigner — une politique juste que personne n'appelle, et qui dort jusqu'au jour où quelqu'un la découvre fausse. **L'exploitation a ratifié le refus et écrit que sa consigne était mauvaise.** La règle qui en sort n'est pas « discuter les consignes » : c'est que **la mesure prime sur l'origine de la demande**, et qu'un refus se paye en une phrase qui dit ce qui a été mesuré. Un refus sans motif est une désobéissance ; un refus motivé est le seul canal par lequel une consigne se corrige. *Corollaire, écrit le même jour : la numérotation des décisions appartient à celui qui les écrit — une consigne qui porte un numéro se lit pour son contenu, et le numéro se réattribue.*
+
+- **10/09/2026 — UNE CAUSE ÉCRITE DANS UN GABARIT SE RÉPÈTE À CHAQUE ALARME, ET ELLE N'A JAMAIS ÉTÉ MESURÉE UNE SEULE FOIS.** Espèce à ranger à côté du chiffre attendu présenté parmi les observations (06/09) : le rapport ne se trompe pas de fait, il se trompe de **cause** — et il le fait avec l'aplomb d'une phrase préécrite.
+
+  Le ticket ouvert par une veille rouge porte, en toutes lettres : *« Ces écarts ne viennent d'aucune migration — ce sont des gestes passés à la main sur la base. »* Or **la veille observe la base et rien d'autre** : elle ne compare jamais `_prisma_migrations` au répertoire `prisma/migrations/` du dépôt, et **ne peut donc pas savoir d'où vient un écart**. *Mesuré sur l'exécution `34493977325` du 10/09 : l'unique écart rapporté — `utilisateur_client` sans la forme « rattachement » — est **exactement** le contenu de `20260911010000_rattachement_portail_d92`, jamais appliquée ; quatre migrations étaient en retard, le dernier `db-migrate` réussi remontant au 09/09 à 22:55 UTC.* Le ticket a fait chercher un geste manuel qui n'existait pas, et il a coûté une journée.
+
+  **Ce qui rend l'espèce plus coûteuse que l'affirmation ordinaire du 07/09 : elle est dans un GABARIT.** Une phrase dite une fois se corrige au premier regard ; une phrase préécrite se **réémet à chaque alarme**, avec la même assurance, longtemps après que son auteur a oublié l'avoir écrite. Et elle sera lue par quelqu'un qui n'a ni le contexte ni le dépôt sous les yeux — c'est même tout l'objet d'une alarme.
+
+  **La règle : un gabarit d'alarme ne nomme une cause que si le contrôle qui le déclenche a MESURÉ cette cause.** Sinon il décrit ce qu'il a observé et **s'arrête là**. La question à poser à chaque phrase d'un gabarit : *quelle observation la rendrait fausse ?* Si la réponse est « aucune, elle est toujours imprimée », ce n'est pas un constat — c'est une opinion que le dispositif répète en votre nom. *Parenté exacte avec le 06/09, un cran plus haut : là, une ligne qui ne peut pas bouger sous une faute était présentée parmi les observations ; ici, c'est une CAUSE qui ne peut pas bouger.* La réparation est portée à la file (R1-01) plutôt que faite en passant : elle change ce que le dispositif de sécurité dit de lui-même, et cela ne se glisse pas dans un ticket d'automatisation.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

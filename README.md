@@ -48,6 +48,13 @@ pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
 
 pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ?
                       # → hors de verify:full, et c'est tout son objet
+
+pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
+                      # la session nocturne LIT ce qu'il imprime, elle
+                      # n'interprète pas le backlog — trois états et trois
+                      # seulement : LIBRE, LIVRÉ, BLOQUÉ — <motif>
+                      # un ticket sans marqueur fait échouer `pnpm verify`
+                      # (tests/unit/docs/file-de-nuit.test.ts)
 ```
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
