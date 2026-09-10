@@ -76,6 +76,10 @@ export const fr = {
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
+  // L'ENTRÉE — le lien qui manquait, et sans lequel un écran n'a pas d'appelant.
+  "arrivee.entrer.portail": "Voir votre parc",
+  "arrivee.entrer.planning": "Ouvrir le planning",
+
   // Registre des VGP — CODIPLAN n'affirme jamais la conformité (lot 9, D88).
   // Il enregistre ce qu'un organisme agréé a écrit, et ne calcule que des dates.
   "vgp.periodicite_requise":
