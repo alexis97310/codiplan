@@ -47,6 +47,17 @@ const MOT_DE_PASSE = process.env.MOT_DE_PASSE ?? "";
 const SECRET_TOTP = process.env.SECRET_TOTP ?? "";
 
 /**
+ * LE COMPTE PORTAIL — une AUTRE identité, et il en faut réellement une.
+ *
+ * D10 veut les deux tables exclusives : un compte portail n'a **aucune** ligne
+ * dans `utilisateur_societe`. Aucun compte interne ne peut donc atteindre
+ * `/portail`, et c'est le seul écran de cette prise de vue pour lequel la
+ * seconde identité n'est pas un contournement mais la condition.
+ */
+const COURRIEL_PORTAIL = process.env.COURRIEL_PORTAIL ?? "";
+const MOT_DE_PASSE_PORTAIL = process.env.MOT_DE_PASSE_PORTAIL ?? "";
+
+/**
  * La clé retenue lors de l'activation, pour la durée de la prise de vue.
  *
  * *Elle n'est écrite nulle part* : ni fichier, ni README, ni journal — c'est un
@@ -81,16 +92,37 @@ type Ecran = {
   /** Pourquoi cet écran peut légitimement être refusé, quand c'est structurel. */
   readonly refusConnu?: string;
   /**
-   * L'écran N'EXISTE QUE TANT QUE LE SECOND FACTEUR N'EST PAS ACTIVÉ.
+   * SOUS QUELLE SESSION CET ÉCRAN EXISTE.
    *
-   * Il ne se photographie donc pas dans la boucle ordinaire, qui tourne sous
-   * une session déjà enrôlée : il se photographie AVANT, dans sa propre passe.
+   * **Trois écrans de ce dépôt n'existent PAS sous la session qui sert au
+   * reste de la prise de vue**, et pour trois raisons distinctes : l'un
+   * DISPARAÎT quand le second facteur est activé, l'autre n'existe QUE
+   * pendant le défi, le troisième appartient à une AUTRE identité. Un drapeau
+   * booléen « avant enrôlement » ne pouvait plus les porter — chacun a sa
+   * propre passe, et elle est NOMMÉE ici plutôt que devinée là-bas.
+   *
    * *Le refus du 10/09 disait « il faudrait une seconde identité » — c'était
-   * une impossibilité affirmée sans son coût (§9, 08/09). Il n'en faut pas :
-   * il faut prendre la photo plus tôt.*
+   * une impossibilité affirmée sans son coût (§9, 08/09). Pour l'enrôlement il
+   * n'en faut pas ; pour le portail il en faut une, et c'est écrit.*
    */
-  readonly avantEnrolement?: boolean;
+  readonly passe?: PasseNommee;
+  /**
+   * LE CHEMIN SE DÉCOUVRE SUR L'ÉCRAN PRÉCÉDENT, il ne s'écrit pas ici.
+   *
+   * Le détail d'une intervention porte un identifiant que chaque semis change :
+   * un chemin écrit en dur serait juste le jour de sa rédaction et périmé le
+   * lendemain — *et il ne rougirait pas, il photographierait une page d'erreur
+   * sous le nom de l'écran.* La fonction lit le premier lien réellement rendu
+   * par le planning ; sans lien, elle refuse.
+   */
+  readonly decouvrir?: (page: Page) => Promise<string>;
 };
+
+/**
+ * Les passes, NOMMÉES. La session ordinaire n'en est pas une : elle est
+ * l'absence de passe.
+ */
+type PasseNommee = "avant-enrolement" | "defi-second-facteur" | "portail";
 
 const ECRANS: readonly Ecran[] = [
   {
@@ -106,6 +138,23 @@ const ECRANS: readonly Ecran[] = [
     quoi: "La page de connexion.",
     authentifie: false,
     temoin: "Connexion",
+  },
+  {
+    // **LA SEULE PORTE D'UNE BASE NEUVE** (D65) : le seed n'attribue aucun mot
+    // de passe, et cet écran est l'unique endroit où l'on en choisit un. Il
+    // rendait 404 jusqu'au 11/09 — *une porte manquante que personne ne voyait,
+    // parce qu'aucune capture ne la cherchait.*
+    //
+    // Le jeton de l'URL est FACTICE, et c'est un choix : la page rend son
+    // formulaire dès qu'un `token` non vide est présent, sans le valider, si
+    // bien qu'un vrai jeton donnerait exactement la même image — au prix de le
+    // consommer avant que la prise de vue en ait besoin. *Ce que l'image
+    // montre est le formulaire, jamais la validité d'un jeton.*
+    nom: "premier-acces",
+    chemin: "/premier-acces?token=jeton-de-demonstration",
+    quoi: "Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider.",
+    authentifie: false,
+    temoin: "Choisissez votre mot de passe",
   },
   {
     nom: "sante",
@@ -125,7 +174,7 @@ const ECRANS: readonly Ecran[] = [
     quoi: "L'activation du second facteur, où atterrit un rôle sensible avant tout le reste.",
     authentifie: true,
     temoin: "second facteur",
-    avantEnrolement: true,
+    passe: "avant-enrolement",
     refusConnu:
       "Cet écran se photographie AVANT l'activation du second facteur, dans " +
       "sa propre passe : la session enrôlée qui sert au reste de la prise de " +
@@ -154,7 +203,106 @@ const ECRANS: readonly Ecran[] = [
     authentifie: true,
     temoin: "intervention",
   },
+  {
+    // L'écran des CINQ ACTIONS du cycle de vie (D84). Son chemin porte un
+    // identifiant : il se découvre sur le planning, il ne s'écrit pas ici.
+    nom: "intervention-detail",
+    chemin: "/planning",
+    decouvrir: premierLienDIntervention,
+    quoi: "Le détail d'une intervention, et les actions que son statut autorise.",
+    authentifie: true,
+    temoin: "Intervention",
+    refusConnu:
+      "Cet écran n'existe que si le planning porte au moins une intervention. " +
+      "Sur une base sans semis de démonstration, le refus est LÉGITIME et dit " +
+      "exactement cela — il ne se confond pas avec un écran cassé.",
+  },
+  {
+    nom: "parametres-agences",
+    chemin: "/parametres/agences",
+    quoi: "Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global.",
+    authentifie: true,
+    temoin: "horaires d'ouverture",
+  },
+  {
+    nom: "parametres-forfaits",
+    chemin: "/parametres/forfaits",
+    quoi: "Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation.",
+    authentifie: true,
+    temoin: "Forfaits",
+  },
+  {
+    // **LE PREMIER ÉCRAN QU'UN COMPTE PORTAIL PUISSE ATTEINDRE** (D92). La
+    // dixième forme de politique a été écrite pour lui ; jusqu'ici, rien ne
+    // l'avait montré. Il exige une AUTRE identité — celle-là, la seconde
+    // identité est réellement nécessaire, et c'est mesuré plutôt qu'affirmé :
+    // un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc
+    // aucun compte interne ne peut atteindre cet écran.
+    nom: "portail",
+    chemin: "/portail",
+    quoi: "Le portail client, en **consultation seule** — le parc du client, son périmètre de sites, et les emplacements TENUS ET DITS VIDES des documents et des VGP.",
+    authentifie: true,
+    passe: "portail",
+    temoin: "Votre parc",
+    refusConnu:
+      "Cet écran demande un compte PORTAIL, distinct du compte interne qui " +
+      "sert au reste de la prise de vue : `COURRIEL_PORTAIL` et " +
+      "`MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une " +
+      "identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE " +
+      "PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul " +
+      "émetteur d'un lien de premier accès est le geste d'amorçage, qui " +
+      "EXIGE une habilitation dans `utilisateur_societe` — et un compte " +
+      "portail n'en a aucune, par D10. Refus littéral : « L'identité " +
+      "portail@example.test n'est pas habilitée sur la société … ». La " +
+      "chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce " +
+      "que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne " +
+      "rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.",
+  },
+  {
+    // L'écran du DÉFI, qui n'existe qu'entre le mot de passe et la session.
+    // Il ne se photographie ni avant l'enrôlement — il n'existe pas encore —,
+    // ni sous la session ordinaire — elle l'a déjà franchi.
+    nom: "connexion-code",
+    chemin: "/connexion/code",
+    quoi: "Le défi du second facteur, entre le mot de passe et la session.",
+    authentifie: true,
+    passe: "defi-second-facteur",
+    temoin: "Code à six chiffres",
+    refusConnu:
+      "Cet écran n'existe QUE pendant un défi : il demande une connexion qui " +
+      "s'arrête là, sans saisir le code. Si le compte ne porte pas de second " +
+      "facteur, il n'y a pas de défi — et le refus est alors la mesure d'un " +
+      "compte non enrôlé, jamais celle d'un écran manquant.",
+  },
 ];
+
+/**
+ * LE PREMIER LIEN D'INTERVENTION RÉELLEMENT RENDU PAR LE PLANNING.
+ *
+ * *Un identifiant écrit en dur dans ce fichier serait juste le jour de sa
+ * rédaction, et périmé au semis suivant — sans rougir : il photographierait
+ * une page d'erreur sous le nom de l'écran.* On lit donc ce que l'écran
+ * précédent propose, comme le ferait quelqu'un qui clique.
+ */
+async function premierLienDIntervention(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/planning/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter(
+          (href) => href !== "/planning/nouvelle" && href !== "/planning",
+        ),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "le planning ne porte aucun lien d'intervention : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
 
 function empreinte(): { court: string; long: string } {
   const long = execFileSync("git", ["rev-parse", "HEAD"], {
@@ -323,6 +471,14 @@ async function photographier(
   await page.emulateMedia({ colorScheme: theme.schema });
   await page.goto(`${BASE}${ecran.chemin}`, { waitUntil: "networkidle" });
 
+  // LE CHEMIN FINAL SE DÉCOUVRE SUR L'ÉCRAN PRÉCÉDENT, quand l'écran en porte
+  // un — voir `decouvrir`. Le refus qui en sort dit qu'il n'y avait rien à
+  // atteindre, ce qui n'est pas la même chose qu'un écran cassé.
+  if (ecran.decouvrir !== undefined) {
+    const chemin = await ecran.decouvrir(page);
+    await page.goto(`${BASE}${chemin}`, { waitUntil: "networkidle" });
+  }
+
   // ── LE TÉMOIN SE LIT SUR CE QU'UN HUMAIN VOIT, JAMAIS SUR LE DOM ────────
   //
   // **Mesuré le 10/09/2026, et c'est la capture qui l'a montré.** Avec
@@ -335,9 +491,16 @@ async function photographier(
   // `innerText` ne rend que le texte RENDU : les `<script>` en sortent.
   const corps = await page.locator("body").innerText();
   if (!corps.toLowerCase().includes(ecran.temoin.toLowerCase())) {
+    // **LE REFUS DIT CE QU'IL A VU À LA PLACE.** Un refus qui n'énonce que
+    // l'attendu envoie chercher du côté de l'écran, alors que la cause est
+    // presque toujours ailleurs — une redirection, une session qui n'a pas
+    // pris, un écran renommé. *L'URL atteinte et les premiers mots rendus
+    // coûtent une ligne et désignent la cause au lieu de la faire deviner.*
+    const vu = corps.replace(/\s+/g, " ").trim().slice(0, 120);
     throw new Error(
       `« ${ecran.nom} » ne porte pas son témoin « ${ecran.temoin} » : ce n'est ` +
-        "pas l'écran attendu, et la capture est refusée.",
+        "pas l'écran attendu, et la capture est refusée. " +
+        `Atteint : ${page.url()} — vu : « ${vu} »`,
     );
   }
 
@@ -352,62 +515,106 @@ async function photographier(
 }
 
 /**
- * LA PASSE D'AVANT-ENRÔLEMENT — quatre connexions, et pas une seconde identité.
+ * LES PASSES — trois états de session que la session ordinaire ne donne pas.
  *
  * **Ce que le refus du 10/09 disait, et ce que la mesure dit.** Il annonçait
  * qu'un écran d'enrôlement ne pouvait être photographié « qu'avec une seconde
  * identité, jamais enrôlée ». C'était une impossibilité énoncée sans son coût
  * (§9, 08/09) : *il ne faut pas une autre identité, il faut prendre la photo
  * plus tôt.* Un compte devient enrôlé au moment de l'ACTIVATION, jamais à la
- * connexion — se connecter quatre fois avant elle donne les quatre images.
+ * connexion — se connecter AVANT elle donne les quatre images.
  *
- * La passe s'exécute donc AVANT `seConnecter`, et elle n'active rien. Elle
- * échoue proprement si le compte porte déjà un second facteur : l'écran ne
- * portera pas son témoin, et le refus dira quoi faire.
+ * Trois passes aujourd'hui, et leurs raisons ne sont pas la même :
  *
- * *Le coût est de quatre connexions supplémentaires. Il est payé une fois par
- * prise de vue, et il achète l'écran par lequel passe TOUT compte à rôle
- * sensible — celui qu'on ne pouvait pas montrer.*
+ * - **avant-enrôlement** — l'écran DISPARAÎT quand le second facteur est
+ *   activé. La passe s'exécute donc avant `seConnecter`, et elle n'active
+ *   rien.
+ * - **défi de second facteur** — l'écran n'existe QUE pendant le défi, entre
+ *   le mot de passe et la session. La passe s'y arrête, et REFUSE si elle est
+ *   allée plus loin.
+ * - **portail** — l'écran appartient à une AUTRE identité, et c'est le seul
+ *   des trois où la seconde identité est réellement nécessaire : un compte
+ *   portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun
+ *   compte interne ne l'atteint. *Ici, l'impossibilité du 10/09 aurait été
+ *   vraie — et elle se dit avec son coût : un second jeu d'identifiants.*
  */
-async function photographierAvantEnrolement(
+type EtatDeSession = Awaited<
+  ReturnType<Awaited<ReturnType<Browser["newContext"]>>["storageState"]>
+>;
+
+/**
+ * LA CONNEXION D'UNE PASSE — une seule, partagée par les quatre images.
+ *
+ * **Mesuré le 11/09/2026 :** quatre connexions coup sur coup, suivies de
+ * celles de `seConnecter`, épuisent la limite de débit que Better Auth pose
+ * sur `/sign-in/email` ; les connexions suivantes reçoivent un statut hors
+ * 200, `tenterConnexion` les traite pour ce qu'elles sont — un refus —, et
+ * **les captures authentifiées tombent sans que rien ne dise pourquoi**. *Un
+ * refus de débit et un mot de passe faux sont indiscernables, par construction
+ * (D35) : c'est la bonne règle, et c'est elle qui rend l'épuisement invisible.*
+ *
+ * **Le script, lui, a le droit de savoir ce qu'il a reçu.** Il n'est pas
+ * l'appelant que D35 protège : il est l'outil de mesure. Le statut de la
+ * réponse d'authentification est donc RETENU et rendu avec le refus — sans
+ * quoi une prise de vue épuisée et un mot de passe faux se rapportent de la
+ * même façon, et l'on cherche pendant vingt minutes du côté du mot de passe.
+ */
+async function ouvrirUnePasse(
+  navigateur: Browser,
+  amener: (page: Page) => Promise<void>,
+): Promise<{ etat: EtatDeSession | null; refus: string | null }> {
+  const contexte = await navigateur.newContext({ locale: "fr-FR" });
+  const statuts: string[] = [];
+  try {
+    const page = await contexte.newPage();
+    page.on("response", (reponse) => {
+      const url = reponse.url();
+      if (url.includes("/api/auth/") && reponse.status() !== 200) {
+        statuts.push(`${reponse.status()} sur ${url.split("/api/auth/")[1]}`);
+      }
+    });
+    await amener(page);
+    return { etat: await contexte.storageState(), refus: null };
+  } catch (erreur) {
+    return {
+      etat: null,
+      refus:
+        String(erreur).slice(0, 400) +
+        (statuts.length === 0
+          ? ""
+          : ` — réponses d'authentification hors 200 : ${statuts.join(", ")}`),
+    };
+  } finally {
+    await contexte.close();
+  }
+}
+
+/**
+ * LES QUATRE IMAGES D'UN ÉCRAN SOUS UNE SESSION DONNÉE.
+ *
+ * *L'état est ouvert une fois et repassé aux quatre contextes* : douze
+ * connexions pour trois écrans, ce serait douze occasions d'échouer là où une
+ * seule suffit à établir le fait — et, ici, l'épuisement garanti de la limite
+ * de débit.
+ */
+async function photographierSousEtat(
   navigateur: Browser,
   ecran: Ecran,
+  etat: EtatDeSession | null,
+  refus: string | null,
   prises: string[],
   manquants: string[],
 ): Promise<void> {
-  // UNE SEULE CONNEXION POUR LES QUATRE IMAGES, et ce n'est pas une économie
-  // de confort. **Mesuré le 11/09/2026 :** quatre connexions coup sur coup,
-  // suivies de celles de `seConnecter`, épuisent la limite de débit que Better
-  // Auth pose sur `/sign-in/email` ; les connexions suivantes reçoivent un
-  // statut hors 200, `tenterConnexion` les traite pour ce qu'elles sont — un
-  // refus —, et **les douze captures authentifiées tombent sans que rien ne
-  // dise pourquoi**. *Un refus de débit et un mot de passe faux sont
-  // indiscernables, par construction (D35) : c'est la bonne règle, et c'est
-  // elle qui rend l'épuisement invisible.*
-  const ouverture = await navigateur.newContext({ locale: "fr-FR" });
-  let etat: Awaited<
-    ReturnType<Awaited<ReturnType<Browser["newContext"]>>["storageState"]>
-  > | null = null;
-  let refus: string | null = null;
-  try {
-    const page = await ouverture.newPage();
-    // Connexion NUE : ni défi de second facteur — le compte n'en a pas
-    // encore —, ni activation. C'est tout l'objet de cette passe.
-    await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
-    await page.fill('input[name="email"]', COURRIEL);
-    await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-    etat = await ouverture.storageState();
-  } catch (erreur) {
-    refus = String(erreur).slice(0, 200);
-  } finally {
-    await ouverture.close();
-  }
-
   for (const theme of THEMES) {
     for (const format of LARGEURS) {
-      const nom = `${ecran.nom}--${theme.nom}--${format.nom}`;
+      // **LE NOM PORTE SON EXTENSION**, et ce n'est pas un détail de graphie :
+      // c'est la clé sur laquelle la purge décide ce qui survit. Sans elle,
+      // une capture réussie sortait de `prises` telle que le disque la nomme,
+      // se faisait SUPPRIMER comme obsolète — et le README la listait quand
+      // même. *Le défaut n'a jamais mordu parce que les quatre images de cette
+      // passe étaient refusées jusqu'au 11/09 : un défaut invisible parce que
+      // ce qu'il casse n'existait pas encore (§9, 08/09).*
+      const nom = `${ecran.nom}--${theme.nom}--${format.nom}.png`;
       let contexte = null;
       try {
         if (etat === null) {
@@ -423,13 +630,65 @@ async function photographierAvantEnrolement(
         prises.push(nom);
       } catch (erreur) {
         manquants.push(
-          `${nom} : ${String(erreur).slice(0, 200)}` +
+          `${nom} : ${String(erreur).slice(0, 400)}` +
             (ecran.refusConnu === undefined ? "" : `\n  ${ecran.refusConnu}`),
         );
       } finally {
         await contexte?.close();
       }
     }
+  }
+}
+
+/** Une connexion NUE : ni défi — le compte n'en a pas encore —, ni activation. */
+async function connexionNue(page: Page): Promise<void> {
+  await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', COURRIEL);
+  await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
+  await page.click('button[type="submit"]');
+  await page.waitForLoadState("networkidle");
+}
+
+/**
+ * UNE CONNEXION QUI S'ARRÊTE AU DÉFI, et qui REFUSE si elle est allée plus loin.
+ *
+ * *Sans ce refus, un compte non enrôlé donnerait une session ordinaire et
+ * l'écran photographié sous le nom du défi serait celui d'après* — la faute
+ * exacte que le témoin existe pour arrêter, un cran plus tôt.
+ */
+async function connexionArreteeAuDefi(page: Page): Promise<void> {
+  await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', COURRIEL);
+  await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
+  await page.click('button[type="submit"]');
+  await page.waitForLoadState("networkidle");
+  if (!page.url().includes("/connexion/code")) {
+    throw new Error(
+      `la connexion n'a pas rencontré de défi (elle est sur ${page.url()}) : ` +
+        "le compte ne porte pas de second facteur à cet instant, et l'écran " +
+        "du défi n'existe donc pas.",
+    );
+  }
+}
+
+/** La connexion du compte PORTAIL — une autre identité, et il en faut une (D10). */
+async function connexionPortail(page: Page): Promise<void> {
+  if (COURRIEL_PORTAIL === "" || MOT_DE_PASSE_PORTAIL === "") {
+    throw new Error(
+      "aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte " +
+        "portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc " +
+        "aucun compte interne ne peut atteindre cet écran.",
+    );
+  }
+  await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', COURRIEL_PORTAIL);
+  await page.fill('input[name="motDePasse"]', MOT_DE_PASSE_PORTAIL);
+  await page.click('button[type="submit"]');
+  await page.waitForLoadState("networkidle");
+  if (page.url().includes("/connexion")) {
+    throw new Error(
+      `la connexion du compte portail n'a pas abouti : ${page.url()}`,
+    );
   }
 }
 
@@ -461,8 +720,16 @@ async function principal(): Promise<number> {
   // facteur n'est pas activé. `seConnecter` l'active — l'ordre n'est donc pas
   // une commodité, c'est la condition d'existence de ces images.
   if (COURRIEL !== "" && MOT_DE_PASSE !== "") {
-    for (const ecran of ECRANS.filter((e) => e.avantEnrolement === true)) {
-      await photographierAvantEnrolement(navigateur, ecran, prises, manquants);
+    for (const ecran of ECRANS.filter((e) => e.passe === "avant-enrolement")) {
+      const { etat, refus } = await ouvrirUnePasse(navigateur, connexionNue);
+      await photographierSousEtat(
+        navigateur,
+        ecran,
+        etat,
+        refus,
+        prises,
+        manquants,
+      );
     }
   }
 
@@ -473,7 +740,7 @@ async function principal(): Promise<number> {
       await seConnecter(page);
       etatSession = await contexte.storageState();
     } catch (erreur) {
-      refusSession = String(erreur).slice(0, 200);
+      refusSession = String(erreur).slice(0, 400);
     } finally {
       await contexte.close();
     }
@@ -481,8 +748,27 @@ async function principal(): Promise<number> {
     refusSession = "aucun COURRIEL / MOT_DE_PASSE fourni.";
   }
 
+  // LES DEUX AUTRES PASSES, APRÈS l'enrôlement et non avant. Le défi n'existe
+  // que si le compte porte un second facteur — donc après l'activation ; et le
+  // portail est une identité que rien n'oblige à ouvrir plus tôt.
   try {
-    for (const ecran of ECRANS.filter((e) => e.avantEnrolement !== true)) {
+    for (const ecran of ECRANS.filter(
+      (e) => e.passe === "defi-second-facteur" || e.passe === "portail",
+    )) {
+      const amener =
+        ecran.passe === "portail" ? connexionPortail : connexionArreteeAuDefi;
+      const { etat, refus } = await ouvrirUnePasse(navigateur, amener);
+      await photographierSousEtat(
+        navigateur,
+        ecran,
+        etat,
+        refus,
+        prises,
+        manquants,
+      );
+    }
+
+    for (const ecran of ECRANS.filter((e) => e.passe === undefined)) {
       for (const theme of THEMES) {
         for (const format of LARGEURS) {
           let contexte = null;
@@ -504,7 +790,7 @@ async function principal(): Promise<number> {
             prises.push(`${ecran.nom}--${theme.nom}--${format.nom}.png`);
           } catch (erreur) {
             manquants.push(
-              `${ecran.nom}--${theme.nom}--${format.nom} : ${String(erreur).slice(0, 160)}` +
+              `${ecran.nom}--${theme.nom}--${format.nom}.png : ${String(erreur).slice(0, 400)}` +
                 (ecran.refusConnu === undefined
                   ? ""
                   : `\n  ${ecran.refusConnu}`),
@@ -521,17 +807,47 @@ async function principal(): Promise<number> {
     await navigateur.close();
   }
 
-  // ── LES IMAGES QUE CETTE PRISE N'A PAS PRODUITES SONT RETIRÉES ──────────
+  // ── CE QUE LE SCRIPT CROIT AVOIR PRIS, CONFRONTÉ À CE QUE LE DISQUE PORTE ──
   //
-  // **Sinon le répertoire ment par accumulation** : une image d'un écran
-  // supprimé ou renommé survit, le README ne la décrit plus, et elle se relit
-  // comme une preuve de ce que l'application affiche. *C'est la maladie de ce
-  // dépôt tout entier — une liste qu'on ajoute et qu'on ne retire jamais.*
+  // **Deux sens, et le second est celui qu'on oubliait.**
+  //
+  // *Sur le disque et pas dans la liste* — le répertoire mentirait par
+  // accumulation : une image d'un écran supprimé ou renommé survit, le README
+  // ne la décrit plus, et elle se relit quand même comme une preuve de ce que
+  // l'application affiche. Elle est SUPPRIMÉE.
+  //
+  // *Dans la liste et pas sur le disque* — le README affirmerait une image qui
+  // n'existe pas, ce qui est pire : un lecteur ne peut pas l'ouvrir, et une
+  // ligne de tableau ressemble en tout point à une ligne vraie. **Cela s'est
+  // produit** : la passe d'avant-enrôlement poussait son nom SANS `.png`, si
+  // bien qu'une capture réussie se faisait supprimer comme obsolète tout en
+  // restant listée. Le défaut n'a jamais mordu parce que ces quatre images
+  // étaient refusées jusqu'au 11/09 — *un défaut invisible parce que ce qu'il
+  // casse n'existe pas encore (§9, 08/09).* Il est corrigé à sa source ; ce
+  // qui suit est le gardien, et il regarde le DISQUE plutôt que la mémoire du
+  // script — *la population se dérive d'une source que le script ne contrôle
+  // pas (§9, 10/09).*
   const gardees = new Set(prises);
-  for (const fichier of readdirSync(SORTIE)) {
-    if (fichier.endsWith(".png") && !gardees.has(fichier)) {
+  const surDisque = new Set(
+    readdirSync(SORTIE).filter((fichier) => fichier.endsWith(".png")),
+  );
+  for (const fichier of surDisque) {
+    if (!gardees.has(fichier)) {
       unlinkSync(join(SORTIE, fichier));
       obsoletes.push(fichier);
+    }
+  }
+  const fantomes = prises.filter((fichier) => !surDisque.has(fichier));
+  if (fantomes.length > 0) {
+    // Elles sortent de `prises` AVANT la rédaction : un README qui les
+    // listerait serait faux, et un README faux est plus coûteux qu'une image
+    // manquante — c'est la règle que ce script applique partout ailleurs.
+    for (const fantome of fantomes) {
+      prises.splice(prises.indexOf(fantome), 1);
+      manquants.push(
+        `${fantome} : le script l'a comptée comme prise et le disque ne la ` +
+          "porte pas. La capture est retirée du README plutôt qu'affirmée.",
+      );
     }
   }
 
@@ -581,6 +897,56 @@ function redigerReadme(
     "| **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |",
     "| **Compte** | l'identité de démonstration du seed |",
     "",
+    "## Comment la rejouer",
+    "",
+    "**Le script ne prépare ni la base ni le compte** : cela demande une base jetable, un semis, et un mot de passe qui n'existe nulle part tant qu'une personne n'en a pas choisi un. *Le script annonçait cette procédure « dans le README qu'il écrit » — et le README ne la portait pas. Elle y est.*",
+    "",
+    "```bash",
+    "# 1. Une base LOCALE ET JETABLE — jamais la base hébergée (I9).",
+    "scripts/postgres-jetable.sh",
+    "",
+    "# DEUX RÔLES, ET LES CONFONDRE COÛTE UNE HEURE (mesuré le 10/09/2026).",
+    "#   le PROPRIÉTAIRE migre et sème ; l'APPLICATIF sert les pages, et c'est",
+    "#   la seule forme sous laquelle les politiques de cloisonnement mordent.",
+    "PROPRIETAIRE='postgresql://postgres@127.0.0.1:5433/codiplan_test'",
+    "APPLICATIF='postgresql://codiplan_app@127.0.0.1:5433/codiplan_test'",
+    "export BETTER_AUTH_SECRET='…au moins 32 octets…'",
+    "export BETTER_AUTH_URL='http://127.0.0.1:3100'",
+    'DATABASE_URL="$PROPRIETAIRE" pnpm db:deploy',
+    'DATABASE_URL="$PROPRIETAIRE" pnpm db:seed',
+    "",
+    "# 2. Le serveur. Serveur et prise de vue tiennent dans UNE SEULE commande.",
+    "#    ET ON VÉRIFIE QU'AUCUN SERVEUR N'OCCUPE DÉJÀ LE PORT : un serveur",
+    "#    laissé par une commande précédente répond encore aux pages statiques",
+    "#    tout en ayant perdu sa base, le nouveau serveur échoue alors sur",
+    "#    EADDRINUSE — dans son journal, que personne ne lit —, et la prise de",
+    "#    vue photographie le mort. Mesuré le 10/09/2026.",
+    'DATABASE_URL="$PROPRIETAIRE" pnpm build',
+    'DATABASE_URL="$APPLICATIF" pnpm start -p 3100 &',
+    "",
+    "# 3. LE MOT DE PASSE N'EXISTE PAS ENCORE. Le semis pose une ligne de",
+    "#    `compte` à `mot_de_passe NULL` — l'état exact que l'amorçage laisse —,",
+    "#    et la seule porte est le lien de premier accès.",
+    "AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm exec tsx \\",
+    "  scripts/amorcage-premier-compte.mts --reemettre \\",
+    "  --societe <uuid> --email <courriel> --base http://127.0.0.1:3100",
+    "#    → suivre l'URL imprimée, choisir un mot de passe. Il n'entre dans",
+    "#      aucun fichier du dépôt (I9).",
+    "",
+    "# 4. La prise de vue.",
+    "BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \\",
+    "  COURRIEL_PORTAIL=… MOT_DE_PASSE_PORTAIL=… \\",
+    "  pnpm exec tsx scripts/captures.mts",
+    "```",
+    "",
+    "**Un `next dev` laissé vivant CORROMPT la prise de vue**, sans rien dire non plus : les deux serveurs partagent `.next`, et celui de développement y réécrit ce que le build de production y avait mis. *Mesuré le 10/09/2026 : `TypeError: a[d] is not a function` et « Could not find files for /_error » sur toutes les pages, le formulaire de connexion jamais rendu, 36 images retirées.* Avant une prise : plus aucun serveur vivant, puis `rm -rf .next && pnpm build`.",
+    "",
+    "**La sonde qui attend le serveur touche la BASE, jamais seulement le port.** `curl /` réussit sur un serveur dont la base est inatteignable ; `curl /sante | grep installation` échoue. *Une sonde qui ne touche pas ce dont on a besoin valide un serveur qui ne peut pas servir* — et la prise de vue qui suit photographie des pages d'erreur sous le nom des écrans.",
+    "",
+    "**Si `DATABASE_URL` porte le rôle propriétaire, le serveur de production ne le dit PAS.** `garantirRoleApplicatif` refuse — à bon droit — et ferme le client dans la foulée, pour que le refus soit un vrai refus de se connecter. Le message juste est émis **une fois**, puis noyé sous des dizaines d'`Engine is not yet connected` qui n'ont plus rien à voir avec la cause. *Mesuré le 10/09/2026 : 48 de ces lignes pour un seul refus lisible, et la conclusion qu'on en tire spontanément est que l'hébergeur réclame le moteur Prisma.* En `next dev`, le même refus s'affiche en clair : **quand le serveur de production devient incompréhensible, le relancer en développement coûte deux minutes et nomme la cause.**",
+    "",
+    "`COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.",
+    "",
     "## Ce que le script REFUSE de photographier",
     "",
     "Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page ne le porte pas — parce que la connexion a échoué, parce que l'écran a été renommé, parce qu'une redirection a mené ailleurs — **la capture est refusée et l'absence est écrite ici**. *Une capture d'un écran de connexion rangée sous le nom « planning » est pire qu'une capture absente : elle se relit comme une preuve.*",
@@ -613,6 +979,12 @@ function redigerReadme(
     "## Les images",
     "",
     "Chaque écran est photographié en **thème clair** et en **thème sombre**, à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.",
+    "",
+    "### Ce que ces images montrent DE L'OUTIL et non de l'application",
+    "",
+    "**Les champs de date y affichent `mm/dd/yyyy`, et ce n'est PAS ce que l'application affiche.** Le gabarit d'un `<input type=\"date\">` est rendu par le NAVIGATEUR, dans la langue de son interface — pas dans la locale de la page. *Mesuré le 10/09/2026 : sous `locale: \"fr-FR\"`, `navigator.language` vaut bien `fr-FR` et `toLocaleDateString()` rend `14/09/2026` ; le gabarit du champ reste `mm/dd/yyyy`, et `--lang=fr-FR` au lancement n'y change rien* — le Chromium de ce conteneur n'embarque pas ses traductions d'interface. Sur un navigateur réglé en français, ces champs affichent `jj/mm/aaaa`.",
+    "",
+    "*C'est écrit ici parce qu'une image se relit comme une preuve : sans cette ligne, elle prouverait un défaut qui n'existe pas.* La distinction est celle du registre du 12/09 — **l'outil, ou l'écran** — et elle se tranche par une mesure, jamais à l'œil.",
     "",
     "| Fichier | Ce qu'on y voit |",
     "|---|---|",
