@@ -3,6 +3,7 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { enHeure } from "@/lib/calendar/parametrage";
 import {
   partDuSegment,
+  tauxArrondiAZeroMaisNonNul,
   tauxOccupation,
   type OccupationTechnicien,
 } from "@/lib/interventions/statistiques";
@@ -80,7 +81,11 @@ function ouTravaille(ligne: LigneOccupation): string {
 }
 
 function combienDInterventions(occupation: OccupationTechnicien): string {
-  return `${occupation.interventions} ${t("statistiques.nombre")}`;
+  const mot =
+    occupation.interventions === 1
+      ? t("statistiques.nombre_un")
+      : t("statistiques.nombre");
+  return `${occupation.interventions} ${mot}`;
 }
 
 function infobulleDuSegment(
@@ -103,12 +108,19 @@ function heuresOuvrables(occupation: OccupationTechnicien): string {
  * le pourcentage seul » devient inséparable pour de bon : on ne peut pas
  * afficher l'un sans l'autre sans réécrire cette fonction.
  */
-function tauxEtFormule(taux: number): string {
-  return `${t("statistiques.taux")} ${taux}${t("statistiques.pourcent")}${t("statistiques.separateur")}${t("statistiques.formule")}`;
+function tauxEtFormule(taux: number, infime: boolean): string {
+  const valeur = infime
+    ? t("statistiques.taux_infime")
+    : `${taux}${t("statistiques.pourcent")}`;
+  return `${t("statistiques.taux")} ${valeur}${t("statistiques.separateur")}${t("statistiques.formule")}`;
 }
 
 function combienSansDuree(occupation: OccupationTechnicien): string {
-  return `${occupation.sansDuree} ${t("statistiques.sans_duree")}`;
+  const mot =
+    occupation.sansDuree === 1
+      ? t("statistiques.sans_duree_un")
+      : t("statistiques.sans_duree");
+  return `${occupation.sansDuree} ${mot}`;
 }
 
 function Entete({ ligne }: { ligne: LigneOccupation }) {
@@ -166,7 +178,9 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
       {taux === null ? (
         <span>{t("statistiques.sans_calendrier")}</span>
       ) : (
-        <span className="text-foreground">{tauxEtFormule(taux)}</span>
+        <span className="text-foreground">
+          {tauxEtFormule(taux, tauxArrondiAZeroMaisNonNul(occupation))}
+        </span>
       )}
       {occupation.sansDuree > 0 ? (
         <span>{combienSansDuree(occupation)}</span>

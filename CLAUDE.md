@@ -374,6 +374,10 @@ lib/
               la politique ne reconnaît pas (L1-02f)
               arrivee.ts : ce qu'un écran a le droit de dire — qui vous êtes,
               pour quelle société, et rien d'autre
+              societe-active.ts : `societesDuCompte` LIT ce que D61 et D67 ont
+              ouvert, et l'ÉCRAN qui l'appelle est né le 10/09 — les deux
+              politiques existaient depuis deux jours sans appelant, et un
+              compte habilité sur deux sociétés n'atteignait aucun écran
               echange.ts : le REPORT d'une désignation à l'intérieur d'UNE
               requête (D64) — l'`id` par lequel la bibliothèque réécrit une
               ligne dit QUELLE ligne, la politique dit à QUI elle est ;

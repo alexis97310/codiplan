@@ -177,6 +177,27 @@ export function tauxOccupation(
 }
 
 /**
+ * LE TAUX EST-IL NON NUL MAIS INFÉRIEUR À UN POUR CENT ?
+ *
+ * **C'est la capture d'écran qui a posé la question**, et aucune assertion ne
+ * l'aurait posée : sur le planning de démonstration, une ligne affichait
+ * *« 01:35 engagées · 548:00 ouvrables · Taux d'occupation 0 % »*. Le chiffre
+ * est juste — 95 minutes sur 32 880 font 0,29 %, qui s'arrondit à zéro — et il
+ * contredit la ligne qui le précède. *Zéro pour cent se lit « n'a rien fait »,
+ * et ce technicien a travaillé une heure trente-cinq.*
+ *
+ * L'écran affiche alors « moins de 1 % » plutôt que « 0 % ». On ne gagne pas en
+ * précision : on cesse d'affirmer quelque chose de faux. Même famille que le
+ * dénominateur nul — *deux états distincts ne se disent pas avec le même mot* —
+ * et que le §9 du 06/09, un chiffre juste qui fait conclure faux.
+ */
+export function tauxArrondiAZeroMaisNonNul(
+  occupation: OccupationTechnicien,
+): boolean {
+  return occupation.minutesEngagees > 0 && tauxOccupation(occupation) === 0;
+}
+
+/**
  * La part d'un segment dans la barre, en pour cent de la LARGEUR de la barre.
  *
  * La barre représente les minutes ENGAGÉES, jamais les minutes ouvrables : une

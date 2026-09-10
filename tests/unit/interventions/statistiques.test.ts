@@ -5,6 +5,7 @@ import {
   minutesEngagees,
   occupationTechnicien,
   partDuSegment,
+  tauxArrondiAZeroMaisNonNul,
   tauxOccupation,
   type InterventionMesuree,
 } from "@/lib/interventions/statistiques";
@@ -187,5 +188,45 @@ describe("la barre segmentée", () => {
   it("ne divise pas par zéro quand rien n'est engagé", () => {
     const o = occupationTechnicien(TECHNICIEN, [], 420);
     expect(o.segments.every((s) => partDuSegment(s, o) === 0)).toBe(true);
+  });
+});
+
+describe("« 0 % » ne s'affiche pas sur du temps réellement engagé", () => {
+  /**
+   * **La capture d'écran a posé la question, aucune assertion ne l'aurait
+   * posée.** Sur le planning de démonstration : *« 01:35 engagées · 548:00
+   * ouvrables · Taux d'occupation 0 % »*. Le calcul est juste, la ligne se
+   * contredit — zéro pour cent se lit « n'a rien fait » (§9, 09/09 : un défaut
+   * invisible à toute assertion et évident sur une image).
+   */
+  it("reconnaît le taux qui s'arrondit à zéro sans être nul", () => {
+    const o = occupationTechnicien(
+      TECHNICIEN,
+      [ligne({ temps_reel_min: 95 })],
+      32_880,
+    );
+    expect(tauxOccupation(o)).toBe(0);
+    expect(tauxArrondiAZeroMaisNonNul(o)).toBe(true);
+  });
+
+  it("et le distingue du VRAI zéro — vert pour SA propre raison", () => {
+    // Aucune minute engagée : « 0 % » est alors exact, et c'est ce qu'il faut
+    // afficher. Les deux cas rendent le même chiffre et ne disent pas la même
+    // chose ; c'est très exactement pour cela que la distinction existe.
+    const rien = occupationTechnicien(TECHNICIEN, [], 32_880);
+    expect(tauxOccupation(rien)).toBe(0);
+    expect(tauxArrondiAZeroMaisNonNul(rien)).toBe(false);
+  });
+
+  it("ne se déclenche pas sur un dénominateur inconnu", () => {
+    // Là, il n'y a pas de taux du tout : `tauxOccupation` rend `null`, et la
+    // question « est-il infime ? » n'a pas de sens.
+    const sansCalendrier = occupationTechnicien(
+      TECHNICIEN,
+      [ligne({ temps_reel_min: 95 })],
+      0,
+    );
+    expect(tauxOccupation(sansCalendrier)).toBeNull();
+    expect(tauxArrondiAZeroMaisNonNul(sansCalendrier)).toBe(false);
   });
 });

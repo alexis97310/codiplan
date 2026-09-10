@@ -93,6 +93,21 @@ describe("le taux d'occupation ne s'affiche jamais seul", () => {
     expect(t("statistiques.taux")).not.toContain("÷");
   });
 
+  it("« 1 interventions » est refusé : le singulier a sa propre clé", () => {
+    // Une faute que personne ne relit deux fois, et qu'aucune assertion
+    // n'attrape — c'est l'image du planning qui l'a montrée, sur la ligne
+    // d'une agence à une seule intervention.
+    expect(t("statistiques.nombre_un")).toBe("intervention");
+    expect(t("statistiques.nombre")).toBe("interventions");
+    expect(source()).toContain("statistiques.nombre_un");
+    expect(source()).toContain("statistiques.sans_duree_un");
+  });
+
+  it("« 0 % » ne s'affiche pas sur du temps engagé : la borne est dite", () => {
+    expect(t("statistiques.taux_infime")).toContain("moins de 1");
+    expect(source()).toContain("tauxArrondiAZeroMaisNonNul");
+  });
+
   it("les interventions SANS DURÉE sont dites, pas dissoutes", () => {
     // Sans cette mention, un planning saisi sans durées afficherait un taux
     // bas et juste sur un technicien débordé (§9, 06/09).
