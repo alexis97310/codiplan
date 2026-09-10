@@ -165,7 +165,16 @@ export function analyserMarqueur(
  * 1ᵉʳ mars 1900 est refusé** : cela ferme la classe entière du défaut, et aucune
  * donnée d'exploitation ne s'y trouve.
  */
-const EPOQUE_MS = Date.UTC(1899, 11, 30);
+/**
+ * L'ÉPOQUE DU CLASSEUR — le 30 décembre 1899, en UTC.
+ *
+ * **Exportée depuis L1-08c**, parce que la LIAISON au classeur en a besoin pour
+ * faire le chemin inverse : `read-excel-file` rend un `Date` là où la grammaire
+ * attend un numéro de série. La recopier dans la liaison aurait été deux
+ * écritures d'un même fait (§9, 01/09) — et celle de la liaison serait devenue
+ * fausse le jour où l'on toucherait à celle-ci, sans rougir.
+ */
+export const EPOQUE_MS = Date.UTC(1899, 11, 30);
 const PREMIER_SERIAL_SUR = 61;
 
 const JJMMAAAA = /^(\d{2})\/(\d{2})\/(\d{4})$/;

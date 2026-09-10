@@ -411,6 +411,10 @@ Deux formes qui ne vont pas de soi. **Un nombre lu ne rend jamais un flottant** 
 
 Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et inscrits au registre : une version postérieure, un en-tête en double, une colonne obligatoire absente.
 
+**La liaison est arrivée le 13/09/2026** (`lib/excel/classeur.ts`, L1-08c), et elle tient la promesse que L1-08a avait écrite : _elle n'a aucune règle à porter._ Deux points en décident. Elle rend une **série** et non un `Date` — un `Date` est déjà une date valide, il a perdu ce qui permettait de la **refuser**, et les trois refus de D31 (le sérial fractionnaire, le 29 février 1900, la plage antérieure à mars 1900) deviendraient inexprimables. Et **le zéro ne s'écarte pas là** : `read-excel-file` rend `1899-12-30T00:00:00.000Z` pour les 171 cellules à zéro du classeur réel — _une date parfaitement formée et parfaitement fausse_ —, la liaison la transpose en série `0`, et c'est la grammaire qui la range en absence. Écarter dans le transport aurait mis une règle métier là où personne ne la relit.
+
+**Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
+
 ## Le catalogue de forfaits, et l'axe qui dort
 
 `forfait` porte les trois axes de RG-TAR-06 — zone, famille de matériel, type d'intervention — et la règle qui décide. Le montant y prend la même forme que le taux horaire : un **entier** avec son code de devise, refusé s'il s'écarte de celle de sa société. **Zéro est permis** — une prestation offerte est un forfait à zéro, et c'est la façon de la dire ; négatif non, ce serait un avoir.

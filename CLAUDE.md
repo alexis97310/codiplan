@@ -594,8 +594,22 @@ lib/
               appelant est la maladie que le portail vient de soigner
   excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
               format.ts : marqueur de version, dates, nombres, colonnes
-              la LIAISON est tranchée (D90, 10/09) : `read-excel-file`, mesurée
-              sur un vrai fichier d'Excel sous trois fuseaux
+              classeur.ts : LA LIAISON (L1-08c) — elle ne porte AUCUNE règle,
+              c'est tout son objet ; L1-08a l'avait promis en écrivant la
+              grammaire sur une grille abstraite
+              elle rend une SÉRIE et non un `Date` : un `Date` est déjà une date
+              valide, il a perdu ce qui permettait de la REFUSER — les trois
+              refus de D31 deviendraient inexprimables
+              le ZÉRO ne s'écarte pas là : la liaison le transpose, la grammaire
+              le range en absence — écarter dans le transport mettrait une règle
+              métier là où personne ne la relit
+              controle.ts : le RAPPORT de I6, la moitié « d'abord » — il n'écrit
+              rien, ne connaît aucune base, et ne sait pas appliquer
+              les trois refus PRÉCÈDENT toute ligne et ne comptent RIEN : un
+              rapport qui proposerait des créations sous une colonne obligatoire
+              absente proposerait d'écrire des fiches amputées
+              le parc est un PARAMÈTRE, jamais une lecture : l'appelant seul sait
+              sous quel contexte cloisonné il l'a obtenu
               le ZÉRO est une ABSENCE, jamais le 30 décembre 1899 : la
               bibliothèque rend cette date-là, et c'est ici qu'on l'écarte —
               171 cellules du fichier réel en dépendent, et les ranger sous
