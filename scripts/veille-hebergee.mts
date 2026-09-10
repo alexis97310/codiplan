@@ -55,6 +55,16 @@ import {
   rapportRlsDeclaree,
   type EtatRlsTable,
 } from "./lib/rls-declaree";
+import {
+  TABLES_CLOISONNEES,
+  TABLES_HORS_CLOISONNEMENT,
+  decompteVide,
+  ecartsSansContexte,
+  ecartsTemoinLecture,
+  type DecompteHorsCloisonnement,
+} from "./lib/inventaire";
+import { sqlDecompteAPlat } from "./lib/tables-comptees";
+import { verifierRoleApplicatif } from "../lib/db/garde-role";
 
 /**
  * VEILLE DE LA BASE HÉBERGÉE — le détectif, à échéance fixe et en lecture seule.
@@ -277,6 +287,38 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
       SQL_COLONNES_PERIMETRE,
     );
 
+    // ── LA LECTURE, et non plus seulement le CATALOGUE (11/09/2026) ─────────
+    //
+    // Les neuf contrôles ci-dessus lisent `pg_policies`, `pg_class`,
+    // `information_schema` : ils disent que les politiques SONT ÉCRITES comme
+    // le dépôt l'exige. Aucun ne lit une seule LIGNE. Or « la preuve par
+    // LECTURE est la plus forte » (§9, 31/08), et c'est elle qui ne tournait
+    // que dans le flux de migration — donc jamais entre deux migrations.
+    //
+    // Le rôle est vérifié AVANT de compter : sous un rôle qui contourne les
+    // politiques, zéro ligne ne prouverait rien et des lignes ne prouveraient
+    // rien non plus. Le contrôle refuse alors de mesurer plutôt que de rendre
+    // un verdict sur une observation qui ne veut rien dire.
+    const diagnostic = await verifierRoleApplicatif(prisma);
+
+    // Hors de tout contexte : la veille n'appelle jamais `avecSociete`, et
+    // `set_config(…, true)` est local à la transaction. C'est bien l'absence
+    // de contexte que l'on éprouve.
+    const sansContexte = decompteVide();
+    for (const ligne of await prisma.$queryRawUnsafe<
+      Array<{ table: string; lignes: number }>
+    >(sqlDecompteAPlat(TABLES_CLOISONNEES))) {
+      sansContexte[ligne.table] = ligne.lignes;
+    }
+    const temoinsLecture: DecompteHorsCloisonnement = Object.fromEntries(
+      TABLES_HORS_CLOISONNEMENT.map((table) => [table, 0]),
+    );
+    for (const ligne of await prisma.$queryRawUnsafe<
+      Array<{ table: string; lignes: number }>
+    >(sqlDecompteAPlat(TABLES_HORS_CLOISONNEMENT))) {
+      temoinsLecture[ligne.table] = ligne.lignes;
+    }
+
     const observees: TableObservee[] = colonnes.map((colonne) => ({
       table: colonne.table,
       societeIdObligatoire: colonne.presente && colonne.obligatoire,
@@ -353,6 +395,38 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         ecarts: ecartsWithCheckExplicite(politiques),
       },
       {
+        // LE TÉMOIN AVANT LE VERDICT. `ecartsSansContexte` attend zéro
+        // partout : une connexion aveugle rend le même résultat qu'un
+        // cloisonnement parfait. Les référentiels de plateforme sont lisibles
+        // `USING (true)`, sans contexte et sans privilège — les voir peuplés
+        // est ce qui donne un sens aux zéros mesurés à côté.
+        nom: "témoin de la lecture applicative",
+        rapport:
+          "Témoin de lecture — référentiels lus sous le rôle applicatif, " +
+          "sans contexte (observé en base) : " +
+          `${TABLES_HORS_CLOISONNEMENT.map(
+            (table) => `${table}=${temoinsLecture[table]}`,
+          ).join(", ")}\n`,
+        ecarts: ecartsTemoinLecture(temoinsLecture),
+      },
+      {
+        // LA LECTURE elle-même — le contrôle qui ne tournait qu'au moment
+        // d'une migration, et qui rejoint ici le rythme nocturne.
+        nom: "lecture sans contexte société",
+        rapport:
+          `Lecture sans contexte — rôle ${diagnostic.role} sur ` +
+          `${diagnostic.base}, zéro attendu partout (observé en base) : ` +
+          `${
+            TABLES_CLOISONNEES.filter(
+              (table) => (sansContexte[table] ?? 0) !== 0,
+            )
+              .map((table) => `${table}=${sansContexte[table]}`)
+              .join(", ") ||
+            `aucune ligne visible sur ${TABLES_CLOISONNEES.length} table(s)`
+          }\n`,
+        ecarts: ecartsSansContexte(sansContexte),
+      },
+      {
         // L'armement du cloisonnement, et non plus seulement sa définition
         // (L1-02b). Les cinq contrôles ci-dessus disent que les politiques sont
         // JUSTES ; celui-ci dit que quelqu'un pose les variables qu'elles
@@ -416,6 +490,11 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         `${partitions.length} partition(s), ` +
         `${privilegesJournal.length} privilège(s) de journal et ` +
         `${consolidation.length} de consolidation. ` +
+        `Lecture sans contexte : aucune ligne sur ${TABLES_CLOISONNEES.length} ` +
+        `table(s) cloisonnée(s), le témoin ayant rapporté ` +
+        `${TABLES_HORS_CLOISONNEMENT.filter(
+          (table) => (temoinsLecture[table] ?? 0) > 0,
+        ).join(", ")} — sans quoi ces zéros ne prouveraient rien. ` +
         "Rôle applicatif, transaction en lecture seule.\n",
     );
   }

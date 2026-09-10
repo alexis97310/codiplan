@@ -2932,3 +2932,42 @@ C'est donc `lib/excel/format.ts` qui l'écarte, et il l'écarte comme une **ABSE
 **Ce que cela ne bloque pas :** les deux lots se construisent entièrement sans cette réponse. Le bac de réception, le rattachement, le registre, la saisie terrain — rien n'en dépend.
 
 **Ce que cela bloque :** l'ouverture de ces deux lots **sur le portail client**. *Avis à prendre avant, jamais après.* Et le déclencheur se vérifie sans s'interpréter : **le premier écran de portail qui affiche un document de classe `client` provenant d'un organisme tiers.**
+
+---
+
+## D91 — Le contrôle de cloisonnement rejoint la VEILLE : la preuve par lecture cesse de dépendre de l'initiative de quelqu'un
+
+*Décision de session du 11 septembre 2026, sur demande d'exploitation. Elle prolonge D55 et la veille nocturne de R0-a, et elle ne crée aucun flux.*
+
+### CE QUI ÉTAIT ÉCRIT, ET LA CONSÉQUENCE QUI NE L'ÉTAIT PAS
+
+La veille nocturne existe depuis R0-a et son en-tête énonce déjà le défaut qu'elle répare : *« une garantie dont le déclenchement dépend de l'initiative de quelqu'un n'est pas une garantie, c'est une intention. »* **Elle ne l'avait appliqué qu'à ses propres contrôles.** Le contrôle de cloisonnement — celui qui LIT DES LIGNES — est resté câblé dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` et lui seul. *Entre deux migrations, personne ne lisait.* Le fait était écrit ; la conséquence ne l'était pas.
+
+**Et la limite du partitionnement non durci a été acceptée SUR LA FOI d'une surveillance de ce genre.** Le CLAUDE.md (I8) écrit que le détectif « tourne chaque nuit sur la base réelle » et que c'est ce qui rend supportable qu'un `CREATE TABLE … PARTITION OF` tapé dans une console reste productible. Cet argument valait pour les partitions, qui sont bien dans la veille. **Il ne valait pas pour le cloisonnement**, et rien ne le disait.
+
+### LA MESURE — 26 EXÉCUTIONS PENDANT LA CÉCITÉ
+
+L'exploitation demandait, sans deviner : combien d'exécutions du flux de migration pendant les 2 j 21 h de cécité de l'inventaire (commit `97e8f95`, 07/09 01:28 UTC → commit `52173a1`, 09/09 22:48 UTC) ?
+
+***Vingt-six.*** Les exécutions n° 17 à n° 42 du flux « DB migrate & seed », toutes en `workflow_dispatch`, de `34073696123` (07/09 01:38:57 UTC) à `34413382407` (09/09 22:40:30 UTC) ; trois d'entre elles rouges (n° 20, 34, 42), vingt-trois vertes. *Datées à la seconde par l'API GitHub Actions, pas estimées.*
+
+**Ce chiffre renverse la lecture naturelle du défaut.** On croit volontiers qu'une cécité dure parce que personne ne regarde. Ici quelqu'un a regardé **vingt-six fois en trois jours**, et **vingt-trois fois le contrôle a rendu vert** une comparaison qui portait sur rien pour 14 tables sur 21. *Un contrôle qui tourne souvent et regarde mal est plus dangereux qu'un contrôle qui ne tourne pas : le second n'affirme rien.* C'est le §9 du 06/09 — un chiffre juste dans un rapport vrai qui fait conclure faux — mesuré en fréquence.
+
+### LA DÉCISION, ET CE QU'ELLE COUPE EN DEUX
+
+**La preuve par LECTURE rejoint la veille nocturne** — deux contrôles de plus, sur les onze qu'elle joue désormais, dans la même transaction en lecture seule et sous le même rôle applicatif :
+
+1. **`ecartsSansContexte`** — sous un rôle soumis aux politiques et hors de tout contexte société, chacune des tables cloisonnées rend **zéro ligne**. C'est la preuve la plus forte du dépôt (§9, 31/08) : une RLS éteinte n'y survit pas.
+2. **`ecartsTemoinLecture`**, écrit pour ce ticket — les référentiels de plateforme, de forme « référentiel » donc lisibles `USING (true)`, rendent **au moins une ligne**. Sans lui, *une connexion aveugle rendrait exactement le même résultat qu'un cloisonnement parfait*, et la veille aurait rapporté vert sur du vide (§9, 30/08).
+
+**Ce qui NE rejoint pas la veille, et c'est écrit plutôt que tu.** La confrontation à l'inventaire à plat — *« chaque société voit exactement ses lignes, ni plus ni moins »* — exige une lecture **exemptée des politiques**, donc l'accréditation de migration. La veille a été construite pour ne pas la porter : *« on exposait chaque nuit, dans un travail automatique, une accréditation capable de tout écrire — pour lire un catalogue. »* Cette raison n'a pas faibli. `ecartsAvecContexte`, `ecartsTemoins` et `ecartsMesureVide` restent donc dans le flux de migration.
+
+**Ce que la nuit prouve désormais** : aucune ligne cloisonnée n'est lisible sans contexte, et la lecture n'est pas aveugle. **Ce qu'elle ne prouve pas** : qu'une société ne voie pas les lignes d'une autre SOUS contexte. La coupure passe exactement là où passe le privilège.
+
+**CONDITION DE RÉOUVERTURE, vérifiable et non interprétable :** le jour où un rôle lecteur **non privilégié et exempté des politiques** dispose d'un secret propre — `codiplan_reporting` et `REPORTING_DATABASE_URL`, attendus au lot 5 (D38) —, l'inventaire à plat se produit la nuit sans accréditation d'écriture, et la confrontation complète rejoint la veille. *Le critère se vérifie : le secret existe, ou il n'existe pas.*
+
+### UNE EXCLUSION MESURÉE FAUSSE, ET RETIRÉE
+
+`ecartsSansContexte` figurait dans `HORS_OBSERVATION` — la liste close des contrôles que la veille ne joue pas — avec ce motif : *« elle juge un décompte obtenu après un seed, que la veille ne joue pas. »* **Mesuré à la lecture de la fonction : elle ne prend que les décomptes observés, et aucun inventaire.** Elle n'a jamais eu besoin d'un seed. L'exclusion était juste pour ses voisines et fausse pour elle — recopiée depuis `ecartsAvecContexte`, à qui le motif appartient réellement. Elle est retirée.
+
+*C'est la pente du §9 du 07/09 dans une liste d'exemptions : un motif énoncé de mémoire a exactement la forme d'un motif observé, et une exemption n'a personne pour la contredire — elle ne produit aucun signal.*

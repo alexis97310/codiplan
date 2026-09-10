@@ -142,12 +142,6 @@ const HORS_OBSERVATION: readonly {
       "seule et n'a rien écrit ; il n'y aurait rien à comparer.",
   },
   {
-    fonction: "ecartsSansContexte",
-    justification:
-      "même inventaire comparé : elle juge un décompte obtenu après un seed, " +
-      "que la veille ne joue pas.",
-  },
-  {
     fonction: "ecartsAvecContexte",
     justification:
       "même inventaire comparé : elle juge un décompte obtenu après un seed, " +

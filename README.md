@@ -244,6 +244,25 @@ fonction. Tant que le rôle de migration n'est pas superutilisateur,
 `ddl_command_end` est hors de portée et l'état nu reste productible à la main —
 le jour où la base est auto-hébergée, le préventif remplacera le détectif.
 
+**Et le détectif a une DATE DE MISE EN SERVICE, parce qu'un argument qui repose
+sur une surveillance doit dire depuis quand elle tourne.** La limite ci-dessus
+n'est acceptable que si le détectif regarde la base réelle à échéance fixe. Ce
+n'est vrai que **depuis le 8 septembre 2026 à 15:14 UTC** — première exécution
+PLANIFIÉE du job `veille — base hébergée` (exécution `34243371255`, étape
+`pnpm veille`, 15:14:03 → 15:14:09 UTC) ; le script est né avec le commit
+`86e9c85` le 8 septembre à 00:54 UTC. **Avant cette date, le durcissement des
+partitions n'était observé sur la base hébergée qu'au moment d'une migration**,
+c'est-à-dire quand quelqu'un cliquait. Une garantie sans date de mise en service
+se lit comme si elle avait toujours tenu.
+
+**La preuve par LECTURE du cloisonnement a rejoint la même échéance le
+11 septembre 2026 (D91)** — jusque-là elle ne tournait, elle aussi, qu'au moment
+d'une migration. Ce que la nuit établit désormais : aucune ligne cloisonnée
+n'est lisible sans contexte société, et la lecture n'est pas aveugle. Ce qu'elle
+n'établit pas, faute d'une lecture exemptée des politiques : que chaque société
+voie exactement ses lignes SOUS contexte — cette confrontation reste dans le
+flux de migration, et sa condition de réouverture est écrite en D91.
+
 **La règle et ses exemptions n'ont qu'une maison, celle que la machine lit** :
 [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts). L'invariant
 I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne les recopie, et un

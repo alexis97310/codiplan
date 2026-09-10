@@ -176,6 +176,49 @@ export function ecartsInventaire(inventaire: Inventaire): string[] {
 }
 
 /**
+ * TÉMOIN DE LA LECTURE — le rôle applicatif voit-il seulement quelque chose ?
+ *
+ * `ecartsSansContexte` attend ZÉRO partout, et c'est là son danger : **une
+ * connexion aveugle rend exactement le même résultat qu'un cloisonnement
+ * parfait.** Base vide, mauvaise base, requête jouée hors du schéma attendu,
+ * privilèges retirés au rôle — dans les quatre cas, zéro ligne, et un vert qui
+ * ne parle de rien. C'est l'espèce du §9 (30/08) : *un décompte nul ressemble
+ * toujours à un sans-faute.*
+ *
+ * Le témoin ne coûte aucun privilège, et c'est ce qui le rend disponible LA
+ * NUIT. Les référentiels de plateforme portent la forme « référentiel », dont
+ * la lecture est `USING (true)` : ils sont lisibles **sans aucun contexte**,
+ * par le rôle applicatif, et ils sont peuplés dès `pnpm db:referentiels` —
+ * avant même qu'une société existe. Les voir non vides prouve que la lecture
+ * traverse réellement les politiques et rapporte des lignes ; les zéros
+ * mesurés à côté ont alors un sens.
+ *
+ * **Ce que ce témoin n'est PAS.** Il ne remplace pas la confrontation à
+ * l'inventaire à plat — « chaque société voit exactement ses lignes » —, qui
+ * exige une lecture EXEMPTÉE des politiques, donc une accréditation privilégiée
+ * que la veille refuse de porter. Il établit ce qu'une lecture non privilégiée
+ * peut établir seule, et pas un mot de plus.
+ */
+export function ecartsTemoinLecture(
+  temoins: DecompteHorsCloisonnement,
+): string[] {
+  const lues = TABLES_HORS_CLOISONNEMENT.filter(
+    (table) => (temoins[table] ?? 0) > 0,
+  );
+  if (lues.length > 0) {
+    return [];
+  }
+  return [
+    "la lecture n'a rapporté AUCUNE ligne, sur aucun référentiel de " +
+      `plateforme (${TABLES_HORS_CLOISONNEMENT.join(", ")}) — dont la forme ` +
+      "« référentiel » est pourtant `USING (true)`. Les zéros mesurés sur les " +
+      "tables cloisonnées ne prouvent donc RIEN : ils ont exactement la forme " +
+      "d'un cloisonnement parfait et celle d'une connexion aveugle. Base vide, " +
+      "mauvaise base, ou privilèges retirés au rôle applicatif.",
+  ];
+}
+
+/**
  * Écarts observés SANS contexte société, sous un rôle soumis aux politiques.
  *
  * Attendu : zéro ligne, sur chacune des tables cloisonnées. Toute ligne visible
