@@ -879,6 +879,9 @@ scripts/      inventaire, contrôle de cloisonnement (privilèges compris), hori
               par le schéma : toute table y est comptée, témoin, ou exemptée
               nommément avec son motif
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
+              fixtures/dates-excel.xlsx = un VRAI classeur Excel réduit PAR
+              RETRAIT — plus une seule chaîne de caractères, et chaque cellule
+              survivante byte-identique à son original (D90)
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
 

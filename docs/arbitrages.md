@@ -2820,6 +2820,91 @@ Ce qu'elle rend — et c'est une mesure, pas un souvenir :
 
 ---
 
+## D90 — La lecture du classeur est TRANCHÉE, sur un vrai fichier Excel : `read-excel-file`
+
+*Décision de session du 10 septembre 2026. Elle ferme la comparaison instruite le 11/09 et laissée ouverte à dessein — « les deux lectures ne donnent pas la même réponse, et je ne choisis pas laquelle des deux vous vouliez ».*
+
+### D80 N'EXISTE PAS, et cela se dit avant tout le reste
+
+Le protocole de session demandait de **lever la réserve « NON PORTANT » de D80**. *Mesuré, avant d'écrire une ligne : **il n'existe aucun D80 dans ce dépôt.*** La correction d'exploitation du 09/09 l'écrit déjà — « D80, D81 et D82 n'existent pas : la file de travail du jour les citait, la mesure dit qu'aucune n'a jamais été écrite ». **Une décision qui n'existe pas ne peut pas perdre une réserve qu'elle n'a jamais portée**, et lui en faire perdre une l'aurait fait naître par ricochet, avec un contenu que personne n'a écrit.
+
+*C'est la règle du §9 (07/09) appliquée dans le sens qui compte le plus — de la session vers l'exploitation : un état énoncé comme un fait est une hypothèse, et il faut dire quand elle est fausse.* Ce que le protocole visait est reconstituable sans ambiguïté : **la condition du §2 sur la bibliothèque de lecture `.xlsx`**, dont la comparaison du 11/09 disait qu'elle ne tranchait pas nettement. C'est elle qui est tranchée ici.
+
+### CE QUE LA MESURE DU 10/09 AJOUTE, et que la comparaison n'avait pas
+
+La comparaison du 11/09 annonçait sa propre limite : *« LibreOffice a refusé de charger les deux classeurs ; openpyxl a servi de sérialiseur indépendant à sa place. **Aucun fichier produit par Excel lui-même n'a été lu.** »* **Cette limite est levée.** L'exploitation a fourni son fichier de suivi réel — réenregistré par **Microsoft Excel 16.0300** le 09/09/2026 à 22:04 UTC, 292 machines, 1 996 lignes d'historique — et c'est sur lui que la mesure porte.
+
+**La fixture est fabriquée PAR RETRAIT**, jamais par réécriture : on dézippe, on retire tout `<c>` qui n'est pas une cellule numérique portant un format de date, on vide `sharedStrings`, on rezippe. *Aucune cellule survivante n'est passée par une bibliothèque d'écriture* — sinon la mesure porterait sur ce que cette bibliothèque sait faire, et non sur ce qu'un fichier venu du terrain contient. **4 390 cellules survivent, toutes byte-identiques à leur original**, et il ne reste **aucune** chaîne de caractères : `t="s"`, `t="str"` et `t="inlineStr"` à zéro, `sharedStrings` vide. *S'il ne reste pas une chaîne, il ne reste pas un nom de client.*
+
+**Le fichier source n'entre jamais au dépôt** (I9) : son nom est inscrit à `.gitignore` avant d'être touché.
+
+### CE QUI A ÉTÉ MESURÉ, et le verdict
+
+| Ce qui était annoncé par l'exploitation | Ce que la vérification rend |
+|---|---|
+| calendrier 1900, `date1904` absent | **confirmé** |
+| 4 219 cellules de date à valeur plausible | **confirmé, au chiffre près** |
+| la plus ancienne 2016-05-09, la plus récente 2027-07-07 | **confirmé** — `5-Observations VGP!B290` (sérial 42499) et `3-Parc machines!W85` (sérial 46575) |
+| 0 date stockée en texte | **confirmé** — les 1 246 cellules date-stylées non numériques portent toutes la chaîne **VIDE**, résultat de formule |
+| 0 date portant une partie horaire | **confirmé** |
+| 171 cellules à zéro, toutes dans `3-Parc machines` colonne R | **confirmé** |
+| sérials 44613 → 2022-02-21 et 45013 → 2023-03-28 | **confirmé** — huit occurrences chacun, dans les deux onglets annoncés |
+
+*Une seule chose s'écarte, et elle n'infirme rien :* l'onglet `1-Demandes SAV` porte une trentaine de cellules **au format date** dont la valeur est un petit entier (94, 95, 129) ou une valeur absurde (4 999 999). Ce sont les résultats d'une colonne de **délai en jours** qui a hérité du format de sa voisine. Elles sortent de la plage plausible et n'entrent dans aucun des chiffres ci-dessus — *c'est ce que « plausible » veut dire dans la formule de l'exploitation, et la lecture le confirme plutôt que de le contredire.*
+
+**LES QUATRE DATES SORTENT IDENTIQUES SOUS TROIS FUSEAUX** — `UTC`, `Pacific/Noumea` (UTC+11) et `America/Los_Angeles`, de part et d'autre du méridien. Les trois lectures sont rigoureusement le même objet. *Aucun décalage d'un jour : la condition qui aurait condamné la bibliothèque n'est pas remplie.*
+
+### LA DÉCISION
+
+**`read-excel-file` est la bibliothèque de lecture `.xlsx` du projet**, en dépendance de développement pour l'instant — l'import de masse n'a pas de chemin serveur avant le lot 4.
+
+Ce qui la fonde, et rien d'autre : elle est **maintenue** (9.3.10, publiée le 10/08/2026, un mois avant cette mesure), elle ne porte **aucun avis de sécurité**, et sa conversion de date est **exactement la nôtre** — `Date.UTC(1899, 11, 30) + sérial × 86 400 000 —, mesurée sur un fichier écrit par Excel.
+
+**Ce qui a été écarté et pourquoi**, en une ligne chacun : `xlsx` (SheetJS sur npm) porte deux avis **HAUTS sans correctif atteignable**, dont une pollution de prototype **qui se déclenche à la lecture d'un fichier apporté** — l'usage exact et unique de ce module ; sa distribution d'éditeur est **refusée par le mandataire sortant** (403), donc `pnpm install` deviendrait impossible ici. `exceljs` a trois ans et un avis modéré. `xlsx-populate` a **six ans et demi**.
+
+**LE SÉRIAL ÉTAIT LE PROXY D'UN CRITÈRE QU'ON SAIT MAINTENANT MESURER.** La condition d'origine exigeait le **numéro de série**, au motif qu'un `Date` de bibliothèque « décalerait le jour d'un cran à UTC+11 ». Mesuré deux fois — le 11/09 sur des fichiers fabriqués, le 10/09 sur un fichier d'Excel — **ce décalage n'existe pas**. C'est la situation du §9 du 01/09 : *une borne posée faute de savoir mesurer, quand la mesure existe, n'est plus une garantie — elle se retire.*
+
+### LE ZÉRO N'EST PAS UNE DATE, et la bibliothèque ne le sait pas
+
+*Mesuré :* `read-excel-file` rend **`1899-12-30T00:00:00.000Z`** pour les 171 cellules à zéro — **une date parfaitement formée, et parfaitement fausse**. La colonne est « Dernière intervention » : zéro y veut dire **jamais d'intervention**.
+
+C'est donc `lib/excel/format.ts` qui l'écarte, et il l'écarte comme une **ABSENCE** (`cellule_vide`) et non comme une anomalie de plage. La distinction n'est pas cosmétique : rangé sous `date_hors_plage`, le zéro ferait **rejeter 171 machines** pour un champ légitimement vide, ce qui est le contraire de ce que I6 promet. *Le sérial 60 — le 29 février 1900 qui n'a jamais existé — reste une anomalie : personne ne saisit « pas de date » en tapant 60.*
+
+**LE JUMEAU :** le même code rend une absence sur `0` et le 21 février 2022 sur `44613`.
+
+### CE QUI NE PEUT PAS ÊTRE MESURÉ ICI, écrit plutôt que laissé croire
+
+**Le bogue du 29 février 1900 n'est PAS couvert par ce fichier.** Aucune de ses dates n'est antérieure à 1901 — la plus ancienne est le 2016-05-09. Les sérials 59, 60 et 61 sont éprouvés par des cas **FABRIQUÉS, clairement marqués comme tels** dans le scénario : ils prouvent que `lireDate` sait mordre, ils ne prouvent rien de ce qu'un fichier du terrain contient (§9, 21/08).
+
+### CONDITION DE RÉOUVERTURE
+
+*Le jour où `read-excel-file` cesse d'être maintenue — au sens mesurable : aucune publication depuis vingt-quatre mois — ou reçoit un avis de sécurité HAUT sans correctif atteignable depuis npm, la décision est due à réexamen, et la comparaison du 11/09 est le document à rouvrir.* Le critère se vérifie, il ne s'interprète pas. Et un second déclencheur, plus étroit : *si une lecture rend un jour différent de celui que `lireDate` calcule sur un même sérial, la mesure du 10/09 est infirmée et la liaison passe au sérial brut.*
+
+*Aucune règle du chapitre 10 n'est amendée : D31 fixe la grammaire du fichier, pas le moyen de le lire.*
+
+---
+
+## Contraintes connues de l'import de masse — MESURÉES sur le fichier réel, le 10/09/2026
+
+*Ce n'est pas une décision : ce sont des FAITS, relevés sur le classeur de suivi de CODIMA (Excel 16.0300, 09/09/2026 22:04 UTC). Ils sont inscrits ici parce qu'ils contraignent la conception de l'import de masse, et qu'un fait mesuré vaut mieux qu'une hypothèse raisonnable. **Le fichier n'entre jamais au dépôt** (I9) ; seuls ces nombres en sortent.*
+
+| Ce qui a été mesuré | Valeur | Ce que cela impose |
+|---|---|---|
+| Machines au parc | **292** | — |
+| Numéros de série en double | **aucun** | l'unicité par société est tenable comme clé de rapprochement |
+| Machines **sans série exploitable** | **14, soit 4,8 %** | **la clé de rapprochement doit tolérer l'absence de série SANS fabriquer de doublon.** C'est déjà la forme de D6 : `SN-INCONNU-<référence>` avec `complet = false`, jamais `NULL` |
+| Année de fabrication renseignée | **96 sur 292** | champ **facultatif**, jamais obligatoire |
+| Lignes d'historique | **1 996**, de mars 2019 à août 2026 | dont **1 965 factures** et **31 avoirs** |
+| Historique **non rattaché à une machine** | **1 443, soit 72 %** | **l'import les reprend NON RATTACHÉES.** Les écarter perdrait les trois quarts de l'historique — et l'historique est ce qui donne sa valeur au parc |
+| Onglet Clients | **652 lignes**, dont **55** portant un code Winpro réel | **l'import doit distinguer une ligne de GABARIT d'une ligne vide.** Une ligne de gabarit porte des formules et des mises en forme sans donnée : elle n'est ni vide au sens du XML, ni une ligne à importer |
+| Clients côté parc / sites côté parc | **38** / **22** | contre **55** codes côté Winpro : **le rapprochement des deux listes est un chantier à part**, pas un effet de bord de l'import |
+| Contrôles Bureau Veritas | **333**, de 2020 à 2026 | — |
+| Observations | **670**, dont **608 sans document de réponse rattaché** | **« sans document rattaché » ne veut PAS dire « non levée ».** C'est une ABSENCE D'INFORMATION, et elle s'affiche comme telle — jamais comme un manquement. C'est **D88 appliqué à la lettre** : le registre enregistre ce qu'on nous a dit, il n'affirme rien |
+
+**Le point qui coûterait le plus cher à découvrir tard est le dernier.** 608 observations sur 670 sans document de réponse : un écran qui les afficherait « non levées » accuserait des clients de manquements sur la seule foi d'un fichier de suivi incomplet. *Le danger n'est pas le chiffre, c'est le mot qu'on met à côté.*
+
+---
+
 ## Point de vigilance commun à D87 et D88 — ce dont CODIMA RÉPOND, à instruire avant le portail
 
 *Écrit comme point de vigilance et **non comme blocage**, à la demande de l'exploitation.*

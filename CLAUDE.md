@@ -44,7 +44,7 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 | Validation | Zod, sur toute entrée serveur sans exception | — |
 | Tests unitaires | Vitest | — |
 | Tests bout en bout | Playwright | — |
-| Excel | ~~SheetJS~~ — une bibliothèque de lecture `.xlsx` **MAINTENUE** ; `.xlsx` uniquement, jamais de CSV *(amendé le 09/09/2026 — voir ci-dessous)* | — |
+| Excel | ~~SheetJS~~ — **`read-excel-file`** *(tranché le 10/09/2026, D90)* ; `.xlsx` uniquement, jamais de CSV | — |
 | PDF | React-PDF | — |
 | Stockage objet | Stockage S3-compatible de l'hébergeur | — |
 | Email | Resend | — |
@@ -54,7 +54,9 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 
 **Le §2 nommait SheetJS, et il a été écrit quand SheetJS était sur npm** *(amendement du 09/09/2026)*. Le paquet `xlsx` y est figé sur `0.18.5` — c'est ce que le registre annonce comme `latest` —, et **deux avis de sécurité HAUTS le visent sans correctif atteignable depuis npm** : `patched_versions: <0.0.0` pour les deux, l'éditeur ne publiant plus que sur sa propre distribution. Le premier, CVE-2023-30533, est une pollution de prototype **qui se déclenche à la lecture d'un fichier apporté** — l'usage exact et unique de ce module. *« Borner par l'usage » ne borne rien quand l'usage EST le vecteur.*
 
-**Ce n'est donc pas une contrainte qu'on contourne, c'est une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
+**TRANCHÉ LE 10/09/2026 — la bibliothèque est `read-excel-file`** *(D90)*. Ce qui manquait à la comparaison du 09/09 était **un vrai fichier d'Excel** : elle le disait elle-même — *« aucun fichier produit par Excel lui-même n'a été lu »*. L'exploitation a fourni le sien, une fixture en a été tirée **par retrait** (`tests/fixtures/dates-excel.xlsx`), et les quatre dates relevées en sortent **identiques sous trois fuseaux**, dont `Pacific/Noumea`. Le sérial était le proxy d'un critère — *« le jour ne bouge pas »* — qu'on sait maintenant mesurer directement : §9 du 01/09, *une borne posée faute de savoir mesurer se retire quand la mesure existe.* Le paragraphe qui suit reste écrit : il dit pourquoi SheetJS est écarté, et c'est cela qu'on relit.
+
+**Ce n'était donc pas une contrainte qu'on contourne, c'était une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
 
 **Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance se justifie en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt qu'ajouter 200 Ko.
 
@@ -526,10 +528,12 @@ lib/
   sync/       (prévu) protocole hors-ligne
   excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
               format.ts : marqueur de version, dates, nombres, colonnes
-              AUCUNE dépendance : la liaison au CLASSEUR est en attente
-              d'arbitrage. Le §2 ne nomme plus SheetJS (amendé le 09/09) : il
-              exige une bibliothèque de lecture .xlsx MAINTENUE. La comparaison
-              des deux voies est au registre du 09/09
+              la LIAISON est tranchée (D90, 10/09) : `read-excel-file`, mesurée
+              sur un vrai fichier d'Excel sous trois fuseaux
+              le ZÉRO est une ABSENCE, jamais le 30 décembre 1899 : la
+              bibliothèque rend cette date-là, et c'est ici qu'on l'écarte —
+              171 cellules du fichier réel en dépendent, et les ranger sous
+              « hors plage » ferait rejeter 171 machines
               un nombre lu ne rend JAMAIS un flottant : les chiffres et leur
               échelle, pour que I3 ne soit pas enfreint une ligne après nous
               une date se lit en UTC, jamais par un Date local — UTC+11 décale
