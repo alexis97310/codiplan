@@ -152,3 +152,15 @@ Trois états, et trois seulement :
 Le marqueur se pose **sur la ligne qui suit immédiatement le titre du ticket**. Un ticket sans marqueur fait échouer `pnpm verify` (`tests/unit/docs/file-de-nuit.test.ts`) : *une file dont un élément n'a pas d'état n'est pas une file, c'est une liste de vœux.*
 
 **Un blocage n'est pas un arrêt.** La session marque `BLOQUÉ`, ouvre le ticket `arbitrage` s'il en faut un (§5), et **prend le travail suivant**.
+
+---
+
+## 11. Budget d'exécution
+
+Le budget GitHub Actions est une ressource **mesurée et finie**, jamais un acquis. Éprouvé le 10/09/2026 (issue #99) : à 77 minutes du plafond mensuel, la seule somme des plafonds DÉCLARÉS d'une nuit — `ci.yml` (`verify-full` + `veille-hebergee`, 40 min de plafond) et `nuit.yml` (`inputs.minutes`, 120 min par défaut) — dépassait le solde restant à elle seule, avant même de compter les poussées de la journée.
+
+**Une nuit dont le budget déclaré dépasse ce qui reste avant la remise à zéro ne part pas** — elle se réduit à ce qui tient, ou elle attend le renouvellement.
+
+**Deux consommateurs distincts partagent le même solde, et ni l'un ni l'autre ne se règle depuis ce fichier :** `ci.yml` tourne chaque nuit sur son propre déclencheur `schedule`, une heure avant `nuit.yml`, et son coût s'impute au solde avant que la nuit automatique ne parte. Le budget d'une nuit se calcule donc après avoir réservé ce que `ci.yml` prend cette nuit-là, jamais avant — et ce coût-là ne se mesure que par un accès à l'historique des exécutions (facturation du dépôt, ou `gh run list`), hors de portée d'une session qui ne l'a pas.
+
+**Un budget deviné est une affirmation ; un budget mesuré sur plusieurs nuits réelles est une donnée (§4).** Tant qu'aucune nuit n'a mesuré son coût réel — en minutes ET en crédits Claude —, le budget par défaut reste au minimum qui permet de mesurer, jamais à une valeur confortable choisie sans preuve.
