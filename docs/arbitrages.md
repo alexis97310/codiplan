@@ -3115,3 +3115,30 @@ Or **une table de forme « société » est lisible par un compte portail** : sa
 **CONDITION DE RÉOUVERTURE, vérifiable et non interprétable** : *le jour où un écran ou une route de portail lit une table de forme « société », la question du discriminant `app.client_id` sur les tables purement internes est due, et elle vise la CLASSE et non une table.* Le critère se vérifie en lisant les appelants sous `app/(portail)/` : ils ne touchent aujourd'hui que `utilisateur_client`, `client`, `site`, `machine`, `document` — toutes de forme « rattachement », « parc » ou « héritage ».
 
 *Aucune règle du chapitre 10 n'est amendée. Le chapitre 11 reçoit `document_recu`.*
+
+---
+
+## D95 — Le dépôt reste privé
+
+*Décision d'exploitation du 10 septembre 2026, rendue par Alexis au fil de l'issue #99 sur le budget d'exécution de la nuit automatique.*
+
+### CE QUI ÉTAIT SUR LA TABLE
+
+Rendre le dépôt public ferait des minutes GitHub Actions une ressource gratuite et illimitée — l'économie même que la contrainte mesurée sur l'issue #99 (1 923 minutes consommées sur 2 000, 77 restantes) aurait rendue sans objet. **C'est écarté**, et écrit ici pour que personne ne le reproprose plus tard comme économie.
+
+### CE QUI LA JUSTIFIE
+
+- **CODIPLAN est destiné à être vendu** à des sociétés tierces, autres que CODIMA. Publier le code, c'est le donner.
+- **La titularité des droits avec CODIMA NC n'est pas réglée par écrit.** Publier trancherait cette question à la place d'Alexis, et pas dans le sens qui protège ses intérêts.
+- **C'est une porte à sens unique.** Un historique rendu public est cloné, indexé, archivé par des tiers en quelques minutes ; repasser le dépôt en privé ne rappelle rien de ce qui est sorti.
+- **Les registres, les décisions, le taux horaire, les forfaits, la structure des agences et les données de démonstration sortiraient avec le code** — le cahier des charges et les arbitrages ne sont pas moins sensibles que le code qui les implémente.
+
+### CE QUE ÇA COÛTE, ET C'EST ASSUMÉ
+
+Le dépôt reste soumis au plafond mensuel de minutes GitHub Actions d'un compte privé. Alexis passe le compte au forfait Pro, qui porte l'inclus de 2 000 à 3 000 minutes (§11 du protocole de session) : **la contrainte se desserre, elle ne disparaît pas.**
+
+### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
+
+*La titularité des droits réglée par écrit* **ET** *une décision explicite d'Alexis de rendre tout ou partie du dépôt public.* Rien d'autre — ni la pression du budget d'Actions, ni la commodité d'un plafond plus large. Le jour où ces deux conditions sont réunies, l'avertissement déjà écrit dans `ci.yml` sur la désactivation automatique des flux planifiés après 60 jours d'inactivité (§9 du CLAUDE.md, 31/08) cesse d'être un vestige documentaire et redevient une condition à vérifier avant de basculer.
+
+*Aucune règle du chapitre 10 n'est amendée — cette décision touche l'exploitation du dépôt, pas une règle de gestion. Aucune autre décision de rang 1 n'est amendée.*
