@@ -244,6 +244,25 @@ fonction. Tant que le rôle de migration n'est pas superutilisateur,
 `ddl_command_end` est hors de portée et l'état nu reste productible à la main —
 le jour où la base est auto-hébergée, le préventif remplacera le détectif.
 
+**Et le détectif a une DATE DE MISE EN SERVICE, parce qu'un argument qui repose
+sur une surveillance doit dire depuis quand elle tourne.** La limite ci-dessus
+n'est acceptable que si le détectif regarde la base réelle à échéance fixe. Ce
+n'est vrai que **depuis le 8 septembre 2026 à 15:14 UTC** — première exécution
+PLANIFIÉE du job `veille — base hébergée` (exécution `34243371255`, étape
+`pnpm veille`, 15:14:03 → 15:14:09 UTC) ; le script est né avec le commit
+`86e9c85` le 8 septembre à 00:54 UTC. **Avant cette date, le durcissement des
+partitions n'était observé sur la base hébergée qu'au moment d'une migration**,
+c'est-à-dire quand quelqu'un cliquait. Une garantie sans date de mise en service
+se lit comme si elle avait toujours tenu.
+
+**La preuve par LECTURE du cloisonnement a rejoint la même échéance le
+11 septembre 2026 (D91)** — jusque-là elle ne tournait, elle aussi, qu'au moment
+d'une migration. Ce que la nuit établit désormais : aucune ligne cloisonnée
+n'est lisible sans contexte société, et la lecture n'est pas aveugle. Ce qu'elle
+n'établit pas, faute d'une lecture exemptée des politiques : que chaque société
+voie exactement ses lignes SOUS contexte — cette confrontation reste dans le
+flux de migration, et sa condition de réouverture est écrite en D91.
+
 **La règle et ses exemptions n'ont qu'une maison, celle que la machine lit** :
 [`scripts/lib/perimetre-audit.ts`](scripts/lib/perimetre-audit.ts). L'invariant
 I8, la règle RG-DRO-04 et cette page y renvoient ; aucun ne les recopie, et un
@@ -574,7 +593,45 @@ AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm tsx scripts/amorcage-premier-compte.mt
 
 Son cliquet est un **fait** de la ligne de `compte` — `mot_de_passe IS NULL`, l'état dans lequel l'amorçage laisse le moyen de connexion depuis qu'il efface l'empreinte du mot de passe jetable. La première réinitialisation écrit une empreinte, et la réémission est fermée pour toujours ; un mot de passe oublié se traite par le chemin ordinaire. Elle ne rouvre jamais le chemin d'ouverture, ne laisse aucune session, et trace `reemission_premier_acces`.
 
+**ET L'URL MÈNE ENFIN QUELQUE PART (11/09/2026).** Les deux gestes ci-dessus redirigent sur `/premier-acces` — écrit deux fois dans `lib/auth/amorcage.ts` depuis le 09/09. _Mesuré le 11/09 en suivant un lien réellement émis : cet écran n'existait pas, et la chaîne rendait **404**._ La conséquence n'était pas cosmétique : `pnpm db:seed` n'attribue aucun mot de passe — il n'en existe aucun tant qu'une personne n'en a pas choisi un —, si bien qu'**une base neuve n'avait aucune porte d'entrée, et rien ne le disait**. L'écran, sa route et `lib/auth/premier-acces.ts` existent désormais, et `tests/isolation/premier-acces.test.ts` traverse la chaîne entière : jeton émis → mot de passe choisi → connexion qui aboutit → jeton mort qui ne se rejoue pas.
+
+**Le seed pose maintenant le moyen de connexion AU REPOS.** Il ne l'a jamais fait : mesuré le 11/09, `compte` portait **zéro ligne** après un seed, si bien que ni l'amorçage (« la société porte déjà des habilitations ») ni la réémission (« l'identité ne porte aucun moyen de connexion ») ne pouvaient servir les identités de démonstration. Chaque identité semée reçoit donc une ligne de `compte` à `mot_de_passe NULL` — **exactement l'état que l'amorçage laisse derrière lui** —, et la réémission sait s'en servir. _Aucun mot de passe n'entre au dépôt_ : il n'en existe aucun tant que personne n'en a choisi un, et le seed **s'abstient** dès qu'une ligne existe, le cliquet de D65 ne se rouvrant jamais.
+
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
+
+## Le registre des VGP — CODIPLAN n'affirme jamais la conformité
+
+Les vérifications générales périodiques sont commandées par les **clients**, pas
+par CODIMA : CODIMA ne les déclenche pas, ne les reçoit pas de droit, et
+n'apprend leur résultat que si on le lui dit. **Tout le lot 9 découle de cette
+phrase** (D88), et une conception qui l'oublierait produirait un registre qui
+ment.
+
+Trois conséquences, tenues par la base et non par une intention.
+
+**Trois valeurs, jamais une case à cocher.** `a_determiner` est l'état de
+naissance d'une famille de matériel, au même rang que les réponses. _Une case
+décochée est indiscernable d'une famille jamais examinée_, et un pont élévateur
+sortirait du registre en silence. Le `DEFAULT` de la colonne porte la règle :
+rien n'a besoin de la demander.
+
+**`soumis` exige sa périodicité ET le texte qui la fonde.** Sans le texte, la
+périodicité est un chiffre que personne ne peut défendre. **Aucune durée n'est
+écrite dans le code du lot** — ni seuil, ni tolérance, ni « en général » : la
+Nouvelle-Calédonie a son propre code du travail, la solution sera vendue
+ailleurs, et le §8 du CLAUDE.md interdit d'inventer un délai. Un gardien statique
+le vérifie, avec sa liste close de conversions d'unité, adossée.
+
+**« Sans information depuis X » n'est ni « à jour » ni « en retard ».** Le
+danger que D88 nomme est qu'_un registre à moitié rempli ressemble à un registre
+complet_ — c'est le zéro de `/sante` lu comme « installation vide », à l'échelle
+d'un parc. `sans_information` est donc une valeur à part entière, distincte de
+`hors_registre` : l'un dit « la question ne se pose pas ici », l'autre « elle se
+pose et nous n'avons pas la réponse ». Le seul calcul du module est une **date**,
+et il n'existe aucune fonction qui rende un verdict de conformité.
+
+Voir [`lib/vgp/`](lib/vgp/), et les six scénarios de
+`tests/isolation/vgp-assujettissement.test.ts`, chacun avec son jumeau.
 
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 
@@ -638,6 +695,22 @@ Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 | **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
 | **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
 | **appartenance** | société pour tout le monde, **plus** sa propre ligne en `SELECT` SEUL              | `utilisateur_societe` (D61)                                                            |
+| **rattachement** | habilitation pour tout le monde, **plus** son propre rattachement en `SELECT` SEUL | `utilisateur_client` (D92)                                                             |
+
+La forme **« rattachement »** ferme la boucle que D10 avait laissée ouverte. D10
+veut que « les deux tables soient exclusives » : un compte portail n'a **aucune**
+ligne dans `utilisateur_societe`. Et `utilisateur_client` portait la forme
+« habilitation », ancrée sur `app.societe_id`. Rien ne pouvait donc lui donner
+une société, et sans société il ne lisait pas son propre rattachement. _Mesuré le
+11/09/2026 sous `codiplan_app`, avec témoin — zéro société sans contexte :
+identité seule → **0 ligne**, identité + société → 3, `utilisateur_societe` de ce
+compte → **0**._ Les deux zéros ferment la boucle : **aucun compte portail
+n'atteignait aucun écran**, et rien ne le disait — il n'existait pas d'écran de
+portail pour buter dessus. Le coût est nommé, comme celui de D61 et de D67 : une
+personne apprend la liste des clients auxquels elle est déjà rattachée ; ni leur
+nom, ni leurs données, ni l'existence d'aucun autre. Et c'est la **commande** qui
+la borne — `FOR SELECT`, qui n'accepte aucun `WITH CHECK` : la même branche en
+écriture laisserait un compte se rattacher au client de son choix.
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au

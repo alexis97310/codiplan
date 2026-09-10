@@ -142,12 +142,6 @@ const HORS_OBSERVATION: readonly {
       "seule et n'a rien écrit ; il n'y aurait rien à comparer.",
   },
   {
-    fonction: "ecartsSansContexte",
-    justification:
-      "même inventaire comparé : elle juge un décompte obtenu après un seed, " +
-      "que la veille ne joue pas.",
-  },
-  {
     fonction: "ecartsAvecContexte",
     justification:
       "même inventaire comparé : elle juge un décompte obtenu après un seed, " +
@@ -208,6 +202,14 @@ const HORS_OBSERVATION: readonly {
       "confronte DEUX DOCUMENTS du dépôt — `prisma/schema.prisma` et le " +
       "chapitre 11 —, jamais la base. Aucune main posée sur PostgreSQL ne " +
       "peut la déplacer ; c'est le contrôle statique qui la tient.",
+  },
+  {
+    fonction: "ecartsListeRattachement",
+    justification:
+      "juge une liste close du DÉPÔT, pas la base — pour la même raison que " +
+      "`ecartsListeParc`. La FORME qu'elle commande, elle, est bien " +
+      "observée : `ecartsPolitiques` mesure dans `pg_policies` que la branche " +
+      "« mon rattachement » existe et qu'elle est en SELECT seul.",
   },
   {
     fonction: "ecartsListeAdhesion",

@@ -11,6 +11,7 @@ import {
   ecartsAvecContexte,
   ecartsInventaire,
   ecartsSansContexte,
+  ecartsTemoinLecture,
   ecartsTemoins,
   lireInventaire,
   totaliser,
@@ -413,5 +414,74 @@ describe("les témoins hors cloisonnement ne sont pas sous RLS forcée", () => {
     const forcees: readonly string[] = TABLES_RLS_FORCEE;
     const avant = [...TABLES_HORS_CLOISONNEMENT, "utilisateur"];
     expect(avant.filter((t) => forcees.includes(t))).toEqual(["utilisateur"]);
+  });
+});
+
+/**
+ * LE TÉMOIN DE LA LECTURE — ce qui rend un « zéro partout » mesurable la nuit.
+ *
+ * `ecartsSansContexte` attend zéro sur chaque table cloisonnée. C'est la
+ * preuve par LECTURE, la plus forte du dépôt (§9, 31/08) — et son mode de
+ * défaillance est celui du 30/08 : *une connexion aveugle rend exactement le
+ * même résultat qu'un cloisonnement parfait.* Le témoin l'écarte sans coûter
+ * un seul privilège, ce qui est la condition pour qu'il rejoigne la veille
+ * nocturne, laquelle tourne sous le rôle applicatif.
+ *
+ * Les deux directions du prédicat sont éprouvées, et pas seulement celle qui
+ * rougit (§9, 11/09) : un cas qui doit rougir, et un cas qui doit rester vert
+ * POUR SA PROPRE RAISON — un seul référentiel peuplé suffit, parce que la
+ * question posée est « la lecture rapporte-t-elle des lignes ? », jamais
+ * « les référentiels sont-ils complets ? ».
+ */
+describe("témoin de la lecture applicative", () => {
+  it("rougit quand AUCUN référentiel ne rend de ligne — le vert serait creux", () => {
+    const aveugle = Object.fromEntries(
+      TABLES_HORS_CLOISONNEMENT.map((table) => [table, 0]),
+    );
+    const ecarts = ecartsTemoinLecture(aveugle);
+    expect(ecarts).toHaveLength(1);
+    // L'écart NOMME ce qu'il a regardé : un refus qui ne dit pas sur quoi il
+    // porte envoie chercher ailleurs.
+    for (const table of TABLES_HORS_CLOISONNEMENT) {
+      expect(ecarts[0]).toContain(table);
+    }
+  });
+
+  it("reste vert dès qu'UN référentiel rend des lignes, et c'est bien sa raison", () => {
+    const [premier] = TABLES_HORS_CLOISONNEMENT;
+    expect(premier).toBeDefined();
+    const partiel = Object.fromEntries(
+      TABLES_HORS_CLOISONNEMENT.map((table) => [
+        table,
+        table === premier ? 3 : 0,
+      ]),
+    );
+    expect(ecartsTemoinLecture(partiel)).toEqual([]);
+  });
+
+  it("le témoin et le verdict sont INDÉPENDANTS : l'un peut passer et l'autre non", () => {
+    // La population n'est pas vide — sans quoi les deux assertions ci-dessus
+    // seraient vraies sur du vide (§9, 30/08).
+    expect(TABLES_HORS_CLOISONNEMENT.length).toBeGreaterThan(0);
+    expect(TABLES_CLOISONNEES.length).toBeGreaterThan(0);
+
+    const [refer] = TABLES_HORS_CLOISONNEMENT;
+    const [cloisonnee] = TABLES_CLOISONNEES;
+    const temoins = Object.fromEntries(
+      TABLES_HORS_CLOISONNEMENT.map((t) => [t, t === refer ? 1 : 0]),
+    );
+    const fuite = { ...decompteVide(), [cloisonnee as string]: 2 };
+
+    // Témoin vert, verdict rouge : la lecture voit, et elle voit TROP.
+    expect(ecartsTemoinLecture(temoins)).toEqual([]);
+    expect(ecartsSansContexte(fuite)).toHaveLength(1);
+
+    // Témoin rouge, verdict vert : le « zéro partout » qui ne prouve rien —
+    // c'est exactement l'état qu'une veille sans témoin aurait rapporté vert.
+    const aveugle = Object.fromEntries(
+      TABLES_HORS_CLOISONNEMENT.map((t) => [t, 0]),
+    );
+    expect(ecartsTemoinLecture(aveugle)).toHaveLength(1);
+    expect(ecartsSansContexte(decompteVide())).toEqual([]);
   });
 });

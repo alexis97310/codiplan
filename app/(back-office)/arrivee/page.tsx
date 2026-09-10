@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
+import { estRolePortail, type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   societesDuCompte,
@@ -65,6 +67,22 @@ export default async function PageArrivee() {
 
       {etat.issue === "arrivee" ? <Societe arrivee={etat.arrivee} /> : null}
 
+      {/* L'ENTRÉE, ET POURQUOI ELLE EST ÉCRITE ICI.
+
+          **Un écran sans appelant n'est éprouvé par personne**, et ce dépôt
+          l'a déjà payé deux fois : D61 et D67 ont ouvert la lecture des
+          sociétés d'un compte, et pendant deux jours aucun écran ne l'a
+          appelée — c'est une IMAGE qui l'a dit, pas une assertion (§9, 09/09).
+          Le portail de D92 tombait dans la même trappe : la politique posée,
+          l'écran écrit, et rien pour y mener.
+
+          Le rôle ACTIF décide, jamais le compte : la même personne peut être
+          interne sur une société et cliente sur une autre (RG-SOC-03), et
+          c'est la société choisie qui dit lequel des deux elle est ici. */}
+      {etat.issue === "arrivee" && session !== null ? (
+        <Entree role={session.contexte.role} />
+      ) : null}
+
       {societes.length > 0 ? (
         <Choix societes={societes} active={societeActive} />
       ) : null}
@@ -75,6 +93,29 @@ export default async function PageArrivee() {
         </Button>
       </form>
     </main>
+  );
+}
+
+/**
+ * LE LIEN VERS L'ÉCRAN QUE CE RÔLE OUVRE.
+ *
+ * Deux destinations, et pas une de plus : le portail pour un compte client, le
+ * planning pour tous les autres. *Une liste de liens par rôle serait une
+ * seconde lecture de la matrice des droits (§9, 01/09) ; ici la question posée
+ * est plus étroite — « par où entre-t-on ? » —, et elle n'a que deux réponses.*
+ */
+function Entree({ role }: { role: Role | null }) {
+  if (role === null) {
+    return null;
+  }
+  const portail = estRolePortail(role);
+  return (
+    <Link
+      href={portail ? "/portail" : "/planning"}
+      className="border-border rounded-lg border px-4 py-3 text-sm font-medium"
+    >
+      {portail ? t("arrivee.entrer.portail") : t("arrivee.entrer.planning")}
+    </Link>
   );
 }
 

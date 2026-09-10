@@ -153,7 +153,8 @@ export type Forme =
   | "habilitation"
   | "filiation"
   | "appartenance"
-  | "adhésion";
+  | "adhésion"
+  | "rattachement";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -577,6 +578,83 @@ export const TABLES_APPARTENANCE = ["utilisateur_societe"] as const;
  */
 export const TABLES_ADHESION = ["societe"] as const;
 
+/**
+ * LA DIXIÈME FORME — « RATTACHEMENT » (D92, ticket L2-12).
+ *
+ * **Le mur qu'elle abat, MESURÉ avant d'être contourné.** Un compte portail n'a
+ * **aucune** ligne dans `utilisateur_societe` — D10 le veut ainsi, « les deux
+ * tables sont exclusives » — et `utilisateur_client` portait la forme
+ * « habilitation », dont la première clause est `societe_id = app.societe_id`.
+ * Rien ne pouvait donc lui donner une société, et sans société il ne lisait pas
+ * son propre rattachement. *Mesuré le 11/09/2026 sous `codiplan_app`, avec
+ * témoin — zéro société sans contexte : **identité seule → 0 ligne**,
+ * identité + société → 3, et `utilisateur_societe` du compte portail → **0**.*
+ *
+ * **Aucun compte portail n'atteignait donc aucun écran.** C'est le mur de D61,
+ * rencontré une seconde fois, de l'autre côté : D61 rendait à un compte INTERNE
+ * la liste de ses sociétés ; celle-ci rend à un compte PORTAIL la liste de ses
+ * rattachements.
+ *
+ * **Ce que la forme ajoute** : une politique de `SELECT` ancrée sur
+ * `utilisateur_id = app.utilisateur_id`, qui rend à un compte SES lignes de
+ * rattachement, toutes sociétés confondues, et jamais celles d'autrui.
+ *
+ * **Le coût, nommé comme D61 et D67 ont nommé le leur** : *une personne apprend
+ * la liste des clients auxquels elle est déjà rattachée.* Elle ne rend ni leur
+ * NOM — `client` reste de forme « parc » —, ni aucune de leurs données, ni
+ * l'existence d'aucun autre client, ni les rattachements de quiconque d'autre.
+ *
+ * **Et ce qui la borne est la COMMANDE, pas la clause**, exactement comme pour
+ * la huitième et la neuvième : la même branche sur une écriture laisserait un
+ * compte **se rattacher au client de son choix**, c'est-à-dire s'ouvrir le parc
+ * d'un tiers. Elle est donc en `SELECT` et en `SELECT` seul, l'écriture restant
+ * entièrement gouvernée par la clause d'habilitation.
+ *
+ * Liste close gardée dans les DEUX sens : le **retrait** est le sens silencieux
+ * — il fait retomber la table sur la forme « habilitation », qui passe tous les
+ * gardiens, et le mur revient.
+ */
+export const TABLES_RATTACHEMENT = ["utilisateur_client"] as const;
+
+/** L'unique entrée que l'arbitrage D92 autorise. Recopiée, et gardée. */
+const RATTACHEMENT_ARBITRE = ["utilisateur_client"];
+
+/**
+ * Écarts de la liste de rattachement elle-même — additions comme retraits.
+ *
+ * Le RETRAIT est le sens silencieux, comme pour `TABLES_APPARTENANCE` et
+ * `TABLES_ADHESION` : la table retombe sur la forme « habilitation », qui PASSE
+ * — et aucun compte portail n'atteint plus aucun écran, sans qu'un seul
+ * scénario ne rougisse. L'ADDITION, elle, étendrait à une autre table une
+ * lecture hors de sa société.
+ */
+export function ecartsListeRattachement(
+  liste: readonly string[] = TABLES_RATTACHEMENT,
+): string[] {
+  const ecarts = liste
+    .filter((table) => !RATTACHEMENT_ARBITRE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée parmi les tables de rattachement : une de ` +
+        "ses lignes deviendrait lisible HORS de sa société, sur la seule " +
+        "identité de l'appelant. Toute addition passe par un arbitrage, elle " +
+        "ne se décide pas dans un ticket.",
+    );
+
+  for (const attendue of RATTACHEMENT_ARBITRE) {
+    if (!liste.includes(attendue)) {
+      ecarts.push(
+        `« ${attendue} » ne figure plus parmi les tables de rattachement : ` +
+          "elle retomberait sur la forme « habilitation » seule, et aucun " +
+          "compte portail n'atteindrait plus aucun écran — le mur que D92 " +
+          "abat, revenu sans qu'aucun scénario ne rougisse.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
 /** L'unique entrée que l'arbitrage D67 autorise. Recopiée, et gardée. */
 const ADHESION_ARBITREE = ["societe"];
 
@@ -922,6 +1000,16 @@ export function formeAttendue(table: string): Forme {
   }
   if ((TABLES_JOURNAL as readonly string[]).includes(table)) {
     return "journal";
+  }
+  // « RATTACHEMENT » A REMPLACÉ « HABILITATION » COMME FORME DE
+  // `utilisateur_client` (D92), et elle ne l'affaiblit pas : elle EXIGE tout ce
+  // que « habilitation » exigeait — ancrage société, discriminant
+  // `app.client_id`, pas de lecture circulaire du périmètre — et y ajoute la
+  // borne de la branche « mes rattachements ». Le test se fait AVANT celui de
+  // `TABLES_HABILITATION`, dont `utilisateur_client` reste membre : c'est ce
+  // qui garantit que les exigences de la huitième forme ne sont pas perdues.
+  if ((TABLES_RATTACHEMENT as readonly string[]).includes(table)) {
+    return "rattachement";
   }
   if (TABLES_HABILITATION.some((entree) => entree.table === table)) {
     return "habilitation";
@@ -1313,6 +1401,83 @@ function ecartsJournal(
  * tables. Une politique qui lit la variable que sa propre lecture alimente ne
  * se referme jamais.
  */
+/**
+ * LA DIXIÈME FORME — « rattachement » (D92, ticket L2-12).
+ *
+ * Elle est « habilitation » PLUS une branche, et c'est ainsi qu'elle est
+ * écrite : les politiques ancrées sur la société sont jugées par
+ * `ecartsHabilitation`, mot pour mot, et cette fonction ne juge que ce que la
+ * dixième forme AJOUTE. *Réécrire les exigences de la huitième ici en ferait
+ * deux lectures d'un même critère, condamnées à diverger (§9, 01/09).*
+ */
+function ecartsRattachement(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const ecarts: string[] = [];
+  let propreLigneEnLecture = 0;
+
+  const ancreesSurLIdentite = politiques.filter((politique) =>
+    clausesGardiennes(politique).some(
+      (clause) => !ancre(clause, "societe_id") && ancreUtilisateur(clause),
+    ),
+  );
+
+  for (const politique of ancreesSurLIdentite) {
+    const commande = politique.commande.toUpperCase();
+    if (commande !== "SELECT") {
+      // LE CŒUR DU GARDIEN. Une branche « mon rattachement » sur une commande
+      // d'écriture laisse un compte SE RATTACHER au client de son choix,
+      // c'est-à-dire s'ouvrir le parc d'un tiers — la fuite exacte que la
+      // forme « parc » existe pour empêcher.
+      ecarts.push(
+        entete(table, "rattachement") +
+          `la politique « ${politique.nom} » porte l'ancrage « mon ` +
+          `rattachement » sur ${commande}, et non sur SELECT seul. Un compte ` +
+          "pourrait alors ÉCRIRE son propre rattachement : se donner le " +
+          "client de son choix, et lire son parc. La branche de D92 est une " +
+          "lecture, et rien d'autre.",
+      );
+      continue;
+    }
+    propreLigneEnLecture += 1;
+  }
+
+  // Tout le reste — ancrage société, discriminant `app.client_id`, absence de
+  // lecture circulaire du périmètre — est jugé par la huitième forme, sur les
+  // politiques qui ne portent PAS la branche d'identité.
+  const societeSeules = politiques.filter(
+    (politique) => !ancreesSurLIdentite.includes(politique),
+  );
+  ecarts.push(...ecartsHabilitation(table, societeSeules));
+
+  // TÉMOIN DE NON-VACUITÉ — zéro branche « mon rattachement » en `SELECT`,
+  // c'est le mur de D92 revenu, et il ne se signale pas tout seul.
+  if (politiques.length > 0 && propreLigneEnLecture === 0) {
+    ecarts.push(
+      entete(table, "rattachement") +
+        "aucune de ses politiques ne porte la branche « mon rattachement » en " +
+        "`SELECT`. La table retombe sur la forme « habilitation », et aucun " +
+        "compte portail n'atteint plus aucun écran : il n'a pas de ligne dans " +
+        "`utilisateur_societe` (D10), donc aucune société, donc aucune " +
+        "lecture de son propre rattachement.",
+    );
+  }
+  // TÉMOIN INVERSE — zéro politique ancrée sur la société, c'est le
+  // cloisonnement perdu, et `ecartsHabilitation` ne le dit pas sur une
+  // population vide.
+  if (politiques.length > 0 && societeSeules.length === 0) {
+    ecarts.push(
+      entete(table, "rattachement") +
+        "aucune de ses politiques n'est ancrée sur " +
+        "`societe_id = app.societe_id` : le cloisonnement société a disparu, " +
+        "et il ne reste que la branche d'identité.",
+    );
+  }
+
+  return ecarts;
+}
+
 function ecartsHabilitation(
   table: string,
   politiques: readonly PolitiqueObservee[],
@@ -1497,6 +1662,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsFiliation(table, siennes));
     } else if (forme === "appartenance") {
       ecarts.push(...ecartsAppartenance(table, siennes, colonne));
+    } else if (forme === "rattachement") {
+      ecarts.push(...ecartsRattachement(table, siennes));
     } else if (forme === "adhésion") {
       ecarts.push(...ecartsAdhesion(table, siennes));
     } else {

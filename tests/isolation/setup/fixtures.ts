@@ -249,6 +249,18 @@ export const PORTAIL_B_CLIENT = "bbbbbbbb-0000-7000-8000-0000000000d4";
  */
 export const PORTAIL_A2_CLIENT = "aaaaaaaa-0000-7000-8000-0000000000d6";
 
+/**
+ * Un compte portail rattaché à DEUX sociétés — le cas de RG-SOC-03, côté client.
+ *
+ * *Une même personne travaille légitimement pour deux sociétés*, et cela vaut
+ * pour un contact client autant que pour un salarié : le même acheteur peut
+ * suivre un parc chez CODIMA-NC et un autre chez CODIMA-EU. Sans cette fixture,
+ * la question « un compte portail atteint-il les écrans de ses DEUX sociétés ? »
+ * ne se mesurerait sur rien — et un scénario qui ne voit qu'une société là où
+ * il n'en existe qu'une ne prouve rien (le témoin de non-vacuité de D92).
+ */
+export const PORTAIL_DEUX_SOCIETES = "aaaaaaaa-0000-7000-8000-0000000000d7";
+
 /** L'entrée de périmètre du compte portail A1 : le site S1, et lui seul. */
 export const PERIMETRE_A1_S1 = "aaaaaaaa-0000-7000-8000-0000000000e1";
 

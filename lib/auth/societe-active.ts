@@ -7,7 +7,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { type ContexteActif } from "./contexte";
 import { avecPlancherDeDuree, motifRefusUniforme } from "./reponse-uniforme";
-import { exigeSecondFacteur, Role } from "./roles";
+import { exigeSecondFacteur, Role, ROLE_PORTAIL } from "./roles";
 
 /**
  * Bascule de société active (ticket L0-06).
@@ -311,15 +311,55 @@ export async function habilitationsDuCompte(
   utilisateurId: string,
   client: PrismaClient = clientParDefaut,
 ): Promise<Habilitation[]> {
-  const lignes = await avecIdentite(client, utilisateurId, (tx) =>
-    tx.utilisateurSociete.findMany({
-      where: { utilisateur_id: utilisateurId },
-      select: { societe_id: true, role: true },
-      orderBy: { societe_id: "asc" },
-    }),
-  );
-  return lignes.map((ligne) => ({
+  // ── DEUX TABLES, PARCE QUE D10 LES A VOULUES EXCLUSIVES (D92) ───────────
+  //
+  // Un compte INTERNE est habilité par `utilisateur_societe` ; un compte
+  // PORTAIL par `utilisateur_client`, et il n'a **aucune** ligne dans la
+  // première — « les deux tables sont exclusives » (D10). Ne lire que la
+  // première rendait donc `[]` pour tout compte portail : *aucun n'atteignait
+  // aucun écran*, et rien ne le disait (mesuré le 11/09/2026 : identité seule
+  // → 0 ligne d'`utilisateur_client`, et 0 ligne d'`utilisateur_societe`).
+  //
+  // Les deux lectures se font sous la forme « identité » — sans société —, et
+  // chacune est bornée par SA politique : « appartenance » (D61) pour la
+  // première, « rattachement » (D92) pour la seconde. C'est le même partage que
+  // `societesDuCompte` fait entre habilitations et noms, et pour la même
+  // raison : on voit alors ce que chacune rend.
+  const [internes, portail] = await Promise.all([
+    avecIdentite(client, utilisateurId, (tx) =>
+      tx.utilisateurSociete.findMany({
+        where: { utilisateur_id: utilisateurId },
+        select: { societe_id: true, role: true },
+        orderBy: { societe_id: "asc" },
+      }),
+    ),
+    avecIdentite(client, utilisateurId, (tx) =>
+      tx.utilisateurClient.findMany({
+        where: { utilisateur_id: utilisateurId, actif: true },
+        select: { societe_id: true },
+        orderBy: { societe_id: "asc" },
+      }),
+    ),
+  ]);
+
+  const habilitations: Habilitation[] = internes.map((ligne) => ({
     societeId: ligne.societe_id,
     role: ligne.role,
   }));
+
+  // LE RÔLE D'UN COMPTE PORTAIL EST IMPLICITE, et c'est `lireRole` qui le dit
+  // déjà : « un compte portail est un client, jamais autre chose ». Il est
+  // recopié ici et non déduit d'une colonne, parce qu'aucune colonne ne le
+  // porte — et un rattachement à DEUX clients d'une même société ne fait
+  // qu'UNE habilitation : c'est la société qu'on choisit, pas le client (D70).
+  const dejaVues = new Set(habilitations.map((h) => h.societeId));
+  for (const ligne of portail) {
+    if (dejaVues.has(ligne.societe_id)) {
+      continue;
+    }
+    dejaVues.add(ligne.societe_id);
+    habilitations.push({ societeId: ligne.societe_id, role: ROLE_PORTAIL });
+  }
+
+  return habilitations.sort((a, b) => a.societeId.localeCompare(b.societeId));
 }

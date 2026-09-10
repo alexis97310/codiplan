@@ -22,6 +22,8 @@
 7. **Ouvrir le premier compte réel depuis GitHub**, en six clics également (§9). Le flux imprime **une fois** une URL de premier accès.
 8. **Suivre cette URL**, choisir un mot de passe, activer le second facteur. **Vous êtes en ligne.**
 
+**Le geste 8 fonctionne depuis le 12/09/2026, et pas avant.** *Mesuré le 11/09 en suivant un lien réellement émis : la chaîne aboutissait à `/premier-acces?token=…`, et cette page **n'existait pas** — 404.* Elle existe désormais. Deux corollaires pour qui reprendra cette note : le geste 7 délivrait une URL qui ne menait nulle part, et le seed n'attribuant aucun mot de passe, **une base neuve n'avait aucune porte d'entrée** — sans que rien ne le dise.
+
 **Les gestes 1, 2, 3 et 3 bis exigent un compte, un secret ou un paiement : ils vous appartiennent, et personne d'autre ne peut les faire à votre place.** Les gestes 4 et 7 exigeaient un terminal jusqu'au 09/09/2026 ; ils sont désormais **cliquables depuis un téléphone**, et §9 dit ce que cela coûte.
 
 ---
@@ -169,6 +171,30 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 | `.env.example` | modèle | il ne contient aucune valeur réelle (I9) |
 
 **La base hébergée contient aujourd'hui des données de DÉMONSTRATION**, et rien d'autre. Ce n'est pas un défaut : c'est ce que L0-03 demandait. Mais cela veut dire qu'une mise en ligne rend publiques deux sociétés fictives, pas un produit vide.
+
+---
+
+## 4 bis — CE QUI RESTE À OUVRIR, ET QUAND (lots 8 et 9)
+
+*Cette section liste ce que le produit exigera de vous **et que le dépôt ne peut pas faire à votre place**. Elle est écrite d'avance, pour qu'aucun lot n'arrive en vous demandant un compte le jour de sa livraison.*
+
+### Un STOCKAGE D'OBJETS — pour le lot 8 (documentation des machines)
+
+**Ce qu'il faut ouvrir** : un espace de stockage compatible S3 **chez l'hébergeur de la base**, dans la **même région** qu'elle. C'est un compte, un identifiant et un paiement : le geste vous appartient.
+
+**Pourquoi la même région, et ce n'est pas une préférence.** La latence vers Sydney est déjà de l'ordre de 190 ms (mesurée le 23/08/2026, et c'est elle qui a fait échouer le seed en P2028). Un stockage situé ailleurs ajouterait un second aller-retour transcontinental à chaque photo de plaque — sur un téléphone, en brousse, avec un réseau qui va et vient.
+
+**Ce que vous devrez déposer**, le jour venu, chez l'hébergeur d'application : l'URL du point d'accès, la clé, le secret et le nom du bac. **Quatre variables, et pas une de plus** — elles suivront la même règle que les trois du §1 : jamais dans le dépôt (I9).
+
+**Ce qui NE vous attend PAS** : rien du lot 8 ne dépend de ce compte pour être écrit. Le stockage passe derrière une interface, avec une implémentation locale de développement ; le jour où le compte existe, on branche l'autre implémentation **sans toucher au reste**. *Ce que vous ouvrirez est un fournisseur, pas une fonctionnalité.*
+
+**Ce que vous devrez décider, et que personne ne décidera pour vous** : la durée de conservation des documents, et qui, chez vos clients, a le droit de les télécharger. Le second est déjà à moitié tranché — un rapport de VGP est de classe `client` (D88, point 9) —, le premier ne l'est pas du tout.
+
+### Rien d'autre — et le lot 9 en particulier n'exige RIEN
+
+**Le registre des VGP ne demande aucun compte, aucun secret, aucun paiement.** Il enregistre ce qu'un organisme agréé a écrit ; il ne commande aucune visite, il n'appelle personne. *La commande des visites aux organismes est hors V1, et elle viendra le jour où vous vendrez ce service — c'est le registre rempli qui vous le permettra, pas l'inverse* (D88).
+
+**Ce que le lot 9 vous demandera, en revanche, est du TEMPS et pas de l'argent** : la périodicité de chaque famille de matériel, et **la référence du texte qui la fonde**. Le dépôt n'en invente aucune — la Nouvelle-Calédonie a son propre code du travail, et le §8 du CLAUDE.md interdit d'inventer un délai. *Une famille dont personne n'a renseigné la périodicité apparaît dans la liste des « à déterminer », et elle y reste : c'est voulu.*
 
 ---
 

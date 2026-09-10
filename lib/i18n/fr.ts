@@ -76,6 +76,75 @@ export const fr = {
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
+  // L'ENTRÉE — le lien qui manquait, et sans lequel un écran n'a pas d'appelant.
+  "arrivee.entrer.portail": "Voir votre parc",
+  "arrivee.entrer.planning": "Ouvrir le planning",
+
+  // Registre des VGP — CODIPLAN n'affirme jamais la conformité (lot 9, D88).
+  // Il enregistre ce qu'un organisme agréé a écrit, et ne calcule que des dates.
+  "vgp.periodicite_requise":
+    "Déclarer ce matériel soumis exige une périodicité : sans elle, personne ne sait quand la prochaine visite est due.",
+  "vgp.reference_requise":
+    "Indiquez le texte qui fonde cette périodicité. Sans lui, c'est un chiffre que personne ne pourra défendre.",
+  "vgp.motif_requis":
+    "Une exception ne se pose jamais sans sa raison : écrivez le motif, pour que quelqu'un puisse la rejuger.",
+  "vgp.motif_orphelin":
+    "Ce motif n'explique aucune exception. Posez l'exception, ou retirez le motif.",
+  "vgp.a_determiner":
+    "À déterminer — personne n'a encore examiné si ce matériel est soumis.",
+  "vgp.hors_registre": "Hors registre",
+  "vgp.sans_information": "Sans information",
+  "vgp.information_recue": "Dernière information reçue",
+
+  // Portail client — CONSULTATION SEULE (L2-12, D92).
+  "portail.titre": "Votre parc",
+  "portail.sous_titre":
+    "Ce que CODIMA suit pour vous. Cette page est en consultation seule.",
+  // LE VOCABULAIRE IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11) : la notion se nomme par
+  // `mot("site")`, et ces libellés portent tout SAUF le mot. Une clé
+  // « Vos sites » aurait recopié dans le dictionnaire ce dont `vocabulaire.ts`
+  // est la seule maison.
+  "portail.vos": "Vos",
+  "portail.machines": "Vos machines",
+  "portail.machine.serie": "Numéro de série",
+  "portail.machine.localisation": "Emplacement",
+  "portail.machine.statut": "État",
+  "portail.machine.mise_en_service": "Mise en service",
+  "portail.sans_machine":
+    "Aucune machine ne figure à votre parc pour le périmètre qui vous est ouvert.",
+  "portail.sans_lieu":
+    "Aucun lieu d'intervention ne vous est ouvert. Signalez-le à votre interlocuteur CODIMA.",
+  "portail.perimetre":
+    "Vous ne voyez que les lieux sur lesquels votre compte est habilité.",
+  "portail.client": "Client",
+  "portail.documents": "Documents",
+  "portail.documents.a_venir":
+    "Les documents de cette machine ne sont pas encore consultables ici.",
+  "portail.vgp": "Contrôle réglementaire (VGP)",
+  "portail.vgp.sans_information":
+    "Sans information — CODIPLAN n'enregistre pas encore les contrôles de cette machine. Ce n'est ni « à jour », ni « en retard ».",
+  "portail.reserve": "Cet écran est réservé aux comptes de portail client.",
+
+  // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
+  // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
+  // seule porte d'entrée d'une base neuve rendait 404.
+  "premier_acces.titre": "Choisissez votre mot de passe",
+  "premier_acces.accroche":
+    "Ce lien ne sert qu'une fois. Le mot de passe que vous choisissez ici est le vôtre : personne d'autre ne le connaît, et il ne peut plus être réémis par ce chemin.",
+  "premier_acces.mot_de_passe": "Nouveau mot de passe",
+  "premier_acces.confirmation": "Confirmez le mot de passe",
+  "premier_acces.valider": "Enregistrer et se connecter",
+  "premier_acces.sans_jeton":
+    "Ce lien de premier accès est incomplet. Demandez-en un nouveau à la personne qui vous l'a transmis.",
+  "premier_acces.refuse":
+    "Ce lien n'est plus valide, ou le mot de passe n'a pas été accepté. Demandez un nouveau lien à la personne qui vous l'a transmis.",
+  "premier_acces.discordance":
+    "Les deux mots de passe saisis ne sont pas identiques.",
+  "premier_acces.trop_court":
+    "Le mot de passe doit compter au moins huit caractères.",
+  "premier_acces.abouti":
+    "Votre mot de passe est enregistré. Connectez-vous avec.",
+
   // Enrôlement du second facteur — la seule transition en libre-service (D58).
   "enrolement.titre": "Activer votre second facteur",
   "enrolement.accroche":
