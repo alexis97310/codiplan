@@ -570,6 +570,26 @@ lib/
               rend des CODES, jamais du texte : les libellés sont au
               dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
               un humain (I6, RG-IMP-01)
+              rapprochement.ts : ce qu'une ligne DÉSIGNE, et ce qu'elle ne
+              désigne pas — écrit contre les MESURES du fichier réel, jamais
+              contre une idée de ce qu'un fichier contient d'habitude
+              la clé tolère l'absence de série SANS fabriquer de doublon : les
+              trois espaces de clés — série nue, référence préfixée `SN-INCONNU-`,
+              rang préfixé `LIGNE-` — sont DISJOINTS, et c'est prouvé plutôt
+              qu'espéré ; deux lignes muettes ne sont pas la même machine
+              72 % de l'historique ne se rattache À RIEN et se reprend QUAND
+              MÊME : « non rattachée » est une ISSUE, jamais un rejet — les
+              écarter perdrait les trois quarts de l'historique
+              le rapprochement se fait sur la CLÉ, jamais sur une ressemblance :
+              un rattachement faux attribue une facture à la mauvaise machine,
+              et plus personne ne saura qu'il était automatique
+              une ligne de GABARIT n'est ni une donnée ni un vide — 652 lignes
+              pour 55 codes réels, et les rejeter ferait 597 erreurs sur un
+              fichier sain, c'est-à-dire la panne par le bruit
+              le total du rapport EXPLIQUE chaque ligne lue : « non rattachée »
+              et « incomplète » QUALIFIENT des lignes déjà comptées, elles ne
+              s'additionnent pas — sinon le témoin dirait faux dans le sens
+              rassurant
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société
