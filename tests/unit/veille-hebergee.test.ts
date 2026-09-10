@@ -158,6 +158,28 @@ const HORS_OBSERVATION: readonly {
     justification: "témoins de l'inventaire comparé, indissociables de lui.",
   },
   {
+    fonction: "ecartsMesureVide",
+    justification:
+      "juge la CONFRONTATION de l'inventaire à la lecture applicative — elle " +
+      "refuse un vert obtenu en comparant zéro à zéro. La veille ne compare " +
+      "rien : elle n'écrit pas, donc n'a pas d'inventaire face à quoi lire.",
+  },
+  {
+    fonction: "ecartsCouverture",
+    justification:
+      "lit le SCHÉMA du dépôt, pas la base : elle exige que toute table du " +
+      "schéma soit comptée, témoin ou exemptée. C'est un gardien statique, " +
+      "joué par `pnpm verify` sur le dépôt, et la veille n'a aucun fichier à " +
+      "lire — elle tourne sous le rôle applicatif contre la base hébergée.",
+  },
+  {
+    fonction: "ecartsPopulation",
+    justification:
+      "même chose, sous son autre nom : c'est `ecartsCouverture` appliquée au " +
+      "schéma du dépôt. Elle est jouée là où elle mord — au début de " +
+      "l'inventaire et du contrôle de cloisonnement, AVANT toute mesure.",
+  },
+  {
     fonction: "ecartsListeDesignation",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_DESIGNATION`), pas la base — même " +

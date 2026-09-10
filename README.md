@@ -873,6 +873,11 @@ scripts/      inventaire, contrôle de cloisonnement (privilèges compris), hori
               amorcage-premier-compte.mts = l'ouverture de la PREMIÈRE identité
               d'une société (D65) — provisoire par construction, son retrait est
               gardé par la machine
+              lib/schema-prisma.ts = LA lecture du schéma Prisma, partagée par
+              les gardiens statiques ET par les scripts d'exploitation (10/09)
+              lib/tables-comptees.ts = LA population de l'inventaire, PRODUITE
+              par le schéma : toute table y est comptée, témoin, ou exemptée
+              nommément avec son motif
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```

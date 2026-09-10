@@ -15,10 +15,9 @@ import {
   tablesHorsDomaine,
   tablesPremiereCategorieI1,
   type Exemption,
-  type TableObservee,
 } from "../../../scripts/lib/perimetre-audit";
 import { migrationsSql, sansCommentairesSql } from "../outils/migrations-sql";
-import { lireSchema, modelesDuSchema } from "../outils/schema-prisma";
+import { lireSchema, observeesDuSchema } from "../outils/schema-prisma";
 
 /**
  * Gardien du PÉRIMÈTRE du journal d'audit (ticket L0-10, invariant I8,
@@ -141,22 +140,15 @@ export function tablesDeclenchees(
  * Le schéma, réduit à ce dont le périmètre a besoin : le nom de chaque table et
  * l'obligation de sa colonne `societe_id`.
  *
- * **Le `?` compte**, et c'est la même lecture que le gardien d'exhaustivité de
- * D41 : un `societe_id String?` est la forme des référentiels surchargeables
- * (D4), pas celle d'une table métier. Un test plus bas confronte les deux
- * lectures sur le schéma réel — deux implémentations d'une même définition ne
- * doivent pas pouvoir diverger en silence.
+ * **La lecture a déménagé dans `scripts/lib/schema-prisma.ts` le 10/09/2026**,
+ * pour que les SCRIPTS d'exploitation puissent en partir eux aussi — c'est
+ * l'impossibilité de le faire qui a produit la cécité de l'inventaire. Le `?`
+ * compte, et c'est la même lecture que le gardien d'exhaustivité de D41 : un
+ * `societe_id String?` est la forme des référentiels surchargeables (D4), pas
+ * celle d'une table métier. Un test plus bas confronte les deux lectures sur le
+ * schéma réel — deux implémentations d'une même définition ne doivent pas
+ * pouvoir diverger en silence.
  */
-export function observeesDuSchema(schema: string): TableObservee[] {
-  return modelesDuSchema(schema).map(({ table, champs }) => {
-    const cloisonnement = champs.find((champ) => champ.nom === "societe_id");
-    return {
-      table,
-      societeIdObligatoire:
-        cloisonnement !== undefined && !cloisonnement.type.endsWith("?"),
-    };
-  });
-}
 
 /**
  * Écarts entre ce que D55 exige et ce que les MIGRATIONS font réellement.
