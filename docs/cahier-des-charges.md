@@ -964,6 +964,8 @@ dans la table `parite` ci-dessous.*
 
 **document** — rattaché au **modèle** ou à la **machine**, jamais aux deux : classe de visibilité (`client` / `interne`), libellé, nom de fichier, type MIME, taille, empreinte SHA-256, clé d'objet dans le stockage, `date_document`, `date_expiration`. *(La forme polymorphe « machine, contrat, client ou intervention » est **remplacée par D87** — deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1` —, et son cloisonnement est arrêté par **D93** : forme « héritage », la cible est visible et la classe rétrécit. « embarqué mobile » n'est pas repris : le cache hors ligne est décidé au lot 3, pas par une colonne posée d'avance.)*
 
+**document_recu** — le BAC DE RÉCEPTION (L8-07) : société, empreinte SHA-256 *(unique par société — la déduplication est tenue par l'index, jamais par une lecture applicative)*, nom de fichier, type MIME, taille, clé d'objet, clé de l'aperçu de première page, statut (`a_traiter`, `classe`, `ecarte`), document produit, motif d'écartement. *Les deux états terminaux portent chacun leur preuve, et la base tient l'équivalence dans les deux sens.*
+
 **utilisateur** — email, hash du mot de passe, actif, dernière connexion, MFA. **utilisateur_societe** — utilisateur, société, rôle : c'est cette table qui porte l'habilitation multi-société.
 
 **import_lot** — société, type d'import, utilisateur, horodatage, nom du fichier, url du fichier source, lignes créées / modifiées / rejetées, statut (controle, applique, annule). *(`date_limite_annulation` est supprimée par D54 : l'annulation n'est plus bornée par un délai.)*

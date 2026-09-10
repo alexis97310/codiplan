@@ -97,7 +97,8 @@ model Societe {
 
   interventions Intervention[]
 
-  documents Document[]
+  documents       Document[]
+  documents_recus DocumentRecu[]
 
   id                            String  @id @db.Uuid
   code                          String  @unique // préfixe de numérotation
@@ -1924,8 +1925,79 @@ model Document {
   modele  ModeleMateriel? @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   machine Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
+  /// Les fichiers du bac qui ont produit cette fiche (L8-07).
+  recus DocumentRecu[]
+
+  /// Cible du chaînage composite que `document_recu` pose (L8-07).
+  @@unique([societe_id, id])
   @@index([societe_id, modele_id])
   @@index([societe_id, machine_id])
   @@index([societe_id, empreinte])
   @@map("document")
+}
+
+/// LES TROIS ÉTATS D'UN FICHIER DU BAC (L8-07).
+///
+/// `a_traiter` est la NAISSANCE : un fichier déposé n'est ni classé ni écarté.
+/// Les deux autres sont TERMINAUX et portent chacun leur preuve — une fiche
+/// pour l'un, un motif pour l'autre, et la base tient les DEUX SENS.
+enum StatutDocumentRecu {
+  a_traiter
+  classe
+  ecarte
+}
+
+/// LE BAC DE RÉCEPTION (L8-07, D87, D94).
+///
+/// Un fichier déposé AVANT tout rapprochement. **Il PROPOSE, il ne classe
+/// jamais seul** : *un rapprochement faux accroche la notice d'un compresseur à
+/// un pont élévateur, et personne ne le voit avant qu'un technicien suive la
+/// mauvaise procédure.* C'est une question de sécurité, pas de qualité de
+/// données — et c'est ce qui interdit l'automatisme silencieux.
+///
+/// Forme de politique « interne » (D94) : société ET `app.client_id` absent. Le
+/// bac nomme des FICHIERS, et `notice-KPX-337.pdf` dit qu'un pont élévateur
+/// existe quelque part — la fuite exacte que D93 ferme un étage plus haut.
+model DocumentRecu {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// L'empreinte SHA-256 des octets. **Unique par société, et c'est la BASE qui
+  /// le tient** : une déduplication écrite en code lit puis écrit, et entre les
+  /// deux un second dépôt du même fichier passe — or le bac est justement
+  /// l'endroit où l'on redépose, un téléversement de plusieurs gigaoctets
+  /// depuis Nouméa se coupant et se reprenant.
+  ///
+  /// Par société et non globalement : deux sociétés qui exploitent le même
+  /// matériel déposent légitimement la même notice.
+  empreinte String
+
+  nom_fichier   String
+  type_mime     String
+  taille_octets BigInt
+
+  objet_cle        String
+  /// L'aperçu de la PREMIÈRE PAGE — *la couverture porte la marque et le
+  /// modèle, l'œil fait le travail, pas la reconnaissance de caractères.*
+  /// Nullable, et **aucun code ne la remplit** : le stockage n'a pas d'appelant.
+  apercu_objet_cle String?
+
+  statut StatutDocumentRecu @default(a_traiter)
+
+  /// La fiche produite par le classement, et le motif de l'écartement. Chacune
+  /// est liée à son état par une ÉQUIVALENCE en base, dans les deux sens : ni
+  /// classé sans fiche, ni fiche sans classement ; ni écarté sans motif, ni
+  /// motif sans écartement. *Le second sens est celui qu'on oublie.*
+  document_id  String? @db.Uuid
+  ecarte_motif String?
+
+  recu_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe  Societe   @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  document Document? @relation(fields: [societe_id, document_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, empreinte])
+  @@index([societe_id, statut])
+  @@map("document_recu")
 }

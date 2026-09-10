@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   TABLES_ASCENDANCE,
   TABLES_HERITAGE,
+  TABLES_INTERNES,
   ecartsListeAscendance,
   ecartsListeHeritage,
+  ecartsListeInterne,
   ecartsPolitiques,
   formeAttendue,
   type ColonneSociete,
@@ -121,11 +123,59 @@ describe("la liste close de la DOUZIÈME forme — « ascendance »", () => {
   });
 });
 
-describe("`formeAttendue` range les trois tables où il faut", () => {
+describe("la liste close de la TREIZIÈME forme — « interne »", () => {
+  it("l'état du dépôt n'a aucun écart", () => {
+    expect(ecartsListeInterne()).toEqual([]);
+  });
+
+  it("elle ne porte QUE le bac, et D94 dit ce qu'elle laisse ouvert", () => {
+    // La forme ferme la table qu'elle crée ; elle ne prétend PAS fermer la
+    // classe. `taux_horaire`, `forfait`, `agence` posent la même question
+    // aujourd'hui, et D94 l'écrit avec sa condition de réouverture plutôt que
+    // de l'étendre en séance.
+    expect([...TABLES_INTERNES]).toEqual(["document_recu"]);
+  });
+
+  it("une ADDITION est refusée — c'est un arbitrage, pas une commodité", () => {
+    const ecarts = ecartsListeInterne(["document_recu", "taux_horaire"]);
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toContain("taux_horaire");
+  });
+
+  it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi", () => {
+    const ecarts = ecartsListeInterne([]);
+    expect(ecarts).toHaveLength(1);
+    expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
+  });
+
+  it("la clause écrite en base PASSE, et celle sans discriminant est refusée", () => {
+    const interne =
+      `(societe_id = (NULLIF(current_setting('app.societe_id'::text, true), ''::text))::uuid) ` +
+      `AND (NULLIF(current_setting('app.client_id'::text, true), ''::text) IS NULL)`;
+    expect(
+      ecartsPolitiques(
+        [colonne("document_recu")],
+        [politique("document_recu", interne)],
+      ),
+    ).toEqual([]);
+
+    // LA FAUTE TELLE QU'ELLE SE COMMETTRAIT : la clause de société seule, celle
+    // que onze tables portent, et qu'un compte portail muni d'une société lit.
+    const societeSeule = `societe_id = (NULLIF(current_setting('app.societe_id'::text, true), ''::text))::uuid`;
+    const ecarts = ecartsPolitiques(
+      [colonne("document_recu")],
+      [politique("document_recu", societeSeule)],
+    );
+    expect(ecarts.join("\n")).toMatch(/app\.client_id/);
+  });
+});
+
+describe("`formeAttendue` range les quatre tables où il faut", () => {
   it("et le voisin qui LEUR RESSEMBLE reste sous « société »", () => {
     expect(formeAttendue("document")).toBe("héritage");
     expect(formeAttendue("modele_materiel")).toBe("ascendance");
     expect(formeAttendue("famille_materiel")).toBe("ascendance");
+    expect(formeAttendue("document_recu")).toBe("interne");
     // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : `habilitation` est
     // une table de référentiel métier de la même famille de noms, et elle n'a
     // rien à voir. Si `formeAttendue` se mettait à ranger par ressemblance, ce

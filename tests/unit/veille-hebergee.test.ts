@@ -251,6 +251,13 @@ const HORS_OBSERVATION: readonly {
       "`ecartsPolitiques` sur `modele_materiel` et `famille_materiel`.",
   },
   {
+    fonction: "ecartsListeInterne",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_INTERNES`, D94), pas la base — même " +
+      "raison que `ecartsListeHeritage`, et la forme reste observée par " +
+      "`ecartsPolitiques` sur `document_recu`.",
+  },
+  {
     fonction: "ecartsListeHorsDomaine",
     justification:
       "garde une LISTE DU DÉPÔT (la frontière du domaine d'audit), pas la base.",

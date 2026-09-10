@@ -114,6 +114,33 @@ export type ContexteActif = ContexteSession & {
  * silence le discriminant de la forme « habilitation » (L1-02b), qui distingue
  * précisément le compte portail de tous les autres.
  */
+/**
+ * LA SOCIÉTÉ ACTIVE, EXIGÉE — une seule maison pour ce contrôle.
+ *
+ * `avecContexteApplicatif` refuse déjà un contexte sans société. Ce contrôle est
+ * là pour que le TYPE soit `string` et non `string | null` au moment d'écrire
+ * une colonne `societe_id`, et pour que l'appel n'ait pas à le savoir.
+ *
+ * **Il vivait en TROIS copies** — `lib/clients/depot.ts`, `lib/sites/depot.ts`,
+ * et il allait en recevoir une quatrième au lot 8. Trois écritures d'un même
+ * critère, chacune juste, que rien ne confrontait : c'est la faute du §9
+ * (01/09), et la parade qu'il prescrit est celle-ci — *« soit on la remplace
+ * par un appel à la première, ce qui est presque toujours possible et presque
+ * toujours meilleur »*. Les trois appellent désormais celle-là.
+ *
+ * Le message est destiné à un DÉVELOPPEUR : il ne passe pas par le dictionnaire
+ * (`lib/i18n/fr.ts`, la coupure de L0-11).
+ */
+export function exigerSocieteActive(contexte: ContexteSession): string {
+  if (contexte.societeId === null) {
+    throw new Error(
+      "Aucune société active : `avecContexteApplicatif` aurait dû refuser " +
+        "cette transaction avant d'en arriver ici.",
+    );
+  }
+  return contexte.societeId;
+}
+
 export function motifRefusContexte(contexte: ContexteSession): string | null {
   if (contexte.societeId === null) {
     return (

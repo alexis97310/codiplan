@@ -3084,3 +3084,33 @@ La fuite est identique un étage plus haut : une famille « ponts élévateurs �
 *Le jour où un compte portail devra voir la documentation d'un matériel qu'il n'a pas encore reçu — une notice envoyée avant la livraison —, l'ascendance ne suffira plus : elle est ancrée sur l'existence d'une machine, par construction.* Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, et il devra dire **ce qui remplace la machine comme preuve du lien** — une commande, un contrat, un rattachement explicite. Le critère se vérifie : la clause porte `EXISTS (SELECT 1 FROM machine …)`, ou elle ne le porte plus.
 
 *Aucune règle du chapitre 10 n'est amendée — le chapitre n'y traite pas de la documentation des machines. Le chapitre 11 reçoit en revanche la forme réelle de `document`, que D87 avait annoncée « au moment du ticket » : elle y était encore décrite comme « polymorphe rattachée à machine, contrat, client ou intervention ».*
+
+---
+
+## D94 — LA TREIZIÈME FORME : « interne ». Le bac nomme des fichiers, et un nom de fichier révèle le parc
+
+*Décision de session du 13 septembre 2026, prise au ticket L8-07 et écrite avec sa condition de réouverture. **Elle n'a pas été demandée** : elle est née d'une mesure faite dans le ticket qui la crée, et c'est ce qui la rend intéressante à relire.*
+
+### CE QUI A ÉTÉ VU, ET QUAND
+
+D93 venait de fermer, le matin même, une fuite qui ne passe pas par les données mais par la LISTE : *la présence d'une notice révèle la composition du parc des autres sites.* Le bac de réception, écrit l'après-midi, porte des **noms de fichiers** — `notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part dans la société.
+
+Or **une table de forme « société » est lisible par un compte portail** : sa clause ne lit pas `app.client_id`. Donner cette forme au bac aurait **rouvert par la porte de service ce qu'on fermait par la porte principale, dans le ticket même qui la ferme.**
+
+*Mesuré, avec le jumeau : la politique du bac remplacée par la clause de société seule, un compte portail du client A1 lit `notice-KPX-337.pdf`. Le témoin qui rend la mesure lisible est que le MÊME compte, au MÊME instant, lit bien ses propres documents — ce n'est donc pas la session qui est muette, c'est le bac qui est fermé.*
+
+### LA DÉCISION
+
+**`document_recu` porte la forme « interne » : société ET `app.client_id` absent.** *Une table interne n'est pas lisible par un compte portail, quel que soit son client.* Le discriminant est celui des formes « habilitation » et « ascendance », employé ici dans son sens le plus simple.
+
+**LE COÛT, NOMMÉ** : aucun, pour le portail — il n'a jamais rien eu à faire dans le bac. Le coût réel est ailleurs, et il est de méthode : **une treizième forme dans une session qui en avait déjà pris deux.** Elle se justifie parce qu'elle ferme une fuite mesurée, pas parce qu'elle range mieux.
+
+### CE QU'ELLE DÉCOUVRE ET NE TRANCHE PAS — c'est la partie qui compte
+
+**`taux_horaire`, `forfait`, `agence`, `habilitation` et les autres tables de forme « société » sont dans le MÊME CAS AUJOURD'HUI.** Un compte portail muni d'une société les lirait : la grille tarifaire, le catalogue de forfaits, la liste des agences. Aucun écran ne les lui donne — c'est le seul motif pour lequel personne ne l'a vu.
+
+**Cette forme ne prétend donc pas fermer la classe : elle ferme la table qu'elle crée, et écrit ce qu'elle laisse ouvert.** L'étendre en séance aux dix tables concernées aurait été un arbitrage bien plus large qu'un ticket de bac de réception, pris sans mesure sur chacune — *exactement le geste que « une addition passe par un arbitrage » existe pour empêcher.*
+
+**CONDITION DE RÉOUVERTURE, vérifiable et non interprétable** : *le jour où un écran ou une route de portail lit une table de forme « société », la question du discriminant `app.client_id` sur les tables purement internes est due, et elle vise la CLASSE et non une table.* Le critère se vérifie en lisant les appelants sous `app/(portail)/` : ils ne touchent aujourd'hui que `utilisateur_client`, `client`, `site`, `machine`, `document` — toutes de forme « rattachement », « parc » ou « héritage ».
+
+*Aucune règle du chapitre 10 n'est amendée. Le chapitre 11 reçoit `document_recu`.*

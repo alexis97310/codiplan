@@ -46,6 +46,9 @@ import {
   DOC_MODELE_B,
   EMPREINTE_NOTICE,
   EMPREINTE_CERTIFICAT,
+  EMPREINTE_RECU,
+  RECU_A,
+  RECU_B,
   MODELE_B,
   PORTAIL_A_CLIENT,
   PORTAIL_B_CLIENT,
@@ -586,6 +589,12 @@ export default async function setup(): Promise<void> {
         ('${DOC_MACHINE_A2}', '${SOCIETE_A}', NULL, '${MACHINE_A2}', 'client', 'Certificat SN-A2', 'certificat-a2.pdf', 'application/pdf', 12500, '${EMPREINTE_CERTIFICAT}', 'iso/certificat-a2.pdf', now()),
         ('${DOC_MACHINE_A1_INTERNE}', '${SOCIETE_A}', NULL, '${MACHINE_A1}', 'interne', 'Note de litige SN-A1', 'litige-a1.pdf', 'application/pdf', 4000, '${EMPREINTE_CERTIFICAT}', 'iso/litige-a1.pdf', now()),
         ('${DOC_MODELE_B}', '${SOCIETE_B}', '${MODELE_B}', NULL, 'client', 'Notice GA-11 (B)', 'notice-ga11-b.pdf', 'application/pdf', 240000, '${EMPREINTE_NOTICE}', 'iso/notice-ga11-b.pdf', now());
+      -- LE BAC DE RÉCEPTION (L8-07). Le nom du fichier NOMME un modèle : c'est
+      -- ce qui rend la forme « interne » mesurable — un compte portail qui
+      -- lirait cette ligne apprendrait qu'un pont élévateur existe quelque part.
+      INSERT INTO "document_recu" ("id", "societe_id", "empreinte", "nom_fichier", "type_mime", "taille_octets", "objet_cle", "modifie_le") VALUES
+        ('${RECU_A}', '${SOCIETE_A}', '${EMPREINTE_RECU}', 'notice-KPX-337.pdf', 'application/pdf', 310000, 'bac/notice-kpx337.pdf', now()),
+        ('${RECU_B}', '${SOCIETE_B}', '${EMPREINTE_RECU}', 'notice-GA-11.pdf', 'application/pdf', 240000, 'bac/notice-ga11.pdf', now());
       -- LES INTERVENTIONS (lot 2, D84). Elles viennent après le parc : leurs
       -- clés étrangères composites (societe_id, client_id), (societe_id,
       -- site_id) et (societe_id, agence_id) l'exigent.

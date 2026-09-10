@@ -132,7 +132,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
-**Et cette politique a DOUZE formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67 ; la dixième, D92 ; les onzième et douzième, D93)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les douze, avec leur cas et une table qui les porte :
+**Et cette politique a TREIZE formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67 ; la dixième, D92 ; les onzième et douzième, D93 ; la treizième, D94)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les treize, avec leur cas et une table qui les porte :
 
 | Forme | Clause | S'applique à | Exemple en base |
 |---|---|---|---|
@@ -148,6 +148,7 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 | **rattachement** | habilitation pour tout le monde, **plus** SES PROPRES RATTACHEMENTS en `SELECT` SEUL | `utilisateur_client` *(D92)* — sans elle, aucun compte portail n'atteint aucun écran | `utilisateur_client` |
 | **héritage** | la CIBLE polymorphe est visible **ET** la classe RÉTRÉCIT | `document` *(D93)* — la cible est le modèle OU la machine, jamais les deux | `document` |
 | **ascendance** | société pour tout le monde, **plus**, pour un compte portail SEUL, l'existence d'un ENFANT visible | `modele_materiel`, `famille_materiel` *(D93)* — sans elle, la présence d'une notice révèle le parc des autres sites | `modele_materiel`, `famille_materiel` |
+| **interne** | société **ET** `app.client_id` ABSENT | `document_recu` *(D94)* — une table qu'aucun compte portail ne lit, quel que soit son client | `document_recu` |
 
 **La sixième n'est pas une variante de « parc » : elle en est l'INVERSE fonctionnel** *(L1-02b)*. La forme « parc » lit `app.perimetre_sites` ; les tables d'habilitation sont celles d'où cette variable est CALCULÉE. Leur donner la forme « parc » serait circulaire — une politique qui lit la variable que sa propre lecture alimente ne se referme jamais. Leur laisser la clause société seule était la fuite mesurée le 07/09/2026 : un compte portail du client A lisait les lignes d'habilitation des comptes du client B de la même société, en tirait leurs identités par jointure, et énumérait par là les autres clients. Le **discriminant** est `app.client_id`, posée pour un compte portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les habilitations de SA société, ce qu'une clause « sa propre ligne » sans discriminant lui aurait retiré.
 
@@ -193,7 +194,11 @@ La forme ajoute une politique de `SELECT` ancrée sur l'identité connectée. **
 
 **Ce n'est donc pas la forme du document qui change, c'est LE CHEMIN D'ACCÈS AU MODÈLE.** « Héritage » dit qu'un document suit sa cible et que la classe ne fait que rétrécir ; « ascendance » est l'INVERSE de la filiation — la filiation propage vers le bas une visibilité acquise, l'ascendance refuse vers le haut une visibilité que la clause de société donnait. **Le discriminant est `app.client_id`** : un utilisateur interne garde la clause de société seule, sans quoi créer un modèle avant sa première machine serait impossible. Les deux étages — modèle et famille — sont fermés le MÊME jour, une famille « ponts élévateurs » visible disant qu'il y a un pont quelque part. **Le coût, nommé** : *la documentation d'un matériel non recensé est inaccessible au client tant que le recensement n'est pas fait.* Listes closes gardées dans les deux sens, `TABLES_HERITAGE` et `TABLES_ASCENDANCE`, dont le **retrait** est le sens silencieux — il fait retomber la table sur la forme « société », qui passe tous les gardiens.
 
-**Et AUCUNE des douze n'évalue l'heure** *(D85)*. Le cloisonnement répond à « qui a le droit de lire cette ligne », et **cette réponse ne doit pas changer d'elle-même** : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure — un jumeau passerait parce que l'horloge a bougé, non parce que le verrou a cédé. **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.** Une politique lit sans peine une colonne de type date — `date_planifiee` est une donnée que quelqu'un a écrite, `now()` une valeur que personne n'a écrite : *c'est la provenance qui décide, jamais le type*. Le motif n'était écrit nulle part comme principe avant D85 : il vivait quatre fois comme argument d'une décision particulière — la forme exacte qu'a une règle avant d'en être une. Mesuré : 60 politiques écrites aux migrations, zéro évaluant le temps ; gardé par `tests/unit/db/horloge-hors-cloisonnement.test.ts`. Le code applicatif, lui, garde le droit de lire l'heure — la restriction des 7 jours de RG-DRO-02 y reste (D84).
+**La TREIZIÈME n'était PAS demandée, et c'est ce qui la rend utile à relire** *(D94, L8-07)*. Le bac de réception nomme des FICHIERS : `notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part. Or **une table de forme « société » est lisible par un compte portail** — sa clause ne lit pas `app.client_id`. Lui donner cette forme aurait **rouvert par la porte de service la fuite qu'on fermait par la porte principale, dans le ticket même**. Mesuré avec son jumeau, et avec le témoin qui le rend lisible : le même compte, au même instant, lit bien ses propres documents.
+
+**Et elle DÉCOUVRE une question qu'elle ne tranche pas.** `taux_horaire`, `forfait`, `agence` et les autres tables de forme « société » sont dans le même cas aujourd'hui ; aucun écran ne les donne à un compte portail, et c'est le seul motif pour lequel personne ne l'a vu. *Cette forme ferme la table qu'elle crée et écrit ce qu'elle laisse ouvert* — l'étendre en séance aux dix tables concernées aurait été un arbitrage bien plus large qu'un ticket de bac, pris sans mesure sur chacune. Condition de réouverture : **le jour où un écran ou une route de portail lit une table de forme « société »**, la question vise la CLASSE et non une table.
+
+**Et AUCUNE des treize n'évalue l'heure** *(D85)*. Le cloisonnement répond à « qui a le droit de lire cette ligne », et **cette réponse ne doit pas changer d'elle-même** : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure — un jumeau passerait parce que l'horloge a bougé, non parce que le verrou a cédé. **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.** Une politique lit sans peine une colonne de type date — `date_planifiee` est une donnée que quelqu'un a écrite, `now()` une valeur que personne n'a écrite : *c'est la provenance qui décide, jamais le type*. Le motif n'était écrit nulle part comme principe avant D85 : il vivait quatre fois comme argument d'une décision particulière — la forme exacte qu'a une règle avant d'en être une. Mesuré : 60 politiques écrites aux migrations, zéro évaluant le temps ; gardé par `tests/unit/db/horloge-hors-cloisonnement.test.ts`. Le code applicatif, lui, garde le droit de lire l'heure — la restriction des 7 jours de RG-DRO-02 y reste (D84).
 
 **Celle qui NE s'applique JAMAIS à une table métier ordinaire est « référentiel »**, et ses deux moitiés sont fausses pour deux raisons distinctes. Sa lecture est `USING (true)` : toutes les sociétés lisent toutes les lignes — c'est la décision D4 sur `devise` (« le franc Pacifique est le même partout »), c'est la fin du cloisonnement sur `client`. Son écriture est `app_est_role_editeur()` : elle donne le droit au salarié de l'éditeur et le retire à la société propriétaire — l'objet même de la règle sur un référentiel, l'inverse exact de ce que le §22.5 promet au client sur une table métier.
 
@@ -561,6 +566,32 @@ lib/
               jamais de règle de facturation : l'arrondi au quart d'heure
               appartient à la valorisation (D45)
   sync/       (prévu) protocole hors-ligne
+  documents/  LA DOCUMENTATION DES MACHINES (lot 8, D87, D93, D94)
+              la CIBLE est une SOMME, pas deux champs facultatifs : le modèle
+              OU la machine, et le type refuse à la COMPILATION ce que la base
+              refuse par `num_nonnulls(...) = 1` — deux verrous qui ne se
+              recouvrent pas, aucun ne remplaçant l'autre
+              propositions.ts : il PROPOSE, il ne classe JAMAIS seul — un
+              rapprochement faux accroche la notice d'un compresseur à un pont
+              élévateur, et personne ne le voit avant qu'un technicien suive la
+              mauvaise procédure ; c'est de la sécurité, pas de la qualité de
+              données
+              le rapprochement se fait sur la CLÉ, jamais sur une ressemblance :
+              aucune distance d'édition, aucun score, aucun « probablement »
+              la tolérance porte sur la GRAPHIE d'une clé, jamais sur la clé
+              AUCUNE proposition est une ISSUE, pas un rejet — le fichier reste
+              à traiter, et l'œil lui donne sa cible
+              les MODÈLES d'abord, et c'est une règle de PRÉSENTATION : le bac
+              ne peut pas savoir ce qu'un fichier vise avant qu'on le lui dise
+              depot.ts : la DÉDUPLICATION est lue dans un refus `P2002`, jamais
+              prévenue par une lecture — entre un SELECT et un INSERT, un
+              second dépôt du même fichier passe, et le bac est l'endroit même
+              où l'on redépose
+              la REPRISE n'a aucune table de session : l'état de la reprise est
+              l'état du bac, et il n'y a pas de travail partiel à sauvegarder
+              RIEN pour le stockage : `objet_cle` est fournie, jamais fabriquée
+              — le module n'existe pas faute d'appelant, et une interface sans
+              appelant est la maladie que le portail vient de soigner
   excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
               format.ts : marqueur de version, dates, nombres, colonnes
               la LIAISON est tranchée (D90, 10/09) : `read-excel-file`, mesurée

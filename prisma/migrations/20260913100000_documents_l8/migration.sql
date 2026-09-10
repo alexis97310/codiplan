@@ -192,6 +192,12 @@ CREATE INDEX "document_societe_machine_idx" ON "document" ("societe_id", "machin
 -- refus de saisie ce que le bac règle par une proposition.
 CREATE INDEX "document_societe_empreinte_idx" ON "document" ("societe_id", "empreinte");
 
+-- Cible des chaînages composites que d'autres tables poseront vers `document` —
+-- `document_recu` le fait au ticket suivant. Elle rend le couple (société,
+-- document) référençable d'un seul geste, de sorte qu'un chaînage ne puisse pas
+-- traverser une frontière de société.
+CREATE UNIQUE INDEX "document_societe_id_id_key" ON "document" ("societe_id", "id");
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 3. LE CLOISONNEMENT DE `document` — forme « HÉRITAGE » (D93, L8-04)
 -- ═══════════════════════════════════════════════════════════════════════════

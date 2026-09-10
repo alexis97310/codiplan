@@ -153,6 +153,9 @@ export const RAPPEL_FORMES = [
     "propage vers le bas une visibilité acquise, celle-là REFUSE vers le " +
     "haut une visibilité que la clause de société donnait. Sans elle, la " +
     "présence d'une notice révèle la composition du parc des autres sites.",
+  "interne    — société ET `app.client_id` ABSENT : `document_recu` (D94). " +
+    "Une table qu'aucun compte portail ne lit, quel que soit son client. Le " +
+    "bac nomme des FICHIERS, et un nom de fichier révèle le parc.",
 ].join("\n  ");
 
 /** Les formes que ce gardien sait exiger. */
@@ -166,7 +169,8 @@ export type Forme =
   | "adhésion"
   | "rattachement"
   | "héritage"
-  | "ascendance";
+  | "ascendance"
+  | "interne";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -1039,6 +1043,9 @@ export function formeAttendue(table: string): Forme {
   if (TABLES_ASCENDANCE.some((entree) => entree.table === table)) {
     return "ascendance";
   }
+  if ((TABLES_INTERNES as readonly string[]).includes(table)) {
+    return "interne";
+  }
   if ((TABLES_APPARTENANCE as readonly string[]).includes(table)) {
     return "appartenance";
   }
@@ -1624,6 +1631,7 @@ export function ecartsPolitiques(
     ...ecartsListeDesignation(),
     ...ecartsListeHeritage(),
     ...ecartsListeAscendance(),
+    ...ecartsListeInterne(),
   ];
 
   // La contradiction inverse : un référentiel de plateforme qui porterait
@@ -1696,6 +1704,8 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsHeritage(table, siennes));
     } else if (forme === "ascendance") {
       ecarts.push(...ecartsAscendance(table, siennes));
+    } else if (forme === "interne") {
+      ecarts.push(...ecartsInterne(table, siennes));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }
@@ -2048,6 +2058,104 @@ function ecartsAscendance(
             "la visibilité de l'enfant remonte alors sans qu'aucun filtre soit " +
             "réécrit. Sans elle, un compte portail énumère le matériel de " +
             "toute sa société et en déduit ce que les autres sites exploitent.",
+        );
+      }
+    }
+  }
+  return ecarts;
+}
+
+/**
+ * LA TREIZIÈME FORME — « interne » (D94, ticket L8-07, 13/09/2026).
+ *
+ * *Société, PLUS l'absence de `app.client_id`.* Une table qu'aucun compte
+ * portail ne lit, quel que soit son client.
+ *
+ * **Elle est née d'une mesure faite dans le ticket qui la crée.** Le bac de
+ * réception nomme des FICHIERS : `notice-KPX-337.pdf` dit qu'un pont élévateur
+ * existe quelque part dans la société — la fuite exacte que D93 venait de
+ * fermer un étage plus haut. Or **une table de forme « société » est lisible
+ * par un compte portail**, sa clause ne lisant pas `app.client_id` : donner
+ * cette forme au bac aurait rouvert par la porte de service ce qu'on fermait
+ * par la porte principale, dans le ticket même.
+ *
+ * **ET ELLE DÉCOUVRE UNE QUESTION PLUS LARGE, QUI N'EST PAS TRANCHÉE ICI.**
+ * `taux_horaire`, `forfait`, `agence`, `habilitation` et les autres tables de
+ * forme « société » sont dans le même cas AUJOURD'HUI : un compte portail muni
+ * d'une société les lirait. Aucun écran ne les lui donne, et le jour où l'un
+ * d'eux le fera, la question sera due — c'est la condition de réouverture de
+ * D94, et elle se vérifie plutôt qu'elle ne s'interprète. *Cette forme ne
+ * prétend donc pas fermer la classe : elle ferme la table qu'elle crée, et
+ * écrit ce qu'elle laisse ouvert.*
+ *
+ * **Liste close, gardée dans les deux sens.** Le RETRAIT fait retomber la table
+ * sur la forme « société », qui passe tous les gardiens sans rien dire.
+ */
+export const TABLES_INTERNES = ["document_recu"] as const;
+
+/** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
+const INTERNES_ARBITREES = ["document_recu"];
+
+/** Écarts de la liste « interne » — additions comme retraits. */
+export function ecartsListeInterne(
+  liste: readonly string[] = TABLES_INTERNES,
+): string[] {
+  const ecarts = liste
+    .filter((table) => !INTERNES_ARBITREES.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « interne ». Elle RETIRE la ` +
+        "table à tout compte portail, ce qui est une décision de produit " +
+        "autant que de cloisonnement — D94 la prend pour `document_recu` " +
+        "seule, et écrit que la question reste ouverte pour les autres " +
+        "tables de forme « société ». Toute addition est un arbitrage.",
+    );
+
+  for (const arbitree of INTERNES_ARBITREES) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « interne » : elle ` +
+          "retomberait sur la clause de société seule, qui passe tous les " +
+          "gardiens, et un compte portail lirait les NOMS DE FICHIERS du bac " +
+          "— c'est-à-dire ce que le parc des autres sites contient. Le " +
+          "RETRAIT est ici le geste dangereux, il ne casse rien de visible.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/** Écarts de la forme « interne » : l'ancrage société ET le discriminant. */
+function ecartsInterne(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const ecarts: string[] = [];
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+        continue;
+      }
+      if (!ancre(clause, "societe_id")) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » n'est pas ancrée sur ` +
+            "`societe_id = app.societe_id`. La forme « interne » AJOUTE au " +
+            "cloisonnement de société ; elle ne le remplace pas.",
+        );
+      }
+      if (!filtreClient(clause)) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » ne lit pas \`app.client_id\`. ` +
+            "Sans ce terme, la clause est celle de la forme « société » — et " +
+            "un compte portail muni d'une société lit la table entière.",
         );
       }
     }

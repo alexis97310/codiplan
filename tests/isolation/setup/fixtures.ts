@@ -192,9 +192,20 @@ export const DOC_MACHINE_A2 = "aaaaaaaa-0000-7000-8000-00000000d004";
 export const DOC_MACHINE_A1_INTERNE = "aaaaaaaa-0000-7000-8000-00000000d005";
 export const DOC_MODELE_B = "bbbbbbbb-0000-7000-8000-00000000d006";
 
+/**
+ * LE BAC DE RÉCEPTION (L8-07, D94) — deux fichiers, un par société.
+ *
+ * `RECU_A` porte le nom d'un fichier qui NOMME un modèle : c'est lui qui montre
+ * que le bac de forme « interne » n'est pas lisible par un compte portail —
+ * *`notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part.*
+ */
+export const RECU_A = "aaaaaaaa-0000-7000-8000-00000000e001";
+export const RECU_B = "bbbbbbbb-0000-7000-8000-00000000e002";
+
 /** Empreintes SHA-256 des fixtures — 64 hexadécimaux minuscules, comme la base l'exige. */
 export const EMPREINTE_NOTICE = "a".repeat(64);
 export const EMPREINTE_CERTIFICAT = "b".repeat(64);
+export const EMPREINTE_RECU = "c".repeat(64);
 export const FAMILLE_B = "bbbbbbbb-0000-7000-8000-0000000000f0";
 export const MODELE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
 export const MODELE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";
