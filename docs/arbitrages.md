@@ -3017,3 +3017,70 @@ D67 dit : « un compte lit les lignes des sociétés **où il est habilité** »
 ### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
 
 *Le jour où un compte portail devra écrire quoi que ce soit — une demande d'intervention, une remarque —, cette forme ne suffira pas : elle est en lecture, par construction. Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, jamais un élargissement de celui-ci.* Le critère se vérifie : la politique porte `FOR SELECT`, ou elle ne le porte plus.
+
+---
+
+## D93 — LE CHEMIN D'ACCÈS AU MODÈLE PASSE PAR LA MACHINE : deux formes de politique, la onzième et la douzième
+
+*Décision d'exploitation du 13 septembre 2026, prise par Alexis et instruite par la session au ticket du lot 8. **Elle répond à la question que D87 avait laissée ouverte** — « un document de MODÈLE n'a ni machine ni site, et son cloisonnement est celui de `modele_materiel` ; la question s'instruit avec sa mesure au moment du ticket ». C'est ce moment, et voici la mesure.*
+
+### LA DÉCISION, DANS LES MOTS DE L'EXPLOITATION
+
+> Un compte de portail ne voit les documents d'un MODÈLE que si une machine de ce modèle se trouve DANS SON PROPRE PÉRIMÈTRE — sa société, son site, son habilitation. Jamais parce que sa société en possède un ailleurs.
+
+**La raison, et c'est elle qui décide de la forme :** sinon la présence d'une notice révèle la composition du parc des autres sites. *Un compte restreint à Ducos déduirait ce que Koné possède. Le cloisonnement fuirait par la LISTE DES DOCUMENTS au lieu de fuir par les données — et il fuirait quand même.*
+
+**Ce n'est donc pas la forme du document qu'il faut changer, c'est LE CHEMIN D'ACCÈS AU MODÈLE.** Le chemin passe par machine → site → habilitation, jamais par société → modèle.
+
+### CE QUI A ÉTÉ MESURÉ, ET AVEC QUOI
+
+*Sous `codiplan_app` — rôle non privilégié —, avec témoin préalable : les deux drapeaux RLS posés sur `document`, et zéro ligne lisible sans contexte pour six lignes réellement en base.* La fixture est délibérément adversaire : `MACHINE_A3` est installée sur le site S2, **chez le même client et dans la même société** que le compte portail restreint au site S1, et son modèle `MODELE_A_AILLEURS` n'a aucune autre machine.
+
+| Ce que lit le compte portail restreint à S1 | Sous la forme « société » | Sous la forme « ascendance » |
+|---|---|---|
+| documents visibles | 4 dont la notice du modèle d'ailleurs | **2** |
+| modèles visibles | 2 | **1** |
+| familles visibles | 2 | **1** |
+| `count(*)` sur le modèle d'ailleurs | 1 | **0** |
+| `count(*)` sur son propre modèle *(témoin)* | 1 | **1** |
+
+La dernière ligne est le témoin qui rend les autres lisibles : *zéro serait aussi bien la preuve que la lecture ne marche pas.*
+
+### LES DEUX FORMES
+
+**LA ONZIÈME — « héritage », pour `document`.** *Un document est visible si sa CIBLE l'est, et la classe ne fait que RÉTRÉCIR.* C'est la filiation de L1-04 avec deux différences, et ce sont elles qui font l'arbitrage que L8-04 réclamait :
+
+1. **La cible est POLYMORPHE** — deux parents possibles, exactement un renseigné (`num_nonnulls(modele_id, machine_id) = 1`). La forme « filiation » n'en connaît qu'un, et lui en donner deux en silence aurait été l'effet de bord que le ticket refuse.
+2. **La classe RÉTRÉCIT** — `interne` disparaît pour un compte portail. C'est un axe de RESTRICTION, jamais un axe d'accès : il n'ouvre rien à personne.
+
+**Aucune clause de société n'y est écrite**, et c'est la doctrine de la filiation : elle serait une seconde source du même fait (§9, 01/09). Ce qui empêche un document de dériver de la société de sa cible n'est pas une clause mais la clé étrangère composite. **Tout le cloisonnement de D10 et D22 est donc porté par la sous-requête**, `machine` étant de forme « parc ».
+
+**LA DOUZIÈME — « ascendance », pour `modele_materiel` et `famille_materiel`.** *Un parent n'est visible, pour un compte portail, que si l'un de ses ENFANTS l'est.* C'est l'INVERSE exact de la filiation, et c'est pourquoi ce n'est pas la même forme : la filiation propage vers le bas une visibilité déjà acquise, l'ascendance REFUSE vers le haut une visibilité que la clause de société donnait.
+
+**Le DISCRIMINANT est `app.client_id`**, comme dans la forme « habilitation » et pour la même raison : la restriction ne vise que le compte portail. Un utilisateur interne garde la clause de société seule — sans quoi créer un modèle avant sa première machine serait impossible, la table se refusant à elle-même.
+
+### POURQUOI `famille_materiel` REÇOIT LA MÊME FORME LE MÊME JOUR
+
+La fuite est identique un étage plus haut : une famille « ponts élévateurs » visible dit qu'il y a un pont quelque part. Écrire « le jour où un écran de portail lira les familles, la question sera due » aurait été la laisser filer — *le silence a exactement la forme du succès* (§9, 31/08). La chaîne est donc fermée sur les deux étages : famille visible si un de ses modèles l'est, modèle visible si une de ses machines l'est, machine visible selon la forme « parc ». **Trois maillons, un seul critère, écrit une seule fois** — chaque politique lit celle du dessous, et rien n'est recopié.
+
+### LE COÛT, NOMMÉ comme D61, D67 et D92 ont nommé le leur
+
+- *Un compte portail ne voit plus les modèles dont il ne possède aucune machine visible* — y compris un modèle qu'il exploite réellement mais dont la fiche machine n'a pas encore été saisie, et y compris un modèle commandé et non encore livré. **La documentation d'un matériel non recensé est inaccessible au client tant que le recensement n'est pas fait**, et c'est le prix exact de la fuite refusée.
+- *L'utilisateur interne ne perd rien.* Mesuré : il lit les deux modèles et les deux familles.
+- *Le coût d'exécution est MESURÉ, pas affirmé* (§9, 07/09 — la même phrase a déjà été démentie une fois par un `EXPLAIN`). `EXPLAIN SELECT "id" FROM "modele_materiel"` sous contexte portail rend `filter: (… or (hashed subplan 2))` : **le sous-plan est évalué UNE fois et haché**, chaque ligne de modèle n'étant ensuite qu'une recherche dans la table de hachage. Ce n'est pas « une sous-requête à chaque ligne lue ». La mesure est rejouée à chaque `pnpm test:isolation`.
+
+### CE QUI LES BORNE, ET LES DEUX LISTES CLOSES
+
+`TABLES_HERITAGE` et `TABLES_ASCENDANCE`, gardées **dans les deux sens**. Le RETRAIT est ici le geste dangereux : il fait retomber la table sur la forme « société », **qui passe tous les gardiens de forme sans rien dire**, et rouvre la fuite. Le jumeau le montre en acte — la politique d'ascendance remplacée par la clause de société seule, dans une transaction annulée, et la notice du modèle d'ailleurs reparaît au compte restreint.
+
+### CE QUE CE TICKET NE CONSTRUIT PAS, ET C'EST ÉCRIT PLUTÔT QUE TU
+
+**Le module de stockage n'existe pas.** La colonne `objet_cle` dit où sont les octets ; **aucun code ne la remplit**, parce qu'aucun écran ne l'appelle. *Une interface sans appelant est la maladie que le portail vient de soigner* — c'est la consigne d'exploitation du 13/09 (« stockage en dernier, quand il aura un appelant ») et c'est aussi la raison pour laquelle une consigne antérieure, qui demandait cette interface au lot 8, a été refusée avec sa mesure.
+
+**`document` naît donc VIDE**, et le rapport d'inventaire la nomme comme telle : une table dont les deux côtés de la comparaison valent zéro n'est ni un écart ni une preuve, elle est retranchée de ce que le rapport affirme (§9, 10/09).
+
+### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
+
+*Le jour où un compte portail devra voir la documentation d'un matériel qu'il n'a pas encore reçu — une notice envoyée avant la livraison —, l'ascendance ne suffira plus : elle est ancrée sur l'existence d'une machine, par construction.* Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, et il devra dire **ce qui remplace la machine comme preuve du lien** — une commande, un contrat, un rattachement explicite. Le critère se vérifie : la clause porte `EXISTS (SELECT 1 FROM machine …)`, ou elle ne le porte plus.
+
+*Aucune règle du chapitre 10 n'est amendée — le chapitre n'y traite pas de la documentation des machines. Le chapitre 11 reçoit en revanche la forme réelle de `document`, que D87 avait annoncée « au moment du ticket » : elle y était encore décrite comme « polymorphe rattachée à machine, contrat, client ou intervention ».*

@@ -429,7 +429,7 @@ Deux limites mesurées : PostgreSQL **refuse toute sous-requête dans un `CHECK`
 
 ## Familles et modèles — un mécanisme retiré plutôt qu'arbitré
 
-`famille_materiel` et `modele_materiel` sont des **tables métier cloisonnées**, `societe_id NOT NULL`, forme « société », RLS forcée, auditées. Elles étaient destinées à la deuxième catégorie de I1 — référentiels de plateforme — et **D4 est amendé** :
+`famille_materiel` et `modele_materiel` sont des **tables métier cloisonnées**, `societe_id NOT NULL`, RLS forcée, auditées. Elles portaient la forme « société » ; **depuis D93 (13/09/2026) elles portent la forme « ascendance »** — voir « La documentation des machines » plus bas. Elles étaient destinées à la deuxième catégorie de I1 — référentiels de plateforme — et **D4 est amendé** :
 
 | D4 disait                                                  | D4 disait aussi                                          | Incompatible parce que                                                 |
 | ---------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -599,6 +599,23 @@ Son cliquet est un **fait** de la ligne de `compte` — `mot_de_passe IS NULL`, 
 
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
 
+## La documentation des machines — le chemin d'accès au modèle passe par la machine
+
+`document` est une table métier cloisonnée dont la **cible est le modèle OU la machine, jamais les deux** : deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1`, contrainte nommée, refusée par le schéma et non par une validation applicative (L8-01, D87). L'écran d'une machine affiche l'**union** de ses documents et de ceux de son modèle : aucune ligne n'est copiée, et corriger une notice la corrige partout (L8-02).
+
+**La question que D87 avait laissée ouverte est tranchée par D93** : _un compte de portail ne voit les documents d'un modèle que si une machine de ce modèle se trouve dans son propre périmètre._ Sinon la présence d'une notice révèle la composition du parc des autres sites — un compte restreint à Ducos déduirait ce que Koné possède, et **le cloisonnement fuirait par la liste des documents au lieu de fuir par les données**. Ce n'est donc pas la forme du document qui change, c'est le chemin d'accès au modèle : machine → site → habilitation, jamais société → modèle.
+
+Deux formes de politique en sortent, et ce sont des **arbitrages**, jamais des effets de bord :
+
+- **« héritage »** sur `document` — la cible polymorphe est visible, et la classe `interne` disparaît pour un compte portail. La classe ne fait que retirer ; elle n'ouvre rien. Aucune clause de société n'y est écrite : elle serait une seconde source du même fait, la clé étrangère composite le tenant déjà.
+- **« ascendance »** sur `modele_materiel` et `famille_materiel` — l'inverse exact de la filiation : un parent n'est visible, **pour un compte portail seul**, que si l'un de ses enfants l'est. Le discriminant est `app.client_id` ; un utilisateur interne garde la clause de société, sans quoi créer un modèle avant sa première machine serait impossible.
+
+Les deux étages sont fermés **le même jour** : une famille « ponts élévateurs » visible dirait qu'il y a un pont quelque part.
+
+**Le coût est nommé** : la documentation d'un matériel non recensé est inaccessible au client tant que le recensement n'est pas fait. **Et le coût d'exécution est mesuré, pas affirmé** — `EXPLAIN` sous contexte portail rend `hashed subplan` : le sous-plan est évalué une fois et haché, jamais par ligne. La mesure est rejouée à chaque `pnpm test:isolation`.
+
+**Ce que le lot 8 ne construit pas encore, et c'est écrit plutôt que tu** : le module de stockage. `document.objet_cle` dit où sont les octets, et **aucun code ne la remplit** — une interface sans appelant est la maladie que le portail vient de soigner. `document` naît donc vide, et le rapport d'inventaire la nomme comme telle plutôt que de compter zéro contre zéro.
+
 ## Le registre des VGP — CODIPLAN n'affirme jamais la conformité
 
 Les vérifications générales périodiques sont commandées par les **clients**, pas
@@ -685,17 +702,19 @@ le cloisonnement n'existe plus.
 
 Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 
-| Forme            | Clause                                                                             | Exemple                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **identité**     | `id = app.societe_id`                                                              | `societe` (D42)                                                                        |
-| **société**      | `societe_id = app.societe_id`                                                      | `agence`, `calendrier`                                                                 |
-| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                  | `devise`, `jour_ferie` (D4)                                                            |
-| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                        | `client`, `site`, `machine`, `contact` (D10, D22, L1-03)                               |
-| **journal**      | `SELECT` habilité, `INSERT` seul                                                   | `journal_audit` (I8)                                                                   |
-| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
-| **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
-| **appartenance** | société pour tout le monde, **plus** sa propre ligne en `SELECT` SEUL              | `utilisateur_societe` (D61)                                                            |
-| **rattachement** | habilitation pour tout le monde, **plus** son propre rattachement en `SELECT` SEUL | `utilisateur_client` (D92)                                                             |
+| Forme            | Clause                                                                                             | Exemple                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **identité**     | `id = app.societe_id`                                                                              | `societe` (D42)                                                                        |
+| **société**      | `societe_id = app.societe_id`                                                                      | `agence`, `calendrier`                                                                 |
+| **référentiel**  | lecture `true`, écriture `app_est_role_editeur()`                                                  | `devise`, `jour_ferie` (D4)                                                            |
+| **parc**         | société **et** `app.client_id` **et** `app.perimetre_sites`                                        | `client`, `site`, `machine`, `contact` (D10, D22, L1-03)                               |
+| **journal**      | `SELECT` habilité, `INSERT` seul                                                                   | `journal_audit` (I8)                                                                   |
+| **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
+| **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active                 | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
+| **appartenance** | société pour tout le monde, **plus** sa propre ligne en `SELECT` SEUL                              | `utilisateur_societe` (D61)                                                            |
+| **rattachement** | habilitation pour tout le monde, **plus** son propre rattachement en `SELECT` SEUL                 | `utilisateur_client` (D92)                                                             |
+| **héritage**     | la CIBLE polymorphe est visible, **et** la classe RÉTRÉCIT                                         | `document` (D93)                                                                       |
+| **ascendance**   | société pour tout le monde, **plus**, pour un compte portail SEUL, l'existence d'un ENFANT visible | `modele_materiel`, `famille_materiel` (D93)                                            |
 
 La forme **« rattachement »** ferme la boucle que D10 avait laissée ouverte. D10
 veut que « les deux tables soient exclusives » : un compte portail n'a **aucune**

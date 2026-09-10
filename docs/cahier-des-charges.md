@@ -962,7 +962,7 @@ dans la table `parite` ci-dessous.*
 
 **compteur_releve** — machine, intervention, type (heures, cycles, km), valeur, date.
 
-**document** — entité polymorphe rattachée à machine, contrat, client ou intervention : type, nom, url, taille, visible client, embarqué mobile.
+**document** — rattaché au **modèle** ou à la **machine**, jamais aux deux : classe de visibilité (`client` / `interne`), libellé, nom de fichier, type MIME, taille, empreinte SHA-256, clé d'objet dans le stockage, `date_document`, `date_expiration`. *(La forme polymorphe « machine, contrat, client ou intervention » est **remplacée par D87** — deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1` —, et son cloisonnement est arrêté par **D93** : forme « héritage », la cible est visible et la classe rétrécit. « embarqué mobile » n'est pas repris : le cache hors ligne est décidé au lot 3, pas par une colonne posée d'avance.)*
 
 **utilisateur** — email, hash du mot de passe, actif, dernière connexion, MFA. **utilisateur_societe** — utilisateur, société, rôle : c'est cette table qui porte l'habilitation multi-société.
 

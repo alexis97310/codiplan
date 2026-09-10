@@ -352,7 +352,9 @@ Un backlog écrit six mois à l'avance est périmé quand on y arrive.
 
 ## Lot 8 — Documentation des machines
 
-*Inscrit au plan le 09/09/2026 sur consigne d'exploitation. **Écrit, pas construit** — un lot qui n'existe que dans une conversation n'existe pas.*
+*Inscrit au plan le 09/09/2026 sur consigne d'exploitation.*
+
+**LE SOCLE DE DONNÉES EST CONSTRUIT le 13/09/2026** — L8-01 à L8-06. La question que D87 laissait ouverte — le cloisonnement d'un document de MODÈLE — a été tranchée par l'exploitation le matin même et instruite avec sa mesure : **D93**, deux formes de politique, « héritage » et « ascendance ». Ce qui reste **écrit et non construit** : **L8-07**, le bac de réception, et le **stockage** — dans cet ordre, et le stockage en dernier *quand il aura un appelant* : `document.objet_cle` dit où sont les octets, et aucun code ne la remplit.
 
 **Ce lot remplace le ticket L2-04**, qui posait la bonne question — la forme polymorphe de `document` — et n'en tirait pas un périmètre. La mesure de L2-04 reste acquise et ne se refait pas : *une colonne `entite_id` avec deux clés étrangères est un piège qui a l'air d'un verrou et rend la table inutilisable ; une colonne nullable par cible avec `num_nonnulls(...) = 1` fonctionne.*
 
@@ -370,8 +372,9 @@ Un document s'accroche **au modèle** — notice, fiche technique, manuel d'atel
 
 **L8-04** Le cloisonnement d'un document est HÉRITÉ de sa machine, et la classe ne fait que le RÉTRÉCIR.
 Société, site, habilitation : un document suit sa machine, **et rien n'est inventé ici**. La classe `interne` retire l'accès au portail ; elle n'ajoute aucun axe. **N'inventez pas une forme de politique de plus** — la forme « parc » existe, `intervention` vient de la prendre, et une dixième forme est un arbitrage, jamais un effet de bord.
-**Ce qui reste ouvert et n'est pas tranché ici :** un document de MODÈLE n'a pas de machine, donc pas de site. Son cloisonnement est celui de `modele_materiel`, qui est une table métier cloisonnée depuis que le mécanisme « référentiel + copie masquante » a été retiré. *La question à instruire au moment du ticket, avec sa mesure, est celle-ci et pas une autre.*
-*Acceptation :* un compte portail ne voit d'un document que ce que sa machine lui laisse voir ; aucune politique nouvelle n'apparaît dans le contrôle des formes.
+**TRANCHÉ LE 13/09/2026 — D93.** *Un compte de portail ne voit les documents d'un MODÈLE que si une machine de ce modèle se trouve dans son PROPRE PÉRIMÈTRE.* Sinon la présence d'une notice révèle la composition du parc des autres sites — un compte restreint à Ducos déduirait ce que Koné possède, et le cloisonnement fuirait par la liste des documents au lieu de fuir par les données. **Ce n'est donc pas la forme du document qui change, c'est le chemin d'accès au MODÈLE** : machine → site → habilitation, jamais société → modèle. Deux formes en sont sorties, et ce sont bien des ARBITRAGES et non des effets de bord : « héritage » pour `document`, « ascendance » pour `modele_materiel` et `famille_materiel`.
+*Acceptation :* un compte portail ne voit d'un document que ce que sa machine lui laisse voir ; **et rien du modèle dont il ne possède aucune machine visible** — ni la notice, ni son existence, ni un compteur à zéro qui la trahirait. Les deux formes nouvelles sont ARBITRÉES (D93) et gardées par des listes closes dans les deux sens.
+*Relu contre les sources citées le 13/09/2026 — empreinte `d20d6a8b`.*
 
 **L8-05** Fiche en base, octets dans un stockage d'objets, **même région que la base**.
 **Jamais de PDF dans PostgreSQL.** La région est la même pour la raison qui a déjà coûté un incident : la latence vers Sydney se paye à chaque aller-retour, et un objet qui traverse le Pacifique deux fois n'arrive pas.

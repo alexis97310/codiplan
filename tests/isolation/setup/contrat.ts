@@ -336,8 +336,18 @@ export const EXIGENCES_L0_05 = [
     // le périmètre — un compte portail ne résout pas le jeton d'une machine de
     // SON client posée sur un site hors de son périmètre. D10 rencontre D22, et
     // c'est le seul scénario où le troisième filtre décide seul.
+    //
+    // Puis de 7 à 10 au LOT 8 (D93), et c'est un changement de PORTÉE autant
+    // que de nombre : les sept premiers mesurent le périmètre sur les données
+    // du parc — sites, machines, interventions. Les trois nouveaux, dans
+    // `tests/isolation/document.test.ts`, le mesurent sur ce que le parc
+    // RÉVÈLE : la documentation d'un modèle, le modèle lui-même, sa famille.
+    // *Le cloisonnement fuirait par la liste des documents au lieu de fuir par
+    // les données, et il fuirait quand même.* Le troisième est le JUMEAU que
+    // l'exploitation a nommé — l'ascendance retirée, la notice du modèle
+    // d'ailleurs reparaît.
     table: "site",
-    plancher: 7,
+    plancher: 10,
   },
 ] as const;
 
