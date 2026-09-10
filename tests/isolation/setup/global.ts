@@ -52,6 +52,7 @@ import {
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_INTERNE_B,
   PORTAIL_A2_CLIENT,
+  PORTAIL_DEUX_SOCIETES,
   PERIMETRE_A1_S1,
   CONTACT_A1_COMPTABLE,
   CONTACT_A1_ATELIER,
@@ -501,6 +502,12 @@ export default async function setup(): Promise<void> {
           nom: "Portail B",
           email: "portail-b@iso.test",
         },
+        {
+          // Le même contact, chez DEUX sociétés (RG-SOC-03, côté client).
+          id: PORTAIL_DEUX_SOCIETES,
+          nom: "Portail des deux sociétés",
+          email: "portail-deux@iso.test",
+        },
       ],
     });
     // Amorçage du parc : clients, sites, machines des deux sociétés.
@@ -583,6 +590,21 @@ export default async function setup(): Promise<void> {
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000f8",
           utilisateur_id: PORTAIL_B_CLIENT,
+          client_id: CLIENT_B1,
+          societe_id: SOCIETE_B,
+        },
+        // DEUX rattachements pour UNE identité, dans DEUX sociétés. Le mur que
+        // D92 abat se mesure ici : sans la forme « rattachement », ce compte ne
+        // lisait aucune des deux, faute de société active pour commencer.
+        {
+          id: "aaaaaaaa-0000-7000-8000-0000000000fa",
+          utilisateur_id: PORTAIL_DEUX_SOCIETES,
+          client_id: CLIENT_A1,
+          societe_id: SOCIETE_A,
+        },
+        {
+          id: "bbbbbbbb-0000-7000-8000-0000000000fb",
+          utilisateur_id: PORTAIL_DEUX_SOCIETES,
           client_id: CLIENT_B1,
           societe_id: SOCIETE_B,
         },

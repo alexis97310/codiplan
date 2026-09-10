@@ -132,7 +132,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 
 Toute requête est filtrée côté serveur, et la base applique en plus une politique RLS.
 
-**Et cette politique a NEUF formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les neuf, avec leur cas et une table qui les porte :
+**Et cette politique a DIX formes, pas une** *(R0-a ; la sixième, L1-02b ; la septième, L1-02c ; la huitième, D61 ; la neuvième, D67 ; la dixième, D92)*. Le ticket L0-04 écrivait « la forme imposée » au singulier ; recopier cette phrase sur `client`, `site` ou `modele_materiel` écrit une politique **fausse dans le sens permissif — en obéissant**. Les dix, avec leur cas et une table qui les porte :
 
 | Forme | Clause | S'applique à | Exemple en base |
 |---|---|---|---|
@@ -145,6 +145,7 @@ Toute requête est filtrée côté serveur, et la base applique en plus une poli
 | **désignation** | la ligne que l'appelant NOMMAIT DÉJÀ, **plus** un rattachement à la société active pour `utilisateur` | `utilisateur` *(L1-02c)*, puis les quatre tables techniques d'authentification *(L1-02d)* — et uniquement pour ce qui PRÉCÈDE la société | `utilisateur`, `session`, `compte`, `verification`, `second_facteur` |
 | **appartenance** | société pour tout le monde, **plus** SA PROPRE LIGNE en `SELECT` SEUL | `utilisateur_societe` *(D61)* — la table qui dit sur quelles sociétés une identité est habilitée | `utilisateur_societe` |
 | **adhésion** | identité pour tout le monde, **plus** SES PROPRES SOCIÉTÉS en `SELECT` SEUL | `societe` *(D67)* — sans elle, un sélecteur ne peut afficher que des UUID | `societe` |
+| **rattachement** | habilitation pour tout le monde, **plus** SES PROPRES RATTACHEMENTS en `SELECT` SEUL | `utilisateur_client` *(D92)* — sans elle, aucun compte portail n'atteint aucun écran | `utilisateur_client` |
 
 **La sixième n'est pas une variante de « parc » : elle en est l'INVERSE fonctionnel** *(L1-02b)*. La forme « parc » lit `app.perimetre_sites` ; les tables d'habilitation sont celles d'où cette variable est CALCULÉE. Leur donner la forme « parc » serait circulaire — une politique qui lit la variable que sa propre lecture alimente ne se referme jamais. Leur laisser la clause société seule était la fuite mesurée le 07/09/2026 : un compte portail du client A lisait les lignes d'habilitation des comptes du client B de la même société, en tirait leurs identités par jointure, et énumérait par là les autres clients. Le **discriminant** est `app.client_id`, posée pour un compte portail et pour lui seul — c'est lui qui laisse un `admin_societe` voir les habilitations de SA société, ce qu'une clause « sa propre ligne » sans discriminant lui aurait retiré.
 
@@ -182,7 +183,11 @@ La forme ajoute une politique de `SELECT` ancrée sur l'identité connectée à 
 
 **Et une politique qui n'énonce qu'un `USING` LÉGIFÈRE EN SILENCE sur les écritures** *(L1-02c)*. PostgreSQL y fait valoir la même expression en `WITH CHECK` — une décision prise par personne, exactement comme l'`ON UPDATE CASCADE` par défaut de Prisma. Mesuré : sous une expression de lecture reprise en écriture, la **création de compte est refusée**, parce qu'au moment où l'identité est insérée son habilitation n'existe pas encore. **Toute politique couvrant une écriture énonce donc son `WITH CHECK`, même quand il répète le `USING`** — pour que ce soit une décision et non une conséquence. Gardé par `ecartsWithCheckExplicite`, sur la base jetable et sur la base hébergée.
 
-**Et AUCUNE des neuf n'évalue l'heure** *(D85)*. Le cloisonnement répond à « qui a le droit de lire cette ligne », et **cette réponse ne doit pas changer d'elle-même** : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure — un jumeau passerait parce que l'horloge a bougé, non parce que le verrou a cédé. **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.** Une politique lit sans peine une colonne de type date — `date_planifiee` est une donnée que quelqu'un a écrite, `now()` une valeur que personne n'a écrite : *c'est la provenance qui décide, jamais le type*. Le motif n'était écrit nulle part comme principe avant D85 : il vivait quatre fois comme argument d'une décision particulière — la forme exacte qu'a une règle avant d'en être une. Mesuré : 58 politiques, zéro évaluant le temps ; gardé par `tests/unit/db/horloge-hors-cloisonnement.test.ts`. Le code applicatif, lui, garde le droit de lire l'heure — la restriction des 7 jours de RG-DRO-02 y reste (D84).
+**La dixième ferme la boucle que D10 avait laissée ouverte** *(D92, ticket L2-12)*. D10 veut que « les deux tables soient exclusives » : un compte portail n'a **aucune** ligne dans `utilisateur_societe`. Et `utilisateur_client` portait la forme « habilitation », ancrée sur `app.societe_id`. **Rien ne pouvait donc lui donner une société, et sans société il ne lisait pas son propre rattachement** — mesuré sous `codiplan_app`, avec témoin (zéro société sans contexte) : *identité seule → **0 ligne**, identité + société → 3, `utilisateur_societe` de ce compte → **0***. Les deux zéros ensemble ferment la boucle : **aucun compte portail n'atteignait aucun écran**, et rien ne le disait — il n'existait pas d'écran de portail pour buter dessus.
+
+La forme ajoute une politique de `SELECT` ancrée sur l'identité connectée. **Le coût, nommé** : *une personne apprend la liste des clients auxquels elle est déjà rattachée.* Ni leur NOM — `client` reste de forme « parc » —, ni leurs données, ni l'existence d'aucun autre. **Et ce qui la borne est la COMMANDE, pas la clause** : la même branche en écriture laisserait un compte **se rattacher au client de son choix**, c'est-à-dire s'ouvrir le parc d'un tiers ; `FOR SELECT` n'accepte d'ailleurs aucun `WITH CHECK`, si bien que la borne est structurelle. Liste close gardée dans les deux sens : `TABLES_RATTACHEMENT`, dont le **retrait** est le sens silencieux. *Et la neuvième forme s'étend au même compte sans changer de règle : D67 dit « les sociétés où il est habilité », et un compte portail EST habilité — par `utilisateur_client`.*
+
+**Et AUCUNE des dix n'évalue l'heure** *(D85)*. Le cloisonnement répond à « qui a le droit de lire cette ligne », et **cette réponse ne doit pas changer d'elle-même** : sinon un audit lancé à 23:59 et à 00:01 se contredit **sans qu'aucune écriture n'ait eu lieu**, et le vert d'un test devient fonction de l'heure — un jumeau passerait parce que l'horloge a bougé, non parce que le verrou a cédé. **Quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ** : une colonne porte l'état, un travail écrit la colonne, la politique lit la colonne. **L'horloge ne touche que le travail.** Une politique lit sans peine une colonne de type date — `date_planifiee` est une donnée que quelqu'un a écrite, `now()` une valeur que personne n'a écrite : *c'est la provenance qui décide, jamais le type*. Le motif n'était écrit nulle part comme principe avant D85 : il vivait quatre fois comme argument d'une décision particulière — la forme exacte qu'a une règle avant d'en être une. Mesuré : 60 politiques écrites aux migrations, zéro évaluant le temps ; gardé par `tests/unit/db/horloge-hors-cloisonnement.test.ts`. Le code applicatif, lui, garde le droit de lire l'heure — la restriction des 7 jours de RG-DRO-02 y reste (D84).
 
 **Celle qui NE s'applique JAMAIS à une table métier ordinaire est « référentiel »**, et ses deux moitiés sont fausses pour deux raisons distinctes. Sa lecture est `USING (true)` : toutes les sociétés lisent toutes les lignes — c'est la décision D4 sur `devise` (« le franc Pacifique est le même partout »), c'est la fin du cloisonnement sur `client`. Son écriture est `app_est_role_editeur()` : elle donne le droit au salarié de l'éditeur et le retire à la société propriétaire — l'objet même de la règle sur un référentiel, l'inverse exact de ce que le §22.5 promet au client sur une table métier.
 
@@ -565,6 +570,22 @@ lib/
               rend des CODES, jamais du texte : les libellés sont au
               dictionnaire, la coupure de L0-11 s'appliquant au rapport lu par
               un humain (I6, RG-IMP-01)
+  portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
+              rattachementsDuCompte lit la DIXIÈME forme de politique —
+              « rattachement » : un compte lit SES rattachements SANS société
+              active, ce que D10 rendait impossible en voulant les deux tables
+              exclusives (mesuré : identité seule → 0 ligne, et 0 ligne dans
+              `utilisateur_societe` — aucun compte portail n'atteignait rien)
+              aucune comparaison de société ni de client n'est écrite ici : on
+              lit SOUS le contexte, la forme « parc » décide, et une
+              comparaison au-dessus serait une seconde lecture du même critère
+              RIEN pour l'écriture : « demander une intervention » n'est pas
+              tranché, donc ni construit NI PRÉPARÉ — pas de table qui
+              l'attendrait, une place réservée étant une décision de personne
+              les emplacements des documents (lot 8) et de l'état VGP (lot 9)
+              sont TENUS et DITS VIDES — jamais un zéro ni un « à jour », qui
+              se liraient comme des mesures ; « sans information » n'est ni
+              l'un ni l'autre (D88)
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
   theme/      charte de la société active — couleurs, encres, variables CSS

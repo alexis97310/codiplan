@@ -661,6 +661,22 @@ Il y a **sept formes** en vigueur, et le ticket L0-04 n'en énonçait qu'une :
 | **habilitation** | société **et** ( pas de `app.client_id` **ou** sa propre ligne )                   | `utilisateur_client`, `utilisateur_client_site` (L1-02b)                               |
 | **désignation**  | la ligne que l'appelant nommait déjà, **plus** le rattachement à la société active | `utilisateur` (L1-02c), `session`, `compte`, `verification`, `second_facteur` (L1-02d) |
 | **appartenance** | société pour tout le monde, **plus** sa propre ligne en `SELECT` SEUL              | `utilisateur_societe` (D61)                                                            |
+| **rattachement** | habilitation pour tout le monde, **plus** son propre rattachement en `SELECT` SEUL | `utilisateur_client` (D92)                                                             |
+
+La forme **« rattachement »** ferme la boucle que D10 avait laissée ouverte. D10
+veut que « les deux tables soient exclusives » : un compte portail n'a **aucune**
+ligne dans `utilisateur_societe`. Et `utilisateur_client` portait la forme
+« habilitation », ancrée sur `app.societe_id`. Rien ne pouvait donc lui donner
+une société, et sans société il ne lisait pas son propre rattachement. _Mesuré le
+11/09/2026 sous `codiplan_app`, avec témoin — zéro société sans contexte :
+identité seule → **0 ligne**, identité + société → 3, `utilisateur_societe` de ce
+compte → **0**._ Les deux zéros ferment la boucle : **aucun compte portail
+n'atteignait aucun écran**, et rien ne le disait — il n'existait pas d'écran de
+portail pour buter dessus. Le coût est nommé, comme celui de D61 et de D67 : une
+personne apprend la liste des clients auxquels elle est déjà rattachée ; ni leur
+nom, ni leurs données, ni l'existence d'aucun autre. Et c'est la **commande** qui
+la borne — `FOR SELECT`, qui n'accepte aucun `WITH CHECK` : la même branche en
+écriture laisserait un compte se rattacher au client de son choix.
 
 La forme **« référentiel » ne s'applique jamais à une table métier** : sa lecture
 ouvre toutes les lignes à toutes les sociétés, et son écriture donne le droit au

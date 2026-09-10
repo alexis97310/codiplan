@@ -2971,3 +2971,49 @@ L'exploitation demandait, sans deviner : combien d'exécutions du flux de migrat
 `ecartsSansContexte` figurait dans `HORS_OBSERVATION` — la liste close des contrôles que la veille ne joue pas — avec ce motif : *« elle juge un décompte obtenu après un seed, que la veille ne joue pas. »* **Mesuré à la lecture de la fonction : elle ne prend que les décomptes observés, et aucun inventaire.** Elle n'a jamais eu besoin d'un seed. L'exclusion était juste pour ses voisines et fausse pour elle — recopiée depuis `ecartsAvecContexte`, à qui le motif appartient réellement. Elle est retirée.
 
 *C'est la pente du §9 du 07/09 dans une liste d'exemptions : un motif énoncé de mémoire a exactement la forme d'un motif observé, et une exemption n'a personne pour la contredire — elle ne produit aucun signal.*
+
+---
+
+## D92 — LA DIXIÈME FORME DE POLITIQUE : « rattachement ». Aucun compte portail n'atteignait aucun écran
+
+*Décision de session du 11 septembre 2026, ticket L2-12. Elle est la sœur de D61 et de D67, prise de l'autre côté : celles-ci ouvraient un chemin aux comptes INTERNES, celle-ci l'ouvre aux comptes PORTAIL.*
+
+### LE MUR, MESURÉ AVANT D'ÊTRE CONTOURNÉ
+
+D10 veut que « les deux tables soient exclusives » : un compte portail n'a **aucune** ligne dans `utilisateur_societe`. Et `utilisateur_client` portait la forme « habilitation », dont la première clause est `societe_id = app.societe_id`. **Rien ne pouvait donc donner une société à un compte portail, et sans société il ne lisait pas son propre rattachement.**
+
+*Mesuré le 11/09/2026 sous `codiplan_app` — rôle non privilégié (`rolbypassrls` = f) —, avec témoin préalable : zéro société lisible sans contexte.*
+
+| Ce qui est posé | Lignes de `utilisateur_client` vues |
+|---|---|
+| `app.utilisateur_id` seul | **0** |
+| `app.utilisateur_id` + `app.societe_id` | 3 |
+| *(pour mémoire)* `utilisateur_societe` de ce compte | **0** |
+
+A = 0 et C = 0 **ensemble** : la boucle est fermée sur elle-même. Aucun compte portail n'atteignait aucun écran, et **rien ne le disait** — il n'existait pas d'écran de portail pour buter dessus. *C'est le silence qui a la forme du succès (§9, 31/08), et c'est la deuxième fois qu'une politique juste attendait un appelant qui n'existait pas : D61 et D67 avaient dormi deux jours dans le même état.*
+
+### LA DÉCISION
+
+**`utilisateur_client` reçoit une politique de `SELECT` — et de `SELECT` seul — ancrée sur `utilisateur_id = app.utilisateur_id`.** Un compte lit SES rattachements, toutes sociétés confondues ; jamais ceux d'autrui. La forme « habilitation » n'est pas touchée : elle continue de gouverner tout le reste, écritures comprises.
+
+**LE COÛT, NOMMÉ comme D61 et D67 ont nommé le leur** : *une personne apprend la liste des clients auxquels elle est déjà rattachée.* Elle n'apprend ni leur NOM — `client` reste de forme « parc » —, ni aucune de leurs données, ni l'existence d'aucun autre client, ni le rattachement de quiconque d'autre.
+
+**ET CE QUI LA BORNE EST LA COMMANDE, PAS LA CLAUSE.** La même branche sur une écriture laisserait un compte **se rattacher au client de son choix**, c'est-à-dire s'ouvrir le parc d'un tiers — la fuite exacte que la forme « parc » existe pour empêcher. `FOR SELECT` n'accepte d'ailleurs aucun `WITH CHECK` : la borne est structurelle et non déclarative. Un gardien le vérifie commande par commande, et un scénario montre l'insertion refusée.
+
+Liste close gardée dans les **deux** sens — `TABLES_RATTACHEMENT`. Le **retrait** est le sens silencieux : il fait retomber la table sur la forme « habilitation », qui passe tous les gardiens, et le mur revient.
+
+### ET LA NEUVIÈME FORME S'ÉTEND, SANS CHANGER DE RÈGLE
+
+D67 dit : « un compte lit les lignes des sociétés **où il est habilité** ». Sa politique ne traversait que `utilisateur_societe` — la seule table d'habilitation qui existât quand elle a été écrite. **Un compte portail EST habilité, par `utilisateur_client` (D10)** ; la règle ne bouge pas d'un mot, c'est son énumération qui devient exacte. Sans cette moitié, D92 rendrait au compte portail la LISTE de ses sociétés et lui refuserait leur NOM : *exactement l'impasse que D67 a levée pour les comptes internes.* La sous-requête est elle-même soumise aux politiques, donc la règle est écrite **une fois** et se recompose.
+
+### CE QUE LE PORTAIL EST, ET CE QU'IL N'EST PAS
+
+**Consultation seule.** Le bouton « demander une intervention » n'est pas tranché : il n'est ni construit **ni préparé** — aucune table ne l'attend, aucun champ mort ne le devance. *Une place réservée pour une décision qu'on n'a pas prise est une décision prise par personne (§9, 24/08).*
+
+**Aucune comparaison de société ni de client n'est écrite au-dessus des politiques.** On lit SOUS le contexte, la forme « parc » décide, et les trois filtres — société, client, périmètre de sites — mordent ensemble. Une comparaison écrite dans l'écran serait une seconde lecture d'un même critère (§9, 01/09), verte aujourd'hui et permissive le jour où elle divergerait.
+
+**Les emplacements des documents (lot 8, D87) et de l'état VGP (lot 9, D88) sont TENUS ET DITS VIDES.** Ni un compte de documents à zéro — il se lirait comme une mesure (§9, 06/09) —, ni un état « à jour » — il serait faux au sens de D88, *« sans information » n'étant ni « à jour » ni « en retard »*.
+
+### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
+
+*Le jour où un compte portail devra écrire quoi que ce soit — une demande d'intervention, une remarque —, cette forme ne suffira pas : elle est en lecture, par construction. Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, jamais un élargissement de celui-ci.* Le critère se vérifie : la politique porte `FOR SELECT`, ou elle ne le porte plus.

@@ -204,6 +204,14 @@ const HORS_OBSERVATION: readonly {
       "peut la déplacer ; c'est le contrôle statique qui la tient.",
   },
   {
+    fonction: "ecartsListeRattachement",
+    justification:
+      "juge une liste close du DÉPÔT, pas la base — pour la même raison que " +
+      "`ecartsListeParc`. La FORME qu'elle commande, elle, est bien " +
+      "observée : `ecartsPolitiques` mesure dans `pg_policies` que la branche " +
+      "« mon rattachement » existe et qu'elle est en SELECT seul.",
+  },
+  {
     fonction: "ecartsListeAdhesion",
     justification:
       "garde une LISTE DU DÉPÔT (`TABLES_ADHESION`), pas la base — même " +

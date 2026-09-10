@@ -76,6 +76,35 @@ export const fr = {
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
+  // Portail client — CONSULTATION SEULE (L2-12, D92).
+  "portail.titre": "Votre parc",
+  "portail.sous_titre":
+    "Ce que CODIMA suit pour vous. Cette page est en consultation seule.",
+  // LE VOCABULAIRE IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11) : la notion se nomme par
+  // `mot("site")`, et ces libellés portent tout SAUF le mot. Une clé
+  // « Vos sites » aurait recopié dans le dictionnaire ce dont `vocabulaire.ts`
+  // est la seule maison.
+  "portail.vos": "Vos",
+  "portail.machines": "Vos machines",
+  "portail.machine.serie": "Numéro de série",
+  "portail.machine.localisation": "Emplacement",
+  "portail.machine.statut": "État",
+  "portail.machine.mise_en_service": "Mise en service",
+  "portail.sans_machine":
+    "Aucune machine ne figure à votre parc pour le périmètre qui vous est ouvert.",
+  "portail.sans_lieu":
+    "Aucun lieu d'intervention ne vous est ouvert. Signalez-le à votre interlocuteur CODIMA.",
+  "portail.perimetre":
+    "Vous ne voyez que les lieux sur lesquels votre compte est habilité.",
+  "portail.client": "Client",
+  "portail.documents": "Documents",
+  "portail.documents.a_venir":
+    "Les documents de cette machine ne sont pas encore consultables ici.",
+  "portail.vgp": "Contrôle réglementaire (VGP)",
+  "portail.vgp.sans_information":
+    "Sans information — CODIPLAN n'enregistre pas encore les contrôles de cette machine. Ce n'est ni « à jour », ni « en retard ».",
+  "portail.reserve": "Cet écran est réservé aux comptes de portail client.",
+
   // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
   // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
   // seule porte d'entrée d'une base neuve rendait 404.
