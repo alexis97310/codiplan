@@ -13,6 +13,7 @@ import {
   DEVISES,
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_DEMONSTRATION,
+  identifiantIntervention,
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
@@ -134,7 +135,11 @@ async function seed(): Promise<void> {
     });
   }
 
-  for (const societe of SOCIETES) {
+  for (const [indexSociete, societe] of SOCIETES.entries()) {
+    // Le rang ouvre à chaque société sa propre plage d'identifiants de
+    // démonstration. Il part de 1 : un rang nul ne se distinguerait pas de
+    // l'absence de rang.
+    const rangSociete = indexSociete + 1;
     const { id, agences, calendriers, clients, ...champsSociete } = societe;
 
     // ── 1. LE FAIT PUBLIC, d'abord (D46, complément 2) ────────────────────
@@ -474,10 +479,16 @@ async function seed(): Promise<void> {
           clientId,
           agenceId: identifiantsAgences.get(site.agence_code),
         }));
+        // **L'IDENTIFIANT EST DÉRIVÉ DE LA SOCIÉTÉ** *(10/09/2026)*. Il était
+        // fixe : la première société prenait les six, la seconde les trouvait
+        // écrites et s'abstenait — zéro sur six, à chaque exécution. Le rang
+        // de la société ouvre à chacune une plage qui ne peut pas rencontrer
+        // celle de sa voisine.
         const interventions = INTERVENTIONS_DEMONSTRATION.map(
-          (modele, rang) => ({
+          (modele, index) => ({
             ...modele,
-            lieu: sitesEcrits[rang % sitesEcrits.length],
+            id: identifiantIntervention(rangSociete, modele.rang),
+            lieu: sitesEcrits[index % sitesEcrits.length],
           }),
         ).filter((i) => i.lieu !== undefined && i.lieu.agenceId !== undefined);
 
@@ -496,6 +507,7 @@ async function seed(): Promise<void> {
         // seconde société appartient à l'exploitation. Ce qui est réparé est le
         // RAPPORT — désormais, l'écart se voit au lieu de se taire.
         let ecrites = 0;
+        let dejaPresentes = 0;
         for (const intervention of interventions) {
           const lieu = intervention.lieu;
           if (lieu === undefined || lieu.agenceId === undefined) {
@@ -517,6 +529,7 @@ async function seed(): Promise<void> {
             select: { id: true },
           });
           if (deja !== null) {
+            dejaPresentes += 1;
             continue;
           }
           await tx.intervention.create({
@@ -535,10 +548,31 @@ async function seed(): Promise<void> {
           });
           ecrites += 1;
         }
+        // **LE RAPPORT ROUGIT SI L'ÉCART N'EST PAS NUL** *(10/09/2026)*. Le
+        // compte des lignes écrites face à celui des lignes prévues était
+        // imprimé et rien de plus : « 0 écrite(s) sur 6 prévue(s) » a traversé
+        // tous les journaux du flux de migration sans que personne ne s'y
+        // arrête. *Un écart imprimé n'est pas un écart constaté* — c'est la
+        // même faute que le §9 du 06/09, un chiffre juste dont le lecteur ne
+        // peut pas tirer la conclusion qu'il faut.
+        //
+        // Le REJEU n'est pas un écart : à la seconde exécution, les six lignes
+        // sont déjà là, `dejaPresentes` vaut six, et la somme retombe juste.
         etape(
           `${societe.code} — interventions de démonstration : ${ecrites} ` +
-            `écrite(s) sur ${interventions.length} prévue(s)`,
+            `écrite(s), ${dejaPresentes} déjà présente(s), sur ` +
+            `${interventions.length} prévue(s)`,
         );
+        if (ecrites + dejaPresentes !== INTERVENTIONS_DEMONSTRATION.length) {
+          throw new Error(
+            `${societe.code} : ${ecrites + dejaPresentes} intervention(s) de ` +
+              `démonstration sur ${INTERVENTIONS_DEMONSTRATION.length} — la ` +
+              "démonstration du multi-société exige DEUX plannings garnis, et " +
+              "un écran vide ne vend rien. Cause probable : la société n'a " +
+              "aucun site auquel les rattacher, ou une collision " +
+              "d'identifiants entre sociétés.",
+          );
+        }
 
         // ── L'AMORÇAGE DES HABILITATIONS (D60, L1-04) ───────────────────────
         //
