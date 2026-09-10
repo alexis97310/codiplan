@@ -18,10 +18,13 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 | Rang | Source |
 |---|---|
 | 1 | `docs/arbitrages.md` — les décisions arrêtées |
+| 1 | `docs/protocole-session.md` — **comment une session travaille** |
 | 2 | `docs/cahier-des-charges.md` **chapitre 10** — les règles de gestion |
 | 3 | `docs/cahier-des-charges.md` **chapitre 11** — le modèle de données |
 | 4 | `docs/backlog.md` — les tickets |
 | 5 | Le reste du cahier des charges — narratif, jamais normatif |
+
+**Les deux sources de rang 1 ne se recouvrent pas** *(écrit le 10/09/2026)*. `arbitrages.md` dit **ce qui a été décidé** ; `protocole-session.md` dit **comment une session travaille** — qui décide quoi, les deux seuls cas d'arrêt, la forme d'un ticket `arbitrage`, l'économie de contexte, la forme du rapport. Elles sont à égalité parce qu'aucune ne peut trancher l'autre : une contradiction entre les deux est un **défaut à signaler**, jamais une préséance à appliquer. Ces sept sections étaient recopiées à l'identique en tête de chaque consigne depuis dix jours ; *une règle recopiée à la main est une règle qui s'érode.*
 
 **Une règle métier ne s'écrit qu'au chapitre 10.** Une règle trouvée ailleurs et absente du chapitre 10 est non normative.
 
@@ -301,6 +304,14 @@ pnpm audit:partitions # DEUX contrôles sur le journal d'audit (L0-10) :
                       #   préventif — reste-t-il 12 mois de partitions devant ?
                       #   détectif  — la partition par défaut est-elle vide ?
 pnpm partitions:etendre # étend l'horizon des partitions du journal
+
+pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
+                      # la file de nuit se LIT, elle ne s'interprète pas :
+                      # trois états — LIBRE, LIVRÉ, BLOQUÉ — <motif> —, posés
+                      # sur la ligne qui suit le titre du ticket. Un ticket
+                      # sans marqueur, ou un BLOQUÉ sans motif, fait échouer
+                      # `pnpm verify`. La POPULATION est dérivée du document :
+                      # un ticket écrit demain y entre ce jour-là.
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
                       # les contrôles d'observation — ONZE aujourd'hui : RLS,
