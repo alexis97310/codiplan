@@ -644,3 +644,16 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Ce que le ticket ne fait pas :** journaliser les lectures métier ordinaires d'un utilisateur **interne** d'une société. D32 les a écartées — le volume serait sans rapport avec la valeur, et le §15 est narratif donc non normatif (D1). Élargir ce périmètre serait un arbitrage.
 *Acceptation :* toute lecture, par un rôle éditeur, d'une donnée appartenant à une société cliente laisse une ligne dans `journal_acces` portant l'auteur, l'horodatage, le rôle et la société visée ; un test prouve qu'un rôle **interne** lisant les données de sa propre société n'en produit **aucune** ; les deux colonnes de société restent informatives — aucune requête, aucune politique, aucun index ne les prend pour filtre.
 *Relu contre les sources citées le 10/09/2026 — empreinte `8ddb2c10`.*
+
+**R1-01 — La veille dit d'où vient un écart, au lieu de l'affirmer. [incident du 10/09/2026, ticket #95]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le gabarit de l'issue ouverte par une veille rouge écrit, en toutes lettres : *« Ces écarts ne viennent d'aucune migration — ce sont des gestes passés à la main. »* **C'est une phrase fixe, pas une mesure.** La veille observe la base ; elle ne compare **jamais** `_prisma_migrations` au répertoire `prisma/migrations/` du dépôt, et ne peut donc pas savoir d'où vient un écart.
+**Mesuré le 10/09/2026 sur l'exécution `34493977325`** : l'unique écart rapporté — `utilisateur_client` sans la forme « rattachement » — est **exactement** le contenu de `20260911010000_rattachement_portail_d92`, **jamais appliquée**. Quatre migrations étaient en retard, le dernier `db-migrate` réussi remontant au 09/09 à 22:55 UTC. Le ticket de sécurité nommait une cause qu'il n'avait pas mesurée, et il a envoyé chercher au mauvais endroit.
+*C'est la pente du §9 (07/09) — affirmer un état observable au lieu de l'observer — logée dans un GABARIT, c'est-à-dire à l'endroit où elle se répétera à chaque alarme.*
+*Acceptation :* la veille compare les migrations appliquées en base au répertoire du dépôt et **nomme le décompte en retard** ; le gabarit n'affirme le geste manuel **que** lorsque ce décompte est nul, et écrit sinon « N migration(s) en retard — appliquer `db-migrate` avant de conclure » ; un scénario montre les deux verdicts, dont celui qui ne conclut pas au geste manuel.
+
+**R1-02 — Le README des captures dit comment savoir si un écran a changé depuis. [10/09/2026]**
+*File :* LIBRE
+**Déclencheur : la prochaine prise de vue.** Le README nomme le commit photographié, et c'est la règle du §9. Ce qu'il ne dit pas : *comment un lecteur sait qu'aucun écran n'a bougé depuis.* La question se répond en une commande — `git diff --name-only <empreinte> main` restreint aux chemins d'écran — et cette commande est aujourd'hui tapée à la main, donc pas tapée.
+**Mesuré le 10/09/2026** : entre `b8c3f76` (photographié) et `2fe6e8b`, **67 fichiers changés et aucun sous `app/`, `components/`, `lib/theme/` ni `lib/i18n/`** — les images étaient exactes, et rien dans le dossier ne le disait.
+*Acceptation :* `scripts/captures.mts` énumère les chemins qu'il tient pour « surface d'écran » et les écrit dans le README avec l'empreinte ; une commande dit si l'un d'eux a changé depuis la prise, et rend un état — jamais un silence.

@@ -48,7 +48,7 @@ describe('la file de nuit', () => {
       expect(tickets.every((t) => t.etat !== 'LIBRE')).toBe(true)
       return
     }
-    expect(premier.identifiant).toMatch(/^L\d+-\d+[a-z]?$/)
+    expect(premier.identifiant).toMatch(/^[LR]\d+-\d+[a-z]?$/)
     // Ce que la nuit prendra est le PREMIER dans l'ordre du document : tout ce
     // qui le précède est écarté, et pour une raison lisible.
     const avant = tickets.slice(0, tickets.indexOf(premier))
@@ -116,5 +116,29 @@ describe("les deux directions du gardien, éprouvées sur les graphies réelles"
       '**L9-99** Un ticket.\nUne ligne de prose intercalée.\n*File :* LIBRE\n',
     )
     expect(lus[0].etat).toBeNull()
+  })
+})
+
+/**
+ * UN TICKET QUE LE MOTIF NE RECONNAÎT PAS N'ENTRE PAS DANS LA FILE — et il est
+ * alors invisible au gardien ET à la nuit, ce qui est le pire des deux mondes :
+ * aucun rouge, et aucun travail. Mesuré le 10/09/2026 en écrivant `R1-01`.
+ *
+ * C'est la direction PERMISSIVE du prédicat (§9, 11/09) : elle ne produit
+ * jamais de signal, et ne s'éprouve donc que par un cas qui DOIT être vu.
+ */
+describe("les tickets de revue entrent dans la file comme les autres", () => {
+  it("lit un titre `R…` autant qu'un titre `L…`", () => {
+    const lus = lireLaFile("**R1-01 — Un ticket de revue.**\n*File :* LIBRE\n")
+    expect(lus.map((t) => t.identifiant)).toEqual(["R1-01"])
+    expect(defautsDeLaFile(lus)).toEqual([])
+  })
+
+  it("les tickets `R…` du document réel portent bien leur marqueur", () => {
+    const revue = tickets.filter((t) => t.identifiant.startsWith("R"))
+    // Témoin : zéro ticket de revue observé rendrait l'assertion suivante
+    // vraie sans rien avoir regardé.
+    expect(revue.length).toBeGreaterThan(0)
+    expect(revue.filter((t) => t.etat === null)).toEqual([])
   })
 })

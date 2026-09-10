@@ -30,8 +30,17 @@ export type TicketDeFile = {
   readonly motif: string;
 };
 
-/** Un titre de ticket : `**L2-01** …` comme `**L0-01 — …**`. Les deux graphies existent. */
-const TITRE = /^\*\*(L\d+-\d+[a-z]?)\b(?:\*\*)?[\s—-]*(.*)$/;
+/**
+ * Un titre de ticket : `**L2-01** …` comme `**L0-01 — …**`. Les DEUX graphies
+ * existent dans le document, et le motif les couvre toutes deux.
+ *
+ * `R…` autant que `L…` : les tickets de revue sont des travaux comme les autres,
+ * et un ticket qu'aucun motif ne reconnaît n'entre pas dans la file — il est
+ * invisible au gardien ET à la nuit, ce qui est le pire des deux mondes. Mesuré
+ * en écrivant R1-01 : le motif ne lisait que `L`, et le ticket a disparu sans
+ * qu'aucun contrôle ne bronche.
+ */
+const TITRE = /^\*\*([LR]\d+-\d+[a-z]?)\b(?:\*\*)?[\s—-]*(.*)$/;
 /** Le marqueur, sur la ligne qui suit immédiatement le titre. */
 const MARQUEUR = /^\*File :\*\s+(LIBRE|LIVRÉ|BLOQUÉ)\s*(?:—\s*(.*))?$/;
 
