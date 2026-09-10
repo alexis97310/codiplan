@@ -697,6 +697,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 | **Quand le chemin administratif d'ouverture de compte existera** *(L1-02c)* | **`disableSignUp` de Better Auth se pose alors, et pas avant.** Aujourd'hui la SURFACE est fermée — la route `/sign-up` rend 404 — mais l'API serveur `auth.api.signUpEmail` reste appelable par notre propre code, et c'est ce qui rend l'acte administratif possible ; la politique `utilisateur_ouverture` la borne en base. `disableSignUp` fermerait les deux d'un coup — **mesuré le 07/09/2026** : il refuse aussi l'appel serveur, « Email and password sign up is not enabled ». Le poser aujourd'hui retirerait le seul moyen de créer une identité avec ses identifiants. Déclencheur explicite : le jour où un chemin administratif d'ouverture existe, `disableSignUp` devient la fermeture juste, et l'asymétrie actuelle disparaît |
 | ~~**Avant le premier `admin_societe` réel** *(D58)*~~ **TRANCHÉ le 08/09/2026** *(D59)* — la CATÉGORIE ENTIÈRE reçoit son plancher. | ~~Le plancher de la troisième catégorie de I1 : cinq tables sans RLS, sans politique, avec les quatre verbes pour le rôle applicatif ; une empreinte de mot de passe et un jeton de session lus sous un contexte de `technicien` ; un cliquet sur `mfa_actif` seul aurait été décoratif~~ — pris le 08/09/2026, voir **D59**, qui porte le tableau des cinq formes déduites et ce que voient les trois profils. Ligne conservée : un point tranché se raye, il ne s'efface pas. **Ce qui RESTE ouvert et change de nature :** la transition d'ENRÔLEMENT de D58 n'est toujours pas ouverte — son plancher existe (`second_facteur_enrolement`), le chemin qui l'empruntera reste à écrire, et il sera à nous plutôt qu'un point d'entrée générique. Déclencheur inchangé : avant le premier `admin_societe` réel |
 | **Avant le premier chemin qui laisse CHOISIR un identifiant d'utilisateur** *(D59)* | **CE QUE VAUT UNE DÉSIGNATION PAR UN IDENTIFIANT, ET NON PAR UN SECRET.** `session` se désigne par son **jeton** — une valeur imprévisible, un vrai secret. `compte`, `second_facteur` et `journal_acces` se désignent par l'**identifiant de l'utilisateur** concerné, et `journal_acces` par celui du compte, jamais par le sien — la borne est donc réelle au sens où une lecture non désignée rend zéro. **Mais un identifiant d'utilisateur est un UUID v7** : ordonné dans le temps, donc devinable en principe, exactement l'argument qui fait écarter l'identifiant de session. Ce qui tient aujourd'hui n'est donc pas la force de la clé : c'est qu'**aucun chemin ne laisse un appelant CHOISIR la valeur désignée** — elle vient toujours de nos propres requêtes. **Ce que ça coûte à dormir :** rien tant que cela reste vrai ; le jour où une route accepte un identifiant d'utilisateur en entrée, la borne devient nominale et il faudra soit une clé secrète, soit une clause de rattachement en plus. Déclencheur explicite : le premier chemin qui laisse choisir cette valeur |
+| **Le jour où un écran ou une route de portail lit une table de forme « société »** *(D94, 13/09/2026)* | **LES TABLES PUREMENT INTERNES SONT LISIBLES PAR UN COMPTE PORTAIL, ET PERSONNE NE L'AVAIT VU.** La clause de la forme « société » ne lit pas `app.client_id` : un compte portail muni d'une société lirait `taux_horaire`, `forfait`, `agence`, `habilitation` — la grille tarifaire, le catalogue de forfaits, la liste des agences. **Aucun écran ne les lui donne aujourd'hui, et c'est le seul motif pour lequel la question ne s'est jamais posée.** Elle a été VUE en écrivant le bac de réception, dont la table nomme des fichiers — `notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part —, c'est-à-dire la fuite exacte que D93 venait de fermer un étage plus haut. **D94 ferme `document_recu` par une treizième forme, « interne », et ne tranche PAS la classe** : l'étendre en séance aux dix tables concernées aurait été un arbitrage bien plus large qu'un ticket de bac, pris sans mesure sur chacune. *Ce que ça coûte à dormir : rien tant qu'aucun écran de portail ne lit ces tables — les écrans de portail ne touchent aujourd'hui que `utilisateur_client`, `client`, `site`, `machine` et `document`, toutes de forme « rattachement », « parc » ou « héritage ». Le critère se vérifie en lisant les appelants sous `app/(portail)/`* |
 | **Au lot 7, avant d'écrire L7-01** *(D59)* | **LE RETRAIT D'UN SECOND FACTEUR N'EST OUVERT À PERSONNE.** `second_facteur` n'a aucune politique de suppression : sous `FORCE`, le verbe est refusé pour tout le monde — le sujet comme l'administrateur. C'est le bon défaut et il est gardé. Mais **L7-01 est aujourd'hui inimplémentable**, et son refus est SILENCIEUX : zéro ligne, pas d'erreur. **Un RENDEZ-VOUS remplace l'embuscade** — `tests/isolation/categorie-authentification.test.ts` constate le refus et nomme ce qu'il faudra faire : L7-01 ouvrira UNE politique de suppression, `admin_plateforme` seul, et elle sera la seule. Tout autre élargissement est un arbitrage |
 | **À la première demande d'un client concerné** *(D46)* | **Jours fériés INFRA-NATIONAUX.** Certains territoires en ont : l'Alsace-Moselle chôme le Vendredi saint et le 26 décembre, le reste de la métropole non ; plusieurs États fédéraux fonctionnent ainsi. Le modèle `(territoire, date)` **le permettra sans être refait** — par un code de subdivision, sur le patron d'ISO 3166-2. Rien n'est construit aujourd'hui : la question se tranchera quand un client la posera, et non par anticipation |
 | **Au paramétrage réel des agences** *(L0-08)* | **Horaires d'ouverture réels de Ducos, Koné et Dolbeau, et liste des fériés effectivement chômés par chacune.** Le seed porte des valeurs de **démonstration**, dites comme telles dans le libellé de chaque calendrier. Ce qui n'est PAS de la démonstration et doit le rester : Ducos ouvre le samedi, Koné non (RG-PLA-01). La saisie des vrais horaires est une opération de paramétrage, pas un développement |
@@ -3017,3 +3018,100 @@ D67 dit : « un compte lit les lignes des sociétés **où il est habilité** »
 ### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
 
 *Le jour où un compte portail devra écrire quoi que ce soit — une demande d'intervention, une remarque —, cette forme ne suffira pas : elle est en lecture, par construction. Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, jamais un élargissement de celui-ci.* Le critère se vérifie : la politique porte `FOR SELECT`, ou elle ne le porte plus.
+
+---
+
+## D93 — LE CHEMIN D'ACCÈS AU MODÈLE PASSE PAR LA MACHINE : deux formes de politique, la onzième et la douzième
+
+*Décision d'exploitation du 13 septembre 2026, prise par Alexis et instruite par la session au ticket du lot 8. **Elle répond à la question que D87 avait laissée ouverte** — « un document de MODÈLE n'a ni machine ni site, et son cloisonnement est celui de `modele_materiel` ; la question s'instruit avec sa mesure au moment du ticket ». C'est ce moment, et voici la mesure.*
+
+### LA DÉCISION, DANS LES MOTS DE L'EXPLOITATION
+
+> Un compte de portail ne voit les documents d'un MODÈLE que si une machine de ce modèle se trouve DANS SON PROPRE PÉRIMÈTRE — sa société, son site, son habilitation. Jamais parce que sa société en possède un ailleurs.
+
+**La raison, et c'est elle qui décide de la forme :** sinon la présence d'une notice révèle la composition du parc des autres sites. *Un compte restreint à Ducos déduirait ce que Koné possède. Le cloisonnement fuirait par la LISTE DES DOCUMENTS au lieu de fuir par les données — et il fuirait quand même.*
+
+**Ce n'est donc pas la forme du document qu'il faut changer, c'est LE CHEMIN D'ACCÈS AU MODÈLE.** Le chemin passe par machine → site → habilitation, jamais par société → modèle.
+
+### CE QUI A ÉTÉ MESURÉ, ET AVEC QUOI
+
+*Sous `codiplan_app` — rôle non privilégié —, avec témoin préalable : les deux drapeaux RLS posés sur `document`, et zéro ligne lisible sans contexte pour six lignes réellement en base.* La fixture est délibérément adversaire : `MACHINE_A3` est installée sur le site S2, **chez le même client et dans la même société** que le compte portail restreint au site S1, et son modèle `MODELE_A_AILLEURS` n'a aucune autre machine.
+
+| Ce que lit le compte portail restreint à S1 | Sous la forme « société » | Sous la forme « ascendance » |
+|---|---|---|
+| documents visibles | 4 dont la notice du modèle d'ailleurs | **2** |
+| modèles visibles | 2 | **1** |
+| familles visibles | 2 | **1** |
+| `count(*)` sur le modèle d'ailleurs | 1 | **0** |
+| `count(*)` sur son propre modèle *(témoin)* | 1 | **1** |
+
+La dernière ligne est le témoin qui rend les autres lisibles : *zéro serait aussi bien la preuve que la lecture ne marche pas.*
+
+### LES DEUX FORMES
+
+**LA ONZIÈME — « héritage », pour `document`.** *Un document est visible si sa CIBLE l'est, et la classe ne fait que RÉTRÉCIR.* C'est la filiation de L1-04 avec deux différences, et ce sont elles qui font l'arbitrage que L8-04 réclamait :
+
+1. **La cible est POLYMORPHE** — deux parents possibles, exactement un renseigné (`num_nonnulls(modele_id, machine_id) = 1`). La forme « filiation » n'en connaît qu'un, et lui en donner deux en silence aurait été l'effet de bord que le ticket refuse.
+2. **La classe RÉTRÉCIT** — `interne` disparaît pour un compte portail. C'est un axe de RESTRICTION, jamais un axe d'accès : il n'ouvre rien à personne.
+
+**Aucune clause de société n'y est écrite**, et c'est la doctrine de la filiation : elle serait une seconde source du même fait (§9, 01/09). Ce qui empêche un document de dériver de la société de sa cible n'est pas une clause mais la clé étrangère composite. **Tout le cloisonnement de D10 et D22 est donc porté par la sous-requête**, `machine` étant de forme « parc ».
+
+**LA DOUZIÈME — « ascendance », pour `modele_materiel` et `famille_materiel`.** *Un parent n'est visible, pour un compte portail, que si l'un de ses ENFANTS l'est.* C'est l'INVERSE exact de la filiation, et c'est pourquoi ce n'est pas la même forme : la filiation propage vers le bas une visibilité déjà acquise, l'ascendance REFUSE vers le haut une visibilité que la clause de société donnait.
+
+**Le DISCRIMINANT est `app.client_id`**, comme dans la forme « habilitation » et pour la même raison : la restriction ne vise que le compte portail. Un utilisateur interne garde la clause de société seule — sans quoi créer un modèle avant sa première machine serait impossible, la table se refusant à elle-même.
+
+### POURQUOI `famille_materiel` REÇOIT LA MÊME FORME LE MÊME JOUR
+
+La fuite est identique un étage plus haut : une famille « ponts élévateurs » visible dit qu'il y a un pont quelque part. Écrire « le jour où un écran de portail lira les familles, la question sera due » aurait été la laisser filer — *le silence a exactement la forme du succès* (§9, 31/08). La chaîne est donc fermée sur les deux étages : famille visible si un de ses modèles l'est, modèle visible si une de ses machines l'est, machine visible selon la forme « parc ». **Trois maillons, un seul critère, écrit une seule fois** — chaque politique lit celle du dessous, et rien n'est recopié.
+
+### LE COÛT, NOMMÉ comme D61, D67 et D92 ont nommé le leur
+
+- *Un compte portail ne voit plus les modèles dont il ne possède aucune machine visible* — y compris un modèle qu'il exploite réellement mais dont la fiche machine n'a pas encore été saisie, et y compris un modèle commandé et non encore livré. **La documentation d'un matériel non recensé est inaccessible au client tant que le recensement n'est pas fait**, et c'est le prix exact de la fuite refusée.
+- *L'utilisateur interne ne perd rien.* Mesuré : il lit les deux modèles et les deux familles.
+- *Le coût d'exécution est MESURÉ, pas affirmé* (§9, 07/09 — la même phrase a déjà été démentie une fois par un `EXPLAIN`). `EXPLAIN SELECT "id" FROM "modele_materiel"` sous contexte portail rend `filter: (… or (hashed subplan 2))` : **le sous-plan est évalué UNE fois et haché**, chaque ligne de modèle n'étant ensuite qu'une recherche dans la table de hachage. Ce n'est pas « une sous-requête à chaque ligne lue ». La mesure est rejouée à chaque `pnpm test:isolation`.
+
+### CE QUI LES BORNE, ET LES DEUX LISTES CLOSES
+
+`TABLES_HERITAGE` et `TABLES_ASCENDANCE`, gardées **dans les deux sens**. Le RETRAIT est ici le geste dangereux : il fait retomber la table sur la forme « société », **qui passe tous les gardiens de forme sans rien dire**, et rouvre la fuite. Le jumeau le montre en acte — la politique d'ascendance remplacée par la clause de société seule, dans une transaction annulée, et la notice du modèle d'ailleurs reparaît au compte restreint.
+
+### CE QUE CE TICKET NE CONSTRUIT PAS, ET C'EST ÉCRIT PLUTÔT QUE TU
+
+**Le module de stockage n'existe pas.** La colonne `objet_cle` dit où sont les octets ; **aucun code ne la remplit**, parce qu'aucun écran ne l'appelle. *Une interface sans appelant est la maladie que le portail vient de soigner* — c'est la consigne d'exploitation du 13/09 (« stockage en dernier, quand il aura un appelant ») et c'est aussi la raison pour laquelle une consigne antérieure, qui demandait cette interface au lot 8, a été refusée avec sa mesure.
+
+**`document` naît donc VIDE**, et le rapport d'inventaire la nomme comme telle : une table dont les deux côtés de la comparaison valent zéro n'est ni un écart ni une preuve, elle est retranchée de ce que le rapport affirme (§9, 10/09).
+
+### CONDITION DE RÉOUVERTURE, vérifiable et non interprétable
+
+*Le jour où un compte portail devra voir la documentation d'un matériel qu'il n'a pas encore reçu — une notice envoyée avant la livraison —, l'ascendance ne suffira plus : elle est ancrée sur l'existence d'une machine, par construction.* Ce jour-là, c'est un arbitrage NOUVEAU qu'il faudra, et il devra dire **ce qui remplace la machine comme preuve du lien** — une commande, un contrat, un rattachement explicite. Le critère se vérifie : la clause porte `EXISTS (SELECT 1 FROM machine …)`, ou elle ne le porte plus.
+
+*Aucune règle du chapitre 10 n'est amendée — le chapitre n'y traite pas de la documentation des machines. Le chapitre 11 reçoit en revanche la forme réelle de `document`, que D87 avait annoncée « au moment du ticket » : elle y était encore décrite comme « polymorphe rattachée à machine, contrat, client ou intervention ».*
+
+---
+
+## D94 — LA TREIZIÈME FORME : « interne ». Le bac nomme des fichiers, et un nom de fichier révèle le parc
+
+*Décision de session du 13 septembre 2026, prise au ticket L8-07 et écrite avec sa condition de réouverture. **Elle n'a pas été demandée** : elle est née d'une mesure faite dans le ticket qui la crée, et c'est ce qui la rend intéressante à relire.*
+
+### CE QUI A ÉTÉ VU, ET QUAND
+
+D93 venait de fermer, le matin même, une fuite qui ne passe pas par les données mais par la LISTE : *la présence d'une notice révèle la composition du parc des autres sites.* Le bac de réception, écrit l'après-midi, porte des **noms de fichiers** — `notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part dans la société.
+
+Or **une table de forme « société » est lisible par un compte portail** : sa clause ne lit pas `app.client_id`. Donner cette forme au bac aurait **rouvert par la porte de service ce qu'on fermait par la porte principale, dans le ticket même qui la ferme.**
+
+*Mesuré, avec le jumeau : la politique du bac remplacée par la clause de société seule, un compte portail du client A1 lit `notice-KPX-337.pdf`. Le témoin qui rend la mesure lisible est que le MÊME compte, au MÊME instant, lit bien ses propres documents — ce n'est donc pas la session qui est muette, c'est le bac qui est fermé.*
+
+### LA DÉCISION
+
+**`document_recu` porte la forme « interne » : société ET `app.client_id` absent.** *Une table interne n'est pas lisible par un compte portail, quel que soit son client.* Le discriminant est celui des formes « habilitation » et « ascendance », employé ici dans son sens le plus simple.
+
+**LE COÛT, NOMMÉ** : aucun, pour le portail — il n'a jamais rien eu à faire dans le bac. Le coût réel est ailleurs, et il est de méthode : **une treizième forme dans une session qui en avait déjà pris deux.** Elle se justifie parce qu'elle ferme une fuite mesurée, pas parce qu'elle range mieux.
+
+### CE QU'ELLE DÉCOUVRE ET NE TRANCHE PAS — c'est la partie qui compte
+
+**`taux_horaire`, `forfait`, `agence`, `habilitation` et les autres tables de forme « société » sont dans le MÊME CAS AUJOURD'HUI.** Un compte portail muni d'une société les lirait : la grille tarifaire, le catalogue de forfaits, la liste des agences. Aucun écran ne les lui donne — c'est le seul motif pour lequel personne ne l'a vu.
+
+**Cette forme ne prétend donc pas fermer la classe : elle ferme la table qu'elle crée, et écrit ce qu'elle laisse ouvert.** L'étendre en séance aux dix tables concernées aurait été un arbitrage bien plus large qu'un ticket de bac de réception, pris sans mesure sur chacune — *exactement le geste que « une addition passe par un arbitrage » existe pour empêcher.*
+
+**CONDITION DE RÉOUVERTURE, vérifiable et non interprétable** : *le jour où un écran ou une route de portail lit une table de forme « société », la question du discriminant `app.client_id` sur les tables purement internes est due, et elle vise la CLASSE et non une table.* Le critère se vérifie en lisant les appelants sous `app/(portail)/` : ils ne touchent aujourd'hui que `utilisateur_client`, `client`, `site`, `machine`, `document` — toutes de forme « rattachement », « parc » ou « héritage ».
+
+*Aucune règle du chapitre 10 n'est amendée. Le chapitre 11 reçoit `document_recu`.*

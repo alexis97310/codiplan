@@ -15,6 +15,7 @@ import {
   CLIENT_B1,
   MACHINE_A1,
   MACHINE_A2,
+  MACHINE_A3,
   PORTAIL_A_CLIENT,
   PORTAIL_B_CLIENT,
   PORTAIL_DEUX_SOCIETES,
@@ -211,7 +212,8 @@ describe("le PÉRIMÈTRE DE SITES mord, et la base le refuse", () => {
       `SELECT count(*)::int AS n FROM "machine" WHERE client_id = $1::uuid`,
       CLIENT_A1,
     );
-    expect(toutes?.n).toBe(2);
+    // TROIS depuis le lot 8 : `MACHINE_A3`, même client, site S2 (D93).
+    expect(toutes?.n).toBe(3);
   });
 
   it("JUMEAU — le périmètre RETIRÉ, la machine de S2 reparaît", async () => {
@@ -254,7 +256,7 @@ describe("le PÉRIMÈTRE DE SITES mord, et la base le refuse", () => {
 
     // C'EST ICI QUE LE JUMEAU PROUVE : la machine de l'autre site reparaît,
     // avec le MÊME contexte que le refus ci-dessus.
-    expect(vues).toEqual([MACHINE_A1, MACHINE_A2].sort());
+    expect(vues).toEqual([MACHINE_A1, MACHINE_A2, MACHINE_A3].sort());
     expect(SITE_A1_S1).not.toBe(SITE_A1_S2);
 
     // Et le verrou est REVENU avec le `ROLLBACK`, par le chemin ordinaire.
@@ -324,7 +326,7 @@ describe("LA CHAÎNE ENTIÈRE — du rattachement au parc affiché", () => {
       rattachement.clientId,
     );
     expect(reels?.sites).toBe(2);
-    expect(reels?.machines).toBe(2);
+    expect(reels?.machines).toBe(3);
   });
 
   it("une désignation qui n'est PAS la sienne LÈVE — elle ne rend pas une liste vide", async () => {

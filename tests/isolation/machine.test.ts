@@ -15,6 +15,7 @@ import {
   CLIENT_A2,
   MACHINE_A1,
   MACHINE_A2,
+  MACHINE_A3,
   CLIENT_B1,
   MODELE_A,
   MODELE_B,
@@ -290,13 +291,16 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
         (tx) => tx.machine.findMany({ select: { id: true } }),
       );
       expect(vues.map((m) => m.id)).toEqual([MACHINE_A1]);
-      // TÉMOIN : sans restriction, le même compte voit les DEUX.
+      // TÉMOIN : sans restriction, le même compte voit les TROIS machines de
+      // son client. `MACHINE_A3` s'y ajoute au lot 8 (D93) — elle est sur le
+      // site S2, hors du périmètre ci-dessus, et c'est elle qui rend son modèle
+      // invisible au compte restreint.
       const toutes = await avecPortail(
         { societeId: SOCIETE_A, clientId: CLIENT_A1 },
         (tx) => tx.machine.findMany({ select: { id: true } }),
       );
       expect(toutes.map((m) => m.id).sort()).toEqual(
-        [MACHINE_A1, MACHINE_A2].sort(),
+        [MACHINE_A1, MACHINE_A2, MACHINE_A3].sort(),
       );
     },
   );

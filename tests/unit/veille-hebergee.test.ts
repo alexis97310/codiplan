@@ -236,6 +236,28 @@ const HORS_OBSERVATION: readonly {
       "qui la tient, et la veille observerait une constante.",
   },
   {
+    fonction: "ecartsListeHeritage",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_HERITAGE`, D93), pas la base. La " +
+      "FORME que cette liste appelle, elle, est bien observée : " +
+      "`ecartsPolitiques` confronte `document` à sa forme attendue dans " +
+      "`pg_policies`, sur la base jetable comme sur la base hébergée.",
+  },
+  {
+    fonction: "ecartsListeAscendance",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_ASCENDANCE`, D93), pas la base — " +
+      "même raison que `ecartsListeHeritage`, et la forme reste observée par " +
+      "`ecartsPolitiques` sur `modele_materiel` et `famille_materiel`.",
+  },
+  {
+    fonction: "ecartsListeInterne",
+    justification:
+      "garde une LISTE DU DÉPÔT (`TABLES_INTERNES`, D94), pas la base — même " +
+      "raison que `ecartsListeHeritage`, et la forme reste observée par " +
+      "`ecartsPolitiques` sur `document_recu`.",
+  },
+  {
     fonction: "ecartsListeHorsDomaine",
     justification:
       "garde une LISTE DU DÉPÔT (la frontière du domaine d'audit), pas la base.",

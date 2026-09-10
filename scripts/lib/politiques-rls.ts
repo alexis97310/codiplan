@@ -143,6 +143,19 @@ export const RAPPEL_FORMES = [
     "`site_habilitation_requise` (L1-04). AUCUNE clause de société n'y est " +
     "ajoutée — elle serait une seconde source du même fait ; c'est la clé " +
     "étrangère composite qui empêche la fille de dériver de son parent.",
+  "héritage   — la CIBLE polymorphe est visible, ET la classe RÉTRÉCIT : " +
+    "`document` (D93). Un document suit sa machine OU son modèle, exactement " +
+    "un des deux étant renseigné, et `interne` disparaît pour un compte " +
+    "portail. La classe ne fait que retirer ; elle n'ouvre rien à personne.",
+  "ascendance — société pour TOUT LE MONDE, plus, pour un compte portail " +
+    "SEUL, l'existence d'un ENFANT visible : `modele_materiel`, " +
+    "`famille_materiel` (D93). C'est l'INVERSE de la filiation — celle-ci " +
+    "propage vers le bas une visibilité acquise, celle-là REFUSE vers le " +
+    "haut une visibilité que la clause de société donnait. Sans elle, la " +
+    "présence d'une notice révèle la composition du parc des autres sites.",
+  "interne    — société ET `app.client_id` ABSENT : `document_recu` (D94). " +
+    "Une table qu'aucun compte portail ne lit, quel que soit son client. Le " +
+    "bac nomme des FICHIERS, et un nom de fichier révèle le parc.",
 ].join("\n  ");
 
 /** Les formes que ce gardien sait exiger. */
@@ -154,7 +167,10 @@ export type Forme =
   | "filiation"
   | "appartenance"
   | "adhésion"
-  | "rattachement";
+  | "rattachement"
+  | "héritage"
+  | "ascendance"
+  | "interne";
 
 /**
  * `societe` est cloisonnée par son IDENTITÉ (D42). Liste close, recopiée depuis
@@ -1017,6 +1033,19 @@ export function formeAttendue(table: string): Forme {
   if (TABLES_FILIATION.some((entree) => entree.table === table)) {
     return "filiation";
   }
+  if (TABLES_HERITAGE.some((entree) => entree.table === table)) {
+    return "héritage";
+  }
+  // « ASCENDANCE » A REMPLACÉ « SOCIÉTÉ » sur `modele_materiel` et
+  // `famille_materiel` (D93), et elle ne l'affaiblit pas : elle EXIGE l'ancrage
+  // `societe_id = app.societe_id` par un contrôle qui lui est propre, et y
+  // ajoute le refus de remonter vers un parent dont aucun enfant n'est visible.
+  if (TABLES_ASCENDANCE.some((entree) => entree.table === table)) {
+    return "ascendance";
+  }
+  if ((TABLES_INTERNES as readonly string[]).includes(table)) {
+    return "interne";
+  }
   if ((TABLES_APPARTENANCE as readonly string[]).includes(table)) {
     return "appartenance";
   }
@@ -1598,7 +1627,12 @@ export function ecartsPolitiques(
   // catégorie de I1, et elle est câblée séparément dans la veille. L'appeler
   // aussi d'ici ferait rendre deux fois le même écart — un lecteur qui voit
   // deux lignes identiques cherche la seconde faute.
-  const ecarts: string[] = [...ecartsListeDesignation()];
+  const ecarts: string[] = [
+    ...ecartsListeDesignation(),
+    ...ecartsListeHeritage(),
+    ...ecartsListeAscendance(),
+    ...ecartsListeInterne(),
+  ];
 
   // La contradiction inverse : un référentiel de plateforme qui porterait
   // `societe_id NOT NULL` relèverait de deux catégories à la fois (D41).
@@ -1666,6 +1700,12 @@ export function ecartsPolitiques(
       ecarts.push(...ecartsRattachement(table, siennes));
     } else if (forme === "adhésion") {
       ecarts.push(...ecartsAdhesion(table, siennes));
+    } else if (forme === "héritage") {
+      ecarts.push(...ecartsHeritage(table, siennes));
+    } else if (forme === "ascendance") {
+      ecarts.push(...ecartsAscendance(table, siennes));
+    } else if (forme === "interne") {
+      ecarts.push(...ecartsInterne(table, siennes));
     } else {
       ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
     }
@@ -1729,6 +1769,398 @@ export function rapportPolitiques(
     `  ${politiques.length} politique(s) lue(s) au total`,
     "",
   ].join("\n");
+}
+
+/**
+ * LA ONZIÈME FORME — « héritage » (D93, ticket L8-01, 13/09/2026).
+ *
+ * *Un document est visible si sa CIBLE l'est, et la classe ne fait que
+ * RÉTRÉCIR.* C'est la filiation de L1-04 avec deux différences, et ce sont
+ * elles qui font l'arbitrage que L8-04 exigeait — « n'inventez pas une forme de
+ * politique de plus ; une forme de plus est un arbitrage, jamais un effet de
+ * bord » :
+ *
+ *   1. **La cible est POLYMORPHE.** `document` a deux parents possibles et
+ *      exactement un des deux renseigné (`num_nonnulls(...) = 1`). La forme
+ *      « filiation » n'en connaît qu'un, et lui en donner deux en silence
+ *      aurait été l'effet de bord que le ticket refuse.
+ *   2. **La classe RÉTRÉCIT.** `interne` disparaît pour un compte portail —
+ *      `app.client_id` posée. C'est un axe de RESTRICTION, jamais un axe
+ *      d'accès : il n'ouvre rien à personne.
+ *
+ * `cibles` énumère les couples parent/clé. **La clause doit nommer les DEUX**,
+ * chacun joint sur SA colonne : une clause qui n'en nommerait qu'un rendrait
+ * l'autre moitié des documents invisible — ce qui ne casse rien de visible, la
+ * liste se raccourcissant en silence.
+ *
+ * **Liste close, gardée dans les deux sens.** Le RETRAIT est ici le geste
+ * dangereux : `document` retomberait sur la forme « société », et un compte
+ * portail restreint à un site lirait la notice d'un modèle qu'il ne possède
+ * pas — c'est-à-dire apprendrait ce que les autres sites exploitent.
+ */
+export const TABLES_HERITAGE = [
+  {
+    table: "document",
+    cibles: [
+      { parent: "machine", cle: "machine_id" },
+      { parent: "modele_materiel", cle: "modele_id" },
+    ],
+    /** La colonne qui RÉTRÉCIT, et la valeur qui survit au portail. */
+    classe: { colonne: "classe", ouverte: "client" },
+  },
+] as const;
+
+/** Les entrées que l'arbitrage D93 autorise. Recopiées : c'est la doctrine. */
+const HERITAGE_ARBITRE = ["document"];
+
+/** Écarts de la liste « héritage » — additions comme retraits. */
+export function ecartsListeHeritage(
+  liste: readonly string[] = TABLES_HERITAGE.map((entree) => entree.table),
+): string[] {
+  const ecarts = liste
+    .filter((table) => !HERITAGE_ARBITRE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « héritage ». Elle ne vaut ` +
+        "que pour une table dont la CIBLE est polymorphe et dont une colonne " +
+        "de classe RÉTRÉCIT l'accès du portail — `document` (D93). Une table " +
+        "à parent unique relève de « filiation », et une table qui DONNE " +
+        "accès au parc de « habilitation ». Toute addition est un arbitrage.",
+    );
+
+  for (const arbitree of HERITAGE_ARBITRE) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « héritage » : elle ` +
+          "retomberait sur la clause de société seule, qui PASSE tous les " +
+          "gardiens, et un compte portail restreint à un site lirait la " +
+          "documentation d'un modèle absent de son site — c'est-à-dire " +
+          "apprendrait ce que les autres sites exploitent. Le RETRAIT est ici " +
+          "le geste dangereux : il ne casse rien de visible.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/**
+ * Écarts de la forme « héritage » : les DEUX cibles, et le rétrécissement.
+ *
+ * Trois exigences, et la troisième est celle qu'on oublie : la clause ne doit
+ * PAS s'ancrer sur `societe_id`. Cet ancrage serait une seconde source du même
+ * fait (§9, 01/09) — la clé étrangère composite le tient déjà — et il donnerait
+ * l'illusion d'un cloisonnement là où c'est la sous-requête qui cloisonne.
+ */
+function ecartsHeritage(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const entree = TABLES_HERITAGE.find((candidate) => candidate.table === table);
+  if (entree === undefined) {
+    return [];
+  }
+
+  const ecarts: string[] = [];
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      const normalisee = normaliser(clause).toLowerCase();
+
+      for (const cible of entree.cibles) {
+        if (
+          !normalisee.includes("exists") ||
+          !normalisee.includes(cible.parent) ||
+          !normalisee.includes(cible.cle)
+        ) {
+          ecarts.push(
+            entete(table, "héritage") +
+              `la politique « ${politique.nom} » ne s'adosse pas à sa cible ` +
+              `« ${cible.parent} » par sa clé « ${cible.cle} ». La forme ` +
+              "attendue nomme les DEUX cibles, chacune jointe sur SA " +
+              "colonne : `EXISTS (SELECT 1 FROM " +
+              `${cible.parent} WHERE ${cible.parent}.id = ${table}.${cible.cle})\`. ` +
+              "Une clause qui n'en nomme qu'une rend l'autre moitié des " +
+              "documents invisible — et la liste se raccourcit en silence.",
+          );
+        }
+      }
+
+      if (
+        !normalisee.includes(entree.classe.colonne) ||
+        !normalisee.includes(entree.classe.ouverte) ||
+        !filtreClient(clause)
+      ) {
+        ecarts.push(
+          entete(table, "héritage") +
+            `la politique « ${politique.nom} » ne RÉTRÉCIT pas par ` +
+            `« ${entree.classe.colonne} ». Sans la branche ` +
+            `\`${entree.classe.colonne} = '${entree.classe.ouverte}' OR app.client_id IS NULL\`, ` +
+            "un compte portail lit les documents INTERNES de ses propres " +
+            "machines — un rapport d'expertise, une note de litige. La classe " +
+            "est le seul axe que L8-04 autorise, et il ne fait que retirer.",
+        );
+      }
+
+      if (ancre(clause, "societe_id")) {
+        ecarts.push(
+          entete(table, "héritage") +
+            `la politique « ${politique.nom} » s'ancre en plus sur ` +
+            "`societe_id = app.societe_id`. C'est une SECONDE source du même " +
+            "fait (§9, 01/09) : la clé étrangère composite le tient déjà, et " +
+            "deux lectures d'un même critère divergent en silence. Pire, elle " +
+            "donne l'illusion que le cloisonnement vient de là, alors qu'il " +
+            "vient tout entier de la sous-requête.",
+        );
+      }
+
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "héritage") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+      }
+    }
+  }
+  return ecarts;
+}
+
+/**
+ * LA DOUZIÈME FORME — « ascendance » (D93, ticket L8-01, 13/09/2026).
+ *
+ * *Un parent est visible si l'un de ses ENFANTS l'est* — pour un compte portail
+ * et pour lui seul. C'est l'INVERSE exact de la filiation, et c'est pourquoi ce
+ * n'est pas la même forme : la filiation propage vers le bas une visibilité
+ * déjà acquise, l'ascendance REFUSE vers le haut une visibilité que la clause
+ * de société donnait.
+ *
+ * **La décision d'exploitation du 13/09/2026 :** un compte de portail ne voit
+ * les documents d'un modèle que si une machine de ce modèle se trouve dans son
+ * propre périmètre. *Sinon la présence d'une notice révèle la composition du
+ * parc des autres sites : un compte restreint à Ducos déduirait ce que Koné
+ * possède, et le cloisonnement fuirait par la liste des documents au lieu de
+ * fuir par les données — et il fuirait quand même.*
+ *
+ * **Le DISCRIMINANT est `app.client_id`**, comme dans la forme « habilitation »
+ * et pour la même raison : la restriction ne vise que le compte portail. Un
+ * utilisateur interne garde la clause de société seule — sans quoi créer un
+ * modèle avant sa première machine serait impossible, la table se refusant à
+ * elle-même.
+ *
+ * **Liste close, gardée dans les deux sens.** Le RETRAIT fait retomber la table
+ * sur la forme « société », qui passe tous les gardiens et rouvre la fuite.
+ */
+export const TABLES_ASCENDANCE = [
+  { table: "modele_materiel", enfant: "machine", cle: "modele_id" },
+  { table: "famille_materiel", enfant: "modele_materiel", cle: "famille_id" },
+] as const;
+
+/** Les entrées que l'arbitrage D93 autorise. Recopiées : c'est la doctrine. */
+const ASCENDANCE_ARBITREE = ["modele_materiel", "famille_materiel"];
+
+/** Écarts de la liste « ascendance » — additions comme retraits. */
+export function ecartsListeAscendance(
+  liste: readonly string[] = TABLES_ASCENDANCE.map((entree) => entree.table),
+): string[] {
+  const ecarts = liste
+    .filter((table) => !ASCENDANCE_ARBITREE.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « ascendance ». Elle ne vaut ` +
+        "que pour une table dont la seule existence d'une ligne apprendrait à " +
+        "un compte portail ce que les autres sites de sa société exploitent " +
+        "(D93). Toute addition est un arbitrage — et elle a un coût, celui de " +
+        "rendre la table invisible au portail tant qu'aucun enfant ne l'est.",
+    );
+
+  for (const arbitree of ASCENDANCE_ARBITREE) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « ascendance » : elle ` +
+          "retomberait sur la clause de société SEULE, qui passe tous les " +
+          "gardiens sans rien dire, et un compte portail restreint à un site " +
+          "énumérerait le matériel de toute la société. Le RETRAIT est ici le " +
+          "geste dangereux — il ne casse rien de visible.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/**
+ * Écarts de la forme « ascendance » : l'ancrage société, le discriminant, et
+ * l'existence d'un enfant.
+ *
+ * L'ancrage société est ici EXIGÉ — à l'inverse de « héritage » —, parce que
+ * `modele_materiel` et `famille_materiel` sont des tables métier ORDINAIRES qui
+ * portent leur `societe_id` : la sous-requête ne remplace pas leur
+ * cloisonnement, elle le rétrécit pour le seul compte portail.
+ */
+function ecartsAscendance(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const entree = TABLES_ASCENDANCE.find(
+    (candidate) => candidate.table === table,
+  );
+  if (entree === undefined) {
+    return [];
+  }
+
+  const ecarts: string[] = [];
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      const normalisee = normaliser(clause).toLowerCase();
+
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "ascendance") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier — et " +
+            "sur celle-ci elle rendrait le catalogue entier lisible au portail.",
+        );
+        continue;
+      }
+
+      if (!ancre(clause, "societe_id")) {
+        ecarts.push(
+          entete(table, "ascendance") +
+            `la politique « ${politique.nom} » n'est pas ancrée sur ` +
+            "`societe_id = app.societe_id`. L'ascendance RÉTRÉCIT le " +
+            "cloisonnement de société pour le compte portail ; elle ne le " +
+            "remplace pas.",
+        );
+      }
+
+      if (!filtreClient(clause)) {
+        ecarts.push(
+          entete(table, "ascendance") +
+            `la politique « ${politique.nom} » ne lit pas \`app.client_id\`. ` +
+            "C'est le DISCRIMINANT qui distingue un compte portail d'un " +
+            "utilisateur interne : sans lui, ou bien la restriction ne mord " +
+            "sur personne, ou bien elle rend impossible la création d'un " +
+            "modèle avant sa première machine.",
+        );
+      }
+
+      if (
+        !normalisee.includes("exists") ||
+        !normalisee.includes(entree.enfant) ||
+        !normalisee.includes(entree.cle)
+      ) {
+        ecarts.push(
+          entete(table, "ascendance") +
+            `la politique « ${politique.nom} » ne s'adosse pas à son enfant ` +
+            `« ${entree.enfant} » par sa clé « ${entree.cle} ». La forme ` +
+            "attendue est `EXISTS (SELECT 1 FROM " +
+            `${entree.enfant} WHERE ${entree.enfant}.${entree.cle} = ${table}.id)\` — ` +
+            "la visibilité de l'enfant remonte alors sans qu'aucun filtre soit " +
+            "réécrit. Sans elle, un compte portail énumère le matériel de " +
+            "toute sa société et en déduit ce que les autres sites exploitent.",
+        );
+      }
+    }
+  }
+  return ecarts;
+}
+
+/**
+ * LA TREIZIÈME FORME — « interne » (D94, ticket L8-07, 13/09/2026).
+ *
+ * *Société, PLUS l'absence de `app.client_id`.* Une table qu'aucun compte
+ * portail ne lit, quel que soit son client.
+ *
+ * **Elle est née d'une mesure faite dans le ticket qui la crée.** Le bac de
+ * réception nomme des FICHIERS : `notice-KPX-337.pdf` dit qu'un pont élévateur
+ * existe quelque part dans la société — la fuite exacte que D93 venait de
+ * fermer un étage plus haut. Or **une table de forme « société » est lisible
+ * par un compte portail**, sa clause ne lisant pas `app.client_id` : donner
+ * cette forme au bac aurait rouvert par la porte de service ce qu'on fermait
+ * par la porte principale, dans le ticket même.
+ *
+ * **ET ELLE DÉCOUVRE UNE QUESTION PLUS LARGE, QUI N'EST PAS TRANCHÉE ICI.**
+ * `taux_horaire`, `forfait`, `agence`, `habilitation` et les autres tables de
+ * forme « société » sont dans le même cas AUJOURD'HUI : un compte portail muni
+ * d'une société les lirait. Aucun écran ne les lui donne, et le jour où l'un
+ * d'eux le fera, la question sera due — c'est la condition de réouverture de
+ * D94, et elle se vérifie plutôt qu'elle ne s'interprète. *Cette forme ne
+ * prétend donc pas fermer la classe : elle ferme la table qu'elle crée, et
+ * écrit ce qu'elle laisse ouvert.*
+ *
+ * **Liste close, gardée dans les deux sens.** Le RETRAIT fait retomber la table
+ * sur la forme « société », qui passe tous les gardiens sans rien dire.
+ */
+export const TABLES_INTERNES = ["document_recu"] as const;
+
+/** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
+const INTERNES_ARBITREES = ["document_recu"];
+
+/** Écarts de la liste « interne » — additions comme retraits. */
+export function ecartsListeInterne(
+  liste: readonly string[] = TABLES_INTERNES,
+): string[] {
+  const ecarts = liste
+    .filter((table) => !INTERNES_ARBITREES.includes(table))
+    .map(
+      (table) =>
+        `« ${table} » a été rangée sous la forme « interne ». Elle RETIRE la ` +
+        "table à tout compte portail, ce qui est une décision de produit " +
+        "autant que de cloisonnement — D94 la prend pour `document_recu` " +
+        "seule, et écrit que la question reste ouverte pour les autres " +
+        "tables de forme « société ». Toute addition est un arbitrage.",
+    );
+
+  for (const arbitree of INTERNES_ARBITREES) {
+    if (!liste.includes(arbitree)) {
+      ecarts.push(
+        `« ${arbitree} » ne figure plus sous la forme « interne » : elle ` +
+          "retomberait sur la clause de société seule, qui passe tous les " +
+          "gardiens, et un compte portail lirait les NOMS DE FICHIERS du bac " +
+          "— c'est-à-dire ce que le parc des autres sites contient. Le " +
+          "RETRAIT est ici le geste dangereux, il ne casse rien de visible.",
+      );
+    }
+  }
+
+  return ecarts;
+}
+
+/** Écarts de la forme « interne » : l'ancrage société ET le discriminant. */
+function ecartsInterne(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const ecarts: string[] = [];
+  for (const politique of politiques) {
+    for (const clause of clausesGardiennes(politique)) {
+      if (ouvertureTotale(clause) || roleEditeur(clause)) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » porte la forme « référentiel ». ` +
+            "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+        );
+        continue;
+      }
+      if (!ancre(clause, "societe_id")) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » n'est pas ancrée sur ` +
+            "`societe_id = app.societe_id`. La forme « interne » AJOUTE au " +
+            "cloisonnement de société ; elle ne le remplace pas.",
+        );
+      }
+      if (!filtreClient(clause)) {
+        ecarts.push(
+          entete(table, "interne") +
+            `la politique « ${politique.nom} » ne lit pas \`app.client_id\`. ` +
+            "Sans ce terme, la clause est celle de la forme « société » — et " +
+            "un compte portail muni d'une société lit la table entière.",
+        );
+      }
+    }
+  }
+  return ecarts;
 }
 
 /**
@@ -1975,9 +2407,16 @@ export function ecartsTablesFilles(
   // et leur liste est close dans les deux sens par `ecartsListeFiliation` — le
   // périmètre n'est donc pas rétréci, il est déplacé vers un contrôle plus
   // exigeant.
-  const construites: readonly string[] = TABLES_FILIATION.map(
-    (entree) => entree.table,
-  );
+  // La forme « héritage » (D93) est PLUS exigeante que la filiation sur les
+  // mêmes tables : elle réclame les DEUX cibles polymorphes ET le
+  // rétrécissement par la classe. `document` est fille de `machine` par sa clé
+  // étrangère, donc le critère ci-dessous l'atteint ; la réclamer sous
+  // « filiation » ferait réclamer MOINS que ce qu'elle porte. Sa liste est
+  // close dans les deux sens par `ecartsListeHeritage`.
+  const construites: readonly string[] = [
+    ...TABLES_FILIATION.map((entree) => entree.table),
+    ...TABLES_HERITAGE.map((entree) => entree.table),
+  ];
 
   return [
     ...ecartsListeRattachees(horsFiliation),

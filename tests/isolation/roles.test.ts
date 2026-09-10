@@ -15,6 +15,7 @@ import {
   CLIENT_A2,
   MACHINE_A1,
   MACHINE_A2,
+  MACHINE_A3,
   MACHINE_B1,
   MODELE_A,
   MODELE_B,
@@ -275,7 +276,7 @@ describe("rôle client — le portail, et rien d'autre (D10)", () => {
       tx.$queryRawUnsafe<Array<{ id: string }>>(`SELECT "id" FROM "machine"`),
     );
     expect(machines.map((m) => m.id).sort()).toEqual(
-      [MACHINE_A1, MACHINE_A2].sort(),
+      [MACHINE_A1, MACHINE_A2, MACHINE_A3].sort(),
     );
   });
 

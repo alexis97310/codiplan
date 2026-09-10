@@ -8,6 +8,7 @@ import {
   CLIENT_B1,
   MACHINE_A1,
   MACHINE_A2,
+  MACHINE_A3,
   SITE_A1_S1,
   SITE_A1_S2,
   SOCIETE_A,
@@ -55,7 +56,10 @@ describe("cloisonnement portail", () => {
       const machines = await machinesVisibles(SOCIETE_A, CLIENT_A1);
       expect(machines.every((m) => m.client_id === CLIENT_A1)).toBe(true);
       const ids = machines.map((m) => m.id);
-      expect(ids).toEqual([MACHINE_A1, MACHINE_A2]);
+      // TROIS depuis le lot 8 : `MACHINE_A3` est une machine du MÊME client
+      // sur le site S2 (D93). Le filtre éprouvé ici est celui du CLIENT, que le
+      // périmètre de sites ne remplace pas — le compte n'est pas restreint.
+      expect(ids.sort()).toEqual([MACHINE_A1, MACHINE_A2, MACHINE_A3].sort());
     },
   );
 

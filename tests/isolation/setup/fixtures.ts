@@ -151,6 +151,61 @@ export const QR_B1 = "W5ZJQ2NRTKB7XMVP4HFDC3GSA6";
  * qu'il y a à éprouver.
  */
 export const FAMILLE_A = "aaaaaaaa-0000-7000-8000-0000000000f0";
+/**
+ * LA FAMILLE, LE MODÈLE ET LA MACHINE **D'AILLEURS** — les trois fixtures que
+ * la décision d'exploitation du 13/09/2026 rend indispensables (D93).
+ *
+ * `MACHINE_A3` est installée sur `SITE_A1_S2`, **hors du périmètre** du compte
+ * portail de A1, chez le MÊME client et dans la MÊME société. Son modèle
+ * `MODELE_A_AILLEURS` n'a donc aucune machine visible pour ce compte, et sa
+ * famille `FAMILLE_A_AILLEURS` aucun modèle visible.
+ *
+ * *C'est le jumeau que l'exploitation a nommé* : un compte habilité sur un seul
+ * site, dont la société possède ailleurs une machine d'un modèle absent de son
+ * site, ne doit RIEN voir de ce modèle — ni la notice, ni son existence, ni un
+ * compteur à zéro qui la trahirait. **Sans cette fixture, la restriction se
+ * mesurerait sur une population où le cas fautif n'existe pas** (§9, 31/08).
+ */
+export const FAMILLE_A_AILLEURS = "aaaaaaaa-0000-7000-8000-0000000000f8";
+export const MODELE_A_AILLEURS = "aaaaaaaa-0000-7000-8000-0000000000f9";
+export const MACHINE_A3 = "aaaaaaaa-0000-7000-8000-0000000000a3";
+export const QR_A3 = "T8YCMB4XWQ2NRJ5FHKV3PDGSA6";
+
+/**
+ * LES DOCUMENTS (lot 8, L8-01 à L8-04). Six lignes, et chacune répond à une
+ * question que les cinq autres ne posent pas.
+ *
+ *   - `DOC_MODELE_A` — au modèle dont le compte portail POSSÈDE une machine
+ *     visible : il le voit. C'est le témoin de non-vacuité — sans lui, « le
+ *     portail ne voit rien » serait vrai d'une base vide.
+ *   - `DOC_MODELE_AILLEURS` — au modèle qu'il ne possède PAS : invisible.
+ *   - `DOC_MACHINE_A1` — à sa propre machine : visible.
+ *   - `DOC_MACHINE_A2` — à une machine hors de son périmètre : invisible.
+ *   - `DOC_MACHINE_A1_INTERNE` — sa propre machine, classe `interne` : la
+ *     classe RÉTRÉCIT, donc invisible au portail et visible à l'interne.
+ *   - `DOC_MODELE_B` — une autre société : invisible, comme tout le reste.
+ */
+export const DOC_MODELE_A = "aaaaaaaa-0000-7000-8000-00000000d001";
+export const DOC_MODELE_AILLEURS = "aaaaaaaa-0000-7000-8000-00000000d002";
+export const DOC_MACHINE_A1 = "aaaaaaaa-0000-7000-8000-00000000d003";
+export const DOC_MACHINE_A2 = "aaaaaaaa-0000-7000-8000-00000000d004";
+export const DOC_MACHINE_A1_INTERNE = "aaaaaaaa-0000-7000-8000-00000000d005";
+export const DOC_MODELE_B = "bbbbbbbb-0000-7000-8000-00000000d006";
+
+/**
+ * LE BAC DE RÉCEPTION (L8-07, D94) — deux fichiers, un par société.
+ *
+ * `RECU_A` porte le nom d'un fichier qui NOMME un modèle : c'est lui qui montre
+ * que le bac de forme « interne » n'est pas lisible par un compte portail —
+ * *`notice-KPX-337.pdf` dit qu'un pont élévateur existe quelque part.*
+ */
+export const RECU_A = "aaaaaaaa-0000-7000-8000-00000000e001";
+export const RECU_B = "bbbbbbbb-0000-7000-8000-00000000e002";
+
+/** Empreintes SHA-256 des fixtures — 64 hexadécimaux minuscules, comme la base l'exige. */
+export const EMPREINTE_NOTICE = "a".repeat(64);
+export const EMPREINTE_CERTIFICAT = "b".repeat(64);
+export const EMPREINTE_RECU = "c".repeat(64);
 export const FAMILLE_B = "bbbbbbbb-0000-7000-8000-0000000000f0";
 export const MODELE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
 export const MODELE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";

@@ -97,6 +97,9 @@ model Societe {
 
   interventions Intervention[]
 
+  documents       Document[]
+  documents_recus DocumentRecu[]
+
   id                            String  @id @db.Uuid
   code                          String  @unique // préfixe de numérotation
   raison_sociale                String
@@ -1364,6 +1367,11 @@ model Machine {
   machine_remplacee Machine?       @relation("MachineRemplacee", fields: [societe_id, machine_remplacee_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   remplacantes      Machine[]      @relation("MachineRemplacee")
 
+  /// La documentation PROPRE à cet exemplaire — certificat de conformité,
+  /// procès-verbal de mise en service (L8-01). L'écran affiche l'UNION de
+  /// celle-ci et de celle du modèle, sans qu'aucune ligne soit copiée (L8-02).
+  documents Document[]
+
   @@unique([societe_id, id])
   @@unique([societe_id, modele_id, numero_serie])
   @@unique([societe_id, numero])
@@ -1728,6 +1736,12 @@ model ModeleMateriel {
   famille  FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   machines Machine[]
 
+  /// La documentation COMMUNE à tous les exemplaires — notice, fiche technique,
+  /// manuel d'atelier (L8-01). Elle se corrige une fois pour toutes : c'est ce
+  /// qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais
+  /// pouvoir le corriger.
+  documents Document[]
+
   /// Cible du chaînage composite que `machine` posera à son tour (L2-01).
   @@unique([societe_id, id])
   @@unique([societe_id, marque, reference])
@@ -1829,4 +1843,161 @@ model SiteHabilitationRequise {
   @@unique([societe_id, site_id, habilitation_id])
   @@index([societe_id, site_id])
   @@map("site_habilitation_requise")
+}
+
+/// LA CLASSE DE VISIBILITÉ D'UN DOCUMENT — deux valeurs, et deux seulement
+/// (L8-03).
+///
+/// **Liste close produite par le SCHÉMA**, comme les statuts d'intervention et
+/// à l'inverse des zones géographiques (D23) : ce n'est pas la nomenclature
+/// d'un territoire, c'est la question « le client a-t-il le droit de lire ce
+/// document », qui se pose de la même façon chez toute société.
+///
+/// *À cinq valeurs, personne ne classe juste* : une classification que l'on
+/// hésite à appliquer est appliquée au hasard, et un document mal classé est
+/// pire qu'un document absent.
+enum ClasseDocument {
+  /// Lisible par le portail — notice, certificat, procès-verbal.
+  client
+  /// Réservé à la société. La classe RÉTRÉCIT, elle n'ouvre rien (L8-04).
+  interne
+}
+
+/// LA DOCUMENTATION D'UNE MACHINE OU D'UN MODÈLE (lot 8, L8-01 à L8-06).
+///
+/// Table métier de la PREMIÈRE catégorie de I1, de forme « héritage » (D93) :
+/// *un document est visible si sa CIBLE l'est, et la classe ne fait que
+/// rétrécir.* Aucune clause de société n'est écrite dans sa politique — elle
+/// serait une seconde source du même fait ; c'est la clé étrangère composite
+/// qui empêche un document de dériver de la société de sa cible.
+model Document {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// ── LA CIBLE : LE MODÈLE **OU** LA MACHINE, JAMAIS LES DEUX (L8-01) ──────
+  ///
+  /// Deux colonnes nullables et la contrainte NOMMÉE `document_cible_unique` —
+  /// `num_nonnulls(modele_id, machine_id) = 1`. **C'est le SCHÉMA qui
+  /// l'interdit**, pas une validation applicative : la mesure de L2-04 reste
+  /// acquise et ne se refait pas — *une colonne `entite_id` avec deux clés
+  /// étrangères est un piège qui a l'air d'un verrou et rend la table
+  /// inutilisable.*
+  ///
+  /// Au MODÈLE : notice, fiche technique, manuel d'atelier — identiques pour
+  /// tous les exemplaires, corrigés une fois pour toutes. À la MACHINE :
+  /// certificat de conformité, procès-verbal de mise en service.
+  modele_id  String? @db.Uuid
+  machine_id String? @db.Uuid
+
+  classe ClasseDocument
+
+  libelle       String
+  nom_fichier   String
+  type_mime     String
+  /// Jamais zéro : un fichier vide n'est pas un document.
+  taille_octets BigInt
+
+  /// L'empreinte SHA-256 des octets, hexadécimal MINUSCULE (contrainte de
+  /// forme en base). C'est elle qui rend la déduplication du bac de réception
+  /// possible AVANT le rapprochement (L8-07) : deux fois le même PDF est un
+  /// seul document, et le découvrir après le rapprochement fait deux fois le
+  /// travail. Indexée et NON unique — un constructeur publie des manuels
+  /// communs à une gamme, et une unicité par société interdirait d'accrocher
+  /// la même notice à deux modèles.
+  empreinte String
+
+  /// OÙ SONT LES OCTETS — une clé d'objet, jamais les octets (L8-05).
+  /// **Aucun code ne la remplit aujourd'hui** : le module de stockage n'existe
+  /// pas, parce qu'aucun écran ne l'appelle encore.
+  objet_cle String
+
+  /// Les deux dates de L8-06, dès le premier jour et **inutilisées** : un
+  /// certificat porte une date d'émission et une fin de validité, et le lot 9
+  /// s'en servira. *Trois minutes maintenant, une migration douloureuse plus
+  /// tard.*
+  date_document   DateTime? @db.Date
+  date_expiration DateTime? @db.Date
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modele  ModeleMateriel? @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Les fichiers du bac qui ont produit cette fiche (L8-07).
+  recus DocumentRecu[]
+
+  /// Cible du chaînage composite que `document_recu` pose (L8-07).
+  @@unique([societe_id, id])
+  @@index([societe_id, modele_id])
+  @@index([societe_id, machine_id])
+  @@index([societe_id, empreinte])
+  @@map("document")
+}
+
+/// LES TROIS ÉTATS D'UN FICHIER DU BAC (L8-07).
+///
+/// `a_traiter` est la NAISSANCE : un fichier déposé n'est ni classé ni écarté.
+/// Les deux autres sont TERMINAUX et portent chacun leur preuve — une fiche
+/// pour l'un, un motif pour l'autre, et la base tient les DEUX SENS.
+enum StatutDocumentRecu {
+  a_traiter
+  classe
+  ecarte
+}
+
+/// LE BAC DE RÉCEPTION (L8-07, D87, D94).
+///
+/// Un fichier déposé AVANT tout rapprochement. **Il PROPOSE, il ne classe
+/// jamais seul** : *un rapprochement faux accroche la notice d'un compresseur à
+/// un pont élévateur, et personne ne le voit avant qu'un technicien suive la
+/// mauvaise procédure.* C'est une question de sécurité, pas de qualité de
+/// données — et c'est ce qui interdit l'automatisme silencieux.
+///
+/// Forme de politique « interne » (D94) : société ET `app.client_id` absent. Le
+/// bac nomme des FICHIERS, et `notice-KPX-337.pdf` dit qu'un pont élévateur
+/// existe quelque part — la fuite exacte que D93 ferme un étage plus haut.
+model DocumentRecu {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// L'empreinte SHA-256 des octets. **Unique par société, et c'est la BASE qui
+  /// le tient** : une déduplication écrite en code lit puis écrit, et entre les
+  /// deux un second dépôt du même fichier passe — or le bac est justement
+  /// l'endroit où l'on redépose, un téléversement de plusieurs gigaoctets
+  /// depuis Nouméa se coupant et se reprenant.
+  ///
+  /// Par société et non globalement : deux sociétés qui exploitent le même
+  /// matériel déposent légitimement la même notice.
+  empreinte String
+
+  nom_fichier   String
+  type_mime     String
+  taille_octets BigInt
+
+  objet_cle        String
+  /// L'aperçu de la PREMIÈRE PAGE — *la couverture porte la marque et le
+  /// modèle, l'œil fait le travail, pas la reconnaissance de caractères.*
+  /// Nullable, et **aucun code ne la remplit** : le stockage n'a pas d'appelant.
+  apercu_objet_cle String?
+
+  statut StatutDocumentRecu @default(a_traiter)
+
+  /// La fiche produite par le classement, et le motif de l'écartement. Chacune
+  /// est liée à son état par une ÉQUIVALENCE en base, dans les deux sens : ni
+  /// classé sans fiche, ni fiche sans classement ; ni écarté sans motif, ni
+  /// motif sans écartement. *Le second sens est celui qu'on oublie.*
+  document_id  String? @db.Uuid
+  ecarte_motif String?
+
+  recu_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe  Societe   @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  document Document? @relation(fields: [societe_id, document_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, empreinte])
+  @@index([societe_id, statut])
+  @@map("document_recu")
 }

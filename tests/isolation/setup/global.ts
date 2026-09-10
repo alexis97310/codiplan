@@ -34,6 +34,21 @@ import {
   FAMILLE_A,
   FAMILLE_B,
   MODELE_A,
+  MODELE_A_AILLEURS,
+  FAMILLE_A_AILLEURS,
+  MACHINE_A3,
+  QR_A3,
+  DOC_MODELE_A,
+  DOC_MODELE_AILLEURS,
+  DOC_MACHINE_A1,
+  DOC_MACHINE_A2,
+  DOC_MACHINE_A1_INTERNE,
+  DOC_MODELE_B,
+  EMPREINTE_NOTICE,
+  EMPREINTE_CERTIFICAT,
+  EMPREINTE_RECU,
+  RECU_A,
+  RECU_B,
   MODELE_B,
   PORTAIL_A_CLIENT,
   PORTAIL_B_CLIENT,
@@ -541,9 +556,15 @@ export default async function setup(): Promise<void> {
         ('${CONTACT_A1_ATELIER}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', 'Chef d''atelier S2', ARRAY['contact_technique','signataire'], ARRAY['email'], 'atelier@a1.test');
       INSERT INTO "famille_materiel" ("id", "societe_id", "code", "libelle") VALUES
         ('${FAMILLE_A}', '${SOCIETE_A}', 'COMP', 'Compresseurs'),
+        -- LA FAMILLE D'AILLEURS (D93) : ses modèles n'ont aucune machine dans le
+        -- périmètre du compte portail de A1. Sous la forme « ascendance », elle
+        -- lui est donc INVISIBLE — et sans elle, la restriction se mesurerait
+        -- sur une population où le cas fautif n'existe pas.
+        ('${FAMILLE_A_AILLEURS}', '${SOCIETE_A}', 'PONT', 'Ponts élévateurs'),
         ('${FAMILLE_B}', '${SOCIETE_B}', 'COMP', 'Compresseurs');
       INSERT INTO "modele_materiel" ("id", "societe_id", "famille_id", "marque", "reference") VALUES
         ('${MODELE_A}', '${SOCIETE_A}', '${FAMILLE_A}', 'Atlas', 'GA-11'),
+        ('${MODELE_A_AILLEURS}', '${SOCIETE_A}', '${FAMILLE_A_AILLEURS}', 'Ravaglioli', 'KPX-337'),
         ('${MODELE_B}', '${SOCIETE_B}', '${FAMILLE_B}', 'Atlas', 'GA-11');
       -- LES MACHINES VIENNENT APRÈS LES MODÈLES depuis L2-01, et l'ordre est
       -- devenu une contrainte de la base : machine porte une clé étrangère
@@ -553,7 +574,27 @@ export default async function setup(): Promise<void> {
       INSERT INTO "machine" ("id", "societe_id", "modele_id", "client_id", "site_id", "qr_token", "numero_serie", "modifie_le") VALUES
         ('${MACHINE_A1}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${QR_A1}', 'SN-A1', now()),
         ('${MACHINE_A2}', '${SOCIETE_A}', '${MODELE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A2}', 'SN-A2', now()),
+        -- LA MACHINE D'AILLEURS (D93) : même client, même société, AUTRE site —
+        -- hors du périmètre du compte portail de A1. C'est elle qui rend le
+        -- modèle MODELE_A_AILLEURS invisible à ce compte, et c'est le jumeau
+        -- que l'exploitation a nommé le 13/09/2026.
+        ('${MACHINE_A3}', '${SOCIETE_A}', '${MODELE_A_AILLEURS}', '${CLIENT_A1}', '${SITE_A1_S2}', '${QR_A3}', 'SN-A3', now()),
         ('${MACHINE_B1}', '${SOCIETE_B}', '${MODELE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${QR_B1}', 'SN-B1', now());
+      -- LES DOCUMENTS (lot 8, L8-01 à L8-04). La cible est le modèle OU la
+      -- machine, jamais les deux : document_cible_unique le refuse.
+      INSERT INTO "document" ("id", "societe_id", "modele_id", "machine_id", "classe", "libelle", "nom_fichier", "type_mime", "taille_octets", "empreinte", "objet_cle", "modifie_le") VALUES
+        ('${DOC_MODELE_A}', '${SOCIETE_A}', '${MODELE_A}', NULL, 'client', 'Notice GA-11', 'notice-ga11.pdf', 'application/pdf', 240000, '${EMPREINTE_NOTICE}', 'iso/notice-ga11.pdf', now()),
+        ('${DOC_MODELE_AILLEURS}', '${SOCIETE_A}', '${MODELE_A_AILLEURS}', NULL, 'client', 'Notice KPX-337', 'notice-kpx337.pdf', 'application/pdf', 310000, '${EMPREINTE_NOTICE}', 'iso/notice-kpx337.pdf', now()),
+        ('${DOC_MACHINE_A1}', '${SOCIETE_A}', NULL, '${MACHINE_A1}', 'client', 'Certificat SN-A1', 'certificat-a1.pdf', 'application/pdf', 12000, '${EMPREINTE_CERTIFICAT}', 'iso/certificat-a1.pdf', now()),
+        ('${DOC_MACHINE_A2}', '${SOCIETE_A}', NULL, '${MACHINE_A2}', 'client', 'Certificat SN-A2', 'certificat-a2.pdf', 'application/pdf', 12500, '${EMPREINTE_CERTIFICAT}', 'iso/certificat-a2.pdf', now()),
+        ('${DOC_MACHINE_A1_INTERNE}', '${SOCIETE_A}', NULL, '${MACHINE_A1}', 'interne', 'Note de litige SN-A1', 'litige-a1.pdf', 'application/pdf', 4000, '${EMPREINTE_CERTIFICAT}', 'iso/litige-a1.pdf', now()),
+        ('${DOC_MODELE_B}', '${SOCIETE_B}', '${MODELE_B}', NULL, 'client', 'Notice GA-11 (B)', 'notice-ga11-b.pdf', 'application/pdf', 240000, '${EMPREINTE_NOTICE}', 'iso/notice-ga11-b.pdf', now());
+      -- LE BAC DE RÉCEPTION (L8-07). Le nom du fichier NOMME un modèle : c'est
+      -- ce qui rend la forme « interne » mesurable — un compte portail qui
+      -- lirait cette ligne apprendrait qu'un pont élévateur existe quelque part.
+      INSERT INTO "document_recu" ("id", "societe_id", "empreinte", "nom_fichier", "type_mime", "taille_octets", "objet_cle", "modifie_le") VALUES
+        ('${RECU_A}', '${SOCIETE_A}', '${EMPREINTE_RECU}', 'notice-KPX-337.pdf', 'application/pdf', 310000, 'bac/notice-kpx337.pdf', now()),
+        ('${RECU_B}', '${SOCIETE_B}', '${EMPREINTE_RECU}', 'notice-GA-11.pdf', 'application/pdf', 240000, 'bac/notice-ga11.pdf', now());
       -- LES INTERVENTIONS (lot 2, D84). Elles viennent après le parc : leurs
       -- clés étrangères composites (societe_id, client_id), (societe_id,
       -- site_id) et (societe_id, agence_id) l'exigent.

@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 
 import {
   type CreationClient,
@@ -257,22 +257,4 @@ export async function rechercherClients(
       select: CHAMPS_FICHE,
     }),
   );
-}
-
-/**
- * La société active, ou une exception technique.
- *
- * `avecContexteApplicatif` refuse déjà un contexte sans société — ce contrôle
- * est là pour que le TYPE soit `string` et non `string | null` au moment
- * d'écrire `societe_id`. Le message est destiné à un développeur : il ne passe
- * pas par le dictionnaire (`lib/i18n/fr.ts`, la coupure).
- */
-function exigerSocieteActive(contexte: ContexteSession): string {
-  if (contexte.societeId === null) {
-    throw new Error(
-      "Aucune société active : `avecContexteApplicatif` aurait dû refuser " +
-        "cette transaction avant d'en arriver ici.",
-    );
-  }
-  return contexte.societeId;
 }
