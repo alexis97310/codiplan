@@ -275,6 +275,35 @@ export const fr = {
   "planning.retour_fleche": "← Retour au planning",
   "planning.periode": "Période affichée",
 
+  // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
+  //
+  // **JAMAIS LE POURCENTAGE SEUL**, et c'est une demande d'exploitation avant
+  // d'être une préférence d'affichage : « 82 % » ne veut rien dire sans ses
+  // deux termes — 82 % de quoi, sur quelle période, calculé comment ? La
+  // formule est donc une clé à part, affichée à côté du taux, et un gardien
+  // refuse que l'écran montre l'un sans l'autre.
+  "statistiques.titre": "Charge par technicien",
+  "statistiques.sous_titre":
+    "Sur la période affichée, et par établissement : c'est le calendrier de l'établissement qui donne les heures ouvrables.",
+  "statistiques.technicien": "Technicien",
+  "statistiques.non_affectees": "Interventions non affectées",
+  "statistiques.nombre": "interventions",
+  "statistiques.heures_engagees": "engagées",
+  "statistiques.heures_ouvrables": "ouvrables",
+  "statistiques.taux": "Taux d'occupation",
+  // La FORMULE, écrite en toutes lettres. Elle est ce qui rend le pourcentage
+  // interprétable, et elle ne se déduit pas de « 82 % ».
+  // Le SIGNE POUR CENT est du texte qu'un humain lit : il vient d'ici comme le
+  // reste (L0-11), avec l'espace insécable que le français exige devant lui.
+  "statistiques.pourcent": "\u00a0%",
+  "statistiques.separateur": " — ",
+  "statistiques.formule":
+    "heures engagées ÷ heures ouvrables du calendrier de l'établissement",
+  "statistiques.sans_calendrier":
+    "Pas de taux : cet établissement n'a pas de calendrier, et les heures ouvrables sont donc inconnues. Ce n'est pas zéro pour cent.",
+  "statistiques.sans_duree":
+    "sans durée saisie — elles comptent dans le nombre, et pour zéro minute dans le taux",
+
   "intervention.titre": "Intervention",
   "intervention.reference": "Référence",
   "intervention.client": "Client",

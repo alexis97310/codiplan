@@ -9,7 +9,10 @@ import { obtenirSession } from "@/lib/auth/session";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
+import { occupationsDuPlanning } from "@/lib/interventions/occupation";
+
 import { referenceAffichee } from "./presentation";
+import { Statistiques } from "./statistiques";
 
 /**
  * LE PLANNING (lot 2, D84) — la liste de ce qui est posé et de ce qui attend.
@@ -38,6 +41,10 @@ export default async function PagePlanning() {
   const au = new Date(Date.UTC(2026, 10, 30));
   const lignes = await listerPlanning(session.contexte, du, au);
 
+  // La charge par technicien, sur la MÊME période et les MÊMES lignes que la
+  // liste : deux périodes différentes feraient deux lectures d'un même critère.
+  const charges = await occupationsDuPlanning(session.contexte, lignes, du, au);
+
   const posees = lignes.filter((l) => l.date_planifiee !== null);
   const attente = lignes.filter((l) => l.date_planifiee === null);
 
@@ -63,6 +70,8 @@ export default async function PagePlanning() {
       {lignes.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("planning.vide")}</p>
       ) : null}
+
+      <Statistiques lignes={charges} />
 
       {attente.length > 0 ? (
         <section className="flex flex-col gap-3">

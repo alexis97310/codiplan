@@ -457,6 +457,16 @@ lib/
               est celle qui décide du calendrier de référence (I7)
               le JOURNAL des déplacements n'est pas une table de plus : c'est
               `journal_audit`, par déclencheur, avec les valeurs avant et après
+              statistiques.ts : la CHARGE par technicien — nombre, heures
+              engagées, heures ouvrables, barre segmentée
+              le type ne porte AUCUN pourcentage : `tauxOccupation` exige
+              l'objet entier, si bien qu'un taux ne peut pas voyager sans ses
+              deux termes (D56) — et l'écran affiche la FORMULE à côté
+              un dénominateur nul rend `null`, jamais 0 % : « pas de
+              calendrier » et « n'a rien fait » ne se corrigent pas pareil
+              occupation.ts : le dénominateur vient du calendrier de l'AGENCE
+              (I7) — d'où la maille (technicien, agence), une agence choisie
+              en silence basculant d'une semaine à l'autre
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
