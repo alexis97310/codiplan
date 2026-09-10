@@ -4,6 +4,9 @@ import { habilitationsDuCompte } from "@/lib/auth/societe-active";
 import { ROLE_PORTAIL } from "@/lib/auth/roles";
 import { rattachementsDuCompte } from "@/lib/portail/depot";
 
+import { Role } from "@prisma/client";
+
+import { parcDuClient } from "@/lib/portail/depot";
 import { avecIdentite } from "@/lib/db/rls";
 
 import { avecPortail, clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -264,5 +267,81 @@ describe("le PÉRIMÈTRE DE SITES mord, et la base le refuse", () => {
       (tx) => machinesVues(tx),
     );
     expect(apres.map((v) => v.id)).toEqual([MACHINE_A1]);
+  });
+});
+
+describe("LA CHAÎNE ENTIÈRE — du rattachement au parc affiché", () => {
+  /**
+   * **C'est un APPELANT, au sens du §9 du 08/09** : *une suite qui éprouve tous
+   * les maillons n'éprouve pas la chaîne.* Les scénarios ci-dessus éprouvent la
+   * politique de D92 ; `designation-client.test.ts` éprouve la validation de
+   * D70 ; `portail-client.test.ts` éprouve la forme « parc ». Le maillon que
+   * personne ne traversait est celui-ci — *le rattachement lu ouvre-t-il
+   * réellement le parc qu'un écran doit montrer ?*
+   *
+   * Et c'est aussi la garde contre la faute que ce dépôt a déjà payée deux
+   * fois : une politique ouverte, un module écrit, et aucun appelant.
+   */
+  it("le compte lit son rattachement, PUIS son parc, dans le même geste", async () => {
+    const [rattachement] = await rattachementsDuCompte(
+      PORTAIL_A_CLIENT,
+      clientApp(),
+    );
+    expect(rattachement).toBeDefined();
+    if (rattachement === undefined) {
+      throw new Error("aucun rattachement");
+    }
+
+    const parc = await parcDuClient(
+      {
+        utilisateurId: PORTAIL_A_CLIENT,
+        societeId: rattachement.societeId,
+        role: Role.client,
+        secondFacteurValide: true,
+        adresseIp: null,
+        // LA DÉSIGNATION VIENT DE LA LECTURE QUE D92 VIENT DE BORNER, jamais de
+        // l'extérieur : `app_poser_perimetre_client` LÈVE si ce client n'est
+        // pas parmi les habilitations du compte (D70).
+        clientId: rattachement.clientId,
+      },
+      clientApp(),
+    );
+
+    // LE PÉRIMÈTRE MORD : le compte est restreint à S1, son client a deux sites.
+    expect(parc.sites.map((s) => s.id)).toEqual([SITE_A1_S1]);
+    expect(parc.machines.map((m) => m.id)).toEqual([MACHINE_A1]);
+    // …et le NOM du client se lit sous la politique, jamais recopié du
+    // rattachement — un libellé recopié devient faux au premier renommage.
+    expect(parc.raisonSociale).not.toBeNull();
+
+    // TÉMOIN — la seconde machine et le second site EXISTENT : sans cela, les
+    // deux assertions ci-dessus seraient vraies d'un parc d'une seule ligne.
+    const [reels] = await clientOwner().$queryRawUnsafe<
+      { sites: number; machines: number }[]
+    >(
+      `SELECT (SELECT count(*)::int FROM "site" WHERE client_id = $1::uuid) AS "sites",
+              (SELECT count(*)::int FROM "machine" WHERE client_id = $1::uuid) AS "machines"`,
+      rattachement.clientId,
+    );
+    expect(reels?.sites).toBe(2);
+    expect(reels?.machines).toBe(2);
+  });
+
+  it("une désignation qui n'est PAS la sienne LÈVE — elle ne rend pas une liste vide", async () => {
+    // *Un contexte vide rouvrirait la branche « utilisateur interne » de la
+    // forme « parc »* : le refus est donc une exception, jamais un zéro.
+    await expect(
+      parcDuClient(
+        {
+          utilisateurId: PORTAIL_A_CLIENT,
+          societeId: SOCIETE_A,
+          role: Role.client,
+          secondFacteurValide: true,
+          adresseIp: null,
+          clientId: CLIENT_B1,
+        },
+        clientApp(),
+      ),
+    ).rejects.toThrow();
   });
 });

@@ -109,49 +109,59 @@ export type ParcDuClient = {
  */
 export async function parcDuClient(
   contexte: ContexteSession,
+  // Le client est un PARAMÈTRE, comme partout ailleurs dans ce dépôt : un
+  // scénario d'isolation le construit sur SON client — celui du harnais, soumis
+  // aux politiques — là où la production prend le singleton. Sans cela, le
+  // scénario mesurerait une autre base que celle qu'il vient de préparer, et
+  // son refus viendrait du voisin (§9, 24/08).
+  client?: PrismaClient,
 ): Promise<ParcDuClient> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    // Le NOM du client se lit comme le reste : sous la politique. Il n'est pas
-    // recopié depuis le rattachement — un libellé recopié devient faux au
-    // premier renommage, sans rougir (la divergence silencieuse de D67).
-    const [fiche, sites, machines] = await Promise.all([
-      tx.client.findFirst({ select: { raison_sociale: true } }),
-      tx.site.findMany({
-        where: { actif: true },
-        select: { id: true, libelle: true, commune: true, zone_geo: true },
-        orderBy: { libelle: "asc" },
-      }),
-      tx.machine.findMany({
-        select: {
-          id: true,
-          numero_serie: true,
-          reference_interne: true,
-          localisation: true,
-          statut: true,
-          site_id: true,
-          date_mise_en_service: true,
-        },
-        orderBy: { numero_serie: "asc" },
-      }),
-    ]);
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      // Le NOM du client se lit comme le reste : sous la politique. Il n'est pas
+      // recopié depuis le rattachement — un libellé recopié devient faux au
+      // premier renommage, sans rougir (la divergence silencieuse de D67).
+      const [fiche, sites, machines] = await Promise.all([
+        tx.client.findFirst({ select: { raison_sociale: true } }),
+        tx.site.findMany({
+          where: { actif: true },
+          select: { id: true, libelle: true, commune: true, zone_geo: true },
+          orderBy: { libelle: "asc" },
+        }),
+        tx.machine.findMany({
+          select: {
+            id: true,
+            numero_serie: true,
+            reference_interne: true,
+            localisation: true,
+            statut: true,
+            site_id: true,
+            date_mise_en_service: true,
+          },
+          orderBy: { numero_serie: "asc" },
+        }),
+      ]);
 
-    return {
-      raisonSociale: fiche?.raison_sociale ?? null,
-      sites: sites.map((site) => ({
-        id: site.id,
-        libelle: site.libelle,
-        commune: site.commune,
-        zoneGeo: site.zone_geo,
-      })),
-      machines: machines.map((machine) => ({
-        id: machine.id,
-        numeroSerie: machine.numero_serie,
-        referenceInterne: machine.reference_interne,
-        localisation: machine.localisation,
-        statut: machine.statut,
-        siteId: machine.site_id,
-        dateMiseEnService: machine.date_mise_en_service,
-      })),
-    };
-  });
+      return {
+        raisonSociale: fiche?.raison_sociale ?? null,
+        sites: sites.map((site) => ({
+          id: site.id,
+          libelle: site.libelle,
+          commune: site.commune,
+          zoneGeo: site.zone_geo,
+        })),
+        machines: machines.map((machine) => ({
+          id: machine.id,
+          numeroSerie: machine.numero_serie,
+          referenceInterne: machine.reference_interne,
+          localisation: machine.localisation,
+          statut: machine.statut,
+          siteId: machine.site_id,
+          dateMiseEnService: machine.date_mise_en_service,
+        })),
+      };
+    },
+    client,
+  );
 }
