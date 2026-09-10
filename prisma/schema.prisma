@@ -1342,6 +1342,18 @@ model Machine {
   /// Fiche minimale ou complète — c'est elle qui pilote la file de complétion.
   complet Boolean @default(true)
 
+  /// ── L'EXCEPTION D'UN EXEMPLAIRE, ET SON MOTIF (L9-06, D88) ───────────────
+  ///
+  /// Une machine peut faire exception à sa famille — un usage particulier, une
+  /// modification — et **elle ne le fait jamais sans sa raison** : une exception
+  /// sans motif est une exception que personne ne pourra rejuger. La base le
+  /// refuse, elle ne le signale pas.
+  ///
+  /// NULLE, la machine suit son modèle, qui suit sa famille. L'absence n'est pas
+  /// « non soumise » : c'est « pas d'exception ».
+  vgp_exception       AssujettissementVgp?
+  vgp_exception_motif String?
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
@@ -1361,6 +1373,31 @@ model Machine {
 }
 
 /// Cycle de vie d'un actif du parc (chapitre 11.2).
+/// L'ASSUJETTISSEMENT AUX VÉRIFICATIONS GÉNÉRALES PÉRIODIQUES (L9-03, D88).
+///
+/// **TROIS valeurs, jamais une case à cocher.** Une case décochée est
+/// indiscernable d'une famille jamais examinée — et un pont élévateur sortirait
+/// du registre en silence. `a_determiner` est l'état de NAISSANCE : il dit « on
+/// n'a pas regardé », ce qu'aucun booléen ne sait dire.
+///
+/// `verifie` n'est pas une quatrième réponse à la question « est-ce soumis ? » :
+/// c'est ce qu'on écrit quand on a regardé et qu'on a besoin d'un état distinct
+/// de « soumis » et de « non soumis » — un matériel examiné dont le texte ne
+/// tranche pas encore. *Les quatre valeurs de D88 sont deux COUPLES, et le
+/// registre les distingue.*
+enum AssujettissementVgp {
+  /// Naissance. Personne n'a encore regardé. Apparaît dans la liste des
+  /// indéterminés, qui est la moitié DÉTECTIVE du couple (L9-03).
+  a_determiner
+  /// Examiné, et soumis : la périodicité et la référence du texte deviennent
+  /// obligatoires (L9-04), et la base le refuse sans elles.
+  soumis
+  /// Examiné, et non soumis. Distinct de `a_determiner` : quelqu'un a répondu.
+  non_soumis
+  /// Examiné, et le texte ne tranche pas. Ce n'est ni un oubli, ni une réponse.
+  verifie
+}
+
 enum StatutMachine {
   en_service
   en_panne
@@ -1618,6 +1655,25 @@ model FamilleMateriel {
   code    String
   libelle String
 
+  /// ── L'ASSUJETTISSEMENT AUX VGP (L9-03 à L9-05, D88) ──────────────────────
+  ///
+  /// Il se déclare à la FAMILLE et se propage : c'est le niveau où la question
+  /// a un sens réglementaire. **Naissance à `a_determiner`**, sans qu'on l'ait
+  /// demandé — le défaut porte la règle, il ne la contourne pas.
+  assujettissement_vgp AssujettissementVgp @default(a_determiner)
+
+  /// LA PÉRIODICITÉ EN MOIS, et **AUCUNE VALEUR PAR DÉFAUT** (L9-05, §8).
+  /// Elle dépend du matériel et du texte applicable ; la Nouvelle-Calédonie a
+  /// son propre code du travail, et la solution sera vendue ailleurs. Une
+  /// contrainte de base la rend obligatoire dès que l'assujettissement vaut
+  /// `soumis` — jamais un `DEFAULT`, qui serait un délai inventé.
+  vgp_periodicite_mois Int?
+
+  /// LA RÉFÉRENCE DU TEXTE QUI FONDE LA PÉRIODICITÉ (L9-04).
+  /// *Sans le texte, la périodicité est un chiffre que personne ne peut
+  /// défendre.* Obligatoire avec `soumis`, par la même contrainte.
+  vgp_reference_texte String?
+
   actif Boolean @default(true)
 
   societe  Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -1655,6 +1711,16 @@ model ModeleMateriel {
   /// défaut : une périodicité est une décision d'exploitation (CLAUDE.md §8).
   periodicite_jours    Int?
   periodicite_compteur Int?
+
+  /// ── LA PRÉCISION DU MODÈLE (L9-06) ───────────────────────────────────────
+  ///
+  /// *Les caractéristiques techniques vivent ici, donc c'est ici que préciser a
+  /// un sens.* NULLE, le modèle suit sa famille : l'absence n'est pas « aucune
+  /// périodicité », c'est « rien à préciser ». Une contrainte exige la
+  /// référence du texte avec la périodicité, comme au niveau de la famille —
+  /// un chiffre sans son texte ne se défend pas davantage ici.
+  vgp_periodicite_mois Int?
+  vgp_reference_texte  String?
 
   actif Boolean @default(true)
 

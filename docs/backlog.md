@@ -385,7 +385,11 @@ Les documents existants sont **numériques mais rangés en vrac**, sans structur
 
 ## Lot 9 — Registre des VGP
 
-*Inscrit au plan le 09/09/2026 sur consigne d'exploitation. **Écrit, pas construit.***
+*Inscrit au plan le 09/09/2026 sur consigne d'exploitation.*
+
+**LA COLONNE VERTÉBRALE EST CONSTRUITE le 12/09/2026** — L9-03, L9-04, L9-05, L9-06 et L9-07. Ce qui reste **écrit et non construit** : L9-01 et L9-02 le sont **à moitié** (la règle est en code et éprouvée, aucun écran ne l'affiche encore), et L9-08 à L9-11 attendent — la campagne datée, le rapport de classe `client` (lot 8), l'intervention engendrée par une observation (lot 2 livré, la liaison reste à écrire), et la saisie hors ligne du technicien (lot 3).
+
+*Ce qui a été construit, et où :* l'énumération `AssujettissementVgp` à quatre valeurs dont la NAISSANCE ; les colonnes de `famille_materiel`, `modele_materiel` et `machine` ; les quatre contraintes qui font REFUSER la base plutôt que signaler ; `lib/vgp/assujettissement.ts` (saisie Zod et cascade avec son origine) ; `lib/vgp/information.ts` (« sans information depuis X », qui ne rend jamais de verdict) ; le gardien statique de L9-05 (`tests/unit/vgp/aucune-duree-en-dur.test.ts`) ; et six scénarios d'isolation avec leur jumeau.
 
 **Vérifications générales périodiques** (APAVE, Bureau Veritas). **Chez CODIMA, ce sont les CLIENTS qui commandent ces visites, pas CODIMA. Tout ce lot découle de là.**
 

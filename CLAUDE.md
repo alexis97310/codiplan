@@ -588,6 +588,28 @@ lib/
               l'un ni l'autre (D88)
   pdf/        (prévu) génération des rapports
   reporting/  SEULE zone autorisée à convertir des devises
+  vgp/        le REGISTRE DES VÉRIFICATIONS PÉRIODIQUES (lot 9, D88)
+              CODIPLAN N'AFFIRME JAMAIS LA CONFORMITÉ : les VGP sont commandées
+              par les CLIENTS, et il n'apprend leur résultat que si on le lui
+              dit. Aucune fonction ne rend un verdict ; le seul calcul est une
+              DATE (L9-01)
+              assujettissement.ts : TROIS valeurs sur la famille, jamais une
+              case à cocher — une case décochée est indiscernable d'une famille
+              jamais examinée, et un pont élévateur sortirait du registre en
+              silence ; la naissance est « à déterminer »
+              « soumis » exige la périodicité ET le texte qui la fonde : sans
+              le texte, la périodicité est un chiffre indéfendable
+              la CASCADE rend son ORIGINE avec sa valeur — le modèle PRÉCISE le
+              rythme, la machine fait EXCEPTION sur la valeur, jamais l'inverse
+              une exception sans motif est refusée, et un motif sans exception
+              aussi : le second sens est celui qu'on oublie
+              information.ts : « sans information depuis X » n'est NI « à jour »
+              NI « en retard » — un registre à moitié rempli ressemble à un
+              registre complet, et c'est le danger que D88 nomme
+              aucune durée n'y est écrite : ni seuil, ni tolérance, ni
+              « bientôt » — la périodicité est saisie, jamais inventée (§8)
+              l'heure est un PARAMÈTRE, jamais une lecture : lue ici, elle
+              rendrait un test vert parce que l'horloge a bougé
   theme/      charte de la société active — couleurs, encres, variables CSS
               statuts.ts : les couleurs des huit statuts d'intervention
               (annexe D, promue au rang de règle par le §1) — une RÈGLE du

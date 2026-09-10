@@ -76,6 +76,22 @@ export const fr = {
   "connexion.apres_enrolement":
     "Votre second facteur est actif. Reconnectez-vous en présentant votre code : la session qui porte vos droits est celle qui a présenté le facteur.",
 
+  // Registre des VGP — CODIPLAN n'affirme jamais la conformité (lot 9, D88).
+  // Il enregistre ce qu'un organisme agréé a écrit, et ne calcule que des dates.
+  "vgp.periodicite_requise":
+    "Déclarer ce matériel soumis exige une périodicité : sans elle, personne ne sait quand la prochaine visite est due.",
+  "vgp.reference_requise":
+    "Indiquez le texte qui fonde cette périodicité. Sans lui, c'est un chiffre que personne ne pourra défendre.",
+  "vgp.motif_requis":
+    "Une exception ne se pose jamais sans sa raison : écrivez le motif, pour que quelqu'un puisse la rejuger.",
+  "vgp.motif_orphelin":
+    "Ce motif n'explique aucune exception. Posez l'exception, ou retirez le motif.",
+  "vgp.a_determiner":
+    "À déterminer — personne n'a encore examiné si ce matériel est soumis.",
+  "vgp.hors_registre": "Hors registre",
+  "vgp.sans_information": "Sans information",
+  "vgp.information_recue": "Dernière information reçue",
+
   // Portail client — CONSULTATION SEULE (L2-12, D92).
   "portail.titre": "Votre parc",
   "portail.sous_titre":

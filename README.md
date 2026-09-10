@@ -599,6 +599,40 @@ Son cliquet est un **fait** de la ligne de `compte` — `mot_de_passe IS NULL`, 
 
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
 
+## Le registre des VGP — CODIPLAN n'affirme jamais la conformité
+
+Les vérifications générales périodiques sont commandées par les **clients**, pas
+par CODIMA : CODIMA ne les déclenche pas, ne les reçoit pas de droit, et
+n'apprend leur résultat que si on le lui dit. **Tout le lot 9 découle de cette
+phrase** (D88), et une conception qui l'oublierait produirait un registre qui
+ment.
+
+Trois conséquences, tenues par la base et non par une intention.
+
+**Trois valeurs, jamais une case à cocher.** `a_determiner` est l'état de
+naissance d'une famille de matériel, au même rang que les réponses. _Une case
+décochée est indiscernable d'une famille jamais examinée_, et un pont élévateur
+sortirait du registre en silence. Le `DEFAULT` de la colonne porte la règle :
+rien n'a besoin de la demander.
+
+**`soumis` exige sa périodicité ET le texte qui la fonde.** Sans le texte, la
+périodicité est un chiffre que personne ne peut défendre. **Aucune durée n'est
+écrite dans le code du lot** — ni seuil, ni tolérance, ni « en général » : la
+Nouvelle-Calédonie a son propre code du travail, la solution sera vendue
+ailleurs, et le §8 du CLAUDE.md interdit d'inventer un délai. Un gardien statique
+le vérifie, avec sa liste close de conversions d'unité, adossée.
+
+**« Sans information depuis X » n'est ni « à jour » ni « en retard ».** Le
+danger que D88 nomme est qu'_un registre à moitié rempli ressemble à un registre
+complet_ — c'est le zéro de `/sante` lu comme « installation vide », à l'échelle
+d'un parc. `sans_information` est donc une valeur à part entière, distincte de
+`hors_registre` : l'un dit « la question ne se pose pas ici », l'autre « elle se
+pose et nous n'avons pas la réponse ». Le seul calcul du module est une **date**,
+et il n'existe aucune fonction qui rende un verdict de conformité.
+
+Voir [`lib/vgp/`](lib/vgp/), et les six scénarios de
+`tests/isolation/vgp-assujettissement.test.ts`, chacun avec son jumeau.
+
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 
 Le cloisonnement se prouve d'abord par la **lecture** : les scénarios
