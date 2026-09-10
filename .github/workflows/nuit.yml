@@ -45,12 +45,12 @@ on:
         description: "Budget en minutes (le travail est coupé au-delà)"
         type: string
         required: false
-        default: "120"
+        default: "15"
       tours:
         description: "Budget en tours de conversation (--max-turns)"
         type: string
         required: false
-        default: "150"
+        default: "20"
       consigne:
         description: "Consigne SUPPLÉMENTAIRE pour cette nuit (facultatif)"
         type: string
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     # PREMIER GARDE-FOU. Une nuit qui s'emballe coûte de l'argent réel, et le
     # budget en tours ne borne pas le temps passé dans une seule commande.
-    timeout-minutes: ${{ fromJSON(inputs.minutes || '120') }}
+    timeout-minutes: ${{ fromJSON(inputs.minutes || '15') }}
     permissions:
       contents: write
       pull-requests: write
@@ -123,7 +123,7 @@ jobs:
             ${{ inputs.consigne }}
 
           claude_args: |
-            --max-turns ${{ inputs.tours || '150' }}
+            --max-turns ${{ inputs.tours || '20' }}
             --allowedTools "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,WebFetch,WebSearch"
 
           # AUCUN NOM DE MODÈLE N'EST FIGÉ ICI, et c'est délibéré : un
