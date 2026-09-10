@@ -199,6 +199,26 @@ export function lireDate(cellule: Cellule | undefined): LectureDate {
 
   if (cellule.serie !== undefined) {
     const serie = cellule.serie;
+    // ── LE ZÉRO N'EST PAS UNE DATE, ET CE N'EST PAS NON PLUS UNE ERREUR ────
+    //
+    // **Mesuré le 10/09/2026 sur le classeur réel de CODIMA** : la colonne
+    // « Dernière intervention » de l'onglet parc porte **171 cellules à zéro**,
+    // et zéro y veut dire *jamais d'intervention* — une ABSENCE, pas une
+    // saisie fautive. Les ranger sous `date_hors_plage` ferait rejeter 171
+    // machines pour un champ légitimement vide, ce qui est exactement le
+    // contraire de ce que I6 promet.
+    //
+    // **Et une bibliothèque de lecture ne le dit pas toute seule** : mesuré,
+    // `read-excel-file` rend `1899-12-30T00:00:00.000Z` pour ces cellules —
+    // *une date parfaitement formée, et parfaitement fausse.* C'est ici que le
+    // zéro s'écarte, jamais dans la liaison.
+    //
+    // Le sérial 60 — le 29 février 1900 qui n'a jamais existé — reste une
+    // ANOMALIE et non une absence : personne ne saisit « pas de date » en
+    // tapant 60.
+    if (serie === 0) {
+      return echec("cellule_vide");
+    }
     if (!Number.isInteger(serie)) {
       return echec("date_avec_heure", String(serie));
     }

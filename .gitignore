@@ -30,3 +30,6 @@ next-env.d.ts
 
 # contrôle post-migration — inventaire produit par le workflow, jamais versionné
 /inventaire-controle.json
+
+# fichier réel apporté par l'exploitation — invariant I9, ne doit JAMAIS entrer au dépôt
+Suivi_SAV_CODIMA*.xlsx

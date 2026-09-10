@@ -773,6 +773,54 @@ const CLIENTS_EU: ClientSeed[] = [
         temps_trajet_min: 40,
         actif: true,
       },
+      {
+        id: "0192f0a0-4000-7000-8000-000000000012",
+        agence_code: "SIEGE",
+        libelle: "Atelier de Villeurbanne (démonstration)",
+        commune: "Villeurbanne",
+        zone_geo: null,
+        latitude: 45.7719,
+        longitude: 4.8902,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: 25,
+        actif: true,
+      },
+    ],
+  },
+  {
+    // **La seconde société reçoit SON PROPRE PLANNING GARNI** *(décision
+    // d'exploitation du 10/09/2026)*. Elle portait un client et un site, et
+    // ZÉRO intervention : le multi-société ne se démontrait donc pas — un
+    // acheteur voyait un planning vivant et un écran vide. *Un écran vide ne
+    // vend rien.* Ce qui manquait n'était pas la donnée mais de quoi
+    // l'accrocher : deux clients, trois sites, et des identifiants propres.
+    id: "0192f0a0-1000-7000-8000-000000000012",
+    code_externe: "DEMO-002",
+    raison_sociale: "Manufacture de Saint-Étienne (démonstration)",
+    ridet: null,
+    categorie: null,
+    adresse_facturation: {
+      rue: "12 rue des Aciéries",
+      commune: "Saint-Étienne",
+    },
+    conditions_reglement: null,
+    commercial_referent: null,
+    actif: true,
+    sites: [
+      {
+        id: "0192f0a0-4000-7000-8000-000000000013",
+        agence_code: "SIEGE",
+        libelle: "Usine de Saint-Étienne (démonstration)",
+        commune: "Saint-Étienne",
+        zone_geo: null,
+        latitude: 45.4397,
+        longitude: 4.3872,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: 65,
+        actif: true,
+      },
     ],
   },
 ];
@@ -896,6 +944,22 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
     nom: "ADV de démonstration",
     email: "adv@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.adv }],
+  },
+  // **Un technicien par société, et ils ne sont PAS la même personne**
+  // *(10/09/2026)*. La seconde société n'avait qu'une identité de direction,
+  // partagée avec la première : son planning n'aurait eu personne à qui
+  // affecter quoi que ce soit. Deux identités distinctes montrent en outre ce
+  // qu'une seule ne peut pas — que le cloisonnement porte sur le RATTACHEMENT
+  // et non sur la personne (RG-SOC-03).
+  {
+    nom: "Technicien de démonstration (Nouméa)",
+    email: "technicien.nc@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
+  {
+    nom: "Technicien de démonstration (Lyon)",
+    email: "technicien.eu@codima.test",
+    habilitations: [{ societe_code: "CODIMA-EU", role: Role.technicien }],
   },
 ];
 
@@ -1128,15 +1192,27 @@ export const HABILITATIONS_AMORCAGE: readonly HabilitationAmorcageSeed[] = [
  * dans le seed poserait un chiffre que personne n'a décidé, et il divergerait du
  * calcul au premier changement de tarif.
  *
- * **Les identifiants sont FIXES**, comme ceux des clients et des sites : rejouer
- * le seed corrige une ligne au lieu d'en créer une seconde.
+ * ── LES IDENTIFIANTS ÉTAIENT FIXES, ET LA SECONDE SOCIÉTÉ N'EN RECEVAIT AUCUNE
+ *
+ * **Mesuré le 09/09/2026, réparé le 10 :** `INTERVENTIONS_DEMONSTRATION` portait
+ * six `id` en dur. La première société les prenait ; la seconde trouvait chaque
+ * ligne déjà écrite et s'abstenait — *« CODIMA-EU — interventions de
+ * démonstration : 0 écrite(s) sur 6 prévue(s) »*. Le multi-société était donc
+ * indémontrable par la démonstration elle-même : un acheteur voyait un planning
+ * vivant et un écran vide, et **un écran vide ne vend rien**.
+ *
+ * L'identifiant est désormais DÉRIVÉ du rang de l'intervention et de celui de sa
+ * société — `identifiantIntervention` ci-dessous. Il reste **déterministe**,
+ * donc le seed reste idempotent ; il cesse d'être **unique au monde**, ce qu'il
+ * n'avait aucune raison d'être. C'est la faute du §9 (20/08) sous une autre
+ * forme : une clé fabriquée pour un cas, reconduite quand le second est arrivé.
  *
  * **Les dates sont en UTC**, jamais construites par un `Date` local : UTC+11
  * décale le jour d'un cran, et une intervention du 1er se rangerait au 31.
  */
 export const INTERVENTIONS_DEMONSTRATION = [
   {
-    id: "0192f0a0-6000-7000-8000-000000000001",
+    rang: 1,
     type: "curatif" as const,
     priorite: "p1" as const,
     statut: "a_planifier" as const,
@@ -1144,7 +1220,7 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: null,
   },
   {
-    id: "0192f0a0-6000-7000-8000-000000000002",
+    rang: 2,
     type: "preventif_contrat" as const,
     priorite: "p3" as const,
     statut: "planifiee" as const,
@@ -1152,7 +1228,7 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: null,
   },
   {
-    id: "0192f0a0-6000-7000-8000-000000000003",
+    rang: 3,
     type: "installation" as const,
     priorite: "p2" as const,
     statut: "en_cours" as const,
@@ -1160,7 +1236,7 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: null,
   },
   {
-    id: "0192f0a0-6000-7000-8000-000000000004",
+    rang: 4,
     type: "curatif" as const,
     priorite: "p4" as const,
     statut: "terminee" as const,
@@ -1168,7 +1244,7 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: 95,
   },
   {
-    id: "0192f0a0-6000-7000-8000-000000000005",
+    rang: 5,
     type: "controle_reglementaire" as const,
     priorite: "p3" as const,
     statut: "cloturee" as const,
@@ -1178,7 +1254,7 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: 12,
   },
   {
-    id: "0192f0a0-6000-7000-8000-000000000006",
+    rang: 6,
     type: "garantie" as const,
     priorite: "p3" as const,
     statut: "annulee" as const,
@@ -1186,3 +1262,25 @@ export const INTERVENTIONS_DEMONSTRATION = [
     temps_reel_min: null,
   },
 ];
+
+/**
+ * L'identifiant d'une intervention de démonstration, DÉRIVÉ et non écrit.
+ *
+ * `rangSociete` est la position de la société dans `SOCIETES`, à partir de 1 :
+ * il ouvre à chacune une plage de cent identifiants qui ne peut pas rencontrer
+ * celle de sa voisine. La forme suit la convention du jeu de démonstration —
+ * `0192f0a0-6000-…` pour les interventions, comme `-1000-` pour les clients et
+ * `-4000-` pour les sites.
+ */
+export function identifiantIntervention(
+  rangSociete: number,
+  rang: number,
+): string {
+  // `rangSociete - 1` est délibéré : la PREMIÈRE société retrouve exactement
+  // les six identifiants historiques, si bien que la base hébergée ne se
+  // retrouve pas avec douze lignes de démonstration — six anciennes orphelines
+  // et six nouvelles. *Une réparation qui laisse derrière elle l'état qu'elle
+  // corrige n'est réparée qu'à moitié.*
+  const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
+  return `0192f0a0-6000-7000-8000-${suffixe}`;
+}

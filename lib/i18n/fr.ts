@@ -101,9 +101,27 @@ export const fr = {
   "arrivee.email": "Adresse électronique",
   "arrivee.societe": "Société active",
   "arrivee.role": "Rôle",
+  // **CE TEXTE A ÉTÉ CORRIGÉ le 10/09/2026** : il annonçait que « le choix
+  // d'une société parmi plusieurs arrivera avec le back-office », ce qui est
+  // devenu faux le jour où le choix a été écrit. Il ne s'affiche désormais que
+  // dans le seul cas qui reste : aucune habilitation du tout.
   "arrivee.sans_societe":
-    "Aucune société active. Le choix d'une société parmi plusieurs arrivera avec le back-office ; si vous n'êtes habilité nulle part, contactez l'administrateur de votre société.",
+    "Aucune société active, et aucune habilitation sur ce compte. Contactez l'administrateur de votre société.",
   "arrivee.deconnexion": "Se déconnecter",
+  // ── LE CHOIX D'UNE SOCIÉTÉ (D61, D67 — écran écrit le 10/09/2026) ────────
+  //
+  // Il manquait, et son absence était un MUR : un compte habilité sur deux
+  // sociétés n'en activait aucune, donc n'atteignait aucun écran cloisonné.
+  // Les deux politiques qui le rendent possible existaient depuis deux jours.
+  "arrivee.choix.titre": "Choisir la société sur laquelle travailler",
+  "arrivee.choix.aide":
+    "Vous êtes habilité sur plusieurs sociétés. Une seule est active à la fois, et tout ce que vous verrez ensuite lui appartient.",
+  "arrivee.choix.activer": "Travailler sur cette société",
+  "arrivee.choix.active": "Société active",
+  // Une société dont le nom n'est pas revenu est affichée QUAND MÊME, avec son
+  // identifiant : taire la ligne ferait disparaître une habilitation réelle,
+  // et le compte ne comprendrait pas pourquoi il ne peut pas y aller.
+  "arrivee.choix.sans_nom": "Société sans nom lisible",
 
   // ── Référentiel client (ticket L1-01) ─────────────────────────────────────
   // Ce que le PRODUIT dit. Ce qu'une SOCIÉTÉ dit est une donnée, lue en base :
@@ -274,6 +292,44 @@ export const fr = {
   // tout ce qu'un humain lit (L0-11), et non écrite en dur dans le composant.
   "planning.retour_fleche": "← Retour au planning",
   "planning.periode": "Période affichée",
+
+  // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
+  //
+  // **JAMAIS LE POURCENTAGE SEUL**, et c'est une demande d'exploitation avant
+  // d'être une préférence d'affichage : « 82 % » ne veut rien dire sans ses
+  // deux termes — 82 % de quoi, sur quelle période, calculé comment ? La
+  // formule est donc une clé à part, affichée à côté du taux, et un gardien
+  // refuse que l'écran montre l'un sans l'autre.
+  "statistiques.titre": "Charge par technicien",
+  "statistiques.sous_titre":
+    "Sur la période affichée, et par établissement : c'est le calendrier de l'établissement qui donne les heures ouvrables.",
+  "statistiques.technicien": "Technicien",
+  "statistiques.non_affectees": "Interventions non affectées",
+  // Le SINGULIER est une clé à part : « 1 interventions » est une faute que
+  // personne ne relit deux fois, et qu'aucune assertion n'attrape — c'est
+  // l'image du planning qui l'a montrée.
+  "statistiques.nombre": "interventions",
+  "statistiques.nombre_un": "intervention",
+  "statistiques.heures_engagees": "engagées",
+  "statistiques.heures_ouvrables": "ouvrables",
+  "statistiques.taux": "Taux d'occupation",
+  // « 0 % » se lit « n'a rien fait ». Quand du temps a été engagé et que le
+  // taux s'arrondit à zéro, l'écran cesse d'affirmer un faux et dit sa borne.
+  "statistiques.taux_infime": "moins de 1\u00a0%",
+  // La FORMULE, écrite en toutes lettres. Elle est ce qui rend le pourcentage
+  // interprétable, et elle ne se déduit pas de « 82 % ».
+  // Le SIGNE POUR CENT est du texte qu'un humain lit : il vient d'ici comme le
+  // reste (L0-11), avec l'espace insécable que le français exige devant lui.
+  "statistiques.pourcent": "\u00a0%",
+  "statistiques.separateur": " — ",
+  "statistiques.formule":
+    "heures engagées ÷ heures ouvrables du calendrier de l'établissement",
+  "statistiques.sans_calendrier":
+    "Pas de taux : cet établissement n'a pas de calendrier, et les heures ouvrables sont donc inconnues. Ce n'est pas zéro pour cent.",
+  "statistiques.sans_duree":
+    "sans durée saisie — elles comptent dans le nombre, et pour zéro minute dans le taux",
+  "statistiques.sans_duree_un":
+    "sans durée saisie — elle compte dans le nombre, et pour zéro minute dans le taux",
 
   "intervention.titre": "Intervention",
   "intervention.reference": "Référence",

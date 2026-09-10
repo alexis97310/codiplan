@@ -5,10 +5,13 @@ import {
   DEVISES,
   FAMILLES_HABILITATION,
   HABILITATIONS_AMORCAGE,
+  INTERVENTIONS_DEMONSTRATION,
   PARITES,
   SOCIETES,
   UTILISATEURS_INTERNES,
+  identifiantIntervention,
 } from "@/prisma/seed-data";
+import { Role } from "@prisma/client";
 
 /**
  * Critères d'acceptation du ticket L0-03 : le seed crée deux sociétés — l'une
@@ -153,5 +156,71 @@ describe("l'amorçage des habilitations (L1-04b, D60)", () => {
     expect(HABILITATIONS_AMORCAGE.length).toBeGreaterThanOrEqual(
       FAMILLES_HABILITATION.length * 2,
     );
+  });
+});
+
+describe("la démonstration garnit le planning de CHAQUE société", () => {
+  /**
+   * **Décision d'exploitation du 10/09/2026.** Les identifiants des
+   * interventions de démonstration étaient FIXES : la première société les
+   * prenait tous, la seconde trouvait chaque ligne écrite et s'abstenait —
+   * *« 0 écrite(s) sur 6 prévue(s) »*, à chaque exécution du flux de migration,
+   * dans un journal que personne n'a lu comme un défaut.
+   *
+   * Ce que ce gardien tient, et que le refus posé dans le seed ne tient pas
+   * seul : il rougit **sans base**, donc au moment où quelqu'un écrit la
+   * collision, et non le jour où il fait tourner une migration.
+   */
+  it("donne à chaque société une plage d'identifiants qui n'en rencontre aucune autre", () => {
+    const tous = SOCIETES.flatMap((_, index) =>
+      INTERVENTIONS_DEMONSTRATION.map((modele) =>
+        identifiantIntervention(index + 1, modele.rang),
+      ),
+    );
+    expect(tous).toHaveLength(
+      SOCIETES.length * INTERVENTIONS_DEMONSTRATION.length,
+    );
+    expect(new Set(tous).size).toBe(tous.length);
+    // Témoin : deux sociétés au moins, sinon la propriété est vide de sens.
+    expect(SOCIETES.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("laisse à la PREMIÈRE société ses identifiants historiques", () => {
+    // Sans cette continuité, la base hébergée porterait douze lignes de
+    // démonstration : six anciennes devenues orphelines et six nouvelles.
+    expect(identifiantIntervention(1, 1)).toBe(
+      "0192f0a0-6000-7000-8000-000000000001",
+    );
+    expect(identifiantIntervention(1, 6)).toBe(
+      "0192f0a0-6000-7000-8000-000000000006",
+    );
+    // …et la seconde n'en approche pas.
+    expect(identifiantIntervention(2, 1)).toBe(
+      "0192f0a0-6000-7000-8000-000000000101",
+    );
+  });
+
+  it("donne à chaque société de quoi accrocher ses six interventions", () => {
+    // Le seed rattache l'intervention de rang N au site N modulo le nombre de
+    // sites : une société sans site n'en reçoit aucune, et son planning reste
+    // vide. C'est la moitié du défaut que le compte fixe masquait.
+    for (const societe of SOCIETES) {
+      const sites = societe.clients.flatMap((client) => client.sites);
+      expect(sites.length).toBeGreaterThan(0);
+      expect(societe.clients.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("donne un technicien à chaque société — un planning sans personne ne démontre rien", () => {
+    for (const societe of SOCIETES) {
+      const techniciens = UTILISATEURS_INTERNES.filter((utilisateur) =>
+        utilisateur.habilitations.some(
+          (habilitation) =>
+            habilitation.societe_code === societe.code &&
+            habilitation.role === Role.technicien,
+        ),
+      );
+      expect(techniciens.length).toBeGreaterThan(0);
+    }
   });
 });

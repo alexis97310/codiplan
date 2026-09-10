@@ -714,7 +714,7 @@ Rien ne bloque plus le lot 0. Le seul point que la note n°2 avait laissé ouver
 | **Lot 5** | **Repli de consolidation portable (D36)** : fonction `SECURITY DEFINER`, et mot de passe de `codiplan_reporting` déposé dans `REPORTING_DATABASE_URL`.<br>**ET DEUX GARDIENS DU LOT 0 LE REFUSERONT** *(inscrit le 31/08/2026, ticket R0-a, écart É1 de la revue R0)*. **La première ligne du repli portable fait passer `pnpm verify` au rouge, deux fois.** C'est le comportement voulu des deux gardiens ; ce qui manquait, c'est que le lot 5 le sache **avant** de commencer plutôt que de le découvrir dans l'urgence.<br>1. `motifRefusReporting` (`lib/db/garde-role.ts`) **refuse la connexion de consolidation quand `BYPASSRLS` manque** — « sans lequel la consolidation multi-sociétés ne lirait que la société active ». Or le repli de D36 existe **précisément pour l'hébergeur qui ne peut pas accorder `BYPASSRLS`** : le garde refusera donc exactement la configuration que le repli est fait pour servir. Remède prévu : `motifRefusReporting` distingue **chemin rapide** et **repli**, et n'exige `BYPASSRLS` que du premier.<br>2. `tests/unit/db/security-definer-sous-arbitrage.test.ts` **échoue sur toute fonction `SECURITY DEFINER` apparaissant dans une migration**, liste d'exceptions **close et vide**. Le repli **EST** une fonction `SECURITY DEFINER`. Remède prévu : D36 entre **nommément** dans la liste d'exceptions de D50 — ce qui est un arbitrage, pas une décision de ticket, et doit donc être pris avant l'écriture du repli. |
 | **Lot 7** | **Déblocage d'un `admin_societe` ayant perdu son second facteur (D40)** : exécutable par `admin_plateforme` seul, journalisé dans `journal_acces` |
 | Lot 7 | Opérateur SMS, structure juridique, plafond de responsabilité ; durcissement de la visibilité des comptes entre sociétés |
-| **Question POSÉE le 09/09/2026, sans réponse par défaut** *(D83)* | **Le plancher d'une heure s'applique-t-il PAR INTERVENTION, ou PAR SITE ET PAR JOUR ?** D83 pose le plancher et le laisse **par intervention**, comme l'arrondi de D57 — c'est-à-dire par la maille déjà tranchée, et non par un choix nouveau. **La conséquence chiffrée, mesurée :** deux interventions courtes sur le même site le même jour facturent **deux heures** ; sous la maille « site et jour » elles en factureraient **une**. Un facteur deux sur un mode d'exploitation ordinaire — la tournée qui repasse l'après-midi finir le matin. *Ce n'est pas une modalité d'implémentation : c'est le prix que paie un client, et c'est pourquoi rien n'est tranché ici.* Aucune valeur par défaut n'est déguisée en réponse : le code d'aujourd'hui applique la maille de D57, et le jour où l'exploitation répond « par site et par jour », c'est un **amendement de D83** et non un réglage. Déclencheur : la première facture réelle portant deux interventions le même jour sur le même site |
+| ~~**Question POSÉE le 09/09/2026, sans réponse par défaut** *(D83)*~~ **TRANCHÉ le 10/09/2026** *(D89)* — **PAR INTERVENTION, SANS EXCEPTION.** | ~~**Le plancher d'une heure s'applique-t-il PAR INTERVENTION, ou PAR SITE ET PAR JOUR ?** D83 pose le plancher et le laisse **par intervention**, comme l'arrondi de D57 — c'est-à-dire par la maille déjà tranchée, et non par un choix nouveau. **La conséquence chiffrée, mesurée :** deux interventions courtes sur le même site le même jour facturent **deux heures** ; sous la maille « site et jour » elles en factureraient **une**. Un facteur deux sur un mode d'exploitation ordinaire — la tournée qui repasse l'après-midi finir le matin. *Ce n'est pas une modalité d'implémentation : c'est le prix que paie un client, et c'est pourquoi rien n'est tranché ici.* Aucune valeur par défaut n'est déguisée en réponse : le code d'aujourd'hui applique la maille de D57, et le jour où l'exploitation répond « par site et par jour », c'est un **amendement de D83** et non un réglage. Déclencheur : la première facture réelle portant deux interventions le même jour sur le même site~~ — tranché le 10/09/2026, voir **D89**, qui porte la variante connue et sa condition de réouverture. Ligne conservée : un point tranché se raye, il ne s'efface pas |
 
 ---
 
@@ -2793,6 +2793,133 @@ Ce qu'elle rend — et c'est une mesure, pas un souvenir :
 **CONDITION DE RÉOUVERTURE.** *Le jour où CODIMA commandera elle-même des visites — c'est-à-dire le jour où elle vendra ce service —, la phrase dont tout découle cesse d'être vraie, et cette décision est due à réécriture entière.* Le registre deviendrait alors partiellement un registre de faits connus de première main, et la distinction « ce qu'on nous a dit » / « ce que nous savons » devrait être portée par la donnée, pas par une note.
 
 *Aucune règle du chapitre 10 n'est amendée : ce lot n'existe pas encore au cahier des charges, et cette décision est ce qui l'y fera entrer.*
+
+---
+
+## D89 — Le plancher d'une heure s'applique PAR INTERVENTION, sans exception
+
+*Décision d'exploitation, 10 septembre 2026. Ferme la question ouverte par D83, inscrite au registre le 09/09 sans réponse par défaut.*
+
+**LA RÈGLE, telle qu'Alexis l'a tranchée.**
+
+> Le plancher d'une heure s'applique **par intervention, sans exception**. Deux interventions le même jour sur le même site déclenchent **deux planchers**, quelle qu'en soit la raison, **y compris si la seconde achève la première**.
+
+**Portée inchangée par rapport à D83** — et elle est rappelée ici parce qu'une décision qui ne dit que ce qu'elle ajoute laisse croire qu'elle change le reste : le plancher ne vise **ni les forfaits**, **ni le trajet**, **ni le travail interne** ; l'arrondi au quart d'heure supérieur précède le plancher ; et les deux s'appliquent **une seule fois par intervention**, jamais tâche par tâche.
+
+**CE QUE CELA COÛTE À UN CLIENT, écrit avant d'être facturé.** Deux passages de vingt minutes le même jour sur le même site facturent **deux heures**. Sous la maille « site et jour » — celle qui a été écartée — ils en factureraient **une**. *C'est un facteur deux sur un mode d'exploitation ordinaire, et le chiffre est écrit ici pour que personne n'ait à le redécouvrir sur une facture.* Ce que la maille « par intervention » dit en retour, et qui est l'argument de la décision : **un déplacement a un coût que la durée du geste ne mesure pas**, et deux déplacements en coûtent deux.
+
+**AUCUNE EXCEPTION, et l'exception qu'on aurait pu écrire est nommée.** La tentation naturelle est d'exempter la reprise — le second passage causé par une pièce oubliée ou un travail non terminé. Elle n'est pas retenue : une exception dont le déclencheur est *la cause du second passage* exige de qualifier cette cause, donc d'arbitrer chaque cas au moment de facturer. **Une règle qui se discute à chaque facture n'est pas une règle**, et c'est la faute que le §9 nomme depuis le 11/09 sous un autre nom — le taux de fausses discussions finit par emporter la règle elle-même.
+
+**CONDITION DE RÉOUVERTURE, écrite avec la décision.** *Le jour où un client conteste un second plancher facturé pour un passage causé par CODIMA elle-même — pièce oubliée, travail non terminé —, la règle est à rouvrir.* La variante alors retenue serait **« par intervention, sauf reprise rattachée à la précédente »**, ce qui exige une notion de rattachement entre deux interventions que le modèle ne porte pas aujourd'hui. **Elle est écrite comme variante connue et n'est pas construite** : la construire maintenant, c'est payer une notion de rattachement pour un cas qui ne s'est pas produit.
+
+**LE JUMEAU QUI COMPTE.** *Deux interventions de vingt minutes, le même jour, sur le même site, facturent DEUX heures.* Si le scénario passe avec une seule, la règle est mal posée — c'est-à-dire que le calcul a agrégé deux interventions, ce que D57 interdit depuis le 07/09. Le scénario est écrit sur la maille et non sur la fonction : il valorise **deux fois** et somme, comme le fera l'appelant réel. `tests/unit/tarification/valorisation.test.ts`.
+
+**CE QUE CETTE DÉCISION NE CHANGE PAS DANS LE CODE.** `lib/tarification/valorisation.ts` applique déjà la maille de D57 : `valoriserTempsPasse` valorise **une** intervention et n'a jamais su en agréger deux. *La décision ne corrige donc aucun défaut — elle retire une incertitude*, et c'est le scénario qui rend la maille non contournable par un futur appelant tenté d'additionner les minutes avant d'appeler.
+
+**Règles amendées :** RG-TAR-05
+
+---
+
+## D90 — La lecture du classeur est TRANCHÉE, sur un vrai fichier Excel : `read-excel-file`
+
+*Décision de session du 10 septembre 2026. Elle ferme la comparaison instruite le 11/09 et laissée ouverte à dessein — « les deux lectures ne donnent pas la même réponse, et je ne choisis pas laquelle des deux vous vouliez ».*
+
+### D80 N'EXISTE PAS, et cela se dit avant tout le reste
+
+Le protocole de session demandait de **lever la réserve « NON PORTANT » de D80**. *Mesuré, avant d'écrire une ligne : **il n'existe aucun D80 dans ce dépôt.*** La correction d'exploitation du 09/09 l'écrit déjà — « D80, D81 et D82 n'existent pas : la file de travail du jour les citait, la mesure dit qu'aucune n'a jamais été écrite ». **Une décision qui n'existe pas ne peut pas perdre une réserve qu'elle n'a jamais portée**, et lui en faire perdre une l'aurait fait naître par ricochet, avec un contenu que personne n'a écrit.
+
+*C'est la règle du §9 (07/09) appliquée dans le sens qui compte le plus — de la session vers l'exploitation : un état énoncé comme un fait est une hypothèse, et il faut dire quand elle est fausse.* Ce que le protocole visait est reconstituable sans ambiguïté : **la condition du §2 sur la bibliothèque de lecture `.xlsx`**, dont la comparaison du 11/09 disait qu'elle ne tranchait pas nettement. C'est elle qui est tranchée ici.
+
+### CE QUE LA MESURE DU 10/09 AJOUTE, et que la comparaison n'avait pas
+
+La comparaison du 11/09 annonçait sa propre limite : *« LibreOffice a refusé de charger les deux classeurs ; openpyxl a servi de sérialiseur indépendant à sa place. **Aucun fichier produit par Excel lui-même n'a été lu.** »* **Cette limite est levée.** L'exploitation a fourni son fichier de suivi réel — réenregistré par **Microsoft Excel 16.0300** le 09/09/2026 à 22:04 UTC, 292 machines, 1 996 lignes d'historique — et c'est sur lui que la mesure porte.
+
+**La fixture est fabriquée PAR RETRAIT**, jamais par réécriture : on dézippe, on retire tout `<c>` qui n'est pas une cellule numérique portant un format de date, on vide `sharedStrings`, on rezippe. *Aucune cellule survivante n'est passée par une bibliothèque d'écriture* — sinon la mesure porterait sur ce que cette bibliothèque sait faire, et non sur ce qu'un fichier venu du terrain contient. **4 390 cellules survivent, toutes byte-identiques à leur original**, et il ne reste **aucune** chaîne de caractères : `t="s"`, `t="str"` et `t="inlineStr"` à zéro, `sharedStrings` vide. *S'il ne reste pas une chaîne, il ne reste pas un nom de client.*
+
+**Le fichier source n'entre jamais au dépôt** (I9) : son nom est inscrit à `.gitignore` avant d'être touché.
+
+### CE QUI A ÉTÉ MESURÉ, et le verdict
+
+| Ce qui était annoncé par l'exploitation | Ce que la vérification rend |
+|---|---|
+| calendrier 1900, `date1904` absent | **confirmé** |
+| 4 219 cellules de date à valeur plausible | **confirmé, au chiffre près** |
+| la plus ancienne 2016-05-09, la plus récente 2027-07-07 | **confirmé** — `5-Observations VGP!B290` (sérial 42499) et `3-Parc machines!W85` (sérial 46575) |
+| 0 date stockée en texte | **confirmé** — les 1 246 cellules date-stylées non numériques portent toutes la chaîne **VIDE**, résultat de formule |
+| 0 date portant une partie horaire | **confirmé** |
+| 171 cellules à zéro, toutes dans `3-Parc machines` colonne R | **confirmé** |
+| sérials 44613 → 2022-02-21 et 45013 → 2023-03-28 | **confirmé** — huit occurrences chacun, dans les deux onglets annoncés |
+
+*Une seule chose s'écarte, et elle n'infirme rien :* l'onglet `1-Demandes SAV` porte une trentaine de cellules **au format date** dont la valeur est un petit entier (94, 95, 129) ou une valeur absurde (4 999 999). Ce sont les résultats d'une colonne de **délai en jours** qui a hérité du format de sa voisine. Elles sortent de la plage plausible et n'entrent dans aucun des chiffres ci-dessus — *c'est ce que « plausible » veut dire dans la formule de l'exploitation, et la lecture le confirme plutôt que de le contredire.*
+
+**LES QUATRE DATES SORTENT IDENTIQUES SOUS TROIS FUSEAUX** — `UTC`, `Pacific/Noumea` (UTC+11) et `America/Los_Angeles`, de part et d'autre du méridien. Les trois lectures sont rigoureusement le même objet. *Aucun décalage d'un jour : la condition qui aurait condamné la bibliothèque n'est pas remplie.*
+
+### LA DÉCISION
+
+**`read-excel-file` est la bibliothèque de lecture `.xlsx` du projet**, en dépendance de développement pour l'instant — l'import de masse n'a pas de chemin serveur avant le lot 4.
+
+Ce qui la fonde, et rien d'autre : elle est **maintenue** (9.3.10, publiée le 10/08/2026, un mois avant cette mesure), elle ne porte **aucun avis de sécurité**, et sa conversion de date est **exactement la nôtre** — `Date.UTC(1899, 11, 30) + sérial × 86 400 000 —, mesurée sur un fichier écrit par Excel.
+
+**Ce qui a été écarté et pourquoi**, en une ligne chacun : `xlsx` (SheetJS sur npm) porte deux avis **HAUTS sans correctif atteignable**, dont une pollution de prototype **qui se déclenche à la lecture d'un fichier apporté** — l'usage exact et unique de ce module ; sa distribution d'éditeur est **refusée par le mandataire sortant** (403), donc `pnpm install` deviendrait impossible ici. `exceljs` a trois ans et un avis modéré. `xlsx-populate` a **six ans et demi**.
+
+**LE SÉRIAL ÉTAIT LE PROXY D'UN CRITÈRE QU'ON SAIT MAINTENANT MESURER.** La condition d'origine exigeait le **numéro de série**, au motif qu'un `Date` de bibliothèque « décalerait le jour d'un cran à UTC+11 ». Mesuré deux fois — le 11/09 sur des fichiers fabriqués, le 10/09 sur un fichier d'Excel — **ce décalage n'existe pas**. C'est la situation du §9 du 01/09 : *une borne posée faute de savoir mesurer, quand la mesure existe, n'est plus une garantie — elle se retire.*
+
+### LE ZÉRO N'EST PAS UNE DATE, et la bibliothèque ne le sait pas
+
+*Mesuré :* `read-excel-file` rend **`1899-12-30T00:00:00.000Z`** pour les 171 cellules à zéro — **une date parfaitement formée, et parfaitement fausse**. La colonne est « Dernière intervention » : zéro y veut dire **jamais d'intervention**.
+
+C'est donc `lib/excel/format.ts` qui l'écarte, et il l'écarte comme une **ABSENCE** (`cellule_vide`) et non comme une anomalie de plage. La distinction n'est pas cosmétique : rangé sous `date_hors_plage`, le zéro ferait **rejeter 171 machines** pour un champ légitimement vide, ce qui est le contraire de ce que I6 promet. *Le sérial 60 — le 29 février 1900 qui n'a jamais existé — reste une anomalie : personne ne saisit « pas de date » en tapant 60.*
+
+**LE JUMEAU :** le même code rend une absence sur `0` et le 21 février 2022 sur `44613`.
+
+### CE QUI NE PEUT PAS ÊTRE MESURÉ ICI, écrit plutôt que laissé croire
+
+**Le bogue du 29 février 1900 n'est PAS couvert par ce fichier.** Aucune de ses dates n'est antérieure à 1901 — la plus ancienne est le 2016-05-09. Les sérials 59, 60 et 61 sont éprouvés par des cas **FABRIQUÉS, clairement marqués comme tels** dans le scénario : ils prouvent que `lireDate` sait mordre, ils ne prouvent rien de ce qu'un fichier du terrain contient (§9, 21/08).
+
+### CONDITION DE RÉOUVERTURE
+
+*Le jour où `read-excel-file` cesse d'être maintenue — au sens mesurable : aucune publication depuis vingt-quatre mois — ou reçoit un avis de sécurité HAUT sans correctif atteignable depuis npm, la décision est due à réexamen, et la comparaison du 11/09 est le document à rouvrir.* Le critère se vérifie, il ne s'interprète pas. Et un second déclencheur, plus étroit : *si une lecture rend un jour différent de celui que `lireDate` calcule sur un même sérial, la mesure du 10/09 est infirmée et la liaison passe au sérial brut.*
+
+*Aucune règle du chapitre 10 n'est amendée : D31 fixe la grammaire du fichier, pas le moyen de le lire.*
+
+---
+
+## Contraintes connues de l'import de masse — MESURÉES sur le fichier réel, le 10/09/2026
+
+*Ce n'est pas une décision : ce sont des FAITS, relevés sur le classeur de suivi de CODIMA (Excel 16.0300, 09/09/2026 22:04 UTC). Ils sont inscrits ici parce qu'ils contraignent la conception de l'import de masse, et qu'un fait mesuré vaut mieux qu'une hypothèse raisonnable. **Le fichier n'entre jamais au dépôt** (I9) ; seuls ces nombres en sortent.*
+
+| Ce qui a été mesuré | Valeur | Ce que cela impose |
+|---|---|---|
+| Machines au parc | **292** | — |
+| Numéros de série en double | **aucun** | l'unicité par société est tenable comme clé de rapprochement |
+| Machines **sans série exploitable** | **14, soit 4,8 %** | **la clé de rapprochement doit tolérer l'absence de série SANS fabriquer de doublon.** C'est déjà la forme de D6 : `SN-INCONNU-<référence>` avec `complet = false`, jamais `NULL` |
+| Année de fabrication renseignée | **96 sur 292** | champ **facultatif**, jamais obligatoire |
+| Lignes d'historique | **1 996**, de mars 2019 à août 2026 | dont **1 965 factures** et **31 avoirs** |
+| Historique **non rattaché à une machine** | **1 443, soit 72 %** | **l'import les reprend NON RATTACHÉES.** Les écarter perdrait les trois quarts de l'historique — et l'historique est ce qui donne sa valeur au parc |
+| Onglet Clients | **652 lignes**, dont **55** portant un code Winpro réel | **l'import doit distinguer une ligne de GABARIT d'une ligne vide.** Une ligne de gabarit porte des formules et des mises en forme sans donnée : elle n'est ni vide au sens du XML, ni une ligne à importer |
+| Clients côté parc / sites côté parc | **38** / **22** | contre **55** codes côté Winpro : **le rapprochement des deux listes est un chantier à part**, pas un effet de bord de l'import |
+| Contrôles Bureau Veritas | **333**, de 2020 à 2026 | — |
+| Observations | **670**, dont **608 sans document de réponse rattaché** | **« sans document rattaché » ne veut PAS dire « non levée ».** C'est une ABSENCE D'INFORMATION, et elle s'affiche comme telle — jamais comme un manquement. C'est **D88 appliqué à la lettre** : le registre enregistre ce qu'on nous a dit, il n'affirme rien |
+
+**Le point qui coûterait le plus cher à découvrir tard est le dernier.** 608 observations sur 670 sans document de réponse : un écran qui les afficherait « non levées » accuserait des clients de manquements sur la seule foi d'un fichier de suivi incomplet. *Le danger n'est pas le chiffre, c'est le mot qu'on met à côté.*
+
+---
+
+## Constat d'exploitation du 10 septembre 2026 — *sans numéro* : une politique ouverte n'est pas un accès rendu
+
+*Cette entrée n'arbitre rien : elle CONSTATE un écart entre ce que la base permet et ce que l'application fait, et elle le range là où les prochaines décisions du même genre le chercheront.*
+
+**D61 (08/09) rend à un compte la LISTE de ses sociétés ; D67 (10/09) leur NOM.** Les deux politiques ont été posées, mesurées, gardées par un contrôle de forme, et éprouvées par des scénarios d'isolation. `societesDuCompte`, la fonction écrite pour les lire, existait. **Et elle n'était importée nulle part.**
+
+*Mesuré le 10/09/2026 en photographiant la page d'arrivée d'un compte de démonstration habilité sur deux sociétés :* « Aucune société active. Le choix d'une société parmi plusieurs arrivera avec le back-office. » Ce compte n'atteignait **aucun** écran cloisonné — le planning, la création d'intervention et la fiche redirigent tous vers l'arrivée faute de société active. *Le mur que D61 disait avoir abattu tenait encore, un étage plus haut.*
+
+**Ce qui rend le constat utile au-delà de son cas** : deux décisions successives ont été prises, chacune avec sa mesure, son coût nommé et son gardien — et le geste qui les rend utiles n'appartenait à aucune des deux. **Une politique RLS ouverte est une permission, pas une fonctionnalité.** C'est la parenté exacte du §9 du 08/09 — *un défaut invisible parce que ce qu'il casse n'existe pas encore* — vu par l'autre bout : ici ce n'est pas un appelant qui manque à une couche, c'est un ÉCRAN qui manque à une permission.
+
+**Et rien ne pouvait le dire, sauf une image.** Aucun scénario n'échouait : les politiques rendaient exactement ce qu'on leur demandait, la fonction faisait ce qu'elle promettait, la page affichait un texte parfaitement grammatical. *La règle absente était « une permission ouverte a un chemin », et on ne l'écrit qu'après l'avoir vue.* Voir le §9 du CLAUDE.md, 09/09.
+
+**Ce qui a été fait le jour même :** l'écran de choix, un formulaire HTML sans JavaScript, et la route `/api/session/societe` qui ne juge rien — `basculerSociete` porte déjà toute la décision.
+
+**Ce qui reste à faire, et qui n'est pas tranché ici :** l'écran ne permet pas encore de CHANGER de société une fois l'une active depuis un autre écran que l'arrivée. Un compte doit repasser par `/arrivee`. C'est suffisant pour aujourd'hui et insuffisant le jour où le back-office aura une navigation.
 
 ---
 

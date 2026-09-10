@@ -1,0 +1,215 @@
+import type { StatutIntervention } from "@prisma/client";
+
+/**
+ * STATISTIQUES PAR TECHNICIEN — le nombre, le taux d'occupation, et la barre
+ * segmentée des heures.
+ *
+ * ## LA RÈGLE QUI GOUVERNE CE MODULE : JAMAIS LE POURCENTAGE SEUL
+ *
+ * *Demande d'exploitation du 10/09/2026, et elle est plus qu'une préférence
+ * d'affichage.* « 82 % » ne veut rien dire sans ses deux termes : 82 % de quoi,
+ * sur quelle période, et calculé comment ? Un taux d'occupation qui voyage seul
+ * est **un nombre dont la signification dépend d'autre chose** — c'est très
+ * exactement D56, *un nombre dont la signification dépend d'une autre colonne ne
+ * voyage jamais seul* —, et il finit par être comparé entre deux agences dont
+ * les calendriers n'ont rien à voir.
+ *
+ * **Ce module n'expose donc AUCUN pourcentage prêt à afficher.** Il rend le
+ * NUMÉRATEUR et le DÉNOMINATEUR, et `tauxOccupation` ne se calcule qu'à partir
+ * des deux. L'écran qui affiche le taux affiche la formule ; un gardien exige
+ * que la clé du dictionnaire porte ses **trois** substitutions.
+ *
+ * ## Le numérateur : ce qui OCCUPE réellement le technicien
+ *
+ * `temps_reel_min` quand il est connu — c'est ce qui s'est passé —, sinon
+ * `duree_estimee_min` — c'est ce qui est engagé. **Et quand ni l'un ni l'autre
+ * n'est renseigné, l'intervention compte dans le NOMBRE et pour zéro minute
+ * dans le taux.** Cet écart est rendu explicitement (`sansDuree`) plutôt que
+ * dissous : sans lui, un planning entièrement saisi sans durées afficherait un
+ * taux d'occupation de 0 % sur un technicien débordé, et le chiffre serait
+ * juste (§9, 06/09 — un chiffre juste qui fait conclure faux).
+ *
+ * **L'intervention ANNULÉE ne compte que par son temps RÉEL.** I5 donne à
+ * l'annulation la préséance sur tout, *mais le travail terrain n'est jamais
+ * perdu* : une annulation après deux heures sur site a occupé deux heures. Une
+ * annulation avant déplacement n'a rien occupé, et son estimation ne compte pas
+ * — elle décrit un travail qui n'aura pas lieu.
+ *
+ * ## Le dénominateur : les minutes OUVRABLES, jamais un forfait
+ *
+ * Il vient du calendrier — `minutesOuvrees` de `lib/calendar/ouverture.ts` —, et
+ * il est passé en argument plutôt que calculé ici : *ce module ne décide pas
+ * quand on travaille* (I7, aucun calendrier global codé en dur). **Un
+ * dénominateur nul ne rend pas 0 % : il rend `null`.** Zéro pour cent se lit
+ * « ce technicien n'a rien fait » ; l'absence de calendrier se lit « je ne sais
+ * pas », et les deux ne se corrigent pas de la même façon.
+ */
+
+/** L'ordre du cycle de vie — c'est celui de la barre, jamais l'alphabet. */
+export const ORDRE_STATUTS = [
+  "a_planifier",
+  "planifiee",
+  "envoyee",
+  "en_cours",
+  "suspendue",
+  "terminee",
+  "cloturee",
+  "annulee",
+] as const satisfies readonly StatutIntervention[];
+
+/** Ce dont le calcul a besoin, et rien de plus. */
+export type InterventionMesuree = {
+  readonly statut: StatutIntervention;
+  readonly technicien_id: string | null;
+  readonly temps_reel_min: number | null;
+  readonly duree_estimee_min: number | null;
+};
+
+/** Un segment de la barre : un statut, ses minutes, son nombre de lignes. */
+export type SegmentHeures = {
+  readonly statut: StatutIntervention;
+  readonly minutes: number;
+  readonly interventions: number;
+};
+
+/**
+ * L'occupation d'un technicien sur une période.
+ *
+ * **Le pourcentage n'est PAS un champ de ce type**, et c'est délibéré : le
+ * lecteur qui veut le taux passe par `tauxOccupation`, qui exige l'objet
+ * entier. On ne peut donc pas transporter le taux sans ses termes.
+ */
+export type OccupationTechnicien = {
+  readonly technicienId: string | null;
+  /** Le NOMBRE d'interventions — la première des deux mesures demandées. */
+  readonly interventions: number;
+  /** NUMÉRATEUR : minutes réellement ou effectivement engagées. */
+  readonly minutesEngagees: number;
+  /** DÉNOMINATEUR : minutes ouvrables du calendrier sur la période. */
+  readonly minutesOuvrables: number;
+  /** Combien d'interventions ne portent NI temps réel NI estimation. */
+  readonly sansDuree: number;
+  /** La barre segmentée, dans l'ordre du cycle de vie ; les vides sont gardés. */
+  readonly segments: readonly SegmentHeures[];
+};
+
+/**
+ * Les minutes qu'une intervention OCCUPE — le cœur de la règle, isolé pour
+ * qu'il soit éprouvable seul.
+ */
+export function minutesEngagees(
+  intervention: InterventionMesuree,
+): number | null {
+  if (intervention.statut === "annulee") {
+    // Une annulation ne compte que par ce qui a réellement eu lieu (I5).
+    return intervention.temps_reel_min ?? null;
+  }
+  return intervention.temps_reel_min ?? intervention.duree_estimee_min ?? null;
+}
+
+/**
+ * L'occupation d'UN technicien, sur les interventions qu'on lui a passées.
+ *
+ * La sélection des interventions — période, société, technicien — appartient à
+ * l'appelant : ce module ne lit ni la base ni l'horloge.
+ */
+export function occupationTechnicien(
+  technicienId: string | null,
+  interventions: readonly InterventionMesuree[],
+  minutesOuvrables: number,
+): OccupationTechnicien {
+  const parStatut = new Map<StatutIntervention, { m: number; n: number }>();
+  for (const statut of ORDRE_STATUTS) {
+    parStatut.set(statut, { m: 0, n: 0 });
+  }
+
+  let engagees = 0;
+  let sansDuree = 0;
+  for (const intervention of interventions) {
+    const minutes = minutesEngagees(intervention);
+    if (minutes === null) {
+      sansDuree += 1;
+    } else {
+      engagees += minutes;
+    }
+    const case_ = parStatut.get(intervention.statut);
+    if (case_ !== undefined) {
+      case_.m += minutes ?? 0;
+      case_.n += 1;
+    }
+  }
+
+  return {
+    technicienId,
+    interventions: interventions.length,
+    minutesEngagees: engagees,
+    minutesOuvrables,
+    sansDuree,
+    segments: ORDRE_STATUTS.map((statut) => ({
+      statut,
+      minutes: parStatut.get(statut)?.m ?? 0,
+      interventions: parStatut.get(statut)?.n ?? 0,
+    })),
+  };
+}
+
+/**
+ * Le taux d'occupation, en pour cent, ARRONDI AU PLUS PROCHE.
+ *
+ * **Il rend `null` quand le dénominateur est nul**, et l'appelant doit traiter
+ * ce cas : *« pas de calendrier » n'est pas « 0 % »*. Rendre zéro accuserait un
+ * technicien de n'avoir rien fait là où c'est le paramétrage qui manque.
+ *
+ * Il peut **dépasser 100** et ce n'est pas une erreur : un technicien qui
+ * travaille hors des heures d'ouverture est sur-occupé, et c'est précisément ce
+ * qu'un planificateur doit voir. Le plafonner masquerait le seul cas qui
+ * demande une action.
+ */
+export function tauxOccupation(
+  occupation: OccupationTechnicien,
+): number | null {
+  if (occupation.minutesOuvrables <= 0) {
+    return null;
+  }
+  return Math.round(
+    (occupation.minutesEngagees / occupation.minutesOuvrables) * 100,
+  );
+}
+
+/**
+ * LE TAUX EST-IL NON NUL MAIS INFÉRIEUR À UN POUR CENT ?
+ *
+ * **C'est la capture d'écran qui a posé la question**, et aucune assertion ne
+ * l'aurait posée : sur le planning de démonstration, une ligne affichait
+ * *« 01:35 engagées · 548:00 ouvrables · Taux d'occupation 0 % »*. Le chiffre
+ * est juste — 95 minutes sur 32 880 font 0,29 %, qui s'arrondit à zéro — et il
+ * contredit la ligne qui le précède. *Zéro pour cent se lit « n'a rien fait »,
+ * et ce technicien a travaillé une heure trente-cinq.*
+ *
+ * L'écran affiche alors « moins de 1 % » plutôt que « 0 % ». On ne gagne pas en
+ * précision : on cesse d'affirmer quelque chose de faux. Même famille que le
+ * dénominateur nul — *deux états distincts ne se disent pas avec le même mot* —
+ * et que le §9 du 06/09, un chiffre juste qui fait conclure faux.
+ */
+export function tauxArrondiAZeroMaisNonNul(
+  occupation: OccupationTechnicien,
+): boolean {
+  return occupation.minutesEngagees > 0 && tauxOccupation(occupation) === 0;
+}
+
+/**
+ * La part d'un segment dans la barre, en pour cent de la LARGEUR de la barre.
+ *
+ * La barre représente les minutes ENGAGÉES, jamais les minutes ouvrables : une
+ * barre dont les segments ne somment pas à sa largeur se lit comme un défaut
+ * d'affichage. Le taux d'occupation, lui, se lit à côté et porte sa formule.
+ */
+export function partDuSegment(
+  segment: SegmentHeures,
+  occupation: OccupationTechnicien,
+): number {
+  if (occupation.minutesEngagees <= 0) {
+    return 0;
+  }
+  return (segment.minutes / occupation.minutesEngagees) * 100;
+}

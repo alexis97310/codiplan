@@ -873,7 +873,19 @@ scripts/      inventaire, contrôle de cloisonnement (privilèges compris), hori
               amorcage-premier-compte.mts = l'ouverture de la PREMIÈRE identité
               d'une société (D65) — provisoire par construction, son retrait est
               gardé par la machine
+              lib/schema-prisma.ts = LA lecture du schéma Prisma, partagée par
+              les gardiens statiques ET par les scripts d'exploitation (10/09)
+              lib/tables-comptees.ts = LA population de l'inventaire, PRODUITE
+              par le schéma : toute table y est comptée, témoin, ou exemptée
+              nommément avec son motif
+              captures.mts = les captures d'écran, prises par une COMMANDE et
+              non à la main (10/09) — chaque écran porte un TÉMOIN lu sur le
+              texte RENDU, et une image qui ne le porte pas est refusée plutôt
+              que rangée sous un nom qu'elle dément
 tests/        unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
+              fixtures/dates-excel.xlsx = un VRAI classeur Excel réduit PAR
+              RETRAIT — plus une seule chaîne de caractères, et chaque cellule
+              survivante byte-identique à son original (D90)
 docs/         cahier des charges, arbitrages, backlog, décisions
 ```
 

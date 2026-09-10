@@ -48,9 +48,12 @@ import {
 import {
   FICHIER_INVENTAIRE,
   TABLES_CLOISONNEES,
-  type TableCloisonnee,
+  TABLES_HORS_CLOISONNEMENT,
   decompteVide,
   ecartsAvecContexte,
+  ecartsMesureVide,
+  ecartsPopulation,
+  tablesMuettes,
   ecartsSansContexte,
   ecartsTemoins,
   lireInventaire,
@@ -59,6 +62,7 @@ import {
   type Inventaire,
   type LigneInventaire,
 } from "./lib/inventaire";
+import { sqlDecompteAPlat } from "./lib/tables-comptees";
 
 /**
  * Étape 2 du contrôle post-migration : CLOISONNEMENT SUR LA BASE HÉBERGÉE
@@ -161,7 +165,7 @@ import {
  *
  * **LES DEUX CÔTÉS DE LA COMPARAISON PORTAIENT LA MÊME CÉCITÉ** *(mesuré le
  * 09/09/2026)*. Cette fonction comptait HUIT tables, l'inventaire en groupait
- * sept, et `TABLES_CLOISONNEES` en compte vingt-deux : les quatorze autres
+ * sept, et la liste close en portait vingt et une : les quatorze autres
  * restaient à zéro **des deux côtés**, si bien que la confrontation comparait
  * zéro à zéro et concluait au vert. *Le seul contrôle qui regarde la base
  * hébergée ne prouvait rien sur `site`, `machine` ni `intervention`* — les
@@ -173,53 +177,44 @@ import {
  * alors que le rôle applicatif n'avait tout simplement pas été interrogé. **Une
  * comparaison n'est réparée que des deux côtés à la fois.**
  *
- * La charge est renversée ici comme là : `Record<TableCloisonnee, …>` est
- * EXHAUSTIF par construction, et une table ajoutée à la liste close ne compile
- * plus tant que sa lecture n'est pas écrite.
+ * **Le 10/09/2026, la liste des lectures DISPARAÎT** : la requête est
+ * fabriquée depuis la population dérivée du schéma, comme celle de
+ * l'inventaire. Il n'y a plus deux listes à tenir d'accord — il n'y en a plus
+ * aucune. *Un compteur qu'on ne peut pas oublier vaut mieux qu'un compteur
+ * dont l'oubli fait rougir le typage.*
  */
 async function compterVisible(
   client: Prisma.TransactionClient,
 ): Promise<DecompteParTable> {
-  const lectures: Record<TableCloisonnee, () => Promise<number>> = {
-    societe: () => client.societe.count(),
-    client: () => client.client.count(),
-    site: () => client.site.count(),
-    contact: () => client.contact.count(),
-    agence: () => client.agence.count(),
-    calendrier: () => client.calendrier.count(),
-    calendrier_plage: () => client.calendrierPlage.count(),
-    calendrier_ferie: () => client.calendrierFerie.count(),
-    utilisateur_societe: () => client.utilisateurSociete.count(),
-    utilisateur_client: () => client.utilisateurClient.count(),
-    utilisateur_client_site: () => client.utilisateurClientSite.count(),
-    habilitation: () => client.habilitation.count(),
-    technicien_habilitation: () => client.technicienHabilitation.count(),
-    site_habilitation_requise: () => client.siteHabilitationRequise.count(),
-    famille_materiel: () => client.familleMateriel.count(),
-    modele_materiel: () => client.modeleMateriel.count(),
-    taux_horaire: () => client.tauxHoraire.count(),
-    machine: () => client.machine.count(),
-    forfait: () => client.forfait.count(),
-    intervention: () => client.intervention.count(),
-    technicien_calendrier: () => client.technicienCalendrier.count(),
-  };
-
   const decompte = decompteVide();
-  for (const table of TABLES_CLOISONNEES) {
-    decompte[table] = await lectures[table]();
+  const lignes = await client.$queryRawUnsafe<
+    Array<{ table: string; lignes: number }>
+  >(sqlDecompteAPlat(TABLES_CLOISONNEES));
+  for (const ligne of lignes) {
+    decompte[ligne.table] = ligne.lignes;
   }
   return decompte;
 }
 
-/** Décompte des témoins hors cloisonnement, lus sans contexte. */
+/**
+ * Décompte des témoins hors cloisonnement, lus sans contexte.
+ *
+ * Dérivés eux aussi : la liste `["devise", "parite", "jour_ferie"]` était
+ * écrite ici, une troisième fois dans le dépôt.
+ */
 async function compterTemoins(
   client: PrismaClient,
 ): Promise<DecompteHorsCloisonnement> {
-  return {
-    devise: await client.devise.count(),
-    parite: await client.parite.count(),
-    jour_ferie: await client.jourFerie.count(),
-  };
+  const decompte: DecompteHorsCloisonnement = Object.fromEntries(
+    TABLES_HORS_CLOISONNEMENT.map((table) => [table, 0]),
+  );
+  const lignes = await client.$queryRawUnsafe<
+    Array<{ table: string; lignes: number }>
+  >(sqlDecompteAPlat(TABLES_HORS_CLOISONNEMENT));
+  for (const ligne of lignes) {
+    decompte[ligne.table] = ligne.lignes;
+  }
+  return decompte;
 }
 
 /**
@@ -239,7 +234,18 @@ async function controlerSociete(
   ligne: LigneInventaire,
 ): Promise<string[]> {
   return avecSociete(prisma, ligne.societe_id, async (tx) => {
-    const ecarts = ecartsAvecContexte(ligne, await compterVisible(tx));
+    const visible = await compterVisible(tx);
+    // ZÉRO CONTRE ZÉRO N'EST PAS UN RÉSULTAT. Ce refus vient AVANT la
+    // comparaison : sans lui, une mesure creuse ressemble trait pour trait à
+    // un cloisonnement parfait — c'est ce qui a laissé la cécité durer.
+    const ecarts = [
+      ...ecartsMesureVide(
+        ligne.decomptes,
+        visible,
+        `société ${ligne.code ?? "sans code"} (${ligne.societe_id})`,
+      ),
+      ...ecartsAvecContexte(ligne, visible),
+    ];
 
     const visibles = await societesVisibles(tx);
     const inattendues = visibles.filter((id) => id !== ligne.societe_id);
@@ -449,6 +455,10 @@ try {
   process.stdout.write(rapportPolitiques(formes.colonnes, formes.politiques));
 
   const ecarts = [
+    // La couverture d'abord : un contrôle dont la population laisse une table
+    // du schéma dehors ne prouve rien d'elle, et son vert est une absence de
+    // mesure. Il vaut mieux le dire que de le conclure.
+    ...ecartsPopulation(),
     ...ecartsSansContexte(sansContexte),
     ...ecartsTemoins(inventaire.hors_cloisonnement, temoins),
     ...ecartsPrivilegesConsolidation(privileges),
@@ -459,9 +469,39 @@ try {
     ...ecartsListeAppartenance(),
     ...ecartsPolitiques(formes.colonnes, formes.politiques),
   ];
+  // ── CE QUE LA COMPARAISON A RÉELLEMENT ÉTABLI, ET CE QU'ELLE N'A PAS ÉTABLI
+  //
+  // Le rapport concluait « exactement les lignes de chaque société sous son
+  // contexte » — phrase vraie de sept tables, présentée comme vraie de vingt
+  // et une, pendant deux jours et vingt et une heures. Les tables dont les
+  // DEUX côtés valent zéro sont désormais NOMMÉES et retranchées de ce que le
+  // rapport affirme : elles n'ont rien prouvé, et un zéro légitime ressemble
+  // trait pour trait à un zéro aveugle (§9, 06/09 et 30/08).
+  const muettes = new Map<string, string[]>();
   for (const societe of inventaire.societes) {
     ecarts.push(...(await controlerSociete(prisma, societe)));
+    const visible = await avecSociete(prisma, societe.societe_id, (tx) =>
+      compterVisible(tx),
+    );
+    muettes.set(
+      societe.code ?? societe.societe_id,
+      tablesMuettes(societe.decomptes, visible),
+    );
   }
+
+  process.stdout.write(
+    [
+      "Portée réelle de la comparaison (population dérivée du schéma)",
+      ...[...muettes.entries()].map(([code, tables]) =>
+        tables.length === 0
+          ? `  ${code} : ${TABLES_CLOISONNEES.length} table(s) mesurée(s), aucune muette`
+          : `  ${code} : ${TABLES_CLOISONNEES.length - tables.length} mesurée(s), ` +
+            `${tables.length} comparée(s) ZÉRO À ZÉRO — rien n'y est prouvé : ` +
+            tables.join(", "),
+      ),
+      "",
+    ].join("\n"),
+  );
 
   if (ecarts.length > 0) {
     throw new Error(
@@ -477,7 +517,8 @@ try {
 
   process.stdout.write(
     "Cloisonnement vérifié sur la base hébergée : aucune ligne sans contexte, " +
-      "exactement les lignes de chaque société sous son contexte, " +
+      "exactement les lignes de chaque société sous son contexte — sur les " +
+      "tables que la portée ci-dessus dit MESURÉES, jamais sur les muettes —, " +
       `« ${ROLE_CONSOLIDATION} » en SELECT seul, ` +
       `« ${TABLE_JOURNAL_AUDIT} » en ajout seul pour « ${ROLE_APPLICATIF} », ` +
       `ses ${partitionsJournal.length} partitions toutes durcies, et les ` +

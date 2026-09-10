@@ -44,7 +44,7 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 | Validation | Zod, sur toute entrée serveur sans exception | — |
 | Tests unitaires | Vitest | — |
 | Tests bout en bout | Playwright | — |
-| Excel | ~~SheetJS~~ — une bibliothèque de lecture `.xlsx` **MAINTENUE** ; `.xlsx` uniquement, jamais de CSV *(amendé le 09/09/2026 — voir ci-dessous)* | — |
+| Excel | ~~SheetJS~~ — **`read-excel-file`** *(tranché le 10/09/2026, D90)* ; `.xlsx` uniquement, jamais de CSV | — |
 | PDF | React-PDF | — |
 | Stockage objet | Stockage S3-compatible de l'hébergeur | — |
 | Email | Resend | — |
@@ -54,7 +54,9 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 
 **Le §2 nommait SheetJS, et il a été écrit quand SheetJS était sur npm** *(amendement du 09/09/2026)*. Le paquet `xlsx` y est figé sur `0.18.5` — c'est ce que le registre annonce comme `latest` —, et **deux avis de sécurité HAUTS le visent sans correctif atteignable depuis npm** : `patched_versions: <0.0.0` pour les deux, l'éditeur ne publiant plus que sur sa propre distribution. Le premier, CVE-2023-30533, est une pollution de prototype **qui se déclenche à la lecture d'un fichier apporté** — l'usage exact et unique de ce module. *« Borner par l'usage » ne borne rien quand l'usage EST le vecteur.*
 
-**Ce n'est donc pas une contrainte qu'on contourne, c'est une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
+**TRANCHÉ LE 10/09/2026 — la bibliothèque est `read-excel-file`** *(D90)*. Ce qui manquait à la comparaison du 09/09 était **un vrai fichier d'Excel** : elle le disait elle-même — *« aucun fichier produit par Excel lui-même n'a été lu »*. L'exploitation a fourni le sien, une fixture en a été tirée **par retrait** (`tests/fixtures/dates-excel.xlsx`), et les quatre dates relevées en sortent **identiques sous trois fuseaux**, dont `Pacific/Noumea`. Le sérial était le proxy d'un critère — *« le jour ne bouge pas »* — qu'on sait maintenant mesurer directement : §9 du 01/09, *une borne posée faute de savoir mesurer se retire quand la mesure existe.* Le paragraphe qui suit reste écrit : il dit pourquoi SheetJS est écarté, et c'est cela qu'on relit.
+
+**Ce n'était donc pas une contrainte qu'on contourne, c'était une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
 
 **Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance se justifie en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt qu'ajouter 200 Ko.
 
@@ -372,6 +374,10 @@ lib/
               la politique ne reconnaît pas (L1-02f)
               arrivee.ts : ce qu'un écran a le droit de dire — qui vous êtes,
               pour quelle société, et rien d'autre
+              societe-active.ts : `societesDuCompte` LIT ce que D61 et D67 ont
+              ouvert, et l'ÉCRAN qui l'appelle est né le 10/09 — les deux
+              politiques existaient depuis deux jours sans appelant, et un
+              compte habilité sur deux sociétés n'atteignait aucun écran
               echange.ts : le REPORT d'une désignation à l'intérieur d'UNE
               requête (D64) — l'`id` par lequel la bibliothèque réécrit une
               ligne dit QUELLE ligne, la politique dit à QUI elle est ;
@@ -455,6 +461,16 @@ lib/
               est celle qui décide du calendrier de référence (I7)
               le JOURNAL des déplacements n'est pas une table de plus : c'est
               `journal_audit`, par déclencheur, avec les valeurs avant et après
+              statistiques.ts : la CHARGE par technicien — nombre, heures
+              engagées, heures ouvrables, barre segmentée
+              le type ne porte AUCUN pourcentage : `tauxOccupation` exige
+              l'objet entier, si bien qu'un taux ne peut pas voyager sans ses
+              deux termes (D56) — et l'écran affiche la FORMULE à côté
+              un dénominateur nul rend `null`, jamais 0 % : « pas de
+              calendrier » et « n'a rien fait » ne se corrigent pas pareil
+              occupation.ts : le dénominateur vient du calendrier de l'AGENCE
+              (I7) — d'où la maille (technicien, agence), une agence choisie
+              en silence basculant d'une semaine à l'autre
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
@@ -473,9 +489,13 @@ lib/
               rend un Montant, jamais un nombre : entier, et avec sa devise
               ne combine RIEN — la composition d'un forfait et d'un taux n'est
               pas tranchée, elle est au registre
-              valorisation.ts : RG-TAR-05 amendée par D83 — arrondi au quart
-              d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE SEULE
-              FOIS sur l'intervention entière et jamais tâche par tâche
+              valorisation.ts : RG-TAR-05 amendée par D83 et D89 — arrondi au
+              quart d'heure SUPÉRIEUR, puis plancher d'UNE HEURE, appliqués UNE
+              SEULE FOIS sur l'intervention entière et jamais tâche par tâche
+              le plancher est PAR INTERVENTION, SANS EXCEPTION (D89) : deux
+              interventions le même jour sur le même site font DEUX heures, y
+              compris si la seconde achève la première — la variante « sauf
+              reprise rattachée » est écrite au registre, pas construite
               aucune fonction « valoriser une intervention » : le mode est
               décidé par l'appelant, la composition forfait + excédent n'étant
               pas tranchée — et le plancher ne vise NI le forfait, NI le
@@ -522,10 +542,12 @@ lib/
   sync/       (prévu) protocole hors-ligne
   excel/      la GRAMMAIRE des fichiers d'import (L1-08, D31) — et elle seule
               format.ts : marqueur de version, dates, nombres, colonnes
-              AUCUNE dépendance : la liaison au CLASSEUR est en attente
-              d'arbitrage. Le §2 ne nomme plus SheetJS (amendé le 09/09) : il
-              exige une bibliothèque de lecture .xlsx MAINTENUE. La comparaison
-              des deux voies est au registre du 09/09
+              la LIAISON est tranchée (D90, 10/09) : `read-excel-file`, mesurée
+              sur un vrai fichier d'Excel sous trois fuseaux
+              le ZÉRO est une ABSENCE, jamais le 30 décembre 1899 : la
+              bibliothèque rend cette date-là, et c'est ici qu'on l'écarte —
+              171 cellules du fichier réel en dépendent, et les ranger sous
+              « hors plage » ferait rejeter 171 machines
               un nombre lu ne rend JAMAIS un flottant : les chiffres et leur
               échelle, pour que I3 ne soit pas enfreint une ligne après nous
               une date se lit en UTC, jamais par un Date local — UTC+11 décale
@@ -834,5 +856,15 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Ce qui rend la faute structurelle : un artefact construit a un LIEU, et ce lieu est un commit.** Une branche, un répertoire de travail, une session ouverte sont des lieux qui n'existent que pour celui qui les regarde ; `main` est le seul lieu que le destinataire d'un rapport puisse ouvrir. **« Six écrans existent » sans empreinte est une assertion ; avec l'empreinte du commit sur `main`, c'est une mesure** — et la différence n'est pas la sincérité de celui qui écrit, elle est la possibilité pour l'autre de constater.
 
   **La règle, et elle est mécanique : toute ligne d'un rapport qui affirme l'existence, l'état ou le vert d'un artefact construit nomme l'empreinte du commit sur `main` où elle se vérifie.** Une chose vraie ailleurs que sur `main` se dit avec son lieu — « sur la branche X, non fusionnée » — ou ne se dit pas. Corollaire de rangement, du même bois que le 06/09 : *une ligne qui ne peut pas être ouverte par son lecteur n'est pas présentée à côté de celles qui le peuvent.*
+
+- **10/09/2026 — DEUX CÔTÉS D'UNE COMPARAISON PEUVENT PERDRE LA VUE ENSEMBLE, ET LEUR ACCORD DEVIENT ALORS MAXIMAL.** Le §9 tient depuis le 01/09 le remède aux deux lectures d'un même critère : *les faire répondre l'une à côté de l'autre sur la population réelle.* Voici ce que ce remède ne couvre pas — et c'est le contrôle de la base hébergée, le seul qui la regarde, qui l'a montré.
+
+  L'inventaire compte sous une identité exemptée des politiques ; le contrôle relit sous le rôle applicatif et se confronte à lui. **Deux implémentations distinctes, deux rôles distincts, une confrontation écrite exprès — et une seule population, tenue à la main.** Chaque ticket ajoutait sa table à `TABLES_CLOISONNEES` sans écrire son compteur, des deux côtés. *Mesuré : la cécité naît au commit `97e8f95` le 07/09 à 01:28 UTC et se referme au commit `52173a1` le 09/09 à 22:48 UTC — **2 jours 21 h**, **14 tables sur 21** comptant zéro des deux côtés, dont `site`, `machine` et `intervention`.* La comparaison était parfaite. Elle portait sur rien.
+
+  **Ce qui rend la faute structurelle : deux erreurs identiques ne se contredisent jamais.** Une confrontation ne mesure que ce sur quoi les deux termes DIVERGENT ; là où ils s'accordent en aveugle, elle certifie. *Zéro contre zéro n'est pas un résultat : c'est une absence de mesure, et elle a exactement la forme du succès* — même famille que le silence du 31/08 et que le chiffre attendu présenté parmi les observations (06/09).
+
+  **La question à poser à toute comparaison : d'où vient la POPULATION de chacun des deux côtés ? Si c'est la même liste, la confrontation ne garde rien** — elle garde les valeurs, pas les clés. La parade est celle de D41 et de D55, un cran plus haut : **la population se DÉRIVE d'une source qu'aucun des deux côtés ne contrôle**, ici `prisma/schema.prisma`, et toute table qui n'y trouve pas son rang fait rougir le jour de sa création. Voir `docs/decisions/2026-09-10-population-de-l-inventaire-derivee-du-schema.md`.
+
+  *Corollaire de rapport, et il vaut sans attendre la réparation :* une comparaison dont les deux côtés sont vides **sur une table** n'est ni un écart ni une preuve — `forfait` naît vide par décision. Elle est **nommée** et retranchée de ce que le rapport affirme. Ce qui a coûté deux jours n'est pas le zéro : c'est la phrase « exactement les lignes de chaque société sous son contexte », vraie de sept tables et imprimée pour vingt et une.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

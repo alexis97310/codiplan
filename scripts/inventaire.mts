@@ -13,9 +13,11 @@ import {
   type DecompteParTable,
   type IdentiteInventaire,
   type Inventaire,
+  ecartsPopulation,
   type LigneInventaire,
-  type TableCloisonnee,
 } from "./lib/inventaire";
+import { CLOISONNEE_PAR_IDENTITE } from "./lib/politiques-rls";
+import { sqlDecompteParSociete } from "./lib/tables-comptees";
 
 /**
  * Étape 1 du contrôle post-migration : INVENTAIRE À PLAT (workflow
@@ -52,14 +54,12 @@ import {
  * et ce rapport est une sortie de journal délibérée.
  */
 
-/** Tables cloisonnées portant une colonne `societe_id` (toutes sauf `societe`). */
-type TableFille = Exclude<TableCloisonnee, "societe">;
-
-/** Forme commune des trois regroupements Prisma par `societe_id`. */
-type GroupeSociete = { societe_id: string; _count: { _all: number } };
-
-/** Tables comptées hors cloisonnement, dans l'ordre du rapport. */
-const TABLES_TEMOINS = ["devise", "parite", "jour_ferie"] as const;
+/** Une ligne du décompte tel que la base le rend. */
+type LigneDecompte = {
+  table: string;
+  societe_id: string | null;
+  lignes: number;
+};
 
 type ContexteRole = { role: string; base: string; exempte: boolean };
 
@@ -188,9 +188,24 @@ async function prendreIdentiteExemptee(
 /**
  * Décompte à plat de toutes les tables, sous l'identité déjà prise.
  *
- * Les décomptes passent par Prisma, jamais par du SQL brut (CLAUDE.md §2) :
- * seules la bascule d'identité et l'interrogation du catalogue des rôles, qui
- * n'ont pas d'équivalent ORM, restent en `$queryRawUnsafe`.
+ * ── LA POPULATION VIENT DU SCHÉMA, ET LA REQUÊTE AUSSI (10/09/2026) ────────
+ *
+ * **Mesuré le 09/09/2026 : cette fonction groupait SEPT tables quand la liste
+ * close en portait vingt et une.** Les quatorze autres restaient à
+ * `decompteVide()` — *zéro, pour toujours* — et le rapport les imprimait dans
+ * la colonne des observations. Sur une base portant réellement 5 sites et 6
+ * interventions, l'inventaire rendait `site : 0` et `intervention : 0`, et le
+ * contrôle de cloisonnement, qui s'y confronte, comparait zéro à zéro.
+ *
+ * La réparation du 09/09 a écrit les quatorze compteurs manquants ; celle du
+ * 10/09 les EFFACE tous. **La requête est fabriquée depuis la population
+ * dérivée du schéma** : il n'existe plus d'endroit où une table puisse entrer
+ * dans la liste sans entrer dans la mesure. Ce n'est plus un compteur à ne pas
+ * oublier, c'est une opération qui n'existe pas.
+ *
+ * *Et vingt et un allers-retours deviennent UN* — le §9 (23/08) compte les
+ * allers-retours plutôt qu'il ne mesure les durées, et 21 × 190 ms de latence
+ * vers Sydney était le quart du délai de transaction.
  */
 async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
   societes: LigneInventaire[];
@@ -212,169 +227,36 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
     select: { id: true, code: true },
   });
   for (const societe of societes) {
-    pour(societe.id).societe += 1;
     codes.set(societe.id, societe.code);
+    pour(societe.id);
   }
 
-  // Chaque regroupement est affecté à une variable AVANT d'être enregistré :
-  // Prisma infère le type de `groupBy` depuis le contexte d'appel, et une
-  // annotation posée sur le résultat brouillerait celui de ses arguments.
-  const enregistrer = (
-    table: TableFille,
-    groupes: readonly GroupeSociete[],
-  ): void => {
-    for (const groupe of groupes) {
-      pour(groupe.societe_id)[table] = groupe._count._all;
+  const lignes = await tx.$queryRawUnsafe<LigneDecompte[]>(
+    sqlDecompteParSociete(TABLES_CLOISONNEES, CLOISONNEE_PAR_IDENTITE),
+  );
+  for (const ligne of lignes) {
+    // Une ligne rattachée à une société inconnue est RAPPORTÉE, jamais
+    // ignorée : `ecartsInventaire` la nomme, et les clés étrangères
+    // l'interdisent aujourd'hui. Un `societe_id` nul ne peut venir que d'une
+    // colonne nullable, qui n'a rien à faire dans cette population.
+    if (ligne.societe_id === null) {
+      continue;
     }
-  };
-
-  // ── LA LISTE DES COMPTEURS EST DÉRIVÉE, PLUS TENUE À LA MAIN ────────────
-  //
-  // **Mesuré le 09/09/2026, et le résultat est brutal.** Cette fonction
-  // groupait SEPT tables quand `TABLES_CLOISONNEES` en compte vingt-deux. Les
-  // quinze autres restaient à la valeur de `decompteVide()` — **zéro, pour
-  // toujours** — et le rapport les imprimait comme des observations. Sur une
-  // base locale portant réellement 5 sites et 6 interventions, l'inventaire
-  // rendait `site : 0` et `intervention : 0`.
-  //
-  // **Et le contrôle de cloisonnement se confronte à CET inventaire** : il
-  // comparait donc zéro à zéro et concluait au vert. *Le seul contrôle qui
-  // regarde la base hébergée ne prouvait RIEN sur `site`, `machine` et
-  // `intervention` — les trois tables qui portent la forme « parc ».* C'est la
-  // vacuité du §9 (30/08) dans un contrôle d'exploitation : la règle était
-  // juste, l'observation était creuse.
-  //
-  // C'est aussi la maladie du §9 (20/08) : *une liste close se re-vérifie à
-  // chaque table créée, sinon elle devient fausse.* Chaque ticket ajoutait sa
-  // table à `TABLES_CLOISONNEES` — donc à la ligne imprimée — et personne ne
-  // revenait écrire son compteur.
-  //
-  // **La charge est renversée, comme pour D41 et D55 :** `Record<TableFille,
-  // …>` est EXHAUSTIF par construction. Une table ajoutée à la liste close ne
-  // compile plus tant que son compteur n'est pas écrit — le gardien n'est pas
-  // un test, c'est le typage, et il sonne le jour de la création.
-  // Chaque regroupement est affecté à une variable AVANT d'être enregistré :
-  // Prisma infère le type de `groupBy` depuis le CONTEXTE d'appel, et une
-  // annotation posée sur le résultat brouillerait celui de ses arguments.
-  // *Mesuré en tentant de les ranger dans des fonctions annotées : vingt
-  // erreurs de typage d'un coup.*
-  const parClient = await tx.client.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parSite = await tx.site.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parContact = await tx.contact.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parAgence = await tx.agence.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parCalendrier = await tx.calendrier.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parCalendrierPlage = await tx.calendrierPlage.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parCalendrierFerie = await tx.calendrierFerie.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parUtilisateurSociete = await tx.utilisateurSociete.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parUtilisateurClient = await tx.utilisateurClient.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parUtilisateurClientSite = await tx.utilisateurClientSite.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parHabilitation = await tx.habilitation.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parTechnicienHabilitation = await tx.technicienHabilitation.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parSiteHabilitationRequise = await tx.siteHabilitationRequise.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parFamilleMateriel = await tx.familleMateriel.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parModeleMateriel = await tx.modeleMateriel.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parTauxHoraire = await tx.tauxHoraire.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parMachine = await tx.machine.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parForfait = await tx.forfait.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parIntervention = await tx.intervention.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-  const parTechnicienCalendrier = await tx.technicienCalendrier.groupBy({
-    by: ["societe_id"],
-    _count: { _all: true },
-  });
-
-  // EXHAUSTIF PAR CONSTRUCTION : `Record<TableFille, …>` ne compile pas tant
-  // qu'une table de la liste close n'a pas son regroupement. Le gardien n'est
-  // pas un test, c'est le TYPAGE — et il sonne le jour de la création.
-  const groupes: Record<TableFille, GroupeSociete[]> = {
-    client: parClient,
-    site: parSite,
-    contact: parContact,
-    agence: parAgence,
-    calendrier: parCalendrier,
-    calendrier_plage: parCalendrierPlage,
-    calendrier_ferie: parCalendrierFerie,
-    utilisateur_societe: parUtilisateurSociete,
-    utilisateur_client: parUtilisateurClient,
-    utilisateur_client_site: parUtilisateurClientSite,
-    habilitation: parHabilitation,
-    technicien_habilitation: parTechnicienHabilitation,
-    site_habilitation_requise: parSiteHabilitationRequise,
-    famille_materiel: parFamilleMateriel,
-    modele_materiel: parModeleMateriel,
-    taux_horaire: parTauxHoraire,
-    machine: parMachine,
-    forfait: parForfait,
-    intervention: parIntervention,
-    technicien_calendrier: parTechnicienCalendrier,
-  };
-
-  for (const table of TABLES_CLOISONNEES) {
-    if (table !== "societe") {
-      enregistrer(table, groupes[table]);
-    }
+    pour(ligne.societe_id)[ligne.table] = ligne.lignes;
   }
-  const temoins: DecompteHorsCloisonnement = {
-    devise: await tx.devise.count(),
-    parite: await tx.parite.count(),
-    jour_ferie: await tx.jourFerie.count(),
-  };
+
+  const temoinsLus = await tx.$queryRawUnsafe<LigneDecompte[]>(
+    TABLES_HORS_CLOISONNEMENT.map(
+      (table) =>
+        `SELECT '${table}' AS "table", NULL::text AS "societe_id", count(*)::int AS "lignes" FROM "${table}"`,
+    ).join("\n UNION ALL "),
+  );
+  const temoins: DecompteHorsCloisonnement = Object.fromEntries(
+    TABLES_HORS_CLOISONNEMENT.map((table) => [table, 0]),
+  );
+  for (const ligne of temoinsLus) {
+    temoins[ligne.table] = ligne.lignes;
+  }
 
   const inventaire = [...decomptes.entries()]
     .map(([societeId, decompte]) => ({
@@ -414,7 +296,7 @@ function rapport(inventaire: Inventaire): string {
     ),
     "",
     "Hors cloisonnement",
-    ...TABLES_TEMOINS.map(
+    ...TABLES_HORS_CLOISONNEMENT.map(
       (table) =>
         `  ${table.padEnd(20)} : ${inventaire.hors_cloisonnement[table]}`,
     ),
@@ -422,6 +304,22 @@ function rapport(inventaire: Inventaire): string {
   );
 
   return lignes.join("\n");
+}
+
+// ── LA COUVERTURE SE CONTRÔLE AVANT LA MESURE ─────────────────────────────
+//
+// Une table du schéma que la population ne range nulle part ne serait pas
+// comptée, et le contrôle de cloisonnement conclurait au vert sans rien
+// prouver d'elle. Le refus est prononcé AVANT d'ouvrir la connexion : il ne
+// dépend d'aucune base, et il n'a aucune raison d'attendre.
+const ecartsDeCouverture = ecartsPopulation();
+if (ecartsDeCouverture.length > 0) {
+  throw new Error(
+    [
+      "Population de l'inventaire incomplète :",
+      ...ecartsDeCouverture.map((e) => `  — ${e}`),
+    ].join("\n"),
+  );
 }
 
 const prisma = new PrismaClient();
