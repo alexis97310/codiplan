@@ -346,3 +346,29 @@ cardinality > 0`. Ce qui est vide, c'est ce que **Prisma REND à la lecture**
 d'une colonne nulle. La règle ne bouge pas ; c'est le mot « en base » qui
 désigne la lecture et non l'écriture, et cela mérite d'être su avant d'écrire le
 premier formulaire de forfait. Porté en R2-20.
+
+---
+
+## 5 — R2-04 : l'arrivée cesse de ressembler à une page de connexion
+
+**C'était le ticket le plus exposé du lot, et le backlog le disait** : *la
+maquette ne décrit aucun écran d'arrivée — elle s'ouvre directement sur le
+tableau de bord —, il n'a donc pas de modèle, et la tentation sera d'en inventer
+un.*
+
+**Rien n'a été inventé.** Ce que l'écran AFFICHE ne change pas d'un mot : *qui
+vous êtes, pour quelle société, et rien d'autre* est une décision de L1-02f, pas
+une question d'apparence. Une accroche a été ajoutée, et elle ne dit rien de
+plus que le titre — elle le situe.
+
+*Mesuré, fenêtre 1700 × 1000 : contenu 448 px → **1360 px**, et le cadre
+commence sous la barre au lieu d'être centré à mi-hauteur.* Un contenu centré à
+mi-hauteur sous une barre ancrée en haut flotte sans rien pour le tenir.
+
+**Ce qui est repris est le SEUL point où la maquette parle** : ses écrans
+commencent en haut, sur la largeur utile, titre 22 px extra-gras, accroche grise
+13 px. Ce qui reste libre — la disposition interne — est tenu en trois colonnes
+plutôt qu'en une bande étroite.
+
+*Et le scénario qui le mesure a changé de nom* : `parametres-densite` est devenu
+`ecrans-largeur-utile`, parce qu'il ne parle plus des seuls écrans de réglage.

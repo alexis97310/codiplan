@@ -166,6 +166,11 @@ export const fr = {
 
   // Page d'arrivée — qui vous êtes, pour quelle société, et rien d'autre.
   "arrivee.titre": "Vous êtes connecté",
+  // R2-04 — l'accroche que la forme de back-office réclame. *Ce que l'écran
+  // AFFICHE ne change pas d'un mot* : cette ligne ne dit rien de plus que le
+  // titre, elle le situe.
+  "arrivee.accroche":
+    "Votre compte, la société sur laquelle vous travaillez, et par où entrer.",
   "arrivee.compte": "Compte",
   "arrivee.email": "Adresse électronique",
   "arrivee.societe": "Société active",
