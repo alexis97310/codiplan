@@ -39,14 +39,50 @@ CREATE INDEX "intervention_societe_id_piece_attendue_idx"
 -- intervention arrêtée sans qu'on sache pourquoi ; un motif posé sur une
 -- intervention qui suit son cours dit qu'elle est arrêtée alors qu'elle ne
 -- l'est pas.
+--
+-- ## DEUX D'ENTRE ELLES SONT `NOT VALID`, ET C'EST UNE DÉCISION (D104)
+--
+-- **Cette migration a cassé la production.** Écrite contre une base neuve, où
+-- toute ligne respecte la règle par construction, elle a été jouée contre une
+-- base qui portait déjà des interventions `suspendue` — nées avant que le motif
+-- existe, donc sans motif. `23514`, puis `P3018` : les six autres migrations en
+-- retard sont restées coincées derrière, et `/planning` a rendu une exception
+-- serveur pendant plus de quatre heures.
+--
+-- **Les lignes antérieures n'ont pas de motif, et personne ne peut en écrire un
+-- pour elles.** Un motif inventé serait une donnée que personne n'a énoncée ;
+-- et `suspendue_le` est pire encore — *aucune valeur de date ne dit son propre
+-- inconnu*, et celle qu'on écrirait alimenterait l'ancienneté que la file
+-- « en attente de pièce » affiche et que l'alerte « > 30 jours » du chapitre
+-- 16.1 surveille. **On ne fabrique pas l'âge d'une attente.**
+--
+-- `NOT VALID` dit exactement ce qu'on veut dire : *la règle vaut pour toute
+-- ligne NOUVELLE ou MODIFIÉE, et les lignes d'avant ne sont pas relues.*
+-- PostgreSQL l'applique à chaque `INSERT` et à chaque `UPDATE` — une ligne
+-- ancienne qu'on touche doit donc se mettre en règle, et c'est le seul moment
+-- où quelqu'un est là pour dire le motif. *Une échéance qui tombe au meilleur
+-- moment n'est pas un report* (§9, 30/08, pris à l'endroit).
+--
+-- **Ce qui serait silencieux est refusé.** L'état non validé est VISIBLE :
+-- `scripts/lib/contraintes-non-validees.ts` en tient la liste close, gardée
+-- dans les deux sens, et `pnpm veille` la confronte chaque nuit à la base
+-- hébergée. Une contrainte posée `NOT VALID` sans décision rougit ; une
+-- contrainte de la liste devenue valide rougit aussi — c'est le sens qu'on
+-- oublie, et c'est celui du rattrapage accompli.
+--
+-- **Les DEUX AUTRES restent VALIDÉES, et c'est mesuré** : `piece_attendue_ref`
+-- et `date_dispo_prevue` viennent de naître, elles valent `NULL` partout, et
+-- les deux équivalences sont donc vraies de toute ligne existante. Les poser
+-- `NOT VALID` aurait affaibli sans cause, et ajouté deux entrées permanentes à
+-- une liste qui doit se vider.
 
 ALTER TABLE "intervention"
   ADD CONSTRAINT "intervention_suspension_a_son_motif" CHECK (
     ("statut" = 'suspendue') = ("motif_suspension" IS NOT NULL)
-  ),
+  ) NOT VALID,
   ADD CONSTRAINT "intervention_suspension_a_sa_date" CHECK (
     ("statut" = 'suspendue') = ("suspendue_le" IS NOT NULL)
-  ),
+  ) NOT VALID,
   -- RG-INT-06 exige les DEUX pour une attente de pièce. Une référence sans
   -- date ferait une file d'attente **sans horizon** — exactement ce que
   -- l'alerte du chapitre 16.1 est censée surveiller.
@@ -101,3 +137,9 @@ COMMENT ON COLUMN "intervention"."piece_attendue_ref" IS
 
 COMMENT ON COLUMN "intervention"."suspendue_le" IS
   'Quand la suspension a commencé. L''ANCIENNETÉ s''en déduit, et rien d''autre ne la porte : le journal d''audit garde la trace du changement de statut, mais une trace n''est pas un index. Effacée par « intervention_sortie_de_suspension » à la reprise.';
+
+COMMENT ON CONSTRAINT "intervention_suspension_a_son_motif" ON "intervention" IS
+  'POSÉE « NOT VALID » (D104) : elle vaut pour toute ligne nouvelle ou modifiée, et les interventions suspendues ANTÉRIEURES à L2-10 ne sont pas relues — elles n''ont pas de motif, et personne ne peut en énoncer un à leur place. L''état non validé est tenu par scripts/lib/contraintes-non-validees.ts et observé chaque nuit par « pnpm veille » ; le rattrapage est au backlog.';
+
+COMMENT ON CONSTRAINT "intervention_suspension_a_sa_date" ON "intervention" IS
+  'POSÉE « NOT VALID » (D104), et pour une raison plus forte encore que sa jumelle : aucune valeur de date ne dit son propre inconnu. Une date inventée alimenterait l''ancienneté que la file « en attente de pièce » affiche et que l''alerte « > 30 jours » du chapitre 16.1 surveille — on ne fabrique pas l''âge d''une attente.';

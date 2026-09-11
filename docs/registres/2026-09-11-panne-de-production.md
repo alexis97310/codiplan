@@ -82,3 +82,26 @@ Mesuré, pas supposé : **15 migrations resserrent une table qui existait déjà
 ## Où reprendre
 
 Travail 3 — réparer la migration pour qu'elle passe sur une base peuplée.
+
+## 5 — LA MIGRATION RÉPARÉE (D104)
+
+**L'issue (a) a été mesurée impossible.** Une valeur qui dit son ignorance se
+défend pour le motif — `SN-INCONNU-` en est le précédent exact — et **échoue sur
+`suspendue_le`** : aucune valeur de date ne dit son propre inconnu, et celle
+qu'on écrirait deviendrait l'ancienneté que la file affiche et que l'alerte
+« > 30 jours » surveille. Deux mécanismes pour une règle, ou un chiffre faux
+dans un écran de pilotage.
+
+**`NOT VALID` sur les deux contraintes qui cassent, les deux autres validées.**
+Mesuré sur la base rejouée : les trois migrations restantes s'appliquent ;
+`convalidated` vaut `f, f, t, t` ; une ligne nouvelle suspendue sans motif est
+**refusée** ; la ligne ancienne **modifiée sans se mettre en règle** est refusée
+aussi, et acceptée dès qu'elle s'y met.
+
+C'est cette avant-dernière ligne qui décide : *le rattrapage tombe au moment où
+quelqu'un est là pour dire le motif.*
+
+**L'état non validé est visible, ou la décision n'en est pas une.**
+`scripts/lib/contraintes-non-validees.ts`, gardé dans les trois sens, lu par
+`pnpm veille` (douzième contrôle) **et** par un scénario d'isolation à chaque
+`pnpm verify`. Rattrapage : **R3-02**, bloqué avec sa mesure.

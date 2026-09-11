@@ -63,6 +63,12 @@ import {
   ecartsTemoinLecture,
   type DecompteHorsCloisonnement,
 } from "./lib/inventaire";
+import {
+  SQL_CONTRAINTES,
+  ecartsContraintesNonValidees,
+  rapportContraintesNonValidees,
+  type ContrainteObservee,
+} from "./lib/contraintes-non-validees";
 import { sqlDecompteAPlat } from "./lib/tables-comptees";
 import { verifierRoleApplicatif } from "../lib/db/garde-role";
 
@@ -286,6 +292,11 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     const colonnesPerimetre = await prisma.$queryRawUnsafe<ColonnePerimetre[]>(
       SQL_COLONNES_PERIMETRE,
     );
+    // UNE RÈGLE QUI NE VAUT QUE POUR UNE PARTIE DES LIGNES (D104). Une
+    // contrainte `NOT VALID` est une décision ; sans ce contrôle, ce serait le
+    // raccourci qui fait taire une migration, et rien ne le dirait.
+    const contraintes =
+      await prisma.$queryRawUnsafe<ContrainteObservee[]>(SQL_CONTRAINTES);
 
     // ── LA LECTURE, et non plus seulement le CATALOGUE (11/09/2026) ─────────
     //
@@ -330,6 +341,11 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         nom: "état déclaré de la sécurité au niveau des lignes",
         rapport: rapportRlsDeclaree(etatRls),
         ecarts: ecartsRlsDeclaree(etatRls),
+      },
+      {
+        nom: "contraintes posées NOT VALID",
+        rapport: rapportContraintesNonValidees(contraintes),
+        ecarts: ecartsContraintesNonValidees(contraintes),
       },
       {
         nom: "formes de politique",

@@ -3460,3 +3460,67 @@ Le contrôle est donc **au passage en statut de travail**, pas à la création :
 *Le jour où la synchronisation du lot 3 insérera des interventions déjà terminées depuis un appareil hors ligne*, ce chemin cessera d'être théorique : le contrôle devra passer en contrainte différée, et la démonstration recevoir ses machines. *Et le jour où `intervention_machine` portera le diagnostic, les travaux et l'état de sortie* — le chapitre 11 les nomme, ils sont saisis sur le terrain —, la question de savoir si un compte de portail les lit se posera : la forme « filiation » les lui donnerait, et ce n'est pas tranché.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-INT-01 est rendue vérifiable, pas corrigée. D16 l'avait déjà réécrite.*
+
+---
+
+## D104 — UNE CONTRAINTE POSÉE APRÈS LES DONNÉES QU'ELLE GOUVERNE : « NOT VALID », et l'état non validé est VISIBLE
+
+*Tranché par la session du 11/09/2026, en réparant la panne de production. **Ce n'est pas un arbitrage d'Alexis** (§1 du protocole) : la règle de gestion RG-INT-06 n'est ni amendée ni assouplie — ce qui se décide est la façon dont elle atteint les lignes qui LUI SONT ANTÉRIEURES. L'exploitation a posé la question et nommé les deux issues recevables ; la mesure a choisi entre elles.*
+
+### CE QUI EST ARRIVÉ
+
+`20260913160000_suspension_l2_10` pose quatre contraintes sur `intervention`. Deux d'entre elles exigent qu'une intervention `suspendue` porte un motif et une date de suspension. **La migration a été écrite contre une base neuve**, où toute ligne les respecte par construction ; elle a été jouée contre une base qui portait déjà des interventions `suspendue`, nées avant que ces colonnes existent.
+
+```
+ERROR: check constraint "intervention_suspension_a_son_motif"
+       of relation "intervention" is violated by some row   (23514)
+Error: P3018 — New migrations cannot be applied before the error is recovered from
+```
+
+**Six autres migrations sont restées coincées derrière**, et `/planning` a rendu une exception serveur pendant plus de quatre heures.
+
+### LES DEUX ISSUES, ET CELLE QUI A ÉTÉ MESURÉE IMPOSSIBLE
+
+**(a) Les lignes antérieures portent une valeur qui dit explicitement son ignorance.** Le dépôt a un précédent exact : `SN-INCONNU-<référence>` sur `machine.numero_serie`, choisi **contre** `NULL` et avec son drapeau `complet = false`. Appliqué au motif, cela se défendrait.
+
+**Elle échoue sur la seconde colonne, et c'est une mesure, pas une préférence.** `suspendue_le` est un `timestamptz` : **aucune valeur de date ne dit son propre inconnu.** Celle qu'on écrirait — `cree_le`, `modifie_le`, l'instant de la migration — deviendrait aussitôt l'**ancienneté** que la file « en attente de pièce » affiche et que l'alerte « depuis > 30 jours » du chapitre 16.1 surveille. *On ne fabrique pas l'âge d'une attente* : ce serait un chiffre faux dans un écran de pilotage, ce que le dépôt refuse déjà trois fois ailleurs (D76, D88, L3-17).
+
+Appliquer (a) au motif et autre chose à la date ferait **deux mécanismes pour une seule règle**, et personne ne saurait plus lequel fait foi.
+
+**(b) La contrainte ne vaut que pour les lignes nouvelles et modifiées.** C'est exactement la sémantique de `NOT VALID` en PostgreSQL, et c'est celle qui est retenue.
+
+### CE QUE `NOT VALID` FAIT, MESURÉ PLUTÔT QUE SUPPOSÉ
+
+Sur la base de reproduction, migrations 1 à 44, une intervention `suspendue` sans motif posée avant :
+
+| Ce qui a été tenté | Résultat |
+| --- | --- |
+| appliquer les 3 migrations restantes | **toutes appliquées** |
+| `convalidated` des 4 contraintes | `f`, `f`, **`t`, `t`** |
+| une ligne NOUVELLE suspendue sans motif | **refusée** (23514) |
+| la ligne ANCIENNE modifiée sans se mettre en règle | **refusée** (23514) |
+| la même, modifiée EN se mettant en règle | acceptée |
+
+**La quatrième ligne est celle qui décide.** Une ligne ancienne qu'on touche doit se mettre en règle — et c'est **le seul moment où quelqu'un est là pour dire le motif**. *Une échéance qui tombe au meilleur moment n'est pas un report* : c'est le §9 du 30/08 pris à l'endroit, pour une fois.
+
+### LES DEUX AUTRES CONTRAINTES RESTENT VALIDÉES, ET C'EST MESURÉ
+
+`piece_attendue_ref` et `date_dispo_prevue` viennent de naître : elles valent `NULL` partout, et les deux équivalences qui les gouvernent sont donc vraies de toute ligne existante. **Les poser `NOT VALID` « pour faire pareil » aurait affaibli sans cause**, et ajouté deux entrées permanentes à une liste qui doit se vider. Un scénario d'isolation mesure qu'elles sont bien `convalidated = t` — c'est le cas qui doit **rester vert pour sa propre raison** (§9, 11/09).
+
+### CE QUI REND L'ÉTAT NON VALIDÉ VISIBLE, et sans quoi cette décision n'en serait pas une
+
+Sans cela, `NOT VALID` serait **le raccourci qui fait taire une migration** : deux mots, aucun rouge, et une règle silencieusement non tenue sur une partie des données — ce que l'exploitation a explicitement refusé.
+
+`scripts/lib/contraintes-non-validees.ts` porte la **liste close**, chaque entrée avec son **motif** et son **rattrapage nommé**. Elle est gardée **dans les trois sens**, et les deux derniers sont ceux qu'on oublie : une contrainte non validée **non déclarée** rougit ; une entrée dont la contrainte est **redevenue valide** rougit (le rattrapage a eu lieu, l'entrée ment) ; une entrée qui **ne s'adosse à aucune contrainte existante** rougit (§9, 31/08). Un témoin refuse de conclure sur une population vide.
+
+Elle est lue **deux fois, à deux moments et sur deux bases** : `pnpm veille` la confronte chaque nuit à la base hébergée — c'est son **douzième** contrôle —, et `tests/isolation/contraintes-non-validees.test.ts` la confronte à chaque `pnpm verify` à la base que les migrations du dépôt produisent. *Une `NOT VALID` écrite demain rougit avant d'être fusionnée, pas la nuit d'après.*
+
+### LE RATTRAPAGE EST UN TICKET, PAS UNE INTENTION
+
+**R3-02.** La date, elle, **se reprend et ne s'invente pas** : le journal d'audit porte l'instant du changement de statut (I8). Le motif, lui, demande un humain. Le ticket dit les deux.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où `CONTRAINTES_NON_VALIDEES` compterait une troisième entrée*, la question n'est plus « laquelle ajouter » mais « pourquoi aucune n'a été rattrapée » — un gardien refuse d'ailleurs la troisième. Et *le jour où une migration devra resserrer une table dont les lignes ne peuvent PAS se mettre en règle par un `UPDATE`* — une colonne obligatoire sans valeur dérivable —, `NOT VALID` ne suffira plus : il faudra une colonne qui porte l'incomplétude, comme `machine.complet`, et cela se décide table par table.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-INT-06 est appliquée aux lignes qui lui sont antérieures, pas corrigée.*
