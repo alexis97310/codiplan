@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
+import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
 
 import { FORFAITS_SCENE, SCENE } from "./setup/scene";
@@ -178,4 +179,22 @@ test("le parc machines rend des lignes, et la barre l'allume", async ({
       .getByRole("navigation")
       .getByRole("link", { name: fr["nav.parc_machines"] }),
   ).toHaveAttribute("href", "/parc");
+
+  // D98 — « Fiche machine » est SORTIE de la barre, et c'est ici qu'on le
+  // mesure : à l'écran, là où un humain la lisait. *Le gardien unitaire prouve
+  // que la liste ne la porte plus ; il ne prouve pas que la barre rendue ne la
+  // montre plus.* La seconde attente est la paire qui doit rester verte pour
+  // sa propre raison (§9, 11/09) : son voisin de libellé, lui, est bien là.
+  // *Le libellé n'est pas écrit ici : il vient de la liste close, qui est son
+  // seul domicile depuis que l'entrée a quitté le dictionnaire.*
+  const barre = page.getByRole("navigation");
+  for (const ecart of ECARTS_MAQUETTE) {
+    await expect(
+      barre.getByText(ecart.libelle, { exact: true }),
+      ecart.motif,
+    ).toHaveCount(0);
+  }
+  await expect(
+    barre.getByText(fr["nav.parc_machines"], { exact: true }),
+  ).toHaveCount(1);
 });

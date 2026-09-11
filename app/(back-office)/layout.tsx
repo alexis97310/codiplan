@@ -1,6 +1,7 @@
 import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
+import { ENTREES } from "@/lib/navigation/entrees";
 
 /**
  * LE SEGMENT DU BACK-OFFICE — les écrans de travail, et ceux-là portent la
@@ -24,7 +25,12 @@ export default async function MiseEnPageBackOffice({
 
   return (
     <>
-      <BarreDeNavigation theme={theme} initiales={initiales} />
+      <BarreDeNavigation
+        theme={theme}
+        initiales={initiales}
+        entrees={ENTREES}
+        accueil="/planning"
+      />
       <LargeurUtile>{children}</LargeurUtile>
     </>
   );

@@ -634,10 +634,13 @@ export const fr = {
   "nav.planning": "Planning",
   "nav.interventions": "Interventions",
   "nav.parc_machines": "Parc machines",
-  "nav.fiche_machine": "Fiche machine",
   "nav.contrats": "Contrats",
   "nav.app_technicien": "App technicien",
   "nav.portail_client": "Portail client",
+  // D97 — l'entrée de la barre DU PORTAIL. Distincte de « Portail client »,
+  // qui est l'entrée du back-office vers ce même espace : ce n'est pas le même
+  // lecteur, donc ce n'est pas le même mot.
+  "nav.portail_parc": "Votre parc",
   "nav.imports_excel": "Imports Excel",
   "nav.societes_tarifs": "Sociétés & tarifs",
   "nav.console_editeur": "Console éditeur",

@@ -5,11 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
 import { t } from "@/lib/i18n/fr";
-import {
-  ENTREES,
-  entreeActive,
-  type EntreeNavigation,
-} from "@/lib/navigation/entrees";
+import { entreeActive, type EntreeNavigation } from "@/lib/navigation/entrees";
 import type { ThemeSociete } from "@/lib/theme/theme";
 
 /**
@@ -22,9 +18,15 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * ne ressemble pas non plus à la maquette.
  *
  * **Elle est du CHROME**, au même titre que le bandeau de société qu'elle
- * absorbe : elle vit dans la mise en page racine, elle est commune à toutes les
- * routes, et aucun écran n'a à la rendre. Un écran qui la rendrait lui-même
- * serait un écran qui peut oublier de la rendre.
+ * absorbe : elle vit dans la mise en page du SEGMENT (R2-16), elle est commune
+ * à toutes ses routes, et aucun écran n'a à la rendre. Un écran qui la rendrait
+ * lui-même serait un écran qui peut oublier de la rendre.
+ *
+ * **Ce composant ne SAIT PAS quelles entrées il rend, et c'est délibéré
+ * (D97).** Le back-office a les siennes, le portail les siennes ; une barre qui
+ * choisirait elle-même devrait lire le chemin pour décider, c'est-à-dire tenir
+ * une SECONDE liste de segments à côté de celle des répertoires — et une liste
+ * tenue à la main oublie le prochain segment. Le segment sait ; il passe.
  *
  * **Aucune couleur n'est écrite ici.** Les classes nomment des jetons
  * d'apparence — `bg-app-surface`, `text-app-encre-faible`, `bg-app-marque` —,
@@ -46,21 +48,39 @@ import type { ThemeSociete } from "@/lib/theme/theme";
 export function BarreDeNavigation({
   theme,
   initiales,
+  entrees,
+  accueil,
 }: {
   readonly theme: ThemeSociete;
   /** Les initiales de la personne connectée, ou `null` si personne ne l'est. */
   readonly initiales: string | null;
+  /**
+   * LES ENTRÉES À RENDRE — celles du back-office ou celles du portail (D97).
+   *
+   * **Obligatoire, sans valeur par défaut.** Un défaut ferait qu'une mise en
+   * page qui oublie de choisir reçoit la barre du back-office *en silence*, et
+   * c'est exactement la faute que R2-17 répare : le portail affichait onze
+   * entrées de back-office parce que personne n'avait eu à décider. *Sans
+   * défaut, l'oubli ne compile pas.*
+   */
+  readonly entrees: readonly EntreeNavigation[];
+  /**
+   * Où mène la marque. Elle n'est pas décorative : c'est le point de retour, et
+   * il diffère par segment — `/planning` ne s'ouvre pas à un compte de portail,
+   * qui n'a aucune habilitation de société (D10) et serait redirigé.
+   */
+  readonly accueil: string;
 }) {
-  const actif = entreeActive(usePathname() ?? "")?.cle ?? null;
+  const actif = entreeActive(usePathname() ?? "", entrees)?.cle ?? null;
 
   return (
     <header className="bg-app-surface border-app-bord sticky top-0 z-50 flex min-h-[58px] flex-wrap items-center gap-5 border-b px-5 py-2">
-      <Marque />
+      <Marque accueil={accueil} />
       <nav
         aria-label={t("nav.libelle")}
         className="ml-2 flex flex-wrap gap-0.5"
       >
-        {ENTREES.map((entree) => (
+        {entrees.map((entree) => (
           <Entree
             key={entree.cle}
             entree={entree}
@@ -84,9 +104,9 @@ export function BarreDeNavigation({
  * aurait été écrire du texte dans une balise. Le triangle est une forme, pas un
  * texte : il est caché aux lecteurs d'écran, qui lisent le nom juste à côté.
  */
-function Marque() {
+function Marque({ accueil }: { readonly accueil: string }) {
   return (
-    <Link href="/planning" className="flex flex-shrink-0 items-center gap-2.5">
+    <Link href={accueil} className="flex flex-shrink-0 items-center gap-2.5">
       <span
         aria-hidden
         className="border-b-app-accent h-0 w-0 border-r-[11px] border-b-[19px] border-l-[11px] border-r-transparent border-l-transparent"

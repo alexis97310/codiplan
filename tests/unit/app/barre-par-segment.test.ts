@@ -44,9 +44,14 @@ const RACINE_APP = join(process.cwd(), "app");
  * régime par défaut — un défaut silencieux est ce qui a produit R2-16.
  */
 const SEGMENTS = {
-  "(sans-session)": { barre: false },
-  "(back-office)": { barre: true },
-  "(portail)": { barre: true },
+  "(sans-session)": { barre: false, entrees: null },
+  "(back-office)": { barre: true, entrees: "ENTREES" },
+  // D97 — le portail a SA barre. *Il recevait celle du back-office, et rien ne
+  // pouvait le dire : les deux rendaient bien `<BarreDeNavigation`.* C'est le
+  // sens silencieux de ce gardien, et c'est celui qu'on oublie — un segment
+  // qui reprendrait la liste du back-office continuerait de passer la
+  // vérification ci-dessus, qui ne regarde que la PRÉSENCE de la barre.
+  "(portail)": { barre: true, entrees: "ENTREES_PORTAIL" },
 } as const;
 
 type NomDeSegment = keyof typeof SEGMENTS;
@@ -154,6 +159,35 @@ describe("la barre de navigation est portée par le segment (R2-16)", () => {
     }).filter((ecart): ecart is string => ecart !== null);
 
     expect(ecarts).toEqual([]);
+  });
+
+  it("chaque segment passe SES entrées, et non celles du voisin", () => {
+    const ecarts = PAGES.map((page) => {
+      const segment = segmentDe(page);
+      if (segment === null) return null;
+      const attendues = SEGMENTS[segment].entrees;
+      if (attendues === null) return null;
+      const miseEnPage = chaineDeMisesEnPage(page).find(rendLaBarre);
+      if (miseEnPage === undefined) {
+        return `${relative(process.cwd(), page)} — aucune mise en page ne rend la barre`;
+      }
+      const texte = readFileSync(miseEnPage, "utf8");
+      return texte.includes(`entrees={${attendues}}`)
+        ? null
+        : `${relative(process.cwd(), miseEnPage)} — attendu entrees={${attendues}}`;
+    }).filter((ecart): ecart is string => ecart !== null);
+
+    expect(ecarts).toEqual([]);
+  });
+
+  it("les deux segments à barre ne passent PAS la même liste", () => {
+    // Le témoin de la vérification ci-dessus : si les deux attendus étaient le
+    // même nom, elle serait satisfaite par la faute même qu'elle surveille.
+    const listes: string[] = Object.values(SEGMENTS)
+      .map((segment): string | null => segment.entrees)
+      .filter((nom): nom is string => nom !== null);
+    expect(new Set(listes).size).toBe(listes.length);
+    expect(listes.length).toBeGreaterThan(1);
   });
 
   it("la paire qui prouve que la remontée distingue vraiment", () => {
