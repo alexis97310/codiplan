@@ -40,12 +40,14 @@ const analyse: Analyse = analyserCablage(CDC, ARBITRAGES);
  */
 const PLANCHER_REGLES = 40;
 const PLANCHER_DECISIONS = 50;
-const PLANCHER_PAIRES = 17;
+const PLANCHER_PAIRES = 20;
 const PLANCHER_PROSE = 15;
 
 /** Le câblage attendu, écrit ici pour être lu — et non déduit du document. */
 const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D6", "RG-PAR-02"],
+  // Les trois arbitrages du 12/09/2026 (D106, D107, D108).
+
   ["D9", "RG-PLA-04"],
   ["D15", "RG-IMP-02"],
   ["D16", "RG-INT-01"],
@@ -87,6 +89,9 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // part au chapitre 10.
   ["D99", "RG-PLA-03"],
   ["D99", "RG-PLA-07"],
+  ["D106", "RG-PLA-06"],
+  ["D107", "RG-PLA-05"],
+  ["D108", "RG-INT-08"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

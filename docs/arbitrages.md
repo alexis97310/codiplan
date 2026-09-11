@@ -328,9 +328,15 @@ Le parcours P2 redevient cohérent : l'intervention de recensement est créée s
 
 ### D17 — Composant calendrier (2.2)
 
-**Schedule-X**, gratuit et sous licence libre. Aucune dépendance payante en V1.
+**Amendé par D105.**
 
-Si ses limites se révèlent bloquantes au lot 3 — c'est possible sur la vue ressources multi-techniciens —, l'arbitrage FullCalendar sera repris à ce moment-là, avec le coût connu et une raison précise. Pas avant.
+~~**Schedule-X**, gratuit et sous licence libre. Aucune dépendance payante en V1.~~
+
+~~Si ses limites se révèlent bloquantes au lot 3 — c'est possible sur la vue ressources multi-techniciens —, l'arbitrage FullCalendar sera repris à ce moment-là, avec le coût connu et une raison précise. Pas avant.~~
+
+**BARRÉ LE 12/09/2026 PAR D105, et conservé : ce qui a été décidé un jour se relit, sinon on le redécide.** La condition que cette décision se donnait — *« si ses limites se révèlent bloquantes au lot 3 »* — n'est **pas** celle qui l'a retirée : l'écran du lot 3 a été écrit **sans** Schedule-X et il répond. Ce qui l'a retirée est un argument que D17 n'avait pas vu — **les refus nommés sont la règle métier, pas celle du composant.** *Une décision dont la condition de réouverture ne prévoit pas le motif réel de sa mort n'est pas fausse pour autant : elle est incomplète, et c'est la forme ordinaire d'une décision prise tôt.*
+
+« Aucune dépendance payante en V1 » **reste vrai** et vit désormais au §2 sans nommer de fournisseur.
 
 Le CLAUDE.md est corrigé : « pas de librairie UI supplémentaire » devient « pas de librairie UI supplémentaire **hors composant calendrier** ».
 
@@ -3524,3 +3530,195 @@ Elle est lue **deux fois, à deux moments et sur deux bases** : `pnpm veille` la
 *Le jour où `CONTRAINTES_NON_VALIDEES` compterait une troisième entrée*, la question n'est plus « laquelle ajouter » mais « pourquoi aucune n'a été rattrapée » — un gardien refuse d'ailleurs la troisième. Et *le jour où une migration devra resserrer une table dont les lignes ne peuvent PAS se mettre en règle par un `UPDATE`* — une colonne obligatoire sans valeur dérivable —, `NOT VALID` ne suffira plus : il faudra une colonne qui porte l'incomplétude, comme `machine.complet`, et cela se décide table par table.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-INT-06 est appliquée aux lignes qui lui sont antérieures, pas corrigée.*
+
+---
+
+## D105 — SCHEDULE-X N'EST PLUS IMPOSÉ : les refus nommés sont la règle MÉTIER, pas celle du composant
+
+**Décisions amendées :** D17
+
+*Rendu par Alexis le 12/09/2026, sur l'issue #138 ouverte par L3-01b. **D17 est barré sans être effacé**, comme SheetJS au §2 : ce qui a été décidé un jour se relit, sinon on le redécide.*
+
+### CE QUI A OUVERT LA QUESTION
+
+L3-01b devait livrer « l'écran de planning ressources — Schedule-X, glisser-déposer, redimensionnement ». Mesuré avant d'écrire une ligne : **l'écran existait déjà**, depuis R2-12 et R2-19, et la seule pièce manquante — le redimensionnement — s'est faite avec le **même** `draggable` que le déplacement. *Adopter Schedule-X serait devenu une RÉÉCRITURE d'un écran qui répond, pas une installation.*
+
+### L'ARGUMENT QUI TRANCHE, et il n'est pas le coût de la réécriture
+
+**LES REFUS NOMMÉS SONT LA RÈGLE MÉTIER, PAS CELLE DU COMPOSANT.** Quatre contrôles décident si une intervention peut se poser — calendrier de l'agence visée (RG-PLA-07), chevauchement, habilitation (RG-PLA-04), absence validée (RG-PLA-06) —, chacun avec **son motif écrit**. *On ne délègue pas à une bibliothèque ce qui fait la valeur du produit.* Un composant calendrier propose son propre modèle de validité ; l'y plier, c'est ou bien perdre les motifs, ou bien les recalculer à côté — **deux lectures d'un même critère** (§9, 01/09), dans l'écran où le planificateur travaille toute la journée.
+
+### CE QUE LES VUES MOIS ET ANNÉE COÛTERAIENT, ET POURQUOI ELLES NE SONT PAS ATTENDUES
+
+**Ni la maquette ni aucun ticket ne les demande** — c'était l'argument avancé pour Schedule-X. Et quand une vue mensuelle sera voulue, **ce sera pour les ÉCHÉANCES** — prochaines VGP, fins de contrat — *pas pour le planning* : un agenda de créneaux et un calendrier d'échéances ne se lisent pas de la même façon, et un composant calendrier ne sert pas bien le second.
+
+### LE §2 EST AMENDÉ EN DISANT POURQUOI
+
+La ligne « Calendrier | Schedule-X » devient **« aucun composant imposé »**, avec son motif. L'exception « hors composant calendrier » de la colonne *Style* **reste** : elle n'interdit rien, elle ouvre une porte que personne n'est obligé de franchir.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où une vue MOIS ou ANNÉE du PLANNING — les créneaux, pas les échéances — est écrite à la maquette ou demandée par un ticket*, la question se rouvre : l'écrire à la main coûterait alors plus que d'adopter un composant, et le coût se chiffre à ce moment-là. *La vue d'échéances du lot 9 ne rouvre PAS cette décision* — elle n'affiche pas de créneaux.
+
+*Aucune règle du chapitre 10 n'est amendée : le §2 du CLAUDE.md et D17 le sont.*
+
+---
+
+## D106 — RG-PLA-06 : L'EFFECTIF SE COMPTE PAR AGENCE, ET LE REPORT GROUPÉ REND À LA FILE
+
+**Règles amendées :** RG-PLA-06
+
+*Rendu par Alexis le 12/09/2026, sur l'issue #142 ouverte par L3-04a.*
+
+### Q1 — L'EFFECTIF SE COMPTE PAR AGENCE
+
+*« Tant que l'effectif est d'un seul technicien »* ne disait pas de quel effectif. **Par agence**, et le critère juste est **le nombre de techniciens actifs capables de servir l'agence du site**.
+
+**C'est lui qui dit s'il existe une alternative**, et c'est tout l'objet de l'alerte. Compter par société ferait taire l'alerte à Koné parce que Ducos a du monde — *et personne, à Koné, n'irait remplacer l'absent.* La maille est donc celle que I7 impose partout ailleurs : l'agence.
+
+### Q2 — LE REPORT GROUPÉ REND LES INTERVENTIONS À LA FILE, ENSEMBLE. Il ne propose aucun créneau.
+
+Deux raisons, et la seconde est celle qu'un moteur ne saura jamais rattraper.
+
+**Un moteur qui propose sur un effectif d'un ne propose rien.** La règle décrit précisément le cas où **il n'y a personne d'autre** : proposer un créneau supposerait une ressource disponible, et l'hypothèse de la règle est qu'il n'en existe pas.
+
+**Et le planificateur sait ce que le système ne saura jamais** — que ce client ferme en août, que la pièce n'est pas arrivée, que celui-là peut attendre. *Une liste qu'il replace utilise ce savoir ; une proposition automatique le contredit avec un air d'autorité.* C'est la même famille que D88 : un registre à moitié rempli ressemble à un registre complet.
+
+### CE QUE CELA REND POSSIBLE AUJOURD'HUI
+
+L3-04 rend déjà les interventions à la file, une par une, dans la transaction de validation. Ce qui reste est **l'alerte** — nommer la rupture de service — et **l'écran** qui montre le groupe rendu. *Pas un moteur.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable, et les DEUX termes sont exigés
+
+*Le jour où une agence compte **trois techniciens actifs** ET où des **distances réelles entre sites** existent en base.* **Les deux, pas l'un des deux** : trois personnes sans distances laissent le moteur choisir au hasard, des distances sans effectif ne lui laissent rien à choisir. Ce jour-là, **L3-04a redevient un écran** et repart dans la file.
+
+
+---
+
+## D107 — LE TRAJET COMPTÉ EST L'ALLER VERS LE PREMIER SITE ET LE RETOUR DEPUIS LE DERNIER
+
+**Règles amendées :** RG-PLA-05
+
+*Rendu par Alexis le 12/09/2026, sur l'issue #144 ouverte par L3-05. Trois questions, trois réponses, et une contradiction du chapitre 10 tranchée.*
+
+### Q3 — LE MOTEUR DE TOURNÉES EST DIFFÉRÉ
+
+Regroupement et ordonnancement partent avec le report groupé (D106) : *les deux se répondent ensemble ou pas du tout.* **Inscrit comme DIFFÉRÉ, jamais comme libre** — un ticket libre qu'on ne prend pas est un ticket qu'on croit oublié.
+
+### Q2 — LECTURE C : aller vers le PREMIER site de la journée, retour depuis le DERNIER
+
+Trois lectures étaient possibles avec la colonne telle qu'elle est. Sur une journée à trois sites : **270, 120 et 105 minutes**. *L'écart est de plusieurs heures par semaine et par technicien, et c'est le dénominateur du taux d'occupation.*
+
+**La raison décisive** : quand la journée ne porte **qu'une** intervention, C donne **exactement A** — le site étant à la fois premier et dernier ; et dès que la journée est **groupée**, C **cesse de facturer un retour à l'agence qui n'a pas eu lieu**. *Une lecture qui coïncide avec la plus simple dans le cas simple, et qui cesse de mentir dans le cas composé, n'a pas besoin d'autre argument.*
+
+**A est écartée** : elle suppose un retour à l'agence **entre chaque site** — faux pour un fourgon chargé d'outillage, sauf pour aller chercher une pièce. **B est écartée** : `2 × max` est une **fiction géométrique**, elle décrit une journée qui n'a pas eu lieu.
+
+### LE TRAJET INTER-SITES N'EST PAS COMPTÉ, ET L'APPLICATION DOIT LE DIRE — pas l'approximer
+
+C'est la moitié de la décision qu'on oublierait. La colonne ne porte que des distances **depuis l'agence** ; *soustraire deux distances à un point commun n'est pas une distance.* **Le temps entre deux sites n'est donc pas compté, et l'écran l'écrit** au lieu de le combler.
+
+> **Même discipline que le `NOT VALID` de D104 :** ce qu'on ne sait pas, on le DIT, et on refuse d'inventer la valeur qui ferait joli.
+
+### LA CONTRADICTION DU CHAPITRE 10, TRANCHÉE
+
+RG-PLA-05 disait *« le temps de trajet **inter-sites** est intégré au calcul de charge »* et, dans la même règle, que la valeur est *« le trajet **depuis l'agence de rattachement du site** »* (D56). **Les deux ne peuvent pas être vrais ensemble.** **D56 vaut ; la PREMIÈRE PHRASE de RG-PLA-05 est amendée.**
+
+### Q1 — LE POINT DE DÉPART EST L'AGENCE DU TECHNICIEN, pas celle du site
+
+C'est le technicien qui roule. Et **l'état d'aujourd'hui est assumé et TEMPORAIRE** : *tous les techniciens partent de **DUCOS**, y compris vers un site rattaché à Koné.* **C'est écrit ici parce que sinon quelqu'un lira ces nombres dans six mois en croyant qu'ils valent depuis Koné.**
+
+*Réouverture de ce point seul :* **le jour où une seconde agence fait partir un technicien.**
+
+### LES VALEURS INITIALES, trajet ALLER depuis Ducos
+
+| Zone | Aller, en minutes |
+| --- | --- |
+| `grand_noumea` | 30 |
+| `sud` | 90 |
+| `cote_ouest` | 150 |
+| `cote_est` | 240 |
+| `nord` | 240 |
+| `iles` | **AUCUNE VALEUR** |
+
+**`iles` ne porte AUCUN défaut, et ce n'est pas un oubli** : le déplacement s'y fait **en avion**. La zone existe, elle n'a pas d'estimation, et l'application affiche *« déplacement par avion — estimation impossible, à saisir par intervention »*. **Rien n'est inventé** (§8).
+
+### CE SONT DES DÉFAUTS MODIFIABLES DEPUIS L'APPLICATION, jamais des constantes
+
+Un écran de paramétrage les expose, et **l'ADV peut les corriger** — *c'est elle qui remplit les données, elle ne doit pas dépendre d'un déploiement.* Une constante du dépôt ferait d'une correction de terrain une demande de fusion.
+
+### CE QUE LA MESURE A RÉPONDU, ET QUI N'EST DONC PAS UNE QUESTION
+
+Alexis demandait de mesurer, sans trancher, si le temps de trajet est **facturé** au client — parce qu'une valeur modifiable devrait alors être **figée à la clôture**, sans quoi un réglage d'aujourd'hui changerait une facture d'hier.
+
+**Le chapitre 10 y répond déjà, deux fois, et la réponse est NON.** RG-PLA-05 : *« C'est une donnée de PLANIFICATION et rien d'autre : elle sert au calcul de charge et aux tournées, elle ne s'ajoute jamais aux heures facturées. »* RG-INT-07 : *« Le temps de trajet n'est JAMAIS facturé au temps : le déplacement se facture par un forfait conditionné par zone, un seul par intervention. »*
+
+**Le gel à la clôture n'a donc pas d'objet**, et il n'est pas construit : *une garantie posée pour un risque qui n'existe pas est une interface sans appelant.* **Ce qui rouvrirait la question est nommé** : le jour où une règle du chapitre 10 ferait entrer le trajet dans un montant facturé.
+
+
+---
+
+## D108 — LA MAJORATION PAIE LA CONTRAINTE D'UN CRÉNEAU, PAS LES MINUTES TRAVAILLÉES
+
+**Règles amendées :** RG-INT-08
+
+*Rendu par Alexis le 12/09/2026, sur l'issue #133 ouverte par L2-09b. La recommandation de la session — issue (a), prorata sur le CRÉNEAU — est retenue, et elle reçoit la DOCTRINE sans laquelle elle serait indéfendable au premier litige.*
+
+### CE QUI N'ÉTAIT PAS DÉCIDÉ
+
+D12 arrête le taux (+50 %), l'assiette (main-d'œuvre seule) et le calendrier de référence (agence du technicien). Il ajoute *« au prorata, quart d'heure par quart d'heure »* — **ce qui suppose que la durée facturée et le créneau COÏNCIDENT.** Ils ne coïncident pas : la main-d'œuvre se calcule sur `temps_reel_min` arrondi puis planché (D83, D89), les minutes hors ouverture se lisent sur le **créneau**. *Créneau 16 h–18 h, fermeture à 17 h, travail de 30 minutes : **50 % ou 0 %** selon la base retenue, et l'écart se voit sur la facture.*
+
+### LA DOCTRINE, mot pour mot
+
+> **LA MAJORATION PAIE LA CONTRAINTE D'UN CRÉNEAU POSÉ HORS OUVERTURE, PAS LES MINUTES EFFECTIVEMENT TRAVAILLÉES.**
+
+**Le client a fait bloquer la soirée d'un technicien ; qu'il finisse tôt ne rend pas la soirée disponible.** C'est ce qui rend la règle défendable devant un client qui compte ses minutes : ce qu'il a acheté est un créneau, et le créneau a été tenu.
+
+### CE QUE CELA DONNE, ET CE QUE CELA ÉCARTE
+
+La proportion majorée est **celle du créneau qui tombe hors ouverture**, et elle s'applique à la main-d'œuvre. L'issue (b) — proratiser sur les minutes réellement travaillées — **exigeait une hypothèse invérifiable** : *où, dans le créneau, les minutes travaillées se placent-elles ?* Rien ne l'enregistre.
+
+### CE QUI REND LA QUESTION CADUQUE, et c'est inscrit au backlog
+
+**ENREGISTRER L'HEURE RÉELLE DE DÉBUT ET DE FIN de l'intervention.** (b) n'exigeait une hypothèse invérifiable *que parce que seule une DURÉE est enregistrée*. Le jour où les deux instants existent, la question ne se pose plus : on lit.
+
+### CONDITION DE RÉOUVERTURE de D12, vérifiable
+
+*Le jour où `intervention` porte l'heure réelle de début ET de fin*, la majoration se calcule sur les **heures réellement travaillées**, et cette décision se relit pour être remplacée.
+
+**Ce qui n'est PAS rouvert** : le taux, l'assiette et le calendrier de référence de D12.
+
+
+---
+
+## D109 — UNE PRESTATION PORTE UNE DURÉE, JAMAIS UN TAUX — et un prix fixe DÉSIGNE un forfait
+
+*Rendu par Alexis le 12/09/2026, sur l'issue #127 ouverte par L1-09. Issue 1 des trois proposées.*
+
+### CE QUI A OUVERT LA QUESTION
+
+Le §4.3 décrit le catalogue des prestations avec un **« taux applicable »**. *Un catalogue qui porte un prix est un second endroit où un prix est écrit* — et il faudrait alors dire lequel gagne quand les deux existent.
+
+### LA DÉCISION, et sa raison est déjà une règle du dépôt
+
+**Une prestation porte une DURÉE standard, une checklist, un type — jamais un taux.**
+
+**Une facture ne change pas quand un tarif change.** C'est RG-TAR-04 et c'est `lib/tarification/` tout entier : le taux est historisé par date d'effet, et *« aucune fonction "le taux courant" — elle serait juste aujourd'hui et fausse demain »*. **Deux endroits qui portent un prix, c'est une préséance à inventer et une seconde historisation à tenir, pour rien.**
+
+### LE PONT, écrit pour que personne ne le redemande
+
+> **QUAND UNE PRESTATION SE VEND À PRIX FIXE, ELLE DÉSIGNE UN FORFAIT — elle ne porte jamais un montant.**
+
+`forfait` existe depuis L1-06, avec ses trois axes, son rang (D86) et son historisation. **Un seul endroit où l'argent est écrit**, et la prestation y renvoie au lieu de le recopier.
+
+### PROPRE À CHAQUE SOCIÉTÉ, avec copie d'un modèle à la création d'une société
+
+Le catalogue n'est **pas** un référentiel de plateforme : c'est une table métier cloisonnée, `societe_id NOT NULL` (I1, première catégorie).
+
+**La raison n'est pas technique.** *Une durée standard et une checklist décrivent la façon de travailler d'une entreprise et le niveau de ses techniciens.* Deux sociétés qui vendent le même entretien n'y mettent pas le même temps, et celle qui y met moins ne veut pas que l'autre le lise. **Le jour où CODIPLAN est vendu à un concurrent de CODIMA, il n'héritera pas de ce catalogue.**
+
+**Et une copie d'un modèle à la création d'une société**, pour *qu'un nouveau client ne parte pas d'une liste vide* — c'est un **amorçage**, jamais une énumération : le même raisonnement que la liste réglementaire des habilitations (D60), et l'inverse exact du mécanisme « référentiel + copie masquante » que D4 s'est vu retirer, *puisque la copie est faite une fois, à la création, et qu'elle appartient ensuite à la société.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où une prestation devrait porter un montant que `forfait` ne sait pas exprimer* — un prix qui dépendrait d'autre chose que des trois axes de RG-TAR-06 —, le pont ne suffit plus et la question se rouvre. **Ce n'est pas le cas aujourd'hui** : les trois axes couvrent la zone, le type et le client.
+
+*Aucune règle du chapitre 10 n'est amendée : le chapitre 10 est MUET sur les prestations, et cette décision est ce qui le rend constructible. Le §4.3 est narratif, donc non normatif (§1).*

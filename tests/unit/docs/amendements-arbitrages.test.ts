@@ -40,6 +40,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // gardien ne pouvait pas tenir. Numéroter est le geste qui les lui rend.
   ["D10", "D79"],
   ["D11", "D77"],
+  // D105 (12/09/2026) retire la contrainte Schedule-X que D17 imposait — et
+  // la condition de réouverture que D17 s'était donnée n'est PAS celle qui
+  // l'a retirée : l'écran a été écrit sans le composant, et il répond.
+  ["D17", "D105"],
   ["D13", "D46"],
   ["D14", "D78"],
   ["D15", "D54"],
