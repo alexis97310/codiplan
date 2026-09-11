@@ -107,25 +107,53 @@ export const schemaCreation = z
 
 export type Creation = z.infer<typeof schemaCreation>;
 
-/** LE DÉPLACEMENT — changer de créneau, changer de technicien, ou les deux. */
+/**
+ * LE DÉPLACEMENT — changer de jour, d'heure, de technicien, ou tout cela.
+ *
+ * ## L'HEURE SE DONNE EN MINUTES LOCALES, JAMAIS EN INSTANT (R2-19)
+ *
+ * Un créneau est stocké en INSTANT — 07:30 à Nouméa et 07:30 à Lyon ne sont pas
+ * le même moment, et c'est tout l'objet de la colonne. Mais **l'instant se
+ * calcule, il ne se saisit pas** : il demande le fuseau de l'agence de
+ * l'intervention, que ni un formulaire ni un navigateur ne connaissent.
+ *
+ * *Laisser l'appelant fournir l'instant donnerait DEUX représentations d'une
+ * même chose* — l'une pour le glissé, l'autre pour le formulaire — et deux
+ * lectures d'un même critère divergent en silence (§9, 01/09). Le dépôt
+ * résout donc l'instant, une fois, sous le fuseau qui décide.
+ *
+ * La DURÉE est fournie plutôt que la fin : c'est ce que la règle de la vue jour
+ * demande — *le dépôt change l'heure de début, la durée est conservée* — et
+ * fournir une fin permettrait de redimensionner par un chemin qui n'est pas
+ * fait pour cela.
+ */
 export const schemaDeplacement = z
   .object({
     intervention_id: uuid,
     date_planifiee: z.date().nullable(),
-    creneau_debut: z.date().nullable(),
-    creneau_fin: z.date().nullable(),
+    /** Minutes locales depuis minuit, dans le fuseau de l'agence. */
+    debut_minutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 60 - 1)
+      .nullable(),
+    /** Durée en minutes, strictement positive quand une heure est donnée. */
+    duree_min: z.number().int().positive().nullable(),
     technicien_id: uuid.nullable(),
   })
-  .refine(
-    (v) =>
-      v.creneau_debut === null ||
-      v.creneau_fin === null ||
-      v.creneau_fin > v.creneau_debut,
-    {
-      message: "La fin du créneau doit suivre son début.",
-      path: ["creneau_fin"],
-    },
-  );
+  .refine((v) => (v.debut_minutes === null) === (v.duree_min === null), {
+    message: "Un créneau se donne en entier : une heure et une durée, ou rien.",
+    path: ["duree_min"],
+  })
+  // UN CRÉNEAU SANS JOUR EST UN ÉTAT QUE LE PLANNING NE SAIT PAS RANGER. La
+  // grille range par `date_planifiee` ; un créneau posé sans elle laisserait
+  // l'intervention invisible sur les deux vues tout en occupant le temps d'un
+  // technicien.
+  .refine((v) => v.debut_minutes === null || v.date_planifiee !== null, {
+    message: "Un créneau se pose sur un jour : la date planifiée est requise.",
+    path: ["date_planifiee"],
+  });
 
 export type Deplacement = z.infer<typeof schemaDeplacement>;
 

@@ -486,6 +486,17 @@ lib/
               donnée STOCKÉE, et contrôler sa forme lierait les scans du jour à
               la génération du jour ; seule une borne de TAILLE demeure
   interventions/ l'ORDRE D'INTERVENTION et le planning agissant (lot 2, D84)
+              pose.ts : les CONTRÔLES À LA POSE (R2-19) — il décide, il n'écrit
+              rien et ne lit aucune base
+              le calendrier qui décide est celui de L'AGENCE VISÉE, et d'elle
+              seule : l'union affichée en vue semaine est un repère, jamais un
+              droit de poser
+              une agence SANS calendrier refuse — « inconnu » n'est pas
+              « ouvert », et poser sans horaire connu promettrait un rendez-vous
+              que personne ne peut tenir (I7)
+              un chevauchement est une ERREUR, pas un avertissement : deux
+              créneaux qui se TOUCHENT ne se chevauchent pas, une intervention
+              annulée n'occupe plus rien, une clôturée si — elle a eu lieu
               saisie.ts : Zod sur toute entrée ; l'agence, le forfait de
               déplacement, le numéro et le statut NE SE SAISISSENT PAS — les
               deux premiers se déduisent du site, le troisième appartient à la

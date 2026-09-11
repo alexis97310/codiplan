@@ -450,6 +450,25 @@ export const fr = {
   "intervention.annulation.obligatoire":
     "Le motif est obligatoire. Une annulation n'efface rien : elle se justifie.",
 
+  // ── LES REFUS À LA POSE (R2-19) — chacun NOMME son motif ────────────────
+  //
+  // *Un bloc qui revient à sa place sans explication apprend à ne plus faire
+  // confiance à l'écran* (exploitation, 11/09/2026). Ces quatre messages disent
+  // ce qui bloque et la marche à suivre ; aucun ne COMPTE ni ne NOMME ce que son
+  // destinataire n'a pas le droit de lire (D50).
+  "intervention.deplacement.heure":
+    "Heure de début (laisser vide pour une journée sans heure)",
+  "intervention.deplacement.duree": "Durée en minutes",
+  "intervention.deplacement.explication":
+    "Même effet que le glisser-déposer du planning, et mêmes refus. L'heure se donne dans l'heure locale du lieu d'intervention.",
+  "intervention.refus.jour_ferme":
+    "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser.",
+  "intervention.refus.hors_ouverture":
+    "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention.",
+  "intervention.refus.chevauchement":
+    "Ce technicien a déjà une intervention sur ce créneau. Deux interventions au même moment ne se posent pas.",
+  "intervention.refus.agence_sans_calendrier":
+    "Aucun calendrier ne décide pour cette intervention : aucune pose n'est possible tant que les horaires ne sont pas réglés.",
   "intervention.refus.inconnue":
     "Cette intervention n'existe pas, ou elle n'est pas dans votre périmètre.",
   "intervention.refus.annulee_figee":
