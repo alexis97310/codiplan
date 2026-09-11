@@ -328,12 +328,16 @@ pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
                       # un ticket écrit demain y entre ce jour-là.
 
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
-                      # les contrôles d'observation — ONZE aujourd'hui : RLS,
+                      # les contrôles d'observation — DOUZE aujourd'hui : RLS,
                       # formes de politique, périmètre d'audit, ajout seul du
                       # journal, durcissement des partitions, privilèges de
                       # consolidation, branche IS NULL de périmètre, WITH CHECK
-                      # explicite, ARMEMENT DU CONTEXTE (L1-02b), et depuis D91
-                      # le TÉMOIN DE LECTURE puis la LECTURE SANS CONTEXTE ;
+                      # explicite, ARMEMENT DU CONTEXTE (L1-02b), depuis D91
+                      # le TÉMOIN DE LECTURE puis la LECTURE SANS CONTEXTE, et
+                      # depuis D104 les CONTRAINTES POSÉES « NOT VALID » —
+                      # une règle qui ne vaut que pour une partie des lignes
+                      # est une DÉCISION, et sans ce contrôle « NOT VALID »
+                      # serait le raccourci qui fait taire une migration ;
                       # la liste est FERMÉE CONTRE scripts/lib/, inversée comme
                       # le périmètre d'audit, et onze n'est qu'un instantané
                       # (tests/unit/veille-hebergee.test.ts)
@@ -610,6 +614,20 @@ lib/
               raison écrite. Il ne GARDE rien — la base garde, par
               `intervention_cycle_de_vie` : une action refusée à l'écran mais
               acceptée par la base est un trou
+              DEUX de ses quatre contraintes sont posées « NOT VALID »
+              (D104) : elles valent pour toute ligne NOUVELLE ou MODIFIÉE, et
+              les suspensions ANTÉRIEURES à L2-10 ne sont pas relues — elles
+              n'ont pas de motif, et personne ne peut en énoncer un à leur
+              place ; une DATE est pire encore, aucune valeur de date ne disant
+              son propre inconnu, et celle qu'on écrirait deviendrait
+              l'ancienneté que la file affiche
+              une ligne ancienne qu'on TOUCHE doit se mettre en règle, et c'est
+              le seul moment où quelqu'un est là pour dire le motif
+              l'état non validé est VISIBLE et jamais tu :
+              scripts/lib/contraintes-non-validees.ts, lu chaque nuit par
+              « pnpm veille » et à chaque « pnpm verify » par un scénario
+              d'isolation — sans quoi « NOT VALID » serait deux mots qui
+              n'allument rien
               la SUSPENSION exige son motif (RG-INT-06, L2-10), et une
               intervention DÉJÀ suspendue ne se re-suspend pas : ce serait
               écraser `suspendue_le`, c'est-à-dire rajeunir l'attente que la
