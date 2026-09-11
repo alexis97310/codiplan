@@ -61,6 +61,20 @@ pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
 
+### Les migrations, rejouées contre une base qui a déjà vécu
+
+_Écrit le 11/09/2026, après une panne de production de plus de quatre heures._
+
+**`pnpm verify` migre une base VIDE puis la sème.** Toute ligne y respecte donc, par construction, la règle que la migration vient de poser : **aucune migration n'était jamais éprouvée contre des données préexistantes**, c'est-à-dire contre le seul monde où elle s'applique vraiment. La CI était verte, et elle avait raison — elle ne gardait pas ce monde-là.
+
+`tests/isolation/migrations-sur-base-agee.test.ts` rejoue les migrations **avec `prisma migrate deploy`** — le chemin exact de la production, transaction implicite comprise. _Mesuré : `$executeRawUnsafe` refuse un fichier multi-instructions (`42601`), donc rejouer le SQL « à la main » n'était pas seulement moins fidèle, c'était impossible._
+
+Il s'arrête **avant chaque migration qui resserre une table préexistante** — contrainte `CHECK` ou clé étrangère validée, `SET NOT NULL`, index unique, colonne obligatoire sans défaut, **et changement de type de colonne**, celle qu'on oublie parce qu'elle ne ressemble pas à une contrainte —, joue son amorce, **et compte les lignes de la table resserrée**. Un zéro fait échouer le scénario : _une migration éprouvée contre une table vide n'est pas éprouvée du tout_ — et c'est exactement la faute que ce harnais a commise à sa première exécution, où il a annoncé « toutes les migrations appliquées » sur une base dont l'amorce avait échoué en silence.
+
+**La population est DÉRIVÉE du répertoire des migrations** : une migration écrite demain y entre d'elle-même. Deux listes closes l'accompagnent, gardées dans les deux sens — les resserrements **déjà appliqués partout**, fermés par le passé et non par une décision, et l'unique table **prouvée impossible à remplir** à son point d'histoire.
+
+_Éprouvé dans les deux directions, sur des fautes réellement écrites :_ la contrainte de D104 rendue `VALID` fait tomber le rejeu sur le `P3018`/`23514` exact du 11/09 ; une migration neuve qui resserrerait une table sans lignes rougit en nommant l'amorce à écrire.
+
 `pnpm test:isolation` exige un PostgreSQL **local et jetable**, jamais la base hébergée. Le script `scripts/postgres-jetable.sh` le crée, le détruit et le recrée à chaque appel :
 
 ```bash

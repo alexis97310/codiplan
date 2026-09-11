@@ -1095,6 +1095,23 @@ components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/
   unit/  isolation/  e2e/offline/   ← les trois derniers sont sanctuarisés
+  isolation/migrations-sur-base-agee.test.ts : LES MIGRATIONS REJOUÉES CONTRE
+              DES DONNÉES (11/09/2026) — `verify` migre une base VIDE puis
+              sème, donc aucune migration n'était éprouvée contre des lignes
+              préexistantes, le seul monde où elle s'applique vraiment
+              il rejoue par `prisma migrate deploy`, le chemin de la
+              production : `$executeRawUnsafe` refuse un lot multi-instructions
+              (42601, mesuré), rejouer le SQL à la main était impossible
+              il s'arrête avant chaque RESSERREMENT — contrainte validée,
+              SET NOT NULL, index unique, colonne obligatoire sans défaut, et
+              CHANGEMENT DE TYPE, celle qu'on oublie parce qu'elle ne ressemble
+              pas à une contrainte — posé sur une table qu'une migration
+              ANTÉRIEURE a créée
+              une table VIDE au resserrement fait ÉCHOUER : une migration
+              éprouvée contre rien n'est pas éprouvée, et c'est la faute que ce
+              harnais a commise à sa première exécution
+              la population est DÉRIVÉE du répertoire : une migration écrite
+              demain y entre d'elle-même
 docs/
   cahier-des-charges.md  arbitrages.md  backlog.md  guide-pilotage.md
   decisions/  maquette/
