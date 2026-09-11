@@ -557,8 +557,17 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 **`intervention_temps` N'EXISTE PAS** (mesuré : aucune occurrence au schéma). Le chapitre 11 la décrit — technicien, type (trajet, intervention, attente, pause), début, fin, durée, facturable — et c'est elle qui porte *« attente non facturée par défaut »* et *« une ligne de type trajet n'est jamais facturable »* (D11, D74, RG-INT-07). Aujourd'hui `intervention.temps_reel_min` est **un seul nombre**, qui EST le temps d'intervention : la règle « hors trajet et hors attente » est donc satisfaite **par construction**, et c'est pour cela que L2-09a a pu être livré sans elle.
 **LE CUMUL PAR TECHNICIEN DÉPEND DE L2-08b**, lui-même bloqué : *« 2 techniciens × 3 h = 6 h facturées »* (D11) n'a pas de sujet tant qu'une intervention ne porte qu'un technicien.
 *Relu contre les sources citées le 11/09/2026 — empreinte `bb397ccd`.*
-**L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
-*File :* LIBRE
+**L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté. **[RG-INT-06]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026.** Le statut `suspendue` existait depuis D84 ; **rien ne portait le motif**, et une intervention pouvait s'arrêter sans qu'on sache pourquoi.
+**CE QUI DÉSIGNE UNE ATTENTE DE PIÈCE EST LA RÉFÉRENCE, PAS UN CODE.** *Aucune énumération de motifs n'est inventée* — le chapitre 10 n'en pose pas, et fermer une énumération avant d'avoir tranché à qui l'on vend est une erreur que ce dépôt a déjà faite (§9, 20/08). La présence de `piece_attendue_ref` dit que la suspension en est une.
+**QUATRE CONTRAINTES, ÉCRITES DANS LES DEUX SENS** : motif ⟺ suspension, date de suspension ⟺ suspension, référence ⟺ horizon, et une attente de pièce SUPPOSE la suspension. *Une référence sans date ferait une file sans horizon — celle que l'alerte « > 30 j » du chapitre 16.1 ne saurait pas trier.*
+**LA REPRISE N'EFFACE RIEN CÔTÉ APPLICATIF** : le déclencheur `intervention_sortie_de_suspension` remet les quatre colonnes à NULL, parce que les contraintes l'exigent déjà — le faire aussi en TypeScript serait une seconde lecture du même critère. Et **le nom du déclencheur décide de l'ordre** : PostgreSQL exécute les `BEFORE` par ordre alphabétique, `intervention_cycle_de_vie` prononce donc ses refus AVANT ce nettoyage.
+**UNE INTERVENTION DÉJÀ SUSPENDUE NE SE RE-SUSPEND PAS**, et ce n'est pas de la prudence : ce serait écraser `suspendue_le`, c'est-à-dire **rajeunir l'attente** que la file mesure.
+**`suspendue_le` EST AJOUTÉE, et le chapitre 11 ne la nomme pas** — écart de rang inscrit plutôt que tu. Sans elle, l'ancienneté se lirait dans le journal d'audit : *une trace n'est pas un index.* `cloturee_le` et `annulee_le` existent pour la même raison.
+**L'ANCIENNETÉ SE COMPTE EN JOURS D'HORLOGE, pas en jours ouvrés** : le fournisseur ne livre pas le samedi, mais la pièce n'arrive pas non plus. C'est l'inverse du compteur d'accusé de réception (D13), et l'écart est délibéré.
+*Acceptation :* la base refuse les quatre états interdits **en nommant sa contrainte**, et le jumeau retire celle du motif et montre la suspension sans motif passer ; la reprise rend le statut que le créneau dicte et la base efface les quatre colonnes ; une seconde suspension est refusée ; la file ne retient que les attentes de pièce, les ordonne de la plus vieille, et l'instant courant y est un PARAMÈTRE — la même file à deux instants rend deux anciennetés.
+*Relu contre les sources citées le 11/09/2026 — empreinte `90b24657`.*
 
 ---
 

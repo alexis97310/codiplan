@@ -26,6 +26,8 @@ import {
   peutAnnuler,
   peutCloturer,
   peutDeplacer,
+  peutReprendre,
+  peutSuspendre,
   statutALaCreation,
   type Verdict,
 } from "./cycle-de-vie";
@@ -39,7 +41,9 @@ import type {
   Cloture,
   Creation,
   Deplacement,
+  Reprise,
   StatutIntervention,
+  Suspension,
 } from "./saisie";
 
 /**
@@ -76,6 +80,15 @@ export const CHAMPS_LIGNE = {
   montant_ht: true,
   devise_code: true,
   motif_annulation: true,
+  /**
+   * LA SUSPENSION (L2-10, RG-INT-06). Les quatre colonnes voyagent ENSEMBLE :
+   * *un motif sans sa date d'entrée ne dit pas depuis quand on attend, et une
+   * référence sans horizon fait une file qu'on ne sait pas trier.*
+   */
+  motif_suspension: true,
+  piece_attendue_ref: true,
+  date_dispo_prevue: true,
+  suspendue_le: true,
   /**
    * LES MACHINES, au pluriel depuis L2-08a. Lues avec la ligne plutôt que
    * comptées à côté : *un bandeau qui compterait autrement que le tableau qu'il
@@ -906,5 +919,188 @@ export async function lireIntervention(
         devise: { select: { code: true, decimales: true, symbole: true } },
       },
     }),
+  );
+}
+
+/**
+ * SUSPENDRE — avec un motif obligatoire, et l'attente de pièce si c'en est une
+ * (L2-10, RG-INT-06).
+ *
+ * L'instant est daté dans le fuseau de l'agence (L0-08) : *le laisser saisir
+ * permettrait de rajeunir une attente, et l'ancienneté est précisément ce que
+ * la file mesure.*
+ */
+export async function suspendreIntervention(
+  contexte: ContexteSession,
+  saisie: Suspension,
+  client?: PrismaClient,
+): Promise<Resultat<LigneIntervention>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: saisie.intervention_id },
+        select: { id: true, statut: true, agence_id: true },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<LigneIntervention>(
+        peutSuspendre(ligne.statut as StatutIntervention, saisie.motif),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
+
+      const misAJour = await tx.intervention.update({
+        where: { id: saisie.intervention_id },
+        data: {
+          statut: "suspendue",
+          motif_suspension: saisie.motif,
+          piece_attendue_ref: saisie.piece_attendue_ref,
+          date_dispo_prevue: saisie.date_dispo_prevue,
+          suspendue_le: await instantDeLAgence(tx, ligne.agence_id),
+        },
+        select: CHAMPS_LIGNE,
+      });
+      return { accepte: true, fiche: misAJour };
+    },
+    client,
+  );
+}
+
+/**
+ * REPRENDRE — l'intervention retrouve l'état que son CRÉNEAU dicte (L2-10).
+ *
+ * **Pas celui qu'elle avait avant la suspension** : entre-temps, le
+ * planificateur a pu la déplacer ou lui retirer sa date. `statutALaCreation`
+ * décide, et il décide comme à la naissance — *une seule règle pour « quel
+ * statut dit ce créneau »*.
+ *
+ * **Ce module n'efface NI le motif NI la référence** : le déclencheur
+ * `intervention_sortie_de_suspension` s'en charge, parce que les contraintes de
+ * la base l'exigent et que les remettre à `null` ici serait une seconde lecture
+ * du même critère.
+ */
+export async function reprendreIntervention(
+  contexte: ContexteSession,
+  saisie: Reprise,
+  client?: PrismaClient,
+): Promise<Resultat<LigneIntervention>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: saisie.intervention_id },
+        select: {
+          id: true,
+          statut: true,
+          date_planifiee: true,
+          creneau_debut: true,
+        },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<LigneIntervention>(
+        peutReprendre(ligne.statut as StatutIntervention),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
+
+      const misAJour = await tx.intervention.update({
+        where: { id: saisie.intervention_id },
+        data: {
+          statut: statutALaCreation(ligne.date_planifiee, ligne.creneau_debut),
+        },
+        select: CHAMPS_LIGNE,
+      });
+      return { accepte: true, fiche: misAJour };
+    },
+    client,
+  );
+}
+
+/** Une ligne de la file « en attente de pièce », avec son ancienneté. */
+export type LigneEnAttenteDePiece = {
+  readonly ligne: LigneIntervention;
+  readonly pieceAttendueRef: string;
+  readonly dateDispoPrevue: Date;
+  /** Jours ENTIERS écoulés depuis la suspension, dans le fuseau de l'agence. */
+  readonly ancienneteJours: number;
+  /** La date de disponibilité est-elle DÉPASSÉE à l'instant fourni ? */
+  readonly horizonDepasse: boolean;
+};
+
+/**
+ * LA FILE « EN ATTENTE DE PIÈCE » (L2-10).
+ *
+ * **L'instant courant est un PARAMÈTRE, jamais une lecture** — même règle que
+ * `lib/vgp/information.ts` et `lib/demandes/accuse.ts`, et pour la même raison :
+ * lu ici, il rendrait un scénario vert parce que l'horloge a bougé. L'appelant,
+ * qui connaît le fuseau de l'agence, le fournit.
+ *
+ * **L'ordre est celui de l'ANCIENNETÉ**, de la plus vieille à la plus récente :
+ * *c'est la question que la file pose* — qui attend depuis le plus longtemps.
+ *
+ * Aucun filtre de société n'est écrit ici : on lit sous le contexte cloisonné,
+ * la forme « parc » décide, et une comparaison au-dessus serait une seconde
+ * lecture du même critère.
+ */
+export async function enAttenteDePiece(
+  contexte: ContexteSession,
+  maintenant: Date,
+  client?: PrismaClient,
+): Promise<readonly LigneEnAttenteDePiece[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lignes = await tx.intervention.findMany({
+        where: { piece_attendue_ref: { not: null } },
+        orderBy: [{ suspendue_le: "asc" }],
+        select: CHAMPS_LIGNE,
+      });
+      return lignes.flatMap((ligne) => {
+        // Les contraintes de la base garantissent le trio ; le typage, lui, ne
+        // le sait pas. On ÉCARTE plutôt que d'affirmer — *une ligne qui aurait
+        // échappé aux contraintes ne doit pas devenir une ancienneté fausse.*
+        if (
+          ligne.piece_attendue_ref === null ||
+          ligne.date_dispo_prevue === null ||
+          ligne.suspendue_le === null
+        ) {
+          return [];
+        }
+        return [
+          {
+            ligne,
+            pieceAttendueRef: ligne.piece_attendue_ref,
+            dateDispoPrevue: ligne.date_dispo_prevue,
+            ancienneteJours: joursEcoules(ligne.suspendue_le, maintenant),
+            horizonDepasse:
+              ligne.date_dispo_prevue.getTime() < maintenant.getTime(),
+          },
+        ];
+      });
+    },
+    client,
+  );
+}
+
+/**
+ * Jours ENTIERS écoulés entre deux instants.
+ *
+ * **Des jours d'horloge, et non des jours ouvrés** : l'attente d'une pièce ne
+ * s'interrompt pas le week-end — *le fournisseur ne livre pas le samedi, mais
+ * la pièce n'arrive pas non plus.* C'est l'inverse du compteur d'accusé de
+ * réception (D13), et la différence est délibérée : là, on mesure une réactivité
+ * humaine ; ici, un délai subi.
+ */
+function joursEcoules(depuis: Date, jusqua: Date): number {
+  const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
+  return Math.max(
+    0,
+    Math.floor((jusqua.getTime() - depuis.getTime()) / MS_PAR_JOUR),
   );
 }

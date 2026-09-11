@@ -136,8 +136,12 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
   // c'est ce que déplacer des formulaires en colonne latérale risquait de
   // perdre. Un décompte plutôt qu'une présence : « il en reste » ne dit pas
   // combien ont disparu.
+  //
+  // **CINQ depuis L2-10** : la suspension et sa reprise s'ajoutent aux quatre
+  // de D84 — et une seule des deux s'offre à la fois, l'autre n'ayant pas de
+  // sens dans l'état où l'intervention se trouve.
   const actions = page.locator("main aside form");
-  await expect(actions).toHaveCount(4);
+  await expect(actions).toHaveCount(5);
 });
 
 test("les écrans sans session ne défilent pas pour rien", async ({ page }) => {
