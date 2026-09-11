@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   creneauxDuJour,
@@ -17,7 +18,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
 /**
- * L'ÉCRAN DE RÉGLAGE DES HORAIRES (lot 2, I7).
+ * L'ÉCRAN DE RÉGLAGE DES HORAIRES (lot 2, I7 ; repris en tableau par R2-05).
  *
  * *« Ducos ouvre du lundi au samedi, Koné du lundi au vendredi. Aucun
  * calendrier global codé en dur. »* Cet écran est ce qui rend la seconde phrase
@@ -28,6 +29,31 @@ import { mot } from "@/lib/i18n/vocabulaire";
  * sont ceux que le planning proposerait réellement, calculés par la même
  * fonction — un exemple recopié serait une seconde lecture d'un même critère,
  * et il cesserait d'être vrai au premier réglage.
+ *
+ * ## R2-05 — UN TABLEAU DENSE, ET NON UNE CARTE PAR ENREGISTREMENT
+ *
+ * **Mesuré le 11/09/2026, fenêtre 1700 × 1000, trois établissements : contenu
+ * de 896 px, document de 1428 px, DEUX établissements sur trois entièrement
+ * visibles.** Soit près de 380 px de hauteur pour huit champs. *Un écran de
+ * réglage qu'on ne peut pas embrasser d'un regard oblige à mémoriser la ligne
+ * précédente pour comparer deux réglages — c'est-à-dire à faire de tête ce que
+ * l'écran est là pour montrer.*
+ *
+ * La maquette range ce genre de contenu en tableau — « Calendriers d'ouverture
+ * par site », en-têtes en capitales fines, lignes denses — et D95 lui donne foi
+ * sur la disposition. La forme du tableau est partagée avec `/parametres/
+ * forfaits` (R2-06) : *deux implémentations d'un même critère divergent en
+ * silence.*
+ *
+ * **Le formulaire de réglage du pas reste DANS la ligne.** Sortir le réglage
+ * dans un écran de détail ferait perdre la comparaison qui vient d'être gagnée :
+ * on règle un pas en regardant celui des autres établissements.
+ *
+ * **Un écart avec la maquette, écrit avec sa raison :** elle intitule ce
+ * tableau « par site », et ses lignes sont Ducos, Koné et Dolbeau — qui sont des
+ * ÉTABLISSEMENTS. Le vocabulaire imposé prime (D5, D47) : le titre de colonne
+ * vient de `mot("agence")`. *La maquette fait foi sur la disposition et sur les
+ * couleurs, jamais sur le vocabulaire.*
  */
 export default async function PageParametresAgences({
   searchParams,
@@ -68,13 +94,27 @@ export default async function PageParametresAgences({
     },
   );
 
+  const colonnes = [
+    { cle: "agence", libelle: mot("agence"), largeur: "180px" },
+    { cle: "calendrier", libelle: t("parametres.calendrier") },
+    { cle: "jours", libelle: t("parametres.jours") },
+    { cle: "horaires", libelle: t("parametres.horaires") },
+    { cle: "creneaux", libelle: t("parametres.colonne_creneaux") },
+    {
+      cle: "exceptions",
+      libelle: t("parametres.colonne_exceptions"),
+      droite: true,
+    },
+    { cle: "pas", libelle: t("parametres.colonne_pas"), largeur: "230px" },
+  ];
+
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-8 px-6 py-10">
+    <main className="flex flex-col gap-5">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-[22px] font-extrabold tracking-tight">
           {t("parametres.titre")}
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-app-encre-faible text-[13px]">
           {t("parametres.sous_titre")}
         </p>
       </header>
@@ -82,129 +122,136 @@ export default async function PageParametresAgences({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-destructive text-destructive rounded-md border px-3 py-2 text-sm"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
         </p>
       ) : null}
 
-      {reglages.map(({ agence, parametrage, exceptions }) => (
-        <section
-          key={agence.id}
-          className="border-border flex flex-col gap-4 rounded-lg border px-4 py-4"
-        >
-          <h2 className="text-lg font-medium">{titreAgence(agence.libelle)}</h2>
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+        <Tableau colonnes={colonnes} minimum="1040px">
+          {reglages.length === 0 ? (
+            <LignePleine colonnes={colonnes.length}>
+              {t("parametres.aucune_agence")}
+            </LignePleine>
+          ) : null}
+          {reglages.map(({ agence, parametrage, exceptions }) => (
+            <LigneAgence
+              key={agence.id}
+              libelle={agence.libelle}
+              parametrage={parametrage}
+              exceptions={exceptions}
+              colonnes={colonnes.length}
+            />
+          ))}
+        </Tableau>
+      </section>
 
-          {parametrage === null ? (
-            <p className="text-destructive text-sm">
-              {t("parametres.sans_calendrier")}
-            </p>
-          ) : (
-            <Reglage parametrage={parametrage} exceptions={exceptions} />
-          )}
-        </section>
-      ))}
+      <p className="text-app-encre-faible text-[11.5px]">
+        {t("parametres.exception_explication")}
+      </p>
     </main>
   );
 }
 
-/**
- * Le titre d'un établissement, composé hors du JSX.
- *
- * Le code nomme la NOTION — `mot("agence")` — et jamais le mot (D5, D47,
- * L0-11) ; la composition sort du JSX parce qu'un littéral n'y est pas admis.
- */
-function titreAgence(libelle: string): string {
-  return `${mot("agence")} ${libelle}`;
-}
-
-function Reglage({
+function LigneAgence({
+  libelle,
   parametrage,
   exceptions,
+  colonnes,
 }: {
-  parametrage: Parametrage;
-  exceptions: number;
+  readonly libelle: string;
+  readonly parametrage: Parametrage | null;
+  readonly exceptions: number;
+  readonly colonnes: number;
 }) {
+  if (parametrage === null) {
+    // « Sans calendrier » n'est pas une ligne vide : c'est un état qui se DIT,
+    // et qui interdit toute pose (I7). La ligne le nomme plutôt que d'afficher
+    // des tirets qu'on lirait comme « pas encore renseigné ».
+    return (
+      <tr>
+        <Cellule fort>{libelle}</Cellule>
+        <td
+          colSpan={colonnes - 1}
+          className="border-app-bord text-app-rouge-encre border-b px-4 py-[11px]"
+        >
+          {t("parametres.sans_calendrier")}
+        </td>
+      </tr>
+    );
+  }
+
   const jours = joursTravailles(parametrage);
   const premierJour = jours[0];
   const exemple =
     premierJour === undefined ? [] : creneauxDuJour(parametrage, premierJour);
 
   return (
-    <>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <Ligne
-          libelle={t("parametres.calendrier")}
-          valeur={parametrage.libelle}
-        />
-        <Ligne
-          libelle={t("parametres.jours")}
-          valeur={jours.map((j) => libelleJour(j)).join(", ")}
-        />
-        <Ligne
-          libelle={t("parametres.horaires")}
-          valeur={parametrage.plages
-            .filter((p) => p.jourSemaine === premierJour)
-            .map((p) => `${enHeure(p.debutMinutes)}–${enHeure(p.finMinutes)}`)
-            .join(", ")}
-        />
-        <Ligne
-          libelle={t("parametres.creneaux_exemple")}
-          valeur={resumeCreneaux(exemple)}
-        />
-      </dl>
-
-      <form
-        action="/api/parametres/pas-creneau"
-        method="post"
-        className="flex flex-wrap items-end gap-3"
-      >
-        <input
-          type="hidden"
-          name="calendrier_id"
-          value={parametrage.calendrierId}
-        />
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("parametres.pas")}
+    <tr>
+      <Cellule fort>{libelle}</Cellule>
+      <Cellule>{parametrage.libelle}</Cellule>
+      <Cellule>{listeDesJours(jours)}</Cellule>
+      <Cellule>{listeDesPlages(parametrage, premierJour)}</Cellule>
+      <Cellule>{resumeCreneaux(exemple)}</Cellule>
+      <Cellule droite>
+        {exceptions === 0 ? t("parametres.exception_aucune") : exceptions}
+      </Cellule>
+      <Cellule>
+        <form
+          action="/api/parametres/pas-creneau"
+          method="post"
+          className="flex items-center gap-2"
+        >
           <input
+            type="hidden"
+            name="calendrier_id"
+            value={parametrage.calendrierId}
+          />
+          <label
+            className="sr-only"
+            htmlFor={`pas-${parametrage.calendrierId}`}
+          >
+            {t("parametres.pas")}
+          </label>
+          <input
+            id={`pas-${parametrage.calendrierId}`}
             name="pas"
             type="number"
             min={PAS_MINIMUM}
             max={PAS_MAXIMUM}
             defaultValue={parametrage.pasCreneauMinutes}
-            className="border-input bg-background w-32 rounded-md border px-3 py-2 font-normal"
+            className="border-app-bord bg-app-surface w-20 rounded-md border px-2 py-1 text-[12.5px]"
           />
-        </label>
-        <Button type="submit" variant="outline">
-          {t("parametres.pas_enregistrer")}
-        </Button>
-      </form>
-
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-medium">
-          {t("parametres.exception_technicien")}
-        </h3>
-        <p className="text-muted-foreground text-xs">
-          {t("parametres.exception_explication")}
-        </p>
-        <p className="text-sm">
-          {exceptions === 0
-            ? t("parametres.exception_aucune")
-            : String(exceptions)}
-        </p>
-      </div>
-    </>
+          <Button type="submit" variant="outline" size="sm">
+            {t("parametres.pas_enregistrer")}
+          </Button>
+        </form>
+      </Cellule>
+    </tr>
   );
 }
 
-function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground">{libelle}</dt>
-      <dd className="font-medium">{valeur}</dd>
-    </div>
-  );
+/**
+ * Les énumérations sont composées HORS du JSX — un littéral n'y est pas admis,
+ * fût-il le séparateur d'une liste (L0-11). C'est le gardien qui l'a dit, pas la
+ * relecture.
+ */
+function listeDesJours(jours: readonly number[]): string {
+  return jours.map((j) => libelleJour(j)).join(SEPARATEUR);
 }
+
+function listeDesPlages(
+  parametrage: Parametrage,
+  jourSemaine: number | undefined,
+): string {
+  return parametrage.plages
+    .filter((p) => p.jourSemaine === jourSemaine)
+    .map((p) => `${enHeure(p.debutMinutes)}–${enHeure(p.finMinutes)}`)
+    .join(SEPARATEUR);
+}
+
+const SEPARATEUR = ", ";
 
 /** Le nom d'un jour ISO — au dictionnaire, jamais dans une liste écrite ici. */
 function libelleJour(jour: number): string {

@@ -566,6 +566,17 @@ export const fr = {
   "parametres.exception_explication":
     "Un technicien peut recevoir un autre calendrier de la société — un temps partiel, une alternance, un renfort du matin. C'est un rattachement, jamais une copie d'horaires : les horaires changent à un seul endroit.",
   "parametres.exception_aucune": "Aucune exception enregistrée.",
+  // ── LES COLONNES DU TABLEAU DENSE (R2-05) ────────────────────────────────
+  //
+  // La maquette range ce contenu en TABLEAU, pas en cartes. Les libellés
+  // portent tout SAUF les notions imposées : le composant compose le titre de
+  // la colonne d'établissement depuis `mot("agence")`.
+  "parametres.colonne_pas": "Pas",
+  "parametres.colonne_creneaux": "Créneaux",
+  "parametres.colonne_exceptions": "Exceptions",
+  "parametres.aucune_agence":
+    "Aucun établissement n'est enregistré pour cette société.",
+  "parametres.sans_calendrier_court": "Aucun calendrier",
   "parametres.refus_pas":
     "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
 
