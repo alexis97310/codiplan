@@ -725,6 +725,18 @@ lib/
               il n'y a rien à restaurer (D15)
               RIEN pour le stockage du fichier source : `objet_cle` existe et
               reste nulle, faute d'appelant — la maladie du portail, évitée
+              modeles.ts : LES GABARITS QUE CODIPLAN PUBLIE (L1-09a), et eux
+              seuls — deux sortes de fichiers ne se confondent pas : un gabarit
+              tient ses colonnes de NOS schémas de saisie, un fichier de reprise
+              les tient du fichier réel du client, qui n'est pas dans le dépôt
+              chaque champ de saisie est EXPOSÉ ou ÉCARTÉ NOMMÉMENT, avec son
+              motif : un champ écarté sans motif est un champ oublié, et rien
+              ne les distingue
+              `adresse_facturation` n'y est pas — le chapitre 11 ne lui fixe
+              aucune forme, et l'aplatir dans un gabarit la figerait pour tous
+              `actif` non plus : un import ne désactive pas, et une colonne
+              « Actif » ferait d'un oubli de saisie une désactivation de masse
+              le marqueur est DÉRIVÉ du modèle, jamais recopié
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

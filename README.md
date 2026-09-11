@@ -441,6 +441,23 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## Deux sortes de fichiers d'import, et les confondre bloquait les deux
+
+_Mesuré en préparant l'application (L1-09a) : aucun modèle d'import concret n'existait dans `lib/`_ — `ModeleDImport` n'était qu'un type, et ses seuls exemplaires vivaient dans des tests.
+
+|                                            | D'où viennent ses colonnes   | Peut-on l'écrire aujourd'hui ?        |
+| ------------------------------------------ | ---------------------------- | ------------------------------------- |
+| **le gabarit que CODIPLAN publie**         | de **nos** schémas de saisie | **oui** — ils sont dans le dépôt      |
+| le fichier de **reprise** d'un outil tiers | du fichier réel du client    | non — il n'est pas dans le dépôt (I9) |
+
+`lib/imports/modeles.ts` ne porte que la première sorte. _Un gabarit est un document que nous définissons et que le client remplit : ses colonnes se lisent dans `lib/clients/saisie.ts`, elles ne s'inventent pas._
+
+**Le gabarit est confronté au schéma, dans les deux sens.** La population vient du **schéma** et non du gabarit — _sélectionner « les colonnes du modèle » exclurait exactement le champ qu'on a oublié d'exposer._ Chaque champ est **exposé** ou **écarté nommément avec son motif** ; aucune colonne n'est orpheline ; tout champ obligatoire a une colonne obligatoire, **et la réciproque** — _un gabarit dont tout serait obligatoire refuserait des fichiers que la saisie accepte._
+
+**Deux champs écartés, avec leur motif.** `adresse_facturation` : le chapitre 11 ne lui fixe **aucune forme**, et l'aplatir dans un tableur la figerait pour tous les clients. `actif` : _un import ne désactive pas — une colonne « Actif » ferait d'un oubli de saisie une désactivation de masse._
+
+**Ce qui reste dû (L1-09) :** les gabarits **sites, contacts, modèles, prestations** — ils butent sur une **résolution de référence** que le gabarit « clients » n'avait pas : un site désigne un client **et une agence**, et _RG-IMP-05 dit comment rapprocher un client, rien ne dit comment rapprocher une agence._ Et le **téléchargement**, qui exige une bibliothèque d'**écriture** `.xlsx` — donc une dépendance, donc une décision.
+
 ## Le rapprochement ne savait rapprocher que des MACHINES
 
 _Mesuré le 11/09/2026 (L1-08f)_, sur un modèle « clients » écrit tel qu'on l'écrirait aujourd'hui, contre un parc qui connaissait **déjà** les deux codes :
