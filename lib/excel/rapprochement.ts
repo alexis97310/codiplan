@@ -135,6 +135,91 @@ export function cleDeRapprochement(ligne: LigneDeParc): CleDeRapprochement {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+ * 1 bis. CE QU'UNE LIGNE DE CLIENT DÉSIGNE — RG-IMP-05 (L1-08f)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE PRÉFIXE DE LA CLÉ PAR NOM. Il rend l'espace des raisons sociales DISJOINT
+ * de celui des codes externes — la même précaution que `SN-INCONNU-` sur les
+ * machines, et pour la même raison : *un client dont le code externe serait
+ * littéralement « Garage Dupont » ne doit pas se confondre avec le client
+ * nommé « Garage Dupont ».*
+ */
+export const PREFIXE_RAISON_SOCIALE = "NOM-";
+
+/**
+ * LA RAISON SOCIALE NORMALISÉE, au sens de RG-IMP-05.
+ *
+ * *La règle dit « normalisée » et ne dit pas comment.* Ce qui est fait ici est
+ * le minimum défendable, et il est écrit pour être relu : les accents sont
+ * rabattus, la casse est perdue, la ponctuation et les espaces multiples se
+ * réduisent à un espace simple. **Rien de plus.**
+ *
+ * Ce qui n'est PAS fait, et qui est écrit plutôt que tu : aucune forme
+ * juridique n'est retirée — « SARL Dupont » et « Dupont » restent deux clés
+ * distinctes. *Les rapprocher serait une ressemblance, et un rapprochement faux
+ * attribue les machines d'un client à un autre* (D29, et le motif de
+ * `lib/documents/propositions.ts` : on rapproche sur la CLÉ, jamais sur une
+ * ressemblance). La tolérance porte sur la GRAPHIE d'une clé, jamais sur la clé.
+ */
+export function normaliserRaisonSociale(brut: string): string {
+  return brut
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/** Ce qu'une ligne de client porte, du point de vue du rapprochement. */
+export type LigneDeClient = {
+  readonly codeExterne: string | undefined;
+  readonly raisonSociale: string | undefined;
+  /** Le rang tel qu'un humain le lit — la clé de dernier recours. */
+  readonly rang: number;
+};
+
+/**
+ * CE QU'UNE LIGNE DE CLIENT DÉSIGNE — **le code externe s'il existe, à défaut
+ * la raison sociale normalisée** (RG-IMP-05, amendée par D29).
+ *
+ * **Trois espaces DISJOINTS, comme pour les machines**, et la propriété se
+ * prouve plutôt qu'elle ne s'espère : un code nu, un nom préfixé `NOM-`, un
+ * rang préfixé `LIGNE-`. *Deux lignes muettes ne sont pas le même client.*
+ *
+ * **`complet` dit ici ce qu'il dit là-bas** : la fiche est-elle identifiée par
+ * ce qui l'identifie vraiment ? Un code externe est complet ; une raison
+ * sociale seule ne l'est pas — *D29 a retiré au code externe le pouvoir de
+ * rejeter la ligne, il ne lui a pas retiré celui de mieux l'identifier.*
+ *
+ * **CE QUE CETTE FONCTION NE FAIT PAS, et qui est dû** : RG-IMP-05 veut qu'*en
+ * cas d'ambiguïté, la ligne parte en rejet pour arbitrage humain plutôt qu'en
+ * création silencieuse d'un doublon*. L'ambiguïté est un fait du PARC — deux
+ * clients de même raison sociale normalisée —, et le contrôle ne reçoit
+ * aujourd'hui qu'un ensemble de clés, qui ne peut pas la porter. *La limite est
+ * écrite ici plutôt qu'oubliée ; la lever demande que le parc voyage autrement
+ * qu'en `Set<string>`, ce qui est un ticket et non une ligne.*
+ */
+export function cleDeClient(ligne: LigneDeClient): CleDeRapprochement {
+  const code = utile(ligne.codeExterne);
+  const raison = utile(ligne.raisonSociale);
+
+  if (code !== null) {
+    return { forme: "serie", cle: code, complet: true };
+  }
+
+  if (raison !== null) {
+    return {
+      forme: "reference",
+      cle: `${PREFIXE_RAISON_SOCIALE}${normaliserRaisonSociale(raison)}`,
+      complet: false,
+    };
+  }
+
+  return { forme: "rang", cle: `LIGNE-${ligne.rang}`, complet: false };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
  * 2. CE QU'UNE LIGNE EST — donnée, gabarit, ou vide
  * ──────────────────────────────────────────────────────────────────────── */
 

@@ -299,9 +299,26 @@ Version en cellule A1 (`CODIPLAN-<type>-v<n>`), en-têtes ligne 2, données lign
 *Acceptation :* les deux tables portent la forme « interne » et leur déclencheur d'audit ; un gabarit qui porterait une clé est refusé par la base, et un rejet sans motif aussi — dans les deux sens ; la chaîne traverse ; et le jumeau montre la fuite que la forme « société » ouvrirait.
 *Relu contre les sources citées le 11/09/2026 — empreinte `fee2009c`.*
 
+**L1-08f — LE RAPPROCHEMENT NE SAVAIT RAPPROCHER QUE DES MACHINES. [RG-IMP-05] [D29]**
+*File :* LIVRÉ
+**Mesuré le 11/09/2026 en préparant l'application**, sur un modèle « clients » écrit tel qu'on l'écrirait aujourd'hui, contre un parc qui connaissait **déjà** les deux codes :
+```
+clés rendues : LIGNE-3, LIGNE-4
+actions      : creation, creation
+créations    : 2 | modifications : 0
+```
+*Le contrôle calculait lui-même la clé des MACHINES — série, référence, rang — quel que soit le type d'import.* Un modèle qui n'a ni série ni référence tombait donc sur la clé de dernier recours, et **toutes ses lignes étaient des créations** : un second import du même fichier aurait créé 55 doublons sur l'onglet Clients, c'est-à-dire exactement ce que RG-IMP-05 interdit.
+**LA RÉPARATION : c'est le MODÈLE qui dit ce que la ligne désigne**, jamais le contrôle. `ModeleDImport.cle` est **obligatoire et sans défaut** — *un défaut ferait qu'un modèle qui oublie reçoit la clé des machines en silence, ce qui est la faute qu'on vient de retirer.* `colonneSerie` et `colonneReference` disparaissent du modèle : elles ne servaient qu'à cela.
+**La clé des machines n'a pas changé d'un caractère — elle a changé de MAIN.** *Les 111 scénarios du module passent inchangés, et c'est la meilleure preuve que le contrat visible n'a pas bougé.*
+**RG-IMP-05 est enfin implémentée** : code externe s'il existe, à défaut **raison sociale normalisée**. La normalisation porte sur la GRAPHIE — accents, casse, ponctuation, espaces — et sur **rien d'autre** : *« SARL Dupont » et « Dupont » restent deux clés distinctes, parce qu'un rapprochement faux attribue les machines d'un client à un autre et que plus personne ne saura qu'il était automatique.* Trois espaces disjoints, prouvés comme ceux des machines.
+**CE QUI RESTE DÛ, écrit plutôt qu'oublié :** RG-IMP-05 veut qu'*en cas d'ambiguïté, la ligne parte en rejet pour arbitrage humain*. L'ambiguïté est un fait du PARC — deux clients de même raison sociale normalisée —, et le contrôle ne reçoit qu'un `Set<string>`, qui ne peut pas la porter. *La lever demande que le parc voyage autrement, ce qui est un ticket et non une ligne.*
+*Acceptation :* un code déjà connu du parc devient une MODIFICATION ; un parc qui connaît le NOM rapproche aussi — l'inverse exact, sur la même feuille ; les trois espaces de clés sont disjoints ; et le modèle des machines rend exactement ce qu'il rendait.
+*Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
+
 **L1-08b** Le MOTEUR d'import — lecture du classeur, rapport, application, annulation. **[D15] [D31] [D54]**
 *File :* LIBRE
-**CE QUI RESTE, au 11/09/2026 :** l'**application** et l'**annulation partielle**. *Les tables qu'elles écrivent existent depuis L1-08e*, `valeurs_avant` comprise — la colonne que D15 exige pour restaurer, et qu'**aucun code ne remplit encore** : avant l'application, il n'y a rien à restaurer.
+**CE QUI RESTE, au 11/09/2026 :** l'**application** et l'**annulation partielle**. *Les tables qu'elles écrivent existent depuis L1-08e*, `valeurs_avant` comprise — la colonne que D15 exige pour restaurer, et qu'**aucun code ne remplit encore** : avant l'application, il n'y a rien à restaurer. *Et le rapprochement sait désormais rapprocher autre chose que des machines (L1-08f), ce qui était le mur devant l'application.*
+**CE QUI MANQUE ENCORE, mesuré le 11/09/2026 :** **aucun modèle d'import concret n'existe dans `lib/`** — `ModeleDImport` n'est qu'un type, et ses seuls exemplaires vivent dans des tests. *Les noms de colonnes du fichier réel ne sont pas dans le dépôt (I9), et les inventer ferait un gabarit que personne ne pourrait remplir.* C'est l'objet de **L1-09**, qui devient le prérequis de l'application.
 **CE QUI LE BLOQUAIT VRAIMENT A ÉTÉ RETIRÉ le 11/09/2026 par L1-08d** — le rapport retient désormais ses lignes. *Ce qui restait à construire n'était pas seulement l'application : c'était d'abord ce qu'elle appliquerait.*
 **CE QU'IL RESTE EXIGE UNE MIGRATION**, et donc un geste d'exploitation : `import_lot` et `import_lot_ligne` n'existent pas au schéma (mesuré le 11/09/2026). Une migration non appliquée fait rougir la veille nocturne — c'est l'incident du 10/09 —, et c'est la raison pour laquelle la file de nuit du 11/09 a pris les tickets d'écran avant celui-ci.
 ~~**BLOQUÉ sur un arbitrage**, et le blocage porte sur la liaison au classeur, pas sur le reste (question au registre du 08/09/2026).~~ **DÉBLOQUÉ le 10/09/2026 par D90** — la bibliothèque est `read-excel-file`, tranchée sur un vrai fichier d'Excel sous trois fuseaux. *La phrase est barrée et non effacée : ce qui a été décidé un jour se relit.*

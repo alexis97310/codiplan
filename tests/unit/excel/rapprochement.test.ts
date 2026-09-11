@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cleDeClient,
   cleDeRapprochement,
   lignesExpliquees,
   natureDeLigne,
+  PREFIXE_RAISON_SOCIALE,
   propositionVide,
   rattacherAuParc,
 } from "@/lib/excel/rapprochement";
@@ -213,5 +215,113 @@ describe("le décompte du rapport, et son TÉMOIN", () => {
     expect(
       lignesExpliquees({ ...base, nonRattachees: 7, incompletes: 3 }),
     ).toBe(10);
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+ * CE QU'UNE LIGNE DE CLIENT DÉSIGNE — RG-IMP-05 (L1-08f)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+describe("la clé d'une ligne de CLIENT", () => {
+  it("prend le CODE EXTERNE quand il existe — RG-IMP-05", () => {
+    const cle = cleDeClient({
+      codeExterne: "C001",
+      raisonSociale: "Garage Dupont",
+      rang: 3,
+    });
+    expect(cle.cle).toBe("C001");
+    // `complet` dit la même chose que sur une machine : la fiche est-elle
+    // identifiée par ce qui l'identifie vraiment ? Un code externe, oui.
+    expect(cle.complet).toBe(true);
+  });
+
+  it("retombe sur la RAISON SOCIALE NORMALISÉE — et D29 ne rejette plus", () => {
+    // D29 a retiré au code externe le pouvoir de REJETER la ligne ; il ne lui a
+    // pas retiré celui de mieux l'identifier. Sans code, la ligne entre quand
+    // même, et elle entre INCOMPLÈTE.
+    const cle = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: "  Garage   DUPONT  ",
+      rang: 3,
+    });
+    expect(cle.cle).toBe(`${PREFIXE_RAISON_SOCIALE}garage dupont`);
+    expect(cle.complet).toBe(false);
+  });
+
+  it("normalise la GRAPHIE, jamais la clé", () => {
+    // La tolérance porte sur la façon d'écrire un nom — accents, casse,
+    // ponctuation, espaces — et sur rien d'autre.
+    const graphies = [
+      "Garage Dupont",
+      "GARAGE DUPONT",
+      "garage  dupont",
+      "Garage-Dupont",
+      "Gàrage Dupont",
+    ];
+    const cles = new Set(
+      graphies.map(
+        (raison) =>
+          cleDeClient({
+            codeExterne: undefined,
+            raisonSociale: raison,
+            rang: 1,
+          }).cle,
+      ),
+    );
+    expect(cles.size).toBe(1);
+  });
+
+  it("NE RAPPROCHE PAS deux noms différents — et la forme juridique en est un", () => {
+    // Le cas qui doit rester DISTINCT pour sa propre raison (§9, 11/09). Une
+    // distance d'édition les rapprocherait ; un rapprochement faux attribue les
+    // machines d'un client à un autre, et plus personne ne saura qu'il était
+    // automatique.
+    const avec = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: "SARL Dupont",
+      rang: 1,
+    });
+    const sans = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: "Dupont",
+      rang: 1,
+    });
+    expect(avec.cle).not.toBe(sans.cle);
+  });
+
+  it("les TROIS espaces de clés sont DISJOINTS, et c'est prouvé", () => {
+    // Même propriété que pour les machines, et elle se prouve de la même
+    // façon : sur un jeu où les trois formes portent la MÊME valeur d'origine,
+    // les trois clés restent distinctes.
+    const code = cleDeClient({
+      codeExterne: "X9",
+      raisonSociale: undefined,
+      rang: 1,
+    });
+    const nom = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: "X9",
+      rang: 1,
+    });
+    const rang = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: undefined,
+      rang: 1,
+    });
+    expect(new Set([code.cle, nom.cle, rang.cle]).size).toBe(3);
+  });
+
+  it("deux lignes MUETTES ne sont pas le même client", () => {
+    const a = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: undefined,
+      rang: 7,
+    });
+    const b = cleDeClient({
+      codeExterne: undefined,
+      raisonSociale: undefined,
+      rang: 8,
+    });
+    expect(a.cle).not.toBe(b.cle);
   });
 });

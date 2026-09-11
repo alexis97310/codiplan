@@ -441,6 +441,24 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## Le rapprochement ne savait rapprocher que des MACHINES
+
+_Mesuré le 11/09/2026 (L1-08f)_, sur un modèle « clients » écrit tel qu'on l'écrirait aujourd'hui, contre un parc qui connaissait **déjà** les deux codes :
+
+```
+clés rendues : LIGNE-3, LIGNE-4
+actions      : creation, creation
+créations    : 2 | modifications : 0
+```
+
+Le contrôle calculait lui-même la clé des machines — série, référence, rang — **quel que soit le type d'import**. Un modèle sans série ni référence tombait donc sur la clé de dernier recours, et **toutes ses lignes étaient des créations** : un second import du même fichier aurait créé 55 doublons sur l'onglet Clients, c'est-à-dire ce que RG-IMP-05 interdit.
+
+**C'est désormais le MODÈLE qui dit ce qu'une ligne désigne**, jamais le contrôle. `ModeleDImport.cle` est **obligatoire et sans valeur par défaut** — _un défaut ferait qu'un modèle qui oublie reçoit la clé des machines en silence, ce qui est la faute qu'on vient de retirer._ La clé des machines n'a pas changé d'un caractère : **elle a changé de main**, et les 111 scénarios du module passent inchangés.
+
+**RG-IMP-05 est enfin implémentée** (`cleDeClient`) : code externe s'il existe, à défaut **raison sociale normalisée**. La normalisation porte sur la **graphie** — accents, casse, ponctuation, espaces — et sur rien d'autre : _« SARL Dupont » et « Dupont » restent deux clés distinctes, parce qu'un rapprochement faux attribue les machines d'un client à un autre et que plus personne ne saura qu'il était automatique._ Trois espaces disjoints, prouvés comme ceux des machines.
+
+**Ce qui reste dû, écrit plutôt qu'oublié :** RG-IMP-05 veut qu'en cas d'**ambiguïté** la ligne parte en rejet pour arbitrage humain. L'ambiguïté est un fait du **parc** — deux clients de même raison sociale normalisée —, et le contrôle ne reçoit qu'un `Set<string>`, qui ne peut pas la porter.
+
 ## Le lot d'import EXISTE DÈS LE CONTRÔLE, et il est fermé au portail
 
 `import_lot` et `import_lot_ligne` (L1-08e). **Le lot naît au contrôle, pas à l'application** : I6 veut qu'un import _« produise d'abord un rapport, puis attende une validation explicite »_, et **l'application ne peut appliquer que ce que le rapport a MONTRÉ** — sans quoi la validation porte sur un écran et l'écriture sur autre chose. Le chapitre 11 le disait depuis l'origine sans qu'on l'ait lu ainsi : `import_lot.statut` vaut `controle`, `applique` ou `annule`.
