@@ -766,16 +766,22 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* les deux écrans portent l'apparence du produit ; `/sante` continue de s'afficher avec une base injoignable, et son jumeau le prouve toujours.
 
 **R2-11 — LE NOM D'UN TECHNICIEN dans la grille. [D95]**
-*File :* BLOQUÉ — la table `technicien` du chapitre 11 n'existe pas, et la créer touche le modèle de données : c'est un arbitrage, pas un ticket d'écran.
+*File :* LIVRÉ
+**ET LE BLOCAGE ÉTAIT FAUX.** Il disait : *« la table `technicien` du chapitre 11 n'existe pas, et la créer touche le modèle de données »*. Aucune table n'a été créée, et aucun élargissement du cloisonnement n'a été nécessaire — **le droit existait depuis L1-02c, le 07/09/2026**, par la branche « rattachement » de `utilisateur_lecture`.
+*Mesuré le 11/09/2026 sous `codiplan_app`, avec trois témoins — rôle non privilégié, les deux drapeaux RLS actifs, zéro identité lue sans contexte :* **interne sous contexte société → 4 identités d'un seul tenant ; compte portail, même société, même instant → 0.**
+*C'est la maladie que le §6 nomme à propos du portail, prise par l'autre bout : ce qui manquait n'était pas un droit, c'était un APPELANT.* `lib/auth/annuaire.ts` est cet appelant, et il ne rend que le NOM.
+**Ce qui reste dû, et qui n'a PAS été fait :** la SPÉCIALITÉ d'un technicien — « compresseurs, ponts » chez Guérin — n'a de colonne nulle part, et son rattachement d'agence non plus. La grille les DÉRIVE de ses interventions. Le jour où une personne devra être rattachée à une agence sans y avoir travaillé, la question revient et c'est un arbitrage de schéma.
 **Déclencheur : immédiat pour la question, différé pour la construction.** La maquette écrit « D. Guérin · Ducos · Compresseurs, ponts ». La grille rend `Technicien 0192f0a0` — l'identifiant abrégé, exactement comme la charge par technicien depuis le 10/09.
 **Deux choses manquent, et elles ne se règlent pas au même endroit.** Le NOM : `utilisateur` porte la forme de politique « désignation », il ne se lit qu'en nommant sa ligne, une par une — lire quatre noms demanderait quatre lectures, et lire un planning entier en demanderait autant qu'il y a de techniciens. La SPÉCIALITÉ : aucune colonne ne la porte nulle part.
 *Acceptation :* l'arbitrage tranche d'où vient le nom d'un technicien dans un écran cloisonné — table `technicien` du chapitre 11, colonne recopiée, ou lecture par désignation en lot — avec le coût de chacune ; puis la grille l'affiche.
 
 **R2-12 — Les interventions de démonstration n'ont AUCUN technicien. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
 **Déclencheur : immédiat.** *Mesuré le 11/09/2026 sur une base fraîchement semée : les douze interventions de démonstration portent `technicien_id = NULL`.* La grille du planning affiche donc des lignes « Interventions non affectées », une par agence — ce qui est **exact** et ne montre pas ce que l'écran est fait pour montrer.
 **Ce n'est pas un défaut de la grille, et il ne se corrige pas dans la grille.** Le semis crée pourtant un technicien par société — `technicien.nc@codima.test`, `technicien.eu@codima.test` — et ne leur affecte rien.
-**Ce ticket n'a PAS été fait dans la passe de D95, délibérément** : modifier les données de démonstration pour flatter un écran qu'on vient d'écrire est le geste qu'il faut se refuser. Il se décide à froid.
+~~**Ce ticket n'a PAS été fait dans la passe de D95, délibérément** : modifier les données de démonstration pour flatter un écran qu'on vient d'écrire est le geste qu'il faut se refuser.~~ **LE REFUS ÉTAIT MAL FONDÉ, et l'exploitation l'a retourné le 11/09/2026** : *« Alexis a décidé le 09/09 que la démonstration doit présenter un planning GARNI, parce que c'est ce qui montre le multi-société à un acheteur. Ce n'est donc pas retoucher les données pour flatter un écran : c'est un défaut du semis vis-à-vis de sa raison d'être, antérieur à l'écran. »*
+*La leçon est celle du §9 du 13/09 prise dans l'autre sens : la mesure prime sur l'origine de la demande — y compris quand c'est MA prudence qui est mesurée fausse. Un refus se motive ; il se retire aussi quand le motif tombe.*
+**Ce qui a été fait, au-delà de l'affectation :** les quatre techniciens viennent de la MAQUETTE, qui les nomme et qui dit pourquoi ils sont quatre. Et les DATES sont devenues relatives à la semaine courante — le §9 du 21/08 sur les fériés, appliqué au jeu de démonstration : *une démonstration datée se périme sans jamais être vide.*
 *Acceptation :* le semis affecte une partie des interventions de démonstration aux techniciens qu'il crée déjà, et en laisse au moins une non affectée — la ligne « non affectées » est un cas réel du produit, elle doit rester démontrable ; aucun technicien n'est inventé.
 
 **R2-13 — Le « Tableau de bord », premier écran de la maquette. [D95]**
@@ -783,3 +789,23 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Écran de la maquette : « Tableau de bord »** — quatre indicateurs, interventions du jour, alertes.
 **C'est la PREMIÈRE entrée de la barre, et elle est inerte.** Elle le restera visiblement jusqu'à ce lot, et c'est voulu : une entrée inerte dit ce que le produit sera, un lien vers un écran vide dirait qu'il est cassé.
 *Acceptation :* hors périmètre tant que les indicateurs n'ont pas de source. Le ticket existe pour que l'entrée inerte de la barre ait un ticket, et non une promesse.
+
+**R2-14 — La VUE JOUR du planning, à axe horaire. [demande d'exploitation du 11/09/2026]**
+*File :* LIVRÉ
+**Écran de la maquette : AUCUN** — elle ne décrit qu'un planning hebdomadaire. C'est donc un écran NOUVEAU, et le ticket existe pour dire d'où il vient et à quoi il se juge.
+**Son objet, et le seul critère qui le juge :** *« montrer les trous — un créneau libre doit se distinguer au premier coup d'œil d'un créneau occupé, sinon l'écran ne sert à rien. »* Le compte des créneaux libres est donc affiché à l'écran et rendu par le module : *« on voit bien les trous » est une impression, pas une observation.*
+**Trois états, jamais deux** — occupé, libre, hors ouverture. Le troisième n'est pas un confort : sans lui, 07:00 chez une agence qui ouvre à 09:00 se lirait comme un trou à remplir, et l'écran ferait promettre un rendez-vous intenable.
+**Mesuré le 11/09/2026, à 1700 px : 25 créneaux libres, les 25 visibles sans défiler.**
+*Ce qui reste dû :* aucune pose n'est possible depuis cet écran — il MONTRE, il ne pose pas. Le glisser-déposer est au lot 3.
+
+**R2-15 — UNE TRAME VEUT DIRE UNE SEULE CHOSE. [règle rendue le 11/09/2026]**
+*File :* LIVRÉ
+**C'est une règle générale, rendue à l'occasion des couleurs de statut et inscrite ici pour qu'elle survive au ticket qui l'a fait naître.** L'annexe D demande « orange hachuré » pour une intervention suspendue ; la maquette réserve sa hachure au SITE FERMÉ. Sur l'écran qui sert à poser un rendez-vous, confondre « suspendu » et « fermé » serait un piège à erreur.
+**La hachure dit « ce jour n'est pas ouvert », et rien d'autre, nulle part.** La vue jour, qui avait besoin d'un troisième état, emploie donc un aplat creux et non une trame.
+*Acceptation :* tenue par `lib/theme/statuts.ts` et par `lib/interventions/journee.ts`, qui l'écrivent tous deux. *Ce qu'aucun gardien ne tient : rien n'empêche un écran futur d'inventer une seconde trame. La règle vit à la relecture, et elle est écrite là où on la cherchera.*
+
+**R2-16 — La barre de navigation ne doit pas coiffer les écrans SANS SESSION. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat.** La barre est du chrome de mise en page racine, donc elle s'affiche AUSSI sur `/connexion`, `/premier-acces`, `/enrolement` et `/sante`. *Onze entrées dont dix inertes au-dessus d'un formulaire de connexion ne disent rien à personne, et la pastille d'identité y est vide par construction.*
+**Ce n'est pas un défaut de sécurité** — la barre n'a jamais été un contrôle d'accès, et `lib/navigation/entrees.ts` l'écrit. C'est un défaut de lecture.
+*Acceptation :* les écrans qui précèdent la session ne portent pas la barre ; la règle est portée par la mise en page du segment et non par une liste de chemins tenue à la main — une liste oublierait le prochain écran d'authentification. C'est la moitié de R2-09 qui est mesurée plutôt que supposée.
