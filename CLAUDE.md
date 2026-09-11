@@ -653,6 +653,15 @@ lib/
               métier là où personne ne la relit
               controle.ts : le RAPPORT de I6, la moitié « d'abord » — il n'écrit
               rien, ne connaît aucune base, et ne sait pas appliquer
+              mais il RETIENT ce qu'il décide (L1-08d) : une ligne par ligne
+              lue, son action et ses valeurs — l'application ne peut appliquer
+              que ce que le rapport a MONTRÉ, et un rapport qui ne retient rien
+              ne fait rien appliquer
+              les décomptes sont DÉRIVÉS des lignes, jamais comptés à côté :
+              décider deux fois la même chose est la divergence du §9 (01/09)
+              un gabarit et une ligne vide ne portent AUCUNE clé — leur en
+              inventer une les ferait entrer dans l'espace des clés réelles, où
+              deux lignes muettes deviendraient la même machine
               les trois refus PRÉCÈDENT toute ligne et ne comptent RIEN : un
               rapport qui proposerait des créations sous une colonne obligatoire
               absente proposerait d'écrire des fiches amputées

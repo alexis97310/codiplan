@@ -408,3 +408,36 @@ des écrans de travail, et le ticket le disait avant la mesure.
 **Ce que R2-10 ne touche pas** : `/sante` ne lit rien de plus. Son jumeau —
 *elle s'affiche avec une base injoignable* — reste vert, et la mise en page de
 son segment ne lit rien non plus, délibérément.
+
+---
+
+## 7 — L1-08d : le mur devant le moteur d'import, et il n'était écrit nulle part
+
+**J'ai pris `L1-08b`, que `pnpm file` nomme en tête, et je suis tombé sur autre
+chose.** Mesuré en lisant le module : `controlerFeuille` décide ligne à ligne —
+nature, clé, création ou modification — puis **jette tout** et ne rend que des
+décomptes.
+
+Or I6 veut qu'un import produise d'abord un rapport, **puis** attende une
+validation explicite. *L'application ne peut appliquer que ce que le rapport a
+MONTRÉ* — sans quoi la validation porte sur un écran et l'écriture sur autre
+chose. Un rapport qui ne retient rien ne peut donc rien faire appliquer.
+
+**Le chapitre 11 le disait par la bande, et personne ne l'avait lu ainsi** :
+`import_lot.statut` vaut `controle`, `applique` ou `annule` — **le lot existe dès
+le contrôle**. C'est la réponse à la question que je me posais : où vit ce qui
+sera appliqué, entre le rapport et l'application ? En base, dès le contrôle.
+
+**Ce qui a été livré retire une divergence plutôt que d'en ajouter une.** Les
+décomptes étaient incrémentés **à côté** des décisions, dans la même boucle :
+deux lectures d'un même critère (§9, 01/09). Ils sont désormais **dérivés** des
+lignes retenues. *Un décompte qui ne peut plus contredire ce qu'il compte n'est
+plus un décompte à surveiller.*
+
+Les 106 scénarios existants du module passent **inchangés** — c'est la meilleure
+preuve que le contrat visible n'a pas bougé.
+
+**Ce qui reste de L1-08b exige une migration**, et donc un geste : `import_lot`
+et `import_lot_ligne` n'existent pas au schéma. C'est la raison pour laquelle la
+file de cette nuit a pris les tickets d'écran d'abord — *une migration non
+appliquée fait rougir la veille nocturne, et Alexis n'est pas devant son poste.*

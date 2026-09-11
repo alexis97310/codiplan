@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { type FeuilleLue } from "@/lib/excel/classeur";
-import { controlerFeuille, type ModeleDImport } from "@/lib/excel/controle";
+import {
+  controlerFeuille,
+  proposerDepuisLesLignes,
+  type ModeleDImport,
+} from "@/lib/excel/controle";
 import { lignesExpliquees } from "@/lib/excel/rapprochement";
 
 /**
@@ -203,5 +207,102 @@ describe("une feuille SANS ligne de données se rapporte, elle ne casse pas", ()
     // est rendu à côté.
     expect(controle.totalExplique).toBe(true);
     expect(controle.proposition.creations).toBe(0);
+  });
+});
+
+describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
+  /*
+   * *Mesuré le 11/09/2026 : le contrôle décidait ligne à ligne — nature, clé,
+   * création ou modification — puis jetait tout et ne rendait que des
+   * décomptes.* I6 veut qu'un import produise d'abord un rapport, puis attende
+   * une validation explicite : **l'application ne peut appliquer que ce que le
+   * rapport a montré**, et un rapport qui ne retient rien ne peut rien faire
+   * appliquer. C'était le mur devant L1-08b, et il n'était écrit nulle part.
+   */
+  const FEUILLE = feuille("CODIPLAN-machines-v1", ENTETES, [
+    ["SN-EXISTANT", undefined, "Atlas"],
+    ["SN-NOUVEAU", undefined, "Kaeser"],
+    [undefined, undefined, undefined],
+    [undefined, undefined, "Marque sans identifiant"],
+  ]);
+
+  it("retient UNE ligne par ligne lue, dans l'ordre du fichier", () => {
+    const controle = controlerFeuille(
+      FEUILLE,
+      MODELE,
+      new Set(["SN-EXISTANT"]),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+
+    // Le témoin : autant de lignes retenues que de lignes lues. Sans lui, un
+    // rapport qui perdrait une ligne en silence passerait pour complet.
+    expect(controle.lignes).toHaveLength(controle.lignesLues);
+    expect(controle.lignes.map((l) => l.rang)).toEqual([3, 4, 5, 6]);
+  });
+
+  it("nomme l'action de chaque ligne, et la clé de celles qui désignent", () => {
+    const controle = controlerFeuille(
+      FEUILLE,
+      MODELE,
+      new Set(["SN-EXISTANT"]),
+    );
+    if (!controle.lisible) throw new Error("feuille jugée illisible");
+
+    expect(controle.lignes.map((l) => l.action)).toEqual([
+      "modification",
+      "creation",
+      "vide",
+      "gabarit",
+    ]);
+    // *Un gabarit et une ligne vide ne DÉSIGNENT rien* : leur inventer une clé
+    // les ferait entrer dans l'espace des clés réelles, où deux lignes muettes
+    // deviendraient la même machine.
+    expect(controle.lignes[2]?.cle).toBeUndefined();
+    expect(controle.lignes[3]?.cle).toBeUndefined();
+    expect(controle.lignes[0]?.cle?.cle).toBe("SN-EXISTANT");
+  });
+
+  it("porte les VALEURS de chaque ligne — c'est ce que l'application écrira", () => {
+    const controle = controlerFeuille(FEUILLE, MODELE, new Set());
+    if (!controle.lisible) throw new Error("feuille jugée illisible");
+
+    expect(controle.lignes[1]?.valeurs).toEqual({
+      "Numéro de série": "SN-NOUVEAU",
+      "Référence interne": undefined,
+      Marque: "Kaeser",
+    });
+  });
+
+  it("les DÉCOMPTES sont dérivés des lignes, ils ne sont plus comptés à côté", () => {
+    // C'est la divergence que ce ticket RETIRE : décider deux fois la même
+    // chose, une fois pour la ligne et une fois pour le compteur (§9, 01/09).
+    const controle = controlerFeuille(
+      FEUILLE,
+      MODELE,
+      new Set(["SN-EXISTANT"]),
+    );
+    if (!controle.lisible) throw new Error("feuille jugée illisible");
+
+    expect(controle.proposition).toEqual(
+      proposerDepuisLesLignes(controle.lignes),
+    );
+    expect(lignesExpliquees(controle.proposition)).toBe(controle.lignesLues);
+  });
+
+  it("et la dérivation N'EST PAS VIDE — le cas qui doit rester vert pour sa propre raison", () => {
+    // Deux décomptes tous nuls seraient égaux sans rien prouver : zéro contre
+    // zéro n'est pas un résultat (§9, 10/09).
+    const controle = controlerFeuille(
+      FEUILLE,
+      MODELE,
+      new Set(["SN-EXISTANT"]),
+    );
+    if (!controle.lisible) throw new Error("feuille jugée illisible");
+
+    expect(controle.proposition.creations).toBe(1);
+    expect(controle.proposition.modifications).toBe(1);
+    expect(controle.proposition.gabarits).toBe(1);
+    expect(controle.proposition.vides).toBe(1);
   });
 });

@@ -11,6 +11,7 @@ import {
 } from "./format";
 import {
   cleDeRapprochement,
+  type CleDeRapprochement,
   lignesExpliquees,
   natureDeLigne,
   propositionVide,
@@ -89,6 +90,81 @@ export type AnomalieSituee = Anomalie & {
   readonly colonne?: string;
 };
 
+/**
+ * CE QU'UNE LIGNE DE DONNÉES A ÉTÉ DÉCIDÉE — et ce que le rapport RETIENT.
+ *
+ * ## Pourquoi cela n'existait pas, et ce que cela coûtait
+ *
+ * *Mesuré le 11/09/2026 : le contrôle décidait ligne à ligne — nature, clé,
+ * création ou modification — puis **jetait tout** et ne rendait que des
+ * décomptes.* I6 veut qu'un import « produise d'abord un rapport, puis attende
+ * une validation explicite » : **l'application ne peut appliquer que ce que le
+ * rapport a montré**, et un rapport qui ne retient rien ne peut rien faire
+ * appliquer. Le chapitre 11 le dit d'ailleurs par la bande — `import_lot.statut`
+ * vaut `controle`, `applique` ou `annule` : le lot EXISTE dès le contrôle.
+ *
+ * ## Et cela retire une divergence plutôt que d'en ajouter une
+ *
+ * Les décomptes étaient incrémentés **à côté** des décisions, dans la même
+ * boucle : deux lectures d'un même critère, qui divergent en silence (§9,
+ * 01/09). Ils sont désormais **DÉRIVÉS** des lignes retenues — la décision est
+ * prise une fois, et le rapport la compte. *Un décompte qui ne peut plus
+ * contredire ce qu'il compte n'est plus un décompte à surveiller.*
+ */
+export type LigneControlee = {
+  /** Le rang tel qu'un humain le lit (1 = première ligne de la feuille). */
+  readonly rang: number;
+  readonly nature: NatureDeLigne;
+  /**
+   * Ce que la ligne DÉSIGNE, quand elle désigne quelque chose. Absente pour un
+   * gabarit et pour une ligne vide : *ils ne désignent rien, et leur inventer
+   * une clé les ferait entrer dans l'espace des clés réelles.*
+   */
+  readonly cle?: CleDeRapprochement;
+  /** Ce que l'application fera de cette ligne — le mot du chapitre 11. */
+  readonly action: "creation" | "modification" | "gabarit" | "vide";
+  /**
+   * La ligne, colonne par colonne, telle qu'elle a été lue. **C'est ce que
+   * l'application écrira**, et c'est aussi ce qu'un rapport annoté doit pouvoir
+   * remontrer (RG-IMP-03).
+   */
+  readonly valeurs: Readonly<Record<string, string | undefined>>;
+};
+
+/** Les décomptes, DÉRIVÉS des lignes retenues — jamais comptés à côté d'elles. */
+export function proposerDepuisLesLignes(
+  lignes: readonly LigneControlee[],
+): Proposition {
+  let proposition = propositionVide();
+  for (const ligne of lignes) {
+    switch (ligne.action) {
+      case "vide":
+        proposition = { ...proposition, vides: proposition.vides + 1 };
+        break;
+      case "gabarit":
+        // **Comptées et NON rejetées.** 652 lignes pour 55 codes réels sur
+        // l'onglet Clients : les rejeter ferait 597 erreurs sur un fichier sain.
+        proposition = { ...proposition, gabarits: proposition.gabarits + 1 };
+        break;
+      default:
+        proposition = {
+          ...proposition,
+          creations:
+            proposition.creations + (ligne.action === "creation" ? 1 : 0),
+          modifications:
+            proposition.modifications +
+            (ligne.action === "modification" ? 1 : 0),
+          // **`incompletes` QUALIFIE une ligne déjà comptée** — elle ne s'ajoute
+          // pas au total. Les additionner ferait un total supérieur au fichier,
+          // et le témoin dirait faux dans le sens rassurant.
+          incompletes:
+            proposition.incompletes + (ligne.cle?.complet === false ? 1 : 0),
+        };
+    }
+  }
+  return proposition;
+}
+
 /** Ce que le contrôle rend, et il rend TOUJOURS l'une des deux formes. */
 export type Controle =
   | {
@@ -99,6 +175,12 @@ export type Controle =
   | {
       readonly lisible: true;
       readonly proposition: Proposition;
+      /**
+       * LES LIGNES RETENUES, dans l'ordre du fichier. C'est ce que
+       * l'application appliquera : *elle ne peut appliquer que ce que le
+       * rapport a montré* (I6).
+       */
+      readonly lignes: readonly LigneControlee[];
       /** Les colonnes du fichier que le modèle ignore — AVERTISSEMENT (D31). */
       readonly inconnues: readonly string[];
       readonly anomalies: readonly AnomalieSituee[];
@@ -193,30 +275,24 @@ export function controlerFeuille(
   }
 
   // ── 3. LES LIGNES ────────────────────────────────────────────────────────
-  let proposition = propositionVide();
-  let lignesLues = 0;
+  //
+  // La décision est prise UNE FOIS et RETENUE ; les décomptes en sont dérivés.
+  // *Les incrémenter à côté serait une seconde lecture d'un même critère.*
+  const lignes: LigneControlee[] = [];
 
   for (
     let rang = PREMIERE_LIGNE_DONNEES;
     rang < feuille.lignes.length;
     rang += 1
   ) {
-    lignesLues += 1;
     const cellules = feuille.lignes[rang] ?? [];
-    const dictionnaire = enDictionnaire(cellules, appariement);
-    const nature: NatureDeLigne = natureDeLigne(
-      dictionnaire,
-      modele.identifiantes,
-    );
+    const valeurs = enDictionnaire(cellules, appariement);
+    const nature: NatureDeLigne = natureDeLigne(valeurs, modele.identifiantes);
 
-    if (nature === "vide") {
-      proposition = { ...proposition, vides: proposition.vides + 1 };
-      continue;
-    }
-    if (nature === "gabarit") {
-      // **Comptées et NON rejetées.** 652 lignes pour 55 codes réels sur
-      // l'onglet Clients : les rejeter ferait 597 erreurs sur un fichier sain.
-      proposition = { ...proposition, gabarits: proposition.gabarits + 1 };
+    if (nature === "vide" || nature === "gabarit") {
+      // Ni l'une ni l'autre ne DÉSIGNE quoi que ce soit : leur inventer une clé
+      // les ferait entrer dans l'espace des clés réelles.
+      lignes.push({ rang: rang + 1, nature, action: nature, valeurs });
       continue;
     }
 
@@ -224,36 +300,39 @@ export function controlerFeuille(
       numeroSerie:
         modele.colonneSerie === undefined
           ? undefined
-          : dictionnaire[modele.colonneSerie],
+          : valeurs[modele.colonneSerie],
       reference:
         modele.colonneReference === undefined
           ? undefined
-          : dictionnaire[modele.colonneReference],
+          : valeurs[modele.colonneReference],
       // Le rang tel qu'un humain le lit : c'est ce que la clé de dernier
       // recours porte, et il doit désigner la même ligne dans le rapport.
       rang: rang + 1,
     };
     const cle = cleDeRapprochement(ligneDeParc);
 
-    const connue = clesDuParc.has(cle.cle);
-    proposition = {
-      ...proposition,
-      creations: proposition.creations + (connue ? 0 : 1),
-      modifications: proposition.modifications + (connue ? 1 : 0),
-      // **`incompletes` QUALIFIE une ligne déjà comptée** — elle ne s'ajoute
-      // pas au total. Les additionner ferait un total supérieur au fichier, et
-      // le témoin dirait faux dans le sens rassurant.
-      incompletes: proposition.incompletes + (cle.complet ? 0 : 1),
-    };
+    lignes.push({
+      rang: rang + 1,
+      nature,
+      cle,
+      action: clesDuParc.has(cle.cle) ? "modification" : "creation",
+      valeurs,
+    });
   }
 
+  const proposition = proposerDepuisLesLignes(lignes);
   return {
     lisible: true,
     proposition,
+    lignes,
     inconnues: appariement.inconnues,
     anomalies,
-    lignesLues,
-    totalExplique: lignesExpliquees(proposition) === lignesLues,
+    // *Les lignes RETENUES sont les lignes LUES* : la boucle en pousse une par
+    // rang parcouru, gabarits et vides compris. Le témoin ci-dessous cesse donc
+    // de pouvoir mentir par omission — il ne peut plus rougir que si les
+    // décomptes s'écartent des lignes, ce qui est le défaut qu'il surveille.
+    lignesLues: lignes.length,
+    totalExplique: lignesExpliquees(proposition) === lignes.length,
   };
 }
 
