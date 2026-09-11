@@ -31,8 +31,16 @@ import type { StatutIntervention } from "@prisma/client";
  */
 export function Statistiques({
   lignes,
+  nomDe,
 }: {
   lignes: readonly LigneOccupation[];
+  /**
+   * Le nom d'une personne, lu sous le contexte cloisonné par l'appelant
+   * (R2-11). Il n'est pas lu ici : un composant qui ouvrirait sa propre lecture
+   * ferait un second endroit où le cloisonnement se décide, et les deux
+   * finiraient par ne plus lire la même chose (§9, 01/09).
+   */
+  nomDe?: (id: string) => string | null;
 }) {
   if (lignes.length === 0) {
     return null;
@@ -52,7 +60,7 @@ export function Statistiques({
             key={`${ligne.technicienId ?? "-"}|${ligne.agenceId}`}
             className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3"
           >
-            <Entete ligne={ligne} />
+            <Entete ligne={ligne} nomDe={nomDe} />
             <Barre occupation={ligne.occupation} />
             <Chiffres occupation={ligne.occupation} />
           </li>
@@ -67,13 +75,20 @@ export function Statistiques({
  * littéral n'y est pas admis (L0-11), et pour la même raison — ce qui se lit à
  * l'écran vient du dictionnaire, pas de la balise.
  */
-function quiTravaille(ligne: LigneOccupation): string {
+function quiTravaille(
+  ligne: LigneOccupation,
+  nomDe?: (id: string) => string | null,
+): string {
   if (ligne.technicienId === null) {
     return t("statistiques.non_affectees");
   }
-  // L'identifiant abrégé tient lieu de nom : la table `technicien` du chapitre
-  // 11 n'existe pas encore, et inventer un libellé serait inventer une donnée.
-  return `${t("statistiques.technicien")} ${ligne.technicienId.slice(0, 8)}`;
+  // LE NOM, DEPUIS R2-11 — et l'identifiant abrégé en repli. Une identité que
+  // la politique refuse ne rend pas de nom : l'écran affiche alors ce qu'il
+  // sait, jamais un nom qu'il n'a pas le droit de connaître.
+  return (
+    nomDe?.(ligne.technicienId) ??
+    `${t("statistiques.technicien")} ${ligne.technicienId.slice(0, 8)}`
+  );
 }
 
 function ouTravaille(ligne: LigneOccupation): string {
@@ -123,10 +138,16 @@ function combienSansDuree(occupation: OccupationTechnicien): string {
   return `${occupation.sansDuree} ${mot}`;
 }
 
-function Entete({ ligne }: { ligne: LigneOccupation }) {
+function Entete({
+  ligne,
+  nomDe,
+}: {
+  ligne: LigneOccupation;
+  nomDe?: (id: string) => string | null;
+}) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-      <span className="font-medium">{quiTravaille(ligne)}</span>
+      <span className="font-medium">{quiTravaille(ligne, nomDe)}</span>
       <span className="text-muted-foreground text-xs">
         {ouTravaille(ligne)}
       </span>

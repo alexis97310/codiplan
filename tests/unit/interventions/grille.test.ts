@@ -84,9 +84,12 @@ describe("le rangement en lignes et en cases", () => {
     expect(grille[0].total).toBe(2);
   });
 
-  it("LA MAILLE EST LE COUPLE (technicien, agence) — un technicien, deux lignes", () => {
-    // C'est I7 qui l'impose : le calendrier appartient à l'agence, donc un
-    // technicien qui intervient pour deux agences n'a pas UN samedi mais deux.
+  it("LA MAILLE EST LA PERSONNE — un technicien, DEUX agences, UNE ligne", () => {
+    // Elle était le couple (technicien, agence), et une personne servant Ducos
+    // et Koné occupait deux lignes. L'exploitation en veut une : un
+    // planificateur cherche « où en est Guérin », pas « où en est Guérin à
+    // Ducos ». Les deux agences sont NOMMÉES sur la ligne, aucune n'est
+    // choisie.
     const grille = construireGrille(
       [
         intervention({ id: "a", technicien_id: "t1", agence_id: DUCOS.id }),
@@ -96,11 +99,52 @@ describe("le rangement en lignes et en cases", () => {
       [DUCOS, KONE],
     );
 
-    expect(grille).toHaveLength(2);
-    expect(grille.map((l) => l.agenceLibelle).sort()).toEqual([
-      "Ducos",
-      "Koné",
-    ]);
+    expect(grille).toHaveLength(1);
+    expect(grille[0].agences.map((a) => a.libelle)).toEqual(["Ducos", "Koné"]);
+  });
+
+  it("UN JOUR EST OUVERT SI UNE AGENCE OUVRE, fermé si TOUTES ferment", () => {
+    // La règle rendue le 11/09/2026. Le samedi : Ducos ouvre, Koné non.
+    // La personne qui sert les deux voit son samedi OUVERT ; celle qui ne sert
+    // que Koné le voit FERMÉ. Le témoin est la paire — un seul des deux ne
+    // prouverait pas que l'union est calculée, il prouverait qu'une valeur est
+    // recopiée.
+    const grille = construireGrille(
+      [
+        intervention({ id: "a", technicien_id: "deux", agence_id: DUCOS.id }),
+        intervention({ id: "b", technicien_id: "deux", agence_id: KONE.id }),
+        intervention({ id: "c", technicien_id: "kone", agence_id: KONE.id }),
+      ],
+      SEMAINE,
+      [DUCOS, KONE],
+    );
+
+    const deux = grille.find((l) => l.technicienId === "deux")!;
+    const kone = grille.find((l) => l.technicienId === "kone")!;
+    expect(deux.cases[5].ouverte).toBe(true);
+    expect(kone.cases[5].ouverte).toBe(false);
+    // Et le lundi est ouvert des deux côtés : sans cela, « fermé » pourrait
+    // n'être que « rien n'est jamais ouvert ».
+    expect(deux.cases[0].ouverte).toBe(true);
+    expect(kone.cases[0].ouverte).toBe(true);
+  });
+
+  it("une agence SANS calendrier n'éteint pas la semaine d'une personne qui travaille ailleurs", () => {
+    // L'ordre des trois cas n'est pas indifférent : « inconnu » ne doit jamais
+    // l'emporter sur un « ouvert » connu.
+    const grille = construireGrille(
+      [
+        intervention({ id: "a", technicien_id: "t1", agence_id: DUCOS.id }),
+        intervention({
+          id: "b",
+          technicien_id: "t1",
+          agence_id: SANS_CALENDRIER.id,
+        }),
+      ],
+      SEMAINE,
+      [DUCOS, SANS_CALENDRIER],
+    );
+    expect(grille[0].cases[5].ouverte).toBe(true);
   });
 
   it("le samedi de Koné est FERMÉ, celui de Ducos est OUVERT — sur les mêmes données", () => {
@@ -115,8 +159,8 @@ describe("le rangement en lignes et en cases", () => {
       [DUCOS, KONE],
     );
 
-    const ducos = grille.find((l) => l.agenceId === DUCOS.id)!;
-    const kone = grille.find((l) => l.agenceId === KONE.id)!;
+    const ducos = grille.find((l) => l.technicienId === "t1")!;
+    const kone = grille.find((l) => l.technicienId === "t2")!;
     expect(ducos.cases[5].ouverte).toBe(true);
     expect(kone.cases[5].ouverte).toBe(false);
     // Et le lundi est ouvert des deux côtés : sans cela, « fermé » pourrait
@@ -231,8 +275,12 @@ describe("le rangement en lignes et en cases", () => {
       SEMAINE,
       [DUCOS],
     );
-    expect(grille[0].agenceLibelle).toBe("ag-absente");
+    // Une agence que la grille ne connaît pas ne rend aucun libellé — et la
+    // ligne existe quand même, avec ses interventions. L'inverse ferait
+    // disparaître du travail parce qu'on n'a pas son établissement.
+    expect(grille[0].agences).toEqual([]);
     expect(grille[0].cases[0].ouverte).toBeNull();
+    expect(grille[0].total).toBe(1);
   });
 
   it("sans aucune intervention, la grille est vide — et pas une ligne fantôme", () => {

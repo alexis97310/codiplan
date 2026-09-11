@@ -589,6 +589,18 @@ export const fr = {
   // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
   // familles de couleur, pas des statuts un à un : huit statuts, cinq
   // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).
+  // ── LES DEUX VUES DU PLANNING (11/09/2026) ───────────────────────────────
+  "planning.vue_semaine": "Semaine",
+  "planning.vue_jour": "Jour",
+  "planning.jour_avant": "← Jour précédent",
+  "planning.jour_apres": "Jour suivant →",
+  "planning.colonne_heure": "Heure",
+  "planning.jour_vide": "Aucune intervention posée ce jour-là.",
+  "planning.creneaux_libres": "créneaux libres",
+  "planning.pas": "pas de",
+  "planning.jour_occupe": "Occupé",
+  "planning.jour_libre": "Libre",
+  "planning.jour_hors_ouverture": "Hors ouverture",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",
