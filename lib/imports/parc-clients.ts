@@ -73,31 +73,55 @@ export async function indexerLeParcClients(
   const fiches = new Map<string, string>();
   const ambigues = new Set<string>();
 
-  for (const fiche of fichesLues) {
-    // Le rang est SANS OBJET ici — une fiche en base n'a pas de rang dans un
-    // fichier —, et il ne peut jamais servir : une fiche porte toujours une
-    // raison sociale, `client.raison_sociale` étant NOT NULL. La clé de
-    // dernier recours est donc inatteignable par ce chemin, et c'est écrit
-    // plutôt que supposé.
-    const cle = cleDeClient({
-      codeExterne: fiche.code_externe ?? undefined,
-      raisonSociale: fiche.raison_sociale,
-      rang: 0,
-    }).cle;
+  /** Pose une clé, ou la déclare ambiguë si une autre fiche la porte déjà. */
+  const poser = (cle: string, ficheId: string): void => {
+    if (ambigues.has(cle)) return;
+    const deja = fiches.get(cle);
+    if (deja === undefined) {
+      fiches.set(cle, ficheId);
+      return;
+    }
+    if (deja === ficheId) return;
+    // LA COLLISION. La première fiche est RETIRÉE de l'index en même temps que
+    // la seconde n'y entre pas : *laisser la première ferait que la ligne
+    // écrase celle-là plutôt que l'autre, c'est-à-dire un choix au hasard rendu
+    // stable par l'ordre de lecture.*
+    fiches.delete(cle);
+    ambigues.add(cle);
+  };
 
-    if (fiches.has(cle)) {
-      // LA COLLISION. La première fiche est RETIRÉE de l'index en même temps
-      // que la seconde n'y entre pas : *laisser la première ferait que la
-      // ligne écrase celle-là plutôt que l'autre, c'est-à-dire un choix au
-      // hasard rendu stable par l'ordre de lecture.*
-      fiches.delete(cle);
-      ambigues.add(cle);
-      continue;
+  for (const fiche of fichesLues) {
+    // **CHAQUE FICHE ENTRE SOUS SES DEUX CLÉS, et c'est RG-IMP-05 lue
+    // exactement** : *« le rapprochement se fait sur le code externe s'il
+    // existe, à défaut sur la raison sociale normalisée ».* Le « s'il existe »
+    // porte sur la LIGNE DU FICHIER, pas sur la fiche — une ligne sans code
+    // doit pouvoir rapprocher une fiche qui en a un, sinon l'import crée un
+    // doublon à chaque fichier dont la colonne « Code externe » est vide.
+    //
+    // *Mesuré : avec une seule clé par fiche, une ligne désignant « Client A1 »
+    // par son nom proposait une CRÉATION alors que la fiche existait.*
+    //
+    // Le rang est SANS OBJET — une fiche en base n'a pas de rang dans un
+    // fichier —, et il ne peut jamais servir : `client.raison_sociale` étant
+    // NOT NULL, la clé de dernier recours est inatteignable par ce chemin.
+    if (fiche.code_externe !== null) {
+      poser(
+        cleDeClient({
+          codeExterne: fiche.code_externe,
+          raisonSociale: undefined,
+          rang: 0,
+        }).cle,
+        fiche.id,
+      );
     }
-    if (ambigues.has(cle)) {
-      continue;
-    }
-    fiches.set(cle, fiche.id);
+    poser(
+      cleDeClient({
+        codeExterne: undefined,
+        raisonSociale: fiche.raison_sociale,
+        rang: 0,
+      }).cle,
+      fiche.id,
+    );
   }
 
   return {

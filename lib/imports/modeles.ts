@@ -1,4 +1,11 @@
 import { schemaCreationClient } from "@/lib/clients/saisie";
+import { schemaCreationContact } from "@/lib/contacts/saisie";
+import {
+  cleDeClient,
+  normaliserRaisonSociale,
+} from "@/lib/excel/rapprochement";
+
+import { type ParcClientsIndexe } from "./parc-clients";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
 
 /**
@@ -163,4 +170,171 @@ export const MODELE_CLIENTS: ModeleDImport = {
  */
 export function marqueurDu(modele: ModeleDImport): string {
   return `CODIPLAN-${modele.type}-v${modele.version}`;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « CONTACTS » — et le premier qui DÉSIGNE UN PARENT (L1-09b)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE MOTIF DE REJET D'UNE RÉFÉRENCE QUI NE DÉSIGNE RIEN.
+ *
+ * *Distinct de `MOTIF_SAISIE_REFUSEE`, et c'est ce qui le rend utile* : une
+ * saisie refusée se corrige dans le FICHIER, un client introuvable se corrige
+ * dans le PARC — ou dans la colonne qui le nomme. **Rendre le même code ferait
+ * chercher au mauvais endroit**, ce qui est le motif pour lequel l'ambiguïté
+ * passe avant la saisie.
+ */
+export const MOTIF_PARENT_INTROUVABLE = "parent_introuvable";
+
+export const COLONNES_CONTACTS = {
+  client: "Client (code ou raison sociale)",
+  nom: "Nom",
+  fonction: "Fonction",
+  telephone: "Téléphone",
+  mobile: "Mobile",
+  email: "Courriel",
+  roles: "Rôles",
+} as const;
+
+export const CHAMPS_CONTACTS: Readonly<Record<string, string>> = {
+  [COLONNES_CONTACTS.nom]: "nom",
+  [COLONNES_CONTACTS.fonction]: "fonction",
+  [COLONNES_CONTACTS.telephone]: "telephone",
+  [COLONNES_CONTACTS.mobile]: "mobile",
+  [COLONNES_CONTACTS.email]: "email",
+};
+
+/**
+ * LES CHAMPS QUE LE GABARIT N'EXPOSE PAS — liste close, avec motif.
+ */
+export const CHAMPS_CONTACTS_ECARTES: Readonly<Record<string, string>> = {
+  // Il n'est pas une donnée du fichier : il est RÉSOLU depuis la colonne
+  // « Client », par la clé de RG-IMP-05. *Une colonne d'UUID dans un gabarit
+  // demanderait au client de connaître nos identifiants techniques.*
+  client_id: "résolu depuis la colonne « Client », jamais saisi (I10)",
+  // Le site est FACULTATIF (§6) et se désigne comme le client — mais **rien ne
+  // dit encore comment rapprocher un site**, qui n'a ni code externe ni règle
+  // équivalente à RG-IMP-05. *Un contact sans site est un contact du CLIENT, et
+  // c'est un cas légitime* : le gabarit le sert entièrement.
+  site_id: "aucune règle de rapprochement des sites n'est écrite (L1-09)",
+  // ⟵ `actif` était écarté ICI, par symétrie avec le gabarit des clients. **Le
+  //    gardien l'a refusé** : il n'existe pas dans `schemaCreationContact` — un
+  //    contact naît actif, et seul le schéma de MODIFICATION le porte. *Une
+  //    exemption qui ne s'adosse à rien n'exempte plus personne et ne rougit
+  //    jamais* (§9, 31/08) ; celle-ci a rougi le jour où elle a été écrite.
+  // Un seul canal existe (`email`), et il est le DÉFAUT. Une colonne pour une
+  // énumération à une valeur est une colonne que personne ne remplit.
+  //
+  // **Et ce défaut a une conséquence, mesurée plutôt que devinée** : `canaux`
+  // valant `["email"]`, `exigerCourrielSiCanalEmail` REFUSE tout contact sans
+  // courriel — le premier scénario du gabarit l'a montré en rejetant une ligne
+  // parfaitement remplie par ailleurs. La colonne « Courriel » est donc
+  // **obligatoire** ici, et ce n'est pas une décision du gabarit : c'est la
+  // règle de L1-03, lue à l'endroit où elle mord.
+  //
+  // *Le jour où un contact joignable par téléphone SEUL devra être importé,
+  // c'est `canaux` qu'il faudra exposer* — et ce jour-là un second canal
+  // existera probablement, ce qui rendra la colonne utile pour deux raisons.
+  canaux: "une seule valeur existe, et elle est le défaut — voir le courriel",
+};
+
+/** Les rôles, tels qu'un humain les écrit dans une cellule, séparés par `;`. */
+function lireLesRoles(brut: string | undefined): string[] {
+  return (brut ?? "")
+    .split(";")
+    .map((role) => role.trim())
+    .filter((role) => role !== "");
+}
+
+/**
+ * LE GABARIT « CONTACTS » — **une FONCTION du parc des clients**, et c'est ce
+ * qui le distingue du gabarit « clients ».
+ *
+ * *Un gabarit qui désigne un parent ne peut pas être contrôlé sans ce parent* :
+ * savoir si « Garage Dupont » existe demande de regarder le parc. Le modèle est
+ * donc **fabriqué** avec l'index, plutôt que de recevoir le parc en paramètre à
+ * chaque appel — ce qui aurait changé le contrat du contrôle pour tous les
+ * modèles, y compris ceux qui ne désignent rien.
+ *
+ * **La colonne « Client » se rapproche par la MÊME clé que le gabarit des
+ * clients** (`cleDeClient`, RG-IMP-05) : code externe, à défaut raison sociale
+ * normalisée. *Une seconde règle de rapprochement des clients serait une
+ * seconde lecture d'un même critère, et celle-ci se verrait au pire moment —
+ * des contacts accrochés au mauvais client.*
+ */
+export function modeleContacts(parc: ParcClientsIndexe): ModeleDImport {
+  const resoudre = (
+    valeurs: Readonly<Record<string, string | undefined>>,
+  ): string | undefined => {
+    const designation = valeurs[COLONNES_CONTACTS.client];
+    if (designation === undefined || designation.trim() === "") {
+      return undefined;
+    }
+    // Le rang est sans objet : une désignation vide a déjà été écartée, et la
+    // clé de dernier recours ne peut donc pas être atteinte.
+    const cle = cleDeClient({
+      codeExterne: designation,
+      raisonSociale: undefined,
+      rang: 0,
+    }).cle;
+    return (
+      parc.fiches.get(cle) ??
+      parc.fiches.get(
+        cleDeClient({
+          codeExterne: undefined,
+          raisonSociale: designation,
+          rang: 0,
+        }).cle,
+      )
+    );
+  };
+
+  return {
+    type: "contacts",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_CONTACTS.client, obligatoire: true },
+      { nom: COLONNES_CONTACTS.nom, obligatoire: true },
+      { nom: COLONNES_CONTACTS.fonction, obligatoire: false },
+      { nom: COLONNES_CONTACTS.telephone, obligatoire: false },
+      { nom: COLONNES_CONTACTS.mobile, obligatoire: false },
+      // OBLIGATOIRE, et la raison n'est pas dans ce fichier : `canaux` vaut
+      // `["email"]` par défaut, et la saisie refuse alors un contact sans
+      // courriel. *Mesuré, pas supposé.*
+      { nom: COLONNES_CONTACTS.email, obligatoire: true },
+      { nom: COLONNES_CONTACTS.roles, obligatoire: true },
+    ],
+    // **Ce qui identifie un contact est le couple client + nom.** Une ligne qui
+    // n'en porte aucun des deux ne désigne rien — c'est un gabarit.
+    identifiantes: [COLONNES_CONTACTS.client, COLONNES_CONTACTS.nom],
+    // *Deux contacts du même nom chez deux clients différents sont deux
+    // personnes* : la clé porte donc le client, et le nom seul n'y suffit pas.
+    cle: (valeurs, rang) => {
+      const client = resoudre(valeurs);
+      const nom = valeurs[COLONNES_CONTACTS.nom]?.trim();
+      if (client === undefined || nom === undefined || nom === "") {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      return {
+        forme: "reference",
+        cle: `CONTACT-${client}-${normaliserRaisonSociale(nom)}`,
+        complet: false,
+      };
+    },
+    valider: (valeurs) => {
+      const client = resoudre(valeurs);
+      if (client === undefined) {
+        return MOTIF_PARENT_INTROUVABLE;
+      }
+      const saisie = {
+        ...saisieDepuisLaLigne(valeurs, CHAMPS_CONTACTS),
+        client_id: client,
+        roles: lireLesRoles(valeurs[COLONNES_CONTACTS.roles]),
+      };
+      return schemaCreationContact.safeParse(saisie).success
+        ? null
+        : MOTIF_SAISIE_REFUSEE;
+    },
+  };
 }
