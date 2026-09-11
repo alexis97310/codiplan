@@ -659,35 +659,47 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 *Relu contre les sources citées le 11/09/2026 — empreinte `dfd1df43`.*
 *Acceptation :* le manifeste est servi et porte ce qu'une installation exige — `standalone`, `start_url`, deux tailles d'icône et une `maskable`, les fichiers existant réellement ; le service worker s'enregistre et la coquille se charge **réseau coupé** ; après une session réelle, le cache ne contient **que** les deux routes publiques, avec le témoin qu'il n'est pas vide.
 **L3-07** Cache local — IndexedDB, dont **le parc complet des clients visités sous 7 jours** [D22].
-*File :* LIBRE
-*Relu contre les sources citées le 01/09/2026 — empreinte `75515868`.*
+*File :* BLOQUÉ — il mettrait en cache un périmètre que le SERVEUR ne calcule pas, pour un écran qui n'existe pas. Mesuré le 11/09/2026.
+**CE QU'IL FAUDRAIT METTRE EN CACHE N'EST PAS CALCULABLE AUJOURD'HUI.** D22 réécrit RG-DRO-02 : *« un technicien accède aux machines des interventions qui lui sont ou lui ont été affectées, **et à l'intégralité du parc des clients chez qui il a une intervention planifiée dans les 7 jours** ».* **Ce périmètre n'existe nulle part**, et le dépôt le sait : `lib/auth/habilitations.ts` porte la dette en toutes lettres — *« le périmètre lui-même relève du lot 2 »* — et le lot 2 ne l'a pas construit. Mettre en cache un périmètre que le serveur ne sait pas produire reviendrait à le **calculer sur l'appareil**, c'est-à-dire à écrire une seconde lecture d'un critère de cloisonnement — celle qui vieillit sans rougir (§9, 01/09), et du côté permissif.
+**ET SON CONSOMMATEUR N'EXISTE PAS DAVANTAGE** : `app/(mobile)/` est marqué `(prévu)` au §6, et c'est l'écran technicien qui lirait ce cache. *Une interface sans appelant est la maladie que le portail vient de soigner* — celle d'une politique juste que personne n'appelle, et qui dort jusqu'au jour où quelqu'un la découvre fausse.
+**LE VRAI PREMIER TRAVAIL EST DONC LE PÉRIMÈTRE SERVEUR**, et il touche le cloisonnement : c'est un **élargissement** d'accès — un technicien verrait plus qu'aujourd'hui —, et le §8 en fait un point d'arrêt. Il ne manque pas de spécification : RG-DRO-02 et D22 la donnent entière.
+*Condition de déblocage, vérifiable :* le périmètre de RG-DRO-02 est calculé **côté serveur** — une politique ou une lecture cloisonnée le rend —, et un écran technicien existe pour consommer le cache.
+*Relu contre les sources citées le 11/09/2026 — empreinte `6d160cbb`.*
 **L3-08** File d'opérations et synchronisation — priorisation, reprise, indicateur d'état.
-*File :* LIBRE
-*Acceptation :* test bout en bout — intervention complète en mode avion puis synchronisation intégrale sans perte.
+*File :* BLOQUÉ — sa propre acceptation exige un écran technicien et un cache qui n'existent ni l'un ni l'autre (L3-07). Mesuré le 11/09/2026.
+**SON ACCEPTATION LE DIT ELLE-MÊME** : *« intervention complète en mode avion puis synchronisation intégrale sans perte ».* Une intervention complète se saisit sur un écran — `app/(mobile)/` est `(prévu)` au §6 —, et « en mode avion » suppose le cache de L3-07, bloqué pour sa propre raison. **Une file de synchronisation sans rien à synchroniser n'a pas d'appelant**, et elle porterait la règle la plus difficile du projet sans que rien ne l'exerce.
+**ET LA CHAÎNE ENTIÈRE TIENT À UNE SEULE DÉCISION**, écrite ici pour n'avoir pas à la redécouvrir ticket par ticket : L3-07 a besoin du **périmètre de RG-DRO-02 calculé côté serveur** ; l'écran technicien, lui, ne peut pas être construit avant le cache — **I4 refuse une fonctionnalité mobile qui exige le réseau**. Les deux se tiennent, et le seul bout par lequel la chaîne se prend est le périmètre serveur, qui **élargit un accès** et relève donc du §8.
+*Condition de déblocage, vérifiable :* L3-07 est débloqué — c'est-à-dire que le périmètre de RG-DRO-02 est calculé côté serveur et qu'un écran technicien existe.
+*Relu contre les sources citées le 11/09/2026 — empreinte `999b22cb`.*
 **L3-09** Résolution de conflits. **[D27]**
-*File :* LIBRE
+*File :* BLOQUÉ — même chaîne que L3-08, dont la mesure est écrite là-bas et n'est pas recopiée ici. Mesuré le 11/09/2026.
 Terrain sur l'exécution, back-office sur la planification, **statut par préséance** : `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > planification.
 *Acceptation :* une intervention annulée pendant sa réalisation hors ligne conserve temps, diagnostic, photos et signature, et le conflit est remonté.
 *Relu contre les sources citées le 01/09/2026 — empreinte `afd95cea`.*
 **L3-10** Doublons hors ligne — détection **et fusion**. **[D28]**
-*File :* LIBRE
+*File :* BLOQUÉ — même chaîne que L3-08 : la détection se fait « à la synchronisation », qui n'existe pas. Mesuré le 11/09/2026.
 La fiche la plus ancienne survit ; le `qr_token` de l'absorbée **redirige** vers elle ; historiques fusionnés ; divergences arbitrées champ par champ ; réversible 30 jours. **Ce ticket est le SEUL PRODUCTEUR du statut `fusionnee`** (D28, valeur ajoutée à l'énumération le 10/09/2026) : il l'écrit sur la fiche absorbée, et amende `lib/machines/resolution.ts` pour qu'un QR qui la désigne rende la survivante ; jusque-là, rien ne produit ni ne lit cette valeur.
 **CE QUE CE TICKET DÉDUPLIQUE, nommé le 11/09/2026** (D28, décision d'exploitation) : le parc se construit par **deux chemins qui ne se connaissent pas** — l'import de masse de L1-10 et le recensement terrain (D16, planches de L2-02, hors ligne par I4). La même machine y sera saisie deux fois, une fois par le fichier et une fois devant elle : **ce n'est pas une erreur à prévenir, c'est l'arithmétique d'un parc alimenté des deux côtés.** Deux conséquences à ne pas redécouvrir ici : la fiche du **fichier** survit presque toujours (créée en premier), donc c'est celle du **terrain** qui est absorbée — et c'est elle qui porte le `qr_token` de l'étiquette réellement collée, ce qui fait de la redirection la condition pour ne pas réétiqueter le parc ; et la divergence majoritaire sera `numero_serie`, `SN-INCONNU-<référence>` (D6) face au numéro exact du fichier, donc **le premier champ que la présentation côte à côte doit faire choisir**.
 *Relu contre les sources citées le 11/09/2026 — empreinte `22a1fa76`.*
 **L3-11** Scan QR et création express — moins de 60 secondes. **Pas de reconnaissance de plaque** [D33] : photo conservée en pièce jointe, saisie manuelle.
-*File :* LIBRE
+*File :* BLOQUÉ — l'écran technicien n'existe pas, et I4 refuse de le construire avant le cache : *une fonctionnalité mobile qui exige le réseau est refusée*. Même chaîne que L3-08. Mesuré le 11/09/2026.
 *Relu contre les sources citées le 01/09/2026 — empreinte `0c1dddde`.*
 **L3-12** Recensement en série — enchaînement sans retour au menu, compteur de saisies.
-*File :* LIBRE
+*File :* BLOQUÉ — même chaîne que L3-08 : il enchaîne des saisies sur un écran technicien qui n'existe pas, et I4 l'exige hors ligne. Mesuré le 11/09/2026.
 **L3-13** Saisie de rapport — checklist, temps, pièces, photos compressées, préconisations. Absence de checklist = condition satisfaite ; un point non conforme impose une préconisation [3.10].
-*File :* LIBRE
+*File :* BLOQUÉ — même chaîne que L3-08 : la saisie terrain est hors ligne par I4, et son écran n'existe pas. Mesuré le 11/09/2026.
 **L3-14** Signature client — `appareil_id` et `horodatage_terrain`, pas d'adresse IP [3.9].
-*File :* LIBRE
+*File :* BLOQUÉ — même chaîne que L3-08 : la signature se recueille sur l'écran terrain, hors ligne par I4. Mesuré le 11/09/2026.
 **L3-16** Écran « Sites ». **[D75]** Un client a plusieurs sites, dans des villes différentes — c'est le cas courant. La table, la saisie Zod et le dépôt existent depuis L1-02 ; il manque l'écran : sites d'un client, fiche, création, modification, avec le rattachement à l'agence et le temps de trajet présentés comme une donnée de planification (D74). *Acceptation :* un compte portail ne voit que les sites de son périmètre (RG-DRO-01) ; changer le rattachement sans revoir le temps de trajet est refusé à l'écran avec le message de D56.
 *File :* LIBRE
 *Relu contre les sources citées le 10/09/2026 — empreinte `3fe87448`.*
 **L3-17** Le TAUX D'OCCUPATION par technicien. **[D76]** Par semaine : nombre d'interventions, et **heures d'intervention ÷ heures travaillées** — tout le temps d'intervention compte, facturé ou non. Le nom vient du dictionnaire (`vocabulaire.taux_occupation`, formule à côté), et **jamais « productivité »** — un gardien le tient. **DÉPEND de D72 / L3-01** : les heures travaillées sont celles du calendrier de travail du technicien, absences déduites (L3-04). *Acceptation :* une intervention de garantie compte dans le numérateur ; un technicien sans calendrier résolu n'a pas de taux — jamais zéro.
-*File :* LIBRE
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026 — la moitié qui manquait était « ABSENCES DÉDUITES », et sa dépendance a été levée la même nuit.** Le ticket écrit sa condition : *« les heures travaillées sont celles du calendrier de travail du technicien, absences déduites (L3-04) ».* **L3-01a a livré le calendrier propre, L3-04 la table des absences** ; ce ticket est ce qui reste, et il ne restait plus rien d'autre.
+**LE DÉFAUT ÉTAIT UN CHIFFRE FAUX DANS LE SENS QUI ACCUSE.** Le dénominateur venait du seul calendrier : **un technicien absent toute la semaine gardait une semaine ouvrable entière**, et son taux tombait près de zéro. *Rien ne distinguait « il était absent » de « il n'a rien fait ».* C'est la TROISIÈME fois que ce module rencontre cette famille — D76 avait déjà séparé « pas de calendrier » (`null`) de « n'a rien fait » (`0 %`), et voici la troisième cause, qui se corrige encore autrement.
+**LES PÉRIODES SONT FUSIONNÉES AVANT D'ÊTRE RETRANCHÉES, et c'est le cœur du ticket.** *Un congé du 14 au 18 prolongé par un arrêt du 16 au 20 est un état que rien n'interdit — c'est même le cas ordinaire.* Retranchées séparément, les journées communes seraient comptées **deux fois**, et le dénominateur pourrait devenir NÉGATIF : un taux supérieur à 100 %, ou un signe moins sur un écran de direction. La fusion n'est pas une optimisation, **c'est ce qui rend la soustraction juste** — et deux périodes qui se TOUCHENT d'un jour à l'autre fusionnent aussi, *le chiffre ne devant pas dépendre de la façon dont l'absence a été saisie*.
+**SEULE UNE ABSENCE VALIDÉE RETRANCHE**, comme au quatrième contrôle à la pose : *retrancher une demande en attente ferait baisser un dénominateur qu'un refus rétablirait le lendemain, sans que personne comprenne pourquoi le taux a bougé.*
+*Acceptation :* sans absence, le dénominateur est non nul (témoin) ; une absence validée le fait diminuer sans l'annuler ; une demandée et une refusée ne changent rien ; **deux absences qui se recouvrent donnent exactement le même dénominateur que leur réunion** ; une absence couvrant toute la semaine le rend nul, ce que `tauxOccupation` traduit par `null` et jamais par « 0 % ».
 *Relu contre les sources citées le 10/09/2026 — empreinte `7af72f40`.*
 **L3-15** Génération et envoi du PDF. **Validation systématique** avant diffusion [D24]. Le **PDF serveur fait foi** ; la version locale porte la mention « provisoire ». **Aucun montant** sur le rapport [3.8].
 *File :* LIBRE

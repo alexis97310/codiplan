@@ -425,7 +425,7 @@ lib/
               requête (D64) — l'`id` par lequel la bibliothèque réécrit une
               ligne dit QUELLE ligne, la politique dit à QUI elle est ;
               l'`id` ouvre les écritures, JAMAIS les lectures
-  absences/   L'INDISPONIBILITÉ D'UNE PERSONNE (L3-04, RG-PLA-06)
+  absences/   L'INDISPONIBILITÉ D'UNE PERSONNE (L3-04, L3-17, RG-PLA-06)
               la table est de forme « INTERNE » (D94), et c'est décidé à sa
               NAISSANCE — le seul moment où cela ne coûte rien : « votre
               technicien habituel est en arrêt du 14 au 28 » est une donnée de
@@ -440,6 +440,10 @@ lib/
               une absence ne déplanifie NI ce qui a eu lieu, NI ce qui n'occupe
               rien — et les deux motifs diffèrent : l'une n'a rien à rendre,
               l'autre a un fait à protéger (I5)
+              `periodesValidees` FUSIONNE avant de rendre (L3-17) : deux
+              absences qui se recouvrent ou se touchent n'en font qu'une, sans
+              quoi le dénominateur du taux d'occupation les retrancherait deux
+              fois et passerait sous zéro
               depot.ts : la validation et la déplanification sont dans la MÊME
               transaction — une absence validée dont les interventions seraient
               restées posées ferait affirmer au planning qu'un absent travaille
@@ -632,6 +636,13 @@ lib/
               occupation.ts : le dénominateur vient du calendrier de l'AGENCE
               (I7) — d'où la maille (technicien, agence), une agence choisie
               en silence basculant d'une semaine à l'autre
+              les ABSENCES VALIDÉES s'en retranchent (L3-17, RG-PLA-06), et
+              leurs périodes sont FUSIONNÉES d'abord : un congé prolongé par un
+              arrêt se recouvre, et retrancher deux fois les mêmes journées
+              rendrait un dénominateur négatif — un taux au-dessus de 100 %
+              sans elle, « il était absent » et « il n'a rien fait » rendent le
+              même chiffre : c'est la troisième cause que ce module distingue,
+              après « pas de calendrier » et « n'a rien fait »
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
