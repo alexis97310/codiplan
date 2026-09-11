@@ -657,3 +657,34 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Déclencheur : la prochaine prise de vue.** Le README nomme le commit photographié, et c'est la règle du §9. Ce qu'il ne dit pas : *comment un lecteur sait qu'aucun écran n'a bougé depuis.* La question se répond en une commande — `git diff --name-only <empreinte> main` restreint aux chemins d'écran — et cette commande est aujourd'hui tapée à la main, donc pas tapée.
 **Mesuré le 10/09/2026** : entre `b8c3f76` (photographié) et `2fe6e8b`, **67 fichiers changés et aucun sous `app/`, `components/`, `lib/theme/` ni `lib/i18n/`** — les images étaient exactes, et rien dans le dossier ne le disait.
 *Acceptation :* `scripts/captures.mts` énumère les chemins qu'il tient pour « surface d'écran » et les écrit dans le README avec l'empreinte ; une commande dit si l'un d'eux a changé depuis la prise, et rend un état — jamais un silence.
+
+**R1-03 — Chiffrer ce que la limitation de `ci.yml` à `push.branches ["main"]` a réellement économisé. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** La limitation est appliquée depuis le 11/09/2026 : la comparaison avant/après est désormais possible sur des données réelles, elle ne l'était pas au moment où la limitation a été décidée. Le doublon `push` / `pull_request` déclenchait deux exécutions de `ci.yml` pour un même commit ; la borne devait en supprimer une, et personne n'a mesuré ce qu'elle a réellement retiré.
+*Acceptation :* le nombre de minutes de CI économisées est chiffré en comparant, sur une fenêtre égale avant et après le 11/09/2026, les exécutions de `ci.yml` réellement déclenchées — mesurées, pas estimées, depuis l'historique des exécutions ; le résultat nomme sa fenêtre et sa source.
+
+**R1-04 — Le compteur de budget dans le rapport de nuit. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le rapport de nuit ne dit rien du budget qui le fait vivre : combien de minutes ont été consommées ce mois-ci, combien il en reste, à quelle date l'allure observée les épuise, et ce que la nuit écoulée a coûté en dollars — chiffre que le journal d'exécution imprime déjà sous `total_cost_usd`, et que personne ne relève.
+*Acceptation :* le rapport de nuit affiche quatre valeurs — minutes consommées ce mois, minutes restantes, date d'épuisement projetée au rythme observé, coût en dollars de la nuit écoulée ; la date d'épuisement est calculée à partir d'une consommation mesurée, jamais d'une constante ; un scénario le montre sur un historique fabriqué.
+
+**R1-05 — Le trou de vérification à la fusion. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Un commit de fusion produit avec `GH_TOKEN` ne déclenche pas la CI sur `main` — GitHub n'y voit pas l'événement d'un utilisateur. Une fusion peut donc vivre sur `main`, non vérifiée, jusqu'à la prochaine exécution planifiée qui la couvre, et rien aujourd'hui ne le dit.
+*Acceptation :* le rapport de nuit nomme les fusions non encore vérifiées et l'heure de la prochaine vérification planifiée qui les couvrira ; un moyen de vérifier `main` à la fusion sans doubler la dépense de CI est cherché, sans y passer la nuit, et son résultat est écrit — retenu, ou refusé avec son coût chiffré (une impossibilité s'énonce avec son coût, §9 du CLAUDE.md, 08/09/2026) ; aucune solution n'est retenue au prix d'une CI doublée à chaque fusion.
+
+**R1-06 — La note de `nuit.yml` sur `github_token` est devenue fausse. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** La note explique pourquoi `github_token` n'est pas transmis en s'appuyant sur le déclenchement `push` de `ci.yml`. Depuis que `ci.yml` est limité à `push.branches ["main"]`, une poussée sur une branche ne déclenche plus rien : c'est l'événement `pull_request` qui porte désormais la garantie. La garantie tient encore ; sa raison a changé, et la note ment sur le mécanisme qu'elle décrit.
+*Acceptation :* la note de `nuit.yml` nomme l'événement `pull_request` comme porteur de la garantie de vérification, et non plus `push` ; corrigée pour refléter exactement le déclenchement réel de `ci.yml`.
+
+**R1-07 — Le gabarit `.github/ISSUE_TEMPLATE/arbitrage.md`. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Un ticket `arbitrage` est lu par quelqu'un sans le contexte de la session qui l'a ouvert, souvent sur téléphone entre deux rendez-vous. *Un ticket incompréhensible par quelqu'un sans contexte est un ticket raté.* Le gabarit actuel ne force pas la forme qui le rend lisible dans ces conditions.
+*Acceptation :* le gabarit impose, par ses sections, un titre sans jargon de moins de 80 caractères ; ce qui est en jeu en deux phrases ; ce qui a été **mesuré**, avec ses chiffres ; deux ou trois issues, chacune avec ce qu'elle coûte et ce qu'elle interdit ; ce qui est bloqué et ce qui continue pendant l'arbitrage.
+
+**R1-08 — La relecture adverse — `.github/workflows/relecture.yml`. [demande d'exploitation du 11/09/2026, issue #103]**
+*File :* LIBRE
+**Déclencheur : immédiat.** La nuit répare ; rien ne la recontrôle avec un regard neuf. Une seconde exécution programmée, à contexte neuf, part **après** la nuit, lit son registre et les propositions qu'elle a fait fusionner, et les confronte au §9 du CLAUDE.md. **Elle ne répare rien** : elle ouvre un ticket `contestation` par trouvaille, et rien de plus. Mêmes bornes de budget que la nuit — cette relecture consomme le même compteur, et R1-04 doit pouvoir la compter.
+**Elle dit ce qu'elle n'a PAS regardé.** Une relecture qui ne trouve jamais rien est elle-même un gardien vide (§9 du 30/08/2026, du 31/08/2026) : son rapport nomme le périmètre examiné cette nuit-là, pas seulement ses trouvailles, sans quoi un silence vaudrait pour un succès.
+*Acceptation :* `relecture.yml` s'exécute à intervalle planifié, après la fenêtre de la nuit ; elle lit le registre des propositions fusionnées récemment et les confronte au §9 ; toute trouvaille ouvre un ticket labellé `contestation`, jamais une correction directe ; le rapport nomme ce qui a été examiné, y compris quand rien n'a été trouvé ; elle consomme le même compteur de budget que la nuit, dans les mêmes bornes.
