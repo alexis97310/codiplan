@@ -2,7 +2,13 @@ import { Prisma } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
-import { maintenant } from "@/lib/calendar/fuseau";
+import {
+  instantAMinutes,
+  jourDe,
+  maintenant,
+  versLocal,
+} from "@/lib/calendar/fuseau";
+import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { verdictAffectation } from "@/lib/habilitations/affectation";
@@ -19,6 +25,7 @@ import {
   statutALaCreation,
   type Verdict,
 } from "./cycle-de-vie";
+import { verdictChevauchement, verdictOuverture, type Demande } from "./pose";
 import type {
   Annulation,
   Cloture,
@@ -297,6 +304,116 @@ function statutApresDeplacement(
 }
 
 /**
+ * L'INSTANT SE CALCULE ICI, ET NULLE PART AILLEURS (R2-19).
+ *
+ * La saisie porte un JOUR et des MINUTES LOCALES ; le créneau stocké est un
+ * INSTANT. La conversion demande le fuseau de l'agence de l'intervention — que
+ * ni un formulaire ni un navigateur ne connaissent —, et elle est faite une
+ * seule fois, pour le glissé comme pour le formulaire.
+ *
+ * `date_planifiee` est un JOUR stocké en `@db.Date`, donc à minuit UTC : le
+ * lire dans le fuseau de l'agence le reculerait d'un cran sous UTC+11.
+ */
+function demandeDeDeplacement(saisie: Deplacement, fuseau: string): Demande {
+  const jour =
+    saisie.date_planifiee === null
+      ? null
+      : {
+          annee: saisie.date_planifiee.getUTCFullYear(),
+          mois: saisie.date_planifiee.getUTCMonth() + 1,
+          jour: saisie.date_planifiee.getUTCDate(),
+        };
+  const debut =
+    jour === null || saisie.debut_minutes === null
+      ? null
+      : instantAMinutes(jour, saisie.debut_minutes, fuseau);
+  return {
+    datePlanifiee: jour,
+    creneauDebut: debut,
+    creneauFin:
+      debut === null || saisie.duree_min === null
+        ? null
+        : new Date(debut.getTime() + saisie.duree_min * 60_000),
+    technicienId: saisie.technicien_id,
+  };
+}
+
+/**
+ * LE VERDICT DES DEUX CONTRÔLES À LA POSE, lu sous le contexte cloisonné.
+ *
+ * **L'agence est celle de l'INTERVENTION**, jamais celle de la ligne du
+ * planning : elle est déduite du site et ne change pas quand on déplace. La vue
+ * semaine affiche l'union des agences d'une personne — *un repère, jamais un
+ * droit de poser* (`grille.ts`).
+ *
+ * **Les voisines sont lues sous les politiques**, comme tout le reste : aucune
+ * comparaison de société n'est écrite au-dessus, ce serait une seconde lecture
+ * d'un critère que la forme « parc » porte déjà.
+ */
+async function verdictALaPose(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  agenceId: string,
+  saisie: Deplacement,
+): Promise<{ readonly verdict: Verdict; readonly demande: Demande | null }> {
+  const agence = await tx.agence.findFirst({
+    where: { id: agenceId },
+    select: {
+      calendrier_id: true,
+      fuseau_horaire: true,
+      societe: { select: { fuseau_horaire: true } },
+    },
+  });
+  if (agence === null) {
+    return {
+      verdict: { refuse: true, cle: "intervention.refus.inconnue" },
+      demande: null,
+    };
+  }
+  const fuseau = fuseauDeLAgence(agence);
+  // RÉSOLUE UNE SEULE FOIS, et rendue à l'appelant : ce que les contrôles ont
+  // jugé est exactement ce qui sera écrit. Recalculer l'instant au moment de
+  // l'écriture ferait deux lectures d'un même critère (§9, 01/09).
+  const demande = demandeDeDeplacement(saisie, fuseau);
+
+  const parametrage =
+    agence.calendrier_id === null
+      ? null
+      : await lireParametrage(tx, agence.calendrier_id);
+  const ouverture = verdictOuverture(parametrage, demande, fuseau);
+  if (ouverture.refuse) {
+    return { verdict: ouverture, demande };
+  }
+
+  if (demande.creneauDebut === null || demande.technicienId === null) {
+    // Rien à chevaucher : sans heure, il n'y a pas de recouvrement.
+    return { verdict: { refuse: false }, demande };
+  }
+  const jour = jourDe(versLocal(demande.creneauDebut, fuseau));
+  const bornes = {
+    du: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour)),
+    au: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour + 1)),
+  };
+  const voisines = await tx.intervention.findMany({
+    where: {
+      technicien_id: demande.technicienId,
+      date_planifiee: { gte: bornes.du, lt: bornes.au },
+    },
+    select: {
+      id: true,
+      technicien_id: true,
+      creneau_debut: true,
+      creneau_fin: true,
+      statut: true,
+    },
+  });
+  return {
+    verdict: verdictChevauchement(voisines, interventionId, demande),
+    demande,
+  };
+}
+
+/**
  * DÉPLACER — changer de créneau, changer de technicien, ou les deux.
  *
  * Le journal du déplacement — qui, quand, d'où vers où — n'est pas écrit ici :
@@ -311,7 +428,7 @@ export async function deplacerIntervention(
   return avecContexteApplicatif(contexte, async (tx) => {
     const ligne = await tx.intervention.findFirst({
       where: { id: saisie.intervention_id },
-      select: { id: true, statut: true },
+      select: { id: true, statut: true, agence_id: true },
     });
     if (ligne === null) {
       return { accepte: false, cle: "intervention.refus.inconnue" };
@@ -323,12 +440,24 @@ export async function deplacerIntervention(
       return barriere;
     }
 
+    // ── LES DEUX CONTRÔLES À LA POSE (R2-19) ────────────────────────────────
+    //
+    // Ils sont ICI, sous le contexte cloisonné, et PAS seulement à l'écran :
+    // *une action refusée à l'écran mais acceptée par la base est un trou.*
+    // Les règles elles-mêmes vivent dans `pose.ts`, qui ne lit rien.
+    const pose = await verdictALaPose(tx, ligne.id, ligne.agence_id, saisie);
+    const posee = refus<LigneIntervention>(pose.verdict);
+    if (posee !== null || pose.demande === null) {
+      return posee ?? { accepte: false, cle: "intervention.refus.inconnue" };
+    }
+    const demande = pose.demande;
+
     const misAJour = await tx.intervention.update({
       where: { id: saisie.intervention_id },
       data: {
         date_planifiee: saisie.date_planifiee,
-        creneau_debut: saisie.creneau_debut,
-        creneau_fin: saisie.creneau_fin,
+        creneau_debut: demande.creneauDebut,
+        creneau_fin: demande.creneauFin,
         technicien_id: saisie.technicien_id,
         // Le déplacement REND une intervention à la file d'attente quand on
         // lui retire sa date, et l'en sort quand on lui en donne une. Il ne
@@ -337,7 +466,7 @@ export async function deplacerIntervention(
         statut: statutApresDeplacement(
           ligne.statut as StatutIntervention,
           saisie.date_planifiee,
-          saisie.creneau_debut,
+          demande.creneauDebut,
         ),
       },
       select: CHAMPS_LIGNE,

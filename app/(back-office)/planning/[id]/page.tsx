@@ -148,15 +148,37 @@ export default async function PageIntervention({
         <Saisie nom="technicien_id" libelle={t("intervention.technicien")} />
       </Action>
 
+      {/*
+        LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
+
+        *Une fonction qui n'existe qu'à la souris exclut le tactile et le
+        clavier.* Ce formulaire fait exactement ce que le glisser-déposer du
+        planning fait, aux mêmes refus près : chaque bloc du planning est un
+        lien vers cette fiche, atteignable à la tabulation.
+
+        L'heure se saisit en HEURE LOCALE, comme sur le planning : l'instant
+        demande le fuseau de l'établissement, et c'est le dépôt qui le résout.
+      */}
       <Action
         titre={t("intervention.action.deplacer")}
         verdict={peutDeplacer(statut)}
         action={`/api/interventions/${ligne.id}/deplacer`}
+        note={t("intervention.deplacement.explication")}
       >
         <Saisie
           nom="date_planifiee"
           type="date"
           libelle={t("intervention.date")}
+        />
+        <Saisie
+          nom="heure_debut"
+          type="time"
+          libelle={t("intervention.deplacement.heure")}
+        />
+        <Saisie
+          nom="duree_min"
+          type="number"
+          libelle={t("intervention.deplacement.duree")}
         />
         <Saisie nom="technicien_id" libelle={t("intervention.technicien")} />
       </Action>
@@ -279,7 +301,7 @@ function Saisie({
 }: {
   nom: string;
   libelle: string;
-  type?: "text" | "number" | "date";
+  type?: "text" | "number" | "date" | "time";
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">

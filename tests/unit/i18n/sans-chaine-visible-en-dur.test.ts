@@ -261,14 +261,14 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     // vraiment : une page, un composant, la mise en page qui porte les
     // métadonnées, et les deux tests de rendu. Jamais dans un fichier fabriqué.
     const greffes: ReadonlyArray<[string, string, string]> = [
-      ["app/page.tsx", '{t("accueil.titre")}', "CODIPLAN"],
+      ["app/(sans-session)/page.tsx", '{t("accueil.titre")}', "CODIPLAN"],
       [
-        "app/page.tsx",
+        "app/(sans-session)/page.tsx",
         '{t("accueil.action")}',
         '{"Consulter la documentation"}',
       ],
       [
-        "app/page.tsx",
+        "app/(sans-session)/page.tsx",
         'variant="outline"',
         'variant="outline" title="Documentation"',
       ],

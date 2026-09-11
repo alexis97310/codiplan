@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import PageAccueil from "@/app/page";
+import PageAccueil from "@/app/(sans-session)/page";
 import { fr } from "@/lib/i18n/fr";
 
 /*

@@ -41,6 +41,8 @@ import {
   LEGENDE_PLANNING,
 } from "@/lib/theme/statuts";
 
+import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
+
 import { referenceAffichee } from "./presentation";
 import { Statistiques } from "./statistiques";
 
@@ -186,69 +188,79 @@ export default async function PagePlanning({
         </div>
       </header>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_290px]">
-        {vue === "jour" ? (
-          <VueJour
-            journee={construireJournee(
-              lignes.filter(
-                (l) =>
-                  l.date_planifiee !== null &&
-                  cleJour(jourDeLaDate(l.date_planifiee)) ===
-                    cleJour(jourAffiche),
-              ),
-              jourAffiche,
-              pourJournee,
-              minutesDe,
-            )}
-            nomDe={nomDe}
-          />
-        ) : (
-          <VueSemaine
-            jours={jours}
-            grille={construireGrille(lignes, jours, pourGrille, nomDe)}
-            nomDe={nomDe}
-          />
-        )}
+      <Posable>
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_290px]">
+          {vue === "jour" ? (
+            <VueJour
+              journee={construireJournee(
+                lignes.filter(
+                  (l) =>
+                    l.date_planifiee !== null &&
+                    cleJour(jourDeLaDate(l.date_planifiee)) ===
+                      cleJour(jourAffiche),
+                ),
+                jourAffiche,
+                pourJournee,
+                minutesDe,
+              )}
+              nomDe={nomDe}
+              jourAffiche={jourAffiche}
+            />
+          ) : (
+            <VueSemaine
+              jours={jours}
+              grille={construireGrille(lignes, jours, pourGrille, nomDe)}
+              nomDe={nomDe}
+            />
+          )}
 
-        <aside className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord rounded-[10px] border">
-            <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
-              {t("planning.file_attente")}
-              <span className="text-app-marque text-[11px] font-semibold">
-                {attente.length}
-              </span>
-            </h2>
-            <div className="flex flex-col gap-2 p-4">
-              {attente.length === 0 ? (
-                <p className="text-app-encre-faible text-[12px]">
-                  {t("planning.file_vide")}
-                </p>
-              ) : null}
-              {attente.map((ligne) => (
-                <Link
-                  key={ligne.id}
-                  href={`/planning/${ligne.id}`}
-                  className="border-app-bord block rounded-lg border px-3 py-2.5"
-                >
-                  <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
-                    {referenceAffichee(ligne)}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+          <aside className="flex flex-col gap-4">
+            <section className="bg-app-surface border-app-bord rounded-[10px] border">
+              <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
+                {t("planning.file_attente")}
+                <span className="text-app-marque text-[11px] font-semibold">
+                  {attente.length}
+                </span>
+              </h2>
+              <div className="flex flex-col gap-2 p-4">
+                {attente.length === 0 ? (
+                  <p className="text-app-encre-faible text-[12px]">
+                    {t("planning.file_vide")}
+                  </p>
+                ) : null}
+                {attente.map((ligne) => (
+                  // GLISSER DEPUIS LA FILE VAUT AFFECTATION — c'est l'usage
+                  // principal : le dépôt donne à la fois un jour et une personne.
+                  <BlocPosable
+                    key={ligne.id}
+                    interventionId={ligne.id}
+                    dureeMin={dureeDe(ligne)}
+                  >
+                    <Link
+                      href={`/planning/${ligne.id}`}
+                      className="border-app-bord block rounded-lg border px-3 py-2.5"
                     >
-                      {t(`priorite.${ligne.priorite}`)}
-                    </span>
-                  </span>
-                  <span className="text-app-encre-faible block text-[12px]">
-                    {lieuDeLaLigne(ligne)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
+                      <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                        {referenceAffichee(ligne)}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+                        >
+                          {t(`priorite.${ligne.priorite}`)}
+                        </span>
+                      </span>
+                      <span className="text-app-encre-faible block text-[12px]">
+                        {lieuDeLaLigne(ligne)}
+                      </span>
+                    </Link>
+                  </BlocPosable>
+                ))}
+              </div>
+            </section>
 
-          <Statistiques lignes={charges} nomDe={nomDe} />
-        </aside>
-      </div>
+            <Statistiques lignes={charges} nomDe={nomDe} />
+          </aside>
+        </div>
+      </Posable>
     </main>
   );
 }
@@ -311,26 +323,36 @@ function VueSemaine({
                   </span>
                 </td>
                 {ligne.cases.map((cellule) => (
-                  <td
+                  <CasePosable
                     key={cleJour(cellule.jour)}
+                    cible={{
+                      jour: cleJour(cellule.jour),
+                      technicienId: ligne.technicienId,
+                      minutes: null,
+                    }}
                     className={`border-app-bord border-r border-b p-1.5 align-top ${
                       cellule.ouverte === false ? "trame-fermee" : ""
                     }`}
                     style={{ height: "78px" }}
                   >
                     {cellule.lignes.map((intervention) => (
-                      <Link
+                      <BlocPosable
                         key={intervention.id}
-                        href={`/planning/${intervention.id}`}
-                        className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                        interventionId={intervention.id}
+                        dureeMin={dureeDe(intervention)}
                       >
-                        <span className="block font-bold">
-                          {referenceAffichee(intervention)}
-                        </span>
-                        {lieuDeLaLigne(intervention)}
-                      </Link>
+                        <Link
+                          href={`/planning/${intervention.id}`}
+                          className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                        >
+                          <span className="block font-bold">
+                            {referenceAffichee(intervention)}
+                          </span>
+                          {lieuDeLaLigne(intervention)}
+                        </Link>
+                      </BlocPosable>
                     ))}
-                  </td>
+                  </CasePosable>
                 ))}
               </tr>
             ))}
@@ -347,9 +369,11 @@ function VueSemaine({
 function VueJour({
   journee,
   nomDe,
+  jourAffiche,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly nomDe: (id: string) => string | null;
+  readonly jourAffiche: JourLocal;
 }) {
   if (journee.axe.length === 0 || journee.colonnes.length === 0) {
     return (
@@ -398,28 +422,47 @@ function VueJour({
                 {journee.colonnes.map((colonne) => {
                   const cellule = colonne.cellules[rang];
                   const occupation = cellule.occupation;
+                  const lien = (
+                    <Link
+                      href={`/planning/${occupation?.id ?? ""}`}
+                      className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${occupation === null ? "" : CLASSES_BLOC[occupation.statut]}`}
+                    >
+                      {cellule.debutDeBloc && occupation !== null ? (
+                        <>
+                          <span className="block font-bold">
+                            {referenceAffichee(occupation)}
+                          </span>
+                          {occupation.client.raison_sociale}
+                        </>
+                      ) : null}
+                    </Link>
+                  );
                   return (
-                    <td
+                    <CasePosable
                       key={colonne.technicienId ?? "-"}
+                      cible={{
+                        jour: cleJour(jourAffiche),
+                        technicienId: colonne.technicienId,
+                        minutes: debut,
+                      }}
                       className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
                       style={{ height: "26px" }}
                     >
-                      {occupation === null ? null : (
-                        <Link
-                          href={`/planning/${occupation.id}`}
-                          className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}`}
+                      {occupation === null ? null : cellule.debutDeBloc ? (
+                        <BlocPosable
+                          interventionId={occupation.id}
+                          dureeMin={dureeDe(occupation)}
+                          className="h-full"
                         >
-                          {cellule.debutDeBloc ? (
-                            <>
-                              <span className="block font-bold">
-                                {referenceAffichee(occupation)}
-                              </span>
-                              {occupation.client.raison_sociale}
-                            </>
-                          ) : null}
-                        </Link>
+                          {lien}
+                        </BlocPosable>
+                      ) : (
+                        // La SUITE d'un bloc n'est pas prenable : prendre une
+                        // intervention par son milieu déplacerait son début
+                        // sans que rien ne le dise.
+                        lien
                       )}
-                    </td>
+                    </CasePosable>
                   );
                 })}
               </tr>
@@ -699,4 +742,22 @@ function quiTravaille(
 function ouTravaille(libelles: readonly string[]): string {
   if (libelles.length === 0) return "";
   return `${mot("agence")} ${libelles.join(", ")}`;
+}
+
+/**
+ * LA DURÉE D'UNE INTERVENTION, pour la conserver au déplacement.
+ *
+ * Le créneau posé d'abord — c'est la durée RÉELLEMENT réservée —, l'estimation
+ * ensuite, et jamais un chiffre écrit ici : *une valeur par défaut qui répond à
+ * une question qu'on n'a pas posée est une décision prise par personne* (§9,
+ * 24/08). Une intervention sans l'un ni l'autre ne se déplace pas à l'heure :
+ * elle se déplace au jour, et la vue semaine est faite pour cela.
+ */
+function dureeDe(ligne: Ligne): number {
+  if (ligne.creneau_debut !== null && ligne.creneau_fin !== null) {
+    return Math.round(
+      (ligne.creneau_fin.getTime() - ligne.creneau_debut.getTime()) / 60_000,
+    );
+  }
+  return ligne.duree_estimee_min ?? 0;
 }

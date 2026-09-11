@@ -377,7 +377,10 @@ pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
 
 ```
 app/
-  (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
+  (sans-session)/ (back-office)/  (mobile)/  (portail)/  (editeur)/  api/
+              le premier groupe porte les écrans qui PRÉCÈDENT la session — il
+              est la règle de R2-16 elle-même : ce qui décide qu'un écran n'a
+              pas de barre est le répertoire où il vit, jamais une liste
 lib/
   db/         client Prisma, contexte société, helpers RLS
               sante.ts : l'état de l'installation, pour la page SANS COMPTE
@@ -483,6 +486,17 @@ lib/
               donnée STOCKÉE, et contrôler sa forme lierait les scans du jour à
               la génération du jour ; seule une borne de TAILLE demeure
   interventions/ l'ORDRE D'INTERVENTION et le planning agissant (lot 2, D84)
+              pose.ts : les CONTRÔLES À LA POSE (R2-19) — il décide, il n'écrit
+              rien et ne lit aucune base
+              le calendrier qui décide est celui de L'AGENCE VISÉE, et d'elle
+              seule : l'union affichée en vue semaine est un repère, jamais un
+              droit de poser
+              une agence SANS calendrier refuse — « inconnu » n'est pas
+              « ouvert », et poser sans horaire connu promettrait un rendez-vous
+              que personne ne peut tenir (I7)
+              un chevauchement est une ERREUR, pas un avertissement : deux
+              créneaux qui se TOUCHENT ne se chevauchent pas, une intervention
+              annulée n'occupe plus rien, une clôturée si — elle a eu lieu
               saisie.ts : Zod sur toute entrée ; l'agence, le forfait de
               déplacement, le numéro et le statut NE SE SAISISSENT PAS — les
               deux premiers se déduisent du site, le troisième appartient à la
@@ -561,6 +575,16 @@ lib/
               « aucune condition » a DEUX écritures — `null` à la saisie, le
               tableau VIDE en base — et les deux se lisent ICI
   navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
+              chrome.ts : ce qu'une mise en page a besoin de savoir pour
+              peindre, LU UNE SEULE FOIS par rendu (R2-16) — la racine veut la
+              société pour la charte, le segment veut le nom pour la pastille,
+              et une mise en page ne transmet rien à celles qu'elle englobe
+              elle ne lève jamais et n'accorde rien : une pastille absente
+              n'est pas un refus, une barre affichée n'est pas une permission
+              la barre est rendue par le SEGMENT et jamais par la racine — trois
+              groupes de routes, `(sans-session)` sans barre, `(back-office)` et
+              `(portail)` avec ; une liste de chemins tenue à la main oublierait
+              le prochain écran d'authentification, un répertoire ne s'oublie pas
               la liste est CLOSE et confrontée à `docs/maquette/CODIPLAN_Maquette.html` :
               libellés et ordre compris — deux barres qui divergent, c'est la
               maquette qui a raison

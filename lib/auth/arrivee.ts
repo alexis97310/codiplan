@@ -102,6 +102,53 @@ export function roleReclamantUnEnrolement(
 }
 
 /**
+ * L'ÉTAT D'ARRIVÉE POUR UN ÉCRAN QUI PRÉCÈDE LA SESSION — et qui, lui, ne lève
+ * JAMAIS (R2-16).
+ *
+ * ## Le même incident, son troisième appelant
+ *
+ * Le 11/09, `lib/auth/chrome.ts` a été écrit parce que la mise en page racine
+ * levait sans `BETTER_AUTH_SECRET` et faisait rendre 500 à TOUTES les pages. Il
+ * y notait déjà la forme du défaut : *« la garantie était énoncée pour le
+ * THÈME, et un second appelant a traversé l'énoncé sans le rencontrer. »*
+ *
+ * **Voici le troisième, mesuré le même jour par le scénario de R2-16** — la
+ * racine réparée, `/connexion` et `/enrolement` rendaient toujours **500** sur
+ * une compilation de production sans secret, parce que la PAGE lisait la
+ * session par `etatArrivee`, qui lève. *Une page de connexion qui rend 500
+ * quand la configuration manque est le pire mode de défaillance du produit :
+ * personne ne peut même lire le formulaire pour comprendre.*
+ *
+ * ## Ce que cette fonction garantit, et ce qu'elle coûte
+ *
+ * **Elle ne lève jamais.** Toute impossibilité — secret absent, base
+ * injoignable, session illisible — rend `anonyme`, c'est-à-dire « montre le
+ * formulaire ». C'est le contrat de `identiteDeChrome` et celui de
+ * `themeDuContexte`, rendu à l'endroit où il manquait.
+ *
+ * **Le coût est nommé** : une personne DÉJÀ connectée, si sa session devient
+ * illisible, revoit la page de connexion au lieu d'une erreur. C'est une
+ * dégradation, jamais un droit accordé — aucune donnée cloisonnée ne transite
+ * par `anonyme`, et le refus d'accès reste prononcé par les politiques et par
+ * `exigerContexteActif`.
+ *
+ * **`etatArrivee` garde sa forme qui lève**, et `/arrivee` continue de
+ * l'appeler : c'est un écran d'APRÈS-session, où une impossibilité doit se
+ * voir. La coupure est la même que celle du chrome — ce qui précède la session
+ * ne tombe pas avec elle.
+ */
+export async function etatArriveeOuAnonyme(
+  entetes: Headers,
+  lecture: (e: Headers) => Promise<EtatArrivee> = (e) => etatArrivee(e),
+): Promise<EtatArrivee> {
+  try {
+    return await lecture(entetes);
+  } catch {
+    return { issue: "anonyme" };
+  }
+}
+
+/**
  * L'état d'arrivée d'une requête, d'après ses en-têtes.
  *
  * Cette fonction ne fait qu'assembler ; chacune de ses lectures est cloisonnée
