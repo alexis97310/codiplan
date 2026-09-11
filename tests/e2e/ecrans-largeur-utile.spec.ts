@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
 
-import { FORFAITS_SCENE } from "./setup/scene";
+import { FORFAITS_SCENE, SCENE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -116,4 +116,38 @@ test("l'arrivée commence en haut, sur la largeur utile", async ({ page }) => {
   // « Commence en haut » se mesure : sous la barre (58 px) et sa gouttière, pas
   // à mi-hauteur d'une fenêtre de 1000.
   expect(cadre.haut).toBeLessThan(140);
+});
+
+test("la fiche d'intervention occupe la largeur utile, et garde ses actions", async ({
+  page,
+}) => {
+  // R2-08. *Mesuré avant : `max-w-3xl`, soit 768 px dans une fenêtre de 1700, et
+  // cinq actions empilées à la file sous l'identification.*
+  await page.goto(`/planning/${SCENE.obstacle}`);
+
+  const largeur = await page
+    .locator("main")
+    .evaluate((element) => Math.round(element.getBoundingClientRect().width));
+  expect(largeur).toBe(LARGEUR_UTILE_PX - 2 * GOUTTIERE_PX);
+
+  // Les actions de D84 restent ATTEIGNABLES — c'est l'acceptation du ticket, et
+  // c'est ce que déplacer des formulaires en colonne latérale risquait de
+  // perdre. Un décompte plutôt qu'une présence : « il en reste » ne dit pas
+  // combien ont disparu.
+  const actions = page.locator("main aside form");
+  await expect(actions).toHaveCount(4);
+});
+
+test("les écrans sans session ne défilent pas pour rien", async ({ page }) => {
+  // R2-09 et R2-10. *Mesuré avant : `min-h-dvh` posé sur la page, à l'intérieur
+  // d'un cadre portant 88 px de gouttière verticale — document de 1088 px dans
+  // une fenêtre de 1000, c'est-à-dire une page de connexion qui défile de 88 px
+  // pour rien.*
+  for (const chemin of ["/", "/sante", "/connexion"]) {
+    await page.goto(chemin);
+    const document_ = await page.evaluate(() => document.body.scrollHeight);
+    expect(document_, `${chemin} déborde la fenêtre`).toBeLessThanOrEqual(
+      FENETRE.height,
+    );
+  }
 });

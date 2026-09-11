@@ -36,6 +36,21 @@ import { referenceAffichee } from "../presentation";
  * Et il ne se contourne pas non plus par une requête : les mêmes refus sont
  * tenus par `intervention_cycle_de_vie` en base. Cet écran DIT ce que la base
  * ferait ; il ne le décide pas.
+ *
+ * ## R2-08 — LA FORME DE FICHE DE LA MAQUETTE, LUE ET NON APPROCHÉE
+ *
+ * *Mesuré le 11/09/2026 : `max-w-3xl` — 768 px dans une fenêtre de 1700*, et
+ * cinq actions empilées à la file sous l'identification. La maquette ne décrit
+ * aucune fiche d'intervention, mais elle décrit **une fiche** : `.mach`, deux
+ * colonnes `1fr 300px` ; `.dl`, une grille `132px 1fr` à 13 px, étiquettes
+ * grises en 12 px et valeurs en demi-gras. *C'est cette FORME qui se reprend,
+ * pas son contenu* — l'acceptation du ticket l'écrit ainsi.
+ *
+ * **Les cinq actions passent en colonne latérale**, et cela ne change rien à
+ * leur régime : un refus reste affiché À LA PLACE de l'action, avec sa raison.
+ * Ce qui change est qu'on voit désormais l'identification et les actions
+ * ENSEMBLE — *on décide d'annuler une intervention en regardant ce qu'elle est,
+ * pas en s'en souvenant après avoir défilé.*
  */
 export default async function PageIntervention({
   params,
@@ -65,23 +80,23 @@ export default async function PageIntervention({
   const statut = ligne.statut as StatutIntervention;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-8 px-6 py-10">
+    <main className="flex flex-col gap-5">
       <header className="flex flex-col gap-2">
-        <Link href="/planning" className="text-muted-foreground text-sm">
+        <Link href="/planning" className="text-app-encre-faible text-[12.5px]">
           {t("planning.retour_fleche")}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[22px] font-extrabold tracking-tight">
             {t("intervention.titre")} {referenceAffichee(ligne)}
           </h1>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${CLASSES_STATUT[statut]}`}
+            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}
           </span>
         </div>
         {ligne.numero === null ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-app-encre-faible text-[11.5px]">
             {t("intervention.sans_numero")}
           </p>
         ) : null}
@@ -90,65 +105,80 @@ export default async function PageIntervention({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-destructive text-destructive rounded-md border px-3 py-2 text-sm"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
         </p>
       ) : null}
 
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <Ligne
-          libelle={t("intervention.type")}
-          valeur={t(`type_intervention.${ligne.type}`)}
-        />
-        <Ligne
-          libelle={t("intervention.priorite")}
-          valeur={t(`priorite.${ligne.priorite}`)}
-        />
-        <Ligne
-          libelle={t("intervention.client")}
-          valeur={fiche.client ?? TIRET}
-        />
-        <Ligne libelle={mot("site")} valeur={fiche.lieu ?? TIRET} />
-        <Ligne
-          libelle={mot("agence")}
-          valeur={fiche.rattachement ?? TIRET}
-          note={t("intervention.deduit_du_lieu")}
-        />
-        <Ligne
-          libelle={t("intervention.forfait_deplacement")}
-          valeur={fiche.forfait ?? TIRET}
-          note={t("intervention.deduit_du_lieu")}
-        />
-        <Ligne
-          libelle={t("intervention.technicien")}
-          valeur={ligne.technicien_id ?? t("intervention.aucun_technicien")}
-        />
-        <Ligne
-          libelle={t("intervention.mode_valorisation")}
-          valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
-        />
-        {ligne.motif_annulation !== null ? (
-          <Ligne
-            libelle={t("intervention.annulation.motif")}
-            valeur={ligne.motif_annulation}
-          />
-        ) : null}
-      </dl>
+      {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
+        <div className="flex flex-col gap-4">
+          <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+            <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+              <Ligne
+                libelle={t("intervention.type")}
+                valeur={t(`type_intervention.${ligne.type}`)}
+              />
+              <Ligne
+                libelle={t("intervention.priorite")}
+                valeur={t(`priorite.${ligne.priorite}`)}
+              />
+              <Ligne
+                libelle={t("intervention.client")}
+                valeur={fiche.client ?? TIRET}
+              />
+              <Ligne libelle={mot("site")} valeur={fiche.lieu ?? TIRET} />
+              <Ligne
+                libelle={mot("agence")}
+                valeur={fiche.rattachement ?? TIRET}
+                note={t("intervention.deduit_du_lieu")}
+              />
+              <Ligne
+                libelle={t("intervention.forfait_deplacement")}
+                valeur={fiche.forfait ?? TIRET}
+                note={t("intervention.deduit_du_lieu")}
+              />
+              <Ligne
+                libelle={t("intervention.technicien")}
+                valeur={
+                  ligne.technicien_id ?? t("intervention.aucun_technicien")
+                }
+              />
+              <Ligne
+                libelle={t("intervention.mode_valorisation")}
+                valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
+              />
+              {ligne.motif_annulation !== null ? (
+                <Ligne
+                  libelle={t("intervention.annulation.motif")}
+                  valeur={ligne.motif_annulation}
+                />
+              ) : null}
+            </dl>
+          </section>
 
-      {fiche.valorisation !== null && fiche.devise !== null ? (
-        <Valorisation valorisation={fiche.valorisation} devise={fiche.devise} />
-      ) : null}
+          {fiche.valorisation !== null && fiche.devise !== null ? (
+            <Valorisation
+              valorisation={fiche.valorisation}
+              devise={fiche.devise}
+            />
+          ) : null}
+        </div>
 
-      <Action
-        titre={t("intervention.action.affecter")}
-        verdict={peutAffecter(statut)}
-        action={`/api/interventions/${ligne.id}/affecter`}
-      >
-        <Saisie nom="technicien_id" libelle={t("intervention.technicien")} />
-      </Action>
+        <aside className="flex flex-col gap-4">
+          <Action
+            titre={t("intervention.action.affecter")}
+            verdict={peutAffecter(statut)}
+            action={`/api/interventions/${ligne.id}/affecter`}
+          >
+            <Saisie
+              nom="technicien_id"
+              libelle={t("intervention.technicien")}
+            />
+          </Action>
 
-      {/*
+          {/*
         LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
 
         *Une fonction qui n'existe qu'à la souris exclut le tactile et le
@@ -159,51 +189,56 @@ export default async function PageIntervention({
         L'heure se saisit en HEURE LOCALE, comme sur le planning : l'instant
         demande le fuseau de l'établissement, et c'est le dépôt qui le résout.
       */}
-      <Action
-        titre={t("intervention.action.deplacer")}
-        verdict={peutDeplacer(statut)}
-        action={`/api/interventions/${ligne.id}/deplacer`}
-        note={t("intervention.deplacement.explication")}
-      >
-        <Saisie
-          nom="date_planifiee"
-          type="date"
-          libelle={t("intervention.date")}
-        />
-        <Saisie
-          nom="heure_debut"
-          type="time"
-          libelle={t("intervention.deplacement.heure")}
-        />
-        <Saisie
-          nom="duree_min"
-          type="number"
-          libelle={t("intervention.deplacement.duree")}
-        />
-        <Saisie nom="technicien_id" libelle={t("intervention.technicien")} />
-      </Action>
+          <Action
+            titre={t("intervention.action.deplacer")}
+            verdict={peutDeplacer(statut)}
+            action={`/api/interventions/${ligne.id}/deplacer`}
+            note={t("intervention.deplacement.explication")}
+          >
+            <Saisie
+              nom="date_planifiee"
+              type="date"
+              libelle={t("intervention.date")}
+            />
+            <Saisie
+              nom="heure_debut"
+              type="time"
+              libelle={t("intervention.deplacement.heure")}
+            />
+            <Saisie
+              nom="duree_min"
+              type="number"
+              libelle={t("intervention.deplacement.duree")}
+            />
+            <Saisie
+              nom="technicien_id"
+              libelle={t("intervention.technicien")}
+            />
+          </Action>
 
-      <Action
-        titre={t("intervention.action.cloturer")}
-        verdict={peutCloturer(statut, ligne.temps_reel_min ?? 1)}
-        action={`/api/interventions/${ligne.id}/cloturer`}
-        note={t("intervention.cloture.explication")}
-      >
-        <Saisie
-          nom="temps_reel_min"
-          type="number"
-          libelle={t("intervention.cloture.temps_reel")}
-        />
-      </Action>
+          <Action
+            titre={t("intervention.action.cloturer")}
+            verdict={peutCloturer(statut, ligne.temps_reel_min ?? 1)}
+            action={`/api/interventions/${ligne.id}/cloturer`}
+            note={t("intervention.cloture.explication")}
+          >
+            <Saisie
+              nom="temps_reel_min"
+              type="number"
+              libelle={t("intervention.cloture.temps_reel")}
+            />
+          </Action>
 
-      <Action
-        titre={t("intervention.action.annuler")}
-        verdict={peutAnnuler(statut)}
-        action={`/api/interventions/${ligne.id}/annuler`}
-        note={t("intervention.annulation.obligatoire")}
-      >
-        <Saisie nom="motif" libelle={t("intervention.annulation.motif")} />
-      </Action>
+          <Action
+            titre={t("intervention.action.annuler")}
+            verdict={peutAnnuler(statut)}
+            action={`/api/interventions/${ligne.id}/annuler`}
+            note={t("intervention.annulation.obligatoire")}
+          >
+            <Saisie nom="motif" libelle={t("intervention.annulation.motif")} />
+          </Action>
+        </aside>
+      </div>
     </main>
   );
 }
@@ -232,14 +267,14 @@ function Valorisation({
   devise: { code: string; decimales: number; symbole: string | null };
 }) {
   return (
-    <section className="border-border flex flex-col gap-3 rounded-lg border px-4 py-3">
-      <h2 className="text-sm font-medium">
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+      <h2 className="text-[14px] font-bold">
         {t("intervention.cloture.facture")}
       </h2>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-app-encre-faible text-[11.5px]">
         {t("intervention.cloture.explication")}
       </p>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+      <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
         <Ligne
           libelle={t("intervention.cloture.temps_reel")}
           valeur={minutes(valorisation.minutesReelles)}
@@ -283,14 +318,22 @@ function Ligne({
   valeur: string;
   note?: string;
 }) {
+  // `.dl` de la maquette : étiquette grise en 12 px, valeur en demi-gras, sur
+  // deux colonnes que le PARENT tient — d'où le fragment plutôt qu'un `div`,
+  // sans quoi chaque ligne formerait sa propre grille et les étiquettes ne
+  // s'aligneraient plus.
   return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground">{libelle}</dt>
-      <dd className="font-medium break-all">{valeur}</dd>
-      {note === undefined ? null : (
-        <dd className="text-muted-foreground text-xs">{note}</dd>
-      )}
-    </div>
+    <>
+      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dd className="font-semibold break-all">
+        {valeur}
+        {note === undefined ? null : (
+          <span className="text-app-encre-faible block text-[11.5px] font-normal">
+            {note}
+          </span>
+        )}
+      </dd>
+    </>
   );
 }
 
@@ -338,9 +381,9 @@ function Action({
   if (verdict.refuse) {
     const cle = verdict.cle;
     return (
-      <section className="border-destructive/40 bg-destructive/5 flex flex-col gap-1 rounded-lg border px-4 py-3">
-        <h2 className="text-sm font-medium">{titre}</h2>
-        <p className="text-destructive text-sm">
+      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-[10px] border px-4 py-3">
+        <h2 className="text-[13px] font-bold">{titre}</h2>
+        <p className="text-app-rouge-encre text-[12.5px]">
           {cle !== undefined && estCleTraduction(cle) ? t(cle) : ""}
         </p>
       </section>
@@ -350,14 +393,14 @@ function Action({
     <form
       action={action}
       method="post"
-      className="border-border flex flex-col gap-3 rounded-lg border px-4 py-3"
+      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3"
     >
-      <h2 className="text-sm font-medium">{titre}</h2>
+      <h2 className="text-[13px] font-bold">{titre}</h2>
       {note === undefined ? null : (
-        <p className="text-muted-foreground text-xs">{note}</p>
+        <p className="text-app-encre-faible text-[11.5px]">{note}</p>
       )}
       {children}
-      <Button type="submit" variant="outline">
+      <Button type="submit" variant="outline" size="sm">
         {titre}
       </Button>
     </form>

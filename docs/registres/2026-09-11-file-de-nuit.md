@@ -372,3 +372,39 @@ plutôt qu'en une bande étroite.
 
 *Et le scénario qui le mesure a changé de nom* : `parametres-densite` est devenu
 `ecrans-largeur-utile`, parce qu'il ne parle plus des seuls écrans de réglage.
+
+---
+
+## 6 — R2-08, R2-09, R2-10 : les cinq écrans restants de la campagne D95
+
+**R2-08 — la fiche et la saisie.** La forme de fiche est LUE dans la maquette :
+`.mach` à deux colonnes `1fr 300px`, `.dl` en grille `132px 1fr`. *Mesuré :
+768 px → **1360 px**, identification et actions côte à côte.* Les cinq actions
+passent en colonne latérale **sans changer de régime** — un refus reste affiché
+à la place de l'action, avec sa raison —, et un scénario compte les formulaires
+restants : *« il en reste » ne dit pas combien ont disparu.*
+
+*Et une décision qui va à contre-courant du ticket :* **la saisie reste
+étroite.** Un formulaire à champs pleine largeur sur 1360 px est plus difficile
+à remplir qu'un formulaire étroit. *La largeur utile est celle de l'ÉCRAN ;
+celle d'un formulaire est celle de sa colonne.*
+
+**R2-09 et R2-10 — un défaut que personne n'avait vu, et il tient à 88 px.**
+*Mesuré, fenêtre 1700 × 1000 : `/`, `/sante` et `/connexion` rendaient un
+document de **1088 px**.* `min-h-dvh` posé sur la page, à l'intérieur du cadre
+qui porte 88 px de gouttière verticale : **une page de connexion qui défile pour
+rien.** Le défaut est né avec R2-16, quand le cadre a quitté la racine pour le
+segment — *une réparation en crée une autre, et seule la mesure le dit.*
+
+La hauteur est désormais tenue par la mise en page du **segment**, et les pages
+n'occupent que ce qui reste. Pas de nombre magique : aucun `calc(100dvh - 88px)`
+n'est écrit nulle part, parce qu'une soustraction recopiée devient fausse le jour
+où la gouttière change.
+
+**Ce que R2-09 constate plutôt que corriger** : la colonne étroite et centrée
+EST la bonne forme pour les quatre écrans d'authentification — ce ne sont pas
+des écrans de travail, et le ticket le disait avant la mesure.
+
+**Ce que R2-10 ne touche pas** : `/sante` ne lit rien de plus. Son jumeau —
+*elle s'affiche avec une base injoignable* — reste vert, et la mise en page de
+son segment ne lit rien non plus, délibérément.

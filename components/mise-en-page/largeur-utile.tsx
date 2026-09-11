@@ -15,11 +15,12 @@ import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
  * ce qui est exactement ce que la racine garantissait.
  */
 export function LargeurUtile({
+  className,
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ className?: string; children: React.ReactNode }>) {
   return (
     <div
-      className="mx-auto w-full px-5 pt-6 pb-16"
+      className={`mx-auto w-full px-5 pt-6 pb-16 ${className ?? ""}`}
       style={{ maxWidth: `${LARGEUR_UTILE_PX}px` }}
     >
       {children}
