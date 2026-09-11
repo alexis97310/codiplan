@@ -550,6 +550,61 @@ export const fr = {
   "parametres.refus_pas":
     "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
 
+  // ── LA BARRE DE NAVIGATION — les onze entrées de la maquette (D95) ───────
+  //
+  // Onze, et dans cet ordre : c'est la barre que la maquette porte, et elle
+  // fait foi sur la disposition. Les entrées dont l'écran n'existe pas encore
+  // sont rendues INERTES plutôt qu'absentes — la barre dit ce que le produit
+  // contient, jamais ce que vous avez le droit d'ouvrir (voir
+  // `lib/navigation/entrees.ts`).
+  "nav.libelle": "Navigation principale",
+  // Le nom du produit est coupé en deux parce que la maquette le peint en deux
+  // couleurs. Le couper dans le composant aurait été écrire du texte dans une
+  // balise, ce que L0-11 refuse.
+  "nav.marque_debut": "CODI",
+  "nav.marque_fin": "PLAN",
+  "nav.marque_metier": "SAV",
+  "nav.a_venir": "Écran à venir",
+  "nav.tableau_de_bord": "Tableau de bord",
+  "nav.planning": "Planning",
+  "nav.interventions": "Interventions",
+  "nav.parc_machines": "Parc machines",
+  "nav.fiche_machine": "Fiche machine",
+  "nav.contrats": "Contrats",
+  "nav.app_technicien": "App technicien",
+  "nav.portail_client": "Portail client",
+  "nav.imports_excel": "Imports Excel",
+  "nav.societes_tarifs": "Sociétés & tarifs",
+  "nav.console_editeur": "Console éditeur",
+
+  // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
+  "planning.colonne_technicien": "Technicien",
+  "planning.semaine": "Semaine",
+  "planning.du": "du",
+  "planning.au": "au",
+  "planning.semaine_avant": "← Semaine précédente",
+  "planning.semaine_apres": "Semaine suivante →",
+  "planning.semaine_vide": "Aucune intervention posée sur cette semaine.",
+  "planning.file_vide": "Rien n'attend d'être posé.",
+  // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
+  // familles de couleur, pas des statuts un à un : huit statuts, cinq
+  // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).
+  "planning.legende.planifiee": "Planifiée",
+  "planning.legende.en_cours": "En cours / P1",
+  "planning.legende.terminee": "Terminée",
+  "planning.legende.suspendue": "Suspendue / absence",
+  "planning.legende.interne": "Atelier / interne",
+  "planning.legende.ferme": "Jour non ouvert",
+
+  // Les jours abrégés — l'en-tête d'une colonne de la grille, « Lun 17 ».
+  "jour.court.1": "Lun",
+  "jour.court.2": "Mar",
+  "jour.court.3": "Mer",
+  "jour.court.4": "Jeu",
+  "jour.court.5": "Ven",
+  "jour.court.6": "Sam",
+  "jour.court.7": "Dim",
+
   "jour.1": "lundi",
   "jour.2": "mardi",
   "jour.3": "mercredi",

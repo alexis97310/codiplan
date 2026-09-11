@@ -3115,3 +3115,53 @@ Or **une table de forme « société » est lisible par un compte portail** : sa
 **CONDITION DE RÉOUVERTURE, vérifiable et non interprétable** : *le jour où un écran ou une route de portail lit une table de forme « société », la question du discriminant `app.client_id` sur les tables purement internes est due, et elle vise la CLASSE et non une table.* Le critère se vérifie en lisant les appelants sous `app/(portail)/` : ils ne touchent aujourd'hui que `utilisateur_client`, `client`, `site`, `machine`, `document` — toutes de forme « rattachement », « parc » ou « héritage ».
 
 *Aucune règle du chapitre 10 n'est amendée. Le chapitre 11 reçoit `document_recu`.*
+
+---
+
+## D95 — LA MAQUETTE FAIT FOI SUR L'APPARENCE, et l'apparence devient un THÈME parmi plusieurs
+
+*Arbitrage rendu par l'exploitation le 11/09/2026, à la lecture des captures d'écran de l'application en ligne. Écrit ici dans le compte rendu de la session, et non ouvert en ticket : l'automatisation ayant été abandonnée le matin même, un arbitrage ne se pose plus en ticket qu'un agent viendrait relever.*
+
+### CE QUI A ÉTÉ VU
+
+`docs/CODIPLAN_Maquette.html` a été validée au départ du projet : onze écrans, autoportante. Le §1 du `CLAUDE.md` la rangeait comme *« une illustration d'intention, pas une spécification »*, avec deux exceptions promues au rang de règle — le formatage monétaire et les codes couleur des statuts.
+
+**Mesuré le 11/09/2026 sur les captures d'Alexis, en fenêtre de 1700 px, puis reproduit en local :** l'application ne ressemblait à cette maquette sur aucun des cinq points regardés. Colonne utile de **1024 px** là où la maquette en veut **1400** — et **448 px** sur `/arrivee`, contenu centré à mi-hauteur. **Aucune navigation** : zéro fichier trouvé par `grep -rln 'nav\b\|Navigation' app components`, et l'on ne circulait qu'en tapant une URL. `/planning` empilait trois blocs de charge et deux listes verticales là où la maquette montre une grille. Des cartes là où la maquette met des tableaux denses. Et une palette `oklch` neutre, sans rapport avec l'annexe C.
+
+**Le fichier déposé le 11/09 sous `docs/CODIPLAN_Maquette.html` est OCTET POUR OCTET celui qui vit dans `docs/maquette/` depuis le 08/09** — `cmp` est muet, les deux empreintes MD5 valent `99c7f9f3c8ea1237d2b419b7766c9631`. *Ce n'est donc pas un document nouveau : c'est le même document, dont le RANG change.* Il était dans le dépôt, lisible, et personne ne construisait contre lui.
+
+### LA DÉCISION
+
+**1. La maquette fait foi sur la DISPOSITION et sur les COULEURS.** Elle cesse d'être une illustration d'intention pour ces deux aspects. Ce qu'elle ne dit pas reste libre ; ce qu'elle dit se suit.
+
+**2. La charte « le tableau » du 09/09 ne fait plus foi comme apparence par défaut. Elle devient un THÈME ALTERNATIF.** *Le nom « le tableau » ne désigne aucun document de ce dépôt — il n'apparaît nulle part, mesuré.* La décision le définit donc par ce qui est observable : **l'apparence en vigueur sur `main` au commit `d03a4a5`**, c'est-à-dire les jetons `oklch` neutres de `app/globals.css` et les gris ardoise de `lib/theme/defaut.ts`. C'est cet ensemble-là qui devient un second thème, à construire.
+
+**3. CODIPLAN prévoit PLUSIEURS THÈMES, et le thème est une propriété de la SOCIÉTÉ.** C'est une exigence commerciale avant d'être un confort : la solution est vendue, et un client tiers voudra ses propres couleurs. *Ce n'est pas la charte de société de L0-09, qui ne porte que deux couleurs d'identité : c'est le socle entier — surfaces, bordures, encres, familles de statut.*
+
+### CE QUI EST CONSTRUIT AUJOURD'HUI, ET CE QUI NE L'EST PAS
+
+**Construit** : le mécanisme. Toutes les couleurs passent par des jetons ; **aucune valeur n'est écrite dans un composant** ; le thème par défaut reprend ceux de la maquette, à la valeur près — un gardien confronte huit d'entre eux au bloc `:root` du document lui-même, et la largeur utile à son `.wrap`. La barre à onze entrées est confrontée à la barre de la maquette, libellés et ordre compris. `/planning` est refait en grille.
+
+**Délibérément PAS construit** : le **sélecteur** de thème — un réglage sans usage tant qu'il n'existe qu'un thème, et c'est la faute que `parametrage.ts` évite déjà sur les créneaux ; le **second thème** lui-même ; le **rattachement du thème à la société**, qui suppose une colonne, donc une migration, donc un arbitrage de schéma. Les trois sont inscrits au backlog.
+
+**Ce qui est exigé en revanche, et qui est le vrai livrable : qu'ajouter un thème plus tard ne demande de toucher à AUCUN écran.** Un écran nomme un RÔLE — `bg-app-surface` —, jamais une couleur. Ajouter « le tableau », ce sera un bloc `[data-apparence="tableau"]` dans la feuille de style et une entrée dans `APPARENCES`, et rien d'autre.
+
+### DEUX POINTS OÙ LA MAQUETTE ET L'ANNEXE D NE SE RECOUVRENT PAS
+
+*Ils sont écrits plutôt que tranchés — la source est ambiguë, et le §8 dit ce qu'on fait alors. La lecture retenue en attendant n'introduit AUCUNE valeur nouvelle : elle n'emploie que des jetons que la maquette porte déjà.*
+
+**« Envoyée » et « clôturée ».** L'annexe D les distingue de leurs voisines par la profondeur — *bleu FONCÉ* contre bleu, *vert* contre *vert CLAIR*. La maquette ne porte qu'un style de bloc bleu et un vert : sa légende compte **six entrées pour huit statuts**. Les deux jetons « pleins » retenus sont ceux de son onglet actif et de son bouton de validation, c'est-à-dire les mêmes couleurs à pleine saturation.
+
+**« Suspendue : orange HACHURÉ ».** L'annexe D demande une hachure ; la maquette réserve sa trame au **site fermé** et peint la suspension en orange plein. Donner la trame aux deux rendrait indiscernables *« ce technicien est suspendu »* et *« ce jour n'est pas ouvert »* — un contresens de lecture sur l'écran même qui sert à poser un rendez-vous. L'orange plein est retenu.
+
+### CE QUE LA MAQUETTE PRESCRIT ET QUE LE DÉPÔT NE PEUT PAS SERVIR
+
+**Le NOM d'un technicien.** La maquette écrit « D. Guérin · Ducos · Compresseurs, ponts ». Le dépôt n'a ni la table `technicien` du chapitre 11 — marquée `(prévu)` au §6 du `CLAUDE.md` — ni aucune colonne de spécialité, et `utilisateur` porte la forme de politique « désignation » : son nom ne se lit qu'en NOMMANT sa ligne, une par une. La grille rend donc l'identifiant abrégé, exactement comme la charge par technicien depuis le 10/09. *Inventer un libellé serait inventer une donnée.*
+
+**Une apparence SOMBRE.** La maquette n'en décrit aucune. Le bloc `prefers-color-scheme` qui vivait dans la feuille de style servait des jetons neutres sans rapport avec la charte, et aucun code ne posait la classe : il rendait une moitié d'application hors charte au premier téléphone réglé en sombre. Il est **retiré**, et une apparence sombre sera un thème — donc une décision, avec ses couleurs validées.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où un écran devra s'écarter de la maquette, l'écart s'écrit avec sa mesure et le point précis où la maquette est muette — jamais « la maquette ne prévoyait pas ce cas ».* Et le jour où un second thème existe, le sélecteur devient dû : un thème que personne ne peut choisir est un thème que personne ne verra.
+
+*Aucune règle du chapitre 10 n'est amendée. L'annexe D est CONSERVÉE, dans ses huit lignes ; ce qui change est la manière de les écrire.*

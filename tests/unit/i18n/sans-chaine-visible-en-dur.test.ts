@@ -279,9 +279,18 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         '{theme.nom ?? "Société inconnue"}',
       ],
       [
+        // L'ANCRE SUIT LE FICHIER RÉEL, et c'est le gardien lui-même qui l'a
+        // dit quand elle a cessé de correspondre : « greffe inopérante ».
+        // D95 a changé la forme du bandeau — bandeau pleine largeur devenu
+        // pastille de la barre de navigation —, donc ses classes. Repointer
+        // l'ancre n'affaiblit rien : c'est la même greffe, au même endroit,
+        // sur le texte que le fichier porte aujourd'hui. Une ancre périmée
+        // rendrait l'épreuve VIDE sans rien dire, et c'est très exactement ce
+        // que ce message a empêché (§9, 31/08 — une exemption qui ne
+        // s'applique à personne ne fait échouer personne).
         "components/theme/bandeau-societe.tsx",
-        'className="text-base font-semibold tracking-tight"',
-        'className="text-base font-semibold tracking-tight" aria-label="Nom de la société"',
+        'className="text-[12.5px] font-bold tracking-tight"',
+        'className="text-[12.5px] font-bold tracking-tight" aria-label="Nom de la société"',
       ],
       [
         "tests/unit/accueil.test.tsx",

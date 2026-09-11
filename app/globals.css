@@ -1,87 +1,106 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * L'APPARENCE — les jetons visuels de l'application (D95).
+ *
+ * LA MAQUETTE FAIT FOI, disposition ET couleurs. Les valeurs ci-dessous sont
+ * celles de `docs/CODIPLAN_Maquette.html`, elles-mêmes celles de l'annexe C du
+ * cahier des charges. Ce n'est donc pas une palette nouvelle : c'est la charte
+ * du produit, enfin appliquée.
+ *
+ * UNE COULEUR NE S'ÉCRIT QU'ICI ET DANS `lib/theme/` (CLAUDE.md §6), et dans
+ * une feuille de style elle ne s'écrit que sous une forme : la DÉCLARATION DE
+ * VARIABLE. `--app-fond: #F4F5F7` est licite ; `color: #F4F5F7` ne l'est pas.
+ * Un gardien tient la distinction (`tests/unit/theme/sans-couleur-en-dur`).
+ *
+ * AJOUTER UN THÈME, plus tard, c'est ajouter un bloc `[data-apparence="…"]`
+ * ici et une entrée dans `APPARENCES` (lib/theme/apparence.ts) — et rien
+ * d'autre. Aucun écran ne nomme de couleur : il nomme un RÔLE.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
+:root,
+[data-apparence="maquette"] {
+  /* Surfaces et texte. */
+  --app-fond: #f4f5f7;
+  --app-surface: #ffffff;
+  --app-surface-creuse: #fafbfc;
+  --app-bord: #e1e4e8;
+  --app-bord-faible: #f0f1f3;
+  --app-encre: #111111;
+  --app-encre-faible: #6b7280;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* Identité de la plateforme — le bleu et le rouge de l'annexe C. */
+  --app-marque: #0053a1;
+  --app-marque-encre: #ffffff;
+  --app-accent: #e30613;
+  --app-accent-encre: #ffffff;
+
+  /* Les cinq familles : fond, bordure, encre. */
+  --app-bleu-fond: #e7f0fa;
+  --app-bleu-bord: #0053a1;
+  --app-bleu-encre: #0b3d75;
+  --app-rouge-fond: #fde7e9;
+  --app-rouge-bord: #e30613;
+  --app-rouge-encre: #8a0810;
+  --app-vert-fond: #e3f5ea;
+  --app-vert-bord: #0f9d58;
+  --app-vert-encre: #0a6b3d;
+  --app-orange-fond: #fef3dc;
+  --app-orange-bord: #f0a202;
+  --app-orange-encre: #7a5200;
+  --app-gris-fond: #eef0f2;
+  --app-gris-bord: #6b7280;
+  --app-gris-encre: #3f4650;
+
+  /* Les deux pleins — l'onglet actif de la maquette, et ses boutons verts. */
+  --app-bleu-plein: #0053a1;
+  --app-bleu-plein-encre: #ffffff;
+  --app-vert-plein: #0f9d58;
+  --app-vert-plein-encre: #ffffff;
 }
 
 /*
- * LE THÈME SOMBRE SUIT LA PRÉFÉRENCE DU SYSTÈME, et il n'y a rien à cliquer.
+ * LES JETONS DE BASE SONT RACCORDÉS À L'APPARENCE, et c'est ce raccordement
+ * qui fait qu'aucun écran n'a eu à changer pour recevoir la maquette. Les
+ * composants de `components/ui/` nomment `bg-background`, `border-border`,
+ * `text-muted-foreground` : ces noms ne changent pas, leur VALEUR vient
+ * désormais de l'apparence.
  *
- * `.dark` reste la classe qui FORCE le thème sombre — c'est elle qu'un futur
- * sélecteur posera. Mais tant qu'aucun sélecteur n'existe, une classe que
- * personne ne pose est un thème que personne ne voit : les mêmes jetons sont
- * donc redéclarés sous `prefers-color-scheme: dark`, et `.light` reste la
- * porte de sortie explicite pour qui voudra rester en clair.
+ * `--radius` vaut 10px : `.card{border-radius:10px}` dans la maquette.
  *
- * Aucune couleur nouvelle n'est écrite ici : ce bloc REPREND les jetons de
- * `.dark`, il n'en invente aucun. Une couleur ne s'écrit en clair que dans
- * `lib/theme` et dans ce fichier (CLAUDE.md §6).
+ * PAS D'APPARENCE SOMBRE, et c'est une absence décidée. La maquette n'en
+ * décrit aucune ; en inventer une serait inventer des couleurs que personne
+ * n'a validées. Le bloc `.dark` et la requête `prefers-color-scheme` qui
+ * vivaient ici ont donc été RETIRÉS — ils servaient des jetons `oklch`
+ * neutres, sans rapport avec la charte, et aucun code ne posait la classe.
+ * `color-scheme: light` empêche le navigateur d'assombrir de lui-même les
+ * contrôles de formulaire, ce qui aurait rendu une moitié d'écran hors charte.
  */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
+:root {
+  color-scheme: light;
+
+  --radius: 10px;
+  --background: var(--app-fond);
+  --foreground: var(--app-encre);
+  --card: var(--app-surface);
+  --card-foreground: var(--app-encre);
+  --popover: var(--app-surface);
+  --popover-foreground: var(--app-encre);
+  --primary: var(--app-marque);
+  --primary-foreground: var(--app-marque-encre);
+  --secondary: var(--app-surface-creuse);
+  --secondary-foreground: var(--app-encre);
+  --muted: var(--app-surface-creuse);
+  --muted-foreground: var(--app-encre-faible);
+  --accent: var(--app-bleu-fond);
+  --accent-foreground: var(--app-bleu-encre);
+  --destructive: var(--app-accent);
+  --destructive-foreground: var(--app-accent-encre);
+  --border: var(--app-bord);
+  --input: var(--app-bord);
+  --ring: var(--app-marque);
 }
 
 @theme inline {
@@ -109,6 +128,40 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* L'APPARENCE, rendue utilisable en classes — `bg-app-surface`,
+     `text-app-encre-faible`, `border-app-bleu-bord`. C'est par ces noms, et
+     par eux seuls, qu'un écran nomme une couleur. */
+  --color-app-fond: var(--app-fond);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-creuse: var(--app-surface-creuse);
+  --color-app-bord: var(--app-bord);
+  --color-app-bord-faible: var(--app-bord-faible);
+  --color-app-encre: var(--app-encre);
+  --color-app-encre-faible: var(--app-encre-faible);
+  --color-app-marque: var(--app-marque);
+  --color-app-marque-encre: var(--app-marque-encre);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-encre: var(--app-accent-encre);
+  --color-app-bleu-fond: var(--app-bleu-fond);
+  --color-app-bleu-bord: var(--app-bleu-bord);
+  --color-app-bleu-encre: var(--app-bleu-encre);
+  --color-app-rouge-fond: var(--app-rouge-fond);
+  --color-app-rouge-bord: var(--app-rouge-bord);
+  --color-app-rouge-encre: var(--app-rouge-encre);
+  --color-app-vert-fond: var(--app-vert-fond);
+  --color-app-vert-bord: var(--app-vert-bord);
+  --color-app-vert-encre: var(--app-vert-encre);
+  --color-app-orange-fond: var(--app-orange-fond);
+  --color-app-orange-bord: var(--app-orange-bord);
+  --color-app-orange-encre: var(--app-orange-encre);
+  --color-app-gris-fond: var(--app-gris-fond);
+  --color-app-gris-bord: var(--app-gris-bord);
+  --color-app-gris-encre: var(--app-gris-encre);
+  --color-app-bleu-plein: var(--app-bleu-plein);
+  --color-app-bleu-plein-encre: var(--app-bleu-plein-encre);
+  --color-app-vert-plein: var(--app-vert-plein);
+  --color-app-vert-plein-encre: var(--app-vert-plein-encre);
+
   /* Thématisation par société (L0-09). Ces six variables ne sont définies
      NULLE PART dans une feuille de style : elles sont posées sur le document
      par le serveur, à partir de la société active de la session
@@ -129,7 +182,39 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /*
+   * LA TYPOGRAPHIE DE LA MAQUETTE, à la valeur près :
+   * `font-size:14px; line-height:1.5`, et sa pile de polices système.
+   *
+   * Elle est posée ici plutôt que dans `layout.tsx` parce qu'elle est de la
+   * même nature que les jetons : un écran ne décide pas de la police du
+   * produit. Un second thème pourra la redéfinir sans qu'aucun écran bouge.
+   */
   body {
     @apply bg-background text-foreground;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+      sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
   }
+}
+
+/*
+ * LA TRAME DU SITE FERMÉ — `.ferme` de la maquette.
+ *
+ * Elle ne se réduit pas à une couleur : c'est un DÉGRADÉ RÉPÉTÉ, et Tailwind
+ * n'a pas de classe pour cela. Elle vit donc ici, dans la seule feuille de
+ * style où une couleur s'écrit, et un écran la nomme par sa classe — jamais
+ * par ses valeurs. Elle dit « ce jour n'est pas ouvert », ce qu'aucun aplat ne
+ * distingue d'une case simplement vide.
+ */
+.trame-fermee {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--app-fond),
+    var(--app-fond) 6px,
+    var(--app-bord-faible) 6px,
+    var(--app-bord-faible) 12px
+  );
 }

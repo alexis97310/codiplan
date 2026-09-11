@@ -16,17 +16,31 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * Le logo de société est hors périmètre du ticket — il suppose un stockage de
  * fichiers — et rien ici ne l'empêche : il viendrait se poser devant le nom,
  * lu depuis `societe.logo_url`, sans changer le mécanisme.
+ *
+ * ## CE QUE D95 CHANGE : SA FORME, JAMAIS SON RÔLE
+ *
+ * Il était un bandeau pleine largeur posé au-dessus du contenu de chaque page.
+ * La maquette ne porte pas de bandeau : elle met l'identité de la société dans
+ * une PASTILLE, à droite de la barre de navigation (`.socsel`). C'est la forme
+ * rendue désormais — et c'est la seule chose qui change. Il nomme toujours les
+ * mêmes variables, il ne connaît toujours aucune couleur, et basculer de
+ * société change toujours son rendu sans qu'une ligne bouge ici.
+ *
+ * *Le libellé « charte de la société » / « thème neutre » reste rendu, et il
+ * reste utile : c'est lui qui distingue, à l'œil, une société qui a choisi ses
+ * couleurs d'une société qui n'en a pas — un état représentable, pas un
+ * oubli.*
  */
 export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
   return (
     <div
       data-origine-theme={theme.origine}
-      className="bg-societe-primaire text-societe-primaire-encre flex items-center justify-between gap-4 rounded-lg px-4 py-3"
+      className="bg-societe-primaire text-societe-primaire-encre flex items-center gap-2 rounded-md px-3 py-1.5"
     >
-      <span className="text-base font-semibold tracking-tight">
+      <span className="text-[12.5px] font-bold tracking-tight">
         {theme.nom}
       </span>
-      <span className="bg-societe-accent text-societe-accent-encre rounded-md px-2 py-1 text-xs font-medium">
+      <span className="bg-societe-accent text-societe-accent-encre rounded px-1.5 py-0.5 text-[10px] font-semibold">
         {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
       </span>
     </div>

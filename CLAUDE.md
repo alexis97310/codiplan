@@ -558,6 +558,16 @@ lib/
               (societe_id, type, rang) : le rang ne se compare qu'entre pairs
               « aucune condition » a DEUX écritures — `null` à la saisie, le
               tableau VIDE en base — et les deux se lisent ICI
+  navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
+              la liste est CLOSE et confrontée à `docs/CODIPLAN_Maquette.html` :
+              libellés et ordre compris — deux barres qui divergent, c'est la
+              maquette qui a raison
+              une entrée dont l'écran n'existe pas est INERTE, jamais absente
+              et jamais un lien : un 404 dans une barre se lit comme une panne,
+              une entrée manquante ment sur ce que le produit sera
+              ce n'est JAMAIS un contrôle d'accès — masquer une entrée serait
+              une seconde lecture d'un critère que la politique porte déjà, et
+              c'est celle qui vieillit sans rougir
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
@@ -694,6 +704,18 @@ lib/
               l'heure est un PARAMÈTRE, jamais une lecture : lue ici, elle
               rendrait un test vert parce que l'horloge a bougé
   theme/      charte de la société active — couleurs, encres, variables CSS
+              apparence.ts : L'APPARENCE du produit, à distinguer de la charte
+              (D95) — la charte est une DONNÉE propre à une société, l'apparence
+              est le socle sur lequel elle se pose
+              aucune couleur n'y est écrite : les palettes sont déclarées dans
+              `app/globals.css`, sous la seule forme qu'une feuille de style
+              admet pour une couleur — la déclaration de variable
+              un écran ne nomme jamais une couleur, il nomme un RÔLE : ajouter
+              un thème, c'est un bloc de style et une entrée de liste, et
+              aucun écran à rouvrir
+              PAS de sélecteur, et PAS d'apparence sombre : le premier serait un
+              réglage sans usage tant qu'il n'y a qu'un thème, la seconde serait
+              des couleurs que personne n'a validées
               statuts.ts : les couleurs des huit statuts d'intervention
               (annexe D, promue au rang de règle par le §1) — une RÈGLE du
               produit et non une charte : « en cours » est rouge chez tout le
