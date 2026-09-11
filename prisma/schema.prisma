@@ -93,6 +93,8 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
+  techniciens Technicien[]
+
   intervention_machines InterventionMachine[]
 
   demandes Demande[]
@@ -171,6 +173,8 @@ model Societe {
 /// Établissement CODIMA — Ducos, Koné, Dolbeau (D5). À ne jamais confondre
 /// avec un « site », qui est un lieu d'intervention chez un client.
 model Agence {
+  techniciens Technicien[]
+
   demandes Demande[]
 
   interventions Intervention[]
@@ -337,7 +341,82 @@ model Calendrier {
 /// d'horaires dit quand le technicien travaille, jamais à quel prix — la
 /// majoration relève de RG-TAR et de l'agence du technicien (I7), et l'y mêler
 /// ferait payer au client la souplesse d'un contrat de travail.
+/// LE TECHNICIEN — l'agence de rattachement, et rien de plus (L3-01a).
+///
+/// Le chapitre 11 décrit *« technicien — utilisateur, société, agence, coût
+/// horaire, taux de facturation par défaut, véhicule, actif »*. **Trois de ces
+/// colonnes ne sont PAS créées**, et chacune pour une raison écrite :
+///
+/// - **`cout_horaire` et `taux_facturation_defaut`** — *c'est exactement le
+///   piège de `societe.taux_horaire_defaut`, RETIRÉE le 09/09/2026* : deux
+///   sources d'un même fait qui divergent en valeur. Le taux vit dans
+///   `taux_horaire`, **historisé par date d'effet** (RG-TAR-04), et *une facture
+///   qui change quand le tarif change est une facture fausse*. Un défaut par
+///   technicien rouvrirait la même porte.
+/// - **`vehicule`** — rien ne le lit, rien ne l'écrit. *Une colonne inerte n'est
+///   pas neutre, elle est une invitation* : elle s'implémentera un jour de
+///   travers, par quelqu'un qui la trouvera au schéma et lui cherchera un sens
+///   (le motif de D77).
+///
+/// **Et le calendrier propre n'est PAS ici** : `technicien_calendrier` le porte
+/// déjà, sur la clé `(societe_id, utilisateur_id)`. L'ajouter ferait deux
+/// écritures d'un même fait (§9, 01/09).
+///
+/// Ce qui reste est ce que L3-01 réclame nommément — *« la table `technicien`
+/// (utilisateur, société, **agence**, actif), à créer au lot 3 avant
+/// l'écran »* — et ce dont D12 et D13 ont besoin depuis le lot 2 : **l'agence
+/// DU TECHNICIEN**, qui décide de la majoration hors ouverture et du calendrier
+/// de détection de conflit.
+model Technicien {
+  /// **Exigée par le journal d'audit, et ce n'est pas une formalité** :
+  /// `journal_audit_tracer` désigne la ligne journalisée par sa clé technique
+  /// (I10) et LÈVE si la table n'expose aucune colonne `id`. Sa voisine
+  /// `technicien_calendrier` ne l'avait pas — *et elle était donc impossible à
+  /// écrire, sans que rien ne le dise, parce que rien ne l'écrivait* (mesuré à
+  /// L3-01a).
+  ///
+  /// La clé PRIMAIRE reste le couple : c'est lui qui dit « une personne, une
+  /// société, un rattachement ».
+  id String @db.Uuid
+
+  societe_id     String @db.Uuid
+  utilisateur_id String @db.Uuid
+
+  /// L'AGENCE DE RATTACHEMENT. C'est elle — et non celle de l'intervention —
+  /// qui décide de la majoration hors ouverture (D12) et du calendrier de
+  /// détection de conflit à la pose (D13).
+  agence_id String @db.Uuid
+
+  /// Un technicien qui a quitté l'entreprise ne se supprime pas : ses
+  /// interventions passées le nomment encore. *Il cesse d'être proposé, il ne
+  /// cesse pas d'avoir existé.*
+  actif Boolean @default(true)
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  agence  Agence  @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// La MÊME clé que `technicien_calendrier` : un technicien est une PERSONNE
+  /// dans une SOCIÉTÉ, et son identité vit dans `utilisateur` — qui ne porte
+  /// aucune donnée métier (I1, quatrième catégorie).
+  @@id([societe_id, utilisateur_id])
+  @@unique([id])
+  @@index([societe_id, agence_id])
+  @@map("technicien")
+}
+
 model TechnicienCalendrier {
+  /// AJOUTÉE À L3-01a, et la table était INÉCRIVABLE sans elle.
+  ///
+  /// `journal_audit_tracer` lève quand la table n'expose aucune colonne `id` ;
+  /// le déclencheur était posé ici depuis le paramétrage par agence, et
+  /// **aucun INSERT n'a jamais abouti**. Personne ne l'avait vu parce que
+  /// personne n'écrivait : *un défaut invisible parce que ce qu'il casse
+  /// n'existe pas encore* (§9, 08/09). Mesuré par un `INSERT` direct.
+  id String @db.Uuid
+
   societe_id     String @db.Uuid
   utilisateur_id String @db.Uuid
   calendrier_id  String @db.Uuid
@@ -349,6 +428,7 @@ model TechnicienCalendrier {
   calendrier Calendrier @relation(fields: [calendrier_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@id([societe_id, utilisateur_id])
+  @@unique([id])
   @@index([societe_id, calendrier_id])
   @@map("technicien_calendrier")
 }

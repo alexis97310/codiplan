@@ -65,6 +65,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       intervention: 0,
       intervention_machine: 0,
       demande: 0,
+      technicien: 0,
       technicien_calendrier: 0,
     },
     ...surcharge,
@@ -104,6 +105,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         intervention: 0,
         intervention_machine: 0,
         demande: 0,
+        technicien: 0,
         technicien_calendrier: 0,
       },
     }),
@@ -160,6 +162,8 @@ describe("inventaire à plat", () => {
       intervention_machine: 0,
       // L2-06 — même chemin : `demande` est entrée le jour où la table est née.
       demande: 0,
+      // L3-01a — et c'est la table que trois `(prévu)` attendaient.
+      technicien: 0,
       technicien_calendrier: 0,
     });
   });

@@ -640,6 +640,24 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Le technicien a enfin une agence — et une table auditée était inécrivable
+
+`technicien` existait dans le chapitre 11 et **nulle part ailleurs**. Trois documents s'y référaient : le §6 la marquait `(prévu)`, D72 en dépendait, et `occupation.ts` écrivait sa dette en toutes lettres. La table est créée avec ce que L3-01 réclame — utilisateur, société, **agence**, actif — et **trois colonnes du chapitre 11 n'y sont pas** : `cout_horaire` et `taux_facturation_defaut`, parce que _c'est le piège de `societe.taux_horaire_defaut`, retirée le 09/09_ — deux sources d'un même fait qui divergent en valeur ; et `vehicule`, parce que _une colonne inerte n'est pas neutre, elle est une invitation._
+
+**La règle de priorité vit dans `lib/calendar/technicien.ts` et nulle part ailleurs** : horaires propres s'il en a, sinon ceux de son agence ; **fuseau, territoire, fériés et ponts toujours ceux de l'agence**. _Un technicien travaille le samedi par exception ; il ne décrète pas les fériés de son territoire._ C'est la ligne de partage de D46, appliquée à une personne au lieu d'une agence.
+
+**Elle a un appelant le jour même**, et il était écrit : `occupation.ts` portait _« le calendrier de travail propre au technicien n'est pas encore consulté ici ; le jour où il le sera, c'est lui qui fera foi »_. La mise en cache du dénominateur suit désormais le **couple** (technicien, agence) — _deux techniciens de la même agence peuvent avoir deux dénominateurs._
+
+### `technicien_calendrier` était INÉCRIVABLE, et personne ne l'avait vu
+
+`journal_audit_tracer` désigne la ligne journalisée par sa clé technique (I10) et **lève quand la table n'expose aucune colonne `id`**. `technicien_calendrier` portait le déclencheur depuis le paramétrage par agence **sans avoir cette colonne** : tout `INSERT` y échouait en `P0001`.
+
+> `ERROR : journal_audit : la table « technicien_calendrier » n'expose aucune colonne « id ».`
+
+_Personne ne l'avait vu parce que personne n'écrivait dans cette table_ — un défaut invisible parce que ce qu'il casse n'existe pas encore. Le périmètre d'audit, lui, était **vert** : il vérifie que le déclencheur **est posé**, pas qu'il **peut s'exécuter**.
+
+**La moitié qui manquait est désormais un contrôle** : toute table portant le déclencheur d'audit doit exposer une colonne `id`. Mesuré — la colonne retirée, il nomme `technicien_calendrier`.
+
 ## La file « en attente de pièce » — ce qui la désigne n'est pas un code
 
 Le statut `suspendue` existait depuis le planning agissant ; **rien ne portait le motif**, et une intervention pouvait donc s'arrêter sans qu'on sache pourquoi. RG-INT-06 : _« une intervention SUSPENDUE porte un motif et, pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle. »_
