@@ -39,6 +39,13 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * portail n'a aucune ligne dans `utilisateur_societe` (D10), et la route le
  * refuse. Le jour où la barre sera servie par rôle, ce sera une décision, pas
  * un effet de bord.*
+ *
+ * ## Et ce que cette barre N'EST PAS non plus : celle du portail
+ *
+ * Ces entrées sont celles d'un **back-office**, et c'est ce que la maquette
+ * dessine. Un compte de portail en reçoit une autre — `ENTREES_PORTAIL`, D97 —,
+ * *un client qui lirait « Facturation » ou « Techniciens » au-dessus de son
+ * espace apprendrait l'existence d'un outil qui n'est pas le sien.*
  */
 
 export type EntreeNavigation = {
@@ -133,6 +140,38 @@ export const ENTREES: readonly EntreeNavigation[] = [
 ];
 
 /**
+ * LA BARRE DU PORTAIL CLIENT — une seconde liste, et non un sous-ensemble de la
+ * première (D97).
+ *
+ * **Elle ne porte que ce qui EXISTE et ce qui APPARTIENT AU CLIENT.** *Un
+ * client qui lit « Facturation » ou « Techniciens » au-dessus de son espace
+ * apprend l'existence d'un outil qui n'est pas le sien* — c'est « une fuite par
+ * déduction est une fuite » (§2 de la doctrine) appliquée non plus à un
+ * compteur mais à un LIBELLÉ : une entrée de menu renseigne par son existence,
+ * sans qu'aucune donnée soit derrière elle.
+ *
+ * **AUCUNE ENTRÉE INERTE ICI, et c'est la seule règle qui diffère de la barre
+ * du back-office.** Une entrée inerte est admise dans une barre que la maquette
+ * PRESCRIT — elle dit ce que le produit sera, et la maquette en fait foi. Elle
+ * ne l'est pas dans une barre qu'on dessine soi-même : *inventer une entrée
+ * inerte, ce serait promettre au client un outil qu'on n'a pas décidé de lui
+ * donner.* Le gardien l'exige, dans les deux sens.
+ *
+ * **Une seule entrée aujourd'hui**, et c'est un état plutôt qu'un choix : le
+ * portail n'a qu'un écran servi (L2-12). Ce qu'une barre d'une entrée apporte
+ * quand même est le POINT DE RETOUR — sans elle, un client qui ouvre une fiche
+ * n'a aucun chemin vers sa liste, et c'est le coût que l'issue « pas de barre
+ * du tout » faisait payer.
+ *
+ * **Ce n'est pas un contrôle d'accès**, pas plus que l'autre : ce qui protège
+ * le parc d'un client est la forme « parc » et la forme « rattachement », pas
+ * l'absence d'un lien.
+ */
+export const ENTREES_PORTAIL: readonly EntreeNavigation[] = [
+  { cle: "nav.portail_parc", chemin: "/portail" },
+];
+
+/**
  * L'entrée active pour un chemin donné.
  *
  * La comparaison est un PRÉFIXE, et c'est délibéré : `/parametres/forfaits`
@@ -142,10 +181,19 @@ export const ENTREES: readonly EntreeNavigation[] = [
  * où l'on a le plus besoin de savoir où l'on est.
  *
  * Le préfixe est borné au segment : `/planning` n'allume pas `/planningX`.
+ *
+ * **La liste est un PARAMÈTRE depuis D97**, le portail ayant la sienne. Le
+ * défaut reste celle du back-office : c'est l'appelant historique, et le rendre
+ * obligatoire aurait touché des appels que ce ticket ne regarde pas. *Le
+ * poseur, lui, ne devine rien* — la barre reçoit sa liste explicitement, et un
+ * segment qui oublierait de la passer ne compile pas.
  */
-export function entreeActive(chemin: string): EntreeNavigation | null {
+export function entreeActive(
+  chemin: string,
+  entrees: readonly EntreeNavigation[] = ENTREES,
+): EntreeNavigation | null {
   let meilleure: { entree: EntreeNavigation; longueur: number } | null = null;
-  for (const entree of ENTREES) {
+  for (const entree of entrees) {
     if (entree.chemin === null) continue;
     const section = entree.section ?? entree.chemin;
     if (chemin !== section && !chemin.startsWith(`${section}/`)) continue;

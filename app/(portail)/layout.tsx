@@ -1,6 +1,7 @@
 import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
+import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 
 /**
  * LE SEGMENT DU PORTAIL CLIENT (R2-16).
@@ -9,14 +10,17 @@ import { chromeDeLaRequete } from "@/lib/navigation/chrome";
  * les écrans qui la précèdent, et déplacer le portail par la même occasion
  * aurait été un changement que rien n'a mesuré.
  *
- * **Ce que la mesure dit, et qui n'est PAS tranché ici** : les onze entrées de
- * la barre viennent de la maquette, qui est une maquette de back-office —
- * « Planning », « Techniciens », « Facturation ». Un compte de portail les voit
- * donc aujourd'hui, toutes inertes. Ce n'est pas une fuite de cloisonnement
- * (aucune ne mène à une route servie, et une entrée inerte n'est pas un lien),
- * c'est la même faute de lecture que R2-16 corrige un segment plus loin, et
- * elle touche CE QU'UN CLIENT VOIT — donc elle appartient à Alexis (§1 du
- * protocole de session). Elle est portée au backlog sous R2-17.
+ * **IL PORTE SA PROPRE BARRE DEPUIS D97**, et c'est tout l'objet de R2-17. Il
+ * rendait celle du back-office — onze entrées venues d'une maquette de
+ * back-office, « Planning », « Techniciens », « Facturation », toutes inertes
+ * pour un compte de portail. *Ce n'était pas une fuite de cloisonnement —
+ * aucune ne mène à une route servie, et une entrée inerte n'est pas un lien —
+ * mais une fuite de LECTURE : un client y apprenait l'existence d'outils qui ne
+ * sont pas les siens, et une entrée de menu renseigne par sa seule existence.*
+ *
+ * **Le point de retour change avec la barre**, et c'est la moitié qu'on
+ * oublierait : la marque menait à `/planning`, que ce compte ne peut pas ouvrir
+ * (D10). Elle mène ici à `/portail`.
  */
 export default async function MiseEnPagePortail({
   children,
@@ -25,7 +29,12 @@ export default async function MiseEnPagePortail({
 
   return (
     <>
-      <BarreDeNavigation theme={theme} initiales={initiales} />
+      <BarreDeNavigation
+        theme={theme}
+        initiales={initiales}
+        entrees={ENTREES_PORTAIL}
+        accueil="/portail"
+      />
       <LargeurUtile>{children}</LargeurUtile>
     </>
   );
