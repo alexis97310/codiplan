@@ -120,6 +120,21 @@ function useDepot(): Depot {
 export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
   const router = useRouter();
   const [motif, setMotif] = useState<CleTraduction | null>(null);
+  /**
+   * CE QUI EST PASSÉ MAIS MÉRITE D'ÊTRE DIT (L3-02, RG-PLA-04).
+   *
+   * *La moitié « avertissement » de la règle n'avait aucun appelant* : elle
+   * était calculée depuis L1-04 et jetée. Elle arrive ici comme le refus — en
+   * CLÉS de dictionnaire, jamais en texte : sans ce filtre, une réponse forgée
+   * ferait écrire n'importe quoi à la page (L1-02f).
+   *
+   * **Le code de l'habilitation n'y est pas, et ne peut pas y être** : c'est
+   * une donnée de société, et ce canal ne porte que des clés. Le détail — quel
+   * code, expiré quel jour — se lit sur la fiche, sous le contexte cloisonné.
+   */
+  const [avertissements, setAvertissements] = useState<
+    readonly CleTraduction[]
+  >([]);
 
   const deposer = useCallback(
     (main: EnMain, cible: CibleDeDepot) => {
@@ -160,11 +175,13 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
             : null;
         if (cle === null) {
           setMotif(null);
+          setAvertissements(clesLues(rendu));
           // La base a accepté : l'écran se relit du SERVEUR, il ne se devine
           // pas. C'est ce qui garantit qu'il ne montre rien de plus.
           router.refresh();
           return;
         }
+        setAvertissements([]);
         setMotif(estCleTraduction(cle) ? cle : "intervention.refus.inconnue");
       })();
     },
@@ -185,6 +202,19 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
           {t(motif)}
         </p>
       )}
+      {avertissements.map((cle) => (
+        <p
+          key={cle}
+          // `role="status"` et non `alert` : *un avertissement n'interrompt
+          // pas.* L'action a été acceptée ; ce qui suit est une information, et
+          // l'annoncer comme une alerte apprendrait à ignorer les alertes.
+          data-avertissement={cle}
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {t(cle)}
+        </p>
+      ))}
       {children}
     </Contexte.Provider>
   );
@@ -325,6 +355,30 @@ export function CasePosable({
     >
       {children}
     </td>
+  );
+}
+
+/**
+ * LES CLÉS D'AVERTISSEMENT D'UNE RÉPONSE — et rien d'autre qu'elle porterait.
+ *
+ * *Une réponse est une entrée, et une entrée se contrôle.* Tout ce qui n'est
+ * pas une clé connue du dictionnaire est **écarté en silence** : afficher une
+ * clé inconnue reviendrait à laisser écrire la page par qui forge la réponse,
+ * et rendre un refus sur un avertissement transformerait une information en
+ * panne.
+ */
+function clesLues(rendu: unknown): readonly CleTraduction[] {
+  if (
+    rendu === null ||
+    typeof rendu !== "object" ||
+    !("avertissements" in rendu) ||
+    !Array.isArray(rendu.avertissements)
+  ) {
+    return [];
+  }
+  return rendu.avertissements.filter(
+    (valeur): valeur is CleTraduction =>
+      typeof valeur === "string" && estCleTraduction(valeur),
   );
 }
 

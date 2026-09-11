@@ -65,7 +65,15 @@ describe("le taux d'occupation ne s'affiche jamais seul", () => {
     // chargée et retire la formule, « puisque le taux se comprend ». On rejoue
     // le verdict du gardien sur ce texte-là, sans toucher au fichier.
     const ampute = source().replace(
-      /\$\{t\("statistiques\.separateur"\)\}\$\{t\("statistiques\.formule"\)\}/g,
+      // La clé s'appelait `statistiques.separateur` : elle a été renommée
+      // `ponctuation.separateur` le jour où la fiche d'intervention en a eu
+      // besoin (L3-02) — *une clé nommée d'après son premier appelant devient
+      // fausse au second*. **Et c'est ce gardien qui a nommé le renommage
+      // incomplet** : son `expect(ampute).not.toBe(source())` refuse une
+      // amputation qui n'ampute rien, et il a rougi sur-le-champ. Une mise en
+      // échec dont le motif ne trouve plus sa cible ne viole plus rien
+      // (§9, 11/09).
+      /\$\{t\("ponctuation\.separateur"\)\}\$\{t\("statistiques\.formule"\)\}/g,
       "",
     );
     expect(ampute).not.toBe(source());

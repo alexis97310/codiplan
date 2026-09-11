@@ -407,7 +407,12 @@ export const fr = {
   // Le SIGNE POUR CENT est du texte qu'un humain lit : il vient d'ici comme le
   // reste (L0-11), avec l'espace insécable que le français exige devant lui.
   "statistiques.pourcent": "\u00a0%",
-  "statistiques.separateur": " — ",
+  // LE SÉPARATEUR N'APPARTIENT À AUCUN ÉCRAN — il s'appelait
+  // `statistiques.separateur`, et la fiche d'intervention en a eu besoin le
+  // jour où elle a affiché « CACES — bloquante » (L3-02). *Une clé nommée
+  // d'après son premier appelant devient fausse au second*, et la pente
+  // suivante est d'en écrire une deuxième qui dit la même chose.
+  "ponctuation.separateur": " — ",
   "statistiques.formule":
     "heures engagées ÷ heures ouvrables du calendrier de l'établissement",
   "statistiques.sans_calendrier":
@@ -435,6 +440,21 @@ export const fr = {
     "Ce lieu n'est rattaché à aucun établissement. Le rattachement de l'intervention en est déduit : renseignez-le d'abord.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
+  // RG-PLA-04, sa moitié BLOQUANTE et sa moitié qui AVERTIT (L3-02, D9, D73).
+  //
+  // *Le code de l'habilitation n'est pas dans ces phrases, et c'est voulu* : il
+  // est une donnée de société, il se LIT en base à côté du technicien affiché,
+  // et il ne traverse jamais une URL — un texte recopié depuis un paramètre est
+  // un canal d'écriture ouvert à qui forge un lien (L1-02f, D50). Ces libellés
+  // sont les invariants de la phrase ; la donnée s'y accole à l'écran.
+  "intervention.habilitations.exigees": "Habilitations exigées par ce lieu",
+  "intervention.habilitations.bloquante": "bloquante",
+  "intervention.habilitations.absente": "absente",
+  "intervention.habilitations.expiree_le": "expirée le",
+  "intervention.habilitations.satisfaites":
+    "Ce technicien détient toutes les habilitations exigées ici.",
+  "intervention.avertissement.habilitation":
+    "Ce technicien ne détient pas toutes les exigences NON bloquantes de ce lieu. L'affectation est acceptée ; le détail est sur la fiche.",
   "intervention.type": "Nature",
   "intervention.priorite": "Priorité",
   "intervention.statut": "Statut",

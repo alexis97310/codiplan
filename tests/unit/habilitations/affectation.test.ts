@@ -20,10 +20,23 @@ import {
 const B1V = "0192f0a0-1000-7000-8000-00000000b11v";
 const CACES = "0192f0a0-1000-7000-8000-0000000cace5";
 
+/**
+ * LE CODE, PAS L'IDENTIFIANT — c'est ce que D73 veut lire dans un refus.
+ *
+ * *Le verdict rendait l'UUID seul, et l'écran l'affichait tel quel.* « habilitation
+ * 0192f0a0-… absente » n'apprend rien à personne ; « habilitation BR absente »
+ * dit ce qui manque et à qui le demander.
+ */
+const CODE = { [B1V]: "BR", [CACES]: "CACES R489" } as const;
+
 const INTERVENTION = new Date("2026-09-15T00:00:00Z");
 
 function exigence(habilitation_id: string, bloquant: boolean): ExigenceDuSite {
-  return { habilitation_id, bloquant };
+  return {
+    habilitation_id,
+    code: CODE[habilitation_id as keyof typeof CODE],
+    bloquant,
+  };
 }
 
 function detenue(
@@ -52,7 +65,7 @@ describe("RG-PLA-04 — l'affectation est BLOQUÉE, et non signalée", () => {
     const verdict = verdictAffectation([exigence(B1V, true)], [], INTERVENTION);
     expect(verdict.bloquee).toBe(true);
     expect(verdict.bloquantes).toEqual([
-      { habilitation_id: B1V, motif: "absente" },
+      { habilitation_id: B1V, code: "BR", motif: "absente" },
     ]);
   });
 
@@ -64,8 +77,16 @@ describe("RG-PLA-04 — l'affectation est BLOQUÉE, et non signalée", () => {
       INTERVENTION,
     );
     expect(verdict.bloquee).toBe(true);
+    // **LA DATE VOYAGE AVEC LE MOTIF, ET JAMAIS SANS LUI** (D56, L3-02) : D73
+    // veut « habilitation CACES expirée le 12/08/2026 ». Une date seule ne dit
+    // ni de quoi elle parle ni qu'elle est dépassée.
     expect(verdict.bloquantes).toEqual([
-      { habilitation_id: B1V, motif: "expiree" },
+      {
+        habilitation_id: B1V,
+        code: "BR",
+        motif: "expiree",
+        expiraitLe: new Date("2026-09-14"),
+      },
     ]);
   });
 
@@ -99,7 +120,7 @@ describe("RG-PLA-04 — l'affectation est BLOQUÉE, et non signalée", () => {
     );
     expect(verdict.bloquee).toBe(false);
     expect(verdict.avertissements).toEqual([
-      { habilitation_id: CACES, motif: "absente" },
+      { habilitation_id: CACES, code: "CACES R489", motif: "absente" },
     ]);
     expect(verdict.bloquantes).toEqual([]);
   });
@@ -115,11 +136,38 @@ describe("RG-PLA-04 — l'affectation est BLOQUÉE, et non signalée", () => {
     );
     expect(verdict.bloquee).toBe(true);
     expect(verdict.bloquantes).toEqual([
-      { habilitation_id: B1V, motif: "expiree" },
+      {
+        habilitation_id: B1V,
+        code: "BR",
+        motif: "expiree",
+        expiraitLe: new Date("2026-01-01"),
+      },
     ]);
     expect(verdict.avertissements).toEqual([
-      { habilitation_id: CACES, motif: "absente" },
+      { habilitation_id: CACES, code: "CACES R489", motif: "absente" },
     ]);
+  });
+
+  it("une expiration NULLE ne porte JAMAIS de date de motif — le cas qui doit rester vert pour SA raison", () => {
+    // §9 du 11/09 : *à côté de chaque cas qui doit rougir, un cas qui doit
+    // rester vert POUR SA PROPRE RAISON.* Ici, le voisin qui lui ressemble est
+    // « expirée » — même exigence, même technicien, un seul champ de
+    // différence. Si `expireeLe` confondait « pas de date » et « date
+    // dépassée », ce cas passerait en `expiree` avec `expiraitLe: null`, et le
+    // type le refuse à la compilation autant que cette assertion à
+    // l'exécution.
+    const sansEcheance = verdictAffectation(
+      [exigence(B1V, true)],
+      [detenue(B1V, null)],
+      INTERVENTION,
+    );
+    const depassee = verdictAffectation(
+      [exigence(B1V, true)],
+      [detenue(B1V, "2026-09-14")],
+      INTERVENTION,
+    );
+    expect(sansEcheance.bloquantes).toEqual([]);
+    expect(depassee.bloquantes).toHaveLength(1);
   });
 
   it("un site SANS exigence ne bloque rien", () => {

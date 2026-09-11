@@ -304,6 +304,26 @@ export function cleJour(jour: JourLocal): string {
   return `${String(jour.annee).padStart(4, "0")}-${mois}-${jourDuMois}`;
 }
 
+/**
+ * UNE COLONNE `DATE` TELLE QU'UN HUMAIN LA LIT — `12/08/2026`.
+ *
+ * **Lue en UTC, et c'est tout le piège** : une colonne `DATE` est un jour
+ * CIVIL, stocké à minuit UTC ; la lire dans le fuseau du serveur la recule d'un
+ * jour sous UTC+11. *Une date d'expiration affichée avec un jour de retard fait
+ * refuser un technicien qui a le droit d'intervenir.*
+ *
+ * C'est le pendant humain de `cleJour`, qui écrit la même chose pour une
+ * machine. **Elle vit ici parce qu'elle y vit UNE fois** : cette lecture était
+ * recopiée dans l'écran du parc, et une seconde lecture d'un même critère
+ * diverge en silence (§9, 01/09) — la première qui changerait de format
+ * laisserait l'autre derrière sans que rien ne rougisse.
+ */
+export function dateCivile(date: Date): string {
+  const jourDuMois = String(date.getUTCDate()).padStart(2, "0");
+  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${jourDuMois}/${mois}/${date.getUTCFullYear()}`;
+}
+
 /** Lit une clé `AAAA-MM-JJ`. Refuse tout ce qui n'a pas exactement cette forme. */
 export function lireCleJour(cle: string): JourLocal {
   const trouve = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cle);

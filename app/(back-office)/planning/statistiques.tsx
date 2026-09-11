@@ -107,7 +107,7 @@ function infobulleDuSegment(
   statut: StatutIntervention,
   minutes: number,
 ): string {
-  return `${t(`statut.${statut}`)}${t("statistiques.separateur")}${enHeure(minutes)}`;
+  return `${t(`statut.${statut}`)}${t("ponctuation.separateur")}${enHeure(minutes)}`;
 }
 
 function heuresEngagees(occupation: OccupationTechnicien): string {
@@ -127,7 +127,7 @@ function tauxEtFormule(taux: number, infime: boolean): string {
   const valeur = infime
     ? t("statistiques.taux_infime")
     : `${taux}${t("statistiques.pourcent")}`;
-  return `${t("statistiques.taux")} ${valeur}${t("statistiques.separateur")}${t("statistiques.formule")}`;
+  return `${t("statistiques.taux")} ${valeur}${t("ponctuation.separateur")}${t("statistiques.formule")}`;
 }
 
 function combienSansDuree(occupation: OccupationTechnicien): string {

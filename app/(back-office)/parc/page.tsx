@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   listerLeParc,
@@ -204,16 +205,13 @@ function lieuAffiche(machine: LigneDeParc): string {
 /**
  * La date de mise en service, ou son absence.
  *
- * Lue en **UTC** : la colonne est une DATE, stockée à minuit UTC, et la lire
- * dans le fuseau du serveur la reculerait d'un jour sous UTC+11.
+ * **La lecture en UTC vit dans `dateCivile`**, et plus ici : elle était écrite
+ * deux fois le jour où la fiche d'intervention a eu besoin d'afficher une date
+ * d'expiration (L3-02). *Ce qui reste ici est la seule chose propre à cet
+ * écran : ce qu'on écrit quand il n'y a pas de date.*
  */
 function dateAffichee(date: Date | null): string {
-  if (date === null) {
-    return ABSENT;
-  }
-  const jour = String(date.getUTCDate()).padStart(2, "0");
-  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${jour}/${mois}/${date.getUTCFullYear()}`;
+  return date === null ? ABSENT : dateCivile(date);
 }
 
 /** Le libellé d'un statut — au dictionnaire, jamais écrit dans le composant. */
