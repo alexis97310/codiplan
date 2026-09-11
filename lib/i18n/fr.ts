@@ -106,6 +106,18 @@ export const fr = {
   // est la seule maison.
   "portail.vos": "Vos",
   "portail.machines": "Vos machines",
+  // ── LES SIX ÉTATS D'UNE MACHINE (R2-21) ─────────────────────────────────
+  //
+  // *Un état de machine est lu par un PLANIFICATEUR, pas par une machine* : il
+  // passe donc au dictionnaire, contrairement à un nom de rôle. Les trois
+  // premiers libellés sont ceux de la maquette, qui fait foi ; les trois autres
+  // n'y figurent pas et sont écrits au plus simple.
+  "statut_machine.en_service": "En service",
+  "statut_machine.en_panne": "En panne",
+  "statut_machine.arretee": "Arrêtée",
+  "statut_machine.remplacee": "Remplacée",
+  "statut_machine.ferraillee": "Ferraillée",
+  "statut_machine.fusionnee": "Fusionnée",
   "portail.machine.serie": "Numéro de série",
   "portail.machine.localisation": "Emplacement",
   "portail.machine.statut": "État",
@@ -576,6 +588,24 @@ export const fr = {
   // La maquette range ce contenu en TABLEAU, pas en cartes. Les libellés
   // portent tout SAUF les notions imposées : le composant compose le titre de
   // la colonne d'établissement depuis `mot("agence")`.
+  // ── L'ÉCRAN « PARC MACHINES » (R2-21) ───────────────────────────────────
+  "parc.titre": "Parc machines clients",
+  "parc.sous_titre":
+    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter.",
+  "parc.colonne_reference": "Référence",
+  "parc.colonne_modele": "Modèle",
+  "parc.colonne_serie": "N° de série",
+  "parc.colonne_lieu": "Client / lieu",
+  "parc.colonne_mise_en_service": "Mise en service",
+  "parc.colonne_statut": "Statut",
+  "parc.famille": "Famille",
+  "parc.vide": "Aucune machine n'est enregistrée pour cette société.",
+  "parc.total": "machines",
+  "parc.incompletes": "fiches à compléter",
+  "parc.a_completer": "À compléter",
+  "parc.non_synchronisee": "non synchronisée",
+  "parc.borne":
+    "Les premières fiches du parc, les incomplètes d'abord. La recherche et l'export viennent avec les écrans de lot 2.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.colonne_exceptions": "Exceptions",

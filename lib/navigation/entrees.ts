@@ -79,8 +79,14 @@ export const ENTREES: readonly EntreeNavigation[] = [
   { cle: "nav.tableau_de_bord", chemin: null, ouvertePar: "lot 4" },
   { cle: "nav.planning", chemin: "/planning" },
   { cle: "nav.interventions", chemin: null, ouvertePar: "L2-08" },
-  { cle: "nav.parc_machines", chemin: null, ouvertePar: "L2-01 (écran)" },
-  { cle: "nav.fiche_machine", chemin: null, ouvertePar: "L2-01 (écran)" },
+  { cle: "nav.parc_machines", chemin: "/parc" },
+  // *L2-01 (écran) est LIVRÉ depuis R2-21, et cette entrée est restée sur son
+  // nom.* Une mention d'ouverture qui désigne un ticket déjà fait ne casse rien
+  // et ment doucement — exactement ce que le gardien refuse dans l'autre sens.
+  // Et la question qu'elle pose n'est pas celle d'un écran manquant : **une
+  // fiche a besoin d'un identifiant**, elle ne peut pas être une section de
+  // navigation. R2-22 tranche ce qu'elle devient.
+  { cle: "nav.fiche_machine", chemin: null, ouvertePar: "R2-22" },
   { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
   { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
   { cle: "nav.portail_client", chemin: "/portail" },

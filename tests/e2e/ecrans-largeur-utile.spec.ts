@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { fr } from "@/lib/i18n";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
 
 import { FORFAITS_SCENE, SCENE } from "./setup/scene";
@@ -150,4 +151,31 @@ test("les écrans sans session ne défilent pas pour rien", async ({ page }) => 
       FENETRE.height,
     );
   }
+});
+
+test("le parc machines rend des lignes, et la barre l'allume", async ({
+  page,
+}) => {
+  // R2-21. *L'entrée « Parc machines » était INERTE depuis D95 : la fiche
+  // existait depuis L2-01, et rien n'y menait.* Ce scénario éprouve les deux
+  // moitiés — l'écran rend, et la barre le désigne.
+  await page.goto("/parc");
+
+  const largeur = await page
+    .locator("main")
+    .evaluate((element) => Math.round(element.getBoundingClientRect().width));
+  expect(largeur).toBe(LARGEUR_UTILE_PX - 2 * GOUTTIERE_PX);
+
+  // Le TÉMOIN : des lignes réelles. Un tableau vide passerait toutes les
+  // assertions de forme sans rien prouver du cloisonnement ni de la lecture.
+  const lignes = page.locator("main tbody tr");
+  await expect(lignes.first()).toBeVisible();
+  expect(await lignes.count()).toBeGreaterThan(0);
+
+  // L'entrée de la barre est désormais un LIEN, et c'est elle qui est allumée.
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("link", { name: fr["nav.parc_machines"] }),
+  ).toHaveAttribute("href", "/parc");
 });
