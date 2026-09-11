@@ -19,12 +19,13 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 |---|---|
 | 1 | `docs/arbitrages.md` — les décisions arrêtées |
 | 1 | `docs/protocole-session.md` — **comment une session travaille** |
+| 1 | `docs/doctrine-arbitrage.md` — **les familles de règles déjà tranchées** |
 | 2 | `docs/cahier-des-charges.md` **chapitre 10** — les règles de gestion |
 | 3 | `docs/cahier-des-charges.md` **chapitre 11** — le modèle de données |
 | 4 | `docs/backlog.md` — les tickets |
 | 5 | Le reste du cahier des charges — narratif, jamais normatif |
 
-**Les deux sources de rang 1 ne se recouvrent pas** *(écrit le 10/09/2026)*. `arbitrages.md` dit **ce qui a été décidé** ; `protocole-session.md` dit **comment une session travaille** — qui décide quoi, les deux seuls cas d'arrêt, la forme d'un ticket `arbitrage`, l'économie de contexte, la forme du rapport. Elles sont à égalité parce qu'aucune ne peut trancher l'autre : une contradiction entre les deux est un **défaut à signaler**, jamais une préséance à appliquer. Ces sept sections étaient recopiées à l'identique en tête de chaque consigne depuis dix jours ; *une règle recopiée à la main est une règle qui s'érode.*
+**Les trois sources de rang 1 ne se recouvrent pas** *(écrit le 10/09/2026, complété le 11/09/2026)*. `arbitrages.md` dit **ce qui a été décidé** — des décisions particulières, datées, numérotées ; `protocole-session.md` dit **comment une session travaille** — qui décide quoi, les deux seuls cas d'arrêt, la forme d'un ticket `arbitrage`, l'économie de contexte, la forme du rapport ; `doctrine-arbitrage.md` dit **quand une session peut trancher seule sans reposer la question** — les familles de règles, hors ce qui touche l'argent facturé, une obligation légale ou ce qu'un client voit. Elles sont à égalité parce qu'aucune ne peut trancher les autres : une contradiction entre elles est un **défaut à signaler**, jamais une préséance à appliquer. Ces sept sections étaient recopiées à l'identique en tête de chaque consigne depuis dix jours ; *une règle recopiée à la main est une règle qui s'érode.*
 
 **Une règle métier ne s'écrit qu'au chapitre 10.** Une règle trouvée ailleurs et absente du chapitre 10 est non normative.
 
@@ -729,6 +730,8 @@ Le domaine métier est en français (`intervention`, `machine`, `societe`, `agen
 ---
 
 ## 8. Points où il faut s'arrêter et demander
+
+**Avant de s'arrêter, vérifier `docs/doctrine-arbitrage.md`.** Si la question tombe sous une des familles qui y sont écrites, trancher en s'y appuyant, écrire la décision avec sa condition de réouverture, et ne pas ouvrir de ticket — sauf si elle touche l'argent facturé à un client, une obligation légale, ce qu'un client voit, ou plus largement tout ce qui serait irréversible dans une relation client (§1 de `docs/doctrine-arbitrage.md`), auquel cas elle reste un point d'arrêt malgré tout.
 
 - une **règle métier absente ou ambiguë** au chapitre 10 et non tranchée dans `docs/arbitrages.md` ;
 - un **montant, un taux, un délai** non spécifié — ne jamais inventer de valeur par défaut ;

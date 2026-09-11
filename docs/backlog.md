@@ -657,3 +657,44 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Déclencheur : la prochaine prise de vue.** Le README nomme le commit photographié, et c'est la règle du §9. Ce qu'il ne dit pas : *comment un lecteur sait qu'aucun écran n'a bougé depuis.* La question se répond en une commande — `git diff --name-only <empreinte> main` restreint aux chemins d'écran — et cette commande est aujourd'hui tapée à la main, donc pas tapée.
 **Mesuré le 10/09/2026** : entre `b8c3f76` (photographié) et `2fe6e8b`, **67 fichiers changés et aucun sous `app/`, `components/`, `lib/theme/` ni `lib/i18n/`** — les images étaient exactes, et rien dans le dossier ne le disait.
 *Acceptation :* `scripts/captures.mts` énumère les chemins qu'il tient pour « surface d'écran » et les écrit dans le README avec l'empreinte ; une commande dit si l'un d'eux a changé depuis la prise, et rend un état — jamais un silence.
+
+**~~R1-03~~ — Chiffrer ce que la limitation de `ci.yml` à `push.branches ["main"]` a réellement économisé. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Écrit cette nuit-là, et **sans objet depuis le matin** : automatisation GitHub Actions abandonnée le 11/09/2026.~~ Le ticket est **barré, jamais effacé** — ce qui a été décidé un jour se relit, sinon on le redécide (CLAUDE.md §2). Il mesurait le gain d'une borne posée sur un flux qui ne tourne plus. *Condition de réouverture : le jour où un flux planifié consomme à nouveau des minutes de CI.*
+
+**~~R1-04~~ — Le compteur de budget dans le rapport de nuit. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet : automatisation GitHub Actions abandonnée le 11/09/2026.~~ Il n'y a plus de rapport de nuit, donc plus de budget à y compter. *Condition de réouverture : le jour où une exécution non humaine dépense à nouveau un budget mesurable.*
+
+**~~R1-05~~ — Le trou de vérification à la fusion. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet en tant que travail sur le rapport de nuit : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Mais le trou lui-même ne l'est pas, et c'est pourquoi ce ticket se relit plutôt qu'il ne disparaît** : un commit de fusion produit avec un jeton d'application ne déclenche pas la CI sur `main`, et cela reste vrai d'une fusion faite à la main par un agent. *Condition de réouverture : elle est déjà remplie si une fusion vit sur `main` sans exécution de CI qui la couvre — la moitié « rapport de nuit » tombe, la moitié « rendre la fusion non vérifiée visible » reste due.*
+
+**~~R1-06~~ — La note de `nuit.yml` sur `github_token` est devenue fausse. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Remplacé par R1-11**, qui traite le même fichier pour une raison plus forte : sa planification est trompeuse, pas seulement sa note.
+
+**R1-07 — Le gabarit d'un paragraphe d'arbitrage, TRANSPOSÉ au mode manuel. [demande d'exploitation du 11/09/2026, issues #103 et suivante]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le ticket d'origine demandait `.github/ISSUE_TEMPLATE/arbitrage.md` — un gabarit de TICKET. L'automatisation étant abandonnée le 11/09/2026, **un arbitrage ne s'ouvre plus en ticket : il s'écrit dans le compte rendu que la session rend.** La demande survit, sa destination change : ce n'est plus un fichier de gabarit GitHub, c'est une section de `docs/protocole-session.md` qui impose la forme.
+*Un ticket incompréhensible par quelqu'un sans contexte est un ticket raté* — et un paragraphe d'arbitrage l'est tout autant : Alexis le lit sur son téléphone entre deux rendez-vous.
+*Acceptation :* `docs/protocole-session.md` porte la forme imposée d'un paragraphe d'arbitrage — un titre sans jargon de moins de 80 caractères ; ce qui est en jeu en deux phrases ; ce qui a été **mesuré**, avec ses chiffres ; deux ou trois issues, chacune avec ce qu'elle coûte et ce qu'elle interdit ; ce qui est bloqué et ce qui continue. Un gardien statique lit le document et échoue si l'une des cinq sections manque à la forme — la forme se garde, le contenu ne se garde pas.
+
+**~~R1-08~~ — La relecture adverse — `.github/workflows/relecture.yml`. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet sous cette forme : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Ce qui tombe est le FLUX, pas le besoin** — *une relecture qui ne trouve jamais rien est elle-même un gardien vide*, et c'est le §9 qui le dit, pas ce ticket. *Condition de réouverture : le jour où une seconde exécution à contexte neuf redevient possible, par un flux ou par une passe manuelle explicitement demandée.*
+
+**R1-09 — `docs/mise-en-ligne.md` §5.1 affirme un état que le code contredit. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat, et c'est le ticket le plus coûteux de ce lot** — il fait perdre une demi-journée à qui suit la note.
+**Mesuré le 11/09/2026.** Le §5.1 écrit : *« `prisma/seed.ts` n'écrit toujours **aucune ligne de `compte`** »*. `prisma/seed.ts:148` appelle `compte.create({ …, mot_de_passe: null })`, par `poserLeMoyenDeConnexionAuRepos`, appelée aux lignes **722** (les quatre identités internes) et **771** (le compte portail) ; introduite par le commit `62bf554`, le 10/09/2026 à 05:51:46 UTC. Et le semis a tourné **après** — exécution #44 de « DB migrate & seed », 10/09 22:05:33 UTC : *« utilisateurs internes — 4 identités »*, *« comptes portail — 1 rattachement »*.
+**Ce que la phrase fausse coûte.** `lib/auth/amorcage.ts` réémet un jeton de premier accès à trois conditions : l'identité existe, elle est habilitée sur la société visée, et son `compte` porte `mot_de_passe IS NULL`. **Les quatre identités de démonstration les remplissent toutes les trois.** La note envoie donc créer une base de production, y déposer deux secrets et amorcer une société — pour un écran connecté qu'on peut ouvrir sans rien de tout cela.
+*Acceptation :* la phrase est **barrée et non effacée** (CLAUDE.md §2), avec sa date et le commit qui l'a rendue fausse ; une section « voie courte » donne les clics littéraux de la connexion sur la base de démonstration, en nommant l'identité et l'identifiant de société mesurés ; et le README ou un gardien dit ce qui rendrait la nouvelle phrase fausse à son tour.
+
+**R1-10 — Clore l'issue #95 avec sa cause mesurée. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat.** L'issue *« [veille-securite] la base hébergée a DÉRIVÉ »*, ouverte le 10/09/2026 à 15:18 UTC, est **toujours ouverte** alors que sa cause est traitée.
+**Mesuré le 11/09/2026.** L'écart unique qu'elle rapportait — `utilisateur_client` sans la forme « rattachement » — était le contenu de la migration `20260911010000_rattachement_portail_d92`, jamais appliquée. L'exécution #44 de « DB migrate & seed », 10/09 22:04:51 UTC, imprime `All migrations have been successfully applied.`, et le contrôle de cloisonnement de la même exécution nomme désormais `rattachement (1) : utilisateur_client`. La dérive est refermée.
+*C'est le corollaire de R1-01, vu par l'autre bout : une alarme laissée ouverte à tort apprend à ne plus lire les alarmes, exactement comme un gabarit qui affirme une cause qu'il n'a pas mesurée.*
+*Acceptation :* l'issue est close en nommant la migration en cause, l'exécution qui l'a appliquée et la ligne du contrôle qui le constate ; la clôture ne dit jamais « geste manuel » — c'est la phrase que R1-01 vient retirer du gabarit.
+
+**R1-11 — Retirer de `nuit.yml` une planification devenue trompeuse. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le flux est désactivé — état `disabled_manually`, mis à jour le 11/09/2026 à 12:54:55 +11:00 — et **le fichier porte toujours `schedule: cron "0 16 * * *"`**. Un flux désactivé manuellement ne part pas ; mais l'état vit dans l'interface de GitHub, et le dépôt dit le contraire.
+*C'est l'espèce du §9 du 31/08 prise à l'envers : là, une garantie reposait sur un attribut extérieur à la chose garantie ; ici, c'est une NEUTRALISATION qui repose sur un attribut extérieur, et le fichier qu'on relira dans trois mois annonce une nuit qui tourne.*
+*Acceptation :* `nuit.yml` ne porte plus de déclencheur `schedule` ; son en-tête dit que l'automatisation a été abandonnée le 11/09/2026, et à quelle condition elle se rouvrirait ; `claude.yml` reçoit la même mention si son état le justifie, mesuré et non supposé.
