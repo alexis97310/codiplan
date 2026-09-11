@@ -2,6 +2,11 @@ import { Role } from "@/lib/auth/roles";
 import { anneeCourante, cleJour } from "@/lib/calendar/fuseau";
 import { cleJourAdossePaques } from "@/lib/calendar/paques";
 import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
+import type {
+  PrioriteIntervention,
+  StatutIntervention,
+  TypeIntervention,
+} from "@prisma/client";
 
 /**
  * Jeu de données de démonstration (I9 — aucune donnée de production).
@@ -945,20 +950,58 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
     email: "adv@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.adv }],
   },
-  // **Un technicien par société, et ils ne sont PAS la même personne**
-  // *(10/09/2026)*. La seconde société n'avait qu'une identité de direction,
-  // partagée avec la première : son planning n'aurait eu personne à qui
-  // affecter quoi que ce soit. Deux identités distinctes montrent en outre ce
-  // qu'une seule ne peut pas — que le cloisonnement porte sur le RATTACHEMENT
-  // et non sur la personne (RG-SOC-03).
+  // ── LES QUATRE TECHNICIENS DE LA MAQUETTE (R2-12) ────────────────────────
+  //
+  // **Leurs noms ne sont pas inventés : ils sont écrits dans
+  // `docs/maquette/CODIPLAN_Maquette.html`**, qui fait foi depuis D95, et la
+  // maquette dit elle-même pourquoi ils sont quatre — *« Effectif réel : 1
+  // technicien. La maquette illustre le fonctionnement à l'effectif cible de
+  // 3 techniciens plus l'atelier SAV. »* C'est l'effectif CIBLE de l'annexe E,
+  // et c'est ce qu'une démonstration doit montrer.
+  //
+  // **Pourquoi le semis en a besoin, et ce n'est pas pour flatter un écran.**
+  // Un planning dont toutes les lignes disent « non affectées » ne démontre
+  // rien — ni le multi-société, ni la charge, ni les calendriers distincts de
+  // RG-PLA-01. *Le défaut est antérieur à l'écran : il vise la raison d'être
+  // du jeu de démonstration.*
+  //
+  // **Leur rattachement d'agence n'est PAS une colonne**, parce qu'aucune ne
+  // l'est : la table `technicien` du chapitre 11 n'existe pas (§6, marque
+  // `(prévu)`). Il se lit par leurs interventions, et le commentaire qui suit
+  // chaque nom dit à quelle agence la démonstration les rattache — c'est une
+  // note de lecture, jamais une donnée.
   {
-    nom: "Technicien de démonstration (Nouméa)",
-    email: "technicien.nc@codima.test",
+    // Ducos · compresseurs, ponts
+    nom: "D. Guérin",
+    email: "guerin@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
+  {
+    // Dolbeau · pneumatique, clim
+    nom: "T. Wamytan",
+    email: "wamytan@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
+  {
+    // Koné · généraliste Nord
+    nom: "M. Poigoune",
+    email: "poigoune@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
+  },
+  {
+    // Ducos · électroportatif, SAV
+    nom: "J. Lefèvre",
+    email: "lefevre@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.technicien }],
   },
   {
     nom: "Technicien de démonstration (Lyon)",
     email: "technicien.eu@codima.test",
+    habilitations: [{ societe_code: "CODIMA-EU", role: Role.technicien }],
+  },
+  {
+    nom: "Atelier de démonstration (Lyon)",
+    email: "atelier.eu@codima.test",
     habilitations: [{ societe_code: "CODIMA-EU", role: Role.technicien }],
   },
 ];
@@ -1210,58 +1253,256 @@ export const HABILITATIONS_AMORCAGE: readonly HabilitationAmorcageSeed[] = [
  * **Les dates sont en UTC**, jamais construites par un `Date` local : UTC+11
  * décale le jour d'un cran, et une intervention du 1er se rangerait au 31.
  */
-export const INTERVENTIONS_DEMONSTRATION = [
+export type InterventionDemoSeed = {
+  readonly rang: number;
+  readonly type: TypeIntervention;
+  readonly priorite: PrioriteIntervention;
+  readonly statut: StatutIntervention;
+  /**
+   * Jours depuis le LUNDI de la semaine courante. Négatif = la semaine passée,
+   * `null` = aucune date, c'est-à-dire la file d'attente.
+   */
+  readonly joursDepuisLundi: number | null;
+  /** Début du créneau, en minutes locales depuis minuit. `null` = date sans heure. */
+  readonly debutMinutes: number | null;
+  readonly dureeMin: number | null;
+  readonly temps_reel_min: number | null;
+};
+
+/**
+ * Les interventions de démonstration (R2-12).
+ *
+ * ## LES DATES SONT RELATIVES, ET C'EST LA LEÇON DES JOURS FÉRIÉS
+ *
+ * Elles étaient ABSOLUES — du 2 au 14 septembre 2026 —, et une démonstration
+ * datée se périme sans jamais être vide : le planning s'ouvre sur la semaine
+ * courante, et six interventions figées dans le passé lui laissent des colonnes
+ * blanches. *C'est très exactement le §9 du 21/08 sur les fériés — « une donnée
+ * datée se périme en silence » —, appliqué au jeu de démonstration au lieu du
+ * référentiel.* Elles sont donc posées par rapport au LUNDI DE LA SEMAINE
+ * COURANTE, lu dans le fuseau de la société.
+ *
+ * **Le passé reste au passé.** Les interventions terminales — clôturée,
+ * annulée, terminée — sont placées la semaine d'avant : c'est ce qu'un planning
+ * réel montre, et c'est aussi ce que le verrou de cycle de vie impose, une
+ * ligne close ne se réécrivant plus (D84). Les vivantes sont sur la semaine
+ * courante, et le semis les y RAMÈNE à chaque exécution.
+ *
+ * ## POURQUOI SEIZE, ET PAS SIX
+ *
+ * *« La démonstration doit présenter un planning GARNI, pas vide, parce que
+ * c'est ce qui montre le multi-société à un acheteur »* (décision
+ * d'exploitation du 09/09/2026, rappelée le 11/09). Six lignes réparties sur
+ * deux semaines et quatre techniciens laissaient une grille presque blanche —
+ * mesuré : **2 blocs visibles** sur la semaine affichée. Seize en donnent assez
+ * pour que les cinq couleurs de statut, les deux agences aux calendriers
+ * distincts et la file d'attente se lisent toutes sur un seul écran.
+ *
+ * **Le technicien n'est PAS écrit ici**, et c'est délibéré : il est déduit de
+ * l'AGENCE du site, par `TECHNICIENS_PAR_AGENCE`. L'écrire ligne à ligne
+ * ferait deux lectures d'un même rattachement, et la première erreur de frappe
+ * mettrait le technicien de Koné sur un chantier de Ducos sans que rien ne le
+ * dise (§9, 01/09).
+ */
+export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
+  // ── La FILE D'ATTENTE — sans date, sans technicien ────────────────────────
   {
     rang: 1,
-    type: "curatif" as const,
-    priorite: "p1" as const,
-    statut: "a_planifier" as const,
-    date_planifiee: null,
+    type: "curatif",
+    priorite: "p1",
+    statut: "a_planifier",
+    joursDepuisLundi: null,
+    debutMinutes: null,
+    dureeMin: 120,
     temps_reel_min: null,
   },
+  // ── La SEMAINE PASSÉE — ce qui est fait, et qui ne se réécrit plus ────────
   {
-    rang: 2,
-    type: "preventif_contrat" as const,
-    priorite: "p3" as const,
-    statut: "planifiee" as const,
-    date_planifiee: new Date(Date.UTC(2026, 8, 14)),
+    rang: 6,
+    type: "garantie",
+    priorite: "p3",
+    statut: "annulee",
+    joursDepuisLundi: -5,
+    debutMinutes: 450,
+    dureeMin: 60,
     temps_reel_min: null,
-  },
-  {
-    rang: 3,
-    type: "installation" as const,
-    priorite: "p2" as const,
-    statut: "en_cours" as const,
-    date_planifiee: new Date(Date.UTC(2026, 8, 10)),
-    temps_reel_min: null,
-  },
-  {
-    rang: 4,
-    type: "curatif" as const,
-    priorite: "p4" as const,
-    statut: "terminee" as const,
-    date_planifiee: new Date(Date.UTC(2026, 8, 8)),
-    temps_reel_min: 95,
   },
   {
     rang: 5,
-    type: "controle_reglementaire" as const,
-    priorite: "p3" as const,
-    statut: "cloturee" as const,
-    date_planifiee: new Date(Date.UTC(2026, 8, 4)),
+    type: "controle_reglementaire",
+    priorite: "p3",
+    statut: "cloturee",
+    joursDepuisLundi: -3,
+    debutMinutes: 480,
+    dureeMin: 90,
     // Douze minutes : c'est le cas de D83 mis sous les yeux — arrondi à un
     // quart d'heure, puis relevé au plancher d'une heure.
     temps_reel_min: 12,
   },
   {
-    rang: 6,
-    type: "garantie" as const,
-    priorite: "p3" as const,
-    statut: "annulee" as const,
-    date_planifiee: new Date(Date.UTC(2026, 8, 2)),
+    rang: 4,
+    type: "curatif",
+    priorite: "p4",
+    statut: "terminee",
+    joursDepuisLundi: -2,
+    debutMinutes: 810,
+    dureeMin: 120,
+    temps_reel_min: 95,
+  },
+  // ── LA SEMAINE COURANTE — lundi ───────────────────────────────────────────
+  {
+    rang: 2,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 0,
+    debutMinutes: 450,
+    dureeMin: 120,
+    temps_reel_min: null,
+  },
+  {
+    rang: 7,
+    type: "preventif_contrat",
+    priorite: "p4",
+    statut: "planifiee",
+    joursDepuisLundi: 0,
+    debutMinutes: 810,
+    dureeMin: 90,
+    temps_reel_min: null,
+  },
+  {
+    rang: 8,
+    type: "installation",
+    priorite: "p2",
+    statut: "envoyee",
+    joursDepuisLundi: 0,
+    debutMinutes: 540,
+    dureeMin: 180,
+    temps_reel_min: null,
+  },
+  // ── mardi ─────────────────────────────────────────────────────────────────
+  {
+    rang: 9,
+    type: "curatif",
+    priorite: "p1",
+    statut: "en_cours",
+    joursDepuisLundi: 1,
+    debutMinutes: 450,
+    dureeMin: 150,
+    temps_reel_min: null,
+  },
+  {
+    rang: 10,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 1,
+    debutMinutes: 780,
+    dureeMin: 120,
+    temps_reel_min: null,
+  },
+  // ── mercredi ──────────────────────────────────────────────────────────────
+  {
+    rang: 3,
+    type: "installation",
+    priorite: "p2",
+    statut: "en_cours",
+    joursDepuisLundi: 2,
+    debutMinutes: 450,
+    dureeMin: 240,
+    temps_reel_min: null,
+  },
+  {
+    rang: 11,
+    type: "curatif",
+    priorite: "p2",
+    statut: "suspendue",
+    joursDepuisLundi: 2,
+    debutMinutes: 840,
+    dureeMin: 120,
+    temps_reel_min: null,
+  },
+  // ── jeudi ─────────────────────────────────────────────────────────────────
+  {
+    rang: 12,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 3,
+    debutMinutes: 450,
+    dureeMin: 120,
+    temps_reel_min: null,
+  },
+  {
+    rang: 13,
+    type: "controle_reglementaire",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 3,
+    debutMinutes: 780,
+    dureeMin: 90,
+    temps_reel_min: null,
+  },
+  // ── vendredi ──────────────────────────────────────────────────────────────
+  {
+    rang: 14,
+    type: "curatif",
+    priorite: "p2",
+    statut: "planifiee",
+    joursDepuisLundi: 4,
+    debutMinutes: 510,
+    dureeMin: 120,
+    temps_reel_min: null,
+  },
+  {
+    rang: 15,
+    type: "garantie",
+    priorite: "p4",
+    statut: "planifiee",
+    joursDepuisLundi: 4,
+    debutMinutes: 870,
+    dureeMin: 60,
+    temps_reel_min: null,
+  },
+  // ── SAMEDI — Ducos ouvre, Koné non (RG-PLA-01). La ligne qui rend la
+  //    hachure démontrable : elle n'existe que pour l'agence qui ouvre.
+  {
+    rang: 16,
+    type: "curatif",
+    priorite: "p1",
+    statut: "planifiee",
+    joursDepuisLundi: 5,
+    debutMinutes: 450,
+    dureeMin: 120,
     temps_reel_min: null,
   },
 ];
+
+/**
+ * QUELS TECHNICIENS SERVENT QUELLE AGENCE, dans la démonstration (R2-12).
+ *
+ * **C'est une note de démonstration, pas un modèle de données.** Le
+ * rattachement d'un technicien à une agence n'a aucune colonne : la table
+ * `technicien` du chapitre 11 n'existe pas, et le §6 la marque `(prévu)`.
+ * Écrire ici « qui sert où » ne crée donc aucune donnée — cela dit seulement à
+ * QUI le semis confie les interventions de chaque agence.
+ *
+ * Les rattachements sont ceux que la maquette écrit à côté de chaque nom :
+ * Guérin et Lefèvre à Ducos, Wamytan à Dolbeau, Poigoune à Koné.
+ *
+ * **Une agence absente de cette table garde ses interventions NON AFFECTÉES**,
+ * et c'est voulu : la ligne « non affectées » est un cas réel du produit — une
+ * intervention arrive avant qu'on sache qui ira —, elle doit rester
+ * démontrable. Le siège de CODIMA-EU en porte donc une part.
+ */
+export const TECHNICIENS_PAR_AGENCE: Readonly<
+  Record<string, readonly string[]>
+> = {
+  DUCOS: ["guerin@codima.test", "lefevre@codima.test"],
+  DOLBEAU: ["wamytan@codima.test"],
+  KONE: ["poigoune@codima.test"],
+  SIEGE: ["technicien.eu@codima.test", "atelier.eu@codima.test"],
+};
 
 /**
  * L'identifiant d'une intervention de démonstration, DÉRIVÉ et non écrit.

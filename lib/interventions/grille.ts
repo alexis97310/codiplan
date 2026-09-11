@@ -2,7 +2,8 @@ import { cleJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { jourSemaineIso } from "@/lib/calendar/semaine";
 
 /**
- * LA GRILLE DU PLANNING — techniciens en lignes, jours en colonnes (D95).
+ * LA GRILLE DU PLANNING — une ligne par PERSONNE, les jours en colonnes
+ * (D95 ; maille revue le 11/09/2026).
  *
  * ## Ce que ce module fait, et pourquoi il n'est pas dans l'écran
  *
@@ -12,35 +13,46 @@ import { jourSemaineIso } from "@/lib/calendar/semaine";
  * comparaison de société n'est donc écrite ici — ce serait une seconde lecture
  * d'un critère que la politique porte déjà (§9, 01/09).*
  *
- * Il est séparé de l'écran pour qu'on puisse l'éprouver sans rendre du JSX : la
- * question « cette intervention tombe-t-elle dans la bonne case ? » est une
- * question de calcul, et elle a des cas limites — une intervention sans
- * technicien, une sans date, une hors de la semaine affichée.
+ * ## LA MAILLE EST LA PERSONNE, et ce n'est plus le couple (technicien, agence)
  *
- * ## LA MAILLE EST LE COUPLE (technicien, agence), et ce n'est pas un détail
+ * **Elle l'a été, et c'était défendable.** I7 veut qu'un calendrier appartienne
+ * à une AGENCE — *Ducos ouvre du lundi au samedi, Koné du lundi au vendredi* —,
+ * si bien qu'un technicien servant deux agences n'avait pas UN samedi mais
+ * deux. Une ligne par couple évitait de choisir.
  *
- * C'est la même maille que `occupation.ts`, et pour la même raison : I7 veut
- * qu'un calendrier appartienne à une AGENCE — *Ducos ouvre du lundi au samedi,
- * Koné du lundi au vendredi* —, si bien qu'un technicien qui intervient pour
- * deux agences n'a pas un calendrier mais deux. Une ligne par technicien seul
- * aurait à choisir lequel griser le samedi, et le choix aurait basculé d'une
- * semaine à l'autre.
+ * **Elle coûtait la lisibilité de l'écran, qui est son objet.** Un planificateur
+ * cherche « où en est Guérin cette semaine » ; deux lignes portant le même nom
+ * lui font additionner de tête, et le glisser-déposer du lot 3 aurait eu deux
+ * cibles pour une personne.
  *
- * *La maquette dit la même chose sans la nommer : son en-tête de ligne porte
- * « D. Guérin » ET « Ducos » sur deux lignes.*
+ * **La règle rendue par l'exploitation le 11/09/2026, et pourquoi elle ne
+ * contredit PAS I7.** *Un jour est OUVERT pour une personne s'il est ouvert
+ * dans au moins une de ses agences ; il n'est hachuré que s'il est fermé dans
+ * TOUTES.* I7 désigne lui-même, pour cet usage précis, le calendrier de
+ * référence : *« conflit à la pose → calendrier de travail du technicien »*.
+ * La grille hebdomadaire est l'écran de la pose. Le calendrier de travail d'une
+ * personne vit dans `technicien_calendrier` — clé `(societe_id,
+ * utilisateur_id)`, donc **un calendrier par personne, pas par agence** —, et
+ * `occupation.ts` écrit déjà que *« le jour où il sera consulté, c'est lui qui
+ * fera foi et l'agence deviendra le repli »*. **Mesuré le 11/09/2026 :
+ * `technicien_calendrier` porte ZÉRO ligne.** L'union des agences est donc le
+ * repli, exactement à la place que le dépôt lui avait réservée — et le jour où
+ * une personne aura son calendrier, c'est lui qui décidera.
  *
- * ## CE QUE CE MODULE NE SAIT PAS FAIRE, et qui est une DONNÉE MANQUANTE
+ * **Ce que l'union cache, et qui est écrit plutôt que tu.** Une personne qui
+ * sert Ducos et Koné voit son samedi OUVERT, alors que Koné ferme. La case
+ * n'est donc pas un droit de poser : c'est un repère. Le bloc, lui, **nomme
+ * son agence** — c'est là que se lit ce qui décide. Le refus, lui, appartient
+ * aux contrôles à la pose (L3-02), qui n'existent pas encore et qui liront le
+ * calendrier de l'agence visée, pas celui de la ligne.
  *
- * **Il ne sait pas nommer un technicien.** La maquette écrit « D. Guérin
- * · Ducos · Compresseurs, ponts » ; le dépôt n'a ni la table `technicien` du
- * chapitre 11 — marquée `(prévu)` au CLAUDE.md §6 — ni aucune colonne portant
- * une spécialité. `intervention.technicien_id` est un identifiant d'utilisateur,
- * et `utilisateur` porte la forme de politique « désignation » : il ne se lit
- * qu'en NOMMANT sa ligne, une par une.
+ * ## CE QUE CE MODULE NE FABRIQUE PAS
  *
- * Ce module rend donc l'identifiant, et l'écran l'abrège — exactement ce que
- * `statistiques.tsx` fait déjà. *Inventer un libellé serait inventer une
- * donnée* (§8). Le ticket qui le répare est inscrit au backlog.
+ * **Le nom d'une personne.** Il reçoit un libellé ou rien. Le lire est une
+ * lecture cloisonnée, elle appartient à l'appelant — et elle est possible
+ * depuis L1-02c sans élargir quoi que ce soit (mesuré le 11/09/2026 : sous
+ * contexte société, un utilisateur interne lit les 4 identités de sa société
+ * d'un seul tenant ; un compte portail, 0).
  */
 
 /** Le minimum qu'une intervention doit porter pour entrer dans la grille. */
@@ -68,15 +80,19 @@ export type AgenceDeGrille = {
 
 export type CaseDeGrille<T extends Posable> = {
   readonly jour: JourLocal;
-  /** L'agence ouvre-t-elle ce jour-là ? `null` quand nul ne le sait. */
+  /**
+   * Le jour est-il ouvert pour cette PERSONNE ? `true` dès qu'une de ses
+   * agences ouvre, `false` seulement si toutes ferment, `null` quand aucune
+   * n'a de calendrier connu.
+   */
   readonly ouverte: boolean | null;
   readonly lignes: readonly T[];
 };
 
 export type LigneDeGrille<T extends Posable> = {
   readonly technicienId: string | null;
-  readonly agenceId: string;
-  readonly agenceLibelle: string;
+  /** Les agences que cette personne sert sur la semaine, par ordre de libellé. */
+  readonly agences: readonly AgenceDeGrille[];
   readonly cases: readonly CaseDeGrille<T>[];
   /** Nombre d'interventions posées sur la semaine, toutes cases confondues. */
   readonly total: number;
@@ -87,9 +103,10 @@ export type LigneDeGrille<T extends Posable> = {
  *
  * **L'ordre des lignes est stable et il est décidé ici** : les interventions
  * non affectées d'abord — *c'est la file qu'on regarde en premier quand on
- * ouvre un planning* —, puis les couples triés par agence puis par technicien.
- * Un ordre laissé au hasard de la lecture ferait sauter les lignes d'une
- * semaine à l'autre, et le glisser-déposer du lot 3 deviendrait périlleux.
+ * ouvre un planning* —, puis les personnes, par libellé si l'appelant en
+ * fournit un, par identifiant sinon. Un ordre laissé au hasard de la lecture
+ * ferait sauter les lignes d'une semaine à l'autre, et le glisser-déposer du
+ * lot 3 deviendrait périlleux.
  *
  * **Une intervention sans date n'entre PAS dans la grille.** Elle n'appartient
  * à aucun jour, et la maquette lui donne sa place : la colonne latérale « À
@@ -100,52 +117,76 @@ export function construireGrille<T extends Posable>(
   lignes: readonly T[],
   jours: readonly JourLocal[],
   agences: readonly AgenceDeGrille[],
+  libelleDe: (technicienId: string) => string | null = () => null,
 ): readonly LigneDeGrille<T>[] {
   const clesDesJours = new Set(jours.map(cleJour));
   const parAgence = new Map(agences.map((a) => [a.id, a]));
 
   const groupes = new Map<
     string,
-    { ligne: LigneDeGrille<T>; par: Map<string, T[]> }
+    { technicienId: string | null; agences: Set<string>; par: Map<string, T[]> }
   >();
-  const cleDe = (l: Posable) => `${l.technicien_id ?? ""}|${l.agence_id}`;
 
   for (const ligne of lignes) {
     if (ligne.date_planifiee === null) continue;
     const jour = jourDeLInstant(ligne.date_planifiee);
     if (!clesDesJours.has(cleJour(jour))) continue;
 
-    const cle = cleDe(ligne);
+    const cle = ligne.technicien_id ?? "";
     let groupe = groupes.get(cle);
     if (groupe === undefined) {
-      groupe = { ligne: enveloppe(ligne, parAgence), par: new Map() };
+      groupe = {
+        technicienId: ligne.technicien_id,
+        agences: new Set(),
+        par: new Map(),
+      };
       groupes.set(cle, groupe);
     }
+    groupe.agences.add(ligne.agence_id);
     const caseDuJour = groupe.par.get(cleJour(jour)) ?? [];
     caseDuJour.push(ligne);
     groupe.par.set(cleJour(jour), caseDuJour);
   }
 
-  const resultat: LigneDeGrille<T>[] = [...groupes.values()].map(
-    ({ ligne, par }) => {
-      const agence = parAgence.get(ligne.agenceId);
-      const cases = jours.map((jour) => ({
-        jour,
-        ouverte:
-          agence === undefined || !agence.calendrierConnu
-            ? null
-            : agence.joursOuverts.includes(jourSemaineIso(jour)),
-        lignes: (par.get(cleJour(jour)) ?? []) as readonly T[],
-      }));
-      return {
-        ...ligne,
-        cases,
-        total: cases.reduce((n, c) => n + c.lignes.length, 0),
-      };
-    },
-  );
+  const resultat: LigneDeGrille<T>[] = [...groupes.values()].map((groupe) => {
+    const siennes = [...groupe.agences]
+      .map((id) => parAgence.get(id))
+      .filter((a): a is AgenceDeGrille => a !== undefined)
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
 
-  return resultat.sort(comparerLignes);
+    const cases = jours.map((jour) => ({
+      jour,
+      ouverte: ouvertePour(siennes, jour),
+      lignes: (groupe.par.get(cleJour(jour)) ?? []) as readonly T[],
+    }));
+
+    return {
+      technicienId: groupe.technicienId,
+      agences: siennes,
+      cases,
+      total: cases.reduce((n, c) => n + c.lignes.length, 0),
+    };
+  });
+
+  return resultat.sort((a, b) => comparerLignes(a, b, libelleDe));
+}
+
+/**
+ * LA RÈGLE D'OUVERTURE D'UNE PERSONNE — ouverte si UNE agence ouvre, fermée
+ * seulement si TOUTES ferment, inconnue si aucune ne sait.
+ *
+ * L'ordre des trois cas n'est pas indifférent : « inconnu » ne doit jamais
+ * l'emporter sur un « ouvert » connu, sinon une agence sans calendrier
+ * éteindrait la semaine d'une personne qui travaille ailleurs.
+ */
+function ouvertePour(
+  agences: readonly AgenceDeGrille[],
+  jour: JourLocal,
+): boolean | null {
+  const connues = agences.filter((a) => a.calendrierConnu);
+  if (connues.length === 0) return null;
+  const iso = jourSemaineIso(jour);
+  return connues.some((a) => a.joursOuverts.includes(iso));
 }
 
 /** Le jour LOCAL d'une date planifiée. */
@@ -161,26 +202,15 @@ function jourDeLInstant(instant: Date): JourLocal {
   };
 }
 
-function enveloppe<T extends Posable>(
-  ligne: T,
-  parAgence: ReadonlyMap<string, AgenceDeGrille>,
-): LigneDeGrille<T> {
-  return {
-    technicienId: ligne.technicien_id,
-    agenceId: ligne.agence_id,
-    agenceLibelle: parAgence.get(ligne.agence_id)?.libelle ?? ligne.agence_id,
-    cases: [],
-    total: 0,
-  };
-}
-
 function comparerLignes<T extends Posable>(
   a: LigneDeGrille<T>,
   b: LigneDeGrille<T>,
+  libelleDe: (technicienId: string) => string | null,
 ): number {
   if (a.technicienId === null && b.technicienId !== null) return -1;
   if (a.technicienId !== null && b.technicienId === null) return 1;
-  const parLibelle = a.agenceLibelle.localeCompare(b.agenceLibelle, "fr");
-  if (parLibelle !== 0) return parLibelle;
-  return (a.technicienId ?? "").localeCompare(b.technicienId ?? "");
+  if (a.technicienId === null || b.technicienId === null) return 0;
+  const la = libelleDe(a.technicienId) ?? a.technicienId;
+  const lb = libelleDe(b.technicienId) ?? b.technicienId;
+  return la.localeCompare(lb, "fr");
 }

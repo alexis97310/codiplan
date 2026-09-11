@@ -1,7 +1,14 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, type StatutIntervention } from "@prisma/client";
 
 import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
+import {
+  instantAMinutes,
+  jourSuivant,
+  maintenant,
+  type JourLocal,
+} from "../lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "../lib/calendar/semaine";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import {
@@ -14,6 +21,7 @@ import {
   DEVISES,
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_DEMONSTRATION,
+  TECHNICIENS_PAR_AGENCE,
   identifiantIntervention,
   PARITES,
   SOCIETES,
@@ -24,6 +32,48 @@ import {
   anneesFeries,
   societeParCode,
 } from "./seed-data";
+
+/**
+ * LES STATUTS QU'UN VERROU DE BASE REFUSE DE TOUCHER (D84).
+ *
+ * `intervention_cycle_de_vie` refuse toute modification d'une ligne clôturée ou
+ * annulée. « Terminée » s'y ajoute ici pour une autre raison : une intervention
+ * finie a eu lieu un jour précis, et la ramener sur la semaine courante
+ * raconterait une histoire fausse.
+ */
+const STATUTS_TERMINAUX = new Set<StatutIntervention>([
+  "cloturee",
+  "annulee",
+  "terminee",
+]);
+
+/**
+ * Un jour local en DATE UTC — la forme que `date_planifiee` porte (`@db.Date`).
+ *
+ * Jamais par un `Date` local : UTC+11 décale le jour d'un cran, et une
+ * intervention du lundi se rangerait au dimanche.
+ */
+function jourEnDate(jour: JourLocal | null): Date | null {
+  return jour === null
+    ? null
+    : new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour));
+}
+
+/**
+ * L'instant d'un créneau — un jour local, une heure locale, un fuseau.
+ *
+ * `creneau_debut` est un INSTANT et non une date : 07:30 à Nouméa et 07:30 à
+ * Lyon ne sont pas le même moment, et c'est tout l'objet de la colonne.
+ */
+function instantDuCreneau(
+  jour: JourLocal | null,
+  minutes: number | null,
+  fuseau: string,
+): Date | null {
+  return jour === null || minutes === null
+    ? null
+    : instantAMinutes(jour, minutes, fuseau);
+}
 
 /**
  * Amorçage du socle multi-société (tickets L0-03 puis L0-08).
@@ -542,12 +592,44 @@ async function seed(): Promise<void> {
         // écrites et s'abstenait — zéro sur six, à chaque exécution. Le rang
         // de la société ouvre à chacune une plage qui ne peut pas rencontrer
         // celle de sa voisine.
+        //
+        // **LES DATES SONT RELATIVES À LA SEMAINE COURANTE** *(R2-12)*. Elles
+        // étaient absolues, et une démonstration datée se périme sans jamais
+        // être vide — le planning s'ouvre sur la semaine du jour, et des dates
+        // figées lui laissent des colonnes blanches. C'est le §9 du 21/08 sur
+        // les fériés, appliqué au jeu de démonstration.
+        //
+        // Le lundi est lu dans le FUSEAU DE LA SOCIÉTÉ, jamais celui de la
+        // machine qui sème : à Nouméa et à Lyon, « cette semaine » ne commence
+        // pas au même instant.
+        const lundi = lundiDeLaSemaine(
+          maintenant(societe.fuseau_horaire).local,
+        );
         const interventions = INTERVENTIONS_DEMONSTRATION.map(
-          (modele, index) => ({
-            ...modele,
-            id: identifiantIntervention(rangSociete, modele.rang),
-            lieu: sitesEcrits[index % sitesEcrits.length],
-          }),
+          (modele, index) => {
+            const jour =
+              modele.joursDepuisLundi === null
+                ? null
+                : jourSuivant(lundi, modele.joursDepuisLundi);
+            return {
+              ...modele,
+              id: identifiantIntervention(rangSociete, modele.rang),
+              lieu: sitesEcrits[index % sitesEcrits.length],
+              date_planifiee: jourEnDate(jour),
+              creneau_debut: instantDuCreneau(
+                jour,
+                modele.debutMinutes,
+                societe.fuseau_horaire,
+              ),
+              creneau_fin: instantDuCreneau(
+                jour,
+                modele.debutMinutes === null || modele.dureeMin === null
+                  ? null
+                  : modele.debutMinutes + modele.dureeMin,
+                societe.fuseau_horaire,
+              ),
+            };
+          },
         ).filter((i) => i.lieu !== undefined && i.lieu.agenceId !== undefined);
 
         // **LE COMPTE EST CELUI DES LIGNES ÉCRITES, PAS DES LIGNES PRÉVUES**
@@ -601,6 +683,9 @@ async function seed(): Promise<void> {
               type: intervention.type,
               priorite: intervention.priorite,
               date_planifiee: intervention.date_planifiee,
+              creneau_debut: intervention.creneau_debut,
+              creneau_fin: intervention.creneau_fin,
+              duree_estimee_min: intervention.dureeMin,
               temps_reel_min: intervention.temps_reel_min,
             },
           });
@@ -844,6 +929,114 @@ async function seed(): Promise<void> {
         DELAIS_SEED,
       );
     }
+  }
+
+  // ── 9. L'AFFECTATION DES INTERVENTIONS AUX TECHNICIENS (R2-12) ───────────
+  //
+  // **Pourquoi ici, et pas au moment où les interventions sont écrites.** Les
+  // identités sont créées APRÈS les sociétés, donc après les interventions :
+  // au moment où celles-ci sont posées, aucun technicien n'existe encore. Les
+  // affecter demande une seconde passe, et la voici.
+  //
+  // **Ce que cette passe RATTRAPE, et qui est la moitié qui compte.** Le semis
+  // s'abstient de réécrire une intervention déjà présente — un verrou de cycle
+  // de vie refuse de toucher une ligne close (D84). Les dates étant devenues
+  // relatives à la semaine courante, une base semée la semaine dernière
+  // porterait des interventions VIVANTES restées au passé, et le planning
+  // s'ouvrirait de nouveau sur des colonnes blanches. *Une donnée relative qui
+  // n'est jamais rafraîchie est une donnée absolue qui s'ignore.*
+  //
+  // La passe ne touche donc QUE les interventions non terminales — celles que
+  // le verrou laisse modifier —, et elle les ramène sur la semaine courante
+  // avec leur technicien. Les closes gardent leur date, ce qui est juste : une
+  // intervention clôturée l'a été un jour précis.
+  etape("affectation des interventions aux techniciens");
+  for (const [indexSociete, societe] of SOCIETES.entries()) {
+    const rangSociete = indexSociete + 1;
+    const societeId = societeParCode(societe.code).id;
+    const lundi = lundiDeLaSemaine(maintenant(societe.fuseau_horaire).local);
+
+    // Les identités des techniciens, lues sous le contexte de la société. La
+    // politique de `utilisateur` autorise cette lecture depuis L1-02c — sa
+    // branche « rattachement » —, et c'est le même droit que l'écran emploie.
+    const parCourriel = new Map<string, string>();
+    for (const interne of UTILISATEURS_INTERNES) {
+      const ligne = await avecDesignationAuth(prisma).utilisateur.findUnique({
+        where: { email: interne.email },
+        select: { id: true },
+      });
+      if (ligne !== null) parCourriel.set(interne.email, ligne.id);
+    }
+
+    const affectees = await avecSociete(
+      prisma,
+      societeId,
+      async (tx) => {
+        const agences = await tx.agence.findMany({
+          select: { id: true, code: true },
+        });
+        const codeParAgence = new Map(agences.map((a) => [a.id, a.code]));
+        const rangParId = new Map(
+          INTERVENTIONS_DEMONSTRATION.map((modele, index) => [
+            identifiantIntervention(rangSociete, modele.rang),
+            { modele, index },
+          ]),
+        );
+
+        let compte = 0;
+        const lignes = await tx.intervention.findMany({
+          select: { id: true, statut: true, agence_id: true },
+        });
+        for (const ligne of lignes) {
+          const trouve = rangParId.get(ligne.id);
+          if (trouve === undefined) continue;
+          if (STATUTS_TERMINAUX.has(ligne.statut)) continue;
+
+          const equipe =
+            TECHNICIENS_PAR_AGENCE[codeParAgence.get(ligne.agence_id) ?? ""] ??
+            [];
+          // Une agence sans équipe garde ses interventions NON AFFECTÉES, et
+          // la ligne « non affectées » reste ainsi démontrable : une
+          // intervention arrive parfois avant qu'on sache qui ira.
+          const courriel =
+            equipe.length === 0
+              ? undefined
+              : equipe[trouve.index % equipe.length];
+          const jour =
+            trouve.modele.joursDepuisLundi === null
+              ? null
+              : jourSuivant(lundi, trouve.modele.joursDepuisLundi);
+
+          await tx.intervention.update({
+            where: { id: ligne.id },
+            data: {
+              technicien_id:
+                courriel === undefined
+                  ? null
+                  : (parCourriel.get(courriel) ?? null),
+              date_planifiee: jourEnDate(jour),
+              creneau_debut: instantDuCreneau(
+                jour,
+                trouve.modele.debutMinutes,
+                societe.fuseau_horaire,
+              ),
+              creneau_fin: instantDuCreneau(
+                jour,
+                trouve.modele.debutMinutes === null ||
+                  trouve.modele.dureeMin === null
+                  ? null
+                  : trouve.modele.debutMinutes + trouve.modele.dureeMin,
+                societe.fuseau_horaire,
+              ),
+            },
+          });
+          compte += 1;
+        }
+        return compte;
+      },
+      DELAIS_SEED,
+    );
+    etape(`${societe.code} — interventions replacées : ${affectees}`);
   }
 
   etape("terminé");
