@@ -629,6 +629,18 @@ D61 a écrit que sa décision *n'ouvre aucun sélecteur de société*, et c'éta
 *Acceptation :* un compte portail restreint à un site ne voit pas la machine d'un autre site du MÊME client, et le jumeau retire cette branche de la politique pour la faire reparaître ; un compte rattaché à DEUX sociétés atteint les deux, avec son témoin — un compte à une seule n'en rend qu'une ; une désignation qui n'est pas la sienne LÈVE, elle ne rend pas une liste vide.
 *Relu contre les sources citées le 12/09/2026 — empreinte `e55edc71`.*
 
+**L2-13 — LE LIEN D'INVITATION AU PORTAIL. [D96] [D10]**
+*File :* LIBRE
+**Mesuré le 11/09/2026, et c'est le constat qui a ouvert le ticket :** *aucun client ne peut se connecter au portail.* D10 veut les deux tables exclusives — un compte de portail n'a **aucune** ligne dans `utilisateur_societe` — et le seul dispositif d'ouverture de compte du dépôt, `lib/auth/amorcage.ts`, exige une société puis **crée précisément cette ligne**. L'enrôlement (D58) n'est pas une porte : il pose un second facteur sur un compte qui existe déjà.
+*La boucle que D92 avait fermée côté LECTURE restait ouverte côté ENTRÉE : la politique était juste, l'écran existait depuis L2-12, et il n'y avait personne pour les franchir.*
+**TRANCHÉ [D96] — le lien d'invitation est une porte DISTINCTE.** Il n'exige aucune habilitation de société et **porte lui-même le rattachement au client**, et le cas échéant le périmètre de sites. *Réutiliser l'amorçage aurait obligé à donner une habilitation de société à un compte de portail, c'est-à-dire à défaire D10 pour ouvrir une porte.*
+**Quatre exigences, tenues par la BASE et jamais par l'écran** : usage unique, durée limitée, révocable, tracé — qui a invité qui, quand. *Un lien d'invitation est un matériau d'authentification ; « l'écran ne le propose qu'une fois » n'est pas un usage unique.*
+**L'ENVOI N'EST PAS CONSTRUIT, et la raison est mesurée** : aucun expéditeur de courriel n'est configuré, et poser une clé est un geste hors du dépôt. *Une fonction d'envoi sans expéditeur est pire qu'une interface sans appelant — elle en a un, et elle échoue en production, à l'instant où une agence croit avoir invité un client.* V1 : le lien est ENGENDRÉ dans le back-office, l'agence le transmet par ses propres moyens.
+**Le coût, nommé :** un lien transmis hors bande ne prouve pas l'adresse de son destinataire — il vaut pour **qui le reçoit**, et c'est l'agence qui répond de la transmission. Même régime que le lien de premier accès interne, et pour la même raison.
+**Ce ticket crée une table, donc une migration, donc un GESTE d'exploitation** (§12 du protocole).
+*Acceptation :* un rôle habilité engendre un lien depuis le back-office, pour un client de sa société ; le lien consommé crée un compte SANS ligne dans `utilisateur_societe` et AVEC sa ligne dans `utilisateur_client` ; un second usage du même lien est refusé, et un lien expiré et un lien inconnu rendent LE MÊME refus (D35) ; une révocation rend le lien inutilisable sans le supprimer ; le compte créé atteint `/portail` et n'y voit que le parc de son client — mesuré par un scénario de bout en bout, avec son témoin ; aucun chemin ne permet d'inviter sur le client d'une autre société, et un jumeau le montre en retirant le contrôle.
+*Relu contre les sources citées le 11/09/2026 — empreinte `bd3c5254`.*
+
 **L7-04 — Déverrouillage d'un compte parvenu à l'ESCALADE. [D62] [D64] [D66]**
 *File :* LIVRÉ
 **Déclencheur explicite : le premier compte réellement verrouillé après trois verrouillages enchaînés.** L'état est atteignable en trente codes faux, et aucun chemin n'en sort aujourd'hui.
@@ -848,12 +860,14 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Ce n'est pas un défaut de sécurité** — la barre n'a jamais été un contrôle d'accès, et `lib/navigation/entrees.ts` l'écrit. C'est un défaut de lecture.
 *Acceptation :* les écrans qui précèdent la session ne portent pas la barre ; la règle est portée par la mise en page du segment et non par une liste de chemins tenue à la main — une liste oublierait le prochain écran d'authentification. C'est la moitié de R2-09 qui est mesurée plutôt que supposée.
 
-**R2-17 — LE PORTAIL CLIENT AFFICHE UNE BARRE DE BACK-OFFICE. [mesuré le 11/09/2026]**
-*File :* BLOQUÉ — arbitrage d'Alexis : cela touche CE QU'UN CLIENT VOIT (§1 du protocole de session).
+**R2-17 — LE PORTAIL A SA PROPRE BARRE. [D97]**
+*File :* LIBRE
 **Mesuré en écrivant R2-16 :** `app/(portail)/portail` recevait la barre depuis la mise en page racine, et la reçoit désormais de la mise en page de son segment — inchangé, délibérément. Les onze entrées viennent de la maquette, qui est une maquette de BACK-OFFICE : « Planning », « Techniciens », « Facturation », « Paramètres ».
 **Ce n'est pas une fuite de cloisonnement.** Aucune entrée ne mène à une route servie, et une entrée inerte n'est pas un lien (D95) : un compte de portail n'atteint rien par là. C'est la même faute de LECTURE que R2-16 corrige un segment plus loin — sauf qu'ici elle est vue par un client.
-**Trois issues, et aucune n'est gratuite.** (1) Le portail n'a pas de barre du tout — le moins cher, et il perd son point de retour. (2) Le portail a SA barre, avec ses propres entrées — c'est un écran de plus à dessiner, et la maquette n'en dit rien. (3) On ne change rien tant que le portail n'est pas montré à un client — gratuit aujourd'hui, et c'est exactement le raisonnement qui a laissé la barre sur l'écran de connexion.
-*Acceptation :* la décision est écrite dans `docs/arbitrages.md` avec sa condition de réouverture, puis appliquée à `app/(portail)/layout.tsx`.
+**TRANCHÉ le 11/09/2026 — le portail a SA barre [D97].** Elle ne porte que **ce qui existe** et **ce qui appartient au client**. *Un client qui lit « Facturation » ou « Techniciens » au-dessus de son espace apprend l'existence d'un outil qui n'est pas le sien* — c'est la règle du §2 de la doctrine, « une fuite par déduction est une fuite », appliquée à un LIBELLÉ : une entrée de menu renseigne par son existence, sans qu'aucune donnée soit derrière elle.
+**Les deux issues écartées.** *Pas de barre du tout* — le moins cher, et le portail perd son point de retour. *Ne rien changer tant qu'aucun client ne voit le portail* — gratuit aujourd'hui, et c'est exactement le raisonnement qui a laissé onze entrées au-dessus de l'écran de connexion jusqu'à R2-16.
+**Aucune entrée inerte ici, et c'est la différence avec la barre du back-office :** une entrée inerte est admise dans une barre que la maquette PRESCRIT ; elle ne l'est pas dans une barre qu'on dessine soi-même — *inventer une entrée inerte, c'est promettre au client un outil qu'on n'a pas décidé de lui donner.*
+*Acceptation :* la barre du portail est rendue par la mise en page du SEGMENT `(portail)` et non par une liste de chemins ; aucune de ses entrées ne mène à une route non servie ; un scénario mesure qu'aucun libellé du back-office n'apparaît sur un écran de portail ; la barre n'est toujours pas un contrôle d'accès, et rien ne s'y adosse.
 
 **R2-18 — LES SCÉNARIOS DE BOUT EN BOUT N'AVAIENT AUCUNE BASE. [mesuré le 11/09/2026]**
 *File :* LIVRÉ
@@ -892,9 +906,10 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* l'écran rend des lignes réelles sous le rôle applicatif (scénario de bout en bout, avec son témoin) ; l'entrée de la barre est un lien et non plus une entrée inerte ; aucune colonne n'affiche une donnée qui n'existe pas.
 *Ce qui reste dû :* la recherche, l'export Excel, la pagination, et l'écran « Fiche machine » — qui reste une entrée inerte, une fiche de détail n'étant pas une section de navigation.
 
-**R2-22 — « FICHE MACHINE » EST UNE ENTRÉE DE BARRE QUI NE PEUT PAS ÊTRE UN LIEN. [mesuré le 11/09/2026]**
+**R2-22 — « FICHE MACHINE » SORT DE LA BARRE. [D98]**
 *File :* LIBRE
 **Mesuré en livrant R2-21 :** l'entrée portait « ouverte par L2-01 (écran) », et cet écran vient d'être livré — *la mention désignait donc un ticket déjà fait, ce qui ne casse rien et ment doucement.* Elle pointe maintenant sur ce ticket-ci, faute de mieux, et c'est le ticket qui doit dire ce qu'elle devient.
 **La question n'est pas celle d'un écran manquant.** Une fiche a besoin d'un **identifiant** : « Fiche machine » ne peut pas être une section de navigation, quel que soit le travail qu'on y mette. La maquette la liste parce qu'elle est une suite d'écrans à montrer ; un produit, lui, y accède depuis le parc, depuis un QR code ou depuis une intervention.
-**Trois issues, et aucune n'est gratuite.** (1) L'entrée disparaît — la barre passe à dix, et elle s'écarte de la maquette qui FAIT FOI sur la disposition (D95). (2) L'entrée reste inerte pour toujours — honnête, et elle occupe une place dans une barre à onze entrées. (3) L'entrée mène à une RECHERCHE de machine — un écran qui n'est pas dans la maquette, mais qui donne un sens à la place qu'elle occupe.
-*Acceptation :* la décision est écrite dans `docs/arbitrages.md` avec sa condition de réouverture ; `lib/navigation/entrees.ts` et son gardien la portent ; si l'entrée disparaît, l'écart avec la maquette est écrit avec sa mesure.
+**TRANCHÉ le 11/09/2026 — l'entrée DISPARAÎT, la barre passe à dix [D98].** C'est un **écart délibéré** à la maquette, qui fait foi sur la disposition (D95), et il est consigné comme tel pour que personne ne le prenne demain pour un oubli. *La maquette liste « Fiche machine » parce qu'elle est un CATALOGUE D'ÉCRANS, pas un menu* : elle montre onze écrans pour qu'on les voie tous, quand une barre donne accès à des SECTIONS. Les trois chemins réels vers une fiche portent tous un identifiant, et ils existent : le parc (R2-21), le QR code (D22), l'intervention.
+**Les deux issues écartées.** *Rester inerte pour toujours* — honnête, et une place de menu se paie sur tous les écrans, tous les jours. *Mener à une RECHERCHE de machine* — ce serait inventer un écran que la maquette ne décrit pas pour sauver une entrée qu'elle décrit ; la recherche viendra si le parc la réclame, et elle vivra DANS l'écran du parc.
+*Acceptation :* `lib/navigation/entrees.ts` porte dix entrées ; le gardien qui confronte la barre à la maquette accepte CET écart et lui seul, nommément — jamais par un assouplissement de sa comparaison ; un scénario mesure que « Fiche machine » n'est plus rendu.

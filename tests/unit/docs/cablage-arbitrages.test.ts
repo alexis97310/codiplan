@@ -79,6 +79,14 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // écrit la portée — ni forfait, ni trajet, ni travail interne.
   ["D83", "RG-TAR-05"],
   ["D89", "RG-TAR-05"],
+  // D99 (nuit du 11/09/2026) : les deux refus de la pose deviennent des règles.
+  // RG-PLA-03 disait « signalé mais reste possible » quand `pose.ts` refusait
+  // déjà depuis R2-19 — une règle réécrite par un TICKET, c'est-à-dire par un
+  // objet sans numéro, que ce gardien ne pouvait pas tenir. RG-PLA-07 est créée
+  // par la même décision : le calendrier de l'agence visée n'était écrit nulle
+  // part au chapitre 10.
+  ["D99", "RG-PLA-03"],
+  ["D99", "RG-PLA-07"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {
