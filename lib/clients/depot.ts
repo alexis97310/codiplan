@@ -101,20 +101,9 @@ export async function creerClient(
   saisie: CreationClient,
 ): Promise<ResultatEcriture> {
   try {
+    const societeId = exigerSocieteActive(contexte);
     const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      tx.client.create({
-        data: {
-          id: uuidv7(),
-          // `societe_id` est repris du contexte validé par
-          // `avecContexteApplicatif` : la politique le réclamerait de toute
-          // façon en `WITH CHECK`, mais l'écrire ici garde la première barrière
-          // là où I1 la veut — côté serveur.
-          societe_id: exigerSocieteActive(contexte),
-          ...saisie,
-          adresse_facturation: saisie.adresse_facturation ?? Prisma.DbNull,
-        },
-        select: CHAMPS_FICHE,
-      }),
+      creerClientDans(tx, societeId, saisie),
     );
     return { accepte: true, fiche };
   } catch (erreur: unknown) {
@@ -124,6 +113,66 @@ export async function creerClient(
     }
     return { accepte: false, motif };
   }
+}
+
+/**
+ * L'ÉCRITURE ELLE-MÊME, DANS UNE TRANSACTION QUE L'APPELANT TIENT (L1-08i).
+ *
+ * `creerClient` l'appelle, et l'application d'un import aussi — *un lot
+ * s'applique dans UNE transaction, et `creerClient` ouvrirait la sienne par
+ * ligne : un lot à moitié écrit serait alors un état que rien ne décrit.*
+ *
+ * **Elle est extraite plutôt que recopiée**, ce qui est la parade du §9
+ * (01/09) : la seconde implémentation d'un critère n'est jamais gratuite — on
+ * la remplace par un appel à la première, *ce qui est presque toujours possible
+ * et presque toujours meilleur.*
+ *
+ * L'identifiant est un UUID v7 attribué ICI et non par la base (I10), et
+ * `societe_id` est celui que l'appelant a validé : la politique le réclamerait
+ * de toute façon en `WITH CHECK`, mais l'écrire garde la première barrière là
+ * où I1 la veut — côté serveur.
+ */
+export async function creerClientDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  saisie: CreationClient,
+): Promise<FicheClient> {
+  return tx.client.create({
+    data: {
+      id: uuidv7(),
+      societe_id: societeId,
+      ...saisie,
+      adresse_facturation: saisie.adresse_facturation ?? Prisma.DbNull,
+    },
+    select: CHAMPS_FICHE,
+  });
+}
+
+/**
+ * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
+ * `creerClientDans`, et pour la même raison.
+ *
+ * L'adresse est extraite du reste : `undefined` signifie « ne touche pas à
+ * cette colonne », `null` signifie « efface-la ». Prisma distingue les deux par
+ * `Prisma.DbNull`, et les confondre effacerait une adresse à chaque
+ * modification qui ne la mentionne pas.
+ */
+export async function modifierClientDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: ModificationClient,
+): Promise<FicheClient> {
+  const { adresse_facturation: adresse, ...reste } = saisie;
+  return tx.client.update({
+    where: { id },
+    data: {
+      ...reste,
+      ...(adresse === undefined
+        ? {}
+        : { adresse_facturation: adresse ?? Prisma.DbNull }),
+    },
+    select: CHAMPS_FICHE,
+  });
 }
 
 /** Lit une fiche par son identifiant. `null` si elle n'est pas dans le périmètre. */
@@ -152,24 +201,9 @@ export async function modifierClient(
   id: string,
   saisie: ModificationClient,
 ): Promise<ResultatEcriture> {
-  // L'adresse est extraite du reste : `undefined` signifie « ne touche pas à
-  // cette colonne », `null` signifie « efface-la ». Prisma distingue les deux
-  // par `Prisma.DbNull`, et les confondre effacerait une adresse à chaque
-  // modification qui ne la mentionne pas.
-  const { adresse_facturation: adresse, ...reste } = saisie;
-
   try {
     const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      tx.client.update({
-        where: { id },
-        data: {
-          ...reste,
-          ...(adresse === undefined
-            ? {}
-            : { adresse_facturation: adresse ?? Prisma.DbNull }),
-        },
-        select: CHAMPS_FICHE,
-      }),
+      modifierClientDans(tx, id, saisie),
     );
     return { accepte: true, fiche };
   } catch (erreur: unknown) {

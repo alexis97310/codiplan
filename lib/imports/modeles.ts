@@ -1,3 +1,4 @@
+import { schemaCreationClient } from "@/lib/clients/saisie";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
 
 /**
@@ -83,6 +84,53 @@ export const CHAMPS_CLIENTS_ECARTES: Readonly<Record<string, string>> = {
  * ligne pour le rapprochement est ce sans quoi elle ne désigne rien.* Une ligne
  * qui n'en porte aucune est un gabarit, pas une donnée (L1-08c).
  */
+/**
+ * LE MOTIF D'UN REJET POUR SAISIE REFUSÉE. Un CODE, jamais du texte : les
+ * libellés sont au dictionnaire (L0-11), et le rapport que lit un humain les y
+ * prendra le jour où l'écran existera.
+ */
+export const MOTIF_SAISIE_REFUSEE = "saisie_refusee";
+
+/**
+ * TRADUIT UNE LIGNE EN SAISIE — les colonnes vers les champs, et rien d'autre.
+ *
+ * **Les cellules vides ne deviennent pas des chaînes vides** : elles
+ * n'apparaissent pas, et c'est le schéma qui pose alors ses défauts. *Une
+ * chaîne vide écrite dans `raison_sociale` la ferait refuser pour une autre
+ * raison que la bonne, et l'auteur du fichier chercherait longtemps.*
+ */
+export function saisieDepuisLaLigne(
+  valeurs: Readonly<Record<string, string | undefined>>,
+  champs: Readonly<Record<string, string>>,
+): Record<string, string> {
+  const saisie: Record<string, string> = {};
+  for (const [colonne, champ] of Object.entries(champs)) {
+    const valeur = valeurs[colonne];
+    if (valeur !== undefined && valeur.trim() !== "") {
+      saisie[champ] = valeur.trim();
+    }
+  }
+  return saisie;
+}
+
+/**
+ * CE QUE LA SAISIE REFUSERAIT, vu depuis le rapport (L1-08h).
+ *
+ * **C'est le schéma de création lui-même qui juge**, jamais une relecture de
+ * ses règles : *une seconde lecture d'un même critère diverge en silence* (§9,
+ * 01/09), et ici la divergence se verrait au pire moment — un rapport qui
+ * annonce 300 créations et une application qui en écrit 297.
+ */
+function validerContre(
+  champs: Readonly<Record<string, string>>,
+  schema: { safeParse: (v: unknown) => { success: boolean } },
+): (valeurs: Readonly<Record<string, string | undefined>>) => string | null {
+  return (valeurs) =>
+    schema.safeParse(saisieDepuisLaLigne(valeurs, champs)).success
+      ? null
+      : MOTIF_SAISIE_REFUSEE;
+}
+
 export const MODELE_CLIENTS: ModeleDImport = {
   type: "clients",
   version: 1,
@@ -101,6 +149,10 @@ export const MODELE_CLIENTS: ModeleDImport = {
     COLONNES_CLIENTS.codeExterne,
     COLONNES_CLIENTS.raisonSociale,
   ),
+  // *Le rapport montre ce que la saisie refusera*, et il le montre AVANT la
+  // validation humaine — I6 veut un rapport, puis une décision, pas une
+  // décision suivie de surprises.
+  valider: validerContre(CHAMPS_CLIENTS, schemaCreationClient),
 };
 
 /**

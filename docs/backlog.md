@@ -325,8 +325,27 @@ créations    : 2 | modifications : 0
 *Acceptation :* la clé partagée est ambiguë, ne désigne plus aucune fiche et reste connue ; la ligne qui la porte est rejetée avec son motif ; le rejet s'additionne au total ; une autre ligne du même fichier passe quand même — *ce n'est pas le fichier qui est refusé, c'est une ligne* ; et la société B ne voit aucune clé de la société A, tout en voyant son propre « C-001 ».
 *Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
 
+**L1-08h — LE RAPPORT MONTRE CE QUE LA SAISIE REFUSERA. [I6] [RG-IMP-01]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026.** I6 veut qu'un import produise d'abord un rapport, PUIS attende une validation explicite. *Une ligne que la saisie refusera et que le rapport annonce en création est un rapport qui ment* : on valide 300 créations, on en obtient 297, et les trois manquantes ne se découvrent qu'après coup.
+**Le MODÈLE porte sa validation**, comme il porte sa clé — et c'est **le schéma de création lui-même qui juge**, jamais une relecture de ses règles : *une seconde lecture d'un même critère diverge en silence* (§9, 01/09), et ici la divergence se verrait au pire moment.
+**`valider` est FACULTATIVE, la seule des deux à l'être** : un modèle peut n'avoir aucune règle au-delà de sa grammaire, et l'absence est alors une affirmation lisible. *La clé, elle, ne peut pas manquer : il n'existe pas d'import sans rapprochement.*
+**L'AMBIGUÏTÉ PASSE AVANT LA SAISIE**, et l'ordre se lit : *une ligne indécidable ne vaut pas la peine d'être validée, et rendre le motif de saisie ferait chercher une correction dans le FICHIER là où le problème est dans le PARC.*
+*Acceptation :* une raison sociale vide est rejetée PAR LE RAPPORT ; une ligne saine passe — le cas qui doit rester vert pour sa raison ; l'ambiguïté l'emporte sur la saisie ; et une ligne traduite ne porte aucune chaîne vide.
+*Relu contre les sources citées le 11/09/2026 — empreinte `5e551eff`.*
+
+**L1-08i — L'APPLICATION D'UN LOT DE CLIENTS. [I6] [D15] [RG-IMP-04]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026 — la seconde moitié de I6.** L'application **n'applique QUE ce que le rapport a montré** et **ne redécide rien** : elle lit `import_lot_ligne.action` et l'exécute. *Si elle recalculait, la validation humaine aurait porté sur un écran et l'écriture sur autre chose.*
+**UNE SEULE TRANSACTION**, et ce n'est pas un détail : *une écriture par ligne laisserait, au premier incident, un lot « contrôlé » dont la moitié des fiches existe — un état que rien ne décrit et que l'annulation ne saurait pas défaire.* `creerClientDans` et `modifierClientDans` sont **extraites** de `lib/clients/depot.ts` plutôt que recopiées : la seconde implémentation d'un critère n'est jamais gratuite.
+**`valeurs_avant` SE LIT AVANT D'ÉCRIRE** — après, il est trop tard, et le journal d'audit porterait la seule trace, sur une table qu'aucune annulation ne lit (D15).
+**ET LA BASE A ATTRAPÉ CE QUE J'AVAIS OUBLIÉ.** Le premier rejet réellement enregistré a fait rougir `import_lot_ligne_rejet_a_son_motif` (code 23514) : le rapport portait le motif depuis L1-08h, **et `enregistrerLeControle` le jetait**. *Aucun test ne pouvait le voir avant qu'un rejet traverse la chaîne entière* — c'est l'appelant de bout en bout qui l'a produit, pas la relecture.
+*Acceptation :* la fiche existe RÉELLEMENT en base, avec son témoin d'absence préalable ; la ligne porte l'entité et son identifiant ; un second passage est refusé — le cliquet ; une modification garde l'état d'avant ; un lot d'une autre société est « introuvable » et rien de plus ; une ligne rejetée n'écrit rien.
+*Relu contre les sources citées le 11/09/2026 — empreinte `72efc376`.*
+
 **L1-08b** Le MOTEUR d'import — lecture du classeur, rapport, application, annulation. **[D15] [D31] [D54]**
 *File :* LIBRE
+**CE QUI RESTE, au 11/09/2026 : l'ANNULATION PARTIELLE, et elle seule.** *Tout ce qui la précède est livré* — la grammaire (L1-08a), le rapprochement (L1-08c/f/g), le rapport qui retient (L1-08d), les tables (L1-08e), la validation au rapport (L1-08h) et l'application (L1-08i). `valeurs_avant` est **écrite** depuis L1-08i : il y a enfin quelque chose à restaurer.
 **CE QUI RESTE, au 11/09/2026 :** l'**application** et l'**annulation partielle**. *Les tables qu'elles écrivent existent depuis L1-08e*, `valeurs_avant` comprise — la colonne que D15 exige pour restaurer, et qu'**aucun code ne remplit encore** : avant l'application, il n'y a rien à restaurer. *Et le rapprochement sait désormais rapprocher autre chose que des machines (L1-08f), ce qui était le mur devant l'application.*
 **CE QUI MANQUE ENCORE, mesuré le 11/09/2026 :** **aucun modèle d'import concret n'existe dans `lib/`** — `ModeleDImport` n'est qu'un type, et ses seuls exemplaires vivent dans des tests. *Les noms de colonnes du fichier réel ne sont pas dans le dépôt (I9), et les inventer ferait un gabarit que personne ne pourrait remplir.* C'est l'objet de **L1-09**, qui devient le prérequis de l'application.
 **CE QUI LE BLOQUAIT VRAIMENT A ÉTÉ RETIRÉ le 11/09/2026 par L1-08d** — le rapport retient désormais ses lignes. *Ce qui restait à construire n'était pas seulement l'application : c'était d'abord ce qu'elle appliquerait.*

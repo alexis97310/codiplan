@@ -95,7 +95,33 @@ export type ModeleDImport = {
    * est la faute qu'on vient de retirer. *Sans défaut, l'oubli ne compile pas.*
    */
   readonly cle: CleDeLigne;
+  /**
+   * CE QUE LA SAISIE REFUSERAIT — et **le rapport doit le montrer AVANT** que
+   * quelqu'un valide (L1-08h).
+   *
+   * I6 veut qu'un import « produise d'abord un rapport, PUIS attende une
+   * validation explicite ». *Une ligne que la saisie refusera et que le rapport
+   * annonce en création est un rapport qui ment* : on valide 300 créations, on
+   * en obtient 297, et les trois manquantes ne se découvrent qu'après coup.
+   *
+   * Elle rend un **CODE** de motif, ou `null` si la ligne passe. Jamais du
+   * texte : les libellés sont au dictionnaire (L0-11).
+   *
+   * **Facultative, et c'est la seule des deux à l'être** : un modèle peut
+   * n'avoir aucune règle de saisie au-delà de sa grammaire, et l'absence est
+   * alors une affirmation lisible — *« rien de plus à vérifier »*. La clé, elle,
+   * ne peut pas manquer : il n'existe pas d'import sans rapprochement.
+   */
+  readonly valider?: ValidationDeLigne;
 };
+
+/**
+ * Ce qu'une ligne doit satisfaire au-delà de la grammaire. Rend le CODE du
+ * motif de rejet, ou `null` quand la ligne passe.
+ */
+export type ValidationDeLigne = (
+  valeurs: Readonly<Record<string, string | undefined>>,
+) => string | null;
 
 /**
  * La fonction qui dit ce qu'une ligne désigne, pour un type d'import donné.
@@ -235,9 +261,17 @@ export type ParcConnu = {
 function decider(
   cle: string,
   parc: ParcConnu,
+  motifDeSaisie: string | null,
 ): Pick<LigneControlee, "action" | "rejetMotif"> {
   if (parc.ambigues.has(cle)) {
     return { action: "rejet", rejetMotif: MOTIF_AMBIGUITE };
+  }
+  // *L'ambiguïté passe AVANT la saisie*, et l'ordre se lit : une ligne
+  // indécidable ne vaut pas la peine d'être validée, et rendre le motif de
+  // saisie ferait chercher une correction dans le fichier là où le problème est
+  // dans le parc.
+  if (motifDeSaisie !== null) {
+    return { action: "rejet", rejetMotif: motifDeSaisie };
   }
   return { action: parc.cles.has(cle) ? "modification" : "creation" };
 }
@@ -430,7 +464,7 @@ export function controlerFeuille(
       rang: rang + 1,
       nature,
       cle,
-      ...decider(cle.cle, parc),
+      ...decider(cle.cle, parc, modele.valider?.(valeurs) ?? null),
       valeurs,
     });
   }

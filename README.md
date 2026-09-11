@@ -441,6 +441,22 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## L'application n'applique QUE ce que le rapport a montré
+
+C'est la seconde moitié de I6 (`lib/imports/application.ts`, L1-08h et L1-08i), et la première est en base depuis L1-08e : **le lot existe dès le contrôle**, avec ses lignes et leur action.
+
+**Le rapport montre d'abord ce que la saisie refusera.** Le modèle porte sa validation comme il porte sa clé, et c'est **le schéma de création lui-même qui juge** — jamais une relecture de ses règles. _Une ligne que la saisie refusera et que le rapport annonce en création est un rapport qui ment : on valide 300 créations, on en obtient 297, et les trois manquantes ne se découvrent qu'après coup._
+
+**L'application ne redécide rien** : elle lit `import_lot_ligne.action` et l'exécute. _Si elle recalculait, la validation humaine aurait porté sur un écran et l'écriture sur autre chose._
+
+**Une seule transaction**, et ce n'est pas un détail : _une écriture par ligne laisserait, au premier incident, un lot « contrôlé » dont la moitié des fiches existe — un état que rien ne décrit et que l'annulation ne saurait pas défaire._ `creerClientDans` et `modifierClientDans` sont **extraites** de `lib/clients/depot.ts` plutôt que recopiées.
+
+**`valeurs_avant` se lit AVANT d'écrire** — après, il est trop tard, et le journal d'audit porterait la seule trace, sur une table qu'aucune annulation ne lit (D15).
+
+**Et la base a attrapé un oubli que la relecture n'avait pas vu** : le premier rejet réellement enregistré a fait rougir `import_lot_ligne_rejet_a_son_motif` (code 23514) — le rapport portait le motif, **et l'enregistrement le jetait**. _Aucun test ne pouvait le voir avant qu'un rejet traverse la chaîne entière._
+
+**Ce qui reste (L1-08b) :** l'**annulation partielle**, et elle seule.
+
 ## L'ambiguïté est un fait du PARC, et elle devient un rejet
 
 RG-IMP-05 pose **trois** cas et non deux : _« en cas d'ambiguïté, la ligne part en rejet pour arbitrage humain plutôt qu'en création silencieuse d'un doublon »._ Le contrôle ne recevait qu'un `Set<string>`, qui ne pouvait pas porter le troisième — la limite était **écrite** à L1-08f, et L1-08g la retire.
