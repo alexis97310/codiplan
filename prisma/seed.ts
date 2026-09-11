@@ -1000,10 +1000,57 @@ async function seed(): Promise<void> {
       prisma,
       societeId,
       async (tx) => {
+        // **LE FILTRE SOCIÉTÉ EST EXPLICITE**, en plus du contexte RLS posé par
+        // `avecSociete` — CLAUDE.md §5.6, et ce n'est pas une précaution
+        // rituelle : *en local, le rôle de migration est superutilisateur et
+        // CONTOURNE la RLS* (§9, 07/09). Mesuré à L3-01a, sur la base de test
+        // qui porte aussi les fixtures d'isolation : cette lecture rendait
+        // l'agence `SIEGE` d'une AUTRE société pendant le semis de la
+        // première, et la clé étrangère de `technicien` l'a refusée. *Le
+        // contexte ne filtrait rien, et rien ne le disait tant que le résultat
+        // ne servait qu'à une table de correspondance.*
         const agences = await tx.agence.findMany({
+          where: { societe_id: societeId },
           select: { id: true, code: true },
         });
         const codeParAgence = new Map(agences.map((a) => [a.id, a.code]));
+
+        // LE RATTACHEMENT DES TECHNICIENS À LEUR AGENCE (L3-01a).
+        //
+        // `TECHNICIENS_PAR_AGENCE` portait ce fait **sans avoir où l'écrire** :
+        // il servait à affecter les interventions, et disparaissait ensuite.
+        // La table `technicien` lui donne enfin une maison — et c'est elle que
+        // D12 et D13 lisent pour la majoration hors ouverture et pour le
+        // calendrier de détection de conflit.
+        //
+        // *Le seed ne réécrit pas : il pose ce qui manque.* Une ligne déjà
+        // présente a pu être changée à l'écran, et la ramener au défaut
+        // effacerait une décision d'exploitation.
+        for (const agence of agences) {
+          for (const courriel of TECHNICIENS_PAR_AGENCE[agence.code] ?? []) {
+            const utilisateurId = parCourriel.get(courriel);
+            if (utilisateurId === undefined) continue;
+            await tx.technicien.upsert({
+              where: {
+                societe_id_utilisateur_id: {
+                  societe_id: societeId,
+                  utilisateur_id: utilisateurId,
+                },
+              },
+              create: {
+                // `id` est une clé TECHNIQUE exigée par le journal d'audit
+                // (I10) ; la clé métier reste le couple. Un UUID v7 ici comme
+                // partout : il est ordonné dans le temps.
+                id: uuidv7(),
+                societe_id: societeId,
+                utilisateur_id: utilisateurId,
+                agence_id: agence.id,
+              },
+              update: {},
+            });
+          }
+        }
+
         const rangParId = new Map(
           INTERVENTIONS_DEMONSTRATION.map((modele, index) => [
             identifiantIntervention(rangSociete, modele.rang),

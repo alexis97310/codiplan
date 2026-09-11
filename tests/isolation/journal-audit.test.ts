@@ -718,4 +718,49 @@ describe("le périmètre du journal est tenu par la base (L0-10, point 4)", () =
     expect(message).not.toContain(SOCIETE_A);
     expect(message).not.toContain(SOCIETE_B);
   });
+
+  it("TOUTE table auditée expose une colonne `id` — sinon elle est INÉCRIVABLE", async () => {
+    // **LA FAUTE QUE CE SCÉNARIO EXISTE POUR ATTRAPER A EU LIEU** (mesurée le
+    // 11/09/2026, au ticket L3-01a). `journal_audit_tracer` désigne la ligne
+    // journalisée par sa clé technique (I10) et **lève** quand la table
+    // n'expose aucune colonne `id`. `technicien_calendrier` portait le
+    // déclencheur depuis le paramétrage par agence **sans avoir cette
+    // colonne** : tout `INSERT` y échouait en `P0001`.
+    //
+    // *Personne ne l'avait vu parce que personne n'écrivait dans cette table* —
+    // le §9 du 08/09, un défaut invisible parce que ce qu'il casse n'existe pas
+    // encore. Le périmètre d'audit, lui, était vert : il vérifie que le
+    // déclencheur EST POSÉ, pas qu'il peut s'exécuter.
+    //
+    // Ce contrôle est donc la moitié qui manquait, et il est STATIQUE : il ne
+    // demande pas qu'on écrive dans chaque table, il demande que chacune PUISSE
+    // l'être.
+    const auditees = await clientOwner().$queryRawUnsafe<
+      Array<{ table_cible: string }>
+    >(
+      `SELECT c.relname AS table_cible
+         FROM pg_trigger t
+         JOIN pg_class c ON c.oid = t.tgrelid
+        WHERE t.tgname = 'journal_audit' AND NOT t.tgisinternal
+        ORDER BY 1`,
+    );
+    // Témoin de non-vacuité : un décompte nul ressemble toujours à un
+    // sans-faute (§9, 30/08).
+    expect(auditees.length).toBeGreaterThanOrEqual(20);
+
+    const colonnes = await clientOwner().$queryRawUnsafe<
+      Array<{ table_name: string }>
+    >(
+      `SELECT "table_name" FROM information_schema.columns
+        WHERE "table_schema" = 'public' AND "column_name" = 'id'`,
+    );
+    const avecId = new Set(colonnes.map((c) => c.table_name));
+
+    expect(
+      auditees.map((a) => a.table_cible).filter((nom) => !avecId.has(nom)),
+      "ces tables portent le déclencheur d'audit sans exposer de colonne `id` : " +
+        "tout INSERT y lèvera en P0001, et rien ne le dira tant que personne " +
+        "n'écrira",
+    ).toEqual([]);
+  });
 });

@@ -9,6 +9,8 @@ import {
   AGENCE_A,
   AGENCE_B,
   CALENDRIER_A,
+  CALENDRIER_SAMEDI_A,
+  PLAGE_SAMEDI_A,
   CALENDRIER_B,
   CHARTE_A,
   CHARTE_B,
@@ -394,6 +396,16 @@ export default async function setup(): Promise<void> {
           code: "ISO-CAL-B",
           libelle: "Calendrier B",
         },
+        {
+          // LE CALENDRIER PROPRE D'UN TECHNICIEN (L3-01a). Il ouvre le SAMEDI,
+          // là où celui de son agence ouvre le lundi : *sans cet écart, la
+          // règle de priorité se mesurerait sur deux calendriers identiques,
+          // c'est-à-dire sur rien.*
+          id: CALENDRIER_SAMEDI_A,
+          societe_id: SOCIETE_A,
+          code: "ISO-CAL-SAM-A",
+          libelle: "Samedi travaillé",
+        },
       ],
     });
     await prisma.calendrierPlage.createMany({
@@ -413,6 +425,16 @@ export default async function setup(): Promise<void> {
           jour_semaine: 1,
           debut_minutes: 540,
           fin_minutes: 780,
+        },
+        {
+          id: PLAGE_SAMEDI_A,
+          societe_id: SOCIETE_A,
+          calendrier_id: CALENDRIER_SAMEDI_A,
+          // Samedi, 6 h — un jour ET une durée que le calendrier de l'agence
+          // n'a pas : les deux moitiés de la comparaison diffèrent.
+          jour_semaine: 6,
+          debut_minutes: 480,
+          fin_minutes: 840,
         },
       ],
     });

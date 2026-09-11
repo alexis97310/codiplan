@@ -127,7 +127,7 @@ Pourquoi une catégorie à elle seule, et non la troisième. Une session expire,
 | les habilitations de technicien | `technicien_habilitation` *(L1-04)* |
 | le rattachement portail et son périmètre | `utilisateur_client`, `utilisateur_client_site` *(D10, D79)* |
 | la **fonction** | `(prévu)` — aucune colonne ne la porte |
-| l'**agence de rattachement** | `(prévu)` — la table `technicien` du chapitre 11 la porte, et **elle n'existe pas** ; D72 en dépend |
+| l'**agence de rattachement** | `technicien.agence_id` *(L3-01a)* — c'est elle qui décide de la majoration hors ouverture (D12) et du calendrier de conflit à la pose (D13) |
 | les **préférences** | `(prévu)` — aucune colonne ne la porte |
 
 **Les deux sens sont gardés**, comme au §6 : une colonne énumérée sans marque doit exister au schéma, et une notion marquée `(prévu)` qui recevrait une colonne rendrait la marque fausse le jour même. Voir `tests/unit/docs/donnees-du-cote-cloisonne.test.ts`.
@@ -721,6 +721,15 @@ lib/
               aucune base ici : l'appelant seul sait sous quel contexte
               cloisonné il a lu ses relevés
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
+              technicien.ts : la RÈGLE DE PRIORITÉ de D72, écrite une seule fois
+              (L3-01a) — horaires PROPRES s'il en a, sinon ceux de son agence ;
+              fuseau, territoire, fériés et ponts TOUJOURS ceux de l'agence
+              un technicien travaille le samedi par exception, il ne DÉCRÈTE pas
+              les fériés de son territoire : c'est la ligne de partage de D46,
+              appliquée à une personne au lieu d'une agence
+              un technicien SANS rattachement rend `null`, jamais un calendrier
+              vide — « inconnu » n'est pas « ouvert » (I7), et un calendrier
+              sans plage se lirait « fermé toute la semaine »
               fuseaux IANA, instants UTC, récurrences déroulées à la lecture
               territoire ISO et fuseau : deux attributs de l'agence, jamais
               l'un déduit de l'autre (D46)

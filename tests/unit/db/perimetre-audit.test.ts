@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-sept tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-huit tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -294,6 +294,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "site_habilitation_requise",
       "societe",
       "taux_horaire",
+      // `technicien` s'y ajoute au ticket L3-01a, et par le même chemin. Elle
+      // le mérite plus que sa voisine : *« depuis quand ce technicien
+      // dépend-il de Koné »* décide de ce qui a été facturé en majoration
+      // (D12), et c'est une question de facture autant que de planning.
+      "technicien",
       "technicien_calendrier",
       "technicien_habilitation",
       "utilisateur_client",

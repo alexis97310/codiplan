@@ -255,6 +255,17 @@ export const AGENCE_A = "aaaaaaaa-0000-7000-8000-0000000000e1";
 export const AGENCE_B = "bbbbbbbb-0000-7000-8000-0000000000e2";
 
 /** Calendriers d'ouverture des deux agences (L0-08, D5, D13). */
+/**
+ * LE CALENDRIER PROPRE D'UN TECHNICIEN (L3-01a, D72).
+ *
+ * Il ouvre le SAMEDI, là où le calendrier de son agence ouvre le lundi : *c'est
+ * la seule fixture qui sépare « horaires propres » de « horaires de l'agence »*,
+ * et sans elle la règle de priorité se mesurerait sur deux calendriers
+ * identiques — c'est-à-dire sur rien.
+ */
+export const CALENDRIER_SAMEDI_A = "aaaaaaaa-0000-7000-8000-0000000000cf";
+export const PLAGE_SAMEDI_A = "aaaaaaaa-0000-7000-8000-0000000000c9";
+
 export const CALENDRIER_A = "aaaaaaaa-0000-7000-8000-0000000000ca";
 export const CALENDRIER_B = "bbbbbbbb-0000-7000-8000-0000000000cb";
 export const PLAGE_A = "aaaaaaaa-0000-7000-8000-0000000000c5";

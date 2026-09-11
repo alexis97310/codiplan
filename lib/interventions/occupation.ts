@@ -1,4 +1,5 @@
 import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import { minutesOuvrees } from "@/lib/calendar/ouverture";
 import { versLocal } from "@/lib/calendar/fuseau";
 import { type ContexteSession } from "@/lib/auth/contexte";
@@ -28,11 +29,18 @@ import {
  * un technicien qui n'intervient que pour une agence n'y voit aucune
  * différence.
  *
- * *Ce que cela ne tranche pas, et qui reste dû :* la table `technicien` du
- * chapitre 11 n'existe pas (CLAUDE.md §6, marque `(prévu)`), et le calendrier
- * de travail PROPRE au technicien — `technicien_calendrier`, l'exception de
- * L2 — n'est pas encore consulté ici. Le jour où il le sera, c'est lui qui
- * fera foi et l'agence deviendra le repli.
+ * ~~*Ce que cela ne tranche pas, et qui reste dû :* la table `technicien` du
+ * chapitre 11 n'existe pas, et le calendrier de travail PROPRE au technicien
+ * n'est pas encore consulté ici.~~ **FAIT à L3-01a.** `technicien` existe, et
+ * le dénominateur vient désormais de `chargerCalendrierDuTechnicien` : horaires
+ * propres s'il en a, sinon ceux de son agence. *La phrase est barrée et non
+ * effacée : c'est elle qui a nommé la dette, et une dette payée se relit.*
+ *
+ * **La maille (technicien, agence) ne change pas pour autant**, et elle compte
+ * plus qu'avant : le dénominateur dépend maintenant de la PERSONNE autant que
+ * de l'agence, si bien que la mise en cache suit le couple et non l'agence
+ * seule — *deux techniciens de la même agence peuvent avoir deux
+ * dénominateurs.*
  *
  * ## Le refus plutôt que le chiffre
  *
@@ -101,24 +109,54 @@ export async function occupationsDuPlanning(
     const libelles = new Map(agences.map((a) => [a.id, a.libelle]));
 
     const resultat: LigneOccupation[] = [];
-    // Le calendrier d'une agence est lu UNE fois, même si deux techniciens y
-    // travaillent : le dénominateur ne dépend que de l'agence et de la période.
-    const ouvrablesParAgence = new Map<string, number>();
+    // LE DÉNOMINATEUR EST MIS EN CACHE PAR COUPLE (technicien, agence) depuis
+    // L3-01a, et non plus par agence seule : *un technicien qui travaille le
+    // samedi par exception n'a pas le même dénominateur que son voisin de la
+    // même agence.* La clé du cache suit donc la maille du groupe.
+    const ouvrablesParCle = new Map<string, number>();
+    const fenetre = { du: versLocal(du, "UTC"), au: versLocal(au, "UTC") };
 
     for (const { cle, lignes } of groupes.values()) {
-      let ouvrables = ouvrablesParAgence.get(cle.agenceId);
+      const cleCache = `${cle.technicienId ?? ""}|${cle.agenceId}`;
+      let ouvrables = ouvrablesParCle.get(cleCache);
       if (ouvrables === undefined) {
-        const calendrier = await chargerCalendrierAgence(tx, {
-          societeId,
-          agenceId: cle.agenceId,
-          fenetre: { du: versLocal(du, "UTC"), au: versLocal(au, "UTC") },
-        });
+        // LA RÈGLE DE PRIORITÉ EST LUE, ELLE N'EST PLUS DUE (L3-01a). Ce module
+        // écrivait : *« le calendrier de travail PROPRE au technicien n'est pas
+        // encore consulté ici ; le jour où il le sera, c'est lui qui fera foi
+        // et l'agence deviendra le repli. »* C'est ce jour.
+        //
+        // La règle vit dans `lib/calendar/technicien.ts` et NULLE PART
+        // AILLEURS : horaires propres s'il en a, sinon ceux de son agence ;
+        // fériés et ponts toujours ceux de l'agence.
+        //
+        // **LE REPLI EST L'AGENCE DE L'INTERVENTION, et il est nommé** : un
+        // technicien sans ligne de rattachement — la table vient de naître, et
+        // rien n'oblige une société à la remplir d'un coup — retrouve le
+        // comportement d'avant ce ticket. *Rendre « inconnu » là où l'on savait
+        // répondre serait une régression déguisée en rigueur.*
+        const calendrier =
+          (cle.technicienId === null
+            ? null
+            : await chargerCalendrierDuTechnicien(tx, {
+                societeId,
+                utilisateurId: cle.technicienId,
+                fenetre,
+              })) ??
+          (await chargerCalendrierAgence(tx, {
+            societeId,
+            agenceId: cle.agenceId,
+            fenetre,
+          }));
         // Une agence sans calendrier n'a pas d'heures ouvrables CONNUES. Zéro
         // est ici le signal de l'absence, et `tauxOccupation` le rend en
         // `null` plutôt qu'en « 0 % ».
+        //
+        // *Un technicien SANS rattachement tombe dans le même cas*, et pour la
+        // même raison : rien ne dit quelles sont ses heures, et les inventer
+        // afficherait un taux qui ne repose sur rien.
         ouvrables =
           calendrier === null ? 0 : minutesOuvrees(calendrier, du, au);
-        ouvrablesParAgence.set(cle.agenceId, ouvrables);
+        ouvrablesParCle.set(cleCache, ouvrables);
       }
 
       resultat.push({

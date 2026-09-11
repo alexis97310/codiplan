@@ -74,12 +74,23 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
     expect(await client.calendrierFerie.findMany()).toHaveLength(0);
   });
 
-  it("la société A ne lit que son propre calendrier", async () => {
+  it("la société A ne lit que SES calendriers, jamais ceux d'une autre", async () => {
+    // **L'assertion porte sur les SOCIÉTÉS, pas sur un décompte** *(corrigé le
+    // 11/09/2026)*. Elle exigeait « exactement un » et s'est cassée le jour où
+    // L3-01a a ajouté un second calendrier à la société A — *un calendrier
+    // propre de technicien, qui n'a rien à voir avec le cloisonnement qu'elle
+    // mesure.* Un décompte exact fait d'une fixture voisine un échec, et il
+    // dit « il y en a deux » là où la question est « à qui sont-ils ».
     const calendriers = await sousSociete(SOCIETE_A, (tx) =>
       tx.calendrier.findMany({ select: { id: true, societe_id: true } }),
     );
-    expect(calendriers).toHaveLength(1);
-    expect(calendriers[0]?.id).toBe(CALENDRIER_A);
+    // Témoin de non-vacuité : une lecture vide passerait les deux assertions
+    // ci-dessous sans rien prouver.
+    expect(calendriers.length).toBeGreaterThan(0);
+    expect(new Set(calendriers.map((c) => c.societe_id))).toEqual(
+      new Set([SOCIETE_A]),
+    );
+    expect(calendriers.map((c) => c.id)).toContain(CALENDRIER_A);
   });
 
   it("la société A ne voit pas le calendrier de la société B", async () => {
@@ -99,7 +110,11 @@ describe("calendriers d'agence — cloisonnés (I1)", () => {
       }),
     }));
 
-    expect(vues.plages.map((plage) => plage.societe_id)).toEqual([SOCIETE_A]);
+    // Même correction que ci-dessus : les SOCIÉTÉS observées, pas leur nombre.
+    expect(vues.plages.length).toBeGreaterThan(0);
+    expect(new Set(vues.plages.map((plage) => plage.societe_id))).toEqual(
+      new Set([SOCIETE_A]),
+    );
     expect(new Set(vues.ecarts.map((ecart) => ecart.societe_id))).toEqual(
       new Set([SOCIETE_A]),
     );
