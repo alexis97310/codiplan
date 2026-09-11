@@ -634,7 +634,6 @@ export const fr = {
   "nav.planning": "Planning",
   "nav.interventions": "Interventions",
   "nav.parc_machines": "Parc machines",
-  "nav.fiche_machine": "Fiche machine",
   "nav.contrats": "Contrats",
   "nav.app_technicien": "App technicien",
   "nav.portail_client": "Portail client",

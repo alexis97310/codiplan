@@ -1,7 +1,8 @@
 import type { CleTraduction } from "@/lib/i18n/fr";
 
 /**
- * LA BARRE DE NAVIGATION — les onze entrées de la maquette (D95).
+ * LA BARRE DE NAVIGATION — les entrées de la maquette (D95), moins un écart
+ * nommé (D98).
  *
  * ## Pourquoi onze, et pas « celles qui existent »
  *
@@ -70,23 +71,55 @@ export type EntreeNavigation = {
 };
 
 /**
- * Les onze entrées, dans l'ordre exact de la maquette. **Liste close** :
- * `tests/unit/navigation/entrees.test.ts` la confronte à la barre de
- * `docs/maquette/CODIPLAN_Maquette.html`, et échoue si l'une des deux bouge sans
- * l'autre — libellé et ordre compris.
+ * LES ÉCARTS DÉLIBÉRÉS À LA MAQUETTE — liste close, une entrée, avec son motif.
+ *
+ * D95 fait de la maquette une source qui FAIT FOI sur la disposition, et
+ * autorise l'écart à une condition : *« il s'écrit avec sa mesure et le point
+ * précis où elle est muette — jamais "la maquette ne prévoyait pas ce cas" ».*
+ * Cette liste est cet écrit, et le gardien la lit plutôt que d'assouplir sa
+ * comparaison. *Assouplir aurait fait entrer sans décision tous les écarts
+ * suivants ; nommer n'en fait entrer qu'un.*
+ *
+ * **Un écart se désigne par son LIBELLÉ tel que la maquette l'écrit**, et non
+ * par une clé du dictionnaire : la clé disparaît avec l'entrée, le libellé
+ * reste dans le document. C'est ce qui rend l'écart *adossé* — le gardien
+ * vérifie que la maquette porte bien ce libellé, sans quoi l'entrée de cette
+ * liste n'écarterait plus rien et personne ne le dirait (§9, 31/08).
+ *
+ * **Toute addition ici est un arbitrage**, jamais une décision de ticket : le
+ * gardien exige cette liste exactement, à la manière de `CABLAGE_ATTENDU`.
+ */
+export const ECARTS_MAQUETTE: ReadonlyArray<{
+  readonly libelle: string;
+  readonly motif: string;
+}> = [
+  {
+    libelle: "Fiche machine",
+    // D98. La maquette la liste parce qu'elle est un CATALOGUE D'ÉCRANS, pas
+    // un menu : elle montre ses onze écrans pour qu'on les voie tous. Une
+    // fiche a besoin d'un IDENTIFIANT — elle ne peut donc pas être une section
+    // de navigation, quel que soit le travail qu'on y mette. Les trois chemins
+    // réels vers une fiche en portent un, et ils existent : le parc (R2-21),
+    // le QR code (D22), l'intervention.
+    motif:
+      "D98 — une fiche a besoin d'un identifiant ; ce n'est pas une section",
+  },
+];
+
+/**
+ * Les entrées, dans l'ordre exact de la maquette **moins les écarts nommés**.
+ * **Liste close** : `tests/unit/navigation/entrees.test.ts` la confronte à la
+ * barre de `docs/maquette/CODIPLAN_Maquette.html`, et échoue si l'une des deux
+ * bouge sans l'autre — libellé et ordre compris.
  */
 export const ENTREES: readonly EntreeNavigation[] = [
   { cle: "nav.tableau_de_bord", chemin: null, ouvertePar: "lot 4" },
   { cle: "nav.planning", chemin: "/planning" },
   { cle: "nav.interventions", chemin: null, ouvertePar: "L2-08" },
   { cle: "nav.parc_machines", chemin: "/parc" },
-  // *L2-01 (écran) est LIVRÉ depuis R2-21, et cette entrée est restée sur son
-  // nom.* Une mention d'ouverture qui désigne un ticket déjà fait ne casse rien
-  // et ment doucement — exactement ce que le gardien refuse dans l'autre sens.
-  // Et la question qu'elle pose n'est pas celle d'un écran manquant : **une
-  // fiche a besoin d'un identifiant**, elle ne peut pas être une section de
-  // navigation. R2-22 tranche ce qu'elle devient.
-  { cle: "nav.fiche_machine", chemin: null, ouvertePar: "R2-22" },
+  // ⟵ « Fiche machine » était ICI, entre le parc et les contrats. Elle est
+  //    SORTIE (D98), et c'est le seul écart délibéré à la maquette : voir
+  //    ECARTS_MAQUETTE ci-dessous, qui porte le motif et que le gardien lit.
   { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
   { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
   { cle: "nav.portail_client", chemin: "/portail" },
