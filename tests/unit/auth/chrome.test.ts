@@ -3,7 +3,23 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { identiteDeChrome } from "@/lib/auth/chrome";
+import { Role } from "@/lib/auth/roles";
+
+/** Toutes les pages d'un répertoire, récursivement. */
+function pages(repertoire: string): readonly string[] {
+  const trouvees: string[] = [];
+  for (const entree of readdirSync(repertoire)) {
+    const chemin = join(repertoire, entree);
+    if (statSync(chemin).isDirectory()) {
+      trouvees.push(...pages(chemin));
+    } else if (entree === "page.tsx") {
+      trouvees.push(chemin);
+    }
+  }
+  return trouvees;
+}
 
 /** Toutes les mises en page du répertoire `app/`, la racine comprise. */
 function misesEnPage(repertoire: string): readonly string[] {
@@ -134,5 +150,70 @@ describe("le chemin : AUCUNE mise en page n'emploie une lecture qui lève", () =
     expect(chrome).toMatch(/\bidentiteDeChrome\b/);
     expect(chrome).toMatch(/\bthemeDuContexte\b/);
     expect(chrome).not.toMatch(/\bobtenirSession\b/);
+  });
+});
+
+describe("les ÉCRANS qui précèdent la session ne lèvent pas non plus (R2-16)", () => {
+  /*
+   * Le troisième appelant du même incident. La racine réparée le 11/09,
+   * `/connexion` et `/enrolement` rendaient TOUJOURS 500 sans
+   * `BETTER_AUTH_SECRET` — mesuré par le scénario Playwright de R2-16 sur une
+   * compilation de production : 2 échecs, le témoin `data-apparence` absent
+   * parce que la page n'avait pas été servie du tout.
+   *
+   * *Une page de connexion qui rend 500 quand la configuration manque est le
+   * pire mode de défaillance du produit : personne ne peut même lire le
+   * formulaire pour comprendre.*
+   */
+  const LECTURES_QUI_LEVENT = ["obtenirSession", "etatArrivee"] as const;
+
+  const SANS_SESSION = pages(join(process.cwd(), "app", "(sans-session)"));
+
+  const sansCommentaires = (chemin: string): string =>
+    readFileSync(chemin, "utf8")
+      .replace(/\/\/[^\n]*/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("observe les six écrans — le témoin", () => {
+    expect(SANS_SESSION.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("aucun n'appelle une lecture qui lève", () => {
+    // `etatArriveeOuAnonyme` contient `etatArrivee` : le motif exige donc que
+    // le nom ne soit PAS suivi de « OuAnonyme », sans quoi la réparation
+    // elle-même ferait rougir le gardien.
+    const fautifs = SANS_SESSION.filter((chemin) => {
+      const corps = sansCommentaires(chemin);
+      return LECTURES_QUI_LEVENT.some((nom) =>
+        new RegExp(`\\b${nom}\\b(?!OuAnonyme)`).test(corps),
+      );
+    }).map((chemin) => chemin.slice(process.cwd().length + 1));
+    expect(fautifs).toEqual([]);
+  });
+
+  it("et ceux qui lisent une session passent par la forme qui ne lève pas", () => {
+    // La direction permissive : sans elle, six pages qui ne liraient RIEN
+    // passeraient l'assertion ci-dessus (§9, 11/09).
+    const lecteurs = SANS_SESSION.filter((chemin) =>
+      /\betatArriveeOuAnonyme\b/.test(sansCommentaires(chemin)),
+    );
+    expect(lecteurs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("`etatArriveeOuAnonyme` rend `anonyme` quand la lecture lève", async () => {
+    const etat = await etatArriveeOuAnonyme(new Headers(), () => {
+      throw new Error("You are using the default secret");
+    });
+    expect(etat).toEqual({ issue: "anonyme" });
+  });
+
+  it("et ne travestit RIEN quand la lecture aboutit", async () => {
+    // Le cas qui doit rester vert POUR SA PROPRE RAISON : une enveloppe qui
+    // rendrait TOUJOURS `anonyme` passerait l'assertion précédente.
+    const etat = await etatArriveeOuAnonyme(new Headers(), async () => ({
+      issue: "enrolement_requis" as const,
+      role: Role.direction,
+    }));
+    expect(etat.issue).toBe("enrolement_requis");
   });
 });

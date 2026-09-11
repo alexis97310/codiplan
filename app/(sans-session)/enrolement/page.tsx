@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
-import { etatArrivee } from "@/lib/auth/arrivee";
+import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { preparationDeLUrl } from "@/lib/auth/enrolement";
 import { t } from "@/lib/i18n/fr";
 
@@ -27,7 +27,7 @@ export default async function PageEnrolement({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const etat = await etatArrivee(await headers());
+  const etat = await etatArriveeOuAnonyme(await headers());
   if (etat.issue === "anonyme") {
     redirect("/connexion");
   }
