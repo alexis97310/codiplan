@@ -73,6 +73,10 @@ Il s'arrête **avant chaque migration qui resserre une table préexistante** —
 
 **La population est DÉRIVÉE du répertoire des migrations** : une migration écrite demain y entre d'elle-même. Deux listes closes l'accompagnent, gardées dans les deux sens — les resserrements **déjà appliqués partout**, fermés par le passé et non par une décision, et l'unique table **prouvée impossible à remplir** à son point d'histoire.
 
+**Les 47 migrations ont été passées au même crible le 11/09/2026 : 52 resserrements dans 15 d'entre elles.** Onze sont closes par `_prisma_migrations` et non par une lecture — la base réelle les a acceptées, et une base neuve les reçoit toutes d'un coup sur un schéma vide. **Les quatre autres sont les seules encore vivantes, et les quatre sont rejouées** : les deux `CHECK` de `import_lot` passent contre un lot appliqué ; l'index unique de `contact` porte `id` et ne peut rien refuser ; les deux `CHECK` de `intervention` passent **depuis D104** ; et l'index unique de `technicien_calendrier` porte sur une table **prouvée vide** — son déclencheur d'audit refusait toute écriture tant que la table n'avait pas de colonne `id`, et `id` n'arrive qu'avec cette migration-là. _La table est restée inécrivable du 09/09 au 13/09, et rien ne l'a dit : aucun appelant ne l'exerçait._
+
+`VALIDATE CONSTRAINT`, `ATTACH PARTITION` et `EXCLUDE` n'apparaissent **nulle part** dans les 47 — mesuré. Le lecteur les reconnaît quand même, et un témoin garde l'affirmation : le jour où l'une d'elles est écrite, il rougit, parce que cette phrase aura cessé d'être vraie.
+
 _Éprouvé dans les deux directions, sur des fautes réellement écrites :_ la contrainte de D104 rendue `VALID` fait tomber le rejeu sur le `P3018`/`23514` exact du 11/09 ; une migration neuve qui resserrerait une table sans lignes rougit en nommant l'amorce à écrire.
 
 `pnpm test:isolation` exige un PostgreSQL **local et jetable**, jamais la base hébergée. Le script `scripts/postgres-jetable.sh` le crée, le détruit et le recrée à chaque appel :
