@@ -410,13 +410,22 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Acceptation :* les deux parents résolus, la ligne passe ; le code tolère la casse ; le libellé est refusé, mesuré là où la distinction est observable ; une agence d'une autre société est introuvable ; une zone inconnue change de motif.
 *Relu contre les sources citées le 11/09/2026 — empreinte `5b3d4504`.*
 
+**L1-09d — LE GABARIT « MODÈLES DE MATÉRIEL ». [D101] [D4]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026**, et c'était bien *un ticket et non une question* : `famille_materiel` porte `@@unique([societe_id, code])`, et le motif de D101 s'y applique tel quel.
+**CE QUI IDENTIFIE UN MODÈLE est le couple MARQUE + RÉFÉRENCE**, jamais la famille : *deux familles peuvent contenir un « KPX-337 » de marques différentes, et une même marque ne réédite pas sa référence.* La famille est un parent à résoudre, pas une part de l'identité.
+**ET UN PIÈGE MESURÉ, QUI VAUT POUR TOUT GABARIT À VENIR :** une cellule illisible ne doit **jamais** rendre `undefined`. Le schéma porte `.default(null)` — *`undefined` déclenche donc le DÉFAUT, et une faute de frappe deviendrait une périodicité absente EN SILENCE.* Elle rend le **texte brut**, qui fait échouer `z.number()`, et le rapport dit « saisie refusée ».
+**Et le gabarit ne REDIT aucune règle** : « zéro n'est pas une périodicité » est écrit dans `lib/materiel/saisie.ts`, et le modèle laisse le schéma juger.
+*Acceptation :* la famille résolue par son code ; une famille d'une autre société introuvable — mesuré sur un code qui n'existe QUE chez A, **avec son témoin sur la même feuille** ; une périodicité illisible refusée ; une périodicité vide acceptée ; et zéro refusé par la saisie.
+*Relu contre les sources citées le 11/09/2026 — empreinte `741868f5`.*
+
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
 *File :* LIBRE
-**CE QUI RESTE, au 11/09/2026 :** les gabarits **modèles** et **prestations**, et le **téléchargement**.
+**CE QUI RESTE, au 11/09/2026 :** le gabarit **prestations** et le **téléchargement**.
 **LE MÉCANISME EXISTE (L1-09b) ET LES RÈGLES DE RAPPROCHEMENT AUSSI (D101, L1-09c).** Ce qui reste aux deux derniers gabarits est d'une autre nature, et **c'est MESURÉ au schéma** :
 | | Ce que le schéma porte | Ce qui manque |
 |---|---|---|
-| **modèles** | `modele_materiel`, dont le parent `famille_materiel` porte `@@unique([societe_id, code])` | **rien** — le motif de D101 s'y applique tel quel, c'est un ticket et non une question |
+| ~~**modèles**~~ | ~~`modele_materiel`, dont le parent `famille_materiel` porte `@@unique([societe_id, code])`~~ | **LIVRÉ par L1-09d** |
 | **prestations** | *aucune table.* Le mot désigne une **valeur de `TypeForfait`** (`prisma/schema.prisma:1289`) et un **catalogue décrit au §4.3** du cahier des charges, qui n'a jamais été créé | **la table elle-même** |
 *Le SITE est désormais rapprochable (D101) : un contact pourra le désigner le jour où L1-09b sera repris.*
 **Le TÉLÉCHARGEMENT exige une bibliothèque d'ÉCRITURE `.xlsx`** — `read-excel-file` lit et n'écrit pas (D90), et le §2 interdit le CSV. *C'est une dépendance, donc une décision, et elle ne se prend pas en passant.*

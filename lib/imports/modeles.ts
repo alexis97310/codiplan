@@ -1,5 +1,6 @@
 import { schemaCreationClient } from "@/lib/clients/saisie";
 import { schemaCreationContact } from "@/lib/contacts/saisie";
+import { schemaModeleMateriel } from "@/lib/materiel/saisie";
 import { schemaCreationSite } from "@/lib/sites/saisie";
 import {
   cleDeClient,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/excel/rapprochement";
 
 import { type ParcAgences } from "./parc-agences";
+import { type ParcFamilles } from "./parc-familles";
 import { type ParcClientsIndexe } from "./parc-clients";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
 
@@ -475,6 +477,122 @@ export function modeleSites(
         agence_id: agence,
       };
       return schemaCreationSite.safeParse(saisie).success
+        ? null
+        : MOTIF_SAISIE_REFUSEE;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « MODÈLES DE MATÉRIEL » (L1-09d ; D101, D4 amendé)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export const COLONNES_MODELES = {
+  famille: "Famille (code)",
+  marque: "Marque",
+  reference: "Référence",
+  periodiciteJours: "Périodicité (jours)",
+  periodiciteCompteur: "Périodicité (compteur)",
+} as const;
+
+export const CHAMPS_MODELES: Readonly<Record<string, string>> = {
+  [COLONNES_MODELES.marque]: "marque",
+  [COLONNES_MODELES.reference]: "reference",
+};
+
+export const CHAMPS_MODELES_ECARTES: Readonly<Record<string, string>> = {
+  famille_id: "résolu depuis la colonne « Famille », par son CODE (D101)",
+  // *Leur CONTENU n'est fixé par personne* — `lib/materiel/saisie.ts` l'écrit —,
+  // et un tableur ne peut pas porter une forme que personne n'a décidée.
+  caracteristiques:
+    "aucune forme n'est fixée : l'aplatir dans un gabarit la figerait",
+  actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
+  // Exposées par des colonnes qui NOMMENT leur unité, et lues comme des
+  // nombres — la traduction vit dans le modèle, pas dans la grammaire.
+  periodicite_jours: "exposée par « Périodicité (jours) », lue comme un nombre",
+  periodicite_compteur:
+    "exposée par « Périodicité (compteur) », lue comme un nombre",
+};
+
+/**
+ * Un entier écrit dans une cellule. **Une cellule vide rend `null`**, une
+ * cellule illisible rend **le texte brut**.
+ *
+ * *Rendre `undefined` pour une cellule illisible serait un piège, et c'est
+ * mesuré* : le schéma porte `.default(null)`, si bien qu'`undefined` déclenche
+ * le DÉFAUT — une faute de frappe deviendrait une périodicité absente, en
+ * silence. Le texte brut, lui, fait échouer `z.number()` et le rapport dit
+ * « saisie refusée ».
+ */
+function lireUnEntier(brut: string | undefined): number | null | string {
+  const texte = brut?.trim();
+  if (texte === undefined || texte === "") return null;
+  const nombre = Number(texte.replace(",", "."));
+  return Number.isInteger(nombre) ? nombre : texte;
+}
+
+/**
+ * LE GABARIT « MODÈLES » — la famille par son CODE (D101).
+ *
+ * **Ce qui identifie un modèle est le couple MARQUE + RÉFÉRENCE**, et non la
+ * famille : *deux familles peuvent contenir un « KPX-337 » de marques
+ * différentes, et une même marque ne réédite pas sa référence.* La famille est
+ * un parent à résoudre, pas une part de l'identité.
+ */
+export function modeleModeles(familles: ParcFamilles): ModeleDImport {
+  const resoudreFamille = (
+    valeurs: Readonly<Record<string, string | undefined>>,
+  ): string | undefined => {
+    const code = valeurs[COLONNES_MODELES.famille]?.trim().toUpperCase();
+    return code === undefined || code === ""
+      ? undefined
+      : familles.parCode.get(code);
+  };
+
+  return {
+    type: "modeles",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_MODELES.famille, obligatoire: true },
+      { nom: COLONNES_MODELES.marque, obligatoire: true },
+      { nom: COLONNES_MODELES.reference, obligatoire: true },
+      { nom: COLONNES_MODELES.periodiciteJours, obligatoire: false },
+      { nom: COLONNES_MODELES.periodiciteCompteur, obligatoire: false },
+    ],
+    identifiantes: [COLONNES_MODELES.marque, COLONNES_MODELES.reference],
+    cle: (valeurs, rang) => {
+      const marque = valeurs[COLONNES_MODELES.marque]?.trim();
+      const reference = valeurs[COLONNES_MODELES.reference]?.trim();
+      if (
+        marque === undefined ||
+        marque === "" ||
+        reference === undefined ||
+        reference === ""
+      ) {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      return {
+        forme: "reference",
+        cle: `MODELE-${normaliserRaisonSociale(marque)}-${normaliserRaisonSociale(reference)}`,
+        complet: false,
+      };
+    },
+    valider: (valeurs) => {
+      const famille = resoudreFamille(valeurs);
+      if (famille === undefined) {
+        return MOTIF_PARENT_INTROUVABLE;
+      }
+      const saisie = {
+        ...saisieDepuisLaLigne(valeurs, CHAMPS_MODELES),
+        famille_id: famille,
+        periodicite_jours: lireUnEntier(
+          valeurs[COLONNES_MODELES.periodiciteJours],
+        ),
+        periodicite_compteur: lireUnEntier(
+          valeurs[COLONNES_MODELES.periodiciteCompteur],
+        ),
+      };
+      return schemaModeleMateriel.safeParse(saisie).success
         ? null
         : MOTIF_SAISIE_REFUSEE;
     },

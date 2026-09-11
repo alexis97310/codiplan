@@ -754,6 +754,16 @@ lib/
               seul), le client (code puis nom) et le site (client + libellé)
               un site rattaché à la mauvaise agence fausse le temps de trajet
               (D56), le calendrier de référence (I7) et la majoration
+              parc-familles.ts : le MÊME motif que les agences, et il n'est PAS
+              fusionné avec lui — ils partagent une forme, pas un critère : une
+              fonction générique « indexer par code » ferait croire qu'un jour
+              les deux changeront ensemble
+              une cellule ILLISIBLE ne rend JAMAIS `undefined` : les schémas
+              portent `.default(null)`, si bien qu'`undefined` déclenche le
+              DÉFAUT — une faute de frappe deviendrait une absence en silence
+              un gabarit ne REDIT aucune règle du schéma : « zéro n'est pas une
+              périodicité » est écrit dans `materiel/saisie.ts`, et le modèle
+              laisse le schéma juger
               parc-clients.ts : L'AMBIGUÏTÉ EST UN FAIT DU PARC (L1-08g) — deux
               fiches qui rendent la MÊME clé rendent indécidable ce qu'une ligne
               désigne, et RG-IMP-05 veut alors un REJET, jamais une création

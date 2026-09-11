@@ -5,11 +5,13 @@ import { controlerFeuille, MOTIF_AMBIGUITE } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import { PREFIXE_RAISON_SOCIALE } from "@/lib/excel/rapprochement";
 import { indexerLesAgences } from "@/lib/imports/parc-agences";
+import { indexerLesFamilles } from "@/lib/imports/parc-familles";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
 import {
   MODELE_CLIENTS,
   marqueurDu,
   modeleContacts,
+  modeleModeles,
   modeleSites,
   MOTIF_PARENT_INTROUVABLE,
   MOTIF_SAISIE_REFUSEE,
@@ -454,6 +456,110 @@ describe("LE GABARIT « SITES » — deux parents, deux règles (L1-09c, D101)",
       feuilleSites(m, [
         ["C-001", "DUCOS", "Atelier zoné", "", "", "Nulle part"],
       ]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_SAISIE_REFUSEE);
+  });
+});
+
+describe("LE GABARIT « MODÈLES » — la famille par son CODE (L1-09d, D101)", () => {
+  async function modele(societeId = SOCIETE_A) {
+    return modeleModeles(
+      await indexerLesFamilles({ ...SESSION, societeId }, clientApp()),
+    );
+  }
+
+  function feuilleModeles(
+    m: ReturnType<typeof modeleModeles>,
+    lignes: readonly (readonly string[])[],
+  ): FeuilleLue {
+    return {
+      nom: "Modèles",
+      lignes: [
+        [{ texte: marqueurDu(m) }],
+        m.colonnes.map((colonne) => ({ texte: colonne.nom })),
+        ...lignes.map((ligne) => ligne.map((valeur) => ({ texte: valeur }))),
+      ],
+    };
+  }
+
+  it("la famille résolue par son code, et la ligne passe", async () => {
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleModeles(m, [["COMP", "Atlas Copco", "GA-11", "365"]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    // L'identité d'un modèle est MARQUE + RÉFÉRENCE, jamais la famille : *deux
+    // familles peuvent contenir un « KPX-337 » de marques différentes.*
+    expect(controle.lignes[0]?.cle?.cle).toBe("MODELE-atlas copco-ga 11");
+  });
+
+  it("une famille d'une AUTRE société est introuvable — mesuré sur un code qui n'existe QUE chez A", async () => {
+    // **Le code « COMP » existe dans LES DEUX sociétés** (lu dans le harnais) :
+    // l'employer ici aurait fait passer le scénario pour une mauvaise raison —
+    // la famille de B aurait été résolue, et le cloisonnement n'aurait rien
+    // prouvé. « PONT » n'existe QUE chez A, et c'est lui qui mesure.
+    const m = await modele(SOCIETE_B);
+    const controle = controlerFeuille(
+      feuilleModeles(m, [
+        ["PONT", "Ravaglioli", "KPX-337"],
+        // Le TÉMOIN, sur la même feuille : B résout bien SA famille. Ce n'est
+        // donc pas un index vide qui refuse, c'est le cloisonnement.
+        ["COMP", "Atlas Copco", "GA-11"],
+      ]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
+    expect(controle.lignes[1]?.action).toBe("creation");
+  });
+
+  it("une PÉRIODICITÉ qui n'est pas un nombre est refusée par la SAISIE", async () => {
+    // *Une cellule qui ne porte pas un nombre n'est pas une absence* : le
+    // rapport dit « saisie refusée » plutôt que d'écrire une périodicité nulle
+    // à la place d'une faute de frappe.
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleModeles(m, [["COMP", "Atlas Copco", "GA-22", "un an"]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_SAISIE_REFUSEE);
+  });
+
+  it("une périodicité VIDE passe — le cas qui doit rester vert pour sa raison", async () => {
+    // §9 (11/09). Sans lui, une lecture qui refuserait TOUTE cellule non
+    // numérique ferait passer le scénario ci-dessus, et le gabarit exigerait
+    // une périodicité que le métier dit facultative.
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleModeles(m, [["COMP", "Atlas Copco", "GA-33", "", ""]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+  });
+
+  it("ZÉRO n'est pas une périodicité, et c'est la SAISIE qui le dit", async () => {
+    // *Une maintenance due tous les zéro jours est due en permanence* —
+    // `lib/materiel/saisie.ts` l'écrit, et le gabarit ne le redit pas : il
+    // laisse le schéma juger.
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleModeles(m, [["COMP", "Atlas Copco", "GA-44", "0"]]),
       m,
       { cles: new Set(), ambigues: new Set() },
     );
