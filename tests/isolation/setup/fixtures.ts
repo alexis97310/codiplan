@@ -206,6 +206,21 @@ export const RECU_B = "bbbbbbbb-0000-7000-8000-00000000e002";
 export const EMPREINTE_NOTICE = "a".repeat(64);
 export const EMPREINTE_CERTIFICAT = "b".repeat(64);
 export const EMPREINTE_RECU = "c".repeat(64);
+
+/**
+ * LES LOTS D'IMPORT (L1-08e, D100) — un par société, avec une ligne chacun.
+ *
+ * `LIGNE_LOT_A` porte dans ses `valeurs` un numéro de série qui NOMME une
+ * machine : c'est lui qui rend la forme « interne » mesurable — *un compte
+ * portail qui lirait cette ligne obtiendrait le parc de sa société, y compris
+ * ce qui n'est pas dans son périmètre de sites.*
+ */
+export const LOT_A = "aaaaaaaa-0000-7000-8000-00000000f001";
+export const LOT_B = "bbbbbbbb-0000-7000-8000-00000000f002";
+export const LIGNE_LOT_A = "aaaaaaaa-0000-7000-8000-00000000f011";
+export const LIGNE_LOT_B = "bbbbbbbb-0000-7000-8000-00000000f012";
+/** La série que la ligne du lot A révélerait — hors du périmètre du portail. */
+export const SERIE_DANS_LE_LOT_A = "SN-A2";
 export const FAMILLE_B = "bbbbbbbb-0000-7000-8000-0000000000f0";
 export const MODELE_A = "aaaaaaaa-0000-7000-8000-0000000000f1";
 export const MODELE_B = "bbbbbbbb-0000-7000-8000-0000000000f2";

@@ -100,6 +100,9 @@ model Societe {
   documents       Document[]
   documents_recus DocumentRecu[]
 
+  import_lots       ImportLot[]
+  import_lot_lignes ImportLotLigne[]
+
   id                            String  @id @db.Uuid
   code                          String  @unique // préfixe de numérotation
   raison_sociale                String
@@ -2000,4 +2003,142 @@ model DocumentRecu {
   @@unique([societe_id, empreinte])
   @@index([societe_id, statut])
   @@map("document_recu")
+}
+
+// ── L'IMPORT EXCEL : LE LOT ET SES LIGNES (ticket L1-08e, I6, D15, D100) ────
+//
+// **Le lot EXISTE DÈS LE CONTRÔLE**, et ce n'est pas une lecture nouvelle du
+// chapitre 11 : il écrit `import_lot.statut ∈ {controle, applique, annule}`
+// depuis l'origine. I6 veut qu'un import « produise d'abord un rapport, puis
+// attende une validation explicite » — *l'application ne peut appliquer que ce
+// que le rapport a MONTRÉ*, et un rapport qui ne vit nulle part entre les deux
+// ne fait rien appliquer. Il vit ici.
+
+/// Les trois états d'un lot. `controle` est la NAISSANCE : le rapport a été
+/// produit, rien n'a été écrit dans le parc. Les deux autres sont TERMINAUX.
+enum StatutImportLot {
+  controle
+  applique
+  annule
+}
+
+/// Ce que l'application fera — ou a fait — d'une ligne du fichier.
+///
+/// **Cinq valeurs, là où le chapitre 11 en écrivait trois.** `gabarit` et
+/// `vide` sont venues de L1-08c/d, mesurées sur le fichier réel de
+/// l'exploitation : 652 lignes pour 55 codes réels sur l'onglet Clients, et
+/// *les ranger sous « rejet » ferait 597 erreurs sur un fichier sain* — la
+/// panne par le bruit. Elles sont COMPTÉES et non rejetées.
+enum ActionImportLigne {
+  creation
+  modification
+  gabarit
+  vide
+  rejet
+}
+
+/// UN LOT D'IMPORT — le rapport de I6, rendu durable.
+///
+/// Table métier de la PREMIÈRE catégorie de I1 — `societe_id NOT NULL`, RLS
+/// activée et forcée, auditée par défaut (D55). Sa politique est de forme
+/// « interne » (D100) : société **ET** `app.client_id` absent.
+model ImportLot {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Le type porté par le marqueur `CODIPLAN-<type>-v<n>` (D31), et la version
+  /// que le code a lue. **Ce sont des données du FICHIER**, pas une
+  /// énumération du produit : un type inconnu est refusé par la grammaire, il
+  /// n'a pas besoin d'être fermé ici.
+  type_import    String
+  version_modele Int
+
+  /// QUI a importé. **Aucune relation Prisma n'est déclarée**, et c'est le
+  /// choix de `journal_audit` repris tel quel : une relation ferait naître son
+  /// INVERSE sur `utilisateur`, et *une relation dit autant qu'une colonne* —
+  /// le gardien de D39 la refuserait, à bon droit. La clé étrangère existe en
+  /// base (`ON DELETE RESTRICT`, `ON UPDATE RESTRICT`) : *effacer une identité
+  /// qui a importé effacerait la réponse à « qui a écrit cette machine ».*
+  utilisateur_id String @db.Uuid
+
+  nom_fichier String
+  /// Où sont les octets du fichier source, quand ils sont conservés. NULLABLE,
+  /// et **aucun code ne la remplit** : le stockage d'objets n'a pas d'appelant
+  /// (§6). *Une colonne qui attend est écrite comme telle, jamais remplie d'un
+  /// chemin fabriqué.*
+  objet_cle   String?
+
+  statut StatutImportLot @default(controle)
+
+  /// Les décomptes du rapport, tels qu'il les a RENDUS. Ils sont recopiés ici
+  /// pour qu'un lot se relise sans reparcourir ses lignes — et un gardien
+  /// vérifie qu'ils s'accordent avec elles, faute de quoi ce serait la
+  /// divergence du §9 (01/09) posée en base.
+  lignes_creations     Int @default(0)
+  lignes_modifications Int @default(0)
+  lignes_rejets        Int @default(0)
+  lignes_gabarits      Int @default(0)
+  lignes_vides         Int @default(0)
+
+  controle_le DateTime  @default(now())
+  applique_le DateTime?
+  annule_le   DateTime?
+
+  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lignes  ImportLotLigne[]
+
+  /// Cible du chaînage composite depuis `import_lot_ligne` : sans la société
+  /// DANS la clé, une ligne pourrait s'adosser au lot d'une AUTRE société —
+  /// les contrôles d'intégrité référentielle contournent RLS par construction.
+  @@unique([societe_id, id])
+  @@index([societe_id, statut])
+  @@map("import_lot")
+}
+
+/// UNE LIGNE DU RAPPORT — ce que l'application appliquera, et ce que
+/// l'annulation restaurera.
+///
+/// Même catégorie et même forme que son lot (D100). **Et c'est elle qui a
+/// décidé de la forme** : elle porte la ligne du fichier telle qu'elle a été
+/// lue, c'est-à-dire le parc entier de la société, qu'aucun périmètre de sites
+/// n'a jamais filtré.
+model ImportLotLigne {
+  id            String @id @db.Uuid
+  societe_id    String @db.Uuid
+  import_lot_id String @db.Uuid
+
+  /// Le rang tel qu'un humain le lit dans le tableur (1 = première ligne).
+  rang   Int
+  action ActionImportLigne
+
+  /// Ce que la ligne DÉSIGNE. Absente pour un gabarit et pour une ligne vide :
+  /// *ils ne désignent rien, et leur inventer une clé les ferait entrer dans
+  /// l'espace des clés réelles, où deux lignes muettes deviendraient la même
+  /// machine* (L1-08c).
+  cle      String?
+  /// La clé est-elle COMPLÈTE — un vrai numéro de série — ou reconstituée ?
+  complete Boolean?
+
+  /// L'entité visée et son identifiant, quand l'application a écrit.
+  entite    String?
+  entite_id String? @db.Uuid
+
+  /// Le motif du rejet. Lié à l'action par une ÉQUIVALENCE en base, dans les
+  /// deux sens : ni rejet sans motif, ni motif sans rejet.
+  rejet_motif String?
+
+  /// La ligne du fichier, colonne par colonne, telle qu'elle a été lue.
+  valeurs Json
+
+  /// **CE QUE D15 EXIGE POUR RESTAURER.** Renseignée par l'APPLICATION quand
+  /// elle écrase une fiche existante, jamais par le contrôle : avant
+  /// l'application, il n'y a rien à restaurer.
+  valeurs_avant Json?
+
+  lot     ImportLot @relation(fields: [societe_id, import_lot_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  societe Societe   @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([import_lot_id, rang])
+  @@index([societe_id, import_lot_id])
+  @@map("import_lot_ligne")
 }

@@ -128,23 +128,38 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     expect(ecartsListeInterne()).toEqual([]);
   });
 
-  it("elle ne porte QUE le bac, et D94 dit ce qu'elle laisse ouvert", () => {
-    // La forme ferme la table qu'elle crée ; elle ne prétend PAS fermer la
+  it("elle porte les trois tables ARBITRÉES, et D94 dit ce qu'elle laisse ouvert", () => {
+    // La forme ferme les tables qu'elle crée ; elle ne prétend PAS fermer la
     // classe. `taux_horaire`, `forfait`, `agence` posent la même question
     // aujourd'hui, et D94 l'écrit avec sa condition de réouverture plutôt que
     // de l'étendre en séance.
-    expect([...TABLES_INTERNES]).toEqual(["document_recu"]);
+    //
+    // **`import_lot` et `import_lot_ligne` s'y ajoutent par D100, et elles s'y
+    // ajoutent À LEUR NAISSANCE — ce qui est la seule chose qui rende ce choix
+    // bon marché** (I1). Ce n'est donc pas la classe de D94 qui s'élargit :
+    // ce sont deux tables nouvelles qui reçoivent leur forme au moment où la
+    // question se pose sans effort.
+    expect([...TABLES_INTERNES]).toEqual([
+      "document_recu",
+      "import_lot",
+      "import_lot_ligne",
+    ]);
   });
 
   it("une ADDITION est refusée — c'est un arbitrage, pas une commodité", () => {
-    const ecarts = ecartsListeInterne(["document_recu", "taux_horaire"]);
+    const ecarts = ecartsListeInterne([
+      "document_recu",
+      "import_lot",
+      "import_lot_ligne",
+      "taux_horaire",
+    ]);
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("taux_horaire");
   });
 
   it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi", () => {
     const ecarts = ecartsListeInterne([]);
-    expect(ecarts).toHaveLength(1);
+    expect(ecarts).toHaveLength(3);
     expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
   });
 

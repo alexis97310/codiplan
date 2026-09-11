@@ -60,6 +60,8 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       machine: 1,
       document: 0,
       document_recu: 0,
+      import_lot: 0,
+      import_lot_ligne: 0,
       intervention: 0,
       technicien_calendrier: 0,
     },
@@ -95,6 +97,8 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         machine: 0,
         document: 0,
         document_recu: 0,
+        import_lot: 0,
+        import_lot_ligne: 0,
         intervention: 0,
         technicien_calendrier: 0,
       },
@@ -141,6 +145,11 @@ describe("inventaire à plat", () => {
       machine: 1,
       document: 0,
       document_recu: 0,
+      // L1-08e — la population de l'inventaire est DÉRIVÉE du schéma (§9,
+      // 10/09), et ces deux entrées y sont donc entrées le jour où les tables
+      // sont nées, sans qu'aucune liste ait été tenue à la main.
+      import_lot: 0,
+      import_lot_ligne: 0,
       intervention: 0,
       technicien_calendrier: 0,
     });
