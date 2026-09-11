@@ -400,12 +400,27 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Acceptation :* un client désigné par son code est résolu, par son nom aussi ; un client introuvable est rejeté avec SON motif ; un client d'une autre société est introuvable — le cloisonnement passe par le parc, aucune comparaison de société n'est écrite ; un rôle inconnu change de motif ; et sans parc, tout est rejeté.
 *Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
 
+**L1-09c — LE GABARIT « SITES », et les deux règles de rapprochement qui manquaient. [D101] [D56]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026, avec D101.** Ce qui bloquait n'était plus le mécanisme — il existe depuis L1-09b — mais **la règle** : rien ne disait comment rapprocher une agence ni un site. *Le schéma a répondu, et il répond DIFFÉREMMENT pour les deux.*
+**UNE AGENCE SE RAPPROCHE PAR SON CODE, ET JAMAIS PAR SON LIBELLÉ** [D101] : `@@unique([societe_id, code])` fait du code une clé ; le libellé n'en est pas une. *Un site rattaché à la mauvaise agence fausse le temps de trajet (D56), le calendrier de référence (I7) et la majoration.*
+**UN SITE SE RAPPROCHE PAR LE COUPLE (client, libellé normalisé)** — *un site n'existe pas sans son client, et deux ateliers du même nom chez deux clients différents sont deux lieux.* L'ambiguïté y est possible, et elle rejette : le mécanisme de L1-08g s'applique sans une ligne de plus.
+**L'ASYMÉTRIE EST UN RENSEIGNEMENT, non une incohérence** : *ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base garantit d'elle.*
+**ET UN SCÉNARIO A DÛ CHANGER DE SOCIÉTÉ**, ce qui vaut d'être écrit : chez la société A, l'agence a pour code « DUCOS » et pour libellé « Ducos » — *ils coïncident à la casse près, et aucun scénario ne pouvait y distinguer une règle de l'autre.* Chez B, « SIEGE » et « Siège » sont séparés par un accent. *Écrire l'épreuve chez A l'aurait fait passer POUR UNE MAUVAISE RAISON — elle aurait montré une tolérance de casse, pas un refus de libellé.*
+*Acceptation :* les deux parents résolus, la ligne passe ; le code tolère la casse ; le libellé est refusé, mesuré là où la distinction est observable ; une agence d'une autre société est introuvable ; une zone inconnue change de motif.
+*Relu contre les sources citées le 11/09/2026 — empreinte `5b3d4504`.*
+
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
 *File :* LIBRE
-**CE QUI RESTE, au 11/09/2026 :** les gabarits **sites, modèles, prestations**, et le **téléchargement**.
-**LE MÉCANISME DE RÉFÉRENCE EXISTE DEPUIS L1-09b** — le modèle est une fonction du parc des parents. *Ce qui bloque les trois restants n'est donc plus le mécanisme, c'est la RÈGLE* : un site désigne un client **et une agence** (`schemaCreationSite`, D56), et **rien ne dit comment rapprocher une agence** — elle n'a ni code externe, ni règle équivalente à RG-IMP-05. C'est une règle à écrire avant le gabarit, pas pendant. *Il en va de même pour le SITE lui-même, qu'un contact pourrait désigner : L1-09b l'écarte pour cette raison.*
+**CE QUI RESTE, au 11/09/2026 :** les gabarits **modèles** et **prestations**, et le **téléchargement**.
+**LE MÉCANISME EXISTE (L1-09b) ET LES RÈGLES DE RAPPROCHEMENT AUSSI (D101, L1-09c).** Ce qui reste aux deux derniers gabarits est d'une autre nature, et **c'est MESURÉ au schéma** :
+| | Ce que le schéma porte | Ce qui manque |
+|---|---|---|
+| **modèles** | `modele_materiel`, dont le parent `famille_materiel` porte `@@unique([societe_id, code])` | **rien** — le motif de D101 s'y applique tel quel, c'est un ticket et non une question |
+| **prestations** | *aucune table.* Le mot désigne une **valeur de `TypeForfait`** (`prisma/schema.prisma:1289`) et un **catalogue décrit au §4.3** du cahier des charges, qui n'a jamais été créé | **la table elle-même** |
+*Le SITE est désormais rapprochable (D101) : un contact pourra le désigner le jour où L1-09b sera repris.*
 **Le TÉLÉCHARGEMENT exige une bibliothèque d'ÉCRITURE `.xlsx`** — `read-excel-file` lit et n'écrit pas (D90), et le §2 interdit le CSV. *C'est une dépendance, donc une décision, et elle ne se prend pas en passant.*
-*Relu contre les sources citées le 11/09/2026 — empreinte `89f4a62c`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `5adbee82`.*
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
 *File :* LIBRE
 

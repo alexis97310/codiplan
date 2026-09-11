@@ -477,6 +477,20 @@ RG-IMP-05 pose **trois** cas et non deux : _« en cas d'ambiguïté, la ligne pa
 
 `lib/imports/parc-clients.ts` **lit l'ambiguïté d'une collision, jamais d'une ressemblance**, et calcule la clé par la **même fonction** que le contrôle : _une variante ferait que rien ne se rapproche jamais, et tout redeviendrait création._ La clé ambiguë est **retirée** de l'index et **reste** dans `cles` — laisser l'une des deux fiches ferait écraser celle-là plutôt que l'autre.
 
+## Ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base garantit d'elle
+
+D101 (L1-09c) tranche les deux règles qui manquaient, et **le schéma répond différemment pour chacune** :
+
+|            | Ce que la base garantit                     | Ce qu'on rapproche                                       |
+| ---------- | ------------------------------------------- | -------------------------------------------------------- |
+| **agence** | `@@unique([societe_id, code])`              | **le code, et lui seul**                                 |
+| **client** | `code_externe` unique, raison sociale libre | le code, **à défaut** le nom (RG-IMP-05)                 |
+| **site**   | aucune unicité sur le libellé               | le **couple** (client, libellé) — ambigu, donc rejetable |
+
+_Accepter le libellé d'une agence « à défaut », par analogie avec RG-IMP-05, ferait dépendre le rattachement d'un site d'une chaîne que rien n'empêche d'être en double_ — et un site rattaché à la mauvaise agence fausse **le temps de trajet** (D56), **le calendrier de référence** (I7) et **la majoration**.
+
+**Et un scénario a dû changer de société, ce qui vaut d'être écrit** : chez la société A, l'agence a pour code « DUCOS » et pour libellé « Ducos » — _ils coïncident à la casse près, et aucun scénario ne pouvait y distinguer une règle de l'autre._ Chez B, « SIEGE » et « Siège » sont séparés par un accent. _Écrire l'épreuve chez A l'aurait fait passer pour une mauvaise raison : elle aurait montré une tolérance de casse, pas un refus de libellé._
+
 ## Un gabarit qui désigne un PARENT est une fonction du parc
 
 `modeleContacts(parc)` (L1-09b) — _un gabarit qui désigne un parent ne peut pas être contrôlé sans ce parent_ : savoir si « Garage Dupont » existe demande de regarder le parc. Le modèle est **fabriqué** avec l'index, plutôt que de recevoir le parc à chaque appel — _ce qui aurait changé le contrat du contrôle pour tous les modèles, y compris ceux qui ne désignent rien._
