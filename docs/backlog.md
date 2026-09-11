@@ -731,13 +731,27 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* l'écran occupe la largeur utile et commence en haut ; ce qu'il affiche ne change pas d'un mot — *qui vous êtes, pour quelle société, et rien d'autre* est une décision de L1-02f, pas une question d'apparence ; si la maquette reste muette sur la forme, l'écart est écrit avec sa raison.
 
 **R2-05 — `/parametres/agences` — des cartes là où la maquette met un tableau dense. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Mesuré à travers un NAVIGATEUR, pas déduit** — c'est le harnais de R2-18 qui le rend possible, et l'acceptation l'exigeait depuis le début : *« le nombre d'établissements visibles sans défiler est mesuré avant et après, et il augmente. »*
+
+| Fenêtre 1700 × 1000, trois établissements | avant | après |
+|---|---|---|
+| largeur du contenu | 896 px | **1360 px** (la largeur utile) |
+| hauteur du document | 1428 px | **1000 px** — aucun défilement |
+| établissements entièrement visibles | **2 sur 3** | **3 sur 3** |
+
+**Le formulaire de réglage du pas est DANS la ligne**, et un scénario le vérifie : *on règle un pas en regardant celui des autres établissements*, et le sortir dans un écran de détail ferait perdre la comparaison que le tableau vient de gagner.
+**Un écart avec la maquette, écrit avec sa raison :** elle intitule son tableau « par site » et ses lignes sont Ducos, Koné, Dolbeau — qui sont des ÉTABLISSEMENTS. Le vocabulaire imposé prime (D5, D47) : la colonne vient de `mot("agence")`. *La maquette fait foi sur la disposition et sur les couleurs, jamais sur le vocabulaire.*
+**« Sans calendrier » se DIT plutôt que de laisser des tirets** : c'est un état qui interdit toute pose (I7), pas une donnée manquante.
 **Écran de la maquette : « Sociétés & tarifs ».**
 **Mesuré le 11/09/2026 : contenu de 896 px, document de 1354 px pour trois agences** — soit environ 380 px de hauteur par agence de huit champs. La maquette range ce genre de contenu en tableau : en-têtes en majuscules fines, lignes de 11 px de padding, pas de carte par enregistrement.
 *Acceptation :* l'écran occupe la largeur utile et présente les agences en tableau ; le formulaire de réglage du pas reste atteignable sans quitter la ligne ; le nombre d'agences visibles sans défiler à 1700 px est mesuré avant et après, et il augmente.
 
 **R2-06 — `/parametres/forfaits` — même écran de maquette, même reprise. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**La forme est PARTAGÉE, pas recopiée** : `components/ui/tableau.tsx`, une seule fois, et ses valeurs sont LUES dans la maquette — en-tête 10,5 px capitales, interlettrage 0,6 px, cellules à 11 px de padding. *Deux implémentations d'un même critère divergent en silence, et une forme visuelle est un critère comme un autre — c'est même celui dont la divergence se voit le plus et se mesure le moins.*
+**Mesuré à travers un navigateur, fenêtre 1700 × 1000 : contenu 896 → 1360 px, document 1146 → 1000 px.** Et un scénario compare la forme d'en-tête des DEUX écrans — capitales, 10,5 px : *« les deux écrans se ressemblent » est une impression tant que personne ne la mesure.*
+**Le regroupement par nature reste** : le rang ne se compare qu'entre forfaits de même nature, et l'écran le dit par sa structure plutôt que dans une note.
 **Écran de la maquette : « Sociétés & tarifs »** — le même que R2-05, et c'est pourquoi les deux tickets sont séparés mais jumeaux : la barre les allume tous deux, ils doivent se ressembler.
 *Acceptation :* mêmes critères que R2-05 ; et les deux écrans partagent leur forme de tableau plutôt que d'en écrire deux — *deux implémentations d'un même critère divergent en silence* (§9, 01/09).
 
@@ -842,3 +856,10 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **La voie sans glissé existe** : le formulaire « Déplacer » de la fiche, même route, même décision, mêmes refus — *une fonction qui n'existe qu'à la souris exclut le tactile et le clavier.*
 **Aucune dépendance ajoutée** : le glisser-déposer natif du navigateur fait ce que la maquette décrit. Schedule-X vient au lot 3 avec le redimensionnement, qui lui n'est pas natif.
 *Acceptation :* quatre scénarios Playwright écrits AVANT l'implémentation — un déplacement accepté, un refus pour jour fermé, un refus pour chevauchement, la position d'origine conservée après refus.
+
+**R2-20 — LE CATALOGUE DE FORFAITS N'A AUCUN CHEMIN D'ÉCRITURE. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Mesuré en construisant R2-06 :** L1-06 a livré la RÈGLE (`forfaitRetenu`, les trois axes, le rang), la BASE (contraintes, unicité composite sur `(societe_id, type, rang)`) et l'ÉCRAN DE LECTURE — *mais rien qui crée un forfait.* `lib/tarification/forfaits.ts` n'exporte aucun dépôt d'écriture, et aucune route n'en pose. Le catalogue naît vide par décision, et **il le reste** : l'exploitation n'a aujourd'hui aucun moyen d'y mettre une ligne autrement qu'en SQL.
+**Conséquence déjà payée :** sur une base semée, `/parametres/forfaits` n'affiche AUCUN tableau. La scène de bout en bout pose deux forfaits — une fixture d'épreuve — pour que la reprise d'apparence de R2-06 soit VUE et non seulement écrite.
+**Et une mesure à connaître avant d'écrire le formulaire :** « aucune condition » se stocke en **NULL**, jamais en tableau vide — `forfait_types_intervention_non_vides` refuse `{}` (code 23514). *Le tableau vide est ce que Prisma REND à la lecture d'une colonne nulle*, et le type Prisma d'une liste scalaire n'admet pas `null` à l'écriture : le chemin d'écriture devra passer par du SQL explicite ou par un champ nullable déclaré autrement. La phrase du §6 du CLAUDE.md — « le tableau VIDE en base » — décrit donc la LECTURE, et le ticket qui écrira la saisie devra la préciser.
+*Acceptation :* un rôle habilité crée, modifie et désactive un forfait depuis `/parametres/forfaits` ; le refus d'un rang déjà pris nomme son motif ; « aucune condition » est écrit en base sous la forme que la contrainte accepte, et un scénario le prouve par une lecture qui rend le forfait applicable partout.

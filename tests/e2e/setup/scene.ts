@@ -56,6 +56,33 @@ export const MOT_DE_PASSE_EPREUVE = "epreuve-de-bout-en-bout-codiplan";
 /** Le compte que les scénarios empruntent : rôle `adv`, donc SANS second facteur. */
 export const COMPTE_EPREUVE = "adv@codima.test";
 
+/**
+ * Les FORFAITS de la scène.
+ *
+ * **Le catalogue de démonstration naît VIDE, et c'est une décision** — les
+ * valeurs appartiennent à l'exploitation (L1-06). *Mesuré le 11/09/2026 :
+ * `/parametres/forfaits` n'affiche donc AUCUN tableau sur une base semée, et sa
+ * reprise d'apparence serait restée « écrite mais jamais vue ».* La scène en
+ * pose deux — une FIXTURE d'épreuve, jamais de la donnée de démonstration : la
+ * base est détruite à chaque exécution, et le semis reste inchangé.
+ */
+export const FORFAITS_SCENE = [
+  {
+    id: "01a0e2e0-0000-7000-8000-0000000000f1",
+    code: "EPR-DEP-A",
+    libelle: "Déplacement — épreuve A",
+    rang: 901,
+    montant_mineur: BigInt(8500),
+  },
+  {
+    id: "01a0e2e0-0000-7000-8000-0000000000f2",
+    code: "EPR-DEP-B",
+    libelle: "Déplacement — épreuve B",
+    rang: 902,
+    montant_mineur: BigInt(24000),
+  },
+] as const;
+
 /** Les interventions de la scène. Identifiants FIXES, jamais tirés du semis. */
 export const SCENE = {
   /** Koné, technicien de Koné, MARDI — celle qu'on déplace. */
@@ -252,6 +279,36 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
       // de certaines lignes, et une scène doit repartir d'un état connu.
       await client.intervention.deleteMany({ where: { id: ligne.id } });
       await client.intervention.create({ data: { id: ligne.id, ...donnees } });
+    }
+
+    for (const forfait of FORFAITS_SCENE) {
+      await client.forfait.deleteMany({ where: { id: forfait.id } });
+      // EN SQL BRUT, et la raison est mesurée : « aucune condition » se stocke
+      // en **NULL**, jamais en tableau vide — `forfait_types_intervention_non_vides`
+      // refuse `{}` (code 23514, mesuré le 11/09/2026). Or le type Prisma d'une
+      // liste scalaire n'admet pas `null` à l'écriture, et **aucun chemin
+      // applicatif ne crée de forfait** : le catalogue est alimenté par
+      // l'exploitation, et L1-06 n'a construit ni saisie ni dépôt d'écriture.
+      //
+      // *Ce que Prisma rend à la LECTURE d'une colonne NULL est `[]`, et c'est
+      // pourquoi la constitution dit que « aucune condition » a deux écritures.*
+      await client.$executeRawUnsafe(
+        `INSERT INTO "forfait" (
+           "id", "societe_id", "code", "libelle", "type", "rang",
+           "montant_mineur", "devise_code", "zone_geo", "famille_id",
+           "type_intervention", "cumulable_temps", "actif"
+         ) VALUES ($1::uuid, $2::uuid, $3, $4, 'deplacement', $5::int,
+                   $6::bigint, 'XPF', NULL, NULL, NULL, false, true)`,
+        forfait.id,
+        societe.id,
+        forfait.code,
+        forfait.libelle,
+        forfait.rang,
+        // `bigint` en paramètre : Prisma le transporte tel quel, la colonne
+        // l'attend, et un nombre flottant serait une arithmétique que I3
+        // interdit.
+        forfait.montant_mineur,
+      );
     }
 
     return reperes;

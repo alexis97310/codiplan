@@ -274,3 +274,75 @@ partagent une base et un serveur, et le premier écrit. Mesuré en parallèle : 
 échecs sur quatre, dont un délai d'attente de 30 s — un symptôme de contention,
 pas de règle. La CI n'emploie déjà qu'un travailleur ; le dire ici rend
 l'exécution locale identique à la sienne.
+
+---
+
+## 4 — R2-05 et R2-06 : les deux écrans de réglage, en tableau dense
+
+**Pourquoi ceux-là et pas `L1-08b`, que `pnpm file` nommait.** Mesuré :
+`import_lot` et `import_lot_ligne` **n'existent pas au schéma**, et ce qui reste
+de L1-08b — l'application, l'annulation partielle, le rapprochement assisté —
+les exige toutes deux. Le ticket se termine donc sur une **migration**, c'est-à-
+dire sur un geste d'Alexis ; et une migration non appliquée fait **rougir la
+veille nocturne** — c'est l'incident du 10/09, écrit au §9. La consigne
+d'exploitation de cette nuit est explicite : *entre deux travaux libres,
+préférer celui qui n'exige aucun geste.* R2-05 et R2-06 n'exigent rien : ni
+migration, ni semis.
+
+### Ce qui a été mesuré, à travers un navigateur
+
+C'est le harnais de R2-18 qui le rend possible ; l'acceptation de R2-05
+l'exigeait depuis le début, et personne ne pouvait y répondre.
+
+| Fenêtre 1700 × 1000, trois établissements | avant | après |
+|---|---|---|
+| `/parametres/agences` — largeur du contenu | 896 px | **1360 px** |
+| `/parametres/agences` — hauteur du document | 1428 px | **1000 px** |
+| établissements entièrement visibles | **2 sur 3** | **3 sur 3** |
+| `/parametres/forfaits` — largeur du contenu | 896 px | **1360 px** |
+| `/parametres/forfaits` — hauteur du document | 1146 px | **1000 px** |
+
+### Trois décisions
+
+**La forme du tableau est PARTAGÉE, pas recopiée.** `components/ui/tableau.tsx`,
+une seule fois, valeurs **lues** dans la maquette — en-tête 10,5 px capitales,
+interlettrage 0,6 px, cellules à 11 px de padding. *Une forme visuelle est un
+critère comme un autre — c'est même celui dont la divergence se voit le plus et
+se mesure le moins.* Un scénario compare la forme d'en-tête des deux écrans.
+
+**Le réglage du pas reste DANS la ligne**, et un scénario le vérifie : on règle
+un pas en regardant celui des autres établissements.
+
+**Un écart avec la maquette, écrit avec sa raison.** Elle intitule son tableau
+« par site », et ses lignes sont Ducos, Koné, Dolbeau — des **établissements**.
+Le vocabulaire imposé prime (D5, D47) : la colonne vient de `mot("agence")`.
+*La maquette fait foi sur la disposition et sur les couleurs, jamais sur le
+vocabulaire.*
+
+**Ce qui n'a PAS été touché :** la grille du planning garde sa propre structure
+de tableau. *Ses cellules portent les cases de dépôt du glisser-déposer*, et
+l'unifier casserait un mécanisme pour gagner une ressemblance. L'écart est écrit
+dans l'entête du composant plutôt que tu.
+
+### Une découverte en chemin, qui n'était pas cherchée
+
+**Le catalogue de forfaits n'a AUCUN chemin d'écriture.** L1-06 a construit la
+règle (`forfaitRetenu`, les trois axes, le rang), la base (contraintes, unicité
+composite) et l'écran de lecture — *mais rien qui crée un forfait.* Le catalogue
+naît vide par décision, et il le reste : l'exploitation n'a aujourd'hui aucun
+moyen d'y mettre une ligne autrement qu'en SQL.
+
+*Conséquence immédiate pour R2-06 : sur une base semée, `/parametres/forfaits`
+n'affiche AUCUN tableau, et sa reprise d'apparence serait restée « écrite mais
+jamais vue ».* La scène de bout en bout pose donc deux forfaits — une FIXTURE
+d'épreuve, jamais de la donnée de démonstration, sur une base détruite à chaque
+exécution.
+
+**Et une mesure qui corrige une phrase de la constitution par sa moitié.** Le §6
+écrit que « aucune condition » a deux écritures — `null` à la saisie, **le
+tableau VIDE en base**. *Mesuré : la base REFUSE le tableau vide* — code 23514,
+`forfait_types_intervention_non_vides`, dont la fonction exige `IS NULL OR
+cardinality > 0`. Ce qui est vide, c'est ce que **Prisma REND à la lecture**
+d'une colonne nulle. La règle ne bouge pas ; c'est le mot « en base » qui
+désigne la lecture et non l'écriture, et cela mérite d'être su avant d'écrire le
+premier formulaire de forfait. Porté en R2-20.

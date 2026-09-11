@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -28,6 +29,23 @@ import {
  * serait une seconde lecture d'un même critère, et il divergerait en silence
  * (§9, 01/09) — c'est-à-dire qu'il montrerait un forfait et que la facture en
  * porterait un autre.
+ *
+ * ## R2-06 — LE JUMEAU DE R2-05, ET LA FORME EST PARTAGÉE
+ *
+ * Les deux écrans visent le MÊME écran de la maquette — « Sociétés & tarifs » —
+ * et la barre les allume tous deux : ils doivent se ressembler. La forme du
+ * tableau vit donc dans `components/ui/tableau.tsx`, une seule fois. *Deux
+ * implémentations d'un même critère divergent en silence*, et une forme
+ * visuelle est un critère comme un autre — c'est même celui dont la divergence
+ * se voit le plus et se mesure le moins.
+ *
+ * **Mesuré le 11/09/2026, fenêtre 1700 × 1000 : contenu de 896 px, document de
+ * 1146 px** — la même colonne étroite que les agences, sur une largeur utile
+ * de 1400.
+ *
+ * **Le regroupement par nature reste**, et ce n'est pas une carte par
+ * enregistrement : le rang ne se compare qu'entre forfaits de même nature, et
+ * l'écran le dit par sa structure plutôt que dans une note.
  */
 export default async function PageForfaits({
   searchParams,
@@ -78,23 +96,24 @@ export default async function PageForfaits({
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-8 px-6 py-10">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("forfaits.titre")}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {t("forfaits.sous_titre")}
-        </p>
-      </header>
-
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("forfaits.zone")}
+    <main className="flex flex-col gap-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-extrabold tracking-tight">
+            {t("forfaits.titre")}
+          </h1>
+          <p className="text-app-encre-faible text-[13px]">
+            {t("forfaits.sous_titre")}
+          </p>
+        </div>
+        <form method="get" className="flex flex-wrap items-center gap-2">
+          <label className="text-app-encre-faible text-[12px] font-semibold">
+            {t("forfaits.zone")}
+          </label>
           <select
             name="zone"
             defaultValue={zone ?? undefined}
-            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+            className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
           >
             {ZONES_GEOGRAPHIQUES.map((valeur) => (
               <option key={valeur} value={valeur}>
@@ -102,17 +121,19 @@ export default async function PageForfaits({
               </option>
             ))}
           </select>
-        </label>
-        <button
-          type="submit"
-          className="border-input rounded-md border px-3 py-2 text-sm"
-        >
-          {t("forfaits.voir")}
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-semibold"
+          >
+            {t("forfaits.voir")}
+          </button>
+        </form>
+      </header>
 
       {catalogue.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("forfaits.vide")}</p>
+        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-[13px]">
+          {t("forfaits.vide")}
+        </section>
       ) : (
         TYPES_FORFAIT.map((type) => (
           <Nature
@@ -125,7 +146,7 @@ export default async function PageForfaits({
         ))
       )}
 
-      <p className="text-muted-foreground text-xs">
+      <p className="text-app-encre-faible text-[11.5px]">
         {t("forfaits.explication_rang")}
       </p>
     </main>
@@ -176,39 +197,48 @@ function Nature({
     conditions,
   );
 
+  const colonnes = [
+    { cle: "rang", libelle: t("forfaits.rang"), droite: true, largeur: "70px" },
+    { cle: "code", libelle: t("forfaits.code") },
+    {
+      cle: "montant",
+      libelle: t("forfaits.montant"),
+      droite: true,
+      largeur: "150px",
+    },
+    { cle: "conditions", libelle: t("forfaits.conditions") },
+    { cle: "verdict", libelle: t("forfaits.verdict"), largeur: "230px" },
+  ];
+
   return (
-    <section className="border-border flex flex-col gap-3 rounded-lg border px-4 py-4">
-      <h2 className="text-lg font-medium">{libelleType(type)}</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground text-left">
-            <tr>
-              <th className="py-1 pr-3 font-normal">{t("forfaits.rang")}</th>
-              <th className="py-1 pr-3 font-normal">{t("forfaits.code")}</th>
-              <th className="py-1 pr-3 font-normal">{t("forfaits.montant")}</th>
-              <th className="py-1 pr-3 font-normal">
-                {t("forfaits.conditions")}
-              </th>
-              <th className="py-1 font-normal">{t("forfaits.verdict")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.map((forfait) => (
-              <tr key={forfait.id} className="border-border border-t">
-                <td className="py-1.5 pr-3 tabular-nums">{forfait.rang}</td>
-                <td className="py-1.5 pr-3">{nomComplet(forfait)}</td>
-                <td className="py-1.5 pr-3 tabular-nums">
-                  {montantAffiche(forfait, devise)}
-                </td>
-                <td className="py-1.5 pr-3">{resumeConditions(forfait)}</td>
-                <td className="py-1.5">
-                  {verdict(forfait, retenu?.id ?? null, conditions)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
+        {libelleType(type)}
+      </h2>
+      <Tableau colonnes={colonnes} minimum="820px">
+        {lignes.length === 0 ? (
+          <LignePleine colonnes={colonnes.length}>
+            {t("forfaits.vide")}
+          </LignePleine>
+        ) : null}
+        {lignes.map((forfait) => (
+          <tr key={forfait.id}>
+            <Cellule droite>
+              <span className="tabular-nums">{forfait.rang}</span>
+            </Cellule>
+            <Cellule mono>{nomComplet(forfait)}</Cellule>
+            <Cellule droite fort>
+              <span className="tabular-nums">
+                {montantAffiche(forfait, devise)}
+              </span>
+            </Cellule>
+            <Cellule>{resumeConditions(forfait)}</Cellule>
+            <Cellule>
+              {verdict(forfait, retenu?.id ?? null, conditions)}
+            </Cellule>
+          </tr>
+        ))}
+      </Tableau>
     </section>
   );
 }
