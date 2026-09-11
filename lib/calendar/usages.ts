@@ -87,7 +87,7 @@ export function minutesHorsOuvertureTechnicien(
   return minutesHorsOuverture(agenceTechnicien, debut, fin);
 }
 
-/** Un conflit signalé à la pose — jamais un blocage (RG-PLA-03). */
+/** Le débordement mesuré sur le calendrier de travail du technicien (D13). */
 export type ConflitCalendrier = {
   /** Minutes du créneau qui tombent hors du calendrier de travail. */
   minutes_hors_calendrier: number;
@@ -96,10 +96,40 @@ export type ConflitCalendrier = {
 /**
  * Le créneau posé sort-il du calendrier de travail DU TECHNICIEN (D13) ?
  *
- * Rend `null` quand tout le créneau est couvert. Le résultat est un **signal**,
- * pas un refus : RG-PLA-03 pose que « le planificateur garde la main » — un
- * chevauchement, comme une pose hors calendrier, est signalé et reste possible.
- * Seule l'habilitation manquante bloque (RG-PLA-04), et ce n'est pas ici.
+ * Rend `null` quand tout le créneau est couvert, et un débordement chiffré
+ * sinon. **Cette fonction MESURE ; elle ne prononce rien.**
+ *
+ * ## Ce qu'elle ne dit plus, et pourquoi la phrase a été retirée
+ *
+ * Elle citait RG-PLA-03 — *« le planificateur garde la main »*, un
+ * chevauchement « signalé et qui reste possible ». **D99 a réécrit cette règle
+ * le 11/09/2026 : un chevauchement est REFUSÉ.** La citation était donc devenue
+ * fausse, et elle le serait restée sans rougir : le gardien de câblage
+ * confronte les arbitrages aux RÈGLES du chapitre 10, et rien ne confronte un
+ * commentaire de code au texte qu'il cite (§9, 31/08 — *la moitié manquante a
+ * la forme de la moitié faite*).
+ *
+ * ## Les trois « conflits à la pose » ne sont PAS le même objet
+ *
+ * | Critère | Calendrier lu | Conséquence | Où elle est prononcée |
+ * |---|---|---|---|
+ * | chevauchement de deux interventions | aucun | **refus** (RG-PLA-03) | `lib/interventions/pose.ts` |
+ * | créneau hors ouverture de l'agence visée | agence de l'**intervention** | **refus** (RG-PLA-07) | `lib/interventions/pose.ts` |
+ * | créneau hors calendrier de travail | calendrier du **technicien** | *non tranché* | ici, et nulle part ailleurs |
+ *
+ * **La troisième ligne est écrite plutôt que devinée.** D13 dit QUEL calendrier
+ * la regarde, jamais ce qu'on en fait ; ni RG-PLA-03 ni RG-PLA-07 ne portent
+ * sur ce calendrier-là. *Recopier « refusé » des deux premières lignes ferait
+ * refuser une pose que personne n'a décidé de refuser.*
+ *
+ * ## Elle n'a AUCUN appelant, et c'est un fait du schéma
+ *
+ * Le calendrier de travail propre à un technicien n'a **aucune source** :
+ * `technicien.calendrier_id` appartient à la table `technicien` du chapitre 11,
+ * marquée `(prévu)` au CLAUDE.md §6 et qui n'existe pas. *Ce n'est donc pas une
+ * interface en attente d'écran — c'est une mesure en attente de sa donnée*, et
+ * la ligne « non tranché » ci-dessus se tranchera le jour où la colonne
+ * arrivera, pas avant.
  */
 export function conflitPose(
   calendrierTravailTechnicien: Calendrier,

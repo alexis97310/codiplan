@@ -106,7 +106,13 @@ describe("accusé de réception — en heures ouvrées de l'agence (D13)", () =>
   });
 });
 
-describe("conflit à la pose — signalé, jamais bloquant (RG-PLA-03)", () => {
+describe("conflit à la pose — une MESURE, sur le calendrier du technicien (D13)", () => {
+  // Le titre disait « signalé, jamais bloquant (RG-PLA-03) ». D99 a réécrit
+  // RG-PLA-03 le 11/09/2026 — un chevauchement est REFUSÉ —, et ce titre
+  // citait donc une règle qui dit désormais le contraire. Ce que ces deux
+  // scénarios mesurent n'a pas changé d'un chiffre : c'est le débordement sur
+  // le calendrier de travail DU TECHNICIEN, que ni RG-PLA-03 ni RG-PLA-07 ne
+  // visent. Les deux refus, eux, sont éprouvés dans `tests/unit/interventions/`.
   it("rend un signal chiffré quand le créneau sort du calendrier du technicien", () => {
     expect(conflitPose(KONE, CRENEAU.debut, CRENEAU.fin)).toEqual({
       minutes_hors_calendrier: 2 * 60,
