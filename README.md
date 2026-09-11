@@ -441,6 +441,16 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## L'annulation est partielle et sûre, et une contrainte a été mise en défaut par elle
+
+`lib/imports/annulation.ts` (L1-08j) **restaure ce qui peut l'être et refuse le reste avec son motif** — elle ne s'arrête pas au premier refus, et elle ne force rien. **Ni délai ni rang de lot** (D54), et c'est mesuré : _deux lots qui se recouvrent, et le premier s'annule sur ce que le second n'a pas touché._
+
+**« Modifiée depuis » se constate en comparant**, sur **les seuls champs que l'import a écrits** : _il n'a pas touché le reste, il n'a donc rien à en dire._
+
+**« Référencée depuis » est comptée AVANT, et ce n'est pas le choix qu'on ferait spontanément.** La déduplication du bac lit le refus de la base plutôt que de le prévenir, et c'est plus sûr — _ici, c'est impossible_ : **une violation de contrainte abandonne la transaction PostgreSQL entière** (`25P02`, mesuré), si bien que rattraper le `P2003` ferait cesser l'annulation d'être partielle au premier refus. **Ce que le comptage ne garantit pas est écrit** : une référence née entre le comptage et la suppression fait échouer l'annulation _entière_ — rien n'est défait à moitié, et on la rejoue.
+
+**Et une contrainte de L1-08e a été mise en défaut par sa première annulation.** `(statut = 'applique') = (applique_le IS NOT NULL)` obligeait à **effacer la date d'application** pour annuler — _c'est-à-dire à perdre la seule trace du moment où les fiches ont été écrites._ Une **seconde migration** la remplace par une règle qui porte l'histoire : un lot annulé garde les deux dates. _Une seconde plutôt qu'une correction sur place parce que je ne peux pas savoir si la première a touché la base hébergée : elle est injoignable, et le geste est en attente d'une main._
+
 ## L'application n'applique QUE ce que le rapport a montré
 
 C'est la seconde moitié de I6 (`lib/imports/application.ts`, L1-08h et L1-08i), et la première est en base depuis L1-08e : **le lot existe dès le contrôle**, avec ses lignes et leur action.

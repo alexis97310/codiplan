@@ -767,6 +767,25 @@ lib/
               que le prochain type oublierait
               un lot introuvable et un lot d'une autre société rendent LE MÊME
               refus — les distinguer ferait un oracle (D35, D50)
+              annulation.ts : PARTIELLE ET SÛRE (L1-08j, I6, D15, D54) — elle
+              restaure ce qui peut l'être et refuse le reste AVEC SON MOTIF
+              ni délai ni rang de lot (D54) : le critère ligne à ligne traite
+              MIEUX le cas des imports qui se recouvrent
+              « modifiée depuis » se CONSTATE en comparant, et la comparaison
+              porte sur les seuls champs que l'import a écrits — il n'a pas
+              touché le reste, il n'a rien à en dire
+              « référencée depuis » est COMPTÉE avant, et ce n'est pas le choix
+              qu'on ferait spontanément : une violation de contrainte ABANDONNE
+              la transaction PostgreSQL entière (25P02, mesuré), si bien que
+              lire le refus ferait cesser l'annulation d'être partielle
+              ce que le comptage ne garantit pas est ÉCRIT : une référence née
+              entre le comptage et la suppression fait échouer l'annulation
+              ENTIÈRE — rien n'est défait à moitié, et on la rejoue
+              JAMAIS DE SUPPRESSION EN CASCADE : ce qui référence la fiche la
+              retient, et c'est la LIGNE qui est refusée
+              un lot ANNULÉ garde sa date d'application — un lot annulé a bel
+              et bien été appliqué, et l'effacer perdrait la seule trace du
+              moment où le parc a changé
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

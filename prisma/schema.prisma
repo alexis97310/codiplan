@@ -2081,6 +2081,9 @@ model ImportLot {
   lignes_vides         Int @default(0)
 
   controle_le DateTime  @default(now())
+  /// Quand les fiches ont été écrites. **Elle SURVIT à l'annulation** : un lot
+  /// annulé a bel et bien été appliqué, et effacer cette date perdrait la seule
+  /// trace du moment où le parc a changé (L1-08j).
   applique_le DateTime?
   annule_le   DateTime?
 
