@@ -49,6 +49,11 @@ import {
   EMPREINTE_RECU,
   RECU_A,
   RECU_B,
+  LOT_A,
+  LOT_B,
+  LIGNE_LOT_A,
+  LIGNE_LOT_B,
+  SERIE_DANS_LE_LOT_A,
   MODELE_B,
   PORTAIL_A_CLIENT,
   PORTAIL_B_CLIENT,
@@ -595,6 +600,16 @@ export default async function setup(): Promise<void> {
       INSERT INTO "document_recu" ("id", "societe_id", "empreinte", "nom_fichier", "type_mime", "taille_octets", "objet_cle", "modifie_le") VALUES
         ('${RECU_A}', '${SOCIETE_A}', '${EMPREINTE_RECU}', 'notice-KPX-337.pdf', 'application/pdf', 310000, 'bac/notice-kpx337.pdf', now()),
         ('${RECU_B}', '${SOCIETE_B}', '${EMPREINTE_RECU}', 'notice-GA-11.pdf', 'application/pdf', 240000, 'bac/notice-ga11.pdf', now());
+      -- LES LOTS D'IMPORT (L1-08e, D100). Les valeurs d'une ligne portent un
+      -- numéro de série RÉEL : c'est ce qui rend la forme « interne »
+      -- mesurable — sous la clause de société seule, un compte portail y
+      -- lirait le parc entier, périmètre de sites compris.
+      INSERT INTO "import_lot" ("id", "societe_id", "type_import", "version_modele", "utilisateur_id", "nom_fichier") VALUES
+        ('${LOT_A}', '${SOCIETE_A}', 'machines', 1, '${UTILISATEUR_INTERNE_A}', 'parc-2026.xlsx'),
+        ('${LOT_B}', '${SOCIETE_B}', 'machines', 1, '${UTILISATEUR_INTERNE_B}', 'parc-b-2026.xlsx');
+      INSERT INTO "import_lot_ligne" ("id", "societe_id", "import_lot_id", "rang", "action", "cle", "complete", "valeurs") VALUES
+        ('${LIGNE_LOT_A}', '${SOCIETE_A}', '${LOT_A}', 3, 'creation', '${SERIE_DANS_LE_LOT_A}', true, '{"serie": "${SERIE_DANS_LE_LOT_A}"}'::jsonb),
+        ('${LIGNE_LOT_B}', '${SOCIETE_B}', '${LOT_B}', 3, 'creation', 'SN-B1', true, '{"serie": "SN-B1"}'::jsonb);
       -- LES INTERVENTIONS (lot 2, D84). Elles viennent après le parc : leurs
       -- clés étrangères composites (societe_id, client_id), (societe_id,
       -- site_id) et (societe_id, agence_id) l'exigent.

@@ -2091,10 +2091,20 @@ function ecartsAscendance(
  * **Liste close, gardée dans les deux sens.** Le RETRAIT fait retomber la table
  * sur la forme « société », qui passe tous les gardiens sans rien dire.
  */
-export const TABLES_INTERNES = ["document_recu"] as const;
+export const TABLES_INTERNES = [
+  "document_recu",
+  // D100 — LES DEUX TABLES D'IMPORT, et elles prennent cette forme à leur
+  // NAISSANCE. `import_lot_ligne` porte la ligne du fichier telle qu'elle a
+  // été lue : un fichier d'import de parc contient TOUTES les machines de la
+  // société, qu'aucun périmètre de sites n'a jamais filtré. Sous la forme
+  // « société », un compte restreint à un atelier y aurait lu le parc entier —
+  // la fuite que D94 ferme sur un NOM DE FICHIER, ici sur le parc lui-même.
+  "import_lot",
+  "import_lot_ligne",
+] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
-const INTERNES_ARBITREES = ["document_recu"];
+const INTERNES_ARBITREES = ["document_recu", "import_lot", "import_lot_ligne"];
 
 /** Écarts de la liste « interne » — additions comme retraits. */
 export function ecartsListeInterne(

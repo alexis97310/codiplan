@@ -3307,3 +3307,33 @@ L'entrée « Fiche machine » de la barre portait la mention d'ouverture « ouve
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 *Le jour où une intervention pourra être posée sur DEUX techniciens* — une pose à plusieurs, que le modèle ne porte pas aujourd'hui, `intervention` n'ayant qu'un technicien —, la notion de chevauchement change de sujet et RG-PLA-03 se relit. Et *le jour où une agence pourra intervenir sur le site d'une autre*, RG-PLA-07 doit dire laquelle des deux est « l'agence visée » ; elle dit aujourd'hui « celle du site », et c'est vrai tant qu'un site dépend d'une agence et d'une seule (RG-PLA-05).
+
+---
+
+## D100 — LE LOT D'IMPORT PREND LA FORME « INTERNE », et il la prend À SA NAISSANCE
+
+*Tranché par la session de nuit du 11/09/2026, en construisant L1-08e. **Ce n'est pas une extension de la classe que D94 a laissée ouverte** : c'est le choix de la forme de DEUX TABLES NOUVELLES, au seul moment où la question se pose sans effort — celui où on les crée (I1).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`import_lot_ligne` porte, en clair, **la ligne du fichier telle qu'elle a été lue** — c'est `LigneControlee.valeurs`, et c'est ce que D15 exige pour restaurer à l'annulation. Un fichier d'import de parc contient **toutes** les machines de la société : *aucun périmètre de sites ne l'a jamais filtré, et aucun ne le filtrera — un fichier d'import n'est pas une vue, c'est une source.*
+
+**Or une table de forme « société » est lisible par un compte de portail** : sa clause ne lit pas `app.client_id`. Lui donner cette forme aurait rendu à un compte restreint à un atelier la liste intégrale du parc de sa société, **par une table que personne n'aurait pensé à regarder**. C'est exactement ce que D94 venait de fermer sur le bac de réception, un étage plus loin : là un NOM DE FICHIER révélait le parc ; ici c'est **le parc lui-même**.
+
+### LA DÉCISION
+
+**`import_lot` et `import_lot_ligne` prennent la forme « interne » (D94)** — société **ET** `app.client_id` absent.
+
+**Et le choix est fait à la naissance, ce qui est la seule chose qui le rend bon marché.** I1 l'écrit : *« le seul moment où la question de cloisonnement se pose sans effort est celui où la table est créée ; un ticket qui la traite comme un obstacle la reporte de trois arbitrages ».* Cette décision n'a coûté que le temps de l'écrire ; la même sur une table peuplée coûterait une migration et une reprise.
+
+**Ce que cela ferme, nommé** : aucun compte de portail ne lit un lot d'import ni ses lignes, **quel que soit son client**. **Ce que cela ne ferme pas** : un utilisateur interne de la société les lit tous, comme il lit le parc — l'import est un acte de back-office, et le restreindre par agence serait une règle que personne n'a demandée.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+*Elle ne répond pas à la question que D94 a laissée ouverte* — « le jour où un écran ou une route de portail lit une table de forme *société*, la question vise la CLASSE ». Cette condition-là n'est pas remplie : aucune route de portail ne lit `taux_horaire`, `forfait` ou `agence` aujourd'hui. **Deux tables nouvelles reçoivent leur forme ; les anciennes gardent la leur, et la question reste ouverte où D94 l'a laissée.**
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où un client devra voir ce qui a été importé le concernant* — un rapport d'import remis au client, par exemple —, cette forme ne suffira plus : il faudra une vue filtrée par périmètre, et non l'ouverture de ces deux tables. **La forme « interne » se retire alors, elle ne s'assouplit pas** : assouplir la clause rendrait le parc entier, ce qui est précisément ce que cette décision refuse.
+
+*Aucune règle du chapitre 10 n'est amendée. RG-IMP-01 dit ce qu'un import produit ; elle ne dit pas qui a le droit de le lire.*

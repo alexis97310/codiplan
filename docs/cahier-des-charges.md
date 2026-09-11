@@ -975,7 +975,7 @@ dans la table `parite` ci-dessous.*
 
 **sync_journal** — appareil, technicien, opérations reçues, conflits détectés, résolution appliquée.
 
-**import_lot_ligne** — `societe_id`, lot d'import, numéro de ligne dans le fichier, action (creation, modification, rejet), entité et identifiant visés, motif du rejet, et **`valeurs_avant`** : c'est cette colonne que D15 exige pour restaurer une ligne à l'annulation. *(Ajoutée le 09/09/2026. **D15, de rang 1, la prescrivait depuis le 19/08/2026** — « restauration des valeurs antérieures, conservées dans `import_lot_ligne.valeurs_avant` » — et le chapitre 11 ne la portait pas : ce n'était pas une décision à prendre, c'était une omission à réparer. La table n'existe pas encore au schéma ; elle naîtra avec L1-08b.)*
+**import_lot_ligne** — `societe_id`, lot d'import, numéro de ligne dans le fichier, action (creation, modification, rejet, puis *gabarit* et *vide* — *les deux dernières ajoutées le 11/09/2026 par L1-08e, MESURÉES sur le fichier réel : 652 lignes pour 55 codes réels sur l'onglet Clients, et les ranger sous « rejet » ferait 597 erreurs sur un fichier sain*), entité et identifiant visés, motif du rejet, et **`valeurs_avant`** : c'est cette colonne que D15 exige pour restaurer une ligne à l'annulation. *(Ajoutée le 09/09/2026. **D15, de rang 1, la prescrivait depuis le 19/08/2026** — « restauration des valeurs antérieures, conservées dans `import_lot_ligne.valeurs_avant` » — et le chapitre 11 ne la portait pas : ce n'était pas une décision à prendre, c'était une omission à réparer. La table n'existe pas encore au schéma ; elle naîtra avec L1-08b.)*
 
 #### Les tables du socle, ajoutées le 09/09/2026
 

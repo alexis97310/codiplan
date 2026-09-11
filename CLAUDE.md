@@ -707,6 +707,24 @@ lib/
               et « incomplète » QUALIFIENT des lignes déjà comptées, elles ne
               s'additionnent pas — sinon le témoin dirait faux dans le sens
               rassurant
+  imports/    LE MOTEUR D'IMPORT — ce que `excel/` a décidé, posé en base (L1-08e)
+              depot.ts : le LOT NAÎT AU CONTRÔLE, et le chapitre 11 le disait
+              depuis l'origine — `import_lot.statut` vaut `controle`, `applique`
+              ou `annule` ; I6 veut qu'un rapport précède la validation, et
+              l'application ne peut appliquer que ce que le rapport a MONTRÉ
+              il ÉCRIT, il ne décide RIEN : toute la décision a été prise par
+              `excel/controle.ts`, qui ne connaît aucune base — recalculer ici
+              serait une seconde lecture d'un même critère, et dans le pire
+              endroit : entre ce qu'un humain a validé et ce qui sera écrit
+              les décomptes viennent de `proposerDepuisLesLignes` et de lui
+              seul ; ce module en a d'abord tenu un second, retiré plutôt que
+              gardé par un test d'égalité
+              aucune comparaison de société n'est écrite ici : la forme est
+              « interne » (D100), et c'est la base qui prononce
+              `valeurs_avant` est écrite par l'APPLICATION seule — avant elle,
+              il n'y a rien à restaurer (D15)
+              RIEN pour le stockage du fichier source : `objet_cle` existe et
+              reste nulle, faute d'appelant — la maladie du portail, évitée
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

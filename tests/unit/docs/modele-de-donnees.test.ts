@@ -38,8 +38,16 @@ describe("le chapitre 11 nomme toute table qui existe au schéma", () => {
     expect(tablesDuChapitre11(cahier).length).toBeGreaterThanOrEqual(30);
     // Et les deux listes ne sont pas la même chose lue deux fois : le chapitre
     // porte des tables du PLAN que le schéma ne connaît pas encore.
+    //
+    // *Le témoin portait `import_lot_ligne` jusqu'au 11/09/2026, et L1-08e l'a
+    // créée.* Il désigne désormais `contrat`, qui vient au lot 4 — et le jour
+    // où elle sera créée, c'est ce scénario qui le dira, comme il vient de le
+    // faire. **Un témoin qui se périme en le disant est un bon témoin.**
+    expect(tablesDuChapitre11(cahier)).toContain("contrat");
+    expect(tablesDuSchema(schema)).not.toContain("contrat");
+    // Et la table que L1-08e vient de créer est désormais des DEUX côtés.
     expect(tablesDuChapitre11(cahier)).toContain("import_lot_ligne");
-    expect(tablesDuSchema(schema)).not.toContain("import_lot_ligne");
+    expect(tablesDuSchema(schema)).toContain("import_lot_ligne");
   });
 
   it("une table du schéma absente du chapitre est un ÉCART", () => {

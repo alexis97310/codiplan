@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-trois tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-cinq tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -256,6 +256,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // **`technicien_calendrier` s'y ajoute avec le paramétrage par agence**, et
     // par le même chemin. Elle le mérite : « depuis quand ce technicien est-il
     // à mi-temps » est une question de paie autant que de planning.
+    //
+    // **`import_lot` et `import_lot_ligne` s'y ajoutent au ticket L1-08e, et
+    // c'est la SIXIÈME fois que ce scénario réclame une table de lui-même.**
+    // Elles le méritent doublement : *« qui a appliqué cet import, et
+    // qu'est-ce qui a été écrasé »* est exactement la question que
+    // l'annulation partielle de I6 devra trancher ligne à ligne.
     expect([...declenchees].sort()).toEqual([
       "agence",
       "calendrier",
@@ -268,6 +274,8 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "famille_materiel",
       "forfait",
       "habilitation",
+      "import_lot",
+      "import_lot_ligne",
       "intervention",
       "machine",
       "modele_materiel",

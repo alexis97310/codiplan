@@ -441,6 +441,18 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## Le lot d'import EXISTE DÈS LE CONTRÔLE, et il est fermé au portail
+
+`import_lot` et `import_lot_ligne` (L1-08e). **Le lot naît au contrôle, pas à l'application** : I6 veut qu'un import _« produise d'abord un rapport, puis attende une validation explicite »_, et **l'application ne peut appliquer que ce que le rapport a MONTRÉ** — sans quoi la validation porte sur un écran et l'écriture sur autre chose. Le chapitre 11 le disait depuis l'origine sans qu'on l'ait lu ainsi : `import_lot.statut` vaut `controle`, `applique` ou `annule`.
+
+`lib/imports/depot.ts` **écrit, il ne décide rien** : toute la décision — nature, clé, création ou modification — a été prise par `lib/excel/controle.ts`, qui ne connaît aucune base. _Recalculer là serait une seconde lecture d'un même critère, dans le pire endroit : entre ce qu'un humain a validé à l'écran et ce qui sera écrit._ Le module a d'ailleurs porté sa propre boucle de comptage pendant une demi-heure ; elle a été **retirée plutôt que gardée par un test d'égalité**, les décomptes venant désormais de `proposerDepuisLesLignes` et de lui seul.
+
+**Les deux tables prennent la forme « interne » (D100), et elles la prennent à leur naissance.** `import_lot_ligne.valeurs` porte la ligne du fichier telle qu'elle a été lue : _un fichier d'import de parc contient TOUTES les machines de la société, qu'aucun périmètre de sites n'a jamais filtré._ Or une table de forme « société » est lisible par un compte de portail — sa clause ne lit pas `app.client_id`. Lui donner cette forme aurait rendu à un compte restreint à un atelier **la liste intégrale du parc de sa société**, par une table que personne n'aurait pensé à regarder. C'est la fuite que D94 ferme sur le bac de réception, un étage plus loin : là un nom de fichier révélait le parc, ici c'est le parc lui-même.
+
+**Et la chaîne a un appelant** (`tests/isolation/chaine-import.test.ts`) : feuille → contrôle → enregistrement par le chemin de production → relecture sous contexte cloisonné. _Une suite qui éprouve tous les maillons n'éprouve pas la chaîne_ — et entre le contrôle, qui a ses 106 scénarios, et les politiques, qui ont les leurs, personne ne traversait.
+
+**Ce qui reste dû :** l'application et l'annulation partielle (L1-08b), et l'écran (L1-09). `import_lot.objet_cle` existe et **reste nulle** : le stockage d'objets n'a pas d'appelant, et une colonne qui attend s'écrit comme telle plutôt que de se remplir d'un chemin fabriqué.
+
 ## Le catalogue de forfaits, et l'axe qui dort
 
 `forfait` porte les trois axes de RG-TAR-06 — zone, famille de matériel, type d'intervention — et la règle qui décide. Le montant y prend la même forme que le taux horaire : un **entier** avec son code de devise, refusé s'il s'écarte de celle de sa société. **Zéro est permis** — une prestation offerte est un forfait à zéro, et c'est la façon de la dire ; négatif non, ce serait un avoir.
