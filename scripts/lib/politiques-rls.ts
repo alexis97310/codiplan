@@ -2110,6 +2110,14 @@ function ecartsAscendance(
  */
 export const TABLES_INTERNES = [
   "document_recu",
+  // L3-04 — L'ABSENCE, et elle prend cette forme à sa NAISSANCE. *« Votre
+  // technicien habituel est en arrêt du 14 au 28 » est une donnée de santé par
+  // déduction*, et ce n'est pas au client de la lire. D94 écrit que la question
+  // reste ouverte pour les tables de forme « société » DÉJÀ EXISTANTES ; celle-ci
+  // n'existait pas, et la trancher à sa création est le seul moment où elle ne
+  // coûte rien (§9, 30/08 — une échéance qui tombe au pire moment est un
+  // report). Doctrine §2 : en cas de doute entre montrer et cacher, on cache.
+  "absence",
   // D100 — LES DEUX TABLES D'IMPORT, et elles prennent cette forme à leur
   // NAISSANCE. `import_lot_ligne` porte la ligne du fichier telle qu'elle a
   // été lue : un fichier d'import de parc contient TOUTES les machines de la
@@ -2121,14 +2129,57 @@ export const TABLES_INTERNES = [
 ] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
-const INTERNES_ARBITREES = ["document_recu", "import_lot", "import_lot_ligne"];
+/**
+ * Les entrées que les arbitrages autorisent, **chacune avec le motif de son
+ * RETRAIT**.
+ *
+ * *Un gabarit qui affirme une cause que le contrôle ne mesure pas la réémet à
+ * chaque alarme* (§9, 10/09). Le message de retrait parlait de **noms de
+ * fichiers** — vrai du bac de réception, vrai des lots d'import, **faux de
+ * l'absence**, qui ne nomme aucun fichier et dont la fuite est d'un tout autre
+ * ordre. Chaque entrée dit donc ce que son retrait rouvrirait, et le gardien
+ * n'invente plus rien.
+ */
+const INTERNES_ARBITREES: ReadonlyArray<{
+  readonly table: string;
+  readonly ceQueLeRetraitRouvre: string;
+}> = [
+  {
+    table: "document_recu",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait les NOMS DE FICHIERS du bac — c'est-à-dire " +
+      "ce que le parc des autres sites contient",
+  },
+  {
+    table: "import_lot",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait les NOMS DE FICHIERS d'import et leurs " +
+      "décomptes, qui portent sur le parc ENTIER de la société",
+  },
+  {
+    table: "import_lot_ligne",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait les LIGNES du fichier telles qu'elles ont " +
+      "été lues — le parc entier, qu'aucun périmètre de sites n'a filtré",
+  },
+  {
+    table: "absence",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait QUI est absent et QUAND — « votre technicien " +
+      "habituel est en arrêt du 14 au 28 » est une donnée de santé par " +
+      "déduction, et ce n'est pas au client de la lire",
+  },
+];
 
 /** Écarts de la liste « interne » — additions comme retraits. */
 export function ecartsListeInterne(
   liste: readonly string[] = TABLES_INTERNES,
 ): string[] {
   const ecarts = liste
-    .filter((table) => !INTERNES_ARBITREES.includes(table))
+    .filter(
+      (table) =>
+        !INTERNES_ARBITREES.some((arbitree) => arbitree.table === table),
+    )
     .map(
       (table) =>
         `« ${table} » a été rangée sous la forme « interne ». Elle RETIRE la ` +
@@ -2139,13 +2190,12 @@ export function ecartsListeInterne(
     );
 
   for (const arbitree of INTERNES_ARBITREES) {
-    if (!liste.includes(arbitree)) {
+    if (!liste.includes(arbitree.table)) {
       ecarts.push(
-        `« ${arbitree} » ne figure plus sous la forme « interne » : elle ` +
-          "retomberait sur la clause de société seule, qui passe tous les " +
-          "gardiens, et un compte portail lirait les NOMS DE FICHIERS du bac " +
-          "— c'est-à-dire ce que le parc des autres sites contient. Le " +
-          "RETRAIT est ici le geste dangereux, il ne casse rien de visible.",
+        `« ${arbitree.table} » ne figure plus sous la forme « interne » : ` +
+          "elle retomberait sur la clause de société seule, qui passe tous " +
+          `les gardiens, et ${arbitree.ceQueLeRetraitRouvre}. Le RETRAIT est ` +
+          "ici le geste dangereux, il ne casse rien de visible.",
       );
     }
   }

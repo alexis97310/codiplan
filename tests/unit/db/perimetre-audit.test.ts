@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-huit tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -262,7 +262,14 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // Elles le méritent doublement : *« qui a appliqué cet import, et
     // qu'est-ce qui a été écrasé »* est exactement la question que
     // l'annulation partielle de I6 devra trancher ligne à ligne.
+    //
+    // **`absence` s'y ajoute au ticket L3-04, et c'est la SEPTIÈME fois.** Elle
+    // le mérite sans qu'on ait à plaider : une validation d'absence
+    // DÉPLANIFIE — elle rend des interventions à la file —, et « qui a validé
+    // cela, et quand » est la seule question qui permette de comprendre
+    // pourquoi une journée s'est vidée.
     expect([...declenchees].sort()).toEqual([
+      "absence",
       "agence",
       "calendrier",
       "calendrier_ferie",

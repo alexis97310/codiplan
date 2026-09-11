@@ -128,7 +128,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     expect(ecartsListeInterne()).toEqual([]);
   });
 
-  it("elle porte les trois tables ARBITRÉES, et D94 dit ce qu'elle laisse ouvert", () => {
+  it("elle porte les quatre tables ARBITRÉES, et D94 dit ce qu'elle laisse ouvert", () => {
     // La forme ferme les tables qu'elle crée ; elle ne prétend PAS fermer la
     // classe. `taux_horaire`, `forfait`, `agence` posent la même question
     // aujourd'hui, et D94 l'écrit avec sa condition de réouverture plutôt que
@@ -139,8 +139,16 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     // bon marché** (I1). Ce n'est donc pas la classe de D94 qui s'élargit :
     // ce sont deux tables nouvelles qui reçoivent leur forme au moment où la
     // question se pose sans effort.
+    //
+    // **`absence` s'y ajoute à L3-04, à SA NAISSANCE elle aussi** (RG-PLA-06).
+    // Sa fuite n'est pas celle des trois autres — elle ne nomme aucun fichier :
+    // *« votre technicien habituel est en arrêt du 14 au 28 » est une donnée de
+    // santé par déduction.* C'est pourquoi chaque entrée porte désormais le
+    // motif de SON retrait, et non un gabarit qui parlait de noms de fichiers
+    // pour toutes (§9, 10/09).
     expect([...TABLES_INTERNES]).toEqual([
       "document_recu",
+      "absence",
       "import_lot",
       "import_lot_ligne",
     ]);
@@ -149,6 +157,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
   it("une ADDITION est refusée — c'est un arbitrage, pas une commodité", () => {
     const ecarts = ecartsListeInterne([
       "document_recu",
+      "absence",
       "import_lot",
       "import_lot_ligne",
       "taux_horaire",
@@ -157,10 +166,16 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     expect(ecarts[0]).toContain("taux_horaire");
   });
 
-  it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi", () => {
+  it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi, et CHACUN dit ce qu'il rouvre", () => {
     const ecarts = ecartsListeInterne([]);
-    expect(ecarts).toHaveLength(3);
+    expect(ecarts).toHaveLength(4);
     expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
+    // **Le motif n'est plus un gabarit** : celui d'`absence` ne parle d'aucun
+    // fichier, et c'est ce qui distingue un constat d'une phrase préécrite
+    // qu'un dispositif réémet en votre nom (§9, 10/09).
+    const surLAbsence = ecarts.find((ecart) => ecart.includes("absence"));
+    expect(surLAbsence).toMatch(/donnée de santé par déduction/);
+    expect(surLAbsence).not.toMatch(/NOMS DE FICHIERS/);
   });
 
   it("la clause écrite en base PASSE, et celle sans discriminant est refusée", () => {

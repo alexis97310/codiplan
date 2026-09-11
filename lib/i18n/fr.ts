@@ -438,6 +438,17 @@ export const fr = {
     "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
   "intervention.refus.lieu_sans_rattachement":
     "Ce lieu n'est rattaché à aucun établissement. Le rattachement de l'intervention en est déduit : renseignez-le d'abord.",
+  // RG-PLA-06 (L3-04). **Le motif ne nomme ni la personne ni la période**, et
+  // ce n'est pas de la pudeur : un refus est un canal d'information soumis au
+  // cloisonnement comme une requête (D50). Qui planifie voit l'absence sur
+  // l'écran des absences, où la politique décide ; le refus dit ce qui bloque
+  // et la marche à suivre, il ne renseigne pas.
+  "absence.refus.inconnue":
+    "Cette absence n'existe pas, ou elle n'est pas dans votre périmètre.",
+  "absence.refus.deja_tranchee":
+    "Cette absence a déjà été validée ou refusée. Une décision ne se reprend pas : les interventions déplanifiées ne retrouveraient pas leur créneau.",
+  "intervention.refus.absence":
+    "Ce technicien est indisponible à cette date. Le créneau est refusé.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
   // RG-PLA-04, sa moitié BLOQUANTE et sa moitié qui AVERTIT (L3-02, D9, D73).

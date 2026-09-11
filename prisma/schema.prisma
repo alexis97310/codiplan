@@ -94,6 +94,7 @@ model Parite {
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
   techniciens Technicien[]
+  absences    Absence[]
 
   intervention_machines InterventionMachine[]
 
@@ -882,6 +883,7 @@ model UtilisateurSociete {
   societe     Societe     @relation(fields: [societe_id], references: [id])
 
   habilitations TechnicienHabilitation[]
+  absences      Absence[]
 
   @@unique([utilisateur_id, societe_id])
   @@map("utilisateur_societe")
@@ -2126,6 +2128,89 @@ model TechnicienHabilitation {
   @@unique([societe_id, utilisateur_id, habilitation_id])
   @@index([societe_id, utilisateur_id])
   @@map("technicien_habilitation")
+}
+
+/// LE STATUT D'UNE ABSENCE — trois valeurs, jamais un booléen (L3-04).
+///
+/// RG-PLA-06 ne bloque QUE sur une absence **validée**. Un booléen `validee`
+/// n'aurait pas su dire la différence entre « demandée, pas encore tranchée »
+/// et « refusée » — *une case décochée est indiscernable d'une demande jamais
+/// examinée* (doctrine §3, la leçon de l'assujettissement VGP). La naissance
+/// est `demandee`.
+enum StatutAbsence {
+  demandee
+  validee
+  refusee
+}
+
+/// POURQUOI QUELQU'UN N'EST PAS LÀ (L3-04).
+///
+/// **Énumérée, à l'inverse des habilitations, et pour la raison inverse** : les
+/// habilitations d'une société tierce sont inconnues (D60), les motifs
+/// d'absence ne le sont pas. `autre` porte le texte, et lui seul.
+enum MotifAbsence {
+  conge
+  arret
+  formation
+  recuperation
+  autre
+}
+
+/// L'INDISPONIBILITÉ DATÉE D'UNE PERSONNE (L3-04, RG-PLA-06).
+///
+/// > *« Une absence validée bloque le créneau ; les interventions posées
+/// > repassent en file à planifier avec alerte. »*
+///
+/// ## Sa forme de politique est « INTERNE », et c'est décidé à sa NAISSANCE
+///
+/// D94 a créé cette forme pour `document_recu` et a écrit ce qu'il laissait
+/// ouvert — *le jour où un écran de portail lit une table de forme « société »,
+/// la question vise la CLASSE*. **Ici la question ne se pose pas au réveil :
+/// elle se pose au moment où la table est créée**, c'est-à-dire au seul moment
+/// où elle ne coûte rien (§9, 30/08).
+///
+/// > *« Votre technicien habituel est en arrêt du 14 au 28 » est une donnée de
+/// > santé par déduction, et ce n'est pas au client de la lire.*
+///
+/// *Le coût, nommé* : le jour où l'on dira à un client que son intervention est
+/// reportée, ce n'est pas cette table qu'il lira — c'est l'intervention, qui
+/// porte son statut et son motif. **Et c'est bien ainsi.**
+///
+/// ## Deux dates, bornes COMPRISES, et aucune heure
+///
+/// Une absence à la demi-journée n'est pas tranchée, donc pas construite — *une
+/// colonne inerte n'est pas neutre, elle est une invitation* (D77). La borne
+/// fermée est écrite plutôt que laissée à la lecture : « au 28 » veut dire que
+/// le 28 est absent, et une borne ouverte aurait fait travailler quelqu'un le
+/// dernier jour de son arrêt.
+model Absence {
+  id             String @id @default(uuid()) @db.Uuid
+  societe_id     String @db.Uuid
+  utilisateur_id String @db.Uuid
+
+  /// Première journée d'absence, COMPRISE.
+  du DateTime @db.Date
+  /// Dernière journée d'absence, COMPRISE.
+  au DateTime @db.Date
+
+  statut    StatutAbsence @default(demandee)
+  motif     MotifAbsence
+  /// Obligatoire quand le motif est `autre`, INTERDITE sinon — les deux sens,
+  /// et le second est celui qu'on oublie.
+  precision String?
+
+  cree_le    DateTime @default(now()) @db.Timestamptz(3)
+  modifie_le DateTime @updatedAt @db.Timestamptz(3)
+
+  societe    Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// **Vers `utilisateur_societe`, jamais vers `utilisateur` seul** : on est
+  /// absent d'une société, et le chaînage composite garantit déclarativement
+  /// qu'on n'inscrit pas l'absence de quelqu'un qui n'y appartient pas (D48).
+  technicien UtilisateurSociete @relation(fields: [utilisateur_id, societe_id], references: [utilisateur_id, societe_id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, utilisateur_id, du, au])
+  @@map("absence")
 }
 
 /// L'habilitation EXIGÉE par un site (D9, RG-PLA-04, ticket L1-04).

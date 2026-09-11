@@ -640,6 +640,28 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## L'absence d'un technicien — et pourquoi aucun client ne la lit
+
+RG-PLA-06 : _« Une absence validée bloque le créneau ; les interventions posées repassent en file à planifier avec alerte. »_ La table `absence` porte la période — **deux dates, bornes COMPRISES, et aucune heure** : _une borne ouverte aurait fait travailler quelqu'un le dernier jour de son arrêt._
+
+**Le statut a TROIS valeurs, jamais un booléen.** RG-PLA-06 ne bloque que sur une absence **validée** ; un booléen `validee` n'aurait pas su distinguer « demandée, pas encore tranchée » de « refusée », et le planning aurait bloqué sur une demande qu'on venait de refuser.
+
+### Sa forme de politique est « interne », et c'est décidé à sa NAISSANCE
+
+D94 a créé cette forme pour `document_recu` — _une table de forme « société » est lisible par un compte de portail, sa clause ne lisant pas `app.client_id`_ — et il a écrit ce qu'il laissait ouvert : la question des tables **déjà existantes**. Celle-ci n'existait pas.
+
+> _« Votre technicien habituel est en arrêt du 14 au 28 » est une donnée de santé par déduction, et ce n'est pas au client de la lire._
+
+**Trancher à la création est le seul moment où cela ne coûte rien** — _une échéance qui tombe au pire moment est un report déguisé_ — et c'est la doctrine §2 sans détour : en cas de doute entre montrer et cacher, **on cache**. _Le coût, nommé_ : le jour où l'on dira à un client que son intervention est reportée, ce n'est pas cette table qu'il lira, c'est l'intervention, qui porte son statut et son motif. **Et c'est bien ainsi** : ce qu'un client a le droit de savoir est que SON rendez-vous bouge, jamais pourquoi la personne n'est pas là.
+
+_Conséquence sur le gardien_ : chaque entrée de la liste close « interne » porte désormais **le motif de son propre retrait**. Le message parlait de **noms de fichiers** — vrai du bac et des lots d'import, **faux de l'absence** —, et _un gabarit qui affirme une cause que le contrôle ne mesure pas la réémet à chaque alarme._
+
+### Le QUATRIÈME contrôle à la pose, et la déplanification
+
+Une absence validée refuse le créneau **au déplacement comme à la pose** : c'est la leçon de L3-02, apprise la veille — _une règle tenue par un chemin sur deux n'est pas tenue._ Le refus nomme son motif sans nommer ni la personne ni la période : _un refus est un canal d'information soumis au cloisonnement comme une requête_ (D50).
+
+**La validation et la déplanification sont dans la même transaction.** Une absence validée dont les interventions seraient restées posées ferait affirmer au planning qu'un absent travaille. Ce qui part est **la date et le créneau** ; **le technicien reste** — _une intervention qui perd son affectation perd l'information qui permet de la reposer au même endroit._ Et **une décision ne se reprend pas** : refuser après coup ne rendrait pas leurs créneaux aux interventions déjà rendues à la file.
+
 ## Le technicien a enfin une agence — et une table auditée était inécrivable
 
 `technicien` existait dans le chapitre 11 et **nulle part ailleurs**. Trois documents s'y référaient : le §6 la marquait `(prévu)`, D72 en dépendait, et `occupation.ts` écrivait sa dette en toutes lettres. La table est créée avec ce que L3-01 réclame — utilisateur, société, **agence**, actif — et **trois colonnes du chapitre 11 n'y sont pas** : `cout_horaire` et `taux_facturation_defaut`, parce que _c'est le piège de `societe.taux_horaire_defaut`, retirée le 09/09_ — deux sources d'un même fait qui divergent en valeur ; et `vehicule`, parce que _une colonne inerte n'est pas neutre, elle est une invitation._

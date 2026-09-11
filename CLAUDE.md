@@ -425,6 +425,29 @@ lib/
               requête (D64) — l'`id` par lequel la bibliothèque réécrit une
               ligne dit QUELLE ligne, la politique dit à QUI elle est ;
               l'`id` ouvre les écritures, JAMAIS les lectures
+  absences/   L'INDISPONIBILITÉ D'UNE PERSONNE (L3-04, RG-PLA-06)
+              la table est de forme « INTERNE » (D94), et c'est décidé à sa
+              NAISSANCE — le seul moment où cela ne coûte rien : « votre
+              technicien habituel est en arrêt du 14 au 28 » est une donnée de
+              santé par déduction, et ce n'est pas au client de la lire
+              periode.ts : la RÈGLE, qui ne lit ni base ni horloge — seule une
+              absence VALIDÉE bloque, une demandée ne dit rien encore et une
+              refusée ne dit plus rien ; les bornes sont COMPRISES toutes les
+              deux, une borne ouverte ferait travailler quelqu'un le dernier
+              jour de son arrêt
+              le statut a TROIS valeurs et jamais un booléen : « demandée » et
+              « refusée » ne se distinguent pas sous une case décochée
+              une absence ne déplanifie NI ce qui a eu lieu, NI ce qui n'occupe
+              rien — et les deux motifs diffèrent : l'une n'a rien à rendre,
+              l'autre a un fait à protéger (I5)
+              depot.ts : la validation et la déplanification sont dans la MÊME
+              transaction — une absence validée dont les interventions seraient
+              restées posées ferait affirmer au planning qu'un absent travaille
+              ce qui part est la DATE et le CRÉNEAU, jamais le technicien : une
+              intervention qui perd son affectation perd ce qui permet de la
+              reposer au même endroit
+              une décision ne se reprend pas : refuser après coup ne rendrait
+              pas leurs créneaux aux interventions déjà rendues à la file
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
