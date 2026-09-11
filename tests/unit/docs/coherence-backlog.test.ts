@@ -156,10 +156,26 @@ describe("jumeaux — le gardien mord sur des ruptures réelles", () => {
   });
 
   it("refuse une estampille mal formée plutôt que de la lire comme une absence", () => {
-    // La forme voisine, celle qu'un rédacteur pressé écrirait.
+    // La forme voisine, celle qu'un rédacteur pressé écrirait : la date sans
+    // l'empreinte.
+    //
+    // **La POPULATION est DÉRIVÉE du document, et ce n'est pas un détail de
+    // style.** Cette épreuve nommait une estampille précise — celle de L2-08,
+    // « le 01/09/2026 — empreinte 88a7dc5a ». Le jour où ce ticket a été relu,
+    // la ligne a changé, le `replace` n'a plus rien remplacé, et **l'épreuve a
+    // cessé de produire une violation** : elle aurait mesuré un document
+    // intact, en restant capable de rougir pour une autre raison. C'est le §9
+    // du 11/09 pris par l'autre bout — *une épreuve qui rejoue une faute doit
+    // la remettre*, et elle ne le peut pas si son ancre est mobile.
+    const premiere = BACKLOG.match(
+      /^\*Relu contre les sources citées le (\d{2}\/\d{2}\/\d{4}) — empreinte `[0-9a-f]{8}`\.\*$/m,
+    );
+    // Témoin : il existe bien une estampille à casser.
+    expect(premiere).not.toBeNull();
+
     const backlogRompu = BACKLOG.replace(
-      /^\*Relu contre les sources citées le 01\/09\/2026 — empreinte `88a7dc5a`\.\*$/m,
-      "*Relu contre les sources citées le 01/09/2026.*",
+      premiere?.[0] ?? "",
+      `*Relu contre les sources citées le ${premiere?.[1]}.*`,
     );
     expect(backlogRompu).not.toEqual(BACKLOG);
 

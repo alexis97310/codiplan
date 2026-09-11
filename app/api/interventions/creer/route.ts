@@ -33,7 +33,12 @@ export async function POST(requete: Request): Promise<Response> {
     id: uuidv7(),
     client_id: lieu[0],
     site_id: lieu[1],
-    machine_id: null,
+    // AUCUNE MACHINE À LA CRÉATION, et ce n'est pas un raccourci : l'écran de
+    // création n'en propose pas, le dépannage à l'aveugle étant le cas
+    // ordinaire. RG-INT-01 ne l'exige qu'avant de DÉMARRER, et c'est la base
+    // qui le tient — un formulaire qui l'exigerait ici refuserait
+    // d'enregistrer un appel.
+    machine_ids: [],
     type: champ(formulaire, "type"),
     priorite: champ(formulaire, "priorite") ?? "p3",
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? "temps_passe",

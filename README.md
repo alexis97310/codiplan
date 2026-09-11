@@ -640,6 +640,18 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Une visite, plusieurs machines — et la fille suit son parent
+
+`intervention.machine_id` a **disparu** : une visite peut couvrir plusieurs matériels (chapitre 7/M3), et `intervention_machine` porte le rattachement. La colonne n'est pas conservée « pour la machine principale » — ce serait **deux écritures d'un même fait**, et personne ne saurait laquelle fait foi le jour où elles se contrediraient. La migration **reprend les lignes existantes** avant de supprimer la colonne.
+
+**Le parent de la politique est `intervention`, et pas `machine`** (**D103**). C'est la seule décision de fond, et elle n'est pas évidente puisque la table a deux parents possibles : _l'intervention est ce qui décide QUI a le droit de voir cette ligne ; la machine n'est que ce dont elle parle._ Adosser la clause à `machine` aurait rendu visible le rattachement d'une visite qu'on n'a pas le droit de lire, dès lors qu'on voit le matériel — et le parc est plus largement visible qu'une intervention.
+
+**La politique ne recopie rien**, et c'est tout l'intérêt de la forme « filiation » : elle ne nomme ni `app.client_id` ni `app.perimetre_sites`, elle demande seulement si le parent est visible. _Recopier les filtres aurait passé tous les scénarios d'effet_ — le seul moyen de distinguer les deux est de **lire la clause**, et un scénario le fait.
+
+**RG-INT-01 devient vérifiable**, au moment que la règle nomme elle-même : _« si la machine n'existe pas, elle est créée **avant de démarrer** »_. Jamais à la création — le dépannage à l'aveugle est le cas ordinaire, _on sait qu'un compresseur est en panne, pas lequel_. **Trois statuts, pas un** : la base garde des ÉTATS et non des trajets, et ne surveiller que `en_cours` laisserait passer un saut direct vers `terminee`.
+
+**La limite est écrite plutôt que tue :** le contrôle ne voit que les **transitions**. Un `INSERT` direct dans un statut de travail lui échappe, et c'est inévitable — au moment de l'insertion, aucune ligne fille ne peut exister. La contrainte différée qui fermerait ce chemin refuserait les interventions de démonstration, **`prisma/seed.ts` ne créant aucune machine** (mesuré). Condition de réouverture : la synchronisation du lot 3.
+
 ## La demande d'intervention — la seule table du lot 2 où un CLIENT écrit
 
 `demande` est le point d'entrée du flux : un appel saisi par l'ADV, un dépôt sur le portail, une échéance contractuelle, un seuil de compteur, une détection par un technicien. Elle porte la forme de politique **« parc »** (**D102**) — société **ET** `app.client_id` **ET** `app.perimetre_sites` —, et ce n'est pas `intervention` bis : **le parcours P5 du chapitre 9 fait ÉCRIRE un compte de portail dans cette table.** Une clause trop large n'y aurait pas fait fuir une lecture : elle aurait laissé **un client déposer une demande au nom d'un autre**. Le `WITH CHECK` est donc écrit explicitement plutôt que laissé à PostgreSQL.

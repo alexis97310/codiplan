@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-six tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-sept tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -283,6 +283,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "import_lot",
       "import_lot_ligne",
       "intervention",
+      // `intervention_machine` s'y ajoute au ticket L2-08a, et par le même
+      // chemin : elle est de la première catégorie de I1, donc auditée à sa
+      // naissance. « Quelle machine a été retirée de cette visite, et par qui »
+      // est une question de litige autant qu'une question de planning.
+      "intervention_machine",
       "machine",
       "modele_materiel",
       "site",

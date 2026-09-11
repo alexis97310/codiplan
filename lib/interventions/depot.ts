@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
@@ -65,7 +65,6 @@ export const CHAMPS_LIGNE = {
   technicien_id: true,
   client_id: true,
   site_id: true,
-  machine_id: true,
   agence_id: true,
   mode_valorisation: true,
   forfait_deplacement_id: true,
@@ -73,6 +72,16 @@ export const CHAMPS_LIGNE = {
   montant_ht: true,
   devise_code: true,
   motif_annulation: true,
+  /**
+   * LES MACHINES, au pluriel depuis L2-08a. Lues avec la ligne plutôt que
+   * comptées à côté : *un bandeau qui compterait autrement que le tableau qu'il
+   * coiffe met les deux chiffres côte à côte sans dire lequel croire* (R2-21).
+   *
+   * La lecture est soumise à la politique de `intervention_machine`, de forme
+   * « filiation » — elle ne rend donc que ce que la ligne elle-même est
+   * autorisée à rendre, sans qu'aucun filtre soit réécrit ici.
+   */
+  machines: { select: { machine_id: true } },
 } as const;
 
 export type LigneIntervention = Prisma.InterventionGetPayload<{
@@ -133,53 +142,88 @@ async function instantDeLAgence(
 export async function creerIntervention(
   contexte: ContexteSession,
   saisie: Creation,
+  client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    // Le site est lu SOUS le contexte : s'il n'appartient pas au périmètre, la
-    // politique rend zéro et l'on refuse ici plutôt que de buter plus bas.
-    const site = await tx.site.findFirst({
-      where: { id: saisie.site_id, client_id: saisie.client_id },
-      select: { id: true, agence_id: true, zone_geo: true },
-    });
-    if (site === null) {
-      return { accepte: false, cle: "intervention.refus.lieu_inconnu" };
-    }
-    if (site.agence_id === null) {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      // Le site est lu SOUS le contexte : s'il n'appartient pas au périmètre, la
+      // politique rend zéro et l'on refuse ici plutôt que de buter plus bas.
+      const site = await tx.site.findFirst({
+        where: { id: saisie.site_id, client_id: saisie.client_id },
+        select: { id: true, agence_id: true, zone_geo: true },
+      });
+      if (site === null) {
+        return { accepte: false, cle: "intervention.refus.lieu_inconnu" };
+      }
+      if (site.agence_id === null) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.lieu_sans_rattachement",
+        };
+      }
+
+      const forfaitId = await forfaitDeDeplacement(
+        tx,
+        site.zone_geo,
+        saisie.type,
+      );
+
+      const ligne = await tx.intervention.create({
+        data: {
+          id: saisie.id.length > 0 ? saisie.id : uuidv7(),
+          societe_id: contexte.societeId ?? "",
+          client_id: saisie.client_id,
+          site_id: saisie.site_id,
+          agence_id: site.agence_id,
+          type: saisie.type,
+          priorite: saisie.priorite,
+          statut: statutALaCreation(
+            saisie.date_planifiee,
+            saisie.creneau_debut,
+          ),
+          date_planifiee: saisie.date_planifiee,
+          creneau_debut: saisie.creneau_debut,
+          creneau_fin: saisie.creneau_fin,
+          duree_estimee_min: saisie.duree_estimee_min,
+          technicien_id: saisie.technicien_id,
+          mode_valorisation: saisie.mode_valorisation,
+          forfait_deplacement_id: forfaitId,
+        },
+        select: CHAMPS_LIGNE,
+      });
+
+      // LES MACHINES SONT ÉCRITES DANS LA MÊME TRANSACTION que l'intervention
+      // qui les porte. *Une intervention créée puis « complétée » en deux temps
+      // existerait, entre les deux, dans un état que RG-INT-01 refuse — et rien
+      // ne garantirait le second temps.*
+      //
+      // `createMany` plutôt qu'une écriture IMBRIQUÉE dans le `create`
+      // ci-dessus : la clé étrangère composite `(societe_id, intervention_id)`
+      // fait tenir `societe_id` pour déjà donné par la relation, et Prisma
+      // refuse qu'on le nomme. *Le typage l'acceptait pourtant — c'est
+      // l'exécution qui l'a dit* (`Unknown argument societe_id`).
+      if (saisie.machine_ids.length > 0) {
+        await tx.interventionMachine.createMany({
+          data: saisie.machine_ids.map((machineId) => ({
+            id: uuidv7(),
+            societe_id: contexte.societeId ?? "",
+            intervention_id: ligne.id,
+            machine_id: machineId,
+          })),
+        });
+      }
+
       return {
-        accepte: false,
-        cle: "intervention.refus.lieu_sans_rattachement",
+        accepte: true,
+        fiche: {
+          ...ligne,
+          machines: saisie.machine_ids.map((machine_id) => ({ machine_id })),
+        },
       };
-    }
-
-    const forfaitId = await forfaitDeDeplacement(
-      tx,
-      site.zone_geo,
-      saisie.type,
-    );
-
-    const ligne = await tx.intervention.create({
-      data: {
-        id: saisie.id.length > 0 ? saisie.id : uuidv7(),
-        societe_id: contexte.societeId ?? "",
-        client_id: saisie.client_id,
-        site_id: saisie.site_id,
-        machine_id: saisie.machine_id,
-        agence_id: site.agence_id,
-        type: saisie.type,
-        priorite: saisie.priorite,
-        statut: statutALaCreation(saisie.date_planifiee, saisie.creneau_debut),
-        date_planifiee: saisie.date_planifiee,
-        creneau_debut: saisie.creneau_debut,
-        creneau_fin: saisie.creneau_fin,
-        duree_estimee_min: saisie.duree_estimee_min,
-        technicien_id: saisie.technicien_id,
-        mode_valorisation: saisie.mode_valorisation,
-        forfait_deplacement_id: forfaitId,
-      },
-      select: CHAMPS_LIGNE,
-    });
-    return { accepte: true, fiche: ligne };
-  });
+    },
+    client,
+  );
 }
 
 /**
