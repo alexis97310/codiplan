@@ -132,7 +132,23 @@ export default async function PageIntervention({
                 libelle={t("intervention.client")}
                 valeur={fiche.client ?? TIRET}
               />
-              <Ligne libelle={mot("site")} valeur={fiche.lieu ?? TIRET} />
+              {/*
+                LE LIEU MÈNE À SA FICHE (L3-16). C'est ce lien qui donne un
+                APPELANT à l'écran « Sites » : la maquette ne lui donne aucune
+                entrée de barre — sa liste est close et un gardien la
+                confronte —, et *une interface sans appelant est la maladie que
+                le portail a soignée.*
+
+                `lieu` est le libellé rendu par la lecture cloisonnée ; son
+                identifiant est sur la ligne. Un site hors périmètre ne serait
+                pas lu du tout, et le lien mènerait à un 404 — c'est-à-dire au
+                même refus que partout ailleurs (D35, D50).
+              */}
+              <Ligne
+                libelle={mot("site")}
+                valeur={fiche.lieu ?? TIRET}
+                lien={`/sites/${ligne.site_id}`}
+              />
               <Ligne
                 libelle={mot("agence")}
                 valeur={fiche.rattachement ?? TIRET}
@@ -467,10 +483,13 @@ function Ligne({
   libelle,
   valeur,
   note,
+  lien,
 }: {
   libelle: string;
   valeur: string;
   note?: string;
+  /** Vers où la valeur mène, quand elle mène quelque part. */
+  lien?: string;
 }) {
   // `.dl` de la maquette : étiquette grise en 12 px, valeur en demi-gras, sur
   // deux colonnes que le PARENT tient — d'où le fragment plutôt qu'un `div`,
@@ -480,7 +499,13 @@ function Ligne({
     <>
       <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
       <dd className="font-semibold break-all">
-        {valeur}
+        {lien === undefined ? (
+          valeur
+        ) : (
+          <Link href={lien} className="hover:underline">
+            {valeur}
+          </Link>
+        )}
         {note === undefined ? null : (
           <span className="text-app-encre-faible block text-[11.5px] font-normal">
             {note}
