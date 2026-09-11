@@ -383,11 +383,21 @@ app/
               pas de barre est le répertoire où il vit, jamais une liste
 lib/
   db/         client Prisma, contexte société, helpers RLS
+              migrations-attendues.ts : ce que le CODE DÉPLOYÉ attend (panne du
+              11/09) — le paquet de production n'embarque pas
+              `prisma/migrations/`, d'où une recopie, et ce qui la confronte au
+              répertoire est un gardien qui rougit dans les DEUX sens
+              elle se GÉNÈRE depuis le répertoire, elle ne se rédige pas : la
+              première rédaction, faite de mémoire, portait 18 noms inventés
               sante.ts : l'état de l'installation, pour la page SANS COMPTE
               /sante — il NE LÈVE JAMAIS : une sonde qui tombe en même temps
               que ce qu'elle surveille ne surveille rien
               et il ne rend aucun secret — ni hôte, ni base, ni identifiant :
               le message brut d'un pilote nomme l'hébergeur et la région (D50)
+              « migrations à jour » CONFRONTE `_prisma_migrations` à ce que le
+              dépôt attend, et ne se contente plus de chercher un ÉCHEC : une
+              migration jamais appliquée n'a pas de ligne, et la sonde
+              répondait « oui » (panne du 11/09)
               `app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la
               base dans la même transaction (D70) — jamais dérivée, la
               dérivation n'étant pas unique ; jamais crue, une désignation
@@ -1362,5 +1372,27 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Ce qui rend l'espèce plus coûteuse que l'affirmation ordinaire du 07/09 : elle est dans un GABARIT.** Une phrase dite une fois se corrige au premier regard ; une phrase préécrite se **réémet à chaque alarme**, avec la même assurance, longtemps après que son auteur a oublié l'avoir écrite. Et elle sera lue par quelqu'un qui n'a ni le contexte ni le dépôt sous les yeux — c'est même tout l'objet d'une alarme.
 
   **La règle : un gabarit d'alarme ne nomme une cause que si le contrôle qui le déclenche a MESURÉ cette cause.** Sinon il décrit ce qu'il a observé et **s'arrête là**. La question à poser à chaque phrase d'un gabarit : *quelle observation la rendrait fausse ?* Si la réponse est « aucune, elle est toujours imprimée », ce n'est pas un constat — c'est une opinion que le dispositif répète en votre nom. *Parenté exacte avec le 06/09, un cran plus haut : là, une ligne qui ne peut pas bouger sous une faute était présentée parmi les observations ; ici, c'est une CAUSE qui ne peut pas bouger.* La réparation est portée à la file (R1-01) plutôt que faite en passant : elle change ce que le dispositif de sécurité dit de lui-même, et cela ne se glisse pas dans un ticket d'automatisation.
+
+- **11/09/2026 — LA PORTE ET LA PRODUCTION NE GARDENT PAS LE MÊME MONDE : `verify:full` tourne contre une base FRAÎCHEMENT MIGRÉE, la production contre une base migrée À UN AUTRE MOMENT.** Espèce à nommer à côté du 02/09 — *une porte qui ne garde pas ce que garde la porte suivante produit des verts sincères et faux* —, parce qu'elle en déplace le siège : là, ce qui différait entre les deux portes était la LISTE DES COMMANDES ; ici les commandes sont les mêmes, et c'est **l'ÉTAT DU MONDE contre lequel elles s'exécutent** qui diffère. Rien ne confronte les deux.
+
+  *Mesuré le 11/09/2026.* Le commit `722a694` a porté sur `main` un `SELECT` de quatre colonnes — `motif_suspension`, `piece_attendue_ref`, `date_dispo_prevue`, `suspendue_le` — créées par une migration **jamais appliquée** à la base de démonstration, la dernière exécution réussie de « DB migrate & seed » datant de `a5c63f6`, sept migrations plus tôt. **`/planning` a rendu une exception serveur pendant 4 h 03 min** (16:18 → 20:21 UTC, les deux bornes lues à l'horloge), et **onze travaux ont été fusionnés au-dessus**, tous verts. *Le code était juste. Les tests étaient justes. La base était en retard, et aucune porte ne regardait là.*
+
+  **Et la sonde qui aurait dû le dire MENTAIT, mécaniquement.** `/sante` répondait « migrations à jour » en cherchant une ligne EN ÉCHEC dans `_prisma_migrations` :
+
+  ```ts
+  const manquante = attendues.find((m) => !m.applique);
+  ```
+
+  *Une migration jamais appliquée n'a pas de ligne.* La recherche ne trouvait rien, et la réponse était « oui ».
+
+  > **La question posée était « une migration a-t-elle ÉCHOUÉ ? », et la réponse était rendue sous le libellé « les migrations sont-elles À JOUR ? ».** Ce sont deux questions différentes, et **la seconde ne peut pas se répondre depuis la base seule** : il y faut ce que le DÉPÔT attend.
+
+  C'est le §9 du 06/09 dans sa forme la plus coûteuse — *un chiffre juste, dans un rapport vrai, qui fait conclure faux* —, et le §9 du 10/09 appliqué à une sonde plutôt qu'à une alarme : *elle observe la base et rien d'autre, elle ne peut donc pas savoir ce qui manque.* **Un contrôle qui ment est plus grave que la panne qu'il rate**, parce qu'il retire l'envie de chercher.
+
+  **Trois règles en sortent, et la troisième est celle qu'on n'aurait pas devinée.**
+
+  1. **Un contrôle dont le LIBELLÉ pose une question plus large que sa MESURE est un contrôle faux.** La parade n'est pas d'améliorer la mesure : c'est de poser la question du libellé, ou de changer le libellé. Ici la mesure manquait une source — le dépôt —, et elle l'a désormais : `lib/db/migrations-attendues.ts`, confronté au répertoire par un gardien qui rougit dans les deux sens.
+  2. **Une sonde que personne n'ouvre ne sonne pas.** `/sante` était juste-après-réparation et resterait muette : c'est un contrôle *à la demande*, et une panne se découvre quand quelqu'un regarde. D'où **R3-01** au backlog : une vérification **après déploiement**, qui ouvre la page en ligne *et un écran authentifié* — *une page de santé verte au-dessus d'un écran mort est exactement ce qui s'est produit.*
+  3. **Et la liste de rattrapage a été écrite DE MÉMOIRE à sa première rédaction** — 18 noms inventés, 36 manquants, sur 47 répertoires réels. *C'est la faute même qu'on réparait, commise en la réparant* (§9, 07/09). Elle n'a coûté qu'une exécution **parce que la confrontation a été écrite AVANT la liste**. Corollaire : quand une recopie est inévitable, *écrire d'abord ce qui la confronte* — l'ordre inverse laisse la recopie être crue.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

@@ -1188,6 +1188,15 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* l'écran rend des lignes réelles sous le rôle applicatif (scénario de bout en bout, avec son témoin) ; l'entrée de la barre est un lien et non plus une entrée inerte ; aucune colonne n'affiche une donnée qui n'existe pas.
 *Ce qui reste dû :* la recherche, l'export Excel, la pagination, et l'écran « Fiche machine » — qui reste une entrée inerte, une fiche de détail n'étant pas une section de navigation.
 
+**R3-01 — UNE VÉRIFICATION *APRÈS* DÉPLOIEMENT. [panne du 11/09/2026]**
+*File :* LIBRE
+**LA PANNE QUI L'A FAIT ÉCRIRE.** Le 11/09 à 16:18 UTC, `722a694` a porté sur `main` un `SELECT` de quatre colonnes créées par une migration **non appliquée** à la base de démonstration. `/planning` a rendu *« Application error: a server-side exception has occurred »* pendant **4 h 03 min**, et personne ne l'a su : la CI était verte sur les onze travaux suivants, et `/sante` répondait **quatre oui**.
+**LE VERT DE LA CI NE DIT RIEN DE CE QUE VOIT UN UTILISATEUR, et c'est structurel.** `pnpm verify:full` tourne contre une base **fraîchement migrée** — le harnais l'exige. La production tourne contre une base migrée **à un autre moment**. *Les deux portes ne gardent donc pas le même monde*, et rien ne les confronte : c'est le §9 du 02/09 — *une porte qui ne garde pas ce que garde la porte suivante produit des verts sincères et faux* — déplacé des COMMANDES vers l'ÉTAT contre lequel elles s'exécutent.
+**CE QUI EST DÉJÀ RÉPARÉ, et qui ne suffit pas** : `/sante` ne peut plus mentir — il compare `_prisma_migrations` à `lib/db/migrations-attendues.ts`, confronté au répertoire par un gardien, et un scénario d'isolation retire une ligne pour l'éprouver. **Mais une sonde que personne n'ouvre ne sonne pas.** Ce ticket est ce qui la fait sonner.
+*Ce qu'il doit livrer, et les trois se tiennent :* **(1)** un contrôle qui, **après chaque déploiement**, ouvre `/sante` en ligne et échoue si l'une des quatre réponses est « non » ; **(2)** il ouvre aussi **un écran authentifié** — *une page de santé verte au-dessus d'un écran mort est exactement ce qui s'est produit* ; **(3)** il rouvre l'issue du dépôt comme l'alarme nocturne, jamais un courriel — *deux échecs de « DB migrate & seed » sont restés non lus dans une boîte le 20 août* (É12).
+*Ce qu'il ne doit PAS faire* : appliquer les migrations tout seul. Le §12 du protocole en fait un geste nommé, et *une migration jouée sans qu'on la regarde est la panne suivante*.
+*Acceptation :* le contrôle rougit sur l'état exact du 11/09 — une migration retirée de la base de démonstration —, et il nomme l'écran qui est tombé, pas seulement le code HTTP.
+
 **R2-22 — « FICHE MACHINE » SORT DE LA BARRE. [D98]**
 *File :* LIVRÉ
 **Mesuré en livrant R2-21 :** l'entrée portait « ouverte par L2-01 (écran) », et cet écran vient d'être livré — *la mention désignait donc un ticket déjà fait, ce qui ne casse rien et ment doucement.* Elle pointe maintenant sur ce ticket-ci, faute de mieux, et c'est le ticket qui doit dire ce qu'elle devient.

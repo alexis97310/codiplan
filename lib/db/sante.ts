@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
+import { MIGRATIONS_ATTENDUES } from "./migrations-attendues";
+
 /**
  * L'ÉTAT DE SANTÉ DE L'INSTALLATION (mise en ligne).
  *
@@ -62,6 +64,17 @@ export type EtatSante = {
  * l'instance. Sur une page sans compte, c'est une carte du système offerte au
  * premier venu.
  */
+function detailAbsentes(premiere: string, nombre: number): string {
+  return nombre === 1
+    ? `Une migration n'est pas appliquée : ${premiere}.`
+    : `${nombre} migrations ne sont pas appliquées. La première est ${premiere}.`;
+}
+
+/** Une migration présente en base mais restée en échec ou annulée. */
+function detailEchec(nom: string): string {
+  return `Une migration a échoué ou a été annulée : ${nom}.`;
+}
+
 function motifSansSecret(erreur: unknown): string {
   const code =
     typeof erreur === "object" && erreur !== null && "errorCode" in erreur
@@ -111,15 +124,52 @@ export async function lireSante(): Promise<EtatSante> {
     );
     const role = roles[0];
 
-    const attendues = await prisma.$queryRawUnsafe<
+    // ── LA QUESTION POSÉE EST « LES MIGRATIONS SONT-ELLES À JOUR ? » ────────
+    //
+    // **Elle ne l'était pas, et c'est la panne du 11/09/2026.** Ce bloc
+    // cherchait une ligne EN ÉCHEC dans `_prisma_migrations` :
+    //
+    //     const manquante = attendues.find((m) => !m.applique);
+    //
+    // *Une migration jamais appliquée n'a pas de ligne.* La recherche ne
+    // trouvait donc rien, et la page répondait « oui » pendant que sept
+    // migrations manquaient et que `/planning` rendait une exception serveur —
+    // **le code déployé sélectionnait quatre colonnes qui n'existaient pas en
+    // base.**
+    //
+    // > La question posée était « une migration a-t-elle ÉCHOUÉ ? », et la
+    // > réponse était rendue sous le libellé « les migrations sont-elles À
+    // > JOUR ? ». Ce sont deux questions différentes, et **la seconde ne peut
+    // > pas se répondre depuis la base seule** : il y faut ce que le DÉPÔT
+    // > attend. *Un contrôle qui ment est plus grave que la panne qu'il rate.*
+    //
+    // Les deux questions sont désormais posées, et une seule réponse les porte :
+    // une migration **en échec** et une migration **absente** rendent toutes
+    // deux « non », et le motif dit laquelle.
+    const lignes = await prisma.$queryRawUnsafe<
       Array<{ nom: string; applique: boolean }>
     >(
       `SELECT migration_name AS nom,
               (finished_at IS NOT NULL AND rolled_back_at IS NULL) AS applique
-         FROM _prisma_migrations
-        ORDER BY started_at DESC`,
+         FROM _prisma_migrations`,
     );
-    const manquante = attendues.find((m) => !m.applique);
+    const appliquees = new Set(
+      lignes.filter((l) => l.applique).map((l) => l.nom),
+    );
+    // L'ORDRE est celui du dépôt, et il porte l'information : la PREMIÈRE
+    // absente est celle par laquelle la base a décroché.
+    const absentes = MIGRATIONS_ATTENDUES.filter((nom) => !appliquees.has(nom));
+    const echouee = lignes.find((l) => !l.applique);
+    const manquante =
+      absentes.length > 0
+        ? {
+            nom: absentes[0],
+            nombre: absentes.length,
+            echec: false,
+          }
+        : echouee === undefined
+          ? undefined
+          : { nom: echouee.nom, nombre: 1, echec: true };
 
     // Les décomptes sont lus SANS contexte de société : ils ne rendent donc que
     // des NOMBRES, jamais une ligne. `societe` est de forme « identité » — sans
@@ -146,7 +196,17 @@ export async function lireSante(): Promise<EtatSante> {
       migrations:
         manquante === undefined
           ? { ok: true, detail: null }
-          : { ok: false, detail: manquante.nom },
+          : {
+              ok: false,
+              // Le motif NOMME la migration et COMBIEN il en manque : *la
+              // première absente est celle par laquelle la base a décroché*,
+              // et le nombre dit l'ampleur du geste à jouer. Un nom de
+              // migration n'est pas un secret — il est dans le dépôt public —,
+              // et cette page n'en dit toujours aucun autre.
+              detail: manquante.echec
+                ? detailEchec(manquante.nom)
+                : detailAbsentes(manquante.nom, manquante.nombre),
+            },
       societes,
       comptes,
     };
