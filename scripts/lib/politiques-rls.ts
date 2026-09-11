@@ -217,10 +217,27 @@ export const TABLES_PARC = [
   // rattachement d'un parent, elle le PORTE, `client_id` et `site_id` étant des
   // colonnes de premier rang du chapitre 11.2, exactement comme sur `machine`.
   { table: "intervention", perimetre: true, colonnePerimetre: "site_id" },
+  // `demande` REJOINT LE PARC au ticket L2-06, PAR L'ARBITRAGE D102 —
+  // 11/09/2026. Elle n'est pas une intervention de plus : c'est la seule table
+  // du lot 2 où un compte de PORTAIL ÉCRIT (chapitre 9, parcours P5), si bien
+  // que la clause de société seule y aurait été plus qu'une fuite de lecture.
+  //
+  // Sa colonne de périmètre est `site_id`, comme celle de `intervention` : une
+  // demande vise un site. C'est aussi pourquoi `site_id` y est NOT NULL — une
+  // demande sans site serait une ligne qu'aucun compte restreint ne pourrait
+  // lire, c'est-à-dire invisible à celui qui l'a déposée.
+  { table: "demande", perimetre: true, colonnePerimetre: "site_id" },
 ] as const;
 
-/** Les cinq entrées que D10, D22, L1-03 et D84 autorisent aujourd'hui. Recopiées. */
-const PARC_ARBITRE = ["client", "site", "machine", "contact", "intervention"];
+/** Les six entrées que D10, D22, L1-03, D84 et D102 autorisent aujourd'hui. Recopiées. */
+const PARC_ARBITRE = [
+  "client",
+  "site",
+  "machine",
+  "contact",
+  "intervention",
+  "demande",
+];
 
 /**
  * LA COLONNE DE PÉRIMÈTRE PEUT ÊTRE NULLABLE, ET ALORS LA CLAUSE DOIT LE DIRE

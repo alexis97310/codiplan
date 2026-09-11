@@ -25,7 +25,11 @@ import {
   statutALaCreation,
   type Verdict,
 } from "./cycle-de-vie";
-import { verdictChevauchement, verdictOuverture, type Demande } from "./pose";
+import {
+  verdictChevauchement,
+  verdictOuverture,
+  type PoseDemandee,
+} from "./pose";
 import type {
   Annulation,
   Cloture,
@@ -314,7 +318,10 @@ function statutApresDeplacement(
  * `date_planifiee` est un JOUR stocké en `@db.Date`, donc à minuit UTC : le
  * lire dans le fuseau de l'agence le reculerait d'un cran sous UTC+11.
  */
-function demandeDeDeplacement(saisie: Deplacement, fuseau: string): Demande {
+function demandeDeDeplacement(
+  saisie: Deplacement,
+  fuseau: string,
+): PoseDemandee {
   const jour =
     saisie.date_planifiee === null
       ? null
@@ -355,7 +362,10 @@ async function verdictALaPose(
   interventionId: string,
   agenceId: string,
   saisie: Deplacement,
-): Promise<{ readonly verdict: Verdict; readonly demande: Demande | null }> {
+): Promise<{
+  readonly verdict: Verdict;
+  readonly demande: PoseDemandee | null;
+}> {
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
     select: {

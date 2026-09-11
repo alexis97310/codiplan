@@ -5,7 +5,7 @@ import { instantAMinutes, type JourLocal } from "@/lib/calendar/fuseau";
 import {
   verdictChevauchement,
   verdictOuverture,
-  type Demande,
+  type PoseDemandee,
   type Posee,
 } from "@/lib/interventions/pose";
 
@@ -41,7 +41,7 @@ const KONE: Parametrage = {
   ]),
 };
 
-const sansCreneau = (rang: number, technicienId = "t1"): Demande => ({
+const sansCreneau = (rang: number, technicienId = "t1"): PoseDemandee => ({
   datePlanifiee: jour(rang),
   creneauDebut: null,
   creneauFin: null,
@@ -53,7 +53,7 @@ const avecCreneau = (
   debutMinutes: number,
   dureeMin: number,
   technicienId = "t1",
-): Demande => ({
+): PoseDemandee => ({
   datePlanifiee: jour(rang),
   creneauDebut: instantAMinutes(jour(rang), debutMinutes, FUSEAU),
   creneauFin: instantAMinutes(jour(rang), debutMinutes + dureeMin, FUSEAU),
@@ -98,7 +98,7 @@ describe("le calendrier de l'agence visée décide (R2-19)", () => {
   it("laisse passer le RETRAIT du planning — on ne pose rien", () => {
     // Rendre une intervention à la file d'attente n'est pas une pose : aucun
     // calendrier n'a son mot à dire, pas même une agence qui n'en a pas.
-    const retrait: Demande = {
+    const retrait: PoseDemandee = {
       datePlanifiee: null,
       creneauDebut: null,
       creneauFin: null,

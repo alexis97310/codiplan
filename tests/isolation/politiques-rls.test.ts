@@ -160,6 +160,9 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect([...(parForme.get("parc") ?? [])].sort()).toEqual([
       "client",
       "contact",
+      // `demande` rejoint la forme « parc » au lot 2, par D102 — et c'est la
+      // seule de la liste où un compte de PORTAIL ÉCRIT (chapitre 9, P5).
+      "demande",
       // `intervention` rejoint la forme « parc » au lot 2, par D84 — l'arbitrage
       // que `TABLES_PARC` réclamait nommément depuis R0-a.
       "intervention",
@@ -167,6 +170,37 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
       "site",
     ]);
     expect(parForme.get("journal")).toEqual(["journal_audit"]);
+  });
+
+  it("ÉPREUVE : `demande` retombée en société SEULE est refusée (D102)", async () => {
+    // LA faute que la déclaration de `demande` dans `TABLES_PARC` existe pour
+    // arrêter, et elle se commet en SIMPLIFIANT : une session qui trouve la
+    // politique « compliquée » la remplace par la clause de société, qui est
+    // celle de toutes les autres tables du dépôt.
+    //
+    // *Mesuré avant la déclaration : la table portait déjà la forme « parc »,
+    // et le gardien était VERT — parce qu'une politique plus stricte satisfait
+    // l'attente « société ». Rien n'aurait donc signalé l'affaiblissement.*
+    // C'est le sens silencieux que R0-a nomme sur `TABLES_PARC` : le RETRAIT
+    // ouvre la brèche, pas l'addition.
+    const observation = await sousLaFaute([
+      `DROP POLICY "cloisonnement_parc" ON "demande"`,
+      `CREATE POLICY "cloisonnement_parc" ON "demande"
+         USING (${CLAUSE_SOCIETE}) WITH CHECK (${CLAUSE_SOCIETE})`,
+    ]);
+
+    // LA SONDE, avant l'assertion : la faute a-t-elle bien eu lieu ? Une
+    // politique inchangée ferait passer l'épreuve pour une preuve (§9, 30/08).
+    expect(clause(observation, "demande", "cloisonnement_parc")).not.toContain(
+      "app.client_id",
+    );
+
+    // Et le gardien la NOMME.
+    const surDemande = observation.ecarts.filter((ecart) =>
+      ecart.includes("« demande »"),
+    );
+    expect(surDemande.length).toBeGreaterThan(0);
+    expect(surDemande.join("\n")).toMatch(/client_id|périmètre|perimetre/i);
   });
 
   it("ÉPREUVE : la branche « sa propre ligne » sur une ÉCRITURE est refusée (D61)", async () => {

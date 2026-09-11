@@ -241,6 +241,23 @@ export const CONTRAT_PARC: readonly TableContrat[] = [
       "statut" text NOT NULL
     `,
   },
+  {
+    // **Née VRAIE table au ticket L2-06** (D102), comme les deux précédentes.
+    // Elle est la SEULE entrée de cette liste où un compte de PORTAIL ÉCRIT
+    // (chapitre 9, parcours P5) : la retirer ne ferait pas seulement fuir une
+    // lecture, elle laisserait un client déposer une demande chez un autre.
+    table: "demande",
+    lot: "L2-06",
+    colonneClient: "client_id",
+    colonneSite: "site_id",
+    colonnes: `
+      "id" uuid PRIMARY KEY,
+      "societe_id" uuid NOT NULL,
+      "client_id" uuid NOT NULL,
+      "site_id" uuid NOT NULL,
+      "statut" text NOT NULL
+    `,
+  },
 ] as const;
 
 /**
