@@ -459,7 +459,20 @@ export const fr = {
   "intervention.cloture.plancher": "Plancher d'une heure appliqué",
   "intervention.cloture.facture": "Temps facturé",
   "intervention.cloture.taux": "Taux horaire en vigueur à cette date",
+  "intervention.cloture.main_doeuvre": "Main-d'œuvre",
+  "intervention.cloture.forfait_deplacement": "Forfait de déplacement",
   "intervention.cloture.total": "Total hors taxes",
+  // UN TOTAL QU'ON NE SAIT PAS CALCULER SE DIT (L2-09a). *Zéro se lit
+  // « gratuit »*, et une absence d'information ne s'affiche jamais comme une
+  // réponse négative — c'est vrai d'un montant plus que de tout le reste.
+  "intervention.cloture.total_inconnu": "Sans information",
+  "intervention.cloture.total_motif": "Ce qui manque",
+  "intervention.total.forfait_de_prestation_absent":
+    "Le forfait de prestation de cette intervention n'est pas encore choisi : le catalogue ne le propose pas. Le total ne peut pas être calculé tant qu'il manque.",
+  "intervention.total.main_doeuvre_absente":
+    "Le temps réellement passé n'est pas saisi : la main-d'œuvre ne peut pas être calculée.",
+  "intervention.total.devises_incompatibles":
+    "Le forfait et la main-d'œuvre ne sont pas dans la même monnaie. Aucun total n'est calculé : une conversion ici fausserait le montant.",
   "intervention.cloture.explication":
     "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
 

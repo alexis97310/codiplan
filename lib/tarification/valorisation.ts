@@ -118,3 +118,168 @@ export function valoriserTempsPasse(
     mainDoeuvre: montant(valeur, tauxHoraire.devise),
   };
 }
+
+/**
+ * LE TOTAL HORS TAXES D'UNE INTERVENTION — la composition, enfin tranchée
+ * (L2-09a ; RG-TAR-05, D11, D77, RG-INT-07).
+ *
+ * ## Pourquoi cette fonction n'existait pas, et pourquoi elle existe
+ *
+ * L'en-tête ci-dessus l'écrivait : *« aucune fonction générale valoriser une
+ * intervention … la composition forfait + excédent n'est pas tranchée. »*
+ * **Elle l'est** — D77, le 09/09/2026 : *un forfait s'ajoute **toujours** au
+ * temps facturé ; il n'en absorbe jamais une partie.* La phrase d'origine est
+ * conservée en tête, comme le dépôt conserve ce qu'il barre : elle a gouverné
+ * ce module, et ce qui a été décidé un jour se relit.
+ *
+ * ## LES TROIS MODES SONT CEUX DE RG-TAR-05, ET RIEN D'AUTRE
+ *
+ * > *« Une intervention est valorisée **au forfait**, **au temps passé**, ou
+ * > **au forfait plus les heures excédentaires**. »*
+ *
+ * ## LE FORFAIT DE DÉPLACEMENT N'EST PAS UN MODE : IL S'AJOUTE TOUJOURS
+ *
+ * RG-INT-07 : *le déplacement se facture par un forfait conditionné par zone,
+ * un seul par intervention*, et le temps de trajet n'est **jamais** facturé à
+ * l'heure. Il ne dépend donc d'aucun mode — une intervention au temps passé le
+ * porte comme une intervention au forfait.
+ *
+ * *C'était le premier des deux défauts mesurés à L2-09a : il n'entrait dans
+ * AUCUN total, alors que `intervention.forfait_deplacement_id` le désignait
+ * depuis D84. L'écran affichait « Total hors taxes » sur la main-d'œuvre
+ * seule.*
+ *
+ * ## UN TOTAL QU'ON NE SAIT PAS CALCULER EST `null`, JAMAIS ZÉRO
+ *
+ * Rien ne sélectionne aujourd'hui de forfait de **prestation** — `forfaitRetenu`
+ * n'est appelé que pour le déplacement. Les modes qui en dépendent rendent donc
+ * un total **inconnu**.
+ *
+ * *C'était le second défaut : une intervention au forfait se clôturait à
+ * **zéro**.* Et zéro est une réponse — il dit « cela ne coûte rien » là où il
+ * faut lire « je ne sais pas encore ». **Une absence d'information ne s'affiche
+ * jamais comme une réponse négative**, et c'est vrai d'un montant plus que de
+ * tout le reste.
+ *
+ * ## CE QUI N'EST PAS ICI, ET QUI EST NOMMÉ
+ *
+ * **La majoration hors ouverture** (D12, +50 %, assiette main-d'œuvre seule).
+ * Son taux et son assiette sont écrits ; **la BASE de son prorata ne l'est
+ * pas**. *« Au prorata, quart d'heure par quart d'heure »* suppose que la durée
+ * facturée et le créneau coïncident — ils ne coïncident pas : la main-d'œuvre
+ * se calcule sur `temps_reel_min`, arrondi puis planché, et les minutes hors
+ * ouverture se lisent sur le créneau. Une intervention de 30 minutes dans un
+ * créneau de 16 h à 18 h, l'agence fermant à 17 h, se majore de 0 % ou de 50 %
+ * **selon la base retenue** — et cela change ce qu'un client paie. *Question
+ * portée à l'exploitation plutôt que tranchée en séance.*
+ */
+export type ModeDeValorisation =
+  "forfait" | "temps_passe" | "forfait_plus_heures";
+
+/** Ce qu'une valorisation d'intervention rend, décomposée pour être affichable. */
+export type ValorisationIntervention = {
+  readonly mode: ModeDeValorisation;
+  /** Le forfait de déplacement retenu, s'il y en a un (RG-INT-07). */
+  readonly forfaitDeplacement: Montant | null;
+  /** La main-d'œuvre, quand le mode en facture — `null` sinon. */
+  readonly mainDoeuvre: Montant | null;
+  /**
+   * Le total hors taxes, ou `null` quand il ne se calcule pas.
+   *
+   * **`null` n'est pas zéro**, et les deux ne se corrigent pas pareil : zéro
+   * dit « cela ne coûte rien », `null` dit « il manque quelque chose pour le
+   * savoir ». Le motif est alors nommé par {@link motifTotalInconnu}.
+   */
+  readonly totalHT: Montant | null;
+  /** Pourquoi le total est inconnu — clé de dictionnaire, ou `null`. */
+  readonly motifTotalInconnu: string | null;
+};
+
+/** Le mode facture-t-il de la main-d'œuvre à l'heure ? */
+function factureDesHeures(mode: ModeDeValorisation): boolean {
+  return mode === "temps_passe" || mode === "forfait_plus_heures";
+}
+
+/** Le mode exige-t-il un forfait de PRESTATION, que rien ne sait encore choisir ? */
+function exigeUnForfaitDePrestation(mode: ModeDeValorisation): boolean {
+  return mode === "forfait" || mode === "forfait_plus_heures";
+}
+
+/**
+ * Compose le total hors taxes d'une intervention, dans l'ordre de D11 :
+ * **forfaits applicables → heures → total HT**.
+ *
+ * La majoration n'y figure pas (voir l'en-tête). L'ordre est respecté même là
+ * où l'addition est commutative : *il fige la lecture*, et le jour où un terme
+ * dépendra d'un autre, la règle restera lisible au lieu de devenir ambiguë.
+ */
+export function valoriserIntervention(parametres: {
+  readonly mode: ModeDeValorisation;
+  readonly forfaitDeplacement: Montant | null;
+  readonly mainDoeuvre: Montant | null;
+}): ValorisationIntervention {
+  const { mode, forfaitDeplacement } = parametres;
+  const mainDoeuvre = factureDesHeures(parametres.mode)
+    ? parametres.mainDoeuvre
+    : null;
+
+  if (exigeUnForfaitDePrestation(mode)) {
+    // Rien ne sélectionne de forfait de prestation : le total est INCONNU, et
+    // il se dit. *Rendre le seul forfait de déplacement présenterait un total
+    // partiel comme un total.*
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      totalHT: null,
+      motifTotalInconnu: "intervention.total.forfait_de_prestation_absent",
+    };
+  }
+
+  if (mainDoeuvre === null) {
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      totalHT: null,
+      motifTotalInconnu: "intervention.total.main_doeuvre_absente",
+    };
+  }
+
+  if (forfaitDeplacement === null) {
+    // *Aucun forfait applicable : le déplacement n'est PAS facturé* (D11 le dit
+    // en toutes lettres). Ce n'est pas une absence d'information, c'est un
+    // prix — et le total vaut la main-d'œuvre seule.
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      totalHT: mainDoeuvre,
+      motifTotalInconnu: null,
+    };
+  }
+
+  if (forfaitDeplacement.devise !== mainDoeuvre.devise) {
+    // I2 : jamais de conversion ligne à ligne. Deux devises dans une même
+    // intervention est un état que rien ne devrait produire — la société n'en a
+    // qu'une — et l'additionner en silence fabriquerait un montant faux.
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      totalHT: null,
+      motifTotalInconnu: "intervention.total.devises_incompatibles",
+    };
+  }
+
+  return {
+    mode,
+    forfaitDeplacement,
+    mainDoeuvre,
+    totalHT: montant(
+      forfaitDeplacement.valeur + mainDoeuvre.valeur,
+      mainDoeuvre.devise,
+    ),
+    motifTotalInconnu: null,
+  };
+}

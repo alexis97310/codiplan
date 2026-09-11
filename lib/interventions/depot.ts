@@ -15,7 +15,11 @@ import { verdictAffectation } from "@/lib/habilitations/affectation";
 import { montant, type Montant } from "@/lib/money";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
-import { valoriserTempsPasse } from "@/lib/tarification/valorisation";
+import {
+  valoriserIntervention,
+  valoriserTempsPasse,
+  type ModeDeValorisation,
+} from "@/lib/tarification/valorisation";
 
 import {
   peutAffecter,
@@ -529,7 +533,40 @@ export async function deplacerIntervention(
   });
 }
 
-/** Ce que la clôture calcule et rend à l'écran, décomposé. */
+/**
+ * LE MONTANT D'UN FORFAIT, lu sous le contexte cloisonné.
+ *
+ * Rend `null` quand la ligne ne porte aucun forfait — *« en l'absence de
+ * forfait applicable, non facturé »* (D11) —, et `null` aussi quand le forfait
+ * désigné n'est pas lisible : **les deux se traitent pareil parce qu'ils
+ * signifient la même chose pour le total**, et les distinguer ici ferait un
+ * oracle sur ce que le contexte a le droit de lire (D50).
+ */
+async function montantDuForfait(
+  tx: Prisma.TransactionClient,
+  forfaitId: string | null,
+): Promise<Montant | null> {
+  if (forfaitId === null) {
+    return null;
+  }
+  const forfait = await tx.forfait.findFirst({
+    where: { id: forfaitId },
+    select: { montant_mineur: true, devise_code: true },
+  });
+  return forfait === null
+    ? null
+    : montant(forfait.montant_mineur, forfait.devise_code);
+}
+
+/**
+ * Ce que la clôture calcule et rend à l'écran, décomposé.
+ *
+ * **`totalHT` est NULLABLE depuis L2-09a, et c'est le ticket** : une
+ * intervention au forfait se clôturait à `montant(0)`, ce qui se lit
+ * « gratuit » là où il faut lire « je ne sais pas encore » — *rien ne
+ * sélectionne de forfait de prestation.* Le motif l'accompagne, sans quoi un
+ * `null` serait aussi muet que le zéro qu'il remplace.
+ */
 export type ResultatCloture = {
   readonly ligne: LigneIntervention;
   readonly minutesReelles: number;
@@ -537,7 +574,14 @@ export type ResultatCloture = {
   readonly minutesFacturees: number;
   readonly plancherApplique: boolean;
   readonly tauxHoraire: Montant;
-  readonly totalHT: Montant;
+  /** Le forfait de déplacement retenu, s'il y en a un (RG-INT-07). */
+  readonly forfaitDeplacement: Montant | null;
+  /** La main-d'œuvre, quand le mode en facture. */
+  readonly mainDoeuvre: Montant | null;
+  /** `null` quand le total ne se calcule pas — jamais zéro. */
+  readonly totalHT: Montant | null;
+  /** Clé de dictionnaire expliquant un total inconnu, ou `null`. */
+  readonly motifTotalInconnu: string | null;
 };
 
 /**
@@ -554,64 +598,90 @@ export type ResultatCloture = {
 export async function cloturerIntervention(
   contexte: ContexteSession,
   saisie: Cloture,
+  client?: PrismaClient,
 ): Promise<Resultat<ResultatCloture>> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const ligne = await tx.intervention.findFirst({
-      where: { id: saisie.intervention_id },
-      select: {
-        id: true,
-        statut: true,
-        agence_id: true,
-        date_planifiee: true,
-        mode_valorisation: true,
-      },
-    });
-    if (ligne === null) {
-      return { accepte: false, cle: "intervention.refus.inconnue" };
-    }
-    const barriere = refus<ResultatCloture>(
-      peutCloturer(ligne.statut as StatutIntervention, saisie.temps_reel_min),
-    );
-    if (barriere !== null) {
-      return barriere;
-    }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: saisie.intervention_id },
+        select: {
+          id: true,
+          statut: true,
+          agence_id: true,
+          date_planifiee: true,
+          mode_valorisation: true,
+          forfait_deplacement_id: true,
+        },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<ResultatCloture>(
+        peutCloturer(ligne.statut as StatutIntervention, saisie.temps_reel_min),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
 
-    const instant = await instantDeLAgence(tx, ligne.agence_id);
-    const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
-    if (taux === null) {
-      return { accepte: false, cle: "intervention.refus.taux_absent" };
-    }
+      const instant = await instantDeLAgence(tx, ligne.agence_id);
+      const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
+      if (taux === null) {
+        return { accepte: false, cle: "intervention.refus.taux_absent" };
+      }
 
-    const valorisation = valoriserTempsPasse(saisie.temps_reel_min, taux.taux);
-    const auTemps = ligne.mode_valorisation !== "forfait";
+      const valorisation = valoriserTempsPasse(
+        saisie.temps_reel_min,
+        taux.taux,
+      );
 
-    const misAJour = await tx.intervention.update({
-      where: { id: saisie.intervention_id },
-      data: {
-        statut: "cloturee",
-        temps_reel_min: saisie.temps_reel_min,
-        cloturee_le: instant,
-        montant_ht: auTemps ? valorisation.mainDoeuvre.valeur : null,
-        devise_code: auTemps ? valorisation.mainDoeuvre.devise : null,
-      },
-      select: CHAMPS_LIGNE,
-    });
+      // LE FORFAIT DE DÉPLACEMENT ENTRE DANS LE TOTAL (L2-09a, RG-INT-07, D77).
+      // *Il était désigné par la ligne depuis D84 et n'entrait dans aucun total :
+      // l'écran affichait « Total hors taxes » sur la main-d'œuvre seule.*
+      const forfaitDeplacement = await montantDuForfait(
+        tx,
+        ligne.forfait_deplacement_id,
+      );
 
-    return {
-      accepte: true,
-      fiche: {
-        ligne: misAJour,
-        minutesReelles: valorisation.minutesReelles,
-        minutesArrondies: valorisation.minutesArrondies,
-        minutesFacturees: valorisation.minutesFacturees,
-        plancherApplique: valorisation.plancherApplique,
-        tauxHoraire: taux.taux,
-        totalHT: auTemps
-          ? valorisation.mainDoeuvre
-          : montant(0, taux.taux.devise),
-      },
-    };
-  });
+      const composition = valoriserIntervention({
+        mode: ligne.mode_valorisation as ModeDeValorisation,
+        forfaitDeplacement,
+        mainDoeuvre: valorisation.mainDoeuvre,
+      });
+
+      const misAJour = await tx.intervention.update({
+        where: { id: saisie.intervention_id },
+        data: {
+          statut: "cloturee",
+          temps_reel_min: saisie.temps_reel_min,
+          cloturee_le: instant,
+          // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
+          // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
+          // à la place d'une absence.
+          montant_ht: composition.totalHT?.valeur ?? null,
+          devise_code: composition.totalHT?.devise ?? null,
+        },
+        select: CHAMPS_LIGNE,
+      });
+
+      return {
+        accepte: true,
+        fiche: {
+          ligne: misAJour,
+          minutesReelles: valorisation.minutesReelles,
+          minutesArrondies: valorisation.minutesArrondies,
+          minutesFacturees: valorisation.minutesFacturees,
+          plancherApplique: valorisation.plancherApplique,
+          tauxHoraire: taux.taux,
+          forfaitDeplacement: composition.forfaitDeplacement,
+          mainDoeuvre: composition.mainDoeuvre,
+          totalHT: composition.totalHT,
+          motifTotalInconnu: composition.motifTotalInconnu,
+        },
+      };
+    },
+    client,
+  );
 }
 
 /**
@@ -747,13 +817,29 @@ export async function lireFicheIntervention(
       const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
       if (taux !== null) {
         const v = valoriserTempsPasse(brute.temps_reel_min, taux.taux);
+        // LA MÊME COMPOSITION QUE LA CLÔTURE, et c'est délibéré : l'écran ne
+        // recalcule pas un total avec sa propre règle. *Deux lectures d'un même
+        // critère divergent en silence* (§9, 01/09) — ici l'une figerait le
+        // montant en base et l'autre l'afficherait, et le jour où elles
+        // s'écarteraient c'est l'écran qui aurait l'air d'avoir raison.
+        const composition = valoriserIntervention({
+          mode: brute.mode_valorisation as ModeDeValorisation,
+          forfaitDeplacement: await montantDuForfait(
+            tx,
+            brute.forfait_deplacement_id,
+          ),
+          mainDoeuvre: v.mainDoeuvre,
+        });
         valorisation = {
           minutesReelles: v.minutesReelles,
           minutesArrondies: v.minutesArrondies,
           minutesFacturees: v.minutesFacturees,
           plancherApplique: v.plancherApplique,
           tauxHoraire: v.tauxHoraire,
-          mainDoeuvre: v.mainDoeuvre,
+          mainDoeuvre: composition.mainDoeuvre,
+          forfaitDeplacement: composition.forfaitDeplacement,
+          totalHT: composition.totalHT,
+          motifTotalInconnu: composition.motifTotalInconnu,
         };
       }
     }
@@ -770,14 +856,24 @@ export async function lireFicheIntervention(
   });
 }
 
-/** Ce que l'écran affiche du calcul de D83, sans le refaire. */
+/**
+ * Ce que l'écran affiche du calcul de D83 **et de la composition de L2-09a**,
+ * sans refaire ni l'un ni l'autre.
+ *
+ * *L'écran affichait « Total hors taxes » sur la main-d'œuvre seule, le forfait
+ * de déplacement n'entrant dans aucun total.* Il porte désormais les deux
+ * lignes et un total qui peut être **inconnu** — jamais nul.
+ */
 export type ValorisationAffichee = {
   readonly minutesReelles: number;
   readonly minutesArrondies: number;
   readonly minutesFacturees: number;
   readonly plancherApplique: boolean;
   readonly tauxHoraire: Montant;
-  readonly mainDoeuvre: Montant;
+  readonly mainDoeuvre: Montant | null;
+  readonly forfaitDeplacement: Montant | null;
+  readonly totalHT: Montant | null;
+  readonly motifTotalInconnu: string | null;
 };
 
 /**
