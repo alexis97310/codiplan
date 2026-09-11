@@ -605,6 +605,25 @@ lib/
               c'est celle qui vieillit sans rougir
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
+  compteurs/  LES RELEVÉS, RÉORDONNÉS PAR LE TERRAIN (L2-03, question 3.12)
+              regression.ts : l'ordre d'arrivée n'est PAS l'ordre des faits —
+              un relevé fait à 8 h sans réseau arrive après un relevé de 10 h,
+              et contrôler à l'arrivée signalerait une régression là où il n'y
+              en a aucune, sans voir celle qui est là
+              un relevé qui régresse est CONSERVÉ et SIGNALÉ, jamais refusé :
+              I5 — le travail terrain n'est jamais perdu — et un compteur
+              REMPLACÉ repart de zéro ; refuser rendrait impossible de saisir
+              le premier relevé d'un compteur neuf, c'est-à-dire de dire vrai
+              chaque couple (machine, type) est une SUITE À PART : les mélanger
+              ferait de chaque nouvelle machine une régression
+              le verdict est rendu pour TOUS les relevés, anomalie ou non —
+              sinon « aucune anomalie » et « rien n'a été contrôlé » se lisent
+              pareil
+              à horodatage ÉGAL, l'ordre est celui de l'UUID v7 (I10), donc du
+              temps de saisie : un tri instable rendrait le verdict dépendant
+              de l'ordre d'arrivée, ce que 3.12 refuse
+              aucune base ici : l'appelant seul sait sous quel contexte
+              cloisonné il a lu ses relevés
   calendar/   calendriers d'agence, fériés, jours ouvrés — répond à « quand »
               fuseaux IANA, instants UTC, récurrences déroulées à la lecture
               territoire ISO et fuseau : deux attributs de l'agence, jamais

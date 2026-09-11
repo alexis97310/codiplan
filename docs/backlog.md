@@ -420,8 +420,10 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Relu contre les sources citées le 11/09/2026 — empreinte `741868f5`.*
 
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
-*File :* LIBRE
-**CE QUI RESTE, au 11/09/2026 :** le gabarit **prestations** et le **téléchargement**.
+*File :* BLOQUÉ — deux motifs distincts : la table `prestation` n'existe pas et son « taux applicable » touche l'argent facturé (issue #127) ; et le téléchargement n'aurait AUCUN appelant avant l'écran d'import (L1-11).
+**QUATRE GABARITS SUR CINQ SONT LIVRÉS** — clients (L1-09a), contacts (L1-09b), sites (L1-09c), modèles (L1-09d). *Ce ticket ne reste ouvert que pour les deux moitiés qui ne sont pas des tickets.*
+**PRESTATIONS — la table n'existe pas, et sa forme touche l'ARGENT.** Le §4.3 la décrit avec un **« taux applicable »** ; un catalogue qui porte un prix est un second endroit où un prix est écrit, et il faudrait dire lequel gagne quand les deux existent — *sans quoi une facture de l'an dernier changerait le jour où quelqu'un corrige le catalogue.* C'est le §1 du protocole de session : **l'argent facturé appartient à Alexis.** Ticket d'arbitrage ouvert (#127), avec trois issues chiffrées.
+**TÉLÉCHARGEMENT — il n'a aucun appelant.** Il exige une bibliothèque d'**écriture** `.xlsx` (`read-excel-file` lit et n'écrit pas, D90 ; le §2 interdit le CSV), et *un gabarit téléchargeable sans écran d'où le télécharger est une interface sans appelant* — la maladie que le portail a soignée et que le lot 8 a refusé de recommencer. **Il vient avec L1-11**, l'écran d'import, et pas avant.
 **LE MÉCANISME EXISTE (L1-09b) ET LES RÈGLES DE RAPPROCHEMENT AUSSI (D101, L1-09c).** Ce qui reste aux deux derniers gabarits est d'une autre nature, et **c'est MESURÉ au schéma** :
 | | Ce que le schéma porte | Ce qui manque |
 |---|---|---|
@@ -431,7 +433,11 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Le TÉLÉCHARGEMENT exige une bibliothèque d'ÉCRITURE `.xlsx`** — `read-excel-file` lit et n'écrit pas (D90), et le §2 interdit le CSV. *C'est une dépendance, donc une décision, et elle ne se prend pas en passant.*
 *Relu contre les sources citées le 11/09/2026 — empreinte `5adbee82`.*
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
-*File :* LIBRE
+*File :* BLOQUÉ — les colonnes du fichier réel ne sont pas dans le dépôt, et la fixture en a été vidée (I9). Mesuré le 11/09/2026.
+**LA MESURE, plutôt qu'une supposition.** `tests/fixtures/dates-excel.xlsx` a été *« tirée PAR RETRAIT »* du fichier de l'exploitation (D90) : elle porte la **structure** — cinq feuilles, dont « 3-Parc machines » à **293 lignes sur 22 colonnes** — et **aucune cellule**. *Lu par `lireClasseur` : **0 ligne portant au moins une cellule sur 293**.* Les en-têtes sont partis avec les données, ce qui est exactement ce que I9 demande.
+**CE QUI SÉPARE CE TICKET DE L1-09**, et la distinction est celle de L1-09a : un **gabarit** que CODIPLAN publie tient ses colonnes de NOS schémas — on peut l'écrire. Un fichier de **reprise** tient les siennes du fichier du client, *et les inventer ferait un lecteur qui ne lit rien.*
+**CE QU'IL FAUDRAIT POUR LE DÉBLOQUER**, et c'est peu : **la ligne d'en-têtes** des feuilles « 3-Parc machines » et « 1-Demandes SAV » — 22 et 16 noms de colonnes. *Ce ne sont pas des données client ; elles peuvent entrer au dépôt sans enfreindre I9.* Le reste est construit : la grammaire, le classeur, le rapprochement, le rapport, l'application et l'annulation.
+*Relu contre les sources citées le 11/09/2026 — empreinte `844fc8ec`.*
 
 ---
 
@@ -456,7 +462,11 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **CE QUI RESTE :** l'**impression** des planches attend une décision d'exploitation — planches autocollantes standard ou imprimante portable dédiée —, qui est la **question ouverte n° 6** du cahier des charges. Ce n'est pas un format à choisir mais un fait de terrain à constater. La GÉNÉRATION, elle, est livrée.
 *Relu contre les sources citées le 10/09/2026 — empreinte `01b2854a`.*
 **L2-03** Compteurs — non-régression après réordonnancement par `horodatage_terrain` [3.12].
-*File :* LIBRE
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026** — la RÈGLE, en pur, sans base. *L'ordre d'arrivée n'est pas l'ordre des faits* : un technicien relève un compteur à 8 h dans un atelier sans réseau, un autre à 10 h dans un atelier couvert, et le second arrive le premier. **Contrôler dans l'ordre d'arrivée signalerait une régression là où il n'y en a aucune — et n'en verrait pas une là où elle est.** Les deux moitiés sont mesurées.
+**CE QUE 3.12 NE DIT PAS, ET QUI EST TRANCHÉ ICI :** elle dit qu'un contrôle s'applique, **pas ce qu'il fait d'un relevé qui régresse**. *Il est CONSERVÉ et SIGNALÉ*, pour deux raisons qui se renforcent — I5, *le travail terrain n'est jamais perdu* ; et le métier, **un compteur remplacé repart de zéro**, si bien que *refuser la régression rendrait impossible de saisir le premier relevé d'un compteur neuf, c'est-à-dire de dire la vérité.* **Le coût est nommé** : une anomalie signalée réclame un œil ; refuser aurait coûté la donnée, ce qui est pire et irréversible.
+**CE QUI RESTE, et c'est un AUTRE ticket :** la table `compteur_releve` (chapitre 11) et son écriture. *Une table sans appelant est la maladie que ce dépôt soigne* — elle viendra avec ce qui la remplit : la saisie à l'intervention, ou la synchronisation du lot 3. La règle, elle, sera prête.
+*Acceptation :* deux relevés arrivés à l'envers ne régressent pas ; une vraie régression est vue même arrivée dans le bon ordre ; à horodatage égal l'ordre est STABLE ; deux machines et deux types ne se comparent pas, **mais deux relevés de la même suite si** ; rien n'est jeté ; un verdict est rendu pour tous.
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
 *File :* LIBRE
 **UN RENDEZ-VOUS PLUTÔT QU'UNE EMBUSCADE, posé le 11/09/2026 avec ses mesures.** Le chapitre 11 décrit `document` comme une **entité polymorphe** rattachée à machine, contrat, client **ou** intervention. C'est la classe exacte de `perimetre_sites uuid[]` (D79) : *une forme que la base ne sait pas contraindre*. Trois formes mesurées sur PostgreSQL 16, base jetable :
