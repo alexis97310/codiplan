@@ -10,6 +10,7 @@ import {
 import {
   CLIENT_A1,
   LIGNE_LOT_A,
+  LIGNE_LOT_B,
   LOT_A,
   LOT_B,
   SERIE_DANS_LE_LOT_A,
@@ -74,29 +75,47 @@ describe("le TÉMOIN PRÉALABLE — les politiques sont en vigueur et elles mord
     expect(vus).toEqual([]);
     // Zéro contre zéro n'est pas un résultat, c'est une absence de mesure
     // (§9, 10/09). Le décompte réel est lu sous le propriétaire.
+    //
+    // **Il est MINORÉ et non exact**, et c'est une réparation : *d'autres
+    // fichiers de ce répertoire écrivent de vrais lots par le chemin de
+    // production* — `chaine-import` et `application-import` —, et vitest ne
+    // garantit pas leur ordre. Un décompte exact faisait de ce témoin une
+    // assertion sur l'ORDRE D'EXÉCUTION, c'est-à-dire un rouge qui ne parle
+    // pas du cloisonnement. Ce qu'il doit dire est « la table n'est pas
+    // vide », et il le dit.
     const [reel] = await observerSousProprietaire(
       "compter les lots réellement présents.",
     ).$queryRawUnsafe<Array<{ n: bigint }>>(
       `SELECT count(*) AS "n" FROM "import_lot"`,
     );
-    expect(Number(reel?.n)).toBe(2);
+    expect(Number(reel?.n)).toBeGreaterThanOrEqual(2);
   });
 });
 
 describe("LA FORME « INTERNE » sur les deux tables", () => {
-  it("un utilisateur interne lit les lots de SA société, et eux seuls", async () => {
+  // **Les assertions portent sur les FIXTURES NOMMÉES, jamais sur le contenu
+  // entier de la table.** D'autres fichiers de ce répertoire y écrivent de
+  // vrais lots par le chemin de production, et vitest ne garantit pas l'ordre :
+  // une liste exacte mesurerait alors l'ordre d'exécution plutôt que le
+  // cloisonnement. *Ce qui doit être vrai est « je vois la mienne, je ne vois
+  // pas la sienne », et cela se dit sans compter le reste.*
+
+  it("un utilisateur interne lit le lot de SA société, et pas celui de l'autre", async () => {
     const vus = await sousSociete(SOCIETE_A, (tx) =>
       tx.importLot.findMany({ select: { id: true } }),
     );
-    expect(vus.map((l) => l.id)).toEqual([LOT_A]);
-    expect(vus.map((l) => l.id)).not.toContain(LOT_B);
+    const ids = vus.map((l) => l.id);
+    expect(ids).toContain(LOT_A);
+    expect(ids).not.toContain(LOT_B);
   });
 
-  it("un utilisateur interne lit les LIGNES de SA société, et elles seules", async () => {
+  it("un utilisateur interne lit les LIGNES de SA société, et pas celles de l'autre", async () => {
     const vues = await sousSociete(SOCIETE_A, (tx) =>
       tx.importLotLigne.findMany({ select: { id: true } }),
     );
-    expect(vues.map((l) => l.id)).toEqual([LIGNE_LOT_A]);
+    const ids = vues.map((l) => l.id);
+    expect(ids).toContain(LIGNE_LOT_A);
+    expect(ids).not.toContain(LIGNE_LOT_B);
   });
 
   it("un compte portail n'en lit RIEN — ni le lot, ni ses lignes", async () => {

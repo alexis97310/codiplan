@@ -105,6 +105,13 @@ function enLigneDeBase(
     // propriété, dans les deux sens.
     cle: ligne.cle?.cle ?? null,
     complete: ligne.cle === undefined ? null : ligne.cle.complet,
+    // **LE MOTIF SUIT LE REJET, et la base tient l'équivalence dans les deux
+    // sens** (L1-08e). *Cette ligne manquait, et c'est la CONTRAINTE qui l'a
+    // dit* — `import_lot_ligne_rejet_a_son_motif`, code 23514, sur le premier
+    // rejet réellement enregistré. Le rapport portait le motif depuis L1-08h ;
+    // l'enregistrement le jetait, et aucun test ne pouvait le voir avant qu'un
+    // rejet traverse la chaîne entière.
+    rejet_motif: ligne.rejetMotif ?? null,
     valeurs: ligne.valeurs as Prisma.InputJsonValue,
   };
 }

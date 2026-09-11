@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { schemaCreationClient } from "@/lib/clients/saisie";
-import { controlerFeuille } from "@/lib/excel/controle";
+import { controlerFeuille, MOTIF_AMBIGUITE } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import {
   CHAMPS_CLIENTS,
@@ -9,6 +9,8 @@ import {
   COLONNES_CLIENTS,
   MODELE_CLIENTS,
   marqueurDu,
+  MOTIF_SAISIE_REFUSEE,
+  saisieDepuisLaLigne,
 } from "@/lib/imports/modeles";
 
 /**
@@ -165,5 +167,81 @@ describe("le gabarit se lit par la chaîne réelle", () => {
     };
     const controle = controlerFeuille(feuille, MODELE_CLIENTS, parc());
     expect(controle.lisible).toBe(false);
+  });
+});
+
+describe("le rapport montre ce que la saisie REFUSERA (L1-08h)", () => {
+  function feuilleDe(lignes: readonly (readonly string[])[]): FeuilleLue {
+    return {
+      nom: "Clients",
+      lignes: [
+        [{ texte: marqueurDu(MODELE_CLIENTS) }],
+        MODELE_CLIENTS.colonnes.map((colonne) => ({ texte: colonne.nom })),
+        ...lignes.map((ligne) => ligne.map((valeur) => ({ texte: valeur }))),
+      ],
+    };
+  }
+
+  it("une raison sociale VIDE est rejetée par le RAPPORT, pas par l'application", () => {
+    // I6 : un import produit d'abord un rapport, PUIS attend une validation
+    // explicite. *Une ligne que la saisie refusera et que le rapport annonce en
+    // création est un rapport qui ment* — on valide 300 créations, on en obtient
+    // 297, et les trois manquantes ne se découvrent qu'après coup.
+    const controle = controlerFeuille(
+      feuilleDe([["C-777", "   "]]),
+      MODELE_CLIENTS,
+      parc(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+
+    expect(controle.lignes[0]?.action).toBe("rejet");
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_SAISIE_REFUSEE);
+    expect(controle.proposition.rejets).toBe(1);
+    expect(controle.proposition.creations).toBe(0);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA RAISON — une ligne saine passe", () => {
+    // §9 (11/09). Sans lui, une validation qui refuserait TOUT passerait le
+    // scénario ci-dessus, et le gabarit serait inutilisable sans que rien ne
+    // le dise.
+    const controle = controlerFeuille(
+      feuilleDe([["C-778", "Garage Tout Neuf"]]),
+      MODELE_CLIENTS,
+      parc(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    expect(controle.lignes[0]?.rejetMotif).toBeUndefined();
+  });
+
+  it("l'AMBIGUÏTÉ passe avant la saisie, et l'ordre se lit", () => {
+    // Une ligne indécidable ne vaut pas la peine d'être validée : rendre le
+    // motif de saisie ferait chercher une correction dans le FICHIER là où le
+    // problème est dans le PARC.
+    const controle = controlerFeuille(
+      feuilleDe([["C-999", "   "]]),
+      MODELE_CLIENTS,
+      parc(["C-999"], ["C-999"]),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_AMBIGUITE);
+  });
+
+  it("une ligne traduite ne porte AUCUNE chaîne vide", () => {
+    // Les cellules vides n'apparaissent pas : c'est le schéma qui pose ses
+    // défauts. Une chaîne vide dans `raison_sociale` la ferait refuser pour
+    // une autre raison que la bonne, et l'auteur chercherait longtemps.
+    const saisie = saisieDepuisLaLigne(
+      {
+        [COLONNES_CLIENTS.codeExterne]: "  ",
+        [COLONNES_CLIENTS.raisonSociale]: "  Garage  ",
+        [COLONNES_CLIENTS.ridet]: undefined,
+      },
+      CHAMPS_CLIENTS,
+    );
+    expect(saisie).toEqual({ raison_sociale: "Garage" });
   });
 });

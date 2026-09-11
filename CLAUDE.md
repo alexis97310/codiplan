@@ -750,6 +750,23 @@ lib/
               `actif` n'est PAS filtré : un client désactivé occupe toujours son
               code, et l'ignorer ferait qu'un import le recrée — un refus
               technique à la place d'un rapprochement
+              application.ts : LA SECONDE MOITIÉ DE I6 (L1-08i) — elle
+              n'applique QUE ce que le rapport a montré, et ne redécide RIEN :
+              elle lit `import_lot_ligne.action` et l'exécute
+              si elle recalculait, la validation humaine aurait porté sur un
+              écran et l'écriture sur autre chose
+              UNE SEULE TRANSACTION : une écriture par ligne laisserait, au
+              premier incident, un lot « contrôlé » dont la moitié des fiches
+              existe — un état que rien ne décrit et que l'annulation ne
+              saurait pas défaire
+              `valeurs_avant` se lit AVANT d'écrire : après, il est trop tard,
+              et le journal d'audit porterait la seule trace — sur une table
+              qu'aucune annulation ne lit
+              le TYPE est dans le NOM (`…DeClients`) : une fonction « applique
+              n'importe quel lot » tiendrait une liste close de plus, à la main,
+              que le prochain type oublierait
+              un lot introuvable et un lot d'une autre société rendent LE MÊME
+              refus — les distinguer ferait un oracle (D35, D50)
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société
