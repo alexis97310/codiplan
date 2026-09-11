@@ -3165,3 +3165,145 @@ Or **une table de forme « société » est lisible par un compte portail** : sa
 *Le jour où un écran devra s'écarter de la maquette, l'écart s'écrit avec sa mesure et le point précis où la maquette est muette — jamais « la maquette ne prévoyait pas ce cas ».* Et le jour où un second thème existe, le sélecteur devient dû : un thème que personne ne peut choisir est un thème que personne ne verra.
 
 *Aucune règle du chapitre 10 n'est amendée. L'annexe D est CONSERVÉE, dans ses huit lignes ; ce qui change est la manière de les écrire.*
+
+---
+
+## D96 — LE LIEN D'INVITATION AU PORTAIL : une porte DISTINCTE de celle du premier compte interne
+
+*Arbitrage rendu par l'exploitation le 11/09/2026, en réponse au ticket ouvert le même jour — « Aucun client ne peut se connecter au portail — par quel canal reçoit-il son premier accès ? ». Inscrit ici par la session de nuit du 11/09.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**Aucun client ne peut se connecter au portail aujourd'hui, et les trois moitiés du constat se lisent dans trois fichiers.**
+
+- **D10 veut les deux tables exclusives** : un compte de portail n'a **aucune** ligne dans `utilisateur_societe` ; son rattachement vit dans `utilisateur_client`, et D92 a ouvert la politique qui le lui rend lisible sans société active.
+- **Le seul dispositif d'ouverture de compte du dépôt exige précisément cette ligne.** `lib/auth/amorcage.ts` réclame une société (`demande.societeId`) et crée l'habilitation (`tx.utilisateurSociete.create`) — *mesuré en lisant le fichier le 11/09/2026.* Ce qu'il ouvre est donc un compte **interne**, par construction.
+- **L'enrôlement n'est pas une porte** : `lib/auth/enrolement.ts` est la seule transition en libre-service (D58), et elle POSE un second facteur sur un compte qui existe déjà. Elle ne crée aucun compte et ne pose aucun rattachement.
+
+*La boucle que D92 avait fermée côté lecture restait donc ouverte côté ENTRÉE : la politique était juste, l'écran existait depuis L2-12, et il n'y avait personne pour les franchir.* C'est la maladie du §6 sous sa forme la plus complète — non plus une interface sans appelant, mais un produit entier sans utilisateur possible.
+
+### LA DÉCISION
+
+**1. Le lien d'invitation est une porte DISTINCTE de celle du premier compte interne.** Il n'exige **aucune** habilitation de société, et il **porte lui-même le rattachement au client** — et, le cas échéant, le périmètre de sites que ce rattachement restreint. *Réutiliser l'amorçage aurait obligé à donner une habilitation de société à un compte de portail, c'est-à-dire à défaire D10 pour ouvrir une porte.*
+
+**2. Personne ne s'inscrit seul.** Les clients sont des garages professionnels que l'agence connaît ; l'invitation part du **back-office**, jamais d'un formulaire public. Il n'existe donc aucune route d'inscription ouverte, et l'inscription fermée de `lib/auth/inscription-fermee.ts` reste la règle.
+
+**3. Quatre exigences, et elles sont tenues par la BASE, jamais par l'écran** : **usage unique**, **durée limitée**, **révocable**, **tracé** — qui a invité qui, quand. *Un lien d'invitation est un matériau d'authentification : il se range comme tel (I1, troisième catégorie), et « l'écran ne le propose qu'une fois » n'est pas un usage unique.*
+
+**4. V1 : le lien est ENGENDRÉ dans le back-office, et l'agence le transmet par ses propres moyens.**
+
+### CE QUI N'EST PAS CONSTRUIT, ET LA RAISON EST MESURÉE
+
+**L'ENVOI.** Le §2 nomme Resend, et **aucun expéditeur n'est configuré** : poser la clé est un geste hors du dépôt, donc un cas d'arrêt (§2 du protocole de session). *Une fonction d'envoi sans expéditeur est une promesse vide* — et elle est pire qu'une interface sans appelant, puisqu'elle a un appelant : elle échoue **en production**, à l'instant où une agence croit avoir invité un client.
+
+### LE COÛT, NOMMÉ
+
+**Un lien transmis hors bande ne prouve pas l'adresse de son destinataire.** Le lien vaut donc pour **qui le reçoit**, et c'est l'agence qui répond de la transmission. C'est exactement le régime du lien de premier accès interne, assumé pour la même raison et avec la même conséquence : *un lien d'invitation se traite comme un mot de passe tant qu'il n'a pas été consommé.* La durée limitée et la révocation sont ce qui borne ce coût ; elles ne le suppriment pas.
+
+### CE QUE CETTE DÉCISION LAISSE À LA SESSION, ET CE N'EST PAS UN OUBLI
+
+Le ticket d'arbitrage posait une seconde question — *« qui, chez CODIMA, a le droit d'ouvrir un accès à un client ? »* —, et la réponse rendue n'en dit qu'une moitié : **le back-office**, jamais un formulaire public. **Le RÔLE exact relève de la session** : il ne touche ni l'argent facturé, ni une obligation légale, ni ce qu'un client voit (§1 du protocole), et la matrice du §5.2 du cahier des charges le décide déjà pour les actes voisins. *Ce qui est tranché ici est qu'une invitation est un acte d'AGENCE, pas un acte de client ; lequel de ses rôles le porte est une question de matrice.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où un expéditeur de courriel est configuré — une clé Resend présente dans l'environnement de production —, **l'envoi devient dû** et le lien cesse d'être transmis à la main.* Et une seconde, distincte : *le jour où un client devra inviter lui-même ses propres collaborateurs*, la délégation se rouvre — elle n'est pas tranchée ici, et la décision ci-dessus ne la préjuge pas : elle dit qui invite aujourd'hui, pas qui pourra inviter demain.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-DRO-01 borne ce qu'un client voit, jamais la façon dont il reçoit son accès.*
+
+---
+
+## D97 — LE PORTAIL A SA PROPRE BARRE, et elle ne porte que ce qui existe et appartient au client
+
+*Arbitrage rendu par l'exploitation le 11/09/2026 sur le ticket R2-17, qui était bloqué depuis sa mesure : la barre touche **ce qu'un client voit**, et c'est l'un des trois domaines réservés du §1 du protocole de session.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`app/(portail)/portail` recevait la barre à onze entrées **du back-office** — celle que D95 confronte à la maquette, laquelle est une maquette de back-office : « Planning », « Techniciens », « Facturation », « Paramètres ». *Ce n'est pas une fuite de cloisonnement* : aucune entrée ne mène à une route servie, et une entrée inerte n'est pas un lien (D95). **C'est une fuite de LECTURE**, et elle est vue par un client.
+
+### LA DÉCISION
+
+**Le portail a SA barre, jamais celle du back-office.** Elle ne porte que **ce qui existe** et **ce qui appartient au client**.
+
+Le motif est écrit pour être relu : *un client qui lit « Facturation » ou « Techniciens » au-dessus de son espace apprend l'existence d'un outil qui n'est pas le sien.* C'est la règle du §2 de la doctrine — **une fuite par déduction est une fuite** — appliquée non plus à un compteur mais à un **libellé**. Une entrée de menu n'a besoin d'aucune donnée derrière elle pour renseigner : elle renseigne par son existence.
+
+**Les deux issues écartées, avec ce qu'elles coûtaient.** *Pas de barre du tout* : le moins cher, et le portail perd son point de retour — un client qui ouvre une fiche n'a plus de chemin vers sa liste. *Ne rien changer tant qu'aucun client ne voit le portail* : gratuit aujourd'hui, et c'est **exactement** le raisonnement qui a laissé onze entrées au-dessus de l'écran de connexion jusqu'à R2-16.
+
+**Et la règle de composition est celle de R2-16, sans exception nouvelle** : la barre est rendue par la **mise en page du segment**, jamais par une liste de chemins tenue à la main. Le segment `(portail)` rend la sienne comme `(back-office)` rend la sienne. *Une liste de chemins oublierait le prochain écran ; un répertoire ne s'oublie pas.*
+
+**Ce que cette barre n'est pas, et ce point ne s'assouplit jamais : un contrôle d'accès.** Masquer une entrée serait une seconde lecture d'un critère que la politique porte déjà — et c'est celle qui vieillit sans rougir. Ce qui protège le parc d'un client est la forme « parc » et la forme « rattachement », pas l'absence d'un lien.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où une maquette de portail existe*, elle fait foi sur cette barre comme la maquette de back-office fait foi sur l'autre (D95), et les entrées retenues ici se confrontent à elle. En attendant, **chaque entrée du portail s'adosse à un écran servi** : une entrée inerte est admise dans une barre que la maquette prescrit, elle ne l'est pas dans une barre qu'on dessine soi-même — *inventer une entrée inerte, c'est promettre au client un outil qu'on n'a pas décidé de lui donner.*
+
+*Aucune règle du chapitre 10 n'est amendée. RG-DRO-01 dit ce qu'un client a le droit de lire ; cette décision dit ce qu'on lui montre, et elle ne peut que réduire.*
+
+---
+
+## D98 — « FICHE MACHINE » SORT DE LA BARRE : un écart DÉLIBÉRÉ à la maquette, écrit comme tel
+
+*Arbitrage rendu par l'exploitation le 11/09/2026 sur le ticket R2-22, mesuré en livrant R2-21.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+L'entrée « Fiche machine » de la barre portait la mention d'ouverture « ouverte par L2-01 (écran) ». **Cet écran a été livré** — R2-21, commit `774351d` sur `main` —, et l'entrée est restée inerte : *la mention désignait un ticket déjà fait, ce qui ne casse rien et ment doucement.*
+
+**La question n'est pas celle d'un écran manquant.** Une fiche a besoin d'un **identifiant**. « Fiche machine » ne peut donc pas être une section de navigation, **quel que soit le travail qu'on y mette** : il n'existe aucune machine « par défaut » vers laquelle une entrée de menu pourrait pointer.
+
+### LA DÉCISION
+
+**L'entrée disparaît. La barre passe de onze entrées à dix.**
+
+**C'est un ÉCART DÉLIBÉRÉ à la maquette, qui fait foi sur la disposition (D95), et il est consigné ici pour que personne ne le prenne demain pour un oubli.** La raison, écrite une fois : *la maquette liste « Fiche machine » parce qu'elle est un **catalogue d'écrans**, pas un menu.* Elle montre onze écrans pour qu'on les voie tous ; une barre de navigation donne accès à des **sections**, et une fiche n'en est pas une. Un produit atteint une fiche **depuis le parc**, depuis un **QR code** (D22, `lib/machines/resolution.ts`) ou depuis une **intervention** — trois chemins qui portent tous un identifiant, et qui existent.
+
+**Les deux issues écartées, avec ce qu'elles coûtaient.** *L'entrée reste inerte pour toujours* : honnête, et elle occupe une place dans une barre de dix — le prix d'une place de menu se paie sur tous les écrans, tous les jours. *L'entrée mène à une RECHERCHE de machine* : elle donnerait un sens à la place qu'elle occupe, et ce serait **inventer un écran que la maquette ne décrit pas** pour sauver une entrée que la maquette décrit — le remède plus coûteux que le mal. La recherche viendra si le parc la réclame, et elle vivra alors **dans** l'écran du parc, où elle est utile.
+
+### CE QUE CETTE DÉCISION APPREND SUR LA MAQUETTE, et qui vaut au-delà d'elle
+
+*Une source qui fait foi sur la DISPOSITION ne fait pas foi sur la NAVIGATION.* D95 dit « ce qu'elle montre se suit ; ce qu'elle ne dit pas reste libre ». La maquette **montre** une barre — ses libellés et son ordre font foi — mais elle ne dit **pas** ce qu'est une section : c'est une propriété du produit, pas du dessin. *Le point précis où elle est muette est donc nommé, comme D95 l'exige, et il n'est pas « elle ne prévoyait pas ce cas ».*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où un écran de RECHERCHE de machines existe — une route servie qui rend une liste depuis une saisie —, l'entrée peut revenir en pointant sur lui, et la barre repasse à onze.* Elle ne revient jamais inerte.
+
+*Aucune règle du chapitre 10 n'est amendée.*
+
+---
+
+## D99 — LES DEUX REFUS DE LA POSE SONT DES RÈGLES DE GESTION, et RG-PLA-03 disait le contraire
+
+**Règles amendées :** RG-PLA-03, RG-PLA-07
+
+*Arbitrage rendu par l'exploitation le 11/09/2026 : les deux règles de refus livrées par R2-19 sont des règles de MÉTIER, pas des détails d'implémentation, et elles doivent survivre au code qui les porte. Inscrit ici par la session de nuit, qui a trouvé en l'écrivant que l'une des deux **contredisait le chapitre 10**.*
+
+### CE QUI A ÉTÉ MESURÉ EN ÉCRIVANT CETTE DÉCISION
+
+**RG-PLA-03 disait l'inverse de ce qui est livré, et rien ne l'avait vu.**
+
+| | |
+|---|---|
+| **Le chapitre 10, avant ce jour** | « Un chevauchement sur un même technicien est **signalé mais reste possible** : le planificateur garde la main. » |
+| **Ce que le dépôt fait** | `lib/interventions/pose.ts` REFUSE, côté serveur, dans le dépôt cloisonné — livré par R2-19, commit `774351d` sur `main` |
+| **Ce que la constitution écrit** | §6 du `CLAUDE.md` : « un chevauchement est une ERREUR, pas un avertissement » |
+
+*Deux sources de rang 1 et 2 se contredisaient, et le code suivait la plus haute — ce qui est juste — sans que personne ne revienne corriger l'autre.* C'est **exactement** le défaut d'É8 que le câblage de R0-b a été écrit pour attraper : une décision qui réécrit une règle ailleurs qu'où elle s'écrit. Le gardien ne pouvait pas le voir, la réécriture ayant été faite **par un ticket** — un objet sans numéro de décision, que le câblage ne tient pas. *Numéroter est le geste qui la lui rend*, et c'est l'objet de cette section.
+
+### LA DÉCISION — LES DEUX REFUS, ÉCRITS COMME RÈGLES
+
+**RG-PLA-03 est réécrite.** Un chevauchement sur un même technicien est **refusé**, à la pose comme au déplacement. *Pour un exploitant, deux interventions au même moment sur la même personne ne sont pas une situation à surveiller : c'est une promesse qu'on ne peut pas tenir.* Trois précisions, toutes déjà tenues par le code et désormais écrites là où on les relira : **deux créneaux qui se TOUCHENT ne se chevauchent pas** ; une intervention **annulée** n'occupe plus rien ; une intervention **clôturée** occupe toujours — elle a eu lieu.
+
+**RG-PLA-07 est introduite.** Une intervention ne se pose et ne se déplace que **dans le calendrier de l'agence visée** — celle de l'intervention, déduite de son site. Deux précisions : *l'union des calendriers affichée en vue semaine est un repère, jamais un droit de poser* ; et **une agence sans calendrier refuse** — *« inconnu » n'est pas « ouvert »*, et poser sans horaire connu promettrait un rendez-vous que personne ne peut tenir (I7).
+
+**Les deux refus sont CÔTÉ SERVEUR, et l'écran n'en est que le messager.** *Une action refusée à l'écran mais acceptée par la base est un trou.* Tout refus **nomme son motif**, par une clé de dictionnaire — jamais par un texte venu de la réponse.
+
+### POURQUOI CES DEUX-LÀ SONT DU MÉTIER ET NON DE L'IMPLÉMENTATION
+
+*Le critère n'est pas « où est-ce écrit » mais « qu'est-ce qui décide ».* Un détail d'implémentation se corrige en changeant d'avis sur du code ; **ces deux règles se corrigent en changeant d'avis sur le métier** — un exploitant qui voudrait autoriser le chevauchement ne demanderait pas une modification technique, il demanderait une autre règle de planification. Et le test qui tranche est celui du §9 : *le jour où `lib/interventions/pose.ts` est réécrit, que reste-t-il ?* Avant ce jour, rien. C'est la définition d'une règle qui ne survit pas à son code.
+
+### CE QUE CETTE DÉCISION NE TRANCHE PAS
+
+**RG-PLA-04 n'est pas touchée** : l'habilitation bloquante refuse déjà, et pour une autre raison (D9). **RG-PLA-06 non plus** : l'absence validée n'existe pas encore en base. Et **le site fermé reste un avertissement** (I7) : ce sont les horaires du **client**, pas ceux de CODIMA, et un exploitant a le droit de convenir d'une intervention hors des heures d'ouverture d'un atelier.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où une intervention pourra être posée sur DEUX techniciens* — une pose à plusieurs, que le modèle ne porte pas aujourd'hui, `intervention` n'ayant qu'un technicien —, la notion de chevauchement change de sujet et RG-PLA-03 se relit. Et *le jour où une agence pourra intervenir sur le site d'une autre*, RG-PLA-07 doit dire laquelle des deux est « l'agence visée » ; elle dit aujourd'hui « celle du site », et c'est vrai tant qu'un site dépend d'une agence et d'une seule (RG-PLA-05).
