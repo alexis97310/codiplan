@@ -130,3 +130,89 @@ export function interventionsADeplanifier(
  * lieu : la personne est là, quoi qu'en dise une absence saisie après coup.
  */
 const INTOUCHABLES = new Set(["annulee", "cloturee", "terminee", "en_cours"]);
+
+/**
+ * LES PÉRIODES VALIDÉES D'UN TECHNICIEN, FUSIONNÉES ET BORNÉES À UNE FENÊTRE
+ * (L3-17).
+ *
+ * ## Pourquoi FUSIONNÉES, et pourquoi c'est le cœur de la fonction
+ *
+ * Le taux d'occupation retranche ces périodes de son dénominateur — *un
+ * technicien absent toute la semaine a un dénominateur nul, pas une semaine
+ * pleine qu'il n'aurait « pas remplie ».* Retrancher **sans fusionner** est la
+ * faute qui se commet ici :
+ *
+ * > Un congé du 14 au 18 prolongé par un arrêt du 16 au 20 est un état que rien
+ * > n'interdit, et c'est même le cas ordinaire. Retranchées séparément, les
+ * > journées des 16, 17 et 18 sont **comptées deux fois**, et le dénominateur
+ * > peut devenir NÉGATIF — c'est-à-dire un taux d'occupation supérieur à 100 %,
+ * > ou un signe moins sur un écran de direction.
+ *
+ * La fusion n'est donc pas une optimisation : *c'est ce qui rend la
+ * soustraction juste.*
+ *
+ * ## Elles sont BORNÉES à la fenêtre
+ *
+ * Une absence d'un mois ne retranche que ce qu'elle recouvre de la semaine
+ * affichée. Sans cette borne, une absence longue viderait le dénominateur de
+ * semaines qu'elle ne touche pas.
+ *
+ * ## Et « validée » est la seule qui compte
+ *
+ * Même règle qu'`absenceCouvrant`, et pour la même raison : une demandée n'est
+ * pas tranchée, une refusée ne l'est plus. *Retrancher une demande en attente
+ * ferait baisser un dénominateur qu'un refus rétablirait le lendemain, sans que
+ * personne comprenne pourquoi le taux a bougé.*
+ */
+export function periodesValidees(
+  absences: readonly AbsenceDeclaree[],
+  technicienId: string | null,
+  fenetre: { readonly du: Date; readonly au: Date },
+): readonly { readonly du: Date; readonly au: Date }[] {
+  if (technicienId === null) {
+    // La file d'attente n'appartient à personne : il n'y a pas d'absence à
+    // retrancher d'un dénominateur qui n'existe pas.
+    return [];
+  }
+  const debutFenetre = jour(fenetre.du);
+  const finFenetre = jour(fenetre.au);
+
+  const bornees = absences
+    .filter(
+      (absence) =>
+        absence.utilisateur_id === technicienId &&
+        absence.statut === BLOQUANT &&
+        jour(absence.du) <= finFenetre &&
+        jour(absence.au) >= debutFenetre,
+    )
+    .map((absence) => ({
+      du: Math.max(jour(absence.du), debutFenetre),
+      au: Math.min(jour(absence.au), finFenetre),
+    }))
+    .sort((a, b) => a.du - b.du);
+
+  // LA FUSION. Deux périodes se rejoignent si elles se recouvrent **ou si elles
+  // se touchent d'un jour à l'autre** : du 14 au 15 et du 16 au 18 forment une
+  // seule absence du 14 au 18, et les traiter séparément n'est pas faux — mais
+  // la borne « se touchent » évite de dépendre de la façon dont l'absence a été
+  // saisie, ce qui est exactement ce qu'on ne veut pas voir dans un chiffre.
+  const fusionnees: { du: number; au: number }[] = [];
+  for (const periode of bornees) {
+    const derniere = fusionnees[fusionnees.length - 1];
+    if (derniere !== undefined && periode.du <= derniere.au + UN_JOUR_MS) {
+      derniere.au = Math.max(derniere.au, periode.au);
+    } else {
+      fusionnees.push({ ...periode });
+    }
+  }
+
+  return fusionnees.map((periode) => ({
+    du: new Date(periode.du),
+    // **La borne HAUTE est la FIN du dernier jour**, et c'est la moitié qu'on
+    // oublie : les bornes d'une absence sont comprises, si bien qu'une absence
+    // « du 14 au 14 » couvre la journée entière du 14 et non son instant zéro.
+    au: new Date(periode.au + UN_JOUR_MS),
+  }));
+}
+
+const UN_JOUR_MS = 24 * 60 * 60 * 1000;
