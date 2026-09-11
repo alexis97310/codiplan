@@ -69,6 +69,25 @@ pnpm test:isolation
 
 Voir [`docs/decisions/2026-08-20-tests-isolation-postgres-local.md`](docs/decisions/2026-08-20-tests-isolation-postgres-local.md).
 
+`pnpm test:e2e` exige **une seconde base locale et jetable**, distincte de celle
+du harnais d'isolation : les scénarios de bout en bout traversent une session et
+un écran, donc une base **migrée et semée comme la production**, là où le harnais
+d'isolation recrée son schéma et pose des tables fixtures. Les mêler ferait
+mesurer aux scénarios d'écran un schéma que la migration n'a pas écrit.
+
+```bash
+scripts/postgres-jetable.sh
+export E2E_DATABASE_URL='postgresql://postgres@127.0.0.1:5433/codiplan_e2e'
+pnpm test:e2e
+```
+
+Le harnais **détruit et recrée** cette base à chaque exécution, applique
+`prisma migrate deploy` puis le semis, et donne au serveur de test le rôle
+applicatif restreint — jamais le propriétaire. Trois refus garantissent qu'elle
+n'est jamais la base hébergée : une URL Neon, une URL identique à `DATABASE_URL`,
+et **l'absence de la variable**. Le secret de session est tiré au sort à chaque
+exécution et passé par l'environnement, jamais écrit nulle part (I9).
+
 ## Jours fériés — un horizon à entretenir
 
 Les jours fériés sont **datés**, et une table alimentée une fois se périme sans

@@ -86,9 +86,18 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # PostgreSQL local jetable pour `pnpm test:isolation`, inclus dans verify:full.
+    # DEUX bases locales jetables sur le MÊME serveur, et elles ne se
+    # recouvrent pas :
+    #   — `codiplan_test` : le harnais d'isolation, qui recrée son schéma et
+    #     pose des tables fixtures ;
+    #   — `codiplan_e2e`  : les scénarios de bout en bout, qui exigent au
+    #     contraire une base MIGRÉE et SEMÉE comme la production (R2-18). Le
+    #     harnais la détruit et la recrée lui-même à chaque exécution.
+    # Les mêler ferait mesurer aux scénarios d'écran un schéma que la migration
+    # n'a pas écrit.
     env:
       TEST_DATABASE_URL: postgresql://postgres@localhost:5432/codiplan_test
+      E2E_DATABASE_URL: postgresql://postgres@localhost:5432/codiplan_e2e
     services:
       postgres:
         image: postgres:16
