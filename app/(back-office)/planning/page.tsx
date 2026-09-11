@@ -329,6 +329,9 @@ function VueSemaine({
                       jour: cleJour(cellule.jour),
                       technicienId: ligne.technicienId,
                       minutes: null,
+                      // La vue SEMAINE n'a pas d'heure, donc pas de pas : elle
+                      // déplace des jours, jamais des durées.
+                      pasMinutes: 0,
                     }}
                     className={`border-app-bord border-r border-b p-1.5 align-top ${
                       cellule.ouverte === false ? "trame-fermee" : ""
@@ -444,6 +447,9 @@ function VueJour({
                         jour: cleJour(jourAffiche),
                         technicienId: colonne.technicienId,
                         minutes: debut,
+                        // Le pas vient de la VUE, réglé au plus fin des agences
+                        // présentes — jamais d'une constante écrite ici.
+                        pasMinutes: journee.pasMinutes,
                       }}
                       className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
                       style={{ height: "26px" }}
@@ -452,6 +458,12 @@ function VueJour({
                         <BlocPosable
                           interventionId={occupation.id}
                           dureeMin={dureeDe(occupation)}
+                          // Le début est celui de la CASE où le bloc commence :
+                          // la poignée n'apparaît que là, et `debutDeBloc` le
+                          // garantit. Redimensionner depuis le milieu d'un bloc
+                          // demanderait de savoir où il a commencé, et cette
+                          // case ne le sait pas.
+                          debutMinutes={debut}
                           className="h-full"
                         >
                           {lien}

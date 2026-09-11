@@ -495,6 +495,8 @@ export const fr = {
     "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser.",
   "intervention.refus.hors_ouverture":
     "Cette heure est en dehors des horaires d'ouverture du calendrier qui décide pour cette intervention.",
+  "intervention.refus.duree_invalide":
+    "Une intervention dure au moins un créneau. Tirez la poignée sous le début du bloc, jamais au-dessus.",
   "intervention.refus.chevauchement":
     "Ce technicien a déjà une intervention sur ce créneau. Deux interventions au même moment ne se posent pas.",
   "intervention.refus.agence_sans_calendrier":

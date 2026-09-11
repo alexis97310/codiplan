@@ -47,7 +47,21 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
  * lot de rendu, et un état posé au premier ne serait pas encore lu au second.
  * *Mesuré le 11/09/2026 : avec un état React, le dépôt ne postait rien.*
  */
-type EnMain = { readonly id: string; readonly dureeMin: number };
+type EnMain = {
+  readonly id: string;
+  readonly dureeMin: number;
+  /**
+   * Le BORD saisi (L3-01b). `"bloc"` déplace l'intervention en conservant sa
+   * durée ; `"fin"` la REDIMENSIONNE en laissant son début où il est.
+   *
+   * *Un seul mécanisme pour les deux gestes, et c'est délibéré* : la case qui
+   * accepte, la route qui décide, le refus qui se nomme — tout est déjà écrit.
+   * Un second chemin aurait été une seconde lecture d'un même critère.
+   */
+  readonly bord: "bloc" | "fin";
+  /** Minutes locales du DÉBUT, connues seulement quand on tire le bord bas. */
+  readonly debutMinutes: number | null;
+};
 
 /** Le type MIME du glissé. Nommé, pour qu'un glissé étranger ne soit pas lu. */
 const FORMAT = "application/x-codiplan-intervention";
@@ -72,6 +86,18 @@ export type CibleDeDepot = {
    * sous le fuseau qui décide.
    */
   readonly minutes: number | null;
+  /**
+   * Le PAS de la grille à cet endroit, en minutes (L3-01b).
+   *
+   * *Il vient de la vue, pas d'une constante* : `journee.ts` le règle au plus
+   * fin des agences présentes, et il est paramétrable par agence. Un pas écrit
+   * ici serait un second endroit où la grille se décide, et il deviendrait faux
+   * le jour où une agence règle le sien.
+   *
+   * Il ne sert qu'au redimensionnement — la case visée est la DERNIÈRE occupée,
+   * et sa fin est `minutes + pasMinutes`.
+   */
+  readonly pasMinutes: number;
 };
 
 const Contexte = createContext<Depot | null>(null);
@@ -103,11 +129,20 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
         corps.set("technicien_id", cible.technicienId);
       }
       if (cible.minutes !== null) {
-        // LA DURÉE EST CONSERVÉE — c'est la règle de la vue jour. Déplacer une
-        // intervention n'est pas la redimensionner ; le redimensionnement est
-        // au lot 3, avec Schedule-X.
-        corps.set("heure_debut", String(cible.minutes));
-        corps.set("duree_min", String(main.dureeMin));
+        // DEUX GESTES, UNE SEULE ROUTE (L3-01b).
+        //
+        // **Déplacer** conserve la durée et change le début — *déplacer une
+        // intervention n'est pas la redimensionner.* **Redimensionner** garde
+        // le début et fait de la case visée la DERNIÈRE occupée : la durée
+        // court jusqu'à la fin de ce pas, si bien que relâcher sur la case de
+        // départ laisse exactement un pas — jamais zéro.
+        const redimensionne = main.bord === "fin" && main.debutMinutes !== null;
+        const debut = redimensionne ? main.debutMinutes! : cible.minutes;
+        const duree = redimensionne
+          ? cible.minutes + cible.pasMinutes - main.debutMinutes!
+          : main.dureeMin;
+        corps.set("heure_debut", String(debut));
+        corps.set("duree_min", String(duree));
       }
       void (async () => {
         const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
@@ -160,38 +195,92 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
  *
  * `draggable` et rien de plus : aucune bibliothèque. *Ajouter une dépendance
  * est une décision, pas un réflexe* — le glisser-déposer natif du navigateur
- * fait exactement ce que la maquette décrit, et Schedule-X viendra au lot 3
- * avec le redimensionnement, qui lui n'est pas natif.
+ * fait exactement ce que la maquette décrit.
+ *
+ * **Cette phrase disait « Schedule-X viendra au lot 3 avec le redimensionnement,
+ * qui lui n'est pas natif ». Elle est fausse des deux moitiés** *(mesuré le
+ * 11/09/2026, L3-01b)* : le redimensionnement se fait avec le même `draggable`
+ * que le déplacement — une poignée qui engage son propre glissé —, et il est
+ * livré. Ce que L3-01 réclamait de Schedule-X, le planning le faisait déjà ;
+ * l'adopter aujourd'hui serait une RÉÉCRITURE, pas une installation, et c'est
+ * un arbitrage porté au registre plutôt qu'une décision de ticket (§2, D17).
  */
 export function BlocPosable({
   interventionId,
   dureeMin,
+  debutMinutes,
   className,
   children,
 }: Readonly<{
   interventionId: string;
   /** Conservée au déplacement. Voir `deposer`. */
   dureeMin: number;
+  /**
+   * Minutes locales du début. **Sans elle, pas de poignée** : redimensionner,
+   * c'est laisser le début où il est, et on ne laisse pas où il est ce qu'on ne
+   * connaît pas. Une vue qui n'a pas d'heure — la file d'attente — n'en passe
+   * pas, et la poignée n'apparaît pas.
+   */
+  debutMinutes?: number | null;
   className?: string;
   children: React.ReactNode;
 }>) {
+  const engager = (bord: "bloc" | "fin") => (evenement: React.DragEvent) => {
+    evenement.dataTransfer.setData(
+      FORMAT,
+      JSON.stringify({
+        id: interventionId,
+        dureeMin,
+        bord,
+        debutMinutes: debutMinutes ?? null,
+      }),
+    );
+    // `text/plain` en plus : certains navigateurs n'engagent pas un glissé
+    // dont aucun format standard n'est renseigné.
+    evenement.dataTransfer.setData("text/plain", interventionId);
+    evenement.dataTransfer.effectAllowed = "move";
+  };
+
   return (
     <div
       data-bloc={interventionId}
       draggable
-      onDragStart={(evenement) => {
-        evenement.dataTransfer.setData(
-          FORMAT,
-          JSON.stringify({ id: interventionId, dureeMin }),
-        );
-        // `text/plain` en plus : certains navigateurs n'engagent pas un glissé
-        // dont aucun format standard n'est renseigné.
-        evenement.dataTransfer.setData("text/plain", interventionId);
-        evenement.dataTransfer.effectAllowed = "move";
-      }}
-      className={`cursor-grab active:cursor-grabbing ${className ?? ""}`}
+      onDragStart={engager("bloc")}
+      className={`relative cursor-grab active:cursor-grabbing ${className ?? ""}`}
     >
       {children}
+      {/*
+        LA POIGNÉE DE REDIMENSIONNEMENT (L3-01b).
+
+        *Elle n'est pas la seule voie, et ce n'est pas la principale* : le
+        formulaire « Déplacer » de la fiche porte déjà un champ de durée, et il
+        est atteignable à la tabulation. Celle-ci est un raccourci à la souris,
+        `aria-hidden` pour cette raison — l'annoncer à un lecteur d'écran
+        promettrait un geste qu'aucun clavier ne peut faire.
+
+        `stopPropagation` au démarrage : sans lui, le bloc entier engagerait un
+        déplacement par-dessus le redimensionnement, et le dernier appelé
+        gagnerait — *un geste qui dépend de l'ordre des gestionnaires est une
+        décision prise par personne.*
+      */}
+      {debutMinutes === null || debutMinutes === undefined ? null : (
+        <span
+          data-poignee={interventionId}
+          draggable
+          aria-hidden="true"
+          onDragStart={(evenement) => {
+            // **C'est CETTE ligne qui fait le redimensionnement**, et elle est
+            // éprouvée par son jumeau : retirée, le scénario 5 tombe (mesuré le
+            // 11/09/2026). Sans elle, le `dragstart` remonte au bloc, dont le
+            // gestionnaire réécrit la charge avec `bord: "bloc"` — le glissé
+            // part quand même, l'intervention se DÉPLACE au lieu de s'allonger,
+            // et rien ne le dit : ni erreur, ni refus.
+            evenement.stopPropagation();
+            engager("fin")(evenement);
+          }}
+          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+        />
+      )}
     </div>
   );
 }
@@ -256,7 +345,22 @@ function lireLaMain(donnees: DataTransfer): EnMain | null {
       "dureeMin" in brut &&
       typeof brut.dureeMin === "number"
     ) {
-      return { id: brut.id, dureeMin: brut.dureeMin };
+      return {
+        id: brut.id,
+        dureeMin: brut.dureeMin,
+        // **Le défaut est le DÉPLACEMENT**, et c'est le sens de défaillance
+        // voulu : un glissé dont le bord est illisible déplace sans
+        // redimensionner, ce qui conserve la durée. L'inverse inventerait une
+        // durée à partir de rien.
+        bord:
+          "bord" in brut && brut.bord === "fin"
+            ? ("fin" as const)
+            : ("bloc" as const),
+        debutMinutes:
+          "debutMinutes" in brut && typeof brut.debutMinutes === "number"
+            ? brut.debutMinutes
+            : null,
+      };
     }
     return null;
   } catch {

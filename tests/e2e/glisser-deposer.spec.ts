@@ -206,3 +206,103 @@ test("après un refus, le bloc est à sa place d'origine — y compris après re
     origine.locator(`[data-bloc="${SCENE.chevauchante}"]`),
   ).toBeVisible();
 });
+
+/* ── 5. LE REDIMENSIONNEMENT ─────────────────────────────────────────────── */
+
+/** La poignée de redimensionnement d'un bloc. */
+function poignee(page: Page, id: string): Locator {
+  return page.locator(`[data-poignee="${id}"]`);
+}
+
+/** Le lien d'une intervention dans une case d'heure — bloc ou SUITE de bloc. */
+function occupe(page: Page, technicienId: string, minutes: number, id: string) {
+  return caseDHeure(page, technicienId, minutes).locator(
+    `a[href="/planning/${id}"]`,
+  );
+}
+
+test("la poignée ALLONGE une intervention, et la base le garde", async ({
+  page,
+}) => {
+  // L3-01b. *Le redimensionnement était la seule pièce de L3-01 que le planning
+  // n'avait pas* — le glisser-déposer et la vue ressources existent depuis
+  // R2-12 et R2-19.
+  await allerAuPlanning(page, MARDI);
+
+  const debut = 13 * 60;
+  const apres = 14 * 60;
+
+  // TÉMOIN : l'intervention dure une heure, donc la case de 14 h ne lui
+  // appartient pas. *Sans lui, un allongement vers une case déjà occupée par
+  // elle passerait pour un succès.*
+  await expect(
+    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+  ).toBeVisible();
+  await expect(
+    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+  ).toHaveCount(0);
+
+  await glisser(
+    page,
+    poignee(page, SCENE.chevauchante),
+    caseDHeure(page, reperes.technicienDucos, apres),
+  );
+
+  // L'ÉCRAN D'ABORD, LA BASE ENSUITE — et cet ordre est une leçon, pas une
+  // préférence.
+  //
+  // *Mesuré le 11/09/2026 : recharger tout de suite après le geste faisait
+  // échouer le scénario alors que le mécanisme était juste.* Le dépôt ne bloque
+  // pas sur sa requête — `glisser` rend la main dès le `mouseup` —, si bien que
+  // le `page.goto` partait pendant que le `POST` était en vol et l'annulait.
+  // **Le symptôme était celui d'une règle fausse ; la cause était le geste du
+  // scénario**, et seule la trace des requêtes l'a dit : la route répondait
+  // `{"accepte":true}` quand on lui en laissait le temps.
+  //
+  // Une assertion d'écran réessaie ; une navigation, non. On attend donc que
+  // l'écran se soit relu du serveur — ce qui prouve au passage que la case de
+  // 14 h lui appartient — AVANT de recharger pour interroger la base.
+  await expect(
+    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+  ).toBeVisible();
+
+  // Et la BASE l'a gardé, ce que seul un rechargement complet peut dire.
+  await allerAuPlanning(page, MARDI);
+  await expect(
+    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+  ).toBeVisible();
+  await expect(
+    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+  ).toBeVisible();
+});
+
+test("tirer la poignée AU-DESSUS du début est refusé, et le motif est nommé", async ({
+  page,
+}) => {
+  // *Une intervention dure au moins un créneau.* Le refus vient du serveur — la
+  // durée calculée est négative, et le schéma de saisie la refuse — et il NOMME
+  // la durée plutôt que de dire « intervention inconnue ».
+  await allerAuPlanning(page, MARDI);
+
+  const debut = 13 * 60;
+  await expect(
+    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+  ).toBeVisible();
+
+  await glisser(
+    page,
+    poignee(page, SCENE.chevauchante),
+    caseDHeure(page, reperes.technicienDucos, 11 * 60),
+  );
+
+  await expect(refus(page)).toBeVisible();
+
+  // Et rien n'a bougé, ni à l'écran ni dans la base.
+  await allerAuPlanning(page, MARDI);
+  await expect(
+    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+  ).toBeVisible();
+  await expect(
+    occupe(page, reperes.technicienDucos, 11 * 60, SCENE.chevauchante),
+  ).toHaveCount(0);
+});
