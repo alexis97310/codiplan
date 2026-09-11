@@ -640,6 +640,34 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
+
+`tests/e2e/offline/` **n'est plus vide**. Il l'était depuis L0-02, et sa condition de réouverture, corrigée le 13/09 contre `docs/guide-pilotage.md` §5, disait : _« au premier ticket du lot 3 qui touche le hors-ligne — L3-06 —, les scénarios de ce répertoire s'écrivent **avant** le code qu'ils éprouvent. »_ Les trois scénarios ont été écrits d'abord, et ils ont d'abord rougi.
+
+### ⚠️ Un cache est un stockage, et I1 ne s'arrête pas au serveur
+
+> Un service worker qui garderait le planning rendu pour la société A le resservirait à une session de la société B **sur le même appareil**. Aucune politique PostgreSQL ne s'applique à `caches` : **la lecture a déjà eu lieu.**
+
+Un appareil partagé entre deux techniciens, ou une personne habilitée sur deux sociétés (RG-SOC-03, le cas ordinaire), suffit à rendre la fuite réelle. La règle est donc une **liste d'autorisés, jamais une liste d'interdits** — _une liste d'interdits oublie par construction la route créée demain._ Deux routes publiques, plus les ressources statiques, et rien d'autre.
+
+**Le jumeau mord sur la faute telle qu'elle se commettrait** : la recette la plus répandue est « mettre en cache toute navigation réussie ». Écrite, le scénario tombe. _Il a été écrit avant le service worker, et c'est ce qui a contraint le service worker._
+
+**Et l'assertion a été rendue plus stricte après avoir rougi, pas plus permissive.** Elle filtrait les URL contenant « /planning » et a pris trois entrées qui ne sont pas des pages — `_next/static/chunks/app/(back-office)/planning/page-<empreinte>.js`, c'est-à-dire les **modules** de la route : du code, identique pour toutes les sociétés. _Un filtre par sous-chaîne confondait le nom d'un fichier avec ce qu'il contient._ Ce qui l'a remplacé est **clos** : tout ce qui n'est pas statique doit être exactement la coquille publique.
+
+### Réseau d'abord, jamais cache d'abord
+
+Sur un réseau calédonien, le cache d'abord donnerait une page plus rapide et **parfois périmée**, sans que rien ne le dise. C'est la règle du glisser-déposer appliquée au cache — _l'écran ne montre jamais un état que la base n'a pas accepté._
+
+### L'icône : la maquette est muette, et l'écart s'écrit avec sa mesure
+
+D95 autorise l'écart _« avec sa mesure et le point précis où elle est muette »_. Mesuré : la maquette ne porte **aucun logo** — deux `<svg>`, une courbe de tendance et un QR de démonstration. Ce qui est posé est le minimum défendable : **le monogramme du produit sur sa couleur de marque**, tracé sans dépendance, dans la zone sûre de 80 % qu'une icône `maskable` exige. _Ce n'est pas une identité visuelle : c'est ce qu'une installation exige, et un placeholder nommé vaut mieux qu'une icône absente qui empêche l'installation._
+
+### Les couleurs ne sont pas écrites dans le manifeste
+
+Un manifeste n'est pas une feuille de style : le navigateur le lit hors de tout document et ne peut pas résoudre `var(--app-marque)`. Elles vivent dans `lib/theme/manifeste.ts` — **le répertoire que le gardien de L0-09 désigne déjà** comme l'endroit où une couleur s'écrit. _Poser une exemption de plus aurait élargi la règle ; poser le fichier dans le répertoire déjà désigné ne l'élargit pas d'un pouce._ Et **ce qui confronte les deux copies est un gardien qui lit `app/globals.css`**, pas la relecture.
+
+_Ce gardien a d'ailleurs lu un commentaire au lieu d'une déclaration, et il l'a dit en rougissant_ : son motif cherchait `--app-fond:` n'importe où et trouvait la phrase d'entête de la feuille de style. Il est désormais ancré en début de ligne — la seule coupure légitime est « documentation contre exécution ».
+
 ## L'absence d'un technicien — et pourquoi aucun client ne la lit
 
 RG-PLA-06 : _« Une absence validée bloque le créneau ; les interventions posées repassent en file à planifier avec alerte. »_ La table `absence` porte la période — **deux dates, bornes COMPRISES, et aucune heure** : _une borne ouverte aurait fait travailler quelqu'un le dernier jour de son arrêt._

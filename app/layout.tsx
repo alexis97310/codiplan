@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
+import { EnregistrementServiceWorker } from "@/components/pwa/enregistrement";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { APPARENCE_PAR_DEFAUT } from "@/lib/theme/apparence";
+import { COULEUR_MARQUE } from "@/lib/theme/manifeste";
 import { variablesCss } from "@/lib/theme/variables";
 
 import "./globals.css";
@@ -10,6 +12,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: t("app.nom"),
   description: t("app.description"),
+  // La couleur de la barre du système sur mobile. Elle vient du manifeste, et
+  // de lui seul : *deux endroits où l'on écrit la couleur du produit finissent
+  // par en écrire deux différentes* (§9, 01/09).
+  manifest: "/manifest.webmanifest",
+};
+
+/**
+ * La couleur que le navigateur applique à sa propre barre. Elle est SÉPARÉE de
+ * `metadata` parce que Next l'exige ainsi, et elle est LUE du manifeste.
+ */
+export const viewport: Viewport = {
+  themeColor: COULEUR_MARQUE,
 };
 
 /**
@@ -86,6 +100,14 @@ export default async function RootLayout({
         style={variablesCss(theme)}
       >
         {children}
+        {/*
+          LE SERVICE WORKER S'ENREGISTRE ICI, à la racine (L3-06) : il sert la
+          COQUILLE et non un écran, et le poser dans un segment l'attacherait à
+          un groupe de routes. Il ne rend rien et n'échoue jamais bruyamment —
+          *pas de hors-ligne vaut mieux qu'une application qui refuse de
+          s'afficher.*
+        */}
+        <EnregistrementServiceWorker />
       </body>
     </html>
   );
