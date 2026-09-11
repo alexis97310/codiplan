@@ -746,6 +746,14 @@ lib/
               contacts accrochés au mauvais client
               « saisie refusée » et « parent introuvable » sont DEUX motifs :
               l'une se corrige dans le FICHIER, l'autre dans le PARC
+              parc-agences.ts : une agence se rapproche par son CODE et JAMAIS
+              par son libellé (D101) — `@@unique([societe_id, code])` fait du
+              code une clé, le libellé n'en est pas une
+              ce qui rend une clé utilisable n'est pas sa FORME, c'est ce que
+              la BASE garantit d'elle : de là l'asymétrie entre l'agence (code
+              seul), le client (code puis nom) et le site (client + libellé)
+              un site rattaché à la mauvaise agence fausse le temps de trajet
+              (D56), le calendrier de référence (I7) et la majoration
               parc-clients.ts : L'AMBIGUÏTÉ EST UN FAIT DU PARC (L1-08g) — deux
               fiches qui rendent la MÊME clé rendent indécidable ce qu'une ligne
               désigne, et RG-IMP-05 veut alors un REJET, jamais une création

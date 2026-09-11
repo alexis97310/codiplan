@@ -1,10 +1,12 @@
 import { schemaCreationClient } from "@/lib/clients/saisie";
 import { schemaCreationContact } from "@/lib/contacts/saisie";
+import { schemaCreationSite } from "@/lib/sites/saisie";
 import {
   cleDeClient,
   normaliserRaisonSociale,
 } from "@/lib/excel/rapprochement";
 
+import { type ParcAgences } from "./parc-agences";
 import { type ParcClientsIndexe } from "./parc-clients";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
 
@@ -333,6 +335,146 @@ export function modeleContacts(parc: ParcClientsIndexe): ModeleDImport {
         roles: lireLesRoles(valeurs[COLONNES_CONTACTS.roles]),
       };
       return schemaCreationContact.safeParse(saisie).success
+        ? null
+        : MOTIF_SAISIE_REFUSEE;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « SITES » — DEUX parents, et deux règles distinctes (L1-09c, D101)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export const COLONNES_SITES = {
+  client: "Client (code ou raison sociale)",
+  agence: "Agence (code)",
+  libelle: "Libellé du site",
+  adresse: "Adresse",
+  commune: "Commune",
+  zone: "Zone géographique",
+  consignes: "Consignes d'accès",
+  trajet: "Temps de trajet depuis l'agence (min)",
+} as const;
+
+export const CHAMPS_SITES: Readonly<Record<string, string>> = {
+  [COLONNES_SITES.libelle]: "libelle",
+  [COLONNES_SITES.commune]: "commune",
+  [COLONNES_SITES.zone]: "zone_geo",
+  [COLONNES_SITES.consignes]: "consignes_acces",
+};
+
+/** Les champs du schéma que le gabarit n'expose pas — liste close, avec motif. */
+export const CHAMPS_SITES_ECARTES: Readonly<Record<string, string>> = {
+  client_id: "résolu depuis la colonne « Client », jamais saisi (I10)",
+  agence_id: "résolu depuis la colonne « Agence », par son CODE (D101)",
+  // Le chapitre 11 ne fixe aucune forme à cette adresse : un tableur est plat,
+  // et l'aplatir la figerait pour tous — le même motif que sur les clients.
+  adresse: "aucune forme n'est fixée : l'aplatir dans un gabarit la figerait",
+  // *Elles ne se saisissent pas, elles se relèvent.* Un tableur rempli à la
+  // main porterait des coordonnées approximatives que personne ne pourrait
+  // distinguer d'un relevé, et le planning s'en sert pour ordonner des
+  // tournées.
+  latitude: "une coordonnée se relève, elle ne se saisit pas dans un tableur",
+  longitude: "une coordonnée se relève, elle ne se saisit pas dans un tableur",
+  // Même forme libre que l'adresse, même motif.
+  horaires: "aucune forme n'est fixée : l'aplatir dans un gabarit la figerait",
+  // *Un nombre dont la signification dépend d'une autre colonne ne voyage
+  // jamais seul* (D56) : le trajet part de l'agence, et il est exposé — mais
+  // par une colonne qui le DIT, et sa lecture reste à écrire.
+  temps_trajet_min:
+    "exposé par une colonne qui nomme son origine, mais sa lecture reste à écrire (L1-09)",
+  actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
+};
+
+/**
+ * LE GABARIT « SITES » — **deux parents, deux règles, et c'est le point** (D101).
+ *
+ * *On aurait pu vouloir « la même règle partout ».* Elle aurait été fausse :
+ * **ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base
+ * garantit d'elle.** Le code d'agence est une clé parce qu'un index unique le
+ * dit ; la raison sociale d'un client n'en est une qu'à défaut de code, et le
+ * libellé d'un site n'en est pas une du tout.
+ */
+export function modeleSites(
+  clients: ParcClientsIndexe,
+  agences: ParcAgences,
+): ModeleDImport {
+  const resoudreClient = (
+    valeurs: Readonly<Record<string, string | undefined>>,
+  ): string | undefined => {
+    const designation = valeurs[COLONNES_SITES.client]?.trim();
+    if (designation === undefined || designation === "") return undefined;
+    return (
+      clients.fiches.get(
+        cleDeClient({
+          codeExterne: designation,
+          raisonSociale: undefined,
+          rang: 0,
+        }).cle,
+      ) ??
+      clients.fiches.get(
+        cleDeClient({
+          codeExterne: undefined,
+          raisonSociale: designation,
+          rang: 0,
+        }).cle,
+      )
+    );
+  };
+
+  const resoudreAgence = (
+    valeurs: Readonly<Record<string, string | undefined>>,
+  ): string | undefined => {
+    const code = valeurs[COLONNES_SITES.agence]?.trim().toUpperCase();
+    return code === undefined || code === ""
+      ? undefined
+      : agences.parCode.get(code);
+  };
+
+  return {
+    type: "sites",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_SITES.client, obligatoire: true },
+      { nom: COLONNES_SITES.agence, obligatoire: true },
+      { nom: COLONNES_SITES.libelle, obligatoire: true },
+      { nom: COLONNES_SITES.adresse, obligatoire: false },
+      { nom: COLONNES_SITES.commune, obligatoire: false },
+      { nom: COLONNES_SITES.zone, obligatoire: false },
+      { nom: COLONNES_SITES.consignes, obligatoire: false },
+      { nom: COLONNES_SITES.trajet, obligatoire: false },
+    ],
+    identifiantes: [COLONNES_SITES.client, COLONNES_SITES.libelle],
+    // **Le COUPLE (client, libellé)**, et rien d'autre : *un site n'existe pas
+    // sans son client, et deux ateliers du même nom chez deux clients
+    // différents sont deux lieux.*
+    cle: (valeurs, rang) => {
+      const client = resoudreClient(valeurs);
+      const libelle = valeurs[COLONNES_SITES.libelle]?.trim();
+      if (client === undefined || libelle === undefined || libelle === "") {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      return {
+        forme: "reference",
+        cle: `SITE-${client}-${normaliserRaisonSociale(libelle)}`,
+        complet: false,
+      };
+    },
+    valider: (valeurs) => {
+      const client = resoudreClient(valeurs);
+      const agence = resoudreAgence(valeurs);
+      // **Les deux parents avant la saisie**, et pour la même raison que
+      // l'ambiguïté : *une ligne dont le parent est introuvable se corrige dans
+      // le parc, pas dans les autres colonnes du fichier.*
+      if (client === undefined || agence === undefined) {
+        return MOTIF_PARENT_INTROUVABLE;
+      }
+      const saisie = {
+        ...saisieDepuisLaLigne(valeurs, CHAMPS_SITES),
+        client_id: client,
+        agence_id: agence,
+      };
+      return schemaCreationSite.safeParse(saisie).success
         ? null
         : MOTIF_SAISIE_REFUSEE;
     },

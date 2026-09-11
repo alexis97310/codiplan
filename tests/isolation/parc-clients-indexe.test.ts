@@ -4,11 +4,13 @@ import { Role } from "@/lib/auth/roles";
 import { controlerFeuille, MOTIF_AMBIGUITE } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import { PREFIXE_RAISON_SOCIALE } from "@/lib/excel/rapprochement";
+import { indexerLesAgences } from "@/lib/imports/parc-agences";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
 import {
   MODELE_CLIENTS,
   marqueurDu,
   modeleContacts,
+  modeleSites,
   MOTIF_PARENT_INTROUVABLE,
   MOTIF_SAISIE_REFUSEE,
 } from "@/lib/imports/modeles";
@@ -327,6 +329,132 @@ describe("LE GABARIT « CONTACTS » désigne un parent, et le rapport le dit (L1
         ["C-001", "Jean Dupont", "", "", "", "jean@garage.test", "grand chef"],
       ]),
       modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_SAISIE_REFUSEE);
+  });
+});
+
+describe("LE GABARIT « SITES » — deux parents, deux règles (L1-09c, D101)", () => {
+  async function modele() {
+    return modeleSites(
+      await indexerLeParcClients(SESSION, clientApp()),
+      await indexerLesAgences(SESSION, clientApp()),
+    );
+  }
+
+  function feuilleSites(
+    m: ReturnType<typeof modeleSites>,
+    lignes: readonly (readonly string[])[],
+  ): FeuilleLue {
+    return {
+      nom: "Sites",
+      lignes: [
+        [{ texte: marqueurDu(m) }],
+        m.colonnes.map((colonne) => ({ texte: colonne.nom })),
+        ...lignes.map((ligne) => ligne.map((valeur) => ({ texte: valeur }))),
+      ],
+    };
+  }
+
+  it("les DEUX parents résolus, et la ligne passe", async () => {
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleSites(m, [["C-001", "DUCOS", "Atelier neuf"]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    // La clé porte le CLIENT : deux ateliers du même nom chez deux clients
+    // différents sont deux lieux.
+    expect(controle.lignes[0]?.cle?.cle).toContain(CLIENT_A1);
+  });
+
+  it("le CODE d'agence tolère la CASSE — une cellule est écrite à la main", async () => {
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleSites(m, [["C-001", "ducos", "Atelier en minuscules"]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+  });
+
+  it("et le LIBELLÉ d'une agence n'est PAS une clé — D101", async () => {
+    // **CE SCÉNARIO A DÛ CHANGER DE SOCIÉTÉ, et la mesure vaut d'être écrite :**
+    // chez la société A, l'agence a pour code « DUCOS » et pour libellé
+    // « Ducos » — *ils coïncident à la casse près, et aucun scénario ne peut
+    // y distinguer une règle de l'autre.* Chez B, le code est « SIEGE » et le
+    // libellé « Siège » : l'accent les sépare, et la distinction devient
+    // observable.
+    //
+    // *Écrire l'épreuve chez A l'aurait fait passer POUR UNE MAUVAISE RAISON —
+    // elle aurait montré une tolérance de casse, pas un refus de libellé.*
+    const m = modeleSites(
+      await indexerLeParcClients(
+        { ...SESSION, societeId: SOCIETE_B },
+        clientApp(),
+      ),
+      await indexerLesAgences(
+        { ...SESSION, societeId: SOCIETE_B },
+        clientApp(),
+      ),
+    );
+    const controle = controlerFeuille(
+      feuilleSites(m, [
+        // Le code : accepté.
+        ["C-001", "SIEGE", "Atelier par code"],
+        // Le libellé RÉEL de la même agence : refusé. *Un site rattaché à la
+        // mauvaise agence fausse le temps de trajet (D56), le calendrier de
+        // référence (I7) et la majoration.*
+        ["C-001", "Siège", "Atelier par libellé"],
+      ]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    expect(controle.lignes[1]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
+  });
+
+  it("une agence d'une AUTRE société est introuvable — le parc cloisonne", async () => {
+    const m = modeleSites(
+      await indexerLeParcClients(
+        { ...SESSION, societeId: SOCIETE_B },
+        clientApp(),
+      ),
+      await indexerLesAgences(
+        { ...SESSION, societeId: SOCIETE_B },
+        clientApp(),
+      ),
+    );
+    const controle = controlerFeuille(
+      feuilleSites(m, [["C-001", "DUCOS", "Atelier chez B"]]),
+      m,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    // Le client « C-001 » existe chez B, mais pas l'agence « DUCOS ».
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
+  });
+
+  it("une ZONE inconnue est refusée par la SAISIE — le motif change", async () => {
+    // Le cas qui doit rester distinct pour sa raison : les deux parents sont
+    // résolus, et c'est la saisie qui refuse.
+    const m = await modele();
+    const controle = controlerFeuille(
+      feuilleSites(m, [
+        ["C-001", "DUCOS", "Atelier zoné", "", "", "Nulle part"],
+      ]),
+      m,
       { cles: new Set(), ambigues: new Set() },
     );
     expect(controle.lisible).toBe(true);

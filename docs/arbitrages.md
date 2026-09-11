@@ -3337,3 +3337,38 @@ L'entrée « Fiche machine » de la barre portait la mention d'ouverture « ouve
 *Le jour où un client devra voir ce qui a été importé le concernant* — un rapport d'import remis au client, par exemple —, cette forme ne suffira plus : il faudra une vue filtrée par périmètre, et non l'ouverture de ces deux tables. **La forme « interne » se retire alors, elle ne s'assouplit pas** : assouplir la clause rendrait le parc entier, ce qui est précisément ce que cette décision refuse.
 
 *Aucune règle du chapitre 10 n'est amendée. RG-IMP-01 dit ce qu'un import produit ; elle ne dit pas qui a le droit de le lire.*
+
+---
+
+## D101 — RAPPROCHER UNE AGENCE ET UN SITE : le CODE pour l'une, le COUPLE pour l'autre
+
+*Tranché par la session de nuit du 11/09/2026, en construisant L1-09c. **Ce n'est pas un arbitrage d'Alexis** (§1 du protocole) : cela ne touche ni l'argent facturé, ni une obligation légale, ni ce qu'un client voit — un gabarit d'import est un document interne que l'agence remplit. La décision est écrite avec sa condition de réouverture, et la session continue.*
+
+### CE QUI MANQUAIT, ET CE QUE LE SCHÉMA A RÉPONDU
+
+RG-IMP-05 dit comment rapprocher un **client**. Rien ne disait comment rapprocher une **agence** ni un **site**, et les trois gabarits restants de L1-09 butaient dessus — *le mécanisme existait depuis L1-09b, c'était la règle qui manquait.*
+
+**Le schéma répond, et il répond différemment pour les deux :**
+
+| | Ce que la base garantit | Ce qu'on peut donc rapprocher |
+|---|---|---|
+| **agence** | `@@unique([societe_id, code])` — DUCOS, KONE, DOLBEAU | **le code, et lui seul** |
+| **site** | aucune unicité sur le libellé | **le couple (client, libellé)**, qui peut être ambigu |
+
+### LA DÉCISION
+
+**1. Une agence se rapproche par son CODE, et JAMAIS par son libellé.** Le code est unique par société ; le libellé ne l'est pas. *Accepter le libellé « à défaut », par analogie avec RG-IMP-05, ferait dépendre le rattachement d'un site d'une chaîne que rien n'empêche d'être en double* — et un site rattaché à la mauvaise agence fausse **le temps de trajet** (D56), **le calendrier de référence** (I7) et **la majoration** (RG-TAR). *Un code absent du fichier est un parent introuvable, pas une invitation à deviner.*
+
+**2. Un site se rapproche par le COUPLE (client, libellé normalisé)**, la normalisation étant celle de RG-IMP-05 — graphie seule. *Un site n'existe pas sans son client, et deux ateliers du même nom chez deux clients différents sont deux lieux.*
+
+**3. Et l'ambiguïté d'un site est un REJET, comme celle d'un client.** Rien n'empêche deux sites du même client de porter le même libellé — la base ne l'interdit pas —, et le mécanisme de L1-08g s'applique sans une ligne de plus : *deux fiches qui rendent la même clé rendent indécidable ce qu'une ligne désigne.*
+
+### POURQUOI L'ASYMÉTRIE EST UN RENSEIGNEMENT, ET NON UNE INCOHÉRENCE
+
+*On aurait pu vouloir « la même règle partout ».* Elle aurait été fausse : **ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base garantit d'elle.** Le code d'agence est une clé parce qu'un index unique le dit ; le libellé d'un site n'en est pas une pour la même raison, et lui en donner le statut aurait produit des rattachements silencieusement faux.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où `site` recevra une unicité — un code de site, ou `UNIQUE (societe_id, client_id, libelle)` —*, le rapprochement d'un site cesse d'être ambigu et la règle se relit. Et *le jour où une agence pourra être importée* — elle ne l'est pas : les agences se créent à l'écran —, il faudra dire ce qui se passe quand le code n'existe pas encore.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-IMP-05 parle du rapprochement des CLIENTS, et elle reste exacte. Cette décision dit ce qu'elle ne dit pas.*
