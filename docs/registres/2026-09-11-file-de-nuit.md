@@ -474,3 +474,12 @@ le même appel servira l'écran interne et le portail.
 
 Le scénario de bout en bout porte son témoin — **des lignes réelles** : un
 tableau vide passerait toutes les assertions de forme sans rien prouver.
+
+**Et une mention périmée, réparée dans le même geste.** L'entrée « Fiche
+machine » portait « ouverte par L2-01 (écran) » — l'écran que R2-21 vient de
+livrer. *Une mention d'ouverture qui désigne un ticket déjà fait ne casse rien et
+ment doucement*, exactement ce que le gardien des entrées refuse dans l'autre
+sens. Elle pointe désormais sur **R2-22**, qui pose la vraie question : **une
+fiche a besoin d'un identifiant, elle ne peut pas être une section de
+navigation.** Trois issues y sont écrites ; la décision touche la maquette, qui
+fait foi sur la disposition.
