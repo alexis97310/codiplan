@@ -483,3 +483,30 @@ sens. Elle pointe désormais sur **R2-22**, qui pose la vraie question : **une
 fiche a besoin d'un identifiant, elle ne peut pas être une section de
 navigation.** Trois issues y sont écrites ; la décision touche la maquette, qui
 fait foi sur la disposition.
+
+---
+
+## Où reprendre
+
+**L'état à la fin de la nuit**, mesuré : `pnpm verify:full` vert sur `274b8d5` —
+1292 unitaires, 580 isolation, 18 scénarios de bout en bout.
+
+**Le premier travail non bloqué de la file est `L1-08b`**, et son mur est tombé
+cette nuit (L1-08d). Ce qui reste de lui — l'application, l'annulation
+partielle, le rapprochement assisté — **exige une migration** : `import_lot` et
+`import_lot_ligne` n'existent pas au schéma. C'est donc le premier travail qui
+demandera un geste d'Alexis, et la session qui le prendra doit finir son compte
+rendu par ce geste (§12 du protocole).
+
+**Trois questions attendent Alexis**, et aucune ne bloque le reste :
+
+| | |
+|---|---|
+| **issue #112** | aucun client ne peut se connecter au portail — par quel canal reçoit-il son premier accès ? *Mesuré : 0 habilitation de société, et le seul émetteur de jeton refuse sur les deux sociétés.* |
+| **R2-17** | le portail affiche une barre de back-office — cela touche ce qu'un client voit |
+| **R2-22** | « Fiche machine » est une entrée de barre qui ne peut pas être un lien |
+
+**Ce qui n'a pas été regardé** : le lot 3 (PWA, hors-ligne, synchronisation), le
+lot 4 (contrats, tableau de bord), les lots 8 et 9 au-delà de ce qui existe, et
+la base hébergée — *aucun geste n'a été posé dessus, et la veille nocturne
+l'observe seule.*
