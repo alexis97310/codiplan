@@ -5,7 +5,13 @@ import { controlerFeuille, MOTIF_AMBIGUITE } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import { PREFIXE_RAISON_SOCIALE } from "@/lib/excel/rapprochement";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
-import { MODELE_CLIENTS, marqueurDu } from "@/lib/imports/modeles";
+import {
+  MODELE_CLIENTS,
+  marqueurDu,
+  modeleContacts,
+  MOTIF_PARENT_INTROUVABLE,
+  MOTIF_SAISIE_REFUSEE,
+} from "@/lib/imports/modeles";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -186,5 +192,145 @@ describe("le cloisonnement tient sur le parc indexé", () => {
     // ce n'est pas une lecture vide.
     expect(parcB.fiches.get("C-001")).toBeTruthy();
     expect(parcB.fiches.get("C-001")).not.toBe(CLIENT_A1);
+  });
+});
+
+describe("LE GABARIT « CONTACTS » désigne un parent, et le rapport le dit (L1-09b)", () => {
+  function feuilleContacts(
+    modele: ReturnType<typeof modeleContacts>,
+    lignes: readonly (readonly string[])[],
+  ): FeuilleLue {
+    return {
+      nom: "Contacts",
+      lignes: [
+        [{ texte: marqueurDu(modele) }],
+        modele.colonnes.map((colonne) => ({ texte: colonne.nom })),
+        ...lignes.map((ligne) => ligne.map((valeur) => ({ texte: valeur }))),
+      ],
+    };
+  }
+
+  it("un client désigné par son CODE est résolu, et la ligne passe", async () => {
+    const parc = await indexerLeParcClients(SESSION, clientApp());
+    const modele = modeleContacts(parc);
+    const controle = controlerFeuille(
+      feuilleContacts(modele, [
+        [
+          "C-001",
+          "Jean Dupont",
+          "",
+          "",
+          "",
+          "jean@garage.test",
+          "donneur_ordre",
+        ],
+      ]),
+      modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    // La clé porte le CLIENT : deux contacts du même nom chez deux clients
+    // différents sont deux personnes.
+    expect(controle.lignes[0]?.cle?.cle).toContain(CLIENT_A1);
+  });
+
+  it("un client désigné par son NOM est résolu aussi — RG-IMP-05, seconde moitié", async () => {
+    const parc = await indexerLeParcClients(SESSION, clientApp());
+    const modele = modeleContacts(parc);
+    const controle = controlerFeuille(
+      feuilleContacts(modele, [
+        [
+          "  client   a1  ",
+          "Marie Martin",
+          "",
+          "",
+          "",
+          "marie@garage.test",
+          "comptabilite",
+        ],
+      ]),
+      modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("creation");
+    expect(controle.lignes[0]?.cle?.cle).toContain(CLIENT_A1);
+  });
+
+  it("un client INTROUVABLE est rejeté — et son motif n'est pas celui d'une saisie", async () => {
+    // *Une saisie refusée se corrige dans le FICHIER, un client introuvable se
+    // corrige dans le PARC* — rendre le même code ferait chercher au mauvais
+    // endroit.
+    const parc = await indexerLeParcClients(SESSION, clientApp());
+    const modele = modeleContacts(parc);
+    const controle = controlerFeuille(
+      feuilleContacts(modele, [
+        [
+          "Garage qui n'existe pas",
+          "Jean Dupont",
+          "",
+          "",
+          "",
+          "",
+          "signataire",
+        ],
+      ]),
+      modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.action).toBe("rejet");
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
+  });
+
+  it("un client d'une AUTRE société est introuvable — le cloisonnement passe par le parc", async () => {
+    // Le parc est indexé SOUS le contexte : le client B1 porte le même code
+    // « C-001 » que A1, et il n'entre jamais dans cet index. *Aucune
+    // comparaison de société n'est écrite dans le gabarit.*
+    const parcB = await indexerLeParcClients(
+      { ...SESSION, societeId: SOCIETE_B },
+      clientApp(),
+    );
+    const modele = modeleContacts(parcB);
+    const controle = controlerFeuille(
+      feuilleContacts(modele, [
+        [
+          "client a1",
+          "Jean Dupont",
+          "",
+          "",
+          "",
+          "jean@garage.test",
+          "donneur_ordre",
+        ],
+      ]),
+      modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
+  });
+
+  it("un RÔLE inconnu est refusé par la SAISIE, et le motif change", async () => {
+    // Le cas qui doit rester distinct pour sa propre raison (§9, 11/09) : le
+    // parent est résolu, c'est la saisie qui refuse. Deux motifs différents
+    // pour deux corrections différentes.
+    const parc = await indexerLeParcClients(SESSION, clientApp());
+    const modele = modeleContacts(parc);
+    const controle = controlerFeuille(
+      feuilleContacts(modele, [
+        ["C-001", "Jean Dupont", "", "", "", "jean@garage.test", "grand chef"],
+      ]),
+      modele,
+      { cles: new Set(), ambigues: new Set() },
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_SAISIE_REFUSEE);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { schemaCreationClient } from "@/lib/clients/saisie";
+import { schemaCreationContact } from "@/lib/contacts/saisie";
 import { controlerFeuille, MOTIF_AMBIGUITE } from "@/lib/excel/controle";
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import {
@@ -11,6 +12,11 @@ import {
   marqueurDu,
   MOTIF_SAISIE_REFUSEE,
   saisieDepuisLaLigne,
+  CHAMPS_CONTACTS,
+  CHAMPS_CONTACTS_ECARTES,
+  COLONNES_CONTACTS,
+  modeleContacts,
+  MOTIF_PARENT_INTROUVABLE,
 } from "@/lib/imports/modeles";
 
 /**
@@ -243,5 +249,91 @@ describe("le rapport montre ce que la saisie REFUSERA (L1-08h)", () => {
       CHAMPS_CLIENTS,
     );
     expect(saisie).toEqual({ raison_sociale: "Garage" });
+  });
+});
+
+describe("le gabarit « contacts » est confronté à SON schéma (L1-09b)", () => {
+  /**
+   * La forme du schéma. `schemaCreationContact` porte un `superRefine`, si bien
+   * que `.shape` n'est pas au premier niveau : il vit dans `_def`. *C'est une
+   * dépendance à la structure interne de Zod, et elle est écrite comme telle* —
+   * le témoin ci-dessous la surveille : le jour où Zod la déplace, ce n'est pas
+   * une liste vide qui passe au vert, c'est un décompte qui rougit.
+   */
+  const CHAMPS_DU_SCHEMA_CONTACT = Object.entries(
+    (schemaCreationContact as unknown as { _def: { shape: object } })._def
+      .shape,
+  );
+
+  /** Un parc vide : le gabarit est une FONCTION du parc, pas une constante. */
+  const MODELE = modeleContacts({
+    cles: new Set(),
+    ambigues: new Set(),
+    fiches: new Map(),
+  });
+
+  it("chaque champ du schéma est EXPOSÉ ou ÉCARTÉ nommément", () => {
+    // Le témoin d'abord : la lecture du schéma n'est pas vide.
+    expect(CHAMPS_DU_SCHEMA_CONTACT.length).toBeGreaterThanOrEqual(8);
+
+    const exposes = new Set(Object.values(CHAMPS_CONTACTS));
+    const orphelins = CHAMPS_DU_SCHEMA_CONTACT.map(([nom]) => nom).filter(
+      (nom) =>
+        !exposes.has(nom) &&
+        !Object.hasOwn(CHAMPS_CONTACTS_ECARTES, nom) &&
+        // `roles` est exposé par une colonne qui ne porte pas son nom : la
+        // cellule est une liste séparée par `;`, et la traduction vit dans le
+        // modèle. Il est nommé ici plutôt que rangé en écart — *il n'est pas
+        // écarté, il est composé.*
+        nom !== "roles",
+    );
+    expect(
+      orphelins,
+      "champs du schéma que le gabarit ignore en silence",
+    ).toEqual([]);
+  });
+
+  it("chaque champ écarté porte son MOTIF, et existe au schéma", () => {
+    const auSchema = new Set(CHAMPS_DU_SCHEMA_CONTACT.map(([nom]) => nom));
+    for (const [champ, motif] of Object.entries(CHAMPS_CONTACTS_ECARTES)) {
+      expect(motif, champ).toBeTruthy();
+      expect(auSchema.has(champ), `${champ} n'existe pas au schéma`).toBe(true);
+    }
+  });
+
+  it("le COURRIEL est obligatoire, et ce n'est pas une décision du gabarit", () => {
+    // `canaux` vaut `["email"]` par défaut, et `exigerCourrielSiCanalEmail`
+    // refuse alors un contact sans courriel. *Mesuré en écrivant le gabarit :
+    // une ligne parfaitement remplie par ailleurs partait en rejet.*
+    const colonne = MODELE.colonnes.find(
+      (c) => c.nom === COLONNES_CONTACTS.email,
+    );
+    expect(colonne?.obligatoire).toBe(true);
+  });
+
+  it("sans parc, TOUT est rejeté — et c'est le bon sens de défaillance", () => {
+    // Le modèle est une fonction du parc : un parc vide ne résout aucun
+    // parent. *Une ligne qui ne trouve pas son client n'est pas créée « sans
+    // client » — elle est refusée*, et un contact orphelin n'existe pas.
+    const feuille: FeuilleLue = {
+      nom: "Contacts",
+      lignes: [
+        [{ texte: marqueurDu(MODELE) }],
+        MODELE.colonnes.map((colonne) => ({ texte: colonne.nom })),
+        [
+          { texte: "C-001" },
+          { texte: "Jean Dupont" },
+          undefined,
+          undefined,
+          undefined,
+          { texte: "jean@garage.test" },
+          { texte: "donneur_ordre" },
+        ],
+      ],
+    };
+    const controle = controlerFeuille(feuille, MODELE, parc());
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_PARENT_INTROUVABLE);
   });
 });

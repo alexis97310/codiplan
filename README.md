@@ -477,6 +477,16 @@ RG-IMP-05 pose **trois** cas et non deux : _« en cas d'ambiguïté, la ligne pa
 
 `lib/imports/parc-clients.ts` **lit l'ambiguïté d'une collision, jamais d'une ressemblance**, et calcule la clé par la **même fonction** que le contrôle : _une variante ferait que rien ne se rapproche jamais, et tout redeviendrait création._ La clé ambiguë est **retirée** de l'index et **reste** dans `cles` — laisser l'une des deux fiches ferait écraser celle-là plutôt que l'autre.
 
+## Un gabarit qui désigne un PARENT est une fonction du parc
+
+`modeleContacts(parc)` (L1-09b) — _un gabarit qui désigne un parent ne peut pas être contrôlé sans ce parent_ : savoir si « Garage Dupont » existe demande de regarder le parc. Le modèle est **fabriqué** avec l'index, plutôt que de recevoir le parc à chaque appel — _ce qui aurait changé le contrat du contrôle pour tous les modèles, y compris ceux qui ne désignent rien._
+
+**La même clé que le gabarit du parent, jamais une seconde** : _une seconde règle de rapprochement des clients se verrait au pire moment — des contacts accrochés au mauvais client._
+
+**Deux motifs de rejet distincts, et c'est ce qui les rend utiles** : une **saisie refusée** se corrige dans le fichier, un **parent introuvable** se corrige dans le parc — ou dans la colonne qui le nomme. _Rendre le même code ferait chercher au mauvais endroit._
+
+**Et deux mesures ont corrigé ce qui avait été écrit.** Le **courriel est obligatoire**, et ce n'est pas une décision du gabarit : `canaux` vaut `["email"]` par défaut, et la saisie refuse alors un contact sans courriel. L'**index du parc porte deux clés par fiche**, code **et** nom : _avec une seule, une ligne désignant « Client A1 » par son nom proposait une création alors que la fiche existait_ — le « s'il existe » de RG-IMP-05 porte sur **la ligne du fichier**, pas sur la fiche.
+
 ## Deux sortes de fichiers d'import, et les confondre bloquait les deux
 
 _Mesuré en préparant l'application (L1-09a) : aucun modèle d'import concret n'existait dans `lib/`_ — `ModeleDImport` n'était qu'un type, et ses seuls exemplaires vivaient dans des tests.

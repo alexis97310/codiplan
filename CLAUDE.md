@@ -737,6 +737,15 @@ lib/
               `actif` non plus : un import ne désactive pas, et une colonne
               « Actif » ferait d'un oubli de saisie une désactivation de masse
               le marqueur est DÉRIVÉ du modèle, jamais recopié
+              un gabarit qui DÉSIGNE UN PARENT est une FONCTION du parc, jamais
+              une constante (L1-09b) : savoir si « Garage Dupont » existe
+              demande de regarder le parc, et passer celui-ci à chaque appel
+              aurait changé le contrat pour les modèles qui ne désignent rien
+              la MÊME clé que le gabarit du parent, jamais une seconde : une
+              seconde règle de rapprochement se verrait au pire moment — des
+              contacts accrochés au mauvais client
+              « saisie refusée » et « parent introuvable » sont DEUX motifs :
+              l'une se corrige dans le FICHIER, l'autre dans le PARC
               parc-clients.ts : L'AMBIGUÏTÉ EST UN FAIT DU PARC (L1-08g) — deux
               fiches qui rendent la MÊME clé rendent indécidable ce qu'une ligne
               désigne, et RG-IMP-05 veut alors un REJET, jamais une création

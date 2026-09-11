@@ -389,10 +389,21 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Acceptation :* un champ retiré du gabarit sans motif rougit ; un obligatoire perdu rougit ; un obligatoire de trop rougit aussi ; et la chaîne réelle lit le gabarit — marqueur dérivé, zéro anomalie, zéro colonne inconnue.
 *Relu contre les sources citées le 11/09/2026 — empreinte `5b65ed27`.*
 
+**L1-09b — LE GABARIT « CONTACTS », et le premier qui DÉSIGNE UN PARENT. [RG-IMP-05] [D29]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026.** C'est le gabarit qui devient possible en premier parmi les quatre restants : *un contact appartient au CLIENT, et le site est FACULTATIF* (§6) — il ne désigne donc qu'un parent, et **RG-IMP-05 dit comment le rapprocher**.
+**LE MODÈLE EST UNE FONCTION DU PARC**, et c'est la forme qui rend la chose possible sans changer le contrat du contrôle : *un gabarit qui désigne un parent ne peut pas être contrôlé sans ce parent* — savoir si « Garage Dupont » existe demande de regarder le parc. Passer le parc à chaque appel aurait changé la signature pour tous les modèles, y compris ceux qui ne désignent rien.
+**LA MÊME CLÉ QUE LE GABARIT DES CLIENTS**, jamais une seconde : *une seconde règle de rapprochement des clients se verrait au pire moment — des contacts accrochés au mauvais client.*
+**DEUX MOTIFS DE REJET DISTINCTS, et c'est ce qui les rend utiles** : une **saisie refusée** se corrige dans le FICHIER, un **parent introuvable** se corrige dans le PARC — ou dans la colonne qui le nomme. *Rendre le même code ferait chercher au mauvais endroit.*
+**ET DEUX MESURES ONT CORRIGÉ CE QUE J'AVAIS ÉCRIT.** (1) Le **courriel est obligatoire**, et ce n'est pas une décision du gabarit : `canaux` vaut `["email"]` par défaut, et `exigerCourrielSiCanalEmail` refuse alors un contact sans courriel — *une ligne parfaitement remplie par ailleurs partait en rejet.* (2) L'**index du parc porte DEUX clés par fiche**, code ET nom : *avec une seule, une ligne désignant « Client A1 » par son nom proposait une CRÉATION alors que la fiche existait.* Le « s'il existe » de RG-IMP-05 porte sur **la ligne du fichier**, pas sur la fiche.
+**Et le gardien a refusé une exemption que j'avais écrite par symétrie** : `actif` n'existe pas dans `schemaCreationContact` — un contact naît actif. *Une exemption qui ne s'adosse à rien n'exempte plus personne ; celle-ci a rougi le jour où elle a été écrite.*
+*Acceptation :* un client désigné par son code est résolu, par son nom aussi ; un client introuvable est rejeté avec SON motif ; un client d'une autre société est introuvable — le cloisonnement passe par le parc, aucune comparaison de société n'est écrite ; un rôle inconnu change de motif ; et sans parc, tout est rejeté.
+*Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
+
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
 *File :* LIBRE
-**CE QUI RESTE, au 11/09/2026 :** les gabarits **sites, contacts, modèles, prestations**, et le **téléchargement**.
-**Les quatre gabarits restants butent sur une RÉSOLUTION DE RÉFÉRENCE**, que le gabarit « clients » n'avait pas : un site désigne un client **et une agence** (`schemaCreationSite`, D56), et *RG-IMP-05 dit comment rapprocher un client, rien ne dit comment rapprocher une agence.* C'est une règle à écrire avant le gabarit, pas pendant.
+**CE QUI RESTE, au 11/09/2026 :** les gabarits **sites, modèles, prestations**, et le **téléchargement**.
+**LE MÉCANISME DE RÉFÉRENCE EXISTE DEPUIS L1-09b** — le modèle est une fonction du parc des parents. *Ce qui bloque les trois restants n'est donc plus le mécanisme, c'est la RÈGLE* : un site désigne un client **et une agence** (`schemaCreationSite`, D56), et **rien ne dit comment rapprocher une agence** — elle n'a ni code externe, ni règle équivalente à RG-IMP-05. C'est une règle à écrire avant le gabarit, pas pendant. *Il en va de même pour le SITE lui-même, qu'un contact pourrait désigner : L1-09b l'écarte pour cette raison.*
 **Le TÉLÉCHARGEMENT exige une bibliothèque d'ÉCRITURE `.xlsx`** — `read-excel-file` lit et n'écrit pas (D90), et le §2 interdit le CSV. *C'est une dépendance, donc une décision, et elle ne se prend pas en passant.*
 *Relu contre les sources citées le 11/09/2026 — empreinte `89f4a62c`.*
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
