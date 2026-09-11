@@ -657,3 +657,129 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Déclencheur : la prochaine prise de vue.** Le README nomme le commit photographié, et c'est la règle du §9. Ce qu'il ne dit pas : *comment un lecteur sait qu'aucun écran n'a bougé depuis.* La question se répond en une commande — `git diff --name-only <empreinte> main` restreint aux chemins d'écran — et cette commande est aujourd'hui tapée à la main, donc pas tapée.
 **Mesuré le 10/09/2026** : entre `b8c3f76` (photographié) et `2fe6e8b`, **67 fichiers changés et aucun sous `app/`, `components/`, `lib/theme/` ni `lib/i18n/`** — les images étaient exactes, et rien dans le dossier ne le disait.
 *Acceptation :* `scripts/captures.mts` énumère les chemins qu'il tient pour « surface d'écran » et les écrit dans le README avec l'empreinte ; une commande dit si l'un d'eux a changé depuis la prise, et rend un état — jamais un silence.
+
+**~~R1-03~~ — Chiffrer ce que la limitation de `ci.yml` à `push.branches ["main"]` a réellement économisé. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Écrit cette nuit-là, et **sans objet depuis le matin** : automatisation GitHub Actions abandonnée le 11/09/2026.~~ Le ticket est **barré, jamais effacé** — ce qui a été décidé un jour se relit, sinon on le redécide (CLAUDE.md §2). Il mesurait le gain d'une borne posée sur un flux qui ne tourne plus. *Condition de réouverture : le jour où un flux planifié consomme à nouveau des minutes de CI.*
+
+**~~R1-04~~ — Le compteur de budget dans le rapport de nuit. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet : automatisation GitHub Actions abandonnée le 11/09/2026.~~ Il n'y a plus de rapport de nuit, donc plus de budget à y compter. *Condition de réouverture : le jour où une exécution non humaine dépense à nouveau un budget mesurable.*
+
+**~~R1-05~~ — Le trou de vérification à la fusion. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet en tant que travail sur le rapport de nuit : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Mais le trou lui-même ne l'est pas, et c'est pourquoi ce ticket se relit plutôt qu'il ne disparaît** : un commit de fusion produit avec un jeton d'application ne déclenche pas la CI sur `main`, et cela reste vrai d'une fusion faite à la main par un agent. *Condition de réouverture : elle est déjà remplie si une fusion vit sur `main` sans exécution de CI qui la couvre — la moitié « rapport de nuit » tombe, la moitié « rendre la fusion non vérifiée visible » reste due.*
+
+**~~R1-06~~ — La note de `nuit.yml` sur `github_token` est devenue fausse. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Remplacé par R1-11**, qui traite le même fichier pour une raison plus forte : sa planification est trompeuse, pas seulement sa note.
+
+**R1-07 — Le gabarit d'un paragraphe d'arbitrage, TRANSPOSÉ au mode manuel. [demande d'exploitation du 11/09/2026, issues #103 et suivante]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le ticket d'origine demandait `.github/ISSUE_TEMPLATE/arbitrage.md` — un gabarit de TICKET. L'automatisation étant abandonnée le 11/09/2026, **un arbitrage ne s'ouvre plus en ticket : il s'écrit dans le compte rendu que la session rend.** La demande survit, sa destination change : ce n'est plus un fichier de gabarit GitHub, c'est une section de `docs/protocole-session.md` qui impose la forme.
+*Un ticket incompréhensible par quelqu'un sans contexte est un ticket raté* — et un paragraphe d'arbitrage l'est tout autant : Alexis le lit sur son téléphone entre deux rendez-vous.
+*Acceptation :* `docs/protocole-session.md` porte la forme imposée d'un paragraphe d'arbitrage — un titre sans jargon de moins de 80 caractères ; ce qui est en jeu en deux phrases ; ce qui a été **mesuré**, avec ses chiffres ; deux ou trois issues, chacune avec ce qu'elle coûte et ce qu'elle interdit ; ce qui est bloqué et ce qui continue. Un gardien statique lit le document et échoue si l'une des cinq sections manque à la forme — la forme se garde, le contenu ne se garde pas.
+
+**~~R1-08~~ — La relecture adverse — `.github/workflows/relecture.yml`. [demande d'exploitation du 11/09/2026, issue #103]**
+~~Sans objet sous cette forme : automatisation GitHub Actions abandonnée le 11/09/2026.~~ **Ce qui tombe est le FLUX, pas le besoin** — *une relecture qui ne trouve jamais rien est elle-même un gardien vide*, et c'est le §9 qui le dit, pas ce ticket. *Condition de réouverture : le jour où une seconde exécution à contexte neuf redevient possible, par un flux ou par une passe manuelle explicitement demandée.*
+
+**R1-09 — `docs/mise-en-ligne.md` §5.1 affirme un état que le code contredit. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat, et c'est le ticket le plus coûteux de ce lot** — il fait perdre une demi-journée à qui suit la note.
+**Mesuré le 11/09/2026.** Le §5.1 écrit : *« `prisma/seed.ts` n'écrit toujours **aucune ligne de `compte`** »*. `prisma/seed.ts:148` appelle `compte.create({ …, mot_de_passe: null })`, par `poserLeMoyenDeConnexionAuRepos`, appelée aux lignes **722** (les quatre identités internes) et **771** (le compte portail) ; introduite par le commit `62bf554`, le 10/09/2026 à 05:51:46 UTC. Et le semis a tourné **après** — exécution #44 de « DB migrate & seed », 10/09 22:05:33 UTC : *« utilisateurs internes — 4 identités »*, *« comptes portail — 1 rattachement »*.
+**Ce que la phrase fausse coûte.** `lib/auth/amorcage.ts` réémet un jeton de premier accès à trois conditions : l'identité existe, elle est habilitée sur la société visée, et son `compte` porte `mot_de_passe IS NULL`. **Les quatre identités de démonstration les remplissent toutes les trois.** La note envoie donc créer une base de production, y déposer deux secrets et amorcer une société — pour un écran connecté qu'on peut ouvrir sans rien de tout cela.
+*Acceptation :* la phrase est **barrée et non effacée** (CLAUDE.md §2), avec sa date et le commit qui l'a rendue fausse ; une section « voie courte » donne les clics littéraux de la connexion sur la base de démonstration, en nommant l'identité et l'identifiant de société mesurés ; et le README ou un gardien dit ce qui rendrait la nouvelle phrase fausse à son tour.
+
+**R1-10 — Clore l'issue #95 avec sa cause mesurée. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat.** L'issue *« [veille-securite] la base hébergée a DÉRIVÉ »*, ouverte le 10/09/2026 à 15:18 UTC, est **toujours ouverte** alors que sa cause est traitée.
+**Mesuré le 11/09/2026.** L'écart unique qu'elle rapportait — `utilisateur_client` sans la forme « rattachement » — était le contenu de la migration `20260911010000_rattachement_portail_d92`, jamais appliquée. L'exécution #44 de « DB migrate & seed », 10/09 22:04:51 UTC, imprime `All migrations have been successfully applied.`, et le contrôle de cloisonnement de la même exécution nomme désormais `rattachement (1) : utilisateur_client`. La dérive est refermée.
+*C'est le corollaire de R1-01, vu par l'autre bout : une alarme laissée ouverte à tort apprend à ne plus lire les alarmes, exactement comme un gabarit qui affirme une cause qu'il n'a pas mesurée.*
+*Acceptation :* l'issue est close en nommant la migration en cause, l'exécution qui l'a appliquée et la ligne du contrôle qui le constate ; la clôture ne dit jamais « geste manuel » — c'est la phrase que R1-01 vient retirer du gabarit.
+
+**R1-11 — Retirer de `nuit.yml` une planification devenue trompeuse. [mesuré le 11/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat.** Le flux est désactivé — état `disabled_manually`, mis à jour le 11/09/2026 à 12:54:55 +11:00 — et **le fichier porte toujours `schedule: cron "0 16 * * *"`**. Un flux désactivé manuellement ne part pas ; mais l'état vit dans l'interface de GitHub, et le dépôt dit le contraire.
+*C'est l'espèce du §9 du 31/08 prise à l'envers : là, une garantie reposait sur un attribut extérieur à la chose garantie ; ici, c'est une NEUTRALISATION qui repose sur un attribut extérieur, et le fichier qu'on relira dans trois mois annonce une nuit qui tourne.*
+*Acceptation :* `nuit.yml` ne porte plus de déclencheur `schedule` ; son en-tête dit que l'automatisation a été abandonnée le 11/09/2026, et à quelle condition elle se rouvrirait ; `claude.yml` reçoit la même mention si son état le justifie, mesuré et non supposé.
+
+---
+
+## Reprise de l'interface d'après la maquette — D95
+
+*Ouvert le 11/09/2026. La maquette fait foi sur la disposition et les couleurs ; `/planning` a été refait le jour même comme écran de référence, et **rien n'a été propagé aux autres** — Alexis juge `/planning` en ligne avant. Chaque ticket nomme l'écran de la maquette auquel il se confronte, ou dit qu'il n'en a pas.*
+
+**Le socle est posé et n'est pas à refaire :** les jetons d'apparence, la barre à onze entrées, la largeur utile de 1400 px et l'échelle typographique vivent dans la mise en page racine. Un écran repris n'a donc **aucune couleur à écrire, aucune largeur à choisir, aucune barre à rendre** — s'il en écrit une, c'est un défaut.
+
+**R2-01 — Le SECOND THÈME : « le tableau », l'apparence d'avant D95. [D95]**
+*File :* LIBRE
+**Déclencheur : immédiat.** D95 a fait de l'apparence d'avant un thème alternatif, et n'en a construit aucun : `APPARENCES` ne contient qu'une entrée. **Tant qu'il n'y en a qu'une, le mécanisme n'est pas éprouvé** — il est seulement écrit. *C'est l'espèce du §9 (08/09) : un défaut invisible parce que ce qu'il casse n'existe pas encore.*
+**Ce que « le tableau » désigne est MESURABLE, et D95 le dit** : l'apparence en vigueur sur `main` au commit `d03a4a5` — les jetons `oklch` de `app/globals.css` et les gris ardoise de `lib/theme/defaut.ts`. Le nom lui-même ne désigne aucun document du dépôt.
+*Acceptation :* un bloc `[data-apparence="tableau"]` déclare les vingt-neuf jetons, une entrée rejoint `APPARENCES`, et le gardien d'apparence passe sans être touché ; **un scénario montre que basculer l'attribut change le rendu sans qu'aucun fichier d'écran ne bouge** — c'est la promesse de D95, et elle n'est tenue que quand deux thèmes existent.
+
+**R2-02 — Le thème est une PROPRIÉTÉ DE LA SOCIÉTÉ. [D95]**
+*File :* BLOQUÉ — arbitrage de schéma : ajouter une colonne à `societe` touche la table que `societe_id` désigne, et le §8 du CLAUDE.md en fait un point d'arrêt. R2-01 d'abord.
+**Déclencheur : quand R2-01 est livré.** C'est l'exigence commerciale que D95 nomme : *un client tiers voudra ses propres couleurs.* Aujourd'hui l'apparence est une constante du code.
+**À ne pas confondre avec la charte de L0-09**, et c'est tout le piège : la charte porte DEUX couleurs d'identité, propres à une société, déjà en base et déjà nullables. Le thème porte le SOCLE entier — surfaces, bordures, encres, familles de statut. Les deux se posent ensemble et ne se remplacent pas.
+*Acceptation :* une colonne de `societe` porte le nom du thème, nullable — « pas de thème choisi » doit rester un état représentable, comme pour la charte ; `themeDuContexte` la lit sous le contexte cloisonné ; une société sans thème reçoit l'apparence par défaut ; un scénario d'isolation montre que deux sociétés voient deux apparences, et qu'aucune ne peut lire celle de l'autre.
+
+**R2-03 — Le SÉLECTEUR de thème. [D95]**
+*File :* BLOQUÉ — un sélecteur sans second thème est un réglage sans usage, et c'est la faute que `parametrage.ts` évite déjà sur les créneaux. R2-01 et R2-02 d'abord.
+**Déclencheur : quand deux thèmes existent et qu'une société peut en porter un.** *Un thème que personne ne peut choisir est un thème que personne ne verra* — c'est la condition de réouverture que D95 écrit.
+*Acceptation :* l'écran de réglage d'une société laisse choisir son thème parmi `APPARENCES` ; le choix est journalisé comme toute modification d'une table auditée (I8) ; aucun écran n'a été touché pour l'ajouter.
+
+**R2-04 — `/arrivee` — 448 px et centré à mi-hauteur. [D95]**
+*File :* LIBRE
+**Écran de la maquette : AUCUN.** Elle ne décrit pas d'écran d'arrivée — elle s'ouvre directement sur le tableau de bord. *C'est donc le ticket le plus exposé du lot : il n'a pas de modèle, et la tentation sera d'en inventer un.*
+**Mesuré le 11/09/2026, à 1700 px : contenu de 448 px de large, centré verticalement, document de 1072 px.** Il porte `max-w-md` et `justify-center` — la forme d'une page de connexion, pas celle d'un écran d'arrivée dans un back-office de 1400 px.
+*Acceptation :* l'écran occupe la largeur utile et commence en haut ; ce qu'il affiche ne change pas d'un mot — *qui vous êtes, pour quelle société, et rien d'autre* est une décision de L1-02f, pas une question d'apparence ; si la maquette reste muette sur la forme, l'écart est écrit avec sa raison.
+
+**R2-05 — `/parametres/agences` — des cartes là où la maquette met un tableau dense. [D95]**
+*File :* LIBRE
+**Écran de la maquette : « Sociétés & tarifs ».**
+**Mesuré le 11/09/2026 : contenu de 896 px, document de 1354 px pour trois agences** — soit environ 380 px de hauteur par agence de huit champs. La maquette range ce genre de contenu en tableau : en-têtes en majuscules fines, lignes de 11 px de padding, pas de carte par enregistrement.
+*Acceptation :* l'écran occupe la largeur utile et présente les agences en tableau ; le formulaire de réglage du pas reste atteignable sans quitter la ligne ; le nombre d'agences visibles sans défiler à 1700 px est mesuré avant et après, et il augmente.
+
+**R2-06 — `/parametres/forfaits` — même écran de maquette, même reprise. [D95]**
+*File :* LIBRE
+**Écran de la maquette : « Sociétés & tarifs »** — le même que R2-05, et c'est pourquoi les deux tickets sont séparés mais jumeaux : la barre les allume tous deux, ils doivent se ressembler.
+*Acceptation :* mêmes critères que R2-05 ; et les deux écrans partagent leur forme de tableau plutôt que d'en écrire deux — *deux implémentations d'un même critère divergent en silence* (§9, 01/09).
+
+**R2-07 — `/portail` — le portail client. [D95] [D92]**
+*File :* LIBRE
+**Écran de la maquette : « Portail client »** — bandeau dégradé, cartes de parc, et le ton d'un espace client plutôt que d'un back-office.
+**Ce ticket a une CONDITION D'ÉPREUVE que les autres n'ont pas** : aucun compte portail ne peut se connecter aujourd'hui — le seul émetteur de lien de premier accès exige une habilitation dans `utilisateur_societe`, qu'un compte portail n'a pas par D10. *Mesuré le 10/09/2026 et toujours vrai : les quatre captures du portail sont refusées pour cette raison.* La reprise est donc écrite à l'aveugle tant que ce mur tient.
+*Acceptation :* l'écran suit la maquette ; et le ticket dit explicitement s'il a été VU ou seulement écrit — une reprise d'apparence non photographiée est une intention.
+
+**R2-08 — `/planning/[id]` et `/planning/nouvelle` — la fiche et la saisie. [D95]**
+*File :* LIBRE
+**Écran de la maquette : AUCUN pour la saisie ; « Fiche machine » donne la FORME d'une fiche** — deux colonnes, `dl` de 132 px, colonne latérale de 300 px, frise verticale. C'est cette forme qui se reprend, pas son contenu.
+**Mesuré le 11/09/2026 : `max-w-3xl` (768 px) pour la fiche, `max-w-2xl` (672 px) pour la saisie**, dans une fenêtre de 1700.
+*Acceptation :* les deux écrans occupent la largeur utile et suivent la forme de fiche de la maquette ; les cinq actions de D84 restent atteignables et leur refus reste lisible.
+
+**R2-09 — Les écrans d'authentification — connexion, code, enrôlement, premier accès. [D95]**
+*File :* LIBRE
+**Écran de la maquette : AUCUN.** Elle s'ouvre sur une session déjà établie. *Et c'est le seul endroit du produit où une colonne étroite et centrée est la bonne forme* — ces quatre écrans ne sont pas des écrans de travail.
+**Ils n'ont donc peut-être RIEN à reprendre, et le ticket existe pour que ce soit constaté plutôt que supposé.** Ce qui les concerne sûrement : la barre de navigation n'a rien à faire au-dessus d'une page de connexion, et elle s'y affiche aujourd'hui.
+*Acceptation :* la barre ne s'affiche pas sur les écrans qui précèdent la session ; le reste est constaté conforme ou corrigé, avec la raison écrite dans les deux cas.
+
+**R2-10 — `/` et `/sante` — les deux écrans sans compte. [D95]**
+*File :* LIBRE
+**Écran de la maquette : AUCUN pour l'un ni pour l'autre.**
+`/sante` a une contrainte que rien d'autre n'a : *elle ne lève jamais, et elle ne rend aucun secret.* Une reprise d'apparence ne doit pas lui faire lire quoi que ce soit de plus — pas même le thème d'une société.
+*Acceptation :* les deux écrans portent l'apparence du produit ; `/sante` continue de s'afficher avec une base injoignable, et son jumeau le prouve toujours.
+
+**R2-11 — LE NOM D'UN TECHNICIEN dans la grille. [D95]**
+*File :* BLOQUÉ — la table `technicien` du chapitre 11 n'existe pas, et la créer touche le modèle de données : c'est un arbitrage, pas un ticket d'écran.
+**Déclencheur : immédiat pour la question, différé pour la construction.** La maquette écrit « D. Guérin · Ducos · Compresseurs, ponts ». La grille rend `Technicien 0192f0a0` — l'identifiant abrégé, exactement comme la charge par technicien depuis le 10/09.
+**Deux choses manquent, et elles ne se règlent pas au même endroit.** Le NOM : `utilisateur` porte la forme de politique « désignation », il ne se lit qu'en nommant sa ligne, une par une — lire quatre noms demanderait quatre lectures, et lire un planning entier en demanderait autant qu'il y a de techniciens. La SPÉCIALITÉ : aucune colonne ne la porte nulle part.
+*Acceptation :* l'arbitrage tranche d'où vient le nom d'un technicien dans un écran cloisonné — table `technicien` du chapitre 11, colonne recopiée, ou lecture par désignation en lot — avec le coût de chacune ; puis la grille l'affiche.
+
+**R2-12 — Les interventions de démonstration n'ont AUCUN technicien. [D95]**
+*File :* LIBRE
+**Déclencheur : immédiat.** *Mesuré le 11/09/2026 sur une base fraîchement semée : les douze interventions de démonstration portent `technicien_id = NULL`.* La grille du planning affiche donc des lignes « Interventions non affectées », une par agence — ce qui est **exact** et ne montre pas ce que l'écran est fait pour montrer.
+**Ce n'est pas un défaut de la grille, et il ne se corrige pas dans la grille.** Le semis crée pourtant un technicien par société — `technicien.nc@codima.test`, `technicien.eu@codima.test` — et ne leur affecte rien.
+**Ce ticket n'a PAS été fait dans la passe de D95, délibérément** : modifier les données de démonstration pour flatter un écran qu'on vient d'écrire est le geste qu'il faut se refuser. Il se décide à froid.
+*Acceptation :* le semis affecte une partie des interventions de démonstration aux techniciens qu'il crée déjà, et en laisse au moins une non affectée — la ligne « non affectées » est un cas réel du produit, elle doit rester démontrable ; aucun technicien n'est inventé.
+
+**R2-13 — Le « Tableau de bord », premier écran de la maquette. [D95]**
+*File :* BLOQUÉ — il affiche des indicateurs qui n'existent pas (taux d'occupation consolidé, préventif dans les délais, portefeuille de contrats). Lot 4.
+**Écran de la maquette : « Tableau de bord »** — quatre indicateurs, interventions du jour, alertes.
+**C'est la PREMIÈRE entrée de la barre, et elle est inerte.** Elle le restera visiblement jusqu'à ce lot, et c'est voulu : une entrée inerte dit ce que le produit sera, un lien vers un écran vide dirait qu'il est cassé.
+*Acceptation :* hors périmètre tant que les indicateurs n'ont pas de source. Le ticket existe pour que l'entrée inerte de la barre ait un ticket, et non une promesse.

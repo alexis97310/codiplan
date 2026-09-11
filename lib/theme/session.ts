@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
-import { estContexteActif } from "@/lib/auth/contexte";
+import { estContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
@@ -63,15 +63,41 @@ export async function themeDeLaSession(
 ): Promise<ThemeSociete> {
   try {
     const session = await obtenirSession(entetes);
-    if (session === null || !estContexteActif(session.contexte)) {
-      return THEME_DEFAUT;
-    }
-    const contexte = session.contexte;
-    return await avecContexteApplicatif(contexte, (tx) =>
-      lireThemeCloisonne(tx, contexte.societeId),
-    );
+    return await themeDuContexte(session?.contexte ?? null);
   } catch {
     // Voir l'entête : la charte n'est jamais un motif d'échec de rendu.
+    return THEME_DEFAUT;
+  }
+}
+
+/**
+ * Le thème d'un contexte DÉJÀ LU, sans relire la session.
+ *
+ * **Extraite parce que la mise en page racine a désormais deux besoins d'une
+ * même lecture** (D95) : la barre de navigation veut le nom de la personne, la
+ * charte veut la société. Les obtenir par deux appels à `obtenirSession`
+ * doublerait la lecture à chaque rendu — et surtout, les deux moitiés
+ * pourraient un jour ne plus parler de la même session.
+ *
+ * `themeDeLaSession` reste, et devient son enveloppe : les appelants qui n'ont
+ * que des en-têtes sous la main n'ont rien à changer.
+ *
+ * Le contrat de l'entête vaut ici aussi : **aucune impossibilité ne fait
+ * échouer un rendu.** Un contexte nul, une société absente, une base
+ * injoignable — le thème neutre, toujours.
+ */
+export async function themeDuContexte(
+  contexte: ContexteSession | null,
+): Promise<ThemeSociete> {
+  try {
+    if (contexte === null || !estContexteActif(contexte)) {
+      return THEME_DEFAUT;
+    }
+    const actif = contexte;
+    return await avecContexteApplicatif(actif, (tx) =>
+      lireThemeCloisonne(tx, actif.societeId),
+    );
+  } catch {
     return THEME_DEFAUT;
   }
 }
