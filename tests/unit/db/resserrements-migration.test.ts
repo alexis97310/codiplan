@@ -129,6 +129,36 @@ describe("ce qui est un resserrement", () => {
     });
   });
 
+  // TROIS FORMES QUE LE DÉPÔT N'ÉCRIT PAS — mesuré le 11/09/2026 : aucune
+  // n'apparaît dans les 47 migrations. Elles sont reconnues quand même, et
+  // éprouvées ICI faute de cas réel. *Un lecteur qui ne connaît que ce qui
+  // existe devient faux en silence le jour où quelqu'un écrit autre chose.*
+  it.each([
+    [
+      "VALIDATE CONSTRAINT",
+      `ALTER TABLE "t" VALIDATE CONSTRAINT "t_a_positif";`,
+      "t_a_positif",
+    ],
+    [
+      "ATTACH PARTITION",
+      `ALTER TABLE "t" ATTACH PARTITION "t_2027" FOR VALUES FROM ('2027-01-01') TO ('2028-01-01');`,
+      "t_2027",
+    ],
+    [
+      "EXCLUDE",
+      `ALTER TABLE "t" ADD CONSTRAINT "t_sans_chevauchement" EXCLUDE USING gist ("a" WITH =);`,
+      "t_sans_chevauchement",
+    ],
+  ])("reconnaît %s, que le dépôt n'écrit pas encore", (genre, sql, objet) => {
+    const trouves = resserrements([
+      { nom: "1_naissance", sql: `CREATE TABLE "t" ("a" int);` },
+      { nom: "2_resserre", sql },
+    ]);
+
+    expect(trouves).toHaveLength(1);
+    expect(trouves[0]).toMatchObject({ genre, objet, table: "t" });
+  });
+
   it("ne lit pas les COMMENTAIRES — documentation contre exécution", () => {
     const trouves = resserrements([
       { nom: "1_naissance", sql: `CREATE TABLE "t" ("a" int);` },
@@ -140,6 +170,38 @@ describe("ce qui est un resserrement", () => {
     ]);
 
     expect(trouves).toEqual([]);
+  });
+});
+
+describe("les formes absentes du dépôt", () => {
+  // LE TÉMOIN DE CETTE ABSENCE. Le jour où une migration écrira l'une de ces
+  // trois formes, ce scénario rougit — non parce que la forme serait
+  // interdite, mais parce que la phrase « le dépôt ne les écrit pas », écrite
+  // le 11/09/2026 au README et dans le module, cesserait d'être vraie.
+  // *Une affirmation datée qui ne se re-mesure pas devient un vestige.*
+  it("VALIDATE CONSTRAINT, ATTACH PARTITION et EXCLUDE n'apparaissent nulle part", () => {
+    const executables = REELLES.map((m) =>
+      m.sql
+        .split("\n")
+        .filter((ligne) => !/^\s*--/.test(ligne))
+        .join("\n"),
+    );
+    expect(executables.length).toBeGreaterThan(40);
+
+    for (const forme of [
+      /VALIDATE\s+CONSTRAINT/i,
+      /ATTACH\s+PARTITION/i,
+      /ADD\s+CONSTRAINT\s+"?[a-z0-9_]+"?\s+EXCLUDE\b/i,
+    ]) {
+      const ecrivent = REELLES.filter((_, i) =>
+        forme.test(executables[i]!),
+      ).map((m) => m.nom);
+      expect(
+        ecrivent,
+        `${forme} apparaît désormais : le rejeu la reconnaît, mais la phrase ` +
+          "« le dépôt ne l'écrit pas » doit être retirée du README et du module.",
+      ).toEqual([]);
+    }
   });
 });
 

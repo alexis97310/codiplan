@@ -154,6 +154,37 @@ export function resserrements(
         ajoute("FOREIGN KEY", table, fk[1]!);
       }
 
+      // ── LES TROIS FORMES QUE LE DÉPÔT N'ÉCRIT PAS ENCORE ────────────────
+      //
+      // Mesuré le 11/09/2026 sur les 47 migrations : `VALIDATE CONSTRAINT`,
+      // `ATTACH PARTITION` et `EXCLUDE` n'y apparaissent **nulle part**.
+      // Elles sont reconnues quand même, et ce n'est pas de la précaution
+      // décorative : *un lecteur qui ne connaît que ce qui existe devient faux
+      // le jour où quelqu'un écrit autre chose*, et il le devient EN SILENCE —
+      // la direction permissive, celle qui ne produit aucun signal.
+      //
+      // Elles sont éprouvées sur des migrations FABRIQUÉES, faute de réelles :
+      // c'est le seul cas où le §9 du 21/08 — « un gardien vert sur un cas
+      // fabriqué n'est pas un gardien éprouvé » — ne peut pas être satisfait,
+      // et la limite est écrite plutôt que tue.
+      for (const validation of corps.matchAll(
+        /VALIDATE\s+CONSTRAINT\s+"?([a-z0-9_]+)"?/gi,
+      )) {
+        ajoute("VALIDATE CONSTRAINT", table, validation[1]!);
+      }
+
+      for (const attache of corps.matchAll(
+        /ATTACH\s+PARTITION\s+"?([a-z0-9_]+)"?/gi,
+      )) {
+        ajoute("ATTACH PARTITION", table, attache[1]!);
+      }
+
+      for (const exclusion of corps.matchAll(
+        /ADD\s+CONSTRAINT\s+"?([a-z0-9_]+)"?\s+EXCLUDE\b/gi,
+      )) {
+        ajoute("EXCLUDE", table, exclusion[1]!);
+      }
+
       for (const unique of corps.matchAll(
         /ADD\s+CONSTRAINT\s+"?([a-z0-9_]+)"?\s+(UNIQUE|PRIMARY\s+KEY)/gi,
       )) {
