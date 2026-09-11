@@ -1,9 +1,23 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { identiteDeChrome } from "@/lib/auth/chrome";
+
+/** Toutes les mises en page du répertoire `app/`, la racine comprise. */
+function misesEnPage(repertoire: string): readonly string[] {
+  const trouvees: string[] = [];
+  for (const entree of readdirSync(repertoire)) {
+    const chemin = join(repertoire, entree);
+    if (statSync(chemin).isDirectory()) {
+      trouvees.push(...misesEnPage(chemin));
+    } else if (entree === "layout.tsx") {
+      trouvees.push(chemin);
+    }
+  }
+  return trouvees;
+}
 
 /**
  * LA MISE EN PAGE RACINE NE LÈVE JAMAIS — l'incident du 11/09/2026.
@@ -67,32 +81,58 @@ describe("la lecture de chrome ne lève jamais", () => {
   });
 });
 
-describe("le chemin : la mise en page racine emploie la lecture qui ne lève pas", () => {
-  const LAYOUT = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
-  const sansCommentaires = LAYOUT.replace(/\/\/[^\n]*/g, "").replace(
-    /\/\*[\s\S]*?\*\//g,
-    "",
-  );
+describe("le chemin : AUCUNE mise en page n'emploie une lecture qui lève", () => {
+  /*
+   * R2-16 a déplacé la barre de la racine vers les segments : il y a désormais
+   * QUATRE mises en page, et trois d'entre elles lisent une session. Le gardien
+   * ne pouvait plus regarder la racine seule — *c'est la faute du §9 du 09/09 :
+   * la garantie était énoncée pour UN fichier, et un second appelant a traversé
+   * l'énoncé sans le rencontrer.* Sa population est donc DÉRIVÉE du répertoire
+   * `app/` : une mise en page écrite demain y entre le jour où elle apparaît.
+   */
+  const MISES_EN_PAGE = misesEnPage(join(process.cwd(), "app"));
 
-  it("a réellement lu la mise en page — le témoin", () => {
-    expect(sansCommentaires).toContain("RootLayout");
+  const sansCommentaires = (chemin: string): string =>
+    readFileSync(chemin, "utf8")
+      .replace(/\/\/[^\n]*/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("a réellement lu des mises en page — le témoin", () => {
+    // Un décompte nul ressemble toujours à un sans-faute (§9, 30/08).
+    expect(MISES_EN_PAGE.length).toBeGreaterThanOrEqual(4);
+    expect(sansCommentaires(join(process.cwd(), "app/layout.tsx"))).toContain(
+      "RootLayout",
+    );
   });
 
-  it("n'appelle PAS `obtenirSession`, qui lève", () => {
-    // La coupure est « documentation contre exécution » (D50) : l'entête de la
+  it("aucune n'appelle `obtenirSession`, qui lève", () => {
+    // La coupure est « documentation contre exécution » (D50) : l'entête d'une
     // mise en page a le droit de NOMMER la fonction pour dire pourquoi elle ne
     // l'appelle pas. C'est le corps qui est jugé.
-    expect(sansCommentaires).not.toMatch(/\bobtenirSession\b/);
+    const fautives = MISES_EN_PAGE.filter((chemin) =>
+      /\bobtenirSession\b/.test(sansCommentaires(chemin)),
+    );
+    expect(fautives).toEqual([]);
   });
 
-  it("appelle `identiteDeChrome`", () => {
-    expect(sansCommentaires).toMatch(/\bidentiteDeChrome\b/);
+  it("celles qui lisent une session passent par `chromeDeLaRequete`", () => {
+    const lectrices = MISES_EN_PAGE.filter((chemin) =>
+      /\bchromeDeLaRequete\b/.test(sansCommentaires(chemin)),
+    );
+    // La direction permissive : au moins une lit vraiment, sinon les deux
+    // assertions ci-dessus seraient vertes sur un dossier de coquilles vides.
+    expect(lectrices.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("et `themeDuContexte`, qui porte le même contrat", () => {
+  it("et `chromeDeLaRequete` est faite des DEUX moitiés qui ne lèvent pas", () => {
     // Les deux moitiés du chrome — la charte et l'identité — ne lèvent ni
     // l'une ni l'autre. En garder une seule laisserait la porte ouverte par
     // l'autre, et personne ne s'en apercevrait avant la prochaine prise de vue.
-    expect(sansCommentaires).toMatch(/\bthemeDuContexte\b/);
+    const chrome = sansCommentaires(
+      join(process.cwd(), "lib/navigation/chrome.ts"),
+    );
+    expect(chrome).toMatch(/\bidentiteDeChrome\b/);
+    expect(chrome).toMatch(/\bthemeDuContexte\b/);
+    expect(chrome).not.toMatch(/\bobtenirSession\b/);
   });
 });

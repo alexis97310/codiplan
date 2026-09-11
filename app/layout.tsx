@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 
-import { BarreDeNavigation } from "@/components/navigation/barre";
-import { identiteDeChrome } from "@/lib/auth/chrome";
 import { t } from "@/lib/i18n/fr";
-import { initialesDuNom } from "@/lib/navigation/initiales";
-import { APPARENCE_PAR_DEFAUT, LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
-import { themeDuContexte } from "@/lib/theme/session";
+import { chromeDeLaRequete } from "@/lib/navigation/chrome";
+import { APPARENCE_PAR_DEFAUT } from "@/lib/theme/apparence";
 import { variablesCss } from "@/lib/theme/variables";
 
 import "./globals.css";
@@ -37,17 +33,34 @@ export const metadata: Metadata = {
  *
  * ## La largeur utile
  *
- * `1400 px`, celle de `.wrap` dans la maquette, et elle est posée ICI — pas
- * dans les écrans. *Mesuré le 11/09/2026 avant D95 : cinq écrans, cinq
- * largeurs — 448, 672, 768, 896 et 1024 px, et aucune n'était celle de la
- * maquette.* Une largeur décidée par chaque page est une largeur qui dérive.
+ * Elle n'est plus posée ici (R2-16) : une barre pleine largeur ne se rend pas à
+ * l'intérieur d'un conteneur centré. Elle est passée dans un composant,
+ * `components/mise-en-page/largeur-utile.tsx`, que les trois mises en page de
+ * segment rendent — une seule écriture, comme avant.
+ *
+ * ## LA BARRE DE NAVIGATION N'EST PLUS ICI (R2-16)
+ *
+ * Elle y était depuis D95, et elle coiffait donc AUSSI `/connexion`,
+ * `/premier-acces`, `/enrolement`, `/sante` et `/` — *onze entrées dont dix
+ * inertes au-dessus d'un formulaire de connexion, avec une pastille d'identité
+ * vide par construction.* Ce n'est pas un défaut de sécurité : la barre n'a
+ * jamais été un contrôle d'accès, et `lib/navigation/entrees.ts` l'écrit. C'est
+ * un défaut de lecture, et c'est le premier écran qu'un acheteur voit.
+ *
+ * **La règle est portée par le SEGMENT, jamais par une liste de chemins.** Une
+ * liste tenue à la main oublierait le prochain écran d'authentification ; un
+ * répertoire ne s'oublie pas, il se choisit au moment où l'on crée le fichier.
+ * Trois groupes, et chaque page en habite exactement un :
+ * `(sans-session)` sans barre, `(back-office)` et `(portail)` avec.
+ * `tests/unit/app/barre-par-segment.test.ts` en dérive la population du
+ * répertoire `app/` et refuse une page qui n'habiterait aucun des trois.
  *
  * ## Une seule lecture de session par rendu
  *
- * La session est lue une fois, ici, et le thème en est DÉDUIT
- * (`themeDuContexte`). L'appel qui lisait la session pour son seul compte a
- * disparu : la barre a besoin du nom de la personne, le thème a besoin de la
- * société, et ce sont deux choses de la même lecture.
+ * La racine a besoin de la société pour la charte ; la mise en page du segment
+ * a besoin du nom pour la pastille. Une mise en page ne transmet rien à celles
+ * qu'elle englobe : les deux appellent donc `chromeDeLaRequete`, qui est
+ * mémoïsée par requête et ne lit la session qu'UNE fois par rendu.
  *
  * Lire les en-têtes rend le rendu dynamique, et c'est la conséquence assumée :
  * la charte dépend de la session, elle ne peut donc pas être figée à la
@@ -58,13 +71,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const entetes = await headers();
   // LA MISE EN PAGE RACINE NE LÈVE JAMAIS, et ce n'est pas une précaution :
   // elle est traversée par `/` et par `/sante`, deux écrans dont le contrat est
   // de s'afficher sans compte et sans base. Un appel nu à `obtenirSession` les
   // a fait rendre 500 le 11/09 — mesuré, le serveur n'a jamais démarré.
-  const session = await identiteDeChrome(entetes);
-  const theme = await themeDuContexte(session?.contexte ?? null);
+  const { theme } = await chromeDeLaRequete();
 
   return (
     <html lang="fr">
@@ -74,16 +85,7 @@ export default async function RootLayout({
         data-theme={theme.origine}
         style={variablesCss(theme)}
       >
-        <BarreDeNavigation
-          theme={theme}
-          initiales={initialesDuNom(session?.nom)}
-        />
-        <div
-          className="mx-auto w-full px-5 pt-6 pb-16"
-          style={{ maxWidth: `${LARGEUR_UTILE_PX}px` }}
-        >
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );
