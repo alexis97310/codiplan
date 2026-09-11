@@ -765,19 +765,27 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* l'écran suit la maquette ; et le ticket dit explicitement s'il a été VU ou seulement écrit — une reprise d'apparence non photographiée est une intention.
 
 **R2-08 — `/planning/[id]` et `/planning/nouvelle` — la fiche et la saisie. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**La forme de fiche est LUE dans la maquette, pas approchée** : `.mach`, deux colonnes `1fr 300px` ; `.dl`, une grille `132px 1fr` à 13 px, étiquettes grises en 12 px et valeurs en demi-gras. *Mesuré avant : `max-w-3xl`, soit 768 px dans une fenêtre de 1700, et cinq actions empilées à la file sous l'identification ; après : **1360 px**, identification et actions côte à côte.*
+**Les actions passent en colonne latérale sans changer de régime** : un refus reste affiché À LA PLACE de l'action, avec sa raison. Ce qui change est qu'on les voit AVEC l'identification — *on décide d'annuler une intervention en regardant ce qu'elle est, pas en s'en souvenant après avoir défilé.* Un scénario compte les quatre formulaires : « il en reste » ne dit pas combien ont disparu.
+**La SAISIE reste étroite, et c'est une décision écrite** : un formulaire à champs pleine largeur sur 1360 px est plus difficile à remplir qu'un formulaire étroit — l'œil parcourt la ligne entière entre l'étiquette et le champ. *La largeur utile est celle de l'ÉCRAN ; celle d'un formulaire est celle de sa colonne.* Le titre occupe la page, le cadre est borné à 640 px.
 **Écran de la maquette : AUCUN pour la saisie ; « Fiche machine » donne la FORME d'une fiche** — deux colonnes, `dl` de 132 px, colonne latérale de 300 px, frise verticale. C'est cette forme qui se reprend, pas son contenu.
 **Mesuré le 11/09/2026 : `max-w-3xl` (768 px) pour la fiche, `max-w-2xl` (672 px) pour la saisie**, dans une fenêtre de 1700.
 *Acceptation :* les deux écrans occupent la largeur utile et suivent la forme de fiche de la maquette ; les cinq actions de D84 restent atteignables et leur refus reste lisible.
 
 **R2-09 — Les écrans d'authentification — connexion, code, enrôlement, premier accès. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Constaté conforme sur la FORME, et corrigé sur un défaut que personne n'avait vu.** La colonne étroite et centrée est la bonne forme pour ces quatre écrans — le ticket le disait, et rien ne la contredit : ce ne sont pas des écrans de travail.
+**La moitié « barre de navigation » a été livrée par R2-16**, mesurée plutôt que supposée.
+**Le défaut trouvé, et il tient à 88 px.** *Mesuré : `min-h-dvh` posé sur la page, à l'intérieur d'un cadre portant 88 px de gouttière verticale — document de 1088 px dans une fenêtre de 1000.* Une page de connexion qui défile de 88 px pour rien. La hauteur est désormais tenue par la mise en page du SEGMENT, et les pages n'occupent que ce qui reste : plus de nombre magique, et un scénario mesure qu'aucun des trois écrans ne déborde.
 **Écran de la maquette : AUCUN.** Elle s'ouvre sur une session déjà établie. *Et c'est le seul endroit du produit où une colonne étroite et centrée est la bonne forme* — ces quatre écrans ne sont pas des écrans de travail.
 **Ils n'ont donc peut-être RIEN à reprendre, et le ticket existe pour que ce soit constaté plutôt que supposé.** Ce qui les concerne sûrement : la barre de navigation n'a rien à faire au-dessus d'une page de connexion, et elle s'y affiche aujourd'hui.
 *Acceptation :* la barre ne s'affiche pas sur les écrans qui précèdent la session ; le reste est constaté conforme ou corrigé, avec la raison écrite dans les deux cas.
 
 **R2-10 — `/` et `/sante` — les deux écrans sans compte. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Même défaut, même réparation que R2-09** : les deux écrans débordaient de 88 px. Ils sont dans le même segment, et c'est le segment qui tient la hauteur.
+**`/sante` NE LIT RIEN DE PLUS.** La reprise n'a touché que sa mise en page ; son jumeau — *elle s'affiche avec une base injoignable* — reste vert, et la mise en page de son segment ne lit rien non plus, délibérément.
 **Écran de la maquette : AUCUN pour l'un ni pour l'autre.**
 `/sante` a une contrainte que rien d'autre n'a : *elle ne lève jamais, et elle ne rend aucun secret.* Une reprise d'apparence ne doit pas lui faire lire quoi que ce soit de plus — pas même le thème d'une société.
 *Acceptation :* les deux écrans portent l'apparence du produit ; `/sante` continue de s'afficher avec une base injoignable, et son jumeau le prouve toujours.

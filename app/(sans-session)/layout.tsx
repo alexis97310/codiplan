@@ -28,5 +28,15 @@ import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
 export default function MiseEnPageSansSession({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <LargeurUtile>{children}</LargeurUtile>;
+  // LA HAUTEUR EST TENUE ICI, ET C'EST CE QUI PERMET AUX PAGES DE CENTRER
+  // SANS DÉBORDER (R2-09). *Mesuré le 11/09/2026 : `min-h-dvh` posé sur la
+  // page, à l'intérieur d'un cadre qui porte 88 px de gouttière verticale,
+  // donnait un document de 1088 px dans une fenêtre de 1000 — une page de
+  // connexion qui défile de 88 px pour rien.* La hauteur vient donc du
+  // segment, et les pages n'ont qu'à occuper ce qui reste.
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <LargeurUtile className="flex flex-1 flex-col">{children}</LargeurUtile>
+    </div>
+  );
 }
