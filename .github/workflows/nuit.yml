@@ -120,6 +120,7 @@ jobs:
           prompt: |
             Lis docs/protocole-session.md et docs/backlog.md. Prends le premier travail non bloqué de la file (`pnpm file` te le nomme), construis-le, ouvre ta proposition, fusionne au vert, écris ton registre. Enchaîne jusqu'à épuisement du budget.
             Ouvre un ticket étiqueté `arbitrage` pour toute décision qui appartient à Alexis, au lieu de t'arrêter.
+            Ne garde jamais plus d'un travail non poussé : ouvre et fusionne chaque travail terminé avant d'en commencer un autre. Si le budget s'épuise au milieu d'un travail, pousse l'état courant dans une branche et ouvre une proposition en brouillon — ne perds jamais ce qui est déjà écrit.
             ${{ inputs.consigne }}
 
           claude_args: |
