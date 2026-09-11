@@ -476,6 +476,15 @@ lib/
               ensemble ; D71 garde la moitié dont le recensement a besoin
               aucun test de DÉTERMINISME : leur disparition EST le ticket,
               un secret déterministe n'en est pas un
+              depot.ts : LA LECTURE DU PARC (R2-21) — sous contexte cloisonné,
+              forme « parc », et AUCUNE comparaison de société au-dessus : c'est
+              ce qui fait que le même appel sert l'écran interne et le portail
+              le résumé se compte SUR LES LIGNES RENDUES, jamais par une seconde
+              requête — un bandeau qui compterait autrement que le tableau qu'il
+              coiffe met les deux chiffres côte à côte sans dire lequel croire
+              ni COMPTEUR ni CONTRAT : la maquette les montre, rien ne les
+              porte, et une colonne vide dirait que la donnée manque là où un
+              zéro dirait qu'elle vaut zéro (le motif de blocage de R2-13)
               resolution.ts : le contrôle de société de D22 n'est PAS écrit
               ici — on lit SOUS le contexte, et la politique décide ; une
               comparaison écrite au-dessus serait une seconde lecture du même

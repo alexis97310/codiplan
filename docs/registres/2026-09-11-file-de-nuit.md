@@ -441,3 +441,36 @@ preuve que le contrat visible n'a pas bougé.
 et `import_lot_ligne` n'existent pas au schéma. C'est la raison pour laquelle la
 file de cette nuit a pris les tickets d'écran d'abord — *une migration non
 appliquée fait rougir la veille nocturne, et Alexis n'est pas devant son poste.*
+
+---
+
+## 8 — R2-21 : l'écran « Parc machines », et l'entrée de barre qu'il allume
+
+**L'entrée était inerte depuis D95**, marquée « ouverte par L2-01 (écran) ».
+*La fiche machine existe depuis L2-01 ; ce qui manquait n'était pas le droit de
+lire le parc, c'était un APPELANT.* C'est la maladie que le §6 nomme à propos du
+portail, et elle se soigne de la même façon.
+
+**Deux colonnes de la maquette sont ABSENTES, et c'est écrit.** Elle en montre
+huit, dont **« Compteur »** et **« Contrat »** : ni l'un ni l'autre n'existe —
+aucune table de relevés, et les contrats sont au lot 4. *Afficher une colonne
+vide dirait que la donnée manque ; afficher un zéro dirait qu'elle vaut zéro.*
+C'est exactement le motif pour lequel R2-13 reste bloqué, **appliqué ici avant de
+commettre la faute** plutôt que constaté après. Ses quatre indicateurs de tête
+ne sont pas repris non plus : deux d'entre eux n'ont aucune source.
+
+**Ce qui est affiché se compte sur les lignes RENDUES**, jamais par une seconde
+requête. Un bandeau qui compterait autrement que le tableau qu'il coiffe met deux
+chiffres côte à côte sans dire lequel croire.
+
+**Les fiches incomplètes d'abord** (D6) : ce sont celles qui demandent un geste,
+et un parc trié par date les enterrerait sous les fiches saines. La borne
+d'affichage est **dite** à l'écran — *un tableau tronqué en silence fait croire à
+un parc plus petit qu'il n'est.*
+
+**Aucune comparaison de société n'est écrite dans le dépôt** : la politique de
+`machine` est de forme « parc », et c'est elle qui décide. C'est ce qui fait que
+le même appel servira l'écran interne et le portail.
+
+Le scénario de bout en bout porte son témoin — **des lignes réelles** : un
+tableau vide passerait toutes les assertions de forme sans rien prouver.
