@@ -292,3 +292,50 @@ scénarios unitaires et **un** d'isolation. Et le scénario « annulée puis
 réappliquée » porte son jumeau : la même ligne annulée, privée de la tentative
 réussie, doit rendre « non » — *sans lui, il resterait vert sur une sonde qui
 aurait cessé de lire la table en entier.*
+
+## 9 — LE SEMIS VIOLAIT LA RÈGLE QU'IL VENAIT DE RECEVOIR (12/09)
+
+`23514` sur `intervention_suspension_a_sa_date`, à l'étape « interventions
+replacées » — et **ce n'est pas un défaut de D104, c'est D104 qui fonctionne.**
+
+Les contraintes sont `NOT VALID` : elles ne relisent pas les lignes d'avant,
+**mais toute ligne qu'on TOUCHE doit se mettre en règle**. Le replacement de
+R2-12 touchait la ligne — technicien, date, créneau — sans jamais renseigner sa
+suspension. *La ligne, elle, avait été créée par un semis d'avant L2-10 : le
+semis s'abstient de réécrire une ligne déjà présente, donc ses quatre colonnes
+étaient restées nulles.*
+
+### Reproduit dans l'état exact de la production, et pas dans un état voisin
+
+La base a été semée, puis **vieillie comme l'état est NÉ** : contraintes
+retirées, les quatre colonnes vidées sur les lignes suspendues, contraintes
+reposées `NOT VALID`. *Une ligne antérieure à la règle ne s'obtient pas par un
+`INSERT` — une écriture neuve est contrôlée, et c'est tout le sujet.*
+
+| semis | verdict, sur la MÊME base |
+| --- | --- |
+| celui d'hier | **`23514`** |
+| réparé | passe, et les deux lignes portent motif, référence, date et horizon |
+
+### UNE SEULE LECTURE, encore
+
+Le semis écrit ces colonnes à **deux** endroits — la création d'une ligne neuve
+et le replacement d'une ligne existante. Les écrire deux fois aurait été deux
+lectures d'un même critère (§9, 01/09) : *le jour où l'une changerait, la
+démonstration porterait deux règles de suspension sans que rien ne rougisse.*
+`colonnesDeSuspension` les rend **toutes les quatre, nulles comprises**, et les
+deux chemins l'étalent.
+
+### Le gardien, et sa limite ÉCRITE
+
+La **règle** est mesurée sur des modèles fabriqués, dans les deux sens — une
+suspension porte les quatre, une non-suspension les rend toutes nulles (les
+contraintes sont des équivalences). Le **câblage** l'est aussi, et sa population
+vient du fichier : *toute* création ou modification d'intervention du semis doit
+étaler la règle, si bien qu'un chemin d'écriture né demain rougit. Le jumeau
+tombe sur la faute exacte.
+
+*Ce qu'aucun des deux ne mesure, et qui se dit :* qu'un semis joué contre une
+base réellement vieillie aboutisse. Cela demande une base dont une ligne précède
+la contrainte — donc un retrait de contrainte —, et la preuve en a été faite à la
+main, avec sa mesure ci-dessus.

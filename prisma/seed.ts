@@ -21,6 +21,7 @@ import {
   DEVISES,
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_DEMONSTRATION,
+  colonnesDeSuspension,
   TECHNICIENS_PAR_AGENCE,
   identifiantIntervention,
   PARITES,
@@ -694,27 +695,19 @@ async function seed(): Promise<void> {
               creneau_fin: intervention.creneau_fin,
               duree_estimee_min: intervention.dureeMin,
               temps_reel_min: intervention.temps_reel_min,
-              // LA SUSPENSION (L2-10, RG-INT-06). Les quatre colonnes vont
-              // ensemble, et la base le refuse autrement — *le verrou fait son
-              // travail sur le premier chemin venu, y compris le nôtre*, comme
-              // le cycle de vie l'a fait le 09/09.
-              motif_suspension: intervention.motifSuspension ?? null,
-              piece_attendue_ref: intervention.pieceAttendueRef ?? null,
-              date_dispo_prevue: jourEnDate(intervention.piece_dispo_jour),
-              // La suspension est datée au DÉBUT DU CRÉNEAU : la démonstration
-              // montre une attente qui a un âge, pas une attente née à
-              // l'instant du semis. **Aucune horloge n'est lue ici** — L0-08
-              // l'interdit sans fuseau nommé, et le créneau est déjà un instant
-              // calculé dans celui de la société.
+              // LA SUSPENSION (L2-10, RG-INT-06, D104). Les quatre colonnes
+              // vont ensemble, et la base le refuse autrement — *le verrou fait
+              // son travail sur le premier chemin venu, y compris le nôtre.*
               //
-              // *Une entrée de démonstration suspendue SANS créneau écrirait
-              // `null` et serait refusée par `intervention_suspension_a_sa_date`.*
-              // C'est le bon sens de défaillance : le verrou dit ce qui manque,
-              // plutôt qu'un instant inventé qui passerait inaperçu.
-              suspendue_le:
-                intervention.motifSuspension === undefined
-                  ? null
-                  : intervention.creneau_debut,
+              // Le calcul vit dans `colonnesDeSuspension` et NULLE PART
+              // AILLEURS : le replacement ci-dessous écrit les mêmes colonnes,
+              // et les calculer deux fois serait deux lectures d'un même
+              // critère (§9, 01/09).
+              ...colonnesDeSuspension(
+                intervention,
+                intervention.creneau_debut,
+                jourEnDate(intervention.piece_dispo_jour),
+              ),
             },
           });
           ecrites += 1;
@@ -1102,6 +1095,38 @@ async function seed(): Promise<void> {
                   ? null
                   : trouve.modele.debutMinutes + trouve.modele.dureeMin,
                 societe.fuseau_horaire,
+              ),
+              // ── LES QUATRE COLONNES DE SUSPENSION (D104) ─────────────────
+              //
+              // **Elles manquaient ici, et le semis échouait en `23514`**
+              // *(mesuré le 12/09/2026, étape « Exécuter le seed »)*. Une
+              // intervention `suspendue` créée par un semis d'AVANT L2-10 n'a
+              // ni motif ni date — le semis s'abstient de réécrire une ligne
+              // déjà présente —, et les contraintes `NOT VALID` de D104
+              // n'exigent rien des lignes d'avant **mais tout de celles qu'on
+              // TOUCHE**. Ce replacement les touchait sans les mettre en règle.
+              //
+              // *Ce n'était pas un défaut de D104 : c'était D104 qui
+              // fonctionne.* Une écriture neuve doit respecter la règle.
+              //
+              // `suspendue_le` suit le créneau RECALCULÉ juste au-dessus, et
+              // c'est voulu : la suspension est datée au début du créneau, et
+              // un créneau qui se déplace déplace l'âge de l'attente avec lui.
+              ...colonnesDeSuspension(
+                trouve.modele,
+                instantDuCreneau(
+                  jour,
+                  trouve.modele.debutMinutes,
+                  societe.fuseau_horaire,
+                ),
+                jourEnDate(
+                  trouve.modele.pieceDispoJoursDepuisLundi === undefined
+                    ? null
+                    : jourSuivant(
+                        lundi,
+                        trouve.modele.pieceDispoJoursDepuisLundi,
+                      ),
+                ),
               ),
             },
           });
