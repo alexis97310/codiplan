@@ -468,7 +468,10 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **CE QUI RESTE, et c'est un AUTRE ticket :** la table `compteur_releve` (chapitre 11) et son écriture. *Une table sans appelant est la maladie que ce dépôt soigne* — elle viendra avec ce qui la remplit : la saisie à l'intervention, ou la synchronisation du lot 3. La règle, elle, sera prête.
 *Acceptation :* deux relevés arrivés à l'envers ne régressent pas ; une vraie régression est vue même arrivée dans le bon ordre ; à horodatage égal l'ordre est STABLE ; deux machines et deux types ne se comparent pas, **mais deux relevés de la même suite si** ; rien n'est jeté ; un verdict est rendu pour tous.
 **L2-04** Documents machine — visibilité client, marquage « embarqué mobile ».
-*File :* LIBRE
+*File :* LIVRÉ — **par le LOT 8, et ce ticket ne le savait pas.** Constaté le 11/09/2026.
+**LE RENDEZ-VOUS CI-DESSOUS A EU LIEU, et il a été tenu ailleurs.** Ce ticket posait trois formes possibles pour le polymorphisme et concluait *« ce n'est pas tranché ici »*. **Il l'a été depuis** — D87 pour la forme, D93 pour la politique —, et le texte qui suit est resté à décrire une question déjà close. *C'est l'exact défaut que le gardien de cohérence du backlog attrape sur les SOURCES, et qu'il ne peut pas attraper sur l'ÉTAT du dépôt : un ticket rendu faux par du code, non par une décision.*
+**Mesuré, plutôt que supposé :** `document` existe au schéma (2 occurrences de `model Document`) ; la troisième forme est celle qui vit — `CHECK (num_nonnulls("modele_id", "machine_id") = 1)`, migration `20260913100000_documents_l8` ; la **visibilité client** est la colonne `classe`, qui *RÉTRÉCIT et n'ouvre rien* (L8-04) ; la politique est la **onzième forme**, « héritage » (D93) ; et `lib/documents/` porte `depot.ts`, `saisie.ts`, `propositions.ts`.
+**CE QUI N'EST PAS REPRIS, et le chapitre 11 l'écrit déjà :** le marquage **« embarqué mobile »**. *Le cache hors ligne est décidé au lot 3, pas par une colonne posée d'avance.* Ce n'est donc pas un reste de ce ticket : c'est une décision qui appartient à un autre lot.
 **UN RENDEZ-VOUS PLUTÔT QU'UNE EMBUSCADE, posé le 11/09/2026 avec ses mesures.** Le chapitre 11 décrit `document` comme une **entité polymorphe** rattachée à machine, contrat, client **ou** intervention. C'est la classe exacte de `perimetre_sites uuid[]` (D79) : *une forme que la base ne sait pas contraindre*. Trois formes mesurées sur PostgreSQL 16, base jetable :
 | Forme | Ce que la base en fait |
 |---|---|
@@ -476,9 +479,15 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 | une colonne `entite_id` + un `CHECK` qui interroge la table cible | **refusée** — `cannot use subquery in check constraint` |
 | **une colonne NULLABLE par cible + `num_nonnulls(...) = 1`** | **fonctionne** : de vraies clés étrangères, et exactement une cible — la deuxième insertion à deux cibles est refusée par la contrainte nommée |
 **Ce n'est pas tranché ici** : le choix de forme engage le modèle, et la **politique** de `document` pose en outre la même question que `intervention` — RG-DRO-01 veut qu'un client ne voie que ses propres documents. Deux des quatre cibles n'existent pas encore. *Ce qui est acquis, et qui évite de le redécouvrir : la première forme est un piège mesuré, la troisième marche.*
-*Relu contre les sources citées le 11/09/2026 — empreinte `35d7e179`.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `90f32e53`.*
 **L2-05** Historique machine — conservé au changement de site.
-*File :* LIBRE
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026.** La faute que ce ticket existe pour éviter est **SILENCIEUSE** : *la façon naturelle d'écrire cette lecture est de partir du site de la machine* — « les interventions de ce site, sur cette machine ». Elle rend un historique **amputé de tout ce qui précède le déménagement**, sans rien dire : *l'écran affiche trois interventions au lieu de douze, et personne ne sait qu'il en manque neuf.*
+**La lecture part donc de la MACHINE, et `site_id` n'apparaît dans AUCUN filtre.**
+**ÉPROUVÉ SUR LA FAUTE TELLE QU'ELLE SE COMMETTRAIT** : le filtre de site remis dans la lecture, deux scénarios rougissent — dont le témoin —, et le vert revient une fois défait.
+**LES SITES TRAVERSÉS SE DÉDUISENT**, aucune table ne les porte : *une colonne « site précédent » serait une seconde écriture du même fait, qui diverge en silence* (§9, 01/09). **Ce qu'ils ne disent pas est écrit** : un déménagement SANS intervention entre les deux ne laisse aucune trace — le journal d'audit la porte (`machine` est auditée, I8/D55), et c'est là qu'il faudra la lire le jour où quelqu'un la demandera.
+*Acceptation :* l'historique porte deux sites distincts (témoin) ; après un déménagement RÉELLEMENT constaté — la machine a bien changé de site, mesuré — il ne bouge pas d'une ligne ; et un compte portail restreint ne voit que son périmètre, **par la base et non par un filtre applicatif**.
+*Relu contre les sources citées le 11/09/2026 — empreinte `375e74a3`.*
 **L2-06** Demandes — statuts `NOUVELLE`, `QUALIFIEE`, `TRANSFORMEE`, `CLOSE_SANS_SUITE` ; motifs `resolue_telephone`, `hors_perimetre`, `refus_client`, `doublon` [3.5]. Horodatage de l'accusé de réception en **heures ouvrées de l'agence** [D13].
 *File :* LIBRE
 *Relu contre les sources citées le 10/09/2026 — empreinte `a74cbc41`.*

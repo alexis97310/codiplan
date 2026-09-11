@@ -485,6 +485,16 @@ lib/
               ni COMPTEUR ni CONTRAT : la maquette les montre, rien ne les
               porte, et une colonne vide dirait que la donnée manque là où un
               zéro dirait qu'elle vaut zéro (le motif de blocage de R2-13)
+              historique.ts : L'HISTORIQUE SURVIT AU DÉMÉNAGEMENT (L2-05) — la
+              lecture part de la MACHINE, et `site_id` n'apparaît dans AUCUN
+              filtre : partir du site de la machine rendrait un historique
+              amputé de tout ce qui précède le déménagement, SANS RIEN DIRE
+              les sites traversés se DÉDUISENT de l'historique, aucune table ne
+              les porte — une colonne « site précédent » serait une seconde
+              écriture du même fait
+              ce qu'elle ne dit pas est écrit : un déménagement SANS
+              intervention entre les deux ne laisse aucune trace ici, et c'est
+              le journal d'audit qui la porte
               resolution.ts : le contrôle de société de D22 n'est PAS écrit
               ici — on lit SOUS le contexte, et la politique décide ; une
               comparaison écrite au-dessus serait une seconde lecture du même
