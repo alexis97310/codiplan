@@ -12,6 +12,15 @@ import {
 } from "@/lib/imports/modeles";
 
 /**
+ * Un parc connu, à partir de ses seules clés — `ambigues` vide est une
+ * AFFIRMATION et non un oubli : *« ce parc ne porte aucune ambiguïté »*
+ * (L1-08g). Les scénarios qui éprouvent l'ambiguïté la passent explicitement.
+ */
+function parc(cles: readonly string[] = [], ambigues: readonly string[] = []) {
+  return { cles: new Set(cles), ambigues: new Set(ambigues) };
+}
+
+/**
  * LE GABARIT EST CONFRONTÉ AU SCHÉMA DE SAISIE (L1-09a).
  *
  * **La population ne vient pas du gabarit, elle vient du SCHÉMA** — la parade
@@ -133,7 +142,7 @@ describe("le gabarit se lit par la chaîne réelle", () => {
       ],
     };
 
-    const controle = controlerFeuille(feuille, MODELE_CLIENTS, new Set());
+    const controle = controlerFeuille(feuille, MODELE_CLIENTS, parc());
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
     expect(controle.anomalies).toEqual([]);
@@ -154,7 +163,7 @@ describe("le gabarit se lit par la chaîne réelle", () => {
         [{ texte: "C001" }],
       ],
     };
-    const controle = controlerFeuille(feuille, MODELE_CLIENTS, new Set());
+    const controle = controlerFeuille(feuille, MODELE_CLIENTS, parc());
     expect(controle.lisible).toBe(false);
   });
 });

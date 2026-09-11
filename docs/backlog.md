@@ -315,6 +315,16 @@ créations    : 2 | modifications : 0
 *Acceptation :* un code déjà connu du parc devient une MODIFICATION ; un parc qui connaît le NOM rapproche aussi — l'inverse exact, sur la même feuille ; les trois espaces de clés sont disjoints ; et le modèle des machines rend exactement ce qu'il rendait.
 *Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
 
+**L1-08g — L'AMBIGUÏTÉ EST UN FAIT DU PARC, ET ELLE DEVIENT UN REJET. [RG-IMP-05] [D29]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026 — et c'est la limite que L1-08f avait ÉCRITE plutôt que tue qui se retire.** RG-IMP-05 pose **trois** cas et non deux : *« en cas d'ambiguïté, la ligne part en rejet pour arbitrage humain plutôt qu'en création silencieuse d'un doublon ».* Un `Set<string>` nu ne pouvait pas porter le troisième.
+**`ParcConnu` porte DEUX ensembles**, et `ambigues` **n'a aucun défaut** : un appelant qui ne sait pas répondre doit passer un ensemble vide, ce qui est une AFFIRMATION — *« ce parc ne porte aucune ambiguïté ».* Un défaut ferait de cette affirmation un oubli, et l'oubli retomberait du côté permissif.
+**L'ORDRE EST UNE DÉCISION** : le rejet précède la modification. *Une clé ambiguë est aussi une clé connue, et tester « connue » d'abord la rendrait modifiable — c'est-à-dire écraserait l'une des deux fiches au hasard, ce que RG-IMP-05 refuse précisément.*
+**L'ambiguïté se lit d'une COLLISION, jamais d'une ressemblance** (`lib/imports/parc-clients.ts`). La clé du parc est calculée par la **même fonction** que le contrôle : *une variante ferait que rien ne se rapproche jamais, et tout redeviendrait création — le défaut que L1-08f venait de réparer.* La clé ambiguë est **retirée** de l'index et **reste** dans `cles` : laisser l'une des deux fiches ferait écraser celle-là plutôt que l'autre.
+**Mesuré à travers la BASE**, et non sur un ensemble fabriqué : deux fiches réelles de même raison sociale normalisée, l'homonyme posé puis retiré, **et une assertion constate la remise en état** — *une remise en état qu'on ne vérifie pas est une intention.*
+*Acceptation :* la clé partagée est ambiguë, ne désigne plus aucune fiche et reste connue ; la ligne qui la porte est rejetée avec son motif ; le rejet s'additionne au total ; une autre ligne du même fichier passe quand même — *ce n'est pas le fichier qui est refusé, c'est une ligne* ; et la société B ne voit aucune clé de la société A, tout en voyant son propre « C-001 ».
+*Relu contre les sources citées le 11/09/2026 — empreinte `0fc7924a`.*
+
 **L1-08b** Le MOTEUR d'import — lecture du classeur, rapport, application, annulation. **[D15] [D31] [D54]**
 *File :* LIBRE
 **CE QUI RESTE, au 11/09/2026 :** l'**application** et l'**annulation partielle**. *Les tables qu'elles écrivent existent depuis L1-08e*, `valeurs_avant` comprise — la colonne que D15 exige pour restaurer, et qu'**aucun code ne remplit encore** : avant l'application, il n'y a rien à restaurer. *Et le rapprochement sait désormais rapprocher autre chose que des machines (L1-08f), ce qui était le mur devant l'application.*

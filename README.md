@@ -441,6 +441,16 @@ Trois cas que D31 ne tranche pas sont **refusés plutôt qu'inventés**, et insc
 
 **Et le rapport de I6 est construit avec elle** (`lib/excel/controle.ts`) : la moitié « d'abord » de _« un import produit d'abord un rapport, puis attend une validation explicite »_. Il n'écrit rien et ne connaît aucune base — le parc contre lequel il rapproche est un **paramètre**, l'appelant seul sachant sous quel contexte cloisonné il l'a obtenu. Les trois refus **précèdent toute ligne et ne comptent rien** : un rapport qui proposerait des créations sous une colonne obligatoire absente proposerait d'écrire des fiches amputées. Le total explique chaque ligne lue, et `lignesLues` est rendu à côté — _zéro contre zéro n'est pas une preuve._
 
+## L'ambiguïté est un fait du PARC, et elle devient un rejet
+
+RG-IMP-05 pose **trois** cas et non deux : _« en cas d'ambiguïté, la ligne part en rejet pour arbitrage humain plutôt qu'en création silencieuse d'un doublon »._ Le contrôle ne recevait qu'un `Set<string>`, qui ne pouvait pas porter le troisième — la limite était **écrite** à L1-08f, et L1-08g la retire.
+
+`ParcConnu` porte désormais **deux ensembles**, et `ambigues` **n'a aucune valeur par défaut** : un appelant qui ne sait pas répondre doit passer un ensemble vide, ce qui est une **affirmation** — _« ce parc ne porte aucune ambiguïté »._ Un défaut ferait de cette affirmation un oubli, et l'oubli retomberait du côté permissif.
+
+**L'ordre est une décision** : le rejet précède la modification. _Une clé ambiguë est aussi une clé connue, et tester « connue » d'abord la rendrait modifiable — c'est-à-dire écraserait l'une des deux fiches au hasard, ce que RG-IMP-05 refuse précisément._
+
+`lib/imports/parc-clients.ts` **lit l'ambiguïté d'une collision, jamais d'une ressemblance**, et calcule la clé par la **même fonction** que le contrôle : _une variante ferait que rien ne se rapproche jamais, et tout redeviendrait création._ La clé ambiguë est **retirée** de l'index et **reste** dans `cles` — laisser l'une des deux fiches ferait écraser celle-là plutôt que l'autre.
+
 ## Deux sortes de fichiers d'import, et les confondre bloquait les deux
 
 _Mesuré en préparant l'application (L1-09a) : aucun modèle d'import concret n'existait dans `lib/`_ — `ModeleDImport` n'était qu'un type, et ses seuls exemplaires vivaient dans des tests.

@@ -737,6 +737,19 @@ lib/
               `actif` non plus : un import ne désactive pas, et une colonne
               « Actif » ferait d'un oubli de saisie une désactivation de masse
               le marqueur est DÉRIVÉ du modèle, jamais recopié
+              parc-clients.ts : L'AMBIGUÏTÉ EST UN FAIT DU PARC (L1-08g) — deux
+              fiches qui rendent la MÊME clé rendent indécidable ce qu'une ligne
+              désigne, et RG-IMP-05 veut alors un REJET, jamais une création
+              elle se lit d'une COLLISION, jamais d'une ressemblance
+              une clé ambiguë est RETIRÉE de l'index et reste dans `cles` :
+              laisser l'une des deux fiches ferait écraser celle-là plutôt que
+              l'autre — un choix au hasard rendu stable par l'ordre de lecture
+              la clé est calculée par la MÊME fonction que le contrôle : une
+              variante ferait que RIEN ne se rapproche, et tout deviendrait
+              création — le défaut même que L1-08f venait de réparer
+              `actif` n'est PAS filtré : un client désactivé occupe toujours son
+              code, et l'ignorer ferait qu'un import le recrée — un refus
+              technique à la place d'un rapprochement
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

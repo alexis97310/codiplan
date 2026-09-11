@@ -14,6 +14,15 @@ import {
 } from "@/lib/excel/rapprochement";
 
 /**
+ * Un parc connu, à partir de ses seules clés — `ambigues` vide est une
+ * AFFIRMATION et non un oubli : *« ce parc ne porte aucune ambiguïté »*
+ * (L1-08g). Les scénarios qui éprouvent l'ambiguïté la passent explicitement.
+ */
+function parc(cles: readonly string[] = [], ambigues: readonly string[] = []) {
+  return { cles: new Set(cles), ambigues: new Set(ambigues) };
+}
+
+/**
  * LE CONTRÔLE PRÉALABLE, ET CE QU'IL REFUSE DE COMPTER (L1-08c ; I6, D31).
  *
  * **La chaîne entière est ici pour la première fois** : marqueur → en-têtes →
@@ -64,7 +73,7 @@ describe("les trois refus qui PRÉCÈDENT toute ligne", () => {
     const controle = controlerFeuille(
       feuille("CODIPLAN-clients-v1", ENTETES, [["SN-1", undefined, "Atlas"]]),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(false);
     expect(!controle.lisible && controle.anomalies[0]?.code).toBe(
@@ -79,7 +88,7 @@ describe("les trois refus qui PRÉCÈDENT toute ligne", () => {
     const controle = controlerFeuille(
       feuille("CODIPLAN-machines-v3", ENTETES, [["SN-1", undefined, "Atlas"]]),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(!controle.lisible && controle.anomalies[0]?.code).toBe(
       "marqueur_version_posterieure",
@@ -98,7 +107,7 @@ describe("les trois refus qui PRÉCÈDENT toute ligne", () => {
         ],
       ),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(false);
     // *« Ce n'est pas une ligne qui manque, c'est le fichier qui n'est pas
@@ -121,7 +130,7 @@ describe("les trois refus qui PRÉCÈDENT toute ligne", () => {
     const controle = controlerFeuille(
       feuille("CODIPLAN-machines-v1", ENTETES, [["SN-1", undefined, "Atlas"]]),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(true);
   });
@@ -143,7 +152,7 @@ describe("le rapport de I6 — chaque nombre a un nom", () => {
       [undefined, undefined, undefined],
     ]),
     MODELE,
-    new Set(["SN-A", "SN-B"]),
+    parc(["SN-A", "SN-B"]),
   );
 
   it("compte créations, modifications, gabarits et vides SÉPARÉMENT", () => {
@@ -186,7 +195,7 @@ describe("le rapport de I6 — chaque nombre a un nom", () => {
         [["SN-1", undefined, "Atlas", "rouge"]],
       ),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(true);
     expect(controle.lisible && controle.inconnues).toEqual([
@@ -201,7 +210,7 @@ describe("une feuille SANS ligne de données se rapporte, elle ne casse pas", ()
     const controle = controlerFeuille(
       feuille("CODIPLAN-machines-v1", ENTETES, []),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) {
@@ -234,11 +243,7 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
   ]);
 
   it("retient UNE ligne par ligne lue, dans l'ordre du fichier", () => {
-    const controle = controlerFeuille(
-      FEUILLE,
-      MODELE,
-      new Set(["SN-EXISTANT"]),
-    );
+    const controle = controlerFeuille(FEUILLE, MODELE, parc(["SN-EXISTANT"]));
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
 
@@ -249,11 +254,7 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
   });
 
   it("nomme l'action de chaque ligne, et la clé de celles qui désignent", () => {
-    const controle = controlerFeuille(
-      FEUILLE,
-      MODELE,
-      new Set(["SN-EXISTANT"]),
-    );
+    const controle = controlerFeuille(FEUILLE, MODELE, parc(["SN-EXISTANT"]));
     if (!controle.lisible) throw new Error("feuille jugée illisible");
 
     expect(controle.lignes.map((l) => l.action)).toEqual([
@@ -271,7 +272,7 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
   });
 
   it("porte les VALEURS de chaque ligne — c'est ce que l'application écrira", () => {
-    const controle = controlerFeuille(FEUILLE, MODELE, new Set());
+    const controle = controlerFeuille(FEUILLE, MODELE, parc());
     if (!controle.lisible) throw new Error("feuille jugée illisible");
 
     expect(controle.lignes[1]?.valeurs).toEqual({
@@ -284,11 +285,7 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
   it("les DÉCOMPTES sont dérivés des lignes, ils ne sont plus comptés à côté", () => {
     // C'est la divergence que ce ticket RETIRE : décider deux fois la même
     // chose, une fois pour la ligne et une fois pour le compteur (§9, 01/09).
-    const controle = controlerFeuille(
-      FEUILLE,
-      MODELE,
-      new Set(["SN-EXISTANT"]),
-    );
+    const controle = controlerFeuille(FEUILLE, MODELE, parc(["SN-EXISTANT"]));
     if (!controle.lisible) throw new Error("feuille jugée illisible");
 
     expect(controle.proposition).toEqual(
@@ -300,11 +297,7 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
   it("et la dérivation N'EST PAS VIDE — le cas qui doit rester vert pour sa propre raison", () => {
     // Deux décomptes tous nuls seraient égaux sans rien prouver : zéro contre
     // zéro n'est pas un résultat (§9, 10/09).
-    const controle = controlerFeuille(
-      FEUILLE,
-      MODELE,
-      new Set(["SN-EXISTANT"]),
-    );
+    const controle = controlerFeuille(FEUILLE, MODELE, parc(["SN-EXISTANT"]));
     if (!controle.lisible) throw new Error("feuille jugée illisible");
 
     expect(controle.proposition.creations).toBe(1);
@@ -356,7 +349,7 @@ describe("un modèle NON MACHINE rapproche enfin ce qu'il désigne", () => {
     const controle = controlerFeuille(
       feuilleClients(),
       CLIENTS,
-      new Set(["C001"]),
+      parc(["C001"]),
     );
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
@@ -382,7 +375,7 @@ describe("un modèle NON MACHINE rapproche enfin ce qu'il désigne", () => {
     const controle = controlerFeuille(
       feuilleClients(),
       CLIENTS,
-      new Set([`${PREFIXE_RAISON_SOCIALE}garage martin`]),
+      parc([`${PREFIXE_RAISON_SOCIALE}garage martin`]),
     );
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
@@ -404,7 +397,7 @@ describe("un modèle NON MACHINE rapproche enfin ce qu'il désigne", () => {
         [["SN-77", undefined, "Bosch"]],
       ),
       MODELE,
-      new Set(),
+      parc(),
     );
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
