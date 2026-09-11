@@ -340,8 +340,21 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 **Écart mesuré entre les rangs, inscrit plutôt que tu :** D15 (rang 1) nomme `import_lot_ligne.valeurs_avant`, et le **chapitre 11 (rang 3) ne porte pas cette table** — il n'énumère qu'`import_lot`. Le rang 1 l'emporte, la table existe donc ; mais c'est le modèle de données qui est incomplet, et le corriger appartient à l'exploitation.
 *Acceptation :* un fichier de 300 lignes avec 5 erreurs produit un rapport exact ; l'annulation restaure ce qui peut l'être et refuse le reste avec motif ; l'annulation d'un lot **antérieur** réussit sur ses lignes intactes et refuse, avec leur motif, celles qu'un import ultérieur a touchées ; tests sur RG-IMP-01 à 05.
 *Relu contre les sources citées le 12/09/2026 — empreinte `5cca8826`.*
+**L1-09a — LE GABARIT « CLIENTS », défini en code et confronté à la saisie. [D31] [RG-IMP-05]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026, et il lève le mur mesuré devant L1-08b.** *Aucun modèle d'import concret n'existait dans `lib/`* — `ModeleDImport` n'était qu'un type, ses seuls exemplaires vivaient dans des tests.
+**LA DISTINCTION QUI REND CE TICKET POSSIBLE**, et sans laquelle il ne l'est pas : il y a **deux sortes de fichiers d'import**. Le **gabarit que CODIPLAN publie** tient ses colonnes de NOS schémas de saisie — ils sont dans le dépôt, on peut l'écrire aujourd'hui. Le **fichier de reprise** d'un outil tiers tient les siennes du fichier réel du client, *qui n'est pas dans le dépôt (I9)* — c'est L1-10, et il attend son fichier. Les confondre bloquait les deux.
+**LE GABARIT EST CONFRONTÉ AU SCHÉMA, dans les deux sens.** La population vient du SCHÉMA et non du gabarit — *sélectionner « les colonnes du modèle » exclurait exactement le champ qu'on a oublié d'exposer* (§9, 31/08). Chaque champ est **exposé** ou **écarté nommément avec son motif** ; aucune colonne n'est orpheline ; tout champ obligatoire a une colonne obligatoire, **et la réciproque** — *un gabarit dont tout serait obligatoire refuserait des fichiers que la saisie accepte.*
+**DEUX CHAMPS ÉCARTÉS, avec leur motif.** `adresse_facturation` : le chapitre 11 ne lui fixe **aucune forme**, et l'aplatir dans un tableur la figerait pour tous les clients. `actif` : *un import ne désactive pas — une colonne « Actif » ferait d'un oubli de saisie une désactivation de masse*, et la désactivation se fait fiche par fiche.
+*Acceptation :* un champ retiré du gabarit sans motif rougit ; un obligatoire perdu rougit ; un obligatoire de trop rougit aussi ; et la chaîne réelle lit le gabarit — marqueur dérivé, zéro anomalie, zéro colonne inconnue.
+*Relu contre les sources citées le 11/09/2026 — empreinte `5b65ed27`.*
+
 **L1-09** Modèles Excel téléchargeables et documentés — clients, sites, contacts, modèles, prestations.
 *File :* LIBRE
+**CE QUI RESTE, au 11/09/2026 :** les gabarits **sites, contacts, modèles, prestations**, et le **téléchargement**.
+**Les quatre gabarits restants butent sur une RÉSOLUTION DE RÉFÉRENCE**, que le gabarit « clients » n'avait pas : un site désigne un client **et une agence** (`schemaCreationSite`, D56), et *RG-IMP-05 dit comment rapprocher un client, rien ne dit comment rapprocher une agence.* C'est une règle à écrire avant le gabarit, pas pendant.
+**Le TÉLÉCHARGEMENT exige une bibliothèque d'ÉCRITURE `.xlsx`** — `read-excel-file` lit et n'écrit pas (D90), et le §2 interdit le CSV. *C'est une dépendance, donc une décision, et elle ne se prend pas en passant.*
+*Relu contre les sources citées le 11/09/2026 — empreinte `89f4a62c`.*
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
 *File :* LIBRE
 
