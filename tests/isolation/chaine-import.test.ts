@@ -2,7 +2,11 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import { type FeuilleLue } from "@/lib/excel/classeur";
-import { controlerFeuille, type ModeleDImport } from "@/lib/excel/controle";
+import {
+  cleMachineDepuis,
+  controlerFeuille,
+  type ModeleDImport,
+} from "@/lib/excel/controle";
 import { enregistrerLeControle } from "@/lib/imports/depot";
 
 import { avecPortail, clientApp, sousSociete, fermerClients } from "./setup/db";
@@ -45,7 +49,7 @@ const MODELE: ModeleDImport = {
     { nom: "Marque", obligatoire: false },
   ],
   identifiantes: ["Numéro de série"],
-  colonneSerie: "Numéro de série",
+  cle: cleMachineDepuis("Numéro de série"),
 };
 
 /** Une feuille à trois lignes : une création, un gabarit, une ligne vide. */

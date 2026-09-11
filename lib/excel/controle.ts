@@ -10,12 +10,12 @@ import {
   type Marqueur,
 } from "./format";
 import {
+  cleDeClient,
   cleDeRapprochement,
   type CleDeRapprochement,
   lignesExpliquees,
   natureDeLigne,
   propositionVide,
-  type LigneDeParc,
   type NatureDeLigne,
   type Proposition,
 } from "./rapprochement";
@@ -77,11 +77,71 @@ export type ModeleDImport = {
    * remplie ressemble à un gabarit, et c'est le piège.*
    */
   readonly identifiantes: readonly string[];
-  /** La colonne du numéro de série, s'il y en a une. */
-  readonly colonneSerie?: string;
-  /** La colonne de la référence interne, s'il y en a une. */
-  readonly colonneReference?: string;
+  /**
+   * CE QU'UNE LIGNE DÉSIGNE — et **c'est le MODÈLE qui le dit**, jamais le
+   * contrôle (L1-08f).
+   *
+   * *Mesuré avant d'être réparé* : le contrôle calculait lui-même la clé des
+   * MACHINES — série, référence, rang — pour tout type d'import. Sur un modèle
+   * « clients », qui n'a ni série ni référence, toutes les lignes tombaient
+   * donc sur la clé de dernier recours `LIGNE-<rang>` et **toutes étaient des
+   * CRÉATIONS** : mesuré sur deux clients que le parc connaissait déjà, clés
+   * rendues `LIGNE-3` et `LIGNE-4`, *2 créations, 0 modification*. Un second
+   * import du même fichier aurait créé autant de doublons — c'est-à-dire
+   * exactement ce que RG-IMP-05 interdit.
+   *
+   * **Aucun défaut n'est prévu, et c'est délibéré** : un modèle qui oublierait
+   * de dire ce qu'il désigne recevrait la clé des machines en silence, ce qui
+   * est la faute qu'on vient de retirer. *Sans défaut, l'oubli ne compile pas.*
+   */
+  readonly cle: CleDeLigne;
 };
+
+/**
+ * La fonction qui dit ce qu'une ligne désigne, pour un type d'import donné.
+ * `rang` est celui qu'un humain lit dans le tableur (1 = première ligne) : la
+ * clé de dernier recours le porte, et elle doit désigner la même ligne que le
+ * rapport.
+ */
+export type CleDeLigne = (
+  valeurs: Readonly<Record<string, string | undefined>>,
+  rang: number,
+) => CleDeRapprochement;
+
+/**
+ * LA CLÉ DES MACHINES, telle qu'elle était calculée dans le contrôle — série,
+ * référence, rang (L1-08c). Elle n'a pas changé d'un caractère : *elle a
+ * changé de MAIN*, du contrôle vers le modèle qui la réclame.
+ */
+export function cleMachineDepuis(
+  colonneSerie?: string,
+  colonneReference?: string,
+): CleDeLigne {
+  return (valeurs, rang) =>
+    cleDeRapprochement({
+      numeroSerie:
+        colonneSerie === undefined ? undefined : valeurs[colonneSerie],
+      reference:
+        colonneReference === undefined ? undefined : valeurs[colonneReference],
+      rang,
+    });
+}
+
+/**
+ * LA CLÉ DES CLIENTS — RG-IMP-05 : le **code externe** s'il existe, à défaut la
+ * **raison sociale normalisée** (D29).
+ */
+export function cleClientDepuis(
+  colonneCodeExterne: string,
+  colonneRaisonSociale: string,
+): CleDeLigne {
+  return (valeurs, rang) =>
+    cleDeClient({
+      codeExterne: valeurs[colonneCodeExterne],
+      raisonSociale: valeurs[colonneRaisonSociale],
+      rang,
+    });
+}
 
 /** Une anomalie SITUÉE — le rapport doit pouvoir montrer où. */
 export type AnomalieSituee = Anomalie & {
@@ -296,20 +356,10 @@ export function controlerFeuille(
       continue;
     }
 
-    const ligneDeParc: LigneDeParc = {
-      numeroSerie:
-        modele.colonneSerie === undefined
-          ? undefined
-          : valeurs[modele.colonneSerie],
-      reference:
-        modele.colonneReference === undefined
-          ? undefined
-          : valeurs[modele.colonneReference],
-      // Le rang tel qu'un humain le lit : c'est ce que la clé de dernier
-      // recours porte, et il doit désigner la même ligne dans le rapport.
-      rang: rang + 1,
-    };
-    const cle = cleDeRapprochement(ligneDeParc);
+    // **C'est le MODÈLE qui dit ce que la ligne désigne** (L1-08f). Le rang
+    // passé est celui qu'un humain lit : la clé de dernier recours le porte, et
+    // il doit désigner la même ligne dans le rapport.
+    const cle = modele.cle(valeurs, rang + 1);
 
     lignes.push({
       rang: rang + 1,

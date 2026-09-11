@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { type FeuilleLue } from "@/lib/excel/classeur";
 import {
+  cleClientDepuis,
+  cleMachineDepuis,
   controlerFeuille,
   proposerDepuisLesLignes,
   type ModeleDImport,
 } from "@/lib/excel/controle";
-import { lignesExpliquees } from "@/lib/excel/rapprochement";
+import {
+  lignesExpliquees,
+  PREFIXE_RAISON_SOCIALE,
+} from "@/lib/excel/rapprochement";
 
 /**
  * LE CONTRÔLE PRÉALABLE, ET CE QU'IL REFUSE DE COMPTER (L1-08c ; I6, D31).
@@ -26,8 +31,10 @@ const MODELE: ModeleDImport = {
     { nom: "Marque", obligatoire: false },
   ],
   identifiantes: ["Numéro de série", "Référence interne"],
-  colonneSerie: "Numéro de série",
-  colonneReference: "Référence interne",
+  // **C'est le MODÈLE qui dit ce que la ligne désigne** (L1-08f). La clé n'a
+  // pas changé d'un caractère — elle a changé de MAIN, du contrôle vers le
+  // modèle, parce qu'un modèle « clients » ne désigne pas par une série.
+  cle: cleMachineDepuis("Numéro de série", "Référence interne"),
 };
 
 /** Construit une feuille à partir de lignes de texte. */
@@ -304,5 +311,104 @@ describe("LE RAPPORT RETIENT CE QU'IL DÉCIDE (L1-08d)", () => {
     expect(controle.proposition.modifications).toBe(1);
     expect(controle.proposition.gabarits).toBe(1);
     expect(controle.proposition.vides).toBe(1);
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE MODÈLE DIT CE QUE LA LIGNE DÉSIGNE (L1-08f)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+describe("un modèle NON MACHINE rapproche enfin ce qu'il désigne", () => {
+  /**
+   * LE DÉFAUT, TEL QU'IL A ÉTÉ MESURÉ AVANT D'ÊTRE RÉPARÉ.
+   *
+   * Le contrôle calculait lui-même la clé des MACHINES — série, référence,
+   * rang — quel que soit le type d'import. Sur ce modèle « clients », qui n'a
+   * ni série ni référence, les deux lignes tombaient sur la clé de dernier
+   * recours : *clés `LIGNE-3` et `LIGNE-4`, **2 créations, 0 modification***,
+   * alors que le parc connaissait déjà les deux codes. Un second import du
+   * même fichier aurait créé autant de doublons — ce que RG-IMP-05 interdit.
+   */
+  const CLIENTS: ModeleDImport = {
+    type: "clients",
+    version: 1,
+    colonnes: [
+      { nom: "Code externe", obligatoire: false },
+      { nom: "Raison sociale", obligatoire: true },
+    ],
+    identifiantes: ["Code externe", "Raison sociale"],
+    cle: cleClientDepuis("Code externe", "Raison sociale"),
+  };
+
+  function feuilleClients(): FeuilleLue {
+    return {
+      nom: "Clients",
+      lignes: [
+        [{ texte: "CODIPLAN-clients-v1" }],
+        [{ texte: "Code externe" }, { texte: "Raison sociale" }],
+        [{ texte: "C001" }, { texte: "Garage Dupont" }],
+        [undefined, { texte: "Garage Martin" }],
+      ],
+    };
+  }
+
+  it("un code DÉJÀ connu du parc devient une MODIFICATION, jamais une création", () => {
+    const controle = controlerFeuille(
+      feuilleClients(),
+      CLIENTS,
+      new Set(["C001"]),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+
+    expect(controle.lignes.map((l) => l.cle?.cle)).toEqual([
+      "C001",
+      `${PREFIXE_RAISON_SOCIALE}garage martin`,
+    ]);
+    expect(controle.lignes.map((l) => l.action)).toEqual([
+      "modification",
+      "creation",
+    ]);
+    expect(controle.proposition.modifications).toBe(1);
+    expect(controle.proposition.creations).toBe(1);
+  });
+
+  it("et un parc qui connaît le NOM rapproche aussi — RG-IMP-05, seconde moitié", () => {
+    // Le cas qui doit rester vert POUR SA PROPRE RAISON (§9, 11/09) : ce n'est
+    // pas « tout devient modification », c'est la clé qui décide. Ici le parc
+    // connaît le nom normalisé et non le code : la première ligne reste une
+    // création, la seconde devient une modification. L'inverse exact du cas
+    // ci-dessus, sur la même feuille.
+    const controle = controlerFeuille(
+      feuilleClients(),
+      CLIENTS,
+      new Set([`${PREFIXE_RAISON_SOCIALE}garage martin`]),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+
+    expect(controle.lignes.map((l) => l.action)).toEqual([
+      "creation",
+      "modification",
+    ]);
+  });
+
+  it("le modèle des MACHINES n'a pas changé d'un caractère — il a changé de main", () => {
+    // Les 111 scénarios de ce fichier passent inchangés, et c'est la meilleure
+    // preuve. Celui-ci le dit explicitement : la clé machine rend exactement ce
+    // qu'elle rendait, à travers `cleMachineDepuis`.
+    const controle = controlerFeuille(
+      feuille(
+        "CODIPLAN-machines-v1",
+        ["Numéro de série", "Référence interne", "Marque"],
+        [["SN-77", undefined, "Bosch"]],
+      ),
+      MODELE,
+      new Set(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes[0]?.cle?.cle).toBe("SN-77");
+    expect(controle.lignes[0]?.cle?.complet).toBe(true);
   });
 });
