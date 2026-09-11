@@ -300,6 +300,17 @@ pnpm db:societe-initiale # LA première société d'une base de production
                       # majoration est un POURCENTAGE, donc un prix (§8)
 pnpm build            # build de production
 
+pnpm db:resoudre      # UNE MIGRATION A ÉCHOUÉ, et la base est bloquée (P3018)
+                      # elle déclare l'échec ANNULÉ et rend la migration
+                      # rejouable — elle n'en APPLIQUE aucune : un verbe par
+                      # flux, sinon le geste qui débloque rebloque
+                      # elle REFUSE sans rien écrire quand la migration a
+                      # appliqué au moins une étape : la base en porte une
+                      # partie, et « annulée » serait faux
+                      # « --applied » n'est exposé nulle part (flux GitHub
+                      # « DB resolve », gardien :
+                      # tests/unit/db/resolution-migration.test.ts)
+
 pnpm feries:horizon   # les fériés de chaque territoire couvrent-ils 12 mois ? (D46)
 pnpm feries:etendre   # étend l'horizon des fériés en base
 

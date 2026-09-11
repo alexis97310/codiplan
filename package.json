@@ -23,6 +23,7 @@
     "db:referentiels": "tsx scripts/referentiels-plateforme.mts",
     "db:societe-initiale": "tsx scripts/societe-initiale.mts",
     "db:deploy": "prisma migrate deploy",
+    "db:resoudre": "tsx scripts/resoudre-migration.mts",
     "db:generate": "prisma generate",
     "feries:horizon": "tsx scripts/horizon-feries.mts",
     "feries:etendre": "tsx scripts/etendre-feries.mts",
