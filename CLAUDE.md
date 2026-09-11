@@ -1001,6 +1001,15 @@ lib/
               l'heure est un PARAMÈTRE, jamais une lecture : lue ici, elle
               rendrait un test vert parce que l'horloge a bougé
   theme/      charte de la société active — couleurs, encres, variables CSS
+              manifeste.ts : les DEUX couleurs que le manifeste d'application
+              exige (L3-06) — un manifeste n'est pas une feuille de style, le
+              navigateur le lit hors de tout document et ne peut pas résoudre
+              `var(--app-marque)` ; elles sont ici parce que `lib/theme/` est le
+              répertoire que le gardien de L0-09 désigne déjà, et qu'une
+              exemption de plus aurait élargi la règle
+              ce qui les confronte à `app/globals.css` est un gardien, jamais la
+              relecture — avec le témoin que la variable existe, sinon la
+              comparaison serait verte sur deux absences
               apparence.ts : L'APPARENCE du produit, à distinguer de la charte
               (D95) — la charte est une DONNÉE propre à une société, l'apparence
               est le socle sur lequel elle se pose
