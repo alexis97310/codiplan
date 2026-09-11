@@ -49,6 +49,8 @@ pnpm verify:full      # verify + feries:horizon + audit:partitions + test:e2e
 pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ?
                       # → hors de verify:full, et c'est tout son objet
 
+pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
+                      # et rendre la base rejouable — il n'applique RIEN
 pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
                       # la session nocturne LIT ce qu'il imprime, elle
                       # n'interprète pas le backlog — trois états et trois
@@ -775,6 +777,10 @@ _La chaîne complète a été jouée de bout en bout sur une base neuve : réfé
 `docs/mise-en-ligne.md` se suit **depuis un téléphone, par quelqu'un qui n'a jamais ouvert ce dépôt** : huit gestes numérotés en tête, et chaque section explique celui qui la précède. Trois variables d'environnement, avec **ce qui casse quand chacune manque** — et le symptôme exact quand `DATABASE_URL` est fausse, parce qu'il égare : _un `HTTP 500` sur une route d'authentification, qui se lit comme un bogue d'authentification alors que le journal dit `P1001`._
 
 Les migrations s'appliquent par **une seule commande**, `pnpm db:deploy`, sur une base neuve comme sur une base en service.
+
+**Et quand l'une d'elles ÉCHOUE, la base reste bloquée jusqu'à ce qu'une main la débloque.** Prisma refuse toute migration ultérieure tant que l'échec n'est pas résolu (`P3018`) : les migrations suivantes ne partent pas, le code déployé continue d'avancer sans elles, et l'application casse sur des colonnes qui n'existent pas. _Mesuré le 11/09/2026 : `/planning` a rendu une exception serveur pendant plus de quatre heures, sept migrations en retard derrière une seule en échec._
+
+`pnpm db:resoudre`, porté par le flux GitHub **DB resolve — débloquer une migration en échec**, est ce déblocage. Il OBSERVE avant d'agir : il imprime l'historique et **refuse sans rien écrire** dans cinq cas — historique vide, aucune migration en échec, plusieurs en échec, nom saisi différent de celui que la base porte, et **migration ayant appliqué au moins une étape**. Ce dernier est le garde qui porte tout : une migration non transactionnelle laisse une partie d'elle-même en base, et la déclarer annulée écrirait une chose fausse dans l'historique. **Il n'applique AUCUNE migration** — enchaîner rejouerait aussitôt celle qui vient d'échouer, et la rebloquerait. _Un verbe par flux._ Et `--applied` n'est exposé nulle part : il marque une migration comme appliquée **sans l'exécuter**, c'est-à-dire qu'il fait diverger la base du dépôt en silence. La procédure en clics est au §7 bis de `docs/mise-en-ligne.md`.
 
 **`/sante` répond sans compte**, et elle dit en clair : la base répond-elle, le rôle de connexion est-il le bon, les migrations sont-elles à jour et laquelle manque. **Elle ne compte NI les sociétés NI les comptes, et elle dit pourquoi** : la lecture se ferait sans société active, les politiques rendraient **zéro**, et _un zéro se lirait « installation vide »_ — la conclusion opposée à la vraie (§9, 06/09). Mesuré à l'écran avant d'être corrigé. Ce qu'elle affiche à la place est plus fort qu'un nombre : que le décompte soit refusé **prouve que le cloisonnement mord sur cette connexion**. **Elle ne tombe jamais avec ce qu'elle surveille** — avec une base injoignable elle s'affiche quand même et répond « non », et un scénario l'éprouve en pointant la connexion sur un port où rien n'écoute. _Une sonde qui tombe en même temps que ce qu'elle surveille ne surveille rien._ Et elle ne montre **jamais** d'adresse, de nom de base ni d'identifiant : elle est sans compte, donc lisible par n'importe qui.
 

@@ -1,0 +1,110 @@
+name: DB resolve — débloquer une migration en échec
+
+# DÉBLOCAGE D'UNE BASE, déclenché À LA MAIN uniquement.
+#
+# Quand `prisma migrate deploy` échoue, Prisma refuse TOUTE migration
+# ultérieure tant que l'échec n'est pas « recovered from » (P3018). La base
+# reste alors en retard indéfiniment, le code déployé continue d'avancer, et
+# l'application casse — mesuré le 11/09/2026 : /planning a rendu une exception
+# serveur pendant plus de quatre heures, sept migrations en retard derrière une
+# seule en échec.
+#
+# Le déblocage demande la chaîne de connexion, qui ne vit que dans les secrets
+# du dépôt. Sans ce flux, il exige un terminal portant le secret — que personne
+# n'a sous la main un vendredi soir. *Une procédure qui suppose un outil
+# qu'on n'a pas n'est pas une procédure.*
+#
+# IMPÉRATIF, comme pour « DB migrate & seed » : aucun déclenchement
+# automatique. Seul workflow_dispatch. Ne PAS ajouter d'autre déclencheur.
+on:
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: "Quelle base ?"
+        type: choice
+        required: true
+        default: demonstration
+        options:
+          - demonstration
+          - production
+      # LE NOM SAISI EST LA CONFIRMATION, et il n'a AUCUN défaut.
+      #
+      # Le script refuse si ce nom n'est pas EXACTEMENT celui que la base porte
+      # en échec. Un flux qui résoudrait « la migration en échec, quelle
+      # qu'elle soit » s'exécuterait sans que personne ait lu l'état — et deux
+      # personnes qui cliquent à la suite résoudraient deux choses différentes
+      # en croyant faire la même.
+      migration:
+        description: "Nom EXACT du répertoire de la migration en échec (ex. 20260913160000_suspension_l2_10)"
+        type: string
+        required: true
+
+# LE MÊME GROUPE QUE « DB migrate & seed », et ce n'est pas un détail : une
+# résolution jouée pendant qu'une migration tourne écrirait dans l'historique
+# que Prisma est en train de lire. On ne coupe pas celle en cours.
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  resoudre:
+    name: résoudre
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Seul le rôle de MIGRATION écrit dans `_prisma_migrations`. Le rôle
+      # applicatif n'a rien à faire ici : ce flux ne lit aucune donnée métier,
+      # donc aucun contrôle de cloisonnement ne s'y joue, donc DATABASE_URL
+      # applicatif n'est pas demandée.
+      SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
+      SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+    steps:
+      # Le choix de la base se fait dans un SHELL, jamais dans une expression :
+      # `cible == 'production' && secrets.X || secrets.Y` a l'air d'un ternaire
+      # et n'en est pas un quand la première valeur est VIDE — un secret de
+      # production absent ferait agir sur la DÉMONSTRATION en croyant agir sur
+      # la production. C'est la même note que dans db-migrate.yml, et la même
+      # raison.
+      - name: Choisir la base, et refuser plutôt que se rabattre
+        env:
+          CIBLE: ${{ inputs.cible }}
+        run: |
+          set -euo pipefail
+          if [ "$CIBLE" = "production" ]; then
+            migration="$SECRET_MIGRATION_PRODUCTION"
+            prefixe="PRODUCTION_"
+          else
+            migration="$SECRET_MIGRATION_DEMONSTRATION"
+            prefixe=""
+          fi
+          if [ -z "$migration" ]; then
+            echo "::error::Le secret ${prefixe}MIGRATION_DATABASE_URL n'existe pas. Aucun repli n'est prévu : déposez-le, ou changez de cible."
+            exit 1
+          fi
+          echo "DATABASE_URL=$migration" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # Le script IMPRIME l'historique avant d'agir, puis REFUSE dans quatre
+      # cas : historique vide, aucune migration en échec, plusieurs en échec,
+      # nom saisi différent de celui que la base porte. Et surtout — le garde
+      # qui porte tout — il refuse une migration ayant appliqué au moins une
+      # étape : celle-là a laissé quelque chose, et la déclarer annulée serait
+      # écrire une chose fausse dans l'historique.
+      #
+      # Il n'applique AUCUNE migration : « DB migrate & seed » reste le geste
+      # suivant, et il est nommé dans la sortie.
+      - name: Résoudre (et refuser si l'état ne s'y prête pas)
+        env:
+          MIGRATION_A_RESOUDRE: ${{ inputs.migration }}
+        run: pnpm db:resoudre

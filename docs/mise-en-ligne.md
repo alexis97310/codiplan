@@ -321,11 +321,49 @@ DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE de votre base NEUVE>" pnpm db
 
 **Le rôle à employer ici est le PROPRIÉTAIRE, pas l'applicatif.** Une migration fait du DDL ; le rôle applicatif n'en a pas le droit, et c'est exactement ce qu'on veut le reste du temps. C'est le seul geste de toute cette procédure où le rôle privilégié sert.
 
-**Ce que l'on doit voir quand ça marche :** `All migrations have been successfully applied.` **Quand ça rate :** `P1001` si la base ne répond pas, `P3009` si une migration précédente a échoué et doit être résolue à la main.
+**Ce que l'on doit voir quand ça marche :** `All migrations have been successfully applied.` **Quand ça rate :** `P1001` si la base ne répond pas, `P3018`/`P3009` si une migration a échoué — et ce cas-là a désormais son propre flux, §7 bis ci-dessous.
 
 **Les données de démonstration ne s'installent PAS en production.** `pnpm db:seed` crée deux sociétés fictives ; il n'a rien à faire sur une base réelle. *Cette phrase était une recommandation ; depuis le 09/09/2026 c'est le flux qui la tient — voir l'entrée `cible` ci-dessus.*
 
 **Et c'est ici que se trouvent les identifiants de société dont le geste 7 a besoin.** L'étape *Inventaire à plat* les imprime, sous la forme `CODE (uuid)`. Sur une base de production neuve, l'inventaire ne nomme **aucune** société : il n'y en a pas encore, et c'est le point suivant — voir §9, *« et la société, d'où vient-elle ? »*.
+
+---
+
+## 7 bis — Une migration a ÉCHOUÉ : débloquer la base, depuis GitHub
+
+*Écrit le 11/09/2026, après une panne de plus de quatre heures en production.*
+
+**LE SYMPTÔME.** « DB migrate & seed » rougit sur `P3018` — *« A migration failed to apply. New migrations cannot be applied before the error is recovered from. »* **Tout s'arrête là** : les migrations suivantes ne partent pas, la base prend du retard, et le code déployé continue d'avancer sans elle. L'application casse alors sur des colonnes qui n'existent pas, et le message à l'écran ne dit rien de tout cela — *« Application error: a server-side exception has occurred »*.
+
+**CE QUI S'EST PASSÉ, ET POURQUOI CE N'EST PAS UN BOGUE DU CODE.** Prisma joue le fichier d'une migration comme une seule commande, donc dans une transaction : quand elle échoue, **elle ne laisse rien dans la base** — mais elle laisse une ligne d'échec dans l'historique, et c'est cette ligne qui bloque tout. *Mesuré le 11/09/2026 en rejouant la panne en local : `applied_steps_count = 0`, et aucune des colonnes de la migration n'existait.*
+
+**LE CHEMIN EXACT, EN CLICS.**
+
+1. Ouvrir `github.com/alexis97310/codiplan` (connecté).
+2. Onglet **Actions**.
+3. Colonne de gauche : **DB resolve — débloquer une migration en échec**.
+4. Bouton **Run workflow**.
+5. Dans le panneau : **Use workflow from** → `main` ; **cible** → la base concernée ; **migration** → **le nom EXACT du répertoire**, copié depuis le message d'erreur (ligne *« Migration name: … »*).
+6. Bouton vert **Run workflow**, puis ouvrir l'exécution.
+
+**LE NOM SAISI EST LA CONFIRMATION, et le flux le vérifie.** Il lit l'historique, l'imprime, et **refuse sans rien écrire** dans cinq cas : historique vide, aucune migration en échec, plusieurs en échec, nom saisi différent de celui que la base porte, et — le garde qui porte tout — **migration ayant appliqué au moins une étape**. Ce dernier cas est celui d'une migration non transactionnelle : la base en porte une partie, et la déclarer annulée écrirait une chose fausse dans l'historique. Il demande un arbitrage, pas un bouton.
+
+**IL N'APPLIQUE AUCUNE MIGRATION**, et c'est voulu. Enchaîner les deux rejouerait aussitôt la migration qui vient d'échouer : si rien n'a été corrigé entre-temps, elle échoue à l'identique et la base est rebloquée par le geste censé la débloquer.
+
+**LES DEUX GESTES, DANS L'ORDRE :**
+
+1. **DB resolve** — débloque l'historique.
+2. **DB migrate & seed** — applique les migrations en retard, *sur la même cible*, `reinitialiser_demo` décoché.
+
+**Et entre les deux, une question à se poser** : *la migration qui a échoué a-t-elle été corrigée ?* Si elle échoue pour la même raison, le second geste la rebloquera. Le flux ne le sait pas ; il le dit dans sa sortie.
+
+**Si vous préférez un terminal**, le verbe est le même :
+
+```bash
+MIGRATION_A_RESOUDRE="<le nom exact>" DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" pnpm db:resoudre
+```
+
+**`prisma migrate resolve --applied` n'est exposé nulle part**, et ce n'est pas un oubli : il marque une migration comme appliquée **sans l'exécuter**, c'est-à-dire qu'il écrit dans l'historique une chose qui n'a pas eu lieu. La base diverge alors du dépôt sans que rien ne le dise — exactement la panne que la veille cherche.
 
 ---
 
