@@ -52,7 +52,7 @@ export const APPARENCES = ["maquette"] as const;
 export type Apparence = (typeof APPARENCES)[number];
 
 /**
- * L'APPARENCE PAR DÉFAUT — celle de `docs/CODIPLAN_Maquette.html` (D95).
+ * L'APPARENCE PAR DÉFAUT — celle de `docs/maquette/CODIPLAN_Maquette.html` (D95).
  *
  * La maquette a été validée au départ du projet et fait foi sur la disposition
  * comme sur les couleurs. Ses jetons sont ceux de l'annexe C du cahier des

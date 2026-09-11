@@ -3124,11 +3124,11 @@ Or **une table de forme « société » est lisible par un compte portail** : sa
 
 ### CE QUI A ÉTÉ VU
 
-`docs/CODIPLAN_Maquette.html` a été validée au départ du projet : onze écrans, autoportante. Le §1 du `CLAUDE.md` la rangeait comme *« une illustration d'intention, pas une spécification »*, avec deux exceptions promues au rang de règle — le formatage monétaire et les codes couleur des statuts.
+`docs/maquette/CODIPLAN_Maquette.html` a été validée au départ du projet : onze écrans, autoportante. Le §1 du `CLAUDE.md` la rangeait comme *« une illustration d'intention, pas une spécification »*, avec deux exceptions promues au rang de règle — le formatage monétaire et les codes couleur des statuts.
 
 **Mesuré le 11/09/2026 sur les captures d'Alexis, en fenêtre de 1700 px, puis reproduit en local :** l'application ne ressemblait à cette maquette sur aucun des cinq points regardés. Colonne utile de **1024 px** là où la maquette en veut **1400** — et **448 px** sur `/arrivee`, contenu centré à mi-hauteur. **Aucune navigation** : zéro fichier trouvé par `grep -rln 'nav\b\|Navigation' app components`, et l'on ne circulait qu'en tapant une URL. `/planning` empilait trois blocs de charge et deux listes verticales là où la maquette montre une grille. Des cartes là où la maquette met des tableaux denses. Et une palette `oklch` neutre, sans rapport avec l'annexe C.
 
-**Le fichier déposé le 11/09 sous `docs/CODIPLAN_Maquette.html` est OCTET POUR OCTET celui qui vit dans `docs/maquette/` depuis le 08/09** — `cmp` est muet, les deux empreintes MD5 valent `99c7f9f3c8ea1237d2b419b7766c9631`. *Ce n'est donc pas un document nouveau : c'est le même document, dont le RANG change.* Il était dans le dépôt, lisible, et personne ne construisait contre lui.
+**Le fichier déposé le 11/09 sous `docs/maquette/CODIPLAN_Maquette.html` est OCTET POUR OCTET celui qui vit dans `docs/maquette/` depuis le 08/09** — `cmp` est muet, les deux empreintes MD5 valent `99c7f9f3c8ea1237d2b419b7766c9631`. *Ce n'est donc pas un document nouveau : c'est le même document, dont le RANG change.* Il était dans le dépôt, lisible, et personne ne construisait contre lui.
 
 ### LA DÉCISION
 

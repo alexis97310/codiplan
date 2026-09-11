@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { BarreDeNavigation } from "@/components/navigation/barre";
-import { obtenirSession } from "@/lib/auth/session";
+import { identiteDeChrome } from "@/lib/auth/chrome";
 import { t } from "@/lib/i18n/fr";
 import { initialesDuNom } from "@/lib/navigation/initiales";
 import { APPARENCE_PAR_DEFAUT, LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
@@ -59,7 +59,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const entetes = await headers();
-  const session = await obtenirSession(entetes);
+  // LA MISE EN PAGE RACINE NE LÈVE JAMAIS, et ce n'est pas une précaution :
+  // elle est traversée par `/` et par `/sante`, deux écrans dont le contrat est
+  // de s'afficher sans compte et sans base. Un appel nu à `obtenirSession` les
+  // a fait rendre 500 le 11/09 — mesuré, le serveur n'a jamais démarré.
+  const session = await identiteDeChrome(entetes);
   const theme = await themeDuContexte(session?.contexte ?? null);
 
   return (
@@ -72,7 +76,7 @@ export default async function RootLayout({
       >
         <BarreDeNavigation
           theme={theme}
-          initiales={initialesDuNom(session?.identite.nom)}
+          initiales={initialesDuNom(session?.nom)}
         />
         <div
           className="mx-auto w-full px-5 pt-6 pb-16"
