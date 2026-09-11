@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -302,5 +302,57 @@ export async function rechercherSites(
       take: criteres.limite,
       select: CHAMPS_FICHE,
     }),
+  );
+}
+
+/**
+ * LES LIBELLÉS D'UNE LISTE DE SITES — client et rattachement (L3-16).
+ *
+ * ## Pourquoi une SECONDE lecture et non un `select` élargi
+ *
+ * `rechercherSites` porte les critères — texte, client, zone, actifs. Les
+ * élargir d'une jointure aurait mêlé **ce qu'on cherche** et **ce qu'on
+ * affiche** dans une seule requête, et l'écran suivant qui voudra d'autres
+ * libellés aurait rouvert le critère. *Ici la recherche reste la recherche*, et
+ * les libellés se résolvent sur les identifiants qu'elle a rendus — la forme que
+ * `occupationsDuPlanning` emploie déjà pour les agences.
+ *
+ * **Aucune comparaison de société n'est écrite ici** : on lit sous le contexte,
+ * les formes « parc » et « société » décident, et un identifiant hors périmètre
+ * rend simplement zéro ligne — donc pas de libellé, et non un libellé d'une
+ * autre société.
+ */
+export async function libellesDesSites(
+  contexte: ContexteSession,
+  sites: readonly FicheSite[],
+  client?: PrismaClient,
+): Promise<{
+  readonly clients: ReadonlyMap<string, string>;
+  readonly agences: ReadonlyMap<string, string>;
+}> {
+  const clientIds = [...new Set(sites.map((site) => site.client_id))];
+  const agenceIds = [...new Set(sites.map((site) => site.agence_id))];
+  if (clientIds.length === 0 && agenceIds.length === 0) {
+    return { clients: new Map(), agences: new Map() };
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const [clients, agences] = await Promise.all([
+        tx.client.findMany({
+          where: { id: { in: clientIds } },
+          select: { id: true, raison_sociale: true },
+        }),
+        tx.agence.findMany({
+          where: { id: { in: agenceIds } },
+          select: { id: true, libelle: true },
+        }),
+      ]);
+      return {
+        clients: new Map(clients.map((c) => [c.id, c.raison_sociale])),
+        agences: new Map(agences.map((a) => [a.id, a.libelle])),
+      };
+    },
+    client,
   );
 }

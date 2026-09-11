@@ -274,6 +274,26 @@ export const fr = {
     "Sert au calcul de charge et aux tournées, jamais à la facturation : le déplacement se facture par forfait de zone. Laisser vide pour utiliser l'estimation par zone géographique.",
   "site.actif": "Actif",
   "site.recherche.vide": "Aucun résultat ne correspond à cette recherche.",
+  // ── L'ÉCRAN (L3-16) ───────────────────────────────────────────────────────
+  // Comme partout, le mot imposé ne s'écrit PAS ici : le titre de l'écran se
+  // compose depuis `mot("site.pluriel")`, et le libellé de colonne du
+  // rattachement depuis `mot("agence")`.
+  "sites.sous_titre":
+    "Les lieux d'intervention de vos clients, leur rattachement et leur temps de trajet.",
+  "sites.recherche": "Libellé ou commune",
+  "sites.rechercher": "Rechercher",
+  "sites.creer": "Nouveau lieu",
+  "sites.inactif": "Inactif",
+  "sites.borne": "Les 100 premiers résultats sont affichés.",
+  // Le libellé COURT de la colonne. Le libellé complet — celui qui dit d'où
+  // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
+  // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
+  "sites.colonne_trajet": "Trajet (min)",
+  "sites.action.modifier": "Enregistrer",
+  "sites.action.creer": "Créer",
+  "sites.retour": "← Tous les lieux",
+  "sites.cree": "Le lieu a été créé.",
+  "sites.modifie": "Les modifications ont été enregistrées.",
   // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
   // Nouvelle-Calédonie : ils vivent au dictionnaire parce qu'un humain les lit,
   // et la valeur stockée reste le code technique (`grand_noumea`), qui ne se
@@ -292,6 +312,12 @@ export const fr = {
   "site.refus.client_hors_perimetre":
     "Ce client n'existe pas dans votre périmètre.",
   "site.refus.fiche_introuvable": "Cette fiche est introuvable.",
+  // Le refus de SAISIE, distinct de ceux du dépôt (L3-16). *« Saisie
+  // invalide » pour tout serait vrai et inutile* — c'est la faute que L3-01b a
+  // corrigée sur le déplacement d'intervention, et le refus de D56 est nommé à
+  // part pour cette raison.
+  "site.refus.saisie":
+    "Une valeur saisie n'est pas acceptable. Vérifiez les champs numériques et les longueurs.",
   "site.refus.agence_hors_societe":
     "Ce rattachement n'existe pas dans votre société.",
   // Le refus de D56, rendu à l'écran. Il dit la marche à suivre, comme celui de

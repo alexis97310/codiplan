@@ -509,6 +509,10 @@ lib/
               transformation que rien ne peut relire est pire qu'une absente
   sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
               cloisonné, zones géographiques de D23
+              `libellesDesSites` (L3-16) résout client et rattachement APRÈS la
+              recherche, jamais dans sa requête : élargir le `select` mêlerait
+              ce qu'on CHERCHE et ce qu'on AFFICHE, et l'écran suivant rouvrirait
+              le critère
               la politique de `site` est de forme « parc » AVEC le filtre de
               périmètre : c'est la table où les trois filtres mordent ensemble,
               et le troisième est le seul qui sépare deux sites d'un même client
@@ -714,6 +718,11 @@ lib/
               une limite de l'ORM prise pour une propriété de la base (mesuré
               le 11/09) ; qui écrira un forfait envoie `null`, jamais `[]`
   navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
+              elle n'a AUCUNE entrée « Sites », et l'écran de L3-16 n'en reçoit
+              donc pas : la liste est close et confrontée à la maquette, une
+              douzième entrée la ferait rougir à raison
+              cet écran se rejoint par un LIEN — depuis le lieu d'une
+              intervention —, et c'est ce qui lui donne un appelant
               chrome.ts : ce qu'une mise en page a besoin de savoir pour
               peindre, LU UNE SEULE FOIS par rendu (R2-16) — la racine veut la
               société pour la charte, le segment veut le nom pour la pastille,
