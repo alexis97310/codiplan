@@ -229,3 +229,66 @@ Il lit du SQL statiquement : un ordre assemblé à l'exécution lui échappe (§
 démonstration** — je ne peux pas la joindre depuis une session. *La seule mesure
 qui fermera vraiment la question est le geste d'Alexis* : « DB migrate & seed »
 qui passe au vert, et `/sante` qui répond quatre oui.
+
+## 8 — LA SONDE RÉPARÉE CRIAIT AU LOUP (12/09, après les deux gestes)
+
+Les deux gestes joués, les sept migrations appliquées. Et `/sante` répondait
+*« Les migrations sont à jour : non — Une migration a échoué ou a été annulée :
+20260913160000_suspension_l2_10 »* — sur une base où cette migration venait
+d'être **réappliquée avec succès**.
+
+### L'hypothèse était juste, et elle a été MESURÉE avant d'être crue
+
+La panne rejouée de bout en bout sur un PostgreSQL jetable : base peuplée,
+migration dans sa version d'**avant** D104 → `P3018`/`23514` ; puis
+`resolve --rolled-back` ; puis `deploy` avec D104 → appliquée.
+
+```
+20260913160000_suspension_l2_10 | 22:32:06 | fini=f | annulee=t | etapes=0
+20260913160000_suspension_l2_10 | 22:32:09 | fini=t | annulee=f | etapes=1
+```
+
+**`_prisma_migrations` porte une ligne par TENTATIVE, pas une par migration.**
+La sonde cherchait une tentative non appliquée *n'importe où* — `lignes.find((l)
+=> !l.applique)` — et trouvait l'annulée.
+
+*Et une mesure de plus, qui ferme une porte :* `resolve --rolled-back` sur une
+migration dont la dernière tentative est **appliquée** est **refusé** par Prisma
+(« cannot be rolled back because it is not in a failed state »). L'état « appliqué
+puis annulé » n'est donc pas productible par le chemin supporté — mais le verdict
+le lit quand même, et un scénario le mesure.
+
+### UNE SEULE LECTURE, et c'est pourquoi la réparation est une fonction pure
+
+Le défaut ne portait que sur la moitié « en échec » ; la moitié « absente » était
+juste. **Réparer la seule moitié fautive aurait laissé deux lectures du même
+critère dans la même fonction** — la divergence du §9 (01/09), au pire endroit.
+`verdictDesMigrations` porte les deux, et ne connaît aucune base.
+
+### TROIS ÉTATS, ET JAMAIS DEUX
+
+| dernière tentative | sens | geste |
+| --- | --- | --- |
+| finie, non annulée | appliquée | — |
+| ni finie ni annulée | **en échec** — bloque les suivantes | débloquer, puis migrer |
+| annulée | rejouable | migrer |
+
+*Les deux derniers étaient confondus sous « a échoué **ou** a été annulée », et
+ils n'appellent pas le même geste.* L'échec est nommé **avant** l'absence, parce
+qu'une migration en échec empêche d'appliquer celles qui manquent : nommer
+l'absence d'abord enverrait jouer un geste qui ne peut pas aboutir.
+
+### LA PAIRE, LUE SUR LA MÊME BASE
+
+| sonde | verdict |
+| --- | --- |
+| celle d'hier | `ok: false` — « Une migration a échoué et bloque toutes les suivantes » |
+| réparée | `ok: true`, aucun motif |
+
+### Éprouvé dans les deux directions
+
+La faute remise — `tentatives.find((t) => !t.finie)` — fait tomber **trois**
+scénarios unitaires et **un** d'isolation. Et le scénario « annulée puis
+réappliquée » porte son jumeau : la même ligne annulée, privée de la tentative
+réussie, doit rendre « non » — *sans lui, il resterait vert sur une sonde qui
+aurait cessé de lire la table en entier.*

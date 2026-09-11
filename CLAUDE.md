@@ -413,6 +413,21 @@ lib/
               dépôt attend, et ne se contente plus de chercher un ÉCHEC : une
               migration jamais appliquée n'a pas de ligne, et la sonde
               répondait « oui » (panne du 11/09)
+              `_prisma_migrations` porte UNE LIGNE PAR TENTATIVE, jamais une par
+              migration : après un déblocage, le même nom y figure DEUX fois —
+              l'essai annulé et l'essai réussi (mesuré le 11/09, 22:32:06 et
+              22:32:09). L'ÉTAT D'UNE MIGRATION EST CELUI DE SA DERNIÈRE
+              TENTATIVE, et `verdictDesMigrations` est la SEULE lecture de ce
+              critère — la moitié « absente » était juste, et la réparer seule
+              aurait laissé deux lectures dans la même fonction
+              TROIS états et jamais deux : appliquée, EN ÉCHEC (elle bloque les
+              suivantes, P3018), annulée (elle se rejoue toute seule). Les deux
+              derniers étaient confondus sous « a échoué ou a été annulée », et
+              ils n'appellent pas le même geste
+              l'ÉCHEC est nommé AVANT l'absence, et l'ordre n'est pas
+              arbitraire : une migration en échec empêche d'appliquer celles qui
+              manquent, et nommer l'absence d'abord enverrait jouer un geste qui
+              ne peut pas aboutir
               `app.client_id` est DÉSIGNÉE par l'appelant et VALIDÉE par la
               base dans la même transaction (D70) — jamais dérivée, la
               dérivation n'étant pas unique ; jamais crue, une désignation
@@ -1379,6 +1394,10 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **Le corollaire de conception, qui vaut avant d'écrire le gardien :** quand un motif ne sait pas distinguer le vrai du faux, ce n'est pas le motif qu'il faut affiner mais **le TEXTE qu'il lit qu'il faut rendre lisible**. Une valeur d'énumération qui voyage sans son énumération est un jeton dont la signification dépend d'un contexte que la machine ne lit pas — même famille que D56, *un nombre dont la signification dépend d'une autre colonne ne voyage jamais seul*. La sortie n'est donc pas un meilleur gardien, c'est une convention d'écriture qui rend le gardien trivial.
 
   **Et la classe reste OUVERTE, avec son critère de réouverture écrit** — sans quoi « écarté » deviendrait « oublié » : *le jour où une convention de qualification rend l'association décision ↔ énumération EXPLICITE, le gardien se réécrit sans heuristique ni exemption, et il est dû.* Le critère se vérifie, il ne s'interprète pas. Voir le registre « Ce qui reste à décider ».
+
+  **Corollaire mesuré le 12/09/2026, sur une sonde réparée la veille : LES DEUX PANNES SONT LA MÊME, ET ELLES SE SUCCÈDENT.** `/sante` disait « migrations à jour : oui » sans mesurer (panne du 11/09) ; réparée, elle a dit « **non** » sans mesurer davantage. *Mesuré sur une base portant l'historique réel, la même à la seconde près : sonde d'hier → « Une migration a échoué et bloque toutes les suivantes » ; sonde réparée → « à jour ».* La cause est une ligne — `_prisma_migrations` porte **une ligne par TENTATIVE**, et le contrôle cherchait une tentative non appliquée *n'importe où* au lieu de lire **la dernière**.
+
+  **Ce qu'il faut en retenir : une réparation qui rend le contrôle plus STRICT hérite de l'exigence de mesure, elle ne s'en dispense pas.** Un contrôle muet qu'on rend bavard change de panne, il n'en sort pas — et le bavard coûte plus cher à corriger, parce qu'il a l'air de fonctionner. *La question à poser à toute réparation d'un contrôle creux : « et maintenant, qu'est-ce qui le ferait crier à tort ? »* — elle ne se pose pas d'elle-même, parce qu'on vient de prouver qu'il était trop permissif.
 
 - **10/09/2026 — UNE CORRECTION QUI BARRE LA LIGNE ENTIÈRE EMPORTE LA MOITIÉ VRAIE AVEC LA FAUSSE.** À L2-01, le chapitre 11 disait de `reference_interne` « unique par société, porté par le QR ». La seconde moitié était fausse (le QR encode `qr_token`, I10) ; la ligne a été barrée **entière**, et « unique par société » — la propriété sur laquelle D6 s'appuie — est partie avec. Personne ne l'a vu : une ligne barrée a l'air d'une ligne traitée. *La correction vise un mot ; elle barre le mot, jamais la ligne.* Restaurée le 10/09.
 - **09/09/2026 — UN DÉFAUT PEUT ÊTRE INVISIBLE À TOUTE ASSERTION ET ÉVIDENT SUR UNE IMAGE : la capture d'écran attrape ce qu'aucune règle n'a été FORMULÉE pour attraper.** Espèce à nommer à côté de la vacuité du 30/08, parce que le gardien n'est pas creux — **il n'existe pas**, et personne ne s'en est aperçu.

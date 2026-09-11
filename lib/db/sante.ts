@@ -70,9 +70,137 @@ function detailAbsentes(premiere: string, nombre: number): string {
     : `${nombre} migrations ne sont pas appliquées. La première est ${premiere}.`;
 }
 
-/** Une migration présente en base mais restée en échec ou annulée. */
+/**
+ * Une migration RESTÉE EN ÉCHEC — et « en échec » n'est pas « annulée ».
+ *
+ * La rédaction précédente disait « a échoué **ou** a été annulée », et ce OU
+ * était la faute : les deux états ne se corrigent pas du même geste. *Une
+ * migration annulée se rejoue toute seule au déploiement suivant ; une
+ * migration en échec BLOQUE toutes les suivantes* (`P3018`) et demande d'abord
+ * qu'on la déclare annulée. Le motif dit donc lequel des deux, et ce qu'il
+ * empêche.
+ */
 function detailEchec(nom: string): string {
-  return `Une migration a échoué ou a été annulée : ${nom}.`;
+  return (
+    `Une migration a échoué et bloque toutes les suivantes : ${nom}. ` +
+    "Elle doit être déclarée annulée avant de pouvoir être rejouée."
+  );
+}
+
+/**
+ * UNE TENTATIVE de migration, telle que `_prisma_migrations` la porte.
+ *
+ * **C'est bien une TENTATIVE et non une migration** : la table en porte une
+ * LIGNE PAR ESSAI, et le même nom peut y figurer plusieurs fois. *Mesuré le
+ * 11/09/2026 en rejouant la panne : après `migrate resolve --rolled-back` puis
+ * `migrate deploy`, `_prisma_migrations` porte **deux** lignes pour
+ * `20260913160000_suspension_l2_10` — la tentative annulée à 22:32:06, la
+ * tentative appliquée à 22:32:09.*
+ */
+export type TentativeMigration = {
+  readonly nom: string;
+  readonly debut: Date;
+  readonly finie: boolean;
+  readonly annulee: boolean;
+};
+
+/** Le verdict, et le motif qui dit QUEL geste il appelle. */
+export type VerdictMigrations =
+  | { readonly aJour: true }
+  | {
+      readonly aJour: false;
+      readonly nom: string;
+      readonly nombre: number;
+      /** `true` : elle BLOQUE les suivantes. `false` : il en manque, sans blocage. */
+      readonly echec: boolean;
+    };
+
+/**
+ * L'ÉTAT D'UNE MIGRATION EST CELUI DE SA DERNIÈRE TENTATIVE, ET D'ELLE SEULE.
+ *
+ * ## La faute que cette fonction répare, mesurée le 11/09/2026
+ *
+ * La rédaction précédente cherchait une tentative non appliquée **n'importe où**
+ * dans la table :
+ *
+ * ```ts
+ * const echouee = lignes.find((l) => !l.applique);
+ * ```
+ *
+ * Elle trouvait donc la tentative ANNULÉE d'une migration qui avait été
+ * **réappliquée avec succès juste après**, et la page répondait *« Une migration
+ * a échoué ou a été annulée »* sur une base parfaitement à jour.
+ *
+ * > **Hier la sonde disait OUI sans mesurer ; aujourd'hui elle disait NON sans
+ * > mesurer.** C'est la même espèce prise par l'autre bout, et le coût est
+ * > symétrique : *une alarme qui hurle à tort désapprend à lire les alarmes
+ * > aussi sûrement qu'une alarme muette* (§9, 11/09 — le gardien bruyant).
+ *
+ * ## UNE SEULE LECTURE DU CRITÈRE, et c'est pour cela qu'elle est ici
+ *
+ * Le défaut ne portait que sur la moitié « en échec » : la moitié « absente »
+ * était juste. Réparer la seule moitié fautive aurait laissé **deux lectures du
+ * même critère dans la même fonction** — la divergence du §9 (01/09), au pire
+ * endroit. Les deux moitiés dérivent donc du même `derniere`.
+ *
+ * ## TROIS ÉTATS, ET JAMAIS DEUX
+ *
+ * | dernière tentative | sens | geste |
+ * |---|---|---|
+ * | finie, non annulée | **appliquée** | — |
+ * | ni finie ni annulée | **EN ÉCHEC** — bloque les suivantes (`P3018`) | la déclarer annulée, puis migrer |
+ * | annulée | rejouable | migrer |
+ *
+ * *Les deux derniers étaient confondus, et ils n'appellent pas le même geste.*
+ * Une migration annulée n'est pas un incident : c'est un état d'attente que le
+ * déploiement suivant résout tout seul.
+ *
+ * **L'échec est préféré à l'absence dans le motif**, et l'ordre n'est pas
+ * arbitraire : une migration en échec empêche d'appliquer celles qui manquent.
+ * Nommer l'absence d'abord enverrait jouer un geste qui ne peut pas aboutir.
+ *
+ * *La limite, écrite : l'ordre des tentatives se lit sur `started_at`. Deux
+ * tentatives de la même microseconde seraient indiscernables — `_prisma_migrations`
+ * n'a pas d'autre clé ordonnée, son `id` étant tiré au sort.*
+ */
+export function verdictDesMigrations(
+  tentatives: readonly TentativeMigration[],
+  attendues: readonly string[] = MIGRATIONS_ATTENDUES,
+): VerdictMigrations {
+  const derniere = new Map<string, TentativeMigration>();
+  for (const tentative of tentatives) {
+    const connue = derniere.get(tentative.nom);
+    if (connue === undefined || tentative.debut > connue.debut) {
+      derniere.set(tentative.nom, tentative);
+    }
+  }
+
+  const appliquee = (nom: string): boolean => {
+    const t = derniere.get(nom);
+    return t !== undefined && t.finie && !t.annulee;
+  };
+
+  // L'ORDRE est celui du dépôt, et il porte l'information : la PREMIÈRE absente
+  // est celle par laquelle la base a décroché.
+  const absentes = attendues.filter((nom) => !appliquee(nom));
+
+  // Une migration EN ÉCHEC bloque tout, y compris celles qui manquent — et
+  // elle compte même si le code déployé ne l'attend pas : c'est la base qui est
+  // verrouillée, pas le code.
+  const enEchec = [...derniere.values()].find((t) => !t.finie && !t.annulee);
+
+  if (enEchec !== undefined) {
+    return { aJour: false, nom: enEchec.nom, nombre: 1, echec: true };
+  }
+  if (absentes.length > 0) {
+    return {
+      aJour: false,
+      nom: absentes[0]!,
+      nombre: absentes.length,
+      echec: false,
+    };
+  }
+  return { aJour: true };
 }
 
 function motifSansSecret(erreur: unknown): string {
@@ -146,30 +274,18 @@ export async function lireSante(): Promise<EtatSante> {
     // Les deux questions sont désormais posées, et une seule réponse les porte :
     // une migration **en échec** et une migration **absente** rendent toutes
     // deux « non », et le motif dit laquelle.
-    const lignes = await prisma.$queryRawUnsafe<
-      Array<{ nom: string; applique: boolean }>
-    >(
-      `SELECT migration_name AS nom,
-              (finished_at IS NOT NULL AND rolled_back_at IS NULL) AS applique
+    // LES TROIS COLONNES BRUTES, et `started_at` EN FAIT PARTIE : sans elle, on
+    // ne peut pas savoir laquelle des tentatives d'un même nom est la dernière —
+    // et c'est exactement ce qui manquait à la rédaction du 11/09. *Le verdict
+    // est calculé par `verdictDesMigrations`, qui ne connaît aucune base.*
+    const tentatives = await prisma.$queryRawUnsafe<TentativeMigration[]>(
+      `SELECT migration_name       AS nom,
+              started_at           AS debut,
+              finished_at IS NOT NULL   AS finie,
+              rolled_back_at IS NOT NULL AS annulee
          FROM _prisma_migrations`,
     );
-    const appliquees = new Set(
-      lignes.filter((l) => l.applique).map((l) => l.nom),
-    );
-    // L'ORDRE est celui du dépôt, et il porte l'information : la PREMIÈRE
-    // absente est celle par laquelle la base a décroché.
-    const absentes = MIGRATIONS_ATTENDUES.filter((nom) => !appliquees.has(nom));
-    const echouee = lignes.find((l) => !l.applique);
-    const manquante =
-      absentes.length > 0
-        ? {
-            nom: absentes[0],
-            nombre: absentes.length,
-            echec: false,
-          }
-        : echouee === undefined
-          ? undefined
-          : { nom: echouee.nom, nombre: 1, echec: true };
+    const verdict = verdictDesMigrations(tentatives);
 
     // Les décomptes sont lus SANS contexte de société : ils ne rendent donc que
     // des NOMBRES, jamais une ligne. `societe` est de forme « identité » — sans
@@ -193,20 +309,19 @@ export async function lireSante(): Promise<EtatSante> {
                   ? null
                   : `Le rôle connecté n'est pas « ${ROLE_ATTENDU} ».`,
             },
-      migrations:
-        manquante === undefined
-          ? { ok: true, detail: null }
-          : {
-              ok: false,
-              // Le motif NOMME la migration et COMBIEN il en manque : *la
-              // première absente est celle par laquelle la base a décroché*,
-              // et le nombre dit l'ampleur du geste à jouer. Un nom de
-              // migration n'est pas un secret — il est dans le dépôt public —,
-              // et cette page n'en dit toujours aucun autre.
-              detail: manquante.echec
-                ? detailEchec(manquante.nom)
-                : detailAbsentes(manquante.nom, manquante.nombre),
-            },
+      migrations: verdict.aJour
+        ? { ok: true, detail: null }
+        : {
+            ok: false,
+            // Le motif NOMME la migration et COMBIEN il en manque : *la
+            // première absente est celle par laquelle la base a décroché*,
+            // et le nombre dit l'ampleur du geste à jouer. Un nom de
+            // migration n'est pas un secret — il est dans le dépôt public —,
+            // et cette page n'en dit toujours aucun autre.
+            detail: verdict.echec
+              ? detailEchec(verdict.nom)
+              : detailAbsentes(verdict.nom, verdict.nombre),
+          },
       societes,
       comptes,
     };
