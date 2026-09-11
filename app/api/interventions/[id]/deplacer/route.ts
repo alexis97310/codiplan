@@ -60,7 +60,19 @@ export async function POST(
     technicien_id: champ(formulaire, "technicien_id"),
   });
   if (!saisie.success) {
-    return repondre("intervention.refus.inconnue");
+    // **LE REFUS NOMME CE QUI CLOCHE** (L3-01b). « Inconnue » pour tout était
+    // vrai tant qu'une seule chose pouvait manquer ; le redimensionnement
+    // ajoute un second motif — *une durée nulle ou négative, qu'on obtient en
+    // tirant la poignée au-dessus du début du bloc.* Un message unique
+    // enverrait chercher une intervention disparue.
+    const surLaDuree = saisie.error.issues.some((probleme) =>
+      probleme.path.includes("duree_min"),
+    );
+    return repondre(
+      surLaDuree
+        ? "intervention.refus.duree_invalide"
+        : "intervention.refus.inconnue",
+    );
   }
   const resultat = await deplacerIntervention(contexte, saisie.data);
   return repondre(resultat.accepte ? undefined : resultat.cle);
