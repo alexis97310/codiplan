@@ -18,6 +18,15 @@ import {
 } from "./setup/fixtures";
 
 /**
+ * Un parc connu, à partir de ses seules clés — `ambigues` vide est une
+ * AFFIRMATION et non un oubli : *« ce parc ne porte aucune ambiguïté »*
+ * (L1-08g). Les scénarios qui éprouvent l'ambiguïté la passent explicitement.
+ */
+function parc(cles: readonly string[] = [], ambigues: readonly string[] = []) {
+  return { cles: new Set(cles), ambigues: new Set(ambigues) };
+}
+
+/**
  * L'APPELANT DE LA CHAÎNE D'IMPORT (L1-08e).
  *
  * ## Pourquoi ce fichier existe, et ce qu'il ne remplace pas
@@ -76,7 +85,7 @@ const SESSION_INTERNE = {
 
 describe("la chaîne feuille → contrôle → lot en base", () => {
   it("traverse, et ce que la base porte est EXACTEMENT ce que le rapport a décidé", async () => {
-    const controle = controlerFeuille(FEUILLE, MODELE, new Set());
+    const controle = controlerFeuille(FEUILLE, MODELE, parc());
     expect(controle.lisible).toBe(true);
     if (!controle.lisible) return;
 

@@ -182,7 +182,15 @@ export type LigneControlee = {
    */
   readonly cle?: CleDeRapprochement;
   /** Ce que l'application fera de cette ligne — le mot du chapitre 11. */
-  readonly action: "creation" | "modification" | "gabarit" | "vide";
+  readonly action: "creation" | "modification" | "gabarit" | "vide" | "rejet";
+  /**
+   * LA RAISON DU REJET, et elle est OBLIGATOIRE dès que l'action l'est — la
+   * base tient la même équivalence, dans les deux sens (L1-08e).
+   *
+   * *Un rejet sans motif est un rejet que personne ne pourra rejuger*, et un
+   * motif sans rejet est une ligne qu'on croit refusée alors qu'elle passera.
+   */
+  readonly rejetMotif?: string;
   /**
    * La ligne, colonne par colonne, telle qu'elle a été lue. **C'est ce que
    * l'application écrira**, et c'est aussi ce qu'un rapport annoté doit pouvoir
@@ -190,6 +198,56 @@ export type LigneControlee = {
    */
   readonly valeurs: Readonly<Record<string, string | undefined>>;
 };
+
+/**
+ * CE QUE LA BASE CONNAÎT DÉJÀ, et ce qu'elle ne sait pas trancher (L1-08g).
+ *
+ * **Deux ensembles et non un seul**, parce que RG-IMP-05 pose trois cas et non
+ * deux : *« en cas d'ambiguïté, la ligne part en rejet pour arbitrage humain
+ * plutôt qu'en création silencieuse d'un doublon »*. Un `Set<string>` nu ne
+ * pouvait pas porter le troisième — la limite était écrite à L1-08f, et c'est
+ * elle que ce type retire.
+ *
+ * **Aucun défaut n'est prévu pour `ambigues`.** Un appelant qui ne sait pas
+ * répondre doit le dire en passant un ensemble vide, et c'est une affirmation :
+ * *« ce parc ne porte aucune ambiguïté »*. Un défaut ferait de cette
+ * affirmation un oubli, et l'oubli retomberait du côté permissif — une création
+ * silencieuse là où RG-IMP-05 veut un rejet.
+ */
+export type ParcConnu = {
+  /** Les clés que la base porte déjà : une ligne qui les touche MODIFIE. */
+  readonly cles: ReadonlySet<string>;
+  /**
+   * Les clés que PLUSIEURS fiches du parc se partagent. *L'ambiguïté est un
+   * fait du parc, jamais du fichier* : deux clients de même raison sociale
+   * normalisée rendent indécidable ce qu'une ligne désigne.
+   */
+  readonly ambigues: ReadonlySet<string>;
+};
+
+/**
+ * Ce que le parc dit d'une clé — et le rejet PRÉCÈDE les deux autres cas.
+ *
+ * *L'ordre est une décision* : une clé ambiguë est aussi une clé connue, et
+ * tester « connue » d'abord la rendrait modifiable — c'est-à-dire écraserait
+ * l'une des deux fiches au hasard, ce que RG-IMP-05 refuse précisément.
+ */
+function decider(
+  cle: string,
+  parc: ParcConnu,
+): Pick<LigneControlee, "action" | "rejetMotif"> {
+  if (parc.ambigues.has(cle)) {
+    return { action: "rejet", rejetMotif: MOTIF_AMBIGUITE };
+  }
+  return { action: parc.cles.has(cle) ? "modification" : "creation" };
+}
+
+/**
+ * Le motif d'un rejet pour ambiguïté. C'est un CODE, jamais du texte : les
+ * libellés sont au dictionnaire, la coupure de L0-11 s'appliquant au rapport
+ * qu'un humain lit.
+ */
+export const MOTIF_AMBIGUITE = "cle_ambigue";
 
 /** Les décomptes, DÉRIVÉS des lignes retenues — jamais comptés à côté d'elles. */
 export function proposerDepuisLesLignes(
@@ -205,6 +263,12 @@ export function proposerDepuisLesLignes(
         // **Comptées et NON rejetées.** 652 lignes pour 55 codes réels sur
         // l'onglet Clients : les rejeter ferait 597 erreurs sur un fichier sain.
         proposition = { ...proposition, gabarits: proposition.gabarits + 1 };
+        break;
+      case "rejet":
+        // **Le rejet S'ADDITIONNE** — il n'est pas une qualification comme
+        // `incompletes` : une ligne rejetée n'entrera pas, et le total doit
+        // continuer d'expliquer chaque ligne lue.
+        proposition = { ...proposition, rejets: proposition.rejets + 1 };
         break;
       default:
         proposition = {
@@ -281,15 +345,16 @@ function enDictionnaire(
 /**
  * Contrôle une feuille contre un modèle d'import, et rend le rapport de I6.
  *
- * `clesDuParc` est ce que la base connaît déjà : une clé qui s'y trouve est une
- * MODIFICATION, une clé absente est une CRÉATION. **Le parc est un paramètre et
- * non une lecture** — ce module ne touche à aucune base, et l'appelant seul sait
- * sous quel contexte cloisonné il l'a obtenu.
+ * `parc` est ce que la base connaît déjà : une clé qui s'y trouve est une
+ * MODIFICATION, une clé absente est une CRÉATION, **une clé AMBIGUË est un
+ * REJET** (RG-IMP-05). **Le parc est un paramètre et non une lecture** — ce
+ * module ne touche à aucune base, et l'appelant seul sait sous quel contexte
+ * cloisonné il l'a obtenu.
  */
 export function controlerFeuille(
   feuille: FeuilleLue,
   modele: ModeleDImport,
-  clesDuParc: ReadonlySet<string>,
+  parc: ParcConnu,
 ): Controle {
   const anomalies: AnomalieSituee[] = [];
 
@@ -365,7 +430,7 @@ export function controlerFeuille(
       rang: rang + 1,
       nature,
       cle,
-      action: clesDuParc.has(cle.cle) ? "modification" : "creation",
+      ...decider(cle.cle, parc),
       valeurs,
     });
   }
