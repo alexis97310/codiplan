@@ -102,3 +102,18 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
     FORFAITS_SCENE.length,
   );
 });
+
+test("l'arrivée commence en haut, sur la largeur utile", async ({ page }) => {
+  // R2-04. *Mesuré avant : contenu de 448 px, centré à mi-hauteur, document de
+  // 1072 px — la forme d'une page de connexion sous une barre ancrée en haut.*
+  await page.goto("/arrivee");
+
+  const cadre = await page.locator("main").evaluate((element) => {
+    const boite = element.getBoundingClientRect();
+    return { largeur: Math.round(boite.width), haut: Math.round(boite.top) };
+  });
+  expect(cadre.largeur).toBe(LARGEUR_UTILE_PX - 2 * GOUTTIERE_PX);
+  // « Commence en haut » se mesure : sous la barre (58 px) et sa gouttière, pas
+  // à mi-hauteur d'une fenêtre de 1000.
+  expect(cadre.haut).toBeLessThan(140);
+});

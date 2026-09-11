@@ -725,7 +725,10 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* l'écran de réglage d'une société laisse choisir son thème parmi `APPARENCES` ; le choix est journalisé comme toute modification d'une table auditée (I8) ; aucun écran n'a été touché pour l'ajouter.
 
 **R2-04 — `/arrivee` — 448 px et centré à mi-hauteur. [D95]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Rien n'a été inventé, et c'était le risque du ticket.** *« Ce qu'il affiche ne change pas d'un mot »* : « qui vous êtes, pour quelle société, et rien d'autre » est une décision de L1-02f, pas une question d'apparence. Seule la FORME bouge — une accroche a été ajoutée, et elle ne dit rien de plus que le titre, elle le situe.
+**Mesuré à travers un navigateur, fenêtre 1700 × 1000 :** contenu 448 px → **1360 px**, et le cadre commence désormais **sous la barre** au lieu d'être centré à mi-hauteur. *Un contenu centré à mi-hauteur sous une barre ancrée en haut flotte sans rien pour le tenir.*
+**L'écart avec la maquette est écrit avec sa raison** : elle ne décrit aucun écran d'arrivée. Ce qui est repris est le seul point où elle parle — ses écrans commencent en haut, sur la largeur utile, titre 22 px extra-gras et accroche grise 13 px. Ce qui reste libre est la disposition interne, tenue en trois colonnes plutôt qu'en une bande étroite.
 **Écran de la maquette : AUCUN.** Elle ne décrit pas d'écran d'arrivée — elle s'ouvre directement sur le tableau de bord. *C'est donc le ticket le plus exposé du lot : il n'a pas de modèle, et la tentation sera d'en inventer un.*
 **Mesuré le 11/09/2026, à 1700 px : contenu de 448 px de large, centré verticalement, document de 1072 px.** Il porte `max-w-md` et `justify-center` — la forme d'une page de connexion, pas celle d'un écran d'arrivée dans un back-office de 1400 px.
 *Acceptation :* l'écran occupe la largeur utile et commence en haut ; ce qu'il affiche ne change pas d'un mot — *qui vous êtes, pour quelle société, et rien d'autre* est une décision de L1-02f, pas une question d'apparence ; si la maquette reste muette sur la forme, l'écart est écrit avec sa raison.
