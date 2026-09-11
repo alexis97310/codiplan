@@ -105,3 +105,44 @@ quelqu'un est là pour dire le motif.*
 `scripts/lib/contraintes-non-validees.ts`, gardé dans les trois sens, lu par
 `pnpm veille` (douzième contrôle) **et** par un scénario d'isolation à chaque
 `pnpm verify`. Rattrapage : **R3-02**, bloqué avec sa mesure.
+
+## 6 — LE GARDIEN QUI MANQUAIT : les migrations rejouées contre des données
+
+`tests/isolation/migrations-sur-base-agee.test.ts`, dans `pnpm verify` — donc
+sur **chaque proposition**, et non la nuit d'après.
+
+**Comment, et pourquoi pas autrement.** Par `prisma migrate deploy`, le chemin
+exact de la production. *Mesuré : `$executeRawUnsafe` refuse un lot
+multi-instructions — `42601`, « cannot insert multiple commands into a prepared
+statement ». Rejouer le SQL à la main n'était pas seulement moins fidèle, c'était
+impossible.*
+
+**La population est DÉRIVÉE**, jamais déclarée : **52 resserrements dans 15
+migrations**, sur les 47 du dépôt. Un resserrement est un ordre qui réduit ce
+qu'une table accepte, posé sur une table qu'une migration **antérieure** a créée.
+Une table née dans la même migration n'en est pas un — elle naît vide ; une
+contrainte `NOT VALID` non plus — c'est sa définition.
+
+**Le harnais s'est piégé lui-même à sa première exécution**, et c'est la mesure
+la plus utile de la soirée : il a annoncé *« All migrations have been
+successfully applied »* sur une base où `intervention = 0`, l'amorce ayant échoué
+sur une contrainte. **Un décompte nul ressemble toujours à un sans-faute.** D'où
+le témoin : une table vide au resserrement fait échouer, et nomme l'amorce à
+écrire.
+
+### Éprouvé dans les DEUX directions, sur des fautes réellement écrites
+
+| Faute rejouée | Résultat |
+| --- | --- |
+| la contrainte de D104 remise en `VALID` | **rouge** — `P3018`, `23514`, `intervention_suspension_a_son_motif` : le `P3018` exact du 11/09 |
+| une migration neuve resserrant `jour_ferie`, table sans lignes | **rouge** — et le message nomme l'amorce à écrire |
+
+Les deux fautes ont été retirées après mesure.
+
+### Ce qu'il ne prétend pas
+
+Il ne dit pas qu'une migration est sûre : il dit qu'elle a été **éprouvée contre
+des lignes**. L'amorce décrit une base plausible de cette époque ; *si une
+migration échoue ici, c'est ou bien qu'elle manque son rattrapage, ou bien que
+l'amorce décrit une base impossible* — et la seconde lecture se vérifie, elle ne
+se suppose pas.
