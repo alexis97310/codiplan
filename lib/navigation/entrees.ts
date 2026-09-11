@@ -72,7 +72,7 @@ export type EntreeNavigation = {
 /**
  * Les onze entrées, dans l'ordre exact de la maquette. **Liste close** :
  * `tests/unit/navigation/entrees.test.ts` la confronte à la barre de
- * `docs/CODIPLAN_Maquette.html`, et échoue si l'une des deux bouge sans
+ * `docs/maquette/CODIPLAN_Maquette.html`, et échoue si l'une des deux bouge sans
  * l'autre — libellé et ordre compris.
  */
 export const ENTREES: readonly EntreeNavigation[] = [

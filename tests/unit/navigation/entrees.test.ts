@@ -11,7 +11,7 @@ import { ENTREES, entreeActive } from "@/lib/navigation/entrees";
  * (D95).
  *
  * **La population ne vient pas du code, elle vient du document.** Le gardien lit
- * `docs/CODIPLAN_Maquette.html`, en extrait les boutons de `.nav`, et exige que
+ * `docs/maquette/CODIPLAN_Maquette.html`, en extrait les boutons de `.nav`, et exige que
  * la liste du dépôt dise exactement la même chose — libellés ET ordre. C'est la
  * parade du §9 (01/09) appliquée ici : *une liste close recopiée « pour la
  * lisibilité » devient fausse le jour où la première grandit, sans rougir.*
@@ -24,7 +24,7 @@ import { ENTREES, entreeActive } from "@/lib/navigation/entrees";
  */
 
 const MAQUETTE = readFileSync(
-  join(process.cwd(), "docs/CODIPLAN_Maquette.html"),
+  join(process.cwd(), "docs/maquette/CODIPLAN_Maquette.html"),
   "utf8",
 );
 
@@ -33,7 +33,7 @@ function libellesDeLaMaquette(): string[] {
   const bloc = /<div class="nav">([\s\S]*?)<\/div>/.exec(MAQUETTE);
   if (bloc === null) {
     throw new Error(
-      "la barre `.nav` est introuvable dans docs/CODIPLAN_Maquette.html — " +
+      "la barre `.nav` est introuvable dans docs/maquette/CODIPLAN_Maquette.html — " +
         "le document a changé de forme, et ce gardien ne mesure plus rien",
     );
   }

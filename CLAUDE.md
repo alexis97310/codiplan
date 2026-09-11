@@ -29,7 +29,9 @@ Contexte d'exploitation : Nouvelle-Calédonie. Réseau mobile absent sur une par
 
 **Une règle métier ne s'écrit qu'au chapitre 10.** Une règle trouvée ailleurs et absente du chapitre 10 est non normative.
 
-`docs/maquette/CODIPLAN_Maquette.html` est une illustration d'intention, **pas une spécification**. Deux exceptions promues au rang de règle : le formatage monétaire et les codes couleur des statuts.
+~~`docs/maquette/CODIPLAN_Maquette.html` est une illustration d'intention, **pas une spécification**.~~ **ELLE FAIT FOI SUR LA DISPOSITION ET SUR LES COULEURS** *(D95, 11/09/2026)*. Ce qu'elle montre se suit ; ce qu'elle ne dit pas reste libre, et un écart s'écrit avec sa mesure et le point précis où elle est muette — jamais « la maquette ne prévoyait pas ce cas ». La phrase d'origine est conservée barrée : elle a gouverné le dépôt pendant trois semaines, et ce qui a été décidé un jour se relit. Les deux exceptions qu'elle promouvait déjà — le formatage monétaire et les codes couleur des statuts — restent des règles ; elles ne sont plus des exceptions, elles sont le cas général.
+
+**IL N'EN EXISTE QU'UN EXEMPLAIRE, et c'est gardé** *(11/09/2026)*. Le fichier a vécu quelques heures en double — `docs/` et `docs/maquette/` —, octet pour octet identiques, et rien ne l'aurait dit le jour où l'un des deux aurait bougé : *une source qui fait foi en deux exemplaires n'est plus une source.* `tests/unit/docs/maquette-unique.test.ts` refuse le second.
 
 Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question** plutôt qu'inventer une règle métier.
 
@@ -559,7 +561,7 @@ lib/
               « aucune condition » a DEUX écritures — `null` à la saisie, le
               tableau VIDE en base — et les deux se lisent ICI
   navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
-              la liste est CLOSE et confrontée à `docs/CODIPLAN_Maquette.html` :
+              la liste est CLOSE et confrontée à `docs/maquette/CODIPLAN_Maquette.html` :
               libellés et ordre compris — deux barres qui divergent, c'est la
               maquette qui a raison
               une entrée dont l'écran n'existe pas est INERTE, jamais absente

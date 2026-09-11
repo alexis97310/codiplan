@@ -26,7 +26,7 @@ import {
  * c'est ce qui le distingue d'une recopie (§9, 01/09).
  *
  * **Ce qu'il ne prétend pas faire.** Il ne juge aucune couleur : que le bleu
- * soit le bon bleu se lit dans `docs/CODIPLAN_Maquette.html` et dans l'annexe C,
+ * soit le bon bleu se lit dans `docs/maquette/CODIPLAN_Maquette.html` et dans l'annexe C,
  * et un scénario le vérifie sur les jetons que la maquette nomme explicitement.
  * Le reste est une question de goût, et un gardien n'en a pas.
  */
@@ -43,7 +43,7 @@ const STYLE_BRUT = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
  */
 const STYLE = STYLE_BRUT.replace(/\/\*[\s\S]*?\*\//g, "");
 const MAQUETTE = readFileSync(
-  join(process.cwd(), "docs/CODIPLAN_Maquette.html"),
+  join(process.cwd(), "docs/maquette/CODIPLAN_Maquette.html"),
   "utf8",
 );
 
@@ -68,7 +68,7 @@ function jetonsDeLaMaquette(): Map<string, string> {
   const bloc = /:root\s*\{([\s\S]*?)\}/.exec(MAQUETTE);
   if (bloc === null) {
     throw new Error(
-      "le bloc `:root` est introuvable dans docs/CODIPLAN_Maquette.html — " +
+      "le bloc `:root` est introuvable dans docs/maquette/CODIPLAN_Maquette.html — " +
         "le document a changé de forme, et ce gardien ne mesure plus rien",
     );
   }
