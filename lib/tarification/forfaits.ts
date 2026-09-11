@@ -148,20 +148,38 @@ export type ConditionsForfait = {
  * une condition qu'on ne peut pas vérifier n'est pas remplie.
  *
  * **« Aucune condition » a DEUX écritures, et c'est mesuré plutôt que supposé**
- * *(09/09/2026)*. La saisie Zod l'écrit `null` ; la BASE ne le peut pas — une
- * liste scalaire PostgreSQL n'est pas nullable, Prisma rend toujours un
- * `String[]`, et l'absence de condition y est donc le tableau **VIDE**. Cette
- * fonction ne voyait que la première : `[]` tombait dans la branche « une
- * condition est posée », `[].includes(zone)` rendait `false`, et **le forfait
- * général — celui qui n'a aucune condition de zone, c'est-à-dire le cas que ce
- * module documente comme le plus courant — ne s'appliquait JAMAIS** par le
- * chemin de production. Mesuré avant d'être corrigé, sur `forfaitApplicable`
- * appelée avec la forme que Prisma rend.
+ * *(09/09/2026)*. La saisie Zod l'écrit `null` ; **le chemin de lecture la rend
+ * `[]`**. Cette fonction ne voyait que la première : `[]` tombait dans la
+ * branche « une condition est posée », `[].includes(zone)` rendait `false`, et
+ * **le forfait général — celui qui n'a aucune condition de zone, c'est-à-dire
+ * le cas que ce module documente comme le plus courant — ne s'appliquait
+ * JAMAIS** par le chemin de production. Mesuré avant d'être corrigé, sur
+ * `forfaitApplicable` appelée avec la forme que Prisma rend.
  *
  * *C'est la frontière du §9 (08/09) : deux formes d'un même fait, dont une
- * seule était lue — et le SQL, lui, n'en laissait rien voir.* La saisie
- * refusant `[]` (`nonempty`), le vide en base ne peut vouloir dire qu'une
- * chose, et les deux écritures se lisent ici **au même endroit**.
+ * seule était lue — et le SQL, lui, n'en laissait rien voir.*
+ *
+ * ## D'OÙ VIENT LE `[]`, ET LA RÉPONSE N'ÉTAIT PAS CELLE ÉCRITE ICI
+ *
+ * Cette note disait : *« la BASE ne le peut pas — une liste scalaire PostgreSQL
+ * n'est pas nullable »*. **C'est faux de la base, et vrai de Prisma seulement**
+ * *(mesuré le 11/09/2026)* :
+ *
+ * - la colonne SQL **est nullable**, et `condition_multivaluee_valide` n'admet
+ *   que `NULL` **ou un ensemble NON VIDE** — *le tableau vide est REFUSÉ en
+ *   base* (`forfait_zones_non_vides`, 23514) ;
+ * - c'est **Prisma** qui ne sait pas déclarer une liste scalaire nullable, et
+ *   qui rend `[]` à la LECTURE d'un `NULL`.
+ *
+ * **La conclusion de ce module n'en est pas affaiblie, elle en sort plus
+ * forte** : `[]` ne peut RIEN vouloir dire d'autre que « aucune condition »,
+ * puisque la base ne sait pas en stocker un.
+ *
+ * *Et le piège est sur le chemin d'ÉCRITURE, pas de lecture* : écrire
+ * `zone_geo: []` par Prisma est **refusé par la base** — mesuré, pas supposé.
+ * Aucun code n'écrit de forfait aujourd'hui ; le jour où un écran le fera, il
+ * devra envoyer `null`. `tests/isolation/forfait-sans-condition.test.ts` le
+ * fixe, pour que ce ne soit plus un commentaire mais un fait tenu.
  */
 function axeSatisfait(
   condition: readonly string[] | null,

@@ -1393,7 +1393,7 @@ model Machine {
   /// La documentation PROPRE à cet exemplaire — certificat de conformité,
   /// procès-verbal de mise en service (L8-01). L'écran affiche l'UNION de
   /// celle-ci et de celle du modèle, sans qu'aucune ligne soit copiée (L8-02).
-  documents     Document[]
+  documents Document[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, modele_id, numero_serie])
@@ -1519,12 +1519,12 @@ model Intervention {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe   Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  client    Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  site      Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  agence    Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  forfait   Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  devise    Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  forfait Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  devise  Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
   @@unique([societe_id, numero])
@@ -1777,12 +1777,20 @@ model Forfait {
   devise_code    String
 
   /// Les trois axes de RG-TAR-06. « Sans condition sur cet axe » ne veut
-  /// JAMAIS dire « aucune valeur ne convient » — et son écriture diffère selon
-  /// le type : une liste scalaire PostgreSQL n'étant pas nullable, l'absence
-  /// de condition y est le tableau **VIDE** ; sur `famille_id`, c'est `NULL`.
-  /// La note précédente disait `NULL` pour les trois : c'était faux pour deux
-  /// d'entre eux, et le code lisait la forme qui n'existe pas (corrigé le
-  /// 09/09/2026, avec sa mesure).
+  /// JAMAIS dire « aucune valeur ne convient ».
+  ///
+  /// **EN BASE, c'est `NULL` pour les trois** — et le tableau VIDE est REFUSÉ :
+  /// `condition_multivaluee_valide` n'admet que `NULL` ou un ensemble non vide
+  /// (`forfait_zones_non_vides`). **C'est PRISMA qui ne sait pas déclarer une
+  /// liste scalaire nullable**, et qui rend `[]` à la LECTURE d'un `NULL`.
+  ///
+  /// La note précédente disait l'inverse — *« une liste scalaire PostgreSQL
+  /// n'étant pas nullable, l'absence de condition y est le tableau VIDE »* —
+  /// et confondait une limite de l'ORM avec une propriété de la base (mesuré
+  /// le 11/09/2026 : `'{}'` refusé en 23514, `NULL` accepté).
+  ///
+  /// **Conséquence pour qui écrira un forfait** : envoyer `null`, jamais `[]`.
+  /// Écrire `[]` par Prisma est refusé par la base.
   zone_geo          String[]
   famille_id        String?  @db.Uuid
   /// INERTE : les types d'intervention n'existent nulle part encore.
