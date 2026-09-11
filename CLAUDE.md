@@ -561,6 +561,19 @@ lib/
               annulee > cloturee, jamais l'inverse : I5 donne à l'annulation la
               préséance, et une intervention clôturée par erreur doit pouvoir
               être annulée
+              LA MACHINE N'EST PLUS UNE COLONNE (L2-08a) : une visite en
+              couvre plusieurs, et `intervention_machine` porte le rattachement
+              — forme « filiation » (D103), dont le parent est l'INTERVENTION
+              et jamais la machine : l'intervention décide QUI a le droit de
+              voir la ligne, la machine est ce dont elle parle
+              la politique fille ne recopie NI `app.client_id` NI
+              `app.perimetre_sites` : les trois filtres se propagent depuis le
+              parent, et un scénario le prouve en LISANT la clause
+              RG-INT-01 est tenue par la base au passage en statut de TRAVAIL,
+              jamais à la création : le dépannage à l'aveugle est le cas
+              ordinaire, et exiger la machine d'emblée refuserait un appel
+              trois statuts et pas un — la base garde des ÉTATS, pas des
+              trajets ; un `INSERT` direct lui échappe, et la limite est écrite
               depot.ts : les cinq actions sous contexte cloisonné, forme
               « parc » (D84) — aucune comparaison de société écrite au-dessus
               de la politique, ce serait une seconde lecture du même critère

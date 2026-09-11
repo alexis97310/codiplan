@@ -38,12 +38,21 @@ const SESSION = {
   clientId: null,
 };
 
-/** Rattache les deux interventions de A1 à la machine — le harnais ne le fait pas. */
+/**
+ * Le rattachement des deux interventions de A1 à la machine.
+ *
+ * **Il est désormais posé par le HARNAIS** (`INTERVENTION_MACHINE_A1` et `A2`) :
+ * depuis L2-08a, la colonne `intervention.machine_id` n'existe plus et le
+ * rattachement vit dans `intervention_machine`. Cette fonction ne fabrique donc
+ * plus rien — **elle VÉRIFIE**, et c'est plus fort : *un scénario qui pose
+ * lui-même son décor peut le poser faux sans que rien ne le dise.*
+ */
 async function rattacherLesInterventions(): Promise<void> {
-  await clientOwner().$executeRawUnsafe(
-    `UPDATE "intervention" SET "machine_id" = '${MACHINE_A1}'
-      WHERE "societe_id" = '${SOCIETE_A}' AND "site_id" IN ('${SITE_A1_S1}', '${SITE_A1_S2}')`,
+  const lignes = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
+    `SELECT count(*) AS n FROM "intervention_machine"
+      WHERE "societe_id" = '${SOCIETE_A}' AND "machine_id" = '${MACHINE_A1}'`,
   );
+  expect(Number(lignes[0]?.n ?? 0)).toBeGreaterThanOrEqual(2);
 }
 
 describe("l'historique part de la MACHINE, jamais du site", () => {
@@ -120,7 +129,7 @@ describe("le cloisonnement décide, pas ce module", () => {
       },
       (tx) =>
         tx.intervention.findMany({
-          where: { machine_id: MACHINE_A1 },
+          where: { machines: { some: { machine_id: MACHINE_A1 } } },
           select: { site_id: true },
         }),
     );

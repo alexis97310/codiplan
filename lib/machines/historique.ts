@@ -56,7 +56,13 @@ export async function historiqueDeLaMachine(
       tx.intervention.findMany({
         // **Le SEUL filtre, et c'est tout le ticket.** Ajouter `site_id` ici
         // amputerait l'historique de tout ce qui précède un déménagement.
-        where: { machine_id: machineId },
+        //
+        // *Il traverse `intervention_machine` depuis L2-08a* — une visite peut
+        // couvrir plusieurs matériels, et l'historique d'une machine est celui
+        // des visites qui l'ont TOUCHÉE, pas de celles qui ne portaient qu'elle.
+        // Le `some` ne change rien au ticket L2-05 : il ne regarde toujours que
+        // la machine.
+        where: { machines: { some: { machine_id: machineId } } },
         select: CHAMPS_LIGNE,
         orderBy: [{ date_planifiee: "desc" }, { numero: "desc" }],
       }),

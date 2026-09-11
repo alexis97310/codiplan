@@ -113,6 +113,18 @@ export const INTERVENTION_B1 = "bbbbbbbb-0000-7000-8000-0000000000f1";
  * `DEMANDE_A2` est du MÊME client sur un AUTRE site, et c'est elle qui prouve
  * que le filtre de périmètre mord ; `DEMANDE_B1` est d'une autre société.
  */
+/**
+ * LES RATTACHEMENTS MACHINE ↔ INTERVENTION (lot 2, L2-08a).
+ *
+ * Les DEUX interventions du client A1 portent la MÊME machine, et c'est ce que
+ * le scénario de l'historique (L2-05) exige : une machine vue sur deux sites.
+ * Avant L2-08a, ce fichier-là le posait lui-même par un `UPDATE` sur la colonne
+ * `intervention.machine_id` ; la colonne a disparu, le fait reste.
+ */
+export const INTERVENTION_MACHINE_A1 = "aaaaaaaa-0000-7000-8000-00000000e0a1";
+export const INTERVENTION_MACHINE_A2 = "aaaaaaaa-0000-7000-8000-00000000e0a2";
+export const INTERVENTION_MACHINE_B1 = "bbbbbbbb-0000-7000-8000-00000000e0b1";
+
 export const DEMANDE_A1 = "aaaaaaaa-0000-7000-8000-0000000000d1";
 export const DEMANDE_A2 = "aaaaaaaa-0000-7000-8000-0000000000d2";
 export const DEMANDE_B1 = "bbbbbbbb-0000-7000-8000-0000000000d1";

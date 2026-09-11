@@ -27,6 +27,12 @@ import { z } from "zod";
  * **Le statut** — une intervention naît `a_planifier`, ou `planifiee` si un
  * créneau est donné. Le laisser saisir permettrait de créer une intervention
  * déjà clôturée.
+ *
+ * ## Les machines sont un TABLEAU depuis L2-08a
+ *
+ * `machine_id` a disparu, de la saisie comme du schéma : une visite couvre
+ * plusieurs matériels (chapitre 7/M3), et garder une colonne « pour la
+ * principale » aurait fait deux écritures d'un même fait (§9, 01/09).
  */
 
 /** Les neuf natures du chapitre 11.2. */
@@ -80,7 +86,24 @@ export const schemaCreation = z
     id: uuid,
     client_id: uuid,
     site_id: uuid,
-    machine_id: uuid.nullable().default(null),
+    /**
+     * LES MACHINES, au pluriel depuis L2-08a — une visite peut en couvrir
+     * plusieurs (chapitre 7/M3).
+     *
+     * **Le tableau VIDE est le cas ordinaire à la création**, et non un oubli :
+     * le dépannage à l'aveugle sait qu'un compresseur est en panne, pas lequel.
+     * RG-INT-01 n'exige la machine qu'**avant de démarrer**, et c'est la base
+     * qui le tient — pas cette saisie, qui refuserait alors d'enregistrer un
+     * appel.
+     *
+     * Les doublons sont retirés ICI plutôt que laissés buter sur l'index
+     * unique : *une même machine nommée deux fois dans un formulaire est une
+     * maladresse de saisie, pas une faute à refuser.*
+     */
+    machine_ids: z
+      .array(uuid)
+      .default([])
+      .transform((ids) => [...new Set(ids)]),
     type: z.enum(TYPES_INTERVENTION),
     priorite: z.enum(PRIORITES).default("p3"),
     mode_valorisation: z.enum(MODES_VALORISATION).default("temps_passe"),

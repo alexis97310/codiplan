@@ -93,6 +93,8 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
+  intervention_machines InterventionMachine[]
+
   demandes Demande[]
 
   technicien_calendriers TechnicienCalendrier[]
@@ -1327,9 +1329,9 @@ enum TypeForfait {
 /// est un UUID v7 généré sur l'appareil, `numero` est attribué par le serveur à
 /// la synchronisation. **Le QR encode le jeton, jamais le numéro.**
 model Machine {
-  demandes Demande[]
+  intervention_machines InterventionMachine[]
 
-  interventions Intervention[]
+  demandes Demande[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -1391,7 +1393,7 @@ model Machine {
   /// La documentation PROPRE à cet exemplaire — certificat de conformité,
   /// procès-verbal de mise en service (L8-01). L'écran affiche l'UNION de
   /// celle-ci et de celle du modèle, sans qu'aucune ligne soit copiée (L8-02).
-  documents Document[]
+  documents     Document[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, modele_id, numero_serie])
@@ -1461,6 +1463,8 @@ enum SourceCreationMachine {
 /// clause de société seule — un compte portail lirait les interventions des
 /// autres clients de sa propre société.
 model Intervention {
+  machines InterventionMachine[]
+
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
@@ -1469,12 +1473,13 @@ model Intervention {
   /// société appartient à la synchronisation, comme pour `machine`.
   numero Int?
 
-  /// Le triplet du parc. `machine_id` est FACULTATIF : une intervention peut
-  /// naître avant que la machine ne soit identifiée (dépannage à l'aveugle),
-  /// et `intervention_machine` du chapitre 11 viendra au lot 3.
-  client_id  String  @db.Uuid
-  site_id    String  @db.Uuid
-  machine_id String? @db.Uuid
+  /// Le couple du parc. **La MACHINE n'est plus ici** : elle vit dans
+  /// `intervention_machine` depuis L2-08a, une visite pouvant en couvrir
+  /// plusieurs (chapitre 7/M3). La garder en colonne « pour la principale »
+  /// aurait fait deux écritures d'un même fait, et personne n'aurait su
+  /// laquelle des deux sources fait foi (§9, 01/09).
+  client_id String @db.Uuid
+  site_id   String @db.Uuid
 
   /// DÉDUITE du site, jamais saisie (D56 : le site porte son rattachement).
   agence_id String @db.Uuid
@@ -1514,13 +1519,12 @@ model Intervention {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  machine Machine? @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  forfait Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  devise  Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  societe   Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client    Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site      Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence    Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  forfait   Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  devise    Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
   @@unique([societe_id, numero])
@@ -1667,6 +1671,53 @@ model Demande {
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
   @@map("demande")
+}
+
+/// LES MACHINES D'UNE INTERVENTION — une ligne par machine traitée (L2-08a).
+///
+/// > *« Une visite peut couvrir plusieurs machines : plusieurs lignes machine,
+/// > chacune avec sa checklist et son état de sortie, un seul déplacement, un
+/// > seul rapport. C'est le format naturel des visites de recensement et des
+/// > visites préventives de contrat. »* (chapitre 7/M3)
+///
+/// **Elle REMPLACE `intervention.machine_id`**, elle ne s'y ajoute pas : deux
+/// écritures d'un même fait divergent en silence (§9, 01/09), et « la machine
+/// principale, plus les autres » aurait laissé chaque lecteur choisir laquelle
+/// des deux sources est la vérité.
+///
+/// Forme de politique « filiation » (D103) : *une fille est visible si son
+/// parent l'est.* La sous-requête est soumise à la politique d'`intervention`,
+/// de forme « parc » — les trois filtres s'y propagent sans qu'aucun soit
+/// réécrit ici.
+///
+/// **Ce qu'elle NE porte PAS, et c'est délibéré :** diagnostic, travaux, état de
+/// sortie, relevé de compteur, résultat de checklist. Le chapitre 11 les nomme,
+/// et ils sont SAISIS SUR LE TERRAIN — au lot 3, avec la synchronisation
+/// hors-ligne. *Une colonne posée d'avance est une décision de personne.*
+model InterventionMachine {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+  machine_id      String @db.Uuid
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `ON DELETE CASCADE`, et c'est la SEULE de ce dépôt. Une ligne de rattachement
+  /// n'a aucun sens sans son intervention — à la différence d'une trace, qu'on
+  /// garde. Les deux actions sont dites, comme toute clé nouvelle (§9, 24/08).
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  machine      Machine      @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  /// La même machine ne se rattache pas deux fois à la même visite : ce serait
+  /// deux checklists pour un seul matériel, et personne ne saurait laquelle
+  /// fait foi.
+  @@unique([intervention_id, machine_id])
+  @@index([societe_id, machine_id])
+  @@map("intervention_machine")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se

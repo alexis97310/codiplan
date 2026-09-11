@@ -2238,10 +2238,24 @@ export type TableEtParents = {
  */
 export const TABLES_FILIATION = [
   { table: "site_habilitation_requise", parent: "site", cle: "site_id" },
+  // `intervention_machine` REJOINT LA FILIATION au ticket L2-08a, PAR
+  // L'ARBITRAGE D103 — 11/09/2026. Son parent est `intervention`, et non
+  // `machine` : *l'intervention est ce qui décide QUI a le droit de voir cette
+  // ligne*, la machine n'étant que ce dont elle parle. Adosser la clause à
+  // `machine` aurait rendu visible le rattachement d'une visite qu'on n'a pas
+  // le droit de lire, dès lors qu'on voit le matériel.
+  {
+    table: "intervention_machine",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
-const FILIATION_ARBITREE = ["site_habilitation_requise"];
+const FILIATION_ARBITREE = [
+  "site_habilitation_requise",
+  "intervention_machine",
+];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */
 export function ecartsListeFiliation(

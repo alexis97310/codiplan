@@ -3412,3 +3412,51 @@ RG-DRO-01 : *« Un client n'accède qu'aux données de son propre périmètre. L
 *Le jour où une demande pourra naître sans site* — une demande déposée par téléphone par un client qui n'a qu'une adresse, par exemple —, la colonne de périmètre cesse d'être `site_id` et la forme se relit : il faudra dire si une telle ligne est visible de son déposant, et par quel chemin. *Et le jour où `intervention.demande_id` existera*, la transformation cessera d'être un simple changement de statut ; la politique ne bouge pas pour autant, les deux tables portant la même forme.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-DRO-01 est appliquée, pas corrigée.*
+
+---
+
+## D103 — UNE VISITE, PLUSIEURS MACHINES : LA FORME « FILIATION » S'ÉTEND, ET RG-INT-01 DEVIENT VÉRIFIABLE
+
+*Tranché par la session de nuit du 11/09/2026, en construisant L2-08a. **Ce n'est pas un arbitrage d'Alexis** (§1 du protocole) : la question tombe sous la doctrine §2, et la forme retenue existe déjà — elle est simplement étendue à une seconde table. La décision porte sa condition de réouverture, et la session continue.*
+
+### POURQUOI UN TEXTE
+
+`TABLES_FILIATION` est une liste close, gardée dans les deux sens : *toute addition passe par un arbitrage.* Elle n'avait qu'une entrée depuis L1-04.
+
+### LA TABLE, ET CE QU'ELLE REMPLACE
+
+Le chapitre 7/M3 : *« Une visite peut couvrir plusieurs machines : plusieurs lignes machine, chacune avec sa checklist et son état de sortie, un seul déplacement, un seul rapport. »* `intervention_machine` porte ce rattachement.
+
+**Elle REMPLACE `intervention.machine_id`, elle ne s'y ajoute pas.** Garder la colonne « pour la machine principale » aurait fait **deux écritures d'un même fait**, et personne n'aurait su laquelle fait foi le jour où elles se contrediraient (§9, 01/09). La migration **reprend les lignes existantes** avant de supprimer la colonne.
+
+### LE PARENT EST `intervention`, ET PAS `machine`
+
+C'est la seule décision de fond de ce texte, et elle n'est pas évidente : la table a deux parents possibles.
+
+> **L'intervention est ce qui décide QUI a le droit de voir cette ligne ; la machine n'est que ce dont elle parle.**
+
+Adosser la clause à `machine` aurait rendu visible le rattachement d'une visite qu'on n'a pas le droit de lire, dès lors qu'on voit le matériel — *et le parc est plus largement visible qu'une intervention, un compte de portail voyant toutes ses machines.*
+
+### CE QUE LA FORME APPORTE, ET QUI SE MESURE
+
+La politique ne nomme **ni `app.client_id` ni `app.perimetre_sites`** : elle demande seulement si le parent est visible, et les trois filtres de la forme « parc » s'y propagent. *Les recopier serait une seconde lecture du même critère, et c'est celle qui vieillit sans rougir.* Un scénario le prouve en **lisant la clause**, pas seulement en observant ses effets : recopier les filtres passerait tous les autres scénarios.
+
+### RG-INT-01 DEVIENT VÉRIFIABLE, ET LE MOMENT EST CELUI QUE LA RÈGLE NOMME
+
+> *« Elle porte au moins une machine, SAUF pour les types `expertise`, `installation` et `recensement`. Si la machine n'existe pas, elle est créée **avant de démarrer**. »*
+
+Le contrôle est donc **au passage en statut de travail**, pas à la création : le dépannage à l'aveugle est le cas ordinaire — *on sait qu'un compresseur est en panne, pas lequel* — et exiger la machine à la création aurait rendu impossible d'enregistrer un appel.
+
+**Trois statuts, pas un.** La règle nomme le démarrage ; **la base garde des ÉTATS, pas des trajets**. Ne surveiller que `en_cours` laisserait passer une intervention qui saute directement à `terminee`, et la règle serait vraie du chemin ordinaire et fausse de tous les autres.
+
+### LA LIMITE, ÉCRITE PLUTÔT QUE TUE
+
+**Le contrôle ne voit que les TRANSITIONS.** Une ligne insérée directement dans un statut de travail lui échappe, et c'est inévitable : au moment d'un `INSERT`, aucune ligne fille ne peut exister. La forme qui fermerait ce chemin est une `CONSTRAINT TRIGGER ... DEFERRABLE INITIALLY DEFERRED`, évaluée au commit.
+
+**Elle n'est pas posée, et le motif est mesuré :** `prisma/seed.ts` ne crée **aucune machine**, et il crée des interventions `en_cours`, `terminee` et `cloturee` de types non dispensés. La contrainte différée les refuserait toutes, et y répondre demanderait de décider ce que la démonstration doit montrer — *ce qui appartient à l'exploitation.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où la synchronisation du lot 3 insérera des interventions déjà terminées depuis un appareil hors ligne*, ce chemin cessera d'être théorique : le contrôle devra passer en contrainte différée, et la démonstration recevoir ses machines. *Et le jour où `intervention_machine` portera le diagnostic, les travaux et l'état de sortie* — le chapitre 11 les nomme, ils sont saisis sur le terrain —, la question de savoir si un compte de portail les lit se posera : la forme « filiation » les lui donnerait, et ce n'est pas tranché.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-INT-01 est rendue vérifiable, pas corrigée. D16 l'avait déjà réécrite.*

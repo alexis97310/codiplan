@@ -26,6 +26,9 @@ import {
   CLIENT_A2,
   CLIENT_B1,
   DEMANDE_A1,
+  INTERVENTION_MACHINE_A1,
+  INTERVENTION_MACHINE_A2,
+  INTERVENTION_MACHINE_B1,
   DEMANDE_A2,
   DEMANDE_B1,
   INTERVENTION_A1,
@@ -629,6 +632,16 @@ export default async function setup(): Promise<void> {
         ('${DEMANDE_A1}', '${SOCIETE_A}', 'appel', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'Compresseur bruyant', now(), now(), now()),
         ('${DEMANDE_A2}', '${SOCIETE_A}', 'portail', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'Fuite au raccord', now(), now(), now()),
         ('${DEMANDE_B1}', '${SOCIETE_B}', 'appel', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'Contrôle annuel', now(), now(), now());
+      -- LES MACHINES DES INTERVENTIONS (lot 2, L2-08a). Le rattachement a
+      -- quitté la colonne intervention.machine_id pour cette table : une visite
+      -- peut couvrir plusieurs matériels. Le harnais rattache LES DEUX
+      -- interventions du client A1 à sa machine — c'est ce que le scénario de
+      -- l'historique (L2-05) exige, et il le faisait lui-même par un UPDATE
+      -- avant que la colonne disparaisse.
+      INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le") VALUES
+        ('${INTERVENTION_MACHINE_A1}', '${SOCIETE_A}', '${INTERVENTION_A1}', '${MACHINE_A1}', now()),
+        ('${INTERVENTION_MACHINE_A2}', '${SOCIETE_A}', '${INTERVENTION_A2}', '${MACHINE_A1}', now()),
+        ('${INTERVENTION_MACHINE_B1}', '${SOCIETE_B}', '${INTERVENTION_B1}', '${MACHINE_B1}', now());
       `,
     );
 
