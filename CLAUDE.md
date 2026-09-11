@@ -654,8 +654,13 @@ lib/
               d'insertion, jamais l'alphabet d'un code
               l'égalité de rang est un état INTERDIT, refusé par la base sur
               (societe_id, type, rang) : le rang ne se compare qu'entre pairs
-              « aucune condition » a DEUX écritures — `null` à la saisie, le
-              tableau VIDE en base — et les deux se lisent ICI
+              « aucune condition » a DEUX écritures — `null` à la saisie, `[]`
+              à la LECTURE — et les deux se lisent ICI
+              en BASE c'est `NULL`, et le tableau vide est REFUSÉ : c'est PRISMA
+              qui ne sait pas déclarer une liste scalaire nullable, et qui rend
+              `[]` pour un `NULL`. La note disait « le tableau VIDE en base » —
+              une limite de l'ORM prise pour une propriété de la base (mesuré
+              le 11/09) ; qui écrira un forfait envoie `null`, jamais `[]`
   navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
               chrome.ts : ce qu'une mise en page a besoin de savoir pour
               peindre, LU UNE SEULE FOIS par rendu (R2-16) — la racine veut la
