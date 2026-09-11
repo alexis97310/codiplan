@@ -33,7 +33,7 @@ import {
  * réduit la couverture en silence.
  */
 describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
-  it("ne contient que `client`, `site`, `machine`, `contact` et `intervention`", () => {
+  it("ne contient que `client`, `site`, `machine`, `contact`, `intervention` et `demande`", () => {
     expect(ecartsListeParc()).toEqual([]);
     expect(TABLES_PARC.map((entree) => entree.table)).toEqual([
       "client",
@@ -49,10 +49,17 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       // arbitrage a répondu, et l'entrée a changé de côté. C'est tout ce
       // qu'une liste close sait faire de bien.
       "intervention",
+      // `demande` rejoint le parc au lot 2, PAR L'ARBITRAGE D102 — et c'est la
+      // seule entrée de la liste où un compte de PORTAIL ÉCRIT (chapitre 9,
+      // parcours P5). *Mesuré avant sa déclaration : la table portait déjà la
+      // forme « parc » et le gardien de forme était VERT, une politique plus
+      // stricte satisfaisant l'attente « société ». Sans cette entrée, un
+      // affaiblissement ultérieur n'aurait donc rien fait rougir.*
+      "demande",
     ]);
   });
 
-  it("`client` ne porte pas le filtre de périmètre, les deux autres si", () => {
+  it("`client` ne porte pas le filtre de périmètre, les autres si", () => {
     // Témoin de non-vacuité : une liste dont toutes les entrées se
     // ressembleraient ne prouverait pas que le champ `perimetre` est lu. Et la
     // distinction est réelle — `client` EST le client, il n'y a pas de site
@@ -67,6 +74,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       machine: true,
       contact: true,
       intervention: true,
+      demande: true,
     });
   });
 
@@ -76,6 +84,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       "machine",
       "contact",
       "intervention",
+      "demande",
     ]);
 
     expect(ecarts).toHaveLength(1);
@@ -83,7 +92,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     expect(ecarts[0]).toContain("RETIRÉE");
   });
 
-  it("ÉCHOUE sur un retrait de CHACUNE des trois, pas seulement de `client`", () => {
+  it("ÉCHOUE sur un retrait de CHACUNE, pas seulement de `client`", () => {
     // Sans cette mesure, le gardien pourrait ne mordre que sur l'entrée qui a
     // motivé son écriture — et laisser partir `site` ou `machine` en silence
     // aux tickets L1-02 et L2-01, où la même faute se commettra.
@@ -93,6 +102,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       "machine",
       "contact",
       "intervention",
+      "demande",
     ]) {
       const restantes = TABLES_PARC.map((entree) => entree.table).filter(
         (table) => table !== partie,
@@ -121,6 +131,7 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
       "machine",
       "contact",
       "intervention",
+      "demande",
       "contrat",
     ]);
 
@@ -129,10 +140,10 @@ describe("la liste close du parc (R0-a, É14, D10, D22)", () => {
     expect(ecarts[0]).toContain("arbitrage");
   });
 
-  it("ÉCHOUE sur une liste VIDE, et le dit CINQ fois", () => {
+  it("ÉCHOUE sur une liste VIDE, et le dit SIX fois", () => {
     // Le cas dégénéré : vider la liste ferait sortir toutes les tables du
     // périmètre du gardien de forme sans qu'aucune ne soit nommée ailleurs. Le
-    // décompte suit la liste — cinq depuis l'entrée d'`intervention` (D84).
-    expect(ecartsListeParc([])).toHaveLength(5);
+    // décompte suit la liste — six depuis l'entrée de `demande` (D102).
+    expect(ecartsListeParc([])).toHaveLength(6);
   });
 });

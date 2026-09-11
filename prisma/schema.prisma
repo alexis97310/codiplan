@@ -93,6 +93,8 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
+  demandes Demande[]
+
   technicien_calendriers TechnicienCalendrier[]
 
   interventions Intervention[]
@@ -167,6 +169,8 @@ model Societe {
 /// Établissement CODIMA — Ducos, Koné, Dolbeau (D5). À ne jamais confondre
 /// avec un « site », qui est un lieu d'intervention chez un client.
 model Agence {
+  demandes Demande[]
+
   interventions Intervention[]
 
   id             String  @id @db.Uuid
@@ -494,6 +498,8 @@ model CalendrierFerie {
 /// — est close des deux côtés : y faire entrer `client` est un arbitrage, pas
 /// une décision de ticket (revue R0, écart É-b).
 model Client {
+  demandes Demande[]
+
   interventions Intervention[]
 
   id                   String  @id @db.Uuid
@@ -586,6 +592,8 @@ model Client {
 /// sont pas interchangeables (CLAUDE.md, vocabulaire imposé ; D5, D47), et leur
 /// définition vit sous les clés `vocabulaire.*` de `lib/i18n/fr.ts`.
 model Site {
+  demandes Demande[]
+
   interventions Intervention[]
 
   id               String   @id @db.Uuid
@@ -1218,6 +1226,8 @@ model JournalAudit {
 ///
 /// Politique de forme « parc », avec la DISJONCTION que cette nullité impose.
 model Contact {
+  demandes Demande[]
+
   id         String  @id @db.Uuid
   societe_id String  @db.Uuid
   client_id  String  @db.Uuid
@@ -1258,6 +1268,12 @@ model Contact {
   /// c'est-à-dire l'élargirait à tous les comptes portail du client (§9, 24/08).
   site    Site?   @relation(fields: [societe_id, client_id, site_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
 
+  /// La cible du chaînage de `demande.contact_id` (L2-06). Elle porte le
+  /// CLIENT et pas seulement la société : un contact désigné sur une demande
+  /// doit appartenir au client de cette demande, et la base le tient plutôt
+  /// qu'une vérification applicative — c'est la même forme que le chaînage de
+  /// `contact` vers `site`, juste au-dessus.
+  @@unique([societe_id, client_id, id])
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
   @@map("contact")
@@ -1311,6 +1327,8 @@ enum TypeForfait {
 /// est un UUID v7 généré sur l'appareil, `numero` est attribué par le serveur à
 /// la synchronisation. **Le QR encode le jeton, jamais le numéro.**
 model Machine {
+  demandes Demande[]
+
   interventions Intervention[]
 
   id         String @id @db.Uuid
@@ -1554,6 +1572,130 @@ enum ModeValorisation {
   forfait
   temps_passe
   forfait_plus_heures
+}
+
+/// LA DEMANDE D'INTERVENTION — le point d'entrée du flux (lot 2, L2-06).
+///
+/// Table métier de la première catégorie de I1, forme « parc » (D102) : société
+/// **ET** `app.client_id` **ET** `app.perimetre_sites`. La clause de société
+/// seule est exclue par RG-DRO-01 — *un client n'accède qu'aux données de son
+/// propre périmètre* —, et P5 du chapitre 9 fait déposer une demande depuis le
+/// portail : c'est la table même où un compte de portail écrit.
+///
+/// **Elle ne porte AUCUN lien vers l'intervention qu'elle devient.** Le
+/// chapitre 11 met `demande_id` sur `intervention`, et l'écrire des deux côtés
+/// serait deux écritures d'un même fait, qui divergent en silence (§9, 01/09).
+model Demande {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// Attribué par le SERVEUR, séquentiellement par société (I10, DEM-AAAA-NNNNN
+  /// à l'annexe). NUL en attendant : **aucun code ne l'attribue aujourd'hui**,
+  /// exactement comme sur `machine` et `intervention`.
+  numero Int?
+
+  source SourceDemande
+
+  /// Le triplet du parc. `machine_id` est FACULTATIF — le chapitre 7 écrit
+  /// « machine concernée **ou déclarée inconnue** » —, `site_id` ne l'est pas :
+  /// il est la colonne de périmètre, et une demande sans site serait une
+  /// demande qu'aucun compte de portail restreint ne pourrait lire.
+  client_id  String  @db.Uuid
+  site_id    String  @db.Uuid
+  machine_id String? @db.Uuid
+
+  /// DÉDUITE du site, jamais saisie (D56) — c'est elle qui décide du calendrier
+  /// de référence de l'accusé de réception (D13, I7).
+  agence_id String @db.Uuid
+
+  /// Le contact à l'origine de la demande. Facultatif : une demande née d'une
+  /// échéance contractuelle ou d'un seuil de compteur n'a personne au bout du
+  /// fil.
+  contact_id String? @db.Uuid
+
+  description     String
+  urgence         PrioriteIntervention @default(p3)
+  machine_arretee Boolean              @default(false)
+  date_souhaitee  DateTime?            @db.Date
+
+  statut StatutDemande @default(nouvelle)
+
+  /// L'instant du DÉPÔT, et l'instant où le compteur des 30 minutes COMMENCE —
+  /// deux colonnes, parce qu'ils diffèrent (D13 : *une demande déposée un
+  /// dimanche à 22 h déclenche son compteur à l'ouverture du lundi*).
+  ///
+  /// Le départ est **MATÉRIALISÉ et jamais recalculé** : il dépend du
+  /// calendrier de l'agence tel qu'il était au dépôt, et un calendrier se
+  /// modifie — déclarer un férié travaillé ferait reculer, des mois plus tard,
+  /// le départ d'un compteur déjà consommé, **sans qu'aucune écriture ne le
+  /// dise**. C'est le motif de D85 hors du cloisonnement : quand un fait
+  /// dépend du temps, une colonne le porte et l'horloge ne touche que le
+  /// travail qui l'écrit.
+  depose_le          DateTime
+  compteur_accuse_le DateTime
+
+  /// L'instant où l'accusé a RÉELLEMENT été donné. NUL tant qu'il ne l'a pas
+  /// été — et « nul » ne veut pas dire « hors délai » : c'est `lib/demandes`
+  /// qui distingue les trois états, jamais un booléen (doctrine §3).
+  accuse_le DateTime?
+
+  /// La clôture sans suite, et elle mesure le service rendu à distance
+  /// (chapitre 7/M3). Le motif est EXIGÉ quand elle a lieu et REFUSÉ sinon —
+  /// les deux sens, le second étant celui qu'on oublie.
+  motif_cloture MotifClotureDemande?
+  close_le      DateTime?
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine Machine? @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Le contact est chaîné sur le CLIENT, pas seulement sur la société : un
+  /// contact d'un autre client ne peut pas être désigné. `contact_id` étant
+  /// nullable, PostgreSQL ne contrôle pas la clé quand il vaut NULL
+  /// (`MATCH SIMPLE`, §9 du 23/08) — et c'est ici le comportement VOULU, les
+  /// deux autres colonnes étant NOT NULL : « pas de contact » est le seul état
+  /// que la nullité produit, jamais une ligne à moitié vérifiée.
+  contact Contact? @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, numero])
+  @@index([societe_id, statut])
+  @@index([societe_id, client_id])
+  @@index([societe_id, site_id])
+  @@map("demande")
+}
+
+/// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se
+/// équivalent pas : `portail` est la seule qu'un compte de client écrit.
+enum SourceDemande {
+  appel
+  portail
+  email
+  echeance_contrat
+  seuil_compteur
+  detection_technicien
+}
+
+/// Le cycle de vie d'une demande (L2-06). Quatre statuts, et deux fins : elle
+/// devient une intervention, ou elle est close sans suite AVEC son motif.
+enum StatutDemande {
+  nouvelle
+  qualifiee
+  transformee
+  close_sans_suite
+}
+
+/// Pourquoi une demande se clôt sans intervention. *Cette information est
+/// conservée : elle mesure le service rendu à distance* (chapitre 7/M3).
+enum MotifClotureDemande {
+  resolue_telephone
+  hors_perimetre
+  refus_client
+  doublon
 }
 
 model Forfait {

@@ -104,6 +104,19 @@ export const INTERVENTION_A1 = "aaaaaaaa-0000-7000-8000-0000000000f1";
 export const INTERVENTION_A2 = "aaaaaaaa-0000-7000-8000-0000000000f2";
 export const INTERVENTION_B1 = "bbbbbbbb-0000-7000-8000-0000000000f1";
 
+/**
+ * LES DEMANDES DU HARNAIS (lot 2, L2-06).
+ *
+ * Trois, choisies comme les interventions et pour la même raison : que les
+ * TROIS filtres de la forme « parc » se séparent. `DEMANDE_A1` est du client A1
+ * sur le site du périmètre — la seule qu'un compte portail restreint doit voir ;
+ * `DEMANDE_A2` est du MÊME client sur un AUTRE site, et c'est elle qui prouve
+ * que le filtre de périmètre mord ; `DEMANDE_B1` est d'une autre société.
+ */
+export const DEMANDE_A1 = "aaaaaaaa-0000-7000-8000-0000000000d1";
+export const DEMANDE_A2 = "aaaaaaaa-0000-7000-8000-0000000000d2";
+export const DEMANDE_B1 = "bbbbbbbb-0000-7000-8000-0000000000d1";
+
 export const MACHINE_A1 = "aaaaaaaa-0000-7000-8000-0000000000a1";
 export const MACHINE_A2 = "aaaaaaaa-0000-7000-8000-0000000000a2";
 export const MACHINE_B1 = "bbbbbbbb-0000-7000-8000-0000000000b1";

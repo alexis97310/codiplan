@@ -25,6 +25,9 @@ import {
   CLIENT_A1,
   CLIENT_A2,
   CLIENT_B1,
+  DEMANDE_A1,
+  DEMANDE_A2,
+  DEMANDE_B1,
   INTERVENTION_A1,
   INTERVENTION_A2,
   INTERVENTION_B1,
@@ -617,6 +620,15 @@ export default async function setup(): Promise<void> {
         ('${INTERVENTION_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
         ('${INTERVENTION_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
         ('${INTERVENTION_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'curatif', 'planifiee', now());
+      -- LES DEMANDES (lot 2, L2-06). Mêmes clés composites que l'intervention,
+      -- donc même ordre. La colonne compteur_accuse_le est posée ÉGALE au
+      -- dépôt : le harnais n'a pas à recalculer l'ouverture suivante — c'est le
+      -- travail de lib/demandes/accuse.ts, et le lui faire refaire ici en
+      -- ferait une seconde implémentation du même critère (§9, 01/09).
+      INSERT INTO "demande" ("id", "societe_id", "source", "client_id", "site_id", "agence_id", "description", "depose_le", "compteur_accuse_le", "modifie_le") VALUES
+        ('${DEMANDE_A1}', '${SOCIETE_A}', 'appel', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'Compresseur bruyant', now(), now(), now()),
+        ('${DEMANDE_A2}', '${SOCIETE_A}', 'portail', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'Fuite au raccord', now(), now(), now()),
+        ('${DEMANDE_B1}', '${SOCIETE_B}', 'appel', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'Contrôle annuel', now(), now(), now());
       `,
     );
 

@@ -640,6 +640,20 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## La demande d'intervention — la seule table du lot 2 où un CLIENT écrit
+
+`demande` est le point d'entrée du flux : un appel saisi par l'ADV, un dépôt sur le portail, une échéance contractuelle, un seuil de compteur, une détection par un technicien. Elle porte la forme de politique **« parc »** (**D102**) — société **ET** `app.client_id` **ET** `app.perimetre_sites` —, et ce n'est pas `intervention` bis : **le parcours P5 du chapitre 9 fait ÉCRIRE un compte de portail dans cette table.** Une clause trop large n'y aurait pas fait fuir une lecture : elle aurait laissé **un client déposer une demande au nom d'un autre**. Le `WITH CHECK` est donc écrit explicitement plutôt que laissé à PostgreSQL.
+
+**La mesure qui a justifié la déclaration, et non seulement la politique.** Avant d'ajouter l'entrée à `TABLES_PARC`, la table portait **déjà** la bonne politique — et le gardien de forme était **VERT** : `formeAttendue` rend « société » pour une table non déclarée, et _une politique plus stricte satisfait une attente plus lâche_. Politique remplacée par la clause de société seule, entrée absente : **0 écart**. La même faute, entrée déclarée : le gardien **nomme la table et le filtre perdu**. _Une table jamais déclarée est dans le même état qu'une table retirée_ — le sens silencieux que la revue R0 nomme sur cette liste, manifesté avant même qu'une entrée existe. L'épreuve vit dans `tests/isolation/politiques-rls.test.ts`, avec sa sonde.
+
+**L'accusé de réception porte DEUX instants, pas un.** Le **dépôt**, et le **départ du compteur** des 30 minutes — _« une demande déposée sur le portail un dimanche à 22 h déclenche son compteur à l'ouverture du lundi »_ (**D13**). Le second est **matérialisé et jamais recalculé** : un calendrier se modifie, et déclarer un férié travaillé ferait reculer, des mois plus tard, le départ d'un compteur déjà consommé — **sans qu'aucune écriture ne le dise**. C'est le motif de D85 appliqué hors du cloisonnement.
+
+**Trois états, jamais un booléen.** _« Sans réponse »_ n'est ni _« dans les temps »_ ni _« hors délai »_, et les trois ne se corrigent pas de la même façon : l'un demande qu'on réponde, l'autre qu'on comprenne pourquoi on a répondu tard. `lib/demandes/accuse.ts` les rend distincts, et l'instant courant y est un **paramètre** — lu dans le module, il rendrait un test vert parce que l'horloge a bougé.
+
+**Le cycle de vie est tenu deux fois.** `lib/demandes/cycle-de-vie.ts` **explique** le refus avant l'action ; le déclencheur `demande_cycle_de_vie` le **garde quoi qu'il arrive**. Les deux fins ne se ressemblent pas : une demande **devient une intervention**, ou elle est **close sans suite AVEC son motif** — _cette information est conservée : elle mesure le service rendu à distance._ Aucune ne se rouvre, et aucune ne revient à « nouvelle ».
+
+**Ce qui n'est pas fait, et qui est nommé plutôt que simulé :** la transformation **ne crée pas l'intervention**. Le lien vit sur `intervention.demande_id` (chapitre 11), la colonne n'existe pas encore, et _une transformation que rien ne peut relire est pire qu'une absente._
+
 ## Amorcer une base de PRODUCTION — deux gestes qui manquaient
 
 **Mesuré le 09/09/2026 sur une base neuve migrée SANS seed, et la chaîne était coupée deux crans plus bas qu'on ne le croyait.** L'ouverture du premier compte réclame `--societe <uuid>` ; or aucune société n'existe sur une base neuve et rien dans le dépôt n'en créait. Et une société porte une **devise** — or `devise` et `parite` sont des **référentiels de plateforme**, des FAITS et non de la démonstration (D4), et ils n'étaient écrits, eux aussi, que par `prisma/seed.ts`.

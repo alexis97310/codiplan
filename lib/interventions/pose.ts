@@ -60,8 +60,18 @@ export type Posee = {
   readonly statut: string;
 };
 
-/** Ce qu'un dépôt demande d'écrire. */
-export type Demande = {
+/**
+ * Ce qu'un dépôt demande d'écrire — le CRÉNEAU visé, jamais l'objet métier.
+ *
+ * *Elle s'appelait `Demande`.* Le lot 2 crée la table `demande`, qui est le
+ * point d'entrée du flux — un objet sans rapport avec celui-ci —, et
+ * `lib/interventions/depot.ts` importe les deux. **Deux contrats sous un même
+ * nom, dans deux modules qu'un même fichier importe, ne sont confrontés par
+ * rien** : ni le typage, qui juge chaque appel séparément, ni la relecture,
+ * pour qui `Demande` a l'air d'être `Demande` (§9, 09/09). Le nom a donc changé
+ * avant que la collision existe, plutôt qu'après.
+ */
+export type PoseDemandee = {
   readonly datePlanifiee: JourLocal | null;
   readonly creneauDebut: Date | null;
   readonly creneauFin: Date | null;
@@ -87,7 +97,7 @@ const SANS_OCCUPATION = new Set(["annulee"]);
  */
 export function verdictOuverture(
   parametrage: Parametrage | null,
-  demande: Demande,
+  demande: PoseDemandee,
   fuseau: Fuseau,
 ): Verdict {
   if (demande.datePlanifiee === null && demande.creneauDebut === null) {
@@ -141,7 +151,7 @@ export function verdictOuverture(
 export function verdictChevauchement(
   voisines: readonly Posee[],
   interventionId: string,
-  demande: Demande,
+  demande: PoseDemandee,
 ): Verdict {
   if (
     demande.creneauDebut === null ||

@@ -499,6 +499,74 @@ export const fr = {
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 
+  // ── LA DEMANDE D'INTERVENTION (L2-06) ───────────────────────────────────
+  //
+  // Le point d'entrée du flux. Les refus nomment ce qui bloque et la marche à
+  // suivre ; aucun ne COMPTE ni ne NOMME ce que son destinataire n'a pas le
+  // droit de lire (D50) — « introuvable » couvre la demande qui n'existe pas et
+  // celle qui est hors périmètre, et les distinguer ferait un oracle.
+  "demande.titre": "Demandes",
+  "demande.source": "Origine",
+  "demande.urgence": "Urgence",
+  "demande.description": "Symptôme décrit",
+  "demande.machine_arretee": "Machine à l'arrêt",
+  "demande.date_souhaitee": "Date souhaitée",
+  "demande.contact": "Interlocuteur",
+  "demande.sans_numero":
+    "Le numéro est attribué par le serveur à la première synchronisation.",
+
+  "demande.accuse.titre": "Accusé de réception",
+  "demande.accuse.repondu_dans_le_standard": "Répondu dans les temps",
+  "demande.accuse.repondu_hors_standard": "Répondu au-delà du standard",
+  "demande.accuse.sans_reponse": "Sans réponse pour l'instant",
+  "demande.accuse.sans_reponse_depasse": "Sans réponse, standard dépassé",
+  "demande.accuse.explication":
+    "Le délai se compte en heures ouvrées de l'établissement dont dépend le lieu d'intervention : une demande déposée le dimanche soir démarre son compteur à l'ouverture du lundi.",
+
+  "demande.action.accuser": "Accuser réception",
+  "demande.action.qualifier": "Qualifier",
+  "demande.action.transformer": "Transformer en intervention",
+  "demande.action.clore": "Clore sans suite",
+
+  "demande.cloture.motif": "Motif de la clôture",
+  "demande.cloture.explication":
+    "Une demande close sans intervention garde son motif : c'est ce qui mesure le service rendu sans déplacement.",
+
+  "demande.refus.introuvable":
+    "Cette demande n'existe pas, ou elle n'est pas dans votre périmètre.",
+  "demande.refus.lieu_inconnu":
+    "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
+  "demande.refus.lieu_sans_rattachement":
+    "Ce lieu n'est rattaché à aucun établissement. Le délai d'accusé de réception se compte sur ses heures ouvrées : renseignez le rattachement d'abord.",
+  "demande.refus.agence_sans_calendrier":
+    "Les horaires de l'établissement dont dépend ce lieu ne sont pas réglés. Sans eux, le délai de réponse n'a pas de point de départ.",
+  "demande.refus.deja_qualifiee": "Cette demande est déjà qualifiée.",
+  "demande.refus.deja_accusee":
+    "La réception de cette demande a déjà été accusée. L'horodatage ne se réécrit pas : c'est lui qui mesure le délai de réponse.",
+  "demande.refus.transformer_sans_qualifier":
+    "Qualifiez la demande avant de la transformer : c'est la qualification qui décide de la nature, de la durée et de l'affectation.",
+  "demande.refus.deja_transformee":
+    "Cette demande est devenue une intervention : elle ne change plus. C'est l'intervention qui se poursuit ou s'annule.",
+  "demande.refus.deja_close":
+    "Cette demande est close sans suite et ne se rouvre pas. Son motif mesure le service rendu à distance ; déposez une nouvelle demande.",
+
+  "demande.source.appel": "Appel téléphonique",
+  "demande.source.portail": "Portail client",
+  "demande.source.email": "Courriel",
+  "demande.source.echeance_contrat": "Échéance contractuelle",
+  "demande.source.seuil_compteur": "Seuil de compteur",
+  "demande.source.detection_technicien": "Détection par un technicien",
+
+  "demande.statut.nouvelle": "Nouvelle",
+  "demande.statut.qualifiee": "Qualifiée",
+  "demande.statut.transformee": "Transformée",
+  "demande.statut.close_sans_suite": "Close sans suite",
+
+  "demande.motif.resolue_telephone": "Résolue par téléphone",
+  "demande.motif.hors_perimetre": "Hors périmètre",
+  "demande.motif.refus_client": "Refus du client",
+  "demande.motif.doublon": "Doublon",
+
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
   "statut.envoyee": "Envoyée",

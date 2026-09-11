@@ -3372,3 +3372,43 @@ RG-IMP-05 dit comment rapprocher un **client**. Rien ne disait comment rapproche
 *Le jour où `site` recevra une unicité — un code de site, ou `UNIQUE (societe_id, client_id, libelle)` —*, le rapprochement d'un site cesse d'être ambigu et la règle se relit. Et *le jour où une agence pourra être importée* — elle ne l'est pas : les agences se créent à l'écran —, il faudra dire ce qui se passe quand le code n'existe pas encore.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-IMP-05 parle du rapprochement des CLIENTS, et elle reste exacte. Cette décision dit ce qu'elle ne dit pas.*
+
+---
+
+## D102 — LA DEMANDE EST DE FORME « PARC », ET C'EST LA SEULE TABLE DU LOT 2 OÙ UN CLIENT ÉCRIT
+
+*Tranché par la session de nuit du 11/09/2026, en construisant L2-06. **Ce n'est pas un arbitrage d'Alexis** (§1 du protocole) : la question tombe sous la doctrine §2 — « l'accès à un objet partagé passe par les objets que le compte possède déjà, jamais par sa société » —, et la réponse est en outre imposée par une règle de rang 2 qui existe déjà. La décision est écrite avec sa condition de réouverture, et la session continue.*
+
+### POURQUOI LA QUESTION SE POSE MALGRÉ TOUT
+
+`TABLES_PARC` porte, en toutes lettres, que **toute addition passe par un arbitrage, jamais par une ligne ajoutée en séance**. Ce texte en est un.
+
+### CE QUE LA RÈGLE DE RANG 2 IMPOSE DÉJÀ
+
+RG-DRO-01 : *« Un client n'accède qu'aux données de son propre périmètre. Le contrôle est appliqué côté serveur, jamais seulement à l'affichage. »* Une demande porte `client_id` et `site_id`. **La clause de société seule est donc exclue par mesure**, comme elle l'a été pour `intervention` (D84) : sous elle, un compte de portail lirait les demandes des autres clients de sa propre société.
+
+### CE QUI DISTINGUE `demande` DE `intervention`, ET QUI FAIT L'INTÉRÊT DE CE TEXTE
+
+**Un compte de portail ÉCRIT dans cette table.** Le parcours P5 du chapitre 9 est explicite : *« Le client sélectionne la machine dans son parc, décrit le symptôme, joint une photo. La demande arrive dans la file de qualification avec accusé de réception immédiat. »* C'est la première et la seule table du lot 2 dans ce cas.
+
+*La conséquence n'est pas décorative* : sur `intervention`, une clause trop large aurait fait fuir une lecture ; ici, elle aurait laissé **un client déposer une demande au nom d'un autre**. C'est pourquoi le `WITH CHECK` est écrit explicitement plutôt que laissé à PostgreSQL — *une politique qui n'énonce qu'un `USING` légifère en silence sur les écritures* (L1-02c), et il ne s'agit plus ici de silence théorique.
+
+### DEUX CONSÉQUENCES DE SCHÉMA, ÉCRITES PARCE QU'ELLES SE DÉDUISENT MAL
+
+**1. `site_id` est `NOT NULL`.** C'est la colonne de périmètre de la politique. *Une demande sans site serait une ligne qu'aucun compte restreint ne pourrait lire — c'est-à-dire invisible à celui qui vient de la déposer.* Le chapitre 7 ne rend facultative que la **machine** (« machine concernée **ou déclarée inconnue** »), jamais le site.
+
+**2. La demande porte une `agence_id`, que le chapitre 11 ne nomme pas.** Elle est **déduite du site** (D56) et jamais saisie. Sans elle, *« accusé de réception en heures ouvrées de l'agence » (D13) n'a pas de sujet* : le départ du compteur se calcule sur un calendrier, et un calendrier appartient à une agence.
+
+### LA MESURE QUI JUSTIFIE LA DÉCLARATION, ET NON SEULEMENT LA POLITIQUE
+
+*Elle a été prise avant d'ajouter l'entrée, et elle est le vrai enseignement de ce ticket.* La table portait **déjà** la forme « parc » en base, et le gardien de forme était **VERT** — parce que `formeAttendue` rendait « société » pour une table non déclarée, et qu'**une politique plus stricte satisfait une attente plus lâche**.
+
+> Mesuré : `demande` absente de `TABLES_PARC`, la politique remplacée par la clause de société seule → **0 écart**. La même faute, l'entrée déclarée → le gardien **nomme la table et le filtre perdu**.
+
+**Rien n'aurait donc signalé l'affaiblissement.** C'est le sens silencieux que R0-a nomme déjà sur cette liste — *le RETRAIT ouvre la brèche, pas l'addition* —, et il se manifeste ici avant même qu'une entrée existe : une table jamais déclarée est dans le même état qu'une table retirée. L'épreuve qui le montre vit dans `tests/isolation/politiques-rls.test.ts`, avec sa sonde.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+*Le jour où une demande pourra naître sans site* — une demande déposée par téléphone par un client qui n'a qu'une adresse, par exemple —, la colonne de périmètre cesse d'être `site_id` et la forme se relit : il faudra dire si une telle ligne est visible de son déposant, et par quel chemin. *Et le jour où `intervention.demande_id` existera*, la transformation cessera d'être un simple changement de statut ; la politique ne bouge pas pour autant, les deux tables portant la même forme.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-DRO-01 est appliquée, pas corrigée.*

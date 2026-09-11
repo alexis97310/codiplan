@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-cinq tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les vingt-six tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -269,6 +269,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "calendrier_plage",
       "client",
       "contact",
+      // `demande` s'y ajoute au ticket L2-06, et c'est la SEPTIÈME fois que ce
+      // scénario réclame une table de lui-même. Elle le mérite pour une raison
+      // que les six précédentes n'avaient pas : *elle est écrite par un compte
+      // de CLIENT* (chapitre 9, P5), et « qui a déposé cela, quand, et qui l'a
+      // close sans suite » est la question même d'un litige de service.
+      "demande",
       "document",
       "document_recu",
       "famille_materiel",

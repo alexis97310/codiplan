@@ -446,6 +446,40 @@ lib/
               ajout une migration — le raisonnement des zones, en sens inverse
               `signataire` est un rôle de l'ensemble, jamais une colonne à part
               (RG-INT-04) ; aucun envoi n'est écrit ici, L1-03 pose la DONNÉE
+  demandes/   LA DEMANDE D'INTERVENTION — le point d'entrée du flux (L2-06)
+              la politique est de forme « parc » (D102), et c'est la SEULE table
+              du lot 2 où un compte de PORTAIL ÉCRIT (chapitre 9, parcours P5) :
+              la clause de société seule y aurait été plus qu'une fuite de
+              lecture
+              `site_id` est NOT NULL parce qu'il est la colonne de périmètre :
+              une demande sans site serait invisible à celui qui l'a déposée
+              elle ne porte AUCUN lien vers l'intervention qu'elle devient — le
+              chapitre 11 met `demande_id` sur `intervention`, et l'écrire des
+              deux côtés serait deux écritures d'un même fait
+              cycle-de-vie.ts : il EXPLIQUE, la base GARDE — deux fins, et elles
+              ne se ressemblent pas : devenir une intervention, ou être close
+              AVEC son motif, qui mesure le service rendu à distance
+              aucune ne se rouvre, et aucune ne revient à « nouvelle » : ce qui
+              a été qualifié l'a été
+              accuse.ts : le standard des 30 minutes, en heures ouvrées de
+              l'agence (D13) — l'instant courant est un PARAMÈTRE, jamais une
+              lecture, sinon un test vert dirait que l'horloge a bougé
+              TROIS états, jamais un booléen : « sans réponse » n'est pas « hors
+              délai », et les deux ne se corrigent pas pareil
+              le départ du compteur est MATÉRIALISÉ sur la demande : un
+              calendrier se modifie, et un départ recalculé bougerait des mois
+              plus tard sans qu'aucune écriture ne le dise (le motif de D85)
+              depot.ts : les cinq actions sous contexte cloisonné — aucune
+              comparaison de société ni de client écrite au-dessus de la
+              politique, ce serait une seconde lecture du même critère
+              l'agence est DÉDUITE du site (D56) : sans elle, « en heures
+              ouvrées de l'agence » n'a pas de sujet
+              une agence SANS calendrier REFUSE — « inconnu » n'est pas
+              « ouvert », et faire partir le compteur tout de suite promettrait
+              une réponse sous 30 minutes un dimanche à 22 h (I7, RG-PLA-07)
+              il ne CRÉE pas l'intervention : le lien vit sur
+              `intervention.demande_id`, la colonne n'existe pas encore, et une
+              transformation que rien ne peut relire est pire qu'une absente
   sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
               cloisonné, zones géographiques de D23
               la politique de `site` est de forme « parc » AVEC le filtre de
