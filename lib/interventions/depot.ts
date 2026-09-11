@@ -914,25 +914,65 @@ export async function listerPlanning(
   contexte: ContexteSession,
   du: Date,
   au: Date,
+  client?: PrismaClient,
 ): Promise<readonly LignePlanning[]> {
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.intervention.findMany({
-      where: {
-        OR: [
-          { date_planifiee: { gte: du, lte: au } },
-          // La file d'attente n'a pas de date : elle est du planning quand
-          // même, et c'est la ligne « À planifier / File d'attente » de
-          // l'annexe D.
-          { date_planifiee: null },
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findMany({
+        where: {
+          OR: [
+            { date_planifiee: { gte: du, lte: au } },
+            // La file d'attente n'a pas de date : elle est du planning quand
+            // même, et c'est la ligne « À planifier / File d'attente » de
+            // l'annexe D.
+            { date_planifiee: null },
+          ],
+        },
+        // ── L'ORDRE EST TOTAL, ET C'EST TOUT LE TICKET L3-03 ─────────────────
+        //
+        // **Il ne l'était pas, et la file d'attente était rangée par la PLACE
+        // PHYSIQUE des lignes.** Toutes ses lignes ont `date_planifiee` et
+        // `creneau_debut` nuls : les deux seuls critères étaient donc ex æquo
+        // sur toute la file, et PostgreSQL rend les ex æquo dans l'ordre qu'il
+        // veut — celui du parcours. *Mesuré le 11/09/2026 : la file s'affichait
+        // p1, p1, p3, p2, p2 — pas par urgence du tout —, et un simple `UPDATE`
+        // sur une ligne l'a envoyée en FIN de file, parce qu'un `UPDATE` réécrit
+        // le tuple à la fin du tas.* **Le planificateur voyait donc sa file se
+        // réordonner à chaque modification, sans qu'aucune règle le décide.**
+        //
+        // **L'URGENCE D'ABORD** : `p1` est « critique » et `p4` « basse » — le
+        // dictionnaire le dit, et l'énumération PostgreSQL trie dans son ordre de
+        // déclaration. Un scénario l'assère plutôt que de s'y fier : *un ordre
+        // qui dépend de l'ordre de déclaration d'une énumération est une décision
+        // que personne n'a écrite.*
+        //
+        // **PUIS L'ANCIENNETÉ, QUI N'EST PAS L'ÉCHÉANCE** — et l'écart est écrit
+        // plutôt que tu. Le ticket dit « urgence et échéance » ; **aucune échéance
+        // n'existe** : elle naît d'un contrat (RG-CON-01), et `contrat` est au lot
+        // 4. Ranger `cree_le` sous le nom d'« échéance » serait inventer une règle
+        // métier (§8). Ce qu'il fait est plus modeste et vrai : *à urgence égale,
+        // la plus ancienne passe devant.*
+        //
+        // **ET `id` FERME L'ORDRE.** Deux interventions créées dans la même
+        // milliseconde restent possibles ; sans ce dernier rang, elles
+        // retomberaient dans le cas qu'on vient de fermer. L'`id` est un UUID v7,
+        // donc ordonné dans le temps : il prolonge `cree_le` au lieu de le
+        // contredire.
+        orderBy: [
+          { date_planifiee: "asc" },
+          { creneau_debut: "asc" },
+          { priorite: "asc" },
+          { cree_le: "asc" },
+          { id: "asc" },
         ],
-      },
-      orderBy: [{ date_planifiee: "asc" }, { creneau_debut: "asc" }],
-      select: {
-        ...CHAMPS_LIGNE,
-        client: { select: { raison_sociale: true } },
-        site: { select: { libelle: true } },
-      },
-    }),
+        select: {
+          ...CHAMPS_LIGNE,
+          client: { select: { raison_sociale: true } },
+          site: { select: { libelle: true } },
+        },
+      }),
+    client,
   );
 }
 
