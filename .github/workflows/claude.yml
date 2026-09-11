@@ -73,10 +73,13 @@ jobs:
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          # Même raison que dans nuit.yml : `github_token` n'est PAS passé à
+          # l'action, pour qu'elle s'authentifie comme l'application GitHub et
+          # que ses poussées déclenchent la CI. `GH_TOKEN` ne sert qu'à `gh`.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # Le secret posé dans ce dépôt est un JETON D'ABONNEMENT, pas une
-          # clé d'API : c'est donc `claude_code_oauth_token` et jamais
-          # `anthropic_api_key`.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
             --max-turns 60
+            --allowedTools "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,WebFetch,WebSearch"
