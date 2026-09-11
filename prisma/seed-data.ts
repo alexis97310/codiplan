@@ -1545,3 +1545,73 @@ export function identifiantIntervention(
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-6000-7000-8000-${suffixe}`;
 }
+
+/**
+ * LES QUATRE COLONNES DE SUSPENSION, CALCULÉES UNE SEULE FOIS (D104, RG-INT-06).
+ *
+ * ## La panne qui l'a fait écrire, mesurée le 12/09/2026
+ *
+ * Le semis échouait en `23514` sur `intervention_suspension_a_sa_date`, à
+ * l'étape « interventions replacées ». La ligne fautive porte `statut`
+ * `suspendue` et **aucune date de suspension** : elle a été créée par un semis
+ * d'AVANT L2-10, quand les quatre colonnes n'existaient pas, et le semis
+ * s'abstient de réécrire une ligne déjà présente.
+ *
+ * **Ce n'est pas un défaut de D104, c'est D104 qui fonctionne.** Les contraintes
+ * sont `NOT VALID` : elles ne relisent pas les lignes d'avant, mais **toute
+ * ligne qu'on TOUCHE doit se mettre en règle**. Le replacement touchait la
+ * ligne — date, créneau, technicien — sans jamais renseigner sa suspension.
+ * *Une écriture neuve doit respecter la règle : le verrou faisait son travail
+ * sur le premier chemin venu, y compris le nôtre.*
+ *
+ * ## POURQUOI UNE FONCTION, ET NON DEUX BLOCS
+ *
+ * Le semis écrit ces colonnes à DEUX endroits — à la création d'une ligne
+ * neuve, et désormais au replacement d'une ligne existante. **Les écrire deux
+ * fois serait deux lectures d'un même critère**, et c'est celle qui diverge en
+ * silence (§9, 01/09) : le jour où l'une des deux changerait, la démonstration
+ * porterait deux règles de suspension sans que rien ne rougisse.
+ *
+ * ## LES QUATRE VONT ENSEMBLE, ET LA BASE LE REFUSE AUTREMENT
+ *
+ * `suspendue_le` est daté au **début du créneau**, jamais à l'instant du semis :
+ * la démonstration montre une attente qui a un ÂGE, et c'est cet âge que la file
+ * « en attente de pièce » affiche et que l'alerte « > 30 jours » du chapitre
+ * 16.1 surveillera. *Aucune horloge n'est lue ici* — L0-08 l'interdit sans
+ * fuseau nommé, et le créneau est déjà un instant calculé dans celui de la
+ * société.
+ *
+ * **Une entrée suspendue SANS créneau rendrait `null` et serait refusée** par
+ * `intervention_suspension_a_sa_date`. C'est le bon sens de défaillance : le
+ * verrou dit ce qui manque, plutôt qu'un instant inventé qui passerait
+ * inaperçu.
+ */
+export function colonnesDeSuspension(
+  modele: InterventionDemoSeed,
+  creneauDebut: Date | null,
+  pieceDispoJour: Date | null,
+): {
+  readonly motif_suspension: string | null;
+  readonly piece_attendue_ref: string | null;
+  readonly date_dispo_prevue: Date | null;
+  readonly suspendue_le: Date | null;
+} {
+  // Et c'est `motifSuspension` qui décide, jamais `statut` : le modèle porte
+  // les deux, et exiger leur accord ici serait une TROISIÈME lecture d'un
+  // critère que la base tient déjà — elle refuse un motif sans suspension
+  // comme une suspension sans motif, dans les deux sens.
+  if (modele.motifSuspension === undefined) {
+    return {
+      motif_suspension: null,
+      piece_attendue_ref: null,
+      date_dispo_prevue: null,
+      suspendue_le: null,
+    };
+  }
+  return {
+    motif_suspension: modele.motifSuspension,
+    piece_attendue_ref: modele.pieceAttendueRef ?? null,
+    date_dispo_prevue: pieceDispoJour,
+    suspendue_le: creneauDebut,
+  };
+}
