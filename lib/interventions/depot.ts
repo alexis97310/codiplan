@@ -12,6 +12,7 @@ import {
 import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { absenceCouvrant } from "@/lib/absences/periode";
 import {
   verdictAffectation,
   type VerdictAffectation,
@@ -580,6 +581,44 @@ async function verdictALaPose(
   }
   const avertissements =
     habilitation === null ? undefined : clesDAvertissement(habilitation);
+
+  // ── LE QUATRIÈME CONTRÔLE : RG-PLA-06 (L3-04) ───────────────────────────
+  //
+  // *« Une absence validée bloque le créneau. »* Elle bloque à la POSE comme au
+  // DÉPLACEMENT, pour la raison qui a fait écrire le troisième : **ces deux
+  // chemins écrivent tous deux `technicien_id` et une date**, et une règle
+  // tenue par un chemin sur deux n'est pas tenue.
+  //
+  // **Seule une absence VALIDÉE bloque** — une demandée ne dit rien encore, une
+  // refusée ne dit plus rien —, et c'est la règle elle-même qui le sait :
+  // `absenceCouvrant` filtre sur le statut, ce fichier ne le connaît pas.
+  const visee = dateVisee(demande, fuseau);
+  if (demande.technicienId !== null && visee !== null) {
+    const absences = await tx.absence.findMany({
+      where: {
+        utilisateur_id: demande.technicienId,
+        // La borne SQL est large — elle sert l'index, pas la règle. *Le jour
+        // exact est tranché par `absenceCouvrant`, et par elle seule* : deux
+        // lectures d'un même critère divergent en silence (§9, 01/09), et
+        // celle-ci n'aurait pas su lire le statut.
+        du: { lte: visee },
+        au: { gte: visee },
+      },
+      select: {
+        id: true,
+        utilisateur_id: true,
+        du: true,
+        au: true,
+        statut: true,
+      },
+    });
+    if (absenceCouvrant(absences, demande.technicienId, visee) !== null) {
+      return {
+        verdict: { refuse: true, cle: "intervention.refus.absence" },
+        demande,
+      };
+    }
+  }
 
   if (demande.creneauDebut === null || demande.technicienId === null) {
     // Rien à chevaucher : sans heure, il n'y a pas de recouvrement.
