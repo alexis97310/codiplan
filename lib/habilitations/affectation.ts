@@ -25,9 +25,20 @@
  * aucun message d'écran : les libellés vivent dans `lib/i18n/fr.ts`.
  */
 
-/** Une exigence portée par le site, telle que la base la rend. */
+/**
+ * Une exigence portée par le site, telle que la base la rend.
+ *
+ * **Le CODE voyage avec l'identifiant** *(L3-02, D73)*. Il ne sert pas à la
+ * règle — la comparaison porte sur l'identifiant et sur lui seul — mais au
+ * REFUS, qui doit dire « habilitation BR absente » et jamais un UUID. *Le faire
+ * résoudre par l'appelant après coup aurait été une seconde lecture d'un même
+ * critère : il aurait fallu re-parcourir les exigences pour retrouver quel code
+ * va avec quel identifiant, et deux parcours d'une même liste divergent en
+ * silence le jour où l'un filtre* (§9, 01/09).
+ */
 export type ExigenceDuSite = {
   readonly habilitation_id: string;
+  readonly code: string;
   readonly bloquant: boolean;
 };
 
@@ -41,11 +52,33 @@ export type HabilitationDetenue = {
 /** Pourquoi une exigence n'est pas satisfaite. */
 export type MotifManquant = "absente" | "expiree";
 
-/** Une exigence non satisfaite, et ce qui lui manque. */
-export type ExigenceNonSatisfaite = {
-  readonly habilitation_id: string;
-  readonly motif: MotifManquant;
-};
+/**
+ * Une exigence non satisfaite, et ce qui lui manque.
+ *
+ * **C'est une SOMME, pas un objet à champ facultatif** *(L3-02)*. D73 veut lire
+ * « habilitation CACES **expirée le 12/08/2026** » : la date fait partie du
+ * motif, elle ne l'accompagne pas. *Un `expiraitLe?: Date` aurait laissé écrire
+ * une absence datée et une expiration sans date — deux états qui n'existent
+ * pas, et que rien n'aurait refusés.* Ici le type les refuse à la compilation,
+ * et c'est la même forme que la cible d'un document (lot 8, D87).
+ *
+ * C'est aussi D56 tenu à la lettre : *un nombre dont la signification dépend
+ * d'une autre colonne ne voyage jamais seul.* Une date d'expiration seule ne
+ * dit ni de quelle habilitation elle parle, ni qu'elle est dépassée.
+ */
+export type ExigenceNonSatisfaite =
+  | {
+      readonly habilitation_id: string;
+      readonly code: string;
+      readonly motif: "absente";
+    }
+  | {
+      readonly habilitation_id: string;
+      readonly code: string;
+      readonly motif: "expiree";
+      /** Le jour où elle a cessé d'être valable. Jamais `null` ici. */
+      readonly expiraitLe: Date;
+    };
 
 /** Le verdict de RG-PLA-04 sur une affectation. */
 export type VerdictAffectation = {
@@ -58,21 +91,32 @@ export type VerdictAffectation = {
 };
 
 /**
- * Une habilitation détenue est-elle valable À LA DATE D'INTERVENTION ?
+ * LE JOUR OÙ UNE HABILITATION DÉTENUE A CESSÉ D'ÊTRE VALABLE, ou `null` si elle
+ * l'est encore à la date d'intervention.
+ *
+ * *Elle rendait un booléen, et l'appelant devait ensuite RETROUVER la date pour
+ * la dire* — ce qui obligeait à affirmer au compilateur ce qu'elle seule
+ * savait. **Rendre la date plutôt qu'un oui/non supprime l'affirmation** : le
+ * type qui sort porte la preuve de ce qu'il avance, et il n'y a plus de
+ * conversion forcée dans ce fichier.
  *
  * La comparaison porte sur le JOUR, pas sur l'instant : une habilitation qui
  * expire le jour de l'intervention est valable ce jour-là. La règle dit
  * « antérieure à la date d'intervention », et une date d'expiration égale ne
  * l'est pas.
  */
-function valableLe(
+function expireeLe(
   detenue: HabilitationDetenue,
   dateIntervention: Date,
-): boolean {
+): Date | null {
   if (detenue.date_expiration === null) {
-    return true;
+    // `NULL` ne veut pas dire « expirée » : une habilitation sans échéance
+    // n'est jamais en retard.
+    return null;
   }
-  return jour(detenue.date_expiration) >= jour(dateIntervention);
+  return jour(detenue.date_expiration) < jour(dateIntervention)
+    ? detenue.date_expiration
+    : null;
 }
 
 /** Le jour civil d'un instant, en UTC — les colonnes sont de type `DATE`. */
@@ -100,21 +144,24 @@ export function verdictAffectation(
       (candidate) => candidate.habilitation_id === exigence.habilitation_id,
     );
 
-    let motif: MotifManquant | null = null;
+    const commune = {
+      habilitation_id: exigence.habilitation_id,
+      code: exigence.code,
+    } as const;
+    const expiree =
+      detenue === undefined ? null : expireeLe(detenue, dateIntervention);
+
+    let manquante: ExigenceNonSatisfaite | null = null;
     if (detenue === undefined) {
-      motif = "absente";
-    } else if (!valableLe(detenue, dateIntervention)) {
-      motif = "expiree";
+      manquante = { ...commune, motif: "absente" };
+    } else if (expiree !== null) {
+      manquante = { ...commune, motif: "expiree", expiraitLe: expiree };
     }
 
-    if (motif === null) {
+    if (manquante === null) {
       continue;
     }
 
-    const manquante: ExigenceNonSatisfaite = {
-      habilitation_id: exigence.habilitation_id,
-      motif,
-    };
     if (exigence.bloquant) {
       bloquantes.push(manquante);
     } else {

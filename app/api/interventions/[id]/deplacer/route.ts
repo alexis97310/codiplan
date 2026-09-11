@@ -33,9 +33,20 @@ export async function POST(
   const enJson = (requete.headers.get("accept") ?? "").includes(
     "application/json",
   );
-  const repondre = (cle?: string): Response =>
+  const repondre = (
+    cle?: string,
+    avertissements?: readonly string[],
+  ): Response =>
     enJson
-      ? Response.json({ accepte: cle === undefined, cle: cle ?? null })
+      ? Response.json({
+          accepte: cle === undefined,
+          cle: cle ?? null,
+          // **DES CLÉS, JAMAIS DU TEXTE** (L3-02) — le canal d'avertissement
+          // est aussi étroit que celui du refus, et pour la même raison : sans
+          // ce filtre, une réponse forgée ferait écrire n'importe quoi à la
+          // page (L1-02f). Absent plutôt que vide quand il n'y a rien à dire.
+          avertissements: avertissements ?? null,
+        })
       : versLaFiche(id, cle);
 
   const contexte = await contexteCourant();
@@ -75,7 +86,15 @@ export async function POST(
     );
   }
   const resultat = await deplacerIntervention(contexte, saisie.data);
-  return repondre(resultat.accepte ? undefined : resultat.cle);
+  // **LA REDIRECTION N'EN PORTE AUCUN, ET C'EST ÉCRIT PLUTÔT QUE TU.** La fiche
+  // relit le verdict d'habilitation en base à chaque rendu, avec les codes et
+  // les dates que ce canal ne peut pas porter : l'avertissement y est déjà, et
+  // plus complet. Le glisser-déposer, lui, ne quitte pas le planning — c'est
+  // pour lui que ces clés existent.
+  return repondre(
+    resultat.accepte ? undefined : resultat.cle,
+    resultat.accepte ? resultat.avertissements : undefined,
+  );
 }
 
 /**

@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
+import { dateCivile } from "@/lib/calendar/fuseau";
+import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
   peutAffecter,
   peutAnnuler,
@@ -160,6 +162,10 @@ export default async function PageIntervention({
             </dl>
           </section>
 
+          {fiche.habilitations === null ? null : (
+            <Habilitations verdict={fiche.habilitations} />
+          )}
+
           {fiche.valorisation !== null && fiche.devise !== null ? (
             <Valorisation
               valorisation={fiche.valorisation}
@@ -287,6 +293,77 @@ export default async function PageIntervention({
 
 /** Ce qu'on affiche à la place d'une valeur qu'on n'a pas — jamais un vide. */
 const TIRET = "—";
+
+/**
+ * RG-PLA-04 À L'ÉCRAN — **ce que le canal de refus ne peut pas dire** (L3-02,
+ * D73).
+ *
+ * > « habilitation BR absente », « habilitation CACES expirée le 12/08/2026 » —
+ * > jamais « impossible ».
+ *
+ * Le refus voyage en CLÉ de dictionnaire, et il le doit : *sans ce filtre, une
+ * réponse forgée ferait écrire n'importe quoi à la page* (L1-02f). **Un code
+ * d'habilitation ne peut donc pas voyager avec lui** — c'est une donnée de
+ * société, et un paramètre d'URL recopié à l'écran est un canal d'écriture
+ * (D50). Il est **lu en base**, sous le contexte cloisonné, par la même lecture
+ * qui rend la fiche : le dépôt le résout, l'écran l'affiche.
+ *
+ * **Les deux moitiés de la règle sont ici, et la seconde n'avait aucun
+ * appelant** : ce qui BLOQUE et ce qui AVERTIT. *Une règle dont une moitié est
+ * calculée puis jetée n'est pas appliquée à moitié : elle n'est pas appliquée.*
+ *
+ * **Et ce n'est jamais un contrôle d'accès** : cette section affiche ce que la
+ * politique a déjà laissé lire. Masquer une ligne ici serait une seconde
+ * lecture d'un critère que la base porte, et c'est celle qui vieillit sans
+ * rougir.
+ */
+function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
+  const manquantes = [
+    ...verdict.bloquantes.map((exigence) => ({ exigence, bloquant: true })),
+    ...verdict.avertissements.map((exigence) => ({
+      exigence,
+      bloquant: false,
+    })),
+  ];
+  return (
+    <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+      <h2 className="mb-2 text-[12.5px] font-bold">
+        {t("intervention.habilitations.exigees")}
+      </h2>
+      {manquantes.length === 0 ? (
+        // **« Rien à signaler » S'ÉCRIT, il ne se déduit pas d'une absence.**
+        // Une section vide se lit comme une section qu'on n'a pas remplie —
+        // c'est le défaut que D88 nomme sur le registre des VGP, et il vaut ici.
+        <p className="text-app-encre-faible text-[12px]">
+          {t("intervention.habilitations.satisfaites")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5 text-[12px]">
+          {manquantes.map(({ exigence, bloquant }) => (
+            <li
+              key={exigence.habilitation_id}
+              className={
+                bloquant ? "text-app-rouge-encre" : "text-app-encre-faible"
+              }
+            >
+              <span className="font-bold">{exigence.code}</span>{" "}
+              {exigence.motif === "absente"
+                ? t("intervention.habilitations.absente")
+                : `${t("intervention.habilitations.expiree_le")} ${dateCivile(
+                    exigence.expiraitLe,
+                  )}`}
+              {bloquant
+                ? `${t("ponctuation.separateur")}${t(
+                    "intervention.habilitations.bloquante",
+                  )}`
+                : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 /**
  * LE CALCUL DE D83, SOUS LES YEUX.

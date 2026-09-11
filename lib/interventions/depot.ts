@@ -7,11 +7,15 @@ import {
   jourDe,
   maintenant,
   versLocal,
+  type Fuseau,
 } from "@/lib/calendar/fuseau";
 import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
-import { verdictAffectation } from "@/lib/habilitations/affectation";
+import {
+  verdictAffectation,
+  type VerdictAffectation,
+} from "@/lib/habilitations/affectation";
 import { montant, type Montant } from "@/lib/money";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
@@ -107,11 +111,27 @@ export type LigneIntervention = Prisma.InterventionGetPayload<{
 
 /** Un refus rendu à l'appelant, avec la clé qui l'explique à l'écran. */
 export type Resultat<T> =
-  | { readonly accepte: true; readonly fiche: T }
+  | {
+      readonly accepte: true;
+      readonly fiche: T;
+      /**
+       * CE QUI EST PASSÉ MAIS MÉRITE D'ÊTRE DIT — des clés de dictionnaire, et
+       * jamais du texte (L3-02, RG-PLA-04).
+       *
+       * *La moitié « avertissement » de RG-PLA-04 était CALCULÉE puis JETÉE* :
+       * `verdictAffectation` rendait ses deux listes depuis L1-04, et seule
+       * celle qui bloque était lue. **Une règle dont une moitié n'a pas
+       * d'appelant n'est pas appliquée à moitié : elle n'est pas appliquée.**
+       *
+       * Elle est absente — et non `[]` — quand il n'y a rien à dire : *un
+       * tableau vide et « rien à signaler » se ressemblent trop pour qu'on
+       * laisse un écran décider lequel des deux il affiche.*
+       */
+      readonly avertissements?: readonly string[];
+    }
   | {
       readonly accepte: false;
       readonly cle: string;
-      readonly details?: string;
     };
 
 function refus<T>(verdict: Verdict): Resultat<T> | null {
@@ -283,6 +303,82 @@ async function forfaitDeDeplacement(
 }
 
 /**
+ * RG-PLA-04 LU SOUS LE CONTEXTE CLOISONNÉ — **le seul endroit du dépôt qui lit
+ * ces deux tables** (L3-02).
+ *
+ * *Il y avait une seule lecture, et elle était dans `affecterTechnicien`.* Le
+ * glisser-déposer écrit pourtant `technicien_id` par un tout autre chemin —
+ * `deplacerIntervention` —, et **ce chemin ne consultait RIEN** : mesuré avant
+ * de le refermer, un technicien sans l'habilitation bloquante de son site
+ * s'affectait en le faisant glisser sur sa colonne, alors que le même geste par
+ * le formulaire de la fiche était refusé. *Une règle tenue par un chemin sur
+ * deux n'est pas tenue.*
+ *
+ * D'où une fonction et non une recopie : les trois appelants — l'affectation,
+ * le déplacement, et l'écran qui affiche les avertissements — posent la même
+ * question au même endroit. *Une seconde lecture d'un même critère diverge en
+ * silence* (§9, 01/09), et ici elle aurait divergé dans le sens permissif.
+ *
+ * **Aucune comparaison de société n'est écrite ici** : on lit SOUS les
+ * politiques, et la forme « société » de ces deux tables décide.
+ */
+async function verdictHabilitationSous(
+  tx: Prisma.TransactionClient,
+  siteId: string,
+  technicienId: string,
+  dateIntervention: Date,
+): Promise<VerdictAffectation> {
+  const exigences = await tx.siteHabilitationRequise.findMany({
+    where: { site_id: siteId },
+    // Le CODE est lu ici parce que c'est ici qu'il se trouve (D73) : le refus
+    // doit dire « habilitation BR absente » et jamais un UUID.
+    select: {
+      habilitation_id: true,
+      bloquant: true,
+      habilitation: { select: { code: true } },
+    },
+  });
+  const detenues = await tx.technicienHabilitation.findMany({
+    where: { utilisateur_id: technicienId },
+    select: { habilitation_id: true, date_expiration: true },
+  });
+  return verdictAffectation(
+    exigences.map((exigence) => ({
+      habilitation_id: exigence.habilitation_id,
+      code: exigence.habilitation.code,
+      bloquant: exigence.bloquant,
+    })),
+    detenues,
+    dateIntervention,
+  );
+}
+
+/**
+ * CE QU'UN AVERTISSEMENT A LE DROIT DE TRAVERSER — **des clés, jamais du
+ * texte** (L3-02).
+ *
+ * Le refus voyage déjà ainsi (`actions.ts`) : *sans ce filtre, une réponse
+ * forgée ferait écrire n'importe quoi à la page* (L1-02f). **Un avertissement
+ * n'y échappe pas**, et cela coûte quelque chose qu'on écrit plutôt que de le
+ * taire : *le code de l'habilitation ne peut PAS voyager par ce canal* — il est
+ * une donnée de société, et un paramètre d'URL recopié à l'écran est un canal
+ * d'écriture ouvert à qui forge un lien (D50).
+ *
+ * **Le détail est donc LU par l'écran**, sous le contexte cloisonné, à côté du
+ * technicien qu'il affiche. Ce que le canal porte est la seule chose qu'il
+ * puisse porter sans mentir : *il y a des exigences non satisfaites, va voir la
+ * fiche.* C'est moins riche qu'un message composé ici, et c'est la seule forme
+ * qui ne s'ouvre pas.
+ */
+function clesDAvertissement(
+  verdict: VerdictAffectation,
+): readonly string[] | undefined {
+  return verdict.avertissements.length === 0
+    ? undefined
+    : ["intervention.avertissement.habilitation"];
+}
+
+/**
  * AFFECTER un technicien, sous RG-PLA-04 : l'affectation est **bloquée**, pas
  * signalée.
  *
@@ -294,58 +390,54 @@ export async function affecterTechnicien(
   contexte: ContexteSession,
   interventionId: string,
   technicienId: string,
+  client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const ligne = await tx.intervention.findFirst({
-      where: { id: interventionId },
-      select: {
-        id: true,
-        statut: true,
-        site_id: true,
-        agence_id: true,
-        date_planifiee: true,
-      },
-    });
-    if (ligne === null) {
-      return { accepte: false, cle: "intervention.refus.inconnue" };
-    }
-    const barriere = refus<LigneIntervention>(
-      peutAffecter(ligne.statut as StatutIntervention),
-    );
-    if (barriere !== null) {
-      return barriere;
-    }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: {
+          id: true,
+          statut: true,
+          site_id: true,
+          agence_id: true,
+          date_planifiee: true,
+        },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<LigneIntervention>(
+        peutAffecter(ligne.statut as StatutIntervention),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
 
-    const exigences = await tx.siteHabilitationRequise.findMany({
-      where: { site_id: ligne.site_id },
-      select: { habilitation_id: true, bloquant: true },
-    });
-    const detenues = await tx.technicienHabilitation.findMany({
-      where: { utilisateur_id: technicienId },
-      select: { habilitation_id: true, date_expiration: true },
-    });
-    const verdict = verdictAffectation(
-      exigences,
-      detenues,
-      ligne.date_planifiee ?? (await instantDeLAgence(tx, ligne.agence_id)),
-    );
-    if (verdict.bloquee) {
+      const verdict = await verdictHabilitationSous(
+        tx,
+        ligne.site_id,
+        technicienId,
+        ligne.date_planifiee ?? (await instantDeLAgence(tx, ligne.agence_id)),
+      );
+      if (verdict.bloquee) {
+        return { accepte: false, cle: "intervention.refus.habilitation" };
+      }
+
+      const misAJour = await tx.intervention.update({
+        where: { id: interventionId },
+        data: { technicien_id: technicienId },
+        select: CHAMPS_LIGNE,
+      });
       return {
-        accepte: false,
-        cle: "intervention.refus.habilitation",
-        details: verdict.bloquantes
-          .map((b) => `${b.habilitation_id} (${b.motif})`)
-          .join(", "),
+        accepte: true,
+        fiche: misAJour,
+        avertissements: clesDAvertissement(verdict),
       };
-    }
-
-    const misAJour = await tx.intervention.update({
-      where: { id: interventionId },
-      data: { technicien_id: technicienId },
-      select: CHAMPS_LIGNE,
-    });
-    return { accepte: true, fiche: misAJour };
-  });
+    },
+    client,
+  );
 }
 
 /**
@@ -422,10 +514,12 @@ async function verdictALaPose(
   tx: Prisma.TransactionClient,
   interventionId: string,
   agenceId: string,
+  siteId: string,
   saisie: Deplacement,
 ): Promise<{
   readonly verdict: Verdict;
   readonly demande: PoseDemandee | null;
+  readonly avertissements?: readonly string[];
 }> {
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
@@ -456,9 +550,40 @@ async function verdictALaPose(
     return { verdict: ouverture, demande };
   }
 
+  // ── LE TROISIÈME CONTRÔLE : RG-PLA-04 (L3-02) ───────────────────────────
+  //
+  // **Il manquait, et ce chemin écrit pourtant `technicien_id`.** Le
+  // glisser-déposer affecte quelqu'un en le déposant sur sa colonne ; il
+  // passait par ici, et rien ne lisait les habilitations. *Mesuré avant de le
+  // refermer : le même technicien était refusé par le formulaire de la fiche et
+  // accepté par un glissé.*
+  //
+  // **Et la DATE compte** : RG-PLA-04 compare l'expiration à la date
+  // d'intervention, donc à la date VISÉE et jamais à celle d'avant. *Déplacer
+  // une intervention d'une semaine peut la faire tomber après l'expiration d'un
+  // CACES ; c'est précisément le cas que ce contrôle attrape et que la seule
+  // lecture à l'affectation ne pouvait pas voir.*
+  const habilitation =
+    demande.technicienId === null
+      ? null
+      : await verdictHabilitationSous(
+          tx,
+          siteId,
+          demande.technicienId,
+          dateVisee(demande, fuseau) ?? (await instantDeLAgence(tx, agenceId)),
+        );
+  if (habilitation !== null && habilitation.bloquee) {
+    return {
+      verdict: { refuse: true, cle: "intervention.refus.habilitation" },
+      demande,
+    };
+  }
+  const avertissements =
+    habilitation === null ? undefined : clesDAvertissement(habilitation);
+
   if (demande.creneauDebut === null || demande.technicienId === null) {
     // Rien à chevaucher : sans heure, il n'y a pas de recouvrement.
-    return { verdict: { refuse: false }, demande };
+    return { verdict: { refuse: false }, demande, avertissements };
   }
   const jour = jourDe(versLocal(demande.creneauDebut, fuseau));
   const bornes = {
@@ -481,7 +606,29 @@ async function verdictALaPose(
   return {
     verdict: verdictChevauchement(voisines, interventionId, demande),
     demande,
+    avertissements,
   };
+}
+
+/**
+ * LA DATE À LAQUELLE L'INTERVENTION EST VISÉE, telle que RG-PLA-04 la compare.
+ *
+ * Le jour d'abord s'il est donné, sinon celui du créneau lu **dans le fuseau de
+ * l'agence** (L0-08) — UTC+11 décale le jour d'un cran, et un créneau du 14 au
+ * petit matin se rangerait au 13. Rend `null` quand le déplacement rend
+ * l'intervention à la file d'attente : l'appelant retombe alors sur le jour
+ * courant de l'agence, *parce qu'une habilitation expirée aujourd'hui l'est
+ * aussi pour une intervention qu'on ne date pas encore.*
+ */
+function dateVisee(demande: PoseDemandee, fuseau: Fuseau): Date | null {
+  const jour =
+    demande.datePlanifiee ??
+    (demande.creneauDebut === null
+      ? null
+      : versLocal(demande.creneauDebut, fuseau));
+  return jour === null
+    ? null
+    : new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour));
 }
 
 /**
@@ -495,55 +642,71 @@ async function verdictALaPose(
 export async function deplacerIntervention(
   contexte: ContexteSession,
   saisie: Deplacement,
+  client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const ligne = await tx.intervention.findFirst({
-      where: { id: saisie.intervention_id },
-      select: { id: true, statut: true, agence_id: true },
-    });
-    if (ligne === null) {
-      return { accepte: false, cle: "intervention.refus.inconnue" };
-    }
-    const barriere = refus<LigneIntervention>(
-      peutDeplacer(ligne.statut as StatutIntervention),
-    );
-    if (barriere !== null) {
-      return barriere;
-    }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: saisie.intervention_id },
+        select: { id: true, statut: true, agence_id: true, site_id: true },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const barriere = refus<LigneIntervention>(
+        peutDeplacer(ligne.statut as StatutIntervention),
+      );
+      if (barriere !== null) {
+        return barriere;
+      }
 
-    // ── LES DEUX CONTRÔLES À LA POSE (R2-19) ────────────────────────────────
-    //
-    // Ils sont ICI, sous le contexte cloisonné, et PAS seulement à l'écran :
-    // *une action refusée à l'écran mais acceptée par la base est un trou.*
-    // Les règles elles-mêmes vivent dans `pose.ts`, qui ne lit rien.
-    const pose = await verdictALaPose(tx, ligne.id, ligne.agence_id, saisie);
-    const posee = refus<LigneIntervention>(pose.verdict);
-    if (posee !== null || pose.demande === null) {
-      return posee ?? { accepte: false, cle: "intervention.refus.inconnue" };
-    }
-    const demande = pose.demande;
+      // ── LES TROIS CONTRÔLES À LA POSE (R2-19 ; RG-PLA-04 depuis L3-02) ──────
+      //
+      // Ils sont ICI, sous le contexte cloisonné, et PAS seulement à l'écran :
+      // *une action refusée à l'écran mais acceptée par la base est un trou.*
+      // Les règles elles-mêmes vivent dans `pose.ts` et dans
+      // `lib/habilitations/affectation.ts`, qui ne lisent rien.
+      const pose = await verdictALaPose(
+        tx,
+        ligne.id,
+        ligne.agence_id,
+        ligne.site_id,
+        saisie,
+      );
+      const posee = refus<LigneIntervention>(pose.verdict);
+      if (posee !== null || pose.demande === null) {
+        return posee ?? { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      const demande = pose.demande;
 
-    const misAJour = await tx.intervention.update({
-      where: { id: saisie.intervention_id },
-      data: {
-        date_planifiee: saisie.date_planifiee,
-        creneau_debut: demande.creneauDebut,
-        creneau_fin: demande.creneauFin,
-        technicien_id: saisie.technicien_id,
-        // Le déplacement REND une intervention à la file d'attente quand on
-        // lui retire sa date, et l'en sort quand on lui en donne une. Il ne
-        // touche à aucun autre statut : déplacer une intervention `en_cours`
-        // ne la replanifie pas, elle est en cours.
-        statut: statutApresDeplacement(
-          ligne.statut as StatutIntervention,
-          saisie.date_planifiee,
-          demande.creneauDebut,
-        ),
-      },
-      select: CHAMPS_LIGNE,
-    });
-    return { accepte: true, fiche: misAJour };
-  });
+      const misAJour = await tx.intervention.update({
+        where: { id: saisie.intervention_id },
+        data: {
+          date_planifiee: saisie.date_planifiee,
+          creneau_debut: demande.creneauDebut,
+          creneau_fin: demande.creneauFin,
+          technicien_id: saisie.technicien_id,
+          // Le déplacement REND une intervention à la file d'attente quand on
+          // lui retire sa date, et l'en sort quand on lui en donne une. Il ne
+          // touche à aucun autre statut : déplacer une intervention `en_cours`
+          // ne la replanifie pas, elle est en cours.
+          statut: statutApresDeplacement(
+            ligne.statut as StatutIntervention,
+            saisie.date_planifiee,
+            demande.creneauDebut,
+          ),
+        },
+        select: CHAMPS_LIGNE,
+      });
+      return {
+        accepte: true,
+        fiche: misAJour,
+        avertissements: pose.avertissements,
+      };
+    },
+    client,
+  );
 }
 
 /**
@@ -806,6 +969,19 @@ export async function lireFicheIntervention(
     symbole: string | null;
   } | null;
   readonly valorisation: ValorisationAffichee | null;
+  /**
+   * RG-PLA-04 SUR LE TECHNICIEN ACTUELLEMENT AFFECTÉ (L3-02, D73).
+   *
+   * `null` quand personne n'est affecté : *il n'y a alors rien à dire, et un
+   * verdict vide se lirait comme « tout va bien ».*
+   *
+   * **C'est ICI que les codes et les dates sont lus**, sous le contexte
+   * cloisonné, et jamais reçus d'un paramètre d'URL : un texte qui traverse
+   * l'URL est un canal d'écriture ouvert à qui forge un lien (L1-02f, D50). Le
+   * canal de refus porte une clé ; le DÉTAIL se lit en base, à côté du
+   * technicien qu'on affiche.
+   */
+  readonly habilitations: VerdictAffectation | null;
 } | null> {
   return avecContexteApplicatif(contexte, async (tx) => {
     const ligne = await tx.intervention.findFirst({
@@ -823,6 +999,21 @@ export async function lireFicheIntervention(
       return null;
     }
     const { client, site, agence, forfait, devise, ...brute } = ligne;
+
+    // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
+    // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
+    // valable pour une intervention posée demain, et expirée pour une posée
+    // dans un mois.
+    const habilitations =
+      brute.technicien_id === null
+        ? null
+        : await verdictHabilitationSous(
+            tx,
+            brute.site_id,
+            brute.technicien_id,
+            brute.date_planifiee ??
+              (await instantDeLAgence(tx, brute.agence_id)),
+          );
 
     let valorisation: ValorisationAffichee | null = null;
     if (brute.temps_reel_min !== null && brute.temps_reel_min > 0) {
@@ -865,6 +1056,7 @@ export async function lireFicheIntervention(
       forfait: forfait?.libelle ?? null,
       devise,
       valorisation,
+      habilitations,
     };
   });
 }
