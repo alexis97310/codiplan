@@ -1516,6 +1516,32 @@ model Intervention {
   cloturee_le      DateTime?
   annulee_le       DateTime?
 
+  /// LA SUSPENSION (L2-10, RG-INT-06). Le motif est EXIGÉ dès que le statut
+  /// est `suspendue`, et refusé sinon — les deux sens, le second étant celui
+  /// qu'on oublie.
+  motif_suspension String?
+
+  /// L'ATTENTE DE PIÈCE, et c'est `piece_attendue_ref` qui la DÉSIGNE : sa
+  /// présence dit que la suspension attend une pièce. *Aucune énumération de
+  /// motifs n'est inventée* — le chapitre 10 n'en pose pas, et fermer une
+  /// énumération avant d'avoir tranché à qui l'on vend est une erreur que ce
+  /// dépôt a déjà faite (§9, 20/08).
+  ///
+  /// RG-INT-06 exige les DEUX : *« pour une attente de pièce, la référence
+  /// attendue **et** la date de disponibilité prévisionnelle »*. La base le
+  /// tient, plutôt que de laisser une file d'attente sans horizon.
+  piece_attendue_ref String?
+  date_dispo_prevue  DateTime? @db.Date
+
+  /// QUAND la suspension a commencé — l'ANCIENNETÉ s'en déduit, et rien
+  /// d'autre ne la porte. `cloturee_le` et `annulee_le` existent pour la même
+  /// raison : la table date chacun de ses états d'arrêt.
+  ///
+  /// Sans elle, l'ancienneté demandée par L2-10 et l'alerte « en attente de
+  /// pièce depuis > 30 j » du chapitre 16.1 devraient se lire dans le journal
+  /// d'audit — *une trace n'est pas un index*.
+  suspendue_le DateTime?
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 

@@ -628,6 +628,13 @@ async function seed(): Promise<void> {
                   : modele.debutMinutes + modele.dureeMin,
                 societe.fuseau_horaire,
               ),
+              // La disponibilité annoncée suit le lundi courant comme le
+              // créneau : *une date écrite en dur vieillirait avec la
+              // démonstration*, et la file paraîtrait en retard chaque semaine.
+              piece_dispo_jour:
+                modele.pieceDispoJoursDepuisLundi === undefined
+                  ? null
+                  : jourSuivant(lundi, modele.pieceDispoJoursDepuisLundi),
             };
           },
         ).filter((i) => i.lieu !== undefined && i.lieu.agenceId !== undefined);
@@ -687,6 +694,27 @@ async function seed(): Promise<void> {
               creneau_fin: intervention.creneau_fin,
               duree_estimee_min: intervention.dureeMin,
               temps_reel_min: intervention.temps_reel_min,
+              // LA SUSPENSION (L2-10, RG-INT-06). Les quatre colonnes vont
+              // ensemble, et la base le refuse autrement — *le verrou fait son
+              // travail sur le premier chemin venu, y compris le nôtre*, comme
+              // le cycle de vie l'a fait le 09/09.
+              motif_suspension: intervention.motifSuspension ?? null,
+              piece_attendue_ref: intervention.pieceAttendueRef ?? null,
+              date_dispo_prevue: jourEnDate(intervention.piece_dispo_jour),
+              // La suspension est datée au DÉBUT DU CRÉNEAU : la démonstration
+              // montre une attente qui a un âge, pas une attente née à
+              // l'instant du semis. **Aucune horloge n'est lue ici** — L0-08
+              // l'interdit sans fuseau nommé, et le créneau est déjà un instant
+              // calculé dans celui de la société.
+              //
+              // *Une entrée de démonstration suspendue SANS créneau écrirait
+              // `null` et serait refusée par `intervention_suspension_a_sa_date`.*
+              // C'est le bon sens de défaillance : le verrou dit ce qui manque,
+              // plutôt qu'un instant inventé qui passerait inaperçu.
+              suspendue_le:
+                intervention.motifSuspension === undefined
+                  ? null
+                  : intervention.creneau_debut,
             },
           });
           ecrites += 1;

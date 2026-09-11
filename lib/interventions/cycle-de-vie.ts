@@ -86,6 +86,56 @@ export function peutCloturer(
 }
 
 /**
+ * Peut-on SUSPENDRE ? (L2-10, RG-INT-06)
+ *
+ * Une intervention figée ne se suspend pas — il n'y a plus rien à reprendre.
+ * Et une intervention **déjà suspendue** non plus : *la re-suspendre écraserait
+ * `suspendue_le`, c'est-à-dire remettrait à zéro l'ancienneté que la file de
+ * L2-10 et l'alerte « > 30 jours » du chapitre 16.1 mesurent.* Modifier le
+ * motif d'une suspension en cours est une autre action, et elle n'est pas
+ * demandée.
+ *
+ * **Le motif est exigé ici comme il l'est en base.** *Une intervention arrêtée
+ * sans qu'on sache pourquoi est une intervention perdue* — celui qui la
+ * retrouvera dans trois semaines n'aura personne à qui demander.
+ */
+export function peutSuspendre(
+  statut: StatutIntervention,
+  motif: string | null,
+): Verdict {
+  if (statut === "annulee") {
+    return { refuse: true, cle: "intervention.refus.annulee_figee" };
+  }
+  if (statut === "cloturee") {
+    return { refuse: true, cle: "intervention.refus.cloturee_figee" };
+  }
+  if (statut === "suspendue") {
+    return { refuse: true, cle: "intervention.refus.deja_suspendue" };
+  }
+  if (motif === null || motif.trim().length === 0) {
+    return { refuse: true, cle: "intervention.refus.motif_manquant" };
+  }
+  return PERMIS;
+}
+
+/**
+ * Peut-on REPRENDRE une intervention suspendue ? (L2-10)
+ *
+ * Seule une intervention suspendue se reprend — et elle retrouve alors l'état
+ * que son CRÉNEAU dicte, jamais celui qu'elle avait avant : *entre-temps, le
+ * planificateur a pu la déplacer ou lui retirer sa date.* C'est
+ * `statutALaCreation` qui décide, et il décide de la même manière qu'à la
+ * naissance — **une seule règle pour « quel statut dit ce créneau »**, plutôt
+ * que deux qui divergeraient en silence (§9, 01/09).
+ */
+export function peutReprendre(statut: StatutIntervention): Verdict {
+  if (statut !== "suspendue") {
+    return { refuse: true, cle: "intervention.refus.pas_suspendue" };
+  }
+  return PERMIS;
+}
+
+/**
  * Peut-on ANNULER ? Presque toujours — et c'est I5 qui le veut.
  *
  * `ANNULEE` a la préséance sur tout, y compris sur `CLOTUREE` : une

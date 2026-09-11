@@ -214,3 +214,55 @@ export const schemaAnnulation = z.object({
 });
 
 export type Annulation = z.infer<typeof schemaAnnulation>;
+
+/**
+ * LA SUSPENSION (L2-10, RG-INT-06).
+ *
+ * Le **motif** est obligatoire — *une intervention arrêtée sans qu'on sache
+ * pourquoi est une intervention perdue*, et celui qui la retrouvera dans trois
+ * semaines n'aura personne à qui demander.
+ *
+ * **La référence de pièce et sa date vont ENSEMBLE, ou pas du tout.** RG-INT-06
+ * exige les deux : *« pour une attente de pièce, la référence attendue **et** la
+ * date de disponibilité prévisionnelle »*. Une référence sans date ferait une
+ * file d'attente **sans horizon**, c'est-à-dire une file que l'alerte du
+ * chapitre 16.1 ne saurait pas trier.
+ *
+ * **Ce qui n'est PAS saisi : l'instant de la suspension.** Il est daté par le
+ * serveur, dans le fuseau de l'agence (L0-08) — le laisser saisir permettrait
+ * de rajeunir une attente, et l'ancienneté est précisément ce que la file
+ * mesure.
+ */
+export const schemaSuspension = z
+  .object({
+    intervention_id: uuid,
+    motif: z
+      .string()
+      .trim()
+      .min(3, "Le motif de la suspension est obligatoire.")
+      .max(500),
+    piece_attendue_ref: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .nullable()
+      .default(null),
+    date_dispo_prevue: z.date().nullable().default(null),
+  })
+  .strict()
+  .refine(
+    (v) => (v.piece_attendue_ref === null) === (v.date_dispo_prevue === null),
+    {
+      message:
+        "Une attente de pièce se saisit en entier : la référence et la date de disponibilité prévue, ou aucune des deux.",
+      path: ["date_dispo_prevue"],
+    },
+  );
+
+export type Suspension = z.infer<typeof schemaSuspension>;
+
+/** La reprise ne porte que l'identifiant : le statut se déduit du créneau. */
+export const schemaReprise = z.object({ intervention_id: uuid }).strict();
+
+export type Reprise = z.infer<typeof schemaReprise>;

@@ -640,6 +640,20 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## La file « en attente de pièce » — ce qui la désigne n'est pas un code
+
+Le statut `suspendue` existait depuis le planning agissant ; **rien ne portait le motif**, et une intervention pouvait donc s'arrêter sans qu'on sache pourquoi. RG-INT-06 : _« une intervention SUSPENDUE porte un motif et, pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle. »_
+
+**Aucune énumération de motifs n'est inventée.** Le chapitre 10 n'en pose pas, et _fermer une énumération avant d'avoir tranché à qui l'on vend_ est une erreur que ce dépôt a déjà faite. Ce qui **désigne** une attente de pièce est donc la présence de `piece_attendue_ref` — pas un code choisi en séance.
+
+**La référence et sa date vont ensemble, ou pas du tout**, et la base le tient : _une référence sans date fait une file d'attente sans horizon_, c'est-à-dire une file que l'alerte « en attente de pièce depuis > 30 j » du chapitre 16.1 ne saurait pas trier. Quatre contraintes l'écrivent **dans les deux sens** — un motif sans suspension est refusé comme une suspension sans motif.
+
+**La reprise n'efface rien côté applicatif.** Le déclencheur `intervention_sortie_de_suspension` remet les quatre colonnes à `NULL`, parce que les contraintes l'exigent déjà : _les effacer aussi en TypeScript serait une seconde lecture du même critère._ Et le statut retrouvé est celui que le **créneau** dicte, jamais celui d'avant — _le planificateur a pu déplacer l'intervention entre-temps._
+
+**Une intervention déjà suspendue ne se re-suspend pas**, et ce n'est pas de la prudence : ce serait écraser `suspendue_le`, c'est-à-dire **remettre à zéro l'ancienneté** que la file mesure.
+
+**L'ancienneté se compte en jours d'horloge, pas en jours ouvrés.** _Le fournisseur ne livre pas le samedi, mais la pièce n'arrive pas non plus._ C'est l'inverse du compteur d'accusé de réception (D13), et l'écart est délibéré : là on mesure une réactivité humaine, ici un délai subi.
+
 ## Le total hors taxes en était un faux — deux mesures
 
 Le ticket de valorisation n'a pas commencé par du code : il a commencé par **deux mesures sur ce que l'écran affichait**.

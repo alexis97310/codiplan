@@ -509,6 +509,26 @@ export const fr = {
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
     "Saisissez le temps réellement passé avant de clôturer. C'est lui qui détermine ce qui est facturé.",
+  // ── LA SUSPENSION ET LA FILE « EN ATTENTE DE PIÈCE » (L2-10, RG-INT-06) ──
+  "intervention.suspension.titre": "Suspendre l'intervention",
+  "intervention.suspension.motif": "Motif de la suspension",
+  "intervention.suspension.motif_aide":
+    "Obligatoire. Une intervention arrêtée sans qu'on sache pourquoi est une intervention perdue : celui qui la retrouvera dans trois semaines n'aura personne à qui demander.",
+  "intervention.suspension.piece": "Référence de la pièce attendue",
+  "intervention.suspension.date_dispo": "Disponibilité prévue",
+  "intervention.suspension.piece_aide":
+    "Pour une attente de pièce seulement, et les deux vont ensemble : une référence sans date de disponibilité fait une file d'attente qu'on ne sait pas trier.",
+  "intervention.suspension.depuis": "Suspendue depuis",
+  "intervention.suspension.horizon_depasse":
+    "La date de disponibilité annoncée est passée.",
+  "intervention.action.suspendre": "Suspendre",
+  "intervention.action.reprendre": "Reprendre",
+  "intervention.refus.deja_suspendue":
+    "Cette intervention est déjà suspendue. Sa date de suspension ne se réécrit pas : c'est elle qui mesure depuis combien de temps elle attend.",
+  "intervention.refus.pas_suspendue":
+    "Cette intervention n'est pas suspendue : il n'y a rien à reprendre.",
+  "intervention.refus.motif_manquant":
+    "Le motif est obligatoire. Une suspension sans motif laisse une intervention arrêtée sans que personne sache pourquoi.",
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 

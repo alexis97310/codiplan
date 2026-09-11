@@ -9,6 +9,8 @@ import {
   peutAnnuler,
   peutCloturer,
   peutDeplacer,
+  peutReprendre,
+  peutSuspendre,
 } from "@/lib/interventions/cycle-de-vie";
 import {
   lireFicheIntervention,
@@ -229,6 +231,46 @@ export default async function PageIntervention({
             />
           </Action>
 
+          {/*
+        LA SUSPENSION ET SA REPRISE (L2-10, RG-INT-06).
+
+        *Une seule des deux s'offre à la fois*, et ce n'est pas une commodité
+        d'affichage : le verdict de chacune refuse l'état de l'autre, et un
+        refus prend la place de l'action avec sa raison — jamais un bouton
+        grisé, qui laisse croire qu'il suffirait d'insister.
+
+        La référence de pièce et sa date sont dans le MÊME formulaire, parce
+        qu'elles se saisissent ensemble ou pas du tout.
+      */}
+          {statut === "suspendue" ? (
+            <Action
+              titre={t("intervention.action.reprendre")}
+              verdict={peutReprendre(statut)}
+              action={`/api/interventions/${ligne.id}/reprendre`}
+            />
+          ) : (
+            <Action
+              titre={t("intervention.action.suspendre")}
+              verdict={peutSuspendre(statut, "—")}
+              action={`/api/interventions/${ligne.id}/suspendre`}
+              note={t("intervention.suspension.piece_aide")}
+            >
+              <Saisie
+                nom="motif"
+                libelle={t("intervention.suspension.motif")}
+              />
+              <Saisie
+                nom="piece_attendue_ref"
+                libelle={t("intervention.suspension.piece")}
+              />
+              <Saisie
+                nom="date_dispo_prevue"
+                type="date"
+                libelle={t("intervention.suspension.date_dispo")}
+              />
+            </Action>
+          )}
+
           <Action
             titre={t("intervention.action.annuler")}
             verdict={peutAnnuler(statut)}
@@ -411,7 +453,12 @@ function Action({
   verdict: { refuse: boolean; cle?: string };
   action: string;
   note?: string;
-  children: React.ReactNode;
+  /**
+   * FACULTATIF depuis L2-10 : la reprise ne saisit rien — le statut retrouvé se
+   * déduit du créneau, et le motif est effacé par la base. *Une action sans
+   * champ n'est pas une action incomplète.*
+   */
+  children?: React.ReactNode;
 }) {
   if (verdict.refuse) {
     const cle = verdict.cle;

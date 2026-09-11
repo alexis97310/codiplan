@@ -1267,6 +1267,20 @@ export type InterventionDemoSeed = {
   readonly debutMinutes: number | null;
   readonly dureeMin: number | null;
   readonly temps_reel_min: number | null;
+  /**
+   * LA SUSPENSION (L2-10, RG-INT-06). Obligatoire dès que `statut` vaut
+   * `suspendue` — la base le refuse autrement, et elle a raison : *une
+   * intervention arrêtée sans qu'on sache pourquoi est une intervention
+   * perdue.*
+   */
+  readonly motifSuspension?: string;
+  /**
+   * L'ATTENTE DE PIÈCE, et les deux vont ENSEMBLE. La date est donnée en jours
+   * depuis le lundi courant, comme le créneau : *une date écrite en dur
+   * vieillirait avec la démonstration.*
+   */
+  readonly pieceAttendueRef?: string;
+  readonly pieceDispoJoursDepuisLundi?: number;
 };
 
 /**
@@ -1421,6 +1435,12 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     debutMinutes: 840,
     dureeMin: 120,
     temps_reel_min: null,
+    // LA DÉMONSTRATION MONTRE LA FILE « EN ATTENTE DE PIÈCE » (L2-10), et pas
+    // seulement une intervention arrêtée : c'est le cas que RG-INT-06 vise, et
+    // celui que l'alerte « depuis > 30 j » du chapitre 16.1 surveillera.
+    motifSuspension: "Attente de pièce fournisseur",
+    pieceAttendueRef: "CMP-4417-B",
+    pieceDispoJoursDepuisLundi: 9,
   },
   // ── jeudi ─────────────────────────────────────────────────────────────────
   {

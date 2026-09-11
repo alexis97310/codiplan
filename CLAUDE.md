@@ -558,6 +558,24 @@ lib/
               raison écrite. Il ne GARDE rien — la base garde, par
               `intervention_cycle_de_vie` : une action refusée à l'écran mais
               acceptée par la base est un trou
+              la SUSPENSION exige son motif (RG-INT-06, L2-10), et une
+              intervention DÉJÀ suspendue ne se re-suspend pas : ce serait
+              écraser `suspendue_le`, c'est-à-dire rajeunir l'attente que la
+              file mesure
+              la REPRISE rend le statut que le CRÉNEAU dicte, jamais celui
+              d'avant — le planificateur a pu déplacer entre-temps, et c'est
+              `statutALaCreation` qui décide, la même règle qu'à la naissance
+              ce qui DÉSIGNE une attente de pièce est la RÉFÉRENCE, pas un code
+              de motif : aucune énumération n'est inventée, le chapitre 10 n'en
+              pose pas
+              la reprise n'efface RIEN ici : le déclencheur
+              `intervention_sortie_de_suspension` le fait, parce que les
+              contraintes l'exigent déjà — l'effacer aussi en TypeScript serait
+              une seconde lecture du même critère
+              l'ANCIENNETÉ se compte en jours d'HORLOGE et non ouvrés : le
+              fournisseur ne livre pas le samedi, mais la pièce n'arrive pas non
+              plus — l'inverse du compteur d'accusé de réception (D13), et
+              l'écart est délibéré
               annulee > cloturee, jamais l'inverse : I5 donne à l'annulation la
               préséance, et une intervention clôturée par erreur doit pouvoir
               être annulée
