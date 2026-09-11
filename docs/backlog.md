@@ -529,12 +529,34 @@ Matrice des transitions autorisées : voir D8 du document d'arbitrage.
 **CE QU'IL FAUDRAIT POUR LE DÉBLOQUER, et c'est court :** un mot sur les deux questions ci-dessus — le chevauchement par technicien, et le décompte de la charge. *Le reste est du travail, et il est chiffré : une table `intervention_technicien` avec son drapeau `referent`, la forme « filiation » déjà construite, et la reprise des neuf lectures.*
 *Relu contre les sources citées le 11/09/2026 — empreinte `a9644953`.*
 **L2-09** Valorisation. **[D11] [D12] [D45] [D57] [D74] [D77] [D83]**
-*File :* LIBRE
+*File :* BLOQUÉ — scindé le 11/09/2026 : **L2-09a** est livré, **L2-09b** attend un arbitrage (issue #133) et **L2-09c** deux tables qui n'existent pas.
 Quart d'heure supérieur, cumul par technicien, attente non facturée, trajet couvert par le forfait de zone **et jamais facturé au temps** [D74], un seul forfait de déplacement par intervention, majoration +50 % sur la main-d'œuvre seule au prorata. **Les « heures excédentaires » de D11 sont, depuis Q4 (09/09/2026, **numérotée D77** le 11/09), TOUTES les heures d'intervention** : un forfait s'ajoute toujours aux heures, `forfait.heures_incluses` n'existe plus.
 Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une heure** [D83] → heures excédentaires → majoration → total HT. **L'arrondi et le plancher s'appliquent UNE SEULE FOIS, sur l'intervention entière**, jamais tâche par tâche : `lib/tarification/valorisation.ts` les porte tous deux.
 **L'arrondi au quart d'heure vit ici** [D45], et nulle part ailleurs — ni dans `lib/calendar`, ni dans `lib/money`. Raison : le calendrier répond à « quand » — jours ouvrés, horaires, fuseaux — et n'a pas à connaître la politique de facturation, sinon un changement de tarif pourra casser un planning ; le module monétaire formate et calcule, il ne décide pas ce qu'on facture.
 ~~**À trancher AVANT d'écrire ce ticket** [D45] : l'arrondi s'applique-t-il à **chaque intervention** ou au **total d'une journée** ?~~ **TRANCHÉ le 07/09/2026 [D57] : PAR INTERVENTION** — cinq passages de cinq minutes font ~~1 h 15~~ **cinq heures depuis [D83]** (09/09/2026), qui ajoute un **plancher d'une heure** par intervention à l'arrondi. La MAILLE de D57 ne bouge pas ; c'est le plancher qui change le prix, et il ne s'applique **ni au forfait, ni au trajet, ni au travail interne**.
 *Relu contre les sources citées le 11/09/2026 — empreinte `28ebdc1d`.*
+
+**L2-09a** Le total hors taxes — la composition, et deux totaux qui étaient faux. **[D11] [D77] [RG-INT-07]**
+*File :* LIVRÉ
+**LIVRÉ le 11/09/2026, et le ticket n'a pas commencé par du code : il a commencé par deux MESURES sur ce que l'écran affichait.**
+**1. LE FORFAIT DE DÉPLACEMENT N'ENTRAIT DANS AUCUN TOTAL.** `intervention.forfait_deplacement_id` le désignait depuis D84, et la clôture écrivait `montant_ht = mainDoeuvre` — *« Total hors taxes » portait la main-d'œuvre seule*, alors que RG-INT-07 fait du forfait de zone LE mode de facturation du déplacement et que D77 écrit qu'*un forfait s'ajoute toujours aux heures*.
+**2. UNE INTERVENTION AU FORFAIT SE CLÔTURAIT À ZÉRO.** `totalHT: montant(0, …)`. *Zéro est une réponse : il dit « cela ne coûte rien » là où il faut lire « je ne sais pas encore »* — rien ne sélectionne de forfait de PRESTATION, `forfaitRetenu` n'étant appelé que pour le déplacement. Le total est désormais **`null` avec son motif**, jamais nul (doctrine §3).
+**LA COMPOSITION ÉTAIT « NON TRANCHÉE », ET ELLE NE L'EST PLUS.** L'en-tête de `valorisation.ts` refusait toute fonction « valoriser une intervention » au motif que *la composition forfait + excédent n'est pas tranchée*. **D77 l'a tranchée le 09/09** — la phrase d'origine est conservée en tête, comme le dépôt conserve ce qu'il barre.
+**CE QUI N'EST PAS FAIT, ET POURQUOI :** la **majoration hors ouverture** (D12). Son taux et son assiette sont écrits ; **la BASE de son prorata ne l'est pas** — voir L2-09b.
+*Acceptation :* au temps passé, le montant ÉCRIT EN BASE vaut main-d'œuvre + forfait ; sans forfait applicable il vaut la main-d'œuvre seule, et c'est un PRIX et non une inconnue (D11) ; au forfait, la base porte `NULL` et non zéro, avec le motif rendu à l'écran ; le même décor au temps passé écrit un montant — **le `null` vient bien du mode** ; deux devises rendent un total inconnu plutôt qu'une somme (I2).
+*Relu contre les sources citées le 11/09/2026 — empreinte `3a0dc31c`.*
+
+**L2-09b** La majoration hors ouverture. **[D12] [D13]**
+*File :* BLOQUÉ — arbitrage d'Alexis, **issue #133** : cela touche l'argent facturé (§8).
+**CE QUI EST DÉCIDÉ ET NE SE ROUVRE PAS :** taux **+50 %**, assiette **main-d'œuvre seule**, calendrier de l'**agence du technicien** (D12, D13).
+**CE QUI NE L'EST PAS :** *« au prorata, quart d'heure par quart d'heure »* suppose que la durée facturée et le créneau COÏNCIDENT. **Ils ne coïncident pas** — la main-d'œuvre se calcule sur `temps_reel_min` arrondi puis planché (D83), les minutes hors ouverture se lisent sur le créneau. Créneau 16 h–18 h, fermeture à 17 h, travail de 30 minutes : **50 % ou 0 % selon la base retenue**, et l'écart se voit sur la facture. Deux issues chiffrées et une recommandation à l'issue #133.
+*Relu contre les sources citées le 11/09/2026 — empreinte `8c46ece6`.*
+
+**L2-09c** Les lignes de temps — trajet, attente, cumul par technicien. **[D11] [D74]**
+*File :* BLOQUÉ — deux dépendances mesurées le 11/09/2026, et aucune n'est du travail de ce ticket.
+**`intervention_temps` N'EXISTE PAS** (mesuré : aucune occurrence au schéma). Le chapitre 11 la décrit — technicien, type (trajet, intervention, attente, pause), début, fin, durée, facturable — et c'est elle qui porte *« attente non facturée par défaut »* et *« une ligne de type trajet n'est jamais facturable »* (D11, D74, RG-INT-07). Aujourd'hui `intervention.temps_reel_min` est **un seul nombre**, qui EST le temps d'intervention : la règle « hors trajet et hors attente » est donc satisfaite **par construction**, et c'est pour cela que L2-09a a pu être livré sans elle.
+**LE CUMUL PAR TECHNICIEN DÉPEND DE L2-08b**, lui-même bloqué : *« 2 techniciens × 3 h = 6 h facturées »* (D11) n'a pas de sujet tant qu'une intervention ne porte qu'un technicien.
+*Relu contre les sources citées le 11/09/2026 — empreinte `bb397ccd`.*
 **L2-10** File « en attente de pièce » — motif, référence, date prévisionnelle, ancienneté.
 *File :* LIBRE
 

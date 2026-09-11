@@ -1,0 +1,239 @@
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+
+import { Role } from "@/lib/auth/roles";
+import { uuidv7 } from "@/lib/db/uuid";
+import { cloturerIntervention } from "@/lib/interventions/depot";
+
+import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  AGENCE_A,
+  MACHINE_A1,
+  SOCIETE_A,
+  UTILISATEUR_INTERNE_A,
+} from "./setup/fixtures";
+
+/**
+ * LE TOTAL HORS TAXES D'UNE CLÔTURE (L2-09a).
+ *
+ * **Deux totaux étaient FAUX, et de deux manières opposées** :
+ *
+ * 1. le **forfait de déplacement** n'entrait dans aucun total, alors que
+ *    `intervention.forfait_deplacement_id` le désignait depuis D84 ;
+ * 2. une intervention **au forfait** se clôturait à **ZÉRO** — *un montant nul
+ *    écrit là où il faut lire « je ne sais pas encore ».*
+ *
+ * Ce fichier les mesure **à travers la chaîne de production** : la clôture lit
+ * le taux, lit le forfait, compose, et **écrit en base**. Les scénarios
+ * unitaires de `tests/unit/tarification/composition.test.ts` éprouvent la règle ;
+ * celui-ci éprouve qu'elle est réellement appelée — *une suite qui éprouve tous
+ * les maillons n'éprouve pas la chaîne* (§9, 08/09).
+ */
+
+afterAll(fermerClients);
+
+const SESSION = {
+  utilisateurId: UTILISATEUR_INTERNE_A,
+  societeId: SOCIETE_A,
+  role: Role.adv,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+/** La devise de la société A, telle que le harnais la sème. */
+const DEVISE = "XPF";
+
+const TAUX_MINEUR = BigInt(9000);
+const FORFAIT_MINEUR = BigInt(3500);
+const TEMPS_REEL_MIN = 120;
+
+const jetables: string[] = [];
+
+/**
+ * Un taux en vigueur, sans lequel la clôture refuse (et c'est une autre règle).
+ *
+ * **Il est RETIRÉ en sortie de scénario**, et ce n'est pas de la politesse :
+ * `taux-initial.test.ts` porte un témoin « la table naît vide », et vitest ne
+ * garantit aucun ordre entre fichiers. *Un décor laissé derrière soi fait
+ * rougir le voisin, et le voisin a raison* — mesuré, trois de ses scénarios
+ * sont tombés avant que celui-ci nettoie.
+ */
+const tauxPoses: string[] = [];
+
+async function poserLeTaux(): Promise<void> {
+  const id = uuidv7();
+  tauxPoses.push(id);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "taux_horaire" ("id","societe_id","date_effet","montant_mineur","devise_code")
+     VALUES ('${id}', '${SOCIETE_A}', DATE '2020-01-01', ${TAUX_MINEUR}, '${DEVISE}')
+     ON CONFLICT DO NOTHING`,
+  );
+}
+
+/**
+ * Un forfait de déplacement, et son identifiant.
+ *
+ * **Les deux axes de condition valent `NULL`, pas le tableau vide** — c'est la
+ * forme que la base admet : `condition_multivaluee_valide` refuse un tableau
+ * vide et n'accepte que `NULL` ou un ensemble non vide. *Un forfait sans
+ * condition s'applique partout, et c'est le cas majoritaire (L1-06).*
+ */
+async function poserUnForfait(): Promise<string> {
+  const id = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "forfait" ("id","societe_id","code","libelle","type","rang",
+       "montant_mineur","devise_code","zone_geo","type_intervention","cumulable_temps","actif")
+     VALUES ('${id}', '${SOCIETE_A}', 'DEP-${id.slice(-6)}', 'Déplacement', 'deplacement',
+             ${Math.floor(Math.random() * 100000)}, ${FORFAIT_MINEUR}, '${DEVISE}',
+             NULL, NULL, true, true)`,
+  );
+  return id;
+}
+
+/** Une intervention prête à clôturer, dans le mode donné. */
+async function interventionAClore(
+  mode: string,
+  forfaitId: string | null,
+): Promise<string> {
+  const id = uuidv7();
+  jetables.push(id);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+       "type","statut","mode_valorisation","forfait_deplacement_id","modifie_le")
+     SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
+            'curatif', 'en_cours', '${mode}'::"ModeValorisation",
+            ${forfaitId === null ? "NULL" : `'${forfaitId}'`}, now()
+       FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
+  );
+  // RG-INT-01 : une curative ne démarre pas sans machine (L2-08a). Le décor
+  // suit donc la règle plutôt que de la contourner.
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
+     VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${MACHINE_A1}', now())`,
+  );
+  return id;
+}
+
+afterEach(async () => {
+  for (const id of jetables.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+    );
+  }
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "forfait" WHERE "code" LIKE 'DEP-%'`,
+  );
+  for (const id of tauxPoses.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "taux_horaire" WHERE "id" = '${id}'`,
+    );
+  }
+});
+
+describe("le forfait de déplacement entre dans le total (RG-INT-07, D77)", () => {
+  it("au temps passé, le montant ÉCRIT vaut la main-d'œuvre PLUS le forfait", async () => {
+    await poserLeTaux();
+    const forfaitId = await poserUnForfait();
+    const id = await interventionAClore("temps_passe", forfaitId);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    // 120 minutes au taux horaire, plus le forfait.
+    const mainDoeuvre = (TAUX_MINEUR * BigInt(TEMPS_REEL_MIN)) / BigInt(60);
+    expect(resultat.fiche.mainDoeuvre?.valeur).toBe(mainDoeuvre);
+    expect(resultat.fiche.forfaitDeplacement?.valeur).toBe(FORFAIT_MINEUR);
+    expect(resultat.fiche.totalHT?.valeur).toBe(mainDoeuvre + FORFAIT_MINEUR);
+
+    // ET LA BASE PORTE LE MÊME MONTANT. *Un résultat rendu à l'appelant n'est
+    // pas un montant figé : c'est la colonne qui sera relue demain.*
+    const [enBase] = await clientOwner().$queryRawUnsafe<
+      Array<{ montant_ht: bigint | null }>
+    >(`SELECT "montant_ht" FROM "intervention" WHERE "id" = '${id}'`);
+    expect(enBase?.montant_ht).toBe(mainDoeuvre + FORFAIT_MINEUR);
+  });
+
+  it("SANS forfait applicable, le total vaut la main-d'œuvre seule — et c'est un PRIX", async () => {
+    // *« En l'absence de forfait applicable, non facturé »* (D11). Le témoin est
+    // l'ÉCART avec le scénario ci-dessus : sans lui, une clôture qui ignorerait
+    // le forfait passerait celui-ci et échouerait l'autre sans qu'on sache
+    // lequel des deux ment.
+    await poserLeTaux();
+    const id = await interventionAClore("temps_passe", null);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    const mainDoeuvre = (TAUX_MINEUR * BigInt(TEMPS_REEL_MIN)) / BigInt(60);
+    expect(resultat.fiche.totalHT?.valeur).toBe(mainDoeuvre);
+    expect(resultat.fiche.forfaitDeplacement).toBeNull();
+    expect(resultat.fiche.motifTotalInconnu).toBeNull();
+  });
+});
+
+describe("un total inconnu s'écrit NULL, jamais zéro", () => {
+  it("au forfait, la clôture n'écrit AUCUN montant — et dit ce qui manque", async () => {
+    // *La faute d'origine écrivait `montant_ht = null` mais rendait `0` à
+    // l'écran, qui affichait « Total hors taxes : 0 ».* Zéro est une réponse :
+    // il dit « cela ne coûte rien » là où il faut lire « je ne sais pas
+    // encore », rien ne sélectionnant de forfait de PRESTATION.
+    await poserLeTaux();
+    const forfaitId = await poserUnForfait();
+    const id = await interventionAClore("forfait", forfaitId);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    expect(resultat.fiche.totalHT).toBeNull();
+    expect(resultat.fiche.motifTotalInconnu).toBe(
+      "intervention.total.forfait_de_prestation_absent",
+    );
+    // Le forfait de déplacement reste LISIBLE : il est connu, le taire aussi
+    // ferait perdre une information qu'on a.
+    expect(resultat.fiche.forfaitDeplacement?.valeur).toBe(FORFAIT_MINEUR);
+
+    const [enBase] = await clientOwner().$queryRawUnsafe<
+      Array<{ montant_ht: bigint | null; devise_code: string | null }>
+    >(
+      `SELECT "montant_ht", "devise_code" FROM "intervention" WHERE "id" = '${id}'`,
+    );
+    expect(enBase?.montant_ht).toBeNull();
+    // Et ce n'est PAS un zéro déguisé.
+    expect(enBase?.montant_ht).not.toBe(BigInt(0));
+    expect(enBase?.devise_code).toBeNull();
+  });
+
+  it("le MÊME décor au temps passé écrit un montant — le null vient bien du MODE", async () => {
+    // Le cas qui doit rester vert POUR SA PROPRE RAISON (§9, 11/09) : sans lui,
+    // une clôture qui n'écrirait JAMAIS de montant passerait le scénario
+    // ci-dessus.
+    await poserLeTaux();
+    const forfaitId = await poserUnForfait();
+    const id = await interventionAClore("temps_passe", forfaitId);
+
+    await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    const [enBase] = await clientOwner().$queryRawUnsafe<
+      Array<{ montant_ht: bigint | null }>
+    >(`SELECT "montant_ht" FROM "intervention" WHERE "id" = '${id}'`);
+    expect(enBase?.montant_ht).not.toBeNull();
+  });
+});

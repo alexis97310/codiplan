@@ -640,6 +640,18 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Le total hors taxes en était un faux — deux mesures
+
+Le ticket de valorisation n'a pas commencé par du code : il a commencé par **deux mesures sur ce que l'écran affichait**.
+
+**1. Le forfait de déplacement n'entrait dans AUCUN total.** `intervention.forfait_deplacement_id` le désignait, et la clôture écrivait `montant_ht = mainDoeuvre` — _« Total hors taxes » portait la main-d'œuvre seule_, alors que RG-INT-07 fait du forfait de zone **le** mode de facturation du déplacement et que **D77** écrit qu'_un forfait s'ajoute toujours aux heures_.
+
+**2. Une intervention au forfait se clôturait à ZÉRO.** _Zéro est une réponse_ : il dit « cela ne coûte rien » là où il faut lire « je ne sais pas encore » — rien ne sélectionne de forfait de **prestation**, `forfaitRetenu` n'étant appelé que pour le déplacement. Le total est désormais **`null` avec son motif**, jamais nul, et l'écran affiche ce qui manque à la place du montant.
+
+**La composition était « non tranchée », et elle ne l'est plus.** L'en-tête de `valorisation.ts` refusait toute fonction « valoriser une intervention » au motif que _la composition forfait + excédent n'est pas tranchée_. **D77 l'a tranchée le 09/09.** La phrase d'origine est conservée en tête, barrée — _elle a gouverné ce module, et ce qui a été décidé un jour se relit._
+
+**Ce qui n'est pas fait, et pourquoi :** la **majoration hors ouverture**. Son taux (+50 %) et son assiette (main-d'œuvre seule) sont écrits par D12 ; **la base de son prorata ne l'est pas**. _« Au prorata, quart d'heure par quart d'heure »_ suppose que la durée facturée et le créneau coïncident — ils ne coïncident pas : la main-d'œuvre se calcule sur `temps_reel_min` arrondi puis planché, les minutes hors ouverture se lisent sur le créneau. Créneau 16 h–18 h, fermeture à 17 h, travail de 30 minutes : **50 % ou 0 % selon la base retenue**, et l'écart se voit sur la facture. C'est l'argent facturé : la question est portée à l'exploitation, pas tranchée en séance.
+
 ## Une visite, plusieurs machines — et la fille suit son parent
 
 `intervention.machine_id` a **disparu** : une visite peut couvrir plusieurs matériels (chapitre 7/M3), et `intervention_machine` porte le rattachement. La colonne n'est pas conservée « pour la machine principale » — ce serait **deux écritures d'un même fait**, et personne ne saurait laquelle fait foi le jour où elles se contrediraient. La migration **reprend les lignes existantes** avant de supprimer la colonne.

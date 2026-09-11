@@ -616,10 +616,26 @@ lib/
               interventions le même jour sur le même site font DEUX heures, y
               compris si la seconde achève la première — la variante « sauf
               reprise rattachée » est écrite au registre, pas construite
-              aucune fonction « valoriser une intervention » : le mode est
+              ~~aucune fonction « valoriser une intervention » : le mode est
               décidé par l'appelant, la composition forfait + excédent n'étant
-              pas tranchée — et le plancher ne vise NI le forfait, NI le
-              trajet, NI le travail interne, aucun n'étant facturé à l'heure
+              pas tranchée~~ — **D77 L'A TRANCHÉE** (09/09) : un forfait
+              s'AJOUTE toujours aux heures, et `valoriserIntervention` compose
+              depuis L2-09a. La phrase est barrée et non effacée : elle a
+              gouverné ce module, et ce qui a été décidé un jour se relit
+              le plancher ne vise NI le forfait, NI le trajet, NI le travail
+              interne, aucun n'étant facturé à l'heure
+              le FORFAIT DE DÉPLACEMENT n'est pas un mode : il s'ajoute
+              TOUJOURS (RG-INT-07) — et il n'entrait dans aucun total jusqu'à
+              L2-09a, l'écran affichant « Total hors taxes » sur la
+              main-d'œuvre seule
+              un total qu'on ne sait pas calculer est `null` AVEC SON MOTIF,
+              jamais zéro : une intervention au forfait se clôturait à ZÉRO, et
+              zéro se lit « gratuit » là où il faut lire « je ne sais pas
+              encore » — rien ne sélectionne de forfait de PRESTATION
+              la MAJORATION n'y est pas : son taux et son assiette sont écrits
+              (D12), la BASE de son prorata ne l'est pas — la main-d'œuvre se
+              calcule sur le temps réel arrondi, les minutes hors ouverture se
+              lisent sur le créneau, et les deux ne coïncident pas (issue #133)
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis

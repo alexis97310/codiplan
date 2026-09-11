@@ -293,10 +293,45 @@ function Valorisation({
           libelle={t("intervention.cloture.taux")}
           valeur={formatMoney(valorisation.tauxHoraire, devise)}
         />
+        {valorisation.mainDoeuvre === null ? null : (
+          <Ligne
+            libelle={t("intervention.cloture.main_doeuvre")}
+            valeur={formatMoney(valorisation.mainDoeuvre, devise)}
+          />
+        )}
+        {/*
+          LE FORFAIT DE DÉPLACEMENT S'AFFICHE, et il entre dans le total
+          (RG-INT-07, D77). *Il n'y entrait pas : « Total hors taxes » portait
+          la main-d'œuvre seule.* Absent, la ligne ne s'affiche pas — le
+          déplacement n'est alors pas facturé (D11), et une ligne à zéro
+          dirait le contraire de ce qu'elle vaut.
+        */}
+        {valorisation.forfaitDeplacement === null ? null : (
+          <Ligne
+            libelle={t("intervention.cloture.forfait_deplacement")}
+            valeur={formatMoney(valorisation.forfaitDeplacement, devise)}
+          />
+        )}
+        {/*
+          UN TOTAL INCONNU SE DIT, IL NE S'AFFICHE PAS À ZÉRO. *Zéro se lit
+          « gratuit ».* Le motif prend la place du montant, en oxyde, comme un
+          refus prend la place d'une action sur cet écran.
+        */}
         <Ligne
           libelle={t("intervention.cloture.total")}
-          valeur={formatMoney(valorisation.mainDoeuvre, devise)}
+          valeur={
+            valorisation.totalHT === null
+              ? t("intervention.cloture.total_inconnu")
+              : formatMoney(valorisation.totalHT, devise)
+          }
         />
+        {valorisation.motifTotalInconnu !== null &&
+        estCleTraduction(valorisation.motifTotalInconnu) ? (
+          <Ligne
+            libelle={t("intervention.cloture.total_motif")}
+            valeur={t(valorisation.motifTotalInconnu)}
+          />
+        ) : null}
       </dl>
     </section>
   );
