@@ -896,3 +896,122 @@ qui est à facturer dès sa création.*
 `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `10:30:35 UTC` :
 **1603** tests unitaires · **793** tests d'isolation · **27** scénarios Playwright, plus
 l'horizon des fériés et les deux contrôles de partitions.
+
+---
+
+# ÉTAT FINAL — nuit du 12/09/2026
+
+## Où est ce travail
+
+**Branche `claude/vibrant-pasteur-hczbqx`**, partie de `main` à `461c9d1`.
+**Rien de ceci n'est sur `main`**, et je ne l'écris pas autrement : *une chose vraie
+ailleurs que sur `main` se dit avec son lieu, ou ne se dit pas* (§8 du protocole).
+
+| Commit | Ce qu'il porte |
+|---|---|
+| `18682b7` | N-01 — le cahier des charges disait quatre fois ce que trois décisions avaient retiré |
+| `96ba4c2` | L8-02 — l'union du lot 8 ne vivait que dans son test ; cinq marqueurs mentaient |
+| `78384a2` | L9-02, L9-03 — le registre des VGP dit ce qu'on nous a dit, et rien d'autre |
+| `7996fcf` | N-04a — une fonction écartée par D108 le dit, et quitte la façade de son module |
+| `debecb1` | N-04b — D6 : l'unicité de `reference_interne` est posée |
+| `08d28a5` | N-05 — R3-02 : le rattrapage est chiffré, et le chiffre dit ce qu'il ne dit pas |
+| `6187d9f` | N-04c — D8 : « envoyée » devient « affectée », vingt-quatre jours après la décision |
+| `f3c5bb7` | N-04d — D8 : le second axe existe, et il naît `NULL` |
+| `38826c9` | N-06 — cinq comportements qui n'étaient gardés nulle part |
+| `1973efb` | N-07 — le planning, l'action primaire et le portail rejoignent la maquette |
+| `c995f5c` | N-04d, correctif — une intervention peut NAÎTRE clôturée, et `verify:full` l'a dit |
+
+## La porte de la main
+
+**`pnpm verify:full` → EXIT=0**, le 12/09/2026 à **`10:30:35 UTC`** :
+**1603** tests unitaires · **793** tests d'isolation · **27** scénarios Playwright ·
+horizon des fériés · les deux contrôles de partitions.
+
+*C'est bien `verify:full` qui a été jouée, et non `verify` : la première a rougi sur un
+défaut que la seconde ne pouvait pas voir, et c'est écrit plus haut.*
+
+## Les chiffres dénombrés
+
+| Ce qui a été compté | Résultat | Sur quoi |
+|---|---|---|
+| Lignes violant l'unicité de `reference_interne` | **0** — *sur 0 machine, donc une absence de mesure* | base de démonstration |
+| Interventions | **32**, dont **2** suspendues | base de démonstration |
+| Suspensions sans motif / sans date / résidus (R3-02) | **0 / 0 / 0** — *et un zéro ne se lit pas « c'est fait »* | base de démonstration |
+| Interventions affectées / hors agence | **26 / 0** | base de démonstration |
+| Interventions clôturées sans statut de facturation | **2** | base de démonstration |
+| Occurrences de `envoyee` dans le code | **11**, toutes remplacées | dépôt |
+| Fonctions, contraintes et politiques citant `envoyee` en texte | **0 / 0 / 0** | base |
+| Occurrences de « (démonstration) » dans les libellés du seed | **11**, toutes retirées | dépôt |
+
+*Aucun de ces chiffres ne vient de la base hébergée : une session ne la touche pas.*
+
+## Les questions en attente — `docs/boucle/questions-pour-alexis.md`
+
+| | La question | Ce qui est bloqué |
+|---|---|---|
+| **Q1** | Le pourcentage de charge sous le nom du technicien : lequel, quand il y en a deux ? | l'affichage du taux dans la colonne |
+| **Q2** | Un technicien peut-il être posé sur une intervention d'une autre agence ? | rien — **aucun refus n'a été ajouté** |
+| **Q3** | La forme du catalogue des prestations | **L1-12** |
+| **Q4** | Sous quelle forme enregistrer « ce qu'on nous a dit » d'une vérification ? | **L9-08, L9-09, L9-10** |
+| **Q5** | Les interventions déjà clôturées : à facturer, ou déjà facturées ? | rien — le second axe marche pour toute clôture à venir |
+
+## Ce que je n'ai pas pris, et pourquoi
+
+**L9-11** était marqué `LIBRE` et ne pouvait pas l'être : sa saisie « en mode avion »
+exige un cache local et une file de synchronisation qui n'existent ni l'un ni l'autre —
+`ls lib/sync` rend « No such file or directory ». Marqueur corrigé en `BLOQUÉ`.
+
+**L9-08, L9-09, L9-10** butent sur un seul fait mesuré, et sont marqués `BLOQUÉ` avec
+lui.
+
+**R3-02** reste `BLOQUÉ`, et son motif n'a pas bougé : le ticket s'arrêtait au chiffre,
+et il y est arrivé.
+
+---
+
+# LES GESTES POUR ALEXIS — ils sont les derniers, et ils sont seuls
+
+**Cette session a touché `prisma/migrations/` (trois migrations) et
+`prisma/seed-data.ts`.** Le §12 du protocole exige un geste NOMMÉ, et il l'exige *même
+quand il paraît évident* : *« il faudra migrer » n'est pas un geste, c'est un rappel, et
+un rappel se lit sans être fait.*
+
+**Ces gestes ne valent qu'APRÈS la fusion de la branche
+`claude/vibrant-pasteur-hczbqx` sur `main`** — Vercel reconstruit à la fusion, la base
+attend une main.
+
+### 1. Appliquer les migrations et régénérer la démonstration
+
+> **Lancer « DB migrate & seed » (onglet Actions → *Run workflow*) — branche : `main` —
+> `cible` : `demonstration` — `reinitialiser_demo` : LAISSER DÉCOCHÉ.**
+
+Sans ce geste : `/planning` et `/parc` **tomberont**. Le code déployé lira
+`intervention.statut_facturation`, `machine.reference_interne` sous son index, et
+l'énumération `affectee` — trois objets que la base de démonstration n'a pas encore.
+C'est la panne du 11/09, à l'identique.
+
+**`reinitialiser_demo` décoché** : les trois migrations s'appliquent sans rien effacer.
+Le semis repasse ensuite sur les mêmes identifiants fixes et corrige les libellés — c'est
+ce qui retirera « (démonstration) » des fiches existantes.
+
+### 2. Vérifier que la base a suivi
+
+> **Lancer « `pnpm deploiement:verifier` »** — ou simplement ouvrir **`/sante`** et lire
+> la ligne « migrations à jour ».
+
+Trois migrations sont attendues :
+`20260913200000_reference_interne_unique_d6`, `20260913210000_statut_affectee_d8`,
+`20260913220000_statut_facturation_d8`.
+
+### 3. Ce que je n'ai PAS fait, et qui vous appartient
+
+**Rien sur la base de PRODUCTION.** La cible `production` n'est jamais nommée par une
+session, et le semis ne s'y exécute pas. Si cette base porte des interventions
+**déjà clôturées**, elles n'ont pas de statut de facturation et la contrainte
+`intervention_cloture_a_son_statut_facturation` est posée `NOT VALID` **exprès** pour ne
+pas les refuser : voir **Q5**, qui demande quoi en faire.
+
+**Le dénombrement de R3-02 sur la base réelle.** `pnpm suspensions:denombrer` est
+versionné et attend d'être joué là où le chiffre a un sens. *Le zéro que j'ai mesuré vaut
+pour une base bâtie depuis zéro, et une base bâtie depuis zéro ne PEUT pas porter de
+violation.*
