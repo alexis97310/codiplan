@@ -5,6 +5,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { resoudreAssujettissement } from "./assujettissement";
 import { etatDeLInformation, type EtatInformation } from "./information";
+import { dernieresInformations } from "./verification";
 
 /**
  * CE QUE LE REGISTRE DES VGP DONNE À LIRE (L9-02, L9-03 ; D88).
@@ -16,21 +17,24 @@ import { etatDeLInformation, type EtatInformation } from "./information";
  * verdict** : il rapporte ce qu'on nous a dit, et la date à laquelle on nous
  * l'a dit. Le seul calcul est une date, et il vient de `information.ts`.
  *
- * ## RIEN NE REMPLIT ENCORE `derniereInformation`, ET C'EST ÉCRIT
+ * ## `derniereInformation` EST REMPLIE DEPUIS LE 12/09/2026 AU SOIR (D114)
  *
- * Aucune table ne porte une information reçue d'un organisme : le rapport de
- * VGP est un **document de classe `client`** (D88 §9, au sens de D87), et
- * **rien ne le distingue encore d'un autre document** — `document` porte une
- * classe et une cible, pas une nature. Tant que L9-09 et L9-10 ne sont pas
- * écrits, `derniereInformation` vaut `null` pour **toutes** les machines, et le
- * registre affiche donc « sans information depuis X » partout.
+ * ~~Aucune table ne porte une information reçue d'un organisme.~~ **`vgp_verification`
+ * la porte** — machine, date, organisme, référence du rapport, document
+ * facultatif, et **d'où vient l'information**. La phrase d'origine est barrée
+ * et non effacée : *elle a gouverné ce module, et ce qui a été écrit un jour se
+ * relit.*
  *
- * **Ce n'est pas un défaut du registre : c'est le registre qui dit vrai.** Le
- * danger que D88 nomme est l'inverse — *un registre à moitié rempli qui
- * ressemble à un registre complet.* Un écran qui afficherait « à jour » faute
- * de savoir serait exactement ce qu'on refuse. *Le jour où une nature de
- * document existe, seule la ligne qui compose `derniereInformation` change ici
- * ; ni le type rendu, ni l'écran.*
+ * **Ce qui n'a pas changé, et c'est le plus important** : le registre affiche
+ * toujours *« sans information depuis X »* pour une machine dont personne n'a
+ * rien dit, et **jamais « à jour »**. *Le danger que D88 nomme est qu'un
+ * registre à moitié rempli ressemble à un registre complet* — remplir la
+ * colonne ne change rien à cette règle, elle lui donne seulement de quoi être
+ * vraie dans les deux sens.
+ *
+ * **La date qui compte est celle de la VÉRIFICATION, jamais celle de la
+ * saisie.** Une vignette relevée aujourd'hui peut porter une vérification d'il
+ * y a onze mois, et c'est elle qui décide de la prochaine échéance.
  *
  * ## AUCUNE COMPARAISON DE SOCIÉTÉ N'EST ÉCRITE ICI
  *
@@ -100,6 +104,10 @@ export async function listerLeRegistre(
   aujourdHui: Date,
   limite: number,
 ): Promise<readonly LigneDeRegistre[]> {
+  // CE QU'ON NOUS A DIT, par machine (D114). Une SEULE lecture groupée plutôt
+  // qu'une par ligne : *sous 190 ms de latence vers Sydney, un aller-retour par
+  // machine se mesure* (§9, 23/08).
+  const recues = await dernieresInformations(contexte);
   const machines = await avecContexteApplicatif(contexte, (tx) =>
     tx.machine.findMany({
       select: CHAMPS_REGISTRE,
@@ -143,10 +151,10 @@ export async function listerLeRegistre(
       information: etatDeLInformation({
         assujettissement: resolu.valeur,
         periodiciteMois: resolu.periodiciteMois,
-        // VOIR L'EN-TÊTE : rien ne remplit encore cette valeur, et l'écrire
-        // `null` est la SEULE réponse honnête. Une date inventée ferait
-        // afficher une échéance que personne n'a promise.
-        derniereInformation: null,
+        // CE QU'ON NOUS A DIT, ou `null` si personne n'a rien dit. *Le second
+        // cas reste le cas ordinaire d'un registre qu'on commence à remplir*,
+        // et c'est lui que « sans information depuis X » décrit.
+        derniereInformation: recues.get(machine.id) ?? null,
         depuis: machine.date_mise_en_service,
         aujourdHui,
       }),

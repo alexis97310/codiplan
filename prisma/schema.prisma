@@ -170,6 +170,9 @@ model Societe {
   forfaits              Forfait[]
   machines              Machine[]
   prestations           Prestation[]
+  verifications_vgp     VgpVerification[]
+  observations_vgp      VgpObservation[]
+  campagnes_vgp         VgpCampagne[]
 
   @@map("societe")
 }
@@ -1493,7 +1496,8 @@ model Machine {
   /// La documentation PROPRE à cet exemplaire — certificat de conformité,
   /// procès-verbal de mise en service (L8-01). L'écran affiche l'UNION de
   /// celle-ci et de celle du modèle, sans qu'aucune ligne soit copiée (L8-02).
-  documents Document[]
+  documents         Document[]
+  verifications_vgp VgpVerification[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, modele_id, numero_serie])
@@ -1662,12 +1666,13 @@ model Intervention {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  forfait Forfait? @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  devise  Devise?  @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  societe          Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client           Client           @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site             Site             @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence           Agence           @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  forfait          Forfait?         @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  devise           Devise?          @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  observations_vgp VgpObservation[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, numero])
@@ -1909,6 +1914,176 @@ enum MotifClotureDemande {
   doublon
 }
 
+/// D'OÙ VIENT CE QU'ON NOUS A DIT (D114).
+///
+/// **Un rapport reçu de l'organisme, une vignette photographiée par un
+/// technicien et une parole du client au téléphone n'ont pas la même valeur le
+/// jour d'un contrôle.** Et l'origine **ne se reconstitue pas après coup** : une
+/// ligne écrite sans elle est une ligne dont personne ne saura jamais d'où elle
+/// vient.
+///
+/// **Énumération CLOSE en base, jamais un champ libre** : *un champ libre sur
+/// une question de valeur probante produit autant de graphies que de saisies, et
+/// aucune ne se compte.*
+///
+/// **CES QUATRE VALEURS SONT UNE PROPOSITION, et D114 le dit** : elles sont du
+/// vocabulaire d'exploitation, et le §1 du protocole le réserve à Alexis. La
+/// table naît avec la colonne ; la liste se complète par `ALTER TYPE … ADD
+/// VALUE`, qui ne coûte rien. *Ce qui aurait coûté cher est de ne pas avoir la
+/// colonne.*
+enum OrigineInformationVgp {
+  /// Le rapport, reçu directement de l'organisme agréé. La valeur probante la
+  /// plus forte : nous tenons la pièce, et de sa source.
+  rapport_organisme
+
+  /// Le même document, transmis par le CLIENT. La pièce est là, sa chaîne de
+  /// transmission ne l'est pas — et c'est exactement ce que D88 nomme : *les
+  /// VGP sont commandées par les clients.*
+  rapport_transmis_client
+
+  /// La vignette apposée sur la machine, vue et photographiée sur site. Elle
+  /// dit qu'une vérification a eu lieu et à quelle date ; elle ne dit pas ce
+  /// qu'elle a conclu.
+  vignette_constatee
+
+  /// Ce que le client nous a dit, sans pièce. *La valeur la plus faible, et
+  /// c'est pour la distinguer des trois autres que cette colonne existe.*
+  declaration_client
+}
+
+/// CE QU'ON NOUS A DIT D'UNE VÉRIFICATION PÉRIODIQUE (lot 9, D88, D114).
+///
+/// **CODIPLAN N'AFFIRME JAMAIS LA CONFORMITÉ** : cette table enregistre ce
+/// qu'un organisme agréé a écrit, et le seul calcul du produit est une DATE
+/// (L9-01). Aucune colonne ne porte un verdict.
+///
+/// Forme de politique **« filiation »**, parent `machine` — *une fille est
+/// visible si son parent l'est*, et c'est `site_habilitation_requise` qui a
+/// ouvert cette forme avec un parent qui n'est pas une intervention. **Aucune
+/// clause de société n'y est ajoutée** : elle serait une seconde source du même
+/// fait, et c'est la clé étrangère composite qui empêche une fille de dériver
+/// de la société de son parent.
+model VgpVerification {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// LE PARENT. C'est lui qui décide qui a le droit de voir cette ligne.
+  machine_id String @db.Uuid
+
+  /// LA DATE DE LA VÉRIFICATION — un jour, pas un instant : un organisme
+  /// intervient un jour donné, et l'heure n'est ni connue ni utile.
+  date_verification DateTime @db.Date
+
+  /// QUI L'A DITE. Texte libre : les organismes agréés ne sont pas une
+  /// énumération que ce produit puisse fermer — ils diffèrent par territoire,
+  /// et la solution sera vendue ailleurs (la leçon de la périodicité, L9-05).
+  organisme String
+
+  /// La référence du rapport, telle qu'elle figure dessus. NULLE quand
+  /// l'information ne vient pas d'un rapport — une vignette n'en porte pas.
+  reference_rapport String?
+
+  /// D'OÙ VIENT L'INFORMATION (D114). Obligatoire, et sans valeur par défaut :
+  /// *une origine par défaut serait une valeur probante inventée.*
+  origine OrigineInformationVgp
+
+  /// OÙ SONT LES OCTETS, quand on les a — un `document` de classe `client`
+  /// (D88 §9). FACULTATIF : on peut savoir qu'une vérification a eu lieu sans
+  /// détenir la pièce, et c'est même le cas d'une vignette constatée.
+  document_id String? @db.Uuid
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe      Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  machine      Machine          @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  document     Document?        @relation(fields: [societe_id, document_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  observations VgpObservation[]
+
+  @@unique([societe_id, id])
+  @@index([societe_id, machine_id, date_verification(sort: Desc)])
+  @@map("vgp_verification")
+}
+
+/// UNE OBSERVATION D'ORGANISME — un travail à faire, daté, sur une machine
+/// identifiée (D88 §10).
+///
+/// > *« C'est le seul point où ce lot alimente le planning, et c'est celui qui
+/// > rapporte de l'argent. »*
+///
+/// **Elle a exactement la forme d'une intervention `a_planifier`**, et
+/// `intervention_id` dit celle qu'elle a engendrée. NULLE tant que personne ne
+/// l'a planifiée : *une observation non traitée est l'état qui compte*, et la
+/// confondre avec une observation traitée ferait disparaître du travail dû.
+///
+/// Forme **« filiation »**, parent `vgp_verification` — qui est elle-même une
+/// fille de `machine`. *L'adossement se chaîne, et c'est ce qui fait qu'aucune
+/// clause de société n'est écrite nulle part dans cette branche.*
+model VgpObservation {
+  id              String @id @db.Uuid
+  societe_id      String @db.Uuid
+  verification_id String @db.Uuid
+
+  /// CE QUE L'ORGANISME A ÉCRIT, mot pour mot. Texte libre, et il le restera :
+  /// *une énumération d'observations serait une classification que CODIPLAN
+  /// n'a pas le droit de faire* — il rapporte, il ne qualifie pas.
+  libelle String
+
+  /// L'intervention engendrée, NULLE tant qu'il n'y en a pas.
+  intervention_id String? @db.Uuid
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe      Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  verification VgpVerification @relation(fields: [societe_id, verification_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention?   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, verification_id])
+  @@map("vgp_observation")
+}
+
+/// UNE CAMPAGNE DE MISE EN CONFORMITÉ DU REGISTRE (L9-08, D88 §8).
+///
+/// > **Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS
+/// > deux cents alertes : cela ouvre UNE CAMPAGNE DATÉE avec un compteur qui
+/// > descend.**
+///
+/// *Un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte
+/// plus qu'il ne rapporte* (§9, 11/09) — et deux cents alertes le jour d'une
+/// déclaration sont la panne par le bruit, la plus sûre de toutes.
+///
+/// **Le compteur n'est PAS une colonne, et c'est décidé** : il se DÉRIVE des
+/// machines de la famille qui n'ont reçu aucune information depuis l'ouverture.
+/// *Un compteur stocké se désynchronise en silence, et un compteur figé est
+/// pire qu'une alerte de trop : il a l'air de mesurer.*
+model VgpCampagne {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// LA FAMILLE dont la déclaration a ouvert la campagne.
+  famille_id String @db.Uuid
+
+  /// LE JOUR DE L'OUVERTURE. C'est lui qui borne ce que le compteur regarde :
+  /// une information reçue AVANT ne solde pas une campagne ouverte APRÈS.
+  ouverte_le DateTime @db.Date
+
+  /// LE JOUR OÙ ELLE A ÉTÉ CLOSE, à la main. NULLE tant qu'elle court.
+  /// *Elle ne se ferme pas toute seule quand le compteur atteint zéro* : une
+  /// campagne close est une décision, et le compteur peut remonter — une
+  /// machine neuve entre dans la famille.
+  close_le DateTime? @db.Date
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, famille_id])
+  @@map("vgp_campagne")
+}
+
 /// LE CATALOGUE DES PRESTATIONS (L1-12 ; D109, D113).
 ///
 /// **UNE PRESTATION PORTE UNE DURÉE, JAMAIS UN TAUX** (D109). *Une facture ne
@@ -2103,10 +2278,11 @@ model FamilleMateriel {
 
   actif Boolean @default(true)
 
-  societe     Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  modeles     ModeleMateriel[]
-  forfaits    Forfait[]
-  prestations Prestation[]
+  societe       Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modeles       ModeleMateriel[]
+  forfaits      Forfait[]
+  prestations   Prestation[]
+  campagnes_vgp VgpCampagne[]
 
   /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
   /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
@@ -2481,7 +2657,8 @@ model Document {
   machine Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   /// Les fichiers du bac qui ont produit cette fiche (L8-07).
-  recus DocumentRecu[]
+  recus             DocumentRecu[]
+  verifications_vgp VgpVerification[]
 
   /// Cible du chaînage composite que `document_recu` pose (L8-07).
   @@unique([societe_id, id])

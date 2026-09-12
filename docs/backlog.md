@@ -831,7 +831,7 @@ Les documents existants sont **numériques mais rangés en vrac**, sans structur
 
 **LES MARQUEURS ONT ÉTÉ REDRESSÉS LE 12/09/2026, et dans les deux sens.** Le paragraphe ci-dessus disait « LA COLONNE VERTÉBRALE EST CONSTRUITE — L9-03 à L9-07 » pendant que les cinq tickets portaient `LIBRE` ; et L9-11 portait `LIBRE` alors que son acceptation exige une file de synchronisation qui n'existe pas (`lib/sync/` est `(prévu)` au §6, le répertoire est absent). *`pnpm file` est une LECTURE : un marqueur faux envoie une session refaire ce qui existe, ou prendre ce qui ne peut pas se faire.*
 
-**ET LES TROIS DERNIERS BUTENT SUR UN SEUL FAIT, mesuré plutôt que supposé.** L9-08, L9-09 et L9-10 supposent tous qu'une information reçue d'un organisme soit enregistrable. **Elle ne l'est pas** : `document` porte une classe et une cible, jamais une NATURE, et rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification. *Le compteur qui descend de L9-08 ne pourrait donc jamais descendre* — un compteur figé est pire qu'une alerte de trop, parce qu'il a l'air de mesurer. La question est portée à Alexis (§1 du protocole : *une obligation légale*), et les trois tickets attendent sa réponse plutôt que d'être bâtis sur une forme inventée.
+~~**ET LES TROIS DERNIERS BUTENT SUR UN SEUL FAIT.**~~ **LE FAIT EST LEVÉ — D114, le 12/09/2026 au soir.** `vgp_verification` porte ce qu'on nous a dit : machine, date, organisme, référence du rapport, document facultatif, **et d'où vient l'information**. *Un rapport reçu de l'organisme, une vignette photographiée et une parole du client n'ont pas la même valeur le jour d'un contrôle, et l'origine ne se reconstitue pas après coup.* `vgp_observation` porte le travail dû — *elle a exactement la forme d'une intervention `a_planifier`* —, et `vgp_campagne` l'objet unique et daté de L9-08, **dont le compteur se DÉRIVE** : un compteur stocké se désynchronise en silence, et un compteur figé a l'air de mesurer. La phrase d'origine est barrée et non effacée.
 
 **Vérifications générales périodiques** (APAVE, Bureau Veritas). **Chez CODIMA, ce sont les CLIENTS qui commandent ces visites, pas CODIMA. Tout ce lot découle de là.**
 
@@ -871,17 +871,17 @@ Pas une table de plus : `journal_audit`, par déclencheur, avec les valeurs avan
 *Acceptation :* toute déclaration d'assujettissement est retrouvable avec son auteur et sa justification.
 
 **L9-08** Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre **UNE CAMPAGNE DATÉE avec un compteur qui descend**.
-*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
+*File :* LIVRÉ
 *Un gardien dont on ignore les alertes coûte plus qu'il ne rapporte* — c'est déjà écrit au §9 du CLAUDE.md, et deux cents alertes le jour d'une déclaration, c'est la panne par le bruit, la plus sûre.
 *Acceptation :* une déclaration produit un objet unique, daté, avec un reste-à-faire visible ; aucune notification par machine.
 
 **L9-09** Le rapport de VGP est de classe `client`.
-*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
+*File :* LIVRÉ
 **L'obligation pèse sur celui qui utilise le matériel : le rapport lui appartient.** C'est la classe de L8-03, et c'est tout — le lot 9 ne crée aucun axe de visibilité.
 *Acceptation :* un compte portail retrouve les rapports de ses machines, et rien d'autre.
 
 **L9-10** Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.
-*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
+*File :* LIVRÉ
 **C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.** Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
 *Acceptation :* une observation saisie produit une intervention en file d'attente, rattachée à la machine et au rapport qui l'a motivée.
 

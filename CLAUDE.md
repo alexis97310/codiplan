@@ -1181,6 +1181,37 @@ lib/
               « bientôt » — la périodicité est saisie, jamais inventée (§8)
               l'heure est un PARAMÈTRE, jamais une lecture : lue ici, elle
               rendrait un test vert parce que l'horloge a bougé
+              verification.ts : CE QU'ON NOUS A DIT, et D'OÙ (D114) — un rapport
+              de l'organisme, une vignette photographiée et une parole du client
+              n'ont pas la même valeur le jour d'un contrôle, et l'origine NE SE
+              RECONSTITUE PAS après coup
+              l'origine est SANS DÉFAUT : une origine par défaut serait une
+              valeur probante inventée, sur la ligne même qu'on produirait
+              la date qui compte est celle de la VÉRIFICATION, jamais de la
+              saisie — une vignette relevée aujourd'hui peut en porter une d'il
+              y a onze mois, et c'est elle qui décide de l'échéance
+              les observations s'écrivent AVEC la vérification, en une
+              transaction : un rapport « avec » enregistré comme un rapport
+              « sans » ferait disparaître du travail dû
+              observations.ts : LE SEUL POINT OÙ CE LOT ALIMENTE LE PLANNING
+              (L9-10) — et rien ne s'engendre tout seul : une intervention créée
+              sans qu'on l'ait voulu part au planning et engage une visite
+              le type est `controle_reglementaire`, qui existe depuis l'origine :
+              inventer un type « vgp » aurait fermé une énumération de statuts
+              sans arbitrage (§8)
+              le client et le site sont REÇUS, jamais déduits de la machine :
+              une machine dit où elle est aujourd'hui, une intervention dit où
+              l'on va — et l'historique de L2-05 existe parce que les deux
+              divergent au premier déménagement
+              campagne.ts : UN objet daté, jamais deux cents alertes (L9-08) —
+              un gardien dont on ignore les alertes coûte plus qu'il ne rapporte
+              LE COMPTEUR N'EST PAS UNE COLONNE : il se DÉRIVE, parce qu'un
+              compteur stocké se désynchronise en silence et qu'un compteur figé
+              a l'air de mesurer
+              une information ANTÉRIEURE à l'ouverture ne solde rien : c'est
+              tout ce que la date d'ouverture sert à borner
+              elle ne se clôt pas toute seule à zéro — une campagne close est
+              une décision, et le compteur peut remonter
   theme/      charte de la société active — couleurs, encres, variables CSS
               manifeste.ts : les DEUX couleurs que le manifeste d'application
               exige (L3-06) — un manifeste n'est pas une feuille de style, le

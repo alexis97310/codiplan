@@ -109,4 +109,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260913210000_statut_affectee_d8",
   "20260913220000_statut_facturation_d8",
   "20260913230000_prestation_l1_12",
+  "20260913240000_vgp_verification_l9",
 ];
