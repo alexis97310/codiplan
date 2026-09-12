@@ -13,6 +13,11 @@ export {
   VOCABULAIRE,
   definition,
   mot,
+  // `motDansUnePhrase` est la MÊME source sous une autre casse : le mot y
+  // descend en minuscule initiale pour tomber au milieu d'une phrase. Il est
+  // déclaré ici DÉLIBÉRÉMENT — c'est ce qui l'autorise dans un emplacement
+  // visible, et le laisser dehors l'aurait fermé (voir l'en-tête).
+  motDansUnePhrase,
   type NotionImposee,
   type TermeImpose,
 } from "./vocabulaire";

@@ -74,6 +74,34 @@ export function mot(notion: NotionImposee, pluriel = false): string {
   return t(pluriel ? terme.pluriel : terme.libelle);
 }
 
+/**
+ * LE MOT DANS UNE PHRASE — en minuscule initiale (R2-07, 13/09/2026).
+ *
+ * **Le dictionnaire porte le mot sous sa forme d'ÉTIQUETTE** : « Agence »,
+ * « Site », avec la capitale d'un titre de colonne ou d'un titre d'écran. C'est
+ * la bonne forme là où il est employé aujourd'hui — un en-tête, un `h1`.
+ *
+ * **Mais un mot imposé se glisse aussi au milieu d'une phrase**, et là sa
+ * capitale est une faute de français : *« appelez votre Agence »*. Elle se
+ * corrige au RENDU et jamais au dictionnaire — une seconde entrée
+ * « agence en minuscule » serait une seconde écriture du même mot, qui
+ * divergerait au premier renommage (D5, D47).
+ *
+ * *C'est une IMAGE qui l'a montré, et aucune assertion n'aurait pu : le gardien
+ * du vocabulaire vérifie que le mot ne s'écrit pas ailleurs, jamais qu'il se lit
+ * bien dans la phrase où il tombe* (§9, 09/09).
+ *
+ * **La minuscule est posée sur la PREMIÈRE lettre seulement** : un mot composé
+ * futur garderait ses capitales internes, et `toLowerCase()` les perdrait.
+ */
+export function motDansUnePhrase(
+  notion: NotionImposee,
+  pluriel = false,
+): string {
+  const terme = mot(notion, pluriel);
+  return terme.charAt(0).toLocaleLowerCase("fr") + terme.slice(1);
+}
+
 /** Ce que la notion désigne, et ce qu'elle ne désigne jamais. */
 export function definition(notion: NotionImposee): string {
   return t(VOCABULAIRE[notion].definition);

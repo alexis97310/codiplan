@@ -247,9 +247,17 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
 
     // (e) Les accesseurs sont DÉDUITS du module : ce que `lib/i18n` exporte
     //     réellement, et rien d'autre.
+    //
+    //     **ET LA LISTE EST CLOSE, ce qui fait de chaque ajout une décision.**
+    //     `motDansUnePhrase` y est entré le 13/09/2026 : c'est `mot` sous une
+    //     autre CASSE — le mot imposé descend en minuscule initiale pour tomber
+    //     au milieu d'une phrase. Il ne lit aucune chaîne nouvelle ; il rend
+    //     celle que `mot` rend. *Une image l'a demandé — le portail affichait
+    //     « appelez votre Agence » — et aucune assertion n'aurait pu le voir.*
     expect([...ACCESSEURS.fonctions].sort()).toEqual([
       "definition",
       "mot",
+      "motDansUnePhrase",
       "t",
     ]);
     expect([...ACCESSEURS.objets]).toContain("fr");

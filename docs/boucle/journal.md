@@ -560,6 +560,62 @@ dans un test.**
 
 ---
 
+## J10 — R2-07 : le portail suit la maquette, et une IMAGE a montré ce qu'aucune assertion ne voyait
+
+Le bandeau `.pcli`, les quatre cartes `.kpi` avec leur filet de 3 px, les deux cartes de la
+colonne droite. **Le dégradé ne porte aucune couleur nouvelle** : la maquette va de
+`--bleu` à `#00376e`, ici de `--app-marque` à `--app-bleu-encre`, qui **est** le bleu sombre
+de la charte — et la seconde apparence le repeint sans que la ligne bouge.
+
+### Deux des quatre indicateurs sont VIDES, nommément
+
+*Mesuré au type que `parcDuClient` rend, pas supposé* : des sites et des machines, **et
+rien d'autre** — ni intervention, ni créneau. « Machine à l'arrêt » et « prochaine visite »
+affichent « — » **et disent pourquoi**. *Un zéro se lirait comme une mesure, et « aucune
+machine à l'arrêt » serait une affirmation fausse.* Le filet est gris sur ces deux-là et
+bleu sur les deux mesurées : *un filet bleu sur un « — » dirait que la case est
+renseignée.*
+
+### Il a été VU — et par un chemin qui n'existe pas en production
+
+L'acceptation demandait de le dire. **Vu**, oui : une ligne d'habilitation posée à la main
+dans la base **locale** de la prise de vue, le temps d'émettre un jeton, puis retirée.
+**Les quatre captures du dépôt refusent toujours cet écran, et c'est exact** — rien ne rend
+un compte portail connectable en production. *Les images obtenues par ce détour ne sont pas
+commises : elles contrediraient un refus qui dit vrai*, et c'est précisément ce que Q9
+rouvre.
+
+### Ce que l'image a montré
+
+> L'écran affichait **« appelez votre Agence »** et **« Votre Agence vous les transmet »** —
+> une capitale au milieu d'une phrase.
+
+Le dictionnaire porte le mot sous sa forme d'**étiquette**, et c'est la bonne forme là où il
+servait jusqu'ici — un en-tête, un `h1`. **Le gardien du vocabulaire vérifie que le mot ne
+s'écrit nulle part ailleurs ; il ne lit pas la phrase où il tombe.** `motDansUnePhrase`
+corrige au RENDU, jamais au dictionnaire — une seconde entrée aurait divergé au premier
+renommage. *C'est le §9 du 09/09 en acte, et il ne m'a rien coûté d'autre que de regarder.*
+
+### Trois gardiens ont réclamé leur dû, et chacun avait raison
+
+Le **vocabulaire**, parce que mes phrases écrivaient « agence » au dictionnaire. Les
+**chaînes visibles**, parce que mon test recopiait le mot attendu — il le DÉRIVE désormais
+de `mot()`. Et la **liste close des accesseurs** : `lib/i18n/index.ts` dit lui-même
+*« ajouter ici un accesseur l'autorise du même coup ; ne rien ajouter le laisse fermé »*.
+L'ajout est donc une décision, écrite des deux côtés.
+
+### Et le piège du port 3100 a mordu une QUATRIÈME fois
+
+Même symptôme, même cause, même journée. *Il n'y a rien à en conclure de neuf — la note
+existe, elle est juste, et je l'ai relue après coup les quatre fois.*
+
+### Commit
+
+`79132e7` — `pnpm verify:full` → **EXIT=0**, **1734** unitaires · 826 d'isolation ·
+27 Playwright, à `22:18 UTC`.
+
+---
+
 ## LA MESURE QUE JE NE TRANCHE PAS — le trajet dans le taux de charge (D107)
 
 *Écrite ici pour être relisible dans quelques semaines, et pour rien d'autre.* Sur le jeu
@@ -590,10 +646,11 @@ pas rouverte, rien n'est plafonné, et aucun code n'a bougé de ce fait.
 | `75c0055` | R1-09 et R1-11 |
 | `97c3504` | R2-01 — le second thème |
 | `c1ffd56`, `7acb469` | la prise de vue : 72 images |
+| `79132e7` | R2-07 — le portail suit la maquette, et `motDansUnePhrase` |
 
 *Chaque ligne « vert mesuré » de ce journal nomme `pnpm verify:full` et son heure, lue à
-l'horloge.* **Le vert de CLÔTURE, mesuré après la prise de vue : `pnpm verify:full` →
-EXIT=0, 1731 unitaires · 826 d'isolation · 27 Playwright, le 12/09/2026 à `21:42:16 UTC`.**
+l'horloge.* **Le vert de CLÔTURE : `pnpm verify:full` → EXIT=0, 1734 unitaires · 826 d'isolation ·
+27 Playwright, le 12/09/2026 à `22:18:08 UTC`.**
 
 ## CE QUI EST EN ATTENTE
 
