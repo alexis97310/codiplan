@@ -1379,6 +1379,14 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **Le code démarre sans la clé** : ce qui échoue est l'envoi, et il nomme la variable absente et où la déposer. **Aucun secret dans le dépôt**, pas même en commentaire, et la clé ne sort jamais dans un motif de refus.
 *Le geste qui reste à Alexis est le dépôt de deux secrets — `docs/mise-en-ligne.md`, section « LE CANAL D'ENVOI DE COURRIEL ».*
 
+**R3-10 — LE SEMIS NE POSE AUCUNE MACHINE, et deux écrans se photographient VIDES. [mesuré le 13/09/2026]**
+*File :* LIBRE
+**Déclencheur : la prochaine prise de vue.** *Mesuré sur la base de la prise du 13/09 :* `machine` **0**, `famille_materiel` **0** — contre `client` 5, `site` 7, `intervention` 32. `/parc` et `/vgp` affichent donc « Aucune machine n'est enregistrée pour cette société », et **ils disent vrai** : le défaut n'est pas dans l'écran.
+**CE QUE CELA COÛTE, ET C'EST PRÉCIS.** Les captures sont *le seul moyen pour l'arbitre du projet de juger un écran* — il lit le dépôt, il n'atteint ni le site authentifié ni un serveur local. Deux écrans livrés lui sont donc donnés à juger **sur leur état vide** : on y voit la barre, le titre, les en-têtes de colonnes, et rien de ce que l'écran fait d'une donnée. *Une image vide ne ment pas, mais elle ne montre pas non plus ce qu'on lui demande de montrer.*
+**Et l'effet dépasse les images** : le registre VGP porte tout le lot 9 — assujettissement à trois valeurs, « sans information depuis X », campagne datée — et **aucune de ces distinctions ne peut être VUE** tant qu'aucune machine n'existe. Les scénarios les éprouvent ; l'œil, non.
+*Ce qui n'est PAS demandé :* des données réalistes, ni un volume. **Quelques machines suffisent**, réparties de sorte que les trois régimes d'assujettissement et les deux états d'information soient chacun visibles au moins une fois — *c'est la lisibilité d'une DÉMONSTRATION qu'on vise, pas un jeu d'épreuve.*
+*Acceptation :* `prisma/seed.ts` pose des machines et les familles qu'elles supposent ; `/parc` et `/vgp` photographiés ne sont plus vides ; le budget d'allers-retours du semis tient toujours (`tests/unit/seed-delais.test.ts`, qui rougit de lui-même s'il ne tient plus) ; et aucune donnée n'est réelle (I9).
+
 **R3-07 — LES *ISSUES* SONT DÉSACTIVÉES SUR LE DÉPÔT, et l'alarme d'É12 ne peut rien ouvrir. [R0-a] [É12]**
 *File :* BLOQUÉ — c'est un réglage de dépôt, pas un correctif de code : seul le propriétaire peut cocher la case. Mesuré le 12/09/2026.
 **CE QUI A ÉTÉ MESURÉ, à 05:59:13 UTC sur l'exécution `34676559756`** : `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »** ; `list_issues` rend **0 issue, total 0** ; et `pulls/133` rend **404**, donc **#133 était bien une issue** — les issues ont existé, ont servi (#103, #127, #133, #142, #144), et sont aujourd'hui désactivées.

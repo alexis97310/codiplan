@@ -368,6 +368,198 @@ dans le shell, les 27 scénarios passent.
 
 ---
 
+## J5 — L2-13 : DEUX EXIGENCES DE D96 NE PEUVENT PAS ÊTRE VRAIES ENSEMBLE (Q9)
+
+**C'était le premier travail libre de la file, et il ne l'est pas.** En l'ouvrant, une
+contradiction interne à D96 est apparue — *ce n'est ni un refus ni une réduction de
+périmètre en silence : c'est une contradiction entre deux moitiés d'une même décision de
+rang 1, qui se SIGNALE plutôt qu'elle ne s'arbitre* (§1 du `CLAUDE.md`).
+
+D96 range la table en **troisième catégorie de I1** — *« un lien d'invitation est un
+matériau d'authentification : il se range comme tel »* —, donc sans `societe_id` et sous la
+forme « désignation » : *on ne lit que la ligne qu'on nommait déjà*, en présentant son
+jeton. **Et le même D96 exige « tracé — qui a invité qui, quand ».** L'agence ne possède
+pas le jeton : il est montré une fois, à usage unique, non relisible. *Sous cette forme,
+personne au back-office ne peut relire une seule ligne — pas même celles qu'il vient
+d'écrire.* Le journal d'audit ne comble pas le trou : I8 ne couvre que la première
+catégorie.
+
+**J'ai cherché une troisième voie et je n'en ai pas trouvé qui tienne** — je le dis plutôt
+que d'affirmer qu'il n'y en a pas. Faire poser le contexte de société par un jeton
+présenté par un inconnu contredirait L1-02e mot pour mot ; une fonction `SECURITY DEFINER`
+est refusée par un gardien dont la liste d'exceptions est close **et vide**.
+
+### Un gardien rendait une fausse alerte, découvert en passant
+
+Le contrôle de cohérence du backlog ne reconnaît que les tickets de **lot** comme en-tête —
+c'est voulu, eux seuls portent une estampille — **mais il s'en servait aussi de BORNE**. Le
+dernier ticket de lot du document absorbait donc tous les tickets de reprise qui le
+suivent : le bloc de `L1-12` portait le texte de `R3-06` et `R3-07`, et ses « sources
+citées » étaient celles de quatre tickets. *Toute retouche à la fin du document faisait
+rougir son empreinte* — un ticket écrit ce jour-là citant `D95` a suffi.
+
+```
+AssertionError: expected [ 'D10', 'D95', 'D96' ] to deeply equal [ 'D10' ]
+```
+
+*Ouvrir un ticket et fermer le précédent ne sont pas la même chose* : le nouveau motif
+FERME, sans jamais ouvrir.
+
+### Commit
+
+`614ef27` — `pnpm verify:full` → **EXIT=0**, 1720 · 826 · 27, à `20:48 UTC`.
+
+---
+
+## J6 — R1-07, et le lot 7 fermé avec sa mesure
+
+**Le §5 du protocole portait quatre sections ; il en porte cinq.** Le **TITRE** — sans
+jargon, sous 80 caractères — parce que *c'est ce qu'une notification montre avant que
+quiconque décide d'ouvrir* ; et **« ce qu'elle INTERDIT »** à côté de « ce qu'elle coûte »,
+parce qu'*un coût se paie une fois tandis qu'une porte fermée ne se rouvre pas toujours.*
+
+**Et la règle a mordu son auteur dans le même geste** : le titre de Q9, écrit une heure
+plus tôt, faisait **84 caractères**. Il en fait 66.
+
+### Le lot 7 est fermé, et c'est mesuré
+
+L7-01 et L7-03 étaient marqués `LIBRE`. Les trois moitiés du constat : `lireRole`
+n'accorde un contexte de société qu'à une identité portant une ligne dans
+`utilisateur_societe` **ou** `utilisateur_client`, et le §22.5 n'en donne aucune à un rôle
+éditeur ; `app/(editeur)/` n'existe pas ; le semis ne sème **aucune** identité
+`admin_plateforme`.
+
+**Et je n'ai PAS posé la politique d'avance**, contrairement à l'habitude du dépôt.
+*Mesuré sur `pg_policies` : `second_facteur` porte quatre politiques et **aucune pour
+`DELETE`**.* Sous `FORCE`, un verbe sans politique est refusé **pour tout le monde** —
+l'état le plus sûr, et le cœur de D58/D59. La doctrine §2 dit qu'une règle de cloisonnement
+n'a pas besoin d'appelant, *mais elle parle de FERMER un trou, jamais d'OUVRIR une porte
+devant laquelle personne ne peut encore se présenter.*
+
+### Commit
+
+`4eac7d5` — `pnpm verify:full` → **EXIT=0**, 1724 · 826 · 27, à `21:00 UTC`.
+
+---
+
+## J7 — Deux notes qui mentaient (R1-09, R1-11)
+
+**R1-09** — le §5.1 envoyait **créer une base de production, y déposer deux secrets et
+amorcer une société** pour atteindre un écran qui s'ouvre sans rien de tout cela. La phrase
+est barrée avec sa date et son commit ; une section **« LA VOIE COURTE »** donne les huit
+clics, en nommant l'identité et l'identifiant de société **lus dans `prisma/seed.ts`**
+(I9). Et **une seconde phrase caduque** a été trouvée dans le même paragraphe — *« le dépôt
+est privé »*, première des trois conditions qui rendaient acceptable qu'un jeton entre dans
+un journal.
+
+Le gardien que le ticket réclamait dit ce qui rendrait la **nouvelle** phrase fausse :
+
+```
+AssertionError: le semis pose un mot de passe. […] le cliquet de D65 lit
+`mot_de_passe IS NULL`, et une empreinte semée FERMERAIT la réémission pour
+toujours, sur des comptes que personne n'a ouverts.
+```
+
+**R1-11** — `nuit.yml` portait `schedule: cron "0 16 * * *"` alors que le flux est
+désactivé. *Re-mesuré plutôt que cité : `state: "disabled_manually"`, 11/09 à 12:54:55
++11:00.* C'est le §9 du 31/08 à l'envers — là une **garantie** reposait sur un attribut
+extérieur, ici c'est une **neutralisation**. Et `claude.yml` ne reçoit aucune mention,
+**parce que son état ne le justifie pas** : `active`, sans aucun `schedule`.
+
+### Commit
+
+`75c0055` — `pnpm verify:full` → **EXIT=0**, 1726 · 826 · 27, à `21:08 UTC`.
+
+---
+
+## J8 — R2-01 : le second thème est ce qui ÉPROUVE le mécanisme
+
+**Tant qu'il n'y avait qu'une apparence, la promesse de D95 n'était ni vérifiable ni
+démentable.** Il a fallu un bloc CSS et une entrée de liste — **rien d'autre**, et c'est
+désormais mesuré plutôt que promis.
+
+**L'impossibilité a été chiffrée avant d'être refusée.** `d03a4a5`, où les valeurs sont
+lues, n'existait pas dans ce clone — superficiel, **55 commits sur 362**.
+`git fetch --unshallow` a coûté **vingt secondes**. *Un devis se chiffre avant d'être
+refusé* (§9, 08/09).
+
+**Ce qui a dû être DÉRIVÉ est dit.** L'apparence d'avant ne portait pas trente jetons :
+elle portait des classes utilitaires, et plusieurs rôles n'avaient aucun équivalent — ni
+bordure rouge, ni bordure orange. Ceux-là sont pris sur la même rampe, au même degré que
+leurs voisins. *Une valeur dérivée présentée comme recouvrée serait une mesure inventée.*
+
+Le ticket dit « vingt-neuf jetons » ; il y en a **trente**, mesuré sur `JETONS`.
+
+```
+AssertionError: expected [ 'tableau' ] to deeply equal []
+AssertionError: expected 1 to be greater than or equal to 2
+```
+
+### Commit
+
+`97c3504` — `pnpm verify:full` → **EXIT=0**, 1731 · 826 · 27, à `21:16 UTC`.
+
+---
+
+## J9 — LA PRISE DE VUE : 72 images, et deux écrans VIDES
+
+**72 images à `c1ffd56`**, prise lue à l'horloge : `2026-09-12 21:29 UTC`. Seize de plus
+que la veille — les six écrans que personne ne pouvait voir : `/parc`, `/sites`,
+`/parametres/trajets`, `/parametres`, `/vgp`, `/vgp/a-determiner`.
+
+**QUATRE refus, et ce sont les mêmes que le 10 et le 12/09**, re-mesurés plutôt que
+recopiés : les quatre images du portail. *C'est exactement ce que Q9 rouvre par l'autre
+bout.*
+
+### Huit autres refus étaient les miens, et la mesure les a nommés
+
+La première prise a tourné sous `adv@codima.test`. Les écrans d'enrôlement et de défi ont
+été refusés, et leur refus disait *« le compte porte déjà un second facteur »*. **La cause
+était ailleurs** : RG-DRO-05 ne rend le second facteur obligatoire que sur
+`admin_plateforme`, `admin_societe` et `direction`. Sous un rôle `adv`, ces deux écrans
+**n'existent pas**, et c'est juste. *Encore un message juste sur une cause fausse.*
+
+Et la seconde prise a buté sur ce que le README annonçait déjà — **56 refus**, parce que la
+prise précédente avait enrôlé le compte et qu'*une clé d'enrôlement passée n'est pas
+rejouable*. La note le dit depuis le 12/09 ; je l'ai lue après.
+
+### Deux écrans sont photographiés VIDES, et ce n'est pas un défaut d'écran
+
+*Mesuré sur la base de la prise :* `machine` **0**, `famille_materiel` **0** — contre
+`client` 5, `site` 7, `intervention` 32. `/parc` et `/vgp` disent donc « Aucune machine
+n'est enregistrée pour cette société », et **ils disent vrai**.
+
+**L'arbitre doit le savoir avant de juger ces images** : ce qu'elles montrent est la FORME
+de l'écran, pas ce qu'il rend sur des données. Et l'effet dépasse les images — *le registre
+VGP porte tout le lot 9, et aucune de ses distinctions ne peut être VUE tant qu'aucune
+machine n'existe.* Porté à la file en **R3-10**.
+
+### ET LE MÊME PIÈGE A MORDU UNE TROISIÈME FOIS, sur le `verify:full` de clôture
+
+Dix scénarios Playwright rouges sur `auth.refus` — **mon propre serveur de prise de vue
+occupait encore le port 3100**, et le harnais a mesuré une application branchée sur la base
+des captures. *C'est littéralement l'avertissement que le README des captures porte depuis
+le 10/09, et que le journal du 12/09 consigne déjà comme l'ayant subi.* Serveur arrêté, les
+27 scénarios passent.
+
+**Trois occurrences de la même famille en une journée** — le harnais dont une variable
+n'était pas exportée, le compte sans second facteur obligatoire, le port occupé — et
+**aucune ne se lit dans son message d'échec** : `auth.refus` est juste, et sa cause est
+ailleurs à chaque fois. *La famille du 08/09, et ce qui la rend coûteuse n'est pas qu'elle
+soit difficile : c'est qu'elle soit CRÉDIBLE.*
+
+### Ce que l'image montre, et qu'aucune assertion n'aurait dit
+
+La page de paramétrage rend ses **quatre portes**, la barre allume « Sociétés & tarifs », et
+le chemin vers les temps de trajet existe enfin — **R3-08 en acte, sur une image plutôt que
+dans un test.**
+
+### Commits
+
+`c1ffd56` (les six écrans) et `7acb469` (les images).
+
+---
+
 ## LA MESURE QUE JE NE TRANCHE PAS — le trajet dans le taux de charge (D107)
 
 *Écrite ici pour être relisible dans quelques semaines, et pour rien d'autre.* Sur le jeu
@@ -382,14 +574,60 @@ pas rouverte, rien n'est plafonné, et aucun code n'a bougé de ce fait.
 | | |
 |---|---|
 | **§9 du `CLAUDE.md`** | *le verdict le plus grave était le verdict par défaut* — un contrôle interrompu criait à la faute. **Une seule inscription cette session** (§6 du protocole). |
+
 | **Doctrine §3** | *le verdict par défaut d'un contrôle est celui qui affirme le moins* |
 | **D114** | les quatre origines de VGP **ratifiées**, avec leur date |
+| **Protocole §5** | la forme d'un paragraphe d'arbitrage passe à **cinq** sections (R1-07) |
+
+## CE QUI EST SUR `main`
+
+| Commit | Ce qu'il porte |
+|---|---|
+| `f86b8b8` | la veille réparée (#169, R1-01), Q7 ratifiée, les écrans sans porte (R3-08) |
+| `3213c26` | le journal, la leçon au §9, #169 et #163 closes |
+| `614ef27` | L2-13 bloqué avec Q9 ; la borne des blocs du backlog ; trois marqueurs corrigés |
+| `4eac7d5` | R1-07, et le lot 7 fermé avec sa mesure |
+| `75c0055` | R1-09 et R1-11 |
+| `97c3504` | R2-01 — le second thème |
+| `c1ffd56`, `7acb469` | la prise de vue : 72 images |
+
+*Chaque ligne « vert mesuré » de ce journal nomme `pnpm verify:full` et son heure, lue à
+l'horloge.* **Le vert de CLÔTURE, mesuré après la prise de vue : `pnpm verify:full` →
+EXIT=0, 1731 unitaires · 826 d'isolation · 27 Playwright, le 12/09/2026 à `21:42:16 UTC`.**
 
 ## CE QUI EST EN ATTENTE
 
-**Aucune question nouvelle.** Q7 et Q8 sont tranchées et inscrites ; les six précédentes
-l'étaient déjà.
+**Une question nouvelle : Q9** — *le lien d'invitation : qui peut relire la trace qu'il
+laisse ?* Elle bloque **L2-13**, donc l'entrée des clients au portail. Q7 et Q8 sont
+tranchées et inscrites ; les six précédentes l'étaient déjà.
+
+**Six tickets sont passés de `LIBRE` à `BLOQUÉ` ou `LIVRÉ` avec leur mesure** — L2-13,
+L7-01, L7-03 d'un côté ; R1-01, R1-02, R1-10 de l'autre. *Un ticket dont l'état ment est
+pire qu'un ticket bloqué, et chacun coûtait une lecture pour découvrir qu'il n'y avait
+rien à faire.*
 
 ## LE GESTE QUI RESTE À ALEXIS
 
-**Un seul, et il dure trois minutes** — voir la clôture de ce journal.
+**UN SEUL, et il dure trois minutes : déposer la clé d'envoi de courriel.**
+
+> **`github.com/alexis97310/codiplan` → Settings → Secrets and variables → Actions → New
+> repository secret**, deux fois :
+>
+> | Nom exact | Ce qu'on y met |
+> |---|---|
+> | `COURRIEL_API_CLE` | une clé d'API créée sur **resend.com** (gratuit sous faible volume) |
+> | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition, p. ex. `CODIPLAN <acces@votre-domaine.nc>` |
+>
+> **Puis vérifier, sans rien casser** : Actions → **Ouvrir le PREMIER compte** → *Run
+> workflow* — base `demonstration`, confirmation `oui`, société
+> `0192f0a0-0000-7000-8000-000000000001`, votre adresse, l'URL de l'application —
+> **« Réémettre » coché** et **« Envoyer le lien par courriel » coché**. *La réémission ne
+> crée rien et ne referme rien.*
+
+La marche à suivre complète, avec les trois sorties possibles et ce que chacune veut dire,
+est dans **`docs/mise-en-ligne.md`, section « LE CANAL D'ENVOI DE COURRIEL »**. *Et rien
+n'est bloqué en attendant : l'envoi non configuré échoue en nommant ce qui manque, et le
+lien reste imprimé dans tous les cas.*
+
+**Aucune migration n'a été écrite cette journée** — le §12 du protocole n'appelle donc
+aucun geste de base.
