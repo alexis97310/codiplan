@@ -427,6 +427,55 @@ rédaction du gardien exigeait « six », un nombre écrit à la main — elle
 attrapait le contrôle qu'on décâble et laissait passer celui qu'on n'a jamais
 câblé.
 
+### Elle DIT D'OÙ VIENDRAIT UN ÉCART, au lieu de l'affirmer (R1-01)
+
+La veille observe la base, **et rien d'autre**. Le gabarit de l'issue qu'elle
+ouvre écrivait pourtant, à chaque alarme : _« Ces écarts ne viennent d'aucune
+migration — ce sont des gestes passés à la main. »_ **C'était une phrase fixe,
+pas une mesure**, et elle a menti deux fois : le 10/09/2026, où l'unique écart
+rapporté était exactement le contenu d'une migration jamais appliquée — une
+journée perdue à chercher un geste qui n'existait pas ; le 12/09/2026, où elle a
+été imprimée sur une alarme où la veille n'avait **rien observé du tout**.
+
+La veille compare désormais `_prisma_migrations` à ce que le dépôt attend, et
+**le geste manuel n'est affirmé que lorsque le décompte est nul**. Sinon la
+phrase ne conclut rien : elle dit combien de migrations sont en retard et quoi
+faire avant de conclure. La règle vit dans
+[`scripts/lib/provenance-ecart.ts`](scripts/lib/provenance-ecart.ts) ; elle
+**appelle** `verdictDesMigrations`, qui répond déjà à cette question depuis la
+panne du 11/09, et elle n'en écrit pas une variante.
+
+### Un contrôle interrompu ne rend JAMAIS un écart
+
+_Incident du 12/09/2026._ La transaction d'observation n'avait **aucun délai
+déclaré** : elle héritait des 5 000 ms de Prisma, une valeur de réseau local. La
+veille a franchi ce plafond en **grossissant** — chaque contrôle ajouté apporte
+son aller-retour, et son périmètre inversé les fait entrer tout seuls. _Mesuré
+deux fois sur le même commit : 5 199 ms, puis 5 152 ms._
+
+Elle n'a alors rien observé — et elle a ouvert un incident de **sécurité**
+affirmant que la base avait dérivé, parce que `estPanneDeLiaison` était une
+**liste d'admis** dont tout ce qui n'y figurait pas tombait dans la branche la
+plus grave. _Le verdict le plus grave était le verdict par défaut._
+
+Deux réparations, de nature différente et indépendantes :
+
+|                |                                                                                                                                                                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **le budget**  | allers-retours **comptés dans le source**, latence majorée, produit sous le délai déclaré — [`scripts/lib/veille-delais.ts`](scripts/lib/veille-delais.ts), la parade du seed du 23/08 copiée plutôt qu'inventée. Le gardien redemande la question à chaque contrôle ajouté. |
+| **le verdict** | périmètre **inversé** comme celui de l'audit : seul un `EcartConstate` vaut un écart, c'est-à-dire seule la classe que l'observation lève **quand elle a bel et bien regardé**. Tout le reste est un incident d'exploitation, y compris ce que personne n'a prévu.           |
+
+**Ce qu'elle sait faire y a gagné, ce qu'elle sait dire aussi.** Les codes de
+sortie ne changent pas — **75 quand on n'a rien pu constater, 1 quand on a
+constaté un écart** ; ce qui change est le chemin par lequel un rouge inconnu les
+atteint.
+
+**Ce qu'elle ne fait pas :** `pnpm veille` ne compare pas le CONTENU d'une
+migration à ce que la base porte — elle compare les formes que le dépôt exige à
+celles que la base a. Une migration marquée appliquée dont le contenu manquerait
+se verrait donc par ses **effets** (une politique absente, une contrainte
+manquante), jamais par son nom.
+
 **Ce qu'elle répare, et il a été mesuré.** Ces contrôles ne s'exécutaient que
 dans `db-migrate.yml`, dont le déclencheur est `workflow_dispatch` **et lui
 seul** ; et le `verify:full` nocturne tourne contre un PostgreSQL **jetable**. Le
