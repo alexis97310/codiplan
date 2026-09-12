@@ -9,6 +9,7 @@ import {
   CODE_SORTIE_LIAISON,
   EcartConstate,
   INSTRUCTION_LECTURE_SEULE,
+  codeDeSortie,
   estPanneDeLiaison,
   urlVeille,
 } from "../../scripts/veille-hebergee.mjs";
@@ -607,5 +608,147 @@ describe("la veille de la base hébergée (D55)", () => {
         expect(estPanneDeLiaison({ errorCode: code }), code).toBe(false);
       }
     });
+  });
+});
+
+/**
+ * LE VERDICT PAR DÉFAUT — l'incident du 12/09/2026.
+ *
+ * ## Ce qui s'est passé, mesuré
+ *
+ * *Exécution `34708986360`, commit `cca4295`, deux tentatives à deux heures
+ * d'écart :* la veille a expiré au milieu de son observation — `5 199 ms` puis
+ * `5 152 ms` pour un plafond de `5 000 ms` hérité de Prisma. Elle n'avait donc
+ * observé RIEN DU TOUT. Et l'issue `#169` s'est ouverte sous le titre
+ * **« la base hébergée a DÉRIVÉ »**, affirmant *« elle s'écarte de ce que le
+ * dépôt exige »*.
+ *
+ * ## La faute n'est pas le délai : c'est le SENS DU DÉFAUT
+ *
+ * `estPanneDeLiaison` était une LISTE D'ADMIS — quatre codes Prisma et un nom
+ * de classe. Tout ce qui n'y figurait pas tombait dans l'autre branche, et
+ * l'autre branche est **l'incident de sécurité**. *Le verdict le plus grave
+ * était le verdict par défaut*, et il suffisait d'une erreur qu'on n'avait pas
+ * prévue pour l'obtenir.
+ *
+ * **Un contrôle qui n'est pas allé au bout de son observation ne rend jamais un
+ * écart : il rend une ABSENCE DE MESURE.** C'est le §4 du protocole de session
+ * pris dans l'autre sens — *un contrôle dont la population est vide ne rend pas
+ * un vert* — et c'est la même parade que le périmètre d'audit (D55) : la
+ * population s'inverse, et ce qui doit être NOMMÉ est le cas grave.
+ *
+ * La règle est donc : **seul un `EcartConstate` vaut un incident de sécurité.**
+ * C'est la classe que `observer()` lève quand elle a bel et bien regardé — le
+ * témoin « la veille n'a RIEN observé » compris.
+ */
+describe("le verdict par défaut d'une veille qui n'a pas abouti", () => {
+  it("un écart CONSTATÉ est un incident de sécurité", () => {
+    expect(codeDeSortie(new EcartConstate("une politique a disparu"))).toBe(
+      CODE_SORTIE_ECART,
+    );
+  });
+
+  it("une base injoignable ne dit RIEN de l'état de la base", () => {
+    for (const code of CODES_LIAISON) {
+      expect(
+        codeDeSortie(Object.assign(new Error("injoignable"), { code })),
+      ).toBe(CODE_SORTIE_LIAISON);
+    }
+  });
+
+  /**
+   * LE CAS QUI A OUVERT `#169`, rejoué sur son message littéral.
+   *
+   * Sans l'inversion, cette erreur-là — que rien n'avait prévue — devenait
+   * « la base hébergée a DÉRIVÉ ».
+   */
+  it("une transaction expirée n'est PAS une dérive : la veille n'a pas regardé", () => {
+    const expiree = new Error(
+      "Transaction API error: Transaction already closed: A query cannot be " +
+        "executed on an expired transaction. The timeout for this transaction " +
+        "was 5000 ms, however 5199 ms passed since the start of the transaction.",
+    );
+    expect(codeDeSortie(expiree)).toBe(CODE_SORTIE_LIAISON);
+  });
+
+  /**
+   * LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON (§9, 11/09).
+   *
+   * Une erreur quelconque tombe du côté « rien constaté » — et il faut que ce
+   * soit parce qu'elle n'est PAS un `EcartConstate`, non parce qu'on l'a
+   * reconnue. C'est la différence entre une liste d'admis et un périmètre
+   * inversé : la première oublie, la seconde ne peut pas.
+   */
+  it("une erreur imprévue tombe du côté « rien constaté », sans avoir été reconnue", () => {
+    expect(
+      codeDeSortie(new Error("quelque chose que personne n'a prévu")),
+    ).toBe(CODE_SORTIE_LIAISON);
+    expect(codeDeSortie("une chaîne, même pas une Error")).toBe(
+      CODE_SORTIE_LIAISON,
+    );
+    // Le témoin : une sous-classe d'EcartConstate reste, elle, un écart.
+    class EcartPrecis extends EcartConstate {}
+    expect(codeDeSortie(new EcartPrecis("politique perdue"))).toBe(
+      CODE_SORTIE_ECART,
+    );
+  });
+});
+
+/**
+ * R1-01 — AUCUN GABARIT N'AFFIRME UNE CAUSE QUE LE CONTRÔLE N'A PAS MESURÉE.
+ *
+ * *Mesuré deux fois. Le 10/09/2026, exécution `34493977325` : le ticket ouvert
+ * par une veille rouge écrivait « ce sont des gestes passés à la main », et
+ * l'unique écart rapporté était EXACTEMENT le contenu d'une migration jamais
+ * appliquée — il a envoyé chercher un geste qui n'existait pas, et coûté une
+ * journée. Le 12/09/2026, exécution `34708986360` : la même phrase a été
+ * imprimée sur une alarme où la veille n'avait rien observé du tout.*
+ *
+ * **Ce qui rend l'espèce coûteuse est qu'elle est dans un GABARIT** : une phrase
+ * dite une fois se corrige au premier regard, une phrase préécrite se réémet à
+ * chaque alarme, avec la même assurance, et sera lue par quelqu'un qui n'a ni le
+ * contexte ni le dépôt sous les yeux — c'est même tout l'objet d'une alarme.
+ *
+ * *La question à poser à chaque phrase d'un gabarit : quelle observation la
+ * rendrait fausse ? Si la réponse est « aucune, elle est toujours imprimée »,
+ * ce n'est pas un constat — c'est une opinion que le dispositif répète en votre
+ * nom* (§9, 10/09).
+ *
+ * **Ce que ce gardien NE fait pas, et il l'annonce** : il ne sait pas lire une
+ * cause écrite autrement. Il refuse LA phrase qui a menti deux fois, et il
+ * exige que la branche la remplace par une valeur venue du contrôle. Une cause
+ * nouvelle, formulée autrement, lui échapperait — c'est la forme 6 du §9
+ * (26/08), qu'aucun motif statique n'arrête.
+ */
+describe("la provenance d'un écart est lue, jamais affirmée (R1-01)", () => {
+  const FIXE = /gestes? pass[ée]s? à la main/;
+
+  it("la phrase fixe n'est plus écrite dans le flux", () => {
+    // TÉMOIN : le fichier a bien été lu, et il porte bien l'alarme.
+    expect(CI).toMatch(/veille-securite/);
+    expect(
+      CI,
+      "`ci.yml` affirme encore d'où vient un écart. La provenance se MESURE " +
+        "et se transmet par une sortie du contrôle — voir " +
+        "`scripts/lib/provenance-ecart.ts`.",
+    ).not.toMatch(FIXE);
+  });
+
+  it("la veille ne l'écrit pas davantage dans le message qu'elle lève", () => {
+    const veille = readFileSync(
+      join(import.meta.dirname, "..", "..", "scripts", "veille-hebergee.mts"),
+      "utf8",
+    );
+    // TÉMOIN : c'est bien le bon fichier, et il porte bien le message d'écart.
+    expect(veille).toMatch(/INCIDENT DE SÉCURITÉ/);
+    expect(veille).not.toMatch(FIXE);
+  });
+
+  it("les deux branches de l'alarme lisent la provenance du contrôle", () => {
+    // Les DEUX, et c'est le point : la branche « liaison » l'avait déjà, la
+    // branche « sécurité » ne l'avait pas. Une décision appliquée à une moitié
+    // laisse l'autre avec la forme de la moitié faite (§9, 31/08).
+    const branches = CI.match(/\$PROVENANCE_VEILLE/g) ?? [];
+    expect(branches.length).toBeGreaterThanOrEqual(2);
   });
 });

@@ -1010,10 +1010,11 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Relu contre les sources citées le 10/09/2026 — empreinte `8ddb2c10`.*
 
 **R1-01 — La veille dit d'où vient un écart, au lieu de l'affirmer. [incident du 10/09/2026, ticket #95]**
-*File :* LIBRE
+*File :* LIVRÉ
 **Déclencheur : immédiat.** Le gabarit de l'issue ouverte par une veille rouge écrit, en toutes lettres : *« Ces écarts ne viennent d'aucune migration — ce sont des gestes passés à la main. »* **C'est une phrase fixe, pas une mesure.** La veille observe la base ; elle ne compare **jamais** `_prisma_migrations` au répertoire `prisma/migrations/` du dépôt, et ne peut donc pas savoir d'où vient un écart.
 **Mesuré le 10/09/2026 sur l'exécution `34493977325`** : l'unique écart rapporté — `utilisateur_client` sans la forme « rattachement » — est **exactement** le contenu de `20260911010000_rattachement_portail_d92`, **jamais appliquée**. Quatre migrations étaient en retard, le dernier `db-migrate` réussi remontant au 09/09 à 22:55 UTC. Le ticket de sécurité nommait une cause qu'il n'avait pas mesurée, et il a envoyé chercher au mauvais endroit.
 *C'est la pente du §9 (07/09) — affirmer un état observable au lieu de l'observer — logée dans un GABARIT, c'est-à-dire à l'endroit où elle se répétera à chaque alarme.*
+**Et elle s'est répétée, le 12/09/2026, exécution `34708986360` (issue #169).** Cette fois la phrase a été imprimée sur une alarme où la veille n'avait **rien observé du tout** : sa transaction d'observation a expiré au bout de 5 199 ms — puis 5 152 ms au rejeu — sous un plafond de 5 000 ms hérité de Prisma. *Le gabarit a donc affirmé une dérive sur une absence de mesure.* **Livré le 12/09/2026** : la provenance est mesurée par `scripts/lib/provenance-ecart.ts`, qui appelle `verdictDesMigrations` plutôt que d'en écrire une variante ; le gardien refuse la phrase dans `ci.yml` **et** dans la veille, avec ses témoins, et il annonce ce qu'il ne sait pas faire — reconnaître une cause formulée autrement.
 *Acceptation :* la veille compare les migrations appliquées en base au répertoire du dépôt et **nomme le décompte en retard** ; le gabarit n'affirme le geste manuel **que** lorsque ce décompte est nul, et écrit sinon « N migration(s) en retard — appliquer `db-migrate` avant de conclure » ; un scénario montre les deux verdicts, dont celui qui ne conclut pas au geste manuel.
 
 **R1-02 — Le README des captures dit comment savoir si un écran a changé depuis. [10/09/2026]**

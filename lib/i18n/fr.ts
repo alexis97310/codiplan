@@ -885,6 +885,32 @@ export const fr = {
   "parametres.refus_pas":
     "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
 
+  // ── LA PAGE QUI DONNE UNE PORTE AUX ÉCRANS DE PARAMÉTRAGE (R3-05) ────────
+  //
+  // La barre de D95 est une LISTE CLOSE de onze entrées — une douzième la
+  // ferait rougir, à raison. « Sociétés & tarifs » menait directement aux
+  // horaires, et les deux autres écrans de réglage n'avaient AUCUNE porte.
+  // L'entrée mène désormais à une page qui les rassemble : la barre ne bouge
+  // pas, et le paramétrage cesse d'être un écran unique qui en cache deux.
+  "parametres.index_titre": "Sociétés & tarifs",
+  "parametres.index_sous_titre":
+    "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
+  "parametres.index_horaires_titre": "Horaires d'ouverture",
+  "parametres.index_horaires_resume":
+    "Les jours travaillés, les horaires et le pas des créneaux, établissement par établissement. C'est ce calendrier qui décide de ce que le planning propose et de ce qu'il refuse.",
+  "parametres.index_trajets_titre": "Temps de trajet par zone",
+  "parametres.index_trajets_resume":
+    "Le temps de route depuis l'établissement, par zone géographique. Des valeurs de référence s'appliquent tant que la société n'a rien réglé — un réglage retiré rend la main à la référence, jamais à zéro.",
+  "parametres.index_forfaits_titre": "Forfaits applicables",
+  "parametres.index_forfaits_resume":
+    "Le catalogue des forfaits et leur ordre de priorité. Un forfait s'ajoute toujours aux heures ; il ne les remplace pas.",
+  // Le libellé se COMPOSE depuis `mot("site")` : le mot imposé se définit une
+  // fois, sous `vocabulaire.*`, et ne se recopie nulle part (D5, D47).
+  "parametres.index_sites_suffixe": "d'intervention",
+  "parametres.index_sites_resume":
+    "Les lieux où l'on intervient, chez les clients. Leur rattachement décide du temps de trajet estimé et du calendrier de référence.",
+  "parametres.index_ouvrir": "Ouvrir",
+
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────
   //
   // Les six durées de l'estimation par zone n'étaient écrites nulle part avant

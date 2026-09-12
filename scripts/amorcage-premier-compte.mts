@@ -7,6 +7,7 @@ import {
   RefusReemission,
 } from "@/lib/auth/amorcage";
 import { estRole, Role } from "@/lib/auth/roles";
+import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 
 import { argument } from "./lib/arguments";
 
@@ -43,7 +44,7 @@ import { argument } from "./lib/arguments";
  *     DATABASE_URL=… \
  *     pnpm tsx scripts/amorcage-premier-compte.mts \
  *       --societe <uuid> --email <courriel> --nom "<nom>" [--role admin_societe] \
- *       [--base https://…]
+ *       [--base https://…] [--envoyer]
  *
  * Et la RÉÉMISSION d'un jeton expiré ou perdu, pour une identité qui n'a
  * JAMAIS servi (10/09/2026, complément de D65) :
@@ -52,6 +53,7 @@ import { argument } from "./lib/arguments";
  *     DATABASE_URL=… \
  *     pnpm tsx scripts/amorcage-premier-compte.mts \
  *       --reemettre --societe <uuid> --email <courriel> [--base https://…]
+ *       [--envoyer]
  *
  * La variable de confirmation suit le précédent de
  * `scripts/purge-demonstration.mts` : un geste qui touche aux droits ne
@@ -88,18 +90,23 @@ async function principal(): Promise<number> {
   const roleDemande = argument(argv, "role");
   const base = argument(argv, "base");
   const reemettre = argv.includes("--reemettre");
+  // L'ENVOI SE DEMANDE. Sans ce drapeau rien ne part et rien n'est tenté : un
+  // geste qui enverrait « au cas où » écrirait à une adresse qu'on n'a pas
+  // relue, et un courriel se transfère et s'imprime.
+  const envoyer = argv.includes("--envoyer");
 
   if (reemettre) {
     if (societeId === null || email === null) {
       dire(
-        "Usage : --reemettre --societe <uuid> --email <courriel> [--base https://…]",
+        "Usage : --reemettre --societe <uuid> --email <courriel> " +
+          "[--base https://…] [--envoyer]",
       );
       return 2;
     }
     if (base !== null) {
       process.env.BETTER_AUTH_URL = base;
     }
-    return reemission(societeId, email);
+    return reemission(societeId, email, envoyer);
   }
 
   if (societeId === null || email === null || nom === null) {
@@ -148,6 +155,7 @@ async function principal(): Promise<number> {
       "  La porte est REFERMÉE : la société porte désormais une habilitation, " +
         "et la branche d'amorçage de utilisateur_ouverture est inapplicable.",
     );
+    await envoyerSiDemande(envoyer, email, ouverture.urlPremierAcces);
     return 0;
   } catch (erreur) {
     if (erreur instanceof RefusAmorcage) {
@@ -157,6 +165,54 @@ async function principal(): Promise<number> {
     throw erreur;
   } finally {
     await client.$disconnect();
+  }
+}
+
+/**
+ * L'ENVOI DU LIEN PAR COURRIEL — `--envoyer` (Q8, 13/09/2026).
+ *
+ * **Le geste imprimait le lien dans un terminal qu'Alexis n'a pas sous la
+ * main.** Le dépôt est public depuis le 12/09, donc un journal d'exécution
+ * n'est pas un canal ; et il travaille depuis un téléphone, donc une console
+ * locale non plus. *Le lien de premier accès est la seule porte d'une base
+ * neuve, et il n'avait aucun chemin jusqu'à son destinataire.*
+ *
+ * ## L'URL EST IMPRIMÉE DANS TOUS LES CAS, ET C'EST DÉLIBÉRÉ
+ *
+ * Un envoi manqué ne doit jamais coûter le jeton : il est émis, il vit une
+ * heure, et le réémettre demande de rejouer le geste. **Le canal est un
+ * confort ; le jeton est le produit.** Celui qui joue le geste depuis un
+ * terminal garde donc le lien sous les yeux, que l'envoi parte ou non.
+ *
+ * *Et l'envoi ne se fait QUE si on le demande* — sans `--envoyer`, rien ne part
+ * et rien n'est tenté. Un geste qui enverrait « au cas où » écrirait à une
+ * adresse qu'on n'a pas relue.
+ */
+async function envoyerSiDemande(
+  demande: boolean,
+  email: string,
+  url: string,
+): Promise<void> {
+  if (!demande) {
+    return;
+  }
+  const envoi = await envoyerLienPremierAcces(email, url);
+  dire("");
+  if (envoi.parti) {
+    dire(`  Courriel ENVOYÉ à ${email} — référence ${envoi.reference}.`);
+    dire(
+      "  Cette référence dit que le prestataire a pris la charge du message ; " +
+        "elle ne prouve pas qu'il a été reçu.",
+    );
+  } else {
+    // LE REFUS EST BAVARD, ET IL DIT CE QUI RESTE VRAI. Un « échec d'envoi »
+    // seul laisserait croire que le geste entier a raté — alors que le jeton,
+    // lui, est bien émis et imprimé ci-dessus.
+    dire("  COURRIEL NON ENVOYÉ.");
+    dire(`  ${envoi.motif}`);
+    dire(
+      "  Le jeton, lui, EST émis : l'URL ci-dessus reste valable une heure.",
+    );
   }
 }
 
@@ -171,7 +227,11 @@ async function principal(): Promise<number> {
  * pour toujours dès qu'un mot de passe existe. Il ne rouvre jamais le chemin
  * d'ouverture, et il imprime l'URL UNE fois, comme l'ouverture.
  */
-async function reemission(societeId: string, email: string): Promise<number> {
+async function reemission(
+  societeId: string,
+  email: string,
+  envoyer: boolean,
+): Promise<number> {
   const client = new PrismaClient();
   try {
     const reemis = await reemettreJetonPremierAcces(client, {
@@ -195,6 +255,7 @@ async function reemission(societeId: string, email: string): Promise<number> {
       "  Ce geste se FERME pour toujours dès qu'un mot de passe est choisi : " +
         "un mot de passe oublié se traite par le chemin ordinaire.",
     );
+    await envoyerSiDemande(envoyer, email, reemis.urlPremierAcces);
     return 0;
   } catch (erreur) {
     if (erreur instanceof RefusReemission) {

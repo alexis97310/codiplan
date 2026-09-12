@@ -273,6 +273,11 @@ jobs:
     timeout-minutes: 10
     outputs:
       nature: ${{ steps.veille.outputs.nature }}
+      # D'OÙ VIENDRAIT UN ÉCART — MESURÉ par la veille, jamais affirmé par ce
+      # fichier (R1-01). Le gabarit lisait « ce sont des gestes passés à la
+      # main » quoi qu'il arrive ; la veille, qui n'observe que la base, ne
+      # pouvait pas le savoir.
+      provenance: ${{ steps.veille.outputs.provenance }}
     steps:
       - uses: actions/checkout@v5
 
@@ -435,6 +440,10 @@ jobs:
           RESULTAT_VERIFY: ${{ needs.verify-full.result }}
           RESULTAT_VEILLE: ${{ needs.veille-hebergee.result }}
           NATURE_VEILLE: ${{ needs.veille-hebergee.outputs.nature }}
+          # `set -u` est actif, et une veille SAUTÉE ne publie aucune sortie :
+          # le défaut dit alors ce qu'il en est, plutôt que de laisser un vide
+          # qui se lirait « rien en retard ».
+          PROVENANCE_VEILLE: "${{ needs.veille-hebergee.outputs.provenance || 'La provenance du retard des migrations n''a pas été mesurée — la veille n''a pas tourné.' }}"
           RESULTAT_DEPLOIEMENT: ${{ needs.deploiement.result }}
           NATURE_DEPLOIEMENT: ${{ needs.deploiement.outputs.nature }}
           CODE_DEPLOIEMENT: ${{ needs.deploiement.outputs.code }}
@@ -496,11 +505,17 @@ jobs:
           elif [ "$NATURE_VEILLE" = "liaison" ]; then
             MARQUEUR='[veille-injoignable]'
             TITRE="$MARQUEUR la base hébergée n'a pas pu être jointe"
-            NATURE="**Incident d'EXPLOITATION.** La veille n'a rien constaté : elle n'a pas pu regarder. Neon suspend une base inactive et le premier réveil peut expirer — ce rouge ne dit RIEN de l'état de la base."
+            NATURE="**Incident d'EXPLOITATION — RIEN n'a été constaté.** La veille n'est pas allée au bout de son observation : ce rouge ne dit RIEN de l'état de la base. $PROVENANCE_VEILLE"
           elif [ "$NATURE_VEILLE" = "securite" ]; then
             MARQUEUR='[veille-securite]'
             TITRE="$MARQUEUR la base hébergée a DÉRIVÉ"
-            NATURE="**Incident de SÉCURITÉ.** La base a été jointe et observée : elle s'écarte de ce que le dépôt exige. Ces écarts ne viennent d'aucune migration — ce sont des gestes passés à la main."
+            # LA PROVENANCE VIENT DU CONTRÔLE, jamais de ce fichier. C'est R1-01,
+            # et c'est la même règle que la branche « déploiement » ci-dessus
+            # applique déjà : le corps ne DÉCIDE pas d'où vient un écart, il le
+            # LIT. La phrase qui était écrite ici affirmait un geste manuel que
+            # la veille n'avait jamais mesuré — et le 12/09/2026 elle l'a
+            # affirmé sur une alarme où la veille n'avait rien observé du tout.
+            NATURE="**Incident de SÉCURITÉ.** La base a été jointe et observée : elle s'écarte de ce que le dépôt exige. $PROVENANCE_VEILLE"
           else
             MARQUEUR='[nuit-rouge]'
             TITRE="$MARQUEUR la vérification nocturne a échoué"
