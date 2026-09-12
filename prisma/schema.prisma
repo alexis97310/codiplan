@@ -1436,6 +1436,21 @@ model Machine {
   numero Int?
 
   /// La référence que le technicien compose quand la plaque est illisible.
+  ///
+  /// **UNIQUE PAR SOCIÉTÉ, ET LORSQU'ELLE EST PRÉSENTE** (D6). L'index n'est
+  /// PAS déclaré ici et c'est délibéré : il est **PARTIEL** —
+  /// `WHERE "reference_interne" IS NOT NULL` —, ce que `@@unique` ne sait pas
+  /// exprimer. Un `@@unique` accepterait autant de `NULL` qu'on veut, ce qui
+  /// n'est pas faux mais **ne dit pas la règle** : toutes les machines n'ont
+  /// pas de référence interne.
+  ///
+  /// Il vit donc en SQL, dans
+  /// `20260913200000_reference_interne_unique_d6`, sous le nom
+  /// `machine_societe_reference_interne_key`. *Sans lui, deux fiches d'une même
+  /// société porteraient le même `SN-INCONNU-<réf>` — le doublon silencieux que
+  /// D6 existe pour supprimer, et il naîtrait sur les fiches les moins
+  /// renseignées.* Éprouvé par `tests/isolation/reference-interne-unique.test.ts`,
+  /// avec son jumeau.
   reference_interne String?
 
   localisation         String?

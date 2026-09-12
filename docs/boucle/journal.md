@@ -297,3 +297,89 @@ paraissant utile. Ce que le travail supprime n'est pas un défaut, c'est un **pi
 ### Vert mesuré
 
 `pnpm verify` → **EXIT=0**, le 12/09/2026 à `09:05:41 UTC` — la même exécution que N-03.
+
+## N-04b — D6 : l'unicité de `reference_interne` est posée
+
+### Le dénombrement, AVANT la migration — et c'est une ABSENCE DE MESURE
+
+```sql
+-- base de démonstration, migrée et semée le 12/09/2026
+machine                          → 0
+reference_interne IS NOT NULL    → 0
+clés (societe_id, réf) en double → 0
+```
+
+**Zéro sur zéro n'est pas un résultat** (§4 du protocole). La table est **vide** : ce
+dénombrement ne dit rien de la base qui compte. Je l'écris comme une absence de mesure et
+non comme un vert.
+
+Ce que je peux ajouter sans l'avoir mesuré, et je le dis : le registre d'arbitrages porte
+*« la base hébergée ne porte aucune machine (inventaire n° 37) »*. **Je le cite** — une
+session ne touche pas la base de production.
+
+**Témoin que la mesure n'était pas aveugle** : `SELECT rolsuper FROM pg_roles WHERE
+rolname = current_user` rend `t`. Un superutilisateur contourne RLS ; sans ce témoin, un
+zéro sous `FORCE ROW LEVEL SECURITY` aurait eu la même allure (§9, 07/09).
+
+### Ce que j'ai changé
+
+`prisma/migrations/20260913200000_reference_interne_unique_d6` :
+
+```sql
+CREATE UNIQUE INDEX "machine_societe_reference_interne_key"
+    ON "machine" ("societe_id", "reference_interne")
+ WHERE "reference_interne" IS NOT NULL;
+```
+
+**L'index est PARTIEL, et il est donc en SQL et non dans `schema.prisma`.** Un `@@unique`
+accepterait autant de `NULL` qu'on veut — ce qui n'est pas faux, deux `NULL` étant
+distincts pour un index unique — mais **il ne dirait pas la règle** : « lorsqu'elle est
+présente » est la moitié qui compte, toutes les machines n'ayant pas de référence interne.
+Le schéma porte un commentaire qui dit où l'index vit et pourquoi.
+
+Le **bloc de garde** lève `FORCE ROW LEVEL SECURITY` sur `machine`, **refuse de compter
+tant que la levée n'est pas constatée**, et rend le refus LISIBLE plutôt que de laisser
+une violation de clé brute. Sans la levée, le rôle de migration — propriétaire non
+superutilisateur sur la base hébergée — verrait zéro ligne et ne refuserait rien.
+
+### D104 NE S'APPLIQUE PAS, et ce n'est pas un choix
+
+**PostgreSQL n'admet `NOT VALID` que sur `CHECK` et `FOREIGN KEY`.** Un index unique se
+construit sur toutes les lignes ou ne se construit pas : il n'existe pas d'état non
+validé à rendre visible, et rien à inscrire dans `CONTRAINTES_NON_VALIDEES`. **La
+conséquence est nommée** : si la base visée portait des doublons, la migration
+ÉCHOUERAIT. C'est le bon sens de défaillance — bruyant, réparable par `pnpm db:resoudre`,
+jamais silencieux.
+
+### Messages d'échec initiaux, tous mesurés
+
+```
+# 1 — le scénario, écrit avant la colonne manquante dans l'INSERT
+Raw query failed. Code: `42601`. Message: `ERROR: INSERT has more target columns
+than expressions`
+
+# 2 — le refus obtenu, mais Prisma ne rend PAS le nom de l'index
+AssertionError: expected 'PrismaClientKnownRequestError: …' to contain
+'machine_societe_reference_interne_key'
+   → reçu : Code: `23505` … Key (societe_id, reference_interne)=(…) already exists
+
+# 3 — le gardien du rejeu sur base âgée, et il avait raison
+AssertionError: 20260913200000_reference_interne_unique_d6 resserre « machine »
+et la table est VIDE : la migration ne serait éprouvée contre rien.
+```
+
+Le **deuxième** a changé la forme du scénario plutôt que son exigence. §9 du 24/08 :
+*l'assertion NOMME la contrainte, sans quoi un refus venu d'ailleurs passe pour le bon.*
+Prisma masquant le nom sur un `$executeRawUnsafe`, le **couple de colonnes** tient ce
+rôle — **et un second scénario prouve qu'il le tient** : un seul index unique de `machine`
+porte exactement `(societe_id, reference_interne)`. *Assertion et témoin ensemble disent
+ce que le nom aurait dit seul ; l'un sans l'autre ne le dirait pas.*
+
+Le **troisième** a demandé une amorce de base vieillie — quatre machines, dont **deux
+sans référence interne**. Ces deux-là ne sont pas décoratives : *sans elles, un index NON
+partiel passerait aussi, et le rejeu ne dirait pas ce qu'on croit qu'il dit.*
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1589 tests unitaires + 767 d'isolation, le 12/09/2026 à
+`09:25:26 UTC`.
