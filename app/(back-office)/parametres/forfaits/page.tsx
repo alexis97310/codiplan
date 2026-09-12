@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -46,6 +48,21 @@ import {
  * **Le regroupement par nature reste**, et ce n'est pas une carte par
  * enregistrement : le rang ne se compare qu'entre forfaits de même nature, et
  * l'écran le dit par sa structure plutôt que dans une note.
+ *
+ * ## R2-20 — L'ÉCRAN CESSE D'ÊTRE EN LECTURE SEULE
+ *
+ * Le catalogue naissait vide **par décision** (L1-06), et il le restait :
+ * aucun chemin ne posait une ligne autrement qu'en SQL. Il porte désormais le
+ * formulaire de création, la bascule d'activité et le lien vers la fiche.
+ *
+ * **Aucune suppression, nulle part.** Une intervention désigne son forfait, et
+ * *une facture émise sous un forfait disparu ne s'explique plus* : désactiver
+ * retire du CHOIX sans toucher au passé. L'écran le DIT, plutôt que de laisser
+ * chercher le bouton qui manque.
+ *
+ * **Le formulaire est sous le tableau, jamais au-dessus.** La question que cet
+ * écran répond d'abord est « pourquoi CE montant », et la réponse est le
+ * tableau ; l'ajout est le geste rare.
  */
 export default async function PageForfaits({
   searchParams,
@@ -60,7 +77,9 @@ export default async function PageForfaits({
     redirect("/arrivee");
   }
 
-  const demandee = (await searchParams).zone;
+  const parametres = await searchParams;
+  const motif = parametres.motif;
+  const demandee = parametres.zone;
   const zone =
     typeof demandee === "string" &&
     (ZONES_GEOGRAPHIQUES as readonly string[]).includes(demandee)
@@ -130,6 +149,15 @@ export default async function PageForfaits({
         </form>
       </header>
 
+      {typeof motif === "string" && estCleTraduction(motif) ? (
+        <p
+          role="status"
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {t(motif)}
+        </p>
+      ) : null}
+
       {catalogue.length === 0 ? (
         <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-[13px]">
           {t("forfaits.vide")}
@@ -149,6 +177,14 @@ export default async function PageForfaits({
       <p className="text-app-encre-faible text-[11.5px]">
         {t("forfaits.explication_rang")}
       </p>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[14px] font-bold">{t("forfaits.creer")}</h2>
+        <FormulaireForfait action="/api/parametres/forfaits/creer" />
+        <p className="text-app-encre-faible text-[11.5px]">
+          {t("forfaits.desactiver_explication")}
+        </p>
+      </section>
     </main>
   );
 }
@@ -208,6 +244,7 @@ function Nature({
     },
     { cle: "conditions", libelle: t("forfaits.conditions") },
     { cle: "verdict", libelle: t("forfaits.verdict"), largeur: "230px" },
+    { cle: "actions", libelle: t("forfaits.actions"), largeur: "170px" },
   ];
 
   return (
@@ -215,7 +252,7 @@ function Nature({
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {libelleType(type)}
       </h2>
-      <Tableau colonnes={colonnes} minimum="820px">
+      <Tableau colonnes={colonnes} minimum="990px">
         {lignes.length === 0 ? (
           <LignePleine colonnes={colonnes.length}>
             {t("forfaits.vide")}
@@ -236,10 +273,53 @@ function Nature({
             <Cellule>
               {verdict(forfait, retenu?.id ?? null, conditions)}
             </Cellule>
+            <Cellule>
+              <Actions forfait={forfait} />
+            </Cellule>
           </tr>
         ))}
       </Tableau>
     </section>
+  );
+}
+
+/**
+ * LES DEUX SEULS GESTES OFFERTS SUR UNE LIGNE : la fiche, et la bascule.
+ *
+ * **L'état visé est PORTÉ par le formulaire**, jamais déduit de l'état courant
+ * au moment du clic : *une bascule qui lit l'état qu'elle change répond à un
+ * affichage vieux de plusieurs secondes, et deux clics rapides se rendent
+ * mutuellement sans effet.*
+ *
+ * Et il n'y a pas de troisième geste : **supprimer n'existe pas**, une
+ * intervention pouvant désigner ce forfait.
+ */
+function Actions({ forfait }: { forfait: Ligne }) {
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <Link
+        href={`/parametres/forfaits/${forfait.id}`}
+        className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold"
+      >
+        {t("forfaits.modifier")}
+      </Link>
+      <form
+        method="post"
+        action={`/api/parametres/forfaits/${forfait.id}/activite`}
+      >
+        <input
+          type="hidden"
+          name="actif"
+          value={forfait.actif ? "non" : "oui"}
+        />
+        <button
+          type="submit"
+          className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold"
+        >
+          {forfait.actif ? t("forfaits.desactiver") : t("forfaits.activer")}
+        </button>
+      </form>
+    </span>
   );
 }
 

@@ -616,6 +616,88 @@ existe, elle est juste, et je l'ai relue après coup les quatre fois.*
 
 ---
 
+## J11 — R2-20 : le catalogue de forfaits n'avait AUCUN chemin d'écriture
+
+L1-06 avait livré la règle, la base et l'écran de LECTURE. *Une règle de tarification que
+personne ne peut alimenter est une règle qui ne s'applique jamais* — le catalogue naissait
+vide par décision, et il le restait : aucune ligne n'y entrait autrement qu'en SQL.
+
+### L'hypothèse du ticket était fausse, et c'est la mesure qui l'a dit
+
+Le ticket annonçait, en toutes lettres, que *« le chemin d'écriture devra passer par du SQL
+explicite ou par un champ nullable déclaré autrement »*. Trois mesures :
+
+| Ce que j'ai mesuré | Ce que j'ai obtenu |
+|---|---|
+| `condition_multivaluee_valide` | accepte `NULL`, **refuse `{}`** (23514) |
+| `zone_geo: null` passé à Prisma | **refusé par le compilateur** |
+| une création qui **OMET** la colonne | la ligne ressort **`zone_geo = null`** |
+
+*Une colonne nullable sans `DEFAULT` qu'on n'écrit pas reçoit `NULL`.* Le §2 — pas de SQL
+brut hors migrations et politiques — n'a pas eu à être enfreint, et je ne l'ai su qu'en
+essayant. **Le scénario relit la ligne EN SQL, sous le propriétaire** : Prisma rend `[]`
+pour une colonne nulle, si bien qu'une lecture par le client n'aurait pas su distinguer
+`NULL` de `{}` — c'est-à-dire exactement ce qu'il mesure.
+
+### Ce que le module ne sait PAS faire est écrit plutôt que tu
+
+À la MODIFICATION, omettre la colonne veut dire « ne la change pas ». *Il n'existe donc
+aucune écriture, dans les bornes du §2, qui fasse repasser une condition de « posée » à
+« absente ».* Le refus est NOMMÉ — `condition_non_retirable` — plutôt que silencieux :
+sans lui, l'écriture aurait réussi en laissant l'ancienne valeur, et l'écran aurait dit
+« enregistré » sur un forfait dont la condition n'a pas bougé. **Un succès qui ne fait pas
+ce qu'on lui a demandé est pire qu'un refus.**
+
+### Le message d'échec qui m'a coûté le plus, et ce qu'il cachait
+
+> `AssertionError: expected 'code_pris' to be 'rang_pris'`
+
+J'ai d'abord cru à une erreur de mon attribution. **Mesuré** : hors du harnais,
+`meta.target` vaut `["societe_id","type","rang"]` ; **dans le harnais, `null`**, le message
+rendant *« Unique constraint failed on the (not available) »*. *Le même code, contre la
+même base, rend la cible à un endroit et pas à l'autre* — la divergence prise comme
+instrument (§9, 07/09) : elle dit que l'attribution ne peut pas venir de l'erreur.
+`attribuerDoublon` la retrouve par une **lecture après coup** — la transaction ayant déjà
+échoué, il n'y a plus de course à perdre — et le motif `doublon` reste prononçable pour le
+cas où la ligne fautive aurait disparu entre-temps. *Trois états, jamais deux.*
+
+### Le rouge d'abord est venu du gardien écrit ce matin
+
+La fiche `/parametres/forfaits/[id]` a été écrite **sans lien vers elle** :
+
+> `AssertionError: ces écrans existent et AUCUN lien n'y mène — ni la barre, ni un écran
+> lui-même atteignable […] : expected [ '/parametres/forfaits/[id]' ] to deeply equal []`
+
+Le gardien de J3 a mordu sur un écran né six heures après lui. *Le lien « Modifier » de
+chaque ligne l'a refermé* — et c'est la deuxième fois de la journée qu'un gardien attrape
+son auteur (§9, 07/09).
+
+### Trois autres refus mesurés, et ils n'étaient pas dans mon plan
+
+`secondFacteurValide` manquait au contexte d'épreuve — RG-DRO-05 impose un second facteur à
+`admin_societe`, et sans lui les scénarios mesuraient l'authentification, pas le catalogue.
+Le client Prisma par défaut visait la mauvaise base — passé explicitement depuis. Et
+`brousse_nord`, zone que j'avais **inventée**, a été refusée par Zod : l'énumération est
+close dans `sites/zones.ts`, et elle a eu raison contre moi.
+
+### Ce que l'écran ne propose pas
+
+**Aucune suppression, nulle part** — une intervention désigne son forfait, et *une facture
+émise sous un forfait disparu ne s'explique plus.* L'écran écrit pourquoi le bouton manque,
+au lieu de laisser le chercher. **La devise ne se saisit pas** : elle vient de la société
+active (I2). Et deux des trois axes de condition ne sont pas offerts — la famille
+demanderait une liste que le semis ne pose pas, le type d'intervention est l'axe **inerte**
+de RG-TAR-06. *Offrir un champ qui ne peut rien contenir est une place réservée,
+c'est-à-dire une décision prise par personne.*
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, **1734** unitaires · **836** d'isolation · 27 Playwright,
+le 13/09/2026, lancé à `23:10:35 UTC` et rendu à `23:15:23 UTC`. *L'isolation passe de 826
+à 836 : les dix scénarios de ce ticket.*
+
+---
+
 ## LA MESURE QUE JE NE TRANCHE PAS — le trajet dans le taux de charge (D107)
 
 *Écrite ici pour être relisible dans quelques semaines, et pour rien d'autre.* Sur le jeu
