@@ -363,3 +363,41 @@ ce qui distingue CODIMA d'un tiers dans la chaîne.*
 ### En attendant
 
 **Bloqué** : rien. **Continue** : tout — L9-08, L9-09 et L9-10 sont livrés.
+
+---
+
+## Q8 — PAR QUEL CANAL un lien de premier accès parvient-il à une personne ?
+
+*Écrite le 12/09/2026 au soir. **Non tranchée** : un canal d'envoi demande un service externe et une clé, donc l'accord d'Alexis (§8 du CLAUDE.md — service externe payant ; et « tu ne poses jamais de secret », qui est la règle de cette file).*
+
+### CE QUI LA REND URGENTE, ET C'EST MESURÉ
+
+**Alexis ne peut plus entrer dans sa propre application.** La purge du 12/09 au soir a effacé les comptes ; le semis les recrée avec `mot_de_passe NULL`, ce qui est l'état voulu — *le semis ne pose aucun mot de passe, la base étant en ligne et le dépôt public.* **La seule porte est donc le lien de premier accès**, et ce lien n'a aujourd'hui **aucun canal** :
+
+| | |
+|---|---|
+| il sortait d'un **journal d'exécution** GitHub Actions | le dépôt est **public** depuis le 12/09 — un lien de premier accès y est un matériau d'authentification lisible par tout le monde |
+| il sort d'une **console locale** | Alexis travaille depuis un téléphone ; il n'a ni terminal ni accès à la base |
+| il sortirait d'un **courriel** | **aucun expéditeur n'est configuré**, et en poser un est un geste hors du dépôt qui demande une clé |
+
+*Mesuré ce soir : `scripts/amorcage-premier-compte.mts --reemettre` imprime bien l'URL, et il l'imprime là où personne ne peut la lire depuis un téléphone.*
+
+### CE QUE LE DÉPÔT A DÉJÀ TRANCHÉ, ET QU'IL NE FAUT PAS REDÉCIDER
+
+**D96 (ticket L2-13) a écarté l'envoi pour le PORTAIL**, avec sa raison : *« une fonction d'envoi sans expéditeur est pire qu'une interface sans appelant — elle en a un, et elle échoue en production, à l'instant où une agence croit avoir invité un client. »* En V1, le lien est **engendré dans le back-office** et l'agence le transmet par ses propres moyens.
+
+**La question posée ici n'est pas celle-là.** L2-13 traite du client ; celle-ci traite de **l'exploitant lui-même**, qui n'a aucun back-office ouvert tant qu'il n'est pas entré. *C'est un problème d'amorçage, pas d'invitation* — et il se pose à chaque base neuve.
+
+### TROIS ISSUES, AVEC CE QU'ELLES COÛTENT ET CE QU'ELLES INTERDISENT
+
+| | Ce que c'est | Ce que ça coûte | Ce que ça interdit |
+|---|---|---|---|
+| **1** | **Un écran d'amorçage sans compte**, atteignable une seule fois sur une base neuve — comme `/premier-acces`, mais qui ENGENDRE le lien au lieu de le consommer | aucun service externe, aucune clé. **Mais c'est une porte ouverte sur une base publique** : il faut un cliquet en base (un fait, pas un drapeau) et il faut décider ce qui le referme | rien, et c'est le problème : une porte qu'on peut rouvrir par erreur est une porte |
+| **2** | **Un envoi par courriel** — le §2 du CLAUDE.md nomme **Resend** | une clé à poser dans les secrets de l'hébergeur, et un domaine d'expédition. *Le §2 l'a déjà choisi : ce n'est pas une dépendance nouvelle, c'est une dépendance qu'on active* | rien de structurel ; le lien devient traçable et transmis à une adresse plutôt qu'à qui le lit |
+| **3** | **Le flux d'exploitation imprime le lien dans un canal PRIVÉ** — résumé d'exécution d'un dépôt privé, ou variable de sortie chiffrée | rien à construire, mais **le dépôt est public** : il faudrait un second dépôt privé ou un canal hors GitHub. *C'est déplacer le problème, pas le résoudre* | rien, et c'est un vestige du monde d'avant le 12/09 |
+
+### CE QUE JE N'AI PAS FAIT, ET POURQUOI
+
+**Je n'ai posé aucun mot de passe dans le semis** — la consigne le dit, et le motif tient tout seul : la base est en ligne et le dépôt public. **Je n'ai choisi aucun service et écrit aucun secret.** *Un canal d'envoi est une décision d'exploitation avec une clé au bout ; ce n'est pas une décision de session.*
+
+**Ce qui marche ce soir, et qui n'est pas une réponse :** si Alexis peut atteindre un terminal, `pnpm exec tsx scripts/amorcage-premier-compte.mts --reemettre --societe <uuid> --email <courriel>` imprime le lien. *C'est exactement le geste que cette question cherche à supprimer.*
