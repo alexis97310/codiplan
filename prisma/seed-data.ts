@@ -3,8 +3,12 @@ import { anneeCourante, cleJour } from "@/lib/calendar/fuseau";
 import { cleJourAdossePaques } from "@/lib/calendar/paques";
 import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
 import type {
+  AssujettissementVgp,
+  CriticiteMachine,
+  OrigineInformationVgp,
   PrioriteIntervention,
   StatutIntervention,
+  StatutMachine,
   TypeIntervention,
 } from "@prisma/client";
 
@@ -1608,7 +1612,7 @@ export function identifiantIntervention(
  * inaperçu.
  */
 export function colonnesDeSuspension(
-  modele: InterventionDemoSeed,
+  modele: InterventionDemoSeed | null,
   creneauDebut: Date | null,
   pieceDispoJour: Date | null,
 ): {
@@ -1621,7 +1625,11 @@ export function colonnesDeSuspension(
   // les deux, et exiger leur accord ici serait une TROISIÈME lecture d'un
   // critère que la base tient déjà — elle refuse un motif sans suspension
   // comme une suspension sans motif, dans les deux sens.
-  if (modele.motifSuspension === undefined) {
+  // `null` DIT « cette ligne n'est pas suspendue », et c'est l'appelant qui le
+  // sait : au REPLACEMENT, le statut vient de la BASE et non du modèle (voir
+  // `seed.ts`). Le rendre ici depuis le modèle serait une seconde lecture d'un
+  // critère que la ligne porte déjà (§9, 01/09).
+  if (modele === null || modele.motifSuspension === undefined) {
     return {
       motif_suspension: null,
       piece_attendue_ref: null,
@@ -1635,4 +1643,368 @@ export function colonnesDeSuspension(
     date_dispo_prevue: pieceDispoJour,
     suspendue_le: creneauDebut,
   };
+}
+
+// ── LE PARC DE DÉMONSTRATION (R3-10) ────────────────────────────────────────
+
+/**
+ * POURQUOI LE SEMIS POSE DES MACHINES, ET CE QU'IL NE PRÉTEND PAS POSER.
+ *
+ * *Mesuré le 13/09/2026 sur la base de la prise de vue* : `machine` **0**,
+ * `famille_materiel` **0**, contre `client` 5, `site` 7, `intervention` 32.
+ * `/parc` et `/vgp` affichaient donc « Aucune machine n'est enregistrée pour
+ * cette société » — **et ils disaient vrai** : le défaut n'était pas dans
+ * l'écran. *Les captures sont le seul moyen pour l'arbitre du projet de juger
+ * un écran*, et deux écrans livrés lui étaient donnés à juger sur leur état
+ * vide.
+ *
+ * ## CE QUE CES LIGNES DOIVENT MONTRER, ET RIEN DE PLUS
+ *
+ * **La lisibilité d'une démonstration, jamais un jeu d'épreuve.** Les scénarios
+ * éprouvent les règles ; ces lignes existent pour que les distinctions du lot 9
+ * se VOIENT : les quatre valeurs d'assujettissement, les trois états
+ * d'information, la cascade famille → modèle → machine, et la fiche incomplète
+ * de D6.
+ *
+ * **Le ticket annonçait « trois régimes » et « deux états ». La mesure en
+ * compte QUATRE et TROIS** : `AssujettissementVgp` porte `a_determiner`,
+ * `soumis`, `non_soumis` et `verifie` depuis L9-04 ; `EtatInformation` porte
+ * `hors_registre`, `sans_information` et `information_recue`. *Une
+ * démonstration qui couvrirait trois valeurs sur quatre laisserait la
+ * quatrième invisible, et personne ne saurait qu'elle existe.*
+ *
+ * ## AUCUNE DONNÉE RÉELLE (I9)
+ *
+ * Ni client, ni organisme, ni numéro de série existant. Les marques et
+ * références sont des noms de matériel courants — ce sont des objets, pas des
+ * personnes —, et l'organisme de contrôle est nommé « de démonstration » pour
+ * qu'aucune image ne puisse être lue comme un rapport réel.
+ *
+ * ## LES PÉRIODICITÉS SONT DES DONNÉES SAISIES, JAMAIS DES RÈGLES DU PRODUIT
+ *
+ * `lib/vgp/` n'écrit aucune durée, et le §8 interdit d'inventer un délai : ce
+ * qui suit est ce qu'UNE société a saisi, dans SON jeu de démonstration. *Le
+ * produit n'impose aucune périodicité, et il n'affirme jamais la conformité*
+ * (D88).
+ */
+export type FamilleMaterielSeed = {
+  readonly rang: number;
+  readonly code: string;
+  readonly libelle: string;
+  readonly assujettissement: AssujettissementVgp;
+  readonly vgpPeriodiciteMois: number | null;
+  readonly vgpReferenceTexte: string | null;
+};
+
+export const FAMILLES_MATERIEL_DEMONSTRATION: readonly FamilleMaterielSeed[] = [
+  {
+    rang: 1,
+    code: "PONT-ELEV",
+    libelle: "Ponts élévateurs",
+    // SOUMIS : la périodicité ET le texte deviennent obligatoires, et la base
+    // le refuse autrement — *sans le texte, la périodicité est un chiffre
+    // indéfendable* (L9-04).
+    assujettissement: "soumis",
+    vgpPeriodiciteMois: 12,
+    vgpReferenceTexte: "Arrêté du 1er mars 2004 — appareils de levage",
+  },
+  {
+    rang: 2,
+    code: "COMPRESSEUR",
+    libelle: "Compresseurs d'air",
+    // NON SOUMIS : quelqu'un a RÉPONDU, et c'est ce qui la distingue d'une
+    // famille jamais examinée. Le texte est gardé bien qu'il n'y ait pas de
+    // périodicité : *c'est la trace de ce qu'on a lu pour le décider*, une
+    // information et non une contradiction (L9-03).
+    assujettissement: "non_soumis",
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: "Arrêté du 1er mars 2004 — hors du champ du levage",
+  },
+  {
+    rang: 3,
+    code: "OUTILLAGE",
+    libelle: "Outillage d'atelier",
+    // À DÉTERMINER : la naissance. Elle alimente `/vgp/a-determiner`, qui est la
+    // moitié DÉTECTIVE du couple — *une famille qui naît « à déterminer » et
+    // que personne ne voit jamais est exactement la case décochée qu'on a
+    // refusée* (L9-03).
+    assujettissement: "a_determiner",
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: null,
+  },
+  {
+    rang: 4,
+    code: "ACCES-LEVAGE",
+    libelle: "Accessoires de levage",
+    // VÉRIFIÉ : examiné, et le texte ne tranche pas. *Ce n'est ni un oubli, ni
+    // une réponse* — la quatrième valeur, celle qu'on ne verrait nulle part si
+    // la démonstration s'arrêtait à trois.
+    assujettissement: "verifie",
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: "Texte lu, il ne tranche pas pour ce matériel",
+  },
+];
+
+export type ModeleMaterielSeed = {
+  readonly rang: number;
+  readonly familleCode: string;
+  readonly marque: string;
+  readonly reference: string;
+  readonly periodiciteJours: number | null;
+  /** Le modèle PRÉCISE le rythme, il ne décide jamais de l'assujettissement. */
+  readonly vgpPeriodiciteMois: number | null;
+  readonly vgpReferenceTexte: string | null;
+};
+
+export const MODELES_MATERIEL_DEMONSTRATION: readonly ModeleMaterielSeed[] = [
+  {
+    rang: 1,
+    familleCode: "PONT-ELEV",
+    marque: "Ravaglioli",
+    reference: "KPX-337",
+    periodiciteJours: 365,
+    // Rien : il hérite des douze mois de sa famille, et l'écran doit dire que
+    // l'origine est la FAMILLE (D56 — un nombre ne voyage pas sans son
+    // référentiel).
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: null,
+  },
+  {
+    rang: 2,
+    familleCode: "PONT-ELEV",
+    marque: "Nussbaum",
+    reference: "SPL-4000",
+    periodiciteJours: 180,
+    // LA CASCADE, mise sous les yeux : le modèle PRÉCISE six mois là où la
+    // famille en dit douze. Sans cette ligne, l'origine « modèle » ne
+    // s'afficherait jamais.
+    vgpPeriodiciteMois: 6,
+    vgpReferenceTexte: "Notice constructeur — élévation de personnes",
+  },
+  {
+    rang: 3,
+    familleCode: "COMPRESSEUR",
+    marque: "Atlas Copco",
+    reference: "GA-11",
+    periodiciteJours: 180,
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: null,
+  },
+  {
+    rang: 4,
+    familleCode: "OUTILLAGE",
+    marque: "Facom",
+    reference: "V.400",
+    periodiciteJours: null,
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: null,
+  },
+  {
+    rang: 5,
+    familleCode: "ACCES-LEVAGE",
+    marque: "Tractel",
+    reference: "X-200",
+    periodiciteJours: null,
+    vgpPeriodiciteMois: null,
+    vgpReferenceTexte: null,
+  },
+];
+
+export type MachineSeed = {
+  readonly rang: number;
+  readonly modeleRang: number;
+  /** Le site est désigné par son RANG dans la liste des sites de la société. */
+  readonly siteRang: number;
+  readonly numeroSerie: string;
+  readonly referenceInterne: string | null;
+  readonly localisation: string | null;
+  /** `false` : le numéro de série est illisible, et la fiche le DIT (D6). */
+  readonly complet: boolean;
+  readonly statut: StatutMachine;
+  readonly criticite: CriticiteMachine;
+  /** En mois avant aujourd'hui. Nul : la date n'est pas connue. */
+  readonly miseEnServiceMoisAvant: number | null;
+  /** L'exception d'un EXEMPLAIRE, et jamais sans sa raison (L9-06). */
+  readonly vgpException?: AssujettissementVgp;
+  readonly vgpExceptionMotif?: string;
+};
+
+export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
+  {
+    rang: 1,
+    modeleRang: 1,
+    siteRang: 0,
+    numeroSerie: "RAV-KPX-2019-0148",
+    referenceInterne: "PONT-1",
+    localisation: "Travée A",
+    complet: true,
+    statut: "en_service",
+    criticite: "bloquante",
+    miseEnServiceMoisAvant: 42,
+  },
+  {
+    rang: 2,
+    modeleRang: 1,
+    siteRang: 1,
+    // LA FICHE INCOMPLÈTE DE D6 : le numéro est illisible, et il se saisit
+    // `SN-INCONNU-<référence>` avec `complet = false` — *jamais `NULL`, deux
+    // `NULL` étant distincts pour un index unique.* Elle remonte en tête du
+    // parc, parce que c'est elle qui demande un geste.
+    numeroSerie: "SN-INCONNU-PONT-2",
+    referenceInterne: "PONT-2",
+    localisation: null,
+    complet: false,
+    statut: "en_service",
+    criticite: "importante",
+    miseEnServiceMoisAvant: null,
+  },
+  {
+    rang: 3,
+    modeleRang: 2,
+    siteRang: 2,
+    numeroSerie: "NUS-SPL-2022-0007",
+    referenceInterne: "PONT-3",
+    localisation: "Atelier poids lourds",
+    complet: true,
+    statut: "en_service",
+    criticite: "bloquante",
+    miseEnServiceMoisAvant: 20,
+  },
+  {
+    rang: 4,
+    modeleRang: 3,
+    siteRang: 3,
+    numeroSerie: "AC-GA11-2021-3310",
+    referenceInterne: "COMP-1",
+    localisation: "Local technique",
+    complet: true,
+    statut: "en_service",
+    criticite: "normale",
+    miseEnServiceMoisAvant: 30,
+  },
+  {
+    rang: 5,
+    modeleRang: 4,
+    siteRang: 0,
+    numeroSerie: "FCM-V400-0092",
+    referenceInterne: null,
+    localisation: "Servante d'atelier",
+    complet: true,
+    statut: "en_service",
+    criticite: "normale",
+    miseEnServiceMoisAvant: 8,
+  },
+  {
+    rang: 6,
+    modeleRang: 5,
+    siteRang: 1,
+    numeroSerie: "TRA-X200-0455",
+    referenceInterne: null,
+    localisation: null,
+    complet: true,
+    statut: "en_service",
+    criticite: "normale",
+    miseEnServiceMoisAvant: 14,
+  },
+  {
+    rang: 7,
+    modeleRang: 1,
+    siteRang: 2,
+    numeroSerie: "RAV-KPX-2016-0031",
+    referenceInterne: "PONT-4",
+    localisation: "Travée B",
+    complet: true,
+    // Une machine ARRÊTÉE, et l'exception qui va avec : *la machine fait
+    // EXCEPTION sur la valeur, jamais l'inverse* (L9-06). Les deux vont
+    // ensemble — une exception sans motif est refusée, et un motif sans
+    // exception aussi.
+    statut: "arretee",
+    criticite: "normale",
+    miseEnServiceMoisAvant: 96,
+    vgpException: "non_soumis",
+    vgpExceptionMotif:
+      "Déposée et consignée : hors champ tant qu'elle n'est pas remise en service.",
+  },
+  {
+    rang: 8,
+    modeleRang: 3,
+    siteRang: 3,
+    numeroSerie: "AC-GA11-2018-1177",
+    referenceInterne: "COMP-2",
+    localisation: null,
+    complet: true,
+    statut: "en_panne",
+    criticite: "importante",
+    miseEnServiceMoisAvant: 66,
+  },
+];
+
+/**
+ * CE QU'ON NOUS A DIT, ET D'OÙ (D114).
+ *
+ * Deux lignes, et deux origines différentes : *un rapport d'organisme et une
+ * vignette photographiée n'ont pas la même valeur le jour d'un contrôle*, et
+ * l'origine ne se reconstitue pas après coup.
+ *
+ * **La seconde est VOLONTAIREMENT ancienne.** Sa machine porte la périodicité
+ * de six mois que son modèle précise : l'échéance est donc dépassée, et
+ * `joursAvantEcheance` est négatif. *Sans elle, le registre ne montrerait que
+ * des échéances confortables, et personne ne verrait à quoi ressemble un
+ * retard.*
+ *
+ * **Les machines qui n'y figurent pas sont « sans information »** — et c'est la
+ * moitié que D88 protège : *un registre à moitié rempli ressemble à un registre
+ * complet.*
+ */
+export type VerificationVgpSeed = {
+  readonly rang: number;
+  readonly machineRang: number;
+  /** En mois avant aujourd'hui : une date écrite en dur vieillirait. */
+  readonly moisAvant: number;
+  readonly organisme: string;
+  readonly referenceRapport: string | null;
+  readonly origine: OrigineInformationVgp;
+};
+
+export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
+  {
+    rang: 1,
+    machineRang: 1,
+    moisAvant: 2,
+    organisme: "Organisme agréé de démonstration",
+    referenceRapport: "DEMO-VGP-0001",
+    origine: "rapport_organisme",
+  },
+  {
+    rang: 2,
+    machineRang: 3,
+    moisAvant: 14,
+    organisme: "Organisme agréé de démonstration",
+    referenceRapport: null,
+    origine: "vignette_constatee",
+  },
+];
+
+/**
+ * L'identifiant d'une ligne de parc, DÉRIVÉ comme celui des interventions.
+ *
+ * Le rang de la société ouvre à chacune une plage de cent identifiants : *la
+ * collision qui avait laissé la seconde société sans aucune intervention ne se
+ * rejoue pas ici* (§9, 10/09). La famille de l'identifiant — `7000` pour les
+ * familles, `8000` pour les modèles, `9000` pour les machines, `a000` pour les
+ * vérifications — suit la convention du jeu de démonstration.
+ */
+export function identifiantParc(
+  famille: "famille" | "modele" | "machine" | "verification",
+  rangSociete: number,
+  rang: number,
+): string {
+  const segments = {
+    famille: "7000",
+    modele: "8000",
+    machine: "9000",
+    verification: "a000",
+  } as const;
+  const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
+  return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;
 }

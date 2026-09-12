@@ -11,6 +11,8 @@ import {
 import { lundiDeLaSemaine } from "../lib/calendar/semaine";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
+import { engendrerJetonQr } from "../lib/machines/qr";
+import { ajouterMois } from "../lib/vgp/information";
 import {
   DELAIS_SEED,
   DUREE_MAXIMALE_MS,
@@ -19,8 +21,13 @@ import {
 import {
   COMPTES_PORTAIL,
   DEVISES,
+  FAMILLES_MATERIEL_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_DEMONSTRATION,
+  MACHINES_DEMONSTRATION,
+  MODELES_MATERIEL_DEMONSTRATION,
+  VERIFICATIONS_VGP_DEMONSTRATION,
+  identifiantParc,
   colonnesDeSuspension,
   TECHNICIENS_PAR_AGENCE,
   identifiantIntervention,
@@ -770,6 +777,195 @@ async function seed(): Promise<void> {
             },
           });
         }
+
+        // ── 6. LE PARC DE DÉMONSTRATION (R3-10) ─────────────────────────────
+        //
+        // **Le semis n'en posait aucune**, et deux écrans livrés se
+        // photographiaient vides : `/parc` et `/vgp` affichaient « Aucune
+        // machine n'est enregistrée pour cette société », **et ils disaient
+        // vrai**. *Les captures sont le seul moyen pour l'arbitre du projet de
+        // juger un écran* — il lit le dépôt, il n'atteint ni le site
+        // authentifié ni un serveur local.
+        //
+        // L'ordre est une contrainte de la base : la famille, puis le modèle
+        // qui la désigne, puis la machine qui désigne le modèle, le client et
+        // le lieu — trois clés étrangères composites, comme l'intervention.
+        //
+        // **Les dates sont RELATIVES à aujourd'hui**, jamais absolues : *une
+        // démonstration datée se périme sans jamais être vide* (§9, 21/08),
+        // et une échéance de VGP écrite en dur finirait par dire n'importe
+        // quoi. Le jour se lit dans le FUSEAU DE LA SOCIÉTÉ (L0-08).
+        const aujourdHuiDate = jourEnDate(
+          maintenant(societe.fuseau_horaire).local,
+        ) as Date;
+
+        etape(
+          `${societe.code} — familles et modèles de matériel : ` +
+            `${FAMILLES_MATERIEL_DEMONSTRATION.length} + ` +
+            `${MODELES_MATERIEL_DEMONSTRATION.length}`,
+        );
+        const identifiantsFamilles = new Map<string, string>();
+        for (const famille of FAMILLES_MATERIEL_DEMONSTRATION) {
+          const familleId = identifiantParc(
+            "famille",
+            rangSociete,
+            famille.rang,
+          );
+          identifiantsFamilles.set(famille.code, familleId);
+          await tx.familleMateriel.upsert({
+            where: { id: familleId },
+            update: {
+              libelle: famille.libelle,
+              assujettissement_vgp: famille.assujettissement,
+              vgp_periodicite_mois: famille.vgpPeriodiciteMois,
+              vgp_reference_texte: famille.vgpReferenceTexte,
+            },
+            create: {
+              id: familleId,
+              societe_id: id,
+              code: famille.code,
+              libelle: famille.libelle,
+              assujettissement_vgp: famille.assujettissement,
+              vgp_periodicite_mois: famille.vgpPeriodiciteMois,
+              vgp_reference_texte: famille.vgpReferenceTexte,
+            },
+          });
+        }
+
+        const identifiantsModeles = new Map<number, string>();
+        for (const modele of MODELES_MATERIEL_DEMONSTRATION) {
+          const familleId = identifiantsFamilles.get(modele.familleCode);
+          if (familleId === undefined) {
+            throw new Error(
+              `Modèle ${modele.marque} ${modele.reference} : famille « ` +
+                `${modele.familleCode} » absente du jeu de démonstration. Un ` +
+                "modèle dépend d'une famille et d'une seule ; il n'y a pas de " +
+                "valeur par défaut.",
+            );
+          }
+          const modeleId = identifiantParc("modele", rangSociete, modele.rang);
+          identifiantsModeles.set(modele.rang, modeleId);
+          await tx.modeleMateriel.upsert({
+            where: { id: modeleId },
+            update: {
+              famille_id: familleId,
+              periodicite_jours: modele.periodiciteJours,
+              vgp_periodicite_mois: modele.vgpPeriodiciteMois,
+              vgp_reference_texte: modele.vgpReferenceTexte,
+            },
+            create: {
+              id: modeleId,
+              societe_id: id,
+              famille_id: familleId,
+              marque: modele.marque,
+              reference: modele.reference,
+              periodicite_jours: modele.periodiciteJours,
+              vgp_periodicite_mois: modele.vgpPeriodiciteMois,
+              vgp_reference_texte: modele.vgpReferenceTexte,
+            },
+          });
+        }
+
+        etape(
+          `${societe.code} — machines de démonstration : ` +
+            `${MACHINES_DEMONSTRATION.length}`,
+        );
+        const identifiantsMachines = new Map<number, string>();
+        for (const machine of MACHINES_DEMONSTRATION) {
+          const lieu = sitesEcrits[machine.siteRang % sitesEcrits.length];
+          const modeleId = identifiantsModeles.get(machine.modeleRang);
+          if (lieu === undefined || modeleId === undefined) {
+            throw new Error(
+              `Machine ${machine.numeroSerie} : lieu ou modèle absent du jeu ` +
+                "de démonstration. Une machine porte QUATRE champs " +
+                "obligatoires — modèle, client, site, numéro de série (D6).",
+            );
+          }
+          const machineId = identifiantParc(
+            "machine",
+            rangSociete,
+            machine.rang,
+          );
+          identifiantsMachines.set(machine.rang, machineId);
+          const champsMachine = {
+            modele_id: modeleId,
+            client_id: lieu.clientId,
+            site_id: lieu.siteId,
+            reference_interne: machine.referenceInterne,
+            localisation: machine.localisation,
+            date_mise_en_service:
+              machine.miseEnServiceMoisAvant === null
+                ? null
+                : ajouterMois(aujourdHuiDate, -machine.miseEnServiceMoisAvant),
+            statut: machine.statut,
+            criticite: machine.criticite,
+            complet: machine.complet,
+            vgp_exception: machine.vgpException ?? null,
+            vgp_exception_motif: machine.vgpExceptionMotif ?? null,
+          };
+          await tx.machine.upsert({
+            where: { id: machineId },
+            update: champsMachine,
+            create: {
+              id: machineId,
+              societe_id: id,
+              numero_serie: machine.numeroSerie,
+              // LE JETON EST TIRÉ AU SORT, et il n'est écrit qu'à la CRÉATION
+              // (D71) : *un secret déterministe n'en est pas un*, et le
+              // réécrire à chaque semis invaliderait les étiquettes déjà
+              // collées sur les machines de la démonstration.
+              qr_token: engendrerJetonQr(),
+              source_creation: "back_office",
+              ...champsMachine,
+            },
+          });
+        }
+
+        etape(
+          `${societe.code} — vérifications périodiques reçues : ` +
+            `${VERIFICATIONS_VGP_DEMONSTRATION.length}`,
+        );
+        for (const recue of VERIFICATIONS_VGP_DEMONSTRATION) {
+          const machineId = identifiantsMachines.get(recue.machineRang);
+          if (machineId === undefined) {
+            throw new Error(
+              `Vérification ${recue.rang} : machine de rang ` +
+                `${recue.machineRang} absente du jeu de démonstration.`,
+            );
+          }
+          const verificationId = identifiantParc(
+            "verification",
+            rangSociete,
+            recue.rang,
+          );
+          // LA DATE QUI COMPTE EST CELLE DE LA VÉRIFICATION, jamais celle de la
+          // saisie (D114) : elle est donc REPLACÉE à chaque semis, comme les
+          // créneaux du planning — une démonstration dont les VGP vieillissent
+          // finirait par n'afficher que des retards.
+          const dateVerification = ajouterMois(
+            aujourdHuiDate,
+            -recue.moisAvant,
+          );
+          await tx.vgpVerification.upsert({
+            where: { id: verificationId },
+            update: {
+              machine_id: machineId,
+              date_verification: dateVerification,
+              organisme: recue.organisme,
+              reference_rapport: recue.referenceRapport,
+              origine: recue.origine,
+            },
+            create: {
+              id: verificationId,
+              societe_id: id,
+              machine_id: machineId,
+              date_verification: dateVerification,
+              organisme: recue.organisme,
+              reference_rapport: recue.referenceRapport,
+              origine: recue.origine,
+            },
+          });
+        }
       },
       DELAIS_SEED,
     );
@@ -1112,8 +1308,20 @@ async function seed(): Promise<void> {
               // `suspendue_le` suit le créneau RECALCULÉ juste au-dessus, et
               // c'est voulu : la suspension est datée au début du créneau, et
               // un créneau qui se déplace déplace l'âge de l'attente avec lui.
+              // **LE STATUT VIENT DE LA BASE, PAS DU MODÈLE** *(mesuré le
+              // 13/09/2026)*. Le semis a échoué en `23514` sur
+              // `intervention_piece_attendue_suppose_la_suspension` : la ligne
+              // portait `a_planifier` en base — un écran l'avait reprise —
+              // pendant que le modèle la dit `suspendue`, et le replacement
+              // écrivait le motif et la référence de pièce SUR une ligne qui
+              // n'est plus suspendue. *Deux sources pour un même fait, et la
+              // contrainte a dit laquelle des deux la ligne porte.*
+              //
+              // Ce replacement ne touche jamais au statut — *le semis ne
+              // réécrit pas, il pose ce qui manque* —, donc c'est le statut de
+              // la BASE qui décide, et `null` dit « pas suspendue ».
               ...colonnesDeSuspension(
-                trouve.modele,
+                ligne.statut === "suspendue" ? trouve.modele : null,
                 instantDuCreneau(
                   jour,
                   trouve.modele.debutMinutes,

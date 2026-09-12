@@ -846,6 +846,18 @@ lib/
               la majoration est un ARGUMENT OBLIGATOIRE de
               `valoriserIntervention` — un appelant qui l'oublie ne compile pas
               (la leçon de D70), et un paramètre facultatif aurait valu zéro
+              depot-forfaits.ts : LE CHEMIN D'ÉCRITURE du catalogue (R2-20) —
+              « aucune condition » s'écrit NULL, et la SEULE écriture qui
+              produise NULL est celle qui OMET la colonne : la contrainte
+              refuse `{}`, et Prisma refuse `null` sur une liste scalaire
+              d'où un refus NOMMÉ à la modification — omettre y veut dire « ne
+              la change pas », et un succès qui ne fait pas ce qu'on lui a
+              demandé est pire qu'un refus
+              l'unicité qui a mordu se retrouve par une LECTURE après coup, et
+              jamais dans l'erreur : `meta.target` nomme les colonnes hors du
+              harnais et vaut `null` dedans (mesuré)
+              aucune SUPPRESSION : une intervention désigne son forfait, et une
+              facture émise sous un forfait disparu ne s'explique plus
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis

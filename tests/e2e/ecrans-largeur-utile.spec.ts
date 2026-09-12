@@ -173,9 +173,24 @@ test("le parc machines rend des lignes, et la barre l'allume", async ({
 
   // Le TÉMOIN : des lignes réelles. Un tableau vide passerait toutes les
   // assertions de forme sans rien prouver du cloisonnement ni de la lecture.
+  //
+  // **ET CE TÉMOIN ÉTAIT CREUX** *(mesuré le 13/09/2026, R3-10)*. La ligne
+  // « Aucune machine n'est enregistrée pour cette société » est elle-même un
+  // `<tr>` du `<tbody>` : le décompte rendait **1** sur un parc **vide**, et
+  // l'assertion passait au vert en ne regardant rien (§9, 30/08). *Un décompte
+  // nul ressemble toujours à un sans-faute ; ici il n'était même pas nul.*
+  //
+  // Deux assertions le referment, et la seconde est celle qui manquait :
+  // l'absence du message de vacuité, et une ligne qui porte **autant de
+  // cellules que le tableau a de colonnes** — la ligne pleine, elle, n'en a
+  // qu'une.
   const lignes = page.locator("main tbody tr");
   await expect(lignes.first()).toBeVisible();
   expect(await lignes.count()).toBeGreaterThan(0);
+  await expect(page.getByText(fr["parc.vide"])).toHaveCount(0);
+  const colonnes = await page.locator("main thead th").count();
+  expect(colonnes).toBeGreaterThan(1);
+  expect(await lignes.first().locator("td").count()).toBe(colonnes);
 
   // L'entrée de la barre est désormais un LIEN, et c'est elle qui est allumée.
   await expect(
