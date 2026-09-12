@@ -212,3 +212,19 @@ Deux pièces ont donc été livrées (R3-01), et **elles ne remplacent pas cette
 | **une MESURE** | le job `deploiement` ouvre `/api/sante` en ligne après la fusion, rougit si la base est restée en arrière, et ouvre une **issue** dans le dépôt |
 
 **Le rappel se lit ou ne se lit pas ; la mesure rougit.** Les deux, et ils sont indépendants dans les deux sens — le couple préventif/détectif du §9 (30/08). La règle ci-dessus **demeure entière** : un compte rendu qui omet le geste reste un compte rendu incomplet, même quand la machine le rattrape. *Ce qui a changé est qu'on ne compte plus sur la mémoire pour l'appliquer.*
+
+### ET LA MIGRATION NE DEMANDE PLUS DE MAIN — amendement du 12/09/2026 (D116)
+
+**Le rappel et la mesure n'ont pas suffi non plus.** *Le 12/09/2026, quatre migrations ont été fusionnées entre 21 h 55 et 22 h 27 ; quatre fois le code s'est déployé et la base est restée en arrière ; `/planning` est tombé.* La réparation a demandé deux passages manuels du flux, dont un avec une purge qui a effacé les comptes — **et Alexis ne pouvait plus entrer dans sa propre application**.
+
+**Arbitrage rendu : une migration fusionnée atteint la base sans qu'une main la lui porte.** Le flux « DB migrate & seed » se déclenche sur `main` quand `prisma/migrations/` a changé, sous **quatre bornes** qui sont la condition de l'acceptation — cible `demonstration` uniquement ; purge jamais automatique ; refus si la base porte une donnée hors seed ; déclenchement restreint à `prisma/migrations/`. Le détail, sa raison et sa condition de réouverture sont en **D116** ; les bornes sont tenues par `tests/unit/ci/migration-automatique.test.ts`, jamais par ce paragraphe.
+
+**CE QUE CE §12 GARDE, ET IL FAUT LE LIRE AVANT DE CONCLURE QU'IL EST MORT.** Le geste nommé reste dû pour **tout ce que D116 n'automatise pas** :
+
+| | |
+|---|---|
+| `prisma/seed.ts` | D116 n'automatise que le SCHÉMA — ce qui casse la production quand il manque —, jamais les données |
+| la purge | borne 2 : elle vide toutes les sociétés sans condition, elle reste un geste de main |
+| la cible `production` | borne 1 : aucune exécution automatique ne l'atteint, sous aucune condition |
+
+*Ce qui change est qu'on ne compte plus sur la mémoire pour la moitié qui tombe en panne. Ce qui ne change pas est que la moitié qui détruit demande toujours quelqu'un.*

@@ -140,7 +140,7 @@ C'est ce mot de passe qui compose la `DATABASE_URL` de l'hébergeur d'applicatio
 
 ### La commande de construction NE DOIT PAS toucher la base
 
-Ni `prisma migrate deploy`, ni `pnpm db:seed`, ni aucune variante. Ce n'est pas une préférence : **les migrations partent exclusivement du flux `db-migrate.yml`, à la main** (`workflow_dispatch` seul, aucun déclencheur automatique — voir `docs/decisions/2026-08-20-migration-par-github-actions.md`). Un hébergeur qui migrerait à chaque déploiement ferait partir une migration toute seule, ce que ce dépôt refuse par construction.
+Ni `prisma migrate deploy`, ni `pnpm db:seed`, ni aucune variante. Ce n'est pas une préférence : **les migrations partent exclusivement du flux `db-migrate.yml`** — ~~à la main (`workflow_dispatch` seul, aucun déclencheur automatique)~~ **et, depuis D116 (12/09/2026), AUSSI par un `push` sur `main` touchant `prisma/migrations/`, sous quatre bornes dont la première est que la cible `production` n'est JAMAIS atteinte automatiquement** (voir `docs/decisions/2026-09-12-migration-automatique-sur-fusion.md`). Un hébergeur qui migrerait à chaque déploiement ferait partir une migration toute seule, ce que ce dépôt refuse par construction.
 
 ### La région, et pourquoi elle compte plus qu'ailleurs
 

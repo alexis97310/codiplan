@@ -28,7 +28,11 @@ direct à Neon pour appliquer la migration et le seed du socle multi-société
 ## Choix
 
 Un workflow dédié `.github/workflows/db-migrate.yml`, déclenché **à la main
-uniquement** (`workflow_dispatch`, aucun autre déclencheur), installe Node et
+~~uniquement** (`workflow_dispatch`, aucun autre déclencheur)~~ **— AMENDÉ
+LE 12/09/2026 par D116 : un `push` sur `main` touchant `prisma/migrations/`
+déclenche désormais le flux, sous quatre bornes. La phrase est barrée et non
+effacée ; voir `docs/decisions/2026-09-12-migration-automatique-sur-fusion.md`
+—**, installe Node et
 pnpm comme le workflow de vérification, puis enchaîne
 `pnpm prisma migrate deploy`, le seed, et un décompte de contrôle (sociétés,
 agences, comptes portail, parité XPF). L'exécuteur GitHub Actions a un accès TCP

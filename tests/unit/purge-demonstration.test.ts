@@ -52,19 +52,52 @@ describe("purge des données de démonstration", () => {
       expect(entree).not.toContain("default: true");
     });
 
-    it("n'ajoute aucun déclencheur : workflow_dispatch reste le seul", () => {
+    /*
+     * ── CE SCÉNARIO A CHANGÉ DE RÈGLE LE 12/09/2026, ET C'EST UN ARBITRAGE ──
+     *
+     * Il exigeait « workflow_dispatch reste le seul déclencheur ». **D116 l'a
+     * amendé** : une migration fusionnée atteint la base sans main, sous quatre
+     * bornes. *Ce n'est pas un test assoupli pour faire passer la vérification —
+     * c'est la règle qui a changé, par une décision écrite au recueil avec sa
+     * raison mesurée et sa condition de réouverture.*
+     *
+     * **Ce que ce fichier garde reste ce qu'il a toujours gardé : la PURGE.**
+     * Elle ne part jamais toute seule, et c'est maintenant qu'il faut le
+     * vérifier — auparavant, l'absence de tout déclencheur automatique la
+     * protégeait par ricochet. *Une garantie qui tenait à l'absence d'une
+     * chose cesse le jour où cette chose apparaît*, et c'est aujourd'hui.
+     */
+    it("le déclencheur automatique existe, et il est RESTREINT", () => {
       const declencheurs = workflow.slice(
         position("\non:"),
         position("\nconcurrency:"),
       );
 
       expect(declencheurs).toContain("workflow_dispatch:");
-      for (const interdit of ["push:", "pull_request:", "schedule:"]) {
+      expect(declencheurs).toContain("push:");
+      // BORNE 4 : `main` seul, et le seul répertoire des migrations.
+      expect(declencheurs).toContain("branches: [main]");
+      expect(declencheurs).toContain('- "prisma/migrations/**"');
+      for (const interdit of ["pull_request:", "schedule:"]) {
         expect(
           declencheurs,
           `déclencheur automatique interdit : ${interdit}`,
         ).not.toContain(interdit);
       }
+    });
+
+    it("LE DÉCLENCHEUR NE TOUCHE PAS LA PURGE — borne 2", () => {
+      // Le scénario qui remplace la protection perdue. La purge exige un
+      // déclenchement de MAIN, explicitement, et pas seulement par le fait que
+      // son entrée vaudrait faux sur un push : une garantie qui tient à ce
+      // qu'une entrée soit vide est la faute mesurée le 09/09.
+      const conditionPurge = workflow.slice(
+        position("- name: Purger les données de démonstration"),
+        position("- name: Exécuter le seed"),
+      );
+      expect(conditionPurge).toContain(
+        "github.event_name == 'workflow_dispatch'",
+      );
     });
 
     it("conditionne l'étape de purge à l'entrée, et la place avant le seed", () => {
@@ -81,11 +114,14 @@ describe("purge des données de démonstration", () => {
       // Depuis le 09/09/2026, une SECONDE condition : la purge ne vise jamais
       // la base de production. L'assertion s'est resserrée, pas relâchée — elle
       // portait sur la graphie exacte d'une condition simple, et une graphie
-      // exacte refuse aussi ce qui est plus fort qu'elle.
+      // exacte refuse aussi ce qui est plus fort qu'elle. *Elle vient de le
+      // prouver sur elle-même le 12/09 : D116 a rendu la condition plus forte
+      // — la cible est DÉCIDÉE au lieu d'être lue brute — et cette assertion a
+      // rougi.* Elle nomme désormais la propriété et non la graphie.
       expect(
         conditionPurge,
         "la purge ne doit jamais viser la base de production",
-      ).toContain("inputs.cible != 'production'");
+      ).toMatch(/cible\s*!=\s*'production'/);
       expect(etapePurge).toBeLessThan(etapeSeed);
       expect(etapePurge).toBeGreaterThan(
         position("- name: Appliquer la migration"),

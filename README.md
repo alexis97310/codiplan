@@ -68,6 +68,17 @@ pnpm suspensions:denombrer # COMBIEN COÛTE LE RATTRAPAGE DE R3-02 ? (D104)
 
 pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
                       # et rendre la base rejouable — il n'applique RIEN
+pnpm db:refus-si-reelles # LA BORNE 3 DE D116 — la base ne porte-t-elle que
+                      # le jeu de démonstration ? Joué par le flux AVANT toute
+                      # migration AUTOMATIQUE, et par lui seul : une main qui
+                      # déclenche a regardé
+                      # il lit sous une IDENTITÉ EXEMPTÉE des politiques —
+                      # « societe » est sous FORCE, et un rôle sans contexte
+                      # verrait zéro société, donc conclurait « aucune
+                      # étrangère » : la vacuité qui OUVRE au lieu de fermer
+                      # trois codes : 0 seed seul, 1 refus, 75 rien constaté —
+                      # « je n'ai pas pu regarder » n'est ni l'un ni l'autre
+
 pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
                       # la session nocturne LIT ce qu'il imprime, elle
                       # n'interprète pas le backlog — trois états et trois
