@@ -197,3 +197,18 @@ Un geste nommé dit trois choses, et les trois sont obligatoires :
 > **Lancer « DB migrate & seed » (onglet Actions → *Run workflow*) — cible : `demonstration` — `reinitialiser_demo` : décoché.** Sans ce geste, les interventions de démonstration restent non affectées en ligne.
 
 **La cible `production` n'est JAMAIS nommée par une session**, et le semis ne s'y exécute pas : c'est le §2 ci-dessus — aucun geste sur des données réelles.
+
+### ET CETTE RÈGLE N'EST PLUS LA SEULE GARANTIE — elle a cédé, le 12/09/2026
+
+**Tout ce qui précède est juste, était écrit, avait été relu, et n'a pas tenu.** La migration `20260913190000_trajet_par_zone_r3_03` est arrivée sur `main` avec **#156** sans que le geste accompagne la fusion ; **#157** est passée par-dessus ; `/planning` est tombé pour la troisième fois en deux jours, et *Alexis l'a découvert par un écran blanc, pas par un compte rendu.*
+
+> **Une règle écrite dans un document que personne ne relit au bon moment n'est pas un gardien :** elle en a exactement la forme, et elle ne produit **aucun signal** quand on l'oublie. C'est le §9 du CLAUDE.md appliqué à ce document-ci.
+
+Deux pièces ont donc été livrées (R3-01), et **elles ne remplacent pas cette règle — elles l'arment** :
+
+| | |
+|---|---|
+| **un RAPPEL** | la fusion d'une proposition touchant `prisma/migrations/` écrit elle-même le geste, champ par champ, dans le résumé de son exécution |
+| **une MESURE** | le job `deploiement` ouvre `/api/sante` en ligne après la fusion, rougit si la base est restée en arrière, et ouvre une **issue** dans le dépôt |
+
+**Le rappel se lit ou ne se lit pas ; la mesure rougit.** Les deux, et ils sont indépendants dans les deux sens — le couple préventif/détectif du §9 (30/08). La règle ci-dessus **demeure entière** : un compte rendu qui omet le geste reste un compte rendu incomplet, même quand la machine le rattrape. *Ce qui a changé est qu'on ne compte plus sur la mémoire pour l'appliquer.*

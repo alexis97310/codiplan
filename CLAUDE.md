@@ -353,6 +353,19 @@ pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
                       # (sécurité) — les mêler apprendrait à ne lire ni l'un
                       # ni l'autre.
 
+pnpm deploiement:verifier # LA PRODUCTION DÉPLOYÉE EST-ELLE DEBOUT ? (R3-01)
+                      # elle ouvre /api/sante EN LIGNE et rend un verdict —
+                      # mêmes codes que la veille : 0 sain, 1 écart CONSTATÉ,
+                      # 75 rien constaté. Elle NE MIGRE RIEN : elle nomme le
+                      # geste, un humain le joue et le regarde
+                      # elle refuse de conclure tant qu'elle n'a pas reconnu
+                      # LE COMMIT visé — l'ancienne version répond « tout va
+                      # bien » en toute sincérité, sa base lui suffisant, et
+                      # un vert tomberait dans la fenêtre où la panne naît
+                      # sans URL_PRODUCTION elle ROUGIT, elle ne saute pas :
+                      # un contrôle qui se tait quand il n'est pas configuré
+                      # est le contrôle qu'on croit avoir
+
 pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ? (R0-a, É12)
                       # état du flux + âge de la dernière nuit. Tourne sur
                       # l'activité HUMAINE, jamais sur la planification : un
@@ -417,6 +430,15 @@ lib/
               dépôt attend, et ne se contente plus de chercher un ÉCHEC : une
               migration jamais appliquée n'a pas de ligne, et la sonde
               répondait « oui » (panne du 11/09)
+              UNE LECTURE, DEUX RENDUS (R3-01) : `reponseMachine` rend le même
+              état à `/api/sante`, pour le contrôle d'après déploiement — une
+              seconde lecture écrite « pour la machine » serait la divergence
+              du §9, et dans le pire sens, puisque c'est la machine qui décide
+              si quelqu'un est prévenu
+              `commitDeploye` est la SEULE lecture de la variable d'hébergeur
+              qui nomme le commit, et elle rend `null` plutôt qu'une chaîne
+              vide : « je ne sais pas » et « rien » ne se corrigent pas au
+              même endroit
               `_prisma_migrations` porte UNE LIGNE PAR TENTATIVE, jamais une par
               migration : après un déblocage, le même nom y figure DEUX fois —
               l'essai annulé et l'essai réussi (mesuré le 11/09, 22:32:06 et
@@ -1510,5 +1532,15 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **La règle : le coût d'un contrôle de CI est le coût de son JOB, jamais celui de sa commande.** Un contrôle court se range DANS un job existant, ou bien il se déclenche sur moins d'événements — jamais dans un job à lui sur chaque exécution. Corollaire de méthode, et c'est lui qui a payé : *les minutes de CI s'observent avant de s'optimiser.* Trois des quatre économies qu'on nous demandait ont été refusées SUR MESURE — le cache du magasin `pnpm` existait déjà (5 secondes d'installation), `concurrency` avec annulation aussi, et les deux portes étaient déjà découpées. **La seule qui restait n'était pas dans la liste.**
 
   *Et une économie a été refusée parce qu'elle aurait fait passer un défaut :* `paths-ignore` sur `docs/**` aurait économisé **une exécution sur vingt-neuf** et éteint les **six** gardiens qui lisent des documents — sur les commits mêmes qu'ils existent pour juger. **Une économie qui retire un contrôle n'est pas une économie, c'est une dette dont on ne connaît pas le montant.**
+
+- **12/09/2026 — UNE RÈGLE ÉCRITE DANS UN DOCUMENT QUE PERSONNE NE RELIT AU BON MOMENT N'EST PAS UN GARDIEN : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie.** Espèce à nommer à côté du silence du 31/08 — *une alarme qui cesse de sonner ne le dit pas* —, parce qu'ici l'alarme n'a jamais été une alarme : c'était une PHRASE.
+
+  *Mesuré le 12/09/2026, à la troisième panne de production de la même cause en deux jours.* Le §12 du protocole de session dit : **tout travail touchant `prisma/` finit par un geste NOMMÉ** — parce qu'une migration ne part jamais toute seule et qu'il faut donc la demander. La règle est juste, elle était écrite, elle avait été relue. **Et elle n'a pas tenu** : la migration `20260913190000_trajet_par_zone_r3_03` est arrivée sur `main` avec **#156**, le geste n'a pas accompagné la fusion, **#157** est passée par-dessus, et `/planning` est tombé. *Alexis l'a découvert par un écran blanc, pas par un compte rendu.* Le compte exact se mesure en une commande — `git diff --name-only 1d87d6e^ 1d87d6e -- prisma/migrations/` nomme la migration, le même calcul sur #157 ne rend rien — et personne ne l'avait posée.
+
+  **Ce qui rend la faute structurelle, et non un oubli de quelqu'un : une règle de prose est ÉVALUÉE PAR CELUI QUI S'EN SOUVIENT.** Elle n'a ni population, ni témoin, ni jumeau ; elle ne rougit pas quand on passe à côté, et rien ne distingue « je l'ai appliquée » de « je ne l'ai pas relue ». *C'est le §9 du 31/08 appliqué au protocole lui-même — une décision qui prescrit un geste ailleurs qu'où elle s'écrit n'est prise qu'à moitié, et la moitié manquante a la forme de la moitié faite.* Et c'est aussi le §9 du 07/09 : *connaître une règle ne protège pas de l'enfreindre ; seul le gardien protège.*
+
+  **La règle : quand une consigne demande un GESTE HUMAIN à un moment précis, le dispositif doit produire la demande à ce moment-là — sinon la consigne est un vœu.** La réparation n'est pas une relecture plus attentive, et ce n'est pas non plus un rappel de plus : ce sont **deux pièces de nature différente**, et il faut les deux. *Un RAPPEL* — la fusion écrit elle-même l'avertissement, champ par champ, dans le résumé de l'exécution qu'elle déclenche : gratuit, parce qu'il vit dans un job qui tourne déjà. *Une MESURE* — un contrôle qui ouvre la sonde du déploiement après la fusion, rougit si la base est restée en arrière, et ouvre une issue dans le dépôt. **Le rappel se lit ou ne se lit pas ; la mesure rougit.** C'est le couple préventif/détectif du 30/08, et les deux moitiés sont aussi indépendantes ici que là-bas : un rappel qu'on ignore laisse la mesure faire son travail, et une mesure qu'on n'a pas encore écrite laisse au moins le rappel une chance.
+
+  *Corollaire sur la FORME du rappel, et il coûte une ligne à écrire :* un rappel qui dit « pense à migrer » n'est pas un geste, c'est un reproche. Celui-ci nomme le flux, le champ, la valeur de chaque champ, et la case à laisser décochée — la même exigence que D56 sur un nombre : *ce qui ne porte pas de quoi être exécuté sera interprété.*
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

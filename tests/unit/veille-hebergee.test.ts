@@ -381,8 +381,51 @@ describe("la veille de la base hébergée (D55)", () => {
     it("une nuit de veille rouge ouvre la MÊME issue qu'un verify:full rouge", () => {
       // Sans ce câblage, la veille sonnerait dans la boîte de courriel que le
       // 20 août a montrée vide — c'est tout l'objet de l'écart É12.
-      expect(CI).toContain("needs: [verify-full, veille-hebergee]");
+      //
+      // **L'ASSERTION PORTE SUR L'APPARTENANCE, ET NON SUR LA LISTE ENTIÈRE.**
+      // Sa première rédaction exigeait le littéral
+      // `needs: [verify-full, veille-hebergee]` : elle a donc rougi le jour où
+      // un TROISIÈME contrôle a rejoint l'alarme (R3-01, la vérification après
+      // déploiement), alors que rien de ce qu'elle garde n'avait bougé. *Une
+      // assertion qui fixe l'état entier là où elle veut dire « contient » est
+      // un gardien qui refuse l'addition en même temps que le retrait* — et
+      // c'est le retrait qui est dangereux : il ferait taire la veille.
+      //
+      // Le jumeau ci-dessous le montre sur la faute telle qu'elle se
+      // commettrait — la veille sortie du `needs` —, et il montre aussi qu'une
+      // ADDITION passe, ce qui est la moitié qu'on n'éprouve jamais (§9, 11/09).
+      const besoinsDeLAlarme = (flux: string): string =>
+        /\n {4}needs: \[([^\]]*)\]/.exec(
+          flux.slice(position("alarme-nuit-rouge:")),
+        )?.[1] ?? "";
+
+      expect(
+        besoinsDeLAlarme(CI)
+          .split(",")
+          .map((nom) => nom.trim()),
+      ).toContain("veille-hebergee");
       expect(CI).toContain("needs.veille-hebergee.result == 'failure'");
+
+      // ÉPREUVE — la veille retirée du câblage est refusée.
+      //
+      // L'amputation porte sur le SEGMENT de l'alarme, jamais sur le flux
+      // entier : le premier `needs:` du fichier est celui d'un AUTRE job, et
+      // l'y remplacer ne violait rien. *La première rédaction le faisait, et
+      // elle a rougi en disant « tu n'as rien changé » — c'est la question du
+      // §9 (30/08) posée par l'outil lui-même : la violation a-t-elle eu lieu ?*
+      const debutAlarme = position("alarme-nuit-rouge:");
+      const ampute =
+        CI.slice(0, debutAlarme) +
+        CI.slice(debutAlarme).replace(
+          /(\n {4}needs: \[)[^\]]*(\])/,
+          "$1verify-full$2",
+        );
+      expect(ampute).not.toBe(CI);
+      expect(
+        besoinsDeLAlarme(ampute)
+          .split(",")
+          .map((n) => n.trim()),
+      ).not.toContain("veille-hebergee");
     });
 
     it("elle ne tourne PAS sur les propositions de fusion", () => {

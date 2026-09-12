@@ -3722,3 +3722,35 @@ Le catalogue n'est **pas** un référentiel de plateforme : c'est une table mét
 *Le jour où une prestation devrait porter un montant que `forfait` ne sait pas exprimer* — un prix qui dépendrait d'autre chose que des trois axes de RG-TAR-06 —, le pont ne suffit plus et la question se rouvre. **Ce n'est pas le cas aujourd'hui** : les trois axes couvrent la zone, le type et le client.
 
 *Aucune règle du chapitre 10 n'est amendée : le chapitre 10 est MUET sur les prestations, et cette décision est ce qui le rend constructible. Le §4.3 est narratif, donc non normatif (§1).*
+
+---
+
+## D110 — TANT QUE LE QUOTA D'ACTIONS EST SERRÉ, LES TRAVAUX SE GROUPENT — et ce qu'on y perd est écrit
+
+*Rendu par Alexis le 12/09/2026, sur la mesure des minutes de CI de septembre. Décision TEMPORAIRE, avec sa condition de réouverture.*
+
+### CE QUI A OUVERT LA QUESTION
+
+*Mesuré par l'API des exécutions, et non de mémoire : **2 872 minutes facturées** en septembre 2026 sur un forfait de 3 000, dont **2 706 pour le flux CI**.* Une fusion coûte **DEUX exécutions** — la proposition, puis la poussée sur `main` — soit **~14,4 minutes avant les économies du 12/09, ~13,4 après**. Il restait **128 minutes**, c'est-à-dire **neuf fusions**, pour une file qui en compte davantage.
+
+Le protocole de session veut un ticket par proposition, et il a raison sur le fond : *une proposition qui porte un travail se relit, se refuse et se reprend toute seule.* Il a tort sur les minutes : **une proposition qui porte quatre travaux coûte exactement le même prix qu'une qui en porte un.**
+
+### LA DÉCISION
+
+**Tant que le quota d'Actions est serré, une proposition peut porter plusieurs travaux.** Les commits restent **atomiques** — un commit ne couvre jamais deux tickets, le §7 ne bouge pas d'un mot — et c'est la **proposition** qui les groupe.
+
+C'est la famille du §9 du 01/09 prise à l'envers : *une borne posée faute de savoir mesurer se retire quand la mesure existe.* Ici la borne — un travail, une proposition — n'a jamais mesuré la qualité d'une relecture ; elle mesurait une **commodité**. Et la commodité vaut aujourd'hui 13,4 minutes l'unité.
+
+### CE QUE CELA COÛTE, nommé plutôt que tu
+
+**UNE PROPOSITION ROUGE SERA PLUS DIFFICILE À DISSÉQUER.** Quand quatre travaux partagent une exécution, un `verify:full` rouge ne dit pas lequel l'a cassé : il faut relire le diff entier, ou rejouer les portes localement travail par travail. *C'est un coût réel, il se paie au pire moment — celui où quelque chose est déjà cassé — et il est accepté en connaissance de cause.*
+
+Deux contreparties qui l'atténuent, et aucune ne l'annule. Les **commits atomiques** permettent de bissecter sans relire : `git revert` d'un seul commit reste possible. Et la porte locale — `pnpm verify`, puis `pnpm verify:full` avant la fusion — est jouée **avant** de pousser, si bien qu'une proposition groupée rouge en CI est déjà une anomalie.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où le quota d'Actions est remis à zéro**, ou relevé, le groupement cesse d'être la règle et redevient l'exception. La date de remise à zéro se lit à l'API (`GET /users/{u}/settings/billing/actions`), elle ne s'estime pas.
+
+Ce n'est pas une date écrite ici — elle aurait vieilli. C'est un **fait qu'on mesure**, et le jour où il est mesuré, cette décision s'efface et le protocole reprend.
+
+*Aucune règle du chapitre 10 n'est amendée : cette décision porte sur la façon de travailler, pas sur le produit.*
