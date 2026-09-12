@@ -127,6 +127,22 @@ describe("la vérification après déploiement est câblée", () => {
     // qui sont des écarts bien constatés (§9, 10/09 — une cause imprimée quoi
     // qu'il arrive est une opinion que le dispositif répète en votre nom).
     expect(bloc).toContain("needs.deploiement.outputs.code");
+
+    // ── LE CANAL PEUT ÊTRE CLOS, ET L'ALARME DOIT LE SURVIVRE ─────────────
+    //
+    // *Mesuré le 12/09/2026 sur la première exécution réelle du dispositif :*
+    // `gh` a répondu « the repository has disabled issues ». L'écart É12 avait
+    // été fermé par « une issue vit DANS le dépôt » — et ce dépôt-ci n'a plus
+    // d'issues. **Le corps part donc d'abord dans deux canaux que rien ne peut
+    // désactiver**, le résumé et l'annotation, et l'issue n'est qu'un
+    // troisième. Sans cela, fermer le canal faisait disparaître le CONTENU en
+    // même temps que la sonnerie.
+    expect(bloc).toContain("GITHUB_STEP_SUMMARY");
+    expect(bloc).toContain("::error title=");
+    // Et elle ROUGIT quand le canal est clos : le contenu est sauf, mais une
+    // alarme sans trace durable n'est pas une alarme.
+    expect(bloc).toContain("alarme sans canal");
+    expect(bloc).toContain("cocher **Issues**");
     expect(bloc).toContain('"$CODE_DEPLOIEMENT" = "75"');
     // Le détail et le geste viennent du CONTRÔLE, jamais de ce fichier : une
     // recopie deviendrait fausse sans rougir (§9, 01/09).
@@ -222,6 +238,25 @@ describe("ÉPREUVES : le mécanisme retiré est refusé", () => {
     expect(ampute).not.toBe(CI);
     expect(verdict(ampute).alarme).toBe(false);
     expect(verdict(ampute).jobPresent).toBe(true);
+  });
+
+  it("le repli de l'alarme retiré : refusé — c'est la sonnerie ET le contenu", () => {
+    // La faute telle qu'elle se commettrait : « l'issue suffit », écrit par
+    // quelqu'un qui n'a pas vu que le canal pouvait être clos. C'est la faute
+    // que le 12/09 a réellement commise.
+    const ampute = CI.replace(
+      /^( +)\{\n +echo "## \$TITRE"[\s\S]*?\} >> "\$GITHUB_STEP_SUMMARY"\n/m,
+      "",
+    );
+    expect(ampute).not.toBe(CI);
+    const blocAmpute = (() => {
+      const debut = ampute.indexOf("\n  alarme-nuit-rouge:\n");
+      const suite = ampute.slice(debut + 1);
+      const fin = suite.search(/\n {2}[a-z][a-z0-9-]*:\n/);
+      return fin === -1 ? suite : suite.slice(0, fin);
+    })();
+    // Le premier écrit du corps a disparu : le contenu ne survit plus au canal.
+    expect(blocAmpute).not.toContain('echo "## $TITRE"');
   });
 
   it("le contrôle devenu migrateur : refusé", () => {

@@ -587,18 +587,69 @@ jobs:
             "cas-là — voir le §9 du CLAUDE.md." \
             > corps-nuit-rouge.md
 
+          # ── LE CORPS EST ÉCRIT AVANT TOUTE TENTATIVE D'OUVERTURE ──────────
+          #
+          # **Mesuré le 12/09/2026, et c'est un canal CLOS qu'on a découvert** :
+          # `gh` a répondu *« the repository has disabled issues »*. L'écart É12
+          # avait été fermé le 31/08 par la phrase « une issue rend la question
+          # du courriel sans objet : elle vit DANS le dépôt » — et ce dépôt-ci
+          # n'a plus d'issues. Toute nuit rouge sonnait donc **dans le vide**,
+          # exactement la pièce vide du 20 août sous un autre costume.
+          #
+          # *Une alarme qui ne peut pas sonner doit le dire, ET dire quand même
+          # ce qu'elle avait à dire.* Le corps part donc d'abord dans le résumé
+          # de l'exécution et en annotation — deux canaux que rien ne peut
+          # désactiver —, et l'issue n'est qu'un troisième. Sans cela, fermer le
+          # canal faisait disparaître le CONTENU en même temps que la sonnerie.
+          {
+            echo "## $TITRE"
+            echo
+            cat corps-nuit-rouge.md
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=$MARQUEUR::$NATURE"
+
           # Une issue par ÉPISODE, pas une par nuit : tant que la précédente est
           # ouverte, on la complète. Sans cela, une semaine rouge produirait sept
           # issues et l'alarme deviendrait le bruit qu'elle devait remplacer.
+          #
+          # `set -e` est actif : chaque appel à `gh` est donc explicitement
+          # neutralisé, et son échec est JUGÉ plutôt que de terminer le pas sur
+          # place. *Un `gh` qui tombe après le résumé ne doit pas faire perdre le
+          # résumé.*
+          CANAL_OUVERT=oui
           EXISTANTE=$(gh issue list --repo "$DEPOT" --state open --limit 50 \
             --json number,title \
-            --jq "[.[] | select(.title | contains(\"$MARQUEUR\"))] | .[0].number // empty")
+            --jq "[.[] | select(.title | contains(\"$MARQUEUR\"))] | .[0].number // empty") \
+            || CANAL_OUVERT=non
 
-          if [ -n "$EXISTANTE" ]; then
+          if [ "$CANAL_OUVERT" = "oui" ] && [ -n "$EXISTANTE" ]; then
             echo "Issue #$EXISTANTE déjà ouverte — ajout d'un commentaire."
-            gh issue comment "$EXISTANTE" --repo "$DEPOT" --body-file corps-nuit-rouge.md
-          else
-            gh issue create --repo "$DEPOT" --title "$TITRE" --body-file corps-nuit-rouge.md
+            gh issue comment "$EXISTANTE" --repo "$DEPOT" --body-file corps-nuit-rouge.md \
+              || CANAL_OUVERT=non
+          elif [ "$CANAL_OUVERT" = "oui" ]; then
+            gh issue create --repo "$DEPOT" --title "$TITRE" --body-file corps-nuit-rouge.md \
+              || CANAL_OUVERT=non
+          fi
+
+          if [ "$CANAL_OUVERT" != "oui" ]; then
+            # LE CANAL EST CLOS, et ce job ROUGIT pour le dire. Le contenu est
+            # sauf — il est dans le résumé ci-dessus —, mais une alarme qui ne
+            # laisse aucune trace DURABLE dans le dépôt n'est pas une alarme :
+            # la prochaine personne à regarder ne saura pas que cette nuit a
+            # rougi. *Le geste est un réglage de dépôt, pas un correctif de
+            # code* : Settings → General → Features → cocher « Issues ».
+            {
+              echo
+              echo "> ⚠ **L'ISSUE N'A PAS PU ÊTRE OUVERTE.** Les *Issues* sont"
+              echo "> désactivées sur ce dépôt, ou le jeton n'a pas le droit d'y"
+              echo "> écrire. Le contenu ci-dessus est donc la SEULE trace de"
+              echo "> cette alarme, et elle disparaîtra avec la rétention des"
+              echo "> exécutions — alors qu'une issue, elle, attend qu'on la lise."
+              echo ">"
+              echo "> **Le geste :** Settings → General → Features → cocher **Issues**."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=alarme sans canal::Les Issues sont désactivées sur ce dépôt : l'alarme d'É12 ne peut rien ouvrir. Settings → General → Features → cocher « Issues »."
+            exit 1
           fi
 
   # ── (b) LE BATTEMENT — la vérification nocturne tourne-t-elle ENCORE ? ──────
