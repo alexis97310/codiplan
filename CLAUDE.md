@@ -43,7 +43,7 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 |---|---|---|
 | Framework | Next.js 15, App Router, TypeScript strict | — |
 | Style | Tailwind CSS + shadcn/ui | Pas de librairie UI supplémentaire, **hors composant calendrier** |
-| Calendrier | Schedule-X | Aucune dépendance payante en V1 |
+| Calendrier | ~~Schedule-X~~ — **aucun composant imposé** *(tranché le 12/09/2026, D105)* | Aucune dépendance payante en V1 |
 | Base | PostgreSQL 16 + Row Level Security | — |
 | ORM | Prisma | Pas de SQL brut hors migrations et politiques RLS |
 | Auth | Better Auth, sessions serveur, MFA sur rôles sensibles | Pas Auth.js |
@@ -63,6 +63,10 @@ Si le cahier des charges est muet ou ambigu, **s'arrêter et poser la question**
 **TRANCHÉ LE 10/09/2026 — la bibliothèque est `read-excel-file`** *(D90)*. Ce qui manquait à la comparaison du 09/09 était **un vrai fichier d'Excel** : elle le disait elle-même — *« aucun fichier produit par Excel lui-même n'a été lu »*. L'exploitation a fourni le sien, une fixture en a été tirée **par retrait** (`tests/fixtures/dates-excel.xlsx`), et les quatre dates relevées en sortent **identiques sous trois fuseaux**, dont `Pacific/Noumea`. Le sérial était le proxy d'un critère — *« le jour ne bouge pas »* — qu'on sait maintenant mesurer directement : §9 du 01/09, *une borne posée faute de savoir mesurer se retire quand la mesure existe.* Le paragraphe qui suit reste écrit : il dit pourquoi SheetJS est écarté, et c'est cela qu'on relit.
 
 **Ce n'était donc pas une contrainte qu'on contourne, c'était une contrainte devenue CADUQUE** — un vestige, comme la borne du déclencheur d'événement. *Une décision qui nomme un fournisseur sur une prémisse fausse ne lie plus.* Le §2 exige désormais **une bibliothèque de lecture `.xlsx` maintenue** ; il n'en nomme plus aucune, et le choix est un arbitrage que la comparaison du registre du 09/09/2026 instruit. Le nom est **barré et non effacé** : ce qui a été décidé un jour se relit, sinon on le redécide.
+
+**Le §2 imposait Schedule-X, et la contrainte est RETIRÉE** *(D105, 12/09/2026)*. Le motif n'est pas le coût d'une réécriture — c'est que **LES REFUS NOMMÉS SONT LA RÈGLE MÉTIER, PAS CELLE DU COMPOSANT**. Quatre contrôles décident si une intervention peut se poser — calendrier de l'agence visée (RG-PLA-07), chevauchement, habilitation (RG-PLA-04), absence validée (RG-PLA-06) —, chacun avec **son motif écrit**. *On ne délègue pas à une bibliothèque ce qui fait la valeur du produit* : un composant calendrier propose son propre modèle de validité, et l'y plier c'est ou bien perdre les motifs, ou bien les recalculer à côté — **deux lectures d'un même critère** (§9, 01/09), dans l'écran où le planificateur travaille toute la journée.
+
+Les vues **mois** et **année** ne sont demandées ni par la maquette ni par aucun ticket, et le jour où une vue mensuelle sera voulue ce sera pour les **ÉCHÉANCES** — prochaines VGP, fins de contrat — *pas pour le planning* : un agenda de créneaux et un calendrier d'échéances ne se lisent pas de la même façon. **Le nom est barré et non effacé**, comme SheetJS : ce qui a été décidé un jour se relit. L'exception « hors composant calendrier » de la colonne *Style* **reste** — elle n'interdit rien, elle ouvre une porte que personne n'est obligé de franchir. Réouverture : *le jour où une vue MOIS ou ANNÉE du PLANNING est écrite à la maquette ou demandée par un ticket.*
 
 **Ajouter une dépendance est une décision, pas un réflexe.** Toute nouvelle dépendance se justifie en une phrase dans le message de commit. En cas de doute, écrire les 30 lignes plutôt qu'ajouter 200 Ko.
 
