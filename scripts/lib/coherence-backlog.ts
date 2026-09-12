@@ -79,6 +79,29 @@ export type AnalyseBacklog = {
 };
 
 const REF_TICKET = /^\*\*(L\d+-\d+[a-z]?)\b/;
+
+/**
+ * TOUT EN-TÊTE DE TICKET FERME LE BLOC PRÉCÉDENT — même ceux dont ce contrôle
+ * ne juge rien.
+ *
+ * **Mesuré le 13/09/2026.** `REF_TICKET` ne reconnaît que les tickets de LOT, et
+ * c'est voulu : eux seuls portent une estampille de relecture. Mais il servait
+ * aussi de BORNE, si bien que le dernier ticket de lot du document **absorbait
+ * tous les tickets de reprise qui le suivent** — jusqu'au prochain titre ou
+ * séparateur, c'est-à-dire jusqu'à la fin du fichier.
+ *
+ * *Le bloc de `L1-12` portait ainsi le texte de `R3-06` et de `R3-07`, et ses
+ * « sources citées » étaient celles de quatre tickets.* Deux conséquences, et la
+ * seconde est la plus coûteuse : son empreinte couvrait des décisions qui ne le
+ * concernent pas, et **toute retouche à la fin du document la faisait rougir** —
+ * un ticket de reprise écrit ce jour-là citant `D95` a suffi. *Un gardien dont
+ * le taux de fausses alertes conduit à ne plus le lire coûte plus qu'il ne
+ * rapporte* (§9, 11/09).
+ *
+ * **Ce qui sépare les deux rôles : ouvrir un ticket et fermer le précédent ne
+ * sont pas la même chose.** Ce motif-ci ferme, sans jamais ouvrir.
+ */
+const AUTRE_ENTETE_DE_TICKET = /^\*\*~?~?([A-Z]+\d+-[\dA-Za-z]+)\b/;
 const FIN_DE_BLOC = /^(?:#{1,6}\s|---\s*$)/;
 
 /** `RG-IMP-02`, et la plage `RG-IMP-01 à 05` que le backlog écrit couramment. */
@@ -249,7 +272,7 @@ export function lireTickets(backlog: string): {
       courant = { ref: entete[1], lignes: [ligne] };
       continue;
     }
-    if (FIN_DE_BLOC.test(ligne)) {
+    if (FIN_DE_BLOC.test(ligne) || AUTRE_ENTETE_DE_TICKET.test(ligne)) {
       fermer();
       continue;
     }

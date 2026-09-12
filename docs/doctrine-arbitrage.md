@@ -46,6 +46,7 @@ Une décision appartient à Alexis si et seulement si elle touche l'une de ces c
 - **Un gardien se montre en train de rougir avant d'être déclaré bon.**
 - **Un booléen ne peut pas porter trois états** : une nouvelle ligne naît « à déterminer », jamais sur la réponse négative.
 - **Un gabarit d'alarme n'affirme aucune cause qu'un contrôle ne mesure.**
+- **Le verdict par défaut d'un contrôle est celui qui AFFIRME LE MOINS** : ce qui se reconnaît nommément est la faute, jamais l'excuse. Un contrôle interrompu rend une absence de mesure, jamais une faute.
 
 ## 4. Argent
 

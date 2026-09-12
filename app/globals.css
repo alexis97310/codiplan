@@ -62,6 +62,92 @@
 }
 
 /*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * « LE TABLEAU » — la seconde apparence, celle d'AVANT la maquette (R2-01, D95).
+ *
+ * ## Pourquoi elle existe, et ce qu'elle prouve
+ *
+ * D95 a fait de l'apparence d'avant un thème alternatif, et n'en a construit
+ * aucun : `APPARENCES` ne contenait qu'une entrée. **Tant qu'il n'y en a qu'une,
+ * le mécanisme n'est pas éprouvé — il est seulement écrit.** *C'est l'espèce du
+ * §9 (08/09) : un défaut invisible parce que ce qu'il casse n'existe pas
+ * encore.* Ce bloc, et l'entrée qui l'accompagne, sont tout ce qu'il a fallu :
+ * **aucun fichier d'écran ne bouge**, et c'est exactement la promesse de D95.
+ *
+ * ## D'OÙ VIENNENT CES VALEURS — recouvrées, et non inventées
+ *
+ * *« Le tableau » ne désigne aucun document du dépôt* : il désigne l'apparence
+ * en vigueur sur `main` au commit `d03a4a5`. Les valeurs sont donc LUES là-bas,
+ * et l'historique a dû être approfondi pour les atteindre — ce clone était
+ * superficiel (55 commits sur 362).
+ *
+ * | Jeton | Source à `d03a4a5` |
+ * |---|---|
+ * | surfaces, bordures, encres | les jetons `oklch` neutres de `app/globals.css`, convertis en sRGB |
+ * | `marque`, `accent` | `PRIMAIRE_NEUTRE` `#334155` et `ACCENT_NEUTRE` `#64748b` de `lib/theme/defaut.ts` — les gris ardoise |
+ * | familles de statut | les classes Tailwind que `lib/theme/statuts.ts` portait alors : `bg-blue-200`, `bg-blue-700`, `text-blue-950`, `bg-green-200`, `bg-green-700`, `text-green-950`, `bg-orange-300`, `text-orange-950`, `bg-red-600`, `bg-neutral-200`, `text-neutral-500`, `text-neutral-900` |
+ *
+ * **ET CE QUI A DÛ ÊTRE DÉRIVÉ EST DIT PLUTÔT QUE TU.** L'apparence d'avant ne
+ * portait pas trente jetons : elle portait des classes utilitaires, et
+ * plusieurs rôles n'avaient aucun équivalent — il n'existait ni bordure rouge,
+ * ni bordure orange, ni encre orange distincte. Ces valeurs-là sont prises
+ * **sur la même rampe Tailwind, au même degré que leurs voisines** (`red-200`,
+ * `red-600`, `red-950` ; `orange-600`), de sorte que le résultat soit cohérent
+ * avec ce qui, lui, est recouvré. *Une valeur dérivée présentée comme
+ * recouvrée serait une mesure inventée.*
+ *
+ * ## CE QUE CE BLOC NE FAIT PAS
+ *
+ * **Il n'est offert à personne.** Aucun sélecteur, et c'est la décision de D95
+ * reconduite : *une interface de choix se construit quand un choix a un sens
+ * pour quelqu'un*, et le thème deviendra d'abord une propriété de la SOCIÉTÉ
+ * (R2-02). Ce bloc rend cette suite possible sans reprise — il ne la précède
+ * pas. **Et ce n'est pas une apparence sombre** : les deux sont claires, la
+ * seconde l'était déjà.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+[data-apparence="tableau"] {
+  /* Surfaces et texte — les jetons `oklch` neutres, en sRGB. */
+  --app-fond: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-creuse: #f7f7f7;
+  --app-bord: #ebebeb;
+  --app-bord-faible: #f4f4f4;
+  --app-encre: #252525;
+  --app-encre-faible: #8e8e8e;
+
+  /* Les gris ARDOISE : c'est ce que voyait une société sans charte propre. */
+  --app-marque: #334155;
+  --app-marque-encre: #ffffff;
+  --app-accent: #64748b;
+  --app-accent-encre: #ffffff;
+
+  /* Familles de statut — la rampe Tailwind d'alors. */
+  --app-bleu-fond: #bfdbfe;
+  --app-bleu-bord: #1d4ed8;
+  --app-bleu-encre: #172554;
+  --app-rouge-fond: #fecaca;
+  --app-rouge-bord: #dc2626;
+  --app-rouge-encre: #450a0a;
+  --app-vert-fond: #bbf7d0;
+  --app-vert-bord: #15803d;
+  --app-vert-encre: #052e16;
+  --app-orange-fond: #fdba74;
+  --app-orange-bord: #ea580c;
+  --app-orange-encre: #431407;
+  --app-gris-fond: #e5e5e5;
+  --app-gris-bord: #737373;
+  --app-gris-encre: #171717;
+
+  /* Les deux pleins — mêmes teintes à pleine saturation. */
+  --app-bleu-plein: #1d4ed8;
+  --app-bleu-plein-encre: #ffffff;
+  --app-vert-plein: #15803d;
+  --app-vert-plein-encre: #ffffff;
+}
+
+/*
  * LES JETONS DE BASE SONT RACCORDÉS À L'APPARENCE, et c'est ce raccordement
  * qui fait qu'aucun écran n'a eu à changer pour recevoir la maquette. Les
  * composants de `components/ui/` nomment `bg-background`, `border-border`,

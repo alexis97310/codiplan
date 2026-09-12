@@ -13,10 +13,52 @@ name: Nuit — mode automatique
 # prompt long ici serait une deuxième copie de ce document, et les deux
 # divergeraient en silence (§9 du CLAUDE.md, 01/09).
 #
+# ═══════════════════════════════════════════════════════════════════════════
+# ⚠️ L'AUTOMATISATION A ÉTÉ ABANDONNÉE LE 11/09/2026 — CE FLUX NE PART PLUS SEUL
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Le déclencheur `schedule` est RETIRÉ. Ce flux ne s'exécute plus que sur
+# `workflow_dispatch`, c'est-à-dire à la main.
+#
+# ─── POURQUOI LE RETIRER PLUTÔT QUE LE LAISSER INERTE (R1-11) ───────────────
+#
+# **Le flux était déjà neutralisé — mais ailleurs que dans ce fichier.** Mesuré
+# le 13/09/2026 sur l'API : `state: "disabled_manually"`, mis à jour le
+# 11/09/2026 à 12:54:55 +11:00. Un flux désactivé à la main ne part pas ; mais
+# cet état vit dans l'INTERFACE de GitHub, et le fichier disait le contraire.
+#
+# > *Une neutralisation qui repose sur un attribut EXTÉRIEUR à la chose
+# > neutralisée s'écrit là où l'on change cet attribut — sinon le fichier qu'on
+# > relira dans trois mois annonce une nuit qui tourne.*
+#
+# C'est l'espèce du §9 du 31/08 prise à l'envers : là, une GARANTIE reposait sur
+# un attribut extérieur ; ici c'est une neutralisation, et le coût est le même —
+# le dépôt et l'état réel divergent, en silence.
+#
+# ─── CONDITION DE RÉOUVERTURE, vérifiable ──────────────────────────────────
+#
+# *Le jour où une exécution non humaine est de nouveau voulue* : on remet le
+# bloc `schedule` ci-dessous ET on réactive le flux dans l'interface. Les deux,
+# et dans cet ordre — l'un sans l'autre reproduit exactement la divergence que
+# ce retrait vient de fermer.
+#
+# ```yaml
+#   schedule:
+#     # 16h00 UTC = 03h00 à Nouméa (UTC+11, sans changement d'heure).
+#     # UNE HEURE APRÈS la vérification nocturne de `ci.yml` (15h00 UTC).
+#     - cron: "0 16 * * *"
+# ```
+#
+# ─── CE QUI N'A PAS BOUGÉ, et c'est MESURÉ plutôt que supposé ───────────────
+#
+# **`claude.yml` ne reçoit aucune mention**, parce que son état ne le justifie
+# pas : mesuré le 13/09/2026, il est `active` et **ne porte aucun déclencheur
+# `schedule`**. Il n'y a donc rien à y corriger — *et le dire est utile, sinon
+# la prochaine session refera la mesure.*
+#
 # ─── UN FLUX PLANIFIÉ NE PART QUE DEPUIS LA BRANCHE PAR DÉFAUT ──────────────
-# GitHub n'exécute `schedule` que sur la branche par défaut. Ce fichier ne
-# déclenche donc RIEN tant qu'il n'est pas sur `main` : le vérifier après la
-# fusion fait partie de la mise en service, cela ne se suppose pas.
+# GitHub n'exécute `schedule` que sur la branche par défaut. La note reste, pour
+# le jour où la condition de réouverture serait remplie.
 #
 # ─── QUI EST L'AUTEUR D'UNE EXÉCUTION PLANIFIÉE ─────────────────────────────
 # GitHub attribue une exécution `schedule` à un compte du dépôt — en pratique
@@ -28,12 +70,8 @@ name: Nuit — mode automatique
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  schedule:
-    # 16h00 UTC = 03h00 à Nouméa (UTC+11, sans changement d'heure).
-    # UNE HEURE APRÈS la vérification nocturne de `ci.yml` (15h00 UTC) : la
-    # nuit part ainsi d'un `main` dont l'état vient d'être mesuré, et n'a pas
-    # à le supposer.
-    - cron: "0 16 * * *"
+  # Le bloc `schedule` est RETIRÉ le 13/09/2026 (R1-11) — voir l'en-tête, qui
+  # porte le cron d'origine et la condition de réouverture.
 
   # Lançable À LA MAIN, depuis un téléphone. Les deux bornes du budget sont
   # des ENTRÉES et non des constantes : les relever ou les abaisser un soir
