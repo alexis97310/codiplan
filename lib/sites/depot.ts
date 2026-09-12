@@ -9,6 +9,7 @@ import {
   type ModificationSite,
   type RechercheSite,
 } from "./saisie";
+import { type CatalogueTrajets, type EcritureTrajetZone } from "./trajet-zone";
 
 /**
  * Les accès au site d'intervention — création, lecture, modification,
@@ -355,4 +356,98 @@ export async function libellesDesSites(
     },
     client,
   );
+}
+
+/**
+ * LE CATALOGUE DES TEMPS DE TRAJET PAR ZONE — lecture (R3-03, D107).
+ *
+ * **Aucune comparaison de société n'est écrite ici**, pas plus qu'ailleurs dans
+ * ce module : la politique de `temps_trajet_zone` est de forme « société », et
+ * un `findMany` sans `where` ne rend que les lignes de la société active. Une
+ * comparaison au-dessus serait une seconde lecture du même critère.
+ *
+ * Rend une table de correspondance, jamais une liste : l'appelant cherche
+ * toujours *« que vaut CETTE zone »*, et la résolution de `trajet-zone.ts` la
+ * lit ainsi.
+ */
+export async function lireCatalogueTrajets(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<CatalogueTrajets> {
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.tempsTrajetZone.findMany({
+        select: { zone: true, minutes: true },
+        orderBy: { zone: "asc" },
+      }),
+    client,
+  );
+  return new Map(lignes.map((ligne) => [ligne.zone, ligne.minutes]));
+}
+
+/**
+ * RÉGLER une zone — création ou correction, en une écriture.
+ *
+ * `upsert` sur `(societe_id, zone)` : *régler une zone est le même geste, qu'on
+ * l'ait déjà réglée ou non*, et exiger de l'appelant qu'il sache laquelle des
+ * deux opérations faire l'obligerait à lire d'abord — une lecture entre laquelle
+ * et l'écriture un second réglage passerait (la leçon de `documents/depot.ts`,
+ * où la déduplication se lit dans un refus plutôt que dans un `SELECT`).
+ *
+ * **La société n'est pas une entrée** : `exigerSocieteActive` la prend au
+ * contexte. Une société transmise par l'appelant serait une habilitation
+ * auto-déclarée.
+ *
+ * **Et la zone a déjà été jugée** : `schemaTrajetZone` refuse une zone hors de
+ * D23 et une zone sans estimation possible. Ce module écrit, il ne décide pas.
+ */
+export async function reglerTrajetZone(
+  contexte: ContexteSession,
+  ecriture: EcritureTrajetZone,
+  client?: PrismaClient,
+): Promise<void> {
+  const societeId = exigerSocieteActive(contexte);
+  await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.tempsTrajetZone.upsert({
+        where: {
+          societe_id_zone: { societe_id: societeId, zone: ecriture.zone },
+        },
+        create: {
+          id: uuidv7(),
+          societe_id: societeId,
+          zone: ecriture.zone,
+          minutes: ecriture.minutes,
+        },
+        update: { minutes: ecriture.minutes },
+      }),
+    client,
+  );
+}
+
+/**
+ * RETIRER le réglage d'une zone — ce qui rend la main au défaut de D107.
+ *
+ * *Retirer n'écrit pas zéro*, et c'est tout l'objet de cette fonction : zéro se
+ * lirait « l'agence est sur place » là où il faut lire « je reviens à la valeur
+ * de référence ». La base refuse d'ailleurs zéro.
+ *
+ * **`deleteMany` et non `delete`** : une zone jamais réglée n'est pas une
+ * erreur, et un `delete` aurait levé `P2025` sur un geste idempotent. Le nombre
+ * de lignes touchées est rendu pour que l'appelant sache s'il a changé quelque
+ * chose, sans que ce soit un refus.
+ */
+export async function retirerTrajetZone(
+  contexte: ContexteSession,
+  zone: string,
+  client?: PrismaClient,
+): Promise<number> {
+  const { count } = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.tempsTrajetZone.deleteMany({ where: { zone } }),
+    client,
+  );
+  return count;
 }

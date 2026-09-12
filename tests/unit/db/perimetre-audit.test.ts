@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les vingt-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les trente tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -268,6 +268,13 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     // DÉPLANIFIE — elle rend des interventions à la file —, et « qui a validé
     // cela, et quand » est la seule question qui permette de comprendre
     // pourquoi une journée s'est vidée.
+    //
+    // **`temps_trajet_zone` s'y ajoute au ticket R3-03, et c'est la HUITIÈME
+    // fois.** Elle le mérite pour une raison qu'on ne voit qu'en aval : une
+    // durée de trajet est le NUMÉRATEUR d'un taux d'occupation (D107, lecture
+    // C). Le jour où un taux paraîtra faux, « qui a changé cette durée, quand,
+    // et depuis quelle valeur » est la seule question qui y réponde — et la
+    // valeur d'avant ne se reconstitue d'aucune autre table.
     expect([...declenchees].sort()).toEqual([
       "absence",
       "agence",
@@ -308,6 +315,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "technicien",
       "technicien_calendrier",
       "technicien_habilitation",
+      "temps_trajet_zone",
       "utilisateur_client",
       "utilisateur_client_site",
       "utilisateur_societe",

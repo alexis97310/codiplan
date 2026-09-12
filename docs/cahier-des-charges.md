@@ -1001,6 +1001,8 @@ dans la table `parite` ci-dessous.*
 
 **site_habilitation_requise** — `societe_id`, site, habilitation, bloquant. Ce qu'un site exige de qui y intervient.
 
+**temps_trajet_zone** — `societe_id`, zone géographique, minutes de trajet **ALLER depuis l'agence**. *Ajoutée le 12/09/2026 par R3-03.* Le **défaut** de RG-PLA-05 tel qu'une société le corrige : la valeur saisie sur le site fait toujours foi, cette table ne sert qu'en son absence, et les valeurs de référence arrêtées par **D107** vivent au code — une société sans ligne les reçoit, et retirer une ligne **rend la main à la référence, jamais à zéro**. La zone est du **texte** et l'énumération de D23 n'est pas fermée en base, comme sur `site.zone_geo` : ces six valeurs sont la géographie d'un territoire, et les figer ferait de la carte de la Nouvelle-Calédonie une contrainte du produit. La zone `iles` **ne s'écrit pas** — *« déplacement par avion, estimation impossible, à saisir par intervention »* (D107) —, et ce refus vit à l'entrée serveur pour ne pas inscrire un nom de zone calédonien dans le schéma. **Donnée de planification et rien d'autre** (D74) : elle n'entre jamais dans les heures facturées.
+
 **utilisateur_client** — utilisateur, client, `societe_id`, actif. L'habilitation d'un compte **portail** (D10) ; exclusive de `utilisateur_societe`.
 
 **utilisateur_client_site** — `societe_id`, habilitation portail, site. Le périmètre de sites d'un compte portail. *Vide = tous les sites du client.*

@@ -728,6 +728,24 @@ _Personne ne l'avait vu parce que personne n'écrivait dans cette table_ — un 
 
 **La moitié qui manquait est désormais un contrôle** : toute table portant le déclencheur d'audit doit exposer une colonne `id`. Mesuré — la colonne retirée, il nomme `technicien_calendrier`.
 
+## Les temps de trajet par zone — un défaut qui se règle, jamais une constante
+
+RG-PLA-05 pose une cascade depuis D23 : _la valeur saisie sur le site fait foi ; l'estimation par zone n'est qu'un défaut appliqué en son absence._ **Les six durées de cette estimation n'étaient écrites nulle part** — mesuré à L3-05, et le §8 est net : _un délai non spécifié ne s'invente pas._ **D107 les a arrêtées** : `grand_noumea` 30, `sud` 90, `cote_ouest` 150, `cote_est` 240, `nord` 240.
+
+**Ce sont des défauts MODIFIABLES, et c'est ce qui commande la forme.** _« C'est l'ADV qui remplit les données, elle ne doit pas dépendre d'un déploiement »_ : une constante du dépôt ferait d'une correction de terrain une demande de fusion. Les valeurs de référence restent au code — c'est ce qu'un déploiement neuf propose —, et la table `temps_trajet_zone` porte ce qu'une société en **corrige**. Elle ne remplace pas le défaut : elle le **surcharge**, et **retirer un réglage rend la main à la référence, jamais à zéro** — _zéro se lirait « l'établissement est sur place » là où il faut lire « je ne sais pas encore »_, et la base le refuse.
+
+**La cascade a trois étages et rend son ORIGINE avec sa valeur** : site, société, défaut. C'est D56 appliqué à un second nombre — _un nombre dont la signification dépend d'autre chose ne voyage jamais seul._ « 90 » sans son origine ferait revoir les mauvaises lignes le jour d'une correction, et l'écran affiche donc les deux.
+
+### `iles` ne porte aucun nombre, et une seule source le tient
+
+D107, mot pour mot : _« déplacement par avion — estimation impossible, à saisir par intervention. »_ Ce n'est pas une valeur qui manque, c'est une valeur qui **n'existe pas à la maille de la zone** — Lifou, Bélep et Ouvéa n'ont ni le même vol ni la même fréquence, et un nombre unique pour « Îles » finirait dans le numérateur d'un taux d'occupation.
+
+**Trois lecteurs, une source.** `DEFAUTS_TRAJET_ZONE` décide, et le schéma de saisie, la résolution et l'écran le lisent — une seconde liste « les zones sans estimation » aurait divergé en silence. Et la résolution rend `null` **même si une ligne existait** : _une garantie qui ne vit que dans la validation d'entrée n'en est pas une._ Le refus vit au serveur et non en base, parce qu'un `CHECK "zone" <> 'iles'` aurait inscrit un nom de zone calédonien dans le schéma — ce que `lib/sites/zones.ts` refuse depuis D23, et ce dont R3-04 traitera.
+
+### Et un écart d'habilitation est mesuré plutôt que tranché en passant
+
+_Mesuré le 12/09/2026 :_ `parametrer_societe` donne `●` à `admin_societe` et `○` à `direction` — **`adv` n'y est pas** — et la matrice des capacités n'a **qu'un seul appelant dans tout le dépôt**. Ni `/parametres/agences` ni `/parametres/forfaits` ne gardent leur accès par capacité, et le nouvel écran fait comme eux : _poser un filtre ici et nulle part ailleurs refuserait l'ADV que D107 désigne, sur le seul écran qu'elle doit remplir._ Les **deux moitiés** sont portées au ticket : ou bien la matrice est fausse et RG-DRO-03 se réécrit, ou bien le filtrage arrive partout à la fois.
+
 ## La file « en attente de pièce » — ce qui la désigne n'est pas un code
 
 Le statut `suspendue` existait depuis le planning agissant ; **rien ne portait le motif**, et une intervention pouvait donc s'arrêter sans qu'on sache pourquoi. RG-INT-06 : _« une intervention SUSPENDUE porte un motif et, pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle. »_

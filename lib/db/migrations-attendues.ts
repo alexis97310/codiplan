@@ -104,4 +104,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260913160000_suspension_l2_10",
   "20260913170000_technicien_l3_01a",
   "20260913180000_absence_l3_04",
+  "20260913190000_trajet_par_zone_r3_03",
 ];
