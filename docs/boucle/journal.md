@@ -252,3 +252,48 @@ fonction.
 `09:05:41 UTC`. *Cette exécution portait aussi N-04a* (voir ci-dessous) : les deux
 travaux sont dans deux commits distincts, la mesure est commune, et je l'écris plutôt que
 de l'annoncer deux fois comme si elle avait été jouée deux fois.
+
+## N-04a — `minutesHorsOuvertureTechnicien` : écartée par D108, et dite écartée
+
+### Ce que j'ai mesuré
+
+```
+grep -rn "minutesHorsOuvertureTechnicien" lib/ app/ tests/ scripts/ components/
+  lib/calendar/index.ts:103            ← réexportation
+  lib/calendar/usages.ts:82            ← la définition
+  tests/unit/calendar/usages.test.ts   ← deux appels
+```
+
+**Aucun appelant applicatif**, et la réexportation ne servait qu'au scénario.
+
+### Pourquoi ce n'est pas un oubli
+
+D108 : *« LA MAJORATION PAIE LA CONTRAINTE D'UN CRÉNEAU POSÉ HORS OUVERTURE, PAS LES
+MINUTES EFFECTIVEMENT TRAVAILLÉES. »* Cette fonction prend un `debut` et une `fin` — les
+bornes de ce qui a été **fait** — et rend des minutes : **c'est l'issue (b) que D108 a
+écartée**, parce qu'elle exigeait une hypothèse invérifiable. Ce qui calcule la
+majoration est `lib/tarification/majoration.ts`, et il lit le **créneau**.
+
+### Ce que j'ai changé
+
+- L'en-tête porte l'ancienne phrase **barrée**, puis la décision, sa date, l'issue
+  écartée et **la condition de réouverture de D108** — *le jour où `intervention` porte
+  l'heure réelle de début et de fin*. Elle n'est donc pas morte : elle est **en attente
+  d'une donnée qui n'existe pas.**
+- **La réexportation de `lib/calendar/index.ts` est retirée.** Le scénario l'importe
+  désormais depuis `@/lib/calendar/usages`. *Une fonction écartée qui reste sur la façade
+  d'un module est une invitation* : le prochain appelant pressé la trouve par
+  autocomplétion et ne lit pas l'en-tête.
+- Les deux scénarios qui l'exercent portent **`FONCTION ÉCARTÉE PAR D108`** dans leur
+  titre, en tête. Ils continuent d'éprouver D13 — le bon calendrier de référence — et ils
+  disent maintenant qu'ils n'éprouvent rien qui soit appelé.
+
+### Message d'échec initial
+
+**Aucun, et c'est la nature du travail.** Rien ne rougissait : une fonction sans appelant
+ne casse rien, et c'est exactement pourquoi elle pouvait rester là indéfiniment en
+paraissant utile. Ce que le travail supprime n'est pas un défaut, c'est un **piège**.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, le 12/09/2026 à `09:05:41 UTC` — la même exécution que N-03.

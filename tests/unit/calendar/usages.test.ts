@@ -7,11 +7,13 @@ import {
   echeanceSla,
   joursOuvresAgence,
   lireCleJour,
-  minutesHorsOuvertureTechnicien,
   versInstant,
   versLocal,
   type Calendrier,
 } from "@/lib/calendar";
+// ÉCARTÉE PAR D108 — importée depuis son fichier, la façade du module ne la
+// republie plus : une fonction écartée sur une façade est une invitation.
+import { minutesHorsOuvertureTechnicien } from "@/lib/calendar/usages";
 
 import { calendrierDeDemonstration } from "./calendriers-de-demonstration";
 
@@ -73,13 +75,13 @@ describe("le même créneau, deux calendriers, deux réponses (D13)", () => {
     expect(lectureLocale(KONE, echeance)).toBe(`${LUNDI_24} 09:30`);
   });
 
-  it("la majoration suit l'agence du TECHNICIEN — Ducos, ouverte le samedi", () => {
+  it("FONCTION ÉCARTÉE PAR D108 — la majoration suivrait l'agence du TECHNICIEN : Ducos, ouverte le samedi", () => {
     expect(
       minutesHorsOuvertureTechnicien(DUCOS, CRENEAU.debut, CRENEAU.fin),
     ).toBe(0);
   });
 
-  it("et l'inverse serait faux : Koné compterait deux heures majorées", () => {
+  it("FONCTION ÉCARTÉE PAR D108 — et l'inverse serait faux : Koné compterait deux heures majorées", () => {
     // Ce n'est pas une variante acceptable, c'est le défaut que D13 prévient.
     expect(
       minutesHorsOuvertureTechnicien(KONE, CRENEAU.debut, CRENEAU.fin),
