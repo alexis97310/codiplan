@@ -952,6 +952,8 @@ Le flux fait donc toujours le travail privilégié — ouvrir l'identité, ou r�
 
 **Le lien se récupère depuis un poste**, par la réémission ci-dessus, dont la sortie ne vit dans aucun journal. _Ce que cela coûte est écrit plutôt que tu_ : le geste n'est plus entièrement suivable depuis un téléphone — la moitié privilégiée l'est, la délivrance du lien demande un terminal. Le rendre de nouveau cliquable exige un canal **privé** ; Resend est à la pile (§2) mais n'est ni câblé ni doté d'un secret, et c'est un arbitrage d'exploitation, pas une décision de flux.
 
+**Et « Amorcer une base » reçoit les deux mêmes barrières, pour une raison qui n'est pas la même.** Ce flux n'imprime aucun secret volontairement — un identifiant de société est un UUID de ligne, qui se relit en base. Ce qu'il peut imprimer **sans l'avoir voulu** en est un : le script relance toute erreur qu'il ne reconnaît pas, et le message brut d'un pilote nomme l'hébergeur et la région (D50). La faute a la même forme des deux côtés, et un gardien écrit pour un seul fichier laisse l'autre au premier ticket venu : `tests/unit/ci/url-hors-journal.test.ts` porte donc les deux flux dans sa population, et il éprouve l'expurgation de celui-ci sur une **chaîne de connexion**, que `https?://` ne reconnaîtrait pas.
+
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
 
 ## La documentation des machines — le chemin d'accès au modèle passe par la machine
