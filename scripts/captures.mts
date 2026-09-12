@@ -220,6 +220,65 @@ const ECRANS: readonly Ecran[] = [
       "exactement cela — il ne se confond pas avec un écran cassé.",
   },
   {
+    // **LE PARC, ET IL N'AVAIT JAMAIS ÉTÉ PHOTOGRAPHIÉ** — R2-21 l'a livré, et
+    // aucune image ne le montrait. *L'arbitre du projet lit le dépôt : il
+    // n'atteint ni le site authentifié ni un serveur local.* Un écran livré et
+    // jamais photographié est un écran qu'il ne peut pas juger.
+    nom: "parc",
+    chemin: "/parc",
+    quoi: "Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête.",
+    authentifie: true,
+    temoin: "Parc machines clients",
+  },
+  {
+    // **L'ÉCRAN QUE LA BARRE N'ATTEINT PAS** (D95, liste close de onze entrées).
+    // On y arrive par le LIEU d'une intervention, puis par la fiche du site —
+    // et, depuis R3-08, par la page de paramétrage.
+    nom: "sites",
+    chemin: "/sites",
+    quoi: "Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56).",
+    authentifie: true,
+    temoin: "Sites",
+  },
+  {
+    // **CELUI QUI A OUVERT R3-08** : il existait depuis R3-03 et AUCUN lien n'y
+    // menait. *Alexis avait demandé que les temps de trajet soient
+    // paramétrables ; ils l'étaient, et personne ne pouvait y arriver.*
+    nom: "parametres-trajets",
+    chemin: "/parametres/trajets",
+    quoi: "Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107).",
+    authentifie: true,
+    temoin: "Temps de trajet par zone",
+  },
+  {
+    // LA PORTE que R3-08 a construite : la barre mène ici, et d'ici aux trois
+    // écrans de réglage. Sans elle, deux d'entre eux n'avaient aucun chemin.
+    nom: "parametres",
+    chemin: "/parametres",
+    quoi: "La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien.",
+    authentifie: true,
+    temoin: "Sociétés & tarifs",
+  },
+  {
+    // **LE REGISTRE DES VGP** (lot 9, D88). Ce qu'une image montre ici et
+    // qu'aucune assertion ne dirait : « sans information depuis X » s'affiche
+    // À CÔTÉ des lignes renseignées, et les deux ne se ressemblent pas.
+    nom: "vgp",
+    chemin: "/vgp",
+    quoi: "Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88).",
+    authentifie: true,
+    temoin: "Registre des v\u00e9rifications p\u00e9riodiques",
+  },
+  {
+    // TROIS valeurs sur la famille, jamais une case à cocher : une famille
+    // « à déterminer » est visible, et c'est tout l'objet de cet écran.
+    nom: "vgp-a-determiner",
+    chemin: "/vgp/a-determiner",
+    quoi: "Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée.",
+    authentifie: true,
+    temoin: "Familles \u00e0 d\u00e9terminer",
+  },
+  {
     nom: "parametres-agences",
     chemin: "/parametres/agences",
     quoi: "Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global.",
