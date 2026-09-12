@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les trente-et-une tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les trente-quatre tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -326,6 +326,14 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "utilisateur_client",
       "utilisateur_client_site",
       "utilisateur_societe",
+      // Les trois tables du lot 9 s'y ajoutent par D114, et par le même chemin
+      // que les précédentes : elles sont de la première catégorie de I1, donc
+      // auditées à leur naissance. Elles le méritent plus que la plupart — *qui
+      // a saisi cette date de vérification, quand, et d'où il la tenait* est la
+      // question même d'un contrôle, et « d'où » est une colonne depuis D114.
+      "vgp_campagne",
+      "vgp_observation",
+      "vgp_verification",
     ]);
   });
 

@@ -307,3 +307,59 @@ l'écran ne peut plus mentir.* Un gardien tient la condition sur la forme du sch
 ### En attendant
 
 **Bloqué** : rien. **Continue** : tout ; l'affichage est correct dans les deux cas.
+
+---
+
+## Q7 — Les quatre origines d'une information de VGP : la liste est-elle la bonne ?
+
+*D114 demande expressément que la session **propose** cette liste plutôt que de la
+figer : c'est du vocabulaire d'exploitation, et le §1 du protocole vous le réserve. La
+table est construite avec la colonne ; **les valeurs se complètent par une migration qui
+ne coûte rien** — `ALTER TYPE … ADD VALUE`.*
+
+### La question
+
+Quand quelqu'un enregistre qu'une machine a été vérifiée, il doit dire **d'où il le
+tient**. Quelles réponses lui propose-t-on ?
+
+### Ce que j'ai construit, et ce qui l'a guidé
+
+L'axe retenu est **la valeur probante le jour d'un contrôle** — c'est le motif exact de
+D114 —, et les quatre valeurs sont rangées de la plus forte à la plus faible :
+
+| Valeur | Ce qu'elle dit | Ce qu'elle ne dit pas |
+|---|---|---|
+| `rapport_organisme` | nous tenons la pièce, **et de sa source** | — |
+| `rapport_transmis_client` | la pièce est là ; **sa chaîne de transmission ne l'est pas** | qu'elle est complète, ni à jour |
+| `vignette_constatee` | une vérification a eu lieu, **à cette date** | ce qu'elle a conclu |
+| `declaration_client` | quelqu'un nous l'a dit | tout le reste |
+
+*La distinction entre les deux premières est celle qui m'a demandé le plus de réflexion.
+Elle tient parce que D88 dit que **les VGP sont commandées par les clients** : le cas
+ordinaire est donc que le client ait la pièce et nous la transmette, et le cas où
+l'organisme nous écrit directement est l'exception — les confondre effacerait justement
+ce qui distingue CODIMA d'un tiers dans la chaîne.*
+
+### Ce que je n'ai PAS mis, et pourquoi
+
+- **`inconnue`.** Il faudrait alors décider ce qu'elle vaut, et *une origine inconnue
+  enregistrée comme une origine est exactement ce que la colonne existe pour empêcher.*
+  Une ligne dont on ne sait pas d'où elle vient **ne devrait pas s'écrire**.
+- **`observation_technicien`.** Un technicien qui constate une vignette relève déjà
+  `vignette_constatee` ; s'il constate autre chose, ce n'est plus une VGP.
+- **Une échelle numérique de fiabilité.** Elle inviterait à comparer, donc à calculer —
+  et *CODIPLAN n'affirme jamais la conformité.*
+
+### Les issues possibles
+
+1. **Garder les quatre.** Coût : nul. *C'est celle que je recommande, et elle est déjà
+   en base.*
+2. **En ajouter.** Coût : une migration d'une ligne. Dites simplement le mot et la
+   nuance qu'il porte.
+3. **En retirer une.** Coût : plus élevé qu'il n'y paraît — retirer une valeur d'une
+   énumération PostgreSQL demande de réécrire le type. À faire **avant** la première
+   ligne réelle, donc.
+
+### En attendant
+
+**Bloqué** : rien. **Continue** : tout — L9-08, L9-09 et L9-10 sont livrés.

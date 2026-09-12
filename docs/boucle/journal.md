@@ -1162,3 +1162,66 @@ ordinaire.*
 
 `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:26:20 UTC` : **1631** unitaires ·
 **806** d'isolation · **27** Playwright.
+
+## L9-08, L9-09, L9-10 — le registre reçoit enfin ce qu'on lui dit (D114)
+
+### Ce que j'ai construit
+
+Trois tables — `vgp_verification`, `vgp_observation`, `vgp_campagne` —, trois modules,
+et treize scénarios d'isolation.
+
+**L'origine est une colonne, obligatoire et sans défaut.** *Un rapport reçu de
+l'organisme, une vignette photographiée et une parole du client n'ont pas la même valeur
+le jour d'un contrôle*, et **elle ne se reconstitue pas après coup**. Ses quatre valeurs
+sont une **proposition** — D114 le demande —, portée en **Q7**.
+
+### Aucune quatorzième forme de politique, et c'est mesuré
+
+Les deux tables filles prennent la forme **« filiation »**. `site_habilitation_requise`
+l'avait ouverte avec un parent qui **n'est pas une intervention** : *la forme est le
+CHAÎNAGE, jamais l'identité du parent.* L'adossement se chaîne ici sur trois niveaux —
+observation → vérification → machine —, et **aucune clause de société n'est écrite dans
+cette branche** : elle serait une seconde source du même fait.
+
+**`vgp_campagne` fait exception et prend « société »**, et le motif est écrit : son
+parent serait `famille_materiel`, de forme « ascendance » — *une campagne ne doit pas
+hériter du refus de remonter vers une famille dont aucune machine n'est visible*, sans
+quoi un compte interne cesserait de voir ses propres campagnes le jour où la famille n'a
+plus de machine.
+
+### LE COMPTEUR N'EST PAS UNE COLONNE
+
+*Un compteur stocké se désynchronise en silence* — la première saisie qui oublierait de
+le décrémenter le figerait — **et un compteur figé est pire qu'une alerte de trop, parce
+qu'il a l'air de mesurer**. Il se dérive des machines sans information **depuis
+l'ouverture**, et un scénario prouve les deux moitiés : il descend d'un quand une
+vérification arrive, et une information **antérieure** à l'ouverture ne solde rien.
+
+### Le rouge, et il ne venait pas de ce que je croyais
+
+```
+FAIL tests/isolation/intervention.test.ts > un rôle INTERNE voit les interventions
+de SA société, et elles seules
+AssertionError: expected [ …(4) ] to deeply equal [ …(2) ]
+```
+
+**Mes scénarios ont cassé ceux d'un autre fichier.** L9-10 *alimente le planning* — c'est
+son objet —, et le harnais partage **une** base entre tous les fichiers
+(`fileParallelism: false`). Deux interventions engendrées et non reprises ont faussé les
+décomptes de cloisonnement du parc.
+
+*C'est le corollaire du ticket lui-même : un scénario qui alimente doit nettoyer ce qu'il
+a versé.* Le nettoyage suit l'ordre des clés étrangères — `intervention_machine`, puis
+`intervention` —, et c'est accessoirement la preuve que le chaînage tient.
+
+### Ce que le registre affiche maintenant, et ce qui n'a PAS changé
+
+`derniereInformation` est remplie. **Mais une machine dont personne n'a rien dit affiche
+toujours « sans information depuis X », et jamais « à jour »** : *remplir la colonne ne
+change rien à cette règle, elle lui donne seulement de quoi être vraie dans les deux
+sens.*
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:48:31 UTC` : **1631** unitaires ·
+**822** d'isolation · **27** Playwright.

@@ -70,6 +70,9 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       technicien_calendrier: 0,
       prestation: 0,
       temps_trajet_zone: 0,
+      vgp_campagne: 0,
+      vgp_observation: 0,
+      vgp_verification: 0,
     },
     ...surcharge,
   };
@@ -113,6 +116,9 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         technicien_calendrier: 0,
         prestation: 0,
         temps_trajet_zone: 0,
+        vgp_campagne: 0,
+        vgp_observation: 0,
+        vgp_verification: 0,
       },
     }),
   ];
@@ -174,6 +180,9 @@ describe("inventaire à plat", () => {
       technicien_calendrier: 0,
       prestation: 0,
       temps_trajet_zone: 0,
+      vgp_campagne: 0,
+      vgp_observation: 0,
+      vgp_verification: 0,
     });
   });
 

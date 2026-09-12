@@ -1,0 +1,22 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- UNE BASE QUI A DÉJÀ VÉCU — rien à poser avant les trois tables du lot 9
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- **Cette amorce est VIDE, comme celle de `prestation`, et pour la même raison
+-- mesurée.** `20260913240000_vgp_verification_l9` **CRÉE** trois tables ; elle
+-- ne resserre rien sur une table qui existait. *Une migration qui crée une
+-- table ne peut pas être mise en défaut par des données, puisqu'il n'y en a
+-- aucune au moment où elle s'applique.*
+--
+-- Ce que le rejeu éprouve ici reste utile, et il est plus large qu'à
+-- `prestation` : les trois tables posent **six clés étrangères composites** —
+-- vers `machine`, `document`, `intervention` et `famille_materiel` —, et elles
+-- s'établissent sur une base qui porte déjà des lignes de chacune, vieillies
+-- depuis les amorces précédentes. *Une clé étrangère posée sur une table vide
+-- ne prouve pas qu'elle se pose.*
+--
+-- Le fichier existe plutôt que d'être absent pour que ce raisonnement soit
+-- LISIBLE : une amorce manquante et une amorce délibérément vide se
+-- ressemblent trop.
+
+SELECT 1;

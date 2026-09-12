@@ -2299,12 +2299,33 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `vgp_verification` et `vgp_observation` REJOIGNENT LA FILIATION au lot 9,
+  // PAR L'ARBITRAGE D114 — 12/09/2026.
+  //
+  // **La forme est le CHAÎNAGE, jamais l'identité du parent** : c'est
+  // `site_habilitation_requise` qui l'a établi, avec un parent qui n'est pas une
+  // intervention. Aucune quatorzième forme n'est donc créée ici.
+  //
+  // Le parent de la VÉRIFICATION est la `machine` — *c'est elle qui décide qui a
+  // le droit de savoir qu'une vérification a eu lieu*, et les trois filtres du
+  // parc se propagent par cette seule clause. Celui de l'OBSERVATION est la
+  // vérification elle-même : **l'adossement se CHAÎNE**, et c'est ce qui fait
+  // qu'aucune clause de société n'est écrite nulle part dans cette branche.
+  { table: "vgp_verification", parent: "machine", cle: "machine_id" },
+  {
+    table: "vgp_observation",
+    parent: "vgp_verification",
+    cle: "verification_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
 const FILIATION_ARBITREE = [
   "site_habilitation_requise",
   "intervention_machine",
+  // D114, 12/09/2026 — le registre des VGP.
+  "vgp_verification",
+  "vgp_observation",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */
