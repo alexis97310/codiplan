@@ -163,6 +163,24 @@ export type VerdictMigrations =
  * tentatives de la même microseconde seraient indiscernables — `_prisma_migrations`
  * n'a pas d'autre clé ordonnée, son `id` étant tiré au sort.*
  */
+/**
+ * LES TROIS COLONNES BRUTES DE `_prisma_migrations`, et `started_at` EN FAIT
+ * PARTIE : sans elle, on ne peut pas savoir laquelle des tentatives d'un même
+ * nom est la dernière — et c'est exactement ce qui manquait à la rédaction du
+ * 11/09.
+ *
+ * **Exportée parce qu'un second lecteur est arrivé** : la veille de la base
+ * hébergée pose la même question pour dire d'où vient un écart (R1-01). La
+ * recopier lui aurait donné une seconde lecture d'un même critère, qui diverge
+ * en silence (§9, 01/09) — au pire endroit, puisque les deux servent à décider
+ * si quelqu'un est prévenu.
+ */
+export const SQL_TENTATIVES = `SELECT migration_name            AS nom,
+        started_at                AS debut,
+        finished_at IS NOT NULL   AS finie,
+        rolled_back_at IS NOT NULL AS annulee
+   FROM _prisma_migrations`;
+
 export function verdictDesMigrations(
   tentatives: readonly TentativeMigration[],
   attendues: readonly string[] = MIGRATIONS_ATTENDUES,
@@ -278,13 +296,8 @@ export async function lireSante(): Promise<EtatSante> {
     // ne peut pas savoir laquelle des tentatives d'un même nom est la dernière —
     // et c'est exactement ce qui manquait à la rédaction du 11/09. *Le verdict
     // est calculé par `verdictDesMigrations`, qui ne connaît aucune base.*
-    const tentatives = await prisma.$queryRawUnsafe<TentativeMigration[]>(
-      `SELECT migration_name       AS nom,
-              started_at           AS debut,
-              finished_at IS NOT NULL   AS finie,
-              rolled_back_at IS NOT NULL AS annulee
-         FROM _prisma_migrations`,
-    );
+    const tentatives =
+      await prisma.$queryRawUnsafe<TentativeMigration[]>(SQL_TENTATIVES);
     const verdict = verdictDesMigrations(tentatives);
 
     // Les décomptes sont lus SANS contexte de société : ils ne rendent donc que
