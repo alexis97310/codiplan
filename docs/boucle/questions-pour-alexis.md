@@ -202,3 +202,57 @@ vaut mieux le savoir avant la migration qu'après.
 
 **Bloqué** : L9-08, L9-09, L9-10 — marqués comme tels, avec cette mesure.
 **Continue** : le registre lui-même est livré et il dit vrai ; L9-01 à L9-07 sont faits.
+
+## Q5 — Les interventions DÉJÀ clôturées : à facturer, ou déjà facturées ?
+
+### La question
+
+Le second axe de l'intervention existe maintenant : à la clôture, elle devient « à
+facturer », ou « non facturable » si c'est de la garantie ou du recensement. **Les
+interventions clôturées AVANT aujourd'hui n'ont pas cette information**, et il n'existe
+aucun moyen de savoir lesquelles ont déjà été facturées.
+
+### Ce que j'ai mesuré
+
+- D8 dit la règle **à l'entrée en clôture**, et **ne dit rien** des interventions déjà
+  closes. Le déclencheur `intervention_facturation_a_la_cloture` la pose désormais, et
+  un scénario d'isolation le prouve — y compris son jumeau.
+- **La colonne qui dirait lesquelles ont été facturées n'existe pas.** Le chapitre 11
+  prévoit `reference_facture` et `date_facture`, *« renseignés par import du retour de
+  facturation »* ; ni l'une ni l'autre n'est au schéma :
+  `ERROR: column "reference_facture" does not exist`.
+- Sur la base de **démonstration** : **2 interventions clôturées, 2 sans réponse, 0 de
+  type exempté**. Sur la base hébergée, je n'ai pas mesuré — une session ne la touche
+  pas.
+
+### Pourquoi je ne tranche pas
+
+**Les deux réponses possibles décident de l'argent, dans les deux sens.** « À facturer »
+sur une intervention déjà facturée **la refacture** ; « facturée » sur une intervention
+qui ne l'a pas été **y renonce**. Le §1 du protocole vous réserve l'argent facturé à un
+client, et c'est exactement ce dont il s'agit.
+
+La contrainte *« une clôture porte une réponse »* est donc posée **`NOT VALID`** (D104) :
+elle vaut pour toute clôture nouvelle, et ne relit pas les anciennes. **L'état non validé
+est visible** — `scripts/lib/contraintes-non-validees.ts`, lu chaque nuit par
+`pnpm veille`. C'est la **troisième** entrée de cette liste, et la note d'origine
+prévoyait qu'à **quatre** la question ne serait plus « laquelle ajouter » mais « pourquoi
+aucune n'a été rattrapée ». *Nous en sommes à trois.*
+
+### Les issues possibles
+
+1. **Les traiter une par une, à la main.** Deux lignes sur la démonstration ; le nombre
+   sur la base réelle se lit en une requête. Coût : quelques minutes si le nombre est
+   petit. *C'est celle que je recommande tant que le nombre est petit — et il faut le
+   lire avant de choisir.*
+2. **Tout marquer « non facturable ».** Coût : on renonce à facturer ce qui ne l'aurait
+   pas été. Sans risque de double facturation, mais avec une perte possible.
+3. **Attendre le retour de facturation** (`reference_facture`, chapitre 11, module M11).
+   Alors la reprise devient mécanique : facturée si la référence existe, à facturer
+   sinon. Coût : la contrainte reste non validée jusque-là, et la liste des `NOT VALID`
+   garde trois entrées au lieu de deux.
+
+### En attendant
+
+**Bloqué** : rien. Le second axe fonctionne pour toute clôture à partir d'aujourd'hui.
+**Continue** : tout. Ce qui attend est le **rattrapage** des clôtures antérieures.

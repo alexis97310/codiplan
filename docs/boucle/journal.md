@@ -540,3 +540,104 @@ corrige par une lecture, pas par une porte.
 
 `pnpm verify` → **EXIT=0**, 1589 tests unitaires + 767 d'isolation, le 12/09/2026 à
 `09:33:25 UTC`.
+
+## N-04d — D8 : `statut_facturation`, le second axe qui n'existait nulle part
+
+### Ce que j'ai mesuré
+
+```
+grep -rn "statut_facturation\|StatutFacturation" prisma/ lib/
+  (aucun résultat)
+docs/cahier-des-charges.md:943  | statut_facturation | enum | non_facturable, a_facturer, facturee |
+docs/backlog.md:505             « statut_facturation est une colonne DISTINCTE »
+```
+
+**La première moitié de D8 était faite** — `statut` porte bien huit valeurs, sans
+`A_FACTURER` ni `FACTUREE`. **La seconde ne l'était pas** : la colonne est au chapitre 11
+depuis l'origine, et rien ne la portait.
+
+### Ce que D8 dit, et ce que j'ai appliqué SANS RIEN AJOUTER
+
+> `statut_facturation` passe à `a_facturer` automatiquement à l'entrée en `CLOTUREE`,
+> sauf si le type est `garantie`, `recensement` ou si l'intervention est couverte par un
+> contrat forfaitaire — auquel cas `non_facturable`.
+
+- **Les trois valeurs sont celles du chapitre 11, mot pour mot.**
+- **Deux exemptions sur trois sont vivantes** : `TypeIntervention` porte `garantie` et
+  `recensement` (mesuré au schéma). La troisième — *« couverte par un contrat
+  forfaitaire »* — est **écrite dans le déclencheur et INERTE** : aucune table `contrat`
+  n'existe, `intervention` ne porte pas de `contrat_id`. *La règle est écrite entière
+  pour n'avoir pas à rouvrir la fonction ce jour-là* — le traitement du troisième axe de
+  `forfaits.ts`.
+- **La règle vit dans un déclencheur, pas en TypeScript.** D8 dit « automatiquement » :
+  écrite dans un dépôt applicatif, elle serait hors d'un `UPDATE` direct, d'un import,
+  d'une reprise ; écrite des deux côtés, elle serait **deux lectures d'un même critère**
+  — dans l'endroit qui décide si un client est facturé.
+- **Le nom place le déclencheur entre les deux autres** :
+  `intervention_cycle_de_vie` < `intervention_facturation_a_la_cloture` <
+  `intervention_sortie_de_suspension`. *Une transition refusée n'a jamais rien écrit.*
+
+### LÀ OÙ D8 EST MUETTE, et ce que j'ai décidé plutôt qu'inventé
+
+**D8 ne dit pas ce que vaut la colonne AVANT la clôture.** Et aucune des trois valeurs ne
+porte « pas encore décidé » : naître `a_facturer` ferait entrer toute intervention non
+clôturée dans la file de ce qui est à facturer ; naître `non_facturable` confondrait
+**« pas encore »** et **« jamais »** — et `non_facturable` est précisément la valeur que
+les exemptions visent.
+
+La colonne est donc **nullable**, et `NULL` porte cette quatrième réponse **sans toucher
+à l'énumération close** : *ajouter une quatrième valeur serait un changement de schéma
+touchant les statuts d'intervention*, que le §8 range parmi les points d'arrêt. La
+doctrine d'arbitrage §3 couvre exactement ce cas — *une nouvelle ligne ne naît jamais sur
+la réponse négative* —, ce qui en fait une décision de session et non un ticket.
+**Condition de réouverture** : *le jour où un écran doit distinguer « pas encore décidé »
+d'une valeur absente pour une autre raison.*
+
+### Trois messages d'échec initiaux, tous mesurés
+
+```
+# 1 — mon scénario de RÉOUVERTURE ne peut pas exister
+Code: `23514`. ERROR: Intervention clôturée : elle ne se modifie plus sans trace.
+Seule l'annulation reste possible (I5 donne à ANNULEE la préséance sur CLOTUREE).
+
+# 2 — l'exemption « garantie » mesurée sur la mauvaise ligne
+ERROR: Clôture refusée : le temps réel n'est pas saisi. (RG-TAR-05, D83)
+
+# 3 — l'alarme de dérive des NOT VALID, et elle avait raison
+AssertionError: expected [ …(3) ] to have a length of 2 but got 3
+```
+
+Le **premier** a corrigé le scénario plutôt que le code : `cloturee` est **terminal**, et
+la base le tient. La garde `statut_facturation IS NULL` ne protège donc **pas** d'une
+réouverture — elle protège d'un autre chemin : un retour de facturation, un import, une
+correction posant la valeur avant la clôture. *Écrire l'inverse aurait donné un scénario
+vert sur une hypothèse fausse.*
+
+Le **deuxième** est le §9 du 24/08 en acte : mon `UPDATE` avait changé le type sur une
+autre ligne que celle que je clôturais, et le refus venait d'ailleurs. La fixture
+renseigne désormais `temps_reel_min` pour que **seul** le verrou visé puisse parler.
+
+### Le troisième, et il méritait mieux qu'un chiffre augmenté
+
+`tests/unit/db/contraintes-non-validees.test.ts` exigeait **exactement deux** entrées.
+J'en ajoute une troisième : *une clôture porte une réponse*, posée `NOT VALID` parce que
+**les interventions déjà clôturées n'en ont pas** et que **la colonne qui dirait
+lesquelles ont été facturées n'existe pas** — mesuré : `ERROR: column
+"reference_facture" does not exist`. Choisir entre « à facturer » et « facturée » serait
+choisir entre **refacturer** et **renoncer**.
+
+**Je n'ai pas simplement mis 3 à la place de 2.** L'assertion exacte est une alarme *à
+chaque mouvement* — elle rougit aussi sur un retrait —, et elle a joué son rôle : elle
+m'a obligé à rouvrir le fichier et à écrire pourquoi. Ce qui manquait était le **plafond**
+que la note d'origine nommait en prose — *« le jour où l'on en compte quatre »* — et qui
+n'était vérifié par rien. Il est désormais une assertion : `toBeLessThan(4)`. *Une
+prescription qui ne se vérifie pas est une intention* (§9, 31/08). Le compte exact porte
+en outre son **historique**, pour que « 3 » ne s'écrive jamais sans sa raison.
+
+La question du rattrapage part à Alexis (Q5) : **les deux réponses possibles décident de
+l'argent, dans les deux sens.**
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1590 tests unitaires + 775 d'isolation, le 12/09/2026 à
+`09:46:06 UTC`.

@@ -940,7 +940,7 @@ dans la table `parite` ci-dessous.*
 | motif_suspension, piece_attendue_ref | text | |
 | date_dispo_prevue | date | |
 | sla_prise_en_charge_at, sla_echeance_at | timestamptz | |
-| statut_facturation | enum | non_facturable, a_facturer, facturee |
+| statut_facturation | enum **nullable** | non_facturable, a_facturer, facturee — **et `NULL` tant que l'intervention n'est pas clôturée** *(précisé le 12/09/2026, N-04d : D8 dit quand la valeur devient `a_facturer` ou `non_facturable`, et **ne dit pas ce qu'elle vaut avant**. Aucune des trois ne porte « pas encore décidé » — naître `a_facturer` ferait entrer toute intervention non clôturée dans la file de ce qui est à facturer, et naître `non_facturable` confondrait « pas encore » et « jamais ». Posée par le déclencheur `intervention_facturation_a_la_cloture`, jamais par l'application)* |
 | reference_facture, date_facture | text, date | Renseignés par import du retour de facturation |
 
 **intervention_machine** — une ligne par machine traitée : diagnostic, travaux, état de sortie, relevé de compteur, résultat de checklist.

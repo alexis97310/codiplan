@@ -1598,6 +1598,23 @@ model Intervention {
 
   mode_valorisation ModeValorisation @default(temps_passe)
 
+  /// LE SECOND AXE (D8), et il est NULLABLE — c'est une décision.
+  ///
+  /// D8 dit quand la valeur devient `a_facturer` ou `non_facturable` — à la
+  /// clôture — et **ne dit pas ce qu'elle vaut avant**. Aucune des trois
+  /// valeurs ne porte « pas encore décidé » : naître `a_facturer` ferait entrer
+  /// toute intervention non clôturée dans la file de ce qui est à facturer ;
+  /// naître `non_facturable` confondrait **« pas encore »** et **« jamais »**,
+  /// et c'est précisément la valeur que les exemptions visent. *Une nouvelle
+  /// ligne ne naît jamais sur la réponse négative* (doctrine d'arbitrage §3).
+  ///
+  /// **Elle n'est jamais écrite par l'application** : le déclencheur
+  /// `intervention_facturation_a_la_cloture` la pose, et l'écrire des deux
+  /// côtés serait deux lectures d'un même critère — dans l'endroit qui décide
+  /// si un client est facturé. Une clôture sans réponse est refusée par
+  /// `intervention_cloture_a_son_statut_facturation`.
+  statut_facturation StatutFacturation?
+
   /// Le forfait de déplacement, DÉDUIT de la zone du site et jamais saisi à la
   /// main (D23, RG-TAR-06).
   forfait_deplacement_id String? @db.Uuid
@@ -1694,6 +1711,23 @@ enum StatutIntervention {
   terminee
   cloturee
   annulee
+}
+
+/// LE SECOND AXE DE L'INTERVENTION, distinct de son avancement (D8).
+///
+/// *« Le statut d'avancement et le statut de facturation sont deux colonnes
+/// distinctes. Le modèle de données a raison, le diagramme a tort. »* `statut`
+/// s'arrête à `cloturee` ; `a_facturer` et `facturee` vivent ICI.
+///
+/// **Trois valeurs, celles du chapitre 11, et pas une de plus.** `NULL` en
+/// porte une quatrième qui n'est pas dans l'énumération : *« la question ne
+/// s'est pas encore posée »*. Ajouter une quatrième VALEUR serait un changement
+/// de schéma touchant les statuts d'intervention, que le §8 range parmi les
+/// points d'arrêt.
+enum StatutFacturation {
+  non_facturable
+  a_facturer
+  facturee
 }
 
 /// Comment l'intervention se valorise (RG-TAR-05, D83).
