@@ -137,6 +137,37 @@ export const fr = {
     "Sans information — CODIPLAN n'enregistre pas encore les contrôles de cette machine. Ce n'est ni « à jour », ni « en retard ».",
   "portail.reserve": "Cet écran est réservé aux comptes de portail client.",
 
+  // ── LE BANDEAU ET LES CHIFFRES DU PORTAIL (R2-07, D95) ───────────────────
+  //
+  // La maquette porte QUATRE indicateurs ; le produit n'en sait mesurer que
+  // DEUX, et les deux autres ne sont pas remplis d'un zéro. *Un zéro affiché là
+  // où il n'y a rien à afficher se lit comme une mesure* (doctrine §3).
+  "portail.bandeau.espace": "Votre espace client",
+  "portail.chiffre.machines": "Vos machines",
+  "portail.chiffre.machines_detail": "recensées à ce jour",
+  "portail.chiffre.lieux": "Vos lieux",
+  "portail.chiffre.lieux_detail": "dans votre périmètre",
+  "portail.chiffre.sans_mesure": "—",
+  "portail.chiffre.arret": "Machine à l'arrêt",
+  "portail.chiffre.arret_detail":
+    "Sans information : l'état d'une intervention en cours n'est pas encore lisible ici.",
+  "portail.chiffre.visite": "Prochaine visite",
+  "portail.chiffre.visite_detail":
+    "Sans information : le planning n'est pas encore lisible ici.",
+  "portail.interventions": "Vos interventions",
+  // Les deux phrases ci-dessous nomment un MOT IMPOSÉ, et il ne s'écrit pas
+  // ici : « agence » se définit une fois sous `vocabulaire.*` et se compose
+  // depuis `mot(notion)` (D5, D47). Le dictionnaire ne porte donc que ce qui
+  // l'entoure — c'est la forme déjà en vigueur sur l'écran de paramétrage.
+  "portail.interventions.a_venir_avant":
+    "Sans information : l'historique de vos interventions et leurs rapports ne sont pas encore lisibles ici. Votre",
+  "portail.interventions.a_venir_apres": "vous les transmet.",
+  "portail.demande": "Demander une intervention",
+  "portail.demande.a_venir_avant":
+    "Ce formulaire n'est pas ouvert : appelez votre",
+  "portail.demande.a_venir_apres":
+    ", elle enregistre votre demande et vous en accuse réception.",
+
   // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
   // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
   // seule porte d'entrée d'une base neuve rendait 404.

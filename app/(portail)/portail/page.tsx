@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth/session";
 import { estRolePortail } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 
 import {
@@ -119,13 +120,78 @@ export default async function PagePortail() {
         <p className="text-app-encre-faible max-w-[70ch] text-[13px]">
           {t("portail.sous_titre")}
         </p>
-        {parc.raisonSociale === null ? null : (
-          <p className="text-[13px]">
-            <span className="text-app-encre-faible">{t("portail.client")}</span>{" "}
-            <span className="font-bold">{parc.raisonSociale}</span>
-          </p>
-        )}
       </header>
+
+      {/*
+        LE BANDEAU DE LA MAQUETTE — `.pcli` : dégradé à 120°, encre blanche,
+        rayon 10, 22/24 de marge intérieure ; le nom en 19 px extra-gras, la
+        ligne dessous à 85 % d'opacité en 13 px. **LE DÉGRADÉ NE PORTE AUCUNE
+        COULEUR NOUVELLE** : la maquette va de `--bleu` à `#00376e` ; ici il va
+        de `--app-marque` à `--app-bleu-encre`, qui EST le bleu sombre de la
+        charte. *Un écran nomme un rôle, jamais une couleur* — et la seconde
+        apparence le repeint sans que cette ligne bouge.
+      */}
+      {parc.raisonSociale === null ? null : (
+        <div
+          className="text-app-marque-encre rounded-[10px] px-6 py-[22px]"
+          style={{
+            backgroundImage:
+              "linear-gradient(120deg, var(--app-marque), var(--app-bleu-encre))",
+          }}
+        >
+          <p className="text-[19px] font-extrabold">{parc.raisonSociale}</p>
+          <p className="text-[13px] opacity-85">
+            {t("portail.bandeau.espace")}
+          </p>
+        </div>
+      )}
+
+      {/*
+        LES QUATRE INDICATEURS DE LA MAQUETTE — et DEUX D'ENTRE EUX SONT VIDES,
+        nommément.
+
+        La maquette en montre quatre : machines, machine à l'arrêt, prochaine
+        visite, interventions de l'année. **Le portail ne lit que le PARC** —
+        `parcDuClient` rend des sites et des machines, et rien d'autre : ni
+        intervention, ni créneau. *Mesuré au type qu'il rend, pas supposé.*
+
+        **Les deux qu'on ne sait pas mesurer affichent « — » et DISENT pourquoi,
+        au lieu d'un zéro.** Un zéro se lit comme une mesure : « aucune machine à
+        l'arrêt » est une affirmation, et elle serait fausse. *« Sans
+        information » n'est ni « à jour » ni « en retard »* (D88, doctrine §3) —
+        c'est la même règle que le registre VGP applique une page plus loin.
+
+        **Et ce n'est PAS une place réservée** : rien n'est préparé en base ni
+        en type pour les recevoir. Le jour où le portail lira les interventions,
+        ces deux cartes recevront une valeur ; d'ici là elles disent ce qu'elles
+        ne savent pas.
+      */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Chiffre
+          libelle={t("portail.chiffre.machines")}
+          valeur={String(parc.machines.length)}
+          detail={t("portail.chiffre.machines_detail")}
+          filet="bleu"
+        />
+        <Chiffre
+          libelle={t("portail.chiffre.lieux")}
+          valeur={String(parc.sites.length)}
+          detail={t("portail.chiffre.lieux_detail")}
+          filet="bleu"
+        />
+        <Chiffre
+          libelle={t("portail.chiffre.arret")}
+          valeur={t("portail.chiffre.sans_mesure")}
+          detail={t("portail.chiffre.arret_detail")}
+          filet="gris"
+        />
+        <Chiffre
+          libelle={t("portail.chiffre.visite")}
+          valeur={t("portail.chiffre.sans_mesure")}
+          detail={t("portail.chiffre.visite_detail")}
+          filet="gris"
+        />
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-[15px] font-extrabold tracking-tight">
@@ -189,6 +255,82 @@ export default async function PagePortail() {
           </ul>
         )}
       </section>
+
+      {/*
+        LES DEUX CARTES DE LA COLONNE DROITE DE LA MAQUETTE, et elles sont VIDES
+        toutes les deux — nommément, avec ce qu'il faut faire à la place.
+
+        **« Mes interventions » et son tableau** demandent l'historique, que le
+        portail ne lit pas ; **« Demander une intervention »** est un FORMULAIRE
+        que L2-12 refuse d'ouvrir et même de préparer — *une place réservée pour
+        une décision qu'on n'a pas prise est une décision prise par personne*.
+        La table `demande_intervention` existe (L2-06) et un compte portail peut
+        y écrire ; **ce qui manque est la décision de lui ouvrir cet écran**, et
+        elle n'appartient pas à une session : c'est ce qu'un client voit.
+
+        Ce qui est écrit ici n'est donc pas « bientôt » — c'est **ce que la
+        personne doit faire aujourd'hui** : appeler son agence. *Une place qui
+        promet sans dire quoi faire est pire qu'une absence.*
+      */}
+      <section className="grid gap-3 lg:grid-cols-2">
+        <article className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+          <h2 className="text-[15px] font-extrabold tracking-tight">
+            {t("portail.interventions")}
+          </h2>
+          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+            {t("portail.interventions.a_venir_avant")}{" "}
+            {motDansUnePhrase("agence")}{" "}
+            {t("portail.interventions.a_venir_apres")}
+          </p>
+        </article>
+        <article className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+          <h2 className="text-[15px] font-extrabold tracking-tight">
+            {t("portail.demande")}
+          </h2>
+          <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
+            {t("portail.demande.a_venir_avant")} {motDansUnePhrase("agence")}
+            {t("portail.demande.a_venir_apres")}
+          </p>
+        </article>
+      </section>
     </main>
+  );
+}
+
+/**
+ * UNE CARTE D'INDICATEUR — `.kpi` de la maquette : fond de surface, bordure,
+ * rayon 10, 15/16 de marge, et **un filet de 3 px à gauche**.
+ *
+ * *Le filet porte un SENS et non une décoration* : bleu quand le chiffre est
+ * une mesure, gris quand il n'y en a pas. Un filet bleu sur un « — » dirait que
+ * la case est renseignée.
+ */
+function Chiffre({
+  libelle,
+  valeur,
+  detail,
+  filet,
+}: {
+  readonly libelle: string;
+  readonly valeur: string;
+  readonly detail: string;
+  readonly filet: "bleu" | "gris";
+}) {
+  return (
+    <div className="bg-app-surface border-app-bord relative overflow-hidden rounded-[10px] border px-4 py-[15px]">
+      <span
+        aria-hidden
+        className={`absolute top-0 bottom-0 left-0 w-[3px] ${
+          filet === "bleu" ? "bg-app-bleu-bord" : "bg-app-gris-bord"
+        }`}
+      />
+      <p className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
+        {libelle}
+      </p>
+      <p className="my-1 text-[27px] font-extrabold tracking-[-1px]">
+        {valeur}
+      </p>
+      <p className="text-app-encre-faible text-[11px]">{detail}</p>
+    </div>
   );
 }

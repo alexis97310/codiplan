@@ -11,6 +11,7 @@ import {
   definition,
   mot,
   type NotionImposee,
+  motDansUnePhrase,
 } from "@/lib/i18n/vocabulaire";
 
 import { RACINE } from "../outils/fichiers-source";
@@ -306,5 +307,56 @@ describe("le gardien du vocabulaire éprouvé sur les six formes (§9)", () => {
     //     atteint l'écran, c'est celui des chaînes visibles qui le prend ; s'il
     //     nomme une variable ou une colonne, il est à sa place.
     expect(ecartsDeVocabulaire("const agence = lireAgence();")).toEqual([]);
+  });
+});
+
+/**
+ * LE MOT AU MILIEU D'UNE PHRASE — et c'est une IMAGE qui l'a demandé.
+ *
+ * *Mesuré le 13/09/2026 sur la capture du portail :* l'écran affichait
+ * **« appelez votre Agence »** et **« Votre Agence vous les transmet »**, avec
+ * une capitale au milieu d'une phrase. Le dictionnaire porte le mot sous sa
+ * forme d'ÉTIQUETTE — celle d'un en-tête de colonne ou d'un titre d'écran —, et
+ * c'est la bonne forme là où il servait jusqu'ici.
+ *
+ * **Aucune assertion n'aurait pu l'attraper.** Le gardien du vocabulaire
+ * vérifie que le mot ne s'écrit nulle part ailleurs ; il ne lit pas la phrase
+ * où il tombe. *C'est exactement le §9 du 09/09 : un défaut invisible à toute
+ * assertion et évident sur une image.*
+ *
+ * **La correction se fait au RENDU, jamais au dictionnaire** : une seconde
+ * entrée « agence en minuscule » serait une seconde écriture du même mot, et
+ * elle divergerait au premier renommage (D5, D47).
+ */
+describe("un mot imposé se glisse aussi au milieu d'une phrase", () => {
+  it("il y descend en minuscule initiale", () => {
+    // AUCUN LITTÉRAL : le mot attendu se DÉRIVE de `mot()`, jamais recopié —
+    // une chaîne visible écrite dans un test est une chaîne hors dictionnaire
+    // (L0-11), et elle deviendrait fausse au premier renommage.
+    for (const notion of ["agence", "site"] as const) {
+      const etiquette = mot(notion);
+      expect(etiquette.charAt(0)).toBe(etiquette.charAt(0).toUpperCase());
+      expect(motDansUnePhrase(notion).charAt(0)).toBe(
+        etiquette.charAt(0).toLowerCase(),
+      );
+    }
+  });
+
+  it("et le pluriel suit la même règle", () => {
+    expect(motDansUnePhrase("site", true)).toBe(
+      mot("site", true).toLowerCase(),
+    );
+    expect(motDansUnePhrase("agence", true).charAt(0)).toBe(
+      mot("agence", true).charAt(0).toLowerCase(),
+    );
+  });
+
+  it("SEULE la première lettre descend — le reste du mot est intact", () => {
+    // Le cas qui doit rester vrai pour sa propre raison : `toLowerCase()` sur
+    // le mot entier perdrait les capitales internes d'un terme composé futur,
+    // et personne ne le verrait tant qu'aucun n'existe.
+    for (const notion of ["agence", "site"] as const) {
+      expect(motDansUnePhrase(notion).slice(1)).toBe(mot(notion).slice(1));
+    }
   });
 });
