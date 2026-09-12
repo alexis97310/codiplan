@@ -1403,3 +1403,33 @@ AssertionError: expected 'import { periodesValidees } from "@/l…' to match
 
 **Q7** — les quatre valeurs d'origine d'une information de VGP (posée hier soir).
 **Q8** — **par quel canal un lien de premier accès parvient-il à une personne ?** *Écrite sans être tranchée : un canal d'envoi demande un service externe et une clé.* C'est la question qui décide si Alexis peut rentrer dans son application depuis un téléphone.
+
+---
+
+## N5 — La suite de la file
+
+### L3-04a — L'alerte de rupture de service (livré)
+
+La règle est écrite et éprouvée ; **l'écran est scindé en L3-04b, BLOQUÉ**, et ce n'est pas une réduction de périmètre en silence. *Mesuré : `app/(back-office)/` ne porte aucun écran d'absence, la maquette ne nomme « absence » que **deux fois et dans la prose** de RG-PLA-06, et la barre de D95 est une liste close de onze entrées qu'une douzième ferait rougir à raison.* **Ce qui manque n'est pas un écran pour l'alerte : c'est l'écran d'absence tout entier.**
+
+**Et j'ai failli poser un silence moi-même.** `groupBy` ne rend **aucune ligne** pour une agence sans technicien actif : la première rédaction rangeait donc l'agence qui n'a plus personne sous « effectif inconnu », c'est-à-dire **sous le verdict qui n'alerte PAS** — la rupture la plus complète qui soit, tue. *L'absence d'une ligne est une mesure, pas une absence de mesure, quand on sait quelles clés on a demandées.*
+
+### TROIS MARQUEURS DE FILE QUI MENTAIENT
+
+*C'est la leçon de L9-11 d'hier soir, rejouée trois fois dans l'AUTRE sens : des tickets marqués `LIBRE` que leur propre texte ferme.* Chacun a coûté une lecture pour découvrir qu'il n'y avait rien à faire.
+
+| | Ce que le marqueur disait | Ce que la mesure dit |
+|---|---|---|
+| **L3-15** | LIBRE | ni rapport, ni moteur, ni canal — le modèle `Intervention` ne porte **aucune** colonne de temps, diagnostic, checklist, photo ou signature (les trois occurrences sont des **commentaires**) ; `lib/pdf/` est `(prévu)` ; `react-pdf` et `resend` ne sont **pas installés** |
+| **L0-12** | LIBRE | son déclencheur n'a pas sonné — `CODIMA-NC` **59 × 500 = 29 500 ms**, `CODIMA-EU` **46 × 500 = 23 000 ms**, budget **120 000 ms** |
+| **L7-02** | LIBRE | `app/(editeur)/` n'existe pas, et la barre porte `chemin: null, ouvertePar: "lot 7"` — une entrée **INERTE**, ce que D95 distingue d'une entrée absente |
+
+**Le gardien de cohérence du backlog a exigé la relecture des sources à chaque fois** — D24, D96, D50, D95 — *et c'est exactement ce pour quoi il existe* : il ne prouve pas la cohérence, il force la relecture à l'instant où elle est due.
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `13:44:26 UTC` : **1681** unitaires · **826** d'isolation · **27** Playwright.
+
+### Le prochain ticket libre
+
+**L2-13 — le lien d'invitation au portail.** *Il est réellement ouvert* : D96 l'a tranché et n'exige **aucun expéditeur** — le lien est engendré dans le back-office, l'agence le transmet par ses propres moyens. Une table, quatre garanties tenues par la base (usage unique, durée limitée, révocable, tracé), et un écran. *Il ne résout pas Q8 : Alexis est un utilisateur INTERNE, et L2-13 ouvre la porte des clients.*
