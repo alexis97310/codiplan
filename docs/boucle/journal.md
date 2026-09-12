@@ -930,6 +930,13 @@ horizon des fériés · les deux contrôles de partitions.
 *C'est bien `verify:full` qui a été jouée, et non `verify` : la première a rougi sur un
 défaut que la seconde ne pouvait pas voir, et c'est écrit plus haut.*
 
+**ET ELLE A ÉTÉ MESURÉE SUR `c995f5c`, PAS SUR LA TÊTE DE BRANCHE.** Les deux commits qui
+suivent — le README et cette clôture — ne touchent que des documents, et ils ont été
+mesurés par `pnpm verify` (**EXIT=0**, `10:37:21 UTC`), qui porte `format:check` et les
+huit gardiens de documents. *Je l'écris plutôt que de laisser « verify:full vert »
+couvrir un état qu'il n'a pas vu : un vert mesuré à un endroit et annoncé pour un autre
+est un vert inventé, quelle que soit la bonne foi* (§11).
+
 ## Les chiffres dénombrés
 
 | Ce qui a été compté | Résultat | Sur quoi |
