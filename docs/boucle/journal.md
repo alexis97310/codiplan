@@ -1022,3 +1022,74 @@ pas les refuser : voir **Q5**, qui demande quoi en faire.
 versionné et attend d'être joué là où le chiffre a un sens. *Le zéro que j'ai mesuré vaut
 pour une base bâtie depuis zéro, et une base bâtie depuis zéro ne PEUT pas porter de
 violation.*
+
+---
+
+# APRÈS LES RÉPONSES D'ALEXIS — 12/09/2026, soir
+
+*Les cinq questions ont reçu leur réponse. Elles entrent au recueil en **D111 à D115**,
+chacune avec sa raison, sa date et sa condition de réouverture. `487b689`, fusionné sur
+`main` en `64bef71` avec les neuf tickets de la nuit (proposition
+[#162](https://github.com/alexis97310/codiplan/pull/162), écrasée — le dépôt refuse les
+commits de fusion).*
+
+## D111 — le taux compact, et une contradiction trouvée en l'appliquant
+
+### Ce que j'ai construit
+
+`tauxCompact` rend un **ÉTAT**, jamais du texte — trois valeurs qui ne se disent pas avec
+le même mot : `sans_calendrier`, `infime`, `chiffre`. La colonne « Technicien » l'affiche
+sous le nom.
+
+### ET LA CONDITION DE D111 NE PORTE PAS SUR LA BONNE CHOSE
+
+D111 s'appuie sur *« un technicien n'a qu'UNE agence de rattachement, donc jamais deux
+taux »*, et sa condition de réouverture vise `technicien.agence_id` — **colonne simple et
+`NOT NULL`, c'est exact.**
+
+**Ce n'est pas la maille du taux.** `occupationsDuPlanning` rend une ligne par
+**(technicien, agence de l'INTERVENTION)** : le dénominateur vient du calendrier de
+l'agence **où le travail a lieu** (I7). Et **D112, rendu le même soir, autorise
+expressément** qu'un technicien de Ducos soit posé sur une intervention de Koné.
+
+> *Une personne qui fait un renfort porte donc DEUX lignes de charge, le jour même où les
+> deux décisions sont écrites, sans qu'aucune table de rattachement multiple n'existe.*
+
+**Le §1 du `CLAUDE.md` dit ce qu'on en fait** : une contradiction entre deux sources de
+rang 1 est **un défaut à signaler, jamais une préséance à appliquer**. Elle est signalée —
+au recueil sous D111, et en **Q6** pour Alexis.
+
+**Et la voie qui restait ouverte a été prise** (§2 du protocole) : l'écran **MESURE** la
+condition au lieu de la supposer. Une seule ligne de charge → le taux seul, D111 dans sa
+lettre. Plusieurs → **chacune nomme son agence**, ce que D111 prescrit lui-même *« pour ce
+jour-là »*. *Aucune des deux décisions n'est réduite, et l'écran ne peut plus mentir.*
+
+### Le gardien tient la CONDITION, pas l'affichage
+
+*Une condition de réouverture écrite en prose est une intention* (§9, 31/08) : elle ne
+rougit pas le jour où elle est remplie. `tests/unit/interventions/taux-compact.test.ts`
+rougit — sur la forme du schéma, qui est ce que D111 invoque. Éprouvé en rendant
+réellement `agence_id` optionnelle :
+
+```
+FAIL … > `technicien` porte UNE agence, colonne simple et obligatoire
+AssertionError: expected 'model Technicien {…' to match /\n\s+agence_id\s+String\s+@db\.Uuid/
+```
+
+### Le rouge que j'ai réparé
+
+```
+tests/unit/interventions/taux-compact.test.ts(103,24): error TS2345:
+Property 'journees' is missing in type … but required in type 'TrajetDeLaPeriode'.
+```
+
+**`vitest` avait passé ce fichier au vert ; c'est `tsc` qui l'a dit.** La fixture n'était
+pas typée, et un objet littéral qui satisfait une fonction aujourd'hui cesse de la
+satisfaire au premier champ ajouté. Le type est désormais écrit — *la leçon du 09/09 :
+quand une erreur d'exécution est incompréhensible, `tsc` a souvent déjà répondu, et il
+coûte deux secondes.*
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:07:31 UTC` : **1611** unitaires ·
+**793** d'isolation · **27** Playwright.

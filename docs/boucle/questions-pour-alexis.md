@@ -256,3 +256,54 @@ aucune n'a été rattrapée ». *Nous en sommes à trois.*
 
 **Bloqué** : rien. Le second axe fonctionne pour toute clôture à partir d'aujourd'hui.
 **Continue** : tout. Ce qui attend est le **rattrapage** des clôtures antérieures.
+
+---
+
+*Les cinq questions ci-dessus ont reçu leur réponse le 12/09/2026 au soir — D111 à D115
+au recueil. Ce qui suit est né de leur APPLICATION.*
+
+---
+
+## Q6 — D111 et D112 se contredisent le premier jour d'un renfort
+
+### La question
+
+Vous avez tranché deux choses le même soir. **D111** : sous le nom du technicien, le taux
+seul, *« parce qu'il n'a qu'une agence, donc jamais deux taux »*. **D112** : un technicien
+de Ducos peut être posé sur une intervention de Koné.
+
+**Le jour où quelqu'un fait un renfort, il a deux taux.** Pas parce qu'il est rattaché à
+deux agences — il ne l'est pas —, mais parce que le taux se calcule sur le calendrier de
+l'agence **où le travail a lieu**.
+
+### Ce que j'ai mesuré
+
+`occupationsDuPlanning` rend une ligne par **(technicien, agence de l'intervention)**, et
+non par personne. La condition de réouverture de D111 vise `technicien.agence_id`, qui
+est bien une colonne simple et obligatoire — **et ce n'est pas la maille du taux**.
+
+*Le cas ne se produit pas aujourd'hui : 26 interventions affectées, 0 hors agence. Mais
+D112 vient précisément de l'autoriser.*
+
+### Ce que j'ai fait en attendant, et pourquoi
+
+**L'écran mesure la condition au lieu de la supposer.** Une seule ligne de charge → le
+taux seul, D111 dans sa lettre. Plusieurs → **chacune nomme son agence**, ce que D111
+prescrit lui-même « pour ce jour-là ». *Aucune des deux décisions n'est réduite, et
+l'écran ne peut plus mentir.* Un gardien tient la condition sur la forme du schéma.
+
+### Les issues possibles
+
+1. **Ne rien changer.** La contradiction est fermée par le code, et les deux décisions
+   restent lisibles telles quelles. Coût : la condition de réouverture de D111 reste
+   écrite sur la mauvaise chose, et le prochain lecteur la croira.
+2. **Réécrire la condition de réouverture de D111** pour qu'elle vise la maille du taux
+   plutôt que la colonne. Coût : deux lignes. *C'est celle que je recommande* — et elle
+   rend la décision vraie sans rien changer au produit.
+3. **Trancher ce qu'un renfort doit montrer** : deux taux nommés, ou un seul agrégé ?
+   Coût : l'agrégat demande de décider quel dénominateur — additionner deux calendriers
+   d'agences différentes est une règle que personne n'a écrite.
+
+### En attendant
+
+**Bloqué** : rien. **Continue** : tout ; l'affichage est correct dans les deux cas.
