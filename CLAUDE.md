@@ -1122,6 +1122,25 @@ lib/
               un lot ANNULÉ garde sa date d'application — un lot annulé a bel
               et bien été appliqué, et l'effacer perdrait la seule trace du
               moment où le parc a changé
+  prestations/ LE CATALOGUE DES PRESTATIONS (L1-12 ; D109, D113)
+              UNE PRESTATION PORTE UNE DURÉE, JAMAIS UN TAUX — aucune colonne
+              de montant, et un gardien statique le refuse sur les COLONNES du
+              modèle, jamais sur ses commentaires : ceux-ci doivent au
+              contraire nommer la règle, et un gardien qui les lirait rougirait
+              sur la phrase qui l'énonce
+              et elle ne DÉSIGNE aucun forfait (D113) : le pont de D109 passe
+              par l'INTERVENTION, qui reçoit le sien par les trois axes de
+              RG-TAR-06 — une clé étrangère ici aurait fait naître la question
+              « et si le forfait désigné ne s'applique pas à la zone ? », qu'il
+              aurait fallu arbitrer d'avance
+              la FAMILLE est facultative : un déplacement, un diagnostic ou une
+              formation n'en visent aucune — et son gabarit d'import est le
+              premier dont le parent l'est, si bien qu'une cellule VIDE n'y est
+              pas un parent introuvable
+              la durée est NULLE tant que personne ne l'a estimée, et jamais
+              zéro, qui dirait « instantané »
+              aucune énumération de prestations : c'est le métier lui-même, et
+              il bouge à chaque société — le raisonnement de materiel/
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

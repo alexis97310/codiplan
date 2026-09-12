@@ -108,4 +108,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260913200000_reference_interne_unique_d6",
   "20260913210000_statut_affectee_d8",
   "20260913220000_statut_facturation_d8",
+  "20260913230000_prestation_l1_12",
 ];

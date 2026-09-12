@@ -997,6 +997,8 @@ dans la table `parite` ci-dessous.*
 
 **taux_horaire** — `societe_id`, **date d'effet**, montant **entier** en unités les plus fines, code de devise. *Une table et non une colonne : une intervention se facture au taux en vigueur à SA date (RG-TAR-04), et une facture qui change quand le tarif change est une facture fausse.* Amende `societe.taux_horaire_defaut`, retirée le 09/09/2026 (Q3).
 
+**prestation** — `societe_id`, code, libellé, **famille facultative**, **durée standard en minutes**, checklist type, actif. *Ajoutée le 12/09/2026 par L1-12.* **Elle ne porte AUCUN montant** — *une prestation porte une durée, jamais un taux* (**D109**) : deux endroits qui portent un prix, c'est une préséance à inventer et une seconde historisation à tenir, pour rien (RG-TAR-04). **Et elle ne désigne aucun forfait** (**D113**) : le pont de D109 passe par l'**intervention**, qui reçoit son forfait par les trois axes de RG-TAR-06 — une clé étrangère ici aurait fait naître la question « et si le forfait désigné ne s'applique pas à la zone ? », qu'il aurait fallu arbitrer d'avance. La famille est **facultative** : un déplacement, un diagnostic ou une formation n'en visent aucune. La durée standard est **nulle tant que personne ne l'a estimée**, et jamais zéro, qui dirait « instantané ». Propre à chaque société, parce qu'*une durée standard et une checklist décrivent la façon de travailler d'une entreprise et le niveau de ses techniciens*.
+
 **technicien_habilitation** — `societe_id`, technicien, habilitation, date d'obtention, date d'expiration. RG-PLA-04 : l'affectation est **bloquée**, jamais signalée.
 
 **site_habilitation_requise** — `societe_id`, site, habilitation, bloquant. Ce qu'un site exige de qui y intervient.
