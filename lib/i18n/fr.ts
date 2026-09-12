@@ -432,6 +432,14 @@ export const fr = {
   // interprétable, et elle ne se déduit pas de « 82 % ».
   // Le SIGNE POUR CENT est du texte qu'un humain lit : il vient d'ici comme le
   // reste (L0-11), avec l'espace insécable que le français exige devant lui.
+  // ── LE TAUX COMPACT DE LA COLONNE « TECHNICIEN » (D111) ──────────────────
+  //
+  // Il est BREF parce qu'il est SANS AMBIGUÏTÉ : un technicien n'a qu'une
+  // agence, donc jamais deux taux. Le panneau de charge, lui, porte toujours
+  // les deux termes et la formule — D56 n'y bouge pas.
+  "statistiques.taux_compact_sans_calendrier": "taux inconnu",
+  "statistiques.taux_compact_sans_calendrier.aide":
+    "Aucun calendrier n'est r\u00e9gl\u00e9 pour son \u00e9tablissement : le taux n'a pas de d\u00e9nominateur. Ce n'est pas z\u00e9ro pour cent.",
   "statistiques.pourcent": "\u00a0%",
   // LE SÉPARATEUR N'APPARTIENT À AUCUN ÉCRAN — il s'appelait
   // `statistiques.separateur`, et la fiche d'intervention en a eu besoin le

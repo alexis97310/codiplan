@@ -252,3 +252,52 @@ export function partDuSegment(
   }
   return (segment.minutes / occupation.minutesEngagees) * 100;
 }
+
+/**
+ * ── LE TAUX COMPACT — SOUS LE NOM, DANS LA COLONNE « TECHNICIEN » (D111) ─────
+ *
+ * ## CE QUE D111 AUTORISE, ET CE QU'IL N'AUTORISE PAS
+ *
+ * **Le pourcentage seul**, sans le nom de l'agence, sans la formule, sans les
+ * deux termes. *Le panneau de charge, lui, continue de les porter* — D56 y reste
+ * entier, et `tests/unit/interventions/occupation-affichee.test.ts` l'exige.
+ *
+ * ## POURQUOI CE N'EST PAS UNE DÉROGATION À D56
+ *
+ * D56 interdit qu'*un nombre dont la signification dépend d'une autre colonne*
+ * voyage seul. La dépendance existe bien — la maille est `(technicien, agence)`
+ * — **mais elle est résolue par le SCHÉMA** : `technicien.agence_id` est une
+ * colonne simple et `NOT NULL` (L3-01a), donc une personne n'a **jamais deux
+ * taux**. *Un nombre dont la seule lecture possible est la bonne ne dépend de
+ * rien.*
+ *
+ * **La condition de réouverture est donc une propriété du schéma, et un gardien
+ * la tient** : `tests/unit/interventions/taux-compact.test.ts`. Le jour où une
+ * ligne de technicien portera deux agences, il rougira — et cet affichage devra
+ * nommer l'agence.
+ *
+ * ## LES TROIS ÉTATS NE SE DISENT PAS AVEC LE MÊME MOT
+ *
+ * `null` — **pas de calendrier**, donc pas de dénominateur : *« pas de
+ * calendrier » et « n'a rien fait » ne se corrigent pas au même endroit.*
+ * `infime` — non nul mais arrondi à zéro : *zéro pour cent se lit « n'a rien
+ * fait », et ce technicien a travaillé.* Et le taux lui-même.
+ *
+ * **Ce module rend l'ÉTAT, jamais le texte** : les libellés sont au
+ * dictionnaire, et la coupure de L0-11 veut qu'un module rende un code.
+ */
+export type TauxCompact =
+  | { readonly etat: "sans_calendrier" }
+  | { readonly etat: "infime" }
+  | { readonly etat: "chiffre"; readonly pourcent: number };
+
+export function tauxCompact(occupation: OccupationTechnicien): TauxCompact {
+  const taux = tauxOccupation(occupation);
+  if (taux === null) {
+    return { etat: "sans_calendrier" };
+  }
+  if (tauxArrondiAZeroMaisNonNul(occupation)) {
+    return { etat: "infime" };
+  }
+  return { etat: "chiffre", pourcent: taux };
+}

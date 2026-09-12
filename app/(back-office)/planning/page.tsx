@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { type LigneOccupation } from "@/lib/interventions/occupation";
+import { tauxCompact } from "@/lib/interventions/statistiques";
 import { LARGEUR_COLONNE_TECHNICIEN_PX } from "@/lib/theme/apparence";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -229,6 +231,36 @@ export default async function PagePlanning({
       : fenetreEnJours,
   );
 
+  // LA COLONNE ET LE PANNEAU LISENT LA MÊME MESURE (D111). `charges` vient
+  // d'`affichees`, le jeu unique de `lib/interventions/affichage.ts` : la
+  // colonne n'en diffère que par la BRIÈVETÉ du rendu, jamais par sa source.
+  // *Deux chiffres côte à côte, calculés sur deux populations, et rien ne dit
+  // lequel croire* (§9, 01/09) — c'est la faute que ce planning a déjà commise.
+  //
+  // ── ET LA MAILLE EST BIEN (technicien, agence), MESURÉE PLUTÔT QUE SUPPOSÉE
+  //
+  // D111 s'appuie sur le fait qu'*un technicien n'a qu'UNE agence de
+  // rattachement*, donc jamais deux taux. C'est vrai de `technicien.agence_id`
+  // — et `occupationsDuPlanning` ne rend PAS une ligne par personne : il rend
+  // une ligne par **(technicien, agence de l'INTERVENTION)**. Or D112, rendu le
+  // même soir, autorise expressément qu'un technicien de Ducos soit posé sur
+  // une intervention de Koné.
+  //
+  // **Les deux décisions se contredisent le premier jour d'un renfort**, et
+  // c'est un défaut à signaler, jamais une préséance à appliquer (§1). La voie
+  // qui reste ouverte est de MESURER la condition de D111 au lieu de la
+  // supposer : une seule ligne, le taux seul ; plusieurs, chacun NOMME son
+  // agence — ce que D111 lui-même prescrit pour ce jour-là.
+  const chargeParTechnicien = new Map<string, LigneOccupation[]>();
+  for (const charge of charges) {
+    if (charge.technicienId === null) {
+      continue;
+    }
+    const deja = chargeParTechnicien.get(charge.technicienId) ?? [];
+    deja.push(charge);
+    chargeParTechnicien.set(charge.technicienId, deja);
+  }
+
   // LE FUSEAU EST CELUI DE L'AGENCE, et la société n'est que le repli — c'est
   // `fuseauDeLAgence` qui décide à l'ÉCRITURE (`lib/interventions/depot.ts`),
   // et deux lectures d'un même critère divergent en silence. Une agence sans
@@ -283,6 +315,7 @@ export default async function PagePlanning({
               jours={jours}
               grille={construireGrille(affichees, jours, pourGrille, nomDe)}
               nomDe={nomDe}
+              chargeDe={chargeParTechnicien}
               fuseauPour={(agenceId) =>
                 schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
               }
@@ -348,11 +381,21 @@ function VueSemaine({
   jours,
   grille,
   nomDe,
+  chargeDe,
   fuseauPour,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly nomDe: (id: string) => string | null;
+  /**
+   * LA CHARGE DE CHAQUE PERSONNE, par identifiant (D111).
+   *
+   * **Elle vient du MÊME jeu que le panneau de charge** — `affichees`, et rien
+   * d'autre : *deux chiffres côte à côte, calculés sur deux populations, et
+   * rien ne dit lequel croire* (§9, 01/09). La colonne et le panneau lisent
+   * donc la même mesure, et n'en diffèrent que par la BRIÈVETÉ du rendu.
+   */
+  readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   /**
    * LE FUSEAU DE L'AGENCE DE LA LIGNE — une fonction, jamais une valeur.
    *
@@ -409,6 +452,16 @@ function VueSemaine({
                   <span className="text-app-encre-faible block text-[10.5px] font-normal">
                     {ouTravaille(ligne.agences.map((a) => a.libelle))}
                   </span>
+                  {/*
+                    LE TAUX COMPACT (D111) : le pourcentage SEUL, sans le nom de
+                    l'agence. *Un technicien n'a qu'une agence de rattachement,
+                    donc jamais deux taux* — le chiffre ne peut pas être lu de
+                    travers, et la colonne est trop étroite pour porter la
+                    formule. Le panneau de charge, lui, la porte toujours.
+                  */}
+                  <TauxCompactAffiche
+                    lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+                  />
                 </td>
                 {ligne.cases.map((cellule) => (
                   <CasePosable
@@ -908,6 +961,69 @@ function motifHorsGrille(motif: MotifHorsGrille): string {
 
 function resumeDesTrous(libres: number, pasMinutes: number): string {
   return `${libres} ${t("planning.creneaux_libres")} · ${t("planning.pas")} ${pasMinutes} min`;
+}
+
+/**
+ * LE TAUX COMPACT — trois états, trois libellés, et aucun ne se confond (D111).
+ *
+ * **Une personne sans ligne de charge ne rend RIEN** — pas « 0 % ». C'est le cas
+ * d'un technicien dont aucune intervention n'est affichée cette semaine : *il
+ * n'a pas un taux de zéro, il n'a pas de taux*, et la colonne se tait plutôt que
+ * d'affirmer.
+ */
+function TauxCompactAffiche({
+  lignes,
+}: {
+  readonly lignes: readonly LigneOccupation[];
+}) {
+  if (lignes.length === 0) {
+    return null;
+  }
+  // UNE SEULE AGENCE : le taux SEUL, c'est D111 dans sa condition de validité.
+  // PLUSIEURS : chacun nomme la sienne — *cet affichage devient ambigu et devra
+  // nommer l'agence*, écrit D111 lui-même. Le voici, sans attendre le jour.
+  const nommer = lignes.length > 1;
+  return (
+    <>
+      {lignes.map((ligne) => (
+        <TauxDUneAgence
+          key={ligne.agenceId}
+          ligne={ligne}
+          nommerLAgence={nommer}
+        />
+      ))}
+    </>
+  );
+}
+
+function TauxDUneAgence({
+  ligne,
+  nommerLAgence,
+}: {
+  readonly ligne: LigneOccupation;
+  readonly nommerLAgence: boolean;
+}) {
+  const compact = tauxCompact(ligne.occupation);
+  const ou = nommerLAgence ? `${ligne.agenceLibelle} ` : "";
+  if (compact.etat === "sans_calendrier") {
+    return (
+      <span
+        title={t("statistiques.taux_compact_sans_calendrier.aide")}
+        className="text-app-encre-faible block text-[10.5px] font-normal italic"
+      >
+        {ou}
+        {t("statistiques.taux_compact_sans_calendrier")}
+      </span>
+    );
+  }
+  return (
+    <span className="text-app-encre-faible block text-[11px] font-bold">
+      {ou}
+      {compact.etat === "infime"
+        ? t("statistiques.taux_infime")
+        : `${compact.pourcent}${t("statistiques.pourcent")}`}
+    </span>
+  );
 }
 
 function lieuDeLaLigne(ligne: Ligne): string {

@@ -3791,6 +3791,18 @@ Ce n'est pas une date écrite ici — elle aurait vieilli. C'est un **fait qu'on
 
 **Ce jour-là se reconnaît à une seule chose : une ligne de technicien rattachée à deux agences.** Aujourd'hui `technicien.agence_id` l'interdit par sa forme — il faudrait une table de rattachement ou une colonne multiple. **Le jour où l'une des deux naît, cette décision est due à réécriture**, et c'est un gardien qui le dira : `tests/unit/interventions/taux-compact.test.ts`.
 
+### ⚠ UNE CONTRADICTION AVEC D112, MESURÉE LE JOUR MÊME, ET SIGNALÉE PLUTÔT QU'ARBITRÉE
+
+**La condition ci-dessus porte sur `technicien.agence_id`. Ce n'est PAS la maille du taux.** `occupationsDuPlanning` rend une ligne par **(technicien, agence de l'INTERVENTION)** — le dénominateur vient du calendrier de l'agence où le travail a lieu (I7), pas de celle où la personne est rattachée.
+
+Or **D112, rendu le même soir, autorise expressément** qu'un technicien de Ducos soit posé sur une intervention de Koné. *Une personne qui fait un renfort porte donc DEUX lignes de charge le jour même où les deux décisions sont écrites*, sans qu'aucune table de rattachement multiple n'existe.
+
+**Les deux décisions se contredisent, et le §1 du `CLAUDE.md` dit ce qu'on en fait :** *une contradiction entre deux sources de rang 1 est un défaut à signaler, jamais une préséance à appliquer.* Elle est signalée ici.
+
+**La voie qui reste ouverte a été prise** (§2 du protocole) : l'écran **MESURE** la condition au lieu de la supposer. Une seule ligne de charge, le taux seul — D111 dans sa lettre. Plusieurs, **chacune nomme son agence** — ce que D111 prescrit lui-même *« pour ce jour-là »*, livré sans attendre le jour. *Aucune des deux décisions n'est réduite, et l'écran ne peut plus mentir.*
+
+**Ce qui reste à trancher, et qui appartient à Alexis :** la condition de réouverture de D111 doit-elle viser `technicien.agence_id` — comme elle est écrite — ou **la maille réelle du taux** ? Si c'est la seconde, D111 est déjà rouvert, et la question devient : *un renfort doit-il montrer deux taux, ou un seul agrégé ?*
+
 *Aucune règle du chapitre 10 n'est amendée : D111 porte sur un affichage, et le chapitre 10 est muet sur les écrans.*
 
 ---
