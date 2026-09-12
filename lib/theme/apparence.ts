@@ -47,7 +47,7 @@
  * que plus rien ne désigne, et le document retombe sur l'apparence par défaut
  * sans qu'aucun écran ne change de forme visible.
  */
-export const APPARENCES = ["maquette"] as const;
+export const APPARENCES = ["maquette", "tableau"] as const;
 
 export type Apparence = (typeof APPARENCES)[number];
 
