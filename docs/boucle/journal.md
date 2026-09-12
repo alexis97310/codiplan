@@ -1263,7 +1263,33 @@ AssertionError: expected 'seed_seul' to be 'donnees_reelles'
 
 `2e85483` — vert mesuré : `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `12:32:00 UTC`.
 
-### CE QUE JE N'AI PAS PU PROUVER, et la consigne le demandait
+### ~~CE QUE JE N'AI PAS PU PROUVER~~ — PROUVÉ, ET VOICI LA MESURE
+
+**Ce paragraphe a été écrit avant la fusion, et la fusion l'a démenti.** Il est barré et non effacé : *une impossibilité s'énonce avec son coût, ou pas du tout* (§9, 08/09), et celle-ci valait **sept minutes**.
+
+*Mesuré le 12/09/2026, sur la fusion `b8e2f5b`, qui porte `20260913250000_rattrapage_suspensions_r3_02` :*
+
+| | |
+|---|---|
+| **13:50:57 UTC** | le flux `db-migrate` s'est déclenché **tout seul**, événement `push` — [exécution 34697563497](https://github.com/alexis97310/codiplan/actions/runs/34697563497) |
+| **13:53:12 UTC** | `migrate & seed` : **success** |
+| **13:58:20 UTC** | **`déploiement — la base a-t-elle suivi ?` : success** |
+
+**Et les quatre bornes se lisent dans les étapes, une par une** :
+
+```
+ 2. success    Décider de la cible, et refuser la production hors d'une main
+ 8. success    Refuser si la base porte une donnée hors seed (automatique seul)
+11. success    Dire ce qui a été appliqué
+12. SKIPPED    Purger les données de démonstration
+13. success    Exécuter le seed (démonstration UNIQUEMENT)
+```
+
+***La purge a été SAUTÉE***, ce qui est la borne 2 en acte. Et le refus de la borne 3 s'est **exécuté et a laissé passer** — la base hébergée ne porte que les deux sociétés du seed, ce qu'il vient de mesurer plutôt que de supposer.
+
+**AUCUN GESTE HUMAIN.** *C'est tout l'objet de cette nuit, et c'est constaté plutôt qu'espéré.*
+
+### ~~Ce que je croyais ne pas pouvoir prouver~~ *(conservé pour la forme du raisonnement)*
 
 > *« Prouve ensuite par une MESURE, pas par un raisonnement, que le job « déploiement » passe au vert de lui-même après une fusion touchant `prisma/`. »*
 
