@@ -8,6 +8,7 @@ import {
   interventionsADeplanifier,
   type AbsenceDeclaree,
 } from "./periode";
+import { rupturesDeService, type VerdictRupture } from "./rupture-de-service";
 import type { CreationAbsence, DecisionAbsence } from "./saisie";
 
 /**
@@ -107,6 +108,18 @@ export type ResultatDecision = {
    * (§9, 06/09).
    */
   readonly deplanifiees: readonly string[];
+  /**
+   * L'ALERTE DE RUPTURE DE SERVICE, agence par agence (L3-04a, D106).
+   *
+   * **Elle voyage AVEC ce qui l'a déclenchée**, et ce n'est pas du confort : la
+   * calculer plus tard demanderait de relire les interventions déplanifiées et
+   * l'effectif de leurs agences — *deux lectures d'un même critère, dont l'une
+   * sous un autre contexte* (§9, 01/09). Elle est décidée ici, dans la
+   * transaction qui a rendu les interventions, ou elle n'est pas fiable.
+   *
+   * Vide sur un refus : *un refus ne déplanifie rien, donc ne rompt rien.*
+   */
+  readonly ruptures: readonly VerdictRupture[];
 };
 
 /**
@@ -149,7 +162,7 @@ export async function deciderAbsence(
       if (saisie.decision !== "validee") {
         return {
           accepte: true,
-          fiche: { absence: misAJour, deplanifiees: [] },
+          fiche: { absence: misAJour, deplanifiees: [], ruptures: [] },
         };
       }
 
@@ -165,6 +178,10 @@ export async function deciderAbsence(
           technicien_id: true,
           date_planifiee: true,
           statut: true,
+          // L'AGENCE DE L'INTERVENTION, jamais celle de l'absent (D106, D112) :
+          // ce qui se rompt est le service rendu QUELQUE PART, et « quelque
+          // part » est l'endroit où l'intervention devait avoir lieu.
+          agence_id: true,
         },
       });
       const aRendre = interventionsADeplanifier(posees, {
@@ -184,9 +201,55 @@ export async function deciderAbsence(
         });
       }
 
+      // ── L'ALERTE, décidée SOUS LE MÊME CONTEXTE que la déplanification ──
+      //
+      // L'effectif est compté sur les SEULES agences touchées : une requête
+      // sur toutes les agences de la société rendrait des lignes qu'aucun
+      // verdict ne lirait, et le décompte serait une mesure sans objet.
+      //
+      // `actif: true` est la clause de D106 — *un technicien qui a quitté
+      // l'entreprise ne se supprime pas, il cesse d'être proposé.* Et l'absent
+      // y est COMPRIS : être absent quinze jours ne rend pas inactif, et le
+      // seuil « un seul technicien actif » cesserait sinon de vouloir dire ce
+      // qu'il dit.
+      const rendues = posees
+        .filter((posee) => aRendre.includes(posee.id))
+        .map((posee) => ({ id: posee.id, agenceId: posee.agence_id }));
+
+      const agencesTouchees = [...new Set(rendues.map((r) => r.agenceId))];
+      // CHAQUE AGENCE TOUCHÉE PART À ZÉRO, et c'est ce qui empêche une faute
+      // silencieuse : `groupBy` ne rend AUCUNE ligne pour une agence sans
+      // technicien actif. Sans cette amorce, une agence qui n'a plus personne
+      // tomberait sous « effectif inconnu » — c'est-à-dire sous le verdict qui
+      // n'alerte PAS —, alors qu'elle est la rupture la plus complète qui
+      // soit. *L'absence d'une ligne est une mesure, pas une absence de
+      // mesure, quand on sait quelles clés on a demandées.*
+      const effectifs = new Map<string, number>(
+        agencesTouchees.map((agenceId) => [agenceId, 0]),
+      );
+      if (agencesTouchees.length > 0) {
+        const comptes = await tx.technicien.groupBy({
+          by: ["agence_id"],
+          where: { agence_id: { in: agencesTouchees }, actif: true },
+          _count: { _all: true },
+        });
+        for (const compte of comptes) {
+          effectifs.set(compte.agence_id, compte._count._all);
+        }
+      }
+
       return {
         accepte: true,
-        fiche: { absence: misAJour, deplanifiees: aRendre },
+        fiche: {
+          absence: misAJour,
+          deplanifiees: aRendre,
+          // « effectif inconnu » est INATTEIGNABLE par ce chemin, toutes les
+          // agences touchées étant amorcées ci-dessus. Le troisième verdict
+          // existe pour l'appelant qui, lui, pourrait ne pas savoir — et parce
+          // qu'un verdict à deux valeurs ferait lire « cette agence a du
+          // monde » là où il faut lire « je n'ai pas regardé ».
+          ruptures: rupturesDeService(rendues, effectifs),
+        },
       };
     },
     client,
