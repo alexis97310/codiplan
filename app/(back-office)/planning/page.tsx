@@ -27,6 +27,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { listerPlanning } from "@/lib/interventions/depot";
+import { fileDAttente, lignesAffichees } from "@/lib/interventions/affichage";
 import {
   construireGrille,
   type AgenceDeGrille,
@@ -199,8 +200,6 @@ export default async function PagePlanning({
   );
   const nomDe = (id: string) => noms.get(id) ?? null;
 
-  const attente = lignes.filter((l) => l.date_planifiee === null);
-
   // ── LE PANNEAU DE CHARGE ET LA VUE LISENT LE MÊME JEU ───────────────────
   //
   // Ils ne le lisaient pas. Le panneau recevait la liste BRUTE, la grille une
@@ -209,14 +208,15 @@ export default async function PagePlanning({
   // de la semaine. *Deux chiffres côte à côte, calculés sur deux populations,
   // et rien ne disait lequel croire* (§9, 01/09).
   //
-  // Le filtrage se fait donc UNE FOIS, ici, et les deux le reçoivent.
-  const posees = lignes.filter((l) => l.date_planifiee !== null);
-  const lignesDuJour = posees.filter(
-    (l) =>
-      l.date_planifiee !== null &&
-      cleJour(jourDeLaDate(l.date_planifiee)) === cleJour(jourAffiche),
-  );
-  const affichees = vue === "jour" ? lignesDuJour : posees;
+  // **LA RÈGLE A QUITTÉ CE FICHIER le 12/09/2026** — `lib/interventions/
+  // affichage.ts`. Filtrer une fois dans l'écran était juste et ne tenait
+  // rien : la règle vivait dans une variable locale d'un composant de neuf
+  // cents lignes, et le prochain consommateur pouvait recevoir autre chose
+  // sans qu'aucun test ne rougisse. `tests/unit/interventions/
+  // planning-un-seul-jeu.test.ts` refuse désormais qu'un consommateur reçoive
+  // autre chose qu'`affichees`.
+  const attente = fileDAttente(lignes);
+  const affichees = lignesAffichees(lignes, vue, jourAffiche);
   const charges = await occupationsDuPlanning(
     contexte,
     affichees,
@@ -268,7 +268,7 @@ export default async function PagePlanning({
           {vue === "jour" ? (
             <VueJour
               journee={construireJournee(
-                lignesDuJour,
+                affichees,
                 jourAffiche,
                 pourJournee,
                 minutesDe,
@@ -280,7 +280,7 @@ export default async function PagePlanning({
           ) : (
             <VueSemaine
               jours={jours}
-              grille={construireGrille(posees, jours, pourGrille, nomDe)}
+              grille={construireGrille(affichees, jours, pourGrille, nomDe)}
               nomDe={nomDe}
             />
           )}
@@ -770,14 +770,6 @@ function instantDuJour(jour: JourLocal, decalageJours = 0): Date {
   return new Date(
     Date.UTC(jour.annee, jour.mois - 1, jour.jour + decalageJours),
   );
-}
-
-function jourDeLaDate(date: Date): JourLocal {
-  return {
-    annee: date.getUTCFullYear(),
-    mois: date.getUTCMonth() + 1,
-    jour: date.getUTCDate(),
-  };
 }
 
 /**

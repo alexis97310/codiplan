@@ -92,19 +92,23 @@ export type ResultatReception =
 export async function recevoir(
   contexte: ContexteSession,
   saisie: SaisieDocumentRecu,
+  client?: PrismaClient,
 ): Promise<ResultatReception> {
   const societeId = exigerSocieteActive(contexte);
   try {
-    const recu = await avecContexteApplicatif(contexte, (tx) =>
-      tx.documentRecu.create({
-        data: {
-          id: uuidv7(),
-          societe_id: societeId,
-          ...saisie,
-          taille_octets: BigInt(saisie.taille_octets),
-        },
-        select: CHAMPS_RECU,
-      }),
+    const recu = await avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.documentRecu.create({
+          data: {
+            id: uuidv7(),
+            societe_id: societeId,
+            ...saisie,
+            taille_octets: BigInt(saisie.taille_octets),
+          },
+          select: CHAMPS_RECU,
+        }),
+      client,
     );
     return { recu, doublon: false };
   } catch (erreur: unknown) {
@@ -116,11 +120,31 @@ export async function recevoir(
     }
     // Le fichier était déjà là. On rend CELUI-LÀ : sans lui, l'appelant devrait
     // le retrouver lui-même, et un téléversement repris perdrait sa place.
-    const existant = await avecContexteApplicatif(contexte, (tx) =>
-      tx.documentRecu.findFirstOrThrow({
-        where: { empreinte: saisie.empreinte },
-        select: CHAMPS_RECU,
-      }),
+    // ── LA RELECTURE NE PORTE AUCUNE CLAUSE DE SOCIÉTÉ, ET DEUX CHOSES LA
+    //    TIENNENT — mesurées le 12/09/2026, pas supposées ────────────────────
+    //
+    // 1. **Ce chemin n'est atteint qu'après une violation de
+    //    `(societe_id, empreinte)`**, et une telle violation est par
+    //    construction INTRA-société. « Le fichier de la société voisine »
+    //    n'arrive donc jamais ici : il y a un verrou AVANT la politique, et
+    //    c'est l'index.
+    // 2. **La politique « interne » réduit les candidats à UN.** Quand deux
+    //    sociétés portent la même empreinte — ce que l'index autorise —, ce
+    //    `findFirst` sans ordre en verrait DEUX si elle ne mordait pas, et
+    //    choisirait au hasard. *Mesuré : 1 candidat sous la politique, 2 sans
+    //    elle* (`tests/isolation/bac-de-reception.test.ts`, le jumeau).
+    //
+    // Une comparaison de société écrite ici serait une seconde lecture d'un
+    // même critère (§9, 01/09) — et elle masquerait le point 1, qui est la
+    // garantie la plus forte des deux.
+    const existant = await avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.documentRecu.findFirstOrThrow({
+          where: { empreinte: saisie.empreinte },
+          select: CHAMPS_RECU,
+        }),
+      client,
     );
     return { recu: existant, doublon: true };
   }

@@ -641,3 +641,127 @@ l'argent, dans les deux sens.**
 
 `pnpm verify` → **EXIT=0**, 1590 tests unitaires + 775 d'isolation, le 12/09/2026 à
 `09:46:06 UTC`.
+
+## N-06 — Cinq comportements qui n'étaient gardés nulle part
+
+Chacun est formulé comme un **comportement**, et chacun a été mis en échec avant d'être
+déclaré bon.
+
+### 1. La consolidation — le seul chemin qui traverse le cloisonnement
+
+`avecConsolidation` ouvre la connexion `codiplan_reporting`, qui est **`BYPASSRLS`**.
+D21 lui pose trois garde-fous ; les privilèges étaient gardés, **la fonction ne l'était
+pas** — *la seule porte du dépôt qui contourne le cloisonnement, et personne ne l'avait
+jamais poussée.*
+
+`tests/isolation/consolidation-tracee.test.ts` garde : la trace précède la requête, **une
+requête qui échoue laisse quand même la trace** — *sinon il suffirait de faire échouer sa
+requête pour lire sans laisser d'ombre* —, une URL qui n'est pas celle du rôle est
+refusée, une variable absente est refusée et le refus la NOMME, et un cas qui **doit
+rester vert** pour que « ça rejette » ne soit pas la preuve que ça rejette toujours.
+
+**Et j'ai trouvé en chemin ce qui empêchait ce test d'exister** :
+
+```
+PrismaClientInitializationError: Can't reach database server at
+`ep-…-pooler.ap-southeast-2.aws.neon.tech:5432`
+```
+
+`avecConsolidation` écrit sa trace sur la connexion **applicative**, une variable de
+module qui lit `DATABASE_URL`. **Aucun scénario ne pouvait donc l'exercer sans écrire
+dans la base que `DATABASE_URL` désigne** — et dans cet environnement de session, cette
+variable porte l'URL **hébergée**. *Rien n'y a été écrit, et pour une seule raison : le
+réseau a refusé la connexion.* La fonction prend désormais son client de journal en
+paramètre, comme `avecContexteApplicatif` et `declarerAbsence`. **Il ne change rien en
+production, où l'argument est omis.**
+
+### 2. L'annuaire des personnes
+
+`nomsDesPersonnes` lit `utilisateur` **sans aucune clause de société**, et c'est le bon
+choix — *une comparaison écrite au-dessus serait une seconde lecture d'un même critère*.
+Mais cela veut dire que **rien dans ce fichier ne protège quoi que ce soit** : le jour où
+la branche « rattachement » serait élargie, il rendrait des noms d'une autre société
+**sans changer d'une ligne**.
+
+Son en-tête portait une mesure **faite à la main le 11/09**. Elle est **barrée** et
+remplacée par `tests/isolation/annuaire-des-personnes.test.ts` : sous le contexte d'une
+société, l'identité de l'autre est absente ; **zéro sous un compte portail** ; et un
+témoin préalable qui constate que les deux identités existent vraiment — *sans lui,
+« une seule revient » serait aussi bien la preuve que la seconde n'existe pas.*
+
+### 3. Le même PDF dans deux sociétés — et ce que la mesure a corrigé
+
+La consigne disait : *« `depot.ts` relit un doublon par `where: { empreinte }` SANS
+`societe_id` ; la RLS couvre, rien ne le constate. »* **La mesure a rendu une réponse
+plus forte que la question.**
+
+Premier jumeau écrit : *politique ouverte, B redépose et reçoit le reçu de A.* Il est
+resté **vert** — `expected false to be true`. Raison : **la relecture n'est atteinte
+qu'après une violation de `(societe_id, empreinte)`**, et une telle violation est par
+construction **intra-société**. Le chemin « B lit le fichier de A » n'existe pas : *il y a
+un verrou avant la politique, et c'est l'index.*
+
+Ce qui reste vrai est plus fin, et c'est ce que le jumeau mesure désormais : **quand A et
+B portent la même empreinte — ce que l'index autorise —, la relecture de A voit DEUX
+candidats si la politique ne mord pas**, et `findFirst` sans ordre choisirait au hasard.
+*Mesuré : 1 candidat sous la politique, 2 sans elle.*
+
+**Et la première tentative de desserrage n'a rien desserré** : l'`ALTER POLICY` joué en
+`psql` avant la suite a été effacé par le harnais, qui recrée le schéma à son démarrage.
+La suite est restée verte pour une raison qui n'avait rien à voir. *C'est le §9 du 07/09 :
+un résultat qui vous surprend en bien est un soupçon sur la mesure avant d'être un fait
+sur le monde.* Le desserrage se fait donc **depuis le scénario**, et un témoin constate le
+retour du verrou.
+
+### 4. Le taux d'occupation — la population était UN chemin en dur
+
+`tests/unit/interventions/occupation-affichee.test.ts` gardait bien quelque chose, et sa
+population était une ligne : `app/(back-office)/planning/statistiques.tsx`. **Un second
+écran affichant le taux serait né hors de sa portée**, et le gardien serait resté vert en
+ne regardant rien de lui.
+
+Elle se **déduit** désormais de l'usage — tout `.tsx` de `app/` ou `components/` qui
+appelle `tauxOccupation` **ou** affiche l'étiquette du taux. *Les deux critères, et non le
+premier seul : un écran qui recevrait le taux déjà calculé en propriété n'appellerait
+jamais la fonction, et c'est exactement celui qu'on veut attraper.*
+
+**Éprouvé sur un écran réellement créé puis retiré** :
+
+```
+FAIL … > TOUT composant qui montre un taux porte les DEUX termes et la formule
+AssertionError: app/(back-office)/essai-gardien/page.tsx doit afficher
+statistiques.heures_engagees
+```
+
+L'ancienne version serait restée verte sur ce même fichier.
+
+### 5. L'accord panneau / grille — celui que j'avais signalé
+
+La réparation du 11/09 filtrait **une fois** dans l'écran, et c'était juste. *Elle ne
+tenait rien* : la règle vivait dans une variable locale d'un composant de neuf cents
+lignes, et le prochain consommateur pouvait recevoir autre chose sans qu'aucun test ne
+rougisse.
+
+`lib/interventions/affichage.ts` porte désormais la règle — `lignesAffichees` et
+`fileDAttente`, exacts compléments l'un de l'autre. Les **trois** consommateurs
+(`construireJournee`, `construireGrille`, `occupationsDuPlanning`) reçoivent le même
+`affichees`, et `tests/unit/interventions/planning-un-seul-jeu.test.ts` tient les **deux
+moitiés** : la RÈGLE sur la fonction, l'USAGE sur l'écran. *La première sans la seconde
+laisserait un écran juste appeler une fonction juste avec le mauvais argument.*
+
+Éprouvé en redivisant réellement le filtrage dans l'écran, puis restauré :
+
+```
+FAIL … > chacun reçoit `affichees`, et rien d'autre
+AssertionError: construireGrille ne reçoit pas « affichees »: expected 'lignes' to be
+'affichees'
+```
+
+Le gardien porte aussi sa **limite annoncée** : un quatrième consommateur ajouté sans
+être inscrit passerait. Ce qu'il arrête est la **redivision des trois qui existent**, qui
+est la façon dont la faute est revenue la première fois.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1599 tests unitaires + 790 d'isolation, le 12/09/2026 à
+`10:02:10 UTC`.

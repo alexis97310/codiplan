@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { extname, join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -28,6 +28,57 @@ import { t } from "@/lib/i18n/fr";
  * alourdit »* —, qui est la façon dont cette règle se perdra si elle se perd.
  */
 
+/*
+ * ── LA POPULATION EST DÉDUITE, ELLE N'EST PLUS ÉCRITE ─────────────────────────
+ *
+ * Elle était un CHEMIN EN DUR — `app/(back-office)/planning/statistiques.tsx`.
+ * La règle était juste et son périmètre était une seule ligne : **un second
+ * écran affichant le taux serait né hors de sa portée**, et le gardien serait
+ * resté vert en ne regardant rien de lui. *C'est l'espèce du §9 du 31/08 prise
+ * par la sortie : la sélection décide de ce qu'on garde, et une sélection à la
+ * main oublie par construction ce que personne n'y a ajouté.*
+ *
+ * Elle se DÉDUIT désormais de l'usage : tout composant de `app/` ou de
+ * `components/` qui **appelle `tauxOccupation`** ou qui **affiche l'étiquette du
+ * taux** est dedans. Les deux critères, et non le premier seul : un écran qui
+ * recevrait le taux DÉJÀ CALCULÉ en propriété n'appellerait jamais la fonction,
+ * et c'est exactement l'écran qu'on veut attraper.
+ *
+ * **Sa limite est annoncée** : un composant qui recevrait le taux en propriété
+ * ET composerait son étiquette à l'exécution échappe aux deux critères, comme à
+ * tout motif statique (§9, 26/08, forme 6). Ce qu'il arrête est la
+ * simplification bien intentionnée, qui est la façon dont cette règle se perdra
+ * si elle se perd.
+ */
+
+/** Les deux marques d'un composant qui montre un taux d'occupation. */
+const MARQUES_DU_TAUX = ["tauxOccupation", '"statistiques.taux"'] as const;
+
+const RACINES = ["app", "components"] as const;
+
+function fichiersDeRendu(racine: string): string[] {
+  const chemin = join(process.cwd(), racine);
+  const trouves: string[] = [];
+  for (const entree of readdirSync(chemin, { withFileTypes: true })) {
+    const complet = join(chemin, entree.name);
+    if (entree.isDirectory()) {
+      trouves.push(...fichiersDeRendu(relative(process.cwd(), complet)));
+    } else if (extname(entree.name) === ".tsx") {
+      trouves.push(complet);
+    }
+  }
+  return trouves;
+}
+
+/** Les composants qui montrent un taux — DÉDUITS, jamais énumérés. */
+function composantsDuTaux(): string[] {
+  return RACINES.flatMap(fichiersDeRendu).filter((fichier) => {
+    const texte = readFileSync(fichier, "utf8");
+    return MARQUES_DU_TAUX.some((marque) => texte.includes(marque));
+  });
+}
+
+/** Le composant historique, gardé nommément comme TÉMOIN de la déduction. */
 const COMPOSANT = join(
   process.cwd(),
   "app/(back-office)/planning/statistiques.tsx",
@@ -54,14 +105,23 @@ const INSEPARABLES = [
 ] as const;
 
 describe("le taux d'occupation ne s'affiche jamais seul", () => {
-  it("le composant qui appelle `tauxOccupation` porte les DEUX termes et la formule", () => {
-    const texte = source();
-    // Témoin d'abord : le gardien regarde bien un composant qui affiche un
-    // taux. Un fichier qui n'en afficherait pas satisferait la règle sans rien
-    // prouver (§9, 30/08).
-    expect(texte).toContain("tauxOccupation");
-    for (const cle of INSEPARABLES) {
-      expect(texte, `le composant doit afficher ${cle}`).toContain(cle);
+  it("TÉMOIN — la déduction trouve au moins un composant, et elle trouve CELUI-LÀ", () => {
+    // *Zéro fichier observé ressemble exactement à un sans-faute* (§9, 30/08).
+    // Et le second témoin est celui qu'on oublie : une déduction qui trouverait
+    // trois fichiers dont aucun n'est le composant historique aurait changé de
+    // sujet sans le dire.
+    const trouves = composantsDuTaux();
+    expect(trouves.length).toBeGreaterThanOrEqual(1);
+    expect(trouves).toContain(COMPOSANT);
+  });
+
+  it("TOUT composant qui montre un taux porte les DEUX termes et la formule", () => {
+    for (const fichier of composantsDuTaux()) {
+      const texte = readFileSync(fichier, "utf8");
+      const court = relative(process.cwd(), fichier);
+      for (const cle of INSEPARABLES) {
+        expect(texte, `${court} doit afficher ${cle}`).toContain(cle);
+      }
     }
   });
 

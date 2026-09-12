@@ -1,7 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
 
+import { Role } from "@/lib/auth/roles";
+import { recevoir } from "@/lib/documents/depot";
+import { schemaDocumentRecu } from "@/lib/documents/saisie";
+
 import {
   avecPortail,
+  clientApp,
   sousSociete,
   clientOwner,
   fermerClients,
@@ -14,6 +19,9 @@ import {
   RECU_B,
   SITE_A1_S1,
   SOCIETE_A,
+  SOCIETE_B,
+  UTILISATEUR_INTERNE_A,
+  UTILISATEUR_INTERNE_B,
   VAR_CLIENT,
   VAR_SOCIETE,
 } from "./setup/fixtures";
@@ -288,5 +296,166 @@ describe("LES DEUX ÉTATS TERMINAUX portent chacun leur preuve", () => {
     expect(
       await muter(`"statut" = 'ecarte', "ecarte_motif" = '   '`),
     ).toContain("document_recu_ecarte_a_son_motif");
+  });
+});
+
+describe("LE MÊME PDF DANS DEUX SOCIÉTÉS — chacune garde le sien (N-06)", () => {
+  /*
+   * ── CE QUE CE BLOC CONSTATE, ET QUE RIEN NE CONSTATAIT ────────────────────
+   *
+   * `recevoir` relit le doublon par `where: { empreinte }` — **SANS
+   * `societe_id`**. C'est le bon choix : *une comparaison de société écrite
+   * au-dessus serait une seconde lecture d'un même critère* (§9, 01/09), et la
+   * politique « interne » de `document_recu` décide déjà. **Mais rien ne le
+   * constatait.**
+   *
+   * Le bloc voisin prouve que l'INDEX laisse passer le même fichier dans deux
+   * sociétés ; il le prouve en SQL. Celui-ci prouve la suite, qui est ce qui
+   * compte pour un utilisateur : *que la société B, en redéposant le PDF que A
+   * possède déjà, reçoive SON reçu à elle et non celui de A.* Le jour où la
+   * politique céderait, B recevrait l'identifiant d'un fichier d'une autre
+   * société — et le classerait sur SON parc.
+   *
+   * Il emprunte le chemin de PRODUCTION, `recevoir`, et non une requête écrite
+   * pour l'épreuve : *le harnais n'arme aucune garantie que la production
+   * n'arme pas* (L1-02b).
+   */
+  const EMPREINTE_PARTAGEE =
+    "c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00";
+
+  const sessionDe = (societeId: string, utilisateurId: string) => ({
+    utilisateurId,
+    societeId,
+    role: Role.adv,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  });
+
+  const fichier = {
+    empreinte: EMPREINTE_PARTAGEE,
+    nom_fichier: "notice-partagee.pdf",
+    type_mime: "application/pdf",
+    taille_octets: 4096,
+    objet_cle: "bac/notice-partagee.pdf",
+    apercu_objet_cle: null,
+  };
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "document_recu" WHERE "empreinte" = $1`,
+      EMPREINTE_PARTAGEE,
+    );
+  });
+
+  it("la société B reçoit SON reçu, jamais celui de la société A", async () => {
+    const chezA = await recevoir(
+      sessionDe(SOCIETE_A, UTILISATEUR_INTERNE_A),
+      schemaDocumentRecu.parse(fichier),
+      clientApp(),
+    );
+    expect(chezA.doublon).toBe(false);
+
+    const chezB = await recevoir(
+      sessionDe(SOCIETE_B, UTILISATEUR_INTERNE_B),
+      schemaDocumentRecu.parse(fichier),
+      clientApp(),
+    );
+
+    // NI UN DOUBLON, NI LE MÊME IDENTIFIANT. Les deux assertions disent des
+    // choses différentes : la première que l'index n'a pas mordu entre les
+    // sociétés, la seconde que la RELECTURE n'est pas allée chercher chez le
+    // voisin. *C'est la seconde qui n'était gardée nulle part.*
+    expect(chezB.doublon).toBe(false);
+    expect(chezB.recu.id).not.toBe(chezA.recu.id);
+  });
+
+  it("JUMEAU — la politique ouverte, la relecture a DEUX candidats au lieu d'un", async () => {
+    /*
+     * ── CE QUE CE JUMEAU A DÛ DEVENIR, ET LA MESURE QUI L'A IMPOSÉ ──────────
+     *
+     * Écrit d'abord ainsi : *politique ouverte, B redépose et reçoit le reçu de
+     * A.* **Il est resté vert, et pour une raison qui vaut mieux que le test**
+     * — `expected false to be true` : B n'a JAMAIS reçu de doublon, parce que
+     * la relecture n'a pas eu lieu du tout.
+     *
+     * **La relecture n'est atteinte qu'après une violation de
+     * `(societe_id, empreinte)`**, et une telle violation est par construction
+     * INTRA-société. Le chemin « B lit le fichier de A » n'existe donc pas :
+     * il y a un premier verrou avant la politique, et c'est l'index.
+     *
+     * Ce qui reste vrai, et qui est le vrai sujet : **quand A ET B portent la
+     * même empreinte — ce que l'index autorise —, la relecture de A voit une
+     * population de DEUX lignes si la politique ne mord pas.** `findFirst` sans
+     * ordre choisirait alors au hasard entre le reçu de A et celui de B. C'est
+     * cela qu'on mesure : *la relecture n'est sûre que parce que la politique
+     * réduit les candidats à un.*
+     *
+     * Le desserrage est COMMIS — `recevoir` ouvre sa propre connexion et ne
+     * verrait pas un `ALTER` non validé — et rendu dans un `finally`.
+     */
+    const CLAUSE =
+      `("societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid ` +
+      `AND NULLIF(current_setting('app.client_id', true), '') IS NULL)`;
+    let candidatsOuverts = -1;
+    let candidatsFermes = -1;
+    try {
+      candidatsFermes = await sousSociete(
+        SOCIETE_A,
+        async (tx) =>
+          (
+            await tx.documentRecu.findMany({
+              where: { empreinte: EMPREINTE_PARTAGEE },
+              select: { id: true },
+            })
+          ).length,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `ALTER POLICY "cloisonnement_interne" ON "document_recu" USING (true) WITH CHECK (true)`,
+      );
+      candidatsOuverts = await sousSociete(
+        SOCIETE_A,
+        async (tx) =>
+          (
+            await tx.documentRecu.findMany({
+              where: { empreinte: EMPREINTE_PARTAGEE },
+              select: { id: true },
+            })
+          ).length,
+      );
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `ALTER POLICY "cloisonnement_interne" ON "document_recu" USING ${CLAUSE} WITH CHECK ${CLAUSE}`,
+      );
+    }
+    // LES DEUX MOITIÉS, et c'est leur ÉCART qui démontre : un seul candidat
+    // sous la politique, deux sans elle. Mesurer la seconde seule ne dirait pas
+    // que c'est la politique qui fait la différence.
+    expect(candidatsFermes).toBe(1);
+    expect(candidatsOuverts).toBe(2);
+  });
+
+  it("TÉMOIN — la politique est bien revenue après le jumeau", async () => {
+    const lignes = await observerSousProprietaire(
+      "relire la clause de « document_recu » : un jumeau qui ne rendrait pas " +
+        "le verrou laisserait tous les scénarios suivants verts sur une base " +
+        "ouverte.",
+    ).$queryRawUnsafe<Array<{ qual: string }>>(
+      `SELECT qual FROM pg_policies WHERE tablename = 'document_recu'`,
+    );
+    expect(lignes[0]?.qual ?? "").toContain("app.societe_id");
+    expect(lignes[0]?.qual ?? "").toContain("app.client_id");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — chez A, le redépôt EST un doublon", async () => {
+    // Sans cette moitié, « ce n'est pas un doublon » serait aussi bien la
+    // preuve que la déduplication ne fonctionne plus du tout (§9, 11/09).
+    const encore = await recevoir(
+      sessionDe(SOCIETE_A, UTILISATEUR_INTERNE_A),
+      schemaDocumentRecu.parse(fichier),
+      clientApp(),
+    );
+    expect(encore.doublon).toBe(true);
+    expect(encore.recu.empreinte).toBe(EMPREINTE_PARTAGEE);
   });
 });
