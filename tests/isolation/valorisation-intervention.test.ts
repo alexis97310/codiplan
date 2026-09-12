@@ -10,6 +10,7 @@ import {
   MACHINE_A1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
+  UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
 /**
@@ -48,6 +49,27 @@ const FORFAIT_MINEUR = BigInt(3500);
 const TEMPS_REEL_MIN = 120;
 
 const jetables: string[] = [];
+const techniciensPoses: string[] = [];
+
+/**
+ * UN CRÉNEAU ENTIÈREMENT DANS L'OUVERTURE, et la date n'est pas quelconque.
+ *
+ * `CALENDRIER_A` n'ouvre que le **lundi de 8 h à 12 h** (fixture du harnais).
+ * Le 14 septembre 2026 est un lundi ; 9 h – 11 h à Nouméa (UTC+11) y tombe
+ * entièrement. *La majoration vaut donc ZÉRO — un zéro VÉRITABLE —, et les
+ * totaux de ce fichier restent exactement ceux qu'ils mesuraient avant L2-09b.*
+ *
+ * **C'est pour cela que le décor est enrichi plutôt que les assertions
+ * assouplies** : la majoration est un argument obligatoire depuis L2-09b, et
+ * une intervention sans technicien ni créneau ne peut plus être valorisée
+ * entièrement. Le décor devient COMPLET ; aucune assertion ne perd de force, et
+ * une s'ajoute — le supplément est nul, et il est constaté.
+ */
+const CRENEAU_DEBUT = "2026-09-14T09:00:00+11:00";
+const CRENEAU_FIN = "2026-09-14T11:00:00+11:00";
+
+/** Le technicien affecté, rattaché à l'agence dont on lit le calendrier (D13). */
+const TECHNICIEN = UTILISATEUR_PAR_ROLE.technicien;
 
 /**
  * Un taux en vigueur, sans lequel la clôture refuse (et c'est une autre règle).
@@ -97,12 +119,16 @@ async function interventionAClore(
 ): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
+  await poserLeTechnicien();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","mode_valorisation","forfait_deplacement_id","modifie_le")
+       "type","statut","mode_valorisation","forfait_deplacement_id",
+       "technicien_id","creneau_debut","creneau_fin","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
             'curatif', 'en_cours', '${mode}'::"ModeValorisation",
-            ${forfaitId === null ? "NULL" : `'${forfaitId}'`}, now()
+            ${forfaitId === null ? "NULL" : `'${forfaitId}'`},
+            '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
+            '${CRENEAU_FIN}'::timestamptz, now()
        FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
   );
   // RG-INT-01 : une curative ne démarre pas sans machine (L2-08a). Le décor
@@ -114,7 +140,32 @@ async function interventionAClore(
   return id;
 }
 
+/**
+ * LE RATTACHEMENT DU TECHNICIEN À SON AGENCE (L3-01a).
+ *
+ * *Sans lui, la majoration rend « technicien absent » et le total devient
+ * inconnu* — ce qui est le bon comportement, et pas le décor de ces
+ * scénarios-ci : ils mesurent le forfait et le mode, pas l'absence de
+ * rattachement.
+ */
+async function poserLeTechnicien(): Promise<void> {
+  const id = uuidv7();
+  const pose = await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "technicien" ("id","societe_id","utilisateur_id","agence_id","modifie_le")
+     VALUES ('${id}', '${SOCIETE_A}', '${TECHNICIEN}', '${AGENCE_A}', now())
+     ON CONFLICT DO NOTHING`,
+  );
+  if (pose > 0) {
+    techniciensPoses.push(id);
+  }
+}
+
 afterEach(async () => {
+  for (const id of techniciensPoses.splice(0)) {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "technicien" WHERE "id" = '${id}'`,
+    );
+  }
   for (const id of jetables.splice(0)) {
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = '${id}'`,
@@ -149,6 +200,11 @@ describe("le forfait de déplacement entre dans le total (RG-INT-07, D77)", () =
     expect(resultat.fiche.mainDoeuvre?.valeur).toBe(mainDoeuvre);
     expect(resultat.fiche.forfaitDeplacement?.valeur).toBe(FORFAIT_MINEUR);
     expect(resultat.fiche.totalHT?.valeur).toBe(mainDoeuvre + FORFAIT_MINEUR);
+    // LE TÉMOIN DU DÉCOR : le créneau tombe entièrement dans l'ouverture, donc
+    // la majoration vaut ZÉRO et le total ci-dessus est complet. *Sans cette
+    // assertion, un décor devenu hors ouverture ferait échouer le total sans
+    // qu'on sache si c'est le forfait ou le supplément qui a bougé.*
+    expect(resultat.fiche.majoration?.valeur).toBe(BigInt(0));
 
     // ET LA BASE PORTE LE MÊME MONTANT. *Un résultat rendu à l'appelant n'est
     // pas un montant figé : c'est la colonne qui sera relue demain.*

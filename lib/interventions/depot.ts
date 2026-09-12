@@ -1,8 +1,12 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
-import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import {
+  chargerCalendrierAgence,
+  fuseauDeLAgence,
+} from "@/lib/calendar/agence";
+import {
+  MINUTES_PAR_JOUR,
   instantAMinutes,
   jourDe,
   maintenant,
@@ -19,6 +23,10 @@ import {
 } from "@/lib/habilitations/affectation";
 import { montant, type Montant } from "@/lib/money";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
+import {
+  majorationHorsOuverture,
+  type VerdictMajoration,
+} from "@/lib/tarification/majoration";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 import {
   valoriserIntervention,
@@ -774,6 +782,96 @@ async function montantDuForfait(
 }
 
 /**
+ * LE VERDICT DE MAJORATION D'UNE INTERVENTION (L2-09b, D12, D13, D108).
+ *
+ * ## Le calendrier lu est celui de l'agence du TECHNICIEN, et c'est mesurable
+ *
+ * I7 range les usages, et ils ne se ressemblent pas : *SLA → agence de
+ * l'INTERVENTION ; **majoration → agence du TECHNICIEN** ; conflit à la pose →
+ * calendrier de TRAVAIL du technicien.* Les deux premiers diffèrent dès qu'un
+ * technicien de Koné intervient sur un site rattaché à Ducos — **et la ligne
+ * porte déjà `agence_id`, celle de l'intervention**, à portée de main. C'est
+ * exactement la faute qu'on commettrait sans y penser.
+ *
+ * Elle ne peut donc plus se commettre en silence : le calendrier voyage **avec
+ * l'agence dont il provient**, et `majorationHorsOuverture` LÈVE sur une
+ * discordance. *L'appelant désigne, le module dispose* (D70).
+ *
+ * **Et ce n'est pas le calendrier de TRAVAIL du technicien** — celui que
+ * `chargerCalendrierDuTechnicien` compose avec ses plages propres (D72). Un
+ * technicien qui travaille le samedi par exception ne fait pas du samedi une
+ * journée d'ouverture de son agence : *ce que la majoration paie est
+ * l'indisponibilité de l'ÉTABLISSEMENT, pas la disponibilité de la personne.*
+ *
+ * ## La fenêtre de lecture déborde le créneau d'un jour de chaque côté
+ *
+ * Les jours particuliers sont lus sur une fenêtre (D46), et un créneau de 23 h
+ * sous UTC+11 tombe sur le jour UTC précédent. *Une fenêtre calée exactement
+ * sur le créneau raterait le férié du jour local qu'il occupe*, et le décompte
+ * hors ouverture serait faux sans rien dire.
+ */
+async function majorationDeLIntervention(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  ligne: {
+    readonly technicien_id: string | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+  },
+  mainDoeuvre: Montant | null,
+): Promise<VerdictMajoration> {
+  // CE DÉPÔT NE PRONONCE AUCUN MOTIF : il rapporte ce qu'il a observé, et
+  // `majorationHorsOuverture` décide. *Deux lectures d'un même critère
+  // divergent en silence* (§9, 01/09), et l'ordre des motifs est un critère.
+  const technicien =
+    ligne.technicien_id === null
+      ? null
+      : // Le filtre société est explicite en plus de la politique RLS (§5.6) :
+        // une requête qui ne le porterait que dans la base serait juste
+        // aujourd'hui et fausse le jour où elle s'exécuterait sous un rôle
+        // exempté.
+        await tx.technicien.findFirst({
+          where: { societe_id: societeId, utilisateur_id: ligne.technicien_id },
+          select: { agence_id: true },
+        });
+
+  const creneau =
+    ligne.creneau_debut === null || ligne.creneau_fin === null
+      ? null
+      : { debut: ligne.creneau_debut, fin: ligne.creneau_fin };
+
+  // Le calendrier n'est chargé que s'il y a de quoi le lire : sans technicien
+  // rattaché ou sans créneau, la requête n'apprendrait rien.
+  const calendrier =
+    technicien === null || creneau === null
+      ? null
+      : await chargerCalendrierAgence(tx, {
+          societeId,
+          agenceId: technicien.agence_id,
+          fenetre: {
+            du: versLocal(
+              new Date(creneau.debut.getTime() - MINUTES_PAR_JOUR * 60_000),
+              "UTC",
+            ),
+            au: versLocal(
+              new Date(creneau.fin.getTime() + MINUTES_PAR_JOUR * 60_000),
+              "UTC",
+            ),
+          },
+        });
+
+  return majorationHorsOuverture({
+    creneau,
+    mainDoeuvre,
+    calendrierDeLAgence:
+      technicien === null || calendrier === null
+        ? null
+        : { agenceId: technicien.agence_id, calendrier },
+    agenceDuTechnicien: technicien?.agence_id ?? null,
+  });
+}
+
+/**
  * Ce que la clôture calcule et rend à l'écran, décomposé.
  *
  * **`totalHT` est NULLABLE depuis L2-09a, et c'est le ticket** : une
@@ -793,6 +891,14 @@ export type ResultatCloture = {
   readonly forfaitDeplacement: Montant | null;
   /** La main-d'œuvre, quand le mode en facture. */
   readonly mainDoeuvre: Montant | null;
+  /**
+   * La MAJORATION hors ouverture (L2-09b, D12, D108), ou `null`.
+   *
+   * *Un total doit s'expliquer par ce qui le compose* : un client qui ne peut
+   * pas recalculer un montant ne peut pas le contester, et c'est pire que de
+   * le contester.
+   */
+  readonly majoration: Montant | null;
   /** `null` quand le total ne se calcule pas — jamais zéro. */
   readonly totalHT: Montant | null;
   /** Clé de dictionnaire expliquant un total inconnu, ou `null`. */
@@ -827,6 +933,13 @@ export async function cloturerIntervention(
           date_planifiee: true,
           mode_valorisation: true,
           forfait_deplacement_id: true,
+          // LES TROIS COLONNES DE LA MAJORATION (L2-09b) : le créneau porte le
+          // prorata (D108), le technicien porte l'agence dont on lit le
+          // calendrier (D13). *`agence_id` est celle de l'INTERVENTION, et ce
+          // n'est pas elle qui décide* — I7 les distingue par usage.
+          technicien_id: true,
+          creneau_debut: true,
+          creneau_fin: true,
         },
       });
       if (ligne === null) {
@@ -858,10 +971,22 @@ export async function cloturerIntervention(
         ligne.forfait_deplacement_id,
       );
 
+      // LA MAJORATION ENTRE DANS LE TOTAL (L2-09b, D12, D108). *Elle n'y
+      // entrait pas : son taux et son assiette étaient écrits, la BASE de son
+      // prorata ne l'était pas — et une facture amputée d'un supplément dû est
+      // fausse.* Le prorata se lit sur le CRÉNEAU, jamais sur `temps_reel_min`.
+      const majoration = await majorationDeLIntervention(
+        tx,
+        contexte.societeId ?? "",
+        ligne,
+        valorisation.mainDoeuvre,
+      );
+
       const composition = valoriserIntervention({
         mode: ligne.mode_valorisation as ModeDeValorisation,
         forfaitDeplacement,
         mainDoeuvre: valorisation.mainDoeuvre,
+        majoration,
       });
 
       const misAJour = await tx.intervention.update({
@@ -890,6 +1015,7 @@ export async function cloturerIntervention(
           tauxHoraire: taux.taux,
           forfaitDeplacement: composition.forfaitDeplacement,
           mainDoeuvre: composition.mainDoeuvre,
+          majoration: composition.majoration,
           totalHT: composition.totalHT,
           motifTotalInconnu: composition.motifTotalInconnu,
         },
@@ -1112,6 +1238,14 @@ export async function lireFicheIntervention(
             brute.forfait_deplacement_id,
           ),
           mainDoeuvre: v.mainDoeuvre,
+          // LA MÊME MAJORATION QUE LA CLÔTURE, par le même chemin : l'écran ne
+          // recalcule pas un supplément avec sa propre règle.
+          majoration: await majorationDeLIntervention(
+            tx,
+            contexte.societeId ?? "",
+            brute,
+            v.mainDoeuvre,
+          ),
         });
         valorisation = {
           minutesReelles: v.minutesReelles,
@@ -1121,6 +1255,7 @@ export async function lireFicheIntervention(
           tauxHoraire: v.tauxHoraire,
           mainDoeuvre: composition.mainDoeuvre,
           forfaitDeplacement: composition.forfaitDeplacement,
+          majoration: composition.majoration,
           totalHT: composition.totalHT,
           motifTotalInconnu: composition.motifTotalInconnu,
         };
@@ -1156,6 +1291,8 @@ export type ValorisationAffichee = {
   readonly tauxHoraire: Montant;
   readonly mainDoeuvre: Montant | null;
   readonly forfaitDeplacement: Montant | null;
+  /** La MAJORATION hors ouverture (L2-09b), ou `null` — voir `ResultatCloture`. */
+  readonly majoration: Montant | null;
   readonly totalHT: Montant | null;
   readonly motifTotalInconnu: string | null;
 };

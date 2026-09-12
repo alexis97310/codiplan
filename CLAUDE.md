@@ -807,10 +807,33 @@ lib/
               jamais zéro : une intervention au forfait se clôturait à ZÉRO, et
               zéro se lit « gratuit » là où il faut lire « je ne sais pas
               encore » — rien ne sélectionne de forfait de PRESTATION
-              la MAJORATION n'y est pas : son taux et son assiette sont écrits
-              (D12), la BASE de son prorata ne l'est pas — la main-d'œuvre se
-              calcule sur le temps réel arrondi, les minutes hors ouverture se
-              lisent sur le créneau, et les deux ne coïncident pas (issue #133)
+              ~~la MAJORATION n'y est pas : son taux et son assiette sont
+              écrits (D12), la BASE de son prorata ne l'est pas~~ — **D108 L'A
+              TRANCHÉE** (12/09) : le prorata se lit sur le CRÉNEAU, et la
+              majoration entre dans le total depuis L2-09b. La phrase est barrée
+              et non effacée : elle a gouverné ce module
+              majoration.ts : LA CONTRAINTE D'UN CRÉNEAU, PAS LES MINUTES
+              TRAVAILLÉES (L2-09b, D12, D13, D108) — *le client a fait bloquer
+              la soirée d'un technicien ; qu'il finisse tôt ne rend pas la
+              soirée disponible*
+              les deux bornes du créneau sont OBLIGATOIRES : un créneau absent
+              traité comme « entièrement ouvert » rendrait ZÉRO là où il faut
+              lire « je ne sais pas », et personne ne le verrait
+              le calendrier arrive AVEC l'agence dont il provient, et une
+              discordance LÈVE (D13) — `agence_id` de l'intervention est à
+              portée de main, et ce n'est PAS elle qui décide (I7)
+              ce n'est pas le calendrier de TRAVAIL du technicien : ce que la
+              majoration paie est l'indisponibilité de l'ÉTABLISSEMENT, pas la
+              disponibilité de la personne
+              DEUX arrondis, et le second se fait sur le PREMIER : un client qui
+              lit l'assiette doit pouvoir en prendre la moitié et retrouver le
+              supplément — une arithmétique fausse à l'œil ouvre un litige
+              qu'on ne saurait pas expliquer
+              les QUATRE motifs sont prononcés ICI et nulle part ailleurs : le
+              dépôt rapporte ce qu'il a observé, ce module décide
+              la majoration est un ARGUMENT OBLIGATOIRE de
+              `valoriserIntervention` — un appelant qui l'oublie ne compile pas
+              (la leçon de D70), et un paramètre facultatif aurait valu zéro
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis

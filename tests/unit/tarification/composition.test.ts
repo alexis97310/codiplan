@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { montant } from "@/lib/money";
+import { montant, zero } from "@/lib/money";
+import type { VerdictMajoration } from "@/lib/tarification/majoration";
 import {
   valoriserIntervention,
   type ModeDeValorisation,
@@ -23,6 +24,25 @@ import {
  */
 
 const XPF = "XPF";
+
+/**
+ * AUCUNE MAJORATION, et c'est un verdict CONNU valant zéro — pas une absence.
+ *
+ * **Il est nommé plutôt qu'inline**, et c'est la leçon de L2-09b : la majoration
+ * est un ARGUMENT OBLIGATOIRE de `valoriserIntervention`, si bien qu'un appelant
+ * qui l'oublie ne compile pas. Ces scénarios, écrits avant elle, l'ont tous
+ * réclamée — *c'est la preuve que l'exigence porte sur un FAIT et non sur un
+ * geste* (§9, 09/09).
+ */
+const SANS_MAJORATION: VerdictMajoration = {
+  connue: true,
+  majoration: {
+    minutesHorsOuverture: 0,
+    minutesDuCreneau: 120,
+    assiette: zero(XPF),
+    supplement: zero(XPF),
+  },
+};
 const TOUS_LES_MODES: readonly ModeDeValorisation[] = [
   "forfait",
   "temps_passe",
@@ -35,6 +55,7 @@ describe("le forfait de déplacement s'ajoute TOUJOURS (RG-INT-07, D77)", () => 
       mode: "temps_passe",
       forfaitDeplacement: montant(BigInt(3500), XPF),
       mainDoeuvre: montant(BigInt(12000), XPF),
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.totalHT).toEqual(montant(BigInt(15500), XPF));
     expect(resultat.motifTotalInconnu).toBeNull();
@@ -48,6 +69,7 @@ describe("le forfait de déplacement s'ajoute TOUJOURS (RG-INT-07, D77)", () => 
       mode: "temps_passe",
       forfaitDeplacement: null,
       mainDoeuvre: montant(BigInt(12000), XPF),
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.totalHT).toEqual(montant(BigInt(12000), XPF));
     expect(resultat.motifTotalInconnu).toBeNull();
@@ -60,11 +82,13 @@ describe("le forfait de déplacement s'ajoute TOUJOURS (RG-INT-07, D77)", () => 
       mode: "temps_passe",
       forfaitDeplacement: montant(BigInt(3500), XPF),
       mainDoeuvre: montant(BigInt(12000), XPF),
+      majoration: SANS_MAJORATION,
     });
     const sans = valoriserIntervention({
       mode: "temps_passe",
       forfaitDeplacement: null,
       mainDoeuvre: montant(BigInt(12000), XPF),
+      majoration: SANS_MAJORATION,
     });
     expect(avec.totalHT).not.toEqual(sans.totalHT);
   });
@@ -78,6 +102,7 @@ describe("un total qu'on ne sait pas calculer est `null`, JAMAIS zéro", () => {
         mode,
         forfaitDeplacement: montant(BigInt(3500), XPF),
         mainDoeuvre: montant(BigInt(12000), XPF),
+        majoration: SANS_MAJORATION,
       });
       expect(resultat.totalHT).toBeNull();
       expect(resultat.motifTotalInconnu).toBe(
@@ -93,6 +118,7 @@ describe("un total qu'on ne sait pas calculer est `null`, JAMAIS zéro", () => {
       mode: "forfait",
       forfaitDeplacement: montant(BigInt(3500), XPF),
       mainDoeuvre: null,
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.totalHT).toBeNull();
     expect(resultat.totalHT).not.toEqual(montant(BigInt(0), XPF));
@@ -104,6 +130,7 @@ describe("un total qu'on ne sait pas calculer est `null`, JAMAIS zéro", () => {
       mode: "forfait",
       forfaitDeplacement: montant(BigInt(3500), XPF),
       mainDoeuvre: null,
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.forfaitDeplacement).toEqual(montant(BigInt(3500), XPF));
   });
@@ -115,6 +142,7 @@ describe("un total qu'on ne sait pas calculer est `null`, JAMAIS zéro", () => {
       mode: "temps_passe",
       forfaitDeplacement: montant(BigInt(3500), XPF),
       mainDoeuvre: null,
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.totalHT).toBeNull();
     expect(resultat.motifTotalInconnu).toBe(
@@ -137,6 +165,7 @@ describe("le mode décide de ce qui est facturé (RG-TAR-05)", () => {
       mode: "forfait",
       forfaitDeplacement: null,
       mainDoeuvre: montant(BigInt(99000), XPF),
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.mainDoeuvre).toBeNull();
   });
@@ -147,6 +176,7 @@ describe("le mode décide de ce qui est facturé (RG-TAR-05)", () => {
         mode,
         forfaitDeplacement: null,
         mainDoeuvre: montant(BigInt(12000), XPF),
+        majoration: SANS_MAJORATION,
       });
       expect(resultat.mainDoeuvre, mode).toEqual(montant(BigInt(12000), XPF));
     }
@@ -162,6 +192,7 @@ describe("I2 — jamais de conversion ligne à ligne", () => {
       mode: "temps_passe",
       forfaitDeplacement: montant(BigInt(30), "EUR"),
       mainDoeuvre: montant(BigInt(12000), XPF),
+      majoration: SANS_MAJORATION,
     });
     expect(resultat.totalHT).toBeNull();
     expect(resultat.motifTotalInconnu).toBe(
