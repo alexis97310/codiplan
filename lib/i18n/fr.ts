@@ -439,8 +439,27 @@ export const fr = {
   // d'après son premier appelant devient fausse au second*, et la pente
   // suivante est d'en écrire une deuxième qui dit la même chose.
   "ponctuation.separateur": " — ",
+  // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
+  //
+  // La formule nommait DEUX termes quand le numérateur en porte désormais deux
+  // lui-même. *Une formule qui n'énumère pas ce qu'elle additionne est une
+  // formule fausse*, et c'est le pire endroit pour l'être : elle est là pour
+  // rendre le pourcentage vérifiable.
   "statistiques.formule":
-    "heures engagées ÷ heures ouvrables du calendrier de l'établissement",
+    "(heures engagées + trajet) ÷ heures ouvrables du calendrier de l'établissement",
+  "statistiques.heures_trajet": "de trajet",
+  // « Aucun trajet » et « je ne sais pas » ne se corrigent pas au même endroit :
+  // le premier est une journée sans déplacement, le second une zone sans
+  // estimation (`iles`, D107) ou un lieu sans zone. Le second se DIT.
+  "statistiques.journees_sans_trajet":
+    "journées dont le trajet est inconnu — elles comptent pour zéro minute de trajet",
+  "statistiques.journees_sans_trajet_une":
+    "journée dont le trajet est inconnu — elle compte pour zéro minute de trajet",
+  // L'ÉCRAN L'ÉCRIT, il ne l'approxime pas (D107). La colonne ne porte que des
+  // durées depuis l'établissement, et soustraire deux distances à un point
+  // commun n'est pas une distance.
+  "statistiques.trajet_lecture":
+    "Le trajet compté est l'aller vers le premier lieu de la journée et le retour depuis le dernier. Le temps d'un lieu à un autre n'est pas connu, et il n'est pas compté.",
   "statistiques.sans_calendrier":
     "Pas de taux : cet établissement n'a pas de calendrier, et les heures ouvrables sont donc inconnues. Ce n'est pas zéro pour cent.",
   "statistiques.sans_duree":

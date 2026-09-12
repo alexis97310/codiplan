@@ -44,6 +44,11 @@ function source(): string {
  */
 const INSEPARABLES = [
   "statistiques.heures_engagees",
+  // LE TRAJET, depuis L3-05a : il est entré dans le NUMÉRATEUR, donc il entre
+  // dans ce que l'écran doit montrer. *Un terme qui compte et qu'on n'affiche
+  // pas rend le taux invérifiable*, et c'est précisément ce que cette liste
+  // empêche depuis le 10/09.
+  "statistiques.heures_trajet",
   "statistiques.heures_ouvrables",
   "statistiques.formule",
 ] as const;
@@ -92,9 +97,14 @@ describe("le taux d'occupation ne s'affiche jamais seul", () => {
     expect(source()).toContain("statistiques.sans_calendrier");
   });
 
-  it("la formule NOMME ses deux termes — elle ne dit pas « voir plus haut »", () => {
+  it("la formule NOMME ses trois termes — elle ne dit pas « voir plus haut »", () => {
     const formule = t("statistiques.formule");
     expect(formule).toContain("engagées");
+    // LE TROISIÈME TERME (L3-05a) : le numérateur en porte deux depuis que le
+    // trajet entre dans la charge. *Une formule qui n'énumère pas ce qu'elle
+    // additionne est une formule fausse* — et c'est le pire endroit pour
+    // l'être, puisqu'elle est là pour rendre le pourcentage vérifiable.
+    expect(formule).toContain("trajet");
     expect(formule).toContain("ouvrables");
     // …et le cas voisin qui doit rester vert POUR SA PROPRE RAISON : le libellé
     // du taux, lui, n'a pas à porter la formule — c'est une étiquette.
@@ -114,6 +124,26 @@ describe("le taux d'occupation ne s'affiche jamais seul", () => {
   it("« 0 % » ne s'affiche pas sur du temps engagé : la borne est dite", () => {
     expect(t("statistiques.taux_infime")).toContain("moins de 1");
     expect(source()).toContain("tauxArrondiAZeroMaisNonNul");
+  });
+
+  it("le TEMPS ENTRE DEUX LIEUX est dit non compté, et l'écran le porte", () => {
+    // D107 l'exige : *le trajet inter-sites n'est pas compté, et l'application
+    // doit le DIRE — pas l'approximer.* La phrase est un contenu, pas une
+    // présence de clé : c'est le contenu qui trompe si elle se dilue.
+    const phrase = t("statistiques.trajet_lecture");
+    expect(phrase).toContain("premier");
+    expect(phrase).toContain("dernier");
+    expect(phrase.toLowerCase()).toContain("n'est pas compté");
+    expect(source()).toContain("statistiques.trajet_lecture");
+  });
+
+  it("les journées SANS TRAJET CONNU sont dites, pas dissoutes", () => {
+    // Même famille que les interventions sans durée : une journée vers les
+    // Îles compte zéro minute de trajet, et sans la mention le taux
+    // paraîtrait juste (§9, 06/09).
+    expect(source()).toContain("statistiques.journees_sans_trajet");
+    expect(source()).toContain("statistiques.journees_sans_trajet_une");
+    expect(t("statistiques.journees_sans_trajet")).toContain("inconnu");
   });
 
   it("les interventions SANS DURÉE sont dites, pas dissoutes", () => {

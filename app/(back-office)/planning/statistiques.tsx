@@ -25,6 +25,24 @@ import type { StatutIntervention } from "@prisma/client";
  * apparaisse sans `heures_engagees`, `heures_ouvrables` et `formule` :
  * `tests/unit/interventions/occupation-affichee.test.ts`.
  *
+ * ## LE TRAJET EST AFFICHÉ À PART, ET L'ÉCRAN DIT CE QU'IL NE COMPTE PAS
+ *
+ * Depuis L3-05a, la charge inclut le trajet (RG-PLA-05, lecture C de D107) :
+ * l'aller vers le premier lieu de la journée, le retour depuis le dernier. **Le
+ * temps d'un lieu à un autre n'est pas connu, et l'écran l'ÉCRIT** plutôt que de
+ * l'approcher — *soustraire deux distances à un point commun n'est pas une
+ * distance*, et c'est la discipline du `NOT VALID` de D104.
+ *
+ * Les deux termes du numérateur sont montrés SÉPARÉMENT, et la formule les
+ * additionne : *un taux dont on ne peut plus retrouver les termes n'est plus
+ * vérifiable.* Et les journées dont le trajet est inconnu sont DITES — une
+ * journée vers les Îles compte zéro minute de trajet, et sans la mention le taux
+ * paraîtrait juste.
+ *
+ * **La barre, elle, reste celle des interventions** : elle est segmentée par
+ * statut, et un trajet n'a pas de statut. L'y verser ferait une barre dont les
+ * segments ne somment plus à leur propre largeur.
+ *
  * **La barre représente les heures ENGAGÉES**, jamais les heures ouvrables :
  * ses segments somment à sa propre largeur. Le taux, lui, se lit à côté. Une
  * barre qui mélangerait les deux échelles serait illisible et fausse.
@@ -54,6 +72,9 @@ export function Statistiques({
           {t("statistiques.sous_titre")}
         </p>
       </div>
+      <p className="text-muted-foreground text-xs">
+        {t("statistiques.trajet_lecture")}
+      </p>
       <ul className="flex flex-col gap-4">
         {lignes.map((ligne) => (
           <li
@@ -116,6 +137,33 @@ function heuresEngagees(occupation: OccupationTechnicien): string {
 
 function heuresOuvrables(occupation: OccupationTechnicien): string {
   return `${enHeure(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`;
+}
+
+/**
+ * LE TRAJET, à côté des heures engagées et jamais fondu dedans (L3-05a, D107).
+ *
+ * *Un taux dont on ne peut plus retrouver les termes n'est plus vérifiable* : la
+ * formule additionne les deux, l'écran les montre séparément, et le lecteur peut
+ * refaire le calcul.
+ */
+function heuresDeTrajet(occupation: OccupationTechnicien): string {
+  return `${enHeure(occupation.trajet.minutes)} ${t("statistiques.heures_trajet")}`;
+}
+
+/**
+ * Les journées dont le trajet est INCONNU — dites, jamais dissoutes.
+ *
+ * Même famille que `sansDuree` : sans cette mention, une journée vers un lieu
+ * sans zone ou vers les Îles compterait zéro minute de trajet et le taux
+ * paraîtrait juste (§9, 06/09 — un chiffre juste qui fait conclure faux).
+ */
+function combienDeJourneesSansTrajet(occupation: OccupationTechnicien): string {
+  const nombre = occupation.trajet.journeesSansTrajet;
+  const mot =
+    nombre === 1
+      ? t("statistiques.journees_sans_trajet_une")
+      : t("statistiques.journees_sans_trajet");
+  return `${nombre} ${mot}`;
 }
 
 /**
@@ -195,6 +243,7 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
   return (
     <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
       <span>{heuresEngagees(occupation)}</span>
+      <span>{heuresDeTrajet(occupation)}</span>
       <span>{heuresOuvrables(occupation)}</span>
       {taux === null ? (
         <span>{t("statistiques.sans_calendrier")}</span>
@@ -205,6 +254,9 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
       )}
       {occupation.sansDuree > 0 ? (
         <span>{combienSansDuree(occupation)}</span>
+      ) : null}
+      {occupation.trajet.journeesSansTrajet > 0 ? (
+        <span>{combienDeJourneesSansTrajet(occupation)}</span>
       ) : null}
     </div>
   );

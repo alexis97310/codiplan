@@ -724,6 +724,26 @@ lib/
               sans elle, « il était absent » et « il n'a rien fait » rendent le
               même chiffre : c'est la troisième cause que ce module distingue,
               après « pas de calendrier » et « n'a rien fait »
+              trajet.ts : LA LECTURE C de D107 (L3-05a) — l'ALLER vers le
+              premier lieu de la journée, le RETOUR depuis le dernier, et RIEN
+              entre les deux
+              sur une journée à UN lieu elle donne exactement la lecture A, et
+              c'est la raison décisive de D107 ; sur une journée groupée elle
+              cesse de compter un retour à l'agence qui n'a pas eu lieu
+              le temps d'un lieu à un autre n'est PAS compté et l'application
+              l'ÉCRIT : la colonne ne porte que des durées depuis l'agence, et
+              soustraire deux distances à un point commun n'est pas une distance
+              il ne TRIE pas : l'ordre reçu est celui que l'écran affiche, et
+              trier ici serait une seconde lecture de l'ordre
+              une journée dont une EXTRÉMITÉ est inconnue se compte à part,
+              jamais zéro — « aucun trajet » et « je ne sais pas » ne se
+              corrigent pas au même endroit
+              aucun fuseau n'est lu : `date_planifiee` est un DATE, et la
+              rapporter à un fuseau la décalerait d'un cran sous UTC+11
+              le trajet est un ARGUMENT OBLIGATOIRE de `occupationTechnicien` —
+              un appelant qui l'oublierait ne compile pas (la leçon de D70)
+              il entre dans le NUMÉRATEUR et jamais dans le dénominateur :
+              rouler ne change pas les heures d'ouverture d'une agence
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
@@ -1482,5 +1502,13 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   1. **Un contrôle dont le LIBELLÉ pose une question plus large que sa MESURE est un contrôle faux.** La parade n'est pas d'améliorer la mesure : c'est de poser la question du libellé, ou de changer le libellé. Ici la mesure manquait une source — le dépôt —, et elle l'a désormais : `lib/db/migrations-attendues.ts`, confronté au répertoire par un gardien qui rougit dans les deux sens.
   2. **Une sonde que personne n'ouvre ne sonne pas.** `/sante` était juste-après-réparation et resterait muette : c'est un contrôle *à la demande*, et une panne se découvre quand quelqu'un regarde. D'où **R3-01** au backlog : une vérification **après déploiement**, qui ouvre la page en ligne *et un écran authentifié* — *une page de santé verte au-dessus d'un écran mort est exactement ce qui s'est produit.*
   3. **Et la liste de rattrapage a été écrite DE MÉMOIRE à sa première rédaction** — 18 noms inventés, 36 manquants, sur 47 répertoires réels. *C'est la faute même qu'on réparait, commise en la réparant* (§9, 07/09). Elle n'a coûté qu'une exécution **parce que la confrontation a été écrite AVANT la liste**. Corollaire : quand une recopie est inévitable, *écrire d'abord ce qui la confronte* — l'ordre inverse laisse la recopie être crue.
+
+- **12/09/2026 — UN JOB EST FACTURÉ À LA MINUTE SUPÉRIEURE : UN CONTRÔLE DE DEUX SECONDES DANS SON PROPRE JOB COÛTE UNE MINUTE PLEINE.** Espèce à ranger à côté du délai de transaction du 23/08 — *un défaut de latence ne se mesure pas, il se calcule* —, parce que le mécanisme est le même : **une unité de facturation qu'on ne voit pas dans le code**. Le fichier de flux ne dit nulle part qu'un job a un prix plancher ; on lit « 23 secondes » et on conclut « négligeable ».
+
+  *Mesuré sur septembre 2026, par l'API des exécutions et non de mémoire :* **2 858 minutes facturées**, dont **2 706 pour la CI**. Le job `battement` — deux secondes de contrôle, 23 secondes avec l'installation — tournait sur **423 exécutions** et coûtait donc **~423 minutes, 15 % du total**, pour une question dont la réponse ne change pas en quelques minutes. Et **une fusion coûte DEUX exécutions**, pas une : la proposition (~6,3 min) puis la poussée sur `main` (~8,1 min), soit **~14,4 minutes**.
+
+  **La règle : le coût d'un contrôle de CI est le coût de son JOB, jamais celui de sa commande.** Un contrôle court se range DANS un job existant, ou bien il se déclenche sur moins d'événements — jamais dans un job à lui sur chaque exécution. Corollaire de méthode, et c'est lui qui a payé : *les minutes de CI s'observent avant de s'optimiser.* Trois des quatre économies qu'on nous demandait ont été refusées SUR MESURE — le cache du magasin `pnpm` existait déjà (5 secondes d'installation), `concurrency` avec annulation aussi, et les deux portes étaient déjà découpées. **La seule qui restait n'était pas dans la liste.**
+
+  *Et une économie a été refusée parce qu'elle aurait fait passer un défaut :* `paths-ignore` sur `docs/**` aurait économisé **une exécution sur vingt-neuf** et éteint les **six** gardiens qui lisent des documents — sur les commits mêmes qu'ils existent pour juger. **Une économie qui retire un contrôle n'est pas une économie, c'est une dette dont on ne connaît pas le montant.**
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.

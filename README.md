@@ -746,6 +746,34 @@ D107, mot pour mot : _« déplacement par avion — estimation impossible, à sa
 
 _Mesuré le 12/09/2026 :_ `parametrer_societe` donne `●` à `admin_societe` et `○` à `direction` — **`adv` n'y est pas** — et la matrice des capacités n'a **qu'un seul appelant dans tout le dépôt**. Ni `/parametres/agences` ni `/parametres/forfaits` ne gardent leur accès par capacité, et le nouvel écran fait comme eux : _poser un filtre ici et nulle part ailleurs refuserait l'ADV que D107 désigne, sur le seul écran qu'elle doit remplir._ Les **deux moitiés** sont portées au ticket : ou bien la matrice est fausse et RG-DRO-03 se réécrit, ou bien le filtrage arrive partout à la fois.
 
+## Le trajet entre dans la charge — la lecture C, et les deux autres chiffrées à côté
+
+RG-PLA-05 exige que _« le temps de trajet soit intégré au calcul de charge »_, et il ne l'était pas : `minutesEngagees` ne comptait que la durée de l'intervention. **La barre et le taux sous-estimaient la journée réelle** de plusieurs heures par semaine et par technicien.
+
+**Trois lectures étaient possibles avec la colonne telle qu'elle est**, et le scénario les chiffre **côte à côte** sur la journée à trois sites de L3-05 — 60, 30, 45 minutes : A donne **270**, B donne **120**, C donne **105**. _Un scénario qui n'éprouverait que la lecture retenue ne dirait pas qu'elle en est une._
+
+**D107 retient C : l'aller vers le premier lieu de la journée, le retour depuis le dernier.** La raison décisive : sur une journée à un seul lieu, C donne **exactement A** — le lieu étant à la fois premier et dernier — et dès que la journée est groupée, elle **cesse de compter un retour à l'agence qui n'a pas eu lieu**. A supposait un retour entre chaque site, faux pour un fourgon chargé d'outillage ; B — `2 × max` — décrit une journée qui n'a pas eu lieu.
+
+**Le temps d'un lieu à un autre n'est pas compté, et l'écran l'ÉCRIT.** La colonne ne porte que des durées depuis l'agence (D56), et _soustraire deux distances à un point commun n'est pas une distance_ — la discipline du `NOT VALID` de D104 : ce qu'on ne sait pas, on le dit.
+
+### Trois décisions de forme, et chacune ferme une pente
+
+**Le trajet est un champ À PART, jamais fondu dans les heures engagées.** La barre est segmentée par statut et un trajet n'en a pas — l'y verser ferait une barre dont les segments ne somment plus à leur largeur. Et surtout : _un taux dont on ne peut plus retrouver les termes n'est plus vérifiable._ La formule affichée porte donc ses **trois** termes, et le gardien « jamais le pourcentage seul » l'exige.
+
+**L'argument est OBLIGATOIRE, sans valeur par défaut** : un appelant qui oublierait le trajet **ne compile pas**. C'est la leçon de D70 — _une garantie énoncée sur un geste est satisfaite par un geste vide._ Les treize appels existants disent maintenant `SANS_TRAJET` en clair.
+
+**Le module ne trie pas** : l'ordre reçu est celui que le planning affiche. Trier là serait une seconde lecture de l'ordre, et le total compterait les extrémités d'une journée que personne ne voit.
+
+### Et une épreuve verte pour la mauvaise raison a été corrigée
+
+La première version prétendait prouver « l'ordre compte » en **renversant** la journée. Or `premier + dernier` est **symétrique** : elle passait dans les deux cas. C'est la dissymétrie du 11/09 — _une mise en échec n'éprouve que la direction qui rougit ; le vert, lui, peut avoir la mauvaise cause._ Ce qui le prouve est de déplacer un lieu d'une extrémité vers le milieu : **220 contre 30**.
+
+### Ce qui n'est pas connu est compté à part, et la prémisse est écrite
+
+Une journée dont une **extrémité** a un trajet inconnu — un lieu sans zone, ou les Îles (D107) — n'additionne pas zéro : elle se compte à part, et l'écran le dit. Un **milieu** inconnu, lui, ne gêne pas : la lecture C ne lit pas le milieu.
+
+**La prémisse de D107 est satisfaite aujourd'hui et elle est écrite** : la durée lue est mesurée depuis l'agence du **site**, et D107 la prend pour le départ du **technicien** parce que tous partent de Ducos. _Le jour où une seconde agence fait partir un technicien, la valeur cesse d'être celle de son départ_ — c'est la condition de réouverture que D107 pose sur ce point seul, et **aucun gardien ne la surveille.**
+
 ## La file « en attente de pièce » — ce qui la désigne n'est pas un code
 
 Le statut `suspendue` existait depuis le planning agissant ; **rien ne portait le motif**, et une intervention pouvait donc s'arrêter sans qu'on sache pourquoi. RG-INT-06 : _« une intervention SUSPENDUE porte un motif et, pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle. »_
