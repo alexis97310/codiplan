@@ -974,7 +974,9 @@ D61 a écrit que sa décision *n'ouvre aucun sélecteur de société*, et c'éta
 *Relu contre les sources citées le 12/09/2026 — empreinte `e55edc71`.*
 
 **L2-13 — LE LIEN D'INVITATION AU PORTAIL. [D96] [D10]**
-*File :* LIBRE
+*File :* BLOQUÉ — deux exigences de D96 ne peuvent pas être vraies ensemble, et trancher est un arbitrage de cloisonnement (Q9, 13/09/2026)
+**Mesuré le 13/09/2026 en ouvrant le ticket.** D96 range la table en **troisième catégorie de I1** — *« un lien d'invitation est un matériau d'authentification : il se range comme tel »* —, donc **sans `societe_id`** et sous la forme « désignation » : *on ne lit que la ligne qu'on nommait déjà*, c'est-à-dire en présentant son jeton. **Et le même D96 exige « tracé — qui a invité qui, quand ».** Or l'agence ne possède PAS le jeton : il est montré une fois, à usage unique, non relisible — c'est ce qui en fait un matériau d'authentification. *Sous cette forme, personne au back-office ne peut relire une seule ligne, pas même celles qu'il vient d'écrire, et une trace que personne ne peut lire n'est pas une trace.* Le journal d'audit ne comble pas le trou : I8 ne couvre que la PREMIÈRE catégorie.
+*Ce n'est pas une réduction de périmètre en silence, et ce n'est pas un refus : c'est une contradiction entre deux moitiés d'une même décision de rang 1, qui se signale plutôt qu'elle ne s'arbitre (§1 du `CLAUDE.md`).* La voie qui tient toutes les garanties demande une **quatorzième forme de politique** — un arbitrage de cloisonnement (§8), sur la porte d'entrée du portail, donc sur ce qu'un client voit (§1 de la doctrine). Trois issues chiffrées en **Q9**.
 **Mesuré le 11/09/2026, et c'est le constat qui a ouvert le ticket :** *aucun client ne peut se connecter au portail.* D10 veut les deux tables exclusives — un compte de portail n'a **aucune** ligne dans `utilisateur_societe` — et le seul dispositif d'ouverture de compte du dépôt, `lib/auth/amorcage.ts`, exige une société puis **crée précisément cette ligne**. L'enrôlement (D58) n'est pas une porte : il pose un second facteur sur un compte qui existe déjà.
 *La boucle que D92 avait fermée côté LECTURE restait ouverte côté ENTRÉE : la politique était juste, l'écran existait depuis L2-12, et il n'y avait personne pour les franchir.*
 **TRANCHÉ [D96] — le lien d'invitation est une porte DISTINCTE.** Il n'exige aucune habilitation de société et **porte lui-même le rattachement au client**, et le cas échéant le périmètre de sites. *Réutiliser l'amorçage aurait obligé à donner une habilitation de société à un compte de portail, c'est-à-dire à défaire D10 pour ouvrir une porte.*
@@ -1018,7 +1020,8 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* la veille compare les migrations appliquées en base au répertoire du dépôt et **nomme le décompte en retard** ; le gabarit n'affirme le geste manuel **que** lorsque ce décompte est nul, et écrit sinon « N migration(s) en retard — appliquer `db-migrate` avant de conclure » ; un scénario montre les deux verdicts, dont celui qui ne conclut pas au geste manuel.
 
 **R1-02 — Le README des captures dit comment savoir si un écran a changé depuis. [10/09/2026]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Livré le 12/09/2026, commit `23610b9` — le marqueur disait `LIBRE` et il mentait.** `pnpm captures:etat` existe, rend **trois** verdicts, et le troisième est tout le ticket : *« rien n'a changé » et « je ne sais pas » ne se corrigent pas au même endroit.* Il s'est déclenché à sa première exécution réelle, sur un clone tronqué. *Troisième marqueur menteur relevé en deux nuits — et c'est la LECTURE du ticket qui a coûté, pas le travail.*
 **Déclencheur : la prochaine prise de vue.** Le README nomme le commit photographié, et c'est la règle du §9. Ce qu'il ne dit pas : *comment un lecteur sait qu'aucun écran n'a bougé depuis.* La question se répond en une commande — `git diff --name-only <empreinte> main` restreint aux chemins d'écran — et cette commande est aujourd'hui tapée à la main, donc pas tapée.
 **Mesuré le 10/09/2026** : entre `b8c3f76` (photographié) et `2fe6e8b`, **67 fichiers changés et aucun sous `app/`, `components/`, `lib/theme/` ni `lib/i18n/`** — les images étaient exactes, et rien dans le dossier ne le disait.
 *Acceptation :* `scripts/captures.mts` énumère les chemins qu'il tient pour « surface d'écran » et les écrit dans le README avec l'empreinte ; une commande dit si l'un d'eux a changé depuis la prise, et rend un état — jamais un silence.
@@ -1052,7 +1055,8 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* la phrase est **barrée et non effacée** (CLAUDE.md §2), avec sa date et le commit qui l'a rendue fausse ; une section « voie courte » donne les clics littéraux de la connexion sur la base de démonstration, en nommant l'identité et l'identifiant de société mesurés ; et le README ou un gardien dit ce qui rendrait la nouvelle phrase fausse à son tour.
 
 **R1-10 — Clore l'issue #95 avec sa cause mesurée. [mesuré le 11/09/2026]**
-*File :* LIBRE
+*File :* LIVRÉ
+**Mesuré le 13/09/2026 : l'issue #95 est CLOSE** — `state: "closed"`, `state_reason: "completed"`, `closed_at: 2026-09-11T22:51:22Z`, `closed_by: alexis97310`. Le marqueur disait `LIBRE` deux jours après la clôture. *Un ticket dont l'état ment est pire qu'un ticket bloqué*, et celui-ci envoyait refermer une porte déjà fermée.
 **Déclencheur : immédiat.** L'issue *« [veille-securite] la base hébergée a DÉRIVÉ »*, ouverte le 10/09/2026 à 15:18 UTC, est **toujours ouverte** alors que sa cause est traitée.
 **Mesuré le 11/09/2026.** L'écart unique qu'elle rapportait — `utilisateur_client` sans la forme « rattachement » — était le contenu de la migration `20260911010000_rattachement_portail_d92`, jamais appliquée. L'exécution #44 de « DB migrate & seed », 10/09 22:04:51 UTC, imprime `All migrations have been successfully applied.`, et le contrôle de cloisonnement de la même exécution nomme désormais `rattachement (1) : utilisateur_client`. La dérive est refermée.
 *C'est le corollaire de R1-01, vu par l'autre bout : une alarme laissée ouverte à tort apprend à ne plus lire les alarmes, exactement comme un gabarit qui affirme une cause qu'il n'a pas mesurée.*
@@ -1340,6 +1344,21 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **LES TROIS ISSUES, et aucune n'est évidente.** **(a)** un compte de lecture seule, cloisonné sur une société fictive de la base de démonstration — *sûr, et il ne mesure pas la production.* **(b)** un jeton de sonde à durée de vie courte, délivré par l'application elle-même pour un seul écran — *une surface d'authentification nouvelle, à écrire et à garder.* **(c)** un écran SANS session qui exerce le même chemin de données que `/planning` — *le plus léger, et il mentirait sur ce qu'il mesure, ce qui est la panne du 11/09.*
 *Ce qu'il ne doit PAS faire* : déposer un mot de passe de production dans un secret et le lire depuis un job que `pull_request` déclenche.
 *Acceptation :* l'issue retenue est écrite avec son coût ; le contrôle rougit sur un écran qui rend une exception serveur alors que `/api/sante` répond vert ; et le secret, s'il y en a un, n'est lisible que depuis un job déclenché par `push` sur `main`, `schedule` ou `workflow_dispatch`.
+
+**R3-08 — TROIS ÉCRANS SANS PORTE — et la mesure en nomme DEUX. [13/09/2026]**
+*File :* LIVRÉ
+**Livré le 13/09/2026, commit `e03e72d`. ⚠️ Ce commit le nomme « R3-05 » PAR ERREUR** — R3-05 est déjà pris par « l'heure réelle de début et de fin d'une intervention ». *Le commit est fusionné et ne se réécrit pas ; la correction est écrite ici, où un lecteur la trouvera.*
+**Mesuré le 13/09/2026.** Alexis avait demandé que les temps de trajet soient paramétrables : **ils l'étaient depuis R3-03**, et aucun lien n'y menait. La barre mène à `/parametres/agences` et à rien d'autre ; le seul chemin vers les trajets était une redirection d'API **après soumission**, qu'on n'emprunte qu'en revenant d'un formulaire qu'on ne peut pas ouvrir. *Le produit avait la fonction et pas la porte, et il a fallu lire le code pour le savoir.*
+**La consigne nommait trois écrans, le gardien en nomme deux** : `/sites` est atteignable — depuis le lieu d'une intervention, puis depuis la fiche du site. Il est porté dans la page de paramétrage quand même : *un chemin qui existe dans le code n'est pas un chemin qu'un humain trouve*, et c'est la limite que le gardien annonce.
+**La barre de D95 n'a pas bougé** — close à onze, une douzième la ferait rougir à raison. Mais l'entrée « Sociétés & tarifs » portait déjà `section: "/parametres"` : *la section existait, il lui manquait sa page.*
+*Acceptation :* tout écran de `app/(back-office)/` est atteignable par au moins un lien, depuis la barre ou depuis un écran lui-même atteignable — fermeture **transitive**, population dérivée du dépôt ; un jumeau montre le gardien rougir quand une porte est retirée.
+
+**R3-09 — LE CANAL D'ENVOI DE COURRIEL, et le lien de premier accès qui n'en avait plus. [Q8] [13/09/2026]**
+*File :* LIVRÉ
+**Livré le 13/09/2026, commit `df2d33f`.** *Et c'est une réparation qui avait créé le problème* : le 12/09, le flux « Ouvrir le PREMIER compte » a cessé d'imprimer l'URL — masque **et** retrait —, parce que le dépôt était devenu public et qu'*un dépôt rendu public publie aussi son passé*. C'était juste. Mais le lien ne sortait alors plus du flux **du tout**, et Alexis travaille depuis un téléphone.
+**Interface ÉTROITE** — trois types et une méthode ; **un seul fichier connaît un prestataire**, et un gardien l'exige. `Envoi` est une **somme** et jamais un `void` : *un canal qui laisse croire qu'il a envoyé est pire qu'un canal absent.* Trois silences refusés nommément, dont un `2xx` **sans référence d'envoi** — *« je ne sais pas » ne se corrige pas comme « c'est parti »*.
+**Le code démarre sans la clé** : ce qui échoue est l'envoi, et il nomme la variable absente et où la déposer. **Aucun secret dans le dépôt**, pas même en commentaire, et la clé ne sort jamais dans un motif de refus.
+*Le geste qui reste à Alexis est le dépôt de deux secrets — `docs/mise-en-ligne.md`, section « LE CANAL D'ENVOI DE COURRIEL ».*
 
 **R3-07 — LES *ISSUES* SONT DÉSACTIVÉES SUR LE DÉPÔT, et l'alarme d'É12 ne peut rien ouvrir. [R0-a] [É12]**
 *File :* BLOQUÉ — c'est un réglage de dépôt, pas un correctif de code : seul le propriétaire peut cocher la case. Mesuré le 12/09/2026.

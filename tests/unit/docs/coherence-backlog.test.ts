@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   analyserBacklog,
+  lireTickets,
   type AnalyseBacklog,
 } from "../../../scripts/lib/coherence-backlog";
 
@@ -197,5 +198,57 @@ describe("jumeaux — le gardien mord sur des ruptures réelles", () => {
     expect(ecarts).toContain(
       "aucune règle lue au chapitre 10 : le contrôle ne peut pas s'exercer",
     );
+  });
+});
+
+/**
+ * LA BORNE D'UN BLOC DE TICKET — mesuré le 13/09/2026.
+ *
+ * `REF_TICKET` ne reconnaît que les tickets de LOT, et c'est voulu : eux seuls
+ * portent une estampille de relecture. **Mais il servait aussi de BORNE**, si
+ * bien que le dernier ticket de lot du document absorbait tous les tickets de
+ * reprise qui le suivent — jusqu'à la fin du fichier.
+ *
+ * *Mesuré sur le document réel : le bloc de `L1-12` portait le texte de `R3-06`
+ * et de `R3-07`, et ses « sources citées » étaient celles de quatre tickets.*
+ * Son empreinte couvrait donc des décisions qui ne le concernent pas, et **toute
+ * retouche à la fin du document la faisait rougir** — un ticket de reprise
+ * écrit ce jour-là citant `D95` a suffi à la faire tomber.
+ *
+ * *Un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte
+ * plus qu'il ne rapporte* (§9, 11/09). C'est la population auto-sélectionnée du
+ * 31/08 par l'autre bout : ici ce n'est pas un `WHERE` qui exclut, c'est une
+ * borne qui ABSORBE.
+ */
+describe("un ticket de lot ne déborde pas sur les tickets qui le suivent", () => {
+  const DOCUMENT = [
+    "**L9-99 — UN TICKET DE LOT. [D10]**",
+    "*File :* LIVRÉ",
+    "Son texte à lui, qui ne cite que D10.",
+    "",
+    "*Relu contre les sources citées le 13/09/2026 — empreinte `aaaaaaaa`.*",
+    "",
+    "**R9-99 — UN TICKET DE REPRISE. [D95]**",
+    "*File :* LIBRE",
+    "Son texte à lui, qui cite D95 et D96.",
+  ].join("\n");
+
+  it("le bloc s'arrête au ticket suivant, quel que soit son préfixe", () => {
+    const { tickets } = lireTickets(DOCUMENT);
+    const lot = tickets.find((t) => t.ref === "L9-99");
+
+    expect(lot, "le ticket de lot n'a pas été lu").toBeDefined();
+    // LA MOITIÉ QUI COMPTE : la source du ticket de reprise n'est pas absorbée.
+    expect(lot!.sourcesCitees).toEqual(["D10"]);
+    expect(lot!.texte).not.toContain("R9-99");
+  });
+
+  it("et le ticket de reprise n'est PAS lu comme un ticket de lot", () => {
+    // Le cas qui doit rester vrai POUR SA PROPRE RAISON : la borne ferme, elle
+    // n'ouvre pas. Sans cette moitié, la réparation aurait fait entrer les
+    // tickets de reprise dans un contrôle qui ne les juge pas — et chacun
+    // aurait réclamé une estampille qu'aucun ne porte.
+    const { tickets } = lireTickets(DOCUMENT);
+    expect(tickets.map((t) => t.ref)).toEqual(["L9-99"]);
   });
 });

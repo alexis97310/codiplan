@@ -410,3 +410,67 @@ ce qui distingue CODIMA d'un tiers dans la chaîne.*
 **Je n'ai posé aucun mot de passe dans le semis** — la consigne le dit, et le motif tient tout seul : la base est en ligne et le dépôt public. **Je n'ai choisi aucun service et écrit aucun secret.** *Un canal d'envoi est une décision d'exploitation avec une clé au bout ; ce n'est pas une décision de session.*
 
 **Ce qui marche ce soir, et qui n'est pas une réponse :** si Alexis peut atteindre un terminal, `pnpm exec tsx scripts/amorcage-premier-compte.mts --reemettre --societe <uuid> --email <courriel>` imprime le lien. *C'est exactement le geste que cette question cherche à supprimer.*
+
+---
+
+## Q9 — Le lien d'invitation au portail : qui a le droit de LIRE la trace qu'il laisse ?
+
+*Écrite le 13/09/2026, en ouvrant L2-13. **Non tranchée** : elle touche le cloisonnement
+(§8 du `CLAUDE.md`) et la porte d'entrée du portail, c'est-à-dire ce qu'un client voit
+(§1 de la doctrine d'arbitrage).*
+
+### La question
+
+Quand une agence invite un client, la trace de cette invitation — **qui a invité qui, et
+quand** — doit pouvoir être relue par l'agence. Aujourd'hui, le rangement que D96 donne à
+cette table l'en empêche. Faut-il la ranger autrement ?
+
+### Ce que j'ai mesuré
+
+**D96 tranche déjà la moitié qui compte, et je ne la rouvre pas.** Il écrit, mot pour
+mot : *« Un lien d'invitation est un matériau d'authentification : il se range comme tel
+**(I1, troisième catégorie)** »*. La troisième catégorie de I1, c'est **aucune colonne
+`societe_id`** et la forme de politique dite « désignation » : *on ne lit que la ligne
+qu'on nommait déjà*, c'est-à-dire, pour une invitation, **en présentant son jeton**.
+
+**Et le même D96 exige quatre garanties, dont la quatrième est « tracé — qui a invité qui,
+quand ».** Les deux ne peuvent pas être vraies ensemble :
+
+> **L'agence ne possède pas le jeton.** Il est montré une fois, il est à usage unique, et
+> il n'est pas relisible — c'est ce qui en fait un matériau d'authentification. Sous la
+> forme « désignation », **personne au back-office ne peut donc relire une seule ligne de
+> cette table**, pas même celles qu'il vient d'écrire.
+
+*Une trace que personne ne peut lire n'est pas une trace.* Et l'autre voie habituelle est
+fermée aussi : le journal d'audit (I8) ne couvre que les tables métier **de la première
+catégorie**, dont celle-ci ne fait justement pas partie.
+
+**J'ai cherché une troisième voie et je n'en ai pas trouvé qui tienne** — je le dis plutôt
+que d'affirmer qu'il n'y en a pas. Faire poser le contexte de société par un jeton
+présenté par un inconnu contredirait une règle écrite : *« la valeur d'une désignation est
+dérivée d'un contexte authentifié, jamais reçue d'un appelant »* (L1-02e). Et une fonction
+qui verrait par-dessus les politiques est refusée par un gardien statique dont la liste
+d'exceptions est close **et vide**.
+
+### Les issues possibles
+
+| | Ce que c'est | Ce que ça coûte | Ce que ça interdit |
+|---|---|---|---|
+| **1** | **Garder le rangement de D96 tel quel** — troisième catégorie, forme « désignation » pure | rien à construire de plus | **la quatrième garantie de D96 devient inapplicable** : l'agence n'a aucun écran où voir qui elle a invité, ni révoquer un lien qu'elle ne retrouve pas. *Une promesse écrite et silencieusement intenable est ce que ce dépôt refuse le plus constamment.* |
+| **2** | **Une table métier cloisonnée** (première catégorie, forme « interne » — société **et** aucun compte de portail), **plus** une lecture par jeton pour la seule consommation | **une QUATORZIÈME forme de politique**, avec sa liste close, ses gardiens et son jumeau — une demi-journée. C'est un arbitrage de cloisonnement, pas un ticket | rien. Les quatre garanties de D96 tiennent toutes : l'agence lit et révoque ses invitations, l'invité consomme la sienne sans société, et **aucun compte de portail ne lit cette table** |
+| **3** | **Deux tables** : la donnée métier d'un côté, le jeton dans la table de vérification qui existe déjà | en apparence rien de neuf | *le lien entre les deux devrait lui-même être lu avant qu'une société soit connue* — le problème est déplacé, pas résolu. Et ce serait **deux écritures d'un même fait** |
+
+**Je recommande l'issue 2**, pour une raison qui n'est pas le confort : c'est la seule où
+les quatre garanties que D96 a écrites sont réellement tenues par la base. *Son coût est
+visible — une forme de plus, gardée comme les treize autres ; celui de l'issue 1 ne l'est
+pas, et c'est ce qui le rend cher.*
+
+### En attendant
+
+**Bloqué** : L2-13 tout entier — la table, l'écran d'invitation, la consommation du lien,
+et donc **l'entrée des clients au portail**. Le marqueur de file est passé à `BLOQUÉ` avec
+ce motif, et non laissé à `LIBRE` : *un ticket dont l'état ment est pire qu'un ticket
+bloqué.*
+
+**Continue** : tout le reste. Le portail LIT déjà correctement — D92 a fermé cette
+moitié-là, et `/portail` existe depuis L2-12. Ce qui manque est la porte, pas la pièce.
