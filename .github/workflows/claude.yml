@@ -13,9 +13,28 @@ name: Claude — mode interactif
 # `prompt` ici la ferait basculer en mode automatique, et elle partirait sur
 # CHAQUE commentaire.
 #
-# QUI PEUT DÉCLENCHER : l'action refuse d'elle-même un compte sans accès en
-# écriture, et refuse un compte robot — c'est ce qui l'empêche de se répondre
-# à elle-même en boucle.
+# QUI PEUT DÉCLENCHER : le flux exige `author_association == 'OWNER'`, et
+# l'action revérifie de son côté qu'un compte sans accès en écriture ne peut
+# rien déclencher, robots compris. **Le filtre du dépôt est venu le
+# 12/09/2026, et pour DEUX raisons distinctes qu'il faut lire séparément.**
+#
+#   1. SÉCURITÉ. « L'action refuse d'elle-même » est une garantie qui vit
+#      entièrement CHEZ LE FOURNISSEUR : elle est juste aujourd'hui, et rien
+#      dans ce dépôt ne la constate. Un exécuteur démarré est un exécuteur qui
+#      lit nos secrets — `CLAUDE_CODE_OAUTH_TOKEN` est monté avant que
+#      l'action n'ait jugé quoi que ce soit. *Le refus doit donc arriver AVANT
+#      la machine*, et c'est ce que ce `if` fait.
+#
+#   2. ÉCONOMIE, ET ELLE EST MESURÉE À ZÉRO. *Sur les 77 exécutions du mois de
+#      septembre 2026 : 70 n'ont facturé AUCUNE minute* — le `if` ci-dessous
+#      les écartait déjà, un job « skipped » ne démarre pas d'exécuteur — et
+#      les 7 restantes étaient de vraies invocations `@claude`, que ce filtre
+#      ne retire pas. **Ce changement ne fait donc économiser rien du tout**,
+#      et l'écrire vaut mieux que de le laisser passer pour une économie.
+#
+# `author_association` se lit sur un objet DIFFÉRENT selon l'événement — le
+# ticket, le commentaire, la revue —, et il n'existe pas d'expression commune :
+# les quatre branches le nomment chacune.
 #
 # `github_token` N'EST PAS PASSÉ, ET C'EST UNE DÉCISION : sans lui, l'action
 # s'authentifie comme l'application GitHub Claude, si bien que les commits
@@ -48,14 +67,23 @@ concurrency:
 jobs:
   claude:
     name: "@claude"
-    # Le filtre évite de démarrer un exécuteur sur les commentaires ordinaires.
-    # L'action revérifie la phrase déclenchante de son côté : ce `if` est une
-    # économie, jamais la garantie.
+    # Le filtre évite de démarrer un exécuteur sur les commentaires ordinaires,
+    # ET il borne QUI peut en démarrer un : `OWNER` seul. L'action revérifie la
+    # phrase déclenchante et les droits de son côté — mais sa vérification a
+    # lieu APRÈS le démarrage de l'exécuteur, donc après le montage des
+    # secrets. *Ce `if` est la seule moitié de la garantie que ce dépôt tienne
+    # lui-même.*
+    #
+    # ⚠ `OWNER` est étroit PAR DÉCISION : un collaborateur — `COLLABORATOR`,
+    # `MEMBER` — ne déclenche plus. Le jour où quelqu'un d'autre doit pouvoir
+    # écrire `@claude`, c'est cette ligne qu'on élargit, et ce sera une
+    # décision. *Un filtre qu'on élargit « pour que ça marche » sans dire pour
+    # qui redevient une absence de filtre.*
     if: |
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+      (github.event_name == 'issues' && github.event.issue.author_association == 'OWNER' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
+      (github.event_name == 'issue_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && github.event.review.author_association == 'OWNER' && contains(github.event.review.body, '@claude'))
     runs-on: ubuntu-latest
     # Une tâche interactive qui s'emballe coûte de l'argent réel.
     timeout-minutes: 60

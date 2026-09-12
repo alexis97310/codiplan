@@ -32,6 +32,44 @@ on:
     - cron: "0 15 * * *"
   workflow_dispatch:
 
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ CE QUI A ÉTÉ MESURÉ PUIS REFUSÉ — le 12/09/2026, et écrit pour ne pas être │
+# │ reproposé. Septembre 2026 : 2 858 minutes facturées, dont 2 706 pour ce   │
+# │ flux. Une fusion coûte DEUX exécutions — la proposition (~6,3 min) et la  │
+# │ poussée sur `main` (~8,1 min), soit ~14,4 minutes.                        │
+# │                                                                          │
+# │ 1. `paths-ignore` SUR `docs/**` ET `*.md` — REFUSÉ.                       │
+# │    *Mesuré : 1 commit sur 29 ce mois-ci ne touche QUE de la documentation.*│
+# │    Le gain serait d'une exécution, ~14 minutes. Et il tomberait très      │
+# │    exactement au mauvais endroit : SIX gardiens de ce dépôt LISENT des    │
+# │    documents — câblage des arbitrages, cohérence du backlog, modèle de    │
+# │    données, organisation du code, unicité de la maquette, données du côté │
+# │    cloisonné. **Un commit qui ne touche que `docs/` est précisément celui │
+# │    que ces six-là existent pour juger.** Ignorer ces chemins éteindrait   │
+# │    le contrôle sur les commits qu'il garde. *Le découpage ferait passer   │
+# │    un défaut : on y renonce, et on l'écrit.*                              │
+# │                                                                          │
+# │ 2. CACHE DU MAGASIN `pnpm` — REFUSÉ, PARCE QU'IL EXISTE DÉJÀ.             │
+# │    `actions/setup-node` porte `cache: pnpm` sur les trois jobs, et la     │
+# │    mesure le confirme : *« Installer les dépendances » a mis 5 SECONDES*  │
+# │    sur l'exécution 34662151699. Il n'y a rien à y gagner, et un second    │
+# │    cache par-dessus le premier serait une seconde lecture d'un même       │
+# │    critère — celle qui diverge en silence.                                │
+# │                                                                          │
+# │ 3. `concurrency` AVEC `cancel-in-progress` — DÉJÀ EN PLACE, ci-dessous.   │
+# │    Il annule une exécution rendue caduque par la suivante sur la même     │
+# │    référence. Rien à ajouter ; écrit ici pour qu'on ne le rajoute pas.    │
+# │                                                                          │
+# │ 4. LES DEUX PORTES SONT DÉJÀ DÉCOUPÉES — `verify` sur les propositions,   │
+# │    `verify:full` sur `main` et la nuit. *Mesuré : aucune exécution ne     │
+# │    joue les deux ; sur `main`, `verify` est « skipped ».* Le doublon      │
+# │    n'est PAS dans une exécution, il est ENTRE les deux exécutions d'une   │
+# │    fusion — et le retirer supprimerait soit la porte d'avant la fusion,   │
+# │    soit celle d'après. *`verify:full` sur `main` rejoue `verify` sur un   │
+# │    ARBRE qui n'est pas forcément celui de la proposition : une branche en │
+# │    retard sur `main` produit une fusion que personne n'a vérifiée.*       │
+# └──────────────────────────────────────────────────────────────────────────┘
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -123,6 +161,32 @@ jobs:
 
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
+
+      # LE NAVIGATEUR EST MIS EN CACHE, ET L'INSTALLATION EST JOUÉE QUAND MÊME.
+      #
+      # *Mesuré le 12/09/2026 sur l'exécution 34662151699 : 23 secondes.* Ce
+      # n'est pas énorme, et c'est écrit pour qu'on ne le croie pas énorme :
+      # sur un job de 541 secondes facturé 10 minutes, 23 secondes ne font
+      # basculer l'arrondi qu'environ deux fois sur cinq.
+      #
+      # **La forme choisie ne peut pas casser.** Le cache est posé AVANT, et
+      # l'installation est jouée APRÈS dans tous les cas : sur un cache présent
+      # elle constate et rend la main en deux secondes, sur un cache absent ou
+      # incomplet elle fait exactement ce qu'elle faisait hier. *Un cache dont
+      # le pire cas est le comportement d'avant n'a pas de mode de défaillance*
+      # — et c'est la seule raison pour laquelle il entre dans un commit qu'on
+      # ne peut pas se permettre de reprendre.
+      #
+      # `--with-deps` installe aussi des paquets système, que ce cache ne
+      # couvre pas : il n'y a donc rien à gagner de plus ici, et l'écrire évite
+      # qu'on cherche pourquoi le gain est petit.
+      - name: Cache du navigateur Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
       - name: Installer le navigateur Playwright
         run: pnpm exec playwright install --with-deps chromium
@@ -337,7 +401,27 @@ jobs:
   # qu'AU PREMIER RETOUR de quelqu'un, l'écran soit rouge.
   battement:
     name: battement — la nuit bat-elle encore ?
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    # ⚠ IL NE TOURNE PLUS SUR LES PROPOSITIONS — mesuré le 12/09/2026.
+    #
+    # **Un job est facturé à la MINUTE SUPÉRIEURE, quelle que soit sa durée.**
+    # Celui-ci met 23 secondes et coûte donc UNE MINUTE PLEINE, sur chaque
+    # exécution de CI. *Sur septembre 2026 : 423 exécutions, soit ~423 minutes
+    # facturées pour un contrôle de 2 secondes — 15 % de tout ce que le dépôt a
+    # consommé.* Les 159 exécutions de proposition en représentaient 159.
+    #
+    # **Ce que le retrait ne coûte pas, et c'est pour cela qu'il est fait ici
+    # plutôt qu'ailleurs.** Ce contrôle répond à une seule question — *la
+    # vérification NOCTURNE tourne-t-elle encore ?* — et sa réponse ne change
+    # pas en quelques minutes. Il reste sur `push` vers `main`, c'est-à-dire
+    # sur chaque fusion : *mesuré, 125 fois en septembre, soit plusieurs fois
+    # par jour ouvré.* Une proposition et sa fusion sont séparées de quelques
+    # minutes ; jouer le battement sur les deux mesurait deux fois le même état.
+    #
+    # **Ce qui ne bouge PAS, et qui est la raison d'être du job** (§9, 31/08) :
+    # il ne tourne toujours PAS sur `schedule`. *Un contrôle qui ne s'exécute
+    # que quand la planification s'exécute ne peut pas constater qu'elle a
+    # cessé.* Il tourne sur l'activité HUMAINE, et une fusion en est une.
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # UN BLOC `permissions:` N'EST PAS ADDITIF : il définit l'ENSEMBLE des
