@@ -4,25 +4,17 @@ name: CI
 #   verify       à chaque poussée et sur chaque proposition de fusion ;
 #   verify:full  sur main et chaque nuit.
 #
-# ┌──────────────────────────────────────────────────────────────────────────┐
-# │ AVANT DE RENDRE CE DÉPÔT PUBLIC — LIRE CECI                              │
-# │                                                                          │
-# │ La planification `schedule` ci-dessous ne survit à l'inactivité QUE PARCE │
-# │ QUE LE DÉPÔT EST PRIVÉ. GitHub désactive automatiquement les flux         │
-# │ planifiés après 60 jours sans activité — et cette règle ne vise que les   │
-# │ dépôts PUBLICS. La protection ne tient donc pas à ce fichier : elle tient │
-# │ à un ATTRIBUT DU DÉPÔT, qui change d'un clic et sans rien annoncer. Un    │
-# │ fork la remet en vigueur lui aussi : les flux planifiés d'un dépôt forké  │
-# │ sont désactivés par défaut.                                              │
-# │                                                                          │
-# │ Rendre ce dépôt public, ou le forker, c'est accepter que la vérification  │
-# │ nocturne s'arrête un jour SANS QUE RIEN NE LE DISE — une planification    │
-# │ désactivée ne produit aucune exécution, donc aucun échec, donc aucune     │
-# │ alarme. Le job `battement` ci-dessous est là pour cela, et lui seul : il  │
-# │ tourne sur l'activité humaine et refuse un flux qui a cessé de battre.    │
-# │ Mesuré et écrit le 31/08/2026 — ticket R0-a, écart É12 de la revue R0 ;   │
-# │ voir le §9 du CLAUDE.md, « le silence a exactement la forme du succès ».  │
-# └──────────────────────────────────────────────────────────────────────────┘
+# ── CE DÉPÔT EST PUBLIC DEPUIS LE 12/09/2026 ───────────────────────────────
+# GitHub désactive les flux planifiés d'un dépôt PUBLIC après 60 jours sans
+# activité — et un fork les désactive d'emblée. La planification ci-dessous
+# s'arrêtera donc un jour SANS QUE RIEN NE LE DISE : une planification
+# désactivée ne produit aucune exécution, donc aucun échec, donc aucune
+# alarme. Le job `battement` garde ce cas-là, et lui seul.
+#
+# La mise en garde qui occupait ces lignes était écrite AU FUTUR — « avant de
+# rendre ce dépôt public » —, et ce futur est advenu. Le fait, lui, ne bouge
+# pas : É12 de la revue R0, § 9 du CLAUDE.md, « le silence a exactement la
+# forme du succès ».
 on:
   push:
     branches: ["main"]
@@ -31,44 +23,6 @@ on:
     # 15h00 UTC = 02h00 à Nouméa (UTC+11, sans changement d'heure).
     - cron: "0 15 * * *"
   workflow_dispatch:
-
-# ┌──────────────────────────────────────────────────────────────────────────┐
-# │ CE QUI A ÉTÉ MESURÉ PUIS REFUSÉ — le 12/09/2026, et écrit pour ne pas être │
-# │ reproposé. Septembre 2026 : 2 858 minutes facturées, dont 2 706 pour ce   │
-# │ flux. Une fusion coûte DEUX exécutions — la proposition (~6,3 min) et la  │
-# │ poussée sur `main` (~8,1 min), soit ~14,4 minutes.                        │
-# │                                                                          │
-# │ 1. `paths-ignore` SUR `docs/**` ET `*.md` — REFUSÉ.                       │
-# │    *Mesuré : 1 commit sur 29 ce mois-ci ne touche QUE de la documentation.*│
-# │    Le gain serait d'une exécution, ~14 minutes. Et il tomberait très      │
-# │    exactement au mauvais endroit : SIX gardiens de ce dépôt LISENT des    │
-# │    documents — câblage des arbitrages, cohérence du backlog, modèle de    │
-# │    données, organisation du code, unicité de la maquette, données du côté │
-# │    cloisonné. **Un commit qui ne touche que `docs/` est précisément celui │
-# │    que ces six-là existent pour juger.** Ignorer ces chemins éteindrait   │
-# │    le contrôle sur les commits qu'il garde. *Le découpage ferait passer   │
-# │    un défaut : on y renonce, et on l'écrit.*                              │
-# │                                                                          │
-# │ 2. CACHE DU MAGASIN `pnpm` — REFUSÉ, PARCE QU'IL EXISTE DÉJÀ.             │
-# │    `actions/setup-node` porte `cache: pnpm` sur les trois jobs, et la     │
-# │    mesure le confirme : *« Installer les dépendances » a mis 5 SECONDES*  │
-# │    sur l'exécution 34662151699. Il n'y a rien à y gagner, et un second    │
-# │    cache par-dessus le premier serait une seconde lecture d'un même       │
-# │    critère — celle qui diverge en silence.                                │
-# │                                                                          │
-# │ 3. `concurrency` AVEC `cancel-in-progress` — DÉJÀ EN PLACE, ci-dessous.   │
-# │    Il annule une exécution rendue caduque par la suivante sur la même     │
-# │    référence. Rien à ajouter ; écrit ici pour qu'on ne le rajoute pas.    │
-# │                                                                          │
-# │ 4. LES DEUX PORTES SONT DÉJÀ DÉCOUPÉES — `verify` sur les propositions,   │
-# │    `verify:full` sur `main` et la nuit. *Mesuré : aucune exécution ne     │
-# │    joue les deux ; sur `main`, `verify` est « skipped ».* Le doublon      │
-# │    n'est PAS dans une exécution, il est ENTRE les deux exécutions d'une   │
-# │    fusion — et le retirer supprimerait soit la porte d'avant la fusion,   │
-# │    soit celle d'après. *`verify:full` sur `main` rejoue `verify` sur un   │
-# │    ARBRE qui n'est pas forcément celui de la proposition : une branche en │
-# │    retard sur `main` produit une fusion que personne n'a vérifiée.*       │
-# └──────────────────────────────────────────────────────────────────────────┘
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -669,21 +623,15 @@ jobs:
   # qu'AU PREMIER RETOUR de quelqu'un, l'écran soit rouge.
   battement:
     name: battement — la nuit bat-elle encore ?
-    # ⚠ IL NE TOURNE PLUS SUR LES PROPOSITIONS — mesuré le 12/09/2026.
+    # IL NE TOURNE PAS SUR LES PROPOSITIONS, et la raison ne tient plus au coût.
     #
-    # **Un job est facturé à la MINUTE SUPÉRIEURE, quelle que soit sa durée.**
-    # Celui-ci met 23 secondes et coûte donc UNE MINUTE PLEINE, sur chaque
-    # exécution de CI. *Sur septembre 2026 : 423 exécutions, soit ~423 minutes
-    # facturées pour un contrôle de 2 secondes — 15 % de tout ce que le dépôt a
-    # consommé.* Les 159 exécutions de proposition en représentaient 159.
-    #
-    # **Ce que le retrait ne coûte pas, et c'est pour cela qu'il est fait ici
-    # plutôt qu'ailleurs.** Ce contrôle répond à une seule question — *la
-    # vérification NOCTURNE tourne-t-elle encore ?* — et sa réponse ne change
-    # pas en quelques minutes. Il reste sur `push` vers `main`, c'est-à-dire
-    # sur chaque fusion : *mesuré, 125 fois en septembre, soit plusieurs fois
-    # par jour ouvré.* Une proposition et sa fusion sont séparées de quelques
-    # minutes ; jouer le battement sur les deux mesurait deux fois le même état.
+    # Elle y tenait : ce job coûtait une minute pleine par exécution, et le
+    # quota était serré. Le quota ne l'est plus — le dépôt est public depuis le
+    # 12/09/2026. **Ce qui reste, et qui n'a jamais dépendu du quota** : une
+    # proposition et sa fusion sont séparées de quelques minutes, si bien que
+    # jouer le battement sur les deux mesure DEUX FOIS LE MÊME ÉTAT. La question
+    # qu'il pose — *la vérification nocturne tourne-t-elle encore ?* — n'a pas
+    # de réponse qui change en quelques minutes.
     #
     # **Ce qui ne bouge PAS, et qui est la raison d'être du job** (§9, 31/08) :
     # il ne tourne toujours PAS sur `schedule`. *Un contrôle qui ne s'exécute
@@ -696,7 +644,8 @@ jobs:
     # droits du jeton, et tout ce qui n'y figure pas tombe à `none`. La
     # première rédaction ne demandait que `actions: read` — `contents` est
     # donc passé à `none`, et `actions/checkout` a reçu « Repository not
-    # found » sur ce dépôt privé. Mesuré par contraste sur la même exécution :
+    # found » (le dépôt était alors privé). Mesuré par contraste sur la même
+    # exécution :
     # le job `verify`, qui ne déclare aucun bloc, a cloné sans difficulté.
     # Même famille que le `ON UPDATE CASCADE` de D49 — une valeur par défaut
     # qui répond à une question qu'on n'a pas posée.

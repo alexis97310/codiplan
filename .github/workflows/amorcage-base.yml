@@ -154,16 +154,43 @@ jobs:
           LANGUE: ${{ inputs.langue }}
           MAJORATION: ${{ inputs.majoration }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          # MÊME FORME QUE « Ouvrir le PREMIER compte », MOINDRE PORTÉE
+          # (12/09/2026). Ce que ce geste imprime volontairement n'est pas un
+          # secret — un UUID de ligne, qui se relit en base. Ce qu'il peut
+          # imprimer SANS L'AVOIR VOULU en est un : le script relance toute
+          # erreur qu'il ne reconnaît pas, et le message brut d'un pilote nomme
+          # l'hébergeur et la région (D50). Un `tee` rendait cela au journal à
+          # l'instant même où c'était produit — trop tard pour le masquer.
+          code=0
           pnpm exec tsx scripts/societe-initiale.mts \
             --code "$CODE" --raison-sociale "$RAISON" --pays "$PAYS" \
             --territoire "$TERRITOIRE" --fuseau "$FUSEAU" --devise "$DEVISE" \
             --langue "$LANGUE" --majoration "$MAJORATION" \
-            | tee /tmp/societe.txt
+            > /tmp/societe.txt 2>&1 || code=$?
+
+          # PREMIÈRE BARRIÈRE — le masque, posé AVANT tout rendu :
+          # « ::add-mask:: » ne vaut que pour la suite du journal, jamais pour
+          # ce qui est déjà écrit.
+          grep -oE '[a-z0-9+.-]+://[^[:space:]]+' /tmp/societe.txt > /tmp/urls-societe.txt || true
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            echo "::add-mask::$url"
+          done < /tmp/urls-societe.txt
+
+          # SECONDE BARRIÈRE — le retrait. C'est elle qui garde : un masque
+          # dépend d'une reconnaissance de chaîne et ne survit pas à un
+          # découpage sur deux lignes. Les deux ne se recouvrent pas.
+          sed -E 's#[a-z0-9+.-]+://[^[:space:]]+#(URL RETIRÉE DU JOURNAL)#g' \
+            /tmp/societe.txt > /tmp/societe-expurge.txt
+          cat /tmp/societe-expurge.txt
+          exit $code
 
       # L'identifiant de la société est ce que le geste suivant réclame. Il
       # n'est pas un secret — c'est un UUID de ligne — et il se relit en base ;
       # le porter au résumé évite de fouiller le journal depuis un téléphone.
+      # Le résumé a EXACTEMENT la même visibilité que le journal : il reçoit
+      # donc la version EXPURGÉE, jamais la brute.
       - name: Reporter l'identifiant de la société
         if: ${{ always() && inputs.creer_societe }}
         run: |
@@ -171,7 +198,7 @@ jobs:
             echo "## Société ouverte"
             echo
             echo '```'
-            cat /tmp/societe.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
+            cat /tmp/societe-expurge.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
             echo '```'
             echo
             echo "Reportez l'identifiant dans le flux **Ouvrir le PREMIER compte**."
