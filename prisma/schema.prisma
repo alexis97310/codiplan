@@ -96,6 +96,8 @@ model Societe {
   techniciens Technicien[]
   absences    Absence[]
 
+  trajets_par_zone TempsTrajetZone[]
+
   intervention_machines InterventionMachine[]
 
   demandes Demande[]
@@ -2211,6 +2213,58 @@ model Absence {
   @@unique([societe_id, id])
   @@index([societe_id, utilisateur_id, du, au])
   @@map("absence")
+}
+
+/// LE TEMPS DE TRAJET PAR ZONE — le DÉFAUT de D23, chiffré par D107 (R3-03).
+///
+/// RG-PLA-05 pose une cascade : *la valeur saisie sur le site fait foi ;
+/// l'estimation par zone n'est qu'un défaut appliqué en son absence.* Les six
+/// durées de cette estimation n'étaient écrites nulle part — mesuré à L3-05 —,
+/// et D107 les a arrêtées. Cette table porte ce qu'une SOCIÉTÉ en corrige.
+///
+/// **Elle ne remplace pas le défaut, elle le SURCHARGE.** Une société sans
+/// aucune ligne ici reçoit les valeurs de D107, et retirer une ligne rend la
+/// main au défaut — *jamais à zéro, qui se lirait « l'agence est sur place »*.
+/// C'est pourquoi il n'y a ni ligne obligatoire ni valeur par défaut en base :
+/// « non réglé » doit rester un état représentable, exactement comme « société
+/// sans charte » l'est pour les couleurs de L0-09.
+///
+/// **Le point de départ est l'AGENCE, jamais un autre site** (D56, D107) : ces
+/// durées sont des trajets ALLER depuis l'agence dont le site dépend. Rien ici
+/// ne dit ce que coûte un déplacement d'un site à un autre — *soustraire deux
+/// distances à un point commun n'est pas une distance*, et l'application l'écrit
+/// plutôt que de l'approcher.
+///
+/// **DONNÉE DE PLANIFICATION, ET RIEN D'AUTRE** (D74, D107) : elle sert au
+/// calcul de charge et aux tournées, et ne s'ajoute jamais aux heures facturées
+/// — le déplacement se facture par forfait de zone (RG-INT-07, RG-TAR-06).
+model TempsTrajetZone {
+  id         String @id @default(uuid()) @db.Uuid
+  societe_id String @db.Uuid
+
+  /// La zone, en TEXTE — l'énumération de D23 n'est pas fermée en base, et
+  /// c'est la même décision que pour `site.zone_geo` : ces six valeurs sont la
+  /// géographie d'UN territoire, et les figer ferait de la carte de la
+  /// Nouvelle-Calédonie une contrainte du produit (§9, 19/08 et 20/08). La
+  /// liste est tenue close à l'entrée serveur par `lib/sites/zones.ts`, et
+  /// l'ouvrir par société est l'objet de R3-04.
+  zone String
+
+  /// Minutes de trajet ALLER depuis l'agence. Strictement positif et borné à
+  /// une journée — ce n'est pas une règle de gestion mais la longueur d'un
+  /// jour, de la même nature que les bornes de `site.latitude`.
+  minutes Int
+
+  cree_le    DateTime @default(now()) @db.Timestamptz(3)
+  modifie_le DateTime @updatedAt @db.Timestamptz(3)
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// UNE valeur par zone et par société — deux lignes pour la même zone
+  /// rendraient indécidable celle qui s'applique.
+  @@unique([societe_id, zone])
+  @@unique([societe_id, id])
+  @@map("temps_trajet_zone")
 }
 
 /// L'habilitation EXIGÉE par un site (D9, RG-PLA-04, ticket L1-04).

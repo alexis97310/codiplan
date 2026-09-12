@@ -562,6 +562,25 @@ lib/
               et le troisième est le seul qui sépare deux sites d'un même client
               l'énumération des zones est close ICI, à l'entrée serveur, et
               délibérément pas en base — six valeurs d'UN territoire
+              trajet-zone.ts : LE DÉFAUT DE D23, CHIFFRÉ PAR D107 (R3-03) —
+              six durées qui n'étaient écrites nulle part, et le §8 refuse
+              d'inventer un délai
+              ce sont des DÉFAUTS et jamais des constantes : `temps_trajet_zone`
+              porte ce qu'une société en corrige, et une constante du dépôt
+              ferait d'une correction de terrain une demande de fusion
+              la CASCADE a trois étages et rend son ORIGINE — site, société,
+              défaut : « 90 » sans son origine ferait revoir les mauvaises
+              lignes le jour d'une correction (D56)
+              retirer un réglage rend la main au DÉFAUT, jamais à zéro — zéro se
+              lirait « l'établissement est sur place »
+              `iles` ne porte AUCUN nombre (D107) et UNE SEULE source le tient :
+              le schéma de saisie, la résolution et l'écran lisent
+              `DEFAUTS_TRAJET_ZONE` — et la résolution rend `null` MÊME si une
+              ligne existait, une garantie qui ne vit que dans la validation
+              d'entrée n'en étant pas une
+              le refus vit au SERVEUR et pas en base : un `CHECK` sur le nom de
+              la zone écrirait la géographie calédonienne dans le schéma, ce que
+              zones.ts refuse depuis D23 (R3-04)
   machines/   la fiche machine (L2-01) — saisie Zod, et les QUATRE champs
               obligatoires de D6 : modèle, client, site, numéro de série
               le numéro illisible se saisit `SN-INCONNU-<référence>` avec

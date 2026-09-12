@@ -775,6 +775,43 @@ export const fr = {
   "parametres.refus_pas":
     "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
 
+  // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────
+  //
+  // Les six durées de l'estimation par zone n'étaient écrites nulle part avant
+  // D107. Ce sont des DÉFAUTS modifiables, jamais des constantes : une société
+  // les corrige depuis cet écran, et sa correction vit en base. Les valeurs de
+  // référence, elles, sont dans `lib/sites/trajet-zone.ts` — ce fichier ne
+  // porte que ce qu'un humain lit.
+  "trajets.titre": "Temps de trajet par zone",
+  "trajets.sous_titre":
+    "Trajet aller depuis l'établissement dont dépend le lieu d'intervention. Une durée saisie sur sa fiche fait toujours foi ; celles-ci ne servent qu'en son absence.",
+  "trajets.colonne_zone": "Zone",
+  "trajets.colonne_defaut": "Valeur de référence",
+  "trajets.colonne_reglee": "Réglage de la société",
+  "trajets.colonne_applique": "Ce qui s'applique",
+  "trajets.colonne_action": "Régler",
+  "trajets.minutes": "minutes",
+  "trajets.non_reglee": "Non réglée",
+  "trajets.origine_societe": "réglage de la société",
+  "trajets.origine_defaut": "valeur de référence",
+  "trajets.enregistrer": "Enregistrer",
+  "trajets.retirer": "Revenir à la référence",
+  // D107, mot pour mot. Ce n'est pas une valeur qui manque : c'est une valeur
+  // qui n'existe pas à la maille de la zone — Lifou, Bélep et Ouvéa n'ont ni
+  // le même vol ni la même fréquence.
+  "trajets.sans_estimation_iles":
+    "Déplacement par avion — estimation impossible, à saisir par intervention.",
+  "trajets.refus":
+    "Un temps de trajet se règle en minutes entières, entre 1 et 1440, et seulement sur une zone qui admet une estimation.",
+  // Ce que cet écran affirme et ce qu'il n'affirme pas — écrit à l'écran plutôt
+  // que dans le code, parce que c'est celui qui règle qui doit le lire.
+  "trajets.explication_cascade":
+    "Trois niveaux, du plus fort au plus faible : la durée saisie sur la fiche du lieu d'intervention, puis le réglage de la société ci-dessus, puis la valeur de référence. Retirer un réglage rend la main à la référence — il n'écrit jamais zéro.",
+  "trajets.explication_planification":
+    "Donnée de planification, et rien d'autre : elle entre dans la charge et les tournées, jamais dans les heures facturées. Le déplacement se facture par un forfait de zone.",
+  "trajets.explication_inter_sites":
+    "Ces durées partent toutes de l'établissement. Le trajet d'un lieu d'intervention à un autre n'est pas connu, et il n'est pas compté.",
+
   // ── LA BARRE DE NAVIGATION — les onze entrées de la maquette (D95) ───────
   //
   // Onze, et dans cet ordre : c'est la barre que la maquette porte, et elle

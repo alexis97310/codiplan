@@ -68,6 +68,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       absence: 0,
       technicien: 0,
       technicien_calendrier: 0,
+      temps_trajet_zone: 0,
     },
     ...surcharge,
   };
@@ -109,6 +110,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         absence: 0,
         technicien: 0,
         technicien_calendrier: 0,
+        temps_trajet_zone: 0,
       },
     }),
   ];
@@ -168,6 +170,7 @@ describe("inventaire à plat", () => {
       absence: 0,
       technicien: 0,
       technicien_calendrier: 0,
+      temps_trajet_zone: 0,
     });
   });
 
