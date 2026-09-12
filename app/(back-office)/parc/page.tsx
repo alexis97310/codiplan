@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -124,7 +125,18 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
   return (
     <tr>
       <Cellule mono>
-        {referenceMachine(machine)}
+        {/*
+          LA RÉFÉRENCE EST LE LIEN VERS LA FICHE, et c'est ce qui donne un
+          appelant à l'union de L8-02. Une entrée dont l'écran n'existe pas est
+          INERTE, jamais un lien (D95) — ici l'écran existe, donc le lien se
+          pose.
+        */}
+        <Link
+          href={`/parc/${machine.id}`}
+          className="underline-offset-2 hover:underline"
+        >
+          {referenceMachine(machine)}
+        </Link>
         {machine.numero === null ? (
           <span className="text-app-encre-faible block font-sans text-[10.5px]">
             {t("parc.non_synchronisee")}

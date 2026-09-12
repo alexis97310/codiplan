@@ -1,11 +1,15 @@
 import { afterAll, describe, expect, it } from "vitest";
 
+import { Role } from "@/lib/auth/roles";
+import { documentsDeLaMachine } from "@/lib/documents/depot";
+
 import { exigence } from "./setup/contrat";
 import type { PrismaClient } from "@prisma/client";
 
 import {
   avecPortail,
   sousSociete,
+  clientApp,
   clientOwner,
   fermerClients,
   observerSousProprietaire,
@@ -22,10 +26,13 @@ import {
   FAMILLE_A,
   FAMILLE_A_AILLEURS,
   MACHINE_A1,
+  MACHINE_A2,
   MODELE_A,
   MODELE_A_AILLEURS,
+  PORTAIL_A_CLIENT,
   SITE_A1_S1,
   SOCIETE_A,
+  UTILISATEUR_INTERNE_A,
   VAR_CLIENT,
   VAR_PERIMETRE,
   VAR_SOCIETE,
@@ -119,6 +126,34 @@ const PORTAIL_RESTREINT = {
   clientId: CLIENT_A1,
   perimetreSites: [SITE_A1_S1],
 } as const;
+
+/**
+ * LES DEUX SESSIONS QUI TRAVERSENT LE CHEMIN DE PRODUCTION (L8-02).
+ *
+ * Elles ne doublent pas `PORTAIL_RESTREINT` : celui-ci sert les lectures brutes
+ * du harnais, celles-ci servent `documentsDeLaMachine`, qui pose son contexte
+ * lui-même par `lib/db/rls.ts`. **Le périmètre de sites n'y figure pas**, et ce
+ * n'est pas un oubli : `avecContexteApplicatif` le fait DÉRIVER de
+ * `app_poser_perimetre_client` à partir du client désigné (D70). Le lui donner
+ * ici serait précisément la désignation non validée que L1-02e refuse.
+ */
+const SESSION_PORTAIL = {
+  utilisateurId: PORTAIL_A_CLIENT,
+  societeId: SOCIETE_A,
+  role: Role.client,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: CLIENT_A1,
+};
+
+const SESSION_INTERNE = {
+  utilisateurId: UTILISATEUR_INTERNE_A,
+  societeId: SOCIETE_A,
+  role: Role.adv,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
 
 describe("le TÉMOIN PRÉALABLE — la politique est en vigueur et elle mord", () => {
   // §9, 07/09 : « un résultat qui vous surprend en bien est un soupçon sur la
@@ -452,22 +487,81 @@ describe("LA CIBLE UNIQUE, tenue par le SCHÉMA (L8-01)", () => {
 });
 
 describe("L'UNION de L8-02, sans qu'aucune ligne soit copiée", () => {
+  /*
+   * ── CE QUE CE BLOC A CHANGÉ LE 12/09/2026, ET POURQUOI ────────────────────
+   *
+   * Il composait son `where` À LA MAIN — `OR: [{ machine_id }, { modele_id }]`
+   * — et il était vert. **Le harnais armait donc une union que la PRODUCTION
+   * n'armait pas** : aucun module de `lib/` ne portait cette lecture, et aucun
+   * écran ne l'appelait. C'est mot pour mot la divergence mesurée à L1-02b,
+   * *deux implémentations d'un même contrat, chacune verte, qui s'écartent en
+   * silence* (§9, 01/09) — ici avec une seule des deux réellement écrite.
+   *
+   * Le bloc appelle désormais `documentsDeLaMachine`, la fonction que l'écran
+   * `/parc/[id]` appelle. Ce qui est éprouvé est le chemin de production, et
+   * non une variante écrite pour l'épreuve.
+   */
   it("l'écran d'une machine voit ses documents ET ceux de son modèle", async () => {
-    const union = await avecPortail(PORTAIL_RESTREINT, (tx) =>
-      tx.document.findMany({
-        where: {
-          OR: [{ machine_id: MACHINE_A1 }, { modele_id: MODELE_A }],
-        },
-        select: { id: true, modele_id: true, machine_id: true },
-      }),
+    const union = await documentsDeLaMachine(
+      SESSION_PORTAIL,
+      MACHINE_A1,
+      clientApp(),
     );
-    expect(union.map((d) => d.id).sort()).toEqual(
+    expect(union).not.toBeNull();
+    expect((union ?? []).map((d) => d.id).sort()).toEqual(
       [DOC_MACHINE_A1, DOC_MODELE_A].sort(),
     );
     // La DISTINCTION reste visible : un document de modèle se corrige une fois
     // pour toutes, un document de machine n'existe que là.
-    expect(union.filter((d) => d.modele_id !== null)).toHaveLength(1);
-    expect(union.filter((d) => d.machine_id !== null)).toHaveLength(1);
+    expect((union ?? []).filter((d) => d.origine === "modele")).toHaveLength(1);
+    expect((union ?? []).filter((d) => d.origine === "machine")).toHaveLength(
+      1,
+    );
+  });
+
+  it("une machine HORS PÉRIMÈTRE rend `null`, jamais une liste vide", async () => {
+    // `null` et `[]` ne se corrigent pas au même endroit : l'un dit « cette
+    // machine ne vous est pas visible », l'autre « elle n'a aucun document ».
+    // Les confondre ferait afficher une fiche vide là où il n'y a pas de fiche.
+    const hors = await documentsDeLaMachine(
+      SESSION_PORTAIL,
+      MACHINE_A2,
+      clientApp(),
+    );
+    expect(hors).toBeNull();
+
+    // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON (§9, 11/09) : la MÊME
+    // fonction, sous le MÊME compte, rend une liste NON VIDE sur sa machine.
+    // Sans cette moitié, `null` serait aussi bien la preuve que la fonction ne
+    // rend jamais rien.
+    const sienne = await documentsDeLaMachine(
+      SESSION_PORTAIL,
+      MACHINE_A1,
+      clientApp(),
+    );
+    expect(sienne).not.toBeNull();
+    expect((sienne ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("la CLASSE `interne` ne franchit pas le portail, et un compte interne la voit", async () => {
+    // Le rétrécissement de D93 traverse la fonction de production, et non
+    // seulement la politique : si `documentsDeLaMachine` avait ouvert sa propre
+    // connexion ou recomparé quoi que ce soit au-dessus, cette moitié tomberait.
+    const portail = await documentsDeLaMachine(
+      SESSION_PORTAIL,
+      MACHINE_A1,
+      clientApp(),
+    );
+    expect((portail ?? []).map((d) => d.id)).not.toContain(
+      DOC_MACHINE_A1_INTERNE,
+    );
+
+    const interne = await documentsDeLaMachine(
+      SESSION_INTERNE,
+      MACHINE_A1,
+      clientApp(),
+    );
+    expect((interne ?? []).map((d) => d.id)).toContain(DOC_MACHINE_A1_INTERNE);
   });
 
   it("une correction du document de modèle se voit sur TOUTES ses machines", async () => {

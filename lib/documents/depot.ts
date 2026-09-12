@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -244,4 +244,125 @@ export async function avancement(
       ecartes,
     };
   });
+}
+
+/**
+ * ── L'UNION DE L8-02, ET CE QU'ELLE ÉVITE ────────────────────────────────────
+ *
+ * D'où vient un document affiché sur la fiche d'une machine. **La distinction
+ * reste visible**, et c'est l'acceptation du ticket : *un document de modèle se
+ * corrige une fois pour toutes, un document de machine n'existe que là.* Un
+ * écran qui les mêlerait ferait supprimer une notice de gamme en croyant
+ * nettoyer un exemplaire.
+ */
+export type OrigineDocument = "modele" | "machine";
+
+/** Un document tel que la fiche d'une machine le montre. */
+export type DocumentDeMachine = {
+  readonly id: string;
+  readonly libelle: string;
+  readonly nom_fichier: string;
+  readonly type_mime: string;
+  readonly taille_octets: bigint;
+  readonly classe: "client" | "interne";
+  readonly date_document: Date | null;
+  readonly date_expiration: Date | null;
+  /** `modele` : partagé par tous les exemplaires. `machine` : propre à celui-ci. */
+  readonly origine: OrigineDocument;
+};
+
+const CHAMPS_DOCUMENT = {
+  id: true,
+  libelle: true,
+  nom_fichier: true,
+  type_mime: true,
+  taille_octets: true,
+  classe: true,
+  date_document: true,
+  date_expiration: true,
+  modele_id: true,
+  machine_id: true,
+} as const;
+
+/**
+ * LES DOCUMENTS D'UNE MACHINE — LES SIENS **ET** CEUX DE SON MODÈLE (L8-02).
+ *
+ * ## AUCUNE LIGNE N'EST COPIÉE, et c'est tout l'objet du ticket
+ *
+ * Une notice accrochée au modèle apparaît sur ses cinq cents exemplaires parce
+ * qu'elle est **lue** depuis chacun, jamais parce qu'elle y a été recopiée. *Le
+ * jour où le constructeur la corrige, on corrige une ligne et la correction se
+ * voit partout* — ce qu'une duplication rendrait impossible à tenir.
+ *
+ * ## POURQUOI LA MACHINE EST RELUE ICI, et non reçue de l'appelant
+ *
+ * L'union a besoin du `modele_id`. Le recevoir en argument laisserait un
+ * appelant nommer le modèle de son choix : la politique « ascendance » de D93
+ * le refuserait sans doute, mais *« sans doute » n'est pas une garantie*, et
+ * une borne qui vit dans la bonne volonté de l'appelant n'en est pas une
+ * (L1-02e). La machine est donc **relue sous le même contexte**, dans la même
+ * transaction, et le modèle vient d'elle.
+ *
+ * ## `null` ET `[]` NE SE CORRIGENT PAS AU MÊME ENDROIT
+ *
+ * `null` dit **« cette machine ne vous est pas visible »** — hors périmètre,
+ * hors société, ou inexistante, et les trois rendent la même chose : les
+ * distinguer ferait un oracle (D35, D50). `[]` dit **« elle n'a aucun
+ * document »**, ce qui est un fait sur le parc et non sur le droit de lire.
+ *
+ * ## AUCUNE COMPARAISON DE SOCIÉTÉ, DE CLIENT NI DE PÉRIMÈTRE N'EST ÉCRITE ICI
+ *
+ * Les deux lectures passent par `avecContexteApplicatif` : la forme « parc »
+ * décide de la machine, la forme « héritage » décide des documents, et la
+ * classe `interne` disparaît d'elle-même pour un compte de portail. *Une
+ * comparaison écrite au-dessus serait une seconde lecture d'un même critère* —
+ * verte aujourd'hui, permissive le jour où elle divergerait (§9, 01/09).
+ */
+export async function documentsDeLaMachine(
+  contexte: ContexteSession,
+  machineId: string,
+  client?: PrismaClient,
+): Promise<readonly DocumentDeMachine[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machine = await tx.machine.findUnique({
+        where: { id: machineId },
+        select: { id: true, modele_id: true },
+      });
+      if (machine === null) {
+        return null;
+      }
+      const lignes = await tx.document.findMany({
+        where: {
+          OR: [{ machine_id: machine.id }, { modele_id: machine.modele_id }],
+        },
+        select: CHAMPS_DOCUMENT,
+        // LES DOCUMENTS DE MODÈLE D'ABORD, comme le bac les traite d'abord
+        // (L8-07) : ce sont eux qui servent toutes les machines du modèle, et
+        // c'est par eux qu'on commence à chercher une procédure.
+        orderBy: [{ machine_id: "asc" }, { libelle: "asc" }, { id: "asc" }],
+      });
+      return lignes.map((ligne) => ({
+        id: ligne.id,
+        libelle: ligne.libelle,
+        nom_fichier: ligne.nom_fichier,
+        type_mime: ligne.type_mime,
+        taille_octets: ligne.taille_octets,
+        classe: ligne.classe,
+        date_document: ligne.date_document,
+        date_expiration: ligne.date_expiration,
+        // L'ORIGINE SE DÉDUIT DE LA CIBLE, elle ne se stocke pas : la contrainte
+        // `document_cible_unique` garantit qu'une colonne et une seule est
+        // renseignée (L8-01), si bien qu'une troisième valeur est impossible.
+        origine: ligne.machine_id === null ? "modele" : "machine",
+      }));
+    },
+    // `client` est pris pour la MÊME raison que partout ailleurs dans ce dépôt
+    // (L1-02d, `lib/absences/depot.ts`) : *une couche sans appelant ne se garde
+    // pas*, et le scénario qui prouve le cloisonnement doit pouvoir emprunter
+    // CE chemin contre la base jetable — sans quoi il éprouverait une variante
+    // écrite pour lui, ce qui est exactement la divergence de L1-02b.
+    client,
+  );
 }

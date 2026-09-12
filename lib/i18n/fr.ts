@@ -794,6 +794,28 @@ export const fr = {
   "parc.incompletes": "fiches à compléter",
   "parc.a_completer": "À compléter",
   "parc.non_synchronisee": "non synchronisée",
+  // ── LA FICHE D'UNE MACHINE ET SES DOCUMENTS (L8-02) ──────────────────────
+  //
+  // L'ORIGINE D'UN DOCUMENT EST AFFICHÉE, et ce n'est pas un ornement : *un
+  // document de modèle se corrige une fois pour toutes, un document de machine
+  // n'existe que là.* Un écran qui les mêlerait ferait supprimer une notice de
+  // gamme en croyant nettoyer un exemplaire.
+  "machine.retour": "\u2039 Retour au parc",
+  "machine.documents.titre": "Documents",
+  "machine.documents.sous_titre":
+    "Ceux de cette machine, et ceux de son mod\u00e8le \u2014 la m\u00eame ligne sert tous les exemplaires.",
+  "machine.documents.colonne_libelle": "Document",
+  "machine.documents.colonne_origine": "Port\u00e9 par",
+  "machine.documents.colonne_classe": "Visibilit\u00e9",
+  "machine.documents.colonne_fichier": "Fichier",
+  "machine.documents.origine.modele": "Le mod\u00e8le",
+  "machine.documents.origine.machine": "Cette machine",
+  "machine.documents.classe.client": "Client",
+  "machine.documents.classe.interne": "Interne",
+  "machine.documents.vide":
+    "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
+  "machine.documents.sans_octets":
+    "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
   "parc.borne":
     "Les premières fiches du parc, les incomplètes d'abord. La recherche et l'export viennent avec les écrans de lot 2.",
   "parametres.colonne_pas": "Pas",

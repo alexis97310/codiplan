@@ -770,37 +770,39 @@ Un backlog écrit six mois à l'avance est périmé quand on y arrive.
 
 **LE SOCLE DE DONNÉES EST CONSTRUIT le 13/09/2026** — L8-01 à L8-06. La question que D87 laissait ouverte — le cloisonnement d'un document de MODÈLE — a été tranchée par l'exploitation le matin même et instruite avec sa mesure : **D93**, deux formes de politique, « héritage » et « ascendance ». **LE BAC DE RÉCEPTION EST CONSTRUIT le même jour** — L8-07 : la déduplication par empreinte tenue par l'INDEX, les propositions qui ne classent jamais seules, la reprise sans table de session, le compteur dont le total explique chaque fichier reçu. Il a produit une **treizième forme de politique**, « interne » (**D94**), parce que le bac nomme des fichiers et qu'un nom de fichier révèle le parc — la fuite de D93 rentrait par la porte de service. Ce qui reste **écrit et non construit** : le **stockage**, *quand il aura un appelant* : `document.objet_cle` et `document_recu.objet_cle` disent où sont les octets, et aucun code ne les remplit. **L'écran du bac** manque aussi, et c'est lui l'appelant qui rendra le stockage dû.
 
+**LES SIX MARQUEURS MENTAIENT, ET C'EST MESURÉ le 12/09/2026.** Le paragraphe ci-dessus dit « LE SOCLE DE DONNÉES EST CONSTRUIT — L8-01 à L8-06 », et les six tickets portaient `LIBRE`. *Un ticket dont l'état ment est pire qu'un ticket bloqué* : `pnpm file` est une LECTURE, et une lecture fausse envoie une session refaire ce qui existe. Mesuré au schéma et aux scénarios — la contrainte `document_cible_unique` et son jumeau (L8-01), l'énumération `ClasseDocument` à deux valeurs (L8-03), les deux formes de D93 et leurs listes closes (L8-04), `objet_cle` sans colonne binaire (L8-05), `date_document` et `date_expiration` nullables et documentées comme inutilisées (L8-06). **Une seule moitié manquait vraiment, et pas là où le marqueur le disait** : l'union de L8-02 ne vivait QUE dans le scénario d'isolation, qui composait son `where` à la main. *Le harnais armait une union que la production n'armait pas* — la divergence de L1-02b, mot pour mot. `lib/documents/depot.ts` la porte désormais (`documentsDeLaMachine`), l'écran `/parc/[id]` l'appelle, et le scénario emprunte ce chemin-là.
+
 **Ce lot remplace le ticket L2-04**, qui posait la bonne question — la forme polymorphe de `document` — et n'en tirait pas un périmètre. La mesure de L2-04 reste acquise et ne se refait pas : *une colonne `entite_id` avec deux clés étrangères est un piège qui a l'air d'un verrou et rend la table inutilisable ; une colonne nullable par cible avec `num_nonnulls(...) = 1` fonctionne.*
 
 **L8-01** Le rattachement d'un document : au MODÈLE ou à la MACHINE, jamais aux deux.
-*File :* LIBRE
+*File :* LIVRÉ
 Un document s'accroche **au modèle** — notice, fiche technique, manuel d'atelier, identiques pour tous les exemplaires — **ou à la machine** — certificat de conformité, procès-verbal de mise en service, propres à un exemplaire. **Jamais aux deux, et c'est le SCHÉMA qui l'interdit**, pas une validation applicative : deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1`, la forme que L2-04 a mesurée comme fonctionnelle.
 *Acceptation :* une ligne à deux cibles est refusée par la contrainte NOMMÉE ; une ligne sans cible aussi ; le jumeau retire la contrainte et montre la ligne à deux cibles passer.
 
 **L8-02** L'écran d'une machine affiche l'UNION de ses documents et de ceux de son modèle.
-*File :* LIBRE
+*File :* LIVRÉ
 **C'est ce qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais pouvoir le corriger.** La distinction reste visible à l'écran — un document de modèle se corrige une fois pour toutes, un document de machine n'existe que là.
 *Acceptation :* un document ajouté au modèle apparaît sur toutes ses machines sans qu'aucune ligne ne soit copiée ; sa correction se voit partout.
 
 **L8-03** Deux classes de visibilité, et deux seulement : `client` et `interne`.
-*File :* LIBRE
+*File :* LIVRÉ
 **Liste close, produite par le SCHÉMA** — une énumération PostgreSQL, comme les statuts. *À cinq valeurs, personne ne classe juste* : une classification que l'on hésite à appliquer est appliquée au hasard, et un document mal classé est pire qu'un document absent.
 *Acceptation :* toute valeur hors des deux est refusée par la base.
 
 **L8-04** Le cloisonnement d'un document est HÉRITÉ de sa machine, et la classe ne fait que le RÉTRÉCIR.
-*File :* LIBRE
+*File :* LIVRÉ
 Société, site, habilitation : un document suit sa machine, **et rien n'est inventé ici**. La classe `interne` retire l'accès au portail ; elle n'ajoute aucun axe. **N'inventez pas une forme de politique de plus** — la forme « parc » existe, `intervention` vient de la prendre, et une dixième forme est un arbitrage, jamais un effet de bord.
 **TRANCHÉ LE 13/09/2026 — D93.** *Un compte de portail ne voit les documents d'un MODÈLE que si une machine de ce modèle se trouve dans son PROPRE PÉRIMÈTRE.* Sinon la présence d'une notice révèle la composition du parc des autres sites — un compte restreint à Ducos déduirait ce que Koné possède, et le cloisonnement fuirait par la liste des documents au lieu de fuir par les données. **Ce n'est donc pas la forme du document qui change, c'est le chemin d'accès au MODÈLE** : machine → site → habilitation, jamais société → modèle. Deux formes en sont sorties, et ce sont bien des ARBITRAGES et non des effets de bord : « héritage » pour `document`, « ascendance » pour `modele_materiel` et `famille_materiel`.
 *Acceptation :* un compte portail ne voit d'un document que ce que sa machine lui laisse voir ; **et rien du modèle dont il ne possède aucune machine visible** — ni la notice, ni son existence, ni un compteur à zéro qui la trahirait. Les deux formes nouvelles sont ARBITRÉES (D93) et gardées par des listes closes dans les deux sens.
 *Relu contre les sources citées le 13/09/2026 — empreinte `d20d6a8b`.*
 
 **L8-05** Fiche en base, octets dans un stockage d'objets, **même région que la base**.
-*File :* LIBRE
+*File :* LIVRÉ
 **Jamais de PDF dans PostgreSQL.** La région est la même pour la raison qui a déjà coûté un incident : la latence vers Sydney se paye à chaque aller-retour, et un objet qui traverse le Pacifique deux fois n'arrive pas.
 *Acceptation :* aucune colonne binaire sur `document` ; la région du stockage est vérifiée par le contrôle de mise en ligne.
 
 **L8-06** `date_document` et `date_expiration` **dès le premier jour**, même inutilisées.
-*File :* LIBRE
+*File :* LIVRÉ
 *Trois minutes maintenant, une migration douloureuse plus tard.* Ce n'est pas une colonne « au cas où » : un certificat porte une date d'émission et une date de fin de validité, et le lot 9 s'en servira.
 *Acceptation :* les deux colonnes existent et sont nullables ; aucun code ne les lit encore, et c'est écrit plutôt que tu.
 

@@ -105,3 +105,39 @@ export async function listerLeParc(
     }),
   );
 }
+
+/** Ce qu'une FICHE de machine porte, en plus de ce qu'une ligne de parc montre. */
+export const CHAMPS_FICHE = {
+  ...CHAMPS_PARC,
+  modele: {
+    select: {
+      reference: true,
+      marque: true,
+      famille: { select: { libelle: true } },
+    },
+  },
+} as const;
+
+export type FicheMachine = Prisma.MachineGetPayload<{
+  select: typeof CHAMPS_FICHE;
+}>;
+
+/**
+ * LA FICHE D'UNE MACHINE, ou `null`.
+ *
+ * **Une fiche hors périmètre et une fiche inexistante rendent LA MÊME chose.**
+ * Les distinguer ferait un oracle — celui-là même que D22 refuse sur le chemin
+ * du QR et que D35 refuse à la connexion : *un refus a le droit d'être lisible,
+ * jamais d'être informatif* (D50).
+ *
+ * Aucune comparaison de société n'est écrite ici : la politique de `machine`
+ * est de forme « parc », et c'est elle qui prononce.
+ */
+export async function lireMachine(
+  contexte: ContexteSession,
+  id: string,
+): Promise<FicheMachine | null> {
+  return avecContexteApplicatif(contexte, (tx) =>
+    tx.machine.findUnique({ where: { id }, select: CHAMPS_FICHE }),
+  );
+}
