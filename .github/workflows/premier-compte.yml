@@ -9,18 +9,29 @@ name: Ouvrir le PREMIER compte
 # (D65), la même URL imprimée UNE SEULE FOIS, et le même refus dès que la
 # société porte une habilitation.
 #
-# ── CE QUE CE FLUX COÛTE, ET IL EST ÉCRIT PLUTÔT QUE TU ─────────────────────
-# L'URL de premier accès porte un jeton à usage unique, valable UNE HEURE. Jouée
-# ici, elle entre dans le JOURNAL D'EXÉCUTION du flux : elle est donc lisible,
-# pendant cette heure, par quiconque a accès en lecture à ce dépôt. C'est le
-# prix du geste depuis un navigateur, et il n'est acceptable qu'à deux
-# conditions, toutes deux vérifiables :
-#   1. le dépôt est PRIVÉ (⚠️ voir « Avant de rendre ce dépôt public » au README) ;
-#   2. l'URL est suivie DANS L'HEURE, et le mot de passe choisi tout de suite —
-#      un jeton consommé n'ouvre plus rien.
-# Si l'une des deux n'est pas tenue, jouer le script depuis un poste : le
-# journal n'existe alors pas. Et si le jeton expire avant d'être suivi,
-# `reemettre` en rend un autre TANT QUE personne n'a choisi de mot de passe.
+# ── CE FLUX N'IMPRIME PLUS L'URL, ET LA RAISON EST DATÉE (12/09/2026) ───────
+# Il l'imprimait, et il le DISAIT : « elle entre dans le journal d'exécution,
+# lisible par quiconque a accès en lecture à ce dépôt ». La condition qui
+# rendait cela acceptable était « le dépôt est PRIVÉ ». Or cette condition
+# tient à un ATTRIBUT DU DÉPÔT, qui change d'un clic — et le jour où il change,
+# GitHub ne republie pas seulement l'avenir : IL PUBLIE AUSSI LE PASSÉ. Les
+# journaux déjà écrits deviennent lisibles, avec leur jeton dedans.
+#
+# Une garantie conditionnée à un attribut qu'un clic modifie n'est pas une
+# garantie : c'est un pari sur l'ordre des gestes. Le flux fait donc désormais
+# le travail privilégié — ouvrir l'identité, ou réémettre — SANS JAMAIS RENDRE
+# L'URL : elle est retirée de ce qui est imprimé, et masquée par surcroît.
+#
+# Le lien se récupère depuis un poste, par `--reemettre`, dont la sortie ne
+# vit dans aucun journal. Le cliquet de D65 tient cette voie ouverte tant que
+# PERSONNE n'a choisi de mot de passe, et la ferme pour toujours ensuite.
+#
+# Ce que cela COÛTE, écrit plutôt que tu : le geste n'est plus entièrement
+# suivable depuis un téléphone. La moitié privilégiée l'est ; la délivrance du
+# lien demande un terminal. Le rendre de nouveau cliquable exige un canal
+# PRIVÉ — un envoi par courriel (Resend est à la pile, §2, mais n'est ni câblé
+# ni doté d'un secret) —, et c'est un arbitrage d'exploitation, pas une
+# décision de flux.
 #
 # IMPÉRATIF, comme pour db-migrate.yml : aucun déclenchement automatique. Un
 # geste qui ouvre une identité ne part jamais tout seul.
@@ -146,33 +157,73 @@ jobs:
           BASE: ${{ inputs.base }}
           REEMETTRE: ${{ inputs.reemettre }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          # LA SORTIE NE VA PAS AU JOURNAL : elle va dans un fichier, et c'est
+          # une version EXPURGÉE qui est rendue. Un `tee` rendait l'URL au
+          # moment même où elle était produite — trop tard pour la masquer.
+          code=0
           if [ "$REEMETTRE" = "true" ]; then
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --reemettre --societe "$SOCIETE" --email "$EMAIL" --base "$BASE" \
-              | tee /tmp/amorcage.txt
+              > /tmp/amorcage.txt 2>&1 || code=$?
           else
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --societe "$SOCIETE" --email "$EMAIL" --nom "$NOM" \
               --role "$ROLE" --base "$BASE" \
-              | tee /tmp/amorcage.txt
+              > /tmp/amorcage.txt 2>&1 || code=$?
           fi
 
-      # Le résumé d'exécution est plus facile à lire depuis un téléphone que le
-      # journal brut. Il a EXACTEMENT la même visibilité que lui : ce n'est pas
-      # une protection, c'est un confort, et le dire évite qu'on le prenne pour
-      # l'autre.
-      - name: Reporter la sortie dans le résumé
+          # PREMIÈRE BARRIÈRE — le masque. Il est posé AVANT que quoi que ce
+          # soit soit rendu : `::add-mask::` ne vaut que pour la suite du
+          # journal, jamais pour ce qui est déjà écrit.
+          grep -oE 'https?://[^[:space:]]+' /tmp/amorcage.txt > /tmp/urls.txt || true
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            echo "::add-mask::$url"
+            jeton=${url##*/}
+            jeton=${jeton%%\?*}
+            [ -n "$jeton" ] && echo "::add-mask::$jeton"
+          done < /tmp/urls.txt
+
+          # SECONDE BARRIÈRE — le retrait. C'est elle qui garde vraiment : un
+          # masque dépend d'une reconnaissance de chaîne, et il ne survivrait
+          # pas à un découpage de l'URL sur deux lignes. Les deux ne se
+          # recouvrent pas, et aucune ne remplace l'autre.
+          sed -E 's#https?://[^[:space:]]+#(URL RETIRÉE DU JOURNAL — voir le résumé)#g' \
+            /tmp/amorcage.txt > /tmp/amorcage-expurge.txt
+          cat /tmp/amorcage-expurge.txt
+          exit $code
+
+      # Le résumé a EXACTEMENT la même visibilité que le journal : ce n'est pas
+      # une protection, c'est un confort. Il reçoit donc la version EXPURGÉE,
+      # jamais la brute — la distinction est tout l'objet du 12/09/2026.
+      - name: Reporter la sortie EXPURGÉE dans le résumé
         if: always()
         run: |
           {
             echo "## Ouverture du premier compte"
             echo
-            echo "L'URL ci-dessous porte un jeton **à usage unique**, valable **une heure**."
-            echo "Elle est lisible par quiconque a accès en lecture à ce dépôt."
-            echo "Suivez-la maintenant, choisissez un mot de passe, activez le second facteur."
+            echo "**L'URL de premier accès n'est PAS imprimée ici.** Le journal et ce"
+            echo "résumé sont lisibles par quiconque peut lire le dépôt, et ils le"
+            echo "restent après coup : un dépôt rendu public publie aussi son passé."
             echo
             echo '```'
-            cat /tmp/amorcage.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
+            cat /tmp/amorcage-expurge.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
             echo '```'
+            echo
+            echo "### Comment récupérer le lien"
+            echo
+            echo "Depuis un poste, avec la chaîne de migration de la base visée."
+            echo "La réémission rend un jeton NEUF tant que personne n'a choisi de"
+            echo "mot de passe ; elle se ferme pour toujours ensuite (D65)."
+            echo
+            echo '```bash'
+            echo "AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \\"
+            echo "DATABASE_URL='<chaîne de migration>' \\"
+            echo "pnpm exec tsx scripts/amorcage-premier-compte.mts \\"
+            echo "  --reemettre --societe <uuid> --email <courriel> --base <url>"
+            echo '```'
+            echo
+            echo "Ce geste n'écrit son URL dans aucun journal : elle ne vit que dans"
+            echo "le terminal qui l'a demandée."
           } >> "$GITHUB_STEP_SUMMARY"

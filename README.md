@@ -946,6 +946,12 @@ Son cliquet est un **fait** de la ligne de `compte` — `mot_de_passe IS NULL`, 
 
 **Le seed pose maintenant le moyen de connexion AU REPOS.** Il ne l'a jamais fait : mesuré le 11/09, `compte` portait **zéro ligne** après un seed, si bien que ni l'amorçage (« la société porte déjà des habilitations ») ni la réémission (« l'identité ne porte aucun moyen de connexion ») ne pouvaient servir les identités de démonstration. Chaque identité semée reçoit donc une ligne de `compte` à `mot_de_passe NULL` — **exactement l'état que l'amorçage laisse derrière lui** —, et la réémission sait s'en servir. _Aucun mot de passe n'entre au dépôt_ : il n'en existe aucun tant que personne n'en a choisi un, et le seed **s'abstient** dès qu'une ligne existe, le cliquet de D65 ne se rouvrant jamais.
 
+**LE FLUX « Ouvrir le PREMIER compte » N'IMPRIME PLUS L'URL (12/09/2026).** Il l'imprimait, et il le disait en tête : _« elle entre dans le journal d'exécution, lisible par quiconque a accès en lecture à ce dépôt »_. Ce qui rendait cela acceptable était la condition _« le dépôt est PRIVÉ »_ — et cette condition tient à un **attribut du dépôt**, qui change d'un clic. **Le clic ne publie pas seulement l'avenir : il publie le passé**, jeton compris. Une garantie qui repose sur un attribut extérieur à la chose garantie n'en est pas une ; c'est la leçon d'É12 sur la planification nocturne, appliquée ici à un secret plutôt qu'à une alarme.
+
+Le flux fait donc toujours le travail privilégié — ouvrir l'identité, ou réémettre — mais **il ne rend jamais l'URL** : elle est retirée de ce qui est imprimé, et masquée par surcroît. Les deux barrières ne se recouvrent pas et aucune ne remplace l'autre : le retrait garde, le masque rattrape un chemin qu'on n'aurait pas vu. `tests/unit/ci/url-hors-journal.test.ts` refuse le retour de la faute, et il fait **prononcer** l'expression d'expurgation sur une URL réellement formée plutôt que d'en comparer le texte.
+
+**Le lien se récupère depuis un poste**, par la réémission ci-dessus, dont la sortie ne vit dans aucun journal. _Ce que cela coûte est écrit plutôt que tu_ : le geste n'est plus entièrement suivable depuis un téléphone — la moitié privilégiée l'est, la délivrance du lien demande un terminal. Le rendre de nouveau cliquable exige un canal **privé** ; Resend est à la pile (§2) mais n'est ni câblé ni doté d'un secret, et c'est un arbitrage d'exploitation, pas une décision de flux.
+
 **Sa condition de retrait est constatée par la machine :** `tests/unit/auth/amorcage-retrait.test.ts` échoue dès qu'un appel à `signUpEmail` apparaît hors du geste et hors des tests. Le jour où la porte principale s'ouvre, l'exception doit disparaître, et personne n'a à s'en souvenir.
 
 ## La documentation des machines — le chemin d'accès au modèle passe par la machine
@@ -1303,6 +1309,15 @@ pas couvert : il sera lu contre le chapitre 10 le jour où on l'écrira.
 La planification nocturne ne survit à l'inactivité **que parce que le dépôt est privé**. GitHub désactive automatiquement les flux planifiés après **60 jours** sans activité, et cette règle **ne vise que les dépôts publics** ; un fork la remet en vigueur lui aussi, les flux planifiés d'un dépôt forké étant désactivés par défaut.
 
 La protection ne tient donc pas au fichier de flux : elle tient à un **attribut du dépôt**, qui change d'un clic et sans rien annoncer. C'est pourquoi la même mise en garde est écrite en tête de `.github/workflows/ci.yml` — là où quelqu'un qui change la visibilité la rencontrera —, et c'est le job `battement` qui rattrape le cas si elle est franchie quand même.
+
+**Et la visibilité ne publie pas que le présent : elle publie LE PASSÉ.** Les journaux d'exécution déjà écrits deviennent lisibles le jour du clic, avec ce qu'ils portent. C'est ce qui a retiré au flux « Ouvrir le PREMIER compte » le droit d'imprimer son URL (voir plus haut), et c'est ce qu'il faut regarder avant de basculer :
+
+| À vérifier avant le clic                                                                                                                                          | Où                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Aucune exécution passée ne porte un jeton dans son journal ou son résumé                                                                                          | onglet **Actions**, flux « Ouvrir le PREMIER compte » |
+| Le courriel de l'auteur des commits devient public                                                                                                                | métadonnées git, 187 commits                          |
+| `docs/arbitrages.md` et `docs/cahier-des-charges.md` portent le taux horaire, la doctrine de facturation, **et le modèle tarifaire et la marge** (§22.6 et §22.7) | sources de rang 1 et 5                                |
+| `prisma/seed-data.ts` nomme quatre techniciens par leur patronyme                                                                                                 | jeu de démonstration                                  |
 
 ## Organisation
 
