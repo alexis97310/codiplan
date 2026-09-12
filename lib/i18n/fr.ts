@@ -772,6 +772,48 @@ export const fr = {
   "type_forfait.controle": "Contrôle",
   "type_forfait.prestation": "Prestation",
 
+  // ── L'ÉCRITURE DU CATALOGUE (R2-20) ─────────────────────────────────────
+  //
+  // Le catalogue naissait vide PAR DÉCISION, et il le restait : aucun chemin
+  // ne permettait d'y mettre une ligne autrement qu'en SQL.
+  "forfaits.creer": "Ajouter un forfait",
+  "forfaits.modifier": "Modifier",
+  "forfaits.enregistrer": "Enregistrer",
+  "forfaits.retour": "‹ Retour au catalogue",
+  "forfaits.champ.code": "Code",
+  "forfaits.champ.libelle": "Libellé",
+  "forfaits.champ.type": "Type",
+  "forfaits.champ.rang": "Rang",
+  "forfaits.champ.montant": "Montant, en unités mineures",
+  "forfaits.champ.cumulable": "Cumulable avec le temps passé",
+  "forfaits.champ.actif": "Actif",
+  "forfaits.champ.zone": "Zone géographique",
+  "forfaits.champ.zone_aucune": "Toutes les zones",
+  "forfaits.actions": "Actions",
+  "forfaits.activer": "Activer",
+  "forfaits.desactiver": "Désactiver",
+  // Un forfait ne se SUPPRIME pas : une intervention le désigne, et une facture
+  // émise sous un forfait disparu ne s'explique plus.
+  "forfaits.desactiver_explication":
+    "Un forfait ne se supprime pas : il se désactive. Une intervention peut le désigner, et une facture émise sous un forfait disparu ne s'expliquerait plus.",
+  "forfaits.refus.rang_pris":
+    "Ce rang est déjà pris pour ce type de forfait. Le rang décide de la priorité entre forfaits du même type ; il ne se compare qu'entre pairs, et deux forfaits ne peuvent pas partager le même.",
+  "forfaits.refus.code_pris":
+    "Ce code est déjà utilisé dans le catalogue. Le code est la clé du forfait : il identifie la ligne, y compris dans un import.",
+  "forfaits.refus.doublon":
+    "Le catalogue refuse ce forfait comme doublon, sans que la base ait dit lequel du code ou du rang était déjà pris. Vérifier les deux.",
+  "forfaits.refus.famille_hors_societe":
+    "Cette famille de matériel n'appartient pas à votre société.",
+  "forfaits.refus.devise_inconnue":
+    "La devise de cette société n'est pas connue du référentiel.",
+  "forfaits.refus.introuvable":
+    "Ce forfait est introuvable dans votre catalogue.",
+  "forfaits.refus.condition_non_retirable":
+    "Une condition posée ne se retire pas par une modification : désactiver ce forfait et en créer un autre sans cette condition.",
+  "forfaits.refus.saisie":
+    "La saisie est refusée : vérifier le code, le libellé, le rang (entier positif) et le montant (entier, en unités mineures).",
+  "forfaits.refus.sans_devise":
+    "Cette société ne porte aucune devise : un forfait ne peut pas être créé tant qu'elle n'en a pas.",
   "forfaits.titre": "Forfaits applicables",
   "forfaits.sous_titre":
     "Pour une zone donnée, quels forfaits s'appliquent et dans quel ordre.",
