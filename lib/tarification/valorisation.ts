@@ -1,5 +1,7 @@
 import { arrondirAuPlusProche, montant, type Montant } from "@/lib/money";
 
+import type { VerdictMajoration } from "./majoration";
+
 /**
  * VALORISATION DE LA MAIN-D'ŒUVRE — arrondi et plancher (RG-TAR-05, D83).
  *
@@ -170,8 +172,16 @@ export function valoriserTempsPasse(
  * se calcule sur `temps_reel_min`, arrondi puis planché, et les minutes hors
  * ouverture se lisent sur le créneau. Une intervention de 30 minutes dans un
  * créneau de 16 h à 18 h, l'agence fermant à 17 h, se majore de 0 % ou de 50 %
- * **selon la base retenue** — et cela change ce qu'un client paie. *Question
- * portée à l'exploitation plutôt que tranchée en séance.*
+ * **selon la base retenue** — et cela change ce qu'un client paie. ~~*Question
+ * portée à l'exploitation plutôt que tranchée en séance.*~~
+ *
+ * **TRANCHÉE LE 12/09/2026 — D108 : le prorata se lit sur le CRÉNEAU**, et la
+ * majoration entre donc dans le total (L2-09b). *La phrase est barrée et non
+ * effacée : elle a gouverné ce module, et ce qui a été décidé un jour se relit.*
+ * Le calcul vit dans `majoration.ts` — il a besoin du créneau et du calendrier,
+ * que ce module ne connaît pas — et il arrive ici sous la forme d'un VERDICT,
+ * jamais d'un nombre nu : *un supplément absent et un supplément nul ne se
+ * corrigent pas au même endroit.*
  */
 export type ModeDeValorisation =
   "forfait" | "temps_passe" | "forfait_plus_heures";
@@ -183,6 +193,14 @@ export type ValorisationIntervention = {
   readonly forfaitDeplacement: Montant | null;
   /** La main-d'œuvre, quand le mode en facture — `null` sinon. */
   readonly mainDoeuvre: Montant | null;
+  /**
+   * La MAJORATION hors ouverture retenue (D12, D108), ou `null`.
+   *
+   * Rendue à côté des autres termes parce qu'un total doit s'expliquer par ce
+   * qui le compose : *un client qui ne peut pas recalculer un montant ne peut
+   * pas le contester, et c'est pire que de le contester.*
+   */
+  readonly majoration: Montant | null;
   /**
    * Le total hors taxes, ou `null` quand il ne se calcule pas.
    *
@@ -207,21 +225,43 @@ function exigeUnForfaitDePrestation(mode: ModeDeValorisation): boolean {
 
 /**
  * Compose le total hors taxes d'une intervention, dans l'ordre de D11 :
- * **forfaits applicables → heures → total HT**.
+ * **forfaits applicables → heures → MAJORATION → total HT**.
  *
- * La majoration n'y figure pas (voir l'en-tête). L'ordre est respecté même là
- * où l'addition est commutative : *il fige la lecture*, et le jour où un terme
- * dépendra d'un autre, la règle restera lisible au lieu de devenir ambiguë.
+ * L'ordre est respecté même là où l'addition est commutative : *il fige la
+ * lecture*, et le jour où un terme dépendra d'un autre, la règle restera
+ * lisible au lieu de devenir ambiguë. La majoration vient **après** les heures
+ * parce qu'elle en dérive — son assiette EST la main-d'œuvre (D12).
+ *
+ * ## LA MAJORATION EST UN ARGUMENT OBLIGATOIRE, et c'est délibéré
+ *
+ * Un appelant qui l'oublierait **ne compile pas**. C'est la leçon de D70 telle
+ * que `occupationTechnicien` l'applique déjà au trajet : *une garantie énoncée
+ * en termes de ce qu'il faut faire se referme un étage plus bas, et le gardien
+ * reste vert* (§9, 09/09). Un paramètre facultatif aurait valu zéro par défaut,
+ * et **zéro se lit « rien à majorer »** là où il faudrait lire « personne n'a
+ * regardé ».
+ *
+ * Et c'est un VERDICT, jamais un montant nu : quand la majoration n'est pas
+ * calculable — un créneau absent —, le total est `null` **avec le motif de la
+ * majoration**, parce qu'une facture amputée d'un supplément dû est fausse.
  */
 export function valoriserIntervention(parametres: {
   readonly mode: ModeDeValorisation;
   readonly forfaitDeplacement: Montant | null;
   readonly mainDoeuvre: Montant | null;
+  readonly majoration: VerdictMajoration;
 }): ValorisationIntervention {
   const { mode, forfaitDeplacement } = parametres;
   const mainDoeuvre = factureDesHeures(parametres.mode)
     ? parametres.mainDoeuvre
     : null;
+  // Le supplément n'existe que si des heures sont facturées : l'assiette de D12
+  // est la main-d'œuvre, et majorer une intervention au forfait reviendrait à
+  // majorer ce qui ne dépend pas de l'heure.
+  const majoration =
+    mainDoeuvre !== null && parametres.majoration.connue
+      ? parametres.majoration.majoration.supplement
+      : null;
 
   if (exigeUnForfaitDePrestation(mode)) {
     // Rien ne sélectionne de forfait de prestation : le total est INCONNU, et
@@ -231,6 +271,7 @@ export function valoriserIntervention(parametres: {
       mode,
       forfaitDeplacement,
       mainDoeuvre,
+      majoration,
       totalHT: null,
       motifTotalInconnu: "intervention.total.forfait_de_prestation_absent",
     };
@@ -241,8 +282,41 @@ export function valoriserIntervention(parametres: {
       mode,
       forfaitDeplacement,
       mainDoeuvre,
+      majoration,
       totalHT: null,
       motifTotalInconnu: "intervention.total.main_doeuvre_absente",
+    };
+  }
+
+  // LA MAJORATION EST JUGÉE AVANT LE FORFAIT, et l'ordre porte le sens : un
+  // supplément qu'on ne sait pas calculer rend le total inconnu, quel que soit
+  // le reste. Le dire après le forfait ferait rendre un total complet sur une
+  // intervention dont le supplément manque.
+  if (!parametres.majoration.connue) {
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      majoration,
+      totalHT: null,
+      motifTotalInconnu: parametres.majoration.motif,
+    };
+  }
+
+  const supplement = parametres.majoration.majoration.supplement;
+
+  if (supplement.devise !== mainDoeuvre.devise) {
+    // I2, comme ci-dessous : deux devises dans une même intervention est un
+    // état que rien ne devrait produire, et l'additionner fabriquerait un
+    // montant faux. Le contrôle est ici plutôt que dans `majoration.ts` parce
+    // que c'est ICI que les termes se rencontrent.
+    return {
+      mode,
+      forfaitDeplacement,
+      mainDoeuvre,
+      majoration,
+      totalHT: null,
+      motifTotalInconnu: "intervention.total.devises_incompatibles",
     };
   }
 
@@ -254,7 +328,11 @@ export function valoriserIntervention(parametres: {
       mode,
       forfaitDeplacement,
       mainDoeuvre,
-      totalHT: mainDoeuvre,
+      majoration,
+      totalHT: montant(
+        mainDoeuvre.valeur + supplement.valeur,
+        mainDoeuvre.devise,
+      ),
       motifTotalInconnu: null,
     };
   }
@@ -267,6 +345,7 @@ export function valoriserIntervention(parametres: {
       mode,
       forfaitDeplacement,
       mainDoeuvre,
+      majoration,
       totalHT: null,
       motifTotalInconnu: "intervention.total.devises_incompatibles",
     };
@@ -276,8 +355,9 @@ export function valoriserIntervention(parametres: {
     mode,
     forfaitDeplacement,
     mainDoeuvre,
+    majoration,
     totalHT: montant(
-      forfaitDeplacement.valeur + mainDoeuvre.valeur,
+      forfaitDeplacement.valeur + mainDoeuvre.valeur + supplement.valeur,
       mainDoeuvre.devise,
     ),
     motifTotalInconnu: null,

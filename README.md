@@ -52,6 +52,7 @@ pnpm battement        # la vérification NOCTURNE tourne-t-elle encore ?
 pnpm deploiement:verifier # LA PRODUCTION DÉPLOYÉE EST-ELLE DEBOUT ? (R3-01)
                       # 0 sain · 1 écart CONSTATÉ · 75 rien constaté
                       # elle NE MIGRE RIEN : elle nomme le geste
+                      # sans URL_PRODUCTION elle ROUGIT, elle ne saute pas
 
 pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
                       # et rendre la base rejouable — il n'applique RIEN
@@ -1284,6 +1285,16 @@ pas couvert : il sera lu contre le chapitre 10 le jour où on l'écrira.
 ## Intégration continue
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
+
+### ⚠ Les _Issues_ sont DÉSACTIVÉES sur ce dépôt — l'alarme d'É12 ne peut rien ouvrir
+
+_Mesuré le 12/09/2026 à 05:59:13 UTC :_ `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »**, `list_issues` rend **0 issue / total 0**, et `pulls/133` rend **404** — donc **#133 était bien une issue** : elles ont existé, ont servi, et sont aujourd'hui désactivées.
+
+**L'écart É12 est donc inopérant.** Il avait été fermé par la phrase _« une issue rend la question du courriel sans objet : elle vit DANS le dépôt »_, mesurée contre deux échecs nocturnes restés non lus dans une boîte le 20 août. Le canal est clos ; toute nuit rouge sonne dans le vide — la même pièce vide, sous un autre costume.
+
+**Le sursis, et ce n'est pas une réparation** : l'alarme écrit son corps dans le **résumé de l'exécution** et en **annotation** _avant_ de tenter l'issue, puis rougit en nommant le geste. _Une alarme qui ne peut pas sonner doit le dire, et dire quand même ce qu'elle avait à dire._ Mais un résumé d'exécution **expire avec la rétention** ; une issue attend qu'on la lise.
+
+**Le geste :** Settings → General → Features → cocher **Issues**. Voir **R3-07** au backlog.
 
 ### Qui voit une nuit rouge — deux alarmes, et la seconde garde la première
 

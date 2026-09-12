@@ -807,10 +807,33 @@ lib/
               jamais zéro : une intervention au forfait se clôturait à ZÉRO, et
               zéro se lit « gratuit » là où il faut lire « je ne sais pas
               encore » — rien ne sélectionne de forfait de PRESTATION
-              la MAJORATION n'y est pas : son taux et son assiette sont écrits
-              (D12), la BASE de son prorata ne l'est pas — la main-d'œuvre se
-              calcule sur le temps réel arrondi, les minutes hors ouverture se
-              lisent sur le créneau, et les deux ne coïncident pas (issue #133)
+              ~~la MAJORATION n'y est pas : son taux et son assiette sont
+              écrits (D12), la BASE de son prorata ne l'est pas~~ — **D108 L'A
+              TRANCHÉE** (12/09) : le prorata se lit sur le CRÉNEAU, et la
+              majoration entre dans le total depuis L2-09b. La phrase est barrée
+              et non effacée : elle a gouverné ce module
+              majoration.ts : LA CONTRAINTE D'UN CRÉNEAU, PAS LES MINUTES
+              TRAVAILLÉES (L2-09b, D12, D13, D108) — *le client a fait bloquer
+              la soirée d'un technicien ; qu'il finisse tôt ne rend pas la
+              soirée disponible*
+              les deux bornes du créneau sont OBLIGATOIRES : un créneau absent
+              traité comme « entièrement ouvert » rendrait ZÉRO là où il faut
+              lire « je ne sais pas », et personne ne le verrait
+              le calendrier arrive AVEC l'agence dont il provient, et une
+              discordance LÈVE (D13) — `agence_id` de l'intervention est à
+              portée de main, et ce n'est PAS elle qui décide (I7)
+              ce n'est pas le calendrier de TRAVAIL du technicien : ce que la
+              majoration paie est l'indisponibilité de l'ÉTABLISSEMENT, pas la
+              disponibilité de la personne
+              DEUX arrondis, et le second se fait sur le PREMIER : un client qui
+              lit l'assiette doit pouvoir en prendre la moitié et retrouver le
+              supplément — une arithmétique fausse à l'œil ouvre un litige
+              qu'on ne saurait pas expliquer
+              les QUATRE motifs sont prononcés ICI et nulle part ailleurs : le
+              dépôt rapporte ce qu'il a observé, ce module décide
+              la majoration est un ARGUMENT OBLIGATOIRE de
+              `valoriserIntervention` — un appelant qui l'oublie ne compile pas
+              (la leçon de D70), et un paramètre facultatif aurait valu zéro
               taux-initial.ts : le PREMIER taux d'une société, geste
               d'exploitation SÉPARÉ de l'amorçage (09/09) — refuse dès qu'un
               taux existe ; ni montant ni date codés ici, tous deux fournis
@@ -1542,5 +1565,15 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   **La règle : quand une consigne demande un GESTE HUMAIN à un moment précis, le dispositif doit produire la demande à ce moment-là — sinon la consigne est un vœu.** La réparation n'est pas une relecture plus attentive, et ce n'est pas non plus un rappel de plus : ce sont **deux pièces de nature différente**, et il faut les deux. *Un RAPPEL* — la fusion écrit elle-même l'avertissement, champ par champ, dans le résumé de l'exécution qu'elle déclenche : gratuit, parce qu'il vit dans un job qui tourne déjà. *Une MESURE* — un contrôle qui ouvre la sonde du déploiement après la fusion, rougit si la base est restée en arrière, et ouvre une issue dans le dépôt. **Le rappel se lit ou ne se lit pas ; la mesure rougit.** C'est le couple préventif/détectif du 30/08, et les deux moitiés sont aussi indépendantes ici que là-bas : un rappel qu'on ignore laisse la mesure faire son travail, et une mesure qu'on n'a pas encore écrite laisse au moins le rappel une chance.
 
   *Corollaire sur la FORME du rappel, et il coûte une ligne à écrire :* un rappel qui dit « pense à migrer » n'est pas un geste, c'est un reproche. Celui-ci nomme le flux, le champ, la valeur de chaque champ, et la case à laisser décochée — la même exigence que D56 sur un nombre : *ce qui ne porte pas de quoi être exécuté sera interprété.*
+
+- **12/09/2026 — J'AI ÉTENDU UNE ALARME SANS MESURER QU'ELLE AVAIT SONNÉ UNE SEULE FOIS.** Espèce à ranger à côté de l'état affirmé au lieu d'être observé (07/09), avec une aggravation : *l'état que je n'ai pas observé n'était pas une donnée, c'était le FONCTIONNEMENT d'un dispositif sur lequel je construisais.*
+
+  R3-01 ajoute une troisième nature à l'alarme d'É12 — *« une base déployée en retard ouvre une issue dans le dépôt »* —, et le raisonnement était impeccable : É12 a été fermé le 31/08 par la phrase *« une issue rend la question du courriel sans objet : elle vit DANS le dépôt »*, mesurée ce jour-là contre deux échecs restés non lus dans une boîte. **Je l'ai reprise sans la vérifier.** *Mesuré à la première exécution réelle, le 12/09 à 05:59:13 UTC :* `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »**, `list_issues` rend **0 issue, total 0**, et `pulls/133` rend **404** — donc #133 était bien une issue, les issues ont existé, et elles sont désactivées. **Le canal de l'alarme était clos, et rien ne le disait.**
+
+  **Ce qui rend la faute structurelle : un dispositif qui ne s'exécute QUE sur incident n'a presque jamais de preuve de vie.** L'alarme ne tourne que lorsque quelque chose d'autre a rougi ; entre deux incidents, son silence est indiscernable du calme (§9, 31/08). Et son extension se relit parfaitement : on ajoute une branche à un `if`, on éprouve la branche, on ne se demande pas si le `gh` du bas répond encore. *L'épreuve que j'ai jouée — un `gh` factice — prouvait ma branche et supposait le reste.*
+
+  **La règle : avant d'étendre un canal d'alerte, on lui demande une PREUVE DE VIE — pas une relecture de ce qu'il promet.** Une issue qu'il a ouverte, une ligne de son journal, un appel à blanc. *« Il est écrit qu'il ouvre une issue » n'est pas une observation*, et c'est exactement la phrase que j'ai crue.
+
+  *Corollaire de conception, et c'est lui qui répare :* **un canal d'alerte écrit son contenu dans le canal le moins désactivable AVANT de tenter le plus utile.** Le corps part désormais dans le résumé d'exécution et en annotation — que rien ne peut éteindre —, puis l'issue est tentée, et son échec fait rougir en nommant le geste. Fermer le canal faisait jusque-là disparaître **le contenu en même temps que la sonnerie** : deux pertes pour une panne, et la seconde est celle qu'on ne soupçonne pas.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.
