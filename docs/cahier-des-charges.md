@@ -220,7 +220,7 @@ Le référentiel des **modèles de matériel** et des **checklists** peut être 
 
 Le XPF n'a pas de décimale, l'EUR en a deux : le nombre de décimales est une propriété de la devise, appliquée à l'affichage, aux arrondis et aux documents générés.
 
-**Taux horaire.** Taux horaire de main-d'œuvre par défaut au niveau de la société — **7 000 XPF pour CODIMA SAV**. Il est surchargeable par technicien, par type d'intervention et par contrat. Historisé : un changement de taux ne modifie pas rétroactivement les interventions déjà valorisées.
+**Taux horaire.** ~~Taux horaire de main-d'œuvre par défaut au niveau de la société~~ — **7 000 XPF HORS TAXES pour CODIMA SAV** *(D68, 09/09/2026 — la mention « hors taxes » fait partie de la décision)*. ~~Il est surchargeable par technicien, par type d'intervention et par contrat.~~ *(amendé le 12/09/2026 — **les deux moitiés barrées décrivent un modèle qui n'existe pas.** La colonne `societe.taux_horaire_defaut` a été **retirée le 09/09/2026** (chapitre 11, Q3) : deux sources d'un même fait divergeaient en valeur. Et aucune surcharge n'existe — `taux_horaire` porte `@@unique([societe_id, date_effet])`, soit **un taux par société et par date d'effet**, sans axe technicien, type d'intervention ni contrat. Ce qu'un prix fixe désigne est un **forfait** (RG-TAR-06, D109), et c'est le seul autre endroit où l'argent s'écrit.)* Historisé : un changement de taux ne modifie pas rétroactivement les interventions déjà valorisées — **c'est la seule phrase de ce paragraphe qui a survécu**, et c'est RG-TAR-04.
 
 **Forfaits.** Il n'existe pas de barème client spécifique, mais plusieurs forfaits. Le catalogue de forfaits est un référentiel à part entière :
 
@@ -350,9 +350,9 @@ Rattacher cette colonne à `admin_plateforme`, comme le faisait la version préc
 
 **Techniciens.** Nom, agence, compétences, habilitations avec date d'expiration, calendrier de travail, coût horaire interne, taux de facturation par défaut, véhicule.
 
-**Familles et modèles de matériel.** Arborescence à deux niveaux : famille — compresseur, pont élévateur, démonte-pneu, équilibreuse, station de climatisation, poste à souder, groupe électrogène, outillage pneumatique, électroportatif — puis modèle : marque, référence constructeur, caractéristiques, périodicité de maintenance recommandée, gamme opératoire type, pièces d'usure. Référentiel partageable entre sociétés.
+**Familles et modèles de matériel.** Arborescence à deux niveaux : famille — compresseur, pont élévateur, démonte-pneu, équilibreuse, station de climatisation, poste à souder, groupe électrogène, outillage pneumatique, électroportatif — puis modèle : marque, référence constructeur, caractéristiques, périodicité de maintenance recommandée, gamme opératoire type, pièces d'usure. ~~Référentiel partageable entre sociétés.~~ *(amendé par **D4** le 08/09/2026 — `famille_materiel` et `modele_materiel` portent `societe_id` **NOT NULL** : ce sont des **tables métier cloisonnées** (I1, première catégorie). Le mécanisme « référentiel de plateforme + copie masquante » est **retiré**, il se contredisait : une société qui ne peut pas écrire ne peut pas créer de copie, et « la copie masque l'original » est une règle de sélection que RLS ne sait pas porter. Chez CODIMA les modèles viennent du fichier de suivi, pas d'un catalogue d'éditeur.)*
 
-**Prestations et forfaits.** Catalogue des prestations (code, libellé, durée standard, taux applicable, famille concernée, checklist type) et catalogue des forfaits décrit au §4.3.
+**Prestations et forfaits.** Catalogue des prestations (code, libellé, durée standard, ~~taux applicable~~, famille concernée, checklist type) et catalogue des forfaits décrit au §4.3. *(amendé par **D109** le 12/09/2026 — **une prestation porte une DURÉE, jamais un taux.** Un catalogue qui porte un prix est un **second endroit où un prix est écrit**, donc une préséance à inventer et une seconde historisation à tenir. **Quand une prestation se vend à prix fixe, elle DÉSIGNE un forfait** — elle ne porte jamais un montant. Le catalogue est en outre une **table métier cloisonnée** (`societe_id NOT NULL`), amorcée par copie d'un modèle à la création d'une société : une durée standard décrit la façon de travailler d'une entreprise.)*
 
 **Compétences.** Utilisé pour l'affectation : le système propose en priorité les techniciens compétents sur la famille concernée.
 
@@ -1708,7 +1708,7 @@ Pas d'orange en couleur d'identité — l'orange est réservé aux états de vig
 | Utilisateurs internes | Responsable matériel (pilote), responsable SAV, ADV |
 | Périmètre | Multi-société dès la conception, extensible à d'autres territoires, groupe ou hors groupe (§4) |
 | Devises | XPF et EUR en V1, table ouverte |
-| Taux horaire | 7 000 XPF par défaut pour CODIMA SAV, surchargeable et historisé |
+| Taux horaire | **7 000 XPF hors taxes** pour CODIMA SAV *(D68)*, ~~par défaut~~ ~~surchargeable~~ et historisé par date d'effet *(amendé le 12/09/2026 — voir §4.3 : un taux par société et par date d'effet, aucune surcharge, aucune colonne de défaut sur `societe`)* |
 | Forfaits | Catalogue de forfaits par société (§4.3) |
 | Passerelle SMS | Aucune — couche abstraite, opérateur enfichable |
 | Imports en masse | Module M11, format Excel, contrôlés et réversibles |
