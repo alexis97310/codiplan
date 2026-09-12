@@ -208,7 +208,30 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 
 ### 5.1 — ~~Personne ne peut se connecter~~ — UN GESTE EXISTE depuis le 09/09/2026 (Q1, D65)
 
-**Le constat était exact, et il ne l'est plus.** `prisma/seed.ts` n'écrit toujours **aucune ligne de `compte`**, donc aucune empreinte de mot de passe, et `/sign-up` reste fermé. Ce qui a changé : **il existe désormais un geste pour ouvrir la PREMIÈRE identité d'une société** — `scripts/amorcage-premier-compte.mts`.
+**Le constat était exact, et il ne l'est plus.** ~~`prisma/seed.ts` n'écrit toujours **aucune ligne de `compte`**, donc aucune empreinte de mot de passe~~ — **FAUX depuis le commit `62bf554`, le 10/09/2026 à 05:51:46 UTC**, et corrigé le 13/09/2026. *La phrase est barrée et non effacée : elle a gouverné cette page, et ce qui a été écrit un jour se relit.* `/sign-up` reste fermé, et **il existe un geste pour ouvrir la PREMIÈRE identité d'une société** — `scripts/amorcage-premier-compte.mts`.
+
+**CE QUE LE SEMIS FAIT RÉELLEMENT, et c'est ce qui change votre chemin.** Il écrit bien des lignes de `compte` — `poserLeMoyenDeConnexionAuRepos`, pour les quatre identités internes et pour le compte de portail — et **il n'y pose AUCUN mot de passe** : la colonne vaut `null`. *C'est exactement l'état dont la réémission du jeton de premier accès a besoin.*
+
+> #### ⚠️ CE QUE LA PHRASE FAUSSE COÛTAIT — une demi-journée
+>
+> Elle envoyait **créer une base de production, y déposer deux secrets et amorcer une société**, pour atteindre un écran connecté. **Les quatre identités de démonstration remplissent déjà les trois conditions de la réémission** — l'identité existe, elle est habilitée sur la société visée, et son `compte` porte `mot_de_passe IS NULL`. *Il n'y avait rien à construire.*
+
+#### LA VOIE COURTE — se connecter à la DÉMONSTRATION, en clics
+
+*Les valeurs ci-dessous viennent de `prisma/seed.ts`, jamais de la base hébergée (I9).*
+
+1. Onglet **Actions** → **Ouvrir le PREMIER compte** → **Run workflow**.
+2. **Quelle base ?** → `demonstration`
+3. **confirmation** → `oui`
+4. **societe** → `0192f0a0-0000-7000-8000-000000000001` *(CODIMA Nouvelle-Calédonie)*
+5. **email** → `adv@codima.test` *(rôle `adv`)*, ou `direction@codima.test` *(rôle `direction`, habilité sur les DEUX sociétés — c'est celui qui montre le sélecteur)*
+6. **base** → l'URL https de l'application, sans barre finale
+7. **Cocher « Réémettre… »**, et **cocher « Envoyer le lien par courriel… »** si les deux secrets d'envoi sont déposés
+8. Lancer, puis suivre le lien **dans l'heure**
+
+**Le geste se ferme dès que le mot de passe est choisi**, et il ne se rouvre jamais — c'est le cliquet de D65, et c'est voulu : un mot de passe oublié se traite par le chemin ordinaire.
+
+> **CE QUI RENDRAIT CETTE NOUVELLE PHRASE FAUSSE À SON TOUR**, et un gardien le refuse (`tests/unit/seed-sans-mot-de-passe.test.ts`) : **une empreinte de mot de passe écrite par le semis**. Elle fermerait la réémission **pour toujours**, sur des comptes que personne n'aurait ouverts — et, la base étant en ligne et le dépôt public, elle serait un mot de passe connu de tous. *Le gardien porte aussi son témoin : si le semis cessait d'écrire des comptes, la note redeviendrait fausse dans l'autre sens, et il rougit là aussi.*
 
 **Ce n'est pas un script qui s'arroge une autorité : c'est la BASE qui admet un cas, et ce cas se détruit en s'exerçant.** La politique d'ouverture de `utilisateur` accepte une identité sans rôle administrateur *si et seulement si* la société visée ne porte **aucune habilitation**. Dès que la première est posée, la même insertion est refusée — mesuré dans les deux sens, et le jumeau montre le refus disparaître quand la branche est retirée.
 
@@ -218,7 +241,7 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 >
 > Si la commande est jouée depuis un flux GitHub Actions, **l'URL entre dans le journal d'exécution du flux** — c'est-à-dire exactement le genre de journal qu'on voulait éviter. La borne est réelle et elle tient à trois choses, qui doivent être vraies **toutes les trois** :
 >
-> 1. **le dépôt est privé** — un dépôt public rendrait ce journal lisible de tous ;
+> 1. ~~**le dépôt est privé** — un dépôt public rendrait ce journal lisible de tous~~ — **CADUC : le dépôt EST public depuis le 12/09/2026.** *Ce n'est plus cette borne qui tient, et elle est barrée plutôt qu'effacée.* Ce qui tient à sa place est plus fort : **le flux n'imprime plus l'URL du tout** — masque **et** retrait, deux barrières qui ne se recouvrent pas et dont aucune ne remplace l'autre. Le journal et le résumé portent `(URL RETIRÉE DU JOURNAL)`, et le lien part par **courriel** quand les secrets d'envoi sont déposés ;
 > 2. **seule l'exploitation peut déclencher ce flux** ;
 > 3. **le jeton est à usage unique**, et il est **daté**.
 >
