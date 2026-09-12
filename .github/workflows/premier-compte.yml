@@ -79,6 +79,11 @@ on:
         description: "URL publique de l'application, sans barre finale (ex. https://codiplan.example.com)"
         type: string
         required: true
+      envoyer:
+        description: "Envoyer le lien par courriel à cette adresse (exige les secrets COURRIEL_API_CLE et COURRIEL_EXPEDITEUR)"
+        type: boolean
+        required: false
+        default: false
       reemettre:
         description: "Réémettre le jeton d'une identité qui n'a JAMAIS servi (aucun mot de passe choisi)"
         type: boolean
@@ -156,8 +161,21 @@ jobs:
           ROLE: ${{ inputs.role }}
           BASE: ${{ inputs.base }}
           REEMETTRE: ${{ inputs.reemettre }}
+          ENVOYER: ${{ inputs.envoyer }}
+          # LE CANAL QUI MANQUAIT (Q8, 13/09/2026). Le journal et le résumé
+          # EXPURGENT l'URL — c'est la réparation du 12/09 —, si bien que le
+          # lien ne sortait plus d'ici du tout : il fallait un terminal, donc un
+          # ordinateur, donc quelqu'un d'autre. Avec ces deux secrets, il part
+          # par courriel ; sans eux, l'envoi ÉCHOUE EN LE DISANT, et le geste
+          # reste ce qu'il était.
+          COURRIEL_API_CLE: ${{ secrets.COURRIEL_API_CLE }}
+          COURRIEL_EXPEDITEUR: ${{ secrets.COURRIEL_EXPEDITEUR }}
         run: |
           set -uo pipefail
+          envoi=""
+          if [ "$ENVOYER" = "true" ]; then
+            envoi="--envoyer"
+          fi
           # LA SORTIE NE VA PAS AU JOURNAL : elle va dans un fichier, et c'est
           # une version EXPURGÉE qui est rendue. Un `tee` rendait l'URL au
           # moment même où elle était produite — trop tard pour la masquer.
@@ -165,11 +183,12 @@ jobs:
           if [ "$REEMETTRE" = "true" ]; then
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --reemettre --societe "$SOCIETE" --email "$EMAIL" --base "$BASE" \
+              ${envoi} \
               > /tmp/amorcage.txt 2>&1 || code=$?
           else
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --societe "$SOCIETE" --email "$EMAIL" --nom "$NOM" \
-              --role "$ROLE" --base "$BASE" \
+              --role "$ROLE" --base "$BASE" ${envoi} \
               > /tmp/amorcage.txt 2>&1 || code=$?
           fi
 
@@ -212,6 +231,14 @@ jobs:
             echo '```'
             echo
             echo "### Comment récupérer le lien"
+            echo
+            echo "**Le plus simple : rejouer ce flux avec « Envoyer le lien par"
+            echo "courriel » coché.** Le lien part alors à l'adresse saisie et"
+            echo "n'entre dans aucun journal. Si les secrets d'envoi ne sont pas"
+            echo "déposés, la sortie ci-dessus le dit en nommant ce qui manque —"
+            echo "elle ne fait jamais croire qu'un message est parti."
+            echo
+            echo "À défaut, depuis un poste :"
             echo
             echo "Depuis un poste, avec la chaîne de migration de la base visée."
             echo "La réémission rend un jeton NEUF tant que personne n'a choisi de"

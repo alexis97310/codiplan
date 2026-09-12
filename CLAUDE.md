@@ -872,6 +872,17 @@ lib/
               une limite de l'ORM prise pour une propriété de la base (mesuré
               le 11/09) ; qui écrira un forfait envoie `null`, jamais `[]`
   navigation/ LA BARRE À ONZE ENTRÉES de la maquette (D95)
+              portes-parametrage.ts : les destinations de la section
+              « Sociétés & tarifs » (R3-05) — elles vivent ici et non dans
+              l'écran qui les rend : une liste de destinations est une DONNÉE ;
+              et le gardien des chaînes en dur lit un fichier qui porte du JSX
+              et prend ses littéraux pour du texte visible, ce qu'un tableau de
+              routes n'est pas — il a raison de ne pas savoir, c'est la
+              DESTINATION d'un texte qui décide (L0-11)
+              elles ne portent AUCUN décompte : une pastille « 3 forfaits » se
+              lirait comme une mesure, et il faudrait décider ce qu'elle affiche
+              quand la lecture échoue (le motif de D88) — une porte dit où elle
+              mène, pas ce qu'il y a derrière
               elle n'a AUCUNE entrée « Sites », et l'écran de L3-16 n'en reçoit
               donc pas : la liste est close et confrontée à la maquette, une
               douzième entrée la ferait rougir à raison
@@ -898,6 +909,34 @@ lib/
               c'est celle qui vieillit sans rougir
   money/      formatage et arithmétique — point de passage unique
               jamais de conversion : elle vit dans reporting/ (D19 amendé par D44)
+  courriel/   LE CANAL D'ENVOI, derrière une interface ÉTROITE (Q8, 13/09/2026)
+              trois types et une méthode : le choix du prestataire n'est pas une
+              décision d'architecture, il se change le jour où une facture
+              arrive — et ce jour-là rien d'autre ne doit bouger
+              UN SEUL fichier connaît un prestataire, et un gardien l'exige :
+              `resend.ts`, trente lignes de `fetch` plutôt que 200 Ko (§2)
+              `Envoi` est une SOMME et jamais un `void` : un appelant ne peut pas
+              ignorer la moitié « pas parti » sans que le compilateur le dise —
+              le silence a exactement la forme du succès (§9), et un canal qui
+              laisse croire qu'il a envoyé est pire qu'un canal absent
+              LE CODE DÉMARRE SANS LA CLÉ : rien ne lève au chargement, et
+              l'application tourne entière sur une installation où personne n'a
+              rien déposé — c'est l'état de toute base neuve, celle-là même où
+              l'on cherche à s'envoyer le premier lien
+              ce qui échoue est l'ENVOI, et il NOMME la variable qui manque :
+              une erreur vague fait chercher du côté du réseau pendant une heure
+              ni pièce jointe, ni HTML, ni destinataires multiples — trois
+              portes qu'on n'ouvre pas : un courriel d'authentification qui
+              porte du HTML est un courriel qu'on apprend à ouvrir sans réfléchir
+              AUCUN SECRET, pas même « de test », pas même en commentaire : le
+              module ne connaît que des NOMS de variables (I9, dépôt public)
+              premier-acces.ts : le courriel d'amorçage — son texte ne passe PAS
+              par `lib/i18n/fr.ts`, la coupure de L0-11 se lisant sur la
+              DESTINATION : ce n'est pas ce qu'un humain lit en se servant de
+              l'application, c'est ce qu'on lui écrit avant qu'il puisse l'ouvrir
+              il ne porte NI mot de passe, NI identifiant de société, NI nom de
+              base : un courriel se transfère et s'imprime, tout ce qu'il porte
+              est durable et hors de notre portée
   compteurs/  LES RELEVÉS, RÉORDONNÉS PAR LE TERRAIN (L2-03, question 3.12)
               regression.ts : l'ordre d'arrivée n'est PAS l'ordre des faits —
               un relevé fait à 8 h sans réseau arrive après un relevé de 10 h,

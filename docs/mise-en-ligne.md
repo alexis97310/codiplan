@@ -441,10 +441,76 @@ Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien**
 
 **CE QUE CE CHEMIN COÛTE, ET IL FAUT LE LIRE AVANT DE CLIQUER.** L'URL porte un jeton à usage unique valable **une heure**. Jouée en CI, elle entre dans le **journal d'exécution** : elle est donc lisible, pendant cette heure, **par quiconque a accès en lecture à ce dépôt**. Ce n'est acceptable qu'à deux conditions, toutes deux vérifiables :
 
-1. **le dépôt est PRIVÉ** — voir « ⚠️ Avant de rendre ce dépôt public » au README ;
+1. ~~**le dépôt est PRIVÉ** — voir « ⚠️ Avant de rendre ce dépôt public » au README~~ — **CADUC depuis le 12/09/2026 : le dépôt EST public.** *La phrase est barrée et non effacée : elle a gouverné ce geste, et ce qui a été décidé un jour se relit.* Elle n'est plus la garantie, parce que le flux a cessé d'imprimer l'URL : **le journal et le résumé sont EXPURGÉS**, par un masque et par un retrait, qui ne se recouvrent pas et dont aucun ne remplace l'autre ;
 2. **l'URL est suivie dans l'heure**, et le mot de passe choisi immédiatement : un jeton consommé n'ouvre plus rien.
 
+**Et l'expurgation a créé le problème suivant, qu'il fallait bien créer : le lien ne sortait plus du flux DU TOUT.** C'est ce que le canal de courriel ci-dessous vient rendre — voir « LE CANAL D'ENVOI DE COURRIEL ».
+
 *Si l'une des deux n'est pas tenue, jouez le script depuis un poste — le journal n'existe alors pas.* Et si le jeton expire avant d'être suivi, l'entrée **reemettre** du même flux en rend un autre, **tant que personne n'a choisi de mot de passe**.
+
+### LE CANAL D'ENVOI DE COURRIEL — à ouvrir une fois, et c'est tout (Q8)
+
+*Écrit le 13/09/2026. **C'est le seul geste qui reste**, et il dure trois minutes.*
+
+**Pourquoi il est nécessaire.** Le lien de premier accès est la **seule porte d'une base neuve** — le semis ne pose aucun mot de passe, et c'est voulu : la base est en ligne et le dépôt est public. Or ce lien n'avait plus aucun chemin jusqu'à vous :
+
+| | |
+|---|---|
+| le **journal d'exécution** | il est **expurgé** depuis le 12/09/2026, et il le fallait : le dépôt est public, et *un dépôt rendu public publie aussi son passé* |
+| une **console locale** | elle suppose un ordinateur sous la main |
+
+**Ce que l'application fait sans la clé, et il faut le savoir avant de commencer :** tout, sauf envoyer. Elle démarre, se connecte, affiche le planning, répond sur `/sante`. **Un envoi non configuré échoue en nommant la variable qui manque** — il ne part jamais en silence et ne fait jamais croire qu'il est parti.
+
+#### Le geste, en clics
+
+1. Ouvrir **resend.com**, créer un compte (gratuit jusqu'à 100 messages par jour, ce qui est bien au-delà de l'usage).
+2. Y **vérifier un domaine d'expédition**, ou — plus rapide pour commencer — utiliser l'adresse de test que Resend fournit d'office. *Une adresse dont le domaine n'est pas vérifié est le refus le plus fréquent, et le message de refus le dit.*
+3. Créer une **clé d'API** et la **copier**.
+4. `github.com/alexis97310/codiplan` → **Settings** → **Secrets and variables** → **Actions** → bouton **New repository secret**.
+5. Déposer **deux** secrets, aux noms exacts :
+
+| Nom du secret | Ce qu'on y met |
+|---|---|
+| `COURRIEL_API_CLE` | la clé copiée à l'étape 3 |
+| `COURRIEL_EXPEDITEUR` | l'adresse d'expédition, par exemple `CODIPLAN <acces@votre-domaine.nc>` |
+
+6. **Les mêmes deux variables se déposent chez Vercel** — *Settings → Environment Variables* — pour que l'application elle-même puisse écrire un jour. *Elles ne sont pas nécessaires au geste ci-dessous, qui tourne dans GitHub Actions.*
+
+#### Comment vérifier que l'envoi part — sans rien casser
+
+**Jouer le flux « Ouvrir le PREMIER compte » en réémission, sur la DÉMONSTRATION.** La réémission ne crée rien et ne referme rien : elle rend un jeton neuf tant que personne n'a choisi de mot de passe.
+
+1. Onglet **Actions** → **Ouvrir le PREMIER compte** → **Run workflow**.
+2. **Quelle base ?** → `demonstration` · **confirmation** → `oui` · **societe** → l'identifiant que « DB migrate & seed » nomme dans son inventaire · **email** → votre adresse · **base** → l'URL https de l'application, sans barre finale.
+3. **Cocher « Réémettre… »** et **cocher « Envoyer le lien par courriel… »**.
+4. Lancer, puis ouvrir le résumé de l'exécution.
+
+**Ce qu'on doit voir** — et les trois cas se distinguent, c'est tout l'objet :
+
+| Dans le résumé | Ce que cela veut dire |
+|---|---|
+| `Courriel ENVOYÉ à … — référence …` | le prestataire a pris la charge du message. *La référence n'est pas une preuve de réception* : elle sert à retrouver l'envoi chez lui. |
+| `COURRIEL NON ENVOYÉ.` suivi de `COURRIEL_API_CLE … est absente` | le secret n'est pas déposé, ou pas sous ce nom exact |
+| `COURRIEL NON ENVOYÉ.` suivi de `Resend a refusé l'envoi (code …)` | la clé ou l'adresse d'expédition ne conviennent pas — un domaine non vérifié est le cas le plus fréquent |
+
+**Dans les trois cas, l'URL reste valable une heure** et le jeton est bien émis : *le canal est un confort, le jeton est le produit.* Un envoi manqué ne coûte jamais le lien.
+
+#### Ce que nous n'avons PAS choisi à votre place
+
+**Le prestataire n'est pas une décision d'architecture** — il se change le jour où le volume monte ou qu'une facture arrive, et ce jour-là rien d'autre ne doit bouger. L'interface d'envoi tient en trois types et une méthode ; **un seul fichier du dépôt connaît un prestataire**, et un gardien l'exige.
+
+Resend est nommé ici parce que **le §2 du `CLAUDE.md` l'impose déjà** au titre de la couche « Email » — ce n'est pas une dépendance nouvelle, c'en est une qu'on active, et elle s'active **sans rien installer** : son interface est un `POST` en HTTPS, écrit en trente lignes plutôt qu'en deux cents kilo-octets.
+
+**La seconde voie, si vous la préférez : le SMTP d'une boîte Gmail** avec un mot de passe d'application. Ce qu'elle coûte, honnêtement :
+
+| | Un service d'API (Resend, Postmark) | Le SMTP d'une boîte Gmail |
+|---|---|---|
+| **à installer** | rien — `fetch` suffit, et c'est fait | **une dépendance** : aucun client SMTP n'est installé, et `fetch` n'en tient pas lieu. C'est un arbitrage, pas un ticket. |
+| **à configurer** | un compte, un domaine vérifié, une clé | la validation en deux étapes, puis un mot de passe d'application |
+| **ce que ça coûte** | gratuit jusqu'à ~100 messages/jour | gratuit, mais **~500 messages/jour** et le compte est le vôtre |
+| **le risque propre** | une facture le jour où le volume monte | *un mot de passe d'application donne accès à la boîte* ; et un envoi automatique depuis une adresse personnelle brouille l'expéditeur du produit |
+
+*Dites le mot et la seconde voie s'ajoute en un fichier* — c'est exactement ce pour quoi l'interface est étroite.
 
 ### Le geste, depuis un terminal
 

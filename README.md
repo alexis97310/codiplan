@@ -404,6 +404,18 @@ défaut. Le remède du premier est `pnpm partitions:etendre`.
 Reste ouvert au registre : le journal des référentiels de plateforme, et la
 **durée** de conservation.
 
+## Le canal d'envoi de courriel — étroit, et bruyant quand il n'est pas là
+
+**Le lien de premier accès est la seule porte d'une base neuve** — le semis ne pose aucun mot de passe, et c'est voulu : la base est en ligne et le dépôt est public. Il n'avait plus aucun chemin jusqu'à son destinataire : le journal d'exécution est **expurgé** depuis le 12/09/2026 (_un dépôt rendu public publie aussi son passé_), et une console locale suppose un ordinateur sous la main.
+
+`lib/courriel/` tient **trois types et une méthode**. Le choix du prestataire n'est pas une décision d'architecture : il se change le jour où le volume monte ou qu'une facture arrive, et ce jour-là rien d'autre ne doit bouger. **Un seul fichier du dépôt connaît un prestataire**, et un gardien l'exige.
+
+**`Envoi` est une SOMME, jamais un `void`.** Un appelant ne peut pas ignorer la moitié « pas parti » sans que le compilateur le dise. _Un canal qui laisse croire qu'il a envoyé est pire qu'un canal absent_ — l'agence pense avoir invité, la personne n'a rien reçu, et personne ne le sait avant le coup de téléphone. C'est le §9 appliqué à un canal : **le silence a exactement la forme du succès.**
+
+**Le code démarre SANS la clé.** Rien ne lève au chargement, et l'application tourne entière sur une installation où personne n'a rien déposé — _c'est l'état de toute base neuve, celle-là même où l'on cherche à s'envoyer le premier lien._ Ce qui échoue est l'**envoi**, et il échoue en **nommant la variable qui manque** et l'endroit où la déposer : une erreur vague fait chercher du côté du réseau pendant une heure.
+
+**Aucun secret n'est écrit dans le dépôt**, pas même « de test », pas même en commentaire (I9). Le module ne connaît que des **noms** de variables ; le dépôt de la clé est un geste d'exploitation, et la marche à suivre est dans [`docs/mise-en-ligne.md`](docs/mise-en-ligne.md).
+
 ## Veille de la base hébergée — le détectif, chaque nuit
 
 `pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
