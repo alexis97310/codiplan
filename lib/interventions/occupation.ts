@@ -7,12 +7,20 @@ import { type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { lireCatalogueTrajets } from "@/lib/sites/depot";
+import { resoudreTempsTrajet } from "@/lib/sites/trajet-zone";
 
 import {
   occupationTechnicien,
   type InterventionMesuree,
   type OccupationTechnicien,
 } from "./statistiques";
+import {
+  jourDeLEtape,
+  trajetDesJournees,
+  SANS_TRAJET,
+  type EtapeDeTournee,
+} from "./trajet";
 
 /**
  * LE DÉNOMINATEUR DU TAUX D'OCCUPATION, lu au calendrier plutôt qu'inventé.
@@ -45,6 +53,24 @@ import {
  * seule — *deux techniciens de la même agence peuvent avoir deux
  * dénominateurs.*
  *
+ * ## LE TRAJET ENTRE DANS LE NUMÉRATEUR (L3-05a, D107)
+ *
+ * RG-PLA-05 l'exige, et il n'y entrait pas. Ce module lit donc les SITES des
+ * interventions et le catalogue de zones de la société, résout chaque durée par
+ * la cascade de `lib/sites/trajet-zone.ts`, et laisse
+ * `lib/interventions/trajet.ts` appliquer la lecture C — *l'aller vers le
+ * premier site de la journée, le retour depuis le dernier.*
+ *
+ * **Le trajet ne touche PAS le dénominateur**, et c'est une correction à la
+ * formule du ticket : le dénominateur est le calendrier, et rouler ne change pas
+ * les heures d'ouverture d'une agence. Ce qui change est la CHARGE — et c'est
+ * bien ce que RG-PLA-05 demande d'intégrer.
+ *
+ * **Ce qui n'est pas compté est compté à part** : une journée dont une extrémité
+ * n'a pas de trajet connu entre dans `journeesSansTrajet`, jamais dans un total
+ * à zéro. *« Aucun trajet » et « je ne sais pas » ne se corrigent pas au même
+ * endroit.*
+ *
  * ## Le refus plutôt que le chiffre
  *
  * Une agence sans calendrier rend `minutesOuvrables = 0`, ce que
@@ -60,7 +86,15 @@ export type LigneOccupation = {
   readonly occupation: OccupationTechnicien;
 };
 
-type Mesurable = InterventionMesuree & { readonly agence_id: string };
+/**
+ * Ce dont ce module a besoin en plus des minutes : l'agence — qui donne le
+ * dénominateur —, le SITE et la DATE, qui donnent le trajet (L3-05a, D107).
+ */
+type Mesurable = InterventionMesuree & {
+  readonly agence_id: string;
+  readonly site_id: string;
+  readonly date_planifiee: Date | null;
+};
 
 /**
  * Regroupe les interventions par (technicien, agence) et donne à chaque groupe
@@ -94,7 +128,15 @@ export async function occupationsDuPlanning(
           technicienId: intervention.technicien_id,
           agenceId: intervention.agence_id,
           agenceLibelle: "",
-          occupation: occupationTechnicien(intervention.technicien_id, [], 0),
+          // Un squelette, remplacé plus bas par le vrai calcul : `SANS_TRAJET`
+          // est écrit plutôt que sous-entendu, et c'est tout l'objet de
+          // l'argument obligatoire.
+          occupation: occupationTechnicien(
+            intervention.technicien_id,
+            [],
+            0,
+            SANS_TRAJET,
+          ),
         },
         lignes: [intervention],
       });
@@ -127,6 +169,40 @@ export async function occupationsDuPlanning(
           statut: true,
         },
       });
+
+      // ── LE TRAJET (L3-05a, D107, RG-PLA-05) ─────────────────────────────
+      //
+      // LUS UNE SEULE FOIS pour toute la fenêtre, et sous le contexte cloisonné.
+      // La politique de `site` est de forme « parc » : un `findMany` borné aux
+      // identifiants rendus par le planning ne rend rien de plus que ce que
+      // l'appelant voyait déjà — *aucune comparaison de société ni de périmètre
+      // n'est écrite au-dessus, ce serait une seconde lecture du même critère.*
+      const sites = await tx.site.findMany({
+        where: {
+          id: { in: [...new Set(interventions.map((i) => i.site_id))] },
+        },
+        select: { id: true, zone_geo: true, temps_trajet_min: true },
+      });
+      const parSite = new Map(sites.map((site) => [site.id, site]));
+      const catalogue = await lireCatalogueTrajets(contexte, client);
+
+      /**
+       * LE TRAJET D'UNE ÉTAPE, par la cascade de `lib/sites/trajet-zone.ts` —
+       * valeur du site, réglage de la société, défaut de D107. **Un site que la
+       * politique n'a pas rendu vaut `null`**, et jamais zéro : *une ligne qu'on
+       * ne peut pas lire n'est pas une ligne sans trajet.*
+       */
+      const etapeDe = (intervention: Mesurable): EtapeDeTournee => {
+        const site = parSite.get(intervention.site_id);
+        const trajet =
+          site === undefined
+            ? null
+            : resoudreTempsTrajet(site, catalogue).minutes;
+        return {
+          jour: jourDeLEtape(intervention.date_planifiee),
+          trajetMin: trajet,
+        };
+      };
 
       const resultat: LigneOccupation[] = [];
       // LE DÉNOMINATEUR EST MIS EN CACHE PAR COUPLE (technicien, agence) depuis
@@ -212,10 +288,22 @@ export async function occupationsDuPlanning(
           ouvrablesParCle.set(cleCache, ouvrables);
         }
 
+        // L'ORDRE DES ÉTAPES EST CELUI DE L'ÉCRAN, et `trajetDesJournees` ne
+        // trie pas : `lignes` arrive dans l'ordre que `listerPlanning` a arrêté,
+        // et le regroupement l'a préservé. *Trier ici serait une seconde lecture
+        // de l'ordre, et le total compterait les extrémités d'une journée que
+        // personne ne voit* (§9, 01/09).
+        const trajet = trajetDesJournees(lignes.map(etapeDe));
+
         resultat.push({
           ...cle,
           agenceLibelle: libelles.get(cle.agenceId) ?? cle.agenceId,
-          occupation: occupationTechnicien(cle.technicienId, lignes, ouvrables),
+          occupation: occupationTechnicien(
+            cle.technicienId,
+            lignes,
+            ouvrables,
+            trajet,
+          ),
         });
       }
 

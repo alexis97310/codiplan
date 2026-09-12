@@ -724,6 +724,26 @@ lib/
               sans elle, « il était absent » et « il n'a rien fait » rendent le
               même chiffre : c'est la troisième cause que ce module distingue,
               après « pas de calendrier » et « n'a rien fait »
+              trajet.ts : LA LECTURE C de D107 (L3-05a) — l'ALLER vers le
+              premier lieu de la journée, le RETOUR depuis le dernier, et RIEN
+              entre les deux
+              sur une journée à UN lieu elle donne exactement la lecture A, et
+              c'est la raison décisive de D107 ; sur une journée groupée elle
+              cesse de compter un retour à l'agence qui n'a pas eu lieu
+              le temps d'un lieu à un autre n'est PAS compté et l'application
+              l'ÉCRIT : la colonne ne porte que des durées depuis l'agence, et
+              soustraire deux distances à un point commun n'est pas une distance
+              il ne TRIE pas : l'ordre reçu est celui que l'écran affiche, et
+              trier ici serait une seconde lecture de l'ordre
+              une journée dont une EXTRÉMITÉ est inconnue se compte à part,
+              jamais zéro — « aucun trajet » et « je ne sais pas » ne se
+              corrigent pas au même endroit
+              aucun fuseau n'est lu : `date_planifiee` est un DATE, et la
+              rapporter à un fuseau la décalerait d'un cran sous UTC+11
+              le trajet est un ARGUMENT OBLIGATOIRE de `occupationTechnicien` —
+              un appelant qui l'oublierait ne compile pas (la leçon de D70)
+              il entre dans le NUMÉRATEUR et jamais dans le dénominateur :
+              rouler ne change pas les heures d'ouverture d'une agence
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie

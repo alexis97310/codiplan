@@ -1,5 +1,7 @@
 import type { StatutIntervention } from "@prisma/client";
 
+import { type TrajetDeLaPeriode } from "./trajet";
+
 /**
  * STATISTIQUES PAR TECHNICIEN — le nombre, le taux d'occupation, et la barre
  * segmentée des heures.
@@ -34,6 +36,27 @@ import type { StatutIntervention } from "@prisma/client";
  * perdu* : une annulation après deux heures sur site a occupé deux heures. Une
  * annulation avant déplacement n'a rien occupé, et son estimation ne compte pas
  * — elle décrit un travail qui n'aura pas lieu.
+ *
+ * ## LE TRAJET ENTRE DANS LA CHARGE DEPUIS L3-05a (D107, RG-PLA-05)
+ *
+ * RG-PLA-05 l'exige — *« le temps de trajet est intégré au calcul de charge »*
+ * — et il ne l'était pas : `minutesEngagees` ne comptait que la durée de
+ * l'intervention, si bien que **la barre et le taux sous-estimaient la journée
+ * réelle** de plusieurs heures par semaine et par technicien.
+ *
+ * **Il est un CHAMP À PART, et jamais fondu dans `minutesEngagees`.** Trois
+ * raisons, et la troisième est celle qui décide. La barre est segmentée par
+ * STATUT, et un trajet n'a pas de statut — l'y verser ferait une barre dont les
+ * segments ne somment plus à leur propre largeur. Les deux nombres ne se
+ * corrigent pas au même endroit : l'un est une durée d'intervention, l'autre un
+ * paramétrage de zone. Et surtout : *un taux dont on ne peut plus retrouver les
+ * termes n'est plus vérifiable* — l'écran affiche les deux, et la formule les
+ * nomme tous les deux.
+ *
+ * **Le trajet est un ARGUMENT OBLIGATOIRE**, sans valeur par défaut : un
+ * appelant qui l'oublierait ne compile pas. C'est la leçon de D70 — *une
+ * garantie énoncée sur un geste est satisfaite par un geste vide.* Celui qui ne
+ * compte que le temps d'intervention passe `SANS_TRAJET`, et cela se lit.
  *
  * ## Le dénominateur : les minutes OUVRABLES, jamais un forfait
  *
@@ -89,6 +112,11 @@ export type OccupationTechnicien = {
   readonly minutesOuvrables: number;
   /** Combien d'interventions ne portent NI temps réel NI estimation. */
   readonly sansDuree: number;
+  /**
+   * LE TRAJET de la période, lecture C (D107) — à part, jamais fondu dans
+   * `minutesEngagees`. Il porte aussi ce qu'il n'a pas su compter.
+   */
+  readonly trajet: TrajetDeLaPeriode;
   /** La barre segmentée, dans l'ordre du cycle de vie ; les vides sont gardés. */
   readonly segments: readonly SegmentHeures[];
 };
@@ -117,6 +145,7 @@ export function occupationTechnicien(
   technicienId: string | null,
   interventions: readonly InterventionMesuree[],
   minutesOuvrables: number,
+  trajet: TrajetDeLaPeriode,
 ): OccupationTechnicien {
   const parStatut = new Map<StatutIntervention, { m: number; n: number }>();
   for (const statut of ORDRE_STATUTS) {
@@ -145,6 +174,7 @@ export function occupationTechnicien(
     minutesEngagees: engagees,
     minutesOuvrables,
     sansDuree,
+    trajet,
     segments: ORDRE_STATUTS.map((statut) => ({
       statut,
       minutes: parStatut.get(statut)?.m ?? 0,
@@ -156,6 +186,11 @@ export function occupationTechnicien(
 /**
  * Le taux d'occupation, en pour cent, ARRONDI AU PLUS PROCHE.
  *
+ * **Le numérateur est la CHARGE — interventions PLUS trajet** (D107, L3-05a),
+ * et `minutesDeCharge` est le seul endroit où la somme s'écrit : deux additions
+ * du même critère divergeraient en silence le jour où un troisième terme
+ * entrerait dans la charge.
+ *
  * **Il rend `null` quand le dénominateur est nul**, et l'appelant doit traiter
  * ce cas : *« pas de calendrier » n'est pas « 0 % »*. Rendre zéro accuserait un
  * technicien de n'avoir rien fait là où c'est le paramétrage qui manque.
@@ -165,6 +200,10 @@ export function occupationTechnicien(
  * qu'un planificateur doit voir. Le plafonner masquerait le seul cas qui
  * demande une action.
  */
+export function minutesDeCharge(occupation: OccupationTechnicien): number {
+  return occupation.minutesEngagees + occupation.trajet.minutes;
+}
+
 export function tauxOccupation(
   occupation: OccupationTechnicien,
 ): number | null {
@@ -172,7 +211,7 @@ export function tauxOccupation(
     return null;
   }
   return Math.round(
-    (occupation.minutesEngagees / occupation.minutesOuvrables) * 100,
+    (minutesDeCharge(occupation) / occupation.minutesOuvrables) * 100,
   );
 }
 
@@ -194,7 +233,7 @@ export function tauxOccupation(
 export function tauxArrondiAZeroMaisNonNul(
   occupation: OccupationTechnicien,
 ): boolean {
-  return occupation.minutesEngagees > 0 && tauxOccupation(occupation) === 0;
+  return minutesDeCharge(occupation) > 0 && tauxOccupation(occupation) === 0;
 }
 
 /**

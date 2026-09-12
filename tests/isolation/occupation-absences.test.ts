@@ -96,6 +96,12 @@ async function ouvrables(): Promise<number> {
         statut: "planifiee",
         temps_reel_min: null,
         duree_estimee_min: 60,
+        // LE SITE ET LA DATE viennent avec le trajet (L3-05a) : ce scénario
+        // mesure le DÉNOMINATEUR, et le trajet ne le touche pas — mais la
+        // ligne doit être complète, et une date nulle dit « file d'attente »,
+        // c'est-à-dire aucun trajet.
+        site_id: SITE_A1_S1,
+        date_planifiee: null,
       },
     ],
     DU,
