@@ -32,6 +32,7 @@
     "veille": "tsx scripts/veille-hebergee.mts",
     "deploiement:verifier": "tsx scripts/verifier-deploiement.mts",
     "file": "tsx scripts/file-de-nuit.mts",
+    "suspensions:denombrer": "tsx scripts/denombrer-suspensions.mts",
     "partitions:etendre": "tsx scripts/etendre-partitions.mts",
     "verify": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
     "verify:full": "pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e"

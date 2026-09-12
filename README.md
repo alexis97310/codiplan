@@ -54,6 +54,18 @@ pnpm deploiement:verifier # LA PRODUCTION DÉPLOYÉE EST-ELLE DEBOUT ? (R3-01)
                       # elle NE MIGRE RIEN : elle nomme le geste
                       # sans URL_PRODUCTION elle ROUGIT, elle ne saute pas
 
+pnpm suspensions:denombrer # COMBIEN COÛTE LE RATTRAPAGE DE R3-02 ? (D104)
+                      # il COMPTE, il ne répare RIEN : ni UPDATE, ni
+                      # VALIDATE CONSTRAINT, ni motif générique — ce
+                      # dernier serait l'issue (a) que D104 a écartée
+                      # il REFUSE de rendre un zéro creux : « intervention »
+                      # est sous FORCE, et un rôle non superutilisateur sans
+                      # contexte verrait zéro ligne — le témoin porte sur le
+                      # MÉCANISME, jamais sur un décompte
+                      # et son rapport dit ce qu'un zéro ne veut PAS dire :
+                      # une base bâtie depuis zéro ne PEUT pas porter de
+                      # violation, la contrainte y précédant la première ligne
+
 pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
                       # et rendre la base rejouable — il n'applique RIEN
 pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md

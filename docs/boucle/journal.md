@@ -383,3 +383,88 @@ partiel passerait aussi, et le rejeu ne dirait pas ce qu'on croit qu'il dit.*
 
 `pnpm verify` → **EXIT=0**, 1589 tests unitaires + 767 d'isolation, le 12/09/2026 à
 `09:25:26 UTC`.
+
+## N-05 — R3-02 : le dénombrement est fait, et il ne répare rien
+
+### Ce que j'ai construit
+
+`pnpm suspensions:denombrer` — `scripts/denombrer-suspensions.mts` et
+`scripts/lib/suspensions-anterieures.ts`. **Il compte, il n'écrit rien** : ni `UPDATE`,
+ni `VALIDATE CONSTRAINT`, ni motif générique. *Ce dernier serait exactement l'issue (a)
+que D104 a écartée, reprise par la porte de service — et elle porterait cette fois sur
+des données réelles.*
+
+### Le chiffre, mesuré
+
+Sur la base de **démonstration**, migrée et semée le 12/09/2026 :
+
+```
+  interventions au total   : 32
+  au statut « suspendue »  : 2
+  SANS MOTIF               : 0
+  SANS DATE                : 0
+  résidus hors suspension  : 0
+```
+
+**La population n'est pas vide** — 32 interventions, dont 2 suspendues : le zéro est une
+mesure, pas une absence. Et le témoin de lecture est imprimé avec le compte : rôle
+`postgres`, superutilisateur, `FORCE` actif sur `intervention`.
+
+### ET CE ZÉRO NE VEUT PAS DIRE « C'EST FAIT » — c'est la mesure qui compte le plus
+
+**Une base bâtie depuis zéro par `prisma migrate deploy` ne PEUT pas porter de
+violation** : la contrainte y précède la première ligne. Mesuré, et c'est ce qui l'a
+établi — j'ai tenté de fabriquer une ligne fautive :
+
+```sql
+BEGIN;
+UPDATE intervention SET motif_suspension = NULL WHERE statut = 'suspendue';
+-- ERROR: new row for relation "intervention" violates check constraint
+--        "intervention_suspension_a_son_motif"
+ROLLBACK;
+```
+
+`NOT VALID` vaut pour toute ligne **nouvelle ou modifiée** : elle refuse. **Le seul
+chiffre qui décide du coût du rattrapage est celui d'une base qui portait déjà des
+interventions `suspendue` AVANT la migration `20260913160000_suspension_l2_10`** — et une
+session ne touche pas la base de production (§2 du protocole). Le script est versionné
+pour qu'Alexis puisse le jouer là où ce chiffre existe.
+
+*Le rapport porte cette phrase en toutes lettres.* Sans elle, un zéro se lirait comme une
+absence de dette, et c'est le §9 du 06/09 : **un chiffre juste qui fait conclure faux.**
+
+### Les deux colonnes sont comptées SÉPARÉMENT
+
+Elles ne se rattrapent pas pareil : `suspendue_le` se reprend depuis le journal d'audit
+(I8), `motif_suspension` ne se reprend pas du tout. *Un total unique ferait croire à un
+seul travail, et ferait chiffrer le plus cher au prix du moins cher.*
+
+Et **les deux sens de l'équivalence sont comptés**. Les `CHECK` de D104 sont des
+équivalences — `(statut = 'suspendue') = (colonne IS NOT NULL)` — et non des
+implications : une ligne **non suspendue qui porte un motif** les viole autant. *Ne
+compter que le second sens rendrait un chiffre trop bas, et il aurait l'air juste.*
+
+### Le refus de compter, et pourquoi il est nécessaire
+
+`intervention` est sous `FORCE ROW LEVEL SECURITY`. Un rôle **propriétaire non
+superutilisateur** — l'état réel du rôle de migration sur la base hébergée — sans contexte
+de société verrait **zéro ligne**. Le script **refuse** dans ce cas plutôt que de rendre
+un zéro creux : *« il n'y a rien à rattraper » et « je ne vois rien » rendent le même
+zéro.* Le témoin porte sur le **mécanisme**, jamais sur un décompte.
+
+### Message d'échec initial
+
+**Aucun test ne rougissait avant** : il n'y avait rien à faire rougir, le chiffre
+n'existait pas. `tests/unit/db/denombrement-suspensions.test.ts` garde désormais les
+parties pures — le refus de compter sous `FORCE`, les deux sens de l'équivalence, et le
+fait que le rapport **dit ce qu'un zéro ne veut pas dire**.
+
+### CE QUE JE N'AI PAS FAIT
+
+**Rien réparé.** R3-02 reste `BLOQUÉ`, et son motif n'a pas bougé : *le motif d'une
+suspension est une donnée que seul l'exploitant peut énoncer, ligne par ligne.* Le ticket
+s'arrête au chiffre, comme la consigne le demande.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, le 12/09/2026 à `09:25:26 UTC` — la même exécution que N-04b.
