@@ -255,12 +255,55 @@ describe("les migrations rejouées sur une base âgée", () => {
       [],
     );
 
-    // La ligne qui a cassé la production a traversé les sept migrations.
+    // ── LA LIGNE QUI A CASSÉ LA PRODUCTION, ET CE QU'ELLE EST DEVENUE ──────
+    //
+    // ~~`expect(survivante.statut).toBe("suspendue")`~~ — cette assertion
+    // décrivait le monde d'avant R3-02 : `NOT VALID` laissait la ligne
+    // tranquille, et la suite le constatait. **C'est exactement cette paix-là
+    // qui a coûté une base le 12/09/2026** : la contrainte acceptait la ligne
+    // au repos et l'a refusée dès que le semis l'a touchée, et la seule sortie
+    // trouvée à 23 h a été de tout purger.
+    //
+    // Elle prouve désormais l'inverse, et c'est une assertion plus forte : la
+    // ligne a **traversé le rattrapage**. Sans motif, elle ne pouvait pas
+    // rester suspendue — *une suspension qui ne peut pas dire pourquoi n'est
+    // pas une suspension* (D117) —, et le statut qu'elle reçoit est celui que
+    // sa date et son créneau dictent, par la règle de `statutALaCreation` :
+    // **`a_planifier`**, l'amorce ne lui donnant ni l'une ni l'autre.
     expect(await lignes("intervention")).toBeGreaterThan(0);
     const [survivante] = await clientAgee.$queryRawUnsafe<
-      { statut: string; motif_suspension: string | null }[]
-    >(`SELECT "statut"::text, "motif_suspension" FROM "intervention"`);
-    expect(survivante.statut).toBe("suspendue");
+      {
+        statut: string;
+        motif_suspension: string | null;
+        suspendue_le: Date | null;
+      }[]
+    >(
+      `SELECT "statut"::text, "motif_suspension", "suspendue_le" FROM "intervention"`,
+    );
+    expect(survivante.statut).toBe("a_planifier");
+    // LES DEUX COLONNES PARTENT AVEC L'ÉTAT. Les laisser ferait un RÉSIDU,
+    // c'est-à-dire l'autre sens de la même contrainte — et le `VALIDATE` qui
+    // suit refuserait. *Ce n'est donc pas du zèle : c'est la condition pour que
+    // la migration aille jusqu'au bout.*
     expect(survivante.motif_suspension).toBeNull();
+    expect(survivante.suspendue_le).toBeNull();
+
+    // ── ET LES DEUX CONTRAINTES SONT VALIDÉES, ce qui est le point du ticket ─
+    //
+    // *C'est le seul geste qui transforme « vaut pour les lignes nouvelles » en
+    // « vaut pour toutes ».* Le lire ici plutôt que de croire la migration :
+    // `VALIDATE CONSTRAINT` relit toutes les lignes, et une assertion sur le
+    // catalogue dit qu'il l'a fait.
+    const validees = await clientAgee.$queryRawUnsafe<
+      { conname: string; convalidated: boolean }[]
+    >(`SELECT "conname", "convalidated"
+         FROM pg_constraint
+        WHERE "conname" IN ('intervention_suspension_a_son_motif',
+                            'intervention_suspension_a_sa_date')`);
+    // TÉMOIN : zéro contrainte lue rendrait la boucle suivante vide (§9, 30/08).
+    expect(validees).toHaveLength(2);
+    for (const contrainte of validees) {
+      expect(contrainte.convalidated, contrainte.conname).toBe(true);
+    }
   }, 300_000);
 });

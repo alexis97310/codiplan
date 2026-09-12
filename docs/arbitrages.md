@@ -4013,3 +4013,71 @@ Le contrôle lit sous une **identité exemptée des politiques**. Sans cela, `FO
 > **Le jour où `scripts/refus-si-donnees-reelles.mts` refuse une exécution sur la base de démonstration** — c'est-à-dire le jour où une société hors seed y apparaît —, D116 se rouvre : la base a cessé d'être une fiction, et l'automatisme qui la vise doit être rejugé à ce titre. *Le refus n'est pas un incident à contourner : c'est la condition de réouverture qui se déclenche.*
 
 *Aucune règle du chapitre 10 n'est amendée.*
+
+---
+
+## D117 — Une suspension qui ne peut pas dire pourquoi n'est pas une suspension
+
+*Décidée par la session le 12/09/2026, sur la consigne de N2 : « tu décides de la règle de réparation et tu l'écris au recueil avec sa raison — c'est une règle technique sur des données de démonstration, elle t'appartient. »*
+
+### CE QUI L'A RENDUE NÉCESSAIRE
+
+**Le 12/09/2026 au soir, une intervention créée le 11/09 portait l'état `suspendue` sans date de suspension.** La contrainte `intervention_suspension_a_sa_date`, posée `NOT VALID` par D104, l'acceptait **au repos** et l'a **refusée dès que le semis l'a touchée** — c'est exactement ce que « vaut pour toute ligne nouvelle **ou modifiée** » veut dire. La seule sortie trouvée à 23 h a été de **tout purger**, et c'est ainsi que les comptes ont été effacés.
+
+> *Une contrainte qu'on ne peut ni valider ni violer sans casser le semis n'est pas un état stable : c'est une mine posée sous le chemin ordinaire.*
+
+Et le dénombrement de la veille rendait **zéro**, avec sa raison écrite : *« une base bâtie depuis zéro ne PEUT pas porter de violation ».* La phrase était juste et elle n'a pas suffi — **la base hébergée, elle, a une histoire.**
+
+### LA RÈGLE, EN UNE PHRASE
+
+> **Une suspension qui ne peut pas dire pourquoi n'est pas une suspension.**
+
+Trois gestes, et **aucun n'invente une donnée** :
+
+| | Le cas | Le geste |
+|---|---|---|
+| **1** | `suspendue_le` absente | **REPRISE** depuis `journal_audit`, à l'instant du passage au statut (I8). *Une lecture, jamais une invention.* |
+| **2** | `motif_suspension` absent | la ligne **SORT** de l'état, et reçoit le statut que sa date et son créneau dictent — par `statutALaCreation`, **la règle de la reprise ordinaire**, transcrite et non réinventée |
+| **3** | un RÉSIDU (non suspendue, mais portant l'une des colonnes) | les colonnes sont **effacées** : le statut fait foi |
+
+### POURQUOI SORTIR PLUTÔT QU'INVENTER, ET PLUTÔT QUE PURGER
+
+Les trois issues perdent quelque chose. Il s'agissait de choisir **laquelle perd le moins et le dit** :
+
+- **inventer un motif** est l'issue (a) que D104 a écartée — elle écrit une donnée que nul n'a dite, sur la ligne même qu'on produit ce jour-là ;
+- **purger** détruit tout, comptes compris : c'est ce qui vient d'arriver ;
+- **sortir de l'état** perd **un** fait — « elle était suspendue » —, **et ce fait survit dans `journal_audit`** (I8), qui porte le statut avant et après. Le travail terrain n'est pas touché (I5) : ni temps, ni diagnostic, ni photo, ni signature. *Seul un statut de planification bouge, et c'est précisément la catégorie que I5 range du côté back-office.*
+
+### LA BORNE DEMANDÉE A ÉTÉ ÉCRITE, MESURÉE FAUSSE, ET RETIRÉE
+
+La consigne demandait un refus sur une base portant des données réelles. **Il a d'abord été écrit dans la migration**, comptant les lignes à réparer hors du jeu de démonstration, les deux identifiants du seed recopiés dans le SQL. *Le rejeu sur base âgée l'a démenti en une exécution :*
+
+```
+ERROR: R3-02 refuse de réparer : 1 intervention(s) à rattraper appartiennent
+à une société HORS du jeu de démonstration.
+```
+
+**Le refus s'est déclenché sur un cas parfaitement légitime**, et il se serait déclenché de la même façon sur la production. **Une migration ne sait pas ce qu'est une base de démonstration** : c'est une propriété du *déploiement*, pas du schéma. *Une borne qui refuse le cas ordinaire n'est pas une borne, c'est une panne* — et elle aurait été la quatrième de la semaine.
+
+**Ce qui la remplace tient en deux moitiés, et l'ensemble est plus fort que ce qui a été retiré :**
+
+1. **La règle n'invente jamais** — elle lit, ou elle retire —, et chacun de ses gestes est journalisé par le déclencheur d'audit avec les valeurs avant et après. *Rien ne disparaît en silence, ce qui est exactement ce que la purge, elle, a fait.*
+2. **Le refus par société est porté par la borne 3 de D116**, à l'endroit où il peut être vrai : **le flux**, qui sait quelle base il vise.
+
+*C'est un refus motivé d'une consigne, et la forme en est écrite au §9 du 13/09 : la mesure prime sur l'origine de la demande, et un refus se paye en une phrase qui dit ce qui a été mesuré.*
+
+### CE QUE CE RATTRAPAGE NE TOUCHE PAS
+
+**`statut_facturation`.** D115 l'a tranché la veille : les clôtures antérieures se reprennent **une par une**, parce que la réponse est dans la **facturation** et jamais dans CODIPLAN. `intervention_cloture_a_son_statut_facturation` **reste `NOT VALID`**, et devient la **seule** entrée de `CONTRAINTES_NON_VALIDEES`.
+
+> **La liste passe de TROIS à UNE, et c'est la première fois qu'elle DESCEND.** La note d'origine prévoyait qu'à quatre, la question deviendrait « pourquoi aucune n'a été rattrapée ». *Deux l'ont été.*
+
+### CE QUI PROUVE QUE LE RATTRAPAGE A EU LIEU
+
+Le rejeu sur base âgée, qui porte depuis L1-08j **la ligne même qui a cassé la production** — une intervention `suspendue` sans motif, née avant L2-10. *Mesuré le 12/09/2026 : elle traverse le rattrapage et ressort en `a_planifier`, ses deux colonnes nulles, et les deux contraintes sortent `convalidated = true`.* L'assertion du harnais qui affirmait `statut = 'suspendue'` **décrivait le monde d'avant**, et elle a rougi ; elle prouve désormais l'inverse.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où une base portera une intervention `suspendue` sans motif qu'un humain peut encore documenter** — c'est-à-dire une suspension récente —, la règle 2 détruit une information qu'on aurait pu sauver. *Elle se rouvre alors dans un sens précis : demander le motif avant de sortir de l'état, plutôt que sortir.* Aujourd'hui elle ne se pose pas : les lignes visées précèdent L2-10, et personne ne se souvient de leur motif — c'est D104 qui l'a mesuré.
+
+*Aucune règle du chapitre 10 n'est amendée : RG-INT-06 exige le motif d'une suspension, et ce rattrapage la rend VRAIE sur toutes les lignes au lieu des seules nouvelles.*

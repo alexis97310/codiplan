@@ -136,16 +136,20 @@ describe("la liste déclarée", () => {
    * intention* (§9, 31/08). Le jour où il est atteint, c'est un arbitrage,
    * jamais une mise à jour de ce fichier.
    *
-   * *Historique du compte exact, pour que « 3 » ne s'écrive pas sans sa
+   * *Historique du compte exact, pour que le chiffre ne s'écrive pas sans sa
    * raison :* **2** à D104 (les deux suspensions) ; **3** le 12/09/2026
    * (`intervention_cloture_a_son_statut_facturation`, N-04d) — les
    * interventions DÉJÀ clôturées n'ont pas de statut de facturation, et la
    * colonne qui dirait lesquelles ont été facturées, `reference_facture`,
    * **n'existe pas** (mesuré). Choisir entre « à facturer » et « facturée »
-   * serait choisir entre refacturer et renoncer.
+   * serait choisir entre refacturer et renoncer. Puis **1**, le même soir
+   * (R3-02, D117) : le rattrapage des suspensions a été écrit, et les deux
+   * entrées de D104 sont parties AVEC lui. *C'est la première fois que cette
+   * liste DESCEND, et c'est ce pour quoi le compte exact existe — il oblige à
+   * rouvrir ce fichier à chaque mouvement, dans les deux sens.*
    */
-  it("compte EXACTEMENT trois entrées — toute addition ou tout retrait rouvre ce fichier", () => {
-    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(3);
+  it("compte EXACTEMENT une entrée — toute addition ou tout retrait rouvre ce fichier", () => {
+    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(1);
   });
 
   it("LE PLAFOND, lui, ne bouge pas : quatre est un arbitrage, pas une mise à jour", () => {

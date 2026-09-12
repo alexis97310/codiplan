@@ -154,10 +154,16 @@ export function resserrements(
         ajoute("FOREIGN KEY", table, fk[1]!);
       }
 
-      // ── LES TROIS FORMES QUE LE DÉPÔT N'ÉCRIT PAS ENCORE ────────────────
+      // ── TROIS FORMES RECONNUES, ET L'UNE D'ELLES A CESSÉ D'ÊTRE ABSENTE ─
       //
-      // Mesuré le 11/09/2026 sur les 47 migrations : `VALIDATE CONSTRAINT`,
-      // `ATTACH PARTITION` et `EXCLUDE` n'y apparaissent **nulle part**.
+      // ~~Mesuré le 11/09/2026 sur les 47 migrations : `VALIDATE CONSTRAINT`,
+      // `ATTACH PARTITION` et `EXCLUDE` n'y apparaissent **nulle part**.~~
+      // **`VALIDATE CONSTRAINT` EST ÉCRIT DEPUIS LE 12/09/2026** — la
+      // migration `20260913250000_rattrapage_suspensions_r3_02` valide les
+      // deux contraintes de suspension (R3-02, D117). *Et c'est le témoin
+      // posé la veille qui l'a dit, pas la relecture* : il existait pour
+      // rougir ce jour-là, et il a rougi. `ATTACH PARTITION` et `EXCLUDE`
+      // restent absentes, mesurées.
       // Elles sont reconnues quand même, et ce n'est pas de la précaution
       // décorative : *un lecteur qui ne connaît que ce qui existe devient faux
       // le jour où quelqu'un écrit autre chose*, et il le devient EN SILENCE —
