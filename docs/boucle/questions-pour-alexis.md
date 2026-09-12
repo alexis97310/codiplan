@@ -139,3 +139,66 @@ des charges a été corrigé le 12/09/2026 pour que la table ne naisse pas avec 
 endroit où un prix s'écrit — c'était l'urgence, et elle est levée.
 
 ---
+
+## Q4 — Sous quelle forme CODIPLAN enregistre-t-il « ce qu'on nous a dit » d'une vérification ?
+
+### La question
+
+Le registre des VGP existe et il est honnête : il affiche « sans information depuis X »
+pour chaque machine soumise. Il l'affichera **pour toujours**, parce que rien dans le
+produit ne permet aujourd'hui d'enregistrer qu'un organisme nous a dit quelque chose, ni
+à quelle date. Sous quelle forme veut-on l'enregistrer ?
+
+### Ce que j'ai mesuré
+
+- `document` porte une **classe** (`client` / `interne`) et une **cible** (le modèle ou
+  la machine). **Elle ne porte aucune NATURE** : rien n'y distingue un rapport de
+  vérification d'une notice constructeur.
+- **Aucune table du dépôt ne porte de date de vérification.** `date_document` existe sur
+  `document` depuis L8-06, nullable et lue par personne.
+- `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour **toutes** les
+  machines, et l'écran le dit en toutes lettres.
+
+**Trois tickets butent sur ce seul fait, et pas seulement celui qu'on croit.**
+
+| Ticket | Ce qu'il promet | Pourquoi il ne peut pas |
+|---|---|---|
+| L9-08 | une campagne datée avec **un compteur qui descend** | rien ne peut faire descendre le compteur — *un compteur figé est pire qu'une alerte de trop : il a l'air de mesurer* |
+| L9-09 | un compte portail retrouve **les rapports** de ses machines | rien ne dit quels documents sont des rapports |
+| L9-10 | un rapport **avec observations** engendre des interventions | rien ne porte d'observation |
+
+### Pourquoi je ne tranche pas
+
+Le §1 du protocole réserve à vous ce qui touche **une obligation légale**, et il nomme
+les VGP. La forme de cet enregistrement décide de ce que CODIMA pourra produire le jour
+où un contrôle le lui demandera — ce n'est pas une question de schéma.
+
+### Les issues possibles
+
+1. **Une NATURE sur `document`, et rien d'autre.** Un rapport est un document de nature
+   `rapport_vgp`, de classe `client`, accroché à la machine ; `date_document` porte la
+   date de la vérification. Coût : une colonne, une énumération de plus. *Ce qu'on
+   perd* : pas de place pour l'**organisme**, pas de place pour les **observations** de
+   L9-10, et donc L9-10 reste bloqué.
+2. **Une table `vgp_verification`** : machine, date, organisme, référence du rapport, et
+   un lien facultatif vers le `document` qui en porte les octets. Coût : une table, une
+   migration, un écran de saisie. *Ce qu'on gagne* : L9-08, L9-09 et L9-10 se
+   débloquent ensemble, et l'organisme est nommé — ce qui compte le jour d'un contrôle.
+   *C'est celle que je recommande.*
+3. **Attendre la saisie du technicien (L9-11).** *« C'est ce qui remplira le registre, et
+   rien d'autre ne le remplira »*, dit D88 §11. Coût : le registre reste vide jusqu'au
+   lot 3, qui est lui-même bloqué par la file de synchronisation. **Le registre resterait
+   donc vide plusieurs lots**, et c'est lui qui rend le service vendable.
+
+### Une question qui vient avec
+
+**Que veut dire « l'organisme nous l'a dit » ?** Un rapport reçu par courriel, une
+vignette photographiée par un technicien et une déclaration orale du client n'ont pas la
+même valeur le jour d'un contrôle. Faut-il enregistrer **d'où vient l'information** ? *Je
+ne l'invente pas* — mais si la réponse est oui, elle change la forme de l'issue 2, et il
+vaut mieux le savoir avant la migration qu'après.
+
+### En attendant
+
+**Bloqué** : L9-08, L9-09, L9-10 — marqués comme tels, avec cette mesure.
+**Continue** : le registre lui-même est livré et il dit vrai ; L9-01 à L9-07 sont faits.

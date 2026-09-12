@@ -829,6 +829,10 @@ Les documents existants sont **numériques mais rangés en vrac**, sans structur
 
 *Ce qui a été construit, et où :* l'énumération `AssujettissementVgp` à quatre valeurs dont la NAISSANCE ; les colonnes de `famille_materiel`, `modele_materiel` et `machine` ; les quatre contraintes qui font REFUSER la base plutôt que signaler ; `lib/vgp/assujettissement.ts` (saisie Zod et cascade avec son origine) ; `lib/vgp/information.ts` (« sans information depuis X », qui ne rend jamais de verdict) ; le gardien statique de L9-05 (`tests/unit/vgp/aucune-duree-en-dur.test.ts`) ; et six scénarios d'isolation avec leur jumeau.
 
+**LES MARQUEURS ONT ÉTÉ REDRESSÉS LE 12/09/2026, et dans les deux sens.** Le paragraphe ci-dessus disait « LA COLONNE VERTÉBRALE EST CONSTRUITE — L9-03 à L9-07 » pendant que les cinq tickets portaient `LIBRE` ; et L9-11 portait `LIBRE` alors que son acceptation exige une file de synchronisation qui n'existe pas (`lib/sync/` est `(prévu)` au §6, le répertoire est absent). *`pnpm file` est une LECTURE : un marqueur faux envoie une session refaire ce qui existe, ou prendre ce qui ne peut pas se faire.*
+
+**ET LES TROIS DERNIERS BUTENT SUR UN SEUL FAIT, mesuré plutôt que supposé.** L9-08, L9-09 et L9-10 supposent tous qu'une information reçue d'un organisme soit enregistrable. **Elle ne l'est pas** : `document` porte une classe et une cible, jamais une NATURE, et rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification. *Le compteur qui descend de L9-08 ne pourrait donc jamais descendre* — un compteur figé est pire qu'une alerte de trop, parce qu'il a l'air de mesurer. La question est portée à Alexis (§1 du protocole : *une obligation légale*), et les trois tickets attendent sa réponse plutôt que d'être bâtis sur une forme inventée.
+
 **Vérifications générales périodiques** (APAVE, Bureau Veritas). **Chez CODIMA, ce sont les CLIENTS qui commandent ces visites, pas CODIMA. Tout ce lot découle de là.**
 
 **L9-01** CODIPLAN NE CALCULE JAMAIS LA CONFORMITÉ.
@@ -837,52 +841,52 @@ Il **enregistre ce que l'organisme agréé a écrit**, et ne calcule que des **d
 *Acceptation :* aucune fonction du dépôt ne rend un verdict de conformité ; le seul calcul est une échéance.
 
 **L9-02** CE N'EST PAS UN REGISTRE DE CONFORMITÉ, C'EST UN REGISTRE DE CE QU'ON NOUS A DIT.
-*File :* LIBRE
+*File :* LIVRÉ
 Chaque écran porte **la date de la dernière information reçue**. Sans nouvelles : **« sans information depuis X »** — jamais « à jour », jamais « en retard », **jamais blanc**. *Le danger est qu'un registre à moitié rempli ressemble à un registre complet* — c'est le zéro de `/sante` lu comme « installation vide », à l'échelle d'un parc.
 *Acceptation :* aucun écran du lot ne rend un état sans le dater ; l'absence d'information a un libellé propre, distinct de « conforme » et de « non conforme ».
 
 **L9-03** L'assujettissement se déclare À LA FAMILLE et se propage — **mais PAS par une case à cocher**.
-*File :* LIBRE
+*File :* LIVRÉ
 **TROIS valeurs** : `soumis` · `non_soumis`, et `verifie` · `a_determiner`. **Une famille nouvelle naît « à déterminer »**, parce qu'*une case décochée est indiscernable d'une famille jamais examinée*, et qu'un pont élévateur sortirait du registre en silence. **Les « à déterminer » apparaissent dans une liste visible** : c'est la moitié détective du couple, et sans elle la valeur ne sert à rien.
 *Acceptation :* une famille créée porte `a_determiner` sans qu'on l'ait demandé ; la liste des indéterminés est atteignable en un clic depuis le registre.
 
 **L9-04** Déclarer « soumis » rend OBLIGATOIRES la périodicité et **la référence du texte qui la fonde**.
-*File :* LIBRE
+*File :* LIVRÉ
 Sans le texte, la périodicité est un chiffre que personne ne peut défendre.
 *Acceptation :* la base refuse `soumis` sans périodicité ni référence.
 
 **L9-05** AUCUNE PÉRIODICITÉ EN DUR.
-*File :* LIBRE
+*File :* LIVRÉ
 Elle dépend du matériel et du texte applicable ; **la Nouvelle-Calédonie a son propre code du travail**, et la solution sera vendue sur d'autres territoires. **C'est une donnée saisie par un humain**, comme la majoration hors ouverture et le taux horaire.
 *Acceptation :* aucune constante de durée dans le code du lot ; un gardien statique le vérifie, sur le modèle de celui des couleurs.
 
 **L9-06** Le MODÈLE peut préciser, la MACHINE peut faire exception — **avec motif écrit obligatoire**.
-*File :* LIBRE
+*File :* LIVRÉ
 Les caractéristiques techniques vivent sur le modèle, donc c'est là que la précision a un sens. L'exception au niveau d'un exemplaire existe — un usage particulier, une modification — et **elle ne se pose jamais sans sa raison**.
 *Acceptation :* une exception sans motif est refusée par la base.
 
 **L9-07** La déclaration est JOURNALISÉE : qui, quand, **sur quelle base**.
-*File :* LIBRE
+*File :* LIVRÉ
 Pas une table de plus : `journal_audit`, par déclencheur, avec les valeurs avant et après. « Sur quelle base » est la référence du texte de L9-04.
 *Acceptation :* toute déclaration d'assujettissement est retrouvable avec son auteur et sa justification.
 
 **L9-08** Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre **UNE CAMPAGNE DATÉE avec un compteur qui descend**.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 *Un gardien dont on ignore les alertes coûte plus qu'il ne rapporte* — c'est déjà écrit au §9 du CLAUDE.md, et deux cents alertes le jour d'une déclaration, c'est la panne par le bruit, la plus sûre.
 *Acceptation :* une déclaration produit un objet unique, daté, avec un reste-à-faire visible ; aucune notification par machine.
 
 **L9-09** Le rapport de VGP est de classe `client`.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 **L'obligation pèse sur celui qui utilise le matériel : le rapport lui appartient.** C'est la classe de L8-03, et c'est tout — le lot 9 ne crée aucun axe de visibilité.
 *Acceptation :* un compte portail retrouve les rapports de ses machines, et rien d'autre.
 
 **L9-10** Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 **C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.** Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
 *Acceptation :* une observation saisie produit une intervention en file d'attente, rattachée à la machine et au rapport qui l'a motivée.
 
 **L9-11** Le TECHNICIEN saisit sur site ce qu'il voit — **vignette, date — en cinq secondes**, pendant une intervention.
-*File :* LIBRE
+*File :* BLOQUÉ — son acceptation exige une saisie **« en mode avion » qui se synchronise**, c'est-à-dire le cache local (L3-07) et la file de synchronisation (L3-08), qui n'existent ni l'un ni l'autre — les deux sont eux-mêmes BLOQUÉS dans cette file. Mesuré le 12/09/2026 : `lib/sync/` est marqué `(prévu)` au §6 du `CLAUDE.md` et le répertoire n'existe pas. *Le marqueur disait LIBRE ; un ticket dont l'état ment est pire qu'un ticket bloqué.*
 **C'est ce qui remplira le registre**, et rien d'autre ne le remplira : personne ne saisira deux cents fiches un dimanche. La saisie doit fonctionner **hors ligne**, comme tout ce que le terrain fait.
 *Acceptation :* la saisie tient en deux champs et se fait en mode avion ; elle se synchronise comme le reste.
 

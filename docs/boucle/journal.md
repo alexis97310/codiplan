@@ -163,3 +163,92 @@ protocole), et il tient encore.
 
 `pnpm verify` → **EXIT=0**, 1567 tests unitaires + 762 tests d'isolation, le 12/09/2026
 à `08:50:37 UTC`, sur la branche `claude/vibrant-pasteur-hczbqx`.
+
+## N-03 — Le lot 9 : le registre existe désormais, et trois tickets butent sur UN seul fait
+
+### Ce que j'ai mesuré AVANT d'écrire une ligne
+
+Même défaut qu'au lot 8, et dans les deux sens cette fois. Le paragraphe de tête du lot
+dit « LA COLONNE VERTÉBRALE EST CONSTRUITE le 12/09/2026 — L9-03, L9-04, L9-05, L9-06 et
+L9-07 », et les cinq portaient `LIBRE`. À l'inverse, **L9-11 portait `LIBRE` et ne
+pouvait pas l'être**.
+
+| Ticket | Mesure |
+|---|---|
+| L9-03 | `tests/isolation/vgp-assujettissement.test.ts` porte « la naissance est `a_determiner`, et personne ne l'a demandée ». **La seconde moitié manquait** — *« la liste des indéterminés est atteignable en un clic depuis le registre »*, et il n'y avait pas de registre. |
+| L9-04 | scénario « la base REFUSE `soumis` sans sa base » |
+| L9-05 | `tests/unit/vgp/aucune-duree-en-dur.test.ts` |
+| L9-06 | scénario « une exception sans sa raison est refusée par la base » |
+| L9-07 | scénario « ces colonnes sont AUDITÉES sans qu'on l'ait demandé » |
+| L9-11 | `lib/sync/` est marqué `(prévu)` au §6 du `CLAUDE.md` ; `ls lib/sync` → **No such file or directory**. L3-07 et L3-08 sont eux-mêmes `BLOQUÉ`. Marqueur corrigé en `BLOQUÉ`, avec ce motif. |
+
+### Ce que j'ai construit — L9-02 et la seconde moitié de L9-03
+
+- **`lib/vgp/registre.ts`** — la lecture. La cascade de `resoudreAssujettissement` et
+  l'état de `etatDeLInformation` existaient tous deux depuis le 12/09 **sans appelant** ;
+  ce module leur en donne un. `aujourdHui` est **reçu**, jamais lu — D85.
+- **`lib/vgp/libelles.ts`** — **le seul endroit où un état devient du texte**, et c'est
+  ce qui rend L9-02 gardable. Écrite dans le composant, la règle n'aurait été éprouvable
+  que par un rendu, et le deuxième écran du lot l'aurait réécrite à sa façon *sans qu'un
+  test rougisse* (§9, 01/09).
+- **`/vgp`** — le registre, et **`/vgp/a-determiner`** — la liste des familles que
+  personne n'a examinées, atteinte par un lien qui porte son compte. *Sans elle, la
+  troisième valeur ne sert à rien* (D88 §3).
+- Ni l'un ni l'autre n'est une entrée de la barre : elle est **close et confrontée à la
+  maquette** (D95), qui ne porte aucune entrée « VGP ». Une douzième la ferait rougir à
+  raison. Le registre se rejoint depuis le parc, comme l'écran des lieux.
+
+### Ce que l'écran dit de lui-même, et c'est le cœur de D88
+
+**Toutes les machines soumises s'affichent « sans information »**, et l'écran écrit
+pourquoi en toutes lettres : rien n'enregistre encore ce qu'un organisme a dit. *Ce n'est
+pas un défaut du registre, c'est le registre qui dit vrai* — le danger que D88 nomme est
+l'inverse, *un registre à moitié rempli qui ressemble à un registre complet*.
+
+### Le gardien, et son message d'échec initial mesuré
+
+`tests/unit/vgp/aucun-verdict-de-conformite.test.ts` tient deux comportements : **aucun
+état ne prononce un verdict**, **aucun état ne sort sans sa date**. Éprouvé en
+remplaçant réellement un libellé par « Conforme » :
+
+```
+FAIL tests/unit/vgp/aucun-verdict-de-conformite.test.ts >
+     « vgp.information.recue » ne dit ni conforme, ni à jour, ni en retard
+AssertionError: expected 'conforme' not to contain 'conforme'
+```
+
+**Sa population est étroite exprès**, et c'est la leçon du §9 du 11/09. Le sous-titre de
+l'écran dit *« CODIPLAN n'affirme jamais la conformité »* — et il doit le dire. Un gardien
+qui refuserait le mot partout rougirait **sur la phrase qui énonce la règle**. La
+population est donc `vgp.information.*` et `vgp.regime.*`, dérivée du dictionnaire, avec
+un cas qui **doit rester vert pour sa propre raison** : le sous-titre contient le mot, et
+il n'est pas dans la population.
+
+### Les trois derniers tickets butent sur UN fait, et je ne l'ai pas inventé
+
+L9-08, L9-09 et L9-10 supposent tous qu'une information reçue d'un organisme soit
+enregistrable. **Elle ne l'est pas** : `document` porte une classe et une cible, jamais
+une **nature**, et aucune table ne porte de date de vérification.
+
+*Le compteur qui descend de L9-08 ne pourrait donc jamais descendre* — et **un compteur
+figé est pire qu'une alerte de trop, parce qu'il a l'air de mesurer**. Les trois sont
+marqués `BLOQUÉ` avec cette mesure, et la question part à Alexis : le §1 du protocole lui
+réserve **une obligation légale**, et il nomme les VGP. Voir Q4.
+
+### Le rouge que j'ai réparé du premier coup
+
+```
+app/(back-office)/vgp/page.tsx
+  179:46  error  Strings not allowed in JSX files: "·"  react/jsx-no-literals
+```
+
+Un séparateur `·` écrit dans le JSX. La règle a raison : *aucune chaîne en dur dans un
+composant* (§5), et un séparateur en est une. La composition est remontée dans une
+fonction.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1582 tests unitaires + 762 d'isolation, le 12/09/2026 à
+`09:05:41 UTC`. *Cette exécution portait aussi N-04a* (voir ci-dessous) : les deux
+travaux sont dans deux commits distincts, la mesure est commune, et je l'écris plutôt que
+de l'annoncer deux fois comme si elle avait été jouée deux fois.

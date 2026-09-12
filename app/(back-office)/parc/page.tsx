@@ -116,6 +116,19 @@ export default async function PageParc() {
         </Tableau>
       </section>
 
+      {/*
+        LE REGISTRE DES VGP SE REJOINT D'ICI, et non par la barre : celle-ci est
+        une liste CLOSE confrontée à la maquette (D95), qui n'y porte aucune
+        entrée « VGP ». Une douzième entrée la ferait rougir à raison — le même
+        traitement que l'écran des lieux, qui se rejoint par un lien.
+      */}
+      <Link
+        href="/vgp"
+        className="text-app-encre-faible text-[12.5px] underline-offset-2 hover:underline"
+      >
+        {t("vgp.lien_depuis_parc")}
+      </Link>
+
       <p className="text-app-encre-faible text-[11.5px]">{t("parc.borne")}</p>
     </main>
   );
