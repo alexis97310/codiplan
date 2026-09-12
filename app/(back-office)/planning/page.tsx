@@ -6,6 +6,7 @@ import { nomsDesPersonnes } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
+  jourSuivant,
   maintenant,
   minutesDepuisMinuit,
   versLocal,
@@ -33,6 +34,9 @@ import {
 import {
   construireJournee,
   type AgenceDeJournee,
+  type Journee,
+  type MotifHorsGrille,
+  type TechnicienDeJournee,
 } from "@/lib/interventions/journee";
 import { occupationsDuPlanning } from "@/lib/interventions/occupation";
 import {
@@ -98,7 +102,12 @@ export default async function PagePlanning({
       select: { fuseau_horaire: true },
     });
     const agences = await tx.agence.findMany({
-      select: { id: true, libelle: true, calendrier_id: true },
+      select: {
+        id: true,
+        libelle: true,
+        calendrier_id: true,
+        fuseau_horaire: true,
+      },
       orderBy: { libelle: "asc" },
     });
     const detaillees = await Promise.all(
@@ -110,7 +119,27 @@ export default async function PagePlanning({
         return { agence, parametrage };
       }),
     );
-    return { fuseau: societe?.fuseau_horaire ?? "UTC", detaillees };
+    // ── LE RÉFÉRENTIEL DES PERSONNES — c'est lui qui donne ses colonnes à la
+    // vue jour, et non plus les interventions (12/09/2026).
+    //
+    // *Un technicien dont la journée est entièrement libre n'avait aucune
+    // colonne* — c'est-à-dire, sur un écran dont l'objet déclaré est de MONTRER
+    // LES TROUS, la personne qu'il fallait montrer en premier.
+    //
+    // `actif` filtre, et c'est une décision : *un technicien qui a quitté
+    // l'entreprise ne se supprime pas, il cesse d'être proposé* (schéma,
+    // `Technicien.actif`). Lui garder une colonne vide ferait proposer une
+    // journée entière chez quelqu'un qui n'est plus là. Ses interventions
+    // passées, elles, lui rendent sa colonne — la vue jour n'en perd aucune.
+    const techniciens = await tx.technicien.findMany({
+      where: { actif: true },
+      select: { utilisateur_id: true, agence_id: true },
+    });
+    return {
+      fuseau: societe?.fuseau_horaire ?? "UTC",
+      detaillees,
+      techniciens,
+    };
   });
 
   const pourGrille: AgenceDeGrille[] = cadre.detaillees.map(
@@ -131,17 +160,33 @@ export default async function PagePlanning({
     }),
   );
 
+  const pourTechniciens: TechnicienDeJournee[] = cadre.techniciens.map((t) => ({
+    id: t.utilisateur_id,
+    agenceIds: [t.agence_id],
+  }));
+
   const jours = joursDeLaSemaine(
     jourDemande(parametres.semaine, cadre.fuseau, true),
   ).slice(0, 6);
   const jourAffiche = jourDemande(parametres.jour, cadre.fuseau, false);
-  const fenetre =
+
+  // ── LA FENÊTRE EST EN JOURS, ET SA BORNE HAUTE EST EXCLUSIVE ─────────────
+  //
+  // `date_planifiee` est un `@db.Date` : la borner à minuit UTC est JUSTE pour
+  // l'appartenance au jour, et c'est pour cela que `instantDuJour` existe.
+  // *Ce qui était faux était d'employer LES MÊMES BORNES comme des INSTANTS
+  // pour le dénominateur du panneau de charge* — sous UTC+11, « vendredi 00:00
+  // UTC » est « vendredi 11 h à Nouméa ». La conversion en instants descend
+  // désormais dans `occupationsDuPlanning`, où le fuseau de chaque calendrier
+  // est connu ; ici, on ne manipule plus que des JOURS.
+  const fenetreEnJours =
     vue === "jour"
-      ? { du: instantDuJour(jourAffiche), au: instantDuJour(jourAffiche, 1) }
-      : {
-          du: instantDuJour(jours[0]),
-          au: instantDuJour(jours[jours.length - 1], 1),
-        };
+      ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
+      : { du: jours[0], au: jourSuivant(jours[jours.length - 1]) };
+  const fenetre = {
+    du: instantDuJour(fenetreEnJours.du),
+    au: instantDuJour(fenetreEnJours.au),
+  };
 
   const lignes = await listerPlanning(contexte, fenetre.du, fenetre.au);
   const noms = await avecContexteApplicatif(contexte, (tx) =>
@@ -155,15 +200,45 @@ export default async function PagePlanning({
   const nomDe = (id: string) => noms.get(id) ?? null;
 
   const attente = lignes.filter((l) => l.date_planifiee === null);
+
+  // ── LE PANNEAU DE CHARGE ET LA VUE LISENT LE MÊME JEU ───────────────────
+  //
+  // Ils ne le lisaient pas. Le panneau recevait la liste BRUTE, la grille une
+  // liste filtrée — si bien qu'il comptait la FILE D'ATTENTE (`date_planifiee`
+  // nulle, que `listerPlanning` ramène exprès), et, en vue jour, les six jours
+  // de la semaine. *Deux chiffres côte à côte, calculés sur deux populations,
+  // et rien ne disait lequel croire* (§9, 01/09).
+  //
+  // Le filtrage se fait donc UNE FOIS, ici, et les deux le reçoivent.
+  const posees = lignes.filter((l) => l.date_planifiee !== null);
+  const lignesDuJour = posees.filter(
+    (l) =>
+      l.date_planifiee !== null &&
+      cleJour(jourDeLaDate(l.date_planifiee)) === cleJour(jourAffiche),
+  );
+  const affichees = vue === "jour" ? lignesDuJour : posees;
   const charges = await occupationsDuPlanning(
     contexte,
-    lignes,
-    fenetre.du,
-    fenetre.au,
+    affichees,
+    vue === "jour"
+      ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
+      : fenetreEnJours,
   );
 
-  const minutesDe = (instant: Date) =>
-    minutesDepuisMinuit(versLocal(instant, cadre.fuseau));
+  // LE FUSEAU EST CELUI DE L'AGENCE, et la société n'est que le repli — c'est
+  // `fuseauDeLAgence` qui décide à l'ÉCRITURE (`lib/interventions/depot.ts`),
+  // et deux lectures d'un même critère divergent en silence. Une agence sans
+  // fuseau propre retombe sur celui de la société, exactement comme là-bas.
+  const fuseauDe = new Map(
+    cadre.detaillees.map(({ agence }) => [
+      agence.id,
+      agence.fuseau_horaire ?? cadre.fuseau,
+    ]),
+  );
+  const minutesDe = (instant: Date, agenceId: string) =>
+    minutesDepuisMinuit(
+      versLocal(instant, fuseauDe.get(agenceId) ?? cadre.fuseau),
+    );
 
   return (
     <main className="flex flex-col gap-5">
@@ -193,15 +268,11 @@ export default async function PagePlanning({
           {vue === "jour" ? (
             <VueJour
               journee={construireJournee(
-                lignes.filter(
-                  (l) =>
-                    l.date_planifiee !== null &&
-                    cleJour(jourDeLaDate(l.date_planifiee)) ===
-                      cleJour(jourAffiche),
-                ),
+                lignesDuJour,
                 jourAffiche,
                 pourJournee,
                 minutesDe,
+                pourTechniciens,
               )}
               nomDe={nomDe}
               jourAffiche={jourAffiche}
@@ -209,7 +280,7 @@ export default async function PagePlanning({
           ) : (
             <VueSemaine
               jours={jours}
-              grille={construireGrille(lignes, jours, pourGrille, nomDe)}
+              grille={construireGrille(posees, jours, pourGrille, nomDe)}
               nomDe={nomDe}
             />
           )}
@@ -378,10 +449,17 @@ function VueJour({
   readonly nomDe: (id: string) => string | null;
   readonly jourAffiche: JourLocal;
 }) {
+  // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
+  // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
+  // pourtant y avoir des interventions ce jour-là, et « aucune intervention
+  // posée » serait alors un mensonge de plus.
   if (journee.axe.length === 0 || journee.colonnes.length === 0) {
     return (
-      <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-[13px]">
-        {t("planning.jour_vide")}
+      <section className="bg-app-surface border-app-bord rounded-[10px] border">
+        <p className="text-app-encre-faible px-4 py-6 text-[13px]">
+          {t("planning.jour_vide")}
+        </p>
+        <HorsGrille journee={journee} nomDe={nomDe} />
       </section>
     );
   }
@@ -424,22 +502,6 @@ function VueJour({
                 </th>
                 {journee.colonnes.map((colonne) => {
                   const cellule = colonne.cellules[rang];
-                  const occupation = cellule.occupation;
-                  const lien = (
-                    <Link
-                      href={`/planning/${occupation?.id ?? ""}`}
-                      className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${occupation === null ? "" : CLASSES_BLOC[occupation.statut]}`}
-                    >
-                      {cellule.debutDeBloc && occupation !== null ? (
-                        <>
-                          <span className="block font-bold">
-                            {referenceAffichee(occupation)}
-                          </span>
-                          {occupation.client.raison_sociale}
-                        </>
-                      ) : null}
-                    </Link>
-                  );
                   return (
                     <CasePosable
                       key={colonne.technicienId ?? "-"}
@@ -454,25 +516,63 @@ function VueJour({
                       className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
                       style={{ height: "26px" }}
                     >
-                      {occupation === null ? null : cellule.debutDeBloc ? (
-                        <BlocPosable
-                          interventionId={occupation.id}
-                          dureeMin={dureeDe(occupation)}
-                          // Le début est celui de la CASE où le bloc commence :
-                          // la poignée n'apparaît que là, et `debutDeBloc` le
-                          // garantit. Redimensionner depuis le milieu d'un bloc
-                          // demanderait de savoir où il a commencé, et cette
-                          // case ne le sait pas.
-                          debutMinutes={debut}
-                          className="h-full"
-                        >
-                          {lien}
-                        </BlocPosable>
-                      ) : (
-                        // La SUITE d'un bloc n'est pas prenable : prendre une
-                        // intervention par son milieu déplacerait son début
-                        // sans que rien ne le dise.
-                        lien
+                      {/*
+                        TOUTES les occupations, côte à côte — jamais la
+                        première seule. Un chevauchement se VOIT : deux blocs
+                        étroits dans la même case. *Le masquer faisait poser une
+                        troisième personne sur un créneau déjà doublé.*
+                      */}
+                      {cellule.occupations.length === 0 ? null : (
+                        <div className="flex h-full gap-px">
+                          {cellule.occupations.map(
+                            ({ ligne: occupation, debutDeBloc }) => {
+                              const lien = (
+                                <Link
+                                  href={`/planning/${occupation.id}`}
+                                  className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}`}
+                                >
+                                  {debutDeBloc ? (
+                                    <>
+                                      <span className="block font-bold">
+                                        {referenceAffichee(occupation)}
+                                      </span>
+                                      {occupation.client.raison_sociale}
+                                    </>
+                                  ) : null}
+                                </Link>
+                              );
+                              return (
+                                <div
+                                  key={occupation.id}
+                                  className="min-w-0 flex-1"
+                                >
+                                  {debutDeBloc ? (
+                                    <BlocPosable
+                                      interventionId={occupation.id}
+                                      dureeMin={dureeDe(occupation)}
+                                      // Le début est celui de la CASE où le bloc
+                                      // commence : la poignée n'apparaît que là,
+                                      // et `debutDeBloc` le garantit.
+                                      // Redimensionner depuis le milieu d'un bloc
+                                      // demanderait de savoir où il a commencé, et
+                                      // cette case ne le sait pas.
+                                      debutMinutes={debut}
+                                      className="h-full"
+                                    >
+                                      {lien}
+                                    </BlocPosable>
+                                  ) : (
+                                    // La SUITE d'un bloc n'est pas prenable :
+                                    // prendre une intervention par son milieu
+                                    // déplacerait son début sans que rien ne le
+                                    // dise.
+                                    lien
+                                  )}
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
                       )}
                     </CasePosable>
                   );
@@ -505,6 +605,7 @@ function VueJour({
           {t("planning.jour_hors_ouverture")}
         </li>
       </ul>
+      <HorsGrille journee={journee} nomDe={nomDe} />
     </section>
   );
 }
@@ -715,6 +816,77 @@ function enTeteDeJour(jour: JourLocal): string {
  * au lieu de s'apprécier — et pour qu'une régression qui remplirait les trous
  * se voie tout de suite.
  */
+/**
+ * CE QUE LA GRILLE NE PEUT PAS DESSINER, ET QU'ELLE DIT (12/09/2026).
+ *
+ * Trois disparitions silencieuses vivaient dans cette vue : la seconde d'un
+ * chevauchement (réparée dans la cellule), l'intervention datée SANS HEURE, et
+ * celle dont le créneau tombe hors de l'axe. *Les deux dernières ne peuvent pas
+ * être placées sans inventer une heure que personne n'a saisie ; elles sont
+ * donc NOMMÉES, jamais effacées.*
+ *
+ * Le bloc n'apparaît pas quand il n'y a rien à dire : *un « 0 » à cet endroit
+ * se lirait comme une mesure*, et il n'y en a pas à faire.
+ */
+function HorsGrille({
+  journee,
+  nomDe,
+}: {
+  readonly journee: Journee<Ligne>;
+  readonly nomDe: (id: string) => string | null;
+}) {
+  if (journee.horsGrille === 0) return null;
+  return (
+    <section className="border-app-bord bg-app-surface-creuse border-t px-4 py-3">
+      <h3 className="text-[12px] font-bold">
+        {t("planning.jour_hors_grille")}
+        <span className="text-app-marque ml-2 text-[11px] font-semibold">
+          {journee.horsGrille}
+        </span>
+      </h3>
+      <p className="text-app-encre-faible text-[11.5px]">
+        {t("planning.jour_hors_grille_aide")}
+      </p>
+      <ul className="mt-2 flex flex-col gap-1">
+        {journee.colonnes.flatMap((colonne) =>
+          colonne.horsGrille.map(({ ligne, motif }) => (
+            <li key={ligne.id} className="text-[12px]">
+              <Link
+                href={`/planning/${ligne.id}`}
+                className="font-bold underline-offset-2 hover:underline"
+              >
+                {referenceAffichee(ligne)}
+              </Link>
+              <span className="text-app-encre-faible">
+                {ligneHorsGrille(colonne.technicienId, motif, nomDe)}
+              </span>
+            </li>
+          )),
+        )}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * La ligne entière — composée HORS du JSX, où un littéral n'est pas admis
+ * (L0-11), et le séparateur en est un.
+ */
+function ligneHorsGrille(
+  technicienId: string | null,
+  motif: MotifHorsGrille,
+  nomDe: (id: string) => string | null,
+): string {
+  return ` — ${quiTravaille(technicienId, nomDe)} — ${motifHorsGrille(motif)}`;
+}
+
+/** Le libellé d'un motif — au dictionnaire, jamais dans la balise (L0-11). */
+function motifHorsGrille(motif: MotifHorsGrille): string {
+  return motif === "sans_creneau"
+    ? t("planning.jour_hors_grille_sans_creneau")
+    : t("planning.jour_hors_grille_hors_axe");
+}
+
 function resumeDesTrous(libres: number, pasMinutes: number): string {
   return `${libres} ${t("planning.creneaux_libres")} · ${t("planning.pas")} ${pasMinutes} min`;
 }

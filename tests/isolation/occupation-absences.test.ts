@@ -54,9 +54,16 @@ const SESSION = {
 
 const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
 
-/** La semaine du lundi 14 septembre 2026, bornes larges. */
-const DU = new Date("2026-09-14T00:00:00.000Z");
-const AU = new Date("2026-09-21T00:00:00.000Z");
+/**
+ * LA MÊME FENÊTRE, EN JOURS — c'est ce que la charge demande depuis le
+ * 12/09/2026. Un jour civil n'est pas un instant, et il ne le devient qu'une
+ * fois le fuseau connu ; `occupationsDuPlanning` le sait par ses calendriers,
+ * un appelant qui en a plusieurs sous les yeux ne le sait pas.
+ */
+const FENETRE = {
+  du: { annee: 2026, mois: 9, jour: 14 },
+  au: { annee: 2026, mois: 9, jour: 21 },
+};
 
 let interventionId = "";
 const absencesPosees: string[] = [];
@@ -104,8 +111,7 @@ async function ouvrables(): Promise<number> {
         date_planifiee: null,
       },
     ],
-    DU,
-    AU,
+    FENETRE,
     clientApp(),
   );
   const ligne = lignes.find((l) => l.technicienId === TECHNICIEN);

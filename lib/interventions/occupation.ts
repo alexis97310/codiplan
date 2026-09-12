@@ -2,7 +2,7 @@ import { periodesValidees } from "@/lib/absences/periode";
 import { chargerCalendrierAgence } from "@/lib/calendar/agence";
 import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import { minutesOuvrees } from "@/lib/calendar/ouverture";
-import { versLocal } from "@/lib/calendar/fuseau";
+import { minuit, versInstant, type JourLocal } from "@/lib/calendar/fuseau";
 import { type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
@@ -97,17 +97,45 @@ type Mesurable = InterventionMesuree & {
 };
 
 /**
+ * LA FENÊTRE AFFICHÉE, EN JOURS — jamais en instants (réparé le 12/09/2026).
+ *
+ * `au` est le jour qui SUIT le dernier affiché : la borne est **exclusive**,
+ * comme partout où l'on borne un intervalle de temps.
+ *
+ * **Pourquoi des jours et non des instants.** L'appelant construisait ses
+ * bornes à MINUIT UTC — ce qui est juste pour l'appartenance au jour, puisque
+ * `date_planifiee` est un `@db.Date` que Prisma rend à minuit UTC — puis les
+ * passait ICI comme des INSTANTS. *Sous `Pacific/Noumea` (UTC+11, sans heure
+ * d'été), « vendredi 00:00 UTC » vaut « vendredi 11 h à Nouméa » : le
+ * dénominateur d'une journée courait de vendredi 11 h à samedi 11 h.* Il
+ * amputait la matinée et ajoutait celle du lendemain — c'est l'explication des
+ * « 04:30 ouvrables » qu'aucune plage horaire ne justifiait.
+ *
+ * *Ce n'était pas un décalage à corriger d'un cran : c'était un TYPE mal choisi.*
+ * Un jour civil n'est pas un instant, et il ne devient un instant qu'au moment
+ * où l'on sait DANS QUEL FUSEAU on le lit. Ce module le sait — le calendrier de
+ * chaque agence porte le sien —, et l'appelant ne le sait pas : il en a
+ * plusieurs sous les yeux. **La conversion descend donc là où le fuseau est
+ * connu**, et le type interdit de la faire ailleurs (la leçon de D70 : une
+ * exigence qui porte sur un fait, pas sur un geste).
+ */
+export type FenetreAffichee = {
+  readonly du: JourLocal;
+  /** Exclusive — le jour qui SUIT le dernier affiché. */
+  readonly au: JourLocal;
+};
+
+/**
  * Regroupe les interventions par (technicien, agence) et donne à chaque groupe
  * son dénominateur, lu au calendrier de l'agence sur la période affichée.
  *
- * `du` et `au` sont des instants ; le calendrier les rapporte au fuseau de son
- * agence, comme partout ailleurs (L0-08).
+ * La fenêtre est donnée en JOURS ; chaque calendrier la rapporte à SON fuseau
+ * pour en tirer ses instants, comme partout ailleurs (L0-08).
  */
 export async function occupationsDuPlanning(
   contexte: ContexteSession,
   interventions: readonly Mesurable[],
-  du: Date,
-  au: Date,
+  fenetre: FenetreAffichee,
   client?: PrismaClient,
 ): Promise<readonly LigneOccupation[]> {
   const societeId = contexte.societeId;
@@ -159,8 +187,18 @@ export async function occupationsDuPlanning(
       // LUES UNE SEULE FOIS pour toute la fenêtre, et sous le contexte cloisonné :
       // la forme « interne » d'`absence` décide, et aucune comparaison de société
       // n'est écrite au-dessus (D94).
+      //
+      // LES BORNES DE CETTE REQUÊTE SONT LARGES D'UN JOUR DE CHAQUE CÔTÉ, et
+      // c'est délibéré : `absence.du` et `absence.au` sont des `@db.Date`, et
+      // le fuseau qui décide n'est pas encore connu ici — il appartient au
+      // calendrier de chaque couple. *Ce qui est lu trop large est CLIPÉ plus
+      // bas par `periodesValidees` ; ce qui serait lu trop étroit serait perdu
+      // sans que rien ne le dise.*
       const absences = await tx.absence.findMany({
-        where: { du: { lte: au }, au: { gte: du } },
+        where: {
+          du: { lte: versInstant(minuit(fenetre.au), "UTC") },
+          au: { gte: versInstant(minuit(fenetre.du), "UTC") },
+        },
         select: {
           id: true,
           utilisateur_id: true,
@@ -210,7 +248,7 @@ export async function occupationsDuPlanning(
       // samedi par exception n'a pas le même dénominateur que son voisin de la
       // même agence.* La clé du cache suit donc la maille du groupe.
       const ouvrablesParCle = new Map<string, number>();
-      const fenetre = { du: versLocal(du, "UTC"), au: versLocal(au, "UTC") };
+      const jours = { du: minuit(fenetre.du), au: minuit(fenetre.au) };
 
       for (const { cle, lignes } of groupes.values()) {
         const cleCache = `${cle.technicienId ?? ""}|${cle.agenceId}`;
@@ -236,12 +274,12 @@ export async function occupationsDuPlanning(
               : await chargerCalendrierDuTechnicien(tx, {
                   societeId,
                   utilisateurId: cle.technicienId,
-                  fenetre,
+                  fenetre: jours,
                 })) ??
             (await chargerCalendrierAgence(tx, {
               societeId,
               agenceId: cle.agenceId,
-              fenetre,
+              fenetre: jours,
             }));
           // Une agence sans calendrier n'a pas d'heures ouvrables CONNUES. Zéro
           // est ici le signal de l'absence, et `tauxOccupation` le rend en
@@ -269,12 +307,33 @@ export async function occupationsDuPlanning(
           // arrêt se recouvre, et retrancher deux fois les mêmes journées rendrait
           // un dénominateur NÉGATIF — c'est-à-dire un taux supérieur à 100 %, ou
           // un signe moins sur un écran de direction.
-          const brut =
-            calendrier === null ? 0 : minutesOuvrees(calendrier, du, au);
-          const absentes =
+          //
+          // ── LES INSTANTS NAISSENT ICI, ET NULLE PART AILLEURS ────────────
+          //
+          // Le fuseau est celui du CALENDRIER retenu — propre au technicien
+          // s'il en a un, celui de son agence sinon (D72, L3-01a). C'est le
+          // premier endroit de la chaîne où il soit connu ; le convertir plus
+          // haut aurait demandé d'en choisir un pour tout le monde, et un
+          // fuseau choisi en silence est la faute qu'on répare.
+          const debut =
             calendrier === null
+              ? null
+              : versInstant(jours.du, calendrier.fuseau);
+          const fin =
+            calendrier === null
+              ? null
+              : versInstant(jours.au, calendrier.fuseau);
+          const brut =
+            calendrier === null || debut === null || fin === null
               ? 0
-              : periodesValidees(absences, cle.technicienId, { du, au }).reduce(
+              : minutesOuvrees(calendrier, debut, fin);
+          const absentes =
+            calendrier === null || debut === null || fin === null
+              ? 0
+              : periodesValidees(absences, cle.technicienId, {
+                  du: debut,
+                  au: fin,
+                }).reduce(
                   (total, periode) =>
                     total + minutesOuvrees(calendrier, periode.du, periode.au),
                   0,

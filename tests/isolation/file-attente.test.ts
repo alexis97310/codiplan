@@ -224,3 +224,70 @@ describe("la file d'attente à planifier", () => {
     expect(rangs).toEqual([basse, critiqueEnAttente]);
   });
 });
+
+/**
+ * LA BORNE HAUTE EST EXCLUSIVE — et elle était comparée par `lte` (12/09/2026).
+ *
+ * L'écran passe **le lendemain à minuit** comme borne haute : c'est une borne
+ * exclusive, comme partout où l'on borne un intervalle de temps. `listerPlanning`
+ * la comparait par `lte`, si bien que **la journée du lendemain revenait tout
+ * entière** et que le panneau de charge comptait un jour de trop.
+ *
+ * *Une borne exclusive comparée par `lte` ramène toujours exactement une unité
+ * de trop, et le symptôme est un chiffre légèrement faux — celui qu'on ne
+ * recompte pas.*
+ *
+ * **Et l'unité est le JOUR, pas la seconde** — mesuré en réparant
+ * `trajet-charge.test.ts` : `date_planifiee` est un `@db.Date`, et Prisma
+ * convertit l'opérande de la comparaison en `date`. `< '2026-09-15T23:59:59Z'`
+ * vaut donc `< '2026-09-15'` et écarte la journée entière du 15. *Une borne à
+ * 23:59:59 sur une colonne de type date n'est pas « la fin de la journée » :
+ * c'est son début.* Un appelant qui voudrait « jusqu'au 15 inclus » passe donc
+ * le 16 à minuit, et rien d'autre ne marche.
+ */
+describe("la fenêtre du planning ne déborde pas d'un jour", () => {
+  /** Une intervention POSÉE à une date donnée. */
+  async function posee(date: string): Promise<string> {
+    const id = uuidv7();
+    posees.push(id);
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+         "agence_id", "type", "statut", "priorite", "date_planifiee",
+         "cree_le", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+               'planifiee', 'p3', $6::date, now(), now())`,
+      id,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      date,
+    );
+    return id;
+  }
+
+  it("une intervention datée SUR la borne haute n'est PAS rendue", async () => {
+    const dedans = await posee("2026-09-14");
+    const surLaBorne = await posee("2026-09-15");
+
+    const lignes = await listerPlanning(
+      SESSION,
+      new Date("2026-09-14T00:00:00.000Z"),
+      // Le lendemain à minuit : la borne que l'écran passe pour « la journée
+      // du 14 », et rien d'autre.
+      new Date("2026-09-15T00:00:00.000Z"),
+      clientApp(),
+    );
+    const rendues = lignes
+      .filter((l) => posees.includes(l.id))
+      .map((l) => l.id);
+
+    // TÉMOIN : la ligne du 14 est bien rendue. Deux absences seraient égales,
+    // et l'assertion serait creuse.
+    expect(rendues).toContain(dedans);
+    expect(
+      rendues.includes(surLaBorne),
+      "la journée du lendemain revient : la borne haute est comparée par « lte »",
+    ).toBe(false);
+  });
+});

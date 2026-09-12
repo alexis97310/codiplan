@@ -896,6 +896,15 @@ export const fr = {
   "planning.jour_occupe": "Occupé",
   "planning.jour_libre": "Libre",
   "planning.jour_hors_ouverture": "Hors ouverture",
+  // CE QUE LA VUE JOUR NE PEUT PAS DESSINER, ET QU'ELLE DIT (12/09/2026).
+  // *Une intervention qui ne peut pas être dessinée doit être DITE, jamais
+  // effacée* : trois disparitions silencieuses vivaient dans cet écran, et un
+  // planning qui perd une ligne fait poser quelqu'un sur un créneau déjà pris.
+  "planning.jour_hors_grille": "Non placées sur la grille",
+  "planning.jour_hors_grille_aide":
+    "Elles sont bien de ce jour ; l'axe des heures ne peut pas les montrer.",
+  "planning.jour_hors_grille_sans_creneau": "sans heure saisie",
+  "planning.jour_hors_grille_hors_axe": "hors des heures d'ouverture",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",

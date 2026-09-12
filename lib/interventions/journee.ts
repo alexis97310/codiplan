@@ -79,13 +79,45 @@ export type Occupante = {
 
 export type EtatDeCellule = "occupe" | "libre" | "hors_ouverture";
 
+/** Une intervention posée dans une cellule, et sa place dans son propre bloc. */
+export type BlocDeCellule<T> = {
+  readonly ligne: T;
+  /** Vrai sur la PREMIÈRE cellule d'une intervention — le libellé n'y paraît qu'une fois. */
+  readonly debutDeBloc: boolean;
+};
+
+/**
+ * POURQUOI UNE INTERVENTION N'EST PAS DESSINÉE — et jamais pourquoi elle est
+ * absente : elle ne l'est plus.
+ *
+ * `sans_creneau` — datée, sans heure. Elle appartient au JOUR et à aucune
+ * heure ; lui en donner une lui donnerait un créneau que personne n'a saisi.
+ * `hors_axe` — un créneau posé avant l'ouverture ou après la fermeture des
+ * agences présentes. L'axe ne va pas jusque-là, et l'étirer ferait apparaître
+ * des heures libres qu'aucune agence n'ouvre.
+ */
+export type MotifHorsGrille = "sans_creneau" | "hors_axe";
+
+export type LigneHorsGrille<T> = {
+  readonly ligne: T;
+  readonly motif: MotifHorsGrille;
+};
+
 export type CelluleDeJournee<T> = {
   readonly debutMinutes: number;
   readonly etat: EtatDeCellule;
-  /** L'intervention qui occupe la cellule, `null` sinon. */
-  readonly occupation: T | null;
-  /** Vrai sur la PREMIÈRE cellule d'une intervention — le libellé n'y paraît qu'une fois. */
-  readonly debutDeBloc: boolean;
+  /**
+   * TOUTES les interventions qui couvrent la cellule, jamais la première.
+   *
+   * Elle n'en portait qu'une — un `.find()` —, et **la seconde disparaissait
+   * sans trace** : deux interventions qui se chevauchent chez la même personne
+   * donnaient « 3 en vue semaine, 1 en vue jour ». Or c'est exactement le cas
+   * qu'un planificateur doit voir : *un chevauchement caché fait poser une
+   * troisième personne sur un créneau déjà doublé.* Le chevauchement est
+   * refusé à la POSE (RG-PLA, `pose.ts`), mais la base en porte d'antérieurs,
+   * et une vue qui les masque les rend indétectables.
+   */
+  readonly occupations: readonly BlocDeCellule<T>[];
 };
 
 export type ColonneDeJournee<T> = {
@@ -94,6 +126,14 @@ export type ColonneDeJournee<T> = {
   readonly cellules: readonly CelluleDeJournee<T>[];
   /** Combien de créneaux cette personne a de libres, ce jour-là. */
   readonly creneauxLibres: number;
+  /**
+   * Ce que cette colonne NE PEUT PAS dessiner, et qu'elle DIT.
+   *
+   * *Une intervention qui ne peut pas être dessinée doit être dite, jamais
+   * effacée* : sans cette liste, une ligne datée sans heure et une ligne posée
+   * hors des heures d'ouverture sortaient de l'écran en silence.
+   */
+  readonly horsGrille: readonly LigneHorsGrille<T>[];
 };
 
 export type Journee<T> = {
@@ -104,6 +144,24 @@ export type Journee<T> = {
   readonly colonnes: readonly ColonneDeJournee<T>[];
   /** Le total des créneaux libres — la mesure d'utilité de l'écran. */
   readonly creneauxLibres: number;
+  /** Le total des interventions non dessinables — jamais un zéro tu. */
+  readonly horsGrille: number;
+};
+
+/**
+ * UNE PERSONNE DU RÉFÉRENTIEL — ce qui donne à l'écran ses colonnes.
+ *
+ * **Les colonnes ne viennent plus des interventions**, et c'est la réparation
+ * du 12/09/2026. Elles en venaient, si bien qu'*un technicien dont la journée
+ * est entièrement libre n'avait aucune colonne* — c'est-à-dire, sur un écran
+ * dont l'objet déclaré est de MONTRER LES TROUS, la personne qu'il fallait
+ * montrer en premier. La mesure des trous était fausse dans le sens flatteur :
+ * elle ne comptait que les trous des gens déjà occupés.
+ */
+export type TechnicienDeJournee = {
+  readonly id: string;
+  /** Ses agences de rattachement — elles décident du grisé hors ouverture. */
+  readonly agenceIds: readonly string[];
 };
 
 /**
@@ -112,15 +170,56 @@ export type Journee<T> = {
  * `minutesDe` traduit un instant en minutes locales depuis minuit — l'appelant
  * la fournit parce que le fuseau appartient à l'agence, et que ce module n'a
  * pas à le choisir (L0-08 : la date courante ne se lit qu'avec un fuseau).
+ *
+ * **Elle reçoit l'AGENCE de la ligne, et c'est une réparation du 12/09/2026.**
+ * Elle ne la recevait pas, si bien que l'appelant traduisait tout au fuseau de
+ * la SOCIÉTÉ — quand l'écriture, elle, emploie `fuseauDeLAgence`
+ * (`lib/interventions/depot.ts`). *Deux lectures d'un même critère divergent en
+ * silence* (§9, 01/09), et celle-ci divergeait dès qu'une agence porte un
+ * fuseau propre : un créneau posé à 8 h se relisait à une autre heure.
  */
 export function construireJournee<T extends Occupante>(
   lignes: readonly T[],
   jour: JourLocal,
   agences: readonly AgenceDeJournee[],
-  minutesDe: (instant: Date) => number,
+  minutesDe: (instant: Date, agenceId: string) => number,
+  techniciens: readonly TechnicienDeJournee[] = [],
 ): Journee<T> {
   const iso = jourSemaineIso(jour);
-  const presentes = agencesPresentes(lignes, agences);
+  const parAgence = new Map(agences.map((a) => [a.id, a]));
+
+  // ── LES COLONNES, ET D'OÙ ELLES VIENNENT ────────────────────────────────
+  //
+  // Du RÉFÉRENTIEL d'abord — c'est ce qui donne une colonne à qui n'a rien ce
+  // jour-là. Puis des interventions, pour deux cas qu'un référentiel ne couvre
+  // pas : la file NON AFFECTÉE (`technicien_id` nul), et la personne posée sur
+  // une intervention sans être au référentiel. *Perdre une ligne pour la faire
+  // rentrer dans un référentiel serait remplacer une disparition par une
+  // autre.*
+  const groupes = new Map<
+    string,
+    { technicienId: string | null; agenceIds: Set<string>; lignes: T[] }
+  >();
+  for (const technicien of techniciens) {
+    groupes.set(technicien.id, {
+      technicienId: technicien.id,
+      agenceIds: new Set(technicien.agenceIds),
+      lignes: [],
+    });
+  }
+  for (const ligne of lignes) {
+    const cle = ligne.technicien_id ?? "";
+    const groupe = groupes.get(cle) ?? {
+      technicienId: ligne.technicien_id,
+      agenceIds: new Set<string>(),
+      lignes: [],
+    };
+    groupe.agenceIds.add(ligne.agence_id);
+    groupe.lignes.push(ligne);
+    groupes.set(cle, groupe);
+  }
+
+  const presentes = agencesPresentes(groupes.values(), agences);
   const ouvertes = presentes.filter((a) => a.calendrierConnu);
 
   const pasMinutes = Math.min(
@@ -129,24 +228,9 @@ export function construireJournee<T extends Occupante>(
   );
   const axe = construireAxe(ouvertes, iso, pasMinutes);
 
-  const groupes = new Map<
-    string,
-    { technicienId: string | null; lignes: T[] }
-  >();
-  for (const ligne of lignes) {
-    const cle = ligne.technicien_id ?? "";
-    const groupe = groupes.get(cle) ?? {
-      technicienId: ligne.technicien_id,
-      lignes: [],
-    };
-    groupe.lignes.push(ligne);
-    groupes.set(cle, groupe);
-  }
-
-  const parAgence = new Map(agences.map((a) => [a.id, a]));
-  const colonnes = [...groupes.values()]
+  const colonnes: ColonneDeJournee<T>[] = [...groupes.values()]
     .map((groupe) => {
-      const siennes = [...new Set(groupe.lignes.map((l) => l.agence_id))]
+      const siennes = [...groupe.agenceIds]
         .map((id) => parAgence.get(id))
         .filter((a): a is AgenceDeJournee => a !== undefined)
         .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
@@ -159,6 +243,7 @@ export function construireJournee<T extends Occupante>(
         agences: siennes,
         cellules,
         creneauxLibres: cellules.filter((c) => c.etat === "libre").length,
+        horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
       };
     })
     .sort(comparerColonnes);
@@ -169,21 +254,28 @@ export function construireJournee<T extends Occupante>(
     pasMinutes: Number.isFinite(pasMinutes) ? pasMinutes : 0,
     colonnes,
     creneauxLibres: colonnes.reduce((n, c) => n + c.creneauxLibres, 0),
+    horsGrille: colonnes.reduce((n, c) => n + c.horsGrille.length, 0),
   };
 }
 
 /**
- * Les agences que la journée met en jeu — celles des interventions du jour.
+ * Les agences que la journée met en jeu — celles des colonnes affichées.
  *
  * Pas toutes celles de la société : un axe étiré sur une agence dont personne
  * ne travaille ce jour-là ajouterait des heures vides à toutes les colonnes,
  * et la mesure des trous deviendrait fausse dans le sens flatteur.
+ *
+ * **Elle se lit désormais sur les COLONNES et non sur les interventions** : une
+ * personne libre toute la journée n'a aucune intervention, et son agence doit
+ * pourtant porter l'axe — sinon la colonne qu'on vient de lui rendre n'aurait
+ * aucune heure où montrer ses trous.
  */
-function agencesPresentes<T extends Occupante>(
-  lignes: readonly T[],
+function agencesPresentes(
+  groupes: Iterable<{ readonly agenceIds: ReadonlySet<string> }>,
   agences: readonly AgenceDeJournee[],
 ): readonly AgenceDeJournee[] {
-  const vues = new Set(lignes.map((l) => l.agence_id));
+  const vues = new Set<string>();
+  for (const groupe of groupes) for (const id of groupe.agenceIds) vues.add(id);
   return agences.filter((a) => vues.has(a.id));
 }
 
@@ -205,23 +297,53 @@ function construireAxe(
   return axe;
 }
 
+/**
+ * CE QUE LA COLONNE NE PEUT PAS DESSINER, avec son motif.
+ *
+ * La population est l'ENSEMBLE des lignes de la colonne, et l'appartenance à
+ * l'axe est une ASSERTION — jamais un critère de sélection. *Sélectionner « les
+ * lignes qui ont un créneau dans l'axe » ferait sortir de la population très
+ * exactement les lignes que cette fonction existe pour nommer* (§9, 31/08 : un
+ * `WHERE` qui recoupe l'assertion est un trou).
+ */
+function horsGrille<T extends Occupante>(
+  lignes: readonly T[],
+  axe: readonly number[],
+  pas: number,
+  minutesDe: (instant: Date, agenceId: string) => number,
+): readonly LigneHorsGrille<T>[] {
+  const rendues: LigneHorsGrille<T>[] = [];
+  for (const ligne of lignes) {
+    if (ligne.creneau_debut === null) {
+      rendues.push({ ligne, motif: "sans_creneau" });
+      continue;
+    }
+    if (!axe.some((debut) => couvre(ligne, debut, pas, minutesDe))) {
+      rendues.push({ ligne, motif: "hors_axe" });
+    }
+  }
+  return rendues;
+}
+
 function cellule<T extends Occupante>(
   debut: number,
   pas: number,
   iso: number,
   agences: readonly AgenceDeJournee[],
   lignes: readonly T[],
-  minutesDe: (instant: Date) => number,
+  minutesDe: (instant: Date, agenceId: string) => number,
 ): CelluleDeJournee<T> {
-  const occupation =
-    lignes.find((l) => couvre(l, debut, pas, minutesDe)) ?? null;
-  if (occupation !== undefined && occupation !== null) {
-    return {
-      debutMinutes: debut,
-      etat: "occupe",
-      occupation,
-      debutDeBloc: !couvre(occupation, debut - pas, pas, minutesDe),
-    };
+  // `filter`, et non `find` : voir `CelluleDeJournee.occupations`. La grille
+  // hebdomadaire les empile toutes depuis toujours, et c'est l'écart entre les
+  // deux qui produisait « 3 en vue semaine, 1 en vue jour ».
+  const occupations = lignes
+    .filter((l) => couvre(l, debut, pas, minutesDe))
+    .map((ligne) => ({
+      ligne,
+      debutDeBloc: !couvre(ligne, debut - pas, pas, minutesDe),
+    }));
+  if (occupations.length > 0) {
+    return { debutMinutes: debut, etat: "occupe", occupations };
   }
   const ouvert = agences.some(
     (a) =>
@@ -236,8 +358,7 @@ function cellule<T extends Occupante>(
   return {
     debutMinutes: debut,
     etat: ouvert ? "libre" : "hors_ouverture",
-    occupation: null,
-    debutDeBloc: false,
+    occupations: [],
   };
 }
 
@@ -247,19 +368,22 @@ function cellule<T extends Occupante>(
  * Sans `creneau_debut`, elle ne couvre RIEN : une intervention datée sans heure
  * appartient au jour, pas à une heure. La placer arbitrairement à l'ouverture
  * lui donnerait un créneau que personne n'a saisi, et la vue jour prétendrait
- * savoir ce qu'elle ne sait pas.
+ * savoir ce qu'elle ne sait pas. **Elle est alors rendue par `horsGrille`, avec
+ * son motif** — c'est ce qui la distingue d'une ligne effacée.
  */
 function couvre<T extends Occupante>(
   ligne: T,
   debut: number,
   pas: number,
-  minutesDe: (instant: Date) => number,
+  minutesDe: (instant: Date, agenceId: string) => number,
 ): boolean {
   if (ligne.creneau_debut === null) return false;
-  const d = minutesDe(ligne.creneau_debut);
+  // Le fuseau est celui de l'agence DE LA LIGNE — c'est lui qui a servi à
+  // l'écrire (`fuseauDeLAgence`), et le relire sous un autre décalerait le bloc.
+  const d = minutesDe(ligne.creneau_debut, ligne.agence_id);
   const f =
     ligne.creneau_fin !== null
-      ? minutesDe(ligne.creneau_fin)
+      ? minutesDe(ligne.creneau_fin, ligne.agence_id)
       : d + (ligne.duree_estimee_min ?? pas);
   return debut < f && debut + pas > d;
 }
