@@ -310,7 +310,16 @@ l'écran ne peut plus mentir.* Un gardien tient la condition sur la forme du sch
 
 ---
 
-## Q7 — Les quatre origines d'une information de VGP : la liste est-elle la bonne ?
+## Q7 — Les quatre origines d'une information de VGP : la liste est-elle la bonne ? — **TRANCHÉE le 13/09/2026**
+
+> **RÉPONSE : issue 1 — les quatre valeurs restent telles quelles, et l'axe qui les
+> ordonne (la valeur probante le jour d'un contrôle) est ratifié.** Inscrite sous **D114**
+> dans `docs/arbitrages.md`, section « LES QUATRE VALEURS SONT RATIFIÉES ». *Une liste
+> proposée puis approuvée n'est plus une proposition : le prochain lecteur doit pouvoir
+> le savoir sans relire ce recueil.* Gardée dans les deux sens par
+> `tests/unit/docs/origines-vgp-ratifiees.test.ts` — le schéma et l'arbitrage ne peuvent
+> plus diverger en silence.
+
 
 *D114 demande expressément que la session **propose** cette liste plutôt que de la
 figer : c'est du vocabulaire d'exploitation, et le §1 du protocole vous le réserve. La

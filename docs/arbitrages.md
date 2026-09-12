@@ -3924,6 +3924,23 @@ Le registre existait et il était honnête : il affichait *« sans information d
 
 **Mais ses VALEURS appartiennent à Alexis** : c'est du vocabulaire d'exploitation, et le §1 du protocole le lui réserve — *ce qu'un client voit* et *une obligation légale* s'y rejoignent. La session **construit la table avec la colonne** et **propose** la liste dans son compte rendu ; les valeurs se complètent après, par une migration d'énumération qui ne coûte rien (`ALTER TYPE … ADD VALUE`).
 
+### LES QUATRE VALEURS SONT RATIFIÉES — 13/09/2026
+
+*Alexis a lu la proposition portée en Q7 et retient l'issue 1 : **les quatre valeurs restent telles quelles**, et **l'axe qui les ordonne — la valeur probante le jour d'un contrôle — est ratifié**.*
+
+| Valeur | Ce qu'elle dit | Ce qu'elle ne dit pas |
+|---|---|---|
+| `rapport_organisme` | nous tenons la pièce, **et de sa source** | — |
+| `rapport_transmis_client` | la pièce est là ; **sa chaîne de transmission ne l'est pas** | qu'elle est complète, ni à jour |
+| `vignette_constatee` | une vérification a eu lieu, **à cette date** | ce qu'elle a conclu |
+| `declaration_client` | quelqu'un nous l'a dit | tout le reste |
+
+**Ce qui change en l'écrivant ici : la liste cesse d'être une proposition.** Elle était construite en base et soumise dans un compte rendu ; rien, dans le dépôt, ne disait qu'elle avait été approuvée — et *une liste proposée puis approuvée n'est plus une proposition*. Le prochain lecteur qui voudra en ajouter une saura donc qu'il touche à un arbitrage rendu, non à une ébauche laissée en chemin.
+
+**Ce que la ratification ne ferme pas.** Ajouter une valeur reste une migration d'une ligne (`ALTER TYPE … ADD VALUE`), et le §1 du protocole continue de la réserver à Alexis — c'est du vocabulaire d'exploitation. **En RETIRER une coûte davantage** — il faut réécrire le type —, et ce coût tombe à la première ligne réelle : la fenêtre où une valeur se retire sans peine se referme le jour du premier enregistrement.
+
+*Les trois écartées le restent, avec leur motif : `inconnue` — une origine inconnue enregistrée comme une origine est ce que la colonne existe pour empêcher ; `observation_technicien` — une vignette constatée en est déjà une, et ce qui n'en est pas une n'est plus une VGP ; une échelle numérique de fiabilité — elle inviterait à comparer, donc à calculer, et CODIPLAN n'affirme jamais la conformité.*
+
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > *Le jour où CODIMA commandera elle-même des visites* — c'est-à-dire le jour où elle vendra ce service —, la phrase dont D88 découle cesse d'être vraie, et l'origine cesse d'être une nuance : elle devient la ligne de partage entre *ce qu'on nous a dit* et *ce que nous savons*. La table est alors due à relecture entière, **et elle est déjà construite pour cela**.
