@@ -698,6 +698,91 @@ le 13/09/2026, lancé à `23:10:35 UTC` et rendu à `23:15:23 UTC`. *L'isolation
 
 ---
 
+## J12 — R3-05 : ce qui reste livrable est précisément ce qu'il ne faut pas faire
+
+L'heure réelle de début et de fin d'une intervention **se saisit sur le terrain**. *Mesuré
+en trois commandes* : `app/(mobile)/` n'existe pas, `lib/sync/` n'existe pas — le §6 du
+`CLAUDE.md` le marque `(prévu)` —, et `temps_reel_min` n'a **qu'un seul chemin
+d'écriture**, `app/api/interventions/[id]/cloturer/route.ts`, appelé depuis la fiche du
+**back-office**. L3-07, L3-08 et L3-11 sont BLOQUÉS dans cette même file.
+
+**Ce qui restait « livrable » était le défaut.** Deux colonnes posées par migration
+seraient des colonnes que rien n'écrit — l'interface sans appelant que le dépôt a refusée
+ce matin même sur le stockage du lot 8, *refus ratifié par l'exploitation*. Et faire saisir
+les deux instants au **planificateur** satisferait le marqueur sans satisfaire le besoin :
+*ce que D12 rouvrira un jour est la majoration proratisée sur des minutes RÉELLEMENT
+travaillées*, et une heure recopiée par téléphone n'est pas une mesure — elle serait
+indiscernable d'une mesure une fois en base.
+
+Condition de réouverture écrite : **le premier écran technicien qui écrit une saisie**.
+
+---
+
+## J13 — R3-10 : le semis ne posait aucune machine, et deux témoins étaient creux
+
+Le ticket demandait des machines pour que `/parc` et `/vgp` cessent de se photographier
+vides. Il en est sorti trois choses que je n'avais pas prévues, et chacune est une mesure.
+
+### Le témoin du parc passait au vert sur un parc VIDE
+
+> `const lignes = page.locator("main tbody tr"); expect(await lignes.count()).toBeGreaterThan(0);`
+
+*La ligne « Aucune machine n'est enregistrée pour cette société » **est** un `<tr>` du
+`<tbody>`.* Le décompte rendait **1** sur **0 machine**, et le commentaire au-dessus
+annonçait « le TÉMOIN : des lignes réelles ». **Jumeau joué** : `MACHINES_DEMONSTRATION`
+vidée, l'ancienne assertion reste verte ; la nouvelle rougit —
+
+> `expect(page.getByText(fr["parc.vide"])).toHaveCount(0)` → *Expect "toHaveCount" with
+> timeout 5000ms*
+
+C'est le §9 du 30/08 dans sa forme la plus simple, et je ne l'ai vu qu'en cherchant
+pourquoi ce test passait **avant** que j'ajoute la moindre machine.
+
+### Le semis échouait déjà, et ce n'était pas moi
+
+> `23514 — new row for relation "intervention" violates check constraint
+> "intervention_piece_attendue_suppose_la_suspension"`
+
+J'ai remisé la branche et rejoué : **le même échec, sans mes ajouts.** Cause isolée : le
+replacement écrivait les quatre colonnes de suspension d'après le **MODÈLE** pendant que le
+`statut` de la ligne venait de la **BASE** — une ligne reprise à l'écran portait
+`a_planifier` et recevait un motif d'attente de pièce. *Deux sources pour un même fait, et
+la contrainte a dit laquelle des deux la ligne porte.* Le replacement ne touche jamais au
+statut ; c'est donc celui de la base qui décide, et `null` dit « pas suspendue ».
+
+### Le budget d'allers-retours ne comptait pas ce que le semis écrit
+
+`allersRetoursTransaction` ignorait les **seize interventions** de R2-12, écrites dans
+cette transaction depuis le 11/09 — un `findUnique` puis un `create` chacune. *Un budget
+sous-évalué ne rougit pas : il rassure*, et il laisse passer un semis qui expirera sur la
+base hébergée, le seul environnement qu'aucune suite n'exerce (§9, 23/08).
+
+> `expected [ 'COMPTES_PORTAIL', …(1) ] to deeply equal []`
+
+Le gardien écrit pour le dire a été **bruyant avant d'être juste** : `COMPTES_PORTAIL`
+n'est pas écrite dans cette transaction, elle y est **citée en commentaire**. La coupure
+légitime est « documentation contre exécution » (§9, 26/08) — les commentaires sortent du
+périmètre, **les chaînes littérales jamais**. Le budget passe alors de **59 à 110**
+allers-retours (CODIMA-NC) et de **46 à 97** (CODIMA-EU) : 55 s et 48,5 s pour un plafond
+de 120 s.
+
+### Ce que le jeu de données montre, et pourquoi un gardien le tient
+
+Le ticket annonçait « trois régimes » et « deux états » ; **la mesure en compte quatre et
+trois**. Les quatre valeurs d'assujettissement et les trois états d'information sont
+couverts, et `tests/unit/seed/parc-de-demonstration.test.ts` **dérive sa population de
+l'énumération** : une cinquième valeur sera réclamée d'elle-même. *Une ligne retirée du jeu
+de démonstration ferait disparaître une distinction des images sans qu'aucune suite ne
+rougisse — les scénarios éprouvent les règles, pas ce que l'œil verra.*
+
+### Ce qui reste dû, et c'est dit
+
+`/vgp` n'a **aucun gardien de non-vacuité à l'écran** : son témoin de capture est un titre,
+qui s'affiche sur un registre vide. Le dépôt tient le jeu de données ; il ne tient pas que
+l'image en porte la trace.
+
+---
+
 ## LA MESURE QUE JE NE TRANCHE PAS — le trajet dans le taux de charge (D107)
 
 *Écrite ici pour être relisible dans quelques semaines, et pour rien d'autre.* Sur le jeu

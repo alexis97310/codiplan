@@ -1,7 +1,12 @@
 import type { DelaisTransaction } from "../lib/db/rls";
 
 import {
+  FAMILLES_MATERIEL_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
+  INTERVENTIONS_DEMONSTRATION,
+  MACHINES_DEMONSTRATION,
+  MODELES_MATERIEL_DEMONSTRATION,
+  VERIFICATIONS_VGP_DEMONSTRATION,
   type SocieteSeed,
   anneeDeDepartFeries,
   ecartsDeLAgence,
@@ -86,7 +91,22 @@ export const DELAIS_SEED: DelaisTransaction = {
  * Ce qui est compté, dans l'ordre où `seed.ts` l'émet : le `BEGIN`, les deux
  * `set_config` de `avecSociete`, la société, chaque client de démonstration
  * (L1-01), chaque calendrier, chaque plage, chaque agence, chaque écart local,
- * la lecture du férié que certains écarts résolvent, et le `COMMIT`.
+ * la lecture du férié que certains écarts résolvent, **chaque intervention**,
+ * **chaque famille, modèle, machine et vérification du parc**, et le `COMMIT`.
+ *
+ * ## DEUX TERMES MANQUAIENT, ET RIEN NE LE DISAIT (R3-10, 13/09/2026)
+ *
+ * Les INTERVENTIONS sont écrites dans cette transaction depuis R2-12 — seize
+ * lignes, **un `findUnique` puis un `create`** chacune — et le budget ne les
+ * comptait pas. *Un budget sous-évalué ne rougit pas : il rassure*, et il
+ * laisse passer un semis qui expirera sur la base hébergée, c'est-à-dire dans
+ * le seul environnement qu'aucune suite n'exerce (§9, 23/08).
+ *
+ * **La population du budget est désormais DÉRIVÉE du dépôt**, et non plus tenue
+ * de mémoire : `tests/unit/seed/budget-du-semis.test.ts` exige que toute
+ * collection parcourue par cette transaction soit nommée ici. *Ce qu'il ne peut
+ * pas tenir — deux allers-retours par ligne plutôt qu'un — est annoncé plutôt
+ * que laissé croire.*
  */
 export function allersRetoursTransaction(societe: SocieteSeed): number {
   const anneeDeDepart = anneeDeDepartFeries(societe);
@@ -122,6 +142,18 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     // liste pour toutes —, mais il coûte les mêmes allers-retours, et le budget
     // se compte, il ne s'estime pas (§9, 23/08).
     HABILITATIONS_AMORCAGE.length +
+    // LES INTERVENTIONS (R2-12), comptées DOUBLE : le semis lit la ligne avant
+    // de l'écrire — *il ne réécrit pas, il s'abstient*, une ligne clôturée ou
+    // annulée ne se modifiant plus (D84). La lecture coûte son aller-retour
+    // même quand l'écriture n'a pas lieu.
+    2 * INTERVENTIONS_DEMONSTRATION.length +
+    // LE PARC DE DÉMONSTRATION (R3-10) : un `upsert` chacun, dans la même
+    // transaction — les clés étrangères composites l'exigent, et un parc écrit
+    // hors de la transaction de sa société serait refusé par la politique.
+    FAMILLES_MATERIEL_DEMONSTRATION.length +
+    MODELES_MATERIEL_DEMONSTRATION.length +
+    MACHINES_DEMONSTRATION.length +
+    VERIFICATIONS_VGP_DEMONSTRATION.length +
     societe.calendriers.length +
     plages +
     societe.agences.length +
