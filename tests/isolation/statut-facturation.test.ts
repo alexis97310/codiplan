@@ -164,6 +164,96 @@ describe("D8 — la clôture pose la valeur, et le TYPE décide laquelle", () =>
   });
 });
 
+describe("D8 — une intervention peut NAÎTRE clôturée, et elle porte sa réponse", () => {
+  it("un INSERT direct au statut `cloturee` reçoit « à facturer »", async () => {
+    /*
+     * ── LA FAUTE QUE `verify:full` A TROUVÉE ET QUE `verify` NE VOIT PAS ────
+     *
+     * Le déclencheur a d'abord été écrit `BEFORE UPDATE` seul. `pnpm db:seed` a
+     * échoué :
+     *
+     *     new row for relation "intervention" violates check constraint
+     *     "intervention_cloture_a_son_statut_facturation"
+     *
+     * *Une intervention peut NAÎTRE clôturée* — le semis en pose, et une reprise
+     * d'historique en posera par milliers. Un `INSERT` ne passe par aucun
+     * `UPDATE` : la valeur n'était jamais posée, et la contrainte refusait **la
+     * ligne honnête**.
+     *
+     * **`pnpm verify` migre une base VIDE ; c'est `verify:full`, qui sème, qui a
+     * vu.** *Une porte qui ne garde pas ce que garde la porte suivante produit
+     * des verts sincères et faux* (§11 du protocole).
+     */
+    const id = uuidv7();
+    jetables.push(id);
+    const [ligne] = await clientOwner().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config($1, $2, true)",
+        VAR_SOCIETE,
+        SOCIETE_A,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+           "agence_id", "type", "statut", "temps_reel_min", "modifie_le")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+                 'cloturee', 60, now())`,
+        id,
+        SOCIETE_A,
+        CLIENT_A1,
+        SITE_A1_S1,
+        AGENCE_A,
+      );
+      return tx.$queryRawUnsafe<Array<{ statut_facturation: string | null }>>(
+        `SELECT "statut_facturation" FROM "intervention" WHERE "id" = $1::uuid`,
+        id,
+      );
+    });
+    expect(ligne?.statut_facturation).toBe("a_facturer");
+  });
+
+  it("et le TYPE décide aussi à la naissance", async () => {
+    const id = uuidv7();
+    jetables.push(id);
+    const [ligne] = await clientOwner().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config($1, $2, true)",
+        VAR_SOCIETE,
+        SOCIETE_A,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+           "agence_id", "type", "statut", "temps_reel_min", "modifie_le")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'garantie',
+                 'cloturee', 60, now())`,
+        id,
+        SOCIETE_A,
+        CLIENT_A1,
+        SITE_A1_S1,
+        AGENCE_A,
+      );
+      return tx.$queryRawUnsafe<Array<{ statut_facturation: string | null }>>(
+        `SELECT "statut_facturation" FROM "intervention" WHERE "id" = $1::uuid`,
+        id,
+      );
+    });
+    expect(ligne?.statut_facturation).toBe("non_facturable");
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — une naissance NON clôturée reste NULLE", async () => {
+    // Sans cette moitié, « le déclencheur pose une valeur » serait aussi bien la
+    // preuve qu'il en pose une à TOUTE naissance — et toute intervention
+    // entrerait dans la file de ce qui est à facturer dès sa création.
+    const id = await interventionTerminee("curatif");
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{ statut_facturation: string | null }>
+    >(
+      `SELECT "statut_facturation" FROM "intervention" WHERE "id" = $1::uuid`,
+      id,
+    );
+    expect(ligne?.statut_facturation ?? null).toBeNull();
+  });
+});
+
 describe("D8 — le déclencheur n'ÉCRASE jamais une valeur déjà posée", () => {
   it("une intervention déjà « facturée » le reste après sa clôture", async () => {
     /*

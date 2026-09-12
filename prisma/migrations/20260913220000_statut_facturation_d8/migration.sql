@@ -64,7 +64,7 @@
 -- ## LE DÉCLENCHEUR PLUTÔT QUE LE CODE, et le motif est le même que partout
 --
 -- D8 dit **« automatiquement »**. Écrire la règle en TypeScript la laisserait
--- hors d'un `UPDATE` direct, d'un import ou d'une reprise ; et l'écrire des
+-- hors d'un `INSERT` ou d'un `UPDATE` direct, d'un import ou d'une reprise ; et l'écrire des
 -- deux côtés serait **deux lectures d'un même critère** (§9, 01/09) — dans
 -- l'endroit qui décide si un client est facturé.
 --
@@ -76,6 +76,27 @@
 --
 -- Le cycle de vie prononce donc ses refus AVANT que cette valeur ne soit posée :
 -- *une transition refusée ne doit jamais avoir déjà écrit quelque chose.*
+--
+-- ## « À L'ENTRÉE EN CLOTUREE » COMPREND LA NAISSANCE — mesuré, pas supposé
+--
+-- Le déclencheur a d'abord été écrit `BEFORE UPDATE` seul, et **`pnpm db:seed`
+-- a échoué** :
+--
+--     new row for relation "intervention" violates check constraint
+--     "intervention_cloture_a_son_statut_facturation"
+--
+-- *Une intervention peut NAÎTRE clôturée.* Le semis en pose ; une reprise
+-- d'historique en posera par milliers — c'est même le cas ordinaire d'un import
+-- (chapitre 8, « Interventions historiques »). Un `INSERT` ne passe par aucun
+-- `UPDATE`, si bien que la valeur n'était jamais posée et que la contrainte
+-- refusait **la ligne honnête**.
+--
+-- **La leçon est celle du §11 du protocole** : `pnpm verify` migre une base
+-- VIDE, et c'est `verify:full` — qui sème — qui a vu. *Une porte qui ne garde
+-- pas ce que garde la porte suivante produit des verts sincères et faux.*
+--
+-- Le déclencheur couvre donc `INSERT` **et** `UPDATE`, et `TG_OP` distingue les
+-- deux : sur un `INSERT` il n'y a pas d'`OLD`, et lire `OLD."statut"` y lèverait.
 --
 -- ## IL NE REVIENT JAMAIS SUR UNE VALEUR DÉJÀ POSÉE
 --
@@ -119,7 +140,7 @@ BEGIN
   -- rendre « à facturer » ce que le retour de facturation a déjà marqué
   -- « facturee ».
   IF NEW."statut" = 'cloturee'
-     AND OLD."statut" <> 'cloturee'
+     AND (TG_OP = 'INSERT' OR OLD."statut" <> 'cloturee')
      AND NEW."statut_facturation" IS NULL THEN
     -- LES TROIS EXEMPTIONS DE D8, ET LA TROISIÈME EST INERTE :
     -- « … ou si l'intervention est couverte par un contrat forfaitaire ».
@@ -139,5 +160,6 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION "intervention_facturation_a_la_cloture"() IS
   'D8 — « statut_facturation passe à a_facturer automatiquement à l''entrée en CLOTUREE, sauf si le type est garantie, recensement ou si l''intervention est couverte par un contrat forfaitaire ». La troisième exemption est écrite dans la décision et INERTE ici : aucune table « contrat » n''existe. Le nom place ce déclencheur APRÈS « intervention_cycle_de_vie » dans l''ordre alphabétique, si bien qu''une transition refusée n''a jamais rien écrit.';
 
-CREATE TRIGGER "intervention_facturation_a_la_cloture" BEFORE UPDATE ON "intervention"
+CREATE TRIGGER "intervention_facturation_a_la_cloture"
+  BEFORE INSERT OR UPDATE ON "intervention"
   FOR EACH ROW EXECUTE FUNCTION "intervention_facturation_a_la_cloture"();

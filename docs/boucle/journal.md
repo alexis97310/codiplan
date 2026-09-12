@@ -853,3 +853,46 @@ produit qui ne ressemblait pas au reste du produit.
 
 `pnpm verify` → **EXIT=0**, 1603 tests unitaires + 790 d'isolation, le 12/09/2026 à
 `10:15:51 UTC`.
+
+## LA PORTE DE LA MAIN RENDUE — `verify:full`, et ce qu'elle a trouvé
+
+**`pnpm verify` était vert et il avait raison. `pnpm verify:full` a rougi**, et sur un
+défaut réel, pas sur un détail d'environnement :
+
+```
+An error occurred while running the seed command:
+new row for relation "intervention" violates check constraint
+"intervention_cloture_a_son_statut_facturation"
+Failing row contains (…, controle_reglementaire, p3, cloturee, …)
+```
+
+### La cause, et elle vaut d'être écrite
+
+Le déclencheur de N-04d était `BEFORE UPDATE` **seul**. *Une intervention peut NAÎTRE
+clôturée* : le semis en pose, et une reprise d'historique en posera par milliers — c'est
+le cas ordinaire d'un import (chapitre 8, « Interventions historiques »). Un `INSERT` ne
+passe par aucun `UPDATE` : la valeur n'était jamais posée, et **la contrainte refusait la
+ligne honnête**.
+
+> **`pnpm verify` migre une base VIDE. C'est `verify:full`, qui SÈME, qui a vu.**
+> *Une porte qui ne garde pas ce que garde la porte suivante produit des verts sincères
+> et faux* — §11 du protocole, §9 du `CLAUDE.md` du 02/09.
+
+**La migration a été corrigée SUR PLACE et non doublée** : elle n'a touché aucune base
+réelle — seulement les trois bases jetables de cette session —, et le §7 est explicite :
+*« une migration se réécrit tant qu'elle n'a pas touché une base réelle ; la corriger sur
+place vaut mieux que d'en ajouter une seconde. »* Le jugement ne porte que sur
+l'avant-première-application, et nous y sommes.
+
+Le déclencheur couvre désormais `INSERT` **et** `UPDATE`, `TG_OP` distinguant les deux —
+sur un `INSERT` il n'y a pas d'`OLD`, et le lire y lèverait. Trois scénarios sont ajoutés,
+dont le **cas qui doit rester vert pour sa propre raison** : une naissance NON clôturée
+reste `NULL`. *Sans lui, « le déclencheur pose une valeur » serait aussi bien la preuve
+qu'il en pose une à toute naissance — et toute intervention entrerait dans la file de ce
+qui est à facturer dès sa création.*
+
+### Vert mesuré, sur la porte de la MAIN
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `10:30:35 UTC` :
+**1603** tests unitaires · **793** tests d'isolation · **27** scénarios Playwright, plus
+l'horizon des fériés et les deux contrôles de partitions.
