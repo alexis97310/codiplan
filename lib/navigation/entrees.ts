@@ -132,8 +132,13 @@ export const ENTREES: readonly EntreeNavigation[] = [
   { cle: "nav.portail_client", chemin: "/portail" },
   { cle: "nav.imports_excel", chemin: null, ouvertePar: "L1-09" },
   {
+    // L'ENTRÉE MÈNE À LA SECTION, NON À L'UN DE SES ÉCRANS (R3-05). Elle
+    // pointait sur `/parametres/agences`, si bien que les deux autres écrans de
+    // réglage — les trajets et les forfaits — n'avaient AUCUNE porte : la barre
+    // est une liste close de onze entrées, et il n'y en avait pas de douzième à
+    // leur donner. La section existait déjà ici, il lui manquait sa page.
     cle: "nav.societes_tarifs",
-    chemin: "/parametres/agences",
+    chemin: "/parametres",
     section: "/parametres",
   },
   { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
