@@ -3725,9 +3725,19 @@ Le catalogue n'est **pas** un référentiel de plateforme : c'est une table mét
 
 ---
 
-## D110 — TANT QUE LE QUOTA D'ACTIONS EST SERRÉ, LES TRAVAUX SE GROUPENT — et ce qu'on y perd est écrit
+## ~~D110 — TANT QUE LE QUOTA D'ACTIONS EST SERRÉ, LES TRAVAUX SE GROUPENT~~ — **CADUQUE LE 12/09/2026**
 
-*Rendu par Alexis le 12/09/2026, sur la mesure des minutes de CI de septembre. Décision TEMPORAIRE, avec sa condition de réouverture.*
+> **BARRÉE ET NON EFFACÉE, le 12/09/2026 : LE DÉPÔT EST PUBLIC, ET UN DÉPÔT PUBLIC NE COMPTE PLUS SES MINUTES.**
+>
+> Sa condition de réouverture était écrite et vérifiable — *« le jour où le quota d'Actions est remis à zéro, ou relevé »*. Elle est remplie **par le haut** : le quota n'est pas relevé, il **cesse d'exister**. La décision ne lie donc plus, et le protocole reprend : *un travail, une proposition*.
+>
+> **Elle n'a jamais eu d'effet sur le code** — elle portait sur la façon de grouper des propositions, et rien du dépôt ne l'exprimait. Ce qu'elle avait laissé derrière elle était de la PROSE, en quatre endroits : deux pavés de `.github/workflows/ci.yml` (la mise en garde « avant de rendre ce dépôt public », écrite au futur, et le relevé des économies mesurées puis refusées), la note de minutes du job `battement`, et le décompte de septembre au §9 du `CLAUDE.md`. Les quatre sont retirés le même jour, et **aucune règle d'économie n'est écrite à leur place**.
+>
+> **Ce qui SURVIT, et qui n'a jamais dépendu du quota**, est écrit là où cela se lit : *une économie qui retire un contrôle n'est pas une économie* (§9 du `CLAUDE.md`) ; *le battement ne se joue pas deux fois sur un même état à quelques minutes d'intervalle* (`.github/workflows/ci.yml`) ; *les flux planifiés d'un dépôt public s'arrêtent après 60 jours d'inactivité, et c'est le job `battement` qui garde ce cas* (même fichier).
+>
+> **Le texte d'origine est conservé ci-dessous.** Il a gouverné la façon de travailler pendant une journée, et *ce qui a été décidé un jour se relit, sinon on le redécide.*
+
+*Rendu par Alexis le 12/09/2026, sur la mesure des minutes de CI de septembre. Décision TEMPORAIRE, avec sa condition de réouverture — **remplie le jour même**.*
 
 ### CE QUI A OUVERT LA QUESTION
 
