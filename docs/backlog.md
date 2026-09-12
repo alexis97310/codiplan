@@ -1302,12 +1302,14 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Acceptation :* les deux instants sont saisis sur le terrain et survivent à la synchronisation (I4, I5 — le travail terrain n'est jamais perdu) ; `temps_reel_min` n'est pas supprimée tant qu'un chemin l'écrit encore, et la cohabitation est **écrite** plutôt que tue ; aucun des deux instants n'est inventé depuis le créneau.
 
 **L1-12 — LA TABLE `prestation`, ET SON GABARIT D'IMPORT. [D109] [RG-TAR-04] [RG-TAR-06] [RG-IMP-05]**
-*File :* LIBRE
+*File :* LIVRÉ
 **UNE PRESTATION PORTE UNE DURÉE, JAMAIS UN TAUX [D109].** *Une facture ne change pas quand un tarif change* — c'est RG-TAR-04 et c'est `lib/tarification/` tout entier. **Deux endroits qui portent un prix, c'est une préséance à inventer et une seconde historisation à tenir, pour rien.**
 **LE PONT :** quand une prestation se vend à **prix fixe**, elle **DÉSIGNE un forfait** (`forfait`, L1-06, ses trois axes et son rang D86) — elle ne porte jamais un montant. *Un seul endroit où l'argent est écrit.*
 **PROPRE À CHAQUE SOCIÉTÉ**, `societe_id NOT NULL` (I1, première catégorie), auditée à sa naissance (I8, périmètre inversé D55). *Une durée standard et une checklist décrivent la façon de travailler d'une entreprise et le niveau de ses techniciens ; le jour où CODIPLAN est vendu à un concurrent de CODIMA, il n'héritera pas de ce catalogue.* **Et une copie d'un modèle à la création d'une société**, pour qu'un nouveau client ne parte pas d'une liste vide — un **amorçage**, jamais une énumération, comme la liste réglementaire des habilitations (D60).
 *Acceptation :* la table porte `societe_id NOT NULL` et se range dans exactement une catégorie de I1 (gardien D41) ; elle est auditée (gardien D55) ; **aucune colonne de montant, et un gardien le refuse** ; le lien vers `forfait` est facultatif et chaîné sur le couple société + forfait ; le gabarit expose ou écarte **nommément** chaque champ de saisie (L1-09a) ; une migration jouée contre une base peuplée passe (harnais de base âgée).
-*Relu contre les sources citées le 12/09/2026 — empreinte `890706fd`.*
+**LIVRÉ le 12/09/2026 au soir, avec D113.** La table porte `societe_id NOT NULL`, la forme « société », son déclencheur d'audit, et **aucune colonne de montant ni de forfait** — `tests/unit/prestations/aucun-montant.test.ts` le refuse, sur les colonnes du modèle et non sur ses commentaires, qui doivent au contraire nommer la règle. Le gabarit est le **premier dont le parent est FACULTATIF** : *un déplacement, un diagnostic ou une formation ne visent aucune famille*, et une cellule VIDE n'est donc pas un parent introuvable. *Confondre les deux ferait rejeter la moitié d'un catalogue ordinaire.*
+
+*Relu contre les sources citées le 12/09/2026 — empreinte `70f5eb2c`.*
 
 **R3-06 — OUVRIR UN ÉCRAN AUTHENTIFIÉ APRÈS DÉPLOIEMENT. [R3-01]**
 *File :* BLOQUÉ — il exige un compte de production et son mot de passe dans un secret de CI, et cela se décide plutôt que se glisse dans un ticket. Mesuré le 12/09/2026.

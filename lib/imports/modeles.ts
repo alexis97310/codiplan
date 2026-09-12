@@ -11,6 +11,7 @@ import { type ParcAgences } from "./parc-agences";
 import { type ParcFamilles } from "./parc-familles";
 import { type ParcClientsIndexe } from "./parc-clients";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
+import { schemaPrestation } from "@/lib/prestations/saisie";
 
 /**
  * LES GABARITS D'IMPORT QUE CODIPLAN PUBLIE (L1-09a ; D31, RG-IMP-05).
@@ -593,6 +594,110 @@ export function modeleModeles(familles: ParcFamilles): ModeleDImport {
         ),
       };
       return schemaModeleMateriel.safeParse(saisie).success
+        ? null
+        : MOTIF_SAISIE_REFUSEE;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « PRESTATIONS » (L1-12 ; D109, D113)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export const COLONNES_PRESTATIONS = {
+  code: "Code",
+  libelle: "Libellé",
+  famille: "Famille (code)",
+  dureeStandard: "Durée standard (minutes)",
+  checklist: "Checklist type",
+} as const;
+
+export const CHAMPS_PRESTATIONS: Readonly<Record<string, string>> = {
+  [COLONNES_PRESTATIONS.code]: "code",
+  [COLONNES_PRESTATIONS.libelle]: "libelle",
+  [COLONNES_PRESTATIONS.checklist]: "checklist_type",
+};
+
+/**
+ * LES CHAMPS ÉCARTÉS, chacun avec son motif — *un champ écarté sans motif est
+ * un champ oublié, et rien ne les distingue.*
+ */
+export const CHAMPS_PRESTATIONS_ECARTES: Readonly<Record<string, string>> = {
+  famille_id: "résolu depuis la colonne « Famille », par son CODE (D101)",
+  duree_standard_min:
+    "exposée par « Durée standard (minutes) », lue comme un nombre",
+  actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
+};
+
+/**
+ * LE GABARIT « PRESTATIONS » — et il n'expose AUCUNE colonne de prix.
+ *
+ * **Ce n'est pas une omission, c'est D109 :** *une prestation porte une durée,
+ * jamais un taux.* Une colonne « Tarif » dans ce tableur ferait entrer un
+ * montant par la porte que la table a fermée — et un import est précisément le
+ * chemin où personne ne relit ce qui entre.
+ *
+ * **Et aucune colonne de forfait non plus** (D113) : le pont de D109 passe par
+ * l'INTERVENTION, qui reçoit son forfait par les trois axes de RG-TAR-06.
+ *
+ * ## LA FAMILLE EST UN PARENT FACULTATIF, et c'est le premier de ce fichier
+ *
+ * Les gabarits qui désignent un parent le rendent jusqu'ici OBLIGATOIRE — un
+ * contact a un client, un modèle a une famille. **Celui-ci ne l'exige pas** :
+ * *un déplacement, un diagnostic ou une formation ne visent aucune famille de
+ * matériel.* La conséquence est écrite plutôt que déduite : une cellule VIDE
+ * n'est pas un parent introuvable — elle est l'absence de parent, et elle
+ * passe. Une cellule RENSEIGNÉE qui ne désigne rien est, elle, un rejet.
+ *
+ * *Confondre les deux ferait rejeter toutes les prestations sans famille, soit
+ * la moitié d'un catalogue ordinaire.*
+ */
+export function modelePrestations(familles: ParcFamilles): ModeleDImport {
+  return {
+    type: "prestations",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_PRESTATIONS.code, obligatoire: true },
+      { nom: COLONNES_PRESTATIONS.libelle, obligatoire: true },
+      { nom: COLONNES_PRESTATIONS.famille, obligatoire: false },
+      { nom: COLONNES_PRESTATIONS.dureeStandard, obligatoire: false },
+      { nom: COLONNES_PRESTATIONS.checklist, obligatoire: false },
+    ],
+    // LE CODE SEUL IDENTIFIE, et la base le tient : `@@unique([societe_id,
+    // code])`. *Ce qui rend une clé utilisable n'est pas sa forme, c'est ce que
+    // la base garantit d'elle* — le libellé n'en est pas une.
+    identifiantes: [COLONNES_PRESTATIONS.code],
+    cle: (valeurs, rang) => {
+      const code = valeurs[COLONNES_PRESTATIONS.code]?.trim();
+      if (code === undefined || code === "") {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      return {
+        forme: "reference",
+        cle: `PRESTATION-${normaliserRaisonSociale(code)}`,
+        complet: false,
+      };
+    },
+    valider: (valeurs) => {
+      const brut = valeurs[COLONNES_PRESTATIONS.famille]?.trim();
+      const nommee = brut !== undefined && brut !== "";
+      const famille = nommee
+        ? familles.parCode.get(brut.toUpperCase())
+        : undefined;
+      // NOMMÉE MAIS INTROUVABLE → rejet ; ABSENTE → aucune famille, et la ligne
+      // passe. *Les deux se corrigent à des endroits différents : l'une dans le
+      // parc, l'autre nulle part — il n'y a rien à corriger.*
+      if (nommee && famille === undefined) {
+        return MOTIF_PARENT_INTROUVABLE;
+      }
+      const saisie = {
+        ...saisieDepuisLaLigne(valeurs, CHAMPS_PRESTATIONS),
+        famille_id: famille ?? null,
+        duree_standard_min: lireUnEntier(
+          valeurs[COLONNES_PRESTATIONS.dureeStandard],
+        ),
+      };
+      return schemaPrestation.safeParse(saisie).success
         ? null
         : MOTIF_SAISIE_REFUSEE;
     },

@@ -1093,3 +1093,72 @@ coûte deux secondes.*
 
 `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:07:31 UTC` : **1611** unitaires ·
 **793** d'isolation · **27** Playwright.
+
+## L1-12 — le catalogue des prestations, débloqué par D113
+
+### Ce que j'ai construit
+
+La table `prestation` — `societe_id NOT NULL`, forme « société », son déclencheur
+d'audit —, `lib/prestations/saisie.ts`, le gabarit d'import, et douze scénarios
+d'isolation.
+
+**Aucune colonne de montant, et aucun lien vers `forfait`.** D109 pour la première, D113
+pour le second : *le pont passe par l'INTERVENTION, qui reçoit son forfait par les trois
+axes de RG-TAR-06.* Une clé étrangère ici aurait fait naître une question que personne
+n'a posée — *que se passe-t-il si le forfait désigné ne s'applique pas à la zone ?*
+
+### LE GARDIEN A TROUVÉ UNE COLONNE QUE `prisma format` AVAIT ÉCRITE
+
+C'est la mesure de ce ticket, et elle ne se devinait pas :
+
+```
+FAIL … > AUCUNE COLONNE du modèle ne nomme un montant ni un forfait
+AssertionError: « devise     Devise?          @relation(fields: [deviseCode], …) »
+nomme « devise »
+```
+
+**Je n'ai jamais écrit cette colonne.** Mon `python` avait inséré la relation inverse
+`prestations Prestation[]` sur la **première** occurrence de `taux_horaires
+TauxHoraire[]` — qui appartient à `Devise`, non à `Societe`. Et **`prisma format` a
+complété la relation tout seul** : il a ajouté `devise Devise?` et une colonne
+`deviseCode String?` **sur `prestation`**.
+
+> *Une table dont la règle fondatrice est « aucun montant » a reçu une colonne de devise,
+> écrite par un formateur, sans qu'aucune ligne de diff ne soit de moi.*
+
+C'est la famille du §9 du 24/08 — *une valeur par défaut qui répond à une question qu'on
+n'a pas posée est une décision prise par personne* —, appliquée à un outil de mise en
+forme. **Et c'est le gardien qui l'a dit, pas la relecture.**
+
+### Le second rouge, et il valait aussi son heure
+
+```
+tests/unit/prestations/gabarit.test.ts(101,7): error TS2722:
+Cannot invoke an object which is possibly 'undefined'.
+```
+
+`ModeleDImport.valider` est **facultatif**. Un `?.()` silencieux aurait rendu `undefined`
+partout : **les six scénarios de rejet seraient passés sans rien éprouver** — *un gardien
+creux est vert, par définition.* Le scénario lève désormais plutôt que de rendre
+l'absence, et le témoin est écrit.
+
+### Ce qui a rougi ensuite, et c'est le dispositif qui fonctionne
+
+Quatre gardiens ont réclamé la nouvelle table **sans qu'aucune liste n'ait été tenue à la
+main** : le périmètre d'audit (D55), l'inventaire, le chapitre 11 (`modele-de-donnees`),
+et le §6 du `CLAUDE.md` (`organisation-du-code`). *Chacun part d'une source qu'il ne
+contrôle pas* — le schéma, le disque —, et c'est ce qui fait qu'une table créée demain
+sera réclamée le jour même.
+
+### La famille est un parent FACULTATIF — le premier du fichier des gabarits
+
+Les autres gabarits qui désignent un parent le rendent obligatoire. Celui-ci ne l'exige
+pas : *un déplacement, un diagnostic ou une formation ne visent aucune famille.* La
+conséquence est écrite et mesurée — **une cellule vide passe, une cellule renseignée qui
+ne désigne rien est un rejet**. *Les confondre ferait rejeter la moitié d'un catalogue
+ordinaire.*
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:26:20 UTC` : **1631** unitaires ·
+**806** d'isolation · **27** Playwright.

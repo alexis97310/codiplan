@@ -1,0 +1,23 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- UNE BASE QUI A DÉJÀ VÉCU — rien à poser avant `prestation`
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- **Cette amorce est VIDE, et c'est une mesure plutôt qu'un oubli.**
+--
+-- `20260913230000_prestation_l1_12` **CRÉE** la table `prestation` ; elle ne
+-- resserre rien sur une table qui existait. Il n'y a donc aucune ligne
+-- antérieure à éprouver : *une migration qui crée une table ne peut pas être
+-- mise en défaut par des données, puisqu'il n'y en a aucune au moment où elle
+-- s'applique.*
+--
+-- Ce que le rejeu éprouve ici est plus étroit et reste utile : que la clé
+-- étrangère composite vers `famille_materiel` s'établisse **sur une base qui
+-- porte déjà des familles** — celles posées par l'amorce de
+-- `20260913200000_reference_interne_unique_d6`, qui vieillissent jusqu'ici.
+-- *Une clé étrangère posée sur une table vide ne prouve pas qu'elle se pose.*
+--
+-- Le fichier existe plutôt que d'être absent pour que ce raisonnement soit
+-- LISIBLE : une amorce manquante et une amorce délibérément vide se
+-- ressemblent trop.
+
+SELECT 1;
