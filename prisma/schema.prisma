@@ -1688,7 +1688,7 @@ enum PrioriteIntervention {
 enum StatutIntervention {
   a_planifier
   planifiee
-  envoyee
+  affectee
   en_cours
   suspendue
   terminee

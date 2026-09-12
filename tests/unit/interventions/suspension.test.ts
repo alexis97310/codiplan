@@ -28,7 +28,7 @@ describe("suspendre : ce qui est permis, et ce qui ne l'est pas", () => {
   it.each([
     "a_planifier",
     "planifiee",
-    "envoyee",
+    "affectee",
     "en_cours",
     "terminee",
   ] as const)("depuis « %s », avec un motif, c'est PERMIS", (statut) => {

@@ -691,7 +691,7 @@ export const fr = {
 
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
-  "statut.envoyee": "Envoyée",
+  "statut.affectee": "Affectée",
   "statut.en_cours": "En cours",
   "statut.suspendue": "Suspendue",
   "statut.terminee": "Terminée",

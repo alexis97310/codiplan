@@ -1,0 +1,56 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- D8 — `ENVOYEE` EST RENOMMÉ `AFFECTEE` : le mot décrivait mal l'état
+-- Décision du 19/08/2026, appliquée le 12/09/2026.
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- ## CE QUE D8 A TRANCHÉ, ET QUI N'AVAIT PAS ÉTÉ ÉCRIT
+--
+-- D8 arrête l'énumération de `statut` à huit valeurs, *« alignées sur l'annexe D
+-- qui devient normative »*, et écrit en toutes lettres :
+--
+-- > `ENVOYEE` est renommé **`AFFECTEE`** (voir 3.6) : le mot décrivait mal
+-- > l'état.
+--
+-- Le schéma portait toujours `envoyee`, **et le mot était AFFICHÉ à
+-- l'utilisateur** — `lib/i18n/fr.ts`, clé `statut.envoyee`, libellé
+-- « Envoyée ». *Une décision qui prescrit une réécriture ailleurs qu'où elle
+-- s'écrit n'est prise qu'à moitié, et la moitié manquante a la forme de la
+-- moitié faite* (§9, 31/08).
+--
+-- ## POURQUOI LE MOT COMPTE, ET CE N'EST PAS DE L'ESTHÉTIQUE
+--
+-- « Envoyée » décrit un ENVOI — un message parti vers quelqu'un. L'état décrit
+-- en réalité une intervention **dont le technicien est désigné** : c'est une
+-- AFFECTATION, et c'est ce que le planificateur fait à l'écran. Le mot faux
+-- entretenait l'idée qu'une notification part à ce moment-là ; **rien n'en
+-- envoie**, et la passerelle SMS n'existe pas.
+--
+-- ## LA FORME DU RENOMMAGE
+--
+-- `ALTER TYPE … RENAME VALUE` conserve l'OID de la valeur : **aucune ligne
+-- n'est réécrite**, et toute donnée existante suit. *Mesuré : le renommage
+-- s'exécute à l'intérieur d'une transaction sous PostgreSQL 16, ce qui est
+-- nécessaire — Prisma joue chaque migration dans une transaction implicite.*
+--
+-- **Aucun bloc de garde ici, et le motif est écrit plutôt que tu.** Un bloc de
+-- garde sert à refuser un état inattendu ; il n'y en a aucun à refuser — le
+-- renommage ne peut pas échouer sur des données, puisqu'il ne les regarde pas.
+-- *Mesuré aussi : aucune fonction, aucune contrainte et aucune politique de la
+-- base ne porte le littéral `envoyee` dans son texte* — la requête est
+-- ci-dessous, pour qu'on puisse la rejouer plutôt que me croire :
+--
+--     SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--      WHERE n.nspname = 'public' AND prosrc LIKE '%envoyee%';
+--     SELECT conname FROM pg_constraint
+--      WHERE pg_get_constraintdef(oid) LIKE '%envoyee%';
+--     SELECT policyname FROM pg_policies
+--      WHERE qual LIKE '%envoyee%' OR with_check LIKE '%envoyee%';
+--
+-- Les trois rendent zéro ligne. Un renommage d'enum ne suit PAS les littéraux
+-- écrits dans un corps de fonction — c'est le seul endroit où il aurait pu
+-- casser en silence, et il n'y en a aucun.
+
+ALTER TYPE "StatutIntervention" RENAME VALUE 'envoyee' TO 'affectee';
+
+COMMENT ON TYPE "StatutIntervention" IS
+  'D8 — huit valeurs, alignées sur l''annexe D. « affectee » s''appelait « envoyee » jusqu''au 12/09/2026 : le mot décrivait un ENVOI là où l''état décrit une AFFECTATION, et rien n''envoie quoi que ce soit à ce moment-là.';

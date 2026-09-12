@@ -468,3 +468,75 @@ s'arrête au chiffre, comme la consigne le demande.
 ### Vert mesuré
 
 `pnpm verify` → **EXIT=0**, le 12/09/2026 à `09:25:26 UTC` — la même exécution que N-04b.
+
+## N-04c — D8 : `envoyee` devient `affectee`, et le mot était AFFICHÉ
+
+### Ce que j'ai mesuré
+
+```
+grep -rn "envoyee" --include=*.ts --include=*.tsx --include=*.prisma --include=*.sql .
+  prisma/migrations/20260909200000_intervention_l2_planning/migration.sql:24
+  prisma/schema.prisma:1691
+  prisma/seed-data.ts:1391
+  lib/theme/statuts.ts:60, 76, 97
+  lib/interventions/saisie.ts:60
+  lib/interventions/statistiques.ts:75
+  lib/i18n/fr.ts:694          ← « Envoyée », LU PAR UN HUMAIN
+  tests/unit/interventions/suspension.test.ts:31
+  tests/unit/interventions/cycle-de-vie.test.ts:34
+```
+
+D8 écrit, depuis le 19/08/2026 : *« `ENVOYEE` est renommé `AFFECTEE` (voir 3.6) : le mot
+décrivait mal l'état. »* **La décision avait vingt-quatre jours et le schéma ne l'avait
+jamais suivie** — et le mot faux était à l'écran. *Une décision qui prescrit une
+réécriture ailleurs qu'où elle s'écrit n'est prise qu'à moitié* (§9, 31/08).
+
+### Pourquoi le mot compte, et ce n'est pas de l'esthétique
+
+« Envoyée » décrit un **envoi** — un message parti vers quelqu'un. L'état décrit une
+intervention **dont le technicien est désigné** : une **affectation**, et c'est ce que le
+planificateur fait à l'écran. Le mot faux entretenait l'idée qu'une notification part à
+ce moment-là ; **rien n'en envoie**, et la passerelle SMS n'existe pas (cahier des
+charges, synthèse : *« Passerelle SMS — Aucune »*).
+
+### Ce que j'ai mesuré AVANT la migration, et qui aurait pu casser en silence
+
+`ALTER TYPE … RENAME VALUE` conserve l'OID : aucune ligne n'est réécrite. **Mais il ne
+suit PAS un littéral écrit dans un corps de fonction, une contrainte ou une politique.**
+Trois requêtes, et les trois rendent **zéro ligne** :
+
+```sql
+SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+ WHERE n.nspname = 'public' AND prosrc LIKE '%envoyee%';          -- 0
+SELECT conname FROM pg_constraint
+ WHERE pg_get_constraintdef(oid) LIKE '%envoyee%';                 -- 0
+SELECT policyname FROM pg_policies
+ WHERE qual LIKE '%envoyee%' OR with_check LIKE '%envoyee%';       -- 0
+```
+
+Elles sont recopiées dans la migration **pour qu'on puisse les rejouer plutôt que me
+croire.** C'est le seul endroit où le renommage aurait pu casser sans rien dire.
+
+*Mesuré aussi* : le renommage s'exécute **dans une transaction** sous PostgreSQL 16, ce
+qui est nécessaire — Prisma joue chaque migration dans une transaction implicite.
+
+### Un écart avec la maquette, nommé plutôt que tu
+
+`docs/maquette/CODIPLAN_Maquette.html` écrit **« Envoyée » quatre fois**. D95 lui donne
+foi **sur la disposition et sur les couleurs** — un libellé de statut n'est ni l'une ni
+les autres, et D8 est de rang 1 sur l'énumération elle-même. *Aucun gardien ne confronte
+les libellés de statut à la maquette* (mesuré : les trois gardiens qui la lisent portent
+sur les jetons de couleur, les entrées de barre et l'unicité du fichier). **Il n'y a donc
+pas de contradiction mécanique à résoudre, mais un écart de prose à signaler**, et je le
+signale ici plutôt que de le laisser découvrir.
+
+### Message d'échec initial
+
+**Aucun** : rien ne confrontait l'énumération de la base au texte de D8. C'est le défaut
+type du §9 du 31/08 — la moitié manquante a la forme de la moitié faite —, et il se
+corrige par une lecture, pas par une porte.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1589 tests unitaires + 767 d'isolation, le 12/09/2026 à
+`09:33:25 UTC`.

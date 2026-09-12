@@ -57,7 +57,7 @@ export type Priorite = (typeof PRIORITES)[number];
 export const STATUTS_INTERVENTION = [
   "a_planifier",
   "planifiee",
-  "envoyee",
+  "affectee",
   "en_cours",
   "suspendue",
   "terminee",

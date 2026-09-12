@@ -1388,7 +1388,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     rang: 8,
     type: "installation",
     priorite: "p2",
-    statut: "envoyee",
+    statut: "affectee",
     joursDepuisLundi: 0,
     debutMinutes: 540,
     dureeMin: 180,
