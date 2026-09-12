@@ -150,7 +150,77 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
+      # `fetch-depth: 2` — il en faut DEUX pour savoir ce que cette poussée a
+      # changé. Le défaut de `checkout` est 1, et `git diff HEAD^ HEAD` n'a
+      # alors aucun HEAD^ à comparer. Deux commits suffisent : le premier parent
+      # d'une fusion est `main` tel qu'il était, quel que soit le mode de fusion.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      # ── L'AVERTISSEMENT DE MIGRATION — MÉCANIQUE, ET NON MÉMORIEL ──────────
+      #
+      # **Ce qu'il répare, et c'est une règle de ce dépôt qui a cédé.** Le §12 de
+      # la consigne d'exploitation demandait que tout travail touchant `prisma/`
+      # finisse par un geste NOMMÉ. La règle était écrite, elle était juste — et
+      # la fusion #157 a porté une migration sans que le geste l'accompagne.
+      # *Une règle écrite dans un document que personne ne relit au bon moment
+      # n'est pas un gardien* : elle a exactement la forme d'un gardien, et elle
+      # ne produit aucun signal quand on l'oublie (§9, 31/08 — le silence a la
+      # forme du succès).
+      #
+      # Ce qui la rend mécanique est ici : **la fusion elle-même écrit
+      # l'avertissement**, dans le résumé de l'exécution qu'elle déclenche.
+      # Personne n'a plus à se souvenir.
+      #
+      # **Il est GRATUIT, et c'est la raison de sa place.** Un job coûte une
+      # minute pleine quelle que soit sa durée (§9, 12/09) ; cette étape vit
+      # donc DANS un job qui tourne déjà, et ajoute deux secondes à une
+      # exécution de huit minutes.
+      #
+      # **Et il n'est PAS le contrôle.** Il rappelle un geste ; c'est le job
+      # `deploiement` ci-dessous qui MESURE si la base a suivi. Un rappel se
+      # lit ou ne se lit pas ; une mesure rougit. Les deux, parce que le rappel
+      # arrive tout de suite et la mesure huit minutes plus tard.
+      - name: Avertir qu'une migration accompagne cette fusion
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          # LE TÉMOIN : AI-JE PU REGARDER ? Avec la profondeur 1 de `checkout`,
+          # `HEAD^` n'existe pas, `git diff` échoue, et un `|| true` rendrait
+          # alors la liste VIDE — c'est-à-dire « aucune migration », en silence.
+          # *Un décompte nul ressemble toujours à un sans-faute* (§9, 30/08) :
+          # l'avertissement aurait disparu sans que rien ne le dise. On refuse
+          # plutôt que de conclure sur ce qu'on n'a pas pu lire.
+          if ! git rev-parse --verify --quiet HEAD^ >/dev/null; then
+            echo "::error::HEAD^ est hors de portée : ce contrôle n'a pas pu comparer cette poussée à la précédente, et il ne conclut donc rien. Rendre fetch-depth: 2 au checkout de ce job."
+            exit 1
+          fi
+          migrations=$(git diff --name-only HEAD^ HEAD -- prisma/migrations/)
+          if [ -z "$migrations" ]; then
+            echo "Aucune migration dans cette poussée." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## ⚠ Cette fusion porte une MIGRATION"
+            echo
+            echo "La base déployée ne l'a pas encore. Tant qu'elle ne l'a pas, tout"
+            echo "écran qui lit une colonne nouvelle rend une exception serveur —"
+            echo "c'est la panne du 11/09 et celle du 12/09, trois fois la même."
+            echo
+            echo "**Le geste :** Actions → « DB migrate & seed » → Run workflow —"
+            echo "*Use workflow from* : \`main\` · *Quelle base ?* : \`demonstration\` ·"
+            echo "*Purger les données de démonstration* : **décoché**."
+            echo
+            echo "Fichiers concernés :"
+            echo
+            echo '```'
+            echo "$migrations"
+            echo '```'
+            echo
+            echo "Le job \`deploiement\` de cette même exécution le vérifie pour de"
+            echo "bon : il rougit et ouvre une issue si la base est restée en arrière."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: pnpm/action-setup@v4
 
@@ -281,6 +351,84 @@ jobs:
           echo "nature=$nature" >> "$GITHUB_OUTPUT"
           exit "$code"
 
+  # ── LA VÉRIFICATION APRÈS DÉPLOIEMENT (R3-01) — la porte qui manquait ───────
+  #
+  # **TROIS pannes de production en deux jours, toutes la même.** Du code sur
+  # `main` qui lit une colonne qu'une migration non appliquée devait créer. La
+  # première a duré 4 h 03 min et personne ne l'a su ; la troisième, `/sante`
+  # nommait la cause en une ligne — *et personne ne l'avait ouverte.* **Une
+  # sonde que personne n'ouvre ne sonne pas** : ce job est ce qui l'ouvre.
+  #
+  # **Ce que les portes existantes ne pouvaient pas voir.** `verify:full` tourne
+  # contre une base FRAÎCHEMENT migrée ; la production contre une base migrée à
+  # un autre moment. Les commandes sont les mêmes, l'ÉTAT DU MONDE diffère, et
+  # rien ne confrontait les deux (§9, 11/09). Ce job est le seul du dépôt qui
+  # regarde le déploiement lui-même.
+  #
+  # **Il ne migre RIEN**, et c'est écrit au ticket : une migration ne part jamais
+  # toute seule (`db-migrate.yml`, décision du 20/08). Il NOMME le geste ; un
+  # humain le joue, et le regarde.
+  #
+  # **`needs: [verify-full]`, et ce n'est pas une dépendance logique — c'est ce
+  # qui le fait coûter UNE minute.** Un job est facturé à la minute supérieure
+  # (§9, 12/09) ; lancé au moment de la poussée, ce contrôle passerait deux
+  # minutes à réessayer en attendant la fin du déploiement, donc trois minutes
+  # facturées. Placé après `verify:full` — huit minutes plus tard —, le
+  # déploiement est achevé depuis longtemps et la première tentative suffit :
+  # ~25 secondes, une minute facturée. *Le budget de réessai reste, pour le jour
+  # où l'hébergeur sera plus lent que notre CI.*
+  #
+  # **Et il ne se tait jamais.** Sans la variable `URL_PRODUCTION`, il ne rend
+  # pas la main en vert : il rougit en nommant où la poser. *Un contrôle qui
+  # saute quand il n'est pas configuré est le contrôle qu'on croit avoir.*
+  deploiement:
+    name: déploiement — la base a-t-elle suivi ?
+    needs: [verify-full]
+    # `always()` : l'état du déploiement est indépendant de la santé du dépôt.
+    # Un `verify:full` rouge ne dit rien de ce qui est en ligne, et c'est
+    # précisément un moment où l'on veut savoir.
+    if: >-
+      always() && (github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      nature: ${{ steps.controle.outputs.nature }}
+      code: ${{ steps.controle.outputs.code }}
+      detail: ${{ steps.controle.outputs.detail }}
+      geste: ${{ steps.controle.outputs.geste }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # `COMMIT_ATTENDU` n'est posé que sur une POUSSÉE, et c'est une décision.
+      # Sur une poussée, le contrôle doit mesurer LE CODE DE CETTE FUSION : sans
+      # ce témoin, il interrogerait l'ancienne version — qui répond « tout va
+      # bien » en toute sincérité — et rendrait un vert dans la fenêtre même où
+      # la panne naît (§9, 30/08). Une exécution planifiée, elle, ne vise aucune
+      # fusion : elle demande si ce qui est en ligne va bien, et le contrôle dit
+      # alors qu'il ne visait rien plutôt que de laisser croire le contraire.
+      #
+      # `URL_PRODUCTION` est une VARIABLE, pas un secret : c'est une adresse
+      # publique, qu'on lit dans un navigateur. La ranger parmi les secrets
+      # apprendrait à ranger n'importe quoi parmi les secrets.
+      - name: pnpm deploiement:verifier
+        id: controle
+        env:
+          URL_PRODUCTION: ${{ vars.URL_PRODUCTION }}
+          COMMIT_ATTENDU: ${{ github.event_name == 'push' && github.sha || '' }}
+        run: pnpm deploiement:verifier
+
   # ── (a) L'ALARME — une nuit rouge ouvre une ISSUE ───────────────────────────
   #
   # Écart É12 de la revue R0. Constaté, non supposé : GitHub notifie bien par
@@ -302,10 +450,17 @@ jobs:
     # rouge au même titre qu'un `verify:full` cassé, et elle mérite la même
     # issue. Sans cela, la veille aurait sonné dans la boîte de courriel que le
     # 20 août a montrée vide.
-    needs: [verify-full, veille-hebergee]
+    #
+    # LE DÉPLOIEMENT REJOINT LA NUIT (R3-01). Une base déployée restée en
+    # arrière est un incident au même titre qu'un `verify:full` cassé, et il
+    # mérite mieux qu'une ligne dans un journal que personne n'ouvre : c'est
+    # très exactement la panne du 12/09, où `/sante` disait la cause et où
+    # personne ne l'avait lue.
+    needs: [verify-full, veille-hebergee, deploiement]
     if: >-
       always() && (needs.verify-full.result == 'failure' ||
-      needs.veille-hebergee.result == 'failure')
+      needs.veille-hebergee.result == 'failure' ||
+      needs.deploiement.result == 'failure')
     runs-on: ubuntu-latest
     # `contents: read` est là pour la même raison qu'au job `battement` : le
     # bloc remplace l'ensemble des droits. Ce job ne fait pas de `checkout`,
@@ -326,12 +481,65 @@ jobs:
           RESULTAT_VERIFY: ${{ needs.verify-full.result }}
           RESULTAT_VEILLE: ${{ needs.veille-hebergee.result }}
           NATURE_VEILLE: ${{ needs.veille-hebergee.outputs.nature }}
+          RESULTAT_DEPLOIEMENT: ${{ needs.deploiement.result }}
+          NATURE_DEPLOIEMENT: ${{ needs.deploiement.outputs.nature }}
+          CODE_DEPLOIEMENT: ${{ needs.deploiement.outputs.code }}
+          DETAIL_DEPLOIEMENT: ${{ needs.deploiement.outputs.detail }}
+          GESTE_DEPLOIEMENT: ${{ needs.deploiement.outputs.geste }}
         run: |
           set -euo pipefail
-          # DEUX marqueurs, donc DEUX fils d'issues. Une nuit injoignable est un
-          # incident d'EXPLOITATION ; une base qui a dérivé est un incident de
-          # SÉCURITÉ. Les mêler apprendrait à ne plus lire ni l'un ni l'autre.
-          if [ "$NATURE_VEILLE" = "liaison" ]; then
+          # CINQ marqueurs, donc CINQ fils d'issues. Une nuit injoignable est
+          # un incident d'EXPLOITATION ; une base qui a dérivé est un incident de
+          # SÉCURITÉ ; une base déployée en retard demande une migration ; une
+          # application qui tourne sous le mauvais rôle est un cloisonnement
+          # tombé ; un déploiement qu'on n'a pas pu joindre ne dit rien du tout.
+          # Les mêler apprendrait à ne plus lire aucun des cinq.
+          #
+          # ── LE DÉPLOIEMENT EST JUGÉ EN PREMIER, et ce n'est pas arbitraire ──
+          #
+          # C'est le seul des trois dont la cause soit DÉJÀ connue et le geste
+          # DÉJÀ écrit : la base est en retard, il faut migrer. Une nuit rouge
+          # et une base qui a dérivé demandent une enquête ; celle-ci demande
+          # un clic. La nommer en second la rangerait derrière des incidents
+          # qu'on ne sait pas encore traiter.
+          #
+          # DEUX natures, DEUX fils, et la distinction est celle de la veille :
+          # « je n'ai rien pu constater » n'est pas « j'ai constaté un écart ».
+          # Les mêler apprendrait à ne lire ni l'un ni l'autre.
+          #
+          # Le détail et le geste viennent du CONTRÔLE, jamais de ce fichier :
+          # les recopier ici ferait deux rédactions d'un même texte, dont la
+          # seconde deviendrait fausse sans rougir (§9, 01/09).
+          # `set -u` est actif : une variable non posée ferait échouer l'alarme
+          # elle-même, au moment précis où elle est le seul canal qui reste.
+          GESTE=""
+          if [ "$RESULTAT_DEPLOIEMENT" = "failure" ] && [ "$NATURE_DEPLOIEMENT" = "migration_manquante" ]; then
+            MARQUEUR='[deploiement-en-retard]'
+            TITRE="$MARQUEUR la base déployée est en retard sur le code déployé"
+            NATURE="**LA PRODUCTION EST CASSÉE, OU VA L'ÊTRE.** $DETAIL_DEPLOIEMENT"
+            GESTE="$GESTE_DEPLOIEMENT"
+          elif [ "$RESULTAT_DEPLOIEMENT" = "failure" ] && [ "$NATURE_DEPLOIEMENT" = "role_inattendu" ]; then
+            MARQUEUR='[deploiement-cloisonnement]'
+            TITRE="$MARQUEUR l'application déployée ne tourne pas sous le rôle applicatif"
+            NATURE="**INCIDENT DE SÉCURITÉ.** $DETAIL_DEPLOIEMENT"
+            GESTE="$GESTE_DEPLOIEMENT"
+          elif [ "$RESULTAT_DEPLOIEMENT" = "failure" ]; then
+            MARQUEUR='[deploiement-incertain]'
+            TITRE="$MARQUEUR le contrôle du déploiement a rougi"
+            # LE CORPS NE DÉCIDE PAS SI QUELQUE CHOSE A ÉTÉ CONSTATÉ — il le
+            # LIT. Une rédaction unique disant « rien n'a été constaté »
+            # couvrirait aussi l'adresse absente et le contrat divergent, qui
+            # sont des écarts bien constatés : *une cause imprimée quoi qu'il
+            # arrive est une opinion que le dispositif répète en votre nom*
+            # (§9, 10/09). Le code de sortie vient du contrôle, et c'est lui
+            # qui porte la distinction.
+            if [ "$CODE_DEPLOIEMENT" = "75" ]; then
+              NATURE="**Incident d'EXPLOITATION — RIEN n'a pu être constaté** (code 75). Ce rouge ne dit RIEN de l'état de la base : il dit que le contrôle n'a pas pu regarder. Nature : \`$NATURE_DEPLOIEMENT\`. $DETAIL_DEPLOIEMENT"
+            else
+              NATURE="**Écart CONSTATÉ** (code \`$CODE_DEPLOIEMENT\`), nature \`$NATURE_DEPLOIEMENT\`. $DETAIL_DEPLOIEMENT"
+            fi
+            GESTE="$GESTE_DEPLOIEMENT"
+          elif [ "$NATURE_VEILLE" = "liaison" ]; then
             MARQUEUR='[veille-injoignable]'
             TITRE="$MARQUEUR la base hébergée n'a pas pu être jointe"
             NATURE="**Incident d'EXPLOITATION.** La veille n'a rien constaté : elle n'a pas pu regarder. Neon suspend une base inactive et le premier réveil peut expirer — ce rouge ne dit RIEN de l'état de la base."
@@ -345,6 +553,13 @@ jobs:
             NATURE="**Vérification nocturne rouge.**"
           fi
 
+          # Le geste, quand le contrôle en a nommé un. Un « Le geste : » suivi de
+          # rien serait pire qu'une absence, puisqu'il promet quelque chose.
+          LIGNE_GESTE=""
+          if [ -n "$GESTE" ]; then
+            LIGNE_GESTE="**Le geste :** $GESTE"
+          fi
+
           # Le corps est assemblé par `printf`, jamais par un document en ligne :
           # un `<<TEXTE` dont le délimiteur est indenté — et il l'est forcément,
           # dans un bloc YAML — ne se referme pas. Éprouvé avec un `gh` factice
@@ -352,7 +567,9 @@ jobs:
           printf '%s\n' \
             "$NATURE" \
             '' \
-            "\`verify:full\` : $RESULTAT_VERIFY — veille de la base hébergée : $RESULTAT_VEILLE ($NATURE_VEILLE)." \
+            "$LIGNE_GESTE" \
+            '' \
+            "\`verify:full\` : $RESULTAT_VERIFY — veille de la base hébergée : $RESULTAT_VEILLE ($NATURE_VEILLE) — déploiement : $RESULTAT_DEPLOIEMENT ($NATURE_DEPLOIEMENT)." \
             '' \
             "| | |" \
             "|---|---|" \

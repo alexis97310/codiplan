@@ -115,6 +115,10 @@ C'est ce mot de passe qui compose la `DATABASE_URL` de l'hébergeur d'applicatio
 
 `GITHUB_TOKEN` est fourni par GitHub, il n'a pas à être créé.
 
+**UNE VARIABLE, ET CE N'EST PAS UN SECRET : `URL_PRODUCTION`** *(R3-01, 12/09/2026)*. C'est l'adresse publique du déploiement — celle qu'on tape dans un navigateur —, et le contrôle d'après déploiement en a besoin pour ouvrir `/api/sante`. **Elle se range dans les VARIABLES et non dans les secrets** : *ranger une adresse publique parmi les secrets apprendrait à y ranger n'importe quoi.* En clics : `github.com/alexis97310/codiplan` → **Settings** → **Secrets and variables** → **Actions** → onglet **Variables** → **New repository variable** → nom `URL_PRODUCTION`, valeur l'adresse **sans barre finale**.
+
+*Tant qu'elle manque, le job `deploiement` de la CI **rougit** en nommant où la poser — il ne saute pas en silence : un contrôle qui se tait quand il n'est pas configuré est le contrôle qu'on croit avoir.*
+
 **Il n'existe aucun secret `BETTER_AUTH_SECRET`**, ni dans le dépôt, ni ailleurs. Il est à engendrer au moment de la mise en ligne, et à déposer **chez l'hébergeur seulement** — le dépôt n'en a pas besoin : aucun flux de CI ne monte l'authentification contre la base hébergée.
 
 ---

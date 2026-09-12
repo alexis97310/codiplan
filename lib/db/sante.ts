@@ -368,3 +368,69 @@ function decompteNonLisible(): Decompte {
       "cloisonnement fonctionne.",
   };
 }
+
+/**
+ * LA MÊME LECTURE, RENDUE À UNE MACHINE (R3-01).
+ *
+ * ## Une lecture, deux rendus — et jamais deux lectures
+ *
+ * La page `/sante` rend cet état à un humain ; `/api/sante` le rend à un
+ * contrôle de CI. **Les deux appellent `lireSante`**, et c'est la seule chose
+ * qui compte ici : une seconde lecture écrite « pour la machine » serait deux
+ * implémentations d'un même critère, chacune verte, divergeant en silence (§9,
+ * 01/09) — et dans le pire sens, puisque c'est la machine qui décide si
+ * quelqu'un est prévenu.
+ *
+ * ## CE QU'ELLE AJOUTE, ET C'EST LE TÉMOIN DU CONTRÔLE
+ *
+ * `commit` dit **quel code répond**. Sans lui, un contrôle lancé juste après une
+ * fusion interroge l'ANCIENNE version — qui répond « tout va bien » en toute
+ * sincérité, sa base lui suffisant — et rend un vert dans la fenêtre même où la
+ * panne se crée. *Un décompte nul ressemble toujours à un sans-faute* (§9,
+ * 30/08) : le contrôle refuse de conclure tant qu'il n'a pas reconnu le commit
+ * qu'il visait.
+ *
+ * **Ce n'est pas un secret.** L'empreinte d'un commit est publique dès qu'elle
+ * est poussée, et elle ne nomme ni hôte, ni base, ni identifiant — la règle de
+ * D50 tient, et `null` est rendu plutôt qu'une valeur inventée quand l'hébergeur
+ * ne la renseigne pas.
+ *
+ * ## ELLE NE REND PAS LES DÉCOMPTES
+ *
+ * Ils ne sont pas lisibles depuis cette connexion, et c'est voulu (voir
+ * `decompteNonLisible`). Les rendre à une machine n'ajouterait qu'un motif à
+ * interpréter : *ce que le contrôle mesure, et son libellé ne promet pas plus.*
+ */
+export function reponseMachine(
+  etat: EtatSante,
+  commit: string | null,
+): {
+  readonly ok: boolean;
+  readonly commit: string | null;
+  readonly baseJointe: Reponse;
+  readonly roleApplicatif: Reponse;
+  readonly migrations: Reponse;
+} {
+  return {
+    ok: etat.baseJointe.ok && etat.roleApplicatif.ok && etat.migrations.ok,
+    commit,
+    baseJointe: etat.baseJointe,
+    roleApplicatif: etat.roleApplicatif,
+    migrations: etat.migrations,
+  };
+}
+
+/**
+ * LE COMMIT DÉPLOYÉ, tel que l'hébergeur le renseigne — ou `null`.
+ *
+ * Une seule lecture de cette variable dans tout le dépôt : le jour où
+ * l'hébergeur change, c'est ici, et nulle part ailleurs. **`null` plutôt qu'une
+ * chaîne vide** — *« je ne sais pas » et « rien » ne se corrigent pas au même
+ * endroit*, et le contrôle qui la lit distingue les deux cas.
+ */
+export function commitDeploye(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  const brut = env.VERCEL_GIT_COMMIT_SHA ?? env.COMMIT_DEPLOYE ?? "";
+  return brut.trim().length > 0 ? brut.trim() : null;
+}
