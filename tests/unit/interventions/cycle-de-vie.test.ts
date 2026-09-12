@@ -31,7 +31,7 @@ describe("le figeage, et l'issue que I5 laisse ouverte", () => {
     for (const statut of [
       "a_planifier",
       "planifiee",
-      "envoyee",
+      "affectee",
       "en_cours",
       "suspendue",
       "terminee",

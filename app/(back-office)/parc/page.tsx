@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -115,6 +116,19 @@ export default async function PageParc() {
         </Tableau>
       </section>
 
+      {/*
+        LE REGISTRE DES VGP SE REJOINT D'ICI, et non par la barre : celle-ci est
+        une liste CLOSE confrontée à la maquette (D95), qui n'y porte aucune
+        entrée « VGP ». Une douzième entrée la ferait rougir à raison — le même
+        traitement que l'écran des lieux, qui se rejoint par un lien.
+      */}
+      <Link
+        href="/vgp"
+        className="text-app-encre-faible text-[12.5px] underline-offset-2 hover:underline"
+      >
+        {t("vgp.lien_depuis_parc")}
+      </Link>
+
       <p className="text-app-encre-faible text-[11.5px]">{t("parc.borne")}</p>
     </main>
   );
@@ -124,7 +138,18 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
   return (
     <tr>
       <Cellule mono>
-        {referenceMachine(machine)}
+        {/*
+          LA RÉFÉRENCE EST LE LIEN VERS LA FICHE, et c'est ce qui donne un
+          appelant à l'union de L8-02. Une entrée dont l'écran n'existe pas est
+          INERTE, jamais un lien (D95) — ici l'écran existe, donc le lien se
+          pose.
+        */}
+        <Link
+          href={`/parc/${machine.id}`}
+          className="underline-offset-2 hover:underline"
+        >
+          {referenceMachine(machine)}
+        </Link>
         {machine.numero === null ? (
           <span className="text-app-encre-faible block font-sans text-[10.5px]">
             {t("parc.non_synchronisee")}

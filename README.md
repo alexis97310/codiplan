@@ -54,6 +54,18 @@ pnpm deploiement:verifier # LA PRODUCTION DÉPLOYÉE EST-ELLE DEBOUT ? (R3-01)
                       # elle NE MIGRE RIEN : elle nomme le geste
                       # sans URL_PRODUCTION elle ROUGIT, elle ne saute pas
 
+pnpm suspensions:denombrer # COMBIEN COÛTE LE RATTRAPAGE DE R3-02 ? (D104)
+                      # il COMPTE, il ne répare RIEN : ni UPDATE, ni
+                      # VALIDATE CONSTRAINT, ni motif générique — ce
+                      # dernier serait l'issue (a) que D104 a écartée
+                      # il REFUSE de rendre un zéro creux : « intervention »
+                      # est sous FORCE, et un rôle non superutilisateur sans
+                      # contexte verrait zéro ligne — le témoin porte sur le
+                      # MÉCANISME, jamais sur un décompte
+                      # et son rapport dit ce qu'un zéro ne veut PAS dire :
+                      # une base bâtie depuis zéro ne PEUT pas porter de
+                      # violation, la contrainte y précédant la première ligne
+
 pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
                       # et rendre la base rejouable — il n'applique RIEN
 pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
@@ -1011,6 +1023,53 @@ et il n'existe aucune fonction qui rende un verdict de conformité.
 
 Voir [`lib/vgp/`](lib/vgp/), et les six scénarios de
 `tests/isolation/vgp-assujettissement.test.ts`, chacun avec son jumeau.
+
+**Le REGISTRE existe depuis le 12/09/2026** — `/vgp`, avec la liste des familles
+« à déterminer » à un clic. [`lib/vgp/registre.ts`](lib/vgp/registre.ts) lit le
+parc sous contexte cloisonné et résout la cascade ;
+[`lib/vgp/libelles.ts`](lib/vgp/libelles.ts) est **le seul endroit où un état
+d'information devient du texte**, et c'est ce qui rend la règle gardable : écrite
+dans un composant, elle ne serait éprouvable que par un rendu, et le deuxième
+écran du lot la réécrirait à sa façon sans qu'un test rougisse.
+
+**Toutes les machines soumises s'affichent « sans information », et l'écran écrit
+pourquoi** : rien n'enregistre encore ce qu'un organisme a dit — `document` porte
+une classe et une cible, jamais une **nature**. _Ce n'est pas un défaut du
+registre : c'est le registre qui dit vrai._ `L9-08`, `L9-09` et `L9-10` butent
+tous les trois sur ce seul fait, et le chiffrent : le compteur qui descend de
+L9-08 ne pourrait jamais descendre, et **un compteur figé est pire qu'une alerte
+de trop, parce qu'il a l'air de mesurer**.
+
+`tests/unit/vgp/aucun-verdict-de-conformite.test.ts` tient les deux moitiés —
+aucun état ne prononce un verdict, aucun état ne sort sans sa date. Sa population
+est **étroite exprès** : le sous-titre de l'écran dit « CODIPLAN n'affirme jamais
+la conformité » et doit le dire ; _un gardien qui refuserait le mot partout
+rougirait sur la phrase qui énonce la règle_, et on cesserait de le lire.
+
+## La documentation d'une machine — l'union, et l'appelant qui manquait
+
+Une machine montre **ses** documents **et ceux de son modèle** (L8-02). Aucune
+ligne n'est copiée : _une notice accrochée au modèle apparaît sur ses cinq cents
+exemplaires parce qu'elle est LUE depuis chacun_ — et le jour où le constructeur
+la corrige, on corrige une ligne.
+
+L'union vivait **uniquement dans un scénario d'isolation**, qui composait son
+`where` à la main. Aucun module de `lib/` ne la portait, aucun écran ne
+l'appelait : _le harnais armait une garantie que la production n'armait pas_,
+la divergence de L1-02b avec l'aggravation qu'il n'existait pas deux
+implémentations mais une seule, dans le test.
+[`documentsDeLaMachine`](lib/documents/depot.ts) la porte, `/parc/[id]`
+l'appelle, et le scénario emprunte ce chemin-là.
+
+Elle **relit la machine** sous le même contexte plutôt que de recevoir son
+`modele_id` : _une borne qui vit dans la bonne volonté de l'appelant n'en est pas
+une_. Elle rend `null` pour une machine invisible et `[]` pour une machine sans
+document — **les deux ne se corrigent pas au même endroit**. L'écran affiche
+l'**origine** de chaque document en colonne : _supprimer une notice de modèle en
+croyant nettoyer un exemplaire porterait sur cinq cents machines sans que rien ne
+le dise._ Et **aucun lien de téléchargement** : `objet_cle` n'est remplie par
+personne, et l'écran dit pourquoi plutôt que d'offrir un lien qui se lirait comme
+une panne.
 
 ## Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
 

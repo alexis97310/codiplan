@@ -770,37 +770,39 @@ Un backlog écrit six mois à l'avance est périmé quand on y arrive.
 
 **LE SOCLE DE DONNÉES EST CONSTRUIT le 13/09/2026** — L8-01 à L8-06. La question que D87 laissait ouverte — le cloisonnement d'un document de MODÈLE — a été tranchée par l'exploitation le matin même et instruite avec sa mesure : **D93**, deux formes de politique, « héritage » et « ascendance ». **LE BAC DE RÉCEPTION EST CONSTRUIT le même jour** — L8-07 : la déduplication par empreinte tenue par l'INDEX, les propositions qui ne classent jamais seules, la reprise sans table de session, le compteur dont le total explique chaque fichier reçu. Il a produit une **treizième forme de politique**, « interne » (**D94**), parce que le bac nomme des fichiers et qu'un nom de fichier révèle le parc — la fuite de D93 rentrait par la porte de service. Ce qui reste **écrit et non construit** : le **stockage**, *quand il aura un appelant* : `document.objet_cle` et `document_recu.objet_cle` disent où sont les octets, et aucun code ne les remplit. **L'écran du bac** manque aussi, et c'est lui l'appelant qui rendra le stockage dû.
 
+**LES SIX MARQUEURS MENTAIENT, ET C'EST MESURÉ le 12/09/2026.** Le paragraphe ci-dessus dit « LE SOCLE DE DONNÉES EST CONSTRUIT — L8-01 à L8-06 », et les six tickets portaient `LIBRE`. *Un ticket dont l'état ment est pire qu'un ticket bloqué* : `pnpm file` est une LECTURE, et une lecture fausse envoie une session refaire ce qui existe. Mesuré au schéma et aux scénarios — la contrainte `document_cible_unique` et son jumeau (L8-01), l'énumération `ClasseDocument` à deux valeurs (L8-03), les deux formes de D93 et leurs listes closes (L8-04), `objet_cle` sans colonne binaire (L8-05), `date_document` et `date_expiration` nullables et documentées comme inutilisées (L8-06). **Une seule moitié manquait vraiment, et pas là où le marqueur le disait** : l'union de L8-02 ne vivait QUE dans le scénario d'isolation, qui composait son `where` à la main. *Le harnais armait une union que la production n'armait pas* — la divergence de L1-02b, mot pour mot. `lib/documents/depot.ts` la porte désormais (`documentsDeLaMachine`), l'écran `/parc/[id]` l'appelle, et le scénario emprunte ce chemin-là.
+
 **Ce lot remplace le ticket L2-04**, qui posait la bonne question — la forme polymorphe de `document` — et n'en tirait pas un périmètre. La mesure de L2-04 reste acquise et ne se refait pas : *une colonne `entite_id` avec deux clés étrangères est un piège qui a l'air d'un verrou et rend la table inutilisable ; une colonne nullable par cible avec `num_nonnulls(...) = 1` fonctionne.*
 
 **L8-01** Le rattachement d'un document : au MODÈLE ou à la MACHINE, jamais aux deux.
-*File :* LIBRE
+*File :* LIVRÉ
 Un document s'accroche **au modèle** — notice, fiche technique, manuel d'atelier, identiques pour tous les exemplaires — **ou à la machine** — certificat de conformité, procès-verbal de mise en service, propres à un exemplaire. **Jamais aux deux, et c'est le SCHÉMA qui l'interdit**, pas une validation applicative : deux colonnes nullables et `num_nonnulls(modele_id, machine_id) = 1`, la forme que L2-04 a mesurée comme fonctionnelle.
 *Acceptation :* une ligne à deux cibles est refusée par la contrainte NOMMÉE ; une ligne sans cible aussi ; le jumeau retire la contrainte et montre la ligne à deux cibles passer.
 
 **L8-02** L'écran d'une machine affiche l'UNION de ses documents et de ceux de son modèle.
-*File :* LIBRE
+*File :* LIVRÉ
 **C'est ce qui évite de dupliquer un PDF sur cinq cents machines et de ne jamais pouvoir le corriger.** La distinction reste visible à l'écran — un document de modèle se corrige une fois pour toutes, un document de machine n'existe que là.
 *Acceptation :* un document ajouté au modèle apparaît sur toutes ses machines sans qu'aucune ligne ne soit copiée ; sa correction se voit partout.
 
 **L8-03** Deux classes de visibilité, et deux seulement : `client` et `interne`.
-*File :* LIBRE
+*File :* LIVRÉ
 **Liste close, produite par le SCHÉMA** — une énumération PostgreSQL, comme les statuts. *À cinq valeurs, personne ne classe juste* : une classification que l'on hésite à appliquer est appliquée au hasard, et un document mal classé est pire qu'un document absent.
 *Acceptation :* toute valeur hors des deux est refusée par la base.
 
 **L8-04** Le cloisonnement d'un document est HÉRITÉ de sa machine, et la classe ne fait que le RÉTRÉCIR.
-*File :* LIBRE
+*File :* LIVRÉ
 Société, site, habilitation : un document suit sa machine, **et rien n'est inventé ici**. La classe `interne` retire l'accès au portail ; elle n'ajoute aucun axe. **N'inventez pas une forme de politique de plus** — la forme « parc » existe, `intervention` vient de la prendre, et une dixième forme est un arbitrage, jamais un effet de bord.
 **TRANCHÉ LE 13/09/2026 — D93.** *Un compte de portail ne voit les documents d'un MODÈLE que si une machine de ce modèle se trouve dans son PROPRE PÉRIMÈTRE.* Sinon la présence d'une notice révèle la composition du parc des autres sites — un compte restreint à Ducos déduirait ce que Koné possède, et le cloisonnement fuirait par la liste des documents au lieu de fuir par les données. **Ce n'est donc pas la forme du document qui change, c'est le chemin d'accès au MODÈLE** : machine → site → habilitation, jamais société → modèle. Deux formes en sont sorties, et ce sont bien des ARBITRAGES et non des effets de bord : « héritage » pour `document`, « ascendance » pour `modele_materiel` et `famille_materiel`.
 *Acceptation :* un compte portail ne voit d'un document que ce que sa machine lui laisse voir ; **et rien du modèle dont il ne possède aucune machine visible** — ni la notice, ni son existence, ni un compteur à zéro qui la trahirait. Les deux formes nouvelles sont ARBITRÉES (D93) et gardées par des listes closes dans les deux sens.
 *Relu contre les sources citées le 13/09/2026 — empreinte `d20d6a8b`.*
 
 **L8-05** Fiche en base, octets dans un stockage d'objets, **même région que la base**.
-*File :* LIBRE
+*File :* LIVRÉ
 **Jamais de PDF dans PostgreSQL.** La région est la même pour la raison qui a déjà coûté un incident : la latence vers Sydney se paye à chaque aller-retour, et un objet qui traverse le Pacifique deux fois n'arrive pas.
 *Acceptation :* aucune colonne binaire sur `document` ; la région du stockage est vérifiée par le contrôle de mise en ligne.
 
 **L8-06** `date_document` et `date_expiration` **dès le premier jour**, même inutilisées.
-*File :* LIBRE
+*File :* LIVRÉ
 *Trois minutes maintenant, une migration douloureuse plus tard.* Ce n'est pas une colonne « au cas où » : un certificat porte une date d'émission et une date de fin de validité, et le lot 9 s'en servira.
 *Acceptation :* les deux colonnes existent et sont nullables ; aucun code ne les lit encore, et c'est écrit plutôt que tu.
 
@@ -827,6 +829,10 @@ Les documents existants sont **numériques mais rangés en vrac**, sans structur
 
 *Ce qui a été construit, et où :* l'énumération `AssujettissementVgp` à quatre valeurs dont la NAISSANCE ; les colonnes de `famille_materiel`, `modele_materiel` et `machine` ; les quatre contraintes qui font REFUSER la base plutôt que signaler ; `lib/vgp/assujettissement.ts` (saisie Zod et cascade avec son origine) ; `lib/vgp/information.ts` (« sans information depuis X », qui ne rend jamais de verdict) ; le gardien statique de L9-05 (`tests/unit/vgp/aucune-duree-en-dur.test.ts`) ; et six scénarios d'isolation avec leur jumeau.
 
+**LES MARQUEURS ONT ÉTÉ REDRESSÉS LE 12/09/2026, et dans les deux sens.** Le paragraphe ci-dessus disait « LA COLONNE VERTÉBRALE EST CONSTRUITE — L9-03 à L9-07 » pendant que les cinq tickets portaient `LIBRE` ; et L9-11 portait `LIBRE` alors que son acceptation exige une file de synchronisation qui n'existe pas (`lib/sync/` est `(prévu)` au §6, le répertoire est absent). *`pnpm file` est une LECTURE : un marqueur faux envoie une session refaire ce qui existe, ou prendre ce qui ne peut pas se faire.*
+
+**ET LES TROIS DERNIERS BUTENT SUR UN SEUL FAIT, mesuré plutôt que supposé.** L9-08, L9-09 et L9-10 supposent tous qu'une information reçue d'un organisme soit enregistrable. **Elle ne l'est pas** : `document` porte une classe et une cible, jamais une NATURE, et rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification. *Le compteur qui descend de L9-08 ne pourrait donc jamais descendre* — un compteur figé est pire qu'une alerte de trop, parce qu'il a l'air de mesurer. La question est portée à Alexis (§1 du protocole : *une obligation légale*), et les trois tickets attendent sa réponse plutôt que d'être bâtis sur une forme inventée.
+
 **Vérifications générales périodiques** (APAVE, Bureau Veritas). **Chez CODIMA, ce sont les CLIENTS qui commandent ces visites, pas CODIMA. Tout ce lot découle de là.**
 
 **L9-01** CODIPLAN NE CALCULE JAMAIS LA CONFORMITÉ.
@@ -835,52 +841,52 @@ Il **enregistre ce que l'organisme agréé a écrit**, et ne calcule que des **d
 *Acceptation :* aucune fonction du dépôt ne rend un verdict de conformité ; le seul calcul est une échéance.
 
 **L9-02** CE N'EST PAS UN REGISTRE DE CONFORMITÉ, C'EST UN REGISTRE DE CE QU'ON NOUS A DIT.
-*File :* LIBRE
+*File :* LIVRÉ
 Chaque écran porte **la date de la dernière information reçue**. Sans nouvelles : **« sans information depuis X »** — jamais « à jour », jamais « en retard », **jamais blanc**. *Le danger est qu'un registre à moitié rempli ressemble à un registre complet* — c'est le zéro de `/sante` lu comme « installation vide », à l'échelle d'un parc.
 *Acceptation :* aucun écran du lot ne rend un état sans le dater ; l'absence d'information a un libellé propre, distinct de « conforme » et de « non conforme ».
 
 **L9-03** L'assujettissement se déclare À LA FAMILLE et se propage — **mais PAS par une case à cocher**.
-*File :* LIBRE
+*File :* LIVRÉ
 **TROIS valeurs** : `soumis` · `non_soumis`, et `verifie` · `a_determiner`. **Une famille nouvelle naît « à déterminer »**, parce qu'*une case décochée est indiscernable d'une famille jamais examinée*, et qu'un pont élévateur sortirait du registre en silence. **Les « à déterminer » apparaissent dans une liste visible** : c'est la moitié détective du couple, et sans elle la valeur ne sert à rien.
 *Acceptation :* une famille créée porte `a_determiner` sans qu'on l'ait demandé ; la liste des indéterminés est atteignable en un clic depuis le registre.
 
 **L9-04** Déclarer « soumis » rend OBLIGATOIRES la périodicité et **la référence du texte qui la fonde**.
-*File :* LIBRE
+*File :* LIVRÉ
 Sans le texte, la périodicité est un chiffre que personne ne peut défendre.
 *Acceptation :* la base refuse `soumis` sans périodicité ni référence.
 
 **L9-05** AUCUNE PÉRIODICITÉ EN DUR.
-*File :* LIBRE
+*File :* LIVRÉ
 Elle dépend du matériel et du texte applicable ; **la Nouvelle-Calédonie a son propre code du travail**, et la solution sera vendue sur d'autres territoires. **C'est une donnée saisie par un humain**, comme la majoration hors ouverture et le taux horaire.
 *Acceptation :* aucune constante de durée dans le code du lot ; un gardien statique le vérifie, sur le modèle de celui des couleurs.
 
 **L9-06** Le MODÈLE peut préciser, la MACHINE peut faire exception — **avec motif écrit obligatoire**.
-*File :* LIBRE
+*File :* LIVRÉ
 Les caractéristiques techniques vivent sur le modèle, donc c'est là que la précision a un sens. L'exception au niveau d'un exemplaire existe — un usage particulier, une modification — et **elle ne se pose jamais sans sa raison**.
 *Acceptation :* une exception sans motif est refusée par la base.
 
 **L9-07** La déclaration est JOURNALISÉE : qui, quand, **sur quelle base**.
-*File :* LIBRE
+*File :* LIVRÉ
 Pas une table de plus : `journal_audit`, par déclencheur, avec les valeurs avant et après. « Sur quelle base » est la référence du texte de L9-04.
 *Acceptation :* toute déclaration d'assujettissement est retrouvable avec son auteur et sa justification.
 
 **L9-08** Faire passer une famille de « non soumise » à « soumise » n'ouvre PAS deux cents alertes : cela ouvre **UNE CAMPAGNE DATÉE avec un compteur qui descend**.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 *Un gardien dont on ignore les alertes coûte plus qu'il ne rapporte* — c'est déjà écrit au §9 du CLAUDE.md, et deux cents alertes le jour d'une déclaration, c'est la panne par le bruit, la plus sûre.
 *Acceptation :* une déclaration produit un objet unique, daté, avec un reste-à-faire visible ; aucune notification par machine.
 
 **L9-09** Le rapport de VGP est de classe `client`.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 **L'obligation pèse sur celui qui utilise le matériel : le rapport lui appartient.** C'est la classe de L8-03, et c'est tout — le lot 9 ne crée aucun axe de visibilité.
 *Acceptation :* un compte portail retrouve les rapports de ses machines, et rien d'autre.
 
 **L9-10** Un rapport AVEC OBSERVATIONS engendre des interventions à planifier.
-*File :* LIBRE
+*File :* BLOQUÉ — **rien ne peut enregistrer une information reçue d'un organisme**, et les trois tickets butent sur ce même fait. Mesuré le 12/09/2026 : `document` porte une CLASSE et une CIBLE, jamais une NATURE — rien n'y distingue un rapport de VGP d'une notice ; aucune table ne porte de date de vérification ; `lib/vgp/registre.ts` écrit donc `derniereInformation: null` pour toute machine. La forme de cet enregistrement est une question pour Alexis (§1 du protocole — *une obligation légale*) : `docs/boucle/questions-pour-alexis.md`, Q4.
 **C'est le seul point où ce lot alimente le planning, et c'est celui qui rapporte de l'argent.** Une observation d'organisme est un travail à faire, daté, sur une machine identifiée : elle a exactement la forme d'une intervention `a_planifier`.
 *Acceptation :* une observation saisie produit une intervention en file d'attente, rattachée à la machine et au rapport qui l'a motivée.
 
 **L9-11** Le TECHNICIEN saisit sur site ce qu'il voit — **vignette, date — en cinq secondes**, pendant une intervention.
-*File :* LIBRE
+*File :* BLOQUÉ — son acceptation exige une saisie **« en mode avion » qui se synchronise**, c'est-à-dire le cache local (L3-07) et la file de synchronisation (L3-08), qui n'existent ni l'un ni l'autre — les deux sont eux-mêmes BLOQUÉS dans cette file. Mesuré le 12/09/2026 : `lib/sync/` est marqué `(prévu)` au §6 du `CLAUDE.md` et le répertoire n'existe pas. *Le marqueur disait LIBRE ; un ticket dont l'état ment est pire qu'un ticket bloqué.*
 **C'est ce qui remplira le registre**, et rien d'autre ne le remplira : personne ne saisira deux cents fiches un dimanche. La saisie doit fonctionner **hors ligne**, comme tout ce que le terrain fait.
 *Acceptation :* la saisie tient en deux champs et se fait en mode avion ; elle se synchronise comme le reste.
 
@@ -1262,7 +1268,11 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *File :* BLOQUÉ — le motif des suspensions antérieures est une donnée que personne n'a énoncée : seul l'exploitant peut la dire, base par base. Mesuré le 11/09/2026.
 **CE QU'IL VIENT FINIR.** D104 pose `intervention_suspension_a_son_motif` et `intervention_suspension_a_sa_date` en `NOT VALID` : elles valent pour toute ligne nouvelle ou modifiée, et les interventions `suspendue` nées avant L2-10 ne sont pas relues. *L'état non validé est visible — `scripts/lib/contraintes-non-validees.ts`, lu chaque nuit par `pnpm veille` et à chaque `pnpm verify` par un scénario d'isolation — mais visible n'est pas réparé.*
 **LES DEUX COLONNES NE SE RATTRAPENT PAS PAREIL, et c'est tout le ticket.** `suspendue_le` **SE REPREND** : le journal d'audit porte l'instant du changement de statut (I8), et la lire là est une reprise, jamais une invention. `motif_suspension` **NE SE REPREND PAS** : aucune table ne le porte, et il n'existait pas au moment où ces interventions ont été suspendues. *Il faut qu'un humain le dise*, intervention par intervention.
-**LE DÉNOMBREMENT EST LE PREMIER GESTE, et il n'est pas fait.** Combien de lignes sont concernées, sur la démonstration et sur la production ? La question se lit en une requête sous le rôle de migration ; personne ne l'a posée. *Un rattrapage dont on ne connaît pas le volume est un rattrapage dont on ne sait pas s'il coûte une minute ou une semaine.*
+~~**LE DÉNOMBREMENT EST LE PREMIER GESTE, et il n'est pas fait.**~~ **IL EST FAIT, ET IL EST VERSIONNÉ** *(12/09/2026)* — `pnpm suspensions:denombrer`, qui compte sans rien réparer et **refuse de rendre un zéro creux** : `intervention` est sous `FORCE ROW LEVEL SECURITY`, et un rôle propriétaire non superutilisateur sans contexte verrait zéro ligne. Le témoin porte sur le MÉCANISME, jamais sur un décompte.
+
+*Mesuré sur la base de DÉMONSTRATION, migrée et semée le 12/09/2026* : **32 interventions, 2 suspendues, 0 sans motif, 0 sans date, 0 résidu.** La population n'est pas vide — le chiffre est une mesure, pas une absence.
+
+**ET CE ZÉRO NE SE LIT PAS « C'EST FAIT ».** Une base bâtie depuis zéro par `prisma migrate deploy` **ne PEUT pas** porter de violation : la contrainte y précède la première ligne, et `NOT VALID` refuse ensuite toute écriture fautive — *mesuré, un `UPDATE` qui retire un motif est REJETÉ par `intervention_suspension_a_son_motif`.* **Le seul chiffre qui décide du coût du rattrapage est celui d'une base qui portait des interventions `suspendue` AVANT la migration `20260913160000_suspension_l2_10`** — et une session ne touche pas la base de production. *Le geste reste à jouer par l'exploitation ; le ticket reste BLOQUÉ pour son motif d'origine, qui n'a pas bougé.*
 **CE QUI NE DOIT PAS ÊTRE FAIT :** écrire un motif générique pour toutes les lignes. Ce serait exactement l'issue (a) que D104 a écartée, reprise par la porte de service — et elle porterait cette fois sur des données réelles.
 *Acceptation :* les lignes concernées sont dénombrées et nommées ; `suspendue_le` est repris depuis le journal d'audit ; le motif est saisi ou l'intervention est reprise ; puis `VALIDATE CONSTRAINT` sur les deux, et **les deux entrées quittent `CONTRAINTES_NON_VALIDEES`** — le gardien exige ce retrait, et c'est ce qui prouve que le rattrapage a eu lieu.
 

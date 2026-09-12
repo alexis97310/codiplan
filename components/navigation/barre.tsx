@@ -78,7 +78,7 @@ export function BarreDeNavigation({
       <Marque accueil={accueil} />
       <nav
         aria-label={t("nav.libelle")}
-        className="ml-2 flex flex-wrap gap-0.5"
+        className="ml-2 flex min-w-0 flex-wrap gap-0.5"
       >
         {entrees.map((entree) => (
           <Entree
@@ -88,7 +88,16 @@ export function BarreDeNavigation({
           />
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-3">
+      {/*
+        `shrink-0` ET `min-w-0` SUR LE MÊME GROUPE, et ce n'est pas une
+        redondance. `min-w-0` est posé sur la NAVIGATION qui précède : par
+        défaut, un enfant de flex ne rétrécit pas sous la largeur de son
+        contenu — c'est `min-width: auto` —, si bien que onze entrées de menu
+        POUSSENT ce groupe hors de la barre. `shrink-0` dit que ce groupe, lui,
+        ne cède jamais : *une pastille de société coupée en deux se lit comme
+        une panne d'affichage, pas comme un manque de place.*
+      */}
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <BandeauSociete theme={theme} />
         {initiales === null ? null : <Avatar initiales={initiales} />}
       </div>

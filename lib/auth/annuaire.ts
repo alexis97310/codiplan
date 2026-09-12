@@ -13,14 +13,21 @@ import type { Prisma } from "@prisma/client";
  * « rattachement » — *une identité de la société active, sauf pour un compte
  * portail*.
  *
- * *Mesuré le 11/09/2026 sous `codiplan_app`, avec trois témoins — rôle non
- * privilégié (`rolsuper` et `rolbypassrls` à `f`), les deux drapeaux RLS
- * actifs, et zéro identité lue sans contexte :*
+ * ~~*Mesuré le 11/09/2026 sous `codiplan_app`, avec trois témoins : interne
+ * sous contexte → 4 identités, compte portail au même instant → 0.*~~
+ * **CETTE MESURE EST DEVENUE UN SCÉNARIO le 12/09/2026** —
+ * `tests/isolation/annuaire-des-personnes.test.ts`.
  *
- * | Qui lit | Identités rendues |
- * |---|---|
- * | interne, sous contexte société | **4** |
- * | compte portail, même société, même instant | **0** |
+ * *Une mesure écrite dans un commentaire ne rougit pas le jour où la politique
+ * change : elle vieillit, et une prescription qui ne se vérifie pas est une
+ * intention* (§9, 31/08). Elle est barrée et non effacée — elle a fondé ce
+ * module, et ce qui a été mesuré un jour se relit.
+ *
+ * **Et ce module mérite un gardien à lui seul**, parce que *rien en lui ne
+ * protège quoi que ce soit* : il lit `utilisateur` SANS clause de société, et
+ * le jour où la branche « rattachement » de `utilisateur_lecture` serait
+ * retirée ou élargie, il rendrait des noms d'une autre société **sans changer
+ * d'une ligne**.
  *
  * **Ce qui manquait n'était donc pas un droit, c'était un APPELANT** — la
  * maladie que le §6 nomme à propos du portail : *une politique juste que

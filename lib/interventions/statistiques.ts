@@ -72,7 +72,7 @@ import { type TrajetDeLaPeriode } from "./trajet";
 export const ORDRE_STATUTS = [
   "a_planifier",
   "planifiee",
-  "envoyee",
+  "affectee",
   "en_cours",
   "suspendue",
   "terminee",

@@ -118,11 +118,38 @@ describe("la liste déclarée", () => {
     }
   });
 
-  // Cette liste doit SE VIDER. Un plafond n'est pas une règle de gestion, c'est
-  // une alarme de dérive : le jour où l'on en compte quatre, la question n'est
-  // plus « laquelle ajouter » mais « pourquoi aucune n'a été rattrapée ».
-  it("ne dépasse pas les deux entrées de D104", () => {
-    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(2);
+  /*
+   * ── DEUX ALARMES DE NATURE DIFFÉRENTE, ET ELLES NE SE REMPLACENT PAS ──────
+   *
+   * Cette liste doit SE VIDER. Un plafond n'est pas une règle de gestion, c'est
+   * une alarme de dérive : *le jour où l'on en compte quatre, la question n'est
+   * plus « laquelle ajouter » mais « pourquoi aucune n'a été rattrapée ».*
+   *
+   * **Le COMPTE EXACT** oblige à rouvrir ce fichier — donc à relire le motif —
+   * à chaque addition ET à chaque retrait. C'est une alarme *à chaque
+   * mouvement*, pas un seuil : elle ne dit pas « c'est trop », elle dit
+   * « quelqu'un a bougé, regardez ».
+   *
+   * **Le PLAFOND**, lui, ne bouge pas. Quatre est le nombre que la note
+   * d'origine nomme, et il est ici sous la forme d'une assertion plutôt que
+   * d'un commentaire — *une prescription qui ne se vérifie pas est une
+   * intention* (§9, 31/08). Le jour où il est atteint, c'est un arbitrage,
+   * jamais une mise à jour de ce fichier.
+   *
+   * *Historique du compte exact, pour que « 3 » ne s'écrive pas sans sa
+   * raison :* **2** à D104 (les deux suspensions) ; **3** le 12/09/2026
+   * (`intervention_cloture_a_son_statut_facturation`, N-04d) — les
+   * interventions DÉJÀ clôturées n'ont pas de statut de facturation, et la
+   * colonne qui dirait lesquelles ont été facturées, `reference_facture`,
+   * **n'existe pas** (mesuré). Choisir entre « à facturer » et « facturée »
+   * serait choisir entre refacturer et renoncer.
+   */
+  it("compte EXACTEMENT trois entrées — toute addition ou tout retrait rouvre ce fichier", () => {
+    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(3);
+  });
+
+  it("LE PLAFOND, lui, ne bouge pas : quatre est un arbitrage, pas une mise à jour", () => {
+    expect(CONTRAINTES_NON_VALIDEES.length).toBeLessThan(4);
   });
 });
 

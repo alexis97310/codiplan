@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -141,12 +141,9 @@ function Entree({ role }: { role: Role | null }) {
   }
   const portail = estRolePortail(role);
   return (
-    <Link
-      href={portail ? "/portail" : "/planning"}
-      className="bg-app-accent text-app-accent-encre w-fit rounded-md px-4 py-2 text-[13px] font-bold"
-    >
+    <LienPrimaire href={portail ? "/portail" : "/planning"}>
       {portail ? t("arrivee.entrer.portail") : t("arrivee.entrer.planning")}
-    </Link>
+    </LienPrimaire>
   );
 }
 

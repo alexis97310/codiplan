@@ -105,4 +105,7 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260913170000_technicien_l3_01a",
   "20260913180000_absence_l3_04",
   "20260913190000_trajet_par_zone_r3_03",
+  "20260913200000_reference_interne_unique_d6",
+  "20260913210000_statut_affectee_d8",
+  "20260913220000_statut_facturation_d8",
 ];

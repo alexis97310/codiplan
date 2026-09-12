@@ -103,6 +103,23 @@ export const CONTRAINTES_NON_VALIDEES: readonly NonValideeDeclaree[] = [
       "porte l'instant du changement de statut, et c'est une reprise, pas une " +
       "invention.",
   },
+  {
+    table: "intervention",
+    contrainte: "intervention_cloture_a_son_statut_facturation",
+    motif:
+      "D104, et la même famille que ses deux voisines : les interventions " +
+      "DÉJÀ CLÔTURÉES n'ont pas de statut de facturation, parce que la " +
+      "colonne n'existait pas. Et les deux valeurs disponibles décident de " +
+      "l'argent — « à facturer » ferait entrer une intervention close il y a " +
+      "six mois dans une file de facturation, « non facturable » " +
+      "renoncerait à un montant. Personne ne peut trancher à la place de " +
+      "l'exploitant, ligne par ligne.",
+    rattrapage:
+      "Renseigner le statut de facturation des interventions déjà clôturées " +
+      "— le retour de facturation (chapitre 11, reference_facture) dit " +
+      "lesquelles ont été facturées —, puis VALIDATE CONSTRAINT et retirer " +
+      "cette entrée.",
+  },
 ] as const;
 
 function cle(table: string, contrainte: string): string {

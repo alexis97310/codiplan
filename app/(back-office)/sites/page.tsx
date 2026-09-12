@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -107,12 +108,7 @@ export default async function PageSites({
             {t("sites.sous_titre")}
           </p>
         </div>
-        <Link
-          href="/sites/nouveau"
-          className="bg-app-accent text-app-accent-encre rounded-md px-4 py-2 text-[13px] font-bold"
-        >
-          {t("sites.creer")}
-        </Link>
+        <LienPrimaire href="/sites/nouveau">{t("sites.creer")}</LienPrimaire>
       </header>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (

@@ -57,7 +57,7 @@
 export type StatutAffiche =
   | "a_planifier"
   | "planifiee"
-  | "envoyee"
+  | "affectee"
   | "en_cours"
   | "suspendue"
   | "terminee"
@@ -73,7 +73,7 @@ export type StatutAffiche =
 export const CLASSES_STATUT: Record<StatutAffiche, string> = {
   a_planifier: "bg-app-gris-fond text-app-gris-encre",
   planifiee: "bg-app-bleu-fond text-app-bleu-encre",
-  envoyee: "bg-app-bleu-plein text-app-bleu-plein-encre",
+  affectee: "bg-app-bleu-plein text-app-bleu-plein-encre",
   en_cours: "bg-app-rouge-fond text-app-rouge-encre",
   suspendue: "bg-app-orange-fond text-app-orange-encre",
   terminee: "bg-app-vert-fond text-app-vert-encre",
@@ -94,7 +94,7 @@ export const CLASSES_STATUT: Record<StatutAffiche, string> = {
 export const CLASSES_BLOC: Record<StatutAffiche, string> = {
   a_planifier: "bg-app-gris-fond text-app-gris-encre border-app-gris-bord",
   planifiee: "bg-app-bleu-fond text-app-bleu-encre border-app-bleu-bord",
-  envoyee: "bg-app-bleu-fond text-app-bleu-encre border-app-bleu-bord",
+  affectee: "bg-app-bleu-fond text-app-bleu-encre border-app-bleu-bord",
   en_cours: "bg-app-rouge-fond text-app-rouge-encre border-app-rouge-bord",
   suspendue: "bg-app-orange-fond text-app-orange-encre border-app-orange-bord",
   terminee: "bg-app-vert-fond text-app-vert-encre border-app-vert-bord",

@@ -92,15 +92,33 @@ export type OrigineConsolidation = {
  * journalisation de son origine.
  *
  * La journalisation précède la requête : une consolidation qui échoue laisse
- * quand même la trace de qui l'a demandée.
+ * quand même la trace de qui l'a demandée. *Sinon il suffirait de faire échouer
+ * sa requête pour lire sans laisser d'ombre* — et c'est le seul cas qu'un
+ * curieux puisse provoquer.
+ *
+ * ## `journal` EST PRIS EN PARAMÈTRE, ET CE N'EST PAS UN AGRÉMENT
+ *
+ * La trace s'écrit sur la connexion **APPLICATIVE**, qui est une variable de
+ * module lisant `DATABASE_URL`. **Aucun scénario ne pouvait donc pousser cette
+ * porte** — la seule du dépôt qui contourne le cloisonnement — sans écrire
+ * dans la base que `DATABASE_URL` désigne. *Mesuré le 12/09/2026 : sur un
+ * environnement où cette variable porte l'URL hébergée, le scénario a tenté de
+ * l'atteindre* (la connexion a été refusée par le réseau, et c'est la seule
+ * raison pour laquelle rien n'y a été écrit).
+ *
+ * C'est le même paramètre, pour la même raison, que celui de
+ * `avecContexteApplicatif` : *une couche sans appelant ne se garde pas*, et un
+ * scénario qui la contournerait éprouverait une variante écrite pour lui
+ * (L1-02b). Il ne change RIEN en production, où l'argument est omis.
  */
 export async function avecConsolidation<T>(
   origine: OrigineConsolidation,
   travail: (client: PrismaClient) => Promise<T>,
+  journal: PrismaClient = clientApplicatif,
 ): Promise<T> {
   await garantirRoleConsolidation();
 
-  await avecDesignationAuth(clientApplicatif).journalAcces.create({
+  await avecDesignationAuth(journal).journalAcces.create({
     data: {
       id: uuidv7(),
       utilisateur_id: origine.utilisateurId,

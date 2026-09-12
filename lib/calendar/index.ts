@@ -100,7 +100,6 @@ export {
   echeanceSla,
   jourLocalDe,
   joursOuvresAgence,
-  minutesHorsOuvertureTechnicien,
   minutesOuvreesAgence,
   type AvertissementSiteFerme,
   type ConflitCalendrier,

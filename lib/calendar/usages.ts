@@ -71,13 +71,47 @@ export function departCompteurAccuse(
 }
 
 /**
+ * ~~L'assiette temporelle de la majoration de D12.~~ **ÉCARTÉE PAR D108, le
+ * 12/09/2026 — ELLE MESURE EXACTEMENT CE QUE D108 REFUSE DE COMPTER.**
+ *
  * Minutes hors ouverture d'une intervention, sur le calendrier de l'agence DU
  * TECHNICIEN (D13).
  *
- * C'est l'assiette temporelle de la majoration de D12 — et seulement elle. Le
- * taux de +50 %, l'assiette main-d'œuvre et le prorata au quart d'heure
- * appartiennent à la valorisation (D45, L2-09) : `lib/calendar` ne connaît pas
- * la facturation.
+ * ## POURQUOI ELLE N'A AUCUN APPELANT APPLICATIF, ET CE N'EST PAS UN OUBLI
+ *
+ * > **LA MAJORATION PAIE LA CONTRAINTE D'UN CRÉNEAU POSÉ HORS OUVERTURE, PAS
+ * > LES MINUTES EFFECTIVEMENT TRAVAILLÉES** *(D108)*.
+ *
+ * *Le client a fait bloquer la soirée d'un technicien ; qu'il finisse tôt ne
+ * rend pas la soirée disponible.* Cette fonction prend un `debut` et une `fin`
+ * — les bornes de ce qui a été FAIT — et rend des minutes. **C'est l'issue (b)
+ * que D108 a écartée**, et elle l'a écartée parce qu'elle *« exigeait une
+ * hypothèse invérifiable : où, dans le créneau, les minutes travaillées se
+ * placent-elles ? »*
+ *
+ * Ce qui calcule la majoration est `lib/tarification/majoration.ts`, et il lit
+ * le **CRÉNEAU**. Un appelant qui prendrait celle-ci à sa place n'obtiendrait
+ * pas une variante : il obtiendrait le chiffre que D108 a refusé.
+ *
+ * ## ELLE N'EST PAS EFFACÉE, ET C'EST LA MÊME RÈGLE QUE PARTOUT ICI
+ *
+ * *Ce qui a été décidé un jour se relit, sinon on le redécide* — le traitement
+ * de SheetJS au §2, de Schedule-X, de `taux_horaire_defaut`. Elle documente
+ * l'issue écartée à l'endroit où quelqu'un la réinventerait, et son unique
+ * scénario dit dans son titre qu'il n'éprouve qu'une fonction écartée.
+ *
+ * ## ET SA RÉEXPORTATION EST RETIRÉE
+ *
+ * `lib/calendar/index.ts` ne la republie plus : elle n'y servait qu'au
+ * scénario, qui l'importe désormais depuis ce fichier. **Une fonction écartée
+ * qui reste sur la façade du module est une invitation** — le prochain
+ * appelant pressé la trouve par autocomplétion et ne lit pas cet en-tête.
+ *
+ * ## CONDITION DE RÉOUVERTURE, et c'est celle de D108
+ *
+ * *Le jour où `intervention` porte l'heure réelle de début ET de fin*, la
+ * question du prorata se rouvre et cette fonction redevient candidate. Elle
+ * n'est donc pas morte : elle est **en attente d'une donnée qui n'existe pas.**
  */
 export function minutesHorsOuvertureTechnicien(
   agenceTechnicien: Calendrier,

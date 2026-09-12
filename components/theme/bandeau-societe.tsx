@@ -35,12 +35,20 @@ export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
   return (
     <div
       data-origine-theme={theme.origine}
-      className="bg-societe-primaire text-societe-primaire-encre flex items-center gap-2 rounded-md px-3 py-1.5"
+      /*
+        `shrink-0` et `whitespace-nowrap` : le bandeau débordait de la barre et
+        « Charte de la société » se coupait en plein mot. **Deux causes
+        distinctes, deux remèdes** — `shrink-0` empêche le bandeau de céder à la
+        navigation qui le pousse, `whitespace-nowrap` empêche son libellé de se
+        replier sur deux lignes dans la place qui lui reste. *Poser l'un sans
+        l'autre déplace le défaut au lieu de le fermer.*
+      */
+      className="bg-societe-primaire text-societe-primaire-encre flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 whitespace-nowrap"
     >
       <span className="text-[12.5px] font-bold tracking-tight">
         {theme.nom}
       </span>
-      <span className="bg-societe-accent text-societe-accent-encre rounded px-1.5 py-0.5 text-[10px] font-semibold">
+      <span className="bg-societe-accent text-societe-accent-encre shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap">
         {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
       </span>
     </div>

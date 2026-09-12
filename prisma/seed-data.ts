@@ -132,16 +132,37 @@ export type SocieteSeed = {
  * seconde fiche. Ce sont des UUID v7 bien formés (I10) désignant des sociétés
  * fictives (I9).
  *
- * **Le libellé DIT qu'il s'agit d'une démonstration**, en toutes lettres et
- * dans la raison sociale elle-même : une base de démonstration qu'on prendrait
- * pour une base réelle est exactement ce que I9 prévient.
+ * ~~**Le libellé DIT qu'il s'agit d'une démonstration**, en toutes lettres et
+ * dans la raison sociale elle-même.~~ **LE SUFFIXE « (démonstration) » EST
+ * RETIRÉ DES LIBELLÉS le 12/09/2026**, et ce qu'il protégeait est protégé
+ * ailleurs — mieux.
+ *
+ * **Ce qu'il coûtait, mesuré à l'écran :** un bloc du planning rend un client
+ * ET un site ; le mot apparaissait donc **deux fois par intervention**, soit
+ * **six fois par cellule** de la grille de semaine. *C'est la longueur du
+ * contenu qui fait grandir les lignes, pas la feuille de style* — la densité de
+ * l'écran le plus regardé du produit était doublée par une marque de sécurité.
+ *
+ * **Ce qui le remplace n'est pas un mot, c'est un FAIT :** ces fiches portent
+ * des **UUID v7 FIXES** d'une plage réservée au jeu d'amorçage, des courriels en
+ * `.test` et `.invalid`, et `pnpm db:seed` est **sauté sur la cible
+ * « production »** par le flux de migration (gardien :
+ * `tests/unit/ci/cible-de-migration.test.ts`). *Un identifiant qu'aucune fiche
+ * réelle ne peut porter distingue mieux une base de démonstration qu'un mot
+ * dans un libellé* — le mot, lui, se recopie dans un export et survit à la
+ * fiche.
+ *
+ * La phrase d'origine est barrée et non effacée : elle a gouverné ce fichier, et
+ * ce qui a été décidé un jour se relit.
  */
 /**
  * Un site de démonstration (ticket L1-02).
  *
- * **Le libellé DIT qu'il s'agit d'une démonstration**, comme la raison sociale
- * des clients : une base de démonstration qu'on prendrait pour une base réelle
- * est exactement ce que I9 prévient.
+ * ~~**Le libellé DIT qu'il s'agit d'une démonstration**, comme la raison sociale
+ * des clients.~~ **RETIRÉ le 12/09/2026** — voir le motif complet au type
+ * `ClientSeed` ci-dessus : le suffixe apparaissait deux fois par bloc de
+ * planning, et ce qu'il protégeait l'est mieux par des identifiants qu'aucune
+ * fiche réelle ne peut porter.
  *
  * Les identifiants sont des UUID v7 FIXES, pour la même raison que ceux des
  * clients : `COMPTES_PORTAIL.perimetre_sites` doit pouvoir désigner un site
@@ -617,7 +638,7 @@ const CLIENTS_NC: ClientSeed[] = [
   {
     id: "0192f0a0-1000-7000-8000-000000000001",
     code_externe: "DEMO-001",
-    raison_sociale: "Atelier Ducos (démonstration)",
+    raison_sociale: "Atelier Ducos",
     ridet: null,
     categorie: "Industrie",
     adresse_facturation: {
@@ -635,7 +656,7 @@ const CLIENTS_NC: ClientSeed[] = [
       {
         id: "0192f0a0-4000-7000-8000-000000000001",
         agence_code: "DUCOS",
-        libelle: "Atelier principal (démonstration)",
+        libelle: "Atelier principal",
         commune: "Nouméa",
         zone_geo: "grand_noumea",
         latitude: -22.2758,
@@ -658,7 +679,7 @@ const CLIENTS_NC: ClientSeed[] = [
         // d'agences différentes, ce qui est le cas réel et ce qui rend le
         // rattachement lisible dans la démonstration.
         agence_code: "KONE",
-        libelle: "Dépôt de brousse (démonstration)",
+        libelle: "Dépôt de brousse",
         commune: "Bourail",
         zone_geo: "cote_ouest",
         latitude: -21.5686,
@@ -680,7 +701,7 @@ const CLIENTS_NC: ClientSeed[] = [
   {
     id: "0192f0a0-1000-7000-8000-000000000002",
     code_externe: null,
-    raison_sociale: "Garage du Nord (démonstration, sans code externe)",
+    raison_sociale: "Garage du Nord",
     ridet: null,
     categorie: "Automobile",
     adresse_facturation: null,
@@ -693,7 +714,7 @@ const CLIENTS_NC: ClientSeed[] = [
       {
         id: "0192f0a0-4000-7000-8000-000000000003",
         agence_code: "KONE",
-        libelle: "Garage de Koné (démonstration)",
+        libelle: "Garage de Koné",
         commune: "Koné",
         zone_geo: "nord",
         latitude: -21.0594,
@@ -708,7 +729,7 @@ const CLIENTS_NC: ClientSeed[] = [
   {
     id: "0192f0a0-1000-7000-8000-000000000003",
     code_externe: "DEMO-003",
-    raison_sociale: "Ancien client (démonstration, inactif)",
+    raison_sociale: "Ancien client",
     ridet: null,
     categorie: null,
     adresse_facturation: null,
@@ -750,7 +771,7 @@ const CLIENTS_EU: ClientSeed[] = [
   {
     id: "0192f0a0-1000-7000-8000-000000000011",
     code_externe: "DEMO-001",
-    raison_sociale: "Client européen (démonstration)",
+    raison_sociale: "Client européen",
     ridet: null,
     categorie: null,
     adresse_facturation: { rue: "1 rue de la Démonstration", commune: "Lyon" },
@@ -768,7 +789,7 @@ const CLIENTS_EU: ClientSeed[] = [
       {
         id: "0192f0a0-4000-7000-8000-000000000011",
         agence_code: "SIEGE",
-        libelle: "Site de Lyon (démonstration)",
+        libelle: "Site de Lyon",
         commune: "Lyon",
         zone_geo: null,
         latitude: 45.764,
@@ -781,7 +802,7 @@ const CLIENTS_EU: ClientSeed[] = [
       {
         id: "0192f0a0-4000-7000-8000-000000000012",
         agence_code: "SIEGE",
-        libelle: "Atelier de Villeurbanne (démonstration)",
+        libelle: "Atelier de Villeurbanne",
         commune: "Villeurbanne",
         zone_geo: null,
         latitude: 45.7719,
@@ -802,7 +823,7 @@ const CLIENTS_EU: ClientSeed[] = [
     // l'accrocher : deux clients, trois sites, et des identifiants propres.
     id: "0192f0a0-1000-7000-8000-000000000012",
     code_externe: "DEMO-002",
-    raison_sociale: "Manufacture de Saint-Étienne (démonstration)",
+    raison_sociale: "Manufacture de Saint-Étienne",
     ridet: null,
     categorie: null,
     adresse_facturation: {
@@ -816,7 +837,7 @@ const CLIENTS_EU: ClientSeed[] = [
       {
         id: "0192f0a0-4000-7000-8000-000000000013",
         agence_code: "SIEGE",
-        libelle: "Usine de Saint-Étienne (démonstration)",
+        libelle: "Usine de Saint-Étienne",
         commune: "Saint-Étienne",
         zone_geo: null,
         latitude: 45.4397,
@@ -1388,7 +1409,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     rang: 8,
     type: "installation",
     priorite: "p2",
-    statut: "envoyee",
+    statut: "affectee",
     joursDepuisLundi: 0,
     debutMinutes: 540,
     dureeMin: 180,

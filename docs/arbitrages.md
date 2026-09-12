@@ -3764,3 +3764,173 @@ Deux contreparties qui l'atténuent, et aucune ne l'annule. Les **commits atomiq
 Ce n'est pas une date écrite ici — elle aurait vieilli. C'est un **fait qu'on mesure**, et le jour où il est mesuré, cette décision s'efface et le protocole reprend.
 
 *Aucune règle du chapitre 10 n'est amendée : cette décision porte sur la façon de travailler, pas sur le produit.*
+
+---
+
+## D111 — Le TAUX SEUL sous le nom du technicien, et la condition qui le rend lisible
+
+*Rendu par Alexis le 12/09/2026 au soir, sur la question Q1 de la file de nuit.*
+
+### LA DÉCISION
+
+**Sous le nom du technicien, dans la colonne « Technicien » du planning : le pourcentage, et rien d'autre.** Pas le nom de l'agence, pas la formule, pas les deux termes.
+
+### LA RAISON, ET ELLE EST LA CONDITION DE VALIDITÉ
+
+**Un technicien n'a aujourd'hui qu'UNE agence de rattachement** — `technicien.agence_id`, colonne simple et NOT NULL depuis L3-01a. *Il n'a donc jamais deux taux, et le chiffre ne peut pas être lu de travers.* La colonne est étroite et le chiffre doit rester lisible d'un coup d'œil.
+
+**Ce n'est pas une dérogation à D56, c'est son application.** D56 interdit qu'*un nombre dont la signification dépend d'une autre colonne* voyage seul. Ici la dépendance existe — la maille est `(technicien, agence)` — mais elle est **résolue par le schéma** : une seule agence par personne, donc un seul taux possible. *Un nombre dont la seule lecture possible est la bonne ne dépend de rien.*
+
+### CE QUI NE BOUGE PAS
+
+**Le panneau de charge continue de porter les DEUX termes et la formule.** D56 y reste entier, et `tests/unit/interventions/occupation-affichee.test.ts` continue de l'exiger. **C'est l'affichage COMPACT qui est autorisé à être bref**, et seulement lui — parce qu'il est sans ambiguïté tant que la condition ci-dessus tient.
+
+### CONDITION DE RÉOUVERTURE, vérifiable en une requête
+
+> *Le jour où une personne travaillera pour DEUX agences*, cet affichage devient ambigu et devra nommer l'agence.
+
+**Ce jour-là se reconnaît à une seule chose : une ligne de technicien rattachée à deux agences.** Aujourd'hui `technicien.agence_id` l'interdit par sa forme — il faudrait une table de rattachement ou une colonne multiple. **Le jour où l'une des deux naît, cette décision est due à réécriture**, et c'est un gardien qui le dira : `tests/unit/interventions/taux-compact.test.ts`.
+
+*Aucune règle du chapitre 10 n'est amendée : D111 porte sur un affichage, et le chapitre 10 est muet sur les écrans.*
+
+---
+
+## D112 — La pose HORS AGENCE reste possible, et c'est un choix mesuré
+
+*Rendu par Alexis le 12/09/2026 au soir, sur la question Q2 de la file de nuit.*
+
+### LA DÉCISION
+
+**Aucun refus, aucun avertissement.** Un technicien de Ducos peut être posé sur une intervention de Koné, et rien dans le produit ne le signale.
+
+### LA RAISON
+
+**Le renfort entre agences est une situation d'exploitation normale.** Le jour où Koné manque de bras, une règle trop stricte ferait chercher **comment la contourner** — et c'est le coût qui décide : *un refus s'ajoute facilement ; une habitude de contournement s'enlève mal.*
+
+Un avertissement n'a pas été retenu non plus, et pour la raison du §9 du 11/09 : *un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte plus qu'il ne rapporte.* Un avertissement qu'on voit zéro fois sur vingt-six est un avertissement qu'on apprend à ne plus lire — et la vingt-septième serait la vraie.
+
+### LA MESURE QUI ACCOMPAGNE LA DÉCISION
+
+*Sur la base de démonstration, migrée et semée le 12/09/2026 :*
+
+```sql
+SELECT count(*) FROM intervention WHERE technicien_id IS NOT NULL;            -- 26
+SELECT count(*) FROM intervention i JOIN technicien t ON t.id = i.technicien_id
+  WHERE i.agence_id <> t.agence_id;                                           --  0
+```
+
+**26 interventions affectées, 0 hors agence, sur 32 au total.** Le cas est **possible** et ne se produit pas. *C'est cette mesure qui fait de l'absence de refus un CHOIX et non un oubli* — sans elle, le prochain lecteur ajouterait le contrôle manquant.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> *Le jour où une pose hors agence produira une conséquence non voulue* — une majoration calculée sur le mauvais calendrier, un SLA tenu sur le mauvais établissement —, la question se rouvre. Elle ne se rouvre pas sur la seule apparition du cas : *que le cas se produise est précisément ce que cette décision autorise.*
+
+**Ce que D112 ne touche pas** : `lib/interventions/majoration.ts` lit le calendrier de l'agence **du technicien** (D12, D13), et le SLA celui de l'agence **de l'intervention** (I7). Ces deux lectures sont déjà distinctes, et elles restent justes lorsque les deux agences diffèrent — *c'est même le seul cas où la distinction sert à quelque chose.*
+
+*Aucune règle du chapitre 10 n'est amendée : aucune règle n'exigeait ce refus.*
+
+---
+
+## D113 — La PRESTATION ne désigne aucun forfait
+
+*Rendu par Alexis le 12/09/2026 au soir, sur la question Q3 de la file de nuit. Issue 2 des trois proposées.*
+
+### LA DÉCISION
+
+**Une prestation porte sa DURÉE standard, sa CHECKLIST et sa FAMILLE. Elle ne désigne aucun forfait.** Le forfait s'applique à l'intervention, par ses propres axes (RG-TAR-06).
+
+### LA RAISON
+
+**C'est la plus petite table, et elle n'invente aucune règle non tranchée.** L'issue écartée — une colonne `forfait_id` sur la prestation — aurait fait naître une question que personne n'a posée : *que se passe-t-il si le forfait désigné ne s'applique pas à la zone de l'intervention ?* Les trois axes de RG-TAR-06 peuvent le disqualifier, et il aurait fallu arbitrer **d'avance** une préséance entre deux sélections de forfait.
+
+*Une question qui disparaît vaut mieux qu'une question arbitrée d'avance.*
+
+### CE QUE CELA NE DÉFAIT PAS
+
+**Le pont de D109 reste entier** : *quand une prestation se vend à prix fixe, elle DÉSIGNE un forfait* — au sens où **l'intervention** qui exécute cette prestation reçoit ce forfait par les axes de RG-TAR-06, jamais au sens d'une clé étrangère portée par le catalogue. **Un seul endroit où l'argent est écrit**, et la prestation n'en fait pas partie.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> *Le jour où deux prestations exécutées dans la même zone, pour le même client et le même type d'intervention devront recevoir des forfaits DIFFÉRENTS*, les trois axes ne suffisent plus à désigner le bon, et le lien devient dû.
+
+**Ce n'est pas le cas aujourd'hui** : les trois axes couvrent la zone, le client et le type, et rien ne distingue deux prestations sous ces trois-là.
+
+*Aucune règle du chapitre 10 n'est amendée : le chapitre 10 est MUET sur les prestations, et D109 puis D113 sont ce qui les rend constructibles.*
+
+---
+
+## D114 — Le registre des VGP a sa table, et elle dit D'OÙ VIENT l'information
+
+*Rendu par Alexis le 12/09/2026 au soir, sur la question Q4 de la file de nuit. Issue 2 des trois proposées, ET la sous-question tranchée par OUI.*
+
+### CE QUI A OUVERT LA QUESTION
+
+Le registre existait et il était honnête : il affichait *« sans information depuis X »* pour chaque machine soumise, **et il l'aurait affiché pour toujours**. Rien dans le produit ne permettait d'enregistrer qu'un organisme nous a dit quelque chose — `document` porte une **classe** et une **cible**, jamais une **nature**, et aucune table ne portait de date de vérification. *Trois tickets butaient sur ce seul fait : L9-08, L9-09 et L9-10.*
+
+### LA DÉCISION
+
+**Une table `vgp_verification`**, portant :
+
+| | |
+|---|---|
+| la **machine** | de quoi on parle |
+| la **date de vérification** | ce que le registre attendait |
+| l'**organisme** | qui l'a dite |
+| la **référence du rapport** | de quoi la retrouver |
+| un lien **facultatif** vers le `document` | où sont les octets, quand on les a |
+| l'**ORIGINE DE L'INFORMATION** | **et c'est la moitié qui ne se devine pas** |
+
+### L'ORIGINE, ET POURQUOI ELLE EST UNE COLONNE ET NON UNE NOTE
+
+> **Un rapport reçu de l'organisme, une vignette photographiée par un technicien et une parole du client au téléphone n'ont pas la même valeur le jour d'un contrôle.**
+
+**Une colonne maintenant contre une migration douloureuse ce jour-là.** C'est le raisonnement de L8-06 — `date_document` et `date_expiration` posées *« dès le premier jour, même inutilisées »* —, et il vaut ici davantage : *l'origine ne se reconstitue pas après coup.* Une ligne écrite sans elle est une ligne dont personne ne saura jamais d'où elle vient.
+
+**La liste des origines est une ÉNUMÉRATION EN BASE, CLOSE**, comme les statuts — jamais un champ libre. *Un champ libre sur une question de valeur probante produit autant de graphies que de saisies, et aucune ne se compte.*
+
+**Mais ses VALEURS appartiennent à Alexis** : c'est du vocabulaire d'exploitation, et le §1 du protocole le lui réserve — *ce qu'un client voit* et *une obligation légale* s'y rejoignent. La session **construit la table avec la colonne** et **propose** la liste dans son compte rendu ; les valeurs se complètent après, par une migration d'énumération qui ne coûte rien (`ALTER TYPE … ADD VALUE`).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> *Le jour où CODIMA commandera elle-même des visites* — c'est-à-dire le jour où elle vendra ce service —, la phrase dont D88 découle cesse d'être vraie, et l'origine cesse d'être une nuance : elle devient la ligne de partage entre *ce qu'on nous a dit* et *ce que nous savons*. La table est alors due à relecture entière, **et elle est déjà construite pour cela**.
+
+**Règles amendées :** aucune. *Le chapitre 10 est muet sur les VGP, et D88 puis D114 sont ce qui les rendent constructibles.*
+
+---
+
+## D115 — Les clôtures antérieures se reprennent UNE PAR UNE, jamais en masse
+
+*Rendu par Alexis le 12/09/2026 au soir, sur la question Q5 de la file de nuit.*
+
+### LA DÉCISION
+
+**Aucun rattrapage en masse du `statut_facturation` des interventions déjà clôturées.** Elles se traitent **une par une**.
+
+### LA RAISON
+
+**Il n'existe aujourd'hui aucune donnée réelle** : la base hébergée ne porte que de la démonstration, et la mesure du 12/09/2026 rend **deux** lignes concernées. *Deux minutes de travail contre le risque, dans les deux sens, de refacturer ou de renoncer à facturer.* Le §1 du protocole réserve l'argent facturé à Alexis, et **deux lignes ne justifient pas d'y déroger**.
+
+### LA MARCHE À SUIVRE LE JOUR OÙ LE NOMBRE SERA GRAND
+
+**Ce qui compte :**
+
+```sql
+SELECT count(*) FROM intervention
+ WHERE statut = 'cloturee' AND statut_facturation IS NULL;
+```
+
+**Et ce qui répond n'est PAS dans CODIPLAN.** *La réponse se lit dans la FACTURATION* — une intervention close a été facturée ou ne l'a pas été, et c'est la comptabilité qui le sait, jamais le planning. Le chapitre 11 prévoit `reference_facture` et `date_facture`, *« renseignés par import du retour de facturation »* : **le jour où cet import existera, la reprise devient mécanique** — `facturee` si la référence existe, `a_facturer` sinon —, et elle cessera d'être un arbitrage.
+
+*Écrire une valeur au jugé avant cet import, c'est décider d'un montant sans le savoir.*
+
+### LA CONTRAINTE RESTE « NOT VALID », ET LA LISTE EST À TROIS
+
+`intervention_cloture_a_son_statut_facturation` reste posée `NOT VALID` : *elle vaut pour toute clôture nouvelle et ne relit pas les anciennes*, ce qui est exactement l'état voulu.
+
+> **Et il faut le noter ici plutôt qu'ailleurs : `CONTRAINTES_NON_VALIDEES` compte désormais TROIS entrées.** La note d'origine prévoyait qu'**à quatre**, la question ne serait plus « laquelle ajouter » mais **« pourquoi aucune n'a été rattrapée »**. *Nous en sommes à trois, et la quatrième sera un arbitrage, jamais une mise à jour de fichier.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> *Le jour où la requête ci-dessus rendra plus de vingt lignes sur une base portant des données réelles*, la reprise une par une cesse d'être raisonnable et la question se rouvre — avec, à ce moment-là, l'import du retour de facturation comme réponse attendue.
+
+*Aucune règle du chapitre 10 n'est amendée.*

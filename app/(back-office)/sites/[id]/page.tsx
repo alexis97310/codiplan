@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
@@ -166,12 +167,7 @@ export default async function PageSite({
         />
 
         <div>
-          <button
-            type="submit"
-            className="bg-app-accent text-app-accent-encre rounded-md px-4 py-2 text-[13px] font-bold"
-          >
-            {t("sites.action.modifier")}
-          </button>
+          <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
         </div>
       </form>
     </main>

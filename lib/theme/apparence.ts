@@ -130,3 +130,19 @@ export function variableDuJeton(jeton: Jeton): string {
  * à 1024 px, aucune valant celle de la maquette.
  */
 export const LARGEUR_UTILE_PX = 1400;
+
+/**
+ * LA COLONNE DE GAUCHE DU PLANNING, en pixels — `170px` à la maquette.
+ *
+ * **Elle valait 190 dans l'écran, et la maquette fait foi sur la disposition**
+ * (D95). Vingt pixels ne se voient pas seuls ; ils se voient sur la GRILLE —
+ * six colonnes de jour se partagent ce qui reste, et chacune perd plus de trois
+ * pixels. *Un écart de disposition ne se juge pas à sa taille mais à ce qu'il
+ * déplace.*
+ *
+ * Elle est ICI et non dans l'écran, pour la raison exacte de `LARGEUR_UTILE_PX`
+ * juste au-dessus : *une largeur écrite dans un écran est une largeur par
+ * écran*, et le jour où la vue jour et la vue semaine devront s'aligner, elles
+ * liront le même nombre au lieu d'en porter deux.
+ */
+export const LARGEUR_COLONNE_TECHNICIEN_PX = 170;

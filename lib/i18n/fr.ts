@@ -691,7 +691,7 @@ export const fr = {
 
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
-  "statut.envoyee": "Envoyée",
+  "statut.affectee": "Affectée",
   "statut.en_cours": "En cours",
   "statut.suspendue": "Suspendue",
   "statut.terminee": "Terminée",
@@ -794,6 +794,78 @@ export const fr = {
   "parc.incompletes": "fiches à compléter",
   "parc.a_completer": "À compléter",
   "parc.non_synchronisee": "non synchronisée",
+  // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
+  //
+  // AUCUN LIBELLÉ NE DIT « CONFORME » NI « NON CONFORME », et ce n'est pas une
+  // omission : *CODIPLAN n'affirme jamais la conformité* — il enregistre ce
+  // qu'un organisme agréé a écrit. « Sans information » est une VALEUR à part
+  // entière, distincte des deux autres, et jamais un blanc : *un registre à
+  // moitié rempli ressemble à un registre complet.*
+  "vgp.titre": "Registre des v\u00e9rifications p\u00e9riodiques",
+  "vgp.sous_titre":
+    "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
+  "vgp.retour": "\u2039 Retour au parc",
+  "vgp.lien_depuis_parc": "Registre des v\u00e9rifications p\u00e9riodiques",
+  "vgp.colonne_machine": "Machine",
+  "vgp.colonne_lieu": "Client / lieu",
+  "vgp.colonne_famille": "Famille",
+  "vgp.colonne_regime": "R\u00e9gime",
+  "vgp.colonne_information": "Derni\u00e8re information",
+  "vgp.vide":
+    "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
+  "vgp.borne":
+    "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance viennent avec la campagne dat\u00e9e (L9-08).",
+  // LES QUATRE RÉGIMES — les trois valeurs de D88, plus l'origine qui les cite.
+  "vgp.regime.soumis": "Soumis",
+  "vgp.regime.non_soumis": "Non soumis",
+  "vgp.regime.a_determiner": "\u00c0 d\u00e9terminer",
+  "vgp.regime.verifie": "V\u00e9rifi\u00e9 non soumis",
+  "vgp.origine.famille": "d\u00e9clar\u00e9 \u00e0 la famille",
+  "vgp.origine.machine": "exception sur cette machine",
+  "vgp.periodicite.modele": "rythme pr\u00e9cis\u00e9 au mod\u00e8le",
+  "vgp.periodicite.famille": "rythme d\u00e9clar\u00e9 \u00e0 la famille",
+  "vgp.periodicite.aucune": "aucun rythme d\u00e9clar\u00e9",
+  // LES TROIS ÉTATS D'INFORMATION, et le troisième est celui qui compte.
+  "vgp.information.hors_registre": "Hors registre",
+  "vgp.information.sans_information": "Sans information",
+  "vgp.information.recue": "Information reçue",
+  "vgp.information.depuis_inconnu":
+    "sans information, et sans date de mise en service pour dire depuis quand",
+  "vgp.information.rien_ne_remplit":
+    "Aucune information d'organisme n'est enregistrable aujourd'hui : le rapport de v\u00e9rification est un document de classe client (L9-09), et rien ne le distingue encore d'un autre document. Toutes les machines soumises sont donc « sans information », et c'est le registre qui dit vrai.",
+  // LA MOITIÉ DÉTECTIVE (L9-03) — sans elle, la troisième valeur ne sert à rien.
+  "vgp.indetermines.titre": "Familles \u00e0 d\u00e9terminer",
+  "vgp.indetermines.sous_titre":
+    "Une famille na\u00eet \u00ab \u00e0 d\u00e9terminer \u00bb : une case d\u00e9coch\u00e9e serait indiscernable d'une famille que personne n'a examin\u00e9e, et un pont \u00e9l\u00e9vateur sortirait du registre en silence.",
+  "vgp.indetermines.lien": "familles restent \u00e0 d\u00e9terminer",
+  "vgp.indetermines.aucune":
+    "Toutes les familles ont \u00e9t\u00e9 examin\u00e9es. Une famille cr\u00e9\u00e9e demain reviendra dans cette liste.",
+  "vgp.indetermines.retour": "\u2039 Retour au registre",
+  "vgp.indetermines.colonne_famille": "Famille",
+  "vgp.indetermines.colonne_machines":
+    "Machines en attente de la d\u00e9cision",
+  // ── LA FICHE D'UNE MACHINE ET SES DOCUMENTS (L8-02) ──────────────────────
+  //
+  // L'ORIGINE D'UN DOCUMENT EST AFFICHÉE, et ce n'est pas un ornement : *un
+  // document de modèle se corrige une fois pour toutes, un document de machine
+  // n'existe que là.* Un écran qui les mêlerait ferait supprimer une notice de
+  // gamme en croyant nettoyer un exemplaire.
+  "machine.retour": "\u2039 Retour au parc",
+  "machine.documents.titre": "Documents",
+  "machine.documents.sous_titre":
+    "Ceux de cette machine, et ceux de son mod\u00e8le \u2014 la m\u00eame ligne sert tous les exemplaires.",
+  "machine.documents.colonne_libelle": "Document",
+  "machine.documents.colonne_origine": "Port\u00e9 par",
+  "machine.documents.colonne_classe": "Visibilit\u00e9",
+  "machine.documents.colonne_fichier": "Fichier",
+  "machine.documents.origine.modele": "Le mod\u00e8le",
+  "machine.documents.origine.machine": "Cette machine",
+  "machine.documents.classe.client": "Client",
+  "machine.documents.classe.interne": "Interne",
+  "machine.documents.vide":
+    "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
+  "machine.documents.sans_octets":
+    "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
   "parc.borne":
     "Les premières fiches du parc, les incomplètes d'abord. La recherche et l'export viennent avec les écrans de lot 2.",
   "parametres.colonne_pas": "Pas",
