@@ -284,6 +284,16 @@ const HORS_OBSERVATION: readonly {
       "question n'est pas la filiation), pas la base.",
   },
   {
+    fonction: "ecartsFormeArbitrage",
+    justification:
+      "n'observe pas la base : elle lit le TEXTE de " +
+      "`docs/protocole-session.md` et exige que la forme imposée d'un " +
+      "paragraphe d'arbitrage y porte encore ses cinq sections (R1-07). " +
+      "C'est un gardien de DOCUMENT, joué par `pnpm verify` ; la veille " +
+      "tourne sous le rôle applicatif contre la base hébergée et n'a aucun " +
+      "fichier à lire.",
+  },
+  {
     fonction: "ecartsTablesFilles",
     justification:
       "juge le SCHÉMA PRISMA — l'existence d'une première table fille du " +

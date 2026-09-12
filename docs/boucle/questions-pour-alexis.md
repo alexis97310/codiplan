@@ -413,7 +413,7 @@ ce qui distingue CODIMA d'un tiers dans la chaîne.*
 
 ---
 
-## Q9 — Le lien d'invitation au portail : qui a le droit de LIRE la trace qu'il laisse ?
+## Q9 — Le lien d'invitation : qui peut relire la trace qu'il laisse ?
 
 *Écrite le 13/09/2026, en ouvrant L2-13. **Non tranchée** : elle touche le cloisonnement
 (§8 du `CLAUDE.md`) et la porte d'entrée du portail, c'est-à-dire ce qu'un client voit

@@ -71,7 +71,13 @@ Une décision qui appartient à Alexis (§1) **n'arrête pas la session** : elle
 
 **C'est le seul canal entre une session automatique et Alexis.** Un ticket d'arbitrage **incompréhensible par quelqu'un sans contexte est un ticket raté** — il sera lu sur un téléphone, entre deux rendez-vous, par quelqu'un qui n'a pas le dépôt sous les yeux.
 
-Quatre sections, dans cet ordre, et aucune n'est facultative :
+**Cinq sections, dans cet ordre, et aucune n'est facultative** — la forme est gardée par `tests/unit/docs/forme-arbitrage.test.ts`, qui échoue si l'une d'elles disparaît de ce document. *La forme se garde ; le contenu ne se garde pas — aucun motif statique ne peut dire si « ce que j'ai mesuré » contient réellement une mesure.*
+
+**1. LE TITRE** — sans jargon, **moins de 80 caractères**, compréhensible seul.
+
+C'est la cinquième section, et c'est la première qu'on voit : *un titre est ce qu'une notification montre avant que quiconque décide d'ouvrir.* Il nomme la chose en jeu, jamais le ticket ni le fichier — `L2-13` et `politiques-rls.ts` ne veulent rien dire pour qui n'a pas le dépôt.
+
+**2 à 5**, dans le corps :
 
 ```markdown
 ## La question
@@ -83,14 +89,17 @@ Jamais ce que je suppose. Si je n'ai pas pu mesurer, je l'écris.
 
 ## Les issues possibles
 Deux ou trois, chacune avec CE QU'ELLE COÛTE — en argent, en travail,
-ou en ce qu'on perd. Une recommandation est permise ; une seule issue
-présentée n'est pas un arbitrage, c'est une annonce.
+ou en ce qu'on perd — ET CE QU'ELLE INTERDIT, c'est-à-dire la porte
+qu'on ferme en la prenant. Une recommandation est permise ; une seule
+issue présentée n'est pas un arbitrage, c'est une annonce.
 
 ## En attendant
 Ce qui est BLOQUÉ, nommément. Et ce qui CONTINUE quand même.
 ```
 
 Le premier paragraphe doit tenir dans une notification. Si la question ne se pose pas sans lire le dépôt, elle est mal posée.
+
+> **« Ce qu'elle interdit » n'est pas un ornement de « ce qu'elle coûte ».** Un coût se paie une fois ; une porte fermée ne se rouvre pas toujours. *Retirer une valeur d'une énumération PostgreSQL coûte peu tant qu'aucune ligne réelle n'existe, et devient une réécriture de type ensuite* — c'est un coût qui se transforme en interdit, et seule la seconde colonne le montre.
 
 ---
 
