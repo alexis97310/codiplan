@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LienPrimaire } from "@/components/ui/action-primaire";
+import { LARGEUR_COLONNE_TECHNICIEN_PX } from "@/lib/theme/apparence";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -9,7 +11,9 @@ import {
   jourSuivant,
   maintenant,
   minutesDepuisMinuit,
+  schemaFuseau,
   versLocal,
+  type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import {
@@ -48,7 +52,7 @@ import {
 
 import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
 
-import { referenceAffichee } from "./presentation";
+import { enTeteDuBloc, objetDuBloc, referenceAffichee } from "./presentation";
 import { Statistiques } from "./statistiques";
 
 /**
@@ -254,12 +258,9 @@ export default async function PagePlanning({
         <div className="flex flex-wrap items-center gap-2">
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
           <Deplacement vue={vue} jour={jourAffiche} semaine={jours[0]} />
-          <Link
-            href="/planning/nouvelle"
-            className="bg-app-accent text-app-accent-encre rounded-md px-4 py-2 text-[13px] font-bold"
-          >
+          <LienPrimaire href="/planning/nouvelle">
             {t("planning.creer")}
-          </Link>
+          </LienPrimaire>
         </div>
       </header>
 
@@ -282,6 +283,9 @@ export default async function PagePlanning({
               jours={jours}
               grille={construireGrille(affichees, jours, pourGrille, nomDe)}
               nomDe={nomDe}
+              fuseauPour={(agenceId) =>
+                schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
+              }
             />
           )}
 
@@ -344,17 +348,30 @@ function VueSemaine({
   jours,
   grille,
   nomDe,
+  fuseauPour,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly nomDe: (id: string) => string | null;
+  /**
+   * LE FUSEAU DE L'AGENCE DE LA LIGNE — une fonction, jamais une valeur.
+   *
+   * Une intervention de Koné et une de Ducos peuvent tomber dans la même
+   * semaine, et *l'heure affichée est celle de l'agence, jamais celle de
+   * l'appareil* (L0-08). Passer un fuseau unique ferait lire les deux sous le
+   * même, ce qui est juste aujourd'hui et faux le jour d'une agence
+   * métropolitaine.
+   */
+  readonly fuseauPour: (agenceId: string) => Fuseau;
 }) {
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]">
           <colgroup>
-            <col style={{ width: "190px" }} />
+            {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
+                écrite dans un écran est une largeur par écran (D95). */}
+            <col style={{ width: `${LARGEUR_COLONNE_TECHNICIEN_PX}px` }} />
             {jours.map((jour) => (
               <col key={cleJour(jour)} />
             ))}
@@ -419,10 +436,20 @@ function VueSemaine({
                           href={`/planning/${intervention.id}`}
                           className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
                         >
+                          {/*
+                            LA MAQUETTE FAIT FOI SUR LA DISPOSITION (D95) :
+                            « 08:00 Garage Boulari » puis « Préventif — pont
+                            2 col. ». Le bloc rendait une référence interne, le
+                            client ET le site — trois écarts, et `creneau_debut`
+                            était lu depuis toujours sans jamais être affiché.
+                          */}
                           <span className="block font-bold">
-                            {referenceAffichee(intervention)}
+                            {enTeteDuBloc(
+                              intervention,
+                              fuseauPour(intervention.agence_id),
+                            )}
                           </span>
-                          {lieuDeLaLigne(intervention)}
+                          {objetDuBloc(intervention)}
                         </Link>
                       </BlocPosable>
                     ))}
@@ -914,6 +941,21 @@ function quiTravaille(
  * personne. Aucune n'est choisie : elles sont toutes nommées, séparées par une
  * virgule. *Choisir la principale ferait basculer le libellé d'une semaine à
  * l'autre, exactement ce que `occupation.ts` refuse pour le dénominateur.*
+ *
+ * ## LES SPÉCIALITÉS N'Y SONT PAS, ET C'EST ÉCRIT PLUTÔT QUE TU
+ *
+ * La maquette écrit **« agence · spécialités »** sous le nom du technicien.
+ * **Aucune table ne porte de spécialité** : `grep -n "competence\|specialite"`
+ * sur `prisma/schema.prisma` et sur `lib/` rend **zéro ligne** (mesuré le
+ * 12/09/2026). Le cahier des charges les distingue d'ailleurs des
+ * **habilitations**, qui existent, elles — `technicien_habilitation` (L1-04) —
+ * et qui ne sont pas la même notion : *une habilitation est un droit daté qui
+ * expire, une spécialité est un savoir-faire.* Afficher les unes à la place des
+ * autres montrerait un droit périmé comme une compétence.
+ *
+ * *Une sous-ligne qui porterait un séparateur suivi de rien dirait que la
+ * donnée manque* là où il n'y a rien à afficher — le motif de blocage de R2-13,
+ * appliqué avant de commettre la faute.
  */
 function ouTravaille(libelles: readonly string[]): string {
   if (libelles.length === 0) return "";

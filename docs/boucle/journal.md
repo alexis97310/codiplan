@@ -765,3 +765,91 @@ est la façon dont la faute est revenue la première fois.
 
 `pnpm verify` → **EXIT=0**, 1599 tests unitaires + 790 d'isolation, le 12/09/2026 à
 `10:02:10 UTC`.
+
+## N-07 — Les écrans : cinq écarts à la maquette, et ce qu'ils déplaçaient
+
+### a. Le bloc d'intervention portait trois écarts, et `creneau_debut` n'était jamais affiché
+
+La maquette écrit `<div class="ev bl"><b>08:00 Garage Boulari</b>Préventif — pont
+2 col.</div>` : une **heure**, un **client**, puis l'**objet**. Le bloc rendait une
+**référence interne**, le client **et** le site. *`creneau_debut` était lu depuis toujours
+sans jamais être affiché* — et l'heure est la seule information qu'un planificateur
+cherche dans une case qu'il survole.
+
+`enTeteDuBloc` et `objetDuBloc` vivent dans `presentation.ts`. L'heure est lue **dans le
+fuseau de l'AGENCE** — `fuseauPour` est une fonction et non une valeur : *une
+intervention de Koné et une de Ducos peuvent tomber dans la même semaine*, et passer un
+fuseau unique serait juste aujourd'hui et faux à la première agence métropolitaine.
+
+**Ce que l'objet ne dit pas est écrit** : la maquette montre « Préventif — pont 2 col. »,
+c'est-à-dire une nature ET le matériel. Le matériel vit dans `intervention_machine`, que
+`listerPlanning` ne charge pas, et RG-INT-01 ne l'exige qu'au passage en statut de
+travail — *le dépannage à l'aveugle est le cas ordinaire.*
+
+**Et « (démonstration) » sort des DONNÉES.** Le mot venait de `prisma/seed-data.ts`,
+aucun code d'affichage ne l'ajoutait, et un bloc rendant un client ET un site le montrait
+**deux fois par intervention, six fois par cellule**. *C'est la longueur du contenu qui
+fait grandir les lignes, pas la feuille de style.*
+
+**Ce qui remplace la marque n'est pas un mot, c'est un fait** : ces fiches portent des
+UUID v7 **fixes** d'une plage réservée au seed, des courriels en `.test` et `.invalid`,
+et `pnpm db:seed` est **sauté sur la cible « production »**. *Un identifiant qu'aucune
+fiche réelle ne peut porter distingue mieux une base de démonstration qu'un mot dans un
+libellé — le mot, lui, se recopie dans un export et survit à la fiche.* Les deux phrases
+d'origine sont **barrées et non effacées**.
+
+### b. L'action primaire passe au bleu, et elle n'a plus qu'une maison
+
+Cinq écrans écrivaient la même classe avec `bg-app-accent` — **le rouge de la marque**,
+qui sert déjà à la marque et à l'alerte. *Un troisième sens sur la même couleur est une
+couleur qui ne dit plus rien.*
+
+`components/ui/action-primaire.tsx` porte l'apparence, en deux formes qui partagent le
+style et **pas la balise** : `ActionPrimaire` soumet, `LienPrimaire` mène quelque part —
+*un lien n'est pas un bouton pour un lecteur d'écran.*
+
+**La maquette ne porte AUCUN bouton de création en version bureau, et ce n'est pas une
+contradiction : c'est un SILENCE.** D95 lui donne foi sur ce qu'elle montre, et *« ce
+qu'elle ne dit pas reste libre, et un écart s'écrit avec sa mesure et le point précis où
+elle est muette »*. Le point est celui-là, et il est écrit dans le composant.
+
+`tests/unit/theme/action-primaire.test.ts` refuse **deux** choses : qu'un écran écrive
+`bg-app-accent`, et qu'il **recopie l'apparence** même en bleu — *la duplication sous un
+autre nom est la même duplication.*
+
+### c. Le bandeau société — deux causes, deux remèdes
+
+`shrink-0` sur le groupe de droite **et** `min-w-0` sur la navigation : par défaut un
+enfant de flex ne rétrécit pas sous la largeur de son contenu, si bien que **onze entrées
+de menu poussaient le bandeau hors de la barre**. Puis `whitespace-nowrap` sur le bandeau,
+qui répond à l'autre moitié — son libellé se repliait dans la place restante. *Poser l'un
+sans l'autre déplace le défaut au lieu de le fermer.*
+
+### d. La colonne technicien — 190 dans le code, 170 à la maquette
+
+La largeur part dans `lib/theme/apparence.ts`, à côté de `LARGEUR_UTILE_PX` et pour la
+même raison : *une largeur écrite dans un écran est une largeur par écran.* **Vingt
+pixels ne se voient pas seuls ; ils se voient sur la grille** — six colonnes de jour se
+partagent ce qui reste.
+
+**Les spécialités ne sont PAS affichées, et c'est écrit.** La maquette veut « agence ·
+spécialités ». Mesuré : `grep -n "competence\|specialite"` sur `prisma/schema.prisma` et
+`lib/` rend **zéro ligne**. Le cahier des charges distingue d'ailleurs les **compétences**
+des **habilitations**, qui existent (`technicien_habilitation`, L1-04) et ne sont pas la
+même notion : *une habilitation est un droit daté qui expire, une spécialité est un
+savoir-faire.* Les afficher l'une pour l'autre montrerait un droit périmé comme une
+compétence.
+
+### e. Le portail — l'écran le plus vu par un client externe
+
+Deux écarts. **La largeur** : ce `main` portait `mx-auto max-w-5xl px-6 py-10` et
+**annulait** la largeur utile que sa mise en page lui donne déjà — *une sixième largeur,
+posée après D95.* **La typographie** : elle venait des jetons shadcn
+(`text-muted-foreground`, `border-input`, `text-2xl`) et non de la charte du produit. *Un
+écran nomme un rôle de l'apparence, jamais une échelle étrangère* — et le client voyait un
+produit qui ne ressemblait pas au reste du produit.
+
+### Vert mesuré
+
+`pnpm verify` → **EXIT=0**, 1603 tests unitaires + 790 d'isolation, le 12/09/2026 à
+`10:15:51 UTC`.

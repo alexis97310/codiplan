@@ -95,63 +95,83 @@ export default async function PagePortail() {
   const siteParId = new Map(parc.sites.map((site) => [site.id, site.libelle]));
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-8 px-6 py-10">
+    /*
+      ── DEUX ÉCARTS FERMÉS LE 12/09/2026, ET C'EST L'ÉCRAN LE PLUS VU DEHORS ──
+
+      **La largeur.** Ce `main` portait `mx-auto max-w-5xl px-6 py-10`, et il
+      ANNULAIT la largeur utile que la mise en page du segment lui donne déjà
+      (1400 px, D95). *Mesuré avant D95 : cinq écrans, cinq largeurs, aucune
+      celle de la maquette* — et celui-ci en était une sixième, posée après. Le
+      cadre appartient à `LargeurUtile` ; cet écran ne fait plus que remplir.
+
+      **La typographie.** Elle venait des jetons shadcn — `text-muted-foreground`,
+      `border-input`, `text-2xl`, `text-sm` —, et non de la charte du produit.
+      *Un écran nomme un RÔLE de l'apparence, jamais une couleur ni une échelle
+      étrangère* : les autres écrans lisent `text-app-encre-faible`,
+      `border-app-bord`, `bg-app-surface`. Le client voyait donc un produit
+      qui ne ressemblait pas au reste du produit.
+    */
+    <main className="flex flex-col gap-5">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-[22px] font-extrabold tracking-tight">
           {t("portail.titre")}
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-app-encre-faible max-w-[70ch] text-[13px]">
           {t("portail.sous_titre")}
         </p>
         {parc.raisonSociale === null ? null : (
-          <p className="text-sm">
-            <span className="text-muted-foreground">{t("portail.client")}</span>{" "}
-            <span className="font-medium">{parc.raisonSociale}</span>
+          <p className="text-[13px]">
+            <span className="text-app-encre-faible">{t("portail.client")}</span>{" "}
+            <span className="font-bold">{parc.raisonSociale}</span>
           </p>
         )}
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{titreDesSites()}</h2>
-        <p className="text-muted-foreground text-sm">
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[15px] font-extrabold tracking-tight">
+          {titreDesSites()}
+        </h2>
+        <p className="text-app-encre-faible text-[12.5px]">
           {t("portail.perimetre")}
         </p>
         {parc.sites.length === 0 ? (
-          <p className="text-sm">{t("portail.sans_lieu")}</p>
+          <p className="text-[13px]">{t("portail.sans_lieu")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {parc.sites.map((site) => (
               <li
                 key={site.id}
-                className="border-input rounded-md border px-3 py-2 text-sm"
+                className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-2.5 text-[13px]"
               >
-                <span className="font-medium">{libelleDuSite(site)}</span>
+                <span className="font-bold">{libelleDuSite(site)}</span>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{t("portail.machines")}</h2>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[15px] font-extrabold tracking-tight">
+          {t("portail.machines")}
+        </h2>
         {parc.machines.length === 0 ? (
-          <p className="text-sm">{t("portail.sans_machine")}</p>
+          <p className="text-[13px]">{t("portail.sans_machine")}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-2">
             {parc.machines.map((machine) => (
               <li
                 key={machine.id}
-                className="border-input flex flex-col gap-2 rounded-md border px-4 py-3 text-sm"
+                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-[10px] border px-4 py-3 text-[13px]"
               >
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  <span className="font-medium">
+                  <span className="font-bold">
                     {t("portail.machine.serie")} {machine.numeroSerie}
                   </span>
-                  <span className="text-muted-foreground">
+                  <span className="text-app-encre-faible">
                     {siteDeLaMachine(machine, siteParId)}
                   </span>
                   {machine.localisation === null ? null : (
-                    <span className="text-muted-foreground">
+                    <span className="text-app-encre-faible">
                       {emplacementDeLaMachine(machine)}
                     </span>
                   )}
@@ -160,7 +180,7 @@ export default async function PagePortail() {
                     elles n'affichent NI un compte de documents à zéro, NI un
                     état VGP « à jour ». Les deux se liraient comme des mesures
                     (§9, 06/09), et le second serait faux au sens de D88. */}
-                <div className="text-muted-foreground flex flex-col gap-1 text-xs">
+                <div className="text-app-encre-faible flex flex-col gap-1 text-[11.5px]">
                   <span>{placeDesDocuments()}</span>
                   <span>{placeDuVgp()}</span>
                 </div>
