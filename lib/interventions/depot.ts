@@ -1087,7 +1087,14 @@ export async function listerPlanning(
       tx.intervention.findMany({
         where: {
           OR: [
-            { date_planifiee: { gte: du, lte: au } },
+            // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
+            // L'appelant passe le lendemain à minuit ; avec `lte`, la journée
+            // du lendemain revenait tout entière, et le panneau de charge
+            // comptait un jour de trop. *Une borne exclusive comparée par
+            // `lte` ramène toujours exactement une unité de trop, et le
+            // symptôme est un chiffre légèrement faux — celui qu'on ne
+            // recompte pas.*
+            { date_planifiee: { gte: du, lt: au } },
             // La file d'attente n'a pas de date : elle est du planning quand
             // même, et c'est la ligne « À planifier / File d'attente » de
             // l'annexe D.

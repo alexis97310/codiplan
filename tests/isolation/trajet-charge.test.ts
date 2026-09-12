@@ -59,7 +59,24 @@ const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
 const JOUR = "2026-09-14";
 const JOUR_SUIVANT = "2026-09-15";
 const DU = new Date(`${JOUR}T00:00:00.000Z`);
-const AU = new Date(`${JOUR_SUIVANT}T23:59:59.000Z`);
+/**
+ * LA BORNE HAUTE EST EXCLUSIVE, ET ELLE SE COMPTE EN JOURS (12/09/2026).
+ *
+ * Elle valait `${JOUR_SUIVANT}T23:59:59Z` quand `listerPlanning` comparait par
+ * `lte` ; elle compare désormais par `lt`, l'écran lui passant le lendemain à
+ * minuit. **Et la granularité est le JOUR, pas la seconde** — mesuré :
+ * `date_planifiee` est un `@db.Date`, Prisma convertit l'opérande de la
+ * comparaison en `date`, si bien que `< '2026-09-15T23:59:59Z'` vaut
+ * `< '2026-09-15'` et écarte la journée entière du 15. *Une borne à
+ * 23:59:59 sur une colonne de type date n'est donc pas « la fin de la
+ * journée » : c'est son début.*
+ */
+const AU = new Date("2026-09-16T00:00:00.000Z");
+/** La même fenêtre EN JOURS — borne haute exclusive (12/09/2026). */
+const FENETRE = {
+  du: { annee: 2026, mois: 9, jour: 14 },
+  au: { annee: 2026, mois: 9, jour: 16 },
+};
 
 const posees: string[] = [];
 
@@ -108,8 +125,7 @@ async function charge(): Promise<{
   const charges = await occupationsDuPlanning(
     SESSION,
     lignes,
-    DU,
-    AU,
+    FENETRE,
     clientApp(),
   );
   const ligne = charges.find((l) => l.technicienId === TECHNICIEN);

@@ -144,7 +144,9 @@ describe("les trois états d'une cellule", () => {
     const occupees = j.colonnes[0].cellules.filter((c) => c.etat === "occupe");
     // 450 → 570, pas 30 : quatre créneaux.
     expect(occupees).toHaveLength(4);
-    expect(occupees.filter((c) => c.debutDeBloc)).toHaveLength(1);
+    expect(
+      occupees.filter((c) => c.occupations.some((o) => o.debutDeBloc)),
+    ).toHaveLength(1);
     expect(occupees[0].debutMinutes).toBe(450);
   });
 
@@ -272,5 +274,186 @@ describe("ce que la journée refuse de deviner", () => {
       minutesDe,
     );
     expect(j.colonnes.map((c) => c.technicienId)).toEqual([null, "t9"]);
+  });
+});
+
+/**
+ * LES COLONNES VIENNENT DU RÉFÉRENTIEL, PAS DES INTERVENTIONS (12/09/2026).
+ *
+ * *L'objet déclaré de cet écran est de MONTRER LES TROUS* — et une personne
+ * dont la journée est entièrement libre n'avait **aucune colonne**, parce que
+ * les colonnes se déduisaient des interventions du jour. C'est-à-dire :
+ * l'écran cachait exactement la personne qu'il devait montrer en premier, et
+ * son compte de créneaux libres ne comptait que les trous des gens déjà
+ * occupés — *faux dans le sens flatteur*.
+ */
+describe("une journée entièrement libre a quand même sa colonne", () => {
+  const REFERENTIEL = [
+    { id: "t-libre", agenceIds: ["ag-ducos"] },
+    { id: "t-occupe", agenceIds: ["ag-ducos"] },
+  ];
+
+  it("le technicien SANS aucune intervention a sa colonne, et elle est pleine de trous", () => {
+    const j = construireJournee(
+      [pose({ id: "a", technicien_id: "t-occupe" })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+      REFERENTIEL,
+    );
+    const libre = j.colonnes.find((c) => c.technicienId === "t-libre");
+    expect(libre, "la personne libre n'a pas de colonne").toBeDefined();
+    // Aucune cellule occupée, et tout ce qui n'est pas la coupure de midi est
+    // un trou : c'est exactement ce que l'écran doit montrer d'elle.
+    expect(libre?.cellules.some((c) => c.etat === "occupe")).toBe(false);
+    const horsOuverture =
+      libre?.cellules.filter((c) => c.etat === "hors_ouverture").length ?? 0;
+    expect((libre?.creneauxLibres ?? 0) + horsOuverture).toBe(j.axe.length);
+    expect(libre?.creneauxLibres ?? 0).toBeGreaterThan(0);
+  });
+
+  it("LA FAUTE D'AVANT, telle qu'elle se commettait — sans référentiel, elle disparaît", () => {
+    // Le référentiel par défaut est vide : c'est exactement le comportement
+    // d'avant la réparation, et il est mesuré ici plutôt que raconté.
+    const j = construireJournee(
+      [pose({ id: "a", technicien_id: "t-occupe" })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.colonnes.map((c) => c.technicienId)).toEqual(["t-occupe"]);
+  });
+
+  it("une personne du référentiel n'EFFACE pas celle qui n'y est pas", () => {
+    // Le référentiel ajoute des colonnes, il n'en retire aucune : une personne
+    // posée sur une intervention sans être au référentiel garde la sienne.
+    // *Perdre une ligne pour la faire rentrer dans un référentiel serait
+    // remplacer une disparition par une autre.*
+    const j = construireJournee(
+      [pose({ id: "a", technicien_id: "t-inconnu" })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+      REFERENTIEL,
+    );
+    expect(j.colonnes.map((c) => c.technicienId).sort()).toEqual([
+      "t-inconnu",
+      "t-libre",
+      "t-occupe",
+    ]);
+  });
+
+  it("L'AXE existe même quand PERSONNE n'a d'intervention", () => {
+    // Le témoin de la réparation : l'axe se lisait sur les agences des
+    // INTERVENTIONS. Sans intervention, il était vide — et la colonne rendue à
+    // la personne libre n'aurait eu aucune heure où montrer ses trous.
+    const j = construireJournee([], LUNDI, [NOUMEA], minutesDe, REFERENTIEL);
+    expect(j.axe.length).toBeGreaterThan(0);
+    expect(j.colonnes).toHaveLength(2);
+    // Les deux colonnes comptent le même nombre de trous — la coupure de midi
+    // est hors ouverture pour l'une comme pour l'autre —, et le total est leur
+    // somme. Un total nul serait le symptôme d'un axe vide.
+    const parPersonne = j.colonnes[0].creneauxLibres;
+    expect(parPersonne).toBeGreaterThan(0);
+    expect(j.creneauxLibres).toBe(parPersonne * 2);
+  });
+});
+
+/**
+ * CE QUI NE PEUT PAS ÊTRE DESSINÉ EST DIT, JAMAIS EFFACÉ (12/09/2026).
+ *
+ * Deux disparitions silencieuses vivaient ici : la ligne datée SANS HEURE, et
+ * celle dont le créneau tombe hors de l'axe. *Un planning qui perd une ligne
+ * fait poser quelqu'un sur un créneau déjà pris.*
+ */
+describe("les interventions non dessinables sont nommées", () => {
+  it("SANS CRÉNEAU — elle appartient au jour, à aucune heure", () => {
+    const j = construireJournee(
+      [pose({ id: "muette", creneau_debut: null, creneau_fin: null })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.horsGrille).toBe(1);
+    expect(j.colonnes[0].horsGrille).toEqual([
+      {
+        ligne: expect.objectContaining({ id: "muette" }),
+        motif: "sans_creneau",
+      },
+    ]);
+  });
+
+  it("HORS DE L'AXE — 06:00 précède l'ouverture de 07:30", () => {
+    const j = construireJournee(
+      [
+        pose({
+          id: "matinale",
+          creneau_debut: instant(LUNDI, 360),
+          creneau_fin: instant(LUNDI, 420),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.colonnes[0].horsGrille.map((h) => h.motif)).toEqual(["hors_axe"]);
+  });
+
+  it("LE SENS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — une ligne dessinable n'y entre pas", () => {
+    // Sans ce cas, une fonction qui rendrait TOUTES les lignes passerait les
+    // deux épreuves ci-dessus. Ici la ligne est bien dessinée, et la liste des
+    // non dessinables est vide POUR CETTE RAISON-LÀ.
+    const j = construireJournee(
+      [pose({ id: "posee", creneau_debut: instant(LUNDI, 540) })],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    expect(j.horsGrille).toBe(0);
+    expect(
+      j.colonnes[0].cellules.some((c) =>
+        c.occupations.some((o) => o.ligne.id === "posee"),
+      ),
+      "la ligne n'est ni dessinée ni écartée : elle a disparu",
+    ).toBe(true);
+  });
+});
+
+/**
+ * DEUX INTERVENTIONS QUI SE CHEVAUCHENT — la seconde ne disparaît plus.
+ */
+describe("une cellule porte TOUTES ses occupations", () => {
+  it("un chevauchement complet reste visible", () => {
+    const j = construireJournee(
+      [
+        pose({
+          id: "large",
+          creneau_debut: instant(LUNDI, 540),
+          creneau_fin: instant(LUNDI, 660),
+        }),
+        pose({
+          id: "dedans",
+          creneau_debut: instant(LUNDI, 570),
+          creneau_fin: instant(LUNDI, 630),
+        }),
+      ],
+      LUNDI,
+      [NOUMEA],
+      minutesDe,
+    );
+    const vues = new Set(
+      j.colonnes.flatMap((c) =>
+        c.cellules.flatMap((cel) => cel.occupations.map((o) => o.ligne.id)),
+      ),
+    );
+    // Avec `.find()`, « dedans » ne paraissait dans AUCUNE cellule : « large »
+    // la couvrait de bout en bout.
+    expect(vues).toEqual(new Set(["large", "dedans"]));
+    // Et chacune n'annonce son libellé qu'une fois.
+    expect(
+      j.colonnes[0].cellules.flatMap((c) =>
+        c.occupations.filter((o) => o.debutDeBloc).map((o) => o.ligne.id),
+      ),
+    ).toEqual(["large", "dedans"]);
   });
 });
