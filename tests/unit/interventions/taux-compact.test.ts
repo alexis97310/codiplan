@@ -18,16 +18,29 @@ import {
  * qu'UNE agence de rattachement, il n'a donc jamais deux taux, et le chiffre ne
  * peut pas être lu de travers.*
  *
- * Et la condition de réouverture est écrite pour être vérifiée : *« le jour où
- * une personne travaillera pour deux agences, cet affichage devient ambigu et
- * devra nommer l'agence. Ce jour-là se reconnaît à une seule chose — une ligne
- * de technicien rattachée à deux agences. »*
+ * ## LA CONDITION A CHANGÉ DE SUJET LE 12/09/2026 (Q6, issue 2)
  *
- * ## CE GARDIEN TIENT LA CONDITION, PAS L'AFFICHAGE
+ * ~~*« Le jour où une personne travaillera pour deux agences… Ce jour-là se
+ * reconnaît à une seule chose — une ligne de technicien rattachée à deux
+ * agences. »*~~ **Cette condition visait `technicien.agence_id`, et ce n'est
+ * PAS ce dont dépend le taux.** Alexis l'a réécrite : elle porte désormais sur
+ * **LA MAILLE DU TAUX — `(technicien, agence de l'INTERVENTION)`**.
+ *
+ * *Sa raison vaut au-delà de ce cas : une décision dont la condition porte sur
+ * la mauvaise chose sera crue par le prochain lecteur.* Le produit n'a pas
+ * bougé ; c'est la décision qu'on a rendue vraie.
+ *
+ * ## CE GARDIEN TIENT DONC LA MAILLE, ET LE FAIT QUE L'ÉCRAN LA MESURE
  *
  * *Une condition de réouverture écrite en prose est une intention* (§9, 31/08) :
- * elle ne rougit pas le jour où elle est remplie. Celle-ci rougit — sur la
- * **forme du schéma**, qui est ce que D111 invoque.
+ * elle ne rougit pas le jour où elle est remplie. Et celle-ci ne peut pas se
+ * lire dans le schéma — **deux lignes de charge est un fait des DONNÉES**, que
+ * `verify` n'observe pas. Ce qui se garde statiquement est donc ce qui rend la
+ * décision vraie quel que soit le jour : **que la maille porte bien l'agence,
+ * et que l'écran DÉCIDE sur le nombre de lignes plutôt que sur la forme d'une
+ * colonne.** *Une « simplification » qui déduirait « une seule ligne » de
+ * `technicien.agence_id` ferait mentir l'écran le premier jour d'un renfort —
+ * et c'est elle que ce fichier arrête.*
  *
  * ## ET IL NOMME UNE CONTRADICTION MESURÉE, plutôt que de la taire
  *
@@ -49,6 +62,10 @@ const SCHEMA = readFileSync(
   "utf8",
 );
 const ECRAN = join(process.cwd(), "app/(back-office)/planning/page.tsx");
+const OCCUPATION = readFileSync(
+  join(process.cwd(), "lib/interventions/occupation.ts"),
+  "utf8",
+);
 
 /**
  * Une occupation réduite à ce que le taux regarde.
@@ -74,25 +91,38 @@ function occupation(
   };
 }
 
-describe("LA CONDITION DE VALIDITÉ de D111, tenue par le schéma", () => {
-  it("`technicien` porte UNE agence, colonne simple et obligatoire", () => {
-    const modele = /model Technicien \{[\s\S]*?\n\}/.exec(SCHEMA)?.[0] ?? "";
-    // TÉMOIN : le modèle a bien été trouvé. Un motif qui ne trouve rien
+describe("LA MAILLE DU TAUX porte l'agence — la condition réécrite de D111", () => {
+  it("`LigneOccupation` porte un `agenceId` : une personne peut porter deux lignes", () => {
+    // ~~L'ancienne condition lisait ici `technicien.agence_id String @db.Uuid`
+    // et l'absence d'une table `technicien_agence`.~~ Elle est RETIRÉE plutôt
+    // que conservée « au sens large » : *garder une approximation à côté de sa
+    // mesure n'ajoute pas de sécurité, elle en retire* (§9, 01/09), et elle
+    // aurait continué d'affirmer « ce jour n'est pas arrivé » alors que D112
+    // autorise le renfort sans qu'aucune table ne bouge.
+    const type = /export type LigneOccupation = \{[\s\S]*?\n\};/.exec(
+      OCCUPATION,
+    )?.[0];
+    // TÉMOIN : le type a bien été trouvé. Un motif qui ne trouve rien
     // satisferait les assertions suivantes sans rien regarder (§9, 30/08).
-    expect(modele).toContain('@@map("technicien")');
-
-    // La colonne existe, elle n'est PAS optionnelle, et elle n'est PAS une
-    // liste. Ces trois-là sont la condition de D111, chacune dans un sens que
-    // le schéma pourrait perdre séparément.
-    expect(modele).toMatch(/\n\s+agence_id\s+String\s+@db\.Uuid/);
-    expect(modele).not.toMatch(/\n\s+agence_id\s+String\?/);
-    expect(modele).not.toMatch(/\n\s+agence_ids\s/);
+    expect(type, "le type LigneOccupation est introuvable").toBeDefined();
+    expect(type).toMatch(/\n\s+readonly agenceId: string;/);
   });
 
-  it("aucune table ne rattache un technicien à PLUSIEURS agences", () => {
-    // La seconde forme que prendrait la réouverture : une table de liaison.
-    // Elle n'existe pas ; le jour où elle naîtra, cette assertion la nommera.
-    expect(SCHEMA).not.toMatch(/@@map\("technicien_agence"\)/);
+  it("et le regroupement se fait SUR CE COUPLE, jamais sur le technicien seul", () => {
+    // C'est ce qui fait qu'une personne PEUT porter deux lignes. Un
+    // regroupement par technicien seul les fusionnerait — et additionnerait
+    // deux dénominateurs venus de deux calendriers, ce qu'I7 refuse.
+    expect(OCCUPATION).toMatch(/cle\.technicienId[^\n]*\|[^\n]*cle\.agenceId/);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — le rattachement EXISTE, il ne décide simplement plus", () => {
+    // `technicien.agence_id` n'a pas disparu et ne doit pas disparaître : il
+    // décide de la majoration (D12) et du calendrier de conflit à la pose
+    // (D13). Ce que la réécriture retire est son rôle dans CETTE condition-ci.
+    // *Sans cette moitié, on croirait la colonne condamnée.*
+    const modele = /model Technicien \{[\s\S]*?\n\}/.exec(SCHEMA)?.[0] ?? "";
+    expect(modele).toContain('@@map("technicien")');
+    expect(modele).toMatch(/\n\s+agence_id\s+String\s+@db\.Uuid/);
   });
 });
 
@@ -109,6 +139,18 @@ describe("L'ÉCRAN MESURE la condition au lieu de la supposer", () => {
 
   it("TÉMOIN — la colonne affiche bien un taux", () => {
     expect(source).toContain("tauxCompact");
+  });
+
+  it("et il ne DÉCIDE jamais sur `technicien.agence_id`", () => {
+    // La « simplification » que la condition réécrite arrête : déduire qu'une
+    // personne n'a qu'une ligne parce que sa colonne de rattachement est
+    // simple. L'écran serait vert, le schéma inchangé, et l'affichage
+    // mentirait le premier jour d'un renfort — que D112 autorise.
+    const decisions = source
+      .split("\n")
+      .filter((l) => l.includes("nommerLAgence"))
+      .join("\n");
+    expect(decisions).not.toContain("agence_id");
   });
 });
 

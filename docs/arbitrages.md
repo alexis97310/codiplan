@@ -3787,9 +3787,29 @@ Ce n'est pas une date écrite ici — elle aurait vieilli. C'est un **fait qu'on
 
 ### CONDITION DE RÉOUVERTURE, vérifiable en une requête
 
-> *Le jour où une personne travaillera pour DEUX agences*, cet affichage devient ambigu et devra nommer l'agence.
+> ~~*Le jour où une personne travaillera pour DEUX agences*, cet affichage devient ambigu et devra nommer l'agence.~~
+>
+> ~~**Ce jour-là se reconnaît à une seule chose : une ligne de technicien rattachée à deux agences.** Aujourd'hui `technicien.agence_id` l'interdit par sa forme — il faudrait une table de rattachement ou une colonne multiple.~~
 
-**Ce jour-là se reconnaît à une seule chose : une ligne de technicien rattachée à deux agences.** Aujourd'hui `technicien.agence_id` l'interdit par sa forme — il faudrait une table de rattachement ou une colonne multiple. **Le jour où l'une des deux naît, cette décision est due à réécriture**, et c'est un gardien qui le dira : `tests/unit/interventions/taux-compact.test.ts`.
+**RÉÉCRITE LE 12/09/2026 PAR ALEXIS, sur la question Q6 — issue 2.** La condition barrée visait `technicien.agence_id`, *et ce n'est pas ce dont dépend le taux.* **Sa raison, et elle vaut au-delà de ce cas : une décision dont la condition porte sur la mauvaise chose sera crue par le prochain lecteur.** Le produit ne change pas ; c'est la décision qu'on rend vraie.
+
+> **La condition porte sur LA MAILLE DU TAUX — `(technicien, agence de l'INTERVENTION)` — et non sur la colonne de rattachement.**
+>
+> *Le jour où une même personne porte DEUX lignes de charge sur une même période*, l'affichage compact devient ambigu et chaque ligne nomme son agence.
+
+**Ce jour-là se reconnaît à une requête, et il est déjà arrivé** — c'est ce que la contradiction ci-dessous avait mesuré :
+
+```sql
+SELECT i.technicien_id, count(DISTINCT i.agence_id)
+  FROM intervention i
+ WHERE i.technicien_id IS NOT NULL AND i.creneau_debut IS NOT NULL
+ GROUP BY i.technicien_id
+HAVING count(DISTINCT i.agence_id) > 1;
+```
+
+**La colonne de rattachement n'y figure pas, et c'est tout l'objet de la réécriture.** `technicien.agence_id` dit où la personne est rattachée ; le dénominateur du taux vient du calendrier de l'**agence où le travail a lieu** (I7). Les deux ne coïncident que tant que personne ne fait de renfort — et **D112, rendu le même soir, autorise expressément le renfort**. *Une condition adossée au rattachement aurait donc affirmé « ce jour n'est pas arrivé » alors qu'il pouvait arriver le lendemain, sans qu'aucune table ne bouge.*
+
+**Le gardien suit la nouvelle formulation** : `tests/unit/interventions/taux-compact.test.ts` mesure désormais que l'écran DÉCIDE sur le nombre de lignes de charge, et non sur la forme de `technicien.agence_id`.
 
 ### ⚠ UNE CONTRADICTION AVEC D112, MESURÉE LE JOUR MÊME, ET SIGNALÉE PLUTÔT QU'ARBITRÉE
 
@@ -3801,7 +3821,9 @@ Or **D112, rendu le même soir, autorise expressément** qu'un technicien de Duc
 
 **La voie qui reste ouverte a été prise** (§2 du protocole) : l'écran **MESURE** la condition au lieu de la supposer. Une seule ligne de charge, le taux seul — D111 dans sa lettre. Plusieurs, **chacune nomme son agence** — ce que D111 prescrit lui-même *« pour ce jour-là »*, livré sans attendre le jour. *Aucune des deux décisions n'est réduite, et l'écran ne peut plus mentir.*
 
-**Ce qui reste à trancher, et qui appartient à Alexis :** la condition de réouverture de D111 doit-elle viser `technicien.agence_id` — comme elle est écrite — ou **la maille réelle du taux** ? Si c'est la seconde, D111 est déjà rouvert, et la question devient : *un renfort doit-il montrer deux taux, ou un seul agrégé ?*
+~~**Ce qui reste à trancher, et qui appartient à Alexis :** la condition de réouverture de D111 doit-elle viser `technicien.agence_id` — comme elle est écrite — ou **la maille réelle du taux** ?~~
+
+**TRANCHÉ LE 12/09/2026 — la MAILLE (Q6, issue 2).** La condition de réouverture ci-dessus est réécrite ; la contradiction cesse d'en être une, parce que les deux décisions parlent désormais de la même chose. *Et la réponse à la question suivante — « un renfort montre-t-il deux taux ou un seul agrégé ? » — est déjà livrée : **deux, chacun nommant son agence**, ce que D111 prescrit « pour ce jour-là » et que l'écran fait depuis le 12/09.* Un taux agrégé aurait demandé d'additionner deux dénominateurs venus de deux calendriers différents, ce qu'I7 refuse.
 
 *Aucune règle du chapitre 10 n'est amendée : D111 porte sur un affichage, et le chapitre 10 est muet sur les écrans.*
 
@@ -3944,5 +3966,50 @@ SELECT count(*) FROM intervention
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > *Le jour où la requête ci-dessus rendra plus de vingt lignes sur une base portant des données réelles*, la reprise une par une cesse d'être raisonnable et la question se rouvre — avec, à ce moment-là, l'import du retour de facturation comme réponse attendue.
+
+*Aucune règle du chapitre 10 n'est amendée.*
+
+---
+
+## D116 — Une migration fusionnée atteint la base sans qu'une main la lui porte
+
+*Rendu par Alexis le 12/09/2026 au soir, après la quatrième panne de production en deux jours. **Amendement du §12 de `docs/protocole-session.md`**, qui n'est pas supprimé mais restreint à ce qui le justifiait vraiment.*
+
+### LA DÉCISION
+
+**Le flux « DB migrate & seed » se déclenche désormais tout seul sur `main`, quand `prisma/migrations/` a changé.** Le geste nommé du §12 cesse d'être la seule garantie que la base suive le code.
+
+### LA RAISON, ET ELLE EST MESURÉE
+
+Le §12 disait vrai et n'a pas tenu. *Le 12/09/2026, quatre migrations ont été fusionnées entre 21 h 55 et 22 h 27 ; quatre fois le code s'est déployé et la base est restée en arrière ; `/planning` est tombé.* La réparation a demandé **deux passages manuels du flux, dont un avec une purge destructrice qui a effacé les comptes** — et Alexis ne pouvait plus se connecter à sa propre application.
+
+**Ce que le §12 protégeait est le risque de PERTE, et il demeure entier.** Ce qu'il produisait en fait est une **asymétrie** : le code voyage seul, la donnée attend une main, *et elle attend en silence*. La règle était écrite, elle avait été relue, et elle n'a pas produit de signal le jour où on est passé à côté — c'est le §9 du 12/09 : *une règle écrite dans un document que personne ne relit au bon moment n'est pas un gardien, elle en a exactement la forme.*
+
+### LES QUATRE BORNES, condition de l'acceptation
+
+**Aucune n'est négociable, et chacune est tenue par une pièce du flux ET par un gardien** (`tests/unit/ci/migration-automatique.test.ts`).
+
+| | Borne | Ce qui la tient |
+|---|---|---|
+| **1** | cible `demonstration` UNIQUEMENT — la production n'est **jamais** atteinte par une exécution automatique, sous aucune condition | la cible est **calculée** dans une étape nommée, et le chemin automatique refuse explicitement toute autre valeur. *Elle n'est pas héritée d'une entrée vide* : sur un `push`, `inputs.cible` vaut la chaîne vide, et une garantie qui tient à une valeur vide est la faute mesurée le 09/09 |
+| **2** | la purge n'est **jamais** automatique | sa condition exige `workflow_dispatch` **en plus** de sa case. Les deux, parce que la case seule tiendrait, elle aussi, à ce qu'une entrée soit absente |
+| **3** | l'exécution automatique **REFUSE** si la base porte une donnée hors seed | `scripts/refus-si-donnees-reelles.mts`, joué **avant** la migration : après, refuser ne sert plus à rien |
+| **4** | elle ne se déclenche que si `prisma/migrations/` a changé | `paths` sur ce répertoire seul. **`prisma/seed.ts` n'y est pas** : D116 n'automatise que ce qui casse la production quand il manque — le SCHÉMA, jamais les données |
+
+**La borne 3 est celle qui compte le plus, et c'est celle dont personne ne se souviendra.** Son critère n'est pas inventé : le §9 du 30/08 l'avait déjà nommé en refusant de reporter le partitionnement — *« il aurait suffi qu'il échoue dès qu'une société hors démonstration apparaît »*. Les identifiants du jeu de démonstration sont **fixes** ; la comparaison est une différence d'ensembles, pas une ressemblance de nom, et un gardien le prouve sur l'usurpation (`code: "CODIMA-NC"` sur un autre identifiant → refus).
+
+Le contrôle lit sous une **identité exemptée des politiques**. Sans cela, `FORCE ROW LEVEL SECURITY` lui ferait voir **zéro société** et conclure « aucune étrangère », *c'est-à-dire OUVRIR sur une base pleine de données réelles* — la vacuité du §9 du 30/08 dans son sens le plus coûteux. Et **« rien observé » refuse aussi** : une base neuve et une lecture filtrée rendent le même zéro, et on ne part pas sur un doute.
+
+### ET ELLE DIT CE QU'ELLE A FAIT
+
+**Une automatisation muette ne peut pas être auditée.** Le résumé d'exécution nomme chaque migration posée — par **soustraction** entre une lecture avant et une lecture après, jamais par recopie du répertoire : *une ligne qui ne peut pas bouger sous une faute n'est pas une observation* (§9, 06/09). Et **« aucune » est un résultat écrit**, jamais un silence : une exécution qui n'a rien appliqué parce que la base était à jour et une qui n'a rien appliqué parce qu'elle a échoué ne se corrigent pas au même endroit.
+
+### CE QUE LE §12 GARDE
+
+**Le geste nommé demeure dans le compte rendu** pour tout ce que D116 n'automatise pas : un changement de `prisma/seed.ts`, une purge, toute opération sur la cible `production`. *Ce qui change est qu'on ne compte plus sur la mémoire pour la partie qui casse la production.*
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où `scripts/refus-si-donnees-reelles.mts` refuse une exécution sur la base de démonstration** — c'est-à-dire le jour où une société hors seed y apparaît —, D116 se rouvre : la base a cessé d'être une fiction, et l'automatisme qui la vise doit être rejugé à ce titre. *Le refus n'est pas un incident à contourner : c'est la condition de réouverture qui se déclenche.*
 
 *Aucune règle du chapitre 10 n'est amendée.*
