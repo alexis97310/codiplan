@@ -68,6 +68,17 @@ pnpm suspensions:denombrer # COMBIEN COÛTE LE RATTRAPAGE DE R3-02 ? (D104)
 
 pnpm db:resoudre      # une migration a ÉCHOUÉ : déclarer l'échec annulé
                       # et rendre la base rejouable — il n'applique RIEN
+pnpm db:refus-si-reelles # LA BORNE 3 DE D116 — la base ne porte-t-elle que
+                      # le jeu de démonstration ? Joué par le flux AVANT toute
+                      # migration AUTOMATIQUE, et par lui seul : une main qui
+                      # déclenche a regardé
+                      # il lit sous une IDENTITÉ EXEMPTÉE des politiques —
+                      # « societe » est sous FORCE, et un rôle sans contexte
+                      # verrait zéro société, donc conclurait « aucune
+                      # étrangère » : la vacuité qui OUVRE au lieu de fermer
+                      # trois codes : 0 seed seul, 1 refus, 75 rien constaté —
+                      # « je n'ai pas pu regarder » n'est ni l'un ni l'autre
+
 pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
                       # la session nocturne LIT ce qu'il imprime, elle
                       # n'interprète pas le backlog — trois états et trois
@@ -92,7 +103,7 @@ Il s'arrête **avant chaque migration qui resserre une table préexistante** —
 
 **Les 47 migrations ont été passées au même crible le 11/09/2026 : 52 resserrements dans 15 d'entre elles.** Onze sont closes par `_prisma_migrations` et non par une lecture — la base réelle les a acceptées, et une base neuve les reçoit toutes d'un coup sur un schéma vide. **Les quatre autres sont les seules encore vivantes, et les quatre sont rejouées** : les deux `CHECK` de `import_lot` passent contre un lot appliqué ; l'index unique de `contact` porte `id` et ne peut rien refuser ; les deux `CHECK` de `intervention` passent **depuis D104** ; et l'index unique de `technicien_calendrier` porte sur une table **prouvée vide** — son déclencheur d'audit refusait toute écriture tant que la table n'avait pas de colonne `id`, et `id` n'arrive qu'avec cette migration-là. _La table est restée inécrivable du 09/09 au 13/09, et rien ne l'a dit : aucun appelant ne l'exerçait._
 
-`VALIDATE CONSTRAINT`, `ATTACH PARTITION` et `EXCLUDE` n'apparaissent **nulle part** dans les 47 — mesuré. Le lecteur les reconnaît quand même, et un témoin garde l'affirmation : le jour où l'une d'elles est écrite, il rougit, parce que cette phrase aura cessé d'être vraie.
+~~`VALIDATE CONSTRAINT`, `ATTACH PARTITION` et `EXCLUDE` n'apparaissent **nulle part** dans les 47 — mesuré.~~ **`VALIDATE CONSTRAINT` est écrit depuis le 12/09/2026** — `20260913250000_rattrapage_suspensions_r3_02` valide les deux contraintes de suspension (R3-02, D117) ; `ATTACH PARTITION` et `EXCLUDE` restent absentes. _Le témoin qui gardait l'affirmation a rougi le jour où elle a cessé d'être vraie, ce qui est exactement ce pour quoi il avait été posé._ Il est **inversé plutôt que retiré** : la forme n'est plus attendue absente, elle est attendue **là où un arbitrage l'a mise** — une seconde validation écrite sans décision fera rougir de nouveau.
 
 _Éprouvé dans les deux directions, sur des fautes réellement écrites :_ la contrainte de D104 rendue `VALID` fait tomber le rejeu sur le `P3018`/`23514` exact du 11/09 ; une migration neuve qui resserrerait une table sans lignes rougit en nommant l'amorce à écrire.
 

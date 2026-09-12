@@ -503,6 +503,18 @@ lib/
               jour de son arrêt
               le statut a TROIS valeurs et jamais un booléen : « demandée » et
               « refusée » ne se distinguent pas sous une case décochée
+              rupture-de-service.ts : L'ALERTE À EFFECTIF UNIQUE (L3-04a,
+              RG-PLA-06, D106) — elle ne propose AUCUN créneau, et c'est une
+              décision : *un moteur qui propose sur un effectif d'un ne propose
+              rien*, et le planificateur sait ce que le système ne saura jamais
+              la maille est l'agence de l'INTERVENTION, jamais celle de
+              l'absent (D112) ni la société (D106) : compter par société ferait
+              taire l'alerte à Koné parce que Ducos a du monde
+              TROIS verdicts — « je ne sais pas combien cette agence a de
+              monde » rendrait, sous deux valeurs, exactement ce que rend une
+              agence bien pourvue : le silence
+              l'ABSENT compte dans l'effectif : être absent quinze jours ne rend
+              pas inactif, et le seuil « un seul » cesserait de dire ce qu'il dit
               une absence ne déplanifie NI ce qui a eu lieu, NI ce qui n'occupe
               rien — et les deux motifs diffèrent : l'une n'a rien à rendre,
               l'autre a un fait à protéger (I5)

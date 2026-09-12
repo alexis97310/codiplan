@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `b8c3f7689d3a449c2660946dfdb42032184ea61b` (`b8c3f76`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-10 20:18 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `23610b9776eb384114a5a78061fdb0b31abb42ae` (`23610b9`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-12 13:04 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -58,6 +58,28 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 **Si `DATABASE_URL` porte le rôle propriétaire, le serveur de production ne le dit PAS.** `garantirRoleApplicatif` refuse — à bon droit — et ferme le client dans la foulée, pour que le refus soit un vrai refus de se connecter. Le message juste est émis **une fois**, puis noyé sous des dizaines d'`Engine is not yet connected` qui n'ont plus rien à voir avec la cause. *Mesuré le 10/09/2026 : 48 de ces lignes pour un seul refus lisible, et la conclusion qu'on en tire spontanément est que l'hébergeur réclame le moteur Prisma.* En `next dev`, le même refus s'affiche en clair : **quand le serveur de production devient incompréhensible, le relancer en développement coûte deux minutes et nomme la cause.**
 
 `COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.
+
+## Comment savoir si un écran a changé depuis cette prise
+
+**Une commande, et elle rend un ÉTAT — jamais un silence :**
+
+```bash
+pnpm captures:etat
+```
+
+Elle compare `23610b9` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+
+| Chemin | | Pourquoi un changement ici change l'image |
+|---|---|---|
+| `app/` | déduite | les écrans eux-mêmes — chaque page, chaque mise en page, et le groupe de routes qui décide qu'un écran porte ou non la barre (R2-16) |
+| `components/` | déduite | ce que les écrans assemblent — un tableau, une grille, une pastille de statut : un composant change l'image sans que la page bouge d'une ligne |
+| `lib/i18n/` | déclarée | CHAQUE MOT qu'un humain lit en se servant de l'application (§5 de CLAUDE.md). Aucun fichier n'y porte de marque de rendu — il ne rend rien — et une prise de vue y survivrait à un changement de tous les libellés |
+| `lib/theme/` | déclarée | la charte de la société active et les couleurs des huit statuts (D51) — un code de lecture partagé, pas une préférence : une image prise avant un changement de statut montre une autre couleur |
+| `app/globals.css` | déclarée | la SEULE forme sous laquelle une palette se déclare (D95) — `lib/theme/apparence.ts` n'écrit aucune couleur, il nomme des rôles. Nommé au fichier et non au répertoire : `app/` le couvre déjà, et cette entrée existe pour que le motif soit LU |
+
+**La moitié « déduite » ne s'écrit nulle part, et c'est ce qui la rend sûre.** Un fichier qui rend du JSX, exporte les `metadata` de Next.js ou interroge l'écran **est** de la surface, par le fait ; un gardien exige que chacun tombe sous l'un de ces chemins (`tests/unit/captures/surface-decran.test.ts`). *Une page écrite demain dans un répertoire que personne n'a prévu fait rougir le jour même* — la liste est une déclaration confrontée à une source qu'elle ne contrôle pas, jamais une énumération tenue à la main.
+
+**Et ce que cette commande NE dit PAS est écrit plutôt que tu.** Elle répond « aucun fichier de RESTITUTION n'a changé », jamais « les écrans sont identiques » : ce qu'un écran affiche dépend aussi de ce que le métier CALCULE — `lib/interventions/statistiques.ts` décide du taux que le planning montre, et il n'est pas dans cette liste. *La frontière n'est pas « ce qui influence un écran » — ce serait le dépôt entier — mais « ce qui RESTITUE » : ce qui rend, ce qui nomme, ce qui colore.*
 
 ## Ce que le script REFUSE de photographier
 

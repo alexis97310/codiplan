@@ -1,16 +1,47 @@
 name: DB migrate & seed
 
-# Migration et amorçage de la base, déclenchés À LA MAIN uniquement.
+# Migration et amorçage de la base.
 #
 # Le proxy sortant de l'environnement cloud ne relaie pas le TCP : la base
 # PostgreSQL (Neon) est injoignable depuis une session Claude Code. On applique
 # donc la migration et le seed depuis un exécuteur GitHub Actions.
 #
-# IMPÉRATIF (voir docs/decisions/2026-08-20-migration-par-github-actions.md) :
-# aucun déclenchement automatique. Une migration ne doit jamais partir toute
-# seule — ni sur push, ni sur pull_request, ni sur planification. Seul
-# workflow_dispatch est autorisé. Ne PAS ajouter d'autre déclencheur ici.
+# ── LE DÉCLENCHEMENT AUTOMATIQUE, ET LES QUATRE BORNES QUI L'AUTORISENT ──────
+#
+# ~~IMPÉRATIF : aucun déclenchement automatique. Une migration ne doit jamais
+# partir toute seule — ni sur push, ni sur pull_request, ni sur planification.
+# Seul workflow_dispatch est autorisé. Ne PAS ajouter d'autre déclencheur ici.~~
+#
+# AMENDÉ LE 12/09/2026 (D116, amendement du §12 du protocole de session). La
+# phrase est BARRÉE ET NON EFFACÉE : elle a gouverné ce fichier trois semaines,
+# et ce qui a été décidé un jour se relit.
+#
+# Ce qu'elle protégeait était le risque de PERTE, et il demeure. Ce qu'elle
+# produisait en fait était une asymétrie : le code se déployait seul, la
+# migration attendait une main — et elle attendait EN SILENCE. Mesuré le
+# 12/09/2026 : quatre migrations fusionnées entre 21 h 55 et 22 h 27, quatre
+# fois le code déployé et la base en arrière, /planning tombé, et la réparation
+# passée par une purge destructrice qui a effacé les comptes.
+#
+# QUATRE BORNES, et aucune n'est négociable. Chacune est tenue par une pièce de
+# ce fichier et par un gardien de tests/unit/ci/migration-automatique.test.ts :
+#   1. cible « demonstration » UNIQUEMENT — la production n'est JAMAIS atteinte
+#      par une exécution automatique, sous aucune condition ;
+#   2. la purge n'est JAMAIS automatique — elle reste un geste de main ;
+#   3. l'exécution automatique REFUSE si la base porte une donnée hors seed ;
+#   4. elle ne se déclenche que si `prisma/migrations/` a changé.
+#
+# Et elle DIT ce qu'elle a fait : la liste des migrations appliquées entre au
+# résumé d'exécution. *Une automatisation muette ne peut pas être auditée.*
 on:
+  # BORNE 4. `paths` restreint au répertoire des migrations : un commit qui ne
+  # touche que du code ne réveille pas la base. Le seed, lui, n'est PAS dans
+  # cette liste — `prisma/seed.ts` change des données de démonstration, et D116
+  # n'automatise que ce qui casse la production quand il manque : le SCHÉMA.
+  push:
+    branches: [main]
+    paths:
+      - "prisma/migrations/**"
   workflow_dispatch:
     inputs:
       # DEUX BASES, DEUX JEUX DE SECRETS, ET AUCUN REPLI DE L'UNE SUR L'AUTRE.
@@ -95,9 +126,43 @@ jobs:
       #
       # Le choix se fait donc ICI, dans un shell, où « absent » se distingue de
       # « autre chose », et où l'absence ARRÊTE.
+      # ── BORNE 1 : LA CIBLE D'UNE EXÉCUTION AUTOMATIQUE EST ÉCRITE, JAMAIS
+      #    HÉRITÉE D'UNE VALEUR VIDE ──────────────────────────────────────────
+      #
+      # Sur un `push`, `inputs.cible` n'existe pas et vaut la chaîne vide. Le
+      # `else` ci-dessous choisirait donc la démonstration — LE BON RÉSULTAT PAR
+      # LE MAUVAIS CHEMIN. C'est exactement la faute du 09/09 : une garantie qui
+      # tient à ce qu'une valeur soit vide cesse le jour où elle ne l'est plus,
+      # et rien ne le dit. La cible est donc CALCULÉE et NOMMÉE, et le refus de
+      # la production sur ce chemin est une instruction, pas une conséquence.
+      - name: Décider de la cible, et refuser la production hors d'une main
+        id: cible
+        env:
+          CIBLE_DEMANDEE: ${{ inputs.cible }}
+          EVENEMENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENEMENT" = "workflow_dispatch" ]; then
+            cible="$CIBLE_DEMANDEE"
+            automatique=non
+          else
+            # BORNE 1. Aucune condition, aucune entrée, aucune dérogation : une
+            # exécution que personne n'a déclenchée ne vise QUE la démonstration.
+            cible=demonstration
+            automatique=oui
+          fi
+          if [ "$automatique" = "oui" ] && [ "$cible" != "demonstration" ]; then
+            echo "::error::BORNE 1 — une exécution automatique ne vise que « demonstration ». Cible calculée : $cible. Refus."
+            exit 1
+          fi
+          echo "cible=$cible" >> "$GITHUB_OUTPUT"
+          echo "automatique=$automatique" >> "$GITHUB_OUTPUT"
+          echo "CIBLE_RETENUE=$cible" >> "$GITHUB_ENV"
+          echo "Cible retenue : $cible (déclenchement ${EVENEMENT}, automatique=$automatique)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Choisir la base, et refuser plutôt que se rabattre
         env:
-          CIBLE: ${{ inputs.cible }}
+          CIBLE: ${{ steps.cible.outputs.cible }}
         run: |
           set -euo pipefail
           if [ "$CIBLE" = "production" ]; then
@@ -132,8 +197,61 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      # ── BORNE 3 : L'EXÉCUTION AUTOMATIQUE REFUSE UNE BASE QUI N'EST PLUS
+      #    UNE FICTION ────────────────────────────────────────────────────────
+      #
+      # AVANT la migration, jamais après : une fois le schéma changé, refuser ne
+      # sert plus à rien. Le script lit les sociétés sous une identité EXEMPTÉE
+      # des politiques — sans quoi `FORCE ROW LEVEL SECURITY` lui ferait voir
+      # zéro ligne et conclure « aucune société étrangère », c'est-à-dire OUVRIR
+      # sur une base pleine de données réelles (§9, 07/09).
+      #
+      # Il ne tourne PAS sur le chemin manuel : une main qui déclenche a regardé,
+      # et c'est précisément l'issue que ce refus propose quand il se prononce.
+      - name: Refuser si la base porte une donnée hors seed (automatique seul)
+        if: ${{ steps.cible.outputs.automatique == 'oui' }}
+        run: pnpm exec tsx scripts/refus-si-donnees-reelles.mts
+
+      # ── CE QUE LA BASE PORTAIT AVANT, pour que « ce qui a été appliqué » soit
+      #    une DIFFÉRENCE et non une liste recopiée du dépôt ──────────────────
+      #
+      # Le résumé doit nommer les migrations que CETTE exécution a posées, pas
+      # celles que le répertoire contient : les deux coïncident la première fois
+      # et divergent ensuite. *Une ligne qui ne peut pas bouger sous une faute
+      # n'est pas une observation* (§9, 06/09) — d'où une lecture AVANT et une
+      # APRÈS, et la soustraction entre les deux.
+      - name: Lire les migrations déjà appliquées (avant)
+        id: avant
+        run: |
+          set -euo pipefail
+          pnpm exec tsx scripts/migrations-appliquees.mts > /tmp/migrations-avant.txt
+          echo "Lues avant migration : $(wc -l < /tmp/migrations-avant.txt)"
+
       - name: Appliquer la migration
         run: pnpm prisma migrate deploy
+
+      # UNE AUTOMATISATION MUETTE NE PEUT PAS ÊTRE AUDITÉE. Le résumé porte le
+      # nom de chaque migration posée, et « aucune » est un résultat ÉCRIT — pas
+      # un silence : une exécution qui n'a rien appliqué parce que la base était
+      # déjà à jour et une exécution qui n'a rien appliqué parce qu'elle a échoué
+      # ne se corrigent pas au même endroit.
+      - name: Dire ce qui a été appliqué
+        if: always()
+        run: |
+          set -euo pipefail
+          pnpm exec tsx scripts/migrations-appliquees.mts > /tmp/migrations-apres.txt || true
+          {
+            echo "### Migrations appliquées par cette exécution"
+            echo
+            posees="$(comm -13 /tmp/migrations-avant.txt /tmp/migrations-apres.txt || true)"
+            if [ -z "$posees" ]; then
+              echo "**Aucune.** La base portait déjà tout ce que le dépôt attend."
+            else
+              echo "$posees" | sed 's/^/- `/;s/$/`/'
+            fi
+            echo
+            echo "État final : $(wc -l < /tmp/migrations-apres.txt) migration(s) appliquée(s) en base."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Ne s'exécute QUE si l'entrée `reinitialiser_demo` a été cochée au
       # déclenchement : `inputs.reinitialiser_demo` vaut le booléen `false` par
@@ -141,8 +259,16 @@ jobs:
       # script pose lui-même une seconde barrière et refuse de purger sans la
       # confirmation explicite ci-dessous. Placé APRÈS la migration : la purge
       # suppose le schéma courant.
+      #
+      # BORNE 2 — `github.event_name == 'workflow_dispatch'` : la purge ne part
+      # JAMAIS toute seule. Elle vide toutes les sociétés sans condition, et
+      # c'est elle qui a effacé les comptes le 12/09/2026 au soir. Elle reste un
+      # geste de main, avec son avertissement. La condition est écrite EN PLUS
+      # de `inputs.reinitialiser_demo` — qui vaut déjà faux sur un push — parce
+      # qu'une garantie qui tient à ce qu'une entrée soit absente est une
+      # garantie qui tient à une valeur vide, et c'est la faute du 09/09.
       - name: Purger les données de démonstration
-        if: ${{ inputs.reinitialiser_demo && inputs.cible != 'production' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.reinitialiser_demo && steps.cible.outputs.cible != 'production' }}
         env:
           PURGE_DEMONSTRATION_CONFIRMEE: "oui"
         run: pnpm exec tsx scripts/purge-demonstration.mts
@@ -152,7 +278,7 @@ jobs:
       # Un gardien statique vérifie que cette condition ne disparaît pas
       # (tests/unit/ci/cible-de-migration.test.ts).
       - name: Exécuter le seed (démonstration UNIQUEMENT)
-        if: ${{ inputs.cible != 'production' }}
+        if: ${{ steps.cible.outputs.cible != 'production' }}
         run: pnpm db:seed
 
       # ── Deux étapes, deux motifs d'échec distincts ────────────────────────

@@ -76,33 +76,27 @@ export type NonValideeDeclaree = {
  * assouplissement d'invariant, et le §8 en fait un point d'arrêt.
  */
 export const CONTRAINTES_NON_VALIDEES: readonly NonValideeDeclaree[] = [
-  {
-    table: "intervention",
-    contrainte: "intervention_suspension_a_son_motif",
-    motif:
-      "D104. Les interventions suspendues ANTÉRIEURES à L2-10 n'ont pas de " +
-      "motif, et personne ne peut en énoncer un à leur place : ce serait une " +
-      "donnée que nul n'a jamais dite. La règle vaut pour toute ligne nouvelle " +
-      "ou modifiée — une ligne ancienne qu'on touche doit se mettre en règle, " +
-      "et c'est le seul moment où quelqu'un est là pour dire le motif.",
-    rattrapage:
-      "R3-02 — renseigner le motif des suspensions antérieures, puis " +
-      "VALIDATE CONSTRAINT et retirer cette entrée.",
-  },
-  {
-    table: "intervention",
-    contrainte: "intervention_suspension_a_sa_date",
-    motif:
-      "D104, et pour une raison plus forte que sa jumelle : AUCUNE valeur de " +
-      "date ne dit son propre inconnu. Une date inventée alimenterait " +
-      "l'ancienneté que la file « en attente de pièce » affiche et que " +
-      "l'alerte « > 30 jours » du chapitre 16.1 surveille — on ne fabrique " +
-      "pas l'âge d'une attente.",
-    rattrapage:
-      "R3-02 — même rattrapage : la date se lit dans le journal d'audit, qui " +
-      "porte l'instant du changement de statut, et c'est une reprise, pas une " +
-      "invention.",
-  },
+  /*
+   * ── DEUX ENTRÉES SONT PARTIES LE 12/09/2026, ET C'EST CE RETRAIT QUI PROUVE
+   *    QUE LE RATTRAPAGE A EU LIEU (R3-02, D117) ──────────────────────────
+   *
+   * ~~`intervention_suspension_a_son_motif`~~ et
+   * ~~`intervention_suspension_a_sa_date`~~ sont désormais VALIDÉES : la
+   * migration `20260913250000_rattrapage_suspensions_r3_02` répare puis
+   * valide, dans le même commit.
+   *
+   * **La règle de réparation, en une phrase : une suspension qui ne peut pas
+   * dire pourquoi n'est pas une suspension.** La date se REPREND du journal
+   * d'audit (I8) ; le motif ne se reprend pas, et la ligne SORT alors de
+   * l'état — ce qui n'est pas une règle nouvelle mais la reprise ordinaire du
+   * produit. Les résidus sont effacés, le statut faisant foi.
+   *
+   * *Elles ne sont pas effacées d'ici : elles sont barrées.* Ce qui a été
+   * décidé un jour se relit, et le motif de D104 reste juste — c'est la
+   * situation qu'il décrivait qui a cessé d'exister. Le gardien exige
+   * d'ailleurs ce retrait dans les deux sens : une entrée dont la contrainte
+   * est redevenue VALIDÉE fait rougir avec le mot « rattrapage a eu lieu ».
+   */
   {
     table: "intervention",
     contrainte: "intervention_cloture_a_son_statut_facturation",

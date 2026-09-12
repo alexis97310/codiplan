@@ -368,6 +368,147 @@ describe("l'absence, sous le rôle applicatif", () => {
       });
     });
   });
+
+  /*
+   * ═══ L'ALERTE DE RUPTURE DE SERVICE (L3-04a, RG-PLA-06, D106) ═══════════
+   *
+   * La règle est éprouvée sans base dans
+   * `tests/unit/absences/rupture-de-service.test.ts`. Ce qui se mesure ICI est
+   * ce que la règle ne peut pas dire toute seule : **l'effectif est bien
+   * compté en base, sous le contexte cloisonné, sur les agences réellement
+   * touchées** — et il l'est DANS la transaction qui a déplanifié.
+   *
+   * *C'est la frontière que personne ne traverse qui casse* (§9, 08/09) : la
+   * règle a ses scénarios, le dépôt a les siens, et le maillon entre les deux
+   * est l'endroit où un défaut vivrait.
+   */
+  describe("l'alerte de rupture de service", () => {
+    const techniciensPoses: string[] = [];
+
+    async function poserUnTechnicien(utilisateurId: string): Promise<void> {
+      const id = uuidv7();
+      const pose = await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "technicien" ("id","societe_id","utilisateur_id","agence_id","modifie_le")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, now())
+         ON CONFLICT DO NOTHING`,
+        id,
+        SOCIETE_A,
+        utilisateurId,
+        AGENCE_A,
+      );
+      if (pose > 0) {
+        techniciensPoses.push(id);
+      }
+    }
+
+    afterEach(async () => {
+      for (const id of techniciensPoses.splice(0)) {
+        await clientOwner().$executeRawUnsafe(
+          `DELETE FROM "technicien" WHERE "id" = $1::uuid`,
+          id,
+        );
+      }
+    });
+
+    it("UN SEUL technicien actif dans l'agence — l'alerte NOMME l'agence et les interventions", async () => {
+      await poserUnTechnicien(TECHNICIEN);
+      const pose = await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI),
+        clientApp(),
+      );
+      expect(pose.accepte).toBe(true);
+
+      const id = await declarer("2026-09-14", "2026-09-18");
+      const decidee = await deciderAbsence(
+        SESSION,
+        { absence_id: id, decision: "validee" },
+        clientApp(),
+      );
+
+      expect(decidee.accepte).toBe(true);
+      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([
+        {
+          etat: "rupture",
+          agenceId: AGENCE_A,
+          interventions: [interventionId],
+        },
+      ]);
+    });
+
+    it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON — à DEUX, aucune alerte", async () => {
+      // *Une alerte qui se déclencherait toujours serait verte sur le scénario
+      // précédent et décrirait un avertissement qu'on apprend à ne plus lire*
+      // (§9, 11/09). Le second technicien est un COLLÈGUE, jamais l'absent.
+      await poserUnTechnicien(TECHNICIEN);
+      await poserUnTechnicien(UTILISATEUR_PAR_ROLE[Role.adv]);
+      const pose = await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI),
+        clientApp(),
+      );
+      expect(pose.accepte).toBe(true);
+
+      const id = await declarer("2026-09-14", "2026-09-18");
+      const decidee = await deciderAbsence(
+        SESSION,
+        { absence_id: id, decision: "validee" },
+        clientApp(),
+      );
+
+      expect(decidee.accepte).toBe(true);
+      // L'intervention est bien rendue — le TÉMOIN que l'alerte avait de quoi
+      // se déclencher, et qu'elle s'est tue pour la bonne raison.
+      expect(decidee.accepte && decidee.fiche.deplanifiees).toEqual([
+        interventionId,
+      ]);
+      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([
+        { etat: "effectif_suffisant", agenceId: AGENCE_A, effectif: 2 },
+      ]);
+    });
+
+    it("un REFUS ne rompt rien — il ne déplanifie rien", async () => {
+      await poserUnTechnicien(TECHNICIEN);
+      const pose = await deplacerIntervention(
+        SESSION,
+        deplacement(LUNDI),
+        clientApp(),
+      );
+      expect(pose.accepte).toBe(true);
+
+      const id = await declarer("2026-09-14", "2026-09-18");
+      const decidee = await deciderAbsence(
+        SESSION,
+        { absence_id: id, decision: "refusee" },
+        clientApp(),
+      );
+
+      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([]);
+    });
+
+    it("AUCUN CRÉNEAU N'EST PROPOSÉ — mesuré sur ce que la validation REND", async () => {
+      // *Un moteur qui propose sur un effectif d'un ne propose rien* (D106), et
+      // l'acceptation de L3-04a demande que ce soit MESURÉ. La mesure porte ici
+      // sur le chemin réel, pas sur la règle seule : rien dans ce que la
+      // transaction rend ne ressemble à une proposition.
+      await poserUnTechnicien(TECHNICIEN);
+      await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
+      const id = await declarer("2026-09-14", "2026-09-18");
+      const decidee = await deciderAbsence(
+        SESSION,
+        { absence_id: id, decision: "validee" },
+        clientApp(),
+      );
+
+      expect(decidee.accepte).toBe(true);
+      if (!decidee.accepte) return;
+      expect(Object.keys(decidee.fiche).sort()).toEqual([
+        "absence",
+        "deplanifiees",
+        "ruptures",
+      ]);
+    });
+  });
 });
 
 /** Sentinelle d'annulation : elle fait retomber la transaction, sans erreur. */

@@ -6,6 +6,8 @@ import { createOTP } from "@better-auth/utils/otp";
 import { maintenant } from "@/lib/calendar/fuseau";
 import { chromium, type Browser, type Page } from "@playwright/test";
 
+import { SURFACE_DECRAN } from "./lib/surface-decran";
+
 /**
  * LES CAPTURES D'ÉCRAN, PRISES PAR UN SCRIPT PLUTÔT QU'À LA MAIN.
  *
@@ -878,6 +880,42 @@ async function principal(): Promise<number> {
   return 0;
 }
 
+/**
+ * CE QUI A CHANGÉ DEPUIS LA PRISE, ET COMMENT LE SAVOIR (R1-02).
+ *
+ * Le README nommait le commit photographié — c'est la règle du §9 du 09/09. Il
+ * ne disait pas **comment un lecteur sait qu'aucun écran n'a bougé depuis**, et
+ * la commande qui le dit *était tapée à la main, donc pas tapée*. Elle est
+ * désormais nommée ici, avec l'empreinte contre laquelle elle compare, et la
+ * liste des chemins qu'elle tient pour surface d'écran — que le script ÉCRIT
+ * plutôt qu'un auteur ne la recopie.
+ */
+function sectionSurface(commit: { court: string; long: string }): string[] {
+  return [
+    "## Comment savoir si un écran a changé depuis cette prise",
+    "",
+    "**Une commande, et elle rend un ÉTAT — jamais un silence :**",
+    "",
+    "```bash",
+    "pnpm captures:etat",
+    "```",
+    "",
+    `Elle compare \`${commit.court}\` à \`HEAD\` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (\`--depth\`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*`,
+    "",
+    "| Chemin | | Pourquoi un changement ici change l'image |",
+    "|---|---|---|",
+    ...SURFACE_DECRAN.map(
+      (p) =>
+        `| \`${p.prefixe}\` | ${p.origine === "deduite" ? "déduite" : "déclarée"} | ${p.motif} |`,
+    ),
+    "",
+    "**La moitié « déduite » ne s'écrit nulle part, et c'est ce qui la rend sûre.** Un fichier qui rend du JSX, exporte les `metadata` de Next.js ou interroge l'écran **est** de la surface, par le fait ; un gardien exige que chacun tombe sous l'un de ces chemins (`tests/unit/captures/surface-decran.test.ts`). *Une page écrite demain dans un répertoire que personne n'a prévu fait rougir le jour même* — la liste est une déclaration confrontée à une source qu'elle ne contrôle pas, jamais une énumération tenue à la main.",
+    "",
+    "**Et ce que cette commande NE dit PAS est écrit plutôt que tu.** Elle répond « aucun fichier de RESTITUTION n'a changé », jamais « les écrans sont identiques » : ce qu'un écran affiche dépend aussi de ce que le métier CALCULE — `lib/interventions/statistiques.ts` décide du taux que le planning montre, et il n'est pas dans cette liste. *La frontière n'est pas « ce qui influence un écran » — ce serait le dépôt entier — mais « ce qui RESTITUE » : ce qui rend, ce qui nomme, ce qui colore.*",
+    "",
+  ];
+}
+
 function redigerReadme(
   commit: { court: string; long: string },
   quand: string,
@@ -947,6 +985,7 @@ function redigerReadme(
     "",
     "`COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.",
     "",
+    ...sectionSurface(commit),
     "## Ce que le script REFUSE de photographier",
     "",
     "Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page ne le porte pas — parce que la connexion a échoué, parce que l'écran a été renommé, parce qu'une redirection a mené ailleurs — **la capture est refusée et l'absence est écrite ici**. *Une capture d'un écran de connexion rangée sous le nom « planning » est pire qu'une capture absente : elle se relit comme une preuve.*",

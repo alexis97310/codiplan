@@ -54,24 +54,37 @@ describe("le seed n'atteint jamais la base de production (db-migrate.yml)", () =
     expect(sql).toContain("- production");
   });
 
+  /*
+   * ── L'ANCRE A CHANGÉ LE 12/09/2026, LA PROPRIÉTÉ NON (D116) ──────────────
+   *
+   * Ces deux scénarios lisaient `inputs.cible != 'production'`. Depuis
+   * l'amendement du §12, la cible est DÉCIDÉE une fois — `inputs.cible` vaut la
+   * chaîne vide sur un déclenchement automatique — et les étapes lisent sa
+   * sortie. *Ce n'est pas un test assoupli pour faire passer la vérification :
+   * la propriété gardée est la même, et elle est même plus forte* — une étape
+   * restée sur l'entrée brute se comporterait comme si la cible était vide, ce
+   * que la borne 1 de `migration-automatique.test.ts` refuse séparément.
+   */
   it("l'étape de seed est conditionnée à une cible qui n'est pas la production", () => {
     expect(etapeQuiJoue("pnpm db:seed")).toContain(
-      "inputs.cible != 'production'",
+      "steps.cible.outputs.cible != 'production'",
     );
   });
 
   it("la purge de démonstration l'est aussi", () => {
     expect(etapeQuiJoue("purge-demonstration.mts")).toContain(
-      "inputs.cible != 'production'",
+      "steps.cible.outputs.cible != 'production'",
     );
   });
 
-  it("la migration, elle, N'EST PAS conditionnée — le vert doit être mérité", () => {
+  it("la migration, elle, N'EST PAS conditionnée par la CIBLE — le vert doit être mérité", () => {
     // Le cas qui doit rester vert pour sa propre raison (§9, 11/09) : migrer
     // est précisément ce que la production attend de ce flux. Un gardien qui
     // exigerait la condition sur toutes les étapes serait vert aussi, et il
     // décrirait un flux inutilisable.
-    expect(etapeQuiJoue("prisma migrate deploy")).not.toContain("inputs.cible");
+    expect(etapeQuiJoue("run: pnpm prisma migrate deploy")).not.toContain(
+      "steps.cible.outputs.cible",
+    );
   });
 
   it("aucune EXPRESSION ne choisit un secret — le choix est dans un shell", () => {

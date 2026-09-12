@@ -173,35 +173,78 @@ describe("ce qui est un resserrement", () => {
   });
 });
 
-describe("les formes absentes du dépôt", () => {
-  // LE TÉMOIN DE CETTE ABSENCE. Le jour où une migration écrira l'une de ces
-  // trois formes, ce scénario rougit — non parce que la forme serait
-  // interdite, mais parce que la phrase « le dépôt ne les écrit pas », écrite
-  // le 11/09/2026 au README et dans le module, cesserait d'être vraie.
-  // *Une affirmation datée qui ne se re-mesure pas devient un vestige.*
-  it("VALIDATE CONSTRAINT, ATTACH PARTITION et EXCLUDE n'apparaissent nulle part", () => {
-    const executables = REELLES.map((m) =>
+describe("les formes absentes du dépôt — et celle qui a cessé de l'être", () => {
+  /*
+   * ── `VALIDATE CONSTRAINT` EST ÉCRIT DEPUIS LE 12/09/2026 (R3-02, D117) ────
+   *
+   * Ce témoin avait été posé le 11/09 pour une raison précise : *une
+   * affirmation datée qui ne se re-mesure pas devient un vestige.* Le dépôt
+   * disait « ces trois formes, le rejeu les reconnaît et le dépôt ne les écrit
+   * pas », et ce scénario devait rougir le jour où l'une d'elles apparaîtrait.
+   *
+   * **Il a rougi, et il avait raison.** La migration
+   * `20260913250000_rattrapage_suspensions_r3_02` valide les deux contraintes
+   * de suspension : c'est le geste même qui transforme « vaut pour les lignes
+   * nouvelles » en « vaut pour toutes ». *La phrase est donc retirée du README
+   * et du module, comme ce scénario le demandait.*
+   *
+   * **Ce qui le remplace n'est pas une exemption, c'est une INVERSION.** La
+   * forme n'est plus attendue absente : elle est attendue **exactement là où
+   * une décision l'a mise**. Une seconde migration qui validerait une
+   * contrainte sans passer par un arbitrage fera rougir ce fichier — et c'est
+   * le même service que rendait l'absence, sur une population qui a cessé
+   * d'être vide.
+   */
+  const VALIDATIONS_DECIDEES: readonly string[] = [
+    "20260913250000_rattrapage_suspensions_r3_02",
+  ];
+
+  const executables = (): string[] =>
+    REELLES.map((m) =>
       m.sql
         .split("\n")
         .filter((ligne) => !/^\s*--/.test(ligne))
         .join("\n"),
     );
-    expect(executables.length).toBeGreaterThan(40);
+
+  it("ATTACH PARTITION et EXCLUDE n'apparaissent toujours nulle part", () => {
+    const lues = executables();
+    expect(lues.length).toBeGreaterThan(40);
 
     for (const forme of [
-      /VALIDATE\s+CONSTRAINT/i,
       /ATTACH\s+PARTITION/i,
       /ADD\s+CONSTRAINT\s+"?[a-z0-9_]+"?\s+EXCLUDE\b/i,
     ]) {
-      const ecrivent = REELLES.filter((_, i) =>
-        forme.test(executables[i]!),
-      ).map((m) => m.nom);
+      const ecrivent = REELLES.filter((_, i) => forme.test(lues[i]!)).map(
+        (m) => m.nom,
+      );
       expect(
         ecrivent,
         `${forme} apparaît désormais : le rejeu la reconnaît, mais la phrase ` +
           "« le dépôt ne l'écrit pas » doit être retirée du README et du module.",
       ).toEqual([]);
     }
+  });
+
+  it("VALIDATE CONSTRAINT n'est écrit QUE là où un arbitrage l'a décidé", () => {
+    const lues = executables();
+    const ecrivent = REELLES.filter((_, i) =>
+      /VALIDATE\s+CONSTRAINT/i.test(lues[i]!),
+    ).map((m) => m.nom);
+
+    // TÉMOIN : zéro migration l'écrivant rendrait l'assertion vide, et la
+    // liste ci-dessus exempterait sans objet (§9, 31/08).
+    expect(
+      ecrivent.length,
+      "aucune migration ne valide de contrainte : VALIDATIONS_DECIDEES " +
+        "n'exempte plus rien, et cette liste doit être retirée",
+    ).toBeGreaterThan(0);
+
+    expect(
+      ecrivent.filter((nom) => !VALIDATIONS_DECIDEES.includes(nom)),
+      "valider une contrainte est un geste qui rend une règle vraie sur des " +
+        "lignes ANCIENNES — c'est un arbitrage, jamais une décision de ticket",
+    ).toEqual([]);
   });
 });
 

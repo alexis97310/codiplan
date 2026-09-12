@@ -1225,3 +1225,211 @@ sens.*
 
 `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `11:48:31 UTC` : **1631** unitaires ·
 **822** d'isolation · **27** Playwright.
+
+---
+
+# FILE DE NUIT DU 12/09 AU SOIR — la migration part seule, la suspension se répare
+
+*Nouvelle session, démarrée à froid. Quatre migrations avaient été fusionnées entre 21 h 55 et 22 h 27 ; quatre fois le code s'est déployé et la base est restée en arrière ; `/planning` est tombé ; la réparation est passée par une purge qui a effacé les comptes.*
+
+---
+
+## N1 — Une migration fusionnée atteint la base sans main (D116)
+
+### Ce qui a été mesuré avant d'écrire
+
+Le §12 disait vrai, il avait été relu, et il n'a pas tenu. **Le rappel et la mesure de R3-01 n'ont pas suffi non plus** : ils existaient le 11/09 et la panne a eu lieu le 12/09.
+
+### Le message d'échec initial
+
+Le contrôle de la borne 3 est passé du premier coup — *ce qui n'est pas une preuve.* Il a donc été mis en échec sur la faute qu'un correcteur bien intentionné écrirait : tolérer le code `CODIMA-NC` pour « ne pas embêter la démonstration ».
+
+```
+AssertionError: expected 'seed_seul' to be 'donnees_reelles'
+  ❯ tests/unit/ci/donnees-hors-seed.test.ts:75
+```
+
+*Le critère est la CLÉ, jamais la ressemblance* — une société baptisée « CODIMA Nouvelle-Calédonie » par une main humaine ne devient pas du seed en empruntant son nom.
+
+### Ce qui fait tout le travail, et ce n'est pas la règle
+
+`societe` est sous `FORCE ROW LEVEL SECURITY`. Un rôle de migration sans contexte voit **zéro société**, conclut « aucune étrangère », et **OUVRE sur une base pleine de données réelles**. *Il ne se tromperait pas : il ne regarderait rien.* D'où l'identité exemptée — **déplacée** depuis `scripts/inventaire.mts`, jamais recopiée.
+
+### Deux gardiens ont rougi, et ils avaient raison
+
+`cible-de-migration` et `purge-demonstration` tenaient la règle que D116 amende. Ils sont **réécrits, pas assouplis** ; celui de la purge garde désormais explicitement ce que l'absence de tout déclencheur automatique lui garantissait par ricochet. *Sa propre note prévoyait ce piège — « une graphie exacte refuse aussi ce qui est plus fort qu'elle » — et elle venait de le prouver sur elle-même.*
+
+### Commits
+
+`2e85483` — vert mesuré : `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `12:32:00 UTC`.
+
+### CE QUE JE N'AI PAS PU PROUVER, et la consigne le demandait
+
+> *« Prouve ensuite par une MESURE, pas par un raisonnement, que le job « déploiement » passe au vert de lui-même après une fusion touchant `prisma/`. »*
+
+**Je ne peux pas le mesurer cette nuit, et voici pourquoi :** cette mesure exige une fusion sur `main` portant une migration, puis l'observation du flux qu'elle déclenche. *La fusion est le geste ; je peux l'accomplir, mais la mesure vient APRÈS et dépend de secrets d'hébergeur que je ne vois pas.* Les quatre bornes sont tenues par un gardien **statique**, qui lit le fichier du flux et **ne peut pas dire ce qu'un exécuteur fera** — il l'annonce lui-même.
+
+**La première fusion portant une migration EST l'épreuve de D116**, et c'est celle de cette nuit : la branche porte `20260913250000_rattrapage_suspensions_r3_02`. *C'est le résumé de son exécution qu'il faut regarder demain, pas ce paragraphe.*
+
+---
+
+## N2 — Une suspension qui ne peut pas dire pourquoi n'est pas une suspension (R3-02, D117)
+
+### Le message d'échec initial, et il n'était pas celui que j'attendais
+
+La borne demandée par la consigne — refuser sur une base portant des données réelles — a été écrite **dans la migration**, les deux identifiants du seed recopiés dans le SQL. Le rejeu sur base âgée l'a démentie en une exécution :
+
+```
+ERROR: R3-02 refuse de réparer : 1 intervention(s) à rattraper appartiennent
+à une société HORS du jeu de démonstration.
+```
+
+**Le refus s'est déclenché sur un cas parfaitement légitime**, et il aurait fait pareil sur la production. *Une migration ne sait pas ce qu'est une base de démonstration : c'est une propriété du déploiement, pas du schéma.* La borne est retirée, le refus est motivé en D117, et ce qui la remplace est écrit — la règle n'invente jamais, le journal garde tout, et le refus par société vit dans le flux (borne 3 de D116), où il peut être vrai.
+
+### Un gardien a nommé ce que la relecture n'avait pas vu
+
+```
+« 20260913250000_rattrapage_suspensions_r3_02 » porte un bloc de garde qui lit
+« journal_audit » sous FORCE ROW LEVEL SECURITY sans lever le drapeau ni
+constater la levée.
+```
+
+Le bloc lit **deux** tables sous `FORCE`, et la première rédaction n'en levait qu'une. *Sur la base hébergée, la reprise des dates aurait lu zéro ligne de journal, n'aurait repris aucune date, et serait passée à la branche suivante sans rien dire.* **Troisième fois que cette règle mord son propre auteur cette semaine** — et c'est l'argument pour un gardien plutôt qu'une vigilance.
+
+### Le témoin posé la veille a rougi, pour la raison qui l'avait fait écrire
+
+```
+/VALIDATE\s+CONSTRAINT/i apparaît désormais : le rejeu la reconnaît, mais la
+phrase « le dépôt ne l'écrit pas » doit être retirée du README et du module.
+```
+
+Il est **inversé plutôt que retiré** : la forme n'est plus attendue absente, elle est attendue **là où un arbitrage l'a mise**.
+
+### Ce qui prouve que le rattrapage a eu lieu
+
+*Mesuré le 12/09/2026 sur le rejeu, qui porte depuis L1-08j la ligne même qui a cassé la production :* elle ressort en **`a_planifier`**, ses deux colonnes **nulles**, et les deux contraintes en **`convalidated = true`**. L'assertion du harnais qui affirmait `statut = 'suspendue'` décrivait le monde d'avant ; elle prouve désormais l'inverse.
+
+### Le chiffre
+
+`CONTRAINTES_NON_VALIDEES` passe de **trois à une**. *C'est la première fois que cette liste DESCEND.* `intervention_cloture_a_son_statut_facturation` reste ouverte, et D115 dit pourquoi.
+
+### Commits
+
+`5400020` — vert mesuré : `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `12:54:38 UTC` : **1671** unitaires · **822** d'isolation · **27** Playwright.
+
+---
+
+## N3 — La prise de vue, et R1-02 dans le même geste
+
+### La première chose que la commande a dite
+
+```
+VERDICT : 51 fichier(s) de surface ont changé depuis b8c3f76.
+```
+
+*Les images étaient périmées, et rien dans le dossier ne le disait* — c'est exactement ce que R1-02 énonçait.
+
+### Le troisième verdict s'est déclenché à sa première exécution réelle
+
+```
+VERDICT : INDÉCIDABLE — le commit b8c3f76 n'existe pas dans ce clone —
+historique tronqué (`--depth`) ou réécrit.
+```
+
+**Ce clone était superficiel** (55 commits sur 355). *Sans ce troisième état, `git diff` aurait rendu une liste vide et « je ne sais pas » se serait lu « rien n'a changé »* — le silence qui a exactement la forme du succès.
+
+### Les captures
+
+**48 images à `23610b9`**, prise lue à l'horloge : `2026-09-12 13:04 UTC`. **Quatre refus**, et ce sont les **mêmes** que le 10/09 — **re-mesurés plutôt que recopiés** :
+
+```
+Refus : L'identité portail@example.test n'est pas habilitée sur la société
+« CODIMA Nouvelle-Calédonie ».
+```
+
+*La chaîne d'ENTRÉE du portail reste murée un cran au-dessus de ce que D92 a ouvert.*
+
+### Ce que l'image a montré, et qu'aucune assertion n'aurait dit
+
+**Le planning est une GRILLE** — créneaux colorés, file d'attente à droite, taux compact sous chaque nom (18 %, 75 %, 69 %), panneau de charge portant les deux termes et la formule. *D111 et D56 côte à côte, chacun à sa place.*
+
+**Et une fausse alerte que l'image a levée, vérifiée plutôt que crue :** le nom de l'agence apparaît sous chaque technicien, ce qui semble contredire D111 (« le pourcentage, et rien d'autre »). **Mesuré au code :** cette ligne est `ouTravaille`, l'étiquette de la LIGNE, antérieure à D111 ; le taux lui-même est rendu nu par `TauxCompactAffiche`. *D111 porte sur ce qui accompagne le CHIFFRE, pas sur ce qui identifie la ligne.* Aucun défaut — mais il a fallu ouvrir le fichier pour le dire.
+
+### Le mot de passe
+
+**Tiré au sort, écrit dans aucun fichier du dépôt (I9).** Le semis ne pose aucun mot de passe — *la base est en ligne et le dépôt est public* —, et la seule porte est le lien de premier accès.
+
+### Commits
+
+`23610b9` (R1-02) et `7a87b6e` (les images) — vert mesuré : `pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `13:19:18 UTC`.
+
+### UN ROUGE, ET IL N'ÉTAIT PAS DANS LE CODE
+
+Deux `verify:full` ont rougi cette nuit sur le même symptôme — **huit scénarios Playwright, tous ceux qui ouvrent une session**, avec `connexion?motif=auth.refus`. **Ni l'un ni l'autre n'était un défaut du dépôt :**
+
+1. la première fois, `E2E_DATABASE_URL` n'était pas posée et aucun PostgreSQL n'écoutait sur 5433 — *la préparation retourne alors sans rien faire, et chaque scénario échoue en nommant l'authentification* ;
+2. la seconde, **mon propre serveur de prise de vue occupait encore le port 3100** — le harnais a mesuré une application branchée sur la base des captures. *C'est littéralement l'avertissement que le README des captures porte depuis le 10/09.*
+
+*Aucun des deux ne se lit dans son message d'échec*, et c'est à noter : `auth.refus` est un message juste sur une cause fausse — la famille du 08/09.
+
+---
+
+## N4 — La condition de D111 vise la maille (Q6, issue 2)
+
+La condition portait sur `technicien.agence_id` ; le taux dépend de `(technicien, agence de l'INTERVENTION)`. **Le gardien change de sujet avec elle** : il lisait la forme du schéma, il lit désormais la maille — et le cas qui doit rester vert pour sa propre raison est que `technicien.agence_id` **existe toujours** et décide encore de la majoration (D12) et du calendrier de conflit (D13).
+
+*Éprouvé en fusionnant les clés de regroupement sur le technicien seul :*
+
+```
+AssertionError: expected 'import { periodesValidees } from "@/l…' to match
+/cle\.technicienId[^\n]*\|[^\n]*cle\.agenceId/
+```
+
+### Commits
+
+`ec4395e`.
+
+---
+
+## CE QUI EST ÉCRIT AU RECUEIL
+
+| | |
+|---|---|
+| **D116** | une migration fusionnée atteint la base sans main — quatre bornes, condition de réouverture : *le jour où le refus de la borne 3 se déclenche sur la démonstration* |
+| **D117** | une suspension qui ne peut pas dire pourquoi n'est pas une suspension — condition de réouverture : *le jour où une base portera une suspension RÉCENTE, dont un humain peut encore dire le motif* |
+| **D111** | condition de réouverture **réécrite** : la maille du taux, et non la colonne de rattachement |
+
+## CE QUI EST EN ATTENTE
+
+**Q7** — les quatre valeurs d'origine d'une information de VGP (posée hier soir).
+**Q8** — **par quel canal un lien de premier accès parvient-il à une personne ?** *Écrite sans être tranchée : un canal d'envoi demande un service externe et une clé.* C'est la question qui décide si Alexis peut rentrer dans son application depuis un téléphone.
+
+---
+
+## N5 — La suite de la file
+
+### L3-04a — L'alerte de rupture de service (livré)
+
+La règle est écrite et éprouvée ; **l'écran est scindé en L3-04b, BLOQUÉ**, et ce n'est pas une réduction de périmètre en silence. *Mesuré : `app/(back-office)/` ne porte aucun écran d'absence, la maquette ne nomme « absence » que **deux fois et dans la prose** de RG-PLA-06, et la barre de D95 est une liste close de onze entrées qu'une douzième ferait rougir à raison.* **Ce qui manque n'est pas un écran pour l'alerte : c'est l'écran d'absence tout entier.**
+
+**Et j'ai failli poser un silence moi-même.** `groupBy` ne rend **aucune ligne** pour une agence sans technicien actif : la première rédaction rangeait donc l'agence qui n'a plus personne sous « effectif inconnu », c'est-à-dire **sous le verdict qui n'alerte PAS** — la rupture la plus complète qui soit, tue. *L'absence d'une ligne est une mesure, pas une absence de mesure, quand on sait quelles clés on a demandées.*
+
+### TROIS MARQUEURS DE FILE QUI MENTAIENT
+
+*C'est la leçon de L9-11 d'hier soir, rejouée trois fois dans l'AUTRE sens : des tickets marqués `LIBRE` que leur propre texte ferme.* Chacun a coûté une lecture pour découvrir qu'il n'y avait rien à faire.
+
+| | Ce que le marqueur disait | Ce que la mesure dit |
+|---|---|---|
+| **L3-15** | LIBRE | ni rapport, ni moteur, ni canal — le modèle `Intervention` ne porte **aucune** colonne de temps, diagnostic, checklist, photo ou signature (les trois occurrences sont des **commentaires**) ; `lib/pdf/` est `(prévu)` ; `react-pdf` et `resend` ne sont **pas installés** |
+| **L0-12** | LIBRE | son déclencheur n'a pas sonné — `CODIMA-NC` **59 × 500 = 29 500 ms**, `CODIMA-EU` **46 × 500 = 23 000 ms**, budget **120 000 ms** |
+| **L7-02** | LIBRE | `app/(editeur)/` n'existe pas, et la barre porte `chemin: null, ouvertePar: "lot 7"` — une entrée **INERTE**, ce que D95 distingue d'une entrée absente |
+
+**Le gardien de cohérence du backlog a exigé la relecture des sources à chaque fois** — D24, D96, D50, D95 — *et c'est exactement ce pour quoi il existe* : il ne prouve pas la cohérence, il force la relecture à l'instant où elle est due.
+
+### Vert mesuré
+
+`pnpm verify:full` → **EXIT=0**, le 12/09/2026 à `13:44:26 UTC` : **1681** unitaires · **826** d'isolation · **27** Playwright.
+
+### Le prochain ticket libre
+
+**L2-13 — le lien d'invitation au portail.** *Il est réellement ouvert* : D96 l'a tranché et n'exige **aucun expéditeur** — le lien est engendré dans le back-office, l'agence le transmet par ses propres moyens. Une table, quatre garanties tenues par la base (usage unique, durée limitée, révocable, tracé), et un écran. *Il ne résout pas Q8 : Alexis est un utilisateur INTERNE, et L2-13 ouvre la porte des clients.*
