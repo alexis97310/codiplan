@@ -287,11 +287,17 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 - **s'assurer que `NODE_ENV=production` est bien posé chez l'hébergeur.** `next start` le pose ; une commande de démarrage exotique pourrait ne pas le faire, et cette limite-là serait alors désactivée.
 
 
-### 5.4 — Un compte habilité sur plusieurs sociétés arrive dans une impasse
+### 5.4 — ~~Un compte habilité sur plusieurs sociétés arrive dans une impasse~~ — LEVÉE, et elle l'était depuis R2-11
 
-Il se connecte, arrive, et ne peut rien lire : le chemin de connexion n'active une société que s'il y en a **exactement une**, et aucun écran ne laisse en désigner une. Sans conséquence aujourd'hui — aucun compte réel n'est dans ce cas — et le premier le sera probablement celui de la direction.
+*La phrase est barrée et non effacée : elle a gouverné cette note, et ce qui a été décidé un jour se relit.* Elle disait : « il se connecte, arrive, et ne peut rien lire […] aucun écran ne laisse en désigner une ».
 
-**Constaté et nommé** : `tests/isolation/premier-ecran.test.ts`, section « L'IMPASSE MULTI-SOCIÉTÉ », et ticket **L2-11** au backlog. C'est un rendez-vous, pas une embuscade.
+**Mesuré le 13/09/2026**, serveur de production, base semée, `direction@codima.test` (habilitée sur CODIMA-NC **et** CODIMA-EU) : arrivée en `sans_societe`, et `/arrivee` rend **deux** formulaires postant vers `/api/session/societe`, chacun portant « Travailler sur cette société ». **Le sélecteur existe** — `app/(back-office)/arrivee/page.tsx`, composant `Choix`.
+
+**Ce qui reste vrai**, et c'est la garantie et non le défaut : le chemin de connexion n'active une société que s'il y en a **exactement une** (D35 — la connexion n'établit que l'identité), et sans société active rien de cloisonné ne se lit. La différence est qu'il existe désormais un écran pour en nommer une.
+
+**Pourquoi la phrase a survécu deux jours à l'écran qui la démentait**, et c'est la seule chose à retenir : *cet état n'avait jamais été photographié.* Les captures de `/arrivee` étaient prises **après** que la prise de vue avait cliqué une société — elles montraient une société active et un bouton d'entrée, jamais le choix d'un compte qui arrive. La passe **« sans-societe »** de `scripts/captures.mts` produit désormais cette image (`docs/captures/arrivee-sans-societe--*.png`). *Une assertion dit qu'une valeur est juste ; seule une image dit qu'un écran a du sens* (§9, 09/09).
+
+`tests/isolation/premier-ecran.test.ts` garde toujours ce chemin, et son en-tête dit maintenant ce qu'il mesure : **la couche d'authentification, pas l'écran**. Ses assertions n'ont pas bougé — elles étaient justes ; c'est ce que l'en-tête en concluait qui ne l'était pas.
 
 ### 5.5 — Deux points d'hygiène, sans mesure derrière eux
 

@@ -286,37 +286,47 @@ describe("ENRÔLEMENT REQUIS — le jugement, et son ordre", () => {
 });
 
 /**
- * L'IMPASSE MULTI-SOCIÉTÉ — un RENDEZ-VOUS, pas une embuscade (ticket L2-11).
+ * ~~L'IMPASSE MULTI-SOCIÉTÉ — un RENDEZ-VOUS, pas une embuscade (ticket L2-11).~~
  *
- * ## Ce que ce fichier constate, et pourquoi il ne le répare pas
+ * **L'IMPASSE EST LEVÉE. CE QUE CE FICHIER MESURE EST LE CHEMIN D'API, ET IL
+ * NE L'A JAMAIS SU** *(13/09/2026)*.
  *
- * D61 l'a écrit noir sur blanc : *cette décision n'ouvre aucun sélecteur de
- * société.* Le premier écran active la société d'un compte qui n'en a qu'une, et
- * se contente de DIRE qu'aucune n'est active quand il y en a plusieurs. Le
- * sélecteur est un écran de back-office, et il viendra avec lui.
+ * ## Ce que ces deux scénarios mesurent réellement
  *
- * **Le coût de cette phrase n'était écrit nulle part, et c'est ce qui la rendait
- * dangereuse.** Un compte habilité sur deux sociétés se connecte, arrive, et ne
- * peut RIEN faire : aucun chemin de l'application ne lui donne une société
- * active, et sans société active aucune donnée cloisonnée ne se lit. Ce n'est
- * pas une gêne, c'est une impasse — et elle est aujourd'hui sans conséquence
- * seulement parce qu'aucun compte réel n'est dans ce cas.
+ * Ils appellent `etatArrivee`, lisent du cloisonné sous contexte, et appellent
+ * `basculerSociete`. **Ils ne rendent aucun écran** : ni `app/(back-office)/
+ * arrivee/page.tsx`, ni aucun composant. Leurs assertions restent donc justes
+ * — un compte habilité sur deux sociétés arrive bien SANS société active, et
+ * sans société active rien de cloisonné ne se lit.
  *
- * *Le premier le sera probablement celui de la direction* : une personne
- * habilitée à la fois sur CODIMA-NC et sur CODIMA-EU. Le jour où ce compte est
- * ouvert, l'impasse cesse d'être théorique — et elle se découvrira à l'écran,
- * pas dans un document.
+ * *Ce qui était faux est ce que l'en-tête en CONCLUAIT.* Il écrivait « aucun
+ * chemin de l'application ne lui donne une société active », et en tirait une
+ * impasse. **Mesuré le 13/09/2026 sur le serveur de production, base semée,
+ * `direction@codima.test` habilitée sur CODIMA-NC et CODIMA-EU :** arrivée en
+ * `sans_societe`, `/arrivee` rend **deux** formulaires postant vers
+ * `/api/session/societe`, chacun portant « Travailler sur cette société ».
+ * Le chemin existe, et il existait depuis R2-11.
  *
- * **Même traitement que la console éditeur (L1-02c) et que L7-01** : une épreuve
- * qui constate l'impasse et la NOMME. *Le silence a exactement la forme du
- * succès* (§9, 31/08) — une limite qu'aucun scénario ne prononce se découvre en
- * exploitation, et le rendez-vous devient une embuscade.
+ * ## POURQUOI L'ERREUR A TENU DEUX JOURS, ET C'EST LA LEÇON
  *
- * Ce fichier ne construit pas le sélecteur : ce serait un écran de lot 2 écrit
- * en avance, exactement ce que l'étroitesse de L1-02f refusait.
+ * Le sélecteur n'est gardé par **aucune** des deux conditions que l'on croyait
+ * — il est rendu dès que `societes.length > 0`, quelle que soit l'issue. Une
+ * épreuve qui mesure la COUCHE et une prose qui parle de l'ÉCRAN peuvent donc
+ * rester vraies et fausses en même temps, chacune sur son étage : *le silence
+ * a exactement la forme du succès* (§9, 31/08), et ici le silence était
+ * l'absence de toute image de cet état — corrigée le même jour par la passe
+ * « sans-societe » de `scripts/captures.mts`.
+ *
+ * **L'en-tête d'origine est barré et non effacé** : il a gouverné la lecture de
+ * ce fichier, et ce qui a été écrit un jour se relit.
+ *
+ * Ce fichier ne construit toujours pas le sélecteur, et ce n'est plus une
+ * abstention : **c'est la bonne frontière**. Ces scénarios gardent la couche
+ * d'authentification ; ce qu'un écran affiche se garde par un rendu et par une
+ * image, jamais par une assertion sur une valeur.
  */
-describe("L'IMPASSE MULTI-SOCIÉTÉ — constatée et nommée (L2-11)", () => {
-  it("deux habilitations : le compte arrive sans société active, et aucun chemin ne lui en donne une", async () => {
+describe("LE CHEMIN D'API D'UN COMPTE MULTI-SOCIÉTÉ (L2-11)", () => {
+  it("deux habilitations : le compte arrive sans société active, et ne lit rien tant qu'il n'en a pas nommé une", async () => {
     const { email, utilisateurId } = await compte("impasse", [
       { societeId: SOCIETE_A, role: Role.adv },
       { societeId: SOCIETE_B, role: Role.adv },
@@ -355,10 +365,11 @@ describe("L'IMPASSE MULTI-SOCIÉTÉ — constatée et nommée (L2-11)", () => {
     );
     expect(
       agences,
-      "RENDEZ-VOUS L2-11 — le sélecteur de société. Tant qu'il n'existe pas, " +
-        "un compte habilité sur plusieurs sociétés ne peut RIEN lire : il n'a " +
-        "aucun moyen d'en activer une. Voir docs/backlog.md, section « Tickets " +
-        "déjà arrêtés hors du chemin critique ».",
+      "Sans société active, un compte habilité sur plusieurs sociétés ne lit " +
+        "RIEN de cloisonné — et c'est la garantie, pas le défaut. Ce qui lui " +
+        "permet d'en nommer une est l'ÉCRAN de /arrivee (R2-11), que ce " +
+        "fichier ne rend pas : voir la passe « sans-societe » de " +
+        "scripts/captures.mts, et docs/captures/.",
     ).toEqual([]);
 
     // TÉMOIN DE NON-VACUITÉ : les agences EXISTENT. Sans lui, « zéro » ne
@@ -371,7 +382,7 @@ describe("L'IMPASSE MULTI-SOCIÉTÉ — constatée et nommée (L2-11)", () => {
     expect(sousA.length).toBeGreaterThan(0);
   });
 
-  it("la seule sortie existante est de NOMMER la société — ce qu'aucun écran ne permet", async () => {
+  it("la sortie est de NOMMER la société — ce que l'écran de /arrivee permet depuis R2-11", async () => {
     const { email, utilisateurId } = await compte("impasse-sortie", [
       { societeId: SOCIETE_A, role: Role.adv },
       { societeId: SOCIETE_B, role: Role.adv },
@@ -379,9 +390,10 @@ describe("L'IMPASSE MULTI-SOCIÉTÉ — constatée et nommée (L2-11)", () => {
     const entetes = await connecter(email);
     const session = await obtenirSession(entetes, auth);
 
-    // `basculerSociete` fonctionne : le verrou n'est pas là. Ce qui manque est
-    // l'ÉCRAN qui laisse désigner la société — un test peut passer
-    // l'identifiant en dur, un utilisateur ne le peut pas (D61).
+    // `basculerSociete` fonctionne, et c'est ce que l'écran APPELLE : le
+    // formulaire de `/arrivee` poste vers `/api/session/societe`, qui n'est
+    // qu'un passe-plat vers elle. Ce scénario nomme l'identifiant en dur là où
+    // l'écran le tient d'un champ caché — même appel, une saisie en moins.
     const bascule = await basculerSociete(
       {
         utilisateurId,
