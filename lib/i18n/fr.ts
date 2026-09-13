@@ -872,7 +872,13 @@ export const fr = {
   "parc.famille": "Famille",
   "parc.vide": "Aucune machine n'est enregistrée pour cette société.",
   "parc.total": "machines",
+  // LE SINGULIER EST UNE CLÉ, jamais un « s » retranché : « 1 fiches à
+  // compléter » a été lu SUR UNE IMAGE le 13/09/2026, et aucune assertion ne
+  // pouvait le dire — le cas n'existe que sur un parc qui porte exactement une
+  // fiche incomplète.
+  "parc.total_un": "machine",
   "parc.incompletes": "fiches à compléter",
+  "parc.incompletes_un": "fiche à compléter",
   "parc.a_completer": "À compléter",
   "parc.non_synchronisee": "non synchronisée",
   // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
@@ -912,13 +918,34 @@ export const fr = {
   "vgp.information.recue": "Information reçue",
   "vgp.information.depuis_inconnu":
     "sans information, et sans date de mise en service pour dire depuis quand",
-  "vgp.information.rien_ne_remplit":
-    "Aucune information d'organisme n'est enregistrable aujourd'hui : le rapport de v\u00e9rification est un document de classe client (L9-09), et rien ne le distingue encore d'un autre document. Toutes les machines soumises sont donc « sans information », et c'est le registre qui dit vrai.",
+  // L'ÉCHÉANCE DÉDUITE (R3-11) — une DATE, jamais un verdict. « Dépassée »
+  // dit qu'une date déclarée est passée ; il ne dit ni « non conforme », ni
+  // « en règle » — CODIPLAN n'affirme jamais la conformité (D88).
+  "vgp.colonne_echeance": "Échéance déduite",
+  "vgp.echeance.declaree": "Prochaine échéance",
+  "vgp.echeance.depassee": "Échéance dépassée",
+  "vgp.echeance.jours": "jours",
+  "vgp.echeance.sans_rythme":
+    "aucun rythme déclaré : rien à déduire de cette information",
+  // ~~« Aucune information d'organisme n'est enregistrable aujourd'hui […]
+  // toutes les machines soumises sont donc sans information »~~ — **CETTE
+  // PHRASE ÉTAIT DEVENUE FAUSSE**, et l'écran la démentait dans la même
+  // fenêtre : D114 a posé `vgp_verification` le 12/09/2026, et deux lignes
+  // affichaient « Information reçue » juste en dessous. *Mesuré le 13/09/2026
+  // SUR UNE IMAGE, par aucune assertion* — un texte qui vieillit ne rougit
+  // pas. Ce qui la remplace dit ce qui reste vrai, et le restera : le silence
+  // du registre est une information, jamais un « à jour ».
+  "vgp.information.ce_que_le_silence_dit":
+    "Une machine dont personne ne nous a rien dit est « sans information » : le registre rapporte ce qu'on lui a transmis, et rien d'autre. La date de la vérification décide de l'échéance — pas celle de la saisie.",
   // LA MOITIÉ DÉTECTIVE (L9-03) — sans elle, la troisième valeur ne sert à rien.
   "vgp.indetermines.titre": "Familles \u00e0 d\u00e9terminer",
   "vgp.indetermines.sous_titre":
     "Une famille na\u00eet \u00ab \u00e0 d\u00e9terminer \u00bb : une case d\u00e9coch\u00e9e serait indiscernable d'une famille que personne n'a examin\u00e9e, et un pont \u00e9l\u00e9vateur sortirait du registre en silence.",
   "vgp.indetermines.lien": "familles restent \u00e0 d\u00e9terminer",
+  // LE SINGULIER EST UNE CLÉ — « 1 familles restent à déterminer » a été lu
+  // sur une image le 13/09/2026, comme « 1 fiches à compléter » du parc : le
+  // cas n'existe que sur un parc qui en porte EXACTEMENT une.
+  "vgp.indetermines.lien_une": "famille reste \u00e0 d\u00e9terminer",
   "vgp.indetermines.aucune":
     "Toutes les familles ont \u00e9t\u00e9 examin\u00e9es. Une famille cr\u00e9\u00e9e demain reviendra dans cette liste.",
   "vgp.indetermines.retour": "\u2039 Retour au registre",

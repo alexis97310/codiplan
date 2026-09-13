@@ -536,7 +536,13 @@ async function seed(): Promise<void> {
         // `COMPTES_PORTAIL.perimetre_sites` retrouve toujours le même
         // identifiant.
         const sites = clients.flatMap((client) =>
-          client.sites.map((site) => ({ site, clientId: client.id })),
+          client.sites.map((site) => ({
+            site,
+            clientId: client.id,
+            // Un lieu est OUVERT quand son client l'est aussi : un client
+            // inactif garde ses lieux, mais on n'y travaille plus.
+            ouvert: client.actif && site.actif,
+          })),
         );
         etape(`${societe.code} — sites de démonstration : ${sites.length}`);
 
@@ -590,9 +596,10 @@ async function seed(): Promise<void> {
         // Les dates sont posées en UTC et jamais par un `Date` local : UTC+11
         // décale le jour d'un cran, et une intervention du 1er se rangerait au
         // 31 (I3 n'est pas seul à souffrir des fuseaux).
-        const sitesEcrits = sites.map(({ site, clientId }) => ({
+        const sitesEcrits = sites.map(({ site, clientId, ouvert }) => ({
           siteId: site.id,
           clientId,
+          ouvert,
           agenceId: identifiantsAgences.get(site.agence_code),
         }));
         // **L'IDENTIFIANT EST DÉRIVÉ DE LA SOCIÉTÉ** *(10/09/2026)*. Il était
@@ -870,9 +877,17 @@ async function seed(): Promise<void> {
           `${societe.code} — machines de démonstration : ` +
             `${MACHINES_DEMONSTRATION.length}`,
         );
+        // **LES MACHINES VONT SUR LES LIEUX OUVERTS, et c'est une image qui l'a
+        // dit** *(13/09/2026)*. La première prise de vue montrait deux
+        // compresseurs « En service » chez « Ancien client », sur « Ancien
+        // chantier (démonstration, inactif) » : *c'est défendable dans la vraie
+        // vie — un client parti garde ses machines — et illisible sur une
+        // capture*, où l'arbitre du projet lit une contradiction avant de lire
+        // un parc. Le jeu de démonstration doit se lire d'un coup d'œil.
+        const lieuxOuverts = sitesEcrits.filter((lieu) => lieu.ouvert);
         const identifiantsMachines = new Map<number, string>();
         for (const machine of MACHINES_DEMONSTRATION) {
-          const lieu = sitesEcrits[machine.siteRang % sitesEcrits.length];
+          const lieu = lieuxOuverts[machine.siteRang % lieuxOuverts.length];
           const modeleId = identifiantsModeles.get(machine.modeleRang);
           if (lieu === undefined || modeleId === undefined) {
             throw new Error(

@@ -783,6 +783,71 @@ l'image en porte la trace.
 
 ---
 
+## J14 — LA FILE ÉTAIT VIDE, ET UNE IMAGE A ROUVERT TROIS DÉFAUTS
+
+La prise de vue devait être le dernier geste. Elle a été la mesure la plus productive de
+la journée — **parce que le parc venait enfin d'avoir des lignes** : trois défauts
+n'existaient que sur un écran qui a quelque chose à montrer.
+
+### « 1 fiches à compléter » et « 1 familles restent à déterminer »
+
+Deux libellés au pluriel en dur, dans deux écrans différents. *Le cas n'existe que sur un
+parc qui porte EXACTEMENT une fiche incomplète et exactement une famille indéterminée* —
+la veille encore, le parc était vide et le défaut invisible. Le singulier est désormais une
+**clé du dictionnaire**, jamais un `s` retranché : le français ne s'accorde pas par
+troncature, et une règle de morphologie écrite dans un composant serait une chaîne visible
+en dur.
+
+**Et le gardien de L0-11 a refusé ma première réparation, à raison** : je passais la CLÉ en
+argument depuis du JSX, et *il ne peut pas distinguer une clé d'un libellé*. Les deux
+libellés sont donc résolus par l'appelant.
+
+### Un paragraphe qui mentait, démenti par l'écran lui-même
+
+> « Aucune information d'organisme n'est enregistrable aujourd'hui […] Toutes les machines
+> soumises sont donc « sans information », et c'est le registre qui dit vrai. »
+
+**D114 a posé `vgp_verification` la veille au soir**, et deux lignes affichaient
+« Information reçue » quinze centimètres plus bas. *Un texte qui vieillit ne rougit pas* :
+aucune assertion ne pouvait le dire, et il aurait fallu que quelqu'un relise la phrase à
+côté du tableau. C'est ce qu'une image fait, et c'est tout ce qu'elle fait.
+
+### Le registre calculait une échéance et ne la montrait pas (R3-11)
+
+`NUS-SPL-2022-0007` : vérifiée il y a **quatorze mois**, rythme de **six mois précisé au
+modèle**. Échéance dépassée de huit mois, **et la ligne ressemblait à une ligne
+renseignée**. *La valeur était déjà calculée par `etatDeLInformation` et rendue par
+`listerLeRegistre` ; seule la colonne manquait.*
+
+Le ticket a été écrit, puis livré dans la foulée — la file l'a nommé dès qu'il a existé.
+**Aucune durée nouvelle** n'a été écrite (L9-05) : la date vient d'une périodicité saisie,
+l'écart d'une soustraction déjà faite. Et le gardien des verdicts **ne voyait pas cette
+famille de libellés** — `vgp.echeance.*` est la troisième, il n'en connaissait que deux.
+Élargi, il a mordu aussitôt :
+
+> `expected 'une machine dont personne ne nous a r…' not to contain 'a jour'`
+
+…sur une phrase à moi qui **citait** « à jour » pour dire que le registre ne le dit jamais.
+*Le gardien ne lit pas les négations, et il a raison de ne pas essayer.*
+
+### Ce que la démonstration racontait sans le vouloir
+
+Deux compresseurs « En service » chez **« Ancien client »**, sur « Ancien chantier
+(démonstration, inactif) ». *C'est défendable dans la vraie vie — un client parti garde ses
+machines — et illisible sur une capture*, où l'arbitre lit une contradiction avant de lire
+un parc. Les machines vont désormais sur les lieux **ouverts**.
+
+### Et la prise de vue a coûté quatre passes
+
+La première a donné 72 images et les défauts ci-dessus. La deuxième, après réparation.
+La troisième a **retiré quatre images** — les écrans d'enrôlement se photographient avant
+l'activation du second facteur, et *la clé d'un enrôlement passé n'est pas rejouable* : il
+faut repartir d'une base fraîchement semée, ce que le refus dit en toutes lettres. La
+quatrième, sur base fraîche, a rendu les 72. **Le script ne s'est trompé à aucun moment ;
+c'est moi qui ai voulu rejouer sur une base qui avait déjà servi.**
+
+---
+
 ## LA MESURE QUE JE NE TRANCHE PAS — le trajet dans le taux de charge (D107)
 
 *Écrite ici pour être relisible dans quelques semaines, et pour rien d'autre.* Sur le jeu
