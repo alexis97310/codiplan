@@ -879,21 +879,35 @@ pas rouverte, rien n'est plafonné, et aucun code n'a bougé de ce fait.
 | `97c3504` | R2-01 — le second thème |
 | `c1ffd56`, `7acb469` | la prise de vue : 72 images |
 | `79132e7` | R2-07 — le portail suit la maquette, et `motDansUnePhrase` |
+| `b9f47ec` | R2-20 — le catalogue de forfaits a enfin un chemin d'écriture |
+| `f689de0` | R3-10 et R3-05 — le semis pose un parc ; deux témoins creux, un budget qui ne comptait pas |
+| `9b76336` | R3-11 — l'échéance déduite s'affiche ; deux libellés et un paragraphe qui mentaient |
+| `dd8c2a6` | la prise de vue au commit `9b76336` : 72 images |
 
 *Chaque ligne « vert mesuré » de ce journal nomme `pnpm verify:full` et son heure, lue à
-l'horloge.* **Le vert de CLÔTURE : `pnpm verify:full` → EXIT=0, 1734 unitaires · 826 d'isolation ·
-27 Playwright, le 12/09/2026 à `22:18:08 UTC`.**
+l'horloge.* **Le vert de CLÔTURE : `pnpm verify:full` → EXIT=0, 1754 unitaires · 836 d'isolation ·
+27 Playwright, le 13/09/2026, lancé à `00:14:08 UTC` et rendu à `00:18:51 UTC`.**
+
+*Les deux suites ont grossi de vingt et un scénarios : dix pour l'écriture des forfaits, sept
+pour le parc de démonstration, cinq pour l'échéance affichée, un pour le budget du semis —
+et deux témoins qui passaient au vert sans rien regarder ont été refermés.*
 
 ## CE QUI EST EN ATTENTE
+
+**LA FILE EST ÉPUISÉE.** `pnpm file` ne nomme plus aucun travail LIBRE — *« ce n'est pas
+une erreur, c'est un état »*. Dix tickets ont changé d'état aujourd'hui, chacun avec sa
+mesure : **livrés** — R1-01, R1-02, R1-10, R2-20, R3-08, R3-09, R3-10, R3-11 ; **bloqués**
+— L2-13, L7-01, L7-03, R3-05. *Un ticket dont l'état ment est pire qu'un ticket bloqué, et
+chacun coûtait une lecture pour découvrir qu'il n'y avait rien à faire.*
 
 **Une question nouvelle : Q9** — *le lien d'invitation : qui peut relire la trace qu'il
 laisse ?* Elle bloque **L2-13**, donc l'entrée des clients au portail. Q7 et Q8 sont
 tranchées et inscrites ; les six précédentes l'étaient déjà.
 
-**Six tickets sont passés de `LIBRE` à `BLOQUÉ` ou `LIVRÉ` avec leur mesure** — L2-13,
-L7-01, L7-03 d'un côté ; R1-01, R1-02, R1-10 de l'autre. *Un ticket dont l'état ment est
-pire qu'un ticket bloqué, et chacun coûtait une lecture pour découvrir qu'il n'y avait
-rien à faire.*
+**R3-11 est né et mort dans la même heure**, et c'est le seul de la journée : la file
+l'a nommé dès que je l'ai écrit, parce qu'une image venait de montrer le défaut. *Le
+dernier geste de la journée a rouvert le travail — et c'est ce qu'on attend d'une
+mesure.*
 
 ## LE GESTE QUI RESTE À ALEXIS
 
@@ -919,4 +933,12 @@ n'est bloqué en attendant : l'envoi non configuré échoue en nommant ce qui ma
 lien reste imprimé dans tous les cas.*
 
 **Aucune migration n'a été écrite cette journée** — le §12 du protocole n'appelle donc
-aucun geste de base.
+aucun geste de base. *Vérifié à la clôture :* `git diff --name-only acd9248..dd8c2a6 --
+prisma/migrations/` ne rend **rien**.
+
+**Et le semis, lui, A CHANGÉ.** Le parc de démonstration — quatre familles, cinq modèles,
+huit machines, deux vérifications par société — n'atteindra la base de démonstration que
+lorsque `pnpm db:seed` y sera rejoué. *Ce n'est pas une migration et rien ne le fait tout
+seul* (§12) : `/parc` et `/vgp` resteront vides en ligne tant que le semis n'y aura pas
+tourné. Le geste est facultatif — il ne débloque rien, il donne seulement à la
+démonstration ce que les images montrent déjà.
