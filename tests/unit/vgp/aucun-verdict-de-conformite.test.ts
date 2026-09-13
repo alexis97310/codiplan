@@ -40,9 +40,17 @@ function forme(texte: string): string {
 }
 
 describe("aucun état du registre ne prononce un verdict", () => {
+  // **LA POPULATION S'EST ÉLARGIE LE 13/09/2026** (R3-11) : `vgp.echeance.*`
+  // est une TROISIÈME famille de libellés d'état, née avec la colonne
+  // d'échéance — et elle échappait à ce gardien, qui ne connaissait que les
+  // deux premières. *Une famille de textes qui naît hors du périmètre d'un
+  // gardien est exactement la liste close qu'une décision ultérieure a cessé
+  // de compléter* (§9, 20/08).
   const etats = Object.entries(fr).filter(
     ([cle]) =>
-      cle.startsWith("vgp.information.") || cle.startsWith("vgp.regime."),
+      cle.startsWith("vgp.information.") ||
+      cle.startsWith("vgp.regime.") ||
+      cle.startsWith("vgp.echeance."),
   );
 
   it("TÉMOIN — la population n'est pas vide", () => {

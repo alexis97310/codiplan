@@ -96,10 +96,16 @@ export default async function PageParc() {
           </p>
         </div>
         <p className="text-app-encre-faible text-[12.5px]">
-          {decompte(resume.total, t("parc.total"))}
+          {decompte(resume.total, t("parc.total_un"), t("parc.total"))}
           {resume.incompletes === 0
             ? ""
-            : separateur(decompte(resume.incompletes, t("parc.incompletes")))}
+            : separateur(
+                decompte(
+                  resume.incompletes,
+                  t("parc.incompletes_un"),
+                  t("parc.incompletes"),
+                ),
+              )}
         </p>
       </header>
 
@@ -204,8 +210,22 @@ function referenceMachine(machine: {
 }
 
 /** Un décompte et son unité, composés hors du JSX (L0-11). */
-function decompte(nombre: number, unite: string): string {
-  return `${nombre} ${unite}`;
+function decompte(nombre: number, un: string, plusieurs: string): string {
+  // **« 1 fiches à compléter »** — mesuré le 13/09/2026 SUR UNE IMAGE, et par
+  // aucune assertion : le libellé était au pluriel en dur, et le défaut ne
+  // pouvait apparaître que le jour où le parc porterait EXACTEMENT une fiche
+  // incomplète. *C'est le §9 du 09/09 — un défaut invisible à toute assertion
+  // et évident sur une capture* : on n'écrit pas d'assertion sur un invariant
+  // qu'on n'a pas encore vu.
+  //
+  // Le singulier est une CLÉ du dictionnaire, jamais un `s` retranché : le
+  // français ne s'accorde pas par troncature, et une règle de morphologie
+  // écrite dans un composant serait une chaîne visible en dur (L0-11).
+  // **LES DEUX LIBELLÉS SONT RÉSOLUS PAR L'APPELANT**, et ce n'est pas un
+  // détour : une CLÉ passée en argument depuis du JSX se lit comme une chaîne
+  // visible écrite en dur, et le gardien de L0-11 l'a refusée — à raison, il ne
+  // peut pas distinguer une clé d'un libellé.
+  return `${nombre} ${nombre === 1 ? un : plusieurs}`;
 }
 
 /** Le séparateur des deux décomptes — un signe, jamais une phrase. */

@@ -286,9 +286,15 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
       // EN SQL BRUT, et la raison est mesurée : « aucune condition » se stocke
       // en **NULL**, jamais en tableau vide — `forfait_types_intervention_non_vides`
       // refuse `{}` (code 23514, mesuré le 11/09/2026). Or le type Prisma d'une
-      // liste scalaire n'admet pas `null` à l'écriture, et **aucun chemin
-      // applicatif ne crée de forfait** : le catalogue est alimenté par
-      // l'exploitation, et L1-06 n'a construit ni saisie ni dépôt d'écriture.
+      // liste scalaire n'admet pas `null` à l'écriture.
+      //
+      // ~~Et aucun chemin applicatif ne crée de forfait.~~ **R2-20 en a
+      // construit un** (13/09/2026) : `lib/tarification/depot-forfaits.ts`
+      // écrit `NULL` en **OMETTANT** la colonne. La phrase est barrée et non
+      // effacée — *ce qui a été écrit un jour se relit.* Cette fixture reste
+      // en SQL brut à dessein : **une fixture de scène ne passe pas par le
+      // chemin qu'elle sert à éprouver**, sinon un défaut du dépôt rendrait la
+      // scène muette au lieu de la faire rougir.
       //
       // *Ce que Prisma rend à la LECTURE d'une colonne NULL est `[]`, et c'est
       // pourquoi la constitution dit que « aucune condition » a deux écritures.*

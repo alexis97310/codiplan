@@ -45,3 +45,47 @@ export function libelleEtatInformation(etat: EtatInformation): string {
   }
   return `${t("vgp.information.recue")} — ${dateCivile(etat.derniereInformation)}`;
 }
+
+/**
+ * L'ÉCHÉANCE DÉDUITE, et `null` quand il n'y a rien à déduire (R3-11).
+ *
+ * ## POURQUOI ELLE EXISTE — mesuré SUR UNE IMAGE, le 13/09/2026
+ *
+ * Une machine vérifiée il y a quatorze mois sous une périodicité de six mois
+ * affichait « Information reçue — 13/07/2025 », **et rien d'autre**. L'échéance
+ * était calculée par `etatDeLInformation` et rendue par `listerLeRegistre` ;
+ * seule la colonne manquait. *Un œil qui lit cette ligne voit une machine
+ * renseignée* — c'est-à-dire exactement le registre à moitié rempli qui
+ * ressemble à un registre complet (D88).
+ *
+ * ## CE QU'ELLE N'INVENTE PAS
+ *
+ * **Aucune durée** : ni seuil, ni tolérance, ni « bientôt » (L9-05). La date
+ * vient d'une périodicité SAISIE, et le nombre de jours est une soustraction
+ * déjà faite. **Aucun verdict** : jamais « à jour », jamais « conforme » — un
+ * dépassement d'échéance déclarée n'est pas une non-conformité, c'est une date
+ * passée (D88).
+ *
+ * ## ET `null` N'EST PAS UN TIRET
+ *
+ * Il dit à l'appelant *« cette colonne n'a rien à montrer pour cette ligne »* —
+ * l'état « hors registre » et l'état « sans information » se disent déjà tout
+ * entiers dans la colonne voisine, et les répéter ici ferait deux lectures d'un
+ * même fait. C'est l'ÉCRAN qui choisit le signe, et un signe n'est pas une
+ * phrase.
+ */
+export function libelleEcheance(etat: EtatInformation): string | null {
+  if (etat.etat !== "information_recue") {
+    return null;
+  }
+  if (etat.prochaineEcheance === null) {
+    // « Aucun rythme déclaré » et « échéance lointaine » ne se corrigent pas au
+    // même endroit : le premier se corrige à la FAMILLE ou au MODÈLE.
+    return t("vgp.echeance.sans_rythme");
+  }
+  const date = dateCivile(etat.prochaineEcheance);
+  if (etat.joursAvantEcheance !== null && etat.joursAvantEcheance < 0) {
+    return `${t("vgp.echeance.depassee")} — ${date} (${-etat.joursAvantEcheance} ${t("vgp.echeance.jours")})`;
+  }
+  return `${t("vgp.echeance.declaree")} — ${date}`;
+}

@@ -7,7 +7,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import { maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
-import { libelleEtatInformation } from "@/lib/vgp/libelles";
+import { libelleEcheance, libelleEtatInformation } from "@/lib/vgp/libelles";
 import {
   famillesADeterminer,
   listerLeRegistre,
@@ -57,6 +57,22 @@ import {
  */
 const LIGNES_AFFICHEES = 200;
 
+/** Le tiret cadratin d'une valeur absente — un SIGNE, jamais une phrase. */
+const ABSENT = "\u2014";
+
+/**
+ * L'échéance, ou le signe de son absence — composé HORS du JSX.
+ *
+ * *Le gardien de L0-11 a refusé `{… ?? ABSENT}` écrit dans le rendu* : il
+ * résout la constante et y lit une chaîne visible en dur. Il a raison de ne pas
+ * faire la différence — c'en est une —, et la forme que le dépôt emploie
+ * ailleurs est celle-ci : une fonction qui rend le texte, jamais un littéral
+ * dans le JSX.
+ */
+function echeanceAffichee(ligne: LigneDeRegistre): string {
+  return libelleEcheance(ligne.information) ?? ABSENT;
+}
+
 export default async function PageRegistreVgp() {
   const session = await obtenirSession(await headers());
   if (session === null) {
@@ -92,6 +108,14 @@ export default async function PageRegistreVgp() {
       libelle: t("vgp.colonne_information"),
       largeur: "230px",
     },
+    // R3-11 — **LA DATE ÉTAIT CALCULÉE ET N'ÉTAIT PAS MONTRÉE.** Une machine
+    // vérifiée il y a quatorze mois sous un rythme de six s'affichait comme une
+    // machine renseignée. *Mesuré sur une image, par aucune assertion.*
+    {
+      cle: "echeance",
+      libelle: t("vgp.colonne_echeance"),
+      largeur: "220px",
+    },
   ];
 
   return (
@@ -119,15 +143,20 @@ export default async function PageRegistreVgp() {
         href="/vgp/a-determiner"
         className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px] font-bold"
       >
-        {indetermines.length} {t("vgp.indetermines.lien")}
+        {indetermines.length}{" "}
+        {t(
+          indetermines.length === 1
+            ? "vgp.indetermines.lien_une"
+            : "vgp.indetermines.lien",
+        )}
       </Link>
 
       <p className="text-app-encre-faible max-w-[80ch] text-[11.5px]">
-        {t("vgp.information.rien_ne_remplit")}
+        {t("vgp.information.ce_que_le_silence_dit")}
       </p>
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-        <Tableau colonnes={colonnes} minimum="1020px">
+        <Tableau colonnes={colonnes} minimum="1240px">
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
               {t("vgp.vide")}
@@ -180,6 +209,13 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
         </span>
       </Cellule>
       <Cellule>{libelleEtatInformation(ligne.information)}</Cellule>
+      {/*
+        `null` DIT « rien à montrer ici », et l'écran écrit un SIGNE — jamais
+        une phrase : l'état « hors registre » et l'état « sans information » se
+        disent déjà tout entiers dans la colonne voisine, et les répéter serait
+        deux lectures d'un même fait.
+      */}
+      <Cellule>{echeanceAffichee(ligne)}</Cellule>
     </tr>
   );
 }
