@@ -33,24 +33,45 @@ import type { Envoi } from "./message";
  * ## CE QU'IL N'ÉCRIT PAS
  *
  * **Ni mot de passe, ni identifiant de société, ni nom de base.** Le corps ne
- * porte que l'URL, ce qu'elle vaut et combien de temps. Un courriel se retrouve
- * dans une corbeille, se transfère, s'imprime : *tout ce qu'il porte est
- * durable et hors de notre portée.*
+ * porte que l'URL, l'identité qu'elle ouvre, ce qu'elle vaut et combien de
+ * temps. Un courriel se retrouve dans une corbeille, se transfère, s'imprime :
+ * *tout ce qu'il porte est durable et hors de notre portée.*
+ *
+ * ## ET IL NOMME L'IDENTITÉ QU'IL OUVRE (13/09/2026, complément de Q8)
+ *
+ * *Il s'adressait implicitement à son propriétaire, et ce n'est plus vrai :*
+ * `--destinataire` dissocie la boîte qui reçoit de l'identité que le lien
+ * ouvre. Un lecteur qui reçoit un lien sans savoir de QUI il ouvre le compte
+ * ne peut pas juger s'il doit le suivre — et sur une base de démonstration,
+ * les neuf identités semées portent des adresses en `.test` qui ne recevront
+ * jamais rien : celui qui reçoit n'est JAMAIS celui qui est nommé.
+ *
+ * **L'identité est un argument OBLIGATOIRE**, jamais un paramètre facultatif :
+ * un appelant qui l'oublierait ne compile pas (la leçon de D70), là où un
+ * défaut aurait laissé partir un courriel muet sur ce qu'il ouvre.
  */
 
 /** L'objet, court : il se lit dans une notification de téléphone. */
 export const SUJET_PREMIER_ACCES = "CODIPLAN — votre lien de premier accès";
 
 /**
- * Le corps. **L'URL seule, et ce qu'il faut en savoir.**
+ * Le corps. **L'URL, l'identité qu'elle ouvre, et ce qu'il faut en savoir.**
  *
- * *Trois phrases, et chacune répond à une question qu'on se pose devant un lien
- * reçu par courriel :* d'où vient-il, combien de temps vaut-il, que faire s'il
- * ne marche plus. Sans elles, un lien expiré se lit comme une panne.
+ * *Quatre questions, et chacune se pose devant un lien reçu par courriel :* de
+ * quel compte parle-t-il, d'où vient-il, combien de temps vaut-il, que faire
+ * s'il ne marche plus. Sans la première, un lien reçu pour l'identité d'un
+ * autre se suit sans le savoir ; sans les autres, un lien expiré se lit comme
+ * une panne.
+ *
+ * **« le compte de X » et jamais « votre compte »** : la seconde formule était
+ * vraie tant que le destinataire ÉTAIT l'identité, et `--destinataire` a cessé
+ * de le garantir. Une formule qui n'est vraie que dans un cas sur deux est un
+ * silence, pas une politesse.
  */
-export function corpsPremierAcces(url: string): string {
+export function corpsPremierAcces(url: string, identite: string): string {
   return [
-    "Ce lien ouvre votre compte CODIPLAN et vous demande de choisir un mot de passe.",
+    `Ce lien ouvre le compte CODIPLAN de ${identite} et demande de choisir son`,
+    "mot de passe. Qui le suit entre dans l'application SOUS CETTE IDENTITÉ.",
     "",
     url,
     "",
@@ -72,13 +93,14 @@ export function corpsPremierAcces(url: string): string {
 export async function envoyerLienPremierAcces(
   destinataire: string,
   url: string,
+  identite: string,
   environnement: Record<string, string | undefined> = process.env,
 ): Promise<Envoi> {
   return envoyerCourriel(
     {
       destinataire,
       sujet: SUJET_PREMIER_ACCES,
-      texte: corpsPremierAcces(url),
+      texte: corpsPremierAcces(url, identite),
     },
     environnement,
   );

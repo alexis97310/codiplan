@@ -10,6 +10,11 @@ import { estRole, Role } from "@/lib/auth/roles";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 
 import { argument } from "./lib/arguments";
+import {
+  lignesDelivrance,
+  resoudreDelivrance,
+  type Delivrance,
+} from "./lib/delivrance-premier-acces";
 
 /**
  * AMORÇAGE — ouverture de la première identité d'une société (Q1 / D65).
@@ -44,7 +49,7 @@ import { argument } from "./lib/arguments";
  *     DATABASE_URL=… \
  *     pnpm tsx scripts/amorcage-premier-compte.mts \
  *       --societe <uuid> --email <courriel> --nom "<nom>" [--role admin_societe] \
- *       [--base https://…] [--envoyer]
+ *       [--base https://…] [--envoyer] [--destinataire <courriel>]
  *
  * Et la RÉÉMISSION d'un jeton expiré ou perdu, pour une identité qui n'a
  * JAMAIS servi (10/09/2026, complément de D65) :
@@ -53,7 +58,7 @@ import { argument } from "./lib/arguments";
  *     DATABASE_URL=… \
  *     pnpm tsx scripts/amorcage-premier-compte.mts \
  *       --reemettre --societe <uuid> --email <courriel> [--base https://…]
- *       [--envoyer]
+ *       [--envoyer] [--destinataire <courriel>]
  *
  * La variable de confirmation suit le précédent de
  * `scripts/purge-demonstration.mts` : un geste qui touche aux droits ne
@@ -94,25 +99,34 @@ async function principal(): Promise<number> {
   // geste qui enverrait « au cas où » écrirait à une adresse qu'on n'a pas
   // relue, et un courriel se transfère et s'imprime.
   const envoyer = argv.includes("--envoyer");
+  // LE DESTINATAIRE, DISSOCIÉ DE L'IDENTITÉ (13/09/2026). Facultatif : absent,
+  // il vaut `--email`, et le geste se comporte exactement comme avant.
+  const destinataire = argument(argv, "destinataire");
 
   if (reemettre) {
     if (societeId === null || email === null) {
       dire(
         "Usage : --reemettre --societe <uuid> --email <courriel> " +
-          "[--base https://…] [--envoyer]",
+          "[--base https://…] [--envoyer] [--destinataire <courriel>]",
       );
       return 2;
     }
     if (base !== null) {
       process.env.BETTER_AUTH_URL = base;
     }
-    return reemission(societeId, email, envoyer);
+    return reemission(
+      societeId,
+      email,
+      envoyer,
+      resoudreDelivrance(email, destinataire),
+    );
   }
 
   if (societeId === null || email === null || nom === null) {
     dire(
       'Usage : --societe <uuid> --email <courriel> --nom "<nom>" ' +
-        "[--role admin_societe] [--base https://…]\n" +
+        "[--role admin_societe] [--base https://…] [--envoyer] " +
+        "[--destinataire <courriel>]\n" +
         "        --reemettre --societe <uuid> --email <courriel> [--base https://…]",
     );
     return 2;
@@ -155,7 +169,11 @@ async function principal(): Promise<number> {
       "  La porte est REFERMÉE : la société porte désormais une habilitation, " +
         "et la branche d'amorçage de utilisateur_ouverture est inapplicable.",
     );
-    await envoyerSiDemande(envoyer, email, ouverture.urlPremierAcces);
+    await envoyerSiDemande(
+      envoyer,
+      resoudreDelivrance(email, destinataire),
+      ouverture.urlPremierAcces,
+    );
     return 0;
   } catch (erreur) {
     if (erreur instanceof RefusAmorcage) {
@@ -187,32 +205,56 @@ async function principal(): Promise<number> {
  * *Et l'envoi ne se fait QUE si on le demande* — sans `--envoyer`, rien ne part
  * et rien n'est tenté. Un geste qui enverrait « au cas où » écrirait à une
  * adresse qu'on n'a pas relue.
+ *
+ * ## `--destinataire` — LA BOÎTE N'EST PLUS L'IDENTITÉ (13/09/2026)
+ *
+ * `--email` DÉSIGNE l'identité : la réémission la cherche par
+ * `utilisateur.findUnique({ where: { email } })`. Envoyer à cette adresse
+ * revenait donc à écrire à l'identité elle-même — et les neuf identités du
+ * semis portent des adresses en `@codima.test`, un domaine réservé par la RFC
+ * 2606 qui ne résout nulle part. *Le canal ouvert la veille livrait dans le
+ * vide, sur la seule base où l'on répète le geste avant de le jouer pour de
+ * bon.* `--destinataire` sépare les deux ; absent, il vaut `--email`.
+ *
+ * ## CE N'EST PAS UNE ÉLÉVATION DE PRIVILÈGE, ET VOICI CE QUI LE MESURE
+ *
+ * **L'ensemble des personnes capables de ce geste ne change pas d'un membre.**
+ * Le script exige `DATABASE_URL` sous le rôle de MIGRATION, et ce secret vit
+ * dans les secrets Actions du dépôt : qui peut jouer le flux détient déjà
+ * l'accès en ÉCRITURE au dépôt, donc — c'est le modèle documenté de GitHub —
+ * la capacité de lire ce secret depuis un flux qu'il écrit. Avec lui, la
+ * réémission imprimait déjà l'URL sur la sortie d'un terminal, et cette
+ * sortie-là ne vit dans aucun journal. **Le drapeau ne donne rien de neuf à
+ * personne : il déplace un canal**, du terminal de l'exploitant vers une boîte
+ * qu'il nomme.
+ *
+ * **Et il n'ouvre aucun cliquet.** Les deux verrous de D65 sont intacts et
+ * en amont : `ouvrirPremierCompte` refuse dès que la société porte une
+ * habilitation, `reemettreJetonPremierAcces` refuse dès qu'un mot de passe
+ * existe. Le drapeau est lu APRÈS eux, dans la seule fonction qui poste un
+ * message ; il ne touche ni la base, ni une politique, ni un rôle.
+ *
+ * **Ce qu'il coûte, écrit plutôt que tu.** Le lien voyage vers une adresse qui
+ * n'est pas celle du compte qu'il ouvre. C'est pour cela — et pas par souci de
+ * traçabilité — que la sortie ET le corps du message nomment l'identité :
+ * *qui reçoit doit pouvoir juger sous quel nom il entrerait.*
  */
 async function envoyerSiDemande(
   demande: boolean,
-  email: string,
+  delivrance: Delivrance,
   url: string,
 ): Promise<void> {
   if (!demande) {
     return;
   }
-  const envoi = await envoyerLienPremierAcces(email, url);
+  const envoi = await envoyerLienPremierAcces(
+    delivrance.destinataire,
+    url,
+    delivrance.identite,
+  );
   dire("");
-  if (envoi.parti) {
-    dire(`  Courriel ENVOYÉ à ${email} — référence ${envoi.reference}.`);
-    dire(
-      "  Cette référence dit que le prestataire a pris la charge du message ; " +
-        "elle ne prouve pas qu'il a été reçu.",
-    );
-  } else {
-    // LE REFUS EST BAVARD, ET IL DIT CE QUI RESTE VRAI. Un « échec d'envoi »
-    // seul laisserait croire que le geste entier a raté — alors que le jeton,
-    // lui, est bien émis et imprimé ci-dessus.
-    dire("  COURRIEL NON ENVOYÉ.");
-    dire(`  ${envoi.motif}`);
-    dire(
-      "  Le jeton, lui, EST émis : l'URL ci-dessus reste valable une heure.",
-    );
+  for (const ligne of lignesDelivrance(envoi, delivrance)) {
+    dire(ligne);
   }
 }
 
@@ -231,6 +273,7 @@ async function reemission(
   societeId: string,
   email: string,
   envoyer: boolean,
+  delivrance: Delivrance,
 ): Promise<number> {
   const client = new PrismaClient();
   try {
@@ -255,7 +298,7 @@ async function reemission(
       "  Ce geste se FERME pour toujours dès qu'un mot de passe est choisi : " +
         "un mot de passe oublié se traite par le chemin ordinaire.",
     );
-    await envoyerSiDemande(envoyer, email, reemis.urlPremierAcces);
+    await envoyerSiDemande(envoyer, delivrance, reemis.urlPremierAcces);
     return 0;
   } catch (erreur) {
     if (erreur instanceof RefusReemission) {

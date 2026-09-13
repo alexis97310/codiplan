@@ -26,12 +26,19 @@ name: Ouvrir le PREMIER compte
 # vit dans aucun journal. Le cliquet de D65 tient cette voie ouverte tant que
 # PERSONNE n'a choisi de mot de passe, et la ferme pour toujours ensuite.
 #
-# Ce que cela COÛTE, écrit plutôt que tu : le geste n'est plus entièrement
-# suivable depuis un téléphone. La moitié privilégiée l'est ; la délivrance du
-# lien demande un terminal. Le rendre de nouveau cliquable exige un canal
-# PRIVÉ — un envoi par courriel (Resend est à la pile, §2, mais n'est ni câblé
-# ni doté d'un secret) —, et c'est un arbitrage d'exploitation, pas une
-# décision de flux.
+# Ce que cela COÛTAIT, écrit plutôt que tu : le geste n'était plus entièrement
+# suivable depuis un téléphone. La moitié privilégiée l'était ; la délivrance
+# du lien demandait un terminal.
+#
+# ── LE CANAL PRIVÉ EXISTE DEPUIS LE 13/09/2026 (Q8) ─────────────────────────
+# Le paragraphe ci-dessus annonçait qu'un envoi par courriel « n'est ni câblé
+# ni doté d'un secret », et l'un et l'autre sont faits : `--envoyer` poste le
+# lien, `COURRIEL_API_CLE` et `COURRIEL_EXPEDITEUR` le configurent. La phrase
+# est mise au passé plutôt qu'effacée — elle a gouverné ce flux deux jours.
+#
+# Et l'entrée `destinataire` achève le chemin le MÊME jour : sans elle, le lien
+# partait à l'adresse de l'IDENTITÉ, qui sur la démonstration est en
+# `.test` — donc dans le vide.
 #
 # IMPÉRATIF, comme pour db-migrate.yml : aucun déclenchement automatique. Un
 # geste qui ouvre une identité ne part jamais tout seul.
@@ -59,7 +66,7 @@ on:
         type: string
         required: true
       email:
-        description: "Adresse de la personne à qui l'accès est délivré"
+        description: "Adresse qui DÉSIGNE l'identité (la base la cherche par là) — pas forcément la boîte qui reçoit : voir « destinataire »"
         type: string
         required: true
       nom:
@@ -80,10 +87,26 @@ on:
         type: string
         required: true
       envoyer:
-        description: "Envoyer le lien par courriel à cette adresse (exige les secrets COURRIEL_API_CLE et COURRIEL_EXPEDITEUR)"
+        description: "Envoyer le lien par courriel (exige les secrets COURRIEL_API_CLE et COURRIEL_EXPEDITEUR)"
         type: boolean
         required: false
         default: false
+      # LE DESTINATAIRE N'EST PLUS L'IDENTITÉ (13/09/2026). « email » DÉSIGNE
+      # l'identité que la base cherche ; sur la démonstration, les neuf
+      # identités semées portent des adresses en @codima.test, un domaine
+      # réservé par la RFC 2606 qui ne résout nulle part. Sans cette entrée, le
+      # lien part dans le vide. Vide, elle vaut « email » : rien ne change pour
+      # qui ne la renseigne pas.
+      #
+      # ELLE EST PUBLIQUE, ET ON LE DIT PLUTÔT QUE DE FAIRE SEMBLANT. GitHub
+      # affiche les entrées d'un workflow_dispatch dans le récapitulatif de
+      # l'exécution, et ce dépôt est public : masquer l'adresse dans le journal
+      # serait une protection décorative — visible d'un panneau à l'autre.
+      destinataire:
+        description: "Boîte qui REÇOIT le lien, si elle diffère de « email » — publiquement visible, comme toute entrée de ce flux"
+        type: string
+        required: false
+        default: ""
       reemettre:
         description: "Réémettre le jeton d'une identité qui n'a JAMAIS servi (aucun mot de passe choisi)"
         type: boolean
@@ -162,6 +185,7 @@ jobs:
           BASE: ${{ inputs.base }}
           REEMETTRE: ${{ inputs.reemettre }}
           ENVOYER: ${{ inputs.envoyer }}
+          DESTINATAIRE: ${{ inputs.destinataire }}
           # LE CANAL QUI MANQUAIT (Q8, 13/09/2026). Le journal et le résumé
           # EXPURGENT l'URL — c'est la réparation du 12/09 —, si bien que le
           # lien ne sortait plus d'ici du tout : il fallait un terminal, donc un
@@ -172,9 +196,21 @@ jobs:
           COURRIEL_EXPEDITEUR: ${{ secrets.COURRIEL_EXPEDITEUR }}
         run: |
           set -uo pipefail
-          envoi=""
+          # UN TABLEAU, PAS UNE CHAÎNE. Une chaîne se fait redécouper par le
+          # shell : une adresse portant une espace — c'est une faute de frappe,
+          # donc c'est le cas à attraper — arriverait TRONQUÉE au script, qui
+          # écrirait à `foo@` sans que rien ne le dise.
+          options=()
           if [ "$ENVOYER" = "true" ]; then
-            envoi="--envoyer"
+            options+=(--envoyer)
+          fi
+          # Le drapeau n'est passé QUE s'il est renseigné. Une entrée
+          # facultative non remplie arrive VIDE, jamais absente : passer
+          # `--destinataire ""` ferait écrire à personne. Le script retombe de
+          # lui-même sur l'identité, mais on ne lui demande pas un travail que
+          # l'appelant sait faire.
+          if [ -n "$DESTINATAIRE" ]; then
+            options+=(--destinataire "$DESTINATAIRE")
           fi
           # LA SORTIE NE VA PAS AU JOURNAL : elle va dans un fichier, et c'est
           # une version EXPURGÉE qui est rendue. Un `tee` rendait l'URL au
@@ -183,12 +219,12 @@ jobs:
           if [ "$REEMETTRE" = "true" ]; then
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --reemettre --societe "$SOCIETE" --email "$EMAIL" --base "$BASE" \
-              ${envoi} \
+              "${options[@]}" \
               > /tmp/amorcage.txt 2>&1 || code=$?
           else
             pnpm exec tsx scripts/amorcage-premier-compte.mts \
               --societe "$SOCIETE" --email "$EMAIL" --nom "$NOM" \
-              --role "$ROLE" --base "$BASE" ${envoi} \
+              --role "$ROLE" --base "$BASE" "${options[@]}" \
               > /tmp/amorcage.txt 2>&1 || code=$?
           fi
 
@@ -233,10 +269,17 @@ jobs:
             echo "### Comment récupérer le lien"
             echo
             echo "**Le plus simple : rejouer ce flux avec « Envoyer le lien par"
-            echo "courriel » coché.** Le lien part alors à l'adresse saisie et"
-            echo "n'entre dans aucun journal. Si les secrets d'envoi ne sont pas"
-            echo "déposés, la sortie ci-dessus le dit en nommant ce qui manque —"
-            echo "elle ne fait jamais croire qu'un message est parti."
+            echo "courriel » coché**, et **« destinataire » renseigné avec une"
+            echo "VRAIE boîte**. Le lien part là et n'entre dans aucun journal."
+            echo
+            echo "Sans « destinataire », il part à l'adresse d'« email » — celle"
+            echo "qui DÉSIGNE l'identité. Sur la démonstration, ces adresses sont"
+            echo "en \`.test\` : réservé par la RFC 2606, il ne résout nulle part,"
+            echo "et le message tombe dans le vide sans que rien ne le rattrape."
+            echo
+            echo "Si les secrets d'envoi ne sont pas déposés, la sortie ci-dessus"
+            echo "le dit en nommant ce qui manque — elle ne fait jamais croire"
+            echo "qu'un message est parti."
             echo
             echo "À défaut, depuis un poste :"
             echo

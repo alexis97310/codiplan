@@ -458,7 +458,7 @@ Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien**
 1. `github.com/alexis97310/codiplan` → onglet **Actions**.
 2. Colonne de gauche : **Ouvrir le PREMIER compte**.
 3. Bouton **Run workflow**.
-4. **cible** → `production` ; **confirmation** → taper `oui` ; **societe** → l'identifiant rendu par le geste précédent ; **email**, **nom**, **role** (`admin_societe`), **base** → l'URL https de votre application, sans barre finale.
+4. **cible** → `production` ; **confirmation** → taper `oui` ; **societe** → l'identifiant rendu par le geste précédent ; **email** (elle DÉSIGNE l'identité créée), **nom**, **role** (`admin_societe`), **base** → l'URL https de votre application, sans barre finale ; **envoyer** coché, et **destinataire** si la boîte qui reçoit n'est pas celle de l'identité.
 5. Bouton vert **Run workflow**.
 6. Ouvrir l'exécution : **l'URL de premier accès est dans le résumé, en haut de la page** — et dans le journal de l'étape. **Suivez-la tout de suite.**
 
@@ -499,24 +499,41 @@ Aucun compte n'existe sur une base neuve, et **personne ne peut créer le sien**
 
 6. **Les mêmes deux variables se déposent chez Vercel** — *Settings → Environment Variables* — pour que l'application elle-même puisse écrire un jour. *Elles ne sont pas nécessaires au geste ci-dessous, qui tourne dans GitHub Actions.*
 
+#### DEUX ADRESSES, ET ELLES NE JOUENT PAS LE MÊME RÔLE
+
+*Écrit le 13/09/2026. **La procédure disait « email → votre adresse », et c'était FAUX** — juste pour une ouverture, faux pour une réémission. Suivie à la lettre sur la base semée, elle produit le refus « aucune identité ne porte cette adresse ». La phrase est corrigée plutôt que barrée : ce n'est pas une décision qui a changé, c'est une consigne qui n'a jamais été exacte.*
+
+| Le champ | Ce qu'il fait |
+|---|---|
+| **email** | **DÉSIGNE l'identité.** La base la cherche par là — `utilisateur.findUnique({ where: { email } })`. En réémission, elle doit exister ; à l'ouverture, elle est créée. |
+| **destinataire** | **La boîte qui REÇOIT le message.** Facultatif : vide, il vaut `email`. |
+
+**Pourquoi les deux ne peuvent pas être confondues sur la démonstration.** Les neuf identités du semis portent des adresses en `@codima.test`, et `.test` est **réservé par la RFC 2606** : il ne résout chez aucun prestataire. *Sans `destinataire`, le lien part dans le vide* — et il n'existe aucune autre porte, le semis ne posant aucun mot de passe (D65).
+
+**Le message le dit lui-même** : son corps nomme l'identité qu'il ouvre, et la sortie du flux imprime les deux adresses côte à côte. *Qui reçoit un lien doit pouvoir juger sous quel nom il entrerait.*
+
 #### Comment vérifier que l'envoi part — sans rien casser
 
 **Jouer le flux « Ouvrir le PREMIER compte » en réémission, sur la DÉMONSTRATION.** La réémission ne crée rien et ne referme rien : elle rend un jeton neuf tant que personne n'a choisi de mot de passe.
 
 1. Onglet **Actions** → **Ouvrir le PREMIER compte** → **Run workflow**.
-2. **Quelle base ?** → `demonstration` · **confirmation** → `oui` · **societe** → l'identifiant que « DB migrate & seed » nomme dans son inventaire · **email** → votre adresse · **base** → l'URL https de l'application, sans barre finale.
+2. **Quelle base ?** → `demonstration` · **confirmation** → `oui` · **societe** → l'identifiant que « DB migrate & seed » nomme dans son inventaire · **email** → **`adv@codima.test`** (l'identité semée, société `CODIMA-NC`) · **destinataire** → **votre vraie boîte** · **base** → l'URL https de l'application, sans barre finale.
 3. **Cocher « Réémettre… »** et **cocher « Envoyer le lien par courriel… »**.
 4. Lancer, puis ouvrir le résumé de l'exécution.
+
+*L'entrée **destinataire** est publiquement visible*, comme toute entrée d'un flux sur un dépôt public : GitHub l'affiche dans le récapitulatif de l'exécution. Rien ne la masque, et il vaut mieux le savoir que le croire.
 
 **Ce qu'on doit voir** — et les trois cas se distinguent, c'est tout l'objet :
 
 | Dans le résumé | Ce que cela veut dire |
 |---|---|
-| `Courriel ENVOYÉ à … — référence …` | le prestataire a pris la charge du message. *La référence n'est pas une preuve de réception* : elle sert à retrouver l'envoi chez lui. |
-| `COURRIEL NON ENVOYÉ.` suivi de `COURRIEL_API_CLE … est absente` | le secret n'est pas déposé, ou pas sous ce nom exact |
-| `COURRIEL NON ENVOYÉ.` suivi de `Resend a refusé l'envoi (code …)` | la clé ou l'adresse d'expédition ne conviennent pas — un domaine non vérifié est le cas le plus fréquent |
+| `Courriel ENVOYÉ à <votre boîte> POUR L'IDENTITÉ adv@codima.test — référence …` | le prestataire a pris la charge du message. *La référence n'est pas une preuve de réception* : elle sert à retrouver l'envoi chez lui. **Les deux adresses sont imprimées même quand elles coïncident** — si la mention n'apparaissait qu'en cas de dissociation, ce serait son absence qui porterait le sens, et une absence a la forme d'un succès. |
+| `COURRIEL NON ENVOYÉ à … , POUR L'IDENTITÉ …` suivi de `COURRIEL_API_CLE … est absente` | le secret n'est pas déposé, ou pas sous ce nom exact |
+| `COURRIEL NON ENVOYÉ à … , POUR L'IDENTITÉ …` suivi de `Resend a refusé l'envoi (code …)` | la clé ou l'adresse d'expédition ne conviennent pas — un domaine non vérifié est le cas le plus fréquent |
 
 **Dans les trois cas, l'URL reste valable une heure** et le jeton est bien émis : *le canal est un confort, le jeton est le produit.* Un envoi manqué ne coûte jamais le lien.
+
+**Une fois entré, changez d'identité si vous le voulez** : `direction@codima.test` est habilitée sur les DEUX sociétés de démonstration, `adv@codima.test` sur la seule `CODIMA-NC`. La réémission sert n'importe laquelle des neuf, tant qu'aucun mot de passe n'a été choisi.
 
 #### Ce que nous n'avons PAS choisi à votre place
 
@@ -544,11 +561,14 @@ AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \
 DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" \
 pnpm tsx scripts/amorcage-premier-compte.mts \
   --societe <identifiant de la société> \
-  --email <votre adresse> \
+  --email <adresse qui DÉSIGNE l'identité> \
   --nom "<votre nom>" \
   --role admin_societe \
-  --base https://<votre URL>
+  --base https://<votre URL> \
+  [--envoyer] [--destinataire <la boîte qui REÇOIT>]
 ```
+
+**`--destinataire` est facultatif et vaut `--email` quand il est absent** : rien ne change pour qui ne le passe pas. Il existe parce que `--email` désigne l'identité, et qu'une identité peut porter une adresse qui ne reçoit rien — c'est le cas des neuf identités du semis, en `.test`.
 
 **Ce qu'il imprime, et qu'il n'imprimera jamais deux fois :** une **URL de premier accès**, portant un jeton à usage unique et daté. *Elle n'est relisible nulle part* — ni en base sous cette forme, ni dans un journal. Copiez-la immédiatement.
 
@@ -562,7 +582,8 @@ pnpm tsx scripts/amorcage-premier-compte.mts \
 AMORCAGE_PREMIER_COMPTE_CONFIRME=oui \
 DATABASE_URL="<la connexion du rôle PROPRIÉTAIRE>" \
 pnpm tsx scripts/amorcage-premier-compte.mts \
-  --reemettre --societe <identifiant> --email <adresse> --base https://<votre URL>
+  --reemettre --societe <identifiant> --email <adresse de l'identité> \
+  --base https://<votre URL> [--envoyer] [--destinataire <la boîte qui REÇOIT>]
 ```
 
 **Ce que l'on doit voir ensuite, en suivant l'URL :** un écran de choix de mot de passe, puis — le rôle `admin_societe` l'exigeant (RG-DRO-05) — **l'activation du second facteur**, qui affiche **une seule fois** une clé et des codes de secours. *Notez-les : un second facteur s'active et ne se retire pas ; seul un administrateur de la plateforme peut le révoquer.* Puis la page d'arrivée, qui nomme votre société.

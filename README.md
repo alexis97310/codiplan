@@ -416,6 +416,16 @@ Reste ouvert au registre : le journal des référentiels de plateforme, et la
 
 **Aucun secret n'est écrit dans le dépôt**, pas même « de test », pas même en commentaire (I9). Le module ne connaît que des **noms** de variables ; le dépôt de la clé est un geste d'exploitation, et la marche à suivre est dans [`docs/mise-en-ligne.md`](docs/mise-en-ligne.md).
 
+### Le destinataire n'est PAS l'identité (13/09/2026)
+
+**Le canal ouvert la veille livrait dans le vide, et rien ne le disait.** `--email` **DÉSIGNE** l'identité — la base la cherche par là —, et l'envoi partait à cette adresse. Or les neuf identités du semis portent des adresses en `@codima.test`, un domaine **réservé par la RFC 2606** qui ne résout chez aucun prestataire ; et l'autre voie était fermée elle aussi, `ouvrirPremierCompte` refusant dès que la société porte une habilitation. _Personne ne pouvait entrer dans la base de démonstration, donc personne ne pouvait vérifier ce que le semis y avait écrit._
+
+`--destinataire` sépare la **boîte qui reçoit** de l'**identité que le lien ouvre** ([`scripts/lib/delivrance-premier-acces.ts`](scripts/lib/delivrance-premier-acces.ts)). Absent, il vaut `--email` : rien ne change pour qui ne le passe pas.
+
+**Ce n'est pas une élévation de privilège, et c'est mesuré plutôt qu'affirmé.** L'ensemble des personnes capables de ce geste ne bouge pas d'un membre : le script exige `DATABASE_URL` sous le rôle de migration, un secret d'Actions — qui peut jouer le flux détient déjà l'accès en **écriture** au dépôt, donc la capacité de lire ce secret, donc celle de faire imprimer l'URL par `--reemettre` dans un terminal qu'aucun journal n'enregistre. **Le drapeau ne donne rien de neuf : il déplace un canal.** Les deux cliquets de D65 sont intacts et en amont ; le drapeau est lu **après** eux, dans la seule fonction qui poste un message.
+
+**Ce qu'il coûte est nommé, et payé au même endroit.** Le lien voyage vers une adresse qui n'est pas celle du compte qu'il ouvre. La sortie imprime donc **les deux adresses, toujours** — `Courriel ENVOYÉ à X POUR L'IDENTITÉ Y` —, et le corps du message nomme l'identité qu'il ouvre. _Si la mention n'apparaissait qu'en cas de dissociation, ce serait son absence qui porterait le sens, et une absence a exactement la forme d'un succès_ (§9, 31/08). Le lecteur compare deux adresses ; il n'infère pas d'une convention qu'il faudrait connaître.
+
 ## Veille de la base hébergée — le détectif, chaque nuit
 
 `pnpm veille` ([`scripts/veille-hebergee.mts`](scripts/veille-hebergee.mts)) joue
@@ -1484,6 +1494,10 @@ scripts/      inventaire, contrôle de cloisonnement (privilèges compris), hori
               lib/tables-comptees.ts = LA population de l'inventaire, PRODUITE
               par le schéma : toute table y est comptée, témoin, ou exemptée
               nommément avec son motif
+              lib/delivrance-premier-acces.ts = à QUI le lien part et QUELLE
+              identité il ouvre (13/09) — il vit hors du script parce qu'un
+              `.mts` dont la dernière ligne s'exécute ne s'importe pas : ce
+              qui doit être MESURÉ ne peut pas vivre dedans
               captures.mts = les captures d'écran, prises par une COMMANDE et
               non à la main (10/09) — chaque écran porte un TÉMOIN lu sur le
               texte RENDU, et une image qui ne le porte pas est refusée plutôt
