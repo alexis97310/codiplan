@@ -13,6 +13,7 @@ import {
   listerLeRegistre,
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * LE REGISTRE DES VÉRIFICATIONS PÉRIODIQUES (L9-02, L9-03 ; D88).
@@ -177,10 +178,7 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
   return (
     <tr>
       <Cellule mono>
-        <Link
-          href={`/parc/${ligne.id}`}
-          className="underline-offset-2 hover:underline"
-        >
+        <Link href={`/parc/${ligne.id}`} className={CLASSES_LIEN}>
           {ligne.numero_serie}
         </Link>
       </Cellule>

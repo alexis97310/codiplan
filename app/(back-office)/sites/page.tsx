@@ -15,6 +15,7 @@ import {
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 
 import { libelleRattachement, ouTiret } from "./presentation";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * L'ÉCRAN « SITES » (L3-16, D75).
@@ -179,7 +180,7 @@ function LigneSite({
   return (
     <tr>
       <Cellule fort>
-        <Link href={`/sites/${site.id}`} className="hover:underline">
+        <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
           {site.libelle}
         </Link>
         {site.actif ? null : (

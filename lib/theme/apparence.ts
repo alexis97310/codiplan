@@ -146,3 +146,46 @@ export const LARGEUR_UTILE_PX = 1400;
  * liront le même nombre au lieu d'en porter deux.
  */
 export const LARGEUR_COLONNE_TECHNICIEN_PX = 170;
+
+/**
+ * LE LIEN, VISIBLE AU REPOS — et pas seulement au survol (14/09/2026).
+ *
+ * ## Ce qui a été mesuré
+ *
+ * La fiche machine existe — `app/(back-office)/parc/[id]/page.tsx` — et la
+ * référence de chaque ligne du parc y mène. **La personne qui a ouvert l'écran
+ * a conclu « pas de fiche machines disponible ».** Le lien était habillé
+ * `underline-offset-2 hover:underline` : *ni couleur ni soulignement au repos*,
+ * c'est-à-dire rien qui le distingue du texte voisin — et sur un téléphone,
+ * **il n'y a pas de survol du tout**, si bien que le lien n'y existait à aucun
+ * moment.
+ *
+ * **Le défaut était PARTAGÉ, et c'est ce qui justifie une constante.** Six
+ * liens portaient ce régime — la référence du parc, le numéro de série du
+ * registre VGP, le libellé d'un lieu, la référence d'une intervention hors
+ * grille, la valeur liée d'une fiche d'intervention, et le renvoi du parc vers
+ * le registre. *Le corriger à un seul endroit aurait laissé les cinq autres.*
+ *
+ * ## L'ÉCART À LA MAQUETTE EST ÉCRIT, AVEC LE POINT OÙ ELLE EST MUETTE
+ *
+ * `docs/maquette/CODIPLAN_Maquette.html` fait foi sur la disposition et les
+ * couleurs (D95). *Elle ne porte AUCUN élément `<a>`* — mesuré le 14/09/2026 :
+ * `grep -c '<a '` y rend **0**, toute navigation y passant par des `<button>`.
+ * Elle est donc **muette sur l'habillage d'un lien**, et « ce qu'elle ne dit
+ * pas reste libre » (§1).
+ *
+ * Le rôle retenu est `--app-marque` — le bleu `#0053A1` de la maquette, celui
+ * de l'onglet actif et de l'avatar : *la couleur que la charte emploie déjà
+ * pour dire « ceci est actif ».* Aucune couleur n'est écrite ici, seulement ce
+ * rôle ; un gardien vérifie qu'il tient les 4,5:1 de WCAG 2.1 (1.4.3 AA) dans
+ * **chaque** apparence, contre la surface comme contre le fond.
+ *
+ * ## Pourquoi ici et pas dans un composant
+ *
+ * La raison de `LARGEUR_UTILE_PX` juste au-dessus : *un habillage écrit dans un
+ * écran est un habillage par écran*, et c'est très exactement l'état mesuré —
+ * six liens, quatre habillages. Un composant aurait fait la même chose ; il
+ * aurait en outre imposé sa balise, alors que ces liens vivent dans des
+ * contextes qui décident déjà de leur graisse et de leur taille.
+ */
+export const CLASSES_LIEN = "text-app-marque underline underline-offset-2";

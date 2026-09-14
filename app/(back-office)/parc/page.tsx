@@ -11,6 +11,7 @@ import {
   resumerLeParc,
   type LigneDeParc,
 } from "@/lib/machines/depot";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * L'ÉCRAN « PARC MACHINES » (R2-21 ; D95, D6, I10).
@@ -128,10 +129,7 @@ export default async function PageParc() {
         entrée « VGP ». Une douzième entrée la ferait rougir à raison — le même
         traitement que l'écran des lieux, qui se rejoint par un lien.
       */}
-      <Link
-        href="/vgp"
-        className="text-app-encre-faible text-[12.5px] underline-offset-2 hover:underline"
-      >
+      <Link href="/vgp" className={`text-[12.5px] ${CLASSES_LIEN}`}>
         {t("vgp.lien_depuis_parc")}
       </Link>
 
@@ -150,10 +148,7 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
           INERTE, jamais un lien (D95) — ici l'écran existe, donc le lien se
           pose.
         */}
-        <Link
-          href={`/parc/${machine.id}`}
-          className="underline-offset-2 hover:underline"
-        >
+        <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
           {referenceMachine(machine)}
         </Link>
         {machine.numero === null ? (
