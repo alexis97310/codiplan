@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -107,6 +108,28 @@ describe("la lecture du classeur RÉEL", () => {
     const cellule = parc?.lignes[253]?.[17];
     const lue = lireDate(cellule);
     expect(lue.ok && lue.valeur.toISOString()).toBe("2022-02-21T00:00:00.000Z");
+  });
+
+  it("lit des OCTETS aussi bien qu'un CHEMIN, et rend la même chose", async () => {
+    // **C'est ce que L1-11 avait besoin d'élargir.** Une route reçoit des
+    // octets, jamais un chemin ; la signature n'acceptait qu'une chaîne, et la
+    // réparation naturelle en face — écrire le téléversement sur le disque du
+    // serveur — ferait entrer des données de client dans un système de
+    // fichiers que rien ne purge, sur un hébergeur éphémère.
+    //
+    // La bibliothèque, elle, l'acceptait déjà : `Input = string | Stream |
+    // Blob | Buffer` (`node/input.d.ts`, version 9.3.10). *L'écart n'était pas
+    // une limite de la bibliothèque, c'était une limite que nous avions écrite.*
+    const parChemin = await lireClasseur(FIXTURE);
+    const parOctets = await lireClasseur(readFileSync(FIXTURE));
+
+    // TÉMOIN : les deux ont bien lu quelque chose. *Deux lectures vides sont
+    // égales* (§9, 10/09), et l'égalité serait alors une absence de mesure.
+    expect(parOctets.length).toBeGreaterThan(0);
+    expect(parOctets.map((f) => f.nom)).toEqual(parChemin.map((f) => f.nom));
+    expect(feuilleNommee(parOctets, "3-Parc machines")?.lignes.length).toBe(
+      feuilleNommee(parChemin, "3-Parc machines")?.lignes.length,
+    );
   });
 
   it("la feuille se nomme EXACTEMENT, jamais par ressemblance", async () => {

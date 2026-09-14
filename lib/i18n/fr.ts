@@ -506,6 +506,153 @@ export const fr = {
   "import.avertissement.colonne_inconnue":
     "Cette colonne ne fait pas partie du modèle : elle est ignorée, et n'empêche pas l'import.",
 
+  // ── L'ÉCRAN D'IMPORT (L1-11 ; I6, RG-IMP-01 à 05, D31, D54) ─────────────
+  //
+  // La maquette gouverne la DISPOSITION de cet écran (D95) ; elle ne gouverne
+  // pas ses PHRASES quand une décision de rang 1 les a réécrites. Deux cas,
+  // nommés ici parce que c'est ici qu'ils se lisent :
+  //
+  //   — « Annulable pendant 24 h » : **D54 a SUPPRIMÉ cette fenêtre.** Le
+  //     critère ligne à ligne mesure directement ce que la borne approchait, et
+  //     il traite mieux le cas des imports qui se recouvrent. *Une
+  //     approximation conservée à côté de sa mesure n'ajoute pas de sécurité :
+  //     elle en retire.* Le libellé dit donc la vraie règle.
+  //   — « Inchangés » : **notre rapport ne compte pas cette catégorie.** Il
+  //     compte créations, modifications, rejets, gabarits et lignes vides
+  //     (L1-08d), et les décomptes sont DÉRIVÉS des lignes retenues. *Afficher
+  //     un « inchangés » qu'aucune mesure ne produit serait un chiffre inventé
+  //     au milieu de chiffres mesurés* (§9, 06/09).
+  "imports.titre": "Imports Excel",
+  "imports.sous_titre":
+    "Les échanges avec les outils du client passent par des fichiers Excel contrôlés — jamais par une base ouverte.",
+  "imports.regle": "Aucun import n'est appliqué sans validation.",
+  "imports.regle_detail":
+    "Le fichier est d'abord contrôlé ligne à ligne et le résultat vous est présenté ; rien n'est écrit tant que vous n'avez pas validé. Un lot appliqué reste annulable : ce qui est sans danger est restauré, ce qui ne l'est pas est refusé avec son motif.",
+  "imports.nouveau_titre": "Nouvel import — Clients",
+  "imports.fichier": "Classeur à contrôler",
+  "imports.fichier_aide":
+    "Un fichier .xlsx bâti sur le modèle CODIPLAN. La première cellule porte le marqueur du modèle : c'est lui qui dit de quel import il s'agit.",
+  "imports.controler": "Contrôler le fichier",
+  "imports.modele_indisponible": "Télécharger le modèle Excel",
+  "imports.modele_indisponible_motif":
+    "Indisponible : produire un fichier .xlsx demande une bibliothèque d'écriture, et il n'y en a aucune dans le projet. C'est une décision de dépendance, pas un oubli.",
+
+  // LES TYPES, ET CE QU'ON PEUT EN FAIRE AUJOURD'HUI. *Un écran qui accepterait
+  // un fichier de contacts en montrerait le rapport et ne saurait rien en
+  // faire* : la seule fonction d'application qui existe est celle des clients.
+  // Les quatre autres sont NOMMÉS plutôt que proposés — comme une entrée de
+  // barre inerte, que D95 distingue expressément d'une entrée absente.
+  "imports.disponibles_titre": "Imports disponibles",
+  "imports.disponibles_aide":
+    "Un type est utilisable de bout en bout quand il sait à la fois contrôler un fichier et l'appliquer. Les autres savent déjà contrôler.",
+  "imports.type.clients": "Clients",
+  "imports.type.clients_detail":
+    "Clé de rapprochement : le code externe, à défaut la raison sociale.",
+  "imports.type.contacts": "Contacts",
+  "imports.type.contacts_detail": "Complément du référentiel client.",
+  // **PAS DE LIBELLÉ ICI POUR CE TYPE, ET C'EST LA RÈGLE** : « site » est un
+  // MOT IMPOSÉ (D5, D47), il se définit une fois sous `vocabulaire.*` et se
+  // compose ailleurs depuis `mot("site")`. *Le gardien a rougi sur la première
+  // rédaction, à raison.* La clé portée par la liste des types est celle du
+  // RESTE du libellé — ici il n'y en a pas, et le titre est le mot seul.
+  "imports.type.sites_detail":
+    "Lieux d'intervention, rattachés à un client et à un établissement.",
+  "imports.type.modeles": "Modèles de matériel",
+  "imports.type.modeles_detail": "Référentiel technique — marque et référence.",
+  "imports.type.prestations": "Prestations",
+  "imports.type.prestations_detail":
+    "Catalogue des durées standard, sans aucun montant.",
+  "imports.type.complet": "Contrôle et application",
+  "imports.type.controle_seul": "Contrôle seulement",
+  "imports.type.controle_seul_motif":
+    "Le rapport se produit ; l'écriture en base n'est pas encore construite pour ce type.",
+
+  "imports.journal_titre": "Journal des chargements",
+  "imports.journal_aide":
+    "Les derniers lots contrôlés, du plus récent au plus ancien.",
+  "imports.journal_vide": "Aucun fichier n'a encore été contrôlé.",
+  "imports.colonne_fichier": "Fichier",
+  "imports.colonne_type": "Type",
+  "imports.colonne_date": "Contrôlé le",
+  "imports.colonne_auteur": "Par",
+  // LES DEUX ABSENCES D'UN NOM, ET ELLES NE DISENT PAS LA MÊME CHOSE.
+  // *« La politique refuse » est légitime et le reste ; « je n'ai pas
+  // demandé » est une anomalie et se lit comme telle* (14/09/2026). Les clés
+  // du planning ne sont PAS réutilisées : leurs libellés disent « Technicien »,
+  // et l'auteur d'un import n'en est pas un. *Une clé nommée d'après son
+  // premier appelant devient fausse au second* — ici c'est le LIBELLÉ qui
+  // l'aurait été.
+  "imports.auteur_non_communique": "Nom non communiqué",
+  "imports.auteur_non_demande": "Anomalie : nom non demandé",
+  "imports.colonne_statut": "Statut",
+  "imports.statut.controle": "Contrôlé",
+  "imports.statut.applique": "Appliqué",
+  "imports.statut.annule": "Annulé",
+
+  "imports.lot_titre": "Rapport de contrôle",
+  "imports.lot_retour": "← Retour aux imports",
+  "imports.lot_introuvable":
+    "Ce lot n'existe pas, ou il n'appartient pas à la société active.",
+  "imports.resultat_titre": "Résultat du contrôle",
+  "imports.creations": "Nouveaux",
+  "imports.creations_detail": "seront créés",
+  "imports.modifications": "Modifiés",
+  "imports.modifications_detail": "seront mis à jour",
+  "imports.rejets": "Rejets",
+  "imports.rejets_detail": "ne seront pas écrits",
+  "imports.gabarits": "Lignes de gabarit",
+  "imports.gabarits_detail": "exemples du modèle, ignorés",
+  "imports.vides": "Lignes vides",
+  "imports.vides_detail": "ignorées",
+  "imports.lignes_titre": "Lignes rejetées",
+  "imports.lignes_aucun_rejet":
+    "Aucune ligne rejetée : tout ce que le fichier porte peut être écrit.",
+  "imports.colonne_ligne": "Ligne",
+  "imports.colonne_cle": "Clé de rapprochement",
+  "imports.colonne_motif": "Motif",
+  "imports.cle_absente": "aucune",
+  "imports.appliquer": "Appliquer l'import",
+  "imports.appliquer_aide":
+    "Écrit en base exactement les lignes montrées ci-dessus, et rien d'autre.",
+  "imports.annuler": "Annuler ce lot",
+  "imports.annuler_aide":
+    "Défait ce qui peut l'être. Une fiche modifiée ou référencée depuis est refusée avec son motif, et rien n'est supprimé en cascade.",
+  "imports.rejets_indisponibles": "Télécharger les rejets",
+  "imports.rejets_indisponibles_motif":
+    "Indisponible : rendre les lignes rejetées dans un fichier annoté (RG-IMP-03) demande une bibliothèque d'écriture .xlsx, et il n'y en a aucune dans le projet.",
+
+  "imports.applique": "Le lot a été appliqué.",
+  "imports.annule": "Le lot a été annulé, et tout a été défait.",
+  "imports.annule_partiel":
+    "Le lot a été annulé. Une partie n'a pas pu être défaite : les fiches concernées ont été modifiées ou sont référencées depuis, et elles ont été laissées intactes.",
+
+  // LES MOTIFS DE REJET D'UNE LIGNE. Ce sont les codes que `lib/imports/modeles.ts`
+  // et `lib/excel/controle.ts` rendent — deux causes distinctes, et elles ne se
+  // corrigent pas au même endroit : l'une dans le FICHIER, l'autre dans le PARC.
+  "imports.motif.saisie_refusee":
+    "Cette ligne ne passe pas la saisie : une valeur manque ou n'est pas au format attendu. La correction est dans le fichier.",
+  "imports.motif.parent_introuvable":
+    "La fiche que cette ligne désigne n'existe pas dans le parc. La correction est dans le parc, ou dans la colonne qui le nomme.",
+  "imports.motif.cle_ambigue":
+    "Plusieurs fiches du parc portent la même clé : cette ligne ne désigne rien de sûr. La correction est dans le parc — c'est ce doublon qu'il faut lever.",
+
+  // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états
+  // d'un lot qu'on ne peut plus toucher.
+  "imports.refus.absent": "Aucun fichier n'a été joint.",
+  "imports.refus.vide": "Ce fichier est vide.",
+  "imports.refus.extension":
+    "Seuls les fichiers .xlsx sont lus. Un CSV n'a ni type de cellule ni feuille, et tout le contrôle repose sur les deux.",
+  "imports.refus.trop_gros":
+    "Ce fichier est trop volumineux pour être un classeur de reprise. Vérifiez qu'il s'agit bien du bon fichier.",
+  "imports.refus.sans_feuille": "Ce classeur ne porte aucune feuille.",
+  "imports.refus.illisible": "Ce fichier n'a pas pu être lu.",
+  "imports.refus.lot_introuvable":
+    "Ce lot n'existe pas, ou il n'appartient pas à la société active.",
+  "imports.refus.lot_deja_applique": "Ce lot a déjà été appliqué.",
+  "imports.refus.lot_annule": "Ce lot a été annulé : il ne se rejoue pas.",
+  "imports.refus.lot_non_applique":
+    "Ce lot n'a jamais été appliqué : il n'y a rien à annuler.",
+
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
   "planning.titre": "Planning des interventions",
   "planning.sous_titre":

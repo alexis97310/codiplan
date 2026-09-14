@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { type Prisma, type PrismaClient } from "@prisma/client";
 
+import { annuaireDesPersonnes, type Designation } from "@/lib/auth/annuaire";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
@@ -175,4 +176,166 @@ export async function enregistrerLeControle(
   );
 
   return { lotId, decomptes };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LA LECTURE DES LOTS (L1-11)
+ *
+ * **Elle n'existait pas, et c'est pourquoi l'écran n'existait pas.** Ce module
+ * savait ÉCRIRE un rapport depuis L1-08e ; rien ne savait le relire. *Une
+ * couche qui écrit ce que personne ne relit est une couche dont on ne peut pas
+ * dire si elle écrit juste.*
+ *
+ * **Aucune comparaison de société n'est écrite ici non plus** : les deux tables
+ * sont de forme « interne » (D100), la lecture passe par
+ * `avecContexteApplicatif`, et un lot d'une autre société est simplement
+ * ABSENT. *Rendre « interdit » plutôt qu'« introuvable » ferait un oracle*
+ * (D35, D50) — et c'est déjà le choix que `appliquerLeLotDeClients` a fait.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** Un lot tel que la LISTE le montre : jamais ses lignes, qui sont des milliers. */
+export type LotEnListe = {
+  readonly id: string;
+  /**
+   * QUI a importé, avec la SOMME qui dit pourquoi un nom manque.
+   *
+   * *Une `Map` n'a qu'une façon de ne pas répondre* : l'écran du planning
+   * confondait le refus du cloisonnement avec son propre oubli, et
+   * `lib/auth/annuaire.ts` a été écrit pour les séparer (14/09/2026). La même
+   * confusion serait ici : un lot importé par quelqu'un d'une autre société
+   * n'existe pas, mais un compte SUPPRIMÉ depuis, si. **La résolution se fait
+   * DANS la transaction cloisonnée**, seul endroit où la politique parle.
+   */
+  readonly auteur: Designation;
+  readonly nomFichier: string;
+  readonly typeImport: string;
+  readonly statut: string;
+  readonly controleLe: Date;
+  readonly appliqueLe: Date | null;
+  readonly annuleLe: Date | null;
+  readonly decomptes: Decomptes;
+};
+
+/** Une ligne du rapport, telle que l'écran la montre. */
+export type LigneDeLot = {
+  readonly rang: number;
+  readonly action: string;
+  readonly cle: string | null;
+  readonly rejetMotif: string | null;
+  readonly valeurs: Prisma.JsonValue;
+};
+
+export type LotDetaille = LotEnListe & {
+  readonly lignes: readonly LigneDeLot[];
+};
+
+function enListe(
+  lot: {
+    id: string;
+    nom_fichier: string;
+    type_import: string;
+    statut: string;
+    controle_le: Date;
+    applique_le: Date | null;
+    annule_le: Date | null;
+    lignes_creations: number;
+    lignes_modifications: number;
+    lignes_rejets: number;
+    lignes_gabarits: number;
+    lignes_vides: number;
+    utilisateur_id: string;
+  },
+  auteur: Designation,
+): LotEnListe {
+  return {
+    id: lot.id,
+    auteur,
+    nomFichier: lot.nom_fichier,
+    typeImport: lot.type_import,
+    statut: lot.statut,
+    controleLe: lot.controle_le,
+    appliqueLe: lot.applique_le,
+    annuleLe: lot.annule_le,
+    // Les décomptes viennent de la BASE, où le rapport les a posés — jamais
+    // d'un second parcours des lignes. *Deux lectures d'un même critère
+    // divergent en silence* (§9, 01/09), et ici la seconde serait affichée à
+    // côté de la première, sans qu'on sache laquelle croire.
+    decomptes: {
+      creations: lot.lignes_creations,
+      modifications: lot.lignes_modifications,
+      rejets: lot.lignes_rejets,
+      gabarits: lot.lignes_gabarits,
+      vides: lot.lignes_vides,
+    },
+  };
+}
+
+/** Les lots de la société active, du plus récent au plus ancien. */
+export async function listerLesLots(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly LotEnListe[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lots = await tx.importLot.findMany({
+        orderBy: { controle_le: "desc" },
+        // Une BORNE, et elle est écrite : un import par semaine pendant deux
+        // ans fait cent lots, et un écran qui les rend tous devient illisible
+        // avant de devenir lent. *Ce n'est pas une pagination — c'est l'aveu
+        // qu'il n'y en a pas encore*, et la liste dit combien elle montre.
+        take: PLAFOND_LISTE,
+      });
+      const annuaire = await annuaireDesPersonnes(
+        tx,
+        lots.map((lot) => lot.utilisateur_id),
+      );
+      return lots.map((lot) => enListe(lot, annuaire(lot.utilisateur_id)));
+    },
+    client,
+  );
+}
+
+/**
+ * Le PLAFOND de la liste. *Un nombre écrit une fois, et lisible par l'écran
+ * qui doit dire « les N derniers ».*
+ */
+export const PLAFOND_LISTE = 50;
+
+/**
+ * UN lot et ses lignes, ou `null`.
+ *
+ * **`null` couvre deux cas que rien ne distingue ici, et c'est voulu** : le lot
+ * n'existe pas, ou il appartient à une autre société et la politique le cache.
+ * *Les distinguer ferait un oracle* (D35, D50).
+ */
+export async function lireLeLot(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<LotDetaille | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lot = await tx.importLot.findUnique({
+        where: { id: lotId },
+        include: { lignes: { orderBy: { rang: "asc" } } },
+      });
+      if (lot === null) {
+        return null;
+      }
+      const annuaire = await annuaireDesPersonnes(tx, [lot.utilisateur_id]);
+      return {
+        ...enListe(lot, annuaire(lot.utilisateur_id)),
+        lignes: lot.lignes.map((ligne) => ({
+          rang: ligne.rang,
+          action: ligne.action,
+          cle: ligne.cle,
+          rejetMotif: ligne.rejet_motif,
+          valeurs: ligne.valeurs,
+        })),
+      };
+    },
+    client,
+  );
 }

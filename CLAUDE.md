@@ -1099,6 +1099,21 @@ lib/
               s'additionnent pas — sinon le témoin dirait faux dans le sens
               rassurant
   imports/    LE MOTEUR D'IMPORT — ce que `excel/` a décidé, posé en base (L1-08e)
+              televersement.ts : ce qu'un fichier doit ÊTRE avant d'être lu
+              (L1-11) — il rend des octets, il ne lit AUCUN classeur : la
+              grammaire vit dans `excel/`, et une seconde règle d'acceptation
+              écrite ici la doublerait
+              il vit dans un MODULE et non dans la route : une route de Next.js
+              n'expose que ses verbes, et ce qu'on y écrirait serait
+              inéprouvable sans démarrer un serveur — or ces refus sont
+              précisément ce qu'un fichier hostile rencontre en premier
+              la TAILLE est lue avant les octets : mesurer après avoir lu ferait
+              entrer en mémoire exactement ce qu'on voulait refuser
+              le plafond est MESURÉ contre le classeur réel (59 642 octets) et
+              dit de combien il le dépasse — une borne posée sans mesure serait
+              un chiffre inventé (§8)
+              `Stream` n'est PAS admis : un flux se consomme une fois, et un
+              classeur vide se lit comme un classeur sans données
               depot.ts : le LOT NAÎT AU CONTRÔLE, et le chapitre 11 le disait
               depuis l'origine — `import_lot.statut` vaut `controle`, `applique`
               ou `annule` ; I6 veut qu'un rapport précède la validation, et
@@ -1116,6 +1131,14 @@ lib/
               il n'y a rien à restaurer (D15)
               RIEN pour le stockage du fichier source : `objet_cle` existe et
               reste nulle, faute d'appelant — la maladie du portail, évitée
+              il sait désormais RELIRE (L1-11) : `listerLesLots`, `lireLeLot` —
+              *une couche qui écrit ce que personne ne relit est une couche dont
+              on ne peut pas dire si elle écrit juste*
+              l'AUTEUR est résolu DANS la transaction cloisonnée, seul endroit
+              où la politique parle, et il rend la SOMME de `auth/annuaire.ts` :
+              une Map n'a qu'une façon de ne pas répondre
+              un lot d'une AUTRE société est « introuvable » et rien de plus —
+              les distinguer ferait un oracle (D35, D50)
               modeles.ts : LES GABARITS QUE CODIPLAN PUBLIE (L1-09a), et eux
               seuls — deux sortes de fichiers ne se confondent pas : un gabarit
               tient ses colonnes de NOS schémas de saisie, un fichier de reprise
