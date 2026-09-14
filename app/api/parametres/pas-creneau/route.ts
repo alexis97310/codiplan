@@ -1,19 +1,26 @@
-import { schemaPasCreneau } from "@/lib/calendar/parametrage";
+import { reglerLePas } from "@/lib/calendar/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { champ, contexteCourant } from "../../interventions/actions";
 
 /**
- * RÉGLER LE PAS DES CRÉNEAUX (lot 2, I7).
+ * RÉGLER LE PAS DES CRÉNEAUX (lot 2, I7 ; amendé par R3-13).
  *
  * Le calendrier est écrit SOUS le contexte cloisonné : un identifiant venu d'un
  * formulaire forgé ne désigne rien hors de la société active, la politique de
  * `calendrier` étant de forme « société ». *On ne recompare pas la société
  * au-dessus de la politique* — ce serait une seconde lecture du même critère.
  *
- * Et la borne est vérifiée DEUX FOIS : par Zod ici, pour que le refus soit
- * lisible, et par la contrainte `CHECK` en base, pour qu'il soit tenu. La
- * seconde est celle qui garde.
+ * **R3-13 a déplacé l'écriture dans `lib/calendar/depot.ts`, et ce n'est pas un
+ * rangement.** Le pas et les plages sont désormais réglables tous les deux, et
+ * ils doivent s'accorder : un pas plus grand que la plus courte plage rendrait
+ * une grille VIDE — un jour affiché comme ouvert sur lequel le planning ne
+ * propose rien. Le refus est prononcé au même endroit pour les deux sens ;
+ * l'écrire ici en aurait fait une seconde lecture, et c'est celle qui vieillit
+ * sans rougir.
+ *
+ * La borne du pas reste vérifiée DEUX FOIS : par Zod, pour que le refus soit
+ * lisible, et par la contrainte `CHECK` en base, pour qu'il soit tenu.
  */
 export async function POST(requete: Request): Promise<Response> {
   const vers = (cle?: string) =>
@@ -30,22 +37,18 @@ export async function POST(requete: Request): Promise<Response> {
   }
   const formulaire = await requete.formData();
   const calendrierId = champ(formulaire, "calendrier_id");
-  const pas = schemaPasCreneau.safeParse(
-    Number(champ(formulaire, "pas") ?? Number.NaN),
-  );
-  if (calendrierId === null || !pas.success) {
+  if (calendrierId === null) {
     return vers("parametres.refus_pas");
   }
 
-  const touches = await avecContexteApplicatif(contexte, (tx) =>
-    tx.calendrier.updateMany({
-      where: { id: calendrierId },
-      data: { pas_creneau_minutes: pas.data },
-    }),
+  const reglage = await avecContexteApplicatif(contexte, (tx) =>
+    reglerLePas(
+      tx,
+      calendrierId,
+      Number(champ(formulaire, "pas") ?? Number.NaN),
+    ),
   );
-  // Zéro ligne touchée n'est pas une erreur technique : c'est la politique qui
-  // a refusé, et elle refuse en silence. Le message est le même que pour une
-  // valeur invalide — les distinguer apprendrait qu'un calendrier existe
-  // ailleurs (D35, D50).
-  return vers(touches.count === 0 ? "parametres.refus_pas" : undefined);
+  // Un calendrier hors périmètre rend le MÊME refus qu'une valeur invalide : les
+  // distinguer apprendrait qu'un calendrier existe ailleurs (D35, D50).
+  return vers(reglage.ok ? undefined : reglage.motif);
 }
