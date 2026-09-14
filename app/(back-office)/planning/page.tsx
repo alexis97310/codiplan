@@ -295,6 +295,19 @@ export default async function PagePlanning({
           <p className="text-app-encre-faible text-[13px]">
             {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
           </p>
+          {/*
+            LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
+            DISENT (14/09/2026). La vue jour tire ses colonnes du référentiel,
+            la vue semaine des interventions — deux choix délibérés, chacun avec
+            sa raison. Ce qui ne se tenait pas est que *deux écrans de la même
+            entrée de menu rendent deux populations sans un mot* : l'écart ne se
+            découvrait qu'en le soupçonnant.
+          */}
+          <p className="text-app-encre-faible text-[11.5px]">
+            {vue === "jour"
+              ? t("planning.population_jour")
+              : t("planning.population_semaine")}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
