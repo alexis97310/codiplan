@@ -112,6 +112,6 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260913240000_vgp_verification_l9",
   "20260913250000_rattrapage_suspensions_r3_02",
   "20260914100000_plages_reglables_r3_13",
-  "20260914110000_absence_reglable_r3_14",
   "20260914200000_chevauchement_apres_ecriture",
+  "20260914210000_blocage_agenda_r3_14",
 ];

@@ -597,9 +597,15 @@ async function verdictALaPose(
   // chemins écrivent tous deux `technicien_id` et une date**, et une règle
   // tenue par un chemin sur deux n'est pas tenue.
   //
-  // **Seule une absence VALIDÉE bloque** — une demandée ne dit rien encore, une
-  // refusée ne dit plus rien —, et c'est la règle elle-même qui le sait :
-  // `absenceCouvrant` filtre sur le statut, ce fichier ne le connaît pas.
+  // **TOUTE ligne bloque depuis R3-14** : le circuit d'approbation a été retiré
+  // avec le statut — *CODIPLAN n'est pas un outil de gestion des ressources
+  // humaines* —, et il n'y a plus de blocage qui ne bloque pas encore. Le jour
+  // exact reste tranché par `absenceCouvrant`, et par elle seule.
+  //
+  // **Ce contrôle-ci EXPLIQUE ; le déclencheur
+  // `intervention_pas_sur_blocage_agenda` GARDE.** Les deux ne se doublent pas :
+  // celui-ci rend un motif nommé que l'écran affiche, celui-là rend un refus à
+  // tout chemin d'écriture, y compris ceux qui ne passent pas par ici.
   const visee = dateVisee(demande, fuseau);
   if (demande.technicienId !== null && visee !== null) {
     const absences = await tx.absence.findMany({
@@ -607,8 +613,7 @@ async function verdictALaPose(
         utilisateur_id: demande.technicienId,
         // La borne SQL est large — elle sert l'index, pas la règle. *Le jour
         // exact est tranché par `absenceCouvrant`, et par elle seule* : deux
-        // lectures d'un même critère divergent en silence (§9, 01/09), et
-        // celle-ci n'aurait pas su lire le statut.
+        // lectures d'un même critère divergent en silence (§9, 01/09).
         du: { lte: visee },
         au: { gte: visee },
       },
@@ -617,7 +622,6 @@ async function verdictALaPose(
         utilisateur_id: true,
         du: true,
         au: true,
-        statut: true,
       },
     });
     if (absenceCouvrant(absences, demande.technicienId, visee) !== null) {

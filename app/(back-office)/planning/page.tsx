@@ -314,7 +314,7 @@ export default async function PagePlanning({
             La barre reste close à onze entrées, confrontées à la maquette
             (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
             /clients. Et c'est ICI qu'il se rejoint plutôt que dans les
-            réglages — une absence n'est pas un paramètre de société, c'est un
+            réglages — un blocage d'agenda n'est pas un paramètre de société, c'est un
             fait de planning : elle rend des interventions à la file et elle
             retranche des heures au dénominateur du taux affiché plus bas.
           */}

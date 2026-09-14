@@ -347,6 +347,21 @@ const ECRANS: readonly Ecran[] = [
       "exactement cela — il ne se confond pas avec un écran cassé.",
   },
   {
+    // **UN AUTRE ÉCRAN QUE LA BARRE N'ATTEINT PAS** (D95) : on y arrive par un
+    // lien depuis le planning — *un blocage d'agenda n'est pas un paramètre de
+    // société, c'est un fait de planning.*
+    //
+    // Le témoin porte sur le TITRE de l'écran, et il a changé avec l'arbitrage
+    // du 14/09 : « Absences » est devenu « Blocages d'agenda », CODIPLAN
+    // n'étant pas un outil de gestion des ressources humaines. *Un témoin resté
+    // sur l'ancien mot aurait refusé l'écran juste.*
+    nom: "absences",
+    chemin: "/absences",
+    quoi: "Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106).",
+    authentifie: true,
+    temoin: "Blocages d'agenda",
+  },
+  {
     // **L'ÉCRAN QUE LA BARRE N'ATTEINT PAS** (D95, liste close de onze entrées).
     // On y arrive par le LIEU d'une intervention, puis par la fiche du site —
     // et, depuis R3-08, par la page de paramétrage.

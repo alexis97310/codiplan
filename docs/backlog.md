@@ -45,7 +45,7 @@ Un ticket sans marqueur, ou un `BLOQUÉ` sans motif, fait échouer `pnpm verify`
 | `compteurs` | tout le module | L2-03 |
 | `demandes` | `deposerDemande`, `accuserReception`, `qualifierDemande`, `marquerTransformee`, `cloreSansSuite`, `demandesOuvertes` | L2-06 |
 | `documents` | `recevoir`, `classer`, `avancement`, `prochainATraiter`, `ecarter` | L8-07 |
-| `absences` | `declarerAbsence`, `deciderAbsence` | L3-04, L3-04a |
+| `absences` | `declarerAbsence`, `leverLeBlocage` | L3-04, L3-04a |
 
 *`absences` est le cas qui montre la différence entre « importé » et « atteint » : il l'est bien, mais seulement en LECTURE, pour le dénominateur du taux d'occupation (L3-17). **Personne ne peut déclarer une absence.***
 
@@ -758,8 +758,8 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 **L3-04b** L'ÉCRAN des absences, et le groupe rendu à la file. *Scindé de L3-04a le 12/09/2026.*
 *File :* BLOQUÉ — il n'existe **aucun écran d'absence**, et la question n'est pas celle de L3-04a. Mesuré le 12/09/2026 : `app/(back-office)/` porte `arrivee`, `parametres`, `parc`, `planning`, `sites`, `vgp` — **rien pour les absences** ; `docs/maquette/CODIPLAN_Maquette.html` ne nomme « absence » que **deux fois, et dans la PROSE de RG-PLA-06**, jamais comme un écran ; et la barre de D95 est une **liste close de onze entrées** confrontée à la maquette, qu'une douzième ferait rougir **à raison**.
 **CE N'EST DONC PAS « ce qui reste est petit ».** L3-04a écrivait que l'écran manquait ; ce qui manque en réalité est **l'écran d'absence tout entier** — celui où l'on déclare, où l'on valide, et où le groupe rendu s'affiche. *L'alerte n'a pas besoin d'un écran à elle : elle a besoin de CELUI-LÀ.*
-**Ce qui est déjà prêt pour lui** : `deciderAbsence` rend `ruptures` à côté de `deplanifiees`, agence nommée et interventions nommées — *jamais un décompte.* L'écran n'aura rien à recalculer.
-*Acceptation :* un écran liste les absences d'une période avec leurs trois statuts, permet la décision, et affiche après validation **le groupe rendu à la file** avec l'alerte de rupture quand elle se prononce ; il se rejoint par un chemin écrit — **entrée de barre arbitrée, ou lien depuis le planning comme `/sites`** ; **aucun créneau n'est proposé**, et un scénario de rendu le mesure.
+**Ce qui est déjà prêt pour lui** : `declarerAbsence` rend `ruptures` à côté de `deplanifiees`, agence nommée et interventions nommées — *jamais un décompte.* L'écran n'aura rien à recalculer.
+*Acceptation :* un écran liste les blocages d'agenda d'une période, permet d'en poser et d'en lever, et affiche après la pose **le groupe rendu à la file** avec l'alerte de rupture quand elle se prononce ; il se rejoint par un chemin écrit — **entrée de barre arbitrée, ou lien depuis le planning comme `/sites`** ; **aucun créneau n'est proposé**, et un scénario de rendu le mesure.
 *Relu contre les sources citées le 12/09/2026 — empreinte `27296089`.*
 **L3-05** Tournées — regroupement, ordonnancement, estimation des trajets. **[D74]** L'estimation lit `site.temps_trajet_min`, **donnée de planification et rien d'autre** : le trajet ne s'ajoute jamais aux heures facturées, le déplacement se facture par forfait de zone (RG-INT-07, RG-PLA-05).
 *File :* BLOQUÉ — scindé le 12/09/2026 : **L3-05a** (l'intégration à la charge) est LIBRE, **L3-05b** (le moteur de tournées) est DIFFÉRÉ avec le report groupé [D107].
@@ -1602,6 +1602,26 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **(5) L'écran lui-même**, et c'est la partie la moins chère. `deciderAbsence` rend déjà `ruptures` à côté de `deplanifiees`, **agence nommée et interventions nommées, jamais un décompte** : l'écran n'aura rien à recalculer.
 **CE QUI N'EST PAS DANS CE TICKET :** l'alerte à effectif unique (L3-04a, **livrée**) et le moteur de tournées (L3-05b, **différé** avec D107). *Un moteur qui propose sur un effectif d'un ne propose rien* (D106) : cet écran ne propose aucun créneau, et il ne le fera pas davantage.
 **SON RAPPORT À L3-04b, écrit plutôt que laissé à deviner.** L3-04b porte **l'écran** — déclarer, valider, voir le groupe rendu à la file — et il est `BLOQUÉ` depuis le 12/09 sur *« il n'existe aucun écran d'absence »*, c'est-à-dire sur son propre travail. **R3-14 ajoute ce que L3-04b ne dit pas** : la mesure du silence du dénominateur, et les quatre questions à trancher **avant** d'ouvrir un éditeur. *Les deux ne se doublent pas : l'un construit, l'autre dit ce qu'il faut avoir décidé pour construire.* Le blocage de barre que L3-04b invoquait est par ailleurs **levé** — l'arbitrage du 14/09 sur l'écran client pose la règle générale : *la barre reste close à onze entrées, et un écran se rejoint par un lien*, comme `/sites` et comme `/clients`.
+**ARBITRAGE D'ALEXIS — 14/09/2026, APRÈS LA PREMIÈRE LIVRAISON. IL RENVERSE DEUX DES CINQ.**
+
+> **CODIPLAN N'EST PAS UN OUTIL DE GESTION DES RESSOURCES HUMAINES, ET IL N'Y A PLUS DE MODULE D'ABSENCE.** Il ne reste qu'un **blocage d'agenda** — une personne, une date de début, une date de fin, **et rien d'autre**. Pas de nature, pas de motif, pas de champ libre, pas d'historique de statut. *Le seul effet attendu : le planning ne propose pas un technicien sur un créneau bloqué, et le verrou de chevauchement le traite comme une occupation.*
+
+**CE QUE L'ARBITRAGE CHANGE, décision par décision.**
+
+**(2) LA NATURE — la décision provisoire allait dans le bon sens, elle n'allait pas assez loin.** Elle laissait `motif`, `precision` et le type `MotifAbsence` **dormants**, gardés par un déclencheur, au motif que *« la forme la plus réversible »* valait mieux qu'une suppression. L'arbitrage tranche l'autre sens : **les colonnes et les types sont SUPPRIMÉS**. Et c'est plus sûr, pas seulement plus net — *une colonne dormante gardée par un déclencheur est une colonne qui revient le jour où quelqu'un retire le déclencheur en croyant simplifier*, là où une colonne supprimée exige une migration que quelqu'un relit. `precision` part avec `motif` : **le champ libre écrivait la même donnée sans l'énumérer**, et le laisser aurait déplacé la donnée de santé d'une colonne à l'autre.
+
+**(1) QUI DÉCLARE, QUI DÉCIDE — la question DISPARAÎT avec le statut.** Il n'y a plus rien à trancher : `statut`, le type `StatutAbsence` et le déclencheur `absence_decision_reservee_a_l_encadrement` sont supprimés, et **le blocage prend effet dès qu'il est posé**. `absence_declaree_pour_soi` **demeure** — un technicien bloque son propre agenda, jamais celui d'un autre.
+
+> ⚠ **CE QUE CE RETRAIT COÛTE, ET IL EST NOMMÉ PLUTÔT QUE TU.** Tant qu'un statut existait, un technicien pouvait demander sans que rien ne bouge : l'encadrement tranchait. **Le blocage étant immédiat, un technicien qui pose son propre blocage rend à la file ses propres interventions** — c'est-à-dire retire des rendez-vous à des clients sans que personne l'ait vu, exactement ce que la décision provisoire (1) voulait empêcher. Ce n'est pas un oubli : c'est la conséquence directe de l'arbitrage, laissée en l'état plutôt que remplacée par une garde que personne n'a demandée. *Réouverture : le jour où l'on dira qui, dans la société, a le droit de vider un agenda.*
+
+**(3) L'AUTRE BOUT DE RG-PLA-06 — le verrou DEMEURE, et il est renforcé.** `intervention_pas_sur_absence_validee` devient `intervention_pas_sur_blocage_agenda` : il ne lit plus de statut, **toute ligne bloquant désormais**. Il passe en `AFTER INSERT OR UPDATE`, et ce n'est **pas recopié de #188 — c'est rejoué** : mesuré sur PostgreSQL 16.13, un `upsert` avec conflit dont le bloc `create` porte une date bloquée et dont la branche exécutée écrit une date libre est **REFUSÉ en `BEFORE`** et **ACCEPTÉ en `AFTER`** — *un refus sur une écriture qui n'a jamais eu lieu.* Le verrou est éprouvé sur **les trois verbes de Prisma** : `create`, `update`, `upsert`.
+
+**(4) L'EFFET RÉTROACTIF — inchangé.** Rien n'est matérialisé, et l'écran le DIT là où la saisie se fait.
+
+**(5) L'ÉCRAN — il perd sa colonne d'état et ses deux boutons de décision.** Il gagne une **levée** : *un blocage se supprime, il ne se « refuse » pas* — un statut `refusee` aurait gardé la ligne en disant qu'elle ne compte pas, c'est-à-dire deux façons pour une période de ne pas bloquer, dont une invisible au lecteur qui ne regarde que les dates. **Lever ne rend pas leurs créneaux aux interventions déjà reparties en file**, et l'écran l'écrit.
+
+**CE QUI SUIT EST CONSERVÉ POUR MÉMOIRE.** *Ce qui a été décidé un jour se relit, sinon on le redécide* — et les deux décisions renversées le sont par un arbitrage d'Alexis, jamais par une session.
+
 **LES CINQ QUESTIONS SONT TRANCHÉES — 14/09/2026, avant la première ligne de code. QUATRE LE SONT À TITRE PROVISOIRE.**
 
 > ⚠ **Ces quatre décisions ne sont pas d'Alexis.** Elles ont été rendues par l'exploitation de nuit pour que la construction avance, et elles **attendent sa ratification**. Chacune est réversible, et la façon de la rouvrir est écrite avec elle. *Une décision écrite et réversible vaut mieux qu'une journée d'attente* (§1 du protocole) — mais une décision provisoire qui oublie de dire qu'elle l'est devient définitive par le silence.

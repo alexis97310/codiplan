@@ -19,15 +19,28 @@ import { referenceAffichee } from "../planning/presentation";
 import { identifiants } from "../../api/absences/actions";
 
 /**
- * L'ÉCRAN DES ABSENCES (R3-14, RG-PLA-06).
+ * L'ÉCRAN DES BLOCAGES D'AGENDA (R3-14, RG-PLA-06).
  *
  * ## Pourquoi il existe
  *
- * `occupationTechnicien` retranche les absences **validées** du dénominateur du
- * taux d'occupation, précisément pour distinguer *« il était absent »* de *« il
- * n'a rien fait »*. **Aucune absence ne pouvant être déclarée, cette branche
+ * `occupationTechnicien` retranche les périodes bloquées du dénominateur du
+ * taux d'occupation, précisément pour distinguer *« il était indisponible »* de
+ * *« il n'a rien fait »*. **Aucun blocage ne pouvant être posé, cette branche
  * n'était jamais prise** : les taux affichés étaient justes *pour un monde où
  * personne n'est jamais absent*, et ils ne disaient pas qu'ils l'étaient.
+ *
+ * ## CE QU'IL N'EST PAS — et c'est la décision du 14/09/2026
+ *
+ * **Ce n'est pas un écran de gestion des congés.** Une personne, une date de
+ * début, une date de fin, et rien d'autre : ni nature, ni motif, ni champ
+ * libre, ni file de demandes à trancher. *CODIPLAN n'est pas un outil de
+ * gestion des ressources humaines*, et un écran qui ferait choisir entre
+ * « congé » et « arrêt maladie » écrirait une donnée de santé sur une personne
+ * nommée.
+ *
+ * **Le blocage est donc IMMÉDIAT**, et la conséquence est écrite plutôt que
+ * tue : il n'y a plus rien à valider, donc plus de moment où quelqu'un relit
+ * avant que le planning bouge. Poser rend à la file ; lever ne rend rien.
  *
  * ## Il ne propose AUCUN créneau
  *
@@ -37,20 +50,12 @@ import { identifiants } from "../../api/absences/actions";
  * déplanifiées » ne dit pas lesquelles*, et c'est exactement ce que le
  * planificateur doit voir pour les reposer.
  *
- * ## Il n'affiche AUCUNE NATURE, et il ne peut pas en afficher
- *
- * Décision **provisoire** de R3-14, en attente de ratification : une absence dit
- * *quand*, et rien d'autre. `arret` est un arrêt de travail — *une donnée de
- * santé, sur un salarié nommé* —, et le dénominateur n'en a aucun besoin. La
- * lecture ne rend plus la colonne, la saisie ne l'accepte plus, et un
- * déclencheur refuse qu'un autre chemin l'écrive.
- *
  * ## Ce qu'il DIT et qu'il ne peut pas empêcher
  *
- * Rien n'est matérialisé : le taux d'occupation relit les absences à chaque
- * rendu. Déclarer aujourd'hui une absence sur la semaine passée change donc un
+ * Rien n'est matérialisé : le taux d'occupation relit les blocages à chaque
+ * rendu. Poser aujourd'hui un blocage sur la semaine passée change donc un
  * taux **déjà lu**, et il ne dira pas qu'il a changé. *Le travail est de le
- * DIRE là où la déclaration se fait* — la forme de D76, appliquée non plus à une
+ * DIRE là où la saisie se fait* — la forme de D76, appliquée non plus à une
  * valeur mais à sa fraîcheur.
  */
 export default async function PageAbsences({
@@ -163,7 +168,7 @@ export default async function PageAbsences({
           </Button>
         </form>
         <p className="text-app-encre-faible text-[11.5px]">
-          {t("absences.sans_nature")}
+          {t("absences.immediat")}
         </p>
         <p className="text-app-encre-faible text-[11.5px]">
           {t("absences.retroactif")}
@@ -173,7 +178,7 @@ export default async function PageAbsences({
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
         <Tableau colonnes={COLONNES()} minimum="760px">
           {vue.absences.length === 0 ? (
-            <LignePleine colonnes={4}>{t("absences.aucune")}</LignePleine>
+            <LignePleine colonnes={3}>{t("absences.aucune")}</LignePleine>
           ) : null}
           {vue.absences.map((absence) => (
             <tr key={absence.id}>
@@ -181,24 +186,8 @@ export default async function PageAbsences({
                 {quiTravaille(absence.utilisateur_id, vue.annuaire)}
               </Cellule>
               <Cellule>{periode(absence.du, absence.au)}</Cellule>
-              <Cellule>{libelleStatut(absence.statut)}</Cellule>
               <Cellule>
-                {absence.statut === "demandee" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <FormulaireDecision
-                      absenceId={absence.id}
-                      decision={VALIDEE}
-                      libelle={t("absences.valider")}
-                    />
-                    <FormulaireDecision
-                      absenceId={absence.id}
-                      decision={REFUSEE}
-                      libelle={t("absences.refuser")}
-                    />
-                  </div>
-                ) : (
-                  t("absences.tranchee")
-                )}
+                <FormulaireLevee absenceId={absence.id} />
               </Cellule>
             </tr>
           ))}
@@ -206,39 +195,33 @@ export default async function PageAbsences({
       </section>
 
       <p className="text-app-encre-faible text-[11.5px]">
-        {t("absences.qui_decide")}
+        {t("absences.levee_explication")}
       </p>
     </main>
   );
 }
 
-const VALIDEE = "validee";
-const REFUSEE = "refusee";
-
 function COLONNES() {
   return [
     { cle: "personne", libelle: t("absences.personne"), largeur: "220px" },
     { cle: "periode", libelle: t("absences.periode") },
-    { cle: "statut", libelle: t("absences.statut") },
-    { cle: "decision", libelle: t("absences.decision"), largeur: "220px" },
+    { cle: "levee", libelle: t("absences.levee"), largeur: "160px" },
   ];
 }
 
-function FormulaireDecision({
-  absenceId,
-  decision,
-  libelle,
-}: {
-  readonly absenceId: string;
-  readonly decision: string;
-  readonly libelle: string;
-}) {
+/**
+ * LEVER UN BLOCAGE — la seule action possible sur une ligne existante.
+ *
+ * *Il n'y a rien à « trancher »* : la ligne bloque dès qu'elle existe. Ce
+ * formulaire la supprime, et ce qu'il ne fait pas est dit à côté du tableau —
+ * lever ne rend pas leurs créneaux aux interventions déjà rendues à la file.
+ */
+function FormulaireLevee({ absenceId }: { readonly absenceId: string }) {
   return (
-    <form action="/api/absences/decider" method="post">
+    <form action="/api/absences/lever" method="post">
       <input type="hidden" name="absence_id" value={absenceId} />
-      <input type="hidden" name="decision" value={decision} />
       <Button type="submit" variant="outline" size="sm">
-        {libelle}
+        {t("absences.lever")}
       </Button>
     </form>
   );
@@ -345,10 +328,4 @@ function listeDesAgences(
   agences: readonly { readonly id: string; readonly libelle: string }[],
 ): string {
   return agences.map((a) => a.libelle).join(SEPARATEUR);
-}
-
-/** Le libellé d'un statut d'absence — au dictionnaire, jamais écrit ici. */
-function libelleStatut(statut: string): string {
-  const cle = `absences.statut.${statut}`;
-  return estCleTraduction(cle) ? t(cle) : statut;
 }

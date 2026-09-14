@@ -1,5 +1,5 @@
 /**
- * RG-PLA-06 — UNE ABSENCE VALIDÉE BLOQUE LE CRÉNEAU (L3-04).
+ * RG-PLA-06 — UN BLOCAGE D'AGENDA BLOQUE LE CRÉNEAU (L3-04, R3-14).
  *
  * > *« Une absence validée bloque le créneau ; les interventions posées
  * > repassent en file à planifier avec alerte. Tant que l'effectif est d'un
@@ -12,19 +12,24 @@
  * `lib/habilitations/affectation.ts`, et pour la même raison : la règle se
  * relit sans base sous la main, et elle s'éprouve sur des tableaux.
  *
- * ## « VALIDÉE » EST LA MOITIÉ QUI COMPTE
+ * ## IL N'Y A PLUS D'ÉTAT À LIRE — seulement une PÉRIODE (R3-14, 14/09/2026)
  *
- * Une absence **demandée** ne bloque rien — la personne travaille encore,
- * l'arbitrage n'a pas eu lieu. Une absence **refusée** non plus. *Un booléen
- * `validee` n'aurait pas su dire la différence entre les deux dernières*, et le
- * planning aurait bloqué sur une demande qu'on venait de refuser.
+ * La règle citée dit « validée » parce que la table portait un statut :
+ * `demandee`, `validee`, `refusee`. **CODIPLAN n'étant pas un outil de gestion
+ * des ressources humaines, ce circuit d'approbation a été retiré** — il ne
+ * reste qu'une personne et deux dates, et **toute ligne bloque**.
+ *
+ * *C'est ce qui rend ce module plus sûr qu'avant, et pas seulement plus
+ * court* : un critère à deux termes — la personne ET l'état — se recopiait
+ * dans chaque lecteur, et une recopie qui oublie le second terme OUVRE en
+ * silence. Il n'y a plus de second terme à oublier.
  *
  * ## LES BORNES SONT COMPRISES, TOUTES LES DEUX
  *
- * « du 14 au 28 » veut dire que le 14 et le 28 sont absents. *Une borne
- * ouverte aurait fait travailler quelqu'un le dernier jour de son arrêt* —
- * c'est la faute qu'on ne voit qu'en production, sur une seule journée, et
- * qu'on met un mois à croire.
+ * « du 14 au 28 » veut dire que le 14 et le 28 sont bloqués. *Une borne
+ * ouverte aurait fait travailler quelqu'un le dernier jour de son
+ * indisponibilité* — c'est la faute qu'on ne voit qu'en production, sur une
+ * seule journée, et qu'on met un mois à croire.
  *
  * ## AUCUNE HEURE NE SE LIT ICI
  *
@@ -33,19 +38,19 @@
  * cloisonnement, et L0-08 sur le fuseau).
  */
 
-/** Une absence telle que la base la rend — la période et son état. */
+/**
+ * Un blocage d'agenda tel que la base le rend — une personne et une période.
+ *
+ * **Il n'y a pas d'état** : la ligne existe, donc elle bloque. Voir l'entête.
+ */
 export type AbsenceDeclaree = {
   readonly id: string;
   readonly utilisateur_id: string;
-  /** Première journée d'absence, COMPRISE. */
+  /** Première journée bloquée, COMPRISE. */
   readonly du: Date;
-  /** Dernière journée d'absence, COMPRISE. */
+  /** Dernière journée bloquée, COMPRISE. */
   readonly au: Date;
-  readonly statut: string;
 };
-
-/** Le seul statut qui bloque. Les deux autres laissent travailler. */
-const BLOQUANT = "validee";
 
 /** Le jour civil d'un instant, en UTC — les colonnes sont de type `DATE`. */
 function jour(date: Date): number {
@@ -53,17 +58,17 @@ function jour(date: Date): number {
 }
 
 /**
- * L'absence VALIDÉE qui couvre ce jour-là, ou `null`.
+ * LE BLOCAGE D'AGENDA qui couvre ce jour-là, ou `null`.
  *
  * Elle rend **l'absence** et non un booléen : l'appelant doit pouvoir dire
  * laquelle, et depuis quand. *Un refus a le droit d'être lisible* (D50) — il
  * n'a pas le droit d'être informatif, et c'est l'appelant qui en décide, pas
  * cette fonction.
  *
- * **La PREMIÈRE qui couvre**, dans l'ordre reçu : deux absences validées qui se
- * recouvrent sont un état que rien n'interdit — un congé prolongé par un arrêt
- * en est un —, et il n'y a rien à arbitrer entre elles. Elles bloquent toutes
- * les deux.
+ * **LE PREMIER qui couvre**, dans l'ordre reçu : deux blocages qui se recouvrent
+ * sont un état que rien n'interdit — une semaine posée, puis prolongée d'une
+ * seconde ligne —, et il n'y a rien à arbitrer entre eux. Ils bloquent tous les
+ * deux.
  */
 export function absenceCouvrant(
   absences: readonly AbsenceDeclaree[],
@@ -75,7 +80,6 @@ export function absenceCouvrant(
     absences.find(
       (absence) =>
         absence.utilisateur_id === technicienId &&
-        absence.statut === BLOQUANT &&
         jour(absence.du) <= vise &&
         vise <= jour(absence.au),
     ) ?? null
@@ -83,7 +87,7 @@ export function absenceCouvrant(
 }
 
 /**
- * LES INTERVENTIONS QU'UNE ABSENCE VALIDÉE REND À LA FILE (RG-PLA-06).
+ * LES INTERVENTIONS QU'UN BLOCAGE D'AGENDA REND À LA FILE (RG-PLA-06).
  *
  * *« Les interventions posées repassent en file à planifier avec alerte. »*
  *
@@ -122,17 +126,17 @@ export function interventionsADeplanifier(
 }
 
 /**
- * CE QU'UNE ABSENCE NE DÉPLANIFIE PAS, et les motifs ne sont pas les mêmes.
+ * CE QU'UN BLOCAGE NE DÉPLANIFIE PAS, et les motifs ne sont pas les mêmes.
  *
  * `annulee` n'occupe rien — il n'y a pas de créneau à rendre. `cloturee` et
  * `terminee` ONT EU LIEU — les rendre à la file effacerait un fait, et le
  * travail terrain n'est jamais perdu (I5). `en_cours` est en train d'avoir
- * lieu : la personne est là, quoi qu'en dise une absence saisie après coup.
+ * lieu : la personne est là, quoi qu'en dise un blocage saisi après coup.
  */
 const INTOUCHABLES = new Set(["annulee", "cloturee", "terminee", "en_cours"]);
 
 /**
- * LES PÉRIODES VALIDÉES D'UN TECHNICIEN, FUSIONNÉES ET BORNÉES À UNE FENÊTRE
+ * LES PÉRIODES BLOQUÉES D'UN TECHNICIEN, FUSIONNÉES ET BORNÉES À UNE FENÊTRE
  * (L3-17).
  *
  * ## Pourquoi FUSIONNÉES, et pourquoi c'est le cœur de la fonction
@@ -157,20 +161,20 @@ const INTOUCHABLES = new Set(["annulee", "cloturee", "terminee", "en_cours"]);
  * affichée. Sans cette borne, une absence longue viderait le dénominateur de
  * semaines qu'elle ne touche pas.
  *
- * ## Et « validée » est la seule qui compte
+ * ## Et TOUTE ligne compte, depuis R3-14
  *
- * Même règle qu'`absenceCouvrant`, et pour la même raison : une demandée n'est
- * pas tranchée, une refusée ne l'est plus. *Retrancher une demande en attente
- * ferait baisser un dénominateur qu'un refus rétablirait le lendemain, sans que
- * personne comprenne pourquoi le taux a bougé.*
+ * Le statut a disparu avec le circuit d'approbation : *il n'y a plus de
+ * blocage qui ne bloque pas encore.* Ce que cette fonction retranchait sous
+ * condition, elle le retranche désormais sans — et le nom le dit, sans quoi
+ * `periodesValidees` aurait survécu à la validation qu'il nommait.
  */
-export function periodesValidees(
+export function periodesBloquees(
   absences: readonly AbsenceDeclaree[],
   technicienId: string | null,
   fenetre: { readonly du: Date; readonly au: Date },
 ): readonly { readonly du: Date; readonly au: Date }[] {
   if (technicienId === null) {
-    // La file d'attente n'appartient à personne : il n'y a pas d'absence à
+    // La file d'attente n'appartient à personne : il n'y a pas de blocage à
     // retrancher d'un dénominateur qui n'existe pas.
     return [];
   }
@@ -181,7 +185,6 @@ export function periodesValidees(
     .filter(
       (absence) =>
         absence.utilisateur_id === technicienId &&
-        absence.statut === BLOQUANT &&
         jour(absence.du) <= finFenetre &&
         jour(absence.au) >= debutFenetre,
     )

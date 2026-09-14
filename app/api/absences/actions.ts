@@ -1,12 +1,12 @@
 import { champ } from "../interventions/actions";
 
 /**
- * LE SOCLE DES DEUX ROUTES D'ABSENCE (R3-14).
+ * LE SOCLE DES ROUTES DE BLOCAGE D'AGENDA (R3-14).
  *
  * ## Ce que le retour porte, et pourquoi il le porte
  *
- * Valider une absence **rend des interventions à la file** et peut **rompre le
- * service** d'une agence. `deciderAbsence` le dit dans la transaction qui l'a
+ * Poser un blocage **rend des interventions à la file** et peut **rompre le
+ * service** d'une agence. `declarerAbsence` le dit dans la transaction qui l'a
  * fait, **nommément** — et cette réponse doit atteindre l'écran.
  *
  * Elle voyage donc dans l'URL de retour, sous la forme d'identifiants. **Ce ne
@@ -17,7 +17,7 @@ import { champ } from "../interventions/actions";
  * (§9, 01/09).
  */
 
-/** Ce que l'écran doit afficher après une décision. */
+/** Ce que l'écran doit afficher après une pose. */
 export type Retombees = {
   readonly rendues: readonly string[];
   readonly rompues: readonly string[];
@@ -25,7 +25,7 @@ export type Retombees = {
 
 const SEPARATEUR = ",";
 
-/** Retour vers l'écran des absences, avec son motif et ses retombées. */
+/** Retour vers l'écran des blocages, avec son motif et ses retombées. */
 export function versLesAbsences(cle?: string, retombees?: Retombees): Response {
   const parametres = new URLSearchParams();
   if (cle !== undefined) {
@@ -59,7 +59,7 @@ export function identifiants(brut: string | undefined): readonly string[] {
  * Une journée civile lue depuis un `<input type="date">`, en UTC.
  *
  * **Jamais par un `Date` local** : sous UTC+11 le jour se décale d'un cran, et
- * une absence déclarée le 14 se rangerait au 13 (L0-08). C'est la même règle que
+ * un blocage posé le 14 se rangerait au 13 (L0-08). C'est la même règle que
  * celle de la grammaire d'import, pour la même raison.
  */
 export function jourCivil(formulaire: FormData, nom: string): Date | null {

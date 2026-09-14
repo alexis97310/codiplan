@@ -2414,36 +2414,34 @@ model TechnicienHabilitation {
   @@map("technicien_habilitation")
 }
 
-/// LE STATUT D'UNE ABSENCE — trois valeurs, jamais un booléen (L3-04).
-///
-/// RG-PLA-06 ne bloque QUE sur une absence **validée**. Un booléen `validee`
-/// n'aurait pas su dire la différence entre « demandée, pas encore tranchée »
-/// et « refusée » — *une case décochée est indiscernable d'une demande jamais
-/// examinée* (doctrine §3, la leçon de l'assujettissement VGP). La naissance
-/// est `demandee`.
-enum StatutAbsence {
-  demandee
-  validee
-  refusee
-}
-
-/// POURQUOI QUELQU'UN N'EST PAS LÀ (L3-04).
-///
-/// **Énumérée, à l'inverse des habilitations, et pour la raison inverse** : les
-/// habilitations d'une société tierce sont inconnues (D60), les motifs
-/// d'absence ne le sont pas. `autre` porte le texte, et lui seul.
-enum MotifAbsence {
-  conge
-  arret
-  formation
-  recuperation
-  autre
-}
-
-/// L'INDISPONIBILITÉ DATÉE D'UNE PERSONNE (L3-04, RG-PLA-06).
+/// UN BLOCAGE D'AGENDA — la période où quelqu'un n'est pas disponible
+/// (L3-04, R3-14, RG-PLA-06).
 ///
 /// > *« Une absence validée bloque le créneau ; les interventions posées
 /// > repassent en file à planifier avec alerte. »*
+///
+/// ## CE QUE CETTE TABLE N'EST PAS, ET C'EST LE SUJET DU 14/09/2026
+///
+/// **CODIPLAN n'est pas un outil de gestion des ressources humaines.** Elle ne
+/// porte donc ni nature, ni motif, ni champ libre, ni historique de statut :
+/// *une personne, une date de début, une date de fin, et rien d'autre.* Ce qui
+/// a été retiré ce jour-là est écrit, plutôt que tu :
+///
+/// | Retiré | Pourquoi |
+/// |---|---|
+/// | `motif` et le type `MotifAbsence` | `arret` est un arrêt de travail : une **donnée de santé**, sur un salarié nommé, en clair. La forme « interne » (D94) la protège du portail ; elle ne protège de rien à l'intérieur. |
+/// | `precision` | Le champ libre écrivait la même donnée sans l'énumérer — *un texte libre n'est pas moins nominatif qu'une énumération, il est seulement moins facile à mesurer.* |
+/// | `statut` et le type `StatutAbsence` | Un cycle demandée → validée → refusée est un **circuit d'approbation de congés**, c'est-à-dire l'outil RH lui-même. |
+///
+/// **Le blocage est donc IMMÉDIAT** : une ligne existe, l'agenda est bloqué.
+/// *Il n'y a plus de moitié qui ne bloque pas encore*, et c'est ce qui permet
+/// aux deux lecteurs — le dénominateur du taux d'occupation et le verrou de
+/// chevauchement — de ne lire qu'une période au lieu d'une période et d'un état.
+///
+/// **Le coût, nommé** : plus rien ne distingue une indisponibilité pressentie
+/// d'une indisponibilité arrêtée. Qui pose la ligne l'arrête ; qui se trompe la
+/// supprime. *Réouverture : le jour où une indisponibilité doit être proposée
+/// avant d'être opposable à un client.*
 ///
 /// ## Sa forme de politique est « INTERNE », et c'est décidé à sa NAISSANCE
 ///
@@ -2451,60 +2449,35 @@ enum MotifAbsence {
 /// ouvert — *le jour où un écran de portail lit une table de forme « société »,
 /// la question vise la CLASSE*. **Ici la question ne se pose pas au réveil :
 /// elle se pose au moment où la table est créée**, c'est-à-dire au seul moment
-/// où elle ne coûte rien (§9, 30/08).
-///
-/// > *« Votre technicien habituel est en arrêt du 14 au 28 » est une donnée de
-/// > santé par déduction, et ce n'est pas au client de la lire.*
-///
-/// *Le coût, nommé* : le jour où l'on dira à un client que son intervention est
-/// reportée, ce n'est pas cette table qu'il lira — c'est l'intervention, qui
-/// porte son statut et son motif. **Et c'est bien ainsi.**
+/// où elle ne coûte rien (§9, 30/08). Elle le reste après R3-14 : *savoir que
+/// telle personne n'est pas là du 14 au 28 reste une information sur une
+/// personne nommée, même dépouillée de sa cause.*
 ///
 /// ## Deux dates, bornes COMPRISES, et aucune heure
 ///
-/// Une absence à la demi-journée n'est pas tranchée, donc pas construite — *une
+/// Un blocage à la demi-journée n'est pas tranché, donc pas construit — *une
 /// colonne inerte n'est pas neutre, elle est une invitation* (D77). La borne
 /// fermée est écrite plutôt que laissée à la lecture : « au 28 » veut dire que
-/// le 28 est absent, et une borne ouverte aurait fait travailler quelqu'un le
-/// dernier jour de son arrêt.
+/// le 28 est bloqué, et une borne ouverte aurait fait travailler quelqu'un le
+/// dernier jour de son indisponibilité.
 model Absence {
   id             String @id @default(uuid()) @db.Uuid
   societe_id     String @db.Uuid
   utilisateur_id String @db.Uuid
 
-  /// Première journée d'absence, COMPRISE.
+  /// Première journée bloquée, COMPRISE.
   du DateTime @db.Date
-  /// Dernière journée d'absence, COMPRISE.
+  /// Dernière journée bloquée, COMPRISE.
   au DateTime @db.Date
-
-  statut StatutAbsence @default(demandee)
-
-  /// LA NATURE D'UNE ABSENCE NE S'ÉCRIT PLUS (R3-14, décision PROVISOIRE du
-  /// 14/09/2026, en attente de ratification).
-  ///
-  /// `arret` est un arrêt de travail : c'est une **donnée de santé**, sur un
-  /// salarié nommé, en clair. La forme « interne » (D94) la protège du portail ;
-  /// elle ne protège de rien à l'intérieur. Et le dénominateur du taux
-  /// d'occupation — seul lecteur réel de cette table — n'a besoin d'aucune
-  /// nature : il lui suffit de savoir que la personne n'était pas là.
-  ///
-  /// **L'argument est l'ASYMÉTRIE** : on peut toujours ajouter une colonne plus
-  /// tard, on ne peut jamais dé-enregistrer ce qui a été écrit. La colonne et le
-  /// type restent donc en place, **DORMANTS** — c'est la forme la plus
-  /// réversible —, et le déclencheur `absence_sans_nature` refuse toute écriture
-  /// qui en porterait une, par quelque chemin que ce soit.
-  motif     MotifAbsence?
-  /// Obligatoire quand le motif est `autre`, INTERDITE sinon — les deux sens,
-  /// et le second est celui qu'on oublie. Dormante avec `motif`.
-  precision String?
 
   cree_le    DateTime @default(now()) @db.Timestamptz(3)
   modifie_le DateTime @updatedAt @db.Timestamptz(3)
 
   societe    Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   /// **Vers `utilisateur_societe`, jamais vers `utilisateur` seul** : on est
-  /// absent d'une société, et le chaînage composite garantit déclarativement
-  /// qu'on n'inscrit pas l'absence de quelqu'un qui n'y appartient pas (D48).
+  /// indisponible dans une société, et le chaînage composite garantit
+  /// déclarativement qu'on n'inscrit pas le blocage de quelqu'un qui n'y
+  /// appartient pas (D48).
   technicien UtilisateurSociete @relation(fields: [utilisateur_id, societe_id], references: [utilisateur_id, societe_id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
