@@ -14,27 +14,24 @@ import { z } from "zod";
  * **La société.** Elle vient du contexte cloisonné, jamais d'un formulaire —
  * c'est la forme de toutes les saisies du dépôt.
  *
- * ## LES DEUX SENS DE LA PRÉCISION
+ * ## ET LA NATURE NE SE SAISIT PLUS NON PLUS (R3-14, 14/09/2026)
  *
- * Obligatoire sous `autre`, **interdite sous les autres motifs**. Le second
- * sens est celui qu'on oublie (D88, sur les exceptions VGP) : une précision
- * sous un motif énuméré serait une seconde source du même fait, et personne ne
- * saurait laquelle lire. La base le tient aussi — deux verrous qui ne se
- * recouvrent pas, aucun ne remplaçant l'autre.
+ * Décision **PROVISOIRE** de l'exploitation, en attente de ratification.
+ * `absence.motif` est une énumération — `conge`, `arret`, `formation`,
+ * `recuperation`, `autre` —, et **`arret` est un arrêt de travail : une donnée
+ * de santé sur un salarié nommé, en clair.** Le dénominateur du taux
+ * d'occupation, seul lecteur réel de cette table, n'a besoin d'aucune nature :
+ * il lui suffit de savoir que la personne n'était pas là.
+ *
+ * *L'argument qui tranche n'est pas la prudence, c'est l'ASYMÉTRIE* : on peut
+ * toujours ajouter une colonne plus tard, on ne peut jamais dé-enregistrer ce
+ * qui a été écrit. La colonne et le type restent en base, **dormants**, et le
+ * déclencheur `absence_sans_nature` refuse toute écriture qui en porterait une.
+ * Ce schéma-ci ne les accepte plus : *un champ qu'aucune saisie n'expose est un
+ * champ qu'aucun écran ne peut remplir par mégarde.*
  */
 
 const uuid = z.string().uuid();
-
-/** Les motifs, clos ICI comme en base. Voir le schéma pour le pourquoi. */
-export const MOTIFS_ABSENCE = [
-  "conge",
-  "arret",
-  "formation",
-  "recuperation",
-  "autre",
-] as const;
-
-export type MotifAbsence = (typeof MOTIFS_ABSENCE)[number];
 
 /**
  * Une journée civile, lue en UTC et JAMAIS par un `Date` local : UTC+11 décale
@@ -47,20 +44,12 @@ export const schemaCreationAbsence = z
     utilisateur_id: uuid,
     du: jourCivil,
     au: jourCivil,
-    motif: z.enum(MOTIFS_ABSENCE),
-    precision: z.string().trim().min(1).nullable().default(null),
   })
   // Une période dont la fin précède le début n'est pas une période. Les bornes
   // sont COMPRISES : une absence d'un seul jour a `du === au`.
   .refine((v) => v.au.getTime() >= v.du.getTime(), {
     message: "La fin d'une absence ne précède pas son début.",
     path: ["au"],
-  })
-  // LES DEUX SENS, et le second est celui qu'on oublie.
-  .refine((v) => (v.motif === "autre") === (v.precision !== null), {
-    message:
-      "Le motif « autre » exige une précision, et les autres motifs n'en acceptent pas.",
-    path: ["precision"],
   });
 
 export type CreationAbsence = z.output<typeof schemaCreationAbsence>;

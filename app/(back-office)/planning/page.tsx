@@ -308,6 +308,21 @@ export default async function PagePlanning({
               ? t("planning.population_jour")
               : t("planning.population_semaine")}
           </p>
+          {/*
+            LA PORTE DES ABSENCES (R3-14).
+
+            La barre reste close à onze entrées, confrontées à la maquette
+            (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
+            /clients. Et c'est ICI qu'il se rejoint plutôt que dans les
+            réglages — une absence n'est pas un paramètre de société, c'est un
+            fait de planning : elle rend des interventions à la file et elle
+            retranche des heures au dénominateur du taux affiché plus bas.
+          */}
+          <p className="text-[11.5px]">
+            <Link href="/absences" className={CLASSES_LIEN}>
+              {t("absences.titre")}
+            </Link>
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />

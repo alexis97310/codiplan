@@ -48,8 +48,6 @@ export type LigneAbsence = {
   readonly du: Date;
   readonly au: Date;
   readonly statut: string;
-  readonly motif: string;
-  readonly precision: string | null;
 };
 
 const CHAMPS: {
@@ -60,8 +58,6 @@ const CHAMPS: {
   du: true,
   au: true,
   statut: true,
-  motif: true,
-  precision: true,
 };
 
 /**
@@ -85,8 +81,10 @@ export async function declarerAbsence(
           utilisateur_id: saisie.utilisateur_id,
           du: saisie.du,
           au: saisie.au,
-          motif: saisie.motif,
-          precision: saisie.precision,
+          // NI `motif` NI `precision` : la nature d'une absence ne s'écrit pas
+          // (R3-14, décision provisoire). Les colonnes dorment, et le
+          // déclencheur `absence_sans_nature` refuse ce que cet objet n'envoie
+          // déjà plus.
         },
         select: CHAMPS,
       });

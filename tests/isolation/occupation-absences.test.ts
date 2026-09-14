@@ -77,8 +77,6 @@ async function declarerEtDecider(
     utilisateur_id: TECHNICIEN,
     du: new Date(`${du}T00:00:00.000Z`),
     au: new Date(`${au}T00:00:00.000Z`),
-    motif: "conge",
-    precision: null,
   });
   const posee = await declarerAbsence(SESSION, saisie, clientApp());
   if (!posee.accepte) throw new Error(`déclaration refusée : ${posee.cle}`);

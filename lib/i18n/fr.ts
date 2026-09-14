@@ -1301,6 +1301,54 @@ export const fr = {
   "parametres.pas.refus_plage_courte":
     "Ce pas dépasse la plus courte plage de ce calendrier : le planning ne proposerait aucun créneau sur cette plage. Allonger la plage d'abord, ou choisir un pas plus court.",
   "parametres.regler_horaires": "Régler les horaires",
+  // ── LES ABSENCES (R3-14) ─────────────────────────────────────────────────
+  //
+  // AUCUNE NATURE N'EST NOMMÉE ICI, et c'est le sujet du ticket. `arret` est un
+  // arrêt de travail : une donnée de santé, sur un salarié nommé, en clair. Le
+  // dénominateur du taux d'occupation n'a besoin d'aucune nature — il lui suffit
+  // de savoir que la personne n'était pas là. *On peut toujours ajouter une
+  // colonne plus tard ; on ne peut jamais dé-enregistrer ce qui a été écrit.*
+  // Décision PROVISOIRE, en attente de la ratification d'Alexis (R3-14).
+  "absences.titre": "Absences",
+  "absences.sous_titre":
+    "Qui n'est pas là, et quand. Une absence dit une période et rien d'autre : ce n'est pas un oubli, c'est une décision — la nature d'une absence regarde la médecine du travail, pas le planning.",
+  "absences.declarer": "Déclarer une absence",
+  "absences.declarer_action": "Déclarer",
+  "absences.personne": "Personne",
+  "absences.periode": "Période",
+  "absences.du": "Du",
+  "absences.au": "Au",
+  "absences.statut": "État",
+  "absences.decision": "Décision",
+  "absences.valider": "Valider",
+  "absences.refuser": "Refuser",
+  "absences.tranchee": "Tranchée",
+  "absences.aucune": "Aucune absence sur la période affichée.",
+  "absences.statut.demandee": "Demandée",
+  "absences.statut.validee": "Validée",
+  "absences.statut.refusee": "Refusée",
+  "absences.sans_nature":
+    "Une absence ne porte pas de nature. Le planning a besoin de savoir que la personne n'est pas là, jamais pourquoi.",
+  // ── CE QUE LA DÉCLARATION CHANGE RÉTROACTIVEMENT (R3-14, question 4) ──────
+  //
+  // Rien n'est matérialisé : le taux d'occupation relit les absences à chaque
+  // rendu. L'effet rétroactif n'est donc pas empêchable, et le travail est de le
+  // DIRE là où la déclaration se fait — la forme de D76, appliquée non plus à
+  // une valeur mais à sa fraîcheur.
+  "absences.retroactif":
+    "Une absence déclarée sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
+  "absences.qui_decide":
+    "Le technicien déclare son absence ; l'administration des ventes ou la direction la tranche. Une absence validée rend à la file les interventions posées sur ces jours-là, et celui qui la demande ne peut pas être celui qui la valide.",
+  "absences.rendues_titre": "Interventions rendues à la file à planifier",
+  "absences.rupture_titre": "Rupture de service",
+  "absences.rupture_explication":
+    "Ces établissements n'ont plus qu'un seul technicien actif : aucun créneau n'est proposé à la place, et c'est délibéré — le planificateur sait ce que le système ne saura jamais.",
+  "absence.refus.saisie":
+    "Une absence se déclare avec une personne, une date de début et une date de fin, la seconde après la première.",
+  "absence.refus.role":
+    "Valider ou refuser une absence appartient à l'administration des ventes ou à la direction.",
+  "absence.refus.pour_autrui":
+    "Un technicien déclare son absence, jamais celle d'un autre.",
 
   // ── LA PAGE QUI DONNE UNE PORTE AUX ÉCRANS DE PARAMÉTRAGE (R3-05) ────────
   //

@@ -7,7 +7,13 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
 
-import { avecPortail, clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  avecPortail,
+  clientApp,
+  clientOwner,
+  fermerClients,
+  sousSocieteEtRole,
+} from "./setup/db";
 import {
   AGENCE_A,
   CLIENT_A1,
@@ -63,17 +69,15 @@ const LUNDI_SUIVANT = new Date("2026-09-21T00:00:00.000Z");
 let interventionId = "";
 const absencesPosees: string[] = [];
 
-async function declarer(
-  du: string,
-  au: string,
-  motif = "conge",
-): Promise<string> {
+async function declarer(du: string, au: string): Promise<string> {
+  // AUCUNE NATURE (R3-14) : le schéma ne l'accepte plus, et la base la refuse.
+  // Les deux lignes qui en portaient une ici ont été retirées plutôt que
+  // laissées — Zod écarte en silence une clé inconnue, si bien qu'un `motif`
+  // resté dans cet appel aurait eu l'air d'être écrit sans l'être.
   const saisie = schemaCreationAbsence.parse({
     utilisateur_id: TECHNICIEN,
     du: new Date(`${du}T00:00:00.000Z`),
     au: new Date(`${au}T00:00:00.000Z`),
-    motif,
-    precision: motif === "autre" ? "détaché chez le constructeur" : null,
   });
   const resultat = await declarerAbsence(SESSION, saisie, clientApp());
   if (!resultat.accepte) {
@@ -507,6 +511,88 @@ describe("l'absence, sous le rôle applicatif", () => {
         "deplanifiees",
         "ruptures",
       ]);
+    });
+  });
+
+  // ── L'AUTRE BOUT DE RG-PLA-06, ET LA BASE LE TIENT (R3-14) ───────────────
+  //
+  // Le ticket l'a mesuré : *rien n'empêchait de POSER une intervention sur une
+  // absence déjà validée depuis un chemin qui ne serait pas
+  // `lib/interventions/pose.ts`.* Le contrôle applicatif demeure — il rend un
+  // motif NOMMÉ que l'écran affiche —, et le déclencheur garde. *L'un explique,
+  // l'autre garde* : ils ne se doublent pas.
+  describe("on ne pose pas sur une absence validée — le verrou de la BASE", () => {
+    async function absenceValidee(): Promise<void> {
+      const id = await declarer("2026-09-14", "2026-09-18");
+      const decidee = await deciderAbsence(
+        SESSION,
+        { absence_id: id, decision: "validee" },
+        clientApp(),
+      );
+      expect(decidee.accepte).toBe(true);
+    }
+
+    const poser = (tx: {
+      $executeRawUnsafe: (sql: string) => Promise<number>;
+    }) =>
+      tx.$executeRawUnsafe(
+        `UPDATE "intervention"
+            SET "technicien_id" = '${TECHNICIEN}', "date_planifiee" = DATE '2026-09-14'
+          WHERE "id" = '${interventionId}'`,
+      );
+
+    it("une écriture directe est refusée, et le verrou est NOMMÉ", async () => {
+      await absenceValidee();
+      await expect(
+        sousSocieteEtRole(SOCIETE_A, Role.adv, poser),
+      ).rejects.toThrow(/intervention_pas_sur_absence_validee/);
+    });
+
+    it("hors de l'absence, la même écriture PASSE — le cas qui doit rester vert", async () => {
+      // *Le cas qui doit rester vert POUR SA PROPRE RAISON* (§9, 11/09) : un
+      // verrou qui refuserait TOUTE pose passerait le scénario ci-dessus sans
+      // qu'on s'en aperçoive, et le planning entier serait bloqué.
+      await absenceValidee();
+      await expect(
+        sousSocieteEtRole(SOCIETE_A, Role.adv, (tx) =>
+          tx.$executeRawUnsafe(
+            `UPDATE "intervention"
+                SET "technicien_id" = '${TECHNICIEN}', "date_planifiee" = DATE '2026-09-21'
+              WHERE "id" = '${interventionId}'`,
+          ),
+        ),
+      ).resolves.toBe(1);
+    });
+
+    it("une absence DEMANDÉE ne bloque rien — seule la validée bloque", async () => {
+      // *Une demandée ne dit rien encore, une refusée ne dit plus rien.* Le
+      // déclencheur ne juge que `validee`, et ce scénario le prouve plutôt que
+      // de le supposer.
+      await declarer("2026-09-14", "2026-09-18");
+      await expect(sousSocieteEtRole(SOCIETE_A, Role.adv, poser)).resolves.toBe(
+        1,
+      );
+    });
+
+    it("JUMEAU — le déclencheur retiré, la pose sur l'absence PASSE", async () => {
+      await absenceValidee();
+      await expect(
+        clientOwner().$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.societe_id', '${SOCIETE_A}', true)`,
+          );
+          await tx.$executeRawUnsafe(
+            `DROP TRIGGER "pas_sur_absence_validee" ON "intervention"`,
+          );
+          await poser(tx);
+          throw new Annulation("rollback voulu");
+        }),
+      ).rejects.toThrow("rollback voulu");
+
+      // Le déclencheur est revenu avec l'annulation, et il mord de nouveau.
+      await expect(
+        sousSocieteEtRole(SOCIETE_A, Role.adv, poser),
+      ).rejects.toThrow(/intervention_pas_sur_absence_validee/);
     });
   });
 });

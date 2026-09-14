@@ -837,9 +837,31 @@ D94 a créé cette forme pour `document_recu` — _une table de forme « sociét
 
 _Conséquence sur le gardien_ : chaque entrée de la liste close « interne » porte désormais **le motif de son propre retrait**. Le message parlait de **noms de fichiers** — vrai du bac et des lots d'import, **faux de l'absence** —, et _un gabarit qui affirme une cause que le contrôle ne mesure pas la réémet à chaque alarme._
 
+### Une absence ne dit QUE « quand » — décision PROVISOIRE (R3-14, 14/09/2026)
+
+> ⚠ **Cette décision n'est pas ratifiée.** Elle a été rendue par l'exploitation pour que la construction avance, et elle attend l'arbitrage d'Alexis. Elle est réversible dans les deux sens, et la façon de la rouvrir est écrite ci-dessous.
+
+`absence.motif` était une énumération posée `NOT NULL` — `conge`, `arret`, `formation`, `recuperation`, `autre`. **`arret` est un arrêt de travail : une donnée de santé, sur un salarié nommé, en clair.** La forme « interne » la protège du portail ; elle ne protège de rien à l'intérieur, et le dénominateur du taux d'occupation — seul lecteur réel de cette table — _n'a besoin d'aucune nature : il lui suffit de savoir que la personne n'était pas là._
+
+**L'argument qui tranche n'est pas la prudence, c'est l'ASYMÉTRIE** : on peut toujours ajouter une colonne plus tard, on ne peut jamais dé-enregistrer ce qui a été écrit. _Mesuré avant d'agir : `absence` comptait **zéro ligne**_ — le coût ne sera jamais plus bas, et c'est pour cela que le choix se fait maintenant plutôt que « quand on saura ».
+
+**Ce qui est fait est la forme la plus réversible qui soit.** Ni la colonne ni le type ne sont supprimés : ils **dorment**. Le schéma de saisie ne les accepte plus, la lecture ne les rend plus, et le déclencheur `absence_sans_nature` refuse toute écriture qui en porterait une — écran, import, semis, console. _Rien ne peut donc être écrit qu'il faudrait ensuite effacer._ Ratifier dans un sens, c'est retirer le déclencheur ; ratifier dans l'autre, c'est supprimer les colonnes et le type, et ce geste-là **restera gratuit** tant qu'aucune ligne ne porte de nature.
+
+### Qui déclare, qui décide — et la base le tient
+
+Le technicien **déclare pour lui-même** ; l'encadrement **décide** — `adv` ou `direction`. _Un technicien qui validerait sa propre absence déplanifierait ses propres interventions_, c'est-à-dire retirerait des rendez-vous à des clients sans que personne l'ait vu.
+
+Deux déclencheurs le portent, et non une garde de route : `absence_decision_reservee_a_l_encadrement` refuse toute sortie de `demandee` sous un autre rôle, `absence_declaree_pour_soi` refuse à un technicien de déclarer l'absence d'autrui. Ils lisent `app.role` et `app.utilisateur_id`, que le chemin de production pose déjà, et **une chaîne vide ne satisfait aucune branche : le défaut est le refus.** _Ce qui a été écarté est une capacité de plus dans la matrice de RG-DRO-03_ — mesuré : aucun écran de réglage du produit ne filtre par capacité, et en fabriquer un ici et nulle part ailleurs aurait posé une garde incohérente avec le reste.
+
+### Et l'effet rétroactif n'est pas empêché — il est DIT
+
+Rien n'est matérialisé : `occupationTechnicien` retranche les périodes validées **à chaque rendu**. Déclarer aujourd'hui une absence sur la semaine passée change donc un taux déjà lu, et _il ne dira pas qu'il a changé._ L'empêcher reviendrait à figer une mesure du passé, or ce taux **n'est pas un document remis à un client** : c'est un écran de pilotage interne, qui doit dire le mieux qu'on sait. L'écran de déclaration l'écrit donc là où la déclaration se fait — _la forme de D76, appliquée non plus à une valeur mais à sa fraîcheur._ Réouverture : le jour où un taux d'occupation sort de chez CODIMA.
+
 ### Le QUATRIÈME contrôle à la pose, et la déplanification
 
 Une absence validée refuse le créneau **au déplacement comme à la pose** : c'est la leçon de L3-02, apprise la veille — _une règle tenue par un chemin sur deux n'est pas tenue._ Le refus nomme son motif sans nommer ni la personne ni la période : _un refus est un canal d'information soumis au cloisonnement comme une requête_ (D50).
+
+**Et l'AUTRE BOUT est fermé depuis R3-14, par la base.** La moitié qui déplanifie existait et était éprouvée ; celle qui manquait est que _rien n'empêchait de POSER sur une absence validée depuis un chemin qui ne passe pas par `lib/interventions/pose.ts`_ — RG-PLA-06 n'était tenue qu'en TypeScript. `intervention_pas_sur_absence_validee` refuse désormais d'écrire une date de planification sur un technicien couvert par une absence **validée**, et par elle seule : _une demandée ne dit rien encore, une refusée ne dit plus rien._ **Les deux ne se doublent pas** : le contrôle applicatif rend un motif NOMMÉ que l'écran affiche, le déclencheur rend un refus. _L'un explique, l'autre garde._
 
 **La validation et la déplanification sont dans la même transaction.** Une absence validée dont les interventions seraient restées posées ferait affirmer au planning qu'un absent travaille. Ce qui part est **la date et le créneau** ; **le technicien reste** — _une intervention qui perd son affectation perd l'information qui permet de la reposer au même endroit._ Et **une décision ne se reprend pas** : refuser après coup ne rendrait pas leurs créneaux aux interventions déjà rendues à la file.
 

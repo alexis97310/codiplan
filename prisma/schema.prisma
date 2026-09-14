@@ -2477,10 +2477,25 @@ model Absence {
   /// Dernière journée d'absence, COMPRISE.
   au DateTime @db.Date
 
-  statut    StatutAbsence @default(demandee)
-  motif     MotifAbsence
+  statut StatutAbsence @default(demandee)
+
+  /// LA NATURE D'UNE ABSENCE NE S'ÉCRIT PLUS (R3-14, décision PROVISOIRE du
+  /// 14/09/2026, en attente de ratification).
+  ///
+  /// `arret` est un arrêt de travail : c'est une **donnée de santé**, sur un
+  /// salarié nommé, en clair. La forme « interne » (D94) la protège du portail ;
+  /// elle ne protège de rien à l'intérieur. Et le dénominateur du taux
+  /// d'occupation — seul lecteur réel de cette table — n'a besoin d'aucune
+  /// nature : il lui suffit de savoir que la personne n'était pas là.
+  ///
+  /// **L'argument est l'ASYMÉTRIE** : on peut toujours ajouter une colonne plus
+  /// tard, on ne peut jamais dé-enregistrer ce qui a été écrit. La colonne et le
+  /// type restent donc en place, **DORMANTS** — c'est la forme la plus
+  /// réversible —, et le déclencheur `absence_sans_nature` refuse toute écriture
+  /// qui en porterait une, par quelque chemin que ce soit.
+  motif     MotifAbsence?
   /// Obligatoire quand le motif est `autre`, INTERDITE sinon — les deux sens,
-  /// et le second est celui qu'on oublie.
+  /// et le second est celui qu'on oublie. Dormante avec `motif`.
   precision String?
 
   cree_le    DateTime @default(now()) @db.Timestamptz(3)
