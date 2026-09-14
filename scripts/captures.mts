@@ -442,6 +442,22 @@ const ECRANS: readonly Ecran[] = [
     temoin: "Forfaits",
   },
   {
+    // **L'ÉCRAN NÉ AVEC R3-15**, sixième porte de « Sociétés & tarifs ». Ce
+    // qu'une image montre ici et qu'aucune assertion ne dirait : *il n'y a
+    // AUCUNE colonne de prix* — une prestation porte une durée, jamais un taux
+    // (D109), et la colonne n'existe pas en base. L'absence se voit d'un coup
+    // d'œil et se démontre mal.
+    //
+    // Et une durée non estimée s'y lit « Non estimée », jamais « 0 min » : la
+    // troisième fois que ce dépôt sépare « je ne sais pas » de « la valeur vaut
+    // rien » (D76, D88), et la première où l'image le prouve.
+    nom: "parametres-prestations",
+    chemin: "/parametres/prestations",
+    quoi: "Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation.",
+    authentifie: true,
+    temoin: "Catalogue des prestations",
+  },
+  {
     // **LE PREMIER ÉCRAN QU'UN COMPTE PORTAIL PUISSE ATTEINDRE** (D92). La
     // dixième forme de politique a été écrite pour lui ; jusqu'ici, rien ne
     // l'avait montré. Il exige une AUTRE identité — celle-là, la seconde
