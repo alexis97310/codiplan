@@ -29,6 +29,28 @@ Un ticket sans marqueur, ou un `BLOQUÉ` sans motif, fait échouer `pnpm verify`
 
 **D'où viennent les 83 marques posées le 10/09/2026 :** de la mesure, jamais de la mémoire — la prose du ticket quand elle porte « LIVRÉ », l'existence du module dans `lib/`, et l'existence de la table dans la base hébergée telle que la veille l'énumère. Tout le reste est `LIBRE`.
 
+**CE CRITÈRE EST AMENDÉ LE 14/09/2026, ET LA PHRASE CI-DESSUS DIT ELLE-MÊME OÙ IL FUYAIT : « l'existence du module dans `lib/` ».** Un module qui existe prouve qu'une COUCHE a été écrite ; il ne prouve pas qu'un humain puisse l'atteindre. *Les deux se ressemblent au point qu'une relecture honnête, faite exprès pour cela, est passée à côté* — L1-01 a été relu contre ses sources le 11/09 et marqué `LIVRÉ` alors qu'aucune route et aucun écran ne mène à un client.
+
+**Le critère devient donc :** un ticket qui promet à quelqu'un de **faire quelque chose** — créer, chercher, consulter, corriger — n'est `LIVRÉ` que si **un chemin le porte jusqu'à un humain** : un écran sous `app/`, ou une route qu'un écran appelle. Un ticket qui ne promet qu'une **règle**, un **cloisonnement** ou une **migration** reste jugé sur ce qu'il pose — il n'a pas d'écran à avoir, et l'exiger ferait rougir la moitié du lot 0 à tort.
+
+**LA MESURE, ET ELLE PORTE SUR NEUF TICKETS, PAS SUR UN** *(14/09/2026, `grep` des imports `@/lib/<module>` depuis `app/` et `components/`, fermeture transitive)*. Neuf modules ne sont atteints **par aucun chemin**, directement ou de proche en proche : `compteurs`, `contacts`, `courriel`, `demandes`, `excel`, `imports`, `materiel`, `prestations`, `reporting`. Et la mesure plus fine — *quelle fonction de dépôt a un appelant dans `app/` ?* — en ajoute qui se cachent derrière un module pourtant atteint :
+
+| Module | Ce qu'aucun écran n'appelle | Ticket marqué `LIVRÉ` |
+|---|---|---|
+| `clients` | `creerClient`, `lireClient`, `modifierClient`, `supprimerClient` | L1-01 *(rouvert)* |
+| `contacts` | tout le module | L1-03 |
+| `materiel` | tout le module | L1-05 |
+| `prestations` | tout le module | L1-12 |
+| `excel`, `imports` | tout, `enregistrerLeControle` et `decompter` compris | L1-08a, L1-08b, L1-08d |
+| `compteurs` | tout le module | L2-03 |
+| `demandes` | `deposerDemande`, `accuserReception`, `qualifierDemande`, `marquerTransformee`, `cloreSansSuite`, `demandesOuvertes` | L2-06 |
+| `documents` | `recevoir`, `classer`, `avancement`, `prochainATraiter`, `ecarter` | L8-07 |
+| `absences` | `declarerAbsence`, `deciderAbsence` | L3-04, L3-04a |
+
+*`absences` est le cas qui montre la différence entre « importé » et « atteint » : il l'est bien, mais seulement en LECTURE, pour le dénominateur du taux d'occupation (L3-17). **Personne ne peut déclarer une absence.***
+
+**CE QUI N'EST PAS FAIT ICI, ET POURQUOI.** Les marques ne sont pas reposées ticket par ticket : *ce serait corriger neuf symptômes et laisser la cause*, et chacune demande de décider si le ticket promettait un geste ou une règle — un jugement, pas une mesure. **Et surtout, une règle écrite dans un document que personne ne relit au bon moment n'est pas un gardien : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie** (§9 du CLAUDE.md, 12/09). C'est **R1-02** qui porte les deux moitiés : le gardien qui rend le critère mesurable, et la repose des marques qu'il fera rougir.
+
 **Un écart relevé en les posant, inscrit plutôt que corrigé en silence :** **L2-07 se disait `BLOQUÉ` sur un arbitrage de cloisonnement, et il est livré.** `lib/interventions/cycle-de-vie.ts`, la table `intervention` et sa contrainte `intervention_cycle_de_vie` existent ; l'arbitrage a été rendu par D84, qui donne à la table la forme « parc ». La prose de blocage datait du 11/09 et personne n'était revenu la retirer — *exactement ce qu'un marqueur lisible à la machine existe pour empêcher.* Le paragraphe reste écrit sous le marqueur : ce qui a été décidé un jour se relit.
 
 ---
@@ -150,8 +172,26 @@ Périmètre **INVERSÉ** [D55] : toute table métier cloisonnée est auditée pa
 > **AVANT L1-01, L1-02, L1-05 et L2-01 — le CONTRAT des fixtures d'isolation.** *(ticket R0-a, écart É14)* `client`, `site`, `machine` et `modele_materiel` existent déjà comme **tables fixtures** du harnais `tests/isolation/`, avec leurs politiques. Le jour où la vraie table est créée, le harnais **cesse de la fabriquer et la laisse en place** — il l'annonce sur sa sortie et dit ce qui reste dû. Ce qui reste dû : la migration pose la forme **« parc »** (société **ET** `app.client_id` **ET** `app.perimetre_sites`, D10/D22) sur `client`, `site` et `machine`, **et non** la clause société seule ; les scénarios de L0-05 se **reportent** sur la vraie table au lieu de partir avec la fixture. Trois gardiens le tiennent et refusent la réduction : la forme mesurée dans `pg_policies`, la liste close `TABLES_PARC`, et le plancher de `EXIGENCES_L0_05`. Voir `tests/isolation/setup/contrat.ts` et le pied de I1 au CLAUDE.md.
 
 **L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
-*File :* LIVRÉ
-*Relu contre les sources citées le 11/09/2026 — empreinte `bc023258`.*
+*File :* BLOQUÉ — la maquette `docs/propositions/clients-L1-01.html` attend la validation de l'exploitation, et le point d'entrée de l'écran n'est pas tranché
+~~*File :* LIVRÉ~~ — ~~*Relu contre les sources citées le 11/09/2026 — empreinte `bc023258`.*~~
+
+**ROUVERT LE 14/09/2026, ET LA MARQUE EST BARRÉE PLUTÔT QU'EFFACÉE.** *Ce qui a été décidé un jour se relit* — la marque `LIVRÉ` a gouverné ce ticket trois jours, et la relecture du 11/09 s'est bel et bien tenue. **Ce qu'elle a relu est la COUCHE, jamais le CHEMIN.**
+
+*Mesuré le 14/09/2026, commandes à l'appui :*
+
+| Question | Commande | Réponse |
+|---|---|---|
+| le module existe-t-il ? | `ls lib/clients/` | **oui** — `saisie.ts`, `depot.ts`, `code-externe.ts`, `index.ts` |
+| une route API ? | `find app/api -type f` | **aucune** ne nomme un client — 26 fichiers, zéro |
+| un écran ? | `ls 'app/(back-office)/'` | `arrivee`, `parametres`, `parc`, `planning`, `sites`, `vgp` — **aucun** |
+| qui appelle le dépôt ? | `grep -rn '@/lib/clients' app/` | **une seule** fonction, `rechercherClients`, et depuis `sites/nouveau` — un SÉLECTEUR pour rattacher un site, qui ne mène à aucune fiche |
+| les quatre autres fonctions | `creerClient`, `lireClient`, `modifierClient`, `supprimerClient` | **zéro appelant dans `app/`** |
+
+**Personne ne peut donc créer, consulter ni modifier un client depuis l'application.** C'est la maladie que le §6 nomme à propos du portail — *une politique juste que personne n'appelle dort jusqu'au jour où quelqu'un la découvre fausse* —, sauf qu'ici il n'y a même pas d'écran pour la réveiller.
+
+**CE QUI RESTE DÛ, et l'ordre n'est pas indifférent.** D'abord **la maquette**, qui est livrée : `docs/propositions/clients-L1-01.html`, hors de `docs/maquette/` et le disant elle-même — *une proposition posée à côté de la référence devient la référence en une semaine.* Ensuite **le point d'entrée**, qui est un arbitrage et non un détail : la barre est une liste close de onze entrées confrontée à la maquette (D95), elle n'en porte aucune pour les clients, et l'écran se rejoindra donc par un lien dont l'origine reste à décider. Ensuite seulement l'écran. *Construire puis montrer, c'est demander de juger ce qui est déjà payé.*
+
+*Relu contre les sources citées le 14/09/2026 — empreinte `761d6a2e`.*
 **L1-02** Sites — adresses, zones géographiques (`grand_noumea`, `sud`, `cote_est`, `cote_ouest`, `nord`, `iles`) [D23], horaires, **agence de rattachement** et `temps_trajet_min` qui **fait foi** sur l'estimation par zone. ~~`temps_trajet_min` **par agence**~~ [D56] : cette formule se lisait « une valeur par couple (site, agence) », et ce n'est pas ce qu'elle voulait dire. Un site dépend d'une **agence et d'une seule**, toujours la même ; `temps_trajet_min` est un **scalaire**, et c'est le trajet **depuis l'agence de rattachement du site**. Le site nomme donc son agence (`site.agence_id`, obligatoire), et le nombre perd son sens si ce rattachement change sans être revu — la base le refuse. Forme de politique : **parc**, filtre de périmètre de sites compris.
 *File :* LIVRÉ
 *Relu contre les sources citées le 10/09/2026 — empreinte `9cce9327`.*
@@ -1443,3 +1483,30 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **CE QUI A DÉJÀ ÉTÉ FAIT, et qui ne remplace pas le geste** : l'alarme écrit son corps dans le **résumé de l'exécution** et en **annotation** AVANT de tenter l'issue, puis rougit en nommant le geste. *Une alarme qui ne peut pas sonner doit le dire, et dire quand même ce qu'elle avait à dire.* Mais un résumé d'exécution **expire avec la rétention** ; une issue attend qu'on la lise. **Ce n'est pas une réparation, c'est un sursis.**
 *Le geste :* **Settings → General → Features → cocher « Issues ».** *Je ne peux pas vérifier que les issues existantes redeviennent visibles tant que la case est décochée, et je le dis plutôt que de l'affirmer.*
 *Acceptation :* la case est cochée ; une exécution de l'alarme ouvre réellement une issue, et son numéro est consigné ici — *une preuve de vie, pas une relecture de ce que le dispositif promet* (§9, 12/09).
+
+---
+
+**R3-12 — LA MARQUE `LIVRÉ` SE POSE SUR UNE COUCHE, ET PAS SUR UN CHEMIN. [14/09/2026]**
+*File :* LIBRE
+**Déclencheur : immédiat — la mesure est faite, c'est le gardien qui manque.** L'en-tête de ce document dit d'où viennent les marques du 10/09 : *« la prose du ticket quand elle porte LIVRÉ, **l'existence du module dans `lib/`**, et l'existence de la table dans la base hébergée »*. **Les trois prouvent qu'une COUCHE a été écrite ; aucune ne prouve qu'un humain l'atteigne.**
+**Ce qui l'a révélé** : L1-01 « Clients — CRUD, recherche » était `LIVRÉ` et relu contre ses sources le 11/09, avec **zéro route, zéro écran**, et un seul appelant — `rechercherClients`, un sélecteur à l'intérieur de l'écran de création d'un site. *La relecture s'est tenue et elle a regardé la bonne chose au mauvais endroit.*
+**Le cas se répète : neuf tickets, pas un.** La mesure est inscrite en tête de ce document, avec ses commandes — neuf modules jamais atteints depuis `app/` même de proche en proche, et des fonctions d'écriture sans appelant dans des modules pourtant atteints (`absences` en est le cas net : lu pour le dénominateur du taux d'occupation, **et personne ne peut déclarer une absence**).
+**LE TRAVAIL, EN DEUX MOITIÉS QUI NE SE RECOUVRENT PAS.**
+**(1) Le gardien**, et il est mécanique plutôt qu'heuristique — *un gardien dont le taux de fausses alertes conduit à ne plus le lire coûte plus qu'il ne rapporte* (§9, 11/09). Sa population se **DÉRIVE du dépôt** et jamais d'une liste : toute fonction exportée par un `lib/*/depot*.ts` est ou bien appelée depuis `app/`, ou bien nommée dans une liste close **avec son motif** — le périmètre inversé de D55 appliqué non plus à l'audit mais aux chemins. *La liste naît longue et c'est la vérité ; ce qui compte est qu'elle ne puisse plus grandir en silence, et qu'elle ne puisse pas rétrécir sans qu'un appelant existe.*
+**(2) La repose des marques** que ce gardien fera rougir, ticket par ticket, avec pour chacun le jugement que la mesure ne rend pas : *ce ticket promettait-il un GESTE ou une RÈGLE ?* Un ticket de cloisonnement, de migration ou de règle métier n'a pas d'écran à avoir, et l'exiger ferait rougir la moitié du lot 0 à tort.
+**CE QUI N'EST PAS DEMANDÉ ICI : construire les écrans manquants.** Ce ticket rend l'état LISIBLE ; il ne le corrige pas. *Neuf écrans est un plan de lot, pas un ticket*, et chacun demande sa maquette avant son code — la leçon de L1-01, où l'exploitation a voulu voir avant qu'on engage.
+*Acceptation :* une commande dit, pour chaque module de `lib/`, s'il est atteint depuis `app/` et par quoi ; le gardien rougit sur une fonction de dépôt nouvellement écrite sans appelant ni motif, et **reste vert pour sa propre raison** sur une fonction qui a bien un appelant — la paire du §9 (11/09) ; la liste des sans-chemin porte le témoin de son adossement, et son RETRAIT est le sens gardé (§9, 31/08) ; chaque marque `LIVRÉ` que le gardien met en cause est reposée ou motivée, aucune n'est laissée en l'état.
+
+---
+
+**R3-13 — RÉGLER LES JOURS TRAVAILLÉS ET LES PLAGES D'UN CALENDRIER. [I7] [D13] [D72] [14/09/2026]**
+*File :* LIBRE
+**Déclencheur : constaté à l'écran le 14/09/2026.** `/parametres/agences` affiche les jours travaillés et les horaires de chaque établissement, et **le seul formulaire de la ligne est « Enregistrer le pas »**. Les plages et les jours **ne se règlent nulle part dans l'application** — ni sur cet écran, ni sur un autre : le seul chemin est `prisma/seed.ts` ou une console. *Le sous-titre promettait les trois ; il a été corrigé pour dire ce que l'écran fait, et cette correction ne remplace pas le réglage.*
+**CE QUE CELA COÛTE AUJOURD'HUI, et ce n'est pas un confort.** Un calendrier d'agence décide de **quatre** choses mesurables : le refus à la pose hors ouverture (RG-PLA-07, `lib/interventions/pose.ts`), le départ du compteur d'accusé de réception d'une demande (D13, 30 minutes en heures ouvrées), le dénominateur du taux d'occupation (`lib/interventions/occupation.ts`), et l'assiette de la majoration hors ouverture (D12, D108). **Une agence qui ouvre le samedi ne peut donc pas le déclarer**, et les quatre se trompent ensemble sans que rien ne rougisse.
+**CE QU'IL SUPPOSE, et les trois premiers ne sont pas du travail d'écran.**
+**(1) L'EFFET RÉTROACTIF est un arbitrage, pas un détail.** Un calendrier se modifie ; les interventions déjà posées, elles, ont été acceptées sous l'ancien. Fermer un samedi laisse-t-il en place ce qui y était posé, ou faut-il le signaler ? *C'est déjà le motif de D85* — quand un fait dépend du temps, il est MATÉRIALISÉ — et `demande.depart_compteur` l'a réglé pour sa moitié : *« un départ recalculé bougerait des mois plus tard sans qu'aucune écriture ne le dise ».* La même question se pose ici, et elle touche des créneaux promis à des clients.
+**(2) LE CHEVAUCHEMENT DE PLAGES.** Rien en base ne l'interdit — `calendrier_plage` n'a aucune contrainte d'exclusion mesurée — et deux plages qui se recouvrent compteraient deux fois les mêmes heures ouvrables. Un écran qui laisse saisir cela produit un dénominateur faux, donc un taux d'occupation faux, sans rien dire.
+**(3) LE PAS DOIT TOMBER DANS LA PLAGE.** `lib/calendar/parametrage.ts` le dit déjà — *une grille de créneaux ne DÉBORDE jamais sa plage* — et raccourcir une plage sous le pas courant rendrait une grille vide. Le refus existe côté lecture ; il n'existe pas côté écriture.
+**(4) L'écran lui-même**, et c'est la partie la moins chère : la ligne existe, la lecture existe (`lireParametrage`), la route `POST /api/parametres/pas-creneau` donne la forme à suivre.
+**CE QUI N'EST PAS DANS CE TICKET : les EXCEPTIONS par technicien** (D72, `technicien_calendrier`) et les **écarts de férié** (`calendrier_ferie`, D46, D48). Ce sont deux autres tables et deux autres questions ; les mêler ferait un ticket dont personne ne sait dire quand il est fini.
+*Acceptation :* un établissement dont le calendrier est connu peut ouvrir ou fermer un jour et modifier ses plages depuis `/parametres/agences` ; deux plages qui se recouvrent sont **refusées avec leur motif**, et un scénario le prouve par retrait du verrou ; une plage plus courte que le pas courant est refusée plutôt qu'acceptée en rendant une grille vide ; la question de l'effet sur les interventions déjà posées est **tranchée par écrit** avant l'écriture du code, et le ticket le dit.

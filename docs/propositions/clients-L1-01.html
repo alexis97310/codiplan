@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROPOSITION — Écran « Clients » (L1-01) — ne fait foi sur rien</title>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  CE FICHIER NE FAIT FOI SUR RIEN.
+
+  La référence du produit est `docs/maquette/CODIPLAN_Maquette.html`, et elle
+  seule : elle fait foi sur la DISPOSITION et sur les COULEURS (D95), il n'en
+  existe qu'un exemplaire, et un gardien refuse le second
+  (`tests/unit/docs/maquette-unique.test.ts`).
+
+  Ce fichier-ci est une PROPOSITION, posée à côté et jamais dedans — *une
+  proposition rangée auprès de la référence devient la référence en une
+  semaine, et personne ne sait plus laquelle tranche.* Il est ici pour être
+  REGARDÉ puis VALIDÉ, AMENDÉ ou JETÉ. Rien dans le dépôt ne le lit.
+
+  ── CE QU'IL MONTRE, ET D'OÙ VIENT CHAQUE CHOSE ─────────────────────────────
+
+  Les CHAMPS ne sont pas inventés : ils sont lus dans `lib/clients/saisie.ts`
+  (schémas Zod de création, de modification et de recherche) et dans le modèle
+  `Client` de `prisma/schema.prisma`. *Une maquette qui montre des champs
+  inexistants fait valider une fiche qu'on ne pourra pas construire.*
+
+  Les LIBELLÉS viennent de `lib/i18n/fr.ts` (clés `client.*`) et de
+  `lib/i18n/vocabulaire.ts` pour « site » — jamais du clavier de qui dessine.
+
+  Les COULEURS et la DISPOSITION sont celles de la maquette : mêmes variables,
+  mêmes cartes, même tableau, même fiche en deux colonnes que l'écran machine.
+
+  Les DONNÉES sont celles du semis de démonstration (`prisma/seed-data.ts`) —
+  fictives, déjà publiques, et aucune donnée de production (I9).
+
+  Tout ce qui est PROPOSÉ et non lu dans le dépôt est rassemblé dans l'encadré
+  « Ce qui n'existe pas encore », en bas, et jamais mêlé au reste.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+:root{
+  --rouge:#E30613; --bleu:#0053A1; --noir:#111111; --fond:#F4F5F7;
+  --vert:#0F9D58; --orange:#F0A202; --gris:#6B7280; --bord:#E1E4E8; --blanc:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--fond);color:var(--noir);font-size:14px;line-height:1.5}
+.topbar{background:var(--blanc);border-bottom:1px solid var(--bord);padding:9px 20px;display:flex;align-items:center;gap:20px;min-height:58px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px;font-size:18px;flex-shrink:0;white-space:nowrap}
+.tri{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:19px solid var(--rouge)}
+.brand span.b{color:var(--bleu);font-size:18px}
+.brand small{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--gris)}
+.nav{display:flex;gap:2px;margin-left:8px;flex-wrap:wrap}
+.nav span{padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--gris);white-space:nowrap}
+.nav span.on{background:var(--bleu);color:#fff}
+.topright{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--gris)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--bleu);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px}
+h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px}
+.sub{color:var(--gris);font-size:13px;margin-bottom:20px}
+.card{background:var(--blanc);border:1px solid var(--bord);border-radius:10px}
+.card h2{font-size:14px;font-weight:700;padding:14px 16px;border-bottom:1px solid var(--bord);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pad{padding:16px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1000px){.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.g4{grid-template-columns:1fr}}
+.kpi{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--bleu)}
+.kpi.v::before{background:var(--vert)}.kpi.o::before{background:var(--orange)}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris);font-weight:700}
+.kpi .v2{font-size:27px;font-weight:800;letter-spacing:-1px;margin:4px 0 2px}
+.kpi .d{font-size:11px;color:var(--gris)}
+.b{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-ok{background:#E3F5EA;color:var(--vert)}
+.b-p4{background:#EEF0F2;color:var(--gris)}
+.b-p3{background:#E7F0FA;color:var(--bleu)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris);padding:9px 16px;border-bottom:1px solid var(--bord);font-weight:700}
+td{padding:11px 16px;border-bottom:1px solid #F0F1F3}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FAFBFC}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--bleu);font-weight:600}
+.muted{color:var(--gris);font-size:12px}
+.lien{color:var(--bleu);text-decoration:underline;text-underline-offset:2px;font-weight:600}
+.mach{display:grid;grid-template-columns:1fr 300px;gap:16px}
+@media(max-width:900px){.mach{grid-template-columns:1fr}}
+.dl{display:grid;grid-template-columns:172px 1fr;gap:9px 12px;font-size:13px}
+.dl dt{color:var(--gris);font-size:12px}
+.dl dd{font-weight:600}
+.dl dd.vide{font-weight:400;color:var(--gris);font-style:italic}
+.barre-recherche{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.champ{border:1px solid var(--bord);border-radius:7px;padding:8px 12px;font-size:13px;background:var(--blanc);min-width:260px;flex:1;color:var(--gris)}
+.chkline{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--noir)}
+.box{width:16px;height:16px;border-radius:4px;border:2px solid var(--bord);display:grid;place-items:center;font-size:10px;color:#fff}
+.box.ok{background:var(--bleu);border-color:var(--bleu)}
+.bouton{background:var(--rouge);color:#fff;padding:8px 14px;border-radius:7px;font-weight:700;font-size:12.5px;display:inline-block}
+.bouton.b2{background:var(--bleu)}
+.bouton.gris{background:var(--blanc);color:var(--noir);border:1px solid var(--bord)}
+.note{background:#FFF9E6;border:1px solid #F5E3A8;border-radius:8px;padding:11px 14px;font-size:12.5px;margin-bottom:16px}
+.note b{color:#7a5200}
+.demo{background:#E7F0FA;border:1px solid #B9D3EE;border-radius:8px;padding:11px 14px;font-size:12.5px;margin-bottom:16px;color:#0b3d75}
+.demo b{color:var(--bleu)}
+.bandeau{background:var(--noir);color:#fff;padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;letter-spacing:.2px}
+.bandeau span{color:var(--orange)}
+.section{margin-top:34px}
+.section > h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--gris);font-weight:800;margin-bottom:10px}
+.pile{display:flex;flex-direction:column;gap:16px}
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:6px;top:5px;bottom:5px;width:2px;background:var(--bord)}
+.tli{position:relative;padding-bottom:14px}
+.tli::before{content:'';position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--bleu);border:2px solid #fff;box-shadow:0 0 0 2px var(--bord)}
+.tli .d{font-size:11px;color:var(--gris);font-weight:600}
+.tli .t{font-weight:700;font-size:13px}
+ul.puces{padding-left:18px;font-size:12.5px}
+ul.puces li{margin-bottom:5px}
+</style>
+</head>
+<body>
+
+<div class="bandeau">PROPOSITION — <span>ne fait foi sur rien</span> · la référence reste docs/maquette/CODIPLAN_Maquette.html (D95) · données de démonstration</div>
+
+<div class="topbar">
+  <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span><small>SAV</small></div></div>
+  <div class="nav">
+    <span>Tableau de bord</span><span>Planning</span><span>Interventions</span>
+    <span>Parc machines</span><span>Contrats</span><span>App technicien</span>
+    <span>Portail client</span><span>Imports Excel</span><span class="on">Sociétés &amp; tarifs</span>
+    <span>Console éditeur</span>
+  </div>
+  <div class="topright"><span>CODIMA Nouvelle-Calédonie</span><div class="avatar">AR</div></div>
+</div>
+
+<div class="wrap">
+
+  <div class="demo">
+    <b>La barre n'a pas d'entrée « Clients », et ce n'est pas un oubli.</b>
+    Elle est une liste <b>close de onze entrées</b>, confrontée à la maquette par un gardien
+    (<span class="mono">lib/navigation/entrees.ts</span>) : une douzième la ferait rougir à raison.
+    L'écran se rejoindrait donc <b>par un lien</b>, comme « Sites » et le registre VGP —
+    <b>depuis où, exactement, reste à trancher</b> : c'est la première question de l'encadré du bas.
+    L'onglet allumé ci-dessus est un placement d'illustration, pas une décision.
+  </div>
+
+  <!-- ═══════════════ 1. LA LISTE, ET LA RECHERCHE AU-DESSUS ═══════════════ -->
+  <div class="section">
+    <h3>1 · La liste des clients, et la recherche</h3>
+
+    <h1>Clients</h1>
+    <p class="sub">Le référentiel des clients de CODIMA Nouvelle-Calédonie. Un client porte des <b>sites</b> — les lieux où l'on intervient — et des contacts.</p>
+
+    <div class="grid g4" style="margin-bottom:16px">
+      <div class="kpi"><div class="l">Clients actifs</div><div class="v2">2</div><div class="d">sur 3 fiches</div></div>
+      <div class="kpi v"><div class="l">Sites rattachés</div><div class="v2">4</div><div class="d">3 communes</div></div>
+      <div class="kpi o"><div class="l">Sans Code Winpro</div><div class="v2">1</div><div class="d">non rapprochable à l'import</div></div>
+      <div class="kpi"><div class="l">Machines au parc</div><div class="v2">6</div><div class="d">tous clients confondus</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="pad barre-recherche">
+        <div class="champ">Rechercher un client…&nbsp; <span class="muted">raison sociale ou Code Winpro</span></div>
+        <div class="chkline"><div class="box ok">✓</div> Clients actifs seulement</div>
+        <div class="bouton b2">Rechercher</div>
+        <div style="margin-left:auto"><span class="bouton">Nouveau client</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3 fiches <span class="muted" style="font-weight:400">50 au plus par recherche</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code Winpro</th><th>Raison sociale</th><th>Catégorie</th>
+            <th>Sites</th><th>Commercial référent</th><th>État</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">DEMO-001</td>
+            <td><a class="lien">Atelier Ducos</a><span class="muted" style="display:block">RIDET non renseigné</span></td>
+            <td>Industrie</td>
+            <td>2 <span class="muted">Nouméa, Bourail</span></td>
+            <td>Commercial de démonstration</td>
+            <td><span class="b b-ok">Actif</span></td>
+          </tr>
+          <tr>
+            <td class="muted">—</td>
+            <td><a class="lien">Garage du Nord</a></td>
+            <td>Automobile</td>
+            <td>1 <span class="muted">Koné</span></td>
+            <td class="muted">—</td>
+            <td><span class="b b-ok">Actif</span></td>
+          </tr>
+          <tr>
+            <td class="mono">DEMO-003</td>
+            <td><a class="lien">Ancien client</a></td>
+            <td class="muted">—</td>
+            <td>1 <span class="muted">Poindimié</span></td>
+            <td class="muted">—</td>
+            <td><span class="b b-p4">Inactif</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Trois partis pris, à valider ou à défaire.</b>
+      <b>(a)</b> Le libellé de la colonne de code est celui de la société — « Code Winpro » chez CODIMA-NC,
+      lu dans <span class="mono">societe.libelle_code_externe</span> (D29). Une autre société y verra son propre mot.
+      <b>(b)</b> Une fiche sans code affiche un tiret, jamais un vide : « pas de code » et « colonne pas encore chargée » ne se corrigent pas au même endroit.
+      <b>(c)</b> Un client inactif <b>reste dans la liste</b> quand la case est décochée — il occupe toujours son code, et l'ignorer ferait qu'un import le recrée.
+    </div>
+  </div>
+
+  <!-- ═══════════════ 2. LA FICHE ═══════════════ -->
+  <div class="section">
+    <h3>2 · La fiche d'un client</h3>
+
+    <h1>Atelier Ducos</h1>
+    <p class="sub"><span class="mono">DEMO-001</span> · Industrie · <span class="b b-ok">Actif</span></p>
+
+    <div class="mach">
+      <div class="pile">
+        <div class="card">
+          <h2>Identité <span class="muted" style="font-weight:600;color:var(--bleu)">Modifier</span></h2>
+          <div class="pad">
+            <dl class="dl">
+              <dt>Raison sociale</dt><dd>Atelier Ducos</dd>
+              <dt>Code Winpro</dt><dd class="mono">DEMO-001</dd>
+              <dt>RIDET</dt><dd class="vide">non renseigné</dd>
+              <dt>Catégorie</dt><dd>Industrie</dd>
+              <dt>Conditions de règlement</dt><dd>30 jours fin de mois</dd>
+              <dt>Commercial référent</dt><dd>Commercial de démonstration</dd>
+              <dt>Adresse de facturation</dt><dd>1 rue de la Démonstration<br>Nouméa</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Sites <span class="muted" style="font-weight:400">2</span></h2>
+          <table>
+            <thead><tr><th>Libellé</th><th>Commune</th><th>Zone</th><th>Agence</th><th>Trajet</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a class="lien">Atelier principal</a></td><td>Nouméa</td><td>Grand Nouméa</td>
+                <td>Ducos</td><td>25 min</td>
+              </tr>
+              <tr>
+                <td><a class="lien">Dépôt de brousse</a></td><td>Bourail</td><td>Côte Ouest</td>
+                <td>Koné</td><td>150 min <span class="muted">défaut de la zone Côte Ouest</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pile">
+        <div class="card">
+          <h2>Contacts <span class="b b-p3">à venir</span></h2>
+          <div class="pad muted">
+            La donnée existe (<span class="mono">lib/contacts/</span>, L1-03) ;
+            aucun écran ne la sert encore. L'emplacement est <b>tenu et dit vide</b> —
+            ni un zéro, ni « aucun contact », qui se liraient comme des mesures.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Dernières interventions</h2>
+          <div class="pad">
+            <div class="tl">
+              <div class="tli"><div class="d">12/09/2026</div><div class="t">INT-00104</div><div class="muted">Atelier principal · clôturée</div></div>
+              <div class="tli"><div class="d">28/08/2026</div><div class="t">INT-00097</div><div class="muted">Dépôt de brousse · clôturée</div></div>
+              <div class="tli"><div class="d">14/08/2026</div><div class="t">INT-00091</div><div class="muted">Atelier principal · annulée</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3. LA SAISIE ═══════════════ -->
+  <div class="section">
+    <h3>3 · La création et la modification — le même formulaire</h3>
+
+    <div class="card">
+      <h2>Nouveau client</h2>
+      <div class="pad">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Raison sociale <span style="color:var(--rouge)">obligatoire</span></div>
+            <div class="champ" style="min-width:0">Atelier Ducos</div>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Code Winpro</div>
+            <div class="champ" style="min-width:0">DEMO-001</div>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">RIDET</div>
+            <div class="champ" style="min-width:0">&nbsp;</div>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Catégorie</div>
+            <div class="champ" style="min-width:0">Industrie</div>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Conditions de règlement</div>
+            <div class="champ" style="min-width:0">30 jours fin de mois</div>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Commercial référent</div>
+            <div class="champ" style="min-width:0">&nbsp;</div>
+          </div>
+          <div style="grid-column:1/-1">
+            <div class="muted" style="font-weight:700;margin-bottom:4px">Adresse de facturation</div>
+            <div class="champ" style="min-width:0;height:70px">1 rue de la Démonstration<br>Nouméa</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <div class="chkline"><div class="box ok">✓</div> Actif</div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <span class="bouton gris">Annuler</span><span class="bouton">Créer la fiche</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Ce que le formulaire NE porte pas, et pourquoi.</b>
+      Ni <b>société</b> ni <b>identifiant</b> : la première vient du contexte de session et jamais de l'appelant
+      — la fournir serait une habilitation auto-déclarée —, le second est attribué par le serveur (I10).
+      <span class="mono">lib/clients/saisie.ts</span> les <b>refuse</b> plutôt que de les ignorer.<br>
+      Ni <b>format de RIDET</b>, ni <b>liste de catégories</b>, ni <b>liste de conditions de règlement</b> :
+      le cahier des charges n'en fixe aucun, et un motif inventé refuserait des données justes (§8).
+      Ce sont des champs libres, et c'est une décision, pas un manque.<br>
+      L'<b>unicité du Code Winpro</b> ne se voit pas ici : elle se mesure en base, et le refus qui remonterait est
+      « Ce code est déjà attribué à une autre fiche » (<span class="mono">client.refus.code_externe_en_double</span>).
+    </div>
+  </div>
+
+  <!-- ═══════════════ CE QUI N'EXISTE PAS ═══════════════ -->
+  <div class="section">
+    <h3>Ce qui n'existe pas encore — proposé, et jamais mêlé au reste</h3>
+    <div class="card">
+      <div class="pad">
+        <p style="margin-bottom:12px"><b>Tout ce qui précède se lit dans le dépôt, sauf les six points ci-dessous.</b>
+        Ils sont regroupés ici parce qu'une maquette qui les mélangerait au reste ferait valider une fiche
+        qu'on ne pourrait pas construire.</p>
+        <ul class="puces">
+          <li><b>Par où arrive-t-on sur cet écran ?</b> La barre est close à onze entrées (D95) et n'en porte
+          aucune pour les clients. Il faut donc un lien, et décider <b>d'où</b> : depuis le parc ? depuis les sites ?
+          depuis la fiche d'un site ? <b>C'est la seule question qui bloque la construction</b> — les cinq
+          suivantes sont des retraits possibles.</li>
+          <li><b>Les quatre compteurs du haut.</b> Aucun n'est calculé aujourd'hui. « Sans Code Winpro » est celui
+          qui a un usage réel — il dit combien de fiches un import ne saura pas rapprocher (RG-IMP-05) ;
+          les trois autres sont décoratifs et se retirent sans rien coûter.</li>
+          <li><b>La colonne « Sites » de la liste</b> — un décompte et des communes. Elle demande une jointure
+          que <span class="mono">rechercherClients</span> ne fait pas aujourd'hui.</li>
+          <li><b>Le bloc « Dernières interventions » de la fiche.</b> La donnée existe
+          (<span class="mono">intervention.client_id</span>) ; la lecture n'est pas écrite.</li>
+          <li><b>Le bloc « Contacts »</b>, montré vide et dit vide. Il n'a d'écran ni ici ni ailleurs (L1-03).</li>
+          <li><b>La suppression</b> n'est proposée nulle part, bien que <span class="mono">supprimerClient</span>
+          existe. Un client référencé par un site, une machine ou une intervention ne se supprime pas
+          (<span class="mono">onDelete: Restrict</span>) : le geste utile est « rendre inactif », et il est
+          dans le formulaire. <b>Proposer un bouton qui échoue huit fois sur dix est pire que de ne pas le proposer.</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
