@@ -124,7 +124,8 @@ type Ecran = {
  * Les passes, NOMMÉES. La session ordinaire n'en est pas une : elle est
  * l'absence de passe.
  */
-type PasseNommee = "avant-enrolement" | "defi-second-facteur" | "portail";
+type PasseNommee =
+  "avant-enrolement" | "defi-second-facteur" | "portail" | "sans-societe";
 
 const ECRANS: readonly Ecran[] = [
   {
@@ -190,6 +191,33 @@ const ECRANS: readonly Ecran[] = [
     quoi: "La page d'arrivée — qui vous êtes, pour quelle société.",
     authentifie: true,
     temoin: "société",
+  },
+  {
+    // **L'ÉTAT D'ARRIVÉE D'UN COMPTE MULTI-SOCIÉTÉ, ET IL N'AVAIT JAMAIS ÉTÉ
+    // PHOTOGRAPHIÉ** (13/09/2026). L'écran `arrivee` ci-dessus est pris APRÈS
+    // que la prise de vue a cliqué une société : il montre donc une société
+    // active et un bouton d'entrée. *L'état qu'un compte habilité sur deux
+    // sociétés rencontre en ARRIVANT — aucune active, deux boutons, pas
+    // d'entrée — n'était visible nulle part.*
+    //
+    // Et c'est exactement ce qui a permis à trois documents d'affirmer, deux
+    // jours durant, une impasse que le code avait déjà levée : §5.4 de la note
+    // de mise en ligne, l'en-tête de `tests/isolation/premier-ecran.test.ts`,
+    // et la prose de L2-11. **Une assertion dit qu'une valeur est juste ;
+    // seule une image dit qu'un écran a du sens** (§9, 09/09) — et ici
+    // l'absence d'image était la cause, pas le symptôme.
+    nom: "arrivee-sans-societe",
+    chemin: "/arrivee",
+    quoi: "L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active.",
+    authentifie: true,
+    temoin: "Choisir la société",
+    passe: "sans-societe",
+    refusConnu:
+      "Cette image exige un compte habilité sur AU MOINS DEUX sociétés — sur " +
+      "la démonstration, `direction@codima.test`. Avec un compte mono-société, " +
+      "la connexion active la seule habilitation (D35) et le sélecteur ne " +
+      "s'affiche pas : le refus est alors juste, et il dit que COURRIEL " +
+      "désigne le mauvais compte.",
   },
   {
     nom: "planning",
@@ -469,7 +497,7 @@ function base32VersBrut(base32: string): string {
   return brut;
 }
 
-async function seConnecter(page: Page): Promise<void> {
+async function seConnecter(page: Page, choisir = true): Promise<void> {
   // **DEUX TOURS, ET LE SECOND N'EST PAS UNE PRÉCAUTION.** L'application
   // DÉCONNECTE volontairement après l'activation d'un second facteur — la
   // session d'avant ne vaut plus, ce qui est le bon geste. Un script qui ne
@@ -495,7 +523,13 @@ async function seConnecter(page: Page): Promise<void> {
     await activerSecondFacteur(page);
 
     if (!page.url().includes("/connexion")) {
-      await choisirUneSociete(page);
+      // **LE CHOIX EST UNE OPTION, PAS UNE ÉTAPE** (13/09/2026). La passe
+      // « sans-societe » a besoin de l'état EXACT que rencontre un compte
+      // multi-société en arrivant, et cliquer le détruirait — c'est le seul
+      // état où le sélecteur se lit sans société active.
+      if (choisir) {
+        await choisirUneSociete(page);
+      }
       return;
     }
   }
@@ -701,6 +735,17 @@ async function photographierSousEtat(
   }
 }
 
+/**
+ * Une connexion COMPLÈTE, mais SANS choisir de société.
+ *
+ * *Elle n'omet rien d'autre* : le second facteur s'active, le défi se passe.
+ * Ce qui est retenu est le dernier geste, celui qu'un humain fait à l'écran —
+ * et c'est précisément l'écran qu'on photographie.
+ */
+async function connexionSansSociete(page: Page): Promise<void> {
+  await seConnecter(page, false);
+}
+
 /** Une connexion NUE : ni défi — le compte n'en a pas encore —, ni activation. */
 async function connexionNue(page: Page): Promise<void> {
   await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
@@ -814,10 +859,17 @@ async function principal(): Promise<number> {
   // portail est une identité que rien n'oblige à ouvrir plus tôt.
   try {
     for (const ecran of ECRANS.filter(
-      (e) => e.passe === "defi-second-facteur" || e.passe === "portail",
+      (e) =>
+        e.passe === "defi-second-facteur" ||
+        e.passe === "portail" ||
+        e.passe === "sans-societe",
     )) {
       const amener =
-        ecran.passe === "portail" ? connexionPortail : connexionArreteeAuDefi;
+        ecran.passe === "portail"
+          ? connexionPortail
+          : ecran.passe === "sans-societe"
+            ? connexionSansSociete
+            : connexionArreteeAuDefi;
       const { etat, refus } = await ouvrirUnePasse(navigateur, amener);
       await photographierSousEtat(
         navigateur,
