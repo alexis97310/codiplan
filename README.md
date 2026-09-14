@@ -89,6 +89,16 @@ pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
 
+### Le verrou d'installation est une porte, lui aussi
+
+_Écrit le 14/09/2026, après une CI rouge au-dessus d'un `pnpm verify` vert._
+
+La CI ne joue pas `pnpm install` : elle joue **`pnpm install --frozen-lockfile`**, dans dix jobs répartis sur six flux, et cette étape **juge** — elle refuse quand `package.json` et `pnpm-lock.yaml` divergent, avant qu'un seul test soit lancé. `pnpm verify` ne jugeait rien de cet accord. _Mesuré : `read-excel-file` promu de `devDependencies` vers `dependencies` sans régénérer le verrou, `pnpm verify` sorti en 0 avec 1819 scénarios unitaires et 851 d'isolation verts, et la CI rouge sur `ERR_PNPM_OUTDATED_LOCKFILE`._
+
+`tests/unit/ci/lockfile-accorde.test.ts` confronte les deux fichiers directement — nom, **section** et spécificateur —, sur la population **union** des deux côtés, pour qu'une entrée en trop d'un côté rougisse comme une entrée manquante de l'autre. Ce qu'il ne fait pas est écrit dans son entête : il ne rejoue pas `--frozen-lockfile`, qui vérifie l'arbre entier des versions résolues ; il garde l'accord que la faute a rompu.
+
+**Si ce test rougit, la réparation est `pnpm install --lockfile-only`**, et le verrou se commite avec le `package.json` qui le motive.
+
 ### Les migrations, rejouées contre une base qui a déjà vécu
 
 _Écrit le 11/09/2026, après une panne de production de plus de quatre heures._

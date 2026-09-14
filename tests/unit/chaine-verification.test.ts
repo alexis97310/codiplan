@@ -89,6 +89,23 @@ describe("chaîne de vérification", () => {
  * Une étape de CI qui appellerait directement un binaire (`pnpm exec …`), ou
  * une action GitHub, n'est pas une porte du dépôt et n'a pas à l'être — elle
  * prépare l'environnement, elle ne juge rien.
+ *
+ * **ET CETTE DERNIÈRE PHRASE ÉTAIT FAUSSE D'UN CAS, mesuré le 14/09/2026.**
+ * `install` est exclu nommément par `scriptsInvoques`, au motif qu'il prépare
+ * l'environnement. Or la CI ne joue pas `pnpm install` : elle joue
+ * `pnpm install --frozen-lockfile`, qui **JUGE** l'accord de `package.json` et
+ * de `pnpm-lock.yaml` et refuse quand ils divergent — dix jobs, dans six flux,
+ * s'arrêtent là, avant le premier test. `read-excel-file` promu en
+ * `dependencies` sans régénérer le verrou a donné un `pnpm verify` sorti en
+ * **0** au-dessus d'une CI rouge : l'incident exact que ce fichier existe pour
+ * empêcher, par le seul trou qu'il s'était autorisé. *Une exclusion est une
+ * sélection négative, et elle s'aveugle là où elle porte* (§9, 31/08).
+ *
+ * L'exclusion RESTE — `install` n'est pas un script du dépôt et n'a rien à
+ * faire dans `verify` —, mais elle ne se suffit plus : ce qu'elle laissait
+ * dehors est gardé par `tests/unit/ci/lockfile-accorde.test.ts`, qui confronte
+ * les deux fichiers directement. *La parade d'une exclusion trop large n'est
+ * pas de l'annuler, c'est de nommer qui garde ce qu'elle laisse passer.*
  */
 describe("les deux portes gardent la même chose", () => {
   const CI = readFileSync(
