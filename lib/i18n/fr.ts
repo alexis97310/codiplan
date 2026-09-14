@@ -1097,8 +1097,15 @@ export const fr = {
   // encore le faire » et « je ne trouve pas le bouton » ne se corrigent pas au
   // même endroit* — le motif de D88, appliqué à une promesse plutôt qu'à une
   // mesure. Le réglage manquant est un ticket (R3-13), pas une phrase.
+  // ── ET LE RÉGLAGE MANQUANT A ÉTÉ LIVRÉ (R3-13, 14/09/2026) ──────────────
+  //
+  // Le sous-titre disait « ils se règlent encore en base », ce qui était exact
+  // et qui ne l'est plus : les plages se règlent depuis l'écran de détail d'un
+  // calendrier, et le pas depuis la ligne. *Une promesse corrigée se recorrige
+  // le jour où elle devient vraie* — la laisser aurait fait chercher une console
+  // à qui avait le formulaire sous les yeux.
   "parametres.sous_titre":
-    "Ce que chaque établissement ouvre aujourd'hui, et le seul réglage que cet écran porte : le pas des créneaux. Les jours travaillés et les horaires se lisent ici ; ils se règlent encore en base.",
+    "Ce que chaque établissement ouvre aujourd'hui. Le pas des créneaux se règle dans la ligne ; les jours travaillés et les horaires se règlent sur la fiche de chaque calendrier.",
   "parametres.calendrier": "Calendrier",
   "parametres.jours": "Jours travaillés",
   "parametres.horaires": "Horaires",
@@ -1241,6 +1248,59 @@ export const fr = {
   "parametres.sans_calendrier_court": "Aucun calendrier",
   "parametres.refus_pas":
     "Le pas des créneaux se règle en minutes entières, entre 1 et 480.",
+
+  // ── L'ÉCRAN DE DÉTAIL D'UN CALENDRIER (R3-13) ────────────────────────────
+  //
+  // Il existe parce que l'argument de R2-05 — « le formulaire de réglage du pas
+  // reste DANS la ligne » — ne vaut PAS pour les plages. Un pas est un nombre
+  // qu'on compare d'un établissement à l'autre ; une semaine d'ouverture est
+  // sept jours et autant de plages, et l'entrer dans une cellule détruirait la
+  // densité que R2-05 venait de gagner.
+  //
+  // « FERMER UN JOUR » N'EST PAS UNE CASE À COCHER, et l'écran le dit plutôt que
+  // de faire semblant d'avoir un interrupteur : la migration du 21/08 a écrit à
+  // la naissance de la table qu'il n'y aurait pas de booléen « ouvert », parce
+  // que deux sources pour un même fait finissent par se contredire. Un jour sans
+  // plage EST un jour fermé.
+  "calendrier.titre": "Horaires d'ouverture",
+  "calendrier.retour": "Revenir aux établissements",
+  "calendrier.sous_titre":
+    "Chaque jour ouvre par une ou plusieurs plages. Un jour sans plage est un jour fermé : il n'y a pas d'interrupteur, et c'est délibéré — la plage est la seule source de ce qu'un établissement ouvre.",
+  "calendrier.jour_ferme": "Fermé",
+  "calendrier.debut": "Ouverture",
+  "calendrier.fin": "Fermeture",
+  "calendrier.enregistrer": "Enregistrer",
+  "calendrier.retirer": "Retirer",
+  "calendrier.ajouter": "Ajouter une plage",
+  "calendrier.ajouter_ouvre":
+    "Ajouter une plage à ce jour l'ouvre ; retirer la dernière le ferme.",
+  "calendrier.pas_courant": "Pas des créneaux",
+  "calendrier.creneaux_du_jour": "Créneaux proposés",
+  "calendrier.aucun_creneau": "Aucun créneau",
+  "calendrier.introuvable":
+    "Ce calendrier n'est pas lisible sous la société active.",
+  // ── CE QUI SE RECALCULE QUAND ON CHANGE UN HORAIRE (R3-13, question 1) ────
+  //
+  // L'effet rétroactif n'est pas empêchable ici : rien n'est matérialisé, et le
+  // taux d'occupation comme la majoration relisent les plages à chaque rendu. Le
+  // travail est donc de le DIRE là où le réglage se fait — la même forme que
+  // D76, qui rend « je ne sais pas » plutôt que « 0 % ».
+  //
+  // Ce qui NE bouge pas est dit aussi : ce qui est posé reste posé. Une phrase
+  // qui n'énonce que le risque fait croire que tout bouge.
+  "calendrier.retroactif":
+    "Ce que ce réglage change, et ce qu'il ne change pas : les interventions déjà posées restent en place, et le départ des compteurs d'accusé de réception ne bouge pas. En revanche le taux d'occupation et le supplément hors ouverture se recalculent à chaque affichage, y compris pour des semaines passées.",
+  "parametres.plage.refus_saisie":
+    "Une plage se saisit avec une heure d'ouverture et une heure de fermeture, la seconde après la première.",
+  "parametres.plage.refus_chevauchement":
+    "Cette plage en recouvre une autre le même jour. Deux plages qui se touchent sont admises ; deux plages qui se recouvrent compteraient deux fois les mêmes heures ouvrables.",
+  "parametres.plage.refus_plage_courte":
+    "Cette plage est plus courte que le pas des créneaux : le planning ne proposerait aucun créneau ce jour-là. Baisser le pas d'abord, ou allonger la plage.",
+  "parametres.plage.refus_introuvable":
+    "Cette plage n'est pas lisible sous la société active.",
+  "parametres.pas.refus_plage_courte":
+    "Ce pas dépasse la plus courte plage de ce calendrier : le planning ne proposerait aucun créneau sur cette plage. Allonger la plage d'abord, ou choisir un pas plus court.",
+  "parametres.regler_horaires": "Régler les horaires",
 
   // ── LA PAGE QUI DONNE UNE PORTE AUX ÉCRANS DE PARAMÉTRAGE (R3-05) ────────
   //

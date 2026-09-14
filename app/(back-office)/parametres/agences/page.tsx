@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * L'ÉCRAN DE RÉGLAGE DES HORAIRES (lot 2, I7 ; repris en tableau par R2-05).
@@ -48,6 +50,13 @@ import { mot } from "@/lib/i18n/vocabulaire";
  * **Le formulaire de réglage du pas reste DANS la ligne.** Sortir le réglage
  * dans un écran de détail ferait perdre la comparaison qui vient d'être gagnée :
  * on règle un pas en regardant celui des autres établissements.
+ *
+ * **ET CET ARGUMENT NE VAUT PAS POUR LES PLAGES (R3-13).** Un pas est un
+ * nombre, qu'on compare d'un établissement à l'autre ; une semaine d'ouverture
+ * est sept jours et autant de plages, et l'entrer dans une cellule détruirait
+ * exactement la densité que R2-05 venait de gagner. Les plages se règlent donc
+ * sur un écran de détail, atteint par le lien que porte le nom du calendrier —
+ * *la barre ne bouge pas, un écran se rejoint par un lien.*
  *
  * **Un écart avec la maquette, écrit avec sa raison :** elle intitule ce
  * tableau « par site », et ses lignes sont Ducos, Koné et Dolbeau — qui sont des
@@ -190,7 +199,22 @@ function LigneAgence({
   return (
     <tr>
       <Cellule fort>{libelle}</Cellule>
-      <Cellule>{parametrage.libelle}</Cellule>
+      <Cellule>
+        {/* LA PORTE DE L'ÉCRAN DE DÉTAIL (R3-13).
+
+            La barre reste close à onze entrées, confrontées à la maquette
+            (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
+            /clients. Le lien porte le nom du calendrier plutôt qu'un « ouvrir »
+            générique — un libellé qui dit OÙ il mène se retrouve dans une page
+            que l'on parcourt à la recherche d'un établissement. */}
+        <Link
+          href={`/parametres/agences/${parametrage.calendrierId}`}
+          className={CLASSES_LIEN}
+          aria-label={t("parametres.regler_horaires")}
+        >
+          {parametrage.libelle}
+        </Link>
+      </Cellule>
       <Cellule>{listeDesJours(jours)}</Cellule>
       <Cellule>{listeDesPlages(parametrage, premierJour)}</Cellule>
       <Cellule>{resumeCreneaux(exemple)}</Cellule>

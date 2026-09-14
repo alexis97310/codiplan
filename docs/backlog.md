@@ -1553,7 +1553,7 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 ---
 
 **R3-13 — RÉGLER LES JOURS TRAVAILLÉS ET LES PLAGES D'UN CALENDRIER. [I7] [D13] [D72] [14/09/2026]**
-*File :* LIBRE
+*File :* LIVRÉ
 **Déclencheur : constaté à l'écran le 14/09/2026.** `/parametres/agences` affiche les jours travaillés et les horaires de chaque établissement, et **le seul formulaire de la ligne est « Enregistrer le pas »**. Les plages et les jours **ne se règlent nulle part dans l'application** — ni sur cet écran, ni sur un autre : le seul chemin est `prisma/seed.ts` ou une console. *Le sous-titre promettait les trois ; il a été corrigé pour dire ce que l'écran fait, et cette correction ne remplace pas le réglage.*
 **CE QUE CELA COÛTE AUJOURD'HUI, et ce n'est pas un confort.** Un calendrier d'agence décide de **quatre** choses mesurables : le refus à la pose hors ouverture (RG-PLA-07, `lib/interventions/pose.ts`), le départ du compteur d'accusé de réception d'une demande (D13, 30 minutes en heures ouvrées), le dénominateur du taux d'occupation (`lib/interventions/occupation.ts`), et l'assiette de la majoration hors ouverture (D12, D108). **Une agence qui ouvre le samedi ne peut donc pas le déclarer**, et les quatre se trompent ensemble sans que rien ne rougisse.
 **CE QU'IL SUPPOSE, et les trois premiers ne sont pas du travail d'écran.**
@@ -1562,6 +1562,29 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **(3) LE PAS DOIT TOMBER DANS LA PLAGE.** `lib/calendar/parametrage.ts` le dit déjà — *une grille de créneaux ne DÉBORDE jamais sa plage* — et raccourcir une plage sous le pas courant rendrait une grille vide. Le refus existe côté lecture ; il n'existe pas côté écriture.
 **(4) L'écran lui-même**, et c'est la partie la moins chère : la ligne existe, la lecture existe (`lireParametrage`), la route `POST /api/parametres/pas-creneau` donne la forme à suivre.
 **CE QUI N'EST PAS DANS CE TICKET : les EXCEPTIONS par technicien** (D72, `technicien_calendrier`) et les **écarts de férié** (`calendrier_ferie`, D46, D48). Ce sont deux autres tables et deux autres questions ; les mêler ferait un ticket dont personne ne sait dire quand il est fini.
+**LES TROIS QUESTIONS SONT TRANCHÉES — 14/09/2026, avant la première ligne de code.** *Elles relèvent de la session (§1 du protocole) : aucune ne touche l'argent facturé, une obligation légale ou ce qu'un client voit — sauf UNE moitié de la première, qui part en arbitrage et qui est nommée ci-dessous.*
+
+**(1) L'EFFET RÉTROACTIF — rien de ce qui est posé ne bouge, et l'écran DIT ce qui se recalcule quand même.** Les quatre lectures d'un calendrier ne se comportent pas pareil, et c'est la mesure qui les sépare, pas l'intention :
+
+| Ce qui lit le calendrier | Bouge-t-il quand on change les horaires ? | Pourquoi |
+|---|---|---|
+| le refus à la pose (RG-PLA-07) | **non** | `lib/interventions/pose.ts` décide **au moment de la pose** ; ce qui est posé l'est |
+| le départ du compteur d'accusé (D13) | **non** | `demande.depart_compteur` est **matérialisé** — c'est déjà D85, et c'est déjà écrit |
+| le dénominateur du taux d'occupation | **OUI** | `lib/interventions/occupation.ts` relit les plages **à chaque rendu** |
+| l'assiette de la majoration (D12, D108) | **OUI** | aucun montant n'est stocké : `valoriserIntervention` recompose **à la lecture** |
+
+**Décision : on ne touche RIEN de ce qui est posé — ni replanification, ni signalement — et l'écran écrit les deux lignes qui bougent.** Fermer un samedi ne retire pas les interventions qui y étaient posées : elles ont été acceptées sous le calendrier d'alors, et les défaire serait rompre des rendez-vous pris avec des clients pour un réglage fait un mardi soir. *L'effet rétroactif n'est pas empêchable ici — rien n'est matérialisé — donc le travail est de le DIRE là où le réglage se fait*, exactement comme D76 dit « je ne sais pas » plutôt que « 0 % ». Condition de réouverture : *le jour où une intervention posée hors des horaires courants doit être signalée au planificateur, c'est un écran de contrôle et un ticket à part — pas un effet de bord du réglage.*
+
+**ET LA QUATRIÈME LIGNE DU TABLEAU PART EN ARBITRAGE, parce qu'elle touche l'argent facturé.** *Changer les horaires d'une agence change le supplément hors ouverture d'une intervention DÉJÀ CLÔTURÉE, et personne ne le voit passer.* Ce n'est pas ce ticket qui l'introduit — c'est vrai depuis L2-09b — mais c'est lui qui met le réglage à portée de souris, et une latence connue qui devient atteignable est un risque nouveau. La session ne tranche pas ce qui change une facture (§1 du protocole) : le ticket d'arbitrage est ouvert à côté, et **R3-13 se livre sans l'attendre**, puisque la décision porte sur la matérialisation d'un montant et non sur le réglage d'un horaire.
+
+**(2) LE CHEVAUCHEMENT DE PLAGES — refusé, et refusé PAR LA BASE.** Deux plages qui se recouvrent compteraient deux fois les mêmes heures ouvrables : le dénominateur du taux serait faux, le taux aussi, et *rien ne le dirait*. Le refus vit dans un déclencheur — `calendrier_plage_sans_chevauchement` — et non dans Zod seul : *une garantie qui ne vit que dans la couche applicative n'en est pas une* (I1), et l'import, le semis et une console y échappent tous. **Deux plages qui se TOUCHENT ne se chevauchent pas** — 08:00–12:00 et 12:00–17:00 sont la journée coupée par le déjeuner, c'est le cas ordinaire, et c'est la même borne que celle des créneaux d'intervention. *Ce qui a été écarté : une contrainte `EXCLUDE` sur un `int4range`, plus déclarative et plus juste — elle exige `btree_gist`, et **aucune migration de ce dépôt n'a jamais créé d'extension** ; en poser une pour la première fois dans un ticket d'écran, sur une base hébergée qu'on ne contrôle pas, est un pari dont le gain est la forme du refus, pas sa solidité.*
+
+**(3) LE PAS DOIT TOMBER DANS LA PLAGE — refusé, par la base aussi, et DANS LES DEUX SENS.** `lib/calendar/parametrage.ts` dit déjà *une grille de créneaux ne DÉBORDE jamais sa plage* ; la conséquence, c'est qu'une plage plus courte que le pas rend **zéro créneau** — un jour affiché comme ouvert sur lequel le planning ne propose rien. Le refus est donc porté par `calendrier_pas_tient_dans_les_plages`, posé sur les **deux** tables : raccourcir une plage sous le pas courant est refusé, et **élever le pas au-dessus de la plus courte plage l'est aussi**. *Le second sens est celui qu'on oublie* — le pas se règle depuis la ligne du tableau, la plage depuis un autre écran, et n'en garder qu'un laisserait l'autre produire l'état interdit. **L'ordre est une décision, et le message la nomme** : pour raccourcir une plage sous le pas, on baisse le pas d'abord — la même forme que D49, où l'on traite les écarts de calendrier avant de changer le territoire d'une agence.
+
+**LA FORME DE L'ÉCRAN, et l'écart avec R2-05 s'écrit plutôt qu'il ne se commet.** R2-05 a rangé ce réglage en tableau dense et a écrit que *« le formulaire de réglage du pas reste DANS la ligne »* — l'argument est la COMPARAISON : on règle un pas en regardant celui des autres établissements. **Il ne vaut pas pour les plages.** Un pas est un nombre ; une semaine d'ouverture est sept jours et autant de plages, et l'entrer dans une cellule détruirait précisément la densité que R2-05 venait de gagner. Les plages se règlent donc sur un écran de détail par calendrier, atteint depuis la ligne — *et le pas ne bouge pas de la ligne*, parce que son argument à lui tient toujours.
+
+**ET « FERMER UN JOUR » N'EST PAS UNE CASE À COCHER.** La migration du 21/08 l'a écrit à la naissance de la table : *« pas de booléen `ouvert` : deux sources pour un même fait finissent par se contredire, et c'est la plage qui fait foi puisque c'est elle qu'on lit. »* Un jour sans plage EST un jour fermé. Fermer un jour, c'est donc retirer ses plages ; l'ouvrir, c'est lui en donner une. L'écran le dit en toutes lettres plutôt que de faire semblant d'avoir un interrupteur.
+
 *Acceptation :* un établissement dont le calendrier est connu peut ouvrir ou fermer un jour et modifier ses plages depuis `/parametres/agences` ; deux plages qui se recouvrent sont **refusées avec leur motif**, et un scénario le prouve par retrait du verrou ; une plage plus courte que le pas courant est refusée plutôt qu'acceptée en rendant une grille vide ; la question de l'effet sur les interventions déjà posées est **tranchée par écrit** avant l'écriture du code, et le ticket le dit.
 
 ---
@@ -1596,3 +1619,34 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 **(5) L'ÉCRAN, et il se rejoint par un LIEN.** La barre reste close à onze entrées, confrontées à la maquette (D95) ; la destination vit dans `lib/navigation/portes-parametrage.ts`, sixième porte de « Sociétés & tarifs », *et elle ne porte aucun décompte* — une porte dit où elle mène, pas ce qu'il y a derrière.
 **CE QUI N'EST PAS DANS CE TICKET :** l'**application** d'un lot d'import de prestations — elle est du ressort de L1-11 et de ses suites, et *le jour où un second type sera applicable, la question du moteur générique se posera avec deux exemplaires sous les yeux plutôt qu'avec aucun* (L1-08i).
 *Acceptation :* la question (1) est **tranchée par écrit avant toute ligne de code**, et le ticket porte la décision ; `lib/prestations/depot.ts` lit et écrit **sous contexte cloisonné, sans aucune comparaison de société écrite au-dessus de la politique**, et un scénario lit une prestation d'une autre société pour obtenir zéro ligne ; un code déjà pris est refusé avec son motif, et un jumeau montre l'écriture passer une fois `@@unique([societe_id, code])` retiré ; une durée absente s'affiche comme absente et **jamais comme 0 minute**, mesuré par un scénario de rendu ; aucun champ de montant n'apparaît à l'écran ; aucune chaîne visible hors de `lib/i18n/fr.ts` ; et la porte est atteignable par un lien écrit.
+
+---
+
+**R3-16 — CHANGER LES HORAIRES D'UNE AGENCE CHANGE LE SUPPLÉMENT D'UNE INTERVENTION DÉJÀ FACTURÉE. [arbitrage] [D12] [D108] [D85] [14/09/2026]**
+*File :* BLOQUÉ — arbitrage d'Alexis : cela touche l'argent facturé (§1 du protocole), et une session ne tranche pas cela.
+
+## La question
+
+Quand on modifie les horaires d'ouverture d'un établissement, le supplément « hors ouverture » d'une intervention **déjà terminée et déjà facturée** change tout seul, et personne ne le voit passer. Faut-il que le supplément soit **figé le jour de l'intervention**, ou qu'il continue de suivre les horaires en vigueur aujourd'hui ?
+
+## Ce que j'ai mesuré
+
+*Le 14/09/2026, en écrivant R3-13.*
+
+- **Aucun montant n'est stocké sur une intervention.** `lib/tarification/valorisation.ts` et `lib/tarification/majoration.ts` recomposent le total **à chaque lecture**, à partir du calendrier de l'agence tel qu'il est à l'instant où on regarde (`grep -n "majorationHorsOuverture\|valoriserIntervention" lib/interventions/depot.ts` : deux appels, tous deux à la lecture).
+- **Les trois autres lectures d'un calendrier, elles, ne bougent pas** : le refus à la pose décide au moment de la pose ; le départ du compteur d'accusé de réception est **matérialisé** sur la demande (D85) ; et rien ne replanifie ce qui est posé.
+- **Ce n'est pas R3-13 qui l'introduit** : c'est vrai depuis L2-09b. Ce que R3-13 change, c'est que le réglage passe d'une console à un formulaire — *une latence connue qui devient atteignable est un risque nouveau.*
+
+## Les issues possibles
+
+| | Ce qu'elle coûte | Ce qu'elle interdit |
+|---|---|---|
+| **A — Figer le supplément à la clôture** (le matérialiser sur l'intervention, comme `demande.depart_compteur` l'a fait pour son compteur) | une colonne, une migration, et un chemin d'écriture au moment de la clôture ; les interventions **déjà clôturées** n'ont pas de valeur à figer et resteront calculées — c'est la même limite que D104 | de corriger une erreur d'horaire APRÈS coup : un samedi saisi par erreur resterait facturé comme une ouverture jusqu'à ce que quelqu'un rouvre la facture à la main |
+| **B — Ne rien figer, et l'écrire** (l'état d'aujourd'hui, plus la phrase que R3-13 a mise à l'écran de réglage) | rien à construire ; mais un montant déjà communiqué à un client peut changer sans qu'aucune écriture ne le dise, et **c'est exactement le défaut que D85 a nommé** | de répondre à « pourquoi cette facture a changé ? » — aucune trace ne relie le nouveau montant au réglage qui l'a produit |
+| **C — Figer à la clôture ET garder le calcul visible à côté** | le plus cher des trois : deux valeurs à afficher, et la question « laquelle fait foi » à trancher sur chaque écran | rien, mais c'est le seul qui ajoute un chiffre que personne n'a demandé — *deux chiffres côte à côte sans dire lequel croire* (R2-21) |
+
+*Recommandation : **A**, parce que c'est celle que D85 prescrit déjà pour tout fait qui dépend du temps — « quand un fait de cloisonnement dépend du temps, il est MATÉRIALISÉ » — et qu'un montant facturé est le fait le moins réversible du produit. Mais c'est un montant, donc ce n'est pas à moi de le décider.*
+
+## En attendant
+
+**Rien n'est bloqué.** R3-13 est livré sans attendre cette décision : elle porte sur la matérialisation d'un montant, pas sur le réglage d'un horaire. L'écran de réglage **dit** ce qui se recalcule, ce qui est le mieux qu'on puisse faire sans trancher. Ce qui reste suspendu est la seule question de savoir si une facture émise peut changer après coup.

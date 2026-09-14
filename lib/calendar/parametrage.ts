@@ -171,3 +171,102 @@ export function enHeure(minutes: number): string {
   const m = String(minutes % 60).padStart(2, "0");
   return `${h}:${m}`;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * R3-13 — LES PLAGES SE RÈGLENT, elles ne se lisaient que.
+ *
+ * Ce qui suit décide ; rien n'y lit de base ni d'horloge. Les mêmes critères
+ * sont tenus EN BASE par trois déclencheurs — `calendrier_plage_sans_chevauchement`,
+ * `calendrier_plage_tient_le_pas` et `calendrier_pas_tient_dans_les_plages` : ce
+ * qui est écrit ici est la
+ * lecture d'AFFICHAGE, celle qui rend le refus lisible avant qu'il soit opposé.
+ * *La base garde ; ce module explique.* Deux lectures d'un même critère
+ * divergent en silence (§9, 01/09) — d'où le fait que les deux soient écrites
+ * dans le même geste, avec un jumeau qui retire le verrou de base et montre
+ * l'écriture passer.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Minuit du lendemain, en minutes locales. La borne haute d'une plage. */
+export const MINUTES_JOURNEE = 1440;
+
+/**
+ * Une heure saisie `HH:MM` en minutes locales — `null` si ce n'en est pas une.
+ *
+ * `<input type="time">` rend cette forme et rien d'autre, mais un formulaire se
+ * forge : la conversion refuse plutôt qu'elle ne devine. **`24:00` est admis** —
+ * c'est la fermeture à minuit, que la contrainte `calendrier_plage_bornes_journee`
+ * autorise déjà (`fin_minutes <= 1440`) et qu'aucun sélecteur d'heure ne sait
+ * écrire autrement.
+ */
+export function enMinutes(heure: string): number | null {
+  const forme = /^([0-9]{1,2}):([0-9]{2})$/.exec(heure.trim());
+  if (forme === null) {
+    return null;
+  }
+  const heures = Number(forme[1]);
+  const minutes = Number(forme[2]);
+  if (minutes > 59) {
+    return null;
+  }
+  const total = heures * 60 + minutes;
+  return total > MINUTES_JOURNEE ? null : total;
+}
+
+/** Une plage telle qu'un formulaire la propose, avant tout contrôle croisé. */
+export const schemaPlage = z
+  .object({
+    jourSemaine: z.number().int().min(1).max(7),
+    debutMinutes: z.number().int().min(0).max(MINUTES_JOURNEE),
+    finMinutes: z.number().int().min(0).max(MINUTES_JOURNEE),
+  })
+  .refine((p) => p.finMinutes > p.debutMinutes);
+
+/**
+ * DEUX PLAGES QUI SE TOUCHENT NE SE CHEVAUCHENT PAS.
+ *
+ * 08:00–12:00 et 12:00–17:00 sont la journée coupée par le déjeuner : c'est le
+ * cas ordinaire, et le refuser interdirait la forme la plus répandue d'un
+ * horaire d'agence. C'est la borne exacte du chevauchement d'interventions —
+ * *« deux créneaux qui se TOUCHENT ne se chevauchent pas »* —, et elle est la
+ * même ici pour que les deux ne divergent pas.
+ */
+export function chevauchent(a: Plage, b: Plage): boolean {
+  if (a.jourSemaine !== b.jourSemaine) {
+    return false;
+  }
+  return a.debutMinutes < b.finMinutes && b.debutMinutes < a.finMinutes;
+}
+
+/**
+ * La plage du calendrier que `candidate` recouvrirait, `null` s'il n'y en a
+ * aucune. `idsAIgnorer` porte la plage qu'on MODIFIE : une plage ne se chevauche
+ * pas elle-même, et l'oublier rendrait toute modification impossible.
+ */
+export function plageQuiChevauche(
+  existantes: readonly (Plage & { readonly id: string })[],
+  candidate: Plage,
+  idAIgnorer?: string,
+): (Plage & { readonly id: string }) | null {
+  return (
+    existantes.find((p) => p.id !== idAIgnorer && chevauchent(p, candidate)) ??
+    null
+  );
+}
+
+/**
+ * UNE PLAGE PLUS COURTE QUE LE PAS REND UNE GRILLE VIDE — un jour affiché
+ * comme ouvert sur lequel le planning ne propose rien.
+ *
+ * `creneauxDuJour` le dit déjà par sa boucle : `debut + pas <= fin` n'est jamais
+ * vrai quand la plage est plus courte que le pas. Le refus est ici pour que
+ * l'état ne s'écrive pas, et non pour qu'il se découvre à la lecture.
+ */
+export function plageTientLePas(plage: Plage, pasMinutes: number): boolean {
+  return plage.finMinutes - plage.debutMinutes >= pasMinutes;
+}
+
+/** La plage la plus courte du calendrier, en minutes. `null` s'il n'en a aucune. */
+export function plageLaPlusCourte(plages: readonly Plage[]): number | null {
+  const durees = plages.map((p) => p.finMinutes - p.debutMinutes);
+  return durees.length === 0 ? null : Math.min(...durees);
+}
