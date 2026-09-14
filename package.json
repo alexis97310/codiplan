@@ -32,6 +32,8 @@
     "veille": "tsx scripts/veille-hebergee.mts",
     "deploiement:verifier": "tsx scripts/verifier-deploiement.mts",
     "file": "tsx scripts/file-de-nuit.mts",
+    "chemins": "tsx scripts/chemins-de-depot.mts",
+    "captures:etat": "tsx scripts/etat-des-captures.mts",
     "db:refus-si-reelles": "tsx scripts/refus-si-donnees-reelles.mts",
     "suspensions:denombrer": "tsx scripts/denombrer-suspensions.mts",
     "partitions:etendre": "tsx scripts/etendre-partitions.mts",

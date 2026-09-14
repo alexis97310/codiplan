@@ -226,14 +226,32 @@ describe("la file « en attente de pièce » et son ancienneté", () => {
     const recente = await jetable();
     const sansPiece = await jetable();
 
-    // LES DEUX HORIZONS SE CALCULENT DEPUIS L'INSTANT DU SCÉNARIO, jamais
-    // écrits en dur. *Une date de 2026 écrite à la main rend le scénario vert
-    // ou rouge selon le jour où on le joue* — c'est la faute que ce fichier a
-    // commise à sa première rédaction : le « 20 septembre » choisi comme passé
-    // était encore à venir, et `horizonDepasse` valait `false`.
+    // UN SEUL INSTANT DE RÉFÉRENCE, ET TOUT EN DESCEND (réparé le 14/09/2026).
+    //
+    // Les deux horizons se calculaient déjà depuis l'instant du scénario plutôt
+    // qu'en dur — *une date de 2026 écrite à la main rend le scénario vert ou
+    // rouge selon le jour où on le joue*, faute commise à la première rédaction
+    // de ce fichier : le « 20 septembre » choisi comme passé était encore à
+    // venir, et `horizonDepasse` valait `false`.
+    //
+    // **Il restait une SECONDE horloge, et c'est elle qui a rougi en CI.**
+    // L'antidatage s'écrivait `now() - interval '40 days'` — l'horloge de
+    // PostgreSQL —, et l'ancienneté se mesurait contre `new Date()` —
+    // l'horloge de Node. *Deux instants lus à quelques microsecondes d'écart et
+    // arrondis différemment ne se soustraient pas proprement* : `suspendue_le`
+    // est un `timestamptz(3)`, la valeur y est ARRONDIE à la milliseconde, et
+    // quand l'aller-retour est assez rapide pour que Node lise la MÊME
+    // milliseconde que le serveur, la différence tombe un cheveu sous 40 jours
+    // et `Math.floor` rend 39. *Mesuré le 14/09/2026 par une sonde : ratio
+    // 39.999999988 — 1,04 ms de trop — sur 1 exécution sur 8.*
+    //
+    // La réparation n'est pas une marge, c'est une SOURCE UNIQUE : le scénario
+    // fabrique son repère, en dérive l'antidatage, et rend le même repère à la
+    // lecture. L'ancienneté vaut alors exactement 40, par construction.
     const MS_PAR_JOUR = 24 * 60 * 60 * 1000;
-    const horizonPasse = new Date(Date.now() - 5 * MS_PAR_JOUR);
-    const horizonAVenir = new Date(Date.now() + 30 * MS_PAR_JOUR);
+    const maintenant = new Date();
+    const horizonPasse = new Date(maintenant.getTime() - 5 * MS_PAR_JOUR);
+    const horizonAVenir = new Date(maintenant.getTime() + 30 * MS_PAR_JOUR);
 
     await suspendreIntervention(
       SESSION,
@@ -266,13 +284,17 @@ describe("la file « en attente de pièce » et son ancienneté", () => {
       clientApp(),
     );
 
-    // La plus vieille est antidatée de 40 jours — le harnais date au serveur.
+    // La plus vieille est antidatée de 40 jours DEPUIS LE REPÈRE DU SCÉNARIO,
+    // jamais depuis `now()` : c'est ce qui retire la seconde horloge. L'instant
+    // part en ISO-8601 — trois décimales, donc exactement ce qu'un
+    // `timestamptz(3)` sait stocker, et aucun arrondi à faire.
     await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "suspendue_le" = now() - interval '40 days'
-        WHERE "id" = '${vieille}'`,
+      `UPDATE "intervention" SET "suspendue_le" = $1::timestamptz
+        WHERE "id" = $2::uuid`,
+      new Date(maintenant.getTime() - 40 * MS_PAR_JOUR).toISOString(),
+      vieille,
     );
 
-    const maintenant = new Date();
     const file = await enAttenteDePiece(SESSION, maintenant, clientApp());
     const ids = file.map((l) => l.ligne.id);
 
@@ -285,7 +307,11 @@ describe("la file « en attente de pièce » et son ancienneté", () => {
     expect(ids.indexOf(vieille)).toBeLessThan(ids.indexOf(recente));
 
     const ligneVieille = file.find((l) => l.ligne.id === vieille);
-    expect(ligneVieille?.ancienneteJours).toBeGreaterThanOrEqual(40);
+    // EXACTEMENT 40, et l'égalité est le témoin de la réparation : elle ne peut
+    // être vraie que si les deux bouts de la soustraction viennent du même
+    // repère. Le seuil n'est pas abaissé — il est rendu ATTEIGNABLE à coup sûr,
+    // là où « au moins 40 » sur deux horloges était vrai sept fois sur huit.
+    expect(ligneVieille?.ancienneteJours).toBe(40);
     // Sa date de disponibilité est passée : l'horizon est dépassé.
     expect(ligneVieille?.horizonDepasse).toBe(true);
     // Et celle de la récente ne l'est pas — le témoin qui sépare les deux.

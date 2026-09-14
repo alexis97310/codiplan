@@ -331,6 +331,24 @@ pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
                       # `pnpm verify`. La POPULATION est dérivée du document :
                       # un ticket écrit demain y entre ce jour-là.
 
+pnpm chemins          # QUELLE COUCHE UN HUMAIN PEUT-IL ATTEINDRE ? (R3-12)
+                      # pour chaque module de lib/ et pour chaque fonction de
+                      # ses dépôts : est-elle atteinte depuis app/, et PAR QUOI
+                      # — nommément, jamais par un décompte
+                      # la marque LIVRÉ se posait sur trois preuves, dont
+                      # « l'existence du module dans lib/ » : les trois prouvent
+                      # qu'une COUCHE a été écrite, aucune qu'un humain
+                      # l'atteigne. L1-01 était LIVRÉ avec zéro route
+                      # la commande DÉCRIT ; ce qui échoue est le gardien
+                      # (tests/unit/gardiens/chemins-de-depot.test.ts), dont la
+                      # population se dérive du dépôt et dont la liste
+                      # d'exemptions est close DANS LES DEUX SENS — une
+                      # exemption dont la fonction a retrouvé un appelant
+                      # échoue, parce qu'une exemption qui ne protège plus rien
+                      # survit à ce qu'elle exemptait
+                      # ce qu'elle ne prouve PAS : qu'un chemin soit TROUVABLE
+                      # — une fonction appelée depuis un écran mort compte
+
 pnpm veille           # LA BASE HÉBERGÉE a-t-elle dérivé ? (D55)
                       # les contrôles d'observation — DOUZE aujourd'hui : RLS,
                       # formes de politique, périmètre d'audit, ajout seul du

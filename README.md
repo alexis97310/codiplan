@@ -1070,6 +1070,23 @@ La table existait depuis L1-12, son gabarit d'import aussi, et **entre les deux 
 
 **Aucune suppression**, comme pour les forfaits : une intervention désignera sa prestation, et _une facture émise sous une prestation disparue ne s'explique plus._ La bascule d'activité retire du **choix** sans toucher au passé.
 
+## Une couche écrite n'est pas une fonctionnalité — `pnpm chemins`
+
+Les marques `LIVRÉ` du backlog ont été posées sur trois preuves : _la prose du ticket, **l'existence du module dans `lib/`**, et l'existence de la table en base._ **Les trois prouvent qu'une couche a été écrite ; aucune ne prouve qu'un humain l'atteigne.** L1-01 l'a montré en acte — « Clients — CRUD, recherche » était `LIVRÉ`, relu contre ses sources le 11/09, avec **zéro route et zéro écran**.
+
+`pnpm chemins` répond à la question par une mesure, à deux mailles :
+
+- **la maille large** — chaque module de `lib/`, atteint depuis `app/` ou non, et **par quoi**, nommément ;
+- **la maille fine** — chaque fonction exportée par un `lib/<domaine>/depot*.ts`, et les fichiers atteints qui l'appellent. C'est elle qui attrape ce que la première rate : _`absences` était atteint, et personne ne pouvait déclarer une absence._
+
+**La commande décrit ; ce qui échoue est le gardien** (`tests/unit/gardiens/chemins-de-depot.test.ts`), et il tourne à `pnpm verify`. Sa population se **dérive du dépôt** — une fonction de dépôt écrite demain y entre le jour même —, et sa liste d'exemptions est close **dans les deux sens** : une entrée dont la fonction n'existe plus échoue, et **une entrée dont la fonction a retrouvé un appelant échoue aussi**. _Une exemption qui ne protège plus rien survit à ce qu'elle exemptait, et le jour où une fonction du même nom reviendra elle héritera d'une exemption que personne ne lui a accordée._
+
+**Un motif n'est pas une excuse, c'est une échéance** : il dit par quel travail le chemin arrivera. _« C'est normal » n'est pas un motif_ — cela ne se vérifie pas, et cela ne se retire jamais.
+
+**Ce qu'il ne prouve pas, et c'est écrit plutôt que tu** : qu'un chemin soit **trouvable par un humain**. Une fonction appelée depuis un écran mort compte comme atteinte, et un appel construit à l'exécution lui échappe — la forme 6 du §9 (26/08), qu'aucun motif statique n'arrête.
+
+_Et la mesure qui a ouvert le ticket a vieilli en quatre jours_ : neuf modules sans chemin le 14/09 au matin, **quatre** le soir — les cinq autres en ont reçu un sans que personne revienne corriger la liste. **C'est l'argument pour le gardien, pas contre la mesure.**
+
 ## Les captures d'écran, et ce qu'elles ne prouvent pas
 
 `docs/captures/` porte les images de chaque écran, en thème clair et sombre, à 1280 px et 390 px. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.
