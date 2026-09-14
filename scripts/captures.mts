@@ -1315,6 +1315,7 @@ function redigerReadme(
     "## Les images",
     "",
     "Chaque écran est photographié en **thème clair** et en **thème sombre**, à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.",
+    "**ET LES DEUX FICHIERS D'UN MÊME ÉCRAN SONT AUJOURD'HUI IDENTIQUES, OCTET POUR OCTET.** Ce n'est pas une panne de la prise de vue : `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** — *ce serait des couleurs que personne n'a validées*. Le viewer bascule un thème qui n'existe pas encore, et les deux images se ressemblent parce que le produit n'a qu'un visage. *Mesuré le 14/09/2026 par `cmp` sur les paires déjà commises* — c'était donc déjà vrai avant cette prise, et rien ne le disait. **Le jour où une palette sombre est déclarée, ces paires divergent d'elles-mêmes et cette phrase se retire.**",
     "",
     "### Ce que ces images montrent DE L'OUTIL et non de l'application",
     "",
