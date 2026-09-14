@@ -175,12 +175,14 @@ export default async function PageLotDImport({
       <section className="bg-app-surface border-app-bord rounded-[10px] border">
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-[14px] font-bold">{t("imports.lignes_titre")}</h2>
-          {/* INERTE, ET MOTIVÉ (RG-IMP-03) — jamais un lien vers rien. */}
-          <span
-            className="text-app-encre-faible text-[11.5px]"
-            title={t("imports.rejets_indisponibles_motif")}
-          >
-            {t("imports.rejets_indisponibles")}
+          {/* INERTE, ET SON MOTIF EST VISIBLE — jamais seulement une infobulle.
+              *Une infobulle ne s'ouvre pas sur un téléphone* : c'est la leçon
+              exacte de `CLASSES_LIEN` (14/09/2026), où six liens ne se voyaient
+              qu'au SURVOL. Un bouton inerte dont la raison est cachée se lit
+              comme une panne, ce que D95 refuse pour une entrée de barre. */}
+          <span className="text-app-encre-faible flex flex-col text-[11.5px]">
+            <span>{t("imports.rejets_indisponibles")}</span>
+            <span>{t("imports.rejets_indisponibles_motif")}</span>
           </span>
         </div>
         <Tableau colonnes={colonnes} minimum="640px">

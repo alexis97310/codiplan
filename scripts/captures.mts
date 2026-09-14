@@ -6,6 +6,7 @@ import { createOTP } from "@better-auth/utils/otp";
 import { maintenant } from "@/lib/calendar/fuseau";
 import { chromium, type Browser, type Page } from "@playwright/test";
 
+import { CHEMIN_EPREUVE } from "./lib/classeur-epreuve";
 import { SURFACE_DECRAN } from "./lib/surface-decran";
 
 /**
@@ -246,6 +247,41 @@ const ECRANS: readonly Ecran[] = [
     temoin: "Planning",
   },
   {
+    // LE RAPPORT, et son chemin se DÉCOUVRE : une base semée ne porte aucun
+    // lot, et l'identifiant change à chaque exécution.
+    nom: "imports-rapport",
+    chemin: "/imports",
+    decouvrir: rapportDUnImport,
+    quoi: "Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6).",
+    authentifie: true,
+    temoin: "Rapport",
+    refusConnu:
+      "Cet écran n'existe qu'après un téléversement. Le classeur déposé est " +
+      "celui que `scripts/fabriquer-classeur-epreuve.mts` fabrique — trois " +
+      "raisons sociales INVENTÉES (I9). Un refus ici dit que le téléversement " +
+      "n'a pas abouti, jamais que l'écran est cassé.",
+  },
+  {
+    // ── L'ÉCRAN D'IMPORT (L1-11) ────────────────────────────────────────────
+    //
+    // *La barre le portait, inerte, depuis l'origine* — et elle nommait le
+    // mauvais ticket. La première image de cet écran est aussi celle qui
+    // montre les QUATRE types qu'on sait contrôler sans savoir les appliquer :
+    // ils sont NOMMÉS plutôt que proposés, et c'est une décision qui ne se
+    // relit que là.
+    //
+    // **IL EST PHOTOGRAPHIÉ APRÈS LE RAPPORT**, et l'ordre est une décision :
+    // une base fraîchement semée ne porte AUCUN lot, et le journal des
+    // chargements se photographierait VIDE — *un tableau de huit colonnes que
+    // personne n'aurait jamais vu rendu.* C'est la leçon de R3-10, appliquée
+    // à l'ORDRE de la prise plutôt qu'au semis.
+    nom: "imports",
+    chemin: "/imports",
+    quoi: "Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements.",
+    authentifie: true,
+    temoin: "Imports",
+  },
+  {
     nom: "intervention-creation",
     chemin: "/planning/nouvelle",
     quoi: "La création d'une intervention depuis le planning.",
@@ -425,6 +461,62 @@ const ECRANS: readonly Ecran[] = [
  * une page d'erreur sous le nom de l'écran.* On lit donc ce que l'écran
  * précédent propose, comme le ferait quelqu'un qui clique.
  */
+/**
+ * LE RAPPORT D'IMPORT SE DÉCOUVRE EN TÉLÉVERSANT (L1-11).
+ *
+ * **Une base fraîchement semée ne porte AUCUN lot** — le semis n'importe rien,
+ * et c'est juste : *un lot d'import est un geste, pas une donnée de
+ * démonstration.* Le rapport n'a donc aucun chemin à écrire en dur, et il n'en
+ * aurait pas de stable : son identifiant change à chaque exécution.
+ *
+ * La prise de vue fait donc **ce qu'un humain fait** : elle dépose le classeur
+ * et suit là où l'écran la mène. Le classeur est celui que
+ * `scripts/fabriquer-classeur-epreuve.mts` FABRIQUE — *aucun fichier de données
+ * réelles n'entre au dépôt, jamais, et un dépôt rendu public publie aussi son
+ * passé* (I9).
+ *
+ * **Elle REFUSE plutôt que de photographier l'index** : si le téléversement
+ * échoue, l'écran reste `/imports` avec un motif, et une image de l'index
+ * rangée sous le nom « rapport » serait pire qu'une image absente.
+ */
+async function rapportDUnImport(page: Page): Promise<string> {
+  // **ELLE RÉUTILISE UN LOT S'IL EN EXISTE UN**, et ce n'est pas une économie :
+  // la prise de vue photographie CHAQUE écran en quatre variantes, et déposer
+  // le classeur à chaque fois laisserait QUATRE lignes identiques au journal
+  // des chargements — *une image qui se lit comme un défaut alors qu'elle
+  // montre le harnais.* Mesuré : 4 lots pour un seul fichier, à la première
+  // exécution.
+  const dejaLa = await page
+    .locator('a[href^="/imports/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter((href) => /^\/imports\/[0-9a-f-]{36}$/.test(href)),
+    );
+  if (dejaLa.length > 0) {
+    return dejaLa[0];
+  }
+
+  await page
+    .locator('input[name="classeur"]')
+    .setInputFiles(join(process.cwd(), CHEMIN_EPREUVE));
+  // **LE BOUTON SE DÉSIGNE PAR SON FORMULAIRE, jamais par son libellé.** Lire
+  // le dictionnaire ici ferait de ce script un fichier qui RESTITUE aux yeux du
+  // gardien de la surface d'écran — *et il aurait raison de ne pas savoir : ce
+  // script PILOTE des écrans, il n'en est pas un.* L'action du formulaire est
+  // par ailleurs plus stable qu'un libellé, qui se reformule.
+  await page.locator('form[action="/api/imports/controler"] button').click();
+  await page.waitForURL(/\/imports\/[0-9a-f-]{36}$/, { timeout: 10_000 });
+  const chemin = new URL(page.url()).pathname;
+  if (!/^\/imports\/[0-9a-f-]{36}$/.test(chemin)) {
+    throw new Error(
+      `le téléversement n'a pas mené à un rapport : ${page.url()} — la capture ` +
+        "est refusée plutôt que prise sur l'index sous le nom du rapport.",
+    );
+  }
+  return chemin;
+}
+
 async function premierLienDIntervention(page: Page): Promise<string> {
   const chemins = await page
     .locator('a[href^="/planning/"]')
