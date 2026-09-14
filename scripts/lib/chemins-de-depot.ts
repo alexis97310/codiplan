@@ -418,8 +418,15 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   {
     module: "lib/absences/depot.ts",
     fonction: "absencesDeLaPeriode",
+    // LE MOTIF A ÉTÉ RÉÉCRIT AU REBASAGE DU 14/09/2026, et c'est la raison
+    // d'être de ce champ. Il disait « elle rend les TROIS statuts, pour un écran
+    // de planning qui montrerait les demandes en attente » — écrit contre le
+    // R3-14 d'origine, celui que `main` a REFUSÉ : il n'y a plus de statut, plus
+    // de `StatutAbsence`, plus de demande en attente. *Un motif survit à ce qui
+    // le fondait sans rougir*, et une exemption dont la raison est fausse est
+    // une exemption que personne ne saura retirer.
     motif:
-      "Elle rend les TROIS statuts, pour un écran de planning qui montrerait les demandes en attente à côté des créneaux — *on ne pose pas volontiers un rendez-vous sur une semaine qu'on s'apprête à valider*. L'écran des absences (R3-14) lit la sienne, bornée à sa fenêtre. Ouvert par le jour où le planning affiche les absences.",
+      "Elle rend TOUS les blocages qui recouvrent une fenêtre, toutes personnes confondues ; l'écran des absences (R3-14) lit la sienne, bornée à la fenêtre qu'il affiche. Ouvert par le jour où le PLANNING montre les blocages à côté des créneaux — *on ne pose pas volontiers un rendez-vous sur une semaine qu'on sait bloquée*.",
   },
   {
     module: "lib/clients/depot.ts",
