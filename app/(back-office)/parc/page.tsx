@@ -171,8 +171,13 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
           </span>
         )}
       </Cellule>
+      {/* LA COLONNE « CLIENT » MÈNE À LA FICHE (14/09/2026). *Neuf fois sur
+          dix on arrive à un client en partant d'une machine qu'on regardait
+          déjà* — c'est le chemin le plus emprunté, et il n'existait pas. */}
       <Cellule>
-        {machine.client.raison_sociale}
+        <Link href={`/clients/${machine.client_id}`} className={CLASSES_LIEN}>
+          {machine.client.raison_sociale}
+        </Link>
         <span className="text-app-encre-faible block text-[11.5px]">
           {lieuAffiche(machine)}
         </span>

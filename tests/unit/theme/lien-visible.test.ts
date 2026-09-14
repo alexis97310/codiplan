@@ -118,8 +118,18 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
     // Les six liens que la mesure du 14/09 a trouvés au régime `hover` seul.
     // *La liste est le CONTRAT de la réparation* : un septième lien écrit
     // demain sans elle est arrêté par la règle ci-dessus, pas par ce compte.
+    //
+    // **Elle S'ALLONGE quand un écran nouveau porte l'habillage, et c'est le
+    // bon sens de mise à jour** : l'assertion reste une ÉGALITÉ, si bien
+    // qu'aucun écran ne peut y entrer ni en sortir sans qu'on le décide.
+    // *L'assouplir en « contient au moins » ferait taire le RETRAIT, qui est
+    // le sens dangereux* — c'est lui qui rendrait les liens invisibles sur un
+    // téléphone, et lui seul. Les deux écrans clients y sont entrés le
+    // 14/09/2026 avec la fiche et la liste.
     const porteurs = ECRANS.filter((f) => f.contenu.includes("CLASSES_LIEN"));
     expect(porteurs.map((f) => f.chemin).sort()).toEqual([
+      "app/(back-office)/clients/[id]/page.tsx",
+      "app/(back-office)/clients/page.tsx",
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/[id]/page.tsx",
       "app/(back-office)/planning/page.tsx",

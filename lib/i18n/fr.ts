@@ -265,6 +265,89 @@ export const fr = {
   "client.refus.code_externe_en_double":
     "Ce code externe est déjà porté par une autre fiche de votre société. Le code identifie un client à l'import : deux fiches ne peuvent pas le partager.",
   "client.refus.client_introuvable": "Cette fiche client est introuvable.",
+  "client.refus.saisie":
+    "La saisie a \u00e9t\u00e9 refus\u00e9e\u00a0: la raison sociale est obligatoire.",
+
+  // ── L'ÉCRAN CLIENT (14/09/2026) ───────────────────────────────────────────
+  //
+  // La LISTE se rejoint depuis « Sociétés & tarifs », et c'est de là que part
+  // la création ; la FICHE se rejoint aussi depuis les colonnes « Client » du
+  // parc et des sites. *Neuf fois sur dix on arrive à un client en partant
+  // d'une machine ou d'un lieu qu'on regardait déjà — mais on ne peut pas créer
+  // un client depuis une machine qui n'existe pas encore.*
+  "clients.sous_titre":
+    "Le r\u00e9f\u00e9rentiel des clients de la soci\u00e9t\u00e9\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import, et lieux d'intervention.",
+  "clients.creer": "Nouveau client",
+  "clients.rechercher": "Rechercher",
+  "clients.recherche.aide":
+    "La recherche porte sur la raison sociale ET sur le code de rapprochement\u00a0: ce sont les deux fa\u00e7ons dont un client se d\u00e9signe au t\u00e9l\u00e9phone.",
+  "clients.actifs_seulement": "Masquer les fiches inactives",
+  "clients.inactif": "inactive",
+  "clients.retour": "\u2190 Tous les clients",
+  "clients.borne":
+    "Les fiches sont born\u00e9es \u00e0 ce qu'un \u00e9cran peut montrer. Affinez la recherche si la liste est tronqu\u00e9e.",
+  // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
+  // montrerait — total, actifs, inactifs — se lisent dans le tableau, et *un
+  // compteur qu'on regarde sans jamais agir dessus apprend à ne plus lire les
+  // compteurs* (§9, 11/09).
+  "clients.sans_code_titre": "Sans",
+  "clients.sans_code_aide":
+    "Ces fiches n'ont pas de code de rapprochement\u00a0: un import ne saura pas les reconna\u00eetre et les recr\u00e9era. Le compteur porte sur toute la recherche, et non sur les seules lignes affich\u00e9es.",
+  // L'AIDE DU CHAMP N'EST PAS L'AIDE DU COMPTEUR (constaté À L'IMAGE le
+  // 14/09/2026). Le formulaire de création reprenait `clients.sans_code_aide`,
+  // qui se termine par « Le compteur porte sur toute la recherche » — une
+  // phrase vraie de la LISTE et dépourvue de sens sous un champ de saisie.
+  // *Une clé réemployée hors de sa destination est du texte juste au mauvais
+  // endroit, et rien ne rougit* : les deux disent la même règle, et seule
+  // l'image montre que l'une d'elles parle d'un écran qu'on ne regarde pas.
+  "clients.code_externe.aide":
+    "La cl\u00e9 par laquelle un import reconna\u00eet cette fiche. Sans elle, un import ne saura pas la rapprocher et cr\u00e9era un doublon. Elle est unique dans votre soci\u00e9t\u00e9, et peut rester vide.",
+  "clients.sans_code_aucune":
+    "Toutes les fiches de cette recherche portent un code de rapprochement.",
+  // LA COLONNE « SITES » — *elle dit où l'on intervient chez ce client, et
+  // c'est la question qu'on se pose en ouvrant la liste.*
+  "clients.colonne_sites": "Lieux d'intervention",
+  "clients.sites_un": "lieu",
+  "clients.sites_plusieurs": "lieux",
+  "clients.sites_aucun": "aucun lieu",
+  "clients.sites_et_autres": "\u2026",
+  // LA FICHE
+  "clients.fiche.identite": "Identit\u00e9",
+  "clients.fiche.sites": "Lieux d'intervention",
+  "clients.fiche.sites_vide":
+    "Aucun lieu d'intervention n'est enregistr\u00e9 pour ce client.",
+  "clients.fiche.interventions": "Derni\u00e8res interventions",
+  "clients.fiche.interventions_vide":
+    "Aucune intervention n'est enregistr\u00e9e pour ce client.",
+  // LE BLOC « CONTACTS » NOMME SA PROPRE ABSENCE AU LIEU DE LA TAIRE.
+  //
+  // *Un zéro ou un blanc se liraient comme des mesures ; « aucun écran ne la
+  // sert encore » se lit comme un manque* (D88, et la règle du portail).
+  // Les contacts EXISTENT en base depuis L1-03 — table, saisie Zod, dépôt —
+  // et rien dans l'application ne permet d'en saisir un.
+  "clients.fiche.contacts": "Contacts",
+  "clients.fiche.contacts_sans_ecran":
+    "Les interlocuteurs d'un client sont pr\u00e9vus et la donn\u00e9e existe, mais aucun \u00e9cran ne permet encore d'en saisir un. Ce bloc n'est donc ni vide ni \u00e0 z\u00e9ro\u00a0: il est sans information.",
+  "clients.action.creer": "Cr\u00e9er la fiche",
+  "clients.action.modifier": "Enregistrer",
+  "clients.cree": "La fiche client est cr\u00e9\u00e9e.",
+  "clients.modifie": "La fiche client est enregistr\u00e9e.",
+  // L'ÉTAT SE CHOISIT, IL NE SE DÉCOCHE PAS — et c'est une décision.
+  //
+  // Une case à cocher décochée est ABSENTE du formulaire, et le schéma de
+  // modification lit une absence comme « ne touche pas à cette colonne » : la
+  // désactivation n'aurait jamais eu lieu, **et l'écran aurait dit que si**.
+  // *Un succès qui ne fait pas ce qu'on lui a demandé est pire qu'un refus*
+  // (R2-20). Deux valeurs explicites ferment ce chemin.
+  "clients.etat": "\u00c9tat de la fiche",
+  "clients.etat.actif": "Active",
+  "clients.etat.inactif":
+    "Inactive — conserv\u00e9e, mais retir\u00e9e des listes courantes",
+  "clients.etat.aide":
+    "Une fiche ne se supprime pas depuis cet \u00e9cran\u00a0: ce qui la r\u00e9f\u00e9rence la retient, et la voie ordinaire est de la rendre inactive.",
+  "clients.nouveau.titre": "Nouveau client",
+  "clients.nouveau.sous_titre":
+    "La soci\u00e9t\u00e9 vient de la session et n'est jamais une saisie. L'adresse de facturation n'est pas demand\u00e9e ici\u00a0: sa forme n'est fix\u00e9e nulle part, et une adresse cal\u00e9donienne n'a pas celle d'une adresse m\u00e9tropolitaine.",
 
   // ── Référentiel des sites d'intervention (ticket L1-02) ───────────────────
   //
@@ -471,6 +554,22 @@ export const fr = {
   "statistiques.taux_compact_sans_calendrier.aide":
     "Aucun calendrier n'est r\u00e9gl\u00e9 pour son \u00e9tablissement : le taux n'a pas de d\u00e9nominateur. Ce n'est pas z\u00e9ro pour cent.",
   "statistiques.pourcent": "\u00a0%",
+  // ── AU-DELÀ DE 100 %, ET C'EST LE SEUL CAS QUI DEMANDE UNE ACTION ────────
+  //
+  // La décision est ancienne et elle est confirmée : *le taux se dit, il ne se
+  // plafonne pas* — plafonner masquerait précisément ce qu'un planificateur
+  // doit voir. Mais elle n'était écrite QUE dans le commentaire de
+  // `lib/interventions/statistiques.ts`, c'est-à-dire **partout sauf là où le
+  // chiffre s'affiche** : le planificateur qui lit « 125 % » n'a aucun moyen de
+  // savoir si c'est un fait ou un défaut de calcul.
+  //
+  // *Une décision qui ne vit que dans le code est une décision que son
+  // destinataire ne connaît pas.* La mention n'apparaît QUE lorsque le
+  // dépassement a lieu : une note permanente sur un taux de 18 % serait du
+  // bruit, et un avertissement qu'on lit tous les jours cesse d'être lu
+  // (§9, 11/09).
+  "statistiques.taux_au_dela":
+    "au-del\u00e0 de 100\u00a0%\u00a0: la charge d\u00e9passe les heures d'ouverture de l'\u00e9tablissement. Ce n'est pas une erreur de calcul.",
   // LE SÉPARATEUR N'APPARTIENT À AUCUN ÉCRAN — il s'appelait
   // `statistiques.separateur`, et la fiche d'intervention en a eu besoin le
   // jour où elle a affiché « CACES — bloquante » (L3-02). *Une clé nommée
@@ -1020,6 +1119,15 @@ export const fr = {
   "parametres.index_sites_suffixe": "d'intervention",
   "parametres.index_sites_resume":
     "Les lieux où l'on intervient, chez les clients. Leur rattachement décide du temps de trajet estimé et du calendrier de référence.",
+  // LE RÉFÉRENTIEL CLIENT — cinquième carte, à côté des lieux d'intervention
+  // (14/09/2026). *La fiche se rejoint neuf fois sur dix depuis une machine ou
+  // un lieu qu'on regardait déjà ; la CRÉATION, elle, n'a aucun de ces points
+  // de départ — on ne crée pas un client depuis une machine qui n'existe pas
+  // encore.* C'est ce qui fait de la liste une porte à part entière, et non un
+  // doublon des colonnes « Client » du parc et des sites.
+  "parametres.index_clients_titre": "Clients",
+  "parametres.index_clients_resume":
+    "Le r\u00e9f\u00e9rentiel des clients\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import et lieux d'intervention. C'est d'ici que part la cr\u00e9ation d'une fiche.",
   "parametres.index_ouvrir": "Ouvrir",
 
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────

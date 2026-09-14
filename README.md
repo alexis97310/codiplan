@@ -1591,6 +1591,43 @@ Et les deux premières tables métier du lot 1 :
 est unique **par société** et son libellé d'affichage est paramétrable
 (`societe.libelle_code_externe`). Le module applicatif est `lib/clients/`.
 
+**Et il a fallu attendre le 14/09/2026 pour qu'un humain puisse atteindre un
+client.** Le ticket était marqué `LIVRÉ` depuis le 08/09 : table, saisie Zod,
+dépôt et ses six fonctions existaient — _et zéro route, zéro écran, un seul
+appelant dans tout le dépôt._ C'est le cas qui a fait amender le critère de la
+file (**R3-12**) : _un module qui existe prouve qu'une COUCHE a été écrite ; il
+ne prouve pas qu'un humain l'atteigne._ Écrans : `/clients`, `/clients/nouveau`,
+`/clients/<id>`.
+
+**Les deux chemins ne font pas double emploi**, et c'est l'arbitrage du
+14/09/2026. La **liste** se rejoint depuis « Sociétés & tarifs », cinquième
+carte à côté des lieux d'intervention, et c'est de là que part la création ; la
+**fiche** se rejoint aussi depuis les colonnes « Client » du parc et des sites,
+devenues des liens. _Neuf fois sur dix on arrive à un client en partant d'une
+machine ou d'un lieu qu'on regardait déjà — mais on ne peut pas créer un client
+depuis une machine qui n'existe pas encore._ **La barre n'a pas bougé** : elle
+reste close à onze entrées confrontées à la maquette (D95).
+
+**Un seul compteur, et il nomme un geste** — les fiches sans code de
+rapprochement, celles qu'un import ne saura pas reconnaître (RG-IMP-05). Trois
+autres ont été retirés : _un compteur qu'on regarde sans jamais agir dessus
+apprend à ne plus lire les compteurs_, et chacun coûte une requête. Son titre ne
+contient le mot « Winpro » nulle part : il se compose depuis
+`societe.libelle_code_externe` (D29). Le compteur porte sur **la recherche**
+quand le tableau porte sur **la page**, et l'écran le dit — mais le CRITÈRE n'a
+qu'une écriture, `filtreDeRecherche`, que les deux appellent.
+
+**Le bloc « Contacts » de la fiche nomme sa propre absence.** `contact` existe
+depuis L1-03 et aucun écran ne permet d'en saisir un : le bloc n'affiche **ni un
+zéro ni un blanc**, qui se liraient comme des mesures, mais _« aucun écran ne le
+sert encore »_ (D88, et la règle que le portail applique à ses emplacements
+tenus et dits vides). **Aucune suppression non plus** : tout ce qui référence la
+fiche la retient, et _proposer un bouton qui échoue huit fois sur dix est pire
+que de ne pas le proposer_ — le geste réel est de rendre la fiche inactive, et
+il se choisit dans une liste à deux valeurs plutôt que dans une case à cocher,
+_une case décochée étant absente du formulaire et une absence se lisant « ne
+touche pas à cette colonne »_.
+
 Et **D55** en est sorti : le périmètre d'audit de I8 est désormais **inversé** —
 audité par défaut, exempté par écrit. `client` naissait hors périmètre non par
 décision mais par omission, et c'est le sens de la liste qui était en cause, pas

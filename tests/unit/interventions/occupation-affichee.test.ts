@@ -4,6 +4,7 @@ import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { t } from "@/lib/i18n/fr";
+import { TAUX_PLEIN } from "@/lib/interventions/statistiques";
 
 /**
  * JAMAIS LE POURCENTAGE SEUL — *demande d'exploitation du 10/09/2026*.
@@ -102,6 +103,22 @@ const INSEPARABLES = [
   "statistiques.heures_trajet",
   "statistiques.heures_ouvrables",
   "statistiques.formule",
+  // ── LE DÉPASSEMENT DE 100 %, depuis le 14/09/2026 ────────────────────────
+  //
+  // La décision est ancienne — *le taux se dit, il ne se plafonne pas ; le
+  // plafonner masquerait le seul cas qui demande une action* — et elle était
+  // écrite **dans le commentaire de `lib/interventions/statistiques.ts`**,
+  // c'est-à-dire partout sauf là où le chiffre s'affiche. *Le planificateur
+  // qui lit « 125 % » n'avait aucun moyen de savoir si c'est un fait ou un
+  // défaut de calcul.*
+  //
+  // Elle entre donc dans les INSÉPARABLES, pour la raison exacte qui y a fait
+  // entrer le trajet : **ce qui rend le taux interprétable n'est pas
+  // facultatif.** Et la mention n'apparaît qu'AU-DELÀ, ce que le scénario
+  // ci-dessous mesure — *une note permanente sur un taux de 18 % serait du
+  // bruit, et un avertissement qu'on lit tous les jours cesse d'être lu*
+  // (§9, 11/09).
+  "statistiques.taux_au_dela",
 ] as const;
 
 describe("le taux d'occupation ne s'affiche jamais seul", () => {
@@ -211,5 +228,51 @@ describe("le taux d'occupation ne s'affiche jamais seul", () => {
     // bas et juste sur un technicien débordé (§9, 06/09).
     expect(source()).toContain("statistiques.sans_duree");
     expect(t("statistiques.sans_duree")).toContain("nombre");
+  });
+});
+
+/**
+ * LE DÉPASSEMENT SE DIT, ET IL NE SE DIT QU'AU-DELÀ (14/09/2026).
+ *
+ * Le gardien ci-dessus exige que la clé SOIT dans le composant ; il ne dit pas
+ * QUAND elle s'affiche. *Une mention permanente le satisferait, et elle serait
+ * du bruit sur tous les taux ordinaires.* Ce bloc mesure la CONDITION.
+ *
+ * **Il porte sa paire** (§9, 11/09) : un cas qui doit rendre la mention, et un
+ * cas qui doit rester silencieux POUR SA PROPRE RAISON — sans quoi une
+ * condition câblée sur `true` passerait le premier.
+ */
+describe("au-delà de 100 %, l'écran le dit — et seulement au-delà", () => {
+  it("le seuil a UNE maison, et c'est celle de la règle", () => {
+    // *L'écrire dans l'écran serait une seconde lecture d'un même critère*
+    // (§9, 01/09). La constante vit avec `tauxOccupation`, qui porte la règle.
+    expect(TAUX_PLEIN).toBe(100);
+    expect(source()).toContain("TAUX_PLEIN");
+    expect(source()).not.toMatch(/taux\s*[>]\s*100/);
+  });
+
+  it("la mention est SOUS CONDITION, jamais permanente", () => {
+    // On lit la ligne qui la rend : elle doit être gardée par une comparaison
+    // au seuil. *Une clé rendue sans condition satisferait la liste des
+    // inséparables tout en disant « au-delà de 100 % » sur un taux de 18 %.*
+    const texte = source();
+    const rang = texte.indexOf('t("statistiques.taux_au_dela")');
+    expect(rang).toBeGreaterThan(0);
+    const avant = texte.slice(Math.max(0, rang - 200), rang);
+    expect(avant).toContain("TAUX_PLEIN");
+  });
+
+  it("LA MISE EN ÉCHEC : une mention permanente est refusée", () => {
+    // La faute telle qu'elle se commettrait — quelqu'un trouve la condition
+    // inutile et rend la mention toujours. Le verdict est rejoué sur ce
+    // texte-là, sans toucher au fichier.
+    const permanente = source().replace(
+      "{taux !== null && taux > TAUX_PLEIN ? (",
+      "{taux !== null ? (",
+    );
+    expect(permanente).not.toBe(source());
+    const rang = permanente.indexOf('t("statistiques.taux_au_dela")');
+    const avant = permanente.slice(Math.max(0, rang - 200), rang);
+    expect(avant).not.toContain("TAUX_PLEIN");
   });
 });

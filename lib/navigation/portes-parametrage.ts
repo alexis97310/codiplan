@@ -56,4 +56,17 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     resume: "parametres.index_sites_resume",
     vocabulaire: "site",
   },
+  {
+    // LA CINQUIÈME PORTE (14/09/2026). Elle n'est pas un doublon des colonnes
+    // « Client » du parc et des sites, qui mènent à la FICHE : *on ne peut pas
+    // créer un client depuis une machine qui n'existe pas encore*, et la liste
+    // est le seul endroit d'où la création puisse partir.
+    //
+    // **La barre de navigation ne bouge pas** : elle est close à onze entrées,
+    // confrontées à la maquette (D95), et une douzième la ferait rougir à
+    // raison. Une porte de section n'est pas une entrée de barre.
+    chemin: "/clients",
+    titre: "parametres.index_clients_titre",
+    resume: "parametres.index_clients_resume",
+  },
 ];

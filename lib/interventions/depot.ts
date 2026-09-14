@@ -1519,3 +1519,50 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
     Math.floor((jusqua.getTime() - depuis.getTime()) / MS_PAR_JOUR),
   );
 }
+
+/**
+ * LES DERNIÈRES INTERVENTIONS D'UN CLIENT (écran client, 14/09/2026).
+ *
+ * *« C'est très exactement ce pour quoi un directeur d'exploitation ouvre une
+ * fiche client. »* — l'arbitrage du 14/09/2026.
+ *
+ * **Elle vit ICI et non dans `lib/clients/`**, et c'est la parade du §9
+ * (01/09) : `CHAMPS_LIGNE` dit ce qu'est une ligne d'intervention, et une
+ * seconde sélection écrite dans le module client aurait divergé de celle-ci au
+ * premier champ ajouté — sans que rien ne les confronte.
+ *
+ * **L'ordre est celui de la RÉCENCE, et son critère est écrit plutôt que
+ * supposé.** `date_planifiee` est nulle sur toute la file d'attente : trier par
+ * elle seule rangerait ces lignes-là dans un ordre que PostgreSQL choisit, ce
+ * qui est exactement la faute de L3-03. L'`id` ferme donc l'ordre — un UUID v7
+ * porte l'horodatage de création sur ses bits de poids fort (I10), et il est
+ * total.
+ *
+ * **Le `client_id` n'est PAS un cloisonnement, c'est un SUJET.** Le
+ * cloisonnement est prononcé par la politique de forme « parc » (D84) ; ce
+ * `where` dit de quel client on parle. *Les confondre ferait croire qu'on peut
+ * se passer de l'un ou de l'autre* — un client d'une autre société rend zéro
+ * ligne parce que la politique l'a décidé, pas parce que cette clause l'a filtré.
+ */
+export async function dernieresInterventionsDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findMany({
+        where: { client_id: clientId },
+        select: {
+          ...CHAMPS_LIGNE,
+          client: { select: { raison_sociale: true } },
+          site: { select: { libelle: true } },
+        },
+        orderBy: [{ date_planifiee: "desc" }, { id: "desc" }],
+        take: limite,
+      }),
+    client,
+  );
+}

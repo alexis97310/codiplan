@@ -16,12 +16,16 @@ export {
   type RechercheClient,
 } from "./saisie";
 export {
+  compterSansCodeExterne,
   creerClient,
+  libelleCodeExterneDeLaSociete,
   lireClient,
   modifierClient,
   rechercherClients,
+  sitesParClient,
   supprimerClient,
   type FicheClient,
+  type SitesDUnClient,
   type MotifRefusClient,
   type ResultatEcriture,
 } from "./depot";
