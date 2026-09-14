@@ -32,6 +32,9 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+      read-excel-file:
+        specifier: ^9.3.10
+        version: 9.3.10
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -84,9 +87,6 @@ importers:
       prisma:
         specifier: ^6.19.3
         version: 6.19.3(typescript@5.9.3)
-      read-excel-file:
-        specifier: ^9.3.10
-        version: 9.3.10
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3

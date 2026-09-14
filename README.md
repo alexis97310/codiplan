@@ -89,6 +89,16 @@ pnpm file             # LE PREMIER TRAVAIL NON BLOQUÉ de docs/backlog.md
 
 `pnpm test:e2e` compile lui-même l'application et la sert sur le port 3100 : c'est une compilation de production qui est mise sous test, pas le serveur de développement.
 
+### Le verrou d'installation est une porte, lui aussi
+
+_Écrit le 14/09/2026, après une CI rouge au-dessus d'un `pnpm verify` vert._
+
+La CI ne joue pas `pnpm install` : elle joue **`pnpm install --frozen-lockfile`**, dans dix jobs répartis sur six flux, et cette étape **juge** — elle refuse quand `package.json` et `pnpm-lock.yaml` divergent, avant qu'un seul test soit lancé. `pnpm verify` ne jugeait rien de cet accord. _Mesuré : `read-excel-file` promu de `devDependencies` vers `dependencies` sans régénérer le verrou, `pnpm verify` sorti en 0 avec 1819 scénarios unitaires et 851 d'isolation verts, et la CI rouge sur `ERR_PNPM_OUTDATED_LOCKFILE`._
+
+`tests/unit/ci/lockfile-accorde.test.ts` confronte les deux fichiers directement — nom, **section** et spécificateur —, sur la population **union** des deux côtés, pour qu'une entrée en trop d'un côté rougisse comme une entrée manquante de l'autre. Ce qu'il ne fait pas est écrit dans son entête : il ne rejoue pas `--frozen-lockfile`, qui vérifie l'arbre entier des versions résolues ; il garde l'accord que la faute a rompu.
+
+**Si ce test rougit, la réparation est `pnpm install --lockfile-only`**, et le verrou se commite avec le `package.json` qui le motive.
+
 ### Les migrations, rejouées contre une base qui a déjà vécu
 
 _Écrit le 11/09/2026, après une panne de production de plus de quatre heures._
@@ -665,7 +675,27 @@ Le contrôle calculait lui-même la clé des machines — série, référence, r
 
 **Et la chaîne a un appelant** (`tests/isolation/chaine-import.test.ts`) : feuille → contrôle → enregistrement par le chemin de production → relecture sous contexte cloisonné. _Une suite qui éprouve tous les maillons n'éprouve pas la chaîne_ — et entre le contrôle, qui a ses 106 scénarios, et les politiques, qui ont les leurs, personne ne traversait.
 
-**Ce qui reste dû :** l'application et l'annulation partielle (L1-08b), et l'écran (L1-09). `import_lot.objet_cle` existe et **reste nulle** : le stockage d'objets n'a pas d'appelant, et une colonne qui attend s'écrit comme telle plutôt que de se remplir d'un chemin fabriqué.
+~~**Ce qui reste dû :** l'application et l'annulation partielle (L1-08b), et l'écran (L1-09).~~ **L'ÉCRAN EXISTE DEPUIS LE 14/09/2026 (L1-11)** — voir la section suivante. `import_lot.objet_cle` existe et **reste nulle** : le stockage d'objets n'a pas d'appelant, et une colonne qui attend s'écrit comme telle plutôt que de se remplir d'un chemin fabriqué.
+
+## L'écran d'import, et la porte qui attendait le mauvais ticket
+
+`app/(back-office)/imports/` (L1-11). **65 Ko de code éprouvé n'étaient atteints par personne** : mesuré le 14/09/2026, `grep -rn "lib/excel\|lib/imports" app/ components/` rendait **une seule ligne, et c'était un commentaire**. _Un module qui existe prouve qu'une couche a été écrite ; il ne prouve pas qu'un humain l'atteigne_ — le critère amendé par R3-12.
+
+**Sa porte existait déjà, et elle nommait le mauvais ticket.** La barre de D95 porte « Imports Excel » depuis l'origine, inerte, donnée pour ouverte par **L1-09** — qui porte les GABARITS, ce qu'on télécharge, jamais l'écran d'où l'on téléverse. _Une entrée inerte qui nomme un ticket fantôme est inerte deux fois : elle n'ouvre rien, et elle envoie chercher là où il n'y a rien._ Le défaut a été trouvé **en REGARDANT une capture**, pas en lisant le code. La barre **reste close à onze entrées** : une entrée inerte devient un chemin, aucune ne s'ajoute.
+
+**Un seul type va jusqu'au bout, et l'écran le dit.** `appliquerLeLotDeClients` est la seule fonction d'application qui existe ; les quatre autres gabarits savent produire un **rapport** et pas l'écrire. _Un écran qui accepterait un fichier de contacts en montrerait le rapport et ne saurait rien en faire_ — il les **nomme** plutôt que de les proposer, comme une entrée de barre inerte. Le drapeau n'est pas cru sur parole : `tests/unit/imports/types-dimport.test.ts` lit `lib/imports/` et exige que les types marqués complets soient **exactement** ceux qui portent une fonction `appliquerLeLotDe<Type>`.
+
+**`lireClasseur` acceptait un CHEMIN, et une route reçoit des OCTETS.** L'élargissement tient en une ligne — `read-excel-file/node` déclare `Input = string | Stream | Blob | Buffer` —, et il évite la réparation naturelle qui était la mauvaise : _déposer le téléversement sur le disque du serveur ferait entrer des données de client dans un système de fichiers que rien ne purge, sur un hébergeur éphémère._ **Aucun octet n'est conservé.**
+
+**Trois phrases de la maquette ont été réécrites par des décisions de rang 1**, et chacune est nommée à l'écran : _« annulable intégralement pendant 24 heures »_ (D54 a supprimé la fenêtre, et D15 rend l'annulation **partielle**) ; _« Inchangés »_ (notre rapport ne mesure pas cette catégorie — _un chiffre qu'aucune mesure ne produit, affiché au milieu de chiffres mesurés_) ; et la colonne « Lot » sous un numéro (`import_lot` n'en porte aucun, par décision de L1-08e).
+
+**Deux boutons sont INERTES et motivés** — « Télécharger le modèle Excel » et « Télécharger les rejets » (RG-IMP-03). Les deux exigent une bibliothèque d'**écriture** `.xlsx` : c'est une dépendance, donc un point d'arrêt du §8. _Un bouton retiré mentirait sur ce que le produit sera ; un bouton actif qui ne produit rien se lit comme une panne._
+
+**Et il est GARDÉ PAR UN LECTEUR STRICT, parce que l'épreuve ne le gardait pas.** Sa première version portait au répertoire central une méthode de compression écrite à l'offset de l'en-tête LOCAL — _deux dispositions qui se ressemblent sont plus dangereuses que deux qui ne se ressemblent pas_. Le `zipfile` de Python refusait les cinq entrées, `read-excel-file` les lisait toutes, et **l'épreuve de bout en bout passait avant comme après la réparation** : elle mesure I6, pas la conformité du fichier. `scripts/lib/archive-zip.ts` lit par le répertoire central — le chemin normal — et refuse toute discordance ; **son témoin est `dates-excel.xlsx`, un fichier qu'Excel a produit et que ce dépôt ne contrôle pas**, sans quoi un lecteur écrit par l'auteur de l'archive partagerait son erreur.
+
+**Le classeur d'épreuve est FABRIQUÉ, jamais emprunté.** `scripts/fabriquer-classeur-epreuve.mts` écrit `tests/fixtures/clients-fabrique.xlsx` — trois raisons sociales inventées, dont une vide qui part en rejet. _Un ticket d'import est exactement l'endroit où l'on est tenté de déposer « un petit fichier d'exemple »_, et **un dépôt rendu public publie aussi son passé** (I9). Un gardien refabrique le classeur et le compare **octet pour octet** au fichier du dépôt : _un binaire posé dans un dépôt est un binaire que personne ne peut relire._
+
+**Et I6 est mesuré à l'écran**, pas seulement dans la chaîne : `tests/e2e/imports.spec.ts` téléverse, lit le rapport, **va vérifier qu'aucune fiche n'existe encore**, revient cliquer, et constate la fiche. _Sans ce témoin, « le rapport précède l'écriture » serait vrai d'un écran qui aurait déjà tout écrit et se contenterait de le raconter._
 
 ## Le catalogue de forfaits, et l'axe qui dort
 

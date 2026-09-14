@@ -130,7 +130,13 @@ export const ENTREES: readonly EntreeNavigation[] = [
   { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
   { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
   { cle: "nav.portail_client", chemin: "/portail" },
-  { cle: "nav.imports_excel", chemin: null, ouvertePar: "L1-09" },
+  // **ELLE ÉTAIT INERTE ET ELLE ATTENDAIT LE MAUVAIS TICKET** *(14/09/2026)*.
+  // Elle nommait `L1-09`, qui porte les GABARITS — ce qu'on télécharge —,
+  // jamais l'écran d'où l'on téléverse. *Une entrée inerte qui nomme un ticket
+  // fantôme est inerte deux fois : elle n'ouvre rien, et elle envoie chercher
+  // là où il n'y a rien.* L1-11 l'ouvre, et **la barre reste close à onze
+  // entrées** : une entrée inerte devient un chemin, aucune ne s'ajoute.
+  { cle: "nav.imports_excel", chemin: "/imports" },
   {
     // L'ENTRÉE MÈNE À LA SECTION, NON À L'UN DE SES ÉCRANS (R3-05). Elle
     // pointait sur `/parametres/agences`, si bien que les deux autres écrans de

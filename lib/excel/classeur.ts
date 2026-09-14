@@ -94,13 +94,32 @@ export function celluleDepuisValeur(valeur: unknown): Cellule | undefined {
 }
 
 /**
+ * CE QU'ON PEUT LUI DONNER À LIRE.
+ *
+ * **Un CHEMIN ou des OCTETS, et l'écran d'import n'a que des octets** (L1-11).
+ * La signature n'acceptait qu'une chaîne ; `read-excel-file/node` déclare
+ * `Input = string | Stream | Blob | Buffer` (version 9.3.10, `node/input.d.ts`).
+ * *L'écart n'était donc pas une limite de la bibliothèque, c'était une limite
+ * que nous avions écrite* — et la réparation naturelle, en face, était la
+ * mauvaise : déposer le téléversement sur le disque du serveur ferait entrer
+ * des données de client dans un système de fichiers que rien ne purge, sur un
+ * hébergeur éphémère.
+ *
+ * **`Stream` n'est PAS admis ici**, et c'est délibéré : un flux se consomme une
+ * fois, alors que ce module peut être rappelé sur la même entrée. *Une entrée
+ * qui se vide après lecture rendrait un classeur vide au second appel, et un
+ * classeur vide se lit exactement comme un classeur sans données.*
+ */
+export type EntreeClasseur = string | Buffer;
+
+/**
  * Lit un classeur `.xlsx` et rend ses feuilles.
  *
  * **`.xlsx` uniquement, jamais de CSV** (§2 de la constitution) : un CSV n'a ni
  * type de cellule ni feuille, et toute la grammaire de D31 repose sur les deux.
  */
 export async function lireClasseur(
-  chemin: string,
+  chemin: EntreeClasseur,
 ): Promise<readonly FeuilleLue[]> {
   // UN SEUL appel, et il rend TOUTES les feuilles : c'est ce que la version
   // 9.3.10 fait, et c'est ce que la mesure du 10/09 a exercé

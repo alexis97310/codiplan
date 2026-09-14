@@ -1521,6 +1521,78 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     dureeMin: 120,
     temps_reel_min: null,
   },
+  // ── LA SEMAINE QUI DÉPASSE — et c'est le TRAJET qui la fait dépasser ──────
+  //
+  // **La mention « au-delà de 100 % » existait et ne se voyait sur aucune
+  // image** *(14/09/2026)*. Elle n'apparaît que sur le dépassement — à bon
+  // droit : *un avertissement qu'on lit tous les jours cesse d'être lu* (§9,
+  // 11/09). Mais le semis ne produisait aucun taux au-dessus de cent en vue
+  // SEMAINE, si bien que la garantie ne se montrait nulle part. *Une épreuve
+  // qui passe et une image qui ne montre rien, c'est à la fois la forme d'un
+  // succès et celle d'un silence* — et l'image est le seul instrument dont
+  // dispose celui qui juge l'écran sans pouvoir l'ouvrir.
+  //
+  // **LE TECHNICIEN VISÉ EST CELUI DE KONÉ, et ce n'est pas un hasard de
+  // rang** : `TECHNICIENS_PAR_AGENCE` ne lui donne qu'une seule personne, si
+  // bien que toute intervention de cette agence lui revient. *Chez Ducos, deux
+  // techniciens se partagent la parité de l'indice, et la cible dépendrait de
+  // la longueur du tableau* — une charge posée sur quelqu'un que le prochain
+  // ajout déplacerait.
+  //
+  // **LE MARDI EST LE SEUL JOUR LIBRE DE KONÉ**, mesuré sur la base semée :
+  // l'agence travaille lundi, mercredi et vendredi. *Poser ces deux lignes un
+  // jour déjà occupé les ferait chevaucher un créneau existant*, ce que la
+  // pose refuse (RG-PLA-03) et ce qu'une capture montrerait comme un défaut.
+  //
+  // **ET C'EST LE TRAJET QUI FAIT FRANCHIR LE SEUIL, pas des heures
+  // supplémentaires.** Les deux créneaux tiennent ENTIÈREMENT dans les heures
+  // d'ouverture — 07 h 30-11 h 30 et 13 h-17 h, les plages mêmes de
+  // `DEMO-KONE`. Ce qui déborde est l'aller vers le premier lieu et le retour
+  // depuis le dernier (lecture C de D107) : la côte ouest et le nord se
+  // comptent en heures, pas en minutes. *C'est la lecture que le planificateur
+  // doit faire — une journée pleine dans le nord n'est pas une journée de
+  // travail, c'est une demi-journée de travail et une demi-journée de route.*
+  // Une majoration hors ouverture aurait aussi franchi le seuil, et elle
+  // aurait changé un montant sur un autre écran : *on ne fabrique pas une
+  // image en déplaçant un chiffre que quelqu'un d'autre lit.*
+  // Le RANG 17 tombe sur l'indice 16, et l'indice décide du LIEU : le semis
+  // choisit `sitesEcrits[index % sitesEcrits.length]`, et la société
+  // néo-calédonienne en porte quatre — atelier de Ducos, dépôt de brousse,
+  // garage de Koné, ancien chantier de Dolbeau, dans cet ordre (mesuré sur la
+  // base semée). *L'indice 16 retombe donc sur Ducos, quoi qu'on écrive ici* :
+  // cette ligne n'est pas un remplissage, elle est la conséquence d'un tour de
+  // roue qu'on ne contourne pas sans changer la règle pour tout le monde. Elle
+  // est posée le JEUDI MATIN, seule demi-journée libre du technicien de Ducos.
+  {
+    rang: 17,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 3,
+    debutMinutes: 450,
+    dureeMin: 180,
+    temps_reel_min: null,
+  },
+  {
+    rang: 18,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 1,
+    debutMinutes: 450,
+    dureeMin: 240,
+    temps_reel_min: null,
+  },
+  {
+    rang: 19,
+    type: "curatif",
+    priorite: "p2",
+    statut: "planifiee",
+    joursDepuisLundi: 1,
+    debutMinutes: 780,
+    dureeMin: 240,
+    temps_reel_min: null,
+  },
 ];
 
 /**

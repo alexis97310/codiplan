@@ -130,6 +130,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
     expect(porteurs.map((f) => f.chemin).sort()).toEqual([
       "app/(back-office)/clients/[id]/page.tsx",
       "app/(back-office)/clients/page.tsx",
+      // Les deux écrans d'import y sont entrés le 14/09/2026 avec L1-11 : le
+      // journal des chargements mène à un lot, et le lot revient aux imports.
+      "app/(back-office)/imports/[id]/page.tsx",
+      "app/(back-office)/imports/page.tsx",
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/[id]/page.tsx",
       "app/(back-office)/planning/page.tsx",

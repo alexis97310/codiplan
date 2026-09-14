@@ -1099,6 +1099,21 @@ lib/
               s'additionnent pas — sinon le témoin dirait faux dans le sens
               rassurant
   imports/    LE MOTEUR D'IMPORT — ce que `excel/` a décidé, posé en base (L1-08e)
+              televersement.ts : ce qu'un fichier doit ÊTRE avant d'être lu
+              (L1-11) — il rend des octets, il ne lit AUCUN classeur : la
+              grammaire vit dans `excel/`, et une seconde règle d'acceptation
+              écrite ici la doublerait
+              il vit dans un MODULE et non dans la route : une route de Next.js
+              n'expose que ses verbes, et ce qu'on y écrirait serait
+              inéprouvable sans démarrer un serveur — or ces refus sont
+              précisément ce qu'un fichier hostile rencontre en premier
+              la TAILLE est lue avant les octets : mesurer après avoir lu ferait
+              entrer en mémoire exactement ce qu'on voulait refuser
+              le plafond est MESURÉ contre le classeur réel (59 642 octets) et
+              dit de combien il le dépasse — une borne posée sans mesure serait
+              un chiffre inventé (§8)
+              `Stream` n'est PAS admis : un flux se consomme une fois, et un
+              classeur vide se lit comme un classeur sans données
               depot.ts : le LOT NAÎT AU CONTRÔLE, et le chapitre 11 le disait
               depuis l'origine — `import_lot.statut` vaut `controle`, `applique`
               ou `annule` ; I6 veut qu'un rapport précède la validation, et
@@ -1116,6 +1131,14 @@ lib/
               il n'y a rien à restaurer (D15)
               RIEN pour le stockage du fichier source : `objet_cle` existe et
               reste nulle, faute d'appelant — la maladie du portail, évitée
+              il sait désormais RELIRE (L1-11) : `listerLesLots`, `lireLeLot` —
+              *une couche qui écrit ce que personne ne relit est une couche dont
+              on ne peut pas dire si elle écrit juste*
+              l'AUTEUR est résolu DANS la transaction cloisonnée, seul endroit
+              où la politique parle, et il rend la SOMME de `auth/annuaire.ts` :
+              une Map n'a qu'une façon de ne pas répondre
+              un lot d'une AUTRE société est « introuvable » et rien de plus —
+              les distinguer ferait un oracle (D35, D50)
               modeles.ts : LES GABARITS QUE CODIPLAN PUBLIE (L1-09a), et eux
               seuls — deux sortes de fichiers ne se confondent pas : un gabarit
               tient ses colonnes de NOS schémas de saisie, un fichier de reprise
@@ -1725,5 +1748,29 @@ Dans ces cas : s'arrêter, exposer le problème, proposer deux options avec leur
   1. **Une transaction qui tient un contrôle entier déclare ses délais, ou elle hérite d'un chiffre écrit pour une autre géographie** (23/08). Le plafond n'a été franchi par aucun ticket fautif : la veille a **grossi**, contrôle après contrôle, et son périmètre inversé les fait entrer d'eux-mêmes — avec leur aller-retour. Le gardien compte donc les allers-retours **dans le source** et redemande la question à chaque ajout.
   2. **Une piste proposée est une hypothèse, pas un point de départ.** La consigne nommait « DB resolve » — *« il marque une migration appliquée sans l'appliquer »*. Une commande l'a démentie : `--applied` n'est exposé nulle part, et la seule ligne exécutable est `--rolled-back`, qui rend la migration **rejouable**. *Chercher là où on nous dit de chercher coûte la journée que la mesure fait gagner.*
   3. **Et la branche voisine avait DÉJÀ été réparée, quatorze lignes plus haut.** Dans le même `if` de `ci.yml`, la branche « déploiement » porte en commentaire *« LE CORPS NE DÉCIDE PAS SI QUELQUE CHOSE A ÉTÉ CONSTATÉ — il le LIT »*, avec la citation du §9 du 10/09. La branche « veille » ne l'avait pas. *Une décision appliquée à une moitié laisse l'autre avec la forme de la moitié faite* (31/08) — et il n'y avait ici ni distance, ni délai, ni auteur différent : **un `elif`.**
+
+- **14/09/2026 — UN LECTEUR TOLÉRANT REND UNE ÉPREUVE DE BOUT EN BOUT AVEUGLE À LA MALFORMATION DE SA PROPRE FIXTURE.** Espèce à nommer à côté du 09/09 — *un défaut invisible à toute assertion et évident sur une image* —, parce que c'en est la forme BINAIRE : ici il n'y a pas d'image à regarder, il y a des octets, et personne ne les avait lus.
+
+  *Mesuré le 14/09/2026 par l'exploitation, sur le classeur d'épreuve que L1-11 venait de fabriquer.* **L'en-tête du répertoire CENTRAL d'une archive ZIP n'a pas la disposition de l'en-tête LOCAL** : il porte une « version d'écriture » de deux octets que le local n'a pas, si bien que les drapeaux sont à l'offset 8 et la méthode à 10 — deux octets plus loin. La ligne du local avait été recopiée telle quelle. Résultat écrit dans le fichier : **méthode 0 (STORED) et drapeaux 8 au répertoire central, méthode 8 (DEFLATE) en local, et des octets réellement dégonflés.**
+
+  **Les trois mesures, et c'est leur ÉCART qui enseigne.** Le `zipfile` de Python — un lecteur strict — refuse les **cinq** entrées sur un CRC qui ne peut pas correspondre : *il lit par le répertoire central, ce qui est le chemin normal de toute lecture d'archive, et prend donc des octets compressés pour du texte brut.* `read-excel-file` les lit **toutes**, avant comme après la réparation : *1 feuille, 5 lignes, `A1 = CODIPLAN-clients-v1`, à l'identique.* Et l'épreuve de bout en bout de l'import **passait avant et passe après** — 3 scénarios verts dans les deux cas.
+
+  **Ce que l'épreuve mesurait n'était donc pas ce que son sujet annonçait.** Elle mesure I6 — *le rapport précède l'écriture, la validation est un second geste* — et elle le mesure bien. Elle ne mesure **rien** de la conformité du classeur, et rien ne le disait. *Or D90 a tranché la lecture du classeur sur un VRAI fichier d'Excel, précisément parce que la tolérance d'un lecteur ne dit rien de ce qu'un tableur acceptera.*
+
+  **La règle : quand on répare le sujet d'une épreuve et que son résultat ne bouge pas, l'épreuve mesure autre chose que ce qu'elle annonce — et il faut l'écrire, pas le découvrir six mois plus tard.** Les deux contrôles sont alors indépendants dans les deux sens, comme l'horizon des partitions et la partition par défaut (30/08) : l'un tient le geste humain, l'autre la forme du fichier, et aucun ne rattrape l'autre.
+
+  **Et le gardien qui répare a un TÉMOIN, sans quoi il ne vaudrait rien.** Un lecteur strict écrit par celui qui écrit l'archive peut partager son erreur — *deux erreurs identiques ne se contredisent jamais* (10/09). Il est donc éprouvé sur `tests/fixtures/dates-excel.xlsx`, **un fichier qu'Excel a produit et que ce dépôt ne contrôle pas** : s'il se trompait de disposition, il refuserait l'authentique. Pour la même raison, `crc32` est **partagé** entre le fabricant et le lecteur plutôt que réécrit : deux implémentations fausses ensemble ne se seraient jamais contredites, et c'est le fichier authentique qui valide celle qui reste. *Mesuré : le gardien REFUSE le fichier tel qu'il a été commis, ACCEPTE le réparé, ACCEPTE l'authentique.*
+
+  *Corollaire sur les structures binaires, et il vaut au-delà du ZIP :* **deux dispositions qui se ressemblent sont plus dangereuses que deux qui ne se ressemblent pas.** La recopie compile, s'exécute, et produit un fichier qu'un lecteur tolérant ouvre sans rien dire. La parade tient en une convention d'écriture — *chaque champ porte son offset en commentaire* — parce qu'un `writeUInt16LE(8, 8)` ne dit ni ce qu'il écrit ni où, et que les deux se lisent de la même façon.
+
+- **14/09/2026 — L'EXCLUSION QU'UN GARDIEN S'AUTORISE EST LE SEUL ENDROIT PAR OÙ SA PROPRE FAUTE REVIENT.** Espèce à ranger à côté du 31/08 — *un `WHERE` qui recoupe l'assertion* —, prise du côté des **exclusions nommées** plutôt que des filtres : le trou n'est pas ce que le gardien sélectionne, c'est ce qu'il a écrit noir sur blanc qu'il ne regarderait pas.
+
+  `tests/unit/chaine-verification.test.ts` existe depuis le 02/09 pour empêcher *une porte qui ne garde pas ce que garde la porte suivante*. Il exclut `install` nommément, et il dit pourquoi : *« elle prépare l'environnement, elle ne juge rien »*. **La phrase est fausse d'un cas, et c'est celui qui est arrivé.** La CI ne joue pas `pnpm install` : elle joue `pnpm install --frozen-lockfile`, qui **juge** l'accord de `package.json` et de `pnpm-lock.yaml` et REFUSE quand ils divergent.
+
+  *Mesuré le 14/09/2026.* `read-excel-file` est passé de `devDependencies` à `dependencies` — la bibliothèque est lue par le serveur, elle n'est plus un outil — et le verrou n'a pas été régénéré. **`pnpm verify` est sorti en 0**, six commandes jouées, 1819 scénarios unitaires et 851 d'isolation verts ; la CI a rougi **avant le premier test**, sur `ERR_PNPM_OUTDATED_LOCKFILE`. *Le vert local était sincère et il ne parlait de rien* — l'incident du 02/09 mot pour mot, par le seul trou que son propre gardien s'était autorisé.
+
+  **Ce qui rend l'espèce distincte des filtres du 31/08 : une exclusion porte sa JUSTIFICATION, et la justification est ce qu'on relit au lieu de la mesurer.** Un `.filter()` muet se remarque ; une exclusion argumentée se lit comme une décision prise, et personne ne redemande si l'argument tient encore. Celui-ci ne tenait pas au moment même où il a été écrit — `--frozen-lockfile` était déjà dans dix jobs.
+
+  **La règle : une étape qui peut FAIRE ÉCHOUER la CI juge quelque chose, quoi qu'en dise le mot qui la nomme.** La question à poser à toute exclusion : *cette étape peut-elle rougir ? Si oui, qu'est-ce qui garde ce qu'elle regarde ?* La parade n'est pas d'annuler l'exclusion — `install` n'est pas un script du dépôt et n'a rien à faire dans `verify` — **c'est de nommer qui garde ce qu'elle laisse passer** : `tests/unit/ci/lockfile-accorde.test.ts` confronte les deux fichiers directement, sur la population UNION des deux côtés. *Mesuré : il REFUSE le verrou tel qu'il a été commis en `f266d4c` — en nommant `read-excel-file` et les deux sections —, il ACCEPTE le régénéré, et son témoin reste vert dans les deux cas, si bien que le refus est un refus et non une lecture vide.*
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.
