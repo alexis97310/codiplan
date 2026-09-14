@@ -189,7 +189,20 @@ function LigneSite({
           </span>
         )}
       </Cellule>
-      <Cellule>{ouTiret(client)}</Cellule>
+      {/* LA COLONNE « CLIENT » MÈNE À LA FICHE (14/09/2026) — le second des
+          deux chemins tranchés ce jour-là. Le libellé peut manquer (la
+          politique a refusé, ou le client n'est pas dans le périmètre) ; on ne
+          fabrique alors AUCUN lien, parce qu'un lien vers une fiche qu'on ne
+          peut pas lire rendrait un 404 là où il faut lire une absence. */}
+      <Cellule>
+        {client === null ? (
+          ouTiret(null)
+        ) : (
+          <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+            {client}
+          </Link>
+        )}
+      </Cellule>
       <Cellule>{ouTiret(site.commune)}</Cellule>
       <Cellule>
         {zone !== null && estCleTraduction(zone) ? t(zone) : ouTiret(null)}

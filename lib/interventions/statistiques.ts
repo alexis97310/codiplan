@@ -204,6 +204,15 @@ export function minutesDeCharge(occupation: OccupationTechnicien): number {
   return occupation.minutesEngagees + occupation.trajet.minutes;
 }
 
+/**
+ * LE TAUX PLEIN — 100. Une CONSTANTE plutôt qu'un littéral dans l'écran, parce
+ * que c'est ici que la règle est écrite : *le taux peut dépasser 100 et ce
+ * n'est pas une erreur.* Le seuil au-delà duquel l'écran le DIT est le même
+ * nombre, et l'écrire deux fois serait deux lectures d'un même critère (§9,
+ * 01/09).
+ */
+export const TAUX_PLEIN = 100;
+
 export function tauxOccupation(
   occupation: OccupationTechnicien,
 ): number | null {

@@ -42,6 +42,11 @@ export const CHAMPS_PARC = {
   modele: {
     select: { reference: true, famille: { select: { libelle: true } } },
   },
+  // `client_id` VOYAGE AVEC LE LIBELLÉ depuis le 14/09/2026 : la colonne
+  // « Client » du parc est devenue un LIEN vers la fiche, et un libellé sans
+  // son identifiant ne mène nulle part. *Le lire par une seconde requête aurait
+  // fait autant d'allers-retours que de lignes* (§9, 23/08).
+  client_id: true,
   client: { select: { raison_sociale: true } },
   site: { select: { libelle: true, commune: true } },
 } as const;

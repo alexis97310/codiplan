@@ -5,6 +5,7 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { enHeure } from "@/lib/calendar/parametrage";
 import {
   partDuSegment,
+  TAUX_PLEIN,
   tauxArrondiAZeroMaisNonNul,
   tauxOccupation,
   type OccupationTechnicien,
@@ -240,6 +241,15 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
           {tauxEtFormule(taux, tauxArrondiAZeroMaisNonNul(occupation))}
         </span>
       )}
+      {/* LE DÉPASSEMENT SE DIT LÀ OÙ LE CHIFFRE S'AFFICHE, et nulle part
+          ailleurs (14/09/2026). La décision — *le taux se dit, il ne se
+          plafonne pas* — vivait dans le commentaire de
+          `lib/interventions/statistiques.ts`, donc à l'abri du seul lecteur
+          qu'elle concerne. La mention n'apparaît QUE sur le dépassement :
+          permanente, elle deviendrait du bruit et cesserait d'être lue. */}
+      {taux !== null && taux > TAUX_PLEIN ? (
+        <span>{t("statistiques.taux_au_dela")}</span>
+      ) : null}
       {occupation.sansDuree > 0 ? (
         <span>{combienSansDuree(occupation)}</span>
       ) : null}

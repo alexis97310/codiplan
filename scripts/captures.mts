@@ -278,6 +278,39 @@ const ECRANS: readonly Ecran[] = [
     temoin: "Parc machines clients",
   },
   {
+    // **L'ÉCRAN QU'UN TICKET MARQUÉ `LIVRÉ` N'AVAIT PAS** (14/09/2026). L1-01
+    // portait la table, la saisie et le dépôt depuis le 08/09, et *zéro route,
+    // zéro écran* : c'est le cas qui a fait amender le critère de la file
+    // (R3-12). On y arrive par « Sociétés & tarifs », cinquième carte.
+    nom: "clients",
+    chemin: "/clients",
+    quoi: "Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29).",
+    authentifie: true,
+    temoin: "Clients",
+  },
+  {
+    nom: "client-creation",
+    chemin: "/clients/nouveau",
+    quoi: "La création d'une fiche — la société vient de la session, jamais d'une saisie.",
+    authentifie: true,
+    temoin: "Nouveau client",
+  },
+  {
+    // Son chemin porte un identifiant : il se DÉCOUVRE sur la liste, il ne
+    // s'écrit pas ici. *Un chemin en dur serait juste le jour de sa rédaction
+    // et photographierait une page d'erreur le lendemain, sans rougir.*
+    nom: "client-detail",
+    chemin: "/clients",
+    decouvrir: premierLienDeClient,
+    quoi: "La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88).",
+    authentifie: true,
+    temoin: "Dernières interventions",
+    refusConnu:
+      "Cet écran n'existe que si le référentiel porte au moins un client. " +
+      "Sur une base sans semis de démonstration, le refus est LÉGITIME et dit " +
+      "exactement cela — il ne se confond pas avec un écran cassé.",
+  },
+  {
     // **L'ÉCRAN QUE LA BARRE N'ATTEINT PAS** (D95, liste close de onze entrées).
     // On y arrive par le LIEU d'une intervention, puis par la fiche du site —
     // et, depuis R3-08, par la page de paramétrage.
@@ -405,6 +438,33 @@ async function premierLienDIntervention(page: Page): Promise<string> {
   if (chemins.length === 0) {
     throw new Error(
       "le planning ne porte aucun lien d'intervention : il n'y a rien à " +
+        "détailler, et la capture est refusée plutôt que prise sur une page " +
+        "d'erreur.",
+    );
+  }
+  return chemins[0];
+}
+
+/**
+ * LE PREMIER LIEN DE FICHE CLIENT rendu par la liste.
+ *
+ * Même raison que `premierLienDIntervention`, et même refus : *sans lien, on ne
+ * photographie pas une page d'erreur sous le nom de l'écran.* Les liens de
+ * création sont écartés nommément — `/clients/nouveau` est un écran à lui, déjà
+ * photographié, et le prendre pour une fiche rendrait deux fois la même image
+ * sous deux noms.
+ */
+async function premierLienDeClient(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/clients/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter((href) => href !== "/clients/nouveau" && href !== "/clients"),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "la liste ne porte aucun lien de fiche client : il n'y a rien à " +
         "détailler, et la capture est refusée plutôt que prise sur une page " +
         "d'erreur.",
     );

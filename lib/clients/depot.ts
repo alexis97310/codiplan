@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -256,11 +256,23 @@ export async function supprimerClient(
  * fiches sont rendues par raison sociale, ce qui est l'ordre d'une liste lue
  * par un humain.
  */
-export async function rechercherClients(
-  contexte: ContexteSession,
-  criteres: RechercheClient,
-): Promise<FicheClient[]> {
-  const filtreTexte =
+/**
+ * CE QUE LA RECHERCHE RETIENT — écrit UNE FOIS, et partagé.
+ *
+ * **Deux appelants le lisent** : la liste, qui rend les fiches, et le compteur
+ * des fiches sans code externe, qui les dénombre. *Recopier le `where` dans le
+ * second aurait donné deux lectures d'un même critère* (§9, 01/09) — et dans le
+ * pire endroit qui soit, puisque le compteur s'affiche AU-DESSUS du tableau :
+ * le lecteur verrait les deux chiffres côte à côte sans savoir lequel croire,
+ * ce qui est exactement le défaut que `resumerLeParc` évite par l'autre voie.
+ *
+ * *Ici la seconde requête est assumée* — le compteur porte sur toute la
+ * recherche, quand le tableau est borné à ce qu'un écran peut montrer — mais ce
+ * qui les sépare est alors la BORNE, une seule chose, et elle est dite à
+ * l'écran. Le CRITÈRE, lui, n'a qu'une écriture.
+ */
+function filtreDeRecherche(criteres: RechercheClient): Prisma.ClientWhereInput {
+  const filtreTexte: Prisma.ClientWhereInput =
     criteres.texte === null
       ? {}
       : {
@@ -280,15 +292,153 @@ export async function rechercherClients(
           ],
         };
 
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.client.findMany({
-      where: {
-        ...filtreTexte,
-        ...(criteres.actifs_seulement ? { actif: true } : {}),
-      },
-      orderBy: [{ raison_sociale: "asc" }, { id: "asc" }],
-      take: criteres.limite,
-      select: CHAMPS_FICHE,
-    }),
+  return {
+    ...filtreTexte,
+    ...(criteres.actifs_seulement ? { actif: true } : {}),
+  };
+}
+
+export async function rechercherClients(
+  contexte: ContexteSession,
+  criteres: RechercheClient,
+  client?: PrismaClient,
+): Promise<FicheClient[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.client.findMany({
+        where: filtreDeRecherche(criteres),
+        orderBy: [{ raison_sociale: "asc" }, { id: "asc" }],
+        take: criteres.limite,
+        select: CHAMPS_FICHE,
+      }),
+    client,
   );
+}
+
+/**
+ * COMBIEN DE FICHES UN IMPORT NE SAURA PAS RAPPROCHER (RG-IMP-05, D29).
+ *
+ * **C'est le seul compteur que cet écran porte**, et c'est une décision : les
+ * trois autres qu'une maquette montrerait volontiers — total, actifs,
+ * inactifs — se lisent déjà dans le tableau, et *un compteur qu'on regarde sans
+ * jamais agir dessus apprend à ne plus lire les compteurs* (§9, 11/09).
+ * Celui-ci nomme un geste : ces fiches-là demandent qu'on leur attribue un
+ * code, sans quoi le prochain import les recréera au lieu de les reconnaître.
+ *
+ * **Il compte dans le périmètre de la RECHERCHE, pas dans celui de la PAGE.**
+ * La borne d'affichage tronque le tableau ; elle ne tronque pas ce compteur, et
+ * l'écran le dit — *un chiffre dont on ne sait pas sur quoi il porte est un
+ * chiffre qu'on lit de travers* (§9, 06/09).
+ *
+ * Aucune comparaison de société n'est écrite ici : `client` est de forme
+ * « parc » (D10, D22), et un compte de portail ne compte donc que le sien sans
+ * qu'une ligne de cette fonction le sache.
+ */
+export async function compterSansCodeExterne(
+  contexte: ContexteSession,
+  criteres: RechercheClient,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.client.count({
+        where: { ...filtreDeRecherche(criteres), code_externe: null },
+      }),
+    client,
+  );
+}
+
+/** Les lieux d'intervention d'un client, tels que la liste les résume. */
+export type SitesDUnClient = {
+  readonly nombre: number;
+  /** Les communes DISTINCTES, dans l'ordre alphabétique. */
+  readonly communes: readonly string[];
+};
+
+/**
+ * OÙ L'ON INTERVIENT CHEZ CHACUN DE CES CLIENTS.
+ *
+ * *« Ce n'est pas du décor : c'est la question qu'on se pose en ouvrant la
+ * liste. La jointure est un coût assumé. »* — l'arbitrage du 14/09/2026.
+ *
+ * **Une seule requête pour toute la page**, et non une par ligne : un `findMany`
+ * borné aux clients rendus, puis le regroupement en mémoire. *Trente lignes
+ * feraient trente allers-retours vers Sydney, à cent-quatre-vingt-dix
+ * millisecondes pièce* (§9, 23/08) — le compte se fait ici, où il est gratuit.
+ *
+ * **Un client sans site rend une entrée à zéro, jamais une absence de clé** :
+ * l'écran doit pouvoir écrire « aucun » plutôt que de laisser une case vide,
+ * et les deux ne se lisent pas pareil.
+ */
+export async function sitesParClient(
+  contexte: ContexteSession,
+  clients: readonly { readonly id: string }[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, SitesDUnClient>> {
+  const resume = new Map<string, { nombre: number; communes: Set<string> }>();
+  for (const client of clients) {
+    resume.set(client.id, { nombre: 0, communes: new Set() });
+  }
+  if (clients.length === 0) {
+    return new Map();
+  }
+
+  const sites = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.site.findMany({
+        where: { client_id: { in: clients.map((c) => c.id) } },
+        select: { client_id: true, commune: true },
+      }),
+    client,
+  );
+
+  for (const site of sites) {
+    const entree = resume.get(site.client_id);
+    // Un site rendu pour un client qui n'est pas dans la page ne peut pas
+    // arriver — le `in` le borne — mais on ne le suppose pas.
+    if (entree === undefined) continue;
+    entree.nombre += 1;
+    if (site.commune !== null && site.commune.trim().length > 0) {
+      entree.communes.add(site.commune);
+    }
+  }
+
+  return new Map(
+    [...resume].map(([id, { nombre, communes }]) => [
+      id,
+      { nombre, communes: [...communes].sort((a, b) => a.localeCompare(b)) },
+    ]),
+  );
+}
+
+/**
+ * LE LIBELLÉ QUE LA SOCIÉTÉ DONNE À SON CODE DE RAPPROCHEMENT (D29).
+ *
+ * *« Code Winpro » chez CODIMA, autre chose ailleurs* — c'est une DONNÉE, pas
+ * une constante de compilation, exactement comme le nom et les couleurs d'une
+ * société (L0-09). `lib/clients/code-externe.ts` décide quoi en faire quand
+ * elle est absente ; cette fonction-ci ne fait que la lire.
+ *
+ * **Elle n'avait aucun appelant jusqu'au 14/09/2026.** La colonne existait, la
+ * règle était écrite, et rien dans l'application ne l'ouvrait — *une interface
+ * sans appelant est la maladie que le portail a soignée*, et c'est très
+ * exactement ce que R3-12 mesure.
+ *
+ * `societe` est de forme « adhésion » (D67) : sous une société active, la clause
+ * d'identité ne rend que la ligne de cette société. Aucune comparaison n'est
+ * donc écrite ici.
+ */
+export async function libelleCodeExterneDeLaSociete(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<string | null> {
+  const societe = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.societe.findFirst({ select: { libelle_code_externe: true } }),
+    client,
+  );
+  return societe?.libelle_code_externe ?? null;
 }

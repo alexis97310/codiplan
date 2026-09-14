@@ -30,16 +30,10 @@ export function libelleRattachement(): string {
 }
 
 /**
- * CE QU'ON ÉCRIT LÀ OÙ UNE DONNÉE MANQUE — un tiret, jamais un zéro.
+ * L'ABSENCE — ré-exportée depuis le module commun du back-office, où elle a
+ * déménagé le 14/09/2026 quand l'écran client en a eu besoin.
  *
- * *Un zéro dirait que la valeur vaut zéro ; une case vide dirait qu'on ne l'a
- * pas remplie.* Le tiret dit qu'il n'y a rien à dire, et c'est la troisième
- * chose — celle que D88 distingue sur le registre des VGP.
- *
- * **Il passe par une fonction et non par une constante employée dans le JSX** :
- * le gardien des chaînes visibles lit les enfants d'un élément, et il a raison
- * de ne pas savoir si `{x ?? TIRET}` rend une clé ou du texte.
+ * *Une ré-export plutôt qu'une recopie* : les appelants de cet écran ne changent
+ * pas, et il n'existe toujours qu'une seule écriture de ce qu'est une absence.
  */
-export function ouTiret(valeur: string | number | null): string {
-  return valeur === null ? "—" : String(valeur);
-}
+export { ouTiret } from "../presentation";

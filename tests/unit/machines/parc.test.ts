@@ -22,6 +22,7 @@ function ligne(statut: string, complet: boolean): LigneDeParc {
     complet,
     localisation: null,
     date_mise_en_service: null,
+    client_id: "01a0e2e0-0000-7000-8000-00000000000c",
     modele: { reference: "CP-500", famille: { libelle: "Compresseurs" } },
     client: { raison_sociale: "Client" },
     site: { libelle: "Atelier", commune: null },
