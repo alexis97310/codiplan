@@ -446,7 +446,6 @@ export const fr = {
   "statistiques.titre": "Charge par technicien",
   "statistiques.sous_titre":
     "Sur la période affichée, et par établissement : c'est le calendrier de l'établissement qui donne les heures ouvrables.",
-  "statistiques.technicien": "Technicien",
   "statistiques.non_affectees": "Interventions non affectées",
   // Le SINGULIER est une clé à part : « 1 interventions » est une faute que
   // personne ne relit deux fois, et qu'aucune assertion n'attrape — c'est
@@ -1080,6 +1079,19 @@ export const fr = {
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
+  // ── LES DEUX FAÇONS DE NE PAS SAVOIR QUI TRAVAILLE (14/09/2026) ─────────
+  //
+  // Elles n'en faisaient qu'une, et le repli portait un fragment d'identifiant
+  // — qui ressemblait à une donnée, et qui ne distinguait personne : les huit
+  // premiers caractères d'un UUID v7 sont ceux de l'horodatage (I10).
+  //
+  // Le REFUS est légitime et le restera : un compte qui n'a pas le droit de
+  // connaître une identité voit une colonne sans nom, jamais un nom.
+  "planning.nom_non_communique": "Technicien (nom non communiqué)",
+  // L'OUBLI ne l'est pas. Il n'a aucune raison d'exister, et il se lit comme ce
+  // qu'il est : *une anomalie, jamais une donnée manquante* — la coupure de
+  // D88, appliquée à une identité.
+  "planning.nom_non_demande": "Technicien (anomalie : nom non demandé)",
   "planning.semaine": "Semaine",
   "planning.du": "du",
   "planning.au": "au",

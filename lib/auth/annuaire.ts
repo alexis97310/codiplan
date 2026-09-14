@@ -69,3 +69,65 @@ export async function nomsDesPersonnes(
   });
   return new Map(lignes.map((l) => [l.id, l.nom]));
 }
+
+/**
+ * CE QUE L'ÉCRAN SAIT D'UNE PERSONNE — et pourquoi il ne sait rien, le cas
+ * échéant.
+ *
+ * ## Deux absences que rien ne distinguait (14/09/2026)
+ *
+ * `nomsDesPersonnes` rend une `Map`, et une `Map` n'a qu'une façon de ne pas
+ * répondre. L'écran du planning lisait donc `noms.get(id) ?? repli` — le même
+ * repli pour **deux faits sans rapport** :
+ *
+ * - *« la politique a refusé cette identité »* — légitime, et ce sera toujours
+ *   le cas d'un compte portail ou d'une personne d'une autre société ;
+ * - *« je n'ai jamais demandé ce nom »* — un **défaut de l'écran**, qui n'a
+ *   aucune raison d'exister et que rien ne disait.
+ *
+ * *Mesuré le 14/09/2026 :* la vue jour tire ses colonnes du référentiel des
+ * techniciens (12/09) et ne demandait les noms qu'aux **interventions** — un
+ * technicien sans intervention dans la fenêtre n'était donc jamais soumis à la
+ * résolution. Le défaut frappait très exactement la population pour laquelle la
+ * colonne avait été créée : *l'écran a gagné la colonne du technicien libre et
+ * lui a retiré son nom au même moment.*
+ *
+ * **C'est la vacuité du §9 (30/08) déplacée d'un cran** : la résolution n'était
+ * pas fausse, elle ne portait sur rien — et son absence de réponse avait
+ * exactement la forme d'un refus de cloisonnement, c'est-à-dire d'une réponse.
+ *
+ * La somme ci-dessous rend les deux cas **inconfondables à la compilation** :
+ * un appelant ne peut plus les traiter ensemble sans l'écrire.
+ */
+export type Designation =
+  /** La politique a rendu le nom. */
+  | { readonly etat: "nom"; readonly nom: string }
+  /** Demandée, non rendue : la politique refuse. **Légitime, et ça le reste.** */
+  | { readonly etat: "refusee" }
+  /** Jamais demandée. **Un défaut de l'appelant**, jamais un droit manquant. */
+  | { readonly etat: "non_demandee" };
+
+/** La résolution d'une identité, qui SAIT ce qu'elle a demandé. */
+export type Annuaire = (identifiant: string) => Designation;
+
+/**
+ * L'ANNUAIRE — la lecture, plus la MÉMOIRE de ce qui a été demandé.
+ *
+ * C'est cette mémoire qui fait la différence entre les deux absences, et elle
+ * n'est tenue nulle part ailleurs : l'appelant qui construit la liste ne la
+ * garde pas, et la `Map` du résultat ne porte que les succès.
+ */
+export async function annuaireDesPersonnes(
+  tx: Prisma.TransactionClient,
+  identifiants: readonly string[],
+): Promise<Annuaire> {
+  const demandees = new Set(identifiants);
+  const noms = await nomsDesPersonnes(tx, [...demandees]);
+  return (identifiant) => {
+    const nom = noms.get(identifiant);
+    if (nom !== undefined) return { etat: "nom", nom };
+    return demandees.has(identifiant)
+      ? { etat: "refusee" }
+      : { etat: "non_demandee" };
+  };
+}
