@@ -26,6 +26,7 @@ import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../presentation";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
  * LA FICHE D'INTERVENTION (lot 2, D84) — et les quatre actions.
@@ -502,7 +503,7 @@ function Ligne({
         {lien === undefined ? (
           valeur
         ) : (
-          <Link href={lien} className="hover:underline">
+          <Link href={lien} className={CLASSES_LIEN}>
             {valeur}
           </Link>
         )}

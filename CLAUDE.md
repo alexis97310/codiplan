@@ -461,6 +461,10 @@ lib/
               une désignation refusée LÈVE : un contexte vide rouvrirait la
               branche « utilisateur interne » de la forme « parc »
   auth/       authentification, et la DÉSIGNATION des cinq tables qui la portent
+              annuaire.ts : les noms des personnes d'une société (R2-11), et
+              depuis le 14/09 la SOMME qui dit pourquoi un nom manque — une
+              `Map` n'a qu'une façon de ne pas répondre, et l'écran confondait
+              le refus du cloisonnement avec son propre oubli
               (L1-02d) — `session`, `compte`, `verification`, `second_facteur`,
               `utilisateur` : chacune ne se lit qu'en NOMMANT sa ligne
               la surface HTTP est une liste close de chemins FERMÉS, jamais
@@ -778,6 +782,21 @@ lib/
               un appelant qui l'oublierait ne compile pas (la leçon de D70)
               il entre dans le NUMÉRATEUR et jamais dans le dénominateur :
               rouler ne change pas les heures d'ouverture d'une agence
+              personnes.ts : QUI le planning nomme, et COMMENT il le dit
+              (14/09/2026) — `personnesANommer` fait l'UNION des identités des
+              interventions ET de celles du référentiel : la vue jour tire ses
+              colonnes du second depuis le 12/09, et la résolution des noms ne
+              regardait que le premier
+              *l'écran a gagné la colonne du technicien libre et lui a retiré
+              son nom au même moment* — chaque moitié était juste, leur
+              RENCONTRE était fausse, et aucune des deux ne la connaît
+              le repli ne montre plus de fragment d'IDENTIFIANT : un UUID v7
+              porte l'horodatage sur ses 48 bits de poids fort (I10), si bien
+              que huit caractères sont LES MÊMES pour tout un semis — *un
+              discriminant qui ne discrimine pas fait croire à une identité*
+              « la politique refuse » et « je n'ai pas demandé » ne rendent plus
+              la même chaîne : le premier est légitime et le reste, le second
+              est une anomalie et se lit comme telle (le motif de D88)
   materiel/   familles et modèles de matériel (L1-05) — saisie Zod, et AUCUNE
               énumération : ni familles, ni marques, ni références. D4 est
               amendé — le mécanisme « référentiel de plateforme + copie
@@ -1294,6 +1313,12 @@ lib/
               un écran ne nomme jamais une couleur, il nomme un RÔLE : ajouter
               un thème, c'est un bloc de style et une entrée de liste, et
               aucun écran à rouvrir
+              `CLASSES_LIEN` y vit pour la raison de `LARGEUR_UTILE_PX` :
+              *un habillage écrit dans un écran est un habillage par écran*, et
+              six liens en portaient quatre — visibles au SURVOL seulement,
+              donc jamais sur un téléphone (mesuré le 14/09/2026)
+              la maquette est MUETTE sur les liens — elle ne porte aucun `<a>`,
+              tout y est un `<button>` — et l'écart s'écrit avec ce point précis
               PAS de sélecteur, et PAS d'apparence sombre : le premier serait un
               réglage sans usage tant qu'il n'y a qu'un thème, la seconde serait
               des couleurs que personne n'a validées

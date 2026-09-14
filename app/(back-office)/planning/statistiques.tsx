@@ -1,4 +1,6 @@
+import type { Annuaire } from "@/lib/auth/annuaire";
 import { t } from "@/lib/i18n/fr";
+import { quiTravaille } from "@/lib/interventions/personnes";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { enHeure } from "@/lib/calendar/parametrage";
 import {
@@ -49,16 +51,21 @@ import type { StatutIntervention } from "@prisma/client";
  */
 export function Statistiques({
   lignes,
-  nomDe,
+  annuaire,
 }: {
   lignes: readonly LigneOccupation[];
   /**
-   * Le nom d'une personne, lu sous le contexte cloisonné par l'appelant
-   * (R2-11). Il n'est pas lu ici : un composant qui ouvrirait sa propre lecture
-   * ferait un second endroit où le cloisonnement se décide, et les deux
-   * finiraient par ne plus lire la même chose (§9, 01/09).
+   * Les noms, lus sous le contexte cloisonné par l'appelant (R2-11). Ils ne
+   * sont pas lus ici : un composant qui ouvrirait sa propre lecture ferait un
+   * second endroit où le cloisonnement se décide, et les deux finiraient par ne
+   * plus lire la même chose (§9, 01/09).
+   *
+   * **Il est OBLIGATOIRE depuis le 14/09/2026.** Facultatif, il rendait le
+   * repli — un fragment d'identifiant — au premier appelant qui l'oubliait, et
+   * *une garantie qu'un paramètre facultatif porte n'en est pas une* (la leçon
+   * de D70).
    */
-  nomDe?: (id: string) => string | null;
+  annuaire: Annuaire;
 }) {
   if (lignes.length === 0) {
     return null;
@@ -81,34 +88,13 @@ export function Statistiques({
             key={`${ligne.technicienId ?? "-"}|${ligne.agenceId}`}
             className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3"
           >
-            <Entete ligne={ligne} nomDe={nomDe} />
+            <Entete ligne={ligne} annuaire={annuaire} />
             <Barre occupation={ligne.occupation} />
             <Chiffres occupation={ligne.occupation} />
           </li>
         ))}
       </ul>
     </section>
-  );
-}
-
-/**
- * Les compositions sortent du JSX, comme `lieuDeLaLigne` du planning : un
- * littéral n'y est pas admis (L0-11), et pour la même raison — ce qui se lit à
- * l'écran vient du dictionnaire, pas de la balise.
- */
-function quiTravaille(
-  ligne: LigneOccupation,
-  nomDe?: (id: string) => string | null,
-): string {
-  if (ligne.technicienId === null) {
-    return t("statistiques.non_affectees");
-  }
-  // LE NOM, DEPUIS R2-11 — et l'identifiant abrégé en repli. Une identité que
-  // la politique refuse ne rend pas de nom : l'écran affiche alors ce qu'il
-  // sait, jamais un nom qu'il n'a pas le droit de connaître.
-  return (
-    nomDe?.(ligne.technicienId) ??
-    `${t("statistiques.technicien")} ${ligne.technicienId.slice(0, 8)}`
   );
 }
 
@@ -188,14 +174,16 @@ function combienSansDuree(occupation: OccupationTechnicien): string {
 
 function Entete({
   ligne,
-  nomDe,
+  annuaire,
 }: {
   ligne: LigneOccupation;
-  nomDe?: (id: string) => string | null;
+  annuaire: Annuaire;
 }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-      <span className="font-medium">{quiTravaille(ligne, nomDe)}</span>
+      <span className="font-medium">
+        {quiTravaille(ligne.technicienId, annuaire)}
+      </span>
       <span className="text-muted-foreground text-xs">
         {ouTravaille(ligne)}
       </span>

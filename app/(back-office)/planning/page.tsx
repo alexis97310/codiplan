@@ -2,11 +2,14 @@ import Link from "next/link";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { type LigneOccupation } from "@/lib/interventions/occupation";
 import { tauxCompact } from "@/lib/interventions/statistiques";
-import { LARGEUR_COLONNE_TECHNICIEN_PX } from "@/lib/theme/apparence";
+import {
+  CLASSES_LIEN,
+  LARGEUR_COLONNE_TECHNICIEN_PX,
+} from "@/lib/theme/apparence";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { nomsDesPersonnes } from "@/lib/auth/annuaire";
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -46,6 +49,11 @@ import {
   type TechnicienDeJournee,
 } from "@/lib/interventions/journee";
 import { occupationsDuPlanning } from "@/lib/interventions/occupation";
+import {
+  nomSeul,
+  personnesANommer,
+  quiTravaille,
+} from "@/lib/interventions/personnes";
 import {
   CLASSES_BLOC,
   CLASSES_STATUT,
@@ -196,15 +204,16 @@ export default async function PagePlanning({
   };
 
   const lignes = await listerPlanning(contexte, fenetre.du, fenetre.au);
-  const noms = await avecContexteApplicatif(contexte, (tx) =>
-    nomsDesPersonnes(
-      tx,
-      lignes
-        .map((l) => l.technicien_id)
-        .filter((id): id is string => id !== null),
-    ),
+  // ── LA POPULATION À NOMMER EST CELLE DES COLONNES, PAS CELLE DES LIGNES ──
+  //
+  // Elle ne venait que des interventions, et la vue jour tire ses colonnes du
+  // RÉFÉRENTIEL depuis le 12/09 : *un technicien sans intervention dans la
+  // fenêtre n'était jamais soumis à la résolution*, et sa colonne — celle-là
+  // même que le 12/09 lui avait rendue — portait un fragment d'identifiant.
+  // `personnesANommer` fait l'UNION, une fois, pour les deux vues.
+  const annuaire = await avecContexteApplicatif(contexte, (tx) =>
+    annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
   );
-  const nomDe = (id: string) => noms.get(id) ?? null;
 
   // ── LE PANNEAU DE CHARGE ET LA VUE LISENT LE MÊME JEU ───────────────────
   //
@@ -286,6 +295,19 @@ export default async function PagePlanning({
           <p className="text-app-encre-faible text-[13px]">
             {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
           </p>
+          {/*
+            LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
+            DISENT (14/09/2026). La vue jour tire ses colonnes du référentiel,
+            la vue semaine des interventions — deux choix délibérés, chacun avec
+            sa raison. Ce qui ne se tenait pas est que *deux écrans de la même
+            entrée de menu rendent deux populations sans un mot* : l'écart ne se
+            découvrait qu'en le soupçonnant.
+          */}
+          <p className="text-app-encre-faible text-[11.5px]">
+            {vue === "jour"
+              ? t("planning.population_jour")
+              : t("planning.population_semaine")}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
@@ -307,14 +329,16 @@ export default async function PagePlanning({
                 minutesDe,
                 pourTechniciens,
               )}
-              nomDe={nomDe}
+              annuaire={annuaire}
               jourAffiche={jourAffiche}
             />
           ) : (
             <VueSemaine
               jours={jours}
-              grille={construireGrille(affichees, jours, pourGrille, nomDe)}
-              nomDe={nomDe}
+              grille={construireGrille(affichees, jours, pourGrille, (id) =>
+                nomSeul(id, annuaire),
+              )}
+              annuaire={annuaire}
               chargeDe={chargeParTechnicien}
               fuseauPour={(agenceId) =>
                 schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
@@ -365,7 +389,7 @@ export default async function PagePlanning({
               </div>
             </section>
 
-            <Statistiques lignes={charges} nomDe={nomDe} />
+            <Statistiques lignes={charges} annuaire={annuaire} />
           </aside>
         </div>
       </Posable>
@@ -380,13 +404,13 @@ type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
 function VueSemaine({
   jours,
   grille,
-  nomDe,
+  annuaire,
   chargeDe,
   fuseauPour,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
-  readonly nomDe: (id: string) => string | null;
+  readonly annuaire: Annuaire;
   /**
    * LA CHARGE DE CHAQUE PERSONNE, par identifiant (D111).
    *
@@ -448,7 +472,7 @@ function VueSemaine({
             {grille.map((ligne) => (
               <tr key={ligne.technicienId ?? "-"}>
                 <td className="bg-app-surface-creuse border-app-bord border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
-                  {quiTravaille(ligne.technicienId, nomDe)}
+                  {quiTravaille(ligne.technicienId, annuaire)}
                   <span className="text-app-encre-faible block text-[10.5px] font-normal">
                     {ouTravaille(ligne.agences.map((a) => a.libelle))}
                   </span>
@@ -522,11 +546,11 @@ function VueSemaine({
 
 function VueJour({
   journee,
-  nomDe,
+  annuaire,
   jourAffiche,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
-  readonly nomDe: (id: string) => string | null;
+  readonly annuaire: Annuaire;
   readonly jourAffiche: JourLocal;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
@@ -539,7 +563,7 @@ function VueJour({
         <p className="text-app-encre-faible px-4 py-6 text-[13px]">
           {t("planning.jour_vide")}
         </p>
-        <HorsGrille journee={journee} nomDe={nomDe} />
+        <HorsGrille journee={journee} annuaire={annuaire} />
       </section>
     );
   }
@@ -566,7 +590,7 @@ function VueJour({
                   key={colonne.technicienId ?? "-"}
                   className="bg-app-surface-creuse border-app-bord border-b px-2.5 py-2.5 text-left text-[12px] font-bold"
                 >
-                  {quiTravaille(colonne.technicienId, nomDe)}
+                  {quiTravaille(colonne.technicienId, annuaire)}
                   <span className="text-app-encre-faible block text-[10.5px] font-normal">
                     {ouTravaille(colonne.agences.map((a) => a.libelle))}
                   </span>
@@ -685,7 +709,7 @@ function VueJour({
           {t("planning.jour_hors_ouverture")}
         </li>
       </ul>
-      <HorsGrille journee={journee} nomDe={nomDe} />
+      <HorsGrille journee={journee} annuaire={annuaire} />
     </section>
   );
 }
@@ -902,10 +926,10 @@ function enTeteDeJour(jour: JourLocal): string {
  */
 function HorsGrille({
   journee,
-  nomDe,
+  annuaire,
 }: {
   readonly journee: Journee<Ligne>;
-  readonly nomDe: (id: string) => string | null;
+  readonly annuaire: Annuaire;
 }) {
   if (journee.horsGrille === 0) return null;
   return (
@@ -925,12 +949,12 @@ function HorsGrille({
             <li key={ligne.id} className="text-[12px]">
               <Link
                 href={`/planning/${ligne.id}`}
-                className="font-bold underline-offset-2 hover:underline"
+                className={`font-bold ${CLASSES_LIEN}`}
               >
                 {referenceAffichee(ligne)}
               </Link>
               <span className="text-app-encre-faible">
-                {ligneHorsGrille(colonne.technicienId, motif, nomDe)}
+                {ligneHorsGrille(colonne.technicienId, motif, annuaire)}
               </span>
             </li>
           )),
@@ -947,9 +971,9 @@ function HorsGrille({
 function ligneHorsGrille(
   technicienId: string | null,
   motif: MotifHorsGrille,
-  nomDe: (id: string) => string | null,
+  annuaire: Annuaire,
 ): string {
-  return ` — ${quiTravaille(technicienId, nomDe)} — ${motifHorsGrille(motif)}`;
+  return ` — ${quiTravaille(technicienId, annuaire)} — ${motifHorsGrille(motif)}`;
 }
 
 /** Le libellé d'un motif — au dictionnaire, jamais dans la balise (L0-11). */
@@ -1028,28 +1052,6 @@ function TauxDUneAgence({
 
 function lieuDeLaLigne(ligne: Ligne): string {
   return `${ligne.client.raison_sociale} · ${mot("site")} ${ligne.site.libelle}`;
-}
-
-/**
- * QUI TRAVAILLE — le nom, désormais, et non plus un identifiant abrégé.
- *
- * Il est lu sous le contexte cloisonné par `nomsDesPersonnes`, sans qu'aucune
- * politique ait été élargie : la branche « rattachement » de
- * `utilisateur_lecture` l'autorise depuis L1-02c. Une identité que la politique
- * refuse retombe sur son identifiant abrégé — *l'écran affiche alors ce qu'il
- * sait, jamais un nom qu'il n'a pas le droit de connaître.*
- */
-function quiTravaille(
-  technicienId: string | null,
-  nomDe: (id: string) => string | null,
-): string {
-  if (technicienId === null) {
-    return t("statistiques.non_affectees");
-  }
-  return (
-    nomDe(technicienId) ??
-    `${t("statistiques.technicien")} ${technicienId.slice(0, 8)}`
-  );
 }
 
 /**

@@ -446,7 +446,6 @@ export const fr = {
   "statistiques.titre": "Charge par technicien",
   "statistiques.sous_titre":
     "Sur la période affichée, et par établissement : c'est le calendrier de l'établissement qui donne les heures ouvrables.",
-  "statistiques.technicien": "Technicien",
   "statistiques.non_affectees": "Interventions non affectées",
   // Le SINGULIER est une clé à part : « 1 interventions » est une faute que
   // personne ne relit deux fois, et qu'aucune assertion n'attrape — c'est
@@ -840,8 +839,20 @@ export const fr = {
   //
   // « Agence » et « site » ne s'écrivent pas ici : le code nomme la notion.
   "parametres.titre": "Réglage des horaires d'ouverture",
+  // ── CE SOUS-TITRE PROMETTAIT TROIS RÉGLAGES ET N'EN PORTE QU'UN (14/09/2026)
+  //
+  // Il annonçait « les jours travaillés, les horaires et le pas des créneaux ».
+  // *Mesuré à l'écran : le seul formulaire de la ligne est « Enregistrer le
+  // pas ».* Les jours et les plages s'AFFICHENT et ne se règlent nulle part —
+  // ni ici, ni ailleurs dans l'application.
+  //
+  // Un écran qui promet plus qu'il ne rend fait chercher un formulaire qui
+  // n'existe pas, puis douter de ce qu'on a sous les yeux. *« On ne sait pas
+  // encore le faire » et « je ne trouve pas le bouton » ne se corrigent pas au
+  // même endroit* — le motif de D88, appliqué à une promesse plutôt qu'à une
+  // mesure. Le réglage manquant est un ticket (R3-13), pas une phrase.
   "parametres.sous_titre":
-    "Les jours travaillés, les horaires et le pas des créneaux. Chaque établissement a les siens : rien n'est écrit dans l'application.",
+    "Ce que chaque établissement ouvre aujourd'hui, et le seul réglage que cet écran porte : le pas des créneaux. Les jours travaillés et les horaires se lisent ici ; ils se règlent encore en base.",
   "parametres.calendrier": "Calendrier",
   "parametres.jours": "Jours travaillés",
   "parametres.horaires": "Horaires",
@@ -1080,6 +1091,19 @@ export const fr = {
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
+  // ── LES DEUX FAÇONS DE NE PAS SAVOIR QUI TRAVAILLE (14/09/2026) ─────────
+  //
+  // Elles n'en faisaient qu'une, et le repli portait un fragment d'identifiant
+  // — qui ressemblait à une donnée, et qui ne distinguait personne : les huit
+  // premiers caractères d'un UUID v7 sont ceux de l'horodatage (I10).
+  //
+  // Le REFUS est légitime et le restera : un compte qui n'a pas le droit de
+  // connaître une identité voit une colonne sans nom, jamais un nom.
+  "planning.nom_non_communique": "Technicien (nom non communiqué)",
+  // L'OUBLI ne l'est pas. Il n'a aucune raison d'exister, et il se lit comme ce
+  // qu'il est : *une anomalie, jamais une donnée manquante* — la coupure de
+  // D88, appliquée à une identité.
+  "planning.nom_non_demande": "Technicien (anomalie : nom non demandé)",
   "planning.semaine": "Semaine",
   "planning.du": "du",
   "planning.au": "au",
@@ -1093,6 +1117,22 @@ export const fr = {
   // ── LES DEUX VUES DU PLANNING (11/09/2026) ───────────────────────────────
   "planning.vue_semaine": "Semaine",
   "planning.vue_jour": "Jour",
+  // ── LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE DISENT ──
+  //
+  // C'est DÉLIBÉRÉ, et c'était TU. La vue jour tire ses colonnes du référentiel
+  // des techniciens actifs — *un technicien dont la journée est entièrement
+  // libre n'avait aucune colonne, sur un écran dont l'objet déclaré est de
+  // MONTRER LES TROUS* (12/09) ; la vue semaine groupe ce que les
+  // interventions portent, et une ligne vide sur six jours n'y apprend rien.
+  //
+  // Les deux choix se tiennent. Ce qui ne se tenait pas est que **deux écrans
+  // de la même entrée de menu rendent deux populations sans un mot**, et que
+  // l'écart ne se découvre qu'en le soupçonnant. *Un écart écrit est un écart ;
+  // un écart tu est une panne qu'on cherche ailleurs.*
+  "planning.population_jour":
+    "Tous les techniciens actifs ont une colonne, même sans intervention : cette vue montre les trous.",
+  "planning.population_semaine":
+    "Seuls les techniciens qui portent une intervention ont une ligne : une semaine entièrement vide n'en apprend aucune.",
   "planning.jour_avant": "← Jour précédent",
   "planning.jour_apres": "Jour suivant →",
   "planning.colonne_heure": "Heure",

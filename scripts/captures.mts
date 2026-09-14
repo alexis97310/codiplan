@@ -227,6 +227,25 @@ const ECRANS: readonly Ecran[] = [
     temoin: "Planning",
   },
   {
+    // ── LA VUE JOUR N'AVAIT JAMAIS ÉTÉ PHOTOGRAPHIÉE (14/09/2026) ───────────
+    //
+    // `/planning` rend la vue SEMAINE ; la vue JOUR est un autre écran sous le
+    // même chemin, et **elle ne montre pas la même population** — ses colonnes
+    // viennent du référentiel des techniciens actifs, celles de la semaine des
+    // interventions.
+    //
+    // *C'est là que le défaut du 14/09 vivait* : deux colonnes intitulées
+    // « Technicien 01a09565 », faute d'avoir demandé les noms des personnes qui
+    // n'avaient aucune intervention ce jour-là. **Aucune image n'aurait pu le
+    // montrer** — il n'y en avait pas. Un écran livré et jamais photographié
+    // est un écran que personne ne relit.
+    nom: "planning-jour",
+    chemin: "/planning?vue=jour",
+    quoi: "La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous.",
+    authentifie: true,
+    temoin: "Planning",
+  },
+  {
     nom: "intervention-creation",
     chemin: "/planning/nouvelle",
     quoi: "La création d'une intervention depuis le planning.",
