@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
+import { crc32, METHODE_DEFLATE } from "./lib/archive-zip";
 import {
   CHEMIN_EPREUVE,
   ENTETES_EPREUVE,
@@ -140,17 +141,15 @@ const DOCUMENTS: ReadonlyArray<readonly [string, string]> = [
   ["xl/worksheets/sheet1.xml", FEUILLE],
 ];
 
-/** CRC-32, que l'entête ZIP exige pour chaque document. */
-function crc32(octets: Buffer): number {
-  let reste = 0xffffffff;
-  for (const octet of octets) {
-    reste ^= octet;
-    for (let bit = 0; bit < 8; bit += 1) {
-      reste = reste & 1 ? (reste >>> 1) ^ 0xedb88320 : reste >>> 1;
-    }
-  }
-  return (reste ^ 0xffffffff) >>> 0;
-}
+/**
+ * LA MÉTHODE ET LE CRC VIENNENT DU LECTEUR, ils ne sont pas écrits ici.
+ *
+ * **Le partage est une garantie et non une facilité.** Si `crc32` était faux,
+ * le lecteur strict refuserait le fichier AUTHENTIQUE d'Excel, et son témoin le
+ * dirait. *Deux implémentations se seraient annulées* — celle qui écrit et
+ * celle qui vérifie auraient été fausses ensemble sans jamais se contredire
+ * (§9, 10/09 : deux erreurs identiques ne se contredisent jamais).
+ */
 
 /**
  * L'archive.
@@ -171,27 +170,59 @@ function archiver(): Buffer {
     const somme = crc32(brut);
     const nomOctets = Buffer.from(nom, "utf8");
 
+    // ── L'EN-TÊTE LOCAL — 30 octets, et la méthode y est à l'offset 8 ──────
+    //
+    // Chaque champ porte son offset en commentaire. *C'est la seule façon de
+    // relire une disposition binaire* : un `writeUInt16LE(8, 8)` ne dit ni ce
+    // qu'il écrit ni où, et les deux se lisent de la même façon.
     const entete = Buffer.alloc(30);
-    entete.writeUInt32LE(0x04034b50, 0);
-    entete.writeUInt16LE(20, 4);
-    entete.writeUInt16LE(0, 6);
-    entete.writeUInt16LE(8, 8);
-    entete.writeUInt32LE(somme, 14);
-    entete.writeUInt32LE(comprime.length, 18);
-    entete.writeUInt32LE(brut.length, 22);
-    entete.writeUInt16LE(nomOctets.length, 26);
+    entete.writeUInt32LE(0x04034b50, 0); //  0 signature
+    entete.writeUInt16LE(20, 4); //  4 version minimale
+    entete.writeUInt16LE(0, 6); //  6 drapeaux
+    entete.writeUInt16LE(METHODE_DEFLATE, 8); //  8 méthode
+    // 10 heure, 12 date — laissées à ZÉRO, voir `archiver`
+    entete.writeUInt32LE(somme, 14); // 14 CRC-32
+    entete.writeUInt32LE(comprime.length, 18); // 18 taille compressée
+    entete.writeUInt32LE(brut.length, 22); // 22 taille d'origine
+    entete.writeUInt16LE(nomOctets.length, 26); // 26 longueur du nom
+    // 28 longueur du champ « extra » — zéro, il n'y en a pas
     locaux.push(entete, nomOctets, comprime);
 
+    // ── L'EN-TÊTE CENTRAL — 46 octets, ET SA DISPOSITION DIFFÈRE ──────────
+    //
+    // **CE N'EST PAS L'EN-TÊTE LOCAL AVEC QUATRE CHAMPS EN PLUS.** Il porte
+    // une `version made by` de 2 octets à l'offset 4 qui n'existe pas là-bas,
+    // et **tout ce qui suit est donc décalé de deux octets** : les drapeaux
+    // sont à 8, la méthode à 10.
+    //
+    // *La première rédaction a recopié la ligne de l'en-tête local* — méthode
+    // à l'offset 8 — et a donc écrit **drapeaux = 8, méthode = 0 (STORED)**
+    // pendant que les octets, eux, étaient bel et bien dégonflés. Mesuré sur
+    // le fichier produit, et relevé par l'exploitation le 14/09/2026 : les
+    // cinq entrées annonçaient STORED au répertoire central et DEFLATE en
+    // local. **Un lecteur qui se fie au répertoire central — c'est le chemin
+    // normal, toute lecture d'archive commence par lui — lit des octets
+    // compressés comme du texte brut**, et le `zipfile` de Python refuse les
+    // cinq sur un CRC qui ne peut pas correspondre.
+    //
+    // *Deux dispositions qui se ressemblent sont plus dangereuses que deux qui
+    // ne se ressemblent pas* : la recopie compile, s'exécute, et produit un
+    // fichier qu'un lecteur tolérant ouvre sans rien dire.
     const central = Buffer.alloc(46);
-    central.writeUInt32LE(0x02014b50, 0);
-    central.writeUInt16LE(20, 4);
-    central.writeUInt16LE(20, 6);
-    central.writeUInt16LE(8, 8);
-    central.writeUInt32LE(somme, 16);
-    central.writeUInt32LE(comprime.length, 20);
-    central.writeUInt32LE(brut.length, 24);
-    central.writeUInt16LE(nomOctets.length, 28);
-    central.writeUInt32LE(decalage, 42);
+    central.writeUInt32LE(0x02014b50, 0); //  0 signature
+    central.writeUInt16LE(20, 4); //  4 version d'écriture — ABSENT en local
+    central.writeUInt16LE(20, 6); //  6 version minimale
+    central.writeUInt16LE(0, 8); //  8 drapeaux ← PAS la méthode
+    central.writeUInt16LE(METHODE_DEFLATE, 10); // 10 méthode ← DEUX octets plus loin
+    // 12 heure, 14 date — à ZÉRO comme en local
+    central.writeUInt32LE(somme, 16); // 16 CRC-32
+    central.writeUInt32LE(comprime.length, 20); // 20 taille compressée
+    central.writeUInt32LE(brut.length, 24); // 24 taille d'origine
+    central.writeUInt16LE(nomOctets.length, 28); // 28 longueur du nom
+    // 30 extra, 32 commentaire, 34 disque, 36 attributs internes,
+    // 38 attributs externes — tous à ZÉRO, et c'est ce qu'un fichier sans
+    // droits ni commentaire doit porter
+    central.writeUInt32LE(decalage, 42); // 42 position de l'en-tête local
     entrees.push(central, nomOctets);
 
     decalage += entete.length + nomOctets.length + comprime.length;
