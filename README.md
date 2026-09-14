@@ -757,6 +757,10 @@ La clause de société **seule** est exclue par mesure : un compte portail y lir
 
 Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle de vie qui **explique** les refus, et le dépôt qui les applique sous le contexte cloisonné. **L'agence, le forfait de déplacement, le numéro et le statut ne se saisissent pas** — les deux premiers se déduisent du lieu d'intervention, le troisième appartient à la synchronisation (I10), le quatrième au créneau.
 
+**Les deux vues du planning ne montrent pas la même population, et elles le DISENT depuis le 14/09/2026.** La vue **jour** donne une colonne à **tous les techniciens actifs**, occupés ou non — c'est l'écran qui montre les trous ; la vue **semaine** ne donne une ligne qu'à ceux qui portent une intervention. Les deux choix se tiennent ; ce qui ne se tenait pas est que _deux écrans de la même entrée de menu rendent deux populations sans un mot_, et que l'écart ne se découvre qu'en le soupçonnant.
+
+**Et la vue jour perdait le nom de la personne qu'elle venait de rendre visible.** Les noms n'étaient demandés qu'aux **interventions** ; un technicien sans intervention dans la fenêtre n'était donc jamais soumis à la résolution, et sa colonne portait un fragment d'identifiant — le même pour tout le monde, les huit premiers caractères d'un UUID v7 étant son horodatage (I10). `lib/interventions/personnes.ts` fait l'**union** des deux sources, et `lib/auth/annuaire.ts` distingue désormais « la politique refuse » — légitime — de « je n'ai pas demandé » — une anomalie, qui se lit comme telle.
+
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
 ## Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
