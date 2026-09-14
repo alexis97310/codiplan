@@ -49,7 +49,27 @@ Un ticket sans marqueur, ou un `BLOQUÉ` sans motif, fait échouer `pnpm verify`
 
 *`absences` est le cas qui montre la différence entre « importé » et « atteint » : il l'est bien, mais seulement en LECTURE, pour le dénominateur du taux d'occupation (L3-17). **Personne ne peut déclarer une absence.***
 
-**CE QUI N'EST PAS FAIT ICI, ET POURQUOI.** Les marques ne sont pas reposées ticket par ticket : *ce serait corriger neuf symptômes et laisser la cause*, et chacune demande de décider si le ticket promettait un geste ou une règle — un jugement, pas une mesure. **Et surtout, une règle écrite dans un document que personne ne relit au bon moment n'est pas un gardien : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie** (§9 du CLAUDE.md, 12/09). C'est **R1-02** qui porte les deux moitiés : le gardien qui rend le critère mesurable, et la repose des marques qu'il fera rougir.
+**CE QUI N'ÉTAIT PAS FAIT ICI, ET POURQUOI.** Les marques n'ont pas été reposées ticket par ticket au moment de la mesure : *ce serait corriger neuf symptômes et laisser la cause*, et chacune demande de décider si le ticket promettait un geste ou une règle — un jugement, pas une mesure. **Et surtout, une règle écrite dans un document que personne ne relit au bon moment n'est pas un gardien : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie** (§9 du CLAUDE.md, 12/09). C'est **R3-12** qui porte les deux moitiés : le gardien qui rend le critère mesurable, et la repose des marques qu'il fait rougir.
+
+> **Ce paragraphe citait `R1-02`, et c'était FAUX** *(corrigé le 14/09/2026 en écrivant R3-12)*. `R1-02` porte le README des captures, et il est livré depuis le 12/09 — *une règle qui renvoie au mauvais ticket envoie chercher là où il n'y a rien*, exactement comme l'entrée de barre qui nommait `L1-09` au lieu de `L1-11`. Le numéro juste est **R3-12**.
+
+**ET LA MESURE DE NEUF MODULES A VIEILLI EN QUATRE JOURS — c'est le meilleur argument pour le gardien** *(mesuré le 14/09/2026 par `pnpm chemins`)*. Il n'en reste **quatre** : `compteurs`, `courriel`, `demandes`, `reporting`. Les cinq autres ont reçu un chemin sans que personne revienne corriger le tableau — `excel` et `imports` avec l'écran d'import (L1-11), `contacts` et `clients` avec les écrans clients (L1-01 rouvert), `prestations` avec le catalogue (R3-15), `materiel` par la fiche d'une machine. **Une liste écrite à la main vieillit ; une commande ne vieillit pas.** Le tableau ci-dessus est conservé tel qu'il a été mesuré le 14/09 au matin — *ce qui a été mesuré un jour se relit* —, et ce qui fait foi désormais est la commande.
+
+**LE JUGEMENT, TICKET PAR TICKET, rendu en écrivant R3-12** — car la mesure ne le rend pas :
+
+| Ticket | Ce qu'il promettait | Marque |
+|---|---|---|
+| **L1-01** | un geste — créer, chercher, consulter un client | `LIVRÉ` : rouvert et livré le 14/09, les trois écrans existent |
+| **L1-03** | la DONNÉE d'un contact et son cloisonnement — *« aucun envoi n'est écrit ici, L1-03 pose la donnée »* | `LIVRÉ` : aucun écran n'était promis. **Mais personne ne peut saisir un contact**, et c'est un ticket à écrire, pas une marque à retirer |
+| **L1-05** | des tables métier et leur saisie Zod, après le retrait du mécanisme de D4 | `LIVRÉ` : même raison. **Et personne ne peut créer une famille ni un modèle** — l'import sait contrôler et ne sait pas appliquer |
+| **L1-08a/b/d** | une GRAMMAIRE, un rapport, une retenue de décisions — aucun écran | `LIVRÉ` : ce sont des règles, et l'écran est venu séparément avec L1-11 |
+| **L1-12** | la table et la saisie du catalogue | `LIVRÉ` : et R3-15 lui a donné son écran |
+| **L2-03** | la RÈGLE de non-régression, *« en pur, sans base »* — le ticket écrit lui-même que la table et son écriture sont un AUTRE ticket | `LIVRÉ` |
+| **L2-06** | la table `demande`, ses énumérations, son cycle de vie tenu deux fois, le standard des 30 minutes | `LIVRÉ` : structure et règle. **Les deux écrans manquants — dépôt au portail, file de qualification — sont des tickets à écrire** |
+| **L3-04 / L3-04a** | la règle et la déplanification | `LIVRÉ` : et R3-14 a livré l'écran qui manquait |
+| **L8-07** | **un GESTE**, en toutes lettres : afficher la première page, téléverser de façon reprenable, un compteur visible, des tranches de dix minutes | **REPOSÉ en `BLOQUÉ`** — voir le ticket |
+
+*Un seul ticket bascule sur neuf, et c'est un résultat plutôt qu'une déception : le critère amendé sépare bien ce qu'il annonçait séparer.*
 
 **Un écart relevé en les posant, inscrit plutôt que corrigé en silence :** **L2-07 se disait `BLOQUÉ` sur un arbitrage de cloisonnement, et il est livré.** `lib/interventions/cycle-de-vie.ts`, la table `intervention` et sa contrainte `intervention_cycle_de_vie` existent ; l'arbitrage a été rendu par D84, qui donne à la table la forme « parc ». La prose de blocage datait du 11/09 et personne n'était revenu la retirer — *exactement ce qu'un marqueur lisible à la machine existe pour empêcher.* Le paragraphe reste écrit sous le marqueur : ce qui a été décidé un jour se relit.
 
@@ -916,7 +936,9 @@ Société, site, habilitation : un document suit sa machine, **et rien n'est inv
 *Acceptation :* les deux colonnes existent et sont nullables ; aucun code ne les lit encore, et c'est écrit plutôt que tu.
 
 **L8-07** LE BAC DE RÉCEPTION — l'entrée principale du lot, et la partie qui décide de sa réussite.
-*File :* LIVRÉ
+*File :* BLOQUÉ — le stockage d'objets n'existe pas, et ce ticket est le seul des neuf que le jugement de R3-12 fait BASCULER. Reposé le 14/09/2026.
+**POURQUOI CELUI-LÀ ET PAS LES AUTRES.** Le critère amendé du 14/09 demande : *ce ticket promettait-il un GESTE ou une RÈGLE ?* Les cinq points ci-dessous promettent un geste, et ils le promettent en toutes lettres — *« afficher LA PREMIÈRE PAGE à côté du choix »*, *« téléversement REPRENABLE »*, *« compteur visible »*, *« tranches de dix minutes, reprise là où l'on s'est arrêté »*. **Ce sont des écrans, et il n'y en a aucun** : `lib/documents/depot.ts` exporte cinq fonctions, et `pnpm chemins` mesure que pas une n'est appelée depuis `app/`.
+*Ce qui a été livré reste livré* — la table, la déduplication par empreinte, les propositions qui ne classent jamais seules. **Ce qui manque est l'écran, et derrière lui le stockage d'objets**, que la note de mise en ligne annonce déjà comme absent. Les deux ne se séparent pas : *un bac de réception sans stockage est un bac où l'on ne dépose rien.*
 Les documents existants sont **numériques mais rangés en vrac**, sans structure exploitable. Le bac les reçoit et **propose** ; il ne classe jamais seul.
 - **Dédupliquer par empreinte AVANT de rapprocher** : deux fois le même PDF est un seul document, et le découvrir après le rapprochement fait deux fois le travail.
 - **Afficher LA PREMIÈRE PAGE à côté du choix.** La couverture porte la marque et le modèle ; **l'œil fait le travail, pas la reconnaissance de caractères.** Aucune dépendance d'OCR en V1.
@@ -1540,7 +1562,7 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 ---
 
 **R3-12 — LA MARQUE `LIVRÉ` SE POSE SUR UNE COUCHE, ET PAS SUR UN CHEMIN. [14/09/2026]**
-*File :* LIBRE
+*File :* LIVRÉ
 **Déclencheur : immédiat — la mesure est faite, c'est le gardien qui manque.** L'en-tête de ce document dit d'où viennent les marques du 10/09 : *« la prose du ticket quand elle porte LIVRÉ, **l'existence du module dans `lib/`**, et l'existence de la table dans la base hébergée »*. **Les trois prouvent qu'une COUCHE a été écrite ; aucune ne prouve qu'un humain l'atteigne.**
 **Ce qui l'a révélé** : L1-01 « Clients — CRUD, recherche » était `LIVRÉ` et relu contre ses sources le 11/09, avec **zéro route, zéro écran**, et un seul appelant — `rechercherClients`, un sélecteur à l'intérieur de l'écran de création d'un site. *La relecture s'est tenue et elle a regardé la bonne chose au mauvais endroit.*
 **Le cas se répète : neuf tickets, pas un.** La mesure est inscrite en tête de ce document, avec ses commandes — neuf modules jamais atteints depuis `app/` même de proche en proche, et des fonctions d'écriture sans appelant dans des modules pourtant atteints (`absences` en est le cas net : lu pour le dénominateur du taux d'occupation, **et personne ne peut déclarer une absence**).
