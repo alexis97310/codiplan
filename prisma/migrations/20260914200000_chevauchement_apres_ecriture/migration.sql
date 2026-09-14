@@ -1,0 +1,88 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- LE DÉCLENCHEUR DE CHEVAUCHEMENT SE LÈVE APRÈS L'ÉCRITURE, ET NON AVANT
+--
+-- R3-13 a posé `plage_sans_chevauchement` en `BEFORE INSERT OR UPDATE`. La
+-- fusion de #183 a déclenché « DB migrate & seed » #57 : **la migration s'est
+-- appliquée, et le SEMIS a échoué** à `prisma/seed.ts:424`, en `23514`, sur
+-- `tx.calendrierPlage.upsert`. Ce n'était pas une donnée sale — c'est le verrou
+-- qui refusait **à une plage de se remplacer elle-même**, et il l'aurait fait à
+-- chaque semis, sur toute base portant déjà des plages.
+--
+-- **LA CAUSE, ET ELLE A ÉTÉ MESURÉE PLUTÔT QUE DÉDUITE.** Un `upsert` Prisma
+-- dont le bloc `create` appelle `uuidv7()` compile en UN SEUL
+-- `INSERT … ON CONFLICT DO UPDATE`, et **la ligne candidate porte un identifiant
+-- NEUF**. PostgreSQL lève les déclencheurs `BEFORE INSERT` sur cette candidate
+-- AVANT de détecter le conflit. Le déclencheur voyait donc la ligne existante —
+-- même calendrier, même jour, mêmes bornes, `id` différent — et concluait au
+-- recouvrement : *la plage se chevauchait elle-même parce qu'elle ne s'était pas
+-- encore reconnue.*
+--
+-- Les événements réellement levés, tracés sur PostgreSQL 16.13 par un
+-- déclencheur témoin qui n'imprime que `TG_WHEN`, `TG_OP` et `NEW.id` :
+--
+--     upsert SANS conflit        BEFORE INSERT (id-neuf) ; AFTER INSERT (id-neuf)
+--     upsert AVEC conflit        BEFORE INSERT (ID-NEUF) ; BEFORE UPDATE (p1)
+--                                                        ; AFTER  UPDATE (p1)
+--
+-- **Une seule ligne de cette trace porte l'identifiant fantôme, et c'est
+-- `BEFORE INSERT`** — le seul événement qu'`AFTER` ne lève pas sur la branche du
+-- conflit. En `AFTER`, la branche du conflit ne lève que les événements de la
+-- MISE À JOUR, dont le `NEW.id` est celui de la ligne RÉELLE (`p1` ci-dessus,
+-- vérifié en base après coup) : l'exclusion `"autre"."id" <> NEW."id"` retrouve
+-- alors le sens qu'elle a toujours eu.
+--
+-- ── CE QUI A ÉTÉ ÉCARTÉ, ET POURQUOI ───────────────────────────────────────
+--
+-- L'autre correctif tenait en une ligne : garder `BEFORE` et ajouter
+-- `AND "autre"."debut_minutes" <> NEW."debut_minutes"` à la clause `EXISTS`.
+-- Il passe les sept épreuves ci-dessous, **exactement comme `AFTER`** — et il a
+-- été écarté quand même.
+--
+-- Son argument est que `@@unique([calendrier_id, jour_semaine, debut_minutes])`
+-- interdit déjà deux plages de même début le même jour, si bien que l'exclusion
+-- ne retirerait de la population que la ligne elle-même. **C'est vrai
+-- aujourd'hui, et ce n'est pas le déclencheur qui le rend vrai.** Le verrou
+-- écarterait de ce qu'il examine précisément la classe de lignes qu'un AUTRE
+-- objet rend impossible : *un `WHERE` qui recoupe l'assertion* (CLAUDE.md §9,
+-- 31/08) — et la question que ce §9 prescrit de poser à chaque filtre est
+-- *« l'objet qui viole ma règle est-il encore dans ma population ? »*
+--
+-- La réponse a été MESURÉE plutôt qu'argumentée. L'index unique retiré — un
+-- `ALTER TABLE … DROP CONSTRAINT` dans une transaction annulée —, puis une plage
+-- posée qui RECOUVRE une autre et PARTAGE son `debut_minutes` :
+--
+--     AFTER                      → REFUSE  (le verrou mord)
+--     BEFORE + exclusion         → ACCEPTE — AVEUGLE
+--
+-- Le jour où cet index changerait, le contrôle de chevauchement cesserait de
+-- regarder **sans rougir**, et il le ferait sur les lignes qui en ont le plus
+-- besoin. `AFTER` ne s'adosse à rien qu'il ne nomme pas : il ne coûte pas une
+-- ligne de plus, il coûte un mot de moins.
+--
+-- ── CE QUE CETTE MIGRATION NE CHANGE PAS ───────────────────────────────────
+--
+-- **La fonction n'est pas touchée** — ni son corps, ni son message, ni le nom
+-- qu'elle met dans son texte (Prisma n'expose pas le champ `constraint`, §9 du
+-- 24/08). Seul le MOMENT change. Un `AFTER` qui lève une exception annule la
+-- commande exactement comme un `BEFORE` : la différence est interne à la
+-- transaction, jamais visible d'un appelant.
+--
+-- Elle ne relit AUCUNE ligne existante, pour le motif que R3-13 écrivait déjà :
+-- un déclencheur ne s'applique qu'aux écritures, et *une ligne ancienne qu'on
+-- TOUCHE doit se mettre en règle* (D104).
+--
+-- Les deux autres déclencheurs de R3-13 restent en `BEFORE`, et c'est VÉRIFIÉ
+-- et non supposé. `plage_tient_le_pas` ne lit que `calendrier`, par
+-- `NEW."calendrier_id"`, qui est le même sur les deux branches — mesuré : le
+-- re-semis d'une plage inchangée passe, et une plage plus courte que le pas est
+-- toujours refusée par `upsert`. `pas_tient_dans_les_plages` est en
+-- `BEFORE UPDATE` seul, donc hors de portée de la branche d'insertion, et son
+-- `NEW."id"` est celui de la ligne réelle — mesuré : l'`upsert` de calendrier du
+-- semis passe, et un pas au-dessus de la plus courte plage est toujours refusé.
+-- ════════════════════════════════════════════════════════════════════════════
+
+DROP TRIGGER "plage_sans_chevauchement" ON "calendrier_plage";
+
+CREATE TRIGGER "plage_sans_chevauchement"
+  AFTER INSERT OR UPDATE ON "calendrier_plage"
+  FOR EACH ROW EXECUTE FUNCTION "calendrier_plage_sans_chevauchement"();

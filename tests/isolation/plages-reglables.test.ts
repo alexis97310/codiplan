@@ -319,6 +319,153 @@ describe("R3-13 — régler les plages d'ouverture", () => {
     ).rejects.toThrow("rollback voulu");
   });
 
+  /**
+   * ── LE VERBE DU SEMIS, ET IL N'ÉTAIT ÉPROUVÉ NULLE PART ──────────────────
+   *
+   * Les scénarios ci-dessus écrivent tous par `create` ou par `update` — les
+   * deux verbes qui marchent. **Le semis, lui, n'écrit que par `upsert`**, et
+   * c'est dans celui-là seul que le défaut de la fusion de #183 vivait :
+   * `DB migrate & seed` #57 a échoué en `23514` à `prisma/seed.ts:424`, sur une
+   * plage qui refusait de se remplacer elle-même.
+   *
+   * *La population de ce fichier avait été bâtie avec les verbes qui
+   * satisfaisaient le gardien* — sans intention, et l'effet est celui d'une
+   * population fabriquée : elle ne contenait pas le cas fautif (§9, 31/08).
+   *
+   * Ce qui compte dans la forme ci-dessous et qui ne s'improvise pas : **un
+   * `id` NEUF dans le bloc `create` à chaque appel**. C'est lui qui produisait
+   * la ligne candidate que le déclencheur `BEFORE INSERT` prenait pour une
+   * voisine, et un scénario qui réutiliserait le même identifiant passerait
+   * sans rien mesurer.
+   */
+  it("LE SEMIS SE REJOUE — un upsert de plage inchangée, deux fois, avec un id neuf", async () => {
+    await poserLeCalendrier(30);
+    await remettreAuMatin();
+    const DIMANCHE = 7;
+
+    // La forme EXACTE de `prisma/seed.ts` : `where` sur la contrainte unique
+    // composée, `create` qui tire un identifiant, `update` plat.
+    const semer = () =>
+      sousSociete(SOCIETE_A, (tx) =>
+        tx.calendrierPlage.upsert({
+          where: {
+            calendrier_id_jour_semaine_debut_minutes: {
+              calendrier_id: CALENDRIER,
+              jour_semaine: DIMANCHE,
+              debut_minutes: MATIN.debutMinutes,
+            },
+          },
+          update: { fin_minutes: MATIN.finMinutes },
+          create: {
+            id: uuidv7(),
+            societe_id: SOCIETE_A,
+            calendrier_id: CALENDRIER,
+            jour_semaine: DIMANCHE,
+            debut_minutes: MATIN.debutMinutes,
+            fin_minutes: MATIN.finMinutes,
+          },
+        }),
+      );
+
+    const premier = await semer();
+    // Le SECOND est celui qui tombait : la ligne existe désormais, et la
+    // candidate porte un identifiant que rien ne rattache à elle.
+    const second = await semer();
+
+    // TÉMOIN — le second `upsert` a bien emprunté la branche du CONFLIT, et non
+    // créé une seconde ligne. Sans lui, deux insertions distinctes rendraient ce
+    // scénario vert sans avoir jamais exercé `ON CONFLICT`.
+    expect(second.id).toBe(premier.id);
+    await expect(plagesDuJour(DIMANCHE)).resolves.toHaveLength(1);
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "calendrier_plage" WHERE "calendrier_id" = '${CALENDRIER}' AND "jour_semaine" = ${DIMANCHE}`,
+    );
+  });
+
+  it("et le verrou MORD TOUJOURS sur ce verbe — un upsert qui recouvre est refusé", async () => {
+    // *Le cas qui doit rester ROUGE.* Déplacer le déclencheur en `AFTER` pour
+    // faire passer le semis pouvait très bien l'avoir rendu inerte sur ce
+    // chemin : un scénario qui ne montrerait que le vert du re-semis ne
+    // distinguerait pas un verrou réparé d'un verrou désarmé.
+    await remettreAuMatin();
+    await expect(
+      sousSociete(SOCIETE_A, (tx) =>
+        tx.calendrierPlage.upsert({
+          where: {
+            calendrier_id_jour_semaine_debut_minutes: {
+              calendrier_id: CALENDRIER,
+              jour_semaine: LUNDI,
+              debut_minutes: 600,
+            },
+          },
+          update: { fin_minutes: 900 },
+          create: {
+            id: uuidv7(),
+            societe_id: SOCIETE_A,
+            calendrier_id: CALENDRIER,
+            jour_semaine: LUNDI,
+            debut_minutes: 600,
+            fin_minutes: 900,
+          },
+        }),
+      ),
+    ).rejects.toThrow(/calendrier_plage_sans_chevauchement/);
+    await expect(plagesDuLundi()).resolves.toHaveLength(1);
+  });
+
+  it("JUMEAU — le déclencheur remis en BEFORE, le re-semis par upsert ÉCHOUE", async () => {
+    // Le jumeau ne retire pas le verrou : il lui rend le MOMENT qu'il avait, et
+    // rien d'autre. C'est ce qui établit que le correctif est bien le passage en
+    // `AFTER`, et non une coïncidence (§9, 08/09) — *retirer la réparation et
+    // regarder si le défaut revient.*
+    await remettreAuMatin();
+    const SAMEDI = 6;
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "calendrier_plage" ("id", "societe_id", "calendrier_id", "jour_semaine", "debut_minutes", "fin_minutes")
+       VALUES ('${uuidv7()}', '${SOCIETE_A}', '${CALENDRIER}', ${SAMEDI}, ${MATIN.debutMinutes}, ${MATIN.finMinutes})`,
+    );
+
+    await expect(
+      sousProprietaireContextualise(async (tx) => {
+        await tx.$executeRawUnsafe(
+          `DROP TRIGGER "plage_sans_chevauchement" ON "calendrier_plage"`,
+        );
+        await tx.$executeRawUnsafe(
+          `CREATE TRIGGER "plage_sans_chevauchement"
+             BEFORE INSERT OR UPDATE ON "calendrier_plage"
+             FOR EACH ROW EXECUTE FUNCTION "calendrier_plage_sans_chevauchement"()`,
+        );
+        // La faute TELLE QU'ELLE SE COMMETTAIT : un identifiant neuf sur une
+        // ligne qui existe déjà.
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "calendrier_plage" ("id", "societe_id", "calendrier_id", "jour_semaine", "debut_minutes", "fin_minutes")
+           VALUES ('${uuidv7()}', '${SOCIETE_A}', '${CALENDRIER}', ${SAMEDI}, ${MATIN.debutMinutes}, ${MATIN.finMinutes})
+           ON CONFLICT ("calendrier_id", "jour_semaine", "debut_minutes")
+           DO UPDATE SET "fin_minutes" = EXCLUDED."fin_minutes"`,
+        );
+        throw new Error("rollback voulu");
+      }),
+    ).rejects.toThrow(/calendrier_plage_sans_chevauchement/);
+
+    // Le déclencheur est revenu en `AFTER` avec l'annulation, et le même
+    // `upsert` passe — le témoin que le jumeau mesurait bien le MOMENT.
+    await expect(
+      sousSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "calendrier_plage" ("id", "societe_id", "calendrier_id", "jour_semaine", "debut_minutes", "fin_minutes")
+           VALUES ('${uuidv7()}', '${SOCIETE_A}', '${CALENDRIER}', ${SAMEDI}, ${MATIN.debutMinutes}, ${MATIN.finMinutes})
+           ON CONFLICT ("calendrier_id", "jour_semaine", "debut_minutes")
+           DO UPDATE SET "fin_minutes" = EXCLUDED."fin_minutes"`,
+        ),
+      ),
+    ).resolves.toBeGreaterThan(0);
+
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "calendrier_plage" WHERE "calendrier_id" = '${CALENDRIER}' AND "jour_semaine" = ${SAMEDI}`,
+    );
+  });
+
   it("un calendrier d'une AUTRE société est introuvable, jamais refusé autrement", async () => {
     // Aucune comparaison de société n'est écrite dans le dépôt : on écrit SOUS
     // le contexte, la politique prononce, et un calendrier d'ailleurs rend le
