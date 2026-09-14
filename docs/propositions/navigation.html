@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROPOSITION — Barre de navigation à sous-menus — ne fait foi sur rien</title>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  CE FICHIER NE FAIT FOI SUR RIEN.
+
+  La référence du produit est `docs/maquette/CODIPLAN_Maquette.html`, et elle
+  seule : elle fait foi sur la DISPOSITION et sur les COULEURS (D95), il n'en
+  existe qu'un exemplaire, et un gardien refuse le second.
+
+  Ce fichier-ci est une PROPOSITION, posée à côté et jamais dedans. Il est ici
+  pour être REGARDÉ puis VALIDÉ, AMENDÉ ou JETÉ. Rien dans le dépôt ne le lit,
+  et `lib/navigation/entrees.ts` n'a pas bougé d'une ligne.
+
+  ── CE QU'IL MONTRE, ET D'OÙ VIENT CHAQUE CHOSE ─────────────────────────────
+
+  Les LIBELLÉS viennent de `lib/i18n/fr.ts` (clés `nav.*`, `parametres.*`,
+  `absences.*`, `prestations.*`) et de `lib/i18n/vocabulaire.ts` pour « site » —
+  jamais du clavier de qui dessine. Les DEUX libellés proposés qui n'existent
+  nulle part sont signalés comme tels, en bas.
+
+  L'ÉTAT DE CHAQUE ENTRÉE — vivante, ou inerte avec le lot qui l'ouvrira — est
+  lu dans `lib/navigation/entrees.ts` (champs `chemin` et `ouvertePar`) et dans
+  `lib/navigation/portes-parametrage.ts`. *Une maquette qui cache les inertes
+  fait valider un menu qui n'existe pas.*
+
+  Les COULEURS et la TYPOGRAPHIE sont celles de la maquette, variable pour
+  variable.
+
+  AUCUNE DONNÉE : cette page ne montre qu'un menu, et un menu ne porte ni
+  client, ni machine, ni nom de personne (I9).
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+:root{
+  --rouge:#E30613; --bleu:#0053A1; --noir:#111111; --fond:#F4F5F7;
+  --vert:#0F9D58; --orange:#F0A202; --gris:#6B7280; --bord:#E1E4E8; --blanc:#fff;
+  --creux:#FAFBFC;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--fond);color:var(--noir);font-size:14px;line-height:1.5}
+.wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px}
+h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px}
+h2{font-size:16px;font-weight:800;margin:26px 0 8px}
+h3{font-size:13px;font-weight:800;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris)}
+p{margin-bottom:10px}
+.sous{color:var(--gris);font-size:13px}
+.avert{background:#FDE7E9;border:1px solid var(--rouge);color:#8A0810;border-radius:8px;padding:12px 14px;margin:14px 0;font-size:12.5px}
+.carte{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:16px;margin-bottom:16px}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.deux{grid-template-columns:1fr}}
+
+/* ---------- La barre proposée ---------- */
+.topbar{background:var(--blanc);border:1px solid var(--bord);border-radius:10px 10px 0 0;padding:9px 16px;display:flex;align-items:center;gap:16px;min-height:58px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px;font-size:18px;flex-shrink:0;white-space:nowrap}
+.tri{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:19px solid var(--rouge)}
+.brand span.b{color:var(--bleu)}
+.brand small{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--gris)}
+.nav{display:flex;gap:2px;flex-wrap:wrap}
+.nav .item{position:relative}
+.nav .titre{padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--gris);white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.nav .titre.on{background:var(--bleu);color:#fff}
+.nav .titre.inerte{color:#B6BAC1}
+.caret{font-size:9px;opacity:.7}
+.sousmenu{border:1px solid var(--bord);border-radius:8px;background:var(--blanc);padding:6px;min-width:230px;box-shadow:0 8px 24px rgba(17,17,17,.10)}
+.sousmenu a{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 9px;border-radius:6px;font-size:12.5px;color:var(--noir);text-decoration:none}
+.sousmenu a:hover{background:var(--fond)}
+.sousmenu a.inerte{color:#B6BAC1}
+.sousmenu .groupe{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--gris);padding:8px 9px 3px}
+.sousmenu hr{border:none;border-top:1px solid var(--bord);margin:5px 0}
+.corps{background:var(--creux);border:1px solid var(--bord);border-top:none;border-radius:0 0 10px 10px;padding:22px 16px;color:var(--gris);font-size:12.5px}
+
+/* ---------- Étiquettes d'état ---------- */
+.et{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:2px 7px;white-space:nowrap}
+.vif{background:#E3F5EA;color:#0B6B3A;border:1px solid var(--vert)}
+.dort{background:#F4F5F7;color:var(--gris);border:1px solid var(--bord)}
+.neuf{background:#E7F0FA;color:#0B3D75;border:1px solid var(--bleu)}
+
+/* ---------- Le téléphone ---------- */
+.tel{width:360px;max-width:100%;border:1px solid var(--bord);border-radius:14px;overflow:hidden;background:var(--blanc)}
+.tel .barre{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bord)}
+.tel .bouton{margin-left:auto;border:1px solid var(--bord);border-radius:7px;padding:5px 9px;font-size:12px;font-weight:700}
+.tel .panneau{padding:6px}
+.tel details{border-bottom:1px solid var(--bord-faible,#F0F1F3)}
+.tel summary{list-style:none;cursor:default;padding:11px 10px;font-size:13.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.tel summary::-webkit-details-marker{display:none}
+.tel .lien{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 10px 10px 20px;font-size:13px;color:var(--noir);text-decoration:none}
+.tel .lien.inerte{color:#B6BAC1}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--gris);border-bottom:1px solid var(--bord);padding:7px 8px}
+td{border-bottom:1px solid var(--bord);padding:8px}
+code{background:var(--fond);border:1px solid var(--bord);border-radius:4px;padding:0 4px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Proposition — une barre à sous-menus, et une section « Paramètres »</h1>
+<p class="sous">Écrite dans la nuit du 14 septembre 2026. <strong>Ce document ne fait foi sur rien</strong> : la référence reste <code>docs/maquette/CODIPLAN_Maquette.html</code>, et <code>lib/navigation/entrees.ts</code> n'a pas été touché.</p>
+
+<div class="avert">
+  <strong>Ce que cette décision coûte, et il faut le lire avant de la prendre.</strong>
+  <code>lib/navigation/entrees.ts</code> porte une <strong>liste close de onze entrées</strong>, confrontée à la barre de la maquette par <code>tests/unit/navigation/entrees.test.ts</code> — libellé et ordre compris. Trois gardiens la tiennent. Changer la barre, <em>c'est amender D95</em> : la maquette cesse de faire foi sur la <strong>forme du menu</strong>, tout en continuant de faire foi sur les couleurs et sur la disposition des écrans.
+  <br><br>
+  Le commentaire du fichier dit d'ailleurs pourquoi c'est défendable : <em>« la maquette est un CATALOGUE D'ÉCRANS, pas un menu : elle montre ses onze écrans pour qu'on les voie tous. »</em> Une barre plate de onze entrées dont <strong>cinq sont inertes</strong> est un catalogue. L'exploitation demande qu'elle devienne une navigation.
+</div>
+
+<h2>Ce que la mesure dit de l'état actuel</h2>
+<table>
+  <tr><th>Entrée de la barre</th><th>État</th><th>Ce qui l'ouvre</th></tr>
+  <tr><td>Tableau de bord</td><td><span class="et dort">inerte</span></td><td>lot 4</td></tr>
+  <tr><td>Planning</td><td><span class="et vif">vivante</span></td><td><code>/planning</code></td></tr>
+  <tr><td>Interventions</td><td><span class="et dort">inerte</span></td><td>L2-08</td></tr>
+  <tr><td>Parc machines</td><td><span class="et vif">vivante</span></td><td><code>/parc</code></td></tr>
+  <tr><td>Contrats</td><td><span class="et dort">inerte</span></td><td>lot 4</td></tr>
+  <tr><td>App technicien</td><td><span class="et dort">inerte</span></td><td>lot 3</td></tr>
+  <tr><td>Portail client</td><td><span class="et vif">vivante</span></td><td><code>/portail</code></td></tr>
+  <tr><td>Imports Excel</td><td><span class="et vif">vivante</span></td><td><code>/imports</code></td></tr>
+  <tr><td>Sociétés &amp; tarifs</td><td><span class="et vif">vivante</span></td><td><code>/parametres</code></td></tr>
+  <tr><td>Console éditeur</td><td><span class="et dort">inerte</span></td><td>lot 7</td></tr>
+</table>
+<p class="sous" style="margin-top:8px">Cinq entrées sur dix ne mènent nulle part. Pendant ce temps, <strong>quatre écrans vivants n'ont aucune entrée</strong> — <code>/clients</code>, <code>/sites</code>, <code>/vgp</code>, <code>/absences</code> — et se rejoignent par des liens. <em>C'est la mesure qui a fait dire « je ne vois pas de lien vers la page client » : le lien existe, il est la cinquième porte de « Sociétés &amp; tarifs », et un client n'est pas un réglage.</em></p>
+
+<h2>Deux structures, et elles ne coûtent pas la même chose</h2>
+<p>Elles diffèrent sur <strong>un seul point</strong> : faut-il une entrée « Clients » qui contienne le parc, ou deux entrées de même rang ? Tout le reste est commun.</p>
+
+<div class="deux">
+
+  <!-- ══════════════ STRUCTURE A ══════════════ -->
+  <div class="carte">
+    <h3>Structure A — la colonne vertébrale</h3>
+    <p class="sous" style="font-size:12.5px">Une entrée <strong>Clients</strong>, et sous elle le site puis l'équipement. <em>Client → site → équipement est la structure du métier, et le menu la rend lisible du premier coup d'œil.</em></p>
+
+    <div class="topbar">
+      <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span><small>CODIMA NC · SAV</small></div></div>
+      <div class="nav">
+        <div class="item"><span class="titre inerte">Tableau de bord</span></div>
+        <div class="item"><span class="titre on">Planning <span class="caret">▾</span></span></div>
+        <div class="item"><span class="titre">Clients <span class="caret">▾</span></span></div>
+        <div class="item"><span class="titre inerte">Contrats</span></div>
+        <div class="item"><span class="titre">Paramètres <span class="caret">▾</span></span></div>
+      </div>
+    </div>
+    <div class="corps">
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div class="sousmenu">
+          <div class="groupe">Planning</div>
+          <a href="#">Planning <span class="et vif">vivante</span></a>
+          <a href="#">Absences <span class="et vif">vivante</span></a>
+          <a class="inerte" href="#">Interventions <span class="et dort">L2-08</span></a>
+          <a class="inerte" href="#">Demandes <span class="et dort">à écrire</span></a>
+        </div>
+        <div class="sousmenu">
+          <div class="groupe">Clients</div>
+          <a href="#">Clients <span class="et vif">vivante</span></a>
+          <a href="#">Sites d'intervention <span class="et vif">vivante</span></a>
+          <a href="#">Parc machines <span class="et vif">vivante</span></a>
+          <hr>
+          <a href="#">Registre VGP <span class="et vif">vivante</span></a>
+        </div>
+        <div class="sousmenu">
+          <div class="groupe">Paramètres</div>
+          <a href="#">Horaires d'ouverture <span class="et vif">vivante</span></a>
+          <a href="#">Temps de trajet par zone <span class="et vif">vivante</span></a>
+          <a href="#">Forfaits applicables <span class="et vif">vivante</span></a>
+          <a href="#">Catalogue des prestations <span class="et vif">vivante</span></a>
+          <hr>
+          <a href="#">Imports Excel <span class="et vif">vivante</span></a>
+          <a class="inerte" href="#">App technicien <span class="et dort">lot 3</span></a>
+          <a href="#">Portail client <span class="et vif">vivante</span></a>
+          <a class="inerte" href="#">Console éditeur <span class="et dort">lot 7</span></a>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:12px"><strong>Ce qu'elle gagne.</strong> Cinq entrées au lieu de onze, et <em>aucune entrée morte au premier niveau</em> sauf deux. « Clients » devient une destination évidente — la personne qui a commandé l'écran l'aurait trouvé. La hiérarchie du menu <strong>est</strong> celle du métier.</p>
+    <p><strong>Ce qu'elle coûte.</strong> Le parc machines <em>descend d'un cran</em> : un responsable matériel, qui pense « parc » avant de penser « client », fait un clic de plus, tous les jours. Et « Portail client » se retrouve rangé sous « Paramètres », ce qui est faux — c'est un espace, pas un réglage.</p>
+  </div>
+
+  <!-- ══════════════ STRUCTURE B ══════════════ -->
+  <div class="carte">
+    <h3>Structure B — deux entrées, deux métiers</h3>
+    <p class="sous" style="font-size:12.5px">« Clients » et « Parc machines » restent de même rang. <em>Un commercial entre par le client, un responsable matériel entre par la machine — et ils ouvrent la même application dix fois par jour.</em></p>
+
+    <div class="topbar">
+      <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span><small>CODIMA NC · SAV</small></div></div>
+      <div class="nav">
+        <div class="item"><span class="titre inerte">Tableau de bord</span></div>
+        <div class="item"><span class="titre on">Planning <span class="caret">▾</span></span></div>
+        <div class="item"><span class="titre">Clients <span class="caret">▾</span></span></div>
+        <div class="item"><span class="titre">Parc machines <span class="caret">▾</span></span></div>
+        <div class="item"><span class="titre inerte">Contrats</span></div>
+        <div class="item"><span class="titre">Paramètres <span class="caret">▾</span></span></div>
+      </div>
+    </div>
+    <div class="corps">
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div class="sousmenu">
+          <div class="groupe">Clients</div>
+          <a href="#">Clients <span class="et vif">vivante</span></a>
+          <a href="#">Sites d'intervention <span class="et vif">vivante</span></a>
+          <a class="inerte" href="#">Contacts <span class="et dort">à écrire</span></a>
+          <hr>
+          <a href="#">Portail client <span class="et vif">vivante</span></a>
+        </div>
+        <div class="sousmenu">
+          <div class="groupe">Parc machines</div>
+          <a href="#">Parc machines <span class="et vif">vivante</span></a>
+          <a href="#">Registre VGP <span class="et vif">vivante</span></a>
+          <a class="inerte" href="#">Familles &amp; modèles <span class="et dort">à écrire</span></a>
+          <a class="inerte" href="#">Documents <span class="et dort">lot 8</span></a>
+        </div>
+        <div class="sousmenu">
+          <div class="groupe">Paramètres</div>
+          <a href="#">Horaires d'ouverture <span class="et vif">vivante</span></a>
+          <a href="#">Temps de trajet par zone <span class="et vif">vivante</span></a>
+          <a href="#">Forfaits applicables <span class="et vif">vivante</span></a>
+          <a href="#">Catalogue des prestations <span class="et vif">vivante</span></a>
+          <a href="#">Imports Excel <span class="et vif">vivante</span></a>
+          <hr>
+          <a class="inerte" href="#">App technicien <span class="et dort">lot 3</span></a>
+          <a class="inerte" href="#">Console éditeur <span class="et dort">lot 7</span></a>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:12px"><strong>Ce qu'elle gagne.</strong> Aucun métier ne descend d'un cran. Le parc reste au premier niveau, où il est aujourd'hui, et « Portail client » retrouve sa place — sous les clients, pas sous les réglages.</p>
+    <p><strong>Ce qu'elle coûte.</strong> <em>Le menu ne dit plus que l'équipement appartient au site, qui appartient au client.</em> Deux entrées de même rang laissent croire à deux référentiels indépendants, ce qui est exactement l'erreur que l'exploitation demande d'éviter. Et six entrées au premier niveau, c'est déjà une de plus que A.</p>
+  </div>
+</div>
+
+<h2>Au doigt, à 390 px — et ce n'est pas un détail</h2>
+<p><strong>Un sous-menu qui s'ouvre au survol est inutilisable sur un téléphone</strong> : il n'y a pas de survol, et un premier appui qui « déplie » là où un clic « navigue » produit un menu dont on ne sait jamais s'il a obéi. Les deux structures demandent donc <strong>deux formes</strong>, et c'est une trouvaille, pas un échec.</p>
+<div class="carte" style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+  <div class="tel">
+    <div class="barre">
+      <div class="brand" style="font-size:15px"><div class="tri" style="border-left-width:8px;border-right-width:8px;border-bottom-width:14px"></div><div>CODI<span class="b">PLAN</span></div></div>
+      <div class="bouton">Menu ✕</div>
+    </div>
+    <div class="panneau">
+      <details open>
+        <summary>Planning <span class="caret">▾</span></summary>
+        <a class="lien" href="#">Planning <span class="et vif">vivante</span></a>
+        <a class="lien" href="#">Absences <span class="et vif">vivante</span></a>
+        <a class="lien inerte" href="#">Interventions <span class="et dort">L2-08</span></a>
+      </details>
+      <details>
+        <summary>Clients <span class="caret">▸</span></summary>
+      </details>
+      <details>
+        <summary>Paramètres <span class="caret">▸</span></summary>
+      </details>
+      <a class="lien" href="#" style="padding-left:10px;font-weight:700">Tableau de bord <span class="et dort">lot 4</span></a>
+      <a class="lien" href="#" style="padding-left:10px;font-weight:700">Contrats <span class="et dort">lot 4</span></a>
+    </div>
+  </div>
+  <div style="flex:1;min-width:280px">
+    <p><strong>Un panneau plein écran, ouvert par un bouton, et des sections qui se déplient à l'appui.</strong> Chaque section est un <em>accordéon</em> : on appuie sur le titre, la section s'ouvre, on appuie sur une destination, on y va. <strong>Un titre de section n'est jamais lui-même une destination</strong> — sinon l'appui est ambigu, et c'est la faute qui rend un menu tactile pénible.</p>
+    <p><strong>Une seule section ouverte à la fois</strong>, et le panneau se ferme dès qu'on a choisi : <em>un menu qui reste ouvert après le choix fait douter qu'on ait choisi.</em></p>
+    <p class="sous">Cette forme vaut pour A comme pour B — c'est le premier niveau qui change, pas le mécanisme.</p>
+  </div>
+</div>
+
+<h2>Recommandation, et ce qui reste à trancher</h2>
+<p><strong>A, avec une correction.</strong> La colonne vertébrale est la raison pour laquelle l'exploitation demande ce changement, et c'est elle qui doit se lire dans le menu. <em>Mais « Portail client » sort de « Paramètres »</em> — ce n'est pas un réglage, c'est un espace : il va sous « Clients », comme dans B. Le clic supplémentaire sur le parc est le seul coût réel, et il se paie une fois par navigation, pas une fois par journée : <strong>l'entrée « Clients » restera ouverte sur le parc si l'on s'y trouve.</strong></p>
+<p>Ce que cette page <strong>ne tranche pas</strong>, parce que ce n'est pas à elle de le faire :</p>
+<ul style="padding-left:20px">
+  <li style="margin-bottom:6px"><strong>Faut-il garder les entrées inertes ?</strong> Aujourd'hui elles sont rendues éteintes, parce que <em>« absente, la barre mentirait par omission sur ce que le produit sera ; en lien, elle mènerait à un 404 ».</em> Un menu déroulant change la donne : une section entièrement inerte est un dossier vide, et un dossier vide se remarque plus qu'un mot grisé.</li>
+  <li style="margin-bottom:6px"><strong>« Paramètres » remplace-t-il « Sociétés &amp; tarifs », ou s'y ajoute-t-il ?</strong> Le second libellé est celui de la maquette, et il dit quelque chose que « Paramètres » ne dit pas : la <em>société</em> s'y règle, pas seulement l'application.</li>
+  <li><strong>La barre du portail ne bouge pas</strong>, et ce n'est pas un oubli : <em>un client qui lirait « Contrats » ou « Paramètres » au-dessus de son espace apprendrait l'existence d'un outil qui n'est pas le sien.</em></li>
+</ul>
+
+<h2>Ce qui n'existe pas encore, et qui est proposé ici</h2>
+<div class="carte">
+  <table>
+    <tr><th>Ce qui est montré</th><th>Ce qui existe aujourd'hui</th></tr>
+    <tr><td><strong>« Paramètres »</strong> comme entrée de barre</td><td><span class="et neuf">proposé</span> — aucune clé de dictionnaire ne porte ce libellé ; la barre porte « Sociétés &amp; tarifs »</td></tr>
+    <tr><td><strong>« Demandes »</strong>, <strong>« Contacts »</strong>, <strong>« Familles &amp; modèles »</strong>, <strong>« Documents »</strong></td><td><span class="et neuf">proposé</span> — les modules existent, <em>aucun écran ne les atteint</em> (mesuré par <code>pnpm chemins</code>)</td></tr>
+    <tr><td>« Clients », « Sites d'intervention », « Registre VGP », « Absences », « Catalogue des prestations »</td><td><span class="et vif">vivante</span> — écrans réels, rejoints par des liens et non par la barre</td></tr>
+    <tr><td>Les sous-menus déroulants eux-mêmes</td><td><span class="et neuf">proposé</span> — la barre est plate, et <code>lib/navigation/entrees.ts</code> n'a pas de notion de niveau</td></tr>
+  </table>
+</div>
+
+<p class="sous" style="margin-top:20px">Rien de ce document n'a été appliqué. <code>lib/navigation/entrees.ts</code>, ses trois gardiens et <code>docs/maquette/CODIPLAN_Maquette.html</code> sont dans l'état où la nuit les a trouvés.</p>
+
+</div>
+</body>
+</html>
