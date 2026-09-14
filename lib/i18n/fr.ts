@@ -773,11 +773,9 @@ export const fr = {
   // l'écran des absences, où la politique décide ; le refus dit ce qui bloque
   // et la marche à suivre, il ne renseigne pas.
   "absence.refus.inconnue":
-    "Cette absence n'existe pas, ou elle n'est pas dans votre périmètre.",
-  "absence.refus.deja_tranchee":
-    "Cette absence a déjà été validée ou refusée. Une décision ne se reprend pas : les interventions déplanifiées ne retrouveraient pas leur créneau.",
+    "Ce blocage n'existe pas, ou il n'est pas dans votre périmètre.",
   "intervention.refus.absence":
-    "Ce technicien est indisponible à cette date. Le créneau est refusé.",
+    "L'agenda de ce technicien est bloqué à cette date. Le créneau est refusé.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
   // RG-PLA-04, sa moitié BLOQUANTE et sa moitié qui AVERTIT (L3-02, D9, D73).
@@ -1301,6 +1299,50 @@ export const fr = {
   "parametres.pas.refus_plage_courte":
     "Ce pas dépasse la plus courte plage de ce calendrier : le planning ne proposerait aucun créneau sur cette plage. Allonger la plage d'abord, ou choisir un pas plus court.",
   "parametres.regler_horaires": "Régler les horaires",
+  // ── LES BLOCAGES D'AGENDA (R3-14) ────────────────────────────────────────
+  //
+  // AUCUNE NATURE, AUCUN MOTIF, AUCUN ÉTAT N'EST NOMMÉ ICI, et c'est le sujet du
+  // ticket. CODIPLAN n'est pas un outil de gestion des ressources humaines :
+  // `arret` était un arrêt de travail — une donnée de santé, sur un salarié
+  // nommé, en clair —, et un circuit demandée → validée → refusée est un
+  // circuit d'approbation de congés. *On peut toujours ajouter une colonne plus
+  // tard ; on ne peut jamais dé-enregistrer ce qui a été écrit.*
+  //
+  // Le mot « absence » demeure dans les CLÉS parce que la table s'appelle
+  // `absence` : renommer les unes sans l'autre ferait deux vocabulaires pour un
+  // même objet, ce que le §3 refuse pour « agence » et « site ».
+  "absences.titre": "Blocages d'agenda",
+  "absences.sous_titre":
+    "Qui n'est pas disponible, et quand. Un blocage dit une personne et une période, et rien d'autre : ce n'est pas un oubli, c'est une décision — la nature d'une indisponibilité regarde la médecine du travail, pas le planning.",
+  "absences.declarer": "Bloquer un agenda",
+  "absences.declarer_action": "Bloquer",
+  "absences.personne": "Personne",
+  "absences.periode": "Période",
+  "absences.du": "Du",
+  "absences.au": "Au",
+  "absences.levee": "Levée",
+  "absences.lever": "Lever",
+  "absences.aucune": "Aucun blocage sur la période affichée.",
+  "absences.immediat":
+    "Le blocage prend effet dès qu'il est posé : il n'y a rien à valider. Les interventions déjà posées sur ces jours-là repartent aussitôt en file à planifier.",
+  // ── CE QUE LA POSE CHANGE RÉTROACTIVEMENT (R3-14, question 4) ─────────────
+  //
+  // Rien n'est matérialisé : le taux d'occupation relit les blocages à chaque
+  // rendu. L'effet rétroactif n'est donc pas empêchable, et le travail est de le
+  // DIRE là où la saisie se fait — la forme de D76, appliquée non plus à une
+  // valeur mais à sa fraîcheur.
+  "absences.retroactif":
+    "Un blocage posé sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
+  "absences.levee_explication":
+    "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles ne savent plus où elles étaient, et c'est au planificateur de les reposer.",
+  "absences.rendues_titre": "Interventions rendues à la file à planifier",
+  "absences.rupture_titre": "Rupture de service",
+  "absences.rupture_explication":
+    "Ces établissements n'ont plus qu'un seul technicien actif : aucun créneau n'est proposé à la place, et c'est délibéré — le planificateur sait ce que le système ne saura jamais.",
+  "absence.refus.saisie":
+    "Un blocage se pose avec une personne, une date de début et une date de fin, la seconde après la première.",
+  "absence.refus.pour_autrui":
+    "Un technicien bloque son propre agenda, jamais celui d'un autre.",
 
   // ── LA PAGE QUI DONNE UNE PORTE AUX ÉCRANS DE PARAMÉTRAGE (R3-05) ────────
   //

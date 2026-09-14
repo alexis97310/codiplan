@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { deciderAbsence, declarerAbsence } from "@/lib/absences/depot";
+import { declarerAbsence, leverLeBlocage } from "@/lib/absences/depot";
 import { schemaCreationAbsence } from "@/lib/absences/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 import { deplacerIntervention } from "@/lib/interventions/depot";
@@ -18,8 +18,8 @@ import {
 } from "./setup/fixtures";
 
 /**
- * L'ABSENCE — RG-PLA-06, et la forme « interne » décidée à la naissance
- * (L3-04, D94).
+ * LE BLOCAGE D'AGENDA — RG-PLA-06, et la forme « interne » décidée à la
+ * naissance (L3-04, R3-14, D94).
  *
  * ## Ce que ce fichier mesure, et que rien d'autre ne mesurerait
  *
@@ -28,19 +28,20 @@ import {
  * compte de portail, sa clause ne lisant pas `app.client_id`* — et il a écrit
  * ce qu'il laissait ouvert : la question des tables DÉJÀ existantes. Celle-ci
  * n'existait pas, et la trancher à sa création est le seul moment où elle ne
- * coûte rien.
+ * coûte rien. *Elle le reste après le dégraissage du 14/09 : savoir que telle
+ * personne n'est pas là du 2 au 6 reste une information sur une personne
+ * nommée, même dépouillée de sa cause.*
  *
- * > *« Votre technicien habituel est en arrêt du 14 au 28 » est une donnée de
- * > santé par déduction, et ce n'est pas au client de la lire.*
+ * **Le quatrième contrôle à la pose.** Un agenda bloqué refuse le créneau, et
+ * il le refuse **au DÉPLACEMENT comme à la pose** — c'est la leçon de L3-02,
+ * apprise la veille : *une règle tenue par un chemin sur deux n'est pas tenue.*
  *
- * **Le quatrième contrôle à la pose.** Une absence validée bloque le créneau,
- * et elle le bloque **au DÉPLACEMENT comme à la pose** — c'est la leçon de
- * L3-02, apprise la veille : *une règle tenue par un chemin sur deux n'est pas
- * tenue.*
- *
- * **Et la déplanification, dans la MÊME transaction que la validation.** Une
- * absence validée dont les interventions seraient restées posées ferait
- * affirmer au planning qu'un absent travaille.
+ * **Et la déplanification, dans la MÊME transaction que la POSE.** Tant qu'un
+ * statut existait, c'était la validation qui déplanifiait ; R3-14 a retiré le
+ * circuit d'approbation — *CODIPLAN n'est pas un outil de gestion des
+ * ressources humaines* —, et **le blocage est immédiat**. Un blocage dont les
+ * interventions seraient restées posées ferait affirmer au planning qu'une
+ * personne indisponible travaille.
  */
 
 afterAll(fermerClients);
@@ -63,24 +64,40 @@ const LUNDI_SUIVANT = new Date("2026-09-21T00:00:00.000Z");
 let interventionId = "";
 const absencesPosees: string[] = [];
 
-async function declarer(
-  du: string,
-  au: string,
-  motif = "conge",
-): Promise<string> {
+type Pose = Awaited<ReturnType<typeof declarerAbsence>>;
+
+/**
+ * POSER un blocage par le chemin applicatif, et rendre CE QU'IL A PRODUIT.
+ *
+ * *Le blocage est immédiat* : cette seule fonction porte désormais la
+ * déplanification et l'alerte, là où il fallait deux gestes avant R3-14. Les
+ * scénarios lisent donc son retour plutôt que celui d'une décision ultérieure.
+ *
+ * AUCUNE NATURE, AUCUN ÉTAT : le schéma ne les accepte plus, et les colonnes
+ * n'existent plus. Les lignes qui en portaient ici ont été retirées plutôt que
+ * laissées — Zod écarte en silence une clé inconnue, si bien qu'un `motif`
+ * resté dans cet appel aurait eu l'air d'être écrit sans l'être.
+ */
+async function bloquer(du: string, au: string): Promise<Pose> {
   const saisie = schemaCreationAbsence.parse({
     utilisateur_id: TECHNICIEN,
     du: new Date(`${du}T00:00:00.000Z`),
     au: new Date(`${au}T00:00:00.000Z`),
-    motif,
-    precision: motif === "autre" ? "détaché chez le constructeur" : null,
   });
   const resultat = await declarerAbsence(SESSION, saisie, clientApp());
-  if (!resultat.accepte) {
-    throw new Error(`déclaration refusée : ${resultat.cle}`);
+  if (resultat.accepte) {
+    absencesPosees.push(resultat.fiche.absence.id);
   }
-  absencesPosees.push(resultat.fiche.id);
-  return resultat.fiche.id;
+  return resultat;
+}
+
+/** Poser un blocage et rendre son identifiant — quand le reste est indifférent. */
+async function declarer(du: string, au: string): Promise<string> {
+  const resultat = await bloquer(du, au);
+  if (!resultat.accepte) {
+    throw new Error(`blocage refusé : ${resultat.cle}`);
+  }
+  return resultat.fiche.absence.id;
 }
 
 function deplacement(jour: Date) {
@@ -209,10 +226,10 @@ describe("l'absence, sous le rôle applicatif", () => {
     });
   });
 
-  describe("RG-PLA-06 — une absence VALIDÉE bloque le créneau", () => {
-    it("TÉMOIN — sans absence, le déplacement passe", async () => {
+  describe("RG-PLA-06 — un agenda bloqué refuse le créneau", () => {
+    it("TÉMOIN — sans blocage, le déplacement passe", async () => {
       // *Sans lui, un refus venu d'ailleurs — jour fermé, habilitation,
-      // chevauchement — passerait pour un refus d'absence.*
+      // chevauchement — passerait pour un refus de blocage.*
       const resultat = await deplacerIntervention(
         SESSION,
         deplacement(LUNDI),
@@ -221,28 +238,11 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(resultat.accepte).toBe(true);
     });
 
-    it("une absence DEMANDÉE ne bloque RIEN — le vert pour sa propre raison", async () => {
-      // §9 du 11/09. Le voisin qui lui ressemble est le refus ci-dessous : même
-      // personne, même période, **un seul mot de différence**. *Un booléen
-      // `validee` n'aurait pas su distinguer « pas encore tranchée » de
-      // « refusée », et le planning aurait bloqué sur une demande qu'on venait
-      // de refuser.*
+    it("un blocage refuse le déplacement DÈS SA POSE, et le motif est NOMMÉ", async () => {
+      // **Il n'y a plus de moitié qui ne bloque pas encore.** Avant R3-14, ce
+      // scénario demandait une seconde écriture — la validation ; le statut
+      // ayant disparu avec le circuit d'approbation, la pose suffit.
       await declarer("2026-09-14", "2026-09-18");
-      const resultat = await deplacerIntervention(
-        SESSION,
-        deplacement(LUNDI),
-        clientApp(),
-      );
-      expect(resultat.accepte).toBe(true);
-    });
-
-    it("une absence VALIDÉE refuse le déplacement, et le motif est NOMMÉ", async () => {
-      const id = await declarer("2026-09-14", "2026-09-18");
-      await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
       const resultat = await deplacerIntervention(
         SESSION,
         deplacement(LUNDI),
@@ -254,17 +254,14 @@ describe("l'absence, sous le rôle applicatif", () => {
       });
     });
 
-    it("LES BORNES SONT COMPRISES — le dernier jour est absent, le lendemain non", async () => {
+    it("LES BORNES SONT COMPRISES — le dernier jour est bloqué, le lendemain non", async () => {
       // *Une borne ouverte aurait fait travailler quelqu'un le dernier jour de
-      // son arrêt* — la faute qu'on ne voit qu'en production, sur une seule
-      // journée, et qu'on met un mois à croire. Le scénario la mesure des deux
-      // côtés de la borne.
-      const id = await declarer("2026-09-14", "2026-09-14");
-      await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
+      // son indisponibilité* — la faute qu'on ne voit qu'en production, sur une
+      // seule journée, et qu'on met un mois à croire. Le scénario la mesure des
+      // deux côtés de la borne, et la seconde moitié est aussi **le cas qui
+      // doit rester vert POUR SA PROPRE RAISON** (§9, 11/09) : un verrou qui
+      // refuserait tout passerait la première sans qu'on s'en aperçoive.
+      await declarer("2026-09-14", "2026-09-14");
       const leJourMeme = await deplacerIntervention(
         SESSION,
         deplacement(LUNDI),
@@ -281,7 +278,7 @@ describe("l'absence, sous le rôle applicatif", () => {
     });
   });
 
-  describe("RG-PLA-06 — la validation rend les interventions à la file", () => {
+  describe("RG-PLA-06 — la POSE rend les interventions à la file", () => {
     it("elle déplanifie ce qui était posé dans la période, et le NOMME", async () => {
       // La date et le créneau partent ; **le technicien reste**. *Une
       // intervention qui perd son affectation perd l'information qui permet de
@@ -293,14 +290,9 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(pose.accepte).toBe(true);
 
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
-      expect(decidee.accepte).toBe(true);
-      expect(decidee.accepte && decidee.fiche.deplanifiees).toEqual([
+      const blocage = await bloquer("2026-09-14", "2026-09-18");
+      expect(blocage.accepte).toBe(true);
+      expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
         interventionId,
       ]);
 
@@ -323,7 +315,10 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(ligne.technicien_id).toBe(TECHNICIEN);
     });
 
-    it("un REFUS ne déplanifie rien", async () => {
+    it("un blocage HORS de la période ne déplanifie rien", async () => {
+      // *Le cas qui doit rester vert POUR SA PROPRE RAISON* (§9, 11/09) : une
+      // déplanification qui emporterait tout passerait le scénario ci-dessus
+      // sans qu'on s'en aperçoive.
       const pose = await deplacerIntervention(
         SESSION,
         deplacement(LUNDI),
@@ -331,13 +326,8 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(pose.accepte).toBe(true);
 
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "refusee" },
-        clientApp(),
-      );
-      expect(decidee.accepte && decidee.fiche.deplanifiees).toEqual([]);
+      const blocage = await bloquer("2026-10-05", "2026-10-09");
+      expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([]);
 
       const [ligne] = await clientOwner().$queryRawUnsafe<
         Array<{ date_planifiee: Date | null }>
@@ -348,23 +338,44 @@ describe("l'absence, sous le rôle applicatif", () => {
       expect(ligne.date_planifiee).not.toBeNull();
     });
 
-    it("UNE DÉCISION NE SE REPREND PAS", async () => {
-      // *Refuser après coup ne rendrait pas leurs créneaux aux interventions
-      // déjà rendues à la file*, et revalider redéplanifierait ce qui l'a été.
-      const id = await declarer("2026-09-14", "2026-09-18");
-      await deciderAbsence(
+    it("LEVER LE BLOCAGE NE REND PAS LES CRÉNEAUX, et c'est écrit", async () => {
+      // *Ressusciter un créneau depuis le journal d'audit serait une seconde
+      // source d'un fait que la table ne porte plus.* Ce scénario mesure ce que
+      // la levée ne fait PAS — la moitié qu'un écran laisserait croire.
+      await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
+      const blocage = await bloquer("2026-09-14", "2026-09-18");
+      expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
+        interventionId,
+      ]);
+
+      const id = blocage.accepte ? blocage.fiche.absence.id : "";
+      const levee = await leverLeBlocage(
         SESSION,
-        { absence_id: id, decision: "validee" },
+        { absence_id: id },
         clientApp(),
       );
-      const seconde = await deciderAbsence(
+      expect(levee.accepte).toBe(true);
+
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ date_planifiee: Date | null; statut: string }>
+      >(
+        `SELECT "date_planifiee", "statut" FROM "intervention" WHERE "id" = $1::uuid`,
+        interventionId,
+      );
+      expect(ligne.date_planifiee).toBeNull();
+      expect(ligne.statut).toBe("a_planifier");
+    });
+
+    it("UN BLOCAGE INCONNU EST « INTROUVABLE », et rien de plus", async () => {
+      // *Les distinguer ferait un oracle* (D35, D50).
+      const levee = await leverLeBlocage(
         SESSION,
-        { absence_id: id, decision: "refusee" },
+        { absence_id: uuidv7() },
         clientApp(),
       );
-      expect(seconde).toEqual({
+      expect(levee).toEqual({
         accepte: false,
-        cle: "absence.refus.deja_tranchee",
+        cle: "absence.refus.inconnue",
       });
     });
   });
@@ -419,15 +430,10 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(pose.accepte).toBe(true);
 
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
+      const blocage = await bloquer("2026-09-14", "2026-09-18");
 
-      expect(decidee.accepte).toBe(true);
-      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([
+      expect(blocage.accepte).toBe(true);
+      expect(blocage.accepte && blocage.fiche.ruptures).toEqual([
         {
           etat: "rupture",
           agenceId: AGENCE_A,
@@ -449,25 +455,20 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(pose.accepte).toBe(true);
 
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
+      const blocage = await bloquer("2026-09-14", "2026-09-18");
 
-      expect(decidee.accepte).toBe(true);
+      expect(blocage.accepte).toBe(true);
       // L'intervention est bien rendue — le TÉMOIN que l'alerte avait de quoi
       // se déclencher, et qu'elle s'est tue pour la bonne raison.
-      expect(decidee.accepte && decidee.fiche.deplanifiees).toEqual([
+      expect(blocage.accepte && blocage.fiche.deplanifiees).toEqual([
         interventionId,
       ]);
-      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([
+      expect(blocage.accepte && blocage.fiche.ruptures).toEqual([
         { etat: "effectif_suffisant", agenceId: AGENCE_A, effectif: 2 },
       ]);
     });
 
-    it("un REFUS ne rompt rien — il ne déplanifie rien", async () => {
+    it("un blocage qui ne déplanifie RIEN ne rompt rien", async () => {
       await poserUnTechnicien(TECHNICIEN);
       const pose = await deplacerIntervention(
         SESSION,
@@ -476,39 +477,43 @@ describe("l'absence, sous le rôle applicatif", () => {
       );
       expect(pose.accepte).toBe(true);
 
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "refusee" },
-        clientApp(),
-      );
+      const blocage = await bloquer("2026-10-05", "2026-10-09");
 
-      expect(decidee.accepte && decidee.fiche.ruptures).toEqual([]);
+      expect(blocage.accepte && blocage.fiche.ruptures).toEqual([]);
     });
 
-    it("AUCUN CRÉNEAU N'EST PROPOSÉ — mesuré sur ce que la validation REND", async () => {
+    it("AUCUN CRÉNEAU N'EST PROPOSÉ — mesuré sur ce que la POSE REND", async () => {
       // *Un moteur qui propose sur un effectif d'un ne propose rien* (D106), et
       // l'acceptation de L3-04a demande que ce soit MESURÉ. La mesure porte ici
       // sur le chemin réel, pas sur la règle seule : rien dans ce que la
       // transaction rend ne ressemble à une proposition.
       await poserUnTechnicien(TECHNICIEN);
       await deplacerIntervention(SESSION, deplacement(LUNDI), clientApp());
-      const id = await declarer("2026-09-14", "2026-09-18");
-      const decidee = await deciderAbsence(
-        SESSION,
-        { absence_id: id, decision: "validee" },
-        clientApp(),
-      );
+      const blocage = await bloquer("2026-09-14", "2026-09-18");
 
-      expect(decidee.accepte).toBe(true);
-      if (!decidee.accepte) return;
-      expect(Object.keys(decidee.fiche).sort()).toEqual([
+      expect(blocage.accepte).toBe(true);
+      if (!blocage.accepte) return;
+      expect(Object.keys(blocage.fiche).sort()).toEqual([
         "absence",
         "deplanifiees",
         "ruptures",
       ]);
     });
   });
+
+  /*
+   * ═══ L'AUTRE BOUT DE RG-PLA-06 EST MESURÉ AILLEURS ══════════════════════
+   *
+   * Le déclencheur `intervention_pas_sur_blocage_agenda` — *on ne pose pas une
+   * intervention sur un agenda bloqué* — vit dans
+   * `tests/isolation/blocage-agenda-verrous.test.ts`, avec son jumeau et **les
+   * trois verbes de Prisma** : `create`, `update` et `upsert`.
+   *
+   * *Le mesurer ici aussi serait une seconde lecture d'un même critère* (§9,
+   * 01/09), et la plus faible des deux : ce fichier écrit par
+   * `$executeRawUnsafe`, qui ne passe par aucun des trois verbes dont le §9 du
+   * 14/09 dit qu'ils n'atteignent pas les déclencheurs dans le même ordre.
+   */
 });
 
 /** Sentinelle d'annulation : elle fait retomber la transaction, sans erreur. */

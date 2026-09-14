@@ -1,4 +1,4 @@
-import { periodesValidees } from "@/lib/absences/periode";
+import { periodesBloquees } from "@/lib/absences/periode";
 import { chargerCalendrierAgence } from "@/lib/calendar/agence";
 import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import { minutesOuvrees } from "@/lib/calendar/ouverture";
@@ -192,7 +192,7 @@ export async function occupationsDuPlanning(
       // c'est délibéré : `absence.du` et `absence.au` sont des `@db.Date`, et
       // le fuseau qui décide n'est pas encore connu ici — il appartient au
       // calendrier de chaque couple. *Ce qui est lu trop large est CLIPÉ plus
-      // bas par `periodesValidees` ; ce qui serait lu trop étroit serait perdu
+      // bas par `periodesBloquees` ; ce qui serait lu trop étroit serait perdu
       // sans que rien ne le dise.*
       const absences = await tx.absence.findMany({
         where: {
@@ -204,7 +204,6 @@ export async function occupationsDuPlanning(
           utilisateur_id: true,
           du: true,
           au: true,
-          statut: true,
         },
       });
 
@@ -330,7 +329,7 @@ export async function occupationsDuPlanning(
           const absentes =
             calendrier === null || debut === null || fin === null
               ? 0
-              : periodesValidees(absences, cle.technicienId, {
+              : periodesBloquees(absences, cle.technicienId, {
                   du: debut,
                   au: fin,
                 }).reduce(

@@ -837,11 +837,48 @@ D94 a créé cette forme pour `document_recu` — _une table de forme « sociét
 
 _Conséquence sur le gardien_ : chaque entrée de la liste close « interne » porte désormais **le motif de son propre retrait**. Le message parlait de **noms de fichiers** — vrai du bac et des lots d'import, **faux de l'absence** —, et _un gabarit qui affirme une cause que le contrôle ne mesure pas la réémet à chaque alarme._
 
+### Une absence n'est plus qu'un BLOCAGE D'AGENDA (R3-14, 14/09/2026)
+
+**CODIPLAN n'est pas un outil de gestion des ressources humaines.** La table `absence` ne porte plus qu'une personne, une date de début et une date de fin — _et rien d'autre._ Trois colonnes et deux types énumérés ont été supprimés le même jour, et chacun pour son motif propre :
+
+| Retiré                              | Pourquoi                                                                                                                                                                                                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `motif` et le type `MotifAbsence`   | `arret` est un arrêt de travail : une **donnée de santé**, sur un salarié nommé, en clair. La forme « interne » (D94) la protège du portail ; elle ne protège de rien à l'intérieur.                                                                                  |
+| `precision`                         | Le champ libre écrivait la **même donnée** sans l'énumérer — _un texte libre n'est pas moins nominatif qu'une énumération, il est seulement moins facile à mesurer._ Le retirer en même temps est le seul moyen de ne pas déplacer la donnée d'une colonne à l'autre. |
+| `statut` et le type `StatutAbsence` | Un cycle demandée → validée → refusée est un **circuit d'approbation de congés**, c'est-à-dire l'outil RH lui-même.                                                                                                                                                   |
+
+**Le blocage est donc IMMÉDIAT** : une ligne existe, l'agenda est bloqué. _Il n'y a plus de moitié qui ne bloque pas encore_, et c'est ce qui permet aux deux lecteurs — le dénominateur du taux d'occupation et le verrou de pose — de ne lire qu'une période au lieu d'une période et d'un état. _Un critère à deux termes se recopie dans chaque lecteur, et une recopie qui oublie le second terme OUVRE en silence ; il n'y a plus de second terme à oublier._
+
+**Le moment est le seul où ce geste est gratuit, et c'est mesuré** : `absence` comptait **zéro ligne**. On peut toujours ajouter une colonne plus tard ; on ne peut jamais dé-enregistrer ce qui a été écrit, et une donnée de santé écrite une fois ne se retire ni d'un journal d'audit (I8) ni d'une sauvegarde.
+
+**LE COÛT, NOMMÉ.** Plus rien ne distingue une indisponibilité pressentie d'une indisponibilité arrêtée : _qui pose la ligne l'arrête ; qui se trompe la lève_ — et lever ne rend pas leurs créneaux aux interventions déjà reparties en file. Réouverture : _le jour où une indisponibilité doit être PROPOSÉE avant d'être opposable à un client._
+
+### Qui bloque quel agenda — et la base le tient
+
+Un technicien bloque **son propre agenda**, jamais celui d'un autre : `absence_declaree_pour_soi` le refuse, en lisant `app.role` et `app.utilisateur_id` que le chemin de production pose déjà. **Une chaîne vide ne satisfait aucune branche : le défaut est le refus.** Les autres rôles internes saisissent pour un tiers — c'est l'ADV qui enregistre l'appel du matin —, et le déclencheur ne les vise pas.
+
+**CE QUE CE VERROU NE TIENT PLUS, et il faut l'écrire.** Tant qu'un statut existait, un technicien pouvait demander sans que cela déplanifie quoi que ce soit : l'encadrement tranchait, et `absence_decision_reservee_a_l_encadrement` le garantissait. **Le blocage étant désormais immédiat, un technicien qui pose son propre blocage rend à la file ses propres interventions.** Ce n'est pas un oubli : c'est la conséquence directe du retrait du statut, laissée en l'état plutôt que remplacée par une garde que personne n'a demandée. _Réouverture : le jour où l'on dira qui, dans la société, a le droit de vider un agenda._
+
+### Et l'effet rétroactif n'est pas empêché — il est DIT
+
+Rien n'est matérialisé : `occupationTechnicien` retranche les périodes bloquées **à chaque rendu**. Poser aujourd'hui un blocage sur la semaine passée change donc un taux déjà lu, et _il ne dira pas qu'il a changé._ L'empêcher reviendrait à figer une mesure du passé, or ce taux **n'est pas un document remis à un client** : c'est un écran de pilotage interne, qui doit dire le mieux qu'on sait. L'écran l'écrit donc là où la saisie se fait — _la forme de D76, appliquée non plus à une valeur mais à sa fraîcheur._ Réouverture : le jour où un taux d'occupation sort de chez CODIMA.
+
 ### Le QUATRIÈME contrôle à la pose, et la déplanification
 
-Une absence validée refuse le créneau **au déplacement comme à la pose** : c'est la leçon de L3-02, apprise la veille — _une règle tenue par un chemin sur deux n'est pas tenue._ Le refus nomme son motif sans nommer ni la personne ni la période : _un refus est un canal d'information soumis au cloisonnement comme une requête_ (D50).
+Un agenda bloqué refuse le créneau **au déplacement comme à la pose** : c'est la leçon de L3-02, apprise la veille — _une règle tenue par un chemin sur deux n'est pas tenue._ Le refus nomme son motif sans nommer ni la personne ni la période : _un refus est un canal d'information soumis au cloisonnement comme une requête_ (D50).
 
-**La validation et la déplanification sont dans la même transaction.** Une absence validée dont les interventions seraient restées posées ferait affirmer au planning qu'un absent travaille. Ce qui part est **la date et le créneau** ; **le technicien reste** — _une intervention qui perd son affectation perd l'information qui permet de la reposer au même endroit._ Et **une décision ne se reprend pas** : refuser après coup ne rendrait pas leurs créneaux aux interventions déjà rendues à la file.
+**Et l'AUTRE BOUT est fermé depuis R3-14, par la base.** La moitié qui déplanifie existait et était éprouvée ; celle qui manquait est que _rien n'empêchait de POSER sur un agenda bloqué depuis un chemin qui ne passe pas par `lib/interventions/pose.ts`_ — RG-PLA-06 n'était tenue qu'en TypeScript. `intervention_pas_sur_blocage_agenda` refuse désormais d'écrire une date de planification sur un technicien dont l'agenda est bloqué ce jour-là. **Les deux ne se doublent pas** : le contrôle applicatif rend un motif NOMMÉ que l'écran affiche, le déclencheur rend un refus. _L'un explique, l'autre garde._
+
+**Il est posé en `AFTER`, et ce n'est pas recopié de #188 — c'est REJOUÉ.** Le §9 du 14/09 dit qu'un gardien de base se lit sur deux axes, et que le second s'oublie : _par quel VERBE écrit-on, et est-ce celui de la production ?_ Sous `upsert`, PostgreSQL lève `BEFORE INSERT` sur la ligne candidate — qui porte les valeurs du bloc `create` — avant de découvrir le conflit. Mesuré sur PostgreSQL 16.13, avec une ligne existante datée d'un jour libre, un `upsert` dont la partie insérée porte une date bloquée et dont le `DO UPDATE` ne touche pas la date :
+
+```
+BEFORE INSERT OR UPDATE   → REFUSE  — « l'agenda est bloqué ce jour-là »
+AFTER  INSERT OR UPDATE   → ACCEPTE — aucune erreur
+```
+
+_Le refus de la première ligne porte sur une écriture qui n'a jamais eu lieu._ Le verrou est éprouvé sur **les trois verbes** — `create`, `update`, `upsert` — dans `tests/isolation/blocage-agenda-verrous.test.ts`.
+
+**La pose et la déplanification sont dans la même transaction.** Un blocage dont les interventions seraient restées posées ferait affirmer au planning qu'une personne indisponible travaille. Ce qui part est **la date et le créneau** ; **le technicien reste** — _une intervention qui perd son affectation perd l'information qui permet de la reposer au même endroit._ Et **lever un blocage ne rend rien** : les interventions reparties en file ne savent plus où elles étaient.
 
 ## Le technicien a enfin une agence — et une table auditée était inécrivable
 

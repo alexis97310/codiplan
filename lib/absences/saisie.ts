@@ -1,40 +1,28 @@
 import { z } from "zod";
 
 /**
- * LA SAISIE D'UNE ABSENCE (L3-04) — Zod sur toute entrée serveur, sans
- * exception (§2).
+ * LA SAISIE D'UN BLOCAGE D'AGENDA (L3-04, R3-14) — Zod sur toute entrée
+ * serveur, sans exception (§2).
  *
- * ## Ce qui NE SE SAISIT PAS
+ * ## CE QUI SE SAISIT : une personne, un début, une fin. RIEN D'AUTRE.
  *
- * **Le statut.** Une absence naît `demandee` et rien d'autre : la laisser
- * naître `validee` donnerait à qui la saisit le pouvoir de déplanifier le
- * planning d'autrui en un appel. La validation est un ACTE SÉPARÉ, et c'est
- * lui qui déplanifie.
+ * **CODIPLAN n'est pas un outil de gestion des ressources humaines.** Ni
+ * nature, ni motif, ni champ libre, ni statut : ce ne sont pas des champs
+ * oubliés, ce sont des champs RETIRÉS, et le schéma est le premier endroit où
+ * ce retrait se lit.
  *
- * **La société.** Elle vient du contexte cloisonné, jamais d'un formulaire —
- * c'est la forme de toutes les saisies du dépôt.
+ * *`arret` était un arrêt de travail — une donnée de santé, sur un salarié
+ * nommé, en clair. Un champ libre à sa place aurait écrit la même chose en
+ * moins mesurable.* Le seul lecteur réel de cette table — le dénominateur du
+ * taux d'occupation — n'a besoin que de savoir que la personne n'était pas là.
  *
- * ## LES DEUX SENS DE LA PRÉCISION
+ * ## La SOCIÉTÉ ne se saisit pas non plus
  *
- * Obligatoire sous `autre`, **interdite sous les autres motifs**. Le second
- * sens est celui qu'on oublie (D88, sur les exceptions VGP) : une précision
- * sous un motif énuméré serait une seconde source du même fait, et personne ne
- * saurait laquelle lire. La base le tient aussi — deux verrous qui ne se
- * recouvrent pas, aucun ne remplaçant l'autre.
+ * Elle vient du contexte cloisonné, jamais d'un formulaire — c'est la forme de
+ * toutes les saisies du dépôt.
  */
 
 const uuid = z.string().uuid();
-
-/** Les motifs, clos ICI comme en base. Voir le schéma pour le pourquoi. */
-export const MOTIFS_ABSENCE = [
-  "conge",
-  "arret",
-  "formation",
-  "recuperation",
-  "autre",
-] as const;
-
-export type MotifAbsence = (typeof MOTIFS_ABSENCE)[number];
 
 /**
  * Une journée civile, lue en UTC et JAMAIS par un `Date` local : UTC+11 décale
@@ -47,35 +35,27 @@ export const schemaCreationAbsence = z
     utilisateur_id: uuid,
     du: jourCivil,
     au: jourCivil,
-    motif: z.enum(MOTIFS_ABSENCE),
-    precision: z.string().trim().min(1).nullable().default(null),
   })
   // Une période dont la fin précède le début n'est pas une période. Les bornes
-  // sont COMPRISES : une absence d'un seul jour a `du === au`.
+  // sont COMPRISES : un blocage d'un seul jour a `du === au`.
   .refine((v) => v.au.getTime() >= v.du.getTime(), {
-    message: "La fin d'une absence ne précède pas son début.",
+    message: "La fin d'un blocage ne précède pas son début.",
     path: ["au"],
-  })
-  // LES DEUX SENS, et le second est celui qu'on oublie.
-  .refine((v) => (v.motif === "autre") === (v.precision !== null), {
-    message:
-      "Le motif « autre » exige une précision, et les autres motifs n'en acceptent pas.",
-    path: ["precision"],
   });
 
 export type CreationAbsence = z.output<typeof schemaCreationAbsence>;
 
 /**
- * LA DÉCISION SUR UNE ABSENCE — validée ou refusée, jamais « remise à
- * demandée ».
+ * LA LEVÉE D'UN BLOCAGE — il se supprime, il ne se « refuse » pas.
  *
- * *Revenir à `demandee` effacerait qu'un arbitrage a eu lieu*, et une
- * validation qui a déjà déplanifié des interventions ne se défait pas en
- * changeant un mot : elle se refuse, et les interventions se replanifient.
+ * *Un statut `refusee` aurait gardé la ligne en disant qu'elle ne compte pas* :
+ * deux façons pour une période de ne pas bloquer, dont une invisible au
+ * lecteur qui ne regarde que les dates. Le blocage est immédiat ; sa levée
+ * l'est aussi, et elle ne laisse derrière elle que le journal d'audit (I8), qui
+ * est le bon endroit pour l'histoire d'une ligne.
  */
-export const schemaDecisionAbsence = z.object({
+export const schemaLeveeBlocage = z.object({
   absence_id: uuid,
-  decision: z.enum(["validee", "refusee"]),
 });
 
-export type DecisionAbsence = z.output<typeof schemaDecisionAbsence>;
+export type LeveeBlocage = z.output<typeof schemaLeveeBlocage>;

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { deciderAbsence, declarerAbsence } from "@/lib/absences/depot";
+import { declarerAbsence } from "@/lib/absences/depot";
 import { schemaCreationAbsence } from "@/lib/absences/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 import { occupationsDuPlanning } from "@/lib/interventions/occupation";
@@ -68,28 +68,27 @@ const FENETRE = {
 let interventionId = "";
 const absencesPosees: string[] = [];
 
-async function declarerEtDecider(
+/**
+ * POSER un blocage, et c'est le SEUL geste (R3-14).
+ *
+ * Il fallait deux écritures avant le 14/09 — déclarer, puis valider — parce
+ * qu'un statut décidait laquelle comptait. *Le circuit d'approbation a été
+ * retiré avec le reste de l'outillage RH* : la ligne existe, elle bloque, et le
+ * dénominateur la retranche.
+ */
+async function bloquer(
   du: string,
   au: string,
-  decision: "validee" | "refusee" | null,
+  utilisateurId: string = TECHNICIEN,
 ): Promise<void> {
   const saisie = schemaCreationAbsence.parse({
-    utilisateur_id: TECHNICIEN,
+    utilisateur_id: utilisateurId,
     du: new Date(`${du}T00:00:00.000Z`),
     au: new Date(`${au}T00:00:00.000Z`),
-    motif: "conge",
-    precision: null,
   });
   const posee = await declarerAbsence(SESSION, saisie, clientApp());
-  if (!posee.accepte) throw new Error(`déclaration refusée : ${posee.cle}`);
-  absencesPosees.push(posee.fiche.id);
-  if (decision !== null) {
-    await deciderAbsence(
-      SESSION,
-      { absence_id: posee.fiche.id, decision },
-      clientApp(),
-    );
-  }
+  if (!posee.accepte) throw new Error(`blocage refusé : ${posee.cle}`);
+  absencesPosees.push(posee.fiche.absence.id);
 }
 
 /** Les minutes ouvrables du technicien sur la semaine, telles que l'écran les lit. */
@@ -150,43 +149,44 @@ afterEach(async () => {
 });
 
 describe("le dénominateur du taux d'occupation", () => {
-  it("TÉMOIN — sans absence, il est NON NUL", async () => {
+  it("TÉMOIN — sans blocage, il est NON NUL", async () => {
     // *Sans lui, tout ce qui suit serait vert sur un dénominateur déjà nul*,
     // c'est-à-dire sur rien : une soustraction de zéro à zéro rend zéro.
     expect(await ouvrables()).toBeGreaterThan(0);
   });
 
-  it("une absence VALIDÉE le fait DIMINUER", async () => {
+  it("un blocage le fait DIMINUER, dès sa pose", async () => {
     const avant = await ouvrables();
-    await declarerEtDecider("2026-09-14", "2026-09-14", "validee");
+    await bloquer("2026-09-14", "2026-09-14");
     const apres = await ouvrables();
     expect(apres).toBeLessThan(avant);
-    // Et il ne tombe pas à zéro : un seul jour d'absence sur la semaine.
+    // Et il ne tombe pas à zéro : un seul jour bloqué sur la semaine.
     expect(apres).toBeGreaterThan(0);
   });
 
-  it("une absence DEMANDÉE ne change RIEN — le vert pour sa propre raison", async () => {
-    // Son voisin lui ressemble à un mot près. *Retrancher une demande en
-    // attente ferait baisser un dénominateur qu'un refus rétablirait le
-    // lendemain, sans que personne comprenne pourquoi le taux a bougé.*
+  it("un blocage HORS de la fenêtre ne change RIEN — le vert pour sa propre raison", async () => {
+    // *Le cas qui doit rester vert POUR SA PROPRE RAISON* (§9, 11/09) : une
+    // soustraction qui emporterait toute ligne d'`absence` passerait le
+    // scénario ci-dessus sans qu'on s'en aperçoive.
     const avant = await ouvrables();
-    await declarerEtDecider("2026-09-14", "2026-09-14", null);
+    await bloquer("2026-10-05", "2026-10-09");
     expect(await ouvrables()).toBe(avant);
   });
 
-  it("une absence REFUSÉE ne change rien non plus", async () => {
+  it("le blocage d'un AUTRE ne change rien non plus", async () => {
+    // Le second voisin : même fenêtre, **une personne de différence**.
     const avant = await ouvrables();
-    await declarerEtDecider("2026-09-14", "2026-09-14", "refusee");
+    await bloquer("2026-09-14", "2026-09-14", UTILISATEUR_INTERNE_A);
     expect(await ouvrables()).toBe(avant);
   });
 
-  it("DEUX ABSENCES QUI SE RECOUVRENT ne retranchent pas deux fois", async () => {
-    // **Le scénario qui empêche un taux supérieur à 100 %.** Un congé prolongé
-    // par un arrêt est le cas ordinaire ; retranchées séparément, les journées
+  it("DEUX BLOCAGES QUI SE RECOUVRENT ne retranchent pas deux fois", async () => {
+    // **Le scénario qui empêche un taux supérieur à 100 %.** Une semaine posée
+    // puis prolongée d'une seconde ligne est le cas ordinaire ; retranchées séparément, les journées
     // communes seraient comptées deux fois et le dénominateur pourrait passer
     // sous zéro.
-    await declarerEtDecider("2026-09-14", "2026-09-16", "validee");
-    await declarerEtDecider("2026-09-15", "2026-09-18", "validee");
+    await bloquer("2026-09-14", "2026-09-16");
+    await bloquer("2026-09-15", "2026-09-18");
     const apres = await ouvrables();
     expect(apres).toBeGreaterThanOrEqual(0);
 
@@ -198,15 +198,15 @@ describe("le dénominateur du taux d'occupation", () => {
         id,
       );
     }
-    await declarerEtDecider("2026-09-14", "2026-09-18", "validee");
+    await bloquer("2026-09-14", "2026-09-18");
     expect(await ouvrables()).toBe(apres);
   });
 
-  it("une absence qui couvre TOUTE la semaine rend le dénominateur NUL", async () => {
+  it("un blocage qui couvre TOUTE la semaine rend le dénominateur NUL", async () => {
     // *Et un dénominateur nul se lit `null`, jamais « 0 % »* — c'est la règle
     // que D76 a posée pour « pas de calendrier », et elle sert ici la troisième
     // cause : « il était absent ».
-    await declarerEtDecider("2026-09-07", "2026-09-28", "validee");
+    await bloquer("2026-09-07", "2026-09-28");
     expect(await ouvrables()).toBe(0);
   });
 });

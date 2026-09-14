@@ -495,18 +495,30 @@ lib/
               requête (D64) — l'`id` par lequel la bibliothèque réécrit une
               ligne dit QUELLE ligne, la politique dit à QUI elle est ;
               l'`id` ouvre les écritures, JAMAIS les lectures
-  absences/   L'INDISPONIBILITÉ D'UNE PERSONNE (L3-04, L3-17, RG-PLA-06)
+  absences/   UN BLOCAGE D'AGENDA (L3-04, L3-17, R3-14, RG-PLA-06)
+              CODIPLAN N'EST PAS UN OUTIL RH *(arbitrage du 14/09/2026)* : une
+              personne, une date de début, une date de fin, ET RIEN D'AUTRE —
+              ni nature, ni motif, ni champ libre, ni historique de statut
+              ~~le statut a TROIS valeurs et jamais un booléen~~ — `statut`, le
+              type `StatutAbsence`, `motif`, `MotifAbsence` et `precision` sont
+              SUPPRIMÉS : un cycle demandée → validée → refusée est un circuit
+              d'approbation de congés, et `arret` était une donnée de santé sur
+              un salarié nommé. La phrase est barrée et non effacée : elle a
+              gouverné ce module, et ce qui a été décidé un jour se relit
+              le blocage est donc IMMÉDIAT, et le coût est nommé : plus rien ne
+              distingue une indisponibilité pressentie d'une indisponibilité
+              arrêtée — qui pose la ligne l'arrête, qui se trompe la lève
               la table est de forme « INTERNE » (D94), et c'est décidé à sa
-              NAISSANCE — le seul moment où cela ne coûte rien : « votre
-              technicien habituel est en arrêt du 14 au 28 » est une donnée de
-              santé par déduction, et ce n'est pas au client de la lire
-              periode.ts : la RÈGLE, qui ne lit ni base ni horloge — seule une
-              absence VALIDÉE bloque, une demandée ne dit rien encore et une
-              refusée ne dit plus rien ; les bornes sont COMPRISES toutes les
-              deux, une borne ouverte ferait travailler quelqu'un le dernier
-              jour de son arrêt
-              le statut a TROIS valeurs et jamais un booléen : « demandée » et
-              « refusée » ne se distinguent pas sous une case décochée
+              NAISSANCE — le seul moment où cela ne coûte rien ; elle le reste
+              après le dégraissage : savoir que telle personne n'est pas là du
+              14 au 28 est une information sur une personne NOMMÉE, même
+              dépouillée de sa cause
+              periode.ts : la RÈGLE, qui ne lit ni base ni horloge — TOUTE ligne
+              bloque, et c'est ce qui la rend plus sûre qu'avant : un critère à
+              deux termes se recopie dans chaque lecteur, et une recopie qui
+              oublie le second OUVRE en silence
+              les bornes sont COMPRISES toutes les deux, une borne ouverte
+              ferait travailler quelqu'un le dernier jour de son arrêt
               rupture-de-service.ts : L'ALERTE À EFFECTIF UNIQUE (L3-04a,
               RG-PLA-06, D106) — elle ne propose AUCUN créneau, et c'est une
               décision : *un moteur qui propose sur un effectif d'un ne propose
@@ -519,21 +531,26 @@ lib/
               agence bien pourvue : le silence
               l'ABSENT compte dans l'effectif : être absent quinze jours ne rend
               pas inactif, et le seuil « un seul » cesserait de dire ce qu'il dit
-              une absence ne déplanifie NI ce qui a eu lieu, NI ce qui n'occupe
+              un blocage ne déplanifie NI ce qui a eu lieu, NI ce qui n'occupe
               rien — et les deux motifs diffèrent : l'une n'a rien à rendre,
               l'autre a un fait à protéger (I5)
-              `periodesValidees` FUSIONNE avant de rendre (L3-17) : deux
-              absences qui se recouvrent ou se touchent n'en font qu'une, sans
+              `periodesBloquees` FUSIONNE avant de rendre (L3-17) : deux
+              blocages qui se recouvrent ou se touchent n'en font qu'un, sans
               quoi le dénominateur du taux d'occupation les retrancherait deux
               fois et passerait sous zéro
-              depot.ts : la validation et la déplanification sont dans la MÊME
-              transaction — une absence validée dont les interventions seraient
-              restées posées ferait affirmer au planning qu'un absent travaille
+              depot.ts : la POSE et la déplanification sont dans la MÊME
+              transaction — un blocage dont les interventions seraient restées
+              posées ferait affirmer au planning qu'un absent travaille
               ce qui part est la DATE et le CRÉNEAU, jamais le technicien : une
               intervention qui perd son affectation perd ce qui permet de la
               reposer au même endroit
-              une décision ne se reprend pas : refuser après coup ne rendrait
-              pas leurs créneaux aux interventions déjà rendues à la file
+              l'ORDRE des deux écritures est INDIFFÉRENT, et c'est MESURÉ : le
+              verrou ne se lève que sur une date NON NULLE, or la
+              déplanification écrit NULL — l'explication inverse avait été
+              écrite d'abord, et mise en échec ensuite (§9, 08/09)
+              lever un blocage ne rend RIEN : les interventions reparties en
+              file ne savent plus où elles étaient, et le journal d'audit est le
+              bon endroit pour l'histoire d'une ligne
   clients/    référentiel client (L1-01) — saisie Zod, dépôt cloisonné,
               libellé du code externe paramétrable par société (D29)
               la politique de `client` est de forme « parc », jamais société seule
