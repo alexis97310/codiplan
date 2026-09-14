@@ -77,11 +77,29 @@ const LARGEURS = [
   { nom: "390", largeur: 390, hauteur: 844, quoi: "téléphone" },
 ] as const;
 
-/** Les deux thèmes. Le viewer en a un troisième — « système » — qui n'en est pas un. */
-const THEMES = [
-  { nom: "clair", schema: "light" as const },
-  { nom: "sombre", schema: "dark" as const },
-];
+/**
+ * UN SEUL THÈME, PARCE QUE LE PRODUIT N'EN A QU'UN (14/09/2026).
+ *
+ * La prise de vue photographiait chaque écran deux fois, « clair » et
+ * « sombre ». *Mesuré le 14/09/2026 par `cmp` sur les 100 images commises : les
+ * 50 paires étaient IDENTIQUES, octet pour octet.* Ce n'était pas une panne du
+ * viewer — `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre**,
+ * *ce seraient des couleurs que personne n'a validées* —, c'était une prise de
+ * vue qui basculait un thème inexistant et rangeait le résultat sous deux noms.
+ *
+ * **Une seconde image qui ne peut pas différer de la première n'est pas une
+ * mesure : elle a la forme d'une preuve et n'en porte aucune** — le §9 du 06/09,
+ * appliqué non plus à une ligne de rapport mais à un fichier. Elle coûtait en
+ * outre la moitié du temps de prise et la moitié du poids du dépôt.
+ *
+ * Le segment `clair` RESTE dans le nom des fichiers, et c'est délibéré : la
+ * consigne est retirée *jusqu'à nouvel ordre*, pas pour toujours. Le retirer
+ * renommerait 50 images et couperait leur historique, pour le rétablir le jour
+ * où une palette sombre est déclarée. **Réouverture : le jour où
+ * `lib/theme/apparence.ts` déclare une apparence sombre** — cette liste reçoit
+ * sa seconde entrée, et les paires divergent alors d'elles-mêmes.
+ */
+const THEMES = [{ nom: "clair", schema: "light" as const }];
 
 type Ecran = {
   /** Le nom du fichier, sans thème ni largeur. */
@@ -1314,8 +1332,9 @@ function redigerReadme(
   lignes.push(
     "## Les images",
     "",
-    "Chaque écran est photographié en **thème clair** et en **thème sombre**, à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.",
-    "**ET LES DEUX FICHIERS D'UN MÊME ÉCRAN SONT AUJOURD'HUI IDENTIQUES, OCTET POUR OCTET.** Ce n'est pas une panne de la prise de vue : `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** — *ce serait des couleurs que personne n'a validées*. Le viewer bascule un thème qui n'existe pas encore, et les deux images se ressemblent parce que le produit n'a qu'un visage. *Mesuré le 14/09/2026 par `cmp` sur les paires déjà commises* — c'était donc déjà vrai avant cette prise, et rien ne le disait. **Le jour où une palette sombre est déclarée, ces paires divergent d'elles-mêmes et cette phrase se retire.**",
+    "Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.",
+    "**IL N'Y A PLUS QU'UNE IMAGE PAR ÉCRAN ET PAR LARGEUR, et c'est un RETRAIT, pas une omission.** La prise de vue en faisait deux — « clair » et « sombre » —, et *mesuré le 14/09/2026 par `cmp` sur les 100 images commises : les 50 paires étaient IDENTIQUES, octet pour octet.* `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** : le viewer basculait un thème qui n'existe pas, et le résultat était rangé sous deux noms. **Une seconde image qui ne peut pas différer de la première a la forme d'une preuve et n'en porte aucune** — le §9 du 06/09, appliqué à un fichier plutôt qu'à une ligne de rapport.",
+    "*Le segment `clair` reste dans le nom* : la consigne est retirée **jusqu'à nouvel ordre**, et renommer 50 images couperait leur historique pour le rétablir le jour venu. **Réouverture : le jour où `lib/theme/apparence.ts` déclare une apparence sombre** — `THEMES` reçoit sa seconde entrée, et les paires divergent d'elles-mêmes.",
     "",
     "### Ce que ces images montrent DE L'OUTIL et non de l'application",
     "",
@@ -1329,7 +1348,12 @@ function redigerReadme(
   for (const fichier of prises) {
     const nom = fichier.replace(/--.*/, "");
     const ecran = ECRANS.find((e) => e.nom === nom);
-    const theme = fichier.includes("--clair--") ? "clair" : "sombre";
+    // LE THÈME SE LIT DANS LE NOM, il ne se DEVINE pas. La forme précédente
+    // — « clair si le nom le porte, sombre sinon » — était un test binaire sur
+    // une liste qui n'a plus qu'une entrée : toute image aurait été dite
+    // « clair », y compris une image d'un thème ajouté demain. *Une branche qui
+    // ne peut plus être prise ment le jour où elle le redevient.*
+    const theme = fichier.split("--")[1] ?? "clair";
     const format = fichier.includes("--1280.")
       ? "poste de travail"
       : "téléphone";
