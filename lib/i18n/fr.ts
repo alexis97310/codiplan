@@ -1343,6 +1343,48 @@ export const fr = {
     "Un blocage se pose avec une personne, une date de début et une date de fin, la seconde après la première.",
   "absence.refus.pour_autrui":
     "Un technicien bloque son propre agenda, jamais celui d'un autre.",
+  // ── LE CATALOGUE DES PRESTATIONS (R3-15 ; D109, D113) ────────────────────
+  //
+  // AUCUN LIBELLÉ DE MONTANT N'EXISTE ICI, et ce n'est pas une omission :
+  // *une prestation porte une durée, jamais un taux* (D109). La colonne
+  // n'existe pas en base, et un gardien refuse qu'elle apparaisse.
+  "prestations.titre": "Catalogue des prestations",
+  "prestations.sous_titre":
+    "Ce qu'on sait faire, et le temps que cela prend d'habitude. Le prix n'est pas ici : il se lit au taux horaire en vigueur à la date de l'intervention, ou au forfait qui s'applique.",
+  "prestations.creer": "Ajouter une prestation",
+  "prestations.creer_action": "Ajouter",
+  "prestations.modifier": "Modifier",
+  "prestations.enregistrer": "Enregistrer",
+  "prestations.code": "Code",
+  "prestations.libelle": "Libellé",
+  "prestations.famille": "Famille de matériel",
+  "prestations.sans_famille": "Aucune famille",
+  "prestations.famille_inconnue": "Famille non lisible",
+  "prestations.duree": "Durée standard",
+  "prestations.duree_minutes": "Durée (minutes)",
+  // « NON ESTIMÉE » ET « ZÉRO » NE SE CORRIGENT PAS AU MÊME ENDROIT : zéro
+  // dirait « instantané », et la base le refuse pour cette raison exacte. La
+  // troisième fois que ce dépôt sépare « je ne sais pas » de « la valeur vaut
+  // rien » (D76, D88).
+  "prestations.duree_non_estimee": "Non estimée",
+  "prestations.activite": "Activité",
+  "prestations.active": "Active",
+  "prestations.inactive": "Inactive",
+  "prestations.activer": "Réactiver",
+  "prestations.desactiver": "Désactiver",
+  "prestations.aucune": "Le catalogue est vide.",
+  "prestations.sans_montant":
+    "Une prestation ne porte pas de tarif. Le prix se lit au taux horaire en vigueur à la date de l'intervention, ou au forfait qui s'applique — deux endroits qui porteraient un prix, ce serait une préséance à inventer et une facture qu'on ne saurait plus expliquer.",
+  "prestations.sans_checklist":
+    "La checklist type ne se saisit pas encore : personne n'a dit ce qu'elle porte — une liste d'étapes, un texte, un modèle à désigner. L'inventer ici la figerait pour toutes les sociétés.",
+  "prestations.refus.saisie":
+    "Une prestation se saisit avec un code et un libellé. La durée est facultative ; si elle est donnée, elle est en minutes entières et supérieure à zéro.",
+  "prestations.refus.code_pris":
+    "Ce code est déjà pris par une autre prestation de cette société.",
+  "prestations.refus.famille_hors_societe":
+    "Cette famille de matériel n'est pas lisible sous la société active.",
+  "prestations.refus.introuvable":
+    "Cette prestation n'est pas lisible sous la société active.",
 
   // ── LA PAGE QUI DONNE UNE PORTE AUX ÉCRANS DE PARAMÉTRAGE (R3-05) ────────
   //
@@ -1377,6 +1419,9 @@ export const fr = {
   "parametres.index_clients_titre": "Clients",
   "parametres.index_clients_resume":
     "Le r\u00e9f\u00e9rentiel des clients\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import et lieux d'intervention. C'est d'ici que part la cr\u00e9ation d'une fiche.",
+  "parametres.index_prestations_titre": "Catalogue des prestations",
+  "parametres.index_prestations_resume":
+    "Ce qu'on sait faire, et combien de temps cela prend. Une prestation porte une durée standard, jamais un tarif : le prix se lit au taux horaire ou au forfait, à la date de l'intervention.",
   "parametres.index_ouvrir": "Ouvrir",
 
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────

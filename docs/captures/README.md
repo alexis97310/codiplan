@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `05998d4286b1071abff56fbe5616c55058fdb52f` (`05998d4`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-14 20:46 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `f13c2c67a553c211d018344ab6ea4047d343328e` (`f13c2c6`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-14 22:09 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -67,7 +67,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `05998d4` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `f13c2c6` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -91,16 +91,12 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
 - `portail--clair--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--sombre--1280.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
-  Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--sombre--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
-  Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
 
 ## Les images
 
-Chaque écran est photographié en **thème clair** et en **thème sombre**, à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.
-
-**ET LES DEUX FICHIERS D'UN MÊME ÉCRAN SONT AUJOURD'HUI IDENTIQUES, OCTET POUR OCTET.** Ce n'est pas une panne de la prise de vue : `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** — *ce serait des couleurs que personne n'a validées*. Le viewer bascule un thème qui n'existe pas encore, et les deux images se ressemblent parce que le produit n'a qu'un visage. *Mesuré le 14/09/2026 par `cmp` sur les paires déjà commises* — c'était donc déjà vrai avant cette prise, et rien ne le disait. **Le jour où une palette sombre est déclarée, ces paires divergent d'elles-mêmes et cette phrase se retire.**
+Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.
+**IL N'Y A PLUS QU'UNE IMAGE PAR ÉCRAN ET PAR LARGEUR, et c'est un RETRAIT, pas une omission.** La prise de vue en faisait deux — « clair » et « sombre » —, et *mesuré le 14/09/2026 par `cmp` sur les 100 images commises : les 50 paires étaient IDENTIQUES, octet pour octet.* `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** : le viewer basculait un thème qui n'existe pas, et le résultat était rangé sous deux noms. **Une seconde image qui ne peut pas différer de la première a la forme d'une preuve et n'en porte aucune** — le §9 du 06/09, appliqué à un fichier plutôt qu'à une ligne de rapport.
+*Le segment `clair` reste dans le nom* : la consigne est retirée **jusqu'à nouvel ordre**, et renommer 50 images couperait leur historique pour le rétablir le jour venu. **Réouverture : le jour où `lib/theme/apparence.ts` déclare une apparence sombre** — `THEMES` reçoit sa seconde entrée, et les paires divergent d'elles-mêmes.
 
 ### Ce que ces images montrent DE L'OUTIL et non de l'application
 
@@ -112,105 +108,55 @@ Chaque écran est photographié en **thème clair** et en **thème sombre**, à 
 |---|---|
 | `enrolement--clair--1280.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, poste de travail. |
 | `enrolement--clair--390.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, téléphone. |
-| `enrolement--sombre--1280.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème sombre, poste de travail. |
-| `enrolement--sombre--390.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème sombre, téléphone. |
 | `arrivee-sans-societe--clair--1280.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, poste de travail. |
 | `arrivee-sans-societe--clair--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
-| `arrivee-sans-societe--sombre--1280.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème sombre, poste de travail. |
-| `arrivee-sans-societe--sombre--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème sombre, téléphone. |
 | `connexion-code--clair--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
 | `connexion-code--clair--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
-| `connexion-code--sombre--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème sombre, poste de travail. |
-| `connexion-code--sombre--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème sombre, téléphone. |
 | `accueil--clair--1280.png` | La page d'accueil. — thème clair, poste de travail. |
 | `accueil--clair--390.png` | La page d'accueil. — thème clair, téléphone. |
-| `accueil--sombre--1280.png` | La page d'accueil. — thème sombre, poste de travail. |
-| `accueil--sombre--390.png` | La page d'accueil. — thème sombre, téléphone. |
 | `connexion--clair--1280.png` | La page de connexion. — thème clair, poste de travail. |
 | `connexion--clair--390.png` | La page de connexion. — thème clair, téléphone. |
-| `connexion--sombre--1280.png` | La page de connexion. — thème sombre, poste de travail. |
-| `connexion--sombre--390.png` | La page de connexion. — thème sombre, téléphone. |
 | `premier-acces--clair--1280.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, poste de travail. |
 | `premier-acces--clair--390.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, téléphone. |
-| `premier-acces--sombre--1280.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème sombre, poste de travail. |
-| `premier-acces--sombre--390.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème sombre, téléphone. |
 | `sante--clair--1280.png` | L'état de l'installation, **sans compte**. — thème clair, poste de travail. |
 | `sante--clair--390.png` | L'état de l'installation, **sans compte**. — thème clair, téléphone. |
-| `sante--sombre--1280.png` | L'état de l'installation, **sans compte**. — thème sombre, poste de travail. |
-| `sante--sombre--390.png` | L'état de l'installation, **sans compte**. — thème sombre, téléphone. |
 | `arrivee--clair--1280.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, poste de travail. |
 | `arrivee--clair--390.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, téléphone. |
-| `arrivee--sombre--1280.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème sombre, poste de travail. |
-| `arrivee--sombre--390.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème sombre, téléphone. |
 | `planning--clair--1280.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, poste de travail. |
 | `planning--clair--390.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, téléphone. |
-| `planning--sombre--1280.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème sombre, poste de travail. |
-| `planning--sombre--390.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème sombre, téléphone. |
 | `planning-jour--clair--1280.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, poste de travail. |
 | `planning-jour--clair--390.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, téléphone. |
-| `planning-jour--sombre--1280.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème sombre, poste de travail. |
-| `planning-jour--sombre--390.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème sombre, téléphone. |
 | `imports-rapport--clair--1280.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, poste de travail. |
 | `imports-rapport--clair--390.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, téléphone. |
-| `imports-rapport--sombre--1280.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème sombre, poste de travail. |
-| `imports-rapport--sombre--390.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème sombre, téléphone. |
 | `imports--clair--1280.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, poste de travail. |
 | `imports--clair--390.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, téléphone. |
-| `imports--sombre--1280.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème sombre, poste de travail. |
-| `imports--sombre--390.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème sombre, téléphone. |
 | `intervention-creation--clair--1280.png` | La création d'une intervention depuis le planning. — thème clair, poste de travail. |
 | `intervention-creation--clair--390.png` | La création d'une intervention depuis le planning. — thème clair, téléphone. |
-| `intervention-creation--sombre--1280.png` | La création d'une intervention depuis le planning. — thème sombre, poste de travail. |
-| `intervention-creation--sombre--390.png` | La création d'une intervention depuis le planning. — thème sombre, téléphone. |
 | `intervention-detail--clair--1280.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, poste de travail. |
 | `intervention-detail--clair--390.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, téléphone. |
-| `intervention-detail--sombre--1280.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème sombre, poste de travail. |
-| `intervention-detail--sombre--390.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème sombre, téléphone. |
 | `parc--clair--1280.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, poste de travail. |
 | `parc--clair--390.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, téléphone. |
-| `parc--sombre--1280.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème sombre, poste de travail. |
-| `parc--sombre--390.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème sombre, téléphone. |
 | `clients--clair--1280.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, poste de travail. |
 | `clients--clair--390.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, téléphone. |
-| `clients--sombre--1280.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème sombre, poste de travail. |
-| `clients--sombre--390.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème sombre, téléphone. |
 | `client-creation--clair--1280.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, poste de travail. |
 | `client-creation--clair--390.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, téléphone. |
-| `client-creation--sombre--1280.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème sombre, poste de travail. |
-| `client-creation--sombre--390.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème sombre, téléphone. |
 | `client-detail--clair--1280.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, poste de travail. |
 | `client-detail--clair--390.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, téléphone. |
-| `client-detail--sombre--1280.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème sombre, poste de travail. |
-| `client-detail--sombre--390.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème sombre, téléphone. |
 | `absences--clair--1280.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, poste de travail. |
 | `absences--clair--390.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, téléphone. |
-| `absences--sombre--1280.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème sombre, poste de travail. |
-| `absences--sombre--390.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème sombre, téléphone. |
 | `sites--clair--1280.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, poste de travail. |
 | `sites--clair--390.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, téléphone. |
-| `sites--sombre--1280.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème sombre, poste de travail. |
-| `sites--sombre--390.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème sombre, téléphone. |
 | `parametres-trajets--clair--1280.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, poste de travail. |
 | `parametres-trajets--clair--390.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, téléphone. |
-| `parametres-trajets--sombre--1280.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème sombre, poste de travail. |
-| `parametres-trajets--sombre--390.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème sombre, téléphone. |
 | `parametres--clair--1280.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, poste de travail. |
 | `parametres--clair--390.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, téléphone. |
-| `parametres--sombre--1280.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème sombre, poste de travail. |
-| `parametres--sombre--390.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème sombre, téléphone. |
 | `vgp--clair--1280.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, poste de travail. |
 | `vgp--clair--390.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, téléphone. |
-| `vgp--sombre--1280.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème sombre, poste de travail. |
-| `vgp--sombre--390.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème sombre, téléphone. |
 | `vgp-a-determiner--clair--1280.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, poste de travail. |
 | `vgp-a-determiner--clair--390.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, téléphone. |
-| `vgp-a-determiner--sombre--1280.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème sombre, poste de travail. |
-| `vgp-a-determiner--sombre--390.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème sombre, téléphone. |
 | `parametres-agences--clair--1280.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, poste de travail. |
 | `parametres-agences--clair--390.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, téléphone. |
-| `parametres-agences--sombre--1280.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème sombre, poste de travail. |
-| `parametres-agences--sombre--390.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème sombre, téléphone. |
 | `parametres-forfaits--clair--1280.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
 | `parametres-forfaits--clair--390.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |
-| `parametres-forfaits--sombre--1280.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème sombre, poste de travail. |
-| `parametres-forfaits--sombre--390.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème sombre, téléphone. |
+| `parametres-prestations--clair--1280.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
+| `parametres-prestations--clair--390.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |

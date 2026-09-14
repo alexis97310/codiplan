@@ -1056,6 +1056,20 @@ I7 est catégorique : _Ducos ouvre du lundi au samedi, Koné du lundi au vendred
 
 **Une grille de créneaux ne déborde jamais sa plage.** Un créneau n'est proposé que s'il tient entièrement avant la fermeture : _une grille qui déborde est pire qu'une grille courte — la seconde se voit, la première se découvre sur place._ Le cas qui décide de la justesse n'est donc pas celui où le pas divise la plage, c'est celui où il ne la divise pas.
 
+## Le catalogue des prestations — une durée, jamais un tarif
+
+> **Une prestation porte une DURÉE, jamais un taux** (D109). **Et elle ne désigne aucun forfait** (D113) : le pont passe par l'intervention et ses trois axes (RG-TAR-06).
+
+La table existait depuis L1-12, son gabarit d'import aussi, et **entre les deux il n'y avait rien** — _mesuré le 14/09/2026 : `ls lib/prestations/` rendait un seul fichier, et `grep -rn "lib/prestations" app/ components/` rendait zéro ligne._ C'était le cas le plus nu des neuf modules sans chemin : les autres avaient au moins une fonction de dépôt que personne n'appelait ; celui-ci n'en avait aucune à appeler. **Et l'import ne l'aurait pas sauvé** : une seule fonction d'application existe dans tout le dépôt, et c'est celle des clients.
+
+**La checklist type ne se saisit pas, et c'est une décision (R3-15).** La colonne est un `String?`, et _personne n'a dit ce qu'elle porte_ — une liste d'étapes, un texte, l'identifiant d'un modèle ? L'inventer au premier écran qui l'écrit la figerait pour toutes les sociétés. L'issue « texte libre assumé » a été écartée par une mesure, pas par prudence : **une checklist est une liste ORDONNÉE**, et une chaîne en fait un ordre qui se devine et un séparateur que personne n'a choisi. _Réouverture : le jour où l'écran de rapport d'intervention coche une étape_ — la forme se déduira de ce qu'il doit lire.
+
+**Une durée absente s'affiche comme absente, jamais comme « 0 min ».** Zéro dirait « instantané », et la base le refuse pour cette raison exacte ; `null` dit _personne ne l'a encore estimée_, ce qui est l'état ordinaire d'un catalogue qu'on remplit. C'est la troisième fois que ce dépôt sépare « je ne sais pas » de « la valeur vaut rien » (D76, D88).
+
+**La famille est FACULTATIVE, et c'est le premier parent de ce dépôt à l'être** : un déplacement, un diagnostic ou une formation ne visent aucune famille de matériel. Une famille absente n'est pas une famille introuvable, et l'écran n'oblige pas à en choisir une.
+
+**Aucune suppression**, comme pour les forfaits : une intervention désignera sa prestation, et _une facture émise sous une prestation disparue ne s'explique plus._ La bascule d'activité retire du **choix** sans toucher au passé.
+
 ## Les captures d'écran, et ce qu'elles ne prouvent pas
 
 `docs/captures/` porte les images de chaque écran, en thème clair et sombre, à 1280 px et 390 px. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.

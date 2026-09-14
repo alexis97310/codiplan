@@ -69,4 +69,17 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     titre: "parametres.index_clients_titre",
     resume: "parametres.index_clients_resume",
   },
+  {
+    // LA SIXIÈME PORTE (R3-15, 14/09/2026). Le catalogue des prestations
+    // existait en base depuis L1-12 et n'avait AUCUN chemin : ni dépôt, ni
+    // route, ni écran. *Une table qu'aucun humain n'atteint est une table dont
+    // on ne peut pas dire si elle est juste.*
+    //
+    // **Elle ne porte aucun décompte**, comme les cinq autres : un « 12
+    // prestations » se lirait comme une mesure, et il faudrait décider ce qu'il
+    // affiche quand la lecture échoue (le motif de D88).
+    chemin: "/parametres/prestations",
+    titre: "parametres.index_prestations_titre",
+    resume: "parametres.index_prestations_resume",
+  },
 ];
