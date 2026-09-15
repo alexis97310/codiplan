@@ -1291,7 +1291,7 @@ export type InterventionDemoSeed = {
   /** Début du créneau, en minutes locales depuis minuit. `null` = date sans heure. */
   readonly debutMinutes: number | null;
   readonly dureeMin: number | null;
-  readonly temps_reel_min: number | null;
+  readonly temps_valide_min: number | null;
   /**
    * LA SUSPENSION (L2-10, RG-INT-06). Obligatoire dès que `statut` vaut
    * `suspendue` — la base le refuse autrement, et elle a raison : *une
@@ -1353,7 +1353,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: null,
     debutMinutes: null,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── La SEMAINE PASSÉE — ce qui est fait, et qui ne se réécrit plus ────────
   {
@@ -1364,7 +1364,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: -5,
     debutMinutes: 450,
     dureeMin: 60,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 5,
@@ -1376,7 +1376,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     dureeMin: 90,
     // Douze minutes : c'est le cas de D83 mis sous les yeux — arrondi à un
     // quart d'heure, puis relevé au plancher d'une heure.
-    temps_reel_min: 12,
+    temps_valide_min: 12,
   },
   {
     rang: 4,
@@ -1386,7 +1386,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: -2,
     debutMinutes: 810,
     dureeMin: 120,
-    temps_reel_min: 95,
+    temps_valide_min: 95,
   },
   // ── LA SEMAINE COURANTE — lundi ───────────────────────────────────────────
   {
@@ -1397,7 +1397,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 0,
     debutMinutes: 450,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 7,
@@ -1407,7 +1407,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 0,
     debutMinutes: 810,
     dureeMin: 90,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 8,
@@ -1417,7 +1417,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 0,
     debutMinutes: 540,
     dureeMin: 180,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── mardi ─────────────────────────────────────────────────────────────────
   {
@@ -1428,7 +1428,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 1,
     debutMinutes: 450,
     dureeMin: 150,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 10,
@@ -1438,7 +1438,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 1,
     debutMinutes: 780,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── mercredi ──────────────────────────────────────────────────────────────
   {
@@ -1449,7 +1449,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 2,
     debutMinutes: 450,
     dureeMin: 240,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 11,
@@ -1459,7 +1459,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 2,
     debutMinutes: 840,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
     // LA DÉMONSTRATION MONTRE LA FILE « EN ATTENTE DE PIÈCE » (L2-10), et pas
     // seulement une intervention arrêtée : c'est le cas que RG-INT-06 vise, et
     // celui que l'alerte « depuis > 30 j » du chapitre 16.1 surveillera.
@@ -1476,7 +1476,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 3,
     debutMinutes: 450,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 13,
@@ -1486,7 +1486,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 3,
     debutMinutes: 780,
     dureeMin: 90,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── vendredi ──────────────────────────────────────────────────────────────
   {
@@ -1497,7 +1497,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 4,
     debutMinutes: 510,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 15,
@@ -1507,7 +1507,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 4,
     debutMinutes: 870,
     dureeMin: 60,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── SAMEDI — Ducos ouvre, Koné non (RG-PLA-01). La ligne qui rend la
   //    hachure démontrable : elle n'existe que pour l'agence qui ouvre.
@@ -1519,7 +1519,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 5,
     debutMinutes: 450,
     dureeMin: 120,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   // ── LA SEMAINE QUI DÉPASSE — et c'est le TRAJET qui la fait dépasser ──────
   //
@@ -1571,7 +1571,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 3,
     debutMinutes: 450,
     dureeMin: 180,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 18,
@@ -1581,7 +1581,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 1,
     debutMinutes: 450,
     dureeMin: 240,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
   {
     rang: 19,
@@ -1591,7 +1591,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 1,
     debutMinutes: 780,
     dureeMin: 240,
-    temps_reel_min: null,
+    temps_valide_min: null,
   },
 ];
 

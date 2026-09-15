@@ -51,6 +51,9 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D9", "RG-PLA-04"],
   ["D15", "RG-IMP-02"],
   ["D16", "RG-INT-01"],
+  // D120 (15/09/2026) — la machine cesse d'être exigée pour démarrer : une
+  // intervention peut porter sur autre chose qu'un équipement.
+  ["D120", "RG-INT-01"],
   ["D22", "RG-DRO-02"],
   ["D23", "RG-PLA-05"],
   ["D25", "RG-INT-10"],

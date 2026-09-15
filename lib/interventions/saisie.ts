@@ -181,15 +181,22 @@ export const schemaDeplacement = z
 export type Deplacement = z.infer<typeof schemaDeplacement>;
 
 /**
- * LA CLÔTURE. Le temps réel est OBLIGATOIRE et STRICTEMENT POSITIF.
+ * LA CLÔTURE — c'est-à-dire LA VALIDATION DU TEMPS (D120).
  *
- * Zéro est refusé, et ce n'est pas une coquetterie : sous D83, zéro minute
- * facturerait quand même le plancher d'une heure. Une intervention qui n'a pas
- * eu lieu s'annule, elle ne se clôture pas à zéro.
+ * **Ce champ n'est plus la saisie d'un temps, c'est la validation du temps
+ * MESURÉ.** L'écran le pré-remplit avec ce que le compteur a compté ; le
+ * responsable ou l'ADV le confirme ou le corrige. *La saisie manuelle d'un
+ * temps qu'aucun compteur n'a mesuré se fait dans Winpro au moment de
+ * facturer, hors de CODIPLAN.*
+ *
+ * Il reste OBLIGATOIRE et STRICTEMENT POSITIF, et ce n'est pas une
+ * coquetterie : sous D83, zéro minute facturerait quand même le plancher d'une
+ * heure. Une intervention qui n'a pas eu lieu s'annule, elle ne se clôture pas
+ * à zéro.
  */
 export const schemaCloture = z.object({
   intervention_id: uuid,
-  temps_reel_min: z
+  temps_valide_min: z
     .number()
     .int("Le temps se saisit en minutes entières.")
     .positive("Une intervention clôturée a duré. Sinon, elle s'annule."),

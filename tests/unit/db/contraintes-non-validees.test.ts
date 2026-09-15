@@ -147,9 +147,17 @@ describe("la liste déclarée", () => {
    * entrées de D104 sont parties AVEC lui. *C'est la première fois que cette
    * liste DESCEND, et c'est ce pour quoi le compte exact existe — il oblige à
    * rouvrir ce fichier à chaque mouvement, dans les deux sens.*
+   *
+   * Puis **2** le 15/09/2026 (`intervention_validation_tracee`, D120) : les
+   * interventions déjà clôturées portent un temps que personne n'a validé —
+   * les colonnes n'existaient pas. *Leur inventer un auteur serait signer une
+   * validation du nom de quelqu'un qui ne l'a pas faite.* Et c'est la première
+   * entrée dont le rattrapage est « aucun, et c'est l'état juste » : elle ne
+   * se validera que le jour où plus aucune intervention d'avant D120 ne
+   * subsiste.
    */
-  it("compte EXACTEMENT une entrée — toute addition ou tout retrait rouvre ce fichier", () => {
-    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(1);
+  it("compte EXACTEMENT deux entrées — toute addition ou tout retrait rouvre ce fichier", () => {
+    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(2);
   });
 
   it("LE PLAFOND, lui, ne bouge pas : quatre est un arbitrage, pas une mise à jour", () => {

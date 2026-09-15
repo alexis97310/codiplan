@@ -100,7 +100,7 @@ async function ouvrables(): Promise<number> {
         technicien_id: TECHNICIEN,
         agence_id: AGENCE_A,
         statut: "planifiee",
-        temps_reel_min: null,
+        temps_valide_min: null,
         duree_estimee_min: 60,
         // LE SITE ET LA DATE viennent avec le trajet (L3-05a) : ce scénario
         // mesure le DÉNOMINATEUR, et le trajet ne le touche pas — mais la

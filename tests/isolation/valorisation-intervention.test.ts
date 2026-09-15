@@ -131,11 +131,33 @@ async function interventionAClore(
             '${CRENEAU_FIN}'::timestamptz, now()
        FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
   );
-  // RG-INT-01 : une curative ne démarre pas sans machine (L2-08a). Le décor
-  // suit donc la règle plutôt que de la contourner.
+  // ~~RG-INT-01 : une curative ne démarre pas sans machine (L2-08a).~~ **La
+  // règle est retirée par D120** — une intervention peut porter sur autre chose
+  // qu'un équipement. La machine reste rattachée ici : *le décor d'une
+  // valorisation n'a aucune raison de changer parce qu'une garde a disparu*,
+  // et la garder éprouve au passage que le rattachement ne gêne pas.
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${MACHINE_A1}', now())`,
+  );
+
+  // ── LE COMPTEUR A TOURNÉ, ET C'EST DÉSORMAIS LA CONDITION DE LA CLÔTURE ──
+  //
+  // D120 : *le compteur du technicien est la seule source du temps.* Une
+  // intervention sur laquelle aucun segment n'a tourné ne se clôture plus —
+  // le décor doit donc porter un vrai segment, et non une valeur posée à la
+  // main. **`temps_mesure_min` est écrit ensuite, et la base VÉRIFIE qu'il
+  // vaut la somme des segments** : si ce décor mentait, la ligne suivante
+  // serait refusée.
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+     VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${TECHNICIEN}',
+             '${CRENEAU_DEBUT}'::timestamptz,
+             '${CRENEAU_DEBUT}'::timestamptz + interval '${TEMPS_REEL_MIN} minutes',
+             now())`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "temps_mesure_min" = ${TEMPS_REEL_MIN} WHERE "id" = '${id}'`,
   );
   return id;
 }
@@ -167,6 +189,13 @@ afterEach(async () => {
     );
   }
   for (const id of jetables.splice(0)) {
+    // LES SEGMENTS D'ABORD, ET C'EST LA TABLE QUI L'EXIGE : `segment_travail`
+    // référence l'intervention en `ON DELETE RESTRICT` — *une intervention ne
+    // se supprime pas en laissant le temps qu'on y a passé* (D120). Le décor
+    // se démonte donc dans l'ordre inverse de son montage.
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = '${id}'`,
+    );
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = '${id}'`,
     );
@@ -189,7 +218,7 @@ describe("le forfait de déplacement entre dans le total (RG-INT-07, D77)", () =
 
     const resultat = await cloturerIntervention(
       SESSION,
-      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
@@ -224,7 +253,7 @@ describe("le forfait de déplacement entre dans le total (RG-INT-07, D77)", () =
 
     const resultat = await cloturerIntervention(
       SESSION,
-      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
@@ -249,7 +278,7 @@ describe("un total inconnu s'écrit NULL, jamais zéro", () => {
 
     const resultat = await cloturerIntervention(
       SESSION,
-      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
       clientApp(),
     );
     expect(resultat.accepte).toBe(true);
@@ -284,7 +313,7 @@ describe("un total inconnu s'écrit NULL, jamais zéro", () => {
 
     await cloturerIntervention(
       SESSION,
-      { intervention_id: id, temps_reel_min: TEMPS_REEL_MIN },
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
       clientApp(),
     );
     const [enBase] = await clientOwner().$queryRawUnsafe<

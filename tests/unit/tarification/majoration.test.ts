@@ -99,16 +99,16 @@ describe("le prorata se lit sur le CRÉNEAU (D108)", () => {
   });
 
   it("LE TÉMOIN QUI DISTINGUE LES DEUX BASES : le temps passé ne change RIEN", () => {
-    // Si le prorata se lisait sur `temps_reel_min`, passer de 30 minutes à 2
+    // Si le prorata se lisait sur `temps_valide_min`, passer de 30 minutes à 2
     // heures de travail changerait le résultat. Le module ne reçoit AUCUNE
     // durée de travail : l'impossibilité est structurelle, et c'est ce que ce
-    // scénario constate — la signature ne porte pas de `temps_reel_min`.
+    // scénario constate — la signature ne porte pas de `temps_valide_min`.
     const deuxFois = [
       appel({ debut: aNoumea(MERCREDI, 16), fin: aNoumea(MERCREDI, 18) }),
       appel({ debut: aNoumea(MERCREDI, 16), fin: aNoumea(MERCREDI, 18) }),
     ];
     expect(deuxFois[0]).toEqual(deuxFois[1]);
-    expect(Object.keys(appel)).not.toContain("temps_reel_min");
+    expect(Object.keys(appel)).not.toContain("temps_valide_min");
   });
 
   it("un créneau ENTIÈREMENT dans l'ouverture ne majore rien — un zéro VÉRITABLE", () => {

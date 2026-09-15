@@ -36,19 +36,22 @@ import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
  * tient pas* — et ici la promesse coûte un aller-retour sur un réseau de
  * brousse.
  *
- * ## CE QUE LE COMPTEUR NE FAIT PAS, ET IL FAUT LE LIRE
+ * ## DÉMARRER LE COMPTEUR, C'EST DÉMARRER L'INTERVENTION (D120)
  *
- * **Il ne change PAS le statut de l'intervention.** Démarrer le compteur ne la
- * fait pas passer « en cours » : c'est une question ouverte (D119), parce que
- * RG-INT-01 exige une machine rattachée au passage en statut de travail et que
- * *le dépannage à l'aveugle est le cas ordinaire*. L'écran ne fait donc pas
- * semblant : il affiche le statut tel que le planning le porte, et le temps
- * mesuré à côté.
+ * *« Il pourra démarrer son intervention, et qu'à ce moment le compteur
+ * commence. »* Un seul geste, un seul bouton : l'intervention passe **en
+ * cours** et le compteur part. **Aucune machine n'est exigée** — une
+ * intervention peut porter sur autre chose qu'un équipement.
  *
- * **Et c'est pourquoi il n'y a qu'UN bouton d'arrêt**, nommé « pause ». Sur les
- * segments, mettre en pause et arrêter sont le même geste tant que le statut ne
- * bouge pas — *en offrir deux qui font la même chose serait mentir sur l'un des
- * deux.*
+ * Le bouton s'appelle donc « Démarrer l'intervention », et non « démarrer le
+ * compteur » : *un libellé qui ne nomme que la moitié de ce qu'un bouton fait
+ * est un libellé qui surprend.*
+ *
+ * **Et il n'y a toujours qu'UN bouton d'arrêt**, nommé « pause ». Sur les
+ * segments, mettre en pause et arrêter sont le même geste — *en offrir deux qui
+ * font la même chose serait mentir sur l'un des deux.* Ce qui les
+ * distinguerait est de TERMINER l'intervention, et ce geste-là n'existe encore
+ * nulle part.
  *
  * ## LE TEMPS AFFICHÉ EST CELUI DES SEGMENTS FERMÉS
  *

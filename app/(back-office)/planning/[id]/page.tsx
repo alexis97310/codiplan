@@ -241,16 +241,28 @@ export default async function PageIntervention({
             />
           </Action>
 
+          {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) : le champ
+              de l'action est pré-rempli depuis le mesuré, et une garde qui juge
+              ce qu'elle vient d'écrire ne juge rien. */}
           <Action
             titre={t("intervention.action.cloturer")}
-            verdict={peutCloturer(statut, ligne.temps_reel_min ?? 1)}
+            verdict={peutCloturer(statut, ligne.temps_mesure_min)}
             action={`/api/interventions/${ligne.id}/cloturer`}
             note={t("intervention.cloture.explication")}
           >
+            {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120). Le champ
+                arrive PRÉ-REMPLI avec ce que le compteur a compté : par défaut
+                le temps validé égale le temps mesuré, et il n'en diffère que
+                si quelqu'un l'a corrigé — on saura alors qui et quand. */}
             <Saisie
-              nom="temps_reel_min"
+              nom="temps_valide_min"
               type="number"
-              libelle={t("intervention.cloture.temps_reel")}
+              libelle={t("intervention.cloture.temps_valide")}
+              valeurParDefaut={
+                ligne.temps_mesure_min === null
+                  ? undefined
+                  : String(ligne.temps_mesure_min)
+              }
             />
           </Action>
 
@@ -412,7 +424,7 @@ function Valorisation({
       </p>
       <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
         <Ligne
-          libelle={t("intervention.cloture.temps_reel")}
+          libelle={t("intervention.cloture.temps_valide")}
           valeur={minutes(valorisation.minutesReelles)}
         />
         <Ligne
@@ -521,10 +533,19 @@ function Saisie({
   nom,
   libelle,
   type = "text",
+  valeurParDefaut,
 }: {
   nom: string;
   libelle: string;
   type?: "text" | "number" | "date" | "time";
+  /**
+   * La valeur PRÉ-REMPLIE, quand il y en a une à proposer (D120).
+   *
+   * `defaultValue` et non `value` : le champ reste **modifiable**. *Un champ
+   * pré-rempli qu'on ne peut pas changer est un affichage déguisé en saisie* —
+   * et c'est précisément la correction que la validation doit permettre.
+   */
+  valeurParDefaut?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -532,6 +553,7 @@ function Saisie({
       <input
         name={nom}
         type={type}
+        defaultValue={valeurParDefaut}
         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
       />
     </label>

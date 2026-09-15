@@ -5,6 +5,7 @@ import {
   peutAffecter,
   peutAnnuler,
   peutCloturer,
+  peutDemarrerLeCompteur,
   peutDeplacer,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
@@ -74,10 +75,15 @@ describe("déplacer et affecter", () => {
   });
 });
 
-describe("clôturer", () => {
-  it("est refusée sans temps saisi — c'est l'entrée de D83", () => {
-    const sansTemps = peutCloturer("terminee", null);
-    expect(sansTemps.refuse && sansTemps.cle).toBe(
+describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
+  it("est refusée quand AUCUN compteur n'a tourné", () => {
+    // ~~sans temps saisi~~ : ce que la garde juge est désormais le temps
+    // MESURÉ. *Le compteur est la seule source du temps* — et la conséquence
+    // est assumée : une intervention sur laquelle personne n'a démarré de
+    // compteur ne se clôture pas dans CODIPLAN, elle se traite dans Winpro au
+    // moment de facturer.
+    const sansMesure = peutCloturer("terminee", null);
+    expect(sansMesure.refuse && sansMesure.cle).toBe(
       "intervention.refus.temps_manquant",
     );
     // Zéro aussi : sous D83, zéro minute facturerait quand même le plancher
@@ -85,10 +91,44 @@ describe("clôturer", () => {
     expect(peutCloturer("terminee", 0).refuse).toBe(true);
   });
 
-  it("passe avec un temps, et refuse la seconde fois", () => {
+  it("passe avec un temps mesuré, et refuse la seconde fois", () => {
     expect(peutCloturer("terminee", 12).refuse).toBe(false);
     const deja = peutCloturer("cloturee", 12);
     expect(deja.refuse && deja.cle).toBe("intervention.refus.deja_cloturee");
+  });
+});
+
+describe("démarrer le compteur (D120)", () => {
+  /**
+   * **AUCUNE MACHINE N'EST EXIGÉE**, et c'est tout l'objet de D120 : *une
+   * intervention peut porter sur autre chose qu'un équipement — un réseau
+   * d'air comprimé.* Ce scénario ne peut pas le prouver à lui seul — la règle
+   * vivait en BASE —, et c'est `tests/isolation/intervention-machines.test.ts`
+   * qui le mesure. Ici on éprouve ce que la fonction décide, statut par statut.
+   */
+  it.each(["a_planifier", "planifiee", "affectee", "en_cours", "terminee"])(
+    "passe sur une intervention « %s »",
+    (statut) => {
+      expect(
+        peutDemarrerLeCompteur(statut as Parameters<typeof estFige>[0]).refuse,
+      ).toBe(false);
+    },
+  );
+
+  it("refuse une SUSPENDUE — elle se reprend, elle ne se redémarre pas", () => {
+    const verdict = peutDemarrerLeCompteur("suspendue");
+    expect(verdict.refuse && verdict.cle).toBe("compteur.refus.suspendue");
+  });
+
+  it("refuse les deux statuts FIGÉS, chacun avec sa clé", () => {
+    const annulee = peutDemarrerLeCompteur("annulee");
+    expect(annulee.refuse && annulee.cle).toBe(
+      "intervention.refus.annulee_figee",
+    );
+    const cloturee = peutDemarrerLeCompteur("cloturee");
+    expect(cloturee.refuse && cloturee.cle).toBe(
+      "intervention.refus.deja_cloturee",
+    );
   });
 });
 

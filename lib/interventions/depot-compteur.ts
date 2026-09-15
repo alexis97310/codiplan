@@ -12,6 +12,8 @@ import {
   type RefusCompteur,
   type Segment,
 } from "./compteur";
+import { peutDemarrerLeCompteur } from "./cycle-de-vie";
+import type { StatutIntervention } from "./saisie";
 
 /**
  * LE COMPTEUR, SOUS LE CONTEXTE CLOISONNÉ (R5-02, D119).
@@ -39,22 +41,50 @@ import {
  * module ce jour-là ; et c'est aussi ce qui rend les scénarios indépendants de
  * l'horloge.
  *
- * ## CE QU'IL NE TOUCHE PAS, ET C'EST DÉLIBÉRÉ
+ * ## CE QU'IL TOUCHE SUR L'INTERVENTION, ET POURQUOI (D120)
  *
- * Ni `intervention.statut`, ni `intervention.temps_reel_min`. Les deux sont des
- * questions ouvertes, écrites dans la migration de R5-02 et posées à Alexis :
- * démarrer le compteur doit-il faire passer l'intervention EN COURS (RG-INT-01
- * exigerait alors une machine, et le dépannage à l'aveugle est le cas
- * ordinaire) ? et qui écrit désormais le temps réel, la colonne n'ayant
- * aujourd'hui qu'un seul chemin d'écriture — la clôture au back-office ?
+ * Les deux questions que R5-02 avait laissées ouvertes sont tranchées, et ce
+ * module porte les deux réponses :
  *
- * *Un module qui répondrait à ces questions par accident les aurait tranchées.*
+ * **Démarrer le compteur fait passer l'intervention EN COURS, d'un seul
+ * geste** — *« il pourra démarrer son intervention, et qu'à ce moment le
+ * compteur commence »*. **Sans machine rattachée** : une intervention peut
+ * porter sur autre chose qu'un équipement, et le bloc qui l'exigeait a quitté
+ * la base au même moment.
+ *
+ * **Arrêter le compteur écrit `temps_mesure_min`** — la somme des segments
+ * fermés. C'est la seule source du temps, et la base refuse toute autre valeur.
+ *
+ * **Les deux écritures sont dans la MÊME transaction que le segment.** Un
+ * segment posé sans que le statut suive laisserait le planning affirmer qu'une
+ * intervention en cours ne l'est pas ; un segment fermé sans que la somme suive
+ * laisserait un temps mesuré faux, c'est-à-dire le pire des deux.
+ *
+ * **ET L'ORDRE, LUI, N'EST PAS INDIFFÉRENT** : le segment est fermé AVANT que
+ * la somme soit écrite, parce que le déclencheur qui garde `temps_mesure_min`
+ * la recalcule depuis `segment_travail`. L'écrire d'abord ferait refuser la
+ * valeur par la base — et pour une bonne raison : elle serait fausse d'un
+ * segment.
  */
 
-/** Ce qu'une action rend : la ligne écrite, ou le refus avec sa clé. */
+/**
+ * Ce qu'une action rend : la ligne écrite, ou le refus avec sa clé.
+ *
+ * **La clé est un `string` et non la seule union du compteur**, et c'est une
+ * conséquence de D120 : depuis que démarrer le compteur touche le STATUT, un
+ * refus peut venir du cycle de vie — *intervention annulée, clôturée,
+ * suspendue* — dont les clés vivent dans `cycle-de-vie.ts`. Les recopier ici
+ * ferait deux listes à tenir d'accord ; les fondre dans une seule union
+ * imposerait au cycle de vie de connaître le compteur. **Ce que la frontière
+ * garantit est plus étroit et suffit : c'est une CLÉ de dictionnaire, jamais
+ * une phrase** — et `estCleTraduction` le vérifie à l'écran, où le texte est
+ * choisi.
+ */
+export type CleDeRefus = RefusCompteur | (string & {});
+
 export type ResultatCompteur =
   | { readonly accepte: true; readonly segment: Segment }
-  | { readonly accepte: false; readonly cle: RefusCompteur };
+  | { readonly accepte: false; readonly cle: CleDeRefus };
 
 const CHAMPS: { id: true; debut: true; fin: true } = {
   id: true,
@@ -81,6 +111,23 @@ export async function demarrerLeCompteur(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
+      // LE STATUT DE L'INTERVENTION VISÉE, LU AVANT TOUT (D120). Une figée ou
+      // une suspendue ne se démarre pas, et le refus est NOMMÉ ici plutôt que
+      // rendu par la base en violation de contrainte.
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { statut: true },
+      });
+      if (intervention === null) {
+        return { accepte: false as const, cle: "compteur.refus.introuvable" };
+      }
+      const surLIntervention = peutDemarrerLeCompteur(
+        intervention.statut as StatutIntervention,
+      );
+      if (surLIntervention.refuse) {
+        return { accepte: false as const, cle: surLIntervention.cle };
+      }
+
       const ouverts = await tx.segmentTravail.findMany({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
         select: CHAMPS,
@@ -102,6 +149,20 @@ export async function demarrerLeCompteur(
         },
         select: CHAMPS,
       });
+
+      // ── ET L'INTERVENTION PASSE EN COURS, D'UN SEUL GESTE (D120) ─────────
+      //
+      // *« Il pourra démarrer son intervention, et qu'à ce moment le compteur
+      // commence. »* Une écriture conditionnelle plutôt qu'inconditionnelle :
+      // une intervention DÉJÀ en cours ne se réécrit pas, ce qui éviterait au
+      // journal d'audit une ligne qui ne dit rien.
+      if (intervention.statut !== "en_cours") {
+        await tx.intervention.update({
+          where: { id: interventionId },
+          data: { statut: "en_cours" },
+        });
+      }
+
       return { accepte: true as const, segment };
     },
     client,
@@ -131,12 +192,13 @@ export async function arreterLeCompteur(
     async (tx) => {
       const ouverts = await tx.segmentTravail.findMany({
         where: { utilisateur_id: contexte.utilisateurId, fin: null },
-        select: CHAMPS,
+        select: { ...CHAMPS, intervention_id: true },
       });
       const verdict = peutArreter(ouverts, instant);
       if (!verdict.accepte) {
         return { accepte: false as const, cle: verdict.cle };
       }
+      const interventionDuSegment = ouverts[0].intervention_id;
       // `ouverts[0]` existe : `peutArreter` vient de le constater. Le relire
       // par son identifiant plutôt que par `fin: null` est ce qui rend
       // l'écriture SÛRE — un `updateMany` sur la condition fermerait ce qui
@@ -146,6 +208,26 @@ export async function arreterLeCompteur(
         data: { fin: instant },
         select: CHAMPS,
       });
+
+      // ── ET LE TEMPS MESURÉ SUIT, DANS LA MÊME TRANSACTION (D120) ─────────
+      //
+      // **APRÈS la fermeture du segment, jamais avant** : le déclencheur qui
+      // garde cette colonne recalcule la somme depuis `segment_travail`, et
+      // l'écrire d'abord ferait refuser une valeur fausse d'un segment — ce
+      // qu'il doit faire.
+      //
+      // La somme est relue depuis la BASE plutôt que composée de mémoire : un
+      // renfort a pu fermer le sien entre-temps, et *le temps d'une
+      // intervention est celui de tous ceux qui y ont travaillé.*
+      const tous = await tx.segmentTravail.findMany({
+        where: { intervention_id: interventionDuSegment },
+        select: CHAMPS,
+      });
+      await tx.intervention.update({
+        where: { id: interventionDuSegment },
+        data: { temps_mesure_min: mesurer(tous).minutes },
+      });
+
       return { accepte: true as const, segment };
     },
     client,

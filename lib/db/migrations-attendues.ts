@@ -115,4 +115,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260914200000_chevauchement_apres_ecriture",
   "20260914210000_blocage_agenda_r3_14",
   "20260915010000_compteur_du_technicien_r5_02",
+  "20260915060000_les_deux_temps_d120",
 ];

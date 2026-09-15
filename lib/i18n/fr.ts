@@ -813,7 +813,9 @@ export const fr = {
   "intervention.action.annuler": "Annuler l'intervention",
   "intervention.action.creer": "Créer",
 
-  "intervention.cloture.temps_reel": "Temps réellement passé (minutes)",
+  "intervention.cloture.temps_mesure": "Temps mesuré par le compteur",
+  "intervention.cloture.temps_valide": "Temps validé (minutes)",
+  "intervention.cloture.sans_compteur": "Aucun compteur n'a tourné",
   "intervention.cloture.arrondi": "Arrondi au quart d'heure supérieur",
   "intervention.cloture.plancher": "Plancher d'une heure appliqué",
   "intervention.cloture.facture": "Temps facturé",
@@ -840,7 +842,7 @@ export const fr = {
   "intervention.total.forfait_de_prestation_absent":
     "Le forfait de prestation de cette intervention n'est pas encore choisi : le catalogue ne le propose pas. Le total ne peut pas être calculé tant qu'il manque.",
   "intervention.total.main_doeuvre_absente":
-    "Le temps réellement passé n'est pas saisi : la main-d'œuvre ne peut pas être calculée.",
+    "Aucun temps n'est validé : la main-d'œuvre ne peut pas être calculée.",
   "intervention.total.devises_incompatibles":
     "Le forfait et la main-d'œuvre ne sont pas dans la même monnaie. Aucun total n'est calculé : une conversion ici fausserait le montant.",
   "intervention.cloture.explication":
@@ -880,7 +882,7 @@ export const fr = {
   "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
-    "Saisissez le temps réellement passé avant de clôturer. C'est lui qui détermine ce qui est facturé.",
+    "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans Winpro au moment de facturer.",
   // ── LA SUSPENSION ET LA FILE « EN ATTENTE DE PIÈCE » (L2-10, RG-INT-06) ──
   "intervention.suspension.titre": "Suspendre l'intervention",
   "intervention.suspension.motif": "Motif de la suspension",
@@ -985,7 +987,7 @@ export const fr = {
   "terrain.compteur": "Compteur",
   "terrain.compteur.ferme": "Temps mesuré, hors compteur en cours.",
   "terrain.compteur.tourne": "Le compteur tourne.",
-  "terrain.compteur.demarrer": "Démarrer le compteur",
+  "terrain.compteur.demarrer": "Démarrer l'intervention",
   "terrain.compteur.pause": "Mettre en pause",
   "terrain.compteur.ailleurs":
     "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
@@ -998,6 +1000,9 @@ export const fr = {
     "Aucun compteur ne tourne : il n'y a rien à mettre en pause.",
   "compteur.refus.fin_avant_debut":
     "L'heure d'arrêt précède l'heure de départ. Vérifiez l'heure de l'appareil.",
+  "compteur.refus.suspendue":
+    "Cette intervention est suspendue : reprenez-la avant de démarrer le compteur.",
+  "compteur.refus.introuvable": "Cette intervention est introuvable.",
   "compteur.refus.geste_inconnu":
     "Ce geste n'est pas reconnu. Revenez à l'intervention et réessayez.",
   "statut.a_planifier": "À planifier",

@@ -169,7 +169,7 @@ export function valoriserTempsPasse(
  * Son taux et son assiette sont écrits ; **la BASE de son prorata ne l'est
  * pas**. *« Au prorata, quart d'heure par quart d'heure »* suppose que la durée
  * facturée et le créneau coïncident — ils ne coïncident pas : la main-d'œuvre
- * se calcule sur `temps_reel_min`, arrondi puis planché, et les minutes hors
+ * se calcule sur `temps_valide_min`, arrondi puis planché, et les minutes hors
  * ouverture se lisent sur le créneau. Une intervention de 30 minutes dans un
  * créneau de 16 h à 18 h, l'agence fermant à 17 h, se majore de 0 % ou de 50 %
  * **selon la base retenue** — et cela change ce qu'un client paie. ~~*Question

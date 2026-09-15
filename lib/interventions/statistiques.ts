@@ -23,7 +23,7 @@ import { type TrajetDeLaPeriode } from "./trajet";
  *
  * ## Le numérateur : ce qui OCCUPE réellement le technicien
  *
- * `temps_reel_min` quand il est connu — c'est ce qui s'est passé —, sinon
+ * `temps_valide_min` quand il est connu — c'est ce qui s'est passé —, sinon
  * `duree_estimee_min` — c'est ce qui est engagé. **Et quand ni l'un ni l'autre
  * n'est renseigné, l'intervention compte dans le NOMBRE et pour zéro minute
  * dans le taux.** Cet écart est rendu explicitement (`sansDuree`) plutôt que
@@ -84,7 +84,7 @@ export const ORDRE_STATUTS = [
 export type InterventionMesuree = {
   readonly statut: StatutIntervention;
   readonly technicien_id: string | null;
-  readonly temps_reel_min: number | null;
+  readonly temps_valide_min: number | null;
   readonly duree_estimee_min: number | null;
 };
 
@@ -130,9 +130,11 @@ export function minutesEngagees(
 ): number | null {
   if (intervention.statut === "annulee") {
     // Une annulation ne compte que par ce qui a réellement eu lieu (I5).
-    return intervention.temps_reel_min ?? null;
+    return intervention.temps_valide_min ?? null;
   }
-  return intervention.temps_reel_min ?? intervention.duree_estimee_min ?? null;
+  return (
+    intervention.temps_valide_min ?? intervention.duree_estimee_min ?? null
+  );
 }
 
 /**
