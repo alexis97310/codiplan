@@ -79,6 +79,24 @@ Un ticket sans marqueur, ou un `BLOQUÉ` sans motif, fait échouer `pnpm verify`
 
 ---
 
+## LE PÉRIMÈTRE DE LA PREMIÈRE MISE EN SERVICE — réduit par le directeur d'exploitation le 15/09/2026
+
+**La première mise en service ne couvre que le BACK-OFFICE : planifier et suivre les interventions.** L'application technicien **n'est pas abandonnée, elle est DIFFÉRÉE** — et le mot compte, parce que ce document sait déjà écrire cette nuance : *« Différé n'est pas libre, et c'est écrit ici pour que personne ne le prenne pour un oubli »* (L3-05b).
+
+**CE QUI SORT, en plus de ce qui en était déjà sorti** — portail client, console éditeur, second thème, lot 4, revente : **toute la chaîne terrain.** L'application technicien, le hors-ligne, les photos, la signature, le PDF, le compteur sur le terrain.
+
+**CE QUI RESTE DEDANS :** clients / sites / équipements **avec l'import Excel complet** ; le planning et les interventions ; le cycle d'états **jusqu'à « facturé »** ; l'historique **aux trois niveaux** ; la file de qualification **ADV**.
+
+> **I4 RESTE ENTIER, ET C'EST UNE DISTINCTION, PAS UNE PRÉCAUTION DE LANGAGE.** *« Toute fonctionnalité de l'application technicien est utilisable en mode avion »* — l'invariant ne perd pas un mot ; il est **hors sujet pour cette étape**, faute d'application technicien à cette étape. *Un invariant qu'on suspend « le temps d'une mise en service » ne revient jamais ; un invariant hors sujet se relit tel quel le jour où son sujet revient.* Le §9 du 01/09 dit la même chose des bornes : ce qui est devenu sans objet se retire, ce qui reste vrai ne se touche pas.
+
+**CE QUE CE PÉRIMÈTRE NE CHANGE PAS DE LUI-MÊME : LES MARQUEURS.** La file a **trois** états — `LIBRE`, `LIVRÉ`, `BLOQUÉ` — et **aucun ne dit « hors périmètre »**. Reposer en masse les marques des tickets sortis serait ou bien écrire `BLOQUÉ` sur des tickets que rien ne bloque techniquement — un motif faux vaut un marqueur qui ment —, ou bien les perdre de vue. *Le procédé existe pourtant déjà dans ce document, à un exemplaire* : L3-05b porte `BLOQUÉ — DIFFÉRÉ par D107`. **L'étendre aux vingt tickets de la chaîne terrain est une décision d'exploitation**, et elle est posée ici plutôt que prise en séance.
+
+> ⚠ **CE QUE CELA COÛTE AUJOURD'HUI — MESURÉ, PAS ANNONCÉ.** *Le 15/09/2026, `pnpm file` nomme **R3-17** comme premier travail non bloqué, et **L4-01** vient juste après.* **Les deux sont hors du périmètre réduit** : le premier porte la méthode des captures, le second ouvre le lot 4. **La file de nuit enverrait donc la prochaine session travailler hors périmètre, et rien ne le lui dirait.** C'est la faute de L0-12 et de L9-11 dans une troisième variante — là, un ticket que son propre texte fermait se disait `LIBRE` ; ici, un ticket que le périmètre ferme se dit `LIBRE`. *Un ticket dont l'état ment est pire qu'un ticket bloqué*, et le périmètre est maintenant une des choses dont l'état peut mentir.
+
+**ET UNE DÉCISION ANNONCÉE N'EST PAS UNE DÉCISION ÉCRITE — R3-18 N'EXISTE PAS AU DÉPÔT.** L'exploitation a annoncé le 15/09/2026 que les captures **sortent du dépôt et passent en artefact de CI**. *Mesuré le même jour : `grep -rn "R3-18" .` rend **zéro ligne** — ni backlog, ni arbitrages, ni flux de CI ; `docs/captures/` porte **58 fichiers `.png`** et son `README.md`.* **Aucune capture n'est donc prise ni committée tant que R3-18 n'est pas écrit**, et R3-17 — qui porte le défaut de l'empreinte photographiée — reste `LIBRE` **en sachant qu'une décision non écrite le vise**. *Écrire le ticket contre une décision qu'on ne peut pas ouvrir serait exactement l'assertion que R3-17 dénonce.*
+
+---
+
 ## Lot 0 — Socle (3 semaines)
 
 **L0-01 — Initialiser le dépôt.**
@@ -194,8 +212,15 @@ Périmètre **INVERSÉ** [D55] : toute table métier cloisonnée est auditée pa
 > **AVANT L1-01, L1-02, L1-05 et L2-01 — le CONTRAT des fixtures d'isolation.** *(ticket R0-a, écart É14)* `client`, `site`, `machine` et `modele_materiel` existent déjà comme **tables fixtures** du harnais `tests/isolation/`, avec leurs politiques. Le jour où la vraie table est créée, le harnais **cesse de la fabriquer et la laisse en place** — il l'annonce sur sa sortie et dit ce qui reste dû. Ce qui reste dû : la migration pose la forme **« parc »** (société **ET** `app.client_id` **ET** `app.perimetre_sites`, D10/D22) sur `client`, `site` et `machine`, **et non** la clause société seule ; les scénarios de L0-05 se **reportent** sur la vraie table au lieu de partir avec la fixture. Trois gardiens le tiennent et refusent la réduction : la forme mesurée dans `pg_policies`, la liste close `TABLES_PARC`, et le plancher de `EXIGENCES_L0_05`. Voir `tests/isolation/setup/contrat.ts` et le pied de I1 au CLAUDE.md.
 
 **L1-01** Clients — CRUD, **`code_externe`** [D29] avec libellé paramétrable par société, recherche. Forme de politique : **parc** (D10, D22), jamais la clause société seule.
-*File :* BLOQUÉ — la maquette `docs/propositions/clients-L1-01.html` attend la validation de l'exploitation, et le point d'entrée de l'écran n'est pas tranché
+*File :* LIVRÉ
+~~*File :* BLOQUÉ — la maquette `docs/propositions/clients-L1-01.html` attend la validation de l'exploitation, et le point d'entrée de l'écran n'est pas tranché~~
 ~~*File :* LIVRÉ~~ — ~~*Relu contre les sources citées le 11/09/2026 — empreinte `bc023258`.*~~
+
+**MARQUE REPOSÉE LE 15/09/2026, ET LES DEUX MOITIÉS DU MOTIF SONT TOMBÉES — mesuré, pas relu.** *Les trois écrans existent* : `app/(back-office)/clients/page.tsx`, `clients/[id]/page.tsx`, `clients/nouveau/page.tsx`, plus `app/api/clients/creer/route.ts` et `app/api/clients/[id]/modifier/route.ts`. *Le point d'entrée est tranché et il est CÂBLÉ* : `lib/navigation/portes-parametrage.ts` porte `chemin: "/clients"`, ce qui est exactement la règle générale posée le 14/09 — **la barre reste close à onze entrées, et un écran se rejoint par un lien**, comme `/sites`. *Et `pnpm chemins` le confirme sans que ce paragraphe ait à être cru* : `lib/clients` y est atteint depuis sept fichiers de `app/`.
+
+> **CE QUI RESTAIT VRAI DU MOTIF, ET QUI NE LE JUSTIFIAIT PLUS :** rien. Les deux termes étaient conjoints — une maquette en attente **et** un point d'entrée non tranché —, et la livraison du 14/09 a répondu aux deux. *Ce qui a survécu trois jours n'est pas le blocage, c'est la ligne qui le portait* : la marque `BLOQUÉ` datait du 14/09 au matin, l'écran a été livré le 14/09 au soir, et personne n'est revenu la retirer — **exactement ce que la réouverture du 14/09 reprochait à la marque `LIVRÉ` du 11/09, dans l'autre sens.** La barre est mise de la même façon les deux fois : *une marque se pose sur une mesure, jamais sur le souvenir de l'avoir mesurée.*
+
+**CE QUI RESTE DÛ N'EST PAS CE TICKET, et se lit ailleurs :** `lireClient`, `supprimerClient`, `compterSansCodeExterne`, `sitesParClient` et `libelleCodeExterneDeLaSociete` n'ont **aucun appelant** — ce sont les cinq exemptions que `scripts/lib/chemins-de-depot.ts` nomme, chacune avec sa condition d'ouverture. *Une fonction sans appelant n'est pas un ticket qui traîne, c'est une exemption qui porte son motif.*
 
 **ROUVERT LE 14/09/2026, ET LA MARQUE EST BARRÉE PLUTÔT QU'EFFACÉE.** *Ce qui a été décidé un jour se relit* — la marque `LIVRÉ` a gouverné ce ticket trois jours, et la relecture du 11/09 s'est bel et bien tenue. **Ce qu'elle a relu est la COUCHE, jamais le CHEMIN.**
 
@@ -705,7 +730,12 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 ## Lot 3 — Planning et PWA (5 semaines)
 
 **L3-01** Vue calendrier ressources avec **Schedule-X** [D17], glisser-déposer, redimensionnement. **[D72]**
-*File :* BLOQUÉ — scindé le 11/09/2026 : **L3-01a** (la table `technicien` et la règle de priorité) est LIVRÉ ; l'écran reste à faire, et c'est L3-01b.
+*File :* LIVRÉ
+~~*File :* BLOQUÉ — scindé le 11/09/2026 : **L3-01a** (la table `technicien` et la règle de priorité) est LIVRÉ ; l'écran reste à faire, et c'est L3-01b.~~
+
+**MARQUE REPOSÉE LE 15/09/2026. LA PART DU MOTIF QUI TIENT ENCORE EST LE SCINDEMENT ; CELLE QUI EST TOMBÉE EST « l'écran reste à faire ».** *Mesuré :* **L3-01a** est `LIVRÉ` — c'était déjà écrit dans le motif — et **L3-01b** est `LIVRÉ` depuis le 11/09/2026. *Un ticket-parent dont les deux moitiés sont livrées n'est pas bloqué : il est fait.* Le motif décrivait un état vrai le jour où il a été écrit, et il a survécu **quatre jours** à la livraison de sa seconde moitié — le mode de panne que ce document nomme en tête, *« une phrase juste le jour où on l'écrit, fausse la semaine d'après, et qui ne rougit pas »*.
+
+> **ET SON TITRE PORTE UNE SECONDE CHOSE QUI NE TIENT PLUS, INSCRITE PLUTÔT QUE CORRIGÉE EN SILENCE : ~~Schedule-X~~.** **D105 a RETIRÉ la contrainte du §2 le 12/09/2026** — *les refus nommés sont la règle métier, pas celle du composant* —, et L3-01b a livré la vue ressources **avec le glisser-déposer ET le redimensionnement**, au même `draggable`. *Le nom est barré et non effacé : ce qui a été décidé un jour se relit.* Condition de réouverture du composant, telle que D105 l'écrit : **le jour où une vue MOIS ou ANNÉE du PLANNING est écrite à la maquette ou demandée par un ticket.**
 *Relu contre les sources citées le 11/09/2026 — empreinte `909aca18`.*
 
 **L3-01a** La table `technicien`, et la règle de priorité du calendrier de travail. **[D72] [D12] [D13]**
@@ -780,7 +810,14 @@ Ordre : forfaits → **arrondi au quart d'heure supérieur, puis plancher d'une 
 *Relu contre les sources citées le 11/09/2026 — empreinte `7070c69e`.*
 
 **L3-04b** L'ÉCRAN des absences, et le groupe rendu à la file. *Scindé de L3-04a le 12/09/2026.*
-*File :* BLOQUÉ — il n'existe **aucun écran d'absence**, et la question n'est pas celle de L3-04a. Mesuré le 12/09/2026 : `app/(back-office)/` porte `arrivee`, `parametres`, `parc`, `planning`, `sites`, `vgp` — **rien pour les absences** ; `docs/maquette/CODIPLAN_Maquette.html` ne nomme « absence » que **deux fois, et dans la PROSE de RG-PLA-06**, jamais comme un écran ; et la barre de D95 est une **liste close de onze entrées** confrontée à la maquette, qu'une douzième ferait rougir **à raison**.
+*File :* LIVRÉ
+~~*File :* BLOQUÉ — il n'existe **aucun écran d'absence**, et la question n'est pas celle de L3-04a. Mesuré le 12/09/2026 : `app/(back-office)/` porte `arrivee`, `parametres`, `parc`, `planning`, `sites`, `vgp` — **rien pour les absences** ; `docs/maquette/CODIPLAN_Maquette.html` ne nomme « absence » que **deux fois, et dans la PROSE de RG-PLA-06**, jamais comme un écran ; et la barre de D95 est une **liste close de onze entrées** confrontée à la maquette, qu'une douzième ferait rougir **à raison**.~~
+
+**MARQUE REPOSÉE LE 15/09/2026 : LES TROIS TERMES DU MOTIF SONT TOMBÉS, ET LE TICKET EST LIVRÉ PAR R3-14.** *Mesuré :* `app/(back-office)/absences/page.tsx` existe — **331 lignes** —, avec `app/api/absences/declarer/route.ts` et `app/api/absences/lever/route.ts`, et `pnpm chemins` marque `lib/absences` comme atteint depuis les trois. Le troisième terme — la barre close à onze entrées — **n'a pas cédé : il a été rendu sans objet**, R3-14 l'écrivant noir sur blanc : *« la barre reste close à onze entrées, et un écran se rejoint par un lien »*. *L'écran se rejoint depuis `app/(back-office)/planning/page.tsx`, par un `Link href="/absences"`.* **Le second terme — « la question n'est pas celle de L3-04a » — était juste et le demeure** : c'est précisément pour cela que le travail a été fait par un ticket à part, et non par une extension de L3-04a.
+
+> **CE QUI N'EST PAS DÉMONTRÉ EST ÉCRIT PLUTÔT QUE TU, et c'est une clause d'acceptation sur cinq.** *« Aucun créneau n'est proposé, et un scénario de rendu le mesure »* : **l'écran n'en propose aucun** — il n'y a ni grille ni proposition dans ses 331 lignes — **et aucun scénario ne le mesure**. `tests/isolation/absence.test.ts` éprouve le dépôt, `tests/unit/absences/` la règle, et `tests/e2e/` ne porte pas de scénario d'absence. *Une propriété vraie que rien ne surveille est une propriété qui cessera de l'être sans rougir* — c'est l'absence de gardien du §9 (09/09), et elle se referme avec un scénario de rendu, non avec une marque `BLOQUÉ` qui ferait croire que l'écran manque encore.
+
+**ET L'ARBITRAGE DU 14/09 A RÉCRIT CE TICKET SANS QU'IL BOUGE :** *CODIPLAN n'est pas un outil RH*, il ne reste qu'un **blocage d'agenda**. Les mots « déclare », « valide » et « le groupe rendu à la file » que ce ticket emploie se lisent donc dans la forme d'après — **poser** et **lever**, le blocage prenant effet dès qu'il est posé. *Ce qui a été décidé un jour se relit* : le texte n'est pas réécrit, sa clé de lecture est écrite à côté.
 **CE N'EST DONC PAS « ce qui reste est petit ».** L3-04a écrivait que l'écran manquait ; ce qui manque en réalité est **l'écran d'absence tout entier** — celui où l'on déclare, où l'on valide, et où le groupe rendu s'affiche. *L'alerte n'a pas besoin d'un écran à elle : elle a besoin de CELUI-LÀ.*
 **Ce qui est déjà prêt pour lui** : `declarerAbsence` rend `ruptures` à côté de `deplanifiees`, agence nommée et interventions nommées — *jamais un décompte.* L'écran n'aura rien à recalculer.
 *Acceptation :* un écran liste les blocages d'agenda d'une période, permet d'en poser et d'en lever, et affiche après la pose **le groupe rendu à la file** avec l'alerte de rupture quand elle se prononce ; il se rejoint par un chemin écrit — **entrée de barre arbitrée, ou lien depuis le planning comme `/sites`** ; **aucun créneau n'est proposé**, et un scénario de rendu le mesure.
@@ -1946,6 +1983,77 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 *Relu contre les sources citées le 14/09/2026 — empreinte `113886a7`.*
 
 ---
+
+---
+
+## Ce que le périmètre réduit du 15/09/2026 exige et qui n'est écrit nulle part
+
+*Trois tickets, tous nés d'une mesure faite en recroisant la file avec le périmètre. **Deux ont été nommés par l'exploitation**, le troisième est sorti de la même commande et il est inscrit plutôt que gardé pour soi — `docs/captures/` porte 58 images et aucune ne montre un équipement qu'un humain aurait créé.*
+
+**R6-01 — L'APPLICATION D'UN LOT D'IMPORT NE CONNAÎT QU'UN SEUL TYPE, ET LA ROUTE NE LE VÉRIFIE PAS.**
+*File :* LIBRE
+**Déclencheur : le périmètre réduit promet « l'import Excel complet », et l'import sait CONTRÔLER cinq types et n'en sait APPLIQUER qu'un.**
+
+**CE QUI A ÉTÉ MESURÉ, le 15/09/2026, en trois commandes.**
+
+| Question | Commande | Réponse |
+|---|---|---|
+| combien de gabarits ? | `grep -n "type:" lib/imports/modeles.ts` | **cinq** — `clients`, `contacts`, `sites`, `modeles`, `prestations` |
+| combien d'applications ? | `grep "^export async function appliquer" lib/imports/` | **une** — `appliquerLeLotDeClients` |
+| combien d'annulations ? | `grep "^export async function annuler" lib/imports/` | **une** — `annulerLeLotDeClients` |
+
+**QUATRE GABARITS SUR CINQ PRODUISENT DONC UN RAPPORT QUE RIEN NE SAIT ÉCRIRE.** Ce n'est pas une moitié de fonctionnalité : c'est I6 **coupé après sa première moitié** — *le rapport précède l'écriture*, et il n'y a pas d'écriture. L'écran d'import (L1-11) montre le bouton « Valider » quel que soit le type du lot.
+
+**ET LA ROUTE NE LIT PAS `type_import` — c'est le défaut qui se voit le moins et qui coûte le plus.** *Mesuré en lisant `app/api/imports/[id]/appliquer/route.ts` :* elle appelle `appliquerLeLotDeClients(contexte, id)` **sans condition**, et `appliquerLeLotDeClients` ne consulte **jamais** `lot.type_import` — la colonne existe sur `import_lot` et n'apparaît dans aucun `select` de ce fichier. Les lignes d'un lot de sites partiraient donc dans `saisieDepuisLaLigne(valeurs, CHAMPS_CLIENTS)`, puis dans `schemaCreationClient.parse(...)`.
+
+> **CE QUE CELA FAIT EXACTEMENT N'EST PAS AFFIRMÉ ICI, IL EST À MESURER — et c'est la première ligne du ticket.** La lecture du code dit qu'aucune colonne de site ne correspond à `CHAMPS_CLIENTS`, que la saisie est donc vide, et que `raison_sociale` n'ayant pas de défaut le schéma **lève**. *Mais « le code dit » n'est pas « j'ai mesuré »* (§9, 07/09) : entre une exception qui annule la transaction et une création silencieuse de fiches vides, il y a toute la différence entre un désagrément et une corruption de référentiel, **et personne ne l'a jouée**.
+
+**CE QU'IL SUPPOSE, et le premier point est une décision.** *(1)* **Le type est dans le NOM, et L1-08i a écrit pourquoi** : *« une fonction “applique n'importe quel lot” devrait tenir une table de correspondance entre un type d'import et une écriture, c'est-à-dire une liste close de plus, tenue à la main, que le prochain type oublierait. Le jour où un second type existe, la question se posera avec deux exemplaires sous les yeux plutôt qu'avec aucun. »* **Ce jour est arrivé** : la question se pose avec cinq exemplaires, et elle se tranche par écrit avant la première ligne. *(2)* **Le refus d'un type non applicable est un ÉTAT, jamais une exception** — un lot dont le type n'a pas d'application se lit comme tel à l'écran, et le bouton ne s'affiche pas. *(3)* **`valeurs_avant` se lit AVANT d'écrire** pour chacun des types, comme pour les clients (D15) : sans elle l'annulation n'a rien à restaurer.
+
+**CE QUI EN DÉPEND, et c'est ce qui le met en tête :** **R4-03** l'écrit lui-même — *« l'application des lots de sites et d'équipements n'existe pas ; c'est un préalable, pas un détail : sans elle, un classeur composite s'arrêterait au rapport. »* **L1-05b** en dépend à moitié : un écran de saisie ne remplit pas un parc de cent modèles.
+
+*Acceptation :* ce qu'un lot d'un type sans application produit aujourd'hui est **mesuré et écrit** avant toute correction ; le bouton de validation ne s'affiche pas sur un lot qu'on ne sait pas appliquer, et un scénario le mesure ; chaque type appliqué l'est par une fonction qui **nomme son type**, lit `import_lot_ligne.action` et ne redécide rien ; l'annulation suit le même découpage ; un lot d'une autre société rend **le même refus** qu'un lot introuvable.
+
+**R6-02 — LE CYCLE VA « JUSQU'À FACTURÉ », ET `facturee` N'EST ATTEIGNABLE PAR AUCUN CHEMIN.**
+*File :* LIBRE
+**Déclencheur : le périmètre réduit nomme « le cycle d'états jusqu'à facturé », et le second axe de D8 n'a ni lecteur ni écrivain.**
+
+**CE QUI A ÉTÉ MESURÉ, le 15/09/2026.**
+
+| Question | Réponse |
+|---|---|
+| la colonne existe-t-elle ? | **oui** — `intervention.statut_facturation`, énumération `StatutFacturation` à trois valeurs, nullable |
+| qui l'écrit ? | **un déclencheur, et lui seul** — `intervention_facturation_a_la_cloture` pose `a_facturer` ou `non_facturable` à l'entrée en `cloturee` |
+| qui la lit dans le code ? | `grep -rn "statut_facturation" lib/ app/ components/` rend **une ligne**, et c'est un **nom de migration** dans `lib/db/migrations-attendues.ts` |
+| qui écrit `facturee` ? | **personne** — aucun chemin, ni route, ni écran, ni script |
+| `reference_facture` / `date_facture` ? | au **chapitre 11** (ligne 944, *« renseignés par import du retour de facturation »*) et **absentes de `prisma/schema.prisma`** |
+
+**LA TROISIÈME VALEUR DE L'ÉNUMÉRATION EST DONC MORTE.** Une intervention close devient `a_facturer` et y reste pour toujours. *Ce n'est pas un écran qui manque : c'est que la réponse n'est pas dans CODIPLAN* — **D115 l'a écrit** : *« une intervention close a été facturée ou ne l'a pas été, et c'est la comptabilité qui le sait, jamais le planning »*, et *« écrire une valeur au jugé avant cet import, c'est décider d'un montant sans le savoir »*.
+
+> **CE TICKET NE TRANCHE DONC PAS, ET C'EST SON OBJET.** D115 a posé la réponse attendue — **l'import du retour de facturation** — et sa condition de réouverture porte sur un nombre de lignes, pas sur un périmètre. **Le périmètre du 15/09 déplace la question** : il promet un cycle « jusqu'à facturé » à une mise en service qui n'a pas cet import. *Les deux ne peuvent pas être vrais ensemble*, et lequel cède est un arbitrage d'Alexis — **il touche l'argent facturé**, ce que le §1 du protocole lui réserve.
+
+**LES DEUX ISSUES, avec ce qu'elles coûtent.**
+
+| | Ce qu'elle donne | Ce qu'elle coûte |
+|---|---|---|
+| **L'import du retour de facturation** | `facturee` se pose sur un fait, jamais au jugé ; `reference_facture` et `date_facture` prennent leur sens | deux colonnes au schéma, un sixième gabarit, une sixième application — donc **R6-01 d'abord** ; et le format du retour sort du logiciel comptable, qui n'est pas dans le dépôt (la muraille de L1-10) |
+| **Un geste humain « marquer facturée »** | rien à attendre de la comptabilité | *un geste au jugé sur l'argent facturé*, exactement ce que D115 refuse ; et il faudrait décider ce que devient la référence de facture qu'il ne porte pas |
+
+**ET UNE MOITIÉ EST DUE QUELLE QUE SOIT L'ISSUE : PERSONNE NE VOIT CE STATUT.** La fiche d'une intervention n'affiche **rien** du second axe — ni « à facturer », ni « non facturable », ni son absence. *Un statut qu'aucun écran ne montre est un statut dont personne ne peut dire qu'il est faux*, et c'est vrai des deux issues.
+
+*Acceptation :* l'arbitrage est rendu **par écrit avant toute ligne de code** ; la fiche d'une intervention affiche le second axe avec ses **trois** états et l'absence en quatrième — *« la question ne s'est pas encore posée » n'est ni « à facturer » ni « facturée »*, et un `null` rendu comme « non facturable » serait la faute de D88 ; aucune valeur n'est écrite au jugé.
+
+**R6-03 — IL N'EXISTE AUCUN GABARIT D'ÉQUIPEMENT, NI DE FAMILLE.**
+*File :* LIBRE
+**Déclencheur : le périmètre nomme « clients / sites / équipements avec l'import Excel complet », et l'équipement n'a pas de gabarit du tout.**
+
+**CE QUI A ÉTÉ MESURÉ, le 15/09/2026.** `grep -n "machine" lib/imports/modeles.ts` rend **zéro ligne**. Les cinq gabarits sont `clients`, `contacts`, `sites`, `modeles`, `prestations` : **ni `machines`, ni `familles`**. `lib/imports/parc-familles.ts` existe, mais il indexe les familles comme **parents** des modèles — *il sait les retrouver, jamais les créer.*
+
+**LA CHAÎNE EST DONC COUPÉE EN DEUX ENDROITS, ET C'EST UN ENCHAÎNEMENT.** Une machine exige un modèle (D6, quatre champs obligatoires) ; un modèle exige une famille ; **la famille n'a ni gabarit ni écran, et la machine n'a pas de gabarit.** *Le parc ne peut donc se remplir ni à la main ni par import* — c'est la mesure de L1-05b, prolongée du côté de l'import : L1-05b ouvre la saisie unitaire, ce ticket ouvre la reprise en masse, **et les deux ne se remplacent pas** (le raisonnement exact de R3-15 sur les prestations).
+
+**CE QU'IL SUPPOSE, et le premier point n'est pas du code.** *(1)* **La CLÉ de rapprochement d'un équipement**, et elle n'est écrite nulle part. *L2-01 et L1-08f ont déjà tranché la forme pour le contrôle* — série nue, référence préfixée `SN-INCONNU-`, rang préfixé `LIGNE-`, trois espaces **disjoints** — mais un gabarit d'import désigne aussi un **parent**, et un équipement en a **deux** : son modèle et son site. *Aucun des cinq gabarits existants n'en désigne deux*, et L1-09b n'a écrit la règle que pour un. *(2)* **Ce qui distingue « parent rejeté » de « parent introuvable »** est déjà posé par L1-09b, et R4-03 en réclame un troisième cas ; les deux tickets se rencontrent ici. *(3)* **`complet` est DÉDUIT du numéro de série, jamais accepté depuis l'entrée** (§6) — un gabarit qui exposerait une colonne « Complet » laisserait un fichier mentir sur la qualité d'une fiche. *(4)* **Ni `id`, ni `qr_token`, ni `numero`** : les deux premiers naissent sur l'appareil (D7, I10), le troisième est attribué par le serveur.
+
+*Acceptation :* deux gabarits naissent — familles et équipements — et chacun **expose ou écarte NOMMÉMENT** chaque champ de son schéma de saisie, avec son motif ; la clé d'un équipement est la **même** que celle du contrôle, appelée et jamais recopiée ; un équipement dont le modèle OU le site est introuvable porte le motif qui dit **lequel** ; un gabarit d'équipement désignant deux parents est **éprouvé sur les deux absences séparément**.
 
 ## Ce que l'exploitation a dit du métier le 14/09/2026, en tickets
 
