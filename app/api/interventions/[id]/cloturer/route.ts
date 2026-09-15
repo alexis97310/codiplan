@@ -23,7 +23,9 @@ export async function POST(
   const formulaire = await requete.formData();
   const saisie = schemaCloture.safeParse({
     intervention_id: id,
-    temps_reel_min: Number(champ(formulaire, "temps_reel_min") ?? Number.NaN),
+    temps_valide_min: Number(
+      champ(formulaire, "temps_valide_min") ?? Number.NaN,
+    ),
   });
   if (!saisie.success) {
     return versLaFiche(id, "intervention.refus.temps_manquant");

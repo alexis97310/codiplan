@@ -30,7 +30,7 @@ function ligne(
   return {
     statut: "planifiee",
     technicien_id: TECHNICIEN,
-    temps_reel_min: null,
+    temps_valide_min: null,
     duree_estimee_min: 120,
     ...surcharge,
   };
@@ -39,7 +39,7 @@ function ligne(
 describe("les minutes qu'une intervention occupe", () => {
   it("préfère le temps RÉEL à l'estimation — c'est ce qui s'est passé", () => {
     expect(
-      minutesEngagees(ligne({ temps_reel_min: 95, duree_estimee_min: 120 })),
+      minutesEngagees(ligne({ temps_valide_min: 95, duree_estimee_min: 120 })),
     ).toBe(95);
   });
 
@@ -60,7 +60,7 @@ describe("les minutes qu'une intervention occupe", () => {
       minutesEngagees(
         ligne({
           statut: "annulee",
-          temps_reel_min: 120,
+          temps_valide_min: 120,
           duree_estimee_min: 90,
         }),
       ),
@@ -77,7 +77,7 @@ describe("l'occupation d'un technicien", () => {
   it("rend le NOMBRE et les DEUX termes du taux, jamais un pourcentage", () => {
     const o = occupationTechnicien(
       TECHNICIEN,
-      [ligne({ duree_estimee_min: 120 }), ligne({ temps_reel_min: 90 })],
+      [ligne({ duree_estimee_min: 120 }), ligne({ temps_valide_min: 90 })],
       // 7 h ouvrables sur la période.
       420,
       SANS_TRAJET,
@@ -120,8 +120,8 @@ describe("l'occupation d'un technicien", () => {
     const o = occupationTechnicien(
       TECHNICIEN,
       [
-        ligne({ statut: "cloturee", temps_reel_min: 60 }),
-        ligne({ statut: "cloturee", temps_reel_min: 30 }),
+        ligne({ statut: "cloturee", temps_valide_min: 60 }),
+        ligne({ statut: "cloturee", temps_valide_min: 30 }),
         ligne({ statut: "en_cours", duree_estimee_min: 120 }),
       ],
       480,
@@ -154,7 +154,7 @@ describe("le taux d'occupation", () => {
     // Plafonner masquerait exactement ce qu'un planificateur doit voir.
     const o = occupationTechnicien(
       TECHNICIEN,
-      [ligne({ temps_reel_min: 600 })],
+      [ligne({ temps_valide_min: 600 })],
       420,
       SANS_TRAJET,
     );
@@ -164,7 +164,7 @@ describe("le taux d'occupation", () => {
   it("arrondit au plus proche, sans dériver", () => {
     const o = occupationTechnicien(
       TECHNICIEN,
-      [ligne({ temps_reel_min: 209 })],
+      [ligne({ temps_valide_min: 209 })],
       420,
       SANS_TRAJET,
     );
@@ -180,7 +180,7 @@ describe("la barre segmentée", () => {
     const o = occupationTechnicien(
       TECHNICIEN,
       [
-        ligne({ statut: "cloturee", temps_reel_min: 60 }),
+        ligne({ statut: "cloturee", temps_valide_min: 60 }),
         ligne({ statut: "en_cours", duree_estimee_min: 180 }),
       ],
       // Volontairement très supérieur au total engagé.
@@ -209,7 +209,7 @@ describe("« 0 % » ne s'affiche pas sur du temps réellement engagé", () => {
   it("reconnaît le taux qui s'arrondit à zéro sans être nul", () => {
     const o = occupationTechnicien(
       TECHNICIEN,
-      [ligne({ temps_reel_min: 95 })],
+      [ligne({ temps_valide_min: 95 })],
       32_880,
       SANS_TRAJET,
     );
@@ -231,7 +231,7 @@ describe("« 0 % » ne s'affiche pas sur du temps réellement engagé", () => {
     // question « est-il infime ? » n'a pas de sens.
     const sansCalendrier = occupationTechnicien(
       TECHNICIEN,
-      [ligne({ temps_reel_min: 95 })],
+      [ligne({ temps_valide_min: 95 })],
       0,
       SANS_TRAJET,
     );

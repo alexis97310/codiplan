@@ -82,7 +82,7 @@ const LIGNE = {
   site_id: SITE_A1_S1,
   statut: "planifiee" as const,
   duree_reelle_min: null,
-  temps_reel_min: null,
+  temps_valide_min: null,
   duree_estimee_min: 60,
   date_planifiee: new Date("2026-09-14T00:00:00.000Z"),
 };

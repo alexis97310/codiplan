@@ -34,7 +34,7 @@ import {
  *
  * 1. **Le cloisonnement** — forme « parc », les trois filtres.
  * 2. **Le figeage** — une intervention clôturée ou annulée ne se modifie plus.
- * 3. **La clôture sans temps** — refusée, `temps_reel_min` étant l'entrée de
+ * 3. **La clôture sans temps** — refusée, `temps_valide_min` étant l'entrée de
  *    l'arrondi et du plancher (D83).
  *
  * Chacune porte son JUMEAU (§9, 24/08) : le verrou est réellement retiré dans
@@ -112,7 +112,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
           await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_reel_min" = 90 WHERE "id" = '${INTERVENTION_A1}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A1}'`,
           );
           await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${INTERVENTION_A1}'`,
@@ -130,7 +130,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
           await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_reel_min" = 90 WHERE "id" = '${INTERVENTION_A2}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 90 WHERE "id" = '${INTERVENTION_A2}'`,
           );
           const touchees = await tx.$executeRawUnsafe(
             `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'clôturée par erreur' WHERE "id" = '${INTERVENTION_A2}'`,
@@ -202,7 +202,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
     });
   });
 
-  describe("la CLÔTURE sans temps saisi", () => {
+  describe("la CLÔTURE sans temps validé", () => {
     it("est refusée par la base, et le message nomme la règle", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
@@ -211,14 +211,14 @@ describe("l'intervention, sous le rôle applicatif", () => {
           );
           throw new Error("ANNULER");
         }),
-      ).rejects.toThrow(/le temps réel n'est pas saisi/);
+      ).rejects.toThrow(/aucun temps validé/i);
     });
 
     it("passe dès que le temps est là — le cas qui DOIT rester vert", async () => {
       await expect(
         sousSociete(SOCIETE_A, async (tx) => {
           const touchees = await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_reel_min" = 12 WHERE "id" = '${INTERVENTION_A1}'`,
+            `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 12 WHERE "id" = '${INTERVENTION_A1}'`,
           );
           if (touchees !== 1) {
             throw new Error(`clôture refusée : ${touchees} ligne(s)`);

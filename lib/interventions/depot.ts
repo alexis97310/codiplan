@@ -94,7 +94,13 @@ export const CHAMPS_LIGNE = {
   agence_id: true,
   mode_valorisation: true,
   forfait_deplacement_id: true,
-  temps_reel_min: true,
+  /**
+   * LES DEUX TEMPS (D120), et ils voyagent ENSEMBLE — *un temps validé sans le
+   * mesuré ne dit pas s'il a été corrigé, et l'écart entre les deux est
+   * exactement ce que ce couple existe pour montrer.*
+   */
+  temps_mesure_min: true,
+  temps_valide_min: true,
   montant_ht: true,
   devise_code: true,
   motif_annulation: true,
@@ -915,7 +921,13 @@ export type ResultatCloture = {
 };
 
 /**
- * CLÔTURER — saisir le temps réel, appliquer D83, figer le total hors taxes.
+ * CLÔTURER — VALIDER le temps mesuré, appliquer D83, figer le total (D120).
+ *
+ * **Ce n'est plus une saisie, c'est une validation.** Le compteur du technicien
+ * est la seule source du temps ; ce que la clôture écrit est le temps VALIDÉ —
+ * par défaut celui qu'il a mesuré, corrigé seulement si quelqu'un l'a voulu, et
+ * alors **avec son nom et sa date**. *Un compteur oublié fausse les
+ * indicateurs, et sans les deux colonnes on ne voit pas l'écart.*
  *
  * Le taux retenu est celui **en vigueur à la date de l'intervention**, jamais
  * le taux du jour (RG-TAR-04) : une facture qui change quand le tarif change
@@ -949,13 +961,20 @@ export async function cloturerIntervention(
           technicien_id: true,
           creneau_debut: true,
           creneau_fin: true,
+          // LE TEMPS MESURÉ — ce que la garde juge. *Juger le temps validé
+          // rendrait la garde circulaire : l'écran le pré-remplit depuis
+          // celui-ci.*
+          temps_mesure_min: true,
         },
       });
       if (ligne === null) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
       const barriere = refus<ResultatCloture>(
-        peutCloturer(ligne.statut as StatutIntervention, saisie.temps_reel_min),
+        peutCloturer(
+          ligne.statut as StatutIntervention,
+          ligne.temps_mesure_min,
+        ),
       );
       if (barriere !== null) {
         return barriere;
@@ -968,7 +987,7 @@ export async function cloturerIntervention(
       }
 
       const valorisation = valoriserTempsPasse(
-        saisie.temps_reel_min,
+        saisie.temps_valide_min,
         taux.taux,
       );
 
@@ -983,7 +1002,7 @@ export async function cloturerIntervention(
       // LA MAJORATION ENTRE DANS LE TOTAL (L2-09b, D12, D108). *Elle n'y
       // entrait pas : son taux et son assiette étaient écrits, la BASE de son
       // prorata ne l'était pas — et une facture amputée d'un supplément dû est
-      // fausse.* Le prorata se lit sur le CRÉNEAU, jamais sur `temps_reel_min`.
+      // fausse.* Le prorata se lit sur le CRÉNEAU, jamais sur `temps_valide_min`.
       const majoration = await majorationDeLIntervention(
         tx,
         contexte.societeId ?? "",
@@ -1002,7 +1021,13 @@ export async function cloturerIntervention(
         where: { id: saisie.intervention_id },
         data: {
           statut: "cloturee",
-          temps_reel_min: saisie.temps_reel_min,
+          temps_valide_min: saisie.temps_valide_min,
+          // QUI a validé, et QUAND — les deux ensemble, la base l'exige
+          // (`intervention_validation_tracee`). L'auteur est celui de la
+          // session : *une validation dont l'auteur viendrait du formulaire
+          // serait une validation qu'on peut signer du nom d'un autre.*
+          temps_valide_par: contexte.utilisateurId,
+          temps_valide_le: instant,
           cloturee_le: instant,
           // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
           // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
@@ -1273,11 +1298,11 @@ export async function lireFicheIntervention(
             );
 
       let valorisation: ValorisationAffichee | null = null;
-      if (brute.temps_reel_min !== null && brute.temps_reel_min > 0) {
+      if (brute.temps_valide_min !== null && brute.temps_valide_min > 0) {
         const instant = await instantDeLAgence(tx, brute.agence_id);
         const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
         if (taux !== null) {
-          const v = valoriserTempsPasse(brute.temps_reel_min, taux.taux);
+          const v = valoriserTempsPasse(brute.temps_valide_min, taux.taux);
           // LA MÊME COMPOSITION QUE LA CLÔTURE, et c'est délibéré : l'écran ne
           // recalcule pas un total avec sa propre règle. *Deux lectures d'un même
           // critère divergent en silence* (§9, 01/09) — ici l'une figerait le

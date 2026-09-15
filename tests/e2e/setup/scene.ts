@@ -292,9 +292,43 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         devise_code: "XPF",
       };
       // `delete` puis `create` : le verrou de cycle de vie refuse la réécriture
-      // de certaines lignes, et une scène doit repartir d'un état connu.
+      // de certaines lignes, et une scène doit repartir d'un état connu. Les
+      // SEGMENTS partent d'abord — `segment_travail` retient son intervention
+      // en `ON DELETE RESTRICT` (D120).
+      await client.$executeRawUnsafe(
+        `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
+        ligne.id,
+      );
       await client.intervention.deleteMany({ where: { id: ligne.id } });
       await client.intervention.create({ data: { id: ligne.id, ...donnees } });
+
+      // ── UN COMPTEUR A TOURNÉ SUR L'OBSTACLE, ET C'EST DÉSORMAIS LA
+      //    CONDITION POUR QUE LA CLÔTURE S'OFFRE (D120) ─────────────────────
+      //
+      // *Le compteur du technicien est la seule source du temps* : sur une
+      // intervention où aucun segment n'a tourné, la fiche affiche le REFUS de
+      // clôture à la place de l'action. **Le scénario de largeur utile compte
+      // les actions offertes ; sans ce segment, il en compterait quatre.**
+      //
+      // La scène pose donc un segment FERMÉ de deux heures, et la somme avec
+      // lui : le déclencheur `intervention_temps_mesure_est_celui_du_compteur`
+      // VÉRIFIE que la valeur écrite est bien celle des segments — *si cette
+      // fixture mentait, elle serait refusée.*
+      if (ligne.id === SCENE.obstacle) {
+        await client.$executeRawUnsafe(
+          `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+           VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+                   $4::timestamptz, $4::timestamptz + interval '120 minutes', now())`,
+          societe.id,
+          ligne.id,
+          ligne.technicien,
+          donnees.creneau_debut ?? donnees.date_planifiee,
+        );
+        await client.intervention.update({
+          where: { id: ligne.id },
+          data: { temps_mesure_min: 120 },
+        });
+      }
     }
 
     for (const forfait of FORFAITS_SCENE) {

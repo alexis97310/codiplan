@@ -825,6 +825,18 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 **Forme « interne »** (D94), décidée à la naissance de la table : aucun compte de portail ne la lit. Elle est la première table de cette liste à être aussi une **fille** d'une table du parc, et le critère de la filiation la réclamait — `ecartsTablesFilles` compare désormais les deux formes plutôt que de supposer, comme il le faisait déjà pour « héritage ».
 
+## Les deux temps — et le compteur qui démarre l'intervention
+
+**D120 (15/09/2026) répond aux deux questions que D119 avait laissées ouvertes**, et les réponses se tiennent.
+
+**Démarrer le compteur, c'est démarrer l'intervention** — un seul geste, un seul bouton, et **aucune machine exigée** : _une intervention peut porter sur autre chose qu'un équipement, un réseau d'air comprimé par exemple._ La garde de RG-INT-01 a quitté `intervention_cycle_de_vie`, et pas seulement le chemin du terrain : **un verrou que le compteur contourne ne garde plus rien** — le laisser sur le chemin du back-office ferait une règle qui refuse au planificateur ce qu'elle accorde au technicien.
+
+**L'intervention porte désormais DEUX temps.** Le **mesuré**, somme des segments fermés, écrit par le compteur et **jamais modifiable** — un déclencheur refuse toute autre valeur, éprouvé sur les trois verbes avec son jumeau. Le **validé**, qu'un responsable arrête à la clôture, par défaut égal au mesuré, **avec son auteur et sa date**. _Un compteur oublié fausse les indicateurs, et sans ces deux colonnes on ne peut pas voir l'écart._
+
+**`temps_reel_min` devient `temps_valide_min`, et le renommage n'est pas cosmétique** : le temps « réel » est le mesuré, et c'est le validé qui se valorise. _Un nom qui dit le contraire de ce que la colonne porte est la faute du §9 sur `code_winpro`._
+
+**La saisie manuelle disparaît du back-office.** La clôture n'est plus une saisie, c'est une **validation** : le champ arrive pré-rempli avec ce que le compteur a compté, et reste corrigeable. **Le coût est nommé et visible** — une intervention sur laquelle personne n'a démarré de compteur ne se clôture plus ici : sur la fiche, le refus prend la place de l'action. _C'est la contrepartie exacte de « la saisie manuelle se fera dans Winpro au moment de facturer »._
+
 ## Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
 
 `tests/e2e/offline/` **n'est plus vide**. Il l'était depuis L0-02, et sa condition de réouverture, corrigée le 13/09 contre `docs/guide-pilotage.md` §5, disait : _« au premier ticket du lot 3 qui touche le hors-ligne — L3-06 —, les scénarios de ce répertoire s'écrivent **avant** le code qu'ils éprouvent. »_ Les trois scénarios ont été écrits d'abord, et ils ont d'abord rougi.

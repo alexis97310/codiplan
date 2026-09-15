@@ -47,7 +47,7 @@ const modele = (
   joursDepuisLundi: 0,
   debutMinutes: 480,
   dureeMin: 60,
-  temps_reel_min: null,
+  temps_valide_min: null,
   ...parts,
 });
 

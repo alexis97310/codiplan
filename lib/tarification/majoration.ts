@@ -14,11 +14,11 @@ import { arrondirAuPlusProche, montant, zero, type Montant } from "@/lib/money";
  * quelqu'un qui compte ses minutes : **ce qu'il a acheté est un créneau, et le
  * créneau a été tenu.**
  *
- * ## LE PRORATA SE LIT SUR LE CRÉNEAU, JAMAIS SUR `temps_reel_min`
+ * ## LE PRORATA SE LIT SUR LE CRÉNEAU, JAMAIS SUR `temps_valide_min`
  *
  * D12 disait *« au prorata, quart d'heure par quart d'heure »*, ce qui suppose
  * que la durée facturée et le créneau **coïncident**. Ils ne coïncident pas :
- * la main-d'œuvre se calcule sur `temps_reel_min` arrondi puis planché (D83,
+ * la main-d'œuvre se calcule sur `temps_valide_min` arrondi puis planché (D83,
  * D89), les minutes hors ouverture se lisent sur le créneau. *Créneau 16 h –
  * 18 h, fermeture à 17 h, travail de 30 minutes : **50 % ou 0 %** selon la base
  * retenue, et l'écart se voit sur la facture.*
@@ -80,7 +80,7 @@ export type CreneauPose = {
 export type MajorationHorsOuverture = {
   /** Les minutes DU CRÉNEAU tombant hors ouverture — le numérateur. */
   readonly minutesHorsOuverture: number;
-  /** Les minutes du créneau — le dénominateur, jamais `temps_reel_min`. */
+  /** Les minutes du créneau — le dénominateur, jamais `temps_valide_min`. */
   readonly minutesDuCreneau: number;
   /** La part de main-d'œuvre soumise au taux. */
   readonly assiette: Montant;

@@ -34,9 +34,12 @@ import {
  * politique qui recopierait les filtres passerait les mêmes scénarios en
  * portant une seconde lecture du même critère.
  *
- * Et **RG-INT-01**, qui n'était vérifiable par personne avant ce ticket : une
+ * Et ~~**RG-INT-01**, qui n'était vérifiable par personne avant ce ticket : une
  * intervention ne démarre pas sans machine, sauf `expertise`, `installation` et
- * `recensement`.
+ * `recensement`~~ — **la règle est RETIRÉE le 15/09/2026 par D120** : une
+ * intervention peut porter sur autre chose qu'un équipement. Ce que le bloc du
+ * bas mesure désormais est que le retrait a bien eu lieu, **et que les trois
+ * autres gardes du même déclencheur ont survécu au `CREATE OR REPLACE`.**
  */
 
 afterAll(fermerClients);
@@ -154,21 +157,48 @@ describe("la forme « filiation » : la fille suit son parent (D103)", () => {
   });
 });
 
-describe("RG-INT-01 — pas de démarrage sans machine, sauf trois types (D16)", () => {
-  it("une intervention CURATIVE sans machine refuse de démarrer", async () => {
+/**
+ * RG-INT-01 — LA MACHINE N'EST PLUS EXIGÉE POUR DÉMARRER (D120).
+ *
+ * ~~Une intervention ne démarre pas sans machine, sauf `expertise`,
+ * `installation` et `recensement`.~~ **La règle est retirée le 15/09/2026**, et
+ * le motif n'est pas un assouplissement : *« une intervention peut porter sur
+ * autre chose qu'un équipement — un réseau d'air comprimé, par exemple. »* La
+ * phrase barrée est conservée : elle a gouverné la base pendant deux jours, et
+ * ce qui a été décidé un jour se relit.
+ *
+ * **Ce que ce bloc mesure a donc changé de SENS, pas de rigueur.** Il prouvait
+ * un refus ; il prouve maintenant que le refus a réellement disparu — et que
+ * les TROIS AUTRES gardes du même déclencheur n'ont pas disparu avec lui.
+ * *C'est le vrai risque d'un `CREATE OR REPLACE` : il remplace la fonction
+ * ENTIÈRE, et une garde qu'on oublie de recopier s'en va sans bruit.*
+ */
+describe("RG-INT-01 — la machine n'est plus exigée pour démarrer (D120)", () => {
+  it("une intervention CURATIVE sans machine DÉMARRE", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
-      await expect(
-        clientOwner().$executeRawUnsafe(
-          `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
-        ),
-      ).rejects.toThrow(/machine/i);
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+      );
+      const [apres] = await clientOwner().$queryRawUnsafe<
+        Array<{ statut: string }>
+      >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+      expect(apres?.statut).toBe("en_cours");
     });
   });
 
-  it("la MÊME intervention, une machine rattachée, démarre — le refus venait bien de là", async () => {
-    // Le cas qui doit rester VERT pour sa propre raison (§9, 11/09) : sans lui,
-    // un déclencheur qui refuserait toute entrée en `en_cours` passerait le
-    // scénario ci-dessus.
+  it("le saut direct vers TERMINEE passe aussi — la garde n'est plus là", async () => {
+    await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+      );
+      const [apres] = await clientOwner().$queryRawUnsafe<
+        Array<{ statut: string }>
+      >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+      expect(apres?.statut).toBe("terminee");
+    });
+  });
+
+  it("une machine RATTACHÉE ne gêne pas — elle n'est ni exigée ni interdite", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
       await clientOwner().$executeRawUnsafe(
         `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
@@ -184,65 +214,55 @@ describe("RG-INT-01 — pas de démarrage sans machine, sauf trois types (D16)",
     });
   });
 
-  it.each(["expertise", "installation", "recensement"])(
-    "une intervention de type « %s » démarre SANS machine — D16",
-    async (type) => {
-      await surUneInterventionJetable(type, async (id) => {
-        await clientOwner().$executeRawUnsafe(
-          `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
-        );
-        const [apres] = await clientOwner().$queryRawUnsafe<
-          Array<{ statut: string }>
-        >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
-        expect(apres?.statut).toBe("en_cours");
-      });
-    },
-  );
-
-  it("le saut direct vers TERMINEE est gardé aussi — la base garde des ÉTATS, pas des trajets", async () => {
-    // *Ne surveiller que `en_cours` rendrait la règle vraie du chemin ordinaire
-    // et fausse de tous les autres.*
+  /**
+   * LES TROIS GARDES QUI RESTENT, ÉPROUVÉES ICI PARCE QUE C'EST ICI QU'ELLES
+   * POUVAIENT DISPARAÎTRE.
+   *
+   * `CREATE OR REPLACE FUNCTION` réécrit la fonction entière : la migration de
+   * D120 a recopié trois blocs à la main pour n'en retirer qu'un. **Une garde
+   * oubliée dans la recopie s'en irait sans bruit** — aucun scénario de refus
+   * ne rougirait, puisque le refus qu'ils attendent viendrait simplement de ne
+   * plus exister. Ces trois-là le constatent, sur la fonction telle qu'elle est
+   * réellement posée.
+   */
+  it("une intervention ANNULÉE ne se modifie toujours pas", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'épreuve', "annulee_le" = now() WHERE "id" = '${id}'`,
+      );
       await expect(
         clientOwner().$executeRawUnsafe(
-          `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${id}'`,
+          `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${id}'`,
         ),
-      ).rejects.toThrow(/machine/i);
+      ).rejects.toThrow(/annulée/i);
     });
   });
 
-  it("JUMEAU — le contrôle retiré de la fonction, le démarrage sans machine PASSE", async () => {
-    // *Un test de refus prouve que le verrou mordait le jour où on l'a écrit*
-    // (§9, 24/08). Le jumeau retire LE contrôle visé — pas le déclencheur
-    // entier, pas une contrainte voisine — dans une transaction annulée.
+  it("une CLÔTURE sans temps validé est toujours refusée", async () => {
     await surUneInterventionJetable("curatif", async (id) => {
       await expect(
-        clientOwner().$transaction(async (tx) => {
-          await tx.$executeRawUnsafe(`
-            CREATE OR REPLACE FUNCTION "intervention_cycle_de_vie"()
-            RETURNS TRIGGER AS $jumeau$
-            BEGIN
-              RETURN NEW;
-            END;
-            $jumeau$ LANGUAGE plpgsql;
-          `);
-          await tx.$executeRawUnsafe(
-            `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
-          );
-          const [apres] = await tx.$queryRawUnsafe<Array<{ statut: string }>>(
-            `SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`,
-          );
-          expect(apres?.statut).toBe("en_cours");
-          throw new Error("rollback voulu");
-        }),
-      ).rejects.toThrow("rollback voulu");
+        clientOwner().$executeRawUnsafe(
+          `UPDATE "intervention" SET "statut" = 'cloturee' WHERE "id" = '${id}'`,
+        ),
+      ).rejects.toThrow(/temps validé/i);
+    });
+  });
 
-      // La fonction est revenue avec l'annulation, et elle mord de nouveau.
+  it("une intervention CLÔTURÉE ne se modifie que pour être annulée (I5)", async () => {
+    await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "cloturee_le" = now() WHERE "id" = '${id}'`,
+      );
       await expect(
         clientOwner().$executeRawUnsafe(
-          `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${id}'`,
+          `UPDATE "intervention" SET "priorite" = 'p1' WHERE "id" = '${id}'`,
         ),
-      ).rejects.toThrow(/machine/i);
+      ).rejects.toThrow(/clôturée/i);
+      // Le cas qui doit rester VERT pour sa propre raison : l'annulation, elle,
+      // reste ouverte — I5 donne à ANNULEE la préséance sur CLOTUREE.
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "statut" = 'annulee', "motif_annulation" = 'épreuve', "annulee_le" = now() WHERE "id" = '${id}'`,
+      );
     });
   });
 });

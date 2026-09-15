@@ -4195,3 +4195,49 @@ Elles sont écrites ici pour n'avoir pas à être redécouvertes, et **aucune n'
 > **Le jour où un temps mesuré et un temps facturé divergent sur une intervention réelle**, et qu'Alexis constate l'écart sur une facture. *C'est le seul événement qui puisse remettre en cause « mesuré plutôt que saisi », et il se constate — il ne s'anticipe pas.*
 
 *Aucune règle du chapitre 10 n'est amendée. RG-TAR-05 dit l'arrondi et le plancher, et ils ne bougent pas ; RG-INT-02 dit qu'une intervention ne passe à TERMINÉE que si le temps passé est renseigné, et elle reste vraie — ce qui change est **d'où vient** ce temps, ce que la règle ne dit pas. Elle sera à relire le jour où la question 2 ci-dessus sera tranchée.*
+
+---
+
+## D120 — Le compteur est la SEULE source du temps, et du statut de travail
+
+**Règles amendées :** RG-INT-01
+
+*Rendu par Alexis le 15/09/2026, en réponse aux questions laissées ouvertes par D119. **Trois décisions qui n'en font qu'une** : elles touchent le même déclencheur, et les séparer ferait réécrire par la seconde ce que la première vient de poser.*
+
+### LES DÉCISIONS, DANS LES MOTS QUI LES ONT RENDUES
+
+> *« Le compteur ne dépend d'aucune machine. Une intervention peut porter sur autre chose qu'un équipement — un réseau d'air comprimé, par exemple. […] Démarrer le compteur fait bien passer l'intervention EN COURS, d'un seul geste, sans machine. »*
+
+> *« Le compteur est la seule source du temps. `intervention.temps_reel_min` n'a plus de chemin d'écriture manuel : supprime la saisie du back-office. La saisie manuelle se fera dans Winpro au moment de facturer, hors de CODIPLAN. »*
+
+> *« L'intervention porte deux temps : le temps mesuré, écrit par le compteur et jamais modifiable, et le temps validé, que le responsable ou l'ADV peut corriger à la validation. La correction garde l'auteur et la date. Par défaut le temps validé égale le temps mesuré. La raison : un compteur oublié fausse les indicateurs, et sans ces deux colonnes on ne peut pas voir l'écart. »*
+
+### JUSQU'OÙ LA PREMIÈRE VA — et c'est une LECTURE, écrite pour être corrigée
+
+La consigne dit *« ne s'applique pas au démarrage du compteur »*. **Le contrôle a été retiré du passage en statut de travail TOUT ENTIER**, et le motif est écrit plutôt que supposé :
+
+> **Un verrou que le compteur contourne ne garde plus rien.** Si un technicien porte une intervention EN COURS sans machine d'un seul geste, laisser la garde sur le chemin du back-office ferait une règle qui refuse au planificateur ce qu'elle accorde au terrain — *c'est-à-dire la seconde lecture d'un critère, celle qui vieillit sans rougir* (§9, 01/09).
+
+Et le motif donné — *une intervention peut porter sur autre chose qu'un équipement* — **ne dépend pas de qui agit**. La lecture est donc la plus large des deux, et elle est signalée comme telle : si elle est trop large, c'est une ligne de migration à remettre.
+
+### CE QUE « JAMAIS MODIFIABLE » VEUT DIRE ICI
+
+**Une garantie, pas une intention.** `intervention_temps_mesure_est_celui_du_compteur` refuse toute valeur de `temps_mesure_min` qui ne soit pas la somme des segments fermés de `segment_travail` — *une garantie qui ne vivrait que dans la couche applicative n'en serait pas une* (I1, L1-02c). Elle est éprouvée sur `create`, `update` et `upsert`, avec son jumeau.
+
+**C'est une seconde lecture d'un même critère, et elle est assumée** — le TypeScript explique, la base garde, comme pour le cycle de vie. Un scénario les fait répondre l'une à côté de l'autre sur les mêmes segments, **y compris sur le cas qui les sépare** : deux segments de trente secondes font **zéro** minute, jamais une. *Somme puis troncature, jamais l'inverse.*
+
+### LE RENOMMAGE, ET POURQUOI IL N'EST PAS COSMÉTIQUE
+
+`temps_reel_min` portait deux rôles qui viennent de se séparer. Le garder pour l'un aurait laissé son nom affirmer l'autre : **le temps « réel » est le mesuré, et c'est le validé qui se valorise.** Il devient `temps_valide_min`, et `temps_mesure_min` naît à côté. *Un nom qui dit le contraire de ce que la colonne porte est la faute que le §9 nomme sur `code_winpro`.*
+
+Les interventions déjà clôturées gardent leur valeur sous le nouveau nom — **et leur `temps_mesure_min` reste NULL, ce qui est exact** : le compteur n'existait pas.
+
+### CE QUE ÇA COÛTE, NOMMÉ
+
+**Une intervention sur laquelle personne n'a démarré de compteur ne se clôture plus dans CODIPLAN.** C'est la contrepartie exacte de *« la saisie manuelle se fera dans Winpro »*, et c'est visible à l'écran : sur la fiche, le refus prend la place de l'action de clôture, avec sa raison. *Ce n'est pas un effet de bord — c'est la décision, vue du back-office.*
+
+**Et la traçabilité de la validation est posée « NOT VALID »** : les interventions clôturées avant ce jour n'ont ni auteur ni date, et personne ne peut en énoncer un à leur place. L'état non validé est **visible** — `scripts/lib/contraintes-non-validees.ts` le lit chaque nuit.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où une intervention doit se clôturer sans qu'aucun compteur ait tourné** — un dépannage téléphonique facturé, une reprise dont le technicien a oublié de démarrer. *C'est le seul événement qui puisse remettre en cause « le compteur est la seule source », et il se constate sur une intervention réelle.*

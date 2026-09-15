@@ -65,7 +65,7 @@ afterEach(async () => {
 
 /**
  * Pose une intervention `terminee` prête à être clôturée, et rend son
- * identifiant. `temps_reel_min` est renseigné : sans lui,
+ * identifiant. `temps_valide_min` est renseigné : sans lui,
  * `intervention_cycle_de_vie` refuse la clôture pour une TOUTE AUTRE raison —
  * *le temps réel est l'entrée de l'arrondi et du plancher* (RG-TAR-05) — et le
  * scénario mesurerait le mauvais refus (§9, 24/08).
@@ -81,7 +81,7 @@ async function interventionTerminee(type: string): Promise<string> {
     );
     await tx.$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-         "agence_id", "type", "statut", "temps_reel_min", "modifie_le")
+         "agence_id", "type", "statut", "temps_valide_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::"TypeIntervention",
                'terminee', 90, now())`,
       id,
@@ -194,7 +194,7 @@ describe("D8 — une intervention peut NAÎTRE clôturée, et elle porte sa rép
       );
       await tx.$executeRawUnsafe(
         `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-           "agence_id", "type", "statut", "temps_reel_min", "modifie_le")
+           "agence_id", "type", "statut", "temps_valide_min", "modifie_le")
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
                  'cloturee', 60, now())`,
         id,
@@ -222,7 +222,7 @@ describe("D8 — une intervention peut NAÎTRE clôturée, et elle porte sa rép
       );
       await tx.$executeRawUnsafe(
         `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-           "agence_id", "type", "statut", "temps_reel_min", "modifie_le")
+           "agence_id", "type", "statut", "temps_valide_min", "modifie_le")
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'garantie',
                  'cloturee', 60, now())`,
         id,

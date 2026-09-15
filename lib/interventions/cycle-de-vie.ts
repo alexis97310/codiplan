@@ -63,15 +63,24 @@ export function peutAffecter(statut: StatutIntervention): Verdict {
 }
 
 /**
- * Peut-on CLÔTURER ? Deux conditions, et la seconde est celle qu'on oublie.
+ * Peut-on CLÔTURER — c'est-à-dire VALIDER le temps puis clore ? (D120)
  *
- * Le temps réel est exigé ici comme il l'est en base : sous D83, clôturer sans
- * temps facturerait le plancher d'une heure sur un temps que personne n'a
- * mesuré.
+ * **Ce qui est exigé n'est plus une saisie, c'est une MESURE.** *Le compteur du
+ * technicien est la seule source du temps* : clôturer sans qu'aucun segment
+ * n'ait tourné facturerait le plancher d'une heure sur un temps que personne
+ * n'a mesuré — la faute d'origine de cette garde, déplacée d'un cran.
+ *
+ * **Le paramètre est donc le temps MESURÉ, jamais le validé.** Prendre le
+ * validé rendrait la garde circulaire : l'écran le pré-remplit depuis le
+ * mesuré, et une garde qui juge ce qu'elle vient d'écrire ne juge rien.
+ *
+ * *Conséquence assumée et écrite : une intervention sur laquelle personne n'a
+ * démarré de compteur ne se clôture pas dans CODIPLAN.* C'est la contrepartie
+ * exacte de « la saisie manuelle se fait dans Winpro au moment de facturer ».
  */
 export function peutCloturer(
   statut: StatutIntervention,
-  tempsReelMin: number | null,
+  tempsMesureMin: number | null,
 ): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.annulee_figee" };
@@ -79,8 +88,39 @@ export function peutCloturer(
   if (statut === "cloturee") {
     return { refuse: true, cle: "intervention.refus.deja_cloturee" };
   }
-  if (tempsReelMin === null || tempsReelMin <= 0) {
+  if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
+  }
+  return PERMIS;
+}
+
+/**
+ * Peut-on DÉMARRER LE COMPTEUR sur cette intervention ? (D120)
+ *
+ * **Aucune machine n'est exigée**, et c'est tout l'objet de D120 : *une
+ * intervention peut porter sur autre chose qu'un équipement — un réseau d'air
+ * comprimé, par exemple.* Le bloc qui l'exigeait est retiré de la base au même
+ * moment, et non seulement d'ici : *une garde qu'un chemin contourne ne garde
+ * plus rien.*
+ *
+ * Trois refus, et le troisième est celui qu'on oublie :
+ *
+ *   - une intervention **figée** — annulée ou clôturée — ne se rouvre pas par
+ *     un compteur. La base le refuse déjà ; le dire ici donne un motif LISIBLE
+ *     plutôt qu'une violation de contrainte rendue à l'écran ;
+ *   - une intervention **suspendue** se REPREND, elle ne se redémarre pas.
+ *     *La reprise rend le statut que le créneau dicte* (L2-10) ; démarrer un
+ *     compteur par-dessus écraserait ce chemin sans le dire.
+ */
+export function peutDemarrerLeCompteur(statut: StatutIntervention): Verdict {
+  if (statut === "annulee") {
+    return { refuse: true, cle: "intervention.refus.annulee_figee" };
+  }
+  if (statut === "cloturee") {
+    return { refuse: true, cle: "intervention.refus.deja_cloturee" };
+  }
+  if (statut === "suspendue") {
+    return { refuse: true, cle: "compteur.refus.suspendue" };
   }
   return PERMIS;
 }

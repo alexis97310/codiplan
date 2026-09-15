@@ -114,6 +114,26 @@ export const CONTRAINTES_NON_VALIDEES: readonly NonValideeDeclaree[] = [
       "lesquelles ont été facturées —, puis VALIDATE CONSTRAINT et retirer " +
       "cette entrée.",
   },
+  {
+    table: "intervention",
+    contrainte: "intervention_validation_tracee",
+    motif:
+      "D120, et exactement la famille de sa voisine : les interventions DÉJÀ " +
+      "CLÔTURÉES portent un temps, et personne n'a validé ce temps — les " +
+      "colonnes n'existaient pas. Leur inventer un auteur serait signer une " +
+      "validation du nom de quelqu'un qui ne l'a pas faite ; leur inventer " +
+      "une date serait pire encore, aucune valeur de date ne disant son " +
+      "propre inconnu. La contrainte vaut donc pour toute ligne nouvelle ou " +
+      "modifiée, et les anciennes gardent leurs deux colonnes vides — ce qui " +
+      "est la vérité.",
+    rattrapage:
+      "Aucun rattrapage n'est possible ni souhaitable sur les lignes " +
+      "existantes : la validation n'a pas eu lieu. La contrainte se VALIDE le " +
+      "jour où toutes les interventions clôturées l'ont été APRÈS D120 — " +
+      "c'est-à-dire quand les plus anciennes sont sorties du périmètre de " +
+      "conservation, ou jamais. Elle reste alors NOT VALID, et c'est l'état " +
+      "juste.",
+  },
 ] as const;
 
 function cle(table: string, contrainte: string): string {
