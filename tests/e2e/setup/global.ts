@@ -3,6 +3,7 @@ import { preparerLaBase, recreerLaBase, VARIABLE_BASE_E2E } from "./base";
 // configuration d'authentification lit son environnement à l'évaluation.
 import "./environnement";
 import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
   ecrireLaScene,
   ouvrirLeCompteDeLEpreuve,
@@ -48,4 +49,10 @@ export default async function preparation(): Promise<void> {
   // et c'est ce qui le rend vrai : *un harnais qui écrirait une empreinte en
   // base éprouverait un chemin qui n'existe pas.*
   await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_TECHNICIEN_EPREUVE);
+  // LE TROISIÈME — celui qui ne voit pas les montants (D37). Même chemin
+  // encore : trois identités, une seule façon d'ouvrir un compte.
+  await ouvrirLeCompteDeLEpreuve(
+    reperes.societeId,
+    COMPTE_ADMIN_SOCIETE_EPREUVE,
+  );
 }

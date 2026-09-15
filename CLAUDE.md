@@ -843,6 +843,27 @@ lib/
               un appelant qui l'oublierait ne compile pas (la leçon de D70)
               il entre dans le NUMÉRATEUR et jamais dans le dénominateur :
               rouler ne change pas les heures d'ouverture d'une agence
+              montants-visibles.ts : QUI VOIT LA VALORISATION (D37, arbitrage
+              3.8) — la ligne « voir les montants de vente » de la matrice du
+              §5.2, qu'AUCUN écran ne lisait : la fiche affichait taux horaire,
+              main-d'oeuvre, forfait, majoration et total à qui l'ouvrait
+              ce n'était pas une fuite de cloisonnement — la ligne appartient
+              bien à la société de l'appelant — c'était une RÈGLE ÉCRITE QUE
+              RIEN N'APPLIQUAIT, et une règle qu'aucun code ne lit ne rougit
+              jamais
+              le critère se LIT de `niveau(role, ...)`, jamais recopié en
+              `role === admin_societe` : une recopie de ligne de matrice
+              deviendrait fausse au premier rôle qui change
+              il prend un RÔLE et non un contexte — ce qui ne sert pas ne se
+              demande pas, et un paramètre plus large ferait croire que la
+              décision dépend de la personne
+              CE N'EST PAS UN CONTRÔLE D'ACCÈS et il le dit : masquer un bloc
+              n'empêche aucune requête, et le faire tenir par la base
+              demanderait une quatorzième forme de politique sur des COLONNES
+              — un arbitrage, nommé plutôt que commis en passant
+              le bloc ne DISPARAÎT pas, il est remplacé par son motif : un bloc
+              absent se lirait « pas de montant » là où il faut lire « ce n'est
+              pas pour vous » (D88)
               personnes.ts : QUI le planning nomme, et COMMENT il le dit
               (14/09/2026) — `personnesANommer` fait l'UNION des identités des
               interventions ET de celles du référentiel : la vue jour tire ses
