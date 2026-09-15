@@ -146,9 +146,12 @@ la prise refaite.
 
 ## Ce qui a été mesuré sur `main`, et qui n'est pas de ce chantier
 
-- **Les issues du dépôt ne sont plus désactivées.** R3-17 écrit, le 15/09,
-  *« les issues sont désactivées sur le dépôt (R3-07) »* ; l'issue **#191** a été
-  ouverte aujourd'hui sans difficulté. *Un état affirmé vieillit.*
+- **Les issues du dépôt ne sont plus désactivées.** Le ticket est **R3-07** et
+  non R3-17 — je me suis trompé de numéro en l'écrivant. L'issue **#191** a été
+  ouverte aujourd'hui sans difficulté, et la mesure du soir va plus loin : le
+  canal était rouvert dès le **13/09**, l'alarme y ayant ouvert **#178** à
+  18:05 UTC. *Un état affirmé vieillit* — et celui-là a vieilli deux jours dans
+  un document qui a l'autorité d'une mesure. Corrigé par la PR **#196**.
 - **L'empreinte photographiée `f13c2c6` n'existe dans aucun historique** —
   `git cat-file -t` sur un clone complet. C'est **R3-17**, déjà écrit, avec une
   mesure plus précise que la mienne : la prise avait été faite sur une branche,
@@ -157,13 +160,90 @@ la prise refaite.
 
 ---
 
+## LES RÉPONSES SONT ARRIVÉES LE MÊME JOUR, ET VOICI CE QU'ELLES ONT DONNÉ
+
+*Écrit après coup, dans le même document : ce qui a été demandé se relit à côté
+de ce qui a été répondu, sinon la question survit à sa réponse.*
+
+| Question | Réponse d'exploitation | Où elle vit |
+|---|---|---|
+| 1 — le compteur passe-t-il l'intervention EN COURS ? | **oui, d'un seul geste, et SANS machine** — une intervention peut porter sur un réseau d'air comprimé | **D120**, PR #195 |
+| 2 — qui écrit le temps ? | **le compteur, et personne d'autre** — la saisie manuelle se fait dans Winpro au moment de facturer | **D120**, PR #195 |
+| 3 — une colonne ou deux ? | **DEUX** — le mesuré, que personne ne corrige ; le validé, qu'un responsable arrête avec son nom et sa date | **D120**, PR #195 |
+| 4 — la restriction en base ? | **elle reste applicative** — rien à rouvrir | — |
+| 5 — les montants et les rôles | **le défaut est réel** : ajouter un rôle plutôt que faire disparaître les montants | PR #197 |
+| 6 — `terminee` et `cloturee` | **les deux états restent distincts** | — |
+
+### ET MA QUESTION 5 ÉTAIT FAUSSE SUR UN POINT DE FAIT
+
+J'ai écrit *« le seul rôle interne du semis est `admin_societe` »*. **C'est
+faux, et l'ouvrir coûtait une requête** : le semis porte `direction` sur les
+deux sociétés, `adv`, et six techniciens ; `admin_societe` n'y figurait **pas du
+tout**. *C'est la pente du §9 du 07/09 — affirmer un état observable au lieu de
+l'observer — commise dans le document même qui pose une question.*
+
+La conséquence change ce que la réponse veut dire, et c'est pour cela qu'elle
+s'écrit : **faire lire la règle à l'écran ne fait disparaître aucun montant de
+la démonstration**, `direction` gardant le droit. Le vrai défaut n'était pas
+*« la correction coûte les montants »* mais **la règle n'était exerçable par
+personne, et aucun écran ne la lisait**. PR #197 fait les deux, en deux commits
+séparables.
+
+### UNE CONSÉQUENCE VISIBLE DE D120, QUI N'EST PAS UNE QUESTION MAIS UN CHOIX
+
+**Sur la base de démonstration, plus aucune intervention ne peut être
+clôturée.** Le semis ne pose aucun `segment_travail`, donc aucun temps mesuré,
+et le refus est **juste** — ces interventions n'ont jamais été comptées. La
+démonstration passe désormais par le terrain : démarrer, arrêter, puis valider
+et clôturer, ce qui est le parcours réel du produit.
+
+*Je n'ai pas fabriqué de segments dans le semis* : ce serait inventer qui a
+travaillé et combien de temps, sur des interventions qui n'ont aucun technicien
+affecté. La scène des épreuves de bout en bout en pose un, elle — c'est une
+**fixture**, pas une démonstration. Si la démonstration doit montrer une clôture
+atteignable, c'est un geste de semis nommé et il s'écrit en une fois.
+
+---
+
+## CE QUI RESTE OUVERT AU SOIR DU 15
+
+- **Un défaut d'écran, ANTÉRIEUR à ce chantier** : la fiche du back-office
+  affiche **l'identifiant brut du technicien** au lieu de son nom. Présent sur
+  l'image d'avant comme sur celle d'après, donc ce n'est la régression de
+  personne. `lib/interventions/personnes.ts` existe pour cela et la fiche ne
+  l'appelle pas.
+- **Une nuit rouge non traitée** : l'issue **#178**, *« [nuit-rouge] la
+  vérification nocturne a échoué »*, est ouverte depuis le **13/09 à 18:05
+  UTC**. L'alarme a sonné exactement comme elle devait, et personne n'a
+  répondu pendant deux jours. *Le canal n'était pas le point faible.*
+- **Aucune image ne peut montrer la règle de D37**, et c'est dit plutôt que
+  découvert plus tard : la prise de vue n'a qu'une identité interne,
+  `direction`, à qui rien n'est retiré. C'est la paire de bout en bout qui
+  mesure l'écart entre les deux rôles.
+
+---
+
 ## Où reprendre
 
-**Rien n'est en cours.** Les quatre branches sont poussées, aucune n'est
-fusionnée. Ce qui suit dépend des réponses ci-dessus : les questions 1 et 2
-décident de la suite du compteur, la 4 décide de sa garde, et R5-03 comme R5-04
-attendent deux chaînes entières que ce chantier n'a pas ouvertes.
+**Rien n'est en cours.** Sept propositions sont poussées, **aucune n'est
+fusionnée** :
 
-*Geste d'exploitation : **aucun**. #192 touche `prisma/migrations/`, que D116
-porte à la base `demonstration` sans qu'une main l'y porte ; aucune proposition
-ne touche `prisma/seed.ts`.*
+| | Proposition | Base |
+|---|---|---|
+| 1 | **#189** — R5-01 (socle) | `main` |
+| 2 | **#190** — R5-01 (écran) | #189 |
+| 3 | **#192** — R5-02 (table) | `main` — **indépendante** |
+| 4 | **#193** — R5-02 (écran) | #190 |
+| 5 | **#194** — ce journal | `main` |
+| 6 | **#195** — D120, les trois premières réponses | #193 |
+| 7 | **#196** — R3-07, le canal rouvert | `main` — **indépendante** |
+| 8 | **#197** — la réponse 6 | #195 |
+
+R5-03 (photos) et R5-04 (signature) attendent toujours **deux chaînes
+entières** — le stockage d'objets et `lib/pdf/` — que ce chantier n'a pas
+ouvertes, et qu'il n'ouvrira pas en posant une interface sans appelant.
+
+*Geste d'exploitation : **UN**, et il n'est dû qu'après la fusion de #197 —
+`pnpm db:seed` sur la base de démonstration, pour que l'identité
+`admin.societe@codima.test` y existe. Les migrations, elles, y vont seules
+(D116). Aucun autre geste n'est dû.*
