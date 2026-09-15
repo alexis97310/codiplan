@@ -1760,8 +1760,8 @@ Quand on modifie les horaires d'ouverture d'un établissement, le supplément «
 
 ---
 
-**R3-17 — L'EMPREINTE PHOTOGRAPHIÉE N'EST PAS ATTEIGNABLE DEPUIS `main`. [15/09/2026]**
-*File :* LIBRE
+**~~R3-17~~ — L'EMPREINTE PHOTOGRAPHIÉE N'EST PAS ATTEIGNABLE DEPUIS `main`. [15/09/2026]**
+~~Ce ticket cherchait comment rendre l'empreinte ouvrable.~~ **Il se referme avec R3-18, qui retire son OBJET plutôt que de résoudre son problème** : on cesse de versionner les images, donc il n'y a plus d'empreinte à rendre atteignable. Le ticket est **barré, jamais effacé** — ce qui a été décidé un jour se relit. *Il avait raison sur le fait et il a épuisé ses trois issues : les trois coûtaient plus que ce que la prise de vue rapporte, et c'est cela que R3-18 constate.* **Condition de réouverture : le jour où une image de restitution est à nouveau versionnée dans le dépôt.**
 **Déclencheur : la règle « photographier selon `pnpm captures:etat` » vient d'être posée, et elle ne tient aujourd'hui que sur la machine où la prise a été faite.**
 
 ## Ce qui a été mesuré
@@ -1791,6 +1791,68 @@ La commande a **trois** verdicts précisément pour que « je ne sais pas » ne 
 Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que son défaut soit écrit** : la prochaine session qui lira « photographier selon `pnpm captures:etat` » doit savoir que la commande sort en 1 chez elle, et pourquoi.
 
 *Acceptation :* `pnpm captures:etat` rend un verdict **ouvrable** depuis un clone frais de `main` — ou bien la règle dit, dans le README qu'elle écrit, ce qu'elle ne sait pas faire et à quelle condition elle le saura.
+
+---
+
+**R3-18 — ON CESSE DE VERSIONNER LES IMAGES DE RESTITUTION. [décision du directeur d'exploitation, 15/09/2026]**
+*File :* LIBRE
+**Décision prise, pas question posée.** Les captures sortent du dépôt ; la CI les produit en **artefact d'exécution**. Ce ticket écrit ce qui la fonde et ce qu'elle coûte — il ne la rouvre pas.
+
+## La mesure qui la fonde — une ancre qui ne peut PAS tenir
+
+**La fusion par écrasement crée un commit neuf.** Le commit sur lequel une prise de vue a été faite vit sur la branche de proposition ; l'écrasement en fabrique un autre, de contenu identique et d'empreinte différente, et la branche disparaît. **Aucune empreinte de prise de vue faite sur une branche ne reste donc atteignable depuis `main`** — ce n'est pas un oubli qu'on répare, c'est une propriété du mode de fusion.
+
+R3-17 l'avait mesuré sur **une** prise. *Mesuré le 15/09/2026 sur les **huit** dernières, à `59e6cd4` :*
+
+```
+for c in $(git log --format=%H -8 origin/main -- docs/captures/README.md); do
+  e=$(git show $c:docs/captures/README.md | grep -oP '`\K[0-9a-f]{40}' | head -1)
+  git merge-base --is-ancestor $e origin/main && echo ATTEIGNABLE || echo INATTEIGNABLE
+done
+```
+
+**Huit prises, huit `INATTEIGNABLE`.** Zéro exception — et le témoin qui empêche de lire ce zéro comme une mesure creuse est qu'une empreinte a bien été lue à chaque tour : `ec1dede`, `02958fa`, `d5ec965`, `f13c2c6`, `05998d4`, `3836281`, `2fe2e99`, `1887192`.
+
+**Et l'objet est absent, pas seulement hors de la chaîne.** La mesure a été refaite dans un **clone réel** de `main` — jamais dans le dépôt de la session, qui garde les objets orphelins et rendrait un vert qui ne parle de rien (§9, 07/09) :
+
+```
+git clone --single-branch --branch main <dépôt> clone-main
+git -C clone-main cat-file -e ec1dede1d7514ae4c5ff895e61138f8d1c5597c3   # → échec
+```
+
+*Dans un clone frais de `main`, `pnpm captures:etat` ne peut rendre que son **troisième** verdict — « je ne sais pas » — et sortir en 1. Pour tout le monde, à chaque exécution, sauf sur la machine qui vient de photographier.*
+
+## Le poids — ce que les images coûtent à qui clone
+
+*Mesuré le 15/09/2026, `git cat-file --batch-check` sur `git rev-list --objects`.*
+
+| Où | Captures | Total | Part |
+|---|---|---|---|
+| **arbre de `main`** (58 images) | 4,45 Mo — 4,2 Mio | 15,9 Mio | **26,6 %** |
+| **clone de `main` seul**, taille sur disque — *ce qu'un contributeur télécharge* | 16,3 Mio | 22,1 Mio | **73,6 %** |
+| **décompressé, toutes références locales** | 28,1 Mio | 125,9 Mio | 22,4 % |
+
+**C'est la deuxième ligne qui décide** : deux tiers et plus de ce qu'on télécharge pour obtenir ce dépôt sont des images que personne ne peut ouvrir par son empreinte. Le `.git` du clone pèse **23 Mo**.
+
+**Un chiffre de la consigne ne s'est PAS reproduit, et il est écrit plutôt que tu** : « 28,8 Mio d'historique sur 45 ». Les 28,8 se retrouvent à 0,7 près en décompressé (28,1) ; le dénominateur 45, non — le paquet local mesure **35,19 Mio** (`git count-objects -vH`). *Une mesure se rend avec ce qui l'a produite, et un écart qu'on ne sait pas expliquer s'écrit* (§9, 07/09). L'écart ne change pas la décision : les trois lignes du tableau la fondent chacune.
+
+## Ce que la décision coûte, nommé
+
+*Une décision qui n'écrit pas ce qu'elle perd se relit comme une décision sans coût.*
+
+- **L'image ne sera plus sous les yeux du relecteur dans le diff.** Elle sera derrière un lien d'artefact, donc à un clic — et un clic de plus est un clic que certains ne feront pas.
+- **Un artefact d'exécution EXPIRE.** Une image versionnée se relit dans trois ans ; un artefact, non. *Ce qu'on perd est la relecture lointaine, ce qu'on gagne est la relecture atteignable — et l'atteignabilité est ce qui vient d'être mesuré absente huit fois sur huit.*
+- **`docs/captures/README.md` et son empreinte perdent leur objet.** Ce qui les remplace doit dire où l'artefact se trouve et de quelle exécution il vient — sinon on échange une ancre morte contre une absence d'ancre.
+- **L'historique ne maigrit PAS.** Retirer les images de l'arbre ne retire rien du passé : les 16,3 Mio du clone restent, sauf réécriture d'historique, qui n'est pas dans ce ticket. *Le gain est sur ce qui vient, pas sur ce qui est.*
+
+## Ce qu'il reste à écrire
+
+- `.gitignore` refuse `docs/captures/*.png`, et les images présentes sont retirées de l'arbre en un commit qui le dit.
+- Un travail de CI joue la prise de vue et **dépose les images en artefact**, nommé par l'empreinte de l'exécution qui les a produites — celle-là est ouvrable, c'est tout l'intérêt.
+- **`pnpm captures:etat` change de question ou disparaît.** Elle demande « les écrans ont-ils changé depuis la prise ? » ; sans prise versionnée, la question n'a plus de sujet. *Un contrôle dont le libellé pose une question plus large que sa mesure est un contrôle faux* (§9, 11/09) — elle ne se laisse donc pas en place « au cas où ».
+- Le §6 de `CLAUDE.md` et le README suivent dans la même demande de fusion.
+
+*Acceptation :* aucune image n'est versionnée ; un contributeur obtient les images de la dernière exécution par un chemin **écrit dans le dépôt** ; et `pnpm captures:etat` ne survit pas sous un libellé auquel elle ne peut plus répondre.
 
 ---
 
