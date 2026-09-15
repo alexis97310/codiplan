@@ -21,6 +21,10 @@ import {
 import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import {
+  accesAuxMontants,
+  type AccesAuxMontants,
+} from "@/lib/interventions/montants-visibles";
 import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
@@ -83,6 +87,10 @@ export default async function PageIntervention({
 
   const ligne = fiche.ligne;
   const statut = ligne.statut as StatutIntervention;
+  // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
+  // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
+  // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
+  const montants = accesAuxMontants(session.contexte.role);
 
   return (
     <main className="flex flex-col gap-5">
@@ -187,6 +195,7 @@ export default async function PageIntervention({
             <Valorisation
               valorisation={fiche.valorisation}
               devise={fiche.devise}
+              montants={montants}
             />
           ) : null}
         </div>
@@ -410,77 +419,93 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
 function Valorisation({
   valorisation,
   devise,
+  montants,
 }: {
   valorisation: ValorisationAffichee;
   devise: { code: string; decimales: number; symbole: string | null };
+  montants: AccesAuxMontants;
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
       <h2 className="text-[14px] font-bold">
         {t("intervention.cloture.facture")}
       </h2>
-      <p className="text-app-encre-faible text-[11.5px]">
-        {t("intervention.cloture.explication")}
-      </p>
-      <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
-        <Ligne
-          libelle={t("intervention.cloture.temps_valide")}
-          valeur={minutes(valorisation.minutesReelles)}
-        />
-        <Ligne
-          libelle={t("intervention.cloture.arrondi")}
-          valeur={minutes(valorisation.minutesArrondies)}
-        />
-        {valorisation.plancherApplique ? (
-          <Ligne
-            libelle={t("intervention.cloture.plancher")}
-            valeur={minutes(valorisation.minutesFacturees)}
-          />
-        ) : null}
-        <Ligne
-          libelle={t("intervention.cloture.taux")}
-          valeur={formatMoney(valorisation.tauxHoraire, devise)}
-        />
-        {valorisation.mainDoeuvre === null ? null : (
-          <Ligne
-            libelle={t("intervention.cloture.main_doeuvre")}
-            valeur={formatMoney(valorisation.mainDoeuvre, devise)}
-          />
-        )}
-        {/*
+      {/*
+        LE BLOC NE DISPARAÎT PAS — il est remplacé par son motif, exactement
+        comme un refus d'action l'est en colonne latérale. *Un bloc absent se
+        lirait « cette intervention n'a pas de montant » là où il faut lire
+        « ce n'est pas pour vous »* (le motif de D88), et le titre reste pour
+        que la différence soit visible.
+      */}
+      {montants.montre ? null : (
+        <p className="text-app-oxyde text-[12.5px]">{t(montants.cle)}</p>
+      )}
+      {!montants.montre ? null : (
+        <>
+          <p className="text-app-encre-faible text-[11.5px]">
+            {t("intervention.cloture.explication")}
+          </p>
+          <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+            <Ligne
+              libelle={t("intervention.cloture.temps_valide")}
+              valeur={minutes(valorisation.minutesReelles)}
+            />
+            <Ligne
+              libelle={t("intervention.cloture.arrondi")}
+              valeur={minutes(valorisation.minutesArrondies)}
+            />
+            {valorisation.plancherApplique ? (
+              <Ligne
+                libelle={t("intervention.cloture.plancher")}
+                valeur={minutes(valorisation.minutesFacturees)}
+              />
+            ) : null}
+            <Ligne
+              libelle={t("intervention.cloture.taux")}
+              valeur={formatMoney(valorisation.tauxHoraire, devise)}
+            />
+            {valorisation.mainDoeuvre === null ? null : (
+              <Ligne
+                libelle={t("intervention.cloture.main_doeuvre")}
+                valeur={formatMoney(valorisation.mainDoeuvre, devise)}
+              />
+            )}
+            {/*
           LE FORFAIT DE DÉPLACEMENT S'AFFICHE, et il entre dans le total
           (RG-INT-07, D77). *Il n'y entrait pas : « Total hors taxes » portait
           la main-d'œuvre seule.* Absent, la ligne ne s'affiche pas — le
           déplacement n'est alors pas facturé (D11), et une ligne à zéro
           dirait le contraire de ce qu'elle vaut.
         */}
-        {valorisation.forfaitDeplacement === null ? null : (
-          <Ligne
-            libelle={t("intervention.cloture.forfait_deplacement")}
-            valeur={formatMoney(valorisation.forfaitDeplacement, devise)}
-          />
-        )}
-        {/*
+            {valorisation.forfaitDeplacement === null ? null : (
+              <Ligne
+                libelle={t("intervention.cloture.forfait_deplacement")}
+                valeur={formatMoney(valorisation.forfaitDeplacement, devise)}
+              />
+            )}
+            {/*
           UN TOTAL INCONNU SE DIT, IL NE S'AFFICHE PAS À ZÉRO. *Zéro se lit
           « gratuit ».* Le motif prend la place du montant, en oxyde, comme un
           refus prend la place d'une action sur cet écran.
         */}
-        <Ligne
-          libelle={t("intervention.cloture.total")}
-          valeur={
-            valorisation.totalHT === null
-              ? t("intervention.cloture.total_inconnu")
-              : formatMoney(valorisation.totalHT, devise)
-          }
-        />
-        {valorisation.motifTotalInconnu !== null &&
-        estCleTraduction(valorisation.motifTotalInconnu) ? (
-          <Ligne
-            libelle={t("intervention.cloture.total_motif")}
-            valeur={t(valorisation.motifTotalInconnu)}
-          />
-        ) : null}
-      </dl>
+            <Ligne
+              libelle={t("intervention.cloture.total")}
+              valeur={
+                valorisation.totalHT === null
+                  ? t("intervention.cloture.total_inconnu")
+                  : formatMoney(valorisation.totalHT, devise)
+              }
+            />
+            {valorisation.motifTotalInconnu !== null &&
+            estCleTraduction(valorisation.motifTotalInconnu) ? (
+              <Ligne
+                libelle={t("intervention.cloture.total_motif")}
+                valeur={t(valorisation.motifTotalInconnu)}
+              />
+            ) : null}
+          </dl>
+        </>
+      )}
     </section>
   );
 }
