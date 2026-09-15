@@ -888,6 +888,30 @@ lib/
               c'est le raisonnement des zones PRIS À L'ENVERS — les zones sont
               closes parce qu'elles ne bougeront pas, les familles bougeront à
               chaque société
+              depot.ts : LE CHEMIN D'ÉCRITURE (L1-05b) — il n'en existait AUCUN
+              pendant six jours, et c'était un ENCHAÎNEMENT : une machine exige
+              un modèle (D6), un modèle exige une famille, et aucun des deux ne
+              pouvait naître — le parc ne se remplissait que par le semis
+              il n'écrit AUCUNE colonne de VGP, et ce n'est pas un oubli :
+              l'assujettissement se déclare à la FAMILLE avec ses trois valeurs
+              (L9-03), « soumis » exige la périodicité ET son texte (L9-04), le
+              modèle PRÉCISE sans faire exception (L9-06) — une seconde entrée
+              sur la même règle ne connaîtrait pas la première
+              une famille naît donc « à déterminer », l'état que L9-03 a choisi
+              pour qu'il ne se confonde pas avec « non soumise », et un scénario
+              le RELIT en SQL plutôt que de le supposer
+              l'ENTRETIEN du constructeur n'est pas la périodicité RÉGLEMENTAIRE,
+              et l'écran le dit là où on le saisit : les mêler ferait facturer
+              un entretien pour une vérification légale, ou l'inverse
+              aucune SUPPRESSION : quatre clés étrangères retiennent une famille
+              et deux un modèle, toutes en Restrict — proposer un bouton qui
+              échoue huit fois sur dix est pire que de ne pas le proposer
+              aucune comparaison de société n'est écrite au-dessus de la
+              politique : une famille d'ailleurs et une famille inexistante
+              rendent LE MÊME refus (D35, D50)
+              l'unicité de ces deux tables est un INDEX et non une contrainte
+              (mesuré) — un jumeau écrit en DROP CONSTRAINT échoue en 42704 au
+              lieu de retirer le verrou
   tarification/ taux horaire HISTORISÉ par date d'effet (L1-07, RG-TAR-04)
               une intervention se facture au taux en vigueur à SA date : une
               facture qui change quand le tarif change est une facture fausse
