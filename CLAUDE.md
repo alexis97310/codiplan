@@ -780,6 +780,32 @@ lib/
               est celle qui décide du calendrier de référence (I7)
               le JOURNAL des déplacements n'est pas une table de plus : c'est
               `journal_audit`, par déclencheur, avec les valeurs avant et après
+              compteur.ts : LA RÈGLE DU COMPTEUR (R5-02, D119) — elle ne lit
+              ni base ni horloge, l'instant est un PARAMÈTRE
+              DES SEGMENTS, JAMAIS UN COUPLE : *une pause est un fait*, et huit
+              heures entre le premier départ et le dernier arrêt peuvent n'être
+              que quatre heures de travail
+              elle n'ARRONDIT rien — l'arrondi au quart d'heure et le plancher
+              d'une heure restent dans la valorisation : arrondir deux fois
+              ferait deux lectures d'un même critère, et la seconde déciderait
+              du prix
+              un compteur qui TOURNE ne compte pas dans le total et se rend à
+              part : *un compteur qui tourne n'est pas un temps acquis*, et
+              l'additionner ferait un total qui change tout seul (le motif de D85)
+              DEUX GESTES et non trois : sur les segments, « pause » et
+              « arrêt » ferment le même segment et rien d'autre — en offrir deux
+              qui font la même chose serait mentir sur l'un des deux ; la
+              distinction se rouvrira avec le STATUT, que D119 laisse ouvert
+              depot-compteur.ts : les quatre actions sous contexte cloisonné —
+              forme « interne » (D94), et aucune comparaison de société écrite
+              au-dessus de la politique
+              les segments lus sont ceux de la PERSONNE, toutes interventions
+              confondues : lire ceux de la seule intervention visée laisserait
+              démarrer un second compteur ailleurs, que la base refuserait
+              ensuite par un index sans motif lisible
+              il ne touche NI `statut`, NI `temps_reel_min` : les deux sont les
+              questions ouvertes de D119, et un module qui y répondrait par
+              accident les aurait tranchées
               statistiques.ts : la CHARGE par technicien — nombre, heures
               engagées, heures ouvrables, barre segmentée
               le type ne porte AUCUN pourcentage : `tauxOccupation` exige

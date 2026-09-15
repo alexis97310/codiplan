@@ -4151,3 +4151,47 @@ Alexis a écrit : *« je ne vois pas de lien vers la page client »*. **Mesuré 
 > **Le jour où la maquette est redessinée avec un menu**, elle redevient la source de la forme et cet amendement tombe de lui-même. *Jusque-là, la forme du menu se décide devant `docs/propositions/navigation.html` et se garde contre les destinations réelles.*
 
 *Aucune règle du chapitre 10 n'est amendée : la navigation n'y figure pas.*
+
+---
+
+## D119 — Le compteur du technicien FAIT FOI pour le temps
+
+*Rendu par Alexis le 15/09/2026, en ouvrant le chantier de l'application du technicien. **Il tranche la question qui bloquait R5-02 depuis le 14/09/2026** ; le ticket portait `BLOQUÉ` avec ce motif exact.*
+
+### LA DÉCISION, DANS LES MOTS QUI L'ONT RENDUE
+
+> *« Le compteur du technicien fait foi pour le temps (R5-02), arrondi au quart d'heure supérieur. »*
+
+### LA QUESTION QU'ELLE TRANCHE, ET POURQUOI ELLE APPARTENAIT À ALEXIS
+
+R5-02 la posait ainsi : *« Un temps mesuré à la seconde entre-t-il tel quel dans le calcul, ou le technicien confirme-t-il un temps saisi ? »* Les deux réponses étaient défendables, et **elles ne coûtaient pas la même chose au client** — c'est le §1 de la doctrine, mot pour mot : *une règle qui change ce qu'un client paie*.
+
+**La réponse est « mesuré ».** Le temps n'est pas une saisie que l'on confirme : c'est un fait que le compteur enregistre.
+
+### CE QUE LA DÉCISION NE CHANGE PAS, ET C'EST LA MOITIÉ QU'ON POURRAIT CROIRE CHANGÉE
+
+**L'arrondi reste là où il est.** `lib/tarification/valorisation.ts` arrondit au quart d'heure supérieur puis applique le plancher d'une heure, **une seule fois sur l'intervention entière** (RG-TAR-05, D83, D89). La consigne d'Alexis nomme l'arrondi parce qu'il fait partie de la règle ; elle ne le déplace pas.
+
+> **Le compteur ne s'arrondit donc PAS à l'écriture.** `segment_travail` stocke des instants ; la valorisation décide du prix. *Arrondir aux deux endroits ferait deux lectures d'un même critère, et la seconde déciderait du montant sans que la première laisse de trace* (§9, 01/09). Un scénario le prouve plutôt qu'il ne l'affirme : le compteur rend **61 minutes**, la valorisation en fait **75**.
+
+### CE QUE LA DÉCISION COÛTE, NOMMÉ
+
+R5-02 l'écrivait déjà, et cela reste vrai : **un compteur oublié une nuit entière facturera onze heures.** C'est le prix d'un temps mesuré, et c'est le prix qu'Alexis a choisi de payer. *L'autre choix en avait un autre — un compteur qu'on corrige n'est plus un compteur.*
+
+Deux conséquences en découlent, et elles sont construites plutôt que commentées :
+
+- **la table n'accepte AUCUNE suppression** — ni privilège, ni politique : *un temps qui peut disparaître sans trace ne fait foi de rien.* Une erreur se corrige par modification, et le journal d'audit (I8) garde la valeur d'avant ;
+- **un seul compteur ouvert par personne**, tenu par un index partiel : *une personne ne travaille pas à deux endroits à la fois.* Deux segments **fermés** peuvent en revanche se recouvrir — I5 veut que le travail terrain ne soit jamais perdu, et deux saisies hors ligne qui se chevauchent sont un fait à conserver, pas une écriture à refuser.
+
+### DEUX QUESTIONS QUE CETTE DÉCISION FAIT NAÎTRE, ET QU'ELLE NE TRANCHE PAS
+
+Elles sont écrites ici pour n'avoir pas à être redécouvertes, et **aucune n'est répondue par le code livré** — *un module qui y répondrait par accident les aurait tranchées.*
+
+1. **Démarrer le compteur doit-il faire passer l'intervention EN COURS ?** Alexis écrit *« il pourra démarrer son intervention, et qu'à ce moment le compteur commence »*, ce qui suggère un seul geste. Mais **RG-INT-01 exige une machine rattachée au passage en statut de travail**, et la base le tient : *le dépannage à l'aveugle est le cas ordinaire*, et coupler les deux rendrait le compteur indémarrable sur l'appel du matin.
+2. **Qui écrit `intervention.temps_reel_min` désormais ?** La colonne a **un seul chemin d'écriture**, la clôture depuis le back-office. Le compteur faisant foi, ce chemin devient une **seconde source du même fait** — la divergence du §9 — et la réparation touche ce qu'un client paie.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où un temps mesuré et un temps facturé divergent sur une intervention réelle**, et qu'Alexis constate l'écart sur une facture. *C'est le seul événement qui puisse remettre en cause « mesuré plutôt que saisi », et il se constate — il ne s'anticipe pas.*
+
+*Aucune règle du chapitre 10 n'est amendée. RG-TAR-05 dit l'arrondi et le plancher, et ils ne bougent pas ; RG-INT-02 dit qu'une intervention ne passe à TERMINÉE que si le temps passé est renseigné, et elle reste vraie — ce qui change est **d'où vient** ce temps, ce que la règle ne dit pas. Elle sera à relire le jour où la question 2 ci-dessus sera tranchée.*

@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les trente-quatre tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les trente-cinq tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -311,6 +311,13 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // quand, et depuis quelle valeur est ce qu'on cherchera le jour où une
       // estimation paraîtra fausse.
       "prestation",
+      // `segment_travail` s'y ajoute à R5-02, et par le même chemin : première
+      // catégorie de I1, donc auditée à sa naissance. **Elle le mérite plus que
+      // la plupart** — le compteur FAIT FOI pour le temps (D119), et la table
+      // n'accepte AUCUNE suppression : une correction reste donc possible par
+      // `UPDATE`, et c'est le journal qui garde la valeur d'avant. *Sans lui,
+      // un temps corrigé serait indiscernable d'un temps mesuré.*
+      "segment_travail",
       "site",
       "site_habilitation_requise",
       "societe",
