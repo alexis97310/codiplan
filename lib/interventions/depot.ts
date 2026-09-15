@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
@@ -34,6 +34,11 @@ import {
   type ModeDeValorisation,
 } from "@/lib/tarification/valorisation";
 
+import {
+  filtreDuPerimetre,
+  motifRefusPlanning,
+  perimetreDuPlanning,
+} from "./perimetre-technicien";
 import {
   peutAffecter,
   peutAnnuler,
@@ -1066,6 +1071,31 @@ export async function annulerIntervention(
   });
 }
 
+/**
+ * LA RESTRICTION PAR PERSONNE, LUE UNE SEULE FOIS POUR LES TROIS LECTURES
+ * (R5-01).
+ *
+ * Elle est ici et non recopiée dans chaque requête : *le planning, la fiche et
+ * la ligne brute répondent à la même question — « ces interventions sont-elles
+ * les miennes ? » — et trois écritures d'un même critère divergent en silence*
+ * (§9, 01/09).
+ *
+ * Elle LÈVE sur un rôle sans accès plutôt que de rendre zéro ligne : un
+ * planning vide et un planning interdit se corrigent à des endroits
+ * différents. Le message est technique, et l'écran décide de ce qu'un humain
+ * en lit.
+ */
+function restrictionParPersonne(
+  contexte: ContexteSession,
+): { readonly technicien_id: string } | undefined {
+  const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));
+  const motif = motifRefusPlanning(perimetre);
+  if (motif !== null) {
+    throw new Error(motif);
+  }
+  return filtreDuPerimetre(perimetre);
+}
+
 /** Une ligne de planning, avec ce qu'il faut pour la lire sans l'ouvrir. */
 export type LignePlanning = LigneIntervention & {
   readonly client: { raison_sociale: string };
@@ -1085,11 +1115,13 @@ export async function listerPlanning(
   au: Date,
   client?: PrismaClient,
 ): Promise<readonly LignePlanning[]> {
+  const restriction = restrictionParPersonne(contexte);
   return avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.intervention.findMany({
         where: {
+          ...restriction,
           OR: [
             // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
             // L'appelant passe le lendemain à minuit ; avec `lte`, la journée
@@ -1173,6 +1205,13 @@ export async function listerPlanning(
 export async function lireFicheIntervention(
   contexte: ContexteSession,
   id: string,
+  /**
+   * La connexion, pour les scénarios qui lisent la base jetable — le reste du
+   * dépôt appelle ce paramètre `client`, et ici ce nom est déjà celui du
+   * CLIENT de l'intervention, deux lignes plus bas. *Deux choses sous un même
+   * nom dans un même fichier est la faute du 09/09.*
+   */
+  connexion?: PrismaClient,
 ): Promise<{
   readonly ligne: LigneIntervention;
   readonly client: string | null;
@@ -1199,91 +1238,95 @@ export async function lireFicheIntervention(
    */
   readonly habilitations: VerdictAffectation | null;
 } | null> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const ligne = await tx.intervention.findFirst({
-      where: { id },
-      select: {
-        ...CHAMPS_LIGNE,
-        client: { select: { raison_sociale: true } },
-        site: { select: { libelle: true } },
-        agence: { select: { libelle: true } },
-        forfait: { select: { libelle: true } },
-        devise: { select: { code: true, decimales: true, symbole: true } },
-      },
-    });
-    if (ligne === null) {
-      return null;
-    }
-    const { client, site, agence, forfait, devise, ...brute } = ligne;
-
-    // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
-    // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
-    // valable pour une intervention posée demain, et expirée pour une posée
-    // dans un mois.
-    const habilitations =
-      brute.technicien_id === null
-        ? null
-        : await verdictHabilitationSous(
-            tx,
-            brute.site_id,
-            brute.technicien_id,
-            brute.date_planifiee ??
-              (await instantDeLAgence(tx, brute.agence_id)),
-          );
-
-    let valorisation: ValorisationAffichee | null = null;
-    if (brute.temps_reel_min !== null && brute.temps_reel_min > 0) {
-      const instant = await instantDeLAgence(tx, brute.agence_id);
-      const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
-      if (taux !== null) {
-        const v = valoriserTempsPasse(brute.temps_reel_min, taux.taux);
-        // LA MÊME COMPOSITION QUE LA CLÔTURE, et c'est délibéré : l'écran ne
-        // recalcule pas un total avec sa propre règle. *Deux lectures d'un même
-        // critère divergent en silence* (§9, 01/09) — ici l'une figerait le
-        // montant en base et l'autre l'afficherait, et le jour où elles
-        // s'écarteraient c'est l'écran qui aurait l'air d'avoir raison.
-        const composition = valoriserIntervention({
-          mode: brute.mode_valorisation as ModeDeValorisation,
-          forfaitDeplacement: await montantDuForfait(
-            tx,
-            brute.forfait_deplacement_id,
-          ),
-          mainDoeuvre: v.mainDoeuvre,
-          // LA MÊME MAJORATION QUE LA CLÔTURE, par le même chemin : l'écran ne
-          // recalcule pas un supplément avec sa propre règle.
-          majoration: await majorationDeLIntervention(
-            tx,
-            contexte.societeId ?? "",
-            brute,
-            v.mainDoeuvre,
-          ),
-        });
-        valorisation = {
-          minutesReelles: v.minutesReelles,
-          minutesArrondies: v.minutesArrondies,
-          minutesFacturees: v.minutesFacturees,
-          plancherApplique: v.plancherApplique,
-          tauxHoraire: v.tauxHoraire,
-          mainDoeuvre: composition.mainDoeuvre,
-          forfaitDeplacement: composition.forfaitDeplacement,
-          majoration: composition.majoration,
-          totalHT: composition.totalHT,
-          motifTotalInconnu: composition.motifTotalInconnu,
-        };
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id, ...restrictionParPersonne(contexte) },
+        select: {
+          ...CHAMPS_LIGNE,
+          client: { select: { raison_sociale: true } },
+          site: { select: { libelle: true } },
+          agence: { select: { libelle: true } },
+          forfait: { select: { libelle: true } },
+          devise: { select: { code: true, decimales: true, symbole: true } },
+        },
+      });
+      if (ligne === null) {
+        return null;
       }
-    }
+      const { client, site, agence, forfait, devise, ...brute } = ligne;
 
-    return {
-      ligne: brute,
-      client: client.raison_sociale,
-      lieu: site.libelle,
-      rattachement: agence.libelle,
-      forfait: forfait?.libelle ?? null,
-      devise,
-      valorisation,
-      habilitations,
-    };
-  });
+      // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
+      // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
+      // valable pour une intervention posée demain, et expirée pour une posée
+      // dans un mois.
+      const habilitations =
+        brute.technicien_id === null
+          ? null
+          : await verdictHabilitationSous(
+              tx,
+              brute.site_id,
+              brute.technicien_id,
+              brute.date_planifiee ??
+                (await instantDeLAgence(tx, brute.agence_id)),
+            );
+
+      let valorisation: ValorisationAffichee | null = null;
+      if (brute.temps_reel_min !== null && brute.temps_reel_min > 0) {
+        const instant = await instantDeLAgence(tx, brute.agence_id);
+        const taux = await tauxEnVigueur(tx, brute.date_planifiee ?? instant);
+        if (taux !== null) {
+          const v = valoriserTempsPasse(brute.temps_reel_min, taux.taux);
+          // LA MÊME COMPOSITION QUE LA CLÔTURE, et c'est délibéré : l'écran ne
+          // recalcule pas un total avec sa propre règle. *Deux lectures d'un même
+          // critère divergent en silence* (§9, 01/09) — ici l'une figerait le
+          // montant en base et l'autre l'afficherait, et le jour où elles
+          // s'écarteraient c'est l'écran qui aurait l'air d'avoir raison.
+          const composition = valoriserIntervention({
+            mode: brute.mode_valorisation as ModeDeValorisation,
+            forfaitDeplacement: await montantDuForfait(
+              tx,
+              brute.forfait_deplacement_id,
+            ),
+            mainDoeuvre: v.mainDoeuvre,
+            // LA MÊME MAJORATION QUE LA CLÔTURE, par le même chemin : l'écran ne
+            // recalcule pas un supplément avec sa propre règle.
+            majoration: await majorationDeLIntervention(
+              tx,
+              contexte.societeId ?? "",
+              brute,
+              v.mainDoeuvre,
+            ),
+          });
+          valorisation = {
+            minutesReelles: v.minutesReelles,
+            minutesArrondies: v.minutesArrondies,
+            minutesFacturees: v.minutesFacturees,
+            plancherApplique: v.plancherApplique,
+            tauxHoraire: v.tauxHoraire,
+            mainDoeuvre: composition.mainDoeuvre,
+            forfaitDeplacement: composition.forfaitDeplacement,
+            majoration: composition.majoration,
+            totalHT: composition.totalHT,
+            motifTotalInconnu: composition.motifTotalInconnu,
+          };
+        }
+      }
+
+      return {
+        ligne: brute,
+        client: client.raison_sociale,
+        lieu: site.libelle,
+        rattachement: agence.libelle,
+        forfait: forfait?.libelle ?? null,
+        devise,
+        valorisation,
+        habilitations,
+      };
+    },
+    connexion,
+  );
 }
 
 /**
@@ -1320,6 +1363,7 @@ export type ValorisationAffichee = {
 export async function lireIntervention(
   contexte: ContexteSession,
   id: string,
+  client?: PrismaClient,
 ): Promise<
   | (LigneIntervention & {
       readonly devise: {
@@ -1330,14 +1374,17 @@ export async function lireIntervention(
     })
   | null
 > {
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.intervention.findFirst({
-      where: { id },
-      select: {
-        ...CHAMPS_LIGNE,
-        devise: { select: { code: true, decimales: true, symbole: true } },
-      },
-    }),
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findFirst({
+        where: { id, ...restrictionParPersonne(contexte) },
+        select: {
+          ...CHAMPS_LIGNE,
+          devise: { select: { code: true, decimales: true, symbole: true } },
+        },
+      }),
+    client,
   );
 }
 
