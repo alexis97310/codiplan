@@ -1553,13 +1553,36 @@ Exécutable par **`admin_plateforme` seul**. Journalisée dans **`journal_acces`
 *Ce qu'il doit dire :* si l'échéance s'affiche dans la colonne existante ou dans une colonne à elle ; et ce qu'une machine **sans périodicité déclarée** montre — `prochaineEcheance` est alors nulle, et *« pas d'échéance » ne se lit pas « à jour »*.
 *Acceptation :* une machine dont l'échéance est passée se distingue à l'œil d'une machine renseignée et à jour ; aucune durée nouvelle n'est écrite dans `lib/vgp/` ; et un scénario mesure les deux cas — échéance passée, échéance à venir — plus le cas sans périodicité.
 
-**R3-07 — LES *ISSUES* SONT DÉSACTIVÉES SUR LE DÉPÔT, et l'alarme d'É12 ne peut rien ouvrir. [R0-a] [É12]**
-*File :* BLOQUÉ — c'est un réglage de dépôt, pas un correctif de code : seul le propriétaire peut cocher la case. Mesuré le 12/09/2026.
-**CE QUI A ÉTÉ MESURÉ, à 05:59:13 UTC sur l'exécution `34676559756`** : `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »** ; `list_issues` rend **0 issue, total 0** ; et `pulls/133` rend **404**, donc **#133 était bien une issue** — les issues ont existé, ont servi (#103, #127, #133, #142, #144), et sont aujourd'hui désactivées.
-**CE QUE CELA COÛTE, et c'est É12 rendu inopérant.** L'écart a été fermé le 31/08 par la phrase *« une issue rend la question du courriel sans objet : elle vit DANS le dépôt »* — mesurée contre deux échecs nocturnes restés non lus dans une boîte le 20 août. **Le canal est clos.** Toute nuit rouge, toute dérive de la base hébergée, toute base déployée en retard sonne donc *dans le vide* : la pièce vide du 20 août, sous un autre costume.
-**CE QUI A DÉJÀ ÉTÉ FAIT, et qui ne remplace pas le geste** : l'alarme écrit son corps dans le **résumé de l'exécution** et en **annotation** AVANT de tenter l'issue, puis rougit en nommant le geste. *Une alarme qui ne peut pas sonner doit le dire, et dire quand même ce qu'elle avait à dire.* Mais un résumé d'exécution **expire avec la rétention** ; une issue attend qu'on la lise. **Ce n'est pas une réparation, c'est un sursis.**
-*Le geste :* **Settings → General → Features → cocher « Issues ».** *Je ne peux pas vérifier que les issues existantes redeviennent visibles tant que la case est décochée, et je le dis plutôt que de l'affirmer.*
-*Acceptation :* la case est cochée ; une exécution de l'alarme ouvre réellement une issue, et son numéro est consigné ici — *une preuve de vie, pas une relecture de ce que le dispositif promet* (§9, 12/09).
+**R3-07 — ~~LES *ISSUES* SONT DÉSACTIVÉES SUR LE DÉPÔT, et l'alarme d'É12 ne peut rien ouvrir.~~ LE CANAL EST ROUVERT, ET L'ALARME S'EN EST SERVIE. [R0-a] [É12]**
+*File :* LIVRÉ
+**LE TITRE EST BARRÉ ET NON EFFACÉ.** Il a gouverné ce ticket trois jours, et *ce qui a été décidé — ou constaté — un jour se relit.* Ce qu'il affirmait était vrai le 12/09 et faux dès le 13 ; ce que ce ticket doit désormais montrer est **comment il est devenu faux sans que personne ne le voie**.
+
+## Ce qui a été mesuré le 12/09/2026, et qui reste exact ce jour-là
+
+À 05:59:13 UTC, sur l'exécution `34676559756` : `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »** ; `list_issues` rend **0 issue, total 0** ; et `pulls/133` rend **404**, donc **#133 était bien une issue** — les issues ont existé, ont servi (#103, #127, #133, #142, #144), et étaient ce jour-là désactivées.
+
+## Ce qui a été mesuré le 15/09/2026, et qui clôt le ticket
+
+*Relevé à 06:55 UTC, contre l'API du dépôt, jamais de mémoire.*
+
+| Ce que l'acceptation demandait | Ce qui a été observé |
+|---|---|
+| la case est cochée | `list_issues` rend **16 issues au total**, ouvertes et fermées — là où le 12/09 il en rendait **0** |
+| **une exécution de l'ALARME ouvre réellement une issue**, et son numéro est consigné | **#178**, *« [nuit-rouge] la vérification nocturne a échoué »*, ouverte le **13/09/2026 à 18:05:03 UTC** par **`github-actions[bot]`**, sur l'exécution `34773123640` et le commit `215cbc6` |
+
+**C'est la preuve de vie que le §9 du 12/09 exigeait, et elle n'est pas une relecture de ce que le dispositif promet** : le corps de #178 est celui que le job écrit, son auteur est le robot, et rien dans cette ligne ne vient d'une lecture du code.
+
+## CE QUE CE TICKET APPREND, ET QUI VAUT PLUS QUE SA CLÔTURE
+
+**Le canal s'est rouvert le 13/09 au plus tard ; ce document a continué d'affirmer le contraire jusqu'au 15.** Deux jours pendant lesquels une session qui lisait le backlog tenait pour clos un canal qui fonctionnait — et aurait pu renoncer à ouvrir une issue pour cette raison. *C'est exactement la pente du §9 du 07/09 — affirmer un état observable au lieu de l'observer —, appliquée non pas à une phrase de conversation mais à un TICKET, qui a l'autorité d'une mesure et la fraîcheur de sa rédaction.*
+
+**Et #178 est encore OUVERTE au 15/09 à 06:55 UTC.** Une nuit du 13/09 a rougi, l'alarme a sonné comme elle devait, et **personne n'a répondu pendant deux jours**. Le canal n'était pas le point faible : *une alarme qui sonne dans une pièce où l'on n'entre pas n'est pas plus utile qu'une alarme muette* — la pièce vide du 20 août, une troisième fois, sous un troisième costume.
+
+*Ce ticket ne traite pas #178*, et il ne prétend pas le faire : la cause d'une nuit rouge se cherche dans son exécution, pas ici. Il l'écrit pour que l'écart soit porté par quelqu'un.
+
+## Ce qui reste, et c'est une CLASSE plutôt qu'une ligne
+
+**Un ticket qui constate un état extérieur au dépôt — un réglage GitHub, un état de flux, une visibilité — se périme sans rougir.** Aucun gardien ne le relit, parce que ce qu'il affirme ne vit pas dans le dépôt. C'est la famille de la donnée datée du §9 (21/08) : *une donnée qui se périme en silence vaut une liste close que personne ne surveille.* Condition d'ouverture d'un ticket sur cette classe : *le jour où un deuxième ticket de ce dépôt se révèle périmé sur un état extérieur*, ce n'est plus un accident et cela vaut un contrôle — ici, le deuxième serait R1-11, qui décrit un flux `disabled_manually` — il a été LIVRÉ en re-mesurant cet état plutôt qu'en le citant, ce qui est exactement le geste que R3-07 n'a pas eu.
 
 ---
 
