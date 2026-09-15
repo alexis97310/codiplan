@@ -975,6 +975,29 @@ export const UTILISATEURS_INTERNES: readonly UtilisateurInterneSeed[] = [
     email: "adv@codima.test",
     habilitations: [{ societe_code: "CODIMA-NC", role: Role.adv }],
   },
+  // ── L'ADMINISTRATEUR DE SOCIÉTÉ, ET IL EST ICI POUR UNE RAISON PRÉCISE ───
+  //
+  // **`admin_societe` est le seul rôle interne à qui D37 RETIRE les montants
+  // de vente** — *« il administre comptes, agences et habilitations de SA
+  // société ; il ne lit pas les données financières »*. C'est une ligne de la
+  // matrice du §5.2, et **elle n'était démontrable par personne** : le semis
+  // ne portait aucune identité de ce rôle, si bien que la seule façon de
+  // vérifier la règle était de lire la matrice — c'est-à-dire de relire ce
+  // qu'on voulait éprouver.
+  //
+  // *Une règle écrite qu'aucune identité ne permet d'exercer est une règle
+  // dont on ne saura jamais si elle s'applique.* Elle s'exerce maintenant :
+  // la même intervention, ouverte par la direction et par cette identité,
+  // montre la valorisation à l'une et pas à l'autre.
+  //
+  // **Sur CODIMA-NC seulement.** L'ajouter sur les deux sociétés n'aurait rien
+  // démontré de plus et aurait coûté une seconde ligne d'habilitation : ce
+  // qu'on veut montrer est un ÉCART entre deux rôles, pas entre deux sociétés.
+  {
+    nom: "Administration de démonstration",
+    email: "admin.societe@codima.test",
+    habilitations: [{ societe_code: "CODIMA-NC", role: Role.admin_societe }],
+  },
   // ── LES QUATRE TECHNICIENS DE LA MAQUETTE (R2-12) ────────────────────────
   //
   // **Leurs noms ne sont pas inventés : ils sont écrits dans
