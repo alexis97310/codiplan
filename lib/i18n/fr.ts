@@ -823,6 +823,13 @@ export const fr = {
   "intervention.cloture.main_doeuvre": "Main-d'œuvre",
   "intervention.cloture.forfait_deplacement": "Forfait de déplacement",
   "intervention.cloture.total": "Total hors taxes",
+
+  // LA VALORISATION N'EST PAS MONTRÉE À TOUT LE MONDE (D37, arbitrage 3.8).
+  // Le bloc ne DISPARAÎT pas : il est remplacé par son motif, comme un refus
+  // d'action l'est sur cet écran — *un bloc absent se lirait « il n'y a pas de
+  // montant » là où il faut lire « ce n'est pas pour vous »* (le motif de D88).
+  "intervention.valorisation.sans_droit":
+    "Votre rôle ne donne pas accès aux montants de vente.",
   // UN TOTAL QU'ON NE SAIT PAS CALCULER SE DIT (L2-09a). *Zéro se lit
   // « gratuit »*, et une absence d'information ne s'affiche jamais comme une
   // réponse négative — c'est vrai d'un montant plus que de tout le reste.

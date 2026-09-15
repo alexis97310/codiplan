@@ -73,6 +73,21 @@ export const COMPTE_EPREUVE = "adv@codima.test";
 export const COMPTE_TECHNICIEN_EPREUVE = "guerin@codima.test";
 
 /**
+ * LE COMPTE `admin_societe` DE L'ÉPREUVE (D37, arbitrage 3.8).
+ *
+ * **Une TROISIÈME identité, et pour une troisième raison** — les deux autres
+ * en manquaient ou en avaient trop ; celle-ci a exactement les mêmes droits
+ * que `adv` sur la fiche, **moins une ligne de matrice** : « voir les montants
+ * de vente ». *C'est le seul écart qu'on veut mesurer, et une identité qui en
+ * porterait deux ne dirait pas lequel a mordu.*
+ *
+ * Elle est connectable comme le technicien : `admin_societe` porte une ligne
+ * dans `utilisateur_societe`, donc l'amorçage sait lui émettre un lien de
+ * premier accès.
+ */
+export const COMPTE_ADMIN_SOCIETE_EPREUVE = "admin.societe@codima.test";
+
+/**
  * Les FORFAITS de la scène.
  *
  * **Le catalogue de démonstration naît VIDE, et c'est une décision** — les
@@ -326,10 +341,43 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         );
         await client.intervention.update({
           where: { id: ligne.id },
-          data: { temps_mesure_min: 120 },
+          // **ET LE TEMPS VALIDÉ AVEC LUI** — par défaut il égale le mesuré
+          // (D120). Sans lui, `lireFicheIntervention` ne compose AUCUNE
+          // valorisation (`temps_valide_min > 0` est sa condition), et le bloc
+          // des montants n'existerait sur l'écran d'aucun rôle : le scénario
+          // qui doit rester vert passerait alors pour une mauvaise raison —
+          // *l'écran ne montre rien à personne* (§9, 11/09).
+          data: { temps_mesure_min: 120, temps_valide_min: 120 },
         });
       }
     }
+
+    // ── UN TAUX HORAIRE, SANS QUOI AUCUN MONTANT N'EXISTE ──────────────────
+    //
+    // *Aucune fonction « le taux courant » n'existe* (L1-07) : la valorisation
+    // lit le taux en vigueur à la DATE de l'intervention, et la scène pose des
+    // interventions de la semaine courante. La date d'effet est donc très en
+    // arrière — elle couvre toute date que la scène puisse produire, quelle que
+    // soit la semaine où l'épreuve tourne.
+    //
+    // **Une FIXTURE, jamais de la donnée de démonstration** : le catalogue de
+    // tarifs appartient à l'exploitation (L1-07), le semis n'en pose aucun, et
+    // cette base est détruite à chaque exécution.
+    await client.tauxHoraire.deleteMany({ where: { societe_id: societe.id } });
+    await client.tauxHoraire.create({
+      data: {
+        id: "01a0e2e0-0000-7000-8000-0000000000e1",
+        societe_id: societe.id,
+        date_effet: new Date("2020-01-01T00:00:00.000Z"),
+        // 7 000 XPF de l'heure, en unité mineure — XPF n'a pas de décimale
+        // (I3), donc 7000 vaut bien 7 000 francs.
+        montant_mineur: BigInt(7000),
+        // XPF, comme les interventions de la scène : un taux lu sans sa devise
+        // est un nombre, et un déclencheur refuse qu'il s'écarte de celui de sa
+        // société (I2).
+        devise_code: "XPF",
+      },
+    });
 
     for (const forfait of FORFAITS_SCENE) {
       await client.forfait.deleteMany({ where: { id: forfait.id } });
