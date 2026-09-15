@@ -2002,11 +2002,13 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 | **5. Le hors-ligne** | I4, le mode avion | — | la file de synchronisation, le manifeste, l'agent de service — L3-07 / L3-08 |
 
 **R5-01 — LE TECHNICIEN VOIT SON PLANNING, ET LUI SEUL.**
-*File :* LIBRE
+*File :* LIVRÉ
 **Ce qu'il pose** : une session de technicien atteint un écran qui ne montre QUE ses interventions. **Aucune nouvelle donnée, aucune migration** — le cloisonnement existe, le planning existe, et ce qui manque est **la restriction par personne**.
 **CE QU'IL SUPPOSE, ET C'EST UN ARBITRAGE.** La matrice de RG-DRO-03 donne `consulter_planning` en **restreint** au technicien, et *cette matrice n'a qu'un seul appelant dans tout le dépôt* — aucun écran ne filtre par capacité. **Ou bien le filtrage par capacité arrive, ou bien la restriction est écrite dans la requête** ; les deux se défendent, et les mêler donnerait deux lectures d'un même critère.
 **CE QUE LE DÉPÔT REFUSE DÉJÀ, et qu'il ne faut pas défaire** : *masquer une entrée de navigation n'est jamais un contrôle d'accès* — c'est la politique qui garde, et une seconde lecture au-dessus vieillit sans rougir.
 *Acceptation :* un compte `technicien` lit son planning et **zéro intervention d'un autre technicien**, mesuré sous le rôle applicatif ; le même compte ne voit **aucun montant** (matrice §5.2) ; un scénario de rendu montre l'écran, et une capture l'accompagne.
+**LIVRÉ le 15/09/2026, en deux étapes.** *La couche* — `lib/interventions/perimetre-technicien.ts` lit la matrice, que **rien n'appelait** : son seul appelant était son propre scénario. *L'écran* — `app/(mobile)/terrain`, quatrième groupe de routes, barre vide.
+**CE QUE LA BASE NE TIENT PAS EST ÉCRIT.** La forme « parc » (D84) répond « quelle société, quel client, quels sites », jamais « quelle personne » : la restriction vit dans la couche applicative, et `tests/isolation/planning-du-technicien.test.ts` le mesure en lisant **2** interventions sous le contexte cloisonné du technicien avant que le dépôt n'en retranche une. *Porter la restriction en base ajouterait une quatorzième forme de politique : c'est un arbitrage, et il est posé.*
 
 **R5-02 — LE COMPTEUR : démarrer, mettre en pause, arrêter. Et un temps MESURÉ n'est pas un temps SAISI.**
 *File :* LIVRÉ

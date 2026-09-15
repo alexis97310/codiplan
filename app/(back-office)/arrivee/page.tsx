@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
+import { estContexteActif } from "@/lib/auth/contexte";
 import { estRolePortail, type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -11,6 +12,10 @@ import {
   type SocieteDuCompte,
 } from "@/lib/auth/societe-active";
 import { t } from "@/lib/i18n/fr";
+import {
+  perimetreDuPlanning,
+  type PerimetrePlanning,
+} from "@/lib/interventions/perimetre-technicien";
 
 /**
  * PAGE D'ARRIVÉE (ticket L1-02f) — qui vous êtes, pour quelle société.
@@ -111,7 +116,14 @@ export default async function PageArrivee() {
           interne sur une société et cliente sur une autre (RG-SOC-03), et
           c'est la société choisie qui dit lequel des deux elle est ici. */}
       {etat.issue === "arrivee" && session !== null ? (
-        <Entree role={session.contexte.role} />
+        <Entree
+          role={session.contexte.role}
+          perimetre={
+            estContexteActif(session.contexte)
+              ? perimetreDuPlanning(session.contexte)
+              : null
+          }
+        />
       ) : null}
 
       {societes.length > 0 ? (
@@ -130,20 +142,42 @@ export default async function PageArrivee() {
 /**
  * LE LIEN VERS L'ÉCRAN QUE CE RÔLE OUVRE.
  *
- * Deux destinations, et pas une de plus : le portail pour un compte client, le
- * planning pour tous les autres. *Une liste de liens par rôle serait une
- * seconde lecture de la matrice des droits (§9, 01/09) ; ici la question posée
- * est plus étroite — « par où entre-t-on ? » —, et elle n'a que deux réponses.*
+ * **Trois destinations depuis R5-01**, et pas une de plus : le portail pour un
+ * compte client, **la journée du terrain pour qui n'a du planning qu'un accès
+ * RESTREINT**, le planning pour tous les autres. *Une liste de liens par rôle
+ * serait une seconde lecture de la matrice des droits (§9, 01/09) ; ici la
+ * question posée est plus étroite — « par où entre-t-on ? »* — et la troisième
+ * réponse ne recopie rien : elle LIT le même périmètre que le dépôt applique,
+ * si bien qu'un rôle qui recevrait demain le `○` entrerait par le terrain sans
+ * qu'on rouvre ce fichier.
+ *
+ * **Et c'est ce qui donne un appelant à l'écran du terrain.** Ce dépôt a payé
+ * deux fois une politique posée que rien n'appelait (D61, D67) et une fois un
+ * écran vers lequel rien ne menait (D92) : *la porte se pose dans le même
+ * ticket que la pièce.*
  */
-function Entree({ role }: { role: Role | null }) {
+function Entree({
+  role,
+  perimetre,
+}: {
+  role: Role | null;
+  perimetre: PerimetrePlanning | null;
+}) {
   if (role === null) {
     return null;
   }
-  const portail = estRolePortail(role);
+  if (estRolePortail(role)) {
+    return (
+      <LienPrimaire href="/portail">{t("arrivee.entrer.portail")}</LienPrimaire>
+    );
+  }
+  if (perimetre?.acces === "restreint") {
+    return (
+      <LienPrimaire href="/terrain">{t("arrivee.entrer.terrain")}</LienPrimaire>
+    );
+  }
   return (
-    <LienPrimaire href={portail ? "/portail" : "/planning"}>
-      {portail ? t("arrivee.entrer.portail") : t("arrivee.entrer.planning")}
-    </LienPrimaire>
+    <LienPrimaire href="/planning">{t("arrivee.entrer.planning")}</LienPrimaire>
   );
 }
 

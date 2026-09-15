@@ -79,6 +79,7 @@ export const fr = {
   // L'ENTRÉE — le lien qui manquait, et sans lequel un écran n'a pas d'appelant.
   "arrivee.entrer.portail": "Voir votre parc",
   "arrivee.entrer.planning": "Ouvrir le planning",
+  "arrivee.entrer.terrain": "Ouvrir ma journée",
 
   // Registre des VGP — CODIPLAN n'affirme jamais la conformité (lot 9, D88).
   // Il enregistre ce qu'un organisme agréé a écrit, et ne calcule que des dates.
@@ -971,6 +972,12 @@ export const fr = {
   "demande.motif.refus_client": "Refus du client",
   "demande.motif.doublon": "Doublon",
 
+  // ── L'APPLICATION DU TECHNICIEN (R5-01, L3-08) ───────────────────────────
+  "terrain.titre": "Ma journée",
+  "terrain.aujourdhui": "Aujourd'hui",
+  "terrain.sans_date": "Affectées, sans date",
+  "terrain.rien_aujourdhui": "Aucune intervention.",
+  "terrain.sans_creneau": "Sans horaire",
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
   "statut.affectee": "Affectée",

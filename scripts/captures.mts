@@ -61,6 +61,23 @@ const COURRIEL_PORTAIL = process.env.COURRIEL_PORTAIL ?? "";
 const MOT_DE_PASSE_PORTAIL = process.env.MOT_DE_PASSE_PORTAIL ?? "";
 
 /**
+ * LE COMPTE TECHNICIEN — une TROISIÈME identité, et elle est nécessaire pour
+ * la même raison que la seconde, à un mot près (R5-01).
+ *
+ * `/terrain` n'existe que pour un rôle dont la matrice du §5.2 restreint le
+ * `consulter_planning` : un compte à accès COMPLET y est renvoyé au planning
+ * du back-office, par la page elle-même. *L'écran ne peut donc pas se
+ * photographier sous l'identité qui sert au reste de la prise de vue — non
+ * parce qu'elle manquerait de droits, mais parce qu'elle en a trop.*
+ *
+ * Contrairement au portail, ce compte-là est CONNECTABLE : un technicien porte
+ * une ligne dans `utilisateur_societe`, donc l'amorçage sait lui émettre un
+ * lien de premier accès.
+ */
+const COURRIEL_TERRAIN = process.env.COURRIEL_TERRAIN ?? "";
+const MOT_DE_PASSE_TERRAIN = process.env.MOT_DE_PASSE_TERRAIN ?? "";
+
+/**
  * La clé retenue lors de l'activation, pour la durée de la prise de vue.
  *
  * *Elle n'est écrite nulle part* : ni fichier, ni README, ni journal — c'est un
@@ -144,7 +161,11 @@ type Ecran = {
  * l'absence de passe.
  */
 type PasseNommee =
-  "avant-enrolement" | "defi-second-facteur" | "portail" | "sans-societe";
+  | "avant-enrolement"
+  | "defi-second-facteur"
+  | "portail"
+  | "sans-societe"
+  | "terrain";
 
 const ECRANS: readonly Ecran[] = [
   {
@@ -483,6 +504,26 @@ const ECRANS: readonly Ecran[] = [
       "chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce " +
       "que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne " +
       "rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.",
+  },
+  {
+    // LA JOURNÉE DU TECHNICIEN (R5-01) — le premier écran de l'application de
+    // terrain, et **le premier écran de ce dépôt qui se regarde d'abord à
+    // 390 px**. L'image du téléphone compte ici plus que celle du poste de
+    // travail : c'est la seule qui montre ce qu'un technicien voit vraiment.
+    nom: "terrain",
+    chemin: "/terrain",
+    quoi: "La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue.",
+    authentifie: true,
+    passe: "terrain",
+    temoin: "Ma journée",
+    refusConnu:
+      "Cet écran demande un compte TECHNICIEN — `COURRIEL_TERRAIN` et " +
+      "`MOT_DE_PASSE_TERRAIN` —, et la raison est l'inverse de celle du " +
+      "portail : le compte qui sert au reste de la prise de vue a un accès " +
+      "COMPLET au planning, et `/terrain` le renvoie au back-office. Ce " +
+      "compte-là est CONNECTABLE, lui : un technicien porte une ligne dans " +
+      "`utilisateur_societe`, donc l'amorçage sait lui émettre un lien de " +
+      "premier accès.",
   },
   {
     // L'écran du DÉFI, qui n'existe qu'entre le mot de passe et la session.
@@ -1018,6 +1059,34 @@ async function connexionPortail(page: Page): Promise<void> {
   }
 }
 
+/**
+ * La connexion du compte TECHNICIEN — une troisième identité (R5-01).
+ *
+ * *Elle ne passe par aucun défi* : la matrice ne range pas `technicien` parmi
+ * les rôles à second facteur obligatoire (RG-DRO-05), et le semis n'en pose
+ * aucun. Si un jour il en porte un, ce refus le dira plutôt que de
+ * photographier l'écran du défi sous le nom du terrain.
+ */
+async function connexionTerrain(page: Page): Promise<void> {
+  if (COURRIEL_TERRAIN === "" || MOT_DE_PASSE_TERRAIN === "") {
+    throw new Error(
+      "aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` " +
+        "renvoie au planning tout rôle dont l'accès au planning est COMPLET, " +
+        "et le compte qui sert au reste de la prise de vue en fait partie.",
+    );
+  }
+  await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', COURRIEL_TERRAIN);
+  await page.fill('input[name="motDePasse"]', MOT_DE_PASSE_TERRAIN);
+  await page.click('button[type="submit"]');
+  await page.waitForLoadState("networkidle");
+  if (page.url().includes("/connexion")) {
+    throw new Error(
+      `la connexion du compte technicien n'a pas abouti : ${page.url()}`,
+    );
+  }
+}
+
 async function principal(): Promise<number> {
   mkdirSync(SORTIE, { recursive: true });
   const commit = empreinte();
@@ -1082,14 +1151,17 @@ async function principal(): Promise<number> {
       (e) =>
         e.passe === "defi-second-facteur" ||
         e.passe === "portail" ||
-        e.passe === "sans-societe",
+        e.passe === "sans-societe" ||
+        e.passe === "terrain",
     )) {
       const amener =
         ecran.passe === "portail"
           ? connexionPortail
-          : ecran.passe === "sans-societe"
-            ? connexionSansSociete
-            : connexionArreteeAuDefi;
+          : ecran.passe === "terrain"
+            ? connexionTerrain
+            : ecran.passe === "sans-societe"
+              ? connexionSansSociete
+              : connexionArreteeAuDefi;
       const { etat, refus } = await ouvrirUnePasse(navigateur, amener);
       await photographierSousEtat(
         navigateur,
