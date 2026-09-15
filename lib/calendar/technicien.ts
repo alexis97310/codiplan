@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { chargerCalendrierAgence, type FenetreJours } from "./agence";
 import type { Calendrier } from "./calendrier";
+import type { Fuseau } from "./fuseau";
 
 /**
  * LE CALENDRIER DE TRAVAIL D'UN TECHNICIEN — la règle de priorité, écrite une
@@ -97,4 +98,48 @@ export async function chargerCalendrierDuTechnicien(
     code: exception.calendrier.code,
     plages: exception.calendrier.plages,
   };
+}
+
+/**
+ * LE FUSEAU D'UN TECHNICIEN — celui de son AGENCE, jamais celui de l'appareil
+ * (L0-08, D72, I7).
+ *
+ * > *« Point critique pour l'application technicien : l'affichage suit le
+ * > fuseau de l'AGENCE, jamais celui de l'appareil. Un technicien en
+ * > déplacement ne doit pas voir son planning se décaler parce que son
+ * > téléphone a changé de fuseau. »* (L0-08)
+ *
+ * **Elle vit ici plutôt que dans l'écran qui l'a réclamée la première**, et
+ * pour la raison habituelle : l'écran de la journée et la route du compteur en
+ * ont besoin tous les deux, et *deux écritures d'un même critère divergent en
+ * silence* (§9, 01/09) — celle-ci porterait un décalage d'un jour sous UTC+11,
+ * c'est-à-dire exactement le genre de chiffre que personne ne recompte.
+ *
+ * **Le repli est la SOCIÉTÉ, jamais une valeur inventée.** `technicien` porte
+ * `agence_id NOT NULL`, mais la LIGNE peut manquer : une personne de rôle
+ * `technicien` sans rattachement existe, et c'est l'état d'un compte que
+ * personne n'a fini de paramétrer. C'est le même repli que le planning applique
+ * déjà. *« Je ne sais pas où il est rattaché » ne doit pas rendre l'écran
+ * illisible ; cela ne doit pas non plus inventer une agence.*
+ */
+export async function fuseauDuTechnicien(
+  tx: Prisma.TransactionClient,
+  parametres: { societeId: string; utilisateurId: string },
+): Promise<Fuseau> {
+  const { societeId, utilisateurId } = parametres;
+  // Le filtre société est explicite en plus de la politique (CLAUDE.md §5.6) :
+  // en local, le rôle de migration est superutilisateur et CONTOURNE la RLS
+  // (§9, 07/09).
+  const technicien = await tx.technicien.findFirst({
+    where: { societe_id: societeId, utilisateur_id: utilisateurId },
+    select: { agence: { select: { fuseau_horaire: true } } },
+  });
+  if (technicien?.agence.fuseau_horaire != null) {
+    return technicien.agence.fuseau_horaire;
+  }
+  const societe = await tx.societe.findFirst({
+    where: { id: societeId },
+    select: { fuseau_horaire: true },
+  });
+  return societe?.fuseau_horaire ?? "UTC";
 }

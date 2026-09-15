@@ -526,6 +526,24 @@ const ECRANS: readonly Ecran[] = [
       "premier accès.",
   },
   {
+    // LE DÉTAIL D'UNE INTERVENTION, VU DU TERRAIN — et son COMPTEUR (R5-02).
+    // Le chemin porte un identifiant : il se découvre sur la journée, il ne
+    // s'écrit pas ici.
+    nom: "terrain-intervention",
+    chemin: "/terrain",
+    decouvrir: premierLienDuTerrain,
+    quoi: "Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause.",
+    authentifie: true,
+    passe: "terrain",
+    temoin: "Compteur",
+    refusConnu:
+      "Même compte que `terrain`, et un refus de plus lui est propre : la " +
+      "journée du technicien de démonstration peut être VIDE aujourd'hui — " +
+      "le semis pose ses interventions sur la semaine, pas sur le jour de la " +
+      "prise. Un jour sans intervention est un état légitime de l'écran, pas " +
+      "une panne.",
+  },
+  {
     // L'écran du DÉFI, qui n'existe qu'entre le mot de passe et la session.
     // Il ne se photographie ni avant l'enrôlement — il n'existe pas encore —,
     // ni sous la session ordinaire — elle l'a déjà franchi.
@@ -605,6 +623,36 @@ async function rapportDUnImport(page: Page): Promise<string> {
     );
   }
   return chemin;
+}
+
+/**
+ * LE CHEMIN DE LA PREMIÈRE INTERVENTION DE LA JOURNÉE DU TECHNICIEN (R5-02).
+ *
+ * *Un chemin écrit en dur serait juste le jour de sa rédaction et périmé au
+ * semis suivant — et il ne rougirait pas, il photographierait une page d'erreur
+ * sous le nom de l'écran.* Il se découvre donc sur la liste, comme celui de la
+ * fiche du back-office.
+ *
+ * **Le refus est possible et il est nommé** : le technicien de démonstration
+ * peut n'avoir aucune intervention AUJOURD'HUI — sa journée est alors vide, ce
+ * qui est un état légitime de l'écran et non une panne.
+ */
+async function premierLienDuTerrain(page: Page): Promise<string> {
+  const chemins = await page
+    .locator('a[href^="/terrain/"]')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter((href) => href !== "/terrain"),
+    );
+  if (chemins.length === 0) {
+    throw new Error(
+      "la journée du technicien de démonstration est vide aujourd'hui : il " +
+        "n'y a aucune intervention à détailler, et la capture est refusée " +
+        "plutôt que prise sur une autre page.",
+    );
+  }
+  return chemins[0];
 }
 
 async function premierLienDIntervention(page: Page): Promise<string> {

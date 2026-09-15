@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `d5ec9654758eb8b218573b584fabee1066137bb3` (`d5ec965`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-15 09:19 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `02958fa2291ce90fd5dddd3f6ef51e3fea876405` (`02958fa`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-15 04:20 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -67,7 +67,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `d5ec965` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `02958fa` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -112,6 +112,8 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | `arrivee-sans-societe--clair--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
 | `terrain--clair--1280.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, poste de travail. |
 | `terrain--clair--390.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, téléphone. |
+| `terrain-intervention--clair--1280.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, poste de travail. |
+| `terrain-intervention--clair--390.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, téléphone. |
 | `connexion-code--clair--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
 | `connexion-code--clair--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
 | `accueil--clair--1280.png` | La page d'accueil. — thème clair, poste de travail. |

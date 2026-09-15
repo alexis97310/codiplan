@@ -57,6 +57,22 @@ export const MOT_DE_PASSE_EPREUVE = "epreuve-de-bout-en-bout-codiplan";
 export const COMPTE_EPREUVE = "adv@codima.test";
 
 /**
+ * LE COMPTE TECHNICIEN DE L'ÉPREUVE (R5-01, R5-02).
+ *
+ * C'est `technicienDucos`, celui à qui la scène affecte `obstacle` et
+ * `chevauchante` — **deux interventions de la même personne**, ce dont le
+ * compteur a besoin pour montrer son refus le plus intéressant : *un compteur
+ * qui tourne ailleurs.*
+ *
+ * Il faut une SECONDE identité, et pour la raison inverse de celle du portail :
+ * `/terrain` renvoie au back-office tout rôle dont l'accès au planning est
+ * COMPLET, et `adv` en fait partie. **Ce compte-là est connectable** — un
+ * technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait
+ * lui émettre un lien de premier accès.
+ */
+export const COMPTE_TECHNICIEN_EPREUVE = "guerin@codima.test";
+
+/**
  * Les FORFAITS de la scène.
  *
  * **Le catalogue de démonstration naît VIDE, et c'est une décision** — les
@@ -335,6 +351,7 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
  */
 export async function ouvrirLeCompteDeLEpreuve(
   societeId: string,
+  email: string = COMPTE_EPREUVE,
 ): Promise<void> {
   const client = new PrismaClient({
     datasources: { db: { url: urlApplicative() } },
@@ -342,7 +359,7 @@ export async function ouvrirLeCompteDeLEpreuve(
   try {
     const reemission = await reemettreJetonPremierAcces(client, {
       societeId,
-      email: COMPTE_EPREUVE,
+      email,
     });
     const jeton = jetonDeLUrl(reemission.urlPremierAcces);
     if (jeton === null) {
