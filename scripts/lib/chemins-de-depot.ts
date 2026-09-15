@@ -375,6 +375,35 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "demandesOuvertes",
     motif: "Même écran que `qualifierDemande`.",
   },
+  // ── R5-02 A POSÉ LE COMPTEUR ; SON ÉCRAN EST L'ÉTAPE SUIVANTE ────────────
+  //
+  // **Quatre entrées, et l'échéance est la même pour les quatre** : l'écran du
+  // terrain reçoit ses boutons dans le travail qui suit immédiatement celui-ci.
+  // *Ce n'est pas « c'est normal » — c'est une date.* Le gardien les réclamera
+  // le jour où l'écran les appellera : une exemption qui ne protège plus rien
+  // fait échouer ce fichier, et c'est ce qui rend cette dette visible plutôt
+  // que silencieuse.
+  {
+    module: "lib/interventions/depot-compteur.ts",
+    fonction: "demarrerLeCompteur",
+    motif:
+      "R5-02 pose le compteur et son verrou ; les boutons vivent sur l'écran du terrain, livré par l'étape suivante de L3-08. Se retire le jour où cet écran l'appelle.",
+  },
+  {
+    module: "lib/interventions/depot-compteur.ts",
+    fonction: "arreterLeCompteur",
+    motif: "Même écran que `demarrerLeCompteur`.",
+  },
+  {
+    module: "lib/interventions/depot-compteur.ts",
+    fonction: "mesureDeLIntervention",
+    motif: "Même écran que `demarrerLeCompteur`.",
+  },
+  {
+    module: "lib/interventions/depot-compteur.ts",
+    fonction: "compteurEnCours",
+    motif: "Même écran que `demarrerLeCompteur`.",
+  },
   // ── LE LOT 8 A POSÉ LE BAC DE RÉCEPTION, SANS ÉCRAN ──────────────────────
   {
     module: "lib/documents/depot.ts",

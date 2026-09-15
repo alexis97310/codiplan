@@ -641,10 +641,17 @@ export default async function setup(): Promise<void> {
       -- LES INTERVENTIONS (lot 2, D84). Elles viennent après le parc : leurs
       -- clés étrangères composites (societe_id, client_id), (societe_id,
       -- site_id) et (societe_id, agence_id) l'exigent.
-      INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "modifie_le") VALUES
-        ('${INTERVENTION_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
-        ('${INTERVENTION_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'curatif', 'planifiee', now()),
-        ('${INTERVENTION_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'curatif', 'planifiee', now());
+      -- La colonne technicien_id EST POSÉE, et c'est R5-01 qui l'exige : *une restriction
+      -- « mes interventions » mesurée sur une population où personne n'est
+      -- affecté rendrait zéro des deux côtés, et zéro contre zéro n'est pas un
+      -- résultat* (§9, 10/09). Les deux interventions de la société A portent
+      -- DEUX personnes différentes — le technicien canonique et le compte
+      -- interne — sans quoi « il ne voit que les siennes » et « il voit tout »
+      -- rendraient la même liste.
+      INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "modifie_le") VALUES
+        ('${INTERVENTION_A1}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', '${UTILISATEUR_PAR_ROLE[Role.technicien]}', now()),
+        ('${INTERVENTION_A2}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S2}', '${AGENCE_A}', 'curatif', 'planifiee', '${UTILISATEUR_INTERNE_A}', now()),
+        ('${INTERVENTION_B1}', '${SOCIETE_B}', '${CLIENT_B1}', '${SITE_B1_S1}', '${AGENCE_B}', 'curatif', 'planifiee', NULL, now());
       -- LES DEMANDES (lot 2, L2-06). Mêmes clés composites que l'intervention,
       -- donc même ordre. La colonne compteur_accuse_le est posée ÉGALE au
       -- dépôt : le harnais n'a pas à recalculer l'ouverture suivante — c'est le

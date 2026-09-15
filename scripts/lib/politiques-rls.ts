@@ -2126,6 +2126,14 @@ export const TABLES_INTERNES = [
   // la fuite que D94 ferme sur un NOM DE FICHIER, ici sur le parc lui-même.
   "import_lot",
   "import_lot_ligne",
+  // R5-02 (D119) — LE COMPTEUR DU TECHNICIEN, et il prend cette forme à sa
+  // NAISSANCE, comme `absence` et pour un motif voisin : *combien de temps une
+  // personne nommée a passé chez un client, minute par minute, est une
+  // information sur cette personne*, pas sur le parc de ce client. Ce qu'un
+  // client a le droit de savoir est le temps FACTURÉ de SON intervention, qui
+  // se lit sur l'intervention. Trancher à la création est le seul moment où
+  // cela ne coûte rien (§9, 30/08).
+  "segment_travail",
 ] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
@@ -2161,6 +2169,15 @@ const INTERNES_ARBITREES: ReadonlyArray<{
     ceQueLeRetraitRouvre:
       "un compte portail lirait les LIGNES du fichier telles qu'elles ont " +
       "été lues — le parc entier, qu'aucun périmètre de sites n'a filtré",
+  },
+  {
+    table: "segment_travail",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait, MINUTE PAR MINUTE, combien de temps une " +
+      "personne nommée a passé chez lui — et sur ses autres sites, la table " +
+      "étant fille d'une intervention qu'il peut voir. Ce qu'un client a le " +
+      "droit de savoir est le temps FACTURÉ de SON intervention, qui se lit " +
+      "sur l'intervention",
   },
   {
     table: "absence",
@@ -2525,9 +2542,26 @@ export function ecartsTablesFilles(
   // étrangère, donc le critère ci-dessous l'atteint ; la réclamer sous
   // « filiation » ferait réclamer MOINS que ce qu'elle porte. Sa liste est
   // close dans les deux sens par `ecartsListeHeritage`.
+  // La forme « interne » (D94) est elle aussi PLUS FERMÉE que la filiation sur
+  // une fille du parc, et la comparaison se fait plutôt qu'elle ne s'affirme.
+  // *Pour un compte de PORTAIL :* la filiation rend les lignes filles de ses
+  // interventions visibles, « interne » n'en rend AUCUNE — la clause exige que
+  // `app.client_id` soit absent, ce qu'un compte portail ne peut pas obtenir.
+  // *Pour un rôle INTERNE :* la filiation borne par la visibilité du parent, et
+  // le parent est de forme « parc », dont la branche interne est la clause de
+  // société — c'est-à-dire exactement ce que « interne » exige. Les deux
+  // coïncident donc d'un côté et « interne » ferme davantage de l'autre.
+  //
+  // **Ce n'est pas un assouplissement du critère**, et c'est le point : réclamer
+  // la filiation sur une table qui porte « interne » ferait réclamer MOINS que
+  // ce qu'elle porte — le raisonnement exact que « héritage » a reçu ci-dessus.
+  // *Réouverture, vérifiable : le jour où un écran de portail doit lire une
+  // table de cette liste*, la question redevient celle de la filiation, et
+  // c'est un arbitrage.
   const construites: readonly string[] = [
     ...TABLES_FILIATION.map((entree) => entree.table),
     ...TABLES_HERITAGE.map((entree) => entree.table),
+    ...TABLES_INTERNES,
   ];
 
   return [
