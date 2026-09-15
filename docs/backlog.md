@@ -1735,6 +1735,40 @@ Quand on modifie les horaires d'ouverture d'un établissement, le supplément «
 
 ---
 
+**R3-17 — L'EMPREINTE PHOTOGRAPHIÉE N'EST PAS ATTEIGNABLE DEPUIS `main`. [15/09/2026]**
+*File :* LIBRE
+**Déclencheur : la règle « photographier selon `pnpm captures:etat` » vient d'être posée, et elle ne tient aujourd'hui que sur la machine où la prise a été faite.**
+
+## Ce qui a été mesuré
+
+*Le 15/09/2026, en appliquant la règle pour la première fois.*
+
+- `docs/captures/README.md` nomme le commit photographié : `f13c2c67a553c211d018344ab6ea4047d343328e`.
+- Ce commit **n'est pas un ancêtre de `main`** — mesuré : `git merge-base --is-ancestor f13c2c6 origin/main` sort en **1**. La prise de vue a été faite sur une branche de proposition, fusionnée **en squash**, puis supprimée.
+- `pnpm captures:etat` a répondu « aucun fichier de restitution n'a changé » **parce que l'objet était encore dans le dépôt local de la session**. Dans un clone frais, et *a fortiori* dans un clone tronqué, il rend son **troisième verdict** — « je ne sais pas » — et sort en **1**.
+
+## Pourquoi c'est un défaut et pas une gêne
+
+La commande a **trois** verdicts précisément pour que « je ne sais pas » ne se lise pas « rien n'a changé » : c'est tout l'objet de R1-02. Mais un troisième verdict qui tombe **à chaque exécution, pour tout le monde sauf l'auteur de la prise**, est un contrôle qu'on apprend à ne plus lire — et un contrôle qu'on n'écoute plus est le mode de panne symétrique du contrôle qui se tait.
+
+*L'empreinte est exacte, et le README ne ment pas.* Ce qui manque est qu'elle soit **ouvrable par son lecteur** : une empreinte qui ne peut pas être ouverte par celui à qui on la donne n'est pas une mesure, c'est une assertion.
+
+## Les issues, et aucune n'est évidente
+
+| | Ce qu'elle donne | Ce qu'elle coûte |
+|---|---|---|
+| **Prendre les captures depuis `main`** | l'empreinte est toujours ouvrable | la prise de vue cesse d'accompagner la proposition qui change l'écran — on photographie **après** la fusion, donc l'image n'est plus sous les yeux du relecteur |
+| **Rattacher l'empreinte au commit de fusion** | ouvrable, et la prise reste dans la proposition | il faut la réécrire **après** la fusion, c'est-à-dire un geste humain à un moment précis — *et une consigne qui demande un geste humain sans que le dispositif le produise est un vœu* |
+| **Faire répondre la commande sans l'objet** | rien à changer au flux | elle compare des **chemins**, et sans l'arbre elle ne peut plus dire lesquels ont bougé : le verdict deviendrait plus faible qu'aujourd'hui |
+
+## Ce que ce ticket ne fait pas
+
+Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que son défaut soit écrit** : la prochaine session qui lira « photographier selon `pnpm captures:etat` » doit savoir que la commande sort en 1 chez elle, et pourquoi.
+
+*Acceptation :* `pnpm captures:etat` rend un verdict **ouvrable** depuis un clone frais de `main` — ou bien la règle dit, dans le README qu'elle écrit, ce qu'elle ne sait pas faire et à quelle condition elle le saura.
+
+---
+
 ## Lot 4 — Contrats de maintenance, tableaux de bord
 
 **Écrit dans la nuit du 14/09/2026, à la demande de l'exploitation.** *Les lots 4 à 7 n'avaient AUCUN ticket, et c'est le plus gros trou du projet parce qu'il ne se voit pas : un lot sans tickets ressemble à un lot qui attend, alors qu'il ressemble surtout à un lot que personne n'a pensé.*
