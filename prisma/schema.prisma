@@ -95,6 +95,7 @@ model Parite {
 model Societe {
   techniciens Technicien[]
   absences    Absence[]
+  segments    SegmentTravail[]
 
   trajets_par_zone TempsTrajetZone[]
 
@@ -890,6 +891,7 @@ model UtilisateurSociete {
 
   habilitations TechnicienHabilitation[]
   absences      Absence[]
+  segments      SegmentTravail[]
 
   @@unique([utilisateur_id, societe_id])
   @@map("utilisateur_societe")
@@ -1568,6 +1570,8 @@ enum SourceCreationMachine {
 /// autres clients de sa propre société.
 model Intervention {
   machines InterventionMachine[]
+  /// Ce que le compteur du technicien a mesuré (R5-02, D119).
+  segments SegmentTravail[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -2483,6 +2487,72 @@ model Absence {
   @@unique([societe_id, id])
   @@index([societe_id, utilisateur_id, du, au])
   @@map("absence")
+}
+
+/// UN SEGMENT DE TRAVAIL — ce que le compteur du technicien a réellement mesuré
+/// (R5-02, L3-08).
+///
+/// **Le compteur fait foi pour le temps** *(décision d'exploitation du
+/// 15/09/2026, D119)*. Ce que cette table porte n'est donc pas une saisie : ce
+/// sont des FAITS datés, et le total facturé s'en déduit — arrondi au quart
+/// d'heure supérieur puis plancher d'une heure, une seule fois sur
+/// l'intervention entière (RG-TAR-05, D83, D89).
+///
+/// **DES SEGMENTS, ET JAMAIS UN SEUL COUPLE DÉBUT/FIN.** *Une pause est un
+/// fait, et un compteur qui ne garde que le total ne peut pas dire ce qui
+/// s'est passé entre-temps.* Un technicien qui démarre à 8 h, s'interrompt à
+/// 10 h et reprend à 14 h a travaillé quatre heures ; un couple unique en
+/// dirait six, et personne ne saurait lesquelles.
+///
+/// **L'ARRONDI N'EST PAS ICI, ET C'EST DÉLIBÉRÉ.** Cette table stocke des
+/// instants ; la valorisation arrondit. *Arrondir à l'écriture ferait deux
+/// lectures d'un même critère* (§9, 01/09) — et la seconde serait celle qui
+/// décide du prix, sans que le premier arrondi laisse de trace.
+///
+/// **Table métier de la première catégorie de I1, forme « INTERNE »** (D94) :
+/// société ET `app.client_id` absent. Aucun compte de portail ne la lit —
+/// *combien de temps une personne nommée a passé chez un client, minute par
+/// minute, est une information sur cette personne*, et ce n'est pas ce qu'un
+/// bon d'intervention montre. Ce qu'un client a le droit de savoir est le temps
+/// FACTURÉ de SON intervention, qui se lit sur l'intervention. Décidé à la
+/// NAISSANCE de la table, le seul moment où cela ne coûte rien.
+model SegmentTravail {
+  /// UUID v7 **fabriqué sur l'appareil** (I10), comme les relevés de compteur :
+  /// un segment naît là où le travail a lieu, et il doit pouvoir naître sans
+  /// réseau le jour où la file de synchronisation existera.
+  id              String @id @db.Uuid
+  societe_id      String @db.Uuid
+  intervention_id String @db.Uuid
+  /// QUI a travaillé. Ce n'est pas forcément `intervention.technicien_id` : un
+  /// renfort d'une heure est un fait, et l'affectation n'en dit rien.
+  utilisateur_id  String @db.Uuid
+
+  /// L'instant où le compteur a été lancé — **l'heure du TERRAIN, pas celle de
+  /// l'arrivée en base** (L2-03) : *l'ordre d'arrivée n'est pas l'ordre des
+  /// faits*, et un segment saisi hors réseau arrive après un segment plus
+  /// récent. `cree_le` dit quand la ligne est arrivée ; `debut` dit quand le
+  /// travail a commencé.
+  debut DateTime  @db.Timestamptz(3)
+  /// L'instant où il a été arrêté. **`NULL` veut dire « il tourne encore »** —
+  /// jamais « on ne sait pas » : la base n'autorise qu'UN segment ouvert par
+  /// personne, ce qui rend cet état non ambigu.
+  fin   DateTime? @db.Timestamptz(3)
+
+  cree_le    DateTime @default(now()) @db.Timestamptz(3)
+  modifie_le DateTime @updatedAt @db.Timestamptz(3)
+
+  societe      Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention       @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// **Vers `utilisateur_societe`, jamais vers `utilisateur` seul** — la
+  /// quatrième catégorie de I1 ne porte pas de `societe_id`, et une relation
+  /// vers elle est refusée par le gardien de D39. C'est la forme d'`absence`
+  /// et de `technicien_habilitation`.
+  auteur       UtilisateurSociete @relation(fields: [utilisateur_id, societe_id], references: [utilisateur_id, societe_id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, intervention_id, debut])
+  @@index([societe_id, utilisateur_id, debut])
+  @@map("segment_travail")
 }
 
 /// LE TEMPS DE TRAJET PAR ZONE — le DÉFAUT de D23, chiffré par D107 (R3-03).

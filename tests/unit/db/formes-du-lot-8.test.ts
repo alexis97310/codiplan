@@ -128,7 +128,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     expect(ecartsListeInterne()).toEqual([]);
   });
 
-  it("elle porte les quatre tables ARBITRÉES, et D94 dit ce qu'elle laisse ouvert", () => {
+  it("elle porte les cinq tables ARBITRÉES, et D94 dit ce qu'elle laisse ouvert", () => {
     // La forme ferme les tables qu'elle crée ; elle ne prétend PAS fermer la
     // classe. `taux_horaire`, `forfait`, `agence` posent la même question
     // aujourd'hui, et D94 l'écrit avec sa condition de réouverture plutôt que
@@ -146,11 +146,20 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     // santé par déduction.* C'est pourquoi chaque entrée porte désormais le
     // motif de SON retrait, et non un gabarit qui parlait de noms de fichiers
     // pour toutes (§9, 10/09).
+    //
+    // **`segment_travail` s'y ajoute à R5-02, à SA NAISSANCE elle aussi**
+    // (D119). Sa fuite est celle d'`absence`, un cran plus fin : *combien de
+    // temps une personne nommée a passé chez un client, minute par minute, est
+    // une information sur cette personne.* Et elle est la PREMIÈRE table de
+    // cette liste qui soit aussi une FILLE d'une table du parc — le critère de
+    // la filiation la réclamerait, et « interne » ferme davantage : la
+    // comparaison est écrite dans `ecartsTablesFilles`, pas supposée.
     expect([...TABLES_INTERNES]).toEqual([
       "document_recu",
       "absence",
       "import_lot",
       "import_lot_ligne",
+      "segment_travail",
     ]);
   });
 
@@ -160,6 +169,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
       "absence",
       "import_lot",
       "import_lot_ligne",
+      "segment_travail",
       "taux_horaire",
     ]);
     expect(ecarts).toHaveLength(1);
@@ -168,8 +178,16 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
 
   it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi, et CHACUN dit ce qu'il rouvre", () => {
     const ecarts = ecartsListeInterne([]);
-    expect(ecarts).toHaveLength(4);
+    expect(ecarts).toHaveLength(5);
     expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
+    // Et celui de `segment_travail` ne parle ni de fichier ni de santé : il
+    // parle de MINUTES. *Trois motifs distincts sur cinq entrées est ce qui
+    // distingue un constat d'un gabarit.*
+    const surLeCompteur = ecarts.find((ecart) =>
+      ecart.includes("segment_travail"),
+    );
+    expect(surLeCompteur).toMatch(/MINUTE PAR MINUTE/);
+    expect(surLeCompteur).not.toMatch(/NOMS DE FICHIERS/);
     // **Le motif n'est plus un gabarit** : celui d'`absence` ne parle d'aucun
     // fichier, et c'est ce qui distingue un constat d'une phrase préécrite
     // qu'un dispositif réémet en votre nom (§9, 10/09).

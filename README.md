@@ -793,6 +793,20 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## Le compteur du technicien — des segments, jamais un total
+
+**Le compteur fait foi pour le temps** (**D119**, 15/09/2026) : ce que `segment_travail` porte n'est pas une saisie, ce sont des faits datés, et le temps facturé s'en déduit. La question bloquait R5-02 depuis une nuit — _un temps mesuré et un temps saisi ne coûtent pas la même chose au client_ —, et elle appartenait à Alexis pour cette raison exacte.
+
+**DES SEGMENTS, ET JAMAIS UN SEUL COUPLE DÉBUT/FIN.** _Une pause est un fait, et un compteur qui ne garde que le total ne peut pas dire ce qui s'est passé entre-temps_ : huit heures entre le premier départ et le dernier arrêt peuvent n'être que quatre heures de travail. Un scénario l'oppose terme à terme — 240 minutes contre 480.
+
+**L'ARRONDI N'EST PAS DANS LE COMPTEUR.** La table stocke des instants ; `lib/tarification/valorisation.ts` arrondit au quart d'heure supérieur et applique le plancher d'une heure, une seule fois sur l'intervention entière (RG-TAR-05, D83, D89). _Arrondir aux deux endroits ferait deux lectures d'un même critère, et la seconde déciderait du prix_ — le scénario le prouve plutôt qu'il ne l'affirme : le compteur rend **61 minutes**, la valorisation en fait **75**.
+
+**Deux verrous, éprouvés sur les TROIS verbes.** Un seul compteur ouvert par personne — _une personne ne travaille pas à deux endroits à la fois_ — et une fin strictement après son début. Ils sont éprouvés sur `create`, sur `update` **et** sur `upsert` : c'est la leçon du 14/09, où un verrou juste avait été mesuré par les deux verbes qui marchaient et jamais par celui du semis. Deux segments **fermés** peuvent en revanche se recouvrir : I5 veut que le travail terrain ne soit jamais perdu, et deux saisies hors ligne qui se chevauchent sont un fait à conserver.
+
+**AUCUNE SUPPRESSION** — ni privilège, ni politique : _un temps qui peut disparaître sans trace ne fait foi de rien._ Une erreur se corrige par modification, et le journal d'audit garde la valeur d'avant. La première rédaction de la migration croyait le refuser et ne le refusait pas : une politique sans clause `FOR` couvre les quatre verbes, et `ALTER DEFAULT PRIVILEGES` accorde d'avance `DELETE` sur toute table créée ensuite. **Mesuré, puis réparé en trois politiques et un `REVOKE`.**
+
+**Forme « interne »** (D94), décidée à la naissance de la table : aucun compte de portail ne la lit. Elle est la première table de cette liste à être aussi une **fille** d'une table du parc, et le critère de la filiation la réclamait — `ecartsTablesFilles` compare désormais les deux formes plutôt que de supposer, comme il le faisait déjà pour « héritage ».
+
 ## Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
 
 `tests/e2e/offline/` **n'est plus vide**. Il l'était depuis L0-02, et sa condition de réouverture, corrigée le 13/09 contre `docs/guide-pilotage.md` §5, disait : _« au premier ticket du lot 3 qui touche le hors-ligne — L3-06 —, les scénarios de ce répertoire s'écrivent **avant** le code qu'ils éprouvent. »_ Les trois scénarios ont été écrits d'abord, et ils ont d'abord rougi.
