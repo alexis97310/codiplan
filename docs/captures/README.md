@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `ec1dede1d7514ae4c5ff895e61138f8d1c5597c3` (`ec1dede`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-15 11:38 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `d9c7be40cfc4f686ff6c85052384d15370b47048` (`d9c7be4`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-15 11:52 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -67,7 +67,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `ec1dede` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `d9c7be4` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
