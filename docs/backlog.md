@@ -1732,3 +1732,288 @@ Quand on modifie les horaires d'ouverture d'un établissement, le supplément «
 ## En attendant
 
 **Rien n'est bloqué.** R3-13 est livré sans attendre cette décision : elle porte sur la matérialisation d'un montant, pas sur le réglage d'un horaire. L'écran de réglage **dit** ce qui se recalcule, ce qui est le mieux qu'on puisse faire sans trancher. Ce qui reste suspendu est la seule question de savoir si une facture émise peut changer après coup.
+
+---
+
+**R3-17 — L'EMPREINTE PHOTOGRAPHIÉE N'EST PAS ATTEIGNABLE DEPUIS `main`. [15/09/2026]**
+*File :* LIBRE
+**Déclencheur : la règle « photographier selon `pnpm captures:etat` » vient d'être posée, et elle ne tient aujourd'hui que sur la machine où la prise a été faite.**
+
+## Ce qui a été mesuré
+
+*Le 15/09/2026, en appliquant la règle pour la première fois.*
+
+- `docs/captures/README.md` nomme le commit photographié : `f13c2c67a553c211d018344ab6ea4047d343328e`.
+- Ce commit **n'est pas un ancêtre de `main`** — mesuré : `git merge-base --is-ancestor f13c2c6 origin/main` sort en **1**. La prise de vue a été faite sur une branche de proposition, fusionnée **en squash**, puis supprimée.
+- `pnpm captures:etat` a répondu « aucun fichier de restitution n'a changé » **parce que l'objet était encore dans le dépôt local de la session**. Dans un clone frais, et *a fortiori* dans un clone tronqué, il rend son **troisième verdict** — « je ne sais pas » — et sort en **1**.
+
+## Pourquoi c'est un défaut et pas une gêne
+
+La commande a **trois** verdicts précisément pour que « je ne sais pas » ne se lise pas « rien n'a changé » : c'est tout l'objet de R1-02. Mais un troisième verdict qui tombe **à chaque exécution, pour tout le monde sauf l'auteur de la prise**, est un contrôle qu'on apprend à ne plus lire — et un contrôle qu'on n'écoute plus est le mode de panne symétrique du contrôle qui se tait.
+
+*L'empreinte est exacte, et le README ne ment pas.* Ce qui manque est qu'elle soit **ouvrable par son lecteur** : une empreinte qui ne peut pas être ouverte par celui à qui on la donne n'est pas une mesure, c'est une assertion.
+
+## Les issues, et aucune n'est évidente
+
+| | Ce qu'elle donne | Ce qu'elle coûte |
+|---|---|---|
+| **Prendre les captures depuis `main`** | l'empreinte est toujours ouvrable | la prise de vue cesse d'accompagner la proposition qui change l'écran — on photographie **après** la fusion, donc l'image n'est plus sous les yeux du relecteur |
+| **Rattacher l'empreinte au commit de fusion** | ouvrable, et la prise reste dans la proposition | il faut la réécrire **après** la fusion, c'est-à-dire un geste humain à un moment précis — *et une consigne qui demande un geste humain sans que le dispositif le produise est un vœu* |
+| **Faire répondre la commande sans l'objet** | rien à changer au flux | elle compare des **chemins**, et sans l'arbre elle ne peut plus dire lesquels ont bougé : le verdict deviendrait plus faible qu'aujourd'hui |
+
+## Ce que ce ticket ne fait pas
+
+Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que son défaut soit écrit** : la prochaine session qui lira « photographier selon `pnpm captures:etat` » doit savoir que la commande sort en 1 chez elle, et pourquoi.
+
+*Acceptation :* `pnpm captures:etat` rend un verdict **ouvrable** depuis un clone frais de `main` — ou bien la règle dit, dans le README qu'elle écrit, ce qu'elle ne sait pas faire et à quelle condition elle le saura.
+
+---
+
+## Lot 4 — Contrats de maintenance, tableaux de bord
+
+**Écrit dans la nuit du 14/09/2026, à la demande de l'exploitation.** *Les lots 4 à 7 n'avaient AUCUN ticket, et c'est le plus gros trou du projet parce qu'il ne se voit pas : un lot sans tickets ressemble à un lot qui attend, alors qu'il ressemble surtout à un lot que personne n'a pensé.*
+
+**Aucun de ces tickets n'a été construit.** Ils disent ce qu'ils supposent, ce qu'ils ne couvrent pas, et ce qui reste à trancher. *Rendre une file de travail écrite vaut mieux qu'un écran de plus.*
+
+### CE QUE LE LOT 4 RÉCLAME ET QUI N'EXISTE PAS — les chaînes fantômes, mesurées avant d'écrire un seul ticket
+
+*C'est ainsi qu'on découvre une chaîne fantôme avant qu'elle ne bloque, plutôt qu'au milieu du ticket qui bute dessus.* Mesuré le 14/09/2026 sur `prisma/schema.prisma` et sur le dépôt.
+
+| Ce que le lot 4 suppose | Ce qui existe | Ce qui manque |
+|---|---|---|
+| une intervention SAIT de quel contrat elle vient | `TypeIntervention` porte `preventif_contrat` ; `SourceDemande` porte `echeance_contrat` | **`intervention.contrat_id` n'existe pas**, et `intervention.demande_id` non plus — le chapitre 11 les annonce tous deux, aucun n'est au schéma. **Deux colonnes, deux migrations, et c'est le socle de tout le lot** |
+| une visite préventive se déclenche sur un COMPTEUR | `lib/compteurs/regression.ts` — la RÈGLE, en pur | **la table `compteur_releve` n'existe pas** : L2-03 l'a écrit lui-même — *« elle viendra avec ce qui la remplit »*. Sans elle, le déclenchement conditionnel n'a pas de donnée |
+| une proposition sort en **PDF à la charte** | `lib/pdf/` est marqué `(prévu)` au §6 du CLAUDE.md ; React-PDF est au §2 | **aucun module, aucun appelant** — et le PDF produit doit être STOCKÉ, or le stockage d'objets n'existe pas non plus (lot 8) |
+| la **rentabilité** par contrat : heures valorisées au COÛT INTERNE | `lib/tarification/` porte le taux de VENTE, historisé | **aucune donnée de coût nulle part** — ni taux de revient, ni coût horaire chargé. *C'est un arbitrage d'Alexis avant d'être un ticket : un coût interne est une donnée de paie déguisée* |
+| une **périodicité recommandée par modèle** pour pré-chiffrer | `lib/vgp/assujettissement.ts` porte une périodicité RÉGLEMENTAIRE, pour les VGP | **rien ne porte la périodicité d'ENTRETIEN d'un modèle**, et les deux ne se confondent pas : l'une est une obligation légale, l'autre une recommandation constructeur |
+| le **montant** d'un contrat, sa périodicité de facturation, son indexation | `lib/money/` formate, `I2` et `I3` tiennent la devise | **rien ne porte un échéancier de facturation**, et `preparer_facturation` est une capacité de la matrice sans aucun code derrière |
+| une **alerte quotidienne** sur les échéances dépassées | `pnpm veille` et `pnpm audit:partitions` sont des contrôles d'exploitation | **aucun mécanisme d'alerte MÉTIER** — les alarmes du dépôt visent la base et la CI, jamais un utilisateur |
+
+> **Cinq de ces sept manques sont des tickets du lot 4 lui-même ; deux ne le sont pas.** Le coût interne est un **arbitrage** (donnée de paie), et le stockage d'objets est du **lot 8**. *Les écrire ici évite qu'on les découvre au milieu de L4-06.*
+
+---
+
+**L4-01 — LE MODÈLE DU CONTRAT : trois tables, et la colonne qui manque à `intervention`.**
+*File :* LIBRE
+**Ce qu'il pose.** `contrat` — société, numéro, client, type, dates, tacite reconduction, préavis, montant, devise, périodicité de facturation, indexation, SLA, taux horaire hors forfait, crédit d'heures initial, statut (chapitre 11). `contrat_ligne` — le rattachement d'une machine, sa périodicité propre, ses dates d'entrée et de sortie de périmètre. `echeance` — la ligne de contrat, la date cible, la fenêtre en jours, le statut, l'intervention rattachée.
+**ET LA COLONNE QUE TOUT LE LOT ATTEND :** `intervention.contrat_id`. *Mesuré le 14/09 : elle n'est pas au schéma, et `intervention.demande_id` non plus, alors que le chapitre 11 les annonce tous deux.* Sans elle, aucune échéance ne peut désigner ce qu'elle a produit, et le suivi de rentabilité n'a rien à additionner.
+**CE QU'IL SUPPOSE, et ce n'est pas du travail de table.**
+**(1) LE TYPE DE CONTRAT EST UNE ÉNUMÉRATION, et le §9 du 20/08 dit quand on la ferme :** *jamais avant d'avoir tranché à qui l'on vend.* M6 en donne cinq — préventif simple, préventif + curatif, tout inclus, crédit d'heures, garantie constructeur — et RG-CON-03 en distingue déjà deux CLASSES : `garantie` coexiste avec un contrat commercial, les autres non. **La classe est ce qui porte la règle, pas le type** : l'écrire comme telle évite d'avoir à relire RG-CON-03 à chaque type ajouté.
+**(2) LA FORME DE POLITIQUE, et elle n'est PAS évidente.** Un contrat appartient à un client, et le portail doit pouvoir le consulter (M8 : *« consultation du contrat et de ses échéances »*). C'est donc la forme **« parc »** et non « société » — *une table de forme société est lisible par un compte portail quel que soit son client* (D94). `contrat_ligne` et `echeance` suivent leur parent par **filiation** (D103).
+**(3) LE MONTANT EST DANS LA DEVISE DE LA SOCIÉTÉ** (I2) et porte son code ; aucune conversion ligne à ligne, jamais.
+*Acceptation :* les trois tables existent avec `societe_id NOT NULL`, sont auditées à leur naissance (I8, périmètre inversé de D55) et rangées dans la première catégorie de I1 ; `intervention.contrat_id` existe et est nullable — *toute intervention n'est pas contractuelle* ; un scénario d'isolation lit un contrat d'une autre société pour obtenir zéro ligne, et un compte portail d'un autre client aussi.
+*Relu contre les sources citées le 14/09/2026 — empreinte `3246190f`.*
+
+**L4-02 — UNE MACHINE SOUS UN SEUL CONTRAT COMMERCIAL À LA FOIS. [RG-CON-03] [D30]**
+*File :* BLOQUÉ — L4-01 : la table `contrat_ligne` n'existe pas.
+**La règle, telle que D30 l'a amendée** : *une machine ne peut être couverte que par un seul contrat actif **de type commercial** à la fois ; un contrat de type `garantie` peut coexister.* Et « actif » a **deux moitiés** : le statut `actif` **et** la date du jour comprise dans `date_entree`/`date_sortie`.
+**LE PIÈGE EST LA SECONDE MOITIÉ, et c'est D85 en toutes lettres.** *Aucune politique, aucune contrainte ne doit évaluer l'heure* — sinon la même machine est en règle à 23:59 et en faute à 00:01, sans qu'aucune écriture ait eu lieu. **Le chevauchement se contraint donc sur les DATES, jamais sur « aujourd'hui »** : deux lignes commerciales dont les fenêtres se recouvrent sont interdites, que la date du jour y soit ou non. *C'est plus strict que la règle écrite, et c'est le seul énoncé qui se garde.*
+**CE QUI RESTE À TRANCHER :** un `EXCLUDE USING gist` sur un `daterange` serait la forme exacte — il exige `btree_gist`, et **aucune migration de ce dépôt n'a jamais créé d'extension**. R3-13 a écarté la même contrainte pour la même raison et pris un déclencheur ; *le faire deux fois est un signal, pas une habitude* : la question de l'extension mérite d'être posée une fois pour toutes.
+*Acceptation :* deux lignes commerciales qui se recouvrent sur la même machine sont refusées **par la base**, avec un jumeau qui retire le verrou et montre l'écriture passer ; une ligne `garantie` qui recouvre une ligne commerciale est **acceptée**, et c'est le cas qui doit rester vert pour sa propre raison ; aucune contrainte n'évalue `now()`, et le gardien de D85 le vérifie.
+*Relu contre les sources citées le 14/09/2026 — empreinte `b5b87816`.*
+
+**L4-03 — L'ÉCHÉANCIER, GÉNÉRÉ À LA CRÉATION SUR TOUTE LA DURÉE. [RG-CON-01]**
+*File :* BLOQUÉ — L4-01.
+**Ce qu'il pose.** À la création d'un contrat, les visites préventives sont générées **sur toute sa durée**, avec leur fenêtre de tolérance. Chaque échéance devient une intervention à planifier **X jours avant** la date cible.
+**CE QU'IL SUPPOSE, et les deux premiers sont des points d'arrêt du §8.**
+**(1) « X JOURS AVANT » N'EST NULLE PART.** Ni le chapitre 10, ni M6 ne donnent ce délai. *Ne jamais inventer un délai* — c'est un **arbitrage**, et il est paramétrable par société ou il est faux.
+**(2) LA FENÊTRE DE TOLÉRANCE non plus.** M6 dit « paramétrable » sans dire de combien à la naissance d'un contrat.
+**(3) LA GÉNÉRATION EST-ELLE MATÉRIALISÉE OU CALCULÉE ?** *C'est D85, et la réponse est déjà écrite* : une échéance porte un statut, une intervention rattachée, un dépassement constaté — **ce sont des faits que quelqu'un écrit**, donc des lignes. Une projection calculée à la lecture se contredirait d'un jour à l'autre.
+**CE QUI N'EST PAS DANS CE TICKET :** la transformation d'une échéance en intervention, qui est L4-04.
+*Acceptation :* créer un contrat de 3 ans à périodicité trimestrielle produit **12 échéances**, datées, en statut `a_planifier` ; les deux délais viennent d'un paramétrage et **aucun n'est écrit en dur** ; un contrat sans périodicité ne produit **aucune** échéance et le dit, plutôt que d'en produire zéro en silence.
+*Relu contre les sources citées le 14/09/2026 — empreinte `fe71e537`.*
+
+**L4-04 — L'ÉCHÉANCE DEVIENT UNE INTERVENTION, ET LE DÉPASSEMENT REMONTE. [RG-CON-02]**
+*File :* BLOQUÉ — L4-03.
+**Deux moitiés qui ne se ressemblent pas.** *Transformer* — une échéance à X jours devient une intervention `preventif_contrat` à planifier, et l'échéance passe `planifiee` en portant son `intervention_id`. *Constater le dépassement* — une échéance non réalisée dans sa fenêtre passe `depassee` et **remonte en alerte quotidienne**.
+**LE MOT « QUOTIDIENNE » EST UN MÉCANISME QUI N'EXISTE PAS.** Mesuré : les seules alarmes du dépôt — `pnpm veille`, `pnpm battement`, `pnpm audit:partitions` — visent la BASE et la CI, jamais un utilisateur. **Une alerte métier est un ticket à part entière** : où s'affiche-t-elle, qui la reçoit, que devient-elle quand personne ne la lit ? *Une alarme qu'on ignore coûte plus qu'elle ne rapporte* (§9, 11/09).
+**ET LE DÉPASSEMENT EST MATÉRIALISÉ, jamais calculé à l'affichage** (D85) : un travail écrit la colonne, l'écran lit la colonne, et **l'horloge ne touche que le travail**.
+*Acceptation :* une échéance dont la fenêtre est close sans intervention réalisée porte `depassee` **après passage du travail**, et jamais du seul fait de l'heure ; un scénario montre qu'un audit joué à deux instants différents rend le même verdict tant que le travail n'a pas tourné.
+*Relu contre les sources citées le 14/09/2026 — empreinte `1a3be49f`.*
+
+**L4-05 — L'AVENANT : ajouter ou retirer une machine en cours de contrat. [RG-CON-04]**
+*File :* BLOQUÉ — L4-01.
+**Ce que la règle dit** : le retrait d'une machine fait l'objet d'un **avenant daté**, et **les échéances futures correspondantes sont annulées**.
+**LE MOT QUI DÉCIDE EST « FUTURES ».** Les échéances passées ne bougent pas : *elles ont eu lieu, ou elles ont été manquées, et les effacer réécrirait l'histoire du service rendu.* C'est exactement la préséance de I5 appliquée à un contrat.
+**CE QU'IL SUPPOSE :** `contrat_ligne.date_sortie` est **la seule écriture** d'un retrait — pas de suppression de ligne, jamais. *Une ligne supprimée emporte l'historique des échéances qui la désignaient*, et une facture émise sous un périmètre disparu ne s'explique plus (le raisonnement des forfaits et des prestations).
+**RESTE À TRANCHER :** le montant du contrat change-t-il avec le périmètre, et à quelle date d'effet ? **C'est de l'argent facturé : arbitrage d'Alexis.**
+*Acceptation :* retirer une machine écrit une date de sortie et annule **les seules** échéances postérieures à cette date ; un scénario montre qu'une échéance antérieure reste intacte ; aucune ligne n'est supprimée.
+*Relu contre les sources citées le 14/09/2026 — empreinte `ba5b8e33`.*
+
+**L4-06 — LE GÉNÉRATEUR DE PROPOSITIONS — ce qui transforme le recensement en chiffre d'affaires. [RG-CON-07]**
+*File :* BLOQUÉ — L4-01, et deux chaînes fantômes : `lib/pdf/` n'existe pas, le stockage d'objets non plus.
+**M6 est explicite sur son importance** : *« c'est la fonction qui transforme le recensement du parc en chiffre d'affaires récurrent »*. À partir du parc recensé chez un client : machines éligibles, périodicité recommandée par modèle, volume d'heures estimé, montant proposé, **sortie PDF à la charte**.
+**RG-CON-07 POSE LA BORNE :** une proposition ne se génère **que** sur des machines effectivement recensées et rattachées au client. *Une proposition qui chiffre une machine qu'on n'a pas vue est une promesse qu'on ne peut pas tenir.*
+**CE QU'IL SUPPOSE, ET QUI N'EXISTE PAS :**
+- **la périodicité recommandée par MODÈLE** — rien ne la porte. `vgp/assujettissement.ts` porte une périodicité **réglementaire**, qui n'est pas la même chose : *l'une est une obligation légale, l'autre une recommandation constructeur*, et les confondre ferait proposer une visite là où la loi en impose une autre ;
+- **le volume d'heures estimé** — il se lirait dans la durée standard d'une prestation (L1-12, R3-15), mais *rien ne relie une prestation à une famille de machines de façon à dire « cette machine demande cette prestation »* ;
+- **le montant proposé** — c'est un PRIX, donc un arbitrage d'Alexis avant d'être un calcul ;
+- **le PDF** — `lib/pdf/` est `(prévu)`, et le document produit doit être stocké.
+*Acceptation :* la proposition liste les machines du client **lues sous contexte cloisonné**, chacune avec l'origine de sa périodicité (modèle, exception, défaut) comme le fait déjà la cascade VGP ; une machine non recensée n'y figure pas, et un scénario le prouve ; **aucun montant n'est inventé** — un montant qu'on ne sait pas calculer est `null` AVEC SON MOTIF, jamais zéro.
+*Relu contre les sources citées le 14/09/2026 — empreinte `270ee4b7`.*
+
+**L4-07 — LE CRÉDIT D'HEURES, DÉCOMPTÉ À LA VALIDATION DU RAPPORT. [RG-CON-06]**
+*File :* BLOQUÉ — L4-01, et le rapport d'intervention (lot 3) n'existe pas.
+**La règle tient en une phrase et elle est une garantie** : *le crédit d'heures est décompté à la validation du rapport, jamais avant.* **Jamais avant** veut dire : ni à la pose, ni au démarrage, ni à la fin de l'intervention — **à la validation**, qui est l'acte d'un responsable (matrice §5.2, corrigée par l'arbitrage 3.17 : *le technicien termine, le responsable valide et clôture*).
+**CE QU'IL SUPPOSE :** un solde qui se LIT sans se recalculer à chaque fois — *un compteur stocké se désynchronise en silence, un compteur figé a l'air de mesurer* (L9-08). **Le solde se DÉRIVE des décomptes**, et chaque décompte est une ligne datée qui nomme son intervention.
+**RESTE À TRANCHER :** que se passe-t-il quand le crédit est épuisé en cours d'intervention ? Facturation au taux horaire hors forfait, refus, ou dépassement autorisé ? **C'est de l'argent facturé : arbitrage d'Alexis.**
+*Acceptation :* le solde est dérivé et jamais stocké ; une intervention dont le rapport n'est pas validé ne décompte rien, et un scénario le prouve par retrait du verrou ; le décompte nomme l'intervention qui l'a produit.
+*Relu contre les sources citées le 14/09/2026 — empreinte `c57ddd14`.*
+
+**L4-08 — LA VISITE DÉCLENCHÉE PAR UN COMPTEUR, ET LA PROJECTION DE LA DATE D'ATTEINTE.**
+*File :* BLOQUÉ — la table `compteur_releve` n'existe pas (L2-03 l'écrit lui-même).
+**M6 :** *« une visite peut être déclenchée par un compteur plutôt que par une date ; le relevé de chaque passage alimente une projection de la date d'atteinte du seuil. »*
+**LA RÈGLE DE NON-RÉGRESSION EST DÉJÀ ÉCRITE ET ÉPROUVÉE** — `lib/compteurs/regression.ts`, L2-03 : *l'ordre d'arrivée n'est pas l'ordre des faits*, un relevé qui régresse est conservé et signalé, chaque couple (machine, type) est une suite à part. **Ce ticket ne la réécrit pas, il l'alimente.**
+**ET UNE PROJECTION EST UNE ESTIMATION, jamais une date.** *Elle doit le dire à l'écran* : deux relevés suffisent à tracer une droite, et une droite tracée sur deux points d'une machine arrêtée trois semaines annonce une échéance fausse avec l'aplomb d'un calcul. **« Je ne sais pas encore » est une réponse** (D76, D88), et c'est celle qu'il faut rendre en dessous d'un nombre de relevés à trancher.
+*Acceptation :* la table des relevés existe et est cloisonnée ; la projection rend `null` AVEC SON MOTIF quand elle ne sait pas, jamais une date par défaut ; un relevé qui régresse ne fait jamais reculer une projection déjà annoncée sans le signaler.
+*Relu contre les sources citées le 14/09/2026 — empreinte `9571af44`.*
+
+**L4-09 — LE SUIVI DE RENTABILITÉ D'UN CONTRAT.**
+*File :* BLOQUÉ — arbitrage d'Alexis : **aucune donnée de coût interne n'existe dans le produit**, et en créer une est une décision qui touche la paie.
+**M6 :** *par contrat, montant facturé, heures consommées valorisées au coût interne, pièces valorisées, marge, taux de consommation du forfait.* **Un contrat qui dérive doit être identifié avant son renouvellement.**
+**CE QUI BLOQUE, et ce n'est pas technique.** Mesuré : `lib/tarification/` porte le taux de **VENTE**, historisé par date d'effet (RG-TAR-04) ; **rien ne porte un coût de revient**. Un coût horaire chargé est une donnée de **paie** — qui la saisit, qui la lit, et sous quelle habilitation ? La matrice §5.2 réserve déjà les marges à `direction` et `responsable_magasin`, avec un accès restreint pour `responsable_sav` : *la donnée n'existe pas, mais le droit de la lire est déjà écrit.*
+*Acceptation :* rien tant que l'arbitrage n'est pas rendu. **Le ticket existe pour que le manque soit visible**, pas pour être pris.
+*Relu contre les sources citées le 14/09/2026 — empreinte `4373a609`.*
+
+**L4-10 — L'ALERTE DE RENOUVELLEMENT À J-90, AVEC SON DOSSIER. [RG-CON-05]**
+*File :* BLOQUÉ — L4-01, et L4-09 pour la moitié « marge ».
+**La règle** : l'alerte se déclenche à J-90 du terme, **ou au préavis contractuel s'il est plus long**. *La seconde moitié est celle qu'on oublie*, et elle est écrite dans la règle : un préavis de six mois rend le J-90 inopérant.
+**Le dossier est PRÉ-CONSTITUÉ** : historique, taux de consommation, marge, proposition d'ajustement tarifaire. **Trois des quatre existent ou existeront ; la marge dépend de L4-09.**
+**ET L'ALERTE EST MATÉRIALISÉE** (D85) : un travail écrit, l'écran lit. *Une alerte calculée à l'affichage apparaît et disparaît selon l'heure à laquelle on ouvre la page.*
+*Acceptation :* le déclencheur retenu est **le plus long des deux délais**, et un scénario le prouve sur un contrat à préavis de 6 mois ; le dossier affiche ce qu'il sait et **dit ce qu'il ne sait pas**, jamais un zéro à la place d'une marge inconnue.
+*Relu contre les sources citées le 14/09/2026 — empreinte `559adfb7`.*
+
+**L4-11 — LES ÉCRANS DU CONTRAT, et la leçon de L1-01 appliquée d'avance.**
+*File :* BLOQUÉ — L4-01 à L4-05.
+**Ce ticket existe SÉPARÉMENT, et c'est R3-12 qui l'exige.** *Une couche écrite n'est pas une fonctionnalité* : neuf modules du dépôt ont été livrés sans écran, et le critère amendé de la file dit désormais qu'un ticket qui promet un GESTE n'est `LIVRÉ` que si un chemin porte ce geste jusqu'à un humain. **Écrire les écrans dans le même ticket que les tables les aurait fait passer à la trappe** — c'est ce qui est arrivé neuf fois.
+**Quatre écrans, et ils ne se ressemblent pas** : la liste des contrats ; la fiche d'un contrat avec son périmètre et son échéancier ; la création, qui est un **parcours** et non un formulaire (client, machines, périodicité, montant) ; et l'écran des échéances à planifier, qui est la porte du planning.
+**LA BARRE NE BOUGE PAS** : l'entrée « Contrats » existe et elle est inerte, elle attend son `chemin`. *Une entrée inerte devient un chemin, aucune ne s'ajoute.*
+**MAIS LA DEMANDE DU 14/09 LA CONCERNE** — l'exploitation veut des sous-menus et une section « Paramètres ». `docs/propositions/navigation.html` en montre deux formes ; **c'est un arbitrage à rendre avant d'écrire ces écrans**, pas après.
+*Acceptation :* chaque écran est atteignable — `pnpm chemins` le mesure — ; aucune chaîne visible hors de `lib/i18n/fr.ts` ; une capture à 1280 et à 390 px accompagne la livraison.
+
+---
+
+## Les tickets que R3-12 a rendus visibles — des couches sans geste
+
+*Ils ne sont pas du lot 4. Ils sont écrits ici parce que `pnpm chemins` les nomme, et qu'une mesure sans ticket est une mesure qu'on relit sans agir.*
+
+**L1-03b — SAISIR UN CONTACT : le module existe, personne ne peut en créer un.**
+*File :* LIBRE
+**Mesuré le 14/09/2026 par `pnpm chemins`** : `lib/contacts/` ne porte que `saisie.ts` — **aucun dépôt**, aucune route, aucun écran. L1-03 a posé la DONNÉE et ses quatre décisions d'exploitation ; il n'a jamais promis d'écran, et sa marque `LIVRÉ` reste juste. *Ce qui manque est le geste.*
+**CE QU'IL SUPPOSE :** un contact appartient au **client**, le site est **facultatif** — *sans site, c'est un contact du client, et il ne disparaît pas pour un compte portail restreint* (le comptable survit à la restriction d'un atelier). L'écran vit donc sur la **fiche du client**, jamais sur celle d'un site.
+**LES RÔLES ET LES CANAUX SONT CLOS DANS `lib/contacts/saisie.ts`, pas en base** : *une société tierce aura d'autres rôles, et une énumération en base ferait de leur ajout une migration.* L'écran lit cette liste, il ne la recopie pas.
+*Acceptation :* un contact se crée et se modifie depuis la fiche d'un client ; `signataire` est un rôle de l'ensemble et jamais une case à part (RG-INT-04) ; un scénario lit un contact d'une autre société pour obtenir zéro ligne.
+*Relu contre les sources citées le 14/09/2026 — empreinte `75ef68e5`.*
+
+**L1-05b — SAISIR UNE FAMILLE ET UN MODÈLE : le référentiel matériel n'a aucun chemin d'écriture.**
+*File :* LIBRE
+**Mesuré le 14/09/2026** : `lib/materiel/` ne porte que `saisie.ts`. **Et l'import ne sauve pas ce module** — `grep "^export async function appliquer" lib/imports/` rend une seule ligne, et c'est `appliquerLeLotDeClients` : le gabarit des familles sait produire un rapport et **ne sait pas l'appliquer**. *Le raisonnement « l'import donnera un appelant à tout le monde » est vrai des clients et faux des quatre autres types.*
+**CE QUE CELA COÛTE AUJOURD'HUI :** une machine exige un modèle (D6, quatre champs obligatoires), un modèle exige une famille, et **aucun des deux ne peut naître**. *Le parc ne peut donc pas se remplir autrement que par le semis*, ce qui est exactement l'état que R3-10 a mesuré sur les captures.
+*Acceptation :* familles et modèles se créent et se modifient depuis un écran atteignable ; aucune énumération n'est inventée (D4 amendé) ; la périodicité d'entretien, si elle est saisie, **n'est pas** la périodicité réglementaire des VGP et l'écran le dit.
+*Relu contre les sources citées le 14/09/2026 — empreinte `47f45fac`.*
+
+**L2-06b — LA FILE DES DEMANDES : six fonctions de dépôt, aucun appelant.**
+*File :* LIBRE
+**Mesuré le 14/09/2026** : `deposerDemande`, `accuserReception`, `qualifierDemande`, `marquerTransformee`, `cloreSansSuite`, `demandesOuvertes` — **aucune n'est appelée depuis `app/`**. L2-06 a livré la table, les trois énumérations, le cycle de vie tenu deux fois et le standard des 30 minutes ; il n'a pas promis d'écran, et sa marque reste juste.
+**DEUX ÉCRANS, ET ILS N'APPARTIENNENT PAS AU MÊME MONDE.** Le **dépôt** est un parcours de PORTAIL (chapitre 9, P5) — et `demandes` est *la seule table du lot 2 où un compte portail ÉCRIT* (D102). La **qualification** est le geste de l'ADV. *Les mêler dans un ticket ferait un écran dont personne ne sait pour qui il est.*
+**ET LE PORTAIL EST EN CONSULTATION SEULE** (L2-12) : ouvrir l'écriture y est une décision, pas un ajout de formulaire.
+*Acceptation :* deux tickets distincts à l'écriture ; la file de qualification affiche le compteur d'accusé de réception avec ses TROIS états — *« sans réponse » n'est pas « hors délai »* — et jamais un booléen.
+*Relu contre les sources citées le 14/09/2026 — empreinte `113886a7`.*
+
+---
+
+## Ce que l'exploitation a dit du métier le 14/09/2026, en tickets
+
+*Ces tickets viennent d'Alexis, dans ses mots, inscrits plutôt qu'interprétés. Chacun porte la mesure faite avant de l'écrire — parfois elle CONFIRME ce qui est demandé, parfois elle dit que le travail est ailleurs.*
+
+**R4-01 — CLIENT → SITE → ÉQUIPEMENT : le modèle la porte, et les écrans aussi. VÉRIFIÉ, rien à construire.**
+*File :* LIVRÉ
+**La demande** : *« un client porte des sites, un site porte des équipements ; rien ne doit laisser croire qu'un équipement appartient directement à un client. Une intervention peut être demandée pour un équipement en particulier, ou pour un site entier. »*
+**CE QUE LA MESURE DIT, et c'est une bonne nouvelle.** `intervention` porte `client_id` et `site_id` **obligatoires**, plus une relation `InterventionMachine[]` : **aucune machine rattachée signifie le site entier**, et c'est déjà modélisé. L2-08a l'a écrit en retirant `machine_id` — *une visite en couvre plusieurs* — et `intervention_machine` porte le rattachement sous la forme « filiation » (D103), dont le parent est l'INTERVENTION et jamais la machine.
+**ET L'ÉCRAN NE FORCE PAS À DÉSIGNER UNE MACHINE** — mesuré : `grep -c "machine" "app/(back-office)/planning/nouvelle/page.tsx"` rend **0**. Le formulaire de création ne propose aucune machine, donc n'en exige aucune. RG-INT-01 n'exige la machine **qu'avant de démarrer**, et c'est la base qui le tient au passage en statut de travail, jamais à la création : *le dépannage à l'aveugle est le cas ordinaire, et exiger la machine d'emblée refuserait un appel.*
+**CE QUI RESTE, et c'est l'inverse du travail demandé :** l'écran ne permet pas non plus de **rattacher** une machine à une intervention. Le modèle sait le faire, personne ne peut le demander. *C'est L2-08b, pas ce ticket.*
+*Acceptation :* aucune — ce ticket est une **vérification**, et son résultat est écrit ci-dessus.
+
+**R4-02 — L'HISTORIQUE AUX TROIS NIVEAUX : machine (fait), site (à faire), client (à faire).**
+*File :* LIBRE
+**La demande** : *« il en faut un pour le client, un pour le site, un pour l'équipement. »*
+**CE QUI EXISTE** : `lib/machines/historique.ts`, et son commentaire porte déjà le piège qui compte — **l'historique part de la MACHINE, et `site_id` n'apparaît dans AUCUN filtre** : *partir du site de la machine rendrait un historique amputé de tout ce qui précède le déménagement, SANS RIEN DIRE.* Les deux autres niveaux n'ont aucun équivalent.
+**LA QUESTION QUE LE NIVEAU CLIENT FAIT NAÎTRE, posée par écrit plutôt que laissée à déduire.** *L'historique d'un client est-il l'UNION de ses sites, ou porte-t-il des interventions qui ne sont d'aucun site ?* **Le modèle rend `site_id` OBLIGATOIRE sur `intervention`** : la réponse est donc **l'union**, et il faut l'écrire plutôt que de la laisser déduire — *une question à laquelle le schéma répond déjà est une question qu'on repose six mois plus tard.*
+**ET LE PIÈGE DU NIVEAU SITE EST L'INVERSE DE CELUI DE LA MACHINE.** L'historique d'un site est celui **du lieu** : il garde les interventions des machines qui en sont parties, et il ne suit pas celles qui l'ont quitté. *Une machine déménage ; un site, non.* Les deux lectures sont justes et **ne se déduisent pas l'une de l'autre** — c'est pourquoi ce sont deux fonctions, jamais un paramètre.
+*Acceptation :* trois lectures, trois modules, et un scénario qui LES OPPOSE sur une machine déménagée — son historique la suit, celui de son ancien site la garde, celui du client contient les deux ; aucune des trois ne filtre sur un critère que l'autre porte.
+
+**R4-03 — IMPORTER UN CLASSEUR COMPLET : clients, sites, équipements en une seule montée.**
+*File :* LIBRE
+**La demande** : *« on peut importer un fichier Excel complet avec les informations clients, les informations des sites, les informations des équipements du site. »*
+**CE QUI EXISTE, et ce que cela change.** Aujourd'hui **un classeur porte UN gabarit**, désigné par le marqueur de sa première cellule (`lib/excel/format.ts`). L'exploitation demande **un classeur, plusieurs feuilles, une seule montée** — et l'ordre y est contraint : *un site suppose son client, un équipement suppose son site.*
+**CE QU'IL SUPPOSE, et les quatre points sont des décisions, pas du code.**
+**(1) LA GRAMMAIRE DU MARQUEUR pour un classeur composite.** Chaque feuille porte-t-elle son propre marqueur, ou le classeur en porte-t-il un seul qui annonce sa composition ? *Le premier laisse mélanger l'ordre des feuilles ; le second fige la composition.*
+**(2) L'ORDRE D'APPLICATION est imposé par les clés étrangères** — clients, puis sites, puis équipements — et il ne se devine pas depuis l'ordre des onglets : *un classeur dont l'onglet « sites » précède l'onglet « clients » n'est pas un classeur invalide, c'est un classeur mal rangé.*
+**(3) QUE SE PASSE-T-IL QUAND LA FEUILLE « SITES » DÉSIGNE UN CLIENT QUE LA FEUILLE « CLIENTS » VIENT DE REJETER ?** C'est le cas qui décide de la forme du rapport : la ligne de site est-elle rejetée pour « parent rejeté », ou pour « parent introuvable » ? *L1-09b a déjà tranché que ce sont **deux motifs** — l'un se corrige dans le FICHIER, l'autre dans le PARC —, et il en faut un troisième.*
+**(4) L'ENSEMBLE EST-IL ATOMIQUE, OU FEUILLE À FEUILLE ? CETTE QUESTION DÉCIDE DE TOUT LE RESTE, et elle ne doit pas rester implicite.** *Atomique* : un rejet n'importe où annule tout, et un classeur de 600 lignes échoue sur une faute de frappe. *Feuille à feuille* : les clients entrent, les sites échouent, et **le parc se retrouve dans un état que personne n'a voulu** — à mi-chemin. I6 penche pour l'atomique — *l'annulation est partielle et sûre* —, mais L1-08i a écrit l'argument inverse pour une raison mesurée : *une écriture par ligne laisserait, au premier incident, un lot « contrôlé » dont la moitié des fiches existe.*
+**CE QUI N'EST PAS DANS CE TICKET :** l'application des lots de sites et d'équipements, qui n'existe pas — *une seule fonction d'application existe dans tout le dépôt, et c'est celle des clients.* **C'est un préalable, pas un détail** : sans elle, un classeur composite s'arrêterait au rapport.
+*Acceptation :* la question (4) est **tranchée par écrit avant toute ligne de code** ; un classeur dont les onglets sont dans le désordre s'applique quand même, et un scénario le prouve ; une ligne dont le parent a été rejeté dans la même montée porte **son propre motif**, distinct de « parent introuvable ».
+
+---
+
+## L'APPLICATION DU TECHNICIEN — la chaîne la plus lourde du projet, et elle bloque six tickets
+
+*Écrite le 14/09/2026 à la demande de l'exploitation. **Rien n'en a été construit cette nuit** : c'est une file, dans l'ordre où elle se construirait.*
+
+**Dans les mots d'Alexis** : *« Un technicien doit pouvoir être identifié afin qu'il puisse afficher uniquement son planning et ses interventions et autres informations qui le concernent. Il pourra démarrer son intervention, et qu'à ce moment le compteur commence jusqu'au moment où il la met en pause ou l'arrête. Il aura la possibilité d'envoyer des photos et faire signer son client le bon d'intervention. »*
+
+### CINQ CHOSES DISTINCTES, ET IL FAUT LES TENIR DISTINCTES
+
+**ET LA QUESTION QUI DÉCIDE DE LA FILE : laquelle des cinq peut exister SANS le hors-ligne ?**
+
+> **Les deux premières. Et les confondre avec le mode avion a probablement coûté six tickets bloqués.**
+
+*Un technicien identifié qui voit son planning et démarre un compteur n'a besoin d'aucun mode avion pour être utile.* Il a besoin d'un réseau **au moment où il regarde** — ce qui est vrai dans un atelier de Ducos, faux sur la côte est, et **suffisant pour commencer**. La chaîne L3-07 / L3-08 est `BLOQUÉ` depuis le 11/09, et elle bloque derrière elle un travail qui ne la demande pas.
+
+| | Ce que c'est | A-t-il besoin du hors-ligne ? | Ce qu'il suppose |
+|---|---|---|---|
+| **1. Identification et périmètre réduit** | le technicien ne voit QUE le sien | **non** | la matrice §5.2 donne déjà `consulter_planning` en RESTREINT au technicien — *la capacité est écrite, et rien ne la lit* |
+| **2. Le compteur** | démarrer, mettre en pause, arrêter | **non** | **une table de sessions de travail qui n'existe pas**, et une décision : *un temps MESURÉ n'est pas un temps SAISI, et la différence finit sur une facture* |
+| **3. Les photos** | envoyer depuis le terrain | **oui, et plus** | le **stockage d'objets**, que la note de mise en ligne annonce comme absent (lot 8) |
+| **4. La signature du client** | sur le bon d'intervention | **oui** | le **rapport d'intervention** (M5), qui n'existe pas ; et un PDF, donc `lib/pdf/`, `(prévu)` |
+| **5. Le hors-ligne** | I4, le mode avion | — | la file de synchronisation, le manifeste, l'agent de service — L3-07 / L3-08 |
+
+**R5-01 — LE TECHNICIEN VOIT SON PLANNING, ET LUI SEUL.**
+*File :* LIBRE
+**Ce qu'il pose** : une session de technicien atteint un écran qui ne montre QUE ses interventions. **Aucune nouvelle donnée, aucune migration** — le cloisonnement existe, le planning existe, et ce qui manque est **la restriction par personne**.
+**CE QU'IL SUPPOSE, ET C'EST UN ARBITRAGE.** La matrice de RG-DRO-03 donne `consulter_planning` en **restreint** au technicien, et *cette matrice n'a qu'un seul appelant dans tout le dépôt* — aucun écran ne filtre par capacité. **Ou bien le filtrage par capacité arrive, ou bien la restriction est écrite dans la requête** ; les deux se défendent, et les mêler donnerait deux lectures d'un même critère.
+**CE QUE LE DÉPÔT REFUSE DÉJÀ, et qu'il ne faut pas défaire** : *masquer une entrée de navigation n'est jamais un contrôle d'accès* — c'est la politique qui garde, et une seconde lecture au-dessus vieillit sans rougir.
+*Acceptation :* un compte `technicien` lit son planning et **zéro intervention d'un autre technicien**, mesuré sous le rôle applicatif ; le même compte ne voit **aucun montant** (matrice §5.2) ; un scénario de rendu montre l'écran, et une capture l'accompagne.
+
+**R5-02 — LE COMPTEUR : démarrer, mettre en pause, arrêter. Et un temps MESURÉ n'est pas un temps SAISI.**
+*File :* BLOQUÉ — arbitrage : **la différence entre les deux finit sur une facture**, et c'est Alexis qui tranche.
+**Ce qu'il pose** : un technicien démarre son intervention ; le compteur court jusqu'à la pause ou l'arrêt ; la somme des segments est le temps passé.
+**LA QUESTION QUI BLOQUE, et elle n'est pas technique.** `lib/tarification/valorisation.ts` arrondit **au quart d'heure supérieur** puis applique un **plancher d'une heure**, **une seule fois sur l'intervention entière** (RG-TAR-05, D83, D89). **Un temps mesuré à la seconde entre-t-il tel quel dans ce calcul, ou le technicien confirme-t-il un temps saisi ?** *Un compteur oublié une nuit entière facturerait onze heures ; un compteur qu'on corrige n'est plus un compteur.* Les deux réponses sont défendables et **elles ne coûtent pas la même chose au client**.
+**CE QUI EST DÉJÀ TRANCHÉ ET QU'IL NE FAUT PAS ROUVRIR** : le plancher est **par intervention, sans exception** (D89) — *deux interventions le même jour sur le même site font DEUX heures.*
+**CE QU'IL SUPPOSE :** une table de **segments** — début, fin, intervention, auteur — et jamais un seul couple début/fin : *une pause est un fait, et un compteur qui ne garde que le total ne peut pas dire ce qui s'est passé entre-temps.* Les segments sont écrits depuis l'appareil, donc portent un `id` UUID v7 (I10) **et un horodatage de terrain**, comme les relevés de compteur — *l'ordre d'arrivée n'est pas l'ordre des faits* (L2-03).
+*Acceptation :* rien tant que l'arbitrage n'est pas rendu. **Le ticket existe pour que la question soit posée avant qu'un écran la réponde par accident.**
+
+**R5-03 — LES PHOTOS DEPUIS LE TERRAIN.**
+*File :* BLOQUÉ — le stockage d'objets n'existe pas (lot 8), et le hors-ligne non plus (L3-07).
+*Une photo est le premier objet réellement volumineux du produit, et le premier que le mode avion doit garder en attente.* Elle suppose les deux chaînes à la fois, et c'est pourquoi elle vient **après** le compteur et non avec lui.
+
+**R5-04 — LA SIGNATURE DU CLIENT SUR LE BON D'INTERVENTION.**
+*File :* BLOQUÉ — le rapport d'intervention (M5) n'existe pas, `lib/pdf/` est `(prévu)`, et le stockage d'objets non plus.
+**Ce qu'il faut avoir décidé avant d'écrire une ligne** : *ce que la signature engage.* Une signature recueillie sur un écran vaut ce que vaut ce qu'elle affichait — **le document signé doit donc être figé au moment de la signature**, et non recomposé à la lecture. *C'est exactement le motif de D85, appliqué à un document au lieu d'un fait.*
+
+**R5-05 — LE HORS-LIGNE, et il vient EN DERNIER plutôt qu'en premier.**
+*File :* BLOQUÉ — L3-07 / L3-08, `BLOQUÉ` depuis le 11/09.
+**I4 n'est pas affaibli** : *toute fonctionnalité de l'application technicien est utilisable en mode avion*, et une fonctionnalité mobile qui exige le réseau est refusée. **Ce que cette file dit est un ORDRE DE CONSTRUCTION, pas une dispense** : R5-01 et R5-02 se construisent connectés, et le mode avion les reprend ensuite — *une file de synchronisation se greffe sur des écritures qui existent, jamais sur des écritures qu'on imagine.*
+> **Et le coût de l'ordre inverse est mesuré : six tickets attendent derrière une chaîne que deux d'entre eux ne demandent pas.**
+
+---
+
+**R4-04 — LA BARRE DEVIENT UN MENU, ET LES TROIS GARDIENS CHANGENT D'OBJET. [D118]**
+*File :* BLOQUÉ — arbitrage d'Alexis sur la STRUCTURE : deux formes sont proposées, et c'est une décision qui se prend devant une image.
+**D118 a tranché le PRINCIPE le 14/09/2026** : la barre plate de onze entrées devient un menu à deux niveaux, avec une section « Paramètres ». *Ce qui reste à arrêter est la structure*, et `docs/propositions/navigation.html` en montre deux avec leurs captures à 1280 et à 390 px.
+**CE QUE CE TICKET COÛTE, et c'est presque entièrement du travail de GARDIEN.** `lib/navigation/entrees.ts` porte une liste close de onze entrées, et `tests/unit/navigation/entrees.test.ts` la confronte à la barre de la maquette — **libellé et ordre compris**. La liste gagne une notion de niveau, et la confrontation devient une confrontation de **destinations** plutôt que d'entrées.
+> **CE QU'IL NE FAUT PAS FAIRE : assouplir la comparaison.** *Assouplir ferait entrer sans décision tous les écarts suivants* — c'est le raisonnement exact de `ECARTS_MAQUETTE`, qui NOMME un écart plutôt que d'élargir la règle. La confrontation reste **exacte**, sur un objet différent.
+**DEUX FORMES SONT DUES, et la seconde n'est pas une dégradation de la première.** *Un sous-menu qui s'ouvre au survol est inutilisable au doigt* : pas de survol, et un premier appui ambigu entre « déplier » et « naviguer ». Sur téléphone : un panneau plein écran à sections dépliables, **un titre de section n'étant jamais lui-même une destination**, une seule section ouverte à la fois, et le panneau se ferme dès qu'on a choisi.
+**CE QUI RESTE OUVERT, et qui n'est pas à moi :** faut-il garder les entrées inertes une fois qu'elles sont rangées en sections — *une section entièrement inerte est un dossier vide, et un dossier vide se remarque plus qu'un mot grisé* ? Et « Paramètres » remplace-t-il « Sociétés & tarifs », ou s'y ajoute-t-il — *le second libellé dit que la SOCIÉTÉ s'y règle, pas seulement l'application* ?
+**LA BARRE DU PORTAIL NE BOUGE PAS**, et ce n'est pas un oubli : *un client qui lirait « Contrats » ou « Paramètres » au-dessus de son espace apprendrait l'existence d'un outil qui n'est pas le sien.*
+*Acceptation :* la structure est arrêtée devant l'image avant toute ligne de code ; les trois gardiens confrontent des **destinations** et restent exacts ; une capture à 1280 **et** à 390 px accompagne la livraison, et la seconde montre le panneau ouvert ; `pnpm chemins` ne perd aucun écran atteint.

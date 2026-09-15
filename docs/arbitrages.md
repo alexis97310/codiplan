@@ -4098,3 +4098,56 @@ Le rejeu sur base âgée, qui porte depuis L1-08j **la ligne même qui a cassé 
 > **Le jour où une base portera une intervention `suspendue` sans motif qu'un humain peut encore documenter** — c'est-à-dire une suspension récente —, la règle 2 détruit une information qu'on aurait pu sauver. *Elle se rouvre alors dans un sens précis : demander le motif avant de sortir de l'état, plutôt que sortir.* Aujourd'hui elle ne se pose pas : les lignes visées précèdent L2-10, et personne ne se souvient de leur motif — c'est D104 qui l'a mesuré.
 
 *Aucune règle du chapitre 10 n'est amendée : RG-INT-06 exige le motif d'une suspension, et ce rattrapage la rend VRAIE sur toutes les lignes au lieu des seules nouvelles.*
+
+---
+
+## D118 — La barre de navigation devient un MENU, et D95 cesse de faire foi sur sa forme
+
+*Rendu par Alexis le 14/09/2026. **Amendement de D95**, qui n'est ni supprimé ni affaibli : il est restreint à ce sur quoi la maquette peut réellement faire foi.*
+
+### LA DÉCISION, DANS LES MOTS QUI L'ONT RENDUE
+
+> *« Il faut imaginer, pour la barre de navigation, des sous-menus déroulants afin d'améliorer la navigation. Il sera également nécessaire d'ajouter une partie "Paramètres". »*
+
+**La barre plate de onze entrées cesse d'être la forme imposée.** Ce qui la remplace est un menu à deux niveaux, dont la structure reste à arrêter devant une image — `docs/propositions/navigation.html` en montre deux formes, avec ce que chacune coûte.
+
+### CE QUI A DÉCLENCHÉ CETTE DÉCISION, ET C'EST LA MEILLEURE PREUVE QUI SOIT
+
+Alexis a écrit : *« je ne vois pas de lien vers la page client »*. **Mesuré le 14/09/2026 : le lien EXISTE.** `lib/navigation/portes-parametrage.ts` le pose en cinquième porte de « Sociétés & tarifs », et les colonnes « Client » du parc et des sites mènent à la fiche.
+
+> **Ce n'est donc pas le lien qui manquait, c'est le PLACEMENT qui a échoué — et la preuve est la meilleure qu'on puisse obtenir : la personne qui a commandé l'écran ne l'a pas trouvé.** « Sociétés & tarifs » s'annonce comme *les réglages de la société*, et **un client n'est pas un réglage**.
+
+*C'est la limite que `scripts/lib/atteignabilite-ecrans.ts` annonce lui-même depuis le 13/09 : il prouve qu'un chemin **existe dans le code**, jamais qu'il est **trouvable par un humain**. Voici l'écart entre les deux, mesuré sur un humain réel.*
+
+### CE QUE D95 CONTINUE DE TRANCHER, ET CE QU'IL NE TRANCHE PLUS
+
+| | |
+|---|---|
+| **Il fait toujours foi** | les **couleurs**, la **disposition des écrans**, la forme des tableaux et des cartes, les codes de statut |
+| **Il ne fait plus foi** | la **forme du menu** — nombre d'entrées de premier niveau, niveaux, libellés de regroupement |
+
+**Et le motif n'est pas un contournement : il est écrit dans `lib/navigation/entrees.ts` depuis le premier jour.**
+
+> *« La maquette est un **CATALOGUE D'ÉCRANS**, pas un menu : elle montre ses onze écrans pour qu'on les voie tous. »*
+
+**Une barre plate de onze entrées dont CINQ sont inertes est un catalogue, pas une navigation.** Tableau de bord, Interventions, Contrats, App technicien et Console éditeur ne mènent nulle part ; pendant ce temps **quatre écrans vivants n'ont aucune entrée** — `/clients`, `/sites`, `/vgp`, `/absences` — et se rejoignent par des liens. *Reconnaître qu'un inventaire n'est pas un menu n'est pas contredire la maquette : c'est lire ce qu'elle est.*
+
+### CE QUE CETTE DÉCISION COÛTE, ET IL FAUT LE PAYER LES YEUX OUVERTS
+
+**Trois gardiens tiennent la liste close de onze entrées**, et `tests/unit/navigation/entrees.test.ts` la confronte à la barre de la maquette — **libellé et ordre compris**. Les amender est le coût principal, et il est **entièrement du travail de gardien** : la liste cesse d'être plate, elle gagne une notion de niveau, et la confrontation à la maquette devient une confrontation de **destinations** plutôt que d'entrées.
+
+*Ce qu'il ne faut pas faire : assouplir la comparaison.* **Assouplir ferait entrer sans décision tous les écarts suivants** — c'est le raisonnement exact de `ECARTS_MAQUETTE`, qui nomme un écart plutôt que d'élargir la règle. La confrontation doit rester **exacte**, sur un objet différent.
+
+**Second coût, et il se mesure au doigt.** *Un sous-menu qui s'ouvre au survol est inutilisable sur un téléphone* : il n'y a pas de survol, et un premier appui qui « déplie » là où un clic « navigue » produit un menu dont on ne sait jamais s'il a obéi. **Deux formes sont donc dues, et la seconde n'est pas une dégradation de la première** : un panneau plein écran à sections dépliables, dont **un titre de section n'est jamais lui-même une destination**. Alexis travaille souvent depuis son téléphone ; ce n'est pas un cas limite.
+
+### LA STRUCTURE RESTE À ARRÊTER — devant une image, pas devant une description
+
+`docs/propositions/navigation.html` montre **deux structures défendables**, avec leurs captures à 1280 et à 390 px. Elles diffèrent sur **un seul point** : faut-il une entrée « Clients » qui contienne le parc — *client → site → équipement, la colonne vertébrale du métier* —, ou deux entrées de même rang, parce qu'un commercial entre par le client et un responsable matériel par la machine ?
+
+*La recommandation écrite est la première, avec une correction : « Portail client » sort de « Paramètres », parce que ce n'est pas un réglage mais un espace.* **Elle n'a pas été appliquée** : `lib/navigation/entrees.ts` n'a pas bougé d'une ligne, et aucun gardien n'a été touché.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où la maquette est redessinée avec un menu**, elle redevient la source de la forme et cet amendement tombe de lui-même. *Jusque-là, la forme du menu se décide devant `docs/propositions/navigation.html` et se garde contre les destinations réelles.*
+
+*Aucune règle du chapitre 10 n'est amendée : la navigation n'y figure pas.*
