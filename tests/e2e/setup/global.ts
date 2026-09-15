@@ -2,7 +2,11 @@ import { preparerLaBase, recreerLaBase, VARIABLE_BASE_E2E } from "./base";
 // POSÉ AVANT « ./scene », et l'ordre est tout l'objet de ce module : la
 // configuration d'authentification lit son environnement à l'évaluation.
 import "./environnement";
-import { ecrireLaScene, ouvrirLeCompteDeLEpreuve } from "./scene";
+import {
+  COMPTE_TECHNICIEN_EPREUVE,
+  ecrireLaScene,
+  ouvrirLeCompteDeLEpreuve,
+} from "./scene";
 
 /**
  * PRÉPARATION DES SCÉNARIOS DE BOUT EN BOUT (R2-18).
@@ -40,4 +44,8 @@ export default async function preparation(): Promise<void> {
   preparerLaBase();
   const reperes = await ecrireLaScene();
   await ouvrirLeCompteDeLEpreuve(reperes.societeId);
+  // LE SECOND COMPTE — celui du terrain (R5-01). Il passe par le MÊME chemin,
+  // et c'est ce qui le rend vrai : *un harnais qui écrirait une empreinte en
+  // base éprouverait un chemin qui n'existe pas.*
+  await ouvrirLeCompteDeLEpreuve(reperes.societeId, COMPTE_TECHNICIEN_EPREUVE);
 }

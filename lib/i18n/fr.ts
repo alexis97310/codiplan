@@ -978,6 +978,28 @@ export const fr = {
   "terrain.sans_date": "Affectées, sans date",
   "terrain.rien_aujourdhui": "Aucune intervention.",
   "terrain.sans_creneau": "Sans horaire",
+  "terrain.retour": "← Retour à ma journée",
+  "terrain.date": "Date",
+  "terrain.inconnu": "—",
+  "terrain.client_inconnu": "Client",
+  "terrain.compteur": "Compteur",
+  "terrain.compteur.ferme": "Temps mesuré, hors compteur en cours.",
+  "terrain.compteur.tourne": "Le compteur tourne.",
+  "terrain.compteur.demarrer": "Démarrer le compteur",
+  "terrain.compteur.pause": "Mettre en pause",
+  "terrain.compteur.ailleurs":
+    "Votre compteur tourne déjà sur une autre intervention. Mettez-le en pause avant d'en démarrer un autre.",
+  "terrain.compteur.aller": "Ouvrir cette intervention",
+  "terrain.heures": "h",
+  "terrain.minutes": "min",
+  "compteur.refus.deja_en_cours":
+    "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
+  "compteur.refus.aucun_en_cours":
+    "Aucun compteur ne tourne : il n'y a rien à mettre en pause.",
+  "compteur.refus.fin_avant_debut":
+    "L'heure d'arrêt précède l'heure de départ. Vérifiez l'heure de l'appareil.",
+  "compteur.refus.geste_inconnu":
+    "Ce geste n'est pas reconnu. Revenez à l'intervention et réessayez.",
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
   "statut.affectee": "Affectée",

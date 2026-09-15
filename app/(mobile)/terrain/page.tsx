@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import {
   instantDuJour,
   jourDe,
@@ -18,6 +19,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { listerPlanning, type LignePlanning } from "@/lib/interventions/depot";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 /**
@@ -58,11 +60,15 @@ import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
  * journée ferait croire qu'il est attendu aujourd'hui. *Deux sections, parce
  * que ce sont deux faits.*
  *
- * ## AUCUN LIEN VERS UNE FICHE, ET C'EST UN ÉTAT PLUTÔT QU'UN CHOIX
+ * ## CHAQUE CARTE MÈNE À SON INTERVENTION
  *
- * `/terrain/<id>` n'existe pas encore — il vient avec le compteur. *Un lien
- * vers un 404 se lit comme une panne* (D95, à propos des entrées inertes) ; la
- * ligne n'est donc pas cliquable tant que sa destination n'est pas servie.
+ * Le lien est arrivé avec sa destination, et pas avant : *un lien vers un 404
+ * se lit comme une panne* (D95, à propos des entrées inertes). `/terrain/<id>`
+ * porte le détail et le compteur.
+ *
+ * **La carte ENTIÈRE est le lien, et c'est une décision de doigt** : une cible
+ * de la taille d'un mot se rate sur un téléphone tenu d'une main, souvent avec
+ * des gants.
  */
 export default async function PageTerrain() {
   const session = await obtenirSession(await headers());
@@ -88,7 +94,15 @@ export default async function PageTerrain() {
     redirect("/arrivee");
   }
 
-  const fuseau = await fuseauDuTechnicien(contexte);
+  // Le fuseau vient de `lib/calendar`, comme tout ce qui lit une heure : la
+  // route du compteur en a besoin du même, et deux écritures d'un même critère
+  // divergent en silence (§9, 01/09).
+  const fuseau = await avecContexteApplicatif(contexte, (tx) =>
+    fuseauDuTechnicien(tx, {
+      societeId: contexte.societeId,
+      utilisateurId: contexte.utilisateurId,
+    }),
+  );
   const aujourdHui = jourDe(maintenant(fuseau).local);
   const lignes = await listerPlanning(
     contexte,
@@ -127,32 +141,6 @@ export default async function PageTerrain() {
       )}
     </main>
   );
-}
-
-/**
- * LE FUSEAU DE L'AGENCE DE RATTACHEMENT, avec le repli de la société.
- *
- * `technicien` porte `agence_id` NOT NULL (L3-01a) — mais la LIGNE, elle, peut
- * manquer : une personne de rôle `technicien` sans rattachement existe, et
- * c'est l'état d'un compte que personne n'a fini de paramétrer. Elle reçoit
- * alors le fuseau de la société, comme le planning le fait déjà. *« Je ne sais
- * pas où il est rattaché » ne doit pas rendre l'écran illisible ; cela ne doit
- * pas non plus inventer une agence.*
- */
-async function fuseauDuTechnicien(contexte: ContexteActif): Promise<Fuseau> {
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const societe = await tx.societe.findFirst({
-      where: { id: contexte.societeId },
-      select: { fuseau_horaire: true },
-    });
-    const technicien = await tx.technicien.findFirst({
-      where: { utilisateur_id: contexte.utilisateurId },
-      select: { agence: { select: { fuseau_horaire: true } } },
-    });
-    return (
-      technicien?.agence.fuseau_horaire ?? societe?.fuseau_horaire ?? "UTC"
-    );
-  });
 }
 
 function Section({
@@ -202,28 +190,35 @@ function Carte({
 }) {
   const cleStatut = `statut.${ligne.statut}`;
   return (
-    <li className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-[10px] border px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[15px] font-bold tabular-nums">
-          {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
-        </span>
-        <span
-          className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-[11px] font-semibold`}
-        >
-          {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
-        </span>
-      </div>
-      <p className="text-[14px] font-semibold">{ligne.client.raison_sociale}</p>
-      <p className="text-app-encre-faible text-[12.5px]">
-        {lieuDit(ligne.site.libelle)}
-      </p>
-      {/* LE TYPE, parce qu'une carte qui dit OÙ sans dire QUOI envoie
+    <li>
+      <Link
+        href={`/terrain/${ligne.id}`}
+        className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-[10px] border px-4 py-3 ${CLASSES_LIEN}`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[15px] font-bold tabular-nums">
+            {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
+          </span>
+          <span
+            className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-[11px] font-semibold`}
+          >
+            {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
+          </span>
+        </div>
+        <p className="text-[14px] font-semibold">
+          {ligne.client.raison_sociale}
+        </p>
+        <p className="text-app-encre-faible text-[12.5px]">
+          {lieuDit(ligne.site.libelle)}
+        </p>
+        {/* LE TYPE, parce qu'une carte qui dit OÙ sans dire QUOI envoie
           quelqu'un en déplacement sans lui dire ce qu'il va faire. Le libellé
           vient du dictionnaire, jamais de l'énumération : `curatif` est un nom
           de statut, et un nom de statut ne se lit pas à l'écran (L0-11). */}
-      <p className="text-app-encre-faible text-[12.5px]">
-        {typeLu(ligne.type)}
-      </p>
+        <p className="text-app-encre-faible text-[12.5px]">
+          {typeLu(ligne.type)}
+        </p>
+      </Link>
     </li>
   );
 }

@@ -144,6 +144,12 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       "app/(back-office)/planning/page.tsx",
       "app/(back-office)/sites/page.tsx",
       "app/(back-office)/vgp/page.tsx",
+      // Les deux écrans du TERRAIN y sont entrés le 15/09/2026 avec R5-01 et
+      // R5-02, et c'est là que l'habillage compte le plus : *un lien visible
+      // au seul SURVOL n'existe pas sur un téléphone*, et ces deux écrans-là
+      // ne se regardent que sur un téléphone.
+      "app/(mobile)/terrain/[id]/page.tsx",
+      "app/(mobile)/terrain/page.tsx",
     ]);
   });
 });

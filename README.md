@@ -819,6 +819,10 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 **AUCUNE SUPPRESSION** — ni privilège, ni politique : _un temps qui peut disparaître sans trace ne fait foi de rien._ Une erreur se corrige par modification, et le journal d'audit garde la valeur d'avant. La première rédaction de la migration croyait le refuser et ne le refusait pas : une politique sans clause `FOR` couvre les quatre verbes, et `ALTER DEFAULT PRIVILEGES` accorde d'avance `DELETE` sur toute table créée ensuite. **Mesuré, puis réparé en trois politiques et un `REVOKE`.**
 
+**L'écran du compteur est UN BOUTON, et c'est une décision.** `app/(mobile)/terrain/<id>` porte le temps mesuré et un seul geste — démarrer, ou mettre en pause. Le bouton proposé ne dépend pas de CETTE intervention mais du **compteur de la personne** : quand il tourne ailleurs, _le refus prend la place de l'action_, avec un lien vers l'intervention concernée. _Proposer un départ que la base refuserait coûte un aller-retour sur un réseau de brousse._
+
+**Il ne change PAS le statut de l'intervention**, et l'écran ne fait pas semblant : il affiche le statut que le planning porte, et le temps mesuré à côté. C'est la première question ouverte de D119.
+
 **Forme « interne »** (D94), décidée à la naissance de la table : aucun compte de portail ne la lit. Elle est la première table de cette liste à être aussi une **fille** d'une table du parc, et le critère de la filiation la réclamait — `ecartsTablesFilles` compare désormais les deux formes plutôt que de supposer, comme il le faisait déjà pour « héritage ».
 
 ## Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
