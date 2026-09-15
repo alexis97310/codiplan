@@ -797,6 +797,16 @@ Les cinq actions vivent dans `lib/interventions/` : la saisie sous Zod, le cycle
 
 Écrans : `/planning`, `/planning/nouvelle`, `/planning/<id>`. Sur la fiche, **un refus prend la place de l'action**, en oxyde, avec sa raison écrite — jamais un bouton grisé, qui laisse croire qu'il suffirait d'insister. Et le calcul de D83 s'y lit **décomposé** : temps réel, arrondi, plancher, temps facturé, taux, total — _un total seul donne le résultat sans donner la raison, et c'est ce qui fait douter d'une facture._
 
+## L'application du technicien — et elle commence par un écran, pas par le hors-ligne
+
+`app/(mobile)/terrain` est le premier écran de cette chaîne (R5-01). **Il n'attend pas le mode avion, et c'est l'ordre qui a coûté six tickets bloqués** : _un technicien identifié qui voit son planning n'a besoin d'aucun mode avion pour être utile_ — il a besoin d'un réseau au moment où il regarde, ce qui est vrai dans un atelier de Ducos. I4 n'est pas affaibli pour autant : le hors-ligne reprend ces écritures ensuite, et _une file de synchronisation se greffe sur des écritures qui existent, jamais sur des écritures qu'on imagine._
+
+**Ce qu'il montre** : ses interventions, à lui, aujourd'hui — et, dans une seconde section, celles qui lui sont affectées **sans date**. Les taire ferait disparaître du travail qui lui revient ; les mêler à la journée ferait croire qu'il est attendu aujourd'hui. **Aucun montant** : la matrice du §5.2 ne donne au technicien aucun `voir_montants_vente`, et un gardien statique l'exige — avec son témoin, la fiche du back-office, sur laquelle le même motif doit mordre.
+
+**Un quatrième groupe de routes, et sa barre est VIDE.** R2-16 dit que le répertoire décide du chrome ; `(mobile)` a donc le sien. `ENTREES_TERRAIN` ne porte aucune entrée : onze entrées de back-office au-dessus d'un téléphone de terrain nommeraient « Facturation » et « Contrats » à quelqu'un qui ne les ouvrira jamais — le motif de D97, appliqué à un autre public. _« Aucune entrée » n'est pas « aucune barre »_ : le point de retour demeure, et il mène à la journée.
+
+**L'heure vient du fuseau de l'agence de rattachement, jamais de l'appareil** (L0-08) : le téléphone d'un technicien en déplacement peut porter n'importe quel fuseau, et c'est l'agence qui décide déjà de son calendrier (D72, I7).
+
 ## Le compteur du technicien — des segments, jamais un total
 
 **Le compteur fait foi pour le temps** (**D119**, 15/09/2026) : ce que `segment_travail` porte n'est pas une saisie, ce sont des faits datés, et le temps facturé s'en déduit. La question bloquait R5-02 depuis une nuit — _un temps mesuré et un temps saisi ne coûtent pas la même chose au client_ —, et elle appartenait à Alexis pour cette raison exacte.
@@ -1107,7 +1117,7 @@ _Et la mesure qui a ouvert le ticket a vieilli en quatre jours_ : neuf modules s
 
 ## Les captures d'écran, et ce qu'elles ne prouvent pas
 
-`docs/captures/` porte les images de chaque écran, en thème clair et sombre, à 1280 px et 390 px. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.
+`docs/captures/` porte les images de chaque écran, **en thème clair seulement**, à 1280 px et 390 px. _La prise de vue en faisait deux, « clair » et « sombre » ; mesuré le 14/09/2026 par `cmp` sur les 100 images commises, les 50 paires étaient IDENTIQUES octet pour octet_ — `lib/theme/apparence.ts` ne déclare **aucune apparence sombre**, et le viewer basculait un thème qui n'existe pas. **Une seconde image qui ne peut pas différer de la première a la forme d'une preuve et n'en porte aucune** : les 50 ont été retirées. Réouverture : le jour où une apparence sombre est déclarée. Elles sont produites en parcourant les chemins **réels** — la connexion, l'enrôlement, la création et la clôture y sont réellement jouées —, et leur README porte **l'empreinte du commit photographié, lue dans `git`**, avec la date lue à l'horloge.
 
 _Elles montrent que les écrans s'affichent. Elles ne prouvent pas qu'ils fonctionnent, et elles vieillissent._ La seconde étape de l'enrôlement, celle qui affiche la clé TOTP et les codes de secours, n'est **jamais** photographiée : un secret dans une image du dépôt est un secret publié.
 
@@ -1563,15 +1573,17 @@ pas couvert : il sera lu contre le chapitre 10 le jour où on l'écrira.
 
 `.github/workflows/ci.yml` — `verify` sur chaque proposition de fusion et chaque poussée hors `main` ; `verify:full` sur `main`, à la demande, et chaque nuit à 02h00 heure de Nouméa. `verify:full` ajoute le contrôle d'horizon des fériés, les deux contrôles des partitions du journal d'audit et les tests bout en bout.
 
-### ⚠ Les _Issues_ sont DÉSACTIVÉES sur ce dépôt — l'alarme d'É12 ne peut rien ouvrir
+### Le canal de l'alarme — fermé le 12/09, ROUVERT depuis, et l'alarme s'en est servie
 
-_Mesuré le 12/09/2026 à 05:59:13 UTC :_ `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »**, `list_issues` rend **0 issue / total 0**, et `pulls/133` rend **404** — donc **#133 était bien une issue** : elles ont existé, ont servi, et sont aujourd'hui désactivées.
+~~Les _Issues_ sont DÉSACTIVÉES sur ce dépôt — l'alarme d'É12 ne peut rien ouvrir.~~ **Le titre est barré et non effacé : il a gouverné cette section trois jours, et ce qui a été constaté un jour se relit.**
 
-**L'écart É12 est donc inopérant.** Il avait été fermé par la phrase _« une issue rend la question du courriel sans objet : elle vit DANS le dépôt »_, mesurée contre deux échecs nocturnes restés non lus dans une boîte le 20 août. Le canal est clos ; toute nuit rouge sonne dans le vide — la même pièce vide, sous un autre costume.
+_Mesuré le 12/09/2026 à 05:59:13 UTC :_ `gh` répondait **« the 'alexis97310/codiplan' repository has disabled issues »**, `list_issues` rendait **0 issue / total 0**, et `pulls/133` rendait **404** — donc **#133 était bien une issue** : elles ont existé, ont servi, et étaient ce jour-là désactivées.
 
-**Le sursis, et ce n'est pas une réparation** : l'alarme écrit son corps dans le **résumé de l'exécution** et en **annotation** _avant_ de tenter l'issue, puis rougit en nommant le geste. _Une alarme qui ne peut pas sonner doit le dire, et dire quand même ce qu'elle avait à dire._ Mais un résumé d'exécution **expire avec la rétention** ; une issue attend qu'on la lise.
+_Mesuré le 15/09/2026 à 09:10 UTC, contre l'API du dépôt :_ `list_issues` rend **17 issues** au total, `has_issues` vaut **true**, et — c'est la seule ligne qui prouve quelque chose — **[#178](https://github.com/alexis97310/codiplan/issues/178)**, _« [nuit-rouge] la vérification nocturne a échoué »_, a été ouverte le **13/09 à 18:05:03 UTC par `github-actions`**. **L'alarme a donc réellement sonné dans le dépôt**, et ce n'est pas une relecture de ce qu'elle promet : c'est une issue qu'elle a écrite.
 
-**Le geste :** Settings → General → Features → cocher **Issues**. Voir **R3-07** au backlog.
+**Le sursis reste en place, et il reste juste** : l'alarme écrit son corps dans le **résumé de l'exécution** et en **annotation** _avant_ de tenter l'issue, puis rougit en nommant le geste. Ce n'est plus un palliatif mais une défense en profondeur — _un résumé d'exécution expire avec la rétention, une issue attend qu'on la lise_, et fermer le canal ne doit pas faire disparaître **le contenu en même temps que la sonnerie**.
+
+**Ce que cet épisode laisse, et qui vaut plus que sa clôture** : le canal s'est rouvert le 13/09 et ce document a affirmé le contraire jusqu'au 15. _Un texte qui constate un état EXTÉRIEUR au dépôt — un réglage, une visibilité, un état de flux — se périme sans rougir : aucun gardien ne le relit, puisque ce qu'il affirme ne vit pas ici._ Voir **R3-07** au backlog, qui porte la mesure et la classe.
 
 ### Qui voit une nuit rouge — deux alarmes, et la seconde garde la première
 
@@ -1586,18 +1598,20 @@ _Mesuré le 12/09/2026 à 05:59:13 UTC :_ `gh` répond **« the 'alexis97310/cod
 
 `battement` **ne tourne pas sur la planification**, et c'est tout son objet : un contrôle qui ne s'exécute que lorsque la planification s'exécute ne peut pas constater qu'elle a cessé. Il s'accroche à l'activité humaine — **poussée sur `main`**, c'est-à-dire chaque fusion, _mesuré 125 fois en septembre 2026_. Il a cessé de tourner sur les propositions le 12/09/2026 : **un job est facturé à la minute supérieure**, celui-ci met 23 secondes, et ses 159 exécutions de proposition coûtaient 159 minutes pour mesurer deux fois le même état à quelques minutes d'intervalle. Sa limite est écrite plutôt que tue : si personne ne pousse rien, il ne tourne pas davantage ; il garantit qu'**au premier retour de quelqu'un**, l'écran soit rouge.
 
-### ⚠️ Avant de rendre ce dépôt public
+### ⚠️ ~~Avant de rendre ce dépôt public~~ CE DÉPÔT EST PUBLIC — et la règle des 60 jours s'applique donc
 
-La planification nocturne ne survit à l'inactivité **que parce que le dépôt est privé**. GitHub désactive automatiquement les flux planifiés après **60 jours** sans activité, et cette règle **ne vise que les dépôts publics** ; un fork la remet en vigueur lui aussi, les flux planifiés d'un dépôt forké étant désactivés par défaut.
+_Mesuré le 15/09/2026 à 09:10 UTC :_ `visibility` vaut **`public`**, `private` vaut **`false`**, `forks_count` vaut **0**. Le clic a eu lieu le **12/09/2026**, et `.github/workflows/ci.yml` le dit en tête depuis ce jour-là — _« ce futur est advenu »_. **Ce document, lui, a continué d'écrire « avant » pendant trois jours** : c'est la même péremption silencieuse que la section précédente, sur le même attribut, dans le même fichier.
 
-La protection ne tient donc pas au fichier de flux : elle tient à un **attribut du dépôt**, qui change d'un clic et sans rien annoncer. C'est pourquoi la même mise en garde est écrite en tête de `.github/workflows/ci.yml` — là où quelqu'un qui change la visibilité la rencontrera —, et c'est le job `battement` qui rattrape le cas si elle est franchie quand même.
+~~La planification nocturne ne survit à l'inactivité que parce que le dépôt est privé.~~ **Cette protection n'existe plus.** GitHub désactive automatiquement les flux planifiés après **60 jours** sans activité, et cette règle **ne vise que les dépôts publics** : elle vise donc celui-ci. Un fork la remet en vigueur pour la même raison, les flux planifiés d'un dépôt forké étant désactivés par défaut.
 
-**Et la visibilité ne publie pas que le présent : elle publie LE PASSÉ.** Les journaux d'exécution déjà écrits deviennent lisibles le jour du clic, avec ce qu'ils portent. C'est ce qui a retiré au flux « Ouvrir le PREMIER compte » le droit d'imprimer son URL (voir plus haut), et c'est ce qu'il faut regarder avant de basculer :
+**Ce qui reste est le job `battement`, et il cesse d'être un filet pour devenir LA garantie.** Il lit l'état du flux — `disabled_inactivity` nomme précisément cette règle — et l'âge de la dernière exécution planifiée. _Une garantie qui reposait sur un attribut du dépôt a été perdue le jour où l'attribut a changé ; celle qui reste repose sur une mesure._
 
-| À vérifier avant le clic                                                                                                                                          | Où                                                    |
+**Et la visibilité n'a pas publié que le présent : elle a publié LE PASSÉ.** Les journaux d'exécution déjà écrits sont lisibles depuis le clic, avec ce qu'ils portent — c'est ce qui avait retiré au flux « Ouvrir le PREMIER compte » le droit d'imprimer son URL (voir plus haut). Ce tableau n'est donc plus une liste de contrôle : **c'est la liste de ce qui est public**, et elle se lit comme telle.
+
+| Ce qui est public depuis le 12/09/2026                                                                                                                            | Où                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Aucune exécution passée ne porte un jeton dans son journal ou son résumé                                                                                          | onglet **Actions**, flux « Ouvrir le PREMIER compte » |
-| Le courriel de l'auteur des commits devient public                                                                                                                | métadonnées git, 187 commits                          |
+| Les journaux d'exécution passés, et ce qu'ils portent                                                                                                             | onglet **Actions**, flux « Ouvrir le PREMIER compte » |
+| Le courriel de l'auteur des commits                                                                                                                               | métadonnées git                                       |
 | `docs/arbitrages.md` et `docs/cahier-des-charges.md` portent le taux horaire, la doctrine de facturation, **et le modèle tarifaire et la marge** (§22.6 et §22.7) | sources de rang 1 et 5                                |
 | `prisma/seed-data.ts` nomme quatre techniciens par leur patronyme                                                                                                 | jeu de démonstration                                  |
 

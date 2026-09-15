@@ -183,6 +183,27 @@ export const ENTREES_PORTAIL: readonly EntreeNavigation[] = [
 ];
 
 /**
+ * LA BARRE DU TERRAIN — **vide, et c'est une décision** (R5-01).
+ *
+ * Un technicien n'a qu'un écran : sa journée. Lui donner les onze entrées du
+ * back-office serait la faute que D97 a réparée pour le portail — *une entrée
+ * de menu renseigne par sa seule existence*, et « Facturation » au-dessus d'un
+ * téléphone de terrain promet un outil que ce compte n'ouvrira jamais. Lui
+ * inventer des entrées à lui serait pire : *inventer une entrée inerte, c'est
+ * promettre un outil qu'on n'a pas décidé de donner.*
+ *
+ * **Ce n'est pas « pas de barre ».** L'en-tête demeure — marque, charte de la
+ * société, pastille d'identité — et la marque est le POINT DE RETOUR vers la
+ * journée, exactement l'argument qui a donné sa barre au portail. Ce qui est
+ * vide est la liste, pas le chrome.
+ *
+ * *Elle est nommée plutôt qu'écrite `[]` à l'appel : une liste vide anonyme se
+ * lit comme un oubli, une liste vide nommée se lit comme une décision — et
+ * celle-ci porte sa raison au-dessus d'elle.*
+ */
+export const ENTREES_TERRAIN: readonly EntreeNavigation[] = [];
+
+/**
  * L'entrée active pour un chemin donné.
  *
  * La comparaison est un PRÉFIXE, et c'est délibéré : `/parametres/forfaits`

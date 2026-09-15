@@ -52,6 +52,13 @@ const SEGMENTS = {
   // qui reprendrait la liste du back-office continuerait de passer la
   // vérification ci-dessus, qui ne regarde que la PRÉSENCE de la barre.
   "(portail)": { barre: true, entrees: "ENTREES_PORTAIL" },
+  // R5-01 — LE TERRAIN. Il porte la barre, et sa liste est VIDE : un
+  // technicien n'a qu'un écran, et onze entrées de back-office au-dessus d'un
+  // téléphone nommeraient des outils qu'il n'ouvrira jamais (le motif de D97,
+  // appliqué à un autre public). *« Aucune entrée » n'est pas « aucune
+  // barre »* — le point de retour demeure, et c'est l'argument qui a donné sa
+  // barre au portail.
+  "(mobile)": { barre: true, entrees: "ENTREES_TERRAIN" },
 } as const;
 
 type NomDeSegment = keyof typeof SEGMENTS;
@@ -128,7 +135,7 @@ describe("la barre de navigation est portée par le segment (R2-16)", () => {
     expect(rendLaBarre(join(RACINE_APP, "layout.tsx"))).toBe(false);
   });
 
-  it("chaque page habite exactement un des trois segments", () => {
+  it("chaque page habite exactement un des segments déclarés", () => {
     const orphelines = PAGES.filter((page) => segmentDe(page) === null).map(
       (page) => relative(process.cwd(), page),
     );

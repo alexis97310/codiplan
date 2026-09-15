@@ -297,6 +297,25 @@ export function jourSuivant(jour: JourLocal, pas = 1): JourLocal {
   };
 }
 
+/**
+ * L'INSTANT UTC D'UN JOUR LOCAL, À MINUIT — la borne d'une colonne `@db.Date`.
+ *
+ * `date_planifiee` est une DATE : la comparer à un instant calculé DANS un
+ * fuseau la décalerait d'un cran sous UTC+11 — « vendredi 00:00 » à Nouméa est
+ * « jeudi 13:00 » en UTC, et la journée entière se rangerait la veille.
+ *
+ * **Elle vivait dans `app/(back-office)/planning/page.tsx`, en privé**, et
+ * l'écran du terrain en avait besoin du même : *deux écritures d'un même
+ * critère divergent en silence* (§9, 01/09), et celle-ci porte exactement le
+ * genre de décalage que personne ne recompte. Elle est remontée ici, où les
+ * deux écrans la lisent.
+ */
+export function instantDuJour(jour: JourLocal, decalageJours = 0): Date {
+  return new Date(
+    Date.UTC(jour.annee, jour.mois - 1, jour.jour + decalageJours),
+  );
+}
+
 /** Clé `AAAA-MM-JJ` d'un jour local — la forme des dates de la table `jour_ferie`. */
 export function cleJour(jour: JourLocal): string {
   const mois = String(jour.mois).padStart(2, "0");

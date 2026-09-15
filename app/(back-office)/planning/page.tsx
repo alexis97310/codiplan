@@ -13,6 +13,7 @@ import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
+  instantDuJour,
   jourSuivant,
   maintenant,
   minutesDepuisMinuit,
@@ -877,18 +878,6 @@ function decale(jour: JourLocal, jours: number): JourLocal {
     mois: date.getUTCMonth() + 1,
     jour: date.getUTCDate(),
   };
-}
-
-/**
- * L'instant UTC d'un jour local, à minuit.
- *
- * `date_planifiee` est une DATE, portée en `@db.Date` : la comparer à un
- * instant calculé dans un fuseau la décalerait d'un cran sous UTC+11.
- */
-function instantDuJour(jour: JourLocal, decalageJours = 0): Date {
-  return new Date(
-    Date.UTC(jour.annee, jour.mois - 1, jour.jour + decalageJours),
-  );
 }
 
 /**
