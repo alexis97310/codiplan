@@ -7,6 +7,7 @@ import {
   TYPES_DIMPORT,
   cleDuMotif,
   cleDuStatut,
+  tonDuMotif,
 } from "../../../app/(back-office)/imports/types";
 import { estCleTraduction } from "@/lib/i18n/fr";
 import { TYPES_PUBLIES } from "@/lib/imports/modeles";
@@ -134,6 +135,68 @@ describe("un code que le dictionnaire ignore ne se traduit pas", () => {
       expect(cle !== null && estCleTraduction(cle)).toBe(true);
     }
     expect(cleDuMotif("autre_chose")).toBeNull();
+  });
+});
+
+describe("« parent_introuvable » nomme le bon référentiel (mesuré le 16/09/2026)", () => {
+  it("retombe sur le générique quand le type est absent ou muet sur la question", () => {
+    expect(cleDuMotif("parent_introuvable")).toBe(
+      "imports.motif.parent_introuvable",
+    );
+    // Les CLIENTS et les FAMILLES sont des racines : `motifParentIntrouvable`
+    // y vaut `null`, et le générique est ce qui reste.
+    expect(cleDuMotif("parent_introuvable", "clients")).toBe(
+      "imports.motif.parent_introuvable",
+    );
+    expect(cleDuMotif("parent_introuvable", "familles")).toBe(
+      "imports.motif.parent_introuvable",
+    );
+  });
+
+  it("nomme le CLIENT sur un import de SITES — le défaut mesuré en production", () => {
+    // *6 rejets réels* venaient d'un client orthographié différemment d'une
+    // feuille à l'autre du fichier source : le contrôle avait raison, le
+    // message envoyait chercher dans « le parc », jamais nommé.
+    expect(cleDuMotif("parent_introuvable", "sites")).toBe(
+      "imports.motif.client_introuvable",
+    );
+    expect(cleDuMotif("parent_introuvable", "contacts")).toBe(
+      "imports.motif.client_introuvable",
+    );
+  });
+
+  it("nomme la FAMILLE sur un import de MODÈLES ou de PRESTATIONS", () => {
+    expect(cleDuMotif("parent_introuvable", "modeles")).toBe(
+      "imports.motif.famille_introuvable",
+    );
+    expect(cleDuMotif("parent_introuvable", "prestations")).toBe(
+      "imports.motif.famille_introuvable",
+    );
+  });
+
+  it("chaque référentiel déclaré est une clé que le dictionnaire connaît", () => {
+    for (const type of TYPES_DIMPORT) {
+      if (type.motifParentIntrouvable !== null) {
+        expect(estCleTraduction(type.motifParentIntrouvable)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("le TON d'un bandeau se déduit de la clé (point 1 de la session du 16/09/2026)", () => {
+  it("un succès plein n'est ni un refus ni un avertissement", () => {
+    expect(tonDuMotif("imports.applique")).toBe("succes");
+    expect(tonDuMotif("imports.annule")).toBe("succes");
+  });
+
+  it("une annulation partielle est un avertissement", () => {
+    expect(tonDuMotif("imports.annule_partiel")).toBe("avertissement");
+  });
+
+  it("tout refus — fixe ou dynamique — reste un refus", () => {
+    expect(tonDuMotif("auth.refus")).toBe("refus");
+    expect(tonDuMotif("imports.refus.lot_introuvable")).toBe("refus");
+    expect(tonDuMotif("imports.refus.lot_deja_applique")).toBe("refus");
   });
 });
 

@@ -535,8 +535,13 @@ export const fr = {
     "Un fichier .xlsx bâti sur le modèle CODIPLAN. La première cellule porte le marqueur du modèle : c'est lui qui dit de quel import il s'agit.",
   "imports.controler": "Contrôler le fichier",
   "imports.modele_indisponible": "Télécharger le modèle Excel",
+  // CORRIGÉ le 16/09/2026 : la dépendance d'écriture manquante a été le motif
+  // jusqu'à l'adoption de `write-excel-file` (RG-IMP-03, voir le fichier des
+  // rejets) — la répéter ici mentirait désormais. Ce qui reste dû est de
+  // produire les sept modèles eux-mêmes (L1-09), pas la dépendance qu'ils
+  // demandaient.
   "imports.modele_indisponible_motif":
-    "Indisponible : produire un fichier .xlsx demande une bibliothèque d'écriture, et il n'y en a aucune dans le projet. C'est une décision de dépendance, pas un oubli.",
+    "Indisponible : produire les modèles eux-mêmes reste à écrire (L1-09). La bibliothèque d'écriture .xlsx qu'ils demandaient est en place depuis le fichier des rejets (RG-IMP-03).",
 
   // LES TYPES, ET CE QU'ON PEUT EN FAIRE AUJOURD'HUI. *Un écran qui accepterait
   // un fichier de contacts en montrerait le rapport et ne saurait rien en
@@ -629,9 +634,9 @@ export const fr = {
   "imports.annuler": "Annuler ce lot",
   "imports.annuler_aide":
     "Défait ce qui peut l'être. Une fiche modifiée ou référencée depuis est refusée avec son motif, et rien n'est supprimé en cascade.",
-  "imports.rejets_indisponibles": "Télécharger les rejets",
-  "imports.rejets_indisponibles_motif":
-    "Indisponible : rendre les lignes rejetées dans un fichier annoté (RG-IMP-03) demande une bibliothèque d'écriture .xlsx, et il n'y en a aucune dans le projet.",
+  // ACTIF depuis le 16/09/2026 (RG-IMP-03, `write-excel-file`) : voir le
+  // docblock de `app/(back-office)/imports/[id]/page.tsx`.
+  "imports.telecharger_rejets": "Télécharger les rejets",
 
   // **CE N'EST PAS UN REFUS, C'EST UN ÉTAT** (R6-01) : le fichier est correct,
   // le rapport est juste, et il n'y a rien à corriger. *Le dire comme une
@@ -662,6 +667,16 @@ export const fr = {
     "Le client est reconnu, mais aucun de ses lieux d'intervention ne porte ce libellé. La correction est dans le fichier qui les décrit, ou dans la cellule qui le nomme.",
   "imports.motif.modele_introuvable":
     "Aucun modèle ne porte cette marque et cette référence. La correction est dans le fichier des modèles — et ceux-ci exigent eux-mêmes une famille.",
+  // AJOUTÉ le 16/09/2026 : la famille est le parent des modèles et des
+  // prestations, et le motif générique ne le disait pas (point 2 de la
+  // session du 16/09/2026).
+  "imports.motif.famille_introuvable":
+    "Aucune famille ne porte ce code. La correction est dans le fichier des familles, ou dans la cellule qui le nomme.",
+  // AJOUTÉ le 16/09/2026 (point 4b) : deux lignes du MÊME fichier désignent la
+  // même fiche — jamais le parc, qui ne les connaît encore ni l'une ni
+  // l'autre. La correction n'est donc pas au même endroit que « cle_ambigue ».
+  "imports.motif.doublon_fichier":
+    "Une autre ligne de ce même fichier désigne la même fiche : deux entrées ne peuvent pas être écrites pour une seule. La correction est dans le fichier — c'est ce doublon qu'il faut lever, avant même de consulter le parc.",
 
   // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états
   // d'un lot qu'on ne peut plus toucher.
@@ -681,6 +696,11 @@ export const fr = {
     "Ce lot n'a jamais été appliqué : il n'y a rien à annuler.",
   "imports.refus.type_sans_application":
     "Ce type de fichier se contrôle mais ne s'écrit pas encore. Aucune fiche n'a été créée ni modifiée.",
+  // AJOUTÉ le 16/09/2026 (point 4 de la session) : le filet qui suit le
+  // contrôle des doublons intra-fichier — le parc a bougé entre le contrôle
+  // et cette validation, par un autre lot appliqué entre-temps.
+  "imports.refus.contrainte_violee":
+    "L'application a rencontré une valeur qui existe déjà en base sur ce qui identifie une fiche de façon unique — par exemple une marque et une référence, ou un code. Rien n'a été appliqué : la transaction a été annulée dans son ensemble. Corrigez le doublon dans le fichier ou dans le parc, puis revalidez ce lot.",
 
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
   "planning.titre": "Planning des interventions",

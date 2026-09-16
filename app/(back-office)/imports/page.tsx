@@ -57,15 +57,20 @@ import { cleDuStatut, titreDuType, TYPES_DIMPORT } from "./types";
  *      pas sous un numéro de société* (I10). La colonne est donc le FICHIER, qui
  *      est ce que l'utilisateur reconnaît.
  *
- * **Et deux choses qu'elle montre et que nous ne savons pas faire** : les
- * boutons « Télécharger le modèle Excel » et « Télécharger les rejets »
- * (RG-IMP-03). Les deux exigent une bibliothèque d'ÉCRITURE `.xlsx` —
- * `read-excel-file` lit et n'écrit pas (D90), le §2 interdit le CSV, et une
- * dépendance est un point d'arrêt du §8. **Ils sont rendus INERTES avec leur
- * motif, jamais retirés** : c'est la règle que D95 pose pour la barre — *une
- * entrée dont l'écran n'existe pas est inerte, jamais absente et jamais un
- * lien ; un 404 se lit comme une panne, une absence ment sur ce que le produit
- * sera.*
+ * **Une chose qu'elle montre et que nous ne savons toujours pas faire** : le
+ * bouton « Télécharger le modèle Excel ». Il exigeait une bibliothèque
+ * d'ÉCRITURE `.xlsx` — `read-excel-file` lit et n'écrit pas (D90), le §2
+ * interdit le CSV — et cette dépendance est ADOPTÉE depuis le 16/09/2026 :
+ * `write-excel-file`, entrée par le fichier des rejets (RG-IMP-03, voir
+ * `app/(back-office)/imports/[id]/page.tsx`). *Ce qui manque encore n'est
+ * donc plus la dépendance, c'est d'écrire les sept modèles eux-mêmes (L1-09)*
+ * — et ce bouton reste INERTE avec son motif, jamais retiré, en attendant :
+ * c'est la règle que D95 pose pour la barre — *une entrée dont l'écran
+ * n'existe pas est inerte, jamais absente et jamais un lien ; un 404 se lit
+ * comme une panne, une absence ment sur ce que le produit sera.*
+ *
+ * « Télécharger les rejets », lui, est ACTIF depuis le même jour — voir le
+ * rapport d'un lot, où il s'affiche.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
  *

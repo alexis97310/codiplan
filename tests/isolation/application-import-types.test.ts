@@ -566,6 +566,74 @@ describe("un lot de MODÈLES écrit des modèles, sans toucher aux colonnes de V
   });
 });
 
+/**
+ * LE FILET DE LA CONTRAINTE D'UNICITÉ (point 4 de la session du 16/09/2026).
+ *
+ * **Reproduit exactement l'incident mesuré en production** : deux lignes de
+ * MARQUE+RÉFÉRENCE identiques, contrôlées AVANT que la première n'ait été
+ * appliquée — leurs deux parcs de contrôle sont donc vides sur cette clé, et
+ * les deux ressortent en CRÉATION, comme le fichier réel de l'exploitation.
+ * *Ce n'est pas le cas que le point 4b referme* (deux lignes du MÊME fichier,
+ * détecté au contrôle) : ici les deux lignes sont dans deux LOTS distincts, et
+ * seule l'APPLICATION peut voir la collision — c'est exactement la fenêtre que
+ * le contrôle ne peut pas fermer, nommée dans le docblock de
+ * `lib/imports/application.ts`.
+ */
+describe("une violation de contrainte à l'application ne sort JAMAIS en 500", () => {
+  it("le second lot est refusé avec son motif, et le premier reste intact", async () => {
+    // LES DEUX LOTS SONT CONTRÔLÉS AVANT TOUTE APPLICATION : leurs parcs
+    // respectifs ne voient donc ni l'un ni l'autre — exactement la mesure de
+    // production, où le fichier entier avait déjà été contrôlé une fois.
+    const lotA = await deposer("modeles", [
+      ["COMP", "MarqueR6", "R6-CONFLIT", "10", ""],
+    ]);
+    const lotB = await deposer("modeles", [
+      ["COMP", "MarqueR6", "R6-CONFLIT", "20", ""],
+    ]);
+    expect(lotA.creations).toBe(1);
+    expect(lotB.creations).toBe(1);
+
+    const resultatA = await appliquerLeLotDeModeles(
+      SESSION,
+      lotA.lotId,
+      clientApp(),
+    );
+    expect(resultatA.applique).toBe(true);
+
+    // LE SECOND LOT HEURTE LA CONTRAINTE RÉELLE — `@@unique([societe_id,
+    // marque, reference])` — que le premier vient de satisfaire. Sans le
+    // filet, cet appel LÈVE ; avec lui, il rend un refus motivé.
+    const resultatB = await appliquerLeLotDeModeles(
+      SESSION,
+      lotB.lotId,
+      clientApp(),
+    );
+    expect(resultatB.applique).toBe(false);
+    if (resultatB.applique) return;
+    expect(resultatB.motif).toBe("contrainte_violee");
+
+    // LA TRANSACTIONNALITÉ, RELUE EN SQL — jamais supposée du code (point 4a).
+    // Le lot B reste `controle` : l'application n'a jamais eu lieu à ses yeux.
+    const [statutB] = await clientOwner().$queryRawUnsafe<
+      Array<{ statut: string }>
+    >(`SELECT "statut" FROM "import_lot" WHERE "id" = '${lotB.lotId}'`);
+    expect(statutB.statut).toBe("controle");
+
+    // ET LA FICHE DU LOT A N'A PAS BOUGÉ : la tentative avortée de B n'a rien
+    // laissé derrière elle, ni sur le modèle ni sur la ligne qui l'a écrit.
+    const [modele] = await clientOwner().$queryRawUnsafe<
+      Array<{ periodicite_jours: number | null }>
+    >(
+      `SELECT "periodicite_jours" FROM "modele_materiel"
+        WHERE "societe_id" = '${SOCIETE_A}' AND "reference" = 'R6-CONFLIT'`,
+    );
+    expect(modele.periodicite_jours).toBe(10);
+    expect(await compter("modele_materiel", `"reference" = 'R6-CONFLIT'`)).toBe(
+      1,
+    );
+  });
+});
+
 describe("un lot de PRESTATIONS écrit des prestations, et AUCUN montant", () => {
   it("traverse, et la famille FACULTATIVE se distingue de l'introuvable", async () => {
     const { lotId, creations } = await deposer("prestations", [

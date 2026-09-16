@@ -10,11 +10,12 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireLeLot } from "@/lib/imports/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { CLASSES_TON } from "@/lib/theme/statuts";
 
 import { coordonneesDuLot, lignesDeResultat } from "../presentation";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
-import { cleDuMotif, cleDuStatut } from "../types";
+import { cleDuMotif, cleDuStatut, tonDuMotif } from "../types";
 
 /**
  * LE RAPPORT D'UN LOT — LA PREMIÈRE MOITIÉ DE I6, PUIS LA SECONDE (L1-11).
@@ -51,14 +52,18 @@ import { cleDuMotif, cleDuStatut } from "../types";
  * critère que l'annulation a déjà tranché*. Le message de retour distingue donc
  * « tout défait » de « en partie refusé », et s'arrête là.
  *
- * ## « TÉLÉCHARGER LES REJETS » EST INERTE, ET IL DIT POURQUOI
+ * ## « TÉLÉCHARGER LES REJETS » EST ACTIF DEPUIS LE 16/09/2026 (RG-IMP-03)
  *
- * RG-IMP-03 veut les lignes rejetées « dans un fichier annoté, corrigeable et
- * rechargeable ». Un fichier, donc une ÉCRITURE `.xlsx` — et il n'existe aucune
- * bibliothèque d'écriture dans le projet (D90 ; le §2 interdit le CSV). *Un
- * bouton retiré mentirait sur ce que le produit sera ; un bouton actif qui ne
- * produit rien se lit comme une panne.* Il est donc inerte et motivé, comme une
- * entrée de barre que D95 laisse inerte plutôt qu'absente.
+ * Il l'a longtemps été moins par choix que par manque : RG-IMP-03 veut les
+ * lignes rejetées « dans un fichier annoté, corrigeable et rechargeable »,
+ * c'est-à-dire une ÉCRITURE `.xlsx`, et aucune bibliothèque d'écriture
+ * n'existait dans le projet (D90 ; le §2 interdit le CSV). **Décision
+ * d'arbitrage : `write-excel-file` est adoptée** — écriture seule, donc sans
+ * le vecteur de pollution de prototype qui a fait écarter SheetJS, et du même
+ * auteur que `read-excel-file`, déjà en place. `GET /api/imports/{id}/rejets`
+ * pose le fichier, `lib/excel/ecriture.ts` l'écrit, et le lien ne s'affiche
+ * que s'il y a au moins une ligne à y montrer — *un fichier vide ne se
+ * télécharge pas, il ne se refuse pas non plus : il n'y a rien à offrir.*
  */
 export default async function PageLotDImport({
   params,
@@ -151,7 +156,8 @@ export default async function PageLotDImport({
         <p
           role="status"
           data-motif={motif}
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          data-ton={tonDuMotif(motif)}
+          className={`${CLASSES_TON[tonDuMotif(motif)]} rounded-md border px-3.5 py-2.5 text-[12.5px]`}
         >
           {t(motif)}
         </p>
@@ -183,15 +189,14 @@ export default async function PageLotDImport({
       <section className="bg-app-surface border-app-bord rounded-[10px] border">
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-[14px] font-bold">{t("imports.lignes_titre")}</h2>
-          {/* INERTE, ET SON MOTIF EST VISIBLE — jamais seulement une infobulle.
-              *Une infobulle ne s'ouvre pas sur un téléphone* : c'est la leçon
-              exacte de `CLASSES_LIEN` (14/09/2026), où six liens ne se voyaient
-              qu'au SURVOL. Un bouton inerte dont la raison est cachée se lit
-              comme une panne, ce que D95 refuse pour une entrée de barre. */}
-          <span className="text-app-encre-faible flex flex-col text-[11.5px]">
-            <span>{t("imports.rejets_indisponibles")}</span>
-            <span>{t("imports.rejets_indisponibles_motif")}</span>
-          </span>
+          {/* Rien à télécharger tant qu'il n'y a rien à montrer : un fichier
+              vide n'est ni un service ni un refus, il n'a pas de raison
+              d'être (voir le docblock du fichier). */}
+          {rejetees.length > 0 ? (
+            <a href={`/api/imports/${lot.id}/rejets`} className={CLASSES_LIEN}>
+              {t("imports.telecharger_rejets")}
+            </a>
+          ) : null}
         </div>
         <Tableau colonnes={colonnes} minimum="640px">
           {rejetees.length === 0 ? (
@@ -201,7 +206,9 @@ export default async function PageLotDImport({
           ) : (
             rejetees.map((ligne) => {
               const cleMotif =
-                ligne.rejetMotif === null ? null : cleDuMotif(ligne.rejetMotif);
+                ligne.rejetMotif === null
+                  ? null
+                  : cleDuMotif(ligne.rejetMotif, lot.typeImport);
               return (
                 <tr key={ligne.rang} data-rang={ligne.rang}>
                   <Cellule droite mono>

@@ -266,17 +266,28 @@ export type ParcConnu = {
 };
 
 /**
- * Ce que le parc dit d'une clé — et le rejet PRÉCÈDE les deux autres cas.
+ * Ce que le parc dit d'une clé — et les rejets PRÉCÈDENT les deux autres cas.
  *
  * *L'ordre est une décision* : une clé ambiguë est aussi une clé connue, et
  * tester « connue » d'abord la rendrait modifiable — c'est-à-dire écraserait
  * l'une des deux fiches au hasard, ce que RG-IMP-05 refuse précisément.
+ *
+ * **Le doublon DE FICHIER passe avant l'ambiguïté DU PARC** (point 4b,
+ * 16/09/2026) : il se constate sans consulter la base, et sa correction n'est
+ * pas la même — *« dans le fichier » n'est pas « dans le parc »*, exactement
+ * la distinction que le point 2 de cette même session a fait mordre sur
+ * `parent_introuvable`. Les confondre enverrait, une fois de plus, chercher au
+ * mauvais endroit.
  */
 function decider(
   cle: string,
   parc: ParcConnu,
   motifDeSaisie: string | null,
+  dansLeFichier: boolean,
 ): Pick<LigneControlee, "action" | "rejetMotif"> {
+  if (dansLeFichier) {
+    return { action: "rejet", rejetMotif: MOTIF_DOUBLON_FICHIER };
+  }
   if (parc.ambigues.has(cle)) {
     return { action: "rejet", rejetMotif: MOTIF_AMBIGUITE };
   }
@@ -296,6 +307,13 @@ function decider(
  * qu'un humain lit.
  */
 export const MOTIF_AMBIGUITE = "cle_ambigue";
+
+/**
+ * Le motif d'un rejet pour DOUBLON DE FICHIER — deux lignes du MÊME classeur
+ * qui désignent la même fiche, avant même que le parc en soit consulté.
+ * Distinct de `MOTIF_AMBIGUITE` pour la raison écrite au-dessus de `decider`.
+ */
+export const MOTIF_DOUBLON_FICHIER = "doublon_fichier";
 
 /** Les décomptes, DÉRIVÉS des lignes retenues — jamais comptés à côté d'elles. */
 export function proposerDepuisLesLignes(
@@ -451,7 +469,27 @@ export function controlerFeuille(
   //
   // La décision est prise UNE FOIS et RETENUE ; les décomptes en sont dérivés.
   // *Les incrémenter à côté serait une seconde lecture d'un même critère.*
-  const lignes: LigneControlee[] = [];
+  //
+  // **DEUX PASSES, depuis le 16/09/2026 (point 4b) — et c'est une nécessité,
+  // pas un raffinement.** Décider qu'une ligne DEUX-CENTIÈME créera une fiche
+  // demande de savoir si la ligne QUATRE-VINGTIÈME du MÊME fichier ne visait
+  // pas déjà la même clé : *une seule passe ne peut pas répondre à une
+  // question sur des lignes qu'elle n'a pas encore vues.* La première pose
+  // les clés ; la seconde décide, une fois qu'elles sont TOUTES connues.
+  type Preparee =
+    | {
+        readonly rang: number;
+        readonly nature: "vide" | "gabarit";
+        readonly valeurs: Readonly<Record<string, string | undefined>>;
+        readonly cle?: undefined;
+      }
+    | {
+        readonly rang: number;
+        readonly nature: "donnee";
+        readonly valeurs: Readonly<Record<string, string | undefined>>;
+        readonly cle: CleDeRapprochement;
+      };
+  const preparees: Preparee[] = [];
 
   for (
     let rang = PREMIERE_LIGNE_DONNEES;
@@ -465,26 +503,64 @@ export function controlerFeuille(
     if (nature === "vide" || nature === "gabarit") {
       // Ni l'une ni l'autre ne DÉSIGNE quoi que ce soit : leur inventer une clé
       // les ferait entrer dans l'espace des clés réelles.
-      lignes.push({ rang: rang + 1, nature, action: nature, valeurs });
+      preparees.push({ rang: rang + 1, nature, valeurs });
       continue;
     }
 
     // **C'est le MODÈLE qui dit ce que la ligne désigne** (L1-08f). Le rang
     // passé est celui qu'un humain lit : la clé de dernier recours le porte, et
     // il doit désigner la même ligne dans le rapport.
-    const cle = modele.cle(valeurs, rang + 1);
-
-    lignes.push({
+    preparees.push({
       rang: rang + 1,
       nature,
-      cle,
-      // **Le MÊME rang qu'à la clé, ci-dessus** : ils doivent désigner la même
-      // ligne, sans quoi la validation jugerait une ligne et le rapport en
-      // nommerait une autre.
-      ...decider(cle.cle, parc, modele.valider?.(valeurs, rang + 1) ?? null),
       valeurs,
+      cle: modele.cle(valeurs, rang + 1),
     });
   }
+
+  // **LES CLÉS QUE CE FICHIER SE DISPUTE À LUI-MÊME.** *Mesuré en production
+  // le 16/09/2026 :* un fichier de modèles portait quatre lignes en double sur
+  // (marque, référence) — la clé RÉELLE de la table —, dédupliquées à tort sur
+  // (famille, marque, référence). Le parc ne les connaissait ENCORE ni l'une
+  // ni l'autre : chacune ressortait donc en création, et la seconde de chaque
+  // paire faisait échouer l'application sur la contrainte d'unicité, à
+  // l'endroit précis où I6 promet qu'un rapport ne ment pas sur ce qu'il
+  // écrira. Les clés de FORME « rang » sont exclues : elles portent le numéro
+  // de la ligne elle-même, et ne peuvent structurellement pas se répéter.
+  const occurrences = new Map<string, number>();
+  for (const p of preparees) {
+    if (p.cle !== undefined && p.cle.forme !== "rang") {
+      occurrences.set(p.cle.cle, (occurrences.get(p.cle.cle) ?? 0) + 1);
+    }
+  }
+
+  const lignes: LigneControlee[] = preparees.map((p) => {
+    if (p.cle === undefined) {
+      return {
+        rang: p.rang,
+        nature: p.nature,
+        action: p.nature,
+        valeurs: p.valeurs,
+      };
+    }
+    const dansLeFichier =
+      p.cle.forme !== "rang" && (occurrences.get(p.cle.cle) ?? 0) > 1;
+    return {
+      rang: p.rang,
+      nature: p.nature,
+      cle: p.cle,
+      // **Le MÊME rang qu'à la clé** : ils doivent désigner la même ligne,
+      // sans quoi la validation jugerait une ligne et le rapport en nommerait
+      // une autre.
+      ...decider(
+        p.cle.cle,
+        parc,
+        modele.valider?.(p.valeurs, p.rang) ?? null,
+        dansLeFichier,
+      ),
+      valeurs: p.valeurs,
+    };
+  });
 
   const proposition = proposerDepuisLesLignes(lignes);
   return {

@@ -1,5 +1,6 @@
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { type TonMessage } from "@/lib/theme/statuts";
 
 /**
  * LES TYPES D'IMPORT, ET CE QU'ON SAIT EN FAIRE AUJOURD'HUI (L1-11).
@@ -49,6 +50,23 @@ export type TypeDImport = {
   readonly detail: CleTraduction;
   /** Sait-on l'appliquer, et pas seulement le contrôler ? */
   readonly complet: boolean;
+  /**
+   * LE RÉFÉRENTIEL QU'UN REJET « parent_introuvable » DÉSIGNE POUR CE TYPE.
+   *
+   * *Mesuré en production le 16/09/2026 :* le motif générique dit « la fiche
+   * que cette ligne désigne n'existe pas dans le parc », quel que soit le type
+   * importé — sur un import de SITES, le parent manquant est un CLIENT, pas
+   * une machine, et le message envoyait chercher au mauvais endroit. `null`
+   * quand ce type n'a aucun parent, ou nomme déjà chacun des siens séparément
+   * (les équipements, R6-03, avec leurs trois motifs propres).
+   *
+   * **Elle a une limite, annoncée plutôt que cachée** : les sites désignent
+   * DEUX parents — client et agence — sous ce même motif générique, et cette
+   * clé n'en nomme qu'un. *Condition de réouverture, vérifiable : le jour où
+   * les sites nommeront leurs deux parents séparément, comme les équipements
+   * nomment déjà les leurs.*
+   */
+  readonly motifParentIntrouvable: CleTraduction | null;
 };
 
 export const TYPES_DIMPORT: readonly TypeDImport[] = [
@@ -57,12 +75,15 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     titre: "imports.type.clients",
     detail: "imports.type.clients_detail",
     complet: true,
+    // Racine : un client ne désigne aucun parent.
+    motifParentIntrouvable: null,
   },
   {
     cle: "contacts",
     titre: "imports.type.contacts",
     detail: "imports.type.contacts_detail",
     complet: false,
+    motifParentIntrouvable: "imports.motif.client_introuvable",
   },
   {
     cle: "sites",
@@ -73,30 +94,41 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     vocabulaire: "site",
     detail: "imports.type.sites_detail",
     complet: true,
+    // Le CLIENT — c'est celui des deux parents que la production a mesuré ;
+    // voir la limite annoncée au-dessus de `motifParentIntrouvable`.
+    motifParentIntrouvable: "imports.motif.client_introuvable",
   },
   {
     cle: "modeles",
     titre: "imports.type.modeles",
     detail: "imports.type.modeles_detail",
     complet: true,
+    motifParentIntrouvable: "imports.motif.famille_introuvable",
   },
   {
     cle: "prestations",
     titre: "imports.type.prestations",
     detail: "imports.type.prestations_detail",
     complet: true,
+    motifParentIntrouvable: "imports.motif.famille_introuvable",
   },
   {
     cle: "familles",
     titre: "imports.type.familles",
     detail: "imports.type.familles_detail",
     complet: true,
+    // Racine du matériel (R6-03) : une famille ne désigne aucun parent.
+    motifParentIntrouvable: null,
   },
   {
     cle: "equipements",
     titre: "imports.type.equipements",
     detail: "imports.type.equipements_detail",
     complet: true,
+    // Ses trois parents se nomment DÉJÀ séparément (client_introuvable,
+    // site_introuvable, modele_introuvable) : ce type n'émet jamais le motif
+    // générique, et n'a donc pas besoin de cette clé.
+    motifParentIntrouvable: null,
   },
 ];
 
@@ -117,15 +149,33 @@ export function cleDuStatut(statut: string): CleTraduction | null {
   }
 }
 
-/** Le libellé d'un motif de rejet de ligne — même règle que les statuts. */
-export function cleDuMotif(motif: string): CleTraduction | null {
+/**
+ * Le libellé d'un motif de rejet de ligne — même règle que les statuts.
+ *
+ * **`type` est FACULTATIF, et un seul motif le regarde.** `parent_introuvable`
+ * est le seul générique aux cinq gabarits qui n'ont qu'un parent (ou deux
+ * corrigés au même endroit) ; le nom exact du référentiel manquant se lit sur
+ * `TYPES_DIMPORT` — la table des types, jamais une seconde liste recopiée ici
+ * — et retombe sur le générique quand le type est absent ou muet sur la
+ * question (mesuré le 16/09/2026 : voir `motifParentIntrouvable`).
+ */
+export function cleDuMotif(motif: string, type?: string): CleTraduction | null {
+  if (motif === "parent_introuvable") {
+    const specifique = TYPES_DIMPORT.find(
+      (candidat) => candidat.cle === type,
+    )?.motifParentIntrouvable;
+    return specifique ?? "imports.motif.parent_introuvable";
+  }
   switch (motif) {
     case "saisie_refusee":
       return "imports.motif.saisie_refusee";
-    case "parent_introuvable":
-      return "imports.motif.parent_introuvable";
     case "cle_ambigue":
       return "imports.motif.cle_ambigue";
+    // **Deux lignes du MÊME fichier, jamais une ligne contre le parc** — c'est
+    // ce qui le distingue de `cle_ambigue`, et pourquoi la correction qu'il
+    // nomme n'est pas la même (point 4 de la session du 16/09/2026).
+    case "doublon_fichier":
+      return "imports.motif.doublon_fichier";
     // **Les trois parents d'un équipement se nomment séparément** (R6-03) :
     // *« parent introuvable » sur une ligne qui en désigne trois envoie
     // chercher dans trois référentiels.*
@@ -138,6 +188,26 @@ export function cleDuMotif(motif: string): CleTraduction | null {
     default:
       return null;
   }
+}
+
+/**
+ * LE TON D'UN MESSAGE DE RETOUR, DÉDUIT DE SA CLÉ — jamais d'un paramètre que
+ * l'appelant pourrait oublier de poser (point 1 de la session du 16/09/2026).
+ *
+ * *Mesuré :* « Le lot a été appliqué » sortait dans le bandeau rouge du refus,
+ * faute d'habillage distinct. **La déduction se fait sur la CLÉ elle-même**,
+ * jamais sur une liste de cas tenue à la main : un refus se nomme « refus »
+ * partout où il apparaît dans ce dictionnaire (`auth.refus`,
+ * `imports.refus.*`, dynamique compris) et une annulation partielle porte
+ * « partiel » dans la sienne — les deux conventions existent déjà dans
+ * `lib/i18n/fr.ts`, elles ne sont pas inventées ici. Tout le reste qui
+ * atterrit sur ce bandeau est un succès plein : `imports.applique` et
+ * `imports.annule`.
+ */
+export function tonDuMotif(cle: CleTraduction): TonMessage {
+  if (cle.includes("refus")) return "refus";
+  if (cle.includes("partiel")) return "avertissement";
+  return "succes";
 }
 
 /**
