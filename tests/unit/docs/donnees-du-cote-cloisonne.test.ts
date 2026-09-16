@@ -45,14 +45,20 @@ function schema(): string {
 
 /** Le tableau de I1, tel qu'il est écrit — lignes « | notion | où | ». */
 function lignesDuTableau(): { notion: string; ou: string }[] {
-  const claude = readFileSync(join(process.cwd(), "CLAUDE.md"), "utf8");
+  // AT-05 (16/09/2026) : I1 a été détaché vers `docs/constitution/invariants.md`,
+  // mot pour mot. Seul le CHEMIN bouge ; le tableau, lui, est le même.
+  const claude = readFileSync(
+    join(process.cwd(), "docs", "constitution", "invariants.md"),
+    "utf8",
+  );
   const bloc =
     /\| Ce qui vit du côté cloisonné \| Où, aujourd'hui \|\n\|[-| ]+\|\n([\s\S]*?)\n\n/.exec(
       claude,
     );
   if (bloc === null) {
     throw new Error(
-      "Le tableau « ce qui vit du côté cloisonné » a disparu de I1 : le " +
+      "Le tableau « ce qui vit du côté cloisonné » a disparu de I1 " +
+        "(docs/constitution/invariants.md) : le " +
         "gardien ne lit plus rien, et son silence ne prouverait rien.",
     );
   }
