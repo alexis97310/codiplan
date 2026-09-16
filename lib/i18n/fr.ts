@@ -1243,12 +1243,22 @@ export const fr = {
   // la colonne d'établissement depuis `mot("agence")`.
   // ── L'ÉCRAN « PARC MACHINES » (R2-21) ───────────────────────────────────
   "parc.titre": "Parc machines clients",
-  "parc.sous_titre":
-    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter.",
+  // LA RECHERCHE EST ANNONCÉE DÈS LE SOUS-TITRE, comme la maquette le fait
+  // (D95) — AT-04 ; elle n'est pas encore appliquée (AT-07), et ce sous-titre
+  // ne le tait plus. « Site » est un mot IMPOSÉ (D5, D47) : il ne s'écrit pas
+  // ici, la phrase se coupe en deux et se recompose avec `motDansUnePhrase`
+  // (lib/i18n/vocabulaire.ts), comme le gardien du vocabulaire l'exige.
+  "parc.sous_titre_recherche_avant":
+    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter. Recherche par client,",
+  "parc.sous_titre_recherche_apres": "modèle ou numéro de série.",
   "parc.colonne_reference": "Référence",
   "parc.colonne_modele": "Modèle",
   "parc.colonne_serie": "N° de série",
   "parc.colonne_lieu": "Client / lieu",
+  // LE PRÉFIXE SEUL — la maquette écrit « Client / Site », et « Site » se
+  // compose depuis `mot("site")` plutôt que de se recopier ici (D5, D47) ;
+  // voir `lib/machines/ecarts-maquette.ts`.
+  "parc.colonne_lieu_prefixe": "Client",
   "parc.colonne_mise_en_service": "Mise en service",
   "parc.colonne_statut": "Statut",
   "parc.famille": "Famille",
@@ -1263,6 +1273,29 @@ export const fr = {
   "parc.incompletes_un": "fiche à compléter",
   "parc.a_completer": "À compléter",
   "parc.non_synchronisee": "non synchronisée",
+  // LE BANDEAU UNIQUE remplace une mention RÉPÉTÉE SOUS CHAQUE LIGNE — mesurée
+  // par le directeur d'exploitation le 16/09/2026 : sur un parc où AUCUNE
+  // fiche n'a encore de numéro serveur, la mention ne distinguait plus rien,
+  // répétée 200 fois. Elle ne s'affiche que si toutes les lignes rendues la
+  // portent (AT-04) — le jour où la synchronisation attribuera des numéros
+  // (lot 3), elle redeviendra une exception par ligne, comme avant.
+  "parc.aucune_synchronisee":
+    "Aucune fiche affichée n'a encore de numéro attribué par le serveur : les références ci-dessous sont locales, en attendant la première synchronisation.",
+  // ── LES QUATRE KPI DU BANDEAU (D95) — un sur quatre est un écart, voir
+  // lib/machines/ecarts-maquette.ts.
+  "parc.kpi_actives": "Machines actives",
+  "parc.kpi_garantie": "Garantie expirant < 90 j",
+  "parc.kpi_en_panne": "En panne / arrêtées",
+  "parc.kpi_sur": "sur",
+  "parc.kpi_affichees": "affichées",
+  "parc.kpi_en_panne_detail_panne": "en panne",
+  "parc.kpi_en_panne_detail_arretees": "arrêtées",
+  // ── LA RECHERCHE, CÂBLÉE ET PAS ENCORE REMPLIE (AT-04, AT-07) ────────────
+  // « Site » composé, pour la même raison que le sous-titre juste au-dessus.
+  "parc.recherche_prefixe": "Client,",
+  "parc.recherche_suffixe": "modèle ou numéro de série",
+  "parc.recherche_action": "Rechercher",
+  "parc.titre_carte": "Parc",
   // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
   //
   // AUCUN LIBELLÉ NE DIT « CONFORME » NI « NON CONFORME », et ce n'est pas une
@@ -1573,6 +1606,14 @@ export const fr = {
   "materiel.inactive": "Inactif",
   "materiel.activer": "Réactiver",
   "materiel.desactiver": "Désactiver",
+  // ── LE RÉGIME VGP, VISIBLE DEPUIS AT-04 — les libellés de valeur viennent
+  // déjà de « vgp.regime.* » (registre des VGP) : une seconde entrée pour la
+  // même valeur divergerait au premier renommage (§9, 01/09).
+  "materiel.colonne_regime": "Régime VGP",
+  "materiel.colonne_modeles": "Modèles",
+  "materiel.vgp_mois": "mois",
+  "materiel.modeles_compte": "modèles",
+  "materiel.modeles_compte_un": "modèle",
   "materiel.aucune_famille": "Aucune famille n\u2019est encore déclarée.",
   "materiel.aucun_modele":
     "Aucun modèle n\u2019est encore déclaré. Une famille doit exister avant lui.",

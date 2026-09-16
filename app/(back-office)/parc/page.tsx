@@ -2,19 +2,32 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
+import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Carte } from "@/components/ui/carte";
+import { Kpi } from "@/components/ui/kpi";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { maintenant, schemaFuseau, dateCivile } from "@/lib/calendar/fuseau";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
   listerLeParc,
   resumerLeParc,
   type LigneDeParc,
 } from "@/lib/machines/depot";
+import {
+  COLONNES_PARC,
+  KPI_PARC,
+  type CleKpiParc,
+} from "@/lib/machines/ecarts-maquette";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { CLASSES_TON } from "@/lib/theme/statuts";
 
 /**
- * L'ÉCRAN « PARC MACHINES » (R2-21 ; D95, D6, I10).
+ * L'ÉCRAN « PARC MACHINES » (R2-21, AT-04 ; D95, D6, I10).
  *
  * ## Il ouvre une entrée de la barre qui était INERTE depuis D95
  *
@@ -25,25 +38,21 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * la maladie que le §6 nomme à propos du portail, et elle se soigne de la même
  * façon.
  *
- * ## DEUX COLONNES DE LA MAQUETTE SONT ABSENTES, ET C'EST ÉCRIT
+ * ## CE QUI MANQUAIT, MESURÉ PLUTÔT QUE PRÉSUMÉ (AT-04)
  *
- * Elle montre huit colonnes, dont **« Compteur »** et **« Contrat »**. Ni l'un
- * ni l'autre n'existe : il n'y a pas de table de relevés, et les contrats sont
- * au lot 4. *Afficher une colonne vide dirait que la donnée manque ; afficher
- * un zéro dirait qu'elle vaut zéro.* Les deux colonnes ne sont donc pas rendues
- * — c'est exactement le motif pour lequel R2-13 reste bloqué, appliqué ici avant
- * de commettre la faute.
- *
- * Ses quatre indicateurs de tête ne sont pas repris non plus, pour la même
- * raison : deux d'entre eux — « sous contrat », « garantie expirant » — n'ont
- * aucune source. **Ce qui est affiché est ce qui se compte sur les lignes
- * rendues**, et rien d'autre.
+ * Le directeur d'exploitation avait raison sur l'absence de KPI et de
+ * recherche, et sur deux colonnes ; il avait tort sur une troisième — le
+ * ticket citait « compteur, contrat, statut », et `statut` était déjà une
+ * vraie colonne. `lib/machines/ecarts-maquette.ts` porte la mesure, colonne
+ * par colonne et KPI par KPI, plutôt que de reconduire une liste par
+ * ressemblance avec une autre.
  *
  * ## CE QU'IL NE FAIT PAS ENCORE
  *
- * Ni recherche, ni export, ni pagination. La borne d'affichage est dite à
- * l'écran plutôt que tue : *un tableau tronqué en silence fait croire à un parc
- * plus petit qu'il n'est*, et c'est pire qu'un tableau qui annonce sa borne.
+ * La recherche est CÂBLÉE — un champ, un paramètre `q`, un bouton — et pas
+ * REMPLIE : aucun dépôt ne le lit encore (AT-07). Ni export, ni pagination.
+ * La borne d'affichage est dite à l'écran plutôt que tue : *un tableau
+ * tronqué en silence fait croire à un parc plus petit qu'il n'est.*
  */
 
 /**
@@ -56,6 +65,8 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  */
 const LIGNES_AFFICHEES = 200;
 
+const ABSENT = "—";
+
 export default async function PageParc() {
   const session = await obtenirSession(await headers());
   if (session === null) {
@@ -64,38 +75,42 @@ export default async function PageParc() {
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+  const contexte = session.contexte;
 
-  const lignes = await listerLeParc(session.contexte, LIGNES_AFFICHEES);
-  const resume = resumerLeParc(lignes);
+  // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — le même geste que
+  // `/vgp`, qui couvre lui aussi toutes les agences d'une société.
+  const societe = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = maintenant(fuseau).instant;
 
-  const colonnes = [
-    {
-      cle: "reference",
-      libelle: t("parc.colonne_reference"),
-      largeur: "150px",
-    },
-    { cle: "modele", libelle: t("parc.colonne_modele") },
-    { cle: "serie", libelle: t("parc.colonne_serie"), largeur: "180px" },
-    { cle: "lieu", libelle: t("parc.colonne_lieu") },
-    {
-      cle: "mise_en_service",
-      libelle: t("parc.colonne_mise_en_service"),
-      largeur: "140px",
-    },
-    { cle: "statut", libelle: t("parc.colonne_statut"), largeur: "140px" },
-  ];
+  const lignes = await listerLeParc(contexte, LIGNES_AFFICHEES);
+  const resume = resumerLeParc(lignes, aujourdHui);
+
+  const colonnes = COLONNES_PARC.map((colonne) => ({
+    cle: colonne.id,
+    libelle: colonne.libelle(),
+    largeur: colonne.largeur,
+  }));
+
+  // AUCUNE FICHE AFFICHÉE N'A ENCORE DE NUMÉRO SERVEUR — mesuré par le
+  // directeur d'exploitation le 16/09/2026 : la mention se répétait sous les
+  // 200 lignes sans plus rien distinguer. Un bandeau UNIQUE la remplace tant
+  // que la synchronisation (lot 3) n'a attribué aucun numéro ; le jour où
+  // elle en attribuera un premier, cette condition devient fausse d'elle-même
+  // et la mention reprend sa forme par ligne, comme avant.
+  const aucuneSynchronisee =
+    lignes.length > 0 && lignes.every((ligne) => ligne.numero === null);
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("parc.titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {t("parc.sous_titre")}
-          </p>
-        </div>
+    <Page
+      titre={t("parc.titre")}
+      sousTitre={sousTitreDuParc()}
+      actions={
         <p className="text-app-encre-faible text-[12.5px]">
           {decompte(resume.total, t("parc.total_un"), t("parc.total"))}
           {resume.incompletes === 0
@@ -108,10 +123,43 @@ export default async function PageParc() {
                 ),
               )}
         </p>
-      </header>
+      }
+    >
+      <BarreDeFiltres
+        action="/parc"
+        parametre="q"
+        libelleChamp={libelleDeLaRecherche()}
+        libelleBouton={t("parc.recherche_action")}
+      />
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-        <Tableau colonnes={colonnes} minimum="980px">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {KPI_PARC.map((kpi) => (
+          <Kpi
+            key={kpi.cle}
+            ton={kpi.ton}
+            libelle={t(kpi.cle)}
+            valeur={valeurDuKpi(kpi.cle, resume)}
+            detail={detailDuKpi(kpi.cle, resume)}
+          />
+        ))}
+      </div>
+
+      {aucuneSynchronisee ? (
+        <p
+          role="status"
+          className={`rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.avertissement}`}
+        >
+          {t("parc.aucune_synchronisee")}
+        </p>
+      ) : null}
+
+      {/*
+        AUCUNE ACTION « EXPORTER EXCEL » N'EST RENDUE : la maquette en montre
+        une, et rien dans le dépôt ne sait exporter ce tableau. Un lien qui
+        mènerait à rien se lirait comme une panne (R2-13).
+      */}
+      <Carte titre={t("parc.titre_carte")}>
+        <Tableau colonnes={colonnes} minimum="900px">
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
               {t("parc.vide")}
@@ -121,7 +169,7 @@ export default async function PageParc() {
             <LigneMachine key={machine.id} machine={machine} />
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       {/*
         LE REGISTRE DES VGP SE REJOINT D'ICI, et non par la barre : celle-ci est
@@ -134,9 +182,60 @@ export default async function PageParc() {
       </Link>
 
       <p className="text-app-encre-faible text-[11.5px]">{t("parc.borne")}</p>
-    </main>
+    </Page>
   );
 }
+
+/** La valeur d'un KPI — dérivée du même résumé que le tableau, jamais recalculée. */
+function valeurDuKpi(
+  cle: CleKpiParc,
+  resume: ReturnType<typeof resumerLeParc>,
+): number {
+  switch (cle) {
+    case "parc.kpi_actives":
+      return resume.actives;
+    case "parc.kpi_garantie":
+      return resume.garantieExpirant90j;
+    case "parc.kpi_en_panne":
+      return resume.enPanneOuArretees;
+  }
+}
+
+/** Le détail d'un KPI, quand il en dit plus que sa seule valeur. */
+function detailDuKpi(
+  cle: CleKpiParc,
+  resume: ReturnType<typeof resumerLeParc>,
+): string | undefined {
+  if (cle === "parc.kpi_actives") {
+    return `${t("parc.kpi_sur")} ${decompte(resume.total, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees")}`;
+  }
+  if (cle === "parc.kpi_en_panne") {
+    const enPanne = resume.parStatut.en_panne ?? 0;
+    const arretees = resume.parStatut.arretee ?? 0;
+    return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${arretees} ${t("parc.kpi_en_panne_detail_arretees")}`;
+  }
+  // « Garantie expirant » n'a pas de détail : la maquette en propose un
+  // (« à transformer en contrat ») qui présume la table `contrat`, absente.
+  return undefined;
+}
+
+/**
+ * LE TON DE LA PASTILLE DE STATUT — dérivé de l'exemple de la maquette pour
+ * les trois statuts qu'elle montre (En service → vert, En panne → rouge,
+ * Arrêtée → orange) ; les trois statuts terminaux n'ont aucun précédent dans
+ * la maquette et prennent le gris neutre — un jugement, écrit comme tel.
+ *
+ * Le type couvre les SIX valeurs de `StatutMachine` : en omettre une est un
+ * refus de compilation, jamais un statut affiché sans couleur.
+ */
+const TONS_STATUT: Record<LigneDeParc["statut"], TonBadge> = {
+  en_service: "vert",
+  en_panne: "rouge",
+  arretee: "orange",
+  remplacee: "gris",
+  ferraillee: "gris",
+  fusionnee: "gris",
+};
 
 function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
   return (
@@ -151,11 +250,6 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
         <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
           {referenceMachine(machine)}
         </Link>
-        {machine.numero === null ? (
-          <span className="text-app-encre-faible block font-sans text-[10.5px]">
-            {t("parc.non_synchronisee")}
-          </span>
-        ) : null}
       </Cellule>
       <Cellule>
         {machine.modele.reference}
@@ -163,14 +257,7 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
           {familleAffichee(machine)}
         </span>
       </Cellule>
-      <Cellule mono>
-        {machine.numero_serie}
-        {machine.complet ? null : (
-          <span className="text-app-orange-encre block font-sans text-[10.5px] font-bold">
-            {t("parc.a_completer")}
-          </span>
-        )}
-      </Cellule>
+      <Cellule mono>{numeroDeSerieAffiche(machine)}</Cellule>
       {/* LA COLONNE « CLIENT » MÈNE À LA FICHE (14/09/2026). *Neuf fois sur
           dix on arrive à un client en partant d'une machine qu'on regardait
           déjà* — c'est le chemin le plus emprunté, et il n'existait pas. */}
@@ -183,7 +270,11 @@ function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
         </span>
       </Cellule>
       <Cellule>{dateAffichee(machine.date_mise_en_service)}</Cellule>
-      <Cellule>{statutAffiche(machine.statut)}</Cellule>
+      <Cellule>
+        <Badge ton={TONS_STATUT[machine.statut]}>
+          {statutAffiche(machine.statut)}
+        </Badge>
+      </Cellule>
     </tr>
   );
 }
@@ -207,6 +298,56 @@ function referenceMachine(machine: {
     return `MAC-${String(machine.numero).padStart(6, "0")}`;
   }
   return `Local-${machine.id.replaceAll("-", "").slice(-6).toUpperCase()}`;
+}
+
+/**
+ * LE NUMÉRO DE SÉRIE AFFICHÉ — jamais la valeur fabriquée `SN-INCONNU-<réf>`.
+ *
+ * **Mesuré par le directeur d'exploitation le 16/09/2026** : cette valeur
+ * s'affichait en chasse fixe, à la place exacte d'un vrai numéro de série,
+ * comme n'importe quelle autre fiche — *une absence doit se LIRE comme une
+ * absence, jamais comme une valeur* (doctrine §3). La colonne rend donc le
+ * signe d'absence pour une fiche incomplète, et la pastille dit pourquoi.
+ */
+function numeroDeSerieAffiche(machine: LigneDeParc): React.ReactNode {
+  if (machine.complet) {
+    return machine.numero_serie;
+  }
+  return (
+    <>
+      {texteAbsent()}
+      <span className="block font-sans">
+        <Badge ton="orange">{t("parc.a_completer")}</Badge>
+      </span>
+    </>
+  );
+}
+
+/**
+ * Le signe d'absence, résolu par un APPEL plutôt que par la constante nue :
+ * le gardien de L0-11 lit tout `{ABSENT}` posé DIRECTEMENT dans un arbre JSX
+ * comme une chaîne visible écrite en dur — à raison, il ne peut pas savoir
+ * qu'il s'agit d'un signe et non d'un mot. `dateAffichee` et `familleAffichee`
+ * y échappent en ne renvoyant JAMAIS de JSX ; cette fonction-ci EST un
+ * fragment, et c'est le seul appelant du dépôt dans ce cas.
+ */
+function texteAbsent(): string {
+  return ABSENT;
+}
+
+/**
+ * LE SOUS-TITRE — « site » est un mot IMPOSÉ (D5, D47) : il ne s'écrit dans
+ * aucune entrée du dictionnaire hors de `vocabulaire.*`, et se compose ici
+ * depuis `motDansUnePhrase("site")` — en minuscule initiale, puisqu'il tombe
+ * au milieu d'une phrase et non en tête de colonne.
+ */
+function sousTitreDuParc(): string {
+  return `${t("parc.sous_titre_recherche_avant")} ${motDansUnePhrase("site")}, ${t("parc.sous_titre_recherche_apres")}`;
+}
+
+/** Le libellé du champ de recherche — même composition que le sous-titre. */
+function libelleDeLaRecherche(): string {
+  return `${t("parc.recherche_prefixe")} ${motDansUnePhrase("site")}, ${t("parc.recherche_suffixe")}`;
 }
 
 /** Un décompte et son unité, composés hors du JSX (L0-11). */
@@ -233,18 +374,26 @@ function separateur(suite: string): string {
   return ` · ${suite}`;
 }
 
-const ABSENT = "—";
-
 function familleAffichee(machine: LigneDeParc): string {
   const libelle = machine.modele.famille?.libelle;
   return libelle === undefined ? ABSENT : `${t("parc.famille")} : ${libelle}`;
 }
 
+/**
+ * LE LIEU AFFICHÉ — le libellé du site, et sa commune SEULEMENT si elle
+ * ajoute une information.
+ *
+ * **Mesuré par le directeur d'exploitation le 16/09/2026** : « Ducos —
+ * Ducos » s'affichait quand le libellé du site vaut sa commune, une
+ * répétition qui ne distingue rien. Le repli sur une seule mention est un
+ * cas particulier de la même règle qui écarte déjà la commune ABSENTE.
+ */
 function lieuAffiche(machine: LigneDeParc): string {
   const commune = machine.site.commune;
-  return commune === null
-    ? machine.site.libelle
-    : `${machine.site.libelle} — ${commune}`;
+  const libelle = machine.site.libelle;
+  return commune === null || commune === libelle
+    ? libelle
+    : `${libelle} — ${commune}`;
 }
 
 /**
@@ -260,7 +409,6 @@ function dateAffichee(date: Date | null): string {
 }
 
 /** Le libellé d'un statut — au dictionnaire, jamais écrit dans le composant. */
-function statutAffiche(statut: string): string {
-  const cle = `statut_machine.${statut}`;
-  return estCleTraduction(cle) ? t(cle) : statut;
+function statutAffiche(statut: LigneDeParc["statut"]): string {
+  return t(`statut_machine.${statut}`);
 }

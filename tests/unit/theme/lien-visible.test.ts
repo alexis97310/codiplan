@@ -144,6 +144,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // revient au tableau.
       "app/(back-office)/parametres/agences/[calendrier]/page.tsx",
       "app/(back-office)/parametres/agences/page.tsx",
+      // LE RÉFÉRENTIEL MATÉRIEL y est entré le 16/09/2026 avec AT-04 : le
+      // décompte de modèles d'une famille mène à leur table, plus bas sur le
+      // même écran.
+      "app/(back-office)/parametres/materiel/page.tsx",
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
       "app/(back-office)/sites/page.tsx",
