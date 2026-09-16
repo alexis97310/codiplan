@@ -30,6 +30,17 @@ export type PorteParametrage = {
 
 export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
   {
+    // LA HUITIÈME PORTE (N-02, 16/09/2026), et la première de la liste :
+    // elle parle de la société elle-même, quand les autres parlent de ce
+    // qu'elle règle. Elle n'existait nulle part — la pastille qui portait
+    // cette information vivait en permanence dans la barre de navigation,
+    // pour répondre à une question qu'on ne pose qu'à la mise en service.
+    // Voir `app/(back-office)/parametres/societe/page.tsx`.
+    chemin: "/parametres/societe",
+    titre: "parametres.index_societe_titre",
+    resume: "parametres.index_societe_resume",
+  },
+  {
     chemin: "/parametres/agences",
     titre: "parametres.index_horaires_titre",
     resume: "parametres.index_horaires_resume",

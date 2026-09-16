@@ -56,6 +56,22 @@ export const fr = {
   // qui qualifient le thème vivent ici.
   "theme.societe": "Charte de la société",
   "theme.neutre": "Thème neutre CODIPLAN",
+  // ── L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » (N-02, 16/09/2026) ──────────────────
+  //
+  // Ce que la barre affichait en permanence pour répondre à une question
+  // qu'on ne pose qu'une fois, à la mise en service — devenu un écran de
+  // paramétrage, sous « Sociétés & tarifs ».
+  "parametres.societe_titre": "Charte de la société",
+  "parametres.societe_sous_titre":
+    "L'identité affichée de la société active — un diagnostic pour l'instant, un réglage avec la console éditeur.",
+  "parametres.societe_diagnostic_aide":
+    "Distingue une société qui a choisi ses propres couleurs d'une société qui n'en a pas : la seconde reçoit le thème neutre de CODIPLAN.",
+  // LE RÉGLAGE N'EST PAS ENCORE ICI, ET L'ÉCRAN LE DIT PLUTÔT QUE DE LAISSER
+  // CROIRE LE CONTRAIRE : changer de couleur reviendra à la console éditeur
+  // (lot 7), qui donnera à la société le formulaire que cet écran se contente
+  // aujourd'hui de LIRE.
+  "parametres.societe_reglage_a_venir":
+    "Les couleurs se règlent depuis la console éditeur, à venir au lot 7. Cet écran affiche l'état, il ne le modifie pas encore.",
   // Message unique de tous les refus d'authentification (D35). Il ne dit ni si
   // le compte existe, ni si le mot de passe est faux, ni si le compte est
   // habilité quelque part : c'est exactement son objet.
@@ -225,7 +241,6 @@ export const fr = {
   // dans le seul cas qui reste : aucune habilitation du tout.
   "arrivee.sans_societe":
     "Aucune société active, et aucune habilitation sur ce compte. Contactez l'administrateur de votre société.",
-  "arrivee.deconnexion": "Se déconnecter",
   // ── LE CHOIX D'UNE SOCIÉTÉ (D61, D67 — écran écrit le 10/09/2026) ────────
   //
   // Il manquait, et son absence était un MUR : un compte habilité sur deux
@@ -1485,6 +1500,14 @@ export const fr = {
   "parametres.index_titre": "Sociétés & tarifs",
   "parametres.index_sous_titre":
     "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
+  // LA HUITIÈME PORTE (N-02, 16/09/2026). Elle n'existait nulle part : la
+  // pastille « Charte de la société » / « Thème neutre » occupait la barre en
+  // permanence pour répondre à une question qu'on ne pose qu'à la mise en
+  // service. Elle DÉMÉNAGE ici plutôt que de disparaître — c'est le seul
+  // endroit du produit qui parle déjà de ce que la société a réglé.
+  "parametres.index_societe_titre": "Charte de la société",
+  "parametres.index_societe_resume":
+    "L'identité affichée de la société active, et si ses propres couleurs sont appliquées ou non.",
   "parametres.index_horaires_titre": "Horaires d'ouverture",
   "parametres.index_horaires_resume":
     "Les jours travaillés, les horaires et le pas des créneaux, établissement par établissement. C'est ce calendrier qui décide de ce que le planning propose et de ce qu'il refuse.",
@@ -1628,6 +1651,14 @@ export const fr = {
   "nav.imports_excel": "Imports Excel",
   "nav.societes_tarifs": "Sociétés & tarifs",
   "nav.console_editeur": "Console éditeur",
+  // LA DÉCONNEXION, DANS LE CHROME (N-02, arbitrage du 16/09/2026).
+  //
+  // Cette clé portait `arrivee.deconnexion` : elle ne servait qu'à l'écran
+  // d'atterrissage, sur lequel on ne revient jamais — et c'est très
+  // exactement pourquoi personne ne pouvait fermer sa session. Elle sert
+  // maintenant le CHROME, dans les trois coques, et son nom le dit plutôt que
+  // de continuer à nommer un écran qu'elle a quitté.
+  "nav.deconnexion": "Se déconnecter",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",

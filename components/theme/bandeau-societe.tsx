@@ -1,4 +1,3 @@
-import { t } from "@/lib/i18n/fr";
 import type { ThemeSociete } from "@/lib/theme/theme";
 
 /**
@@ -26,10 +25,22 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * mêmes variables, il ne connaît toujours aucune couleur, et basculer de
  * société change toujours son rendu sans qu'une ligne bouge ici.
  *
- * *Le libellé « charte de la société » / « thème neutre » reste rendu, et il
- * reste utile : c'est lui qui distingue, à l'œil, une société qui a choisi ses
- * couleurs d'une société qui n'en a pas — un état représentable, pas un
- * oubli.*
+ * ## LE LIBELLÉ « CHARTE DE LA SOCIÉTÉ » / « THÈME NEUTRE » A DÉMÉNAGÉ (N-02,
+ * arbitrage du 16/09/2026)
+ *
+ * ~~*Le libellé reste rendu, et il reste utile : c'est lui qui distingue, à
+ * l'œil, une société qui a choisi ses couleurs d'une société qui n'en a pas.*~~
+ * **Vrai, et pourtant à la mauvaise place** : cette pastille répond à une
+ * question qu'on se pose UNE FOIS, à la mise en service, et elle occupait en
+ * permanence la place la plus chère de l'écran — celle que la déconnexion
+ * réclamait, et qu'un compte ouvert des journées durant sur un poste partagé
+ * ne pouvait pas trouver ailleurs. L'information n'a pas disparu : elle vit
+ * maintenant sur l'écran où la charte se regarde, `/parametres/societe`
+ * (`app/(back-office)/parametres/societe/page.tsx`). La phrase barrée ci-dessus
+ * reste plutôt que d'être effacée : elle a gouverné ce composant, et ce qui a
+ * été décidé un jour se relit. `data-origine-theme` reste posé ici : c'est un
+ * repère de scénario, jamais un texte, et rien dans le raisonnement ci-dessus
+ * ne le concerne.
  */
 export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
   return (
@@ -37,19 +48,16 @@ export function BandeauSociete({ theme }: { theme: ThemeSociete }) {
       data-origine-theme={theme.origine}
       /*
         `shrink-0` et `whitespace-nowrap` : le bandeau débordait de la barre et
-        « Charte de la société » se coupait en plein mot. **Deux causes
-        distinctes, deux remèdes** — `shrink-0` empêche le bandeau de céder à la
-        navigation qui le pousse, `whitespace-nowrap` empêche son libellé de se
-        replier sur deux lignes dans la place qui lui reste. *Poser l'un sans
-        l'autre déplace le défaut au lieu de le fermer.*
+        son libellé se coupait en plein mot. **Deux causes distinctes, deux
+        remèdes** — `shrink-0` empêche le bandeau de céder à la navigation qui
+        le pousse, `whitespace-nowrap` empêche le nom de se replier sur deux
+        lignes dans la place qui lui reste. *Poser l'un sans l'autre déplace le
+        défaut au lieu de le fermer.*
       */
       className="bg-societe-primaire text-societe-primaire-encre flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 whitespace-nowrap"
     >
       <span className="text-[12.5px] font-bold tracking-tight">
         {theme.nom}
-      </span>
-      <span className="bg-societe-accent text-societe-accent-encre shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap">
-        {t(theme.origine === "defaut" ? "theme.neutre" : "theme.societe")}
       </span>
     </div>
   );
