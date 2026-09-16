@@ -66,8 +66,15 @@ describe("la maquette, source de rang 1 depuis D95, n'a qu'un exemplaire", () =>
     // Le sens qu'on oublie : le doublon supprimé, une référence restée sur
     // l'ancien chemin fait échouer un gardien avec un message de fichier
     // absent, à trois modules de là. Ce scénario nomme la cause tout de suite.
+    // AT-05 (16/09/2026) — LA POPULATION SUIT LE TEXTE QU'ELLE GARDE. Les deux
+    // paragraphes qui nomment la maquette ont quitté le `CLAUDE.md` pour
+    // `docs/constitution/sources.md`. Laisser la liste telle quelle aurait
+    // laissé ce scénario VERT sur un fichier qui ne peut plus porter la faute —
+    // la vacuité du §9 (30/08), atteinte non par un motif trop étroit mais par
+    // un déménagement. Le noyau reste dans la liste : il cite encore `docs/`.
     const suspects = [
       "CLAUDE.md",
+      "docs/constitution/sources.md",
       "app/globals.css",
       "lib/navigation/entrees.ts",
       "lib/theme/apparence.ts",

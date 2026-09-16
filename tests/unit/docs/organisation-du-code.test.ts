@@ -46,13 +46,20 @@ import { describe, expect, it } from "vitest";
 
 /** Le §6, tel qu'il est écrit, et le bloc de code qu'il contient. */
 function arborescence(): string {
-  const claude = readFileSync(join(process.cwd(), "CLAUDE.md"), "utf8");
+  // AT-05 (16/09/2026) : le §6 a été détaché vers `docs/constitution/`, sans
+  // qu'une ligne change — titre « ## 6. » compris, précisément pour que ce
+  // motif continue de mordre. Seul le CHEMIN bouge.
+  const claude = readFileSync(
+    join(process.cwd(), "docs", "constitution", "organisation-du-code.md"),
+    "utf8",
+  );
   const section = /## 6\. Organisation du code[\s\S]*?```([\s\S]*?)```/.exec(
     claude,
   );
   if (section === null) {
     throw new Error(
-      "Le §6 du CLAUDE.md ne contient plus de bloc d'arborescence : le gardien " +
+      "Le §6 (docs/constitution/organisation-du-code.md) ne contient plus de " +
+        "bloc d'arborescence : le gardien " +
         "ne peut plus le lire, et son silence ne prouverait rien.",
     );
   }
@@ -128,7 +135,8 @@ export function ecartsArborescence(
   for (const nom of surDisque) {
     if (!nomsEnumeres.includes(nom)) {
       ecarts.push(
-        `« lib/${nom}/ » existe et n'est pas énuméré au §6 du CLAUDE.md. ` +
+        `« lib/${nom}/ » existe et n'est pas énuméré au §6 ` +
+        `(docs/constitution/organisation-du-code.md). ` +
           "Le §6 est une carte : une carte qui ment est le même défaut qu'une " +
           "procédure fausse — on lui fait confiance, et elle est lue par ceux " +
           "qui connaissent le moins le projet. Un ticket qui ajoute un module " +

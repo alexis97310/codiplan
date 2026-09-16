@@ -6,7 +6,9 @@ Contexte d'exploitation : Nouvelle-Calédonie — réseau mobile absent sur une 
 
 ## Documentation
 
-`CLAUDE.md` fait autorité sur le fonctionnement du dépôt. En cas de divergence entre documents, l'ordre est celui qu'il fixe :
+`CLAUDE.md` fait autorité sur le fonctionnement du dépôt. Depuis le 16/09/2026 (AT-05) il est un **noyau** — la hiérarchie des sources, la stack, les dix invariants en une ligne chacun, les commandes, la définition de « terminé » et les points d'arrêt —, et il **nomme** le reste, détaché dans [`docs/constitution/`](docs/constitution/) : le détail des invariants, l'organisation du code, la façon de travailler, et les erreurs à ne pas refaire. Le texte détaché n'a pas changé d'un mot et **garde le rang 1** ; un fichier que le noyau ne nommerait pas serait un fichier que personne n'ouvrirait, et `tests/unit/docs/constitution-indexee.test.ts` refuse les deux sens.
+
+En cas de divergence entre documents, l'ordre est celui que le noyau fixe :
 
 | Rang | Source                                                                                         |
 | ---- | ---------------------------------------------------------------------------------------------- |
