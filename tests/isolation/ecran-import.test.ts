@@ -9,6 +9,7 @@ import {
   listerLesLots,
 } from "@/lib/imports/depot";
 import { MODELE_CLIENTS, marqueurDu } from "@/lib/imports/modeles";
+import { applicationDuType } from "@/lib/imports/types-dimport";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -170,5 +171,45 @@ describe("ce que le rapport rend à l'écran", () => {
     // rien regarder.*
     expect(ligne?.nom_fichier).toBe("octets.xlsx");
     expect(ligne?.objet_cle).toBeNull();
+  });
+});
+
+/**
+ * LE BOUTON NE S'AFFICHE PAS SUR UN LOT QU'ON NE SAIT PAS APPLIQUER (R6-01).
+ *
+ * L'écran calcule `sansApplication` depuis `lot.typeImport` et
+ * `applicationDuType` — **la même fonction que la route appelle**. *Deux
+ * lectures d'un même critère divergeraient en silence* (§9, 01/09), et ici la
+ * divergence se verrait de la pire façon : un bouton proposé que la route
+ * refuse, ou l'inverse. Ce scénario rejoue ce calcul sur un lot RÉEL, lu par le
+ * chemin de production.
+ */
+describe("l'écran ne propose pas d'appliquer ce qu'on ne sait pas écrire", () => {
+  it("un lot de CONTACTS n'a pas de bouton, et le lot reste `controle`", async () => {
+    const lotId = await controlerEtEnregistrer(SESSION_A, "contacts.xlsx", []);
+    // Le type est posé à la main : le gabarit des contacts existe, et la route
+    // de contrôle sait le choisir — mais ce scénario mesure l'ÉCRAN, pas le
+    // téléversement, et il lui faut un lot du bon type sans détour.
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "import_lot" SET "type_import" = 'contacts' WHERE "id" = '${lotId}'`,
+    );
+
+    const lot = await lireLeLot(SESSION_A, lotId, clientApp());
+    expect(lot?.typeImport).toBe("contacts");
+    // **C'est le calcul exact de l'écran**, sur la valeur exacte qu'il lit.
+    expect(applicationDuType(lot?.typeImport as string)).toBeNull();
+    expect(lot?.statut).toBe("controle");
+  });
+
+  it("un lot de SITES, lui, en a un — le témoin qui rend le scénario lisible", async () => {
+    // §9, 11/09 : *à côté de chaque cas qui doit rougir, un cas qui doit rester
+    // vert POUR SA PROPRE RAISON.* Sans lui, un `applicationDuType` qui
+    // rendrait `null` pour TOUT type passerait le scénario ci-dessus.
+    const lotId = await controlerEtEnregistrer(SESSION_A, "sites.xlsx", []);
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "import_lot" SET "type_import" = 'sites' WHERE "id" = '${lotId}'`,
+    );
+    const lot = await lireLeLot(SESSION_A, lotId, clientApp());
+    expect(applicationDuType(lot?.typeImport as string)).not.toBeNull();
   });
 });

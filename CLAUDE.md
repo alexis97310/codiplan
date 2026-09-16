@@ -1245,6 +1245,29 @@ lib/
               une Map n'a qu'une façon de ne pas répondre
               un lot d'une AUTRE société est « introuvable » et rien de plus —
               les distinguer ferait un oracle (D35, D50)
+              types-dimport.ts : CE QU'ON SAIT FAIRE D'UN LOT, SELON SON TYPE
+              (R6-01) — la table que L1-08i refusait, et qui n'en est pas une :
+              elle est FERMÉE par un gardien contre les gabarits publiés et
+              contre le TEXTE des sources, deux listes qu'elle ne contrôle pas
+              quatre types sur cinq s'appliquent ; les CONTACTS restent au
+              rapport seul, et le motif est mesuré — `lib/contacts/` n'a pas de
+              dépôt, c'est L1-03b qui l'écrira
+              un type sans application est un ÉTAT et jamais une exception :
+              l'écran ne montre pas le bouton et DIT pourquoi ; *un bouton qui
+              échoue se lit comme une panne du fichier*
+              l'annulation ne se sépare JAMAIS de l'application : *une
+              application sans annulation livrerait la moitié de I6*
+              parc-cibles.ts : CE QUE LA BASE CONNAÎT DÉJÀ (R6-01) — et ce n'est
+              PAS la question des trois autres `parc-*.ts`, qui disent ce qu'une
+              CELLULE désigne ; celui-ci dit si la FICHE existe
+              les confondre ne produit aucune erreur — *cela produit des
+              DOUBLONS*, et seul le second passage du même fichier le révélerait
+              les clés ne sont pas recalculées : `cleDuSite`, `cleDuModele` et
+              `cleDeLaPrestation` sont celles que les gabarits appellent
+              l'AMBIGUÏTÉ est possible sur les sites, et c'est MESURÉ : `site`
+              ne porte AUCUN index unique sur (client, libellé), là où
+              `modele_materiel` et `prestation` en ont un — une première
+              rédaction lui en prêtait un, un scénario d'`upsert` l'a démentie
               modeles.ts : LES GABARITS QUE CODIPLAN PUBLIE (L1-09a), et eux
               seuls — deux sortes de fichiers ne se confondent pas : un gabarit
               tient ses colonnes de NOS schémas de saisie, un fichier de reprise

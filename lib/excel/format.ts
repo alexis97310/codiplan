@@ -122,6 +122,30 @@ export function codeDuMarqueur(marqueur: Marqueur): CodeAnomalie | null {
   return marqueur.etat === "conforme" ? null : ETAT_VERS_CODE[marqueur.etat];
 }
 
+/**
+ * LE TYPE QU'UNE CELLULE DE MARQUEUR ANNONCE — sans juger (R6-01).
+ *
+ * `analyserMarqueur` répond à *« ce fichier est-il celui que j'attends ? »* et
+ * il lui faut donc savoir ce qu'on attend. **Celle-ci répond à la question qui
+ * PRÉCÈDE** : *« qu'est-ce que ce fichier prétend être ? »* — de quoi choisir
+ * le gabarit contre lequel on le jugera ensuite.
+ *
+ * Elle rend `null` dès que la cellule n'est pas un marqueur lisible, et elle
+ * **ne dit pas pourquoi** : les cinq motifs appartiennent à `analyserMarqueur`,
+ * qui les rend avec leur ligne et leur valeur. *Les énoncer ici aussi serait
+ * deux lectures d'un même critère* (§9, 01/09) — et la seconde vieillirait sans
+ * rougir, puisque rien ne la confronterait à la première.
+ *
+ * **La VERSION n'est pas rendue non plus**, et c'est la même borne : une
+ * version antérieure ou postérieure est un refus motivé de `controlerFeuille`,
+ * pas un défaut de sélection. *Un fichier « clients v2 » se juge contre le
+ * gabarit des clients, et c'est là qu'il apprend que la v2 n'est pas lue.*
+ */
+export function typeAnnonce(cellule: Cellule | undefined): string | null {
+  const trouve = MARQUEUR.exec((cellule?.texte ?? "").trim());
+  return trouve === null ? null : (trouve[1] ?? null);
+}
+
 export function analyserMarqueur(
   cellule: Cellule | undefined,
   attendu: { readonly type: string; readonly version: number },

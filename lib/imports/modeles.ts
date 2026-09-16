@@ -11,6 +11,7 @@ import { type ParcAgences } from "./parc-agences";
 import { type ParcFamilles } from "./parc-familles";
 import { type ParcClientsIndexe } from "./parc-clients";
 import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
+import { type Cellule, typeAnnonce } from "@/lib/excel/format";
 import { schemaPrestation } from "@/lib/prestations/saisie";
 
 /**
@@ -390,6 +391,39 @@ export const CHAMPS_SITES_ECARTES: Readonly<Record<string, string>> = {
 };
 
 /**
+ * LES TROIS CLÉS, ÉCRITES UNE SEULE FOIS (R6-01).
+ *
+ * ## Pourquoi elles sortent des gabarits
+ *
+ * Un gabarit dit ce qu'une LIGNE DE FICHIER désigne ; un index de parc dit ce
+ * qu'une FICHE EN BASE désigne. **Les deux doivent rendre la même chaîne, sinon
+ * rien ne se rapproche et tout devient création** — c'est-à-dire un doublon par
+ * ligne au second import, exactement ce que RG-IMP-05 interdit.
+ *
+ * *C'est le défaut que L1-08f avait mesuré et réparé sur les clients* : le
+ * contrôle calculait la clé des machines pour tout type d'import, et deux
+ * clients que le parc connaissait déjà sont ressortis en création. La parade
+ * est la même — **une seule fonction, appelée des deux côtés, jamais recopiée**
+ * (§9, 01/09) — et elle est appliquée ici AVANT que le défaut se produise
+ * plutôt qu'après.
+ */
+
+/** La clé d'un site : le couple (client, libellé). */
+export function cleDuSite(clientId: string, libelle: string): string {
+  return `SITE-${clientId}-${normaliserRaisonSociale(libelle)}`;
+}
+
+/** La clé d'un modèle : le couple (marque, référence) — jamais la famille. */
+export function cleDuModele(marque: string, reference: string): string {
+  return `MODELE-${normaliserRaisonSociale(marque)}-${normaliserRaisonSociale(reference)}`;
+}
+
+/** La clé d'une prestation : son code seul, que la base tient par un index. */
+export function cleDeLaPrestation(code: string): string {
+  return `PRESTATION-${normaliserRaisonSociale(code)}`;
+}
+
+/**
  * LE GABARIT « SITES » — **deux parents, deux règles, et c'est le point** (D101).
  *
  * *On aurait pu vouloir « la même règle partout ».* Elle aurait été fausse :
@@ -402,38 +436,6 @@ export function modeleSites(
   clients: ParcClientsIndexe,
   agences: ParcAgences,
 ): ModeleDImport {
-  const resoudreClient = (
-    valeurs: Readonly<Record<string, string | undefined>>,
-  ): string | undefined => {
-    const designation = valeurs[COLONNES_SITES.client]?.trim();
-    if (designation === undefined || designation === "") return undefined;
-    return (
-      clients.fiches.get(
-        cleDeClient({
-          codeExterne: designation,
-          raisonSociale: undefined,
-          rang: 0,
-        }).cle,
-      ) ??
-      clients.fiches.get(
-        cleDeClient({
-          codeExterne: undefined,
-          raisonSociale: designation,
-          rang: 0,
-        }).cle,
-      )
-    );
-  };
-
-  const resoudreAgence = (
-    valeurs: Readonly<Record<string, string | undefined>>,
-  ): string | undefined => {
-    const code = valeurs[COLONNES_SITES.agence]?.trim().toUpperCase();
-    return code === undefined || code === ""
-      ? undefined
-      : agences.parCode.get(code);
-  };
-
   return {
     type: "sites",
     version: 1,
@@ -452,36 +454,109 @@ export function modeleSites(
     // sans son client, et deux ateliers du même nom chez deux clients
     // différents sont deux lieux.*
     cle: (valeurs, rang) => {
-      const client = resoudreClient(valeurs);
+      const client = clientDuSite(clients, valeurs);
       const libelle = valeurs[COLONNES_SITES.libelle]?.trim();
       if (client === undefined || libelle === undefined || libelle === "") {
         return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
       }
       return {
         forme: "reference",
-        cle: `SITE-${client}-${normaliserRaisonSociale(libelle)}`,
+        cle: cleDuSite(client, libelle),
         complet: false,
       };
     },
+    // **Le VERDICT est celui de `preparerUnSite`, et il n'est pas recalculé
+    // ici.** *Le contrôle et l'application lisent la MÊME fonction* : une
+    // seconde lecture d'un même critère diverge en silence (§9, 01/09), et la
+    // divergence se verrait au pire endroit — entre ce qu'un humain a validé et
+    // ce qui sera écrit.
     valider: (valeurs) => {
-      const client = resoudreClient(valeurs);
-      const agence = resoudreAgence(valeurs);
-      // **Les deux parents avant la saisie**, et pour la même raison que
-      // l'ambiguïté : *une ligne dont le parent est introuvable se corrige dans
-      // le parc, pas dans les autres colonnes du fichier.*
-      if (client === undefined || agence === undefined) {
-        return MOTIF_PARENT_INTROUVABLE;
-      }
-      const saisie = {
-        ...saisieDepuisLaLigne(valeurs, CHAMPS_SITES),
-        client_id: client,
-        agence_id: agence,
-      };
-      return schemaCreationSite.safeParse(saisie).success
-        ? null
-        : MOTIF_SAISIE_REFUSEE;
+      const prepare = preparerUnSite(clients, agences, valeurs);
+      return prepare.prete ? null : prepare.motif;
     },
   };
+}
+
+/**
+ * LE CLIENT QU'UNE LIGNE DE SITE DÉSIGNE — par son code, puis par sa raison
+ * sociale, et dans cet ordre (D101).
+ *
+ * **Elle est appelée par `cle` ET par `preparerUnSite`**, et c'est ce qui la
+ * fait exister : la clé d'un site est le couple (client, libellé), si bien que
+ * *le rapprochement et la validation lisent le même client ou ne parlent pas du
+ * même site.*
+ */
+export function clientDuSite(
+  clients: ParcClientsIndexe,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): string | undefined {
+  const designation = valeurs[COLONNES_SITES.client]?.trim();
+  if (designation === undefined || designation === "") return undefined;
+  return (
+    clients.fiches.get(
+      cleDeClient({
+        codeExterne: designation,
+        raisonSociale: undefined,
+        rang: 0,
+      }).cle,
+    ) ??
+    clients.fiches.get(
+      cleDeClient({
+        codeExterne: undefined,
+        raisonSociale: designation,
+        rang: 0,
+      }).cle,
+    )
+  );
+}
+
+/**
+ * CE QU'UNE LIGNE DE SITE DÉSIGNE, RÉSOLU UNE SEULE FOIS (R6-01).
+ *
+ * ## Pourquoi elle est exportée, et ce que cela ferme
+ *
+ * Les deux parents d'un site — son client, son agence — se résolvent contre le
+ * PARC, et jusqu'à R6-01 cette résolution vivait dans une fermeture privée que
+ * seul `valider` appelait. **L'application avait alors deux issues, et les deux
+ * étaient mauvaises** : recopier la résolution, c'est-à-dire écrire la seconde
+ * lecture d'un critère que le §9 (01/09) nomme comme un défaut ; ou relire le
+ * parent depuis la base, c'est-à-dire redécider après la validation humaine, ce
+ * que I6 interdit.
+ *
+ * *Elle est donc extraite, et les trois appelants — le contrôle, l'application
+ * et l'annulation — lisent la même.*
+ *
+ * ## Les deux parents AVANT la saisie
+ *
+ * Et c'est la raison de l'ambiguïté, reprise telle quelle : *une ligne dont le
+ * parent est introuvable se corrige dans le parc, pas dans les autres colonnes
+ * du fichier.* Les annoncer ensemble ferait chercher au mauvais endroit.
+ */
+export type SiteALecrire =
+  | { readonly prete: true; readonly saisie: Record<string, unknown> }
+  | { readonly prete: false; readonly motif: string };
+
+export function preparerUnSite(
+  clients: ParcClientsIndexe,
+  agences: ParcAgences,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): SiteALecrire {
+  const client = clientDuSite(clients, valeurs);
+  const code = valeurs[COLONNES_SITES.agence]?.trim().toUpperCase();
+  const agence =
+    code === undefined || code === "" ? undefined : agences.parCode.get(code);
+
+  if (client === undefined || agence === undefined) {
+    return { prete: false, motif: MOTIF_PARENT_INTROUVABLE };
+  }
+  const saisie = {
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_SITES),
+    client_id: client,
+    agence_id: agence,
+  };
+  return schemaCreationSite.safeParse(saisie).success
+    ? { prete: true, saisie }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -541,15 +616,6 @@ function lireUnEntier(brut: string | undefined): number | null | string {
  * un parent à résoudre, pas une part de l'identité.
  */
 export function modeleModeles(familles: ParcFamilles): ModeleDImport {
-  const resoudreFamille = (
-    valeurs: Readonly<Record<string, string | undefined>>,
-  ): string | undefined => {
-    const code = valeurs[COLONNES_MODELES.famille]?.trim().toUpperCase();
-    return code === undefined || code === ""
-      ? undefined
-      : familles.parCode.get(code);
-  };
-
   return {
     type: "modeles",
     version: 1,
@@ -574,30 +640,52 @@ export function modeleModeles(familles: ParcFamilles): ModeleDImport {
       }
       return {
         forme: "reference",
-        cle: `MODELE-${normaliserRaisonSociale(marque)}-${normaliserRaisonSociale(reference)}`,
+        cle: cleDuModele(marque, reference),
         complet: false,
       };
     },
+    // Le VERDICT est celui de `preparerUnModele` — même raison qu'aux sites :
+    // *le contrôle et l'application lisent la MÊME fonction* (§9, 01/09).
     valider: (valeurs) => {
-      const famille = resoudreFamille(valeurs);
-      if (famille === undefined) {
-        return MOTIF_PARENT_INTROUVABLE;
-      }
-      const saisie = {
-        ...saisieDepuisLaLigne(valeurs, CHAMPS_MODELES),
-        famille_id: famille,
-        periodicite_jours: lireUnEntier(
-          valeurs[COLONNES_MODELES.periodiciteJours],
-        ),
-        periodicite_compteur: lireUnEntier(
-          valeurs[COLONNES_MODELES.periodiciteCompteur],
-        ),
-      };
-      return schemaModeleMateriel.safeParse(saisie).success
-        ? null
-        : MOTIF_SAISIE_REFUSEE;
+      const prepare = preparerUnModele(familles, valeurs);
+      return prepare.prete ? null : prepare.motif;
     },
   };
+}
+
+/**
+ * CE QU'UNE LIGNE DE MODÈLE DÉSIGNE, RÉSOLU UNE SEULE FOIS (R6-01).
+ *
+ * **La famille est OBLIGATOIRE ici**, et ce n'est pas la règle des
+ * prestations : un modèle de matériel appartient toujours à une famille, une
+ * prestation pas nécessairement. *Les deux se ressemblent et ne disent pas la
+ * même chose* — c'est pourquoi ce sont deux fonctions et non une, paramétrée.
+ */
+export type ModeleALecrire =
+  | { readonly prete: true; readonly saisie: Record<string, unknown> }
+  | { readonly prete: false; readonly motif: string };
+
+export function preparerUnModele(
+  familles: ParcFamilles,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): ModeleALecrire {
+  const code = valeurs[COLONNES_MODELES.famille]?.trim().toUpperCase();
+  const famille =
+    code === undefined || code === "" ? undefined : familles.parCode.get(code);
+  if (famille === undefined) {
+    return { prete: false, motif: MOTIF_PARENT_INTROUVABLE };
+  }
+  const saisie = {
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_MODELES),
+    famille_id: famille,
+    periodicite_jours: lireUnEntier(valeurs[COLONNES_MODELES.periodiciteJours]),
+    periodicite_compteur: lireUnEntier(
+      valeurs[COLONNES_MODELES.periodiciteCompteur],
+    ),
+  };
+  return schemaModeleMateriel.safeParse(saisie).success
+    ? { prete: true, saisie }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -674,32 +762,133 @@ export function modelePrestations(familles: ParcFamilles): ModeleDImport {
       }
       return {
         forme: "reference",
-        cle: `PRESTATION-${normaliserRaisonSociale(code)}`,
+        cle: cleDeLaPrestation(code),
         complet: false,
       };
     },
+    // Le VERDICT est celui de `preparerUnePrestation` — même raison qu'aux
+    // sites et aux modèles : *le contrôle et l'application lisent la MÊME
+    // fonction* (§9, 01/09).
     valider: (valeurs) => {
-      const brut = valeurs[COLONNES_PRESTATIONS.famille]?.trim();
-      const nommee = brut !== undefined && brut !== "";
-      const famille = nommee
-        ? familles.parCode.get(brut.toUpperCase())
-        : undefined;
-      // NOMMÉE MAIS INTROUVABLE → rejet ; ABSENTE → aucune famille, et la ligne
-      // passe. *Les deux se corrigent à des endroits différents : l'une dans le
-      // parc, l'autre nulle part — il n'y a rien à corriger.*
-      if (nommee && famille === undefined) {
-        return MOTIF_PARENT_INTROUVABLE;
-      }
-      const saisie = {
-        ...saisieDepuisLaLigne(valeurs, CHAMPS_PRESTATIONS),
-        famille_id: famille ?? null,
-        duree_standard_min: lireUnEntier(
-          valeurs[COLONNES_PRESTATIONS.dureeStandard],
-        ),
-      };
-      return schemaPrestation.safeParse(saisie).success
-        ? null
-        : MOTIF_SAISIE_REFUSEE;
+      const prepare = preparerUnePrestation(familles, valeurs);
+      return prepare.prete ? null : prepare.motif;
     },
   };
 }
+
+/**
+ * CE QU'UNE LIGNE DE PRESTATION DÉSIGNE, RÉSOLU UNE SEULE FOIS (R6-01).
+ *
+ * **La famille est FACULTATIVE, et c'est la seule des trois à l'être.** Une
+ * cellule VIDE n'est pas un parent introuvable — elle est l'absence de parent,
+ * et elle passe ; une cellule RENSEIGNÉE qui ne désigne rien est un rejet.
+ * *Confondre les deux ferait rejeter toutes les prestations sans famille, soit
+ * la moitié d'un catalogue ordinaire.*
+ *
+ * C'est pour cette distinction qu'elle n'est pas `preparerUnModele` avec un
+ * drapeau : *les deux se ressemblent et ne disent pas la même chose*, et un
+ * paramètre `familleObligatoire` ferait décider à l'appelant une règle qui
+ * appartient au gabarit.
+ */
+export type PrestationALecrire =
+  | { readonly prete: true; readonly saisie: Record<string, unknown> }
+  | { readonly prete: false; readonly motif: string };
+
+export function preparerUnePrestation(
+  familles: ParcFamilles,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): PrestationALecrire {
+  const brut = valeurs[COLONNES_PRESTATIONS.famille]?.trim();
+  const nommee = brut !== undefined && brut !== "";
+  const famille = nommee ? familles.parCode.get(brut.toUpperCase()) : undefined;
+  if (nommee && famille === undefined) {
+    return { prete: false, motif: MOTIF_PARENT_INTROUVABLE };
+  }
+  const saisie = {
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_PRESTATIONS),
+    famille_id: famille ?? null,
+    duree_standard_min: lireUnEntier(
+      valeurs[COLONNES_PRESTATIONS.dureeStandard],
+    ),
+  };
+  return schemaPrestation.safeParse(saisie).success
+    ? { prete: true, saisie }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES GABARITS QUE CODIPLAN PUBLIE, ÉNUMÉRÉS UNE SEULE FOIS (R6-01)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LES TROIS PARCS DONT LES GABARITS ONT BESOIN pour résoudre leurs parents.
+ *
+ * *Ils répondent à « que désigne cette cellule ? » et jamais à « cette fiche
+ * existe-t-elle déjà ? »* — la seconde question est celle de `parc-cibles.ts`,
+ * et les confondre fait de chaque ligne une création.
+ */
+export type ParcsDImport = {
+  readonly clients: ParcClientsIndexe;
+  readonly agences: ParcAgences;
+  readonly familles: ParcFamilles;
+};
+
+/**
+ * LES CINQ GABARITS, CONSTRUITS ENSEMBLE.
+ *
+ * **Jusqu'à R6-01, aucune liste ne les réunissait** : la route de contrôle
+ * nommait `MODELE_CLIENTS` et elle seule, si bien que les quatre autres
+ * n'avaient **aucun appelant** — mesuré le 16/09/2026, en contrôlant une
+ * feuille de sites par le chemin de la route : anomalie `marqueur_autre_type`,
+ * c'est-à-dire *un fichier de sites refusé à la première cellule.* Les gabarits
+ * existaient, leur contrôle était éprouvé, et rien ne pouvait les atteindre.
+ *
+ * **L'ordre n'a aucune importance** : le choix se fait par le MARQUEUR (D31),
+ * jamais par un rang.
+ */
+export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
+  return [
+    MODELE_CLIENTS,
+    modeleContacts(parcs.clients),
+    modeleSites(parcs.clients, parcs.agences),
+    modeleModeles(parcs.familles),
+    modelePrestations(parcs.familles),
+  ];
+}
+
+/**
+ * LE GABARIT QUE LE MARQUEUR D'UNE FEUILLE DÉSIGNE, ou `null`.
+ *
+ * **Elle ne JUGE rien.** Un marqueur absent, illisible, ou d'une version qu'on
+ * ne sait pas lire ne se distingue pas ici d'un type inconnu : *c'est
+ * `controlerFeuille` qui prononce, et lui seul* — il porte déjà les cinq
+ * anomalies de D31, avec leur ligne et leur valeur. Cette fonction répond à une
+ * question plus étroite : **lequel des cinq gabarits ce fichier prétend-il
+ * remplir ?** — de quoi choisir le juge, jamais de quoi rendre le verdict.
+ *
+ * *Deux questions différentes, deux fonctions* : les fondre ferait rendre à la
+ * sélection les motifs de refus, c'est-à-dire deux lectures d'un même critère
+ * (§9, 01/09).
+ */
+export function gabaritDuMarqueur(
+  cellule: Cellule | undefined,
+  parcs: ParcsDImport,
+): ModeleDImport | null {
+  const type = typeAnnonce(cellule);
+  if (type === null) return null;
+  return gabaritsPublies(parcs).find((modele) => modele.type === type) ?? null;
+}
+
+/**
+ * LES CINQ TYPES PUBLIÉS, DÉRIVÉS DES GABARITS EUX-MÊMES.
+ *
+ * **Jamais une seconde liste écrite à la main** : elle appelle les
+ * constructeurs avec des parcs VIDES, parce que le `type` d'un gabarit ne
+ * dépend d'aucun parc. *Une énumération recopiée « pour la lisibilité »
+ * deviendrait fausse le jour d'un sixième gabarit, sans rougir* (§9, 01/09).
+ */
+export const TYPES_PUBLIES: readonly string[] = gabaritsPublies({
+  clients: { cles: new Set(), ambigues: new Set(), fiches: new Map() },
+  agences: { parCode: new Map() },
+  familles: { parCode: new Map() },
+}).map((modele) => modele.type);
