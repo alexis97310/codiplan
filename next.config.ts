@@ -1,5 +1,39 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {/* config options here */};
+/**
+ * L'INTERVENTION A CHANGÉ D'ADRESSE (N-01, 16/09/2026).
+ *
+ * `/planning/{id}` devient `/interventions/{id}`, `/planning/nouvelle` devient
+ * `/interventions/nouvelle` : un objet, un écran canonique, une URL qui le
+ * nomme — jamais celle de l'écran par lequel on l'a atteint la première fois.
+ *
+ * **CETTE REDIRECTION EST TRANSITOIRE.** Les anciennes adresses ont été
+ * ouvertes, captées dans des restitutions, et l'application de démonstration
+ * tourne dessus : les faire répondre 404 casserait ce qui les a déjà
+ * enregistrées. *Une redirection sans date de péremption écrite devient un
+ * second chemin permanent vers le même écran* — la faute que ce ticket
+ * répare —, d'où la date ci-dessous plutôt qu'un silence.
+ *
+ * **SE FERME au premier lot qui touche `app/(back-office)/planning/` après le
+ * 16/03/2027** (six mois) : retirer les deux entrées ci-dessous, et vérifier
+ * qu'aucune restitution ni aucun lien externe connu ne vise encore
+ * `/planning/{id}` ou `/planning/nouvelle`.
+ */
+const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/planning/nouvelle",
+        destination: "/interventions/nouvelle",
+        permanent: true,
+      },
+      {
+        source: "/planning/:id",
+        destination: "/interventions/:id",
+        permanent: true,
+      },
+    ];
+  },
+};
 
 export default nextConfig;

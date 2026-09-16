@@ -29,7 +29,7 @@ import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { referenceAffichee } from "../presentation";
+import { referenceAffichee, retourPlanning } from "../presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
@@ -95,7 +95,10 @@ export default async function PageIntervention({
   return (
     <main className="flex flex-col gap-5">
       <header className="flex flex-col gap-2">
-        <Link href="/planning" className="text-app-encre-faible text-[12.5px]">
+        <Link
+          href={retourPlanning(ligne.date_planifiee)}
+          className="text-app-encre-faible text-[12.5px]"
+        >
           {t("planning.retour_fleche")}
         </Link>
         <div className="flex flex-wrap items-center gap-3">

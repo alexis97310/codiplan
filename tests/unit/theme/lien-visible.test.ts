@@ -134,13 +134,17 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // journal des chargements mène à un lot, et le lot revient aux imports.
       "app/(back-office)/imports/[id]/page.tsx",
       "app/(back-office)/imports/page.tsx",
+      // Les deux écrans D'INTERVENTIONS y sont entrés le 16/09/2026 avec N-01 :
+      // la fiche quitte `/planning/{id}` pour `/interventions/{id}`, et la
+      // liste ouvre le registre que l'entrée de navigation attendait.
+      "app/(back-office)/interventions/[id]/page.tsx",
+      "app/(back-office)/interventions/page.tsx",
       // Les deux écrans d'horaires y sont entrés le 14/09/2026 avec R3-13 : le
       // tableau des établissements mène à la fiche d'un calendrier, et la fiche
       // revient au tableau.
       "app/(back-office)/parametres/agences/[calendrier]/page.tsx",
       "app/(back-office)/parametres/agences/page.tsx",
       "app/(back-office)/parc/page.tsx",
-      "app/(back-office)/planning/[id]/page.tsx",
       "app/(back-office)/planning/page.tsx",
       "app/(back-office)/sites/page.tsx",
       "app/(back-office)/vgp/page.tsx",

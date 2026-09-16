@@ -133,7 +133,7 @@ test("l'ADV voit le total hors taxes — le cas qui doit rester vert", async ({
   page,
 }) => {
   await ouvrirLaSession(page, COMPTE_EPREUVE);
-  await page.goto(`/planning/${SCENE.obstacle}`);
+  await page.goto(`/interventions/${SCENE.obstacle}`);
   // Le TITRE du bloc est là dans les deux cas : c'est ce qui rend l'écart
   // visible au lieu de le faire disparaître.
   await expect(
@@ -151,7 +151,7 @@ test("`admin_societe` lit le MOTIF à la place des montants — D37", async ({
   page,
 }) => {
   await ouvrirLaSession(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
-  await page.goto(`/planning/${SCENE.obstacle}`);
+  await page.goto(`/interventions/${SCENE.obstacle}`);
   // Le bloc n'a pas disparu : *un bloc absent se lirait « cette intervention
   // n'a pas de montant » là où il faut lire « ce n'est pas pour vous »*.
   await expect(

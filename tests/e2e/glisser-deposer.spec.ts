@@ -217,7 +217,7 @@ function poignee(page: Page, id: string): Locator {
 /** Le lien d'une intervention dans une case d'heure — bloc ou SUITE de bloc. */
 function occupe(page: Page, technicienId: string, minutes: number, id: string) {
   return caseDHeure(page, technicienId, minutes).locator(
-    `a[href="/planning/${id}"]`,
+    `a[href="/interventions/${id}"]`,
   );
 }
 

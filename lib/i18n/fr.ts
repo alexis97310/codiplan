@@ -730,6 +730,22 @@ export const fr = {
   "planning.retour_fleche": "← Retour au planning",
   "planning.periode": "Période affichée",
 
+  // ── L'ÉCRAN « INTERVENTIONS » (N-01, 16/09/2026) ─────────────────────────
+  //
+  // La liste elle-même, canonique — le planning en montre un CALENDRIER,
+  // celle-ci en montre le REGISTRE : la plus récente en tête, chaque ligne
+  // menant à sa fiche par son numéro affiché, jamais par l'identifiant
+  // technique (I10).
+  "interventions.titre": "Interventions",
+  "interventions.sous_titre":
+    "Le registre des interventions de la société, la plus récente en tête.",
+  "interventions.vide": "Aucune intervention enregistrée.",
+  // CE QUI EST MONTRÉ EST ÉCRIT, plutôt que de laisser croire que la liste
+  // est complète : le parc de démonstration porte assez d'interventions pour
+  // qu'une liste non bornée casse au volume.
+  "interventions.borne":
+    "Les 200 interventions les plus récentes sont affichées. La recherche et le filtre arrivent dans un prochain lot.",
+
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
   // **JAMAIS LE POURCENTAGE SEUL**, et c'est une demande d'exploitation avant
