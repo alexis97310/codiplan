@@ -726,6 +726,22 @@ Et « la copie masque l'original » est une règle de **sélection**, que RLS ne
 
 **Le seed n'amorce rien** — la liste des familles et des modèles appartient à l'exploitation. Le catalogue de plateforme, s'il existe un jour, sera un amorçage, comme la liste réglementaire des habilitations.
 
+### Et pendant six jours, personne ne pouvait en créer une (L1-05b, 15/09/2026)
+
+`ls lib/materiel/` rendait **un seul fichier**, `saisie.ts` : les deux tables et leur validation existaient, et **il n'y avait ni dépôt, ni route, ni écran**. _Et c'est un enchaînement plutôt qu'un manque isolé_ — une machine exige un modèle (D6, quatre champs obligatoires), un modèle exige une famille, **et aucun des deux ne pouvait naître**. Le parc ne se remplissait que par le semis.
+
+**L'import ne le sauvait pas**, et cela se mesure à part : `grep "^export async function appliquer" lib/imports/` rend **une** ligne, et c'est `appliquerLeLotDeClients`. Le gabarit des modèles sait produire un rapport et ne sait pas l'appliquer (R6-01) ; il n'existe **aucun gabarit de famille** (R6-03).
+
+`/parametres/materiel` est la **septième porte** de la section « Sociétés & tarifs » — la barre reste close à onze entrées (D95), et un écran se rejoint par un lien.
+
+**AUCUNE COLONNE DE VGP N'EST ÉCRITE PAR CET ÉCRAN**, et ce n'est pas un oubli. Les deux tables portent `vgp_periodicite_mois` et `vgp_reference_texte`, la famille porte en plus `assujettissement_vgp` : elles appartiennent au lot 9 et à ses règles — l'assujettissement se déclare à la famille avec ses **trois** valeurs (L9-03), « soumis » rend obligatoires la périodicité **et** le texte qui la fonde (L9-04), le modèle PRÉCISE sans jamais faire exception (L9-06). _Les écrire depuis un formulaire de référentiel serait une seconde entrée sur la même règle, et la seconde ne connaîtrait pas la première._ Une famille créée ici naît donc `a_determiner` — relu en SQL par un scénario, jamais supposé — et apparaît le jour même dans `/vgp/a-determiner`.
+
+**L'entretien du constructeur n'est PAS la périodicité réglementaire**, et l'écran le dit là où on le saisit. _Les mêler dans un même champ ferait facturer un entretien pour une vérification légale, ou l'inverse._
+
+**Les verrous sont éprouvés sur `create`, `update` ET `upsert`** (`tests/isolation/ecriture-materiel.test.ts`, 23 scénarios) : l'unicité du code de famille, celle du couple (marque, référence), le chaînage composite qui refuse la famille d'une autre société, et les bornes de la donnée elle-même. Le dépôt n'emploie pourtant que `create` et `updateMany` — _l'`upsert` est écrit parce que l'import l'emploiera_, et parce qu'une contrainte éprouvée sur deux verbes sur trois est une contrainte dont on ne sait pas ce qu'elle fait sur le troisième (§9, 14/09).
+
+> **Une mesure faite en écrivant le jumeau, et qui vaut d'être lue : l'unicité de ces deux tables n'est PAS une contrainte, c'est un INDEX.** `pg_constraint` n'en porte aucune ; `pg_indexes` porte `famille_materiel_societe_id_code_key` et `modele_materiel_societe_id_marque_reference_key`. Un jumeau écrit en `ALTER TABLE … DROP CONSTRAINT` échoue donc en `42704` **au lieu de retirer le verrou** — et c'est le bon sens de défaillance : il refuse de mesurer, plutôt que de mesurer le refus d'un voisin (§9, 24/08). Le premier jet l'a fait, et c'est la mesure qui l'a dit.
+
 **Un effet de bord, mesuré et écrit :** après ce retrait, plus aucun référentiel de plateforme ne porte de colonne `societe_id`. La phrase de I1 « `societe_id` NULL **ou pas de `societe_id` du tout** » reste vraie, mais sa première moitié n'a plus d'exemplaire — un témoin le dit, à l'endroit où on pourrait la lire comme la preuve qu'un cas existe.
 
 ## Le second facteur — son plancher, et l'issue de secours qu'il condamnait

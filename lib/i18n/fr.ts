@@ -1460,9 +1460,58 @@ export const fr = {
   "parametres.index_clients_titre": "Clients",
   "parametres.index_clients_resume":
     "Le r\u00e9f\u00e9rentiel des clients\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import et lieux d'intervention. C'est d'ici que part la cr\u00e9ation d'une fiche.",
+  "materiel.titre": "Référentiel matériel",
+  "materiel.sous_titre":
+    "Les familles et les modèles que le parc désigne. Une machine exige un modèle, un modèle exige une famille : sans eux, aucune fiche ne peut naître.",
+  "materiel.familles": "Familles",
+  "materiel.modeles": "Modèles",
+  "materiel.creer_famille": "Ajouter une famille",
+  "materiel.creer_modele": "Ajouter un modèle",
+  "materiel.creer_action": "Ajouter",
+  "materiel.modifier_famille": "Modifier la famille",
+  "materiel.modifier_modele": "Modifier le modèle",
+  "materiel.enregistrer": "Enregistrer",
+  "materiel.code": "Code",
+  "materiel.libelle": "Libellé",
+  "materiel.famille": "Famille",
+  "materiel.famille_inconnue": "Famille non lisible",
+  "materiel.marque": "Marque",
+  "materiel.reference": "Référence",
+  "materiel.periodicite_jours": "Entretien (jours)",
+  "materiel.periodicite_compteur": "Entretien (compteur)",
+  "materiel.periodicite": "Entretien périodique",
+  "materiel.sans_periodicite": "Non périodique",
+  "materiel.activite": "Activité",
+  "materiel.active": "Actif",
+  "materiel.inactive": "Inactif",
+  "materiel.activer": "Réactiver",
+  "materiel.desactiver": "Désactiver",
+  "materiel.aucune_famille": "Aucune famille n\u2019est encore déclarée.",
+  "materiel.aucun_modele":
+    "Aucun modèle n\u2019est encore déclaré. Une famille doit exister avant lui.",
+  "materiel.modele_sans_famille":
+    "Déclarez d\u2019abord une famille : un modèle en désigne une, et la base le refuse sans elle.",
+  "materiel.pas_la_vgp":
+    "L\u2019entretien périodique n\u2019est PAS la périodicité réglementaire des vérifications générales. Celle-ci se déclare à la famille, depuis le registre des VGP, avec le texte qui la fonde.",
+  "materiel.vgp_ailleurs":
+    "Une famille nouvelle naît « à déterminer » au registre des VGP, et y reste tant que personne n\u2019a tranché.",
+  "materiel.aucune_suppression":
+    "Rien ne se supprime ici : des modèles, des forfaits, des prestations et des machines désignent ces lignes. Désactiver les retire du choix sans toucher au passé.",
+  "materiel.refus.saisie":
+    "La saisie est refusée : code, libellé, marque et référence ne peuvent pas être vides, et une périodicité saisie est strictement positive.",
+  "materiel.refus.code_pris":
+    "Ce code de famille est déjà pris dans cette société.",
+  "materiel.refus.marque_reference_prise":
+    "Ce couple marque et référence est déjà pris dans cette société.",
+  "materiel.refus.famille_hors_societe":
+    "Cette famille n\u2019existe pas dans cette société.",
+  "materiel.refus.introuvable": "Cette ligne est introuvable.",
   "parametres.index_prestations_titre": "Catalogue des prestations",
   "parametres.index_prestations_resume":
     "Ce qu'on sait faire, et combien de temps cela prend. Une prestation porte une durée standard, jamais un tarif : le prix se lit au taux horaire ou au forfait, à la date de l'intervention.",
+  "parametres.index_materiel_titre": "Référentiel matériel",
+  "parametres.index_materiel_resume":
+    "Familles et modèles. Une machine exige un modèle, un modèle exige une famille.",
   "parametres.index_ouvrir": "Ouvrir",
 
   // ── LES TEMPS DE TRAJET PAR ZONE (R3-03, D107, RG-PLA-05) ────────────────

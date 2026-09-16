@@ -82,4 +82,20 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     titre: "parametres.index_prestations_titre",
     resume: "parametres.index_prestations_resume",
   },
+  {
+    // LA SEPTIÈME PORTE (L1-05b, 15/09/2026). Les deux tables du référentiel
+    // matériel existaient depuis L1-05 et n'avaient AUCUN chemin d'écriture :
+    // `ls lib/materiel/` rendait `saisie.ts`, et rien d'autre.
+    //
+    // **Et c'est un ENCHAÎNEMENT, pas un manque isolé** : une machine exige un
+    // modèle (D6), un modèle exige une famille, et aucun des deux ne pouvait
+    // naître. *Le parc ne se remplissait que par le semis.* L'import ne le
+    // sauvait pas non plus — une seule fonction d'application existe dans tout
+    // le dépôt, et c'est celle des clients (R6-01, R6-03).
+    //
+    // **Elle ne porte aucun décompte**, comme les six autres.
+    chemin: "/parametres/materiel",
+    titre: "parametres.index_materiel_titre",
+    resume: "parametres.index_materiel_resume",
+  },
 ];

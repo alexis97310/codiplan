@@ -1968,11 +1968,23 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 *Relu contre les sources citées le 14/09/2026 — empreinte `75ef68e5`.*
 
 **L1-05b — SAISIR UNE FAMILLE ET UN MODÈLE : le référentiel matériel n'a aucun chemin d'écriture.**
-*File :* LIBRE
+*File :* LIVRÉ
+**LIVRÉ le 15/09/2026, et c'est le PREMIER ticket du périmètre réduit.** `lib/materiel/depot.ts`, six routes sous `app/api/parametres/materiel/`, l'écran `/parametres/materiel`, et la **septième porte** de la section « Sociétés & tarifs » — la barre reste close à onze entrées (D95), et un écran se rejoint par un lien.
+
+**AUCUNE MIGRATION.** Les deux tables, leurs quatre `CHECK`, leurs deux unicités et le chaînage composite existaient depuis L1-05 : *ce ticket n'a rien ajouté à la base, il lui a donné un appelant.* C'est la différence exacte entre une COUCHE et un CHEMIN que R3-12 a rendue mesurable.
+
+**CE QUI N'EST PAS ÉCRIT PAR CET ÉCRAN, et c'est la décision du ticket :** aucune colonne de VGP. Les deux tables portent `vgp_periodicite_mois` et `vgp_reference_texte`, la famille porte en plus `assujettissement_vgp` — **elles appartiennent au lot 9 et à ses règles** (L9-03, L9-04, L9-06). *Une seconde entrée sur la même règle ne connaîtrait pas la première.* Une famille créée ici naît `a_determiner` — **relu en SQL par un scénario**, jamais supposé — et apparaît le jour même dans `/vgp/a-determiner`.
+
+**LES VERROUS SONT ÉPROUVÉS SUR `create`, `update` ET `upsert`** — `tests/isolation/ecriture-materiel.test.ts`, **23 scénarios**, trois jumeaux qui retirent réellement le verrou visé. *Le dépôt n'emploie pourtant que `create` et `updateMany`* : l'`upsert` est écrit parce que **l'import l'emploiera** le jour où R6-01 et R6-03 donneront une application aux gabarits, et parce qu'une contrainte éprouvée sur deux verbes sur trois est une contrainte dont on ne sait pas ce qu'elle fait sur le troisième (§9, 14/09).
+
+> **UNE MESURE FAITE EN ÉCRIVANT LE JUMEAU, ET ELLE VAUT D'ÊTRE LUE.** *L'unicité de ces deux tables n'est pas une CONTRAINTE, c'est un INDEX* : `pg_constraint` n'en porte aucune, `pg_indexes` porte `famille_materiel_societe_id_code_key`. Un jumeau écrit en `ALTER TABLE … DROP CONSTRAINT` échoue donc en `42704` **au lieu de retirer le verrou** — et c'est le bon sens de défaillance : *il refuse de mesurer, plutôt que de mesurer le refus d'un voisin* (§9, 24/08). **Le premier jet l'a fait, et c'est la mesure qui l'a dit, pas la relecture.**
+
+**CE QUI RESTE DÛ, et ce n'est pas ce ticket :** la reprise en MASSE. *Un écran de saisie ne remplit pas un parc de cent modèles* — c'est R6-01 (l'application d'un lot ne connaît qu'un type) et R6-03 (aucun gabarit d'équipement ni de famille). **Les deux ne se remplacent pas**, et c'est le raisonnement exact que R3-15 a tenu sur les prestations.
+
 **Mesuré le 14/09/2026** : `lib/materiel/` ne porte que `saisie.ts`. **Et l'import ne sauve pas ce module** — `grep "^export async function appliquer" lib/imports/` rend une seule ligne, et c'est `appliquerLeLotDeClients` : le gabarit des familles sait produire un rapport et **ne sait pas l'appliquer**. *Le raisonnement « l'import donnera un appelant à tout le monde » est vrai des clients et faux des quatre autres types.*
 **CE QUE CELA COÛTE AUJOURD'HUI :** une machine exige un modèle (D6, quatre champs obligatoires), un modèle exige une famille, et **aucun des deux ne peut naître**. *Le parc ne peut donc pas se remplir autrement que par le semis*, ce qui est exactement l'état que R3-10 a mesuré sur les captures.
 *Acceptation :* familles et modèles se créent et se modifient depuis un écran atteignable ; aucune énumération n'est inventée (D4 amendé) ; la périodicité d'entretien, si elle est saisie, **n'est pas** la périodicité réglementaire des VGP et l'écran le dit.
-*Relu contre les sources citées le 14/09/2026 — empreinte `47f45fac`.*
+*Relu contre les sources citées le 15/09/2026 — empreinte `cd0cde61`.*
 
 **L2-06b — LA FILE DES DEMANDES : six fonctions de dépôt, aucun appelant.**
 *File :* LIBRE
@@ -2054,6 +2066,23 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 **CE QU'IL SUPPOSE, et le premier point n'est pas du code.** *(1)* **La CLÉ de rapprochement d'un équipement**, et elle n'est écrite nulle part. *L2-01 et L1-08f ont déjà tranché la forme pour le contrôle* — série nue, référence préfixée `SN-INCONNU-`, rang préfixé `LIGNE-`, trois espaces **disjoints** — mais un gabarit d'import désigne aussi un **parent**, et un équipement en a **deux** : son modèle et son site. *Aucun des cinq gabarits existants n'en désigne deux*, et L1-09b n'a écrit la règle que pour un. *(2)* **Ce qui distingue « parent rejeté » de « parent introuvable »** est déjà posé par L1-09b, et R4-03 en réclame un troisième cas ; les deux tickets se rencontrent ici. *(3)* **`complet` est DÉDUIT du numéro de série, jamais accepté depuis l'entrée** (§6) — un gabarit qui exposerait une colonne « Complet » laisserait un fichier mentir sur la qualité d'une fiche. *(4)* **Ni `id`, ni `qr_token`, ni `numero`** : les deux premiers naissent sur l'appareil (D7, I10), le troisième est attribué par le serveur.
 
 *Acceptation :* deux gabarits naissent — familles et équipements — et chacun **expose ou écarte NOMMÉMENT** chaque champ de son schéma de saisie, avec son motif ; la clé d'un équipement est la **même** que celle du contrôle, appelée et jamais recopiée ; un équipement dont le modèle OU le site est introuvable porte le motif qui dit **lequel** ; un gabarit d'équipement désignant deux parents est **éprouvé sur les deux absences séparément**.
+
+**R6-04 — LE GARDIEN DES CHEMINS LIT LA DOCUMENTATION COMME DE L'EXÉCUTION.**
+*File :* LIBRE
+**Déclencheur : il a rougi le 15/09/2026 sur une fonction que le module ne déclare pas, et c'est en écrivant L1-05b qu'il l'a fait.**
+
+**CE QUI A ÉTÉ MESURÉ.** `scripts/lib/chemins-de-depot.ts` cherche les exports d'un module de dépôt avec un motif **sans ancre de début de ligne, et sans retirer les commentaires**. Une commande de recherche citée dans un en-tête de module est donc lue comme une fonction exportée. *Mesuré : `lib/materiel/depot.ts` a fait échouer le gardien sur `lib/materiel/depot.ts#appliquer`, une fonction qui n'existe nulle part.*
+
+**ET C'EST LE SEUL EXEMPLAIRE AUJOURD'HUI**, ce qui se mesure aussi : la même recherche sur les treize modules de dépôt, en ne retenant que les correspondances placées sur une ligne de commentaire, rend **une** ligne — celle-ci. *Un gardien qui n'a qu'un faux positif n'est pas un gardien bruyant* (§9, 11/09) : ce n'est pas le taux d'alerte qui motive ce ticket, c'est que le contournement soit en train de devenir une règle d'écriture tacite.
+
+> **C'est la forme 2 du §9 (26/08) PRISE À L'ENVERS.** Là, un gardien SQL oubliait de lire les chaînes littérales, et le §9 en a tiré : *« le périmètre examiné ne retire jamais les chaînes littérales ; la seule coupure légitime est "documentation contre exécution" »*. **Ici le gardien lit la documentation comme de l'exécution** — il applique la mauvaise moitié de la même règle. Et le symptôme n'est pas celui qu'on attend : *il ne laisse pas passer une faute, il en invente une*, si bien que la réponse naturelle est d'écrire autrement plutôt que de le réparer.
+
+**CE QUI A ÉTÉ FAIT EN ATTENDANT, ET POURQUOI CE N'EST PAS LA RÉPARATION.** L1-05b a **reformulé son commentaire** pour ne plus porter le littéral, et a écrit dans le fichier même pourquoi. *C'est un contournement assumé, nommé là où il a mordu* — la réparation n'a pas été faite en passant parce qu'**elle change la population d'un gardien qui garde `pnpm verify`** : retirer les commentaires du périmètre pourrait retirer avec eux une détection réelle, et cela se mesure avant de se commettre.
+
+**CE QU'IL SUPPOSE.** *(1)* La coupure est **« documentation contre exécution »**, jamais « code contre chaîne » : les commentaires de ligne et de bloc, jamais les chaînes littérales. *(2)* Le motif gagne son **ancre de début de ligne**, qui est la forme réelle d'un export. *(3)* **La population est confrontée avant et après** — la liste des fonctions vues doit être identique, moins le faux positif : *un gardien qu'on répare en lui faisant voir moins de choses est un gardien qu'on a éteint.*
+
+*Acceptation :* le gardien est éprouvé sur un module de dépôt portant, **dans un commentaire**, un export qui n'existe pas — il reste vert ; et sur le même module portant un **vrai** export sans appelant — il rougit ; la liste des fonctions observées est **inchangée** hors le faux positif, et un témoin le dit ; le contournement de `lib/materiel/depot.ts` est retiré avec sa note.
+
 
 ## Ce que l'exploitation a dit du métier le 14/09/2026, en tickets
 
