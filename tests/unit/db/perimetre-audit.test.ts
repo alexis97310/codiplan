@@ -630,7 +630,14 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
  * trait pour trait (§9, la vacuité).
  */
 const SOURCES_QUI_RENVOIENT = [
-  { fichier: "CLAUDE.md", section: /### I8 — Traçabilité[\s\S]*?(?=\n### )/ },
+  // AT-05 (16/09/2026) : I8 a été détaché du `CLAUDE.md` vers
+  // `docs/constitution/invariants.md`, mot pour mot. Le renvoi est donc lu là —
+  // le noyau, lui, ne porte qu'une ligne d'index, et l'y chercher aurait rendu ce
+  // scénario VACUEUX : sa section serait introuvable, et son témoin le dit.
+  {
+    fichier: "docs/constitution/invariants.md",
+    section: /### I8 — Traçabilité[\s\S]*?(?=\n### )/,
+  },
   { fichier: "docs/cahier-des-charges.md", section: /^\| RG-DRO-04 \|.*$/m },
   {
     fichier: "README.md",
