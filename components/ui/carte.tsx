@@ -30,16 +30,20 @@ import { cn } from "@/lib/utils";
 export function Carte({
   titre,
   action,
+  id,
   className,
   children,
 }: Readonly<{
   titre?: string;
   action?: { readonly libelle: string; readonly href: string };
+  /** Pour une ancre — `<a href="#modeles">` (AT-04). Aucun rôle visuel. */
+  id?: string;
   className?: string;
   children: React.ReactNode;
 }>) {
   return (
     <section
+      id={id}
       className={cn(
         "bg-app-surface border-app-bord overflow-hidden rounded-[10px] border",
         className,

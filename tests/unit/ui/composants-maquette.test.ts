@@ -82,6 +82,7 @@ const PAGE = source("components/mise-en-page/page.tsx");
 const CARTE = source("components/ui/carte.tsx");
 const FICHE = source("components/ui/fiche.tsx");
 const BADGE = source("components/ui/badge.tsx");
+const KPI = source("components/ui/kpi.tsx");
 const TABLEAU = source("components/ui/tableau.tsx");
 
 /** Les graisses Tailwind que ce gardien sait lire — un fait du framework, pas de l'application. */
@@ -235,6 +236,80 @@ describe("Badge — .b de la maquette", () => {
       expect(BADGE).toContain(`bg-app-${famille}-fond`);
       expect(BADGE).toContain(`text-app-${famille}-encre`);
     }
+  });
+});
+
+describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
+  it("a réellement lu quatre règles — le témoin de non-vacuité", () => {
+    expect(regle(".kpi").length).toBeGreaterThan(0);
+    expect(regle(".kpi .l").length).toBeGreaterThan(0);
+    expect(regle(".kpi .v2").length).toBeGreaterThan(0);
+    expect(regle(".kpi .d").length).toBeGreaterThan(0);
+  });
+
+  it("la carte reprend le rembourrage et le rayon de .kpi", () => {
+    const kpi = regle(".kpi");
+    const [vertical, horizontal] = propriete(kpi, "padding").split(" ");
+    expect(KPI).toContain(`py-[${vertical}]`);
+    expect(KPI).toContain(`px-[${horizontal}]`);
+
+    expect(propriete(kpi, "border-radius")).toBe("10px");
+    expect(KPI).toContain("rounded-[10px]");
+  });
+
+  it("le libellé reprend taille, capitales, interlettrage et graisse de .kpi .l", () => {
+    const l = regle(".kpi .l");
+    expect(propriete(l, "font-size")).toBe("11px");
+    expect(KPI).toContain("text-[11px]");
+
+    expect(propriete(l, "text-transform")).toBe("uppercase");
+    expect(KPI).toContain("uppercase");
+
+    expect(enPixels(propriete(l, "letter-spacing"))).toBe(0.6);
+    expect(KPI).toContain("tracking-[0.6px]");
+
+    expect(porteLaGraisse(KPI, Number(propriete(l, "font-weight")))).toBe(true);
+  });
+
+  it("la valeur reprend taille, graisse, interlettrage et espacement de .kpi .v2", () => {
+    const v2 = regle(".kpi .v2");
+    expect(propriete(v2, "font-size")).toBe("27px");
+    expect(KPI).toContain("text-[27px]");
+
+    expect(porteLaGraisse(KPI, Number(propriete(v2, "font-weight")))).toBe(
+      true,
+    );
+
+    expect(enPixels(propriete(v2, "letter-spacing"))).toBe(-1);
+    expect(KPI).toContain("tracking-[-1px]");
+
+    const [haut, , bas] = propriete(v2, "margin").split(" ");
+    expect(KPI).toContain(`mt-[${haut}]`);
+    expect(KPI).toContain(`mb-[${bas}]`);
+  });
+
+  it("le détail reprend la taille de .kpi .d", () => {
+    const d = regle(".kpi .d");
+    expect(propriete(d, "font-size")).toBe("11px");
+    expect(KPI).toContain("text-[11px]");
+  });
+
+  it("les trois tons non rouges sont adossés aux jetons que la maquette NOMME", () => {
+    // Les mêmes paires que `tests/unit/theme/apparence.test.ts` établit entre
+    // les noms de la maquette et les jetons : ce fichier ne les redéclare pas,
+    // il vérifie que le filet de chaque ton s'y adosse.
+    expect(KPI).toContain("bg-app-marque"); // bleu — var(--bleu)
+    expect(KPI).toContain("bg-app-vert-plein"); // vert — var(--vert)
+    expect(KPI).toContain("bg-app-orange-bord"); // orange — var(--orange)
+  });
+
+  it("le ton rouge rejoint la famille de statut, jamais l'accent de la marque", () => {
+    // `--app-accent` et `--app-rouge-bord` valent la même teinte dans la
+    // maquette, qui ne nomme `--rouge` qu'une fois — mais l'accent porte déjà
+    // deux sens dans ce dépôt (marque, alerte), et `tests/unit/theme/
+    // action-primaire.test.ts` refuse qu'un écran l'écrive pour un troisième.
+    expect(KPI).toContain("bg-app-rouge-bord");
+    expect(KPI).not.toContain("bg-app-accent");
   });
 });
 

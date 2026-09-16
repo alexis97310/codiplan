@@ -1,8 +1,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
+import { Champ } from "@/components/ui/champ";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
@@ -11,9 +15,10 @@ import {
   type LigneFamille,
   type LigneModele,
 } from "@/lib/materiel/depot";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
- * LE RÉFÉRENTIEL MATÉRIEL (L1-05b ; L1-05, D4 amendé, D6).
+ * LE RÉFÉRENTIEL MATÉRIEL (L1-05b, AT-04 ; L1-05, D4 amendé, D6).
  *
  * ## Pourquoi cet écran existe, et ce que son absence coûtait
  *
@@ -38,19 +43,25 @@ import {
  * ce sont des données saisies, et une liste close ici serait la même faute,
  * déplacée d'une couche.
  *
- * ## L'ENTRETIEN N'EST PAS LA VGP, ET L'ÉCRAN LE DIT LÀ OÙ ON LE SAISIT
+ * ## LE RÉGIME VGP EST VISIBLE, ET C'EST UN REVIREMENT ASSUMÉ (AT-04)
  *
- * `periodicite_jours` et `periodicite_compteur` sont l'entretien du
- * constructeur. **La périodicité RÉGLEMENTAIRE des vérifications générales est
- * une autre colonne, une autre règle et un autre écran** : elle se déclare à la
- * FAMILLE, elle exige le texte qui la fonde (L9-04), et le modèle peut la
- * PRÉCISER sans jamais faire exception (L9-06). *Les mêler dans un même champ
- * ferait facturer un entretien pour une vérification légale, ou l'inverse.*
+ * *Chaque famille porte son régime — assujettissement, périodicité, référence
+ * du texte —, le sous-titre de cet écran en parle depuis L1-05b, et le régime
+ * n'était affiché NULLE PART.* C'est l'information la plus précieuse de
+ * l'écran, une obligation réglementaire, et elle était invisible. La colonne
+ * « Régime VGP » la rend, avec la pastille qui convient à chacune des quatre
+ * valeurs — « à déterminer » comprise, une question ouverte qui doit se voir.
  *
- * **Ce formulaire n'écrit donc aucune colonne de VGP**, et une famille créée ici
- * naît « à déterminer » — l'état que L9-03 a choisi pour qu'il ne se confonde
- * pas avec « non soumise ». Elle apparaît le jour même dans `/vgp/a-determiner`,
- * et l'écran le dit plutôt que de le laisser découvrir.
+ * **Ce que ce revirement NE change pas** : ce formulaire n'ÉCRIT toujours
+ * aucune colonne de VGP. `periodicite_jours` et `periodicite_compteur` restent
+ * l'entretien du constructeur, une autre question que la périodicité
+ * RÉGLEMENTAIRE des vérifications générales — celle-ci se déclare à la
+ * famille, exige le texte qui la fonde (L9-04), et le modèle peut la PRÉCISER
+ * sans jamais faire exception (L9-06). *Les mêler dans un même champ ferait
+ * facturer un entretien pour une vérification légale, ou l'inverse.* Une
+ * famille créée ici naît donc toujours « à déterminer », et se décide au
+ * registre des VGP — cet écran LIT ce qui s'y décide, il n'y répond pas à sa
+ * place.
  *
  * ## AUCUNE SUPPRESSION
  *
@@ -84,16 +95,7 @@ export default async function PageMateriel({
   const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("materiel.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("materiel.sous_titre")}
-        </p>
-      </header>
-
+    <Page titre={t("materiel.titre")} sousTitre={t("materiel.sous_titre")}>
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -105,21 +107,22 @@ export default async function PageMateriel({
 
       {/* ── LES FAMILLES ─────────────────────────────────────────────────── */}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("materiel.creer_famille")}</h2>
-        <FormulaireFamille
-          action="/api/parametres/materiel/familles/creer"
-          soumettre={t("materiel.creer_action")}
-        />
-        <p className="text-app-encre-faible text-[11.5px]">
-          {t("materiel.vgp_ailleurs")}
-        </p>
-      </section>
+      <Carte titre={t("materiel.creer_famille")}>
+        <div className="flex flex-col gap-3 p-4">
+          <FormulaireFamille
+            action="/api/parametres/materiel/familles/creer"
+            soumettre={t("materiel.creer_action")}
+          />
+          <p className="text-app-encre-faible text-[11.5px]">
+            {t("materiel.vgp_ailleurs")}
+          </p>
+        </div>
+      </Carte>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-        <Tableau colonnes={colonnesFamilles()} minimum="760px">
+      <Carte titre={t("materiel.familles")}>
+        <Tableau colonnes={colonnesFamilles()} minimum="920px">
           {familles.length === 0 ? (
-            <LignePleine colonnes={3}>
+            <LignePleine colonnes={5}>
               {t("materiel.aucune_famille")}
             </LignePleine>
           ) : null}
@@ -127,6 +130,14 @@ export default async function PageMateriel({
             <tr key={famille.id}>
               <Cellule fort>{famille.code}</Cellule>
               <Cellule>{famille.libelle}</Cellule>
+              <Cellule>
+                <RegimeVgp famille={famille} />
+              </Cellule>
+              <Cellule droite>
+                <a href="#modeles" className={CLASSES_LIEN}>
+                  {decompteModeles(famille._count.modeles)}
+                </a>
+              </Cellule>
               <Cellule>
                 <Activite
                   action={`/api/parametres/materiel/familles/${famille.id}/activite`}
@@ -136,48 +147,48 @@ export default async function PageMateriel({
             </tr>
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       {familles.map((famille) => (
-        <section
+        <Carte
           key={famille.id}
-          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-[10px] border px-4 py-3.5"
+          titre={titreDe(t("materiel.modifier_famille"), famille.code)}
         >
-          <h2 className="text-[13px] font-bold">
-            {titreDe(t("materiel.modifier_famille"), famille.code)}
-          </h2>
-          <FormulaireFamille
-            action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
-            soumettre={t("materiel.enregistrer")}
-            valeurs={famille}
-          />
-        </section>
+          <div className="p-4">
+            <FormulaireFamille
+              action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
+              soumettre={t("materiel.enregistrer")}
+              valeurs={famille}
+            />
+          </div>
+        </Carte>
       ))}
 
       {/* ── LES MODÈLES ──────────────────────────────────────────────────── */}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
-        <h2 className="text-[14px] font-bold">{t("materiel.creer_modele")}</h2>
-        {familles.length === 0 ? (
-          // *Un formulaire dont le seul choix de parent est vide est un
-          // formulaire qui ne peut que refuser.* La phrase dit où aller ;
-          // afficher le champ aurait fait cliquer avant de lire.
-          <p className="text-app-encre-faible text-[12.5px]">
-            {t("materiel.modele_sans_famille")}
+      <Carte titre={t("materiel.creer_modele")}>
+        <div className="flex flex-col gap-3 p-4">
+          {familles.length === 0 ? (
+            // *Un formulaire dont le seul choix de parent est vide est un
+            // formulaire qui ne peut que refuser.* La phrase dit où aller ;
+            // afficher le champ aurait fait cliquer avant de lire.
+            <p className="text-app-encre-faible text-[12.5px]">
+              {t("materiel.modele_sans_famille")}
+            </p>
+          ) : (
+            <FormulaireModele
+              action="/api/parametres/materiel/modeles/creer"
+              familles={familles}
+              soumettre={t("materiel.creer_action")}
+            />
+          )}
+          <p className="text-app-encre-faible text-[11.5px]">
+            {t("materiel.pas_la_vgp")}
           </p>
-        ) : (
-          <FormulaireModele
-            action="/api/parametres/materiel/modeles/creer"
-            familles={familles}
-            soumettre={t("materiel.creer_action")}
-          />
-        )}
-        <p className="text-app-encre-faible text-[11.5px]">
-          {t("materiel.pas_la_vgp")}
-        </p>
-      </section>
+        </div>
+      </Carte>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <Carte titre={t("materiel.modeles")} id="modeles" className="scroll-mt-4">
         <Tableau colonnes={colonnesModeles()} minimum="960px">
           {modeles.length === 0 ? (
             <LignePleine colonnes={5}>
@@ -204,29 +215,28 @@ export default async function PageMateriel({
             </tr>
           ))}
         </Tableau>
-      </section>
+      </Carte>
 
       {modeles.map((modele) => (
-        <section
+        <Carte
           key={modele.id}
-          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-[10px] border px-4 py-3.5"
+          titre={titreDe(t("materiel.modifier_modele"), designation(modele))}
         >
-          <h2 className="text-[13px] font-bold">
-            {titreDe(t("materiel.modifier_modele"), designation(modele))}
-          </h2>
-          <FormulaireModele
-            action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
-            familles={familles}
-            soumettre={t("materiel.enregistrer")}
-            valeurs={modele}
-          />
-        </section>
+          <div className="p-4">
+            <FormulaireModele
+              action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
+              familles={familles}
+              soumettre={t("materiel.enregistrer")}
+              valeurs={modele}
+            />
+          </div>
+        </Carte>
       ))}
 
       <p className="text-app-encre-faible text-[11.5px]">
         {t("materiel.aucune_suppression")}
       </p>
-    </main>
+    </Page>
   );
 }
 
@@ -253,9 +263,20 @@ function designation(modele: LigneModele): string {
 
 function colonnesFamilles() {
   return [
-    { cle: "code", libelle: t("materiel.code"), largeur: "160px" },
+    { cle: "code", libelle: t("materiel.code"), largeur: "140px" },
     { cle: "libelle", libelle: t("materiel.libelle") },
-    { cle: "actif", libelle: t("materiel.activite"), largeur: "220px" },
+    {
+      cle: "regime",
+      libelle: t("materiel.colonne_regime"),
+      largeur: "220px",
+    },
+    {
+      cle: "modeles",
+      libelle: t("materiel.colonne_modeles"),
+      largeur: "110px",
+      droite: true,
+    },
+    { cle: "actif", libelle: t("materiel.activite"), largeur: "200px" },
   ];
 }
 
@@ -270,12 +291,72 @@ function colonnesModeles() {
 }
 
 /**
+ * LE TON DE LA PASTILLE DE RÉGIME — un jugement, écrit comme tel : la maquette
+ * ne montre aucun régime VGP, elle n'a donc rien à confronter.
+ *
+ * **« À déterminer » est ORANGE, et c'est le seul choix délibéré** : c'est une
+ * question ouverte, et le directeur d'exploitation a demandé qu'elle « se
+ * voie » — le même ton que `parc.a_completer` (`app/(back-office)/parc/
+ * page.tsx`), une autre question ouverte sur une fiche.
+ *
+ * « Soumis » est BLEU — une obligation active et connue, le ton déjà employé
+ * pour un statut « planifiée » (`lib/theme/statuts.ts`). « Non soumis » et
+ * « vérifié non soumis » sont GRIS — deux états où quelqu'un a déjà tranché
+ * qu'il n'y a rien à faire, le ton déjà employé pour un statut « annulée ».
+ */
+const TONS_REGIME_VGP: Record<LigneFamille["assujettissement_vgp"], TonBadge> =
+  {
+    a_determiner: "orange",
+    soumis: "bleu",
+    non_soumis: "gris",
+    verifie: "gris",
+  };
+
+function RegimeVgp({ famille }: { readonly famille: LigneFamille }) {
+  const periodicite = periodiciteVgpAffichee(famille);
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Badge ton={TONS_REGIME_VGP[famille.assujettissement_vgp]}>
+        {t(`vgp.regime.${famille.assujettissement_vgp}`)}
+      </Badge>
+      {periodicite === null ? null : (
+        <span className="text-app-encre-faible text-[11.5px]">
+          {periodicite}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * LA PÉRIODICITÉ RÉGLEMENTAIRE AFFICHÉE, avec le texte qui la fonde.
+ *
+ * **Ce n'est PAS `entretienAffiche`** : celle-ci lit `vgp_periodicite_mois` et
+ * `vgp_reference_texte`, deux colonnes distinctes de l'entretien constructeur
+ * (L9-04). Les deux voyagent ensemble en base ; ce qui suit ne fait que le lire.
+ */
+function periodiciteVgpAffichee(famille: LigneFamille): string | null {
+  if (famille.vgp_periodicite_mois === null) {
+    return null;
+  }
+  const base = `${famille.vgp_periodicite_mois} ${t("materiel.vgp_mois")}`;
+  return famille.vgp_reference_texte === null
+    ? base
+    : `${base}${TIRET}${famille.vgp_reference_texte}`;
+}
+
+/** Un décompte de modèles, composé hors du JSX (L0-11) — même forme que le parc. */
+function decompteModeles(nombre: number): string {
+  return `${nombre} ${nombre === 1 ? t("materiel.modeles_compte_un") : t("materiel.modeles_compte")}`;
+}
+
+/**
  * L'ENTRETIEN AFFICHÉ — une absence s'affiche comme une absence.
  *
  * *Jamais « 0 j »* : zéro dirait « dû en permanence », et la base le refuse pour
  * cette raison exacte. « Non périodique » dit ce qui est vrai, et se corrige
  * ailleurs qu'une valeur fausse. **Et ce n'est pas la VGP** — la périodicité
- * réglementaire se lit au registre.
+ * réglementaire se lit désormais à la colonne « Régime VGP », juste au-dessus.
  */
 function entretienAffiche(modele: LigneModele): string {
   const parts: string[] = [];
@@ -449,37 +530,5 @@ function CaseActive({ defaut }: { readonly defaut: boolean }) {
       <input type="checkbox" name="actif" defaultChecked={defaut} />
       {t("materiel.active")}
     </label>
-  );
-}
-
-function Champ({
-  id,
-  nom,
-  libelle,
-  valeur,
-  large,
-  nombre,
-}: {
-  readonly id: string;
-  readonly nom: string;
-  readonly libelle: string;
-  readonly valeur?: string;
-  readonly large?: boolean;
-  readonly nombre?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
-        {libelle}
-      </label>
-      <input
-        id={id}
-        name={nom}
-        type={nombre === true ? "number" : "text"}
-        min={nombre === true ? 1 : undefined}
-        defaultValue={valeur}
-        className={`border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px] ${large === true ? "min-w-64" : "w-36"}`}
-      />
-    </div>
   );
 }

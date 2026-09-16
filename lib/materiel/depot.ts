@@ -147,20 +147,36 @@ function motifModele(erreur: unknown): MotifRefusModele | null {
   return null;
 }
 
-/** Une famille telle qu'un écran la lit. */
-export type LigneFamille = {
-  readonly id: string;
-  readonly code: string;
-  readonly libelle: string;
-  readonly actif: boolean;
-};
-
-const CHAMPS_FAMILLE: { readonly [K in keyof LigneFamille]: true } = {
+/**
+ * Une famille telle qu'un écran la lit.
+ *
+ * **Les trois colonnes de VGP sont lues DEPUIS AT-04** (16/09/2026) — un
+ * revirement sur la ligne juste au-dessus, et il est écrit pourquoi plutôt
+ * que corrigé en silence. *Lire n'est pas écrire* : `creerFamilleDans` et
+ * `modifierFamilleDans`, plus bas, restent les SEULS chemins qui les
+ * modifient, par le paramètre `vgp` que L9-04 gouverne. Les taire ici rendait
+ * invisible l'information la plus précieuse du référentiel matériel — une
+ * obligation réglementaire — sur l'écran même où chaque famille naît.
+ *
+ * `_count.modeles` compte les modèles de la famille, pour le même écran :
+ * *un décompte affiché sans son détail est une question qu'on pose sans y
+ * répondre*, et le lien qui l'accompagne mène à la table des modèles, plus
+ * bas sur le même écran.
+ */
+export const CHAMPS_FAMILLE = {
   id: true,
   code: true,
   libelle: true,
   actif: true,
-};
+  assujettissement_vgp: true,
+  vgp_periodicite_mois: true,
+  vgp_reference_texte: true,
+  _count: { select: { modeles: true } },
+} as const;
+
+export type LigneFamille = Prisma.FamilleMaterielGetPayload<{
+  select: typeof CHAMPS_FAMILLE;
+}>;
 
 /** Un modèle tel qu'un écran le lit. */
 export type LigneModele = {
@@ -186,10 +202,13 @@ const CHAMPS_MODELE: { readonly [K in keyof LigneModele]: true } = {
 /**
  * LES FAMILLES, sous le contexte cloisonné.
  *
- * **Les colonnes de VGP ne sont PAS lues**, et c'est le pendant de ce que ce
- * module n'écrit pas : `/vgp` et `/vgp/a-determiner` les rendent, avec la règle
- * qui les gouverne. *Les afficher ici, dans un tableau qui ne sait pas les
- * écrire, montrerait une donnée sans dire où on la corrige.*
+ * **Les colonnes de VGP SONT lues depuis AT-04**, et ce module continue de ne
+ * rien en écrire — ce paragraphe disait l'inverse, et la raison qui le
+ * motivait tenait toujours : *un tableau qui ne sait pas écrire une donnée ne
+ * doit pas laisser croire qu'il la corrige.* L'écran de L1-05b ne gagne donc
+ * aucun champ de saisie pour l'assujettissement ; il gagne une COLONNE DE
+ * LECTURE, au même titre que `/vgp` et `/vgp/a-determiner`, qui restent les
+ * seuls écrans à en expliquer la règle en détail.
  */
 export async function listerLesFamilles(
   contexte: ContexteSession,
