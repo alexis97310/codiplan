@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
+import { TYPES_PUBLIES } from "@/lib/imports/modeles";
+import { SANS_APPLICATION } from "@/lib/imports/types-dimport";
 
 import {
   CHEMIN_EPREUVE,
@@ -69,14 +71,22 @@ test("l'écran se rejoint par la BARRE, et nomme ce qu'il ne sait pas appliquer"
     page.getByRole("heading", { name: fr["imports.titre"] }),
   ).toBeVisible();
 
-  // LES QUATRE TYPES NON APPLICABLES SONT NOMMÉS, jamais proposés. *Les taire
+  // LES TYPES NON APPLICABLES SONT NOMMÉS, jamais proposés. *Les taire
   // ferait croire qu'ils n'ont pas été pensés* — la faute de D88.
+  //
+  // Le compte n'est PAS écrit à la main : R6-01 en a fait passer quatre de
+  // « contrôle seul » à « complet », et un nombre en dur ici redeviendrait
+  // faux au prochain gabarit appliqué (§9, 11/09 — un gardien creux dont le
+  // WHERE recoupe l'assertion). Il se lit dans la MÊME source que l'écran.
+  const nombreIncomplets = Object.keys(SANS_APPLICATION).length;
+  const nombreComplets = TYPES_PUBLIES.length - nombreIncomplets;
+
   const incomplets = page.locator('li[data-complet="0"]');
-  await expect(incomplets).toHaveCount(4);
-  // Et le TÉMOIN de l'autre direction : celui qu'on sait appliquer est là
-  // aussi, et il est seul. *Quatre absences se ressemblent ; c'est la présence
-  // du cinquième qui dit que la liste a été lue.*
-  await expect(page.locator('li[data-complet="1"]')).toHaveCount(1);
+  await expect(incomplets).toHaveCount(nombreIncomplets);
+  // Et le TÉMOIN de l'autre direction : ce qu'on sait appliquer est là aussi.
+  await expect(page.locator('li[data-complet="1"]')).toHaveCount(
+    nombreComplets,
+  );
 
   // Ce qu'on ne sait pas faire est INERTE et MOTIVÉ — jamais un lien vers rien.
   await expect(
