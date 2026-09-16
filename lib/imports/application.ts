@@ -11,8 +11,18 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { creerSiteDans, modifierSiteDans } from "@/lib/sites/depot";
 import { schemaCreationSite, schemaModificationSite } from "@/lib/sites/saisie";
-import { creerModeleDans, modifierModeleDans } from "@/lib/materiel/depot";
-import { schemaModeleMateriel } from "@/lib/materiel/saisie";
+import {
+  creerFamilleDans,
+  creerModeleDans,
+  modifierFamilleDans,
+  modifierModeleDans,
+} from "@/lib/materiel/depot";
+import {
+  schemaFamilleMateriel,
+  schemaModeleMateriel,
+} from "@/lib/materiel/saisie";
+import { creerMachineDans, modifierMachineDans } from "@/lib/machines/depot";
+import { schemaMachine } from "@/lib/machines/saisie";
 import {
   creerPrestationDans,
   modifierPrestationDans,
@@ -22,8 +32,10 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import {
   CHAMPS_CLIENTS,
+  preparerUnEquipement,
   preparerUnModele,
   preparerUnePrestation,
+  preparerUneFamille,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
@@ -31,6 +43,8 @@ import { indexerLesAgences } from "./parc-agences";
 import { indexerLesFamilles } from "./parc-familles";
 import { indexerLeParcClients } from "./parc-clients";
 import {
+  indexerLeParcEquipements,
+  indexerLeParcFamilles,
   indexerLeParcModeles,
   indexerLeParcPrestations,
   indexerLeParcSites,
@@ -118,9 +132,10 @@ type Ecriture = "creation" | "modification" | null;
  * choisir — et elle est **fermée par un gardien contre les sources de
  * `lib/imports/`** plutôt que tenue à la main : `lib/imports/types-dimport.ts`,
  * confronté par `tests/unit/imports/types-dimport.test.ts`. *Le jour où une
- * cinquième application sera écrite et non déclarée, `pnpm verify` rougira le
+ * application de plus sera écrite et non déclarée, `pnpm verify` rougira le
  * jour même.* C'est la réponse que L1-08i attendait d'avoir cinq exemplaires
- * sous les yeux pour donner.
+ * sous les yeux pour donner — **et elle a tenu sans une ligne de plus quand
+ * R6-03 en a ajouté deux.**
  *
  * ## Le parc peut AVOIR BOUGÉ, et ce n'est pas une erreur du fichier
  *
@@ -546,4 +561,155 @@ async function tracer(
         avant === null ? undefined : (avant as Prisma.InputJsonValue),
     },
   });
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE MATÉRIEL — la famille, puis l'équipement (R6-03)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Applique un lot d'import de FAMILLES DE MATÉRIEL (R6-03).
+ *
+ * **C'est la RACINE de l'enchaînement** que R6-03 décrit : une machine exige un
+ * modèle, un modèle exige une famille, et la famille n'exige rien. *Elle est le
+ * seul gabarit du matériel sans parent*, si bien que cette fonction ne lit qu'un
+ * parc — celui de la cible.
+ *
+ * ## LES COLONNES DE VGP SONT ÉCRITES ICI, et L1-05b ne les écrivait pas
+ *
+ * La différence se vérifie : ce chemin n'énonce aucune règle de L9-04, il passe
+ * `prepare.vgp` — que `schemaAssujettissementFamille` a jugé, et que la base
+ * jugera une seconde fois par sa contrainte. *Une famille dont le fichier ne dit
+ * rien naît `a_determiner`*, l'état honnête, et apparaît le jour même dans
+ * `/vgp/a-determiner`.
+ */
+export async function appliquerLeLotDeFamilles(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatApplication> {
+  const familles = await indexerLeParcFamilles(contexte, client);
+
+  return appliquerLesLignes(
+    contexte,
+    lotId,
+    client,
+    async (tx, societeId, ligne) => {
+      const prepare = preparerUneFamille(ligne.valeurs);
+      if (!prepare.prete) return null;
+      const saisie = schemaFamilleMateriel.parse(prepare.saisie);
+
+      if (ligne.action === "creation") {
+        const id = uuidv7();
+        await creerFamilleDans(tx, societeId, id, saisie, prepare.vgp);
+        await tracer(tx, ligne.id, "famille_materiel", id, null);
+        return "creation";
+      }
+
+      const cible =
+        ligne.cle === null ? undefined : familles.fiches.get(ligne.cle);
+      if (cible === undefined) return null;
+
+      const avant = await tx.familleMateriel.findUnique({
+        where: { id: cible },
+        select: {
+          code: true,
+          libelle: true,
+          assujettissement_vgp: true,
+          vgp_periodicite_mois: true,
+          vgp_reference_texte: true,
+        },
+      });
+
+      const touchees = await modifierFamilleDans(
+        tx,
+        cible,
+        saisie,
+        prepare.vgp,
+      );
+      if (touchees === 0) return null;
+      await tracer(tx, ligne.id, "famille_materiel", cible, avant);
+      return "modification";
+    },
+  );
+}
+
+/**
+ * Applique un lot d'import d'ÉQUIPEMENTS (R6-03 ; D6, D7, I10).
+ *
+ * **QUATRE parcs sont lus, et ils ne répondent pas à la même question.**
+ * `clients`, `sites` et `modeles` disent ce qu'une CELLULE désigne — les trois
+ * parents de D6 —, `equipements` dit si la FICHE existe déjà. *C'est le premier
+ * gabarit du dépôt à désigner trois parents*, et le rejet nomme lequel manque.
+ *
+ * **Les parents sont résolus par `preparerUnEquipement`, la fonction MÊME que le
+ * contrôle a appelée** — et le RANG lui est passé, parce que c'est lui qui
+ * décide de la forme de la clé, donc du numéro de série. *Une seconde résolution
+ * écrite ici divergerait au pire endroit : entre ce qu'un humain a validé et ce
+ * qui sera écrit.*
+ *
+ * **`complet` n'est pas décidé ici** : `schemaMachine` le déduit du numéro de
+ * série (§6), et une plaque illisible donne `SN-INCONNU-<référence>` — la fiche
+ * entre incomplète et rejoint la file de complétion de L2-01. *Elle n'est pas
+ * rejetée : c'est tout le point de D6.*
+ */
+export async function appliquerLeLotDeEquipements(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatApplication> {
+  const clients = await indexerLeParcClients(contexte, client);
+  const sites = await indexerLeParcSites(contexte, client);
+  const modeles = await indexerLeParcModeles(contexte, client);
+  const equipements = await indexerLeParcEquipements(contexte, client);
+
+  return appliquerLesLignes(
+    contexte,
+    lotId,
+    client,
+    async (tx, societeId, ligne) => {
+      const prepare = preparerUnEquipement(
+        clients,
+        sites,
+        modeles,
+        ligne.valeurs,
+        ligne.rang,
+      );
+      // Le parc a bougé depuis le contrôle : l'un des trois parents a disparu.
+      // *Ce n'est pas une erreur du fichier*, et écrire quand même se heurterait
+      // de toute façon à la clé étrangère composite — en emportant la
+      // transaction entière, donc le lot.
+      if (!prepare.prete) return null;
+      const saisie = schemaMachine.parse(prepare.saisie);
+
+      if (ligne.action === "creation") {
+        // L'identifiant est tiré ICI et non par la base (D7, I10) — et il est
+        // rendu à `tracer`, sans quoi l'annulation n'aurait rien à défaire.
+        const id = uuidv7();
+        await creerMachineDans(tx, societeId, id, saisie);
+        await tracer(tx, ligne.id, "machine", id, null);
+        return "creation";
+      }
+
+      const cible =
+        ligne.cle === null ? undefined : equipements.fiches.get(ligne.cle);
+      if (cible === undefined) return null;
+
+      const avant = await tx.machine.findUnique({
+        where: { id: cible },
+        select: {
+          numero_serie: true,
+          reference_interne: true,
+          localisation: true,
+          criticite: true,
+          complet: true,
+        },
+      });
+
+      const touchees = await modifierMachineDans(tx, cible, saisie);
+      if (touchees === 0) return null;
+      await tracer(tx, ligne.id, "machine", cible, avant);
+      return "modification";
+    },
+  );
 }

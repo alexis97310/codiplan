@@ -97,36 +97,53 @@ export function serieInconnue(numeroSerie: string): boolean {
   return numeroSerie.trim().startsWith(PREFIXE_SERIE_INCONNUE);
 }
 
-export const schemaMachine = z
-  .object({
-    // ── Les QUATRE de D6 ──────────────────────────────────────────────────
-    modele_id: z.uuid(),
-    client_id: z.uuid(),
-    site_id: z.uuid(),
-    numero_serie: texteNonVide,
+/**
+ * LES CHAMPS D'UNE FICHE MACHINE, AVANT LA DÉDUCTION DE `complet` (R6-03).
+ *
+ * **Exporté pour qu'un gardien puisse en DÉRIVER sa population**, et pas pour
+ * être appelé : `schemaMachine` reste la seule porte de validation. *Mesuré le
+ * 16/09/2026 : `.transform()` rend un `ZodPipe`, qui ne porte pas de `.shape`*
+ * — un gabarit confronté à `schemaMachine` aurait donc lu **zéro champ**, et
+ * l'accord de deux listes vides est le vert le plus trompeur qui soit (§9,
+ * 10/09). L'objet est nommé plutôt que le gardien ne fouille l'intérieur du
+ * `def`, qui est une forme interne de Zod et changerait sans prévenir.
+ */
+export const champsMachine = z.object({
+  // ── Les QUATRE de D6 ──────────────────────────────────────────────────
+  modele_id: z.uuid(),
+  client_id: z.uuid(),
+  site_id: z.uuid(),
+  numero_serie: texteNonVide,
 
-    // ── Le reste, facultatif à la création (D6 : « localisation et photo de
-    //    plaque restent facultatives ») ────────────────────────────────────
-    reference_interne: texteFacultatif,
-    localisation: texteFacultatif,
-    facture_origine: texteFacultatif,
-    date_mise_en_service: z.date().nullable().default(null),
-    date_vente: z.date().nullable().default(null),
-    garantie_fin: z.date().nullable().default(null),
+  // ── Le reste, facultatif à la création (D6 : « localisation et photo de
+  //    plaque restent facultatives ») ────────────────────────────────────
+  reference_interne: texteFacultatif,
+  localisation: texteFacultatif,
+  facture_origine: texteFacultatif,
+  date_mise_en_service: z.date().nullable().default(null),
+  date_vente: z.date().nullable().default(null),
+  garantie_fin: z.date().nullable().default(null),
 
-    statut: z.enum(STATUTS_MACHINE).default("en_service"),
-    criticite: z.enum(CRITICITES_MACHINE).default("normale"),
-    source_creation: z.enum(SOURCES_CREATION_MACHINE).default("back_office"),
-    machine_remplacee_id: z.uuid().nullable().default(null),
-  })
-  .transform((machine) => ({
-    ...machine,
-    /**
-     * DÉDUIT, jamais demandé. `complet` pilote la file de complétion : le
-     * laisser saisir en ferait une seconde source du même fait, et les deux
-     * divergeraient le jour où quelqu'un corrigerait le numéro sans y penser.
-     */
-    complet: !serieInconnue(machine.numero_serie),
-  }));
+  statut: z.enum(STATUTS_MACHINE).default("en_service"),
+  criticite: z.enum(CRITICITES_MACHINE).default("normale"),
+  source_creation: z.enum(SOURCES_CREATION_MACHINE).default("back_office"),
+  machine_remplacee_id: z.uuid().nullable().default(null),
+});
+
+export const schemaMachine = champsMachine.transform((machine) => ({
+  ...machine,
+  /**
+   * DÉDUIT, jamais demandé. `complet` pilote la file de complétion : le
+   * laisser saisir en ferait une seconde source du même fait, et les deux
+   * divergeraient le jour où quelqu'un corrigerait le numéro sans y penser.
+   *
+   * **Et c'est ce qui interdit à un GABARIT d'exposer une colonne « Complet »**
+   * (R6-03, §6) : le champ n'existe pas dans `champsMachine`, si bien qu'un
+   * fichier n'a aucun moyen de mentir sur la qualité d'une fiche. *Une colonne
+   * qu'aucun schéma ne porte est une colonne qu'on ne peut pas ajouter par
+   * distraction.*
+   */
+  complet: !serieInconnue(machine.numero_serie),
+}));
 
 export type SaisieMachine = z.output<typeof schemaMachine>;

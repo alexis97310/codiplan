@@ -15,10 +15,10 @@ import { mot } from "@/lib/i18n/vocabulaire";
  * ## Ce que `complet` veut dire, et pourquoi il n'est pas déduit
  *
  * Un type est **complet** quand il sait contrôler ET appliquer. Le contrôle
- * existe pour les cinq (les cinq gabarits de `lib/imports/modeles.ts`) ;
- * **l'application en couvre quatre depuis R6-01**, et la cinquième — les
- * contacts — attend son dépôt : `lib/contacts/` ne porte que `saisie.ts`, et
- * l'écrire est L1-03b. *Le motif vit dans `SANS_APPLICATION`, où il se lit à
+ * existe pour tous les gabarits de `lib/imports/modeles.ts` ; **l'application
+ * les couvre tous sauf un** — R6-01 en a ouvert quatre, R6-03 y ajoute les
+ * familles et les équipements —, et le dernier, les CONTACTS, attend son
+ * dépôt : `lib/contacts/` ne porte que `saisie.ts`, et l'écrire est L1-03b. *Le motif vit dans `SANS_APPLICATION`, où il se lit à
  * côté de ce qu'il écarte.*
  *
  * **Le drapeau est écrit ICI et CONFRONTÉ ailleurs**, et la seconde moitié est
@@ -86,6 +86,18 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     detail: "imports.type.prestations_detail",
     complet: true,
   },
+  {
+    cle: "familles",
+    titre: "imports.type.familles",
+    detail: "imports.type.familles_detail",
+    complet: true,
+  },
+  {
+    cle: "equipements",
+    titre: "imports.type.equipements",
+    detail: "imports.type.equipements_detail",
+    complet: true,
+  },
 ];
 
 /** Le libellé d'un statut de lot — un CODE en base, une clé ici. */
@@ -114,6 +126,15 @@ export function cleDuMotif(motif: string): CleTraduction | null {
       return "imports.motif.parent_introuvable";
     case "cle_ambigue":
       return "imports.motif.cle_ambigue";
+    // **Les trois parents d'un équipement se nomment séparément** (R6-03) :
+    // *« parent introuvable » sur une ligne qui en désigne trois envoie
+    // chercher dans trois référentiels.*
+    case "client_introuvable":
+      return "imports.motif.client_introuvable";
+    case "site_introuvable":
+      return "imports.motif.site_introuvable";
+    case "modele_introuvable":
+      return "imports.motif.modele_introuvable";
     default:
       return null;
   }

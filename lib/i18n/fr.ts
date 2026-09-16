@@ -563,6 +563,17 @@ export const fr = {
   "imports.type.prestations": "Prestations",
   "imports.type.prestations_detail":
     "Catalogue des durées standard, sans aucun montant.",
+  "imports.type.familles": "Familles de matériel",
+  // Le détail nomme les DEUX moitiés, parce que la seconde est ce qui distingue
+  // ce gabarit de tous les autres : il déclare une obligation réglementaire.
+  "imports.type.familles_detail":
+    "Racine du parc — et c'est ici que se déclare l'assujettissement aux vérifications réglementaires. Sans déclaration, la famille naît « à déterminer ».",
+  "imports.type.equipements": "Équipements",
+  // *Le mot imposé n'est PAS écrit ici* : le gardien du vocabulaire a rougi sur
+  // la première rédaction, à raison (D5, D47). La notion se dit par sa
+  // définition — « le lieu où elle est installée » —, jamais par le mot.
+  "imports.type.equipements_detail":
+    "Les machines elles-mêmes. Chacune désigne son modèle, son client et le lieu où elle est installée ; sans numéro de série lisible, la fiche entre à compléter.",
   "imports.type.complet": "Contrôle et application",
   "imports.type.controle_seul": "Contrôle seulement",
   "imports.type.controle_seul_motif":
@@ -642,6 +653,15 @@ export const fr = {
     "La fiche que cette ligne désigne n'existe pas dans le parc. La correction est dans le parc, ou dans la colonne qui le nomme.",
   "imports.motif.cle_ambigue":
     "Plusieurs fiches du parc portent la même clé : cette ligne ne désigne rien de sûr. La correction est dans le parc — c'est ce doublon qu'il faut lever.",
+  // LES TROIS PARENTS D'UN ÉQUIPEMENT, NOMMÉS SÉPARÉMENT. Un « parent
+  // introuvable » sur une ligne qui en désigne trois envoie chercher dans trois
+  // référentiels — et chacun de ces trois-là dit où regarder.
+  "imports.motif.client_introuvable":
+    "Aucun client ne répond à cette colonne : ni ce code externe, ni cette raison sociale. La correction est dans le fichier des clients, ou dans la cellule qui le nomme.",
+  "imports.motif.site_introuvable":
+    "Le client est reconnu, mais aucun de ses lieux d'intervention ne porte ce libellé. La correction est dans le fichier qui les décrit, ou dans la cellule qui le nomme.",
+  "imports.motif.modele_introuvable":
+    "Aucun modèle ne porte cette marque et cette référence. La correction est dans le fichier des modèles — et ceux-ci exigent eux-mêmes une famille.",
 
   // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états
   // d'un lot qu'on ne peut plus toucher.

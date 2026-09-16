@@ -1432,8 +1432,13 @@ model Machine {
   site_id      String @db.Uuid
   numero_serie String
 
-  /// Dérivé de l'`id`, jamais du numéro (D7, I10). Unique GLOBALEMENT : le
-  /// lecteur de QR le présente seul, avant qu'aucune société ne soit connue.
+  /// TIRÉ AU SORT — 130 bits, jamais dérivé de l'`id` ni du numéro (D71, qui
+  /// a remplacé la dérivation de D7 ; I10). *Mesuré le 16/09/2026 : ces deux
+  /// lignes disaient encore « dérivé de l'id », et `lib/machines/qr.ts` tire
+  /// depuis D71 — une documentation qui survit à sa décision enseigne la
+  /// dérivation à qui écrira le prochain chemin d'écriture.* Unique
+  /// GLOBALEMENT : le lecteur de QR le présente seul, avant qu'aucune société
+  /// ne soit connue.
   qr_token String @unique
 
   /// Attribué par le SERVEUR à la première synchronisation ; NUL en attendant.

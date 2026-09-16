@@ -4,6 +4,8 @@ import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { type SaisieAssujettissementFamille } from "@/lib/vgp/assujettissement";
+
 import type { SaisieFamilleMateriel, SaisieModeleMateriel } from "./saisie";
 
 /**
@@ -16,11 +18,19 @@ import type { SaisieFamilleMateriel, SaisieModeleMateriel } from "./saisie";
  * **entre les deux il n'y avait rien** — ni dépôt, ni route, ni écran.
  *
  * **Et l'import ne sauvait pas ce module**, ce qui n'est pas la même faute et se
- * mesure à part : une recherche des fonctions d'application dans `lib/imports/`
- * rend **une** ligne, et c'est `appliquerLeLotDeClients`. *Le gabarit des modèles
- * sait produire un rapport et ne sait pas l'appliquer* (R6-01), et **il n'existe
- * aucun gabarit de FAMILLE** (R6-03). Le raisonnement « l'import donnera un
- * appelant à tout le monde » est vrai des clients et faux d'ici.
+ * mesurait à part : une recherche des fonctions d'application dans `lib/imports/`
+ * rendait **une** ligne, et c'était `appliquerLeLotDeClients`. *Le gabarit des
+ * modèles savait produire un rapport et ne savait pas l'appliquer* (R6-01), et
+ * **il n'existait aucun gabarit de FAMILLE** (R6-03). Le raisonnement
+ * « l'import donnera un appelant à tout le monde » était vrai des clients et
+ * faux d'ici.
+ *
+ * > **LES DEUX SONT LEVÉS** — R6-01 le 16/09/2026, R6-03 le même jour : le
+ * > gabarit des familles existe, il s'applique, et il écrit par
+ * > `creerFamilleDans` / `modifierFamilleDans`, extraites plus bas. *Les
+ * > paragraphes ci-dessus restent au passé plutôt qu'effacés : ce qui a été
+ * > mesuré un jour se relit* — mais au passé, sans quoi ils enseigneraient un
+ * > manque qui n'existe plus.
  *
  * **Ce que cela coûtait, et c'est un enchaînement plutôt qu'un manque :** une
  * machine exige un modèle (D6, quatre champs obligatoires), un modèle exige une
@@ -225,23 +235,13 @@ export async function creerFamille(
   try {
     await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.familleMateriel.create({
-          data: {
-            id,
-            societe_id: exigerSocieteActive(contexte),
-            code: saisie.code,
-            libelle: saisie.libelle,
-            actif: saisie.actif,
-            // `assujettissement_vgp` est OMISE, donc laissée à son défaut
-            // `a_determiner` : c'est l'état « personne n'a encore examiné »,
-            // que L9-03 a choisi pour qu'il ne se confonde pas avec « non
-            // soumise ». *Une case décochée est indiscernable d'une famille
-            // jamais examinée*, et l'écrire ici depuis un formulaire de
-            // référentiel répondrait à une question qu'on n'a pas posée.
-          },
-          select: { id: true },
-        }),
+      // **AUCUN ASSUJETTISSEMENT N'EST PASSÉ ICI**, et c'est la décision de
+      // L1-05b, inchangée : la famille naît `a_determiner` — l'état « personne
+      // n'a encore examiné », que L9-03 a choisi pour qu'il ne se confonde pas
+      // avec « non soumise ». *Une case décochée est indiscernable d'une
+      // famille jamais examinée*, et y répondre depuis un formulaire de
+      // référentiel répondrait à une question qu'on n'a pas posée.
+      (tx) => creerFamilleDans(tx, exigerSocieteActive(contexte), id, saisie),
       client,
     );
     return { accepte: true, id };
@@ -268,18 +268,10 @@ export async function modifierFamille(
   try {
     const touchees = await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.familleMateriel.updateMany({
-          where: { id },
-          data: {
-            code: saisie.code,
-            libelle: saisie.libelle,
-            actif: saisie.actif,
-          },
-        }),
+      (tx) => modifierFamilleDans(tx, id, saisie),
       client,
     );
-    return touchees.count === 0
+    return touchees === 0
       ? { accepte: false, motif: "introuvable" }
       : { accepte: true, id };
   } catch (erreur: unknown) {
@@ -440,4 +432,104 @@ export async function basculerActiviteModele(
   return touchees.count === 0
     ? { accepte: false, motif: "introuvable" }
     : { accepte: true, id };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES FAMILLES, DANS UNE TRANSACTION QUE L'APPELANT TIENT (R6-03)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * L'ÉCRITURE D'UNE FAMILLE — les jumelles de `creerModeleDans` (R6-03).
+ *
+ * *Un lot s'applique dans UNE transaction*, et `creerFamille` ouvrirait la
+ * sienne par ligne (L1-08i). **Extraites plutôt que recopiées** : `creerFamille`
+ * et `modifierFamille` les appellent désormais, si bien que l'écran de L1-05b et
+ * l'import écrivent par le MÊME chemin. *La seconde implémentation d'un critère
+ * n'est jamais gratuite* (§9, 01/09).
+ *
+ * ## L'ASSUJETTISSEMENT EST UN PARAMÈTRE FACULTATIF, et c'est tout le ticket
+ *
+ * L1-05b n'écrivait **aucune** colonne de VGP depuis son formulaire, et le motif
+ * tenait : *« une seconde entrée sur la même règle ne connaîtrait pas la
+ * première. »* **L'import n'est pas cette seconde entrée**, et la différence est
+ * vérifiable : il ne REDIT pas la règle, il APPELLE
+ * `schemaAssujettissementFamille` — le seul endroit où L9-04 est écrite. Ce
+ * paramètre ne porte donc rien que ce schéma n'ait déjà jugé.
+ *
+ * **Absent, il n'écrit rien** : la colonne garde son défaut `a_determiner`, et
+ * c'est l'état HONNÊTE — *« on n'a pas regardé » n'est pas « non soumise »*
+ * (L9-03). La valeur n'est pas recopiée ici : elle est le `@default` de la
+ * colonne, et l'omission est ce qui l'invoque.
+ */
+export async function creerFamilleDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  id: string,
+  saisie: SaisieFamilleMateriel,
+  vgp?: SaisieAssujettissementFamille,
+): Promise<void> {
+  await tx.familleMateriel.create({
+    data: {
+      id,
+      societe_id: societeId,
+      code: saisie.code,
+      libelle: saisie.libelle,
+      actif: saisie.actif,
+      ...colonnesVgp(vgp),
+    },
+    select: { id: true },
+  });
+}
+
+/**
+ * La MODIFICATION — `updateMany` et non `update`.
+ *
+ * *Zéro ligne touchée n'est pas une erreur technique, c'est la politique qui a
+ * refusé*, et elle refuse en silence.
+ */
+export async function modifierFamilleDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: SaisieFamilleMateriel,
+  vgp?: SaisieAssujettissementFamille,
+): Promise<number> {
+  const touchees = await tx.familleMateriel.updateMany({
+    where: { id },
+    data: {
+      code: saisie.code,
+      libelle: saisie.libelle,
+      actif: saisie.actif,
+      ...colonnesVgp(vgp),
+    },
+  });
+  return touchees.count;
+}
+
+/**
+ * LES TROIS COLONNES DE VGP, OU AUCUNE — jamais une partie.
+ *
+ * **Elles voyagent ensemble parce que la base les lie** : une contrainte rend la
+ * périodicité et la référence obligatoires dès que l'assujettissement vaut
+ * `soumis` (L9-04). *Écrire l'une sans les autres laisserait la ligne dans un
+ * état que la contrainte refuse — et le refus emporterait la transaction, donc
+ * le lot entier.* C'est le raisonnement de D56 sur `agence_id` et
+ * `temps_trajet_min`, appliqué à un triplet plutôt qu'à un couple.
+ *
+ * `undefined` rend un objet VIDE, et non trois `undefined` : *un `undefined`
+ * explicite et une clé absente ne disent pas la même chose à Prisma sur une
+ * mise à jour*, et seule l'absence laisse la colonne intacte.
+ */
+function colonnesVgp(vgp: SaisieAssujettissementFamille | undefined):
+  | Record<string, never>
+  | {
+      assujettissement_vgp: SaisieAssujettissementFamille["assujettissement"];
+      vgp_periodicite_mois: number | null;
+      vgp_reference_texte: string | null;
+    } {
+  if (vgp === undefined) return {};
+  return {
+    assujettissement_vgp: vgp.assujettissement,
+    vgp_periodicite_mois: vgp.periodiciteMois,
+    vgp_reference_texte: vgp.referenceTexte,
+  };
 }

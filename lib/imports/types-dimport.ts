@@ -4,6 +4,8 @@ import { type ContexteSession } from "@/lib/auth/contexte";
 
 import {
   annulerLeLotDeClients,
+  annulerLeLotDeEquipements,
+  annulerLeLotDeFamilles,
   annulerLeLotDeModeles,
   annulerLeLotDePrestations,
   annulerLeLotDeSites,
@@ -11,6 +13,8 @@ import {
 } from "./annulation";
 import {
   appliquerLeLotDeClients,
+  appliquerLeLotDeEquipements,
+  appliquerLeLotDeFamilles,
   appliquerLeLotDeModeles,
   appliquerLeLotDePrestations,
   appliquerLeLotDeSites,
@@ -93,6 +97,21 @@ export const APPLICATIONS: Readonly<Record<string, ApplicationDeLot>> = {
   prestations: {
     appliquer: appliquerLeLotDePrestations,
     annuler: annulerLeLotDePrestations,
+  },
+  familles: {
+    appliquer: appliquerLeLotDeFamilles,
+    annuler: annulerLeLotDeFamilles,
+  },
+  // **`appliquerLeLotDeEquipements`, et l'élision n'est PAS faite** — ce n'est
+  // pas une faute d'inattention. Le gardien DÉRIVE le type du nom de la
+  // fonction, par le motif `appliquerLeLotDe(\w+)` : écrire
+  // `appliquerLeLotDÉquipements` le rendrait aveugle à cette ligne, et il
+  // faudrait élargir la population d'un gardien qui garde `pnpm verify` pour
+  // gagner une apostrophe. *Un identifiant est lu par une machine et par un
+  // développeur* (L0-11) ; le libellé qu'un humain lit est au dictionnaire.
+  equipements: {
+    appliquer: appliquerLeLotDeEquipements,
+    annuler: annulerLeLotDeEquipements,
   },
 };
 

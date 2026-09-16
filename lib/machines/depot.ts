@@ -3,6 +3,9 @@ import { type Prisma } from "@prisma/client";
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
+import { engendrerJetonQr } from "./qr";
+import { type SaisieMachine } from "./saisie";
+
 /**
  * LA LECTURE DU PARC MACHINES (R2-21 ; D6, D10, D22, I10).
  *
@@ -145,4 +148,114 @@ export async function lireMachine(
   return avecContexteApplicatif(contexte, (tx) =>
     tx.machine.findUnique({ where: { id }, select: CHAMPS_FICHE }),
   );
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * L'ÉCRITURE DU PARC (R6-03) — dans une transaction que l'appelant tient
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * CE MODULE LISAIT, ET NE SAVAIT RIEN ÉCRIRE — mesuré le 16/09/2026.
+ *
+ * `listerLeParc`, `resumerLeParc`, `lireMachine` : trois lectures, aucune
+ * écriture. **Une machine ne pouvait donc naître que par le semis**, ce qui est
+ * exactement l'enchaînement que R6-03 décrit — *une machine exige un modèle, un
+ * modèle exige une famille, et aucun des trois n'avait de chemin.*
+ *
+ * ## Pourquoi l'écriture arrive par l'import, et ce que cela NE décide PAS
+ *
+ * `SANS_APPLICATION` écarte les contacts avec ce motif : *« l'écrire ici en
+ * passant déciderait à sa place de ce qu'un contact peut porter, dans le seul
+ * chemin où personne ne relit ce qui entre »*. **Il ne vaut pas ici, et la
+ * différence se mesure** : `lib/contacts/` n'a que `saisie.ts` et L1-03b tient
+ * encore la plume ; `lib/machines/saisie.ts` est écrit, arbitré (D6, D7) et
+ * éprouvé depuis L2-01 — *ce qu'une machine peut porter est déjà décidé.* Ce
+ * module ne décide donc rien : il exécute un schéma qui existe.
+ *
+ * ## Ni `id`, ni `qr_token`, ni `numero` ne sont inventés ici
+ *
+ * L'`id` est un **paramètre** — un UUID v7 tiré par l'appelant (D7, I10),
+ * exactement comme `creerModeleDans` ; `qr_token` en est DÉRIVÉ par
+ * `lib/machines/qr.ts`, jamais tiré une seconde fois ; `numero` reste NUL, le
+ * compteur par société appartenant à la synchronisation (lot 3). *Tirer l'`id`
+ * ici ferait deux lectures d'un même fait, et l'appelant rendrait un
+ * identifiant qui n'est pas celui de la ligne.*
+ */
+export async function creerMachineDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  id: string,
+  saisie: SaisieMachine,
+): Promise<void> {
+  await tx.machine.create({
+    data: {
+      id,
+      societe_id: societeId,
+      // **TIRÉ AU SORT, jamais dérivé de l'`id`** (D71). *Le commentaire du
+      // schéma dit encore « dérivé de l'id » — il date de D7 et D71 l'a
+      // remplacé ; c'est `lib/machines/qr.ts` qui fait foi.* Un jeton dérivé
+      // serait prévisible depuis un identifiant qui voyage dans les URL, et
+      // photographier une étiquette rendrait alors plus que l'étiquette.
+      qr_token: engendrerJetonQr(),
+      modele_id: saisie.modele_id,
+      client_id: saisie.client_id,
+      site_id: saisie.site_id,
+      numero_serie: saisie.numero_serie,
+      reference_interne: saisie.reference_interne,
+      localisation: saisie.localisation,
+      facture_origine: saisie.facture_origine,
+      date_mise_en_service: saisie.date_mise_en_service,
+      date_vente: saisie.date_vente,
+      garantie_fin: saisie.garantie_fin,
+      statut: saisie.statut,
+      criticite: saisie.criticite,
+      source_creation: saisie.source_creation,
+      machine_remplacee_id: saisie.machine_remplacee_id,
+      // **DÉDUIT du numéro de série, jamais accepté depuis l'entrée** (§6) :
+      // `schemaMachine` le calcule, et ce module le recopie sans le rejuger.
+      // *Deux sources d'un même fait divergent en silence* (§9, 01/09).
+      complet: saisie.complet,
+      // `vgp_exception` et son motif restent ABSENTS : l'exception d'un
+      // exemplaire est un geste motivé (L9-06), et un import est le chemin où
+      // personne ne relit ce qui entre.
+    },
+    select: { id: true },
+  });
+}
+
+/**
+ * La MODIFICATION, jumelle de la création — `updateMany` et non `update`.
+ *
+ * *Zéro ligne touchée n'est pas une erreur technique, c'est la politique qui a
+ * refusé*, et elle refuse en silence. Le décompte est rendu, l'appelant décide.
+ *
+ * **Les trois parents ne sont PAS réécrits, et chacun pour sa raison.** Le
+ * MODÈLE fait partie de l'unicité `(societe_id, modele_id, numero_serie)` : une
+ * ligne appariée par sa série désigne déjà une fiche, et le déplacer changerait
+ * ce que la clé désigne. Le CLIENT et le SITE sont un déménagement — *un geste
+ * daté, qui met en jeu la garantie, le contrat et le périmètre d'un compte de
+ * portail* —, et un fichier ne décide pas cela (le raisonnement de D56 sur
+ * `agence_id`, repris tel quel). **Condition de levée, vérifiable :** le jour où
+ * un gabarit portera la DATE du déménagement à côté du site.
+ */
+export async function modifierMachineDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: SaisieMachine,
+): Promise<number> {
+  const touchees = await tx.machine.updateMany({
+    where: { id },
+    data: {
+      numero_serie: saisie.numero_serie,
+      reference_interne: saisie.reference_interne,
+      localisation: saisie.localisation,
+      facture_origine: saisie.facture_origine,
+      date_mise_en_service: saisie.date_mise_en_service,
+      date_vente: saisie.date_vente,
+      garantie_fin: saisie.garantie_fin,
+      criticite: saisie.criticite,
+      complet: saisie.complet,
+    },
+  });
+  return touchees.count;
 }
