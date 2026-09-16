@@ -1264,7 +1264,17 @@ async function seed(): Promise<void> {
 
         let compte = 0;
         const lignes = await tx.intervention.findMany({
-          select: { id: true, statut: true, agence_id: true },
+          select: {
+            id: true,
+            statut: true,
+            agence_id: true,
+            // LES TROIS COLONNES DE SUSPENSION AUTRES QUE `suspendue_le` —
+            // lues pour être PRÉSERVÉES si la ligne est déjà suspendue en
+            // base. Voir le commentaire au-dessus du replacement.
+            motif_suspension: true,
+            piece_attendue_ref: true,
+            date_dispo_prevue: true,
+          },
         });
         for (const ligne of lignes) {
           const trouve = rangParId.get(ligne.id);
@@ -1335,22 +1345,39 @@ async function seed(): Promise<void> {
               // Ce replacement ne touche jamais au statut — *le semis ne
               // réécrit pas, il pose ce qui manque* —, donc c'est le statut de
               // la BASE qui décide, et `null` dit « pas suspendue ».
-              ...colonnesDeSuspension(
-                ligne.statut === "suspendue" ? trouve.modele : null,
-                instantDuCreneau(
-                  jour,
-                  trouve.modele.debutMinutes,
-                  societe.fuseau_horaire,
-                ),
-                jourEnDate(
-                  trouve.modele.pieceDispoJoursDepuisLundi === undefined
-                    ? null
-                    : jourSuivant(
-                        lundi,
-                        trouve.modele.pieceDispoJoursDepuisLundi,
-                      ),
-                ),
-              ),
+              //
+              // **ET QUAND LA BASE DIT « SUSPENDUE », CE SONT SES PROPRES
+              // COLONNES QUI DÉCIDENT — PLUS LE MODÈLE** *(mesuré le
+              // 16/09/2026, « DB migrate & seed » #62)*. La ligne de rang 14
+              // (`…-000000000014`) porte `suspendue` en base — une main réelle
+              // l'a suspendue depuis l'écran, motif compris — alors que le
+              // modèle ne décrit plus cette ligne comme suspendue depuis
+              // 69022fb (D109) : `trouve.modele.motifSuspension` vaut
+              // `undefined`, et l'ancien replacement en tirait quatre `null`
+              // sur une ligne que la base dit toujours suspendue. *Le motif
+              // était réel, en base, et le replacement l'effaçait avec ce
+              // qu'il ne sait pas.*
+              //
+              // Le principe du paragraphe ci-dessus va donc plus loin que le
+              // seul statut : la base a déjà tout dit d'une ligne suspendue —
+              // motif, référence de pièce, disponibilité —, et le modèle de
+              // démonstration n'a plus besoin de les redire ni le DROIT de les
+              // corriger. Seul `suspendue_le` reste calculé ici, parce que lui
+              // seul suit le créneau RECALCULÉ juste au-dessus — *un créneau
+              // qui se déplace déplace l'âge de l'attente avec lui*, quel que
+              // soit le motif qui l'a causée.
+              ...(ligne.statut === "suspendue"
+                ? {
+                    motif_suspension: ligne.motif_suspension,
+                    piece_attendue_ref: ligne.piece_attendue_ref,
+                    date_dispo_prevue: ligne.date_dispo_prevue,
+                    suspendue_le: instantDuCreneau(
+                      jour,
+                      trouve.modele.debutMinutes,
+                      societe.fuseau_horaire,
+                    ),
+                  }
+                : colonnesDeSuspension(null, null, null)),
             },
           });
           compte += 1;

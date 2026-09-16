@@ -119,14 +119,18 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
   // Ce qui rend l'écran atteignable est ce lien-ci, et rien d'autre : sans lui,
   // il n'existerait que pour qui connaît son URL.
   await page.goto("/planning");
-  // **Un BLOC, et non le premier lien qui commence par « /planning/ »** : celui
-  // -là est le bouton « Créer », et le scénario partait vers le formulaire de
-  // création au lieu d'une fiche. Les blocs portent `data-bloc`, posé par
-  // `components/planning/pose.tsx`.
+  // **Un BLOC, et non le premier lien qui commence par « /interventions/ »** :
+  // celui-là est le bouton « Créer » (`/interventions/nouvelle`), et le
+  // scénario partait vers le formulaire de création au lieu d'une fiche. Les
+  // blocs portent `data-bloc`, posé par `components/planning/pose.tsx`.
   const bloc = page.locator("[data-bloc] a").first();
   await expect(bloc).toBeVisible();
   await bloc.click();
-  await expect(page).toHaveURL(/\/planning\/[0-9a-f-]{36}/);
+  // `/interventions/{id}`, et non `/planning/{id}` — depuis N-01 (#207) :
+  // *une intervention n'est pas plus un sous-écran du planning que du parc ou
+  // d'un client.* `/planning/{id}` redirige encore en 308, mais un clic sur un
+  // BLOC part directement vers l'adresse neuve.
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]{36}/);
 
   const versLeSite = page.locator('a[href^="/sites/"]').first();
   await expect(versLeSite).toBeVisible();
