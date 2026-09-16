@@ -1268,12 +1268,13 @@ async function seed(): Promise<void> {
             id: true,
             statut: true,
             agence_id: true,
-            // LES TROIS COLONNES DE SUSPENSION AUTRES QUE `suspendue_le` —
-            // lues pour être PRÉSERVÉES si la ligne est déjà suspendue en
-            // base. Voir le commentaire au-dessus du replacement.
+            // LES QUATRE COLONNES DE SUSPENSION — lues pour être PRÉSERVÉES
+            // si la ligne est déjà suspendue en base. Voir le commentaire
+            // au-dessus du replacement.
             motif_suspension: true,
             piece_attendue_ref: true,
             date_dispo_prevue: true,
+            suspendue_le: true,
           },
         });
         for (const ligne of lignes) {
@@ -1358,24 +1359,34 @@ async function seed(): Promise<void> {
               // était réel, en base, et le replacement l'effaçait avec ce
               // qu'il ne sait pas.*
               //
-              // Le principe du paragraphe ci-dessus va donc plus loin que le
-              // seul statut : la base a déjà tout dit d'une ligne suspendue —
-              // motif, référence de pièce, disponibilité —, et le modèle de
-              // démonstration n'a plus besoin de les redire ni le DROIT de les
-              // corriger. Seul `suspendue_le` reste calculé ici, parce que lui
-              // seul suit le créneau RECALCULÉ juste au-dessus — *un créneau
-              // qui se déplace déplace l'âge de l'attente avec lui*, quel que
-              // soit le motif qui l'a causée.
+              // Le principe du paragraphe ci-dessus va plus loin que le seul
+              // statut : la base a déjà tout dit d'une ligne suspendue —
+              // motif, référence de pièce, disponibilité, ET DATE DE
+              // SUSPENSION —, et le modèle de démonstration n'a plus besoin
+              // de les redire ni le DROIT de les corriger.
+              //
+              // **`suspendue_le` N'EST PLUS RECALCULÉ ICI** *(revu en revue,
+              // #212)* : une première version le faisait suivre le créneau
+              // RECALCULÉ juste au-dessus, au nom du commentaire du 13/09 sur
+              // « un créneau qui se déplace déplace l'âge de l'attente avec
+              // lui » — vrai pour la ligne de DÉMONSTRATION (rang 11), dont
+              // le modèle DIT `suspendue` et dont l'âge n'a jamais d'autre
+              // source que ce créneau. Faux pour une ligne suspendue DEPUIS
+              // L'ÉCRAN : `suspendreIntervention` (lib/interventions/depot.ts)
+              // pose `suspendue_le` à l'instant RÉEL de la suspension, sans
+              // rapport avec le créneau, et c'est cette date que
+              // `joursEcoules` lit pour l'alerte « en attente depuis > 30
+              // jours » du chapitre 16.1. La faire suivre le créneau que le
+              // replacement recalcule chaque semaine aurait remis l'attente à
+              // zéro — ou à une date FUTURE — à chaque semis, et c'est
+              // exactement la même faute que celle réparée pour les trois
+              // autres colonnes : le modèle qui parle à la place de la base.
               ...(ligne.statut === "suspendue"
                 ? {
                     motif_suspension: ligne.motif_suspension,
                     piece_attendue_ref: ligne.piece_attendue_ref,
                     date_dispo_prevue: ligne.date_dispo_prevue,
-                    suspendue_le: instantDuCreneau(
-                      jour,
-                      trouve.modele.debutMinutes,
-                      societe.fuseau_horaire,
-                    ),
+                    suspendue_le: ligne.suspendue_le,
                   }
                 : colonnesDeSuspension(null, null, null)),
             },
