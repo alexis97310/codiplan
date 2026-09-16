@@ -8,8 +8,14 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { modifierSiteDans } from "@/lib/sites/depot";
 import { schemaModificationSite } from "@/lib/sites/saisie";
-import { modifierModeleDans } from "@/lib/materiel/depot";
-import { schemaModeleMateriel } from "@/lib/materiel/saisie";
+import { modifierFamilleDans, modifierModeleDans } from "@/lib/materiel/depot";
+import {
+  schemaFamilleMateriel,
+  schemaModeleMateriel,
+} from "@/lib/materiel/saisie";
+import { modifierMachineDans } from "@/lib/machines/depot";
+import { schemaMachine } from "@/lib/machines/saisie";
+import { schemaAssujettissementFamille } from "@/lib/vgp/assujettissement";
 import { modifierPrestationDans } from "@/lib/prestations/depot";
 import { schemaPrestation } from "@/lib/prestations/saisie";
 
@@ -17,11 +23,14 @@ import {
   CHAMPS_CLIENTS,
   CHAMPS_MODELES,
   CHAMPS_PRESTATIONS,
+  preparerUnEquipement,
+  preparerUneFamille,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
 import { indexerLesAgences } from "./parc-agences";
 import { indexerLeParcClients } from "./parc-clients";
+import { indexerLeParcModeles, indexerLeParcSites } from "./parc-cibles";
 
 /**
  * L'ANNULATION D'UN LOT — PARTIELLE ET SÛRE (L1-08j ; I6, RG-IMP-02, D15, D54).
@@ -127,10 +136,39 @@ type FicheComparable = Readonly<Record<string, unknown>>;
  * **Seuls les champs ÉCRITS sont comparés.** L'import n'a pas touché les
  * autres : *les comparer ferait refuser une annulation parce que quelqu'un a
  * renseigné une adresse, ce qui n'a rien à voir avec ce que l'import a fait.*
+ *
+ * ## QUATRE FORMES SONT COMPARABLES, ET TOUT LE RESTE REFUSE (R6-03)
+ *
+ * La rédaction de L1-08j ne savait comparer qu'un TEXTE, et son sens de
+ * défaillance était juste : *« un verdict “inchangé” rendu sur une colonne qu'on
+ * ne sait pas comparer autoriserait une suppression qu'on n'a pas vérifiée. »*
+ * **Il reste le défaut**, et il vaut pour tout ce qui n'est pas nommé ci-dessous.
+ *
+ * Trois formes s'y ajoutent, parce que le matériel écrit des colonnes qui ne
+ * sont pas du texte : `vgp_periodicite_mois` est un ENTIER,
+ * `vgp_reference_texte` peut valoir `NULL`, et `complet` est un BOOLÉEN. *Sans
+ * elles, l'annulation aurait refusé CHAQUE ligne*, en rendant « modifiée
+ * depuis » sur des fiches que personne n'avait touchées : un motif juste dans
+ * sa forme, et qui désigne un coupable inexistant — le défaut exact que R6-01 a
+ * mesuré sur les deux parents d'un site.
+ *
+ * > **LE BOOLÉEN A ÉTÉ OUBLIÉ AU PREMIER JET, ET C'EST UNE MESURE QUI L'A DIT.**
+ * > Trois formes étaient écrites, `complet` tombait dans le refus par défaut, et
+ * > **les deux scénarios d'annulation d'équipement étaient d'accord** : celui qui
+ * > devait refuser refusait. *Il passait pour la mauvaise raison* — le refus
+ * > venait de la forme de la colonne, pas du travail qu'on protégeait. Seul son
+ * > jumeau, celui qui doit rester VERT POUR SA PROPRE RAISON (§9, 11/09), a
+ * > rougi. **Un scénario qui n'a pas de jumeau ne mesure que la moitié de ce
+ * > qu'il croit.**
+ *
+ * **`null` VOULU se compare à `null` PRÉSENT, et c'est une écriture** : l'import
+ * a mis la colonne à vide, et une valeur apparue depuis est le travail de
+ * quelqu'un. *Le confondre avec « l'import n'a rien dit » (`undefined`) ferait
+ * supprimer une fiche dont on vient de renseigner la référence du texte.*
  */
 function porteEncore(
   fiche: FicheComparable,
-  attendu: Readonly<Record<string, string>>,
+  attendu: Readonly<Record<string, unknown>>,
   champs: readonly string[] = CHAMPS_ECRITS,
 ): boolean {
   return champs.every((champ) => {
@@ -139,14 +177,21 @@ function porteEncore(
     // le défaut du schéma, et le comparer à `null` ferait dépendre le verdict
     // d'un défaut plutôt que d'une écriture.
     if (voulu === undefined) return true;
-    // **Une colonne NON TEXTUELLE ne peut pas porter ce qu'une cellule dit**, et
-    // la comparaison est donc FAUSSE plutôt que vraie : *un verdict « inchangé »
-    // rendu sur une colonne qu'on ne sait pas comparer autoriserait une
-    // suppression qu'on n'a pas vérifiée.* Aucune des quatre listes de champs
-    // écrits n'en nomme, et c'est le sens de défaillance qui le garantit si
-    // l'une venait à le faire.
     const present = fiche[champ];
-    return typeof present === "string" && present === voulu;
+    if (voulu === null) return present === null;
+    if (typeof voulu === "number") {
+      return typeof present === "number" && present === voulu;
+    }
+    if (typeof voulu === "string") {
+      return typeof present === "string" && present === voulu;
+    }
+    if (typeof voulu === "boolean") {
+      return typeof present === "boolean" && present === voulu;
+    }
+    // **Le sens de défaillance de L1-08j, inchangé** : ce qu'on ne sait pas
+    // comparer n'est jamais réputé inchangé. *Une annulation refusée se rejoue ;
+    // une fiche supprimée à tort ne se retrouve pas.*
+    return false;
   });
 }
 
@@ -162,7 +207,7 @@ type LigneADefaire = {
 };
 
 /**
- * L'ENVELOPPE QUE LES QUATRE ANNULATIONS PARTAGENT (R6-01).
+ * L'ENVELOPPE QUE TOUTES LES ANNULATIONS PARTAGENT (R6-01).
  *
  * Même partage et même borne que `appliquerLesLignes` : elle porte la lecture
  * du lot, le refus sur un lot non appliqué, l'ORDRE INVERSE, la transaction
@@ -555,6 +600,275 @@ export async function annulerLeLotDePrestations(
       tx,
       ligne.entiteId,
       schemaPrestation.parse(ligne.valeursAvant ?? {}),
+    );
+    return { rang: ligne.rang, defaite: true };
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE MATÉRIEL — la famille, puis l'équipement (R6-03)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * CE QUI RETIENT UNE FAMILLE — les quatre relations inverses du SCHÉMA.
+ *
+ * `modele_materiel`, `forfait`, `prestation`, `vgp_campagne` : c'est exactement
+ * ce que `FamilleMateriel` déclare. Même limite qu'aux clients et aux sites —
+ * *Prisma n'expose pas ses relations inverses à l'exécution*, la liste est tenue
+ * à la main et deviendrait fausse en silence à la cinquième. **Ce que le silence
+ * coûte est borné** : les quatre clés sont en `onDelete: Restrict`, si bien
+ * qu'une relation oubliée fait échouer l'annulation ENTIÈRE plutôt que de
+ * supprimer en cascade. *C'est le bon sens de défaillance.*
+ */
+async function familleEstReferencee(
+  tx: Prisma.TransactionClient,
+  familleId: string,
+): Promise<boolean> {
+  const comptes = await Promise.all([
+    tx.modeleMateriel.count({ where: { famille_id: familleId } }),
+    tx.forfait.count({ where: { famille_id: familleId } }),
+    tx.prestation.count({ where: { famille_id: familleId } }),
+    tx.vgpCampagne.count({ where: { famille_id: familleId } }),
+  ]);
+  return comptes.reduce((a, b) => a + b, 0) > 0;
+}
+
+/**
+ * LES CHAMPS QUE L'IMPORT ÉCRIT SUR UNE FAMILLE — les cinq, et les cinq seuls.
+ *
+ * **Les trois colonnes de VGP en font partie**, et c'est ce qui protège une
+ * DÉCLARATION : si quelqu'un a fait passer la famille de `a_determiner` à
+ * `soumis` après l'import, la comparaison le voit et l'annulation refuse.
+ * *Supprimer la famille emporterait la déclaration, et L9-07 veut qu'une
+ * déclaration soit retrouvable avec son auteur et sa justification —* une
+ * annulation qui l'efface rend le journal d'audit orphelin de ce qu'il
+ * explique.
+ *
+ * C'est pour elles que `porteEncore` a appris à comparer un entier et un `null`.
+ */
+const CHAMPS_ECRITS_FAMILLES = [
+  "code",
+  "libelle",
+  "assujettissement_vgp",
+  "vgp_periodicite_mois",
+  "vgp_reference_texte",
+] as const;
+
+/** Annule un lot d'import de FAMILLES DE MATÉRIEL (R6-03). */
+export async function annulerLeLotDeFamilles(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatAnnulation> {
+  return annulerLesLignes(contexte, lotId, client, async (tx, ligne) => {
+    const fiche = await tx.familleMateriel.findUnique({
+      where: { id: ligne.entiteId },
+      select: {
+        code: true,
+        libelle: true,
+        assujettissement_vgp: true,
+        vgp_periodicite_mois: true,
+        vgp_reference_texte: true,
+      },
+    });
+    if (fiche === null) {
+      return { rang: ligne.rang, defaite: false, motif: "fiche_absente" };
+    }
+
+    // **Ce que l'import a écrit se RECONSTITUE par la fonction même qui l'a
+    // produit** — `preparerUneFamille` —, jamais par une seconde lecture :
+    // l'assujettissement d'une cellule vide vaut `a_determiner`, et
+    // `saisieDepuisLaLigne` seule ne le rendrait pas.
+    const reconstitue = preparerUneFamille(ligne.valeurs);
+    if (!reconstitue.prete) {
+      // *Refuser est la seule lecture qui ne détruit rien* : défaire sans
+      // pouvoir comparer, c'est supprimer une fiche dont on ignore si quelqu'un
+      // l'a reprise depuis.
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    const ecrit = {
+      ...reconstitue.saisie,
+      assujettissement_vgp: reconstitue.vgp.assujettissement,
+      vgp_periodicite_mois: reconstitue.vgp.periodiciteMois,
+      vgp_reference_texte: reconstitue.vgp.referenceTexte,
+    };
+    if (!porteEncore(fiche, ecrit, CHAMPS_ECRITS_FAMILLES)) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    if (ligne.action === "creation") {
+      if (await familleEstReferencee(tx, ligne.entiteId)) {
+        return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
+      }
+      await tx.familleMateriel.delete({ where: { id: ligne.entiteId } });
+      return { rang: ligne.rang, defaite: true };
+    }
+
+    // **`valeurs_avant` porte les CINQ colonnes lues avant l'écriture**, et la
+    // restauration les rend toutes — les deux schémas sont sans jumeau « de
+    // modification », si bien que la restauration est une réécriture complète.
+    const avant = (ligne.valeursAvant ?? {}) as Record<string, unknown>;
+    await modifierFamilleDans(
+      tx,
+      ligne.entiteId,
+      schemaFamilleMateriel.parse(avant),
+      schemaAssujettissementFamille.parse({
+        assujettissement: avant.assujettissement_vgp,
+        periodiciteMois: avant.vgp_periodicite_mois ?? null,
+        referenceTexte: avant.vgp_reference_texte ?? null,
+      }),
+    );
+    return { rang: ligne.rang, defaite: true };
+  });
+}
+
+/**
+ * CE QUI RETIENT UN ÉQUIPEMENT — les trois relations inverses du SCHÉMA.
+ *
+ * `intervention_machine`, `demande`, `vgp_verification` : ce que `Machine`
+ * déclare, plus `machine_remplacee_id`, qui pointe la table sur elle-même.
+ * **Quatre comptages, donc**, et la relation réflexive est celle qu'on oublie —
+ * *une fiche qui en remplace une autre retient celle qu'elle remplace.*
+ *
+ * `document` n'en est pas : la documentation propre à un exemplaire vit bien sur
+ * `machine`, mais **un import n'en pose aucune**, et la compter ici refuserait
+ * l'annulation d'un lot parce que quelqu'un a joint un certificat — ce qui est
+ * précisément le travail qu'on attend. *Elle reste comptée par la BASE* :
+ * `ON DELETE RESTRICT` fera échouer le `DELETE`, donc l'annulation entière,
+ * bruyamment et jamais en silence.
+ */
+async function equipementEstReference(
+  tx: Prisma.TransactionClient,
+  machineId: string,
+): Promise<boolean> {
+  const comptes = await Promise.all([
+    tx.interventionMachine.count({ where: { machine_id: machineId } }),
+    tx.demande.count({ where: { machine_id: machineId } }),
+    tx.vgpVerification.count({ where: { machine_id: machineId } }),
+    tx.machine.count({ where: { machine_remplacee_id: machineId } }),
+  ]);
+  return comptes.reduce((a, b) => a + b, 0) > 0;
+}
+
+/**
+ * LES CHAMPS QUE L'IMPORT ÉCRIT SUR UN ÉQUIPEMENT, **et ils ne sont PAS les
+ * mêmes selon l'action** — la leçon des sites, reprise telle quelle.
+ *
+ * À la **CRÉATION**, les trois parents de D6 sont écrits : ils viennent d'une
+ * RÉSOLUTION et non d'une cellule, et l'import les écrit tout de même. *Les
+ * omettre ferait rendre « inchangé » sur une machine déménagée depuis l'import,
+ * et l'annulation supprimerait une fiche que quelqu'un venait de rattacher
+ * ailleurs.*
+ *
+ * À la **MODIFICATION**, l'import n'en écrit AUCUN — `modifierMachineDans` ne
+ * les touche pas : le modèle fait partie de l'unicité qui porte la clé, et le
+ * client comme le site sont un déménagement, c'est-à-dire un geste daté qu'un
+ * fichier ne décide pas. **Les comparer refuserait donc l'annulation d'un lot
+ * parfaitement défaisable**, sur la foi de colonnes que l'import n'a jamais
+ * touchées.
+ *
+ * `complet` est comparé dans les deux cas : *il est DÉDUIT du numéro de série,
+ * si bien qu'une divergence dit qu'on a corrigé la plaque* — exactement le
+ * travail que la file de complétion demande, et qu'une suppression effacerait.
+ */
+const CHAMPS_EQUIPEMENTS_MODIFIES = [
+  "numero_serie",
+  "reference_interne",
+  "localisation",
+  "criticite",
+  "complet",
+] as const;
+
+const CHAMPS_ECRITS_EQUIPEMENTS = [
+  "modele_id",
+  "client_id",
+  "site_id",
+  ...CHAMPS_EQUIPEMENTS_MODIFIES,
+] as const;
+
+/** Annule un lot d'import d'ÉQUIPEMENTS (R6-03). */
+export async function annulerLeLotDeEquipements(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatAnnulation> {
+  // **Les trois parcs de PARENTS sont indexés pour RECONSTITUER ce que l'import
+  // a écrit**, et non pour décider quoi que ce soit : les trois parents d'une
+  // machine ne sont dans aucune cellule — ils ont été RÉSOLUS.
+  const clients = await indexerLeParcClients(contexte, client);
+  const sites = await indexerLeParcSites(contexte, client);
+  const modeles = await indexerLeParcModeles(contexte, client);
+
+  return annulerLesLignes(contexte, lotId, client, async (tx, ligne) => {
+    const fiche = await tx.machine.findUnique({
+      where: { id: ligne.entiteId },
+      select: {
+        modele_id: true,
+        client_id: true,
+        site_id: true,
+        numero_serie: true,
+        reference_interne: true,
+        localisation: true,
+        criticite: true,
+        complet: true,
+      },
+    });
+    if (fiche === null) {
+      return { rang: ligne.rang, defaite: false, motif: "fiche_absente" };
+    }
+
+    const reconstitue = preparerUnEquipement(
+      clients,
+      sites,
+      modeles,
+      ligne.valeurs,
+      ligne.rang,
+    );
+    if (!reconstitue.prete) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    // **`complet` est relu du SCHÉMA, jamais recalculé ici** : c'est lui qui le
+    // déduit du numéro de série (§6), et une seconde déduction écrite ici
+    // divergerait le jour où la règle changerait.
+    const ecrit = schemaMachine.parse(reconstitue.saisie) as unknown as Record<
+      string,
+      unknown
+    >;
+    const compares =
+      ligne.action === "creation"
+        ? CHAMPS_ECRITS_EQUIPEMENTS
+        : CHAMPS_EQUIPEMENTS_MODIFIES;
+    if (!porteEncore(fiche, ecrit, compares)) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    if (ligne.action === "creation") {
+      // **JAMAIS DE SUPPRESSION EN CASCADE** (I6) : ce qui référence la fiche la
+      // retient, et c'est la LIGNE qui est refusée — pas ses enfants qui sont
+      // emportés.
+      if (await equipementEstReference(tx, ligne.entiteId)) {
+        return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
+      }
+      await tx.machine.delete({ where: { id: ligne.entiteId } });
+      return { rang: ligne.rang, defaite: true };
+    }
+
+    // **`valeurs_avant` ne porte que ce que cette écriture touche**, et les
+    // trois parents en sont donc absents. `schemaMachine` les EXIGE pourtant —
+    // ils sont les obligatoires de D6 —, si bien que la restauration les relit
+    // sur la FICHE : ce sont les valeurs qu'elle porte déjà, et les réécrire
+    // identiques ne déplace rien. *Les inventer serait pire ; les omettre ne
+    // compile pas.*
+    const avant = (ligne.valeursAvant ?? {}) as Record<string, unknown>;
+    await modifierMachineDans(
+      tx,
+      ligne.entiteId,
+      schemaMachine.parse({
+        ...avant,
+        modele_id: fiche.modele_id,
+        client_id: fiche.client_id,
+        site_id: fiche.site_id,
+      }),
     );
     return { rang: ligne.rang, defaite: true };
   });

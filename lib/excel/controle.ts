@@ -121,6 +121,20 @@ export type ModeleDImport = {
  */
 export type ValidationDeLigne = (
   valeurs: Readonly<Record<string, string | undefined>>,
+  /**
+   * LE RANG, TEL QU'UN HUMAIN LE LIT — celui-là même que `cle` reçoit (R6-03).
+   *
+   * **Il est passé pour que la validation puisse appeler la CLÉ**, et non pour
+   * en faire quoi que ce soit d'autre. *Le gabarit des équipements décide du
+   * numéro de série d'après la FORME de la clé* — série, référence préfixée, ou
+   * rang de dernier recours —, et recalculer cette clé sous un rang inventé
+   * ferait deux lectures d'un même critère (§9, 01/09).
+   *
+   * Les cinq validations écrites avant lui l'ignorent, et c'est sans
+   * conséquence : *un paramètre ajouté en queue ne change rien pour qui ne le
+   * nomme pas.*
+   */
+  rang: number,
 ) => string | null;
 
 /**
@@ -464,7 +478,10 @@ export function controlerFeuille(
       rang: rang + 1,
       nature,
       cle,
-      ...decider(cle.cle, parc, modele.valider?.(valeurs) ?? null),
+      // **Le MÊME rang qu'à la clé, ci-dessus** : ils doivent désigner la même
+      // ligne, sans quoi la validation jugerait une ligne et le rapport en
+      // nommerait une autre.
+      ...decider(cle.cle, parc, modele.valider?.(valeurs, rang + 1) ?? null),
       valeurs,
     });
   }

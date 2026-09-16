@@ -1,7 +1,16 @@
 import { schemaCreationClient } from "@/lib/clients/saisie";
 import { schemaCreationContact } from "@/lib/contacts/saisie";
-import { schemaModeleMateriel } from "@/lib/materiel/saisie";
+import { schemaMachine } from "@/lib/machines/saisie";
+import {
+  schemaFamilleMateriel,
+  schemaModeleMateriel,
+} from "@/lib/materiel/saisie";
 import { schemaCreationSite } from "@/lib/sites/saisie";
+import {
+  NAISSANCE,
+  schemaAssujettissementFamille,
+  type SaisieAssujettissementFamille,
+} from "@/lib/vgp/assujettissement";
 import {
   cleDeClient,
   normaliserRaisonSociale,
@@ -10,7 +19,11 @@ import {
 import { type ParcAgences } from "./parc-agences";
 import { type ParcFamilles } from "./parc-familles";
 import { type ParcClientsIndexe } from "./parc-clients";
-import { cleClientDepuis, type ModeleDImport } from "@/lib/excel/controle";
+import {
+  cleClientDepuis,
+  cleMachineDepuis,
+  type ModeleDImport,
+} from "@/lib/excel/controle";
 import { type Cellule, typeAnnonce } from "@/lib/excel/format";
 import { schemaPrestation } from "@/lib/prestations/saisie";
 
@@ -490,24 +503,11 @@ export function clientDuSite(
   clients: ParcClientsIndexe,
   valeurs: Readonly<Record<string, string | undefined>>,
 ): string | undefined {
-  const designation = valeurs[COLONNES_SITES.client]?.trim();
-  if (designation === undefined || designation === "") return undefined;
-  return (
-    clients.fiches.get(
-      cleDeClient({
-        codeExterne: designation,
-        raisonSociale: undefined,
-        rang: 0,
-      }).cle,
-    ) ??
-    clients.fiches.get(
-      cleDeClient({
-        codeExterne: undefined,
-        raisonSociale: designation,
-        rang: 0,
-      }).cle,
-    )
-  );
+  // **Le CORPS est parti dans `clientDesignePar`** (R6-03), et cette fonction
+  // ne fait plus que nommer sa colonne. *Trois gabarits désignent désormais un
+  // client — contacts, sites, équipements — et une seconde règle de
+  // rapprochement se verrait au pire moment.*
+  return clientDesignePar(clients, valeurs[COLONNES_SITES.client]);
 }
 
 /**
@@ -817,6 +817,489 @@ export function preparerUnePrestation(
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « FAMILLES » (R6-03 ; L9-03, L9-04, L9-06, D101)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LA CHAÎNE ÉTAIT COUPÉE EN DEUX ENDROITS, ET C'ÉTAIT UN ENCHAÎNEMENT.
+ *
+ * *Mesuré le 15/09/2026 puis le 16/09 :* une machine exige un modèle (D6,
+ * quatre champs obligatoires), un modèle exige une famille, **et la famille
+ * n'avait pas de gabarit**. `parc-familles.ts` existait déjà et indexait les
+ * familles comme PARENTS des modèles — *il savait les retrouver, jamais les
+ * créer.* Le parc ne pouvait donc se remplir que par saisie unitaire, ce
+ * qu'aucun client tiers ne fera au premier jour : l'exploitation a relevé **653
+ * clients, 599 machines**.
+ *
+ * ## CE GABARIT ÉCRIT DE LA VGP, ET L1-05b N'EN ÉCRIVAIT PAS — la différence
+ *
+ * L1-05b a refusé toute colonne de VGP à son formulaire, avec ce motif : *« une
+ * seconde entrée sur la même règle ne connaîtrait pas la première. »* **Le
+ * motif est juste, et il ne s'applique pas ici**, ce qui se vérifie plutôt que
+ * se plaide : ce gabarit ne REDIT aucune règle de L9-04 — il appelle
+ * `schemaAssujettissementFamille`, le seul endroit du dépôt où elle est écrite,
+ * et la base la tient une seconde fois par une contrainte. *Une entrée qui
+ * appelle la règle n'est pas une seconde entrée sur la règle.*
+ *
+ * **Et c'est le lot 9 qui l'exige, pas la commodité** : une famille est le
+ * niveau où la question a un sens réglementaire (L9-03). Un import qui
+ * remplirait seize familles en les laissant toutes `a_determiner` ferait du
+ * registre VGP une liste d'indéterminés de seize lignes — *l'état honnête rendu
+ * inutile par le volume.*
+ *
+ * ## LA COLONNE VIDE NAÎT `a_determiner`, ET CE N'EST PAS UN DÉFAUT INVENTÉ
+ *
+ * C'est `NAISSANCE`, lu dans `lib/vgp/assujettissement.ts`, lui-même adossé au
+ * `@default` de la colonne. *Écrire la valeur ici en ferait une seconde source
+ * du même fait* (§9, 01/09). **Elle ne se confond pas avec « non soumise »** :
+ * `non_soumis` dit « quelqu'un a répondu », `a_determiner` dit « on n'a pas
+ * regardé » — et c'est exactement la distinction qu'une case à cocher détruit,
+ * en faisant sortir un pont élévateur du registre en silence.
+ *
+ * ## LA PÉRIODICITÉ DE CETTE COLONNE N'EST PAS CELLE DU GABARIT « MODÈLES »
+ *
+ * **Elles sont en MOIS ici, en JOURS et en COMPTEUR là-bas, et le libellé des
+ * colonnes le dit des deux côtés.** L'une est une obligation légale qui se
+ * fonde sur un texte (L9-04) ; l'autre est une recommandation d'entretien du
+ * constructeur. *Les mêler ferait facturer un entretien pour une vérification
+ * légale, ou l'inverse.*
+ */
+export const COLONNES_FAMILLES = {
+  code: "Code",
+  libelle: "Libellé",
+  assujettissement: "Assujettissement VGP",
+  periodicite: "Périodicité VGP (mois)",
+  reference: "Référence du texte VGP",
+} as const;
+
+/** Les colonnes qui alimentent `schemaFamilleMateriel`. */
+export const CHAMPS_FAMILLES: Readonly<Record<string, string>> = {
+  [COLONNES_FAMILLES.code]: "code",
+  [COLONNES_FAMILLES.libelle]: "libelle",
+};
+
+/**
+ * Les colonnes qui alimentent `schemaAssujettissementFamille` (L9-03, L9-04).
+ *
+ * **Une seconde correspondance, parce qu'il y a deux schémas** — et les fondre
+ * ferait croire à un seul. *La famille et son assujettissement ne sont pas
+ * validés par la même règle, et ils ne se corrigent pas au même endroit.*
+ */
+export const CHAMPS_FAMILLES_VGP: Readonly<Record<string, string>> = {
+  [COLONNES_FAMILLES.assujettissement]: "assujettissement",
+  [COLONNES_FAMILLES.periodicite]: "periodiciteMois",
+  [COLONNES_FAMILLES.reference]: "referenceTexte",
+};
+
+/** Les champs de `schemaFamilleMateriel` que le gabarit n'expose pas. */
+export const CHAMPS_FAMILLES_ECARTES: Readonly<Record<string, string>> = {
+  actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
+};
+
+/**
+ * Les champs de `schemaAssujettissementFamille` non exposés — **aucun**.
+ *
+ * *Une liste vide est une AFFIRMATION lisible* — « les trois voyagent, et ils
+ * voyagent ensemble » —, et le gardien exige qu'elle reste vraie : le jour où
+ * L9 ajoutera un champ à ce schéma, il faudra l'exposer ou l'écarter ici.
+ */
+export const CHAMPS_FAMILLES_VGP_ECARTES: Readonly<Record<string, string>> = {};
+
+/** La clé d'une famille : son code seul, que la base tient par un index (D101). */
+export function cleDeLaFamille(code: string): string {
+  return `FAMILLE-${normaliserRaisonSociale(code)}`;
+}
+
+/**
+ * L'ASSUJETTISSEMENT QU'UNE CELLULE DÉCLARE — et la population vient de
+ * l'ÉNUMÉRATION, jamais d'une liste recopiée ici.
+ *
+ * > **LE TICKET DIT « TROIS VALEURS », LA MESURE EN COMPTE QUATRE.** L9-03
+ * > écrit *« TROIS valeurs : `soumis` · `non_soumis`, et `verifie` ·
+ * > `a_determiner` »* — il les présente par PAIRES, et il en nomme quatre.
+ * > `AssujettissementVgp` en porte quatre, et le backlog l'a déjà redressé une
+ * > fois le 12/09 (*« le ticket disait trois régimes, la mesure en compte
+ * > quatre »*). **Rien n'est tranché ici** : `z.enum(AssujettissementVgp)` juge,
+ * > si bien que le gabarit accepte exactement ce que la base accepte, et qu'une
+ * > cinquième valeur ajoutée demain sera lisible le jour même. *Recopier trois
+ * > noms aurait fait refuser `verifie` — une valeur légitime rejetée pour une
+ * > raison qui n'est écrite nulle part.*
+ *
+ * **La seule tolérance est la CASSE**, et c'est celle du code d'agence (D101) :
+ * un tableur met une majuscule à la première lettre sans qu'on le lui demande.
+ * *« À déterminer » n'est pas `a_determiner`* — l'accent et l'espace font une
+ * autre chaîne, et elle est REFUSÉE avec son motif plutôt que devinée : une
+ * tolérance qui rapprocherait les deux choisirait à la place de qui a saisi.
+ */
+function assujettissementDeclare(brut: string | undefined): string {
+  const texte = brut?.trim();
+  // **La cellule VIDE est la NAISSANCE**, et la valeur n'est pas écrite ici :
+  // elle est lue dans `lib/vgp/assujettissement.ts`, qui la tient du `@default`
+  // de la colonne. *Une troisième copie du même fait finirait par diverger.*
+  return texte === undefined || texte === "" ? NAISSANCE : texte.toLowerCase();
+}
+
+/**
+ * CE QU'UNE LIGNE DE FAMILLE DÉSIGNE, RÉSOLU UNE SEULE FOIS (R6-03).
+ *
+ * **Les DEUX schémas jugent**, et l'ordre se lit : la famille d'abord, son
+ * assujettissement ensuite. *Un code vide et une périodicité manquante ne se
+ * corrigent pas au même endroit*, mais le rapport ne rend qu'un motif — et
+ * `saisie_refusee` renvoie au FICHIER dans les deux cas, ce qui est exact.
+ *
+ * **Une famille n'a AUCUN parent**, et c'est le seul gabarit du matériel dans
+ * ce cas : elle est la racine de l'enchaînement que R6-03 décrit.
+ */
+export type FamilleALecrire =
+  | {
+      readonly prete: true;
+      readonly saisie: Record<string, unknown>;
+      readonly vgp: SaisieAssujettissementFamille;
+    }
+  | { readonly prete: false; readonly motif: string };
+
+export function preparerUneFamille(
+  valeurs: Readonly<Record<string, string | undefined>>,
+): FamilleALecrire {
+  const saisie = saisieDepuisLaLigne(valeurs, CHAMPS_FAMILLES);
+  if (!schemaFamilleMateriel.safeParse(saisie).success) {
+    return { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+  }
+
+  const reference = valeurs[COLONNES_FAMILLES.reference]?.trim();
+  const vgp = schemaAssujettissementFamille.safeParse({
+    assujettissement: assujettissementDeclare(
+      valeurs[COLONNES_FAMILLES.assujettissement],
+    ),
+    periodiciteMois: lireUnEntier(valeurs[COLONNES_FAMILLES.periodicite]),
+    // **`null` explicite, jamais une clé absente** : le schéma porte
+    // `.nullable()` SANS défaut, si bien qu'une clé manquante serait refusée
+    // pour une raison qui n'est pas la bonne — et l'auteur du fichier
+    // chercherait une faute dans une cellule qu'il a laissée vide exprès.
+    referenceTexte:
+      reference === undefined || reference === "" ? null : reference,
+  });
+  // C'est ICI que L9-04 mord : `soumis` sans périodicité ou sans le texte qui
+  // la fonde est refusé par le `superRefine`, et la base le refuserait une
+  // seconde fois. *Sans le texte, la périodicité est un chiffre que personne ne
+  // peut défendre.*
+  return vgp.success
+    ? { prete: true, saisie, vgp: vgp.data }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/**
+ * LE GABARIT « FAMILLES » — aucun parent, et le CODE seul identifie (D101).
+ *
+ * *Ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base
+ * garantit d'elle* : `famille_materiel` porte `@@unique([societe_id, code])`, le
+ * libellé n'a aucune unicité.
+ */
+export const MODELE_FAMILLES: ModeleDImport = {
+  type: "familles",
+  version: 1,
+  colonnes: [
+    { nom: COLONNES_FAMILLES.code, obligatoire: true },
+    { nom: COLONNES_FAMILLES.libelle, obligatoire: true },
+    // **FACULTATIVES toutes les trois, et c'est la décision du ticket.** Une
+    // famille dont l'assujettissement n'est pas fourni naît `a_determiner` :
+    // *l'exiger ferait refuser un fichier de reprise ordinaire*, et remplir la
+    // colonne au hasard pour passer le contrôle serait pire que de ne pas
+    // l'avoir. L'état honnête apparaît le jour même dans `/vgp/a-determiner`.
+    { nom: COLONNES_FAMILLES.assujettissement, obligatoire: false },
+    { nom: COLONNES_FAMILLES.periodicite, obligatoire: false },
+    { nom: COLONNES_FAMILLES.reference, obligatoire: false },
+  ],
+  identifiantes: [COLONNES_FAMILLES.code],
+  cle: (valeurs, rang) => {
+    const code = valeurs[COLONNES_FAMILLES.code]?.trim();
+    if (code === undefined || code === "") {
+      return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+    }
+    return { forme: "reference", cle: cleDeLaFamille(code), complet: false };
+  },
+  valider: (valeurs) => {
+    const prepare = preparerUneFamille(valeurs);
+    return prepare.prete ? null : prepare.motif;
+  },
+};
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « ÉQUIPEMENTS » — TROIS parents, et le premier du dépôt (R6-03)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LES TROIS PARENTS SE NOMMENT SÉPARÉMENT DANS LE REJET (R6-03).
+ *
+ * `MOTIF_PARENT_INTROUVABLE` a suffi tant qu'un gabarit n'avait qu'un parent, ou
+ * deux qu'on corrigeait au même endroit. **Une machine en a trois** — son
+ * modèle, son client, son site (D6) —, et *« parent introuvable » sur une ligne
+ * qui en nomme trois envoie chercher dans trois référentiels.* Le ticket
+ * l'exige nommément : le motif dit LEQUEL.
+ *
+ * **Ils sont résolus dans cet ORDRE, et l'ordre est une décision** : le client,
+ * puis le site, puis le modèle. *La clé d'un site CONTIENT son client*
+ * (`cleDuSite`), si bien qu'un client introuvable rend le site introuvable par
+ * construction — annoncer les deux ferait chercher deux corrections là où il
+ * n'y en a qu'une. Le modèle est indépendant des deux : il vient en dernier
+ * parce qu'il n'éclaire rien sur eux, et non parce qu'il compterait moins.
+ */
+export const MOTIF_CLIENT_INTROUVABLE = "client_introuvable";
+export const MOTIF_SITE_INTROUVABLE = "site_introuvable";
+export const MOTIF_MODELE_INTROUVABLE = "modele_introuvable";
+
+export const COLONNES_EQUIPEMENTS = {
+  client: "Client (code ou raison sociale)",
+  site: "Site (libellé)",
+  marque: "Marque du modèle",
+  reference: "Référence du modèle",
+  numeroSerie: "Numéro de série",
+  referenceInterne: "Référence interne",
+  localisation: "Localisation",
+  criticite: "Criticité",
+} as const;
+
+export const CHAMPS_EQUIPEMENTS: Readonly<Record<string, string>> = {
+  [COLONNES_EQUIPEMENTS.localisation]: "localisation",
+  [COLONNES_EQUIPEMENTS.criticite]: "criticite",
+};
+
+/**
+ * LES CHAMPS DE `champsMachine` QUE LE GABARIT N'EXPOSE PAS — avec leur motif.
+ *
+ * *Un champ écarté sans motif est un champ oublié, et rien ne les distingue.*
+ */
+export const CHAMPS_EQUIPEMENTS_ECARTES: Readonly<Record<string, string>> = {
+  client_id: "résolu depuis la colonne « Client », jamais saisi (I10)",
+  site_id:
+    "résolu depuis « Site », par le couple (client, libellé) — la règle de D101",
+  modele_id:
+    "résolu depuis « Marque » et « Référence », le couple qui identifie un modèle (L1-09d)",
+  // **Le numéro de série et la référence interne sont exposés, mais PAS par ce
+  // tableau** : ils ne se recopient pas d'une cellule dans un champ, ils
+  // passent par la clé de rapprochement — voir `preparerUnEquipement`.
+  numero_serie:
+    "exposé par « Numéro de série », mais DÉRIVÉ de la clé de rapprochement (D6)",
+  reference_interne:
+    "exposé par « Référence interne », et lu par la même clé que le numéro de série",
+  // *Mesuré le 16/09/2026, dans `lib/excel/controle.ts` :* `texte()` lit
+  // `cellule.texte` puis `cellule.nombre`, et une cellule de DATE ne porte ni
+  // l'un ni l'autre — elle porte `serie`. Le dictionnaire de ligne rend donc
+  // `undefined` pour toute date, **et aucun des cinq gabarits existants n'expose
+  // de colonne de date** : ce n'est pas un oubli de celui-ci, c'est une borne de
+  // la grammaire. *Exposer la colonne quand même ferait une case que le client
+  // remplit et que personne ne lit* — le pire des deux mondes.
+  // **Condition de levée, vérifiable :** le jour où le dictionnaire de ligne
+  // rendra une date.
+  date_mise_en_service:
+    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+  date_vente:
+    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+  garantie_fin:
+    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+  // *Un nombre dont la signification dépend d'une autre colonne ne voyage
+  // jamais seul* (D56), et une référence de facture sans sa date de vente ni sa
+  // fin de garantie est exactement cela : une trace qu'on ne peut pas dater.
+  facture_origine:
+    "elle ne voyage pas sans la date de vente ni la fin de garantie, que la grammaire ne rend pas (D56)",
+  // Le cycle de vie est un geste daté — une réforme, une panne constatée —, et
+  // `fusionnee` n'a qu'un producteur (D28, L3-10). *Une colonne « Statut »
+  // permettrait à un fichier de déclarer une fusion que personne n'a faite.*
+  statut:
+    "le cycle de vie se joue fiche par fiche ; `fusionnee` n'a qu'un producteur (D28)",
+  // **Il n'est pas une donnée du fichier : c'est le CHEMIN qui le sait**, et il
+  // vaut `import`. *Un fichier qui prétendrait « terrain » mentirait sur la
+  // provenance d'une fiche, dans le seul chemin où personne ne relit ce qui
+  // entre.*
+  source_creation:
+    "posé par le chemin lui-même — il vaut `import`, jamais ce qu'un fichier déclare",
+  // Un remplacement se désigne par un identifiant technique que personne ne
+  // connaît (I10), et c'est un geste daté plutôt qu'une colonne.
+  machine_remplacee_id:
+    "un remplacement est un geste daté, et il désignerait un identifiant technique (I10)",
+};
+
+/**
+ * CE QU'UNE LIGNE D'ÉQUIPEMENT DÉSIGNE, RÉSOLU UNE SEULE FOIS (R6-03).
+ *
+ * ## LA CLÉ EST CELLE DU CONTRÔLE, APPELÉE ET JAMAIS RECOPIÉE
+ *
+ * `cleDeRapprochement` — la fonction de L1-08b, dont L2-01 et L1-08f ont déjà
+ * arrêté la forme : **série nue, référence préfixée `SN-INCONNU-`, rang préfixé
+ * `LIGNE-`, trois espaces DISJOINTS.** *Elle n'avait aucun appelant réel* — la
+ * maladie que R3-12 nomme —, et ce gabarit est le premier.
+ *
+ * **Et c'est elle qui compose le numéro de série**, plutôt qu'une seconde règle
+ * écrite ici : quand la plaque est illisible, `cle.cle` vaut déjà
+ * `SN-INCONNU-<référence>` (D6). *Recomposer la chaîne ici ferait deux lectures
+ * d'un même critère, et la divergence se verrait au pire endroit — entre la clé
+ * qui rapproche et le numéro qui s'écrit.*
+ *
+ * **La forme `rang` ne devient PAS un numéro de série**, et c'est le piège que
+ * ce commentaire existe pour fermer : `LIGNE-3` est une chaîne non vide, donc
+ * `texteNonVide` l'accepterait — une machine naîtrait avec « LIGNE-3 » gravé
+ * pour toujours. La ligne n'en reçoit donc aucun, et la saisie la refuse.
+ *
+ * ## `complet` N'EST PAS ÉCRIT ICI NON PLUS
+ *
+ * `schemaMachine` le DÉDUIT du numéro de série (§6). *Un gabarit qui exposerait
+ * une colonne « Complet » laisserait un fichier mentir sur la qualité d'une
+ * fiche* — et le champ n'existe pas dans `champsMachine`, si bien qu'on ne peut
+ * pas l'ajouter par distraction.
+ */
+export type EquipementALecrire =
+  | { readonly prete: true; readonly saisie: Record<string, unknown> }
+  | { readonly prete: false; readonly motif: string };
+
+export function preparerUnEquipement(
+  clients: ParcClientsIndexe,
+  sites: ParcDesFiches,
+  modeles: ParcDesFiches,
+  valeurs: Readonly<Record<string, string | undefined>>,
+  rang: number,
+): EquipementALecrire {
+  const client = clientDesignePar(
+    clients,
+    valeurs[COLONNES_EQUIPEMENTS.client],
+  );
+  if (client === undefined) {
+    return { prete: false, motif: MOTIF_CLIENT_INTROUVABLE };
+  }
+
+  const libelle = valeurs[COLONNES_EQUIPEMENTS.site]?.trim();
+  const site =
+    libelle === undefined || libelle === ""
+      ? undefined
+      : sites.fiches.get(cleDuSite(client, libelle));
+  if (site === undefined) {
+    return { prete: false, motif: MOTIF_SITE_INTROUVABLE };
+  }
+
+  const marque = valeurs[COLONNES_EQUIPEMENTS.marque]?.trim();
+  const reference = valeurs[COLONNES_EQUIPEMENTS.reference]?.trim();
+  const modele =
+    marque === undefined ||
+    marque === "" ||
+    reference === undefined ||
+    reference === ""
+      ? undefined
+      : modeles.fiches.get(cleDuModele(marque, reference));
+  if (modele === undefined) {
+    return { prete: false, motif: MOTIF_MODELE_INTROUVABLE };
+  }
+
+  const cle = cleEquipement(valeurs, rang);
+  const saisie = {
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_EQUIPEMENTS),
+    modele_id: modele,
+    client_id: client,
+    site_id: site,
+    // La forme `rang` ne désigne AUCUNE machine : la ligne n'a ni série ni
+    // référence, et lui donner `LIGNE-<n>` pour numéro de série graverait le
+    // rang d'un tableur sur une fiche. Le champ reste absent, `texteNonVide`
+    // refuse, et le rapport dit « saisie refusée ».
+    ...(cle.forme === "rang" ? {} : { numero_serie: cle.cle }),
+    reference_interne: valeurs[COLONNES_EQUIPEMENTS.referenceInterne]?.trim(),
+    // **Le CHEMIN le sait, le fichier ne le déclare pas** (voir les écartés).
+    source_creation: "import",
+  };
+  return schemaMachine.safeParse(saisie).success
+    ? { prete: true, saisie }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/**
+ * LA CLÉ D'UNE LIGNE D'ÉQUIPEMENT — `cleMachineDepuis`, et rien d'autre.
+ *
+ * Elle est écrite une fois et appelée par `cle` ET par `preparerUnEquipement` :
+ * *le rapprochement et l'écriture lisent la même clé, ou ils ne parlent pas de
+ * la même machine.*
+ */
+const cleEquipement = cleMachineDepuis(
+  COLONNES_EQUIPEMENTS.numeroSerie,
+  COLONNES_EQUIPEMENTS.referenceInterne,
+);
+
+/**
+ * LE CLIENT QU'UNE CELLULE DÉSIGNE — par son code, puis par sa raison sociale.
+ *
+ * **Extraite de `clientDuSite` plutôt que recopiée** (R6-03) : trois gabarits
+ * nomment désormais un client — contacts, sites, équipements — et *une seconde
+ * règle de rapprochement des clients se verrait au pire moment, des machines
+ * accrochées au mauvais client.* `clientDuSite` l'appelle, et ne fait plus que
+ * lui passer sa colonne.
+ */
+export function clientDesignePar(
+  clients: ParcClientsIndexe,
+  designation: string | undefined,
+): string | undefined {
+  const brut = designation?.trim();
+  if (brut === undefined || brut === "") return undefined;
+  return (
+    clients.fiches.get(
+      cleDeClient({ codeExterne: brut, raisonSociale: undefined, rang: 0 }).cle,
+    ) ??
+    clients.fiches.get(
+      cleDeClient({ codeExterne: undefined, raisonSociale: brut, rang: 0 }).cle,
+    )
+  );
+}
+
+/**
+ * LE GABARIT « ÉQUIPEMENTS » — les quatre obligatoires de D6, et pas un de plus.
+ *
+ * **Quatre colonnes obligatoires pour quatre champs obligatoires** : le client,
+ * le site, la marque et la référence du modèle — et le numéro de série, qui est
+ * le quatrième de D6 sans être une colonne obligatoire. *C'est la seule entorse
+ * apparente, et elle est mesurée* : D6 veut un numéro de série, et il accepte
+ * que la plaque soit illisible — la colonne « Référence interne » prend alors le
+ * relais, et la fiche entre `complet = false`. **Exiger la colonne « Numéro de
+ * série » rejetterait précisément les fiches que la file de complétion existe
+ * pour rattraper.**
+ */
+export function modeleEquipements(
+  clients: ParcClientsIndexe,
+  sites: ParcDesFiches,
+  modeles: ParcDesFiches,
+): ModeleDImport {
+  return {
+    type: "equipements",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_EQUIPEMENTS.client, obligatoire: true },
+      { nom: COLONNES_EQUIPEMENTS.site, obligatoire: true },
+      { nom: COLONNES_EQUIPEMENTS.marque, obligatoire: true },
+      { nom: COLONNES_EQUIPEMENTS.reference, obligatoire: true },
+      { nom: COLONNES_EQUIPEMENTS.numeroSerie, obligatoire: false },
+      { nom: COLONNES_EQUIPEMENTS.referenceInterne, obligatoire: false },
+      { nom: COLONNES_EQUIPEMENTS.localisation, obligatoire: false },
+      { nom: COLONNES_EQUIPEMENTS.criticite, obligatoire: false },
+    ],
+    // **Le CLIENT est identifiant, et c'est ce qui évite une perte silencieuse.**
+    // Avec les seules colonnes de série et de référence, une ligne qui nomme un
+    // client et un site sans numéro serait lue comme un reste de GABARIT (§
+    // `natureDeLigne`) — *comptée, ignorée, et jamais rejetée.* Elle est donc
+    // une DONNÉE, et la saisie la refuse bruyamment.
+    identifiantes: [
+      COLONNES_EQUIPEMENTS.client,
+      COLONNES_EQUIPEMENTS.numeroSerie,
+      COLONNES_EQUIPEMENTS.referenceInterne,
+    ],
+    cle: cleEquipement,
+    valider: (valeurs, rang) => {
+      const prepare = preparerUnEquipement(
+        clients,
+        sites,
+        modeles,
+        valeurs,
+        rang,
+      );
+      return prepare.prete ? null : prepare.motif;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
  * LES GABARITS QUE CODIPLAN PUBLIE, ÉNUMÉRÉS UNE SEULE FOIS (R6-01)
  * ──────────────────────────────────────────────────────────────────────── */
 
@@ -831,10 +1314,43 @@ export type ParcsDImport = {
   readonly clients: ParcClientsIndexe;
   readonly agences: ParcAgences;
   readonly familles: ParcFamilles;
+  /**
+   * LES SITES ET LES MODÈLES, PARENTS D'UN ÉQUIPEMENT (R6-03).
+   *
+   * **Ils répondaient déjà à l'autre question**, et c'est le fait qui décide de
+   * ne pas écrire deux modules de plus : `indexerLeParcSites` et
+   * `indexerLeParcModeles` vivent dans `parc-cibles.ts` parce qu'ils disent
+   * *« cette fiche existe-t-elle déjà ? »*. À partir d'aujourd'hui ils disent
+   * aussi *« que désigne cette cellule ? »*, exactement comme l'index des
+   * clients le fait depuis L1-08g.
+   *
+   * *La note de `parc-cibles.ts` disait « l'index des clients est le SEUL qui
+   * réponde aux deux, parce qu'un client n'a pas de parent ».* **C'est cette
+   * phrase que R6-03 périme, et non le découpage** : ce qui rendait le client
+   * unique n'était pas qu'il réponde aux deux questions, c'est que rien ne le
+   * désignait. Écrire un `parc-sites.ts` de parents à côté serait la seconde
+   * implémentation d'une clé — *rien ne se rapprocherait plus, et tout
+   * deviendrait création* (§9, 01/09).
+   */
+  readonly sites: ParcDesFiches;
+  readonly modeles: ParcDesFiches;
 };
 
 /**
- * LES CINQ GABARITS, CONSTRUITS ENSEMBLE.
+ * CE QU'UN PARENT EXIGE D'UN INDEX, et rien de plus.
+ *
+ * *Un gabarit a besoin de retrouver une fiche par sa clé ; il n'a que faire des
+ * clés ambiguës, que le CONTRÔLE consulte.* Le type est donc structurel plutôt
+ * qu'importé : `ParcCible` le satisfait, `ParcClientsIndexe` aussi, et ce
+ * fichier ne dépend d'aucun des deux — ce qui lui évite un cycle avec
+ * `parc-cibles.ts`, qui appelle ses clés.
+ */
+export type ParcDesFiches = {
+  readonly fiches: ReadonlyMap<string, string>;
+};
+
+/**
+ * LES SEPT GABARITS, CONSTRUITS ENSEMBLE.
  *
  * **Jusqu'à R6-01, aucune liste ne les réunissait** : la route de contrôle
  * nommait `MODELE_CLIENTS` et elle seule, si bien que les quatre autres
@@ -853,6 +1369,8 @@ export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
     modeleSites(parcs.clients, parcs.agences),
     modeleModeles(parcs.familles),
     modelePrestations(parcs.familles),
+    MODELE_FAMILLES,
+    modeleEquipements(parcs.clients, parcs.sites, parcs.modeles),
   ];
 }
 
@@ -863,7 +1381,7 @@ export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
  * ne sait pas lire ne se distingue pas ici d'un type inconnu : *c'est
  * `controlerFeuille` qui prononce, et lui seul* — il porte déjà les cinq
  * anomalies de D31, avec leur ligne et leur valeur. Cette fonction répond à une
- * question plus étroite : **lequel des cinq gabarits ce fichier prétend-il
+ * question plus étroite : **lequel des gabarits publiés ce fichier prétend-il
  * remplir ?** — de quoi choisir le juge, jamais de quoi rendre le verdict.
  *
  * *Deux questions différentes, deux fonctions* : les fondre ferait rendre à la
@@ -880,15 +1398,20 @@ export function gabaritDuMarqueur(
 }
 
 /**
- * LES CINQ TYPES PUBLIÉS, DÉRIVÉS DES GABARITS EUX-MÊMES.
+ * LES TYPES PUBLIÉS, DÉRIVÉS DES GABARITS EUX-MÊMES.
  *
  * **Jamais une seconde liste écrite à la main** : elle appelle les
  * constructeurs avec des parcs VIDES, parce que le `type` d'un gabarit ne
  * dépend d'aucun parc. *Une énumération recopiée « pour la lisibilité »
- * deviendrait fausse le jour d'un sixième gabarit, sans rougir* (§9, 01/09).
+ * deviendrait fausse le jour d'un gabarit de plus, sans rougir* (§9, 01/09).
+ *
+ * **Et ce jour est arrivé deux fois le 16/09/2026** : R6-03 en ajoute deux, et
+ * aucune ligne de ce fichier n'a eu à être recomptée.
  */
 export const TYPES_PUBLIES: readonly string[] = gabaritsPublies({
   clients: { cles: new Set(), ambigues: new Set(), fiches: new Map() },
   agences: { parCode: new Map() },
   familles: { parCode: new Map() },
+  sites: { fiches: new Map() },
+  modeles: { fiches: new Map() },
 }).map((modele) => modele.type);

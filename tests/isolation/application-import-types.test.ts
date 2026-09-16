@@ -22,7 +22,12 @@ import {
 import { indexerLesAgences } from "@/lib/imports/parc-agences";
 import { indexerLesFamilles } from "@/lib/imports/parc-familles";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
-import { PARC_VIDE, indexerLeParcCible } from "@/lib/imports/parc-cibles";
+import {
+  PARC_VIDE,
+  indexerLeParcCible,
+  indexerLeParcModeles,
+  indexerLeParcSites,
+} from "@/lib/imports/parc-cibles";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -96,6 +101,10 @@ async function parcs(): Promise<ParcsDImport> {
     clients: await indexerLeParcClients(SESSION, clientApp()),
     agences: await indexerLesAgences(SESSION, clientApp()),
     familles: await indexerLesFamilles(SESSION, clientApp()),
+    // Les deux parents qu'un équipement désigne (R6-03) : ce fichier n'en
+    // dépose aucun, et les passer garde l'appel fidèle à la route.
+    sites: await indexerLeParcSites(SESSION, clientApp()),
+    modeles: await indexerLeParcModeles(SESSION, clientApp()),
   };
 }
 

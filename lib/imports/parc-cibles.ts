@@ -4,7 +4,14 @@ import { type ContexteSession } from "@/lib/auth/contexte";
 import { type ParcConnu } from "@/lib/excel/controle";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
-import { cleDeLaPrestation, cleDuModele, cleDuSite } from "./modeles";
+import { cleDeRapprochement } from "@/lib/excel/rapprochement";
+
+import {
+  cleDeLaFamille,
+  cleDeLaPrestation,
+  cleDuModele,
+  cleDuSite,
+} from "./modeles";
 import { indexerLeParcClients } from "./parc-clients";
 
 /**
@@ -24,8 +31,18 @@ import { indexerLeParcClients } from "./parc-clients";
  * **Le parent et la cible ne sont pas la même question.** `parc-clients.ts`,
  * `parc-agences.ts` et `parc-familles.ts` répondent à *« que désigne cette
  * cellule ? »* ; ce module répond à *« cette fiche existe-t-elle déjà ? »*.
- * L'index des clients est le seul qui réponde aux deux, parce qu'un client n'a
- * pas de parent — et c'est ce qui a rendu la confusion invisible.
+ * L'index des clients était le seul à répondre aux deux, parce qu'un
+ * client n'a pas de parent — et c'est ce qui avait rendu la confusion
+ * invisible.
+ *
+ * > **R6-03 PÉRIME CE « SEUL », et non le découpage.** Un équipement désigne
+ * > trois parents — client, site, modèle (D6) —, si bien que `indexerLeParcSites`
+ * > et `indexerLeParcModeles` répondent désormais aux deux questions eux aussi.
+ * > *Ce qui rendait le client unique n'était pas qu'il réponde aux deux, c'est
+ * > que rien ne le désignait.* Écrire un second module d'index pour les mêmes
+ * > tables serait la seconde implémentation d'une clé — **rien ne se
+ * > rapprocherait plus, et tout redeviendrait création**, exactement le défaut
+ * > que ce fichier existe pour fermer.
  *
  * ## LES CLÉS NE SONT PAS RECALCULÉES ICI
  *
@@ -153,6 +170,84 @@ export async function indexerLeParcPrestations(
 }
 
 /**
+ * LES FAMILLES de la société active, indexées par la clé de leur gabarit (R6-03).
+ *
+ * **Ce n'est PAS `parc-familles.ts`, et les deux coexistent** : celui-là indexe
+ * par le CODE BRUT en majuscules, pour répondre à *« que désigne la cellule
+ * “Famille” d'un modèle ? »* ; celui-ci indexe par `cleDeLaFamille`, pour
+ * répondre à *« cette famille existe-t-elle déjà ? »*. Les fondre ferait
+ * qu'aucune des deux questions ne serait bien posée — et la normalisation n'est
+ * pas la même : `normaliserRaisonSociale` rabat les accents et la ponctuation,
+ * `toUpperCase()` non.
+ *
+ * *L'ambiguïté est donc POSSIBLE ici et impossible là-bas* : la base garantit
+ * `(societe_id, code)`, mais « PONT-ELEV » et « pont elev » rendent la même clé
+ * normalisée. Elle est détectée, comme partout, plutôt que supposée impossible.
+ */
+export async function indexerLeParcFamilles(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<ParcCible> {
+  const familles = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.familleMateriel.findMany({ select: { id: true, code: true } }),
+    client,
+  );
+  return indexer(familles.map((f) => [cleDeLaFamille(f.code), f.id]));
+}
+
+/**
+ * LES ÉQUIPEMENTS de la société active, par la clé de rapprochement (R6-03).
+ *
+ * ## L'AMBIGUÏTÉ EST POSSIBLE ICI, ET ELLE EST MESURÉE PLUTÔT QUE SUPPOSÉE
+ *
+ * *Mesuré le 16/09/2026 au schéma :* `machine` porte
+ * `@@unique([societe_id, modele_id, numero_serie])` — **la série seule n'est
+ * PAS unique**, deux machines de modèles différents peuvent la partager. Or la
+ * clé du gabarit est la série NUE (L2-01, L1-08f), et elle ne peut pas porter le
+ * modèle : *un fichier de reprise donne un numéro de série, pas un identifiant
+ * de modèle.* Deux fiches peuvent donc rendre la même clé, et la ligne qui la
+ * porte est rejetée pour arbitrage humain — RG-IMP-05, sans une ligne de plus.
+ *
+ * **La référence interne, elle, est unique par société** — index PARTIEL
+ * `machine_societe_reference_interne_key` (D6) —, si bien que les clés
+ * `SN-INCONNU-…` ne peuvent pas entrer en collision entre elles. *Les deux
+ * espaces ne se comportent pas pareil, et c'est ce que la base garantit qui le
+ * décide, jamais la forme de la clé* (D101).
+ *
+ * `reference_interne` est passée **telle quelle** : `cleDeRapprochement` compose
+ * `SN-INCONNU-<référence>` lui-même, et la recomposer ici ferait deux lectures
+ * d'un même critère.
+ */
+export async function indexerLeParcEquipements(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<ParcCible> {
+  const machines = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        select: { id: true, numero_serie: true, reference_interne: true },
+      }),
+    client,
+  );
+  return indexer(
+    machines.map((m) => [
+      cleDeRapprochement({
+        numeroSerie: m.numero_serie,
+        reference: m.reference_interne ?? undefined,
+        // **Le rang est SANS OBJET, et il ne peut pas être atteint** : une
+        // fiche en base porte toujours un numéro de série (`NOT NULL`, D6), si
+        // bien que la forme de dernier recours ne se produit jamais ici. *Lui
+        // donner une valeur qui aurait un sens ferait croire qu'elle en a un.*
+        rang: 0,
+      }).cle,
+      m.id,
+    ]),
+  );
+}
+
+/**
  * LES TYPES QUI ONT UN INDEX DE CIBLE, ET CEUX QUI N'EN ONT PAS (R6-01).
  *
  * **Une seule maison, et elle est GARDÉE** : `tests/unit/imports/types-dimport.test.ts`
@@ -174,6 +269,8 @@ export const INDEX_DE_CIBLE: Readonly<
   sites: indexerLeParcSites,
   modeles: indexerLeParcModeles,
   prestations: indexerLeParcPrestations,
+  familles: indexerLeParcFamilles,
+  equipements: indexerLeParcEquipements,
 };
 
 /**

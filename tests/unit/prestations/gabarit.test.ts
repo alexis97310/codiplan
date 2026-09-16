@@ -55,7 +55,10 @@ function valider(valeurs: Record<string, string>): string | null {
         "rejet ci-dessous ne mesureraient rien.",
     );
   }
-  return modele.valider(valeurs);
+  // Le rang est SANS OBJET pour ce gabarit — sa clé est le code, jamais le
+  // rang —, et le passer quand même est ce qui rend l'appel fidèle à
+  // `controlerFeuille` (R6-03).
+  return modele.valider(valeurs, 3);
 }
 
 /** Une ligne de tableur, par nom de colonne. */

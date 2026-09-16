@@ -9,7 +9,12 @@ import { gabaritDuMarqueur } from "@/lib/imports/modeles";
 import { indexerLesAgences } from "@/lib/imports/parc-agences";
 import { indexerLesFamilles } from "@/lib/imports/parc-familles";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
-import { PARC_VIDE, indexerLeParcCible } from "@/lib/imports/parc-cibles";
+import {
+  PARC_VIDE,
+  indexerLeParcCible,
+  indexerLeParcModeles,
+  indexerLeParcSites,
+} from "@/lib/imports/parc-cibles";
 
 import { champ, contexteCourant } from "../../interventions/actions";
 
@@ -22,7 +27,7 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * écrirait dans la foulée du téléversement n'aurait jamais été validé par
  * personne.
  *
- * ## CINQ TYPES, ET C'EST LE MARQUEUR QUI CHOISIT (R6-01)
+ * ## LE MARQUEUR CHOISIT LE GABARIT (R6-01 ; sept depuis R6-03)
  *
  * **Elle était câblée sur `MODELE_CLIENTS`**, et l'argument écrit ici était
  * juste le jour où il a été écrit : *« accepter un fichier de contacts
@@ -90,18 +95,27 @@ export async function POST(requete: Request): Promise<Response> {
     return versLIndex(`imports.refus.${MOTIF_TELEVERSEMENT.sansFeuille}`);
   }
 
-  // Les trois parcs de PARENTS sont lus d'un bloc : ils servent à construire
-  // les cinq gabarits, et le type n'est pas encore connu.
+  // Les parcs de PARENTS sont lus d'un bloc : ils servent à construire les
+  // gabarits, et le type n'est pas encore connu.
+  //
+  // **Les sites et les modèles répondent désormais aux DEUX questions** (R6-03) :
+  // ils sont la CIBLE de leur propre gabarit, et les PARENTS d'un équipement.
+  // *Les indexer une seconde fois ici sous un autre nom ferait deux lectures
+  // d'une même clé* (§9, 01/09).
   const clients = await indexerLeParcClients(contexte);
-  const [agences, familles] = await Promise.all([
+  const [agences, familles, sites, modeles] = await Promise.all([
     indexerLesAgences(contexte),
     indexerLesFamilles(contexte),
+    indexerLeParcSites(contexte),
+    indexerLeParcModeles(contexte),
   ]);
 
   const modele = gabaritDuMarqueur(premiere.lignes[0]?.[0], {
     clients,
     agences,
     familles,
+    sites,
+    modeles,
   });
   if (modele === null) {
     // *Aucun des cinq gabarits ne répond à ce marqueur.* Le refus est celui de
