@@ -672,6 +672,11 @@ export const fr = {
   // session du 16/09/2026).
   "imports.motif.famille_introuvable":
     "Aucune famille ne porte ce code. La correction est dans le fichier des familles, ou dans la cellule qui le nomme.",
+  // AJOUTÉ le 16/09/2026 (point 4b) : deux lignes du MÊME fichier désignent la
+  // même fiche — jamais le parc, qui ne les connaît encore ni l'une ni
+  // l'autre. La correction n'est donc pas au même endroit que « cle_ambigue ».
+  "imports.motif.doublon_fichier":
+    "Une autre ligne de ce même fichier désigne la même fiche : deux entrées ne peuvent pas être écrites pour une seule. La correction est dans le fichier — c'est ce doublon qu'il faut lever, avant même de consulter le parc.",
 
   // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états
   // d'un lot qu'on ne peut plus toucher.
@@ -691,6 +696,11 @@ export const fr = {
     "Ce lot n'a jamais été appliqué : il n'y a rien à annuler.",
   "imports.refus.type_sans_application":
     "Ce type de fichier se contrôle mais ne s'écrit pas encore. Aucune fiche n'a été créée ni modifiée.",
+  // AJOUTÉ le 16/09/2026 (point 4 de la session) : le filet qui suit le
+  // contrôle des doublons intra-fichier — le parc a bougé entre le contrôle
+  // et cette validation, par un autre lot appliqué entre-temps.
+  "imports.refus.contrainte_violee":
+    "L'application a rencontré une valeur qui existe déjà en base sur ce qui identifie une fiche de façon unique — par exemple une marque et une référence, ou un code. Rien n'a été appliqué : la transaction a été annulée dans son ensemble. Corrigez le doublon dans le fichier ou dans le parc, puis revalidez ce lot.",
 
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
   "planning.titre": "Planning des interventions",

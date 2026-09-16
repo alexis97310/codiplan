@@ -1,4 +1,4 @@
-import { type Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { creerClientDans, modifierClientDans } from "@/lib/clients/depot";
@@ -77,7 +77,17 @@ import {
 
 /** Ce que l'application refuse, et pourquoi. */
 export type RefusApplication =
-  "lot_introuvable" | "lot_deja_applique" | "lot_annule";
+  | "lot_introuvable"
+  | "lot_deja_applique"
+  | "lot_annule"
+  // AJOUTÉ le 16/09/2026 (point 4 de la session : une violation de contrainte
+  // d'unicité ressortait en page d'erreur 500). Voir `catchContrainteViolee`
+  // plus bas : c'est le FILET, jamais la première ligne de défense — celle-ci
+  // est le contrôle, qui rejette désormais un doublon AVANT l'application
+  // (`MOTIF_DOUBLON_FICHIER`, `lib/excel/controle.ts`). Ce motif couvre ce que
+  // le contrôle ne pouvait pas voir : le parc a bougé ENTRE le contrôle et la
+  // validation — un autre lot, appliqué entre-temps, a écrit la même clé.
+  | "contrainte_violee";
 
 export type ResultatApplication =
   | { readonly applique: false; readonly motif: RefusApplication }
@@ -144,6 +154,25 @@ type Ecriture = "creation" | "modification" | null;
  * est laissée en l'état et le lot continue* : l'annulation partielle de I6 est
  * faite du même bois, et l'écart se lit dans les décomptes rendus, qui sont
  * ceux de ce qui a été ÉCRIT et non ceux du rapport.
+ *
+ * ## LA TRANSACTIONNALITÉ, VÉRIFIÉE PLUTÔT QU'AFFIRMÉE (point 4 du 16/09/2026)
+ *
+ * *Question posée en production après une page d'erreur 500 sur une violation
+ * de contrainte : rien n'avait-il été écrit ?* La réponse est OUI, et elle
+ * tient à une seule ligne, déjà vraie avant cet incident : `avecContexteRls`
+ * (`lib/db/rls.ts`) ouvre `travail` dans `prisma.$transaction(async (tx) =>
+ * …)` — une transaction INTERACTIVE, que Prisma annule intégralement dès
+ * qu'une requête à l'intérieur lève. Une violation de contrainte survenue au
+ * milieu du `for` ci-dessous défait donc TOUT ce que la boucle avait déjà
+ * écrit, y compris pour les lignes précédentes de la MÊME boucle — le lot
+ * reste `controle`, comme si l'application n'avait jamais commencé.
+ * `tests/isolation/application-import-types.test.ts` le mesure contre la
+ * vraie base, colonne par colonne, plutôt que de le supposer du code.
+ *
+ * **Ce que cette garantie NE fait PAS, et c'est pour cela qu'un filet suit** :
+ * une transaction qui se défait bien laisse quand même l'ERREUR remonter telle
+ * quelle à l'appelant. C'est cette remontée non rattrapée, et elle seule, qui
+ * faisait le 500 — la donnée n'a jamais été le problème.
  */
 async function appliquerLesLignes(
   contexte: ContexteSession,
@@ -157,67 +186,90 @@ async function appliquerLesLignes(
 ): Promise<ResultatApplication> {
   const societeId = exigerSocieteActive(contexte);
 
-  return avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      const lot = await tx.importLot.findUnique({
-        where: { id: lotId },
-        select: {
-          statut: true,
-          lignes: {
-            where: { action: { in: ["creation", "modification"] } },
-            select: {
-              id: true,
-              rang: true,
-              action: true,
-              cle: true,
-              valeurs: true,
+  try {
+    return await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        const lot = await tx.importLot.findUnique({
+          where: { id: lotId },
+          select: {
+            statut: true,
+            lignes: {
+              where: { action: { in: ["creation", "modification"] } },
+              select: {
+                id: true,
+                rang: true,
+                action: true,
+                cle: true,
+                valeurs: true,
+              },
+              orderBy: { rang: "asc" },
             },
-            orderBy: { rang: "asc" },
           },
-        },
-      });
-
-      // `null` couvre deux cas que rien ne distingue ici, et c'est voulu : le
-      // lot n'existe pas, ou il appartient à une autre société et la politique
-      // le cache. *Les distinguer ferait un oracle* (D35, D50).
-      if (lot === null) {
-        return { applique: false as const, motif: "lot_introuvable" as const };
-      }
-      const refus = refusDuStatut(lot.statut);
-      if (refus !== null) {
-        return { applique: false as const, motif: refus };
-      }
-
-      let creations = 0;
-      let modifications = 0;
-
-      for (const brute of lot.lignes) {
-        const ecriture = await ecrire(tx, societeId, {
-          id: brute.id,
-          rang: brute.rang,
-          action: brute.action as "creation" | "modification",
-          cle: brute.cle,
-          valeurs: brute.valeurs as Record<string, string | undefined>,
         });
-        if (ecriture === "creation") creations += 1;
-        if (ecriture === "modification") modifications += 1;
-      }
 
-      await tx.importLot.update({
-        where: { id: lotId },
-        data: { statut: "applique", applique_le: await instantDate(tx) },
-      });
+        // `null` couvre deux cas que rien ne distingue ici, et c'est voulu : le
+        // lot n'existe pas, ou il appartient à une autre société et la politique
+        // le cache. *Les distinguer ferait un oracle* (D35, D50).
+        if (lot === null) {
+          return {
+            applique: false as const,
+            motif: "lot_introuvable" as const,
+          };
+        }
+        const refus = refusDuStatut(lot.statut);
+        if (refus !== null) {
+          return { applique: false as const, motif: refus };
+        }
 
-      // **Aucun décompte des lignes IGNORÉES n'est rendu**, et c'est délibéré :
-      // la requête ne les rapporte pas, ce chiffre vaudrait donc zéro en toute
-      // circonstance. *Une ligne qui ne peut pas bouger sous une faute n'est
-      // jamais présentée à côté de celles qui le peuvent* (§9, 06/09) — le lot
-      // porte déjà ses décomptes, et c'est là qu'on les lit.
-      return { applique: true as const, creations, modifications };
-    },
-    client,
-  );
+        let creations = 0;
+        let modifications = 0;
+
+        for (const brute of lot.lignes) {
+          const ecriture = await ecrire(tx, societeId, {
+            id: brute.id,
+            rang: brute.rang,
+            action: brute.action as "creation" | "modification",
+            cle: brute.cle,
+            valeurs: brute.valeurs as Record<string, string | undefined>,
+          });
+          if (ecriture === "creation") creations += 1;
+          if (ecriture === "modification") modifications += 1;
+        }
+
+        await tx.importLot.update({
+          where: { id: lotId },
+          data: { statut: "applique", applique_le: await instantDate(tx) },
+        });
+
+        // **Aucun décompte des lignes IGNORÉES n'est rendu**, et c'est délibéré :
+        // la requête ne les rapporte pas, ce chiffre vaudrait donc zéro en toute
+        // circonstance. *Une ligne qui ne peut pas bouger sous une faute n'est
+        // jamais présentée à côté de celles qui le peuvent* (§9, 06/09) — le lot
+        // porte déjà ses décomptes, et c'est là qu'on les lit.
+        return { applique: true as const, creations, modifications };
+      },
+      client,
+    );
+  } catch (erreur) {
+    // **LE FILET, jamais la première ligne de défense** (point 4, 16/09/2026).
+    // La transaction s'est déjà défaite — voir le docblock ci-dessus — et rien
+    // n'a été écrit ; ce bloc ne répare rien, il choisit seulement de ne pas
+    // laisser une erreur technique remonter jusqu'à une page d'erreur 500.
+    // *Une erreur que le produit sait nommer n'est pas une panne.*
+    //
+    // **Seul P2002 est reconnu.** Une autre erreur Prisma dirait autre chose
+    // qu'un doublon — une colonne trop longue, une connexion perdue — et la
+    // nommer « contrainte_violee » mentirait sur sa cause : elle continue de
+    // remonter telle quelle, comme avant ce ticket.
+    if (
+      erreur instanceof Prisma.PrismaClientKnownRequestError &&
+      erreur.code === "P2002"
+    ) {
+      return { applique: false as const, motif: "contrainte_violee" as const };
+    }
+    throw erreur;
+  }
 }
 
 /**
