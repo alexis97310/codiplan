@@ -160,6 +160,70 @@ describe("un lot MODIFIE ce que la clé désigne, et garde ce qu'il écrase", ()
   });
 });
 
+describe("UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION (point 1, 16/09/2026)", () => {
+  it("le MÊME FICHIER redéposé une seconde fois n'écrit rien, et le compte le dit", async () => {
+    // **C'est la mesure de production, réduite à l'échelle d'un scénario** :
+    // un lot de 615 MODIFICATIONS redéposant le fichier qui venait de créer
+    // ces mêmes fiches, sans qu'un seul champ ne diffère. La fiche porte
+    // désormais « Garage de l'épreuve — renommé » (le test précédent) : ce
+    // dépôt-ci répète EXACTEMENT la même ligne, ridet compris (cellule vide,
+    // donc non touchée ici comme là).
+    const lotId = await controlerEtEnregistrer([
+      [CODE_NEUF, "Garage de l'épreuve — renommé"],
+    ]);
+
+    const avant = await ficheParCode(CODE_NEUF);
+
+    const resultat = await appliquerLeLotDeClients(SESSION, lotId, clientApp());
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    // **LE CŒUR DE LA MESURE** : zéro modification réellement écrite, une
+    // ligne comptée « inchangée » — jamais l'inverse, et jamais les deux à
+    // zéro, ce qui dirait que la ligne a été purement ignorée.
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.creations).toBe(0);
+    expect(resultat.inchangees).toBe(1);
+
+    // LE TÉMOIN : la fiche est BIEN LA MÊME qu'avant ce second dépôt — rien
+    // n'a permuté deux valeurs identiques par coïncidence.
+    const apres = await ficheParCode(CODE_NEUF);
+    expect(apres).toEqual(avant);
+
+    // **AUCUNE TRACE N'EST POSÉE SUR LA LIGNE** — ni `entite`, ni `entite_id`,
+    // ni `valeurs_avant` : `tracer` n'est appelé que pour ce qui a été écrit
+    // (même règle qu'une fiche disparue ou un parent introuvable). C'est ce
+    // qui protège le déclencheur d'audit (I8) : aucune écriture, donc aucune
+    // trace — le journal ne ment pas sur ce qui s'est passé.
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{
+        entite: string | null;
+        entite_id: string | null;
+        valeurs_avant: unknown;
+      }>
+    >(
+      `SELECT "entite", "entite_id", "valeurs_avant" FROM "import_lot_ligne"
+        WHERE "import_lot_id" = '${lotId}' AND "cle" = '${CODE_NEUF}'`,
+    );
+    expect(ligne?.entite).toBeNull();
+    expect(ligne?.entite_id).toBeNull();
+    expect(ligne?.valeurs_avant).toBeNull();
+
+    // ET LE LOT PORTE LE DÉCOMPTE : le quatrième, celui que l'application
+    // seule sait mesurer (`lib/imports/depot.ts`).
+    const [lot] = await clientOwner().$queryRawUnsafe<
+      Array<{ lignes_inchangees: number; lignes_modifications: number }>
+    >(
+      `SELECT "lignes_inchangees", "lignes_modifications" FROM "import_lot"
+        WHERE "id" = '${lotId}'`,
+    );
+    expect(lot?.lignes_inchangees).toBe(1);
+    // Le décompte de CONTRÔLE, lui, ne bouge pas : c'est la PROPOSITION, et
+    // elle ne ment pas non plus — cette ligne était bien classée modification
+    // au moment du contrôle. C'est « inchangées » qui dit la suite.
+    expect(lot?.lignes_modifications).toBe(1);
+  });
+});
+
 describe("ce que l'application REFUSE", () => {
   it("un lot d'une AUTRE société est introuvable — et le refus ne dit rien de plus", async () => {
     // *Les distinguer ferait un oracle* : « introuvable » couvre le lot qui

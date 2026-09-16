@@ -149,6 +149,40 @@ export async function creerClientDans(
 }
 
 /**
+ * LA MÊME ÉCRITURE, EN LOT (session du 16/09/2026, point 1 de la suite —
+ * dépassement de délai).
+ *
+ * **Pourquoi une seconde fonction plutôt qu'une boucle sur `creerClientDans`.**
+ * Un import peut créer des centaines de fiches dans la MÊME transaction ; une
+ * `create` par ligne fait autant d'allers-retours, et à 500 ms l'un vers la
+ * base hébergée, c'est cela — pas la donnée — qui a fait dépasser le délai de
+ * la transaction (voir `lib/imports/delais.ts`). `createMany` écrit N lignes
+ * en UN aller-retour.
+ *
+ * **L'identifiant est fourni par l'appelant, jamais tiré ici** — à la
+ * différence de `creerClientDans` : `createMany` ne rend aucune ligne créée
+ * (Prisma ne le permet pas), et l'appelant a besoin de l'identifiant de
+ * CHAQUE fiche pour tracer sa ligne d'import (D15). Le tirer après coup
+ * serait une seconde source d'un identifiant que l'appelant doit déjà
+ * connaître pour la même raison qu'à la création unitaire (I10).
+ */
+export async function creerClientsEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly { readonly id: string; readonly saisie: CreationClient }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.client.createMany({
+    data: lignes.map(({ id, saisie }) => ({
+      id,
+      societe_id: societeId,
+      ...saisie,
+      adresse_facturation: saisie.adresse_facturation ?? Prisma.DbNull,
+    })),
+  });
+}
+
+/**
  * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
  * `creerClientDans`, et pour la même raison.
  *

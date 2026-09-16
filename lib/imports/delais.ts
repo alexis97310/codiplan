@@ -1,0 +1,195 @@
+import type { DelaisTransaction } from "@/lib/db/rls";
+
+/**
+ * LES DÉLAIS DE LA TRANSACTION QUI APPLIQUE UN LOT (point 2 de la session du
+ * 16/09/2026 ; révisé le même jour, suite — le déploiement Vercel a refusé le
+ * premier délai).
+ *
+ * **Le dépôt l'exigeait déjà avant cet incident.** `lib/db/rls.ts` écrit, au-
+ * dessus de `DelaisTransaction` : *« Ces deux défauts [maxWait 2 000 ms,
+ * timeout 5 000 ms] sont des valeurs de RÉSEAU LOCAL. […] Un chemin qui
+ * enchaîne beaucoup d'écritures dans une seule transaction doit donc les
+ * fixer lui-même. »* `avecContexteApplicatif` appelait `avecContexteRls` SANS
+ * délais, et l'application d'un lot d'import est exactement ce chemin-là :
+ * mesuré en production, un lot de 615 MODIFICATIONS de clients a rendu
+ * `POST /api/imports/{id}/appliquer` sans réponse après quatre minutes, le
+ * lot restant `controle`.
+ *
+ * **CE QUE LA PREMIÈRE RÉDACTION AVAIT MANQUÉ, ET QU'UN DÉPLOIEMENT A DIT.**
+ * Elle portait `DUREE_MAXIMALE_MS` à vingt minutes et `maxDuration` à 1 200 —
+ * un nombre que `pnpm build` compile sans se plaindre, parce que **Next.js
+ * compile la route, il n'applique pas la limite de la plateforme qui la
+ * sert.** Vercel, sur le plan de ce projet (Hobby), refuse tout `maxDuration`
+ * supérieur à `PLAFOND_PLATEFORME_S` — trois cents secondes — et le premier
+ * déploiement de cette branche a échoué pour cette seule raison. *`pnpm
+ * build` en local ne peut pas le voir : ce n'est pas lui qui applique le
+ * plafond.* `PLAFOND_PLATEFORME_S` est donc écrit ici, nommé, et un gardien
+ * (`tests/unit/imports/delais-application.test.ts`) confronte désormais le
+ * littéral `maxDuration` de la route à CE nombre, pas seulement à
+ * `DUREE_MAXIMALE_S` — sans quoi le prochain relèvement repasserait la CI et
+ * casserait le déploiement de la même façon : la CI ne regarde pas cela.
+ *
+ * **Même arithmétique que `prisma/seed-delais.ts`, et elle doit être relue
+ * avec lui** : la durée d'une transaction est, à la milliseconde de calcul
+ * près, son nombre d'ALLERS-RETOURS multiplié par la LATENCE majorée. Le
+ * nombre d'allers-retours se compte (`allersRetoursApplication`), la latence
+ * se majore, et le produit doit tenir sous `DUREE_MAXIMALE_MS` — laquelle
+ * doit elle-même tenir, avec `ATTENTE_CONNEXION_MS`, sous le plafond de la
+ * plateforme.
+ *
+ * ## CE QUE LE POINT 1 A RÉDUIT, ET CE QU'IL N'A PAS PU RÉDUIRE
+ *
+ * `appliquerLesLignes` (`lib/imports/application.ts`) ne fait plus, par
+ * ligne, une lecture d'AVANT : les cibles de toutes les lignes MODIFICATION
+ * d'un lot sont lues en UN SEUL `findMany` (`where: { id: { in: [...] } }`),
+ * et les créations s'écrivent en UN SEUL `createMany`. Ce que cette réduction
+ * NE PEUT PAS faire disparaître, sans SQL brut (CLAUDE.md §2, interdit hors
+ * migrations et politiques RLS) : l'ÉCRITURE d'une modification et sa TRACE
+ * sur `import_lot_ligne` restent PAR LIGNE — Prisma ne sait écrire des
+ * valeurs DIFFÉRENTES par ligne qu'une requête à la fois, et la trace touche
+ * une table auditée (I8) : la reconstituer par un `DELETE` suivi d'un
+ * `createMany` ferait porter au journal une suppression et une création là où
+ * une seule ligne a été enrichie — *le journal mentirait sur ce qui s'est
+ * passé*, exactement ce que le point 1 de la session précédente a fermé pour
+ * les écritures elles-mêmes.
+ *
+ * ## LE POINT D'ARRÊT (§8), MESURÉ PLUTÔT QUE CONTOURNÉ
+ *
+ * Sous ce budget réduit, le lot mesuré en production — 615 lignes, AU PIRE
+ * toutes de VRAIES modifications — ne tient PLUS sous 300 secondes :
+ * `allersRetoursApplication(615) × LATENCE_PESSIMISTE_MS` dépasse le plafond
+ * de la plateforme d'un facteur deux (voir le calcul dans
+ * `tests/unit/imports/delais-application.test.ts`, qui le rend explicite
+ * plutôt que de le taire). **Ce n'est pas résolu en relevant `maxDuration`**
+ * — la plateforme le refuserait à nouveau — **ni en découpant la transaction
+ * en plusieurs requêtes** — l'application d'un lot reste UNE seule
+ * transaction, un invariant que cette session ne touche pas. Le lot RÉELLEMENT
+ * mesuré (615 lignes classées modification, TOUTES inchangées une fois
+ * comparées) ne coûte plus que le socle fixe de la transaction — une fraction
+ * de seconde — grâce au point 1 seul ; c'est un lot hypothétique de plusieurs
+ * centaines de VRAIS changements simultanés qui resterait hors de portée d'une
+ * seule requête HTTP, et il se refuse alors proprement (`delai_depasse`),
+ * jamais en silence. Changer de régime pour ce cas-là — une file de jobs,
+ * chapitre 2 du CLAUDE.md — est un arbitrage, pas ce ticket.
+ */
+
+/**
+ * Latence majorée d'un aller-retour vers la base hébergée, en millisecondes.
+ *
+ * **La même mesure que le seed** (`prisma/seed-delais.ts`, incident du
+ * 23/08/2026) : ~190 ms l'aller-retour depuis un exécuteur vers Neon
+ * `ap-southeast-2`, majorés à 500 ms pour absorber la gigue et un réveil de
+ * la base après mise en veille. Ce n'est pas une valeur métier, c'est une
+ * borne d'infrastructure — écrite ici pour être révisée en connaissance de
+ * cause plutôt que devinée, et non importée du seed : les deux chemins n'ont
+ * pas la même raison de changer, et une dépendance entre `lib/` et `prisma/`
+ * n'a pas de sens de lecture (CLAUDE.md §6).
+ */
+export const LATENCE_PESSIMISTE_MS = 500;
+
+/**
+ * LE PLAFOND DE LA PLATEFORME QUI SERT CETTE ROUTE — Vercel, plan Hobby.
+ *
+ * *Mesuré, pas documenté d'avance* : le premier déploiement de cette branche
+ * a échoué avec `maxDuration=1200`, Vercel refusant tout ce qui dépasse trois
+ * cents secondes sur ce plan (le plan Pro accepte 300 par défaut, 800 au
+ * maximum — un autre plafond, pour un autre jour, s'il devient le bon).
+ * `maxDuration`, dans la route, ne peut jamais dépasser ce nombre : un
+ * gardien statique le confronte (`tests/unit/imports/delais-application.test.ts`).
+ */
+export const PLAFOND_PLATEFORME_S = 300;
+
+/**
+ * Durée maximale de la transaction qui applique un lot : quatre minutes.
+ *
+ * **Recalculée depuis le budget RÉDUIT** (point 1 de la suite du 16/09/2026),
+ * et portée STRICTEMENT sous `PLAFOND_PLATEFORME_S`, marge comprise pour le
+ * reste de la route (authentification, redirection) et pour
+ * `ATTENTE_CONNEXION_MS` — les deux comptent dans le temps d'exécution de la
+ * fonction, pas seulement celui de la transaction. À 500 ms l'aller-retour et
+ * DEUX allers-retours par ligne au pire désormais (une écriture, une trace —
+ * voir `allersRetoursApplication`), ce plafond couvre environ 236 lignes de
+ * VRAIES modifications simultanées, et un nombre de créations ou de lignes
+ * inchangées bien plus grand, puisque celles-ci ne coûtent presque plus rien
+ * par ligne. Au-delà, le lot se refuse proprement (`delai_depasse`) plutôt
+ * que de dépasser en silence.
+ */
+export const DUREE_MAXIMALE_MS = 240_000;
+
+/**
+ * La même durée, en secondes, arrondie au-dessus — le PLANCHER de ce que
+ * `app/api/imports/[id]/appliquer/route.ts` doit déclarer sous `maxDuration`
+ * (Next.js), jamais sa valeur exacte.
+ *
+ * **`maxDuration` ne peut pas valoir exactement ceci, et c'est une
+ * arithmétique, pas un choix** : le temps d'exécution de la ROUTE couvre
+ * `ATTENTE_CONNEXION_MS` ET `DUREE_MAXIMALE_MS` — l'attente d'une connexion
+ * fait partie du temps passé dans la fonction, pas seulement le temps de la
+ * transaction —, PLUS ce que la route fait hors de la transaction
+ * (authentification, redirection). `maxDuration` doit donc dépasser
+ * `DUREE_MAXIMALE_S`, jamais lui être égal au chiffre près.
+ *
+ * **La route ne l'IMPORTE PAS**, et ce n'est pas un choix : Next.js analyse
+ * `export const maxDuration` STATIQUEMENT, avant toute exécution, et refuse
+ * de construire dès qu'il y lit un identifiant importé plutôt qu'un nombre —
+ * mesuré au premier `pnpm build` de ce ticket. `maxDuration` est donc un
+ * littéral écrit à la main dans la route. Le lien entre les nombres est tenu
+ * par un gardien qui lit le FICHIER SOURCE de la route en texte plutôt que
+ * par un import : `tests/unit/imports/delais-application.test.ts`, qui exige
+ * `DUREE_MAXIMALE_S < maxDuration ≤ PLAFOND_PLATEFORME_S` — la leçon du
+ * premier déploiement échoué porte sur le second morceau de cette double
+ * inégalité, le premier vaut depuis la toute première rédaction de ce délai.
+ */
+export const DUREE_MAXIMALE_S = Math.ceil(DUREE_MAXIMALE_MS / 1000);
+
+/**
+ * Attente maximale d'une connexion avant le `BEGIN` : vingt secondes — même
+ * raison qu'au seed (`ATTENTE_CONNEXION_MS`) : une base Neon en veille met
+ * plusieurs secondes à se réveiller. *Resserrée depuis trente secondes* pour
+ * laisser sa marge à `maxDuration` sous le plafond de la plateforme : elle
+ * compte, elle aussi, dans le temps d'exécution total de la route.
+ */
+export const ATTENTE_CONNEXION_MS = 20_000;
+
+/** Les délais à passer à `avecContexteApplicatif` pour appliquer un lot. */
+export const DELAIS_APPLICATION: DelaisTransaction = {
+  maxWait: ATTENTE_CONNEXION_MS,
+  timeout: DUREE_MAXIMALE_MS,
+};
+
+/**
+ * Le nombre d'allers-retours de la transaction d'application, AU PIRE, pour
+ * un lot de `nombreDeLignes` lignes retenues (créations + modifications).
+ *
+ * **Ce n'est pas une mesure, c'est un budget** — la même distinction qu'au
+ * seed : son seul emploi est de faire échouer le gardien de délai quand
+ * l'application grossit au point que `DUREE_MAXIMALE_MS` ne suffit plus.
+ *
+ * ## LE COMPTE, DEPUIS LA RÉDUCTION DU POINT 1 (suite du 16/09/2026)
+ *
+ * Hors lignes (SEPT, une fois par lot, jamais par ligne) : le `BEGIN`, le
+ * `set_config` unique de `poserContexte`, la lecture du lot et de ses lignes,
+ * l'écriture GROUPÉE des créations (`createMany`, un seul aller-retour quel
+ * que soit leur nombre), la lecture GROUPÉE des « avant » des modifications
+ * (`findMany … id IN […]`, un seul aller-retour quel que soit leur nombre),
+ * la mise à jour finale du lot, et le `COMMIT`.
+ *
+ * Par ligne, AU PIRE DEUX — contre trois avant cette réduction : une
+ * modification RÉELLEMENT écrite coûte son ÉCRITURE et sa TRACE (aucune
+ * lecture : elle est déjà dans le lot groupé ci-dessus) ; une CRÉATION ne
+ * coûte plus que sa TRACE (son écriture est, elle aussi, dans le lot
+ * groupé). *Le budget prend le pire des deux* — DEUX — parce qu'il ne sait
+ * pas d'avance quelle proportion du lot sera l'un ou l'autre, et qu'une
+ * modification coûte plus qu'une création. Une ligne INCHANGÉE, elle, ne
+ * coûte plus RIEN de plus que sa part de la lecture groupée — c'est le
+ * bénéfice du point 1 de la session précédente, entier depuis cette
+ * réduction : un lot de N lignes TOUTES inchangées ne coûte que le socle fixe
+ * ci-dessus, quel que soit N.
+ */
+export function allersRetoursApplication(nombreDeLignes: number): number {
+  const PAR_LIGNE_AU_PIRE = 2;
+  // BEGIN, set_config, lecture du lot, createMany des créations, lecture
+  // groupée des avant, mise à jour du lot, COMMIT.
+  const HORS_LIGNES = 7;
+  return HORS_LIGNES + PAR_LIGNE_AU_PIRE * nombreDeLignes;
+}

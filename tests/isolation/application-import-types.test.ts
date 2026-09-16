@@ -289,6 +289,30 @@ describe("un lot de SITES écrit des sites, et ses DEUX parents sont résolus", 
     expect(await compter("site", `"libelle" = 'R6-atelier'`)).toBe(1);
   });
 
+  it("LE MÊME DÉPÔT UNE SECONDE FOIS n'écrit rien — point 1, 16/09/2026", async () => {
+    // La ligne du test précédent, à l'identique : la fiche porte déjà
+    // exactement ces quatre colonnes.
+    const { lotId, modifications } = await deposer("sites", [
+      [
+        "C-001",
+        "DUCOS",
+        "R6-atelier",
+        "12 rue de la mesure",
+        "Koné",
+        "nord",
+        "Sonner au portail",
+        "",
+      ],
+    ]);
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDeSites(SESSION, lotId, clientApp());
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.inchangees).toBe(1);
+  });
+
   it("UN IMPORT NE DÉPLACE PAS un site d'une agence à l'autre (D56)", async () => {
     // **Ce scénario garde une LIMITE, pas un verrou.** Le gabarit n'expose pas
     // « Temps de trajet » (`CHAMPS_SITES_ECARTES`, L1-09), et D56 refuse de
@@ -564,6 +588,22 @@ describe("un lot de MODÈLES écrit des modèles, sans toucher aux colonnes de V
     // `valeurs_avant` a été lue AVANT d'écrire (D15) : elle porte 180.
     expect(await lire()).toBe(180);
   });
+
+  it("UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION (point 1, 16/09/2026)", async () => {
+    // L'annulation du test précédent a rendu le modèle à sa périodicité
+    // d'origine (180 jours) : redéposer exactement ce que la toute première
+    // ligne de ce fichier avait posé doit être reconnu comme SANS effet.
+    const { lotId, modifications } = await deposer("modeles", [
+      ["COMP", "MarqueR6", "R6-XYZ", "180", ""],
+    ]);
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDeModeles(SESSION, lotId, clientApp());
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.inchangees).toBe(1);
+  });
 });
 
 /**
@@ -663,6 +703,26 @@ describe("un lot de PRESTATIONS écrit des prestations, et AUCUN montant", () =>
     expect(sans.famille_id).toBeNull();
     expect(sans.duree_standard_min).toBe(60);
     expect(await compter("prestation", `"code" = 'R6-C'`)).toBe(0);
+  });
+
+  it("UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION (point 1, 16/09/2026)", async () => {
+    // La MÊME ligne que celle qui vient de créer « R6-A » : le parc la
+    // connaît désormais, le rapport dit donc MODIFICATION — et rien n'y
+    // diffère de ce que la fiche porte déjà.
+    const { lotId, modifications } = await deposer("prestations", [
+      ["R6-A", "Prestation sans famille", "", "60", ""],
+    ]);
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDePrestations(
+      SESSION,
+      lotId,
+      clientApp(),
+    );
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.inchangees).toBe(1);
   });
 });
 

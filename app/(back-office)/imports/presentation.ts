@@ -39,20 +39,26 @@ export function nomDeLAuteur(designation: Designation): string {
 }
 
 /**
- * LES CINQ DÉCOMPTES DU RAPPORT, DANS L'ORDRE DE LA MAQUETTE.
+ * LES SIX DÉCOMPTES DU RAPPORT, DANS L'ORDRE DE LA MAQUETTE.
  *
  * **Ils vivent ici et non dans l'écran**, pour la raison exacte de
  * `lib/navigation/portes-parametrage.ts` : *le gardien des chaînes en dur
  * (L0-11) lit un fichier qui porte du JSX et prend ses littéraux pour du texte
  * visible* — un tableau de clés n'en est pas, et il a raison de ne pas savoir.
  *
- * **ET IL N'Y EN A PAS SIX.** La maquette montre un « Inchangés » ; *notre
- * rapport ne mesure pas cette catégorie* — il compte créations, modifications,
- * rejets, gabarits et lignes vides, et les décomptes sont DÉRIVÉS des lignes
- * retenues (L1-08d). Un chiffre qu'aucune mesure ne produit, affiché au milieu
- * de chiffres mesurés, est la faute du §9 (06/09) : *une ligne qui ne peut pas
- * bouger sous une faute n'est jamais présentée à côté de celles qui le
- * peuvent.*
+ * **« INCHANGÉES » EXISTE DEPUIS LE 16/09/2026, et ce fichier disait le
+ * contraire jusque-là** : *« notre rapport ne mesure pas cette catégorie ».*
+ * C'était vrai tant qu'aucun chemin ne savait comparer une ligne à la fiche
+ * qu'elle vise — le CONTRÔLE ne le pouvait pas, lui qui ne touche jamais la
+ * base. **Ce n'est plus le contrôle qui le mesure : c'est l'APPLICATION**
+ * (`porteEncore`, `lib/imports/application.ts`), et c'est pourquoi ce
+ * sixième chiffre vaut zéro tant que le lot reste `controle` — *une ligne
+ * classée MODIFICATION n'est pas encore sue « inchangée », elle l'est
+ * seulement une fois comparée à ce qu'elle vise réellement.* Le motif du 06/09
+ * reste valable pour ce qu'il protégeait : *une ligne qu'aucune mesure ne
+ * produit n'est jamais présentée à côté de celles qui le sont* — et
+ * « inchangées » EST désormais une mesure, faite plus tard que les cinq
+ * autres plutôt qu'en même temps qu'elles.
  */
 export type LigneDeResultat = {
   readonly cle: string;
@@ -76,6 +82,12 @@ export function lignesDeResultat(
       libelle: "imports.modifications",
       detail: "imports.modifications_detail",
       valeur: decomptes.modifications,
+    },
+    {
+      cle: "inchangees",
+      libelle: "imports.inchangees",
+      detail: "imports.inchangees_detail",
+      valeur: decomptes.inchangees,
     },
     {
       cle: "rejets",

@@ -279,6 +279,25 @@ describe("un lot de FAMILLES écrit l'assujettissement, relu en SQL", () => {
     expect(Number(n)).toBe(1);
   });
 
+  it("UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION (point 1, 16/09/2026)", async () => {
+    // La MÊME ligne que le dépôt précédent, à l'identique : la famille porte
+    // déjà exactement ces valeurs, VGP comprise.
+    const { lotId, modifications } = await deposer("familles", [
+      ["R6M-PONT", "R6M Ponts élévateurs — corrigé", "soumis", "12", TEXTE_VGP],
+    ]);
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDeFamilles(
+      SESSION,
+      lotId,
+      clientApp(),
+    );
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.inchangees).toBe(1);
+  });
+
   it("« soumis » sans sa périodicité est REJETÉ, et rien n'est écrit (L9-04)", async () => {
     const { lotId, creations, motifs } = await deposer("familles", [
       ["R6M-LEVAGE", "R6M Levage", "soumis", "", TEXTE_VGP],
@@ -508,6 +527,33 @@ describe("un lot d'ÉQUIPEMENTS écrit des machines, et les TROIS parents sont r
         WHERE "societe_id" = '${SOCIETE_A}' AND "numero_serie" = 'R6M-10326169'`,
     );
     expect(localisation).toBe("Travée 3");
+  });
+
+  it("UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION (point 1, 16/09/2026)", async () => {
+    // La MÊME ligne que le dépôt précédent, à l'identique.
+    const { lotId, modifications } = await deposer("equipements", [
+      [
+        "C-001",
+        "Site A1-1",
+        "Ravaglioli",
+        "KPX-337",
+        "R6M-10326169",
+        "",
+        "Travée 3",
+        "",
+      ],
+    ]);
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDeEquipements(
+      SESSION,
+      lotId,
+      clientApp(),
+    );
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(0);
+    expect(resultat.inchangees).toBe(1);
   });
 
   it("l'ANNULATION défait une création, et la machine disparaît", async () => {

@@ -284,6 +284,42 @@ export async function creerMachineDans(
 }
 
 /**
+ * LA MÊME ÉCRITURE, EN LOT (session du 16/09/2026, point 1 de la suite —
+ * dépassement de délai) : voir `creerClientsEnLot`, même raison, même forme.
+ * `qr_token` est tiré une fois PAR LIGNE — chaque fiche garde le sien, comme
+ * à la création unitaire (D71).
+ */
+export async function creerMachinesEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly { readonly id: string; readonly saisie: SaisieMachine }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.machine.createMany({
+    data: lignes.map(({ id, saisie }) => ({
+      id,
+      societe_id: societeId,
+      qr_token: engendrerJetonQr(),
+      modele_id: saisie.modele_id,
+      client_id: saisie.client_id,
+      site_id: saisie.site_id,
+      numero_serie: saisie.numero_serie,
+      reference_interne: saisie.reference_interne,
+      localisation: saisie.localisation,
+      facture_origine: saisie.facture_origine,
+      date_mise_en_service: saisie.date_mise_en_service,
+      date_vente: saisie.date_vente,
+      garantie_fin: saisie.garantie_fin,
+      statut: saisie.statut,
+      criticite: saisie.criticite,
+      source_creation: saisie.source_creation,
+      machine_remplacee_id: saisie.machine_remplacee_id,
+      complet: saisie.complet,
+    })),
+  });
+}
+
+/**
  * La MODIFICATION, jumelle de la création — `updateMany` et non `update`.
  *
  * *Zéro ligne touchée n'est pas une erreur technique, c'est la politique qui a

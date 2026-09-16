@@ -4,6 +4,29 @@ import { applicationDuType } from "@/lib/imports/types-dimport";
 import { contexteCourant } from "../../../interventions/actions";
 
 /**
+ * LA DURÉE QUE CETTE ROUTE DÉCLARE (point 2 de la session du 16/09/2026 ;
+ * révisé le même jour, suite — le premier déploiement Vercel a refusé 1 200).
+ *
+ * **Une transaction autorisée à durer plus longtemps que la fonction qui la
+ * porte ne sert à rien, et l'inverse non plus.** Cette valeur DOIT être un
+ * littéral : Next.js analyse `maxDuration` statiquement et refuse de
+ * construire dès qu'il lit un identifiant importé plutôt qu'un nombre —
+ * *mesuré au premier `pnpm build`* : « Next.js can't recognize the exported
+ * `config` field […] Unknown identifier ». **Ce n'est donc pas la seule
+ * source du nombre** : `DUREE_MAXIMALE_S`, dans `lib/imports/delais.ts`, l'est
+ * — et `tests/unit/imports/delais-application.test.ts` relit CE fichier en
+ * texte pour vérifier que le littéral ci-dessous vaut la même chose, ET qu'il
+ * ne dépasse pas `PLAFOND_PLATEFORME_S` (300, Vercel Hobby). **La seconde
+ * confrontation est celle qui manquait** : `pnpm build` compile un
+ * `maxDuration` de 1 200 sans se plaindre — il ne connaît pas la limite de
+ * l'hébergeur, seule Vercel l'applique, au déploiement, trop tard pour que la
+ * CI le voie. Une seconde constante qui diverge en silence (§9, 01/09) serait
+ * ici invisible à `pnpm typecheck` ET à `pnpm build` ; c'est le gardien qui
+ * la voit.
+ */
+export const maxDuration = 300;
+
+/**
  * APPLIQUER UN LOT — LA SECONDE MOITIÉ DE I6 (L1-11 ; RG-IMP-01, RG-IMP-04).
  *
  * **C'est le SECOND geste, et il porte toute la valeur du premier.** I6 veut un

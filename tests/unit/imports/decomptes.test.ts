@@ -7,7 +7,7 @@ import {
 import { decompter } from "@/lib/imports/depot";
 
 /**
- * LES CINQ DÉCOMPTES QUE LA BASE PORTE (L1-08e).
+ * LES DÉCOMPTES QUE LE CONTRÔLE PORTE (L1-08e).
  *
  * ## Ce que ce fichier éprouve, et ce qu'il n'éprouve PAS
  *
@@ -18,10 +18,17 @@ import { decompter } from "@/lib/imports/depot";
  * toujours possible et presque toujours meilleur »*).
  *
  * Ce qui reste à éprouver est le **CHOIX** : la proposition porte sept
- * décomptes, la base en porte cinq. `nonRattachees` et `incompletes`
- * QUALIFIENT des lignes déjà comptées et ne s'additionnent pas — *les stocker à
- * côté des cinq autres mettrait en base un total supérieur au fichier, et le
- * témoin dirait faux dans le sens rassurant* (L1-08d).
+ * décomptes, la base en porte cinq QUE `decompter` DÉRIVE d'elle.
+ * `nonRattachees` et `incompletes` QUALIFIENT des lignes déjà comptées et ne
+ * s'additionnent pas — *les stocker à côté des cinq autres mettrait en base
+ * un total supérieur au fichier, et le témoin dirait faux dans le sens
+ * rassurant* (L1-08d).
+ *
+ * **`inchangees` est un SIXIÈME champ, et `decompter` ne le mesure jamais**
+ * (16/09/2026) : le contrôle ne touche aucune fiche, il ne peut donc pas
+ * savoir si une modification en sera une. Il vaut zéro ici sur toute
+ * population, y compris non vide — ce n'est PAS l'absence de mesure du
+ * dernier scénario, c'est une mesure qui n'existe pas encore à ce stade.
  */
 
 function ligne(
@@ -59,6 +66,13 @@ describe("les décomptes posés sur le lot", () => {
     expect(decomptes.vides).toBe(proposition.vides);
   });
 
+  it("« inchangees » vaut zéro même sur une population qui porte une MODIFICATION", () => {
+    // La population porte une ligne « modification » (rang 5) — le seul cas où
+    // « inchangees » pourrait être tenté de dire quelque chose. Le contrôle ne
+    // compare aucune fiche : il ne peut pas savoir.
+    expect(decompter(LIGNES).inchangees).toBe(0);
+  });
+
   it("n'additionnent PAS ce qui qualifie — le total reste celui du fichier", () => {
     // `incompletes` vaut 1 sur cette population : une création dont la clé est
     // une RÉFÉRENCE et non une série. Si elle entrait dans la somme, le lot
@@ -86,6 +100,7 @@ describe("les décomptes posés sur le lot", () => {
       rejets: 0,
       gabarits: 0,
       vides: 0,
+      inchangees: 0,
     });
   });
 });

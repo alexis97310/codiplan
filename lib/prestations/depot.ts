@@ -263,6 +263,29 @@ export async function creerPrestationDans(
 }
 
 /**
+ * LA MÊME ÉCRITURE, EN LOT (session du 16/09/2026, point 1 de la suite —
+ * dépassement de délai) : voir `creerClientsEnLot`, même raison, même forme.
+ */
+export async function creerPrestationsEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly { readonly id: string; readonly saisie: SaisiePrestation }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.prestation.createMany({
+    data: lignes.map(({ id, saisie }) => ({
+      id,
+      societe_id: societeId,
+      code: saisie.code,
+      libelle: saisie.libelle,
+      famille_id: saisie.famille_id,
+      duree_standard_min: saisie.duree_standard_min,
+      actif: saisie.actif,
+    })),
+  });
+}
+
+/**
  * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
  * `creerPrestationDans`.
  *

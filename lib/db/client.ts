@@ -3,7 +3,11 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 
 import { verifierRoleApplicatif } from "./garde-role";
-import { avecContexteRls, avecSocieteEtRole } from "./rls";
+import {
+  avecContexteRls,
+  avecSocieteEtRole,
+  type DelaisTransaction,
+} from "./rls";
 
 /**
  * Client Prisma applicatif (CLAUDE.md §6 — `lib/db`).
@@ -71,11 +75,19 @@ export function garantirRoleApplicatif(): Promise<void> {
  * chemin sert désormais la page d'arrivée, et le scénario qui prouve le
  * cloisonnement À TRAVERS L'APPLICATION doit pouvoir l'emprunter contre la base
  * jetable — sans quoi il éprouverait une variante écrite pour lui.
+ *
+ * **`delais` est facultatif, pour la même raison qu'à `avecContexteRls`** :
+ * omis, les défauts de Prisma s'appliquent, ce qui convient à l'immense
+ * majorité des chemins de session. Un chemin qui enchaîne beaucoup d'écritures
+ * dans une seule transaction — l'application d'un lot d'import,
+ * `lib/imports/application.ts` — les fixe lui-même (session du 16/09/2026,
+ * point 2 : `lib/db/rls.ts` l'exigeait déjà de tout chemin de ce genre).
  */
 export async function avecContexteApplicatif<T>(
   contexte: ContexteSession,
   travail: (tx: Prisma.TransactionClient) => Promise<T>,
   client?: PrismaClient,
+  delais?: DelaisTransaction,
 ): Promise<T> {
   const actif = exigerContexteActif(contexte);
   // Le CONTRÔLE DE RÔLE ne vaut que pour la connexion du module (L1-02f) : un
@@ -100,6 +112,7 @@ export async function avecContexteApplicatif<T>(
       clientId: actif.clientId,
     },
     travail,
+    delais,
   );
 }
 

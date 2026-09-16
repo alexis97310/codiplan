@@ -18,6 +18,7 @@ import { schemaMachine } from "@/lib/machines/saisie";
 import { schemaAssujettissementFamille } from "@/lib/vgp/assujettissement";
 import { modifierPrestationDans } from "@/lib/prestations/depot";
 import { schemaPrestation } from "@/lib/prestations/saisie";
+import { porteEncore } from "./comparaison";
 
 import {
   CHAMPS_CLIENTS,
@@ -118,8 +119,17 @@ async function estReferencee(
   return sites + machines + interventions + contacts + comptes > 0;
 }
 
-/** Les champs que l'import écrit sur un client — et eux seuls. */
-const CHAMPS_ECRITS = [
+/**
+ * Les champs que l'import écrit sur un client — et eux seuls.
+ *
+ * **Exportée depuis le 16/09/2026 (session dépassement de délai) :**
+ * `lib/imports/application.ts` compare la MÊME liste, dans l'autre sens — « la
+ * fiche porte-t-elle DÉJÀ ce que la ligne s'apprête à écrire ? ». *Les deux
+ * questions portent sur exactement les mêmes colonnes ; une seconde liste
+ * recopiée ici diverge en silence au premier champ qu'on ajoute d'un côté*
+ * (§9, 01/09).
+ */
+export const CHAMPS_ECRITS_CLIENTS = [
   "code_externe",
   "raison_sociale",
   "ridet",
@@ -127,73 +137,6 @@ const CHAMPS_ECRITS = [
   "conditions_reglement",
   "commercial_referent",
 ] as const;
-
-type FicheComparable = Readonly<Record<string, unknown>>;
-
-/**
- * La fiche porte-t-elle encore ce que l'import y a écrit ?
- *
- * **Seuls les champs ÉCRITS sont comparés.** L'import n'a pas touché les
- * autres : *les comparer ferait refuser une annulation parce que quelqu'un a
- * renseigné une adresse, ce qui n'a rien à voir avec ce que l'import a fait.*
- *
- * ## QUATRE FORMES SONT COMPARABLES, ET TOUT LE RESTE REFUSE (R6-03)
- *
- * La rédaction de L1-08j ne savait comparer qu'un TEXTE, et son sens de
- * défaillance était juste : *« un verdict “inchangé” rendu sur une colonne qu'on
- * ne sait pas comparer autoriserait une suppression qu'on n'a pas vérifiée. »*
- * **Il reste le défaut**, et il vaut pour tout ce qui n'est pas nommé ci-dessous.
- *
- * Trois formes s'y ajoutent, parce que le matériel écrit des colonnes qui ne
- * sont pas du texte : `vgp_periodicite_mois` est un ENTIER,
- * `vgp_reference_texte` peut valoir `NULL`, et `complet` est un BOOLÉEN. *Sans
- * elles, l'annulation aurait refusé CHAQUE ligne*, en rendant « modifiée
- * depuis » sur des fiches que personne n'avait touchées : un motif juste dans
- * sa forme, et qui désigne un coupable inexistant — le défaut exact que R6-01 a
- * mesuré sur les deux parents d'un site.
- *
- * > **LE BOOLÉEN A ÉTÉ OUBLIÉ AU PREMIER JET, ET C'EST UNE MESURE QUI L'A DIT.**
- * > Trois formes étaient écrites, `complet` tombait dans le refus par défaut, et
- * > **les deux scénarios d'annulation d'équipement étaient d'accord** : celui qui
- * > devait refuser refusait. *Il passait pour la mauvaise raison* — le refus
- * > venait de la forme de la colonne, pas du travail qu'on protégeait. Seul son
- * > jumeau, celui qui doit rester VERT POUR SA PROPRE RAISON (§9, 11/09), a
- * > rougi. **Un scénario qui n'a pas de jumeau ne mesure que la moitié de ce
- * > qu'il croit.**
- *
- * **`null` VOULU se compare à `null` PRÉSENT, et c'est une écriture** : l'import
- * a mis la colonne à vide, et une valeur apparue depuis est le travail de
- * quelqu'un. *Le confondre avec « l'import n'a rien dit » (`undefined`) ferait
- * supprimer une fiche dont on vient de renseigner la référence du texte.*
- */
-function porteEncore(
-  fiche: FicheComparable,
-  attendu: Readonly<Record<string, unknown>>,
-  champs: readonly string[] = CHAMPS_ECRITS,
-): boolean {
-  return champs.every((champ) => {
-    const voulu = attendu[champ];
-    // Un champ que l'import n'a pas rempli n'est pas une promesse : il a laissé
-    // le défaut du schéma, et le comparer à `null` ferait dépendre le verdict
-    // d'un défaut plutôt que d'une écriture.
-    if (voulu === undefined) return true;
-    const present = fiche[champ];
-    if (voulu === null) return present === null;
-    if (typeof voulu === "number") {
-      return typeof present === "number" && present === voulu;
-    }
-    if (typeof voulu === "string") {
-      return typeof present === "string" && present === voulu;
-    }
-    if (typeof voulu === "boolean") {
-      return typeof present === "boolean" && present === voulu;
-    }
-    // **Le sens de défaillance de L1-08j, inchangé** : ce qu'on ne sait pas
-    // comparer n'est jamais réputé inchangé. *Une annulation refusée se rejoue ;
-    // une fiche supprimée à tort ne se retrouve pas.*
-    return false;
-  });
-}
 
 /**
  * UNE LIGNE À DÉFAIRE — telle que l'application l'a laissée.
@@ -321,7 +264,7 @@ export async function annulerLeLotDeClients(
     }
 
     const ecrit = saisieDepuisLaLigne(ligne.valeurs, CHAMPS_CLIENTS);
-    if (!porteEncore(fiche, ecrit)) {
+    if (!porteEncore(fiche, ecrit, CHAMPS_ECRITS_CLIENTS)) {
       return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
     }
 
@@ -398,7 +341,11 @@ async function siteEstReference(
  * `porteEncore` est la même depuis L1-08j, c'est sa population qui devait
  * suivre.
  */
-const CHAMPS_SITES_MODIFIES = [
+/**
+ * **Exportée depuis le 16/09/2026** : `lib/imports/application.ts` compare la
+ * MÊME liste avant d'écrire, pour la même raison que `CHAMPS_ECRITS_CLIENTS`.
+ */
+export const CHAMPS_SITES_MODIFIES = [
   "libelle",
   "commune",
   "zone_geo",

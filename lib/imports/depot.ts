@@ -71,6 +71,18 @@ export type Decomptes = {
   readonly rejets: number;
   readonly gabarits: number;
   readonly vides: number;
+  /**
+   * AJOUTÉ le 16/09/2026 (point 1 de la session du dépassement de délai).
+   * **Ce n'est PAS un sixième décompte du même genre que les cinq autres** :
+   * ceux-là viennent de `proposerDepuisLesLignes`, une PROPOSITION que le
+   * contrôle peut faire sans toucher la base. Celui-ci ne peut pas se
+   * proposer — savoir si une fiche va bouger exige de la comparer à ce
+   * qu'elle porte déjà en base, et le contrôle ne lit aucune fiche par ligne.
+   * Il vaut donc TOUJOURS zéro ici ; seule l'application le mesure
+   * (`porteEncore`, `lib/imports/application.ts`) et le pose sur le lot, une
+   * fois, en même temps que `statut` et `applique_le`.
+   */
+  readonly inchangees: number;
 };
 
 export function decompter(lignes: readonly LigneControlee[]): Decomptes {
@@ -85,6 +97,9 @@ export function decompter(lignes: readonly LigneControlee[]): Decomptes {
     rejets: proposition.rejets,
     gabarits: proposition.gabarits,
     vides: proposition.vides,
+    // Zéro au contrôle, TOUJOURS — voir le docblock du type. L'application le
+    // réécrit sur le lot ; elle ne relit jamais cette fonction.
+    inchangees: 0,
   };
 }
 
@@ -164,6 +179,7 @@ export async function enregistrerLeControle(
           lignes_rejets: decomptes.rejets,
           lignes_gabarits: decomptes.gabarits,
           lignes_vides: decomptes.vides,
+          lignes_inchangees: decomptes.inchangees,
         },
       });
       if (lignes.length > 0) {
@@ -250,6 +266,7 @@ function enListe(
     lignes_rejets: number;
     lignes_gabarits: number;
     lignes_vides: number;
+    lignes_inchangees: number;
     utilisateur_id: string;
   },
   auteur: Designation,
@@ -274,6 +291,7 @@ function enListe(
       rejets: lot.lignes_rejets,
       gabarits: lot.lignes_gabarits,
       vides: lot.lignes_vides,
+      inchangees: lot.lignes_inchangees,
     },
   };
 }

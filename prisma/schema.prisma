@@ -2901,6 +2901,17 @@ model ImportLot {
   lignes_gabarits      Int @default(0)
   lignes_vides         Int @default(0)
 
+  /// AJOUTÉE le 16/09/2026 (session dépassement de délai, point 1) — et elle
+  /// N'EST PAS de la même famille que les cinq colonnes ci-dessus : celles-là
+  /// sont « tels que le rapport les a RENDUS », posées une fois au contrôle et
+  /// jamais réécrites ; celle-ci n'a AUCUNE proposition à trahir — le contrôle
+  /// ne peut pas savoir si une ligne classée MODIFICATION ne changera rien,
+  /// seule l'APPLICATION le mesure, en comparant chaque fiche avant d'écrire
+  /// (`porteEncore`, `lib/imports/application.ts`). Elle vaut donc zéro tant
+  /// que le lot reste `controle`, et l'application la pose une seule fois, en
+  /// même temps que `statut` et `applique_le`.
+  lignes_inchangees Int @default(0)
+
   controle_le DateTime  @default(now())
   /// Quand les fiches ont été écrites. **Elle SURVIT à l'annulation** : un lot
   /// annulé a bel et bien été appliqué, et effacer cette date perdrait la seule
