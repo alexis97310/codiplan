@@ -260,21 +260,32 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     // pas, je la mets en dur le temps de déboguer ». Greffée dans le vrai
     // fichier, celui où la faute se commettrait — jamais dans un fichier
     // fabriqué (leçon du 21/08).
+    //
+    // **DEUX fichiers depuis N-02** : la pastille de diagnostic — et le jeton
+    // `bg-societe-accent` qu'elle porte — a déménagé de `bandeau-societe.tsx`
+    // vers l'écran « Charte de la société ». La déplacer sans déplacer SON
+    // témoin aurait laissé un jeton sans gardien nulle part.
     const chemin = "components/theme/bandeau-societe.tsx";
     const reel = readFileSync(join(RACINE, chemin), "utf8");
     expect(porteUneCouleur(sansCommentaires(reel))).toBe(false);
 
+    const cheminSociete = "app/(back-office)/parametres/societe/page.tsx";
+    const reelSociete = readFileSync(join(RACINE, cheminSociete), "utf8");
+    expect(porteUneCouleur(sansCommentaires(reelSociete))).toBe(false);
+
     const greffes = [
       reel.replace("bg-societe-primaire", "bg-[#0b5cad]"),
       reel.replace("text-societe-primaire-encre", "text-white"),
-      reel.replace("bg-societe-accent", "bg-amber-500"),
       reel.replace(
         "data-origine-theme={theme.origine}",
         'style={{ backgroundColor: "#f4a300" }}',
       ),
+      reelSociete.replace("bg-societe-accent", "bg-amber-500"),
     ];
     for (const [index, greffe] of greffes.entries()) {
-      expect(greffe, `greffe n°${index + 1} inopérante`).not.toBe(reel);
+      expect(greffe, `greffe n°${index + 1} inopérante`).not.toBe(
+        index < 3 ? reel : reelSociete,
+      );
       expect(
         porteUneCouleur(sansCommentaires(greffe)),
         `greffe n°${index + 1} non détectée`,

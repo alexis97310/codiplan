@@ -1,6 +1,11 @@
 import { type TypeIntervention } from "@prisma/client";
 
-import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
+import {
+  cleJour,
+  versLocal,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 
 /**
@@ -28,6 +33,34 @@ export function referenceAffichee(ligne: {
     return `INT-${String(ligne.numero).padStart(5, "0")}`;
   }
   return `Local-${ligne.id.replaceAll("-", "").slice(-6).toUpperCase()}`;
+}
+
+/**
+ * LE RETOUR VERS LE PLANNING REJOINT LE CRÉNEAU, jamais le haut de la semaine
+ * (N-01).
+ *
+ * *Refaire le chemin à la main est le geste qu'on répète cinquante fois par
+ * jour* — l'argument même qui a fait quitter `/planning/{id}` pour
+ * `/interventions/{id}`. La vue JOUR est celle qui montre le créneau ; la
+ * date qui l'ouvre est celle de l'intervention, jamais celle du serveur.
+ *
+ * `date_planifiee` est une colonne `@db.Date`, un jour civil stocké à minuit
+ * UTC (comme `dateCivile` le lit) : aucun fuseau ne s'y applique, le lire
+ * dans celui de l'agence le décalerait d'un cran sous UTC+11.
+ *
+ * Une intervention encore en file d'attente n'a pas de date : le planning
+ * s'ouvre alors sans paramètre, sur sa semaine par défaut.
+ */
+export function retourPlanning(datePlanifiee: Date | null): string {
+  if (datePlanifiee === null) {
+    return "/planning";
+  }
+  const jour: JourLocal = {
+    annee: datePlanifiee.getUTCFullYear(),
+    mois: datePlanifiee.getUTCMonth() + 1,
+    jour: datePlanifiee.getUTCDate(),
+  };
+  return `/planning?vue=jour&jour=${cleJour(jour)}`;
 }
 
 /**

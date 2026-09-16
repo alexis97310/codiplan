@@ -56,6 +56,22 @@ export const fr = {
   // qui qualifient le thème vivent ici.
   "theme.societe": "Charte de la société",
   "theme.neutre": "Thème neutre CODIPLAN",
+  // ── L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » (N-02, 16/09/2026) ──────────────────
+  //
+  // Ce que la barre affichait en permanence pour répondre à une question
+  // qu'on ne pose qu'une fois, à la mise en service — devenu un écran de
+  // paramétrage, sous « Sociétés & tarifs ».
+  "parametres.societe_titre": "Charte de la société",
+  "parametres.societe_sous_titre":
+    "L'identité affichée de la société active — un diagnostic pour l'instant, un réglage avec la console éditeur.",
+  "parametres.societe_diagnostic_aide":
+    "Distingue une société qui a choisi ses propres couleurs d'une société qui n'en a pas : la seconde reçoit le thème neutre de CODIPLAN.",
+  // LE RÉGLAGE N'EST PAS ENCORE ICI, ET L'ÉCRAN LE DIT PLUTÔT QUE DE LAISSER
+  // CROIRE LE CONTRAIRE : changer de couleur reviendra à la console éditeur
+  // (lot 7), qui donnera à la société le formulaire que cet écran se contente
+  // aujourd'hui de LIRE.
+  "parametres.societe_reglage_a_venir":
+    "Les couleurs se règlent depuis la console éditeur, à venir au lot 7. Cet écran affiche l'état, il ne le modifie pas encore.",
   // Message unique de tous les refus d'authentification (D35). Il ne dit ni si
   // le compte existe, ni si le mot de passe est faux, ni si le compte est
   // habilité quelque part : c'est exactement son objet.
@@ -225,7 +241,6 @@ export const fr = {
   // dans le seul cas qui reste : aucune habilitation du tout.
   "arrivee.sans_societe":
     "Aucune société active, et aucune habilitation sur ce compte. Contactez l'administrateur de votre société.",
-  "arrivee.deconnexion": "Se déconnecter",
   // ── LE CHOIX D'UNE SOCIÉTÉ (D61, D67 — écran écrit le 10/09/2026) ────────
   //
   // Il manquait, et son absence était un MUR : un compte habilité sur deux
@@ -725,6 +740,22 @@ export const fr = {
   "planning.retour_fleche": "← Retour au planning",
   "planning.periode": "Période affichée",
 
+  // ── L'ÉCRAN « INTERVENTIONS » (N-01, 16/09/2026) ─────────────────────────
+  //
+  // La liste elle-même, canonique — le planning en montre un CALENDRIER,
+  // celle-ci en montre le REGISTRE : la plus récente en tête, chaque ligne
+  // menant à sa fiche par son numéro affiché, jamais par l'identifiant
+  // technique (I10).
+  "interventions.titre": "Interventions",
+  "interventions.sous_titre":
+    "Le registre des interventions de la société, la plus récente en tête.",
+  "interventions.vide": "Aucune intervention enregistrée.",
+  // CE QUI EST MONTRÉ EST ÉCRIT, plutôt que de laisser croire que la liste
+  // est complète : le parc de démonstration porte assez d'interventions pour
+  // qu'une liste non bornée casse au volume.
+  "interventions.borne":
+    "Les 200 interventions les plus récentes sont affichées. La recherche et le filtre arrivent dans un prochain lot.",
+
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
   // **JAMAIS LE POURCENTAGE SEUL**, et c'est une demande d'exploitation avant
@@ -1222,12 +1253,22 @@ export const fr = {
   // la colonne d'établissement depuis `mot("agence")`.
   // ── L'ÉCRAN « PARC MACHINES » (R2-21) ───────────────────────────────────
   "parc.titre": "Parc machines clients",
-  "parc.sous_titre":
-    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter.",
+  // LA RECHERCHE EST ANNONCÉE DÈS LE SOUS-TITRE, comme la maquette le fait
+  // (D95) — AT-04 ; elle n'est pas encore appliquée (AT-07), et ce sous-titre
+  // ne le tait plus. « Site » est un mot IMPOSÉ (D5, D47) : il ne s'écrit pas
+  // ici, la phrase se coupe en deux et se recompose avec `motDansUnePhrase`
+  // (lib/i18n/vocabulaire.ts), comme le gardien du vocabulaire l'exige.
+  "parc.sous_titre_recherche_avant":
+    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter. Recherche par client,",
+  "parc.sous_titre_recherche_apres": "modèle ou numéro de série.",
   "parc.colonne_reference": "Référence",
   "parc.colonne_modele": "Modèle",
   "parc.colonne_serie": "N° de série",
   "parc.colonne_lieu": "Client / lieu",
+  // LE PRÉFIXE SEUL — la maquette écrit « Client / Site », et « Site » se
+  // compose depuis `mot("site")` plutôt que de se recopier ici (D5, D47) ;
+  // voir `lib/machines/ecarts-maquette.ts`.
+  "parc.colonne_lieu_prefixe": "Client",
   "parc.colonne_mise_en_service": "Mise en service",
   "parc.colonne_statut": "Statut",
   "parc.famille": "Famille",
@@ -1242,6 +1283,29 @@ export const fr = {
   "parc.incompletes_un": "fiche à compléter",
   "parc.a_completer": "À compléter",
   "parc.non_synchronisee": "non synchronisée",
+  // LE BANDEAU UNIQUE remplace une mention RÉPÉTÉE SOUS CHAQUE LIGNE — mesurée
+  // par le directeur d'exploitation le 16/09/2026 : sur un parc où AUCUNE
+  // fiche n'a encore de numéro serveur, la mention ne distinguait plus rien,
+  // répétée 200 fois. Elle ne s'affiche que si toutes les lignes rendues la
+  // portent (AT-04) — le jour où la synchronisation attribuera des numéros
+  // (lot 3), elle redeviendra une exception par ligne, comme avant.
+  "parc.aucune_synchronisee":
+    "Aucune fiche affichée n'a encore de numéro attribué par le serveur : les références ci-dessous sont locales, en attendant la première synchronisation.",
+  // ── LES QUATRE KPI DU BANDEAU (D95) — un sur quatre est un écart, voir
+  // lib/machines/ecarts-maquette.ts.
+  "parc.kpi_actives": "Machines actives",
+  "parc.kpi_garantie": "Garantie expirant < 90 j",
+  "parc.kpi_en_panne": "En panne / arrêtées",
+  "parc.kpi_sur": "sur",
+  "parc.kpi_affichees": "affichées",
+  "parc.kpi_en_panne_detail_panne": "en panne",
+  "parc.kpi_en_panne_detail_arretees": "arrêtées",
+  // ── LA RECHERCHE, CÂBLÉE ET PAS ENCORE REMPLIE (AT-04, AT-07) ────────────
+  // « Site » composé, pour la même raison que le sous-titre juste au-dessus.
+  "parc.recherche_prefixe": "Client,",
+  "parc.recherche_suffixe": "modèle ou numéro de série",
+  "parc.recherche_action": "Rechercher",
+  "parc.titre_carte": "Parc",
   // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
   //
   // AUCUN LIBELLÉ NE DIT « CONFORME » NI « NON CONFORME », et ce n'est pas une
@@ -1495,6 +1559,14 @@ export const fr = {
   "parametres.index_titre": "Sociétés & tarifs",
   "parametres.index_sous_titre":
     "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
+  // LA HUITIÈME PORTE (N-02, 16/09/2026). Elle n'existait nulle part : la
+  // pastille « Charte de la société » / « Thème neutre » occupait la barre en
+  // permanence pour répondre à une question qu'on ne pose qu'à la mise en
+  // service. Elle DÉMÉNAGE ici plutôt que de disparaître — c'est le seul
+  // endroit du produit qui parle déjà de ce que la société a réglé.
+  "parametres.index_societe_titre": "Charte de la société",
+  "parametres.index_societe_resume":
+    "L'identité affichée de la société active, et si ses propres couleurs sont appliquées ou non.",
   "parametres.index_horaires_titre": "Horaires d'ouverture",
   "parametres.index_horaires_resume":
     "Les jours travaillés, les horaires et le pas des créneaux, établissement par établissement. C'est ce calendrier qui décide de ce que le planning propose et de ce qu'il refuse.",
@@ -1544,6 +1616,14 @@ export const fr = {
   "materiel.inactive": "Inactif",
   "materiel.activer": "Réactiver",
   "materiel.desactiver": "Désactiver",
+  // ── LE RÉGIME VGP, VISIBLE DEPUIS AT-04 — les libellés de valeur viennent
+  // déjà de « vgp.regime.* » (registre des VGP) : une seconde entrée pour la
+  // même valeur divergerait au premier renommage (§9, 01/09).
+  "materiel.colonne_regime": "Régime VGP",
+  "materiel.colonne_modeles": "Modèles",
+  "materiel.vgp_mois": "mois",
+  "materiel.modeles_compte": "modèles",
+  "materiel.modeles_compte_un": "modèle",
   "materiel.aucune_famille": "Aucune famille n\u2019est encore déclarée.",
   "materiel.aucun_modele":
     "Aucun modèle n\u2019est encore déclaré. Une famille doit exister avant lui.",
@@ -1638,6 +1718,14 @@ export const fr = {
   "nav.imports_excel": "Imports Excel",
   "nav.societes_tarifs": "Sociétés & tarifs",
   "nav.console_editeur": "Console éditeur",
+  // LA DÉCONNEXION, DANS LE CHROME (N-02, arbitrage du 16/09/2026).
+  //
+  // Cette clé portait `arrivee.deconnexion` : elle ne servait qu'à l'écran
+  // d'atterrissage, sur lequel on ne revient jamais — et c'est très
+  // exactement pourquoi personne ne pouvait fermer sa session. Elle sert
+  // maintenant le CHROME, dans les trois coques, et son nom le dit plutôt que
+  // de continuer à nommer un écran qu'elle a quitté.
+  "nav.deconnexion": "Se déconnecter",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",

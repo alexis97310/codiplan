@@ -27,8 +27,10 @@ import { type SaisieMachine } from "./saisie";
  * **« Contrat »**. Ni l'un ni l'autre n'existe : il n'y a pas de table de
  * relevés, et les contrats sont au lot 4. *Afficher une colonne vide dirait que
  * la donnée manque ; afficher un zéro dirait qu'elle vaut zéro.* Les deux
- * colonnes sont donc ABSENTES, et l'écart est écrit ici plutôt que tu — c'est la
- * leçon de R2-13, qui reste bloqué pour exactement cette raison.
+ * colonnes sont donc ABSENTES, et l'écart est écrit dans
+ * `lib/machines/ecarts-maquette.ts` plutôt que tu — c'est la leçon de R2-13,
+ * qui reste bloqué pour exactement cette raison. Le même fichier tient
+ * l'écart symétrique du KPI « Sous contrat ».
  */
 
 /** Ce qu'une ligne de parc porte à l'écran. */
@@ -42,6 +44,10 @@ export const CHAMPS_PARC = {
   complet: true,
   localisation: true,
   date_mise_en_service: true,
+  // LE QUATRIÈME KPI EN A BESOIN (AT-04) : « Garantie expirant à moins de
+  // 90 jours » se lit sur cette colonne, réelle et déjà en base — à la
+  // différence du compteur d'usage ou du contrat, qu'aucune table ne porte.
+  garantie_fin: true,
   modele: {
     select: { reference: true, famille: { select: { libelle: true } } },
   },
@@ -59,31 +65,85 @@ export type LigneDeParc = Prisma.MachineGetPayload<{
 }>;
 
 /**
+ * Les statuts qui sortent une machine du parc ACTIF (chapitre 11.2) : elle a
+ * été remplacée, mise au rebut, ou absorbée par une fusion de doublons (D28).
+ * Les trois autres — `en_service`, `en_panne`, `arretee` — désignent une
+ * machine toujours physiquement présente chez un client.
+ */
+const STATUTS_HORS_PARC_ACTIF = new Set([
+  "remplacee",
+  "ferraillee",
+  "fusionnee",
+]);
+
+/** 90 jours (chapitre 11) — la fenêtre du KPI « garantie expirant ». */
+const JOURS_GARANTIE = 90;
+const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
+
+/**
  * LE COMPTE DE CE QUE L'ÉCRAN MONTRE, par statut et par complétude.
  *
  * **Il est calculé sur les lignes RENDUES, jamais par une seconde requête.**
  * Deux lectures d'un même critère divergent en silence, et un bandeau qui
  * compterait autrement que le tableau qu'il coiffe est la pire forme de cette
  * divergence : *le lecteur voit les deux chiffres côte à côte et ne sait pas
- * lequel croire.*
+ * lequel croire.* Les trois KPI réels du bandeau (AT-04) suivent donc la même
+ * règle que `incompletes` : ils dérivent des lignes rendues, jamais d'un
+ * second aller-retour à la base.
  */
 export type ResumeDuParc = {
   readonly total: number;
   readonly parStatut: Readonly<Record<string, number>>;
   /** Les fiches à compléter — numéro de série illisible ou absent (D6). */
   readonly incompletes: number;
+  /** Hors des statuts terminaux — remplacée, ferraillée, fusionnée. */
+  readonly actives: number;
+  readonly enPanneOuArretees: number;
+  /** `garantie_fin` dans les 90 jours à venir, bornes comprises. */
+  readonly garantieExpirant90j: number;
 };
 
-export function resumerLeParc(lignes: readonly LigneDeParc[]): ResumeDuParc {
+export function resumerLeParc(
+  lignes: readonly LigneDeParc[],
+  // L'INSTANT COURANT EST UN PARAMÈTRE, jamais une lecture (D13, L0-08) —
+  // sinon un test vert dirait que l'horloge a bougé.
+  maintenant: Date,
+): ResumeDuParc {
   const parStatut: Record<string, number> = {};
   let incompletes = 0;
+  let actives = 0;
+  let enPanneOuArretees = 0;
+  let garantieExpirant90j = 0;
+  const horizon = new Date(
+    maintenant.getTime() + JOURS_GARANTIE * MILLISECONDES_PAR_JOUR,
+  );
   for (const ligne of lignes) {
     parStatut[ligne.statut] = (parStatut[ligne.statut] ?? 0) + 1;
     if (!ligne.complet) {
       incompletes += 1;
     }
+    if (!STATUTS_HORS_PARC_ACTIF.has(ligne.statut)) {
+      actives += 1;
+    }
+    if (ligne.statut === "en_panne" || ligne.statut === "arretee") {
+      enPanneOuArretees += 1;
+    }
+    if (
+      ligne.garantie_fin !== null &&
+      ligne.garantie_fin >= maintenant &&
+      ligne.garantie_fin <= horizon
+    ) {
+      garantieExpirant90j += 1;
+    }
   }
-  return { total: lignes.length, parStatut, incompletes };
+  return {
+    total: lignes.length,
+    parStatut,
+    incompletes,
+    actives,
+    enPanneOuArretees,
+    garantieExpirant90j,
+  };
 }
 
 /**

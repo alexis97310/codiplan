@@ -146,7 +146,9 @@ describe("l'entrée allumée suit le chemin, et par préfixe de segment", () => 
   });
 
   it("reste allumée dans un sous-écran — c'est là qu'on en a le plus besoin", () => {
-    expect(entreeActive("/planning/nouvelle")?.cle).toBe("nav.planning");
+    expect(entreeActive("/interventions/nouvelle")?.cle).toBe(
+      "nav.interventions",
+    );
     expect(entreeActive("/parametres/agences")?.cle).toBe(
       "nav.societes_tarifs",
     );

@@ -125,7 +125,7 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
 }) => {
   // R2-08. *Mesuré avant : `max-w-3xl`, soit 768 px dans une fenêtre de 1700, et
   // cinq actions empilées à la file sous l'identification.*
-  await page.goto(`/planning/${SCENE.obstacle}`);
+  await page.goto(`/interventions/${SCENE.obstacle}`);
 
   const largeur = await page
     .locator("main")
