@@ -12,6 +12,8 @@ import { lireLeLot } from "@/lib/imports/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { coordonneesDuLot, lignesDeResultat } from "../presentation";
+import { applicationDuType } from "@/lib/imports/types-dimport";
+
 import { cleDuMotif, cleDuStatut } from "../types";
 
 /**
@@ -117,6 +119,12 @@ export default async function PageLotDImport({
   ];
 
   const resultat = lignesDeResultat(lot.decomptes);
+  // **Le type est lu sur le LOT, jamais sur le fichier ni sur l'écran** : c'est
+  // `import_lot.type_import`, que le contrôle y a posé. Et la réponse vient de
+  // la MÊME table que celle que la route consulte — *deux lectures d'un même
+  // critère divergeraient en silence, et l'écran promettrait un bouton que la
+  // route refuse* (§9, 01/09).
+  const sansApplication = applicationDuType(lot.typeImport) === null;
 
   return (
     <main className="flex flex-col gap-5">
@@ -221,7 +229,16 @@ export default async function PageLotDImport({
           La base garde de toute façon — `appliquerLeLotDeClients` refuse par
           `lot_deja_applique` —, et c'est elle qui décide ; cet écran ne fait que
           ne pas proposer l'impossible. */}
-      {lot.statut === "controle" ? (
+      {/* UN TYPE QU'ON NE SAIT PAS ÉCRIRE N'A PAS DE BOUTON, ET IL DIT
+          POURQUOI (R6-01). *Un bouton « Appliquer » qui échoue se lit comme une
+          panne du fichier*, et l'auteur du classeur chercherait longtemps ce
+          qu'il a mal rempli. C'est la règle des rejets ci-dessus, et celle
+          d'une entrée de barre inerte (D95) : **le motif est visible, jamais
+          seulement une infobulle.**
+          Ce n'est PAS un contrôle : la route refuse de son côté, et c'est elle
+          qui garde. *L'écran ne propose pas l'impossible ; il ne l'interdit
+          pas.* */}
+      {lot.statut === "controle" && !sansApplication ? (
         <form
           method="post"
           action={`/api/imports/${lot.id}/appliquer`}
@@ -232,6 +249,15 @@ export default async function PageLotDImport({
             {t("imports.appliquer_aide")}
           </p>
         </form>
+      ) : null}
+      {lot.statut === "controle" && sansApplication ? (
+        <p
+          role="status"
+          data-sans-application={lot.typeImport}
+          className="border-app-bord bg-app-surface text-app-encre-faible rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {t("imports.type_sans_application")}
+        </p>
       ) : null}
       {lot.statut === "applique" ? (
         <form

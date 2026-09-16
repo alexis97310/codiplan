@@ -622,6 +622,12 @@ export const fr = {
   "imports.rejets_indisponibles_motif":
     "Indisponible : rendre les lignes rejetées dans un fichier annoté (RG-IMP-03) demande une bibliothèque d'écriture .xlsx, et il n'y en a aucune dans le projet.",
 
+  // **CE N'EST PAS UN REFUS, C'EST UN ÉTAT** (R6-01) : le fichier est correct,
+  // le rapport est juste, et il n'y a rien à corriger. *Le dire comme une
+  // erreur enverrait l'auteur du classeur chercher ce qu'il a mal rempli.*
+  "imports.type_sans_application":
+    "Ce type de fichier se contrôle mais ne s'écrit pas encore : le rapport ci-dessus dit ce qui serait fait, et aucune fiche ne sera créée. Il n'y a rien à corriger dans le fichier.",
+
   "imports.applique": "Le lot a été appliqué.",
   "imports.annule": "Le lot a été annulé, et tout a été défait.",
   "imports.annule_partiel":
@@ -653,6 +659,8 @@ export const fr = {
   "imports.refus.lot_annule": "Ce lot a été annulé : il ne se rejoue pas.",
   "imports.refus.lot_non_applique":
     "Ce lot n'a jamais été appliqué : il n'y a rien à annuler.",
+  "imports.refus.type_sans_application":
+    "Ce type de fichier se contrôle mais ne s'écrit pas encore. Aucune fiche n'a été créée ni modifiée.",
 
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
   "planning.titre": "Planning des interventions",

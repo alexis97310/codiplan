@@ -148,19 +148,10 @@ export async function creerSite(
   contexte: ContexteSession,
   saisie: CreationSite,
 ): Promise<ResultatEcriture> {
-  const { adresse, horaires, ...reste } = saisie;
   try {
+    const societeId = exigerSocieteActive(contexte);
     const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      tx.site.create({
-        data: {
-          id: uuidv7(),
-          societe_id: exigerSocieteActive(contexte),
-          ...reste,
-          adresse: adresse ?? Prisma.DbNull,
-          horaires: horaires ?? Prisma.DbNull,
-        },
-        select: CHAMPS_FICHE,
-      }),
+      creerSiteDans(tx, societeId, saisie),
     );
     return { accepte: true, fiche };
   } catch (erreur: unknown) {
@@ -170,6 +161,36 @@ export async function creerSite(
     }
     return { accepte: false, motif };
   }
+}
+
+/**
+ * L'ÉCRITURE ELLE-MÊME, DANS UNE TRANSACTION QUE L'APPELANT TIENT (R6-01).
+ *
+ * `creerSite` l'appelle, et `appliquerLeLotDeSites` aussi — *un lot s'applique
+ * dans UNE transaction, et `creerSite` ouvrirait la sienne par ligne : un lot à
+ * moitié écrit serait alors un état que rien ne décrit* (L1-08i).
+ *
+ * **Elle est EXTRAITE plutôt que recopiée**, ce qui est la parade du §9
+ * (01/09) : la seconde implémentation d'un critère n'est jamais gratuite — on
+ * la remplace par un appel à la première. *C'est mot pour mot ce que
+ * `creerClientDans` a fait à L1-08i, et la raison n'a pas changé d'un mot.*
+ */
+export async function creerSiteDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  saisie: CreationSite,
+): Promise<FicheSite> {
+  const { adresse, horaires, ...reste } = saisie;
+  return tx.site.create({
+    data: {
+      id: uuidv7(),
+      societe_id: societeId,
+      ...reste,
+      adresse: adresse ?? Prisma.DbNull,
+      horaires: horaires ?? Prisma.DbNull,
+    },
+    select: CHAMPS_FICHE,
+  });
 }
 
 /** Lit un site par son identifiant. `null` s'il n'est pas dans le périmètre. */
@@ -199,23 +220,9 @@ export async function modifierSite(
   // « efface-la ». Prisma distingue les deux par `Prisma.DbNull`, et les
   // confondre effacerait une adresse à chaque modification qui ne la mentionne
   // pas — c'est le défaut trouvé par un test à L1-01.
-  const { adresse, horaires, ...reste } = saisie;
-
   try {
     const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      tx.site.update({
-        where: { id },
-        data: {
-          ...reste,
-          ...(adresse === undefined
-            ? {}
-            : { adresse: adresse ?? Prisma.DbNull }),
-          ...(horaires === undefined
-            ? {}
-            : { horaires: horaires ?? Prisma.DbNull }),
-        },
-        select: CHAMPS_FICHE,
-      }),
+      modifierSiteDans(tx, id, saisie),
     );
     return { accepte: true, fiche };
   } catch (erreur: unknown) {
@@ -225,6 +232,34 @@ export async function modifierSite(
     }
     return { accepte: false, motif };
   }
+}
+
+/**
+ * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
+ * `creerSiteDans`, et pour la même raison (R6-01).
+ *
+ * *`undefined` signifie « ne touche pas à cette colonne », `null` signifie
+ * « efface-la »* : Prisma distingue les deux par `Prisma.DbNull`, et les
+ * confondre effacerait une adresse à chaque modification qui ne la mentionne
+ * pas — le défaut qu'un test avait trouvé à L1-01.
+ */
+export async function modifierSiteDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: ModificationSite,
+): Promise<FicheSite> {
+  const { adresse, horaires, ...reste } = saisie;
+  return tx.site.update({
+    where: { id },
+    data: {
+      ...reste,
+      ...(adresse === undefined ? {} : { adresse: adresse ?? Prisma.DbNull }),
+      ...(horaires === undefined
+        ? {}
+        : { horaires: horaires ?? Prisma.DbNull }),
+    },
+    select: CHAMPS_FICHE,
+  });
 }
 
 /**

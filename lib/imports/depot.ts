@@ -270,6 +270,35 @@ function enListe(
   };
 }
 
+/**
+ * LE TYPE D'UN LOT, ET RIEN D'AUTRE (R6-01).
+ *
+ * **La route en a besoin AVANT de choisir quoi appeler**, et `lireLeLot`
+ * rendrait pour cela toutes les lignes du rapport — plusieurs centaines sur un
+ * classeur réel — dont elle n'a que faire.
+ *
+ * **`null` couvre deux cas, et c'est voulu** : le lot n'existe pas, ou il
+ * appartient à une autre société et la politique le cache. *Les distinguer
+ * ferait un oracle* (D35, D50) — et la route rend donc le MÊME refus que pour
+ * un lot introuvable, exactement comme l'application le fait déjà.
+ */
+export async function typeDuLot(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<string | null> {
+  const lot = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.importLot.findUnique({
+        where: { id },
+        select: { type_import: true },
+      }),
+    client,
+  );
+  return lot?.type_import ?? null;
+}
+
 /** Les lots de la société active, du plus récent au plus ancien. */
 export async function listerLesLots(
   contexte: ContexteSession,

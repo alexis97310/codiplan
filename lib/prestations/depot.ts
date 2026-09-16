@@ -185,22 +185,7 @@ export async function creerPrestation(
     await avecContexteApplicatif(
       contexte,
       (tx) =>
-        tx.prestation.create({
-          data: {
-            id,
-            societe_id: exigerSocieteActive(contexte),
-            code: saisie.code,
-            libelle: saisie.libelle,
-            famille_id: saisie.famille_id,
-            duree_standard_min: saisie.duree_standard_min,
-            // `checklist_type` n'est PAS écrite : R3-15 a tranché qu'elle ne se
-            // saisit pas tant que personne n'a dit ce qu'elle porte. Omettre la
-            // colonne la laisse à `NULL`, ce qui est l'état « pas encore
-            // décidé » — et non un texte vide, qui aurait l'air d'une réponse.
-            actif: saisie.actif,
-          },
-          select: { id: true },
-        }),
+        creerPrestationDans(tx, exigerSocieteActive(contexte), id, saisie),
       client,
     );
     return { accepte: true, id };
@@ -229,20 +214,10 @@ export async function modifierPrestation(
   try {
     const touchees = await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.prestation.updateMany({
-          where: { id },
-          data: {
-            code: saisie.code,
-            libelle: saisie.libelle,
-            famille_id: saisie.famille_id,
-            duree_standard_min: saisie.duree_standard_min,
-            actif: saisie.actif,
-          },
-        }),
+      (tx) => modifierPrestationDans(tx, id, saisie),
       client,
     );
-    return touchees.count === 0
+    return touchees === 0
       ? { accepte: false, motif: "introuvable" }
       : { accepte: true, id };
   } catch (erreur: unknown) {
@@ -252,6 +227,65 @@ export async function modifierPrestation(
     }
     return { accepte: false, motif };
   }
+}
+
+/**
+ * L'ÉCRITURE ELLE-MÊME, DANS UNE TRANSACTION QUE L'APPELANT TIENT (R6-01).
+ *
+ * `creerPrestation` l'appelle, et `appliquerLeLotDePrestations` aussi — *un lot
+ * s'applique dans UNE transaction* (L1-08i). **Extraite plutôt que recopiée**
+ * (§9, 01/09), et l'identifiant est un PARAMÈTRE pour la raison de
+ * `creerModeleDans` : l'appelant le tire avant d'ouvrir sa transaction.
+ *
+ * `checklist_type` n'est PAS écrite : R3-15 a tranché qu'elle ne se saisit pas
+ * tant que personne n'a dit ce qu'elle porte. *Omettre la colonne la laisse à
+ * `NULL`, ce qui est l'état « pas encore décidé » — et non un texte vide, qui
+ * aurait l'air d'une réponse.*
+ */
+export async function creerPrestationDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  id: string,
+  saisie: SaisiePrestation,
+): Promise<void> {
+  await tx.prestation.create({
+    data: {
+      id,
+      societe_id: societeId,
+      code: saisie.code,
+      libelle: saisie.libelle,
+      famille_id: saisie.famille_id,
+      duree_standard_min: saisie.duree_standard_min,
+      actif: saisie.actif,
+    },
+    select: { id: true },
+  });
+}
+
+/**
+ * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
+ * `creerPrestationDans`.
+ *
+ * `updateMany` plutôt que `update`, et le décompte est RENDU : *zéro ligne
+ * touchée n'est pas une erreur technique, c'est la politique qui a refusé*, et
+ * elle refuse en silence.
+ */
+export async function modifierPrestationDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: SaisiePrestation,
+): Promise<number> {
+  const touchees = await tx.prestation.updateMany({
+    where: { id },
+    data: {
+      code: saisie.code,
+      libelle: saisie.libelle,
+      famille_id: saisie.famille_id,
+      duree_standard_min: saisie.duree_standard_min,
+      actif: saisie.actif,
+    },
+  });
+  return touchees.count;
 }
 
 /**

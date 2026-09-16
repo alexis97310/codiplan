@@ -16,10 +16,10 @@ import { mot } from "@/lib/i18n/vocabulaire";
  *
  * Un type est **complet** quand il sait contrôler ET appliquer. Le contrôle
  * existe pour les cinq (les cinq gabarits de `lib/imports/modeles.ts`) ;
- * l'application n'existe que pour les clients — `appliquerLeLotDeClients` est
- * la seule, et L1-08i l'a assumé : *« une fonction qui applique n'importe quel
- * lot devrait tenir une liste close de plus, tenue à la main, que le prochain
- * type oublierait ».*
+ * **l'application en couvre quatre depuis R6-01**, et la cinquième — les
+ * contacts — attend son dépôt : `lib/contacts/` ne porte que `saisie.ts`, et
+ * l'écrire est L1-03b. *Le motif vit dans `SANS_APPLICATION`, où il se lit à
+ * côté de ce qu'il écarte.*
  *
  * **Le drapeau est écrit ICI et CONFRONTÉ ailleurs**, et la seconde moitié est
  * celle qui compte. La première rédaction s'arrêtait à la première et annonçait
@@ -72,19 +72,19 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     titre: null,
     vocabulaire: "site",
     detail: "imports.type.sites_detail",
-    complet: false,
+    complet: true,
   },
   {
     cle: "modeles",
     titre: "imports.type.modeles",
     detail: "imports.type.modeles_detail",
-    complet: false,
+    complet: true,
   },
   {
     cle: "prestations",
     titre: "imports.type.prestations",
     detail: "imports.type.prestations_detail",
-    complet: false,
+    complet: true,
   },
 ];
 

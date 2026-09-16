@@ -323,25 +323,7 @@ export async function creerModele(
   try {
     await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.modeleMateriel.create({
-          data: {
-            id,
-            societe_id: exigerSocieteActive(contexte),
-            famille_id: saisie.famille_id,
-            marque: saisie.marque,
-            reference: saisie.reference,
-            periodicite_jours: saisie.periodicite_jours,
-            periodicite_compteur: saisie.periodicite_compteur,
-            actif: saisie.actif,
-            // `caracteristiques` est OMISE : le chapitre 11 la nomme et ne fixe
-            // pas son contenu. *L'inventer au premier écran qui l'écrit
-            // figerait sa forme pour toutes les sociétés* — le défaut que
-            // L1-09a a nommé sur `adresse_facturation`, et que R3-15 a refait
-            // valoir sur `checklist_type`.
-          },
-          select: { id: true },
-        }),
+      (tx) => creerModeleDans(tx, exigerSocieteActive(contexte), id, saisie),
       client,
     );
     return { accepte: true, id };
@@ -362,21 +344,10 @@ export async function modifierModele(
   try {
     const touchees = await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.modeleMateriel.updateMany({
-          where: { id },
-          data: {
-            famille_id: saisie.famille_id,
-            marque: saisie.marque,
-            reference: saisie.reference,
-            periodicite_jours: saisie.periodicite_jours,
-            periodicite_compteur: saisie.periodicite_compteur,
-            actif: saisie.actif,
-          },
-        }),
+      (tx) => modifierModeleDans(tx, id, saisie),
       client,
     );
-    return touchees.count === 0
+    return touchees === 0
       ? { accepte: false, motif: "introuvable" }
       : { accepte: true, id };
   } catch (erreur: unknown) {
@@ -384,6 +355,74 @@ export async function modifierModele(
     if (motif === null) throw erreur;
     return { accepte: false, motif };
   }
+}
+
+/**
+ * L'ÉCRITURE ELLE-MÊME, DANS UNE TRANSACTION QUE L'APPELANT TIENT (R6-01).
+ *
+ * `creerModele` l'appelle, et `appliquerLeLotDeModeles` aussi — *un lot
+ * s'applique dans UNE transaction*, et `creerModele` ouvrirait la sienne par
+ * ligne (L1-08i). **Extraite plutôt que recopiée** : la seconde implémentation
+ * d'un critère n'est jamais gratuite (§9, 01/09).
+ *
+ * **L'identifiant est un PARAMÈTRE et non un tirage local.** `creerModele` le
+ * tire avant d'ouvrir sa transaction, pour le rendre même quand l'écriture
+ * passe par `updateMany` ; le tirer ici aussi ferait deux lectures d'un même
+ * fait, et l'appelant rendrait un identifiant qui n'est pas celui de la ligne.
+ *
+ * `caracteristiques` reste OMISE : le chapitre 11 la nomme et ne fixe pas son
+ * contenu. *L'inventer au premier écran qui l'écrit figerait sa forme pour
+ * toutes les sociétés* — le défaut que L1-09a a nommé sur
+ * `adresse_facturation`, et que R3-15 a refait valoir sur `checklist_type`.
+ */
+export async function creerModeleDans(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  id: string,
+  saisie: SaisieModeleMateriel,
+): Promise<void> {
+  await tx.modeleMateriel.create({
+    data: {
+      id,
+      societe_id: societeId,
+      famille_id: saisie.famille_id,
+      marque: saisie.marque,
+      reference: saisie.reference,
+      periodicite_jours: saisie.periodicite_jours,
+      periodicite_compteur: saisie.periodicite_compteur,
+      actif: saisie.actif,
+    },
+    select: { id: true },
+  });
+}
+
+/**
+ * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
+ * `creerModeleDans`.
+ *
+ * **`updateMany` et non `update`**, et ce n'est pas une préférence : *zéro
+ * ligne touchée n'est pas une erreur technique, c'est la politique qui a
+ * refusé*, et elle refuse en silence. Le décompte rendu est ce qui permet à
+ * l'appelant de distinguer « écrit » de « refusé » sans interroger la base une
+ * seconde fois.
+ */
+export async function modifierModeleDans(
+  tx: Prisma.TransactionClient,
+  id: string,
+  saisie: SaisieModeleMateriel,
+): Promise<number> {
+  const touchees = await tx.modeleMateriel.updateMany({
+    where: { id },
+    data: {
+      famille_id: saisie.famille_id,
+      marque: saisie.marque,
+      reference: saisie.reference,
+      periodicite_jours: saisie.periodicite_jours,
+      periodicite_compteur: saisie.periodicite_compteur,
+      actif: saisie.actif,
+    },
+  });
+  return touchees.count;
 }
 
 /** Bascule l'activité d'un modèle. Les machines qui le désignent ne bougent pas. */
