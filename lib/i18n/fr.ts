@@ -615,6 +615,11 @@ export const fr = {
   "imports.creations_detail": "seront créés",
   "imports.modifications": "Modifiés",
   "imports.modifications_detail": "seront mis à jour",
+  // AJOUTÉ le 16/09/2026 (point 1 de la session du dépassement de délai) :
+  // voir le docblock de `lignesDeResultat`. Zéro tant que le lot reste
+  // `controle` — c'est l'application, et elle seule, qui le mesure.
+  "imports.inchangees": "Inchangés",
+  "imports.inchangees_detail": "portent déjà ces valeurs : rien n'a été écrit",
   "imports.rejets": "Rejets",
   "imports.rejets_detail": "ne seront pas écrits",
   "imports.gabarits": "Lignes de gabarit",
@@ -701,6 +706,11 @@ export const fr = {
   // et cette validation, par un autre lot appliqué entre-temps.
   "imports.refus.contrainte_violee":
     "L'application a rencontré une valeur qui existe déjà en base sur ce qui identifie une fiche de façon unique — par exemple une marque et une référence, ou un code. Rien n'a été appliqué : la transaction a été annulée dans son ensemble. Corrigez le doublon dans le fichier ou dans le parc, puis revalidez ce lot.",
+  // AJOUTÉ le 16/09/2026 (session dépassement de délai, point 3) : même geste
+  // que `contrainte_violee`, pour un lot trop lourd plutôt qu'un doublon —
+  // voir `DELAIS_APPLICATION`, `lib/imports/delais.ts`.
+  "imports.refus.delai_depasse":
+    "L'application de ce lot a dépassé le délai autorisé. Rien n'a été appliqué : la transaction a été annulée dans son ensemble, exactement comme si elle n'avait jamais commencé. Ce lot reste trop lourd pour une seule application ; contactez le support si le fichier est d'un usage courant.",
 
   // ── Le planning et les interventions (lot 2, D84) ────────────────────────
   "planning.titre": "Planning des interventions",

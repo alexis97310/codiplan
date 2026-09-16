@@ -30,6 +30,9 @@ import {
 import { schemaPrestation } from "@/lib/prestations/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { CHAMPS_ECRITS_CLIENTS, CHAMPS_SITES_MODIFIES } from "./annulation";
+import { porteEncore } from "./comparaison";
+import { DELAIS_APPLICATION } from "./delais";
 import {
   CHAMPS_CLIENTS,
   preparerUnEquipement,
@@ -81,13 +84,22 @@ export type RefusApplication =
   | "lot_deja_applique"
   | "lot_annule"
   // AJOUTÉ le 16/09/2026 (point 4 de la session : une violation de contrainte
-  // d'unicité ressortait en page d'erreur 500). Voir `catchContrainteViolee`
-  // plus bas : c'est le FILET, jamais la première ligne de défense — celle-ci
+  // d'unicité ressortait en page d'erreur 500). Voir le `catch` d'
+  // `appliquerLesLignes` plus bas : c'est le FILET, jamais la première ligne
+  // de défense — celle-ci
   // est le contrôle, qui rejette désormais un doublon AVANT l'application
   // (`MOTIF_DOUBLON_FICHIER`, `lib/excel/controle.ts`). Ce motif couvre ce que
   // le contrôle ne pouvait pas voir : le parc a bougé ENTRE le contrôle et la
   // validation — un autre lot, appliqué entre-temps, a écrit la même clé.
-  | "contrainte_violee";
+  | "contrainte_violee"
+  // AJOUTÉ le 16/09/2026 (session dépassement de délai) : un lot de 615
+  // MODIFICATIONS a mesuré `POST /api/imports/{id}/appliquer` sans réponse
+  // après quatre minutes, le lot restant `controle`. **Même geste que
+  // `contrainte_violee` pour la même raison** : la transaction s'est défaite
+  // — voir `DELAIS_APPLICATION` dans `lib/imports/delais.ts` —, rien n'est
+  // écrit, et ce n'est pas une panne que le produit ignore : c'est un
+  // dépassement NOMMÉ, exactement comme #206 l'a fait pour P2002.
+  | "delai_depasse";
 
 export type ResultatApplication =
   | { readonly applique: false; readonly motif: RefusApplication }
@@ -95,6 +107,14 @@ export type ResultatApplication =
       readonly applique: true;
       readonly creations: number;
       readonly modifications: number;
+      /**
+       * AJOUTÉ le 16/09/2026 (point 1 de la session) : les lignes classées
+       * MODIFICATION dont la comparaison a montré qu'elles ne changeaient
+       * rien — voir `porteEncore` et son appel juste avant chaque écriture.
+       * *Une modification qui ne modifie rien n'est pas une modification*,
+       * et ce décompte est ce qui empêche `modifications` de mentir.
+       */
+      readonly inchangees: number;
     };
 
 /** Le motif de refus, lu dans l'état du lot. */
@@ -115,8 +135,16 @@ type LigneAAppliquer = {
   readonly valeurs: Record<string, string | undefined>;
 };
 
-/** Ce qu'une ligne a produit — ou `null` si rien n'a bougé. */
-type Ecriture = "creation" | "modification" | null;
+/**
+ * Ce qu'une ligne a produit :
+ *   - `"creation"` / `"modification"` — une fiche a été écrite ;
+ *   - `"inchangee"` — la ligne est une MODIFICATION dont la comparaison a
+ *     montré que la fiche porte déjà exactement ces valeurs (point 1 de la
+ *     session du 16/09/2026) : rien n'est écrit, et le compte le dit ;
+ *   - `null` — rien ne désigne plus rien (fiche disparue, parent introuvable,
+ *     politique qui refuse en silence).
+ */
+type Ecriture = "creation" | "modification" | "inchangee" | null;
 
 /**
  * L'ENVELOPPE QUE LES QUATRE APPLICATIONS PARTAGENT (R6-01).
@@ -224,6 +252,7 @@ async function appliquerLesLignes(
 
         let creations = 0;
         let modifications = 0;
+        let inchangees = 0;
 
         for (const brute of lot.lignes) {
           const ecriture = await ecrire(tx, societeId, {
@@ -235,11 +264,22 @@ async function appliquerLesLignes(
           });
           if (ecriture === "creation") creations += 1;
           if (ecriture === "modification") modifications += 1;
+          if (ecriture === "inchangee") inchangees += 1;
         }
 
         await tx.importLot.update({
           where: { id: lotId },
-          data: { statut: "applique", applique_le: await instantDate(tx) },
+          data: {
+            statut: "applique",
+            applique_le: await instantDate(tx),
+            // **SEUL `lignes_inchangees` EST ÉCRIT ICI**, jamais
+            // `lignes_modifications` ni `lignes_creations` : ceux-là restent
+            // « tels que le rapport les a rendus » (le commentaire du schéma,
+            // mot pour mot), la PROPOSITION du contrôle. `lignes_inchangees`
+            // n'a pas de proposition à trahir : il vaut zéro tant que rien ne
+            // l'a mesuré, et c'est l'application, seule, qui le mesure.
+            lignes_inchangees: inchangees,
+          },
         });
 
         // **Aucun décompte des lignes IGNORÉES n'est rendu**, et c'est délibéré :
@@ -247,29 +287,65 @@ async function appliquerLesLignes(
         // circonstance. *Une ligne qui ne peut pas bouger sous une faute n'est
         // jamais présentée à côté de celles qui le peuvent* (§9, 06/09) — le lot
         // porte déjà ses décomptes, et c'est là qu'on les lit.
-        return { applique: true as const, creations, modifications };
+        return {
+          applique: true as const,
+          creations,
+          modifications,
+          inchangees,
+        };
       },
       client,
+      DELAIS_APPLICATION,
     );
   } catch (erreur) {
-    // **LE FILET, jamais la première ligne de défense** (point 4, 16/09/2026).
-    // La transaction s'est déjà défaite — voir le docblock ci-dessus — et rien
-    // n'a été écrit ; ce bloc ne répare rien, il choisit seulement de ne pas
-    // laisser une erreur technique remonter jusqu'à une page d'erreur 500.
-    // *Une erreur que le produit sait nommer n'est pas une panne.*
-    //
-    // **Seul P2002 est reconnu.** Une autre erreur Prisma dirait autre chose
-    // qu'un doublon — une colonne trop longue, une connexion perdue — et la
-    // nommer « contrainte_violee » mentirait sur sa cause : elle continue de
-    // remonter telle quelle, comme avant ce ticket.
-    if (
-      erreur instanceof Prisma.PrismaClientKnownRequestError &&
-      erreur.code === "P2002"
-    ) {
-      return { applique: false as const, motif: "contrainte_violee" as const };
+    // **LE FILET, jamais la première ligne de défense** (point 4, 16/09/2026 ;
+    // étendu le même jour, point 3 de la session suivante). La transaction
+    // s'est déjà défaite — voir le docblock ci-dessus — et rien n'a été
+    // écrit ; ce bloc ne répare rien, il choisit seulement de ne pas laisser
+    // une erreur technique remonter jusqu'à une page d'erreur 500. *Une
+    // erreur que le produit sait nommer n'est pas une panne.*
+    const motif = motifDeLErreurTransaction(erreur);
+    if (motif === null) {
+      throw erreur;
     }
-    throw erreur;
+    return { applique: false as const, motif };
   }
+}
+
+/**
+ * LE MOTIF D'UNE ERREUR DE TRANSACTION, LU SUR SON CODE PRISMA — jamais
+ * levée, jamais devinée. Même forme que `motifDeLErreur` de
+ * `lib/clients/depot.ts`, et pour la même raison : une fonction pure, séparée
+ * de la transaction qu'elle interprète, s'éprouve sans base (`P2002`/`P2028`
+ * fabriqués) plutôt que par un incident qu'il faudrait reproduire — un
+ * dépassement RÉEL de `DELAIS_APPLICATION.timeout` prendrait vingt minutes à
+ * mesurer.
+ *
+ * **Seuls P2002 et P2028 sont reconnus.** Une autre erreur Prisma dirait
+ * autre chose qu'un doublon ou un dépassement de délai — une colonne trop
+ * longue, une connexion perdue — et les nommer mentirait sur leur cause :
+ * `null` la laisse remonter telle quelle, comme avant ce ticket.
+ */
+export function motifDeLErreurTransaction(
+  erreur: unknown,
+): RefusApplication | null {
+  if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) {
+    return null;
+  }
+  if (erreur.code === "P2002") {
+    return "contrainte_violee";
+  }
+  // P2028 : « Transaction API error […] Transaction already closed » — le
+  // moteur a fermé la transaction au bout de `DELAIS_APPLICATION.timeout`
+  // (`lib/imports/delais.ts`) et la requête suivante ne la retrouve plus.
+  // *Même code que `prisma/seed-delais.ts` a rencontré pour le même incident
+  // de latence — ce n'est pas la première fois que ce dépôt le mesure.* La
+  // transaction s'étant défaite, rien n'est écrit : le lot reste `controle`,
+  // exactement comme sur `contrainte_violee`.
+  if (erreur.code === "P2028") {
+    return "delai_depasse";
+  }
+  return null;
 }
 
 /**
@@ -318,7 +394,11 @@ export async function appliquerLeLotDeClients(
 
       // `valeurs_avant` est CE QUE D15 EXIGE POUR RESTAURER, et elle se lit AVANT
       // d'écrire : après, il est trop tard, et le journal d'audit porterait la
-      // seule trace — sur une table qu'aucune annulation ne lit.
+      // seule trace — sur une table qu'aucune annulation ne lit. **C'est
+      // aussi elle que `porteEncore` compare** (point 1, 16/09/2026) : les
+      // deux questions — « que faut-il pouvoir restaurer ? » et « la fiche
+      // porte-t-elle déjà cela ? » — portent sur les mêmes colonnes, une
+      // seconde lecture divergerait en silence (§9, 01/09).
       const avant = await tx.client.findUnique({
         where: { id: cible },
         select: {
@@ -331,11 +411,22 @@ export async function appliquerLeLotDeClients(
         },
       });
 
-      await modifierClientDans(
-        tx,
-        cible,
-        schemaModificationClient.parse(saisie),
-      );
+      const modification = schemaModificationClient.parse(saisie);
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026) : mesuré en production, un même fichier
+      // redéposé sans changement a fait réécrire 615 fiches à l'identique —
+      // à la fois inutile et FAUX pour le journal d'audit (I8), qui inscrit
+      // une trace par écriture. *La fiche porte-t-elle déjà ce que la ligne
+      // s'apprête à écrire ?* Si oui, on n'écrit pas.
+      if (
+        avant !== null &&
+        porteEncore(avant, modification, CHAMPS_ECRITS_CLIENTS)
+      ) {
+        return "inchangee";
+      }
+
+      await modifierClientDans(tx, cible, modification);
       await tracer(tx, ligne.id, "client", cible, avant);
       return "modification";
     },
@@ -438,11 +529,20 @@ export async function appliquerLeLotDeSites(
       const modifiables = { ...prepare.saisie };
       delete modifiables.client_id;
       delete modifiables.agence_id;
-      await modifierSiteDans(
-        tx,
-        cible,
-        schemaModificationSite.parse(modifiables),
-      );
+      const modification = schemaModificationSite.parse(modifiables);
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026) — même geste qu'aux clients, sur les seules
+      // colonnes que cette écriture touche (les deux parents en sont exclus,
+      // pour la même raison qu'ils sont absents de `valeurs_avant` ci-dessus).
+      if (
+        avant !== null &&
+        porteEncore(avant, modification, CHAMPS_SITES_MODIFIES)
+      ) {
+        return "inchangee";
+      }
+
+      await modifierSiteDans(tx, cible, modification);
       await tracer(tx, ligne.id, "site", cible, avant);
       return "modification";
     },
@@ -463,6 +563,32 @@ export async function appliquerLeLotDeSites(
  * jamais la périodicité réglementaire : *les mêler ferait facturer un entretien
  * pour une vérification légale, ou l'inverse.*
  */
+
+/**
+ * LES COLONNES QUE `modifierModeleDans` ÉCRIT — et elle les écrit TOUTES,
+ * `actif` compris : `schemaModeleMateriel` lui pose `.default(true)`, et le
+ * gabarit ne l'expose pas (`CHAMPS_MODELES_ECARTES`), si bien qu'une ligne de
+ * fichier vaut toujours « actif = vrai ». *Une comparaison qui l'omettrait
+ * jugerait « inchangée » une fiche désactivée depuis, et ne la réactiverait
+ * jamais* — ce que l'import fait aujourd'hui à chaque passage, et que ce
+ * ticket n'a pas pour objet de changer.
+ *
+ * **Ce n'est PAS la liste que compare `annulerLeLotDeModeles`** —
+ * `CHAMPS_ECRITS_MODELES`, deux colonnes seulement : celle-ci protège une
+ * décision (la famille reclassée reste reclassée), celle-ci mesure une
+ * ÉCRITURE. Les deux répondent à des questions différentes, et les confondre
+ * ferait sauter une reclassification légitime au premier ticket, ou manquer
+ * une écriture réelle à celui-ci.
+ */
+const CHAMPS_MODELES_ECRITS = [
+  "famille_id",
+  "marque",
+  "reference",
+  "periodicite_jours",
+  "periodicite_compteur",
+  "actif",
+] as const;
+
 export async function appliquerLeLotDeModeles(
   contexte: ContexteSession,
   lotId: string,
@@ -501,8 +627,15 @@ export async function appliquerLeLotDeModeles(
           reference: true,
           periodicite_jours: true,
           periodicite_compteur: true,
+          actif: true,
         },
       });
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026).
+      if (avant !== null && porteEncore(avant, saisie, CHAMPS_MODELES_ECRITS)) {
+        return "inchangee";
+      }
 
       // **Zéro ligne touchée n'est pas une erreur, c'est la politique qui a
       // refusé**, et elle refuse en silence. La ligne est alors laissée en
@@ -526,6 +659,21 @@ export async function appliquerLeLotDeModeles(
  * **AUCUN MONTANT** : `schemaPrestation` n'en porte aucun (D109), et un import
  * est le chemin où personne ne relit ce qui entre.
  */
+/**
+ * LES COLONNES QUE `modifierPrestationDans` ÉCRIT — les cinq, `actif`
+ * compris pour la même raison qu'aux modèles : le gabarit ne l'expose pas
+ * (`CHAMPS_PRESTATIONS_ECARTES`), `schemaPrestation` lui pose `.default(true)`,
+ * et l'omettre de la comparaison manquerait la réactivation qu'une écriture
+ * produit réellement aujourd'hui.
+ */
+const CHAMPS_PRESTATIONS_ECRITES = [
+  "code",
+  "libelle",
+  "famille_id",
+  "duree_standard_min",
+  "actif",
+] as const;
+
 export async function appliquerLeLotDePrestations(
   contexte: ContexteSession,
   lotId: string,
@@ -561,8 +709,18 @@ export async function appliquerLeLotDePrestations(
           libelle: true,
           famille_id: true,
           duree_standard_min: true,
+          actif: true,
         },
       });
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026).
+      if (
+        avant !== null &&
+        porteEncore(avant, saisie, CHAMPS_PRESTATIONS_ECRITES)
+      ) {
+        return "inchangee";
+      }
 
       const touchees = await modifierPrestationDans(tx, cible, saisie);
       if (touchees === 0) return null;
@@ -635,6 +793,27 @@ async function tracer(
  * rien naît `a_determiner`*, l'état honnête, et apparaît le jour même dans
  * `/vgp/a-determiner`.
  */
+
+/**
+ * LES COLONNES QUE `modifierFamilleDans` ÉCRIT — `code`, `libelle`, `actif`
+ * ET les trois colonnes de VGP, que `saisie` seule ne porte pas : elles
+ * viennent de `prepare.vgp`, un second schéma (voir le docblock du fichier).
+ * **`actif` pour la même raison qu'aux modèles et aux prestations** : le
+ * gabarit ne l'expose pas, `schemaFamilleMateriel` lui pose `.default(true)`.
+ *
+ * **Ce n'est PAS la liste que compare `annulerLeLotDeFamilles`**
+ * (`CHAMPS_ECRITS_FAMILLES`, sans `actif`) — même distinction qu'aux modèles :
+ * celle-là protège une décision, celle-ci mesure une écriture.
+ */
+const CHAMPS_FAMILLES_ECRITES = [
+  "code",
+  "libelle",
+  "actif",
+  "assujettissement_vgp",
+  "vgp_periodicite_mois",
+  "vgp_reference_texte",
+] as const;
+
 export async function appliquerLeLotDeFamilles(
   contexte: ContexteSession,
   lotId: string,
@@ -667,11 +846,30 @@ export async function appliquerLeLotDeFamilles(
         select: {
           code: true,
           libelle: true,
+          actif: true,
           assujettissement_vgp: true,
           vgp_periodicite_mois: true,
           vgp_reference_texte: true,
         },
       });
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026). L'écrit se recompose de `saisie` et de
+      // `prepare.vgp` — le même geste que la reconstitution de
+      // `annulerLeLotDeFamilles`, pour la même raison : les colonnes de VGP
+      // ne sont pas dans `saisie`.
+      const ecrit = {
+        ...saisie,
+        assujettissement_vgp: prepare.vgp.assujettissement,
+        vgp_periodicite_mois: prepare.vgp.periodiciteMois,
+        vgp_reference_texte: prepare.vgp.referenceTexte,
+      };
+      if (
+        avant !== null &&
+        porteEncore(avant, ecrit, CHAMPS_FAMILLES_ECRITES)
+      ) {
+        return "inchangee";
+      }
 
       const touchees = await modifierFamilleDans(
         tx,
@@ -705,6 +903,35 @@ export async function appliquerLeLotDeFamilles(
  * entre incomplète et rejoint la file de complétion de L2-01. *Elle n'est pas
  * rejetée : c'est tout le point de D6.*
  */
+
+/**
+ * LES COLONNES QUE `modifierMachineDans` ÉCRIT — les neuf, et TOUJOURS : à la
+ * différence des clients et des sites, l'équipement n'a pas de schéma de
+ * MODIFICATION distinct — `schemaMachine` sert aux deux actions, et ses
+ * `.default(null)` sur les trois dates et `facture_origine` s'appliquent
+ * qu'une cellule soit vide ou que le gabarit ne l'expose simplement pas
+ * (`CHAMPS_EQUIPEMENTS_ECARTES`). *Omettre une seule de ces colonnes de la
+ * comparaison ferait juger « inchangée » une ligne dont l'écriture aurait en
+ * réalité effacé une date — le défaut inverse de celui que ce ticket ferme.*
+ *
+ * **Ce n'est pas la liste que compare `annulerLeLotDeEquipements`** — elle
+ * varie selon l'action (`CHAMPS_EQUIPEMENTS_MODIFIES` contre
+ * `CHAMPS_ECRITS_EQUIPEMENTS`, qui ajoute les trois parents À LA CRÉATION
+ * seulement) : cette liste-ci n'a besoin que de la MODIFICATION, la seule
+ * action que ce module compare avant d'écrire.
+ */
+const CHAMPS_EQUIPEMENTS_ECRITS = [
+  "numero_serie",
+  "reference_interne",
+  "localisation",
+  "facture_origine",
+  "date_mise_en_service",
+  "date_vente",
+  "garantie_fin",
+  "criticite",
+  "complet",
+] as const;
+
 export async function appliquerLeLotDeEquipements(
   contexte: ContexteSession,
   lotId: string,
@@ -753,10 +980,23 @@ export async function appliquerLeLotDeEquipements(
           numero_serie: true,
           reference_interne: true,
           localisation: true,
+          facture_origine: true,
+          date_mise_en_service: true,
+          date_vente: true,
+          garantie_fin: true,
           criticite: true,
           complet: true,
         },
       });
+
+      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+      // (point 1, 16/09/2026).
+      if (
+        avant !== null &&
+        porteEncore(avant, saisie, CHAMPS_EQUIPEMENTS_ECRITS)
+      ) {
+        return "inchangee";
+      }
 
       const touchees = await modifierMachineDans(tx, cible, saisie);
       if (touchees === 0) return null;
