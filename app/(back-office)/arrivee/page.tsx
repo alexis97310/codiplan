@@ -51,6 +51,15 @@ import {
  * accroche grise en 13 px. *Ce qu'elle montre se suit ; ce qu'elle ne dit pas
  * reste libre* (§1) — et ce qui reste libre ici est la disposition interne,
  * tenue en trois colonnes plutôt qu'en une bande étroite.
+ *
+ * ## LE BOUTON DE DÉCONNEXION N'EST PLUS ICI (N-02, arbitrage du 16/09/2026)
+ *
+ * *Il n'existait qu'ici, sur un écran d'atterrissage sur lequel on ne revient
+ * jamais — en pratique, une session ouverte ne se fermait pas.* La commande
+ * vit désormais dans le CHROME (`components/navigation/barre.tsx`), rendue
+ * dans les trois coques. La retenir ici en plus en aurait fait un second
+ * bouton pour le même geste sur le même écran, puisque `/arrivee` porte
+ * elle-même cette barre.
  */
 export default async function PageArrivee() {
   const entetes = await headers();
@@ -129,12 +138,6 @@ export default async function PageArrivee() {
       {societes.length > 0 ? (
         <Choix societes={societes} active={societeActive} />
       ) : null}
-
-      <form action="/api/session/deconnexion" method="post">
-        <Button type="submit" variant="outline">
-          {t("arrivee.deconnexion")}
-        </Button>
-      </form>
     </main>
   );
 }
