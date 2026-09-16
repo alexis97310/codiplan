@@ -12,7 +12,7 @@ import type { MachineDuPortail, SiteDuPortail } from "@/lib/portail/depot";
  * DESTINATION du texte qui décide, jamais sa longueur.*
  *
  * Elle vit donc ici, dans un module sans JSX, à côté des libellés qu'elle
- * relie — même rangement que `app/(back-office)/planning/presentation.ts`.
+ * relie — même rangement que `app/(back-office)/interventions/presentation.ts`.
  */
 
 /** La ponctuation de liaison. Écrite UNE fois, pour ne pas diverger. */

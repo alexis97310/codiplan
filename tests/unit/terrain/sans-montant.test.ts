@@ -39,7 +39,7 @@ const RACINE = process.cwd();
 const ECRAN_TERRAIN = join(RACINE, "app/(mobile)/terrain/page.tsx");
 const FICHE_BACK_OFFICE = join(
   RACINE,
-  "app/(back-office)/planning/[id]/page.tsx",
+  "app/(back-office)/interventions/[id]/page.tsx",
 );
 
 /** Ce par quoi un montant arrive à l'écran, sous une forme ou une autre. */

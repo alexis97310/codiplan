@@ -63,7 +63,11 @@ import {
 
 import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
 
-import { enTeteDuBloc, objetDuBloc, referenceAffichee } from "./presentation";
+import {
+  enTeteDuBloc,
+  objetDuBloc,
+  referenceAffichee,
+} from "../interventions/presentation";
 import { Statistiques } from "./statistiques";
 
 /**
@@ -328,7 +332,7 @@ export default async function PagePlanning({
         <div className="flex flex-wrap items-center gap-2">
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
           <Deplacement vue={vue} jour={jourAffiche} semaine={jours[0]} />
-          <LienPrimaire href="/planning/nouvelle">
+          <LienPrimaire href="/interventions/nouvelle">
             {t("planning.creer")}
           </LienPrimaire>
         </div>
@@ -385,7 +389,7 @@ export default async function PagePlanning({
                     dureeMin={dureeDe(ligne)}
                   >
                     <Link
-                      href={`/planning/${ligne.id}`}
+                      href={`/interventions/${ligne.id}`}
                       className="border-app-bord block rounded-lg border px-3 py-2.5"
                     >
                       <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
@@ -526,7 +530,7 @@ function VueSemaine({
                         dureeMin={dureeDe(intervention)}
                       >
                         <Link
-                          href={`/planning/${intervention.id}`}
+                          href={`/interventions/${intervention.id}`}
                           className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
                         >
                           {/*
@@ -648,7 +652,7 @@ function VueJour({
                             ({ ligne: occupation, debutDeBloc }) => {
                               const lien = (
                                 <Link
-                                  href={`/planning/${occupation.id}`}
+                                  href={`/interventions/${occupation.id}`}
                                   className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}`}
                                 >
                                   {debutDeBloc ? (
@@ -952,7 +956,7 @@ function HorsGrille({
           colonne.horsGrille.map(({ ligne, motif }) => (
             <li key={ligne.id} className="text-[12px]">
               <Link
-                href={`/planning/${ligne.id}`}
+                href={`/interventions/${ligne.id}`}
                 className={`font-bold ${CLASSES_LIEN}`}
               >
                 {referenceAffichee(ligne)}

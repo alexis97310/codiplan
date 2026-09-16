@@ -21,7 +21,7 @@ export function versLaFiche(id: string, cle?: string): Response {
   const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;
   return new Response(null, {
     status: 303,
-    headers: { Location: `/planning/${id}${suffixe}` },
+    headers: { Location: `/interventions/${id}${suffixe}` },
   });
 }
 

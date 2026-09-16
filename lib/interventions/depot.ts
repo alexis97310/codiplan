@@ -1642,3 +1642,54 @@ export async function dernieresInterventionsDuClient(
     client,
   );
 }
+
+/**
+ * LA LISTE DES INTERVENTIONS DE LA SOCIÉTÉ (écran `/interventions`, N-01).
+ *
+ * **Même sélection que `dernieresInterventionsDuClient`, mais PAS le même
+ * ordre — et l'écart est mesuré, pas supposé.** Un `ORDER BY date_planifiee
+ * DESC` nu place les `NULL` en TÊTE sous PostgreSQL : *mesuré sur la première
+ * capture d'écran de ce ticket*, la file d'attente entière — chaque ligne
+ * sans date — flottait au-dessus de toute intervention réellement datée, sur
+ * un écran dont le sous-titre affirme « la plus récente en tête ». C'est
+ * l'espèce du §9 (09/09) : un défaut invisible à toute assertion et évident
+ * sur une image, parce que « en tête » est une propriété de ce que l'œil
+ * rencontre, pas d'une valeur qu'on interroge.
+ *
+ * `nulls: "last"` referme ce point précis : les lignes datées restent triées
+ * par récence, la file d'attente redescend en bloc, triée par `id` comme dans
+ * `dernieresInterventionsDuClient` — même second critère, pour la même
+ * raison, sur une file dont aucune ligne n'a de date à départager autrement.
+ *
+ * **`limite` est une BORNE D'AFFICHAGE, jamais un cloisonnement** — comme dans
+ * `dernieresInterventionsDuClient`. L'écran l'écrit à côté du tableau plutôt
+ * que de laisser croire qu'il montre tout : le parc de démonstration porte
+ * assez de lignes pour que « tout » n'ait pas de sens à l'écran.
+ *
+ * **Aucune comparaison de société n'est écrite ici** : la politique de forme
+ * « parc » décide, et une clause écrite au-dessus serait la seconde lecture
+ * qui vieillit sans rougir pendant que la vraie continue de mordre.
+ */
+export async function listerInterventions(
+  contexte: ContexteSession,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LignePlanning[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findMany({
+        select: {
+          ...CHAMPS_LIGNE,
+          client: { select: { raison_sociale: true } },
+          site: { select: { libelle: true } },
+        },
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+        take: limite,
+      }),
+    client,
+  );
+}
