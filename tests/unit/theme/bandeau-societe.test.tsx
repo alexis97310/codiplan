@@ -14,6 +14,16 @@ import { variablesCss } from "@/lib/theme/variables";
  * l'élément qui enveloppe le rendu — puis vérifie que deux sociétés aux
  * chartes distinctes donnent deux rendus distincts SANS qu'une ligne du
  * composant change.
+ *
+ * ## LE LIBELLÉ « CHARTE DE LA SOCIÉTÉ » / « THÈME NEUTRE » N'EST PLUS ICI
+ * (N-02, arbitrage du 16/09/2026)
+ *
+ * Il vivait dans ce composant, et ce fichier l'attendait à l'écran. Il vit
+ * désormais dans `/parametres/societe`, éprouvé de bout en bout par
+ * `tests/e2e/deconnexion.spec.ts` — *le déplacer sans déplacer l'épreuve
+ * aurait laissé un texte sans gardien nulle part*, la faute inverse de celle
+ * que ce ticket répare. Ce fichier-ci vérifie au contraire que ce libellé
+ * N'APPARAÎT PLUS ici : la moitié qu'on oublierait d'un déplacement.
  */
 
 const SOCIETE_A = {
@@ -47,13 +57,26 @@ function rendreSousTheme(source: typeof SOCIETE_A | null) {
 describe("bandeau d'identité de la société active", () => {
   it("affiche le nom de la société, qui est une donnée et non une chaîne du code", () => {
     // Le texte attendu est celui que le thème PORTE — jamais un littéral
-    // recopié dans le scénario (L0-11) : le nom d'une société est une donnée,
-    // et le libellé qui le qualifie vient du dictionnaire. Ni l'un ni l'autre
-    // ne s'écrit deux fois.
+    // recopié dans le scénario (L0-11) : le nom d'une société est une donnée.
     const a = rendreSousTheme(SOCIETE_A);
 
     expect(screen.getByText(a.theme.nom)).toBeInTheDocument();
-    expect(screen.getByText(fr["theme.societe"])).toBeInTheDocument();
+  });
+
+  it("ne porte plus le libellé de diagnostic — il a déménagé (N-02)", () => {
+    // Le sens qu'on oublie d'un déplacement : la moitié « ce n'est plus ici »,
+    // jamais éprouvée par le seul fait d'ajouter l'écran de destination.
+    // Les DEUX origines sont éprouvées : le composant ne branche plus du tout
+    // sur `theme.origine` pour du texte, et rien ne garantit qu'un futur
+    // correcteur ne le réintroduise pas pour une seule des deux.
+    const { unmount } = render(
+      <BandeauSociete theme={themeDeSociete(SOCIETE_A)} />,
+    );
+    expect(screen.queryByText(fr["theme.societe"])).toBeNull();
+    unmount();
+
+    render(<BandeauSociete theme={THEME_DEFAUT} />);
+    expect(screen.queryByText(fr["theme.neutre"])).toBeNull();
   });
 
   it("bascule : deux sociétés, deux rendus — sans redéploiement", () => {
@@ -71,12 +94,11 @@ describe("bandeau d'identité de la société active", () => {
     expect(a.lire("--societe-primaire")).not.toBe(b.lire("--societe-primaire"));
   });
 
-  it("sans société active, c'est le thème neutre, et il se dit tel quel", () => {
+  it("sans société active, c'est le thème neutre", () => {
     const neutre = rendreSousTheme(null);
 
     expect(neutre.racine.dataset.theme).toBe("defaut");
     expect(screen.getByText(THEME_DEFAUT.nom)).toBeInTheDocument();
-    expect(screen.getByText(fr["theme.neutre"])).toBeInTheDocument();
     expect(neutre.lire("--societe-primaire")).toBe(THEME_DEFAUT.primaire.fond);
   });
 

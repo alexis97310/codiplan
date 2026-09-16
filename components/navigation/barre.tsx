@@ -44,6 +44,28 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * **Le calcul de l'entrée allumée vit dans `lib/navigation`, avec la liste** —
  * deux lectures d'un même critère divergent en silence (§9, 01/09), et il n'y
  * en a qu'une.
+ *
+ * ## LA DÉCONNEXION VIT ICI, JAMAIS DANS LA LISTE D'ENTRÉES (N-02, arbitrage du
+ * 16/09/2026)
+ *
+ * *« La route existe, `POST /api/session/deconnexion`. Le seul bouton qui
+ * l'appelait était sur `/arrivee`, un écran d'atterrissage sur lequel on ne
+ * revient jamais. En pratique, une session ouverte ne se fermait pas. »* — le
+ * constat qui a ouvert ce ticket, fait en utilisant le produit.
+ *
+ * **Ce n'est pas une DESTINATION, c'est une COMMANDE.** La barre est une liste
+ * CLOSE de onze entrées confrontée à la maquette (D95) : y ajouter une
+ * douzième la ferait rougir, à raison, et ce serait de toute façon la mauvaise
+ * porte — on ne « va » pas à une déconnexion, on l'ACTIONNE. Elle vit donc dans
+ * le CHROME, au même titre que le bandeau de société et la pastille
+ * d'initiales, et POUR LA MÊME RAISON : commune aux trois coques, elle n'a pas
+ * à être rendue par un écran qui pourrait oublier de le faire.
+ *
+ * **Et c'est le TERRAIN qui en avait le plus besoin.** `ENTREES_TERRAIN` est
+ * vide par décision (R5-01) — « ce qui est vide est la liste, pas le chrome » —
+ * et cette même phrase vaut ici : un téléphone d'atelier passe de main en
+ * main, et un technicien qui ne peut pas fermer sa session laisse la journée
+ * d'un autre ouverte sur son écran.
  */
 export function BarreDeNavigation({
   theme,
@@ -99,6 +121,15 @@ export function BarreDeNavigation({
       */}
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <BandeauSociete theme={theme} />
+        {/*
+          À LA PLACE DE LA PASTILLE RETIRÉE (N-02) : la commande qu'on
+          actionne tous les jours prend l'emplacement qu'occupait un
+          diagnostic qu'on ne consulte qu'une fois. Rendue seulement s'il y a
+          une session à fermer — le même critère qu'`Avatar`, juste en
+          dessous : une pastille d'initiales absente et un bouton de
+          déconnexion absent disent la même chose, pour la même raison.
+        */}
+        {initiales === null ? null : <Deconnexion />}
         {initiales === null ? null : <Avatar initiales={initiales} />}
       </div>
     </header>
@@ -170,6 +201,28 @@ function Entree({
     >
       {t(entree.cle)}
     </Link>
+  );
+}
+
+/**
+ * LA DÉCONNEXION — un POST, jamais un lien (N-02).
+ *
+ * Une déconnexion est une ÉCRITURE : elle périme une session. Un lien la
+ * déclencherait au survol d'une préconnexion de navigateur ou à la visite
+ * fortuite d'un robot — un défaut d'un genre pénible à diagnostiquer, qui se
+ * lit comme une panne de session plutôt que comme ce qu'il est. La route,
+ * `/api/session/deconnexion`, est en POST, et ce formulaire le reste.
+ */
+function Deconnexion() {
+  return (
+    <form action="/api/session/deconnexion" method="post">
+      <button
+        type="submit"
+        className="text-app-encre-faible hover:bg-app-fond rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap"
+      >
+        {t("nav.deconnexion")}
+      </button>
+    </form>
   );
 }
 
