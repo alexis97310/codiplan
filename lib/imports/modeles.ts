@@ -1067,6 +1067,25 @@ export const CHAMPS_EQUIPEMENTS: Readonly<Record<string, string>> = {
 };
 
 /**
+ * LA CRITICITÉ DÉCLARÉE — la même tolérance de CASSE que l'assujettissement
+ * (`assujettissementDeclare`, `lib/vgp/assujettissement.ts`) et que les codes
+ * d'agence et de famille (D101). *Mesuré (D-05) : une ligne autrement valide,
+ * avec « Normale » recopiée telle qu'un tableur la met en forme tout seul, se
+ * rejetait `saisie_refusee` — indistinguable d'une criticité réellement
+ * fausse.* **Rien n'est tranché ici** : `z.enum(CRITICITES_MACHINE)` reste le
+ * seul juge, et une valeur qui ne lui correspond toujours pas après ce
+ * rabattement est refusée comme avant, avec le même motif.
+ *
+ * *Ce que ceci n'est PAS* : aucune distance d'édition, aucun score, aucun
+ * rapprochement sur une ressemblance — seulement l'équivalence de casse déjà
+ * appliquée ailleurs dans ce fichier pour la même raison.
+ */
+function criticiteDeclaree(brut: string | undefined): string | undefined {
+  const texte = brut?.trim();
+  return texte === undefined || texte === "" ? undefined : texte.toLowerCase();
+}
+
+/**
  * LES CHAMPS DE `champsMachine` QUE LE GABARIT N'EXPOSE PAS — avec leur motif.
  *
  * *Un champ écarté sans motif est un champ oublié, et rien ne les distingue.*
@@ -1191,6 +1210,7 @@ export function preparerUnEquipement(
   }
 
   const cle = cleEquipement(valeurs, rang);
+  const criticite = criticiteDeclaree(valeurs[COLONNES_EQUIPEMENTS.criticite]);
   const saisie = {
     ...saisieDepuisLaLigne(valeurs, CHAMPS_EQUIPEMENTS),
     modele_id: modele,
@@ -1204,6 +1224,10 @@ export function preparerUnEquipement(
     reference_interne: valeurs[COLONNES_EQUIPEMENTS.referenceInterne]?.trim(),
     // **Le CHEMIN le sait, le fichier ne le déclare pas** (voir les écartés).
     source_creation: "import",
+    // Remplace la copie brute de `CHAMPS_EQUIPEMENTS` par sa forme rabattue —
+    // voir `criticiteDeclaree`. Absente si la cellule l'est : le défaut du
+    // schéma (`normale`) s'applique alors, inchangé.
+    ...(criticite === undefined ? {} : { criticite }),
   };
   return schemaMachine.safeParse(saisie).success
     ? { prete: true, saisie }

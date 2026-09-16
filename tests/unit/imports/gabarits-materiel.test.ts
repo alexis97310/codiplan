@@ -518,6 +518,73 @@ describe("le numéro de série vient de la CLÉ, jamais d'une seconde règle (D6
 });
 
 /* ────────────────────────────────────────────────────────────────────────
+ * LA CRITICITÉ TOLÈRE LA CASSE — D-05, mesuré sur le jeu d'essai
+ * ──────────────────────────────────────────────────────────────────────── */
+
+describe("la criticité tolère la CASSE, comme l'assujettissement et les codes (D101)", () => {
+  it("« Normale », recopiée avec la majuscule qu'un tableur met de lui-même, PASSE", () => {
+    // *Mesuré (D-05) : avant ce rabattement, cette ligne — par ailleurs
+    // parfaitement valide — se rejetait `saisie_refusee`, indiscernable d'une
+    // criticité réellement fausse.*
+    const prepare = preparerUnEquipement(
+      CLIENTS,
+      SITES,
+      MODELES,
+      ligneEquipement({ ...COMPLETE, criticite: "Normale" }),
+      3,
+    );
+    expect(prepare.prete).toBe(true);
+    if (!prepare.prete) return;
+    expect(prepare.saisie.criticite).toBe("normale");
+  });
+
+  it("« BLOQUANTE » toutes capitales passe aussi", () => {
+    const prepare = preparerUnEquipement(
+      CLIENTS,
+      SITES,
+      MODELES,
+      ligneEquipement({ ...COMPLETE, criticite: "BLOQUANTE" }),
+      3,
+    );
+    expect(prepare.prete).toBe(true);
+    if (!prepare.prete) return;
+    expect(prepare.saisie.criticite).toBe("bloquante");
+  });
+
+  it("une criticité RÉELLEMENT fausse reste refusée — ceci n'est pas une tolérance de plus", () => {
+    // *Rien n'est tranché ici* : `z.enum(CRITICITES_MACHINE)` reste seul juge.
+    // Une valeur qui n'est PAS, à la casse près, l'une des trois connues est
+    // refusée comme avant — aucune distance d'édition, aucun rapprochement sur
+    // une ressemblance.
+    const prepare = preparerUnEquipement(
+      CLIENTS,
+      SITES,
+      MODELES,
+      ligneEquipement({ ...COMPLETE, criticite: "Haute" }),
+      3,
+    );
+    expect(prepare.prete).toBe(false);
+    if (!prepare.prete) expect(prepare.motif).toBe(MOTIF_SAISIE_REFUSEE);
+  });
+
+  it("une cellule VIDE ne pose AUCUNE clé — le défaut du schéma décide seul", () => {
+    // *Comme pour toute cellule vide* (`saisieDepuisLaLigne`) : une absence
+    // n'écrit pas une chaîne vide, elle n'apparaît pas, et c'est
+    // `champsMachine` qui pose alors son défaut (`normale`).
+    const prepare = preparerUnEquipement(
+      CLIENTS,
+      SITES,
+      MODELES,
+      ligneEquipement(COMPLETE),
+      3,
+    );
+    expect(prepare.prete).toBe(true);
+    if (!prepare.prete) return;
+    expect(Object.hasOwn(prepare.saisie, "criticite")).toBe(false);
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
  * LA CHAÎNE RÉELLE, ET LA BORNE QUI EXPLIQUE LES COLONNES DE DATE
  * ──────────────────────────────────────────────────────────────────────── */
 
