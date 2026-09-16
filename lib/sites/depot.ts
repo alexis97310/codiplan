@@ -193,6 +193,34 @@ export async function creerSiteDans(
   });
 }
 
+/**
+ * LA MÊME ÉCRITURE, EN LOT — même raison qu'à `creerClientsEnLot` (session du
+ * 16/09/2026, point 1 de la suite — dépassement de délai) : un `create` par
+ * ligne coûte un aller-retour par ligne, et c'est ce qui a fait dépasser le
+ * délai de la transaction. L'identifiant est fourni par l'appelant :
+ * `createMany` ne rend aucune ligne, et l'appelant en a besoin pour tracer
+ * chaque ligne d'import (D15, I10).
+ */
+export async function creerSitesEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly { readonly id: string; readonly saisie: CreationSite }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.site.createMany({
+    data: lignes.map(({ id, saisie }) => {
+      const { adresse, horaires, ...reste } = saisie;
+      return {
+        id,
+        societe_id: societeId,
+        ...reste,
+        adresse: adresse ?? Prisma.DbNull,
+        horaires: horaires ?? Prisma.DbNull,
+      };
+    }),
+  });
+}
+
 /** Lit un site par son identifiant. `null` s'il n'est pas dans le périmètre. */
 export async function lireSite(
   contexte: ContexteSession,

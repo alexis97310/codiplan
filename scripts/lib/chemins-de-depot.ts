@@ -470,4 +470,43 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Même raison que `supprimerClient` : un site référencé par une intervention ne se supprime pas, et L1-02 a posé la fonction avant que la question soit tranchée.",
   },
+  // ── LA RÉDUCTION DES ALLERS-RETOURS DU 16/09/2026 (SUITE) A DÉPLACÉ LA
+  // CRÉATION EN LOT VERS `creerXxxEnLot` — CES SIX VARIANTES « Dans » Y
+  // PERDENT LEUR SEUL APPELANT EXTERNE ───────────────────────────────────
+  {
+    module: "lib/clients/depot.ts",
+    fonction: "creerClientDans",
+    motif:
+      "L'application d'un lot de clients écrivait ses créations une ligne à la fois par ce chemin ; elle écrit désormais en un `createMany` via `creerClientsEnLot`. La fonction reste appelée INTRA-module par `creerClient`, que `app/api/clients/creer/route.ts` atteint — ce gardien ne trace pas un appel interne au même fichier de dépôt (`chemin !== depot`). Se retire si un appelant externe réapparaît.",
+  },
+  {
+    module: "lib/sites/depot.ts",
+    fonction: "creerSiteDans",
+    motif:
+      "Même raison que `creerClientDans` : l'application d'un lot de sites écrit désormais par `creerSitesEnLot`. Reste appelée intra-module par `creerSite`, atteint par `app/api/sites/creer/route.ts`.",
+  },
+  {
+    module: "lib/materiel/depot.ts",
+    fonction: "creerModeleDans",
+    motif:
+      "Même raison que `creerClientDans` : l'application d'un lot de modèles écrit désormais par `creerModelesEnLot`. Reste appelée intra-module par sa fonction publique de création.",
+  },
+  {
+    module: "lib/materiel/depot.ts",
+    fonction: "creerFamilleDans",
+    motif:
+      "Même raison que `creerClientDans` : l'application d'un lot de familles écrit désormais par `creerFamillesEnLot`. Reste appelée intra-module par sa fonction publique de création.",
+  },
+  {
+    module: "lib/prestations/depot.ts",
+    fonction: "creerPrestationDans",
+    motif:
+      "Même raison que `creerClientDans` : l'application d'un lot de prestations écrit désormais par `creerPrestationsEnLot`. Reste appelée intra-module par `creerPrestation`.",
+  },
+  {
+    module: "lib/machines/depot.ts",
+    fonction: "creerMachineDans",
+    motif:
+      "L'application d'un lot d'équipements écrivait ses créations une ligne à la fois par ce chemin, son SEUL appelant : aucun écran de création manuelle d'un équipement n'existe, seul l'import en crée. Elle écrit désormais en un `createMany` via `creerMachinesEnLot`. Se retire le jour où un écran de création manuelle l'appelle.",
+  },
 ];

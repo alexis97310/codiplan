@@ -389,6 +389,34 @@ export async function creerModeleDans(
 }
 
 /**
+ * LA MÊME ÉCRITURE, EN LOT (session du 16/09/2026, point 1 de la suite —
+ * dépassement de délai) : voir `creerClientsEnLot`, même raison, même forme.
+ * L'identifiant reste fourni par l'appelant, comme à `creerModeleDans`.
+ */
+export async function creerModelesEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly {
+    readonly id: string;
+    readonly saisie: SaisieModeleMateriel;
+  }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.modeleMateriel.createMany({
+    data: lignes.map(({ id, saisie }) => ({
+      id,
+      societe_id: societeId,
+      famille_id: saisie.famille_id,
+      marque: saisie.marque,
+      reference: saisie.reference,
+      periodicite_jours: saisie.periodicite_jours,
+      periodicite_compteur: saisie.periodicite_compteur,
+      actif: saisie.actif,
+    })),
+  });
+}
+
+/**
  * La MODIFICATION dans une transaction que l'appelant tient — le jumeau de
  * `creerModeleDans`.
  *
@@ -478,6 +506,32 @@ export async function creerFamilleDans(
       ...colonnesVgp(vgp),
     },
     select: { id: true },
+  });
+}
+
+/**
+ * LA MÊME ÉCRITURE, EN LOT (session du 16/09/2026, point 1 de la suite —
+ * dépassement de délai) : voir `creerClientsEnLot`, même raison, même forme.
+ */
+export async function creerFamillesEnLot(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  lignes: readonly {
+    readonly id: string;
+    readonly saisie: SaisieFamilleMateriel;
+    readonly vgp?: SaisieAssujettissementFamille;
+  }[],
+): Promise<void> {
+  if (lignes.length === 0) return;
+  await tx.familleMateriel.createMany({
+    data: lignes.map(({ id, saisie, vgp }) => ({
+      id,
+      societe_id: societeId,
+      code: saisie.code,
+      libelle: saisie.libelle,
+      actif: saisie.actif,
+      ...colonnesVgp(vgp),
+    })),
   });
 }
 

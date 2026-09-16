@@ -1,34 +1,41 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
-import { creerClientDans, modifierClientDans } from "@/lib/clients/depot";
+import { creerClientsEnLot, modifierClientDans } from "@/lib/clients/depot";
 import {
   schemaCreationClient,
   schemaModificationClient,
+  type CreationClient,
 } from "@/lib/clients/saisie";
 import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
-import { creerSiteDans, modifierSiteDans } from "@/lib/sites/depot";
+import { creerSitesEnLot, modifierSiteDans } from "@/lib/sites/depot";
 import { schemaCreationSite, schemaModificationSite } from "@/lib/sites/saisie";
 import {
-  creerFamilleDans,
-  creerModeleDans,
+  creerFamillesEnLot,
+  creerModelesEnLot,
   modifierFamilleDans,
   modifierModeleDans,
 } from "@/lib/materiel/depot";
 import {
   schemaFamilleMateriel,
   schemaModeleMateriel,
+  type SaisieFamilleMateriel,
+  type SaisieModeleMateriel,
 } from "@/lib/materiel/saisie";
-import { creerMachineDans, modifierMachineDans } from "@/lib/machines/depot";
-import { schemaMachine } from "@/lib/machines/saisie";
+import { creerMachinesEnLot, modifierMachineDans } from "@/lib/machines/depot";
+import { schemaMachine, type SaisieMachine } from "@/lib/machines/saisie";
 import {
-  creerPrestationDans,
+  creerPrestationsEnLot,
   modifierPrestationDans,
 } from "@/lib/prestations/depot";
-import { schemaPrestation } from "@/lib/prestations/saisie";
+import {
+  schemaPrestation,
+  type SaisiePrestation,
+} from "@/lib/prestations/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
+import type { SaisieAssujettissementFamille } from "@/lib/vgp/assujettissement";
 
 import { CHAMPS_ECRITS_CLIENTS, CHAMPS_SITES_MODIFIES } from "./annulation";
 import { porteEncore } from "./comparaison";
@@ -69,7 +76,9 @@ import {
  * Tout le lot s'écrit dans la transaction que `avecContexteApplicatif` ouvre.
  * *Une écriture par ligne laisserait, au premier incident, un lot « contrôlé »
  * dont la moitié des fiches existe — un état que rien ne décrit et que
- * l'annulation ne saurait pas défaire.*
+ * l'annulation ne saurait pas défaire.* Un invariant que la réduction des
+ * allers-retours (plus bas) ne touche pas : elle réduit le nombre de
+ * requêtes DANS cette transaction, elle n'en ouvre jamais une seconde.
  *
  * ## Le CLIQUET : un lot ne s'applique qu'une fois
  *
@@ -86,11 +95,11 @@ export type RefusApplication =
   // AJOUTÉ le 16/09/2026 (point 4 de la session : une violation de contrainte
   // d'unicité ressortait en page d'erreur 500). Voir le `catch` d'
   // `appliquerLesLignes` plus bas : c'est le FILET, jamais la première ligne
-  // de défense — celle-ci
-  // est le contrôle, qui rejette désormais un doublon AVANT l'application
-  // (`MOTIF_DOUBLON_FICHIER`, `lib/excel/controle.ts`). Ce motif couvre ce que
-  // le contrôle ne pouvait pas voir : le parc a bougé ENTRE le contrôle et la
-  // validation — un autre lot, appliqué entre-temps, a écrit la même clé.
+  // de défense — celle-ci est le contrôle, qui rejette désormais un doublon
+  // AVANT l'application (`MOTIF_DOUBLON_FICHIER`, `lib/excel/controle.ts`).
+  // Ce motif couvre ce que le contrôle ne pouvait pas voir : le parc a bougé
+  // ENTRE le contrôle et la validation — un autre lot, appliqué entre-temps,
+  // a écrit la même clé.
   | "contrainte_violee"
   // AJOUTÉ le 16/09/2026 (session dépassement de délai) : un lot de 615
   // MODIFICATIONS a mesuré `POST /api/imports/{id}/appliquer` sans réponse
@@ -136,25 +145,49 @@ type LigneAAppliquer = {
 };
 
 /**
- * Ce qu'une ligne a produit :
- *   - `"creation"` / `"modification"` — une fiche a été écrite ;
- *   - `"inchangee"` — la ligne est une MODIFICATION dont la comparaison a
- *     montré que la fiche porte déjà exactement ces valeurs (point 1 de la
- *     session du 16/09/2026) : rien n'est écrit, et le compte le dit ;
- *   - `null` — rien ne désigne plus rien (fiche disparue, parent introuvable,
- *     politique qui refuse en silence).
+ * CE QU'UNE LIGNE CLASSÉE CRÉATION PORTERA, RÉSOLU SANS AUCUN ALLER-RETOUR
+ * (suite du 16/09/2026, point 1 — dépassement de délai).
+ *
+ * Résoudre un parent et juger un schéma ne touchent jamais la base : les
+ * parcs sont des index EN MÉMOIRE, chargés une fois avant l'application
+ * (`indexerLeParcClients` et consorts). `prete: false` couvre exactement ce
+ * que couvrait `return null` dans l'ancienne enveloppe à une seule passe : un
+ * parent introuvable, une saisie que le schéma refuse.
  */
-type Ecriture = "creation" | "modification" | "inchangee" | null;
+type CreationPreparee<Donnees> =
+  | { readonly prete: false }
+  | { readonly prete: true; readonly id: string; readonly donnees: Donnees };
 
 /**
- * L'ENVELOPPE QUE LES QUATRE APPLICATIONS PARTAGENT (R6-01).
+ * CE QU'UNE LIGNE CLASSÉE MODIFICATION DÉSIGNE ET ÉCRIRA — RÉSOLU SANS AUCUN
+ * ALLER-RETOUR, LA COMPARAISON MISE À PART (suite du 16/09/2026, point 1).
+ *
+ * **`comparaison` et `ecrit` sont deux champs séparés, et ce n'est pas une
+ * redondance.** Pour la plupart des types, ce sont le MÊME objet : ce qui
+ * s'écrit est ce qui se compare. Pour les FAMILLES, non : `ecrit` porte le
+ * couple `{ saisie, vgp }` qu'exige `modifierFamilleDans` (deux paramètres
+ * distincts), quand `porteEncore` a besoin d'un objet PLAT — les trois
+ * colonnes de VGP posées à côté des autres (voir `appliquerLeLotDeFamilles`).
+ */
+type ModificationPreparee<Ecrit> =
+  | { readonly prete: false }
+  | {
+      readonly prete: true;
+      readonly cible: string;
+      readonly ecrit: Ecrit;
+      readonly comparaison: Readonly<Record<string, unknown>>;
+    };
+
+/**
+ * L'ENVELOPPE QUE LES SIX APPLICATIONS PARTAGENT (R6-01 ; réécrite en DEUX
+ * PASSES le 16/09/2026, suite — dépassement de délai, point 1).
  *
  * ## Ce qu'elle porte, et ce qu'elle NE porte PAS
  *
  * Elle porte le **cliquet** (un lot ne s'applique qu'une fois), la **lecture du
  * lot**, la **transaction unique** et la **clôture**. *Elle ne porte aucune
  * décision : elle ne sait ni quelle entité est visée, ni quel schéma juge, ni
- * quel dépôt écrit.* Chaque ligne est confiée à l'`ecrire` que l'appelant
+ * quel dépôt écrit.* Chaque ligne est confiée aux fonctions que l'appelant
  * fournit, et c'est l'appelant qui nomme son type.
  *
  * ## Pourquoi ce n'est PAS la fonction que L1-08i refusait
@@ -164,24 +197,49 @@ type Ecriture = "creation" | "modification" | "inchangee" | null;
  * c'est-à-dire une liste close de plus, tenue à la main, que le prochain type
  * oublierait. »* **L'objection portait sur la TABLE, pas sur la boucle**, et la
  * distinction se vérifie : cette enveloppe ne lit jamais `lot.type_import` et
- * ne choisit jamais d'écriture. *Elle reçoit celle qu'on lui donne.*
+ * ne choisit jamais d'écriture. *Elle reçoit celle qu'on lui donne.* La table,
+ * elle, existe bel et bien — voir `lib/imports/types-dimport.ts`.
  *
- * La table, elle, existe bel et bien — il en faut une dès qu'une route doit
- * choisir — et elle est **fermée par un gardien contre les sources de
- * `lib/imports/`** plutôt que tenue à la main : `lib/imports/types-dimport.ts`,
- * confronté par `tests/unit/imports/types-dimport.test.ts`. *Le jour où une
- * application de plus sera écrite et non déclarée, `pnpm verify` rougira le
- * jour même.* C'est la réponse que L1-08i attendait d'avoir cinq exemplaires
- * sous les yeux pour donner — **et elle a tenu sans une ligne de plus quand
- * R6-03 en a ajouté deux.**
+ * ## DEUX PASSES, ET POURQUOI DEUX PLUTÔT QU'UNE
+ *
+ * **Mesuré en production** (session du 16/09/2026, puis sa suite) : la
+ * première rédaction faisait, PAR LIGNE, jusqu'à trois allers-retours — une
+ * lecture d'AVANT, une écriture, une trace — et un lot de 615 lignes a rendu
+ * `POST /api/imports/{id}/appliquer` sans réponse après quatre minutes. **La
+ * PREMIÈRE passe ne touche pas la base** : elle résout les parents et juge
+ * les schémas pour CHAQUE ligne (`config.preparerCreation` /
+ * `config.preparerModification`), et sépare ce qui est prêt en deux listes.
+ * La **SECONDE** exécute les écritures avec le MINIMUM d'allers-retours que
+ * Prisma permette sans SQL brut (CLAUDE.md §2, interdit hors migrations et
+ * politiques RLS) :
+ *
+ *   1. Les créations s'écrivent en UN `createMany` (`config.creerEnLot`),
+ *      quel que soit leur nombre — l'identifiant de chaque fiche est déjà
+ *      connu (I10), `createMany` n'a besoin de rien de plus.
+ *   2. Les cibles de TOUTES les modifications se lisent en UN `findMany …
+ *      id IN […]` (`config.lireAvant`) — la lecture qui comparait
+ *      auparavant une ligne à la fois.
+ *   3. Chaque ligne trouve alors son verdict SANS ALLER-RETOUR : identique
+ *      (`porteEncore`) → « inchangée » ; sinon → `config.modifierUn`, unique
+ *      aller-retour restant PAR VRAIE modification, parce que Prisma ne sait
+ *      écrire des valeurs DIFFÉRENTES par ligne qu'une requête à la fois.
+ *   4. La TRACE posée sur `import_lot_ligne` (D15, ce que l'annulation lira)
+ *      reste, elle aussi, PAR LIGNE, pour la même raison — et parce que
+ *      `import_lot_ligne` est une table AUDITÉE (I8) : la reconstituer par un
+ *      `DELETE` suivi d'un `createMany` ferait porter au journal une
+ *      suppression et une création là où une seule ligne a été enrichie, ce
+ *      qui MENTIRAIT sur ce qui s'est passé — exactement ce que le point 1 de
+ *      la session précédente a fermé pour les écritures elles-mêmes.
+ *
+ * `lib/imports/delais.ts` compte ce qui reste (`allersRetoursApplication`) et
+ * dit, sans le cacher, ce que cette réduction NE couvre PAS.
  *
  * ## Le parc peut AVOIR BOUGÉ, et ce n'est pas une erreur du fichier
  *
- * `ecrire` rend `null` quand la ligne ne désigne plus rien — une fiche
- * supprimée entre le contrôle et la validation, un parent disparu. *La ligne
- * est laissée en l'état et le lot continue* : l'annulation partielle de I6 est
- * faite du même bois, et l'écart se lit dans les décomptes rendus, qui sont
- * ceux de ce qui a été ÉCRIT et non ceux du rapport.
+ * Une ligne dont le parent a disparu, ou dont la cible n'existe plus, est
+ * simplement absente des deux listes que la première passe construit. *La
+ * ligne est laissée en l'état et le lot continue* : l'annulation partielle de
+ * I6 est faite du même bois.
  *
  * ## LA TRANSACTIONNALITÉ, VÉRIFIÉE PLUTÔT QU'AFFIRMÉE (point 4 du 16/09/2026)
  *
@@ -191,26 +249,48 @@ type Ecriture = "creation" | "modification" | "inchangee" | null;
  * (`lib/db/rls.ts`) ouvre `travail` dans `prisma.$transaction(async (tx) =>
  * …)` — une transaction INTERACTIVE, que Prisma annule intégralement dès
  * qu'une requête à l'intérieur lève. Une violation de contrainte survenue au
- * milieu du `for` ci-dessous défait donc TOUT ce que la boucle avait déjà
- * écrit, y compris pour les lignes précédentes de la MÊME boucle — le lot
- * reste `controle`, comme si l'application n'avait jamais commencé.
- * `tests/isolation/application-import-types.test.ts` le mesure contre la
- * vraie base, colonne par colonne, plutôt que de le supposer du code.
+ * milieu de la seconde passe défait donc TOUT ce que la transaction avait
+ * déjà écrit — le lot reste `controle`, comme si l'application n'avait jamais
+ * commencé. `tests/isolation/application-import-types.test.ts` le mesure
+ * contre la vraie base, colonne par colonne, plutôt que de le supposer du
+ * code.
  *
  * **Ce que cette garantie NE fait PAS, et c'est pour cela qu'un filet suit** :
  * une transaction qui se défait bien laisse quand même l'ERREUR remonter telle
  * quelle à l'appelant. C'est cette remontée non rattrapée, et elle seule, qui
  * faisait le 500 — la donnée n'a jamais été le problème.
  */
-async function appliquerLesLignes(
+async function appliquerLesLignes<
+  Donnees,
+  Ecrit extends Record<string, unknown>,
+>(
   contexte: ContexteSession,
   lotId: string,
   client: PrismaClient | undefined,
-  ecrire: (
-    tx: Prisma.TransactionClient,
-    societeId: string,
-    ligne: LigneAAppliquer,
-  ) => Promise<Ecriture>,
+  config: {
+    readonly entite: string;
+    readonly champsComparaison: readonly string[];
+    readonly preparerCreation: (
+      ligne: LigneAAppliquer,
+    ) => CreationPreparee<Donnees>;
+    readonly preparerModification: (
+      ligne: LigneAAppliquer,
+    ) => ModificationPreparee<Ecrit>;
+    readonly creerEnLot: (
+      tx: Prisma.TransactionClient,
+      societeId: string,
+      lignes: readonly { readonly id: string; readonly donnees: Donnees }[],
+    ) => Promise<void>;
+    readonly lireAvant: (
+      tx: Prisma.TransactionClient,
+      ids: readonly string[],
+    ) => Promise<ReadonlyMap<string, Record<string, unknown>>>;
+    readonly modifierUn: (
+      tx: Prisma.TransactionClient,
+      cible: string,
+      ecrit: Ecrit,
+    ) => Promise<number>;
+  },
 ): Promise<ResultatApplication> {
   const societeId = exigerSocieteActive(contexte);
 
@@ -250,21 +330,101 @@ async function appliquerLesLignes(
           return { applique: false as const, motif: refus };
         }
 
-        let creations = 0;
+        const lignes: readonly LigneAAppliquer[] = lot.lignes.map((brute) => ({
+          id: brute.id,
+          rang: brute.rang,
+          action: brute.action as "creation" | "modification",
+          cle: brute.cle,
+          valeurs: brute.valeurs as Record<string, string | undefined>,
+        }));
+
+        // ── PREMIÈRE PASSE : PRÉPARATION, AUCUN ALLER-RETOUR ────────────────
+        const creationsPretes: {
+          readonly ligne: LigneAAppliquer;
+          readonly id: string;
+          readonly donnees: Donnees;
+        }[] = [];
+        const modificationsPretes: {
+          readonly ligne: LigneAAppliquer;
+          readonly cible: string;
+          readonly ecrit: Ecrit;
+          readonly comparaison: Readonly<Record<string, unknown>>;
+        }[] = [];
+
+        for (const ligne of lignes) {
+          if (ligne.action === "creation") {
+            const prepare = config.preparerCreation(ligne);
+            if (prepare.prete) {
+              creationsPretes.push({
+                ligne,
+                id: prepare.id,
+                donnees: prepare.donnees,
+              });
+            }
+          } else {
+            const prepare = config.preparerModification(ligne);
+            if (prepare.prete) {
+              modificationsPretes.push({
+                ligne,
+                cible: prepare.cible,
+                ecrit: prepare.ecrit,
+                comparaison: prepare.comparaison,
+              });
+            }
+          }
+        }
+
+        // ── SECONDE PASSE : LES CRÉATIONS, UN SEUL ALLER-RETOUR ─────────────
+        if (creationsPretes.length > 0) {
+          await config.creerEnLot(
+            tx,
+            societeId,
+            creationsPretes.map((c) => ({ id: c.id, donnees: c.donnees })),
+          );
+        }
+        // La TRACE reste par ligne — voir le docblock ci-dessus.
+        for (const c of creationsPretes) {
+          await tracer(tx, c.ligne.id, config.entite, c.id, null);
+        }
+
+        // ── TROISIÈME PASSE : LES MODIFICATIONS — UNE LECTURE GROUPÉE, PUIS
+        // LE VERDICT PAR LIGNE, SANS ALLER-RETOUR SUPPLÉMENTAIRE ────────────
+        const avantParId =
+          modificationsPretes.length > 0
+            ? await config.lireAvant(
+                tx,
+                modificationsPretes.map((m) => m.cible),
+              )
+            : new Map<string, Record<string, unknown>>();
+
         let modifications = 0;
         let inchangees = 0;
 
-        for (const brute of lot.lignes) {
-          const ecriture = await ecrire(tx, societeId, {
-            id: brute.id,
-            rang: brute.rang,
-            action: brute.action as "creation" | "modification",
-            cle: brute.cle,
-            valeurs: brute.valeurs as Record<string, string | undefined>,
-          });
-          if (ecriture === "creation") creations += 1;
-          if (ecriture === "modification") modifications += 1;
-          if (ecriture === "inchangee") inchangees += 1;
+        for (const m of modificationsPretes) {
+          const avant = avantParId.get(m.cible);
+          // La fiche n'apparaît pas dans la lecture groupée : dans la MÊME
+          // transaction, cela ne peut arriver que si elle a déjà disparu au
+          // moment de la lecture — même sens de défaillance qu'une cible
+          // introuvable ailleurs dans ce fichier.
+          if (avant === undefined) continue;
+
+          // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
+          // (point 1, 16/09/2026) : mesuré en production, un même fichier
+          // redéposé sans changement a fait réécrire 615 fiches à
+          // l'identique — à la fois inutile et FAUX pour le journal d'audit
+          // (I8), qui inscrit une trace par écriture.
+          if (porteEncore(avant, m.comparaison, config.champsComparaison)) {
+            inchangees += 1;
+            continue;
+          }
+
+          // **Zéro ligne touchée n'est pas une erreur, c'est la politique qui a
+          // refusé**, et elle refuse en silence. La ligne est alors laissée en
+          // l'état, comme une fiche disparue : le lot continue.
+          const touchees = await config.modifierUn(tx, m.cible, m.ecrit);
+          if (touchees === 0) continue;
+          await tracer(tx, m.ligne.id, config.entite, m.cible, avant);
+          modifications += 1;
         }
 
         await tx.importLot.update({
@@ -289,7 +449,7 @@ async function appliquerLesLignes(
         // porte déjà ses décomptes, et c'est là qu'on les lit.
         return {
           applique: true as const,
-          creations,
+          creations: creationsPretes.length,
           modifications,
           inchangees,
         };
@@ -318,7 +478,7 @@ async function appliquerLesLignes(
  * `lib/clients/depot.ts`, et pour la même raison : une fonction pure, séparée
  * de la transaction qu'elle interprète, s'éprouve sans base (`P2002`/`P2028`
  * fabriqués) plutôt que par un incident qu'il faudrait reproduire — un
- * dépassement RÉEL de `DELAIS_APPLICATION.timeout` prendrait vingt minutes à
+ * dépassement RÉEL de `DELAIS_APPLICATION.timeout` prendrait quatre minutes à
  * mesurer.
  *
  * **Seuls P2002 et P2028 sont reconnus.** Une autre erreur Prisma dirait
@@ -365,70 +525,68 @@ export async function appliquerLeLotDeClients(
 ): Promise<ResultatApplication> {
   const parc = await indexerLeParcClients(contexte, client);
 
-  return appliquerLesLignes(
+  return appliquerLesLignes<CreationClient, Record<string, unknown>>(
     contexte,
     lotId,
     client,
-    async (tx, societeId, ligne) => {
-      const saisie = saisieDepuisLaLigne(ligne.valeurs, CHAMPS_CLIENTS);
-
-      if (ligne.action === "creation") {
+    {
+      entite: "client",
+      champsComparaison: CHAMPS_ECRITS_CLIENTS,
+      preparerCreation: (ligne) => {
+        const saisie = saisieDepuisLaLigne(ligne.valeurs, CHAMPS_CLIENTS);
         // Le schéma REJOUE ici, et il n'y a pas de seconde lecture : c'est le
-        // MÊME schéma que le rapport a consulté (L1-08h). Ce qu'il apporte à ce
-        // point est la CONVERSION — les défauts, les types —, pas le verdict,
-        // que le rapport a déjà rendu.
-        const fiche = await creerClientDans(
+        // MÊME schéma que le rapport a consulté (L1-08h). Ce qu'il apporte à
+        // ce point est la CONVERSION — les défauts, les types —, pas le
+        // verdict, que le rapport a déjà rendu.
+        return {
+          prete: true,
+          id: uuidv7(),
+          donnees: schemaCreationClient.parse(saisie),
+        };
+      },
+      preparerModification: (ligne) => {
+        // La fiche visée est celle que la CLÉ désigne — jamais une recherche
+        // par ressemblance, et jamais une clé ambiguë : le rapport les a déjà
+        // rejetées (L1-08g).
+        const cible =
+          ligne.cle === null ? undefined : parc.fiches.get(ligne.cle);
+        if (cible === undefined) return { prete: false };
+        const saisie = saisieDepuisLaLigne(ligne.valeurs, CHAMPS_CLIENTS);
+        const ecrit = schemaModificationClient.parse(saisie);
+        return { prete: true, cible, ecrit, comparaison: ecrit };
+      },
+      creerEnLot: (tx, societeId, lignes) =>
+        creerClientsEnLot(
           tx,
           societeId,
-          schemaCreationClient.parse(saisie),
-        );
-        await tracer(tx, ligne.id, "client", fiche.id, null);
-        return "creation";
-      }
-
-      // MODIFICATION. La fiche visée est celle que la CLÉ désigne — jamais une
-      // recherche par ressemblance, et jamais une clé ambiguë : le rapport les a
-      // déjà rejetées (L1-08g).
-      const cible = ligne.cle === null ? undefined : parc.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      // `valeurs_avant` est CE QUE D15 EXIGE POUR RESTAURER, et elle se lit AVANT
-      // d'écrire : après, il est trop tard, et le journal d'audit porterait la
-      // seule trace — sur une table qu'aucune annulation ne lit. **C'est
-      // aussi elle que `porteEncore` compare** (point 1, 16/09/2026) : les
-      // deux questions — « que faut-il pouvoir restaurer ? » et « la fiche
-      // porte-t-elle déjà cela ? » — portent sur les mêmes colonnes, une
-      // seconde lecture divergerait en silence (§9, 01/09).
-      const avant = await tx.client.findUnique({
-        where: { id: cible },
-        select: {
-          code_externe: true,
-          raison_sociale: true,
-          ridet: true,
-          categorie: true,
-          conditions_reglement: true,
-          commercial_referent: true,
-        },
-      });
-
-      const modification = schemaModificationClient.parse(saisie);
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026) : mesuré en production, un même fichier
-      // redéposé sans changement a fait réécrire 615 fiches à l'identique —
-      // à la fois inutile et FAUX pour le journal d'audit (I8), qui inscrit
-      // une trace par écriture. *La fiche porte-t-elle déjà ce que la ligne
-      // s'apprête à écrire ?* Si oui, on n'écrit pas.
-      if (
-        avant !== null &&
-        porteEncore(avant, modification, CHAMPS_ECRITS_CLIENTS)
-      ) {
-        return "inchangee";
-      }
-
-      await modifierClientDans(tx, cible, modification);
-      await tracer(tx, ligne.id, "client", cible, avant);
-      return "modification";
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async (tx, ids) => {
+        // **C'EST ELLE QUE `porteEncore` COMPARE** (point 1, 16/09/2026), et
+        // ELLE QUE D15 EXIGE POUR RESTAURER : les deux questions — « que
+        // faut-il pouvoir restaurer ? » et « la fiche porte-t-elle déjà
+        // cela ? » — portent sur les mêmes colonnes, une seconde lecture
+        // divergerait en silence (§9, 01/09). **Groupée depuis le 16/09/2026,
+        // suite** : un seul aller-retour pour TOUTES les cibles du lot, là où
+        // une lecture par ligne a fait dépasser le délai de la transaction.
+        const fiches = await tx.client.findMany({
+          where: { id: { in: [...ids] } },
+          select: {
+            id: true,
+            code_externe: true,
+            raison_sociale: true,
+            ridet: true,
+            categorie: true,
+            conditions_reglement: true,
+            commercial_referent: true,
+          },
+        });
+        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+      },
+      modifierUn: async (tx, cible, ecrit) => {
+        await modifierClientDans(tx, cible, ecrit);
+        return 1;
+      },
     },
   );
 }
@@ -456,48 +614,31 @@ export async function appliquerLeLotDeSites(
   const agences = await indexerLesAgences(contexte, client);
   const sites = await indexerLeParcSites(contexte, client);
 
-  return appliquerLesLignes(
-    contexte,
-    lotId,
-    client,
-    async (tx, societeId, ligne) => {
+  return appliquerLesLignes<
+    ReturnType<typeof schemaCreationSite.parse>,
+    Record<string, unknown>
+  >(contexte, lotId, client, {
+    entite: "site",
+    champsComparaison: CHAMPS_SITES_MODIFIES,
+    preparerCreation: (ligne) => {
       const prepare = preparerUnSite(clients, agences, ligne.valeurs);
-      // Le parc a bougé depuis le contrôle : le client ou l'agence que la ligne
-      // nommait n'existe plus. *Ce n'est pas une erreur du fichier*, et écrire
-      // quand même se heurterait de toute façon à la clé étrangère composite —
-      // en emportant la transaction entière, donc le lot.
-      if (!prepare.prete) return null;
-
-      if (ligne.action === "creation") {
-        const fiche = await creerSiteDans(
-          tx,
-          societeId,
-          schemaCreationSite.parse(prepare.saisie),
-        );
-        await tracer(tx, ligne.id, "site", fiche.id, null);
-        return "creation";
-      }
-
+      // Le parc a bougé depuis le contrôle : le client ou l'agence que la
+      // ligne nommait n'existe plus. *Ce n'est pas une erreur du fichier*, et
+      // écrire quand même se heurterait de toute façon à la clé étrangère
+      // composite — en emportant la transaction entière, donc le lot.
+      if (!prepare.prete) return { prete: false };
+      return {
+        prete: true,
+        id: uuidv7(),
+        donnees: schemaCreationSite.parse(prepare.saisie),
+      };
+    },
+    preparerModification: (ligne) => {
       const cible =
         ligne.cle === null ? undefined : sites.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      // **`valeurs_avant` ne porte QUE ce que cette écriture va toucher**, et
-      // les deux parents en sont donc absents — ils ne sont pas écrits ici
-      // (voir plus bas). *Y ranger une colonne qu'on ne modifie pas la ferait
-      // RESTAURER à l'annulation*, c'est-à-dire écrire une colonne que l'import
-      // n'a jamais touchée ; et sur `agence_id`, cette écriture serait en outre
-      // refusée par le `superRefine` de D56, emportant l'annulation entière.
-      // *L'import n'a pas écrit le reste, il n'a rien à en dire* (L1-08j).
-      const avant = await tx.site.findUnique({
-        where: { id: cible },
-        select: {
-          libelle: true,
-          commune: true,
-          zone_geo: true,
-          consignes_acces: true,
-        },
-      });
+      if (cible === undefined) return { prete: false };
+      const prepare = preparerUnSite(clients, agences, ligne.valeurs);
+      if (!prepare.prete) return { prete: false };
 
       // **LES DEUX PARENTS SONT RETIRÉS AVANT LA MODIFICATION, et chacun
       // pour sa raison** — mesuré le 16/09/2026, `schemaModificationSite`
@@ -516,37 +657,43 @@ export async function appliquerLeLotDeSites(
       // voyage jamais seul*. Or le gabarit n'expose PAS cette colonne
       // (`CHAMPS_SITES_ECARTES` : « sa lecture reste à écrire (L1-09) »).
       // **Un import ne déplace donc pas un site d'une agence à l'autre**, et
-      // c'est la bonne lecture de D56 : *on n'exige pas qu'on mesure, on exige
-      // qu'on DÉCIDE* — et un fichier ne décide pas. Le geste passe par
-      // l'écran du site, où un humain fournit la valeur, ou `null` pour
-      // revenir à l'estimation par zone.
-      //
-      // *Ce que cela coûte est nommé plutôt que tu* : une ligne qui nomme une
-      // autre agence pour un site existant met ses autres colonnes à jour
-      // **sans le déplacer**. Condition de levée, vérifiable : *le jour où
-      // L1-09 lira la colonne « Temps de trajet »*, les deux voyageront
-      // ensemble et la restriction tombera.
+      // c'est la bonne lecture de D56 : *on n'exige pas qu'on mesure, on
+      // exige qu'on DÉCIDE* — et un fichier ne décide pas.
       const modifiables = { ...prepare.saisie };
       delete modifiables.client_id;
       delete modifiables.agence_id;
-      const modification = schemaModificationSite.parse(modifiables);
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026) — même geste qu'aux clients, sur les seules
-      // colonnes que cette écriture touche (les deux parents en sont exclus,
-      // pour la même raison qu'ils sont absents de `valeurs_avant` ci-dessus).
-      if (
-        avant !== null &&
-        porteEncore(avant, modification, CHAMPS_SITES_MODIFIES)
-      ) {
-        return "inchangee";
-      }
-
-      await modifierSiteDans(tx, cible, modification);
-      await tracer(tx, ligne.id, "site", cible, avant);
-      return "modification";
+      const ecrit = schemaModificationSite.parse(modifiables);
+      return { prete: true, cible, ecrit, comparaison: ecrit };
     },
-  );
+    creerEnLot: (tx, societeId, lignes) =>
+      creerSitesEnLot(
+        tx,
+        societeId,
+        lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+      ),
+    lireAvant: async (tx, ids) => {
+      // **NE PORTE QUE CE QUE CETTE ÉCRITURE VA TOUCHER**, et les deux
+      // parents en sont donc absents — ils ne sont pas écrits sur une
+      // modification (voir ci-dessus). *Y ranger une colonne qu'on ne
+      // modifie pas ferait RESTAURER à l'annulation une colonne que l'import
+      // n'a jamais touchée* (L1-08j).
+      const fiches = await tx.site.findMany({
+        where: { id: { in: [...ids] } },
+        select: {
+          id: true,
+          libelle: true,
+          commune: true,
+          zone_geo: true,
+          consignes_acces: true,
+        },
+      });
+      return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+    },
+    modifierUn: async (tx, cible, ecrit) => {
+      await modifierSiteDans(tx, cible, ecrit);
+      return 1;
+    },
+  });
 }
 
 /**
@@ -597,53 +744,56 @@ export async function appliquerLeLotDeModeles(
   const familles = await indexerLesFamilles(contexte, client);
   const modeles = await indexerLeParcModeles(contexte, client);
 
-  return appliquerLesLignes(
+  return appliquerLesLignes<SaisieModeleMateriel, SaisieModeleMateriel>(
     contexte,
     lotId,
     client,
-    async (tx, societeId, ligne) => {
-      const prepare = preparerUnModele(familles, ligne.valeurs);
-      if (!prepare.prete) return null;
-      const saisie = schemaModeleMateriel.parse(prepare.saisie);
-
-      if (ligne.action === "creation") {
-        // L'identifiant est tiré ICI et non par la base (I10) — et il est rendu
-        // à `tracer`, sans quoi l'annulation n'aurait rien à défaire.
-        const id = uuidv7();
-        await creerModeleDans(tx, societeId, id, saisie);
-        await tracer(tx, ligne.id, "modele_materiel", id, null);
-        return "creation";
-      }
-
-      const cible =
-        ligne.cle === null ? undefined : modeles.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      const avant = await tx.modeleMateriel.findUnique({
-        where: { id: cible },
-        select: {
-          famille_id: true,
-          marque: true,
-          reference: true,
-          periodicite_jours: true,
-          periodicite_compteur: true,
-          actif: true,
-        },
-      });
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026).
-      if (avant !== null && porteEncore(avant, saisie, CHAMPS_MODELES_ECRITS)) {
-        return "inchangee";
-      }
-
-      // **Zéro ligne touchée n'est pas une erreur, c'est la politique qui a
-      // refusé**, et elle refuse en silence. La ligne est alors laissée en
-      // l'état, comme une fiche disparue : le lot continue.
-      const touchees = await modifierModeleDans(tx, cible, saisie);
-      if (touchees === 0) return null;
-      await tracer(tx, ligne.id, "modele_materiel", cible, avant);
-      return "modification";
+    {
+      entite: "modele_materiel",
+      champsComparaison: CHAMPS_MODELES_ECRITS,
+      preparerCreation: (ligne) => {
+        const prepare = preparerUnModele(familles, ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        return {
+          prete: true,
+          // L'identifiant est tiré ICI et non par la base (I10) — et il est
+          // rendu à `tracer`, sans quoi l'annulation n'aurait rien à
+          // défaire.
+          id: uuidv7(),
+          donnees: schemaModeleMateriel.parse(prepare.saisie),
+        };
+      },
+      preparerModification: (ligne) => {
+        const cible =
+          ligne.cle === null ? undefined : modeles.fiches.get(ligne.cle);
+        if (cible === undefined) return { prete: false };
+        const prepare = preparerUnModele(familles, ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        const saisie = schemaModeleMateriel.parse(prepare.saisie);
+        return { prete: true, cible, ecrit: saisie, comparaison: saisie };
+      },
+      creerEnLot: (tx, societeId, lignes) =>
+        creerModelesEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async (tx, ids) => {
+        const fiches = await tx.modeleMateriel.findMany({
+          where: { id: { in: [...ids] } },
+          select: {
+            id: true,
+            famille_id: true,
+            marque: true,
+            reference: true,
+            periodicite_jours: true,
+            periodicite_compteur: true,
+            actif: true,
+          },
+        });
+        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+      },
+      modifierUn: modifierModeleDans,
     },
   );
 }
@@ -682,50 +832,52 @@ export async function appliquerLeLotDePrestations(
   const familles = await indexerLesFamilles(contexte, client);
   const prestations = await indexerLeParcPrestations(contexte, client);
 
-  return appliquerLesLignes(
+  return appliquerLesLignes<SaisiePrestation, SaisiePrestation>(
     contexte,
     lotId,
     client,
-    async (tx, societeId, ligne) => {
-      const prepare = preparerUnePrestation(familles, ligne.valeurs);
-      if (!prepare.prete) return null;
-      const saisie = schemaPrestation.parse(prepare.saisie);
-
-      if (ligne.action === "creation") {
-        const id = uuidv7();
-        await creerPrestationDans(tx, societeId, id, saisie);
-        await tracer(tx, ligne.id, "prestation", id, null);
-        return "creation";
-      }
-
-      const cible =
-        ligne.cle === null ? undefined : prestations.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      const avant = await tx.prestation.findUnique({
-        where: { id: cible },
-        select: {
-          code: true,
-          libelle: true,
-          famille_id: true,
-          duree_standard_min: true,
-          actif: true,
-        },
-      });
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026).
-      if (
-        avant !== null &&
-        porteEncore(avant, saisie, CHAMPS_PRESTATIONS_ECRITES)
-      ) {
-        return "inchangee";
-      }
-
-      const touchees = await modifierPrestationDans(tx, cible, saisie);
-      if (touchees === 0) return null;
-      await tracer(tx, ligne.id, "prestation", cible, avant);
-      return "modification";
+    {
+      entite: "prestation",
+      champsComparaison: CHAMPS_PRESTATIONS_ECRITES,
+      preparerCreation: (ligne) => {
+        const prepare = preparerUnePrestation(familles, ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        return {
+          prete: true,
+          id: uuidv7(),
+          donnees: schemaPrestation.parse(prepare.saisie),
+        };
+      },
+      preparerModification: (ligne) => {
+        const cible =
+          ligne.cle === null ? undefined : prestations.fiches.get(ligne.cle);
+        if (cible === undefined) return { prete: false };
+        const prepare = preparerUnePrestation(familles, ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        const saisie = schemaPrestation.parse(prepare.saisie);
+        return { prete: true, cible, ecrit: saisie, comparaison: saisie };
+      },
+      creerEnLot: (tx, societeId, lignes) =>
+        creerPrestationsEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async (tx, ids) => {
+        const fiches = await tx.prestation.findMany({
+          where: { id: { in: [...ids] } },
+          select: {
+            id: true,
+            code: true,
+            libelle: true,
+            famille_id: true,
+            duree_standard_min: true,
+            actif: true,
+          },
+        });
+        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+      },
+      modifierUn: modifierPrestationDans,
     },
   );
 }
@@ -792,18 +944,14 @@ async function tracer(
  * jugera une seconde fois par sa contrainte. *Une famille dont le fichier ne dit
  * rien naît `a_determiner`*, l'état honnête, et apparaît le jour même dans
  * `/vgp/a-determiner`.
- */
-
-/**
- * LES COLONNES QUE `modifierFamilleDans` ÉCRIT — `code`, `libelle`, `actif`
- * ET les trois colonnes de VGP, que `saisie` seule ne porte pas : elles
- * viennent de `prepare.vgp`, un second schéma (voir le docblock du fichier).
- * **`actif` pour la même raison qu'aux modèles et aux prestations** : le
- * gabarit ne l'expose pas, `schemaFamilleMateriel` lui pose `.default(true)`.
  *
- * **Ce n'est PAS la liste que compare `annulerLeLotDeFamilles`**
- * (`CHAMPS_ECRITS_FAMILLES`, sans `actif`) — même distinction qu'aux modèles :
- * celle-là protège une décision, celle-ci mesure une écriture.
+ * ## `ecrit` ET `comparaison` DIVERGENT ICI (suite du 16/09/2026, point 1)
+ *
+ * `modifierFamilleDans` prend `saisie` et `vgp` comme DEUX paramètres —
+ * `ecrit` les porte donc groupés, `{ saisie, vgp }`. `porteEncore`, lui,
+ * compare un objet PLAT : `comparaison` recompose `saisie` et les trois
+ * colonnes de VGP au même niveau, exactement comme le fait
+ * `annulerLeLotDeFamilles` pour reconstituer ce qu'un lot a écrit.
  */
 const CHAMPS_FAMILLES_ECRITES = [
   "code",
@@ -814,6 +962,12 @@ const CHAMPS_FAMILLES_ECRITES = [
   "vgp_reference_texte",
 ] as const;
 
+/** Ce que `creerFamilleDans` et `modifierFamilleDans` exigent : la saisie ET la VGP, groupées. */
+type EcritFamille = {
+  readonly saisie: SaisieFamilleMateriel;
+  readonly vgp: SaisieAssujettissementFamille;
+};
+
 export async function appliquerLeLotDeFamilles(
   contexte: ContexteSession,
   lotId: string,
@@ -821,65 +975,72 @@ export async function appliquerLeLotDeFamilles(
 ): Promise<ResultatApplication> {
   const familles = await indexerLeParcFamilles(contexte, client);
 
-  return appliquerLesLignes(
+  return appliquerLesLignes<EcritFamille, EcritFamille>(
     contexte,
     lotId,
     client,
-    async (tx, societeId, ligne) => {
-      const prepare = preparerUneFamille(ligne.valeurs);
-      if (!prepare.prete) return null;
-      const saisie = schemaFamilleMateriel.parse(prepare.saisie);
-
-      if (ligne.action === "creation") {
-        const id = uuidv7();
-        await creerFamilleDans(tx, societeId, id, saisie, prepare.vgp);
-        await tracer(tx, ligne.id, "famille_materiel", id, null);
-        return "creation";
-      }
-
-      const cible =
-        ligne.cle === null ? undefined : familles.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      const avant = await tx.familleMateriel.findUnique({
-        where: { id: cible },
-        select: {
-          code: true,
-          libelle: true,
-          actif: true,
-          assujettissement_vgp: true,
-          vgp_periodicite_mois: true,
-          vgp_reference_texte: true,
-        },
-      });
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026). L'écrit se recompose de `saisie` et de
-      // `prepare.vgp` — le même geste que la reconstitution de
-      // `annulerLeLotDeFamilles`, pour la même raison : les colonnes de VGP
-      // ne sont pas dans `saisie`.
-      const ecrit = {
-        ...saisie,
-        assujettissement_vgp: prepare.vgp.assujettissement,
-        vgp_periodicite_mois: prepare.vgp.periodiciteMois,
-        vgp_reference_texte: prepare.vgp.referenceTexte,
-      };
-      if (
-        avant !== null &&
-        porteEncore(avant, ecrit, CHAMPS_FAMILLES_ECRITES)
-      ) {
-        return "inchangee";
-      }
-
-      const touchees = await modifierFamilleDans(
-        tx,
-        cible,
-        saisie,
-        prepare.vgp,
-      );
-      if (touchees === 0) return null;
-      await tracer(tx, ligne.id, "famille_materiel", cible, avant);
-      return "modification";
+    {
+      entite: "famille_materiel",
+      champsComparaison: CHAMPS_FAMILLES_ECRITES,
+      preparerCreation: (ligne) => {
+        const prepare = preparerUneFamille(ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        return {
+          prete: true,
+          id: uuidv7(),
+          donnees: {
+            saisie: schemaFamilleMateriel.parse(prepare.saisie),
+            vgp: prepare.vgp,
+          },
+        };
+      },
+      preparerModification: (ligne) => {
+        const cible =
+          ligne.cle === null ? undefined : familles.fiches.get(ligne.cle);
+        if (cible === undefined) return { prete: false };
+        const prepare = preparerUneFamille(ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        const saisie = schemaFamilleMateriel.parse(prepare.saisie);
+        const comparaison = {
+          ...saisie,
+          assujettissement_vgp: prepare.vgp.assujettissement,
+          vgp_periodicite_mois: prepare.vgp.periodiciteMois,
+          vgp_reference_texte: prepare.vgp.referenceTexte,
+        };
+        return {
+          prete: true,
+          cible,
+          ecrit: { saisie, vgp: prepare.vgp },
+          comparaison,
+        };
+      },
+      creerEnLot: (tx, societeId, lignes) =>
+        creerFamillesEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({
+            id: l.id,
+            saisie: l.donnees.saisie,
+            vgp: l.donnees.vgp,
+          })),
+        ),
+      lireAvant: async (tx, ids) => {
+        const fiches = await tx.familleMateriel.findMany({
+          where: { id: { in: [...ids] } },
+          select: {
+            id: true,
+            code: true,
+            libelle: true,
+            actif: true,
+            assujettissement_vgp: true,
+            vgp_periodicite_mois: true,
+            vgp_reference_texte: true,
+          },
+        });
+        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+      },
+      modifierUn: (tx, cible, ecrit) =>
+        modifierFamilleDans(tx, cible, ecrit.saisie, ecrit.vgp),
     },
   );
 }
@@ -942,66 +1103,75 @@ export async function appliquerLeLotDeEquipements(
   const modeles = await indexerLeParcModeles(contexte, client);
   const equipements = await indexerLeParcEquipements(contexte, client);
 
-  return appliquerLesLignes(
+  return appliquerLesLignes<SaisieMachine, SaisieMachine>(
     contexte,
     lotId,
     client,
-    async (tx, societeId, ligne) => {
-      const prepare = preparerUnEquipement(
-        clients,
-        sites,
-        modeles,
-        ligne.valeurs,
-        ligne.rang,
-      );
-      // Le parc a bougé depuis le contrôle : l'un des trois parents a disparu.
-      // *Ce n'est pas une erreur du fichier*, et écrire quand même se heurterait
-      // de toute façon à la clé étrangère composite — en emportant la
-      // transaction entière, donc le lot.
-      if (!prepare.prete) return null;
-      const saisie = schemaMachine.parse(prepare.saisie);
-
-      if (ligne.action === "creation") {
-        // L'identifiant est tiré ICI et non par la base (D7, I10) — et il est
-        // rendu à `tracer`, sans quoi l'annulation n'aurait rien à défaire.
-        const id = uuidv7();
-        await creerMachineDans(tx, societeId, id, saisie);
-        await tracer(tx, ligne.id, "machine", id, null);
-        return "creation";
-      }
-
-      const cible =
-        ligne.cle === null ? undefined : equipements.fiches.get(ligne.cle);
-      if (cible === undefined) return null;
-
-      const avant = await tx.machine.findUnique({
-        where: { id: cible },
-        select: {
-          numero_serie: true,
-          reference_interne: true,
-          localisation: true,
-          facture_origine: true,
-          date_mise_en_service: true,
-          date_vente: true,
-          garantie_fin: true,
-          criticite: true,
-          complet: true,
-        },
-      });
-
-      // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
-      // (point 1, 16/09/2026).
-      if (
-        avant !== null &&
-        porteEncore(avant, saisie, CHAMPS_EQUIPEMENTS_ECRITS)
-      ) {
-        return "inchangee";
-      }
-
-      const touchees = await modifierMachineDans(tx, cible, saisie);
-      if (touchees === 0) return null;
-      await tracer(tx, ligne.id, "machine", cible, avant);
-      return "modification";
+    {
+      entite: "machine",
+      champsComparaison: CHAMPS_EQUIPEMENTS_ECRITS,
+      preparerCreation: (ligne) => {
+        const prepare = preparerUnEquipement(
+          clients,
+          sites,
+          modeles,
+          ligne.valeurs,
+          ligne.rang,
+        );
+        // Le parc a bougé depuis le contrôle : l'un des trois parents a
+        // disparu. *Ce n'est pas une erreur du fichier*, et écrire quand même
+        // se heurterait de toute façon à la clé étrangère composite — en
+        // emportant la transaction entière, donc le lot.
+        if (!prepare.prete) return { prete: false };
+        return {
+          prete: true,
+          // L'identifiant est tiré ICI et non par la base (D7, I10) — et il
+          // est rendu à `tracer`, sans quoi l'annulation n'aurait rien à
+          // défaire.
+          id: uuidv7(),
+          donnees: schemaMachine.parse(prepare.saisie),
+        };
+      },
+      preparerModification: (ligne) => {
+        const cible =
+          ligne.cle === null ? undefined : equipements.fiches.get(ligne.cle);
+        if (cible === undefined) return { prete: false };
+        const prepare = preparerUnEquipement(
+          clients,
+          sites,
+          modeles,
+          ligne.valeurs,
+          ligne.rang,
+        );
+        if (!prepare.prete) return { prete: false };
+        const saisie = schemaMachine.parse(prepare.saisie);
+        return { prete: true, cible, ecrit: saisie, comparaison: saisie };
+      },
+      creerEnLot: (tx, societeId, lignes) =>
+        creerMachinesEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async (tx, ids) => {
+        const fiches = await tx.machine.findMany({
+          where: { id: { in: [...ids] } },
+          select: {
+            id: true,
+            numero_serie: true,
+            reference_interne: true,
+            localisation: true,
+            facture_origine: true,
+            date_mise_en_service: true,
+            date_vente: true,
+            garantie_fin: true,
+            criticite: true,
+            complet: true,
+          },
+        });
+        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+      },
+      modifierUn: modifierMachineDans,
     },
   );
 }
