@@ -209,6 +209,12 @@ export type LotEnListe = {
   readonly auteur: Designation;
   readonly nomFichier: string;
   readonly typeImport: string;
+  /**
+   * La version du gabarit contrôlé — AJOUTÉ le 16/09/2026, pour que le
+   * fichier annoté des rejets (RG-IMP-03) puisse reposer le même marqueur
+   * `CODIPLAN-<type>-v<n>` qu'un gabarit publié, et rester rechargeable.
+   */
+  readonly versionModele: number;
   readonly statut: string;
   readonly controleLe: Date;
   readonly appliqueLe: Date | null;
@@ -234,6 +240,7 @@ function enListe(
     id: string;
     nom_fichier: string;
     type_import: string;
+    version_modele: number;
     statut: string;
     controle_le: Date;
     applique_le: Date | null;
@@ -252,6 +259,7 @@ function enListe(
     auteur,
     nomFichier: lot.nom_fichier,
     typeImport: lot.type_import,
+    versionModele: lot.version_modele,
     statut: lot.statut,
     controleLe: lot.controle_le,
     appliqueLe: lot.applique_le,

@@ -187,7 +187,9 @@ export const MODELE_CLIENTS: ModeleDImport = {
  * Il est DÉRIVÉ du modèle, jamais recopié : *une recopie devient fausse le jour
  * où la version change, et elle ne rougit pas.*
  */
-export function marqueurDu(modele: ModeleDImport): string {
+export function marqueurDu(
+  modele: Pick<ModeleDImport, "type" | "version">,
+): string {
   return `CODIPLAN-${modele.type}-v${modele.version}`;
 }
 

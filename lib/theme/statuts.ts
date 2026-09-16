@@ -138,3 +138,29 @@ export const LEGENDE_PLANNING = [
   },
   { cle: "planning.legende.ferme", classes: "trame-fermee border-app-bord" },
 ] as const;
+
+/**
+ * LE TON D'UN BANDEAU DE RETOUR — succès, avertissement, refus (L1-11).
+ *
+ * **Ce n'est pas un neuvième statut d'intervention.** « Le lot a été appliqué »
+ * ou « une partie n'a pas pu être défaite » ne décrivent aucune intervention :
+ * ce sont des comptes rendus d'un geste qu'on vient de faire. Mais la même
+ * garantie doit tenir des deux côtés de l'écran — *un succès ne se dit pas
+ * dans la couleur d'un refus* —, et inventer une quatrième palette pour trois
+ * mots referait le travail que ce fichier a déjà fait : les trois tons
+ * empruntent donc aux MÊMES familles que les statuts ci-dessus — vert, orange,
+ * rouge —, avec le même contraste vérifié à 4,5:1.
+ *
+ * *Mesuré le 16/09/2026 : l'écran de rapport d'un import affichait « Le lot a
+ * été appliqué » — un succès — dans le bandeau rouge du refus, faute d'un
+ * second habillage.*
+ */
+export type TonMessage = "succes" | "avertissement" | "refus";
+
+/** Le bandeau — fond teinté, bordure et encre assortie, comme les refus déjà écrits à l'écran. */
+export const CLASSES_TON: Record<TonMessage, string> = {
+  succes: "border-app-vert-bord bg-app-vert-fond text-app-vert-encre",
+  avertissement:
+    "border-app-orange-bord bg-app-orange-fond text-app-orange-encre",
+  refus: "border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre",
+};
