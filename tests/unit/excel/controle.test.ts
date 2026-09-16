@@ -136,6 +136,106 @@ describe("les trois refus qui PRÉCÈDENT toute ligne", () => {
   });
 });
 
+/**
+ * LE DOUBLON DE FICHIER (point 4b de la session du 16/09/2026).
+ *
+ * *Mesuré en production :* un fichier de modèles portait quatre lignes en
+ * double sur (marque, référence) — la clé réelle de la table —, et le parc ne
+ * connaissait ENCORE ni l'une ni l'autre : chacune ressortait en création, et
+ * la seconde de chaque paire faisait échouer l'application sur la contrainte
+ * d'unicité. Une seule passe sur les lignes ne peut pas voir cette collision ;
+ * `controlerFeuille` en fait désormais deux.
+ */
+describe("deux lignes du MÊME fichier qui désignent la même fiche", () => {
+  it("sont TOUTES DEUX rejetées, avec leur motif propre — jamais une création", () => {
+    const controle = controlerFeuille(
+      feuille("CODIPLAN-machines-v1", ENTETES, [
+        ["SN-DOUBLON", undefined, "Atlas"],
+        ["SN-DOUBLON", undefined, "Kubota"],
+      ]),
+      MODELE,
+      parc(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes.map((l) => l.action)).toEqual(["rejet", "rejet"]);
+    expect(controle.lignes.map((l) => l.rejetMotif)).toEqual([
+      "doublon_fichier",
+      "doublon_fichier",
+    ]);
+    // Le témoin de I6 : le rapport explique toujours chaque ligne lue, doublon
+    // compris — ni l'une ni l'autre ne disparaît du décompte.
+    expect(lignesExpliquees(proposerDepuisLesLignes(controle.lignes))).toBe(2);
+  });
+
+  it("N'EST PAS confondu avec une ambiguïté DU PARC — motif distinct, correction distincte", () => {
+    // Le parc porte lui-même une ambiguïté sur une AUTRE clé : les deux
+    // mécanismes doivent coexister sans se marcher dessus.
+    const controle = controlerFeuille(
+      feuille("CODIPLAN-machines-v1", ENTETES, [
+        ["SN-DOUBLON", undefined, "Atlas"],
+        ["SN-DOUBLON", undefined, "Kubota"],
+        ["SN-PARC-AMBIGU", undefined, "Atlas"],
+      ]),
+      MODELE,
+      parc([], ["SN-PARC-AMBIGU"]),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes.map((l) => l.rejetMotif)).toEqual([
+      "doublon_fichier",
+      "doublon_fichier",
+      "cle_ambigue",
+    ]);
+  });
+
+  it("trois lignes SANS série ni référence ne se confondent jamais entre elles", () => {
+    // *L'identité (« donnée ») et la clé sont deux questions distinctes* : ici
+    // « Marque » identifie la ligne, et « Numéro de série »/« Référence
+    // interne » — vides toutes les deux — la font tomber sur la clé de
+    // DERNIER RECOURS, qui porte le RANG. Elle ne peut structurellement pas se
+    // répéter, et ces trois lignes doivent rester trois créations — les
+    // fusionner perdrait des machines en silence (L1-08b).
+    const modeleMarqueIdentifie: ModeleDImport = {
+      ...MODELE,
+      identifiantes: ["Marque"],
+    };
+    const controle = controlerFeuille(
+      feuille("CODIPLAN-machines-v1", ENTETES, [
+        [undefined, undefined, "Atlas"],
+        [undefined, undefined, "Atlas"],
+        [undefined, undefined, "Atlas"],
+      ]),
+      modeleMarqueIdentifie,
+      parc(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes.map((l) => l.action)).toEqual([
+      "creation",
+      "creation",
+      "creation",
+    ]);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : deux séries distinctes ne se disputent rien", () => {
+    const controle = controlerFeuille(
+      feuille("CODIPLAN-machines-v1", ENTETES, [
+        ["SN-1", undefined, "Atlas"],
+        ["SN-2", undefined, "Atlas"],
+      ]),
+      MODELE,
+      parc(),
+    );
+    expect(controle.lisible).toBe(true);
+    if (!controle.lisible) return;
+    expect(controle.lignes.map((l) => l.action)).toEqual([
+      "creation",
+      "creation",
+    ]);
+  });
+});
+
 describe("le rapport de I6 — chaque nombre a un nom", () => {
   const CONTROLE = controlerFeuille(
     feuille("CODIPLAN-machines-v1", ENTETES, [
