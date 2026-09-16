@@ -14,7 +14,7 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { quiTravaille } from "@/lib/interventions/personnes";
 
-import { referenceAffichee } from "../planning/presentation";
+import { referenceAffichee } from "../interventions/presentation";
 
 import { identifiants } from "../../api/absences/actions";
 

@@ -19,7 +19,7 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { ouTiret } from "../../presentation";
-import { referenceAffichee } from "../../planning/presentation";
+import { referenceAffichee } from "../../interventions/presentation";
 
 /**
  * LA FICHE D'UN CLIENT (14/09/2026, L1-01 rouvert par R3-12).
@@ -254,7 +254,10 @@ export default async function PageClient({
           {interventions.map((ligne) => (
             <tr key={ligne.id}>
               <Cellule mono>
-                <Link href={`/planning/${ligne.id}`} className={CLASSES_LIEN}>
+                <Link
+                  href={`/interventions/${ligne.id}`}
+                  className={CLASSES_LIEN}
+                >
                   {referenceAffichee(ligne)}
                 </Link>
               </Cellule>
