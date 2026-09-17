@@ -318,13 +318,10 @@ export const fr = {
     "La cl\u00e9 par laquelle un import reconna\u00eet cette fiche. Sans elle, un import ne saura pas la rapprocher et cr\u00e9era un doublon. Elle est unique dans votre soci\u00e9t\u00e9, et peut rester vide.",
   "clients.sans_code_aucune":
     "Toutes les fiches de cette recherche portent un code de rapprochement.",
-  // LA COLONNE « SITES » — *elle dit où l'on intervient chez ce client, et
-  // c'est la question qu'on se pose en ouvrant la liste.*
-  "clients.colonne_sites": "Lieux d'intervention",
+  // LA CARTE CLIENT (D123, N-08) — *elle dit où l'on intervient chez ce
+  // client, et c'est la question qu'on se pose en ouvrant la liste.*
   "clients.sites_un": "lieu",
   "clients.sites_plusieurs": "lieux",
-  "clients.sites_aucun": "aucun lieu",
-  "clients.sites_et_autres": "\u2026",
   // LA FICHE
   "clients.fiche.identite": "Identit\u00e9",
   "clients.fiche.sites": "Lieux d'intervention",

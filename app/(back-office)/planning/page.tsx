@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { type LigneOccupation } from "@/lib/interventions/occupation";
 import { tauxCompact } from "@/lib/interventions/statistiques";
@@ -336,51 +337,49 @@ export default async function PagePlanning({
     );
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("planning.titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
-          </p>
-          {/*
-            ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
-            DISENT (14/09/2026)~~ — RETIRÉ LE 17/09/2026 (N-06). C'était
-            présenté comme deux choix délibérés ; c'était en réalité le défaut
-            le plus grave mesuré sur ce planning, parce qu'il fait DISPARAÎTRE
-            un technicien : celui qu'on cherche précisément en ouvrant un
-            planning est celui qui n'a rien, et la vue semaine ne lui donnait
-            aucune ligne là où la vue jour lui donnait sa colonne. Les deux vues
-            tirent désormais leurs lignes et leurs colonnes du MÊME référentiel
-            (`pourTechniciens`), et la mention qui expliquait l'écart n'a plus
-            d'écart à expliquer.
-          */}
-          {/*
-            LA PORTE DES ABSENCES (R3-14).
-
-            La barre reste close à onze entrées, confrontées à la maquette
-            (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
-            /clients. Et c'est ICI qu'il se rejoint plutôt que dans les
-            réglages — un blocage d'agenda n'est pas un paramètre de société, c'est un
-            fait de planning : elle rend des interventions à la file et elle
-            retranche des heures au dénominateur du taux affiché plus bas.
-          */}
-          <p className="text-[11.5px]">
-            <Link href="/absences" className={CLASSES_LIEN}>
-              {t("absences.titre")}
-            </Link>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Page
+      chemin="/planning"
+      titre={t("planning.titre")}
+      sousTitre={
+        vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)
+      }
+      actions={
+        <>
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
           <Deplacement vue={vue} jour={jourAffiche} semaine={jours[0]} />
           <LienPrimaire href="/interventions/nouvelle">
             {t("planning.creer")}
           </LienPrimaire>
-        </div>
-      </header>
+        </>
+      }
+    >
+      {/*
+        ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
+        DISENT (14/09/2026)~~ — RETIRÉ LE 17/09/2026 (N-06). C'était
+        présenté comme deux choix délibérés ; c'était en réalité le défaut
+        le plus grave mesuré sur ce planning, parce qu'il fait DISPARAÎTRE
+        un technicien : celui qu'on cherche précisément en ouvrant un
+        planning est celui qui n'a rien, et la vue semaine ne lui donnait
+        aucune ligne là où la vue jour lui donnait sa colonne. Les deux vues
+        tirent désormais leurs lignes et leurs colonnes du MÊME référentiel
+        (`pourTechniciens`), et la mention qui expliquait l'écart n'a plus
+        d'écart à expliquer.
+      */}
+      {/*
+        LA PORTE DES ABSENCES (R3-14).
+
+        La barre reste close à onze entrées, confrontées à la maquette
+        (D95) : *un écran se rejoint par un LIEN*, comme /sites et comme
+        /clients. Et c'est ICI qu'il se rejoint plutôt que dans les
+        réglages — un blocage d'agenda n'est pas un paramètre de société, c'est un
+        fait de planning : elle rend des interventions à la file et elle
+        retranche des heures au dénominateur du taux affiché plus bas.
+      */}
+      <p className="text-[11.5px]">
+        <Link href="/absences" className={CLASSES_LIEN}>
+          {t("absences.titre")}
+        </Link>
+      </p>
 
       <Posable>
         {avertissementsAffiches.map((cle) => (
@@ -487,7 +486,7 @@ export default async function PagePlanning({
         */}
         <Statistiques lignes={charges} annuaire={annuaire} />
       </Posable>
-    </main>
+    </Page>
   );
 }
 

@@ -379,3 +379,41 @@ export function entreeActive(
   }
   return meilleure?.entree ?? null;
 }
+
+/**
+ * LE DOMAINE D'UN CHEMIN — le titre du GROUPE qui le porte (N-08).
+ *
+ * *Un écran écrit `<Page domaine={groupeDe("/clients")} …>` plutôt que
+ * `domaine="nav.groupe_clients_parc"` en dur* : la maquette
+ * (`docs/maquette/codiplan-maquette-complete.html`) pose un `eyebrow` — le nom
+ * du domaine — au-dessus de chaque titre d'écran (`head(domain, …)`), et
+ * `lib/navigation/entrees.ts` sait déjà, par `ENTREES`, quel domaine porte
+ * quel chemin. **Deux lectures d'un même critère divergent en silence**
+ * (§9, 01/09) : un second endroit qui recopierait à la main l'appartenance
+ * d'un écran à un groupe finirait par diverger le jour où la barre change de
+ * forme — exactement l'histoire de D118 puis D121.
+ *
+ * **Réutilise `entreeActive`**, sur les seuls enfants d'un groupe : c'est la
+ * même règle de préfixe borné au segment (`/parametres/forfaits` allume
+ * « Sociétés & tarifs » comme `/parametres/agences`), jamais une seconde
+ * écriture du critère de correspondance.
+ *
+ * **Rend `null` pour un chemin sans groupe** — `/arrivee`, ou toute entrée
+ * d'une barre plate comme `ENTREES_PORTAIL` et `ENTREES_TERRAIN`, qui n'ont
+ * aucun `GroupeNavigation`. C'est un état légitime, jamais une erreur : un
+ * écran sans domaine n'affiche simplement pas de surtitre — la maquette
+ * elle-même ne dessine cet `eyebrow` que pour des écrans qui appartiennent à
+ * l'un des trois domaines de la barre latérale.
+ */
+export function groupeDe(
+  chemin: string,
+  entrees: readonly EntreeDeBarre[] = ENTREES,
+): CleTraduction | null {
+  for (const entree of entrees) {
+    if (!estGroupe(entree)) continue;
+    if (entreeActive(chemin, entree.enfants) !== null) {
+      return entree.cle;
+    }
+  }
+  return null;
+}

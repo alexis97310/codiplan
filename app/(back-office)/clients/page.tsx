@@ -3,12 +3,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge } from "@/components/ui/badge";
+import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
+import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
-import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   compterSansCodeExterne,
-  libelleCodeExterne,
   libelleCodeExterneDeLaSociete,
   rechercherClients,
   sitesParClient,
@@ -28,8 +29,13 @@ import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
-import { decompte, hrefDeLaPage, libellePage, ouTiret } from "../presentation";
-import { resumeDesSites, titreSansCode } from "./presentation";
+import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+import {
+  codeEtCommune,
+  compteurSites,
+  referentClient,
+  titreSansCode,
+} from "./presentation";
 
 /**
  * L'ÉCRAN « CLIENTS » — la liste et la recherche (14/09/2026, ticket L1-01
@@ -57,15 +63,21 @@ import { resumeDesSites, titreSansCode } from "./presentation";
  * confrontées à la maquette libellés et ordre compris (D95) ; une douzième la
  * ferait rougir *à raison*. Aucune ligne de ce ticket ne la touche.
  *
- * ## LA MAQUETTE EST MUETTE ICI, ET L'ÉCART SE DIT AVEC SA MESURE
+ * ## DEPUIS N-08 (D123) : DES CARTES, PAS UN TABLEAU
  *
- * D95 donne à `docs/maquette/CODIPLAN_Maquette.html` autorité sur la
- * disposition et les couleurs — *pour ce qu'elle montre*. **Elle ne montre
- * aucun écran client** : mesuré le 14/09/2026, `grep -i client` y rend trente
- * occurrences, toutes des colonnes « Client » d'AUTRES écrans (planning, parc,
- * contrats, imports), et pas une liste ni une fiche. La disposition suivie est
- * donc celle des écrans voisins qu'elle gouverne — en-tête, bandeau, tableau —,
- * et c'est le point précis où elle se tait.
+ * Mesuré dans `docs/maquette/codiplan-maquette-complete.html` : `clients()` et
+ * `sites()` sont les DEUX SEULS écrans à dessiner `entity-card` — tout écran
+ * transactionnel (interventions, VGP, paramètres…) reste un `<table>` (D123).
+ * Un client est un référentiel qu'on consulte pour ce qu'il EST, jamais pour
+ * une file d'actions à traiter : la carte, pas le tableau. **Le CONTACT que la
+ * maquette montre sur chaque carte n'est PAS repris** — la fiche client dit
+ * déjà, depuis L1-03, qu'aucun écran ne permet d'en saisir un
+ * (`docs/constitution/organisation-du-code.md`, module `clients/`) ; l'afficher
+ * ici aurait montré une donnée que personne ne peut corriger. **La bande de
+ * compteurs ne montre que ce que le dépôt compte déjà** — les lieux
+ * d'intervention, via `sitesParClient` (AT-07) — jamais un compte de machines
+ * ou d'interventions par client, qu'aucune fonction de dépôt ne calcule
+ * aujourd'hui (D123, « CE QUE ÇA COÛTE »).
  *
  * ## UN SEUL COMPTEUR, ET IL NOMME UN GESTE
  *
@@ -145,38 +157,17 @@ export default async function PageClients({
   const sites = await sitesParClient(session.contexte, clients);
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
 
-  const colonnes = [
-    { cle: "raison_sociale", libelle: t("client.raison_sociale") },
-    {
-      cle: "code_externe",
-      libelle: libelleCodeExterne(libelleSociete),
-      largeur: "170px",
-    },
-    { cle: "sites", libelle: t("clients.colonne_sites"), largeur: "280px" },
-    { cle: "categorie", libelle: t("client.categorie"), largeur: "150px" },
-    {
-      cle: "commercial",
-      libelle: t("client.commercial_referent"),
-      largeur: "170px",
-    },
-  ];
-
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("client.titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {t("clients.sous_titre")}
-          </p>
-        </div>
+    <Page
+      chemin="/clients"
+      titre={t("client.titre")}
+      sousTitre={t("clients.sous_titre")}
+      actions={
         <LienPrimaire href="/clients/nouveau">
           {t("clients.creer")}
         </LienPrimaire>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -241,22 +232,21 @@ export default async function PageClients({
         </p>
       </form>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-        <Tableau colonnes={colonnes} minimum="960px">
-          {clients.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
-              {t("client.recherche.vide")}
-            </LignePleine>
-          ) : null}
+      {clients.length === 0 ? (
+        <p className="text-app-encre-faible text-[13px]">
+          {t("client.recherche.vide")}
+        </p>
+      ) : (
+        <GrilleCartesEntites>
           {clients.map((client) => (
-            <LigneClient
+            <CarteClient
               key={client.id}
               client={client}
               sites={sites.get(client.id)}
             />
           ))}
-        </Tableau>
-      </section>
+        </GrilleCartesEntites>
+      )}
 
       <Pagination
         page={criteres.success ? criteres.data.page : 1}
@@ -283,33 +273,38 @@ export default async function PageClients({
           )
         }
       />
-    </main>
+    </Page>
   );
 }
 
-function LigneClient({
+function CarteClient({
   client,
   sites,
 }: {
   readonly client: FicheClient;
   readonly sites: SitesDUnClient | undefined;
 }) {
+  const referent = referentClient(client.commercial_referent);
   return (
-    <tr>
-      <Cellule fort>
+    <CarteEntite
+      titre={
         <Link href={`/clients/${client.id}`} className={CLASSES_LIEN}>
           {client.raison_sociale}
         </Link>
-        {client.actif ? null : (
-          <span className="text-app-encre-faible block text-[10.5px]">
-            {t("clients.inactif")}
-          </span>
-        )}
-      </Cellule>
-      <Cellule mono>{ouTiret(client.code_externe)}</Cellule>
-      <Cellule>{resumeDesSites(sites)}</Cellule>
-      <Cellule>{ouTiret(client.categorie)}</Cellule>
-      <Cellule>{ouTiret(client.commercial_referent)}</Cellule>
-    </tr>
+      }
+      badge={
+        client.actif ? (
+          <Badge ton="vert">{t("clients.etat.actif")}</Badge>
+        ) : (
+          <Badge ton="gris">{t("clients.inactif")}</Badge>
+        )
+      }
+      lignes={
+        referent === null
+          ? [codeEtCommune(client.code_externe, sites)]
+          : [codeEtCommune(client.code_externe, sites), referent]
+      }
+      compteurs={[compteurSites(sites)]}
+    />
   );
 }

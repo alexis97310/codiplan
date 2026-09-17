@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -140,21 +141,16 @@ export default async function PageInterventions({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("interventions.titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {t("interventions.sous_titre")}
-          </p>
-        </div>
+    <Page
+      chemin="/interventions"
+      titre={t("interventions.titre")}
+      sousTitre={t("interventions.sous_titre")}
+      actions={
         <LienPrimaire href="/interventions/nouvelle">
           {t("planning.creer")}
         </LienPrimaire>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -302,7 +298,7 @@ export default async function PageInterventions({
           )
         }
       />
-    </main>
+    </Page>
   );
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
@@ -93,31 +94,32 @@ export default async function PageIntervention({
   const montants = accesAuxMontants(session.contexte.role);
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/interventions"
+      titre={
+        <span className="inline-flex flex-wrap items-center gap-3">
+          <span>
+            {t("intervention.titre")} {referenceAffichee(ligne)}
+          </span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
+          >
+            {t(`statut.${statut}`)}
+          </span>
+        </span>
+      }
+      sousTitre={
+        ligne.numero === null ? t("intervention.sans_numero") : undefined
+      }
+      actions={
         <Link
           href={retourPlanning(ligne.date_planifiee)}
           className="text-app-encre-faible text-[12.5px]"
         >
           {t("planning.retour_fleche")}
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("intervention.titre")} {referenceAffichee(ligne)}
-          </h1>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
-          >
-            {t(`statut.${statut}`)}
-          </span>
-        </div>
-        {ligne.numero === null ? (
-          <p className="text-app-encre-faible text-[11.5px]">
-            {t("intervention.sans_numero")}
-          </p>
-        ) : null}
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -328,7 +330,7 @@ export default async function PageIntervention({
           </Action>
         </aside>
       </div>
-    </main>
+    </Page>
   );
 }
 

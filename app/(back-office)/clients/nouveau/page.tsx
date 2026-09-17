@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -57,19 +58,16 @@ export default async function PageNouveauClient({
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/clients"
+      titre={t("clients.nouveau.titre")}
+      sousTitre={t("clients.nouveau.sous_titre")}
+      actions={
         <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
           {t("clients.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("clients.nouveau.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("clients.nouveau.sous_titre")}
-        </p>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -111,7 +109,7 @@ export default async function PageNouveauClient({
           <ActionPrimaire>{t("clients.action.creer")}</ActionPrimaire>
         </div>
       </form>
-    </main>
+    </Page>
   );
 }
 

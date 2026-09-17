@@ -1,10 +1,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { estRolePortail } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 
 import {
@@ -63,12 +65,12 @@ export default async function PagePortail() {
     // parc, c'est un régime de lecture distinct. On le dit plutôt que de
     // laisser la base lever.
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center gap-4 px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("portail.titre")}
-        </h1>
-        <p className="text-muted-foreground text-sm">{t("portail.reserve")}</p>
-      </main>
+      <Page
+        chemin="/portail"
+        entrees={ENTREES_PORTAIL}
+        titre={t("portail.titre")}
+        sousTitre={t("portail.reserve")}
+      />
     );
   }
 
@@ -112,16 +114,12 @@ export default async function PagePortail() {
       `border-app-bord`, `bg-app-surface`. Le client voyait donc un produit
       qui ne ressemblait pas au reste du produit.
     */
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("portail.titre")}
-        </h1>
-        <p className="text-app-encre-faible max-w-[70ch] text-[13px]">
-          {t("portail.sous_titre")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/portail"
+      entrees={ENTREES_PORTAIL}
+      titre={t("portail.titre")}
+      sousTitre={t("portail.sous_titre")}
+    >
       {/*
         LE BANDEAU DE LA MAQUETTE — `.pcli` : dégradé à 120°, encre blanche,
         rayon 10, 22/24 de marge intérieure ; le nom en 19 px extra-gras, la
@@ -293,7 +291,7 @@ export default async function PagePortail() {
           </p>
         </article>
       </section>
-    </main>
+    </Page>
   );
 }
 

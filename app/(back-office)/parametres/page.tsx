@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Page } from "@/components/mise-en-page/page";
 import {
   PORTES_PARAMETRAGE,
   type PorteParametrage,
@@ -68,15 +69,12 @@ function libelle(porte: PorteParametrage): string {
 
 export default function PageParametres() {
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8">
-      <h1 className="text-app-encre text-[22px] font-semibold">
-        {t("parametres.index_titre")}
-      </h1>
-      <p className="text-app-encre-faible mt-2 max-w-2xl text-[13.5px]">
-        {t("parametres.index_sous_titre")}
-      </p>
-
-      <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+    <Page
+      chemin="/parametres"
+      titre={t("parametres.index_titre")}
+      sousTitre={t("parametres.index_sous_titre")}
+    >
+      <ul className="grid gap-3 sm:grid-cols-2">
         {PORTES_PARAMETRAGE.map((porte) => (
           <li key={porte.chemin}>
             <Link
@@ -96,6 +94,6 @@ export default function PageParametres() {
           </li>
         ))}
       </ul>
-    </main>
+    </Page>
   );
 }

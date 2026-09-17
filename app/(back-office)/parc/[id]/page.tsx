@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
@@ -88,19 +89,16 @@ export default async function PageMachine({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/parc"
+      titre={referenceMachine(machine)}
+      sousTitre={identiteMachine(machine)}
+      actions={
         <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
           {t("machine.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {referenceMachine(machine)}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {identiteMachine(machine)}
-        </p>
-      </header>
-
+      }
+    >
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-4">
         <div className="grid gap-3 md:grid-cols-2">
           <Fait
@@ -142,7 +140,7 @@ export default async function PageMachine({
           {t("machine.documents.sans_octets")}
         </p>
       </section>
-    </main>
+    </Page>
   );
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
@@ -120,19 +121,16 @@ export default async function PageRegistreVgp() {
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/vgp"
+      titre={t("vgp.titre")}
+      sousTitre={t("vgp.sous_titre")}
+      actions={
         <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
           {t("vgp.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("vgp.titre")}
-        </h1>
-        <p className="text-app-encre-faible max-w-[70ch] text-[13px]">
-          {t("vgp.sous_titre")}
-        </p>
-      </header>
-
+      }
+    >
       {/*
         LE COMPTE DES INDÉTERMINÉS EST UN LIEN, jamais un simple chiffre : *sans
         la liste visible, la troisième valeur ne sert à rien* (D88 §3). Zéro
@@ -170,7 +168,7 @@ export default async function PageRegistreVgp() {
       </section>
 
       <p className="text-app-encre-faible text-[11.5px]">{t("vgp.borne")}</p>
-    </main>
+    </Page>
   );
 }
 

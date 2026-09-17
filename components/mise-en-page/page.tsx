@@ -1,7 +1,13 @@
+import { t } from "@/lib/i18n/fr";
+import {
+  ENTREES,
+  groupeDe,
+  type EntreeDeBarre,
+} from "@/lib/navigation/entrees";
 import { cn } from "@/lib/utils";
 
 /**
- * LE GABARIT D'ÉCRAN — titre, sous-titre, actions (AT-04).
+ * LE GABARIT D'ÉCRAN — domaine, titre, sous-titre, actions (AT-04, N-08).
  *
  * ## Pourquoi ce composant, maintenant
  *
@@ -15,6 +21,33 @@ import { cn } from "@/lib/utils";
  * page de la maquette » — et sa cause n'est pas un écran raté, c'est l'absence
  * d'un vocabulaire commun.
  *
+ * **N-08 mesure la même chose une seconde fois, ailleurs** : ce composant
+ * n'existait sur AUCUN écran du ticket AT-04 alors qu'il portait déjà le
+ * remède ; vingt-six écrans sur vingt-neuf écrivaient encore leur propre
+ * `<header>` (mesuré le 17/09/2026). Ce ticket l'étend d'un surtitre de
+ * domaine et le pose sur les vingt-six.
+ *
+ * ## LE SURTITRE DE DOMAINE VIENT DE `entrees.ts`, JAMAIS D'UN ÉCRAN
+ *
+ * `docs/maquette/codiplan-maquette-complete.html` pose un `eyebrow` — le nom
+ * du domaine — au-dessus de chaque titre (`head(domain, title, …)`). Un écran
+ * ne le NOMME pas : il dit son propre CHEMIN, et `groupeDe` (D121, D122)
+ * répond quel domaine le porte — *une seconde lecture du même critère
+ * divergerait en silence le jour où la barre change de forme* (§9, 01/09).
+ * `null` — un chemin sans groupe, comme `/arrivee` ou une entrée d'une barre
+ * plate (portail, terrain) — n'affiche simplement aucun surtitre.
+ *
+ * **`entrees` doit nommer la BONNE barre, jamais celle par défaut.** Mesuré
+ * le 17/09/2026, en écran plutôt qu'en test : `/portail` affichait « CLIENTS
+ * & PARC » — le domaine du back-office — sur l'écran d'un CLIENT, parce que
+ * `groupeDe` retombait sur `ENTREES` (la barre interne) et y trouve bien une
+ * entrée `/portail` (« Portail client », un LIEN interne vers cet écran). *Un
+ * client qui lirait un domaine du back-office apprendrait l'existence d'un
+ * découpage qui n'est pas le sien* — la même faute que D97 nomme pour un
+ * libellé de menu. `app/(portail)/portail/page.tsx` passe donc
+ * `entrees={ENTREES_PORTAIL}`, une barre PLATE où `groupeDe` ne trouve jamais
+ * de groupe : aucun surtitre n'y est jamais un risque de fuite.
+ *
  * ## Les valeurs, lues et non approchées
  *
  * `docs/maquette/CODIPLAN_Maquette.html` : `h1{font-size:22px;font-weight:800;
@@ -24,6 +57,14 @@ import { cn } from "@/lib/utils";
  * (`tests/unit/ui/composants-maquette.test.ts`) — la même discipline que
  * `tests/unit/navigation/entrees.test.ts` applique à la barre.
  *
+ * `docs/maquette/codiplan-maquette-complete.html` : `.eyebrow{color:var(
+ * --blue);font-size:12px;font-weight:850;text-transform:uppercase;
+ * letter-spacing:.09em;margin-bottom:4px}` — D95 continue de fixer la
+ * COULEUR (`--blue` vaut `--bleu`, D122) ; c'est de là que vient `--app-
+ * marque`, jamais un second jeton. `850` n'a pas de classe Tailwind : `800`
+ * (`font-extrabold`) est la plus proche, le même écart que `Tableau` accepte
+ * déjà entre `16px` et l'échelle par défaut (§ »Aucune couleur écrite ici«).
+ *
  * ## Ce qu'il ne fait pas
  *
  * Il ne pose pas la largeur utile — `LargeurUtile` la pose déjà, à la racine du
@@ -31,23 +72,35 @@ import { cn } from "@/lib/utils";
  * un jeton, jamais `var(--gris)` recopié.
  */
 export function Page({
+  chemin,
+  entrees = ENTREES,
   titre,
   sousTitre,
   actions,
   className,
   children,
 }: Readonly<{
-  titre: string;
+  /** Le chemin de CET écran — `groupeDe` en déduit le domaine, jamais l'appelant. */
+  chemin?: string;
+  /** La barre qui gouverne cet écran. `ENTREES` (back-office) par défaut ; le portail passe `ENTREES_PORTAIL`. */
+  entrees?: readonly EntreeDeBarre[];
+  titre: React.ReactNode;
   sousTitre?: string;
   /** Le bandeau de droite — un décompte, une action. Jamais un bouton de création (§2). */
   actions?: React.ReactNode;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }>) {
+  const domaineCle = chemin === undefined ? null : groupeDe(chemin, entrees);
   return (
     <main className={cn("flex flex-col gap-5", className)}>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
+          {domaineCle === null ? null : (
+            <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
+              {t(domaineCle)}
+            </div>
+          )}
           <h1 className="mb-[3px] text-[22px] font-extrabold tracking-[-0.4px]">
             {titre}
           </h1>

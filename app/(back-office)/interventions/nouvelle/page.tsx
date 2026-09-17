@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -56,16 +57,15 @@ export default async function PageNouvelleIntervention({
   );
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/interventions/nouvelle"
+      titre={t("planning.creer")}
+      actions={
         <Link href="/planning" className="text-app-encre-faible text-[12.5px]">
           {t("planning.retour_fleche")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("planning.creer")}
-        </h1>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -147,7 +147,7 @@ export default async function PageNouvelleIntervention({
 
         <Button type="submit">{t("intervention.action.creer")}</Button>
       </form>
-    </main>
+    </Page>
   );
 }
 

@@ -3,8 +3,9 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
+import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
-import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
@@ -17,7 +18,7 @@ import {
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
-import { libelleRattachement, ouTiret } from "./presentation";
+import { agenceDuSite, ouTiret } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
@@ -41,13 +42,28 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * accueillera « Sites », ce sera une décision sur la maquette, pas un effet de
  * bord de ce ticket.
  *
- * ## Ce qu'il montre, et pourquoi le temps de trajet ne voyage pas seul
+ * ## DEPUIS N-08 (D123) : DES CARTES, PAS UN TABLEAU
  *
- * Le rattachement est affiché **à côté** du temps de trajet, jamais sans lui :
- * *un nombre dont la signification dépend d'une autre colonne ne voyage jamais
- * seul* (D56), et « 45 » ne veut rien dire sans « depuis où ». Et le libellé le
- * dit encore autrement : c'est une donnée de **planification**, jamais de
- * facturation (D74).
+ * Mesuré dans `docs/maquette/codiplan-maquette-complete.html` : `sites()` et
+ * `clients()` sont les DEUX SEULS écrans à dessiner `entity-card` (D123). Un
+ * site est un référentiel, pas une file d'événements datés : la carte, pas
+ * le tableau. La zone géographique n'est plus montrée sur la carte — elle
+ * sert au calcul du trajet (`trajet-zone.ts`), pas à SITUER le site, ce que
+ * la commune fait déjà à la ligne au-dessus.
+ *
+ * ## Ce que la bande de compteurs montre, et pourquoi le rattachement s'y lit
+ *
+ * Le temps de trajet ne voyage jamais seul : *un nombre dont la signification
+ * dépend d'une autre colonne ne voyage jamais seul* (D56), et « 45 » ne veut
+ * rien dire sans « depuis où ». L'agence de rattachement est donc une LIGNE de
+ * la carte, juste au-dessus de la bande de compteurs qui porte le trajet — les
+ * deux informations restent voisines, comme elles l'étaient déjà côte à côte
+ * dans le tableau. Et le libellé le dit encore autrement : c'est une donnée de
+ * **planification**, jamais de facturation (D74).
+ *
+ * **Aucun compte de machines par site n'est ajouté** : `D123` nomme ce
+ * manque plutôt que d'inventer une requête — aucune fonction de dépôt ne
+ * compte aujourd'hui les machines d'un site.
  *
  * ## Le cloisonnement n'est pas écrit ici
  *
@@ -104,33 +120,15 @@ export default async function PageSites({
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
 
-  const colonnes = [
-    { cle: "libelle", libelle: t("site.libelle") },
-    { cle: "client", libelle: t("site.client"), largeur: "220px" },
-    { cle: "commune", libelle: t("site.commune"), largeur: "160px" },
-    { cle: "zone", libelle: t("site.zone_geo"), largeur: "150px" },
-    {
-      cle: "rattachement",
-      libelle: libelleRattachement(),
-      largeur: "200px",
-    },
-    { cle: "trajet", libelle: t("sites.colonne_trajet"), largeur: "110px" },
-  ];
-
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {mot("site", true)}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {t("sites.sous_titre")}
-          </p>
-        </div>
+    <Page
+      chemin="/sites"
+      titre={mot("site", true)}
+      sousTitre={t("sites.sous_titre")}
+      actions={
         <LienPrimaire href="/sites/nouveau">{t("sites.creer")}</LienPrimaire>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -163,23 +161,22 @@ export default async function PageSites({
         </button>
       </form>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-        <Tableau colonnes={colonnes} minimum="980px">
-          {sites.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
-              {t("site.recherche.vide")}
-            </LignePleine>
-          ) : null}
+      {sites.length === 0 ? (
+        <p className="text-app-encre-faible text-[13px]">
+          {t("site.recherche.vide")}
+        </p>
+      ) : (
+        <GrilleCartesEntites>
           {sites.map((site) => (
-            <LigneSite
+            <CarteSite
               key={site.id}
               site={site}
               client={libelles.clients.get(site.client_id) ?? null}
               agence={libelles.agences.get(site.agence_id) ?? null}
             />
           ))}
-        </Tableau>
-      </section>
+        </GrilleCartesEntites>
+      )}
 
       <Pagination
         page={criteres.success ? criteres.data.page : 1}
@@ -207,11 +204,11 @@ export default async function PageSites({
           )
         }
       />
-    </main>
+    </Page>
   );
 }
 
-function LigneSite({
+function CarteSite({
   site,
   client,
   agence,
@@ -220,42 +217,55 @@ function LigneSite({
   readonly client: string | null;
   readonly agence: string | null;
 }) {
-  const zone = site.zone_geo === null ? null : `site.zone.${site.zone_geo}`;
+  const rattachement = agenceDuSite(agence);
+  const lignes: React.ReactNode[] = [
+    // LE CLIENT MÈNE À SA FICHE (14/09/2026) — le second des deux chemins
+    // tranchés ce jour-là, conservé tel quel : *le geste change, le
+    // comportement reste* (D123). Le libellé peut manquer (la politique a
+    // refusé, ou le client n'est pas dans le périmètre) ; on ne fabrique
+    // alors AUCUN lien, parce qu'un lien vers une fiche qu'on ne peut pas
+    // lire rendrait un 404 là où il faut lire une absence.
+    <>
+      {client === null ? (
+        ouTiret(null)
+      ) : (
+        <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+          {client}
+        </Link>
+      )}
+      {site.commune === null ? null : (
+        <>
+          {t("ponctuation.separateur")}
+          {site.commune}
+        </>
+      )}
+    </>,
+  ];
+  if (rattachement !== null) {
+    lignes.push(rattachement);
+  }
+
   return (
-    <tr>
-      <Cellule fort>
+    <CarteEntite
+      titre={
         <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
           {site.libelle}
         </Link>
-        {site.actif ? null : (
-          <span className="text-app-encre-faible block text-[10.5px]">
+      }
+      badge={
+        site.actif ? null : (
+          <span className="text-app-encre-faible text-[10.5px]">
             {t("sites.inactif")}
           </span>
-        )}
-      </Cellule>
-      {/* LA COLONNE « CLIENT » MÈNE À LA FICHE (14/09/2026) — le second des
-          deux chemins tranchés ce jour-là. Le libellé peut manquer (la
-          politique a refusé, ou le client n'est pas dans le périmètre) ; on ne
-          fabrique alors AUCUN lien, parce qu'un lien vers une fiche qu'on ne
-          peut pas lire rendrait un 404 là où il faut lire une absence. */}
-      <Cellule>
-        {client === null ? (
-          ouTiret(null)
-        ) : (
-          <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
-            {client}
-          </Link>
-        )}
-      </Cellule>
-      <Cellule>{ouTiret(site.commune)}</Cellule>
-      <Cellule>
-        {zone !== null && estCleTraduction(zone) ? t(zone) : ouTiret(null)}
-      </Cellule>
-      {/* LE RATTACHEMENT EST RENDU À CÔTÉ DU TEMPS, jamais sans lui (D56). */}
-      <Cellule>{ouTiret(agence)}</Cellule>
-      <Cellule droite mono>
-        {ouTiret(site.temps_trajet_min)}
-      </Cellule>
-    </tr>
+        )
+      }
+      lignes={lignes}
+      compteurs={[
+        {
+          valeur: ouTiret(site.temps_trajet_min),
+          libelle: t("sites.colonne_trajet"),
+        },
+      ]}
+    />
   );
 }
