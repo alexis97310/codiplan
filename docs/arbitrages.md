@@ -4241,3 +4241,247 @@ Les interventions déjà clôturées gardent leur valeur sous le nouveau nom —
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > **Le jour où une intervention doit se clôturer sans qu'aucun compteur ait tourné** — un dépannage téléphonique facturé, une reprise dont le technicien a oublié de démarrer. *C'est le seul événement qui puisse remettre en cause « le compteur est la seule source », et il se constate sur une intervention réelle.*
+
+---
+
+## D121 — Le double menu de domaine, sous la forme d'une BARRE LATÉRALE : D118 CONSTATE sa propre condition remplie
+
+*Rendu par Alexis le 17/09/2026, à la vue d'une maquette de démonstration à double menu. **Réécrite le même jour**, à la dépose de `docs/maquette/codiplan-maquette-complete.html` (branche `alexis97310-patch-1`, proposition #222) : elle ne tranche plus la forme du menu, elle CONSTATE que D118 l'a déjà tranchée à sa place — voir « LE CONSTAT » ci-dessous, qui remplace ce que cette section décidait la première fois.*
+
+### LA DÉCISION, DANS LES MOTS QUI L'ONT RENDUE
+
+> *« J'apprécie beaucoup ce concept à double menu. » — puis, en tranchant entre deux formes possibles : « on garde la barre latérale. »*
+
+### LE CONSTAT — la condition de réouverture de D118 est remplie, vérifiée mot pour mot
+
+D118 porte, écrite noir sur blanc le 14/09/2026, sa propre condition de réouverture :
+
+> *« Le jour où la maquette est redessinée avec un menu, elle redevient la source de la forme et cet amendement tombe de lui-même. »*
+
+**Trois faits, mesurés sur `docs/maquette/codiplan-maquette-complete.html` (132 lignes, page autonome à rendu par script), pas supposés :**
+
+1. **Elle est une maquette redessinée** — un second fichier sous `docs/maquette/`, déposé par Alexis, distinct de `docs/maquette/CODIPLAN_Maquette.html` (`tests/unit/docs/maquette-unique.test.ts` ne porte que sur ce second nom exact et n'est donc pas concerné : mesuré, il ne cherche que des fichiers nommés `CODIPLAN_Maquette.html`).
+2. **Elle porte un MENU**, et pas un catalogue d'écrans plat comme l'ancienne (D118, D98) : une barre latérale verticale, sectionnée en trois groupes typographiques — « Exploitation », « Clients & parc », « Paramètres » —, chacun suivi de ses destinations en boutons pleine largeur.
+3. **Le menu est celui-là même que D118 attendait** : hiérarchique, avec des sections, pas une rangée de onze boutons côte à côte.
+
+**La condition est donc remplie.** Ce n'est plus à D121 de décider la forme du menu — elle se lit désormais dans `docs/maquette/codiplan-maquette-complete.html` — et l'amendement de D118 sur la forme **tombe de lui-même**, par l'opération de sa propre clause, pas par une nouvelle décision qui la contredirait. *Un arbitrage qui constate est plus court et plus solide qu'un arbitrage qui tranche : il n'y a rien ici à défendre, seulement à vérifier.*
+
+**Et ce que le constat mesure aussi, honnêtement : ce n'est pas un « double menu » au sens où la première rédaction de cette section l'entendait.** Cette première rédaction décrivait deux barres horizontales — une pour le domaine, une seconde en dessous qui change de contenu selon le domaine actif. **Ce n'est pas ce que la maquette dessine.** Les trois intitulés de domaine (`nav-group`) sont du texte, pas des boutons : rien ne les sélectionne, rien ne les déplie, et les quatorze destinations sont **toutes visibles en permanence**, dans une seule colonne verticale, groupées par des titres qui ne font que la lire — jamais commutées. C'est plus simple que ce que D121 avait d'abord proposé, pas plus compliqué, exactement comme Alexis l'annonçait : une hiérarchie à lire d'un coup d'œil, pas un sélecteur à actionner.
+
+**Sur téléphone**, elle se replie derrière un **bouton unique** (☰) : toute la colonne — ses trois sections, ses quatorze destinations — glisse en un seul panneau, masqué puis affiché d'un bloc. **Ce n'est PAS un panneau à sections dépliables indépendamment** : il n'y a qu'un seul geste, ouvrir ou fermer tout le menu, jamais un par groupe. *La première rédaction de cette page dessinait un accordéon par domaine ; ce n'est pas la forme retenue.*
+
+**Trois domaines de premier niveau, quatorze destinations réelles** — et c'est exactement la répartition que la maquette dessine, mesurée destination par destination :
+
+| Domaine | Destinations |
+|---|---|
+| **Exploitation** | Tableau de bord, Planning, Interventions, Absences |
+| **Clients & parc** | Clients, Sites, Parc machines, VGP, Portail client |
+| **Paramètres** | Sociétés & tarifs, Imports Excel, Contrats *(inerte, lot 4)*, App technicien *(inerte, lot 3)*, Console éditeur *(inerte, lot 7)* |
+
+Ordre des groupes, ordre des destinations dans chaque groupe, libellés — les trois coïncident, lettre pour lettre, avec `docs/maquette/codiplan-maquette-complete.html`. **Portail client vit dans Clients & parc**, comme D121 l'avait déjà placé le 17/09/2026 avant cette réécriture — la maquette le confirme, elle ne l'a pas dicté.
+
+### CE QUE LES QUATRE ÉCARTS DEVIENNENT : ils tombent, vérifié un par un
+
+~~**LES QUATRE ÉCARTS À LA MAQUETTE, nommés un par un** — *exactement comme D98 l'a fait pour « Fiche machine » : un écart s'écrit avec sa mesure, jamais en assouplissant la comparaison que le gardien tient.* Ces quatre lignes étaient des écrans **vivants**, servis, auxquels un premier niveau plat ne donnait pas de porte convenable :~~
+
+~~- **Clients** — *l'écran est vivant, et la personne qui a commandé le produit ne l'a pas trouvé.* [...] Il devient une destination du domaine Clients & parc.~~
+~~- **Sites** — deuxième étage de la colonne client → site → équipement, **atteignable aujourd'hui seulement par une colonne de tableau**, jamais par une entrée nommée.~~
+~~- **VGP** — un registre RÉGLEMENTAIRE (D114). *Un registre qu'on n'atteint que par rebond depuis une machine n'est pas tenu* : il devient une destination à part entière.~~
+~~- **Absences** — un écran vivant, **sans aucune porte aujourd'hui**, alors qu'il conditionne le planning (I7, RG-PLA-06).~~
+
+**La phrase barrée est conservée et non effacée : elle a gouverné cette décision pendant quelques heures, et ce qui a été décidé un jour se relit (§9, CLAUDE.md).** Ce qu'elle décrivait n'est plus vrai, et la mesure qui le dit est celle-ci, refaite sur `docs/maquette/codiplan-maquette-complete.html` plutôt que crue sur parole :
+
+| Destination | Présente dans le menu de la maquette complète | Groupe |
+|---|---|---|
+| Clients | **oui** — `data-route="/clients"`, ligne 44 | Clients & parc |
+| Sites | **oui** — `data-route="/sites"`, ligne 45 | Clients & parc |
+| VGP | **oui** — `data-route="/vgp"`, ligne 47 | Clients & parc |
+| Absences | **oui** — `data-route="/absences"`, ligne 42 | Exploitation |
+
+**Les quatre écarts tombent, et aucun n'est remplacé par un autre : la confrontation destination par destination ne relève plus rien à nommer.** Les quatorze destinations de la table ci-dessus sont, sans exception, celles que la maquette complète dessine. `ECARTS_MAQUETTE` (`lib/navigation/entrees.ts`) n'a donc **rien à recevoir** de cette décision — ni les quatre anciennes lignes, ni aucune ligne nouvelle. *C'est la conséquence que la mesure devait établir plutôt que supposer, et elle est négative : zéro écart, pas quatre reformulés.*
+
+### LA RÈGLE DU DOMAINE À UNE SEULE DESTINATION — retirée avec le mécanisme qu'elle protégeait
+
+La première rédaction de cette section écrivait une règle — *« un domaine à une seule destination n'a pas de barre de second niveau »* — pour un mécanisme qui n'existe plus dans la forme retenue : celui d'une **barre qui apparaît ou disparaît** selon le domaine actif. **La barre latérale n'a rien de tel** : chaque section est un titre au-dessus d'une liste de boutons, et un titre au-dessus d'un seul bouton ne coûte rien de plus qu'un titre au-dessus de cinq — il n'y a pas de « second niveau » à faire apparaître ou disparaître, donc pas de règle à écrire pour décider quand l'omettre. **La règle est retirée, pas remplacée** : le jour où un groupe ne porterait plus qu'une destination, la barre latérale continuera de montrer un titre suivi d'un bouton, sans que cela demande de décision.
+
+### CE QUI N'EST PAS ADOPTÉ, et pourquoi
+
+**L'écran « À traiter » — Urgent / À planifier / Pièce attendue — est HORS PÉRIMÈTRE.** Aucune règle du chapitre 10 ne dit ce qui rend un dossier urgent ; le construire obligerait à inventer un délai, ce que le §8 du `CLAUDE.md` refuse explicitement.
+
+**La bascule Bureau / Technicien est REFUSÉE sous cette forme.** Le rôle vient de l'authentification, et le cloisonnement est tenu par la base (I1) : la barre montre ce que le rôle DONNE, elle ne l'OFFRE jamais — c'est la même règle que celle qui interdit à `lib/navigation/entrees.ts` de servir de contrôle d'accès. Une bascule dans le menu laisserait croire qu'un compte choisit son propre périmètre.
+
+**La mention « hors ligne à développer » de la maquette de démonstration NE RELÂCHE PAS I4.** La v1 technicien refuse de fonctionner sans réseau plutôt que de perdre des données ; ce que le double menu illustre ne concerne que le back-office, et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas.
+
+**Les titres en langage naturel sont adoptés, mais BORNÉS.** Un titre décrit l'écran ; il ne juge jamais des données qu'il n'a pas mesurées — une semaine avec trois interventions en souffrance ne s'annonce pas « bien organisée ».
+
+**Les cartes de chiffres sont adoptées sous la règle d'AT-07** — en cours d'écriture au moment de cette décision : tout chiffre affiché se compte sur la MÊME requête que la liste qu'il surmonte, jamais par une seconde lecture du même critère (§9, 01/09/2026).
+
+### CE QUE ÇA COÛTE, NOMMÉ
+
+**Le coût de gardien à venir, et il faut le lire avant de l'accepter :** `lib/navigation/entrees.ts` tient une liste close de **dix** destinations, confrontée à `docs/maquette/CODIPLAN_Maquette.html` par `tests/unit/navigation/entrees.test.ts`. Elle devra en tenir **quatorze**, et le futur ticket d'implantation hérite d'une question que ce constat NOMME plutôt qu'il ne la tranche : `CODIPLAN_Maquette.html` ne dessine ni Clients, ni Sites, ni VGP, ni Absences, et ne dessine surtout **aucun menu** — sa barre plate à onze boutons est ce que D98 et D118 appellent un catalogue d'écrans. La confrontation de `entrees.test.ts` devra donc lire `docs/maquette/codiplan-maquette-complete.html` pour la LISTE et l'ORDRE des destinations, sans que cela change quoi que ce soit à l'autorité de `CODIPLAN_Maquette.html` sur les couleurs et la disposition des écrans eux-mêmes (D95) — **deux fichiers, deux questions**, et confondre les deux serait la faute que ce paragraphe nomme pour l'éviter.
+
+**Second coût, retiré plutôt qu'alourdi** : la forme n'étant plus un menu qui se déplie ni une barre à deux niveaux commutables, mais une colonne fixe à sections, `GroupeNavigation` (D118) devra être repensé plutôt qu'étendu — un groupe n'y ouvre plus un sous-menu, il rassemble des liens déjà tous visibles. Le futur ticket devra aussi trancher si un titre de domaine neuf (« Exploitation », « Clients & parc », « Paramètres ») peut entrer au dictionnaire, ce que la règle actuelle de `GroupeNavigation` interdit — *« un titre de groupe doit être le libellé d'un de ses propres enfants, jamais un mot neuf »* — et que ce ticket-ci ne tranche pas : il n'écrit aucune ligne de code, et trancher une règle de gardien en douce, à côté d'AT-07 qui écrit dans le même fichier au même moment, serait exactement la faute que D118 nommait déjà pour un autre ticket.
+
+### CE QUE CETTE DÉCISION LAISSE À LA SESSION, et ce n'est pas un oubli
+
+L'implantation dans `lib/navigation/` n'est **pas** ce ticket. AT-07 écrit en ce moment dans `lib/i18n/fr.ts` et dans les pages de liste ; un fichier n'a qu'un seul écrivain, et `docs/propositions/double-menu.html` est la seule chose que ce ticket produit — une proposition ouverte, jamais fusionnée d'elle-même.
+
+### LE RAPPORT AVEC D118, ET SA PORTÉE — ce qui tombe, ce qui reste debout
+
+**D118 tombe sur EXACTEMENT ce que sa clause visait : la forme du menu.** Elle ne tombe pas plus loin. D95 continue de faire foi sur les **couleurs** et la **disposition des écrans** via `docs/maquette/CODIPLAN_Maquette.html`, et cette autorité n'est **pas** transférée à `docs/maquette/codiplan-maquette-complete.html` par ce constat — ce serait une décision d'une tout autre portée, que personne n'a prise ici. *Le point précis que ce constat règle est celui, étroit, que D118 avait nommé le 14/09/2026 : « nombre d'entrées de premier niveau, niveaux, libellés de regroupement ». Tout le reste — cartes, couleurs, tableaux — reste sous D95, inchangé, et se discute en D122 plutôt qu'ici.*
+
+**Et ce n'est plus D121 qui décide contre D118 : c'est D118 qui s'efface devant sa propre clause.** La distinction compte : une décision qui en amende une autre porte la charge de se justifier ; un constat qui lit une clause déjà écrite n'a qu'à vérifier qu'elle est remplie — ce que la table de la section précédente fait, destination par destination, plutôt que de l'affirmer.
+
+### LA DÉPENDANCE MATÉRIELLE, et pourquoi elle se lit ici plutôt qu'ailleurs
+
+**Cette décision cite un fichier qui n'existe, à cette heure, que sur la branche `alexis97310-patch-1` (proposition #222), pas sur `main`.** Une décision qui cite un fichier absent du dépôt réel est provisoirement fausse pour quiconque la lit sans avoir ouvert cette branche. **La proposition qui porte ce constat (#218) ne doit donc pas être fusionnée avant #222** — la fusionner d'abord ferait de D121 une décision qui s'appuie sur du vide, le temps que #222 arrive à son tour.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où la proposition #222 est fermée sans être fusionnée, ou modifiée avant sa fusion d'une façon qui changerait l'une des trois mesures ci-dessus**, ce constat doit être refait sur le fichier tel qu'il existe alors — jamais supposé encore vrai. *Un constat se vérifie une fois par version du fichier qu'il constate, pas une fois pour toutes.*
+
+*Aucune règle du chapitre 10 n'est amendée : la navigation n'y figure pas.*
+
+---
+
+## D122 — Le vocabulaire d'écran de la démonstration : les encadrés et les couleurs s'APPLIQUENT, la recherche et les filtres se DÉCIDENT
+
+*Rendu par Alexis le 17/09/2026, en complément de D121, sur ce que la même maquette de démonstration donnait à voir en plus du double menu : « le template et la disposition qu'il propose, avec des encadrés, barres de recherche et des couleurs ». Avant de rien écrire, D95 a été mesuré contre `docs/maquette/CODIPLAN_Maquette.html` — jamais supposé — parce que ce que la mesure allait dire n'était pas connu d'avance.*
+
+### CE QUI A ÉTÉ MESURÉ, avec la commande qui l'a produit
+
+**Les encadrés que la démonstration montre sont déjà ceux de la maquette, à l'octet près.**
+
+```
+$ grep -n '\.card{' docs/maquette/CODIPLAN_Maquette.html
+.card{background:var(--blanc);border:1px solid var(--bord);border-radius:10px}
+$ grep -n '\.kpi{' docs/maquette/CODIPLAN_Maquette.html
+.kpi{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden}
+```
+
+Fond blanc, bordure `1px solid var(--bord)`, rayon `10px` — les deux classes de carte du produit, celle des blocs et celle des chiffres. *Rien à amender ici : ce que la démonstration montre, le dépôt le porte déjà.*
+
+**Les couleurs de statut que la démonstration reprend sont celles de la maquette, à la même ligne.**
+
+```
+$ sed -n '316p' docs/maquette/CODIPLAN_Maquette.html
+<span><i style="background:#FEF3DC;border:1px solid var(--orange)"></i>Suspendue / absence</span>
+$ grep -n -- '--bleu:#0053A1' docs/maquette/CODIPLAN_Maquette.html
+:root{ --rouge:#E30613; --bleu:#0053A1; --noir:#111111; …
+$ grep -n '\.nav button\.on{' docs/maquette/CODIPLAN_Maquette.html
+.nav button.on{background:var(--bleu);color:#fff}
+```
+
+L'orange pour « Suspendue / absence », le bleu `#0053A1` comme couleur de l'onglet actif — la démonstration ne crée donc **pas** un second système de couleurs : elle reprend le nôtre.
+
+**La maquette ne porte en revanche AUCUN champ de recherche.**
+
+```
+$ grep -c 'placeholder' docs/maquette/CODIPLAN_Maquette.html
+0
+```
+
+Zéro occurrence sur onze écrans, mesuré sur le fichier entier — pas seulement sur un écran de liste.
+
+**Et elle ne porte aucune pastille de filtre CLIQUABLE — avec une nuance qui affine la mesure d'Alexis plutôt que la contredire.** Une occurrence existe, et elle mérite d'être nommée pour ce qu'elle est :
+
+```
+$ grep -n 'Filtres :' docs/maquette/CODIPLAN_Maquette.html
+390:    <h2>Liste des interventions <span class="more">Filtres : agence · type · statut · période</span></h2>
+```
+
+C'est un TEXTE, dans un `<span class="more">` — pas un contrôle : aucun `<input>`, aucune classe de pastille cliquable, aucun état actif/inactif. *La maquette NOMME l'idée qu'on peut filtrer une liste ; elle ne dit pas SOUS QUELLE FORME.* Le silence porte donc sur la forme, pas sur le principe.
+
+**Troisième mesure, non demandée, et qui borne tout le reste : la maquette ne contient ni fil d'Ariane ni écran nommé « Clients ».**
+
+```
+$ grep -in 'breadcrumb\|fil.d.ariane' docs/maquette/CODIPLAN_Maquette.html
+(aucune occurrence)
+$ grep -n '<button' docs/maquette/CODIPLAN_Maquette.html
+166:    <button class="on" data-s="dash">Tableau de bord</button>
+167:    <button data-s="plan">Planning</button>
+168:    <button data-s="inter">Interventions</button>
+169:    <button data-s="parc">Parc machines</button>
+170:    <button data-s="mach">Fiche machine</button>
+171:    <button data-s="contrats">Contrats</button>
+172:    <button data-s="mobile">App technicien</button>
+173:    <button data-s="portail">Portail client</button>
+174:    <button data-s="imports">Imports Excel</button>
+175:    <button data-s="param">Sociétés &amp; tarifs</button>
+176:    <button data-s="editeur">Console éditeur</button>
+```
+
+Onze écrans, aucun ne s'appelle « Clients » — c'est la mesure même que D118 avait déjà faite pour expliquer pourquoi cet écran restait introuvable. La maquette ne peut donc pas non plus faire foi sur la disposition maître-détail d'un écran qu'elle ne montre pas.
+
+**Les quatre mesures demandées sont donc confirmées, aucune n'est fausse.**
+
+### ET FACE À `docs/maquette/codiplan-maquette-complete.html` (branche `alexis97310-patch-1`, proposition #222) — confrontée le 17/09/2026, après coup
+
+D121 constate que cette seconde maquette règle la FORME DU MENU. Elle donne aussi à voir des encadrés, une recherche, des filtres, une disposition maître-détail — exactement ce que cette décision-ci gouverne. **Mesuré plutôt que supposé, destination par destination :**
+
+**Les encadrés y sont bien les mêmes qu'ici — au concept, pas au pixel.** Le fichier porte `.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}`, avec `--surface:#fff`, `--line:#dce2ea`, `--radius:14px`. Comparé aux jetons canoniques de `CODIPLAN_Maquette.html` — blanc, `1px solid var(--bord)` = `#E1E4E8`, rayon `10px` — le fond blanc est identique, la bordure et le rayon **diffèrent** (`#dce2ea` contre `#E1E4E8`, `14px` contre `10px`). **Ce n'est pas une seconde source sur les valeurs exactes : D95 continue de fixer les jetons de `CODIPLAN_Maquette.html`, et cette confrontation ne les déplace pas** (voir D121, « LE RAPPORT AVEC D118, ET SA PORTÉE » — la même borne s'applique ici). Ce que la nouvelle maquette confirme est le VOCABULAIRE — des cartes à coin arrondi, une bordure fine —, mesuré une seconde fois par un dessin indépendant.
+
+**La palette, au-delà des cartes, est la nôtre sur le primaire et le rouge, PAS sur le reste — et c'est nommé plutôt que glissé.**
+
+| Rôle | `CODIPLAN_Maquette.html` (D95, canonique) | `codiplan-maquette-complete.html` | Écart |
+|---|---|---|---|
+| Bleu primaire | `--bleu:#0053A1` | `--blue:#0053a1` | **aucun** — identique |
+| Rouge | `--rouge:#E30613` | `--red:#e30613` | **aucun** — identique |
+| Fond de page | `--fond:#F4F5F7` | `--bg:#f4f6f9` | mesuré différent |
+| Bordure | `--bord:#E1E4E8` | `--line:#dce2ea` | mesuré différent |
+| Encre / quasi-noir | `--noir:#111111` | `--ink:#142033` | mesuré différent |
+| Vert | `--vert:#0F9D58` | `--green:#12824b` | mesuré différent |
+| Orange | `--orange:#F0A202` | trois valeurs distinctes selon l'usage (`#a76500`, `#fff1d5`, `#efa81c`) | mesuré différent, et non uniforme en son propre sein |
+
+*Le bleu et le rouge — les deux couleurs de marque — sont exacts au caractère près. Les six autres jetons partagent la même famille de teinte mais pas la même valeur.* **Ce que cela règle : la démonstration confirme que #0053A1 reste LA couleur primaire, ce qu'Alexis avait annoncé et que la mesure ne contredit pas.** Ce que cela ne règle pas : les jetons neutres et les couleurs de statut au pixel près, qui restent ceux de `CODIPLAN_Maquette.html` tant que D95 n'est pas rouvert pour eux — une question distincte, non posée ici.
+
+**La barre latérale porte en outre une couleur qui n'existe dans AUCUNE des deux palettes ci-dessus : `#0d66b8` pour l'entrée active**, contre un fond de barre `#10233e` (une marine foncée, absente elle aussi des deux jeux de jetons). *C'est une troisième zone de couleur, propre au chrome de navigation, que ni D95 ni la table ci-dessus ne couvrent — nommée pour qu'elle ne soit pas confondue avec une des deux palettes.*
+
+**La recherche, cette fois, est DESSINÉE — quatre fois, avec sa forme précise.** `interventions()`, `clients()`, `sites()` et `parc()` portent chacun `<div class="search"><input class="field" placeholder="…"></div>`, avec une icône loupe posée en `::before` (`content:"⌕"`) et un champ dont le texte commence après elle (`padding-left:38px`). **Ce n'est plus une forme à inventer : c'est une forme à mesurer et à reprendre.**
+
+**Les filtres, en revanche, n'y sont JAMAIS des pastilles cliquables — ils sont des menus déroulants `<select>`, trois fois mesurés** (`interventions()` : statut, agence ; `clients()` : état ; `parc()` : statut machine). Zéro `<button>` de filtre, zéro classe de pastille, zéro état actif/inactif sur un filtre. **La forme que D122 avait adoptée le 17/09/2026 au matin — des pastilles — n'est PAS celle que cette seconde maquette choisit.**
+
+**Le fil d'Ariane n'y est pas non plus un fil — c'est une ÉTIQUETTE simple.** `head(domain,title,subtitle,...)` pose `<div class="eyebrow">${domain}</div>` juste au-dessus du `<h1>` : le nom du DOMAINE seul (« Clients & parc », « Exploitation »…), jamais « domaine › destination ». Une seconde information de position existe par ailleurs, indépendante : `<span class="route">/clients</span>` dans la barre du haut, qui affiche le chemin technique. **Deux signaux simples plutôt qu'un fil composé.**
+
+**Le maître-détail y est dessiné, avec ses proportions exactes.** `.master-detail{grid-template-columns:minmax(360px,.85fr) minmax(430px,1.15fr)}`, utilisé dans `parc()` — une liste de machines à gauche, une fiche à droite, environ 43 / 57. C'est la même **composition** que la fiche machine à deux colonnes du D95 canonique, appliquée à une liste plutôt qu'à un écran isolé — exactement ce que D122 avait déjà raisonné, avec un ratio concret en plus.
+
+**Et un dernier fait, non demandé, qui corrobore une pratique déjà adoptée plutôt que de la trancher : cette seconde maquette porte elle-même un bandeau « Données fictives · aucun enregistrement réel » sur chaque écran** (`.demo-chip`, topbar). C'est exactement la marque `FICTIF` que `docs/propositions/double-menu.html` pose sur son propre écran d'exemple (I9) — une confirmation indépendante, pas une clause à décider.
+
+### LA DÉCISION
+
+**Sur les encadrés et les couleurs : il n'y a RIEN À AMENDER, il y a à APPLIQUER.** La maquette fait déjà foi dessus (D95) ; ce que la démonstration montre est une bonne exécution d'une règle qui existe déjà, pas une règle nouvelle. Le seul travail qu'elle révèle est un travail d'APPLICATION — partout où un écran s'écarte aujourd'hui de `.card`/`.kpi` ou des couleurs de statut, c'est l'écran qui est en tort, jamais la référence.
+
+**Sur la recherche, les filtres, l'indication de position et la disposition maître-détail d'une liste : `CODIPLAN_Maquette.html` est MUETTE, et D95 dit elle-même que là où elle se tait nous sommes libres.** C'était la décision du matin ; l'après-midi, `codiplan-maquette-complete.html` a donné une forme concrète à cette même liberté, et cette décision l'ADOPTE plutôt que d'en garder une inventée — la borne reste la même (D95 ne s'étend pas), seule la source de la forme change, d'une invention vers une mesure :
+
+- **Une barre de recherche** est adoptée pour les écrans de liste — texte libre, jamais un identifiant technique en clair, avec une icône loupe et un champ dont le texte démarre après elle (`padding-left`), la forme mesurée sur quatre écrans de `codiplan-maquette-complete.html`.
+- ~~**Des pastilles de filtre** sont adoptées, cliquables, un état actif visible~~ — **RETIRÉ, remplacé par la mesure.** Un filtre est un **menu déroulant** (`<select>`), pas une pastille : c'est la forme que `codiplan-maquette-complete.html` choisit trois fois, jamais une pastille. *La phrase barrée est conservée, comme le veut le §9 du `CLAUDE.md` : elle a gouverné cette décision quelques heures, avant qu'un exemple concret ne la corrige.*
+- ~~**Un fil d'Ariane** est adopté au-dessus du titre — domaine actif puis destination~~ — **RETIRÉ, remplacé par la mesure.** La forme concrète est plus simple qu'un fil composé : une **étiquette** portant le seul nom du domaine, au-dessus du titre (`eyebrow`), et **séparément**, un chemin technique dans la barre du haut (`/clients`) — deux signaux indépendants, jamais « domaine › destination » liés par un séparateur.
+- **Une disposition liste-à-gauche / fiche-à-droite** est adoptée pour un écran de liste qui a une fiche, dans la proportion mesurée `minmax(360px,.85fr) minmax(430px,1.15fr)` — la même composition que la fiche machine à deux colonnes du D95 canonique, appliquée à une liste plutôt qu'à un écran isolé.
+
+**Le point précis où `CODIPLAN_Maquette.html` est muette reste celui-ci, et pas un autre : elle ne dessine ni la forme d'un contrôle de filtrage, ni une indication de position au-dessus du titre, ni un écran combinant une liste et une fiche.** Ce n'est jamais « la maquette ne prévoyait pas ce cas » — c'est cette liste de quatre formes, mesurée, nommée. Et depuis cet après-midi, trois des quatre ont une forme mesurée sur une seconde source plutôt qu'inventée par cette décision — la quatrième, la recherche, l'était déjà par sa forme la plus simple, et la nouvelle mesure la confirme sans la changer.
+
+### CE QUE CETTE DÉCISION NE TRANCHE PAS
+
+**La démonstration vue par Alexis montre quelques écrans ; le produit en compte quatorze.** Une illustration ne peut pas faire autorité sur ce qu'elle ne montre pas : ce que D122 adopte est un VOCABULAIRE — encadré, recherche, filtre, fil d'Ariane, maître-détail — pas un gabarit obligatoire pour chacune des quatorze destinations. Un écran sans liste n'a pas de barre de recherche à inventer ; un domaine sans hiérarchie de fiche n'a pas de maître-détail à forcer. **La maquette reste la source ; cette décision en fixe la mise en œuvre pour les formes qu'elle ne dessinait pas**, elle ne remplace aucun de ses écrans.
+
+### LES DEUX RÉSERVES FERMES
+
+**Une cellule ou une liste vide se nomme pour ce qu'elle est, jamais pour un état qu'on n'a pas mesuré.** « Sans intervention » se lit sur une colonne vide ; « disponible » ne s'y lit JAMAIS — un planning qui affiche « disponible » sans avoir lu les absences, les trajets ou le calendrier de l'agence ment par optimisme, et c'est une donnée, pas une couleur.
+
+**Un titre décrit l'écran, il ne juge pas les données qu'il n'a pas mesurées.** C'est la même borne que D121 pose pour les titres en langage naturel ; elle est répétée ici parce que l'écran de démonstration en est l'exemple concret : pas de « Une semaine bien organisée » au-dessus d'une semaine en souffrance, pas de « Client fiable » au-dessus d'un compte dont personne n'a mesuré la fiabilité.
+
+### CE QUE ÇA COÛTE
+
+**Quatre formes à construire — recherche, filtre, indication de position, maître-détail —, chacune sur CHAQUE écran de liste qui les adopte**, ce qui n'est décidé ici pour aucune destination en particulier : le futur ticket d'implantation choisit où les poser, cette décision ne pose que le vocabulaire, sa forme désormais mesurée, et la limite de son silence.
+
+**Et un coût de PORTÉE, à ne pas confondre avec un coût de construction :** rien ici n'étend l'autorité de D95 à `docs/maquette/codiplan-maquette-complete.html` pour les couleurs et la disposition des écrans — cette confrontation adopte des FORMES (recherche, filtre, position, maître-détail) parce qu'elles relèvent de D122 et non de D95 ; elle ne fait pas de la seconde maquette une référence sur ce que D95 gouverne déjà. Le jour où quelqu'un lira `codiplan-maquette-complete.html` comme faisant foi sur les couleurs ou la disposition des écrans, il lira plus loin que ce que cette décision et D121 accordent.
+
+### LA DÉPENDANCE MATÉRIELLE
+
+**Comme D121, cette décision cite un fichier qui n'existe, à cette heure, que sur la branche `alexis97310-patch-1` (proposition #222).** Elle est donc soumise à la même borne : la proposition qui la porte (#218) ne doit pas être fusionnée avant #222.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où `CODIPLAN_Maquette.html` elle-même dessine un champ de recherche, un filtre, une indication de position ou un écran combinant liste et fiche**, elle redevient la source sur ce point précis (D95), et cette décision cesse de le trancher à sa place. Et **le jour où la proposition #222 est fermée sans être fusionnée, ou modifiée avant sa fusion d'une façon qui changerait l'une des mesures de cette page**, la confrontation à `codiplan-maquette-complete.html` doit être refaite plutôt que supposée encore vraie.
+
+*Aucune règle du chapitre 10 n'est amendée : le vocabulaire d'écran n'y figure pas.*
