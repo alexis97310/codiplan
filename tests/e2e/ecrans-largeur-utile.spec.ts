@@ -52,6 +52,17 @@ test("les établissements tiennent tous dans la fenêtre, sur la largeur utile",
 }) => {
   await page.goto("/parametres/agences");
 
+  // Le flux de rendu dépose d'abord le vrai contenu dans un conteneur CACHÉ
+  // avant de le révéler (React, sous rendu en flux) : mesurer un rectangle
+  // sans attendre la visibilité peut lire ce conteneur, de largeur ET DE
+  // HAUTEUR nulles — mesuré le 17/09/2026, cause de la régression de CI de
+  // #217. Posée ici, AVANT LA PREMIÈRE mesure géométrique du scénario : une
+  // revue automatique sur #220 a montré que la poser seulement avant la
+  // largeur laissait le contrôle de débordement, ci-dessous, passer sur des
+  // rectangles nuls — mesuré à 11 reprises sur 25 essais avant ce correctif.
+  // Attendre n'assouplit rien : les valeurs exactes attendues sont inchangées.
+  await expect(page.locator("main")).toBeVisible();
+
   const lignes = page.locator("main tbody tr");
   // Témoin : sans lignes, « toutes visibles » serait vrai et ne dirait rien.
   await expect(lignes).toHaveCount(3);
@@ -63,12 +74,6 @@ test("les établissements tiennent tous dans la fenêtre, sur la largeur utile",
   );
   expect(debordent).toBe(0);
 
-  // Le flux de rendu dépose d'abord le vrai contenu dans un conteneur CACHÉ
-  // avant de le révéler (React, sous rendu en flux) : le mesurer sans attendre
-  // qu'il soit visible peut lire ce conteneur, de largeur nulle, plutôt que le
-  // `main` posé — mesuré le 17/09/2026, cause de la régression de CI de #217.
-  // Attendre n'assouplit rien : la valeur exacte attendue reste 1360.
-  await expect(page.locator("main")).toBeVisible();
   const largeur = await page
     .locator("main")
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
