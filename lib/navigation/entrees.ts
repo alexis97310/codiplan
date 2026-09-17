@@ -46,6 +46,15 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * dessine. Un compte de portail en reçoit une autre — `ENTREES_PORTAIL`, D97 —,
  * *un client qui lirait « Facturation » ou « Techniciens » au-dessus de son
  * espace apprendrait l'existence d'un outil qui n'est pas le sien.*
+ *
+ * ## Depuis D118 : DIX destinations, sur DEUX NIVEAUX
+ *
+ * Ce que ce fichier appelait « onze », puis « dix » après D98, reste le compte
+ * des ÉCRANS que la maquette fait foi — ce sur quoi D95 fait toujours foi.
+ * Onze entrées à plat ne se lisaient plus au même rang, et D118 amende D95 sur
+ * ce point précis : la FORME du menu — ses niveaux, ses regroupements — cesse
+ * d'être imposée par la maquette. Voir `GroupeNavigation` ci-dessous pour ce
+ * que cet amendement autorise, et ce qu'il continue de refuser.
  */
 
 export type EntreeNavigation = {
@@ -76,6 +85,70 @@ export type EntreeNavigation = {
    */
   readonly ouvertePar?: string;
 };
+
+/**
+ * UN GROUPE DE PREMIER NIVEAU (D118, 16/09/2026) — un titre, et sous lui des
+ * ENTRÉES SIMPLES, jamais un second niveau de groupe.
+ *
+ * D118 amende D95 : la maquette ne fait plus foi sur la FORME du menu — le
+ * nombre d'entrées de premier niveau, les niveaux, les libellés de
+ * regroupement — seulement sur ses ÉCRANS. `docs/propositions/navigation.html`
+ * montre deux structures possibles et note que la structure exacte
+ * « reste à arrêter devant une image » : ni l'une ni l'autre n'a été validée
+ * depuis. Ce fichier n'en rejoue donc aucune telle quelle ; il applique le
+ * même principe — regrouper ce qui se ressemble — à la seule matière qui est
+ * dans SON périmètre : les dix entrées déjà dans la barre. Ni `/clients`, ni
+ * `/sites`, ni `/vgp`, ni `/absences` n'y entrent : ce sont des écrans vivants
+ * sans porte aujourd'hui, et leur donner une porte est exactement la question
+ * que D118 pose sans la trancher — l'ouvrir ici serait la trancher en douce, à
+ * côté d'un autre agent qui travaille ces écrans au même moment.
+ *
+ * **UN TITRE DE GROUPE N'EST JAMAIS UNE DESTINATION** (repris tel quel du
+ * document ci-dessus) : cliquer dessus ouvre le sous-menu, il ne navigue
+ * nulle part — sinon l'appui est ambigu. Ce que cela coûte pour une entrée
+ * comme « Sociétés & tarifs », qui EST une destination : elle réapparaît comme
+ * l'un de ses propres enfants, exactement comme le document le fait pour
+ * « Planning ».
+ *
+ * **ET C'EST CE QUI INTERDIT D'INVENTER UN LIBELLÉ.** Le document propose
+ * « Paramètres » comme titre du second groupe et le signale lui-même comme
+ * NON TRANCHÉ — « aucune clé de dictionnaire ne porte ce libellé ». Un titre
+ * de groupe ici doit donc être le libellé d'un de ses propres enfants : le
+ * gardien (`tests/unit/navigation/entrees.test.ts`) l'exige, ce qui rend
+ * impossible d'introduire silencieusement un libellé que personne n'a encore
+ * arrêté.
+ */
+export type GroupeNavigation = {
+  /** Le titre du groupe — le libellé d'UN DE SES ENFANTS, jamais un mot neuf. */
+  readonly cle: CleTraduction;
+  /** Les entrées du sous-menu, dans l'ordre où elles s'y affichent. */
+  readonly enfants: readonly EntreeNavigation[];
+};
+
+/** Une entrée de premier niveau : simple, ou un groupe qui en ouvre d'autres. */
+export type EntreeDeBarre = EntreeNavigation | GroupeNavigation;
+
+/** `entree` ouvre-t-elle un sous-menu ? Le seul endroit qui lit `enfants`. */
+export function estGroupe(entree: EntreeDeBarre): entree is GroupeNavigation {
+  return "enfants" in entree;
+}
+
+/**
+ * TOUTES LES DESTINATIONS D'UNE BARRE, à PLAT — un groupe ouvert plutôt que
+ * représenté.
+ *
+ * C'est la lecture que `entreeActive` et les gardiens partagent : la barre du
+ * portail et celle du terrain n'ont pas de groupe, et y appliquer cette
+ * fonction ne change rien pour elles (aucune entrée n'a `enfants`, chacune se
+ * rend donc elle-même).
+ */
+export function feuilles(
+  entrees: readonly EntreeDeBarre[],
+): readonly EntreeNavigation[] {
+  return entrees.flatMap((entree) =>
+    estGroupe(entree) ? entree.enfants : [entree],
+  );
+}
 
 /**
  * LES ÉCARTS DÉLIBÉRÉS À LA MAQUETTE — liste close, une entrée, avec son motif.
@@ -114,40 +187,67 @@ export const ECARTS_MAQUETTE: ReadonlyArray<{
 ];
 
 /**
- * Les entrées, dans l'ordre exact de la maquette **moins les écarts nommés**.
- * **Liste close** : `tests/unit/navigation/entrees.test.ts` la confronte à la
- * barre de `docs/maquette/CODIPLAN_Maquette.html`, et échoue si l'une des deux
- * bouge sans l'autre — libellé et ordre compris.
+ * LES ENTRÉES, REGROUPÉES SUR DEUX NIVEAUX (D118, 16/09/2026) — même dix
+ * destinations qu'avant l'amendement, réorganisées, aucune ajoutée.
+ *
+ * *Motif de l'exploitation : onze entrées plates ne se lisent plus au même
+ * rang. D118 le mesure autrement — cinq entrées sur dix ne mènent nulle
+ * part — mais le symptôme est le même : un inventaire n'est pas un menu.*
+ *
+ * **Six entrées de premier niveau.** Quatre restent des destinations directes
+ * — « Tableau de bord », « Parc machines », « Contrats », « Portail client » —
+ * parce qu'aucune des six autres ne leur ressemble assez pour former un
+ * groupe honnête. Les deux qui restent sont des groupes :
+ *
+ * - **Planning** rassemble ce qui organise le travail du jour : le planning
+ *   lui-même et les interventions qui le remplissent.
+ * - **Sociétés & tarifs** rassemble la configuration et ce qui n'a pas
+ *   d'autre maison : les imports Excel qui alimentent les référentiels, et
+ *   les deux entrées encore inertes — « App technicien », « Console éditeur »
+ *   — pour qui n'importe quel groupe est un rangement provisoire tant
+ *   qu'aucun écran ne leur donne un sens propre.
+ *
+ * **Liste close** : `tests/unit/navigation/entrees.test.ts` confronte les DIX
+ * DESTINATIONS, une fois les groupes ouverts (`feuilles`), à la barre de
+ * `docs/maquette/CODIPLAN_Maquette.html` — la maquette fait foi sur cet
+ * ensemble (D95), plus depuis D118 sur l'ordre ou le regroupement (voir
+ * `GroupeNavigation` ci-dessus).
  */
-export const ENTREES: readonly EntreeNavigation[] = [
+export const ENTREES: readonly EntreeDeBarre[] = [
   { cle: "nav.tableau_de_bord", chemin: null, ouvertePar: "lot 4" },
-  { cle: "nav.planning", chemin: "/planning" },
-  { cle: "nav.interventions", chemin: "/interventions" },
+  {
+    cle: "nav.planning",
+    enfants: [
+      { cle: "nav.planning", chemin: "/planning" },
+      { cle: "nav.interventions", chemin: "/interventions" },
+    ],
+  },
   { cle: "nav.parc_machines", chemin: "/parc" },
   // ⟵ « Fiche machine » était ICI, entre le parc et les contrats. Elle est
   //    SORTIE (D98), et c'est le seul écart délibéré à la maquette : voir
   //    ECARTS_MAQUETTE ci-dessous, qui porte le motif et que le gardien lit.
   { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
-  { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
   { cle: "nav.portail_client", chemin: "/portail" },
-  // **ELLE ÉTAIT INERTE ET ELLE ATTENDAIT LE MAUVAIS TICKET** *(14/09/2026)*.
-  // Elle nommait `L1-09`, qui porte les GABARITS — ce qu'on télécharge —,
-  // jamais l'écran d'où l'on téléverse. *Une entrée inerte qui nomme un ticket
-  // fantôme est inerte deux fois : elle n'ouvre rien, et elle envoie chercher
-  // là où il n'y a rien.* L1-11 l'ouvre, et **la barre reste close à onze
-  // entrées** : une entrée inerte devient un chemin, aucune ne s'ajoute.
-  { cle: "nav.imports_excel", chemin: "/imports" },
   {
-    // L'ENTRÉE MÈNE À LA SECTION, NON À L'UN DE SES ÉCRANS (R3-05). Elle
-    // pointait sur `/parametres/agences`, si bien que les deux autres écrans de
-    // réglage — les trajets et les forfaits — n'avaient AUCUNE porte : la barre
-    // est une liste close de onze entrées, et il n'y en avait pas de douzième à
-    // leur donner. La section existait déjà ici, il lui manquait sa page.
     cle: "nav.societes_tarifs",
-    chemin: "/parametres",
-    section: "/parametres",
+    enfants: [
+      {
+        // L'ENTRÉE MÈNE À LA SECTION, NON À L'UN DE SES ÉCRANS (R3-05). Elle
+        // pointait sur `/parametres/agences`, si bien que les deux autres
+        // écrans de réglage — les trajets et les forfaits — n'avaient AUCUNE
+        // porte. La section existait déjà ici, il lui manquait sa page.
+        cle: "nav.societes_tarifs",
+        chemin: "/parametres",
+        section: "/parametres",
+      },
+      // **ELLE ÉTAIT INERTE ET ELLE ATTENDAIT LE MAUVAIS TICKET** *(14/09/2026)*.
+      // Elle nommait `L1-09`, qui porte les GABARITS — ce qu'on télécharge —,
+      // jamais l'écran d'où l'on téléverse. L1-11 l'ouvre.
+      { cle: "nav.imports_excel", chemin: "/imports" },
+      { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
+      { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
+    ],
   },
-  { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
 ];
 
 /**
@@ -219,13 +319,19 @@ export const ENTREES_TERRAIN: readonly EntreeNavigation[] = [];
  * obligatoire aurait touché des appels que ce ticket ne regarde pas. *Le
  * poseur, lui, ne devine rien* — la barre reçoit sa liste explicitement, et un
  * segment qui oublierait de la passer ne compile pas.
+ *
+ * **Depuis D118, `entrees` peut porter des groupes** : la recherche se fait
+ * sur `feuilles(entrees)`, jamais sur la liste brute — un groupe n'a pas de
+ * `chemin` propre, seuls ses enfants en ont un. Pour une barre sans groupe
+ * (le portail, le terrain), `feuilles` rend la liste inchangée : le
+ * comportement d'avant D118 est un cas particulier de celui-ci.
  */
 export function entreeActive(
   chemin: string,
-  entrees: readonly EntreeNavigation[] = ENTREES,
+  entrees: readonly EntreeDeBarre[] = ENTREES,
 ): EntreeNavigation | null {
   let meilleure: { entree: EntreeNavigation; longueur: number } | null = null;
-  for (const entree of entrees) {
+  for (const entree of feuilles(entrees)) {
     if (entree.chemin === null) continue;
     const section = entree.section ?? entree.chemin;
     if (chemin !== section && !chemin.startsWith(`${section}/`)) continue;
