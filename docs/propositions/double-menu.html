@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROPOSITION — Le double menu de domaine — ne fait foi sur rien</title>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  CE FICHIER NE FAIT FOI SUR RIEN.
+
+  La référence du produit est `docs/maquette/CODIPLAN_Maquette.html`, et elle
+  seule : elle fait foi sur les COULEURS et sur la disposition des écrans
+  (D95). Ce fichier-ci est une PROPOSITION, posée à côté et jamais dedans —
+  exactement le statut de `docs/propositions/navigation.html`, dont celui-ci
+  est la SUITE : D118 y avait laissé la structure « à arrêter devant une
+  image » ; D121 l'arrête, sur un principe différent — un second niveau
+  PERMANENT plutôt qu'un menu qui se déplie. D122 fixe en plus, à côté du
+  menu, le vocabulaire d'écran adopté sur les points où la maquette est
+  muette — recherche, filtres, fil d'Ariane, disposition maître-détail.
+
+  Rien dans le dépôt ne le lit. `lib/navigation/entrees.ts` n'a pas bougé
+  d'une ligne, et ce ticket (N-07) n'en avait pas le droit : AT-07 écrit au
+  même moment dans ce fichier et dans les pages de liste, et un fichier n'a
+  qu'un seul écrivain. L'implantation viendra dans un autre ticket.
+
+  ── CE QU'IL MONTRE, ET D'OÙ VIENT CHAQUE CHOSE ─────────────────────────────
+
+  Les QUATORZE destinations sont celles qui existent RÉELLEMENT dans ce
+  dépôt aujourd'hui (17/09/2026) — dix écrans servis, quatre inertes avec le
+  lot qui les ouvrira — jamais celles d'une maquette de démonstration. Les
+  LIBELLÉS viennent de `lib/i18n/fr.ts` (clés `nav.*`, `parametres.*`,
+  `vocabulaire.*`) quand la clé existe ; les libellés qui n'existent nulle
+  part encore sont marqués « proposé », en bas, comme le faisait déjà
+  `navigation.html`.
+
+  Les COULEURS et les ENCADRÉS (`.card`, `.kpi`) sont ceux de la maquette,
+  jeton pour jeton — D122 les mesure plutôt que de les supposer.
+
+  UN SEUL ÉCRAN PORTE DES DONNÉES D'EXEMPLE (« Clients & parc »), et elles
+  sont marquées FICTIF à trois endroits distincts : aucune n'est une donnée
+  de production, aucune n'est même une donnée du semis (I9) — ce sont des
+  noms inventés pour l'exercice de mise en page, rien de plus.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+:root{
+  --rouge:#E30613; --bleu:#0053A1; --noir:#111111; --fond:#F4F5F7;
+  --vert:#0F9D58; --orange:#F0A202; --gris:#6B7280; --bord:#E1E4E8; --blanc:#fff;
+  --creux:#FAFBFC;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--fond);color:var(--noir);font-size:14px;line-height:1.5}
+.wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px}
+h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px}
+h2{font-size:16px;font-weight:800;margin:28px 0 8px}
+h3{font-size:13px;font-weight:800;margin:0 0 8px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris)}
+p{margin-bottom:10px}
+.sous{color:var(--gris);font-size:13px}
+.avert{background:#FDE7E9;border:1px solid var(--rouge);color:#8A0810;border-radius:8px;padding:12px 14px;margin:14px 0;font-size:12.5px}
+.carte{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:16px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--gris);border-bottom:1px solid var(--bord);padding:7px 8px}
+td{border-bottom:1px solid var(--bord);padding:8px}
+code{background:var(--fond);border:1px solid var(--bord);border-radius:4px;padding:0 4px;font-size:11.5px}
+
+/* ---------- étiquettes ---------- */
+.et{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:2px 7px;white-space:nowrap;display:inline-block}
+.vif{background:#E3F5EA;color:#0B6B3A;border:1px solid var(--vert)}
+.dort{background:#F4F5F7;color:var(--gris);border:1px solid var(--bord)}
+.neuf{background:#E7F0FA;color:#0B3D75;border:1px solid var(--bleu)}
+.ecart{background:#FEF3DC;color:#7A5200;border:1px solid var(--orange)}
+.fictif{background:#FDE7E9;color:#8A0810;border:1px solid var(--rouge)}
+
+/* ---------- le double menu, grand écran ---------- */
+.galerie{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:860px){.galerie{grid-template-columns:1fr}}
+.ecran{border:1px solid var(--bord);border-radius:10px;overflow:hidden;background:var(--blanc)}
+.topbar{background:var(--blanc);border-bottom:1px solid var(--bord);padding:9px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:-.3px;font-size:15px;flex-shrink:0;white-space:nowrap}
+.tri{width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:15px solid var(--rouge)}
+.brand span.b{color:var(--bleu)}
+.domaines{display:flex;gap:2px;flex-wrap:wrap}
+.domaines .d{padding:6px 10px;border-radius:6px;font-size:12px;font-weight:700;color:var(--gris);white-space:nowrap}
+.domaines .d.on{background:var(--bleu);color:#fff}
+.sousbarre{background:var(--creux);border-bottom:1px solid var(--bord);padding:0 14px;display:flex;gap:4px;flex-wrap:wrap;min-height:38px;align-items:center}
+.sousbarre .s{padding:8px 10px;font-size:12px;font-weight:600;color:var(--gris);border-bottom:2px solid transparent;white-space:nowrap}
+.sousbarre .s.on{color:var(--bleu);border-bottom-color:var(--bleu);font-weight:700}
+.sousbarre .s.inerte{color:#B6BAC1}
+.sousbarre.vide{padding:0;min-height:0;border-bottom:none}
+.corps{padding:20px 16px;color:var(--gris);font-size:12.5px;min-height:70px}
+.corps .titreecran{color:var(--noir);font-weight:800;font-size:15px;margin-bottom:4px}
+.legende{padding:8px 14px 12px;font-size:11px;color:var(--gris);border-top:1px dashed var(--bord)}
+
+/* ---------- le téléphone ---------- */
+.tel{width:360px;max-width:100%;border:1px solid var(--bord);border-radius:14px;overflow:hidden;background:var(--blanc)}
+.tel .barre{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bord)}
+.tel .bouton{margin-left:auto;border:1px solid var(--bord);border-radius:7px;padding:5px 9px;font-size:12px;font-weight:700}
+.tel .panneau{padding:6px}
+.tel details{border-bottom:1px solid #F0F1F3}
+.tel summary{list-style:none;cursor:default;padding:12px 10px;font-size:13.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.tel summary::-webkit-details-marker{display:none}
+.tel .lien{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 10px 10px 22px;font-size:13px;color:var(--noir);text-decoration:none}
+.tel .lien.inerte{color:#B6BAC1}
+.tel .lien.on{color:var(--bleu);font-weight:700}
+.tel a.direct{display:flex;justify-content:space-between;align-items:center;padding:12px 10px;font-size:13.5px;font-weight:700;color:var(--noir);text-decoration:none;border-bottom:1px solid #F0F1F3}
+
+/* ---------- illustration de la règle du domaine à une destination ---------- */
+.regle-illustration{border:1px dashed var(--gris);border-radius:10px;padding:14px;background:var(--creux);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.regle-illustration .maquette-domaine{font-size:12px;font-weight:700;padding:6px 10px;border-radius:6px;background:var(--bleu);color:#fff;white-space:nowrap}
+
+/* ---------- l'écran de démonstration (Clients & parc → Clients), venu de D122 ---------- */
+.maquette-card{background:var(--blanc);border:1px solid var(--bord);border-radius:10px}
+.maquette-card h2.mh{font-size:14px;font-weight:700;padding:14px 16px;border-bottom:1px solid var(--bord);margin:0;display:flex;justify-content:space-between;align-items:center}
+.filaria{font-size:12px;color:var(--gris);padding:14px 0 2px}
+.filaria b{color:var(--noir)}
+.ecran-titre{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:2px 0 14px;flex-wrap:wrap}
+.ecran-titre h1{font-size:20px}
+.grid-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:700px){.grid-kpi{grid-template-columns:1fr}}
+.kpi{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:14px 15px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--bleu)}
+.kpi .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris);font-weight:700}
+.kpi .v2{font-size:24px;font-weight:800;letter-spacing:-1px;margin:3px 0 2px}
+.kpi .d{font-size:10.5px;color:var(--gris)}
+.barre-outils{display:flex;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bord);flex-wrap:wrap}
+.recherche{flex:1;min-width:180px;position:relative}
+.recherche input{width:100%;padding:8px 12px 8px 30px;border:1px solid var(--bord);border-radius:8px;font-size:13px;font-family:inherit}
+.recherche::before{content:'⌕';position:absolute;left:10px;top:6px;color:var(--gris);font-size:14px}
+.pastilles{display:flex;gap:6px;flex-wrap:wrap}
+.pastille{padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--bord);color:var(--gris);background:var(--blanc);white-space:nowrap}
+.pastille.on{background:var(--bleu);border-color:var(--bleu);color:#fff}
+.maitre-detail{display:grid;grid-template-columns:1fr 320px}
+@media(max-width:900px){.maitre-detail{grid-template-columns:1fr}}
+.liste table{font-size:12.5px}
+.liste th{padding:9px 16px}
+.liste td{padding:10px 16px}
+.liste tbody tr.on{background:#E7F0FA}
+.fiche{border-left:1px solid var(--bord);padding:16px}
+@media(max-width:900px){.fiche{border-left:none;border-top:1px solid var(--bord)}}
+.fiche h3.ft{font-size:14px;font-weight:800;color:var(--noir);text-transform:none;letter-spacing:0;margin-bottom:10px}
+.dl{display:grid;grid-template-columns:90px 1fr;gap:8px 10px;font-size:12.5px;margin-bottom:14px}
+.dl dt{color:var(--gris)}
+.dl dd{font-weight:600}
+.vide{color:var(--gris);font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Proposition — le double menu de domaine</h1>
+<p class="sous">Écrite le 17 septembre 2026, pour N-07. <strong>Ce document ne fait foi sur rien</strong> : la référence reste <code>docs/maquette/CODIPLAN_Maquette.html</code>, et <code>lib/navigation/entrees.ts</code> n'a pas été touché — ce ticket n'en avait pas le droit (AT-07 écrit dedans en ce moment).</p>
+
+<div class="avert">
+  <strong>Ce qui est nouveau n'est pas « deux niveaux ».</strong> Un second niveau existe déjà, sous la forme d'un menu déroulant (D118, <code>GroupeNavigation</code>). Ce que ce document propose est que <strong>le second niveau devienne une barre PERMANENTE</strong> : elle montre en permanence toutes les destinations du domaine courant, et elle dit où l'on est — elle ne se déplie pas, elle ne se referme pas après un choix. <strong>Le double menu de domaine REMPLACE le menu déroulant de D118, il ne s'y ajoute pas.</strong> (D121)
+</div>
+
+<h2>Les quatorze destinations réelles, réparties en trois domaines</h2>
+<table>
+  <tr><th>Domaine</th><th>Destination</th><th>Chemin</th><th>État</th></tr>
+  <tr><td rowspan="4">Exploitation</td><td>Tableau de bord</td><td><code>/tableau-de-bord</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>Planning</td><td><code>/planning</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>Interventions</td><td><code>/interventions</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>Absences</td><td><code>/absences</code></td><td><span class="et ecart">vivante, sans porte</span></td></tr>
+  <tr><td rowspan="5">Clients &amp; parc</td><td>Clients</td><td><code>/clients</code></td><td><span class="et ecart">vivante, mal placée</span></td></tr>
+  <tr><td>Sites</td><td><code>/sites</code></td><td><span class="et ecart">vivante, par rebond</span></td></tr>
+  <tr><td>Parc machines</td><td><code>/parc</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>VGP</td><td><code>/vgp</code></td><td><span class="et ecart">vivante, par rebond</span></td></tr>
+  <tr><td>Portail client</td><td><code>/portail</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td rowspan="5">Paramètres</td><td>Sociétés &amp; tarifs</td><td><code>/parametres</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>Imports Excel</td><td><code>/imports</code></td><td><span class="et vif">vivante</span></td></tr>
+  <tr><td>Contrats</td><td>—</td><td><span class="et dort">inerte — lot 4</span></td></tr>
+  <tr><td>App technicien</td><td>—</td><td><span class="et dort">inerte — lot 3</span></td></tr>
+  <tr><td>Console éditeur</td><td>—</td><td><span class="et dort">inerte — lot 7</span></td></tr>
+</table>
+<p class="sous" style="margin-top:8px"><span class="et ecart">quatre lignes</span> sont des écarts délibérés à la maquette, nommés un par un dans D121 — <em>Clients, Sites, VGP, Absences</em> sont des écrans vivants qu'un premier niveau plat ne pouvait pas atteindre proprement. <strong>Imports Excel vit dans Paramètres</strong>, pas dans un domaine à lui seul : voir la règle ci-dessous.</p>
+
+<h2>La barre de domaine, sur grand écran — le second niveau CHANGE</h2>
+<p>Trois captures du même en-tête, un domaine actif différent à chaque fois. <strong>Le premier niveau ne bouge jamais</strong> ; c'est la barre du dessous qui change de contenu.</p>
+
+<div class="galerie">
+
+  <!-- ============ EXPLOITATION ============ -->
+  <div class="ecran">
+    <div class="topbar">
+      <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span></div></div>
+      <div class="domaines">
+        <span class="d on">Exploitation</span>
+        <span class="d">Clients &amp; parc</span>
+        <span class="d">Paramètres</span>
+      </div>
+    </div>
+    <div class="sousbarre">
+      <span class="s">Tableau de bord</span>
+      <span class="s">Planning</span>
+      <span class="s on">Interventions</span>
+      <span class="s">Absences</span>
+    </div>
+    <div class="corps">
+      <div class="titreecran">Interventions</div>
+      La barre de domaine dit deux choses à la fois : on est dans « Exploitation », et précisément sur « Interventions ».
+    </div>
+    <div class="legende">Domaine actif : <strong>Exploitation</strong> — quatre destinations, toutes vivantes.</div>
+  </div>
+
+  <!-- ============ CLIENTS & PARC ============ -->
+  <div class="ecran">
+    <div class="topbar">
+      <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span></div></div>
+      <div class="domaines">
+        <span class="d">Exploitation</span>
+        <span class="d on">Clients &amp; parc</span>
+        <span class="d">Paramètres</span>
+      </div>
+    </div>
+    <div class="sousbarre">
+      <span class="s">Clients</span>
+      <span class="s">Sites</span>
+      <span class="s">Parc machines</span>
+      <span class="s on">VGP</span>
+      <span class="s">Portail client</span>
+    </div>
+    <div class="corps">
+      <div class="titreecran">Registre VGP</div>
+      Cinq destinations affichées d'un coup, là où « Registre VGP » ne se trouvait aujourd'hui qu'en cliquant sur une machine d'abord.
+    </div>
+    <div class="legende">Domaine actif : <strong>Clients &amp; parc</strong> — cinq destinations, dont trois écarts nommés (Clients, Sites, VGP).</div>
+  </div>
+
+  <!-- ============ PARAMÈTRES ============ -->
+  <div class="ecran">
+    <div class="topbar">
+      <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span></div></div>
+      <div class="domaines">
+        <span class="d">Exploitation</span>
+        <span class="d">Clients &amp; parc</span>
+        <span class="d on">Paramètres</span>
+      </div>
+    </div>
+    <div class="sousbarre">
+      <span class="s on">Sociétés &amp; tarifs</span>
+      <span class="s">Imports Excel</span>
+      <span class="s inerte">Contrats</span>
+      <span class="s inerte">App technicien</span>
+      <span class="s inerte">Console éditeur</span>
+    </div>
+    <div class="corps">
+      <div class="titreecran">Sociétés &amp; tarifs</div>
+      Trois destinations inertes restent VISIBLES et éteintes, jamais retirées : une barre qui les cacherait mentirait par omission sur ce que le produit sera (règle héritée de la barre plate).
+    </div>
+    <div class="legende">Domaine actif : <strong>Paramètres</strong> — cinq destinations, trois inertes avec leur lot. Imports Excel y vit aujourd'hui, à côté des réglages.</div>
+  </div>
+
+  <!-- ============ ILLUSTRATION DE LA RÈGLE (aucun domaine réel n'est dans ce cas) ============ -->
+  <div class="ecran" style="display:flex;flex-direction:column">
+    <div class="corps" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px">
+      <div class="regle-illustration">
+        <span class="maquette-domaine">Domaine à une seule destination</span>
+        <span>→ pas de barre en dessous : le premier niveau EST la destination.</span>
+      </div>
+      <p style="margin:0"><strong>La règle est écrite, même si elle ne s'applique à AUCUN des trois domaines aujourd'hui</strong> (D121). Une barre à un seul onglet répéterait au second niveau ce que le premier vient déjà de dire. C'est un gardien pour demain, pas un état à montrer : Imports Excel, seule candidate à ce cas, vit dans Paramètres.</p>
+    </div>
+    <div class="legende">Illustration <span class="et fictif">hypothèse</span> — ne correspond à aucun domaine réel.</div>
+  </div>
+
+</div>
+
+<h2>Le panneau plein écran, sur téléphone</h2>
+<p>Un survol ne veut rien dire au doigt. Le panneau plein écran reprend les mêmes trois domaines en sections dépliables.</p>
+<div class="carte" style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+  <div class="tel">
+    <div class="barre">
+      <div class="brand" style="font-size:14px"><div class="tri" style="border-left-width:7px;border-right-width:7px;border-bottom-width:12px"></div><div>CODI<span class="b">PLAN</span></div></div>
+      <div class="bouton">Menu ✕</div>
+    </div>
+    <div class="panneau">
+      <details open>
+        <summary>Exploitation <span>▾</span></summary>
+        <a class="lien" href="#">Tableau de bord</a>
+        <a class="lien" href="#">Planning</a>
+        <a class="lien on" href="#">Interventions</a>
+        <a class="lien" href="#">Absences <span class="et ecart" style="font-size:8px">écart</span></a>
+      </details>
+      <details>
+        <summary>Clients &amp; parc <span>▸</span></summary>
+      </details>
+      <details>
+        <summary>Paramètres <span>▸</span></summary>
+      </details>
+    </div>
+  </div>
+  <div style="flex:1;min-width:280px">
+    <p><strong>Un titre de domaine n'est jamais lui-même une destination.</strong> Aujourd'hui les trois domaines ont chacun plusieurs destinations, donc les trois sont des sections qui se déplient — la règle du lien direct pour un domaine à une seule destination reste écrite (voir la galerie ci-dessus) sans avoir d'exemple réel à montrer ici.</p>
+    <p><strong>Une seule section ouverte à la fois</strong>, le panneau se referme dès qu'on choisit une destination — le mécanisme est celui déjà décrit pour le menu déroulant (D118) ; ce qui change n'est que la forme du GRAND écran, jamais celle du panneau tactile.</p>
+    <p class="sous">« Interventions » est ici la destination courante — surlignée, ouverte dans sa section — pour montrer que le panneau dit lui aussi où l'on est, pas seulement la barre de bureau.</p>
+  </div>
+</div>
+
+<h2>Le vocabulaire d'écran, appliqué à « Clients &amp; parc → Clients »</h2>
+<p>Ce qu'Alexis a aimé dans la démonstration au-delà du menu — encadrés, barres de recherche, couleurs — est traité dans <strong>D122</strong> : les encadrés et les couleurs sont déjà ceux de la maquette (rien à amender, tout à appliquer) ; la recherche, les pastilles de filtre, le fil d'Ariane et la disposition maître-détail sont des formes que la maquette ne dessine nulle part (mesuré : zéro <code>placeholder</code> sur les onze écrans, aucun fil d'Ariane, aucun écran « Clients »), donc décidées ici, au point précis où elle se tait.</p>
+<div class="avert" style="background:#FDE7E9">
+  <strong>Écran d'exemple — donnée <span class="et fictif">FICTIF</span> partout.</strong> Aucun nom ci-dessous n'existe dans le semis de démonstration ni ailleurs (I9). Cet écran teste une DISPOSITION, pas un contenu : ce n'est pas une proposition de refonte de <code>/clients</code>, qui reste le sujet d'un autre ticket.
+</div>
+
+<div class="maquette-card">
+  <div class="topbar" style="border-radius:0">
+    <div class="brand"><div class="tri"></div><div>CODI<span class="b">PLAN</span></div></div>
+    <div class="domaines">
+      <span class="d">Exploitation</span>
+      <span class="d on">Clients &amp; parc</span>
+      <span class="d">Paramètres</span>
+    </div>
+  </div>
+  <div class="sousbarre">
+    <span class="s on">Clients</span>
+    <span class="s">Sites</span>
+    <span class="s">Parc machines</span>
+    <span class="s">VGP</span>
+    <span class="s">Portail client</span>
+  </div>
+  <div style="padding:0 16px">
+    <div class="filaria"><b>Clients &amp; parc</b> › Clients</div>
+    <div class="ecran-titre">
+      <h1>Clients</h1>
+      <span class="sous">Titre neutre : il décrit l'écran, il ne juge pas les données qu'il n'a pas mesurées (D122).</span>
+    </div>
+
+    <div class="grid-kpi">
+      <div class="kpi"><div class="l">Clients actifs</div><div class="v2">132</div><div class="d">sur la même liste, comptés à part (AT-07)</div></div>
+      <div class="kpi"><div class="l">Sans site renseigné</div><div class="v2">6</div><div class="d">à compléter</div></div>
+      <div class="kpi"><div class="l">Nouveaux ce mois</div><div class="v2">3</div><div class="d">créés depuis le 1er</div></div>
+    </div>
+
+    <div class="barre-outils">
+      <div class="recherche"><input type="search" placeholder="Rechercher un client…" disabled></div>
+      <div class="pastilles">
+        <span class="pastille on">Tous</span>
+        <span class="pastille">Actifs</span>
+        <span class="pastille">Sans site</span>
+        <span class="pastille">Inactifs</span>
+      </div>
+    </div>
+
+    <div class="maitre-detail">
+      <div class="liste">
+        <table>
+          <thead><tr><th>Client</th><th>Sites</th><th>Dernière intervention</th></tr></thead>
+          <tbody>
+            <tr><td>Exemple — Atelier fictif A</td><td>2 lieux</td><td>12/09/2026</td></tr>
+            <tr class="on"><td><strong>Exemple — Atelier fictif B</strong></td><td>1 lieu</td><td>03/07/2026</td></tr>
+            <tr><td>Exemple — Atelier fictif C</td><td>3 lieux</td><td class="vide">Sans intervention</td></tr>
+            <tr><td>Exemple — Atelier fictif D</td><td>Aucun lieu</td><td class="vide">Sans intervention</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="fiche">
+        <h3 class="ft">Exemple — Atelier fictif B</h3>
+        <dl class="dl">
+          <dt>Code externe</dt><dd>EXPL-002</dd>
+          <dt>Sites</dt><dd>1 lieu</dd>
+          <dt>État</dt><dd>Active</dd>
+        </dl>
+        <h3 class="ft" style="font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris)">Dernières interventions</h3>
+        <p class="vide" style="margin:0">Sans intervention — jamais « disponible » : nous n'avons rien mesuré ici (D122).</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="sous" style="margin-top:10px">Le champ de recherche est rendu <code>disabled</code> à dessein : cette page ne fait rien, elle montre une disposition. Les pastilles de filtre n'ont aucune logique derrière elles — un clic ne changerait rien.</p>
+
+<h2>Ce qui n'existe pas encore, et qui est proposé ici</h2>
+<div class="carte">
+  <table>
+    <tr><th>Ce qui est montré</th><th>Ce qui existe aujourd'hui</th></tr>
+    <tr><td><strong>« Exploitation »</strong>, <strong>« Clients &amp; parc »</strong> comme titres de domaine</td><td><span class="et neuf">proposé</span> — aucune clé de dictionnaire ne les porte ; ce sont des mots NEUFS, pas le libellé d'un enfant, ce que la règle actuelle de <code>GroupeNavigation</code> interdit encore — à trancher par le ticket qui implantera cette structure (D121)</td></tr>
+    <tr><td><strong>« Paramètres »</strong> comme titre de domaine</td><td><span class="et neuf">proposé</span> — déjà signalé non tranché par <code>navigation.html</code> (D118) ; la barre porte aujourd'hui « Sociétés &amp; tarifs » pour ce rôle</td></tr>
+    <tr><td><strong>« Absences »</strong> comme libellé de navigation</td><td><span class="et neuf">proposé</span> — l'écran s'intitule « Blocages d'agenda » (<code>absences.titre</code>) ; aucune clé <code>nav.*</code> n'existe pour un libellé court</td></tr>
+    <tr><td><strong>« VGP »</strong> comme libellé court de navigation</td><td><span class="et neuf">proposé</span> — le dictionnaire porte le titre long, « Registre des vérifications périodiques » (<code>vgp.titre</code>)</td></tr>
+    <tr><td>Barre de recherche, pastilles de filtre, fil d'Ariane, disposition maître-détail</td><td><span class="et neuf">proposé</span> — la maquette est muette sur ces quatre formes précises (mesuré : zéro <code>placeholder</code>, aucun fil d'Ariane, aucun écran combinant liste et fiche) ; D122 les adopte comme vocabulaire, pas comme gabarit obligatoire</td></tr>
+    <tr><td>« Tableau de bord », « Planning », « Interventions », « Parc machines », « Portail client », « Imports Excel », « Sociétés &amp; tarifs », « Contrats », « App technicien », « Console éditeur »</td><td><span class="et vif">existant</span> — clés <code>nav.*</code> déjà dans <code>lib/i18n/fr.ts</code>, réutilisées telles quelles</td></tr>
+    <tr><td>« Clients », « Sites »</td><td><span class="et vif">existant</span> — <code>parametres.index_clients_titre</code> et <code>vocabulaire.site.pluriel</code>, déjà dans le dictionnaire pour un autre usage ; aucune nouvelle chaîne, seulement un nouveau PLACEMENT</td></tr>
+    <tr><td>Encadrés (<code>.card</code>, <code>.kpi</code>) et couleurs de statut</td><td><span class="et vif">existant</span> — déjà définis par la maquette, mesuré à l'identique (D122) ; rien de nouveau, une application</td></tr>
+  </table>
+</div>
+
+<p class="sous" style="margin-top:20px">Rien de ce document n'a été appliqué. <code>lib/navigation/entrees.ts</code>, ses gardiens et <code>docs/maquette/CODIPLAN_Maquette.html</code> sont dans l'état où N-07 les a trouvés. Les décisions qu'il illustre sont écrites dans <code>docs/arbitrages.md</code> : D121 pour le double menu, D122 pour le vocabulaire d'écran.</p>
+
+</div>
+</body>
+</html>

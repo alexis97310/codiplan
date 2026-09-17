@@ -4241,3 +4241,178 @@ Les interventions déjà clôturées gardent leur valeur sous le nouveau nom —
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > **Le jour où une intervention doit se clôturer sans qu'aucun compteur ait tourné** — un dépannage téléphonique facturé, une reprise dont le technicien a oublié de démarrer. *C'est le seul événement qui puisse remettre en cause « le compteur est la seule source », et il se constate sur une intervention réelle.*
+
+---
+
+## D121 — Le double menu de domaine : une barre de second niveau PERMANENTE, et D118 se précise sur sa FORME
+
+*Rendu par Alexis le 17/09/2026, à la vue d'une maquette de démonstration à double menu. **En rapport avec D118, qu'elle ne supprime ni n'affaiblit** : D118 avait ouvert un menu à deux niveaux et laissé sa STRUCTURE « à arrêter devant une image » (`docs/propositions/navigation.html`) ; cette décision l'arrête, sur un point que `navigation.html` ne posait pas — la FORME du second niveau lui-même. Voir « LE RAPPORT AVEC D118 » plus bas pour ce que chacune des deux tranche.*
+
+### LA DÉCISION, DANS LES MOTS QUI L'ONT RENDUE
+
+> *« J'apprécie beaucoup ce concept à double menu. »*
+
+**Ce qui est nouveau n'est pas « deux niveaux » — le dépôt les porte déjà, depuis D118, sous la forme d'un menu qui se déplie.** Ce qui est nouveau est que **le second niveau devient une barre PERMANENTE** plutôt qu'un menu qu'il faut déplier : elle montre en permanence toutes les destinations du domaine courant, et elle dit où l'on est. **Le double menu de domaine REMPLACE le menu déroulant de D118, il ne s'y ajoute pas.**
+
+**Trois domaines de premier niveau, quatorze destinations réelles** — mesurées le 17/09/2026 sur le dépôt tel qu'il est, jamais sur une maquette de démonstration :
+
+| Domaine | Destinations |
+|---|---|
+| **Exploitation** | Tableau de bord, Planning, Interventions, Absences |
+| **Clients & parc** | Clients, Sites, Parc machines, VGP, Portail client |
+| **Paramètres** | Sociétés & tarifs, Imports Excel, Contrats *(inerte, lot 4)*, App technicien *(inerte, lot 3)*, Console éditeur *(inerte, lot 7)* |
+
+**Portail client sort de Paramètres et entre dans Clients & parc.** D118 avait déjà demandé de l'en sortir, sans dire où (§ « Recommandation, et ce qui reste à trancher » de `navigation.html`, 14/09/2026) ; la réponse est ici — c'est la vue que le client a de ce même parc, et son domicile est celui du parc, pas celui des réglages.
+
+### LA RÈGLE À GARDER : un domaine à une seule destination n'a pas de second niveau
+
+**Un domaine dont la barre de second niveau ne porterait QU'UNE SEULE destination n'a pas de barre de second niveau ; son entrée de premier niveau EST la destination.** *Une barre à un seul onglet n'informe de rien et occupe une ligne* — elle répéterait au second niveau ce que le premier vient déjà de dire.
+
+**Elle ne s'applique aujourd'hui à AUCUN des trois domaines — et c'est précisément pour cela qu'elle s'écrit maintenant.** Imports Excel, seule candidate à ce cas, rejoint Paramètres plutôt que de rester domaine à elle seule. Une règle qu'on écrit seulement le jour où elle mord arrive toujours un cran trop tard : c'est elle qui empêchera, demain, qu'on pose une barre à un seul onglet sous un domaine qui n'aurait pas encore de second habitant. **La règle porte sur le COMPTE de destinations d'un domaine, jamais sur son nom** ; elle se relit d'elle-même le jour où un domaine change de compte, sans qu'aucune décision n'ait à la rouvrir.
+
+### LES QUATRE ÉCARTS À LA MAQUETTE, nommés un par un
+
+*Exactement comme D98 l'a fait pour « Fiche machine » : un écart s'écrit avec sa mesure, jamais en assouplissant la comparaison que le gardien tient.* Ces quatre lignes sont des écrans **vivants**, servis, mesurés le 17/09/2026, auxquels un premier niveau plat ne donnait pas de porte convenable :
+
+- **Clients** — *l'écran est vivant, et la personne qui a commandé le produit ne l'a pas trouvé.* C'est la mesure même de D118 : « Sociétés & tarifs » l'annonce comme les réglages de la société, et un client n'est pas un réglage. Il devient une destination du domaine Clients & parc.
+- **Sites** — deuxième étage de la colonne client → site → équipement, **atteignable aujourd'hui seulement par une colonne de tableau**, jamais par une entrée nommée.
+- **VGP** — un registre RÉGLEMENTAIRE (D114). *Un registre qu'on n'atteint que par rebond depuis une machine n'est pas tenu* : il devient une destination à part entière.
+- **Absences** — un écran vivant, **sans aucune porte aujourd'hui**, alors qu'il conditionne le planning (I7, RG-PLA-06) : quelqu'un qui bloque un agenda ne devrait pas avoir à connaître une URL par cœur pour y revenir.
+
+### CE QUI N'EST PAS ADOPTÉ, et pourquoi
+
+**L'écran « À traiter » — Urgent / À planifier / Pièce attendue — est HORS PÉRIMÈTRE.** Aucune règle du chapitre 10 ne dit ce qui rend un dossier urgent ; le construire obligerait à inventer un délai, ce que le §8 du `CLAUDE.md` refuse explicitement.
+
+**La bascule Bureau / Technicien est REFUSÉE sous cette forme.** Le rôle vient de l'authentification, et le cloisonnement est tenu par la base (I1) : la barre montre ce que le rôle DONNE, elle ne l'OFFRE jamais — c'est la même règle que celle qui interdit à `lib/navigation/entrees.ts` de servir de contrôle d'accès. Une bascule dans le menu laisserait croire qu'un compte choisit son propre périmètre.
+
+**La mention « hors ligne à développer » de la maquette de démonstration NE RELÂCHE PAS I4.** La v1 technicien refuse de fonctionner sans réseau plutôt que de perdre des données ; ce que le double menu illustre ne concerne que le back-office, et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas.
+
+**Les titres en langage naturel sont adoptés, mais BORNÉS.** Un titre décrit l'écran ; il ne juge jamais des données qu'il n'a pas mesurées — une semaine avec trois interventions en souffrance ne s'annonce pas « bien organisée ».
+
+**Les cartes de chiffres sont adoptées sous la règle d'AT-07** — en cours d'écriture au moment de cette décision : tout chiffre affiché se compte sur la MÊME requête que la liste qu'il surmonte, jamais par une seconde lecture du même critère (§9, 01/09/2026).
+
+### CE QUE ÇA COÛTE, NOMMÉ
+
+**Le coût de gardien à venir, et il faut le lire avant de l'accepter :** `lib/navigation/entrees.ts` tient une liste close de **dix** destinations, confrontée à la maquette par `tests/unit/navigation/entrees.test.ts`. Elle devra en tenir **quatorze**, sur un ensemble différent de celui que la maquette dessine — quatre écarts nommés ci-dessus, plus les dix qu'elle porte déjà. **La confrontation doit rester EXACTE sur cet ensemble différent, jamais assouplie** : c'est le raisonnement même de `ECARTS_MAQUETTE`, qui nomme un écart plutôt que d'élargir la règle, appliqué à quatre écarts au lieu d'un.
+
+**Second coût, structurel** : la barre de second niveau change de NATURE, pas seulement de contenu. `GroupeNavigation` porte aujourd'hui un menu qui se DÉPLIE (D118) ; une barre PERMANENTE est un type d'écran différent — elle occupe une ligne sur CHAQUE écran du domaine, en permanence, ce qu'un menu déroulant ne fait pas. Le futur ticket d'implantation devra aussi trancher si un titre de domaine neuf (« Exploitation », « Clients & parc », « Paramètres ») peut entrer au dictionnaire, ce que la règle actuelle de `GroupeNavigation` interdit — *« un titre de groupe doit être le libellé d'un de ses propres enfants, jamais un mot neuf »* — et que ce ticket-ci ne tranche pas : il n'écrit aucune ligne de code, et trancher une règle de gardien en douce, à côté d'AT-07 qui écrit dans le même fichier au même moment, serait exactement la faute que D118 nommait déjà pour un autre ticket.
+
+### CE QUE CETTE DÉCISION LAISSE À LA SESSION, et ce n'est pas un oubli
+
+L'implantation dans `lib/navigation/` n'est **pas** ce ticket. AT-07 écrit en ce moment dans `lib/i18n/fr.ts` et dans les pages de liste ; un fichier n'a qu'un seul écrivain, et `docs/propositions/double-menu.html` est la seule chose que ce ticket produit — une proposition ouverte, jamais fusionnée d'elle-même.
+
+### LE RAPPORT AVEC D118
+
+**D121 est la SUITE de D118, pas sa contradiction, et ce n'est pas la même chose qu'une décision qui la corrigerait.** Ce que D118 tranchait reste entièrement vrai : la maquette ne fait plus foi sur la forme du menu — nombre d'entrées de premier niveau, niveaux, libellés de regroupement —, seulement sur ses couleurs, sa disposition d'écran et ses écrans eux-mêmes (D95). **Ce que D121 apporte est un choix que D118 avait explicitement laissé ouvert** : la structure exacte du second niveau, renvoyée à une image et à une décision ultérieure. Le double menu **n'est pas** un troisième désaccord avec D95 : c'est la réponse à la question que D118 avait posée sans la trancher, et rien de ce que D118 a écrit n'est défait ici.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où la maquette de démonstration est redessinée en une vraie maquette de produit**, elle redevient la source de la forme du menu, et cette décision — comme D118 avant elle — tombe de lui-même. La règle du domaine à une seule destination, elle, n'attend aucune réouverture : elle se constate d'elle-même sur le dépôt réel, le jour où un domaine change de compte de destinations.
+
+*Aucune règle du chapitre 10 n'est amendée : la navigation n'y figure pas.*
+
+---
+
+## D122 — Le vocabulaire d'écran de la démonstration : les encadrés et les couleurs s'APPLIQUENT, la recherche et les filtres se DÉCIDENT
+
+*Rendu par Alexis le 17/09/2026, en complément de D121, sur ce que la même maquette de démonstration donnait à voir en plus du double menu : « le template et la disposition qu'il propose, avec des encadrés, barres de recherche et des couleurs ». Avant de rien écrire, D95 a été mesuré contre `docs/maquette/CODIPLAN_Maquette.html` — jamais supposé — parce que ce que la mesure allait dire n'était pas connu d'avance.*
+
+### CE QUI A ÉTÉ MESURÉ, avec la commande qui l'a produit
+
+**Les encadrés que la démonstration montre sont déjà ceux de la maquette, à l'octet près.**
+
+```
+$ grep -n '\.card{' docs/maquette/CODIPLAN_Maquette.html
+.card{background:var(--blanc);border:1px solid var(--bord);border-radius:10px}
+$ grep -n '\.kpi{' docs/maquette/CODIPLAN_Maquette.html
+.kpi{background:var(--blanc);border:1px solid var(--bord);border-radius:10px;padding:15px 16px;position:relative;overflow:hidden}
+```
+
+Fond blanc, bordure `1px solid var(--bord)`, rayon `10px` — les deux classes de carte du produit, celle des blocs et celle des chiffres. *Rien à amender ici : ce que la démonstration montre, le dépôt le porte déjà.*
+
+**Les couleurs de statut que la démonstration reprend sont celles de la maquette, à la même ligne.**
+
+```
+$ sed -n '316p' docs/maquette/CODIPLAN_Maquette.html
+<span><i style="background:#FEF3DC;border:1px solid var(--orange)"></i>Suspendue / absence</span>
+$ grep -n -- '--bleu:#0053A1' docs/maquette/CODIPLAN_Maquette.html
+:root{ --rouge:#E30613; --bleu:#0053A1; --noir:#111111; …
+$ grep -n '\.nav button\.on{' docs/maquette/CODIPLAN_Maquette.html
+.nav button.on{background:var(--bleu);color:#fff}
+```
+
+L'orange pour « Suspendue / absence », le bleu `#0053A1` comme couleur de l'onglet actif — la démonstration ne crée donc **pas** un second système de couleurs : elle reprend le nôtre.
+
+**La maquette ne porte en revanche AUCUN champ de recherche.**
+
+```
+$ grep -c 'placeholder' docs/maquette/CODIPLAN_Maquette.html
+0
+```
+
+Zéro occurrence sur onze écrans, mesuré sur le fichier entier — pas seulement sur un écran de liste.
+
+**Et elle ne porte aucune pastille de filtre CLIQUABLE — avec une nuance qui affine la mesure d'Alexis plutôt que la contredire.** Une occurrence existe, et elle mérite d'être nommée pour ce qu'elle est :
+
+```
+$ grep -n 'Filtres :' docs/maquette/CODIPLAN_Maquette.html
+390:    <h2>Liste des interventions <span class="more">Filtres : agence · type · statut · période</span></h2>
+```
+
+C'est un TEXTE, dans un `<span class="more">` — pas un contrôle : aucun `<input>`, aucune classe de pastille cliquable, aucun état actif/inactif. *La maquette NOMME l'idée qu'on peut filtrer une liste ; elle ne dit pas SOUS QUELLE FORME.* Le silence porte donc sur la forme, pas sur le principe.
+
+**Troisième mesure, non demandée, et qui borne tout le reste : la maquette ne contient ni fil d'Ariane ni écran nommé « Clients ».**
+
+```
+$ grep -in 'breadcrumb\|fil.d.ariane' docs/maquette/CODIPLAN_Maquette.html
+(aucune occurrence)
+$ grep -n '<button' docs/maquette/CODIPLAN_Maquette.html
+166:    <button class="on" data-s="dash">Tableau de bord</button>
+167:    <button data-s="plan">Planning</button>
+168:    <button data-s="inter">Interventions</button>
+169:    <button data-s="parc">Parc machines</button>
+170:    <button data-s="mach">Fiche machine</button>
+171:    <button data-s="contrats">Contrats</button>
+172:    <button data-s="mobile">App technicien</button>
+173:    <button data-s="portail">Portail client</button>
+174:    <button data-s="imports">Imports Excel</button>
+175:    <button data-s="param">Sociétés &amp; tarifs</button>
+176:    <button data-s="editeur">Console éditeur</button>
+```
+
+Onze écrans, aucun ne s'appelle « Clients » — c'est la mesure même que D118 avait déjà faite pour expliquer pourquoi cet écran restait introuvable. La maquette ne peut donc pas non plus faire foi sur la disposition maître-détail d'un écran qu'elle ne montre pas.
+
+**Les quatre mesures demandées sont donc confirmées, aucune n'est fausse.**
+
+### LA DÉCISION
+
+**Sur les encadrés et les couleurs : il n'y a RIEN À AMENDER, il y a à APPLIQUER.** La maquette fait déjà foi dessus (D95) ; ce que la démonstration montre est une bonne exécution d'une règle qui existe déjà, pas une règle nouvelle. Le seul travail qu'elle révèle est un travail d'APPLICATION — partout où un écran s'écarte aujourd'hui de `.card`/`.kpi` ou des couleurs de statut, c'est l'écran qui est en tort, jamais la référence.
+
+**Sur la recherche, les filtres, le fil d'Ariane et la disposition maître-détail d'une liste : la maquette est MUETTE, et D95 dit elle-même que là où elle se tait nous sommes libres.** La décision, sous cette liberté :
+
+- **Une barre de recherche** est adoptée pour les écrans de liste — texte libre, jamais un identifiant technique en clair.
+- **Des pastilles de filtre** sont adoptées, cliquables, un état actif visible — la forme que la maquette nommait sans la dessiner.
+- **Un fil d'Ariane** est adopté au-dessus du titre — domaine actif puis destination — parce que le double menu de D121 rend cette position lisible pour la première fois : dire « Clients & parc / Clients » au-dessus d'un écran est la même information que la barre de second niveau donne déjà, redite une fois, à l'endroit où l'œil se pose en arrivant.
+- **Une disposition liste-à-gauche / fiche-à-droite** est adoptée pour un écran de liste qui a une fiche — la maquette porte déjà ce principe à deux colonnes pour une fiche isolée (`.mach`, l'écran machine) ; l'étendre à une liste qui ouvre sa fiche sans changer d'écran est une composition de deux choses qui existent, pas une invention.
+
+**Le point précis où la maquette est muette est celui-ci, et pas un autre : elle ne dessine ni la forme d'un contrôle de filtrage, ni un fil d'Ariane, ni un écran combinant une liste et une fiche.** Ce n'est jamais « la maquette ne prévoyait pas ce cas » — c'est cette liste de quatre formes, mesurée, nommée.
+
+### CE QUE CETTE DÉCISION NE TRANCHE PAS
+
+**La démonstration vue par Alexis montre quelques écrans ; le produit en compte quatorze.** Une illustration ne peut pas faire autorité sur ce qu'elle ne montre pas : ce que D122 adopte est un VOCABULAIRE — encadré, recherche, filtre, fil d'Ariane, maître-détail — pas un gabarit obligatoire pour chacune des quatorze destinations. Un écran sans liste n'a pas de barre de recherche à inventer ; un domaine sans hiérarchie de fiche n'a pas de maître-détail à forcer. **La maquette reste la source ; cette décision en fixe la mise en œuvre pour les formes qu'elle ne dessinait pas**, elle ne remplace aucun de ses écrans.
+
+### LES DEUX RÉSERVES FERMES
+
+**Une cellule ou une liste vide se nomme pour ce qu'elle est, jamais pour un état qu'on n'a pas mesuré.** « Sans intervention » se lit sur une colonne vide ; « disponible » ne s'y lit JAMAIS — un planning qui affiche « disponible » sans avoir lu les absences, les trajets ou le calendrier de l'agence ment par optimisme, et c'est une donnée, pas une couleur.
+
+**Un titre décrit l'écran, il ne juge pas les données qu'il n'a pas mesurées.** C'est la même borne que D121 pose pour les titres en langage naturel ; elle est répétée ici parce que l'écran de démonstration en est l'exemple concret : pas de « Une semaine bien organisée » au-dessus d'une semaine en souffrance, pas de « Client fiable » au-dessus d'un compte dont personne n'a mesuré la fiabilité.
+
+### CE QUE ÇA COÛTE
+
+**Quatre formes nouvelles à construire — recherche, filtre, fil d'Ariane, maître-détail —, chacune sur CHAQUE écran de liste qui les adopte**, ce qui n'est décidé ici pour aucune destination en particulier : le futur ticket d'implantation choisit où les poser, cette décision ne pose que le vocabulaire et la limite de son silence.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> **Le jour où la maquette elle-même dessine un champ de recherche, une pastille de filtre, un fil d'Ariane ou un écran combinant liste et fiche**, elle redevient la source sur ce point précis, et cette décision cesse de le trancher à sa place.
+
+*Aucune règle du chapitre 10 n'est amendée : le vocabulaire d'écran n'y figure pas.*
