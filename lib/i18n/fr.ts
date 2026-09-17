@@ -300,8 +300,6 @@ export const fr = {
   "clients.actifs_seulement": "Masquer les fiches inactives",
   "clients.inactif": "inactive",
   "clients.retour": "\u2190 Tous les clients",
-  "clients.borne":
-    "Les fiches sont born\u00e9es \u00e0 ce qu'un \u00e9cran peut montrer. Affinez la recherche si la liste est tronqu\u00e9e.",
   // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
   // montrerait — total, actifs, inactifs — se lisent dans le tableau, et *un
   // compteur qu'on regarde sans jamais agir dessus apprend à ne plus lire les
@@ -414,7 +412,6 @@ export const fr = {
   "sites.rechercher": "Rechercher",
   "sites.creer": "Nouveau lieu",
   "sites.inactif": "Inactif",
-  "sites.borne": "Les 100 premiers résultats sont affichés.",
   // Le libellé COURT de la colonne. Le libellé complet — celui qui dit d'où
   // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
   // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
@@ -750,11 +747,17 @@ export const fr = {
   "interventions.sous_titre":
     "Le registre des interventions de la société, la plus récente en tête.",
   "interventions.vide": "Aucune intervention enregistrée.",
-  // CE QUI EST MONTRÉ EST ÉCRIT, plutôt que de laisser croire que la liste
-  // est complète : le parc de démonstration porte assez d'interventions pour
-  // qu'une liste non bornée casse au volume.
-  "interventions.borne":
-    "Les 200 interventions les plus récentes sont affichées. La recherche et le filtre arrivent dans un prochain lot.",
+  // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
+  // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
+  // statut, période. Le texte cherche sur le client et le lieu — les deux
+  // colonnes VISIBLES qui identifient une ligne.
+  "interventions.recherche": "Client ou lieu",
+  "interventions.rechercher": "Rechercher",
+  "interventions.filtre_toutes_prefixe": "Toutes les",
+  "interventions.filtre_type_tous": "Tous les types",
+  "interventions.filtre_statut_tous": "Tous les statuts",
+  "interventions.filtre_periode_du": "Depuis le",
+  "interventions.filtre_periode_au": "Jusqu'au",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
@@ -1306,7 +1309,11 @@ export const fr = {
   "parc.kpi_garantie": "Garantie expirant < 90 j",
   "parc.kpi_en_panne": "En panne / arrêtées",
   "parc.kpi_sur": "sur",
-  "parc.kpi_affichees": "affichées",
+  // « affichées » DISAIT vrai tant que l'écran rendait tout le parc filtré en
+  // une seule fois ; depuis que la liste PAGINE (AT-07), ce nombre porte sur
+  // toute la recherche, jamais sur la seule page — « au total » le dit sans
+  // mentir sur ce qui est effectivement à l'écran.
+  "parc.kpi_affichees": "au total",
   "parc.kpi_en_panne_detail_panne": "en panne",
   "parc.kpi_en_panne_detail_arretees": "arrêtées",
   // ── LA RECHERCHE, CÂBLÉE ET PAS ENCORE REMPLIE (AT-04, AT-07) ────────────
@@ -1408,8 +1415,6 @@ export const fr = {
     "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
   "machine.documents.sans_octets":
     "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
-  "parc.borne":
-    "Les premières fiches du parc, les incomplètes d'abord. La recherche et l'export viennent avec les écrans de lot 2.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.colonne_exceptions": "Exceptions",
@@ -1879,6 +1884,24 @@ export const fr = {
   "sante.tout_va_bien": "L'installation répond et paraît complète.",
   "sante.quelque_chose_cloche":
     "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",
+
+  // ── LA PAGINATION, PARTAGÉE PAR LES QUATRE LISTES DU BACK-OFFICE (AT-07) ──
+  //
+  // « Page » et « précédent/suivant » ne dépendent d'aucune entité : composés
+  // une fois ici, jamais recopiés dans chacun des quatre écrans qui paginent
+  // (`app/(back-office)/presentation.ts` les assemble avec les numéros).
+  "pagination.page": "Page",
+  "pagination.sur": "sur",
+  "pagination.precedent": "← Page précédente",
+  "pagination.suivant": "Page suivante →",
+  // Les unités que chaque écran compose avec `decompte()` pour SON total
+  // filtré — jamais le compte de la page. `parc` réutilise déjà
+  // `parc.total_un` / `parc.total` ; `sites` compose depuis le vocabulaire
+  // imposé (`mot("site")`) et n'a besoin d'aucune clé de plus.
+  "clients.resultat_un": "client",
+  "clients.resultat": "clients",
+  "interventions.resultat_un": "intervention",
+  "interventions.resultat": "interventions",
 
   // ── LES QUATRE ÉTATS QUI MANQUAIENT À TOUT ÉCRAN (AV-11) ─────────────────
   //

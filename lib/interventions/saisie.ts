@@ -273,3 +273,71 @@ export type Suspension = z.infer<typeof schemaSuspension>;
 export const schemaReprise = z.object({ intervention_id: uuid }).strict();
 
 export type Reprise = z.infer<typeof schemaReprise>;
+
+/**
+ * LA RECHERCHE DU REGISTRE (AT-07) — les quatre filtres que la maquette
+ * annonce pour cet écran (« Filtres : agence · type · statut · période »,
+ * `docs/maquette/CODIPLAN_Maquette.html`, écran `inter`), et eux seuls.
+ *
+ * **Le texte porte sur les colonnes VISIBLES** — le client et le lieu —
+ * jamais sur la référence affichée (`INT-00312` ou `Local-XXXXXX`) : ce n'est
+ * pas une colonne stockée, `numero` valant toujours `null` avant la
+ * synchronisation (lot 3), et jamais sur le technicien, dont le nom vit dans
+ * l'annuaire (`lib/auth/annuaire.ts`) et non sur `intervention`.
+ *
+ * **Une case vide d'un `<select>` soumet une chaîne vide**, jamais `null` :
+ * `z.preprocess` la ramène à `null` avant que l'énumération ne la juge, pour
+ * que « tous les types » soit un choix normal et non un refus de validation.
+ */
+/** La taille d'une PAGE du registre (AT-07) — même valeur que les trois autres écrans qui paginent. */
+export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
+
+const filtreOuVide = <T extends readonly [string, ...string[]]>(valeurs: T) =>
+  z.preprocess(
+    (valeur) => (valeur === "" ? null : valeur),
+    z.enum(valeurs).nullable(),
+  );
+
+export const schemaRechercheInterventions = z
+  .object({
+    texte: z
+      .string()
+      .trim()
+      .transform((valeur) => (valeur.length === 0 ? null : valeur))
+      .nullable()
+      .default(null),
+    agence_id: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.uuid().nullable(),
+      )
+      .default(null),
+    type: filtreOuVide(TYPES_INTERVENTION).default(null),
+    statut: filtreOuVide(STATUTS_INTERVENTION).default(null),
+    /**
+     * LA PÉRIODE — bornes sur `date_planifiee`. Une intervention encore en
+     * file d'attente n'a pas de date : un filtre de période l'exclut donc
+     * naturellement, ce qui est le comportement attendu de ce filtre-là.
+     */
+    du: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    au: z
+      .preprocess(
+        (valeur) => (valeur === "" ? null : valeur),
+        z.coerce.date().nullable(),
+      )
+      .default(null),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .strict()
+  .refine((v) => v.du === null || v.au === null || v.au >= v.du, {
+    message: "La fin de la période doit suivre son début.",
+    path: ["au"],
+  });
+export type RechercheInterventions = z.output<
+  typeof schemaRechercheInterventions
+>;

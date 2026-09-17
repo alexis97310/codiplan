@@ -147,3 +147,48 @@ export const schemaMachine = champsMachine.transform((machine) => ({
 }));
 
 export type SaisieMachine = z.output<typeof schemaMachine>;
+
+/**
+ * LA RECHERCHE DU PARC (AT-07) — câblée depuis AT-04, remplie ici.
+ *
+ * **Le texte ne cherche que sur des colonnes VISIBLES à l'écran** — numéro de
+ * série, client, lieu, référence du modèle. La maquette annonce aussi le QR
+ * code (`docs/maquette/CODIPLAN_Maquette.html`, écran `parc`), et c'est
+ * précisément le point où ce ticket s'en écarte : `qr_token` n'est affiché
+ * dans AUCUNE colonne du tableau du parc, et chercher sur un champ que
+ * personne ne voit rendrait des résultats que personne ne peut expliquer.
+ * L'écart est ici, à l'endroit précis où la consigne de recherche cesse de
+ * s'appliquer telle quelle.
+ *
+ * `page` suit exactement le même contrat que `lib/clients/saisie.ts` et
+ * `lib/sites/saisie.ts` : 1-indexée, l'état vit dans l'URL.
+ */
+export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
+
+/**
+ * LE PLAFOND DU RÉSUMÉ (KPI), PAS DE L'AFFICHAGE (AT-07).
+ *
+ * Avant ce ticket, `LIGNES_AFFICHEES` (200) bornait la SEULE requête de
+ * l'écran, lue à la fois pour le tableau et pour le résumé — parce que les
+ * deux étaient la même chose. La pagination sépare les deux : le tableau
+ * prend désormais `LIMITE_RECHERCHE_PAR_DEFAUT` par page, et ce plafond-ci
+ * borne la lecture qui alimente `resumerLeParc`, plafond de sécurité contre un
+ * parc filtré qui compterait des milliers de fiches. *Un parc au-delà de ce
+ * plafond verrait son résumé approximatif plutôt que faux de façon
+ * imprévisible* — c'est un écart documenté, pas un défaut caché : la mesure
+ * d'aujourd'hui (194 machines) tient tout entière sous ce plafond.
+ */
+export const LIMITE_RECHERCHE_MAXIMALE = 500;
+
+export const schemaRechercheParc = z
+  .object({
+    texte: z
+      .string()
+      .trim()
+      .transform((valeur) => (valeur.length === 0 ? null : valeur))
+      .nullable()
+      .default(null),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .strict();
+export type RechercheParc = z.output<typeof schemaRechercheParc>;

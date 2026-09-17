@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -14,11 +15,20 @@ import {
   type FicheClient,
   type SitesDUnClient,
 } from "@/lib/clients";
+// `compterClients` est importé DIRECTEMENT depuis le dépôt, et non depuis le
+// barrel ci-dessus (AT-07) : `scripts/lib/chemins-de-depot.ts` (R3-12) trace
+// les chemins fonction par fonction en résolvant chaque spécification
+// d'import vers UN fichier — un barrel s'y résout en `lib/clients/index.ts`,
+// jamais en `lib/clients/depot.ts`, si bien qu'un import par le barrel
+// laisserait cette fonction orpheline aux yeux du gardien alors qu'elle a un
+// appelant réel. `compterSansCodeExterne` et `libelleCodeExterneDeLaSociete`
+// suivent déjà ce chemin direct ailleurs (`tableau-de-bord/page.tsx`).
+import { compterClients } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
-import { ouTiret } from "../presentation";
+import { decompte, hrefDeLaPage, libellePage, ouTiret } from "../presentation";
 import { resumeDesSites, titreSansCode } from "./presentation";
 
 /**
@@ -75,10 +85,18 @@ import { resumeDesSites, titreSansCode } from "./presentation";
  * (D10, D22). Un compte de portail ne verrait que le sien **sans qu'une ligne
  * de cet écran le sache**, et une comparaison écrite ici serait une seconde
  * lecture d'un critère que la base porte déjà — celle qui vieillit sans rougir.
+ *
+ * ## LA PAGINATION (AT-07, 17/09/2026)
+ *
+ * 619 clients existent aujourd'hui ; la liste les rendait tous. `limite`
+ * (50) borne désormais chaque PAGE, jamais la recherche : `compterClients`
+ * compte le total FILTRÉ, par la même `filtreDeRecherche` que la liste — un
+ * total qui compterait autrement que ce qu'il pagine est la faute nommée par
+ * le directeur d'exploitation le 16/09 (« 50 clients » sous une liste qui en
+ * compte 619). L'état de la page vit dans l'URL (`searchParams.page`), et une
+ * recherche relancée y revient d'elle-même : le formulaire ne porte pas de
+ * champ `page`.
  */
-
-/** Ce que l'écran rend. Une BORNE d'affichage, jamais un cloisonnement. */
-const LIGNES_AFFICHEES = 200;
 
 export default async function PageClients({
   searchParams,
@@ -97,10 +115,12 @@ export default async function PageClients({
   const motif = params.motif;
   // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
   // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
+  // `limite` n'est PLUS forcée à 200 : elle retombe sur son défaut (50), la
+  // taille d'une PAGE désormais, jamais celle d'un unique chargement (AT-07).
   const criteres = schemaRechercheClient.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     actifs_seulement: params.actifs === "1",
-    limite: LIGNES_AFFICHEES,
+    page: typeof params.page === "string" ? params.page : undefined,
   });
 
   const clients = criteres.success
@@ -112,6 +132,16 @@ export default async function PageClients({
   const sansCode = criteres.success
     ? await compterSansCodeExterne(session.contexte, criteres.data)
     : 0;
+  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste et
+  // que le compteur ci-dessus, jamais une troisième lecture du critère
+  // (AT-07).
+  const totalFiltre = criteres.success
+    ? await compterClients(session.contexte, criteres.data)
+    : 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
+  );
   const sites = await sitesParClient(session.contexte, clients);
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
 
@@ -228,9 +258,31 @@ export default async function PageClients({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-[11.5px]">
-        {t("clients.borne")}
-      </p>
+      <Pagination
+        page={criteres.success ? criteres.data.page : 1}
+        totalPages={totalPages}
+        libelleResultats={decompte(
+          totalFiltre,
+          t("clients.resultat_un"),
+          t("clients.resultat"),
+        )}
+        libellePage={libellePage(
+          criteres.success ? criteres.data.page : 1,
+          totalPages,
+        )}
+        libellePrecedent={t("pagination.precedent")}
+        libelleSuivant={t("pagination.suivant")}
+        hrefPage={(page) =>
+          hrefDeLaPage(
+            "/clients",
+            {
+              q: typeof params.q === "string" ? params.q : undefined,
+              actifs: params.actifs === "1" ? "1" : undefined,
+            },
+            page,
+          )
+        }
+      />
     </main>
   );
 }

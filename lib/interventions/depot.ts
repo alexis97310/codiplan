@@ -54,14 +54,16 @@ import {
   verdictOuverture,
   type PoseDemandee,
 } from "./pose";
-import type {
-  Annulation,
-  Cloture,
-  Creation,
-  Deplacement,
-  Reprise,
-  StatutIntervention,
-  Suspension,
+import {
+  LIMITE_RECHERCHE_PAR_DEFAUT,
+  type Annulation,
+  type Cloture,
+  type Creation,
+  type Deplacement,
+  type RechercheInterventions,
+  type Reprise,
+  type StatutIntervention,
+  type Suspension,
 } from "./saisie";
 
 /**
@@ -1669,16 +1671,68 @@ export async function dernieresInterventionsDuClient(
  * **Aucune comparaison de société n'est écrite ici** : la politique de forme
  * « parc » décide, et une clause écrite au-dessus serait la seconde lecture
  * qui vieillit sans rougir pendant que la vraie continue de mordre.
+ *
+ * ## LA RECHERCHE ET LA PAGINATION (AT-07, 17/09/2026)
+ *
+ * `limite` a disparu du paramètre : c'est désormais `LIMITE_RECHERCHE_PAR_DEFAUT`
+ * qui borne CHAQUE PAGE, et `skip` avance dans le registre FILTRÉ. **Une seule
+ * écriture du critère** — `filtreDesInterventions` — sert `listerInterventions`
+ * (la page) et `compterInterventions` (le total de la pagination), comme
+ * `filtreDeRecherche` le fait déjà pour les clients et les sites (§9, 01/09).
  */
+function filtreDesInterventions(
+  criteres: RechercheInterventions,
+): Prisma.InterventionWhereInput {
+  const filtreTexte: Prisma.InterventionWhereInput =
+    criteres.texte === null
+      ? {}
+      : {
+          OR: [
+            {
+              client: {
+                raison_sociale: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              site: {
+                libelle: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          ],
+        };
+
+  return {
+    ...filtreTexte,
+    ...(criteres.agence_id === null ? {} : { agence_id: criteres.agence_id }),
+    ...(criteres.type === null ? {} : { type: criteres.type }),
+    ...(criteres.statut === null ? {} : { statut: criteres.statut }),
+    ...(criteres.du === null && criteres.au === null
+      ? {}
+      : {
+          date_planifiee: {
+            ...(criteres.du === null ? {} : { gte: criteres.du }),
+            ...(criteres.au === null ? {} : { lte: criteres.au }),
+          },
+        }),
+  };
+}
+
 export async function listerInterventions(
   contexte: ContexteSession,
-  limite: number,
+  criteres: RechercheInterventions,
   client?: PrismaClient,
 ): Promise<readonly LignePlanning[]> {
   return avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.intervention.findMany({
+        where: filtreDesInterventions(criteres),
         select: {
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
@@ -1688,8 +1742,25 @@ export async function listerInterventions(
           { date_planifiee: { sort: "desc", nulls: "last" } },
           { id: "desc" },
         ],
-        take: limite,
+        skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
+        take: LIMITE_RECHERCHE_PAR_DEFAUT,
       }),
+    client,
+  );
+}
+
+/**
+ * COMBIEN D'INTERVENTIONS CORRESPONDENT À LA RECHERCHE — jamais le compte de
+ * la page (AT-07). La MÊME `filtreDesInterventions` que `listerInterventions`.
+ */
+export async function compterInterventions(
+  contexte: ContexteSession,
+  criteres: RechercheInterventions,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.intervention.count({ where: filtreDesInterventions(criteres) }),
     client,
   );
 }

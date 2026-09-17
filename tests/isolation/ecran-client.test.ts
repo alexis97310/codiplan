@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import {
+  compterClients,
   compterSansCodeExterne,
   rechercherClients,
   sitesParClient,
@@ -194,6 +195,59 @@ describe("le compteur « sans code de rapprochement » (RG-IMP-05, D29)", () => 
     expect(
       await compterSansCodeExterne(INTERNE_A, introuvable, clientApp()),
     ).toBe(0);
+  });
+});
+
+describe("la pagination de la liste (AT-07)", () => {
+  it("compterClients compte le total FILTRÉ, jamais le compte de la page", async () => {
+    // TÉMOIN — la société A porte au moins deux clients.
+    const [temoin] = await clientOwner().$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM "client" WHERE societe_id = $1::uuid`,
+      SOCIETE_A,
+    );
+    expect(temoin!.n).toBeGreaterThan(1);
+
+    const total = await compterClients(INTERNE_A, TOUT, clientApp());
+    expect(total).toBe(temoin!.n);
+
+    // UNE PAGE D'UNE SEULE LIGNE ne fait pas bouger le total : c'est tout
+    // l'intérêt de la séparation entre `rechercherClients` (bornée à la page)
+    // et `compterClients` (sur toute la recherche).
+    const uneSeulePage = schemaRechercheClient.parse({ limite: 1, page: 1 });
+    const fiches = await rechercherClients(
+      INTERNE_A,
+      uneSeulePage,
+      clientApp(),
+    );
+    expect(fiches.length).toBe(1);
+    expect(await compterClients(INTERNE_A, uneSeulePage, clientApp())).toBe(
+      total,
+    );
+  });
+
+  it("la page 2 rend la ligne SUIVANTE, jamais la même que la page 1", async () => {
+    const page1 = await rechercherClients(
+      INTERNE_A,
+      schemaRechercheClient.parse({ limite: 1, page: 1 }),
+      clientApp(),
+    );
+    const page2 = await rechercherClients(
+      INTERNE_A,
+      schemaRechercheClient.parse({ limite: 1, page: 2 }),
+      clientApp(),
+    );
+    expect(page1.length).toBe(1);
+    expect(page2.length).toBe(1);
+    expect(page2[0]!.id).not.toBe(page1[0]!.id);
+  });
+
+  it("un compte de PORTAIL pagine dans SON seul périmètre", async () => {
+    // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : sans la politique,
+    // un compte de portail verrait le même total qu'un compte interne.
+    const totalInterne = await compterClients(INTERNE_A, TOUT, clientApp());
+    const totalPortail = await compterClients(PORTAIL_A1, TOUT, clientApp());
+    expect(totalPortail).toBeLessThan(totalInterne);
+    expect(totalPortail).toBe(1);
   });
 });
 

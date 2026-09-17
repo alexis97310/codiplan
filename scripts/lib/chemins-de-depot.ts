@@ -405,12 +405,14 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "La fiche d'un client lit par `dernieresInterventionsDuClient` et par la requête de sa page ; cette lecture-ci a été posée par L1-01 avant que la fiche existe. Se retire avec elle, ou le jour où la fiche l'appelle.",
   },
-  {
-    module: "lib/clients/depot.ts",
-    fonction: "sitesParClient",
-    motif:
-      "La liste des sites d'UN client — l'écran des sites cherche sur toute la société, et la fiche d'un client ne montre pas encore ses sites. Ouvert par la fiche client, quand elle portera son parc de sites.",
-  },
+  // `sitesParClient` a QUITTÉ cette liste le 17/09/2026 (AT-07) : elle avait un
+  // appelant réel depuis le 14/09 — la liste des clients affiche déjà ses
+  // sites —, mais `app/(back-office)/clients/page.tsx` n'importait alors
+  // `lib/clients/depot.ts` que PAR LE BARREL (`@/lib/clients`), invisible à ce
+  // gardien qui résout chaque import vers UN fichier. AT-07 a ajouté un import
+  // direct depuis le dépôt pour `compterClients`, et ce même import a rendu
+  // `sitesParClient` visible du même coup — le motif écrit ici mentait donc
+  // déjà, et la mesure venait seulement de le révéler.
   {
     module: "lib/imports/depot.ts",
     fonction: "decompter",
