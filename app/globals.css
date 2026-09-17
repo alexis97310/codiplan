@@ -59,6 +59,24 @@
   --app-bleu-plein-encre: #ffffff;
   --app-vert-plein: #0f9d58;
   --app-vert-plein-encre: #ffffff;
+
+  /*
+   * LE CHROME DE NAVIGATION — une TROISIÈME zone de couleur (D121, D122),
+   * mesurée sur `docs/maquette/codiplan-maquette-complete.html` (`.sidebar`,
+   * `.nav-link`, `.nav-group`), distincte de la charte d'une société et des
+   * cinq familles de statut ci-dessus : la barre latérale est un fond marine
+   * FIXE, jamais celui d'une société ni celui d'un statut. D122 le nomme en
+   * toutes lettres : « une couleur qui n'existe dans AUCUNE des deux
+   * palettes ». Elle se pose donc en jetons à elle, jamais en littéral dans
+   * `components/navigation/barre.tsx`.
+   */
+  --app-chrome-fond: #10233e;
+  --app-chrome-encre-faible: #8298b5;
+  --app-chrome-lien: #c7d5e8;
+  --app-chrome-survol: rgba(255, 255, 255, 0.07);
+  --app-chrome-actif: #0d66b8;
+  --app-chrome-actif-encre: #ffffff;
+  --app-chrome-bordure: rgba(255, 255, 255, 0.1);
 }
 
 /*
@@ -145,6 +163,19 @@
   --app-bleu-plein-encre: #ffffff;
   --app-vert-plein: #15803d;
   --app-vert-plein-encre: #ffffff;
+
+  /* LE CHROME — cette apparence n'avait pas de barre latérale à son époque
+     (D121 lui est postérieur) : rien à RECOUVRER. Ces jetons sont donc
+     DÉRIVÉS de ses propres teintes plutôt qu'inventés, à la manière du reste
+     de ce bloc — le gris ardoise sert de fond, sa variante pleine sert
+     d'entrée active. */
+  --app-chrome-fond: var(--app-marque);
+  --app-chrome-encre-faible: #94a3b8;
+  --app-chrome-lien: #e2e8f0;
+  --app-chrome-survol: rgba(255, 255, 255, 0.08);
+  --app-chrome-actif: var(--app-bleu-plein);
+  --app-chrome-actif-encre: #ffffff;
+  --app-chrome-bordure: rgba(255, 255, 255, 0.12);
 }
 
 /*
@@ -247,6 +278,17 @@
   --color-app-bleu-plein-encre: var(--app-bleu-plein-encre);
   --color-app-vert-plein: var(--app-vert-plein);
   --color-app-vert-plein-encre: var(--app-vert-plein-encre);
+
+  /* LE CHROME DE NAVIGATION (D121, D122) — `bg-app-chrome-fond`,
+     `text-app-chrome-lien`, etc. Voir le commentaire de leur déclaration
+     ci-dessus : une troisième zone, ni une charte de société ni un statut. */
+  --color-app-chrome-fond: var(--app-chrome-fond);
+  --color-app-chrome-encre-faible: var(--app-chrome-encre-faible);
+  --color-app-chrome-lien: var(--app-chrome-lien);
+  --color-app-chrome-survol: var(--app-chrome-survol);
+  --color-app-chrome-actif: var(--app-chrome-actif);
+  --color-app-chrome-actif-encre: var(--app-chrome-actif-encre);
+  --color-app-chrome-bordure: var(--app-chrome-bordure);
 
   /* Thématisation par société (L0-09). Ces six variables ne sont définies
      NULLE PART dans une feuille de style : elles sont posées sur le document

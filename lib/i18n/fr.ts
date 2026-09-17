@@ -1741,6 +1741,28 @@ export const fr = {
   // de continuer à nommer un écran qu'elle a quitté.
   "nav.deconnexion": "Se déconnecter",
 
+  // ── LA BARRE LATÉRALE, TROIS DOMAINES (D121, N-07) ────────────────────
+  //
+  // `docs/maquette/codiplan-maquette-complete.html` dessine une colonne
+  // verticale sectionnée en trois titres — Exploitation, Clients & parc,
+  // Paramètres — et quatorze destinations, toutes visibles en permanence
+  // (aucune n'est un sous-menu qui se déplie). Les trois titres sont du TEXTE,
+  // jamais un bouton ni un lien : voir `GroupeNavigation`
+  // (`lib/navigation/entrees.ts`) pour ce que cela change à la règle qui leur
+  // interdisait un mot neuf. Quatre des quatorze n'avaient encore aucune porte
+  // dans la barre — Clients, Sites, VGP, Absences —, chacune vers un écran
+  // déjà vivant.
+  "nav.groupe_exploitation": "Exploitation",
+  "nav.groupe_clients_parc": "Clients & parc",
+  "nav.groupe_parametres": "Paramètres",
+  "nav.clients": "Clients",
+  // Pas de « nav.sites » : « site » est un mot IMPOSÉ (D5, D47) qui ne
+  // s'écrit qu'aux clés `vocabulaire.*` (lib/i18n/vocabulaire.ts) — la
+  // destination réutilise donc `vocabulaire.site.pluriel`, déjà « Sites »,
+  // plutôt que d'écrire le mot une seconde fois.
+  "nav.vgp": "VGP",
+  "nav.absences": "Absences",
+
   // ── LE TABLEAU DE BORD (AV-10) — six chiffres, dont un que rien ne
   // calcule encore (R2-13). La maquette fait foi sur la disposition et les
   // couleurs (D95, D118) ; ce que ce ticket ne montre pas — répartition par

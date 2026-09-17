@@ -26,6 +26,16 @@ import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
  * Elle n'accorde rien. `chromeDeLaRequete` ne lève jamais et ne lit aucun
  * droit : *une barre affichée n'est pas une permission* (R2-16). Le contrôle
  * est dans la page, qui redirige, et dans la politique, qui décide.
+ *
+ * **DEPUIS D121, LA BARRE DU BACK-OFFICE ET CELLE DU PORTAIL SONT DES
+ * COLONNES — PAS CELLE-CI** (revue de #224, 17/09/2026). D121 arbitre la
+ * forme d'une barre QUI PORTE DES DESTINATIONS ; `ENTREES_TERRAIN` est vide
+ * (R5-01), donc la question ne se pose pas ici. Une colonne de 272 px sur un
+ * écran de 390 px ne laissait que 118 px au contenu — mesuré et gardé par
+ * `tests/e2e/terrain-largeur.spec.ts`. `BarreDeNavigation` le sait : une liste
+ * vide lui fait rendre son chrome D'AVANT D121, un bandeau horizontal, et
+ * cette mise en page reste donc empilée plutôt qu'en ligne — voir le
+ * commentaire complet dans `components/navigation/barre.tsx`.
  */
 export default async function MiseEnPageTerrain({
   children,

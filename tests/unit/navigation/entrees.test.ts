@@ -14,113 +14,115 @@ import {
 
 /**
  * LA BARRE DE NAVIGATION EST CONFRONTÉE À LA MAQUETTE, jamais recopiée d'elle
- * (D95) — sur ses DESTINATIONS depuis D118, plus sur leur ordre ni leur
- * regroupement.
+ * (D95, D121).
  *
- * **La population ne vient pas du code, elle vient du document.** Le gardien lit
- * `docs/maquette/CODIPLAN_Maquette.html`, en extrait les boutons de `.nav`, et
- * exige que les feuilles du dépôt — `ENTREES` une fois ses groupes ouverts —
- * portent exactement le même ENSEMBLE de libellés. C'est la parade du §9
- * (01/09) appliquée ici : *une liste close recopiée « pour la lisibilité »
- * devient fausse le jour où la première grandit, sans rougir.* Rien ici ne
- * recopie : la maquette est une source que ce fichier ne contrôle pas.
+ * **Depuis D121, la source de la LISTE et de L'ORDRE change.**
+ * `docs/maquette/CODIPLAN_Maquette.html` reste la source des couleurs et de la
+ * disposition des écrans (D95, inchangé) ; elle cesse de faire foi sur la
+ * FORME et le CONTENU du menu, dont
+ * `docs/maquette/codiplan-maquette-complete.html` est désormais la source —
+ * une colonne latérale, trois titres de domaine, quatorze destinations
+ * TOUTES visibles (D121, « LE CONSTAT »). **Deux fichiers, deux questions** :
+ * confondre l'un pour l'autre serait exactement la faute que D121 nomme pour
+ * l'éviter.
  *
- * **Pourquoi un ENSEMBLE, et non plus un ORDRE, depuis D118.** L'amendement
- * dit : « la confrontation à la maquette devient une confrontation de
- * destinations plutôt que d'entrées ». Regrouper « Interventions » sous
- * « Planning » et faire passer « Portail client » avant « Sociétés & tarifs »
- * change l'ordre SANS changer ce que la barre ouvre — et c'est exactement ce
- * que ce gardien doit laisser passer, tout en continuant de refuser qu'une
- * destination soit ajoutée ou disparaisse en silence.
+ * **La population ne vient pas du code, elle vient du document.** Le gardien
+ * lit la colonne `<aside class="sidebar">`, en extrait les boutons `.nav-link`
+ * et les titres `.nav-group`, et exige que `ENTREES` — titres de domaine et
+ * destinations une fois les groupes ouverts (`feuilles`) — porte exactement
+ * la même LISTE, dans le même ORDRE. C'est plus strict que la confrontation
+ * d'avant D121 (un ENSEMBLE, sans ordre) : la maquette dessinant désormais un
+ * vrai menu plutôt qu'un catalogue d'écrans, son ordre a un sens qu'elle
+ * n'avait pas encore.
  *
  * **Les deux sens sont gardés.** Une entrée ajoutée au code sans l'être à la
- * maquette échoue ; une entrée ajoutée à la maquette sans l'être au code échoue
- * aussi — et c'est le sens qu'on oublie, parce qu'il ne casse aucun écran.
+ * maquette échoue ; une entrée ajoutée à la maquette sans l'être au code
+ * échoue aussi.
  *
- * **ET UN ÉCART EST ADMIS, NOMMÉMENT — jamais par un assouplissement (D98).**
- * D95 autorise l'écart à la maquette pourvu qu'il s'écrive avec sa mesure et le
- * point où elle est muette. La comparaison retire donc les libellés de
- * `ECARTS_MAQUETTE` et **rien d'autre** : elle reste stricte sur tout le reste,
- * et cette liste est exigée à l'identique ci-dessous — l'y ajouter une seconde
- * entrée fait rougir, ce qui force l'arbitrage au lieu de le contourner.
- *
- * *Trois vérifications, et la troisième est celle qu'on oublie :* l'écart est
- * ADOSSÉ — la maquette porte réellement ce libellé, sans quoi il n'écarte plus
- * rien (§9, 31/08) ; il est ABSENT du code — un écart qu'on écarterait tout en
- * le gardant serait un écart qui ne sert à rien ; et la liste est CLOSE.
- *
- * **ET UN GROUPE N'INVENTE AUCUN LIBELLÉ (D118).** Son titre doit être celui
- * d'UN DE SES ENFANTS — jamais un mot neuf comme « Paramètres », que
- * `docs/propositions/navigation.html` propose sans qu'aucune clé ne le porte.
- * Sans cette règle, rien n'empêcherait d'introduire silencieusement un
- * libellé que personne n'a encore arrêté.
+ * **UN GROUPE PEUT DÉSORMAIS PORTER UN TITRE NEUF (N-07).** D118 interdisait
+ * qu'un titre de groupe soit un mot neuf parce que ce titre était un
+ * `<summary>` cliquable — un contrôle qu'on aurait pu confondre avec une
+ * destination inventée. **Ce motif n'existe plus** : un titre de domaine est
+ * un `<div>` de texte, jamais un lien, jamais un bouton (voir
+ * `GroupeNavigation`, `lib/navigation/entrees.ts`, pour l'écrit complet de
+ * cette décision). La garde qui le remplace est plus directe et ne s'assouplit
+ * sur rien : le titre doit être l'un des TROIS noms de domaine mesurés sur la
+ * maquette, ni plus ni moins — et c'est exactement ce que la comparaison de
+ * LISTE ET D'ORDRE ci-dessous vérifie, sans test séparé à maintenir en double.
  */
 
 const MAQUETTE = readFileSync(
-  join(process.cwd(), "docs/maquette/CODIPLAN_Maquette.html"),
+  join(process.cwd(), "docs/maquette/codiplan-maquette-complete.html"),
   "utf8",
 );
 
-/** Les libellés des boutons de la barre, dans l'ordre où la maquette les écrit. */
-function libellesDeLaMaquette(): string[] {
-  const bloc = /<div class="nav">([\s\S]*?)<\/div>/.exec(MAQUETTE);
+/** La colonne de navigation seule, avant le pied (société, personne). */
+function colonneDeNavigation(): string {
+  const bloc =
+    /<aside class="sidebar"[^>]*>([\s\S]*?)<div class="sidebar-foot">/.exec(
+      MAQUETTE,
+    );
   if (bloc === null) {
     throw new Error(
-      "la barre `.nav` est introuvable dans docs/maquette/CODIPLAN_Maquette.html — " +
-        "le document a changé de forme, et ce gardien ne mesure plus rien",
+      "la colonne `.sidebar` est introuvable dans " +
+        "docs/maquette/codiplan-maquette-complete.html — le document a changé " +
+        "de forme, et ce gardien ne mesure plus rien",
     );
   }
-  return [...bloc[1].matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map((m) =>
-    m[1].replaceAll("&amp;", "&").trim(),
-  );
+  return bloc[1];
 }
 
-/** Les écarts, tels qu'ils sont ATTENDUS — écrits ici pour être lus. */
-const ECARTS_ATTENDUS = ["Fiche machine"];
-
-/** Les libellés de la maquette, moins les écarts nommés (D98). */
-function libellesAttendus(): string[] {
-  const ecartes = new Set(ECARTS_MAQUETTE.map((e) => e.libelle));
-  return libellesDeLaMaquette().filter((libelle) => !ecartes.has(libelle));
+/** Les libellés des boutons `.nav-link`, dans l'ordre où la maquette les écrit. */
+function destinationsDeLaMaquette(): string[] {
+  return [
+    ...colonneDeNavigation().matchAll(
+      /<button class="nav-link[^"]*"[^>]*>(?:<span class="nav-icon">[^<]*<\/span>)?([^<]+)<\/button>/g,
+    ),
+  ].map((m) => m[1].replaceAll("&amp;", "&").trim());
 }
 
-describe("la barre de navigation dit ce que la maquette dit", () => {
-  it("a réellement lu une barre — le témoin de non-vacuité", () => {
+/** Les titres `.nav-group`, dans l'ordre où la maquette les écrit. */
+function domainesDeLaMaquette(): string[] {
+  return [
+    ...colonneDeNavigation().matchAll(/<div class="nav-group">([^<]+)<\/div>/g),
+  ].map((m) => m[1].replaceAll("&amp;", "&").trim());
+}
+
+describe("la barre de navigation dit ce que la maquette dit (D121)", () => {
+  it("a réellement lu une colonne — le témoin de non-vacuité", () => {
     // Zéro bouton lu ressemblerait trait pour trait à « les deux listes
     // s'accordent ». C'est la faute du 10/09 : deux côtés aveugles ensemble
     // s'accordent parfaitement, et la comparaison porte sur rien.
-    expect(libellesDeLaMaquette().length).toBe(11);
-    // SIX entrées de premier niveau (D118) ; DIX destinations une fois les
-    // groupes ouverts — le même compte qu'avant l'amendement.
-    expect(ENTREES.length).toBe(6);
-    expect(feuilles(ENTREES).length).toBe(10);
+    expect(destinationsDeLaMaquette().length).toBe(14);
+    expect(domainesDeLaMaquette().length).toBe(3);
+    // TROIS domaines de premier niveau (D121) ; QUATORZE destinations une
+    // fois les groupes ouverts.
+    expect(ENTREES.length).toBe(3);
+    expect(feuilles(ENTREES).length).toBe(14);
   });
 
-  it("les DESTINATIONS s'accordent — l'ensemble, plus l'ordre ni le regroupement (D118)", () => {
-    expect([...feuilles(ENTREES).map((e) => fr[e.cle])].sort()).toEqual(
-      [...libellesAttendus()].sort(),
+  it("les DESTINATIONS s'accordent — la LISTE ET L'ORDRE (D121)", () => {
+    expect(feuilles(ENTREES).map((e) => fr[e.cle])).toEqual(
+      destinationsDeLaMaquette(),
     );
   });
 
-  it("chaque entrée, feuille ou groupe, a sa clé au dictionnaire", () => {
+  it("les TROIS DOMAINES s'accordent — la LISTE ET L'ORDRE (N-07)", () => {
+    // C'est ici, et nulle part ailleurs, que la règle du libellé neuf se
+    // vérifie : un domaine renommé ou un domaine de plus ferait rougir cette
+    // seule assertion, dans les deux sens.
+    for (const entree of ENTREES) {
+      expect(estGroupe(entree), entree.cle).toBe(true);
+    }
+    expect(ENTREES.map((e) => fr[e.cle])).toEqual(domainesDeLaMaquette());
+  });
+
+  it("chaque entrée, feuille ou domaine, a sa clé au dictionnaire", () => {
     for (const entree of ENTREES) {
       expect(Object.hasOwn(fr, entree.cle), entree.cle).toBe(true);
     }
     for (const feuille of feuilles(ENTREES)) {
       expect(Object.hasOwn(fr, feuille.cle), feuille.cle).toBe(true);
-    }
-  });
-
-  it("un groupe n'invente aucun libellé — son titre est celui d'un de ses enfants (D118)", () => {
-    // Ce qui interdit d'introduire silencieusement un mot neuf comme
-    // « Paramètres » : `docs/propositions/navigation.html` le propose et le
-    // signale lui-même comme non tranché.
-    for (const entree of ENTREES) {
-      if (!estGroupe(entree)) continue;
-      expect(
-        entree.enfants.some((enfant) => enfant.cle === entree.cle),
-        entree.cle,
-      ).toBe(true);
     }
   });
 
@@ -134,45 +136,28 @@ describe("la barre de navigation dit ce que la maquette dit", () => {
     }
   });
 
-  it("les écarts à la maquette sont exactement ceux qui ont été décidés", () => {
-    // Le motif de `CABLAGE_ATTENDU` : la liste est exigée à l'identique, donc
-    // un écart de plus fait rougir. C'est ce qui force l'arbitrage — sans quoi
-    // « la maquette fait foi » s'éroderait d'une entrée à la fois, et chaque
-    // retrait paraîtrait raisonnable pris isolément.
-    expect(ECARTS_MAQUETTE.map((e) => e.libelle)).toEqual(ECARTS_ATTENDUS);
-    for (const ecart of ECARTS_MAQUETTE) {
-      expect(ecart.motif, ecart.libelle).toBeTruthy();
-    }
-  });
-
-  it("chaque écart est ADOSSÉ à un libellé que la maquette porte vraiment", () => {
-    // Le sens silencieux. Un écart qui ne désigne plus rien — la maquette
-    // renommée, l'entrée retirée du document — n'écarte plus rien : il
-    // continue d'exister, il ne protège plus personne, et rien ne le dit. Le
-    // jour où il faudra le retirer, c'est ce scénario qui le nommera.
-    const dansLaMaquette = new Set(libellesDeLaMaquette());
-    for (const ecart of ECARTS_MAQUETTE) {
-      expect(dansLaMaquette.has(ecart.libelle), ecart.libelle).toBe(true);
-    }
-  });
-
-  it("un écart est réellement SORTI de la barre — la paire qui doit rester verte pour sa raison", () => {
-    // §9 (11/09) : à côté du cas qui doit rougir, un cas qui doit rester vert
-    // POUR SA PROPRE RAISON. « Fiche machine » est absent ET « Parc machines »
-    // est présent — si la comparaison confondait les deux libellés, la paire
-    // tomberait.
-    const rendus = feuilles(ENTREES).map((e) => fr[e.cle]);
-    for (const ecart of ECARTS_MAQUETTE) {
-      expect(rendus, ecart.libelle).not.toContain(ecart.libelle);
-    }
-    expect(rendus).toContain("Parc machines");
-  });
-
   it("une entrée AVEC écran ne prétend pas être à venir", () => {
-    // Le sens qu'on oublie : un `ouvertePar` laissé derrière un écran livré
-    // ne casse rien et ment doucement.
     for (const entree of feuilles(ENTREES).filter((e) => e.chemin !== null)) {
       expect(entree.ouvertePar, entree.cle).toBeUndefined();
+    }
+  });
+
+  it("les écarts à la maquette sont exactement ceux qui ont été décidés — VIDE depuis D121", () => {
+    // Le seul écart jamais nommé, « Fiche machine » (D98), écartait un bouton
+    // que l'ANCIENNE maquette (un catalogue d'écrans) listait à tort. La
+    // maquette désormais confrontée ne le dessine plus du tout : mesuré
+    // destination par destination, il n'y a plus rien à écarter (D121).
+    // Garder l'ancienne ligne ferait échouer le test suivant, qui exige
+    // qu'un écart s'adosse à un libellé réellement présent dans CETTE
+    // maquette.
+    expect(ECARTS_MAQUETTE).toEqual([]);
+  });
+
+  it("chaque écart, s'il en existe un jour, est ADOSSÉ à un libellé réel", () => {
+    const dansLaMaquette = new Set(destinationsDeLaMaquette());
+    for (const ecart of ECARTS_MAQUETTE) {
+      expect(dansLaMaquette.has(ecart.libelle), ecart.libelle).toBe(true);
+      expect(ecart.motif, ecart.libelle).toBeTruthy();
     }
   });
 });

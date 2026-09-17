@@ -64,13 +64,13 @@ test("l'écran se rejoint par la BARRE, et nomme ce qu'il ne sait pas appliquer"
   await page.goto("/planning");
   // *Une interface sans appelant est la maladie que le portail a soignée* :
   // l'écran se rejoint par son entrée de barre, jamais en tapant l'URL.
-  // Depuis D118, « Imports Excel » vit sous le groupe « Sociétés & tarifs » :
-  // l'ouvrir est le premier geste, comme un humain le ferait.
+  // Depuis D121, « Imports Excel » vit sous le domaine « Paramètres », dans
+  // une colonne où les quatorze destinations sont TOUTES visibles en
+  // permanence — il n'y a plus de sous-menu à ouvrir avant de cliquer.
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: fr["nav.societes_tarifs"] })
+    .getByRole("link", { name: fr["nav.imports_excel"] })
     .click();
-  await page.getByRole("link", { name: fr["nav.imports_excel"] }).click();
   await expect(page).toHaveURL(/\/imports$/);
 
   await expect(

@@ -112,6 +112,15 @@ export const JETONS = [
   "bleu-plein-encre",
   "vert-plein",
   "vert-plein-encre",
+  // Le CHROME de navigation (D121, D122) — une troisième zone, ni la charte
+  // d'une société ni un statut : la colonne latérale est un fond marine FIXE.
+  "chrome-fond",
+  "chrome-encre-faible",
+  "chrome-lien",
+  "chrome-survol",
+  "chrome-actif",
+  "chrome-actif-encre",
+  "chrome-bordure",
 ] as const;
 
 export type Jeton = (typeof JETONS)[number];
