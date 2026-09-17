@@ -290,11 +290,6 @@ export const MODULES_SANS_CHEMIN: readonly {
       "Le canal d'envoi est appelé par un SCRIPT — l'amorçage du premier compte —, jamais par un écran. *Un chemin qui passe par une commande d'exploitation est un chemin*, et il n'entre pas dans cette mesure, qui part de `app/`. Ouvert par la première notification déclenchée depuis un écran.",
   },
   {
-    module: "lib/demandes",
-    motif:
-      "Le dépôt d'une demande est un parcours de PORTAIL (chapitre 9, P5), et le portail est en consultation seule (L2-12) ; la qualification suppose l'écran de la file des demandes. Deux écrans, tous deux à écrire.",
-  },
-  {
     module: "lib/reporting",
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
@@ -370,11 +365,6 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "cloreSansSuite",
     motif: "Même écran que `qualifierDemande`.",
   },
-  {
-    module: "lib/demandes/depot.ts",
-    fonction: "demandesOuvertes",
-    motif: "Même écran que `qualifierDemande`.",
-  },
   // ── LE LOT 8 A POSÉ LE BAC DE RÉCEPTION, SANS ÉCRAN ──────────────────────
   {
     module: "lib/documents/depot.ts",
@@ -404,47 +394,16 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   },
   // ── DES FONCTIONS DE LECTURE QUE L'ÉCRAN VOISIN N'APPELLE PAS ────────────
   {
-    module: "lib/interventions/depot.ts",
-    fonction: "enAttenteDePiece",
-    motif:
-      "La file des interventions suspendues en attente de pièce (L2-10) n'a pas d'écran : le planning montre les créneaux, pas les attentes. Ouvert par le tableau de bord du responsable matériel (M9, lot 4).",
-  },
-  {
     module: "lib/prestations/depot.ts",
     fonction: "lirePrestation",
     motif:
       "R3-15 a livré le catalogue en une page : la liste et les formulaires y tiennent, et aucune fiche isolée n'existe. Se retire le jour où une fiche de prestation est écrite, ou la fonction avec elle.",
   },
   {
-    module: "lib/absences/depot.ts",
-    fonction: "absencesDeLaPeriode",
-    // LE MOTIF A ÉTÉ RÉÉCRIT AU REBASAGE DU 14/09/2026, et c'est la raison
-    // d'être de ce champ. Il disait « elle rend les TROIS statuts, pour un écran
-    // de planning qui montrerait les demandes en attente » — écrit contre le
-    // R3-14 d'origine, celui que `main` a REFUSÉ : il n'y a plus de statut, plus
-    // de `StatutAbsence`, plus de demande en attente. *Un motif survit à ce qui
-    // le fondait sans rougir*, et une exemption dont la raison est fausse est
-    // une exemption que personne ne saura retirer.
-    motif:
-      "Elle rend TOUS les blocages qui recouvrent une fenêtre, toutes personnes confondues ; l'écran des absences (R3-14) lit la sienne, bornée à la fenêtre qu'il affiche. Ouvert par le jour où le PLANNING montre les blocages à côté des créneaux — *on ne pose pas volontiers un rendez-vous sur une semaine qu'on sait bloquée*.",
-  },
-  {
     module: "lib/clients/depot.ts",
     fonction: "lireClient",
     motif:
       "La fiche d'un client lit par `dernieresInterventionsDuClient` et par la requête de sa page ; cette lecture-ci a été posée par L1-01 avant que la fiche existe. Se retire avec elle, ou le jour où la fiche l'appelle.",
-  },
-  {
-    module: "lib/clients/depot.ts",
-    fonction: "compterSansCodeExterne",
-    motif:
-      "Un décompte de qualité du référentiel (D29), posé par L1-01 pour un écran de suivi d'import qui n'existe pas. Ouvert par le tableau de bord du lot 4, ou retiré avec lui.",
-  },
-  {
-    module: "lib/clients/depot.ts",
-    fonction: "libelleCodeExterneDeLaSociete",
-    motif:
-      "Le libellé paramétrable du code externe (D29) : aucun écran ne l'affiche encore, la liste et la fiche nommant la colonne en dur au dictionnaire. Ouvert par l'écran de paramétrage de société.",
   },
   {
     module: "lib/clients/depot.ts",
