@@ -660,25 +660,33 @@ function ListeSemaine({
                       {enTeteDeJour(cellule.jour)}
                     </p>
                     <div className="mt-1 flex flex-col gap-1">
+                      {/*
+                        PAS DE `BlocPosable` ICI, ET C'EST DÉLIBÉRÉ.
+
+                        Cette liste n'a aucune `CasePosable` pour recevoir un
+                        dépôt — elle ne montre que ce qui est déjà posé,
+                        jamais une cible. Un `data-bloc` en double aurait
+                        rendu chaque intervention DEUX FOIS dans la page (la
+                        cellule de la grille, cachée sous `lg`, ET cette
+                        ligne) : *mesuré* — tout scénario qui cherche un bloc
+                        par son identifiant, y compris ceux du glisser-déposer
+                        déjà écrits, échoue alors en violation de mode strict
+                        avant même d'atteindre son assertion.
+                      */}
                       {cellule.lignes.map((intervention) => (
-                        <BlocPosable
+                        <Link
                           key={intervention.id}
-                          interventionId={intervention.id}
-                          dureeMin={dureeDe(intervention)}
+                          href={`/interventions/${intervention.id}`}
+                          className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
                         >
-                          <Link
-                            href={`/interventions/${intervention.id}`}
-                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
-                          >
-                            <span className="block font-bold">
-                              {enTeteDuBloc(
-                                intervention,
-                                fuseauPour(intervention.agence_id),
-                              )}
-                            </span>
-                            {objetDuBloc(intervention)}
-                          </Link>
-                        </BlocPosable>
+                          <span className="block font-bold">
+                            {enTeteDuBloc(
+                              intervention,
+                              fuseauPour(intervention.agence_id),
+                            )}
+                          </span>
+                          {objetDuBloc(intervention)}
+                        </Link>
                       ))}
                     </div>
                   </li>
