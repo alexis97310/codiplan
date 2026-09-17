@@ -162,6 +162,12 @@ export const schemaRechercheClient = z
       .min(1)
       .max(LIMITE_RECHERCHE_MAXIMALE)
       .default(LIMITE_RECHERCHE_PAR_DEFAUT),
+    /**
+     * LA PAGE, 1-INDEXÉE (AT-07). L'état de la pagination vit dans l'URL —
+     * jamais dans un état de composant — et cette page-ci est donc une entrée
+     * comme une autre, validée comme toute entrée serveur (§2).
+     */
+    page: z.coerce.number().int().min(1).default(1),
   })
   .strict();
 export type RechercheClient = z.output<typeof schemaRechercheClient>;

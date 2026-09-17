@@ -16,6 +16,7 @@ export {
   type RechercheClient,
 } from "./saisie";
 export {
+  compterClients,
   compterSansCodeExterne,
   creerClient,
   libelleCodeExterneDeLaSociete,

@@ -171,6 +171,15 @@ describe("saisie d'une fiche client (L1-01)", () => {
       expect(analyse.texte).toBeNull();
       expect(analyse.actifs_seulement).toBe(false);
       expect(analyse.limite).toBe(LIMITE_RECHERCHE_PAR_DEFAUT);
+      expect(analyse.page).toBe(1);
+    });
+
+    it("accepte une page au-delà de la première, et refuse une page absurde (AT-07)", () => {
+      expect(schemaRechercheClient.parse({ page: 3 }).page).toBe(3);
+      // Une page vient de l'URL — une chaîne — et se coerce en nombre.
+      expect(schemaRechercheClient.parse({ page: "3" }).page).toBe(3);
+      expect(schemaRechercheClient.safeParse({ page: 0 }).success).toBe(false);
+      expect(schemaRechercheClient.safeParse({ page: -1 }).success).toBe(false);
     });
 
     it("ramène un texte vide à `null` — pas de filtre sur du vide", () => {

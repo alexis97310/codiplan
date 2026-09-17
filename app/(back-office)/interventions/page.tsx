@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
@@ -11,14 +12,26 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
+  compterInterventions,
   listerInterventions,
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
+import {
+  LIMITE_RECHERCHE_PAR_DEFAUT,
+  schemaRechercheInterventions,
+  STATUTS_INTERVENTION,
+  TYPES_INTERVENTION,
+} from "@/lib/interventions/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { referenceAffichee } from "./presentation";
+import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+import {
+  libelleFiltreAgence,
+  optionToutesLesAgences,
+  referenceAffichee,
+} from "./presentation";
 
 /**
  * L'ÉCRAN « INTERVENTIONS » — le REGISTRE, canonique (N-01, 16/09/2026).
@@ -38,12 +51,15 @@ import { referenceAffichee } from "./presentation";
  * d'un client, et son URL cesse de nommer le premier écran par lequel on
  * l'atteignait — le programme des liens arrêtés le 16/09/2026.
  *
- * ## LA LISTE EST BORNÉE, ET L'ÉCRAN LE DIT
+ * ## LA LISTE PAGINE, LA RECHERCHE ET LES FILTRES SONT REMPLIS (AT-07, 17/09/2026)
  *
  * Comme `/clients` (L1-01) : une liste non bornée casse au volume sur un parc
- * de démonstration qui porte 226 machines et 615 clients. La recherche, le
- * filtre et la pagination sont un autre ticket ; celui-ci se contente de ne
- * pas mentir sur ce qu'il montre (`interventions.borne`, sous le tableau).
+ * de démonstration qui porte 226 machines et 615 clients. Le texte cherche sur
+ * le client et le lieu — les colonnes VISIBLES qui identifient une ligne,
+ * jamais sur la référence affichée (`INT-00312` ou `Local-XXXXXX`, qui n'est
+ * pas une colonne stockée) ni sur le technicien (dont le nom vit dans
+ * l'annuaire, pas sur `intervention`). Les quatre filtres sont ceux que la
+ * maquette annonce : agence, type, statut, période — et eux seuls.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
  *
@@ -51,9 +67,6 @@ import { referenceAffichee } from "./presentation";
  * décide. Une comparaison de société écrite au-dessus serait une seconde
  * lecture d'un même critère, et c'est celle qui vieillit sans rougir.
  */
-
-/** Ce que l'écran rend. Une BORNE D'AFFICHAGE, jamais un cloisonnement. */
-const INTERVENTIONS_MONTREES = 200;
 
 export default async function PageInterventions({
   searchParams,
@@ -67,16 +80,45 @@ export default async function PageInterventions({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const motif = (await searchParams).motif;
+  const contexte = session.contexte;
+  const params = await searchParams;
+  const motif = params.motif;
 
-  const lignes = await listerInterventions(
-    session.contexte,
-    INTERVENTIONS_MONTREES,
+  // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
+  // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
+  const agences = await avecContexteApplicatif(contexte, (tx) =>
+    tx.agence.findMany({
+      select: { id: true, libelle: true },
+      orderBy: [{ libelle: "asc" }, { id: "asc" }],
+    }),
+  );
+
+  const criteres = schemaRechercheInterventions.safeParse({
+    texte: typeof params.q === "string" ? params.q : "",
+    agence_id: typeof params.agence === "string" ? params.agence : "",
+    type: typeof params.type === "string" ? params.type : "",
+    statut: typeof params.statut === "string" ? params.statut : "",
+    du: typeof params.du === "string" ? params.du : "",
+    au: typeof params.au === "string" ? params.au : "",
+    page: typeof params.page === "string" ? params.page : undefined,
+  });
+
+  const lignes = criteres.success
+    ? await listerInterventions(contexte, criteres.data)
+    : [];
+  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
+  // liste, jamais une seconde lecture divergente du critère (AT-07).
+  const totalFiltre = criteres.success
+    ? await compterInterventions(contexte, criteres.data)
+    : 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
   );
   // L'UNION des identités que CETTE liste doit nommer est celle des LIGNES
   // rendues, et rien d'autre : à la différence de la vue jour du planning,
   // aucune colonne ne provient d'un référentiel vide à remplir.
-  const annuaire = await avecContexteApplicatif(session.contexte, (tx) =>
+  const annuaire = await avecContexteApplicatif(contexte, (tx) =>
     annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
   );
 
@@ -122,6 +164,96 @@ export default async function PageInterventions({
         </p>
       ) : null}
 
+      {/* La recherche et les quatre filtres sont un FORMULAIRE `GET` : l'état
+          vit dans l'URL, jamais dans un état de composant (AT-07). */}
+      <form
+        method="get"
+        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-[10px] border px-4 py-3.5"
+      >
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("interventions.recherche")}
+          <input
+            type="search"
+            name="q"
+            defaultValue={typeof params.q === "string" ? params.q : ""}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {libelleFiltreAgence()}
+          <select
+            name="agence"
+            defaultValue={
+              typeof params.agence === "string" ? params.agence : ""
+            }
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          >
+            <option value="">{optionToutesLesAgences()}</option>
+            {agences.map((agence) => (
+              <option key={agence.id} value={agence.id}>
+                {agence.libelle}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("intervention.type")}
+          <select
+            name="type"
+            defaultValue={typeof params.type === "string" ? params.type : ""}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          >
+            <option value="">{t("interventions.filtre_type_tous")}</option>
+            {TYPES_INTERVENTION.map((type) => (
+              <option key={type} value={type}>
+                {t(`type_intervention.${type}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("intervention.statut")}
+          <select
+            name="statut"
+            defaultValue={
+              typeof params.statut === "string" ? params.statut : ""
+            }
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          >
+            <option value="">{t("interventions.filtre_statut_tous")}</option>
+            {STATUTS_INTERVENTION.map((statut) => (
+              <option key={statut} value={statut}>
+                {t(`statut.${statut}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("interventions.filtre_periode_du")}
+          <input
+            type="date"
+            name="du"
+            defaultValue={typeof params.du === "string" ? params.du : ""}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("interventions.filtre_periode_au")}
+          <input
+            type="date"
+            name="au"
+            defaultValue={typeof params.au === "string" ? params.au : ""}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          />
+        </label>
+        <button
+          type="submit"
+          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+        >
+          {t("interventions.rechercher")}
+        </button>
+      </form>
+
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
         <Tableau colonnes={colonnes} minimum="920px">
           {lignes.length === 0 ? (
@@ -139,9 +271,37 @@ export default async function PageInterventions({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-[11.5px]">
-        {t("interventions.borne")}
-      </p>
+      <Pagination
+        page={criteres.success ? criteres.data.page : 1}
+        totalPages={totalPages}
+        libelleResultats={decompte(
+          totalFiltre,
+          t("interventions.resultat_un"),
+          t("interventions.resultat"),
+        )}
+        libellePage={libellePage(
+          criteres.success ? criteres.data.page : 1,
+          totalPages,
+        )}
+        libellePrecedent={t("pagination.precedent")}
+        libelleSuivant={t("pagination.suivant")}
+        hrefPage={(page) =>
+          hrefDeLaPage(
+            "/interventions",
+            {
+              q: typeof params.q === "string" ? params.q : undefined,
+              agence:
+                typeof params.agence === "string" ? params.agence : undefined,
+              type: typeof params.type === "string" ? params.type : undefined,
+              statut:
+                typeof params.statut === "string" ? params.statut : undefined,
+              du: typeof params.du === "string" ? params.du : undefined,
+              au: typeof params.au === "string" ? params.au : undefined,
+            },
+            page,
+          )
+        }
+      />
     </main>
   );
 }

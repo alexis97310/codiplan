@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -55,13 +56,19 @@ import {
   personnesANommer,
   quiTravaille,
 } from "@/lib/interventions/personnes";
+import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import {
   CLASSES_BLOC,
   CLASSES_STATUT,
   LEGENDE_PLANNING,
 } from "@/lib/theme/statuts";
 
-import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
+import {
+  BlocPosable,
+  CasePosable,
+  PARAMETRE_AVERTISSEMENT,
+  Posable,
+} from "@/components/planning/pose";
 
 import {
   enTeteDuBloc,
@@ -113,8 +120,36 @@ export default async function PagePlanning({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
+  // ── LE RÉFÉRENTIEL DES TECHNICIENS SUIT LE MÊME PÉRIMÈTRE QUE LES LIGNES
+  // (R5-01, mesuré et corrigé le 17/09/2026).
+  //
+  // *Mesuré sous la session d'un technicien au périmètre restreint (rôle
+  // `technicien`, `perimetreDuPlanning` rend `"restreint"`) : `listerPlanning`
+  // rendait bien UNE seule personne, mais `technicien.findMany({actif: true})`
+  // en rendait QUATRE — celui-ci ET ses trois collègues — parce que rien ici
+  // ne lisait le périmètre avant de peupler le référentiel qui donne ses
+  // colonnes à la vue jour (depuis le 12/09) et ses lignes à la vue semaine
+  // (depuis le N-06 ci-dessus).* Le technicien voyait donc la liste nominative
+  // de toute l'équipe, et les cibles de dépôt de ses collègues, alors que
+  // `consulter_planning` le lui interdit — une fuite par déduction, exactement
+  // la famille que R5-01 existe pour fermer.
+  //
+  // La correction lit `perimetreDuPlanning` UNE FOIS, ici, et filtre le
+  // référentiel avant qu'il n'aille nommer une colonne ou une ligne. Elle ne
+  // recopie pas `role === technicien` : c'est le verdict de la matrice
+  // (`perimetreDuPlanning`, `lib/interventions/perimetre-technicien.ts`) qui
+  // décide, comme il décide déjà pour `listerPlanning`.
+  const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));
   const parametres = await searchParams;
   const vue = parametres.vue === "jour" ? "jour" : "semaine";
+  // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
+  // l'URL du rechargement complet que `Posable` déclenche désormais, jamais
+  // par un état client qu'un rechargement effacerait avant qu'on le lise.
+  // Même filtre que le refus de la fiche (L1-02f) : une clé inconnue ne
+  // s'affiche pas — une réponse forgée ne ferait écrire n'importe quoi ici.
+  const avertissementsAffiches = [parametres[PARAMETRE_AVERTISSEMENT] ?? []]
+    .flat()
+    .filter(estCleTraduction);
 
   const cadre = await avecContexteApplicatif(contexte, async (tx) => {
     const societe = await tx.societe.findFirst({
@@ -151,8 +186,18 @@ export default async function PagePlanning({
     // `Technicien.actif`). Lui garder une colonne vide ferait proposer une
     // journée entière chez quelqu'un qui n'est plus là. Ses interventions
     // passées, elles, lui rendent sa colonne — la vue jour n'en perd aucune.
+    // `filtreDuPerimetre` (lib/interventions/perimetre-technicien.ts) n'est
+    // PAS réutilisable ici : il rend un fragment sur la colonne `technicien_id`
+    // d'`intervention`, pas sur la clé `utilisateur_id` de `technicien`. Le
+    // VERDICT vient de la même matrice ; seule la colonne filtrée diffère
+    // parce que la table diffère.
     const techniciens = await tx.technicien.findMany({
-      where: { actif: true },
+      where: {
+        actif: true,
+        ...(perimetre.acces === "restreint"
+          ? { utilisateur_id: perimetre.technicienId }
+          : {}),
+      },
       select: { utilisateur_id: true, agence_id: true },
     });
     return {
@@ -301,18 +346,17 @@ export default async function PagePlanning({
             {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
           </p>
           {/*
-            LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
-            DISENT (14/09/2026). La vue jour tire ses colonnes du référentiel,
-            la vue semaine des interventions — deux choix délibérés, chacun avec
-            sa raison. Ce qui ne se tenait pas est que *deux écrans de la même
-            entrée de menu rendent deux populations sans un mot* : l'écart ne se
-            découvrait qu'en le soupçonnant.
+            ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
+            DISENT (14/09/2026)~~ — RETIRÉ LE 17/09/2026 (N-06). C'était
+            présenté comme deux choix délibérés ; c'était en réalité le défaut
+            le plus grave mesuré sur ce planning, parce qu'il fait DISPARAÎTRE
+            un technicien : celui qu'on cherche précisément en ouvrant un
+            planning est celui qui n'a rien, et la vue semaine ne lui donnait
+            aucune ligne là où la vue jour lui donnait sa colonne. Les deux vues
+            tirent désormais leurs lignes et leurs colonnes du MÊME référentiel
+            (`pourTechniciens`), et la mention qui expliquait l'écart n'a plus
+            d'écart à expliquer.
           */}
-          <p className="text-app-encre-faible text-[11.5px]">
-            {vue === "jour"
-              ? t("planning.population_jour")
-              : t("planning.population_semaine")}
-          </p>
           {/*
             LA PORTE DES ABSENCES (R3-14).
 
@@ -339,6 +383,20 @@ export default async function PagePlanning({
       </header>
 
       <Posable>
+        {avertissementsAffiches.map((cle) => (
+          <p
+            key={cle}
+            // `role="status"` et non `alert` : *un avertissement n'interrompt
+            // pas.* L'action a été acceptée ; ce qui suit est une
+            // information, et l'annoncer comme une alerte apprendrait à
+            // ignorer les alertes.
+            data-avertissement={cle}
+            role="status"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          >
+            {t(cle)}
+          </p>
+        ))}
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_290px]">
           {vue === "jour" ? (
             <VueJour
@@ -355,8 +413,12 @@ export default async function PagePlanning({
           ) : (
             <VueSemaine
               jours={jours}
-              grille={construireGrille(affichees, jours, pourGrille, (id) =>
-                nomSeul(id, annuaire),
+              grille={construireGrille(
+                affichees,
+                jours,
+                pourGrille,
+                (id) => nomSeul(id, annuaire),
+                pourTechniciens,
               )}
               annuaire={annuaire}
               chargeDe={chargeParTechnicien}
@@ -408,10 +470,22 @@ export default async function PagePlanning({
                 ))}
               </div>
             </section>
-
-            <Statistiques lignes={charges} annuaire={annuaire} />
           </aside>
         </div>
+
+        {/*
+          LE DÉTAIL DE CHARGE SE POSE SOUS LE PLANNING (N-02, 17/09/2026).
+
+          Il vivait dans le panneau latéral de 290 px, à côté de la file
+          d'attente — un écart avec la maquette que rien n'écrivait : elle ne
+          pose dans cette colonne QUE la file et les contrôles à la pose, et
+          n'y montre aucun panneau de charge. Ce panneau-ci est une donnée que
+          la maquette ne prévoit pas, mais l'endroit où on le pose y est
+          arbitré : jamais dans la colonne étroite qui vole sa largeur à la
+          grille — c'est très exactement elle que le planificateur consulte le
+          plus, jours et personnes confondus.
+        */}
+        <Statistiques lignes={charges} annuaire={annuaire} />
       </Posable>
     </main>
   );
@@ -453,7 +527,17 @@ function VueSemaine({
 }) {
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-      <div className="overflow-x-auto">
+      {/*
+        LA GRILLE NE SE COMPRIME PAS SOUS `lg` (N-02, 17/09/2026).
+
+        Elle défilait horizontalement sur petite largeur — six colonnes
+        resserrées dans une fenêtre de téléphone —, ce qui n'est pas une liste
+        et n'est plus une grille lisible non plus : *cinq colonnes sur un
+        téléphone n'est pas une grille.* La maquette ne dit rien du téléphone,
+        elle n'a été pensée que pour un poste de travail ; en dessous de `lg`,
+        c'est donc `ListeSemaine`, une liste par personne, qui prend le relais.
+      */}
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]">
           <colgroup>
             {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
@@ -557,8 +641,142 @@ function VueSemaine({
           </tbody>
         </table>
       </div>
+      <ListeSemaine
+        grille={grille}
+        annuaire={annuaire}
+        chargeDe={chargeDe}
+        fuseauPour={fuseauPour}
+      />
       <Legende />
     </section>
+  );
+}
+
+/**
+ * LA LISTE — la même donnée que la grille, sous `lg` (N-02, 17/09/2026).
+ *
+ * Une personne, une carte : son nom, ses agences, son taux, puis SES SEULS
+ * jours qui portent quelque chose cette semaine. **Un jour vide n'a pas de
+ * ligne** — le jour fermé compris : une trame veut dire quelque chose sur une
+ * grille où chaque case existe déjà ; dans une liste qui ne montre que ce qui
+ * est rempli, l'absence d'un jour dit déjà qu'il n'y a rien à y montrer, et
+ * gonfler la liste avec six jours hachurés par personne serait revenir à la
+ * densité qu'une liste existe pour éviter.
+ *
+ * **Une personne dont la semaine est VIDE n'est pas retirée de la liste** —
+ * c'est très exactement N-06 : *le technicien qu'on cherche en ouvrant un
+ * planning est celui qui n'a rien.* Sa carte le dit, avec le seul mot que la
+ * réserve absolue autorise : `t("planning.technicien_sans_intervention")` —
+ * jamais « disponible », qui affirmerait un état sur les absences et les
+ * trajets que cet écran n'a pas lus.
+ */
+function ListeSemaine({
+  grille,
+  annuaire,
+  chargeDe,
+  fuseauPour,
+}: {
+  readonly grille: ReturnType<typeof construireGrille<Ligne>>;
+  readonly annuaire: Annuaire;
+  readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
+  readonly fuseauPour: (agenceId: string) => Fuseau;
+}) {
+  if (grille.length === 0) {
+    return (
+      <p className="text-app-encre-faible border-app-bord border-t px-4 py-6 text-[13px] lg:hidden">
+        {t("planning.semaine_vide")}
+      </p>
+    );
+  }
+  return (
+    <>
+      {/*
+        LA LISTE N'A AUCUNE CASE DE DÉPÔT (mesuré et corrigé le 17/09/2026,
+        revue de #221).
+
+        La grille qu'elle remplace sous `lg` porte `CasePosable` sur chaque
+        case ; cette liste ne montre que ce qui est déjà posé et n'a jamais eu
+        de cible. Un bloc à la couleur d'un statut (`CLASSES_BLOC`, la même
+        que la grille) invitait un utilisateur à la souris — fenêtre étroite,
+        pas nécessairement tactile — à un geste que rien ici ne peut recevoir,
+        en silence : la famille exacte de D-06. Le mot dit où le geste existe
+        réellement, sans essayer de le recréer ici : la fiche de
+        l'intervention, dont le formulaire « Déplacer » fait la même chose
+        que le dépôt (`components/planning/pose.tsx`).
+      */}
+      <p
+        data-avertissement-lecture-seule
+        className="text-app-encre-faible border-app-bord border-t px-3.5 py-2 text-[11px] lg:hidden"
+      >
+        {t("planning.liste_lecture_seule")}
+      </p>
+      <ul className="divide-app-bord border-app-bord divide-y lg:hidden">
+        {grille.map((ligne) => (
+          <li key={ligne.technicienId ?? "-"} className="p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[12.5px] font-bold">
+                  {quiTravaille(ligne.technicienId, annuaire)}
+                </p>
+                <p className="text-app-encre-faible text-[10.5px]">
+                  {ouTravaille(ligne.agences.map((a) => a.libelle))}
+                </p>
+              </div>
+              <TauxCompactAffiche
+                lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+              />
+            </div>
+            {ligne.total === 0 ? (
+              <p className="text-app-encre-faible mt-2 text-[12px] italic">
+                {t("planning.technicien_sans_intervention")}
+              </p>
+            ) : (
+              <ul className="mt-2 flex flex-col gap-2">
+                {ligne.cases
+                  .filter((cellule) => cellule.lignes.length > 0)
+                  .map((cellule) => (
+                    <li key={cleJour(cellule.jour)}>
+                      <p className="text-app-encre-faible text-[10.5px] font-bold tracking-wide uppercase">
+                        {enTeteDeJour(cellule.jour)}
+                      </p>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {/*
+                        PAS DE `BlocPosable` ICI, ET C'EST DÉLIBÉRÉ.
+
+                        Cette liste n'a aucune `CasePosable` pour recevoir un
+                        dépôt — elle ne montre que ce qui est déjà posé,
+                        jamais une cible. Un `data-bloc` en double aurait
+                        rendu chaque intervention DEUX FOIS dans la page (la
+                        cellule de la grille, cachée sous `lg`, ET cette
+                        ligne) : *mesuré* — tout scénario qui cherche un bloc
+                        par son identifiant, y compris ceux du glisser-déposer
+                        déjà écrits, échoue alors en violation de mode strict
+                        avant même d'atteindre son assertion.
+                      */}
+                        {cellule.lignes.map((intervention) => (
+                          <Link
+                            key={intervention.id}
+                            href={`/interventions/${intervention.id}`}
+                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                          >
+                            <span className="block font-bold">
+                              {enTeteDuBloc(
+                                intervention,
+                                fuseauPour(intervention.agence_id),
+                              )}
+                            </span>
+                            {objetDuBloc(intervention)}
+                          </Link>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

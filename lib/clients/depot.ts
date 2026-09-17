@@ -343,9 +343,34 @@ export async function rechercherClients(
       tx.client.findMany({
         where: filtreDeRecherche(criteres),
         orderBy: [{ raison_sociale: "asc" }, { id: "asc" }],
+        skip: (criteres.page - 1) * criteres.limite,
         take: criteres.limite,
         select: CHAMPS_FICHE,
       }),
+    client,
+  );
+}
+
+/**
+ * COMBIEN DE FICHES CORRESPONDENT À LA RECHERCHE (AT-07) — jamais le compte de
+ * la page.
+ *
+ * **Réutilise `filtreDeRecherche`, comme `compterSansCodeExterne` le fait déjà
+ * juste en dessous** : le critère n'a qu'une écriture, et ce que ces deux
+ * fonctions comptent diffère seulement par le `where` supplémentaire sur
+ * `code_externe`. *Une pagination qui compterait autrement que la liste
+ * qu'elle pagine est la faute nommée par le directeur d'exploitation le
+ * 16/09 : « 50 clients » sous une liste qui en compte 619 se lit comme une
+ * mesure.*
+ */
+export async function compterClients(
+  contexte: ContexteSession,
+  criteres: RechercheClient,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.client.count({ where: filtreDeRecherche(criteres) }),
     client,
   );
 }

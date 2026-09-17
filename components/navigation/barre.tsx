@@ -219,13 +219,25 @@ function Entree({
  * UN GROUPE DE PREMIER NIVEAU (D118) — un `<details>` natif, jamais un état
  * React.
  *
- * **Pourquoi natif plutôt qu'un `useState` par groupe.** Le clavier, le focus
- * et le rôle accessible d'un `<summary>` sont ceux d'un bouton sans qu'il faille
- * les recomposer à la main — c'est le même calcul que la déconnexion en
- * `<form>` plutôt qu'en gestionnaire de clic : le navigateur fait déjà ce que
- * la commande demande. `name` partagé entre les groupes ferme l'un quand
- * l'autre s'ouvre, nativement, dans les navigateurs qui le lisent — et ne fait
- * rien de plus dans les autres.
+ * **Pourquoi natif plutôt qu'un `useState` par groupe.** Le clavier et le
+ * focus d'un `<summary>` sont ceux d'un bouton sans qu'il faille les
+ * recomposer à la main — c'est le même calcul que la déconnexion en `<form>`
+ * plutôt qu'en gestionnaire de clic : le navigateur fait déjà ce que la
+ * commande demande. `name` partagé entre les groupes ferme l'un quand l'autre
+ * s'ouvre, nativement, dans les navigateurs qui le lisent — et ne fait rien de
+ * plus dans les autres.
+ *
+ * **LE RÔLE ACCESSIBLE, LUI, NE VIENT PAS GRATUITEMENT — mesuré, pas déduit
+ * (17/09/2026).** *Cette phrase affirmait « le rôle accessible d'un
+ * `<summary>` est celui d'un bouton » sans l'avoir vérifié — exactement
+ * l'erreur du §9 du 07/09 : affirmer un état observable au lieu de
+ * l'observer.* Mesuré sous Chromium 141 (`page.accessibility.snapshot`) :
+ * un `<summary>` nu n'expose PAS le rôle `button` — il rend un rôle interne de
+ * bascule (« DisclosureTriangleGrouped »), invisible à `getByRole("button")`,
+ * ce qui a rendu Imports Excel inatteignable au clavier et au lecteur d'écran
+ * depuis D118 (#217/#220). `role="button"` explicite corrige l'écart, mesuré
+ * de la même façon : `getByRole("navigation").getByRole("button", { name })`
+ * retrouve alors l'élément.
  *
  * **Le TITRE n'est jamais un lien** (voir `GroupeNavigation`) : c'est un
  * `<summary>`, qui ouvre le sous-menu et rien d'autre. Il porte quand même le
@@ -246,6 +258,7 @@ function Groupe({
   return (
     <details name="nav-groupe" className="relative">
       <summary
+        role="button"
         className={
           active
             ? `${CLASSES_ENTREE} flex list-none items-center gap-1 bg-app-marque text-app-marque-encre [&::-webkit-details-marker]:hidden`

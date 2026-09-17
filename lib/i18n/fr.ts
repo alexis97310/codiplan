@@ -300,8 +300,6 @@ export const fr = {
   "clients.actifs_seulement": "Masquer les fiches inactives",
   "clients.inactif": "inactive",
   "clients.retour": "\u2190 Tous les clients",
-  "clients.borne":
-    "Les fiches sont born\u00e9es \u00e0 ce qu'un \u00e9cran peut montrer. Affinez la recherche si la liste est tronqu\u00e9e.",
   // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
   // montrerait — total, actifs, inactifs — se lisent dans le tableau, et *un
   // compteur qu'on regarde sans jamais agir dessus apprend à ne plus lire les
@@ -414,7 +412,6 @@ export const fr = {
   "sites.rechercher": "Rechercher",
   "sites.creer": "Nouveau lieu",
   "sites.inactif": "Inactif",
-  "sites.borne": "Les 100 premiers résultats sont affichés.",
   // Le libellé COURT de la colonne. Le libellé complet — celui qui dit d'où
   // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
   // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
@@ -750,11 +747,17 @@ export const fr = {
   "interventions.sous_titre":
     "Le registre des interventions de la société, la plus récente en tête.",
   "interventions.vide": "Aucune intervention enregistrée.",
-  // CE QUI EST MONTRÉ EST ÉCRIT, plutôt que de laisser croire que la liste
-  // est complète : le parc de démonstration porte assez d'interventions pour
-  // qu'une liste non bornée casse au volume.
-  "interventions.borne":
-    "Les 200 interventions les plus récentes sont affichées. La recherche et le filtre arrivent dans un prochain lot.",
+  // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
+  // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
+  // statut, période. Le texte cherche sur le client et le lieu — les deux
+  // colonnes VISIBLES qui identifient une ligne.
+  "interventions.recherche": "Client ou lieu",
+  "interventions.rechercher": "Rechercher",
+  "interventions.filtre_toutes_prefixe": "Toutes les",
+  "interventions.filtre_type_tous": "Tous les types",
+  "interventions.filtre_statut_tous": "Tous les statuts",
+  "interventions.filtre_periode_du": "Depuis le",
+  "interventions.filtre_periode_au": "Jusqu'au",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
@@ -1306,7 +1309,11 @@ export const fr = {
   "parc.kpi_garantie": "Garantie expirant < 90 j",
   "parc.kpi_en_panne": "En panne / arrêtées",
   "parc.kpi_sur": "sur",
-  "parc.kpi_affichees": "affichées",
+  // « affichées » DISAIT vrai tant que l'écran rendait tout le parc filtré en
+  // une seule fois ; depuis que la liste PAGINE (AT-07), ce nombre porte sur
+  // toute la recherche, jamais sur la seule page — « au total » le dit sans
+  // mentir sur ce qui est effectivement à l'écran.
+  "parc.kpi_affichees": "au total",
   "parc.kpi_en_panne_detail_panne": "en panne",
   "parc.kpi_en_panne_detail_arretees": "arrêtées",
   // ── LA RECHERCHE, CÂBLÉE ET PAS ENCORE REMPLIE (AT-04, AT-07) ────────────
@@ -1408,8 +1415,6 @@ export const fr = {
     "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
   "machine.documents.sans_octets":
     "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
-  "parc.borne":
-    "Les premières fiches du parc, les incomplètes d'abord. La recherche et l'export viennent avec les écrans de lot 2.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.colonne_exceptions": "Exceptions",
@@ -1785,28 +1790,39 @@ export const fr = {
   "planning.semaine_apres": "Semaine suivante →",
   "planning.semaine_vide": "Aucune intervention posée sur cette semaine.",
   "planning.file_vide": "Rien n'attend d'être posé.",
+  // ── N-02 / N-06 — LA LISTE DU PLANNING SUR PETITE LARGEUR (17/09/2026) ───
+  //
+  // Bloc contigu et nommé pour ces clés : `lib/i18n/fr.ts` est aussi
+  // écrit par AT-07 en ce moment (proposition #219), et une clé isolée au
+  // milieu d'un autre bloc serait le point de conflit le plus probable à la
+  // fusion.
+  //
+  // `technicien_sans_intervention` porte le seul mot que la réserve absolue
+  // autorise sur une carte vide : jamais « disponible » — nous n'avons lu ni
+  // les absences, ni les trajets, ni le calendrier de l'agence, et l'écrire
+  // affirmerait un état que cet écran n'a pas observé (§9, 07/09).
+  "planning.technicien_sans_intervention": "Sans intervention",
+  // `liste_lecture_seule` — mesuré et ajouté le 17/09/2026, revue de #221.
+  // La liste n'a AUCUNE case de dépôt : elle n'a jamais pu recevoir un
+  // glisser-déposer, contrairement à la grille qu'elle remplace sous `lg`.
+  // Sans ce mot, un bloc à la couleur d'un statut se prenait pour un bloc
+  // qu'on peut prendre — la famille exacte de D-06, un geste qui se montre
+  // possible et se refuse en silence. Il nomme où le geste existe vraiment :
+  // la fiche de l'intervention, dont le formulaire « Déplacer » fait
+  // exactement la même chose que le dépôt (`components/planning/pose.tsx`).
+  "planning.liste_lecture_seule":
+    "Pour réaffecter une intervention, ouvrez sa fiche.",
   // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
   // familles de couleur, pas des statuts un à un : huit statuts, cinq
   // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).
   // ── LES DEUX VUES DU PLANNING (11/09/2026) ───────────────────────────────
   "planning.vue_semaine": "Semaine",
   "planning.vue_jour": "Jour",
-  // ── LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE DISENT ──
-  //
-  // C'est DÉLIBÉRÉ, et c'était TU. La vue jour tire ses colonnes du référentiel
-  // des techniciens actifs — *un technicien dont la journée est entièrement
-  // libre n'avait aucune colonne, sur un écran dont l'objet déclaré est de
-  // MONTRER LES TROUS* (12/09) ; la vue semaine groupe ce que les
-  // interventions portent, et une ligne vide sur six jours n'y apprend rien.
-  //
-  // Les deux choix se tiennent. Ce qui ne se tenait pas est que **deux écrans
-  // de la même entrée de menu rendent deux populations sans un mot**, et que
-  // l'écart ne se découvre qu'en le soupçonnant. *Un écart écrit est un écart ;
-  // un écart tu est une panne qu'on cherche ailleurs.*
-  "planning.population_jour":
-    "Tous les techniciens actifs ont une colonne, même sans intervention : cette vue montre les trous.",
-  "planning.population_semaine":
-    "Seuls les techniciens qui portent une intervention ont une ligne : une semaine entièrement vide n'en apprend aucune.",
+  // ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION~~ — RETIRÉ (N-06,
+  // 17/09/2026). Les deux clés qui le disaient, `planning.population_jour` et
+  // `planning.population_semaine`, sont supprimées avec le défaut qu'elles
+  // documentaient : les deux vues tirent maintenant leurs lignes et leurs
+  // colonnes du même référentiel, et il n'y a plus d'écart à annoncer.
   "planning.jour_avant": "← Jour précédent",
   "planning.jour_apres": "Jour suivant →",
   "planning.colonne_heure": "Heure",
@@ -1868,6 +1884,24 @@ export const fr = {
   "sante.tout_va_bien": "L'installation répond et paraît complète.",
   "sante.quelque_chose_cloche":
     "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",
+
+  // ── LA PAGINATION, PARTAGÉE PAR LES QUATRE LISTES DU BACK-OFFICE (AT-07) ──
+  //
+  // « Page » et « précédent/suivant » ne dépendent d'aucune entité : composés
+  // une fois ici, jamais recopiés dans chacun des quatre écrans qui paginent
+  // (`app/(back-office)/presentation.ts` les assemble avec les numéros).
+  "pagination.page": "Page",
+  "pagination.sur": "sur",
+  "pagination.precedent": "← Page précédente",
+  "pagination.suivant": "Page suivante →",
+  // Les unités que chaque écran compose avec `decompte()` pour SON total
+  // filtré — jamais le compte de la page. `parc` réutilise déjà
+  // `parc.total_un` / `parc.total` ; `sites` compose depuis le vocabulaire
+  // imposé (`mot("site")`) et n'a besoin d'aucune clé de plus.
+  "clients.resultat_un": "client",
+  "clients.resultat": "clients",
+  "interventions.resultat_un": "intervention",
+  "interventions.resultat": "interventions",
 
   // ── LES QUATRE ÉTATS QUI MANQUAIENT À TOUT ÉCRAN (AV-11) ─────────────────
   //
