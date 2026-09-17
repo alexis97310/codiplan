@@ -63,6 +63,12 @@ test("les établissements tiennent tous dans la fenêtre, sur la largeur utile",
   );
   expect(debordent).toBe(0);
 
+  // Le flux de rendu dépose d'abord le vrai contenu dans un conteneur CACHÉ
+  // avant de le révéler (React, sous rendu en flux) : le mesurer sans attendre
+  // qu'il soit visible peut lire ce conteneur, de largeur nulle, plutôt que le
+  // `main` posé — mesuré le 17/09/2026, cause de la régression de CI de #217.
+  // Attendre n'assouplit rien : la valeur exacte attendue reste 1360.
+  await expect(page.locator("main")).toBeVisible();
   const largeur = await page
     .locator("main")
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
@@ -86,6 +92,9 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
 }) => {
   await page.goto("/parametres/forfaits");
 
+  // Voir le commentaire du premier scénario : attendre la révélation du flux
+  // avant de mesurer, sans changer la valeur attendue.
+  await expect(page.locator("main")).toBeVisible();
   const largeur = await page
     .locator("main")
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
@@ -110,6 +119,9 @@ test("l'arrivée commence en haut, sur la largeur utile", async ({ page }) => {
   // 1072 px — la forme d'une page de connexion sous une barre ancrée en haut.*
   await page.goto("/arrivee");
 
+  // Voir le commentaire du premier scénario : attendre la révélation du flux
+  // avant de mesurer, sans changer la valeur attendue.
+  await expect(page.locator("main")).toBeVisible();
   const cadre = await page.locator("main").evaluate((element) => {
     const boite = element.getBoundingClientRect();
     return { largeur: Math.round(boite.width), haut: Math.round(boite.top) };
@@ -127,6 +139,9 @@ test("la fiche d'intervention occupe la largeur utile, et garde ses actions", as
   // cinq actions empilées à la file sous l'identification.*
   await page.goto(`/interventions/${SCENE.obstacle}`);
 
+  // Voir le commentaire du premier scénario : attendre la révélation du flux
+  // avant de mesurer, sans changer la valeur attendue.
+  await expect(page.locator("main")).toBeVisible();
   const largeur = await page
     .locator("main")
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
@@ -166,6 +181,9 @@ test("le parc machines rend des lignes, et la barre l'allume", async ({
   // moitiés — l'écran rend, et la barre le désigne.
   await page.goto("/parc");
 
+  // Voir le commentaire du premier scénario : attendre la révélation du flux
+  // avant de mesurer, sans changer la valeur attendue.
+  await expect(page.locator("main")).toBeVisible();
   const largeur = await page
     .locator("main")
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
