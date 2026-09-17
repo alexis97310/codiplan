@@ -5,6 +5,8 @@ import { commitDeploye, reponseMachine, type EtatSante } from "@/lib/db/sante";
 import {
   CODE_DE_SORTIE,
   NATURES_A_REESSAYER,
+  pageBloqueeAuChargement,
+  verdictDeLaPage,
   verdictDuDeploiement,
   type NatureVerdict,
 } from "../../../scripts/lib/verdict-deploiement";
@@ -294,6 +296,8 @@ describe("les codes de sortie", () => {
     "adresse_absente",
     "deploiement_en_retard",
     "commit_inconnu",
+    "page_bloquee_au_chargement",
+    "page_non_verifiable",
   ];
 
   it("couvrent TOUTES les natures, et la liste est dérivée du type", () => {
@@ -427,5 +431,63 @@ describe("la route et le contrôle ne peuvent pas diverger en silence", () => {
         commitAttendu: COMMIT,
       }).nature,
     ).toBe("commit_inconnu");
+  });
+});
+
+/**
+ * `/API/SANTE` MENTAIT PAR OMISSION — MESURÉ EN PRODUCTION LE 17/09/2026.
+ *
+ * Commit déployé `de17141`, `/api/sante` répondait `sain`, et
+ * `document.body.innerText` sur `/planning` comme sur `/tableau-de-bord`
+ * valait EXACTEMENT « Chargement… », indéfiniment. Ce texte-fixture reprend
+ * la mesure telle quelle plutôt qu'une approximation — c'est la première
+ * chose que ce scénario devait mettre en échec, et il le fait avant toute
+ * correction du dépôt.
+ */
+describe("la page réelle peut mentir alors que la base va bien", () => {
+  const TEXTE_DE_CHARGEMENT = "Chargement…";
+
+  it("EXACTEMENT le repli, rien avant ni après — le cas mesuré en production", () => {
+    expect(pageBloqueeAuChargement("Chargement…", TEXTE_DE_CHARGEMENT)).toBe(
+      true,
+    );
+    expect(verdictDeLaPage("Chargement…", TEXTE_DE_CHARGEMENT).nature).toBe(
+      "page_bloquee_au_chargement",
+    );
+  });
+
+  it("un espace de bord ne change rien — la mesure passe par un `trim()`", () => {
+    expect(
+      pageBloqueeAuChargement("  Chargement…  \n", TEXTE_DE_CHARGEMENT),
+    ).toBe(true);
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : le repli PARMI autre chose n'est pas ce défaut", () => {
+    // Un bandeau déjà peint pendant qu'une section attend encore n'est pas
+    // la panne mesurée — la panne mesurée est une égalité STRICTE.
+    expect(
+      pageBloqueeAuChargement("CODIPLAN\nChargement…", TEXTE_DE_CHARGEMENT),
+    ).toBe(false);
+  });
+
+  it("une vraie page — le témoin qui doit rester vert pour sa propre raison", () => {
+    const texteReel =
+      "CODIPLAN\nConnexion\nAdresse électronique\nMot de passe\nSe connecter";
+    expect(pageBloqueeAuChargement(texteReel, TEXTE_DE_CHARGEMENT)).toBe(false);
+    expect(verdictDeLaPage(texteReel, TEXTE_DE_CHARGEMENT).nature).toBe("sain");
+  });
+
+  it("rien n'a pu être lu — c'est un défaut du CONTRÔLE, jamais un rouge accusateur", () => {
+    const verdict = verdictDeLaPage(null, TEXTE_DE_CHARGEMENT);
+    expect(verdict.nature).toBe("page_non_verifiable");
+    expect(CODE_DE_SORTIE[verdict.nature]).toBe(75);
+  });
+
+  it("un défaut RÉEL de la page vaut 1 — c'est un écart CONSTATÉ, jamais un 75", () => {
+    expect(CODE_DE_SORTIE.page_bloquee_au_chargement).toBe(1);
+  });
+
+  it("n'est pas réessayé — un repli qui ne part jamais ne part pas davantage en attendant", () => {
+    expect(NATURES_A_REESSAYER).not.toContain("page_bloquee_au_chargement");
   });
 });
