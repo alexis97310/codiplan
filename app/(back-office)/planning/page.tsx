@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -55,6 +56,7 @@ import {
   personnesANommer,
   quiTravaille,
 } from "@/lib/interventions/personnes";
+import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import {
   CLASSES_BLOC,
   CLASSES_STATUT,
@@ -118,6 +120,26 @@ export default async function PagePlanning({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
+  // ── LE RÉFÉRENTIEL DES TECHNICIENS SUIT LE MÊME PÉRIMÈTRE QUE LES LIGNES
+  // (R5-01, mesuré et corrigé le 17/09/2026).
+  //
+  // *Mesuré sous la session d'un technicien au périmètre restreint (rôle
+  // `technicien`, `perimetreDuPlanning` rend `"restreint"`) : `listerPlanning`
+  // rendait bien UNE seule personne, mais `technicien.findMany({actif: true})`
+  // en rendait QUATRE — celui-ci ET ses trois collègues — parce que rien ici
+  // ne lisait le périmètre avant de peupler le référentiel qui donne ses
+  // colonnes à la vue jour (depuis le 12/09) et ses lignes à la vue semaine
+  // (depuis le N-06 ci-dessus).* Le technicien voyait donc la liste nominative
+  // de toute l'équipe, et les cibles de dépôt de ses collègues, alors que
+  // `consulter_planning` le lui interdit — une fuite par déduction, exactement
+  // la famille que R5-01 existe pour fermer.
+  //
+  // La correction lit `perimetreDuPlanning` UNE FOIS, ici, et filtre le
+  // référentiel avant qu'il n'aille nommer une colonne ou une ligne. Elle ne
+  // recopie pas `role === technicien` : c'est le verdict de la matrice
+  // (`perimetreDuPlanning`, `lib/interventions/perimetre-technicien.ts`) qui
+  // décide, comme il décide déjà pour `listerPlanning`.
+  const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));
   const parametres = await searchParams;
   const vue = parametres.vue === "jour" ? "jour" : "semaine";
   // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
@@ -164,8 +186,18 @@ export default async function PagePlanning({
     // `Technicien.actif`). Lui garder une colonne vide ferait proposer une
     // journée entière chez quelqu'un qui n'est plus là. Ses interventions
     // passées, elles, lui rendent sa colonne — la vue jour n'en perd aucune.
+    // `filtreDuPerimetre` (lib/interventions/perimetre-technicien.ts) n'est
+    // PAS réutilisable ici : il rend un fragment sur la colonne `technicien_id`
+    // d'`intervention`, pas sur la clé `utilisateur_id` de `technicien`. Le
+    // VERDICT vient de la même matrice ; seule la colonne filtrée diffère
+    // parce que la table diffère.
     const techniciens = await tx.technicien.findMany({
-      where: { actif: true },
+      where: {
+        actif: true,
+        ...(perimetre.acces === "restreint"
+          ? { utilisateur_id: perimetre.technicienId }
+          : {}),
+      },
       select: { utilisateur_id: true, agence_id: true },
     });
     return {
@@ -657,37 +689,58 @@ function ListeSemaine({
     );
   }
   return (
-    <ul className="divide-app-bord border-app-bord divide-y border-t lg:hidden">
-      {grille.map((ligne) => (
-        <li key={ligne.technicienId ?? "-"} className="p-3.5">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[12.5px] font-bold">
-                {quiTravaille(ligne.technicienId, annuaire)}
-              </p>
-              <p className="text-app-encre-faible text-[10.5px]">
-                {ouTravaille(ligne.agences.map((a) => a.libelle))}
-              </p>
+    <>
+      {/*
+        LA LISTE N'A AUCUNE CASE DE DÉPÔT (mesuré et corrigé le 17/09/2026,
+        revue de #221).
+
+        La grille qu'elle remplace sous `lg` porte `CasePosable` sur chaque
+        case ; cette liste ne montre que ce qui est déjà posé et n'a jamais eu
+        de cible. Un bloc à la couleur d'un statut (`CLASSES_BLOC`, la même
+        que la grille) invitait un utilisateur à la souris — fenêtre étroite,
+        pas nécessairement tactile — à un geste que rien ici ne peut recevoir,
+        en silence : la famille exacte de D-06. Le mot dit où le geste existe
+        réellement, sans essayer de le recréer ici : la fiche de
+        l'intervention, dont le formulaire « Déplacer » fait la même chose
+        que le dépôt (`components/planning/pose.tsx`).
+      */}
+      <p
+        data-avertissement-lecture-seule
+        className="text-app-encre-faible border-app-bord border-t px-3.5 py-2 text-[11px] lg:hidden"
+      >
+        {t("planning.liste_lecture_seule")}
+      </p>
+      <ul className="divide-app-bord border-app-bord divide-y lg:hidden">
+        {grille.map((ligne) => (
+          <li key={ligne.technicienId ?? "-"} className="p-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[12.5px] font-bold">
+                  {quiTravaille(ligne.technicienId, annuaire)}
+                </p>
+                <p className="text-app-encre-faible text-[10.5px]">
+                  {ouTravaille(ligne.agences.map((a) => a.libelle))}
+                </p>
+              </div>
+              <TauxCompactAffiche
+                lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+              />
             </div>
-            <TauxCompactAffiche
-              lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
-            />
-          </div>
-          {ligne.total === 0 ? (
-            <p className="text-app-encre-faible mt-2 text-[12px] italic">
-              {t("planning.technicien_sans_intervention")}
-            </p>
-          ) : (
-            <ul className="mt-2 flex flex-col gap-2">
-              {ligne.cases
-                .filter((cellule) => cellule.lignes.length > 0)
-                .map((cellule) => (
-                  <li key={cleJour(cellule.jour)}>
-                    <p className="text-app-encre-faible text-[10.5px] font-bold tracking-wide uppercase">
-                      {enTeteDeJour(cellule.jour)}
-                    </p>
-                    <div className="mt-1 flex flex-col gap-1">
-                      {/*
+            {ligne.total === 0 ? (
+              <p className="text-app-encre-faible mt-2 text-[12px] italic">
+                {t("planning.technicien_sans_intervention")}
+              </p>
+            ) : (
+              <ul className="mt-2 flex flex-col gap-2">
+                {ligne.cases
+                  .filter((cellule) => cellule.lignes.length > 0)
+                  .map((cellule) => (
+                    <li key={cleJour(cellule.jour)}>
+                      <p className="text-app-encre-faible text-[10.5px] font-bold tracking-wide uppercase">
+                        {enTeteDeJour(cellule.jour)}
+                      </p>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {/*
                         PAS DE `BlocPosable` ICI, ET C'EST DÉLIBÉRÉ.
 
                         Cette liste n'a aucune `CasePosable` pour recevoir un
@@ -700,29 +753,30 @@ function ListeSemaine({
                         déjà écrits, échoue alors en violation de mode strict
                         avant même d'atteindre son assertion.
                       */}
-                      {cellule.lignes.map((intervention) => (
-                        <Link
-                          key={intervention.id}
-                          href={`/interventions/${intervention.id}`}
-                          className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
-                        >
-                          <span className="block font-bold">
-                            {enTeteDuBloc(
-                              intervention,
-                              fuseauPour(intervention.agence_id),
-                            )}
-                          </span>
-                          {objetDuBloc(intervention)}
-                        </Link>
-                      ))}
-                    </div>
-                  </li>
-                ))}
-            </ul>
-          )}
-        </li>
-      ))}
-    </ul>
+                        {cellule.lignes.map((intervention) => (
+                          <Link
+                            key={intervention.id}
+                            href={`/interventions/${intervention.id}`}
+                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                          >
+                            <span className="block font-bold">
+                              {enTeteDuBloc(
+                                intervention,
+                                fuseauPour(intervention.agence_id),
+                              )}
+                            </span>
+                            {objetDuBloc(intervention)}
+                          </Link>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

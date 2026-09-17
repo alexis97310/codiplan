@@ -1787,7 +1787,7 @@ export const fr = {
   "planning.file_vide": "Rien n'attend d'être posé.",
   // ── N-02 / N-06 — LA LISTE DU PLANNING SUR PETITE LARGEUR (17/09/2026) ───
   //
-  // Bloc contigu et nommé pour cette seule clé : `lib/i18n/fr.ts` est aussi
+  // Bloc contigu et nommé pour ces clés : `lib/i18n/fr.ts` est aussi
   // écrit par AT-07 en ce moment (proposition #219), et une clé isolée au
   // milieu d'un autre bloc serait le point de conflit le plus probable à la
   // fusion.
@@ -1797,6 +1797,16 @@ export const fr = {
   // les absences, ni les trajets, ni le calendrier de l'agence, et l'écrire
   // affirmerait un état que cet écran n'a pas observé (§9, 07/09).
   "planning.technicien_sans_intervention": "Sans intervention",
+  // `liste_lecture_seule` — mesuré et ajouté le 17/09/2026, revue de #221.
+  // La liste n'a AUCUNE case de dépôt : elle n'a jamais pu recevoir un
+  // glisser-déposer, contrairement à la grille qu'elle remplace sous `lg`.
+  // Sans ce mot, un bloc à la couleur d'un statut se prenait pour un bloc
+  // qu'on peut prendre — la famille exacte de D-06, un geste qui se montre
+  // possible et se refuse en silence. Il nomme où le geste existe vraiment :
+  // la fiche de l'intervention, dont le formulaire « Déplacer » fait
+  // exactement la même chose que le dépôt (`components/planning/pose.tsx`).
+  "planning.liste_lecture_seule":
+    "Pour réaffecter une intervention, ouvrez sa fiche.",
   // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
   // familles de couleur, pas des statuts un à un : huit statuts, cinq
   // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).
