@@ -174,9 +174,31 @@ describe("les quatre colonnes de suspension", () => {
  * Ce contrôle est un contrôle de GESTE, et il est annoncé comme tel (§9, 09/09).
  * Il ne prouve pas que le semis aboutit ; il refuse qu'un chemin d'écriture
  * d'intervention naisse demain sans ses colonnes de suspension.
+ *
+ * **UNE SECONDE FORME EST APPARUE LE 16/09/2026** (« DB migrate & seed » #62,
+ * rejouée et mise en échec dans ce fichier). Le replacement touche parfois une
+ * ligne que la base dit déjà `suspendue` — une main réelle, depuis l'écran, pas
+ * le modèle de démonstration — et dériver ses quatre colonnes de
+ * `trouve.modele` les écrase par ce que le modèle ne sait pas : la ligne de
+ * rang 14 porte `suspendue` en base depuis 69022fb sans que le modèle ne l'ait
+ * jamais décrite ainsi. La réparation LIT les trois colonnes existantes
+ * (`motif_suspension`, `piece_attendue_ref`, `date_dispo_prevue`) au lieu de
+ * les redériver, et ne calcule plus que `suspendue_le`. Ce chemin étale donc
+ * les quatre colonnes SANS appeler `colonnesDeSuspension` — le contrôle par
+ * comptage global ne pouvait plus le voir passer sans en perdre la maille
+ * qu'il tient : il est refait PAR SITE D'ÉCRITURE, et chaque site est reconnu
+ * par l'une OU l'autre des deux formes, jamais par un compte qui les confond.
  */
 describe("le câblage du semis", () => {
   const source = readFileSync(join(process.cwd(), "prisma", "seed.ts"), "utf8");
+
+  /** Les quatre colonnes, et rien que ces quatre — la même liste que le schéma. */
+  const QUATRE_COLONNES = [
+    "motif_suspension",
+    "piece_attendue_ref",
+    "date_dispo_prevue",
+    "suspendue_le",
+  ] as const;
 
   it("CHAQUE écriture d'intervention du semis étale les quatre colonnes", () => {
     // La population est DÉRIVÉE : toute création ou modification
@@ -187,13 +209,28 @@ describe("le câblage du semis", () => {
     // TÉMOIN : un motif devenu aveugle rendrait un vert sur zéro écriture.
     expect(ecritures.length).toBeGreaterThanOrEqual(2);
 
-    const appels = [...source.matchAll(/\.\.\.colonnesDeSuspension\(/g)];
-    expect(
-      appels.length,
-      `${ecritures.length} écriture(s) d'intervention pour ${appels.length} ` +
-        "appel(s) à colonnesDeSuspension : une écriture qui touche une " +
-        "intervention suspendue sans renseigner ses quatre colonnes est " +
-        "refusée par la base (23514), et c'est la panne du 12/09/2026.",
-    ).toBe(ecritures.length);
+    // La FENÊTRE d'un site va jusqu'au prochain site, ou à la fin du fichier
+    // pour le dernier — c'est la portée de son propre objet `data`, et rien de
+    // plus : deux sites voisins ne peuvent pas se prêter leur couverture l'un
+    // à l'autre.
+    for (const [indice, ecriture] of ecritures.entries()) {
+      const debut = ecriture.index;
+      const fin = ecritures[indice + 1]?.index ?? source.length;
+      const fenetre = source.slice(debut, fin);
+
+      const parAppel = fenetre.includes("...colonnesDeSuspension(");
+      const parColonnesLiterales = QUATRE_COLONNES.every((colonne) =>
+        fenetre.includes(`${colonne}:`),
+      );
+
+      expect(
+        parAppel || parColonnesLiterales,
+        `le site d'écriture à l'offset ${String(debut)} ne couvre pas les ` +
+          "quatre colonnes de suspension, ni par `colonnesDeSuspension`, ni " +
+          "par les quatre clés littérales : une intervention suspendue qu'il " +
+          "toucherait serait refusée par la base (23514), la panne du " +
+          "12/09/2026.",
+      ).toBe(true);
+    }
   });
 });
