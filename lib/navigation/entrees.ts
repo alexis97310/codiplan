@@ -214,7 +214,7 @@ export const ECARTS_MAQUETTE: ReadonlyArray<{
  * `GroupeNavigation` ci-dessus).
  */
 export const ENTREES: readonly EntreeDeBarre[] = [
-  { cle: "nav.tableau_de_bord", chemin: null, ouvertePar: "lot 4" },
+  { cle: "nav.tableau_de_bord", chemin: "/tableau-de-bord" },
   {
     cle: "nav.planning",
     enfants: [
