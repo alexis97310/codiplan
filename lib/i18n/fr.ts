@@ -1868,6 +1868,40 @@ export const fr = {
   "sante.tout_va_bien": "L'installation répond et paraît complète.",
   "sante.quelque_chose_cloche":
     "Quelque chose ne va pas : les lignes marquées « non » ci-dessous disent quoi.",
+
+  // ── LES QUATRE ÉTATS QUI MANQUAIENT À TOUT ÉCRAN (AV-11) ─────────────────
+  //
+  // `loading.tsx`, `error.tsx`, `not-found.tsx` et `global-error.tsx` sont posés
+  // à la racine de `app/` : ils valent pour tout écran, quel que soit le
+  // segment, et c'est pourquoi leurs libellés ne portent le préfixe d'aucun
+  // écran particulier.
+  //
+  // Un chargement dit qu'on ATTEND, jamais qu'il n'y a rien — ce n'est pas
+  // `EtatVide` (D88 : un vide affiché sans mot se lit comme une mesure).
+  "etat.chargement": "Chargement…",
+  // Une erreur dit ce qui s'est passé et ce qu'on PEUT FAIRE, jamais ce que
+  // l'appelant n'a pas le droit de lire (D50 : un message d'erreur est un
+  // canal d'information, soumis au cloisonnement comme une requête) et jamais
+  // de trace technique.
+  "etat.erreur.titre": "Une erreur est survenue",
+  "etat.erreur.description":
+    "Quelque chose s'est mal passé de ce côté-ci. Vous pouvez réessayer, ou revenir à l'écran précédent.",
+  // Une page introuvable propose une SORTIE — un écran sans sortie est une
+  // impasse.
+  "etat.introuvable.titre": "Page introuvable",
+  "etat.introuvable.description":
+    "Cette adresse ne correspond à aucun écran de CODIPLAN.",
+  // `global-error.tsx` remplace la mise en page racine elle-même : son message
+  // ne peut pas supposer qu'une session, une barre ou une charte existent.
+  "etat.erreur_globale.titre": "L'application ne peut pas s'afficher",
+  "etat.erreur_globale.description":
+    "Une erreur inattendue a interrompu le chargement. Vous pouvez réessayer, ou retourner à l'accueil.",
+  // Les trois actions, PARTAGÉES entre les états ci-dessus plutôt que
+  // recopiées : aucun délai, aucun compte à rebours, aucun réessai
+  // automatique — un geste que l'humain actionne, et rien de plus (§8).
+  "etat.reessayer": "Réessayer",
+  "etat.retour_arriere": "Revenir en arrière",
+  "etat.retour_accueil": "Retourner à l'accueil",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

@@ -42,18 +42,25 @@ const APPARENCE =
   "bg-app-bleu-plein text-app-bleu-plein-encre inline-flex w-fit items-center " +
   "justify-center rounded-md px-4 py-2 text-[13px] font-bold";
 
-/** L'action primaire qui SOUMET un formulaire. */
+/**
+ * L'action primaire qui SOUMET un formulaire — ou qui déclenche un geste
+ * client, comme `reset()` d'un écran d'erreur (AV-11) : les deux sont
+ * l'action que l'écran met en avant, et ne se distinguent que par ce qui se
+ * passe au clic, jamais par l'apparence.
+ */
 export function ActionPrimaire({
   children,
   className,
   type = "submit",
+  onClick,
 }: Readonly<{
   children: React.ReactNode;
   className?: string;
   type?: "submit" | "button";
+  onClick?: () => void;
 }>) {
   return (
-    <button type={type} className={cn(APPARENCE, className)}>
+    <button type={type} className={cn(APPARENCE, className)} onClick={onClick}>
       {children}
     </button>
   );
