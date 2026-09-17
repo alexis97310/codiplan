@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -29,6 +28,35 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
  * qu'aucun chemin de code ne peut laisser l'écran en avance sur la base. Sur un
  * réseau calédonien, un bloc qui se pose puis revient trois secondes plus tard
  * est pire qu'un bloc qui attend une seconde.
+ *
+ * ## « SE RELIRE DU SERVEUR » N'EST PLUS `router.refresh()` (N+1, 17/09/2026)
+ *
+ * *Mesuré, sur 20 essais consécutifs d'un dépôt accepté : 19 fois sur 20 le
+ * rendu ne suivait pas l'écriture, parfois plus de 30 secondes.* La base
+ * écrivait pourtant toujours, en moins de 50 ms — c'est le NAVIGATEUR qui
+ * annulait lui-même la requête de rafraîchissement après en avoir reçu une
+ * réponse 200 (`net::ERR_ABORTED`, mesuré au protocole). Trois causes
+ * plausibles ont été éliminées par la mesure avant d'y renoncer : le déluge de
+ * préfetch des liens de l'écran, la portée du `loading.tsx`, et
+ * `revalidatePath` côté route — aucune n'a changé le taux d'échec.
+ *
+ * **Une réoptimisation locale du bloc — le déplacer dans l'état React dès la
+ * réponse 200, sans attendre le serveur — a été examinée et écartée.** Le
+ * bloc lui-même bougerait juste ; le panneau de charge et les trous de la vue
+ * jour, eux, sont calculés depuis la base — calendriers, absences, trajets —
+ * et resteraient faux jusqu'à ce que le rafraîchissement défaillant les
+ * rattrape. *Un écran où le bloc dit vrai et le panneau à côté dit faux est
+ * pire qu'un écran uniformément en retard* : le second se voit, le premier se
+ * croit.
+ *
+ * `router.refresh()` est donc RETIRÉ du seul chemin où il mentait — un dépôt
+ * ACCEPTÉ — et remplacé par un **rechargement complet** de la page, mesuré
+ * fiable à 20/20 sur la même série : c'est exactement la navigation qu'un
+ * `page.goto` neuf déclenche, celle que la mesure n'a jamais vue échouer. Les
+ * trois refus techniques (règle métier, erreur serveur, connexion
+ * interrompue) ne naviguent nulle part et gardent l'état React — rien n'a
+ * jamais bougé à l'écran dans ces trois cas, et un rechargement n'y changerait
+ * rien qu'on veuille garder.
  *
  * ## TOUT REFUS NOMME SON MOTIF
  *
@@ -194,23 +222,7 @@ function useDepot(): Depot {
  * et affiche le refus.
  */
 export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
-  const router = useRouter();
   const [motif, setMotif] = useState<CleTraduction | null>(null);
-  /**
-   * CE QUI EST PASSÉ MAIS MÉRITE D'ÊTRE DIT (L3-02, RG-PLA-04).
-   *
-   * *La moitié « avertissement » de la règle n'avait aucun appelant* : elle
-   * était calculée depuis L1-04 et jetée. Elle arrive ici comme le refus — en
-   * CLÉS de dictionnaire, jamais en texte : sans ce filtre, une réponse forgée
-   * ferait écrire n'importe quoi à la page (L1-02f).
-   *
-   * **Le code de l'habilitation n'y est pas, et ne peut pas y être** : c'est
-   * une donnée de société, et ce canal ne porte que des clés. Le détail — quel
-   * code, expiré quel jour — se lit sur la fiche, sous le contexte cloisonné.
-   */
-  const [avertissements, setAvertissements] = useState<
-    readonly CleTraduction[]
-  >([]);
 
   /**
    * LES DÉPÔTS EN VOL, PAR INTERVENTION (D-06, 17/09/2026).
@@ -225,78 +237,76 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
    */
   const enVol = useRef<Set<string>>(new Set());
 
-  const deposer = useCallback(
-    (main: EnMain, cible: CibleDeDepot) => {
-      if (enVol.current.has(main.id)) {
-        return;
+  const deposer = useCallback((main: EnMain, cible: CibleDeDepot) => {
+    if (enVol.current.has(main.id)) {
+      return;
+    }
+    const corps = new FormData();
+    corps.set("date_planifiee", cible.jour);
+    if (cible.technicienId !== null) {
+      corps.set("technicien_id", cible.technicienId);
+    }
+    if (cible.minutes !== null) {
+      // DEUX GESTES, UNE SEULE ROUTE (L3-01b).
+      //
+      // **Déplacer** conserve la durée et change le début — *déplacer une
+      // intervention n'est pas la redimensionner.* **Redimensionner** garde
+      // le début et fait de la case visée la DERNIÈRE occupée : la durée
+      // court jusqu'à la fin de ce pas, si bien que relâcher sur la case de
+      // départ laisse exactement un pas — jamais zéro.
+      const redimensionne = main.bord === "fin" && main.debutMinutes !== null;
+      const debut = redimensionne ? main.debutMinutes! : cible.minutes;
+      const duree = redimensionne
+        ? cible.minutes + cible.pasMinutes - main.debutMinutes!
+        : main.dureeMin;
+      corps.set("heure_debut", String(debut));
+      corps.set("duree_min", String(duree));
+    }
+    enVol.current.add(main.id);
+    void (async () => {
+      let issue: IssueDepot;
+      try {
+        const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
+          method: "POST",
+          body: corps,
+          headers: { accept: "application/json" },
+        });
+        const rendu: unknown = await reponse.json().catch(() => null);
+        issue = interpreterReponseDepot({ ok: reponse.ok, corps: rendu });
+      } catch {
+        // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête
+        // annulée. Sans ce `catch`, ce rejet partait non intercepté et
+        // l'écran restait tel quel : un TROISIÈME silence, que
+        // `interpreterReponseDepot` ne peut pas nommer puisqu'il ne reçoit
+        // jamais d'appel dans ce cas.
+        issue = { issue: "connexion_interrompue" };
+      } finally {
+        enVol.current.delete(main.id);
       }
-      const corps = new FormData();
-      corps.set("date_planifiee", cible.jour);
-      if (cible.technicienId !== null) {
-        corps.set("technicien_id", cible.technicienId);
+      switch (issue.issue) {
+        case "enregistre":
+          // LA BASE A ACCEPTÉ : L'ÉCRAN SE RELIT DU SERVEUR, PAR UN
+          // RECHARGEMENT COMPLET plutôt que par `router.refresh()` — voir
+          // la mesure du 17/09/2026 en tête de ce fichier. Un rechargement
+          // détruit cet état React dans le même geste : nul besoin
+          // d'effacer `motif` à la main.
+          //
+          // Les AVERTISSEMENTS voyagent dans l'URL de la page rechargée,
+          // jamais dans un état qu'un rechargement effacerait avant qu'on
+          // le lise — `app/(back-office)/planning/page.tsx` les lit et les
+          // affiche, avec le même filtre sur les clés connues (L1-02f).
+          window.location.assign(urlDeRechargement(issue.avertissements));
+          return;
+        case "refuse":
+          setMotif(issue.cle);
+          return;
+        case "erreur_serveur":
+        case "connexion_interrompue":
+          setMotif(`intervention.refus.${issue.issue}`);
+          return;
       }
-      if (cible.minutes !== null) {
-        // DEUX GESTES, UNE SEULE ROUTE (L3-01b).
-        //
-        // **Déplacer** conserve la durée et change le début — *déplacer une
-        // intervention n'est pas la redimensionner.* **Redimensionner** garde
-        // le début et fait de la case visée la DERNIÈRE occupée : la durée
-        // court jusqu'à la fin de ce pas, si bien que relâcher sur la case de
-        // départ laisse exactement un pas — jamais zéro.
-        const redimensionne = main.bord === "fin" && main.debutMinutes !== null;
-        const debut = redimensionne ? main.debutMinutes! : cible.minutes;
-        const duree = redimensionne
-          ? cible.minutes + cible.pasMinutes - main.debutMinutes!
-          : main.dureeMin;
-        corps.set("heure_debut", String(debut));
-        corps.set("duree_min", String(duree));
-      }
-      enVol.current.add(main.id);
-      void (async () => {
-        let issue: IssueDepot;
-        try {
-          const reponse = await fetch(
-            `/api/interventions/${main.id}/deplacer`,
-            {
-              method: "POST",
-              body: corps,
-              headers: { accept: "application/json" },
-            },
-          );
-          const rendu: unknown = await reponse.json().catch(() => null);
-          issue = interpreterReponseDepot({ ok: reponse.ok, corps: rendu });
-        } catch {
-          // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête
-          // annulée. Sans ce `catch`, ce rejet partait non intercepté et
-          // l'écran restait tel quel : un TROISIÈME silence, que
-          // `interpreterReponseDepot` ne peut pas nommer puisqu'il ne reçoit
-          // jamais d'appel dans ce cas.
-          issue = { issue: "connexion_interrompue" };
-        } finally {
-          enVol.current.delete(main.id);
-        }
-        switch (issue.issue) {
-          case "enregistre":
-            setMotif(null);
-            setAvertissements(issue.avertissements);
-            // La base a accepté : l'écran se relit du SERVEUR, il ne se
-            // devine pas. C'est ce qui garantit qu'il ne montre rien de plus.
-            router.refresh();
-            return;
-          case "refuse":
-            setAvertissements([]);
-            setMotif(issue.cle);
-            return;
-          case "erreur_serveur":
-          case "connexion_interrompue":
-            setAvertissements([]);
-            setMotif(`intervention.refus.${issue.issue}`);
-            return;
-        }
-      })();
-    },
-    [router],
-  );
+    })();
+  }, []);
 
   return (
     <Contexte.Provider value={{ deposer }}>
@@ -312,22 +322,34 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
           {t(motif)}
         </p>
       )}
-      {avertissements.map((cle) => (
-        <p
-          key={cle}
-          // `role="status"` et non `alert` : *un avertissement n'interrompt
-          // pas.* L'action a été acceptée ; ce qui suit est une information, et
-          // l'annoncer comme une alerte apprendrait à ignorer les alertes.
-          data-avertissement={cle}
-          role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
-        >
-          {t(cle)}
-        </p>
-      ))}
       {children}
     </Contexte.Provider>
   );
+}
+
+/**
+ * LA CLÉ DE PARAMÈTRE — un nom, écrit une fois, lu par `deposer` ET par la
+ * page qui affiche les avertissements. Deux lectures d'un même nom qui
+ * diverge en silence en changerait une sans l'autre (§9, 01/09).
+ */
+export const PARAMETRE_AVERTISSEMENT = "avertissement";
+
+/**
+ * L'URL DE RECHARGEMENT — la page courante, ses paramètres existants
+ * conservés (`vue`, `jour`, `semaine`), plus un `avertissement` par clé.
+ *
+ * *Un `avertissement` déjà présent dans l'URL est retiré d'abord* : sans
+ * cela, un second dépôt accepté à la suite du premier accumulerait les clés
+ * du premier rechargement, jamais purgées puisqu'un rechargement démarre
+ * d'une URL qui les porte encore.
+ */
+function urlDeRechargement(avertissements: readonly CleTraduction[]): string {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(PARAMETRE_AVERTISSEMENT);
+  for (const cle of avertissements) {
+    url.searchParams.append(PARAMETRE_AVERTISSEMENT, cle);
+  }
+  return url.toString();
 }
 
 /**
