@@ -3,65 +3,25 @@ import { describe, expect, it } from "vitest";
 import { decider } from "../../../scripts/vercel-ignore-build.mjs";
 
 /**
- * Étape « Ignored Build Step » Vercel : plus un déploiement par commit
- * intermédiaire sur une branche `claude/*`, un seul quand la pull request
- * associée sort de brouillon. Convention Vercel : 1 = on construit, 0 = on
- * ignore. Par défaut (branche hors périmètre, panne réseau) on construit —
- * ne jamais faire taire une vraie relecture pour économiser du stockage.
+ * Étape « Ignored Build Step » Vercel — décision d'Alexis (17/09/2026) :
+ * Vercel ne sert plus qu'à UNE URL vivante. Seule `main` construit, toute
+ * autre branche est ignorée, sans exception ni condition réseau. Convention
+ * Vercel : 1 = on construit, 0 = on ignore.
  */
-describe("étape Ignored Build Step Vercel", () => {
-  it("construit sur une branche hors claude/*, sans appeler GitHub", async () => {
-    const recupererPullRequests = () => {
-      throw new Error("ne doit pas être appelé");
-    };
-    const { code } = await decider({
-      branche: "main",
-      proprietaire: "alexis97310",
-      depot: "codiplan",
-      recupererPullRequests,
-    });
-    expect(code).toBe(1);
+describe("étape Ignored Build Step Vercel — seule main construit", () => {
+  it("construit sur main", () => {
+    expect(decider({ branche: "main" }).code).toBe(1);
   });
 
-  it("ignore une branche claude/* sans pull request ouverte", async () => {
-    const { code } = await decider({
-      branche: "claude/great-turing-z01k8g",
-      proprietaire: "alexis97310",
-      depot: "codiplan",
-      recupererPullRequests: async () => [],
-    });
-    expect(code).toBe(0);
+  it("ignore une branche claude/*", () => {
+    expect(decider({ branche: "claude/great-turing-z01k8g" }).code).toBe(0);
   });
 
-  it("ignore une branche claude/* dont la pull request est en brouillon", async () => {
-    const { code } = await decider({
-      branche: "claude/great-turing-z01k8g",
-      proprietaire: "alexis97310",
-      depot: "codiplan",
-      recupererPullRequests: async () => [{ number: 42, draft: true }],
-    });
-    expect(code).toBe(0);
+  it("ignore une branche humaine", () => {
+    expect(decider({ branche: "alexis97310-patch-1" }).code).toBe(0);
   });
 
-  it("construit une branche claude/* dont la pull request est prête à relire", async () => {
-    const { code } = await decider({
-      branche: "claude/great-turing-z01k8g",
-      proprietaire: "alexis97310",
-      depot: "codiplan",
-      recupererPullRequests: async () => [{ number: 42, draft: false }],
-    });
-    expect(code).toBe(1);
-  });
-
-  it("construit par défaut si l'appel GitHub échoue (fail-open)", async () => {
-    const { code } = await decider({
-      branche: "claude/great-turing-z01k8g",
-      proprietaire: "alexis97310",
-      depot: "codiplan",
-      recupererPullRequests: async () => {
-        throw new Error("panne réseau");
-      },
-    });
-    expect(code).toBe(1);
+  it("ignore une branche absente (défaut fermé)", () => {
+    expect(decider({ branche: undefined }).code).toBe(0);
   });
 });

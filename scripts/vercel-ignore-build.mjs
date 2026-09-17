@@ -3,80 +3,28 @@
 // Tourne sur la machine de build, AVANT `pnpm install` : aucune dépendance ici,
 // seul le Node du système est disponible.
 //
-// Convention Vercel : code de sortie 1 = le build continue, 0 = il est ignoré.
-// Par défaut (branche non `claude/*`, erreur d'appel réseau) on continue le
-// build — l'objectif est de réduire le bruit des commits intermédiaires sur
-// les branches d'agent, jamais de risquer de faire taire une vraie relecture.
+// Décision d'Alexis (17/09/2026) : Vercel ne sert plus qu'à UNE URL vivante.
+// SEULE la branche main construit ; toute autre branche — claude/*, humaine,
+// peu importe — est ignorée. `git.deploymentEnabled` (vercel.json) ne
+// convient pas : il ne sait qu'éteindre des branches nommées à l'avance,
+// jamais poser un défaut fermé pour tout le reste — et les branches d'agent
+// sont nommées au hasard à chaque session. Convention Vercel : code de
+// sortie 1 = le build continue, 0 = il est ignoré.
 import { fileURLToPath } from "node:url";
 
 const CONSTRUIRE = 1;
 const IGNORER = 0;
 
-export async function decider({
-  branche,
-  proprietaire,
-  depot,
-  recupererPullRequests,
-}) {
-  if (!branche || !branche.startsWith("claude/")) {
-    return { code: CONSTRUIRE, motif: `branche hors périmètre : ${branche}` };
+export function decider({ branche }) {
+  if (branche === "main") {
+    return { code: CONSTRUIRE, motif: "branche main" };
   }
-
-  let pullRequests;
-  try {
-    pullRequests = await recupererPullRequests({
-      proprietaire,
-      depot,
-      branche,
-    });
-  } catch (erreur) {
-    return {
-      code: CONSTRUIRE,
-      motif: `échec de l'appel GitHub, on construit par défaut : ${erreur}`,
-    };
-  }
-
-  const pr = pullRequests[0];
-  if (!pr) {
-    return {
-      code: IGNORER,
-      motif: `aucune pull request ouverte pour ${branche}`,
-    };
-  }
-  if (pr.draft) {
-    return {
-      code: IGNORER,
-      motif: `pull request #${pr.number} encore en brouillon`,
-    };
-  }
-  return {
-    code: CONSTRUIRE,
-    motif: `pull request #${pr.number} prête à relire`,
-  };
+  return { code: IGNORER, motif: `branche hors périmètre : ${branche}` };
 }
 
-export async function recupererPullRequestsGitHub({
-  proprietaire,
-  depot,
-  branche,
-}) {
-  const head = encodeURIComponent(`${proprietaire}:${branche}`);
-  const url = `https://api.github.com/repos/${proprietaire}/${depot}/pulls?head=${head}&state=open`;
-  const reponse = await fetch(url, {
-    headers: { Accept: "application/vnd.github+json" },
-  });
-  if (!reponse.ok) {
-    throw new Error(`GitHub a répondu ${reponse.status}`);
-  }
-  return reponse.json();
-}
-
-async function main() {
-  const { code, motif } = await decider({
+function main() {
+  const { code, motif } = decider({
     branche: process.env.VERCEL_GIT_COMMIT_REF,
-    proprietaire: process.env.VERCEL_GIT_REPO_OWNER,
-    depot: process.env.VERCEL_GIT_REPO_SLUG,
-    recupererPullRequests: recupererPullRequestsGitHub,
   });
   console.error(
     `[vercel-ignore-build] ${code === CONSTRUIRE ? "CONSTRUIRE" : "IGNORER"} — ${motif}`,
@@ -85,10 +33,5 @@ async function main() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main().catch((erreur) => {
-    console.error(
-      `[vercel-ignore-build] erreur inattendue, on construit par défaut : ${erreur}`,
-    );
-    process.exit(CONSTRUIRE);
-  });
+  main();
 }
