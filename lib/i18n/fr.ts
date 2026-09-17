@@ -295,9 +295,17 @@ export const fr = {
     "Le r\u00e9f\u00e9rentiel des clients de la soci\u00e9t\u00e9\u00a0: identit\u00e9, code de rapprochement \u00e0 l'import, et lieux d'intervention.",
   "clients.creer": "Nouveau client",
   "clients.rechercher": "Rechercher",
-  "clients.recherche.aide":
-    "La recherche porte sur la raison sociale ET sur le code de rapprochement\u00a0: ce sont les deux fa\u00e7ons dont un client se d\u00e9signe au t\u00e9l\u00e9phone.",
-  "clients.actifs_seulement": "Masquer les fiches inactives",
+  // LE FILTRE D'ÉTAT — un <select>, jamais plus une case à cocher (N-08,
+  // 18/09/2026). Mesuré sur `clients()` de
+  // `docs/maquette/codiplan-maquette-complete.html` : « Tous les clients /
+  // Actifs / À compléter ». Le troisième état de la maquette ferme sur une
+  // notion que le chapitre 10 ne porte pas ; le nôtre ferme sur `inactifs`,
+  // qui EXISTE déjà (`client.actif`) plutôt que de rester une case qu'on ne
+  // peut que masquer. **Bloc contigu pour ce ticket, comme l'exige le §5.**
+  "clients.filtre.libelle": "Filtrer par état",
+  "clients.filtre.tous": "Tous les clients",
+  "clients.filtre.actifs": "Actifs",
+  "clients.filtre.inactifs": "Inactifs",
   "clients.inactif": "inactive",
   "clients.retour": "\u2190 Tous les clients",
   // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
@@ -813,6 +821,15 @@ export const fr = {
   // d'après son premier appelant devient fausse au second*, et la pente
   // suivante est d'en écrire une deuxième qui dit la même chose.
   "ponctuation.separateur": " — ",
+  // LE POINT MÉDIAN — mesuré dans `docs/maquette/codiplan-maquette-complete.html`
+  // (N-08, 18/09/2026) : « CLI-000184 · Nouméa », jamais un tiret cadratin.
+  // **Ce n'est pas le même signe que `ponctuation.separateur` pour la même
+  // raison** : la maquette réserve le point médian au couple identifiant ·
+  // lieu (`entity-card`), et garde le tiret pour un couple label — valeur
+  // ailleurs. Deux relations, deux signes mesurés séparément — les confondre
+  // sous une seule clé ferait dire à l'une ce qu'elle n'a jamais montré pour
+  // l'autre.
+  "ponctuation.point_median": " · ",
   // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
   //
   // La formule nommait DEUX termes quand le numérateur en porte désormais deux

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
+import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { CarteEntite, GrilleCartesEntites } from "@/components/ui/carte-entite";
 import { Page } from "@/components/mise-en-page/page";
 import { Pagination } from "@/components/ui/pagination";
@@ -131,7 +132,7 @@ export default async function PageClients({
   // taille d'une PAGE désormais, jamais celle d'un unique chargement (AT-07).
   const criteres = schemaRechercheClient.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
-    actifs_seulement: params.actifs === "1",
+    etat: typeof params.etat === "string" ? params.etat : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -197,40 +198,34 @@ export default async function PageClients({
         </p>
       </section>
 
-      {/* La recherche est un FORMULAIRE `GET` : elle s'écrit dans l'URL, donc
-          elle se partage et se recharge. Aucun état client à tenir. */}
-      <form
-        method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-[10px] border px-4 py-3.5"
-      >
-        <label className="flex flex-col gap-1 text-[12px] font-semibold">
-          {t("client.recherche")}
-          <input
-            type="search"
-            name="q"
-            defaultValue={typeof params.q === "string" ? params.q : ""}
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
-          />
-        </label>
-        <label className="flex items-center gap-2 pb-2 text-[12px] font-semibold">
-          <input
-            type="checkbox"
-            name="actifs"
-            value="1"
-            defaultChecked={params.actifs === "1"}
-          />
-          {t("clients.actifs_seulement")}
-        </label>
-        <button
-          type="submit"
-          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
-        >
-          {t("clients.rechercher")}
-        </button>
-        <p className="text-app-encre-faible w-full text-[11.5px]">
-          {t("clients.recherche.aide")}
-        </p>
-      </form>
+      {/* LA LIGNE de la maquette (N-08, D123) — un champ, un <select>, rien
+          d'autre. Formulaire GET : l'état vit dans l'URL, jamais dans un
+          composant. Le filtre d'état ferme sur TROIS valeurs réelles
+          (tous/actifs/inactifs), jamais une case qui ne fait que masquer. */}
+      <BarreDeFiltres
+        action="/clients"
+        parametre="q"
+        valeur={typeof params.q === "string" ? params.q : undefined}
+        libelleChamp={t("client.recherche")}
+        libelleBouton={t("clients.rechercher")}
+        enfants={
+          <>
+            <label className="sr-only" htmlFor="etat">
+              {t("clients.filtre.libelle")}
+            </label>
+            <select
+              id="etat"
+              name="etat"
+              defaultValue={criteres.success ? criteres.data.etat : "tous"}
+              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+            >
+              <option value="tous">{t("clients.filtre.tous")}</option>
+              <option value="actifs">{t("clients.filtre.actifs")}</option>
+              <option value="inactifs">{t("clients.filtre.inactifs")}</option>
+            </select>
+          </>
+        }
+      />
 
       {clients.length === 0 ? (
         <p className="text-app-encre-faible text-[13px]">
@@ -267,7 +262,10 @@ export default async function PageClients({
             "/clients",
             {
               q: typeof params.q === "string" ? params.q : undefined,
-              actifs: params.actifs === "1" ? "1" : undefined,
+              etat:
+                typeof params.etat === "string" && params.etat !== "tous"
+                  ? params.etat
+                  : undefined,
             },
             page,
           )

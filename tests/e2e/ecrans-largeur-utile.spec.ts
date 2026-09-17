@@ -240,3 +240,46 @@ test("le parc machines rend des lignes, et la barre l'allume", async ({
     barre.getByText(fr["nav.parc_machines"], { exact: true }),
   ).toHaveCount(1);
 });
+
+test("la colonne latérale descend jusqu'en bas de la fenêtre, même sur un écran COURT", async ({
+  page,
+}) => {
+  // N-08, 18/09/2026 — mesuré sur les captures du ticket, jamais ressenti :
+  // fenêtre 1280 × 900, la colonne (`<aside>`) s'arrêtait à 747 px, laissant
+  // 153 px de fond de page sous elle. Cause : `h-full` sur l'`<aside>`
+  // résolvait un pourcentage contre son parent flex, dont la hauteur n'a
+  // qu'un PLANCHER (`min-h-dvh`, jamais `height`) — un pourcentage contre une
+  // hauteur `auto` ne résout à rien, et `height:100%` désactive au passage le
+  // `align-items:stretch` qui aurait sinon suffi. Voir
+  // `components/navigation/barre.tsx` pour le correctif (`h-dvh` + `sticky
+  // top-0`, la forme exacte de `.sidebar` dans
+  // `docs/maquette/codiplan-maquette-complete.html`).
+  //
+  // `/absences` est délibérément COURT : un écran dont le contenu dépasse
+  // 900 px étirerait la colonne par accident, et le défaut resterait masqué
+  // — c'est exactement la « population auto-sélectionnée » que ce scénario
+  // évite en le disant.
+  //
+  // La session est déjà ouverte par le `beforeEach` du fichier — l'y ouvrir
+  // une seconde fois viserait `/connexion` sur un compte déjà authentifié,
+  // qui redirige ailleurs et ne montre plus le formulaire (mesuré : c'est
+  // exactement ce qui a fait échouer ce scénario à l'écriture).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/absences");
+
+  const colonne = page.locator("aside").first();
+  await expect(colonne).toBeVisible();
+
+  // Le témoin : la page est bien COURTE, sans quoi la mesure ci-dessous ne
+  // prouverait rien de ce qu'elle prétend.
+  const hauteurDocument = await page.evaluate(() => document.body.scrollHeight);
+  expect(
+    hauteurDocument,
+    "/absences n'est plus un écran court",
+  ).toBeLessThanOrEqual(900);
+
+  const hauteurColonne = await colonne.evaluate(
+    (element) => element.getBoundingClientRect().height,
+  );
+  expect(Math.round(hauteurColonne)).toBe(900);
+});

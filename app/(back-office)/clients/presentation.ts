@@ -31,7 +31,17 @@ export function titreSansCode(
 
 /**
  * LA PREMIÈRE LIGNE DE LA CARTE — le code de rapprochement, puis la commune
- * (D123, N-08) : le pendant de « CLI-000184 · Nouméa » sur `entity-card`.
+ * (D123, N-08) : le pendant de « CLI-000184 · Nouméa » sur `entity-card`, au
+ * POINT MÉDIAN mesuré sur cette carte — jamais le tiret cadratin générique
+ * de `ponctuation.separateur` (voir sa propre note dans `lib/i18n/fr.ts`).
+ *
+ * **Un code ABSENT ne laisse jamais un séparateur orphelin.** *Mesuré à
+ * l'écran le 18/09/2026* : `codeEtCommune(null, {communes:["Koné"], …})`
+ * rendait `— · Koné` — le tiret de `ouTiret(null)` suivi du point médian,
+ * qui se lit comme une panne d'affichage plutôt que comme une absence. La
+ * commune, quand elle existe, se suffit alors à elle-même ; le tiret ne
+ * paraît que si LES DEUX manquent — c'est la seule ligne qui aurait sinon
+ * disparu complètement.
  *
  * **Une seule commune**, jamais la liste : `sitesParClient` les rend déjà
  * TRIÉES, et la bande de compteurs de la carte dit combien de lieux existent
@@ -43,11 +53,13 @@ export function codeEtCommune(
   codeExterne: string | null,
   sites: SitesDUnClient | undefined,
 ): string {
-  const code = ouTiret(codeExterne);
   const commune = sites?.communes[0];
+  if (codeExterne === null) {
+    return commune ?? ouTiret(null);
+  }
   return commune === undefined
-    ? code
-    : `${code}${t("ponctuation.separateur")}${commune}`;
+    ? codeExterne
+    : `${codeExterne}${t("ponctuation.point_median")}${commune}`;
 }
 
 /**

@@ -169,9 +169,23 @@ describe("saisie d'une fiche client (L1-01)", () => {
     it("cherche tout, sans critère", () => {
       const analyse = schemaRechercheClient.parse({});
       expect(analyse.texte).toBeNull();
-      expect(analyse.actifs_seulement).toBe(false);
+      expect(analyse.etat).toBe("tous");
       expect(analyse.limite).toBe(LIMITE_RECHERCHE_PAR_DEFAUT);
       expect(analyse.page).toBe(1);
+    });
+
+    it("REFUSE un état hors de la liste close — N-08", () => {
+      // Trois états mesurés sur `clients()` de la maquette, ni plus ni moins :
+      // un quatrième ne compilerait sur aucun `<select>` réel.
+      expect(schemaRechercheClient.safeParse({ etat: "actifs" }).success).toBe(
+        true,
+      );
+      expect(
+        schemaRechercheClient.safeParse({ etat: "inactifs" }).success,
+      ).toBe(true);
+      expect(
+        schemaRechercheClient.safeParse({ etat: "archives" }).success,
+      ).toBe(false);
     });
 
     it("accepte une page au-delà de la première, et refuse une page absurde (AT-07)", () => {

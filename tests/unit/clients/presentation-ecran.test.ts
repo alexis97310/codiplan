@@ -48,17 +48,18 @@ describe("le titre du compteur ne nomme l'ERP de personne", () => {
 });
 
 describe("la première ligne de la carte — code et commune (D123)", () => {
-  it("ÉCRIT l'absence de code plutôt que de laisser une case vide", () => {
+  it("ÉCRIT l'absence des DEUX plutôt que de laisser une case vide", () => {
     expect(codeEtCommune(null, undefined)).toBe("—");
+    expect(codeEtCommune(null, { nombre: 0, communes: [] })).toBe("—");
   });
 
-  it("nomme une seule commune — la première, jamais la liste", () => {
+  it("nomme une seule commune — la première, jamais la liste — au POINT MÉDIAN", () => {
     expect(
       codeEtCommune("CLI-000184", {
         nombre: 2,
         communes: ["Nouméa", "Ducos"],
       }),
-    ).toBe(`CLI-000184${t("ponctuation.separateur")}Nouméa`);
+    ).toBe(`CLI-000184${t("ponctuation.point_median")}Nouméa`);
   });
 
   it("rend le code seul quand aucune commune n'est connue", () => {
@@ -68,6 +69,15 @@ describe("la première ligne de la carte — code et commune (D123)", () => {
       "CLI-000184",
     );
     expect(codeEtCommune("CLI-000184", undefined)).toBe("CLI-000184");
+  });
+
+  it("LE CAS QUI DOIT ROUGIR SANS LE CORRECTIF : un code absent rend la commune SEULE, jamais « — · Koné »", () => {
+    // *Mesuré à l'écran le 18/09/2026 (« Garage du Nord ») : un séparateur
+    // suivait le tiret d'un code manquant, et se lisait comme une panne.*
+    const rendu = codeEtCommune(null, { nombre: 1, communes: ["Koné"] });
+    expect(rendu).toBe("Koné");
+    expect(rendu).not.toContain("—");
+    expect(rendu).not.toContain(t("ponctuation.point_median").trim());
   });
 });
 
