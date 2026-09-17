@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { fr } from "@/lib/i18n/fr";
-import { ENTREES, ENTREES_PORTAIL } from "@/lib/navigation/entrees";
+import { ENTREES, ENTREES_PORTAIL, feuilles } from "@/lib/navigation/entrees";
 import { THEME_DEFAUT } from "@/lib/theme/theme";
 
 /**
@@ -34,8 +34,17 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portail" }));
 
-/** Ce qu'un client ne doit JAMAIS lire au-dessus de son espace. */
-const LIBELLES_DU_BACK_OFFICE = ENTREES.map((entree) => fr[entree.cle]);
+/**
+ * Ce qu'un client ne doit JAMAIS lire au-dessus de son espace.
+ *
+ * `feuilles` ouvre les groupes de premier niveau (D118) : sans elle, ce qui
+ * est niché — Interventions, Imports Excel, App technicien, Console éditeur —
+ * ne serait plus comparé, et la seconde assertion ci-dessous surveillerait
+ * moins qu'elle ne le prétend.
+ */
+const LIBELLES_DU_BACK_OFFICE = feuilles(ENTREES).map(
+  (entree) => fr[entree.cle],
+);
 
 function rendreLaBarreDuPortail() {
   render(
