@@ -53,6 +53,22 @@ import { jourSemaineIso } from "@/lib/calendar/semaine";
  * depuis L1-02c sans élargir quoi que ce soit (mesuré le 11/09/2026 : sous
  * contexte société, un utilisateur interne lit les 4 identités de sa société
  * d'un seul tenant ; un compte portail, 0).
+ *
+ * ## LA LIGNE VIENT DÉSORMAIS AUSSI DU RÉFÉRENTIEL (N-06, 17/09/2026)
+ *
+ * Elle ne venait que des interventions : un technicien sans aucune ligne
+ * posée cette semaine n'avait AUCUNE ligne dans la grille — précisément la
+ * personne qu'on cherche en ouvrant un planning. La vue jour avait déjà réglé
+ * ce défaut le 12/09 pour ses colonnes (`construireJournee`,
+ * `TechnicienDeJournee`) ; la vue semaine ne l'avait pas suivi, si bien que
+ * les deux vues ne montraient pas la même équipe sur la même semaine.
+ *
+ * Le référentiel est donc SEMÉ en premier, avec ses agences de rattachement —
+ * ce sont elles qui décident de l'ouverture (I7), même sans intervention —,
+ * puis les interventions complètent ou créent les lignes qu'il ne couvre pas
+ * (la file non affectée, une personne posée sans être au référentiel). Une
+ * ligne semée par le référentiel et jamais rejointe par une intervention
+ * reste dans la grille, VIDE : `total` vaut 0, aucune case n'a de ligne.
  */
 
 /** Le minimum qu'une intervention doit porter pour entrer dans la grille. */
@@ -99,6 +115,18 @@ export type LigneDeGrille<T extends Posable> = {
 };
 
 /**
+ * UNE PERSONNE DU RÉFÉRENTIEL — ce qui donne à la grille une ligne pour qui
+ * n'a rien cette semaine (N-06). Même forme que `TechnicienDeJournee` de
+ * `journee.ts` : c'est le même référentiel, lu une fois par l'écran et donné
+ * aux deux vues (`personnes.ts`).
+ */
+export type TechnicienDeGrille = {
+  readonly id: string;
+  /** Ses agences de rattachement — elles décident de l'ouverture (I7). */
+  readonly agenceIds: readonly string[];
+};
+
+/**
  * Range les interventions d'une semaine en lignes et en cases.
  *
  * **L'ordre des lignes est stable et il est décidé ici** : les interventions
@@ -118,6 +146,7 @@ export function construireGrille<T extends Posable>(
   jours: readonly JourLocal[],
   agences: readonly AgenceDeGrille[],
   libelleDe: (technicienId: string) => string | null = () => null,
+  techniciens: readonly TechnicienDeGrille[] = [],
 ): readonly LigneDeGrille<T>[] {
   const clesDesJours = new Set(jours.map(cleJour));
   const parAgence = new Map(agences.map((a) => [a.id, a]));
@@ -126,6 +155,20 @@ export function construireGrille<T extends Posable>(
     string,
     { technicienId: string | null; agences: Set<string>; par: Map<string, T[]> }
   >();
+
+  // ── LE RÉFÉRENTIEL D'ABORD (N-06) ───────────────────────────────────────
+  //
+  // Il donne une ligne à qui n'a rien cette semaine, avec ses agences de
+  // rattachement — sans elles, la ligne qu'on vient de lui rendre n'aurait
+  // aucune ouverture à calculer. Les interventions, ci-dessous, complètent
+  // ou rejoignent ces lignes ; elles ne les remplacent jamais.
+  for (const technicien of techniciens) {
+    groupes.set(technicien.id, {
+      technicienId: technicien.id,
+      agences: new Set(technicien.agenceIds),
+      par: new Map(),
+    });
+  }
 
   for (const ligne of lignes) {
     if (ligne.date_planifiee === null) continue;

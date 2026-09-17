@@ -322,17 +322,18 @@ export async function supprimerSite(
 }
 
 /**
- * Recherche.
+ * CE QUE LA RECHERCHE RETIENT — écrit UNE FOIS, et partagé (AT-07).
  *
  * Le texte est cherché dans le libellé ET dans la commune : ce sont les deux
- * façons dont un lieu se désigne au téléphone. Les fiches sont rendues par
- * libellé, ce qui est l'ordre d'une liste lue par un humain.
+ * façons dont un lieu se désigne au téléphone — deux colonnes VISIBLES du
+ * tableau. **Deux appelants la lisent** : `rechercherSites` (la page) et
+ * `compterSites` (le total de la pagination), exactement comme
+ * `filtreDeRecherche` de `lib/clients/depot.ts` sert la liste et son
+ * compteur — la seconde implémentation d'un critère n'est jamais gratuite
+ * (§9, 01/09).
  */
-export async function rechercherSites(
-  contexte: ContexteSession,
-  criteres: RechercheSite,
-): Promise<FicheSite[]> {
-  const filtreTexte =
+function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
+  const filtreTexte: Prisma.SiteWhereInput =
     criteres.texte === null
       ? {}
       : {
@@ -352,20 +353,53 @@ export async function rechercherSites(
           ],
         };
 
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.site.findMany({
-      where: {
-        ...filtreTexte,
-        ...(criteres.client_id === null
-          ? {}
-          : { client_id: criteres.client_id }),
-        ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
-        ...(criteres.actifs_seulement ? { actif: true } : {}),
-      },
-      orderBy: [{ libelle: "asc" }, { id: "asc" }],
-      take: criteres.limite,
-      select: CHAMPS_FICHE,
-    }),
+  return {
+    ...filtreTexte,
+    ...(criteres.client_id === null ? {} : { client_id: criteres.client_id }),
+    ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
+    ...(criteres.actifs_seulement ? { actif: true } : {}),
+  };
+}
+
+/**
+ * Recherche — une PAGE, désormais (AT-07).
+ *
+ * `skip`/`take` sont posés ICI, dans le dépôt : jamais un tableau entier
+ * chargé puis découpé par le composant. Les fiches sont rendues par libellé,
+ * ce qui est l'ordre d'une liste lue par un humain.
+ */
+export async function rechercherSites(
+  contexte: ContexteSession,
+  criteres: RechercheSite,
+  client?: PrismaClient,
+): Promise<FicheSite[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.site.findMany({
+        where: filtreDeRecherche(criteres),
+        orderBy: [{ libelle: "asc" }, { id: "asc" }],
+        skip: (criteres.page - 1) * criteres.limite,
+        take: criteres.limite,
+        select: CHAMPS_FICHE,
+      }),
+    client,
+  );
+}
+
+/**
+ * COMBIEN DE FICHES CORRESPONDENT À LA RECHERCHE (AT-07) — jamais le compte de
+ * la page. La MÊME `filtreDeRecherche` que `rechercherSites`.
+ */
+export async function compterSites(
+  contexte: ContexteSession,
+  criteres: RechercheSite,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.site.count({ where: filtreDeRecherche(criteres) }),
+    client,
   );
 }
 

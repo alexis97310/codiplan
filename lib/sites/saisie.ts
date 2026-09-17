@@ -237,6 +237,11 @@ export const schemaRechercheSite = z
       .min(1)
       .max(LIMITE_RECHERCHE_MAXIMALE)
       .default(LIMITE_RECHERCHE_PAR_DEFAUT),
+    /**
+     * LA PAGE, 1-INDEXÉE (AT-07) — même contrat que `lib/clients/saisie.ts` :
+     * l'état de la pagination vit dans l'URL, jamais dans un composant.
+     */
+    page: z.coerce.number().int().min(1).default(1),
   })
   .strict();
 export type RechercheSite = z.output<typeof schemaRechercheSite>;

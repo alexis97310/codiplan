@@ -7,6 +7,7 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
  * CE QUE LE PLANNING AFFICHE — et qui n'est ni une règle métier, ni une couleur.
@@ -128,4 +129,23 @@ export function enTeteDuBloc(
  */
 export function objetDuBloc(ligne: { type: TypeIntervention }): string {
   return t(`type_intervention.${ligne.type}`);
+}
+
+/**
+ * ── LES FILTRES DU REGISTRE, ET LEURS OPTIONS « TOUS/TOUTES » (AT-07) ───────
+ *
+ * La maquette annonce quatre filtres pour cet écran — « agence · type · statut
+ * · période » — et le mot imposé « agence » (D5, D47) ne s'écrit PAS ici : il
+ * se compose depuis `mot`/`motDansUnePhrase`, exactement comme le fait déjà
+ * `libelleRattachement` de `sites/presentation.ts`.
+ */
+
+/** Le libellé du filtre « agence » — l'étiquette du `<select>`. */
+export function libelleFiltreAgence(): string {
+  return mot("agence");
+}
+
+/** L'option par défaut du filtre « agence » — aucune agence choisie. */
+export function optionToutesLesAgences(): string {
+  return `${t("interventions.filtre_toutes_prefixe")} ${motDansUnePhrase("agence", true)}`;
 }
