@@ -151,6 +151,9 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
       "app/(back-office)/sites/page.tsx",
+      // LE TABLEAU DE BORD (AV-10) y entre le 16/09/2026 : la référence d'une
+      // intervention du jour mène à sa fiche, comme au registre.
+      "app/(back-office)/tableau-de-bord/page.tsx",
       "app/(back-office)/vgp/page.tsx",
       // Les deux écrans du TERRAIN y sont entrés le 15/09/2026 avec R5-01 et
       // R5-02, et c'est là que l'habillage compte le plus : *un lien visible

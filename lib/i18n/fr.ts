@@ -1736,6 +1736,33 @@ export const fr = {
   // de continuer à nommer un écran qu'elle a quitté.
   "nav.deconnexion": "Se déconnecter",
 
+  // ── LE TABLEAU DE BORD (AV-10) — six chiffres, dont un que rien ne
+  // calcule encore (R2-13). La maquette fait foi sur la disposition et les
+  // couleurs (D95, D118) ; ce que ce ticket ne montre pas — répartition par
+  // type, parc suivi, qualité de service — n'a pas de source réelle avant le
+  // lot 4, et l'écart est écrit dans le fichier de l'écran plutôt que tu.
+  "tableau_de_bord.titre": "Tableau de bord",
+  "tableau_de_bord.sous_titre": "Vue d'ensemble de l'activité du jour.",
+  "tableau_de_bord.kpi_interventions_jour": "Interventions du jour",
+  "tableau_de_bord.non_affectee_une": "non affectée",
+  "tableau_de_bord.non_affectees": "non affectées",
+  "tableau_de_bord.kpi_en_attente_piece": "En attente de pièce",
+  "tableau_de_bord.en_attente_detail_prefixe": "dont",
+  "tableau_de_bord.en_attente_detail_suffixe": "depuis plus de 30 jours",
+  "tableau_de_bord.kpi_demandes_ouvertes":
+    "Demandes en attente de qualification",
+  "tableau_de_bord.kpi_absences_jour": "Techniciens indisponibles aujourd'hui",
+  // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
+  // eux-mêmes n'existent pas encore sous une forme consolidée* — la
+  // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
+  "tableau_de_bord.kpi_taux_occupation": "Taux d'occupation",
+  "tableau_de_bord.taux_occupation_non_calcule": "Non calculé",
+  "tableau_de_bord.taux_occupation_motif":
+    "Consolider plusieurs techniciens en un seul taux n'est pas une règle tranchée par le chapitre 10 (R2-13).",
+  "tableau_de_bord.interventions_jour_vide":
+    "Aucune intervention planifiée aujourd'hui.",
+  "tableau_de_bord.lien_planning": "Voir le planning →",
+
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
   // ── LES DEUX FAÇONS DE NE PAS SAVOIR QUI TRAVAILLE (14/09/2026) ─────────

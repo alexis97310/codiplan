@@ -91,13 +91,13 @@ describe("les quatre entrées qui restent au premier niveau", () => {
     expect(
       within(nav).getByRole("link", { name: fr["nav.portail_client"] }),
     ).toHaveAttribute("href", "/portail");
+    expect(
+      within(nav).getByRole("link", { name: fr["nav.tableau_de_bord"] }),
+    ).toHaveAttribute("href", "/tableau-de-bord");
   });
 
-  it("« Tableau de bord » et « Contrats » restent inertes, au premier niveau", () => {
+  it("« Contrats » reste inerte, au premier niveau", () => {
     rendreLaBarre();
-    expect(
-      screen.queryByRole("link", { name: fr["nav.tableau_de_bord"] }),
-    ).toBeNull();
     expect(screen.queryByRole("link", { name: fr["nav.contrats"] })).toBeNull();
   });
 });
