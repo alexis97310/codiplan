@@ -61,7 +61,12 @@ import {
   LEGENDE_PLANNING,
 } from "@/lib/theme/statuts";
 
-import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
+import {
+  BlocPosable,
+  CasePosable,
+  PARAMETRE_AVERTISSEMENT,
+  Posable,
+} from "@/components/planning/pose";
 
 import {
   enTeteDuBloc,
@@ -115,6 +120,14 @@ export default async function PagePlanning({
   const contexte = session.contexte;
   const parametres = await searchParams;
   const vue = parametres.vue === "jour" ? "jour" : "semaine";
+  // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
+  // l'URL du rechargement complet que `Posable` déclenche désormais, jamais
+  // par un état client qu'un rechargement effacerait avant qu'on le lise.
+  // Même filtre que le refus de la fiche (L1-02f) : une clé inconnue ne
+  // s'affiche pas — une réponse forgée ne ferait écrire n'importe quoi ici.
+  const avertissementsAffiches = [parametres[PARAMETRE_AVERTISSEMENT] ?? []]
+    .flat()
+    .filter(estCleTraduction);
 
   const cadre = await avecContexteApplicatif(contexte, async (tx) => {
     const societe = await tx.societe.findFirst({
@@ -338,6 +351,20 @@ export default async function PagePlanning({
       </header>
 
       <Posable>
+        {avertissementsAffiches.map((cle) => (
+          <p
+            key={cle}
+            // `role="status"` et non `alert` : *un avertissement n'interrompt
+            // pas.* L'action a été acceptée ; ce qui suit est une
+            // information, et l'annoncer comme une alerte apprendrait à
+            // ignorer les alertes.
+            data-avertissement={cle}
+            role="status"
+            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          >
+            {t(cle)}
+          </p>
+        ))}
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_290px]">
           {vue === "jour" ? (
             <VueJour

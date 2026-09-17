@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   BlocPosable,
   CasePosable,
+  PARAMETRE_AVERTISSEMENT,
   Posable,
   type CibleDeDepot,
 } from "@/components/planning/pose";
@@ -28,12 +29,27 @@ import { fr } from "@/lib/i18n/fr";
  * serveur par un corps vide sous un code 200 : ces deux issues-là ne
  * s'éprouvent qu'en maîtrisant ce que `fetch` rend, donc ici, au niveau du
  * composant.
+ *
+ * ## UN DÉPÔT ACCEPTÉ NAVIGUE, IL NE RAFRAÎCHIT PLUS (N+1, 17/09/2026)
+ *
+ * *Mesuré : `router.refresh()` ne suivait l'écriture que dans 1 essai sur 20.*
+ * `naviguer` remplace `rafraichir` comme témoin de la base ci-dessous — un
+ * rechargement complet de l'URL courante, avec les avertissements dans ses
+ * paramètres plutôt que dans un état qu'il effacerait avant qu'on le lise.
  */
 
-const rafraichir = vi.fn();
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: rafraichir }),
-}));
+const naviguer = vi.fn();
+
+beforeEach(() => {
+  Object.defineProperty(window, "location", {
+    value: {
+      ...window.location,
+      href: "http://localhost/planning?vue=jour&jour=2026-09-16",
+      assign: naviguer,
+    },
+    writable: true,
+  });
+});
 
 const CIBLE: CibleDeDepot = {
   jour: "2026-09-16",
@@ -84,12 +100,12 @@ function laCase(container: HTMLElement): Element {
 }
 
 afterEach(() => {
-  rafraichir.mockClear();
+  naviguer.mockClear();
   vi.unstubAllGlobals();
 });
 
 describe("un dépôt qui ABOUTIT", () => {
-  it("efface tout refus, montre les avertissements rendus par la route, et relit la base", async () => {
+  it("recharge la page courante, avec les avertissements en paramètre", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -107,11 +123,43 @@ describe("un dépôt qui ABOUTIT", () => {
       dataTransfer: dataTransferDe("int-1"),
     });
 
-    await waitFor(() => expect(rafraichir).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    // Aucun refus n'est resté affiché — un rechargement n'y a même pas besoin
+    // de veiller, il détruit l'état React dans le même geste.
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      fr["intervention.refus.absence"],
+    const url = new URL(naviguer.mock.calls[0][0] as string);
+    expect(url.pathname).toBe("/planning");
+    expect(url.searchParams.get("vue")).toBe("jour");
+    expect(url.searchParams.getAll(PARAMETRE_AVERTISSEMENT)).toEqual([
+      "intervention.refus.absence",
+    ]);
+  });
+
+  it("purge un avertissement déjà présent dans l'URL avant d'y remettre les nouveaux", async () => {
+    Object.defineProperty(window, "location", {
+      value: {
+        ...window.location,
+        href: `http://localhost/planning?${PARAMETRE_AVERTISSEMENT}=intervention.refus.ancien`,
+        assign: naviguer,
+      },
+      writable: true,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ accepte: true, cle: null, avertissements: [] }),
+      }),
     );
+    const { container } = scene();
+
+    fireEvent.drop(laCase(container), {
+      dataTransfer: dataTransferDe("int-1"),
+    });
+
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    const url = new URL(naviguer.mock.calls[0][0] as string);
+    expect(url.searchParams.getAll(PARAMETRE_AVERTISSEMENT)).toEqual([]);
   });
 });
 
@@ -139,7 +187,7 @@ describe("un dépôt REFUSÉ par la règle métier", () => {
         fr["intervention.refus.chevauchement"],
       ),
     );
-    expect(rafraichir).not.toHaveBeenCalled();
+    expect(naviguer).not.toHaveBeenCalled();
   });
 });
 
@@ -166,7 +214,7 @@ describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () =
         fr["intervention.refus.erreur_serveur"],
       ),
     );
-    expect(rafraichir).not.toHaveBeenCalled();
+    expect(naviguer).not.toHaveBeenCalled();
   });
 
   it("un corps VIDE sous un 200 n'est pas davantage lu comme un succès", async () => {
@@ -192,7 +240,7 @@ describe("une ERREUR SERVEUR — LE DÉFAUT MESURÉ, dans sa forme exacte", () =
         fr["intervention.refus.erreur_serveur"],
       ),
     );
-    expect(rafraichir).not.toHaveBeenCalled();
+    expect(naviguer).not.toHaveBeenCalled();
   });
 });
 
@@ -213,7 +261,7 @@ describe("une CONNEXION INTERROMPUE — l'autre moitié du défaut mesuré", () 
         fr["intervention.refus.connexion_interrompue"],
       ),
     );
-    expect(rafraichir).not.toHaveBeenCalled();
+    expect(naviguer).not.toHaveBeenCalled();
   });
 
   it("ne se confond pas avec l'erreur serveur : les deux textes diffèrent", () => {
@@ -245,7 +293,7 @@ describe("UN GESTE RÉPÉTÉ EST BLOQUÉ PENDANT LA DEMANDE", () => {
       ok: true,
       json: async () => ({ accepte: true, cle: null, avertissements: null }),
     });
-    await waitFor(() => expect(rafraichir).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
 
     // Et une fois la demande retombée, un troisième dépôt en poste une neuve :
     // le blocage porte sur la demande EN VOL, jamais sur l'intervention pour
