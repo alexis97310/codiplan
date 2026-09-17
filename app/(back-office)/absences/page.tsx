@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import {
@@ -92,16 +93,11 @@ export default async function PageAbsences({
   });
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("absences.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("absences.sous_titre")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/absences"
+      titre={t("absences.titre")}
+      sousTitre={t("absences.sous_titre")}
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -197,7 +193,7 @@ export default async function PageAbsences({
       <p className="text-app-encre-faible text-[11.5px]">
         {t("absences.levee_explication")}
       </p>
-    </main>
+    </Page>
   );
 }
 

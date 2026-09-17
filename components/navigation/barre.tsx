@@ -127,7 +127,20 @@ export function BarreDeNavigation({
   }
 
   return (
-    <aside className="bg-app-chrome-fond flex h-full w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5">
+    // `h-dvh` + `sticky top-0`, PAS `h-full` (N-08, 18/09/2026) — mesuré sur
+    // les captures de N-08 : la colonne s'arrêtait à 747 px dans une fenêtre
+    // de 900, laissant 153 px de fond de page sous elle, sur un écran à
+    // contenu COURT (un écran long masquait le défaut). `h-full` résout un
+    // pourcentage contre le parent flex, dont la hauteur n'a qu'un PLANCHER
+    // (`min-h-dvh`, jamais `height`) — un pourcentage contre une hauteur
+    // `auto` ne résout à rien, et `height:100%` désactive au passage le
+    // `align-items:stretch` du parent qui aurait sinon suffi. `h-dvh` fixe
+    // une hauteur absolue, indépendante du parent ; `sticky top-0` reprend
+    // `.sidebar{position:sticky;top:0;height:100vh}` de
+    // `docs/maquette/codiplan-maquette-complete.html`, la même source que
+    // D121 pour la FORME de cette colonne — et le même geste que le
+    // `<header>` du terrain, juste en dessous, applique déjà pour lui-même.
+    <aside className="bg-app-chrome-fond sticky top-0 flex h-dvh w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5">
       <Marque accueil={accueil} />
       <nav aria-label={t("nav.libelle")} className="mt-2 flex flex-col">
         {entrees.map((entree) =>

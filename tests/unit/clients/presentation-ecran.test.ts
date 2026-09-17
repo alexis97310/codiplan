@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  resumeDesSites,
+  codeEtCommune,
+  compteurSites,
+  referentClient,
   titreSansCode,
 } from "../../../app/(back-office)/clients/presentation";
 import { t } from "@/lib/i18n/fr";
@@ -45,63 +47,68 @@ describe("le titre du compteur ne nomme l'ERP de personne", () => {
   });
 });
 
-describe("la colonne « lieux d'intervention »", () => {
-  it("ÉCRIT l'absence plutôt que de laisser une case vide", () => {
-    // *Une case vide se lit « on n'a pas rempli », un « aucun lieu » se lit
-    // « il n'y en a pas »* — et les deux ne se corrigent pas au même endroit
-    // (D88).
-    expect(resumeDesSites({ nombre: 0, communes: [] })).toBe(
-      t("clients.sites_aucun"),
-    );
-    // Un client absent de la carte — ce qui ne peut pas arriver, la carte étant
-    // amorcée pour chaque ligne — rend la même chose plutôt que « undefined ».
-    expect(resumeDesSites(undefined)).toBe(t("clients.sites_aucun"));
+describe("la première ligne de la carte — code et commune (D123)", () => {
+  it("ÉCRIT l'absence des DEUX plutôt que de laisser une case vide", () => {
+    expect(codeEtCommune(null, undefined)).toBe("—");
+    expect(codeEtCommune(null, { nombre: 0, communes: [] })).toBe("—");
   });
 
-  it("accorde le singulier et le pluriel", () => {
-    expect(resumeDesSites({ nombre: 1, communes: [] })).toBe(
-      `1 ${t("clients.sites_un")}`,
-    );
-    expect(resumeDesSites({ nombre: 4, communes: [] })).toBe(
-      `4 ${t("clients.sites_plusieurs")}`,
-    );
+  it("nomme une seule commune — la première, jamais la liste — au POINT MÉDIAN", () => {
+    expect(
+      codeEtCommune("CLI-000184", {
+        nombre: 2,
+        communes: ["Nouméa", "Ducos"],
+      }),
+    ).toBe(`CLI-000184${t("ponctuation.point_median")}Nouméa`);
   });
 
-  it("nomme les communes à côté du compte", () => {
-    const resume = resumeDesSites({
-      nombre: 2,
-      communes: ["Nouméa", "Païta"],
-    });
-    expect(resume).toContain("2 ");
-    expect(resume).toContain("Nouméa");
-    expect(resume).toContain("Païta");
-  });
-
-  it("BORNE les communes, et la troncature SE VOIT", () => {
-    // *Une liste coupée sans marque ferait croire qu'il n'y en a que trois.*
-    const beaucoup = resumeDesSites({
-      nombre: 9,
-      communes: ["Bourail", "Dumbéa", "Koné", "Nouméa", "Païta"],
-    });
-    expect(beaucoup).toContain(t("clients.sites_et_autres"));
-    expect(beaucoup).not.toContain("Païta");
-
-    // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : trois communes
-    // exactement ne sont PAS tronquées. Sans lui, une marque de troncature
-    // toujours écrite passerait l'épreuve précédente.
-    const pileTrois = resumeDesSites({
-      nombre: 3,
-      communes: ["Bourail", "Dumbéa", "Koné"],
-    });
-    expect(pileTrois).not.toContain(t("clients.sites_et_autres"));
-    expect(pileTrois).toContain("Koné");
-  });
-
-  it("un compte SANS aucune commune connue rend le compte seul", () => {
-    // *« Trois lieux » et « trois lieux à Nouméa » ne disent pas la même
+  it("rend le code seul quand aucune commune n'est connue", () => {
+    // *« CLI-000184 » et « CLI-000184 à Nouméa » ne disent pas la même
     // chose* : un séparateur suivi de rien serait une ponctuation orpheline.
-    expect(resumeDesSites({ nombre: 3, communes: [] })).toBe(
-      `3 ${t("clients.sites_plusieurs")}`,
+    expect(codeEtCommune("CLI-000184", { nombre: 3, communes: [] })).toBe(
+      "CLI-000184",
     );
+    expect(codeEtCommune("CLI-000184", undefined)).toBe("CLI-000184");
+  });
+
+  it("LE CAS QUI DOIT ROUGIR SANS LE CORRECTIF : un code absent rend la commune SEULE, jamais « — · Koné »", () => {
+    // *Mesuré à l'écran le 18/09/2026 (« Garage du Nord ») : un séparateur
+    // suivait le tiret d'un code manquant, et se lisait comme une panne.*
+    const rendu = codeEtCommune(null, { nombre: 1, communes: ["Koné"] });
+    expect(rendu).toBe("Koné");
+    expect(rendu).not.toContain("—");
+    expect(rendu).not.toContain(t("ponctuation.point_median").trim());
+  });
+});
+
+describe("la seconde ligne de la carte — le commercial référent (D123)", () => {
+  it("rend `null` plutôt qu'un tiret — la ligne s'omet, elle ne se vide pas", () => {
+    expect(referentClient(null)).toBeNull();
+  });
+
+  it("labellise la valeur plutôt que de l'écrire seule", () => {
+    expect(referentClient("Marc Tjibaou")).toBe(
+      `${t("client.commercial_referent")}${t("ponctuation.separateur")}Marc Tjibaou`,
+    );
+  });
+});
+
+describe("le compteur de lieux de la bande entity-meta (D123)", () => {
+  it("accorde le singulier et le pluriel", () => {
+    expect(compteurSites({ nombre: 1, communes: [] })).toEqual({
+      valeur: 1,
+      libelle: t("clients.sites_un"),
+    });
+    expect(compteurSites({ nombre: 4, communes: [] })).toEqual({
+      valeur: 4,
+      libelle: t("clients.sites_plusieurs"),
+    });
+  });
+
+  it("rend zéro — jamais une carte amorcée qui échoue — pour un client sans entrée", () => {
+    expect(compteurSites(undefined)).toEqual({
+      valeur: 0,
+      libelle: t("clients.sites_plusieurs"),
+    });
   });
 });

@@ -146,6 +146,14 @@ export const LIMITE_RECHERCHE_MAXIMALE = 200;
  * `texte` cherche à la fois dans la raison sociale et dans le code externe :
  * ce sont les deux façons dont l'ADV désigne un client au téléphone, et ce sont
  * les deux clés de rapprochement de RG-IMP-05.
+ *
+ * `etat` REMPLACE `actifs_seulement` (N-08, 18/09/2026) — la case à cocher
+ * « Masquer les fiches inactives » devient le `<select>` mesuré sur
+ * `clients()` de `docs/maquette/codiplan-maquette-complete.html`
+ * (« Tous les clients / Actifs / À compléter »). La maquette ferme son
+ * troisième état sur une notion que le chapitre 10 ne porte pas ; le nôtre
+ * ferme sur `inactifs`, qui existe déjà (`client.actif`) — une TROISIÈME
+ * valeur RÉELLE, jamais un état de plus qui n'affiche rien.
  */
 export const schemaRechercheClient = z
   .object({
@@ -155,7 +163,7 @@ export const schemaRechercheClient = z
       .transform((valeur) => (valeur.length === 0 ? null : valeur))
       .nullable()
       .default(null),
-    actifs_seulement: z.boolean().default(false),
+    etat: z.enum(["tous", "actifs", "inactifs"]).default("tous"),
     limite: z
       .number()
       .int()

@@ -2,6 +2,7 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { estContexteActif } from "@/lib/auth/contexte";
@@ -85,16 +86,11 @@ export default async function PageArrivee() {
     etat.issue === "arrivee" ? (session?.contexte.societeId ?? null) : null;
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("arrivee.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("arrivee.accroche")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/arrivee"
+      titre={t("arrivee.titre")}
+      sousTitre={t("arrivee.accroche")}
+    >
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_1fr_1fr]">
         <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
           <dl className="flex flex-col gap-3 text-[13px]">
@@ -138,7 +134,7 @@ export default async function PageArrivee() {
       {societes.length > 0 ? (
         <Choix societes={societes} active={societeActive} />
       ) : null}
-    </main>
+    </Page>
   );
 }
 

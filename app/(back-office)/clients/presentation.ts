@@ -2,6 +2,8 @@ import { libelleCodeExterne } from "@/lib/clients/code-externe";
 import type { SitesDUnClient } from "@/lib/clients/depot";
 import { t } from "@/lib/i18n/fr";
 
+import { ouTiret } from "../presentation";
+
 /**
  * CE QUE LES ÉCRANS « CLIENTS » COMPOSENT (14/09/2026).
  *
@@ -27,37 +29,66 @@ export function titreSansCode(
   return `${t("clients.sans_code_titre")} ${libelleCodeExterne(libelleSociete)}`;
 }
 
-/** Combien de lieux d'intervention sont nommés à côté du compte, au plus. */
-const COMMUNES_MONTREES = 3;
+/**
+ * LA PREMIÈRE LIGNE DE LA CARTE — le code de rapprochement, puis la commune
+ * (D123, N-08) : le pendant de « CLI-000184 · Nouméa » sur `entity-card`, au
+ * POINT MÉDIAN mesuré sur cette carte — jamais le tiret cadratin générique
+ * de `ponctuation.separateur` (voir sa propre note dans `lib/i18n/fr.ts`).
+ *
+ * **Un code ABSENT ne laisse jamais un séparateur orphelin.** *Mesuré à
+ * l'écran le 18/09/2026* : `codeEtCommune(null, {communes:["Koné"], …})`
+ * rendait `— · Koné` — le tiret de `ouTiret(null)` suivi du point médian,
+ * qui se lit comme une panne d'affichage plutôt que comme une absence. La
+ * commune, quand elle existe, se suffit alors à elle-même ; le tiret ne
+ * paraît que si LES DEUX manquent — c'est la seule ligne qui aurait sinon
+ * disparu complètement.
+ *
+ * **Une seule commune**, jamais la liste : `sitesParClient` les rend déjà
+ * TRIÉES, et la bande de compteurs de la carte dit combien de lieux existent
+ * — cette ligne-ci ne fait que SITUER le client, pas les compter une seconde
+ * fois (D123 : deux projections d'une même donnée, jamais deux écritures du
+ * même compte).
+ */
+export function codeEtCommune(
+  codeExterne: string | null,
+  sites: SitesDUnClient | undefined,
+): string {
+  const commune = sites?.communes[0];
+  if (codeExterne === null) {
+    return commune ?? ouTiret(null);
+  }
+  return commune === undefined
+    ? codeExterne
+    : `${codeExterne}${t("ponctuation.point_median")}${commune}`;
+}
 
 /**
- * LA COLONNE « LIEUX D'INTERVENTION » — un compte, puis les communes.
+ * LA SECONDE LIGNE DE LA CARTE — le commercial référent, labellisé (D123).
  *
- * *« Elle dit où l'on intervient chez ce client, et c'est la question qu'on se
- * pose en ouvrant la liste. »*
- *
- * **Zéro lieu s'ÉCRIT plutôt que de laisser une case vide** : une case vide se
- * lit « on n'a pas rempli », un « aucun lieu » se lit « il n'y en a pas », et
- * les deux ne se corrigent pas au même endroit (D88).
- *
- * **Les communes sont BORNÉES et la troncature se voit** : une fiche qui en
- * porte trente ferait une ligne de tableau haute comme la page, et une liste
- * coupée sans marque ferait croire qu'il n'y en a que trois.
+ * **`null` plutôt qu'une ligne « — »** : un référent absent est fréquent
+ * (D29 le dit déjà du code de rapprochement), et une carte n'a pas de
+ * colonne à tenir alignée comme un tableau — l'absence s'omet, elle ne
+ * s'écrit pas en tiret (contrairement à `ouTiret`, réservé à une VALEUR dans
+ * une ligne qui existe déjà).
  */
-export function resumeDesSites(sites: SitesDUnClient | undefined): string {
-  if (sites === undefined || sites.nombre === 0) {
-    return t("clients.sites_aucun");
+export function referentClient(
+  commercialReferent: string | null,
+): string | null {
+  if (commercialReferent === null) {
+    return null;
   }
-  const unite =
-    sites.nombre === 1 ? t("clients.sites_un") : t("clients.sites_plusieurs");
-  const compte = `${sites.nombre} ${unite}`;
-  if (sites.communes.length === 0) {
-    return compte;
-  }
-  const montrees = sites.communes.slice(0, COMMUNES_MONTREES).join(", ");
-  const reste =
-    sites.communes.length > COMMUNES_MONTREES
-      ? t("clients.sites_et_autres")
-      : "";
-  return `${compte}${t("ponctuation.separateur")}${montrees}${reste}`;
+  return `${t("client.commercial_referent")}${t("ponctuation.separateur")}${commercialReferent}`;
+}
+
+/** Le compteur de lieux d'intervention de la bande `entity-meta` (D123). */
+export function compteurSites(sites: SitesDUnClient | undefined): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  const nombre = sites?.nombre ?? 0;
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1 ? t("clients.sites_un") : t("clients.sites_plusieurs"),
+  };
 }

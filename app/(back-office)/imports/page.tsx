@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -135,16 +136,11 @@ export default async function PageImports({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("imports.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("imports.sous_titre")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/imports"
+      titre={t("imports.titre")}
+      sousTitre={t("imports.sous_titre")}
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -283,6 +279,6 @@ export default async function PageImports({
           )}
         </Tableau>
       </section>
-    </main>
+    </Page>
   );
 }

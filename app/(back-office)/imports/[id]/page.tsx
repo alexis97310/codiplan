@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -132,25 +133,24 @@ export default async function PageLotDImport({
   const sansApplication = applicationDuType(lot.typeImport) === null;
 
   return (
-    <main className="flex flex-col gap-5">
-      <Link href="/imports" className={CLASSES_LIEN}>
-        {t("imports.lot_retour")}
-      </Link>
-
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("imports.lot_titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">{lot.nomFichier}</p>
-          <p className="text-app-encre-faible text-[11.5px]">
-            {coordonneesDuLot(lot.controleLe, fuseau, lot.auteur)}
-          </p>
-        </div>
-        <span data-statut={lot.statut} className="text-[13px] font-bold">
-          {cleStatut === null ? lot.statut : t(cleStatut)}
-        </span>
-      </header>
+    <Page
+      chemin="/imports"
+      titre={t("imports.lot_titre")}
+      sousTitre={lot.nomFichier}
+      actions={
+        <>
+          <Link href="/imports" className={CLASSES_LIEN}>
+            {t("imports.lot_retour")}
+          </Link>
+          <span data-statut={lot.statut} className="text-[13px] font-bold">
+            {cleStatut === null ? lot.statut : t(cleStatut)}
+          </span>
+        </>
+      }
+    >
+      <p className="text-app-encre-faible text-[11.5px]">
+        {coordonneesDuLot(lot.controleLe, fuseau, lot.auteur)}
+      </p>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
@@ -278,7 +278,7 @@ export default async function PageLotDImport({
           </p>
         </form>
       ) : null}
-    </main>
+    </Page>
   );
 }
 

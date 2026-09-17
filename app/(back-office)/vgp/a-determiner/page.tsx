@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -53,19 +54,16 @@ export default async function PageFamillesADeterminer() {
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/vgp"
+      titre={t("vgp.indetermines.titre")}
+      sousTitre={t("vgp.indetermines.sous_titre")}
+      actions={
         <Link href="/vgp" className="text-app-encre-faible text-[12.5px]">
           {t("vgp.indetermines.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("vgp.indetermines.titre")}
-        </h1>
-        <p className="text-app-encre-faible max-w-[70ch] text-[13px]">
-          {t("vgp.indetermines.sous_titre")}
-        </p>
-      </header>
-
+      }
+    >
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
         <Tableau colonnes={colonnes} minimum="620px">
           {familles.length === 0 ? (
@@ -81,6 +79,6 @@ export default async function PageFamillesADeterminer() {
           ))}
         </Tableau>
       </section>
-    </main>
+    </Page>
   );
 }

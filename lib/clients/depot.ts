@@ -326,9 +326,12 @@ function filtreDeRecherche(criteres: RechercheClient): Prisma.ClientWhereInput {
           ],
         };
 
+  const filtreEtat: Prisma.ClientWhereInput =
+    criteres.etat === "tous" ? {} : { actif: criteres.etat === "actifs" };
+
   return {
     ...filtreTexte,
-    ...(criteres.actifs_seulement ? { actif: true } : {}),
+    ...filtreEtat,
   };
 }
 

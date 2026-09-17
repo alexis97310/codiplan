@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -69,20 +70,19 @@ export default async function PageForfait({
   }
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/parametres/forfaits"
+      titre={forfait.libelle}
+      sousTitre={forfait.code}
+      actions={
         <Link
           href="/parametres/forfaits"
           className="text-app-encre-faible text-[12.5px]"
         >
           {t("forfaits.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {forfait.libelle}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">{forfait.code}</p>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -111,6 +111,6 @@ export default async function PageForfait({
       <p className="text-app-encre-faible text-[11.5px]">
         {t("forfaits.desactiver_explication")}
       </p>
-    </main>
+    </Page>
   );
 }

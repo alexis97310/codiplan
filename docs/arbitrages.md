@@ -4485,3 +4485,55 @@ D121 constate que cette seconde maquette règle la FORME DU MENU. Elle donne aus
 > **Le jour où `CODIPLAN_Maquette.html` elle-même dessine un champ de recherche, un filtre, une indication de position ou un écran combinant liste et fiche**, elle redevient la source sur ce point précis (D95), et cette décision cesse de le trancher à sa place. Et **le jour où la proposition #222 est fermée sans être fusionnée, ou modifiée avant sa fusion d'une façon qui changerait l'une des mesures de cette page**, la confrontation à `codiplan-maquette-complete.html` doit être refaite plutôt que supposée encore vraie.
 
 *Aucune règle du chapitre 10 n'est amendée : le vocabulaire d'écran n'y figure pas.*
+
+---
+
+## D123 — LES RÉFÉRENTIELS SE MONTRENT EN CARTES, LE TRANSACTIONNEL EN TABLEAUX : UNE RÈGLE LUE DANS LA MAQUETTE, PAS UN GOÛT
+
+*Rendu par Alexis le 17/09/2026 (ticket N-08), sur le constat qu'aucun écran n'avait été confronté à `docs/maquette/codiplan-maquette-complete.html` depuis que D121/D122 en ont fait la source du menu et du vocabulaire d'écran : « le site ne ressemble pas du tout à la maquette ».*
+
+### CE QUI A ÉTÉ MESURÉ, fonction par fonction
+
+Compté dans `docs/maquette/codiplan-maquette-complete.html`, une fonction d'écran à la fois (`<table>`, `<article class="entity-card">`, `<div class="kpi">`) :
+
+| écran | `<table>` | `entity-card` | `kpi` | recherche + `<select>` |
+|---|---|---|---|---|
+| dashboard | 0 | 0 | 4 | non |
+| interventions | 1 | 0 | 3 | oui |
+| absences | 0 | 0 | 3 | non |
+| **clients** | **0** | **3** | 0 | oui |
+| **sites** | **0** | **3** | 0 | oui |
+| parc | 0 | 0 | 3 | oui |
+| vgp | 1 | 0 | 4 | non |
+| portail | 0 | 0 | 3 | non |
+| paramètres / imports / contrats | 1 chacun | 0 | 0 / 0 / 4 | non |
+
+**Ce que personne n'avait écrit avant ce compte : les cartes n'apparaissent QUE sur deux écrans, et ce sont les deux référentiels — Clients, Sites.** Aucun écran transactionnel (interventions, VGP, paramètres, imports, contrats) n'en porte une seule ; tous les écrans qui montrent une liste d'événements datés ou d'actions à mener sont des `<table>`. *Ce n'est pas une préférence esthétique observée sur un échantillon : c'est une corrélation à deux catégories, mesurée sur l'ensemble des fonctions d'écran du document, sans exception dans un sens ni dans l'autre.*
+
+### LA DÉCISION
+
+**Un référentiel — une fiche qu'on consulte pour ce qu'elle EST plutôt que pour ce qu'elle FAIT ce jour-là — se montre en cartes.** Un écran transactionnel — une liste d'événements, de délais ou d'actions, dont l'ordre et la comparaison ligne à ligne comptent — reste un tableau. La liste des écrans concernés par le premier régime est **CELLE MESURÉE CI-DESSUS, et rien de plus** : Clients et Sites aujourd'hui. Parc machines n'y entre pas — c'est une grille de cartes MACHINE, une troisième forme que ce ticket ne construit pas (voir plus bas) — et aucun écran transactionnel n'y entre par extension de raisonnement : la règle est lue dans la maquette, elle ne se déduit pas d'un principe général sur ce qu'est « joli » ou « moderne ».
+
+**La forme de la carte est celle mesurée sur `.entity-card` : titre et badge d'état, une à deux lignes muettes, puis une bande de compteurs séparée par un filet (`.entity-meta`).** La barre d'outils qui la surmonte est une LIGNE — champ de recherche puis `<select>` — et non plus une section encadrée à libellés empilés, la même forme que D122 a déjà adoptée pour la recherche des écrans de liste.
+
+**Les JETONS DE COULEUR ne bougent pas.** D95 continue de fixer `CODIPLAN_Maquette.html` comme source des valeurs exactes — bordure `#E1E4E8`, rayon `10px`. `codiplan-maquette-complete.html` mesure `#dce2ea` et `14px` pour la même carte : **deux fichiers, deux questions**, exactement la borne que D122 a déjà posée pour les encadrés. La carte d'entité reprend donc la bordure et le rayon déjà tokenisés (`border-app-bord`, `rounded-[10px]`), jamais une seconde valeur.
+
+### CE QUE CETTE DÉCISION NE RÈGLE PAS, ET LE NOMME PLUTÔT QUE DE L'INVENTER
+
+**Le contenu réel d'une carte est borné à ce que le dépôt sait déjà dire, jamais à ce que la maquette imagine pour sa démonstration.** `.entity-card` de la maquette montre un « Contact : Marc Tjibaou · 24 18 90 » sur chaque carte client — or `docs/constitution/organisation-du-code.md` (module `clients/`) dit déjà, à propos de la fiche : *« les contacts EXISTENT en base depuis L1-03 … et rien dans l'application ne permet d'en saisir un »* — l'un des neuf modules que R3-12 mesure comme sans chemin. Reprendre cette ligne aurait affiché une donnée qu'aucun écran ne nourrit et que personne ne peut corriger : ce ticket ne l'affiche PAS, pour la même raison que la fiche client ne l'affiche pas — un bloc absent, jamais un bloc inventé.
+
+**La bande de compteurs ne montre que ce qu'un dépôt existant compte déjà sans nouvelle requête.** La carte client montre le nombre de lieux d'intervention (`sitesParClient`, AT-07, déjà calculé pour la liste). Elle ne montre PAS de compte de machines ni d'interventions par client, et la carte site ne montre pas de compte de machines par site : ces trois compteurs n'ont aujourd'hui aucune fonction de dépôt, et §8 du `CLAUDE.md` refuse d'inventer une mesure — *« un montant, un taux, un délai non spécifié : ne jamais inventer de valeur par défaut »* s'applique de la même façon à un compteur qu'à un prix. **Ils sont NOMMÉS ici comme un travail distinct, jamais construits en passant** : une fonction de dépôt batched, sur le modèle exact de `sitesParClient`, est le prochain ticket à ouvrir s'ils sont voulus.
+
+**Parc machines n'est pas converti.** Il est déjà une grille de cartes MACHINE dans le produit vivant — ni un tableau, ni `entity-card` : une troisième forme, que la maquette ne dessine pas non plus (`parc()` y est un maître-détail, D122). La faire entrer dans cette décision serait construire un gabarit qu'aucune mesure ne réclame ici.
+
+**Les KPI manquants restent manquants.** Quatre écrans de la table ci-dessus portent des `kpi` que le produit ne sait pas encore tous calculer (dashboard, VGP, paramètres…) — un sujet orthogonal à la forme table/carte, déjà nommé comme un ticket à part par N-08.
+
+### CE QUE ÇA COÛTE
+
+Deux écrans à reconstruire (Clients, Sites), un composant de carte à écrire (`components/ui/carte-entite.tsx`), confronté à la maquette par son propre gardien — et le renoncement, nommé, à trois compteurs et une ligne de contact que la démonstration montre mais que le dépôt ne sait pas encore nourrir.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une fonction de dépôt batched existe pour compter les machines ou les interventions d'un client, ou les machines d'un site, la bande de compteurs de la carte concernée s'étend — sans rouvrir cette décision, qui ne porte que sur la FORME. Le jour où un troisième écran de référentiel apparaît dans le produit, la même mesure — compter ses fonctions d'écran dans la maquette — décide s'il rejoint ce régime ou reste un tableau ; aucune extension par ressemblance n'est faite sans elle.
+
+*Aucune règle du chapitre 10 n'est amendée : la forme d'un écran n'y figure pas.*

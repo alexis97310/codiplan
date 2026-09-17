@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -54,16 +55,15 @@ export default async function PageNouveauSite({
   );
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/sites"
+      titre={t("sites.creer")}
+      actions={
         <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
           {t("sites.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("sites.creer")}
-        </h1>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -162,6 +162,6 @@ export default async function PageNouveauSite({
           <ActionPrimaire>{t("sites.action.creer")}</ActionPrimaire>
         </div>
       </form>
-    </main>
+    </Page>
   );
 }
