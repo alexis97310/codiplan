@@ -32,9 +32,11 @@ function rendreLaBarre() {
 
 describe("le groupe « Planning »", () => {
   it("son titre n'est pas un lien — c'est un <summary>, jamais un <a>", () => {
-    // jsdom ne résout pas le rôle ARIA implicite de `<summary>` (« button » en
-    // HTML-AAM, tenu par les vrais navigateurs) — la preuve porte donc sur la
-    // BALISE elle-même plutôt que sur un rôle que ce moteur ne calcule pas.
+    // La preuve porte sur la BALISE plutôt que sur le rôle accessible : un
+    // `<summary>` nu n'expose PAS `button` sous Chromium (mesuré le
+    // 17/09/2026, #217/#220) — c'est `role="button"` qui le porte
+    // explicitement sur l'élément, et une balise reste vraie quel que soit le
+    // moteur d'accessibilité qui la lit.
     rendreLaBarre();
     const nav = screen.getByRole("navigation");
     const titre = within(nav).getByText(fr["nav.planning"], {
