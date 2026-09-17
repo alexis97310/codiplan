@@ -17,6 +17,12 @@ import { ENTREES } from "@/lib/navigation/entrees";
  * barre n'est jamais masquée pour cause de droit, ce que
  * `lib/navigation/entrees.ts` écrit — masquer serait une seconde lecture d'un
  * critère que la politique porte déjà, et c'est celle qui vieillit sans rougir.
+ *
+ * **DEPUIS D121, LA BARRE EST UNE COLONNE, PAS UN EN-TÊTE** : elle occupe la
+ * hauteur de la fenêtre à gauche du contenu plutôt que sa largeur au-dessus.
+ * Ce fichier pose donc la ligne flexible qui les met côte à côte — c'est tout
+ * ce que ce changement de forme demande ici, `BarreDeNavigation` portant le
+ * reste (sa propre largeur, son propre défilement).
  */
 export default async function MiseEnPageBackOffice({
   children,
@@ -24,14 +30,16 @@ export default async function MiseEnPageBackOffice({
   const { theme, initiales } = await chromeDeLaRequete();
 
   return (
-    <>
+    <div className="flex min-h-dvh">
       <BarreDeNavigation
         theme={theme}
         initiales={initiales}
         entrees={ENTREES}
         accueil="/planning"
       />
-      <LargeurUtile>{children}</LargeurUtile>
-    </>
+      <div className="min-w-0 flex-1">
+        <LargeurUtile>{children}</LargeurUtile>
+      </div>
+    </div>
   );
 }

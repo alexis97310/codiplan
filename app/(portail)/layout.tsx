@@ -21,6 +21,10 @@ import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
  * **Le point de retour change avec la barre**, et c'est la moitié qu'on
  * oublierait : la marque menait à `/planning`, que ce compte ne peut pas ouvrir
  * (D10). Elle mène ici à `/portail`.
+ *
+ * **DEPUIS D121, LA BARRE EST UNE COLONNE** : voir le commentaire équivalent
+ * de `(back-office)/layout.tsx` pour le motif — même mise en page flexible,
+ * seule la liste d'entrées diffère.
  */
 export default async function MiseEnPagePortail({
   children,
@@ -28,14 +32,16 @@ export default async function MiseEnPagePortail({
   const { theme, initiales } = await chromeDeLaRequete();
 
   return (
-    <>
+    <div className="flex min-h-dvh">
       <BarreDeNavigation
         theme={theme}
         initiales={initiales}
         entrees={ENTREES_PORTAIL}
         accueil="/portail"
       />
-      <LargeurUtile>{children}</LargeurUtile>
-    </>
+      <div className="min-w-0 flex-1">
+        <LargeurUtile>{children}</LargeurUtile>
+      </div>
+    </div>
   );
 }

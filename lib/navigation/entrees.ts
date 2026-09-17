@@ -47,14 +47,25 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * *un client qui lirait « Facturation » ou « Techniciens » au-dessus de son
  * espace apprendrait l'existence d'un outil qui n'est pas le sien.*
  *
- * ## Depuis D118 : DIX destinations, sur DEUX NIVEAUX
+ * ## Depuis D121 : QUATORZE destinations, sur TROIS DOMAINES FIXES
  *
- * Ce que ce fichier appelait « onze », puis « dix » après D98, reste le compte
- * des ÉCRANS que la maquette fait foi — ce sur quoi D95 fait toujours foi.
- * Onze entrées à plat ne se lisaient plus au même rang, et D118 amende D95 sur
- * ce point précis : la FORME du menu — ses niveaux, ses regroupements — cesse
- * d'être imposée par la maquette. Voir `GroupeNavigation` ci-dessous pour ce
- * que cet amendement autorise, et ce qu'il continue de refuser.
+ * D118 amendait D95 sur la FORME du menu — ses niveaux, ses regroupements —
+ * en attendant qu'une maquette redessinée avec un menu redevienne la source.
+ * C'est fait : `docs/maquette/codiplan-maquette-complete.html` dessine une
+ * colonne verticale, sectionnée en trois titres — Exploitation, Clients &
+ * parc, Paramètres —, et l'amendement de D118 **tombe de lui-même**, par
+ * l'opération de sa propre clause (D121, « LE CONSTAT »). Ce fichier lit donc
+ * de nouveau une maquette pour la LISTE et l'ORDRE de ses destinations — ce
+ * n'est plus `docs/maquette/CODIPLAN_Maquette.html`, dont la barre plate à
+ * onze boutons est un catalogue d'écrans (D98, D118), mais le second fichier,
+ * qui garde seul l'autorité sur ce point précis (D95 reste la source des
+ * couleurs et de la disposition des écrans, inchangée).
+ *
+ * **Les trois titres sont du TEXTE, jamais un contrôle.** Rien ne les
+ * sélectionne, rien ne les déplie : les quatorze destinations sont TOUTES
+ * visibles en permanence, dans une seule colonne (D121, « et ce que le
+ * constat mesure aussi »). Voir `GroupeNavigation` ci-dessous pour ce que
+ * cela change à la règle qui interdisait un mot neuf pour un titre.
  */
 
 export type EntreeNavigation = {
@@ -87,41 +98,58 @@ export type EntreeNavigation = {
 };
 
 /**
- * UN GROUPE DE PREMIER NIVEAU (D118, 16/09/2026) — un titre, et sous lui des
- * ENTRÉES SIMPLES, jamais un second niveau de groupe.
+ * UN DOMAINE DE LA BARRE LATÉRALE (D118, révisé par D121 le 17/09/2026) — un
+ * titre de section, et sous lui des ENTRÉES SIMPLES, toutes visibles en
+ * permanence.
  *
- * D118 amende D95 : la maquette ne fait plus foi sur la FORME du menu — le
- * nombre d'entrées de premier niveau, les niveaux, les libellés de
- * regroupement — seulement sur ses ÉCRANS. `docs/propositions/navigation.html`
- * montre deux structures possibles et note que la structure exacte
- * « reste à arrêter devant une image » : ni l'une ni l'autre n'a été validée
- * depuis. Ce fichier n'en rejoue donc aucune telle quelle ; il applique le
- * même principe — regrouper ce qui se ressemble — à la seule matière qui est
- * dans SON périmètre : les dix entrées déjà dans la barre. Ni `/clients`, ni
- * `/sites`, ni `/vgp`, ni `/absences` n'y entrent : ce sont des écrans vivants
- * sans porte aujourd'hui, et leur donner une porte est exactement la question
- * que D118 pose sans la trancher — l'ouvrir ici serait la trancher en douce, à
- * côté d'un autre agent qui travaille ces écrans au même moment.
+ * ## CE QUI CHANGE DE FORME, ET CE QUI NE CHANGE PAS
  *
- * **UN TITRE DE GROUPE N'EST JAMAIS UNE DESTINATION** (repris tel quel du
- * document ci-dessus) : cliquer dessus ouvre le sous-menu, il ne navigue
- * nulle part — sinon l'appui est ambigu. Ce que cela coûte pour une entrée
- * comme « Sociétés & tarifs », qui EST une destination : elle réapparaît comme
- * l'un de ses propres enfants, exactement comme le document le fait pour
- * « Planning ».
+ * D118 posait un groupe comme un sous-menu qui s'ouvre au clic sur son titre
+ * — un `<details>`, un `<summary>`. **Ce n'est plus la forme retenue** : D121
+ * mesure que la maquette redessinée ne commute rien — les trois titres sont
+ * DU TEXTE, les quatorze destinations sont TOUTES visibles d'un coup, dans
+ * une seule colonne. Le TYPE ne change pas — un titre, des enfants, dans
+ * l'ordre où ils s'affichent —, seul le RENDU change
+ * (`components/navigation/barre.tsx`) : plus de `<details>`, plus d'état à
+ * ouvrir ou fermer, donc plus de règle sur le domaine à une seule destination
+ * (D121, « LA RÈGLE DU DOMAINE À UNE SEULE DESTINATION »).
  *
- * **ET C'EST CE QUI INTERDIT D'INVENTER UN LIBELLÉ.** Le document propose
- * « Paramètres » comme titre du second groupe et le signale lui-même comme
- * NON TRANCHÉ — « aucune clé de dictionnaire ne porte ce libellé ». Un titre
- * de groupe ici doit donc être le libellé d'un de ses propres enfants : le
- * gardien (`tests/unit/navigation/entrees.test.ts`) l'exige, ce qui rend
- * impossible d'introduire silencieusement un libellé que personne n'a encore
- * arrêté.
+ * ## LA RÈGLE DU LIBELLÉ NEUF, TRANCHÉE ICI (N-07, à la demande explicite de
+ * D121 : « le futur ticket devra aussi trancher »)
+ *
+ * D118 interdisait qu'un titre de groupe soit un mot neuf, POUR UNE RAISON
+ * PRÉCISE : le titre était un `<summary>` cliquable, au même rang visuel
+ * qu'un lien, et un mot que personne n'avait arrêté aurait pu se lire comme
+ * une destination qu'on invente en douce. C'est cette même raison qui faisait
+ * réapparaître « Sociétés & tarifs » comme l'un de ses propres enfants : le
+ * titre DEVAIT être un libellé déjà décidé ailleurs.
+ *
+ * **Cette raison n'existe plus.** Un titre de domaine n'est plus un contrôle :
+ * il ne se clique pas, il n'ouvre rien, il ne navigue nulle part — c'est un
+ * `<div>` de texte au-dessus d'une liste, exactement ce que
+ * `docs/maquette/codiplan-maquette-complete.html` dessine (`.nav-group`, une
+ * simple étiquette). Rien ne peut plus le confondre avec une destination
+ * inventée, puisqu'il n'est jamais un lien. La garde qui comptait — empêcher
+ * qu'un mot NON ARRÊTÉ entre silencieusement dans la barre — est donc
+ * remplacée par une garde plus directe : le titre doit être l'un des TROIS
+ * noms de domaine que D121 a mesurés sur cette maquette, ni plus ni moins, et
+ * le gardien (`tests/unit/navigation/entrees.test.ts`) confronte les titres du
+ * code aux trois `<div class="nav-group">` du document, dans les deux sens —
+ * un titre de plus, ou un titre différent, le fait rougir. « Exploitation » et
+ * « Clients & parc » peuvent donc entrer au dictionnaire : ce ne sont plus des
+ * mots inventés par ce fichier, ce sont des mots MESURÉS sur une source de
+ * rang 1 (D121), au même titre que les libellés d'écran qu'elle porte.
  */
 export type GroupeNavigation = {
-  /** Le titre du groupe — le libellé d'UN DE SES ENFANTS, jamais un mot neuf. */
+  /**
+   * Le titre du domaine — un `<div>` de texte, jamais un contrôle. Depuis
+   * N-07, ce n'est plus nécessairement le libellé d'un enfant : c'est l'un
+   * des trois noms de domaine mesurés sur
+   * `docs/maquette/codiplan-maquette-complete.html` (voir le commentaire du
+   * type ci-dessus pour le motif du changement).
+   */
   readonly cle: CleTraduction;
-  /** Les entrées du sous-menu, dans l'ordre où elles s'y affichent. */
+  /** Les entrées du domaine, dans l'ordre où elles s'affichent. */
   readonly enfants: readonly EntreeNavigation[];
 };
 
@@ -151,85 +179,94 @@ export function feuilles(
 }
 
 /**
- * LES ÉCARTS DÉLIBÉRÉS À LA MAQUETTE — liste close, une entrée, avec son motif.
+ * LES ÉCARTS DÉLIBÉRÉS À LA MAQUETTE — liste close, VIDE depuis D121.
  *
  * D95 fait de la maquette une source qui FAIT FOI sur la disposition, et
  * autorise l'écart à une condition : *« il s'écrit avec sa mesure et le point
  * précis où elle est muette — jamais "la maquette ne prévoyait pas ce cas" ».*
  * Cette liste est cet écrit, et le gardien la lit plutôt que d'assouplir sa
- * comparaison. *Assouplir aurait fait entrer sans décision tous les écarts
- * suivants ; nommer n'en fait entrer qu'un.*
+ * comparaison.
  *
- * **Un écart se désigne par son LIBELLÉ tel que la maquette l'écrit**, et non
- * par une clé du dictionnaire : la clé disparaît avec l'entrée, le libellé
- * reste dans le document. C'est ce qui rend l'écart *adossé* — le gardien
- * vérifie que la maquette porte bien ce libellé, sans quoi l'entrée de cette
- * liste n'écarterait plus rien et personne ne le dirait (§9, 31/08).
+ * **La seule entrée qu'elle a jamais portée, « Fiche machine » (D98), ne
+ * s'adosse plus à rien.** Elle écartait un bouton que
+ * `docs/maquette/CODIPLAN_Maquette.html` — un catalogue d'écrans, pas un menu
+ * — listait à tort. Depuis D121, `entrees.test.ts` confronte la barre à
+ * `docs/maquette/codiplan-maquette-complete.html` pour sa LISTE et son
+ * ORDRE, et ce second document ne dessine PAS « Fiche machine » dans sa
+ * colonne : mesuré destination par destination (D121, « CE QUE LES QUATRE
+ * ÉCARTS DEVIENNENT »), les quatorze destinations de la maquette sont, sans
+ * exception, celles que la barre porte. **Zéro écart, pas un écart reformulé**
+ * — garder l'ancienne ligne aurait fait échouer le gardien qui vérifie
+ * qu'un écart est ADOSSÉ à un libellé que la maquette confrontée porte
+ * réellement (§9, 31/08) : le jour où il faut retirer une ligne, c'est ce
+ * scénario qui le dit, et c'est lui qui vient de le dire.
  *
- * **Toute addition ici est un arbitrage**, jamais une décision de ticket : le
- * gardien exige cette liste exactement, à la manière de `CABLAGE_ATTENDU`.
+ * Le mécanisme reste écrit, prêt pour le jour où une vraie divergence se
+ * présentera : **toute addition ici est un arbitrage**, jamais une décision
+ * de ticket, et le gardien exige cette liste exactement.
  */
 export const ECARTS_MAQUETTE: ReadonlyArray<{
   readonly libelle: string;
   readonly motif: string;
-}> = [
-  {
-    libelle: "Fiche machine",
-    // D98. La maquette la liste parce qu'elle est un CATALOGUE D'ÉCRANS, pas
-    // un menu : elle montre ses onze écrans pour qu'on les voie tous. Une
-    // fiche a besoin d'un IDENTIFIANT — elle ne peut donc pas être une section
-    // de navigation, quel que soit le travail qu'on y mette. Les trois chemins
-    // réels vers une fiche en portent un, et ils existent : le parc (R2-21),
-    // le QR code (D22), l'intervention.
-    motif:
-      "D98 — une fiche a besoin d'un identifiant ; ce n'est pas une section",
-  },
-];
+}> = [];
 
 /**
- * LES ENTRÉES, REGROUPÉES SUR DEUX NIVEAUX (D118, 16/09/2026) — même dix
- * destinations qu'avant l'amendement, réorganisées, aucune ajoutée.
+ * LES QUATORZE DESTINATIONS, SUR TROIS DOMAINES FIXES (D121, 17/09/2026).
  *
- * *Motif de l'exploitation : onze entrées plates ne se lisent plus au même
- * rang. D118 le mesure autrement — cinq entrées sur dix ne mènent nulle
- * part — mais le symptôme est le même : un inventaire n'est pas un menu.*
+ * *Motif de la forme : `docs/maquette/codiplan-maquette-complete.html` est la
+ * maquette redessinée avec un menu que D118 attendait pour rendre la main à
+ * la maquette (« le jour où la maquette est redessinée avec un menu, elle
+ * redevient la source de la forme »). Elle dessine trois domaines, chacun
+ * suivi de ses destinations, TOUTES visibles — jamais un sous-menu.*
  *
- * **Six entrées de premier niveau.** Quatre restent des destinations directes
- * — « Tableau de bord », « Parc machines », « Contrats », « Portail client » —
- * parce qu'aucune des six autres ne leur ressemble assez pour former un
- * groupe honnête. Les deux qui restent sont des groupes :
+ * **Trois domaines, aucune destination hors d'un domaine.** Contrairement à
+ * la forme D118 (quatre destinations restaient au premier niveau faute de
+ * ressembler à un groupe), la maquette range les quatorze sous l'un des
+ * trois titres — y compris « Tableau de bord » et « Parc machines », qui
+ * n'avaient pas de groupe avant :
  *
- * - **Planning** rassemble ce qui organise le travail du jour : le planning
- *   lui-même et les interventions qui le remplissent.
- * - **Sociétés & tarifs** rassemble la configuration et ce qui n'a pas
- *   d'autre maison : les imports Excel qui alimentent les référentiels, et
- *   les deux entrées encore inertes — « App technicien », « Console éditeur »
- *   — pour qui n'importe quel groupe est un rangement provisoire tant
- *   qu'aucun écran ne leur donne un sens propre.
+ * - **Exploitation** : Tableau de bord, Planning, Interventions, Absences.
+ * - **Clients & parc** : Clients, Sites, Parc machines, VGP, Portail client.
+ * - **Paramètres** : Sociétés & tarifs, Imports Excel, et les trois entrées
+ *   encore inertes — Contrats, App technicien, Console éditeur.
  *
- * **Liste close** : `tests/unit/navigation/entrees.test.ts` confronte les DIX
- * DESTINATIONS, une fois les groupes ouverts (`feuilles`), à la barre de
- * `docs/maquette/CODIPLAN_Maquette.html` — la maquette fait foi sur cet
- * ensemble (D95), plus depuis D118 sur l'ordre ou le regroupement (voir
- * `GroupeNavigation` ci-dessus).
+ * **Quatre destinations nouvelles** — Clients, Sites, VGP, Absences —
+ * n'avaient encore aucune porte dans la barre : ce sont des écrans déjà
+ * vivants (voir la table mesurée de D121, « CE QUE LES QUATRE ÉCARTS
+ * DEVIENNENT »), atteints jusqu'ici par rebond ou pas du tout.
+ *
+ * **Liste close** : `tests/unit/navigation/entrees.test.ts` confronte les
+ * QUATORZE destinations, une fois les groupes ouverts (`feuilles`), et les
+ * TROIS titres de domaine, à `docs/maquette/codiplan-maquette-complete.html`
+ * — la LISTE et l'ORDRE, lettre pour lettre (D121).
  */
 export const ENTREES: readonly EntreeDeBarre[] = [
-  { cle: "nav.tableau_de_bord", chemin: "/tableau-de-bord" },
   {
-    cle: "nav.planning",
+    cle: "nav.groupe_exploitation",
     enfants: [
+      { cle: "nav.tableau_de_bord", chemin: "/tableau-de-bord" },
       { cle: "nav.planning", chemin: "/planning" },
       { cle: "nav.interventions", chemin: "/interventions" },
+      { cle: "nav.absences", chemin: "/absences" },
     ],
   },
-  { cle: "nav.parc_machines", chemin: "/parc" },
-  // ⟵ « Fiche machine » était ICI, entre le parc et les contrats. Elle est
-  //    SORTIE (D98), et c'est le seul écart délibéré à la maquette : voir
-  //    ECARTS_MAQUETTE ci-dessous, qui porte le motif et que le gardien lit.
-  { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
-  { cle: "nav.portail_client", chemin: "/portail" },
   {
-    cle: "nav.societes_tarifs",
+    cle: "nav.groupe_clients_parc",
+    enfants: [
+      { cle: "nav.clients", chemin: "/clients" },
+      // « Sites » réutilise la clé du vocabulaire imposé (D5, D47) plutôt que
+      // d'écrire le mot une seconde fois — voir le commentaire de
+      // `lib/i18n/fr.ts` à l'endroit où « nav.sites » n'existe pas.
+      { cle: "vocabulaire.site.pluriel", chemin: "/sites" },
+      { cle: "nav.parc_machines", chemin: "/parc" },
+      // ⟵ « Fiche machine » n'entre PAS ici : voir ECARTS_MAQUETTE, vide
+      //    depuis D121 — la maquette confrontée ne la dessine plus du tout.
+      { cle: "nav.vgp", chemin: "/vgp" },
+      { cle: "nav.portail_client", chemin: "/portail" },
+    ],
+  },
+  {
+    cle: "nav.groupe_parametres",
     enfants: [
       {
         // L'ENTRÉE MÈNE À LA SECTION, NON À L'UN DE SES ÉCRANS (R3-05). Elle
@@ -244,6 +281,7 @@ export const ENTREES: readonly EntreeDeBarre[] = [
       // Elle nommait `L1-09`, qui porte les GABARITS — ce qu'on télécharge —,
       // jamais l'écran d'où l'on téléverse. L1-11 l'ouvre.
       { cle: "nav.imports_excel", chemin: "/imports" },
+      { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
       { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
       { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
     ],

@@ -26,6 +26,10 @@ import { ENTREES_TERRAIN } from "@/lib/navigation/entrees";
  * Elle n'accorde rien. `chromeDeLaRequete` ne lève jamais et ne lit aucun
  * droit : *une barre affichée n'est pas une permission* (R2-16). Le contrôle
  * est dans la page, qui redirige, et dans la politique, qui décide.
+ *
+ * **DEPUIS D121, LA BARRE EST UNE COLONNE** : voir le commentaire équivalent
+ * de `(back-office)/layout.tsx` pour le motif. Sa liste est vide (R5-01),
+ * mais son chrome — marque, point de retour — demeure.
  */
 export default async function MiseEnPageTerrain({
   children,
@@ -33,7 +37,7 @@ export default async function MiseEnPageTerrain({
   const { theme, initiales } = await chromeDeLaRequete();
 
   return (
-    <>
+    <div className="flex min-h-dvh">
       <BarreDeNavigation
         theme={theme}
         initiales={initiales}
@@ -41,6 +45,6 @@ export default async function MiseEnPageTerrain({
         accueil="/terrain"
       />
       <div className="mx-auto w-full max-w-[720px] px-4 py-4">{children}</div>
-    </>
+    </div>
   );
 }
