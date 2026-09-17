@@ -7,6 +7,7 @@ import {
 import { VARIABLE_CLE, VARIABLE_EXPEDITEUR } from "@/lib/courriel";
 import type { Envoi } from "@/lib/courriel/message";
 import {
+  codeApresEnvoi,
   lignesDelivrance,
   resoudreDelivrance,
 } from "@/scripts/lib/delivrance-premier-acces";
@@ -215,5 +216,33 @@ describe("le message posté porte bien le destinataire, et le corps l'identité"
 
     expect(envoye.to).toEqual([IDENTITE]);
     expect(envoye.text).toContain(IDENTITE);
+  });
+});
+
+/**
+ * LE CODE DE SORTIE APRÈS UN ENVOI DEMANDÉ (D-03, 17/09/2026).
+ *
+ * `envoyerSiDemande` imprimait déjà le refus de Resend, mais `principal()` et
+ * `reemission()` rendaient `0` sans jamais regarder `envoi.parti` : le flux
+ * GitHub « Ouvrir le PREMIER compte » sortait VERT quand `--envoyer` avait été
+ * demandé et que le prestataire avait refusé. Voir le gardien commun avec
+ * D-06, `tests/unit/gardiens/echec-ne-rend-pas-succes.test.ts`.
+ */
+describe("le CODE DE SORTIE après un envoi demandé (D-03)", () => {
+  it("un envoi qui part VRAIMENT rend le code de succès", () => {
+    expect(codeApresEnvoi({ parti: true, reference: "abc-123" })).toBe(0);
+  });
+
+  it("aucun envoi demandé reste au code de succès, pour sa propre raison", () => {
+    // Sans `--envoyer`, rien n'a été tenté : ce n'est pas un échec à signaler.
+    expect(codeApresEnvoi(null)).toBe(0);
+  });
+
+  it("un envoi REFUSÉ par le prestataire ne rend jamais le code de succès", () => {
+    const refuse: Envoi = {
+      parti: false,
+      motif: "Resend a refusé l'envoi (code 422).",
+    };
+    expect(codeApresEnvoi(refuse)).not.toBe(0);
   });
 });
