@@ -161,6 +161,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // ne se regardent que sur un téléphone.
       "app/(mobile)/terrain/[id]/page.tsx",
       "app/(mobile)/terrain/page.tsx",
+      // LA PAGINATION PARTAGÉE (AT-07, 17/09/2026) y entre avec les liens
+      // « page précédente »/« page suivante » des quatre écrans qui paginent
+      // désormais — clients, parc, sites, interventions.
+      "components/ui/pagination.tsx",
     ]);
   });
 });

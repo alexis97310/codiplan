@@ -1,10 +1,15 @@
-import { type Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 import { engendrerJetonQr } from "./qr";
-import { type SaisieMachine } from "./saisie";
+import {
+  LIMITE_RECHERCHE_MAXIMALE,
+  LIMITE_RECHERCHE_PAR_DEFAUT,
+  type RechercheParc,
+  type SaisieMachine,
+} from "./saisie";
 
 /**
  * LA LECTURE DU PARC MACHINES (R2-21 ; D6, D10, D22, I10).
@@ -147,31 +152,122 @@ export function resumerLeParc(
 }
 
 /**
- * Le parc lisible sous le contexte courant.
+ * LA RECHERCHE DU PARC (AT-07) — le texte porte sur les colonnes VISIBLES à
+ * l'écran, et sur elles seules : le numéro de série, le client, le lieu (site
+ * et commune), et la référence du modèle. `qr_token` n'y entre PAS — il n'est
+ * affiché dans aucune colonne du tableau, et chercher sur un champ invisible
+ * rendrait des résultats que personne ne peut expliquer (voir l'écart écrit
+ * dans `lib/machines/saisie.ts`, à côté de `schemaRechercheParc`).
  *
- * `limite` borne ce qui est RENDU, jamais ce qui est cloisonné : le
- * cloisonnement est prononcé par la politique, et une borne d'affichage ne s'y
- * substitue pas. Elle existe parce qu'un parc réel compte des milliers de
- * lignes — *le fichier de l'exploitation en porte 292 pour un seul client* — et
- * qu'un écran qui les rendrait toutes serait un écran qu'on n'ouvre plus.
+ * **Une seule écriture du critère** : `rechercherLeParc` (la page) et
+ * `compterLeParc` (le total de la pagination) l'appellent tous deux, comme
+ * `filtreDeRecherche` le fait déjà pour les clients (§9, 01/09).
  */
-export async function listerLeParc(
+function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
+  if (criteres.texte === null) {
+    return {};
+  }
+  const motif = {
+    contains: criteres.texte,
+    mode: Prisma.QueryMode.insensitive,
+  };
+  return {
+    OR: [
+      { numero_serie: motif },
+      { client: { raison_sociale: motif } },
+      { site: { libelle: motif } },
+      { site: { commune: motif } },
+      { modele: { reference: motif } },
+    ],
+  };
+}
+
+/**
+ * LE PARC LISIBLE SOUS LE CONTEXTE COURANT — une PAGE, désormais (AT-07).
+ *
+ * `skip`/`take` sont posés ICI, dans le dépôt : jamais un tableau entier
+ * chargé puis découpé par le composant, sinon la base rend toujours tout le
+ * parc filtré et la pagination n'a rien gagné.
+ */
+export async function rechercherLeParc(
   contexte: ContexteSession,
-  limite: number,
+  criteres: RechercheParc,
+  client?: PrismaClient,
 ): Promise<readonly LigneDeParc[]> {
-  return avecContexteApplicatif(contexte, (tx) =>
-    tx.machine.findMany({
-      select: CHAMPS_PARC,
-      // Les fiches INCOMPLÈTES d'abord : ce sont celles qui demandent un geste,
-      // et un parc trié par date les enterrerait sous les fiches saines.
-      orderBy: [
-        { complet: "asc" },
-        { numero: "desc" },
-        { numero_serie: "asc" },
-      ],
-      take: limite,
-    }),
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        select: CHAMPS_PARC,
+        where: filtreDuParc(criteres),
+        // Les fiches INCOMPLÈTES d'abord : ce sont celles qui demandent un
+        // geste, et un parc trié par date les enterrerait sous les fiches
+        // saines.
+        orderBy: [
+          { complet: "asc" },
+          { numero: "desc" },
+          { numero_serie: "asc" },
+        ],
+        skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
+        take: LIMITE_RECHERCHE_PAR_DEFAUT,
+      }),
+    client,
   );
+}
+
+/**
+ * COMBIEN DE FICHES CORRESPONDENT À LA RECHERCHE — jamais le compte de la
+ * page (AT-07). La MÊME `filtreDuParc` que `rechercherLeParc` : un total qui
+ * compterait autrement que ce qu'il pagine est la faute nommée par le
+ * directeur d'exploitation le 16/09.
+ */
+export async function compterLeParc(
+  contexte: ContexteSession,
+  criteres: RechercheParc,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.machine.count({ where: filtreDuParc(criteres) }),
+    client,
+  );
+}
+
+/**
+ * LE RÉSUMÉ (KPI), SUR TOUTE LA RECHERCHE — PLAFONNÉE, JAMAIS SUR LA PAGE
+ * (AT-07).
+ *
+ * **Ce que ce ticket ne pouvait pas laisser tel quel.** `resumerLeParc` compte
+ * « sur les lignes rendues » (R2-21) — une règle sage tant que « rendu »
+ * voulait dire « tout le parc filtré ». La pagination change ce que la page
+ * rend : un bandeau qui résumerait la seule PAGE de 50 lignes dirait « 12
+ * machines actives » sous un parc qui en compte 180, et personne ne pourrait
+ * distinguer un vrai creux d'un artefact de pagination.
+ *
+ * **La fonction pure ne bouge pas** (`resumerLeParc`, testée par
+ * `tests/unit/machines/parc.test.ts`) : celle-ci l'appelle avec une lecture
+ * SÉPARÉE, bornée à `LIMITE_RECHERCHE_MAXIMALE` et non à la taille d'une page
+ * — le même principe que `compterSansCodeExterne` assume déjà pour les
+ * clients : une seconde lecture du même critère est admise, tant qu'elle
+ * partage l'unique écriture du filtre (`filtreDuParc`).
+ */
+export async function resumerLeParcFiltre(
+  contexte: ContexteSession,
+  criteres: RechercheParc,
+  maintenant: Date,
+  client?: PrismaClient,
+): Promise<ResumeDuParc> {
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        select: CHAMPS_PARC,
+        where: filtreDuParc(criteres),
+        take: LIMITE_RECHERCHE_MAXIMALE,
+      }),
+    client,
+  );
+  return resumerLeParc(lignes, maintenant);
 }
 
 /** Ce qu'une FICHE de machine porte, en plus de ce qu'une ligne de parc montre. */

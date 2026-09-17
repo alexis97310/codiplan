@@ -6,6 +6,7 @@ import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
@@ -14,8 +15,10 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
-  listerLeParc,
+  compterLeParc,
+  rechercherLeParc,
   resumerLeParc,
+  resumerLeParcFiltre,
   type LigneDeParc,
 } from "@/lib/machines/depot";
 import {
@@ -23,8 +26,14 @@ import {
   KPI_PARC,
   type CleKpiParc,
 } from "@/lib/machines/ecarts-maquette";
+import {
+  LIMITE_RECHERCHE_PAR_DEFAUT,
+  schemaRechercheParc,
+} from "@/lib/machines/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_TON } from "@/lib/theme/statuts";
+
+import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 
 /**
  * L'ÉCRAN « PARC MACHINES » (R2-21, AT-04 ; D95, D6, I10).
@@ -47,27 +56,38 @@ import { CLASSES_TON } from "@/lib/theme/statuts";
  * par colonne et KPI par KPI, plutôt que de reconduire une liste par
  * ressemblance avec une autre.
  *
- * ## CE QU'IL NE FAIT PAS ENCORE
+ * ## CE QU'IL NE FAIT TOUJOURS PAS
  *
- * La recherche est CÂBLÉE — un champ, un paramètre `q`, un bouton — et pas
- * REMPLIE : aucun dépôt ne le lit encore (AT-07). Ni export, ni pagination.
- * La borne d'affichage est dite à l'écran plutôt que tue : *un tableau
- * tronqué en silence fait croire à un parc plus petit qu'il n'est.*
- */
-
-/**
- * Combien de fiches l'écran rend.
+ * L'export Excel manque encore : rien dans le dépôt ne sait exporter ce
+ * tableau, et un lien vers un export inexistant se lirait comme une panne
+ * (R2-13).
  *
- * **Ce n'est pas un cloisonnement** : celui-là est prononcé par la politique de
- * `machine`, de forme « parc ». C'est une borne d'AFFICHAGE, et elle existe
- * parce qu'un parc réel compte des milliers de lignes — *le fichier de
- * l'exploitation en porte 292 pour un seul client.*
+ * ## LA RECHERCHE EST REMPLIE, ET LA LISTE PAGINE (AT-07, 17/09/2026)
+ *
+ * `BarreDeFiltres` était câblée depuis AT-04 sans qu'aucun dépôt ne lise
+ * `q` : c'est ce que ce ticket répare. Le texte porte sur les colonnes
+ * VISIBLES du tableau — numéro de série, client, lieu, référence du modèle —
+ * jamais sur `qr_token`, que la maquette propose mais qu'AUCUNE colonne
+ * n'affiche (l'écart est écrit à côté de `schemaRechercheParc`,
+ * `lib/machines/saisie.ts`).
+ *
+ * **Le résumé (bandeau KPI) ne compte plus les lignes RENDUES** — la règle de
+ * R2-21 tenait tant que « rendu » voulait dire « tout le parc filtré ». Une
+ * page de 50 lignes n'est plus tout le parc : `resumerLeParcFiltre` lit donc
+ * une PAGE séparée, plafonnée à `LIMITE_RECHERCHE_MAXIMALE` et non à la taille
+ * d'une page, en réutilisant la même `filtreDuParc` que la liste — le principe
+ * que `compterSansCodeExterne` applique déjà pour les clients (§9, 01/09).
+ * `resumerLeParc`, la fonction PURE, ne change pas d'une ligne : ses tests
+ * restent ceux de `tests/unit/machines/parc.test.ts`.
  */
-const LIGNES_AFFICHEES = 200;
 
 const ABSENT = "—";
 
-export default async function PageParc() {
+export default async function PageParc({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await obtenirSession(await headers());
   if (session === null) {
     redirect("/connexion");
@@ -88,8 +108,29 @@ export default async function PageParc() {
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
   const aujourdHui = maintenant(fuseau).instant;
 
-  const lignes = await listerLeParc(contexte, LIGNES_AFFICHEES);
-  const resume = resumerLeParc(lignes, aujourdHui);
+  const params = await searchParams;
+  const criteres = schemaRechercheParc.safeParse({
+    texte: typeof params.q === "string" ? params.q : "",
+    page: typeof params.page === "string" ? params.page : undefined,
+  });
+
+  const lignes = criteres.success
+    ? await rechercherLeParc(contexte, criteres.data)
+    : [];
+  // LE RÉSUMÉ PORTE SUR TOUTE LA RECHERCHE (plafonnée), LE TABLEAU SUR LA
+  // PAGE — voir la note de tête sur `resumerLeParcFiltre`.
+  const resume = criteres.success
+    ? await resumerLeParcFiltre(contexte, criteres.data, aujourdHui)
+    : resumerLeParc([], aujourdHui);
+  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDuParc` que la liste et que le
+  // résumé, jamais une troisième lecture du critère (AT-07).
+  const totalFiltre = criteres.success
+    ? await compterLeParc(contexte, criteres.data)
+    : 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
+  );
 
   const colonnes = COLONNES_PARC.map((colonne) => ({
     cle: colonne.id,
@@ -97,12 +138,17 @@ export default async function PageParc() {
     largeur: colonne.largeur,
   }));
 
-  // AUCUNE FICHE AFFICHÉE N'A ENCORE DE NUMÉRO SERVEUR — mesuré par le
-  // directeur d'exploitation le 16/09/2026 : la mention se répétait sous les
-  // 200 lignes sans plus rien distinguer. Un bandeau UNIQUE la remplace tant
+  // AUCUNE FICHE DE CETTE PAGE N'A ENCORE DE NUMÉRO SERVEUR — mesuré par le
+  // directeur d'exploitation le 16/09/2026 : la mention se répétait sous
+  // chaque ligne sans plus rien distinguer. Un bandeau UNIQUE la remplace tant
   // que la synchronisation (lot 3) n'a attribué aucun numéro ; le jour où
   // elle en attribuera un premier, cette condition devient fausse d'elle-même
-  // et la mention reprend sa forme par ligne, comme avant.
+  // et la mention reprend sa forme par ligne, comme avant. **Portée sur la
+  // PAGE affichée, et non sur toute la recherche** (AT-07) : `numero` n'existe
+  // encore nulle part, donc la distinction ne se mesure pas aujourd'hui — un
+  // écart resserré plutôt que caché, écrit ici parce qu'il pourrait diverger
+  // le jour où la synchronisation attribuera un premier numéro sur une page et
+  // pas une autre.
   const aucuneSynchronisee =
     lignes.length > 0 && lignes.every((ligne) => ligne.numero === null);
 
@@ -112,7 +158,7 @@ export default async function PageParc() {
       sousTitre={sousTitreDuParc()}
       actions={
         <p className="text-app-encre-faible text-[12.5px]">
-          {decompte(resume.total, t("parc.total_un"), t("parc.total"))}
+          {decompte(totalFiltre, t("parc.total_un"), t("parc.total"))}
           {resume.incompletes === 0
             ? ""
             : separateur(
@@ -128,6 +174,7 @@ export default async function PageParc() {
       <BarreDeFiltres
         action="/parc"
         parametre="q"
+        valeur={typeof params.q === "string" ? params.q : undefined}
         libelleChamp={libelleDeLaRecherche()}
         libelleBouton={t("parc.recherche_action")}
       />
@@ -139,7 +186,7 @@ export default async function PageParc() {
             ton={kpi.ton}
             libelle={t(kpi.cle)}
             valeur={valeurDuKpi(kpi.cle, resume)}
-            detail={detailDuKpi(kpi.cle, resume)}
+            detail={detailDuKpi(kpi.cle, resume, totalFiltre)}
           />
         ))}
       </div>
@@ -181,7 +228,28 @@ export default async function PageParc() {
         {t("vgp.lien_depuis_parc")}
       </Link>
 
-      <p className="text-app-encre-faible text-[11.5px]">{t("parc.borne")}</p>
+      <Pagination
+        page={criteres.success ? criteres.data.page : 1}
+        totalPages={totalPages}
+        libelleResultats={decompte(
+          totalFiltre,
+          t("parc.total_un"),
+          t("parc.total"),
+        )}
+        libellePage={libellePage(
+          criteres.success ? criteres.data.page : 1,
+          totalPages,
+        )}
+        libellePrecedent={t("pagination.precedent")}
+        libelleSuivant={t("pagination.suivant")}
+        hrefPage={(page) =>
+          hrefDeLaPage(
+            "/parc",
+            { q: typeof params.q === "string" ? params.q : undefined },
+            page,
+          )
+        }
+      />
     </Page>
   );
 }
@@ -201,13 +269,23 @@ function valeurDuKpi(
   }
 }
 
-/** Le détail d'un KPI, quand il en dit plus que sa seule valeur. */
+/**
+ * Le détail d'un KPI, quand il en dit plus que sa seule valeur.
+ *
+ * **`totalFiltre` est un PARAMÈTRE à part de `resume`** (AT-07) : `resume` est
+ * plafonné (`LIMITE_RECHERCHE_MAXIMALE`) pour rester un résumé bon marché,
+ * tandis que le total affiché ici doit être celui de la pagination — le MÊME
+ * nombre que le pied de liste. Les faire diverger montrerait deux chiffres
+ * différents pour « le parc filtré », et c'est exactement ce qu'un lecteur ne
+ * peut pas trancher (§9, 01/09).
+ */
 function detailDuKpi(
   cle: CleKpiParc,
   resume: ReturnType<typeof resumerLeParc>,
+  totalFiltre: number,
 ): string | undefined {
   if (cle === "parc.kpi_actives") {
-    return `${t("parc.kpi_sur")} ${decompte(resume.total, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees")}`;
+    return `${t("parc.kpi_sur")} ${decompte(totalFiltre, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees")}`;
   }
   if (cle === "parc.kpi_en_panne") {
     const enPanne = resume.parStatut.en_panne ?? 0;
@@ -350,24 +428,13 @@ function libelleDeLaRecherche(): string {
   return `${t("parc.recherche_prefixe")} ${motDansUnePhrase("site")}, ${t("parc.recherche_suffixe")}`;
 }
 
-/** Un décompte et son unité, composés hors du JSX (L0-11). */
-function decompte(nombre: number, un: string, plusieurs: string): string {
-  // **« 1 fiches à compléter »** — mesuré le 13/09/2026 SUR UNE IMAGE, et par
-  // aucune assertion : le libellé était au pluriel en dur, et le défaut ne
-  // pouvait apparaître que le jour où le parc porterait EXACTEMENT une fiche
-  // incomplète. *C'est le §9 du 09/09 — un défaut invisible à toute assertion
-  // et évident sur une capture* : on n'écrit pas d'assertion sur un invariant
-  // qu'on n'a pas encore vu.
-  //
-  // Le singulier est une CLÉ du dictionnaire, jamais un `s` retranché : le
-  // français ne s'accorde pas par troncature, et une règle de morphologie
-  // écrite dans un composant serait une chaîne visible en dur (L0-11).
-  // **LES DEUX LIBELLÉS SONT RÉSOLUS PAR L'APPELANT**, et ce n'est pas un
-  // détour : une CLÉ passée en argument depuis du JSX se lit comme une chaîne
-  // visible écrite en dur, et le gardien de L0-11 l'a refusée — à raison, il ne
-  // peut pas distinguer une clé d'un libellé.
-  return `${nombre} ${nombre === 1 ? un : plusieurs}`;
-}
+/**
+ * `decompte` a DÉMÉNAGÉ dans `app/(back-office)/presentation.ts` (AT-07) : la
+ * pagination en avait besoin pour son propre total, et une seconde écriture
+ * du même critère aurait divergé en silence (§9, 01/09) — la même raison qui a
+ * fait déménager `ouTiret` le 14/09/2026. Aucun appelant d'ici ne change :
+ * seul l'import se déplace.
+ */
 
 /** Le séparateur des deux décomptes — un signe, jamais une phrase. */
 function separateur(suite: string): string {

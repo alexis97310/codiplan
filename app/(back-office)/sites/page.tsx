@@ -3,17 +3,20 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
+  compterSites,
   libellesDesSites,
   rechercherSites,
   type FicheSite,
 } from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 
+import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { libelleRattachement, ouTiret } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
@@ -53,10 +56,15 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * cet écran le sache** — RG-DRO-01 est tenue par la politique, et une
  * comparaison écrite ici serait une seconde lecture d'un critère que la base
  * porte déjà.
+ *
+ * ## LA PAGINATION (AT-07, 17/09/2026)
+ *
+ * `limite` (50) borne désormais chaque PAGE, jamais la recherche entière :
+ * `compterSites` compte le total FILTRÉ, par la même `filtreDeRecherche` que
+ * la liste — un total qui compterait autrement que ce qu'il pagine est la
+ * faute nommée par le directeur d'exploitation le 16/09. L'état de la page vit
+ * dans l'URL (`searchParams.page`).
  */
-
-/** Ce que l'écran rend. Une BORNE d'affichage, jamais un cloisonnement. */
-const LIGNES_AFFICHEES = 100;
 
 export default async function PageSites({
   searchParams,
@@ -75,15 +83,26 @@ export default async function PageSites({
   const motif = params.motif;
   // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
   // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
+  // `limite` retombe sur son défaut (50) — la taille d'une PAGE, jamais celle
+  // d'un unique chargement (AT-07).
   const criteres = schemaRechercheSite.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     client_id: typeof params.client === "string" ? params.client : null,
-    limite: LIGNES_AFFICHEES,
+    page: typeof params.page === "string" ? params.page : undefined,
   });
   const sites = criteres.success
     ? await rechercherSites(session.contexte, criteres.data)
     : [];
   const libelles = await libellesDesSites(session.contexte, sites);
+  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste,
+  // jamais une seconde lecture divergente du critère (AT-07).
+  const totalFiltre = criteres.success
+    ? await compterSites(session.contexte, criteres.data)
+    : 0;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
+  );
 
   const colonnes = [
     { cle: "libelle", libelle: t("site.libelle") },
@@ -162,7 +181,32 @@ export default async function PageSites({
         </Tableau>
       </section>
 
-      <p className="text-app-encre-faible text-[11.5px]">{t("sites.borne")}</p>
+      <Pagination
+        page={criteres.success ? criteres.data.page : 1}
+        totalPages={totalPages}
+        libelleResultats={decompte(
+          totalFiltre,
+          motDansUnePhrase("site"),
+          motDansUnePhrase("site", true),
+        )}
+        libellePage={libellePage(
+          criteres.success ? criteres.data.page : 1,
+          totalPages,
+        )}
+        libellePrecedent={t("pagination.precedent")}
+        libelleSuivant={t("pagination.suivant")}
+        hrefPage={(page) =>
+          hrefDeLaPage(
+            "/sites",
+            {
+              q: typeof params.q === "string" ? params.q : undefined,
+              client:
+                typeof params.client === "string" ? params.client : undefined,
+            },
+            page,
+          )
+        }
+      />
     </main>
   );
 }

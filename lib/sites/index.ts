@@ -24,6 +24,7 @@ export {
   type RechercheSite,
 } from "./saisie";
 export {
+  compterSites,
   creerSite,
   lireSite,
   modifierSite,

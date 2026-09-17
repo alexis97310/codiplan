@@ -347,6 +347,14 @@ describe("saisie d'un site (L1-02)", () => {
       ).toBe(false);
     });
 
+    it("pagine — 1-indexée, l'état vient de l'URL (AT-07)", () => {
+      expect(schemaRechercheSite.parse({}).page).toBe(1);
+      // Une page vient de l'URL — une chaîne — et se coerce en nombre.
+      expect(schemaRechercheSite.parse({ page: "2" }).page).toBe(2);
+      expect(schemaRechercheSite.safeParse({ page: 0 }).success).toBe(false);
+      expect(schemaRechercheSite.safeParse({ page: -1 }).success).toBe(false);
+    });
+
     it("ramène un texte vide à l'absence de filtre", () => {
       expect(schemaRechercheSite.parse({ texte: "   " }).texte).toBeNull();
     });
