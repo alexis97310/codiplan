@@ -70,6 +70,25 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * titre que la charte de société et la pastille d'initiales, pour la même
  * raison : commune aux trois coques, elle n'a pas à être rendue par un écran
  * qui pourrait oublier de le faire.
+ *
+ * ## LE TERRAIN N'EST PAS UNE COLONNE — CE N'EST PAS UNE EXCEPTION À D121, ET
+ * C'EST ÉCRIT POUR NE PAS LE REDÉCOUVRIR (17/09/2026, revue de #224)
+ *
+ * D121 arbitre la forme d'une barre QUI PORTE DES DESTINATIONS — la colonne,
+ * ses trois domaines, sont une réponse à quatorze boutons qu'il fallait
+ * ranger. `ENTREES_TERRAIN` est vide (R5-01) : il n'y a AUCUNE destination à
+ * ranger sur le terrain, donc la question que D121 tranche ne se pose pas
+ * pour cette coque. Une colonne de 272 px qui ne porterait qu'une marque et un
+ * bouton de déconnexion serait une forme SANS SUJET — et sur un écran de
+ * 390 px, mesuré sur `main` avant ce correctif : **390 − 272 = 118 px**
+ * restants pour tout le reste (`tests/e2e/terrain-largeur.spec.ts`).
+ *
+ * **Le terrain reprend donc son chrome D'AVANT D121** : un bandeau horizontal
+ * fin, comme toutes les coques avant cette décision. Ce n'est pas un repli
+ * temporaire en attendant un futur ticket — c'est la forme qui convient à une
+ * liste vide, et elle le restera tant qu'aucune destination n'existe à
+ * ranger. Le jour où le terrain porte une navigation réelle, la question de
+ * D121 se posera pour lui aussi, et alors seulement.
  */
 export function BarreDeNavigation({
   theme,
@@ -84,6 +103,9 @@ export function BarreDeNavigation({
    * LES ENTRÉES À RENDRE — celles du back-office, du portail ou du terrain
    * (D97). Obligatoire, sans valeur par défaut : un défaut ferait qu'une mise
    * en page qui oublie de choisir reçoit une barre en silence.
+   *
+   * **Une liste VIDE choisit la forme** (voir le commentaire ci-dessus) : rien
+   * à ranger, donc pas de colonne à son intention.
    */
   readonly entrees: readonly EntreeDeBarre[];
   /**
@@ -93,6 +115,16 @@ export function BarreDeNavigation({
   readonly accueil: string;
 }) {
   const actif = entreeActive(usePathname() ?? "", entrees)?.cle ?? null;
+
+  if (entrees.length === 0) {
+    return (
+      <BarreHorizontaleVide
+        theme={theme}
+        initiales={initiales}
+        accueil={accueil}
+      />
+    );
+  }
 
   return (
     <aside className="bg-app-chrome-fond flex h-full w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5">
@@ -112,8 +144,9 @@ export function BarreDeNavigation({
       </nav>
       {/*
         `mt-auto` ancre le pied en bas de la colonne, quelle que soit la
-        hauteur de la liste au-dessus — vide pour le terrain (R5-01), une
-        seule entrée pour le portail (D97), quatorze pour le back-office.
+        hauteur de la liste au-dessus — une seule entrée pour le portail
+        (D97), quatorze pour le back-office. Le terrain, lui, ne passe plus
+        jamais par ici : `entrees` y est toujours vide (R5-01).
       */}
       <div className="border-app-chrome-bordure mt-auto flex flex-col gap-3 border-t pt-4">
         <BandeauSociete theme={theme} />
@@ -149,6 +182,90 @@ function Marque({ accueil }: { readonly accueil: string }) {
         </span>
       </span>
     </Link>
+  );
+}
+
+/**
+ * LE BANDEAU HORIZONTAL DU TERRAIN — le chrome D'AVANT D121, jamais retiré
+ * pour cette coque puisque D121 ne la concerne pas (voir le commentaire de
+ * `BarreDeNavigation`).
+ *
+ * **Un `<nav>` vide plutôt qu'absent** : `deconnexion-chrome.test.tsx`
+ * confronte les trois coques au même critère — un `<nav>` sans aucun `<form>`
+ * — et une liste vide rend un `<nav>` sans enfant, pas un `<nav>` en moins.
+ *
+ * **Jetons clairs, jamais ceux du chrome vertical** : cette coque ne porte
+ * aucune des couleurs de D122 (elles habillaient une colonne qui n'existe pas
+ * ici) — elle reprend `app-surface`, `app-marque`, exactement ce qu'elle
+ * portait avant ce ticket.
+ */
+function BarreHorizontaleVide({
+  theme,
+  initiales,
+  accueil,
+}: {
+  readonly theme: ThemeSociete;
+  readonly initiales: string | null;
+  readonly accueil: string;
+}) {
+  return (
+    <header className="bg-app-surface border-app-bord sticky top-0 z-50 flex min-h-[58px] flex-wrap items-center gap-5 border-b px-5 py-2">
+      <MarqueClaire accueil={accueil} />
+      <nav aria-label={t("nav.libelle")} className="ml-2 min-w-0 flex-1"></nav>
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        <BandeauSociete theme={theme} />
+        {initiales === null ? null : (
+          <>
+            <DeconnexionClaire />
+            <AvatarClaire initiales={initiales} />
+          </>
+        )}
+      </div>
+    </header>
+  );
+}
+
+function MarqueClaire({ accueil }: { readonly accueil: string }) {
+  return (
+    <Link href={accueil} className="flex flex-shrink-0 items-center gap-2.5">
+      <span
+        aria-hidden
+        className="border-b-app-accent h-0 w-0 border-r-[11px] border-b-[19px] border-l-[11px] border-r-transparent border-l-transparent"
+      />
+      <span className="leading-tight">
+        <span className="text-[18px] font-extrabold tracking-tight">
+          {t("nav.marque_debut")}
+          <span className="text-app-marque">{t("nav.marque_fin")}</span>
+        </span>
+        <span className="text-app-encre-faible block text-[9px] font-bold tracking-[1.5px]">
+          {t("nav.marque_metier")}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function DeconnexionClaire() {
+  return (
+    <form action="/api/session/deconnexion" method="post">
+      <button
+        type="submit"
+        className="text-app-encre-faible hover:bg-app-fond rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap"
+      >
+        {t("nav.deconnexion")}
+      </button>
+    </form>
+  );
+}
+
+function AvatarClaire({ initiales }: { readonly initiales: string }) {
+  return (
+    <span
+      aria-hidden
+      className="bg-app-marque text-app-marque-encre grid h-8 w-8 place-items-center rounded-full text-xs font-bold"
+    >
+      {initiales}
+    </span>
   );
 }
 
