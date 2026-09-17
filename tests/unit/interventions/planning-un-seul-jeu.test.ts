@@ -151,8 +151,15 @@ describe("l'USAGE — aucun consommateur ne reçoit autre chose", () => {
     // La faute telle qu'elle se commettrait — quelqu'un redonne à la grille la
     // liste complète, « puisque la semaine les montre toutes ». On rejoue le
     // verdict sur ce texte-là, sans toucher au fichier.
+    //
+    // Le remplacement tolère un retour à la ligne entre la parenthèse et
+    // `affichees` (§9, 26/08, forme 1) : N-06 a ajouté un cinquième argument
+    // à cet appel, et Prettier le reformate désormais sur plusieurs lignes.
+    // Une correspondance littérale sur une seule ligne rougirait au premier
+    // reformatage sans qu'aucune donnée n'ait été redivisée — ce n'est pas ce
+    // que ce gardien existe pour attraper.
     const redivise = source().replace(
-      "construireGrille(affichees",
+      /construireGrille\(\s*affichees/,
       "construireGrille(posees",
     );
     expect(redivise).not.toBe(source());

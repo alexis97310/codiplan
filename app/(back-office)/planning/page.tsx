@@ -301,18 +301,17 @@ export default async function PagePlanning({
             {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
           </p>
           {/*
-            LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
-            DISENT (14/09/2026). La vue jour tire ses colonnes du référentiel,
-            la vue semaine des interventions — deux choix délibérés, chacun avec
-            sa raison. Ce qui ne se tenait pas est que *deux écrans de la même
-            entrée de menu rendent deux populations sans un mot* : l'écart ne se
-            découvrait qu'en le soupçonnant.
+            ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
+            DISENT (14/09/2026)~~ — RETIRÉ LE 17/09/2026 (N-06). C'était
+            présenté comme deux choix délibérés ; c'était en réalité le défaut
+            le plus grave mesuré sur ce planning, parce qu'il fait DISPARAÎTRE
+            un technicien : celui qu'on cherche précisément en ouvrant un
+            planning est celui qui n'a rien, et la vue semaine ne lui donnait
+            aucune ligne là où la vue jour lui donnait sa colonne. Les deux vues
+            tirent désormais leurs lignes et leurs colonnes du MÊME référentiel
+            (`pourTechniciens`), et la mention qui expliquait l'écart n'a plus
+            d'écart à expliquer.
           */}
-          <p className="text-app-encre-faible text-[11.5px]">
-            {vue === "jour"
-              ? t("planning.population_jour")
-              : t("planning.population_semaine")}
-          </p>
           {/*
             LA PORTE DES ABSENCES (R3-14).
 
@@ -355,8 +354,12 @@ export default async function PagePlanning({
           ) : (
             <VueSemaine
               jours={jours}
-              grille={construireGrille(affichees, jours, pourGrille, (id) =>
-                nomSeul(id, annuaire),
+              grille={construireGrille(
+                affichees,
+                jours,
+                pourGrille,
+                (id) => nomSeul(id, annuaire),
+                pourTechniciens,
               )}
               annuaire={annuaire}
               chargeDe={chargeParTechnicien}
@@ -408,10 +411,22 @@ export default async function PagePlanning({
                 ))}
               </div>
             </section>
-
-            <Statistiques lignes={charges} annuaire={annuaire} />
           </aside>
         </div>
+
+        {/*
+          LE DÉTAIL DE CHARGE SE POSE SOUS LE PLANNING (N-02, 17/09/2026).
+
+          Il vivait dans le panneau latéral de 290 px, à côté de la file
+          d'attente — un écart avec la maquette que rien n'écrivait : elle ne
+          pose dans cette colonne QUE la file et les contrôles à la pose, et
+          n'y montre aucun panneau de charge. Ce panneau-ci est une donnée que
+          la maquette ne prévoit pas, mais l'endroit où on le pose y est
+          arbitré : jamais dans la colonne étroite qui vole sa largeur à la
+          grille — c'est très exactement elle que le planificateur consulte le
+          plus, jours et personnes confondus.
+        */}
+        <Statistiques lignes={charges} annuaire={annuaire} />
       </Posable>
     </main>
   );
@@ -453,7 +468,17 @@ function VueSemaine({
 }) {
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
-      <div className="overflow-x-auto">
+      {/*
+        LA GRILLE NE SE COMPRIME PAS SOUS `lg` (N-02, 17/09/2026).
+
+        Elle défilait horizontalement sur petite largeur — six colonnes
+        resserrées dans une fenêtre de téléphone —, ce qui n'est pas une liste
+        et n'est plus une grille lisible non plus : *cinq colonnes sur un
+        téléphone n'est pas une grille.* La maquette ne dit rien du téléphone,
+        elle n'a été pensée que pour un poste de travail ; en dessous de `lg`,
+        c'est donc `ListeSemaine`, une liste par personne, qui prend le relais.
+      */}
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]">
           <colgroup>
             {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
@@ -557,8 +582,112 @@ function VueSemaine({
           </tbody>
         </table>
       </div>
+      <ListeSemaine
+        grille={grille}
+        annuaire={annuaire}
+        chargeDe={chargeDe}
+        fuseauPour={fuseauPour}
+      />
       <Legende />
     </section>
+  );
+}
+
+/**
+ * LA LISTE — la même donnée que la grille, sous `lg` (N-02, 17/09/2026).
+ *
+ * Une personne, une carte : son nom, ses agences, son taux, puis SES SEULS
+ * jours qui portent quelque chose cette semaine. **Un jour vide n'a pas de
+ * ligne** — le jour fermé compris : une trame veut dire quelque chose sur une
+ * grille où chaque case existe déjà ; dans une liste qui ne montre que ce qui
+ * est rempli, l'absence d'un jour dit déjà qu'il n'y a rien à y montrer, et
+ * gonfler la liste avec six jours hachurés par personne serait revenir à la
+ * densité qu'une liste existe pour éviter.
+ *
+ * **Une personne dont la semaine est VIDE n'est pas retirée de la liste** —
+ * c'est très exactement N-06 : *le technicien qu'on cherche en ouvrant un
+ * planning est celui qui n'a rien.* Sa carte le dit, avec le seul mot que la
+ * réserve absolue autorise : `t("planning.technicien_sans_intervention")` —
+ * jamais « disponible », qui affirmerait un état sur les absences et les
+ * trajets que cet écran n'a pas lus.
+ */
+function ListeSemaine({
+  grille,
+  annuaire,
+  chargeDe,
+  fuseauPour,
+}: {
+  readonly grille: ReturnType<typeof construireGrille<Ligne>>;
+  readonly annuaire: Annuaire;
+  readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
+  readonly fuseauPour: (agenceId: string) => Fuseau;
+}) {
+  if (grille.length === 0) {
+    return (
+      <p className="text-app-encre-faible border-app-bord border-t px-4 py-6 text-[13px] lg:hidden">
+        {t("planning.semaine_vide")}
+      </p>
+    );
+  }
+  return (
+    <ul className="divide-app-bord border-app-bord divide-y border-t lg:hidden">
+      {grille.map((ligne) => (
+        <li key={ligne.technicienId ?? "-"} className="p-3.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[12.5px] font-bold">
+                {quiTravaille(ligne.technicienId, annuaire)}
+              </p>
+              <p className="text-app-encre-faible text-[10.5px]">
+                {ouTravaille(ligne.agences.map((a) => a.libelle))}
+              </p>
+            </div>
+            <TauxCompactAffiche
+              lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+            />
+          </div>
+          {ligne.total === 0 ? (
+            <p className="text-app-encre-faible mt-2 text-[12px] italic">
+              {t("planning.technicien_sans_intervention")}
+            </p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-2">
+              {ligne.cases
+                .filter((cellule) => cellule.lignes.length > 0)
+                .map((cellule) => (
+                  <li key={cleJour(cellule.jour)}>
+                    <p className="text-app-encre-faible text-[10.5px] font-bold tracking-wide uppercase">
+                      {enTeteDeJour(cellule.jour)}
+                    </p>
+                    <div className="mt-1 flex flex-col gap-1">
+                      {cellule.lignes.map((intervention) => (
+                        <BlocPosable
+                          key={intervention.id}
+                          interventionId={intervention.id}
+                          dureeMin={dureeDe(intervention)}
+                        >
+                          <Link
+                            href={`/interventions/${intervention.id}`}
+                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                          >
+                            <span className="block font-bold">
+                              {enTeteDuBloc(
+                                intervention,
+                                fuseauPour(intervention.agence_id),
+                              )}
+                            </span>
+                            {objetDuBloc(intervention)}
+                          </Link>
+                        </BlocPosable>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
