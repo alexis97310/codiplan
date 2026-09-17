@@ -31,19 +31,75 @@
  * `GITHUB_STEP_SUMMARY` — **le même verdict dans le résumé de l'exécution**, là
  * où il est visible sans ouvrir un journal. Une alarme qui exige trois clics
  * pour être lue finit par ne pas l'être (écart É12).
+ *
+ * ## IL NE S'ARRÊTE PLUS À `/api/sante` (17/09/2026)
+ *
+ * *Mesuré en production, sur le commit `de17141` : `/api/sante` répondait
+ * `sain`, et `/planning` comme `/tableau-de-bord` ne montraient RIEN d'autre
+ * que leur repli de chargement, indéfiniment.* La sonde JSON ne regarde que la
+ * base ; elle ne peut donc pas voir un défaut qui n'est pas un défaut de base.
+ * Quand elle dit `sain`, ce lanceur charge donc en plus une page RÉELLE dans un
+ * vrai navigateur (Playwright, jamais un simple `fetch` — c'est ce qu'un
+ * humain voit qui compte ici) et vérifie qu'elle ne montre pas EXACTEMENT son
+ * repli de chargement. Voir `scripts/lib/verdict-deploiement.ts`,
+ * `verdictDeLaPage`, pour la comparaison elle-même.
  */
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+import { chromium } from "@playwright/test";
+
+import { t } from "@/lib/i18n/fr";
+
 import {
   CODE_DE_SORTIE,
   NATURES_A_REESSAYER,
+  verdictDeLaPage,
   verdictDuDeploiement,
   type VerdictDeploiement,
 } from "./lib/verdict-deploiement";
 
 /** Le chemin interrogé — la sonde lisible par une machine, jamais la page. */
 const CHEMIN = "/api/sante";
+
+/**
+ * LA PAGE RÉELLE — `/connexion`, jamais authentifiée : ce lanceur n'a et ne
+ * doit avoir aucune session de production. Elle éveille le même mécanisme que
+ * `/planning` (une lecture asynchrone avant de décider quoi rendre), sans
+ * exiger de compte.
+ */
+const PAGE_A_REGARDER = "/connexion";
+
+/** Le délai laissé à une page réelle pour cesser de montrer son repli. */
+const DELAI_PAGE_MS = 15_000;
+
+/**
+ * Ce qu'un navigateur voit sur `chemin`, ou `null` si rien n'a pu être lu.
+ *
+ * **Le texte, jamais le HTML.** `document.body.innerText` est exactement ce
+ * que la mesure de production a lu — un `hidden` que le script de révélation
+ * n'a jamais atteint n'apparaît pas dans le texte visible, quel que soit son
+ * contenu.
+ */
+async function texteAffiche(
+  adresse: string,
+  chemin: string,
+): Promise<string | null> {
+  let navigateur: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+  try {
+    navigateur = await chromium.launch();
+    const page = await navigateur.newPage();
+    await page.goto(`${adresse}${chemin}`, {
+      waitUntil: "networkidle",
+      timeout: DELAI_PAGE_MS,
+    });
+    return await page.evaluate(() => document.body.innerText);
+  } catch {
+    return null;
+  } finally {
+    await navigateur?.close().catch(() => {});
+  }
+}
 
 /**
  * Le budget de réessai.
@@ -123,6 +179,25 @@ export async function verifier(
       corps: await interroger(adresse),
       commitAttendu,
     });
+  }
+
+  // ── LA BASE VA BIEN NE DIT RIEN DE CE QU'UN HUMAIN VOIT ──────────────────
+  //
+  // Ce n'est PAS réessayé : `page_bloquee_au_chargement` est un défaut du
+  // dépôt, jamais un état qui s'améliore en attendant (voir `verdict.nature`
+  // ci-dessus et son absence délibérée de `NATURES_A_REESSAYER`).
+  if (verdict.nature === "sain") {
+    // Un « sain » qui tient prend le detail d'ORIGINE — celui qui nomme le
+    // commit mesuré (voir `verdictDuDeploiement`) — plutôt que la formule
+    // générique de `verdictDeLaPage`, écrite pour son propre défaut, pas pour
+    // remplacer un succès qu'elle ne fait que confirmer.
+    const page = verdictDeLaPage(
+      await texteAffiche(adresse, PAGE_A_REGARDER),
+      t("etat.chargement"),
+    );
+    if (page.nature !== "sain") {
+      verdict = page;
+    }
   }
 
   return verdict;
