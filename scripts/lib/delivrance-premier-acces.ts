@@ -63,6 +63,42 @@ export function resoudreDelivrance(
 }
 
 /**
+ * LE CODE DE SORTIE APRÈS UN ENVOI DEMANDÉ (D-03, 17/09/2026).
+ *
+ * ## Le défaut que cette fonction répare, et il est mesuré
+ *
+ * `envoyerSiDemande` imprimait déjà `envoi.motif` quand Resend refusait —
+ * `lignesDelivrance` ci-dessous le rend bavard — mais `principal()` et
+ * `reemission()` rendaient `0` **sans jamais regarder `envoi.parti`.** Le flux
+ * GitHub « Ouvrir le PREMIER compte » ressortait donc VERT quand `--envoyer`
+ * avait été demandé et que Resend avait refusé : le même défaut que D-06, à
+ * l'autre bout du dépôt — **un appel qui échoue rend quand même la branche du
+ * succès**, ici parce que son verdict est calculé puis jeté plutôt que mal lu.
+ *
+ * ## Ce que ce code de sortie NE fait PAS
+ *
+ * Il ne retire rien : le jeton reste émis et imprimé, exactement comme avant
+ * — *le canal est un confort, le jeton est le produit* (`envoyerLienPremierAcces`).
+ * Il rend seulement le flux GitHub ROUGE plutôt que vert quand le courriel
+ * demandé n'est pas parti, pour que quelqu'un regarde le résumé et transmette
+ * le lien par un autre canal — ce que la sortie dit déjà, mais qu'un geste vert
+ * n'invite jamais à lire.
+ */
+export const ECHEC_ENVOI = 3;
+
+/**
+ * `envoi` vaut `null` quand `--envoyer` n'a pas été demandé : dans ce cas
+ * comme dans celui d'un envoi parti, rien ne distingue ce geste d'un geste
+ * ordinaire. Seul un envoi DEMANDÉ et NON PARTI change le code de sortie.
+ */
+export function codeApresEnvoi(envoi: Envoi | null): number {
+  if (envoi === null || envoi.parti) {
+    return 0;
+  }
+  return ECHEC_ENVOI;
+}
+
+/**
  * Ce que la sortie dit d'un envoi. **LES DEUX ADRESSES, TOUJOURS.**
  *
  * *Elles sont imprimées même quand elles coïncident*, et c'est une décision :

@@ -177,6 +177,79 @@ test("un dépôt qui chevauche une autre intervention du même technicien est re
   );
 });
 
+/* ── 3 bis. UNE ERREUR SERVEUR ───────────────────────────────────────────── */
+
+/**
+ * LES DEUX ISSUES TECHNIQUES (D-06, 17/09/2026) — interceptées au réseau.
+ *
+ * *Ni la base ni la route ne peuvent produire ces deux réponses-là* : la
+ * route de `/api/interventions/[id]/deplacer` répond toujours `200` avec un
+ * corps `{accepte, cle, avertissements}` — une erreur serveur réelle ou une
+ * coupure réseau ne s'obtiennent qu'en interceptant la requête elle-même.
+ * `tests/unit/planning/pose.test.tsx` éprouve la même distinction sans
+ * navigateur ; ceci l'éprouve à travers l'écran RÉEL, la seule façon de
+ * montrer que le refus s'affiche bien au bon endroit et n'empêche pas un
+ * dépôt suivant.
+ */
+test("une erreur serveur affiche un message qui invite à réessayer, jamais une réussite", async ({
+  page,
+}) => {
+  await allerAuPlanning(page, MARDI);
+
+  await page.route("**/api/interventions/*/deplacer", (route) =>
+    route.fulfill({ status: 500, body: "" }),
+  );
+
+  const debut = caseDHeure(page, reperes.technicienDucos, 13 * 60);
+  await expect(
+    debut.locator(`[data-bloc="${SCENE.chevauchante}"]`),
+  ).toBeVisible();
+  await glisser(
+    page,
+    bloc(page, SCENE.chevauchante),
+    caseDHeure(page, reperes.technicienDucos, 9 * 60),
+  );
+
+  await expect(refus(page)).toContainText(
+    fr["intervention.refus.erreur_serveur"],
+  );
+  // Rien n'a bougé À L'ÉCRAN : la route n'a jamais été jointe.
+  await expect(
+    debut.locator(`[data-bloc="${SCENE.chevauchante}"]`),
+  ).toBeVisible();
+});
+
+/* ── 3 ter. UNE CONNEXION INTERROMPUE ────────────────────────────────────── */
+
+test("une connexion interrompue affiche un message qui invite à regarder ailleurs, jamais une réussite", async ({
+  page,
+}) => {
+  await allerAuPlanning(page, MARDI);
+
+  // `route.abort()` fait échouer la requête au niveau RÉSEAU, avant toute
+  // réponse : c'est ce qu'une coupure réelle produit, et c'est distinct d'un
+  // code d'erreur — le motif affiché doit l'être aussi.
+  await page.route("**/api/interventions/*/deplacer", (route) =>
+    route.abort("failed"),
+  );
+
+  const debut = caseDHeure(page, reperes.technicienDucos, 13 * 60);
+  await glisser(
+    page,
+    bloc(page, SCENE.chevauchante),
+    caseDHeure(page, reperes.technicienDucos, 10 * 60),
+  );
+
+  await expect(refus(page)).toContainText(
+    fr["intervention.refus.connexion_interrompue"],
+  );
+  // Rien n'a bougé — ni à l'écran, ni en base : la requête n'a jamais abouti,
+  // et `chevauchante` reste au point où les scénarios suivants l'attendent.
+  await expect(
+    debut.locator(`[data-bloc="${SCENE.chevauchante}"]`),
+  ).toBeVisible();
+});
+
 /* ── 4. LE RETOUR À LA POSITION D'ORIGINE ────────────────────────────────── */
 
 test("après un refus, le bloc est à sa place d'origine — y compris après rechargement", async ({

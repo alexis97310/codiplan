@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 
@@ -100,6 +106,76 @@ export type CibleDeDepot = {
   readonly pasMinutes: number;
 };
 
+/**
+ * CE QUE LE DÉPÔT REND, INTERPRÉTÉ EN QUATRE ISSUES QUI NE SE CONFONDENT PAS
+ * (D-06, 17/09/2026).
+ *
+ * ## Le défaut que cette fonction répare, et il a été mesuré
+ *
+ * `reponse.ok` n'était **jamais** lu, et `.json().catch(() => null)` faisait
+ * tomber une réponse VIDE ou NON-JSON sur la branche du SUCCÈS — `cle` valait
+ * `null` faute de mieux, exactement comme un refus accepté. Et le `fetch`
+ * n'avait aucun `catch` : une coupure réseau partait en rejet non intercepté.
+ * **Le silence avait exactement la forme du succès** (§9, 31/08) — le pire
+ * des deux, parce qu'un planificateur qui déplace une intervention voit
+ * l'écran dire que c'est fait quand ce n'est pas fait.
+ *
+ * ## Quatre issues, et jamais deux qui se ressemblent
+ *
+ * Un refus MÉTIER — la route a décidé, et le dit par sa clé — ne se confond
+ * ni avec une ERREUR SERVEUR (la route a répondu un échec, ou un corps que
+ * rien ne peut lire : *cela se réessaie*) ni avec une CONNEXION INTERROMPUE
+ * (la réponse n'est jamais revenue : *cela demande de regarder ailleurs
+ * qu'à l'écran*, du côté du réseau). Confondre les deux dernières enverrait
+ * réessayer à l'aveugle une requête peut-être déjà appliquée, ou inversement.
+ *
+ * Fonction PURE, délibérément : ce qui doit être mesuré — qu'un appel qui
+ * ÉCHOUE ne rend jamais la branche du succès — se mesure ici sans navigateur.
+ */
+export type IssueDepot =
+  | {
+      readonly issue: "enregistre";
+      readonly avertissements: readonly CleTraduction[];
+    }
+  | { readonly issue: "refuse"; readonly cle: CleTraduction }
+  | { readonly issue: "erreur_serveur" }
+  | { readonly issue: "connexion_interrompue" };
+
+export function interpreterReponseDepot(
+  resultat: { readonly ok: boolean; readonly corps: unknown } | null,
+): IssueDepot {
+  if (resultat === null) {
+    // Le `fetch` a lui-même échoué : rien n'a jamais atteint le serveur, ou sa
+    // réponse n'est jamais revenue. On ne sait pas si le geste a été appliqué
+    // — regarder ailleurs qu'à l'écran, pas réessayer à l'aveugle.
+    return { issue: "connexion_interrompue" };
+  }
+  if (!resultat.ok) {
+    // Le serveur A répondu, et son code dit l'échec. Un appel qui échoue à ce
+    // niveau peut se rejouer : rien ne dit qu'il ait été appliqué.
+    return { issue: "erreur_serveur" };
+  }
+  const { corps } = resultat;
+  if (corps === null || typeof corps !== "object" || !("cle" in corps)) {
+    // Un « succès » HTTP dont le corps est vide, illisible, ou ne porte pas la
+    // forme que la route rend TOUJOURS (`{accepte, cle, avertissements}`)
+    // n'est pas un succès : c'est un serveur qui n'a pas pu dire ce qu'il a
+    // fait. Le prendre pour un succès serait exactement le défaut mesuré.
+    return { issue: "erreur_serveur" };
+  }
+  const cleBrute = corps.cle;
+  if (cleBrute !== null) {
+    return {
+      issue: "refuse",
+      cle:
+        typeof cleBrute === "string" && estCleTraduction(cleBrute)
+          ? cleBrute
+          : "intervention.refus.inconnue",
+    };
+  }
+  return { issue: "enregistre", avertissements: clesLues(corps) };
+}
+
 const Contexte = createContext<Depot | null>(null);
 
 function useDepot(): Depot {
@@ -136,8 +212,24 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
     readonly CleTraduction[]
   >([]);
 
+  /**
+   * LES DÉPÔTS EN VOL, PAR INTERVENTION (D-06, 17/09/2026).
+   *
+   * *Un geste répété ne pose pas deux fois* : relâcher deux fois le même bloc
+   * pendant que la première demande vole enverrait deux requêtes concurrentes
+   * dont l'ordre de retour n'est pas garanti — la seconde pourrait revenir
+   * avant la première et se faire écraser par elle. Une `Ref`, pas un état :
+   * ce qui s'affiche ne dépend jamais de cet ensemble, seul le TRAITEMENT du
+   * dépôt en dépend, et un état qui ne sert à rien d'afficher n'a rien à faire
+   * dans un rendu.
+   */
+  const enVol = useRef<Set<string>>(new Set());
+
   const deposer = useCallback(
     (main: EnMain, cible: CibleDeDepot) => {
+      if (enVol.current.has(main.id)) {
+        return;
+      }
       const corps = new FormData();
       corps.set("date_planifiee", cible.jour);
       if (cible.technicienId !== null) {
@@ -159,30 +251,48 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
         corps.set("heure_debut", String(debut));
         corps.set("duree_min", String(duree));
       }
+      enVol.current.add(main.id);
       void (async () => {
-        const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
-          method: "POST",
-          body: corps,
-          headers: { accept: "application/json" },
-        });
-        const rendu: unknown = await reponse.json().catch(() => null);
-        const cle =
-          rendu !== null &&
-          typeof rendu === "object" &&
-          "cle" in rendu &&
-          typeof rendu.cle === "string"
-            ? rendu.cle
-            : null;
-        if (cle === null) {
-          setMotif(null);
-          setAvertissements(clesLues(rendu));
-          // La base a accepté : l'écran se relit du SERVEUR, il ne se devine
-          // pas. C'est ce qui garantit qu'il ne montre rien de plus.
-          router.refresh();
-          return;
+        let issue: IssueDepot;
+        try {
+          const reponse = await fetch(
+            `/api/interventions/${main.id}/deplacer`,
+            {
+              method: "POST",
+              body: corps,
+              headers: { accept: "application/json" },
+            },
+          );
+          const rendu: unknown = await reponse.json().catch(() => null);
+          issue = interpreterReponseDepot({ ok: reponse.ok, corps: rendu });
+        } catch {
+          // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête
+          // annulée. Sans ce `catch`, ce rejet partait non intercepté et
+          // l'écran restait tel quel : un TROISIÈME silence, que
+          // `interpreterReponseDepot` ne peut pas nommer puisqu'il ne reçoit
+          // jamais d'appel dans ce cas.
+          issue = { issue: "connexion_interrompue" };
+        } finally {
+          enVol.current.delete(main.id);
         }
-        setAvertissements([]);
-        setMotif(estCleTraduction(cle) ? cle : "intervention.refus.inconnue");
+        switch (issue.issue) {
+          case "enregistre":
+            setMotif(null);
+            setAvertissements(issue.avertissements);
+            // La base a accepté : l'écran se relit du SERVEUR, il ne se
+            // devine pas. C'est ce qui garantit qu'il ne montre rien de plus.
+            router.refresh();
+            return;
+          case "refuse":
+            setAvertissements([]);
+            setMotif(issue.cle);
+            return;
+          case "erreur_serveur":
+          case "connexion_interrompue":
+            setAvertissements([]);
+            setMotif(`intervention.refus.${issue.issue}`);
+            return;
+        }
       })();
     },
     [router],

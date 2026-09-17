@@ -971,6 +971,15 @@ export const fr = {
     "Aucun calendrier ne décide pour cette intervention : aucune pose n'est possible tant que les horaires ne sont pas réglés.",
   "intervention.refus.inconnue":
     "Cette intervention n'existe pas, ou elle n'est pas dans votre périmètre.",
+  // LES DEUX REFUS TECHNIQUES (D-06, 17/09/2026) — distincts, parce que la
+  // marche à suivre ne l'est pas : l'un se réessaie, l'autre demande de
+  // regarder ailleurs qu'à l'écran. Ni l'un ni l'autre ne compte ni ne nomme
+  // ce que l'appelant n'a pas le droit de lire (D50) — le motif technique
+  // reste dans les journaux du serveur, jamais ici.
+  "intervention.refus.erreur_serveur":
+    "Une erreur est survenue pendant l'enregistrement. Rien n'a été modifié : réessayez.",
+  "intervention.refus.connexion_interrompue":
+    "La connexion a été interrompue avant la fin de l'enregistrement. Rien n'a été modifié : vérifiez votre réseau avant de réessayer.",
   "intervention.refus.annulee_figee":
     "Cette intervention est annulée : elle ne se modifie plus. Une annulation n'efface rien et ne se défait pas.",
   "intervention.refus.cloturee_figee":
