@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ENTREES } from "@/lib/navigation/entrees";
+import { ENTREES, feuilles } from "@/lib/navigation/entrees";
 import {
   cheminsDesignes,
   ecransOrphelins,
@@ -96,10 +96,18 @@ const ECRANS: readonly Ecran[] = pages(GROUPE).map(({ route, fichier }) => ({
   source: sourceAvecComposants(fichier),
 }));
 
-/** Les départs : ce que la barre du back-office ouvre réellement. */
-const DEPARTS = ENTREES.map((e) => e.chemin).filter(
-  (chemin): chemin is string => chemin !== null,
-);
+/**
+ * Les départs : ce que la barre du back-office ouvre réellement.
+ *
+ * Depuis D118, `ENTREES` peut porter des groupes de premier niveau — un
+ * groupe n'a pas de `chemin` propre, seuls ses enfants en ont un. Sans
+ * `feuilles`, chaque écran nesté sous un groupe (Interventions, Imports
+ * Excel, …) paraîtrait orphelin alors que la barre l'ouvre bel et bien, une
+ * fois le groupe déplié.
+ */
+const DEPARTS = feuilles(ENTREES)
+  .map((e) => e.chemin)
+  .filter((chemin): chemin is string => chemin !== null);
 
 describe("aucun écran du back-office n'est orphelin", () => {
   it("la population n'est pas vide, et elle vient du dépôt", () => {

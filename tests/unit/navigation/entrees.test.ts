@@ -8,19 +8,30 @@ import {
   ECARTS_MAQUETTE,
   ENTREES,
   entreeActive,
+  estGroupe,
+  feuilles,
 } from "@/lib/navigation/entrees";
 
 /**
  * LA BARRE DE NAVIGATION EST CONFRONTÉE À LA MAQUETTE, jamais recopiée d'elle
- * (D95).
+ * (D95) — sur ses DESTINATIONS depuis D118, plus sur leur ordre ni leur
+ * regroupement.
  *
  * **La population ne vient pas du code, elle vient du document.** Le gardien lit
- * `docs/maquette/CODIPLAN_Maquette.html`, en extrait les boutons de `.nav`, et exige que
- * la liste du dépôt dise exactement la même chose — libellés ET ordre. C'est la
- * parade du §9 (01/09) appliquée ici : *une liste close recopiée « pour la
- * lisibilité » devient fausse le jour où la première grandit, sans rougir.*
- * Rien ici ne recopie : la maquette est une source que ce fichier ne contrôle
- * pas.
+ * `docs/maquette/CODIPLAN_Maquette.html`, en extrait les boutons de `.nav`, et
+ * exige que les feuilles du dépôt — `ENTREES` une fois ses groupes ouverts —
+ * portent exactement le même ENSEMBLE de libellés. C'est la parade du §9
+ * (01/09) appliquée ici : *une liste close recopiée « pour la lisibilité »
+ * devient fausse le jour où la première grandit, sans rougir.* Rien ici ne
+ * recopie : la maquette est une source que ce fichier ne contrôle pas.
+ *
+ * **Pourquoi un ENSEMBLE, et non plus un ORDRE, depuis D118.** L'amendement
+ * dit : « la confrontation à la maquette devient une confrontation de
+ * destinations plutôt que d'entrées ». Regrouper « Interventions » sous
+ * « Planning » et faire passer « Portail client » avant « Sociétés & tarifs »
+ * change l'ordre SANS changer ce que la barre ouvre — et c'est exactement ce
+ * que ce gardien doit laisser passer, tout en continuant de refuser qu'une
+ * destination soit ajoutée ou disparaisse en silence.
  *
  * **Les deux sens sont gardés.** Une entrée ajoutée au code sans l'être à la
  * maquette échoue ; une entrée ajoutée à la maquette sans l'être au code échoue
@@ -37,6 +48,12 @@ import {
  * ADOSSÉ — la maquette porte réellement ce libellé, sans quoi il n'écarte plus
  * rien (§9, 31/08) ; il est ABSENT du code — un écart qu'on écarterait tout en
  * le gardant serait un écart qui ne sert à rien ; et la liste est CLOSE.
+ *
+ * **ET UN GROUPE N'INVENTE AUCUN LIBELLÉ (D118).** Son titre doit être celui
+ * d'UN DE SES ENFANTS — jamais un mot neuf comme « Paramètres », que
+ * `docs/propositions/navigation.html` propose sans qu'aucune clé ne le porte.
+ * Sans cette règle, rien n'empêcherait d'introduire silencieusement un
+ * libellé que personne n'a encore arrêté.
  */
 
 const MAQUETTE = readFileSync(
@@ -73,21 +90,42 @@ describe("la barre de navigation dit ce que la maquette dit", () => {
     // s'accordent ». C'est la faute du 10/09 : deux côtés aveugles ensemble
     // s'accordent parfaitement, et la comparaison porte sur rien.
     expect(libellesDeLaMaquette().length).toBe(11);
-    expect(ENTREES.length).toBe(10);
+    // SIX entrées de premier niveau (D118) ; DIX destinations une fois les
+    // groupes ouverts — le même compte qu'avant l'amendement.
+    expect(ENTREES.length).toBe(6);
+    expect(feuilles(ENTREES).length).toBe(10);
   });
 
-  it("les libellés et leur ordre s'accordent, des deux côtés", () => {
-    expect(ENTREES.map((e) => fr[e.cle])).toEqual(libellesAttendus());
+  it("les DESTINATIONS s'accordent — l'ensemble, plus l'ordre ni le regroupement (D118)", () => {
+    expect([...feuilles(ENTREES).map((e) => fr[e.cle])].sort()).toEqual(
+      [...libellesAttendus()].sort(),
+    );
   });
 
-  it("chaque entrée a sa clé au dictionnaire", () => {
+  it("chaque entrée, feuille ou groupe, a sa clé au dictionnaire", () => {
     for (const entree of ENTREES) {
       expect(Object.hasOwn(fr, entree.cle), entree.cle).toBe(true);
+    }
+    for (const feuille of feuilles(ENTREES)) {
+      expect(Object.hasOwn(fr, feuille.cle), feuille.cle).toBe(true);
+    }
+  });
+
+  it("un groupe n'invente aucun libellé — son titre est celui d'un de ses enfants (D118)", () => {
+    // Ce qui interdit d'introduire silencieusement un mot neuf comme
+    // « Paramètres » : `docs/propositions/navigation.html` le propose et le
+    // signale lui-même comme non tranché.
+    for (const entree of ENTREES) {
+      if (!estGroupe(entree)) continue;
+      expect(
+        entree.enfants.some((enfant) => enfant.cle === entree.cle),
+        entree.cle,
+      ).toBe(true);
     }
   });
 
   it("une entrée sans écran nomme le travail qui l'ouvrira", () => {
-    const inertes = ENTREES.filter((e) => e.chemin === null);
+    const inertes = feuilles(ENTREES).filter((e) => e.chemin === null);
     // Le témoin : il EN RESTE. Le jour où il n'en reste plus, c'est ce
     // scénario qu'il faudra retirer, et il le dira.
     expect(inertes.length).toBeGreaterThan(0);
@@ -123,7 +161,7 @@ describe("la barre de navigation dit ce que la maquette dit", () => {
     // POUR SA PROPRE RAISON. « Fiche machine » est absent ET « Parc machines »
     // est présent — si la comparaison confondait les deux libellés, la paire
     // tomberait.
-    const rendus = ENTREES.map((e) => fr[e.cle]);
+    const rendus = feuilles(ENTREES).map((e) => fr[e.cle]);
     for (const ecart of ECARTS_MAQUETTE) {
       expect(rendus, ecart.libelle).not.toContain(ecart.libelle);
     }
@@ -133,7 +171,7 @@ describe("la barre de navigation dit ce que la maquette dit", () => {
   it("une entrée AVEC écran ne prétend pas être à venir", () => {
     // Le sens qu'on oublie : un `ouvertePar` laissé derrière un écran livré
     // ne casse rien et ment doucement.
-    for (const entree of ENTREES.filter((e) => e.chemin !== null)) {
+    for (const entree of feuilles(ENTREES).filter((e) => e.chemin !== null)) {
       expect(entree.ouvertePar, entree.cle).toBeUndefined();
     }
   });

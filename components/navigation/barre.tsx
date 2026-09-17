@@ -5,7 +5,13 @@ import { usePathname } from "next/navigation";
 
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
 import { t } from "@/lib/i18n/fr";
-import { entreeActive, type EntreeNavigation } from "@/lib/navigation/entrees";
+import {
+  entreeActive,
+  estGroupe,
+  type EntreeDeBarre,
+  type EntreeNavigation,
+  type GroupeNavigation,
+} from "@/lib/navigation/entrees";
 import type { ThemeSociete } from "@/lib/theme/theme";
 
 /**
@@ -54,9 +60,10 @@ import type { ThemeSociete } from "@/lib/theme/theme";
  * constat qui a ouvert ce ticket, fait en utilisant le produit.
  *
  * **Ce n'est pas une DESTINATION, c'est une COMMANDE.** La barre est une liste
- * CLOSE de onze entrées confrontée à la maquette (D95) : y ajouter une
- * douzième la ferait rougir, à raison, et ce serait de toute façon la mauvaise
- * porte — on ne « va » pas à une déconnexion, on l'ACTIONNE. Elle vit donc dans
+ * CLOSE de dix destinations (six de premier niveau depuis D118) confrontée à
+ * la maquette (D95) : y ajouter une onzième la ferait rougir, à raison, et ce
+ * serait de toute façon la mauvaise porte — on ne « va » pas à une
+ * déconnexion, on l'ACTIONNE. Elle vit donc dans
  * le CHROME, au même titre que le bandeau de société et la pastille
  * d'initiales, et POUR LA MÊME RAISON : commune aux trois coques, elle n'a pas
  * à être rendue par un écran qui pourrait oublier de le faire.
@@ -85,7 +92,7 @@ export function BarreDeNavigation({
    * entrées de back-office parce que personne n'avait eu à décider. *Sans
    * défaut, l'oubli ne compile pas.*
    */
-  readonly entrees: readonly EntreeNavigation[];
+  readonly entrees: readonly EntreeDeBarre[];
   /**
    * Où mène la marque. Elle n'est pas décorative : c'est le point de retour, et
    * il diffère par segment — `/planning` ne s'ouvre pas à un compte de portail,
@@ -102,13 +109,17 @@ export function BarreDeNavigation({
         aria-label={t("nav.libelle")}
         className="ml-2 flex min-w-0 flex-wrap gap-0.5"
       >
-        {entrees.map((entree) => (
-          <Entree
-            key={entree.cle}
-            entree={entree}
-            allumee={entree.cle === actif}
-          />
-        ))}
+        {entrees.map((entree) =>
+          estGroupe(entree) ? (
+            <Groupe key={entree.cle} entree={entree} cleActive={actif} />
+          ) : (
+            <Entree
+              key={entree.cle}
+              entree={entree}
+              allumee={entree.cle === actif}
+            />
+          ),
+        )}
       </nav>
       {/*
         `shrink-0` ET `min-w-0` SUR LE MÊME GROUPE, et ce n'est pas une
@@ -197,6 +208,115 @@ function Entree({
         allumee
           ? `${CLASSES_ENTREE} bg-app-marque text-app-marque-encre`
           : `${CLASSES_ENTREE} text-app-encre-faible hover:bg-app-fond`
+      }
+    >
+      {t(entree.cle)}
+    </Link>
+  );
+}
+
+/**
+ * UN GROUPE DE PREMIER NIVEAU (D118) — un `<details>` natif, jamais un état
+ * React.
+ *
+ * **Pourquoi natif plutôt qu'un `useState` par groupe.** Le clavier, le focus
+ * et le rôle accessible d'un `<summary>` sont ceux d'un bouton sans qu'il faille
+ * les recomposer à la main — c'est le même calcul que la déconnexion en
+ * `<form>` plutôt qu'en gestionnaire de clic : le navigateur fait déjà ce que
+ * la commande demande. `name` partagé entre les groupes ferme l'un quand
+ * l'autre s'ouvre, nativement, dans les navigateurs qui le lisent — et ne fait
+ * rien de plus dans les autres.
+ *
+ * **Le TITRE n'est jamais un lien** (voir `GroupeNavigation`) : c'est un
+ * `<summary>`, qui ouvre le sous-menu et rien d'autre. Il porte quand même le
+ * fond « allumé » quand un de ses enfants est la route active, pour la même
+ * raison que le préfixe de segment d'`entreeActive` — *c'est là qu'on a le
+ * plus besoin de savoir où l'on est*, y compris avant d'avoir ouvert le
+ * sous-menu.
+ */
+function Groupe({
+  entree,
+  cleActive,
+}: {
+  readonly entree: GroupeNavigation;
+  readonly cleActive: string | null;
+}) {
+  const active = entree.enfants.some((enfant) => enfant.cle === cleActive);
+
+  return (
+    <details name="nav-groupe" className="relative">
+      <summary
+        className={
+          active
+            ? `${CLASSES_ENTREE} flex list-none items-center gap-1 bg-app-marque text-app-marque-encre [&::-webkit-details-marker]:hidden`
+            : `${CLASSES_ENTREE} text-app-encre-faible hover:bg-app-fond flex list-none items-center gap-1 [&::-webkit-details-marker]:hidden`
+        }
+      >
+        {t(entree.cle)}
+        <Chevron actif={active} />
+      </summary>
+      <div className="bg-app-surface border-app-bord absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-md border p-1 shadow-lg">
+        {entree.enfants.map((enfant) => (
+          <EntreeDeMenu
+            key={enfant.cle}
+            entree={enfant}
+            allumee={enfant.cle === cleActive}
+          />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** Le chevron d'un groupe — une forme, jamais un caractère (CLAUDE.md §5). */
+function Chevron({ actif }: { readonly actif: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={
+        actif
+          ? "border-t-app-marque-encre h-0 w-0 border-x-[4px] border-t-[5px] border-x-transparent"
+          : "border-t-app-encre-faible h-0 w-0 border-x-[4px] border-t-[5px] border-x-transparent"
+      }
+    />
+  );
+}
+
+const CLASSES_ENTREE_MENU =
+  "block rounded-md px-3 py-2 text-[12.5px] font-semibold whitespace-nowrap";
+
+/** Une entrée à l'intérieur du sous-menu d'un groupe — même règles qu'`Entree`. */
+function EntreeDeMenu({
+  entree,
+  allumee,
+}: {
+  readonly entree: EntreeNavigation;
+  readonly allumee: boolean;
+}) {
+  if (entree.chemin === null) {
+    return (
+      <span
+        aria-disabled
+        title={t("nav.a_venir")}
+        className={`${CLASSES_ENTREE_MENU} text-app-encre-faible cursor-default opacity-45`}
+      >
+        {t(entree.cle)}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={entree.chemin}
+      aria-current={allumee ? "page" : undefined}
+      // Referme le sous-menu au choix : un menu qui reste ouvert après la
+      // navigation fait douter qu'on ait vraiment choisi.
+      onClick={(evenement) =>
+        evenement.currentTarget.closest("details")?.removeAttribute("open")
+      }
+      className={
+        allumee
+          ? `${CLASSES_ENTREE_MENU} bg-app-marque text-app-marque-encre`
+          : `${CLASSES_ENTREE_MENU} text-app-encre hover:bg-app-fond`
       }
     >
       {t(entree.cle)}

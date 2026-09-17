@@ -7,6 +7,7 @@ import {
   ENTREES,
   ENTREES_PORTAIL,
   ENTREES_TERRAIN,
+  feuilles,
 } from "@/lib/navigation/entrees";
 import { THEME_DEFAUT } from "@/lib/theme/theme";
 
@@ -28,7 +29,11 @@ import { THEME_DEFAUT } from "@/lib/theme/theme";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/terrain" }));
 
-const LIBELLES_AILLEURS = [...ENTREES, ...ENTREES_PORTAIL].map(
+// `feuilles` ouvre les groupes de premier niveau (D118) : sans elle, les
+// libellés nichés sous « Planning » ou « Sociétés & tarifs » — Interventions,
+// Imports Excel, … — manqueraient à cette liste, et le témoin ci-dessous
+// perdrait la moitié de ce qu'il est censé surveiller.
+const LIBELLES_AILLEURS = [...feuilles(ENTREES), ...ENTREES_PORTAIL].map(
   (entree) => fr[entree.cle],
 );
 
