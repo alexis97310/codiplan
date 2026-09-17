@@ -20,6 +20,22 @@ import type { NextConfig } from "next";
  * `/planning/{id}` ou `/planning/nouvelle`.
  */
 const nextConfig: NextConfig = {
+  // `next/image` n'est utilisé nulle part dans le dépôt (vérifié — aucune
+  // occurrence dans app/, components/, lib/) : l'optimiseur d'images intégré
+  // ne sert à rien ici, mais Next.js trace quand même `sharp`/`libvips` dans
+  // le paquet serveur tant qu'il n'est pas désactivé — 16,3 Mo sur les 45 Mo
+  // du paquet unique mesurés localement (`.next/*.nft.json`), pour une
+  // fonctionnalité qu'aucun écran n'appelle.
+  images: {
+    unoptimized: true,
+  },
+  // `images.unoptimized` seul ne suffit pas : Next.js trace `sharp`/`libvips`
+  // dans le paquet serveur indépendamment de ce réglage (mesuré — 16,3 Mo
+  // inchangés après le seul `unoptimized`). Exclusion explicite, vérifiée par
+  // mesure du paquet avant/après.
+  outputFileTracingExcludes: {
+    "*": ["node_modules/@img/**", "node_modules/sharp/**"],
+  },
   async redirects() {
     return [
       {
