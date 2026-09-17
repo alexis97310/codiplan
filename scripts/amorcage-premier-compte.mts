@@ -7,10 +7,12 @@ import {
   RefusReemission,
 } from "@/lib/auth/amorcage";
 import { estRole, Role } from "@/lib/auth/roles";
+import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 
 import { argument } from "./lib/arguments";
 import {
+  codeApresEnvoi,
   lignesDelivrance,
   resoudreDelivrance,
   type Delivrance,
@@ -169,12 +171,12 @@ async function principal(): Promise<number> {
       "  La porte est REFERMÉE : la société porte désormais une habilitation, " +
         "et la branche d'amorçage de utilisateur_ouverture est inapplicable.",
     );
-    await envoyerSiDemande(
+    const envoi = await envoyerSiDemande(
       envoyer,
       resoudreDelivrance(email, destinataire),
       ouverture.urlPremierAcces,
     );
-    return 0;
+    return codeApresEnvoi(envoi);
   } catch (erreur) {
     if (erreur instanceof RefusAmorcage) {
       dire(`Refus : ${erreur.message}`);
@@ -243,9 +245,9 @@ async function envoyerSiDemande(
   demande: boolean,
   delivrance: Delivrance,
   url: string,
-): Promise<void> {
+): Promise<Envoi | null> {
   if (!demande) {
-    return;
+    return null;
   }
   const envoi = await envoyerLienPremierAcces(
     delivrance.destinataire,
@@ -256,6 +258,7 @@ async function envoyerSiDemande(
   for (const ligne of lignesDelivrance(envoi, delivrance)) {
     dire(ligne);
   }
+  return envoi;
 }
 
 /**
@@ -298,8 +301,12 @@ async function reemission(
       "  Ce geste se FERME pour toujours dès qu'un mot de passe est choisi : " +
         "un mot de passe oublié se traite par le chemin ordinaire.",
     );
-    await envoyerSiDemande(envoyer, delivrance, reemis.urlPremierAcces);
-    return 0;
+    const envoi = await envoyerSiDemande(
+      envoyer,
+      delivrance,
+      reemis.urlPremierAcces,
+    );
+    return codeApresEnvoi(envoi);
   } catch (erreur) {
     if (erreur instanceof RefusReemission) {
       dire(`Refus : ${erreur.message}`);
