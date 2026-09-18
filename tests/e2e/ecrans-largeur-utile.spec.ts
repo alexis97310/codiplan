@@ -194,26 +194,21 @@ test("le parc machines rend des lignes, et la barre l'allume", async ({
     .evaluate((element) => Math.round(element.getBoundingClientRect().width));
   expect(largeur).toBe(LARGEUR_UTILE_PX - 2 * GOUTTIERE_PX);
 
-  // Le TÉMOIN : des lignes réelles. Un tableau vide passerait toutes les
+  // Le TÉMOIN : des lignes réelles. Une liste vide passerait toutes les
   // assertions de forme sans rien prouver du cloisonnement ni de la lecture.
   //
-  // **ET CE TÉMOIN ÉTAIT CREUX** *(mesuré le 13/09/2026, R3-10)*. La ligne
-  // « Aucune machine n'est enregistrée pour cette société » est elle-même un
-  // `<tr>` du `<tbody>` : le décompte rendait **1** sur un parc **vide**, et
-  // l'assertion passait au vert en ne regardant rien (§9, 30/08). *Un décompte
-  // nul ressemble toujours à un sans-faute ; ici il n'était même pas nul.*
-  //
-  // Deux assertions le referment, et la seconde est celle qui manquait :
-  // l'absence du message de vacuité, et une ligne qui porte **autant de
-  // cellules que le tableau a de colonnes** — la ligne pleine, elle, n'en a
-  // qu'une.
-  const lignes = page.locator("main tbody tr");
+  // **DEPUIS N-10 (D125), CE N'EST PLUS UN TABLEAU** : `/parc` est un
+  // maître-détail, et ce scénario en éprouve la forme plutôt que de
+  // continuer à chercher des `<tr>`/`<th>` que l'écran ne rend plus — la
+  // même intention que le scénario portait déjà (« des lignes RÉELLES, et le
+  // message de vacuité ABSENT »), sur `.machine-row` plutôt que sur
+  // `<tbody>`. Voir `tests/e2e/parc.spec.ts` pour le reste du comportement du
+  // maître-détail (sélection, repli responsive, état vide).
+  const lignes = page.locator('[data-bloc="liste-machines"] a');
   await expect(lignes.first()).toBeVisible();
   expect(await lignes.count()).toBeGreaterThan(0);
-  await expect(page.getByText(fr["parc.vide"])).toHaveCount(0);
-  const colonnes = await page.locator("main thead th").count();
-  expect(colonnes).toBeGreaterThan(1);
-  expect(await lignes.first().locator("td").count()).toBe(colonnes);
+  await expect(page.getByText(fr["parc.aucune_trouvee"])).toHaveCount(0);
+  await expect(page.locator('[data-bloc="apercu-hero"]')).toBeVisible();
 
   // L'entrée de la barre est désormais un LIEN, et c'est elle qui est allumée.
   await expect(

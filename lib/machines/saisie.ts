@@ -180,6 +180,27 @@ export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
  */
 export const LIMITE_RECHERCHE_MAXIMALE = 500;
 
+/**
+ * LE FILTRE DE STATUT DE LA BARRE D'OUTILS (N-10, D125) — un `<select>` que
+ * `codiplan-maquette-complete.html` dessine trois fois dans `parc()` et que
+ * l'écran n'avait encore jamais câblé.
+ *
+ * **Les QUATRE options sont celles, et rien que celles, que la maquette
+ * écrit** : `tous`, puis les trois statuts non terminaux — en service, en
+ * panne, arrêtée. Les trois statuts terminaux (`remplacee`, `ferraillee`,
+ * `fusionnee`) n'ont pas d'option dans `<select id="machine-status">` : la
+ * maquette est MUETTE sur eux, et « ce qu'elle ne dit pas reste libre » (§1)
+ * — mais ici rien ne les réclame non plus, si bien qu'aucune option n'est
+ * ajoutée par extension.
+ */
+export const FILTRES_STATUT_PARC = [
+  "tous",
+  "en_service",
+  "en_panne",
+  "arretee",
+] as const;
+export type FiltreStatutParc = (typeof FILTRES_STATUT_PARC)[number];
+
 export const schemaRechercheParc = z
   .object({
     texte: z
@@ -188,6 +209,7 @@ export const schemaRechercheParc = z
       .transform((valeur) => (valeur.length === 0 ? null : valeur))
       .nullable()
       .default(null),
+    statut: z.enum(FILTRES_STATUT_PARC).default("tous"),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict();

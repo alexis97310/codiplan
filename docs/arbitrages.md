@@ -4604,3 +4604,46 @@ Dix-sept jetons à changer de valeur dans un seul bloc CSS ; une police à charg
 > Le jour où `CODIPLAN_Maquette.html` elle-même redessine l'un de ces dix-sept jetons à une valeur différente de `codiplan-maquette-complete.html`, la question redevient ouverte plutôt que tranchée par cette page. Le jour où un écran a besoin d'une pastille de congé, d'un badge « Lot N », d'une notification flottante ou d'un tiroir de détail, le violet ou l'ombre cessent d'être des jetons mesurés-mais-non-posés : ils entrent dans `app/globals.css`, à la valeur déjà écrite ci-dessus, sans nouvelle mesure.
 
 *Aucune règle du chapitre 10 n'est amendée : un jeton de couleur, un rayon et une police n'y figurent pas.*
+
+---
+
+## D125 — `codiplan-maquette-complete.html` FAIT FOI SUR LA DISPOSITION DES ÉCRANS QU'ELLE DESSINE
+
+*Rendu par Alexis le 18/09/2026 (ticket N-10) : « J'ai besoin que CODIPLAN ressemble trait pour trait à la maquette envoyée. À ce jour, ce n'est pas le cas. Il suffit de regarder la page "parc machines" et "fiche machine". »*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Alexis avait raison, et la cause n'était pas un écran bâclé : c'était une règle écrite qui interdisait de le corriger. D123 porte noir sur blanc *« Parc machines n'est pas converti »*, et D122 borne l'autorité de `codiplan-maquette-complete.html` aux seules FORMES de vocabulaire (recherche, filtre, indication de position, maître-détail), en laissant la *disposition des écrans* à D95 et à `CODIPLAN_Maquette.html`. Résultat mesuré : `/parc` restait le tableau à huit colonnes de l'ANCIENNE maquette pendant que `codiplan-maquette-complete.html` y dessine, dans sa fonction `parc()`, un **maître-détail** complet — en-tête à deux boutons, barre d'outils sur une ligne, trois KPI, une liste à gauche et un aperçu de fiche à droite.
+
+**C'est la même mesure que D124 a déjà faite pour les jetons de couleur, appliquée un cran plus loin.** D124 disait : *« dix-sept jetons sur vingt divergent, et personne ne les avait comparés depuis que D122 a confronté les deux fichiers pour la seule FORME. »* La disposition n'avait pas davantage été comparée : D122 et D123 lisent `codiplan-maquette-complete.html` pour des BOUTS de vocabulaire, jamais écran par écran, bloc par bloc.
+
+### LA DÉCISION
+
+**Pour les quatorze destinations que `docs/maquette/codiplan-maquette-complete.html` dessine, elle fait foi sur la disposition, la composition des blocs et leur ordre** — comme D124 l'a déjà fait pour les jetons de couleur, la typographie, le rayon et l'ombre. `docs/maquette/CODIPLAN_Maquette.html` garde son autorité sur ce que la seconde ne montre pas : un écran hors de ces quatorze fonctions, ou un point précis qu'aucune des deux ne dessine (le cas échéant, l'écart s'écrit avec sa mesure, comme D122 l'exige déjà).
+
+**Ce que D125 rend caduc, nommément :**
+
+1. Le paragraphe **« Parc machines n'est pas converti »** de D123 — écrit à un moment où personne n'avait encore confronté `parc()` de la nouvelle maquette à l'écran vivant. Le maître-détail qu'il nommait comme *« une troisième forme, que la maquette ne dessine pas non plus »* est faux : elle le dessine, et c'est précisément l'écran que ce ticket construit.
+2. La borne de D122, *« rien ici n'étend l'autorité de D95 [...] pour la disposition des écrans »* — pour les écrans que la maquette complète dessine, et pour eux seuls. Un écran hors de ces quatorze reste sous D95.
+3. La phrase de D122, *« la maquette ne remplace aucun de ses écrans »* — même borne, même portée.
+
+**Ce que D125 ne touche pas :**
+
+- Les règles de gestion du chapitre 10 — aucune n'est amendée ici, comme aucune ne l'était par D122, D123 ou D124.
+- Quel JETON un statut emploie (l'annexe D, `lib/theme/statuts.ts`) : D125 ne parle que de la disposition des blocs, jamais de la couleur qu'ils portent.
+- Les écrans que `codiplan-maquette-complete.html` ne dessine pas : ils restent sous `CODIPLAN_Maquette.html` (D95), sans changement.
+- Une donnée que le dépôt ne sait pas produire : une fonction d'écran de la maquette peut dessiner un bloc que aucune table ne porte encore (un contrat, un compteur d'usage) — ce cas reste un ÉCART NOMMÉ, avec sa mesure et son motif, jamais une donnée inventée pour remplir le bloc.
+
+### POURQUOI CE N'EST PAS UNE EXTENSION SILENCIEUSE
+
+D122 avait déjà écrit la garde exacte contre ce risque : *« le jour où quelqu'un lira `codiplan-maquette-complete.html` comme faisant foi sur les couleurs ou la disposition des écrans, il lira plus loin que ce que cette décision et D121 accordent »*. C'était vrai le 12/09 ; ce n'est plus la lecture correcte aujourd'hui, sur ce point précis, parce qu'un directeur d'exploitation vient de mesurer que l'écran vivant et la maquette qu'il a lui-même déposée ne se ressemblent pas — et que la règle qui l'en empêchait n'avait plus de raison d'être une fois la disposition, elle aussi, mesurée plutôt que supposée. *C'est la même bascule que D124 a documentée pour les couleurs : une réserve tient jusqu'à ce qu'un exemple concret la contredise.*
+
+### CE QUE ÇA COÛTE
+
+Chaque écran parmi les quatorze devra, au fil des tickets qui le touchent, être confronté bloc par bloc à `codiplan-maquette-complete.html` plutôt qu'à `CODIPLAN_Maquette.html` — ce n'est pas fait en une fois par cette décision, qui ne fait que déplacer l'AUTORITÉ, pas le travail. Le premier écran repris sous cette autorité est `/parc`, dans ce même ticket (N-10) ; `/parc/[id]` (la fiche machine) suit immédiatement (N-11), et n'est délibérément pas touché ici — *une proposition à la fois*.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'une des deux maquettes dispose un même écran autrement que l'autre — un bloc, un ordre, une composition que `CODIPLAN_Maquette.html` et `codiplan-maquette-complete.html` dessinent différemment l'une de l'autre pour la MÊME destination —, la question se rouvre au lieu d'être tranchée par cette page : ce cas n'a pas été mesuré, et rien ici ne le résout par avance.
+
+*Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
