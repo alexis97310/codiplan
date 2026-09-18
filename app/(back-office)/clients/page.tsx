@@ -217,7 +217,7 @@ export default async function PageClients({
               id="etat"
               name="etat"
               defaultValue={criteres.success ? criteres.data.etat : "tous"}
-              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+              className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
             >
               <option value="tous">{t("clients.filtre.tous")}</option>
               <option value="actifs">{t("clients.filtre.actifs")}</option>

@@ -28,9 +28,14 @@ function ligne(
     complet,
     localisation: null,
     date_mise_en_service: null,
+    date_vente: null,
     garantie_fin: garantieFin,
     client_id: "01a0e2e0-0000-7000-8000-00000000000c",
-    modele: { reference: "CP-500", famille: { libelle: "Compresseurs" } },
+    modele: {
+      reference: "CP-500",
+      marque: "Kaeser",
+      famille: { libelle: "Compresseurs" },
+    },
     client: { raison_sociale: "Client" },
     site: {
       libelle: "Atelier",

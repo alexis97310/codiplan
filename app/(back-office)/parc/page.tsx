@@ -44,6 +44,18 @@ import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 /**
  * L'ÉCRAN « PARC MACHINES » — MAÎTRE-DÉTAIL (N-10, D125 ; R2-21, AT-04, I10).
  *
+ * ## CE QU'UNE LIGNE MONTRE (N-12, D126)
+ *
+ * D125 dit OÙ — `.machine-row` reste un `<h3>`, une sous-ligne, une pastille
+ * de statut — et D126 dit QUOI : Alexis, 18/09/2026, à propos du parc cette
+ * fois (la fiche l'avait déjà reçu en N-11) — *« il faut afficher
+ * principalement la famille du matériel, la marque, la référence, le numéro
+ * de série, l'année »*. Le titre porte marque + référence du modèle
+ * (`titreDeLaLigne`) ; la sous-ligne porte famille · n° de série · année de
+ * vente (`sousTitreDeLaLigne`). Le CLIENT quitte la ligne — il reste en tête
+ * de l'aperçu, où la maquette le place déjà — et aucune seconde sous-ligne
+ * n'est ajoutée : les trois faits tiennent sur celle que la maquette dessine.
+ *
  * ## CE QUI CHANGE, ET POURQUOI MAINTENANT
  *
  * Jusqu'ici cet écran restait le tableau de l'ANCIENNE maquette
@@ -178,7 +190,7 @@ export default async function PageParc({
                   id="statut"
                   name="statut"
                   defaultValue={statutActif}
-                  className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
                 >
                   <option value="tous">{t("parc.filtre_statut.tous")}</option>
                   <option value="en_service">
@@ -254,8 +266,8 @@ export default async function PageParc({
                     machine.id,
                   )}
                   selectionnee={selection?.id === machine.id}
-                  titre={machine.modele.reference}
-                  sousTitre={`${referenceMachine(machine)} · ${machine.client.raison_sociale}`}
+                  titre={titreDeLaLigne(machine)}
+                  sousTitre={sousTitreDeLaLigne(machine)}
                   badge={
                     <Badge ton={TONS_STATUT[machine.statut]}>
                       {statutAffiche(machine.statut)}
@@ -298,7 +310,7 @@ export default async function PageParc({
                     />
                     <KvLigne
                       dt={t("parc.kv_famille")}
-                      dd={familleKv(selection)}
+                      dd={familleAffichee(selection)}
                     />
                     <KvLigne
                       dt={`${mot("agence")} ${t("parc.kv_agence_suffixe")}`}
@@ -455,8 +467,50 @@ function numeroDeSerieAffiche(machine: LigneDeParc): React.ReactNode {
   );
 }
 
-function familleKv(machine: LigneDeParc): string {
+function familleAffichee(machine: LigneDeParc): string {
   return machine.modele.famille?.libelle ?? texteAbsent();
+}
+
+/**
+ * LE TITRE DE LA LIGNE — marque puis référence du modèle (D126, appliqué à la
+ * ligne du parc par N-12 comme la fiche l'a déjà reçu en N-11 :
+ * `docs/arbitrages.md`). Recopié de `bannerTitre` de `/parc/[id]`, jamais
+ * importé — la même retenue que `referenceMachine` assume déjà dans ce
+ * dépôt.
+ */
+function titreDeLaLigne(machine: LigneDeParc): string {
+  return `${machine.modele.marque} ${machine.modele.reference}`;
+}
+
+/**
+ * LA SOUS-LIGNE DE LA LIGNE — famille · n° de série · année de vente (D126).
+ *
+ * Trois faits, jamais quatre : le CLIENT quitte la ligne — il reste en tête
+ * de l'aperçu, où la maquette le place déjà (`dl.kv`, ci-dessous) — et la
+ * RÉFÉRENCE INTERNE n'y entre pas non plus : D126 ne la demande qu'à la
+ * bannière de la FICHE (« en seconde ligne, plus discrète »), un emplacement
+ * que `.machine-row` ne porte pas. La forme de la maquette ne bouge pas — un
+ * `<h3>`, un `<p>`, une pastille — et cette ligne ne lui ajoute pas de seconde
+ * sous-ligne.
+ *
+ * `date_vente` est nulle sur tout le jeu de démonstration (mesuré N-11) : le
+ * signe d'absence s'affiche, jamais un zéro ni la mise en service à sa place
+ * (D126, « ce que ça ne décide pas »).
+ */
+function sousTitreDeLaLigne(machine: LigneDeParc): string {
+  const serie = machine.complet ? machine.numero_serie : texteAbsent();
+  return `${familleAffichee(machine)} · ${serie} · ${anneeDeVenteAffichee(machine)}`;
+}
+
+/**
+ * L'ANNÉE DE VENTE, sur quatre chiffres (D126) — recopiée de `/parc/[id]`
+ * (même raison que `referenceMachine`) : `date_vente` est une colonne
+ * `@db.Date`, aucun fuseau ne s'y applique.
+ */
+function anneeDeVenteAffichee(machine: LigneDeParc): string {
+  return machine.date_vente === null
+    ? texteAbsent()
+    : String(machine.date_vente.getUTCFullYear());
 }
 
 function agenceAffichee(machine: LigneDeParc): string {

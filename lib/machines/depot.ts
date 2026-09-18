@@ -38,7 +38,18 @@ import {
  * l'écart symétrique du KPI « Sous contrat ».
  */
 
-/** Ce qu'une ligne de parc porte à l'écran. */
+/**
+ * Ce qu'une ligne de parc porte à l'écran.
+ *
+ * `modele.marque` et `date_vente` ENTRENT ICI depuis D126 appliqué à `/parc`
+ * (N-12, 18/09/2026) — Alexis : *« Parc machine : il faut afficher
+ * principalement la famille du matériel, la marque, la référence, le numéro
+ * de série, l'année. »* `lib/machines/ecarts-maquette.ts` portait jusqu'ici la
+ * note inverse (« `date_vente` ENTRE dans `CHAMPS_FICHE`, jamais dans
+ * `CHAMPS_PARC` ») : elle datait de N-11, avant que D126 soit étendu à la
+ * ligne du parc, et `CHAMPS_FICHE` ci-dessous en hérite désormais par le
+ * simple spread plutôt que de les redemander.
+ */
 export const CHAMPS_PARC = {
   id: true,
   numero: true,
@@ -49,12 +60,17 @@ export const CHAMPS_PARC = {
   complet: true,
   localisation: true,
   date_mise_en_service: true,
+  date_vente: true,
   // LE QUATRIÈME KPI EN A BESOIN (AT-04) : « Garantie expirant à moins de
   // 90 jours » se lit sur cette colonne, réelle et déjà en base — à la
   // différence du compteur d'usage ou du contrat, qu'aucune table ne porte.
   garantie_fin: true,
   modele: {
-    select: { reference: true, famille: { select: { libelle: true } } },
+    select: {
+      reference: true,
+      marque: true,
+      famille: { select: { libelle: true } },
+    },
   },
   // `client_id` VOYAGE AVEC LE LIBELLÉ depuis le 14/09/2026 : la colonne
   // « Client » du parc est devenue un LIEN vers la fiche, et un libellé sans
@@ -163,12 +179,16 @@ export function resumerLeParc(
 }
 
 /**
- * LA RECHERCHE DU PARC (AT-07) — le texte porte sur les colonnes VISIBLES à
- * l'écran, et sur elles seules : le numéro de série, le client, le lieu (site
- * et commune), et la référence du modèle. `qr_token` n'y entre PAS — il n'est
- * affiché dans aucune colonne du tableau, et chercher sur un champ invisible
- * rendrait des résultats que personne ne peut expliquer (voir l'écart écrit
- * dans `lib/machines/saisie.ts`, à côté de `schemaRechercheParc`).
+ * LA RECHERCHE DU PARC (AT-07 ; étendue N-12, D126) — le texte porte sur les
+ * colonnes VISIBLES à l'écran, et sur elles seules : le numéro de série, le
+ * client, le lieu (site et commune), la référence du modèle — et désormais la
+ * marque et la famille, que la ligne du parc affiche depuis que D126 lui est
+ * appliqué (`app/(back-office)/parc/page.tsx`). Une colonne que la ligne
+ * montre et sur laquelle on ne peut pas chercher est exactement le trou que ce
+ * ticket referme. `qr_token` n'y entre PAS — il n'est affiché dans aucune
+ * colonne du tableau, et chercher sur un champ invisible rendrait des
+ * résultats que personne ne peut expliquer (voir l'écart écrit dans
+ * `lib/machines/saisie.ts`, à côté de `schemaRechercheParc`).
  *
  * **Une seule écriture du critère** : `rechercherLeParc` (la page) et
  * `compterLeParc` (le total de la pagination) l'appellent tous deux, comme
@@ -215,6 +235,24 @@ function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
                 reference: {
                   contains: criteres.texte,
                   mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              modele: {
+                marque: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              modele: {
+                famille: {
+                  libelle: {
+                    contains: criteres.texte,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
                 },
               },
             },
@@ -322,25 +360,18 @@ export async function resumerLeParcFiltre(
 /**
  * Ce qu'une FICHE de machine porte, en plus de ce qu'une ligne de parc montre.
  *
- * `date_vente` ENTRE ICI, jamais dans `CHAMPS_PARC` : D126 en fait un fait de
- * la FICHE (l'année de vente, dans le bloc d'identité), et le parc ne la
- * montre pas. `qr_token` entre ICI pour la même raison de PÉRIMÈTRE, mais
- * inversée (D71) : c'est un SECRET, et une page de liste comme `/parc` en
- * divulguerait cinquante d'un coup — il n'a donc rien à faire dans
- * `CHAMPS_PARC`, et tout à faire dans la fiche qui, seule, en a besoin pour
- * fabriquer le QR (N-11).
+ * `date_vente` et `modele.marque` viennent désormais de `CHAMPS_PARC` par le
+ * spread — D126 s'applique aux DEUX écrans depuis N-12, et redemander ici ce
+ * que `CHAMPS_PARC` porte déjà serait une seconde écriture du même critère
+ * (§9, 01/09). `qr_token` reste le seul ajout PROPRE à la fiche, et pour la
+ * raison de PÉRIMÈTRE inverse (D71) : c'est un SECRET, et une page de liste
+ * comme `/parc` en divulguerait cinquante d'un coup — il n'a donc rien à
+ * faire dans `CHAMPS_PARC`, et tout à faire dans la fiche qui, seule, en a
+ * besoin pour fabriquer le QR (N-11).
  */
 export const CHAMPS_FICHE = {
   ...CHAMPS_PARC,
-  date_vente: true,
   qr_token: true,
-  modele: {
-    select: {
-      reference: true,
-      marque: true,
-      famille: { select: { libelle: true } },
-    },
-  },
 } as const;
 
 export type FicheMachine = Prisma.MachineGetPayload<{

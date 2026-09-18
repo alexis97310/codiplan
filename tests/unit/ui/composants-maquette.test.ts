@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { fr } from "@/lib/i18n/fr";
+
 /**
  * LA COUCHE DE COMPOSANTS EST CONFRONTÉE AU `<style>` DE LA MAQUETTE, jamais
  * recopiée d'elle (AT-04, D95).
@@ -27,12 +29,17 @@ import { describe, expect, it } from "vitest";
  *
  * ## Ce qu'il ne couvre pas, et pourquoi c'est écrit
  *
- * `ÉtatVide`, `Champ` et `BarreDeFiltres` n'ont pas de règle à lire : la
- * maquette est MUETTE sur un état vide, un champ de saisie ou une barre de
- * recherche — ses onze écrans sont peuplés de données de démonstration et
- * n'affichent jamais un formulaire de saisie. Leur propre fichier porte le
- * raisonnement, pièce par pièce ; aucun gardien n'invente une règle que le
- * document ne contient pas.
+ * `ÉtatVide` et `Champ` n'ont pas de règle à lire : la maquette est MUETTE sur
+ * un état vide ou un champ de saisie générique — ses onze écrans sont peuplés
+ * de données de démonstration et n'affichent jamais un formulaire de saisie.
+ * Leur propre fichier porte le raisonnement, pièce par pièce ; aucun gardien
+ * n'invente une règle que le document ne contient pas.
+ *
+ * **`BarreDeFiltres` en sortait à tort** — mesuré le 18/09/2026 par le
+ * directeur d'exploitation, un silence qu'aucun gardien ne couvrait : depuis
+ * D125, `parc()` et `clients()` dessinent bel et bien `.toolbar > .search >
+ * input.field`, une loupe comprise. La note ci-dessus datait de N-08, avant
+ * D125 ; elle n'a jamais été relue depuis. Voir le bloc dédié plus bas.
  *
  * `Tableau` mélange l'échelle Tailwind (`px-4` pour 16 px, un multiple de
  * l'échelle par défaut) et les valeurs entre crochets (`py-[9px]`) — il
@@ -114,6 +121,9 @@ const KPI = source("components/ui/kpi.tsx");
 const TABLEAU = source("components/ui/tableau.tsx");
 const MAITRE_DETAIL = source("components/ui/maitre-detail.tsx");
 const FICHE_MACHINE = source("app/(back-office)/parc/[id]/page.tsx");
+const BARRE_DE_FILTRES = source("components/ui/barre-de-filtres.tsx");
+const PARC_PAGE = source("app/(back-office)/parc/page.tsx");
+const CLIENTS_PAGE = source("app/(back-office)/clients/page.tsx");
 
 /** Les graisses Tailwind que ce gardien sait lire — un fait du framework, pas de l'application. */
 const GRAISSES: Readonly<Record<string, number>> = {
@@ -785,5 +795,84 @@ describe("La fiche machine — .alert-strip et .alert-num de la maquette", () =>
     expect(
       porteLaGraisse(FICHE_MACHINE, Number(propriete(bloc, "font-weight"))),
     ).toBe(true);
+  });
+});
+
+/**
+ * BarreDeFiltres — `.search`, `.search .field`, `.search:before` et
+ * `.field,.select` de `codiplan-maquette-complete.html` (N-12, 18/09/2026).
+ *
+ * `/parc` et `/clients` sont les DEUX SEULS écrans qui rendent ce composant
+ * — mesuré : `grep BarreDeFiltres` ne trouve que ces deux appelants. `/sites`
+ * et `/interventions` portent chacun leur propre formulaire de recherche,
+ * distinct de celui-ci ; ce gardien ne les confronte donc pas.
+ */
+describe("BarreDeFiltres — .search et .field,.select de la maquette (N-12)", () => {
+  it("a réellement lu les règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".toolbar").length).toBeGreaterThan(0);
+    expect(regleComplete(".search").length).toBeGreaterThan(0);
+    expect(regleComplete(".search .field").length).toBeGreaterThan(0);
+    expect(regleComplete(".search:before").length).toBeGreaterThan(0);
+    expect(regleComplete(".field,.select").length).toBeGreaterThan(0);
+  });
+
+  it("le champ grandit avec la barre — flex et largeur minimale de .search", () => {
+    const bloc = regleComplete(".search");
+    expect(propriete(bloc, "flex")).toBe("1");
+    expect(BARRE_DE_FILTRES).toContain("flex-1");
+    expect(propriete(bloc, "min-width")).toBe("220px");
+    expect(BARRE_DE_FILTRES).toContain("min-w-[220px]");
+  });
+
+  it("le champ réserve la place de la loupe — .search .field", () => {
+    const bloc = regleComplete(".search .field");
+    expect(propriete(bloc, "padding-left")).toBe("38px");
+    expect(BARRE_DE_FILTRES).toContain("pl-[38px]");
+  });
+
+  it("la loupe reprend le glyphe, le décalage et le corps de .search:before", () => {
+    const bloc = regleComplete(".search:before");
+    expect(propriete(bloc, "content")).toBe('"⌕"');
+    // Le glyphe passe par le dictionnaire (L0-11) : pas de littéral ici,
+    // mais la MÊME valeur, confrontée à celle que la maquette écrit.
+    expect(fr["recherche.loupe"]).toBe("⌕");
+    expect(BARRE_DE_FILTRES).toContain('t("recherche.loupe")');
+    expect(propriete(bloc, "left")).toBe("13px");
+    expect(BARRE_DE_FILTRES).toContain("left-[13px]");
+    expect(propriete(bloc, "font-size")).toBe("20px");
+    expect(BARRE_DE_FILTRES).toContain("text-[20px]");
+  });
+
+  it("le champ ET le sélecteur reprennent hauteur et rayon de .field,.select", () => {
+    const bloc = regleComplete(".field,.select");
+    expect(propriete(bloc, "height")).toBe("40px");
+    expect(BARRE_DE_FILTRES).toContain("h-[40px]");
+    expect(PARC_PAGE).toContain("h-[40px]");
+    expect(CLIENTS_PAGE).toContain("h-[40px]");
+
+    expect(propriete(bloc, "border-radius")).toBe("9px");
+    expect(BARRE_DE_FILTRES).toContain("rounded-[9px]");
+    expect(PARC_PAGE).toContain("rounded-[9px]");
+    expect(CLIENTS_PAGE).toContain("rounded-[9px]");
+
+    // La moitié GAUCHE du rembourrage est écrasée par `.search .field`
+    // (38px, ci-dessus) ; c'est la moitié DROITE, seule commune au champ et
+    // au `<select>`, que ce test confronte — `px-3` vaut 12px sur l'échelle
+    // Tailwind par défaut (la même lecture que D124 pose déjà pour `.table
+    // td`, `tests/unit/ui/composants-maquette.test.ts` plus haut).
+    expect(propriete(bloc, "padding")).toBe("0 12px");
+    expect(BARRE_DE_FILTRES).toContain("pr-3");
+    expect(PARC_PAGE).toContain("px-3");
+    expect(CLIENTS_PAGE).toContain("px-3");
+  });
+
+  it("plus aucune largeur, police ou rayon en dur (§9, 01/09)", () => {
+    // Les quatre défauts mesurés le 18/09/2026 : une largeur FIXE, un corps
+    // de police recopié plutôt qu'hérité, un rayon Tailwind générique, et
+    // aucune loupe. Ce test les tient dans les DEUX SENS — la reformulation
+    // d'un défaut sous un autre nom romprait le témoin de non-régression.
+    expect(BARRE_DE_FILTRES).not.toContain("min-w-64");
+    expect(BARRE_DE_FILTRES).not.toMatch(/text-\[12\.5px\]/);
+    expect(BARRE_DE_FILTRES).not.toContain("rounded-md");
   });
 });

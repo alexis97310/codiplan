@@ -46,6 +46,12 @@ export const fr = {
   "app.nom": "CODIPLAN",
   "app.description":
     "Gestion des plannings d'intervention et du parc machines.",
+  // LE GLYPHE DE LA LOUPE (N-12) — `components/ui/barre-de-filtres.tsx`,
+  // partagé par `/parc` et `/clients`. Décoratif (`aria-hidden`), mais un
+  // caractère RENDU à l'écran reste un texte que L0-11 fait passer par ici :
+  // le gardien des chaînes visibles ne sait pas distinguer un glyphe d'un
+  // mot, et n'a pas à le savoir (même raison que `parc.symbole_machine`).
+  "recherche.loupe": "⌕",
   "accueil.titre": "CODIPLAN",
   "accueil.accroche":
     "Plannings d'intervention et parc machines — Nouvelle-Calédonie.",
