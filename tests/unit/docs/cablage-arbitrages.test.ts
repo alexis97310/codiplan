@@ -95,6 +95,9 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D106", "RG-PLA-06"],
   ["D107", "RG-PLA-05"],
   ["D108", "RG-INT-08"],
+  // D126 (18/09/2026, ticket N-11) : ce que la fiche d'une machine montre en
+  // premier — famille, marque, référence, numéro de série, année de vente.
+  ["D126", "RG-PAR-07"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {

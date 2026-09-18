@@ -1,4 +1,4 @@
-import { type AssujettissementVgp } from "@prisma/client";
+import { type AssujettissementVgp, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -159,6 +159,95 @@ export async function listerLeRegistre(
         aujourdHui,
       }),
     };
+  });
+}
+
+const CHAMPS_INFORMATION_MACHINE = {
+  date_mise_en_service: true,
+  vgp_exception: true,
+  modele: {
+    select: {
+      vgp_periodicite_mois: true,
+      vgp_reference_texte: true,
+      famille: {
+        select: {
+          assujettissement_vgp: true,
+          vgp_periodicite_mois: true,
+          vgp_reference_texte: true,
+        },
+      },
+    },
+  },
+} as const;
+
+/**
+ * CE QUE LE REGISTRE SAIT D'UNE SEULE MACHINE — la lecture qu'une FICHE
+ * demande (N-11), à côté de `listerLeRegistre` qui lit tout le parc.
+ *
+ * **Elle ne réécrit AUCUNE règle réglementaire** : `resoudreAssujettissement`
+ * (la cascade famille → modèle → machine) et `etatDeLInformation` (la date
+ * déduite) sont les MÊMES fonctions que `listerLeRegistre` appelle — une
+ * seconde écriture de la même cascade sur une seule ligne diverge en silence
+ * dès que l'une des deux change (§9, 01/09). Seule la lecture SQL diffère :
+ * une machine, jamais tout le parc.
+ *
+ * `null` dit « cette machine n'existe pas sous ce contexte » — la même
+ * absence que `lireMachine` rend déjà, et pour la même raison : une fiche
+ * hors périmètre et une fiche inexistante ne se distinguent pas (D22, D35).
+ */
+export async function informationDeLaMachine(
+  contexte: ContexteSession,
+  machineId: string,
+  aujourdHui: Date,
+  client?: PrismaClient,
+): Promise<EtatInformation | null> {
+  const machine = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findUnique({
+        where: { id: machineId },
+        select: CHAMPS_INFORMATION_MACHINE,
+      }),
+    client,
+  );
+  if (machine === null) {
+    return null;
+  }
+  // LA DERNIÈRE VÉRIFICATION DE CETTE MACHINE, ET D'ELLE SEULE — même
+  // critère que `dernieresInformations` (la date de VÉRIFICATION, jamais
+  // celle de la saisie), borné à une ligne plutôt qu'au groupement de tout
+  // le parc que la fiche n'a pas besoin de lire.
+  const derniere = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.vgpVerification.findFirst({
+        where: { machine_id: machineId },
+        orderBy: [{ date_verification: "desc" }, { id: "desc" }],
+        select: { date_verification: true },
+      }),
+    client,
+  );
+
+  const famille = machine.modele.famille;
+  const resolu = resoudreAssujettissement({
+    famille: {
+      assujettissement: famille.assujettissement_vgp,
+      periodiciteMois: famille.vgp_periodicite_mois,
+      referenceTexte: famille.vgp_reference_texte,
+    },
+    modele: {
+      periodiciteMois: machine.modele.vgp_periodicite_mois,
+      referenceTexte: machine.modele.vgp_reference_texte,
+    },
+    machine: { exception: machine.vgp_exception },
+  });
+
+  return etatDeLInformation({
+    assujettissement: resolu.valeur,
+    periodiciteMois: resolu.periodiciteMois,
+    derniereInformation: derniere?.date_verification ?? null,
+    depuis: machine.date_mise_en_service,
+    aujourdHui,
   });
 }
 

@@ -739,6 +739,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-PAR-04 | Un relevé de compteur ne peut être inférieur au précédent, sauf motif de remplacement de compteur tracé. |
 | RG-PAR-05 | Une machine « ferraillée » ou « remplacée » sort des contrats et des échéanciers ; son historique reste consultable. |
 | RG-PAR-06 | Le lien de remplacement entre l'ancienne et la nouvelle machine est conservé pour la traçabilité commerciale. |
+| RG-PAR-07 | La fiche d'une machine met en évidence, dans cet ordre, la famille du matériel, la marque, la référence du modèle, le numéro de série et l'année de vente. L'année de vente absente s'affiche comme telle — jamais remplacée par la date de mise en service, jamais inventée. *(amendée par D126 — règle introduite par cet arbitrage.)* |
 
 ### RG — Imports et exports
 

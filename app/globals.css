@@ -399,3 +399,49 @@
     var(--app-bord-faible) 12px
   );
 }
+
+/*
+ * L'IMPRESSION DE L'ÉTIQUETTE QR — `@media print` de `machinePage()` dans
+ * `codiplan-maquette-complete.html` (N-11) : *à l'impression, seule la carte
+ * QR est visible.*
+ *
+ * La maquette y arrive par un BOUTON qui ajoute une classe sur `<body>`
+ * avant d'appeler `window.print()` — un mécanisme qui suppose un état global
+ * que ce dépôt n'a pas construit ici (N-11, §8 : aucun tiroir, aucun état de
+ * page ajouté pour ce seul geste). La règle ci-dessous obtient le MÊME effet
+ * sans lui : elle s'applique à TOUTE impression de la fiche, bouton cliqué ou
+ * raccourci clavier du navigateur — un résultat au moins aussi correct que
+ * celui de la maquette, jamais moins.
+ *
+ * `.zone-impression-qr` est posé sur la carte QR de `/parc/[id]`, et sur elle
+ * seule.
+ *
+ * **`!important` sur la seule règle qui masque, et c'est MESURÉ, pas du
+ * confort.** Sans lui, un bouton profondément imbriqué (celui de la carte
+ * « Historique des interventions ») restait `visibility:visible` sous
+ * Chromium avec `body:has(.zone-impression-qr) *` seul, alors qu'AUCUNE autre
+ * règle de la page ne le déclarait visible — un recalcul de style que
+ * `:has()` rend fragile en présence d'autres sélecteurs relationnels sur la
+ * même page (`Button` porte déjà `has-[>svg]:`). `!important` referme cette
+ * fragilité sans abandonner `body:has(...)`, seule forme qui couvre aussi la
+ * barre latérale — HORS de `<main>`, donc hors de portée d'une classe posée
+ * sur `<Page>`.
+ */
+@media print {
+  body:has(.zone-impression-qr)
+    *:not(.zone-impression-qr, .zone-impression-qr *) {
+    visibility: hidden !important;
+  }
+  body:has(.zone-impression-qr) .zone-impression-qr,
+  body:has(.zone-impression-qr) .zone-impression-qr * {
+    visibility: visible;
+  }
+  body:has(.zone-impression-qr) .zone-impression-qr {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+}

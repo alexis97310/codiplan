@@ -319,9 +319,21 @@ export async function resumerLeParcFiltre(
   return resumerLeParc(lignes, maintenant);
 }
 
-/** Ce qu'une FICHE de machine porte, en plus de ce qu'une ligne de parc montre. */
+/**
+ * Ce qu'une FICHE de machine porte, en plus de ce qu'une ligne de parc montre.
+ *
+ * `date_vente` ENTRE ICI, jamais dans `CHAMPS_PARC` : D126 en fait un fait de
+ * la FICHE (l'année de vente, dans le bloc d'identité), et le parc ne la
+ * montre pas. `qr_token` entre ICI pour la même raison de PÉRIMÈTRE, mais
+ * inversée (D71) : c'est un SECRET, et une page de liste comme `/parc` en
+ * divulguerait cinquante d'un coup — il n'a donc rien à faire dans
+ * `CHAMPS_PARC`, et tout à faire dans la fiche qui, seule, en a besoin pour
+ * fabriquer le QR (N-11).
+ */
 export const CHAMPS_FICHE = {
   ...CHAMPS_PARC,
+  date_vente: true,
+  qr_token: true,
   modele: {
     select: {
       reference: true,

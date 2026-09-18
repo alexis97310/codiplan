@@ -3,53 +3,85 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { ActionsQrMachine } from "@/components/machines/actions-qr";
+import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  CarteEnTete,
+  DetailBody,
+  Kv,
+  KvLigne,
+} from "@/components/ui/maitre-detail";
+import { QrCode } from "@/components/ui/qr-code";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   documentsDeLaMachine,
   type DocumentDeMachine,
 } from "@/lib/documents/depot";
 import { t } from "@/lib/i18n/fr";
+import { mot } from "@/lib/i18n/vocabulaire";
+import { estFige } from "@/lib/interventions/cycle-de-vie";
+import { type LigneIntervention } from "@/lib/interventions/depot";
+import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
+import { historiqueDeLaMachine } from "@/lib/machines/historique";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { libelleEcheance } from "@/lib/vgp/libelles";
+import { informationDeLaMachine } from "@/lib/vgp/registre";
+
+import { referenceAffichee } from "../../interventions/presentation";
 
 /**
- * LA FICHE D'UNE MACHINE ET SES DOCUMENTS (L8-02 ; D93, L8-01, L8-05).
+ * LA FICHE MACHINE, À L'IDENTIQUE DE `machinePage()` (N-11, D125, D126).
  *
- * ## CET ÉCRAN EST L'APPELANT QUI MANQUAIT
+ * ## CE QUE D125 GOUVERNE ICI, ET CE QUE D126 Y AJOUTE
  *
- * Le socle du lot 8 est en base depuis L8-01 à L8-06 — la cible exclusive, les
- * deux classes, les deux formes de politique de D93, les deux dates de L8-06.
- * **L'union, elle, ne vivait que dans un scénario d'isolation** : le harnais
- * composait son `where` à la main, et rien dans la production ne le composait.
- * C'est exactement la divergence mesurée à L1-02b — *les scénarios étaient
- * verts parce que le harnais armait une garantie que la production n'armait
- * pas* — et elle se soigne en donnant à la lecture un appelant réel.
+ * D125 fait foi sur la DISPOSITION — deux colonnes, la bannière, le bandeau
+ * d'alerte conditionnel, les deux cartes de gauche, la carte QR collante à
+ * droite. **D126 (18/09/2026, rendu par Alexis pendant ce ticket) fait foi sur
+ * ce que le `dl.kv` d'identité PORTE en tête** : famille, marque, référence du
+ * modèle, numéro de série, année de vente — avant les six champs que la
+ * maquette dessine déjà. Les deux décisions ne se contredisent pas : l'une dit
+ * où, l'autre dit quoi. Voir `docs/arbitrages.md`, D125 et D126.
  *
- * ## L'ORIGINE EST UNE COLONNE, PAS UNE NUANCE DE GRIS
+ * ## TROIS DÉFAUTS MESURÉS SUR LE SITE, RÉPARÉS ICI
  *
- * *Un document de modèle se corrige une fois pour toutes ; un document de
- * machine n'existe que là.* Les mêler ferait supprimer une notice de gamme en
- * croyant nettoyer un exemplaire — et le geste porterait sur cinq cents
- * machines sans que rien ne le dise.
+ * 1. Un numéro de série illisible (`SN-INCONNU-…`) s'affichait comme un vrai
+ *    numéro. `numeroDeSerieAffiche` applique la même règle que `/parc`
+ *    (`machine.complet`) : signe d'absence, plus une pastille.
+ * 2. Le statut s'affichait énuméré brut (`en_service`). Il passe par le
+ *    dictionnaire et par une pastille, comme `/parc`.
+ * 3. Une commune identique au libellé du site se répétait
+ *    (« Ducos, Ducos »). `lieuAffiche` applique la même déduplication que
+ *    `/parc`.
  *
- * ## CE QU'IL N'AFFICHE PAS, ET C'EST ÉCRIT PLUTÔT QUE TU
+ * Les trois règles sont RECOPIÉES depuis `app/(back-office)/parc/page.tsx`,
+ * jamais importées : c'est la même retenue que `referenceMachine` assume déjà
+ * dans ce dépôt — partager la FORME d'un petit calcul de présentation ne vaut
+ * pas le détour, et `/parc` n'est pas retouché par ce ticket.
  *
- * **Aucun lien de téléchargement.** `document.objet_cle` dit où sont les
- * octets, et **aucun code ne la remplit** : le stockage d'objets de L8-05 n'a
- * pas encore d'appelant. Un lien qui mènerait à rien se lirait comme une panne
- * ; l'écran dit donc en une ligne pourquoi il n'y en a pas. *C'est le motif de
- * blocage de R2-13, appliqué avant de commettre la faute.*
+ * ## LE BANDEAU D'ALERTE NE DIT RIEN QU'IL NE SACHE
  *
- * **Ni compteur, ni contrat** — les deux colonnes que la maquette montre au
- * parc et qu'aucune table ne porte.
+ * Si aucune intervention de l'historique n'est dans un état FIGÉ
+ * (`estFige` — ni `annulee` ni `cloturee`), le bandeau porte son bouton et sa
+ * ligne de contexte, composée de FAITS RÉELS (référence, type, statut) —
+ * jamais la phrase invariable de la maquette. Sinon, il dit le statut et rien
+ * de plus (N-11, §0).
  *
- * ## AUCUNE COMPARAISON DE SOCIÉTÉ N'EST ÉCRITE ICI
+ * ## LE QR ENCODE LE JETON ; RIEN D'AUTRE NE L'AFFICHE (D71)
  *
- * `lireMachine` et `documentsDeLaMachine` lisent sous le contexte cloisonné.
- * Une fiche hors périmètre et une fiche inexistante rendent la MÊME chose : les
- * distinguer ferait un oracle (D35, D50).
+ * `machine.qr_token` n'entre que dans `<QrCode valeur={...} />`. Toute
+ * l'étiquette lisible — la ligne mono de la bannière, la ligne
+ * « CODIPLAN:<référence> » sous le QR — montre la RÉFÉRENCE, jamais le jeton.
  */
+
+const ABSENT = "—";
+
 export default async function PageMachine({
   params,
 }: {
@@ -62,18 +94,45 @@ export default async function PageMachine({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
+  const contexte = session.contexte;
 
   const { id } = await params;
-  const machine = await lireMachine(session.contexte, id);
+  const machine = await lireMachine(contexte, id);
   if (machine === null) {
     notFound();
   }
-  const documents = await documentsDeLaMachine(session.contexte, id);
-  // `null` a DÉJÀ été traité par `lireMachine` : si la machine est visible, ses
-  // documents le sont. Le garder ici en ferait un second lieu de décision.
-  const lignes = documents ?? [];
 
-  const colonnes = [
+  const societe = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = maintenant(fuseau).instant;
+
+  const historique = await historiqueDeLaMachine(contexte, machine.id);
+  const annuaire = await avecContexteApplicatif(contexte, (tx) =>
+    annuaireDesPersonnes(tx, personnesANommer(historique, [])),
+  );
+  const information = await informationDeLaMachine(
+    contexte,
+    machine.id,
+    aujourdHui,
+  );
+  const documents = await documentsDeLaMachine(contexte, id);
+  const lignesDocuments = documents ?? [];
+
+  // LA SEULE INTERVENTION QUE LE BANDEAU CITE — la plus récente qui ne soit
+  // pas FIGÉE (ni `annulee` ni `cloturee`). `historique` est déjà trié du
+  // plus récent au plus ancien (`historiqueDeLaMachine`) : le premier trouvé
+  // est le bon.
+  const interventionOuverte =
+    machine.statut === "en_service"
+      ? undefined
+      : historique.find((ligne) => !estFige(ligne.statut));
+
+  const colonnesDocuments = [
     { cle: "libelle", libelle: t("machine.documents.colonne_libelle") },
     {
       cle: "origine",
@@ -88,58 +147,239 @@ export default async function PageMachine({
     { cle: "fichier", libelle: t("machine.documents.colonne_fichier") },
   ];
 
+  const colonnesHistorique = [
+    { cle: "date", libelle: t("machine.fiche.historique_colonne_date") },
+    {
+      cle: "intervention",
+      libelle: t("machine.fiche.historique_colonne_intervention"),
+    },
+    { cle: "type", libelle: t("machine.fiche.historique_colonne_type") },
+    {
+      cle: "technicien",
+      libelle: t("machine.fiche.historique_colonne_technicien"),
+    },
+    {
+      cle: "resultat",
+      libelle: t("machine.fiche.historique_colonne_resultat"),
+    },
+  ];
+
   return (
     <Page
       chemin="/parc"
-      titre={referenceMachine(machine)}
-      sousTitre={identiteMachine(machine)}
+      titre={t("machine.fiche.titre")}
+      sousTitre={sousTitreFiche(machine)}
       actions={
         <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
           {t("machine.retour")}
         </Link>
+        // « Modifier » — écart nommé (lib/machines/ecarts-maquette.ts,
+        // ECARTS_MAQUETTE_ACTIONS_FICHE) : aucune route d'édition n'existe.
       }
     >
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4">
-        <div className="grid gap-3 md:grid-cols-2">
-          <Fait
-            libelle={t("parc.colonne_serie")}
-            valeur={machine.numero_serie}
-          />
-          <Fait
-            libelle={t("parc.colonne_lieu")}
-            valeur={lieuMachine(machine)}
-          />
-          <Fait
-            libelle={t("parc.colonne_mise_en_service")}
-            valeur={dateAffichee(machine.date_mise_en_service)}
-          />
-          <Fait libelle={t("parc.colonne_statut")} valeur={machine.statut} />
-        </div>
-      </section>
+      <div
+        data-bloc="machine-page"
+        className="grid grid-cols-1 gap-4 min-[1181px]:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]"
+      >
+        <div className="flex flex-col gap-4">
+          <section
+            data-bloc="machine-banner"
+            className="bg-app-surface border-app-bord flex items-start gap-4 rounded-lg border p-[22px] max-[600px]:flex-col"
+          >
+            <div className="bg-app-bleu-fond text-app-marque grid h-[58px] w-[58px] flex-none place-items-center rounded-lg text-[26px] font-black">
+              {t("parc.symbole_machine")}
+            </div>
+            <div className="flex-1">
+              <div className="text-app-encre-faible font-mono text-[12px]">
+                {referenceMachine(machine)}
+              </div>
+              <h2 className="mt-[3px] mb-[7px] text-[22px] font-extrabold">
+                {bannerTitre(machine)}
+              </h2>
+              <div className="flex flex-wrap items-center gap-[9px]">
+                <Badge ton={TONS_STATUT[machine.statut]}>
+                  {statutAffiche(machine.statut)}
+                </Badge>
+                <Badge ton="bleu">{machine.modele.famille.libelle}</Badge>
+              </div>
+            </div>
+          </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-extrabold tracking-tight">
-          {t("machine.documents.titre")}
-        </h2>
-        <p className="text-app-encre-faible text-[12.5px]">
-          {t("machine.documents.sous_titre")}
-        </p>
-        <div className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-          <Tableau colonnes={colonnes} minimum="720px">
-            {lignes.length === 0 ? (
-              <LignePleine colonnes={colonnes.length}>
-                {t("machine.documents.vide")}
-              </LignePleine>
-            ) : null}
-            {lignes.map((document) => (
-              <LigneDocument key={document.id} document={document} />
-            ))}
-          </Tableau>
+          {machine.statut === "en_service" ? null : (
+            <div
+              data-bloc="alert-strip"
+              className="bg-app-orange-fond text-app-orange-encre grid grid-cols-[auto_1fr_auto] items-center gap-[12px] rounded-[12px] p-[15px]"
+            >
+              <span
+                data-bloc="alert-num"
+                className="bg-app-surface grid h-[38px] w-[38px] place-items-center rounded-full font-black"
+              >
+                {t("machine.alerte.symbole")}
+              </span>
+              <div>
+                <b className="font-bold">{statutAffiche(machine.statut)}</b>
+                {interventionOuverte === undefined ? null : (
+                  <div className="text-[12px]">
+                    {contexteAlerteMachine(interventionOuverte)}
+                  </div>
+                )}
+              </div>
+              {interventionOuverte === undefined ? null : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/interventions/${interventionOuverte.id}`}>
+                    {t("machine.alerte.voir_intervention")}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
+
+          <CarteEnTete
+            titre={t("machine.fiche.identite_titre")}
+            bloc="carte-identite"
+          >
+            <DetailBody>
+              <Kv bloc="identite-kv">
+                <KvLigne
+                  dt={t("machine.fiche.kv_famille")}
+                  dd={machine.modele.famille.libelle}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_marque")}
+                  dd={machine.modele.marque}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_reference")}
+                  dd={machine.modele.reference}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_serie")}
+                  dd={numeroDeSerieAffiche(machine)}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_annee_vente")}
+                  dd={anneeDeVenteAffichee(machine)}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_client")}
+                  dd={machine.client.raison_sociale}
+                />
+                <KvLigne
+                  dt={`${mot("site")} ${t("machine.fiche.kv_site_suffixe")}`}
+                  dd={lieuAffiche(machine)}
+                />
+                <KvLigne
+                  dt={`${mot("agence")} ${t("machine.fiche.kv_agence_suffixe")}`}
+                  dd={machine.site.agence.libelle}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_mise_en_service")}
+                  dd={dateAffichee(machine.date_mise_en_service)}
+                />
+                {/* « Contrat » — écart nommé (lib/machines/ecarts-maquette.
+                    ts, ECARTS_MAQUETTE_APERCU_PARC, même motif) : aucune
+                    table de contrat n'existe (lot 4). */}
+                <KvLigne
+                  dt={t("machine.fiche.kv_contrat")}
+                  dd={texteAbsent()}
+                />
+                <KvLigne
+                  dt={t("machine.fiche.kv_vgp")}
+                  dd={prochaineVgpAffichee(information)}
+                />
+              </Kv>
+            </DetailBody>
+          </CarteEnTete>
+
+          <CarteEnTete
+            bloc="carte-historique"
+            titre={t("machine.fiche.historique_titre")}
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link
+                  href="/interventions/nouvelle"
+                  data-bloc="historique-ajouter"
+                >
+                  {t("machine.fiche.historique_ajouter")}
+                </Link>
+              </Button>
+            }
+          >
+            <div data-bloc="historique-table">
+              <Tableau colonnes={colonnesHistorique} minimum="640px">
+                {historique.length === 0 ? (
+                  <LignePleine colonnes={colonnesHistorique.length}>
+                    {t("machine.fiche.historique_vide")}
+                  </LignePleine>
+                ) : null}
+                {historique.map((ligne) => (
+                  <LigneHistorique
+                    key={ligne.id}
+                    ligne={ligne}
+                    annuaire={annuaire}
+                  />
+                ))}
+              </Tableau>
+            </div>
+          </CarteEnTete>
+
+          {/* « Documents » — écart dans l'autre sens, gardé (lib/machines/
+              ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_FICHE) : porte L8-02,
+              machinePage() ne le dessine pas. */}
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[15px] font-extrabold tracking-tight">
+              {t("machine.documents.titre")}
+            </h2>
+            <p className="text-app-encre-faible text-[12.5px]">
+              {t("machine.documents.sous_titre")}
+            </p>
+            <div className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+              <Tableau colonnes={colonnesDocuments} minimum="720px">
+                {lignesDocuments.length === 0 ? (
+                  <LignePleine colonnes={colonnesDocuments.length}>
+                    {t("machine.documents.vide")}
+                  </LignePleine>
+                ) : null}
+                {lignesDocuments.map((document) => (
+                  <LigneDocument key={document.id} document={document} />
+                ))}
+              </Tableau>
+            </div>
+            <p className="text-app-encre-faible text-[11.5px]">
+              {t("machine.documents.sans_octets")}
+            </p>
+          </section>
         </div>
-        <p className="text-app-encre-faible text-[11.5px]">
-          {t("machine.documents.sans_octets")}
-        </p>
-      </section>
+
+        <aside
+          data-bloc="qr-card"
+          className="bg-app-surface border-app-bord zone-impression-qr rounded-lg border p-[20px] text-center min-[1181px]:sticky min-[1181px]:top-[88px]"
+        >
+          <div className="text-app-marque mb-[4px] text-[12px] font-extrabold tracking-[0.09em] uppercase">
+            {t("machine.qr.eyebrow")}
+          </div>
+          <h2 className="mt-[4px] mb-[4px] text-[18px] font-extrabold">
+            {t("machine.qr.titre")}
+          </h2>
+          <p className="text-app-encre-faible text-[12px]">
+            {t("machine.qr.description")}
+          </p>
+          <div className="my-[12px]">
+            <QrCode
+              valeur={machine.qr_token}
+              taille={220}
+              titre={ariaLabelQr(machine)}
+            />
+          </div>
+          <div className="font-mono font-black">
+            {referenceMachine(machine)}
+          </div>
+          <div className="text-app-encre-faible text-[12px]">
+            {ligneCodiplanAffichee(machine)}
+          </div>
+          <ActionsQrMachine identifiant={referenceMachine(machine)} />
+        </aside>
+      </div>
     </Page>
   );
 }
@@ -155,25 +395,126 @@ function LigneDocument({ document }: { readonly document: DocumentDeMachine }) {
   );
 }
 
-function Fait({
-  libelle,
-  valeur,
-}: Readonly<{ libelle: string; valeur: string }>) {
+function LigneHistorique({
+  ligne,
+  annuaire,
+}: {
+  readonly ligne: LigneIntervention;
+  readonly annuaire: Annuaire;
+}) {
   return (
-    <p className="flex flex-col gap-0.5 text-[12.5px] font-semibold">
-      {libelle}
-      <span className="text-[13px] font-normal">{valeur}</span>
-    </p>
+    <tr>
+      <Cellule>{dateAffichee(ligne.date_planifiee)}</Cellule>
+      <Cellule mono>
+        <Link href={`/interventions/${ligne.id}`} className={CLASSES_LIEN}>
+          {referenceAffichee(ligne)}
+        </Link>
+      </Cellule>
+      <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
+      <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
+      <Cellule>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+        >
+          {t(`statut.${ligne.statut}`)}
+        </span>
+      </Cellule>
+    </tr>
   );
 }
 
 /**
- * La référence affichée — `numero`, ou `Local-<6 caractères>` (I10).
- *
- * **Elle est recopiée de l'écran du parc, et c'est délibéré.** Un helper commun
- * devrait porter le préfixe en paramètre — `MAC-` ici, `INT-` au planning —,
- * c'est-à-dire ne plus rien décider. *Ce qui se partagerait n'est pas la règle,
- * c'est sa forme*, et partager une forme ne vaut pas le détour.
+ * LE TECHNICIEN AFFECTÉ — recopié de `app/(back-office)/interventions/
+ * page.tsx` (même raison que `referenceMachine` : partager la FORME d'un
+ * petit calcul de présentation ne vaut pas le détour). `quiTravaille`
+ * distingue déjà le refus légitime du cloisonnement de l'oubli de l'écran ;
+ * seul le cas SANS AFFECTATION change de libellé ici, pour la même raison
+ * que là-bas — le pluriel d'un regroupement n'a pas de sens ligne à ligne
+ * dans un historique où chaque ligne est une seule intervention.
+ */
+function technicienAffiche(
+  ligne: LigneIntervention,
+  annuaire: Annuaire,
+): string {
+  return ligne.technicien_id === null
+    ? t("intervention.aucun_technicien")
+    : quiTravaille(ligne.technicien_id, annuaire);
+}
+
+/**
+ * LE CONTEXTE DE L'ALERTE — composé de FAITS RÉELS, jamais de la phrase
+ * invariable de la maquette (« Une intervention curative est ouverte… »),
+ * qui inventerait un type et un statut que la machine sélectionnée ne porte
+ * peut-être pas.
+ */
+function contexteAlerteMachine(ligne: LigneIntervention): string {
+  return `${referenceAffichee(ligne)} · ${t(`type_intervention.${ligne.type}`)} · ${t(`statut.${ligne.statut}`)}`;
+}
+
+/** L'en-tête de la bannière — `<marque> <référence du modèle>` (D126, point 3). */
+function bannerTitre(machine: FicheMachine): string {
+  return `${machine.modele.marque} ${machine.modele.reference}`;
+}
+
+/** Le sous-titre de l'en-tête — `<client> · <site>` (machinePage()). */
+function sousTitreFiche(machine: FicheMachine): string {
+  return `${machine.client.raison_sociale} ${t("machine.fiche.sous_titre_separateur")} ${lieuAffiche(machine)}`;
+}
+
+/** `aria-label` du QR — la RÉFÉRENCE, jamais l'`id` technique ni le jeton (I10, D71). */
+function ariaLabelQr(machine: FicheMachine): string {
+  return `${t("machine.qr.aria_prefixe")} ${referenceMachine(machine)}`;
+}
+
+/** La ligne « CODIPLAN:<référence> » sous le QR — la RÉFÉRENCE, jamais le jeton (D71). */
+function ligneCodiplanAffichee(machine: FicheMachine): string {
+  return `${t("machine.qr.jeton_prefixe")}${referenceMachine(machine)}`;
+}
+
+/**
+ * L'ANNÉE DE VENTE, sur quatre chiffres (D126) — jamais la date complète,
+ * jamais la mise en service à sa place. `date_vente` est une colonne
+ * `@db.Date` : aucun fuseau ne s'y applique, comme `date_planifiee`
+ * ailleurs dans ce dépôt.
+ */
+function anneeDeVenteAffichee(machine: FicheMachine): string {
+  return machine.date_vente === null
+    ? texteAbsent()
+    : String(machine.date_vente.getUTCFullYear());
+}
+
+/**
+ * LA PROCHAINE VGP — `libelleEcheance` rend déjà la phrase complète
+ * (« Prochaine échéance — … », « Échéance dépassée — … », « Aucun rythme
+ * déclaré ») pour les machines soumises et renseignées ; `null` couvre les
+ * deux autres états (hors registre, sans information), que N-11 rend par
+ * « à déterminer » plutôt que par le tiret des autres écrans — la fiche parle
+ * d'une DÉCISION à prendre, pas d'une absence de champ.
+ */
+function prochaineVgpAffichee(
+  information: Awaited<ReturnType<typeof informationDeLaMachine>>,
+): string {
+  if (information === null) {
+    return t("machine.fiche.vgp_a_determiner");
+  }
+  return libelleEcheance(information) ?? t("machine.fiche.vgp_a_determiner");
+}
+
+/** Le signe d'absence, résolu par un APPEL plutôt que par la constante nue (L0-11). */
+function texteAbsent(): string {
+  return ABSENT;
+}
+
+/** `null` s'écrit « — », jamais une date vide qui se lirait comme une donnée. */
+function dateAffichee(date: Date | null): string {
+  return date === null ? texteAbsent() : dateCivile(date);
+}
+
+/**
+ * LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` (I10). Recopiée
+ * de `app/(back-office)/parc/page.tsx`, comme cette dernière l'était déjà de
+ * `app/(back-office)/interventions/presentation.ts` — la même forme, jamais
+ * la même règle partagée.
  */
 function referenceMachine(machine: {
   id: string;
@@ -185,22 +526,51 @@ function referenceMachine(machine: {
   return `Local-${machine.id.replaceAll("-", "").slice(-6).toUpperCase()}`;
 }
 
-function identiteMachine(machine: FicheMachine): string {
-  const marque = machine.modele.marque;
-  const reference = machine.modele.reference;
-  const famille = machine.modele.famille.libelle;
-  return `${marque} ${reference} — ${famille}`;
+/**
+ * LES TONS DE LA PASTILLE DE STATUT — recopiés de `/parc` (même dérivation de
+ * la maquette : En service → vert, En panne → rouge, Arrêtée → orange, les
+ * trois statuts terminaux au gris neutre).
+ */
+const TONS_STATUT: Record<FicheMachine["statut"], TonBadge> = {
+  en_service: "vert",
+  en_panne: "rouge",
+  arretee: "orange",
+  remplacee: "gris",
+  ferraillee: "gris",
+  fusionnee: "gris",
+};
+
+function statutAffiche(statut: FicheMachine["statut"]): string {
+  return t(`statut_machine.${statut}`);
 }
 
-function lieuMachine(machine: FicheMachine): string {
-  const site = machine.site.commune;
+/**
+ * LE NUMÉRO DE SÉRIE AFFICHÉ — recopié de `/parc` (défaut n°1 de N-11, §5) :
+ * un numéro illisible (`SN-INCONNU-…`) ne s'affiche jamais comme un vrai
+ * numéro de série, il s'affiche comme ce qu'il est — une fiche à compléter.
+ */
+function numeroDeSerieAffiche(machine: FicheMachine): React.ReactNode {
+  if (machine.complet) {
+    return machine.numero_serie;
+  }
+  return (
+    <>
+      {texteAbsent()}
+      <span className="mt-[3px] block font-sans">
+        <Badge ton="orange">{t("machine.fiche.a_completer")}</Badge>
+      </span>
+    </>
+  );
+}
+
+/**
+ * LE LIEU AFFICHÉ — recopié de `/parc` (défaut n°3 de N-11, §5) : la commune
+ * ne se répète pas quand elle vaut déjà le libellé du site.
+ */
+function lieuAffiche(machine: FicheMachine): string {
+  const commune = machine.site.commune;
   const libelle = machine.site.libelle;
-  return site === null
-    ? `${machine.client.raison_sociale} — ${libelle}`
-    : `${machine.client.raison_sociale} — ${libelle}, ${site}`;
-}
-
-/** `null` s'écrit « — », jamais une date vide qui se lirait comme une donnée. */
-function dateAffichee(date: Date | null): string {
-  return date === null ? "—" : dateCivile(date);
+  return commune === null || commune === libelle
+    ? libelle
+    : `${libelle} — ${commune}`;
 }
