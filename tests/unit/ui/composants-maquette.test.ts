@@ -112,6 +112,7 @@ const FICHE = source("components/ui/fiche.tsx");
 const BADGE = source("components/ui/badge.tsx");
 const KPI = source("components/ui/kpi.tsx");
 const TABLEAU = source("components/ui/tableau.tsx");
+const MAITRE_DETAIL = source("components/ui/maitre-detail.tsx");
 
 /** Les graisses Tailwind que ce gardien sait lire — un fait du framework, pas de l'application. */
 const GRAISSES: Readonly<Record<string, number>> = {
@@ -120,6 +121,7 @@ const GRAISSES: Readonly<Record<string, number>> = {
   "font-semibold": 600,
   "font-bold": 700,
   "font-extrabold": 800,
+  "font-black": 900,
 };
 
 /** Vrai si le texte porte une classe de graisse valant `attendue`. */
@@ -416,5 +418,250 @@ describe("Tableau — table, th et td de la maquette (déjà écrit, ici éprouv
     expect(TABLEAU).toContain(`py-[${vertical}]`);
     expect(horizontal).toBe("16px");
     expect(TABLEAU).toContain("px-4");
+  });
+});
+
+/**
+ * Maître-détail — `.master-detail`, `.machine-list`, `.machine-row`,
+ * `.detail-hero`, `.machine-symbol`, `.detail-body`, `.kv`, `.timeline`,
+ * `.empty` de `codiplan-maquette-complete.html` (N-10, D125).
+ *
+ * Toutes les mesures ici viennent de la SECONDE maquette : D125 en fait la
+ * source de la disposition de `/parc`, exactement comme D124 l'a déjà faite
+ * pour les jetons — deux fichiers, deux blocs de lecture, jamais mêlés.
+ */
+describe("MaitreDetail — .master-detail de la maquette (N-10, D125)", () => {
+  it("a réellement lu une règle — le témoin de non-vacuité", () => {
+    expect(regleComplete(".master-detail").length).toBeGreaterThan(0);
+  });
+
+  it("la grille reprend les colonnes et l'écart de .master-detail", () => {
+    const bloc = regleComplete(".master-detail");
+    expect(propriete(bloc, "grid-template-columns")).toBe(
+      "minmax(360px,.85fr) minmax(430px,1.15fr)",
+    );
+    expect(MAITRE_DETAIL).toContain(
+      "grid-cols-[minmax(360px,.85fr)_minmax(430px,1.15fr)]",
+    );
+
+    expect(propriete(bloc, "gap")).toBe("16px");
+    expect(MAITRE_DETAIL).toContain("gap-4");
+  });
+
+  it("le repli à une colonne suit le seuil de 900px de la maquette", () => {
+    expect(MAQUETTE_COMPLETE).toContain("@media(max-width:900px)");
+    expect(MAITRE_DETAIL).toContain("min-[901px]:grid-cols-");
+  });
+});
+
+describe("CarteListe — .machine-list et .card-head de la maquette", () => {
+  it("a réellement lu deux règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".machine-list").length).toBeGreaterThan(0);
+    expect(regleComplete(".card-head").length).toBeGreaterThan(0);
+  });
+
+  it("la liste reprend la hauteur de défilement de .machine-list", () => {
+    const bloc = regleComplete(".machine-list");
+    expect(propriete(bloc, "max-height")).toBe("680px");
+    expect(MAITRE_DETAIL).toContain("max-h-[680px]");
+    expect(propriete(bloc, "overflow")).toBe("auto");
+    expect(MAITRE_DETAIL).toContain("overflow-auto");
+  });
+
+  it("l'en-tête reprend le rembourrage et la taille de .card-head", () => {
+    const bloc = regleComplete(".card-head");
+    const [vertical, horizontal] = propriete(bloc, "padding").split(" ");
+    expect(MAITRE_DETAIL).toContain(`py-[${vertical}]`);
+    expect(MAITRE_DETAIL).toContain(`px-[${horizontal}]`);
+
+    const h2 = regleComplete(".card-head h2,.card-head h3");
+    expect(propriete(h2, "font-size")).toBe("15px");
+    expect(MAITRE_DETAIL).toContain("text-[15px]");
+  });
+});
+
+describe("RangeeMaitreDetail — .machine-row de la maquette", () => {
+  it("a réellement lu quatre règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".machine-row").length).toBeGreaterThan(0);
+    expect(regleComplete(".machine-row.selected").length).toBeGreaterThan(0);
+    expect(regleComplete(".machine-row h3").length).toBeGreaterThan(0);
+    expect(regleComplete(".machine-row p").length).toBeGreaterThan(0);
+  });
+
+  it("la ligne reprend le rembourrage, la grille et l'écart de .machine-row", () => {
+    const bloc = regleComplete(".machine-row");
+    const [vertical, horizontal] = propriete(bloc, "padding").split(" ");
+    expect(MAITRE_DETAIL).toContain(`py-[${vertical}]`);
+    expect(MAITRE_DETAIL).toContain(`px-[${horizontal}]`);
+
+    expect(propriete(bloc, "grid-template-columns")).toBe("1fr auto");
+    expect(MAITRE_DETAIL).toContain("grid-cols-[1fr_auto]");
+  });
+
+  it("la ligne SÉLECTIONNÉE reprend le liseré interne de .machine-row.selected", () => {
+    // `--blue` vaut `--app-marque` (D122) : le liseré n'introduit aucun
+    // second jeton de bleu, il reprend celui déjà posé pour l'onglet actif.
+    //
+    // `.machine-row.selected` apparaît DEUX fois dans la maquette — une
+    // première fois dans le sélecteur combiné `.machine-row:hover,
+    // .machine-row.selected{background:...}`, que `regleComplete` lirait par
+    // erreur puisqu'il ne cherche pas la règle en tête de ligne. La règle du
+    // liseré est isolée ici par son PROPRE motif, `box-shadow` compris.
+    const motif = /\.machine-row\.selected\{box-shadow:([^}]*)\}/;
+    const trouve = motif.exec(MAQUETTE_COMPLETE);
+    if (trouve === null) {
+      throw new Error(
+        "la règle `.machine-row.selected{box-shadow:...}` est introuvable " +
+          "dans docs/maquette/codiplan-maquette-complete.html",
+      );
+    }
+    expect(trouve[1]).toBe("inset 4px 0 var(--blue)");
+    expect(MAITRE_DETAIL).toContain(
+      "shadow-[inset_4px_0_0_0_var(--app-marque)]",
+    );
+  });
+
+  it("le titre et le sous-titre reprennent les tailles de .machine-row h3/p", () => {
+    const h3 = regleComplete(".machine-row h3");
+    expect(propriete(h3, "font-size")).toBe("14px");
+    expect(MAITRE_DETAIL).toContain("text-[14px]");
+
+    const p = regleComplete(".machine-row p");
+    expect(propriete(p, "font-size")).toBe("12px");
+    expect(MAITRE_DETAIL).toContain("text-[12px]");
+  });
+});
+
+describe("DetailHero — .detail-hero et .machine-symbol de la maquette", () => {
+  it("a réellement lu deux règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".detail-hero").length).toBeGreaterThan(0);
+    expect(regleComplete(".machine-symbol").length).toBeGreaterThan(0);
+  });
+
+  it("l'aperçu reprend le rembourrage et l'écart de .detail-hero", () => {
+    const bloc = regleComplete(".detail-hero");
+    expect(propriete(bloc, "padding")).toBe("21px");
+    expect(MAITRE_DETAIL).toContain("p-[21px]");
+    expect(propriete(bloc, "gap")).toBe("16px");
+    expect(MAITRE_DETAIL).toContain("gap-4");
+  });
+
+  it("le symbole reprend la taille et la graisse de .machine-symbol — jamais son rayon littéral", () => {
+    const bloc = regleComplete(".machine-symbol");
+    const [largeur] = [propriete(bloc, "width")];
+    expect(largeur).toBe("58px");
+    expect(MAITRE_DETAIL).toContain("w-[58px]");
+    expect(propriete(bloc, "height")).toBe("58px");
+    expect(MAITRE_DETAIL).toContain("h-[58px]");
+
+    expect(propriete(bloc, "font-size")).toBe("26px");
+    expect(MAITRE_DETAIL).toContain("text-[26px]");
+
+    expect(
+      porteLaGraisse(MAITRE_DETAIL, Number(propriete(bloc, "font-weight"))),
+    ).toBe(true);
+
+    // LE RAYON — `14px` dans la maquette, la même VALEUR que `--radius`
+    // (D124) : `rounded-lg` le lit par le jeton, jamais par un second
+    // `rounded-[14px]` littéral qui redeviendrait faux si `--radius` bougeait.
+    expect(propriete(bloc, "border-radius")).toBe("14px");
+    expect(MAITRE_DETAIL).toContain("rounded-lg");
+    expect(MAITRE_DETAIL).not.toMatch(/rounded-\[\d+px\]/);
+  });
+});
+
+describe("Kv — .detail-body, .kv, .kv dt et .kv dd de la maquette", () => {
+  it("a réellement lu quatre règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".detail-body").length).toBeGreaterThan(0);
+    expect(regleComplete(".kv").length).toBeGreaterThan(0);
+    expect(regleComplete(".kv dt").length).toBeGreaterThan(0);
+    expect(regleComplete(".kv dd").length).toBeGreaterThan(0);
+  });
+
+  it("le corps reprend le rembourrage de .detail-body", () => {
+    expect(propriete(regleComplete(".detail-body"), "padding")).toBe("19px");
+    expect(MAITRE_DETAIL).toContain("p-[19px]");
+  });
+
+  it("la grille reprend les colonnes et l'écart de .kv", () => {
+    const bloc = regleComplete(".kv");
+    expect(propriete(bloc, "grid-template-columns")).toBe(
+      "repeat(2,minmax(0,1fr))",
+    );
+    expect(MAITRE_DETAIL).toContain("grid-cols-2");
+    const [ligne, colonne] = propriete(bloc, "gap").split(" ");
+    expect(ligne).toBe("0");
+    expect(colonne).toBe("18px");
+    expect(MAITRE_DETAIL).toContain(`gap-x-[${colonne}]`);
+  });
+
+  it("chaque paire reprend le rembourrage de .kv div", () => {
+    const bloc = regleComplete(".kv div");
+    const [vertical] = propriete(bloc, "padding").split(" ");
+    expect(MAITRE_DETAIL).toContain(`py-[${vertical}]`);
+  });
+
+  it("le libellé reprend taille, capitales et graisse de .kv dt", () => {
+    const dt = regleComplete(".kv dt");
+    expect(propriete(dt, "font-size")).toBe("11px");
+    expect(MAITRE_DETAIL).toContain("text-[11px]");
+    expect(propriete(dt, "text-transform")).toBe("uppercase");
+    expect(MAITRE_DETAIL).toContain("uppercase");
+    expect(
+      porteLaGraisse(MAITRE_DETAIL, Number(propriete(dt, "font-weight"))),
+    ).toBe(true);
+  });
+
+  it("la valeur reprend l'espacement et la graisse de .kv dd", () => {
+    const dd = regleComplete(".kv dd");
+    const [haut] = propriete(dd, "margin").split(" ");
+    expect(MAITRE_DETAIL).toContain(`mt-[${haut}]`);
+    expect(
+      porteLaGraisse(MAITRE_DETAIL, Number(propriete(dd, "font-weight"))),
+    ).toBe(true);
+  });
+});
+
+describe("Timeline — .timeline et .timeline-item de la maquette", () => {
+  it("a réellement lu deux règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".timeline").length).toBeGreaterThan(0);
+    expect(regleComplete(".timeline-item").length).toBeGreaterThan(0);
+  });
+
+  it("la frise reprend l'écart de .timeline", () => {
+    const bloc = regleComplete(".timeline");
+    expect(propriete(bloc, "margin-top")).toBe("18px");
+    expect(MAITRE_DETAIL).toContain("mt-[18px]");
+    expect(propriete(bloc, "padding-left")).toBe("20px");
+    expect(MAITRE_DETAIL).toContain("pl-[20px]");
+  });
+
+  it("chaque étape reprend le rembourrage de .timeline-item", () => {
+    const bloc = regleComplete(".timeline-item");
+    const padding = propriete(bloc, "padding").split(" ");
+    const bas = padding[2];
+    const gauche = padding[3];
+    expect(MAITRE_DETAIL).toContain(`pb-[${bas}]`);
+    expect(MAITRE_DETAIL).toContain(`pl-[${gauche}]`);
+  });
+});
+
+describe("CarteVide — .empty de la maquette (l'état vide du maître-détail)", () => {
+  it("a réellement lu deux règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".empty").length).toBeGreaterThan(0);
+    expect(regleComplete(".empty b").length).toBeGreaterThan(0);
+  });
+
+  it("la carte reprend le rembourrage de .empty, et son titre celui de .empty b", () => {
+    const bloc = regleComplete(".empty");
+    const [vertical, horizontal] = propriete(bloc, "padding").split(" ");
+    expect(MAITRE_DETAIL).toContain(`py-[${vertical}]`);
+    expect(MAITRE_DETAIL).toContain(`px-[${horizontal}]`);
+
+    const b = regleComplete(".empty b");
+    expect(propriete(b, "font-size")).toBe("16px");
+    expect(MAITRE_DETAIL).toContain("text-[16px]");
+    expect(propriete(b, "margin-bottom")).toBe("5px");
+    expect(MAITRE_DETAIL).toContain("mb-[5px]");
   });
 });

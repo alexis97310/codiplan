@@ -1277,28 +1277,24 @@ export const fr = {
   // La maquette range ce contenu en TABLEAU, pas en cartes. Les libellés
   // portent tout SAUF les notions imposées : le composant compose le titre de
   // la colonne d'établissement depuis `mot("agence")`.
-  // ── L'ÉCRAN « PARC MACHINES » (R2-21) ───────────────────────────────────
-  "parc.titre": "Parc machines clients",
-  // LA RECHERCHE EST ANNONCÉE DÈS LE SOUS-TITRE, comme la maquette le fait
-  // (D95) — AT-04 ; elle n'est pas encore appliquée (AT-07), et ce sous-titre
-  // ne le tait plus. « Site » est un mot IMPOSÉ (D5, D47) : il ne s'écrit pas
-  // ici, la phrase se coupe en deux et se recompose avec `motDansUnePhrase`
-  // (lib/i18n/vocabulaire.ts), comme le gardien du vocabulaire l'exige.
-  "parc.sous_titre_recherche_avant":
-    "Ce que CODIMA suit, chez qui, et ce qu'il reste à compléter. Recherche par client,",
-  "parc.sous_titre_recherche_apres": "modèle ou numéro de série.",
-  "parc.colonne_reference": "Référence",
-  "parc.colonne_modele": "Modèle",
-  "parc.colonne_serie": "N° de série",
-  "parc.colonne_lieu": "Client / lieu",
-  // LE PRÉFIXE SEUL — la maquette écrit « Client / Site », et « Site » se
-  // compose depuis `mot("site")` plutôt que de se recopier ici (D5, D47) ;
-  // voir `lib/machines/ecarts-maquette.ts`.
-  "parc.colonne_lieu_prefixe": "Client",
-  "parc.colonne_mise_en_service": "Mise en service",
-  "parc.colonne_statut": "Statut",
-  "parc.famille": "Famille",
-  "parc.vide": "Aucune machine n'est enregistrée pour cette société.",
+  // ── L'ÉCRAN « PARC MACHINES » (R2-21 ; réécrit N-10, D125) ──────────────
+  // LE TITRE EST CELUI DE `head()` DANS `parc()` — « Parc machines », sans
+  // « clients » : `codiplan-maquette-complete.html` fait foi sur ce point
+  // depuis D125, elle a été RELUE au moment du ticket, jamais recopiée d'une
+  // mémoire de l'ancienne maquette.
+  "parc.titre": "Parc machines",
+  // LE SOUS-TITRE EST CELUI DE LA MAQUETTE, MOT POUR MOT — elle ne cite plus
+  // « site » depuis N-10, si bien qu'aucune composition par
+  // `motDansUnePhrase` n'est plus nécessaire ici (D5, D47 restent respectés :
+  // le mot n'apparaît simplement plus dans cette phrase).
+  "parc.sous_titre":
+    "Recherche sur l’identifiant, le numéro de série, la désignation et le client.",
+  "parc.recherche_champ":
+    "Rechercher un identifiant, un numéro de série, une désignation ou un client",
+  "parc.recherche_action": "Rechercher",
+  "parc.filtre_statut.libelle": "Filtrer par statut",
+  "parc.filtre_statut.tous": "Tous les statuts",
+  "parc.reinitialiser": "Réinitialiser",
   "parc.total": "machines",
   // LE SINGULIER EST UNE CLÉ, jamais un « s » retranché : « 1 fiches à
   // compléter » a été lu SUR UNE IMAGE le 13/09/2026, et aucune assertion ne
@@ -1308,34 +1304,50 @@ export const fr = {
   "parc.incompletes": "fiches à compléter",
   "parc.incompletes_un": "fiche à compléter",
   "parc.a_completer": "À compléter",
-  "parc.non_synchronisee": "non synchronisée",
-  // LE BANDEAU UNIQUE remplace une mention RÉPÉTÉE SOUS CHAQUE LIGNE — mesurée
-  // par le directeur d'exploitation le 16/09/2026 : sur un parc où AUCUNE
-  // fiche n'a encore de numéro serveur, la mention ne distinguait plus rien,
-  // répétée 200 fois. Elle ne s'affiche que si toutes les lignes rendues la
-  // portent (AT-04) — le jour où la synchronisation attribuera des numéros
-  // (lot 3), elle redeviendra une exception par ligne, comme avant.
-  "parc.aucune_synchronisee":
-    "Aucune fiche affichée n'a encore de numéro attribué par le serveur : les références ci-dessous sont locales, en attendant la première synchronisation.",
-  // ── LES QUATRE KPI DU BANDEAU (D95) — un sur quatre est un écart, voir
-  // lib/machines/ecarts-maquette.ts.
-  "parc.kpi_actives": "Machines actives",
-  "parc.kpi_garantie": "Garantie expirant < 90 j",
-  "parc.kpi_en_panne": "En panne / arrêtées",
+  "parc.famille": "Famille",
+  // LES QUATRE CLÉS QUI SUIVENT NE SERVENT PLUS QUE LA FICHE MACHINE
+  // (`app/(back-office)/parc/[id]/page.tsx`, N-11) : la liste elle-même est
+  // devenue un maître-détail (N-10, D125) et ne rend plus de `<th>`. Ce
+  // ticket ne touche pas la fiche — « une proposition à la fois » — donc ces
+  // quatre clés restent, à l'identique.
+  "parc.colonne_serie": "N° de série",
+  "parc.colonne_lieu": "Client / lieu",
+  "parc.colonne_mise_en_service": "Mise en service",
+  "parc.colonne_statut": "Statut",
+  // ── LES TROIS KPI DU BANDEAU — libellés de `parc()`, mesurés N-10 (D125) ──
+  "parc.kpi_affichees": "Machines affichées",
+  "parc.kpi_garantie": "Garanties < 90 jours",
+  "parc.kpi_en_panne": "En panne ou arrêtées",
   "parc.kpi_sur": "sur",
-  // « affichées » DISAIT vrai tant que l'écran rendait tout le parc filtré en
-  // une seule fois ; depuis que la liste PAGINE (AT-07), ce nombre porte sur
-  // toute la recherche, jamais sur la seule page — « au total » le dit sans
-  // mentir sur ce qui est effectivement à l'écran.
-  "parc.kpi_affichees": "au total",
+  "parc.kpi_affichees_total": "au total",
   "parc.kpi_en_panne_detail_panne": "en panne",
   "parc.kpi_en_panne_detail_arretees": "arrêtées",
-  // ── LA RECHERCHE, CÂBLÉE ET PAS ENCORE REMPLIE (AT-04, AT-07) ────────────
-  // « Site » composé, pour la même raison que le sous-titre juste au-dessus.
-  "parc.recherche_prefixe": "Client,",
-  "parc.recherche_suffixe": "modèle ou numéro de série",
-  "parc.recherche_action": "Rechercher",
-  "parc.titre_carte": "Parc",
+  // LE DÉCOMPTE QUI OCCUPAIT L'EN-TÊTE (§1 du ticket N-10) — « quitte
+  // l'en-tête, devient le détail du premier KPI » : la maquette n'y place que
+  // des boutons, tous deux des écarts nommés ici (lib/machines/
+  // ecarts-maquette.ts), et ce nombre n'avait donc plus sa place là.
+  // ── LE MAÎTRE-DÉTAIL (N-10, D125) ────────────────────────────────────────
+  "parc.resultats": "Résultats",
+  "parc.fiche_complete": "Fiche complète",
+  "parc.derniers_evenements": "Derniers événements",
+  "parc.aucun_evenement": "Aucun événement enregistré pour cette machine.",
+  // « Site » et « Agence » sont IMPOSÉS (D5, D47) : leurs libellés se
+  // composent depuis `mot("site")`/`mot("agence")` dans la page, jamais ici
+  // — voir `lib/machines/ecarts-maquette.ts` pour la même règle déjà
+  // appliquée à l'ancienne colonne « Client / lieu ».
+  "parc.kv_client": "Client",
+  "parc.kv_serie": "N° de série",
+  "parc.kv_famille": "Famille",
+  "parc.kv_agence_suffixe": "CODIMA",
+  "parc.kv_contrat": "Contrat",
+  // LE SYMBOLE DE `.machine-symbol` — une seule lettre, décorative, mais
+  // visible à l'écran : elle passe par le dictionnaire comme tout le reste
+  // (L0-11), pas parce qu'elle se traduirait un jour, mais parce que le
+  // gardien des chaînes visibles ne peut pas distinguer un glyphe d'un mot.
+  "parc.symbole_machine": "M",
+  "parc.aucune_trouvee": "Aucune machine trouvée",
+  "parc.aucune_trouvee_detail":
+    "Modifiez la recherche ou réinitialisez les filtres.",
   // ── LE REGISTRE DES VGP (L9-02, L9-03 ; D88) ────────────────────────────
   //
   // AUCUN LIBELLÉ NE DIT « CONFORME » NI « NON CONFORME », et ce n'est pas une

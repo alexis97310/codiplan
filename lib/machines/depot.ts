@@ -62,7 +62,18 @@ export const CHAMPS_PARC = {
   // fait autant d'allers-retours que de lignes* (§9, 23/08).
   client_id: true,
   client: { select: { raison_sociale: true } },
-  site: { select: { libelle: true, commune: true } },
+  // `agence` VOYAGE DEPUIS LE SITE (N-10, D125) — l'aperçu du maître-détail
+  // montre « Agence CODIMA », et c'est un FAIT RÉEL : `site.agence_id`
+  // existe depuis D56 (une machine n'a pas d'agence propre, elle hérite de
+  // celle du site où elle se trouve). Ce n'est pas un écart, juste un champ
+  // de plus dans un select qui en portait déjà six.
+  site: {
+    select: {
+      libelle: true,
+      commune: true,
+      agence: { select: { libelle: true } },
+    },
+  },
 } as const;
 
 export type LigneDeParc = Prisma.MachineGetPayload<{
@@ -164,22 +175,60 @@ export function resumerLeParc(
  * `filtreDeRecherche` le fait déjà pour les clients (§9, 01/09).
  */
 function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
-  if (criteres.texte === null) {
-    return {};
-  }
-  const motif = {
-    contains: criteres.texte,
-    mode: Prisma.QueryMode.insensitive,
-  };
-  return {
-    OR: [
-      { numero_serie: motif },
-      { client: { raison_sociale: motif } },
-      { site: { libelle: motif } },
-      { site: { commune: motif } },
-      { modele: { reference: motif } },
-    ],
-  };
+  const filtreTexte: Prisma.MachineWhereInput =
+    criteres.texte === null
+      ? {}
+      : {
+          OR: [
+            {
+              numero_serie: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              client: {
+                raison_sociale: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              site: {
+                libelle: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              site: {
+                commune: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+            {
+              modele: {
+                reference: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          ],
+        };
+
+  // LE FILTRE DE STATUT (N-10, D125) — le `<select>` que la barre d'outils
+  // câble désormais. Même forme que `filtreDeRecherche` de `lib/clients/
+  // depot.ts` pour `etat` : une seule écriture du critère, partagée par la
+  // liste, le compteur et le résumé.
+  const filtreStatut: Prisma.MachineWhereInput =
+    criteres.statut === "tous" ? {} : { statut: criteres.statut };
+
+  return { ...filtreTexte, ...filtreStatut };
 }
 
 /**

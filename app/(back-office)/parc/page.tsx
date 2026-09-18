@@ -2,18 +2,29 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { Badge, type TonBadge } from "@/components/ui/badge";
-import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
+import {
+  CarteListe,
+  CarteVide,
+  DetailBody,
+  DetailHero,
+  Kv,
+  KvLigne,
+  MaitreDetail,
+  RangeeMaitreDetail,
+  Timeline,
+  TimelineItem,
+} from "@/components/ui/maitre-detail";
 import { Pagination } from "@/components/ui/pagination";
-import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { maintenant, schemaFuseau, dateCivile } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
-import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { mot } from "@/lib/i18n/vocabulaire";
 import {
   compterLeParc,
   rechercherLeParc,
@@ -21,64 +32,58 @@ import {
   resumerLeParcFiltre,
   type LigneDeParc,
 } from "@/lib/machines/depot";
-import {
-  COLONNES_PARC,
-  KPI_PARC,
-  type CleKpiParc,
-} from "@/lib/machines/ecarts-maquette";
+import { historiqueDeLaMachine } from "@/lib/machines/historique";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheParc,
 } from "@/lib/machines/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
-import { CLASSES_TON } from "@/lib/theme/statuts";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 
 /**
- * L'ÉCRAN « PARC MACHINES » (R2-21, AT-04 ; D95, D6, I10).
+ * L'ÉCRAN « PARC MACHINES » — MAÎTRE-DÉTAIL (N-10, D125 ; R2-21, AT-04, I10).
  *
- * ## Il ouvre une entrée de la barre qui était INERTE depuis D95
+ * ## CE QUI CHANGE, ET POURQUOI MAINTENANT
  *
- * *« Une entrée inerte dit ce que le produit sera ; un lien vers un écran vide
- * dirait qu'il est cassé »* — et pendant ce temps, la deuxième colonne de la
- * maquette ne menait nulle part. La fiche machine existe depuis L2-01 : ce qui
- * manquait n'était pas le droit de lire le parc, c'était **un appelant**. C'est
- * la maladie que le §6 nomme à propos du portail, et elle se soigne de la même
- * façon.
+ * Jusqu'ici cet écran restait le tableau de l'ANCIENNE maquette
+ * (`CODIPLAN_Maquette.html`, D95) pendant que `codiplan-maquette-complete.
+ * html` y dessine, dans sa fonction `parc()`, un maître-détail complet.
+ * D122 avait borné l'autorité de la seconde maquette au seul VOCABULAIRE
+ * d'écran, en laissant la disposition à D95 ; D125 (18/09/2026) déplace cette
+ * frontière pour les quatorze écrans que `codiplan-maquette-complete.html`
+ * dessine, `/parc` en tête. Voir `docs/arbitrages.md`.
  *
- * ## CE QUI MANQUAIT, MESURÉ PLUTÔT QUE PRÉSUMÉ (AT-04)
+ * ## LA SÉLECTION VIT DANS L'URL, jamais dans un composant
  *
- * Le directeur d'exploitation avait raison sur l'absence de KPI et de
- * recherche, et sur deux colonnes ; il avait tort sur une troisième — le
- * ticket citait « compteur, contrat, statut », et `statut` était déjà une
- * vraie colonne. `lib/machines/ecarts-maquette.ts` porte la mesure, colonne
- * par colonne et KPI par KPI, plutôt que de reconduire une liste par
- * ressemblance avec une autre.
+ * `?machine=<id>` — rendue côté serveur, sans `"use client"` ni état React.
+ * *Tranché par le ticket N-10* : la sélection survit au rechargement et se
+ * partage par lien, et l'écran reste un composant serveur comme tous les
+ * autres de ce dépôt.
  *
- * ## CE QU'IL NE FAIT TOUJOURS PAS
+ * ## LE PREMIER KPI COMPTE LE PÉRIMÈTRE FILTRÉ, PAS LA PAGE
  *
- * L'export Excel manque encore : rien dans le dépôt ne sait exporter ce
- * tableau, et un lien vers un export inexistant se lirait comme une panne
- * (R2-13).
+ * « Machines affichées » aurait pu se lire deux façons une fois la liste
+ * PAGINÉE (AT-07) : la page (50) ou tout le périmètre filtré (des centaines).
+ * La seconde lecture est retenue — LE MÊME NOMBRE que la pagination — parce
+ * que deux chiffres qui se contrediraient côte à côte sous le même écran
+ * seraient la pire forme de divergence (§9, 01/09), et c'est très exactement
+ * ce que `resumerLeParcFiltre` refuse déjà pour les trois autres KPI.
  *
- * ## LA RECHERCHE EST REMPLIE, ET LA LISTE PAGINE (AT-07, 17/09/2026)
+ * ## CE QUE L'EN-TÊTE NE PORTE PLUS
  *
- * `BarreDeFiltres` était câblée depuis AT-04 sans qu'aucun dépôt ne lise
- * `q` : c'est ce que ce ticket répare. Le texte porte sur les colonnes
- * VISIBLES du tableau — numéro de série, client, lieu, référence du modèle —
- * jamais sur `qr_token`, que la maquette propose mais qu'AUCUNE colonne
- * n'affiche (l'écart est écrit à côté de `schemaRechercheParc`,
- * `lib/machines/saisie.ts`).
+ * Le décompte qui y vivait (« N machines · M fiches à compléter ») EN EST
+ * PARTI : `head()` de la maquette n'y pose que des boutons, tous deux des
+ * écarts nommés ici (`lib/machines/ecarts-maquette.ts` —
+ * `ECARTS_MAQUETTE_ACTIONS_PARC`, aucun des deux ne menant à un écran qui
+ * existe). Le décompte devient le détail du premier KPI.
  *
- * **Le résumé (bandeau KPI) ne compte plus les lignes RENDUES** — la règle de
- * R2-21 tenait tant que « rendu » voulait dire « tout le parc filtré ». Une
- * page de 50 lignes n'est plus tout le parc : `resumerLeParcFiltre` lit donc
- * une PAGE séparée, plafonnée à `LIMITE_RECHERCHE_MAXIMALE` et non à la taille
- * d'une page, en réutilisant la même `filtreDuParc` que la liste — le principe
- * que `compterSansCodeExterne` applique déjà pour les clients (§9, 01/09).
- * `resumerLeParc`, la fonction PURE, ne change pas d'une ligne : ses tests
- * restent ceux de `tests/unit/machines/parc.test.ts`.
+ * ## LA FRISE NE COMPOSE RIEN QUE `historiqueDeLaMachine` NE SACHE DÉJÀ DIRE
+ *
+ * Elle porte les trois événements les plus récents de la machine
+ * SÉLECTIONNÉE, et d'elle seule — jamais une boucle sur toute la page, qui
+ * ferait un aller-retour par ligne rendue. Une machine sans intervention
+ * rend son ÉTAT VIDE, jamais un événement inventé.
  */
 
 const ABSENT = "—";
@@ -97,8 +102,6 @@ export default async function PageParc({
   }
   const contexte = session.contexte;
 
-  // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — le même geste que
-  // `/vgp`, qui couvre lui aussi toutes les agences d'une société.
   const societe = await avecContexteApplicatif(contexte, (tx) =>
     tx.societe.findFirst({
       where: { id: contexte.societeId as string },
@@ -111,120 +114,232 @@ export default async function PageParc({
   const params = await searchParams;
   const criteres = schemaRechercheParc.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
+    statut: typeof params.statut === "string" ? params.statut : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
   const lignes = criteres.success
     ? await rechercherLeParc(contexte, criteres.data)
     : [];
-  // LE RÉSUMÉ PORTE SUR TOUTE LA RECHERCHE (plafonnée), LE TABLEAU SUR LA
-  // PAGE — voir la note de tête sur `resumerLeParcFiltre`.
   const resume = criteres.success
     ? await resumerLeParcFiltre(contexte, criteres.data, aujourdHui)
     : resumerLeParc([], aujourdHui);
-  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDuParc` que la liste et que le
-  // résumé, jamais une troisième lecture du critère (AT-07).
+  // LE TOTAL DE LA PAGINATION, RÉUTILISÉ COMME VALEUR DU PREMIER KPI (voir la
+  // note de tête) — la MÊME `filtreDuParc` que la liste et que le résumé.
   const totalFiltre = criteres.success
     ? await compterLeParc(contexte, criteres.data)
     : 0;
+  // LE TOTAL GÉNÉRAL, SANS AUCUN FILTRE — le détail du premier KPI
+  // (« sur N machines au total ») porte sur LA SOCIÉTÉ, jamais sur la
+  // recherche en cours : changer le filtre ne doit pas faire bouger ce
+  // nombre-là.
+  const totalGeneral = await compterLeParc(contexte, {
+    texte: null,
+    statut: "tous",
+    page: 1,
+  });
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
   );
 
-  const colonnes = COLONNES_PARC.map((colonne) => ({
-    cle: colonne.id,
-    libelle: colonne.libelle(),
-    largeur: colonne.largeur,
-  }));
+  const machineParam =
+    typeof params.machine === "string" ? params.machine : undefined;
+  const selection =
+    lignes.find((ligne) => ligne.id === machineParam) ?? lignes[0];
+  const historique =
+    selection === undefined
+      ? []
+      : (await historiqueDeLaMachine(contexte, selection.id)).slice(0, 3);
 
-  // AUCUNE FICHE DE CETTE PAGE N'A ENCORE DE NUMÉRO SERVEUR — mesuré par le
-  // directeur d'exploitation le 16/09/2026 : la mention se répétait sous
-  // chaque ligne sans plus rien distinguer. Un bandeau UNIQUE la remplace tant
-  // que la synchronisation (lot 3) n'a attribué aucun numéro ; le jour où
-  // elle en attribuera un premier, cette condition devient fausse d'elle-même
-  // et la mention reprend sa forme par ligne, comme avant. **Portée sur la
-  // PAGE affichée, et non sur toute la recherche** (AT-07) : `numero` n'existe
-  // encore nulle part, donc la distinction ne se mesure pas aujourd'hui — un
-  // écart resserré plutôt que caché, écrit ici parce qu'il pourrait diverger
-  // le jour où la synchronisation attribuera un premier numéro sur une page et
-  // pas une autre.
-  const aucuneSynchronisee =
-    lignes.length > 0 && lignes.every((ligne) => ligne.numero === null);
+  const q = typeof params.q === "string" ? params.q : undefined;
+  const statutActif = criteres.success ? criteres.data.statut : "tous";
 
   return (
     <Page
       chemin="/parc"
       titre={t("parc.titre")}
-      sousTitre={sousTitreDuParc()}
-      actions={
-        <p className="text-app-encre-faible text-[12.5px]">
-          {decompte(totalFiltre, t("parc.total_un"), t("parc.total"))}
-          {resume.incompletes === 0
-            ? ""
-            : separateur(
-                decompte(
-                  resume.incompletes,
-                  t("parc.incompletes_un"),
-                  t("parc.incompletes"),
-                ),
-              )}
-        </p>
-      }
+      sousTitre={t("parc.sous_titre")}
     >
-      <BarreDeFiltres
-        action="/parc"
-        parametre="q"
-        valeur={typeof params.q === "string" ? params.q : undefined}
-        libelleChamp={libelleDeLaRecherche()}
-        libelleBouton={t("parc.recherche_action")}
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {KPI_PARC.map((kpi) => (
-          <Kpi
-            key={kpi.cle}
-            ton={kpi.ton}
-            libelle={t(kpi.cle)}
-            valeur={valeurDuKpi(kpi.cle, resume)}
-            detail={detailDuKpi(kpi.cle, resume, totalFiltre)}
+      <div data-bloc="toolbar" className="flex flex-wrap items-center gap-2">
+        <div data-bloc="recherche" className="contents">
+          <BarreDeFiltres
+            action="/parc"
+            parametre="q"
+            valeur={q}
+            libelleChamp={t("parc.recherche_champ")}
+            libelleBouton={t("parc.recherche_action")}
+            enfants={
+              <span data-bloc="filtre-statut" className="contents">
+                <label className="sr-only" htmlFor="statut">
+                  {t("parc.filtre_statut.libelle")}
+                </label>
+                <select
+                  id="statut"
+                  name="statut"
+                  defaultValue={statutActif}
+                  className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+                >
+                  <option value="tous">{t("parc.filtre_statut.tous")}</option>
+                  <option value="en_service">
+                    {t("statut_machine.en_service")}
+                  </option>
+                  <option value="en_panne">
+                    {t("statut_machine.en_panne")}
+                  </option>
+                  <option value="arretee">{t("statut_machine.arretee")}</option>
+                </select>
+              </span>
+            }
           />
-        ))}
+        </div>
+        <Button variant="outline" size="sm" asChild data-bloc="reinitialiser">
+          <Link href="/parc">{t("parc.reinitialiser")}</Link>
+        </Button>
       </div>
 
-      {aucuneSynchronisee ? (
-        <p
-          role="status"
-          className={`rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.avertissement}`}
-        >
-          {t("parc.aucune_synchronisee")}
-        </p>
-      ) : null}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div data-bloc="kpi-affichees">
+          <Kpi
+            libelle={t("parc.kpi_affichees")}
+            valeur={totalFiltre}
+            detail={detailAffichees(totalGeneral, resume.incompletes)}
+          />
+        </div>
+        <div data-bloc="kpi-garantie">
+          <Kpi
+            ton="orange"
+            libelle={t("parc.kpi_garantie")}
+            valeur={resume.garantieExpirant90j}
+          />
+        </div>
+        <div data-bloc="kpi-en-panne">
+          <Kpi
+            ton="rouge"
+            libelle={t("parc.kpi_en_panne")}
+            valeur={resume.enPanneOuArretees}
+            detail={detailEnPanne(resume)}
+          />
+        </div>
+      </div>
 
-      {/*
-        AUCUNE ACTION « EXPORTER EXCEL » N'EST RENDUE : la maquette en montre
-        une, et rien dans le dépôt ne sait exporter ce tableau. Un lien qui
-        mènerait à rien se lirait comme une panne (R2-13).
-      */}
-      <Carte titre={t("parc.titre_carte")}>
-        <Tableau colonnes={colonnes} minimum="900px">
-          {lignes.length === 0 ? (
-            <LignePleine colonnes={colonnes.length}>
-              {t("parc.vide")}
-            </LignePleine>
-          ) : null}
-          {lignes.map((machine) => (
-            <LigneMachine key={machine.id} machine={machine} />
-          ))}
-        </Tableau>
-      </Carte>
+      {lignes.length === 0 ? (
+        <CarteVide
+          titre={t("parc.aucune_trouvee")}
+          detail={t("parc.aucune_trouvee_detail")}
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/parc">{t("parc.reinitialiser")}</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <MaitreDetail
+          liste={
+            <CarteListe
+              titre={t("parc.resultats")}
+              compte={decompte(
+                totalFiltre,
+                t("parc.total_un"),
+                t("parc.total"),
+              )}
+            >
+              {lignes.map((machine) => (
+                <RangeeMaitreDetail
+                  key={machine.id}
+                  href={hrefDeLaLigne(
+                    q,
+                    statutActif,
+                    criteres.success ? criteres.data.page : 1,
+                    machine.id,
+                  )}
+                  selectionnee={selection?.id === machine.id}
+                  titre={machine.modele.reference}
+                  sousTitre={`${referenceMachine(machine)} · ${machine.client.raison_sociale}`}
+                  badge={
+                    <Badge ton={TONS_STATUT[machine.statut]}>
+                      {statutAffiche(machine.statut)}
+                    </Badge>
+                  }
+                />
+              ))}
+            </CarteListe>
+          }
+          apercu={
+            selection === undefined ? null : (
+              <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+                <DetailHero
+                  symbole={t("parc.symbole_machine")}
+                  reference={referenceMachine(selection)}
+                  titre={selection.modele.reference}
+                  badge={
+                    <Badge ton={TONS_STATUT[selection.statut]}>
+                      {statutAffiche(selection.statut)}
+                    </Badge>
+                  }
+                  action={
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/parc/${selection.id}`}>
+                        {t("parc.fiche_complete")}
+                      </Link>
+                    </Button>
+                  }
+                />
+                <DetailBody>
+                  <Kv>
+                    <KvLigne
+                      dt={t("parc.kv_client")}
+                      dd={selection.client.raison_sociale}
+                    />
+                    <KvLigne dt={mot("site")} dd={lieuAffiche(selection)} />
+                    <KvLigne
+                      dt={t("parc.kv_serie")}
+                      dd={numeroDeSerieAffiche(selection)}
+                    />
+                    <KvLigne
+                      dt={t("parc.kv_famille")}
+                      dd={familleKv(selection)}
+                    />
+                    <KvLigne
+                      dt={`${mot("agence")} ${t("parc.kv_agence_suffixe")}`}
+                      dd={agenceAffichee(selection)}
+                    />
+                    {/* « Contrat » — écart nommé (lib/machines/
+                        ecarts-maquette.ts, ECARTS_MAQUETTE_APERCU_PARC) :
+                        aucune table de contrat n'existe (lot 4). L'entrée
+                        RESTE, avec le signe d'absence — c'est la structure
+                        qui doit être identique (D125). */}
+                    <KvLigne dt={t("parc.kv_contrat")} dd={texteAbsent()} />
+                  </Kv>
+                  <h3 className="mt-[18px] text-[15px] font-bold">
+                    {t("parc.derniers_evenements")}
+                  </h3>
+                  {historique.length === 0 ? (
+                    <p className="text-app-encre-faible mt-2 text-[12.5px]">
+                      {t("parc.aucun_evenement")}
+                    </p>
+                  ) : (
+                    <Timeline>
+                      {historique.map((ligne) => (
+                        <TimelineItem
+                          key={ligne.id}
+                          titre={t(`type_intervention.${ligne.type}`)}
+                          detail={detailEvenement(ligne)}
+                        />
+                      ))}
+                    </Timeline>
+                  )}
+                </DetailBody>
+              </section>
+            )
+          }
+        />
+      )}
 
-      {/*
-        LE REGISTRE DES VGP SE REJOINT D'ICI, et non par la barre : celle-ci est
-        une liste CLOSE confrontée à la maquette (D95), qui n'y porte aucune
-        entrée « VGP ». Une douzième entrée la ferait rougir à raison — le même
-        traitement que l'écran des lieux, qui se rejoint par un lien.
-      */}
+      {/* LE REGISTRE DES VGP SE REJOINT D'ICI — écart nommé DANS L'AUTRE
+          SENS (lib/machines/ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_PARC) :
+          la maquette ne le dessine pas, mais c'est le seul appelant de /vgp
+          depuis cet écran (AT-04). */}
       <Link href="/vgp" className={`text-[12.5px] ${CLASSES_LIEN}`}>
         {t("vgp.lien_depuis_parc")}
       </Link>
@@ -246,7 +361,7 @@ export default async function PageParc({
         hrefPage={(page) =>
           hrefDeLaPage(
             "/parc",
-            { q: typeof params.q === "string" ? params.q : undefined },
+            { q, statut: statutActif === "tous" ? undefined : statutActif },
             page,
           )
         }
@@ -255,47 +370,44 @@ export default async function PageParc({
   );
 }
 
-/** La valeur d'un KPI — dérivée du même résumé que le tableau, jamais recalculée. */
-function valeurDuKpi(
-  cle: CleKpiParc,
-  resume: ReturnType<typeof resumerLeParc>,
-): number {
-  switch (cle) {
-    case "parc.kpi_actives":
-      return resume.actives;
-    case "parc.kpi_garantie":
-      return resume.garantieExpirant90j;
-    case "parc.kpi_en_panne":
-      return resume.enPanneOuArretees;
+/**
+ * L'URL D'UNE LIGNE DU MAÎTRE-DÉTAIL — les critères actifs, PLUS le
+ * paramètre `machine` (N-10). Même base que `hrefDeLaPage`
+ * (`../presentation.ts`), à laquelle ce ticket ajoute un cinquième
+ * paramètre : aucune des deux fonctions n'est réécrite en dupliquant
+ * l'autre, celle-ci compose directement sur `URLSearchParams`, la même
+ * brique que `hrefDeLaPage` emploie déjà.
+ */
+function hrefDeLaLigne(
+  q: string | undefined,
+  statut: string,
+  page: number,
+  machineId: string,
+): string {
+  const recherche = new URLSearchParams();
+  if (q !== undefined && q.length > 0) {
+    recherche.set("q", q);
   }
+  if (statut !== "tous") {
+    recherche.set("statut", statut);
+  }
+  recherche.set("page", String(page));
+  recherche.set("machine", machineId);
+  return `/parc?${recherche.toString()}`;
 }
 
-/**
- * Le détail d'un KPI, quand il en dit plus que sa seule valeur.
- *
- * **`totalFiltre` est un PARAMÈTRE à part de `resume`** (AT-07) : `resume` est
- * plafonné (`LIMITE_RECHERCHE_MAXIMALE`) pour rester un résumé bon marché,
- * tandis que le total affiché ici doit être celui de la pagination — le MÊME
- * nombre que le pied de liste. Les faire diverger montrerait deux chiffres
- * différents pour « le parc filtré », et c'est exactement ce qu'un lecteur ne
- * peut pas trancher (§9, 01/09).
- */
-function detailDuKpi(
-  cle: CleKpiParc,
-  resume: ReturnType<typeof resumerLeParc>,
-  totalFiltre: number,
-): string | undefined {
-  if (cle === "parc.kpi_actives") {
-    return `${t("parc.kpi_sur")} ${decompte(totalFiltre, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees")}`;
-  }
-  if (cle === "parc.kpi_en_panne") {
-    const enPanne = resume.parStatut.en_panne ?? 0;
-    const arretees = resume.parStatut.arretee ?? 0;
-    return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${arretees} ${t("parc.kpi_en_panne_detail_arretees")}`;
-  }
-  // « Garantie expirant » n'a pas de détail : la maquette en propose un
-  // (« à transformer en contrat ») qui présume la table `contrat`, absente.
-  return undefined;
+/** Le détail du premier KPI — le décompte qui vivait dans l'en-tête (§1). */
+function detailAffichees(totalGeneral: number, incompletes: number): string {
+  const base = `${t("parc.kpi_sur")} ${decompte(totalGeneral, t("parc.total_un"), t("parc.total"))} ${t("parc.kpi_affichees_total")}`;
+  return incompletes === 0
+    ? base
+    : `${base} · ${decompte(incompletes, t("parc.incompletes_un"), t("parc.incompletes"))}`;
+}
+
+function detailEnPanne(resume: ReturnType<typeof resumerLeParc>): string {
+  const enPanne = resume.parStatut.en_panne ?? 0;
+  const arretees = resume.parStatut.arretee ?? 0;
+  return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${arretees} ${t("parc.kpi_en_panne_detail_arretees")}`;
 }
 
 /**
@@ -303,9 +415,6 @@ function detailDuKpi(
  * les trois statuts qu'elle montre (En service → vert, En panne → rouge,
  * Arrêtée → orange) ; les trois statuts terminaux n'ont aucun précédent dans
  * la maquette et prennent le gris neutre — un jugement, écrit comme tel.
- *
- * Le type couvre les SIX valeurs de `StatutMachine` : en omettre une est un
- * refus de compilation, jamais un statut affiché sans couleur.
  */
 const TONS_STATUT: Record<LigneDeParc["statut"], TonBadge> = {
   en_service: "vert",
@@ -316,59 +425,7 @@ const TONS_STATUT: Record<LigneDeParc["statut"], TonBadge> = {
   fusionnee: "gris",
 };
 
-function LigneMachine({ machine }: { readonly machine: LigneDeParc }) {
-  return (
-    <tr>
-      <Cellule mono>
-        {/*
-          LA RÉFÉRENCE EST LE LIEN VERS LA FICHE, et c'est ce qui donne un
-          appelant à l'union de L8-02. Une entrée dont l'écran n'existe pas est
-          INERTE, jamais un lien (D95) — ici l'écran existe, donc le lien se
-          pose.
-        */}
-        <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
-          {referenceMachine(machine)}
-        </Link>
-      </Cellule>
-      <Cellule>
-        {machine.modele.reference}
-        <span className="text-app-encre-faible block text-[11.5px]">
-          {familleAffichee(machine)}
-        </span>
-      </Cellule>
-      <Cellule mono>{numeroDeSerieAffiche(machine)}</Cellule>
-      {/* LA COLONNE « CLIENT » MÈNE À LA FICHE (14/09/2026). *Neuf fois sur
-          dix on arrive à un client en partant d'une machine qu'on regardait
-          déjà* — c'est le chemin le plus emprunté, et il n'existait pas. */}
-      <Cellule>
-        <Link href={`/clients/${machine.client_id}`} className={CLASSES_LIEN}>
-          {machine.client.raison_sociale}
-        </Link>
-        <span className="text-app-encre-faible block text-[11.5px]">
-          {lieuAffiche(machine)}
-        </span>
-      </Cellule>
-      <Cellule>{dateAffichee(machine.date_mise_en_service)}</Cellule>
-      <Cellule>
-        <Badge ton={TONS_STATUT[machine.statut]}>
-          {statutAffiche(machine.statut)}
-        </Badge>
-      </Cellule>
-    </tr>
-  );
-}
-
-/**
- * LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` (I10).
- *
- * Le numéro est attribué par le serveur à la première synchronisation, et
- * **personne ne l'attribue aujourd'hui** : la référence est donc toujours locale
- * pour l'instant, et l'écran le DIT plutôt que d'afficher un vide.
- *
- * *Elle n'est pas partagée avec celle du planning*, et ce n'est pas un oubli :
- * une intervention se préfixe `INT-`, une machine `MAC-`. Un helper commun
- * devrait porter le préfixe en paramètre, c'est-à-dire ne plus rien décider.
- */
+/** LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` (I10). */
 function referenceMachine(machine: {
   id: string;
   numero: number | null;
@@ -379,15 +436,11 @@ function referenceMachine(machine: {
   return `Local-${machine.id.replaceAll("-", "").slice(-6).toUpperCase()}`;
 }
 
-/**
- * LE NUMÉRO DE SÉRIE AFFICHÉ — jamais la valeur fabriquée `SN-INCONNU-<réf>`.
- *
- * **Mesuré par le directeur d'exploitation le 16/09/2026** : cette valeur
- * s'affichait en chasse fixe, à la place exacte d'un vrai numéro de série,
- * comme n'importe quelle autre fiche — *une absence doit se LIRE comme une
- * absence, jamais comme une valeur* (doctrine §3). La colonne rend donc le
- * signe d'absence pour une fiche incomplète, et la pastille dit pourquoi.
- */
+/** Le signe d'absence, résolu par un APPEL plutôt que par la constante nue (L0-11). */
+function texteAbsent(): string {
+  return ABSENT;
+}
+
 function numeroDeSerieAffiche(machine: LigneDeParc): React.ReactNode {
   if (machine.complet) {
     return machine.numero_serie;
@@ -395,67 +448,21 @@ function numeroDeSerieAffiche(machine: LigneDeParc): React.ReactNode {
   return (
     <>
       {texteAbsent()}
-      <span className="block font-sans">
+      <span className="mt-[3px] block font-sans">
         <Badge ton="orange">{t("parc.a_completer")}</Badge>
       </span>
     </>
   );
 }
 
-/**
- * Le signe d'absence, résolu par un APPEL plutôt que par la constante nue :
- * le gardien de L0-11 lit tout `{ABSENT}` posé DIRECTEMENT dans un arbre JSX
- * comme une chaîne visible écrite en dur — à raison, il ne peut pas savoir
- * qu'il s'agit d'un signe et non d'un mot. `dateAffichee` et `familleAffichee`
- * y échappent en ne renvoyant JAMAIS de JSX ; cette fonction-ci EST un
- * fragment, et c'est le seul appelant du dépôt dans ce cas.
- */
-function texteAbsent(): string {
-  return ABSENT;
+function familleKv(machine: LigneDeParc): string {
+  return machine.modele.famille?.libelle ?? texteAbsent();
 }
 
-/**
- * LE SOUS-TITRE — « site » est un mot IMPOSÉ (D5, D47) : il ne s'écrit dans
- * aucune entrée du dictionnaire hors de `vocabulaire.*`, et se compose ici
- * depuis `motDansUnePhrase("site")` — en minuscule initiale, puisqu'il tombe
- * au milieu d'une phrase et non en tête de colonne.
- */
-function sousTitreDuParc(): string {
-  return `${t("parc.sous_titre_recherche_avant")} ${motDansUnePhrase("site")}, ${t("parc.sous_titre_recherche_apres")}`;
+function agenceAffichee(machine: LigneDeParc): string {
+  return machine.site.agence.libelle;
 }
 
-/** Le libellé du champ de recherche — même composition que le sous-titre. */
-function libelleDeLaRecherche(): string {
-  return `${t("parc.recherche_prefixe")} ${motDansUnePhrase("site")}, ${t("parc.recherche_suffixe")}`;
-}
-
-/**
- * `decompte` a DÉMÉNAGÉ dans `app/(back-office)/presentation.ts` (AT-07) : la
- * pagination en avait besoin pour son propre total, et une seconde écriture
- * du même critère aurait divergé en silence (§9, 01/09) — la même raison qui a
- * fait déménager `ouTiret` le 14/09/2026. Aucun appelant d'ici ne change :
- * seul l'import se déplace.
- */
-
-/** Le séparateur des deux décomptes — un signe, jamais une phrase. */
-function separateur(suite: string): string {
-  return ` · ${suite}`;
-}
-
-function familleAffichee(machine: LigneDeParc): string {
-  const libelle = machine.modele.famille?.libelle;
-  return libelle === undefined ? ABSENT : `${t("parc.famille")} : ${libelle}`;
-}
-
-/**
- * LE LIEU AFFICHÉ — le libellé du site, et sa commune SEULEMENT si elle
- * ajoute une information.
- *
- * **Mesuré par le directeur d'exploitation le 16/09/2026** : « Ducos —
- * Ducos » s'affichait quand le libellé du site vaut sa commune, une
- * répétition qui ne distingue rien. Le repli sur une seule mention est un
- * cas particulier de la même règle qui écarte déjà la commune ABSENTE.
- */
 function lieuAffiche(machine: LigneDeParc): string {
   const commune = machine.site.commune;
   const libelle = machine.site.libelle;
@@ -464,19 +471,19 @@ function lieuAffiche(machine: LigneDeParc): string {
     : `${libelle} — ${commune}`;
 }
 
-/**
- * La date de mise en service, ou son absence.
- *
- * **La lecture en UTC vit dans `dateCivile`**, et plus ici : elle était écrite
- * deux fois le jour où la fiche d'intervention a eu besoin d'afficher une date
- * d'expiration (L3-02). *Ce qui reste ici est la seule chose propre à cet
- * écran : ce qu'on écrit quand il n'y a pas de date.*
- */
-function dateAffichee(date: Date | null): string {
-  return date === null ? ABSENT : dateCivile(date);
-}
-
-/** Le libellé d'un statut — au dictionnaire, jamais écrit dans le composant. */
 function statutAffiche(statut: LigneDeParc["statut"]): string {
   return t(`statut_machine.${statut}`);
+}
+
+/**
+ * L'ÉVÉNEMENT DE LA FRISE — date puis référence, jamais un technicien : la
+ * table `technicien` du chapitre 11 n'existe pas encore
+ * (`docs/constitution/organisation-du-code.md`), et `CHAMPS_LIGNE`
+ * (`lib/interventions/depot.ts`) n'expose que `technicien_id`, une identité
+ * brute sans nom à afficher.
+ */
+function detailEvenement(ligne: { date_planifiee: Date | null }): string {
+  return ligne.date_planifiee === null
+    ? texteAbsent()
+    : dateCivile(ligne.date_planifiee);
 }

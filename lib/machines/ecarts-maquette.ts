@@ -1,44 +1,34 @@
-import { t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
-
 /**
  * L'ÉCRAN « PARC » DIT CE QUE LA MAQUETTE DIT, moins les écarts nommés
- * (AT-04).
+ * (AT-04 ; réécrit N-10, D125).
  *
- * ## Ce que ce fichier corrige
+ * ## CE QUE D125 REND CADUC ICI
  *
- * *« Il lui manque trois colonnes : compteur, contrat, statut »*, disait le
- * ticket — et c'était vrai à moitié. **Mesuré plutôt que présumé** : `statut`
- * est une vraie colonne de `machine` (`StatutMachine`), déjà lue par cet
- * écran depuis R2-21 ; elle reste. `numero_serie` porte le compte du
- * compteur d'ancienneté d'une machine, pas ses relevés d'usage — et
- * `lib/compteurs/regression.ts` le confirme : il opère sur des `Releve[]`
- * reçus en mémoire, sans aucun dépôt qui les persiste (lot 3). Aucune table
- * `contrat` n'existe davantage (lot 4). *Ajouter ces deux colonnes afficherait
- * une case vide ou un zéro — exactement la faute que le directeur
- * d'exploitation reprochait au numéro de série fabriqué affiché comme une
- * valeur : une absence doit se LIRE comme une absence* (doctrine §3).
+ * Jusqu'à N-10, ce fichier confrontait le TABLEAU à huit colonnes de
+ * `CODIPLAN_Maquette.html` (D95) — la seule disposition alors autorisée pour
+ * cet écran. D125 fait de `codiplan-maquette-complete.html` la source de la
+ * disposition de `/parc`, et sa fonction `parc()` ne dessine plus un tableau
+ * mais un MAÎTRE-DÉTAIL : `COLONNES_PARC`, `KPI_PARC` et leurs deux listes
+ * d'écarts de colonnes/KPI (« Compteur », « Contrat », « Sous contrat »)
+ * n'ont plus de tableau à décrire, et sont RETIRÉS plutôt qu'empilés à côté
+ * d'une nouvelle liste — la même règle que D124 applique déjà aux gardiens de
+ * couleur : réorienté, jamais assoupli, jamais laissé en double.
  *
- * ## Pourquoi une liste À PART de `ECARTS_MAQUETTE` (navigation)
+ * Les TROIS KPI existent toujours, autrement : ils sont désormais des clés du
+ * dictionnaire choisies directement par `app/(back-office)/parc/page.tsx`
+ * (`parc.kpi_affichees`, `parc.kpi_garantie`, `parc.kpi_en_panne`), confrontées
+ * par le gardien de composition (`tests/unit/machines/composition-parc.
+ * test.ts`) plutôt que par une liste ici : il n'y a plus de « KPI absent » à
+ * nommer, les trois de la maquette ont un fait réel derrière chacun.
  *
- * `lib/navigation/entrees.ts` porte déjà un écart nommé — « Fiche machine » —
- * et le même mécanisme (une liste close, un libellé adossé à la maquette, un
- * motif). **Ce fichier ne l'étend pas, il lui pose une sœur**, et la raison
- * est la POPULATION, pas la commodité : un écart de navigation désigne un
- * `<button>` de `.nav`, un écart de colonne désigne un `<th>` du tableau du
- * parc, un écart de KPI un `<div class="l">` de son bandeau — trois formes de
- * DOM que rien ne relie. Mélanger les trois dans une même liste laisserait un
- * libellé de bouton excuser une colonne homonyme, ou l'inverse : le jour où
- * la barre gagnerait un bouton « Contrat », il se ferait passer pour couvert
- * par l'écart de colonne du même nom. *Trois populations, trois listes*, et
- * chacune s'adosse à la portion de la maquette qui est la sienne.
+ * ## TROIS POPULATIONS, TROIS LISTES — la même raison qu'avant
  *
- * ## L'ÉCART SE DÉSIGNE PAR SON LIBELLÉ, exactement comme D98 l'a décidé
- *
- * Un libellé plutôt qu'une clé : la clé disparaît avec l'entrée, le libellé
- * reste dans le document — c'est ce qui rend l'écart ADOSSÉ, vérifié par
- * `tests/unit/machines/ecarts-maquette.test.ts` de la même façon que
- * `tests/unit/navigation/entrees.test.ts` le fait pour la barre.
+ * `lib/navigation/entrees.ts` désigne un `<button>` de `.nav` ; celui-ci
+ * désigne maintenant deux populations propres au maître-détail : les ACTIONS
+ * du bandeau (`<button>` de `head()`), et les CHAMPS du `dl.kv` de l'aperçu.
+ * Aucune des deux ne se mélange à l'autre, pour la raison déjà écrite ici
+ * avant N-10 : mélanger deux formes de DOM laisserait un libellé en excuser
+ * un autre par pure homonymie.
  */
 
 export type EcartMaquette = {
@@ -47,15 +37,48 @@ export type EcartMaquette = {
 };
 
 /**
- * LES DEUX COLONNES ABSENTES DU TABLEAU DU PARC — liste close.
+ * LES DEUX ACTIONS DU BANDEAU QUE `/parc` NE REND PAS — liste close.
+ *
+ * `head()` de `parc()` pose deux `<button>` : « Scanner un QR code » et
+ * « + Machine ». Aucun des deux ne mène à un écran qui existe — mesuré, pas
+ * supposé : `app/api/machines/qr/[jeton]/route.ts` RÉSOUT un jeton, il ne
+ * dessine aucun écran de lecture ; `app/(back-office)/parc/nouvelle` n'existe
+ * pas, là où `clients/nouveau` et `sites/nouveau` existent. **Un lien vers
+ * rien se lit comme une panne (R2-13)** : les deux boutons sont donc des
+ * écarts nommés plutôt que des liens morts, et RETIRÉS de l'en-tête plutôt
+ * que rendus inertes — la même leçon que l'export Excel du parc s'était déjà
+ * appliquée à lui-même.
  */
-export const ECARTS_MAQUETTE_COLONNES_PARC: readonly EcartMaquette[] = [
+export const ECARTS_MAQUETTE_ACTIONS_PARC: readonly EcartMaquette[] = [
   {
-    libelle: "Compteur",
+    libelle: "Scanner un QR code",
     motif:
-      "lot 3 — aucun relevé de compteur n'est persisté (lib/compteurs/regression.ts " +
-      "n'opère que sur des relevés reçus en mémoire, sans dépôt qui les écrive)",
+      "N-11 — aucun écran de lecture de QR n'existe ; app/api/machines/qr/" +
+      "[jeton]/route.ts résout un jeton, il ne dessine rien. Un encodeur " +
+      "d'image QR n'existe pas non plus dans le dépôt (lib/machines/qr.ts " +
+      "ne fabrique que le jeton).",
   },
+  {
+    libelle: "+ Machine",
+    motif:
+      "aucun app/(back-office)/parc/nouvelle n'existe, là où clients/" +
+      "nouveau et sites/nouveau existent — une création de machine par le " +
+      "back-office reste à construire.",
+  },
+];
+
+/**
+ * LE CHAMP ABSENT DU `dl.kv` DE L'APERÇU — liste close, une entrée.
+ *
+ * `machinePreview()` écrit six paires — Client, Site, N° de série, Famille,
+ * Agence CODIMA, Contrat. Les cinq premières se lisent sur des colonnes
+ * réelles (`lib/machines/depot.ts`, `CHAMPS_PARC`) ; aucune table de contrat
+ * de maintenance n'existe (lot 4, même cause que l'ancien écart de colonne
+ * du même nom). **L'entrée RESTE dans le `dl.kv`**, avec le signe d'absence
+ * (`—`) — D125 demande que la STRUCTURE soit identique, et une absence qui se
+ * lit comme une absence est exactement ce que ça veut dire.
+ */
+export const ECARTS_MAQUETTE_APERCU_PARC: readonly EcartMaquette[] = [
   {
     libelle: "Contrat",
     motif: "lot 4 — aucune table de contrat de maintenance n'existe encore",
@@ -63,96 +86,27 @@ export const ECARTS_MAQUETTE_COLONNES_PARC: readonly EcartMaquette[] = [
 ];
 
 /**
- * LES SIX COLONNES RÉELLES, dans l'ordre de la maquette moins les écarts —
- * qui se trouve être l'ordre déjà en place : les deux colonnes absentes
- * occupaient les positions 6 et 7 sur huit, immédiatement avant « Statut ».
+ * CE QUE `/parc` REND ET QUE LA MAQUETTE NE DESSINE PAS — l'écart DANS
+ * L'AUTRE SENS, et il se nomme aussi (N-10, §4).
  *
- * `id` sert de clé React et n'est PAS un fait de la maquette ; `largeur` non
- * plus — elle ne fixe aucune largeur de colonne — mais une mesure d'écran
- * déjà en place, reprise sans y toucher.
- *
- * **`libelle` est une FONCTION, jamais une clé nue**, à cause de la quatrième
- * colonne : la maquette l'écrit « Client / Site », et « Site » est un mot
- * IMPOSÉ (D5, D47) qui ne s'écrit dans AUCUNE entrée du dictionnaire hors de
- * `vocabulaire.*` — `tests/unit/i18n/vocabulaire-impose.test.ts` le refuse. Il
- * se compose donc ici, depuis `mot("site")`, à l'endroit unique que la page et
- * le gardien lisent tous deux.
+ * `parc()` montre quatre machines sans jamais paginer ; le produit en compte
+ * plusieurs centaines et pagine depuis AT-07 — la pagination RESTE, sous la
+ * liste maître. Le lien vers le registre des VGP n'est dessiné nulle part
+ * dans `parc()` ; il reste aussi, seul appelant de `/vgp` depuis cet écran
+ * (AT-04).
  */
-export const COLONNES_PARC: ReadonlyArray<{
-  readonly id: string;
-  readonly libelle: () => string;
-  readonly largeur?: string;
-}> = [
+export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
   {
-    id: "reference",
-    libelle: () => t("parc.colonne_reference"),
-    largeur: "150px",
-  },
-  { id: "modele", libelle: () => t("parc.colonne_modele") },
-  {
-    id: "serie",
-    libelle: () => t("parc.colonne_serie"),
-    largeur: "180px",
-  },
-  {
-    id: "lieu",
-    libelle: () => `${t("parc.colonne_lieu_prefixe")} / ${mot("site")}`,
-  },
-  {
-    id: "mise_en_service",
-    libelle: () => t("parc.colonne_mise_en_service"),
-    largeur: "140px",
-  },
-  {
-    id: "statut",
-    libelle: () => t("parc.colonne_statut"),
-    largeur: "140px",
-  },
-];
-
-/**
- * LE KPI ABSENT DU BANDEAU DU PARC — liste close, une entrée.
- *
- * *Trois des quatre KPI de la maquette sont réels* : « Machines actives » et
- * « En panne / arrêtées » se lisent sur `machine.statut`, « Garantie expirant
- * à moins de 90 jours » sur `machine.garantie_fin` — une vraie colonne, sans
- * rapport avec la table `contrat` qui n'existe pas. Seul « Sous contrat »
- * dépend de cette table absente.
- */
-export const ECARTS_MAQUETTE_KPI_PARC: readonly EcartMaquette[] = [
-  {
-    libelle: "Sous contrat",
+    libelle: "Pagination",
     motif:
-      "lot 4 — même cause que la colonne « Contrat » : aucune table de contrat " +
-      "de maintenance n'existe encore",
+      "la maquette montre quatre machines sans pagination ; le parc réel en " +
+      "compte plusieurs centaines et pagine depuis AT-07 — retirer la " +
+      "pagination pour ressembler à la maquette masquerait des machines",
   },
-];
-
-/**
- * Les trois clés de KPI réelles — un type À PART de `CleTraduction`, pour que
- * `valeurDuKpi` (`app/(back-office)/parc/page.tsx`) puisse être jugé EXHAUSTIF
- * par le compilateur : sur `CleTraduction` seul, un `switch` à trois branches
- * ne prouverait rien, la clé pouvant en théorie être n'importe laquelle des
- * centaines du dictionnaire.
- */
-export type CleKpiParc =
-  "parc.kpi_actives" | "parc.kpi_garantie" | "parc.kpi_en_panne";
-
-/**
- * LES TROIS KPI RÉELS, dans l'ordre de la maquette moins l'écart — « Sous
- * contrat » occupait la deuxième des quatre positions.
- *
- * `ton` suit exactement la variante de `.kpi` que la maquette pose à cette
- * position — `.kpi` nu vaut bleu, `.kpi.o` orange, `.kpi.r` rouge — jamais une
- * préférence : la position de « Sous contrat » disparaît avec lui, et
- * « Garantie… » hérite de la variante `.o` qui lui était déjà propre à la
- * troisième place.
- */
-export const KPI_PARC: ReadonlyArray<{
-  readonly cle: CleKpiParc;
-  readonly ton?: "orange" | "rouge";
-}> = [
-  { cle: "parc.kpi_actives" },
-  { cle: "parc.kpi_garantie", ton: "orange" },
-  { cle: "parc.kpi_en_panne", ton: "rouge" },
+  {
+    libelle: "Registre des vérifications périodiques",
+    motif:
+      "parc() ne le dessine pas ; c'est pourtant le seul appelant de /vgp " +
+      "depuis cet écran (AT-04), et le retirer romprait ce chemin",
+  },
 ];
