@@ -760,8 +760,13 @@ export const fr = {
   "interventions.vide": "Aucune intervention enregistrée.",
   // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
   // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
-  // statut, période. Le texte cherche sur le client et le lieu — les deux
-  // colonnes VISIBLES qui identifient une ligne.
+  // statut, période. Le texte cherche sur le client et le lieu — les
+  // colonnes VISIBLES qui identifient une ligne. Le LIBELLÉ n'annonce pas la
+  // référence (AT-07 bis, 18/09/2026) : seule sa moitié « `numero` » se
+  // cherche (voir `numeroDeReference`, `lib/interventions/depot.ts`), et
+  // `numero` vaut `null` pour toute intervention avant la synchronisation
+  // (lot 3) — l'annoncer promettrait, pour la référence RÉELLEMENT affichée
+  // aujourd'hui (`Local-XXXXXX`), une recherche qui ne trouve rien.
   "interventions.recherche": "Client ou lieu",
   "interventions.rechercher": "Rechercher",
   "interventions.filtre_toutes_prefixe": "Toutes les",

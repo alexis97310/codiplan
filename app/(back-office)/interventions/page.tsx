@@ -52,15 +52,18 @@ import {
  * d'un client, et son URL cesse de nommer le premier écran par lequel on
  * l'atteignait — le programme des liens arrêtés le 16/09/2026.
  *
- * ## LA LISTE PAGINE, LA RECHERCHE ET LES FILTRES SONT REMPLIS (AT-07, 17/09/2026)
+ * ## LA LISTE PAGINE, LA RECHERCHE ET LES FILTRES SONT REMPLIS (AT-07, 17/09/2026 ; étendue AT-07 bis, 18/09/2026)
  *
  * Comme `/clients` (L1-01) : une liste non bornée casse au volume sur un parc
  * de démonstration qui porte 226 machines et 615 clients. Le texte cherche sur
- * le client et le lieu — les colonnes VISIBLES qui identifient une ligne,
- * jamais sur la référence affichée (`INT-00312` ou `Local-XXXXXX`, qui n'est
- * pas une colonne stockée) ni sur le technicien (dont le nom vit dans
- * l'annuaire, pas sur `intervention`). Les quatre filtres sont ceux que la
- * maquette annonce : agence, type, statut, période — et eux seuls.
+ * le client, le lieu et le `numero` de la référence affichée (`INT-00312`,
+ * via `numeroDeReference`, `lib/interventions/depot.ts`) — jamais sur le
+ * technicien (dont le nom vit dans l'annuaire, pas sur `intervention`). La
+ * forme `Local-XXXXXX` de la référence reste un ÉCART NOMMÉ (voir la note de
+ * tête de `numeroDeReference`) : `id` est `@db.Uuid`, et son filtre Prisma
+ * ne sait pas comparer une sous-chaîne sans SQL brut, que le stack imposé
+ * interdit hors migrations. Les quatre filtres sont ceux que la maquette
+ * annonce : agence, type, statut, période — et eux seuls.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
  *

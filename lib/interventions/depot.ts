@@ -1680,6 +1680,37 @@ export async function dernieresInterventionsDuClient(
  * (la page) et `compterInterventions` (le total de la pagination), comme
  * `filtreDeRecherche` le fait déjà pour les clients et les sites (§9, 01/09).
  */
+/**
+ * LA RÉFÉRENCE AFFICHÉE, ANALYSÉE POUR LA RECHERCHE (AT-07 bis, 18/09/2026).
+ *
+ * `referenceAffichee` (`app/(back-office)/interventions/presentation.ts`)
+ * compose « INT-00312 » depuis `numero`, ou « Local-XXXXXX » depuis les six
+ * derniers caractères de l'`id` — et ni l'une ni l'autre n'est une colonne
+ * que Prisma peut comparer telle quelle.
+ *
+ * **CETTE FONCTION NE RÉSOUT QUE LA MOITIÉ « `numero` », ET C'EST ÉCRIT
+ * PLUTÔT QUE TU.** `id` est `@db.Uuid` : le filtre que Prisma génère pour ce
+ * type (`UuidFilter`) ne porte NI `contains` NI `startsWith` — seulement
+ * l'égalité, l'appartenance et l'ordre —, *mesuré en tentant l'inverse : TS
+ * refuse `id: { contains: … }` à la compilation.* Une correspondance sur les
+ * six caractères de `Local-XXXXXX` demanderait soit du SQL brut, que le
+ * stack imposé interdit hors migrations et politiques RLS (CLAUDE.md §2),
+ * soit un filtrage côté application qui romprait `compterLeParc` — pagination
+ * et total devraient alors lire des populations différentes. Aucune des deux
+ * voies n'est le geste de ce ticket : la moitié « `Local-XXXXXX` » reste un
+ * écart nommé, pas silencieux.
+ *
+ * `nettoye` retire le préfixe (« INT- » ou « Local- », insensible à la
+ * casse) et toute ponctuation. `Number("00312")` vaut `312`, si bien que les
+ * zéros de tête de la forme affichée n'ont rien à retirer en plus.
+ */
+function numeroDeReference(texte: string): number | null {
+  const nettoye = texte
+    .replace(/^(int-|local-)/i, "")
+    .replace(/[^a-z0-9]/gi, "");
+  return /^\d+$/.test(nettoye) ? Number(nettoye) : null;
+}
+
 function filtreDesInterventions(
   criteres: RechercheInterventions,
 ): Prisma.InterventionWhereInput {
@@ -1704,6 +1735,10 @@ function filtreDesInterventions(
                 },
               },
             },
+            ...(() => {
+              const numero = numeroDeReference(criteres.texte);
+              return numero === null ? [] : [{ numero }];
+            })(),
           ],
         };
 
