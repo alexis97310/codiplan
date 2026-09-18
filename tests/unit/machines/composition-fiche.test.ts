@@ -17,10 +17,24 @@ import { describe, expect, it } from "vitest";
  * « Modifier » et l'entrée « Identifiant » du `dl.kv` sont des ÉCARTS NOMMÉS
  * (`lib/machines/ecarts-maquette.ts` — `ECARTS_MAQUETTE_ACTIONS_FICHE`,
  * `ECARTS_MAQUETTE_CONTENU_FICHE`) : ce gardien ne les compte pas comme des
- * blocs à rendre. La carte « Documents », qui existe dans l'écran sans
- * exister dans la maquette, est l'écart symétrique
- * (`ECARTS_MAQUETTE_AJOUTS_FICHE`) et n'est pas non plus mesurée ici — elle ne
- * PEUT pas l'être : rien dans `machinePage()` ne la prouve.
+ * blocs à rendre.
+ *
+ * ## LA CARTE « DOCUMENTS » — UN AJOUT, PROUVÉ AUTREMENT (N-12, 18/09/2026)
+ *
+ * Elle existe dans l'écran sans exister dans la maquette
+ * (`ECARTS_MAQUETTE_AJOUTS_FICHE`), et ELLE NE PEUT PAS rejoindre
+ * `BLOCS_ATTENDUS` pour cette raison précise : son « témoin de non-vacuité »
+ * exigerait une preuve lue dans `machinePage()`, et `machinePage()` ne la
+ * dessine pas — un gardien qui inventerait une preuve mentirait sur ce qu'il
+ * mesure (§9, 01/09). Ce que ce ticket répare est plus étroit et se prouve
+ * autrement : mesuré le 18/09/2026 sur `docs/propositions/n-11/
+ * fiche-en-panne-apres.png`, son titre et son sous-titre flottaient
+ * directement sur le fond gris pendant que les deux cartes voisines
+ * (« Identité et rattachement », « Historique des interventions ») étaient de
+ * VRAIES cartes avec leur `card-head`. Le bloc dédié en bas de fichier
+ * confronte donc la carte « Documents » à SES DEUX VOISINES — la même forme,
+ * le même composant `CarteEnTete` — jamais à la maquette, qui reste muette
+ * dessus.
  */
 
 const MAQUETTE = readFileSync(
@@ -111,5 +125,28 @@ describe("le gardien de composition — /parc/[id] contre machinePage() de la ma
       rendus.map((b) => b.nom),
       `${rendus.length}/${BLOCS_ATTENDUS.length} blocs rendus`,
     ).toEqual(BLOCS_ATTENDUS.map((b) => b.nom));
+  });
+});
+
+/**
+ * LA CARTE « DOCUMENTS » — UN AJOUT, CONFRONTÉ À SES DEUX VOISINES PLUTÔT
+ * QU'À LA MAQUETTE (N-12, 18/09/2026). Voir la note de tête : `machinePage()`
+ * ne la dessine pas, donc rien ici ne prétend en tirer une preuve. Ce bloc
+ * prouve autre chose — qu'elle est composée EXACTEMENT comme « Identité et
+ * rattachement » et « Historique des interventions », par le même composant
+ * `CarteEnTete`, et non plus par un `<section>` nu flottant sur le fond gris.
+ */
+describe("le gardien de composition — la carte « Documents », un AJOUT structuré comme ses deux voisines (N-12)", () => {
+  it('porte le marqueur `bloc="carte-documents"` — la même forme dynamique que ses deux voisines', () => {
+    expect(SOURCES).toContain('bloc="carte-documents"');
+  });
+
+  it("n'est plus un <section> nu : elle passe par CarteEnTete, comme carte-identite et carte-historique", () => {
+    // Le témoin de non-régression tient dans les DEUX SENS : les trois
+    // cartes de la colonne de gauche portent le MÊME nombre d'appels à
+    // `<CarteEnTete` — un `<section` de carte resterait nu sans que ce
+    // compte bouge.
+    const appelsCarteEnTete = (SOURCES.match(/<CarteEnTete/g) ?? []).length;
+    expect(appelsCarteEnTete).toBe(3);
   });
 });

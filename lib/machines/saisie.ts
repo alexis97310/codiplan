@@ -152,13 +152,14 @@ export type SaisieMachine = z.output<typeof schemaMachine>;
  * LA RECHERCHE DU PARC (AT-07) — câblée depuis AT-04, remplie ici.
  *
  * **Le texte ne cherche que sur des colonnes VISIBLES à l'écran** — numéro de
- * série, client, lieu, référence du modèle. La maquette annonce aussi le QR
- * code (`docs/maquette/CODIPLAN_Maquette.html`, écran `parc`), et c'est
- * précisément le point où ce ticket s'en écarte : `qr_token` n'est affiché
- * dans AUCUNE colonne du tableau du parc, et chercher sur un champ que
- * personne ne voit rendrait des résultats que personne ne peut expliquer.
- * L'écart est ici, à l'endroit précis où la consigne de recherche cesse de
- * s'appliquer telle quelle.
+ * série, client, lieu, référence du modèle, et depuis D126 appliqué à `/parc`
+ * (N-12) la marque et la famille, que la ligne affiche désormais. La maquette
+ * annonce aussi le QR code (`docs/maquette/CODIPLAN_Maquette.html`, écran
+ * `parc`), et c'est précisément le point où ce ticket s'en écarte : `qr_token`
+ * n'est affiché dans AUCUNE colonne du tableau du parc, et chercher sur un
+ * champ que personne ne voit rendrait des résultats que personne ne peut
+ * expliquer. L'écart est ici, à l'endroit précis où la consigne de recherche
+ * cesse de s'appliquer telle quelle.
  *
  * `page` suit exactement le même contrat que `lib/clients/saisie.ts` et
  * `lib/sites/saisie.ts` : 1-indexée, l'état vit dans l'URL.

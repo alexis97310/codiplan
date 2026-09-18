@@ -109,6 +109,51 @@ test("cliquer une ligne change le panneau de droite ET l'adresse", async ({
   expect(referenceApresRechargement).toBe(referenceApresClic);
 });
 
+test("la ligne montre marque + référence en titre, et famille · série · année en sous-ligne (D126, N-12)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/parc");
+
+  const premiereLigne = page.locator('[data-bloc="liste-machines"] a').first();
+  await expect(premiereLigne).toBeVisible();
+
+  const titre = (await premiereLigne.locator("h3").textContent())?.trim();
+  const sousLigne = (await premiereLigne.locator("p").textContent())?.trim();
+  if (titre === undefined || sousLigne === undefined) {
+    throw new Error("titre ou sous-ligne introuvable sur la première ligne");
+  }
+  // Titre : « <marque> <référence du modèle> » — deux mots au moins, jamais
+  // la seule référence qu'affichait la ligne avant N-12.
+  expect(titre.split(" ").length).toBeGreaterThanOrEqual(2);
+  // Sous-ligne : trois segments séparés par « · » — famille, n° de série,
+  // année de vente — JAMAIS le client, qui a quitté la ligne pour l'aperçu.
+  const segments = sousLigne.split(" · ");
+  expect(segments).toHaveLength(3);
+});
+
+test("la recherche trouve une machine par sa MARQUE, et une autre par sa FAMILLE (D126, N-12)", async ({
+  page,
+}) => {
+  // « Tractel » — une marque UNIQUE du jeu de démonstration
+  // (`prisma/seed-data.ts`, `MODELES_MATERIEL_DEMONSTRATION`) : avant ce
+  // ticket, `filtreDuParc` ne cherchait pas sur `modele.marque`, et cette
+  // recherche rendait l'état vide.
+  await page.goto("/parc?q=" + encodeURIComponent("Tractel"));
+  await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
+  await expect(
+    page.locator('[data-bloc="liste-machines"] a', { hasText: "Tractel" }),
+  ).toHaveCount(1);
+
+  // « Outillage d'atelier » — une famille UNIQUE du même jeu : avant ce
+  // ticket, `filtreDuParc` ne cherchait pas sur `modele.famille.libelle`.
+  await page.goto("/parc?q=" + encodeURIComponent("Outillage"));
+  await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();
+  await expect(
+    page.locator('[data-bloc="liste-machines"] a', { hasText: "Facom" }),
+  ).toHaveCount(1);
+});
+
 test("une recherche sans résultat rend l'état vide, et « Réinitialiser » fonctionne", async ({
   page,
 }) => {

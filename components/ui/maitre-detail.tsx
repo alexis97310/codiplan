@@ -130,15 +130,23 @@ export function RangeeMaitreDetail({
  * interventions » de la fiche machine. *Recopier une forme pour ne pas
  * toucher l'écran qui la porte déjà est la même retenue que `referenceMachine`
  * assume ailleurs dans ce dépôt.*
+ *
+ * `sousTitre` est ARRIVÉ avec N-12 (18/09/2026) — la carte « Documents » de la
+ * fiche machine portait un titre et un sous-titre flottant directement sur le
+ * fond gris, à côté de deux cartes CONFORMES : mesuré sur
+ * `docs/propositions/n-11/fiche-en-panne-apres.png`. Facultatif, pour que les
+ * deux cartes qui n'en ont pas (identité, historique) n'aient rien à changer.
  */
 export function CarteEnTete({
   titre,
+  sousTitre,
   action,
   children,
   /** Le marqueur `data-bloc` — chaque appelant nomme SON bloc (N-11). */
   bloc = "carte-en-tete",
 }: Readonly<{
   titre: string;
+  sousTitre?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   bloc?: string;
@@ -149,7 +157,14 @@ export function CarteEnTete({
       className="bg-app-surface border-app-bord rounded-lg border"
     >
       <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
-        <h2 className="text-[15px] font-bold">{titre}</h2>
+        <div>
+          <h2 className="text-[15px] font-bold">{titre}</h2>
+          {sousTitre === undefined ? null : (
+            <p className="text-app-encre-faible mt-[3px] text-[12.5px]">
+              {sousTitre}
+            </p>
+          )}
+        </div>
         {action}
       </div>
       {children}

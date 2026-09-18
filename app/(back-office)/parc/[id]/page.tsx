@@ -325,15 +325,17 @@ export default async function PageMachine({
 
           {/* « Documents » — écart dans l'autre sens, gardé (lib/machines/
               ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_FICHE) : porte L8-02,
-              machinePage() ne le dessine pas. */}
-          <section className="flex flex-col gap-2">
-            <h2 className="text-[15px] font-extrabold tracking-tight">
-              {t("machine.documents.titre")}
-            </h2>
-            <p className="text-app-encre-faible text-[12.5px]">
-              {t("machine.documents.sous_titre")}
-            </p>
-            <div className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+              machinePage() ne le dessine pas. Habillée comme les deux cartes
+              voisines depuis N-12 (18/09/2026) — un titre et un sous-titre
+              qui flottaient directement sur le fond gris, mesuré sur
+              docs/propositions/n-11/fiche-en-panne-apres.png : CarteEnTete,
+              jamais un <section> nu. */}
+          <CarteEnTete
+            bloc="carte-documents"
+            titre={t("machine.documents.titre")}
+            sousTitre={t("machine.documents.sous_titre")}
+          >
+            <div data-bloc="documents-table">
               <Tableau colonnes={colonnesDocuments} minimum="720px">
                 {lignesDocuments.length === 0 ? (
                   <LignePleine colonnes={colonnesDocuments.length}>
@@ -345,10 +347,10 @@ export default async function PageMachine({
                 ))}
               </Tableau>
             </div>
-            <p className="text-app-encre-faible text-[11.5px]">
+            <p className="text-app-encre-faible px-[18px] py-[12px] text-[11.5px]">
               {t("machine.documents.sans_octets")}
             </p>
-          </section>
+          </CarteEnTete>
         </div>
 
         <aside
