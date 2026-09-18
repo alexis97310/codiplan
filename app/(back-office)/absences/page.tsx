@@ -128,7 +128,7 @@ export default async function PageAbsences({
         </section>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-[14px] font-bold">{t("absences.declarer")}</h2>
         <form
           action="/api/absences/declarer"
@@ -171,7 +171,7 @@ export default async function PageAbsences({
         </p>
       </section>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={COLONNES()} minimum="760px">
           {vue.absences.length === 0 ? (
             <LignePleine colonnes={3}>{t("absences.aucune")}</LignePleine>

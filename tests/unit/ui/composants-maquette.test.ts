@@ -196,10 +196,17 @@ describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
     expect(regle(".card h2 .more").length).toBeGreaterThan(0);
   });
 
-  it("la carte reprend le rayon de bordure de .card", () => {
+  it("la carte reprend le rayon de bordure de .card — via `--radius`, depuis D124", () => {
+    // `CODIPLAN_Maquette.html` mesure encore `10px` en dur (D95, disposition) ;
+    // la VALEUR du jeton, elle, vient désormais de `codiplan-maquette-
+    // complete.html` (D124) — `14px`, confronté par
+    // `tests/unit/theme/apparence.test.ts`. Ce gardien-ci vérifie seulement
+    // que le composant ne recopie plus un nombre : il lit `--radius` par
+    // `rounded-lg`, jamais un `rounded-[…px]` littéral.
     const card = regle(".card");
     expect(propriete(card, "border-radius")).toBe("10px");
-    expect(CARTE).toContain("rounded-[10px]");
+    expect(CARTE).toContain("rounded-lg");
+    expect(CARTE).not.toMatch(/rounded-\[\d+px\]/);
   });
 
   it("l'en-tête reprend taille, graisse et rembourrage de .card h2", () => {
@@ -310,7 +317,8 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
     expect(KPI).toContain(`px-[${horizontal}]`);
 
     expect(propriete(kpi, "border-radius")).toBe("10px");
-    expect(KPI).toContain("rounded-[10px]");
+    expect(KPI).toContain("rounded-lg");
+    expect(KPI).not.toMatch(/rounded-\[\d+px\]/);
   });
 
   it("le libellé reprend taille, capitales, interlettrage et graisse de .kpi .l", () => {

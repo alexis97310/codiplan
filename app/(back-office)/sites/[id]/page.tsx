@@ -95,7 +95,7 @@ export default async function PageSite({
       <form
         method="post"
         action={`/api/sites/${site.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <Champ
           nom="libelle"

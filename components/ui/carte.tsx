@@ -16,6 +16,14 @@ import { cn } from "@/lib/utils";
  * trois règles au texte de ce fichier
  * (`tests/unit/ui/composants-maquette.test.ts`).
  *
+ * **Le rayon n'est plus mesuré ici, depuis D124.** `border-radius:10px`
+ * ci-dessus est la disposition MESURÉE de `CODIPLAN_Maquette.html`, mais la
+ * VALEUR du jeton de rayon vient désormais de `--radius` (`app/globals.css`),
+ * lui-même mesuré sur `codiplan-maquette-complete.html` — `14px` aujourd'hui.
+ * `rounded-lg` ci-dessous n'écrit donc plus un nombre : il lit `--radius-lg`,
+ * qui vaut `--radius` (`@theme inline`), et suit sa valeur sans qu'aucun
+ * fichier d'écran ne bouge.
+ *
  * ## Ce qu'elle ne fait pas
  *
  * **Elle ne rembourre pas son contenu.** La maquette écrit `.pad{padding:16px}`
@@ -45,7 +53,7 @@ export function Carte({
     <section
       id={id}
       className={cn(
-        "bg-app-surface border-app-bord overflow-hidden rounded-[10px] border",
+        "bg-app-surface border-app-bord overflow-hidden rounded-lg border",
         className,
       )}
     >

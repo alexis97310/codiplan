@@ -24,6 +24,12 @@ import { cn } from "@/lib/utils";
  * règles au texte de ce fichier
  * (`tests/unit/ui/composants-maquette.test.ts`).
  *
+ * **Le rayon fait exception, depuis D124** : `border-radius:10px` ci-dessus
+ * est la disposition mesurée sur `CODIPLAN_Maquette.html`, mais la VALEUR du
+ * jeton vient de `--radius` (`app/globals.css`, mesuré sur
+ * `codiplan-maquette-complete.html` — `14px`) ; `rounded-lg` lit
+ * `--radius-lg`, jamais un nombre écrit à côté.
+ *
  * ## LE TON, jamais une couleur
  *
  * La maquette décline `.kpi` en quatre filets — nu (bleu), `.r` (rouge), `.v`
@@ -63,7 +69,7 @@ export function Kpi({
   return (
     <div
       className={cn(
-        "bg-app-surface border-app-bord relative overflow-hidden rounded-[10px] border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+        "bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-[16px] py-[15px] before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
         CLASSES_FILET[ton],
       )}
     >

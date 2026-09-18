@@ -2,62 +2,87 @@
 
 /*
  * ─────────────────────────────────────────────────────────────────────────────
- * L'APPARENCE — les jetons visuels de l'application (D95).
+ * L'APPARENCE — les jetons visuels de l'application (D95, D124).
  *
- * LA MAQUETTE FAIT FOI, disposition ET couleurs. Les valeurs ci-dessous sont
- * celles de `docs/maquette/CODIPLAN_Maquette.html`, elles-mêmes celles de l'annexe C du
- * cahier des charges. Ce n'est donc pas une palette nouvelle : c'est la charte
- * du produit, enfin appliquée.
+ * DEUX MAQUETTES FONT FOI, sur deux questions distinctes (D124, qui règle ici
+ * ce que D95/D122/D123 laissaient réparti autrement) :
+ *
+ *   - `docs/maquette/codiplan-maquette-complete.html` est la source UNIQUE des
+ *     JETONS DE COULEUR, de la TYPOGRAPHIE, du RAYON et de l'OMBRE — les
+ *     valeurs ci-dessous en sont la copie exacte ;
+ *   - `docs/maquette/CODIPLAN_Maquette.html` reste la source de la
+ *     DISPOSITION — grilles, largeurs, colonnes — et de ce que la nouvelle
+ *     maquette ne dessine pas : les deux ambiguïtés de l'annexe D (« envoyée »/
+ *     « clôturée » en pleins, « suspendue » en orange plein plutôt qu'en
+ *     trame), énumérées en entier dans D95 et D124.
  *
  * UNE COULEUR NE S'ÉCRIT QU'ICI ET DANS `lib/theme/` (CLAUDE.md §6), et dans
  * une feuille de style elle ne s'écrit que sous une forme : la DÉCLARATION DE
- * VARIABLE. `--app-fond: #F4F5F7` est licite ; `color: #F4F5F7` ne l'est pas.
+ * VARIABLE. `--app-fond: #F4F6F9` est licite ; `color: #F4F6F9` ne l'est pas.
  * Un gardien tient la distinction (`tests/unit/theme/sans-couleur-en-dur`).
  *
  * AJOUTER UN THÈME, plus tard, c'est ajouter un bloc `[data-apparence="…"]`
  * ici et une entrée dans `APPARENCES` (lib/theme/apparence.ts) — et rien
  * d'autre. Aucun écran ne nomme de couleur : il nomme un RÔLE.
+ *
+ * LE VIOLET (`--purple`/`--purple-2` de la nouvelle maquette) N'EST PAS ICI.
+ * Mesuré et nommé par D124 : il n'habille, dans la maquette, que deux pièces
+ * de démonstration sans contrepartie dans le produit — une pastille de congé
+ * dans un calendrier que `/absences` ne dessine pas, et un badge « Lot N » sur
+ * des écrans de modules futurs qui n'existent pas encore comme routes. *Un
+ * jeton sans emploi est un jeton qui dérivera* : il entrera le jour où l'un des
+ * deux besoins existera, à la valeur déjà mesurée dans D124.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 :root,
 [data-apparence="maquette"] {
-  /* Surfaces et texte. */
-  --app-fond: #f4f5f7;
+  /* Surfaces et texte — `--bg`, `--surface-2`, `--line`, `--line-2`, `--ink`,
+     `--muted` du `:root` de `codiplan-maquette-complete.html` (D124). */
+  --app-fond: #f4f6f9;
   --app-surface: #ffffff;
-  --app-surface-creuse: #fafbfc;
-  --app-bord: #e1e4e8;
-  --app-bord-faible: #f0f1f3;
-  --app-encre: #111111;
-  --app-encre-faible: #6b7280;
+  --app-surface-creuse: #f8fafc;
+  --app-bord: #dce2ea;
+  --app-bord-faible: #edf0f4;
+  --app-encre: #142033;
+  --app-encre-faible: #637083;
 
-  /* Identité de la plateforme — le bleu et le rouge de l'annexe C. */
+  /* Identité de la plateforme — le bleu et le rouge, identiques dans les deux
+     maquettes (`--blue`/`--red` de la nouvelle, `--bleu`/`--rouge` de D95). */
   --app-marque: #0053a1;
   --app-marque-encre: #ffffff;
   --app-accent: #e30613;
   --app-accent-encre: #ffffff;
 
-  /* Les cinq familles : fond, bordure, encre. */
-  --app-bleu-fond: #e7f0fa;
+  /* Les cinq familles : fond, bordure, encre. Les fonds et les bordures
+     bleu/rouge/vert/orange viennent de `--blue-2`/`--red-2`/`--green`/
+     `--green-2`/`--orange`/`--orange-2` (D124) ; les encres et le gris n'ont
+     pas de jeton nommé dans la nouvelle maquette (elle les écrit en clair
+     dans ses propres classes `.badge`) et restent ceux de D95. */
+  --app-bleu-fond: #e8f1fb;
   --app-bleu-bord: #0053a1;
   --app-bleu-encre: #0b3d75;
-  --app-rouge-fond: #fde7e9;
+  --app-rouge-fond: #fdebed;
   --app-rouge-bord: #e30613;
   --app-rouge-encre: #8a0810;
-  --app-vert-fond: #e3f5ea;
-  --app-vert-bord: #0f9d58;
+  --app-vert-fond: #e5f5ec;
+  --app-vert-bord: #12824b;
   --app-vert-encre: #0a6b3d;
-  --app-orange-fond: #fef3dc;
-  --app-orange-bord: #f0a202;
+  --app-orange-fond: #fff1d5;
+  --app-orange-bord: #a76500;
   --app-orange-encre: #7a5200;
   --app-gris-fond: #eef0f2;
   --app-gris-bord: #6b7280;
   --app-gris-encre: #3f4650;
 
-  /* Les deux pleins — l'onglet actif de la maquette, et ses boutons verts. */
+  /* Les deux pleins — l'onglet actif de la maquette, et ses boutons verts.
+     Ce ne sont pas deux jetons distincts dans l'une ou l'autre maquette : ils
+     valent la bordure de leur famille à pleine saturation (D95), et suivent
+     donc sa valeur quand elle bouge (D124) — --app-bleu-plein est inchangé
+     puisque le bleu ne bouge pas, --app-vert-plein reprend #12824b. */
   --app-bleu-plein: #0053a1;
   --app-bleu-plein-encre: #ffffff;
-  --app-vert-plein: #0f9d58;
+  --app-vert-plein: #12824b;
   --app-vert-plein-encre: #ffffff;
 
   /*
@@ -82,6 +107,12 @@
 /*
  * ─────────────────────────────────────────────────────────────────────────────
  * « LE TABLEAU » — la seconde apparence, celle d'AVANT la maquette (R2-01, D95).
+ *
+ * **D124 ne touche AUCUNE valeur de ce bloc.** Ses jetons ne viennent d'aucune
+ * des deux maquettes — ils sont RECOUVRÉS d'un commit antérieur au 11/09/2026,
+ * et D124 ne mesure que `codiplan-maquette-complete.html` contre le bloc
+ * `[data-apparence="maquette"]` ci-dessus. Un second thème qui ne bouge pas
+ * quand le premier change de source est le comportement voulu, pas un oubli.
  *
  * ## Pourquoi elle existe, et ce qu'elle prouve
  *
@@ -185,7 +216,12 @@
  * `text-muted-foreground` : ces noms ne changent pas, leur VALEUR vient
  * désormais de l'apparence.
  *
- * `--radius` vaut 10px : `.card{border-radius:10px}` dans la maquette.
+ * `--radius` vaut 14px : `--radius:14px` dans le `:root` de
+ * `codiplan-maquette-complete.html`, que `.card{border-radius:var(--radius)}`
+ * consomme directement (D124). C'est la SEULE ligne où ce nombre s'écrit :
+ * `@theme inline` en dérive `sm`/`md`/`lg`/`xl` juste en dessous, et un écran
+ * qui voudrait un rayon de carte l'obtient par `rounded-lg`, jamais par un
+ * `rounded-[…px]` littéral.
  *
  * PAS D'APPARENCE SOMBRE, et c'est une absence décidée. La maquette n'en
  * décrit aucune ; en inventer une serait inventer des couleurs que personne
@@ -198,7 +234,7 @@
 :root {
   color-scheme: light;
 
-  --radius: 10px;
+  --radius: 14px;
   --background: var(--app-fond);
   --foreground: var(--app-encre);
   --card: var(--app-surface);
@@ -311,8 +347,21 @@
     @apply border-border outline-ring/50;
   }
   /*
-   * LA TYPOGRAPHIE DE LA MAQUETTE, à la valeur près :
-   * `font-size:14px; line-height:1.5`, et sa pile de polices système.
+   * LA TYPOGRAPHIE DE LA MAQUETTE, à la valeur près (D124) :
+   * `font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe
+   * UI",sans-serif` dans `codiplan-maquette-complete.html`.
+   *
+   * **Inter est chargée par `next/font/local`** (`app/layout.tsx`), sur un
+   * fichier VENDU DANS LE DÉPÔT (`public/fonts/inter/`) — jamais une balise
+   * vers un CDN, et jamais `next/font/google` : cette dernière imposerait un
+   * appel réseau à CHAQUE compilation, exactement ce que
+   * `docs/decisions/2026-08-19-socle-technique.md` avait déjà refusé au tout
+   * premier ticket du dépôt, pour la reproductibilité hors réseau qui compte
+   * en Nouvelle-Calédonie. `next/font` sert le fichier local depuis le paquet
+   * de l'application et pose `--font-inter`, lu ici en PREMIER ; la pile
+   * système qui suit est celle de la maquette, DANS SON ORDRE, et sert de
+   * repli tant que la police n'a pas fini de charger — ou si elle échoue à le
+   * faire.
    *
    * Elle est posée ici plutôt que dans `layout.tsx` parce qu'elle est de la
    * même nature que les jetons : un écran ne décide pas de la police du
@@ -321,10 +370,14 @@
   body {
     @apply bg-background text-foreground;
     font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+      var(--font-inter),
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
       sans-serif;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.45;
   }
 }
 

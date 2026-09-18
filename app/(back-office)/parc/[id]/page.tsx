@@ -99,7 +99,7 @@ export default async function PageMachine({
         </Link>
       }
     >
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-4">
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-4">
         <div className="grid gap-3 md:grid-cols-2">
           <Fait
             libelle={t("parc.colonne_serie")}
@@ -124,7 +124,7 @@ export default async function PageMachine({
         <p className="text-app-encre-faible text-[12.5px]">
           {t("machine.documents.sous_titre")}
         </p>
-        <div className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+        <div className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
           <Tableau colonnes={colonnes} minimum="720px">
             {lignes.length === 0 ? (
               <LignePleine colonnes={colonnes.length}>

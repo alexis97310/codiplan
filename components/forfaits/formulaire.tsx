@@ -50,7 +50,7 @@ export function FormulaireForfait({
     <form
       method="post"
       action={action}
-      className="bg-app-surface border-app-bord grid gap-4 rounded-[10px] border px-4 py-4 sm:grid-cols-2"
+      className="bg-app-surface border-app-bord grid gap-4 rounded-lg border px-4 py-4 sm:grid-cols-2"
     >
       <label className={etiquette}>
         {t("forfaits.champ.code")}

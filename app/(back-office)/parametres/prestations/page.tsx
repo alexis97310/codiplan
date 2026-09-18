@@ -95,7 +95,7 @@ export default async function PagePrestations({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-[14px] font-bold">{t("prestations.creer")}</h2>
         <FormulairePrestation
           action="/api/parametres/prestations/creer"
@@ -110,7 +110,7 @@ export default async function PagePrestations({
         </p>
       </section>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes()} minimum="900px">
           {prestations.length === 0 ? (
             <LignePleine colonnes={5}>{t("prestations.aucune")}</LignePleine>
@@ -158,7 +158,7 @@ export default async function PagePrestations({
       {prestations.map((prestation) => (
         <section
           key={prestation.id}
-          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-[10px] border px-4 py-3.5"
+          className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
         >
           <h2 className="text-[13px] font-bold">
             {titreDeModification(prestation.code)}

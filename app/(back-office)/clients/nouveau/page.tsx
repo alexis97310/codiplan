@@ -81,7 +81,7 @@ export default async function PageNouveauClient({
       <form
         method="post"
         action="/api/clients/creer"
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <Champ
           nom="raison_sociale"

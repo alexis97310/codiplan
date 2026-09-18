@@ -164,7 +164,7 @@ export default async function PageInterventions({
           vit dans l'URL, jamais dans un état de composant (AT-07). */}
       <form
         method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-[10px] border px-4 py-3.5"
+        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
       >
         <label className="flex flex-col gap-1 text-[12px] font-semibold">
           {t("interventions.recherche")}
@@ -250,7 +250,7 @@ export default async function PageInterventions({
         </button>
       </form>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="920px">
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>

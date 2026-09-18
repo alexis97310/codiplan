@@ -12,11 +12,12 @@ import { describe, expect, it } from "vitest";
  * `.entity-meta span` et la grille `.client-cards`/`.site-cards`.
  *
  * **Pourquoi un fichier séparé plutôt qu'un ajout au gardien existant.**
- * Celui-ci lit `docs/maquette/CODIPLAN_Maquette.html` — la source des
- * couleurs et de la disposition (D95). `.entity-card` n'y existe pas du
- * tout : c'est `docs/maquette/codiplan-maquette-complete.html` qui la
- * dessine, et confondre les deux sources dans une même fonction `regle`
- * aurait fait lire la mauvaise maquette sans qu'aucune erreur ne le dise.
+ * `composants-maquette.test.ts` lit principalement `docs/maquette/CODIPLAN_
+ * Maquette.html` — la source de la disposition, et, depuis D124, de ce que la
+ * seconde maquette ne dessine pas. `.entity-card` n'y existe pas du tout :
+ * c'est `docs/maquette/codiplan-maquette-complete.html` qui la dessine, et
+ * confondre les deux sources dans une même fonction `regle` aurait fait lire
+ * la mauvaise maquette sans qu'aucune erreur ne le dise.
  */
 
 const MAQUETTE = readFileSync(
@@ -72,17 +73,28 @@ describe("CarteEntite — .entity-card, .entity-card h3, .entity-card p, .entity
     expect(regle(".entity-meta")).toContain("display");
   });
 
-  it("la carte reprend le rembourrage de .entity-card, jamais sa bordure ni son rayon", () => {
+  it("la carte reprend le rembourrage de .entity-card", () => {
     const carte = regle(".entity-card");
     expect(propriete(carte, "padding")).toBe("17px");
     expect(CARTE_ENTITE).toContain("p-[17px]");
+  });
 
-    // LA BORDURE ET LE RAYON RESTENT CEUX DE D95 (#E1E4E8, 10px), jamais
-    // `#dce2ea`/`14px` de cette seconde maquette — « deux fichiers, deux
-    // questions » (D122).
+  it("la bordure et le rayon sont ceux de `.card` (D124), jamais un nombre à part", () => {
+    // `.entity-card` seule ne porte ni bordure ni rayon : sur la maquette,
+    // l'article combine `class="card entity-card"` — `clients()`, `sites()`
+    // posent les deux classes sur le même élément — et c'est `.card` qui
+    // fixe `border:1px solid var(--line);border-radius:var(--radius)`.
+    // Depuis D124, ce ne sont plus « deux fichiers, deux questions » (D122,
+    // D123) : `--app-bord`/`--radius` de `app/globals.css` valent la même
+    // valeur que cette maquette mesure, et ce gardien le confronte plutôt que
+    // de recopier un nombre.
+    const card = regle(".card");
+    expect(propriete(card, "border")).toContain("var(--line)");
+    expect(propriete(card, "border-radius")).toBe("var(--radius)");
+
     expect(CARTE_ENTITE).toContain("border-app-bord");
-    expect(CARTE_ENTITE).toContain("rounded-[10px]");
-    expect(CARTE_ENTITE).not.toContain("rounded-[14px]");
+    expect(CARTE_ENTITE).toContain("rounded-lg");
+    expect(CARTE_ENTITE).not.toMatch(/rounded-\[\d+px\]/);
   });
 
   it("le titre reprend la marge et la taille de .entity-card h3", () => {

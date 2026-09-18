@@ -142,7 +142,7 @@ export default async function PageSites({
           elle se partage et se recharge. Aucun état client à tenir. */}
       <form
         method="get"
-        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-[10px] border px-4 py-3.5"
+        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
       >
         <label className="flex flex-col gap-1 text-[12px] font-semibold">
           {t("sites.recherche")}
