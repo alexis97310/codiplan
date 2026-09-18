@@ -46,10 +46,19 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * ## LE BOUTON « + PLANIFIER UN CONTRÔLE » DE L'EN-TÊTE — ÉCART NOMMÉ
  *
  * `head()` de `vgp()` pose ce bouton. Aucune route ne planifie un contrôle
- * aujourd'hui — enregistrer une vérification déjà FAITE (lot A7, deuxième
- * temps de ce ticket) n'est pas la même chose que planifier une échéance
- * future, qui reste à construire. Un bouton qui ne mène nulle part se lit
- * comme une panne (R2-13) : il n'est donc pas rendu.
+ * aujourd'hui — enregistrer une vérification déjà FAITE (§ ci-dessous) n'est
+ * pas la même chose que planifier une échéance future, qui reste à
+ * construire. Un bouton qui ne mène nulle part se lit comme une panne
+ * (R2-13) : il n'est donc pas rendu.
+ *
+ * ## LA COLONNE « ACTION » MÈNE À `enregistrerVerification` (SECOND TEMPS)
+ *
+ * `enregistrerVerification` (`lib/vgp/verification.ts`) existait sans aucun
+ * appelant — un geste réglementaire qu'on ne pouvait pas faire est un écran
+ * qui ment. Chaque ligne mène donc à `/vgp/enregistrer/[id]`, son écran et
+ * son seul chemin d'écriture. La fiche machine reste atteignable par le lien
+ * du numéro de série, dans la colonne « Machine » — le bouton d'action ne la
+ * porte plus, pour ne pas dupliquer deux destinations sous un même bouton.
  *
  * ## LE DÉBORDEMENT MESURÉ À 1280 PX (AUDIT D128) ET SA CORRECTION
  *
@@ -339,10 +348,10 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
       </Cellule>
       <Cellule>
         <Link
-          href={`/parc/${ligne.id}`}
+          href={`/vgp/enregistrer/${ligne.id}`}
           className="border-app-bord rounded-md border px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap"
         >
-          {t("vgp.action_fiche")}
+          {t("vgp.action_enregistrer")}
         </Link>
       </Cellule>
     </tr>

@@ -1379,7 +1379,35 @@ export const fr = {
   "vgp.colonne_dernier_controle": "Dernier contr\u00f4le",
   "vgp.colonne_etat": "État",
   "vgp.colonne_action": "Action",
-  "vgp.action_fiche": "Fiche",
+  // ── ENREGISTRER UNE VÉRIFICATION (lot A5+A7, second temps) — l'action de
+  // chaque ligne du registre mène ici ; la fiche machine reste atteignable
+  // depuis le lien du numéro de série, dans la colonne « Machine ».
+  "vgp.action_enregistrer": "Enregistrer",
+  "vgp.verifier.titre": "Enregistrer une vérification",
+  "vgp.verifier.retour": "‹ Retour au registre",
+  "vgp.verifier.champ.date_verification": "Date de la vérification",
+  "vgp.verifier.champ.organisme": "Organisme",
+  "vgp.verifier.champ.reference_rapport": "Référence du rapport",
+  "vgp.verifier.champ.origine": "Origine de l'information",
+  // SANS DÉFAUT, à dessein (D114) : l'appelant DIT d'où vient l'information,
+  // ou la saisie est refusée. L'option vide est désactivée, jamais choisie
+  // silencieusement.
+  "vgp.verifier.champ.origine_aucune": "Choisissez l'origine",
+  "vgp.verifier.champ.observations": "Observations — une par ligne",
+  "vgp.verifier.enregistrer": "Enregistrer",
+  "vgp.verifier.refus.saisie":
+    "La saisie est refusée : la date, l'organisme et l'origine de l'information sont obligatoires.",
+  "vgp.verifier.refus.introuvable":
+    "Cette machine n'est pas lisible sous la société active.",
+  // LES QUATRE ORIGINES RATIFIÉES (D114) — valeur probante décroissante,
+  // dans l'ordre où D114 les liste. Le libellé français n'est pas couvert par
+  // tests/unit/docs/origines-vgp-ratifiees.test.ts (qui ne lit que le schéma
+  // et l'arbitrage) : il peut se reformuler sans rouvrir l'arbitrage.
+  "vgp.origine_saisie.rapport_organisme": "Rapport de l'organisme",
+  "vgp.origine_saisie.rapport_transmis_client":
+    "Rapport transmis par le client",
+  "vgp.origine_saisie.vignette_constatee": "Vignette constatée",
+  "vgp.origine_saisie.declaration_client": "Déclaration du client",
   "vgp.vide":
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
   "vgp.borne":

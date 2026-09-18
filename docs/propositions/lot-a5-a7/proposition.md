@@ -140,8 +140,11 @@ db:seed`) :
 - `pnpm format:check` — vert.
 - `pnpm typecheck` — vert.
 - `pnpm lint` — vert (`--max-warnings 0`).
-- `pnpm test` — vert, **2186 tests**, 200 fichiers.
-- `pnpm build` — vert, 11 routes dynamiques rendues sans erreur.
+- `pnpm test` — vert, **2194 tests**, 201 fichiers (Temps 1 : 2186 ; Temps 2 en
+  ajoute 8, `tests/unit/vgp/saisie-verification.test.ts`).
+- `pnpm build` — vert, toutes les routes rendues sans erreur, dont les deux
+  nouvelles du second temps (`/vgp/enregistrer/[id]`,
+  `/api/vgp/enregistrer/[id]`).
 
 **`pnpm test:isolation` et `pnpm test:e2e` n'ont pas pu tourner dans cette
 session.** Le harnais (`tests/isolation/setup/db.ts`) dérive les rôles
@@ -191,8 +194,56 @@ débordement :
 
 ![Forfaits après](parametres-forfaits--apres.png)
 
-## 6. Ce que ce ticket ne fait PAS encore
+## 6. Second temps — donner un écran à `enregistrerVerification`
 
-Le second temps du ticket (enregistrer une vérification VGP, donner un écran
-et un chemin d'écriture à `enregistrerVerification`) est traité dans un commit
-séparé, poussé après celui-ci — jamais avant, comme demandé.
+`enregistrerVerification` (`lib/vgp/verification.ts`) existait — testée sous
+cloisonnement (`tests/isolation/vgp-verification.test.ts`), en base depuis
+D114 (12/09/2026) — et n'avait **aucun appelant** : ni écran, ni route. Une
+obligation réglementaire qu'on ne peut pas enregistrer est un écran qui ment.
+
+**Deux fichiers neufs, un formulaire, une fonction pure :**
+
+- `app/(back-office)/vgp/enregistrer/[id]/page.tsx` — l'écran, atteint depuis
+  la colonne « Action » de chaque ligne du registre.
+- `app/api/vgp/enregistrer/[id]/route.ts` — le seul chemin d'écriture ; refus
+  avec motif sur la même page, jamais une page blanche (même discipline que
+  `/api/parametres/forfaits/creer`).
+- `components/vgp/formulaire-verification.tsx` — date, organisme, référence du
+  rapport (facultative), origine (les quatre valeurs RATIFIÉES par D114, LUES
+  depuis `ORIGINES_VGP`, jamais recopiées), observations. **L'origine n'a pas
+  de défaut** : l'option vide du `<select>` est désactivée — *une origine par
+  défaut serait une valeur probante inventée* (D114).
+- `lib/vgp/saisie-verification.ts` — la traduction pure d'un `FormData` en
+  `SaisieVerificationVgp`, éprouvée sans base ni session
+  (`tests/unit/vgp/saisie-verification.test.ts`, 8 scénarios).
+
+**Pourquoi `/vgp/enregistrer/[id]` et non `/vgp/[id]/enregistrer`.** La
+première rédaction mettait l'identifiant en milieu de chemin ; le gardien
+`tests/unit/navigation/atteignabilite-ecrans.test.ts` a rougi — *« ces écrans
+existent et AUCUN lien n'y mène »*, `/vgp/[id]/enregistrer` compté orphelin.
+Mesuré, pas supposé : `mene()` (`scripts/lib/atteignabilite-ecrans.ts`)
+n'apparie un gabarit `` `/segment/${id}` `` qu'à une route dont le DERNIER
+segment est dynamique — la forme de toutes les fiches existantes (`/parc/
+[id]`, `/clients/[id]`, `/parametres/forfaits/[id]`…), jamais un segment
+statique après l'identifiant. Plutôt que d'assouplir le gardien, la route a
+repris la forme que le reste du dépôt emploie déjà.
+
+**Ce que ce formulaire ne porte pas** : aucun champ de document.
+`document_id` reste nul — aucun sélecteur de document n'existe encore ailleurs
+dans le dépôt à réutiliser (D88 §9, la classe `client`), et en inventer un
+aurait fait de ce ticket un second lot.
+
+**Éprouvé de bout en bout, en local** (Playwright, hors suite committée —
+voir §4 pour pourquoi `test:e2e` ne peut pas tourner ici) : connexion,
+`/vgp` → clic sur « Enregistrer » d'une ligne « Information reçue », remplissage
+du formulaire (01/09/2026, origine « Rapport transmis par le client »),
+soumission → redirection 303 vers `/vgp` → la ligne `RAV-KPX-2019-0148`
+affiche désormais **« Dernier contrôle » 01/09/2026** et **« Prochaine
+échéance — 01/09/2027 »**, et le KPI « Informations reçues » comme les
+comptes d'échéance se recalculent en conséquence. Capture ci-dessous.
+
+### Captures — l'écran neuf, et le registre après écriture
+
+![Écran d'enregistrement d'une vérification](vgp-enregistrer--apres.png)
+
+![Le registre après l'écriture](vgp--apres-ecriture.png)
