@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `fc73bdcf703279ba42c449df1c511138ac437a02` (`fc73bdc`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-17 23:49 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `bbf7e3c43416311d6b572879e67dbac56c5521e3` (`bbf7e3c`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-18 01:22 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -67,7 +67,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `fc73bdc` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `bbf7e3c` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -99,15 +99,6 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
   Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
 - `intervention-detail--clair--390.png : Error: le planning ne porte aucun lien d'intervention : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
   Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
-
-### Retirées à cette prise
-
-Ces images ne correspondent plus à aucun écran photographié. **Elles sont supprimées plutôt que laissées** : une image que le README ne décrit plus se relit quand même comme une preuve de ce que l'application affiche.
-
-- `intervention-detail--clair--1280.png`
-- `intervention-detail--clair--390.png`
-- `terrain-intervention--clair--1280.png`
-- `terrain-intervention--clair--390.png`
 
 ## Les images
 
