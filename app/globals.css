@@ -405,38 +405,33 @@
  * `codiplan-maquette-complete.html` (N-11) : *à l'impression, seule la carte
  * QR est visible.*
  *
- * La maquette y arrive par un BOUTON qui ajoute une classe sur `<body>`
- * avant d'appeler `window.print()` — un mécanisme qui suppose un état global
- * que ce dépôt n'a pas construit ici (N-11, §8 : aucun tiroir, aucun état de
- * page ajouté pour ce seul geste). La règle ci-dessous obtient le MÊME effet
- * sans lui : elle s'applique à TOUTE impression de la fiche, bouton cliqué ou
- * raccourci clavier du navigateur — un résultat au moins aussi correct que
- * celui de la maquette, jamais moins.
+ * **MÊME MÉCANISME que la maquette, pas une variante.** `drawQr()`/
+ * `data-action="print-qr"` ajoutent `print-qr` sur `<body>` avant
+ * `window.print()`, et la règle CSS ne porte que sur cette classe —
+ * `ActionsQrMachine` (`components/machines/actions-qr.tsx`) fait exactement
+ * ce geste, `afterprint` retirant la classe à la fermeture de la boîte de
+ * dialogue plutôt que le `setTimeout(200)` de la maquette (plus fiable :
+ * l'événement existe précisément pour ça).
  *
- * `.zone-impression-qr` est posé sur la carte QR de `/parc/[id]`, et sur elle
- * seule.
- *
- * **`!important` sur la seule règle qui masque, et c'est MESURÉ, pas du
- * confort.** Sans lui, un bouton profondément imbriqué (celui de la carte
- * « Historique des interventions ») restait `visibility:visible` sous
- * Chromium avec `body:has(.zone-impression-qr) *` seul, alors qu'AUCUNE autre
- * règle de la page ne le déclarait visible — un recalcul de style que
- * `:has()` rend fragile en présence d'autres sélecteurs relationnels sur la
- * même page (`Button` porte déjà `has-[>svg]:`). `!important` referme cette
- * fragilité sans abandonner `body:has(...)`, seule forme qui couvre aussi la
- * barre latérale — HORS de `<main>`, donc hors de portée d'une classe posée
- * sur `<Page>`.
+ * **`body:has(.zone-impression-qr) *` a été essayée d'abord, et REFUSÉE,
+ * mesuré.** Elle laissait un bouton profondément imbriqué (celui de la carte
+ * « Historique des interventions ») `visibility:visible` — confirmé par
+ * `element.matches(selecteur)` retournant VRAI pour la règle `hidden
+ * !important`, alors que `getComputedStyle` continuait de rendre `visible` :
+ * un recalcul de style qui n'aboutit pas, propre à `:has()` combiné à un
+ * second sélecteur relationnel de la page (`Button` porte déjà
+ * `has-[>svg]:`). Une classe simple sur `<body>`, posée par JavaScript
+ * comme la maquette le fait déjà, n'a pas cette fragilité.
  */
 @media print {
-  body:has(.zone-impression-qr)
-    *:not(.zone-impression-qr, .zone-impression-qr *) {
-    visibility: hidden !important;
+  body.print-qr * {
+    visibility: hidden;
   }
-  body:has(.zone-impression-qr) .zone-impression-qr,
-  body:has(.zone-impression-qr) .zone-impression-qr * {
+  body.print-qr .zone-impression-qr,
+  body.print-qr .zone-impression-qr * {
     visibility: visible;
   }
-  body:has(.zone-impression-qr) .zone-impression-qr {
+  body.print-qr .zone-impression-qr {
     position: absolute;
     top: 0;
     left: 0;

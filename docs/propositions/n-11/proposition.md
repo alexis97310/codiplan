@@ -152,20 +152,29 @@ Les deux gestes du navigateur (copier l'ID, imprimer) vivent dans **un seul
 petit composant client** (`components/machines/actions-qr.tsx`), jamais un
 `"use client"` sur la page.
 
-## 7. Note honnête — la vue d'impression
+## 7. La vue d'impression — un détour, et sa cause réelle
 
-`app/globals.css` porte une règle `@media print` qui isole la carte QR (même
-effet que le bouton `print-qr` de la maquette, sans son mécanisme de classe
-JS globale). **Mesuré en cours de route : la première forme
-(`body:has(.zone-impression-qr) *`) laissait un bouton profondément imbriqué
-(celui de la carte « Historique ») visible malgré une règle qui le déclarait
-`hidden`** — un recalcul de style propre à `:has()` combiné à un second
-sélecteur relationnel de la page (`Button` porte déjà `has-[>svg]:`). La règle
-a été durcie (`!important` sur la seule déclaration qui masque, exclusion
-explicite de la carte QR). **Cette correction n'a pas été re-capturée après
-coup** — le budget de session a été redirigé vers le commit/push et cette
-proposition sur consigne explicite du pilote. À vérifier visuellement avant
-fusion (`Ctrl+P` sur `/parc/[id]` doit ne montrer que la carte QR).
+**Deux fausses pistes, une cause trouvée.** `body:has(.zone-impression-qr) *`
+laissait un bouton profondément imbriqué (celui de la carte « Historique »)
+mesuré `visibility:visible` malgré une règle `hidden !important` qui le
+matchait (`element.matches(sélecteur)` rendait VRAI). Le remplacement par une
+classe posée sur `<body>` — `body.print-qr *`, sans aucun `:has()` — a montré
+EXACTEMENT le même symptôme au premier essai, ce qui excluait `:has()` comme
+cause. **La cause réelle : un test qui interroge `getComputedStyle()` juste
+après avoir ajouté la classe, dans le MÊME appel synchrone, avant que le
+moteur de rendu n'ait recalculé les styles.** Un délai de 300 ms (ou, en usage
+réel, le passage par `window.print()` lui-même, qui force un recalcul complet
+avant d'afficher l'aperçu) suffit à voir le bon résultat — confirmé par
+capture d'écran, `.zone-impression-qr` seule visible, aucune fuite.
+
+**Le mécanisme final reprend celui de la maquette, à l'identique plutôt qu'en
+variante** : `ActionsQrMachine` pose `print-qr` sur `<body>` avant
+`window.print()` — le même geste que `data-action="print-qr"` dans
+`codiplan-maquette-complete.html` — et la retire sur l'événement `afterprint`
+(plus fiable que le `setTimeout(200)` de la maquette). `app/globals.css` ne
+porte plus qu'une règle `@media print { body.print-qr … }`, sans relation
+`:has()`. Vérifié par capture d'écran locale (émulation d'impression +
+délai) : seule la carte QR reste visible.
 
 ## 8. Les captures
 
@@ -177,6 +186,8 @@ Dans ce dossier, 1280 px :
   bandeau d'alerte (bug n°2 démontré ; aucune intervention rattachée dans le
   semis, donc bandeau sans bouton — comportement voulu, §0 de N-11).
 - `carte-qr-seule.png` — la carte QR isolée.
+- `impression-qr.png` — émulation d'impression (`prefers media: print`) après
+  clic sur « Imprimer l'étiquette » : seule la carte QR reste visible (§7).
 
 **Prises localement** : aucun déploiement de prévisualisation n'existe depuis
 #229 (Vercel ne construit que `main`). Harnais : PostgreSQL 16 local, migré et
@@ -210,12 +221,11 @@ Chaque étape a été jouée séparément (comme N-10 le documente déjà) : la 
 de `test:isolation`, celle de `test:e2e` et celle des scripts d'exploitation
 (`feries:horizon`, `audit:partitions`, qui exigent le rôle PROPRIÉTAIRE,
 jamais `codiplan_app`) sont trois cibles locales jetables distinctes dans cet
-environnement. **La vérification du §7 (impression) n'est pas comprise dans
-ce compte.**
+environnement. `test` et `test:e2e` ont été rejoués une seconde fois après la
+correction du mécanisme d'impression (§7) — verts les deux fois.
 
 ## 10. Ce qui reste ouvert
 
-- La vue d'impression (§7) mérite une vérification visuelle avant fusion.
 - Le bouton « Voir l'intervention » du bandeau d'alerte n'a pas de capture ni
   de scénario de bout en bout dédié, faute de donnée de démonstration qui
   lie une machine hors service à une intervention ouverte (§8).

@@ -15,6 +15,15 @@ import { t } from "@/lib/i18n/fr";
  * l'identifiant copie ce que l'étiquette montre en clair sous le QR — D71 est
  * la même garantie que `components/ui/qr-code.tsx` tient déjà pour le rendu :
  * le secret n'a rien à faire dans ce composant non plus.
+ *
+ * **« Imprimer l'étiquette » pose `print-qr` sur `<body>` avant
+ * `window.print()`, exactement le geste de `data-action="print-qr"` dans
+ * `codiplan-maquette-complete.html`** — la règle CSS qui isole la carte QR
+ * (`app/globals.css`) ne porte que sur cette classe, jamais sur
+ * `body:has(...)`, écartée après mesure (voir le commentaire de cette règle).
+ * `afterprint` retire la classe à la fermeture de la boîte de dialogue —
+ * plus fiable que le `setTimeout(200)` de la maquette, l'événement existant
+ * précisément pour ce nettoyage.
  */
 export function ActionsQrMachine({
   identifiant,
@@ -35,6 +44,12 @@ export function ActionsQrMachine({
         type="button"
         data-bloc="qr-imprimer"
         onClick={() => {
+          const nettoyer = () => {
+            document.body.classList.remove("print-qr");
+            window.removeEventListener("afterprint", nettoyer);
+          };
+          window.addEventListener("afterprint", nettoyer);
+          document.body.classList.add("print-qr");
           window.print();
         }}
         className="bg-app-marque border-app-marque text-app-marque-encre inline-flex min-h-[32px] items-center justify-center rounded-md border px-[10px] py-[6px] text-[12px] font-bold"
