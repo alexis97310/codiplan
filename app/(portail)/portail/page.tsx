@@ -122,16 +122,22 @@ export default async function PagePortail() {
     >
       {/*
         LE BANDEAU DE LA MAQUETTE — `.pcli` : dégradé à 120°, encre blanche,
-        rayon 10, 22/24 de marge intérieure ; le nom en 19 px extra-gras, la
-        ligne dessous à 85 % d'opacité en 13 px. **LE DÉGRADÉ NE PORTE AUCUNE
+        22/24 de marge intérieure ; le nom en 19 px extra-gras, la ligne
+        dessous à 85 % d'opacité en 13 px. **LE DÉGRADÉ NE PORTE AUCUNE
         COULEUR NOUVELLE** : la maquette va de `--bleu` à `#00376e` ; ici il va
         de `--app-marque` à `--app-bleu-encre`, qui EST le bleu sombre de la
         charte. *Un écran nomme un rôle, jamais une couleur* — et la seconde
         apparence le repeint sans que cette ligne bouge.
+
+        LE RAYON N'EST PLUS LE `10` PROPRE DE `.pcli` (D124) : `rounded-lg`
+        lit `--radius`, le jeton commun à toute carte de l'application depuis
+        que `codiplan-maquette-complete.html` en fait foi — ce bandeau suit
+        désormais la même valeur que le reste de l'écran plutôt qu'une mesure
+        isolée sur sa propre règle.
       */}
       {parc.raisonSociale === null ? null : (
         <div
-          className="text-app-marque-encre rounded-[10px] px-6 py-[22px]"
+          className="text-app-marque-encre rounded-lg px-6 py-[22px]"
           style={{
             backgroundImage:
               "linear-gradient(120deg, var(--app-marque), var(--app-bleu-encre))",
@@ -205,7 +211,7 @@ export default async function PagePortail() {
             {parc.sites.map((site) => (
               <li
                 key={site.id}
-                className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-2.5 text-[13px]"
+                className="bg-app-surface border-app-bord rounded-lg border px-4 py-2.5 text-[13px]"
               >
                 <span className="font-bold">{libelleDuSite(site)}</span>
               </li>
@@ -225,7 +231,7 @@ export default async function PagePortail() {
             {parc.machines.map((machine) => (
               <li
                 key={machine.id}
-                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-[10px] border px-4 py-3 text-[13px]"
+                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px]"
               >
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                   <span className="font-bold">
@@ -271,7 +277,7 @@ export default async function PagePortail() {
         promet sans dire quoi faire est pire qu'une absence.*
       */}
       <section className="grid gap-3 lg:grid-cols-2">
-        <article className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+        <article className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.interventions")}
           </h2>
@@ -281,7 +287,7 @@ export default async function PagePortail() {
             {t("portail.interventions.a_venir_apres")}
           </p>
         </article>
-        <article className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+        <article className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <h2 className="text-[15px] font-extrabold tracking-tight">
             {t("portail.demande")}
           </h2>
@@ -297,7 +303,7 @@ export default async function PagePortail() {
 
 /**
  * UNE CARTE D'INDICATEUR — `.kpi` de la maquette : fond de surface, bordure,
- * rayon 10, 15/16 de marge, et **un filet de 3 px à gauche**.
+ * rayon `--radius` (D124), 15/16 de marge, et **un filet de 3 px à gauche**.
  *
  * *Le filet porte un SENS et non une décoration* : bleu quand le chiffre est
  * une mesure, gris quand il n'y en a pas. Un filet bleu sur un « — » dirait que
@@ -315,7 +321,7 @@ function Chiffre({
   readonly filet: "bleu" | "gris";
 }) {
   return (
-    <div className="bg-app-surface border-app-bord relative overflow-hidden rounded-[10px] border px-4 py-[15px]">
+    <div className="bg-app-surface border-app-bord relative overflow-hidden rounded-lg border px-4 py-[15px]">
       <span
         aria-hidden
         className={`absolute top-0 bottom-0 left-0 w-[3px] ${

@@ -133,7 +133,7 @@ export default async function PageParametresAgences({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="1040px">
           {reglages.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>

@@ -132,7 +132,7 @@ export default async function PageIntervention({
       {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+          <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
             <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
               <Ligne
                 libelle={t("intervention.type")}
@@ -369,7 +369,7 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
     })),
   ];
   return (
-    <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
       <h2 className="mb-2 text-[12.5px] font-bold">
         {t("intervention.habilitations.exigees")}
       </h2>
@@ -431,7 +431,7 @@ function Valorisation({
   montants: AccesAuxMontants;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
       <h2 className="text-[14px] font-bold">
         {t("intervention.cloture.facture")}
       </h2>
@@ -618,7 +618,7 @@ function Action({
   if (verdict.refuse) {
     const cle = verdict.cle;
     return (
-      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-[10px] border px-4 py-3">
+      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
         <h2 className="text-[13px] font-bold">{titre}</h2>
         <p className="text-app-rouge-encre text-[12.5px]">
           {cle !== undefined && estCleTraduction(cle) ? t(cle) : ""}
@@ -630,7 +630,7 @@ function Action({
     <form
       action={action}
       method="post"
-      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3"
+      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
     >
       <h2 className="text-[13px] font-bold">{titre}</h2>
       {note === undefined ? null : (

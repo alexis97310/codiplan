@@ -64,7 +64,7 @@ export default async function PageFamillesADeterminer() {
         </Link>
       }
     >
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="620px">
           {familles.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>

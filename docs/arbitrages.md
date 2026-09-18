@@ -4537,3 +4537,70 @@ Deux écrans à reconstruire (Clients, Sites), un composant de carte à écrire 
 > Le jour où une fonction de dépôt batched existe pour compter les machines ou les interventions d'un client, ou les machines d'un site, la bande de compteurs de la carte concernée s'étend — sans rouvrir cette décision, qui ne porte que sur la FORME. Le jour où un troisième écran de référentiel apparaît dans le produit, la même mesure — compter ses fonctions d'écran dans la maquette — décide s'il rejoint ce régime ou reste un tableau ; aucune extension par ressemblance n'est faite sans elle.
 
 *Aucune règle du chapitre 10 n'est amendée : la forme d'un écran n'y figure pas.*
+
+---
+
+## D124 — LE DESIGN À L'IDENTIQUE : `codiplan-maquette-complete.html` DEVIENT LA SOURCE UNIQUE DES JETONS DE COULEUR, DE LA TYPOGRAPHIE, DU RAYON ET DE L'OMBRE
+
+*Rendu par Alexis le 18/09/2026 (ticket N-09), en ces termes : « il faut continuer l'adaptation du design du site pour qu'ils correspondent EXACTEMENT à celui de la maquette ». D122 avait posé « deux fichiers, deux questions » — `codiplan-maquette-complete.html` fait foi sur la FORME, jamais sur la VALEUR d'un jeton de couleur — et D123 l'avait mécaniquement reconduite pour la bordure et le rayon d'`.entity-card` (§ « LES JETONS DE COULEUR NE BOUGENT PAS »). **Cette séparation tombe, sur ce périmètre précis et sur lui seul.**
+
+### CE QUI A ÉTÉ MESURÉ, jeton par jeton
+
+Comparé entre le bloc `:root` de `docs/maquette/codiplan-maquette-complete.html` et le bloc `[data-apparence="maquette"]` d'`app/globals.css`, avant ce ticket :
+
+| rôle | maquette | application (avant) |
+|---|---|---|
+| fond | `#f4f6f9` | `#f4f5f7` |
+| surface creuse | `#f8fafc` | `#fafbfc` |
+| ligne (bordure) | `#dce2ea` | `#e1e4e8` |
+| ligne faible | `#edf0f4` | `#f0f1f3` |
+| encre | `#142033` | `#111111` |
+| encre faible | `#637083` | `#6b7280` |
+| bleu fond | `#e8f1fb` | `#e7f0fa` |
+| rouge fond | `#fdebed` | `#fde7e9` |
+| vert | `#12824b` | `#0f9d58` |
+| vert fond | `#e5f5ec` | `#e3f5ea` |
+| orange | `#a76500` | `#f0a202` |
+| orange fond | `#fff1d5` | `#fef3dc` |
+| violet / violet fond | `#6941c6` / `#f0eafe` | absents |
+| rayon | `14px` | `10px` |
+| police | `Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif` (`14px/1.45`) | pile système (`14px/1.5`), sans Inter |
+| ombre | `0 14px 38px rgba(29,43,67,.08)` | absente |
+
+Identiques, non touchés : surface `#ffffff`, bleu (marque) `#0053a1`, rouge (accent) `#e30613`.
+
+**Dix-sept jetons sur vingt mesurés différaient.** Aucun n'avait été mesuré depuis que D122 a confronté les deux fichiers pour la FORME : la valeur exacte des jetons de couleur n'avait jamais été comparée à `codiplan-maquette-complete.html`, seulement à `docs/maquette/CODIPLAN_Maquette.html` (D95).
+
+### LA DÉCISION
+
+**`docs/maquette/codiplan-maquette-complete.html` devient la source unique du DESIGN VISUEL — jetons de couleur, typographie, rayon, ombre.** En cas de conflit avec `CODIPLAN_Maquette.html`, c'est elle qui gagne. D95 ne conserve que ce que la nouvelle maquette ne dessine pas, et ce reliquat est énuméré ci-dessous plutôt que supposé.
+
+**Ce que D95 garde, nommément :**
+- **La DISPOSITION** — la grille du planning, la largeur utile (`.wrap`, `LARGEUR_UTILE_PX`), la fiche machine à deux colonnes : `codiplan-maquette-complete.html` ne les redessine pas toutes, et D95 reste seule à en faire foi là où elle est muette.
+- **Les DEUX AMBIGUÏTÉS DE L'ANNEXE D**, telles que D95 les avait résolues : « envoyée »/« clôturée » en bleu et vert PLEINS plutôt qu'en une seconde nuance, et « suspendue » en orange plein plutôt qu'en trame hachurée. Aucune des deux couleurs pleines n'est redessinée par la nouvelle maquette (elle ne porte ni bouton de validation vert ni second bleu) : l'équivalence qu'elles portaient avec la bordure de leur famille (`--app-vert-plein == --app-vert-bord`, `--app-bleu-plein == --app-bleu-bord`) est PROLONGÉE avec la nouvelle valeur, ce qui n'est pas une troisième nuance mais la même règle appliquée à la valeur mesurée aujourd'hui.
+- **Le NOM du technicien abrégé**, l'absence d'apparence sombre, et tout ce que la section « CE QUE LA MAQUETTE PRESCRIT ET QUE LE DÉPÔT NE PEUT PAS SERVIR » de D95 énumère : sans rapport avec un jeton de couleur.
+- **Les couleurs de statut de l'annexe D elles-mêmes** — quelle famille (bleu/rouge/vert/orange/gris) porte quel statut — restent une règle de gestion (chapitre 10, rang 2). D124 ne change qu'une VALEUR de jeton, jamais quel jeton un statut emploie.
+
+**Ce que D124 rend obsolète, nommément — et qui n'est PAS supprimé en silence :**
+
+1. **La clause « deux fichiers, deux questions » de D122**, pour les jetons de couleur, la typographie, le rayon et l'ombre seulement — pas pour la recherche, les filtres, l'indication de position ou le maître-détail, que D122 tranche par ailleurs et que ce ticket ne touche pas.
+2. **Le paragraphe « LES JETONS DE COULEUR NE BOUGENT PAS » de D123** (bordure `#E1E4E8`/rayon `10px` d'`.entity-card`) : la carte d'entité reprend désormais `--app-bord` et `--radius` comme toutes les autres cartes, à leur nouvelle valeur.
+3. **`[data-apparence="tableau"]`** (D95, le thème alternatif recouvré au commit `d03a4a5`) : SES VALEURS NE CHANGENT PAS — elles ne viennent d'aucune des deux maquettes, mais de l'historique `main` d'avant le 11/09/2026, et D124 ne les mesure pas. Seul le commentaire d'en-tête d'`app/globals.css`, qui annonçait *« LA MAQUETTE FAIT FOI, disposition ET couleurs »* au singulier, est corrigé pour dire laquelle des deux fait foi sur quoi.
+4. **Les gardiens qui confrontaient un jeton de couleur, un rayon ou une typographie à `CODIPLAN_Maquette.html`** : `tests/unit/theme/apparence.test.ts` (les huit paires nommées) et le rayon de `.card`/`.kpi`/`.entity-card` dans `tests/unit/ui/composants-maquette.test.ts` et `tests/unit/ui/carte-entite.test.ts`. Ils sont RÉORIENTÉS vers `codiplan-maquette-complete.html`, jamais assouplis : ils continuent de faire échouer toute valeur qui s'écarterait de sa source, seule la source change. Les propriétés de FORME que ces mêmes fichiers confrontent (padding, tailles de police narratives, disposition) restent adossées à `CODIPLAN_Maquette.html`, inchangée.
+5. **Le commentaire de `components/ui/carte-entite.tsx`** qui documentait l'ancienne borne (« la bordure de la carte et son rayon restent ceux de D95 ») : corrigé pour dire que la carte d'entité suit désormais la même règle que toutes les autres cartes.
+
+### CE QUI N'EST PAS AJOUTÉ, ET POURQUOI
+
+**Le violet n'entre pas dans l'apparence.** Mesuré dans `codiplan-maquette-complete.html` : `--purple`/`--purple-2` n'y servent que deux éléments de démonstration — `.leave`, la pastille de congé/formation du calendrier interactif de la maquette, et `.coming .lot`, le badge « Lot N » des écrans de modules futurs. Aucun des deux n'a de contrepartie dans le produit : l'écran `/absences` du dépôt est un tableau de blocages, sans calendrier ni pastille colorée ; les entrées de menu inertes (« Contrats », « Console éditeur », etc., `lib/navigation/entrees.ts`) ne portent aujourd'hui aucun badge « Lot N », et les deux futurs écrans n'existent pas encore comme routes. *Un jeton sans emploi est un jeton qui dérivera* : le violet est mesuré et nommé ici pour le jour où l'un des deux besoins existera, il n'est pas ajouté à `app/globals.css` tant qu'aucun n'existe.
+
+**L'ombre (`--shadow` de la maquette) n'entre pas non plus dans l'apparence, pour la même raison, mesurée plus finement.** La maquette n'emploie `var(--shadow)` que sur `.toast`, une notification flottante ; `.card` y porte sa PROPRE ombre, plus discrète et non nommée en jeton (`box-shadow:0 2px 8px rgba(25,40,62,.035)`), que ce ticket ne mesure pas puisqu'elle n'a pas de nom dans le `:root` de la maquette. Le dépôt ne construit aujourd'hui ni notification flottante, ni fenêtre modale, ni tiroir de détail (`components/ui/` n'en contient aucun) : ajouter `--app-ombre` sans rien qui le consomme serait exactement le défaut que le paragraphe ci-dessus refuse pour le violet. La valeur est donc mesurée et écrite ici, pas dans la feuille de style.
+
+### CE QUE ÇA COÛTE
+
+Dix-sept jetons à changer de valeur dans un seul bloc CSS ; une police à charger (`next/font`, jamais un CDN) ; les gardiens de couleur et de rayon à réorienter vers la seconde maquette plutôt qu'à assouplir ; les `rounded-[10px]` en dur des écrans à faire passer par `--radius`, comptés avant et après dans la proposition ; et deux jetons mesurés mais délibérément non posés (violet, ombre), à reprendre le jour où un écran les réclame.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où `CODIPLAN_Maquette.html` elle-même redessine l'un de ces dix-sept jetons à une valeur différente de `codiplan-maquette-complete.html`, la question redevient ouverte plutôt que tranchée par cette page. Le jour où un écran a besoin d'une pastille de congé, d'un badge « Lot N », d'une notification flottante ou d'un tiroir de détail, le violet ou l'ombre cessent d'être des jetons mesurés-mais-non-posés : ils entrent dans `app/globals.css`, à la valeur déjà écrite ci-dessus, sans nouvelle mesure.
+
+*Aucune règle du chapitre 10 n'est amendée : un jeton de couleur, un rayon et une police n'y figurent pas.*

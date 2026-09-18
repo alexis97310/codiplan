@@ -160,7 +160,7 @@ function Section({
         {titre}
       </h2>
       {lignes.length === 0 ? (
-        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-center text-[13px]">
+        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-[13px]">
           {vide}
         </p>
       ) : (
@@ -193,7 +193,7 @@ function Carte({
     <li>
       <Link
         href={`/terrain/${ligne.id}`}
-        className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-[10px] border px-4 py-3 ${CLASSES_LIEN}`}
+        className={`bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3 ${CLASSES_LIEN}`}
       >
         <div className="flex items-center justify-between gap-3">
           <span className="text-[15px] font-bold tabular-nums">

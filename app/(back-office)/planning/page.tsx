@@ -428,7 +428,7 @@ export default async function PagePlanning({
           )}
 
           <aside className="flex flex-col gap-4">
-            <section className="bg-app-surface border-app-bord rounded-[10px] border">
+            <section className="bg-app-surface border-app-bord rounded-lg border">
               <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
                 {t("planning.file_attente")}
                 <span className="text-app-marque text-[11px] font-semibold">
@@ -525,7 +525,7 @@ function VueSemaine({
   readonly fuseauPour: (agenceId: string) => Fuseau;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
       {/*
         LA GRILLE NE SE COMPRIME PAS SOUS `lg` (N-02, 17/09/2026).
 
@@ -796,7 +796,7 @@ function VueJour({
   // posée » serait alors un mensonge de plus.
   if (journee.axe.length === 0 || journee.colonnes.length === 0) {
     return (
-      <section className="bg-app-surface border-app-bord rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord rounded-lg border">
         <p className="text-app-encre-faible px-4 py-6 text-[13px]">
           {t("planning.jour_vide")}
         </p>
@@ -805,7 +805,7 @@ function VueJour({
     );
   }
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-[12.5px]">
         {resumeDesTrous(journee.creneauxLibres, journee.pasMinutes)}
       </p>

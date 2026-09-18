@@ -182,7 +182,7 @@ export default async function PageClients({
       {/* LE SEUL COMPTEUR. Il dit ce qu'il compte et sur quoi il porte —
           *un chiffre dont on ne sait pas sur quoi il porte est un chiffre
           qu'on lit de travers* (§9, 06/09). */}
-      <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="text-[26px] font-extrabold tracking-tight">
             {sansCode}

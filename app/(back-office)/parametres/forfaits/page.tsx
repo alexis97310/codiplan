@@ -155,7 +155,7 @@ export default async function PageForfaits({
       ) : null}
 
       {catalogue.length === 0 ? (
-        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-[13px]">
+        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-[13px]">
           {t("forfaits.vide")}
         </section>
       ) : (
@@ -244,7 +244,7 @@ function Nature({
   ];
 
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {libelleType(type)}
       </h2>

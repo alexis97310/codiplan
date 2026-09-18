@@ -154,7 +154,7 @@ export default async function PageRegistreVgp() {
         {t("vgp.information.ce_que_le_silence_dit")}
       </p>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="1240px">
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>

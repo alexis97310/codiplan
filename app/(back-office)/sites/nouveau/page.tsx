@@ -77,7 +77,7 @@ export default async function PageNouveauSite({
       <form
         method="post"
         action="/api/sites/creer"
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
         {/* AUCUNE OPTION PRÉSÉLECTIONNÉE sur ces deux listes. Voir l'entête. */}
         <label className="flex flex-col gap-1 text-[12.5px] font-semibold">

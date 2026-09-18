@@ -167,7 +167,7 @@ function SectionJour({
 }) {
   const creneaux = creneauxDuJour(parametrage, jour);
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-lg border px-4 py-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[14px] font-bold capitalize">
           {libelleJour(jour)}

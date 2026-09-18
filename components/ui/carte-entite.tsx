@@ -24,15 +24,20 @@ import { cn } from "@/lib/utils";
  * Un gardien confronte ces règles au texte de ce fichier
  * (`tests/unit/ui/carte-entite.test.ts`).
  *
- * **La bordure de la carte et son rayon restent ceux de D95, jamais ceux de
- * `codiplan-maquette-complete.html`.** Cette seconde maquette mesure `border:
- * 1px solid var(--line)` (`#dce2ea`) et `border-radius:var(--radius)`
- * (`14px`) — DEUX VALEURS QUI DIFFÈRENT de `#E1E4E8` et `10px`, la bordure et
- * le rayon canoniques de `docs/maquette/CODIPLAN_Maquette.html` (D95, D122 :
- * « deux fichiers, deux questions » — cette seconde maquette fait foi sur la
- * FORME, jamais sur la VALEUR EXACTE d'un jeton de couleur). Cette carte
- * reprend donc `border-app-bord` et `rounded-[10px]`, exactement comme
- * `Carte` (`components/ui/carte.tsx`) — jamais une seconde bordure.
+ * **La bordure de la carte et son rayon sont ceux de `codiplan-maquette-
+ * complete.html`, depuis D124 — et ce n'est plus un écart avec `Carte`.**
+ * `D122`/`D123` posaient « deux fichiers, deux questions » : cette seconde
+ * maquette faisait foi sur la FORME, jamais sur la valeur exacte d'un jeton de
+ * couleur, si bien que la bordure et le rayon d'`.entity-card` (`border:1px
+ * solid var(--line)` = `#dce2ea`, `border-radius:var(--radius)` = `14px`)
+ * restaient ceux, DIFFÉRENTS, de `CODIPLAN_Maquette.html` (`#E1E4E8`, `10px`).
+ * **D124 fait tomber cette séparation pour les jetons de couleur, le rayon et
+ * la typographie** : `--app-bord` et `--radius` valent désormais `#dce2ea` et
+ * `14px` dans `app/globals.css`, la valeur même que cette maquette mesure.
+ * Cette carte reprend donc `border-app-bord` et `rounded-lg` parce que ce sont
+ * maintenant EXACTEMENT ces jetons, pas une coïncidence de nom sur deux
+ * valeurs différentes — et toujours les mêmes que `Carte`
+ * (`components/ui/carte.tsx`), jamais une seconde bordure.
  *
  * ## CE QU'ELLE NE FAIT PAS
  *
@@ -69,7 +74,7 @@ export function CarteEntite({
   return (
     <article
       className={cn(
-        "bg-app-surface border-app-bord rounded-[10px] border p-[17px]",
+        "bg-app-surface border-app-bord rounded-lg border p-[17px]",
         className,
       )}
     >

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 
 import { EnregistrementServiceWorker } from "@/components/pwa/enregistrement";
 import { t } from "@/lib/i18n/fr";
@@ -25,6 +26,21 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: COULEUR_MARQUE,
 };
+
+/**
+ * INTER, SERVIE PAR LE PAQUET DE L'APPLICATION (D124) — jamais un lien vers un
+ * CDN, qui ferait dépendre la typographie du produit d'un tiers et clignoter
+ * la police au premier chargement. `next/font/google` la télécharge à la
+ * COMPILATION et l'expose en variable CSS, lue par `app/globals.css`.
+ *
+ * `display: "swap"` : le texte se rend dans la pile système dès la première
+ * peinture, Inter se substitue sans jamais laisser un texte invisible.
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 /**
  * Mise en page racine — c'est ici que l'apparence du produit et la charte de la
@@ -92,7 +108,7 @@ export default async function RootLayout({
   const { theme } = await chromeDeLaRequete();
 
   return (
-    <html lang="fr">
+    <html lang="fr" className={inter.variable}>
       <body
         className="min-h-dvh antialiased"
         data-apparence={APPARENCE_PAR_DEFAUT}

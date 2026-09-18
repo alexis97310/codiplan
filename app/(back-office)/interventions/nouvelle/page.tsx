@@ -87,7 +87,7 @@ export default async function PageNouvelleIntervention({
       <form
         action="/api/interventions/creer"
         method="post"
-        className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <label className="flex flex-col gap-1.5 text-[12.5px] font-semibold">
           {mot("site")}

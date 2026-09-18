@@ -163,7 +163,7 @@ export default async function PageLotDImport({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <h2 className="text-[14px] font-bold">{t("imports.resultat_titre")}</h2>
         <ul className="mt-3 flex flex-col gap-2">
           {resultat.map((entree) => (
@@ -186,7 +186,7 @@ export default async function PageLotDImport({
         </ul>
       </section>
 
-      <section className="bg-app-surface border-app-bord rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord rounded-lg border">
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-[14px] font-bold">{t("imports.lignes_titre")}</h2>
           {/* Rien à télécharger tant qu'il n'y a rien à montrer : un fichier

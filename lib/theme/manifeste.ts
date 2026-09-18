@@ -46,4 +46,4 @@ export const COULEUR_MARQUE = "#0053a1";
  * *Un écran de démarrage d'une autre couleur que l'application produit un
  * clignotement à chaque lancement.*
  */
-export const COULEUR_FOND = "#f4f5f7";
+export const COULEUR_FOND = "#f4f6f9";

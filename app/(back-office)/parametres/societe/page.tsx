@@ -57,7 +57,7 @@ export default async function PageParametresSociete() {
       titre={t("parametres.societe_titre")}
       sousTitre={t("parametres.societe_sous_titre")}
     >
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         {/* LA MÊME FORME que la pastille retirée de la barre — même jetons,
             même donnée, un lecteur qui la reconnaît d'un écran à l'autre. */}
         <div
