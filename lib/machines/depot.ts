@@ -415,6 +415,58 @@ export async function lireMachine(
   );
 }
 
+/**
+ * LES LIBELLÉS D'UN ENSEMBLE DE MACHINES — pour un écran qui ne connaît que
+ * leurs `id` (AT-07 bis, 18/09/2026 ; audit du domaine).
+ *
+ * Mesuré le 18/09/2026 : le registre des interventions (`/interventions`)
+ * LIT déjà `machines` par ligne (`CHAMPS_LIGNE`, `lib/interventions/depot.ts`)
+ * et ne l'affichait jamais — la colonne n'avait pas de libellé à montrer, et
+ * en fabriquer un à l'écran aurait fait une seconde lecture du même critère
+ * que celle-ci écrit une fois.
+ *
+ * **Même forme que `libellesDesSites`** (`lib/sites/depot.ts`) : une SECONDE
+ * lecture, sur les identifiants qu'un premier appel a déjà rendus, jamais un
+ * `include` élargi sur la première requête — celle-ci reste ce qu'elle est,
+ * et ce module n'a pas à savoir qui l'appelle.
+ *
+ * Le libellé est `marque référence` — recopié de `titreDeLaLigne` (`/parc`),
+ * jamais le numéro de série : plusieurs exemplaires du même modèle sur une
+ * même intervention resteraient de toute façon indiscernables par un
+ * `Set<string>` de libellés identiques, et le numéro de série d'une fiche
+ * incomplète (`SN-INCONNU-…`) n'aiderait pas plus à les distinguer dans une
+ * cellule de tableau dense.
+ */
+export async function libellesDesMachines(
+  contexte: ContexteSession,
+  machineIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, string>> {
+  const ids = [...new Set(machineIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machines = await tx.machine.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          modele: { select: { marque: true, reference: true } },
+        },
+      });
+      return new Map(
+        machines.map((machine) => [
+          machine.id,
+          `${machine.modele.marque} ${machine.modele.reference}`,
+        ]),
+      );
+    },
+    client,
+  );
+}
+
 /* ────────────────────────────────────────────────────────────────────────
  * L'ÉCRITURE DU PARC (R6-03) — dans une transaction que l'appelant tient
  * ──────────────────────────────────────────────────────────────────────── */

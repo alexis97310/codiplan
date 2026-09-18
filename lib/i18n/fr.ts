@@ -772,6 +772,13 @@ export const fr = {
   "interventions.filtre_toutes_prefixe": "Toutes les",
   "interventions.filtre_type_tous": "Tous les types",
   "interventions.filtre_statut_tous": "Tous les statuts",
+  // ── LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) ──────────
+  // `interventions()` de la maquette en pose trois ; voir `kpiDuRegistre`
+  // (`app/(back-office)/interventions/page.tsx`) pour ce que chacun compte
+  // RÉELLEMENT — jamais les valeurs illustratives de la maquette (27, 2, 5).
+  "interventions.kpi_semaine": "Planifiées cette semaine",
+  "interventions.kpi_en_cours": "En cours",
+  "interventions.kpi_en_attente": "En attente",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
 
