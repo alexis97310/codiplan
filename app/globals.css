@@ -25,13 +25,14 @@
  * ici et une entrée dans `APPARENCES` (lib/theme/apparence.ts) — et rien
  * d'autre. Aucun écran ne nomme de couleur : il nomme un RÔLE.
  *
- * LE VIOLET (`--purple`/`--purple-2` de la nouvelle maquette) N'EST PAS ICI.
- * Mesuré et nommé par D124 : il n'habille, dans la maquette, que deux pièces
- * de démonstration sans contrepartie dans le produit — une pastille de congé
- * dans un calendrier que `/absences` ne dessine pas, et un badge « Lot N » sur
- * des écrans de modules futurs qui n'existent pas encore comme routes. *Un
- * jeton sans emploi est un jeton qui dérivera* : il entrera le jour où l'un des
- * deux besoins existera, à la valeur déjà mesurée dans D124.
+ * LE VIOLET (`--purple`/`--purple-2` de la nouvelle maquette) EST ICI DEPUIS
+ * D128 (lot A4, 18/09/2026). Mesuré et nommé par D124, posé seulement
+ * maintenant : `/absences` dessine désormais la pastille de blocage que D124
+ * avait identifiée comme son premier emploi possible — *« le jour où un écran
+ * a besoin d'une pastille de congé [...], le violet [...] entre dans
+ * `app/globals.css`, à la valeur déjà écrite [...], sans nouvelle mesure »*.
+ * Aucune valeur n'est donc mesurée ici une seconde fois. Le badge « Lot N »
+ * des modules futurs reste sans contrepartie et n'emploie pas ce jeton.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -74,6 +75,14 @@
   --app-gris-fond: #eef0f2;
   --app-gris-bord: #6b7280;
   --app-gris-encre: #3f4650;
+
+  /* La sixième famille — le violet, `--purple`/`--purple-2` de la nouvelle
+     maquette (D124, posé par D128) : `#6941c6` / `#f0eafe`. Aucun encre
+     distinct n'a été mesuré pour ce couple ; la valeur pleine sert de
+     bordure et d'encre, comme `--app-bleu-bord` le fait déjà pour la marque. */
+  --app-violet-fond: #f0eafe;
+  --app-violet-bord: #6941c6;
+  --app-violet-encre: #6941c6;
 
   /* Les deux pleins — l'onglet actif de la maquette, et ses boutons verts.
      Ce ne sont pas deux jetons distincts dans l'une ou l'autre maquette : ils
@@ -188,6 +197,13 @@
   --app-gris-fond: #e5e5e5;
   --app-gris-bord: #737373;
   --app-gris-encre: #171717;
+
+  /* Le violet — aucune mesure propre à ce thème n'existe (D128) ; il reprend
+     la valeur de D124 plutôt que d'en inventer une, comme le CHROME plus bas
+     dérive déjà des teintes existantes faute d'original à recouvrer. */
+  --app-violet-fond: #f0eafe;
+  --app-violet-bord: #6941c6;
+  --app-violet-encre: #6941c6;
 
   /* Les deux pleins — mêmes teintes à pleine saturation. */
   --app-bleu-plein: #1d4ed8;
@@ -310,6 +326,9 @@
   --color-app-gris-fond: var(--app-gris-fond);
   --color-app-gris-bord: var(--app-gris-bord);
   --color-app-gris-encre: var(--app-gris-encre);
+  --color-app-violet-fond: var(--app-violet-fond);
+  --color-app-violet-bord: var(--app-violet-bord);
+  --color-app-violet-encre: var(--app-violet-encre);
   --color-app-bleu-plein: var(--app-bleu-plein);
   --color-app-bleu-plein-encre: var(--app-bleu-plein-encre);
   --color-app-vert-plein: var(--app-vert-plein);

@@ -105,6 +105,14 @@ export const JETONS = [
   "gris-fond",
   "gris-bord",
   "gris-encre",
+  // La sixième famille — le violet, posé depuis D128 (lot A4) : la pastille
+  // d'absence de `/absences` est le premier écran qui en a besoin, la
+  // condition de réouverture que D124 avait écrite en toutes lettres. Aucune
+  // nouvelle mesure : la valeur vient de D124, qui l'avait déjà lue et nommée
+  // sans la poser.
+  "violet-fond",
+  "violet-bord",
+  "violet-encre",
   // Les deux pleins : la maquette les emploie pour l'onglet actif et pour ses
   // boutons de validation, et les statuts « envoyée » et « clôturée » de
   // l'annexe D — bleu FONCÉ, vert PLEIN — n'ont pas d'autre support.

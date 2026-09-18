@@ -1,4 +1,8 @@
-import { type AssujettissementVgp, type PrismaClient } from "@prisma/client";
+import {
+  type AssujettissementVgp,
+  type Prisma,
+  type PrismaClient,
+} from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -121,45 +125,101 @@ export async function listerLeRegistre(
     }),
   );
 
-  return machines.map((machine) => {
-    const famille = machine.modele.famille;
-    const resolu = resoudreAssujettissement({
-      famille: {
-        assujettissement: famille.assujettissement_vgp,
-        periodiciteMois: famille.vgp_periodicite_mois,
-        referenceTexte: famille.vgp_reference_texte,
-      },
-      modele: {
-        periodiciteMois: machine.modele.vgp_periodicite_mois,
-        referenceTexte: machine.modele.vgp_reference_texte,
-      },
-      machine: { exception: machine.vgp_exception },
-    });
-    return {
-      id: machine.id,
-      numero: machine.numero,
-      numero_serie: machine.numero_serie,
-      client: machine.client.raison_sociale,
-      site: machine.site.libelle,
-      modele: machine.modele.reference,
-      famille: famille.libelle,
-      assujettissement: resolu.valeur,
-      origine: resolu.origine,
-      periodiciteMois: resolu.periodiciteMois,
-      referenceTexte: resolu.referenceTexte,
-      originePeriodicite: resolu.originePeriodicite,
-      information: etatDeLInformation({
-        assujettissement: resolu.valeur,
-        periodiciteMois: resolu.periodiciteMois,
-        // CE QU'ON NOUS A DIT, ou `null` si personne n'a rien dit. *Le second
-        // cas reste le cas ordinaire d'un registre qu'on commence à remplir*,
-        // et c'est lui que « sans information depuis X » décrit.
-        derniereInformation: recues.get(machine.id) ?? null,
-        depuis: machine.date_mise_en_service,
-        aujourdHui,
-      }),
-    };
+  return machines.map((machine) =>
+    ligneDuRegistre(machine, recues, aujourdHui),
+  );
+}
+
+type MachineDuRegistre = Prisma.MachineGetPayload<{
+  select: typeof CHAMPS_REGISTRE;
+}>;
+
+/**
+ * LA CASCADE D'UNE MACHINE, FACTORISÉE — `listerLeRegistre` et
+ * `compterAPrevoir` en sont les deux seuls appelants, et c'est délibéré :
+ * `resoudreAssujettissement` puis `etatDeLInformation` ne s'écrivent qu'ici,
+ * jamais recopiés (§9, 01/09) — le même principe qui gouverne déjà
+ * `informationDeLaMachine` plus bas.
+ */
+function ligneDuRegistre(
+  machine: MachineDuRegistre,
+  recues: ReadonlyMap<string, Date>,
+  aujourdHui: Date,
+): LigneDeRegistre {
+  const famille = machine.modele.famille;
+  const resolu = resoudreAssujettissement({
+    famille: {
+      assujettissement: famille.assujettissement_vgp,
+      periodiciteMois: famille.vgp_periodicite_mois,
+      referenceTexte: famille.vgp_reference_texte,
+    },
+    modele: {
+      periodiciteMois: machine.modele.vgp_periodicite_mois,
+      referenceTexte: machine.modele.vgp_reference_texte,
+    },
+    machine: { exception: machine.vgp_exception },
   });
+  return {
+    id: machine.id,
+    numero: machine.numero,
+    numero_serie: machine.numero_serie,
+    client: machine.client.raison_sociale,
+    site: machine.site.libelle,
+    modele: machine.modele.reference,
+    famille: famille.libelle,
+    assujettissement: resolu.valeur,
+    origine: resolu.origine,
+    periodiciteMois: resolu.periodiciteMois,
+    referenceTexte: resolu.referenceTexte,
+    originePeriodicite: resolu.originePeriodicite,
+    information: etatDeLInformation({
+      assujettissement: resolu.valeur,
+      periodiciteMois: resolu.periodiciteMois,
+      // CE QU'ON NOUS A DIT, ou `null` si personne n'a rien dit. *Le second
+      // cas reste le cas ordinaire d'un registre qu'on commence à remplir*,
+      // et c'est lui que « sans information depuis X » décrit.
+      derniereInformation: recues.get(machine.id) ?? null,
+      depuis: machine.date_mise_en_service,
+      aujourdHui,
+    }),
+  };
+}
+
+/**
+ * COMBIEN DE MACHINES ONT UNE ÉCHÉANCE DÉDUITE DANS L'HORIZON DONNÉ
+ * (AV-10, tableau de bord, D125) — le KPI « VGP à prévoir » de `dashboard()`.
+ *
+ * **Elle ne compte QUE l'état `information_recue`.** Une machine
+ * `sans_information` ou `hors_registre` n'a pas d'échéance déduite —
+ * l'inventer pour la faire entrer dans le compte serait exactement la faute
+ * que L9-05 interdit déjà (aucune durée qui ne vienne pas de la donnée
+ * saisie). *Le compte est donc un plancher, jamais un inventaire complet du
+ * parc* — le registre lui-même le dit déjà à sa façon (« sans information »
+ * n'est jamais lu comme « à jour »).
+ *
+ * **Aucune pagination** : contrairement à `listerLeRegistre`, ce compte porte
+ * sur tout le parc cloisonné — un KPI qui ne compterait qu'une page tronquée
+ * mentirait par omission (même raison que `compterLeParc` face à
+ * `rechercherLeParc`).
+ */
+export async function compterAPrevoir(
+  contexte: ContexteSession,
+  aujourdHui: Date,
+  horizonJours: number,
+): Promise<number> {
+  const recues = await dernieresInformations(contexte);
+  const machines = await avecContexteApplicatif(contexte, (tx) =>
+    tx.machine.findMany({ select: CHAMPS_REGISTRE }),
+  );
+  return machines.filter((machine) => {
+    const ligne = ligneDuRegistre(machine, recues, aujourdHui);
+    return (
+      ligne.information.etat === "information_recue" &&
+      ligne.information.joursAvantEcheance !== null &&
+      ligne.information.joursAvantEcheance >= 0 &&
+      ligne.information.joursAvantEcheance <= horizonJours
+    );
+  }).length;
 }
 
 const CHAMPS_INFORMATION_MACHINE = {
