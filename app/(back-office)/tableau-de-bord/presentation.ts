@@ -119,3 +119,132 @@ export function techniciensIndisponibles(
 ): number {
   return new Set(absencesDuJour.map((absence) => absence.utilisateur_id)).size;
 }
+
+/**
+ * ── « PRIORITÉS OPÉRATIONNELLES » (D125) ─────────────────────────────────
+ *
+ * `priorityItems()` de la maquette affiche quatre entrées de démonstration,
+ * classées `urgent` / `piece` / `planning`. Ce dépôt n'invente aucune de ces
+ * quatre lignes : chaque TYPE se résout depuis une lecture réelle déjà écrite
+ * ailleurs —
+ *
+ * - `urgent` : les interventions du jour dont `priorite` vaut `p1`, tirées de
+ *   `lignesDuJour` — la MÊME liste que le premier KPI lit déjà, jamais une
+ *   seconde requête sur le même critère (§9, 01/09).
+ * - `piece` : `enAttenteDePiece`, la même lecture que la carte « Dossiers
+ *   bloqués ».
+ * - `planning` : les interventions au statut `a_planifier`, qui n'ont ni
+ *   technicien ni date.
+ *
+ * Le filtre `<select>` de la maquette (« Tous les besoins / Urgences / Pièces
+ * / À planifier ») EST le paramètre `priorite` de l'URL — la même forme que
+ * `?statut=` sur `/parc` (N-10) : un `GET`, rendu côté serveur, sans état
+ * React.
+ */
+
+const PRIORITES_VALEURS = ["tous", "urgent", "piece", "planning"] as const;
+export type FiltrePriorite = (typeof PRIORITES_VALEURS)[number];
+
+/** Le filtre reçu de l'URL, ramené à une valeur connue — jamais une valeur libre. */
+export function filtrePrioriteLu(
+  valeur: string | string[] | undefined,
+): FiltrePriorite {
+  return typeof valeur === "string" &&
+    (PRIORITES_VALEURS as readonly string[]).includes(valeur)
+    ? (valeur as FiltrePriorite)
+    : "tous";
+}
+
+/** Une entrée de la liste — jamais un `<article class="priority-item">` recopié : une donnée. */
+export type ElementPriorite = {
+  readonly type: Exclude<FiltrePriorite, "tous">;
+  readonly rang: string;
+  readonly titre: string;
+  readonly detail: string;
+  readonly href: string;
+};
+
+/** Le minimum qu'une intervention porte pour entrer dans la liste. */
+export type InterventionPriorisable = {
+  readonly id: string;
+  readonly numero: number | null;
+  readonly client: { readonly raison_sociale: string };
+};
+
+/**
+ * LES URGENCES DU JOUR — `priorite === "p1"`, parmi les lignes déjà lues
+ * pour le premier KPI.
+ */
+export function prioritesUrgentes(
+  lignesDuJour: readonly (InterventionPriorisable & {
+    readonly priorite: string;
+  })[],
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): readonly ElementPriorite[] {
+  return lignesDuJour
+    .filter((ligne) => ligne.priorite === "p1")
+    .map((ligne) => ({
+      type: "urgent" as const,
+      rang: ligne.priorite.toUpperCase(),
+      titre: t("tableau_de_bord.priorite_urgent_titre"),
+      detail: `${reference(ligne)} · ${ligne.client.raison_sociale}`,
+      href: `/interventions/${ligne.id}`,
+    }));
+}
+
+/**
+ * Le minimum qu'une fiche « en attente de pièce » porte pour la liste.
+ *
+ * `enAttenteDePiece` lit `CHAMPS_LIGNE` seul, sans jointure client (elle sert
+ * d'abord la carte « Dossiers bloqués », qui ne nomme aucun client) : la
+ * ligne d'ici s'appuie donc sur la RÉFÉRENCE et la pièce attendue, jamais sur
+ * un nom de client qu'aucune requête de ce chemin ne charge.
+ */
+export type FicheEnAttentePourPriorite = {
+  readonly ligne: { readonly id: string; readonly numero: number | null };
+  readonly pieceAttendueRef: string;
+  readonly ancienneteJours: number;
+};
+
+export function prioritesPieces(
+  enAttente: readonly FicheEnAttentePourPriorite[],
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): readonly ElementPriorite[] {
+  return enAttente.map((fiche) => ({
+    type: "piece" as const,
+    rang: `${fiche.ancienneteJours}j`,
+    titre: t("tableau_de_bord.priorite_piece_titre"),
+    detail: `${reference(fiche.ligne)} · ${fiche.pieceAttendueRef} · ${fiche.ancienneteJours} ${t("tableau_de_bord.priorite_piece_detail_suffixe")}`,
+    href: `/interventions/${fiche.ligne.id}`,
+  }));
+}
+
+/**
+ * LE RANG D'UN ÉLÉMENT « À PLANIFIER » — un RANG DE POSITION (« 01 », « 02 »
+ * …), comme `priorityItems()` de la maquette (`rank:"03"`, `rank:"01"`),
+ * JAMAIS la référence de l'intervention : `Local-<6 caractères>` (I10)
+ * déborderait le badge de 39×39 px que la maquette dessine pour un code de
+ * deux ou trois signes. La référence reste lisible, dans le détail.
+ */
+export function prioritesAPlanifier(
+  lignes: readonly InterventionPriorisable[],
+  reference: (ligne: { id: string; numero: number | null }) => string,
+): readonly ElementPriorite[] {
+  return lignes.map((ligne, index) => ({
+    type: "planning" as const,
+    rang: String(index + 1).padStart(2, "0"),
+    titre: t("tableau_de_bord.priorite_a_planifier_titre"),
+    detail: `${reference(ligne)} · ${ligne.client.raison_sociale}`,
+    href: `/interventions/${ligne.id}`,
+  }));
+}
+
+/** Le filtre s'applique EN DERNIER, sur la liste déjà composée — jamais dans chaque source. */
+export function elementsFiltres(
+  elements: readonly ElementPriorite[],
+  filtre: FiltrePriorite,
+): readonly ElementPriorite[] {
+  return filtre === "tous"
+    ? elements
+    : elements.filter((element) => element.type === filtre);
+}

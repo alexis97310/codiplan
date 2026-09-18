@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { Carte } from "@/components/ui/carte";
+import { Kpi } from "@/components/ui/kpi";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import {
   lireLesAbsences,
@@ -10,7 +13,13 @@ import {
   nommerLesInterventions,
 } from "@/lib/absences/ecran";
 import { obtenirSession } from "@/lib/auth/session";
-import { maintenant } from "@/lib/calendar/fuseau";
+import {
+  jourDe,
+  jourSuivant,
+  maintenant,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { quiTravaille } from "@/lib/interventions/personnes";
@@ -18,6 +27,17 @@ import { quiTravaille } from "@/lib/interventions/personnes";
 import { referenceAffichee } from "../interventions/presentation";
 
 import { identifiants } from "../../api/absences/actions";
+import {
+  absencesDuMois,
+  agencesSansTechnicienDisponible,
+  enTeteDeJour,
+  hrefSemaine,
+  libelleMoisAnnee,
+  libelleRuptureAucune,
+  pastillesDuJour,
+  semaineAffichee,
+  versDateCivile,
+} from "./presentation";
 
 /**
  * L'ÉCRAN DES BLOCAGES D'AGENDA (R3-14, RG-PLA-06).
@@ -58,6 +78,42 @@ import { identifiants } from "../../api/absences/actions";
  * taux **déjà lu**, et il ne dira pas qu'il a changé. *Le travail est de le
  * DIRE là où la saisie se fait* — la forme de D76, appliquée non plus à une
  * valeur mais à sa fraîcheur.
+ *
+ * ## D125 PUIS D128 — la disposition de `absences()`, JAMAIS son vocabulaire
+ * ni ses règles déjà tranchées (lot A4, 18/09/2026)
+ *
+ * `absences()` de `codiplan-maquette-complete.html` dessine trois KPI puis un
+ * calendrier — une SEMAINE de sept colonnes sous un titre de mois, avec sa
+ * navigation ‹ / Aujourd'hui / ›. Ces deux blocs sont ajoutés ICI, au-dessus
+ * du contenu déjà écrit. **Ce que D125 ne touche PAS** (D128, deux raisons
+ * distinctes) :
+ *
+ * - **Le TITRE reste « Blocages d'agenda ».** C'est un choix de VOCABULAIRE
+ *   (D122), pas de disposition — et un choix délibéré de R3-14 pour ne pas
+ *   laisser croire à un outil de congés. La maquette écrit « Absences » ;
+ *   `absences.titre` ne bouge pas.
+ * - **Le formulaire de déclaration, le tableau des blocages et les deux
+ *   bandeaux (interventions rendues, rupture de service au moment de la
+ *   pose) restent.** `absences()` ne les dessine pas, mais ce sont des
+ *   REMPLACEMENTS FONCTIONNELS ASSUMÉS — la seule façon de poser ou lever un
+ *   blocage dans ce dépôt — et D128 l'écrit en toutes lettres : *jamais au
+ *   prix de supprimer une information réelle que la maquette ignore.*
+ *
+ * **Les pastilles du calendrier montrent une PERSONNE, jamais un TYPE.** La
+ * maquette écrit « J. Lefèvre · Congé » ; `absence` (R3-14) ne porte aucune
+ * nature, et l'inventer romprait exactement la décision que ce fichier
+ * documente plus haut. Voir `./presentation.ts` pour le détail.
+ *
+ * **Le bouton d'en-tête « + Déclarer une absence » n'est pas construit** —
+ * écart nommé, `lib/absences/ecarts-maquette.ts` : un bouton de CRÉATION
+ * n'entre jamais dans les actions de `Page` (§2 de `ActionPrimaire`), et le
+ * vrai geste reste le formulaire déjà sur cette page.
+ *
+ * **« Rupture de service » du KPI n'est PAS `rupturesDeService`.** Celle-ci
+ * juge un ÉVÉNEMENT (une pose qui vient de rendre des interventions) et ne se
+ * relit pas ; le KPI répond à une question différente — *combien d'agences
+ * n'ont AUJOURD'HUI aucun technicien disponible* —, voir la note de
+ * `agencesSansTechnicienDisponible` dans `./presentation.ts`.
  */
 export default async function PageAbsences({
   searchParams,
@@ -83,14 +139,42 @@ export default async function PageAbsences({
     const societe = await tx.societe.findFirst({
       select: { fuseau_horaire: true },
     });
-    const fenetre = fenetreAffichee(societe?.fuseau_horaire ?? FUSEAU_DE_REPLI);
-    const lecture = await lireLesAbsences(tx, fenetre);
+    const fuseau = societe?.fuseau_horaire ?? FUSEAU_DE_REPLI;
+    const aujourdHui = jourDe(maintenant(fuseau).local);
+    const lundiAffiche = lundiLu(lu(parametres.semaine), aujourdHui);
+    const semaine = semaineAffichee(lundiAffiche);
+    const lecture = await lireLesAbsences(tx, fenetreAffichee(fuseau));
+    // LA SEMAINE AFFICHÉE EST LUE À PART, dans SES seules bornes — jamais en
+    // élargissant la fenêtre par défaut jusqu'à elle. `vue.absences` (et le
+    // tableau qui le rend) ne doit pas grossir parce qu'une navigation a
+    // demandé une semaine lointaine ; sept jours, toujours sept jours,
+    // quelle que soit la distance parcourue par `?semaine=`.
+    const lectureSemaine = await lireLesAbsences(tx, {
+      du: versDateCivile(semaine[0]),
+      au: versDateCivile(semaine[6]),
+    });
+    const rupture = agencesSansTechnicienDisponible(
+      lecture.declarables,
+      lecture.absences,
+      aujourdHui,
+    );
     return {
       ...lecture,
+      absencesSemaine: lectureSemaine.absences,
+      annuaireSemaine: lectureSemaine.annuaire,
+      aujourdHui,
+      lundiAffiche,
+      semaine,
       interventionsRendues: await nommerLesInterventions(tx, rendues),
       agencesRompues: await nommerLesAgences(tx, rompues),
+      agencesEnRupture: await nommerLesAgences(
+        tx,
+        rupture.map((r) => r.agenceId),
+      ),
     };
   });
+
+  const moisEnCours = absencesDuMois(vue.absences, vue.aujourdHui);
 
   return (
     <Page
@@ -98,6 +182,89 @@ export default async function PageAbsences({
       titre={t("absences.titre")}
       sousTitre={t("absences.sous_titre")}
     >
+      <div
+        data-bloc="kpi-grille"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+      >
+        <div data-bloc="kpi-absences-mois">
+          <Kpi
+            libelle={t("absences.kpi_ce_mois")}
+            valeur={moisEnCours.compte}
+            detail={
+              moisEnCours.personnes === 0
+                ? undefined
+                : `${moisEnCours.personnes} ${
+                    moisEnCours.personnes === 1
+                      ? t("absences.kpi_ce_mois_detail_suffixe_une")
+                      : t("absences.kpi_ce_mois_detail_suffixe")
+                  }`
+            }
+          />
+        </div>
+        <div data-bloc="kpi-rupture">
+          <Kpi
+            ton="rouge"
+            libelle={t("absences.kpi_rupture")}
+            valeur={vue.agencesEnRupture.length}
+            detail={
+              vue.agencesEnRupture.length === 0
+                ? libelleRuptureAucune()
+                : listeDesAgences(vue.agencesEnRupture)
+            }
+          />
+        </div>
+        <div data-bloc="kpi-demandes-valider">
+          <Kpi
+            ton="orange"
+            libelle={t("absences.kpi_demandes_a_valider")}
+            valeur={t("absences.kpi_demandes_a_valider_valeur")}
+            detail={t("absences.kpi_demandes_a_valider_motif")}
+          />
+        </div>
+      </div>
+
+      <Carte titre={libelleMoisAnnee(vue.semaine[0])}>
+        <div
+          data-bloc="calendrier-nav"
+          className="border-app-bord flex items-center gap-2 border-b px-[16px] py-[10px]"
+        >
+          <Link
+            href={hrefSemaine(jourSuivant(vue.lundiAffiche, -7))}
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+          >
+            {t("absences.calendrier_precedente")}
+          </Link>
+          <Link
+            href={hrefSemaine(lundiDeLaSemaine(vue.aujourdHui))}
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+          >
+            {t("absences.calendrier_aujourdhui")}
+          </Link>
+          <Link
+            href={hrefSemaine(jourSuivant(vue.lundiAffiche, 7))}
+            className="border-app-bord rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold"
+          >
+            {t("absences.calendrier_suivante")}
+          </Link>
+        </div>
+        <div data-bloc="calendrier" className="grid grid-cols-1 sm:grid-cols-7">
+          {vue.semaine.map((jour) => (
+            <JourDuCalendrier
+              key={enTeteDeJour(jour)}
+              jour={jour}
+              pastilles={pastillesDuJour(
+                jour,
+                vue.absencesSemaine,
+                vue.annuaireSemaine,
+              )}
+            />
+          ))}
+        </div>
+      </Carte>
+
+      {/* CE QUI SUIT N'EST PAS DANS `absences()` — REMPLACEMENTS FONCTIONNELS
+          ASSUMÉS (D128) : voir le docblock de tête. */}
+
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -197,6 +364,36 @@ export default async function PageAbsences({
   );
 }
 
+/** Une colonne du calendrier — un jour, ses pastilles (une par personne bloquée). */
+function JourDuCalendrier({
+  jour,
+  pastilles,
+}: {
+  readonly jour: JourLocal;
+  readonly pastilles: readonly {
+    readonly utilisateurId: string;
+    readonly nom: string;
+  }[];
+}) {
+  return (
+    <div className="border-app-bord flex flex-col gap-1.5 border-b border-l p-2 first:border-l-0 sm:border-b-0">
+      <span className="text-app-encre-faible text-[11px] font-semibold">
+        {enTeteDeJour(jour)}
+      </span>
+      {pastilles.map((pastille) => (
+        <span
+          key={pastille.utilisateurId}
+          data-bloc="calendrier-pastille"
+          className="bg-app-violet-fond text-app-violet-encre rounded-md px-1.5 py-1 text-[11px] font-semibold"
+        >
+          {pastille.nom} {t("absences.pastille_separateur")}{" "}
+          {t("absences.pastille_bloque")}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function COLONNES() {
   return [
     { cle: "personne", libelle: t("absences.personne"), largeur: "220px" },
@@ -267,6 +464,33 @@ const MS_PAR_JOUR = 86_400_000;
  */
 const FUSEAU_DE_REPLI = "UTC";
 
+/**
+ * LE LUNDI DEMANDÉ — le paramètre `semaine` (`AAAA-MM-JJ`, n'importe quel
+ * jour de la semaine visée), ou celui de la semaine en cours. Même geste que
+ * `jourDemande` de `/planning` : une valeur illisible retombe sur aujourd'hui
+ * plutôt que de faire échouer l'écran (L1-02f).
+ */
+function lundiLu(
+  demande: string | undefined,
+  aujourdHui: JourLocal,
+): JourLocal {
+  const lu2 =
+    demande === undefined ? null : /^(\d{4})-(\d{2})-(\d{2})$/.exec(demande);
+  if (lu2 === null) {
+    return lundiDeLaSemaine(aujourdHui);
+  }
+  const jour = {
+    annee: Number(lu2[1]),
+    mois: Number(lu2[2]),
+    jour: Number(lu2[3]),
+  };
+  const valide =
+    jour.mois >= 1 && jour.mois <= 12 && jour.jour >= 1 && jour.jour <= 31
+      ? jour
+      : aujourdHui;
+  return lundiDeLaSemaine(valide);
+}
+
 function fenetreAffichee(fuseau: string): { du: Date; au: Date } {
   const instant = maintenant(fuseau).instant.getTime();
   return {
@@ -298,9 +522,15 @@ const BARRE = "/";
  * les rendre telles qu'elles ont été écrites.
  */
 function jourEcrit(journee: Date): string {
-  const jour = String(journee.getUTCDate()).padStart(2, "0");
-  const mois = String(journee.getUTCMonth() + 1).padStart(2, "0");
-  return `${jour}${BARRE}${mois}${BARRE}${journee.getUTCFullYear()}`;
+  // `jourNum`/`moisNum`, jamais `jour`/`mois` : ce fichier nomme aussi un
+  // `JourLocal` `jour` plus haut, et le gardien des chaînes visibles
+  // (L0-11) résout un IDENTIFIANT au premier littéral qu'il trouve sous ce
+  // nom dans TOUT le fichier — un second `jour` local le ferait résoudre le
+  // `"0"` de `padStart` ici plutôt que la vraie valeur, un faux positif
+  // mesuré une fois qu'il ne vaut pas la peine de laisser réapparaître.
+  const jourNum = String(journee.getUTCDate()).padStart(2, "0");
+  const moisNum = String(journee.getUTCMonth() + 1).padStart(2, "0");
+  return `${jourNum}${BARRE}${moisNum}${BARRE}${journee.getUTCFullYear()}`;
 }
 
 function periode(du: Date, au: Date): string {

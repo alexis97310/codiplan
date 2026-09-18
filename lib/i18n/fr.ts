@@ -1651,6 +1651,26 @@ export const fr = {
   "absences.rupture_titre": "Rupture de service",
   "absences.rupture_explication":
     "Ces établissements n'ont plus qu'un seul technicien actif : aucun créneau n'est proposé à la place, et c'est délibéré — le planificateur sait ce que le système ne saura jamais.",
+
+  // ── LES TROIS KPI ET LE CALENDRIER DE `absences()` (D125, lot A4) ────────
+  "absences.kpi_ce_mois": "Absences ce mois",
+  "absences.kpi_ce_mois_detail_suffixe_une": "personne concernée",
+  "absences.kpi_ce_mois_detail_suffixe": "personnes concernées",
+  "absences.kpi_rupture": "Rupture de service",
+  // Le mot imposé « agence » (D5, D47) ne s'écrit pas ici : composé par
+  // `libelleRuptureAucune` (./presentation.ts) depuis `motDansUnePhrase`.
+  "absences.kpi_rupture_aucune_prefixe": "Aucune",
+  "absences.kpi_rupture_aucune_suffixe":
+    "sans technicien disponible aujourd'hui.",
+  "absences.kpi_demandes_a_valider": "Demandes à valider",
+  "absences.kpi_demandes_a_valider_valeur": "Sans objet",
+  "absences.kpi_demandes_a_valider_motif":
+    "Le blocage est immédiat (R3-14) : il n'existe aucune file de validation à afficher.",
+  "absences.calendrier_precedente": "‹",
+  "absences.calendrier_aujourdhui": "Aujourd'hui",
+  "absences.calendrier_suivante": "›",
+  "absences.pastille_bloque": "Bloqué",
+  "absences.pastille_separateur": "·",
   "absence.refus.saisie":
     "Un blocage se pose avec une personne, une date de début et une date de fin, la seconde après la première.",
   "absence.refus.pour_autrui":
@@ -1904,16 +1924,15 @@ export const fr = {
   // type, parc suivi, qualité de service — n'a pas de source réelle avant le
   // lot 4, et l'écart est écrit dans le fichier de l'écran plutôt que tu.
   "tableau_de_bord.titre": "Tableau de bord",
-  "tableau_de_bord.sous_titre": "Vue d'ensemble de l'activité du jour.",
-  "tableau_de_bord.kpi_interventions_jour": "Interventions du jour",
+  "tableau_de_bord.sous_titre":
+    "Les décisions et alertes du jour, sans remplacer le planning.",
+  "tableau_de_bord.ouvrir_planning": "Ouvrir le planning",
+  "tableau_de_bord.kpi_interventions_jour": "Interventions aujourd'hui",
   "tableau_de_bord.non_affectee_une": "non affectée",
   "tableau_de_bord.non_affectees": "non affectées",
-  "tableau_de_bord.kpi_en_attente_piece": "En attente de pièce",
+  "tableau_de_bord.kpi_dossiers_bloques": "Dossiers bloqués",
   "tableau_de_bord.en_attente_detail_prefixe": "dont",
   "tableau_de_bord.en_attente_detail_suffixe": "depuis plus de 30 jours",
-  "tableau_de_bord.kpi_demandes_ouvertes":
-    "Demandes en attente de qualification",
-  "tableau_de_bord.kpi_absences_jour": "Techniciens indisponibles aujourd'hui",
   // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
   // eux-mêmes n'existent pas encore sous une forme consolidée* — la
   // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
@@ -1921,9 +1940,33 @@ export const fr = {
   "tableau_de_bord.taux_occupation_non_calcule": "Non calculé",
   "tableau_de_bord.taux_occupation_motif":
     "Consolider plusieurs techniciens en un seul taux n'est pas une règle tranchée par le chapitre 10 (R2-13).",
-  "tableau_de_bord.interventions_jour_vide":
-    "Aucune intervention planifiée aujourd'hui.",
-  "tableau_de_bord.lien_planning": "Voir le planning →",
+  "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
+  "tableau_de_bord.vgp_a_prevoir_detail": "Dans les 30 prochains jours",
+
+  // ── LES TROIS AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─
+  "tableau_de_bord.kpi_demandes_ouvertes":
+    "Demandes en attente de qualification",
+  "tableau_de_bord.lien_demandes": "Qualifier une demande →",
+  "tableau_de_bord.kpi_absences_jour": "Techniciens indisponibles aujourd'hui",
+
+  "tableau_de_bord.priorites_titre": "Priorités opérationnelles",
+  "tableau_de_bord.priorites_filtre_libelle": "Filtrer les priorités",
+  "tableau_de_bord.priorites_filtre_tous": "Tous les besoins",
+  "tableau_de_bord.priorites_filtre_urgent": "Urgences",
+  "tableau_de_bord.priorites_filtre_piece": "Pièces",
+  "tableau_de_bord.priorites_filtre_planning": "À planifier",
+  "tableau_de_bord.priorites_filtrer_action": "Filtrer",
+  "tableau_de_bord.priorites_vide": "Aucune priorité dans ce filtre.",
+  "tableau_de_bord.priorites_ouvrir": "Ouvrir",
+  "tableau_de_bord.priorite_urgent_titre": "Intervention urgente",
+  "tableau_de_bord.priorite_piece_titre": "Pièce attendue",
+  "tableau_de_bord.priorite_piece_detail_suffixe": "j d'attente",
+  "tableau_de_bord.priorite_a_planifier_titre": "Intervention à planifier",
+  "tableau_de_bord.priorite_demande_titre": "Demande à qualifier",
+
+  "tableau_de_bord.activite_titre": "Activité récente",
+  "tableau_de_bord.activite_ecart":
+    "Aucune activité n'est encore rejouée ici : rien dans CODIPLAN ne résume aujourd'hui, pour un opérateur, ce que le journal de traçabilité (I8) a enregistré.",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
@@ -2021,6 +2064,20 @@ export const fr = {
   "jour.5": "vendredi",
   "jour.6": "samedi",
   "jour.7": "dimanche",
+
+  // Les mois — le titre « Septembre 2026 » du calendrier d'absences (D125).
+  "mois.1": "Janvier",
+  "mois.2": "Février",
+  "mois.3": "Mars",
+  "mois.4": "Avril",
+  "mois.5": "Mai",
+  "mois.6": "Juin",
+  "mois.7": "Juillet",
+  "mois.8": "Août",
+  "mois.9": "Septembre",
+  "mois.10": "Octobre",
+  "mois.11": "Novembre",
+  "mois.12": "Décembre",
 
   // ── La page de santé, sans compte (mise en ligne) ─────────────────────────
   "sante.titre": "État de l'installation",
