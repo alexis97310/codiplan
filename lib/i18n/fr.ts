@@ -1227,6 +1227,9 @@ export const fr = {
   "forfaits.vide":
     "Le catalogue est vide. Aucun forfait ne se facture tant qu'aucun n'est saisi.",
   "forfaits.rang": "Rang",
+  // ARBITRAGE D128 (18/09/2026) — la nature du forfait, exposée en colonne à
+  // côté du regroupement qu'elle sert déjà (voir `Nature` dans forfaits/page.tsx).
+  "parametres.forfaits_categorie": "Catégorie",
   "forfaits.code": "Forfait",
   "forfaits.montant": "Montant",
   "forfaits.conditions": "Conditions",
@@ -1366,15 +1369,51 @@ export const fr = {
     "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
   "vgp.retour": "\u2039 Retour au parc",
   "vgp.lien_depuis_parc": "Registre des v\u00e9rifications p\u00e9riodiques",
+  // \u2500\u2500 LES SIX COLONNES DU TABLEAU, \u00c0 L'IDENTIQUE DE vgp() (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // Machine, Client, Dernier contr\u00f4le, \u00c9ch\u00e9ance, \u00c9tat, Action \u2014 la famille et
+  // le r\u00e9gime ne disparaissent pas : ils deviennent la sous-ligne de la
+  // machine et de l'\u00e9tat, comme `regimeExplique` le composait d\u00e9j\u00e0. Aucune
+  // information n'est perdue, seule la disposition change.
   "vgp.colonne_machine": "Machine",
-  "vgp.colonne_lieu": "Client / lieu",
-  "vgp.colonne_famille": "Famille",
-  "vgp.colonne_regime": "R\u00e9gime",
-  "vgp.colonne_information": "Derni\u00e8re information",
+  "vgp.colonne_client": "Client",
+  "vgp.colonne_dernier_controle": "Dernier contr\u00f4le",
+  "vgp.colonne_etat": "État",
+  "vgp.colonne_action": "Action",
+  "vgp.action_fiche": "Fiche",
   "vgp.vide":
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
   "vgp.borne":
     "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance viennent avec la campagne dat\u00e9e (L9-08).",
+  // \u2500\u2500 LES QUATRE KPI DU BANDEAU (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // La maquette \u00e9crit \u00ab Conformes \u00bb au troisi\u00e8me \u2014 CODIPLAN n'affirme jamais
+  // la conformit\u00e9 (L9-02, D88, D114) : le compte ici est celui des machines
+  // dont une information a \u00e9t\u00e9 RE\u00c7UE, jamais un verdict. Voir
+  // tests/unit/ui/lot-a5-a7.test.ts, qui nomme cet \u00e9cart.
+  // Aucune fen\u00eatre de jours (\u00ab sous 30 jours \u00bb de la maquette) n'est fix\u00e9e
+  // ici : rien, ni le chapitre 10 ni docs/arbitrages.md, n'a r\u00e9gl\u00e9 ce d\u00e9lai,
+  // et l'inventer serait la faute que \u00a78 du CLAUDE.md interdit. Voir
+  // lib/vgp/registre.ts, \u00ab AUCUNE FEN\u00caTRE DE JOURS N'EST INVENT\u00c9E ICI \u00bb.
+  "vgp.kpi_echeance_a_venir": "\u00c9ch\u00e9ances \u00e0 venir",
+  "vgp.kpi_echeance_a_venir_detail":
+    "Une \u00e9ch\u00e9ance d\u00e9clar\u00e9e est connue et n'est pas encore pass\u00e9e.",
+  "vgp.kpi_en_retard": "\u00c9ch\u00e9ances d\u00e9pass\u00e9es",
+  "vgp.kpi_en_retard_detail":
+    "Une date d\u00e9clar\u00e9e est d\u00e9pass\u00e9e \u2014 une date, jamais un verdict de conformit\u00e9.",
+  "vgp.kpi_informations_recues": "Informations re\u00e7ues",
+  "vgp.kpi_informations_recues_detail":
+    "Ce que les clients nous ont transmis, quelle que soit l'\u00e9ch\u00e9ance.",
+  "vgp.kpi_a_determiner_detail":
+    "Machines dont la famille attend d'\u00eatre qualifi\u00e9e.",
+  // \u2500\u2500 ARBITRAGE D128 : LE BADGE D'\u00c9TAT NE PORTE QUE LA CAT\u00c9GORIE, JAMAIS UNE
+  // PHRASE ENTI\u00c8RE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // C'est la correction du d\u00e9bordement mesur\u00e9 \u00e0 1280 px : la phrase longue de
+  // `vgp.information.depuis_inconnu` (79 caract\u00e8res, sans point de rupture
+  // avant la fin) for\u00e7ait le tableau \u00e0 s'\u00e9largir plut\u00f4t qu'\u00e0 envelopper le
+  // texte. Ces deux cl\u00e9s composent une sous-ligne courte \u00e0 la place \u2014 la date
+  // reste dite, jamais un tiret (D88), mais jamais non plus une phrase enti\u00e8re
+  // dans une cellule dense.
+  "vgp.etat_ligne.depuis_le": "Depuis le",
+  "vgp.etat_ligne.depuis_inconnu": "Depuis une date inconnue",
   // LES QUATRE RÉGIMES — les trois valeurs de D88, plus l'origine qui les cite.
   "vgp.regime.soumis": "Soumis",
   "vgp.regime.non_soumis": "Non soumis",
