@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `d9c7be40cfc4f686ff6c85052384d15370b47048` (`d9c7be4`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-15 11:52 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `bbf7e3c43416311d6b572879e67dbac56c5521e3` (`bbf7e3c`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-18 01:22 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -67,7 +67,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `d9c7be4` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `bbf7e3c` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -91,6 +91,14 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
 - `portail--clair--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
+- `terrain-intervention--clair--1280.png : Error: la journée du technicien de démonstration est vide aujourd'hui : il n'y a aucune intervention à détailler, et la capture est refusée plutôt que prise sur une autre page.
+  Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
+- `terrain-intervention--clair--390.png : Error: la journée du technicien de démonstration est vide aujourd'hui : il n'y a aucune intervention à détailler, et la capture est refusée plutôt que prise sur une autre page.
+  Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
+- `intervention-detail--clair--1280.png : Error: le planning ne porte aucun lien d'intervention : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `intervention-detail--clair--390.png : Error: le planning ne porte aucun lien d'intervention : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
 
 ## Les images
 
@@ -112,8 +120,6 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | `arrivee-sans-societe--clair--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
 | `terrain--clair--1280.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, poste de travail. |
 | `terrain--clair--390.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, téléphone. |
-| `terrain-intervention--clair--1280.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, poste de travail. |
-| `terrain-intervention--clair--390.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, téléphone. |
 | `connexion-code--clair--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
 | `connexion-code--clair--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
 | `accueil--clair--1280.png` | La page d'accueil. — thème clair, poste de travail. |
@@ -136,8 +142,6 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | `imports--clair--390.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, téléphone. |
 | `intervention-creation--clair--1280.png` | La création d'une intervention depuis le planning. — thème clair, poste de travail. |
 | `intervention-creation--clair--390.png` | La création d'une intervention depuis le planning. — thème clair, téléphone. |
-| `intervention-detail--clair--1280.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, poste de travail. |
-| `intervention-detail--clair--390.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, téléphone. |
 | `parc--clair--1280.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, poste de travail. |
 | `parc--clair--390.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, téléphone. |
 | `clients--clair--1280.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, poste de travail. |
