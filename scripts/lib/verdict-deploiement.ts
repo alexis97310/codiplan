@@ -38,6 +38,23 @@
  * | `adresse_absente` | on ne sait pas QUOI interroger | exploitation — la variable `URL_PRODUCTION` |
  * | `deploiement_en_retard` | c'est encore le code d'AVANT qui répond | attendre le déploiement, puis relancer |
  * | `commit_inconnu` | la réponse ne dit pas quel code elle porte | **le dépôt** ou l'hébergeur — voir plus bas |
+ * | `page_bloquee_au_chargement` | `/api/sante` dit tout va bien, une VRAIE page ne montre que son repli de chargement | **le dépôt** — voir « LA SONDE NE REGARDAIT QUE LA BASE » |
+ * | `page_non_verifiable` | la page n'a pas pu être chargée pour être regardée (navigateur absent, réseau) | exploitation — ou l'environnement qui joue ce contrôle |
+ *
+ * ## LA SONDE NE REGARDAIT QUE LA BASE, ET UNE PRODUCTION EST RESTÉE INVISIBLE
+ * PENDANT QU'ELLE RÉPONDAIT VERT (17/09/2026)
+ *
+ * `/api/sante` mesure exactement ce que son nom promet : la base est-elle
+ * jointe, sous le bon rôle, à jour de ses migrations ? **Elle ne rend AUCUN
+ * verdict sur ce qu'un humain voit** — et un déploiement a montré « Chargement… »
+ * à l'infini sur `/planning` et `/tableau-de-bord`, sans que `/api/sante` en dise
+ * un mot, parce que la base, elle, allait bien. *Un gardien dont le critère ne
+ * recoupe pas ce qu'il prétend garder est un gardien creux* (§9). `sain` ne
+ * suffit donc plus à conclure : quand il l'affirme, ce module CHARGE en plus une
+ * page réelle (`/connexion`, jamais authentifiée) dans un vrai navigateur, et
+ * vérifie que ce qui s'affiche n'est PAS exactement le repli de chargement.
+ * `page_bloquee_au_chargement` vaut **1** — un écart CONSTATÉ, jamais un 75 :
+ * la page a été vue, et ce qu'elle montre est faux.
  *
  * **`reponse_illisible` n'est PAS rangé avec « injoignable ».** Une réponse
  * qu'on ne sait plus lire est un défaut de CE dépôt, pas un incident
@@ -85,7 +102,9 @@ export type NatureVerdict =
   | "reponse_illisible"
   | "adresse_absente"
   | "deploiement_en_retard"
-  | "commit_inconnu";
+  | "commit_inconnu"
+  | "page_bloquee_au_chargement"
+  | "page_non_verifiable";
 
 export type VerdictDeploiement = {
   readonly nature: NatureVerdict;
@@ -115,6 +134,8 @@ export const CODE_DE_SORTIE: Readonly<Record<NatureVerdict, number>> = {
   application_muette: 75,
   deploiement_en_retard: 75,
   commit_inconnu: 75,
+  page_bloquee_au_chargement: 1,
+  page_non_verifiable: 75,
 };
 
 /**
@@ -177,6 +198,81 @@ const GESTE_COMMIT =
   "renseigne plus la variable d'environnement du commit, soit la route a " +
   "changé : sans elle, ce contrôle ne peut pas distinguer le code déployé de " +
   "celui d'avant, et il refuse de rendre un vert qu'il n'a pas mesuré.";
+
+const GESTE_PAGE_BLOQUEE =
+  "Une VRAIE page déployée ne montre que son repli de chargement, base " +
+  "jointe et migrations à jour : c'est un défaut du DÉPÔT, pas de " +
+  "l'hébergeur. Vérifier qu'aucune frontière de chargement (`loading.tsx`) " +
+  "n'enveloppe l'application entière — une frontière qui couvre tout le " +
+  "rendu peut ne jamais recevoir l'instruction qui la referme.";
+
+const GESTE_PAGE_NON_VERIFIABLE =
+  "La page n'a pas pu être chargée pour être regardée : navigateur absent " +
+  "de l'environnement qui joue ce contrôle, ou page qui n'a jamais répondu. " +
+  "Si `/api/sante` était sain, ce n'est probablement pas un défaut du " +
+  "dépôt — vérifier l'installation du navigateur (`playwright install " +
+  "chromium`) avant de conclure à autre chose.";
+
+/**
+ * LA PAGE MONTRE-T-ELLE SON REPLI DE CHARGEMENT, ET RIEN D'AUTRE ?
+ *
+ * **Sans réseau ici non plus** — même contrat que `verdictDuDeploiement` :
+ * ce module reçoit ce qu'un navigateur a VU (`document.body.innerText`) et
+ * compare, jamais ne charge lui-même quoi que ce soit. Le réseau et le
+ * navigateur vivent dans le lanceur.
+ *
+ * **L'égalité est stricte, après un simple `trim()`.** Une page qui montre
+ * le repli PARMI autre chose — un bandeau, une marque déjà peinte pendant
+ * qu'une section attend encore — n'est pas ce défaut-ci : c'est exactement
+ * ce qui a été mesuré en production, où `document.body.innerText` valait
+ * l'égalité EXACTE, rien avant, rien après.
+ */
+export function pageBloqueeAuChargement(
+  texteVisible: string,
+  texteDeChargement: string,
+): boolean {
+  return texteVisible.trim() === texteDeChargement.trim();
+}
+
+/**
+ * LE VERDICT DE LA PAGE, composé une fois la question tranchée ci-dessus.
+ *
+ * `texteVisible === null` dit que le navigateur n'a rien pu lire — un défaut
+ * du CONTRÔLE, pas de la production, donc `page_non_verifiable` (75, rien
+ * constaté) plutôt qu'un rouge accusateur.
+ */
+export function verdictDeLaPage(
+  texteVisible: string | null,
+  texteDeChargement: string,
+): VerdictDeploiement {
+  if (texteVisible === null) {
+    return {
+      nature: "page_non_verifiable",
+      detail:
+        "`/api/sante` dit tout va bien, mais la page réelle n'a pas pu être " +
+        "chargée pour être regardée.",
+      geste: GESTE_PAGE_NON_VERIFIABLE,
+    };
+  }
+  if (pageBloqueeAuChargement(texteVisible, texteDeChargement)) {
+    return {
+      nature: "page_bloquee_au_chargement",
+      detail:
+        "`/api/sante` dit tout va bien, et une page réelle chargée dans un " +
+        `navigateur ne montre pourtant que son repli de chargement (« ${texteDeChargement} »), ` +
+        "rien d'autre.",
+      geste: GESTE_PAGE_BLOQUEE,
+    };
+  }
+  return {
+    nature: "sain",
+    detail:
+      "L'application déployée répond, sa base est jointe, ses migrations " +
+      "sont à jour, ET une page réelle montre autre chose que son repli de " +
+      "chargement.",
+    geste: null,
+  };
+}
 
 /** La forme que la route `/api/sante` promet — et rien de plus. */
 type Reponse = {

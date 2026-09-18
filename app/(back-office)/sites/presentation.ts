@@ -30,6 +30,22 @@ export function libelleRattachement(): string {
 }
 
 /**
+ * LA SECONDE LIGNE DE LA CARTE — l'agence CODIMA, labellisée (D123).
+ *
+ * **`null` plutôt qu'un tiret** : un site sans agence n'existe pas en base
+ * (`agence_id` n'est pas nullable), mais son LIBELLÉ peut manquer si la
+ * politique de cloisonnement refuse la lecture — le même cas que `client` sur
+ * la ligne au-dessus, et la même réponse : la ligne s'omet plutôt que
+ * d'afficher un tiret sous un mot imposé.
+ */
+export function agenceDuSite(agence: string | null): string | null {
+  if (agence === null) {
+    return null;
+  }
+  return `${mot("agence")}${t("ponctuation.separateur")}${agence}`;
+}
+
+/**
  * L'ABSENCE — ré-exportée depuis le module commun du back-office, où elle a
  * déménagé le 14/09/2026 quand l'écran client en a eu besoin.
  *

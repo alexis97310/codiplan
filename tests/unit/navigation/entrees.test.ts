@@ -7,9 +7,11 @@ import { fr } from "@/lib/i18n/fr";
 import {
   ECARTS_MAQUETTE,
   ENTREES,
+  ENTREES_PORTAIL,
   entreeActive,
   estGroupe,
   feuilles,
+  groupeDe,
 } from "@/lib/navigation/entrees";
 
 /**
@@ -191,5 +193,46 @@ describe("l'entrée allumée suit le chemin, et par préfixe de segment", () => 
     expect(entreeActive("/connexion")).toBeNull();
     expect(entreeActive("")).toBeNull();
     expect(entreeActive("/")).toBeNull();
+  });
+});
+
+describe("groupeDe — le surtitre de domaine d'un écran (N-08)", () => {
+  it("rend le domaine du groupe qui porte l'entrée", () => {
+    expect(groupeDe("/tableau-de-bord")).toBe("nav.groupe_exploitation");
+    expect(groupeDe("/planning")).toBe("nav.groupe_exploitation");
+    expect(groupeDe("/clients")).toBe("nav.groupe_clients_parc");
+    expect(groupeDe("/sites")).toBe("nav.groupe_clients_parc");
+    expect(groupeDe("/parametres")).toBe("nav.groupe_parametres");
+  });
+
+  it("reste le même dans un sous-écran — le préfixe de segment de entreeActive", () => {
+    expect(groupeDe("/clients/nouveau")).toBe("nav.groupe_clients_parc");
+    expect(groupeDe("/parametres/forfaits")).toBe("nav.groupe_parametres");
+  });
+
+  it("rend null hors de tout groupe — jamais une erreur", () => {
+    // `/arrivee` n'appartient à aucun domaine : il précède le choix d'une
+    // société, avant qu'aucune barre à groupes ne soit affichée.
+    expect(groupeDe("/arrivee")).toBeNull();
+    expect(groupeDe("/connexion")).toBeNull();
+  });
+
+  it("rend TOUJOURS null sur une barre plate, qui n'a aucun groupe", () => {
+    // Le cas qui doit rester vert pour sa propre raison : `ENTREES_PORTAIL`
+    // porte une entrée RÉELLE (`/portail`), et pourtant aucun groupe ne
+    // l'enveloppe — une barre plate n'a rien à répondre.
+    expect(groupeDe("/portail", ENTREES_PORTAIL)).toBeNull();
+  });
+
+  it("MESURÉ EN ÉCRAN, 17/09/2026 : sans `entrees` explicite, /portail fuiterait le domaine du back-office", () => {
+    // `groupeDe("/portail")` — sans second argument — retombe sur `ENTREES`
+    // (le back-office), qui porte bien une entrée `/portail` (« Portail
+    // client », un LIEN interne vers cet écran, sous « Clients & parc »).
+    // C'est très exactement le défaut vu à l'écran : `Page` doit recevoir
+    // `entrees={ENTREES_PORTAIL}` pour ne JAMAIS retomber sur ce défaut.
+    expect(groupeDe("/portail")).toBe("nav.groupe_clients_parc");
+    expect(groupeDe("/portail", ENTREES_PORTAIL)).not.toBe(
+      "nav.groupe_clients_parc",
+    );
   });
 });

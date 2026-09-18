@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -71,19 +72,16 @@ export default async function PageSite({
   );
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/sites"
+      titre={site.libelle}
+      sousTitre={libelles.clients.get(site.client_id) ?? ""}
+      actions={
         <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
           {t("sites.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {site.libelle}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {libelles.clients.get(site.client_id) ?? ""}
-        </p>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -97,7 +95,7 @@ export default async function PageSite({
       <form
         method="post"
         action={`/api/sites/${site.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <Champ
           nom="libelle"
@@ -170,7 +168,7 @@ export default async function PageSite({
           <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
         </div>
       </form>
-    </main>
+    </Page>
   );
 }
 

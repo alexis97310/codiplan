@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -104,16 +105,11 @@ export default async function PageParametresTrajets({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("trajets.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("trajets.sous_titre")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/parametres/trajets"
+      titre={t("trajets.titre")}
+      sousTitre={t("trajets.sous_titre")}
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -123,7 +119,7 @@ export default async function PageParametresTrajets({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="1000px">
           {lignes.map((ligne) => (
             <LigneZone key={ligne.zone} ligne={ligne} />
@@ -140,7 +136,7 @@ export default async function PageParametresTrajets({
       <p className="text-app-encre-faible text-[11.5px]">
         {t("trajets.explication_planification")}
       </p>
-    </main>
+    </Page>
   );
 }
 

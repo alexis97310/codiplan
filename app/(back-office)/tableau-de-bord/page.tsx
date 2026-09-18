@@ -138,6 +138,7 @@ export default async function PageTableauDeBord() {
 
   return (
     <Page
+      chemin="/tableau-de-bord"
       titre={t("tableau_de_bord.titre")}
       sousTitre={t("tableau_de_bord.sous_titre")}
     >

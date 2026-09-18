@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -128,19 +129,16 @@ export default async function PageClient({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/clients"
+      titre={client.raison_sociale}
+      sousTitre={ouTiret(client.code_externe)}
+      actions={
         <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
           {t("clients.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {client.raison_sociale}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {ouTiret(client.code_externe)}
-        </p>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -154,7 +152,7 @@ export default async function PageClient({
       <form
         method="post"
         action={`/api/clients/${client.id}/modifier`}
-        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-[10px] border px-4 py-4"
+        className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <h2 className="text-[15px] font-bold">{t("clients.fiche.identite")}</h2>
         <Champ
@@ -213,7 +211,7 @@ export default async function PageClient({
         </div>
       </form>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
           {t("clients.fiche.sites")}
         </h2>
@@ -241,7 +239,7 @@ export default async function PageClient({
         </Tableau>
       </section>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
           {t("clients.fiche.interventions")}
         </h2>
@@ -282,13 +280,13 @@ export default async function PageClient({
 
       {/* LE BLOC QUI NOMME SON ABSENCE. Ni un zéro, ni un blanc : les deux se
           liraient comme des mesures (D88). */}
-      <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-4">
+      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-4">
         <h2 className="text-[15px] font-bold">{t("clients.fiche.contacts")}</h2>
         <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
           {t("clients.fiche.contacts_sans_ecran")}
         </p>
       </section>
-    </main>
+    </Page>
   );
 }
 

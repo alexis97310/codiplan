@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -97,21 +98,19 @@ export default async function PageCalendrier({
   }
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
+    <Page
+      chemin="/parametres/agences"
+      titre={titreDuCalendrier(vue.parametrage.libelle)}
+      sousTitre={t("calendrier.sous_titre")}
+      actions={
         <Link href="/parametres/agences" className={CLASSES_LIEN}>
           {t("calendrier.retour")}
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {titreDuCalendrier(vue.parametrage.libelle)}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("calendrier.sous_titre")}
-        </p>
-        <p className="text-app-encre-faible text-[12.5px]">
-          {lignePas(vue.parametrage.pasCreneauMinutes)}
-        </p>
-      </header>
+      }
+    >
+      <p className="text-app-encre-faible text-[12.5px]">
+        {lignePas(vue.parametrage.pasCreneauMinutes)}
+      </p>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
@@ -148,7 +147,7 @@ export default async function PageCalendrier({
       <p className="text-app-encre-faible text-[11.5px]">
         {t("calendrier.ajouter_ouvre")}
       </p>
-    </main>
+    </Page>
   );
 }
 
@@ -168,7 +167,7 @@ function SectionJour({
 }) {
   const creneaux = creneauxDuJour(parametrage, jour);
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-lg border px-4 py-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[14px] font-bold capitalize">
           {libelleJour(jour)}

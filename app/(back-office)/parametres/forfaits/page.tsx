@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -115,16 +116,11 @@ export default async function PageForfaits({
   );
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("forfaits.titre")}
-          </h1>
-          <p className="text-app-encre-faible text-[13px]">
-            {t("forfaits.sous_titre")}
-          </p>
-        </div>
+    <Page
+      chemin="/parametres/forfaits"
+      titre={t("forfaits.titre")}
+      sousTitre={t("forfaits.sous_titre")}
+      actions={
         <form method="get" className="flex flex-wrap items-center gap-2">
           <label className="text-app-encre-faible text-[12px] font-semibold">
             {t("forfaits.zone")}
@@ -147,8 +143,8 @@ export default async function PageForfaits({
             {t("forfaits.voir")}
           </button>
         </form>
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -159,7 +155,7 @@ export default async function PageForfaits({
       ) : null}
 
       {catalogue.length === 0 ? (
-        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-6 text-[13px]">
+        <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-[13px]">
           {t("forfaits.vide")}
         </section>
       ) : (
@@ -185,7 +181,7 @@ export default async function PageForfaits({
           {t("forfaits.desactiver_explication")}
         </p>
       </section>
-    </main>
+    </Page>
   );
 }
 
@@ -248,7 +244,7 @@ function Nature({
   ];
 
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-[10px] border">
+    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {libelleType(type)}
       </h2>

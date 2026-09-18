@@ -134,7 +134,7 @@ export default async function PageInterventionTerrain({
         </p>
       ) : null}
 
-      <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
           <Ligne libelle={mot("site")} valeur={fiche.lieu} />
           <Ligne
@@ -152,7 +152,7 @@ export default async function PageInterventionTerrain({
         </dl>
       </section>
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
           {t("terrain.compteur")}
         </h2>

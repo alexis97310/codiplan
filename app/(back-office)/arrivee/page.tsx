@@ -2,6 +2,7 @@ import { LienPrimaire } from "@/components/ui/action-primaire";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { estContexteActif } from "@/lib/auth/contexte";
@@ -85,18 +86,13 @@ export default async function PageArrivee() {
     etat.issue === "arrivee" ? (session?.contexte.societeId ?? null) : null;
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("arrivee.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("arrivee.accroche")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/arrivee"
+      titre={t("arrivee.titre")}
+      sousTitre={t("arrivee.accroche")}
+    >
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_1fr_1fr]">
-        <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <dl className="flex flex-col gap-3 text-[13px]">
             <Ligne libelle={t("arrivee.compte")} valeur={etat.arrivee.nom} />
             <Ligne libelle={t("arrivee.email")} valeur={etat.arrivee.email} />
@@ -106,7 +102,7 @@ export default async function PageArrivee() {
         {etat.issue === "arrivee" ? <Societe arrivee={etat.arrivee} /> : null}
 
         {etat.issue === "sans_societe" && societes.length === 0 ? (
-          <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-[10px] border px-4 py-3.5 text-[13px]">
+          <section className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-3.5 text-[13px]">
             {t("arrivee.sans_societe")}
           </section>
         ) : null}
@@ -138,7 +134,7 @@ export default async function PageArrivee() {
       {societes.length > 0 ? (
         <Choix societes={societes} active={societeActive} />
       ) : null}
-    </main>
+    </Page>
   );
 }
 
@@ -195,7 +191,7 @@ function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
 
 function Societe({ arrivee }: { arrivee: Arrivee }) {
   return (
-    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-[10px] px-4 py-3.5 text-[13px]">
+    <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-lg px-4 py-3.5 text-[13px]">
       <Ligne libelle={t("arrivee.societe")} valeur={arrivee.societe ?? ""} />
       <Ligne libelle={t("arrivee.role")} valeur={arrivee.role ?? ""} />
     </dl>
@@ -234,7 +230,7 @@ function Choix({
             <form
               action="/api/session/societe"
               method="post"
-              className="bg-app-surface border-app-bord flex flex-wrap items-center gap-3 rounded-[10px] border px-4 py-3"
+              className="bg-app-surface border-app-bord flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3"
             >
               <input type="hidden" name="societe" value={societe.societeId} />
               <span className="text-[13px] font-bold">

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { fr } from "@/lib/i18n";
+import { fr, mot } from "@/lib/i18n";
 
 import { ouvrirUneSession } from "./setup/session";
 
@@ -71,18 +71,26 @@ test("un identifiant MAL FORMÉ est refusé, jamais une panne", async ({
   );
 });
 
-test("la liste affiche les lieux, et le RATTACHEMENT à côté du temps de trajet", async ({
+test("la liste montre des CARTES, et le RATTACHEMENT reste à côté du temps de trajet (D123)", async ({
   page,
 }) => {
+  // N-08/D123 : la liste passe du tableau aux cartes — *le geste change,
+  // l'assertion reste*. Ce qu'elle vérifiait avant (deux colonnes visibles)
+  // vérifie désormais la même chose sous une autre forme : une carte qui
+  // nomme le rattachement porte AUSSI, dans la même carte, le compteur de
+  // trajet — *un nombre dont la signification dépend d'une autre ligne ne
+  // voyage jamais seul* (D56), et les séparer à l'écran serait la même faute
+  // qu'en base.
   await page.goto("/sites");
-  // La colonne du rattachement est présente, et celle du trajet aussi : *un
-  // nombre dont la signification dépend d'une autre colonne ne voyage jamais
-  // seul* (D56), et les séparer à l'écran serait la même faute qu'en base.
+  const cartes = page.locator("article");
+  await expect(cartes.first()).toBeVisible();
+
+  const carteAvecRattachement = cartes
+    .filter({ hasText: mot("agence") })
+    .first();
+  await expect(carteAvecRattachement).toBeVisible();
   await expect(
-    page.getByRole("columnheader", { name: fr["site.rattachement"] }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("columnheader", { name: fr["sites.colonne_trajet"] }),
+    carteAvecRattachement.getByText(fr["sites.colonne_trajet"]),
   ).toBeVisible();
 });
 

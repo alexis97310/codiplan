@@ -154,6 +154,7 @@ export default async function PageParc({
 
   return (
     <Page
+      chemin="/parc"
       titre={t("parc.titre")}
       sousTitre={sousTitreDuParc()}
       actions={

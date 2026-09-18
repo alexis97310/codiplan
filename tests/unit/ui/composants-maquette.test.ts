@@ -38,12 +38,40 @@ import { describe, expect, it } from "vitest";
  * l'échelle par défaut) et les valeurs entre crochets (`py-[9px]`) — il
  * existait avant ce ticket, et ce gardien le lit tel qu'il est plutôt que de
  * le réécrire pour le confort d'un test.
+ *
+ * ## LE SURTITRE DE DOMAINE DE `Page` LIT L'AUTRE MAQUETTE (N-08)
+ *
+ * `docs/maquette/CODIPLAN_Maquette.html` ne dessine aucun `eyebrow` — mesuré :
+ * elle n'a ni menu à trois domaines ni fil de position (D95 muet, D122 sur ce
+ * point précis). C'est `docs/maquette/codiplan-maquette-complete.html`
+ * (`.eyebrow`) qui porte cette forme, la même source que D121/D122 pour la
+ * barre latérale et le vocabulaire d'écran. Deux fichiers, deux blocs de
+ * lecture séparés ci-dessous — jamais mêlés dans une même fonction `regle`.
  */
 
 const MAQUETTE = readFileSync(
   join(process.cwd(), "docs/maquette/CODIPLAN_Maquette.html"),
   "utf8",
 );
+
+const MAQUETTE_COMPLETE = readFileSync(
+  join(process.cwd(), "docs/maquette/codiplan-maquette-complete.html"),
+  "utf8",
+);
+
+/** La même extraction que `regle`, sur `codiplan-maquette-complete.html`. */
+function regleComplete(selecteur: string): string {
+  const echappe = selecteur.replace(/[.*+^${}()|[\]\\]/g, "\\$&");
+  const motif = new RegExp(`${echappe}\\{([^}]*)\\}`, "m");
+  const trouve = motif.exec(MAQUETTE_COMPLETE);
+  if (trouve === null) {
+    throw new Error(
+      `la règle \`${selecteur}\` est introuvable dans docs/maquette/codiplan-maquette-complete.html — ` +
+        "le document a changé de forme, et ce gardien ne mesure plus rien",
+    );
+  }
+  return trouve[1];
+}
 
 /** Le contenu d'une règle CSS de la maquette, désignée par son sélecteur EXACT. */
 function regle(selecteur: string): string {
@@ -133,6 +161,34 @@ describe("Page — h1 et .sub de la maquette", () => {
   });
 });
 
+describe("Page — .eyebrow de codiplan-maquette-complete.html (N-08)", () => {
+  it("a réellement lu une règle — le témoin de non-vacuité", () => {
+    expect(regleComplete(".eyebrow")).toContain("color");
+  });
+
+  it("le surtitre reprend taille, capitales, interlettrage et espacement de .eyebrow", () => {
+    const eyebrow = regleComplete(".eyebrow");
+    expect(propriete(eyebrow, "font-size")).toBe("12px");
+    expect(PAGE).toContain("text-[12px]");
+
+    expect(propriete(eyebrow, "text-transform")).toBe("uppercase");
+    expect(PAGE).toContain("uppercase");
+
+    expect(propriete(eyebrow, "letter-spacing")).toBe(".09em");
+    expect(PAGE).toContain("tracking-[0.09em]");
+
+    expect(propriete(eyebrow, "margin-bottom")).toBe("4px");
+    expect(PAGE).toContain("mb-[4px]");
+  });
+
+  it("le ton reprend --blue, qui vaut --bleu de D95 — jamais un second jeton", () => {
+    // `--blue:#0053a1` (nouvelle maquette) et `--bleu:#0053A1` (D95, ancienne
+    // maquette) sont la même couleur (D122) : `text-app-marque` EST ce jeton,
+    // et ce gardien refuse qu'un second existe pour la même teinte.
+    expect(PAGE).toContain("text-app-marque");
+  });
+});
+
 describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
   it("a réellement lu trois règles — le témoin de non-vacuité", () => {
     expect(regle(".card").length).toBeGreaterThan(0);
@@ -140,10 +196,17 @@ describe("Carte — .card, .card h2 et .card h2 .more de la maquette", () => {
     expect(regle(".card h2 .more").length).toBeGreaterThan(0);
   });
 
-  it("la carte reprend le rayon de bordure de .card", () => {
+  it("la carte reprend le rayon de bordure de .card — via `--radius`, depuis D124", () => {
+    // `CODIPLAN_Maquette.html` mesure encore `10px` en dur (D95, disposition) ;
+    // la VALEUR du jeton, elle, vient désormais de `codiplan-maquette-
+    // complete.html` (D124) — `14px`, confronté par
+    // `tests/unit/theme/apparence.test.ts`. Ce gardien-ci vérifie seulement
+    // que le composant ne recopie plus un nombre : il lit `--radius` par
+    // `rounded-lg`, jamais un `rounded-[…px]` littéral.
     const card = regle(".card");
     expect(propriete(card, "border-radius")).toBe("10px");
-    expect(CARTE).toContain("rounded-[10px]");
+    expect(CARTE).toContain("rounded-lg");
+    expect(CARTE).not.toMatch(/rounded-\[\d+px\]/);
   });
 
   it("l'en-tête reprend taille, graisse et rembourrage de .card h2", () => {
@@ -254,7 +317,8 @@ describe("Kpi — .kpi, .kpi .l, .kpi .v2 et .kpi .d de la maquette", () => {
     expect(KPI).toContain(`px-[${horizontal}]`);
 
     expect(propriete(kpi, "border-radius")).toBe("10px");
-    expect(KPI).toContain("rounded-[10px]");
+    expect(KPI).toContain("rounded-lg");
+    expect(KPI).not.toMatch(/rounded-\[\d+px\]/);
   });
 
   it("le libellé reprend taille, capitales, interlettrage et graisse de .kpi .l", () => {

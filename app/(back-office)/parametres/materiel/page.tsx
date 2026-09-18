@@ -95,7 +95,11 @@ export default async function PageMateriel({
   const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
 
   return (
-    <Page titre={t("materiel.titre")} sousTitre={t("materiel.sous_titre")}>
+    <Page
+      chemin="/parametres/materiel"
+      titre={t("materiel.titre")}
+      sousTitre={t("materiel.sous_titre")}
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"

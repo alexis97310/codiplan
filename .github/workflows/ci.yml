@@ -370,6 +370,21 @@ jobs:
       - name: Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      # Depuis le 17/09/2026, ce contrôle charge en plus une PAGE RÉELLE dans
+      # un navigateur (voir le commentaire de `scripts/verifier-deploiement.mts`) :
+      # `/api/sante` avait répondu sain pendant qu'une vraie page ne montrait
+      # que son repli de chargement. Même cache que le job `e2e`.
+      - name: Cache du navigateur Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Installer le navigateur Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
       # `COMMIT_ATTENDU` n'est posé que sur une POUSSÉE, et c'est une décision.
       # Sur une poussée, le contrôle doit mesurer LE CODE DE CETTE FUSION : sans
       # ce témoin, il interrogerait l'ancienne version — qui répond « tout va

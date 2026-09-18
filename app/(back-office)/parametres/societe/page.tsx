@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
@@ -51,17 +52,12 @@ export default async function PageParametresSociete() {
   const { theme } = await chromeDeLaRequete();
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("parametres.societe_titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("parametres.societe_sous_titre")}
-        </p>
-      </header>
-
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+    <Page
+      chemin="/parametres/societe"
+      titre={t("parametres.societe_titre")}
+      sousTitre={t("parametres.societe_sous_titre")}
+    >
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         {/* LA MÊME FORME que la pastille retirée de la barre — même jetons,
             même donnée, un lecteur qui la reconnaît d'un écran à l'autre. */}
         <div
@@ -83,6 +79,6 @@ export default async function PageParametresSociete() {
       <p className="text-app-encre-faible text-[11.5px]">
         {t("parametres.societe_reglage_a_venir")}
       </p>
-    </main>
+    </Page>
   );
 }

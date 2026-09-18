@@ -26,9 +26,12 @@ import {
  * c'est ce qui le distingue d'une recopie (§9, 01/09).
  *
  * **Ce qu'il ne prétend pas faire.** Il ne juge aucune couleur : que le bleu
- * soit le bon bleu se lit dans `docs/maquette/CODIPLAN_Maquette.html` et dans l'annexe C,
- * et un scénario le vérifie sur les jetons que la maquette nomme explicitement.
- * Le reste est une question de goût, et un gardien n'en a pas.
+ * soit le bon bleu se lit dans `docs/maquette/codiplan-maquette-complete.html`
+ * (D124 — les jetons de couleur, le rayon et la typographie ; `CODIPLAN_
+ * Maquette.html` et l'annexe C restent la source de ce que la première ne
+ * dessine pas, D95/D124), et un scénario le vérifie sur les jetons que chaque
+ * maquette nomme explicitement. Le reste est une question de goût, et un
+ * gardien n'en a pas.
  */
 
 const STYLE_BRUT = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
@@ -42,8 +45,24 @@ const STYLE_BRUT = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
  * refuse qu'on documente ses propres décisions.*
  */
 const STYLE = STYLE_BRUT.replace(/\/\*[\s\S]*?\*\//g, "");
+
+/**
+ * `docs/maquette/CODIPLAN_Maquette.html` — la source de la DISPOSITION (D95),
+ * inchangée par D124 : largeur utile, grilles, colonnes.
+ */
 const MAQUETTE = readFileSync(
   join(process.cwd(), "docs/maquette/CODIPLAN_Maquette.html"),
+  "utf8",
+);
+
+/**
+ * `docs/maquette/codiplan-maquette-complete.html` — depuis D124, la source
+ * UNIQUE des jetons de couleur, de la typographie, du rayon et de l'ombre.
+ * `CODIPLAN_Maquette.html` n'en fait plus foi que pour ce qu'elle-même ne
+ * dessine pas (D124, § « CE QUE D95 GARDE »).
+ */
+const MAQUETTE_COMPLETE = readFileSync(
+  join(process.cwd(), "docs/maquette/codiplan-maquette-complete.html"),
   "utf8",
 );
 
@@ -63,12 +82,17 @@ function apparencesDuStyle(): Set<string> {
   );
 }
 
-/** Les jetons `:root{--x:#y}` de la maquette — la source qui fait foi. */
-function jetonsDeLaMaquette(): Map<string, string> {
-  const bloc = /:root\s*\{([\s\S]*?)\}/.exec(MAQUETTE);
+/**
+ * Les jetons hexadécimaux `:root{--x:#y}` d'un document — la même lecture,
+ * appliquée aux deux maquettes (D124) : ni l'une ni l'autre ne nomme sa
+ * typographie, son rayon ou son ombre sous cette forme, ils ne sont donc
+ * jamais candidats à cette extraction, qui ne filtre que des valeurs `#…`.
+ */
+function jetonsRacine(document: string, chemin: string): Map<string, string> {
+  const bloc = /:root\s*\{([\s\S]*?)\}/.exec(document);
   if (bloc === null) {
     throw new Error(
-      "le bloc `:root` est introuvable dans docs/maquette/CODIPLAN_Maquette.html — " +
+      `le bloc \`:root\` est introuvable dans ${chemin} — ` +
         "le document a changé de forme, et ce gardien ne mesure plus rien",
     );
   }
@@ -117,27 +141,36 @@ describe("l'apparence et la feuille de style s'accordent, dans les deux sens", (
   });
 });
 
-describe("les valeurs viennent de la maquette, pas d'un goût", () => {
+describe("les valeurs de couleur viennent de codiplan-maquette-complete.html, pas d'un goût (D124)", () => {
   it("a réellement lu la maquette — le témoin", () => {
-    expect(jetonsDeLaMaquette().size).toBeGreaterThanOrEqual(9);
+    expect(
+      jetonsRacine(
+        MAQUETTE_COMPLETE,
+        "docs/maquette/codiplan-maquette-complete.html",
+      ).size,
+    ).toBeGreaterThanOrEqual(9);
   });
 
-  it("les sept couleurs que la maquette NOMME sont celles du style", () => {
-    // Les sept de l'annexe C, telles que la maquette les déclare. Ce sont les
-    // seules dont le nom est commun aux deux documents ; le reste (les fonds
-    // pâles des familles) n'a pas de nom dans la maquette, il y vit dans les
-    // règles `.ev.*` — et le comparer exigerait de recopier ces règles ici,
-    // c'est-à-dire de fabriquer la seconde copie qu'on veut éviter.
-    const maquette = jetonsDeLaMaquette();
+  it("les dix couleurs que la maquette NOMME sont celles du style", () => {
+    // Les dix jetons hexadécimaux du `:root` de `codiplan-maquette-complete.html`
+    // (D124) — `--surface-2`, `--line-2`, `--blue-2`, `--red-2`, `--green-2`,
+    // `--orange-2`, `--purple`, `--purple-2` en sont exclus par construction
+    // (voir `jetonsRacine`) : ce ne sont pas des noms à un seul mot, et le
+    // violet n'a de toute façon aucun jeton `--app-…` à confronter (D124, «
+    // CE QUI N'EST PAS AJOUTÉ »).
+    const maquette = jetonsRacine(
+      MAQUETTE_COMPLETE,
+      "docs/maquette/codiplan-maquette-complete.html",
+    );
     const paires: ReadonlyArray<[string, string]> = [
-      ["rouge", "--app-accent"],
-      ["bleu", "--app-marque"],
-      ["noir", "--app-encre"],
-      ["fond", "--app-fond"],
-      ["vert", "--app-vert-plein"],
+      ["red", "--app-accent"],
+      ["blue", "--app-marque"],
+      ["ink", "--app-encre"],
+      ["bg", "--app-fond"],
+      ["green", "--app-vert-plein"],
       ["orange", "--app-orange-bord"],
-      ["gris", "--app-encre-faible"],
-      ["bord", "--app-bord"],
+      ["muted", "--app-encre-faible"],
+      ["line", "--app-bord"],
     ];
     for (const [nomMaquette, variable] of paires) {
       const attendue = maquette.get(nomMaquette);
@@ -153,6 +186,22 @@ describe("les valeurs viennent de la maquette, pas d'un goût", () => {
     }
   });
 
+  it("le rayon est celui de `--radius` dans la maquette, jamais un nombre recopié", () => {
+    const radius = /--radius\s*:\s*(\d+)px/.exec(MAQUETTE_COMPLETE);
+    expect(
+      radius,
+      "`--radius` n'est plus déclaré dans codiplan-maquette-complete.html",
+    ).not.toBeNull();
+    const declaree = /--radius\s*:\s*(\d+)px/.exec(STYLE);
+    expect(
+      declaree,
+      "--radius n'est pas déclarée dans le style",
+    ).not.toBeNull();
+    expect(declaree![1]).toBe(radius![1]);
+  });
+});
+
+describe("la disposition vient de CODIPLAN_Maquette.html, inchangée par D124", () => {
   it("la largeur utile est celle de `.wrap` dans la maquette", () => {
     const wrap = /\.wrap\s*\{[^}]*max-width\s*:\s*(\d+)px/.exec(MAQUETTE);
     expect(

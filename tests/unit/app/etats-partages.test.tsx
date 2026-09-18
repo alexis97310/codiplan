@@ -9,36 +9,33 @@ vi.mock("@/app/globals.css", () => ({}));
 
 import Erreur from "@/app/error";
 import ErreurGlobale from "@/app/global-error";
-import Chargement from "@/app/loading";
 import Introuvable from "@/app/not-found";
 import { fr } from "@/lib/i18n/fr";
 
 /**
- * AV-11 — LES QUATRE ÉTATS QUI MANQUAIENT À TOUT ÉCRAN.
+ * AV-11 — LES ÉTATS QUI MANQUAIENT À TOUT ÉCRAN, TROIS DÉSORMAIS.
  *
  * Avant ce ticket, `app/` ne portait aucun `loading.tsx`, `error.tsx`,
  * `not-found.tsx` ni `global-error.tsx` : un écran lent ne montrait rien, un
  * écran cassé rendait une PAGE BLANCHE, une adresse inexistante rendait la
- * page d'erreur crue de Next. Ce fichier éprouve ce que chacun des quatre DOIT
- * dire (§ ticket) : un chargement dit qu'on attend, une erreur dit ce qui
- * s'est passé et ce qu'on peut faire sans jamais montrer de trace technique
- * (D50), une page introuvable propose une sortie.
+ * page d'erreur crue de Next. Ce fichier éprouvait ce que chacun des quatre
+ * devait dire.
+ *
+ * **`app/loading.tsx` a été RETIRÉ (17/09/2026), et ce n'est pas un oubli.**
+ * Mesuré en production : cette frontière enveloppait l'APPLICATION ENTIÈRE
+ * (un `loading.tsx` à la racine couvre tout `{children}` de la mise en page
+ * racine), et quand elle mettait du temps à se résoudre, l'instruction qui
+ * devait la refermer n'arrivait jamais — l'écran restait bloqué sur
+ * « Chargement… » pour toujours, base et migrations pourtant saines. *Un
+ * repli qui ne part jamais coûte plus qu'un écran qui s'affiche sans lui.*
+ * Voir `scripts/lib/verdict-deploiement.ts` (`verdictDeLaPage`) pour le
+ * gardien qui aurait dû l'attraper avant qu'Alexis ne le fasse à la main.
  */
 
 const rafraichirEnArriere = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: rafraichirEnArriere }),
 }));
-
-describe("le chargement (app/loading.tsx)", () => {
-  it("dit qu'on attend, jamais qu'il n'y a rien", () => {
-    render(<Chargement />);
-
-    // `role="status"` — pas `EtatVide`, qui dit « rien à montrer » : les deux
-    // notions ne se confondent pas (D88).
-    expect(screen.getByRole("status")).toHaveTextContent(fr["etat.chargement"]);
-  });
-});
 
 describe("la page introuvable (app/not-found.tsx)", () => {
   it("nomme l'absence, sans plus, et propose une sortie", () => {

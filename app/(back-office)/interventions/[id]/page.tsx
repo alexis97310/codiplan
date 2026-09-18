@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
@@ -93,31 +94,32 @@ export default async function PageIntervention({
   const montants = accesAuxMontants(session.contexte.role);
 
   return (
-    <main className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2">
+    <Page
+      chemin="/interventions"
+      titre={
+        <span className="inline-flex flex-wrap items-center gap-3">
+          <span>
+            {t("intervention.titre")} {referenceAffichee(ligne)}
+          </span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
+          >
+            {t(`statut.${statut}`)}
+          </span>
+        </span>
+      }
+      sousTitre={
+        ligne.numero === null ? t("intervention.sans_numero") : undefined
+      }
+      actions={
         <Link
           href={retourPlanning(ligne.date_planifiee)}
           className="text-app-encre-faible text-[12.5px]"
         >
           {t("planning.retour_fleche")}
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            {t("intervention.titre")} {referenceAffichee(ligne)}
-          </h1>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
-          >
-            {t(`statut.${statut}`)}
-          </span>
-        </div>
-        {ligne.numero === null ? (
-          <p className="text-app-encre-faible text-[11.5px]">
-            {t("intervention.sans_numero")}
-          </p>
-        ) : null}
-      </header>
-
+      }
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -130,7 +132,7 @@ export default async function PageIntervention({
       {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
-          <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+          <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
             <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
               <Ligne
                 libelle={t("intervention.type")}
@@ -328,7 +330,7 @@ export default async function PageIntervention({
           </Action>
         </aside>
       </div>
-    </main>
+    </Page>
   );
 }
 
@@ -367,7 +369,7 @@ function Habilitations({ verdict }: { verdict: VerdictAffectation }) {
     })),
   ];
   return (
-    <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
       <h2 className="mb-2 text-[12.5px] font-bold">
         {t("intervention.habilitations.exigees")}
       </h2>
@@ -429,7 +431,7 @@ function Valorisation({
   montants: AccesAuxMontants;
 }) {
   return (
-    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3.5">
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
       <h2 className="text-[14px] font-bold">
         {t("intervention.cloture.facture")}
       </h2>
@@ -616,7 +618,7 @@ function Action({
   if (verdict.refuse) {
     const cle = verdict.cle;
     return (
-      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-[10px] border px-4 py-3">
+      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
         <h2 className="text-[13px] font-bold">{titre}</h2>
         <p className="text-app-rouge-encre text-[12.5px]">
           {cle !== undefined && estCleTraduction(cle) ? t(cle) : ""}
@@ -628,7 +630,7 @@ function Action({
     <form
       action={action}
       method="post"
-      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-[10px] border px-4 py-3"
+      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
     >
       <h2 className="text-[13px] font-bold">{titre}</h2>
       {note === undefined ? null : (

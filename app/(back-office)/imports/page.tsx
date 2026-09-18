@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -135,16 +136,11 @@ export default async function PageImports({
   ];
 
   return (
-    <main className="flex flex-col gap-5">
-      <header>
-        <h1 className="text-[22px] font-extrabold tracking-tight">
-          {t("imports.titre")}
-        </h1>
-        <p className="text-app-encre-faible text-[13px]">
-          {t("imports.sous_titre")}
-        </p>
-      </header>
-
+    <Page
+      chemin="/imports"
+      titre={t("imports.titre")}
+      sousTitre={t("imports.sous_titre")}
+    >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -158,12 +154,12 @@ export default async function PageImports({
       {/* LA RÈGLE DE I6, DITE AVANT LE FORMULAIRE. La maquette la met là, et
           elle a raison : c'est ce qu'il faut avoir lu avant de déposer un
           fichier, pas après. */}
-      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-[10px] border px-4 py-3.5 text-[12.5px]">
+      <section className="border-app-bleu-bord bg-app-bleu-fond rounded-lg border px-4 py-3.5 text-[12.5px]">
         <b>{t("imports.regle")}</b> {t("imports.regle_detail")}
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-[14px] font-bold">
               {t("imports.nouveau_titre")}
@@ -202,7 +198,7 @@ export default async function PageImports({
           </form>
         </section>
 
-        <section className="bg-app-surface border-app-bord rounded-[10px] border px-4 py-3.5">
+        <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <h2 className="text-[14px] font-bold">
             {t("imports.disponibles_titre")}
           </h2>
@@ -241,7 +237,7 @@ export default async function PageImports({
         </section>
       </div>
 
-      <section className="bg-app-surface border-app-bord rounded-[10px] border">
+      <section className="bg-app-surface border-app-bord rounded-lg border">
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
           <h2 className="text-[14px] font-bold">
             {t("imports.journal_titre")}
@@ -283,6 +279,6 @@ export default async function PageImports({
           )}
         </Tableau>
       </section>
-    </main>
+    </Page>
   );
 }
