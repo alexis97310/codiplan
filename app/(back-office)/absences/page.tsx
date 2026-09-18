@@ -143,15 +143,16 @@ export default async function PageAbsences({
     const aujourdHui = jourDe(maintenant(fuseau).local);
     const lundiAffiche = lundiLu(lu(parametres.semaine), aujourdHui);
     const semaine = semaineAffichee(lundiAffiche);
-    // LA FENÊTRE PAR DÉFAUT, ÉTENDUE À LA SEMAINE AFFICHÉE — une navigation
-    // qui sortirait des bornes habituelles (-30/+90 jours) ne doit pas
-    // afficher une semaine vide faute d'avoir été lue.
-    const fenetreDefaut = fenetreAffichee(fuseau);
-    const fenetre = {
-      du: minDate(fenetreDefaut.du, versDateCivile(semaine[0])),
-      au: maxDate(fenetreDefaut.au, versDateCivile(semaine[6])),
-    };
-    const lecture = await lireLesAbsences(tx, fenetre);
+    const lecture = await lireLesAbsences(tx, fenetreAffichee(fuseau));
+    // LA SEMAINE AFFICHÉE EST LUE À PART, dans SES seules bornes — jamais en
+    // élargissant la fenêtre par défaut jusqu'à elle. `vue.absences` (et le
+    // tableau qui le rend) ne doit pas grossir parce qu'une navigation a
+    // demandé une semaine lointaine ; sept jours, toujours sept jours,
+    // quelle que soit la distance parcourue par `?semaine=`.
+    const lectureSemaine = await lireLesAbsences(tx, {
+      du: versDateCivile(semaine[0]),
+      au: versDateCivile(semaine[6]),
+    });
     const rupture = agencesSansTechnicienDisponible(
       lecture.declarables,
       lecture.absences,
@@ -159,6 +160,8 @@ export default async function PageAbsences({
     );
     return {
       ...lecture,
+      absencesSemaine: lectureSemaine.absences,
+      annuaireSemaine: lectureSemaine.annuaire,
       aujourdHui,
       lundiAffiche,
       semaine,
@@ -249,7 +252,11 @@ export default async function PageAbsences({
             <JourDuCalendrier
               key={enTeteDeJour(jour)}
               jour={jour}
-              pastilles={pastillesDuJour(jour, vue.absences, vue.annuaire)}
+              pastilles={pastillesDuJour(
+                jour,
+                vue.absencesSemaine,
+                vue.annuaireSemaine,
+              )}
             />
           ))}
         </div>
@@ -482,14 +489,6 @@ function lundiLu(
       ? jour
       : aujourdHui;
   return lundiDeLaSemaine(valide);
-}
-
-function minDate(a: Date, b: Date): Date {
-  return a.getTime() <= b.getTime() ? a : b;
-}
-
-function maxDate(a: Date, b: Date): Date {
-  return a.getTime() >= b.getTime() ? a : b;
 }
 
 function fenetreAffichee(fuseau: string): { du: Date; au: Date } {

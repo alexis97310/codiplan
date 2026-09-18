@@ -22,12 +22,7 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
 import { t } from "@/lib/i18n/fr";
-import {
-  enAttenteDePiece,
-  listerInterventions,
-  listerPlanning,
-} from "@/lib/interventions/depot";
-import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
+import { enAttenteDePiece, listerPlanning } from "@/lib/interventions/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { compterAPrevoir } from "@/lib/vgp/registre";
 
@@ -144,13 +139,9 @@ export default async function PageTableauDeBord({
   const debutDuJour = instantDuJour(jour);
   const finDuJour = instantDuJour(jour, 1);
 
-  const criteresAPlanifier = schemaRechercheInterventions.parse({
-    statut: "a_planifier",
-  });
   const [
     lignesPlanning,
     enAttente,
-    aPlanifier,
     vgpAPrevoir,
     demandes,
     absencesDuJour,
@@ -158,8 +149,13 @@ export default async function PageTableauDeBord({
   ] = await Promise.all([
     listerPlanning(contexte, debutDuJour, finDuJour),
     enAttenteDePiece(contexte, instant),
-    listerInterventions(contexte, criteresAPlanifier),
-    compterAPrevoir(contexte, instant, HORIZON_VGP_JOURS),
+    // LA CIVILE, JAMAIS L'INSTANT (L0-08) : `prochaineEcheance` est une
+    // `@db.Date` posée à minuit UTC. Lui comparer `instant` (l'heure qu'il
+    // est) fait tomber une échéance du JOUR MÊME sous zéro dès que l'horloge
+    // dépasse minuit — une machine due aujourd'hui disparaîtrait du KPI
+    // pour le reste de la journée. `debutDuJour` porte la même forme civile
+    // que la colonne comparée.
+    compterAPrevoir(contexte, debutDuJour, HORIZON_VGP_JOURS),
     demandesOuvertes(contexte),
     absencesDeLaPeriode(contexte, debutDuJour, debutDuJour),
     compterSansCodeExterne(contexte, schemaRechercheClient.parse({})),
@@ -170,6 +166,15 @@ export default async function PageTableauDeBord({
     lignesPlanning,
     debutDuJour,
     finDuJour,
+  );
+  // `listerPlanning` REND AUSSI TOUTE LA FILE D'ATTENTE, non paginée, quelle
+  // que soit la fenêtre demandée (voir sa propre note) : c'est elle qui sert
+  // les interventions « à planifier », jamais `listerInterventions` avec sa
+  // page de LIMITE_RECHERCHE_PAR_DEFAUT — au-delà de cinquante en file,
+  // les plus anciennes (donc les plus prioritaires à replacer) auraient
+  // simplement disparu de la carte.
+  const aPlanifier = lignesPlanning.filter(
+    (ligne) => ligne.statut === "a_planifier",
   );
 
   const elements: readonly ElementPriorite[] = [
