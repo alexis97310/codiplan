@@ -251,6 +251,87 @@ export async function informationDeLaMachine(
   });
 }
 
+/**
+ * LE RÉSUMÉ (KPI) DU REGISTRE — trois comptes tirés de `joursAvantEcheance`
+ * et `etat`, et AUCUN n'est un verdict (D125, L9-02, D88).
+ *
+ * ## POURQUOI CE FICHIER LE PORTE, ET PAS L'ÉCRAN
+ *
+ * *Les VGP sont commandées par les clients, CODIPLAN ne rend jamais de
+ * verdict de conformité.* `codiplan-maquette-complete.html` dessine un
+ * bandeau de quatre KPI pour `/vgp` — dont un « Conformes » — et D125 fait foi
+ * sur cette DISPOSITION (quatre cases en bandeau), jamais sur les règles de
+ * gestion du chapitre 10 (D125, « Ce que D125 ne touche pas »). Le compte
+ * correspondant ici est celui des machines dont on a REÇU une information —
+ * ni plus, ni moins que ce que le registre sait dire (`information.ts`).
+ *
+ * ## AUCUNE FENÊTRE DE JOURS N'EST INVENTÉE ICI (L9-05, §8 du CLAUDE.md)
+ *
+ * La maquette écrit « à faire sous 30 jours » — un délai que rien, ni le
+ * chapitre 10, ni `docs/arbitrages.md`, n'a fixé : *l'inventer serait
+ * exactement la faute que §8 interdit, « ne jamais inventer un délai par
+ * défaut »,* et le gardien `tests/unit/vgp/aucune-duree-en-dur.test.ts`
+ * refuse tout littéral numérique dans ce dossier pour cette même raison. Le
+ * premier compte ne fixe donc AUCUNE fenêtre : il dit « une échéance
+ * DÉCLARÉE existe et n'est pas encore passée » — un fait, jamais un seuil.
+ *
+ * ## « À VENIR » ET « DÉPASSÉE » NE SONT PAS DES VERDICTS
+ *
+ * Les deux comptes lisent `joursAvantEcheance`, une SOUSTRACTION déjà faite
+ * par `etatDeLInformation` sur une date DÉCLARÉE (périodicité saisie). Dire
+ * qu'une échéance est dépassée n'est pas dire qu'une machine est en faute —
+ * exactement la même distinction que `vgp.echeance.depassee` porte déjà dans
+ * le dictionnaire.
+ */
+export type ResumeDuRegistre = {
+  /** Échéance déclarée, connue et pas encore passée — aucune fenêtre de jours. */
+  readonly echeanceAVenir: number;
+  /** Échéance déclarée déjà passée — une date, jamais un jugement. */
+  readonly echeanceDepassee: number;
+  /** Machines pour lesquelles une information a été reçue, quelle que soit son échéance. */
+  readonly informationRecue: number;
+  readonly total: number;
+};
+
+/**
+ * La fonction PURE — testée pour elle-même, sans base (`resumerLeParc` de
+ * `lib/machines/depot.ts` dans sa forme).
+ *
+ * **Elle prend les lignes déjà lues par `listerLeRegistre`**, jamais une
+ * seconde requête plafonnée séparément : ce registre n'est pas paginé
+ * (contrairement au parc, AT-07), et une deuxième lecture du même critère
+ * sous une borne différente divergerait en silence de ce que le tableau
+ * montre (§9, 01/09).
+ */
+export function resumerLeRegistre(
+  lignes: readonly LigneDeRegistre[],
+): ResumeDuRegistre {
+  let echeanceAVenir = 0;
+  let echeanceDepassee = 0;
+  let informationRecue = 0;
+  for (const ligne of lignes) {
+    if (ligne.information.etat !== "information_recue") {
+      continue;
+    }
+    informationRecue += 1;
+    const jours = ligne.information.joursAvantEcheance;
+    if (jours === null) {
+      continue;
+    }
+    if (jours < 0) {
+      echeanceDepassee += 1;
+    } else {
+      echeanceAVenir += 1;
+    }
+  }
+  return {
+    echeanceAVenir,
+    echeanceDepassee,
+    informationRecue,
+    total: lignes.length,
+  };
+}
+
 /** Une famille que personne n'a encore examinée — la moitié détective de L9-03. */
 export type FamilleADeterminer = {
   readonly id: string;

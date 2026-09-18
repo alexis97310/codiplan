@@ -229,9 +229,30 @@ function Nature({
     conditions,
   );
 
+  // ── ARBITRAGE D128 (18/09/2026) — TROIS ÉCARTS À COÛT FAIBLE, ET UN REFUS ──
+  //
+  // « Code » et « Libellé » — fondus jusqu'ici dans `nomComplet` — se séparent
+  // en deux colonnes ; « Catégorie » (`forfait.type`) s'expose en colonne,
+  // alors qu'elle ne servait qu'à REGROUPER les lignes par nature (le `<h2>`
+  // ci-dessous). Les trois sont de la maquette `parametres()` (D125), et leur
+  // coût est nul : la donnée existe déjà.
+  //
+  // **CE QUI N'EST PAS AJOUTÉ, ET C'EST UN REFUS, PAS UN OUBLI** : la colonne
+  // « Temps » que `parametres()` dessine aussi. Un forfait ne porte AUCUNE
+  // durée en base (`prisma/schema.prisma`, modèle `Forfait`) — une durée
+  // standard est une propriété de la PRESTATION, jamais du tarif qui la
+  // valorise (D109, D113). L'ajouter rouvrirait un arbitrage rendu ; D128
+  // tranche que la règle de gestion l'emporte sur la disposition de la
+  // maquette quand les deux se contredisent.
   const colonnes = [
     { cle: "rang", libelle: t("forfaits.rang"), droite: true, largeur: "70px" },
-    { cle: "code", libelle: t("forfaits.code") },
+    { cle: "code", libelle: t("forfaits.champ.code"), largeur: "130px" },
+    { cle: "libelle", libelle: t("forfaits.champ.libelle") },
+    {
+      cle: "categorie",
+      libelle: t("parametres.forfaits_categorie"),
+      largeur: "160px",
+    },
     {
       cle: "montant",
       libelle: t("forfaits.montant"),
@@ -248,7 +269,7 @@ function Nature({
       <h2 className="border-app-bord border-b px-4 py-3.5 text-[14px] font-bold">
         {libelleType(type)}
       </h2>
-      <Tableau colonnes={colonnes} minimum="990px">
+      <Tableau colonnes={colonnes} minimum="1180px">
         {lignes.length === 0 ? (
           <LignePleine colonnes={colonnes.length}>
             {t("forfaits.vide")}
@@ -259,7 +280,21 @@ function Nature({
             <Cellule droite>
               <span className="tabular-nums">{forfait.rang}</span>
             </Cellule>
-            <Cellule mono>{nomComplet(forfait)}</Cellule>
+            <Cellule mono>
+              <span data-bloc="colonne-code" className="contents">
+                {forfait.code}
+              </span>
+            </Cellule>
+            <Cellule>
+              <span data-bloc="colonne-libelle" className="contents">
+                {forfait.libelle}
+              </span>
+            </Cellule>
+            <Cellule>
+              <span data-bloc="colonne-categorie" className="contents">
+                {libelleType(forfait.type)}
+              </span>
+            </Cellule>
             <Cellule droite fort>
               <span className="tabular-nums">
                 {montantAffiche(forfait, devise)}
@@ -317,14 +352,6 @@ function Actions({ forfait }: { forfait: Ligne }) {
       </form>
     </span>
   );
-}
-
-/**
- * Le code et le libellé, composés HORS du JSX : un littéral n'y est pas admis,
- * fût-il un tiret (L0-11). C'est le gardien qui l'a dit, pas la relecture.
- */
-function nomComplet(forfait: Ligne): string {
-  return `${forfait.code} — ${forfait.libelle}`;
 }
 
 /**
