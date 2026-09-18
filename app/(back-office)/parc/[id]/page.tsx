@@ -170,11 +170,20 @@ export default async function PageMachine({
       titre={t("machine.fiche.titre")}
       sousTitre={sousTitreFiche(machine)}
       actions={
-        <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
-          {t("machine.retour")}
-        </Link>
-        // « Modifier » — écart nommé (lib/machines/ecarts-maquette.ts,
-        // ECARTS_MAQUETTE_ACTIONS_FICHE) : aucune route d'édition n'existe.
+        <>
+          <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
+            {t("machine.retour")}
+          </Link>
+          {/* « Modifier » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : la route
+              d'édition existe désormais, voir
+              app/(back-office)/parc/[id]/modifier/page.tsx et
+              lib/machines/ecarts-maquette.ts. */}
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/parc/${machine.id}/modifier`}>
+              {t("machine.action.modifier")}
+            </Link>
+          </Button>
+        </>
       }
     >
       <div
