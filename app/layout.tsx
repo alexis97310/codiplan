@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 import { EnregistrementServiceWorker } from "@/components/pwa/enregistrement";
 import { t } from "@/lib/i18n/fr";
@@ -28,16 +28,34 @@ export const viewport: Viewport = {
 };
 
 /**
- * INTER, SERVIE PAR LE PAQUET DE L'APPLICATION (D124) — jamais un lien vers un
- * CDN, qui ferait dépendre la typographie du produit d'un tiers et clignoter
- * la police au premier chargement. `next/font/google` la télécharge à la
- * COMPILATION et l'expose en variable CSS, lue par `app/globals.css`.
+ * INTER, EN FICHIER VENDU DANS LE DÉPÔT (D124, corrigée par la revue du
+ * ticket) — jamais un lien vers un CDN, jamais un appel réseau à la
+ * compilation.
+ *
+ * **`next/font/google` a été essayé, et refusé pour la même raison qu'au tout
+ * premier ticket du dépôt.** `docs/decisions/2026-08-19-socle-technique.md`
+ * (L0-01, §2) l'avait déjà écarté de l'échafaudage initial : *« impose un
+ * appel réseau à chaque compilation… la compilation redevient reproductible
+ * hors réseau, propriété qui compte dans le contexte d'exploitation du
+ * produit »* — la Nouvelle-Calédonie, réseau mobile absent sur une partie du
+ * territoire. Une revue de ce ticket l'a reproduit : `rm -rf .next && pnpm
+ * build` échoue sans accès à `fonts.googleapis.com`.
+ *
+ * **`next/font/local` tient la même promesse que demandait le ticket — une
+ * police chargée par le mécanisme de Next, jamais une balise vers un tiers —
+ * sans rouvrir cette décision.** Le fichier est celui que Google Fonts sert
+ * pour le sous-ensemble `latin` (couvre le français : lettres accentuées,
+ * `œ`/`Œ`, guillemets), une police VARIABLE couvrant tout l'axe de graisse en
+ * un seul fichier de 48 Ko — `public/fonts/inter/`, licence SIL Open Font
+ * 1.1 jointe (`LICENSE.txt`).
  *
  * `display: "swap"` : le texte se rend dans la pile système dès la première
  * peinture, Inter se substitue sans jamais laisser un texte invisible.
  */
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "../public/fonts/inter/Inter-Variable.woff2",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-inter",
   display: "swap",
 });

@@ -351,13 +351,17 @@
    * `font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe
    * UI",sans-serif` dans `codiplan-maquette-complete.html`.
    *
-   * **Inter est chargée par `next/font/google`** (`app/layout.tsx`), jamais
-   * par une balise vers un CDN : le dépôt est public, et une police tierce au
-   * chargement ferait clignoter chaque première visite. `next/font` la sert
-   * depuis le paquet de l'application et pose `--font-inter`, lu ici en
-   * PREMIER ; la pile système qui suit est celle de la maquette, DANS SON
-   * ORDRE, et sert de repli tant que la police n'a pas fini de charger — ou
-   * si elle échoue à le faire.
+   * **Inter est chargée par `next/font/local`** (`app/layout.tsx`), sur un
+   * fichier VENDU DANS LE DÉPÔT (`public/fonts/inter/`) — jamais une balise
+   * vers un CDN, et jamais `next/font/google` : cette dernière imposerait un
+   * appel réseau à CHAQUE compilation, exactement ce que
+   * `docs/decisions/2026-08-19-socle-technique.md` avait déjà refusé au tout
+   * premier ticket du dépôt, pour la reproductibilité hors réseau qui compte
+   * en Nouvelle-Calédonie. `next/font` sert le fichier local depuis le paquet
+   * de l'application et pose `--font-inter`, lu ici en PREMIER ; la pile
+   * système qui suit est celle de la maquette, DANS SON ORDRE, et sert de
+   * repli tant que la police n'a pas fini de charger — ou si elle échoue à le
+   * faire.
    *
    * Elle est posée ici plutôt que dans `layout.tsx` parce qu'elle est de la
    * même nature que les jetons : un écran ne décide pas de la police du
