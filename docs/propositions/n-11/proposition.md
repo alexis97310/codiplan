@@ -1,7 +1,21 @@
-# N-11 — La fiche machine à l'identique de la maquette (D125, D126)
+# N-11 — La fiche machine à l'identique de la maquette : bannière, identité, historique et QR (D125, D126)
 
 Branche `claude/gallant-euler-o3qnge`, depuis `origin/main` à `eec0430` (qui vient
 de recevoir N-10, #230).
+
+## À lire avant tout le reste
+
+1. **`date_vente` est vide sur les seize lignes du jeu d'essai, sans
+   exception** — la colonne « Année de vente » affiche donc le signe
+   d'absence (`—`), jamais une date inventée ni la mise en service à sa
+   place. **Cette mesure porte sur le jeu d'essai (seize machines), pas sur
+   les 202 machines réellement importées en production** — la production
+   reste à mesurer. Le défaut, s'il se confirme là-bas, est dans le fichier
+   d'import, pas dans le code : `lib/imports/modeles.ts` (ligne 1117) lit
+   déjà cette colonne. Détail en §5.
+2. **Aucun déploiement de prévisualisation n'existe depuis #229** (Vercel ne
+   construit que `main`) : les captures locales de ce dossier (§8) tiennent
+   lieu de preuve visuelle, il n'y a rien d'autre à ouvrir avant fusion.
 
 ## 0. Les deux décisions écrites avant le code
 
@@ -92,7 +106,7 @@ mesuré) :** le champ « Contrat » du `dl.kv` reste, avec le signe d'absence
 Les trois règles sont **recopiées** depuis `app/(back-office)/parc/page.tsx`,
 jamais importées — `/parc` n'est pas retouché par ce ticket.
 
-## 5. AVERTISSEMENT MESURÉ — `date_vente` est VIDE sur tout le jeu de données
+## 5. AVERTISSEMENT MESURÉ — `date_vente` est VIDE sur le jeu d'essai
 
 Alexis avait raison de le redouter. Sur les seize lignes de machines du semis
 local (`pnpm db:seed`, deux sociétés) :
@@ -107,18 +121,24 @@ date_vente | date_mise_en_service
  (vide)    | (vide, la fiche SN-INCONNU)
 ```
 
-**`date_vente` est nulle sur les seize lignes, sans exception.** La fiche
-machine s'en tient à la règle demandée : elle affiche le signe d'absence
-(`—`) pour « Année de vente », **jamais** la date de mise en service à sa
-place, jamais une année inventée — voir les captures `fiche-en-service-
-apres.png` et `fiche-en-panne-apres.png`, colonne de gauche, deuxième ligne
-du bloc d'identité.
+**`date_vente` est nulle sur les seize lignes du jeu d'essai, sans
+exception.** La fiche machine s'en tient à la règle demandée : elle affiche
+le signe d'absence (`—`) pour « Année de vente », **jamais** la date de mise
+en service à sa place, jamais une année inventée — voir les captures
+`fiche-en-service-apres.png` et `fiche-en-panne-apres.png`, colonne de
+gauche, deuxième ligne du bloc d'identité.
 
-**Le défaut n'est pas dans le code.** `lib/imports/modeles.ts` (ligne 1117)
-lit déjà `date_vente` à l'import, et D56 la fait voyager avec
-`facture_origine` et `garantie_fin`. Si la colonne est vide en production
-comme dans ce semis, c'est que **le fichier source ne la porte pas** — une
-information qu'Alexis devra faire remonter du fichier d'import, pas une
+**Cette mesure ne porte QUE sur le jeu d'essai — seize lignes, deux sociétés
+de démonstration —, jamais sur les 202 machines réellement importées en
+production. La production reste à mesurer**, et c'est Alexis qui la
+mesurera lui-même sur le site après la fusion. Ne pas élargir cette phrase :
+elle dit ce qui a été observé localement, pas ce qui est vrai chez CODIMA.
+
+**Si la production confirme le même vide, le défaut ne sera pas dans le
+code.** `lib/imports/modeles.ts` (ligne 1117) lit déjà `date_vente` à
+l'import, et D56 la fait voyager avec `facture_origine` et `garantie_fin`.
+Une colonne vide en production voudrait dire que **le fichier source ne la
+porte pas** — une information à faire remonter du fichier d'import, pas une
 correction de ce ticket.
 
 ## 6. Le QR — la bibliothèque retenue, et pourquoi
@@ -229,7 +249,14 @@ correction du mécanisme d'impression (§7) — verts les deux fois.
 - Le bouton « Voir l'intervention » du bandeau d'alerte n'a pas de capture ni
   de scénario de bout en bout dédié, faute de donnée de démonstration qui
   lie une machine hors service à une intervention ouverte (§8).
-- `date_vente` est vide dans tout le jeu de données mesuré (§5) — à faire
-  remonter côté import, pas côté code.
+- `date_vente` est vide sur les seize lignes du jeu d'essai (§5) ; la
+  production (202 machines) reste à mesurer par Alexis après la fusion — si
+  elle confirme, le défaut est à faire remonter côté import, pas côté code.
 - `/parc` n'est pas retouché (une proposition à la fois, comme demandé).
 - Aucun menu mobile, aucun ☰, aucun tiroir — hors périmètre de ce ticket.
+- **La carte « Documents » n'est pas habillée comme une vraie carte**
+  (pas de fond blanc ni de `card-head`, contrairement à « Identité et
+  rattachement » et « Historique des interventions ») — repéré par Alexis
+  sur `fiche-en-panne-apres.png`. Préexistant à ce ticket, redevenu visible
+  parce qu'il voisine désormais deux cartes conformes. **Mis au ticket
+  suivant, avec la barre d'outils** — rien n'est rouvert ici.
