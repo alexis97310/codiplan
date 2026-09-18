@@ -110,3 +110,76 @@ export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
       "depuis cet écran (AT-04), et le retirer romprait ce chemin",
   },
 ];
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LA FICHE MACHINE — /parc/[id] contre machinePage() (N-11, D125, D126)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE BOUTON DE L'EN-TÊTE QUE LA FICHE NE REND PAS — liste close, une entrée.
+ *
+ * `head()` de `machinePage()` pose deux boutons : « ← Retour au parc » et
+ * « Modifier ». Le premier mène quelque part et se rend ; le second ne mène
+ * nulle part — mesuré, pas supposé : aucune route `/parc/[id]/modifier` ni
+ * aucune fonction d'écriture n'existe dans `lib/machines/depot.ts` pour
+ * modifier une fiche déjà créée (`creerMachineDans` et `creerMachinesEnLot`
+ * sont les deux seules écritures, et aucune des deux ne mène par une route).
+ * **Un lien vers rien se lit comme une panne (R2-13)** : il est donc un écart
+ * nommé plutôt qu'un lien mort, la même leçon que les deux boutons de
+ * `ECARTS_MAQUETTE_ACTIONS_PARC`.
+ */
+export const ECARTS_MAQUETTE_ACTIONS_FICHE: readonly EcartMaquette[] = [
+  {
+    libelle: "Modifier",
+    motif:
+      "N-11 — aucune route d'édition d'une machine n'existe (pas de " +
+      "app/(back-office)/parc/[id]/modifier) et lib/machines/depot.ts ne " +
+      "porte aucune écriture de mise à jour d'une fiche existante, " +
+      "seulement sa création (creerMachineDans, creerMachinesEnLot).",
+  },
+];
+
+/**
+ * LE CONTENU DU `dl.kv` QUE D126 CHANGE, CÔTÉ CONTENU — liste close, une
+ * entrée. D125 gouverne la FORME du `dl.kv` (deux colonnes, huit paires) ;
+ * D126 gouverne ce qu'il PORTE, et une décision d'exploitation postérieure à
+ * D125 en écarte une paire par rapport au texte littéral de `machinePage()`.
+ *
+ * `machinePage()` pose « Identifiant » en tête du `dl.kv` (`m.id`). D126
+ * retire cette entrée : la référence interne reste affichée, mais dans la
+ * `.machine-banner`, en chasse fixe et en gris — exactement là où la
+ * maquette la place déjà (`<div class="mono muted">${m.id}</div>`). La
+ * répéter dans le `dl.kv` ferait doublon avec la bannière, et D126 lui
+ * préfère cinq faits de gestion (famille, marque, référence, numéro de
+ * série, année de vente) qu'Alexis a demandés en tête du même bloc.
+ */
+export const ECARTS_MAQUETTE_CONTENU_FICHE: readonly EcartMaquette[] = [
+  {
+    libelle: "Identifiant (dl.kv)",
+    motif:
+      "D126 (18/09/2026) — la référence interne reste affichée, mais dans " +
+      "la bannière (mono, grise), pas dans le dl.kv, où elle ferait doublon " +
+      "; le dl.kv s'ouvre à la place sur famille, marque, référence, " +
+      "numéro de série et année de vente, demandés par l'exploitation.",
+  },
+];
+
+/**
+ * CE QUE LA FICHE REND ET QUE LA MAQUETTE NE DESSINE PAS — l'écart DANS
+ * L'AUTRE SENS (N-10, §4, appliqué à la fiche).
+ *
+ * La carte « Documents » porte L8-02 (les documents d'une machine et de son
+ * modèle) ; `machinePage()` ne la dessine pas. Elle N'EST PAS un ajout
+ * gratuit qui s'efface pour ressembler à la maquette : c'est un module déjà
+ * livré, avec son propre ticket et sa propre trace d'audit, et le retirer
+ * romprait le seul écran qui l'affiche.
+ */
+export const ECARTS_MAQUETTE_AJOUTS_FICHE: readonly EcartMaquette[] = [
+  {
+    libelle: "Documents",
+    motif:
+      "porte L8-02 — les documents d'une machine et de son modèle ; " +
+      "machinePage() ne la dessine pas, et la retirer ferait disparaître " +
+      "le seul écran qui expose ce module déjà livré.",
+  },
+];

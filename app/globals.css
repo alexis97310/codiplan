@@ -399,3 +399,44 @@
     var(--app-bord-faible) 12px
   );
 }
+
+/*
+ * L'IMPRESSION DE L'ÉTIQUETTE QR — `@media print` de `machinePage()` dans
+ * `codiplan-maquette-complete.html` (N-11) : *à l'impression, seule la carte
+ * QR est visible.*
+ *
+ * **MÊME MÉCANISME que la maquette, pas une variante.** `drawQr()`/
+ * `data-action="print-qr"` ajoutent `print-qr` sur `<body>` avant
+ * `window.print()`, et la règle CSS ne porte que sur cette classe —
+ * `ActionsQrMachine` (`components/machines/actions-qr.tsx`) fait exactement
+ * ce geste, `afterprint` retirant la classe à la fermeture de la boîte de
+ * dialogue plutôt que le `setTimeout(200)` de la maquette (plus fiable :
+ * l'événement existe précisément pour ça).
+ *
+ * **`body:has(.zone-impression-qr) *` a été essayée d'abord, et REFUSÉE,
+ * mesuré.** Elle laissait un bouton profondément imbriqué (celui de la carte
+ * « Historique des interventions ») `visibility:visible` — confirmé par
+ * `element.matches(selecteur)` retournant VRAI pour la règle `hidden
+ * !important`, alors que `getComputedStyle` continuait de rendre `visible` :
+ * un recalcul de style qui n'aboutit pas, propre à `:has()` combiné à un
+ * second sélecteur relationnel de la page (`Button` porte déjà
+ * `has-[>svg]:`). Une classe simple sur `<body>`, posée par JavaScript
+ * comme la maquette le fait déjà, n'a pas cette fragilité.
+ */
+@media print {
+  body.print-qr * {
+    visibility: hidden;
+  }
+  body.print-qr .zone-impression-qr,
+  body.print-qr .zone-impression-qr * {
+    visibility: visible;
+  }
+  body.print-qr .zone-impression-qr {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+}

@@ -113,6 +113,7 @@ const BADGE = source("components/ui/badge.tsx");
 const KPI = source("components/ui/kpi.tsx");
 const TABLEAU = source("components/ui/tableau.tsx");
 const MAITRE_DETAIL = source("components/ui/maitre-detail.tsx");
+const FICHE_MACHINE = source("app/(back-office)/parc/[id]/page.tsx");
 
 /** Les graisses Tailwind que ce gardien sait lire — un fait du framework, pas de l'application. */
 const GRAISSES: Readonly<Record<string, number>> = {
@@ -663,5 +664,126 @@ describe("CarteVide — .empty de la maquette (l'état vide du maître-détail)"
     expect(MAITRE_DETAIL).toContain("text-[16px]");
     expect(propriete(b, "margin-bottom")).toBe("5px");
     expect(MAITRE_DETAIL).toContain("mb-[5px]");
+  });
+});
+
+/**
+ * LA FICHE MACHINE — `.machine-page`, `.machine-banner`, `.qr-card`,
+ * `.alert-strip`, `.alert-num` de `codiplan-maquette-complete.html` (N-11,
+ * D125). Ces cinq règles vivent dans `app/(back-office)/parc/[id]/page.tsx`
+ * et nulle part ailleurs — c'est le seul écran qui les rend — d'où
+ * `FICHE_MACHINE` plutôt que `MAITRE_DETAIL` comme source confrontée.
+ */
+describe("La fiche machine — .machine-page de la maquette", () => {
+  it("a réellement lu une règle — le témoin de non-vacuité", () => {
+    expect(regleComplete(".machine-page").length).toBeGreaterThan(0);
+  });
+
+  it("les deux colonnes et l'écart reprennent .machine-page", () => {
+    const bloc = regleComplete(".machine-page");
+    expect(propriete(bloc, "grid-template-columns")).toBe(
+      "minmax(0,1.4fr) minmax(310px,.6fr)",
+    );
+    expect(FICHE_MACHINE).toContain(
+      "grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]",
+    );
+    expect(propriete(bloc, "gap")).toBe("16px");
+    expect(FICHE_MACHINE).toContain("gap-4");
+  });
+
+  it("le repli de largeur à 1180px REPLIE .machine-page À UNE COLONNE — aucun menu, aucun tiroir", () => {
+    // Mesuré dans `@media(max-width:1180px){...,.machine-page{grid-template-
+    // columns:1fr}...}` : c'est le SEUL repli que N-11 construit pour cet
+    // écran (§0 du ticket) — jamais un ☰, jamais une barre latérale.
+    const motif =
+      /@media\(max-width:1180px\)\{[\s\S]*?\.machine-page\{grid-template-columns:1fr\}/;
+    expect(
+      motif.test(MAQUETTE_COMPLETE),
+      "le repli à 1180px de .machine-page est introuvable dans la maquette",
+    ).toBe(true);
+    expect(FICHE_MACHINE).toContain("min-[1181px]:grid-cols-");
+  });
+});
+
+describe("La fiche machine — .machine-banner de la maquette", () => {
+  it("a réellement lu une règle — le témoin de non-vacuité", () => {
+    expect(regleComplete(".machine-banner").length).toBeGreaterThan(0);
+  });
+
+  it("la bannière reprend le rembourrage et l'écart de .machine-banner", () => {
+    const bloc = regleComplete(".machine-banner");
+    expect(propriete(bloc, "padding")).toBe("22px");
+    expect(FICHE_MACHINE).toContain("p-[22px]");
+    expect(propriete(bloc, "gap")).toBe("16px");
+    expect(FICHE_MACHINE).toContain("gap-4");
+    expect(propriete(bloc, "align-items")).toBe("flex-start");
+    expect(FICHE_MACHINE).toContain("items-start");
+  });
+});
+
+describe("La fiche machine — .qr-card de la maquette, dont sa position collante", () => {
+  it("a réellement lu une règle — le témoin de non-vacuité", () => {
+    expect(regleComplete(".qr-card").length).toBeGreaterThan(0);
+  });
+
+  it("la carte reprend le rembourrage et le centrage de .qr-card", () => {
+    const bloc = regleComplete(".qr-card");
+    expect(propriete(bloc, "padding")).toBe("20px");
+    expect(FICHE_MACHINE).toContain("p-[20px]");
+    expect(propriete(bloc, "text-align")).toBe("center");
+    expect(FICHE_MACHINE).toContain("text-center");
+  });
+
+  it("LA POSITION COLLANTE reprend .qr-card — sticky, au décalage mesuré", () => {
+    const bloc = regleComplete(".qr-card");
+    expect(propriete(bloc, "position")).toBe("sticky");
+    expect(FICHE_MACHINE).toContain("sticky");
+    expect(propriete(bloc, "top")).toBe("88px");
+    expect(FICHE_MACHINE).toContain("top-[88px]");
+  });
+
+  it("le repli à 1180px REND .qr-card STATIQUE — mesuré, jamais supposé", () => {
+    const motif =
+      /@media\(max-width:1180px\)\{[\s\S]*?\.qr-card\{position:static\}/;
+    expect(
+      motif.test(MAQUETTE_COMPLETE),
+      "le repli à 1180px de .qr-card (position:static) est introuvable",
+    ).toBe(true);
+    // La classe `sticky` ne s'applique qu'AU-DESSUS de 1180px : en dessous,
+    // aucune classe `sticky` non préfixée ne doit rester active.
+    expect(FICHE_MACHINE).toContain("min-[1181px]:sticky");
+    expect(FICHE_MACHINE).not.toMatch(/(?<!:)\bsticky\b/);
+  });
+});
+
+describe("La fiche machine — .alert-strip et .alert-num de la maquette", () => {
+  it("a réellement lu deux règles — le témoin de non-vacuité", () => {
+    expect(regleComplete(".alert-strip").length).toBeGreaterThan(0);
+    expect(regleComplete(".alert-num").length).toBeGreaterThan(0);
+  });
+
+  it("le bandeau reprend la grille, l'écart et le rayon de .alert-strip", () => {
+    const bloc = regleComplete(".alert-strip");
+    expect(propriete(bloc, "grid-template-columns")).toBe("auto 1fr auto");
+    expect(FICHE_MACHINE).toContain("grid-cols-[auto_1fr_auto]");
+    expect(propriete(bloc, "gap")).toBe("12px");
+    expect(FICHE_MACHINE).toContain("gap-[12px]");
+    expect(propriete(bloc, "padding")).toBe("15px");
+    expect(FICHE_MACHINE).toContain("p-[15px]");
+    expect(propriete(bloc, "border-radius")).toBe("12px");
+    expect(FICHE_MACHINE).toContain("rounded-[12px]");
+  });
+
+  it("le rond reprend la taille, la forme et la graisse de .alert-num", () => {
+    const bloc = regleComplete(".alert-num");
+    expect(propriete(bloc, "width")).toBe("38px");
+    expect(FICHE_MACHINE).toContain("w-[38px]");
+    expect(propriete(bloc, "height")).toBe("38px");
+    expect(FICHE_MACHINE).toContain("h-[38px]");
+    expect(propriete(bloc, "border-radius")).toBe("50%");
+    expect(FICHE_MACHINE).toContain("rounded-full");
+    expect(
+      porteLaGraisse(FICHE_MACHINE, Number(propriete(bloc, "font-weight"))),
+    ).toBe(true);
   });
 });

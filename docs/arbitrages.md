@@ -4647,3 +4647,25 @@ Chaque écran parmi les quatorze devra, au fil des tickets qui le touchent, êtr
 > Le jour où l'une des deux maquettes dispose un même écran autrement que l'autre — un bloc, un ordre, une composition que `CODIPLAN_Maquette.html` et `codiplan-maquette-complete.html` dessinent différemment l'une de l'autre pour la MÊME destination —, la question se rouvre au lieu d'être tranchée par cette page : ce cas n'a pas été mesuré, et rien ici ne le résout par avance.
 
 *Aucune règle du chapitre 10 n'est amendée : la disposition d'un écran n'y figure pas.*
+
+---
+
+## D126 — CE QU'UNE FICHE MATÉRIEL MONTRE EN PREMIER : FAMILLE, MARQUE, RÉFÉRENCE, NUMÉRO DE SÉRIE, ANNÉE DE VENTE
+
+*Rendu par Alexis le 18/09/2026, pendant le ticket N-11 : « Fiche matériel : il faut afficher principalement la famille du matériel, la marque, la référence, le numéro de série, l'année. » Précisé dans la foulée : « la référence » désigne LES DEUX références — celle du modèle en évidence, la référence interne de la fiche en seconde ligne, plus discrète — et « l'année » est l'année de VENTE (la facture d'origine), jamais celle de la mise en service.*
+
+**LA DÉCISION.** **C'est une règle de GESTION (chapitre 10), pas une disposition.** D125 continue de gouverner la FORME de la fiche machine — le `dl.kv` à deux colonnes, la bannière, la ligne de liste à titre, sous-ligne et pastille. D126 gouverne ce que ces emplacements PORTENT. Les deux ne se contredisent pas : la maquette dit où, l'exploitation dit quoi.
+
+Le bloc d'identité d'une fiche machine s'ouvre donc sur les cinq informations d'Alexis, dans son ordre — **Famille · Marque · Référence (modèle) · N° de série · Année de vente** — avant les champs que la maquette dessine déjà (Client, Site client, Agence CODIMA, Mise en service, Contrat, Prochaine VGP). L'« année de vente » s'affiche en année sur quatre chiffres, jamais en date complète : c'est l'usage qu'Alexis en a demandé, et une date au jour près n'y ajoute rien.
+
+La référence interne (`Local-…`, ou `MAC-…` une fois numérotée) ne disparaît pas : elle reste dans la bannière, en chasse fixe et en gris, exactement là où D125 la place déjà. Elle sort du `dl.kv`, où elle ferait doublon avec le fait « Identifiant » de la maquette — c'est l'écart au CONTENU que D126 introduit par rapport à D125, nommé dans la liste close de la fiche avec ce motif.
+
+**CE QUE ÇA NE DÉCIDE PAS.** Une année absente reste absente : si `machine.date_vente` est nulle, l'écran rend le signe d'absence, jamais la date de mise en service à sa place, jamais une année inventée. Une absence qui se lit comme une donnée est exactement la faute que §9 (01/09) et D88 nomment déjà chacun à leur façon — la remplacer ferait dire à la fiche une chose qu'elle ne sait pas.
+
+**CE QUE ÇA NE TOUCHE PAS.** `/parc` reçoit le même traitement, mais dans un ticket séparé — il vient d'être fusionné (N-10), et D125 a déjà dit qu'une proposition ne rouvre pas l'écran voisin qu'elle ne traite pas. Aucune règle de I3 (décimales, formatage monétaire) n'est concernée : une année n'est pas un montant.
+
+**CONDITION DE RÉOUVERTURE, vérifiable.**
+
+> Le jour où l'exploitation demande un ordre différent, un sixième fait en tête, ou une lecture de l'année autre que celle de la vente, cette page se rouvre plutôt que d'être contournée à l'écran.
+
+**Règles amendées :** RG-PAR-07

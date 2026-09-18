@@ -148,6 +148,9 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // décompte de modèles d'une famille mène à leur table, plus bas sur le
       // même écran.
       "app/(back-office)/parametres/materiel/page.tsx",
+      // LA FICHE MACHINE y entre le 18/09/2026 avec N-11 : la référence d'une
+      // intervention de l'historique mène à sa fiche, comme au registre.
+      "app/(back-office)/parc/[id]/page.tsx",
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
       "app/(back-office)/sites/page.tsx",

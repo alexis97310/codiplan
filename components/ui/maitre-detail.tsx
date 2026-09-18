@@ -118,6 +118,46 @@ export function RangeeMaitreDetail({
 }
 
 /**
+ * `.card` AVEC SON `.card-head` — `codiplan-maquette-complete.html` (N-11).
+ *
+ * **Presque un jumeau de `CarteListe` ci-dessus, et c'est délibéré plutôt
+ * qu'une négligence.** Les deux mesurent le MÊME `.card-head` de la maquette
+ * (15px, `padding:16px 18px`) ; `CarteListe` reste réservée à la carte
+ * « Résultats » de `/parc`, que N-11 n'a pas le droit de retoucher (une
+ * proposition à la fois). Celle-ci généralise l'en-tête à une ACTION
+ * arbitraire — un bouton « + Intervention », pas seulement un compte muet —
+ * pour les cartes « Identité et rattachement » et « Historique des
+ * interventions » de la fiche machine. *Recopier une forme pour ne pas
+ * toucher l'écran qui la porte déjà est la même retenue que `referenceMachine`
+ * assume ailleurs dans ce dépôt.*
+ */
+export function CarteEnTete({
+  titre,
+  action,
+  children,
+  /** Le marqueur `data-bloc` — chaque appelant nomme SON bloc (N-11). */
+  bloc = "carte-en-tete",
+}: Readonly<{
+  titre: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  bloc?: string;
+}>) {
+  return (
+    <section
+      data-bloc={bloc}
+      className="bg-app-surface border-app-bord rounded-lg border"
+    >
+      <div className="border-app-bord-faible flex items-center justify-between gap-3 border-b px-[18px] py-[16px]">
+        <h2 className="text-[15px] font-bold">{titre}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
  * L'APERÇU DE DROITE — `.detail-hero` puis `.detail-body`.
  *
  * `.machine-symbol` reprend `--radius` (`rounded-lg`, D124) plutôt que le
@@ -173,8 +213,15 @@ export function DetailBody({
 }
 
 /** `.kv` — deux colonnes, chaque paire séparée par un filet. */
-export function Kv({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <dl className="grid grid-cols-2 gap-x-[18px] gap-y-0">{children}</dl>;
+export function Kv({
+  children,
+  bloc,
+}: Readonly<{ children: React.ReactNode; bloc?: string }>) {
+  return (
+    <dl data-bloc={bloc} className="grid grid-cols-2 gap-x-[18px] gap-y-0">
+      {children}
+    </dl>
+  );
 }
 
 export function KvLigne({
