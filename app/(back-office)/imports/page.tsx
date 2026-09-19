@@ -162,7 +162,7 @@ export default async function PageImports({
         <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-[14px] font-bold">
-              {t("imports.nouveau_titre")}
+              {t("imports.nouveau_titre_generique")}
             </h2>
             {/* INERTE, ET IL DIT POURQUOI — jamais un lien vers rien. */}
             <span
