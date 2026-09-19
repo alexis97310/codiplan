@@ -109,5 +109,5 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: |
-            --max-turns 60
+            --max-turns 300
             --allowedTools "Bash,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,WebFetch,WebSearch"
