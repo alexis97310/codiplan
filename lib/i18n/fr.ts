@@ -2281,6 +2281,56 @@ export const fr = {
   "etat.retour_arriere": "Revenir en arrière",
   "etat.retour_accueil": "Retourner à l'accueil",
 
+  // ── L'ÉQUIPE — créer, modifier, désactiver un technicien (ÉQUIPE-1) ──────
+  //
+  // Mesuré sur 4fead41 : aucun écran, aucune route, un technicien n'existait
+  // que semé. « Agence » se compose depuis `mot("agence")` dans l'écran,
+  // jamais écrit en dur ici (D5, D47) — les clés ci-dessous ne portent donc
+  // que le RESTE du libellé.
+  "parametres.index_equipe_titre": "Équipe",
+  "parametres.index_equipe_resume":
+    "Les techniciens de la société — création, rattachement, désactivation.",
+  "equipe.titre": "Équipe",
+  "equipe.sous_titre":
+    "Les techniciens de la société active : créer, rattacher, désactiver.",
+  "equipe.creer": "Ajouter un technicien",
+  "equipe.creer_action": "Ajouter",
+  "equipe.creer_aide":
+    "Un courriel déjà connu de la plateforme rattache la personne existante à cette société, sans créer de doublon.",
+  "equipe.liste_titre": "Techniciens",
+  "equipe.filtre.montrer_inactifs": "Afficher les techniciens inactifs",
+  "equipe.filtre.masquer_inactifs": "Masquer les techniciens inactifs",
+  "equipe.aucun": "Aucun technicien.",
+  "equipe.nom": "Nom",
+  "equipe.email": "Courriel",
+  // Composé avec `mot("agence")` au point d'usage : « Agence de rattachement ».
+  "equipe.agence_suffixe": "de rattachement",
+  "equipe.choisir_rattachement": "Sélectionner un rattachement",
+  "equipe.activite": "Activité",
+  "equipe.actif": "Actif",
+  "equipe.inactif": "Inactif",
+  "equipe.modifier": "Modifier",
+  "equipe.enregistrer": "Enregistrer",
+  // Une personne déjà connue de la plateforme (un autre courriel pris) est
+  // RATTACHÉE à cette société, jamais dupliquée — voir `lib/techniciens/depot.ts`.
+  "equipe.info.rattache":
+    "Cette personne est déjà connue de la plateforme : elle a été rattachée à cette société, sans créer de nouvelle identité.",
+  "equipe.refus.saisie": "Saisie invalide : vérifiez les champs du formulaire.",
+  "equipe.refus.deja_membre":
+    "Cette personne est déjà membre de la société active.",
+  "equipe.refus.agence_hors_societe":
+    "Le rattachement choisi n'appartient pas à la société active.",
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/equipe.spec.ts) ─────
+  //
+  // Le gardien de L0-11 fait passer par ici jusqu'au texte qu'un test de
+  // rendu attend (« y compris le texte attendu par un test de rendu ») : ces
+  // trois valeurs ne sont JAMAIS vues par un utilisateur réel, mais un
+  // scénario qui les cherche à l'écran est une « requête d'écran » comme une
+  // autre.
+  "equipe.e2e.nom": "Technicien de l'épreuve",
+  "equipe.e2e.courriel": "technicien.epreuve@codima.test",
+  "equipe.e2e.nom_doublon": "Doublon tenté",
+  "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
   // AJOUTÉE EN FIN DE FICHIER (lot PERF, 19/09/2026) — un autre lot y écrit
   // en même temps. La colonne « État » de `/vgp` répétait le motif complet
   // (régime · origine · rythme, jusqu'à cinq lignes une fois enveloppé) sur
