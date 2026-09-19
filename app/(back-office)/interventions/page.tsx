@@ -4,11 +4,22 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Kpi } from "@/components/ui/kpi";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { type ContexteSession } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+  versLocal,
+} from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -23,7 +34,9 @@ import {
   schemaRechercheInterventions,
   STATUTS_INTERVENTION,
   TYPES_INTERVENTION,
+  type Priorite,
 } from "@/lib/interventions/saisie";
+import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
@@ -52,15 +65,18 @@ import {
  * d'un client, et son URL cesse de nommer le premier écran par lequel on
  * l'atteignait — le programme des liens arrêtés le 16/09/2026.
  *
- * ## LA LISTE PAGINE, LA RECHERCHE ET LES FILTRES SONT REMPLIS (AT-07, 17/09/2026)
+ * ## LA LISTE PAGINE, LA RECHERCHE ET LES FILTRES SONT REMPLIS (AT-07, 17/09/2026 ; étendue AT-07 bis, 18/09/2026)
  *
  * Comme `/clients` (L1-01) : une liste non bornée casse au volume sur un parc
  * de démonstration qui porte 226 machines et 615 clients. Le texte cherche sur
- * le client et le lieu — les colonnes VISIBLES qui identifient une ligne,
- * jamais sur la référence affichée (`INT-00312` ou `Local-XXXXXX`, qui n'est
- * pas une colonne stockée) ni sur le technicien (dont le nom vit dans
- * l'annuaire, pas sur `intervention`). Les quatre filtres sont ceux que la
- * maquette annonce : agence, type, statut, période — et eux seuls.
+ * le client, le lieu et le `numero` de la référence affichée (`INT-00312`,
+ * via `numeroDeReference`, `lib/interventions/depot.ts`) — jamais sur le
+ * technicien (dont le nom vit dans l'annuaire, pas sur `intervention`). La
+ * forme `Local-XXXXXX` de la référence reste un ÉCART NOMMÉ (voir la note de
+ * tête de `numeroDeReference`) : `id` est `@db.Uuid`, et son filtre Prisma
+ * ne sait pas comparer une sous-chaîne sans SQL brut, que le stack imposé
+ * interdit hors migrations. Les quatre filtres sont ceux que la maquette
+ * annonce : agence, type, statut, période — et eux seuls.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
  *
@@ -122,6 +138,16 @@ export default async function PageInterventions({
   const annuaire = await avecContexteApplicatif(contexte, (tx) =>
     annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
   );
+  // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants que
+  // les lignes rendues portent déjà (même principe que l'annuaire ci-dessus,
+  // et que `libellesDesSites`). AT-07 bis : `machines` était déjà lu par
+  // ligne et jamais montré.
+  const libellesMachines = await libellesDesMachines(
+    contexte,
+    lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+  );
+
+  const kpi = await kpiDuRegistre(contexte);
 
   const colonnes = [
     {
@@ -131,13 +157,15 @@ export default async function PageInterventions({
     },
     { cle: "client", libelle: t("intervention.client") },
     { cle: "site", libelle: mot("site") },
-    { cle: "statut", libelle: t("intervention.statut"), largeur: "150px" },
+    { cle: "machine", libelle: t("intervention.machine") },
     {
       cle: "technicien",
       libelle: t("intervention.technicien"),
       largeur: "200px",
     },
     { cle: "date", libelle: t("intervention.date"), largeur: "120px" },
+    { cle: "priorite", libelle: t("intervention.priorite"), largeur: "110px" },
+    { cle: "statut", libelle: t("intervention.statut"), largeur: "150px" },
   ];
 
   return (
@@ -250,6 +278,27 @@ export default async function PageInterventions({
         </button>
       </form>
 
+      {/* LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) :
+          interventions() de la maquette en pose trois, absents de cet écran.
+          Voir `kpiDuRegistre` pour ce que chacun compte RÉELLEMENT — jamais
+          les valeurs illustratives de la maquette. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Kpi
+          libelle={t("interventions.kpi_semaine")}
+          valeur={kpi.planifieesCetteSemaine}
+        />
+        <Kpi
+          ton="vert"
+          libelle={t("interventions.kpi_en_cours")}
+          valeur={kpi.enCours}
+        />
+        <Kpi
+          ton="orange"
+          libelle={t("interventions.kpi_en_attente")}
+          valeur={kpi.enAttente}
+        />
+      </div>
+
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="920px">
           {lignes.length === 0 ? (
@@ -262,6 +311,7 @@ export default async function PageInterventions({
               key={ligne.id}
               ligne={ligne}
               annuaire={annuaire}
+              libellesMachines={libellesMachines}
             />
           ))}
         </Tableau>
@@ -302,12 +352,67 @@ export default async function PageInterventions({
   );
 }
 
+/**
+ * LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) :
+ * `interventions()` de la maquette en pose trois (« Planifiées cette
+ * semaine », « En cours », « En attente ») et l'écran n'en portait aucun.
+ *
+ * **Chacun compte un FAIT RÉEL, jamais la valeur illustrative de la
+ * maquette** (27, 2, 5) — la même règle que les KPI de `/parc` (R2-21).
+ * **Sur TOUTE la société, jamais sur la recherche en cours** : la maquette
+ * les dessine au-dessus du formulaire, comme un bandeau fixe — changer un
+ * filtre ne doit pas faire bouger ces trois nombres, la même raison que le
+ * détail du premier KPI de `/parc` (« sur N machines au total »).
+ *
+ * - « Planifiées cette semaine » : `date_planifiee` dans la semaine ISO
+ *   courante (lundi 00:00 à lundi suivant 00:00 EXCLU), dans le fuseau de la
+ *   société — quel que soit le statut, une lecture littérale du libellé qui
+ *   n'ajoute aucune condition que le chapitre 10 ne pose pas.
+ * - « En cours » : `statut = "en_cours"`, la valeur exacte de
+ *   `STATUTS_INTERVENTION`.
+ * - « En attente » : `statut = "suspendue"` — RG-INT-06, la file d'attente
+ *   de pièce.
+ */
+async function kpiDuRegistre(contexte: ContexteSession): Promise<{
+  readonly planifieesCetteSemaine: number;
+  readonly enCours: number;
+  readonly enAttente: number;
+}> {
+  const societe = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = jourDe(versLocal(maintenant(fuseau).instant, fuseau));
+  const lundi = lundiDeLaSemaine(aujourdHui);
+  const debutSemaine = instantDuJour(lundi);
+  // BORNE EXCLUSIVE — même raison que `listerPlanning` (`lib/interventions/
+  // depot.ts`) : `lt` et non `lte`, sans quoi le lundi suivant reviendrait
+  // tout entier et la semaine compterait un jour de trop.
+  const finSemaine = instantDuJour(lundi, 7);
+
+  return avecContexteApplicatif(contexte, async (tx) => {
+    const [planifieesCetteSemaine, enCours, enAttente] = await Promise.all([
+      tx.intervention.count({
+        where: { date_planifiee: { gte: debutSemaine, lt: finSemaine } },
+      }),
+      tx.intervention.count({ where: { statut: "en_cours" } }),
+      tx.intervention.count({ where: { statut: "suspendue" } }),
+    ]);
+    return { planifieesCetteSemaine, enCours, enAttente };
+  });
+}
+
 function LigneIntervention({
   ligne,
   annuaire,
+  libellesMachines,
 }: {
   readonly ligne: LignePlanning;
   readonly annuaire: Annuaire;
+  readonly libellesMachines: ReadonlyMap<string, string>;
 }) {
   return (
     <tr>
@@ -318,6 +423,18 @@ function LigneIntervention({
       </Cellule>
       <Cellule>{ligne.client.raison_sociale}</Cellule>
       <Cellule>{ligne.site.libelle}</Cellule>
+      <Cellule>{machinesAffichees(ligne, libellesMachines)}</Cellule>
+      <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
+      <Cellule>
+        {ligne.date_planifiee === null
+          ? t("planning.file_attente")
+          : dateCivile(ligne.date_planifiee)}
+      </Cellule>
+      <Cellule>
+        <Badge ton={TONS_PRIORITE[ligne.priorite]}>
+          {t(`priorite.${ligne.priorite}`)}
+        </Badge>
+      </Cellule>
       <Cellule>
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
@@ -325,15 +442,50 @@ function LigneIntervention({
           {t(`statut.${ligne.statut}`)}
         </span>
       </Cellule>
-      <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
-      <Cellule>
-        {ligne.date_planifiee === null
-          ? t("planning.file_attente")
-          : dateCivile(ligne.date_planifiee)}
-      </Cellule>
     </tr>
   );
 }
+
+/**
+ * LES MACHINES D'UNE LIGNE — GAP COMBLÉ (audit du 18/09/2026). `CHAMPS_LIGNE`
+ * (`lib/interventions/depot.ts`) lit déjà `machines` ; cette colonne les
+ * MONTRE, pour la première fois.
+ *
+ * **LA RÈGLE RETENUE POUR PLUSIEURS MACHINES** — décidée ici, faute d'une
+ * règle de gestion écrite au chapitre 10 : chaque exemplaire s'affiche par
+ * son modèle (« marque référence », comme `titreDeLaLigne` sur `/parc`),
+ * jamais par son numéro de série — une fiche `SN-INCONNU-…` n'aiderait pas
+ * plus à distinguer deux exemplaires dans une cellule dense — et les
+ * libellés sont joints par une virgule, sans troncature : le chapitre 11.3
+ * ne borne le nombre de machines par intervention nulle part, et tronquer
+ * cacherait une machine réellement affectée.
+ */
+function machinesAffichees(
+  ligne: LignePlanning,
+  libellesMachines: ReadonlyMap<string, string>,
+): string {
+  if (ligne.machines.length === 0) {
+    return ABSENT;
+  }
+  return ligne.machines
+    .map((m) => libellesMachines.get(m.machine_id) ?? ABSENT)
+    .join(", ");
+}
+
+/** Le signe d'absence — aucune machine affectée (RG-INT-01, dépannage à l'appel). */
+const ABSENT = "—";
+
+/**
+ * LE TON DE LA PRIORITÉ — dérivé de l'exemple de la maquette
+ * (`interventions()`, badge P1 en rouge) pour les deux bornes ; les deux
+ * intermédiaires prennent l'orange et le gris, un jugement écrit comme tel.
+ */
+const TONS_PRIORITE: Record<Priorite, TonBadge> = {
+  p1: "rouge",
+  p2: "orange",
+  p3: "gris",
+  p4: "gris",
+};
 
 /**
  * LE TECHNICIEN AFFECTÉ — `quiTravaille` distingue déjà le refus légitime du

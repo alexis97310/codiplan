@@ -1680,6 +1680,66 @@ export async function dernieresInterventionsDuClient(
  * (la page) et `compterInterventions` (le total de la pagination), comme
  * `filtreDeRecherche` le fait déjà pour les clients et les sites (§9, 01/09).
  */
+/**
+ * LA RÉFÉRENCE AFFICHÉE, ANALYSÉE POUR LA RECHERCHE (AT-07 bis, 18/09/2026).
+ *
+ * `referenceAffichee` (`app/(back-office)/interventions/presentation.ts`)
+ * compose « INT-00312 » depuis `numero`, ou « Local-XXXXXX » depuis les six
+ * derniers caractères de l'`id` — et ni l'une ni l'autre n'est une colonne
+ * que Prisma peut comparer telle quelle.
+ *
+ * **CETTE FONCTION NE RÉSOUT QUE LA MOITIÉ « `numero` », ET C'EST ÉCRIT
+ * PLUTÔT QUE TU.** `id` est `@db.Uuid` : le filtre que Prisma génère pour ce
+ * type (`UuidFilter`) ne porte NI `contains` NI `startsWith` — seulement
+ * l'égalité, l'appartenance et l'ordre —, *mesuré en tentant l'inverse : TS
+ * refuse `id: { contains: … }` à la compilation.* Une correspondance sur les
+ * six caractères de `Local-XXXXXX` demanderait soit du SQL brut, que le
+ * stack imposé interdit hors migrations et politiques RLS (CLAUDE.md §2),
+ * soit un filtrage côté application qui romprait `compterLeParc` — pagination
+ * et total devraient alors lire des populations différentes. Aucune des deux
+ * voies n'est le geste de ce ticket : la moitié « `Local-XXXXXX` » reste un
+ * écart nommé, pas silencieux.
+ *
+ * **`Local-XXXXXX` N'EST PAS RECONNU COMME UN NUMÉRO SERVEUR (D-08, revue
+ * Codex de #236).** Le paragraphe précédent documente la moitié non couverte
+ * — chercher SUR les six caractères de l'`id` ; celui-ci referme un trou
+ * voisin, plus étroit : avant ce correctif, un texte de la forme
+ * « Local-123456 » voyait son préfixe retiré comme celui d'« INT-123456 » et
+ * devenait une recherche `numero = 123456`, qui pouvait ramener une fiche
+ * SANS AUCUN RAPPORT — exactement ce que le paragraphe ci-dessus dit non
+ * supporté. Seul le préfixe `INT-` (insensible à la casse) est donc reconnu
+ * comme un numéro serveur ; un texte qui commence par `Local-` rend `null`
+ * sans être analysé plus loin, quel que soit ce qui suit.
+ *
+ * **BORNÉ À L'`Int` SIGNÉ 32 BITS QUE PRISMA IMPOSE À `numero` (D-08).** Un
+ * texte numérique hors bornes (`9999999999`) partait tel quel en filtre
+ * d'égalité vers Prisma, qui le refuse à l'exécution — `/interventions`
+ * rendait alors une ERREUR SERVEUR sur une recherche qui aurait dû rendre une
+ * liste vide, comme n'importe quel numéro absent.
+ *
+ * `nettoye` retire le préfixe (« INT- », insensible à la casse) et toute
+ * ponctuation. `Number("00312")` vaut `312`, si bien que les zéros de tête de
+ * la forme affichée n'ont rien à retirer en plus.
+ */
+/**
+ * La borne haute de l'`Int` signé 32 bits (2^31 − 1) que PostgreSQL et Prisma
+ * imposent à la colonne `numero` — au-delà, la base refuse le filtre plutôt
+ * que de rendre une liste vide (D-08).
+ */
+const NUMERO_MAXIMUM = 2147483647;
+
+function numeroDeReference(texte: string): number | null {
+  if (/^local-/i.test(texte)) {
+    return null;
+  }
+  const nettoye = texte.replace(/^int-/i, "").replace(/[^a-z0-9]/gi, "");
+  if (!/^\d+$/.test(nettoye)) {
+    return null;
+  }
+  const valeur = Number(nettoye);
+  return valeur <= NUMERO_MAXIMUM ? valeur : null;
+}
+
 function filtreDesInterventions(
   criteres: RechercheInterventions,
 ): Prisma.InterventionWhereInput {
@@ -1704,6 +1764,10 @@ function filtreDesInterventions(
                 },
               },
             },
+            ...(() => {
+              const numero = numeroDeReference(criteres.texte);
+              return numero === null ? [] : [{ numero }];
+            })(),
           ],
         };
 

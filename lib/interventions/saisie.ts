@@ -275,15 +275,28 @@ export const schemaReprise = z.object({ intervention_id: uuid }).strict();
 export type Reprise = z.infer<typeof schemaReprise>;
 
 /**
- * LA RECHERCHE DU REGISTRE (AT-07) — les quatre filtres que la maquette
- * annonce pour cet écran (« Filtres : agence · type · statut · période »,
- * `docs/maquette/CODIPLAN_Maquette.html`, écran `inter`), et eux seuls.
+ * LA RECHERCHE DU REGISTRE (AT-07 ; étendue AT-07 bis, 18/09/2026) — les
+ * quatre filtres que la maquette annonce pour cet écran (« Filtres : agence
+ * · type · statut · période », `docs/maquette/CODIPLAN_Maquette.html`,
+ * écran `inter`), et le texte.
  *
- * **Le texte porte sur les colonnes VISIBLES** — le client et le lieu —
- * jamais sur la référence affichée (`INT-00312` ou `Local-XXXXXX`) : ce n'est
- * pas une colonne stockée, `numero` valant toujours `null` avant la
- * synchronisation (lot 3), et jamais sur le technicien, dont le nom vit dans
- * l'annuaire (`lib/auth/annuaire.ts`) et non sur `intervention`.
+ * **Le texte porte sur les colonnes VISIBLES** — le client, le lieu, ET la
+ * moitié « `numero` » de la référence affichée (`INT-00312`) : *« c'est ce
+ * que les utilisateurs taperont en premier »* (mesure du 18/09/2026).
+ * `numeroDeReference` (`lib/interventions/depot.ts`) retire le préfixe et la
+ * ponctuation avant de comparer à `numero`.
+ *
+ * **La moitié « `Local-XXXXXX` » reste un ÉCART NOMMÉ**, pas un oubli :
+ * cette forme dérive de l'`id`, une colonne `@db.Uuid` dont le filtre Prisma
+ * ne porte ni `contains` ni `startsWith` (seulement l'égalité, l'appartenance
+ * et l'ordre — mesuré, TS refuse l'inverse à la compilation). La chercher
+ * demanderait du SQL brut, que le stack imposé interdit hors migrations et
+ * politiques RLS, ou un filtrage côté application qui romprait le total des
+ * filtres (pagination et total liraient deux populations différentes). Et
+ * `numero` reste `null` pour toute intervention avant la synchronisation
+ * (lot 3), donc `INT-00312` ne trouve rien tant qu'elle n'a pas livré.
+ * Jamais sur le technicien, dont le nom vit dans l'annuaire
+ * (`lib/auth/annuaire.ts`) et non sur `intervention`.
  *
  * **Une case vide d'un `<select>` soumet une chaîne vide**, jamais `null` :
  * `z.preprocess` la ramène à `null` avant que l'énumération ne la juge, pour

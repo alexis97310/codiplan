@@ -3,6 +3,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import { exigence } from "./setup/contrat";
 import type { PrismaClient } from "@prisma/client";
 
+import { creerMachineDans } from "@/lib/machines/depot";
+import type { SaisieMachine } from "@/lib/machines/saisie";
+
 import {
   avecPortail,
   sousSociete,
@@ -22,6 +25,7 @@ import {
   QR_B1,
   SITE_A1_S1,
   SITE_A1_S2,
+  SITE_A2_S1,
   SOCIETE_A,
   SOCIETE_B,
   VAR_SOCIETE,
@@ -421,6 +425,93 @@ describe("les chaînages composites — une machine ne franchit pas la société
         ),
       ),
     ).toContain("machine_remplacee_distincte");
+  });
+});
+
+/**
+ * LE SITE ET LE CLIENT NE FORMENT PAS UN COUPLE LIBRE (D-07, revue Codex de
+ * #236) — `machine` porte deux clés étrangères INDÉPENDANTES vers `client` et
+ * `site`, sans contrainte composite qui les lie l'une à l'autre (à la
+ * différence de `site_client_fkey`, qui lie déjà chaque site à SON client).
+ * Sans le correctif, `CLIENT_A1` et `SITE_A2_S1` — un site RÉEL, mais d'un
+ * AUTRE client de la MÊME société — traversaient les deux clés étrangères
+ * sans qu'aucune ne morde, et la fiche s'écrivait avec un client affiché et
+ * un lieu affiché qui se contredisent.
+ *
+ * `creerMachineDans` est appelée DIRECTEMENT, comme `creerSiteDans` dans
+ * `ecriture-import-transactionnelle.test.ts` : c'est le seul moyen d'éprouver
+ * une vérification tenue en TypeScript plutôt qu'en base, qu'un `INSERT` SQL
+ * brut contournerait sans jamais la traverser.
+ */
+describe("le site doit appartenir au CLIENT soumis, pas seulement exister (D-07)", () => {
+  const saisieMachine = (
+    numeroSerie: string,
+    siteId: string,
+  ): SaisieMachine => ({
+    modele_id: MODELE_A,
+    client_id: CLIENT_A1,
+    site_id: siteId,
+    numero_serie: numeroSerie,
+    reference_interne: null,
+    localisation: null,
+    facture_origine: null,
+    date_mise_en_service: null,
+    date_vente: null,
+    garantie_fin: null,
+    statut: "en_service",
+    criticite: "normale",
+    source_creation: "back_office",
+    machine_remplacee_id: null,
+    complet: true,
+  });
+
+  it("un site RÉEL mais d'un AUTRE client de la même société est refusé, avant l'écriture", async () => {
+    const motif = await refus(
+      sousSociete(SOCIETE_A, (tx) =>
+        creerMachineDans(
+          tx,
+          SOCIETE_A,
+          MACHINE_NEUVE,
+          // SITE_A2_S1 existe bel et bien (client A2), mais la saisie
+          // désigne CLIENT_A1 : c'est exactement le POST forgé du D-07.
+          saisieMachine("SN-D07", SITE_A2_S1),
+        ),
+      ),
+    );
+    // L'assertion NOMME le refus — un refus venu d'ailleurs passerait sinon
+    // pour le bon (§9, 24/08).
+    expect(motif).toContain("site_hors_client");
+
+    // TÉMOIN : le refus a eu lieu AVANT l'écriture, pas après — aucune ligne
+    // ne porte ce couple contradictoire.
+    const lignes = await sousSociete(SOCIETE_A, (tx) =>
+      tx.machine.findMany({
+        where: { client_id: CLIENT_A1, site_id: SITE_A2_S1 },
+        select: { id: true },
+      }),
+    );
+    expect(lignes).toEqual([]);
+  });
+
+  it("le TÉMOIN inverse — le site de SON PROPRE client est accepté", async () => {
+    // Un couple valide ne doit pas être refusé par erreur : c'est la seconde
+    // direction du gardien (§9, 11/09), sans laquelle un contrôle trop large
+    // (qui refuserait TOUT) passerait le scénario précédent sans qu'on s'en
+    // aperçoive. `sousSociete` COMMET réellement : la transaction est donc
+    // annulée par une erreur délibérée, sentinelle du même genre que
+    // `Annulation` — la ligne n'entre jamais en base.
+    class Annulee extends Error {}
+    await expect(
+      sousSociete(SOCIETE_A, async (tx) => {
+        await creerMachineDans(
+          tx,
+          SOCIETE_A,
+          MACHINE_NEUVE,
+          saisieMachine("SN-D07-OK", SITE_A1_S1),
+        );
+        throw new Annulee();
+      }),
+    ).rejects.toThrow(Annulee);
   });
 });
 
