@@ -553,6 +553,13 @@ export const fr = {
   "imports.regle_detail":
     "Le fichier est d'abord contrôlé ligne à ligne et le résultat vous est présenté ; rien n'est écrit tant que vous n'avez pas validé. Un lot appliqué reste annulable : ce qui est sans danger est restauré, ce qui ne l'est pas est refusé avec son motif.",
   "imports.nouveau_titre": "Nouvel import — Clients",
+  // D-02 (19/09/2026) : ce titre nommait un type — « Clients » — qu'AUCUN
+  // sélecteur de cet écran ne choisit ; c'est le marqueur en cellule A1 du
+  // fichier qui en décide, et `imports.fichier_aide`, juste en dessous, le dit
+  // déjà correctement. Nouvelle clé plutôt que réécriture de la précédente
+  // (consigne de lot : ne pas réécrire une clé existante de ce dictionnaire) —
+  // `imports.nouveau_titre` reste donc ci-dessus, intacte et désormais inutilisée.
+  "imports.nouveau_titre_generique": "Nouvel import",
   "imports.fichier": "Classeur à contrôler",
   "imports.fichier_aide":
     "Un fichier .xlsx bâti sur le modèle CODIPLAN. La première cellule porte le marqueur du modèle : c'est lui qui dit de quel import il s'agit.",
