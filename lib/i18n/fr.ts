@@ -1619,6 +1619,8 @@ export const fr = {
     "La saisie a été refusée : vérifiez les quatre champs obligatoires (modèle, client, lieu d'intervention, numéro de série).",
   "machine.refus.numero_serie_pris":
     "Ce numéro de série est déjà utilisé pour ce modèle dans votre société.",
+  "machine.refus.reference_interne_prise":
+    "Cette référence interne est déjà utilisée par une autre machine de votre société.",
   "machine.refus.reference_invalide":
     "Le modèle, le client ou le lieu d'intervention sélectionné est introuvable ou hors de votre société.",
   "machine.refus.introuvable":

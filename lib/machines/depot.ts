@@ -472,6 +472,29 @@ export async function libellesDesMachines(
  * ──────────────────────────────────────────────────────────────────────── */
 
 /**
+ * LE SITE N'APPARTIENT PAS AU CLIENT SOUMIS (D-07, revue Codex de #236).
+ *
+ * `schemaMachine` ne valide que la FORME des UUID, et `machine` porte deux
+ * clés étrangères INDÉPENDANTES vers `client` et `site` — aucune contrainte
+ * composite ne les lie, à la différence de `site_client_fkey` qui lie déjà
+ * un site à SON client. Un POST forgé (un `client_id` valide, le `site_id`
+ * d'un AUTRE client de la même société) traverse donc les deux clés sans
+ * qu'aucune ne morde, et créerait durablement une fiche dont le client
+ * affiché et le lieu affiché se contredisent.
+ *
+ * **Poser la contrainte composite en base serait un CHANGEMENT DE SCHÉMA**
+ * (CLAUDE.md §8) — hors du périmètre de ce correctif. `creerMachineDans` la
+ * tient donc lui-même, en résolvant le site sous `site_id` ET `client_id` À
+ * L'INTÉRIEUR de la même transaction que l'écriture : pas de fenêtre entre
+ * la vérification et le `create`.
+ */
+class SiteHorsClient extends Error {
+  constructor() {
+    super("site_hors_client");
+  }
+}
+
+/**
  * CE MODULE LISAIT, ET NE SAVAIT RIEN ÉCRIRE — mesuré le 16/09/2026.
  *
  * `listerLeParc`, `resumerLeParc`, `lireMachine` : trois lectures, aucune
@@ -504,6 +527,16 @@ export async function creerMachineDans(
   id: string,
   saisie: SaisieMachine,
 ): Promise<void> {
+  // Voir `SiteHorsClient` : le site est résolu sous les DEUX clés à la fois,
+  // et non sur `site_id` seul — c'est précisément ce que la seconde moitié
+  // du couple ne garantit pas.
+  const site = await tx.site.findFirst({
+    where: { id: saisie.site_id, client_id: saisie.client_id },
+    select: { id: true },
+  });
+  if (site === null) {
+    throw new SiteHorsClient();
+  }
   await tx.machine.create({
     data: {
       id,
@@ -590,6 +623,14 @@ export async function creerMachinesEnLot(
  * portail* —, et un fichier ne décide pas cela (le raisonnement de D56 sur
  * `agence_id`, repris tel quel). **Condition de levée, vérifiable :** le jour où
  * un gabarit portera la DATE du déménagement à côté du site.
+ *
+ * **D-07 (revue Codex de #236) ne s'applique donc pas à cette fonction, et
+ * c'est écrit plutôt que tu** : `app/api/machines/[id]/modifier/route.ts`
+ * reçoit bien `site_id` et `client_id` (`schemaMachine` les exige tous les
+ * trois, voir la note de tête de la route), mais ni l'un ni l'autre n'entre
+ * dans ce `data` — un couple forgé sur ce chemin est donc VALIDÉ puis
+ * IGNORÉ, jamais écrit. La vérification de `SiteHorsClient` (voir
+ * `creerMachineDans`) reste propre à la création.
  */
 export async function modifierMachineDans(
   tx: Prisma.TransactionClient,
@@ -626,9 +667,10 @@ const CONTRAINTE_BASE = "P2010";
 /**
  * Ce qu'un refus dit d'une machine, et il n'en dit jamais plus (D50).
  *
- * `reference_invalide` couvre TROIS clés étrangères à la fois — modèle,
- * client, site — sans les distinguer : chacune désigne soit une ligne
- * absente, soit une ligne d'une autre société, et séparer les deux cas
+ * `reference_invalide` couvre QUATRE cas à la fois — modèle, client, site,
+ * et désormais un site qui désigne un AUTRE client (`SiteHorsClient`, D-07)
+ * — sans les distinguer : chacun désigne soit une ligne absente, soit une
+ * ligne d'une autre société ou d'un autre client, et séparer les cas
  * apprendrait à qui saisit qu'un identifiant existe ailleurs (le
  * raisonnement de `lib/sites/depot.ts` sur `client_hors_perimetre`, repris
  * tel quel ici).
@@ -636,6 +678,14 @@ const CONTRAINTE_BASE = "P2010";
 export type MotifRefusMachine =
   /** `(societe_id, modele_id, numero_serie)` — la clé naturelle d'une fiche. */
   | "numero_serie_pris"
+  /**
+   * `machine_societe_reference_interne_key` — l'index PARTIEL de D6, que
+   * Prisma ne connaît pas comme `@@unique` (voir `lib/machines/saisie.ts`).
+   * Distinguée du numéro de série depuis la revue Codex de #236 : les deux
+   * violations lèvent le MÊME code `P2002`, et les confondre dirait à qui
+   * corrige une fiche de changer un numéro de série qui n'est pas en cause.
+   */
+  | "reference_interne_prise"
   | "reference_invalide"
   /** `modifierMachineDans` a touché zéro ligne : la politique a refusé. */
   | "introuvable";
@@ -644,9 +694,29 @@ export type ResultatMachine =
   | { readonly accepte: true; readonly id: string }
   | { readonly accepte: false; readonly motif: MotifRefusMachine };
 
+/**
+ * LA CIBLE D'UNE VIOLATION D'UNICITÉ P2002, EN TEXTE (revue Codex de #236).
+ *
+ * `erreur.meta.target` porte les colonnes en tableau pour un `@@unique` connu
+ * de Prisma (`[societe_id, modele_id, numero_serie]`), mais l'index partiel de
+ * `reference_interne` n'est PAS déclaré comme `@@unique` — un `WHERE` ne se
+ * décrit pas en Prisma (voir sa note de tête). Pour cet index-là, Prisma ne
+ * peut donc rendre que le nom de la contrainte, jamais une colonne : les deux
+ * FORMES sont donc concaténées ici, plutôt que de supposer laquelle sortirait.
+ */
+function cibleUnicite(erreur: Prisma.PrismaClientKnownRequestError): string {
+  const cible = erreur.meta?.["target"];
+  return Array.isArray(cible) ? cible.join(",") : String(cible ?? "");
+}
+
 function motifMachine(erreur: unknown): MotifRefusMachine | null {
+  if (erreur instanceof SiteHorsClient) return "reference_invalide";
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
-  if (erreur.code === VIOLATION_UNICITE) return "numero_serie_pris";
+  if (erreur.code === VIOLATION_UNICITE) {
+    return cibleUnicite(erreur).includes("reference_interne")
+      ? "reference_interne_prise"
+      : "numero_serie_pris";
+  }
   if (
     erreur.code === VIOLATION_CLE_ETRANGERE ||
     erreur.code === CONTRAINTE_BASE

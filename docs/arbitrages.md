@@ -4669,3 +4669,37 @@ La référence interne (`Local-…`, ou `MAC-…` une fois numérotée) ne dispa
 > Le jour où l'exploitation demande un ordre différent, un sixième fait en tête, ou une lecture de l'année autre que celle de la vente, cette page se rouvre plutôt que d'être contournée à l'écran.
 
 **Règles amendées :** RG-PAR-07
+
+---
+
+## D128 — D125 FAIT FOI SUR LA DISPOSITION, JAMAIS SUR LE CONTENU : NI POUR TAIRE UNE RÈGLE DE GESTION, NI POUR EFFACER UNE INFORMATION RÉELLE
+
+*Rendu par le directeur d'exploitation le 18/09/2026, au fil de la même session, sur deux écrans construits l'un après l'autre sous D125 (VGP, puis Tableau de bord / Absences). Écrit ici le 19/09/2026 — appliqué dans le code depuis le jour même, cité par sept fichiers avant d'avoir sa page.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+D125 fait foi sur la disposition, la composition des blocs et leur ordre, pour les quatorze écrans que `codiplan-maquette-complete.html` dessine. Deux écrans construits sous cette autorité, le même jour, ont buté sur ce qu'elle ne dit pas :
+
+1. **`/vgp`** — `vgp()` dessine, dans sa colonne « État », des badges de conformité (« Conforme », « À planifier », « En retard »). Or D88 (L9-02, D114) a déjà tranché que CODIPLAN ne rend jamais de verdict de conformité — les VGP sont commandées par les clients, CODIPLAN n'apprend leur résultat que transmis. Suivre D125 à la lettre sur ce bloc précis referait ce que D88 interdit.
+2. **`/tableau-de-bord`** — `dashboard()` dessine quatre KPI, et seulement quatre. Ce dépôt en calculait déjà trois de plus, sans équivalent dans la maquette (demandes en attente de qualification, techniciens indisponibles, clients sans code externe). Suivre D125 à la lettre effacerait trois informations réelles, déjà produites, que la maquette ne dessine pas simplement parce qu'elle ne les connaît pas.
+
+Les deux cas sont la même question posée deux fois : *que fait D125 quand ce qu'elle dispose n'est pas tout ce que l'écran doit dire ?* Elle ne le dit pas — elle parle de disposition, jamais de contenu.
+
+### LA DÉCISION
+
+**D125 fait foi sur la disposition ; elle ne fait foi ni pour taire une règle de gestion déjà arbitrée, ni pour effacer une information réelle que la maquette ignore.** Deux moitiés, une seule raison : la maquette dessine un ÉCRAN, jamais une RÈGLE ni un INVENTAIRE de ce que le dépôt sait produire.
+
+1. **Quand la disposition et une règle de gestion déjà arbitrée se contredisent, la règle de gestion l'emporte.** L'écart devient VOLONTAIRE — écrit à l'endroit précis où il se produit, jamais comblé en silence. Sur `/vgp`, le badge de la colonne « État » code donc l'ÉTAT DE L'INFORMATION — Hors registre / Sans information / Information reçue —, jamais une conformité (D88, L9-02, D114).
+2. **La disposition ne s'obtient jamais au prix de supprimer une information réelle que la maquette ignore.** Un bloc que le dépôt sait déjà calculer, sans équivalent dans la fonction de la maquette, reste à l'écran — nommé comme un AJOUT VOLONTAIRE, jamais rentré de force dans la disposition qu'elle dessine ni sacrifié pour lui ressembler trait pour trait. Sur `/tableau-de-bord`, les trois KPI sans équivalent restent, dans une seconde grille sous les quatre de `dashboard()`. Sur `/absences`, les blocs de rupture de service et de file rendue à la planification restent pour la même raison. Sur `/interventions` (lot PARC), la colonne « Site » reste visible malgré son absence de `interventions()`, la fonction de la maquette pour cet écran.
+
+**Ce que D128 ne décide pas.** Elle ne dit pas LEQUEL des deux cas s'applique à un bloc donné — c'est une mesure au cas par cas, comme D125 l'exige déjà pour la disposition elle-même : une règle de gestion citée nommément (D88, R3-05…), ou une donnée que ce dépôt sait déjà produire et que la fonction de la maquette ne montre pas. Une divergence sans l'une de ces deux raisons n'est pas couverte par D128 — c'est un écart à corriger, pas à nommer.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune règle du chapitre 10 n'est amendée : D128 ne réécrit aucune règle de gestion, elle tranche l'ORDRE de lecture entre deux arbitrages de rang 1 déjà rendus (D125 d'un côté, D88/D114 ou une donnée déjà produite de l'autre) quand ils se croisent sur un même bloc. Elle ne rouvre ni D88 ni D125 : les deux restent ce qu'elles disent, chacune sur son terrain — la première sur ce que CODIPLAN a le droit de prétendre savoir, la seconde sur où les choses se posent à l'écran.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande que la disposition de la maquette l'emporte malgré une règle de gestion déjà arbitrée, ou qu'une information réelle disparaisse pour que l'écran ressemble trait pour trait à la maquette, cette page se rouvre plutôt que d'être contournée à l'écran.
+
+*Aucune règle du chapitre 10 n'est amendée : D128 tranche un ordre de lecture entre deux arbitrages, pas le contenu d'une règle de gestion.*

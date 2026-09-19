@@ -1700,15 +1700,44 @@ export async function dernieresInterventionsDuClient(
  * voies n'est le geste de ce ticket : la moitié « `Local-XXXXXX` » reste un
  * écart nommé, pas silencieux.
  *
- * `nettoye` retire le préfixe (« INT- » ou « Local- », insensible à la
- * casse) et toute ponctuation. `Number("00312")` vaut `312`, si bien que les
- * zéros de tête de la forme affichée n'ont rien à retirer en plus.
+ * **`Local-XXXXXX` N'EST PAS RECONNU COMME UN NUMÉRO SERVEUR (D-08, revue
+ * Codex de #236).** Le paragraphe précédent documente la moitié non couverte
+ * — chercher SUR les six caractères de l'`id` ; celui-ci referme un trou
+ * voisin, plus étroit : avant ce correctif, un texte de la forme
+ * « Local-123456 » voyait son préfixe retiré comme celui d'« INT-123456 » et
+ * devenait une recherche `numero = 123456`, qui pouvait ramener une fiche
+ * SANS AUCUN RAPPORT — exactement ce que le paragraphe ci-dessus dit non
+ * supporté. Seul le préfixe `INT-` (insensible à la casse) est donc reconnu
+ * comme un numéro serveur ; un texte qui commence par `Local-` rend `null`
+ * sans être analysé plus loin, quel que soit ce qui suit.
+ *
+ * **BORNÉ À L'`Int` SIGNÉ 32 BITS QUE PRISMA IMPOSE À `numero` (D-08).** Un
+ * texte numérique hors bornes (`9999999999`) partait tel quel en filtre
+ * d'égalité vers Prisma, qui le refuse à l'exécution — `/interventions`
+ * rendait alors une ERREUR SERVEUR sur une recherche qui aurait dû rendre une
+ * liste vide, comme n'importe quel numéro absent.
+ *
+ * `nettoye` retire le préfixe (« INT- », insensible à la casse) et toute
+ * ponctuation. `Number("00312")` vaut `312`, si bien que les zéros de tête de
+ * la forme affichée n'ont rien à retirer en plus.
  */
+/**
+ * La borne haute de l'`Int` signé 32 bits (2^31 − 1) que PostgreSQL et Prisma
+ * imposent à la colonne `numero` — au-delà, la base refuse le filtre plutôt
+ * que de rendre une liste vide (D-08).
+ */
+const NUMERO_MAXIMUM = 2147483647;
+
 function numeroDeReference(texte: string): number | null {
-  const nettoye = texte
-    .replace(/^(int-|local-)/i, "")
-    .replace(/[^a-z0-9]/gi, "");
-  return /^\d+$/.test(nettoye) ? Number(nettoye) : null;
+  if (/^local-/i.test(texte)) {
+    return null;
+  }
+  const nettoye = texte.replace(/^int-/i, "").replace(/[^a-z0-9]/gi, "");
+  if (!/^\d+$/.test(nettoye)) {
+    return null;
+  }
+  const valeur = Number(nettoye);
+  return valeur <= NUMERO_MAXIMUM ? valeur : null;
 }
 
 function filtreDesInterventions(
