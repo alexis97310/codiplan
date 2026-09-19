@@ -3,20 +3,18 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { Page } from "@/components/mise-en-page/page";
-import { Button } from "@/components/ui/button";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { estContexteActif } from "@/lib/auth/contexte";
 import { estRolePortail, type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
-import {
-  societesDuCompte,
-  type SocieteDuCompte,
-} from "@/lib/auth/societe-active";
+import { societesDuCompte } from "@/lib/auth/societe-active";
 import { t } from "@/lib/i18n/fr";
 import {
   perimetreDuPlanning,
   type PerimetrePlanning,
 } from "@/lib/interventions/perimetre-technicien";
+
+import { Choix } from "./composants";
 
 /**
  * PAGE D'ARRIVÉE (ticket L1-02f) — qui vous êtes, pour quelle société.
@@ -196,80 +194,4 @@ function Societe({ arrivee }: { arrivee: Arrivee }) {
       <Ligne libelle={t("arrivee.role")} valeur={arrivee.role ?? ""} />
     </dl>
   );
-}
-
-/**
- * LE CHOIX D'UNE SOCIÉTÉ — un formulaire HTML, sans JavaScript.
- *
- * Il poste vers `/api/session/societe`, qui n'est qu'un passe-plat vers
- * `basculerSociete` : c'est elle qui relit l'habilitation en base, refuse un
- * rôle sans son second facteur, journalise, et applique le plancher de durée
- * de D35. *Rien de tout cela n'est recopié ici — deux lectures d'un même
- * critère divergeraient en silence (§9, 01/09).*
- *
- * La société ACTIVE est marquée plutôt que retirée de la liste : une liste dont
- * une entrée disparaît fait douter de l'habilitation, alors qu'elle est
- * simplement en cours d'usage.
- */
-function Choix({
-  societes,
-  active,
-}: {
-  societes: readonly SocieteDuCompte[];
-  active: string | null;
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-[14px] font-bold">{t("arrivee.choix.titre")}</h2>
-      <p className="text-app-encre-faible text-[12.5px]">
-        {t("arrivee.choix.aide")}
-      </p>
-      <ul className="flex flex-col gap-2">
-        {societes.map((societe) => (
-          <li key={societe.societeId}>
-            <form
-              action="/api/session/societe"
-              method="post"
-              className="bg-app-surface border-app-bord flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3"
-            >
-              <input type="hidden" name="societe" value={societe.societeId} />
-              <span className="text-[13px] font-bold">
-                {nomAffiche(societe)}
-              </span>
-              {/* Le rôle s'affiche tel que l'énumération le porte, comme le
-                  fait déjà la ligne « Rôle » ci-dessus : la constitution range
-                  un nom de rôle du côté de ce qu'une MACHINE lit, et lui
-                  inventer dix libellés serait une décision de dictionnaire
-                  qu'aucun ticket n'a prise. */}
-              <span className="text-app-encre-faible text-[11.5px]">
-                {societe.role}
-              </span>
-              {societe.societeId === active ? (
-                <span className="text-app-encre-faible ml-auto text-[11.5px]">
-                  {t("arrivee.choix.active")}
-                </span>
-              ) : (
-                <Button type="submit" variant="outline" className="ml-auto">
-                  {t("arrivee.choix.activer")}
-                </Button>
-              )}
-            </form>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/**
- * Le nom d'une société, ou son identifiant à défaut.
- *
- * La composition sort du JSX : ce qui se lit à l'écran vient du dictionnaire,
- * pas de la balise (L0-11).
- */
-function nomAffiche(societe: SocieteDuCompte): string {
-  if (societe.raisonSociale !== null) {
-    return societe.raisonSociale;
-  }
-  return `${t("arrivee.choix.sans_nom")} ${societe.societeId.slice(0, 8)}`;
 }
