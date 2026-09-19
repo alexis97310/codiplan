@@ -13,6 +13,13 @@ import { describe, expect, it } from "vitest";
  * sortant bloqué vers Neon — voir la proposition) : ce gardien lit le SOURCE
  * de l'écran plutôt que de le rendre, comme `tests/unit/machines/
  * composition-parc.test.ts` le fait déjà pour `/parc`.
+ *
+ * **L'ORDRE Site → Machine ci-dessous a été INVERSÉ par le lot A3 (D125,
+ * D128, 19/09/2026)** : la maquette pose Machine juste après Client, et
+ * Site (un ajout réel qu'elle ne dessine pas) s'intercalait AVANT Machine —
+ * exactement l'inverse. `tests/unit/ui/lot-a3.test.ts` porte la mesure
+ * complète (avant/après) ; ce fichier suit la correction, colonne par
+ * colonne, sans rien retirer de ce qu'il gardait déjà.
  */
 
 const SOURCE = readFileSync(
@@ -21,8 +28,8 @@ const SOURCE = readFileSync(
 );
 
 describe("le registre des interventions montre la priorité et les machines (audit 18/09/2026)", () => {
-  it("la colonne « machine » existe, entre le site et le technicien", () => {
-    const ordre = ['cle: "site"', 'cle: "machine"', 'cle: "technicien"'];
+  it("la colonne « machine » existe, entre le client et le site (D125/D128, lot A3)", () => {
+    const ordre = ['cle: "client"', 'cle: "machine"', 'cle: "site"'];
     const rangs = ordre.map((motif) => SOURCE.indexOf(motif));
     for (const rang of rangs) {
       expect(rang, "colonne introuvable").toBeGreaterThan(-1);
