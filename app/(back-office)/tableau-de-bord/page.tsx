@@ -146,6 +146,7 @@ export default async function PageTableauDeBord({
     demandes,
     absencesDuJour,
     sansCodeExterne,
+    libelleSociete,
   ] = await Promise.all([
     listerPlanning(contexte, debutDuJour, finDuJour),
     enAttenteDePiece(contexte, instant),
@@ -159,8 +160,12 @@ export default async function PageTableauDeBord({
     demandesOuvertes(contexte),
     absencesDeLaPeriode(contexte, debutDuJour, debutDuJour),
     compterSansCodeExterne(contexte, schemaRechercheClient.parse({})),
+    // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot PERF, mesuré sur 4fead41) —
+    // elle ne lit que la société active, jamais un résultat des six lectures
+    // ci-dessus. Elle restait pourtant SEULE après le `Promise.all`, un
+    // septième aller-retour attendu pour rien.
+    libelleCodeExterneDeLaSociete(contexte),
   ]);
-  const libelleSociete = await libelleCodeExterneDeLaSociete(contexte);
 
   const lignesDuJour = interventionsDuJour(
     lignesPlanning,

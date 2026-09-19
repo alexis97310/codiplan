@@ -7,7 +7,7 @@ import {
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
-import { resoudreAssujettissement } from "./assujettissement";
+import { ASSUJETTISSEMENT, resoudreAssujettissement } from "./assujettissement";
 import { etatDeLInformation, type EtatInformation } from "./information";
 import { dernieresInformations } from "./verification";
 
@@ -201,6 +201,36 @@ function ligneDuRegistre(
  * sur tout le parc cloisonné — un KPI qui ne compterait qu'une page tronquée
  * mentirait par omission (même raison que `compterLeParc` face à
  * `rechercherLeParc`).
+ *
+ * ## LA LECTURE EST ÉTROITE, ET C'EST RETROUVER EN SQL CE QUE LE FILTRE
+ *    REJETTE DÉJÀ EN MÉMOIRE (lot PERF, mesuré sur 4fead41)
+ *
+ * Cette fonction ne compte QUE l'état `information_recue` (voir ci-dessus) —
+ * deux conditions NÉCESSAIRES en découlent, et ni l'une ni l'autre n'invente
+ * de règle : elles REDISENT en `where` ce que `ligneDuRegistre` rejetterait
+ * de toute façon en mémoire.
+ *
+ *   1. **Une machine sans aucune vérification reçue est `sans_information`,
+ *      jamais `information_recue`** (`etatDeLInformation`) : le `where` se
+ *      borne donc aux identifiants que `recues` porte déjà — la MÊME lecture
+ *      groupée que `listerLeRegistre` fait, jamais une seconde écriture du
+ *      critère « a-t-on reçu quelque chose ? ».
+ *   2. **Une machine dont l'assujettissement résolu n'est pas `soumis` est
+ *      `hors_registre`**, jamais comptée — la MÊME cascade que
+ *      `resoudreAssujettissement` : l'exception de la machine prime si elle
+ *      est posée, sinon l'assujettissement de la famille décide. Rejouer
+ *      cette cascade en `where` ne la réécrit pas ailleurs (§9, 01/09) :
+ *      `ligneDuRegistre` reste l'UNIQUE endroit qui sait ce qu'« exception
+ *      NULLE » et « soumis » veulent dire ensemble ; le `where` ne fait que
+ *      retrouver son verdict pour les deux mêmes colonnes.
+ *
+ * **Ce que ce filtre NE fait PAS** : il ne touche pas à la périodicité ni à
+ * l'échéance — `ajouterMois` (le report de mois, avec son ajustement de fin
+ * de mois) reste un calcul TypeScript, jamais traduit en SQL, précisément
+ * parce qu'une traduction divergente mentirait en silence (voir la garde du
+ * ticket qui a introduit cette lecture). Le filtre resserre la POPULATION
+ * lue, jamais le calcul appliqué à chaque ligne restante — `machines.filter`
+ * ci-dessous reste inchangé, ligne pour ligne.
  */
 export async function compterAPrevoir(
   contexte: ContexteSession,
@@ -208,8 +238,28 @@ export async function compterAPrevoir(
   horizonJours: number,
 ): Promise<number> {
   const recues = await dernieresInformations(contexte);
+  const machineIds = [...recues.keys()];
+  // AUCUNE MACHINE N'A JAMAIS ÉTÉ INFORMÉE : le compte est nul sans lire
+  // `machine` — voir le point 1 ci-dessus.
+  if (machineIds.length === 0) {
+    return 0;
+  }
   const machines = await avecContexteApplicatif(contexte, (tx) =>
-    tx.machine.findMany({ select: CHAMPS_REGISTRE }),
+    tx.machine.findMany({
+      select: CHAMPS_REGISTRE,
+      where: {
+        id: { in: machineIds },
+        OR: [
+          { vgp_exception: ASSUJETTISSEMENT.soumis },
+          {
+            vgp_exception: null,
+            modele: {
+              famille: { assujettissement_vgp: ASSUJETTISSEMENT.soumis },
+            },
+          },
+        ],
+      },
+    }),
   );
   return machines.filter((machine) => {
     const ligne = ligneDuRegistre(machine, recues, aujourdHui);

@@ -131,26 +131,40 @@ export default async function PageParc({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  const lignes = criteres.success
-    ? await rechercherLeParc(contexte, criteres.data)
-    : [];
-  const resume = criteres.success
-    ? await resumerLeParcFiltre(contexte, criteres.data, aujourdHui)
-    : resumerLeParc([], aujourdHui);
+  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) — aucune ne
+  // dépend du résultat d'une autre. Les trois premières sont LANCÉES ici,
+  // sans `await` — une promesse démarre son travail dès sa création, jamais
+  // à son `await` — puis rejointes plus bas par un seul `Promise.all`.
+  // `totalFiltre` GARDE sa propre écriture, `const totalFiltre =
+  // criteres.success ? await compterLeParc(…)`, intacte : c'est la variable
+  // que le gardien de l'incident du 16/09 identifie par ce texte exact
+  // (`tests/unit/ui/lot-parc.test.ts`), et ce `await` ne re-sérialise rien —
+  // les trois lectures lancées avant lui courent déjà pendant qu'on l'attend.
+  const lignesPromesse = criteres.success
+    ? rechercherLeParc(contexte, criteres.data)
+    : Promise.resolve<readonly LigneDeParc[]>([]);
+  const resumePromesse = criteres.success
+    ? resumerLeParcFiltre(contexte, criteres.data, aujourdHui)
+    : Promise.resolve(resumerLeParc([], aujourdHui));
+  // LE TOTAL GÉNÉRAL, SANS AUCUN FILTRE — le détail du premier KPI
+  // (« sur N machines au total ») porte sur LA SOCIÉTÉ, jamais sur la
+  // recherche en cours : changer le filtre ne doit pas faire bouger ce
+  // nombre-là.
+  const totalGeneralPromesse = compterLeParc(contexte, {
+    texte: null,
+    statut: "tous",
+    page: 1,
+  });
   // LE TOTAL DE LA PAGINATION, RÉUTILISÉ COMME VALEUR DU PREMIER KPI (voir la
   // note de tête) — la MÊME `filtreDuParc` que la liste et que le résumé.
   const totalFiltre = criteres.success
     ? await compterLeParc(contexte, criteres.data)
     : 0;
-  // LE TOTAL GÉNÉRAL, SANS AUCUN FILTRE — le détail du premier KPI
-  // (« sur N machines au total ») porte sur LA SOCIÉTÉ, jamais sur la
-  // recherche en cours : changer le filtre ne doit pas faire bouger ce
-  // nombre-là.
-  const totalGeneral = await compterLeParc(contexte, {
-    texte: null,
-    statut: "tous",
-    page: 1,
-  });
+  const [lignes, resume, totalGeneral] = await Promise.all([
+    lignesPromesse,
+    resumePromesse,
+    totalGeneralPromesse,
+  ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),

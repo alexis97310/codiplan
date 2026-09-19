@@ -116,15 +116,6 @@ export default async function PageInterventions({
   const params = await searchParams;
   const motif = params.motif;
 
-  // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
-  // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
-  const agences = await avecContexteApplicatif(contexte, (tx) =>
-    tx.agence.findMany({
-      select: { id: true, libelle: true },
-      orderBy: [{ libelle: "asc" }, { id: "asc" }],
-    }),
-  );
-
   const criteres = schemaRechercheInterventions.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     agence_id: typeof params.agence === "string" ? params.agence : "",
@@ -139,14 +130,29 @@ export default async function PageInterventions({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  const lignes = criteres.success
-    ? await listerInterventions(contexte, criteres.data)
-    : [];
-  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
-  // liste, jamais une seconde lecture divergente du critère (AT-07).
-  const totalFiltre = criteres.success
-    ? await compterInterventions(contexte, criteres.data)
-    : 0;
+  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) — aucune ne
+  // dépend du résultat d'une autre. `annuaire` et `libellesMachines`, eux,
+  // dépendent des LIGNES rendues et restent dans un second `Promise.all`,
+  // après celui-ci.
+  const [agences, lignes, totalFiltre, kpi] = await Promise.all([
+    // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
+    // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
+    avecContexteApplicatif(contexte, (tx) =>
+      tx.agence.findMany({
+        select: { id: true, libelle: true },
+        orderBy: [{ libelle: "asc" }, { id: "asc" }],
+      }),
+    ),
+    criteres.success
+      ? listerInterventions(contexte, criteres.data)
+      : Promise.resolve([]),
+    // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
+    // liste, jamais une seconde lecture divergente du critère (AT-07).
+    criteres.success
+      ? compterInterventions(contexte, criteres.data)
+      : Promise.resolve(0),
+    kpiDuRegistre(contexte),
+  ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
@@ -154,19 +160,23 @@ export default async function PageInterventions({
   // L'UNION des identités que CETTE liste doit nommer est celle des LIGNES
   // rendues, et rien d'autre : à la différence de la vue jour du planning,
   // aucune colonne ne provient d'un référentiel vide à remplir.
-  const annuaire = await avecContexteApplicatif(contexte, (tx) =>
-    annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
-  );
-  // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants que
-  // les lignes rendues portent déjà (même principe que l'annuaire ci-dessus,
-  // et que `libellesDesSites`). AT-07 bis : `machines` était déjà lu par
-  // ligne et jamais montré.
-  const libellesMachines = await libellesDesMachines(
-    contexte,
-    lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
-  );
-
-  const kpi = await kpiDuRegistre(contexte);
+  //
+  // `annuaire` ET `libellesMachines` SONT INDÉPENDANTS L'UN DE L'AUTRE, mais
+  // dépendent tous deux de `lignes` ci-dessus — d'où ce second `Promise.all`,
+  // jamais fondu dans le premier.
+  const [annuaire, libellesMachines] = await Promise.all([
+    avecContexteApplicatif(contexte, (tx) =>
+      annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
+    ),
+    // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants
+    // que les lignes rendues portent déjà (même principe que l'annuaire
+    // ci-dessus, et que `libellesDesSites`). AT-07 bis : `machines` était
+    // déjà lu par ligne et jamais montré.
+    libellesDesMachines(
+      contexte,
+      lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+    ),
+  ]);
 
   const colonnes = [
     {
