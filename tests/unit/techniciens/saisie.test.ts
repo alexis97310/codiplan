@@ -74,8 +74,7 @@ describe("la saisie d'une modification", () => {
 
   it("n'accepte pas une activité absente — jamais de défaut inventé", () => {
     expect(
-      schemaModificationTechnicien.safeParse({ agence_id: AGENCE_ID })
-        .success,
+      schemaModificationTechnicien.safeParse({ agence_id: AGENCE_ID }).success,
     ).toBe(false);
   });
 });

@@ -2289,10 +2289,10 @@ export const fr = {
   // que le RESTE du libellé.
   "parametres.index_equipe_titre": "Équipe",
   "parametres.index_equipe_resume":
-    "Les techniciens de la société — création, rattachement à une agence, désactivation.",
+    "Les techniciens de la société — création, rattachement, désactivation.",
   "equipe.titre": "Équipe",
   "equipe.sous_titre":
-    "Les techniciens de la société active : créer, rattacher à une agence, désactiver.",
+    "Les techniciens de la société active : créer, rattacher, désactiver.",
   "equipe.creer": "Ajouter un technicien",
   "equipe.creer_action": "Ajouter",
   "equipe.creer_aide":
@@ -2305,7 +2305,7 @@ export const fr = {
   "equipe.email": "Courriel",
   // Composé avec `mot("agence")` au point d'usage : « Agence de rattachement ».
   "equipe.agence_suffixe": "de rattachement",
-  "equipe.choisir_agence": "Choisir une agence",
+  "equipe.choisir_rattachement": "Sélectionner un rattachement",
   "equipe.activite": "Activité",
   "equipe.actif": "Actif",
   "equipe.inactif": "Inactif",
@@ -2319,7 +2319,17 @@ export const fr = {
   "equipe.refus.deja_membre":
     "Cette personne est déjà membre de la société active.",
   "equipe.refus.agence_hors_societe":
-    "L'agence choisie n'appartient pas à la société active.",
+    "Le rattachement choisi n'appartient pas à la société active.",
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/equipe.spec.ts) ─────
+  //
+  // Le gardien de L0-11 fait passer par ici jusqu'au texte qu'un test de
+  // rendu attend (« y compris le texte attendu par un test de rendu ») : ces
+  // trois valeurs ne sont JAMAIS vues par un utilisateur réel, mais un
+  // scénario qui les cherche à l'écran est une « requête d'écran » comme une
+  // autre.
+  "equipe.e2e.nom": "Technicien de l'épreuve",
+  "equipe.e2e.courriel": "technicien.epreuve@codima.test",
+  "equipe.e2e.nom_doublon": "Doublon tenté",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
 } as const;
 

@@ -1036,6 +1036,11 @@ lib/
               tout ce que la date d'ouverture sert à borner
               elle ne se clôt pas toute seule à zéro — une campagne close est
               une décision, et le compteur peut remonter
+  techniciens/ créer, modifier, désactiver un technicien (ÉQUIPE-1) — les
+              trois lignes (Utilisateur, UtilisateurSociete, Technicien) ;
+              l'identité s'écrit par `avecDesignationAuth`
+              (`lib/auth/lecture-identite.ts`), jamais réinventée ici — voir
+              l'en-tête de `depot.ts`
   theme/      charte de la société active — couleurs, encres, variables CSS
               manifeste.ts : les DEUX couleurs que le manifeste d'application
               exige (L3-06) — un manifeste n'est pas une feuille de style, le

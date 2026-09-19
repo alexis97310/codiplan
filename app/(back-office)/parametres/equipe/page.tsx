@@ -91,7 +91,9 @@ export default async function PageEquipe({
           <h2 className="text-[14px] font-bold">{t("equipe.liste_titre")}</h2>
           <a
             href={
-              montrerInactifs ? "/parametres/equipe" : "/parametres/equipe?etat=tous"
+              montrerInactifs
+                ? "/parametres/equipe"
+                : "/parametres/equipe?etat=tous"
             }
             className="text-app-marque text-[12px] font-semibold underline"
           >
@@ -184,7 +186,7 @@ function SelectAgence({
         className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
       >
         <option value="" disabled>
-          {t("equipe.choisir_agence")}
+          {t("equipe.choisir_rattachement")}
         </option>
         {agences.map((agence) => (
           <option key={agence.id} value={agence.id}>
@@ -277,11 +279,7 @@ function FormulaireModification({
         agences={agences}
       />
       <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-        <input
-          type="checkbox"
-          name="actif"
-          defaultChecked={technicien.actif}
-        />
+        <input type="checkbox" name="actif" defaultChecked={technicien.actif} />
         {t("equipe.actif")}
       </label>
       <Button type="submit" variant="outline" size="sm">
