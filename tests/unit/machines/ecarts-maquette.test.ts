@@ -70,10 +70,9 @@ describe("les actions du bandeau du parc disent ce que la maquette dit (N-10, D1
     expect(actionsDeLaMaquette()).toEqual(["Scanner un QR code", "+ Machine"]);
   });
 
-  it("les deux sont exactement l'écart décidé", () => {
+  it("une seule reste l'écart décidé — « + Machine » est un GAP COMBLÉ (AT-07 bis)", () => {
     expect(ECARTS_MAQUETTE_ACTIONS_PARC.map((e) => e.libelle)).toEqual([
       "Scanner un QR code",
-      "+ Machine",
     ]);
     for (const ecart of ECARTS_MAQUETTE_ACTIONS_PARC) {
       expect(ecart.motif, ecart.libelle).toBeTruthy();
@@ -87,12 +86,27 @@ describe("les actions du bandeau du parc disent ce que la maquette dit (N-10, D1
     }
   });
 
-  it("aucune action de la maquette n'est ABSENTE de l'écart — les deux sont couvertes", () => {
+  it("« + Machine » n'est plus ABSENTE de l'écart SANS être un lien réel — elle mène à /parc/nouvelle", () => {
+    // Le témoin inverse de « aucune action non couverte » : depuis que
+    // `parc/nouvelle` existe, « + Machine » n'a plus besoin d'un écart pour
+    // ne pas se lire comme une panne — elle est retirée de la liste ET
+    // rendue comme un vrai lien (`app/(back-office)/parc/page.tsx`,
+    // `LienPrimaire href="/parc/nouvelle"`), jamais l'un sans l'autre.
+    const source = readFileSync(
+      join(process.cwd(), "app/(back-office)/parc/page.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("/parc/nouvelle");
     const ecartees = new Set(
       ECARTS_MAQUETTE_ACTIONS_PARC.map((e) => e.libelle),
     );
+    expect(ecartees.has("+ Machine")).toBe(false);
+
+    // « aucune action non couverte » vaut toujours, à condition d'élargir la
+    // couverture au lien réel — sans quoi la suppression de l'écart, seule,
+    // ferait rougir ce gardien pour la mauvaise raison.
     const nonCouvertes = actionsDeLaMaquette().filter(
-      (libelle) => !ecartees.has(libelle),
+      (libelle) => libelle !== "+ Machine" && !ecartees.has(libelle),
     );
     expect(nonCouvertes).toEqual([]);
   });

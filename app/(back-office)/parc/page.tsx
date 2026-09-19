@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { Badge, type TonBadge } from "@/components/ui/badge";
@@ -172,6 +173,15 @@ export default async function PageParc({
       chemin="/parc"
       titre={t("parc.titre")}
       sousTitre={t("parc.sous_titre")}
+      // « + Machine » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : voir
+      // app/(back-office)/parc/nouvelle/page.tsx et
+      // lib/machines/ecarts-maquette.ts. « Scanner un QR code » reste un
+      // écart nommé — aucun écran de lecture de QR n'existe.
+      actions={
+        <LienPrimaire href="/parc/nouvelle">
+          {t("parc.action.nouvelle")}
+        </LienPrimaire>
+      }
     >
       <div data-bloc="toolbar" className="flex flex-wrap items-center gap-2">
         <div data-bloc="recherche" className="contents">

@@ -767,13 +767,25 @@ export const fr = {
   "interventions.vide": "Aucune intervention enregistrée.",
   // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
   // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
-  // statut, période. Le texte cherche sur le client et le lieu — les deux
-  // colonnes VISIBLES qui identifient une ligne.
+  // statut, période. Le texte cherche sur le client et le lieu — les
+  // colonnes VISIBLES qui identifient une ligne. Le LIBELLÉ n'annonce pas la
+  // référence (AT-07 bis, 18/09/2026) : seule sa moitié « `numero` » se
+  // cherche (voir `numeroDeReference`, `lib/interventions/depot.ts`), et
+  // `numero` vaut `null` pour toute intervention avant la synchronisation
+  // (lot 3) — l'annoncer promettrait, pour la référence RÉELLEMENT affichée
+  // aujourd'hui (`Local-XXXXXX`), une recherche qui ne trouve rien.
   "interventions.recherche": "Client ou lieu",
   "interventions.rechercher": "Rechercher",
   "interventions.filtre_toutes_prefixe": "Toutes les",
   "interventions.filtre_type_tous": "Tous les types",
   "interventions.filtre_statut_tous": "Tous les statuts",
+  // ── LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) ──────────
+  // `interventions()` de la maquette en pose trois ; voir `kpiDuRegistre`
+  // (`app/(back-office)/interventions/page.tsx`) pour ce que chacun compte
+  // RÉELLEMENT — jamais les valeurs illustratives de la maquette (27, 2, 5).
+  "interventions.kpi_semaine": "Planifiées cette semaine",
+  "interventions.kpi_en_cours": "En cours",
+  "interventions.kpi_en_attente": "En attente",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
 
@@ -1557,6 +1569,77 @@ export const fr = {
     "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
   "machine.documents.sans_octets":
     "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
+  // ── CRÉER ET CORRIGER UNE MACHINE (AT-07 bis, 18/09/2026) ────────────────
+  //
+  // Le parc était MONTRÉ, jamais GÉRÉ : aucune route n'écrivait une fiche
+  // depuis un écran. Les deux formulaires suivent RG-PAR-07/D126 dans
+  // l'ORDRE — famille, marque, référence, numéro de série, année de vente —
+  // avant les champs facultatifs (RG-PAR-02 : quatre obligatoires, le reste
+  // se complète plus tard).
+  "machine.action.modifier": "Modifier",
+  "machine.action.creer": "Enregistrer",
+  "machine.action.enregistrer": "Enregistrer",
+  "machine.action.envoi_en_cours": "Enregistrement…",
+  "parc.action.nouvelle": "+ Machine",
+  "machine.nouvelle.titre": "Nouvelle machine",
+  "machine.nouvelle.sous_titre":
+    "Les quatre champs marqués d'un astérisque sont obligatoires (RG-PAR-02) ; le reste se complète plus tard.",
+  "machine.nouvelle.retour": "‹ Retour au parc",
+  "machine.modifier.titre": "Corriger la fiche",
+  "machine.modifier.sous_titre":
+    "Le modèle, le client, le lieu d'intervention et le statut ne se corrigent pas ici : voir la fiche pour ces gestes.",
+  "machine.modifier.retour": "‹ Retour à la fiche",
+  // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
+  // raison que `modifierMachineDans` : le modèle porte l'unicité de la
+  // fiche, et le déménagement (client, site) est un geste daté qu'aucun
+  // formulaire ne porte encore (voir la note de tête du dépôt).
+  "machine.modifier.non_modifiable": "Non modifiable ici",
+  "machine.champ.famille": "Famille",
+  "machine.champ.marque": "Marque",
+  "machine.champ.reference": "Référence",
+  "machine.champ.modele": "Modèle",
+  "machine.champ.numero_serie": "N° de série",
+  "machine.champ.numero_serie_aide":
+    "Plaque illisible ou absente : saisissez SN-INCONNU-<référence interne> (RG-PAR-02).",
+  "machine.champ.client": "Client",
+  "machine.champ.reference_interne": "Référence interne",
+  "machine.champ.localisation": "Localisation",
+  "machine.champ.facture_origine": "Facture d'origine",
+  "machine.champ.date_mise_en_service": "Date de mise en service",
+  "machine.champ.date_vente": "Date de vente",
+  "machine.champ.garantie_fin": "Fin de garantie",
+  "machine.champ.statut": "Statut",
+  "machine.champ.criticite": "Criticité",
+  "machine.champ.aucun_modele": "Aucun modèle actif dans cette société.",
+  "machine.champ.aucun_client": "Aucun client actif dans cette société.",
+  "machine.champ.aucun_site": "Choisissez d'abord un client.",
+  "criticite_machine.bloquante": "Bloquante",
+  "criticite_machine.importante": "Importante",
+  "criticite_machine.normale": "Normale",
+  // ── LE REFUS DU FORMULAIRE, EN QUATRE ISSUES (D-06, 17/09/2026) ──────────
+  //
+  // Même distinction que le glisser-déposer du planning
+  // (`components/planning/pose.tsx`) : un refus métier n'est ni une erreur
+  // serveur, ni une connexion interrompue, et confondre les deux enverrait
+  // réessayer à l'aveugle une écriture peut-être déjà appliquée.
+  "machine.refus.saisie":
+    "La saisie a été refusée : vérifiez les quatre champs obligatoires (modèle, client, lieu d'intervention, numéro de série).",
+  "machine.refus.numero_serie_pris":
+    "Ce numéro de série est déjà utilisé pour ce modèle dans votre société.",
+  "machine.refus.reference_interne_prise":
+    "Cette référence interne est déjà utilisée par une autre machine de votre société.",
+  "machine.refus.reference_invalide":
+    "Le modèle, le client ou le lieu d'intervention sélectionné est introuvable ou hors de votre société.",
+  "machine.refus.introuvable":
+    "Cette machine est introuvable, ou hors de votre périmètre.",
+  "machine.refus.inconnue":
+    "Cette machine n'existe pas, ou elle n'est pas dans votre périmètre.",
+  "machine.refus.erreur_serveur":
+    "Une erreur est survenue pendant l'enregistrement. Rien n'a été modifié : réessayez.",
+  "machine.refus.connexion_interrompue":
+    "La connexion a été interrompue avant la fin de l'enregistrement. Rien n'a été modifié : vérifiez votre réseau avant de réessayer.",
+  "machine.creee": "La fiche machine est créée.",
+  "machine.modifiee": "La fiche machine est enregistrée.",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.colonne_exceptions": "Exceptions",

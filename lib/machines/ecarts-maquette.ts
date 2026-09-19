@@ -37,17 +37,18 @@ export type EcartMaquette = {
 };
 
 /**
- * LES DEUX ACTIONS DU BANDEAU QUE `/parc` NE REND PAS — liste close.
+ * L'ACTION DU BANDEAU QUE `/parc` NE REND PAS — liste close, UNE entrée
+ * depuis le 18/09/2026 (AT-07 bis).
  *
- * `head()` de `parc()` pose deux `<button>` : « Scanner un QR code » et
- * « + Machine ». Aucun des deux ne mène à un écran qui existe — mesuré, pas
- * supposé : `app/api/machines/qr/[jeton]/route.ts` RÉSOUT un jeton, il ne
- * dessine aucun écran de lecture ; `app/(back-office)/parc/nouvelle` n'existe
- * pas, là où `clients/nouveau` et `sites/nouveau` existent. **Un lien vers
- * rien se lit comme une panne (R2-13)** : les deux boutons sont donc des
- * écarts nommés plutôt que des liens morts, et RETIRÉS de l'en-tête plutôt
- * que rendus inertes — la même leçon que l'export Excel du parc s'était déjà
- * appliquée à lui-même.
+ * `head()` de `parc()` posait deux `<button>` : « Scanner un QR code » et
+ * « + Machine ». **Le second est un GAP COMBLÉ** — mesuré, pas supposé :
+ * `app/(back-office)/parc/nouvelle` existe désormais, et `/parc` porte un
+ * vrai lien (`LienPrimaire`) vers cet écran. « Scanner un QR code » reste
+ * seul dans la liste : `app/api/machines/qr/[jeton]/route.ts` RÉSOUT un
+ * jeton, il ne dessine aucun écran de lecture, et aucun encodeur d'image QR
+ * n'existe dans le dépôt (`lib/machines/qr.ts` ne fabrique que le jeton).
+ * **Un lien vers rien se lit comme une panne (R2-13)** : ce bouton-là reste
+ * donc un écart nommé plutôt qu'un lien mort.
  */
 export const ECARTS_MAQUETTE_ACTIONS_PARC: readonly EcartMaquette[] = [
   {
@@ -57,13 +58,6 @@ export const ECARTS_MAQUETTE_ACTIONS_PARC: readonly EcartMaquette[] = [
       "[jeton]/route.ts résout un jeton, il ne dessine rien. Un encodeur " +
       "d'image QR n'existe pas non plus dans le dépôt (lib/machines/qr.ts " +
       "ne fabrique que le jeton).",
-  },
-  {
-    libelle: "+ Machine",
-    motif:
-      "aucun app/(back-office)/parc/nouvelle n'existe, là où clients/" +
-      "nouveau et sites/nouveau existent — une création de machine par le " +
-      "back-office reste à construire.",
   },
 ];
 
@@ -116,28 +110,18 @@ export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
  * ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * LE BOUTON DE L'EN-TÊTE QUE LA FICHE NE REND PAS — liste close, une entrée.
+ * LE BOUTON DE L'EN-TÊTE QUE LA FICHE NE REND PLUS — liste close, VIDE
+ * depuis le 18/09/2026 (AT-07 bis).
  *
  * `head()` de `machinePage()` pose deux boutons : « ← Retour au parc » et
- * « Modifier ». Le premier mène quelque part et se rend ; le second ne mène
- * nulle part — mesuré, pas supposé : aucune route `/parc/[id]/modifier` ni
- * aucune fonction d'écriture n'existe dans `lib/machines/depot.ts` pour
- * modifier une fiche déjà créée (`creerMachineDans` et `creerMachinesEnLot`
- * sont les deux seules écritures, et aucune des deux ne mène par une route).
- * **Un lien vers rien se lit comme une panne (R2-13)** : il est donc un écart
- * nommé plutôt qu'un lien mort, la même leçon que les deux boutons de
- * `ECARTS_MAQUETTE_ACTIONS_PARC`.
+ * « Modifier ». **Les deux mènent désormais quelque part** — mesuré, pas
+ * supposé : `app/(back-office)/parc/[id]/modifier` existe, et
+ * `lib/machines/depot.ts` porte `modifierMachine`, appelant de
+ * `modifierMachineDans`. La liste reste déclarée, VIDE plutôt que
+ * supprimée : un gardien qui la confrontait à la maquette a mesuré ce gap et
+ * doit pouvoir mesurer qu'il n'y en a plus, sans qu'un import se casse.
  */
-export const ECARTS_MAQUETTE_ACTIONS_FICHE: readonly EcartMaquette[] = [
-  {
-    libelle: "Modifier",
-    motif:
-      "N-11 — aucune route d'édition d'une machine n'existe (pas de " +
-      "app/(back-office)/parc/[id]/modifier) et lib/machines/depot.ts ne " +
-      "porte aucune écriture de mise à jour d'une fiche existante, " +
-      "seulement sa création (creerMachineDans, creerMachinesEnLot).",
-  },
-];
+export const ECARTS_MAQUETTE_ACTIONS_FICHE: readonly EcartMaquette[] = [];
 
 /**
  * LE CONTENU DU `dl.kv` QUE D126 CHANGE, CÔTÉ CONTENU — liste close, une

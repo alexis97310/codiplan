@@ -221,3 +221,59 @@ describe("compterInterventions compte le total FILTRÉ, jamais le compte de la p
     expect(lignes).toEqual([]);
   });
 });
+
+/**
+ * LA MOITIÉ « `numero` » DE LA RÉFÉRENCE, SUR LA VRAIE TABLE (D-08, revue
+ * Codex de #236) — `numeroDeReference` (`lib/interventions/depot.ts`) n'est
+ * pas exportée, elle ne s'éprouve donc pas hors du chemin réel qui la porte :
+ * `listerInterventions`/`compterInterventions`, sous la politique de forme
+ * « parc ». `INTERVENTION_DEDIEE` reçoit ici un `numero` que rien d'autre du
+ * harnais n'attribue (voir sa note de tête) — la fiche est restituée à
+ * `null` par l'`afterAll` de tête de fichier, qui l'efface entièrement.
+ */
+describe("la référence dans la recherche — `numero` borné, `Local-` jamais un numéro serveur (D-08)", () => {
+  const NUMERO_DEDIE = 123456;
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "numero" = $2::int WHERE "id" = $1::uuid`,
+      INTERVENTION_DEDIEE,
+      NUMERO_DEDIE,
+    );
+  });
+
+  it("un texte hors bornes de l'Int signé 32 bits ne fait pas échouer la recherche", async () => {
+    // AVANT LE CORRECTIF : ce texte partait tel quel en filtre d'égalité vers
+    // Prisma, qui refusait l'entier hors bornes — `/interventions` rendait
+    // une ERREUR SERVEUR au lieu d'une liste vide.
+    const criteres = schemaRechercheInterventions.parse({
+      texte: "9999999999",
+    });
+    await expect(
+      listerInterventions(INTERNE_A, criteres, clientApp()),
+    ).resolves.toEqual([]);
+    await expect(
+      compterInterventions(INTERNE_A, criteres, clientApp()),
+    ).resolves.toBe(0);
+  });
+
+  it("« INT-123456 » retrouve la fiche par son numéro — le TÉMOIN de la forme reconnue", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      texte: `INT-${NUMERO_DEDIE}`,
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((ligne) => ligne.id);
+    expect(ids).toContain(INTERVENTION_DEDIEE);
+  });
+
+  it("« Local-123456 » NE ramène PAS l'INT-123456 sans rapport", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      texte: `Local-${NUMERO_DEDIE}`,
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((ligne) => ligne.id);
+    expect(ids).not.toContain(INTERVENTION_DEDIEE);
+  });
+});

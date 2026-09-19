@@ -1,7 +1,8 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import { engendrerJetonQr } from "./qr";
 import {
@@ -372,6 +373,22 @@ export async function resumerLeParcFiltre(
 export const CHAMPS_FICHE = {
   ...CHAMPS_PARC,
   qr_token: true,
+  // **AJOUTÉ POUR LE FORMULAIRE DE CORRECTION** (AT-07 bis, 18/09/2026) :
+  // `modifierMachineDans` écrit cette colonne, et sans elle
+  // `FormulaireMachine` n'aurait aucun moyen de PRÉ-REMPLIR le champ — un
+  // envoi la remettrait alors à `null` à chaque correction, même quand
+  // personne n'y a touché. `/parc/[id]` ne l'affiche pas (D126 ne la
+  // réclame pas) : elle voyage jusqu'ici sans gagner de ligne à l'écran.
+  facture_origine: true,
+  // `modele_id` ET `site_id` — `CHAMPS_PARC` ne porte que les OBJETS
+  // (`modele`, `site`), jamais leur clé nue : la fiche en a besoin pour les
+  // champs CACHÉS du formulaire de correction, qui doit soumettre les trois
+  // clés que `schemaMachine` exige sans que `modifierMachineDans` les
+  // écrive (voir sa note de tête). `client_id` n'a pas besoin de la même
+  // addition : `CHAMPS_PARC` le porte déjà, nu, pour le lien de la colonne
+  // « Client » du parc.
+  modele_id: true,
+  site_id: true,
 } as const;
 
 export type FicheMachine = Prisma.MachineGetPayload<{
@@ -398,9 +415,84 @@ export async function lireMachine(
   );
 }
 
+/**
+ * LES LIBELLÉS D'UN ENSEMBLE DE MACHINES — pour un écran qui ne connaît que
+ * leurs `id` (AT-07 bis, 18/09/2026 ; audit du domaine).
+ *
+ * Mesuré le 18/09/2026 : le registre des interventions (`/interventions`)
+ * LIT déjà `machines` par ligne (`CHAMPS_LIGNE`, `lib/interventions/depot.ts`)
+ * et ne l'affichait jamais — la colonne n'avait pas de libellé à montrer, et
+ * en fabriquer un à l'écran aurait fait une seconde lecture du même critère
+ * que celle-ci écrit une fois.
+ *
+ * **Même forme que `libellesDesSites`** (`lib/sites/depot.ts`) : une SECONDE
+ * lecture, sur les identifiants qu'un premier appel a déjà rendus, jamais un
+ * `include` élargi sur la première requête — celle-ci reste ce qu'elle est,
+ * et ce module n'a pas à savoir qui l'appelle.
+ *
+ * Le libellé est `marque référence` — recopié de `titreDeLaLigne` (`/parc`),
+ * jamais le numéro de série : plusieurs exemplaires du même modèle sur une
+ * même intervention resteraient de toute façon indiscernables par un
+ * `Set<string>` de libellés identiques, et le numéro de série d'une fiche
+ * incomplète (`SN-INCONNU-…`) n'aiderait pas plus à les distinguer dans une
+ * cellule de tableau dense.
+ */
+export async function libellesDesMachines(
+  contexte: ContexteSession,
+  machineIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, string>> {
+  const ids = [...new Set(machineIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machines = await tx.machine.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          modele: { select: { marque: true, reference: true } },
+        },
+      });
+      return new Map(
+        machines.map((machine) => [
+          machine.id,
+          `${machine.modele.marque} ${machine.modele.reference}`,
+        ]),
+      );
+    },
+    client,
+  );
+}
+
 /* ────────────────────────────────────────────────────────────────────────
  * L'ÉCRITURE DU PARC (R6-03) — dans une transaction que l'appelant tient
  * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE SITE N'APPARTIENT PAS AU CLIENT SOUMIS (D-07, revue Codex de #236).
+ *
+ * `schemaMachine` ne valide que la FORME des UUID, et `machine` porte deux
+ * clés étrangères INDÉPENDANTES vers `client` et `site` — aucune contrainte
+ * composite ne les lie, à la différence de `site_client_fkey` qui lie déjà
+ * un site à SON client. Un POST forgé (un `client_id` valide, le `site_id`
+ * d'un AUTRE client de la même société) traverse donc les deux clés sans
+ * qu'aucune ne morde, et créerait durablement une fiche dont le client
+ * affiché et le lieu affiché se contredisent.
+ *
+ * **Poser la contrainte composite en base serait un CHANGEMENT DE SCHÉMA**
+ * (CLAUDE.md §8) — hors du périmètre de ce correctif. `creerMachineDans` la
+ * tient donc lui-même, en résolvant le site sous `site_id` ET `client_id` À
+ * L'INTÉRIEUR de la même transaction que l'écriture : pas de fenêtre entre
+ * la vérification et le `create`.
+ */
+class SiteHorsClient extends Error {
+  constructor() {
+    super("site_hors_client");
+  }
+}
 
 /**
  * CE MODULE LISAIT, ET NE SAVAIT RIEN ÉCRIRE — mesuré le 16/09/2026.
@@ -435,6 +527,16 @@ export async function creerMachineDans(
   id: string,
   saisie: SaisieMachine,
 ): Promise<void> {
+  // Voir `SiteHorsClient` : le site est résolu sous les DEUX clés à la fois,
+  // et non sur `site_id` seul — c'est précisément ce que la seconde moitié
+  // du couple ne garantit pas.
+  const site = await tx.site.findFirst({
+    where: { id: saisie.site_id, client_id: saisie.client_id },
+    select: { id: true },
+  });
+  if (site === null) {
+    throw new SiteHorsClient();
+  }
   await tx.machine.create({
     data: {
       id,
@@ -521,6 +623,14 @@ export async function creerMachinesEnLot(
  * portail* —, et un fichier ne décide pas cela (le raisonnement de D56 sur
  * `agence_id`, repris tel quel). **Condition de levée, vérifiable :** le jour où
  * un gabarit portera la DATE du déménagement à côté du site.
+ *
+ * **D-07 (revue Codex de #236) ne s'applique donc pas à cette fonction, et
+ * c'est écrit plutôt que tu** : `app/api/machines/[id]/modifier/route.ts`
+ * reçoit bien `site_id` et `client_id` (`schemaMachine` les exige tous les
+ * trois, voir la note de tête de la route), mais ni l'un ni l'autre n'entre
+ * dans ce `data` — un couple forgé sur ce chemin est donc VALIDÉ puis
+ * IGNORÉ, jamais écrit. La vérification de `SiteHorsClient` (voir
+ * `creerMachineDans`) reste propre à la création.
  */
 export async function modifierMachineDans(
   tx: Prisma.TransactionClient,
@@ -542,4 +652,137 @@ export async function modifierMachineDans(
     },
   });
   return touchees.count;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES DEUX ÉCRANS (AT-07 bis, 18/09/2026) — mêmes formes que
+ * `lib/materiel/depot.ts` (`creerModele`/`modifierModele`)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** Les codes Prisma que ce module sait traduire. */
+const VIOLATION_UNICITE = "P2002";
+const VIOLATION_CLE_ETRANGERE = "P2003";
+const CONTRAINTE_BASE = "P2010";
+
+/**
+ * Ce qu'un refus dit d'une machine, et il n'en dit jamais plus (D50).
+ *
+ * `reference_invalide` couvre QUATRE cas à la fois — modèle, client, site,
+ * et désormais un site qui désigne un AUTRE client (`SiteHorsClient`, D-07)
+ * — sans les distinguer : chacun désigne soit une ligne absente, soit une
+ * ligne d'une autre société ou d'un autre client, et séparer les cas
+ * apprendrait à qui saisit qu'un identifiant existe ailleurs (le
+ * raisonnement de `lib/sites/depot.ts` sur `client_hors_perimetre`, repris
+ * tel quel ici).
+ */
+export type MotifRefusMachine =
+  /** `(societe_id, modele_id, numero_serie)` — la clé naturelle d'une fiche. */
+  | "numero_serie_pris"
+  /**
+   * `machine_societe_reference_interne_key` — l'index PARTIEL de D6, que
+   * Prisma ne connaît pas comme `@@unique` (voir `lib/machines/saisie.ts`).
+   * Distinguée du numéro de série depuis la revue Codex de #236 : les deux
+   * violations lèvent le MÊME code `P2002`, et les confondre dirait à qui
+   * corrige une fiche de changer un numéro de série qui n'est pas en cause.
+   */
+  | "reference_interne_prise"
+  | "reference_invalide"
+  /** `modifierMachineDans` a touché zéro ligne : la politique a refusé. */
+  | "introuvable";
+
+export type ResultatMachine =
+  | { readonly accepte: true; readonly id: string }
+  | { readonly accepte: false; readonly motif: MotifRefusMachine };
+
+/**
+ * LA CIBLE D'UNE VIOLATION D'UNICITÉ P2002, EN TEXTE (revue Codex de #236).
+ *
+ * `erreur.meta.target` porte les colonnes en tableau pour un `@@unique` connu
+ * de Prisma (`[societe_id, modele_id, numero_serie]`), mais l'index partiel de
+ * `reference_interne` n'est PAS déclaré comme `@@unique` — un `WHERE` ne se
+ * décrit pas en Prisma (voir sa note de tête). Pour cet index-là, Prisma ne
+ * peut donc rendre que le nom de la contrainte, jamais une colonne : les deux
+ * FORMES sont donc concaténées ici, plutôt que de supposer laquelle sortirait.
+ */
+function cibleUnicite(erreur: Prisma.PrismaClientKnownRequestError): string {
+  const cible = erreur.meta?.["target"];
+  return Array.isArray(cible) ? cible.join(",") : String(cible ?? "");
+}
+
+function motifMachine(erreur: unknown): MotifRefusMachine | null {
+  if (erreur instanceof SiteHorsClient) return "reference_invalide";
+  if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
+  if (erreur.code === VIOLATION_UNICITE) {
+    return cibleUnicite(erreur).includes("reference_interne")
+      ? "reference_interne_prise"
+      : "numero_serie_pris";
+  }
+  if (
+    erreur.code === VIOLATION_CLE_ETRANGERE ||
+    erreur.code === CONTRAINTE_BASE
+  ) {
+    return "reference_invalide";
+  }
+  return null;
+}
+
+/**
+ * CRÉE UNE MACHINE DEPUIS UN ÉCRAN — le premier appelant de
+ * `creerMachineDans` en dehors du semis et de l'import (R6-03, mesuré le
+ * 18/09/2026 : le parc ne se remplissait que par eux).
+ *
+ * L'identifiant est tiré ICI, avant la transaction — même raison que
+ * `creerModele` : `creerMachineDans` le veut en paramètre (D7, I10), et le
+ * tirer à l'intérieur de la transaction rendrait un identifiant que
+ * l'appelant ne connaîtrait qu'en cas de succès.
+ */
+export async function creerMachine(
+  contexte: ContexteSession,
+  saisie: SaisieMachine,
+  client?: PrismaClient,
+): Promise<ResultatMachine> {
+  const id = uuidv7();
+  try {
+    await avecContexteApplicatif(
+      contexte,
+      (tx) => creerMachineDans(tx, exigerSocieteActive(contexte), id, saisie),
+      client,
+    );
+    return { accepte: true, id };
+  } catch (erreur: unknown) {
+    const motif = motifMachine(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
+}
+
+/**
+ * MODIFIE UNE FICHE EXISTANTE — le jumeau de `creerMachine`.
+ *
+ * `modifierMachineDans` n'écrit ni le modèle, ni le client, ni le site, ni
+ * le statut (voir sa note de tête) : cette fonction ne le contourne pas —
+ * elle rend le même refus « introuvable » qu'un identifiant inconnu quand
+ * la politique a filtré la ligne, sans jamais réécrire ce que le dépôt a
+ * délibérément laissé de côté.
+ */
+export async function modifierMachine(
+  contexte: ContexteSession,
+  id: string,
+  saisie: SaisieMachine,
+  client?: PrismaClient,
+): Promise<ResultatMachine> {
+  try {
+    const touchees = await avecContexteApplicatif(
+      contexte,
+      (tx) => modifierMachineDans(tx, id, saisie),
+      client,
+    );
+    return touchees === 0
+      ? { accepte: false, motif: "introuvable" }
+      : { accepte: true, id };
+  } catch (erreur: unknown) {
+    const motif = motifMachine(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
 }

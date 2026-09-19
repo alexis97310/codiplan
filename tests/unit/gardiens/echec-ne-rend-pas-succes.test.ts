@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { interpreterReponseDepot } from "@/components/planning/pose";
+import { interpreterReponseMachine } from "@/components/parc/formulaire-machine";
 import type { Envoi } from "@/lib/courriel/message";
 import { codeApresEnvoi } from "@/scripts/lib/delivrance-premier-acces";
 
@@ -8,14 +9,17 @@ import { codeApresEnvoi } from "@/scripts/lib/delivrance-premier-acces";
  * LE GARDIEN — UN APPEL QUI ÉCHOUE NE REND JAMAIS LA BRANCHE DU SUCCÈS
  * (D-06 et D-03, 17/09/2026).
  *
- * ## Le même défaut, à deux endroits sans rapport
+ * ## Le même défaut, à trois endroits sans rapport
  *
  * Le glisser-déposer du planning (D-06) : `reponse.ok` n'était jamais lu, et
  * un corps vide tombait sur la branche du succès. L'ouverture du premier
  * compte (D-03) : `envoi.parti` était calculé, imprimé, puis JETÉ — le code de
- * sortie valait toujours `0`. Deux gestes différents, la même conséquence :
- * **l'écran, ou le flux GitHub, dit que c'est fait quand ce n'est pas fait**
- * (§9, 31/08 — le silence a exactement la forme du succès).
+ * sortie valait toujours `0`. Le formulaire de création/correction d'une
+ * machine (D-06 étendu le 18/09/2026, sur demande explicite de
+ * l'exploitation) : même mécanisme que le planning, un TROISIÈME appelant.
+ * Trois gestes différents, la même conséquence : **l'écran, ou le flux
+ * GitHub, dit que c'est fait quand ce n'est pas fait** (§9, 31/08 — le
+ * silence a exactement la forme du succès).
  *
  * ## Ce gardien porte sur le FAIT, pas sur le geste
  *
@@ -102,6 +106,51 @@ describe("le glisser-déposer du planning (D-06)", () => {
       ].map((issue) => issue.issue),
     );
     expect(noms.size).toBe(4);
+  });
+});
+
+describe("le formulaire de création/correction d'une machine (D-06, étendu le 18/09/2026)", () => {
+  // Même défaut à éprouver, sur un TROISIÈME appelant : `FormulaireMachine`
+  // (`components/parc/formulaire-machine.tsx`), qui reprend le mécanisme du
+  // planning sur demande explicite de l'exploitation. Voir
+  // `tests/unit/ui/lot-parc.test.ts` pour la mesure à l'écran ; celle-ci
+  // n'éprouve que le calcul, comme les deux blocs ci-dessus.
+  it("JUMEAU — une réponse qui réussit VRAIMENT rend « enregistre »", () => {
+    const issue = interpreterReponseMachine({
+      ok: true,
+      corps: { accepte: true, cle: null, id: "m-1" },
+    });
+    expect(issue.issue).toBe("enregistre");
+  });
+
+  it("un code HTTP d'échec ne rend jamais « enregistre »", () => {
+    const issue = interpreterReponseMachine({ ok: false, corps: null });
+    expect(issue.issue).not.toBe("enregistre");
+  });
+
+  it("un corps VIDE malgré un 200 ne rend jamais « enregistre »", () => {
+    const issue = interpreterReponseMachine({ ok: true, corps: null });
+    expect(issue.issue).not.toBe("enregistre");
+  });
+
+  it("l'ABSENCE de réponse ne rend jamais « enregistre »", () => {
+    const issue = interpreterReponseMachine(null);
+    expect(issue.issue).not.toBe("enregistre");
+  });
+
+  it("JUMEAU — un refus MÉTIER reste un refus, jamais confondu avec les deux issues techniques", () => {
+    const issue = interpreterReponseMachine({
+      ok: true,
+      corps: {
+        accepte: false,
+        cle: "machine.refus.numero_serie_pris",
+        id: null,
+      },
+    });
+    expect(issue).toEqual({
+      issue: "refuse",
+      cle: "machine.refus.numero_serie_pris",
+    });
   });
 });
 
