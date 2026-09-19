@@ -1,5 +1,6 @@
 import { type TypeIntervention } from "@prisma/client";
 
+import type { Annuaire } from "@/lib/auth/annuaire";
 import {
   cleJour,
   versLocal,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { quiTravaille } from "@/lib/interventions/personnes";
 
 /**
  * CE QUE LE PLANNING AFFICHE — et qui n'est ni une règle métier, ni une couleur.
@@ -129,6 +131,32 @@ export function enTeteDuBloc(
  */
 export function objetDuBloc(ligne: { type: TypeIntervention }): string {
   return t(`type_intervention.${ligne.type}`);
+}
+
+/**
+ * LE TECHNICIEN SUR LA FICHE — un NOM, jamais l'identifiant technique (D-04,
+ * I10).
+ *
+ * *Mesuré sur la fiche : `ligne.technicien_id ?? t("intervention.aucun_technicien")`
+ * affichait l'UUID brut dès qu'un technicien était affecté — exactement ce
+ * qu'un `id` ne doit jamais faire (I10 : « clé technique et numéro affiché
+ * sont distincts »).* `lib/interventions/personnes.ts` résout déjà cette même
+ * question pour le planning, sous les trois états que l'annuaire distingue
+ * (nom, refusée, jamais demandée) : les reprendre ici évite une seconde
+ * lecture du même critère (§9, 01/09), qui aurait pu diverger de la première.
+ *
+ * L'absence d'affectation garde son propre libellé, `intervention.aucun_technicien`
+ * — « Interventions non affectées » (le repli de `quiTravaille`) est écrit
+ * pour une COLONNE de planning, pas pour une fiche d'une seule intervention.
+ */
+export function technicienAfficheSurLaFiche(
+  technicienId: string | null,
+  annuaire: Annuaire,
+): string {
+  if (technicienId === null) {
+    return t("intervention.aucun_technicien");
+  }
+  return quiTravaille(technicienId, annuaire);
 }
 
 /**
