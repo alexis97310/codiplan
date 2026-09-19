@@ -347,9 +347,23 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
             {depart}
           </span>
         )}
-        <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
-          {regimeExplique(ligne)}
-        </span>
+        {/*
+          LE MOTIF (régime · origine · rythme) EN INFOBULLE, jamais SUPPRIMÉ
+          (lot PERF, mesuré sur 4fead41) : affiché sur chaque ligne, il
+          répétait jusqu'à cinq lignes de texte une fois enveloppé, et une
+          table cesse d'être une table quand chaque cellule porte un
+          paragraphe. `<details>/<summary>` est une DIVULGATION NATIVE — repliée
+          par défaut, sans JavaScript, sans composant partagé neuf : le motif
+          reste à UN CLIC, jamais retiré du registre (l'esprit de D88).
+        */}
+        <details className="mt-[3px]">
+          <summary className="text-app-encre-faible cursor-pointer text-[11.5px] underline decoration-dotted">
+            {t("vgp.etat_ligne.voir_motif")}
+          </summary>
+          <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
+            {regimeExplique(ligne)}
+          </span>
+        </details>
       </Cellule>
       <Cellule>
         <Link
