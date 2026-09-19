@@ -4703,3 +4703,40 @@ Aucune règle du chapitre 10 n'est amendée : D128 ne réécrit aucune règle de
 > Le jour où l'exploitation demande que la disposition de la maquette l'emporte malgré une règle de gestion déjà arbitrée, ou qu'une information réelle disparaisse pour que l'écran ressemble trait pour trait à la maquette, cette page se rouvre plutôt que d'être contournée à l'écran.
 
 *Aucune règle du chapitre 10 n'est amendée : D128 tranche un ordre de lecture entre deux arbitrages, pas le contenu d'une règle de gestion.*
+
+---
+
+## D129 — LE CLIENT INACTIF SORT DU PLANNING ET DU REGISTRE ; SON HISTORIQUE RESTE ATTEIGNABLE
+
+**Règles amendées :** RG-PLA-08
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 19/09/2026, en réponse à une question posée pendant le lot AV-13 : « Un client inactif doit-il disparaître du planning et de la liste des interventions ? »*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**Aucune règle écrite n'existait sur ce point.** Le chapitre 10 (RG-PLA-01 à 07, RG-SOC-01 à 06) est muet ; `docs/arbitrages.md` et `docs/doctrine-arbitrage.md` aussi. Le seul texte normatif touchant le sujet, `docs/cahier-des-charges.md` §7 (M1, « Clients »), documente l'EXISTENCE d'un champ « statut actif » sans jamais prescrire ce qu'il doit cacher à l'écran. Ni `listerPlanning` ni `filtreDesInterventions` (`lib/interventions/depot.ts`) ne filtraient sur `client.actif` ou `site.actif` — vérifié champ par champ dans leurs clauses `where`. La politique RLS d'`intervention` ne filtre elle-même que sur `societe_id`, `app.client_id` et `app.perimetre_sites` : rien sur `actif`, ce qui règle une question annexe — ce n'est PAS un sujet de cloisonnement, la règle est purement applicative.
+
+Le jeu d'essai (`prisma/seed-data.ts`) pose depuis longtemps un client inactif avec son site, avec ce commentaire : *« un client inactif garde ses sites, actif dit qu'on ne travaille plus pour lui, jamais que ses lieux n'ont pas existé »* — et il produit quatre interventions de démonstration, jamais montrées nulle part comme un cas à part.
+
+### LA DÉCISION
+
+**Une intervention dont le CLIENT est inactif ne s'affiche plus, PAR DÉFAUT, ni dans le planning ni dans le registre `/interventions`.**
+
+**Ce que la règle CACHE.** Le planning (`listerPlanning`) et le registre (`listerInterventions`/`compterInterventions`, via `filtreDesInterventions`) : une intervention dont `client.actif = false` n'y apparaît plus par défaut.
+
+**Ce que la règle NE CACHE PAS, et c'est la nuance qui compte.** Alexis a répondu à la question posée — « doit-il disparaître du planning et de la liste des interventions » — pas à celle de l'historique. Faire disparaître un client de ces deux écrans SANS moyen de retrouver son passé rendrait l'historique inatteignable, ce qui est un choix distinct, plus lourd, qu'on ne peut pas déduire d'un « oui » à la première question. Deux garde-fous, choisis par prudence et réversibles :
+
+1. Le registre `/interventions` porte une case **« Inclure les clients inactifs »** qui revient sur le filtre pour cet écran précis.
+2. La fiche du CLIENT (`dernieresInterventionsDuClient`) continue de montrer l'intégralité de son historique d'interventions, quel que soit son statut — elle ne passe pas par `filtreDesInterventions` et n'a jamais filtré sur `actif`.
+
+Le planning n'offre PAS cette case : il reste, par nature, une vue de ce qui reste à faire ou à suivre activement, jamais un registre d'historique — c'est déjà ainsi qu'il traite une intervention annulée ou clôturée par ailleurs.
+
+**Ce que la règle ne tranche PAS.** Le statut du SITE est une question distincte, non ouverte ici : un site inactif d'un client actif continue de s'afficher normalement. Les deux notions ne sont pas indissociables dans le code — `client.actif` et `site.actif` sont deux colonnes indépendantes, lues par deux filtres qui pourraient être posés séparément — et rien dans cette implémentation ne les a trouvées enchevêtrées.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune politique RLS n'est modifiée : le filtre est appliqué côté application, dans `filtreDesInterventions` et `listerPlanning` (`lib/interventions/depot.ts`), exactement comme les autres critères de recherche du registre. Aucun autre écran n'est concerné — la fiche d'une intervention prise individuellement (`/interventions/{id}`) reste accessible qu'elle porte un client actif ou non, ce qui n'a jamais été la question posée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation tranche la question du SITE inactif, ou celle de l'historique d'un client inactif depuis le planning lui-même, cette page se rouvre plutôt que d'être contournée dans le code.

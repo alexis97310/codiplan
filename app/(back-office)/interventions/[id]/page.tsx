@@ -28,11 +28,13 @@ import {
   accesAuxMontants,
   type AccesAuxMontants,
 } from "@/lib/interventions/montants-visibles";
+import { libellesDesMachines } from "@/lib/machines/depot";
 import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
+  machinesAffichees,
   referenceAffichee,
   retourPlanning,
   technicienAfficheSurLaFiche,
@@ -67,6 +69,21 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * Ce qui change est qu'on voit désormais l'identification et les actions
  * ENSEMBLE — *on décide d'annuler une intervention en regardant ce qu'elle est,
  * pas en s'en souvenant après avoir défilé.*
+ *
+ * ## LA MACHINE ÉTAIT ABSENTE DE CETTE FICHE — GAP COMBLÉ (audit du 19/09/2026)
+ *
+ * *Mesuré : le mot « machine » n'apparaissait nulle part dans ce fichier — pas
+ * une donnée vide, un champ qui n'existait pas.* `CHAMPS_LIGNE`
+ * (`lib/interventions/depot.ts`) lit pourtant `machines` depuis L2-08a, et
+ * `/interventions` les affiche depuis le 18/09/2026. La maquette ne dessine
+ * aucune fiche d'intervention (voir R2-08 ci-dessus) : elle ne dit donc rien
+ * de ce bloc non plus, et la forme retenue est celle que le registre porte
+ * déjà — `machinesAffichees`, reprise telle quelle depuis
+ * `../presentation.ts` plutôt que réécrite une troisième fois. Une
+ * intervention pouvant porter plusieurs machines (`intervention_machine`),
+ * la ligne les joint par une virgule ; aucune ne se dit par le tiret
+ * (RG-INT-01 : aucune machine rattachée signifie le site entier, jamais un
+ * oubli d'écran).
  */
 export default async function PageIntervention({
   params,
@@ -110,6 +127,16 @@ export default async function PageIntervention({
   const nomTechnicien = technicienAfficheSurLaFiche(
     ligne.technicien_id,
     annuaire,
+  );
+  // LE OU LES MACHINES DE L'INTERVENTION (audit du 19/09/2026) — GAP COMBLÉ :
+  // cette fiche ne portait aucun champ machine, alors que `CHAMPS_LIGNE` lit
+  // déjà `ligne.machines` et que `/interventions` les affiche depuis le
+  // 18/09/2026. `libellesDesMachines` et `machinesAffichees` sont les MÊMES
+  // fonctions que la liste (`../presentation.ts`) : une seule écriture de
+  // « quelles machines, avec quel mot pour zéro », jamais une troisième forme.
+  const libellesMachines = await libellesDesMachines(
+    session.contexte,
+    ligne.machines.map((m) => m.machine_id),
   );
 
   return (
@@ -164,6 +191,17 @@ export default async function PageIntervention({
               <Ligne
                 libelle={t("intervention.client")}
                 valeur={fiche.client ?? TIRET}
+              />
+              {/*
+                LA MACHINE SUIT DIRECTEMENT LE CLIENT — même ordre que la
+                colonne du registre (D125/D128) : « machine » y suit
+                immédiatement « client ». Une ou plusieurs, jointes par une
+                virgule, ou le tiret quand aucune n'est rattachée (RG-INT-01 :
+                aucune machine ne signifie le site entier, jamais un oubli).
+              */}
+              <Ligne
+                libelle={t("intervention.machine")}
+                valeur={machinesAffichees(ligne, libellesMachines)}
               />
               {/*
                 LE LIEU MÈNE À SA FICHE (L3-16). C'est ce lien qui donne un

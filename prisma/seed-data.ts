@@ -2035,6 +2035,40 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
 ];
 
 /**
+ * QUELQUES INTERVENTIONS DE DÉMONSTRATION PORTENT LEUR MACHINE (audit du
+ * 19/09/2026).
+ *
+ * **Mesuré : zéro occurrence d'`intervention_machine` dans ce fichier.** Les
+ * dix-neuf interventions de démonstration n'avaient donc AUCUNE machine, et la
+ * colonne « Machine » de `/interventions` (comme le bloc que sa fiche reçoit
+ * le même jour) affichait le tiret sur les dix-neuf lignes depuis qu'elle
+ * existe — jamais éprouvée avec une donnée non nulle.
+ *
+ * **Chaque ligne nomme un RANG D'INTERVENTION et un NOMBRE de machines,
+ * jamais un rang de machine en dur.** Le client réel d'un rang d'intervention
+ * dépend du nombre de sites de la société (`sitesEcrits[index % ...]`,
+ * `prisma/seed.ts`) : quatre pour CODIMA-NC, trois pour CODIMA-EU. Un rang de
+ * machine choisi à l'œil pour l'une serait, pour l'autre, celui d'un client
+ * différent — exactement la faute que `MACHINES_DEMONSTRATION` évite déjà en
+ * ne posant aucune machine sur un site fermé. `prisma/seed.ts` résout donc
+ * lui-même quelles machines appartiennent au MÊME client que l'intervention
+ * visée, dans les deux sociétés.
+ *
+ * **Pas toutes.** La grande majorité des dix-neuf lignes n'apparaît pas ici,
+ * et c'est voulu : le cas SANS machine reste représenté, comme en production
+ * où RG-INT-01 n'en exige aucune pour démarrer. Et l'une des deux lignes en
+ * demande DEUX, pour éprouver le pluriel que `machinesAffichees`
+ * (`app/(back-office)/interventions/presentation.ts`) joint par une virgule.
+ */
+export const INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION: readonly {
+  readonly interventionRang: number;
+  readonly nombreMachines: number;
+}[] = [
+  { interventionRang: 2, nombreMachines: 1 },
+  { interventionRang: 17, nombreMachines: 2 },
+];
+
+/**
  * CE QU'ON NOUS A DIT, ET D'OÙ (D114).
  *
  * Deux lignes, et deux origines différentes : *un rapport d'organisme et une
@@ -2087,10 +2121,12 @@ export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
  * collision qui avait laissé la seconde société sans aucune intervention ne se
  * rejoue pas ici* (§9, 10/09). La famille de l'identifiant — `7000` pour les
  * familles, `8000` pour les modèles, `9000` pour les machines, `a000` pour les
- * vérifications — suit la convention du jeu de démonstration.
+ * vérifications, `b000` pour les rattachements machine d'une intervention —
+ * suit la convention du jeu de démonstration.
  */
 export function identifiantParc(
-  famille: "famille" | "modele" | "machine" | "verification",
+  famille:
+    "famille" | "modele" | "machine" | "verification" | "intervention_machine",
   rangSociete: number,
   rang: number,
 ): string {
@@ -2099,6 +2135,7 @@ export function identifiantParc(
     modele: "8000",
     machine: "9000",
     verification: "a000",
+    intervention_machine: "b000",
   } as const;
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;

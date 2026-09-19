@@ -43,6 +43,7 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
   libelleFiltreAgence,
+  machinesAffichees,
   optionToutesLesAgences,
   referenceAffichee,
 } from "./presentation";
@@ -77,6 +78,20 @@ import {
  * ne sait pas comparer une sous-chaîne sans SQL brut, que le stack imposé
  * interdit hors migrations. Les quatre filtres sont ceux que la maquette
  * annonce : agence, type, statut, période — et eux seuls.
+ *
+ * ## LE CLIENT INACTIF SORT DE CETTE LISTE, ET LA CASE LE FAIT REVENIR (RG-PLA-08, D129)
+ *
+ * **Un CINQUIÈME contrôle, absent de la maquette et volontaire (même raison
+ * que D128 pour un chiffre du tableau de bord)** : depuis l'arbitrage
+ * d'exploitation du 19/09/2026, une intervention dont le CLIENT est inactif
+ * ne s'affiche plus ici PAR DÉFAUT (`filtreClientActif`,
+ * `lib/interventions/depot.ts`) — c'est la même règle que le planning, qui
+ * l'applique sans aucune case pour la lever. *L'historique ne devient pas
+ * inatteignable pour autant* : la case « Inclure les clients inactifs »
+ * revient dessus depuis cet écran, et la fiche du CLIENT continue de tout
+ * montrer, quel que soit son statut (`dernieresInterventionsDuClient`, qui ne
+ * filtre jamais sur `actif`). Le SITE n'est pas concerné — la question reste
+ * ouverte, RG-PLA-08 ne tranche que sur `client.actif`.
  *
  * ## LE CLOISONNEMENT N'EST PAS ÉCRIT ICI
  *
@@ -117,6 +132,10 @@ export default async function PageInterventions({
     statut: typeof params.statut === "string" ? params.statut : "",
     du: typeof params.du === "string" ? params.du : "",
     au: typeof params.au === "string" ? params.au : "",
+    inclure_clients_inactifs:
+      typeof params.inclure_clients_inactifs === "string"
+        ? params.inclure_clients_inactifs
+        : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -274,6 +293,17 @@ export default async function PageInterventions({
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
         </label>
+        {/* RG-PLA-08 (D129) : le seul moyen de revoir, depuis ce registre,
+            les interventions dont le client est devenu inactif — sans quoi
+            leur historique deviendrait inatteignable depuis cet écran. */}
+        <label className="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
+          <input
+            type="checkbox"
+            name="inclure_clients_inactifs"
+            defaultChecked={typeof params.inclure_clients_inactifs === "string"}
+          />
+          {t("interventions.filtre_inclure_clients_inactifs")}
+        </label>
         <button
           type="submit"
           className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
@@ -347,6 +377,10 @@ export default async function PageInterventions({
                 typeof params.statut === "string" ? params.statut : undefined,
               du: typeof params.du === "string" ? params.du : undefined,
               au: typeof params.au === "string" ? params.au : undefined,
+              inclure_clients_inactifs:
+                typeof params.inclure_clients_inactifs === "string"
+                  ? params.inclure_clients_inactifs
+                  : undefined,
             },
             page,
           )
@@ -449,35 +483,6 @@ function LigneIntervention({
     </tr>
   );
 }
-
-/**
- * LES MACHINES D'UNE LIGNE — GAP COMBLÉ (audit du 18/09/2026). `CHAMPS_LIGNE`
- * (`lib/interventions/depot.ts`) lit déjà `machines` ; cette colonne les
- * MONTRE, pour la première fois.
- *
- * **LA RÈGLE RETENUE POUR PLUSIEURS MACHINES** — décidée ici, faute d'une
- * règle de gestion écrite au chapitre 10 : chaque exemplaire s'affiche par
- * son modèle (« marque référence », comme `titreDeLaLigne` sur `/parc`),
- * jamais par son numéro de série — une fiche `SN-INCONNU-…` n'aiderait pas
- * plus à distinguer deux exemplaires dans une cellule dense — et les
- * libellés sont joints par une virgule, sans troncature : le chapitre 11.3
- * ne borne le nombre de machines par intervention nulle part, et tronquer
- * cacherait une machine réellement affectée.
- */
-function machinesAffichees(
-  ligne: LignePlanning,
-  libellesMachines: ReadonlyMap<string, string>,
-): string {
-  if (ligne.machines.length === 0) {
-    return ABSENT;
-  }
-  return ligne.machines
-    .map((m) => libellesMachines.get(m.machine_id) ?? ABSENT)
-    .join(", ");
-}
-
-/** Le signe d'absence — aucune machine affectée (RG-INT-01, dépannage à l'appel). */
-const ABSENT = "—";
 
 /**
  * LE TON DE LA PRIORITÉ — dérivé de l'exemple de la maquette

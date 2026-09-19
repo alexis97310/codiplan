@@ -344,6 +344,19 @@ export const schemaRechercheInterventions = z
         z.coerce.date().nullable(),
       )
       .default(null),
+    /**
+     * INCLURE LES CLIENTS INACTIFS — RG-PLA-08 (arbitrage du 19/09/2026,
+     * direction d'exploitation, D129). Par défaut, ce registre tait les
+     * interventions dont le CLIENT est inactif (`filtreDesInterventions`,
+     * `lib/interventions/depot.ts`) : cette case est le seul moyen de les
+     * revoir depuis cet écran, sans quoi l'historique deviendrait
+     * inatteignable. Une case DÉCOCHÉE ne soumet rien en HTML — d'où le
+     * `"on"` reconnu et rien d'autre.
+     */
+    inclure_clients_inactifs: z.preprocess(
+      (valeur) => valeur === "on",
+      z.boolean(),
+    ),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict()
