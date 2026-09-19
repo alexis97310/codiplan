@@ -133,6 +133,41 @@ export function objetDuBloc(ligne: { type: TypeIntervention }): string {
   return t(`type_intervention.${ligne.type}`);
 }
 
+/** Le signe d'absence — aucune machine affectée (RG-INT-01, dépannage à l'appel). */
+const ABSENT_MACHINE = "—";
+
+/**
+ * LES MACHINES D'UNE INTERVENTION — GAP COMBLÉ (audit du 18/09/2026) pour le
+ * registre `/interventions`, puis REPRISE pour sa fiche (audit du
+ * 19/09/2026) : `CHAMPS_LIGNE` (`lib/interventions/depot.ts`) lit déjà
+ * `machines`, et c'était la SEULE des deux vues à les montrer — la fiche ne
+ * portait aucun champ machine, zéro occurrence du mot dans son fichier.
+ *
+ * **Une seule écriture pour les deux vues** : la liste et la fiche posent la
+ * même question — « quelles machines, dans quel ordre, avec quel mot pour
+ * zéro » — et deux réponses risqueraient de diverger en silence (§9, 01/09).
+ *
+ * **LA RÈGLE RETENUE POUR PLUSIEURS MACHINES** — décidée ici, faute d'une
+ * règle de gestion écrite au chapitre 10 : chaque exemplaire s'affiche par
+ * son modèle (« marque référence », comme `titreDeLaLigne` sur `/parc`),
+ * jamais par son numéro de série — une fiche `SN-INCONNU-…` n'aiderait pas
+ * plus à distinguer deux exemplaires dans une cellule dense — et les
+ * libellés sont joints par une virgule, sans troncature : le chapitre 11.3
+ * ne borne le nombre de machines par intervention nulle part, et tronquer
+ * cacherait une machine réellement affectée.
+ */
+export function machinesAffichees(
+  ligne: { readonly machines: readonly { readonly machine_id: string }[] },
+  libellesMachines: ReadonlyMap<string, string>,
+): string {
+  if (ligne.machines.length === 0) {
+    return ABSENT_MACHINE;
+  }
+  return ligne.machines
+    .map((m) => libellesMachines.get(m.machine_id) ?? ABSENT_MACHINE)
+    .join(", ");
+}
+
 /**
  * LE TECHNICIEN SUR LA FICHE — un NOM, jamais l'identifiant technique (D-04,
  * I10).

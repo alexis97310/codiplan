@@ -1123,6 +1123,30 @@ function restrictionParPersonne(
   return filtreDuPerimetre(perimetre);
 }
 
+/**
+ * LE CLIENT INACTIF SORT DU PLANNING ET DU REGISTRE, PAR DÉFAUT (RG-PLA-08,
+ * D129 — arbitrage du 19/09/2026, direction d'exploitation).
+ *
+ * **Le SITE n'est pas concerné** : RG-PLA-08 ne porte que sur `client.actif`,
+ * et la question du site reste ouverte (§8) — un site inactif d'un client
+ * actif continue de s'afficher.
+ *
+ * **Ce n'est pas une politique RLS** : `intervention` ne porte aucune
+ * politique sur `actif`, et ça n'en devient pas une ici — c'est une décision
+ * d'AFFICHAGE, filtrée côté application comme les autres critères de
+ * `filtreDesInterventions`. `listerPlanning` l'applique SANS EXCEPTION ;
+ * `/interventions` (`filtreDesInterventions`) offre la case « inclure les
+ * clients inactifs » qui la lève — c'est la seule façon prévue de retrouver
+ * l'historique d'un client devenu inactif depuis ces deux écrans. La fiche
+ * du CLIENT, elle, ne passe jamais par ici : `dernieresInterventionsDuClient`
+ * filtre sur `client_id` seul, et continue de tout montrer.
+ */
+function filtreClientActif(
+  inclureClientsInactifs: boolean,
+): Prisma.InterventionWhereInput {
+  return inclureClientsInactifs ? {} : { client: { actif: true } };
+}
+
 /** Une ligne de planning, avec ce qu'il faut pour la lire sans l'ouvrir. */
 export type LignePlanning = LigneIntervention & {
   readonly client: { raison_sociale: string };
@@ -1149,6 +1173,11 @@ export async function listerPlanning(
       tx.intervention.findMany({
         where: {
           ...restriction,
+          // LE CLIENT INACTIF SORT DU PLANNING, SANS EXCEPTION (RG-PLA-08,
+          // D129) : à la différence du registre `/interventions`, cet écran
+          // n'offre aucune case pour le revoir — voir `filtreClientActif`,
+          // qui documente la règle et sa borne (le SITE n'est pas concerné).
+          ...filtreClientActif(false),
           OR: [
             // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
             // L'appelant passe le lendemain à minuit ; avec `lte`, la journée
@@ -1773,6 +1802,7 @@ function filtreDesInterventions(
 
   return {
     ...filtreTexte,
+    ...filtreClientActif(criteres.inclure_clients_inactifs),
     ...(criteres.agence_id === null ? {} : { agence_id: criteres.agence_id }),
     ...(criteres.type === null ? {} : { type: criteres.type }),
     ...(criteres.statut === null ? {} : { statut: criteres.statut }),

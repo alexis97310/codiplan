@@ -796,6 +796,11 @@ export const fr = {
   "interventions.kpi_en_attente": "En attente",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
+  // RG-PLA-08 (D129, 19/09/2026) : un client inactif ne s'affiche plus ici
+  // par défaut — cette case est le seul moyen de le revoir depuis ce
+  // registre, sans quoi son historique deviendrait inatteignable ici.
+  "interventions.filtre_inclure_clients_inactifs":
+    "Inclure les clients inactifs",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //

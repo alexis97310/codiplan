@@ -82,6 +82,10 @@ const BLOC_INTERVENTIONS = fonctionMaquette(
 );
 
 const PAGE = reel("app/(back-office)/interventions/page.tsx");
+// `machinesAffichees` a déménagé dans `presentation.ts` le 19/09/2026 : la
+// fiche d'intervention la réutilise désormais elle aussi, et une seule
+// écriture sert les deux écrans plutôt que d'en recopier une cinquième.
+const PRESENTATION = reel("app/(back-office)/interventions/presentation.ts");
 
 describe("le gardien de composition — /interventions contre interventions() (lot A3, D125/D128)", () => {
   it("TÉMOIN DE NON-VACUITÉ — la maquette dessine réellement les quatre blocs mesurés ici", () => {
@@ -128,12 +132,13 @@ describe("le gardien de composition — /interventions contre interventions() (l
   });
 
   it("BLOC 4 — la machine est restituée (déjà comblé, #236), et sa règle multi-machines est ÉCRITE, jamais implicite", () => {
-    expect(PAGE).toContain("function machinesAffichees(");
-    expect(PAGE).toContain("LA RÈGLE RETENUE POUR PLUSIEURS MACHINES");
+    expect(PAGE).toContain("machinesAffichees(ligne, libellesMachines)");
+    expect(PRESENTATION).toContain("export function machinesAffichees(");
+    expect(PRESENTATION).toContain("LA RÈGLE RETENUE POUR PLUSIEURS MACHINES");
     // La règle retenue : chaque exemplaire par son MODÈLE (jamais son numéro
     // de série), jointes par une virgule, sans troncature (chapitre 11.3 ne
     // borne pas le nombre de machines par intervention).
-    expect(PAGE).toContain('.join(", ")');
+    expect(PRESENTATION).toContain('.join(", ")');
   });
 
   it("BLOC 4 — Machine suit directement Client, comme la maquette ; Site (ajout réel, D128) vient ensuite, jamais avant", () => {

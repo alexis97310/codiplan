@@ -20,10 +20,20 @@ import { describe, expect, it } from "vitest";
  * exactement l'inverse. `tests/unit/ui/lot-a3.test.ts` porte la mesure
  * complète (avant/après) ; ce fichier suit la correction, colonne par
  * colonne, sans rien retirer de ce qu'il gardait déjà.
+ *
+ * **`machinesAffichees` A DÉMÉNAGÉ dans `presentation.ts` (audit du
+ * 19/09/2026)** : la fiche d'intervention la réutilise désormais elle aussi
+ * (`[id]/page.tsx`), et une seule écriture de « quelles machines, avec quel
+ * mot pour zéro » sert les deux écrans plutôt que d'en recopier une
+ * cinquième. Le gardien du signe d'absence lit donc `presentation.ts`.
  */
 
 const SOURCE = readFileSync(
   join(process.cwd(), "app/(back-office)/interventions/page.tsx"),
+  "utf8",
+);
+const PRESENTATION = readFileSync(
+  join(process.cwd(), "app/(back-office)/interventions/presentation.ts"),
   "utf8",
 );
 
@@ -60,8 +70,8 @@ describe("le registre des interventions montre la priorité et les machines (aud
   });
 
   it("les machines d'une ligne sans exemplaire affiché rendent le signe d'absence, jamais un vide", () => {
-    expect(SOURCE).toContain("ligne.machines.length === 0");
-    expect(SOURCE).toContain("return ABSENT;");
+    expect(PRESENTATION).toContain("ligne.machines.length === 0");
+    expect(PRESENTATION).toContain("return ABSENT_MACHINE;");
   });
 
   it("les trois KPI du bandeau sont rendus, avec leurs trois clés du dictionnaire", () => {

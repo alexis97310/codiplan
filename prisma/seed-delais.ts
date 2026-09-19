@@ -3,6 +3,7 @@ import type { DelaisTransaction } from "../lib/db/rls";
 import {
   FAMILLES_MATERIEL_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
+  INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION,
   INTERVENTIONS_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
@@ -154,6 +155,16 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     MODELES_MATERIEL_DEMONSTRATION.length +
     MACHINES_DEMONSTRATION.length +
     VERIFICATIONS_VGP_DEMONSTRATION.length +
+    // LE RATTACHEMENT DE QUELQUES MACHINES À QUELQUES INTERVENTIONS (audit du
+    // 19/09/2026) : un `upsert` par machine effectivement rattachée, dans la
+    // MÊME transaction — la même raison que le reste du parc ci-dessus. Le
+    // NOMBRE DEMANDÉ (`nombreMachines`), pas le nombre effectivement trouvé
+    // pour le client : c'est le budget, pas la mesure, et majorer ne fait
+    // jamais rougir ce gardien à tort.
+    INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION.reduce(
+      (total, rattachement) => total + rattachement.nombreMachines,
+      0,
+    ) +
     societe.calendriers.length +
     plages +
     societe.agences.length +

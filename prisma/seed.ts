@@ -23,6 +23,7 @@ import {
   DEVISES,
   FAMILLES_MATERIEL_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
+  INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION,
   INTERVENTIONS_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
@@ -670,11 +671,19 @@ async function seed(): Promise<void> {
         // RAPPORT — désormais, l'écart se voit au lieu de se taire.
         let ecrites = 0;
         let dejaPresentes = 0;
+        // LE CLIENT DE CHAQUE RANG — pour rattacher, plus bas, quelques
+        // machines à quelques interventions SANS deviner un rang de machine
+        // en dur : le client d'une intervention dépend du LIEU que la boucle
+        // ci-dessus lui tire au sort (`sitesEcrits[index % ...]`), qui diffère
+        // entre CODIMA-NC (4 sites) et CODIMA-EU (3 sites). Une valeur fixée
+        // à la main pour l'une serait fausse pour l'autre (§9, 01/09).
+        const clientIdParInterventionRang = new Map<number, string>();
         for (const intervention of interventions) {
           const lieu = intervention.lieu;
           if (lieu === undefined || lieu.agenceId === undefined) {
             continue;
           }
+          clientIdParInterventionRang.set(intervention.rang, lieu.clientId);
           // **PAS D'`upsert` ICI, ET LA RAISON EST UN VERROU DE LA BASE.**
           // Deux lignes de démonstration sont `cloturee` et `annulee`, et
           // `intervention_cycle_de_vie` refuse toute modification de l'une
@@ -886,6 +895,15 @@ async function seed(): Promise<void> {
         // un parc. Le jeu de démonstration doit se lire d'un coup d'œil.
         const lieuxOuverts = sitesEcrits.filter((lieu) => lieu.ouvert);
         const identifiantsMachines = new Map<number, string>();
+        // LE CLIENT DE CHAQUE MACHINE, pour la même raison que
+        // `clientIdParInterventionRang` ci-dessus. Le MODÈLE l'accompagne :
+        // c'est ce qui permet, plus bas, de préférer des machines de modèles
+        // DIFFÉRENTS pour le cas pluriel — deux exemplaires du même modèle
+        // s'affichent sous le même libellé (`machinesAffichees` ne montre
+        // jamais le numéro de série), et le cas pluriel se verrait mal s'il
+        // montrait deux fois la même chose.
+        const clientIdParMachineRang = new Map<number, string>();
+        const modeleRangParMachineRang = new Map<number, number>();
         for (const machine of MACHINES_DEMONSTRATION) {
           const lieu = lieuxOuverts[machine.siteRang % lieuxOuverts.length];
           const modeleId = identifiantsModeles.get(machine.modeleRang);
@@ -902,6 +920,8 @@ async function seed(): Promise<void> {
             machine.rang,
           );
           identifiantsMachines.set(machine.rang, machineId);
+          clientIdParMachineRang.set(machine.rang, lieu.clientId);
+          modeleRangParMachineRang.set(machine.rang, machine.modeleRang);
           const champsMachine = {
             modele_id: modeleId,
             client_id: lieu.clientId,
@@ -935,6 +955,109 @@ async function seed(): Promise<void> {
             },
           });
         }
+
+        // ── QUELQUES INTERVENTIONS PORTENT LEUR MACHINE (audit du 19/09/2026) ──
+        //
+        // **Mesuré : `intervention_machine` était vide sur les dix-neuf
+        // lignes de démonstration**, et la colonne « Machine » de
+        // `/interventions` comme le nouveau bloc de sa fiche n'avaient donc
+        // jamais été éprouvés avec une donnée non nulle — le tiret s'affichait
+        // sur les dix-neuf lignes depuis qu'il existe.
+        //
+        // `INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION` ne nomme QUE le rang de
+        // l'intervention et le NOMBRE de machines à lui donner — jamais un
+        // rang de machine en dur : le client d'un rang donné diffère entre
+        // CODIMA-NC et CODIMA-EU (nombre de sites différent), et une machine
+        // choisie à l'œil pour l'une serait, pour l'autre, celle d'un client
+        // différent. Les deux tables ci-dessus donnent le client réel de
+        // chaque rang ; celles-ci ne font que les croiser.
+        //
+        // **Le cas VIDE reste représenté** : la grande majorité des dix-neuf
+        // lignes n'apparaît pas dans cette liste, exactement comme en
+        // production où RG-INT-01 n'exige aucune machine pour démarrer. Et au
+        // moins une entrée en demande PLUSIEURS, pour éprouver le pluriel que
+        // `machinesAffichees` (`app/(back-office)/interventions/
+        // presentation.ts`) sait déjà joindre par une virgule.
+        let machinesRattachees = 0;
+        // UN COMPTEUR SÉQUENTIEL, PAS UN CALCUL SUR LE RANG DE L'INTERVENTION
+        // (§9, 01/09) : `identifiantParc` réserve cent identifiants par
+        // société pour CHAQUE famille (voir sa note de tête), et un rang de
+        // dix-neuf multiplié déborderait cette plage. Un simple rang de un à
+        // N — la seule chose qui compte pour l'unicité — reste dans la plage
+        // quel que soit le rang de l'intervention visée.
+        let rangRattachement = 0;
+        for (const rattachement of INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION) {
+          const interventionId = identifiantIntervention(
+            rangSociete,
+            rattachement.interventionRang,
+          );
+          const clientId = clientIdParInterventionRang.get(
+            rattachement.interventionRang,
+          );
+          // L'intervention peut manquer pour CETTE société — même raison que
+          // la collision d'identifiants documentée plus haut (§9, 10/09) :
+          // rien à rattacher n'est alors PAS une erreur.
+          if (clientId === undefined) {
+            continue;
+          }
+          // LES MODÈLES DIFFÉRENTS D'ABORD — un exemplaire par modèle tant
+          // qu'il en reste un de nouveau, les doublons de modèle ensuite :
+          // sans ce tri, le cas pluriel pourrait montrer deux fois le même
+          // libellé (`machinesAffichees` ne distingue pas deux exemplaires
+          // d'un même modèle), ce qui se lirait comme une donnée dupliquée
+          // plutôt que comme deux machines.
+          const candidats = [...clientIdParMachineRang.entries()]
+            .filter(([, idClient]) => idClient === clientId)
+            .map(([rang]) => rang)
+            .sort((a, b) => a - b);
+          const modelesVus = new Set<number>();
+          const modelesInedits: number[] = [];
+          const modelesDejaVus: number[] = [];
+          for (const rang of candidats) {
+            const modeleRang = modeleRangParMachineRang.get(rang);
+            if (modeleRang !== undefined && !modelesVus.has(modeleRang)) {
+              modelesVus.add(modeleRang);
+              modelesInedits.push(rang);
+            } else {
+              modelesDejaVus.push(rang);
+            }
+          }
+          const rangsMachinesDuClient = [
+            ...modelesInedits,
+            ...modelesDejaVus,
+          ].slice(0, rattachement.nombreMachines);
+          for (const machineRang of rangsMachinesDuClient) {
+            const machineId = identifiantsMachines.get(machineRang);
+            if (machineId === undefined) {
+              continue;
+            }
+            rangRattachement += 1;
+            await tx.interventionMachine.upsert({
+              where: {
+                intervention_id_machine_id: {
+                  intervention_id: interventionId,
+                  machine_id: machineId,
+                },
+              },
+              update: {},
+              create: {
+                id: identifiantParc(
+                  "intervention_machine",
+                  rangSociete,
+                  rangRattachement,
+                ),
+                societe_id: id,
+                intervention_id: interventionId,
+                machine_id: machineId,
+              },
+            });
+            machinesRattachees += 1;
+          }
+        }
+        etape(
+          `${societe.code} — machines rattachées à des interventions de ` +
+            `démonstration : ${machinesRattachees}`,
+        );
 
         etape(
           `${societe.code} — vérifications périodiques reçues : ` +
