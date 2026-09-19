@@ -136,8 +136,16 @@ export type ResumeDuParc = {
   readonly garantieExpirant90j: number;
 };
 
+/**
+ * CE QUE `resumerLeParc` LIT, ET RIEN DE PLUS (mesuré, lot PERF) — `statut`,
+ * `complet`, `garantie_fin`. Le type reste un `Pick` de `LigneDeParc`, jamais
+ * un type recopié : toute fiche complète (`LigneDeParc`) le satisfait déjà,
+ * et un champ ajouté un jour au calcul se réclamera de la même source.
+ */
+type LigneResumeParc = Pick<LigneDeParc, "statut" | "complet" | "garantie_fin">;
+
 export function resumerLeParc(
-  lignes: readonly LigneDeParc[],
+  lignes: readonly LigneResumeParc[],
   // L'INSTANT COURANT EST UN PARAMÈTRE, jamais une lecture (D13, L0-08) —
   // sinon un test vert dirait que l'horloge a bougé.
   maintenant: Date,
@@ -338,7 +346,24 @@ export async function compterLeParc(
  * — le même principe que `compterSansCodeExterne` assume déjà pour les
  * clients : une seconde lecture du même critère est admise, tant qu'elle
  * partage l'unique écriture du filtre (`filtreDuParc`).
+ *
+ * **LA SÉLECTION EST ÉTROITE, ET C'EST TOUT LE GAIN (lot PERF, mesuré sur
+ * 4fead41)** : `resumerLeParc` ne lit que `statut`, `complet` et
+ * `garantie_fin` (voir `LigneResumeParc`) — jamais `modele`, `client` ou
+ * `site`, qui n'entrent dans AUCUN des cinq comptes du résumé. Charger
+ * `CHAMPS_PARC` ici tirait donc deux jointures (modèle → famille, site →
+ * agence) sur des centaines de lignes pour un résumé qui n'en use jamais un
+ * seul champ. Même `where`, même `take` : le jeu de lignes compté est
+ * RIGOUREUSEMENT le même, seules les colonnes lues changent — le résultat de
+ * `resumerLeParc` est donc inchangé au chiffre près (gardien :
+ * `tests/unit/perf/parc-resume-etroit.test.ts`).
  */
+const CHAMPS_RESUME_PARC = {
+  statut: true,
+  complet: true,
+  garantie_fin: true,
+} as const;
+
 export async function resumerLeParcFiltre(
   contexte: ContexteSession,
   criteres: RechercheParc,
@@ -349,7 +374,7 @@ export async function resumerLeParcFiltre(
     contexte,
     (tx) =>
       tx.machine.findMany({
-        select: CHAMPS_PARC,
+        select: CHAMPS_RESUME_PARC,
         where: filtreDuParc(criteres),
         take: LIMITE_RECHERCHE_MAXIMALE,
       }),
