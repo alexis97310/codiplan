@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge } from "@/components/ui/badge";
 import { type LigneOccupation } from "@/lib/interventions/occupation";
 import { tauxCompact } from "@/lib/interventions/statistiques";
 import {
@@ -37,7 +38,7 @@ import {
 } from "@/lib/calendar/semaine";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { listerPlanning } from "@/lib/interventions/depot";
 import { fileDAttente, lignesAffichees } from "@/lib/interventions/affichage";
 import {
@@ -347,12 +348,40 @@ export default async function PagePlanning({
         <>
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
           <Deplacement vue={vue} jour={jourAffiche} semaine={jours[0]} />
-          <LienPrimaire href="/interventions/nouvelle">
-            {t("planning.creer")}
-          </LienPrimaire>
+          <span data-maquette-bloc="bouton-primaire-intervention">
+            <LienPrimaire href="/interventions/nouvelle">
+              {t("planning.creer")}
+            </LienPrimaire>
+          </span>
         </>
       }
     >
+      {/*
+        LA BANNIÈRE « CALENDRIERS D'AGENCE RESPECTÉS » (D125, D128, LOT A2).
+
+        Mesurée ABSENTE par `docs/audits/2026-09-19-ecrans.md` — le seul écart
+        de ce lot que rien ne justifiait de garder. Le texte ne recopie PAS
+        l'exemple figé de la maquette : la liste des jours par agence est
+        COMPOSÉE depuis `pourGrille` (donc depuis `joursTravailles`), jamais
+        écrite en dur — une agence dont le calendrier change n'oblige à
+        modifier aucune chaîne ici (I7).
+      */}
+      <div
+        data-maquette-bloc="banniere-calendriers"
+        className="border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre mb-4 flex gap-2.5 rounded-[11px] border px-3.5 py-3 text-[12.5px]"
+      >
+        {/* Le rond plein, décoratif — comme les pastilles de `Legende`, jamais
+            un caractère « i » qui serait un texte de plus à faire passer par
+            le dictionnaire pour ce qu'il ne dit rien de plus qu'une couleur. */}
+        <span
+          aria-hidden
+          className="border-app-bleu-bord mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2"
+        />
+        <div>
+          <strong className="block">{titreCalendriers()}</strong>
+          <p className="mt-0.5">{texteCalendriers(pourGrille)}</p>
+        </div>
+      </div>
       {/*
         ~~LES DEUX VUES NE MONTRENT PAS LA MÊME POPULATION, ET ELLES LE
         DISENT (14/09/2026)~~ — RETIRÉ LE 17/09/2026 (N-06). C'était
@@ -396,46 +425,39 @@ export default async function PagePlanning({
             {t(cle)}
           </p>
         ))}
-        <div className="grid items-start gap-4 lg:grid-cols-[1fr_290px]">
-          {vue === "jour" ? (
-            <VueJour
-              journee={construireJournee(
-                affichees,
-                jourAffiche,
-                pourJournee,
-                minutesDe,
-                pourTechniciens,
-              )}
-              annuaire={annuaire}
-              jourAffiche={jourAffiche}
-            />
-          ) : (
-            <VueSemaine
-              jours={jours}
-              grille={construireGrille(
-                affichees,
-                jours,
-                pourGrille,
-                (id) => nomSeul(id, annuaire),
-                pourTechniciens,
-              )}
-              annuaire={annuaire}
-              chargeDe={chargeParTechnicien}
-              fuseauPour={(agenceId) =>
-                schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
-              }
-            />
-          )}
+        {/*
+          L'ORDRE DE COLONNES SUIT LA MAQUETTE (D125, LOT A2) : `.planning-shell`
+          pose la carte « À affecter » à GAUCHE de la grille, jamais à droite —
+          mesuré inversé par l'audit du 19/09 (coût Moyen). Rien ne s'y oppose :
+          ni une règle de gestion (D128) ni une donnée que l'inversion ferait
+          disparaître, seulement une classe de grille et l'ordre du JSX.
 
-          <aside className="flex flex-col gap-4">
+          CET ORDRE NE VAUT QU'À DEUX COLONNES (`lg`). En dessous, la grille
+          retombe à une seule colonne et suit l'ordre du DOM : y garder l'aside
+          en premier ferait défiler toute la file — potentiellement sans borne
+          — avant le planning sur téléphone et tablette (revue d'exploitation,
+          19/09/2026). `order-2 lg:order-1` / `order-1 lg:order-2` séparent
+          l'ordre VISUEL de l'ordre du DOM : le planning reste lu en premier
+          par un lecteur d'écran et par un clavier, sur toutes les largeurs.
+        */}
+        <div className="grid items-start gap-4 lg:grid-cols-[290px_1fr]">
+          <aside
+            data-maquette-bloc="carte-a-affecter"
+            className="order-2 flex flex-col gap-4 lg:order-1"
+          >
             <section className="bg-app-surface border-app-bord rounded-lg border">
               <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
                 {t("planning.file_attente")}
-                <span className="text-app-marque text-[11px] font-semibold">
-                  {attente.length}
+                <span data-maquette-bloc="badge-a-affecter">
+                  <Badge ton="orange">
+                    {attente.length} {t("planning.file_attente_dossiers")}
+                  </Badge>
                 </span>
               </h2>
-              <div className="flex flex-col gap-2 p-4">
+              <div
+                data-maquette-bloc="cartes-dossier-file"
+                className="flex flex-col gap-2 p-4"
+              >
                 {attente.length === 0 ? (
                   <p className="text-app-encre-faible text-[12px]">
                     {t("planning.file_vide")}
@@ -470,6 +492,38 @@ export default async function PagePlanning({
               </div>
             </section>
           </aside>
+
+          <div className="order-1 lg:order-2">
+            {vue === "jour" ? (
+              <VueJour
+                journee={construireJournee(
+                  affichees,
+                  jourAffiche,
+                  pourJournee,
+                  minutesDe,
+                  pourTechniciens,
+                )}
+                annuaire={annuaire}
+                jourAffiche={jourAffiche}
+              />
+            ) : (
+              <VueSemaine
+                jours={jours}
+                grille={construireGrille(
+                  affichees,
+                  jours,
+                  pourGrille,
+                  (id) => nomSeul(id, annuaire),
+                  pourTechniciens,
+                )}
+                annuaire={annuaire}
+                chargeDe={chargeParTechnicien}
+                fuseauPour={(agenceId) =>
+                  schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
+                }
+              />
+            )}
+          </div>
         </div>
 
         {/*
@@ -537,7 +591,10 @@ function VueSemaine({
         c'est donc `ListeSemaine`, une liste par personne, qui prend le relais.
       */}
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]">
+        <table
+          data-maquette-bloc="tableau-charge-semaine"
+          className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]"
+        >
           <colgroup>
             {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
                 écrite dans un écran est une largeur par écran (D95). */}
@@ -576,7 +633,10 @@ function VueSemaine({
               <tr key={ligne.technicienId ?? "-"}>
                 <td className="bg-app-surface-creuse border-app-bord border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
-                  <span className="text-app-encre-faible block text-[10.5px] font-normal">
+                  <span
+                    data-maquette-bloc="nom-technicien-agence"
+                    className="text-app-encre-faible block text-[10.5px] font-normal"
+                  >
                     {ouTravaille(ligne.agences.map((a) => a.libelle))}
                   </span>
                   {/*
@@ -614,6 +674,7 @@ function VueSemaine({
                       >
                         <Link
                           href={`/interventions/${intervention.id}`}
+                          data-maquette-bloc="bloc-intervention-case"
                           className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
                         >
                           {/*
@@ -796,7 +857,10 @@ function VueJour({
   // posée » serait alors un mensonge de plus.
   if (journee.axe.length === 0 || journee.colonnes.length === 0) {
     return (
-      <section className="bg-app-surface border-app-bord rounded-lg border">
+      <section
+        data-maquette-bloc="vue-jour"
+        className="bg-app-surface border-app-bord rounded-lg border"
+      >
         <p className="text-app-encre-faible px-4 py-6 text-[13px]">
           {t("planning.jour_vide")}
         </p>
@@ -805,7 +869,10 @@ function VueJour({
     );
   }
   return (
-    <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+    <section
+      data-maquette-bloc="vue-jour"
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+    >
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-[12.5px]">
         {resumeDesTrous(journee.creneauxLibres, journee.pasMinutes)}
       </p>
@@ -998,7 +1065,10 @@ function Onglets({
 }) {
   const classes = "rounded-md px-3 py-2 text-[12.5px] font-bold";
   return (
-    <div className="border-app-bord flex gap-0.5 rounded-md border p-0.5">
+    <div
+      data-maquette-bloc="selecteur-semaine-jour"
+      className="border-app-bord flex gap-0.5 rounded-md border p-0.5"
+    >
       <Link
         href={`/planning?vue=semaine&semaine=${cleJour(semaine)}`}
         aria-current={vue === "semaine" ? "page" : undefined}
@@ -1013,13 +1083,19 @@ function Onglets({
       <Link
         href={`/planning?vue=jour&jour=${cleJour(jour)}`}
         aria-current={vue === "jour" ? "page" : undefined}
+        aria-label={t("planning.vue_jour")}
         className={
           vue === "jour"
             ? `${classes} bg-app-marque text-app-marque-encre`
             : `${classes} text-app-encre-faible`
         }
       >
-        {t("planning.vue_jour")}
+        {/*
+          LA MAQUETTE NOMME L'ONGLET JOUR PAR LE JOUR RÉEL (« Mercredi »),
+          jamais par le mot générique « Jour » (audit du 19/09, coût Faible :
+          « réutiliser `libelleJour` déjà disponible dans le fichier »).
+        */}
+        <span className="capitalize">{nomDuJourAffiche(jour)}</span>
       </Link>
     </div>
   );
@@ -1116,6 +1192,71 @@ function libelleJour(jour: JourLocal): string {
   const cle = `jour.${jourSemaineIso(jour)}`;
   const nom = estCleTraduction(cle) ? t(cle) : "";
   return `${nom} ${jour.jour}/${String(jour.mois).padStart(2, "0")}/${jour.annee}`.trim();
+}
+
+/** Le seul nom du jour, sans la date — l'onglet « Jour » de la bascule. */
+function nomDuJourAffiche(jour: JourLocal): string {
+  const cle = `jour.${jourSemaineIso(jour)}`;
+  return estCleTraduction(cle) ? t(cle) : t("planning.vue_jour");
+}
+
+/** Le titre de la bannière — le mot « agence » vient de `motDansUnePhrase` (§3). */
+function titreCalendriers(): string {
+  return `${t("planning.calendriers_titre_prefixe")}${motDansUnePhrase("agence")} ${t("planning.calendriers_titre_suffixe")}`;
+}
+
+/**
+ * LE TEXTE ENTIER DE LA BANNIÈRE, composé hors du JSX : un littéral n'y est
+ * pas admis (L0-11), et le point qui sépare la liste des agences de la garde
+ * fixe en est un.
+ */
+function texteCalendriers(
+  agences: readonly {
+    readonly libelle: string;
+    readonly joursOuverts: readonly number[];
+    readonly calendrierConnu: boolean;
+  }[],
+): string {
+  return `${agences.map(resumeCalendrierAgence).join(" · ")}. ${t("planning.calendriers_aide")}`;
+}
+
+/**
+ * LA CLAUSE D'UNE AGENCE DANS LA BANNIÈRE « Calendriers d'agence respectés »
+ * (LOT A2). Elle ne recopie AUCUN jour écrit en dur (I7) : la liste vient de
+ * `joursOuverts`, déjà dérivée de `joursTravailles` par l'appelant.
+ *
+ * DEUX ÉTATS DISTINCTS, DEUX MESSAGES — `retirerPlage` (lib/calendar/depot.ts)
+ * accepte de retirer la dernière plage d'un calendrier : « ce jour n'a plus de
+ * plage » y est un état valide, « fermé », pas une erreur. `calendrierConnu`
+ * peut donc être vrai avec `joursOuverts` vide — un calendrier RATTACHÉ mais
+ * fermé tous les jours — et ce n'est pas la même chose qu'aucun calendrier
+ * rattaché : dire « aucun calendrier » dans ce cas donnerait un faux
+ * diagnostic à qui règle le planning (revue d'exploitation, 19/09/2026).
+ */
+function resumeCalendrierAgence(agence: {
+  readonly libelle: string;
+  readonly joursOuverts: readonly number[];
+  readonly calendrierConnu: boolean;
+}): string {
+  if (!agence.calendrierConnu) {
+    return `${agence.libelle} : ${t("parametres.sans_calendrier")}`;
+  }
+  if (agence.joursOuverts.length === 0) {
+    return `${agence.libelle} : ${t("planning.calendrier_ferme_tous_les_jours")}`;
+  }
+  const jours = [...agence.joursOuverts].sort((a, b) => a - b);
+  const contigu = jours.every((j, i) => i === 0 || j === jours[i - 1] + 1);
+  const texte =
+    contigu && jours.length > 1
+      ? `${nomJourIso(jours[0])} ${t("planning.au")} ${nomJourIso(jours[jours.length - 1])}`
+      : jours.map(nomJourIso).join(", ");
+  return `${agence.libelle} : ${texte}`;
+}
+
+/** Le nom d'un jour ISO (1 = lundi … 7 = dimanche), ou rien s'il est hors plage. */
+function nomJourIso(jour: number): string {
+  const cle = `jour.${jour}`;
+  return estCleTraduction(cle) ? t(cle) : String(jour);
 }
 
 /**
