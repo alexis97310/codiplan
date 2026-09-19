@@ -350,7 +350,11 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/parc",
     quoi: "Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête.",
     authentifie: true,
-    temoin: "Parc machines clients",
+    // « Parc machines clients » — mesuré périmé le 18/09/2026 (audit) : D125
+    // a fait de `head()` de `parc()` la source du titre, sans « clients »
+    // (voir la note de tête d'`app/(back-office)/parc/page.tsx`, N-10). Le
+    // témoin visait un titre que l'écran ne porte plus depuis ce ticket.
+    temoin: "Parc machines",
   },
   {
     // **L'ÉCRAN QU'UN TICKET MARQUÉ `LIVRÉ` N'AVAIT PAS** (14/09/2026). L1-01
@@ -655,14 +659,27 @@ async function premierLienDuTerrain(page: Page): Promise<string> {
   return chemins[0];
 }
 
+/**
+ * **MESURÉ PÉRIMÉ le 18/09/2026 (audit) : le sélecteur visait
+ * `a[href^="/planning/"]`.** `/interventions/{id}` a remplacé `/planning/{id}`
+ * au ticket N-01 (16/09/2026) — « une intervention n'est pas davantage un
+ * sous-écran du planning que du parc ou d'un client » — et chaque bloc du
+ * planning renvoie désormais vers cette URL (`components/planning/pose.tsx`,
+ * `BlocPosable`, chaque bloc reste un lien vers sa fiche). Un sélecteur mort
+ * ne produit pas une erreur bruyante ici : il rend un tableau VIDE, et
+ * l'écran se serait rabattu en silence sur la page d'erreur nommée
+ * `intervention-detail` — exactement le défaut que les témoins existent pour
+ * arrêter, sauf que celui-ci vise un lien plutôt qu'un texte.
+ */
 async function premierLienDIntervention(page: Page): Promise<string> {
   const chemins = await page
-    .locator('a[href^="/planning/"]')
+    .locator('a[href^="/interventions/"]')
     .evaluateAll((elements) =>
       elements
         .map((element) => element.getAttribute("href") ?? "")
         .filter(
-          (href) => href !== "/planning/nouvelle" && href !== "/planning",
+          (href) =>
+            href !== "/interventions/nouvelle" && href !== "/interventions",
         ),
     );
   if (chemins.length === 0) {

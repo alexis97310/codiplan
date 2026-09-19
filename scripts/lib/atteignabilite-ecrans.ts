@@ -91,8 +91,48 @@ export function cheminsDesignes(source: string): string[] {
       }
     }
   }
+
+  // ── LE SEGMENT DYNAMIQUE PEUT ÊTRE SUIVI D'UN SUFFIXE LITTÉRAL ───────────
+  //
+  // Les quatre motifs ci-dessus s'arrêtent au premier `${` : un gabarit
+  // `` `/parc/${machine.id}/modifier` `` ne leur rend que `/parc/`, qui mène
+  // à `/parc/[id]` mais jamais à `/parc/[id]/modifier` — mesuré le 18/09/2026
+  // sur la première route du dépôt où le segment dynamique n'est pas le
+  // dernier. Ce motif-ci lit le gabarit EN ENTIER et remplace CHAQUE
+  // interpolation par `SEGMENT_DYNAMIQUE`, pour que `mene()` puisse faire
+  // correspondre un segment de la désignation à N'IMPORTE QUEL rang de la
+  // route, pas seulement au dernier. Il s'AJOUTE aux motifs ci-dessus, il ne
+  // les remplace pas : les deux désignations coexistent dans `trouves`.
+  const motifsAvecSuffixe = [
+    /\b[a-zA-Z_]+\s*[:=]\s*\{?`([^`]*)`/g,
+    /(?:redirect|push|replace)\(\s*`([^`]*)`/g,
+  ];
+  for (const motif of motifsAvecSuffixe) {
+    for (const trouve of source.matchAll(motif)) {
+      const brut = trouve[1]!;
+      if (!brut.startsWith("/") || !brut.includes("${")) {
+        continue;
+      }
+      const normalise = brut
+        .replaceAll(/\$\{[^}]*\}/g, SEGMENT_DYNAMIQUE)
+        .split("?")[0]!
+        .split("#")[0]!;
+      // Redondant avec les quatre motifs ci-dessus quand le gabarit S'ARRÊTE
+      // au segment dynamique (rien après le dernier jeton) : ne l'ajouter
+      // dans ce cas ferait deux désignations pour le même lien, l'une déjà
+      // couverte par la forme 2 de `mene()`. Seul un SUFFIXE littéral après
+      // le dernier segment dynamique justifie la forme 1.
+      if (!normalise.endsWith(SEGMENT_DYNAMIQUE)) {
+        trouves.add(normalise);
+      }
+    }
+  }
+
   return [...trouves];
 }
+
+/** Le jeton qui, dans une désignation, représente un segment interpolé (`${…}`). */
+const SEGMENT_DYNAMIQUE = "\u0000";
 
 /**
  * Ce chemin désigné mène-t-il à cette route ?
@@ -105,6 +145,27 @@ export function mene(designe: string, route: string): boolean {
     return true;
   }
 
+  // ── FORME 1 : LE SEGMENT DYNAMIQUE EST EXPLICITE (`SEGMENT_DYNAMIQUE`) ───
+  //
+  // Il peut être à N'IMPORTE QUEL rang de la route — `/parc/\0/modifier`
+  // mène à `/parc/[id]/modifier` comme `/parc/\0` mène à `/parc/[id]`. La
+  // désignation porte alors AUTANT de segments que la route : le jeton en
+  // occupe un, là où la forme 2 ci-dessous s'arrête avant de le compter.
+  if (designe.includes(SEGMENT_DYNAMIQUE)) {
+    const segmentsRoute = route.split("/").filter((s) => s.length > 0);
+    const segmentsDesignes = designe.split("/").filter((s) => s.length > 0);
+    if (segmentsDesignes.length !== segmentsRoute.length) {
+      return false;
+    }
+    return segmentsDesignes.every((s, i) =>
+      s === SEGMENT_DYNAMIQUE
+        ? segmentsRoute[i]!.startsWith("[")
+        : s === segmentsRoute[i],
+    );
+  }
+
+  // ── FORME 2 : LE GABARIT S'ARRÊTE AU SEGMENT DYNAMIQUE (historique) ──────
+  //
   // LA BARRE OBLIQUE FINALE PORTE TOUTE LA DIFFÉRENCE, et elle n'est pas de la
   // cosmétique : `href="/parc"` ouvre la LISTE, `` href={`/parc/${id}`} ``
   // ouvre une FICHE. Le second ne laisse qu'un littéral `/parc/`. La dépouiller
