@@ -156,8 +156,12 @@ export default async function PageInterventions({
       largeur: "120px",
     },
     { cle: "client", libelle: t("intervention.client") },
-    { cle: "site", libelle: mot("site") },
+    // MACHINE SUIT DIRECTEMENT CLIENT — l'ORDRE de la maquette (D125) ;
+    // « Site », un ajout réel qu'elle ne dessine pas, la suit plutôt que de
+    // s'intercaler (D128 : gardé, jamais supprimé, mais pas au prix de
+    // l'ordre que D125 fixe). Gardé par tests/unit/ui/lot-a3.test.ts.
     { cle: "machine", libelle: t("intervention.machine") },
+    { cle: "site", libelle: mot("site") },
     {
       cle: "technicien",
       libelle: t("intervention.technicien"),
@@ -422,8 +426,8 @@ function LigneIntervention({
         </Link>
       </Cellule>
       <Cellule>{ligne.client.raison_sociale}</Cellule>
-      <Cellule>{ligne.site.libelle}</Cellule>
       <Cellule>{machinesAffichees(ligne, libellesMachines)}</Cellule>
+      <Cellule>{ligne.site.libelle}</Cellule>
       <Cellule>{technicienAffiche(ligne, annuaire)}</Cellule>
       <Cellule>
         {ligne.date_planifiee === null
