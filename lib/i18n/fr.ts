@@ -2331,6 +2331,14 @@ export const fr = {
   "equipe.e2e.courriel": "technicien.epreuve@codima.test",
   "equipe.e2e.nom_doublon": "Doublon tenté",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
+  // AJOUTÉE EN FIN DE FICHIER (lot PERF, 19/09/2026) — un autre lot y écrit
+  // en même temps. La colonne « État » de `/vgp` répétait le motif complet
+  // (régime · origine · rythme, jusqu'à cinq lignes une fois enveloppé) sur
+  // CHAQUE ligne du tableau ; il reste, mais replié sous une divulgation
+  // native (`<details>/<summary>`, sans JavaScript ni composant partagé
+  // neuf) plutôt qu'affiché d'office — le motif reste ACCESSIBLE, jamais
+  // supprimé (voir `app/(back-office)/vgp/page.tsx`).
+  "vgp.etat_ligne.voir_motif": "Voir le motif",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

@@ -189,8 +189,13 @@ export default async function PageRegistreVgp() {
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
   const aujourdHui = maintenant(fuseau).instant;
 
-  const lignes = await listerLeRegistre(contexte, aujourdHui, LIGNES_AFFICHEES);
-  const indetermines = await famillesADeterminer(contexte);
+  // DEUX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : ni l'une ni
+  // l'autre ne dépend du résultat de l'autre, toutes deux ne dépendent que du
+  // contexte cloisonné.
+  const [lignes, indetermines] = await Promise.all([
+    listerLeRegistre(contexte, aujourdHui, LIGNES_AFFICHEES),
+    famillesADeterminer(contexte),
+  ]);
   // LE MÊME TABLEAU QUE CELUI RENDU, jamais une seconde lecture plafonnée
   // différemment (voir l'en-tête de `resumerLeRegistre`) : ce registre n'est
   // pas paginé, contrairement au parc.
@@ -342,9 +347,23 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
             {depart}
           </span>
         )}
-        <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
-          {regimeExplique(ligne)}
-        </span>
+        {/*
+          LE MOTIF (régime · origine · rythme) EN INFOBULLE, jamais SUPPRIMÉ
+          (lot PERF, mesuré sur 4fead41) : affiché sur chaque ligne, il
+          répétait jusqu'à cinq lignes de texte une fois enveloppé, et une
+          table cesse d'être une table quand chaque cellule porte un
+          paragraphe. `<details>/<summary>` est une DIVULGATION NATIVE — repliée
+          par défaut, sans JavaScript, sans composant partagé neuf : le motif
+          reste à UN CLIC, jamais retiré du registre (l'esprit de D88).
+        */}
+        <details className="mt-[3px]">
+          <summary className="text-app-encre-faible cursor-pointer text-[11.5px] underline decoration-dotted">
+            {t("vgp.etat_ligne.voir_motif")}
+          </summary>
+          <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
+            {regimeExplique(ligne)}
+          </span>
+        </details>
       </Cellule>
       <Cellule>
         <Link
