@@ -1990,6 +1990,25 @@ export const fr = {
   "planning.semaine_apres": "Semaine suivante →",
   "planning.semaine_vide": "Aucune intervention posée sur cette semaine.",
   "planning.file_vide": "Rien n'attend d'être posé.",
+  // ── LOT A2 (D125, D128) — LA BANNIÈRE ABSENTE ET LE BADGE DE LA FILE ────
+  //
+  // `planning()` de codiplan-maquette-complete.html dessine une bannière
+  // « Calendriers d'agence respectés », mesurée ABSENTE par
+  // `docs/audits/2026-09-19-ecrans.md`. Le texte ci-dessous ne recopie PAS
+  // l'exemple figé de la maquette (« Ducos ouvre du lundi au samedi ; Koné du
+  // lundi au vendredi ») : ce serait un calendrier codé en dur (I7). Seuls le
+  // titre et la phrase de garde sont fixes ; la liste des jours par agence est
+  // COMPOSÉE à partir de `joursTravailles`, jamais écrite ici.
+  // Le mot « agence » ne s'écrit jamais ici (§3, vocabulaire imposé) : le
+  // titre se compose en deux morceaux, autour de `motDansUnePhrase("agence")`
+  // — même discipline que `absences.kpi_rupture_aucune_prefixe`.
+  "planning.calendriers_titre_prefixe": "Calendriers d’",
+  "planning.calendriers_titre_suffixe": "respectés",
+  "planning.calendriers_aide":
+    "Une case vide n'est pas automatiquement une disponibilité.",
+  // Le mot du badge de la file « À affecter » — invariant au pluriel, comme
+  // `planning.creneaux_libres` juste au-dessus dans ce fichier.
+  "planning.file_attente_dossiers": "dossiers",
   // ── N-02 / N-06 — LA LISTE DU PLANNING SUR PETITE LARGEUR (17/09/2026) ───
   //
   // Bloc contigu et nommé pour ces clés : `lib/i18n/fr.ts` est aussi
