@@ -431,11 +431,19 @@ export default async function PagePlanning({
           mesuré inversé par l'audit du 19/09 (coût Moyen). Rien ne s'y oppose :
           ni une règle de gestion (D128) ni une donnée que l'inversion ferait
           disparaître, seulement une classe de grille et l'ordre du JSX.
+
+          CET ORDRE NE VAUT QU'À DEUX COLONNES (`lg`). En dessous, la grille
+          retombe à une seule colonne et suit l'ordre du DOM : y garder l'aside
+          en premier ferait défiler toute la file — potentiellement sans borne
+          — avant le planning sur téléphone et tablette (revue d'exploitation,
+          19/09/2026). `order-2 lg:order-1` / `order-1 lg:order-2` séparent
+          l'ordre VISUEL de l'ordre du DOM : le planning reste lu en premier
+          par un lecteur d'écran et par un clavier, sur toutes les largeurs.
         */}
         <div className="grid items-start gap-4 lg:grid-cols-[290px_1fr]">
           <aside
             data-maquette-bloc="carte-a-affecter"
-            className="flex flex-col gap-4"
+            className="order-2 flex flex-col gap-4 lg:order-1"
           >
             <section className="bg-app-surface border-app-bord rounded-lg border">
               <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
@@ -485,35 +493,37 @@ export default async function PagePlanning({
             </section>
           </aside>
 
-          {vue === "jour" ? (
-            <VueJour
-              journee={construireJournee(
-                affichees,
-                jourAffiche,
-                pourJournee,
-                minutesDe,
-                pourTechniciens,
-              )}
-              annuaire={annuaire}
-              jourAffiche={jourAffiche}
-            />
-          ) : (
-            <VueSemaine
-              jours={jours}
-              grille={construireGrille(
-                affichees,
-                jours,
-                pourGrille,
-                (id) => nomSeul(id, annuaire),
-                pourTechniciens,
-              )}
-              annuaire={annuaire}
-              chargeDe={chargeParTechnicien}
-              fuseauPour={(agenceId) =>
-                schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
-              }
-            />
-          )}
+          <div className="order-1 lg:order-2">
+            {vue === "jour" ? (
+              <VueJour
+                journee={construireJournee(
+                  affichees,
+                  jourAffiche,
+                  pourJournee,
+                  minutesDe,
+                  pourTechniciens,
+                )}
+                annuaire={annuaire}
+                jourAffiche={jourAffiche}
+              />
+            ) : (
+              <VueSemaine
+                jours={jours}
+                grille={construireGrille(
+                  affichees,
+                  jours,
+                  pourGrille,
+                  (id) => nomSeul(id, annuaire),
+                  pourTechniciens,
+                )}
+                annuaire={annuaire}
+                chargeDe={chargeParTechnicien}
+                fuseauPour={(agenceId) =>
+                  schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
+                }
+              />
+            )}
+          </div>
         </div>
 
         {/*
@@ -1214,14 +1224,25 @@ function texteCalendriers(
  * LA CLAUSE D'UNE AGENCE DANS LA BANNIÈRE « Calendriers d'agence respectés »
  * (LOT A2). Elle ne recopie AUCUN jour écrit en dur (I7) : la liste vient de
  * `joursOuverts`, déjà dérivée de `joursTravailles` par l'appelant.
+ *
+ * DEUX ÉTATS DISTINCTS, DEUX MESSAGES — `retirerPlage` (lib/calendar/depot.ts)
+ * accepte de retirer la dernière plage d'un calendrier : « ce jour n'a plus de
+ * plage » y est un état valide, « fermé », pas une erreur. `calendrierConnu`
+ * peut donc être vrai avec `joursOuverts` vide — un calendrier RATTACHÉ mais
+ * fermé tous les jours — et ce n'est pas la même chose qu'aucun calendrier
+ * rattaché : dire « aucun calendrier » dans ce cas donnerait un faux
+ * diagnostic à qui règle le planning (revue d'exploitation, 19/09/2026).
  */
 function resumeCalendrierAgence(agence: {
   readonly libelle: string;
   readonly joursOuverts: readonly number[];
   readonly calendrierConnu: boolean;
 }): string {
-  if (!agence.calendrierConnu || agence.joursOuverts.length === 0) {
+  if (!agence.calendrierConnu) {
     return `${agence.libelle} : ${t("parametres.sans_calendrier")}`;
+  }
+  if (agence.joursOuverts.length === 0) {
+    return `${agence.libelle} : ${t("planning.calendrier_ferme_tous_les_jours")}`;
   }
   const jours = [...agence.joursOuverts].sort((a, b) => a - b);
   const contigu = jours.every((j, i) => i === 0 || j === jours[i - 1] + 1);

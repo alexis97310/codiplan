@@ -2009,6 +2009,14 @@ export const fr = {
   // Le mot du badge de la file « À affecter » — invariant au pluriel, comme
   // `planning.creneaux_libres` juste au-dessus dans ce fichier.
   "planning.file_attente_dossiers": "dossiers",
+  // DEUX ÉTATS DIFFÉRENTS DANS LA BANNIÈRE : `parametres.sans_calendrier` dit
+  // qu'AUCUN calendrier n'est rattaché ; cette clé-ci dit qu'un calendrier
+  // EST rattaché mais qu'il n'a plus aucun jour ouvert — `retirerPlage`
+  // accepte de fermer le dernier jour, ce n'est pas une erreur (lib/calendar/
+  // depot.ts). Les confondre donnerait un faux diagnostic (revue
+  // d'exploitation, 19/09/2026).
+  "planning.calendrier_ferme_tous_les_jours":
+    "Calendrier rattaché, mais fermé tous les jours",
   // ── N-02 / N-06 — LA LISTE DU PLANNING SUR PETITE LARGEUR (17/09/2026) ───
   //
   // Bloc contigu et nommé pour ces clés : `lib/i18n/fr.ts` est aussi
