@@ -4,8 +4,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
   peutAffecter,
@@ -30,7 +32,11 @@ import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { referenceAffichee, retourPlanning } from "../presentation";
+import {
+  referenceAffichee,
+  retourPlanning,
+  technicienAfficheSurLaFiche,
+} from "../presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
@@ -92,6 +98,19 @@ export default async function PageIntervention({
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
   const montants = accesAuxMontants(session.contexte.role);
+  // LE NOM, JAMAIS L'IDENTIFIANT (I10, D-04) — voir `technicienAfficheSurLaFiche`.
+  // L'annuaire n'est interrogé QUE pour ce seul identifiant : la même lecture
+  // cloisonnée que `lireFicheIntervention`, sous le contexte de la session.
+  const annuaire = await avecContexteApplicatif(session.contexte, (tx) =>
+    annuaireDesPersonnes(
+      tx,
+      ligne.technicien_id === null ? [] : [ligne.technicien_id],
+    ),
+  );
+  const nomTechnicien = technicienAfficheSurLaFiche(
+    ligne.technicien_id,
+    annuaire,
+  );
 
   return (
     <Page
@@ -175,9 +194,7 @@ export default async function PageIntervention({
               />
               <Ligne
                 libelle={t("intervention.technicien")}
-                valeur={
-                  ligne.technicien_id ?? t("intervention.aucun_technicien")
-                }
+                valeur={nomTechnicien}
               />
               <Ligne
                 libelle={t("intervention.mode_valorisation")}
