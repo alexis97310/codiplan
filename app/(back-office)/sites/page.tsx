@@ -106,15 +106,19 @@ export default async function PageSites({
     client_id: typeof params.client === "string" ? params.client : null,
     page: typeof params.page === "string" ? params.page : undefined,
   });
-  const sites = criteres.success
-    ? await rechercherSites(session.contexte, criteres.data)
-    : [];
+  // `sites` ET `totalFiltre` SONT INDÉPENDANTS (lot PERF, mesuré sur
+  // 4fead41) : les deux ne portent que sur `criteres`, la MÊME
+  // `filtreDeRecherche` — jamais une seconde lecture divergente (AT-07).
+  // `libelles`, lui, dépend du résultat de `sites` et reste donc APRÈS.
+  const [sites, totalFiltre] = await Promise.all([
+    criteres.success
+      ? rechercherSites(session.contexte, criteres.data)
+      : Promise.resolve([]),
+    criteres.success
+      ? compterSites(session.contexte, criteres.data)
+      : Promise.resolve(0),
+  ]);
   const libelles = await libellesDesSites(session.contexte, sites);
-  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste,
-  // jamais une seconde lecture divergente du critère (AT-07).
-  const totalFiltre = criteres.success
-    ? await compterSites(session.contexte, criteres.data)
-    : 0;
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),

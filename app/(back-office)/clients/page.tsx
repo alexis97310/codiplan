@@ -136,27 +136,32 @@ export default async function PageClients({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  const clients = criteres.success
-    ? await rechercherClients(session.contexte, criteres.data)
-    : [];
-  // LE COMPTEUR PORTE SUR LA RECHERCHE, LE TABLEAU SUR LA PAGE — et c'est la
-  // seule chose qui les sépare. Le CRITÈRE, lui, n'a qu'une écriture :
-  // `filtreDeRecherche`, que les deux appellent (§9, 01/09).
-  const sansCode = criteres.success
-    ? await compterSansCodeExterne(session.contexte, criteres.data)
-    : 0;
-  // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste et
-  // que le compteur ci-dessus, jamais une troisième lecture du critère
-  // (AT-07).
-  const totalFiltre = criteres.success
-    ? await compterClients(session.contexte, criteres.data)
-    : 0;
+  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : aucune ne
+  // dépend du résultat d'une autre, seulement de `criteres` — le CRITÈRE
+  // n'a qu'une écriture (`filtreDeRecherche`), et c'est `sites` ci-dessous,
+  // dépendant de `clients`, qui reste seul après.
+  const [clients, sansCode, totalFiltre, libelleSociete] = await Promise.all([
+    criteres.success
+      ? rechercherClients(session.contexte, criteres.data)
+      : Promise.resolve([]),
+    // LE COMPTEUR PORTE SUR LA RECHERCHE, LE TABLEAU SUR LA PAGE — et c'est la
+    // seule chose qui les sépare.
+    criteres.success
+      ? compterSansCodeExterne(session.contexte, criteres.data)
+      : Promise.resolve(0),
+    // LE TOTAL DE LA PAGINATION — la MÊME `filtreDeRecherche` que la liste et
+    // que le compteur ci-dessus, jamais une troisième lecture du critère
+    // (AT-07).
+    criteres.success
+      ? compterClients(session.contexte, criteres.data)
+      : Promise.resolve(0),
+    libelleCodeExterneDeLaSociete(session.contexte),
+  ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
   const sites = await sitesParClient(session.contexte, clients);
-  const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
 
   return (
     <Page
