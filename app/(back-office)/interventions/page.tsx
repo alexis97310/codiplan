@@ -295,12 +295,19 @@ export default async function PageInterventions({
         </label>
         {/* RG-PLA-08 (D129) : le seul moyen de revoir, depuis ce registre,
             les interventions dont le client est devenu inactif — sans quoi
-            leur historique deviendrait inatteignable depuis cet écran. */}
+            leur historique deviendrait inatteignable depuis cet écran.
+            L'ÉTAT AFFICHÉ SUIT LE CRITÈRE ANALYSÉ, jamais le paramètre brut :
+            `?inclure_clients_inactifs=autre-chose-que-on` retombe à `false`
+            dans le schéma (seul `"on"` est reconnu, une case décochée ne
+            soumettant rien) — la case doit se lire décochée dans ce cas,
+            sous peine de contredire les lignes réellement affichées. */}
         <label className="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
           <input
             type="checkbox"
             name="inclure_clients_inactifs"
-            defaultChecked={typeof params.inclure_clients_inactifs === "string"}
+            defaultChecked={
+              criteres.success && criteres.data.inclure_clients_inactifs
+            }
           />
           {t("interventions.filtre_inclure_clients_inactifs")}
         </label>
@@ -377,9 +384,13 @@ export default async function PageInterventions({
                 typeof params.statut === "string" ? params.statut : undefined,
               du: typeof params.du === "string" ? params.du : undefined,
               au: typeof params.au === "string" ? params.au : undefined,
+              // LE CRITÈRE ANALYSÉ, PAS LE PARAMÈTRE BRUT — même raison que
+              // la case à cocher ci-dessus : reporter un `?…=autre-chose`
+              // tel quel d'une page à l'autre propagerait une valeur que le
+              // schéma ne lit pourtant jamais comme « coché ».
               inclure_clients_inactifs:
-                typeof params.inclure_clients_inactifs === "string"
-                  ? params.inclure_clients_inactifs
+                criteres.success && criteres.data.inclure_clients_inactifs
+                  ? "on"
                   : undefined,
             },
             page,
