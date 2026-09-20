@@ -127,7 +127,18 @@ type LectureSeule = {
 
 type Props = {
   readonly action: string;
-  readonly urlRetour: (id: string) => string;
+  /**
+   * La clé du motif à joindre à l'URL de retour, `/parc/{id}?motif={…}`
+   * (D-06). **Une donnée, jamais une fonction** : `urlRetour` était une
+   * fermeture passée telle quelle du composant serveur au composant client,
+   * et React refuse de sérialiser une fonction à travers cette frontière —
+   * mesuré (digests 547900095 et 1461852287, un par écran) : les deux DEVENAIENT
+   * une 500 au premier rendu, avant même que `envoyer` ne s'exécute. Le test
+   * de ce composant ne pouvait pas le voir : il rend `FormulaireMachine`
+   * directement, sans jamais franchir la frontière serveur → client que Next.js
+   * franchit, lui, à chaque requête réelle.
+   */
+  readonly motifSucces: CleTraduction;
   readonly modeles: readonly OptionModele[];
   readonly clients: readonly OptionClient[];
   readonly sites: readonly OptionSite[];
@@ -181,7 +192,9 @@ export function FormulaireMachine(props: Props) {
     }
     switch (issue.issue) {
       case "enregistre":
-        window.location.assign(props.urlRetour(issue.id));
+        window.location.assign(
+          `/parc/${issue.id}?motif=${encodeURIComponent(props.motifSucces)}`,
+        );
         return;
       case "refuse":
         setMotif(issue.cle);
