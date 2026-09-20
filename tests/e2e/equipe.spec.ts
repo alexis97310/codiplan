@@ -1,13 +1,12 @@
-import { createOTP } from "@better-auth/utils/otp";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
 } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * L'ÉQUIPE — créer, modifier et désactiver un technicien (ÉQUIPE-1).
@@ -24,71 +23,16 @@ import {
  *
  * ## Le second facteur, parce que `admin_societe` est un rôle sensible
  *
- * Recopié de `tests/e2e/montants-par-role.spec.ts` plutôt que partagé : le
- * territoire de ce lot n'autorise qu'un seul fichier neuf sous `tests/e2e/`.
- * La clé est lue SUR L'ÉCRAN, comme un humain la lirait — un harnais qui
- * écrirait un secret en base éprouverait un chemin qui n'existe pas.
+ * `ouvrirLaSessionSensible` (`tests/e2e/setup/session.ts`), plutôt qu'une
+ * copie locale (Lot E2E-1) : la copie recopiée de
+ * `tests/e2e/montants-par-role.spec.ts` gardait sa clé d'activation dans une
+ * variable PROPRE à ce fichier, alors que les deux fichiers ouvrent la MÊME
+ * identité `admin_societe` contre la MÊME base, recréée une seule fois pour
+ * toute l'exécution — le second fichier à s'y connecter retrouvait un compte
+ * déjà activé par l'autre, sans jamais avoir vu sa clé. Voir l'en-tête de la
+ * fonction partagée pour la mesure complète.
  */
 test.describe.configure({ mode: "serial" });
-
-function base32VersBrut(base32: string): string {
-  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits = "";
-  for (const caractere of base32.replace(/=+$/, "").toUpperCase()) {
-    const index = ALPHABET.indexOf(caractere);
-    if (index === -1) {
-      throw new Error(`Clé affichée illisible : « ${caractere} » hors base32.`);
-    }
-    bits += index.toString(2).padStart(5, "0");
-  }
-  let brut = "";
-  for (let i = 0; i + 8 <= bits.length; i += 8) {
-    brut += String.fromCharCode(Number.parseInt(bits.slice(i, i + 8), 2));
-  }
-  return brut;
-}
-
-let cleActivee = "";
-
-async function codeCourant(): Promise<string> {
-  return createOTP(cleActivee, { digits: 6, period: 30 }).totp();
-}
-
-async function seConnecter(page: Page, email: string): Promise<void> {
-  await page.goto("/connexion");
-  await page.getByLabel(fr["connexion.email"]).fill(email);
-  await page
-    .getByLabel(fr["connexion.mot_de_passe"])
-    .fill(MOT_DE_PASSE_EPREUVE);
-  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  await page.waitForLoadState("networkidle");
-}
-
-async function ouvrirLaSession(page: Page, email: string): Promise<void> {
-  await seConnecter(page, email);
-  if (page.url().includes("/enrolement")) {
-    await page.fill('input[name="motDePasse"]', MOT_DE_PASSE_EPREUVE);
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-    const affichee = (await page.locator("code").first().innerText()).replace(
-      /\s+/g,
-      "",
-    );
-    cleActivee = base32VersBrut(affichee);
-    expect(cleActivee).not.toBe("");
-    await page.fill('input[name="code"]', await codeCourant());
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-    await seConnecter(page, email);
-  }
-  if (page.url().includes("/connexion/code")) {
-    expect(cleActivee).not.toBe("");
-    await page.fill('input[name="code"]', await codeCourant());
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-  }
-  await expect(page).toHaveURL(/\/arrivee/);
-}
 
 /**
  * Les fixtures de l'épreuve, LUES DU DICTIONNAIRE (L0-11) : le gardien des
@@ -104,7 +48,7 @@ const COURRIEL_NOUVEAU = fr["equipe.e2e.courriel"];
 const NOM_DOUBLON = fr["equipe.e2e.nom_doublon"];
 
 test.beforeEach(async ({ page }) => {
-  await ouvrirLaSession(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
 test("LA PORTE DE PARAMÉTRAGE MÈNE À L'ÉQUIPE", async ({ page }) => {
