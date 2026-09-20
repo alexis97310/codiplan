@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   habilitationsDesTechniciens,
@@ -21,6 +27,8 @@ import {
 } from "@/lib/techniciens/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+
+import { estExpiree } from "./presentation";
 
 /**
  * L'ÉQUIPE — créer, modifier et désactiver un technicien (ÉQUIPE-1).
@@ -87,7 +95,11 @@ export default async function PageEquipe({
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = maintenant(fuseau).instant;
+  // D-13 : `maintenant(fuseau).instant` est un `Date` que le fuseau n'a pas
+  // touché (`new Date(Date.now())`) — comparer son jour avec les accesseurs
+  // `getUTC*` compare le jour UTC, pas le jour à Nouméa. `.local`, lui, est
+  // déjà la lecture dans CE fuseau ; `jourDe` en retient le jour civil.
+  const aujourdHui = jourDe(maintenant(fuseau).local);
 
   return (
     <Page
@@ -141,36 +153,52 @@ export default async function PageEquipe({
               <Cellule>{technicien.email}</Cellule>
               <Cellule>{technicien.agenceLibelle}</Cellule>
               <Cellule>
-                {technicien.actif ? (
-                  <Badge ton="vert">{t("equipe.actif")}</Badge>
-                ) : (
-                  <Badge ton="gris">{t("equipe.inactif")}</Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`#${ancreModification(technicien.utilisateurId)}`}
+                    className="text-app-marque text-[12px] font-semibold underline"
+                  >
+                    {t("equipe.modifier")}
+                  </a>
+                  {technicien.actif ? (
+                    <Badge ton="vert">{t("equipe.actif")}</Badge>
+                  ) : (
+                    <Badge ton="gris">{t("equipe.inactif")}</Badge>
+                  )}
+                </div>
               </Cellule>
             </tr>
           ))}
         </Tableau>
       </section>
 
+      {/*
+        REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
+        `/parametres/habilitations` (voir son commentaire). LE PANNEAU
+        HABILITATIONS SUIT SON TECHNICIEN : il est posé DANS le même
+        `<details>`, jamais à côté, pour rester replié avec lui.
+      */}
       {affiches.map((technicien) => (
-        <section
+        <details
           key={technicien.utilisateurId}
           className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
         >
-          <h2 className="text-[13px] font-bold">
+          <summary className="cursor-pointer text-[13px] font-bold">
             {titreDeModification(technicien.nom)}
-          </h2>
-          <FormulaireModification agences={agences} technicien={technicien} />
+          </summary>
+          <div id={ancreModification(technicien.utilisateurId)}>
+            <FormulaireModification agences={agences} technicien={technicien} />
 
-          <BlocHabilitations
-            technicien={technicien}
-            attributions={
-              habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
-            }
-            habilitations={habilitationsActives}
-            aujourdHui={aujourdHui}
-          />
-        </section>
+            <BlocHabilitations
+              technicien={technicien}
+              attributions={
+                habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
+              }
+              habilitations={habilitationsActives}
+              aujourdHui={aujourdHui}
+            />
+          </div>
+        </details>
       ))}
     </Page>
   );
@@ -184,6 +212,15 @@ const TIRET = " — ";
  */
 function titreDeModification(nom: string): string {
   return `${t("equipe.modifier")}${TIRET}${nom}`;
+}
+
+/**
+ * L'ANCRE DU REPLI (ERGO-1) — jamais posée sur le `<details>` ni sur le
+ * `<summary>`, mesuré sur `/parametres/habilitations` : seul un élément DANS
+ * le contenu replié fait ouvrir le `<details>` à la navigation par ancre.
+ */
+function ancreModification(utilisateurId: string): string {
+  return `technicien-${utilisateurId}`;
 }
 
 /** « Agence de rattachement » — le mot imposé, composé hors du JSX (L0-11). */
@@ -351,7 +388,7 @@ function BlocHabilitations({
   readonly technicien: LigneTechnicien;
   readonly attributions: readonly LigneAttribution[];
   readonly habilitations: readonly LigneHabilitation[];
-  readonly aujourdHui: Date;
+  readonly aujourdHui: JourLocal;
 }) {
   return (
     <div className="border-app-bord mt-2 flex flex-col gap-2 border-t pt-3">
@@ -483,21 +520,4 @@ function expirationAffichee(attribution: LigneAttribution): string {
   return attribution.date_expiration === null
     ? t("habilitations.expire_jamais")
     : dateCivile(attribution.date_expiration);
-}
-
-function estExpiree(attribution: LigneAttribution, aujourdHui: Date): boolean {
-  if (attribution.date_expiration === null) {
-    return false;
-  }
-  const expiration = Date.UTC(
-    attribution.date_expiration.getUTCFullYear(),
-    attribution.date_expiration.getUTCMonth(),
-    attribution.date_expiration.getUTCDate(),
-  );
-  const jourCourant = Date.UTC(
-    aujourdHui.getUTCFullYear(),
-    aujourdHui.getUTCMonth(),
-    aujourdHui.getUTCDate(),
-  );
-  return expiration < jourCourant;
 }

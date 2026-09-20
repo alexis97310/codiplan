@@ -100,6 +100,12 @@ export default async function PageHabilitations({
               <Cellule>{dureeAffichee(habilitation)}</Cellule>
               <Cellule>
                 <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`#${ancreModification(habilitation.id)}`}
+                    className="text-app-marque text-[12px] font-semibold underline"
+                  >
+                    {t("habilitations.modifier")}
+                  </a>
                   <span>
                     {habilitation.actif
                       ? t("habilitations.active")
@@ -127,20 +133,35 @@ export default async function PageHabilitations({
         </Tableau>
       </section>
 
+      {/*
+        REPLI PAR LIGNE (ERGO-1) — sur le modèle du motif VGP
+        (`app/(back-office)/vgp/page.tsx`) : `<details>/<summary>` natif,
+        replié par défaut, aucun JavaScript. Trente-sept formulaires ouverts
+        en même temps sur cet écran (mesuré, `72dec66`, 1280×900 : 18 lignes
+        → 37 <form>, 3 631 px) grossissaient linéairement avec le
+        référentiel. Le lien « Modifier » du tableau cible un DIV posé DANS
+        le contenu replié (jamais le <details> ni le <summary> eux-mêmes) :
+        mesuré (script isolé, playwright, un <details> statique) — seule
+        cette forme fait ouvrir le <details> tout seul à la navigation par
+        ancre ; l'id posé sur le <details> ou sur le <summary> laisse le
+        contenu caché.
+      */}
       {habilitations.map((habilitation) => (
-        <section
+        <details
           key={habilitation.id}
           className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
         >
-          <h2 className="text-[13px] font-bold">
+          <summary className="cursor-pointer text-[13px] font-bold">
             {titreDeModification(habilitation.code)}
-          </h2>
-          <FormulaireHabilitation
-            action={`/api/habilitations/${habilitation.id}/modifier`}
-            soumettre={t("habilitations.enregistrer")}
-            valeurs={habilitation}
-          />
-        </section>
+          </summary>
+          <div id={ancreModification(habilitation.id)}>
+            <FormulaireHabilitation
+              action={`/api/habilitations/${habilitation.id}/modifier`}
+              soumettre={t("habilitations.enregistrer")}
+              valeurs={habilitation}
+            />
+          </div>
+        </details>
       ))}
     </Page>
   );
@@ -156,6 +177,14 @@ const TIRET = " — ";
  */
 function titreDeModification(code: string): string {
   return `${t("habilitations.modifier")}${TIRET}${code}`;
+}
+
+/**
+ * L'ANCRE DU REPLI (ERGO-1) — jamais posée sur le `<details>` ni sur le
+ * `<summary>` : voir le commentaire au-dessus de la liste des sections.
+ */
+function ancreModification(id: string): string {
+  return `habilitation-${id}`;
 }
 
 function colonnes() {

@@ -100,13 +100,16 @@ test("MODIFIER un technicien — bascule inactif, et il sort de la liste par dé
 }) => {
   await page.goto("/parametres/equipe");
 
-  // La section de modification est titrée par le nom, et c'est ce qui la
-  // distingue des autres — une par technicien.
+  // La fiche de modification est titrée par le nom, et c'est ce qui la
+  // distingue des autres — une par technicien. `<details>`, pas `<section>`,
+  // depuis ERGO-1 : repliée par défaut (repli par ligne, sur le modèle du
+  // motif VGP) — on l'ouvre avant d'y agir, comme le ferait un technicien.
   const section = page
-    .locator("section")
+    .locator("details")
     .filter({ hasText: NOM_NOUVEAU })
     .filter({ has: page.locator("form") });
   await expect(section).toBeVisible();
+  await section.locator("summary").click();
 
   await section.getByLabel(fr["equipe.actif"]).uncheck();
   await section.getByRole("button", { name: fr["equipe.enregistrer"] }).click();

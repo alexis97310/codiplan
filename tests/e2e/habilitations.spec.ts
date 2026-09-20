@@ -2,7 +2,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * LE RÉFÉRENTIEL DES HABILITATIONS, LEUR ATTRIBUTION ET LES EXIGENCES DE SITE
@@ -26,11 +27,21 @@ import { ouvrirUneSession } from "./setup/session";
  * dictionnaire, L0-11) : la création la pose, l'attribution et l'exigence la
  * consomment ensuite. *Une base qui recréerait le référentiel à chaque
  * scénario masquerait un doublon que la vraie base refuserait* (`code_pris`).
+ *
+ * ## Le compte de l'épreuve, et pas `COMPTE_EPREUVE` (ERGO-1, 3/3)
+ *
+ * Administrer le référentiel des habilitations relève de la capacité
+ * `administrer_utilisateurs` (`lib/auth/habilitations.ts`), réservée au rôle
+ * `admin_societe` seul (§5.2). `COMPTE_EPREUVE` porte le rôle `adv`, qui n'a
+ * pas cette capacité : une épreuve ouverte avec `ouvrirUneSession` ne mesure
+ * pas le geste réel, elle échoue sur « Accès refusé » à la première écriture.
+ * Même compte et même second facteur qu'`equipe.spec.ts`, pour la même
+ * raison — ne pas remettre `ouvrirUneSession` ici en croyant simplifier.
  */
 test.describe.configure({ mode: "serial" });
 
 test.beforeEach(async ({ page }) => {
-  await ouvrirUneSession(page);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
 const CODE = fr["habilitations.e2e.code"];
@@ -73,17 +84,26 @@ test("CRÉER une habilitation dans le référentiel, puis la VOIR dans la liste"
 });
 
 /**
- * La section de modification d'un technicien, la PREMIÈRE de la liste —
+ * La fiche de modification d'un technicien, la PREMIÈRE de la liste —
  * l'écran n'en prescrit aucun en particulier, seulement qu'il en existe un.
  * Même raisonnement que `premierSite` dans `tests/e2e/sites.spec.ts`.
+ *
+ * **`<details>`, pas `<section>`, depuis ERGO-1** : chaque fiche est repliée
+ * par défaut (repli par ligne, sur le modèle du motif VGP). Une fiche
+ * fraîchement rendue est FERMÉE — l'appelant l'ouvre lui-même avant d'y agir,
+ * en cliquant son `<summary>`, exactement comme le ferait un technicien.
  */
 function premiereFicheTechnicien(page: Page): Locator {
   return page
-    .locator("section")
+    .locator("details")
     .filter({
       has: page.locator('form[action$="/modifier"][action*="/techniciens/"]'),
     })
     .first();
+}
+
+async function ouvrirFiche(fiche: Locator): Promise<void> {
+  await fiche.locator("summary").click();
 }
 
 test("ATTRIBUER l'habilitation à un technicien depuis sa fiche, DATÉE, puis la RETIRER", async ({
@@ -93,6 +113,7 @@ test("ATTRIBUER l'habilitation à un technicien depuis sa fiche, DATÉE, puis la
 
   const fiche = premiereFicheTechnicien(page);
   await expect(fiche).toBeVisible();
+  await ouvrirFiche(fiche);
 
   const formulaireAttribution = fiche.locator(
     'form[action="/api/habilitations/attributions/creer"]',
@@ -114,7 +135,10 @@ test("ATTRIBUER l'habilitation à un technicien depuis sa fiche, DATÉE, puis la
   await expect(page.locator("[role='status']")).toHaveCount(0);
 
   // L'HABILITATION ATTRIBUÉE EST VISIBLE, avec son code — jamais un UUID.
+  // La navigation qui suit la soumission rend la fiche à nouveau FERMÉE
+  // (aucun état client ne survit à un aller-retour serveur) : on la rouvre.
   const ficheApres = premiereFicheTechnicien(page);
+  await ouvrirFiche(ficheApres);
   const ligneAttribuee = ficheApres.locator("li").filter({ hasText: CODE });
   await expect(ligneAttribuee).toBeVisible();
 
@@ -127,9 +151,42 @@ test("ATTRIBUER l'habilitation à un technicien depuis sa fiche, DATÉE, puis la
 
   await expect(page.locator("[role='status']")).toHaveCount(0);
   const ficheFinale = premiereFicheTechnicien(page);
+  await ouvrirFiche(ficheFinale);
   await expect(ficheFinale.locator("li").filter({ hasText: CODE })).toHaveCount(
     0,
   );
+});
+
+/**
+ * ERGO-1 — LE LIEN « MODIFIER » DU TABLEAU REND SA LIGNE ATTEIGNABLE.
+ *
+ * Le point qui peut casser : chaque formulaire de ligne est replié par
+ * défaut, et le lien pointe vers lui par ancre. Mesuré (script isolé,
+ * playwright, un `<details>` statique) — seul un ÉLÉMENT À L'INTÉRIEUR du
+ * contenu replié (jamais le `<details>` ni le `<summary>` eux-mêmes) fait
+ * ouvrir le `<details>` tout seul à la navigation par ancre ; c'est la forme
+ * que portent `habilitations/page.tsx` et `equipe/page.tsx`. Aucune
+ * soumission ici : le champ atteint reste UTILISABLE, mais ce fichier ne
+ * modifie pas l'habilitation partagée `EPR-01` que les autres scénarios de ce
+ * fichier réutilisent (mode `serial`).
+ */
+test("DEPUIS LE TABLEAU, « Modifier » REND LE FORMULAIRE DE LA LIGNE ATTEIGNABLE (ERGO-1)", async ({
+  page,
+}) => {
+  await page.goto("/parametres/habilitations");
+
+  const ligne = page.locator("tr").filter({ hasText: CODE });
+  await expect(ligne).toBeVisible();
+
+  const lien = ligne.getByRole("link", { name: fr["habilitations.modifier"] });
+  await expect(lien).toBeVisible();
+  await lien.click();
+
+  // Le champ « code » DE CETTE LIGNE, jamais celui d'une autre — sa valeur le
+  // distingue, exactement comme `titreDeModification` le fait pour le titre.
+  const champCode = page.locator(`input[name="code"][value="${CODE}"]`);
+  await expect(champCode).toBeVisible();
+  await expect(champCode).toBeEditable();
 });
 
 /**
