@@ -16,15 +16,15 @@ import { applicationDuType } from "@/lib/imports/types-dimport";
  * source du nombre** : `DUREE_MAXIMALE_S`, dans `lib/imports/delais.ts`, l'est
  * — et `tests/unit/imports/delais-application.test.ts` relit CE fichier en
  * texte pour vérifier que le littéral ci-dessous vaut la même chose, ET qu'il
- * ne dépasse pas `PLAFOND_PLATEFORME_S` (300, Vercel Hobby). **La seconde
- * confrontation est celle qui manquait** : `pnpm build` compile un
- * `maxDuration` de 1 200 sans se plaindre — il ne connaît pas la limite de
- * l'hébergeur, seule Vercel l'applique, au déploiement, trop tard pour que la
- * CI le voie. Une seconde constante qui diverge en silence (§9, 01/09) serait
- * ici invisible à `pnpm typecheck` ET à `pnpm build` ; c'est le gardien qui
- * la voit.
+ * ne dépasse pas `PLAFOND_PLATEFORME_S` (800, Vercel Pro — le compte est
+ * passé sur ce plan le 20/09/2026). **La seconde confrontation est celle qui
+ * manquait** : `pnpm build` compile un `maxDuration` de 1 200 sans se
+ * plaindre — il ne connaît pas la limite de l'hébergeur, seule Vercel
+ * l'applique, au déploiement, trop tard pour que la CI le voie. Une seconde
+ * constante qui diverge en silence (§9, 01/09) serait ici invisible à `pnpm
+ * typecheck` ET à `pnpm build` ; c'est le gardien qui la voit.
  */
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 /**
  * APPLIQUER UN LOT — LA SECONDE MOITIÉ DE I6 (L1-11 ; RG-IMP-01, RG-IMP-04).
