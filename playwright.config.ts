@@ -3,7 +3,8 @@ import { randomBytes } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = Number(process.env.PORT ?? 3100);
-const BASE_URL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
+/** Exportée : `tests/e2e/setup/global.ts` en a besoin pour son propre navigateur. */
+export const BASE_URL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 /**
  * LE SERVEUR DE TEST REÇOIT UNE BASE, ET UN SECRET TIRÉ AU SORT (R2-18).
