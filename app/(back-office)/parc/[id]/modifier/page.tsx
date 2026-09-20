@@ -61,9 +61,7 @@ export default async function PageModifierMachine({
       <FormulaireMachine
         mode="modification"
         action={`/api/machines/${machine.id}/modifier`}
-        urlRetour={() =>
-          `/parc/${machine.id}?motif=${encodeURIComponent("machine.modifiee")}`
-        }
+        motifSucces="machine.modifiee"
         modeles={[]}
         clients={[]}
         sites={[]}
