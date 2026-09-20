@@ -1,5 +1,5 @@
 import { Role } from "@/lib/auth/roles";
-import { anneeCourante, cleJour } from "@/lib/calendar/fuseau";
+import { anneeCourante, cleJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { cleJourAdossePaques } from "@/lib/calendar/paques";
 import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
 import type {
@@ -1307,7 +1307,8 @@ export type InterventionDemoSeed = {
   readonly priorite: PrioriteIntervention;
   readonly statut: StatutIntervention;
   /**
-   * Jours depuis le LUNDI de la semaine courante. Négatif = la semaine passée,
+   * Jours depuis `LUNDI_DEMONSTRATION` — un LUNDI FIXE, plus « la semaine
+   * courante » (SEMIS-1, 21/09/2026). Négatif = la semaine d'avant ce lundi,
    * `null` = aucune date, c'est-à-dire la file d'attente.
    */
   readonly joursDepuisLundi: number | null;
@@ -1324,31 +1325,79 @@ export type InterventionDemoSeed = {
   readonly motifSuspension?: string;
   /**
    * L'ATTENTE DE PIÈCE, et les deux vont ENSEMBLE. La date est donnée en jours
-   * depuis le lundi courant, comme le créneau : *une date écrite en dur
-   * vieillirait avec la démonstration.*
+   * depuis `LUNDI_DEMONSTRATION`, comme le créneau.
    */
   readonly pieceAttendueRef?: string;
   readonly pieceDispoJoursDepuisLundi?: number;
 };
 
 /**
+ * LE LUNDI DE RÉFÉRENCE DE LA DÉMONSTRATION — FIXE, ET C'EST UNE DÉCISION
+ * D'EXPLOITATION (SEMIS-1, 21/09/2026, Alexis Plouvier, directeur
+ * d'exploitation).
+ *
+ * **Il était calculé depuis `maintenant(fuseau)` — « le lundi de la semaine
+ * courante » —, et c'est exactement ce qui a vidé l'écran de démonstration.**
+ * Mesuré le 20/09/2026 : `/planning` s'ouvre sur la semaine 39 (21–26/09), les
+ * dix-neuf interventions de démonstration sont toutes sur la semaine 38
+ * (14–19/09) parce que le semis n'a pas tourné depuis, et les quatre
+ * techniciens de la maquette y affichent « Sans intervention ». *Une date
+ * relative qui n'est recalculée qu'au semis suivant n'est pas une date
+ * fraîche : c'est une date absolue qui s'ignore comme telle* — le symptôme
+ * exact que la note de tête d'`INTERVENTIONS_DEMONSTRATION` visait à éviter,
+ * obtenu par le mécanisme même qu'elle avait choisi pour l'éviter.
+ *
+ * **La décision, prise plutôt que rediscutée : PAS DE DATE RELATIVE.** Ce
+ * lundi est un JOUR ÉCRIT EN DUR, à la place de
+ * `lundiDeLaSemaine(maintenant(fuseau).local)`. `tests/unit/calendar/
+ * sans-date-courante-implicite.test.ts` (le gardien n°3 du ticket L0-08)
+ * l'aurait laissé passer — il ne traque que l'horloge SYSTÈME lue sans fuseau,
+ * pas une valeur dérivée de `maintenant()` dans le semis — mais la faute
+ * mesurée est la même famille : une donnée qui se périme parce qu'elle dépend
+ * du jour où le code tourne.
+ *
+ * **La LIMITE est assumée, pas cachée.** Un lundi fixe cesse de dépendre du
+ * jour où le semis s'exécute ; il ne cesse pas de vieillir. Une fois le mois
+ * couvert par `INTERVENTIONS_DEMONSTRATION` passé, l'écran de démonstration
+ * redeviendra vide exactement comme le 20/09/2026, et il faudra re-semer une
+ * nouvelle fenêtre de dates. C'est un choix de l'exploitation — mieux vaut un
+ * mois de démonstration qui vieillit au jour près qu'un plan qui se déplace
+ * tout seul et qu'on ne peut plus confronter à une capture d'écran — et non un
+ * oubli : la prochaine session qui trouve cet écran vide ne découvre pas un
+ * défaut, elle découvre l'échéance annoncée ici.
+ */
+export const LUNDI_DEMONSTRATION: JourLocal = {
+  annee: 2026,
+  mois: 9,
+  jour: 14,
+};
+
+/**
  * Les interventions de démonstration (R2-12).
  *
- * ## LES DATES SONT RELATIVES, ET C'EST LA LEÇON DES JOURS FÉRIÉS
+ * ## LES DATES SONT FIXES, DEPUIS SEMIS-1 (21/09/2026)
  *
- * Elles étaient ABSOLUES — du 2 au 14 septembre 2026 —, et une démonstration
- * datée se périme sans jamais être vide : le planning s'ouvre sur la semaine
- * courante, et six interventions figées dans le passé lui laissent des colonnes
- * blanches. *C'est très exactement le §9 du 21/08 sur les fériés — « une donnée
- * datée se périme en silence » —, appliqué au jeu de démonstration au lieu du
- * référentiel.* Elles sont donc posées par rapport au LUNDI DE LA SEMAINE
- * COURANTE, lu dans le fuseau de la société.
+ * Elles étaient RELATIVES — posées par rapport au lundi de « la semaine
+ * courante », recalculé à chaque semis — précisément pour éviter qu'une
+ * démonstration datée se périme sans jamais être vide (§9 du 21/08 sur les
+ * fériés, appliqué au jeu de démonstration). **C'est ce mécanisme-là qui a
+ * produit la panne qu'il devait empêcher** : mesuré le 20/09/2026, le semis
+ * n'avait pas tourné depuis la semaine du 14/09, si bien que « la semaine
+ * courante » qu'il avait écrite en base (14–19/09) a cessé d'en être une dès
+ * que le calendrier réel est passé à la semaine du 21 — l'écran s'est vidé
+ * exactement comme une date absolue non rafraîchie. Une date relative qui
+ * n'est recalculée qu'au semis suivant EST une date absolue, elle se contente
+ * de le cacher.
+ *
+ * Elles sont donc posées par rapport à `LUNDI_DEMONSTRATION`, un jour ÉCRIT EN
+ * DUR (2026-09-14) plutôt que lu dans le calendrier au moment du semis — la
+ * décision et sa limite assumée sont documentées à sa définition, juste
+ * au-dessus.
  *
  * **Le passé reste au passé.** Les interventions terminales — clôturée,
- * annulée, terminée — sont placées la semaine d'avant : c'est ce qu'un planning
- * réel montre, et c'est aussi ce que le verrou de cycle de vie impose, une
- * ligne close ne se réécrivant plus (D84). Les vivantes sont sur la semaine
- * courante, et le semis les y RAMÈNE à chaque exécution.
+ * annulée, terminée — sont placées la semaine d'avant `LUNDI_DEMONSTRATION` :
+ * c'est ce qu'un planning réel montre, et c'est aussi ce que le verrou de
+ * cycle de vie impose, une ligne close ne se réécrivant plus (D84).
  *
  * ## POURQUOI SEIZE, ET PAS SIX
  *
@@ -1614,6 +1663,168 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     joursDepuisLundi: 1,
     debutMinutes: 780,
     dureeMin: 240,
+    temps_valide_min: null,
+  },
+
+  // ── LE RESTE DU MOIS (SEMIS-1, 21/09/2026) ────────────────────────────────
+  //
+  // **Ce que les dix-neuf lignes ci-dessus ne couvrent PLUS.** Elles tombent
+  // toutes entre `LUNDI_DEMONSTRATION` - 5 jours et `LUNDI_DEMONSTRATION` + 5
+  // jours, c'est-à-dire la seule semaine du 14 au 19/09/2026. Les douze
+  // suivantes couvrent les deux semaines qui suivent — 21–26/09 et
+  // 28/09–03/10 — pour que la démonstration reste garnie au-delà de cette
+  // seule semaine, sans toucher aux dix-neuf premières : ni leur `rang`, ni
+  // leur `joursDepuisLundi`, ni l'ordre qui décide de leur SITE (voir plus
+  // bas) ne changent. « Ancien client » (rang 4, 9, 12 et 16 parmi les
+  // dix-neuf premières, par le même tour de rôle sur les sites — voir
+  // `sitesEcrits[index % sitesEcrits.length]` dans `prisma/seed.ts`) continue
+  // de jouer son rôle de RG-PLA-08 sans qu'on y touche ici ; le même tour de
+  // rôle continue naturellement sur les rangs 20, 24 et 28 ci-dessous.
+  //
+  // **AUCUN SAMEDI, ET C'EST DÉLIBÉRÉ.** `INTERVENTIONS_DEMONSTRATION` est
+  // partagée par LES DEUX sociétés : le tour de rôle sur les sites retombe,
+  // pour CODIMA-EU, uniquement sur des sites de l'agence `SIEGE` — dont le
+  // calendrier `DEMO-SIEGE` ferme le samedi ET le dimanche. Une ligne posée un
+  // samedi pour étoffer Ducos ou Dolbeau (RG-PLA-07 les laisserait ouverts) se
+  // retrouverait donc, pour l'autre société, un samedi fermé — exactement ce
+  // que RG-PLA-07/I7 interdit. Les douze lignes qui suivent ne posent donc
+  // jamais un jour au-delà du VENDREDI de chaque semaine — le plus étroit des
+  // calendriers de démonstration (`DEMO-KONE` et `DEMO-SIEGE`, tous deux
+  // lundi-vendredi) — ce qui les rend valides pour Ducos, Dolbeau, Koné ET le
+  // Siège à la fois, sans avoir à distinguer une société de l'autre ici.
+  //
+  // **LE 24/09/2026 EST ÉVITÉ**, alors qu'il tombe un jeudi ouvré pour toutes
+  // les agences : c'est la Fête de la citoyenneté, un jour férié du
+  // territoire (`FERIES_FIXES_NC`). Une intervention posée ce jour-là
+  // afficherait une case hachurée « fermé » sur un planning qui prétend
+  // pourtant l'avoir posée — un défaut qu'aucun test ne lève parce
+  // qu'aucune contrainte de base ne borne `date_planifiee` au calendrier
+  // (seul le dépôt interactif de `lib/interventions/depot.ts` le refuse) ;
+  // rien ne l'aurait donc fait échouer, mais l'écran aurait menti.
+  {
+    rang: 20,
+    type: "controle_reglementaire",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 7,
+    debutMinutes: 480,
+    dureeMin: 90,
+    temps_valide_min: null,
+  },
+  {
+    rang: 21,
+    type: "curatif",
+    priorite: "p1",
+    statut: "affectee",
+    joursDepuisLundi: 8,
+    debutMinutes: 450,
+    dureeMin: 150,
+    temps_valide_min: null,
+  },
+  {
+    rang: 22,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 9,
+    debutMinutes: 450,
+    dureeMin: 120,
+    temps_valide_min: null,
+  },
+  {
+    rang: 23,
+    type: "garantie",
+    priorite: "p4",
+    statut: "planifiee",
+    joursDepuisLundi: 9,
+    debutMinutes: 780,
+    dureeMin: 60,
+    temps_valide_min: null,
+  },
+  {
+    rang: 24,
+    type: "curatif",
+    priorite: "p2",
+    statut: "planifiee",
+    joursDepuisLundi: 11,
+    debutMinutes: 540,
+    dureeMin: 120,
+    temps_valide_min: null,
+  },
+  {
+    rang: 25,
+    type: "curatif",
+    priorite: "p1",
+    statut: "affectee",
+    joursDepuisLundi: 7,
+    debutMinutes: 810,
+    dureeMin: 120,
+    temps_valide_min: null,
+  },
+  {
+    rang: 26,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 14,
+    debutMinutes: 450,
+    dureeMin: 120,
+    temps_valide_min: null,
+  },
+  {
+    rang: 27,
+    type: "controle_reglementaire",
+    priorite: "p2",
+    statut: "affectee",
+    joursDepuisLundi: 15,
+    debutMinutes: 780,
+    dureeMin: 90,
+    temps_valide_min: null,
+  },
+  {
+    rang: 28,
+    type: "installation",
+    priorite: "p2",
+    statut: "planifiee",
+    joursDepuisLundi: 16,
+    debutMinutes: 480,
+    dureeMin: 180,
+    temps_valide_min: null,
+  },
+  {
+    rang: 29,
+    type: "curatif",
+    priorite: "p1",
+    statut: "planifiee",
+    joursDepuisLundi: 17,
+    debutMinutes: 450,
+    dureeMin: 120,
+    temps_valide_min: null,
+  },
+  {
+    // LA FILE « EN ATTENTE DE PIÈCE », comme rang 11 — mais SUR LA SEMAINE QUI
+    // SUIT, pour montrer que RG-INT-06 ne concerne pas que la semaine
+    // affichée par défaut.
+    rang: 30,
+    type: "garantie",
+    priorite: "p4",
+    statut: "suspendue",
+    joursDepuisLundi: 18,
+    debutMinutes: 540,
+    dureeMin: 60,
+    temps_valide_min: null,
+    motifSuspension: "Attente de pièce fournisseur",
+    pieceAttendueRef: "CMP-5502-A",
+    pieceDispoJoursDepuisLundi: 21,
+  },
+  {
+    rang: 31,
+    type: "preventif_contrat",
+    priorite: "p3",
+    statut: "planifiee",
+    joursDepuisLundi: 14,
+    debutMinutes: 780,
+    dureeMin: 120,
     temps_valide_min: null,
   },
 ];
@@ -2066,6 +2277,12 @@ export const INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION: readonly {
 }[] = [
   { interventionRang: 2, nombreMachines: 1 },
   { interventionRang: 17, nombreMachines: 2 },
+  // Les mêmes cas, rejoués sur les semaines ajoutées par SEMIS-1 : rang 21
+  // (index 20, Ducos) reçoit une seule machine, rang 23 (index 22, Garage de
+  // Koné) en reçoit deux — la colonne « Machine » et son pluriel restent
+  // éprouvés au-delà de la seule semaine du 14–19/09.
+  { interventionRang: 21, nombreMachines: 1 },
+  { interventionRang: 23, nombreMachines: 2 },
 ];
 
 /**
