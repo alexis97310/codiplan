@@ -1362,6 +1362,11 @@ export const fr = {
   "parc.kpi_sur": "sur",
   "parc.kpi_affichees_total": "au total",
   "parc.kpi_en_panne_detail_panne": "en panne",
+  // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 arrêtées »
+  // était l'un des cinq pluriels invariants mesurés à demeure.
+  // `kpi_en_panne_detail_panne` ci-dessus reste invariant : « en panne » ne
+  // s'accorde pas.
+  "parc.kpi_en_panne_detail_arretee_un": "arrêtée",
   "parc.kpi_en_panne_detail_arretees": "arrêtées",
   // LE DÉCOMPTE QUI OCCUPAIT L'EN-TÊTE (§1 du ticket N-10) — « quitte
   // l'en-tête, devient le détail du premier KPI » : la maquette n'y place que
@@ -1496,6 +1501,9 @@ export const fr = {
   "vgp.colonne_echeance": "Échéance déduite",
   "vgp.echeance.declaree": "Prochaine échéance",
   "vgp.echeance.depassee": "Échéance dépassée",
+  // Accordé au nombre réel (lot AV-14, 19/09/2026) — « (1 jours) » était l'un
+  // des cinq pluriels invariants mesurés à demeure.
+  "vgp.echeance.jour_un": "jour",
   "vgp.echeance.jours": "jours",
   "vgp.echeance.sans_rythme":
     "aucun rythme déclaré : rien à déduire de cette information",
@@ -1939,6 +1947,11 @@ export const fr = {
   "trajets.colonne_reglee": "Réglage de la société",
   "trajets.colonne_applique": "Ce qui s'applique",
   "trajets.colonne_action": "Régler",
+  // `trajets.minute_une` sert `duree()` via `decompte()` (lot AV-14,
+  // 19/09/2026) : « (1 minutes) » était l'un des cinq pluriels invariants
+  // mesurés à demeure. `trajets.minutes` reste seul dans `etiquetteChamp()`,
+  // une étiquette d'unité sans nombre attaché, jamais un compte.
+  "trajets.minute_une": "minute",
   "trajets.minutes": "minutes",
   "trajets.non_reglee": "Non réglée",
   "trajets.origine_societe": "réglage de la société",
@@ -2039,14 +2052,33 @@ export const fr = {
   // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
   // eux-mêmes n'existent pas encore sous une forme consolidée* — la
   // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
+  //
+  // « Non calculé » est GÉNÉRIQUE depuis le lot AV-14 (19/09/2026) : la même
+  // clé sert désormais aussi la tuile « VGP à prévoir » ci-dessous, quand le
+  // registre n'a encore reçu aucune vérification — la doctrine du dépôt est
+  // de nommer les refus UNE fois, jamais une troisième forme par tuile.
+  // Le motif est raccourci ce même lot : la phrase complète étirait toute la
+  // rangée de quatre tuiles à sa hauteur (D125 fixe leur ORDRE et leur
+  // nombre — dashboard() de la maquette —, jamais la longueur d'un texte).
   "tableau_de_bord.kpi_taux_occupation": "Taux d'occupation",
-  "tableau_de_bord.taux_occupation_non_calcule": "Non calculé",
+  "tableau_de_bord.non_calcule": "Non calculé",
   "tableau_de_bord.taux_occupation_motif":
-    "Consolider plusieurs techniciens en un seul taux n'est pas une règle tranchée par le chapitre 10 (R2-13).",
+    "Pas de règle de consolidation (R2-13).",
   "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
   "tableau_de_bord.vgp_a_prevoir_detail": "Dans les 30 prochains jours",
+  // LE REGISTRE N'A JAMAIS RIEN REÇU (lot AV-14) — distinct de « rien n'est dû
+  // dans l'horizon » : voir `auMoinsUneVerificationEnregistree`
+  // (lib/vgp/verification.ts) et `etatVgpAPrevoir` (./presentation.ts).
+  "tableau_de_bord.vgp_a_prevoir_motif_non_calcule":
+    "Aucune vérification VGP n'est encore enregistrée.",
 
-  // ── LES TROIS AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─
+  // ── DEUX AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─────
+  //
+  // Un troisième — « Clients sans code externe » — a quitté ce bandeau le
+  // 19/09/2026 (lot AV-14) : un problème de qualité de données n'est pas une
+  // alerte du matin, et `/clients` porte déjà la même lecture pour sa propre
+  // carte (`titreSansCode`, `compterSansCodeExterne`).
+  "tableau_de_bord.indicateurs_complementaires_titre": "Autres indicateurs",
   "tableau_de_bord.kpi_demandes_ouvertes":
     "Demandes en attente de qualification",
   "tableau_de_bord.lien_demandes": "Qualifier une demande →",
@@ -2109,8 +2141,11 @@ export const fr = {
   "planning.calendriers_titre_suffixe": "respectés",
   "planning.calendriers_aide":
     "Une case vide n'est pas automatiquement une disponibilité.",
-  // Le mot du badge de la file « À affecter » — invariant au pluriel, comme
-  // `planning.creneaux_libres` juste au-dessus dans ce fichier.
+  // Le mot du badge de la file « À affecter » — accordé via `decompte()`
+  // (lot AV-14, 19/09/2026) : « 1 dossiers » était l'un des cinq pluriels
+  // invariants mesurés à demeure, avec `planning.creneaux_libres` juste
+  // au-dessus dans ce fichier.
+  "planning.file_attente_dossier_un": "dossier",
   "planning.file_attente_dossiers": "dossiers",
   // DEUX ÉTATS DIFFÉRENTS DANS LA BANNIÈRE : `parametres.sans_calendrier` dit
   // qu'AUCUN calendrier n'est rattaché ; cette clé-ci dit qu'un calendrier
@@ -2157,6 +2192,9 @@ export const fr = {
   "planning.jour_apres": "Jour suivant →",
   "planning.colonne_heure": "Heure",
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
+  // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux
+  // libres » était l'un des cinq pluriels invariants mesurés à demeure.
+  "planning.creneau_libre_un": "créneau libre",
   "planning.creneaux_libres": "créneaux libres",
   "planning.pas": "pas de",
   "planning.jour_occupe": "Occupé",

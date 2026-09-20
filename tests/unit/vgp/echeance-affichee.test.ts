@@ -56,6 +56,18 @@ describe("l'échéance déduite devient du texte à un seul endroit", () => {
     );
   });
 
+  it("UN SEUL JOUR DE RETARD s'accorde au singulier (lot AV-14) — jamais « 1 jours »", () => {
+    const etat: EtatInformation = {
+      etat: "information_recue",
+      derniereInformation: new Date("2025-07-15T00:00:00.000Z"),
+      prochaineEcheance: LE_15_JANVIER,
+      joursAvantEcheance: -1,
+    };
+    const texte = libelleEcheance(etat) ?? "";
+    expect(texte).toContain("1 jour)");
+    expect(texte).not.toContain("1 jours");
+  });
+
   it("SANS PÉRIODICITÉ DÉCLARÉE, elle dit qu'il n'y a rien à déduire — jamais « à jour »", () => {
     const texte = libelleEcheance({
       etat: "information_recue",

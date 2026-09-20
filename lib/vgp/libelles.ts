@@ -85,7 +85,14 @@ export function libelleEcheance(etat: EtatInformation): string | null {
   }
   const date = dateCivile(etat.prochaineEcheance);
   if (etat.joursAvantEcheance !== null && etat.joursAvantEcheance < 0) {
-    return `${t("vgp.echeance.depassee")} — ${date} (${-etat.joursAvantEcheance} ${t("vgp.echeance.jours")})`;
+    const joursDepasses = -etat.joursAvantEcheance;
+    // Accordé au nombre réel (lot AV-14, 19/09/2026) — « (1 jours) » était
+    // l'un des cinq pluriels invariants mesurés à demeure. Un ternaire local,
+    // jamais `decompte()` : ce fichier vit dans `lib/`, qui ne dépend jamais
+    // de `app/` (§6).
+    const unite =
+      joursDepasses === 1 ? t("vgp.echeance.jour_un") : t("vgp.echeance.jours");
+    return `${t("vgp.echeance.depassee")} — ${date} (${joursDepasses} ${unite})`;
   }
   return `${t("vgp.echeance.declaree")} — ${date}`;
 }

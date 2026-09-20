@@ -14,25 +14,21 @@ import {
   schemaFuseau,
 } from "@/lib/calendar/fuseau";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
-import { schemaRechercheClient } from "@/lib/clients";
-import {
-  compterSansCodeExterne,
-  libelleCodeExterneDeLaSociete,
-} from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
 import { t } from "@/lib/i18n/fr";
 import { enAttenteDePiece, listerPlanning } from "@/lib/interventions/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { compterAPrevoir } from "@/lib/vgp/registre";
+import { auMoinsUneVerificationEnregistree } from "@/lib/vgp/verification";
 
-import { titreSansCode } from "../clients/presentation";
 import { referenceAffichee } from "../interventions/presentation";
 
 import {
   detailEnAttenteDePiece,
   detailInterventionsDuJour,
   elementsFiltres,
+  etatVgpAPrevoir,
   filtrePrioriteLu,
   interventionsDuJour,
   prioritesAPlanifier,
@@ -62,9 +58,10 @@ const HORIZON_VGP_JOURS = 30;
  * **D128 (18/09/2026 au soir) tranche l'AUTRE moitié : D125 fait foi sur la
  * DISPOSITION, jamais sur une information réelle que la maquette ignore.**
  * Les quatre KPI de `dashboard()` sont donc rendus EN PREMIER, dans la grille
- * qu'elle dessine — et les TROIS KPI que ce dépôt savait déjà calculer sans
- * équivalent dans la maquette restent, dans une seconde grille, sous la
- * première : un AJOUT VOLONTAIRE, jamais un écart à combler.
+ * qu'elle dessine — et DEUX des trois KPI que ce dépôt savait déjà calculer
+ * sans équivalent dans la maquette restent, sous un intitulé propre, dans une
+ * seconde grille sous la première : un AJOUT VOLONTAIRE, jamais un écart à
+ * combler.
  *
  * - **« Demandes en attente de qualification »** (`demandesOuvertes`) : ce
  *   que la file de qualification (lot 2, avant tout intervention) porte
@@ -79,11 +76,14 @@ const HORIZON_VGP_JOURS = 30;
  *   blocage d'agenda aujourd'hui — une lecture DIFFÉRENTE de celle
  *   qu'`/absences` fait pour sa propre semaine (§9, 01/09 : même critère,
  *   deux moments, jamais recalculé à la place de l'original).
- * - **« Clients sans code externe »** (`compterSansCodeExterne`,
- *   `titreSansCode`) : combien de fiches client n'ont encore aucun code de
- *   rapprochement pour l'import Excel (RG-IMP-05) — la même lecture que
- *   `/clients` fait déjà pour SA propre carte, ici une SECONDE fois sous un
- *   contexte différent (le jour, pas une recherche), pas une divergence.
+ *
+ * **« Clients sans code externe » A QUITTÉ CE BANDEAU le 19/09/2026 (lot
+ * AV-14)** — mesuré en ligne comme le plus gros chiffre de tout l'écran,
+ * devant les deux tuiles qui appellent réellement un geste du jour. Un
+ * problème de QUALITÉ DE DONNÉES n'est pas une alerte du matin ; `/clients`
+ * porte déjà exactement la même lecture (`titreSansCode`,
+ * `compterSansCodeExterne`) pour sa propre carte, à l'endroit où on la
+ * corrige.
  *
  * ## LE SIXIÈME CHIFFRE N'EXISTE NULLE PART, ET IL NE S'INVENTE PAS (§8)
  *
@@ -92,7 +92,19 @@ const HORIZON_VGP_JOURS = 30;
  * agréger plusieurs techniciens et plusieurs calendriers d'agence en UN SEUL
  * taux n'est écrit nulle part au chapitre 10. La carte l'affiche donc
  * `Non calculé`, avec son motif — jamais un zéro, jamais un tiret : les deux
- * se liraient comme une mesure (doctrine §3).
+ * se liraient comme une mesure (doctrine §3). Le motif est resté long tant
+ * qu'aucune autre tuile ne portait le même texte ; mesuré en ligne le
+ * 19/09/2026, il étirait à lui seul la rangée de quatre tuiles à sa hauteur —
+ * raccourci ce même lot, sans toucher à L'ORDRE ni au NOMBRE des tuiles que
+ * `dashboard()` fixe (D125).
+ *
+ * **« VGP à prévoir » PEUT MENTIR PAR OMISSION DE LA MÊME FAÇON (lot
+ * AV-14)** : `compterAPrevoir` rend 0 aussi bien quand rien n'est dû dans
+ * l'horizon que quand le registre n'a JAMAIS reçu de vérification — deux
+ * situations que le chiffre seul ne distingue pas (voir `etatVgpAPrevoir` et
+ * `auMoinsUneVerificationEnregistree`, `lib/vgp/verification.ts`). La
+ * seconde emprunte donc le même texte `Non calculé` que le taux d'occupation,
+ * plutôt qu'une troisième forme.
  *
  * ## « PRIORITÉS OPÉRATIONNELLES » — voir `./presentation.ts`
  *
@@ -145,8 +157,7 @@ export default async function PageTableauDeBord({
     vgpAPrevoir,
     demandes,
     absencesDuJour,
-    sansCodeExterne,
-    libelleSociete,
+    auMoinsUneVerification,
   ] = await Promise.all([
     listerPlanning(contexte, debutDuJour, finDuJour),
     enAttenteDePiece(contexte, instant),
@@ -159,13 +170,11 @@ export default async function PageTableauDeBord({
     compterAPrevoir(contexte, debutDuJour, HORIZON_VGP_JOURS),
     demandesOuvertes(contexte),
     absencesDeLaPeriode(contexte, debutDuJour, debutDuJour),
-    compterSansCodeExterne(contexte, schemaRechercheClient.parse({})),
-    // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot PERF, mesuré sur 4fead41) —
-    // elle ne lit que la société active, jamais un résultat des six lectures
-    // ci-dessus. Elle restait pourtant SEULE après le `Promise.all`, un
-    // septième aller-retour attendu pour rien.
-    libelleCodeExterneDeLaSociete(contexte),
+    // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot AV-14) — une existence, jamais
+    // un résultat des cinq lectures ci-dessus, jamais lue par elles.
+    auMoinsUneVerificationEnregistree(contexte),
   ]);
+  const etatVgp = etatVgpAPrevoir(auMoinsUneVerification, vgpAPrevoir);
 
   const lignesDuJour = interventionsDuJour(
     lignesPlanning,
@@ -219,7 +228,7 @@ export default async function PageTableauDeBord({
           <Kpi
             ton="vert"
             libelle={t("tableau_de_bord.kpi_taux_occupation")}
-            valeur={t("tableau_de_bord.taux_occupation_non_calcule")}
+            valeur={t("tableau_de_bord.non_calcule")}
             detail={t("tableau_de_bord.taux_occupation_motif")}
           />
         </div>
@@ -235,17 +244,28 @@ export default async function PageTableauDeBord({
           <Kpi
             ton="rouge"
             libelle={t("tableau_de_bord.kpi_vgp_a_prevoir")}
-            valeur={vgpAPrevoir}
-            detail={t("tableau_de_bord.vgp_a_prevoir_detail")}
+            valeur={
+              etatVgp.calcule
+                ? etatVgp.valeur
+                : t("tableau_de_bord.non_calcule")
+            }
+            detail={
+              etatVgp.calcule
+                ? t("tableau_de_bord.vgp_a_prevoir_detail")
+                : t("tableau_de_bord.vgp_a_prevoir_motif_non_calcule")
+            }
           />
         </div>
       </div>
 
-      {/* LA SECONDE GRILLE — trois AJOUTS VOLONTAIRES, sans équivalent dans
+      {/* LA SECONDE GRILLE — deux AJOUTS VOLONTAIRES, sans équivalent dans
           `dashboard()` (D128) : voir le docblock de tête, un paragraphe par
           KPI. `dashboard()` ne dessine rien ici ; ce bloc n'a donc pas de
           marqueur `data-bloc` attendu par le gardien de composition. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <h2 className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
+        {t("tableau_de_bord.indicateurs_complementaires_titre")}
+      </h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Kpi
             libelle={t("tableau_de_bord.kpi_demandes_ouvertes")}
@@ -263,7 +283,6 @@ export default async function PageTableauDeBord({
           libelle={t("tableau_de_bord.kpi_absences_jour")}
           valeur={techniciensIndisponibles(absencesDuJour)}
         />
-        <Kpi libelle={titreSansCode(libelleSociete)} valeur={sansCodeExterne} />
       </div>
 
       <div
