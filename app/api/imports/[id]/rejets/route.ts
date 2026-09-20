@@ -1,10 +1,10 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { classeurDesRejets } from "@/lib/excel/ecriture";
 import { lireLeLot } from "@/lib/imports/depot";
 import { t } from "@/lib/i18n/fr";
 
 import { cleDuMotif } from "@/app/(back-office)/imports/types";
-
-import { contexteCourant } from "../../../interventions/actions";
 
 /**
  * `GET /api/imports/{id}/rejets` — LE FICHIER ANNOTÉ DES REJETS (RG-IMP-03).
@@ -23,6 +23,13 @@ export async function GET(
   _requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(_requete, params));
+}
+
+async function traiter(
+  _requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const versLeLot = (cle: string): Response =>
     new Response(null, {
@@ -32,7 +39,7 @@ export async function GET(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
     return versLeLot("auth.refus");
   }

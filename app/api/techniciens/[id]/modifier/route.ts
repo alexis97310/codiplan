@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { modifierTechnicien } from "@/lib/techniciens/depot";
 
-import { contexteCourant } from "../../../interventions/actions";
 import { saisieModificationRecue, versLEquipe } from "../../saisie-recue";
 
 /**
@@ -15,7 +16,14 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
+  const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
     return versLEquipe("auth.refus");
   }

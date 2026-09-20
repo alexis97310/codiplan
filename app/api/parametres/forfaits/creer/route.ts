@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerForfait } from "@/lib/tarification/depot-forfaits";
 
-import { contexteCourant } from "../../../interventions/actions";
 import { deviseDeLaSociete } from "../devise";
 import { saisieForfaitRecue } from "../saisie-recue";
 
@@ -12,6 +13,10 @@ import { saisieForfaitRecue } from "../saisie-recue";
  * porte le formulaire, si bien que le retour est aussi le lieu de la correction.
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const vers = (cle: string): Response =>
     new Response(null, {
       status: 303,
@@ -20,7 +25,7 @@ export async function POST(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return vers("auth.refus");
   }

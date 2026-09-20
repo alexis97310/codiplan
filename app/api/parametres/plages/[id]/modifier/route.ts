@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { modifierPlage } from "@/lib/calendar/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
-import { champ, contexteCourant } from "../../../../interventions/actions";
+import { champ } from "../../../../interventions/actions";
 import {
   bornes,
   motifDe,
@@ -19,7 +21,14 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return versLesAgences("auth.refus");
   }

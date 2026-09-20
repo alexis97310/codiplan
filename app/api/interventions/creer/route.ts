@@ -1,13 +1,10 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerIntervention } from "@/lib/interventions/depot";
 import { schemaCreation } from "@/lib/interventions/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import {
-  champ,
-  contexteCourant,
-  versLaFiche,
-  versLePlanning,
-} from "../actions";
+import { champ, versLaFiche, versLePlanning } from "../actions";
 
 /**
  * CRÉER UNE INTERVENTION (lot 2, D84).
@@ -21,7 +18,11 @@ import {
  * permettra à l'application mobile d'en générer un hors ligne.
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("creer_demande");
   if (contexte === null) {
     return versLePlanning("auth.refus");
   }

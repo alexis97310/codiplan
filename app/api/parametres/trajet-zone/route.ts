@@ -1,10 +1,12 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { reglerTrajetZone, retirerTrajetZone } from "@/lib/sites/depot";
 import {
   schemaRetraitTrajetZone,
   schemaTrajetZone,
 } from "@/lib/sites/trajet-zone";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * RÉGLER OU RETIRER UN TEMPS DE TRAJET PAR ZONE (R3-03, D107).
@@ -31,6 +33,10 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * informatif* (D50).
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const vers = (cle?: string) =>
     new Response(null, {
       status: 303,
@@ -39,7 +45,7 @@ export async function POST(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return vers("auth.refus");
   }

@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { leverLeBlocage } from "@/lib/absences/depot";
 import { schemaLeveeBlocage } from "@/lib/absences/saisie";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 import { versLesAbsences } from "../actions";
 
 /**
@@ -17,7 +19,11 @@ import { versLesAbsences } from "../actions";
  * les yeux (I8) et le choix de les reposer où il veut.
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("modifier_planning");
   if (contexte === null) {
     return versLesAbsences("auth.refus");
   }

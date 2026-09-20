@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { declarerAbsence } from "@/lib/absences/depot";
 import { schemaCreationAbsence } from "@/lib/absences/saisie";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 import { jourCivil, versLesAbsences } from "../actions";
 
 /**
@@ -22,7 +24,11 @@ import { jourCivil, versLesAbsences } from "../actions";
  * par tout autre chemin d'écriture.
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("modifier_planning");
   if (contexte === null) {
     return versLesAbsences("auth.refus");
   }
