@@ -1,7 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { typeDuLot } from "@/lib/imports/depot";
 import { applicationDuType } from "@/lib/imports/types-dimport";
-
-import { contexteCourant } from "../../../interventions/actions";
 
 /**
  * ANNULER UN LOT — PARTIELLEMENT ET SÛREMENT (L1-11 ; I6, D15, D54, RG-IMP-02).
@@ -38,6 +38,13 @@ export async function POST(
   _requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(_requete, params));
+}
+
+async function traiter(
+  _requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const versLeLot = (cle: string): Response =>
     new Response(null, {
@@ -47,7 +54,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
     return versLeLot("auth.refus");
   }

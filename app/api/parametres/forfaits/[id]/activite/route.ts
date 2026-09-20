@@ -1,6 +1,8 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { changerActiviteForfait } from "@/lib/tarification/depot-forfaits";
 
-import { champ, contexteCourant } from "../../../../interventions/actions";
+import { champ } from "../../../../interventions/actions";
 
 /**
  * ACTIVER OU DÉSACTIVER UN FORFAIT (R2-20).
@@ -18,6 +20,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const vers = (cle: string | null): Response =>
     new Response(null, {
@@ -30,7 +39,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return vers("auth.refus");
   }

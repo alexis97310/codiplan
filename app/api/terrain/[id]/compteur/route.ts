@@ -1,8 +1,6 @@
-import { headers } from "next/headers";
-
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { obtenirSession } from "@/lib/auth/session";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { maintenant } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -66,20 +64,20 @@ function versLaFiche(id: string, cle?: string): Response {
   });
 }
 
+/**
+ * LE PÉRIMÈTRE, AU-DESSUS DE LA CAPACITÉ (D-12).
+ *
+ * `exigerCapacite("saisir_rapport")` prouve que le rôle a le DROIT de saisir
+ * un rapport — `admin_societe`, `responsable_materiel` et `responsable_sav`
+ * l'ont aussi. Le filtre par PÉRIMÈTRE reste ici, inchangé : un rôle à accès
+ * complet sur le planning n'a rien à faire sur SON compteur à lui, et c'est
+ * une question de portée que la porte ne sait pas juger (voir son docblock).
+ */
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
-  const session = await obtenirSession(await headers());
-  if (
-    session === null ||
-    session.contexte.societeId === null ||
-    session.contexte.role === null
-  ) {
+  const contexte = await exigerCapacite("saisir_rapport");
+  if (contexte === null) {
     return null;
   }
-  const contexte = {
-    ...session.contexte,
-    societeId: session.contexte.societeId,
-    role: session.contexte.role,
-  };
   return perimetreDuPlanning(contexte).acces === "restreint" ? contexte : null;
 }
 

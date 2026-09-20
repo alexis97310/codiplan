@@ -1,6 +1,8 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { affecterTechnicien } from "@/lib/interventions/depot";
 
-import { champ, contexteCourant, versLaFiche } from "../../actions";
+import { champ, versLaFiche } from "../../actions";
 
 /**
  * AFFECTER UN TECHNICIEN (RG-PLA-04) — l'affectation est **bloquée**, pas
@@ -14,8 +16,15 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("qualifier_affecter");
   if (contexte === null) {
     return versLaFiche(id, "auth.refus");
   }

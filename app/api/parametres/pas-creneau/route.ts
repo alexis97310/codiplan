@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { reglerLePas } from "@/lib/calendar/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * RÉGLER LE PAS DES CRÉNEAUX (lot 2, I7 ; amendé par R3-13).
@@ -23,6 +25,10 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * lisible, et par la contrainte `CHECK` en base, pour qu'il soit tenu.
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const vers = (cle?: string) =>
     new Response(null, {
       status: 303,
@@ -31,7 +37,7 @@ export async function POST(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return vers("auth.refus");
   }

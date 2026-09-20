@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerMachine } from "@/lib/machines/depot";
 import { schemaMachine } from "@/lib/machines/saisie";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * CRÉER UNE FICHE MACHINE (AT-07 bis, 18/09/2026) — le premier appelant de
@@ -17,6 +19,10 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * `app/api/clients/creer/route.ts`).
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const enJson = (requete.headers.get("accept") ?? "").includes(
     "application/json",
   );
@@ -39,7 +45,7 @@ export async function POST(requete: Request): Promise<Response> {
           },
         });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("gerer_machine");
   if (contexte === null) {
     return versLeFormulaire("auth.refus");
   }

@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { modifierForfait } from "@/lib/tarification/depot-forfaits";
 
-import { contexteCourant } from "../../../../interventions/actions";
 import { deviseDeLaSociete } from "../../devise";
 import { saisieForfaitRecue } from "../../saisie-recue";
 
@@ -14,6 +15,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const vers = (cle: string): Response =>
     new Response(null, {
@@ -23,7 +31,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return vers("auth.refus");
   }

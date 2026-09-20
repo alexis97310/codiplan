@@ -1,3 +1,5 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import {
   MOTIF_TELEVERSEMENT,
   lireLeTeleversement,
@@ -16,7 +18,7 @@ import {
   indexerLeParcSites,
 } from "@/lib/imports/parc-cibles";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * TÉLÉVERSER UN CLASSEUR ET EN PRODUIRE LE RAPPORT (L1-11 ; I6, RG-IMP-01).
@@ -67,13 +69,17 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * prise par personne*. Le classeur vit le temps de la requête.
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const versLIndex = (cle: string): Response =>
     new Response(null, {
       status: 303,
       headers: { Location: `/imports?motif=${encodeURIComponent(cle)}` },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
     return versLIndex("auth.refus");
   }
