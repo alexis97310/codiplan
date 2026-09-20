@@ -4740,3 +4740,39 @@ Aucune politique RLS n'est modifiée : le filtre est appliqué côté applicatio
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où l'exploitation tranche la question du SITE inactif, ou celle de l'historique d'un client inactif depuis le planning lui-même, cette page se rouvre plutôt que d'être contournée dans le code.
+
+---
+
+## D130 — CRÉER OU MODIFIER UN CLIENT OU UN SITE : ADV, DIRECTION, ADMINISTRATEUR DE SOCIÉTÉ
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 20/09/2026, en réponse à une question posée pendant le lot D-12 (#255) : « Créer et modifier un client ou un site revient à qui ? »*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**Le §5.2 ne portait aucune ligne « créer un client » ni « créer un site ».** Le lot D-12 (#255, fusionné en `b50a7c6`) a posé la porte de capacités sur trente-huit routes mutantes, mais les quatre routes de création et de modification d'un client ou d'un site — `app/api/clients/creer`, `app/api/clients/[id]/modifier`, `app/api/sites/creer`, `app/api/sites/[id]/modifier` — n'avaient aucune ligne de la matrice à transcrire. Elles sont restées sur `contexteCourant()`, exemptées et nommées dans `tests/unit/auth/porte.test.ts` avec pour motif « aucune ligne … au §5.2 — arbitrage en attente ». Ni `lib/clients/depot.ts` ni `lib/sites/depot.ts` ne portaient de contrôle de rôle : le cloisonnement entre sociétés restait intact (`exigerSocieteActive`), l'autorisation à l'intérieur d'une société n'existait pas.
+
+### LA DÉCISION
+
+**Créer et modifier un client ou un site revient à l'ADV, la direction et l'administrateur de société.** Une réponse unique pour les deux gestes : rien ne distingue, dans ce qu'Alexis a tranché, le client du site qui lui est rattaché.
+
+**⚠️ La liste est littérale, et sa conséquence est volontaire.** `responsable_materiel` et `responsable_sav` **n'ont pas** ce droit, alors qu'ils ont l'accès complet sur la machine, le planning et le rapport (§5.2 : « Créer / modifier une machine », « Consulter le planning », « Saisir un rapport »). Ce n'est pas un oubli de rédaction, c'est ce que l'arbitrage dit : **la fiche client et la fiche site sont du référentiel commercial, pas de l'exploitation.** Les responsables matériel et SAV travaillent *sur* le parc et les interventions d'un client déjà existant — ils ne l'ouvrent pas, et ne lui ajoutent pas de lieu. Une session future qui « corrigerait » cette ligne, en y voyant une étourderie parce que ces deux rôles ont par ailleurs un accès complet au terrain, referait l'erreur que cette page nomme précisément pour l'empêcher.
+
+La colonne « Admin plateforme » reste **—**, comme toutes les lignes de la matrice (D37, §22.5) : un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client, créer sa fiche n'y fait pas exception.
+
+Traduit en capacité unique, `gerer_client_site` (`lib/auth/habilitations.ts`), portée par `admin_societe`, `direction` et `adv`, et posée sur les quatre routes citées plus haut.
+
+### CE QUE ÇA NE DÉCIDE PAS
+
+**Rien sur `app/api/vgp/enregistrer/[id]`** : le §5.2 ne porte aucune ligne « enregistrer une VGP », et cette page ne répond pas à une question qui n'a pas été posée.
+
+**Rien sur `interventions/[id]/{cloturer,annuler,suspendre,reprendre}`** : le §5.2 porte « Clôturer une intervention », mais ne dit rien de suspendre ni de reprendre une intervention déjà commencée. Ces cinq routes restent exemptées dans `porte.test.ts`, avec leur motif inchangé — D130 ne les touche pas.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucun dépôt ne change : `lib/clients/depot.ts` et `lib/sites/depot.ts` continuent de recevoir le contexte tel quel, le cloisonnement par société n'est pas modifié. Aucune politique RLS n'est concernée — c'est une question d'autorisation à l'intérieur d'une société déjà cloisonnée, pas de cloisonnement lui-même. Aucune règle du chapitre 10 n'est amendée : la matrice du §5.2 gagne une ligne neuve, et RG-DRO-03 y renvoie déjà par sa formule générale.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande que `responsable_materiel` ou `responsable_sav` ouvre lui-même une fiche client ou site — ou qu'une distinction apparaisse entre le geste sur un client et celui sur un site —, cette page se rouvre plutôt que d'être contournée dans le code.
+
+**Règles amendées :** aucune.

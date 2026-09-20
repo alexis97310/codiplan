@@ -275,6 +275,7 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 | Saisir un rapport | — | ● | — | ● | ● | — | ● | — |
 | Valider un rapport | — | ● | ● | ● | ● | — | — | — |
 | Clôturer une intervention | — | ● | ● | ● | ● | ● | ○ | — |
+| Créer / modifier un client ou un site | — | ● | ● | — | — | ● | — | — |
 | Créer / modifier un contrat | — | ● | ● | ● | — | ○ | — | — |
 | Créer / modifier une machine | — | ● | ● | ● | ● | ● | ● | — |
 | Consulter le parc complet | — | ● | ● | ● | ● | ● | ○ | — |
@@ -303,6 +304,7 @@ Rattacher cette colonne à `admin_plateforme`, comme le faisait la version préc
 - Le technicien ne voit que son planning et les machines des interventions qui lui sont ou lui ont été affectées, plus la recherche par QR code sur site. Il ne voit aucun montant de vente : il saisit des temps et des pièces.
 - L'ADV voit les montants de vente mais pas les marges.
 - Le client ne voit que ses propres sites, machines, interventions et documents, et uniquement les rapports validés.
+- La fiche client et la fiche site sont du référentiel commercial (D130) : les responsables matériel et SAV travaillent *sur* le parc et les interventions d'un client existant, ils ne l'ouvrent pas et ne lui ajoutent pas de lieu.
 
 **Rôles éditeur.** La commercialisation de la solution (chapitre 22) introduit trois rôles supplémentaires — super-administrateur plateforme, administration commerciale éditeur, support éditeur — qui se situent **au-dessus** des sociétés et non à l'intérieur. Le principe qui les gouverne : un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client ; tout accès est demandé, motivé, limité dans le temps, journalisé et notifié. Le seul chemin vers les données d'un client est la « connexion en tant que », sur demande explicite, tracée et notifiée. Voir §22.5.
 
