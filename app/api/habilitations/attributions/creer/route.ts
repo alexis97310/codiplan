@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { attribuerHabilitation } from "@/lib/habilitations/depot";
 
-import { contexteCourant } from "../../../interventions/actions";
 import { attributionRecue, versLEquipe } from "../../saisie-recue";
 
 /**
@@ -10,7 +11,11 @@ import { attributionRecue, versLEquipe } from "../../saisie-recue";
  * sur cet écran avec son motif, comme la création d'un technicien.
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
     return versLEquipe("auth.refus");
   }

@@ -1,7 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { typeDuLot } from "@/lib/imports/depot";
 import { applicationDuType } from "@/lib/imports/types-dimport";
-
-import { contexteCourant } from "../../../interventions/actions";
 
 /**
  * LA DURÉE QUE CETTE ROUTE DÉCLARE (point 2 de la session du 16/09/2026 ;
@@ -80,6 +80,13 @@ export async function POST(
   _requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(_requete, params));
+}
+
+async function traiter(
+  _requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const versLeLot = (cle: string): Response =>
     new Response(null, {
@@ -89,7 +96,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("importer_exporter");
   if (contexte === null) {
     return versLeLot("auth.refus");
   }

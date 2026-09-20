@@ -1,6 +1,8 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { retirerExigence } from "@/lib/habilitations/depot";
 
-import { champ, contexteCourant } from "../../../../interventions/actions";
+import { champ } from "../../../../interventions/actions";
 import { versLeSite } from "../../../saisie-recue";
 
 /**
@@ -14,6 +16,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const formulaire = await requete.formData();
   const siteId = champ(formulaire, "site_id");
   if (siteId === null) {
@@ -22,7 +31,7 @@ export async function POST(
       headers: { Location: "/sites?motif=habilitations.refus.saisie" },
     });
   }
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("administrer_utilisateurs");
   if (contexte === null) {
     return versLeSite(siteId, "auth.refus");
   }

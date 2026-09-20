@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerModele } from "@/lib/materiel/depot";
 
-import { contexteCourant } from "../../../../interventions/actions";
 import { saisieModeleRecue, versLeReferentiel } from "../../saisie-recue";
 
 /**
@@ -13,7 +14,11 @@ import { saisieModeleRecue, versLeReferentiel } from "../../saisie-recue";
  * serait muet là où le cloisonnement doit mordre.*
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return versLeReferentiel("auth.refus");
   }

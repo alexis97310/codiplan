@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
 
-import { champ, contexteCourant, versLaFiche } from "../../actions";
+import { champ, versLaFiche } from "../../actions";
 
 /**
  * DÉPLACER — changer de créneau, changer de technicien, ou les deux.
@@ -27,6 +29,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   // La négociation porte sur ce que l'APPELANT demande, jamais sur la forme de
   // ce qu'il envoie : un formulaire HTML ne sait pas poser d'en-tête.
@@ -49,7 +58,7 @@ export async function POST(
         })
       : versLaFiche(id, cle);
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("modifier_planning");
   if (contexte === null) {
     return repondre("auth.refus");
   }

@@ -1,6 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerFamille } from "@/lib/materiel/depot";
 
-import { contexteCourant } from "../../../../interventions/actions";
 import { saisieFamilleRecue, versLeReferentiel } from "../../saisie-recue";
 
 /**
@@ -15,7 +16,11 @@ import { saisieFamilleRecue, versLeReferentiel } from "../../saisie-recue";
  * seconde qui ne connaît pas la première.*
  */
 export async function POST(requete: Request): Promise<Response> {
-  const contexte = await contexteCourant();
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
+  const contexte = await exigerCapacite("parametrer_societe");
   if (contexte === null) {
     return versLeReferentiel("auth.refus");
   }
