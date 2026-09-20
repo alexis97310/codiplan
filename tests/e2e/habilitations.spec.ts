@@ -2,7 +2,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * LE RÉFÉRENTIEL DES HABILITATIONS, LEUR ATTRIBUTION ET LES EXIGENCES DE SITE
@@ -26,11 +27,21 @@ import { ouvrirUneSession } from "./setup/session";
  * dictionnaire, L0-11) : la création la pose, l'attribution et l'exigence la
  * consomment ensuite. *Une base qui recréerait le référentiel à chaque
  * scénario masquerait un doublon que la vraie base refuserait* (`code_pris`).
+ *
+ * ## Le compte de l'épreuve, et pas `COMPTE_EPREUVE` (ERGO-1, 3/3)
+ *
+ * Administrer le référentiel des habilitations relève de la capacité
+ * `administrer_utilisateurs` (`lib/auth/habilitations.ts`), réservée au rôle
+ * `admin_societe` seul (§5.2). `COMPTE_EPREUVE` porte le rôle `adv`, qui n'a
+ * pas cette capacité : une épreuve ouverte avec `ouvrirUneSession` ne mesure
+ * pas le geste réel, elle échoue sur « Accès refusé » à la première écriture.
+ * Même compte et même second facteur qu'`equipe.spec.ts`, pour la même
+ * raison — ne pas remettre `ouvrirUneSession` ici en croyant simplifier.
  */
 test.describe.configure({ mode: "serial" });
 
 test.beforeEach(async ({ page }) => {
-  await ouvrirUneSession(page);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
 const CODE = fr["habilitations.e2e.code"];
