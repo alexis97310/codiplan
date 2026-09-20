@@ -8,7 +8,6 @@ import {
   maintenant,
   type JourLocal,
 } from "../lib/calendar/fuseau";
-import { lundiDeLaSemaine } from "../lib/calendar/semaine";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
 import { engendrerJetonQr } from "../lib/machines/qr";
@@ -25,6 +24,7 @@ import {
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION,
   INTERVENTIONS_DEMONSTRATION,
+  LUNDI_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
   VERIFICATIONS_VGP_DEMONSTRATION,
@@ -609,18 +609,17 @@ async function seed(): Promise<void> {
         // de la société ouvre à chacune une plage qui ne peut pas rencontrer
         // celle de sa voisine.
         //
-        // **LES DATES SONT RELATIVES À LA SEMAINE COURANTE** *(R2-12)*. Elles
-        // étaient absolues, et une démonstration datée se périme sans jamais
-        // être vide — le planning s'ouvre sur la semaine du jour, et des dates
-        // figées lui laissent des colonnes blanches. C'est le §9 du 21/08 sur
-        // les fériés, appliqué au jeu de démonstration.
-        //
-        // Le lundi est lu dans le FUSEAU DE LA SOCIÉTÉ, jamais celui de la
-        // machine qui sème : à Nouméa et à Lyon, « cette semaine » ne commence
-        // pas au même instant.
-        const lundi = lundiDeLaSemaine(
-          maintenant(societe.fuseau_horaire).local,
-        );
+        // **LES DATES SONT FIXES, DEPUIS SEMIS-1 (21/09/2026)** — un lundi
+        // écrit en dur, `LUNDI_DEMONSTRATION` (`prisma/seed-data.ts`), à la
+        // place du lundi de « la semaine courante » lu à chaque semis. Ce
+        // dernier semblait éviter qu'une démonstration datée se périme (§9 du
+        // 21/08 sur les fériés) ; mesuré le 20/09/2026, il l'a au contraire
+        // provoquée — le semis n'ayant pas tourné depuis la semaine du 14/09,
+        // ce qu'il avait écrit comme « la semaine courante » a cessé de
+        // l'être dès que le calendrier réel est passé à la semaine suivante.
+        // La décision et sa limite assumée sont documentées à la définition
+        // de `LUNDI_DEMONSTRATION`.
+        const lundi = LUNDI_DEMONSTRATION;
         const interventions = INTERVENTIONS_DEMONSTRATION.map(
           (modele, index) => {
             const jour =
@@ -1293,23 +1292,25 @@ async function seed(): Promise<void> {
   // au moment où celles-ci sont posées, aucun technicien n'existe encore. Les
   // affecter demande une seconde passe, et la voici.
   //
-  // **Ce que cette passe RATTRAPE, et qui est la moitié qui compte.** Le semis
-  // s'abstient de réécrire une intervention déjà présente — un verrou de cycle
-  // de vie refuse de toucher une ligne close (D84). Les dates étant devenues
-  // relatives à la semaine courante, une base semée la semaine dernière
-  // porterait des interventions VIVANTES restées au passé, et le planning
-  // s'ouvrirait de nouveau sur des colonnes blanches. *Une donnée relative qui
-  // n'est jamais rafraîchie est une donnée absolue qui s'ignore.*
+  // **Ce que cette passe RATTRAPE.** Le semis s'abstient de réécrire une
+  // intervention déjà présente — un verrou de cycle de vie refuse de toucher
+  // une ligne close (D84) — donc la date et le créneau posés à la création ne
+  // savent pas encore quel technicien affecter : les identités naissent après
+  // les interventions. Cette passe recalcule la date depuis
+  // `LUNDI_DEMONSTRATION` (SEMIS-1) EXACTEMENT comme la création l'a fait, et
+  // y ajoute le technicien — un replacement idempotent, jamais un
+  // rafraîchissement vers « aujourd'hui » : ce dernier est précisément ce qui
+  // a vidé l'écran de démonstration, mesuré le 20/09/2026 (voir
+  // `LUNDI_DEMONSTRATION`, `prisma/seed-data.ts`).
   //
   // La passe ne touche donc QUE les interventions non terminales — celles que
-  // le verrou laisse modifier —, et elle les ramène sur la semaine courante
-  // avec leur technicien. Les closes gardent leur date, ce qui est juste : une
-  // intervention clôturée l'a été un jour précis.
+  // le verrou laisse modifier. Les closes gardent leur date, ce qui est juste :
+  // une intervention clôturée l'a été un jour précis.
   etape("affectation des interventions aux techniciens");
   for (const [indexSociete, societe] of SOCIETES.entries()) {
     const rangSociete = indexSociete + 1;
     const societeId = societeParCode(societe.code).id;
-    const lundi = lundiDeLaSemaine(maintenant(societe.fuseau_horaire).local);
+    const lundi = LUNDI_DEMONSTRATION;
 
     // Les identités des techniciens, lues sous le contexte de la société. La
     // politique de `utilisateur` autorise cette lecture depuis L1-02c — sa

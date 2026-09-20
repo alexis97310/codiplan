@@ -103,11 +103,34 @@ function caseDHeure(
   );
 }
 
+/**
+ * VERS LE PLANNING — la vue SEMAINE de `reperes`, jamais la vue par DÉFAUT
+ * (mesuré le 20/09/2026, CI #817).
+ *
+ * `allerAuPlanning(page)` visait `/planning` nu, en confiant à l'écran le
+ * choix de « la semaine courante » — exactement celle que `reperesDeLaScene`
+ * a calculée, ELLE, dans un PROCESSUS SÉPARÉ (la préparation globale, voir
+ * `setup/reperes.ts`). *Les deux lectures de « maintenant » sont indépendantes
+ * et n'ont aucune raison de tomber le même jour civil* — la scène est écrite
+ * une fois, en tête de suite ; ce fichier peut s'exécuter, lui, bien après,
+ * une fois la ligne de changement de semaine franchie. Mesuré : le scénario
+ * cherchait `[data-depot-jour="2026-09-15"]` — la semaine que `reperes`
+ * avait calculée — sur un écran par défaut qui en montrait une autre.
+ *
+ * La cible ne change pas : c'est toujours `reperes.lundi`, qui a servi à
+ * ÉCRIRE la scène. Ce qui change est que le test le DIT à l'écran au lieu de
+ * compter sur le fait qu'il coïncide avec « aujourd'hui » — jamais un calcul
+ * depuis la date du jour, une simple lecture d'une valeur déjà connue.
+ */
 async function allerAuPlanning(page: Page, jourRang?: number): Promise<void> {
-  const jour =
-    jourRang === undefined ? null : cleDeJour(jourDeLaScene(reperes, jourRang));
+  if (jourRang === undefined) {
+    await page.goto(
+      `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`,
+    );
+    return;
+  }
   await page.goto(
-    jour === null ? "/planning" : `/planning?vue=jour&jour=${jour}`,
+    `/planning?vue=jour&jour=${cleDeJour(jourDeLaScene(reperes, jourRang))}`,
   );
 }
 
