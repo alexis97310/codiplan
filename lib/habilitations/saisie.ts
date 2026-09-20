@@ -53,6 +53,10 @@ export const schemaModificationHabilitation = z.object({
   actif: z.boolean().optional(),
 });
 
+export type ModificationHabilitation = z.infer<
+  typeof schemaModificationHabilitation
+>;
+
 /**
  * Attribution d'une habilitation à un technicien.
  *
