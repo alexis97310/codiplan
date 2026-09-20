@@ -141,36 +141,52 @@ export default async function PageEquipe({
               <Cellule>{technicien.email}</Cellule>
               <Cellule>{technicien.agenceLibelle}</Cellule>
               <Cellule>
-                {technicien.actif ? (
-                  <Badge ton="vert">{t("equipe.actif")}</Badge>
-                ) : (
-                  <Badge ton="gris">{t("equipe.inactif")}</Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`#${ancreModification(technicien.utilisateurId)}`}
+                    className="text-app-marque text-[12px] font-semibold underline"
+                  >
+                    {t("equipe.modifier")}
+                  </a>
+                  {technicien.actif ? (
+                    <Badge ton="vert">{t("equipe.actif")}</Badge>
+                  ) : (
+                    <Badge ton="gris">{t("equipe.inactif")}</Badge>
+                  )}
+                </div>
               </Cellule>
             </tr>
           ))}
         </Tableau>
       </section>
 
+      {/*
+        REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
+        `/parametres/habilitations` (voir son commentaire). LE PANNEAU
+        HABILITATIONS SUIT SON TECHNICIEN : il est posé DANS le même
+        `<details>`, jamais à côté, pour rester replié avec lui.
+      */}
       {affiches.map((technicien) => (
-        <section
+        <details
           key={technicien.utilisateurId}
           className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5"
         >
-          <h2 className="text-[13px] font-bold">
+          <summary className="cursor-pointer text-[13px] font-bold">
             {titreDeModification(technicien.nom)}
-          </h2>
-          <FormulaireModification agences={agences} technicien={technicien} />
+          </summary>
+          <div id={ancreModification(technicien.utilisateurId)}>
+            <FormulaireModification agences={agences} technicien={technicien} />
 
-          <BlocHabilitations
-            technicien={technicien}
-            attributions={
-              habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
-            }
-            habilitations={habilitationsActives}
-            aujourdHui={aujourdHui}
-          />
-        </section>
+            <BlocHabilitations
+              technicien={technicien}
+              attributions={
+                habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
+              }
+              habilitations={habilitationsActives}
+              aujourdHui={aujourdHui}
+            />
+          </div>
+        </details>
       ))}
     </Page>
   );
@@ -184,6 +200,15 @@ const TIRET = " — ";
  */
 function titreDeModification(nom: string): string {
   return `${t("equipe.modifier")}${TIRET}${nom}`;
+}
+
+/**
+ * L'ANCRE DU REPLI (ERGO-1) — jamais posée sur le `<details>` ni sur le
+ * `<summary>`, mesuré sur `/parametres/habilitations` : seul un élément DANS
+ * le contenu replié fait ouvrir le `<details>` à la navigation par ancre.
+ */
+function ancreModification(utilisateurId: string): string {
+  return `technicien-${utilisateurId}`;
 }
 
 /** « Agence de rattachement » — le mot imposé, composé hors du JSX (L0-11). */
