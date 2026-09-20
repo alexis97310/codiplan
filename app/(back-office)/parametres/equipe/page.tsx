@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   habilitationsDesTechniciens,
@@ -21,6 +27,8 @@ import {
 } from "@/lib/techniciens/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+
+import { estExpiree } from "./presentation";
 
 /**
  * L'ÉQUIPE — créer, modifier et désactiver un technicien (ÉQUIPE-1).
@@ -87,7 +95,11 @@ export default async function PageEquipe({
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = maintenant(fuseau).instant;
+  // D-13 : `maintenant(fuseau).instant` est un `Date` que le fuseau n'a pas
+  // touché (`new Date(Date.now())`) — comparer son jour avec les accesseurs
+  // `getUTC*` compare le jour UTC, pas le jour à Nouméa. `.local`, lui, est
+  // déjà la lecture dans CE fuseau ; `jourDe` en retient le jour civil.
+  const aujourdHui = jourDe(maintenant(fuseau).local);
 
   return (
     <Page
@@ -376,7 +388,7 @@ function BlocHabilitations({
   readonly technicien: LigneTechnicien;
   readonly attributions: readonly LigneAttribution[];
   readonly habilitations: readonly LigneHabilitation[];
-  readonly aujourdHui: Date;
+  readonly aujourdHui: JourLocal;
 }) {
   return (
     <div className="border-app-bord mt-2 flex flex-col gap-2 border-t pt-3">
@@ -508,21 +520,4 @@ function expirationAffichee(attribution: LigneAttribution): string {
   return attribution.date_expiration === null
     ? t("habilitations.expire_jamais")
     : dateCivile(attribution.date_expiration);
-}
-
-function estExpiree(attribution: LigneAttribution, aujourdHui: Date): boolean {
-  if (attribution.date_expiration === null) {
-    return false;
-  }
-  const expiration = Date.UTC(
-    attribution.date_expiration.getUTCFullYear(),
-    attribution.date_expiration.getUTCMonth(),
-    attribution.date_expiration.getUTCDate(),
-  );
-  const jourCourant = Date.UTC(
-    aujourdHui.getUTCFullYear(),
-    aujourdHui.getUTCMonth(),
-    aujourdHui.getUTCDate(),
-  );
-  return expiration < jourCourant;
 }
