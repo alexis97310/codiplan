@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -16,6 +17,7 @@ import {
   peutDeplacer,
   peutReprendre,
   peutSuspendre,
+  type Verdict,
 } from "@/lib/interventions/cycle-de-vie";
 import {
   lireFicheIntervention,
@@ -116,26 +118,47 @@ export default async function PageIntervention({
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
   const montants = accesAuxMontants(session.contexte.role);
+  // LE DROIT D'AFFECTER / DE DÉPLACER (extension de la revue Codex de la PR
+  // #267, de ma propre initiative, 20/09/2026) — la remarque ne citait que
+  // `/interventions/nouvelle`, mais le MÊME défaut existe ici : les deux
+  // sélecteurs technicien de cette fiche ont été introduits par LE MÊME LOT
+  // (chantier TECH-1), sur du code que cette PR touche déjà — ce n'est donc
+  // pas un défaut préexistant hors périmètre. Lu depuis la matrice
+  // (`peut(role, capacité)`), la MÊME capacité que celle que les routes
+  // `/api/interventions/[id]/affecter` et `.../deplacer` exigent déjà
+  // côté serveur — jamais une comparaison de rôle inventée ici.
+  const peutQualifierAffecter =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "qualifier_affecter");
+  const peutModifierLePlanning =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "modifier_planning");
+  // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
+  // L'USAGE — jamais par défaut : c'est la lecture, pas seulement le rendu,
+  // qui fuyait (même raisonnement qu'à la création).
+  const proposerUneListeDeTechniciens =
+    peutQualifierAffecter || peutModifierLePlanning;
   // LE NOM, JAMAIS L'IDENTIFIANT (I10, D-04) — voir `technicienAfficheSurLaFiche`.
   //
   // **DEPUIS LE CHANTIER TECH-1 (20/09/2026), CETTE LECTURE PORTE AUSSI LES
-  // TECHNICIENS ACTIFS** — pour remplir le `<select>` d'« Affecter » et de
-  // « Déplacer », qui remplace un champ texte nu. *Un technicien inactif
-  // n'entre pas dans la liste PROPOSÉE à une nouvelle saisie* — même règle
-  // que `/interventions/nouvelle` —, **mais le technicien déjà affecté à
-  // cette intervention garde sa colonne dans l'annuaire même s'il est devenu
+  // TECHNICIENS ACTIFS**, mais SEULEMENT quand `proposerUneListeDeTechniciens`
+  // — pour remplir le `<select>` d'« Affecter » et de « Déplacer », qui
+  // remplace un champ texte nu. *Un technicien inactif n'entre pas dans la
+  // liste PROPOSÉE à une nouvelle saisie* — même règle que
+  // `/interventions/nouvelle` —, **mais le technicien déjà affecté à cette
+  // intervention garde sa colonne dans l'annuaire même s'il est devenu
   // inactif entre-temps** : sans quoi son nom, affiché juste au-dessus par
   // `technicienAfficheSurLaFiche`, disparaîtrait du `<select>` en dessous —
   // deux lectures d'un même fait qui se contrediraient sur le même écran.
-  const techniciensActifs = await avecContexteApplicatif(
-    session.contexte,
-    (tx) =>
-      tx.technicien.findMany({
-        where: { actif: true },
-        select: { utilisateur_id: true },
-        orderBy: { utilisateur_id: "asc" },
-      }),
-  );
+  const techniciensActifs = proposerUneListeDeTechniciens
+    ? await avecContexteApplicatif(session.contexte, (tx) =>
+        tx.technicien.findMany({
+          where: { actif: true },
+          select: { utilisateur_id: true },
+          orderBy: { utilisateur_id: "asc" },
+        }),
+      )
+    : [];
   const annuaire = await avecContexteApplicatif(session.contexte, (tx) =>
     annuaireDesPersonnes(tx, [
       ...techniciensActifs.map((technicien) => technicien.utilisateur_id),
@@ -152,6 +175,15 @@ export default async function PageIntervention({
       libelle: quiTravaille(technicien.utilisateur_id, annuaire),
     }))
     .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  // « AFFECTER » N'A QU'UN CHAMP, ET C'EST CELUI QUI FUYAIT : un rôle sans
+  // `qualifier_affecter` verrait un bouton dont le seul champ est vide —
+  // *un champ pré-rempli qu'on ne peut pas remplir est un affichage déguisé
+  // en saisie*, la même réserve que D120 pose ailleurs sur cette fiche. Le
+  // refus prend donc la place de TOUTE l'action, comme la consigne
+  // d'exploitation le veut déjà pour un refus de statut.
+  const verdictAffecter: Verdict = peutQualifierAffecter
+    ? peutAffecter(statut)
+    : { refuse: true, cle: "intervention.refus.qualification_requise" };
   // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
   // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
   // formulaire de création, où le site se choisit APRÈS le chargement de la
@@ -337,7 +369,7 @@ export default async function PageIntervention({
         <aside className="flex flex-col gap-4">
           <Action
             titre={t("intervention.action.affecter")}
-            verdict={peutAffecter(statut)}
+            verdict={verdictAffecter}
             action={`/api/interventions/${ligne.id}/affecter`}
           >
             <Saisie
@@ -381,13 +413,24 @@ export default async function PageIntervention({
               type="number"
               libelle={t("intervention.deplacement.duree")}
             />
-            <Saisie
-              nom="technicien_id"
-              libelle={t("intervention.technicien")}
-              options={optionsTechniciens}
-              libelleOptionVide={t("intervention.aucun_technicien")}
-              valeurParDefaut={ligne.technicien_id ?? undefined}
-            />
+            {/*
+              SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER (extension de
+              la revue Codex, 20/09/2026) : « Déplacer » restait déjà
+              accessible, avant ce chantier, à un rôle sans `modifier_planning`
+              — la route le refuse au SUBMIT, comme toujours. Ce que ce
+              chantier ajoutait était la LISTE NOMINATIVE ; c'est elle, et
+              elle seule, qui se retire ici. Date, heure et durée gardent le
+              comportement PRÉEXISTANT, hors du périmètre de cette revue.
+            */}
+            {peutModifierLePlanning ? (
+              <Saisie
+                nom="technicien_id"
+                libelle={t("intervention.technicien")}
+                options={optionsTechniciens}
+                libelleOptionVide={t("intervention.aucun_technicien")}
+                valeurParDefaut={ligne.technicien_id ?? undefined}
+              />
+            ) : null}
           </Action>
 
           {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) : le champ

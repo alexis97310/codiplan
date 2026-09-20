@@ -1,7 +1,9 @@
+import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
+import { urlAdministration } from "./setup/base";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -32,7 +34,34 @@ import { ouvrirUneSession } from "./setup/session";
  * soumettre un `technicien_id`.* Le critère retenu est `qualifier_affecter`,
  * lu depuis la matrice (`lib/auth/habilitations.ts`), et un technicien ne
  * l'a pas.
+ *
+ * ## LE QUATRIÈME — la MÊME fuite existait sur la FICHE (extension de mon
+ * initiative, 20/09/2026)
+ *
+ * Les DEUX sélecteurs de `/interventions/[id]` — « Affecter », « Déplacer » —
+ * ont été introduits par ce même chantier, sur du code que cette revue
+ * touchait déjà : ce n'était donc pas un défaut préexistant hors périmètre.
+ * « Affecter » n'a qu'un champ, celui qui fuyait : un rôle sans
+ * `qualifier_affecter` voit désormais l'action ENTIÈRE refusée, comme un
+ * refus de statut. « Déplacer » garde trois champs utiles sans technicien
+ * (date, heure, durée) : seul CE champ disparaît pour un rôle sans
+ * `modifier_planning`.
  */
+
+async function utilisateurIdDuTechnicienDeLEpreuve(): Promise<string> {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const utilisateur = await client.utilisateur.findFirstOrThrow({
+      where: { email: COMPTE_TECHNICIEN_EPREUVE },
+      select: { id: true },
+    });
+    return utilisateur.id;
+  } finally {
+    await client.$disconnect();
+  }
+}
 
 async function ouvrirLaSessionDuTechnicien(page: Page): Promise<void> {
   await page.goto("/connexion");
@@ -149,4 +178,49 @@ test("un TECHNICIEN n'a ni le champ ni la liste nominative de ses collègues sur
   // AUCUN champ technicien — ni le `<select>`, ni le vieux `<input>` que ce
   // chantier remplace.
   await expect(page.locator('[name="technicien_id"]')).toHaveCount(0);
+});
+
+test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « Déplacer » perd son champ technicien", async ({
+  page,
+}) => {
+  const utilisateurIdTechnicien = await utilisateurIdDuTechnicienDeLEpreuve();
+
+  // Créée par l'ADV du `beforeEach`, DIRECTEMENT affectée à ce technicien —
+  // sinon sa fiche lui serait invisible (périmètre restreint, R5-01).
+  await page.goto("/interventions/nouvelle");
+  const optionsSite = page.locator('select[name="site"] option');
+  await expect(optionsSite.first()).toBeAttached();
+  const valeurSite = await optionsSite.first().getAttribute("value");
+  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
+  await page
+    .locator('select[name="technicien_id"]')
+    .selectOption(utilisateurIdTechnicien);
+  await page
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/([0-9a-f-]+)$/);
+  const idIntervention = new URL(page.url()).pathname.split("/").pop();
+
+  await page.context().clearCookies();
+  await ouvrirLaSessionDuTechnicien(page);
+  await page.goto(`/interventions/${idIntervention}`);
+
+  // « AFFECTER » : l'action ENTIÈRE est refusée — jamais un champ vide.
+  const formulaireAffecter = page.locator('form[action$="/affecter"]');
+  await expect(formulaireAffecter).toHaveCount(0);
+  await expect(
+    page.getByText(fr["intervention.refus.qualification_requise"]),
+  ).toBeVisible();
+
+  // « DÉPLACER » reste utilisable — date, heure, durée —, mais SANS le champ
+  // technicien ni sa liste nominative.
+  const formulaireDeplacer = page.locator('form[action$="/deplacer"]');
+  await expect(formulaireDeplacer).toBeVisible();
+  await expect(
+    formulaireDeplacer.locator('[name="technicien_id"]'),
+  ).toHaveCount(0);
+  await expect(
+    formulaireDeplacer.locator('[name="date_planifiee"]'),
+  ).toBeVisible();
 });
