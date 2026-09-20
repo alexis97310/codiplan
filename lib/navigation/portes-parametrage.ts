@@ -109,4 +109,16 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     titre: "parametres.index_materiel_titre",
     resume: "parametres.index_materiel_resume",
   },
+  {
+    // LA HUITIÈME PORTE DE CETTE LISTE (ÉQUIPE-1, 19/09/2026). La table
+    // `technicien` existait depuis L3-01a et n'avait AUCUN chemin d'écriture
+    // — mesuré sur 4fead41, les seules lignes qu'elle portait venaient du
+    // seed. *Un technicien qui ne peut ni être ajouté ni partir n'est pas un
+    // technicien administrable, c'est une donnée figée.*
+    //
+    // **Elle ne porte aucun décompte**, comme les autres portes de cette liste.
+    chemin: "/parametres/equipe",
+    titre: "parametres.index_equipe_titre",
+    resume: "parametres.index_equipe_resume",
+  },
 ];
