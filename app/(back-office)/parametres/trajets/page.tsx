@@ -14,6 +14,8 @@ import {
   type LigneCatalogue,
 } from "@/lib/sites/trajet-zone";
 
+import { decompte } from "../../presentation";
+
 /**
  * L'ÉCRAN DE RÉGLAGE DES TEMPS DE TRAJET PAR ZONE (R3-03, D107).
  *
@@ -249,7 +251,7 @@ function appliqueAffiche(ligne: LigneCatalogue): string {
  * minutes se vérifient mieux que quatre heures* : l'écran donne les deux.
  */
 function duree(minutes: number): string {
-  return `${enHeure(minutes)} (${String(minutes)} ${t("trajets.minutes")})`;
+  return `${enHeure(minutes)} (${decompte(minutes, t("trajets.minute_une"), t("trajets.minutes"))})`;
 }
 
 /** Le tiret cadratin d'une valeur absente — un signe, pas une phrase. */

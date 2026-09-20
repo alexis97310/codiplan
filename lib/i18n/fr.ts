@@ -1362,6 +1362,11 @@ export const fr = {
   "parc.kpi_sur": "sur",
   "parc.kpi_affichees_total": "au total",
   "parc.kpi_en_panne_detail_panne": "en panne",
+  // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 arrêtées »
+  // était l'un des cinq pluriels invariants mesurés à demeure.
+  // `kpi_en_panne_detail_panne` ci-dessus reste invariant : « en panne » ne
+  // s'accorde pas.
+  "parc.kpi_en_panne_detail_arretee_un": "arrêtée",
   "parc.kpi_en_panne_detail_arretees": "arrêtées",
   // LE DÉCOMPTE QUI OCCUPAIT L'EN-TÊTE (§1 du ticket N-10) — « quitte
   // l'en-tête, devient le détail du premier KPI » : la maquette n'y place que
@@ -1496,6 +1501,9 @@ export const fr = {
   "vgp.colonne_echeance": "Échéance déduite",
   "vgp.echeance.declaree": "Prochaine échéance",
   "vgp.echeance.depassee": "Échéance dépassée",
+  // Accordé au nombre réel (lot AV-14, 19/09/2026) — « (1 jours) » était l'un
+  // des cinq pluriels invariants mesurés à demeure.
+  "vgp.echeance.jour_un": "jour",
   "vgp.echeance.jours": "jours",
   "vgp.echeance.sans_rythme":
     "aucun rythme déclaré : rien à déduire de cette information",
@@ -1939,6 +1947,11 @@ export const fr = {
   "trajets.colonne_reglee": "Réglage de la société",
   "trajets.colonne_applique": "Ce qui s'applique",
   "trajets.colonne_action": "Régler",
+  // `trajets.minute_une` sert `duree()` via `decompte()` (lot AV-14,
+  // 19/09/2026) : « (1 minutes) » était l'un des cinq pluriels invariants
+  // mesurés à demeure. `trajets.minutes` reste seul dans `etiquetteChamp()`,
+  // une étiquette d'unité sans nombre attaché, jamais un compte.
+  "trajets.minute_une": "minute",
   "trajets.minutes": "minutes",
   "trajets.non_reglee": "Non réglée",
   "trajets.origine_societe": "réglage de la société",
@@ -2109,8 +2122,11 @@ export const fr = {
   "planning.calendriers_titre_suffixe": "respectés",
   "planning.calendriers_aide":
     "Une case vide n'est pas automatiquement une disponibilité.",
-  // Le mot du badge de la file « À affecter » — invariant au pluriel, comme
-  // `planning.creneaux_libres` juste au-dessus dans ce fichier.
+  // Le mot du badge de la file « À affecter » — accordé via `decompte()`
+  // (lot AV-14, 19/09/2026) : « 1 dossiers » était l'un des cinq pluriels
+  // invariants mesurés à demeure, avec `planning.creneaux_libres` juste
+  // au-dessus dans ce fichier.
+  "planning.file_attente_dossier_un": "dossier",
   "planning.file_attente_dossiers": "dossiers",
   // DEUX ÉTATS DIFFÉRENTS DANS LA BANNIÈRE : `parametres.sans_calendrier` dit
   // qu'AUCUN calendrier n'est rattaché ; cette clé-ci dit qu'un calendrier
@@ -2157,6 +2173,9 @@ export const fr = {
   "planning.jour_apres": "Jour suivant →",
   "planning.colonne_heure": "Heure",
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
+  // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux
+  // libres » était l'un des cinq pluriels invariants mesurés à demeure.
+  "planning.creneau_libre_un": "créneau libre",
   "planning.creneaux_libres": "créneaux libres",
   "planning.pas": "pas de",
   "planning.jour_occupe": "Occupé",

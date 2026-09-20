@@ -443,7 +443,7 @@ function detailAffichees(totalGeneral: number, incompletes: number): string {
 function detailEnPanne(resume: ReturnType<typeof resumerLeParc>): string {
   const enPanne = resume.parStatut.en_panne ?? 0;
   const arretees = resume.parStatut.arretee ?? 0;
-  return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${arretees} ${t("parc.kpi_en_panne_detail_arretees")}`;
+  return `${enPanne} ${t("parc.kpi_en_panne_detail_panne")} · ${decompte(arretees, t("parc.kpi_en_panne_detail_arretee_un"), t("parc.kpi_en_panne_detail_arretees"))}`;
 }
 
 /**

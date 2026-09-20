@@ -77,6 +77,7 @@ import {
   objetDuBloc,
   referenceAffichee,
 } from "../interventions/presentation";
+import { decompte } from "../presentation";
 import { Statistiques } from "./statistiques";
 
 /**
@@ -450,7 +451,11 @@ export default async function PagePlanning({
                 {t("planning.file_attente")}
                 <span data-maquette-bloc="badge-a-affecter">
                   <Badge ton="orange">
-                    {attente.length} {t("planning.file_attente_dossiers")}
+                    {decompte(
+                      attente.length,
+                      t("planning.file_attente_dossier_un"),
+                      t("planning.file_attente_dossiers"),
+                    )}
                   </Badge>
                 </span>
               </h2>
@@ -1350,7 +1355,7 @@ function motifHorsGrille(motif: MotifHorsGrille): string {
 }
 
 function resumeDesTrous(libres: number, pasMinutes: number): string {
-  return `${libres} ${t("planning.creneaux_libres")} · ${t("planning.pas")} ${pasMinutes} min`;
+  return `${decompte(libres, t("planning.creneau_libre_un"), t("planning.creneaux_libres"))} · ${t("planning.pas")} ${pasMinutes} min`;
 }
 
 /**
