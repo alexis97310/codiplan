@@ -56,6 +56,7 @@ export const CAPACITES = [
   "cloturer_intervention",
   "gerer_contrat",
   "gerer_machine",
+  "gerer_client_site",
   "consulter_parc_complet",
   "consulter_parc_propre",
   "voir_montants_vente",
@@ -105,6 +106,10 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   cloturer_intervention: { complet: [ADMS, DIR, RM, RS, ADV] },
   gerer_contrat: { complet: [ADMS, DIR, RM], restreint: [ADV] },
   gerer_machine: { complet: [ADMS, DIR, RM, RS, ADV, TEC] },
+  // D130 : la fiche client et la fiche site sont du référentiel commercial,
+  // pas de l'exploitation — responsable_materiel et responsable_sav en sont
+  // délibérément absents, malgré leur accès complet à la machine.
+  gerer_client_site: { complet: [ADMS, DIR, ADV] },
   // Le ○ du technicien est la restriction de RG-DRO-02, précisée par D22 :
   // les machines de ses interventions, le parc des clients qu'il visite sous
   // 7 jours, et la résolution par QR. Le périmètre lui-même relève du lot 2.
