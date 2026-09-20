@@ -1199,6 +1199,81 @@ export async function annulerIntervention(
 }
 
 /**
+ * RATTACHER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2, 20/09/2026).
+ *
+ * `creerIntervention` sait déjà écrire `intervention_machine` (le dépannage à
+ * l'aveugle démarre sans savoir laquelle est en cause), mais rien ne
+ * permettait d'en désigner une PLUS TARD, une fois le diagnostic posé. C'est
+ * le trou que cette fonction comble — le formulaire de création écrivait déjà,
+ * la fiche ne pouvait pas.
+ *
+ * **La machine doit appartenir au SITE de l'intervention, et à lui seul**
+ * (arbitrage par défaut de ce lot, ouvert à discussion — voir la description
+ * de la PR) : la liste proposée par la fiche est déjà filtrée sur ce site, et
+ * ce contrôle tient la même règle CÔTÉ SERVEUR, contre un formulaire forgé qui
+ * soumettrait l'identifiant d'une machine d'un autre site.
+ *
+ * **Plusieurs machines restent possibles** — `intervention_machine` n'interdit
+ * que le DOUBLON (`@@unique([intervention_id, machine_id])`), jamais la
+ * pluralité (chapitre 7/M3) — et un second appel sur une machine déjà liée est
+ * un NO-OP accepté plutôt qu'un refus : reposer deux fois la même question ne
+ * change rien à la réponse.
+ *
+ * **Aucun contrôle de cycle de vie n'est ajouté ici** — ni `peutAffecter` ni
+ * aucun autre : ce n'est pas demandé par ce lot, et RG-INT-01 (une machine
+ * exigée avant de DÉMARRER) reste tenue où elle l'est déjà, par le
+ * déclencheur PostgreSQL, jamais réimplémentée ici (§9, 01/09).
+ */
+export async function ajouterMachineAIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  machineId: string,
+  client?: PrismaClient,
+): Promise<Resultat<LigneIntervention>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true, site_id: true },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // LE SITE TIENT LA RÈGLE : une machine d'un AUTRE site — même du même
+      // client — n'est jamais rattachable par cette voie (voir l'entête).
+      const machine = await tx.machine.findFirst({
+        where: { id: machineId, site_id: ligne.site_id },
+        select: { id: true },
+      });
+      if (machine === null) {
+        return { accepte: false, cle: "intervention.refus.machine_invalide" };
+      }
+      const dejaLiee = await tx.interventionMachine.findFirst({
+        where: { intervention_id: interventionId, machine_id: machineId },
+        select: { id: true },
+      });
+      if (dejaLiee === null) {
+        await tx.interventionMachine.create({
+          data: {
+            id: uuidv7(),
+            societe_id: contexte.societeId ?? "",
+            intervention_id: interventionId,
+            machine_id: machineId,
+          },
+        });
+      }
+      const misAJour = await tx.intervention.findFirstOrThrow({
+        where: { id: interventionId },
+        select: CHAMPS_LIGNE,
+      });
+      return { accepte: true, fiche: misAJour };
+    },
+    client,
+  );
+}
+
+/**
  * LA RESTRICTION PAR PERSONNE, LUE UNE SEULE FOIS POUR LES TROIS LECTURES
  * (R5-01).
  *
