@@ -1,14 +1,13 @@
-import { createOTP } from "@better-auth/utils/otp";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
   SCENE,
 } from "./setup/scene";
+import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
  * LES MONTANTS DE VENTE, VUS PAR DEUX RÔLES (D37, arbitrage 3.8).
@@ -44,95 +43,17 @@ test.describe.configure({ mode: "serial" });
  *
  * *Mesuré plutôt que supposé* : la connexion de ce compte ne mène pas à
  * l'arrivée mais à `/enrolement` — le §2 impose la MFA sur les rôles sensibles,
- * et `admin_societe` en administre les comptes. **Le harnais ne contourne pas
- * l'enrôlement, il le traverse** : la clé est lue SUR L'ÉCRAN, là où un humain
- * la lirait, et le code à six chiffres est calculé avec la même bibliothèque
- * que la vérification. *Un harnais qui écrirait un secret en base éprouverait
- * un chemin qui n'existe pas.*
- *
- * L'écran montre la clé en BASE32, parce que c'est ce qu'une application
- * d'authentification sait lire ; la vérification calcule sur le secret BRUT.
- * Les confondre rend un code refusé sans que rien ne dise pourquoi.
+ * et `admin_societe` en administre les comptes. `ouvrirLaSessionSensible`
+ * (`tests/e2e/setup/session.ts`) traverse cet enrôlement plutôt que de le
+ * contourner, et partage sa clé avec `tests/e2e/equipe.spec.ts` — la MÊME
+ * identité `admin_societe` du semis, ouverte par les deux fichiers dans la
+ * MÊME exécution (Lot E2E-1). Voir l'en-tête de cette fonction pour la mesure
+ * complète.
  */
-function base32VersBrut(base32: string): string {
-  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits = "";
-  for (const caractere of base32.replace(/=+$/, "").toUpperCase()) {
-    const index = ALPHABET.indexOf(caractere);
-    if (index === -1) {
-      throw new Error(`Clé affichée illisible : « ${caractere} » hors base32.`);
-    }
-    bits += index.toString(2).padStart(5, "0");
-  }
-  let brut = "";
-  for (let i = 0; i + 8 <= bits.length; i += 8) {
-    brut += String.fromCharCode(Number.parseInt(bits.slice(i, i + 8), 2));
-  }
-  return brut;
-}
-
-/**
- * LA CLÉ ACTIVÉE PENDANT CETTE EXÉCUTION, s'il y en a eu une.
- *
- * Elle n'est écrite nulle part — ni fichier, ni base : elle est LUE à l'écran
- * puis gardée le temps de la session de Playwright. Les scénarios sont en mode
- * `serial`, donc une seule exécution la renseigne.
- */
-let cleActivee = "";
-
-async function seConnecter(page: Page, email: string): Promise<void> {
-  await page.goto("/connexion");
-  await page.getByLabel(fr["connexion.email"]).fill(email);
-  await page
-    .getByLabel(fr["connexion.mot_de_passe"])
-    .fill(MOT_DE_PASSE_EPREUVE);
-  await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  await page.waitForLoadState("networkidle");
-}
-
-async function codeCourant(): Promise<string> {
-  return createOTP(cleActivee, { digits: 6, period: 30 }).totp();
-}
-
-/**
- * L'ENRÔLEMENT, PUIS LA RECONNEXION — deux gestes, pas un.
- *
- * *Mesuré, et c'est ce qui a coûté la première rédaction* : activer le second
- * facteur ne mène pas à l'arrivée mais **renvoie à la connexion**
- * (`motif=connexion.apres_enrolement`). C'est juste — *une session ouverte sans
- * second facteur ne devient pas valide parce qu'on vient d'en poser un* —, et
- * le harnais suit ce chemin plutôt que de le supposer.
- */
-async function ouvrirLaSession(page: Page, email: string): Promise<void> {
-  await seConnecter(page, email);
-  if (page.url().includes("/enrolement")) {
-    await page.fill('input[name="motDePasse"]', MOT_DE_PASSE_EPREUVE);
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-    const affichee = (await page.locator("code").first().innerText()).replace(
-      /\s+/g,
-      "",
-    );
-    cleActivee = base32VersBrut(affichee);
-    expect(cleActivee).not.toBe("");
-    await page.fill('input[name="code"]', await codeCourant());
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-    await seConnecter(page, email);
-  }
-  if (page.url().includes("/connexion/code")) {
-    expect(cleActivee).not.toBe("");
-    await page.fill('input[name="code"]', await codeCourant());
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState("networkidle");
-  }
-  await expect(page).toHaveURL(/\/arrivee/);
-}
-
 test("l'ADV voit le total hors taxes — le cas qui doit rester vert", async ({
   page,
 }) => {
-  await ouvrirLaSession(page, COMPTE_EPREUVE);
+  await ouvrirLaSessionSensible(page, COMPTE_EPREUVE);
   await page.goto(`/interventions/${SCENE.obstacle}`);
   // Le TITRE du bloc est là dans les deux cas : c'est ce qui rend l'écart
   // visible au lieu de le faire disparaître.
@@ -150,7 +71,7 @@ test("l'ADV voit le total hors taxes — le cas qui doit rester vert", async ({
 test("`admin_societe` lit le MOTIF à la place des montants — D37", async ({
   page,
 }) => {
-  await ouvrirLaSession(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto(`/interventions/${SCENE.obstacle}`);
   // Le bloc n'a pas disparu : *un bloc absent se lirait « cette intervention
   // n'a pas de montant » là où il faut lire « ce n'est pas pour vous »*.
