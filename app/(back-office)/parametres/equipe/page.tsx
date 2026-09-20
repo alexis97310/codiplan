@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
+import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import { avecContexteApplicatif } from "@/lib/db/client";
+import {
+  habilitationsDesTechniciens,
+  listerHabilitations,
+  type LigneAttribution,
+  type LigneHabilitation,
+} from "@/lib/habilitations/depot";
 import {
   agencesDisponibles,
   listerLesTechniciens,
@@ -27,8 +35,11 @@ import { mot } from "@/lib/i18n/vocabulaire";
  *
  * ## CE QUE CET ÉCRAN NE FAIT PAS
  *
- * Ni le référentiel d'habilitations, ni leur attribution, ni les exigences
- * de site — ÉQUIPE-2. Ni la connexion de la personne créée : créer un
+ * Ni le référentiel d'habilitations (`/parametres/habilitations`), ni les
+ * exigences de site (`/sites/[id]`) — ÉQUIPE-2 les pose ailleurs. Il porte en
+ * revanche l'ATTRIBUTION, datée, depuis la fiche de CHAQUE technicien : c'est
+ * l'endroit que l'énoncé du ticket nomme, et le seul qui connaisse déjà la
+ * personne concernée. Ni la connexion de la personne créée non plus : créer un
  * technicien crée son identité, pas son accès (voir `lib/techniciens/depot.ts`).
  *
  * ## LES INACTIFS SONT VISIBLES DERRIÈRE UN FILTRE, JAMAIS EFFACÉS
@@ -59,6 +70,24 @@ export default async function PageEquipe({
   const affiches = montrerInactifs
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
+
+  const habilitations = await listerHabilitations(session.contexte);
+  const habilitationsActives = habilitations.filter((h) => h.actif);
+  const habilitationsParTechnicien = await habilitationsDesTechniciens(
+    session.contexte,
+    affiches.map((technicien) => technicien.utilisateurId),
+  );
+  // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) : le jugement
+  // « expirée » de `BlocHabilitations` compare à AUJOURD'HUI, et cette date ne
+  // se lit pas sans fuseau — celui de la société, comme `/vgp` et `/parc/[id]`.
+  const societe = await avecContexteApplicatif(session.contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: session.contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = maintenant(fuseau).instant;
 
   return (
     <Page
@@ -132,6 +161,15 @@ export default async function PageEquipe({
             {titreDeModification(technicien.nom)}
           </h2>
           <FormulaireModification agences={agences} technicien={technicien} />
+
+          <BlocHabilitations
+            technicien={technicien}
+            attributions={
+              habilitationsParTechnicien.get(technicien.utilisateurId) ?? []
+            }
+            habilitations={habilitationsActives}
+            aujourdHui={aujourdHui}
+          />
         </section>
       ))}
     </Page>
@@ -287,4 +325,179 @@ function FormulaireModification({
       </Button>
     </form>
   );
+}
+
+/**
+ * L'HABILITATION D'UN TECHNICIEN — l'attribution, datée, et son retrait
+ * (ÉQUIPE-2).
+ *
+ * **Une habilitation expirée reste visible et se voit comme expirée, elle ne
+ * disparaît pas** — même intention que `Technicien.actif` en tête de fichier :
+ * elle cesse d'être VALABLE, elle ne cesse pas d'avoir existé.
+ *
+ * Le jugement « expirée » compare le jour de `date_expiration` au jour civil
+ * courant — `aujourdHui` vient de `maintenant(fuseau)` (L0-08), le fuseau de
+ * la société active, exactement comme `/vgp` et `/parc/[id]`. C'est un
+ * affichage, pas la décision qui bloque une affectation : celle-ci reste
+ * entièrement à `lib/habilitations/affectation.ts` (RG-PLA-04), qui juge à la
+ * date de l'intervention et non à aujourd'hui.
+ */
+function BlocHabilitations({
+  technicien,
+  attributions,
+  habilitations,
+  aujourdHui,
+}: {
+  readonly technicien: LigneTechnicien;
+  readonly attributions: readonly LigneAttribution[];
+  readonly habilitations: readonly LigneHabilitation[];
+  readonly aujourdHui: Date;
+}) {
+  return (
+    <div className="border-app-bord mt-2 flex flex-col gap-2 border-t pt-3">
+      <h3 className="text-app-encre-faible text-[11.5px] font-bold tracking-[0.4px] uppercase">
+        {t("habilitations.technicien.titre")}
+      </h3>
+      {attributions.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("habilitations.technicien.aucune")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {attributions.map((attribution) => (
+            <li
+              key={attribution.id}
+              className="flex flex-wrap items-center gap-2 text-[12.5px]"
+            >
+              <span className="font-mono font-bold">{attribution.code}</span>
+              <span className="text-app-encre-faible">
+                {attribution.libelle}
+              </span>
+              <span className="text-app-encre-faible">
+                {expirationAffichee(attribution)}
+              </span>
+              {estExpiree(attribution, aujourdHui) ? (
+                <Badge ton="rouge">{t("habilitations.expiree")}</Badge>
+              ) : null}
+              <form
+                action={`/api/habilitations/attributions/${attribution.id}/retirer`}
+                method="post"
+              >
+                <Button type="submit" variant="outline" size="sm">
+                  {t("habilitations.retirer")}
+                </Button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {habilitations.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("habilitations.technicien.rien_a_attribuer")}
+        </p>
+      ) : (
+        <form
+          action="/api/habilitations/attributions/creer"
+          method="post"
+          className="flex flex-wrap items-end gap-2"
+        >
+          <input
+            type="hidden"
+            name="utilisateur_id"
+            value={technicien.utilisateurId}
+          />
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor={`${technicien.utilisateurId}-habilitation`}
+              className="text-app-encre-faible text-[11px]"
+            >
+              {t("habilitations.technicien.attribuer")}
+            </label>
+            <select
+              id={`${technicien.utilisateurId}-habilitation`}
+              name="habilitation_id"
+              required
+              defaultValue=""
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+            >
+              <option value="" disabled>
+                {t("habilitations.technicien.choisir")}
+              </option>
+              {habilitations.map((habilitation) => (
+                <option key={habilitation.id} value={habilitation.id}>
+                  {habilitation.code}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ChampDate
+            id={`${technicien.utilisateurId}-obtention`}
+            nom="date_obtention"
+            libelle={t("habilitations.date_obtention")}
+            requis
+          />
+          <ChampDate
+            id={`${technicien.utilisateurId}-expiration`}
+            nom="date_expiration"
+            libelle={t("habilitations.date_expiration")}
+          />
+          <Button type="submit" variant="outline" size="sm">
+            {t("habilitations.technicien.attribuer_action")}
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function ChampDate({
+  id,
+  nom,
+  libelle,
+  requis,
+}: {
+  readonly id: string;
+  readonly nom: string;
+  readonly libelle: string;
+  readonly requis?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-app-encre-faible text-[11px]">
+        {libelle}
+      </label>
+      <input
+        id={id}
+        name={nom}
+        type="date"
+        required={requis === true}
+        className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px]"
+      />
+    </div>
+  );
+}
+
+/** `null` = n'expire pas — jamais affiché comme une absence de valeur (D88). */
+function expirationAffichee(attribution: LigneAttribution): string {
+  return attribution.date_expiration === null
+    ? t("habilitations.expire_jamais")
+    : dateCivile(attribution.date_expiration);
+}
+
+function estExpiree(attribution: LigneAttribution, aujourdHui: Date): boolean {
+  if (attribution.date_expiration === null) {
+    return false;
+  }
+  const expiration = Date.UTC(
+    attribution.date_expiration.getUTCFullYear(),
+    attribution.date_expiration.getUTCMonth(),
+    attribution.date_expiration.getUTCDate(),
+  );
+  const jourCourant = Date.UTC(
+    aujourdHui.getUTCFullYear(),
+    aujourdHui.getUTCMonth(),
+    aujourdHui.getUTCDate(),
+  );
+  return expiration < jourCourant;
 }

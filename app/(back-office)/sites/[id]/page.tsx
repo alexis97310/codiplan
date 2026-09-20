@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Button } from "@/components/ui/button";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import {
+  exigencesDuSite,
+  listerHabilitations,
+  type LigneExigence,
+} from "@/lib/habilitations/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { libellesDesSites, lireSite } from "@/lib/sites/depot";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
@@ -39,6 +45,15 @@ import { libelleRattachement } from "../presentation";
  * `lireSite` lit sous le contexte cloisonné, et la forme « parc » décide. Une
  * fiche hors périmètre et une fiche inexistante rendent LA MÊME chose — les
  * distinguer ferait un oracle (D35, D50).
+ *
+ * ## LES EXIGENCES D'HABILITATION (ÉQUIPE-2)
+ *
+ * `lib/habilitations/affectation.ts` applique RG-PLA-04 depuis L1-04 — un
+ * technicien sans l'habilitation BLOQUANTE d'un site est refusé à
+ * l'affectation — et `lib/interventions/depot.ts` l'appelle réellement, à
+ * l'affectation comme au déplacement. Mais rien ne pouvait déclarer ce qu'un
+ * site EXIGE : cette fiche est le seul écran qui connaisse déjà le site
+ * concerné, donc le seul endroit d'où la déclaration puisse partir.
  */
 export default async function PageSite({
   params,
@@ -69,6 +84,10 @@ export default async function PageSite({
       select: { id: true, libelle: true },
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
+  );
+  const exigences = await exigencesDuSite(session.contexte, site.id);
+  const habilitations = (await listerHabilitations(session.contexte)).filter(
+    (habilitation) => habilitation.actif,
   );
 
   return (
@@ -168,6 +187,12 @@ export default async function PageSite({
           <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
         </div>
       </form>
+
+      <BlocExigences
+        siteId={site.id}
+        exigences={exigences}
+        habilitations={habilitations}
+      />
     </Page>
   );
 }
@@ -197,5 +222,116 @@ function Champ({
         </span>
       )}
     </label>
+  );
+}
+
+/**
+ * LES EXIGENCES D'HABILITATION DE CE SITE (ÉQUIPE-2).
+ *
+ * « Bloquant » retire le technicien du choix à l'affectation ; non bloquant
+ * n'avertit qu'après coup — c'est tout RG-PLA-04, et cet écran ne fait que le
+ * DÉCLARER, jamais le juger : `lib/habilitations/affectation.ts` reste seul à
+ * décider, à l'affectation comme au déplacement.
+ */
+function BlocExigences({
+  siteId,
+  exigences,
+  habilitations,
+}: {
+  readonly siteId: string;
+  readonly exigences: readonly LigneExigence[];
+  readonly habilitations: readonly {
+    readonly id: string;
+    readonly code: string;
+    readonly libelle: string;
+  }[];
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[14px] font-bold">{t("habilitations.site.titre")}</h2>
+
+      {exigences.length === 0 ? (
+        <p className="text-app-encre-faible text-[12.5px]">
+          {t("habilitations.site.aucune")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {exigences.map((exigence) => (
+            <li
+              key={exigence.id}
+              className="flex flex-wrap items-center gap-2 text-[12.5px]"
+            >
+              <span className="font-mono font-bold">{exigence.code}</span>
+              <span className="text-app-encre-faible">{exigence.libelle}</span>
+              <span
+                className={
+                  exigence.bloquant
+                    ? "text-app-rouge-encre font-semibold"
+                    : "text-app-encre-faible"
+                }
+              >
+                {exigence.bloquant
+                  ? t("habilitations.site.bloquant")
+                  : t("habilitations.site.avertissement")}
+              </span>
+              <form
+                action={`/api/habilitations/exigences/${exigence.id}/retirer`}
+                method="post"
+              >
+                <input type="hidden" name="site_id" value={siteId} />
+                <Button type="submit" variant="outline" size="sm">
+                  {t("habilitations.retirer")}
+                </Button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {habilitations.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("habilitations.site.rien_a_exiger")}
+        </p>
+      ) : (
+        <form
+          action="/api/habilitations/exigences/creer"
+          method="post"
+          className="flex flex-wrap items-end gap-2"
+        >
+          <input type="hidden" name="site_id" value={siteId} />
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor={`${siteId}-habilitation`}
+              className="text-app-encre-faible text-[11px]"
+            >
+              {t("habilitations.site.exiger")}
+            </label>
+            <select
+              id={`${siteId}-habilitation`}
+              name="habilitation_id"
+              required
+              defaultValue=""
+              className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-[12.5px]"
+            >
+              <option value="" disabled>
+                {t("habilitations.site.choisir")}
+              </option>
+              {habilitations.map((habilitation) => (
+                <option key={habilitation.id} value={habilitation.id}>
+                  {habilitation.code}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
+            <input type="checkbox" name="bloquant" defaultChecked />
+            {t("habilitations.site.bloquant_case")}
+          </label>
+          <Button type="submit" variant="outline" size="sm">
+            {t("habilitations.site.exiger_action")}
+          </Button>
+        </form>
+      )}
+    </section>
   );
 }

@@ -2377,6 +2377,86 @@ export const fr = {
   // neuf) plutôt qu'affiché d'office — le motif reste ACCESSIBLE, jamais
   // supprimé (voir `app/(back-office)/vgp/page.tsx`).
   "vgp.etat_ligne.voir_motif": "Voir le motif",
+
+  // ── AJOUTÉES EN FIN DE FICHIER (ÉQUIPE-2, 20/09/2026) ────────────────────
+  //
+  // Le référentiel des habilitations, leur attribution depuis la fiche d'un
+  // technicien, et les exigences déclarées depuis la fiche d'un site.
+  "parametres.index_habilitations_titre": "Habilitations",
+  "parametres.index_habilitations_resume":
+    "Le référentiel des qualifications, leur attribution aux techniciens et ce qu'exige chaque lieu d'intervention.",
+
+  "habilitations.titre": "Habilitations",
+  "habilitations.sous_titre":
+    "Le référentiel des qualifications requises pour intervenir, et leur durée de validité.",
+  "habilitations.creer": "Ajouter une habilitation",
+  "habilitations.creer_action": "Créer",
+  "habilitations.aide_duree":
+    "La durée de validité n'est qu'une aide à la saisie d'une attribution : c'est la date d'expiration portée par chaque attribution qui décide.",
+  "habilitations.aucune": "Aucune habilitation.",
+  "habilitations.code": "Code",
+  "habilitations.libelle": "Libellé",
+  "habilitations.duree": "Durée de validité",
+  "habilitations.duree_mois": "Durée de validité (mois)",
+  "habilitations.duree_illimitee": "N'expire pas",
+  "habilitations.activite": "Activité",
+  "habilitations.active": "Active",
+  "habilitations.inactive": "Inactive",
+  "habilitations.activer": "Activer",
+  "habilitations.desactiver": "Désactiver",
+  "habilitations.modifier": "Modifier",
+  "habilitations.enregistrer": "Enregistrer",
+  "habilitations.retirer": "Retirer",
+  "habilitations.expiree": "Expirée",
+  "habilitations.expire_jamais": "N'expire pas",
+  "habilitations.date_obtention": "Date d'obtention",
+  "habilitations.date_expiration": "Date d'expiration",
+
+  "habilitations.refus.saisie":
+    "Saisie invalide : vérifiez les champs du formulaire.",
+  "habilitations.refus.code_pris":
+    "Ce code est déjà utilisé par une autre habilitation de la société active.",
+  "habilitations.refus.introuvable":
+    "Aucune habilitation ne correspond à cette fiche.",
+  "habilitations.refus.technicien_hors_societe":
+    "Ce technicien n'appartient pas à la société active.",
+  "habilitations.refus.habilitation_hors_societe":
+    "Cette habilitation n'appartient pas à la société active.",
+  "habilitations.refus.deja_attribuee":
+    "Cette habilitation est déjà attribuée à ce technicien.",
+  "habilitations.refus.site_hors_societe":
+    "Ce lieu d'intervention n'appartient pas à la société active.",
+  "habilitations.refus.deja_exigee":
+    "Cette habilitation est déjà exigée par ce lieu d'intervention.",
+
+  // Depuis la fiche d'un technicien (`/parametres/equipe`).
+  "habilitations.technicien.titre": "Habilitations",
+  "habilitations.technicien.aucune": "Aucune habilitation attribuée.",
+  "habilitations.technicien.rien_a_attribuer":
+    "Aucune habilitation active à attribuer — le référentiel n'en porte aucune.",
+  "habilitations.technicien.attribuer": "Habilitation",
+  "habilitations.technicien.choisir": "Sélectionner une habilitation",
+  "habilitations.technicien.attribuer_action": "Attribuer",
+
+  // Depuis la fiche d'un site (`/sites/[id]`).
+  "habilitations.site.titre": "Habilitations exigées",
+  "habilitations.site.aucune": "Aucune habilitation exigée.",
+  "habilitations.site.rien_a_exiger":
+    "Aucune habilitation active à exiger — le référentiel n'en porte aucune.",
+  "habilitations.site.exiger": "Habilitation",
+  "habilitations.site.choisir": "Sélectionner une habilitation",
+  "habilitations.site.bloquant": "Bloquante",
+  "habilitations.site.avertissement": "Avertissement seulement",
+  "habilitations.site.bloquant_case": "Bloquante",
+  "habilitations.site.exiger_action": "Exiger",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/habilitations.spec.ts)
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // jusqu'au texte qu'un test de rendu attend, et ces valeurs ne sont jamais
+  // vues par un utilisateur réel.
+  "habilitations.e2e.code": "EPR-01",
+  "habilitations.e2e.libelle": "Habilitation de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
