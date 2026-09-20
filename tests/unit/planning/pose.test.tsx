@@ -161,6 +161,37 @@ describe("un dépôt qui ABOUTIT", () => {
     const url = new URL(naviguer.mock.calls[0][0] as string);
     expect(url.searchParams.getAll(PARAMETRE_AVERTISSEMENT)).toEqual([]);
   });
+
+  it("purge aussi `motif` — un refus de création déjà affiché ne doit pas survivre à un dépôt accepté (revue Codex de la PR #267)", async () => {
+    // `/planning` lit `motif` pour le bandeau ROUGE d'un refus de création
+    // (chantier CRÉA-1). Sans ce retrait, l'URL courante gardait `motif`
+    // pendant qu'un dépôt qui vient de RÉUSSIR rechargeait la page : le
+    // refus d'une autre action, déjà vu, restait affiché à côté d'un succès.
+    Object.defineProperty(window, "location", {
+      value: {
+        ...window.location,
+        href: "http://localhost/planning?motif=intervention.refus.jour_ferme",
+        assign: naviguer,
+      },
+      writable: true,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ accepte: true, cle: null, avertissements: [] }),
+      }),
+    );
+    const { container } = scene();
+
+    fireEvent.drop(laCase(container), {
+      dataTransfer: dataTransferDe("int-1"),
+    });
+
+    await waitFor(() => expect(naviguer).toHaveBeenCalledTimes(1));
+    const url = new URL(naviguer.mock.calls[0][0] as string);
+    expect(url.searchParams.has("motif")).toBe(false);
+  });
 });
 
 describe("un dépôt REFUSÉ par la règle métier", () => {

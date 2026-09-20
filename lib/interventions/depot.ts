@@ -5,16 +5,17 @@ import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
 } from "@/lib/calendar/agence";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import {
   MINUTES_PAR_JOUR,
   instantAMinutes,
   jourDe,
+  jourSuivant,
   maintenant,
   versLocal,
   type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lireParametrage, type Parametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { absenceCouvrant } from "@/lib/absences/periode";
@@ -194,24 +195,30 @@ async function instantDeLAgence(
 }
 
 /**
- * LE CALENDRIER D'OUVERTURE D'UNE AGENCE, LU SOUS LE CONTEXTE CLOISONNÉ — même
- * lecture que `verdictALaPose` (`calendrier_id`, `fuseau_horaire`, celui de la
- * société en repli), factorisée pour la création qui en a désormais besoin
- * elle aussi. *Une agence sans calendrier REFUSE, elle n'invente pas
- * d'horaire* (voir l'entête de `pose.ts`) : `parametrage` vaut `null` dans ce
- * cas, et c'est `verdictOuverture` qui en fait un refus.
+ * LE CALENDRIER D'OUVERTURE D'UNE AGENCE POUR UN JOUR VISÉ, JOURS PARTICULIERS
+ * COMPRIS — factorisée pour la création, qui en a désormais besoin comme le
+ * déplacement (`verdictALaPose`, ci-dessous).
+ *
+ * **`chargerCalendrierAgence`, et non plus `lireParametrage`** (revue Codex de
+ * la PR #267, 20/09/2026) : voir l'entête de `verdictOuverture` dans
+ * `pose.ts` pour le défaut que ce changement répare — un férié chômé ou un
+ * pont d'agence n'était pas vu par le contrôle d'ouverture, ici comme au
+ * déplacement.
+ *
+ * La FENÊTRE est le jour visé, bordée d'un jour de chaque côté (D46) : un
+ * créneau proche de minuit peut déborder sur le jour UTC voisin. `null` sans
+ * appeler la base quand `demande` ne vise aucun jour (retrait du planning) —
+ * `verdictOuverture` rend alors son verdict sans avoir besoin d'un calendrier.
  */
 async function calendrierDeLAgence(
   tx: Prisma.TransactionClient,
+  societeId: string,
   agenceId: string,
-): Promise<{
-  readonly fuseau: Fuseau;
-  readonly parametrage: Parametrage | null;
-}> {
+  demande: PoseDemandee,
+): Promise<Calendrier | null> {
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
     select: {
-      calendrier_id: true,
       fuseau_horaire: true,
       societe: { select: { fuseau_horaire: true } },
     },
@@ -224,13 +231,20 @@ async function calendrierDeLAgence(
         "calendrier ne peut pas être lu sans elle.",
     );
   }
-  return {
-    fuseau: fuseauDeLAgence(agence),
-    parametrage:
-      agence.calendrier_id === null
-        ? null
-        : await lireParametrage(tx, agence.calendrier_id),
-  };
+  const fuseau = fuseauDeLAgence(agence);
+  const jourVise =
+    demande.datePlanifiee ??
+    (demande.creneauDebut === null
+      ? null
+      : versLocal(demande.creneauDebut, fuseau));
+  if (jourVise === null) {
+    return null;
+  }
+  return chargerCalendrierAgence(tx, {
+    societeId,
+    agenceId,
+    fenetre: { du: jourSuivant(jourVise, -1), au: jourSuivant(jourVise, 1) },
+  });
 }
 
 /**
@@ -300,17 +314,34 @@ export async function creerIntervention(
       // aussi (une création AVEC technicien et créneau pourrait chevaucher une
       // autre ligne du même technicien), mais l'élargir ici sortirait du
       // périmètre arrêté pour ce lot.
-      const { fuseau, parametrage } = await calendrierDeLAgence(
+      const demandeCreation = demandeDeCreation(saisie);
+      const calendrier = await calendrierDeLAgence(
         tx,
+        contexte.societeId ?? "",
         site.agence_id,
+        demandeCreation,
       );
-      const ouverture = verdictOuverture(
-        parametrage,
-        demandeDeCreation(saisie),
-        fuseau,
-      );
+      const ouverture = verdictOuverture(calendrier, demandeCreation);
       if (ouverture.refuse) {
         return { accepte: false, cle: ouverture.cle };
+      }
+
+      // LES MACHINES DOIVENT APPARTENIR AU SITE CHOISI (revue Codex de la PR
+      // #267, 20/09/2026). *Seule la forme UUID était validée par
+      // `schemaCreation` — rien ne garantissait qu'une machine appartienne au
+      // SITE de l'intervention, seule la SOCIÉTÉ l'étant par la clé
+      // étrangère.* Un formulaire forgé pouvait donc rattacher une machine
+      // d'un autre site du même client, voire d'un autre client de la même
+      // société. `ajouterMachineAIntervention` (le rattachement après coup,
+      // plus bas) tient déjà cette règle côté serveur ; elle manquait ici, à
+      // la création.
+      if (saisie.machine_ids.length > 0) {
+        const machinesDuSite = await tx.machine.count({
+          where: { id: { in: saisie.machine_ids }, site_id: site.id },
+        });
+        if (machinesDuSite !== saisie.machine_ids.length) {
+          return { accepte: false, cle: "intervention.refus.machine_invalide" };
+        }
       }
 
       const forfaitId = await forfaitDeDeplacement(
@@ -634,6 +665,7 @@ function demandeDeDeplacement(
  */
 async function verdictALaPose(
   tx: Prisma.TransactionClient,
+  societeId: string,
   interventionId: string,
   agenceId: string,
   siteId: string,
@@ -646,7 +678,6 @@ async function verdictALaPose(
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
     select: {
-      calendrier_id: true,
       fuseau_horaire: true,
       societe: { select: { fuseau_horaire: true } },
     },
@@ -663,11 +694,27 @@ async function verdictALaPose(
   // l'écriture ferait deux lectures d'un même critère (§9, 01/09).
   const demande = demandeDeDeplacement(saisie, fuseau);
 
-  const parametrage =
-    agence.calendrier_id === null
+  // `chargerCalendrierAgence`, ET NON `lireParametrage` (revue Codex de la PR
+  // #267, 20/09/2026) — voir l'entête de `verdictOuverture` (`pose.ts`) : ce
+  // contrôle ne voyait pas les fériés chômés ni les ponts d'agence, ici comme
+  // à la création.
+  const jourVise =
+    demande.datePlanifiee ??
+    (demande.creneauDebut === null
       ? null
-      : await lireParametrage(tx, agence.calendrier_id);
-  const ouverture = verdictOuverture(parametrage, demande, fuseau);
+      : versLocal(demande.creneauDebut, fuseau));
+  const calendrier =
+    jourVise === null
+      ? null
+      : await chargerCalendrierAgence(tx, {
+          societeId,
+          agenceId,
+          fenetre: {
+            du: jourSuivant(jourVise, -1),
+            au: jourSuivant(jourVise, 1),
+          },
+        });
+  const ouverture = verdictOuverture(calendrier, demande);
   if (ouverture.refuse) {
     return { verdict: ouverture, demande };
   }
@@ -833,6 +880,7 @@ export async function deplacerIntervention(
       // `lib/habilitations/affectation.ts`, qui ne lisent rien.
       const pose = await verdictALaPose(
         tx,
+        contexte.societeId ?? "",
         ligne.id,
         ligne.agence_id,
         ligne.site_id,
@@ -1219,6 +1267,15 @@ export async function annulerIntervention(
  * un NO-OP accepté plutôt qu'un refus : reposer deux fois la même question ne
  * change rien à la réponse.
  *
+ * **L'ÉCRITURE EST ATOMIQUE** (revue Codex de la PR #267, 20/09/2026) :
+ * `createMany` avec `skipDuplicates` — un `INSERT ... ON CONFLICT DO NOTHING`
+ * — plutôt qu'un « vérifier l'absence, puis créer ». *Une séquence
+ * vérifier-puis-écrire laisse une fenêtre entre les deux requêtes : deux
+ * appels concurrents sur la même machine peuvent tous deux passer le
+ * contrôle avant qu'aucun n'ait écrit, et le second se ferait alors refuser
+ * par la contrainte unique au lieu du NO-OP annoncé ci-dessus.* Une seule
+ * instruction ferme cette fenêtre.
+ *
  * **Aucun contrôle de cycle de vie n'est ajouté ici** — ni `peutAffecter` ni
  * aucun autre : ce n'est pas demandé par ce lot, et RG-INT-01 (une machine
  * exigée avant de DÉMARRER) reste tenue où elle l'est déjà, par le
@@ -1249,20 +1306,17 @@ export async function ajouterMachineAIntervention(
       if (machine === null) {
         return { accepte: false, cle: "intervention.refus.machine_invalide" };
       }
-      const dejaLiee = await tx.interventionMachine.findFirst({
-        where: { intervention_id: interventionId, machine_id: machineId },
-        select: { id: true },
-      });
-      if (dejaLiee === null) {
-        await tx.interventionMachine.create({
-          data: {
+      await tx.interventionMachine.createMany({
+        data: [
+          {
             id: uuidv7(),
             societe_id: contexte.societeId ?? "",
             intervention_id: interventionId,
             machine_id: machineId,
           },
-        });
-      }
+        ],
+        skipDuplicates: true,
+      });
       const misAJour = await tx.intervention.findFirstOrThrow({
         where: { id: interventionId },
         select: CHAMPS_LIGNE,

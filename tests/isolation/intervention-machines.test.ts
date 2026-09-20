@@ -14,7 +14,6 @@ import {
   INTERVENTION_B1,
   MACHINE_A1,
   SITE_A1_S1,
-  SITE_A1_S2,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
 } from "./setup/fixtures";
@@ -314,7 +313,12 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
     const saisie = schemaCreation.parse({
       id,
       client_id: CLIENT_A1,
-      site_id: SITE_A1_S2,
+      // `SITE_A1_S1`, le site RÉEL de `MACHINE_A1` (revue Codex de la PR
+      // #267, 20/09/2026) — `creerIntervention` refuse désormais une machine
+      // qui n'appartient pas au site choisi, et `SITE_A1_S2` (l'ancien site
+      // de ce scénario) n'a jamais été le sien : rien dans l'objet de CE
+      // scénario, le dédoublonnage, ne dépend du site.
+      site_id: SITE_A1_S1,
       machine_ids: [MACHINE_A1, MACHINE_A1],
       type: "preventif_contrat",
     });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Parametrage } from "@/lib/calendar/parametrage";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { instantAMinutes, type JourLocal } from "@/lib/calendar/fuseau";
 import {
   verdictChevauchement,
@@ -29,16 +29,34 @@ const FUSEAU = "Pacific/Noumea";
 const LUNDI: JourLocal = { annee: 2026, mois: 9, jour: 14 };
 const jour = (rang: number): JourLocal => ({ ...LUNDI, jour: 14 + rang });
 
-/** Koné : du lundi au vendredi, 07:30–11:30 et 13:00–17:00. */
-const KONE: Parametrage = {
-  calendrierId: "cal-kone",
+/**
+ * Koné : du lundi au vendredi, 07:30–11:30 et 13:00–17:00 — un `Calendrier`
+ * complet (`lib/calendar/calendrier.ts`), pas le `Parametrage` plus pauvre
+ * d'avant la revue Codex de la PR #267 : `jours_particuliers` porte
+ * désormais ce que `Parametrage` ne pouvait pas dire — un jour de semaine
+ * ordinairement travaillé peut être férié chômé.
+ */
+const KONE: Calendrier = {
   code: "DEMO-KONE",
-  libelle: "Koné",
-  pasCreneauMinutes: 30,
-  plages: [1, 2, 3, 4, 5].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
+  fuseau: FUSEAU,
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5].flatMap((jour_semaine) => [
+    { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+    { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
   ]),
+  jours_particuliers: [
+    // Le mercredi 16/09/2026 (rang 2) — un JOUR DE SEMAINE ORDINAIREMENT
+    // TRAVAILLÉ, mais FÉRIÉ CHÔMÉ. C'est exactement le cas que `Parametrage`
+    // ne pouvait pas voir : ses plages hebdomadaires auraient dit « ouvert ».
+    // Le rang 1 (mardi) reste un jour ordinaire, pour ne pas changer le sens
+    // des scénarios existants qui le visent.
+    {
+      date: "2026-09-16",
+      libelle: "Jour férié de démonstration",
+      ouvre: false,
+      origine: "territoire",
+    },
+  ],
 };
 
 const sansCreneau = (rang: number, technicienId = "t1"): PoseDemandee => ({
@@ -64,12 +82,30 @@ describe("le calendrier de l'agence visée décide (R2-19)", () => {
   it("accepte un jour ouvert", () => {
     // Le cas qui doit rester VERT pour sa propre raison : sans lui, un verdict
     // qui refuserait toujours passerait tous les refus ci-dessous.
-    expect(verdictOuverture(KONE, sansCreneau(1), FUSEAU).refuse).toBe(false);
+    expect(verdictOuverture(KONE, sansCreneau(1)).refuse).toBe(false);
   });
 
   it("REFUSE le samedi, que Koné ne travaille pas", () => {
-    const verdict = verdictOuverture(KONE, sansCreneau(5), FUSEAU);
+    const verdict = verdictOuverture(KONE, sansCreneau(5));
     expect(verdict).toEqual({
+      refuse: true,
+      cle: "intervention.refus.jour_ferme",
+    });
+  });
+
+  it("REFUSE un jour de semaine ORDINAIREMENT TRAVAILLÉ mais FÉRIÉ CHÔMÉ (revue Codex de la PR #267)", () => {
+    // Le mercredi (rang 2) est un jour de semaine que Koné travaille — sans
+    // `jours_particuliers`, ce verdict aurait accepté. C'est très exactement
+    // le trou que `Parametrage` (les seules plages hebdomadaires) laissait
+    // passer, ici et au déplacement : un `Calendrier` complet le referme.
+    expect(verdictOuverture(KONE, sansCreneau(2))).toEqual({
+      refuse: true,
+      cle: "intervention.refus.jour_ferme",
+    });
+    // La même chose vaut avec une heure : un férié chômé refuse quelle que
+    // soit l'heure demandée, même dans ce qui serait une plage un jour
+    // ordinaire.
+    expect(verdictOuverture(KONE, avecCreneau(2, 480, 60))).toEqual({
       refuse: true,
       cle: "intervention.refus.jour_ferme",
     });
@@ -78,18 +114,16 @@ describe("le calendrier de l'agence visée décide (R2-19)", () => {
   it("REFUSE une agence sans calendrier — « inconnu » n'est pas « ouvert »", () => {
     // I7 : aucun calendrier global codé en dur. Poser sans horaire connu
     // promettrait un rendez-vous que personne ne peut tenir.
-    expect(verdictOuverture(null, sansCreneau(1), FUSEAU)).toEqual({
+    expect(verdictOuverture(null, sansCreneau(1))).toEqual({
       refuse: true,
       cle: "intervention.refus.agence_sans_calendrier",
     });
   });
 
   it("accepte une heure dans une plage, refuse une heure hors des plages", () => {
-    expect(verdictOuverture(KONE, avecCreneau(1, 480, 60), FUSEAU).refuse).toBe(
-      false,
-    );
+    expect(verdictOuverture(KONE, avecCreneau(1, 480, 60)).refuse).toBe(false);
     // 12:00 : entre les deux plages, l'agence est fermée.
-    expect(verdictOuverture(KONE, avecCreneau(1, 720, 60), FUSEAU)).toEqual({
+    expect(verdictOuverture(KONE, avecCreneau(1, 720, 60))).toEqual({
       refuse: true,
       cle: "intervention.refus.hors_ouverture",
     });
@@ -104,7 +138,7 @@ describe("le calendrier de l'agence visée décide (R2-19)", () => {
       creneauFin: null,
       technicienId: null,
     };
-    expect(verdictOuverture(null, retrait, FUSEAU).refuse).toBe(false);
+    expect(verdictOuverture(null, retrait).refuse).toBe(false);
   });
 });
 

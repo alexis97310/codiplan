@@ -1,10 +1,6 @@
-import { creneauxDuJour, type Parametrage } from "@/lib/calendar/parametrage";
-import {
-  minutesDepuisMinuit,
-  versLocal,
-  type Fuseau,
-} from "@/lib/calendar/fuseau";
-import { jourSemaineIso } from "@/lib/calendar/semaine";
+import type { Calendrier } from "@/lib/calendar/calendrier";
+import { estJourOuvre, estOuvert } from "@/lib/calendar/ouverture";
+import { versLocal } from "@/lib/calendar/fuseau";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 
 import type { Verdict } from "./cycle-de-vie";
@@ -92,32 +88,53 @@ const SANS_OCCUPATION = new Set(["annulee"]);
 /**
  * Le jour visé est-il ouvert dans le calendrier de l'agence de l'intervention ?
  *
- * `parametrage` vaut `null` quand l'agence n'a pas de calendrier : c'est un
+ * `calendrier` vaut `null` quand l'agence n'a pas de calendrier : c'est un
  * REFUS, jamais une permission (voir l'entête).
+ *
+ * **Un `Calendrier` (`lib/calendar/calendrier.ts`), et non plus un
+ * `Parametrage` (`lib/calendar/parametrage.ts`)** — revue Codex de la PR
+ * #267, 20/09/2026. *`Parametrage` ne porte que les plages hebdomadaires et le
+ * dit lui-même en tête de fichier : « il ne dit rien des fériés ni des
+ * majorations ».* Ce contrôle jugeait donc un jour férié ou un pont d'agence
+ * OUVERT dès lors qu'il tombait un jour de semaine ordinairement travaillé —
+ * une intervention pouvait se poser un jour férié chômé, à la création comme
+ * au déplacement, sans qu'aucun refus ne le dise. `chargerCalendrierAgence`
+ * (`lib/calendar/agence.ts`) compose déjà le fait public du territoire ET
+ * l'écart local de l'agence dans le bon ordre (D46) ; `estJourOuvre` et
+ * `estOuvert` (`lib/calendar/ouverture.ts`) en tirent la même décision que la
+ * majoration hors ouverture (L2-09b) lit déjà — un seul calcul d'ouverture
+ * pour tout le dépôt, jamais une seconde lecture d'un même critère (§9,
+ * 01/09).
+ *
+ * Le fuseau n'est plus un paramètre séparé : `calendrier.fuseau` est celui de
+ * la MÊME agence, et le porter deux fois aurait ouvert la porte à ce qu'ils
+ * divergent.
  */
 export function verdictOuverture(
-  parametrage: Parametrage | null,
+  calendrier: Calendrier | null,
   demande: PoseDemandee,
-  fuseau: Fuseau,
 ): Verdict {
   if (demande.datePlanifiee === null && demande.creneauDebut === null) {
     // Retirer une intervention du planning la rend à la file d'attente. Aucun
     // calendrier n'a son mot à dire : on ne pose rien.
     return PERMIS;
   }
-  if (parametrage === null) {
+  if (calendrier === null) {
     return { refuse: true, cle: "intervention.refus.agence_sans_calendrier" };
   }
   const jour =
     demande.datePlanifiee ??
     (demande.creneauDebut === null
       ? null
-      : versLocal(demande.creneauDebut, fuseau));
+      : versLocal(demande.creneauDebut, calendrier.fuseau));
   if (jour === null) {
     return PERMIS;
   }
-  const creneaux = creneauxDuJour(parametrage, jourSemaineIso(jour));
-  if (creneaux.length === 0) {
+  if (!estJourOuvre(calendrier, jour)) {
+    // Un jour de semaine ordinairement travaillé, mais FÉRIÉ CHÔMÉ ou PONT
+    // d'agence, rend ici le même refus qu'un jour de fermeture hebdomadaire —
+    // `estJourOuvre` les traite déjà comme un seul et même « ce jour n'ouvre
+    // pas », et les distinguer à l'écran romprait ce que D46 a déjà tranché.
     return { refuse: true, cle: "intervention.refus.jour_ferme" };
   }
   if (demande.creneauDebut === null) {
@@ -125,14 +142,7 @@ export function verdictOuverture(
     // SEMAINE, qui n'a pas d'heure à donner.
     return PERMIS;
   }
-  const debut = minutesDepuisMinuit(versLocal(demande.creneauDebut, fuseau));
-  const dansUnePlage = parametrage.plages.some(
-    (plage) =>
-      plage.jourSemaine === jourSemaineIso(jour) &&
-      debut >= plage.debutMinutes &&
-      debut < plage.finMinutes,
-  );
-  return dansUnePlage
+  return estOuvert(calendrier, demande.creneauDebut)
     ? PERMIS
     : { refuse: true, cle: "intervention.refus.hors_ouverture" };
 }
