@@ -264,10 +264,7 @@ export default async function PagePlanning({
   // fenêtre n'était jamais soumis à la résolution*, et sa colonne — celle-là
   // même que le 12/09 lui avait rendue — portait un fragment d'identifiant.
   // `personnesANommer` fait l'UNION, une fois, pour les deux vues.
-  const annuaire = await avecContexteApplicatif(contexte, (tx) =>
-    annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
-  );
-
+  //
   // ── LE PANNEAU DE CHARGE ET LA VUE LISENT LE MÊME JEU ───────────────────
   //
   // Ils ne le lisaient pas. Le panneau recevait la liste BRUTE, la grille une
@@ -285,13 +282,24 @@ export default async function PagePlanning({
   // autre chose qu'`affichees`.
   const attente = fileDAttente(lignes);
   const affichees = lignesAffichees(lignes, vue, jourAffiche);
-  const charges = await occupationsDuPlanning(
-    contexte,
-    affichees,
-    vue === "jour"
-      ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
-      : fenetreEnJours,
-  );
+  // DEUX LECTURES INDÉPENDANTES (lot AV-14, mesuré sur 4fead41 puis 99c2e85) :
+  // `annuaire` ne dépend que de `lignes` et de `pourTechniciens` ;
+  // `occupationsDuPlanning` ne dépend que d'`affichees`, dérivée de `lignes`
+  // elle aussi — ni l'une ni l'autre du résultat de l'autre. Elles restaient
+  // pourtant en série, un aller-retour attendu pour rien pendant que l'autre
+  // courait déjà.
+  const [annuaire, charges] = await Promise.all([
+    avecContexteApplicatif(contexte, (tx) =>
+      annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
+    ),
+    occupationsDuPlanning(
+      contexte,
+      affichees,
+      vue === "jour"
+        ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
+        : fenetreEnJours,
+    ),
+  ]);
 
   // LA COLONNE ET LE PANNEAU LISENT LA MÊME MESURE (D111). `charges` vient
   // d'`affichees`, le jeu unique de `lib/interventions/affichage.ts` : la
