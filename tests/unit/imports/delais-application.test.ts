@@ -23,8 +23,9 @@ import { RACINE } from "../outils/fichiers-source";
  * `POST /api/imports/{id}/appliquer` sans réponse après quatre minutes, sous
  * les délais par défaut de Prisma (timeout 5 000 ms). Le premier remède a
  * porté `maxDuration` à 1 200 secondes — et le premier déploiement Vercel l'a
- * refusé : le plan Hobby de ce projet plafonne `maxDuration` à
- * `PLAFOND_PLATEFORME_S` (300). Ce fichier éprouve donc DEUX choses
+ * refusé : le plan Hobby de ce projet plafonnait alors `maxDuration` à
+ * `PLAFOND_PLATEFORME_S` (300 — 800 depuis le passage au plan Pro le
+ * 20/09/2026, issue #257). Ce fichier éprouve donc DEUX choses
  * distinctes, jamais confondues : l'ARITHMÉTIQUE du budget (allers-retours au
  * pire × latence majorée, sous le délai fixé) ET la conformité du littéral
  * `maxDuration` de la route au plafond de la PLATEFORME — la première ne
@@ -117,39 +118,50 @@ describe("délais de la transaction d'application", () => {
   });
 
   /**
-   * **LE POINT D'ARRÊT DU §8, RENDU EXPLICITE PLUTÔT QUE CONTOURNÉ.**
+   * **LE POINT D'ARRÊT DU §8, LEVÉ EN CONSCIENCE — PAS PAR INERTIE.**
    *
-   * Ce test ne garde pas un comportement voulu : il garde une LIMITE
-   * assumée. Le lot mesuré en production — 615 lignes classées modification
-   * — ne tient plus sous ce budget si on suppose, au pire, qu'AUCUNE n'est
-   * inchangée. *Ce n'est pas un défaut de calcul* : sous 500 ms l'aller-
-   * retour et deux allers-retours par VRAIE modification, 615 modifications
-   * simultanées et réellement distinctes coûtent plus que le plafond de la
-   * plateforme ne l'autorise, et rien dans ce ticket ne le cache — ni en
-   * relevant `maxDuration` (la plateforme le refuserait à nouveau), ni en
-   * découpant la transaction (l'application d'un lot reste UNE seule
-   * transaction).
+   * Ce test tenait ici la limite inverse : sous le plafond du plan Hobby
+   * (300 s), un lot de 615 VRAIES modifications simultanées ne tenait plus
+   * sous le budget. Le compte Vercel de ce projet est passé au plan Pro le
+   * 20/09/2026 (issue #257), et ce plafond a été relevé en conséquence —
+   * cette assertion se retourne donc ici volontairement plutôt que d'être
+   * desserrée en silence.
    *
-   * **Ce que ce test ne dit PAS** : que le lot RÉELLEMENT mesuré échouerait
-   * encore. Il était fait de 615 lignes toutes IDENTIQUES à ce qui existait
-   * déjà — le point 1 de la session précédente les rend toutes
-   * « inchangées », et une ligne inchangée ne pèse presque rien dans ce
-   * budget (voir le test du coût d'un lot vide). C'est un lot hypothétique
-   * de 615 VRAIS changements simultanés, jamais observé, que ce budget ne
-   * couvre plus — et un tel lot se refuse proprement (`delai_depasse`),
-   * jamais en silence.
+   * Le nombre n'est pas recopié en dur : ce test retrouve, à partir du
+   * budget COURANT (`DUREE_MAXIMALE_MS`, `LATENCE_PESSIMISTE_MS`,
+   * `allersRetoursApplication`), le plus grand nombre de VRAIES
+   * modifications simultanées que la transaction peut encore porter, et
+   * exige que ce nombre couvre le lot mesuré en production le 16/09/2026 —
+   * 615 lignes classées modification. *C'est le lien entre ce ticket et
+   * cette mesure-là.*
    */
-  it("un lot de 615 VRAIES modifications ne tient plus sous ce budget — et c'est assumé, pas caché", () => {
-    const allersRetours = allersRetoursApplication(615);
-    const budget = allersRetours * LATENCE_PESSIMISTE_MS;
+  it("la capacité de la transaction couvre le lot de 615 VRAIES modifications mesuré le 16/09/2026", () => {
+    let capacite = 0;
+    while (
+      allersRetoursApplication(capacite + 1) * LATENCE_PESSIMISTE_MS <=
+      DUREE_MAXIMALE_MS
+    ) {
+      capacite += 1;
+    }
 
     expect(
-      budget,
-      `615 lignes, ${allersRetours} allers-retours au pire à ` +
-        `${LATENCE_PESSIMISTE_MS} ms coûtent ${budget} ms, pour un délai de ` +
-        `${DUREE_MAXIMALE_MS} ms. Si cette assertion se met à échouer parce ` +
-        "que le budget TIENT de nouveau, mettre à jour ce test et son " +
-        "docblock : la limite qu'il garde aura été levée légitimement.",
-    ).toBeGreaterThan(DUREE_MAXIMALE_MS);
+      capacite,
+      `la transaction ne porte plus que ${capacite} VRAIES modifications ` +
+        "simultanées sous ce budget, alors que le lot qui a motivé cette " +
+        "série en comptait 615.",
+    ).toBeGreaterThanOrEqual(615);
+  });
+
+  /**
+   * **LE PLAFOND DÉCLARÉ EST CELUI DU PLAN.**
+   *
+   * Le compte Vercel de ce projet est passé du plan Hobby au plan Pro le
+   * 20/09/2026 ; la documentation Vercel du jour porte le maximum du plan
+   * Pro à 800 s, en disponibilité générale (issue #257). *Un retour au plan
+   * Hobby ferait tomber ce test — et c'est voulu* : `PLAFOND_PLATEFORME_S`
+   * devrait alors être revu en conscience, pas laissé à 800 par inertie.
+   */
+  it("le plafond de la plateforme est celui du plan Pro (800 s, depuis le 20/09/2026)", () => {
+    expect(PLAFOND_PLATEFORME_S).toBe(800);
   });
 });

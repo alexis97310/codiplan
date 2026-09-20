@@ -88,33 +88,44 @@ import type { DelaisTransaction } from "@/lib/db/rls";
 export const LATENCE_PESSIMISTE_MS = 500;
 
 /**
- * LE PLAFOND DE LA PLATEFORME QUI SERT CETTE ROUTE — Vercel, plan Hobby.
+ * LE PLAFOND DE LA PLATEFORME QUI SERT CETTE ROUTE — Vercel, plan Pro.
  *
- * *Mesuré, pas documenté d'avance* : le premier déploiement de cette branche
- * a échoué avec `maxDuration=1200`, Vercel refusant tout ce qui dépasse trois
- * cents secondes sur ce plan (le plan Pro accepte 300 par défaut, 800 au
- * maximum — un autre plafond, pour un autre jour, s'il devient le bon).
+ * *Huit cents secondes, en disponibilité générale* : le compte Vercel de ce
+ * projet est passé du plan Hobby au plan Pro le 20/09/2026. La documentation
+ * Vercel du jour (« Duration limits ») porte le maximum du plan Pro à 800 s
+ * — généralement disponible, pas en bêta ; la bêta ne concerne que les
+ * durées au-delà, jusqu'à 1 800 s, hors de portée de ce fichier.
+ *
+ * *Ce que ce nombre valait avant, et pourquoi le savoir compte encore* : le
+ * premier déploiement de cette branche, sous le plan Hobby d'alors, avait
+ * échoué avec `maxDuration=1200` — Vercel refusant tout ce qui dépassait
+ * trois cents secondes sur CE plan-là. Ce plafond Hobby (300) est resté ici
+ * jusqu'au 20/09/2026 ; il n'est plus le plafond courant, seulement la
+ * mesure qui a fait naître cette constante.
+ *
  * `maxDuration`, dans la route, ne peut jamais dépasser ce nombre : un
  * gardien statique le confronte (`tests/unit/imports/delais-application.test.ts`).
  */
-export const PLAFOND_PLATEFORME_S = 300;
+export const PLAFOND_PLATEFORME_S = 800;
 
 /**
- * Durée maximale de la transaction qui applique un lot : quatre minutes.
+ * Durée maximale de la transaction qui applique un lot : douze minutes et
+ * trente secondes.
  *
- * **Recalculée depuis le budget RÉDUIT** (point 1 de la suite du 16/09/2026),
- * et portée STRICTEMENT sous `PLAFOND_PLATEFORME_S`, marge comprise pour le
- * reste de la route (authentification, redirection) et pour
+ * **Portée depuis le plafond du plan Pro** (le compte Vercel de ce projet
+ * est passé du plan Hobby au plan Pro le 20/09/2026 — voir
+ * `PLAFOND_PLATEFORME_S`), et STRICTEMENT sous ce plafond, marge comprise
+ * pour le reste de la route (authentification, redirection) et pour
  * `ATTENTE_CONNEXION_MS` — les deux comptent dans le temps d'exécution de la
  * fonction, pas seulement celui de la transaction. À 500 ms l'aller-retour et
- * DEUX allers-retours par ligne au pire désormais (une écriture, une trace —
- * voir `allersRetoursApplication`), ce plafond couvre environ 236 lignes de
+ * DEUX allers-retours par ligne au pire (une écriture, une trace — voir
+ * `allersRetoursApplication`), ce plafond couvre jusqu'à 746 lignes de
  * VRAIES modifications simultanées, et un nombre de créations ou de lignes
  * inchangées bien plus grand, puisque celles-ci ne coûtent presque plus rien
  * par ligne. Au-delà, le lot se refuse proprement (`delai_depasse`) plutôt
  * que de dépasser en silence.
  */
-export const DUREE_MAXIMALE_MS = 240_000;
+export const DUREE_MAXIMALE_MS = 750_000;
 
 /**
  * La même durée, en secondes, arrondie au-dessus — le PLANCHER de ce que
