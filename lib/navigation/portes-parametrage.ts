@@ -121,4 +121,17 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     titre: "parametres.index_equipe_titre",
     resume: "parametres.index_equipe_resume",
   },
+  {
+    // LA NEUVIÈME PORTE DE CETTE LISTE (ÉQUIPE-2, 20/09/2026). Même faute que
+    // les prestations et le matériel : `lib/habilitations/affectation.ts`
+    // applique RG-PLA-04 depuis L1-04, et `lib/interventions/depot.ts`
+    // l'appelle réellement — mais rien ne pouvait écrire ni le référentiel, ni
+    // une attribution, ni une exigence. *Le verrou mordait sur des données
+    // qu'on ne pouvait alimenter qu'à la main, en base.*
+    //
+    // **Elle ne porte aucun décompte**, comme les autres portes de cette liste.
+    chemin: "/parametres/habilitations",
+    titre: "parametres.index_habilitations_titre",
+    resume: "parametres.index_habilitations_resume",
+  },
 ];
