@@ -12,8 +12,9 @@ import {
   maintenant,
   versLocal,
   type Fuseau,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lireParametrage } from "@/lib/calendar/parametrage";
+import { lireParametrage, type Parametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { absenceCouvrant } from "@/lib/absences/periode";
@@ -193,6 +194,63 @@ async function instantDeLAgence(
 }
 
 /**
+ * LE CALENDRIER D'OUVERTURE D'UNE AGENCE, LU SOUS LE CONTEXTE CLOISONNÉ — même
+ * lecture que `verdictALaPose` (`calendrier_id`, `fuseau_horaire`, celui de la
+ * société en repli), factorisée pour la création qui en a désormais besoin
+ * elle aussi. *Une agence sans calendrier REFUSE, elle n'invente pas
+ * d'horaire* (voir l'entête de `pose.ts`) : `parametrage` vaut `null` dans ce
+ * cas, et c'est `verdictOuverture` qui en fait un refus.
+ */
+async function calendrierDeLAgence(
+  tx: Prisma.TransactionClient,
+  agenceId: string,
+): Promise<{
+  readonly fuseau: Fuseau;
+  readonly parametrage: Parametrage | null;
+}> {
+  const agence = await tx.agence.findFirst({
+    where: { id: agenceId },
+    select: {
+      calendrier_id: true,
+      fuseau_horaire: true,
+      societe: { select: { fuseau_horaire: true } },
+    },
+  });
+  if (agence === null) {
+    // Impossible en pratique : la clé étrangère de `site.agence_id` garantit
+    // l'agence dans la même société (même raisonnement qu'`instantDeLAgence`).
+    throw new Error(
+      `Agence ${agenceId} illisible sous le contexte courant : son ` +
+        "calendrier ne peut pas être lu sans elle.",
+    );
+  }
+  return {
+    fuseau: fuseauDeLAgence(agence),
+    parametrage:
+      agence.calendrier_id === null
+        ? null
+        : await lireParametrage(tx, agence.calendrier_id),
+  };
+}
+
+/**
+ * LA POSE DEMANDÉE À LA CRÉATION — même forme que `demandeDeDeplacement`
+ * (`PoseDemandee`), mais SANS conversion de minutes locales : `schemaCreation`
+ * valide déjà `creneau_debut`/`creneau_fin` comme des INSTANTS (`z.date()`),
+ * là où le déplacement part de minutes locales qu'il faut résoudre sous le
+ * fuseau de l'agence. Seul `date_planifiee` — un `@db.Date`, minuit UTC — se
+ * relit en `JourLocal`, par `jourStocke`, la même lecture que le déplacement.
+ */
+function demandeDeCreation(saisie: Creation): PoseDemandee {
+  return {
+    datePlanifiee: jourStocke(saisie.date_planifiee),
+    creneauDebut: saisie.creneau_debut,
+    creneauFin: saisie.creneau_fin,
+    technicienId: saisie.technicien_id,
+  };
+}
+
+/**
  * CRÉER une intervention depuis le planning.
  *
  * Trois choses sont DÉDUITES et jamais saisies : l'agence (du site), le forfait
@@ -220,6 +278,39 @@ export async function creerIntervention(
           accepte: false,
           cle: "intervention.refus.lieu_sans_rattachement",
         };
+      }
+
+      // ── LE CONTRÔLE D'OUVERTURE, COMME À LA POSE (R2-19) ────────────────
+      //
+      // **Il manquait, et c'est le ticket** : `deplacerIntervention` refuse
+      // déjà un jour d'agence fermée par `verdictALaPose` → `verdictOuverture`,
+      // mais une intervention pouvait NAÎTRE un jour férié ou hors ouverture
+      // par le formulaire de création, qui n'appelait ce contrôle nulle part.
+      // *Deux chemins qui écrivent la même colonne (`date_planifiee`) et ne se
+      // soumettent pas au même contrôle ne tiennent pas la même règle* (§9,
+      // 01/09) — exactement la faute déjà réparée pour RG-PLA-04 entre
+      // l'affectation et le déplacement.
+      //
+      // **Le périmètre s'arrête ICI, et c'est délibéré** (voir la description
+      // du lot) : seul `verdictOuverture` est branché — agence sans
+      // calendrier, jour fermé, hors ouverture. Les trois AUTRES contrôles de
+      // `verdictALaPose` — RG-PLA-04 (habilitation), RG-PLA-06 (absence),
+      // chevauchement — ne sont PAS demandés pour la création, où aucun
+      // technicien n'est en général encore affecté ; l'un d'eux peut manquer
+      // aussi (une création AVEC technicien et créneau pourrait chevaucher une
+      // autre ligne du même technicien), mais l'élargir ici sortirait du
+      // périmètre arrêté pour ce lot.
+      const { fuseau, parametrage } = await calendrierDeLAgence(
+        tx,
+        site.agence_id,
+      );
+      const ouverture = verdictOuverture(
+        parametrage,
+        demandeDeCreation(saisie),
+        fuseau,
+      );
+      if (ouverture.refuse) {
+        return { accepte: false, cle: ouverture.cle };
       }
 
       const forfaitId = await forfaitDeDeplacement(
@@ -493,18 +584,27 @@ function statutApresDeplacement(
  * `date_planifiee` est un JOUR stocké en `@db.Date`, donc à minuit UTC : le
  * lire dans le fuseau de l'agence le reculerait d'un cran sous UTC+11.
  */
+/**
+ * LE JOUR STOCKÉ (`@db.Date`, donc minuit UTC) LU EN `JourLocal` — partagée
+ * par le déplacement et par la création (ce ticket) : lire ce jour dans le
+ * fuseau de l'agence le reculerait d'un cran sous UTC+11, et une seconde
+ * écriture de cette lecture divergerait en silence (§9, 01/09).
+ */
+function jourStocke(date: Date | null): JourLocal | null {
+  return date === null
+    ? null
+    : {
+        annee: date.getUTCFullYear(),
+        mois: date.getUTCMonth() + 1,
+        jour: date.getUTCDate(),
+      };
+}
+
 function demandeDeDeplacement(
   saisie: Deplacement,
   fuseau: string,
 ): PoseDemandee {
-  const jour =
-    saisie.date_planifiee === null
-      ? null
-      : {
-          annee: saisie.date_planifiee.getUTCFullYear(),
-          mois: saisie.date_planifiee.getUTCMonth() + 1,
-          jour: saisie.date_planifiee.getUTCDate(),
-        };
+  const jour = jourStocke(saisie.date_planifiee);
   const debut =
     jour === null || saisie.debut_minutes === null
       ? null
