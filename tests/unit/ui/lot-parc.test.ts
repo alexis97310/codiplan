@@ -80,7 +80,7 @@ function formulaireDeCreation() {
     createElement(FormulaireMachine, {
       mode: "creation",
       action: "/api/machines/creer",
-      urlRetour: (id: string) => `/parc/${id}`,
+      motifSucces: "machine.creee",
       modeles: MODELES,
       clients: CLIENTS,
       sites: SITES,
@@ -248,7 +248,9 @@ describe("le formulaire de création — les quatre issues à l'écran (D-06)", 
     fireEvent.submit(container.querySelector("form")!);
 
     await waitFor(() =>
-      expect(naviguer).toHaveBeenCalledWith("/parc/machine-42"),
+      expect(naviguer).toHaveBeenCalledWith(
+        `/parc/machine-42?motif=${encodeURIComponent("machine.creee")}`,
+      ),
     );
   });
 });
@@ -321,7 +323,7 @@ describe("le mode modification ne rend ni le modèle, ni le client, ni le site, 
       createElement(FormulaireMachine, {
         mode: "modification",
         action: "/api/machines/machine-1/modifier",
-        urlRetour: () => "/parc/machine-1",
+        motifSucces: "machine.modifiee",
         modeles: [],
         clients: [],
         sites: [],

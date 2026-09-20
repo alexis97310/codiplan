@@ -104,9 +104,7 @@ export default async function PageNouvelleMachine({
       <FormulaireMachine
         mode="creation"
         action="/api/machines/creer"
-        urlRetour={(id) =>
-          `/parc/${id}?motif=${encodeURIComponent("machine.creee")}`
-        }
+        motifSucces="machine.creee"
         modeles={modeles}
         clients={clients}
         sites={sites}
