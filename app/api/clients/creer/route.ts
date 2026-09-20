@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerClient } from "@/lib/clients/depot";
 import { schemaCreationClient } from "@/lib/clients/saisie";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * CRÉER UNE FICHE CLIENT (14/09/2026, L1-01 rouvert par R3-12).
@@ -19,6 +21,10 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * société transmise par l'appelant serait une habilitation auto-déclarée.*
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const versLeFormulaire = (cle: string): Response =>
     new Response(null, {
       status: 303,
@@ -27,7 +33,7 @@ export async function POST(requete: Request): Promise<Response> {
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLeFormulaire("auth.refus");
   }

@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { creerSite } from "@/lib/sites/depot";
 import { schemaCreationSite } from "@/lib/sites/saisie";
 
-import { champ, contexteCourant } from "../../interventions/actions";
+import { champ } from "../../interventions/actions";
 
 /**
  * CRÉER UN LIEU D'INTERVENTION (L3-16, D75).
@@ -14,13 +16,17 @@ import { champ, contexteCourant } from "../../interventions/actions";
  * d'écrire, et c'est de là qu'on repart.
  */
 export async function POST(requete: Request): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete));
+}
+
+async function traiter(requete: Request): Promise<Response> {
   const versLeFormulaire = (cle: string): Response =>
     new Response(null, {
       status: 303,
       headers: { Location: `/sites/nouveau?motif=${encodeURIComponent(cle)}` },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLeFormulaire("auth.refus");
   }

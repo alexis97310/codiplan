@@ -45,6 +45,7 @@ const CAPACITES_SOCIETE: readonly Capacite[] = [
   "cloturer_intervention",
   "gerer_contrat",
   "gerer_machine",
+  "gerer_client_site",
   "consulter_parc_complet",
   "voir_montants_vente",
   "voir_marges",
@@ -127,6 +128,8 @@ const SCENARIOS: readonly Scenario[] = [
       "parametrer_societe",
       "consulter_journal_audit",
       "consulter_planning",
+      // D130 — créer/modifier un client ou un site.
+      "gerer_client_site",
     ],
     nePeutPas: [
       // Les données financières restent à la direction (D37).
@@ -147,6 +150,8 @@ const SCENARIOS: readonly Scenario[] = [
       "voir_marges",
       "consulter_journal_audit",
       "parametrer_societe",
+      // D130 — créer/modifier un client ou un site.
+      "gerer_client_site",
     ],
     nePeutPas: [
       // La direction valide les rapports, elle ne les saisit pas.
@@ -168,6 +173,10 @@ const SCENARIOS: readonly Scenario[] = [
       "consulter_journal_audit",
       "parametrer_societe",
       "modifier_referentiel_plateforme",
+      // D130 — la fiche client et la fiche site sont du référentiel
+      // commercial, pas de l'exploitation, malgré l'accès complet à la
+      // machine.
+      "gerer_client_site",
     ],
   },
   {
@@ -178,6 +187,8 @@ const SCENARIOS: readonly Scenario[] = [
       "preparer_facturation",
       "consulter_journal_audit",
       "modifier_referentiel_plateforme",
+      // D130 — même raison que le responsable matériel.
+      "gerer_client_site",
     ],
   },
   {
@@ -187,6 +198,8 @@ const SCENARIOS: readonly Scenario[] = [
       "preparer_facturation",
       "voir_montants_vente",
       "gerer_contrat",
+      // D130 — créer/modifier un client ou un site.
+      "gerer_client_site",
     ],
     // « L'ADV voit les montants de vente mais pas les marges » (§5.2).
     nePeutPas: [
@@ -212,6 +225,8 @@ const SCENARIOS: readonly Scenario[] = [
       // Arbitrage 3.17 — le technicien ne clôture pas.
       "cloturer_intervention",
       "valider_rapport",
+      // D130 — même raison que le responsable matériel et le responsable SAV.
+      "gerer_client_site",
     ],
   },
   {

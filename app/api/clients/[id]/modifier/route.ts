@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { modifierClient } from "@/lib/clients/depot";
 import { schemaModificationClient } from "@/lib/clients/saisie";
 
-import { champ, contexteCourant } from "../../../interventions/actions";
+import { champ } from "../../../interventions/actions";
 
 /**
  * MODIFIER UNE FICHE CLIENT (14/09/2026, L1-01 rouvert par R3-12).
@@ -42,6 +44,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const versLaFiche = (cle?: string): Response =>
     new Response(null, {
@@ -54,7 +63,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLaFiche("auth.refus");
   }

@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { modifierSite } from "@/lib/sites/depot";
 import { schemaModificationSite } from "@/lib/sites/saisie";
 
-import { champ, contexteCourant } from "../../../interventions/actions";
+import { champ } from "../../../interventions/actions";
 
 /**
  * MODIFIER UN LIEU D'INTERVENTION (L3-16, D56, D75).
@@ -47,6 +49,13 @@ export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
   const versLaFiche = (cle?: string): Response =>
     new Response(null, {
@@ -59,7 +68,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
     return versLaFiche("auth.refus");
   }

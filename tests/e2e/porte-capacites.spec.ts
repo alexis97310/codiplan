@@ -82,3 +82,46 @@ test("un technicien ne peut pas se désigner lui-même une habilitation", async 
     await client.$disconnect();
   }
 });
+
+/**
+ * D130 — LA PORTE POSÉE SUR « CRÉER UN CLIENT », ÉPROUVÉE PAR LE MÊME MOYEN.
+ *
+ * Le §5.2 ne portait aucune ligne pour ce geste ; D130 le tranche : ADV,
+ * direction, administrateur de société — **pas** le technicien, malgré son
+ * accès complet à la machine et au planning (la fiche client est du
+ * référentiel commercial, pas de l'exploitation).
+ *
+ * **La vérification porte sur la BASE, pas seulement sur la réponse** : même
+ * raisonnement que le cas ci-dessus.
+ */
+test("un technicien ne peut pas créer de fiche client", async ({ page }) => {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+
+    const compte = () =>
+      client.client.count({ where: { societe_id: societe.id } });
+    const avant = await compte();
+
+    await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+
+    const reponse = await page.request.post("/api/clients/creer", {
+      form: { raison_sociale: "Fiche forgée par un technicien" },
+      maxRedirects: 0,
+    });
+
+    // Le même refus qu'une session absente — la porte ne dit pas pourquoi.
+    expect(reponse.status()).toBe(303);
+    expect(reponse.headers()["location"] ?? "").toContain("auth.refus");
+
+    // ET AUCUNE FICHE CLIENT N'A ÉTÉ CRÉÉE.
+    expect(await compte()).toBe(avant);
+  } finally {
+    await client.$disconnect();
+  }
+});

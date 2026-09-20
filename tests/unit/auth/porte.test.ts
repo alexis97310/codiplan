@@ -48,6 +48,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « Créer / modifier une machine ».
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
+  // « Créer / modifier un client ou un site » (D130).
+  "app/api/clients/creer/route.ts": "gerer_client_site",
+  "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",
+  "app/api/sites/creer/route.ts": "gerer_client_site",
+  "app/api/sites/[id]/modifier/route.ts": "gerer_client_site",
   // « Créer une demande ».
   "app/api/interventions/creer/route.ts": "creer_demande",
   // « Qualifier / affecter ».
@@ -93,25 +98,6 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
 type Exemption = { readonly chemin: string; readonly motif: string };
 
 const EXEMPTIONS: readonly Exemption[] = [
-  // Le §5.2 ne porte aucune ligne « créer un client » ni « créer un site » :
-  // leur rattacher une capacité serait inventer une règle. Un arbitrage est
-  // demandé en parallèle de D-12 ; il fera un second lot.
-  {
-    chemin: "app/api/clients/creer/route.ts",
-    motif: "aucune ligne « créer un client » au §5.2 — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/clients/[id]/modifier/route.ts",
-    motif: "aucune ligne « créer un client » au §5.2 — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/sites/creer/route.ts",
-    motif: "aucune ligne « créer un site » au §5.2 — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/sites/[id]/modifier/route.ts",
-    motif: "aucune ligne « créer un site » au §5.2 — arbitrage en attente",
-  },
   {
     chemin: "app/api/vgp/enregistrer/[id]/route.ts",
     motif:
@@ -249,7 +235,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(38);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(42);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
