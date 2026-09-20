@@ -2449,6 +2449,14 @@ export const fr = {
   "habilitations.site.avertissement": "Avertissement seulement",
   "habilitations.site.bloquant_case": "Bloquante",
   "habilitations.site.exiger_action": "Exiger",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/habilitations.spec.ts)
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // jusqu'au texte qu'un test de rendu attend, et ces valeurs ne sont jamais
+  // vues par un utilisateur réel.
+  "habilitations.e2e.code": "EPR-01",
+  "habilitations.e2e.libelle": "Habilitation de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
