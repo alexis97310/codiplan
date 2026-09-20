@@ -227,8 +227,9 @@ export const ECARTS_MAQUETTE: ReadonlyArray<{
  *
  * - **Exploitation** : Tableau de bord, Planning, Interventions, Absences.
  * - **Clients & parc** : Clients, Sites, Parc machines, VGP, Portail client.
- * - **Paramètres** : Sociétés & tarifs, Imports Excel, et les trois entrées
- *   encore inertes — Contrats, App technicien, Console éditeur.
+ * - **Paramètres** : Sociétés & tarifs, Imports Excel, App technicien (depuis
+ *   le chantier NAV-1, 20/09/2026 : `/terrain`), et les deux entrées encore
+ *   inertes — Contrats, Console éditeur.
  *
  * **Quatre destinations nouvelles** — Clients, Sites, VGP, Absences —
  * n'avaient encore aucune porte dans la barre : ce sont des écrans déjà
@@ -282,7 +283,16 @@ export const ENTREES: readonly EntreeDeBarre[] = [
       // jamais l'écran d'où l'on téléverse. L1-11 l'ouvre.
       { cle: "nav.imports_excel", chemin: "/imports" },
       { cle: "nav.contrats", chemin: null, ouvertePar: "lot 4" },
-      { cle: "nav.app_technicien", chemin: null, ouvertePar: "lot 3" },
+      // ELLE MENTAIT (chantier NAV-1, 20/09/2026) : `app/(mobile)/terrain`
+      // EXISTE et fonctionne en ligne — `tests/e2e/terrain.spec.ts` le prouve
+      // — mais aucune entrée de la barre n'y menait, alors qu'elle promettait
+      // « lot 3 » depuis une entrée INERTE. Elle pointe désormais sur le
+      // module réel, sans logique conditionnelle par rôle ICI (voir l'entête
+      // du fichier : « ce n'est pas un contrôle d'accès ») — `/terrain`
+      // redirige déjà, LUI-MÊME, un rôle à accès complet vers `/planning` et
+      // un rôle sans accès vers `/arrivee` (`perimetreDuPlanning`), et cette
+      // route n'est pas réécrite ici.
+      { cle: "nav.app_technicien", chemin: "/terrain" },
       { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
     ],
   },

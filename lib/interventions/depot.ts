@@ -5,15 +5,17 @@ import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
 } from "@/lib/calendar/agence";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import {
   MINUTES_PAR_JOUR,
   instantAMinutes,
   jourDe,
+  jourSuivant,
   maintenant,
   versLocal,
   type Fuseau,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lireParametrage } from "@/lib/calendar/parametrage";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { absenceCouvrant } from "@/lib/absences/periode";
@@ -193,6 +195,76 @@ async function instantDeLAgence(
 }
 
 /**
+ * LE CALENDRIER D'OUVERTURE D'UNE AGENCE POUR UN JOUR VISÉ, JOURS PARTICULIERS
+ * COMPRIS — factorisée pour la création, qui en a désormais besoin comme le
+ * déplacement (`verdictALaPose`, ci-dessous).
+ *
+ * **`chargerCalendrierAgence`, et non plus `lireParametrage`** (revue Codex de
+ * la PR #267, 20/09/2026) : voir l'entête de `verdictOuverture` dans
+ * `pose.ts` pour le défaut que ce changement répare — un férié chômé ou un
+ * pont d'agence n'était pas vu par le contrôle d'ouverture, ici comme au
+ * déplacement.
+ *
+ * La FENÊTRE est le jour visé, bordée d'un jour de chaque côté (D46) : un
+ * créneau proche de minuit peut déborder sur le jour UTC voisin. `null` sans
+ * appeler la base quand `demande` ne vise aucun jour (retrait du planning) —
+ * `verdictOuverture` rend alors son verdict sans avoir besoin d'un calendrier.
+ */
+async function calendrierDeLAgence(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  agenceId: string,
+  demande: PoseDemandee,
+): Promise<Calendrier | null> {
+  const agence = await tx.agence.findFirst({
+    where: { id: agenceId },
+    select: {
+      fuseau_horaire: true,
+      societe: { select: { fuseau_horaire: true } },
+    },
+  });
+  if (agence === null) {
+    // Impossible en pratique : la clé étrangère de `site.agence_id` garantit
+    // l'agence dans la même société (même raisonnement qu'`instantDeLAgence`).
+    throw new Error(
+      `Agence ${agenceId} illisible sous le contexte courant : son ` +
+        "calendrier ne peut pas être lu sans elle.",
+    );
+  }
+  const fuseau = fuseauDeLAgence(agence);
+  const jourVise =
+    demande.datePlanifiee ??
+    (demande.creneauDebut === null
+      ? null
+      : versLocal(demande.creneauDebut, fuseau));
+  if (jourVise === null) {
+    return null;
+  }
+  return chargerCalendrierAgence(tx, {
+    societeId,
+    agenceId,
+    fenetre: { du: jourSuivant(jourVise, -1), au: jourSuivant(jourVise, 1) },
+  });
+}
+
+/**
+ * LA POSE DEMANDÉE À LA CRÉATION — même forme que `demandeDeDeplacement`
+ * (`PoseDemandee`), mais SANS conversion de minutes locales : `schemaCreation`
+ * valide déjà `creneau_debut`/`creneau_fin` comme des INSTANTS (`z.date()`),
+ * là où le déplacement part de minutes locales qu'il faut résoudre sous le
+ * fuseau de l'agence. Seul `date_planifiee` — un `@db.Date`, minuit UTC — se
+ * relit en `JourLocal`, par `jourStocke`, la même lecture que le déplacement.
+ */
+function demandeDeCreation(saisie: Creation): PoseDemandee {
+  return {
+    datePlanifiee: jourStocke(saisie.date_planifiee),
+    creneauDebut: saisie.creneau_debut,
+    creneauFin: saisie.creneau_fin,
+    technicienId: saisie.technicien_id,
+  };
+}
+
+/**
  * CRÉER une intervention depuis le planning.
  *
  * Trois choses sont DÉDUITES et jamais saisies : l'agence (du site), le forfait
@@ -220,6 +292,56 @@ export async function creerIntervention(
           accepte: false,
           cle: "intervention.refus.lieu_sans_rattachement",
         };
+      }
+
+      // ── LE CONTRÔLE D'OUVERTURE, COMME À LA POSE (R2-19) ────────────────
+      //
+      // **Il manquait, et c'est le ticket** : `deplacerIntervention` refuse
+      // déjà un jour d'agence fermée par `verdictALaPose` → `verdictOuverture`,
+      // mais une intervention pouvait NAÎTRE un jour férié ou hors ouverture
+      // par le formulaire de création, qui n'appelait ce contrôle nulle part.
+      // *Deux chemins qui écrivent la même colonne (`date_planifiee`) et ne se
+      // soumettent pas au même contrôle ne tiennent pas la même règle* (§9,
+      // 01/09) — exactement la faute déjà réparée pour RG-PLA-04 entre
+      // l'affectation et le déplacement.
+      //
+      // **Le périmètre s'arrête ICI, et c'est délibéré** (voir la description
+      // du lot) : seul `verdictOuverture` est branché — agence sans
+      // calendrier, jour fermé, hors ouverture. Les trois AUTRES contrôles de
+      // `verdictALaPose` — RG-PLA-04 (habilitation), RG-PLA-06 (absence),
+      // chevauchement — ne sont PAS demandés pour la création, où aucun
+      // technicien n'est en général encore affecté ; l'un d'eux peut manquer
+      // aussi (une création AVEC technicien et créneau pourrait chevaucher une
+      // autre ligne du même technicien), mais l'élargir ici sortirait du
+      // périmètre arrêté pour ce lot.
+      const demandeCreation = demandeDeCreation(saisie);
+      const calendrier = await calendrierDeLAgence(
+        tx,
+        contexte.societeId ?? "",
+        site.agence_id,
+        demandeCreation,
+      );
+      const ouverture = verdictOuverture(calendrier, demandeCreation);
+      if (ouverture.refuse) {
+        return { accepte: false, cle: ouverture.cle };
+      }
+
+      // LES MACHINES DOIVENT APPARTENIR AU SITE CHOISI (revue Codex de la PR
+      // #267, 20/09/2026). *Seule la forme UUID était validée par
+      // `schemaCreation` — rien ne garantissait qu'une machine appartienne au
+      // SITE de l'intervention, seule la SOCIÉTÉ l'étant par la clé
+      // étrangère.* Un formulaire forgé pouvait donc rattacher une machine
+      // d'un autre site du même client, voire d'un autre client de la même
+      // société. `ajouterMachineAIntervention` (le rattachement après coup,
+      // plus bas) tient déjà cette règle côté serveur ; elle manquait ici, à
+      // la création.
+      if (saisie.machine_ids.length > 0) {
+        const machinesDuSite = await tx.machine.count({
+          where: { id: { in: saisie.machine_ids }, site_id: site.id },
+        });
+        if (machinesDuSite !== saisie.machine_ids.length) {
+          return { accepte: false, cle: "intervention.refus.machine_invalide" };
+        }
       }
 
       const forfaitId = await forfaitDeDeplacement(
@@ -493,18 +615,27 @@ function statutApresDeplacement(
  * `date_planifiee` est un JOUR stocké en `@db.Date`, donc à minuit UTC : le
  * lire dans le fuseau de l'agence le reculerait d'un cran sous UTC+11.
  */
+/**
+ * LE JOUR STOCKÉ (`@db.Date`, donc minuit UTC) LU EN `JourLocal` — partagée
+ * par le déplacement et par la création (ce ticket) : lire ce jour dans le
+ * fuseau de l'agence le reculerait d'un cran sous UTC+11, et une seconde
+ * écriture de cette lecture divergerait en silence (§9, 01/09).
+ */
+function jourStocke(date: Date | null): JourLocal | null {
+  return date === null
+    ? null
+    : {
+        annee: date.getUTCFullYear(),
+        mois: date.getUTCMonth() + 1,
+        jour: date.getUTCDate(),
+      };
+}
+
 function demandeDeDeplacement(
   saisie: Deplacement,
   fuseau: string,
 ): PoseDemandee {
-  const jour =
-    saisie.date_planifiee === null
-      ? null
-      : {
-          annee: saisie.date_planifiee.getUTCFullYear(),
-          mois: saisie.date_planifiee.getUTCMonth() + 1,
-          jour: saisie.date_planifiee.getUTCDate(),
-        };
+  const jour = jourStocke(saisie.date_planifiee);
   const debut =
     jour === null || saisie.debut_minutes === null
       ? null
@@ -534,6 +665,7 @@ function demandeDeDeplacement(
  */
 async function verdictALaPose(
   tx: Prisma.TransactionClient,
+  societeId: string,
   interventionId: string,
   agenceId: string,
   siteId: string,
@@ -546,7 +678,6 @@ async function verdictALaPose(
   const agence = await tx.agence.findFirst({
     where: { id: agenceId },
     select: {
-      calendrier_id: true,
       fuseau_horaire: true,
       societe: { select: { fuseau_horaire: true } },
     },
@@ -563,11 +694,27 @@ async function verdictALaPose(
   // l'écriture ferait deux lectures d'un même critère (§9, 01/09).
   const demande = demandeDeDeplacement(saisie, fuseau);
 
-  const parametrage =
-    agence.calendrier_id === null
+  // `chargerCalendrierAgence`, ET NON `lireParametrage` (revue Codex de la PR
+  // #267, 20/09/2026) — voir l'entête de `verdictOuverture` (`pose.ts`) : ce
+  // contrôle ne voyait pas les fériés chômés ni les ponts d'agence, ici comme
+  // à la création.
+  const jourVise =
+    demande.datePlanifiee ??
+    (demande.creneauDebut === null
       ? null
-      : await lireParametrage(tx, agence.calendrier_id);
-  const ouverture = verdictOuverture(parametrage, demande, fuseau);
+      : versLocal(demande.creneauDebut, fuseau));
+  const calendrier =
+    jourVise === null
+      ? null
+      : await chargerCalendrierAgence(tx, {
+          societeId,
+          agenceId,
+          fenetre: {
+            du: jourSuivant(jourVise, -1),
+            au: jourSuivant(jourVise, 1),
+          },
+        });
+  const ouverture = verdictOuverture(calendrier, demande);
   if (ouverture.refuse) {
     return { verdict: ouverture, demande };
   }
@@ -733,6 +880,7 @@ export async function deplacerIntervention(
       // `lib/habilitations/affectation.ts`, qui ne lisent rien.
       const pose = await verdictALaPose(
         tx,
+        contexte.societeId ?? "",
         ligne.id,
         ligne.agence_id,
         ligne.site_id,
@@ -1096,6 +1244,87 @@ export async function annulerIntervention(
     });
     return { accepte: true, fiche: misAJour };
   });
+}
+
+/**
+ * RATTACHER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2, 20/09/2026).
+ *
+ * `creerIntervention` sait déjà écrire `intervention_machine` (le dépannage à
+ * l'aveugle démarre sans savoir laquelle est en cause), mais rien ne
+ * permettait d'en désigner une PLUS TARD, une fois le diagnostic posé. C'est
+ * le trou que cette fonction comble — le formulaire de création écrivait déjà,
+ * la fiche ne pouvait pas.
+ *
+ * **La machine doit appartenir au SITE de l'intervention, et à lui seul**
+ * (arbitrage par défaut de ce lot, ouvert à discussion — voir la description
+ * de la PR) : la liste proposée par la fiche est déjà filtrée sur ce site, et
+ * ce contrôle tient la même règle CÔTÉ SERVEUR, contre un formulaire forgé qui
+ * soumettrait l'identifiant d'une machine d'un autre site.
+ *
+ * **Plusieurs machines restent possibles** — `intervention_machine` n'interdit
+ * que le DOUBLON (`@@unique([intervention_id, machine_id])`), jamais la
+ * pluralité (chapitre 7/M3) — et un second appel sur une machine déjà liée est
+ * un NO-OP accepté plutôt qu'un refus : reposer deux fois la même question ne
+ * change rien à la réponse.
+ *
+ * **L'ÉCRITURE EST ATOMIQUE** (revue Codex de la PR #267, 20/09/2026) :
+ * `createMany` avec `skipDuplicates` — un `INSERT ... ON CONFLICT DO NOTHING`
+ * — plutôt qu'un « vérifier l'absence, puis créer ». *Une séquence
+ * vérifier-puis-écrire laisse une fenêtre entre les deux requêtes : deux
+ * appels concurrents sur la même machine peuvent tous deux passer le
+ * contrôle avant qu'aucun n'ait écrit, et le second se ferait alors refuser
+ * par la contrainte unique au lieu du NO-OP annoncé ci-dessus.* Une seule
+ * instruction ferme cette fenêtre.
+ *
+ * **Aucun contrôle de cycle de vie n'est ajouté ici** — ni `peutAffecter` ni
+ * aucun autre : ce n'est pas demandé par ce lot, et RG-INT-01 (une machine
+ * exigée avant de DÉMARRER) reste tenue où elle l'est déjà, par le
+ * déclencheur PostgreSQL, jamais réimplémentée ici (§9, 01/09).
+ */
+export async function ajouterMachineAIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  machineId: string,
+  client?: PrismaClient,
+): Promise<Resultat<LigneIntervention>> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true, site_id: true },
+      });
+      if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // LE SITE TIENT LA RÈGLE : une machine d'un AUTRE site — même du même
+      // client — n'est jamais rattachable par cette voie (voir l'entête).
+      const machine = await tx.machine.findFirst({
+        where: { id: machineId, site_id: ligne.site_id },
+        select: { id: true },
+      });
+      if (machine === null) {
+        return { accepte: false, cle: "intervention.refus.machine_invalide" };
+      }
+      await tx.interventionMachine.createMany({
+        data: [
+          {
+            id: uuidv7(),
+            societe_id: contexte.societeId ?? "",
+            intervention_id: interventionId,
+            machine_id: machineId,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      const misAJour = await tx.intervention.findFirstOrThrow({
+        where: { id: interventionId },
+        select: CHAMPS_LIGNE,
+      });
+      return { accepte: true, fiche: misAJour };
+    },
+    client,
+  );
 }
 
 /**

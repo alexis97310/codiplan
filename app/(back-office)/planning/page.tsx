@@ -153,6 +153,22 @@ export default async function PagePlanning({
   const avertissementsAffiches = [parametres[PARAMETRE_AVERTISSEMENT] ?? []]
     .flat()
     .filter(estCleTraduction);
+  // LE REFUS DE LA CRÉATION, LU DEPUIS L'URL (chantier CRÉA-1, 20/09/2026).
+  //
+  // `versLePlanning(cle)` (`app/api/interventions/actions.ts`) redirige déjà
+  // vers `/planning?motif=<cle>` quand `creerIntervention` refuse — c'est le
+  // MÊME mécanisme que `/interventions/[id]` et `/interventions/nouvelle`
+  // emploient pour leur propre refus (`motif`, filtré par `estCleTraduction`,
+  // L1-02f) —, mais rien ici ne lisait ce paramètre : un jour d'agence fermée
+  // refusait la création EN SILENCE, sans qu'aucun écran ne le dise. Même
+  // filtre, même raison : un lien forgé ne doit pas pouvoir faire écrire
+  // n'importe quoi à la page.
+  const motifRefusCreation = parametres.motif;
+  const refusCreationAffiche =
+    typeof motifRefusCreation === "string" &&
+    estCleTraduction(motifRefusCreation)
+      ? motifRefusCreation
+      : null;
 
   const cadre = await avecContexteApplicatif(contexte, async (tx) => {
     const societe = await tx.societe.findFirst({
@@ -420,6 +436,23 @@ export default async function PagePlanning({
       </p>
 
       <Posable>
+        {/*
+          LE REFUS DE CRÉATION — ROUGE, `role="alert"`, exactement le patron
+          de `Posable` (`components/planning/pose.tsx:300-324`) : un refus
+          INTERROMPT, il ne se contente pas d'informer. Posé AU-DESSUS de
+          l'avertissement orange, qui lui `role="status"` — les deux peuvent
+          coexister sans se confondre : rouge = refus, orange = avertissement
+          d'une action par ailleurs acceptée.
+        */}
+        {refusCreationAffiche === null ? null : (
+          <p
+            data-refus-creation={refusCreationAffiche}
+            role="alert"
+            className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          >
+            {t(refusCreationAffiche)}
+          </p>
+        )}
         {avertissementsAffiches.map((cle) => (
           <p
             key={cle}

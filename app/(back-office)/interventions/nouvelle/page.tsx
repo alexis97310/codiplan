@@ -4,15 +4,24 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import {
+  ChampSiteEtMachines,
+  type MachineOption,
+  type SiteOption,
+} from "@/components/interventions/site-et-machines";
+import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { quiTravaille } from "@/lib/interventions/personnes";
 import {
   PRIORITES,
   TYPES_INTERVENTION,
   MODES_VALORISATION,
 } from "@/lib/interventions/saisie";
+import { machinesDesSites } from "@/lib/machines/depot";
 
 /**
  * CRÉER UNE INTERVENTION DEPUIS LE PLANNING (lot 2, D84).
@@ -43,6 +52,19 @@ export default async function PageNouvelleIntervention({
   }
   const motif = (await searchParams).motif;
 
+  // LE CHAMP TECHNICIEN N'EST PROPOSÉ QU'AUX RÔLES QUI PEUVENT AFFECTER
+  // (revue Codex de la PR #267, 20/09/2026). *La liste était rendue à TOUTE
+  // session de société active — un technicien (accès restreint,
+  // `consulter_planning` en `○`) y voyait la liste NOMINATIVE de ses
+  // collègues, et un compte portail (`creer_demande` inclut `CLI`) pouvait la
+  // voir et soumettre un `technicien_id`.* Le critère se LIT de la matrice
+  // (`peut(role, "qualifier_affecter")`), exactement comme
+  // `accesAuxMontants` le fait pour la valorisation — jamais une comparaison
+  // de rôle écrite ici, qui divergerait de la matrice en silence (§9, 01/09).
+  const peutAffecterUnTechnicien =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "qualifier_affecter");
+
   const lieux = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
       select: {
@@ -55,6 +77,37 @@ export default async function PageNouvelleIntervention({
       take: 200,
     }),
   );
+  // LES MACHINES DES SITES PROPOSÉS (chantier INT-MACHINE 2.1) — bornées aux
+  // sites déjà lus ci-dessus, jamais le parc entier : le composant client ne
+  // filtre QUE dans ce qu'il reçoit.
+  const machines = await machinesDesSites(
+    session.contexte,
+    lieux.map((lieu) => lieu.id),
+  );
+  // LES TECHNICIENS PROPOSABLES (chantier TECH-1) — actifs seulement : un
+  // technicien qui a quitté l'entreprise ne s'affecte pas à une intervention
+  // qui n'existe pas encore (voir la note de tête sur la nouvelle saisie).
+  //
+  // **AUCUNE LECTURE quand le rôle ne peut pas affecter** : ce n'est pas
+  // seulement le CHAMP qui se cache, c'est la LISTE NOMINATIVE qui n'est
+  // jamais demandée à l'annuaire — la fuite que la revue Codex a mesurée
+  // partait d'ici, pas seulement du rendu.
+  const { techniciens, annuaire } = peutAffecterUnTechnicien
+    ? await avecContexteApplicatif(session.contexte, async (tx) => {
+        const techniciensActifs = await tx.technicien.findMany({
+          where: { actif: true },
+          select: { utilisateur_id: true },
+          orderBy: { utilisateur_id: "asc" },
+        });
+        return {
+          techniciens: techniciensActifs,
+          annuaire: await annuaireDesPersonnes(
+            tx,
+            techniciensActifs.map((technicien) => technicien.utilisateur_id),
+          ),
+        };
+      })
+    : { techniciens: [], annuaire: null };
 
   return (
     <Page
@@ -89,20 +142,21 @@ export default async function PageNouvelleIntervention({
         method="post"
         className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
       >
-        <label className="flex flex-col gap-1.5 text-[12.5px] font-semibold">
-          {mot("site")}
-          <select
-            name="site"
-            required
-            className="border-app-bord bg-app-surface rounded-md border px-3 py-2 text-[13px] font-normal"
-          >
-            {lieux.map((lieu) => (
-              <option key={lieu.id} value={`${lieu.client_id}:${lieu.id}`}>
-                {libelleDuLieu(lieu)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ChampSiteEtMachines
+          sites={lieux.map((lieu): SiteOption => ({
+            id: lieu.id,
+            clientId: lieu.client_id,
+            libelle: libelleDuLieu(lieu),
+          }))}
+          machines={machines.map((machine): MachineOption => ({
+            id: machine.id,
+            siteId: machine.siteId,
+            libelle: machine.libelle,
+          }))}
+          libelleSite={mot("site")}
+          libelleMachines={t("intervention.machine")}
+          texteAucuneMachine={t("intervention.machine.aucune_au_site")}
+        />
         <p className="text-app-encre-faible -mt-2 text-[11.5px]">
           {t("intervention.deduit_du_lieu")}
         </p>
@@ -136,14 +190,33 @@ export default async function PageNouvelleIntervention({
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("intervention.technicien")}
-          <input
-            name="technicien_id"
-            type="text"
-            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-          />
-        </label>
+        {/*
+          LE CHAMP EST ABSENT DU FORMULAIRE — jamais désactivé — quand le
+          rôle n'a pas `qualifier_affecter` : `technicien_id` est optionnel
+          dans `schemaCreation`, et son absence dans le `FormData` ne change
+          rien d'autre que « personne n'est désigné à la création », exactement
+          le cas ordinaire du dépannage à l'aveugle.
+        */}
+        {peutAffecterUnTechnicien && annuaire !== null ? (
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            {t("intervention.technicien")}
+            <select
+              name="technicien_id"
+              defaultValue=""
+              className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+            >
+              <option value="">{t("intervention.aucun_technicien")}</option>
+              {techniciens.map((technicien) => (
+                <option
+                  key={technicien.utilisateur_id}
+                  value={technicien.utilisateur_id}
+                >
+                  {quiTravaille(technicien.utilisateur_id, annuaire)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <Button type="submit">{t("intervention.action.creer")}</Button>
       </form>

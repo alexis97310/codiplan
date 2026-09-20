@@ -28,7 +28,8 @@ import {
   accesAuxMontants,
   type AccesAuxMontants,
 } from "@/lib/interventions/montants-visibles";
-import { libellesDesMachines } from "@/lib/machines/depot";
+import { quiTravaille } from "@/lib/interventions/personnes";
+import { libellesDesMachines, machinesDesSites } from "@/lib/machines/depot";
 import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
@@ -116,18 +117,48 @@ export default async function PageIntervention({
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
   const montants = accesAuxMontants(session.contexte.role);
   // LE NOM, JAMAIS L'IDENTIFIANT (I10, D-04) — voir `technicienAfficheSurLaFiche`.
-  // L'annuaire n'est interrogé QUE pour ce seul identifiant : la même lecture
-  // cloisonnée que `lireFicheIntervention`, sous le contexte de la session.
+  //
+  // **DEPUIS LE CHANTIER TECH-1 (20/09/2026), CETTE LECTURE PORTE AUSSI LES
+  // TECHNICIENS ACTIFS** — pour remplir le `<select>` d'« Affecter » et de
+  // « Déplacer », qui remplace un champ texte nu. *Un technicien inactif
+  // n'entre pas dans la liste PROPOSÉE à une nouvelle saisie* — même règle
+  // que `/interventions/nouvelle` —, **mais le technicien déjà affecté à
+  // cette intervention garde sa colonne dans l'annuaire même s'il est devenu
+  // inactif entre-temps** : sans quoi son nom, affiché juste au-dessus par
+  // `technicienAfficheSurLaFiche`, disparaîtrait du `<select>` en dessous —
+  // deux lectures d'un même fait qui se contrediraient sur le même écran.
+  const techniciensActifs = await avecContexteApplicatif(
+    session.contexte,
+    (tx) =>
+      tx.technicien.findMany({
+        where: { actif: true },
+        select: { utilisateur_id: true },
+        orderBy: { utilisateur_id: "asc" },
+      }),
+  );
   const annuaire = await avecContexteApplicatif(session.contexte, (tx) =>
-    annuaireDesPersonnes(
-      tx,
-      ligne.technicien_id === null ? [] : [ligne.technicien_id],
-    ),
+    annuaireDesPersonnes(tx, [
+      ...techniciensActifs.map((technicien) => technicien.utilisateur_id),
+      ...(ligne.technicien_id === null ? [] : [ligne.technicien_id]),
+    ]),
   );
   const nomTechnicien = technicienAfficheSurLaFiche(
     ligne.technicien_id,
     annuaire,
   );
+  const optionsTechniciens = techniciensActifs
+    .map((technicien) => ({
+      valeur: technicien.utilisateur_id,
+      libelle: quiTravaille(technicien.utilisateur_id, annuaire),
+    }))
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
+  // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
+  // formulaire de création, où le site se choisit APRÈS le chargement de la
+  // page).
+  const machinesDuSite = await machinesDesSites(session.contexte, [
+    ligne.site_id,
+  ]);
   // LE OU LES MACHINES DE L'INTERVENTION (audit du 19/09/2026) — GAP COMBLÉ :
   // cette fiche ne portait aucun champ machine, alors que `CHAMPS_LIGNE` lit
   // déjà `ligne.machines` et que `/interventions` les affiche depuis le
@@ -251,6 +282,49 @@ export default async function PageIntervention({
             <Habilitations verdict={fiche.habilitations} />
           )}
 
+          {/*
+            AJOUTER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2.2,
+            20/09/2026) — le dépôt sait déjà écrire `intervention_machine` à
+            la CRÉATION ; ce mini-formulaire couvre le cas où le diagnostic
+            arrive plus tard. La liste ne propose que les machines DU SITE de
+            cette intervention (voir `ajouterMachineAIntervention`, qui tient
+            la même règle côté serveur contre un formulaire forgé).
+          */}
+          <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+            <h2 className="text-[13px] font-bold">
+              {t("intervention.machine.ajouter_titre")}
+            </h2>
+            {machinesDuSite.length === 0 ? (
+              <p className="text-app-encre-faible text-[12px]">
+                {t("intervention.machine.aucune_au_site")}
+              </p>
+            ) : (
+              <form
+                action={`/api/interventions/${ligne.id}/machine`}
+                method="post"
+                className="flex flex-col gap-3"
+              >
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  {t("intervention.machine")}
+                  <select
+                    name="machine_id"
+                    required
+                    className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                  >
+                    {machinesDuSite.map((machine) => (
+                      <option key={machine.id} value={machine.id}>
+                        {machine.libelle}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button type="submit" variant="outline" size="sm">
+                  {t("intervention.machine.ajouter_action")}
+                </Button>
+              </form>
+            )}
+          </section>
+
           {fiche.valorisation !== null && fiche.devise !== null ? (
             <Valorisation
               valorisation={fiche.valorisation}
@@ -269,6 +343,9 @@ export default async function PageIntervention({
             <Saisie
               nom="technicien_id"
               libelle={t("intervention.technicien")}
+              options={optionsTechniciens}
+              libelleOptionVide={t("intervention.aucun_technicien")}
+              valeurParDefaut={ligne.technicien_id ?? undefined}
             />
           </Action>
 
@@ -307,6 +384,9 @@ export default async function PageIntervention({
             <Saisie
               nom="technicien_id"
               libelle={t("intervention.technicien")}
+              options={optionsTechniciens}
+              libelleOptionVide={t("intervention.aucun_technicien")}
+              valeurParDefaut={ligne.technicien_id ?? undefined}
             />
           </Action>
 
@@ -619,6 +699,8 @@ function Saisie({
   libelle,
   type = "text",
   valeurParDefaut,
+  options,
+  libelleOptionVide,
 }: {
   nom: string;
   libelle: string;
@@ -631,7 +713,41 @@ function Saisie({
    * et c'est précisément la correction que la validation doit permettre.
    */
   valeurParDefaut?: string;
+  /**
+   * UNE LISTE FERMÉE PLUTÔT QU'UNE SAISIE LIBRE (chantier TECH-1, 20/09/2026)
+   * — rend un `<select>` au lieu d'un `<input>` quand elle est fournie.
+   *
+   * *Le champ technicien était un `<input type="text">` nu* : rien
+   * n'empêchait d'y taper un UUID inventé, ni de deviner celui d'un
+   * technicien qu'on n'a pas le droit de nommer. La liste vient TOUJOURS de
+   * l'appelant, déjà résolue sous le contexte cloisonné (§9, 01/09 : ce
+   * composant ne lit ni base ni politique).
+   */
+  options?: readonly { readonly valeur: string; readonly libelle: string }[];
+  /** L'option vide du `<select>`, quand `options` est fourni et qu'elle a un sens (ex. « Aucun technicien affecté »). */
+  libelleOptionVide?: string;
 }) {
+  if (options !== undefined) {
+    return (
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        {libelle}
+        <select
+          name={nom}
+          defaultValue={valeurParDefaut ?? ""}
+          className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+        >
+          {libelleOptionVide === undefined ? null : (
+            <option value="">{libelleOptionVide}</option>
+          )}
+          {options.map((option) => (
+            <option key={option.valeur} value={option.valeur}>
+              {option.libelle}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
       {libelle}

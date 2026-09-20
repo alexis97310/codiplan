@@ -94,13 +94,20 @@ describe("le domaine « Paramètres »", () => {
     ).toHaveAttribute("href", "/imports");
   });
 
-  it("ses trois entrées inertes restent inertes — pas de lien, le motif au survol", () => {
+  // « App technicien » n'est PLUS inerte (chantier NAV-1, 20/09/2026) :
+  // `/terrain` existe et fonctionne (`tests/e2e/terrain.spec.ts`), et
+  // l'entrée mentait en promettant « lot 3 ». Elle rejoint ici les autres
+  // destinations réelles, ci-dessus, plutôt que la liste des inertes.
+  it("« App technicien » mène désormais à /terrain", () => {
     rendreLaBarre();
-    for (const cle of [
-      "nav.contrats",
-      "nav.app_technicien",
-      "nav.console_editeur",
-    ] as const) {
+    expect(
+      screen.getByRole("link", { name: fr["nav.app_technicien"] }),
+    ).toHaveAttribute("href", "/terrain");
+  });
+
+  it("ses deux entrées encore inertes restent inertes — pas de lien, le motif au survol", () => {
+    rendreLaBarre();
+    for (const cle of ["nav.contrats", "nav.console_editeur"] as const) {
       expect(screen.queryByRole("link", { name: fr[cle] })).toBeNull();
       expect(screen.getByText(fr[cle])).toHaveAttribute(
         "title",

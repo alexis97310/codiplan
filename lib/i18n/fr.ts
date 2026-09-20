@@ -900,6 +900,14 @@ export const fr = {
   "intervention.reference": "Référence",
   "intervention.client": "Client",
   "intervention.machine": "Machine",
+  // Chantier INT-MACHINE 2 (20/09/2026) : le champ machine de la création, et
+  // le rattachement après coup depuis la fiche — même liste, même texte pour
+  // « aucune machine à ce site », qu'elle vienne du formulaire client
+  // (chantier 2.1) ou du mini-formulaire de la fiche (chantier 2.2).
+  "intervention.machine.aucune_au_site":
+    "Aucune machine n'est déclarée pour ce lieu d'intervention.",
+  "intervention.machine.ajouter_titre": "Ajouter une machine",
+  "intervention.machine.ajouter_action": "Ajouter",
   // ── Les notions IMPOSÉES ne s'écrivent pas ici ───────────────────────────
   //
   // « agence » et « site » se définissent une seule fois, dans les entrées
@@ -1026,6 +1034,13 @@ export const fr = {
     "Aucun calendrier ne décide pour cette intervention : aucune pose n'est possible tant que les horaires ne sont pas réglés.",
   "intervention.refus.inconnue":
     "Cette intervention n'existe pas, ou elle n'est pas dans votre périmètre.",
+  // Chantier INT-MACHINE 2 (20/09/2026) : le rattachement après coup refuse
+  // une machine d'un AUTRE site — même du même client — ou un identifiant
+  // qui n'existe pas dans le périmètre courant. Les deux cas se disent pareil
+  // (D50) : distinguer « autre site » d'« inexistante » renseignerait qui
+  // saisit sur ce qui existe ailleurs.
+  "intervention.refus.machine_invalide":
+    "Cette machine n'appartient pas au lieu de l'intervention, ou elle n'est pas dans votre périmètre.",
   // LES DEUX REFUS TECHNIQUES (D-06, 17/09/2026) — distincts, parce que la
   // marche à suivre ne l'est pas : l'un se réessaie, l'autre demande de
   // regarder ailleurs qu'à l'écran. Ni l'un ni l'autre ne compte ni ne nomme

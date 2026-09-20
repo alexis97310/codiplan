@@ -492,6 +492,65 @@ export async function libellesDesMachines(
   );
 }
 
+/**
+ * LES MACHINES D'UN ENSEMBLE DE SITES, PAR SITE — pour un formulaire qui
+ * propose « les machines DE CE SITE », jamais le parc entier (chantier
+ * INT-MACHINE 2, 20/09/2026).
+ *
+ * Ni `rechercherLeParc` (pagine, cherche par texte, rend `LigneDeParc`
+ * complète) ni `libellesDesMachines` (résout des identifiants déjà connus) :
+ * une troisième question, « quelles machines, pour quel site », posée UNE
+ * fois pour que le formulaire de création (chantier 2.1, un composant client
+ * qui filtre localement selon le site déjà choisi) n'ait jamais à requêter le
+ * parc entier, ni à faire un aller-retour par site.
+ *
+ * **Bornée aux `siteIds` demandés** : la création ne propose que les sites
+ * déjà lus sous le contexte (`site.findMany`), et cette fonction ne lit donc
+ * jamais plus de machines que de sites déjà autorisés à s'afficher.
+ */
+export async function machinesDesSites(
+  contexte: ContexteSession,
+  siteIds: readonly string[],
+  client?: PrismaClient,
+): Promise<
+  readonly {
+    readonly id: string;
+    readonly siteId: string;
+    readonly libelle: string;
+  }[]
+> {
+  const ids = [...new Set(siteIds)];
+  if (ids.length === 0) {
+    return [];
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machines = await tx.machine.findMany({
+        where: { site_id: { in: ids } },
+        select: {
+          id: true,
+          site_id: true,
+          numero_serie: true,
+          modele: { select: { marque: true, reference: true } },
+        },
+        orderBy: { numero_serie: "asc" },
+      });
+      // Le NUMÉRO DE SÉRIE entre dans le libellé, à la différence de
+      // `libellesDesMachines` : celle-ci sert à AFFICHER des machines déjà
+      // choisies, où des doublons de libellé ne gênent personne ; celle-ci
+      // sert à en CHOISIR une parmi plusieurs exemplaires du même modèle, où
+      // deux options identiques ne se distingueraient plus à l'écran.
+      return machines.map((m) => ({
+        id: m.id,
+        siteId: m.site_id,
+        libelle: `${m.modele.marque} ${m.modele.reference} — ${m.numero_serie}`,
+      }));
+    },
+    client,
+  );
+}
+
 /* ────────────────────────────────────────────────────────────────────────
  * L'ÉCRITURE DU PARC (R6-03) — dans une transaction que l'appelant tient
  * ──────────────────────────────────────────────────────────────────────── */

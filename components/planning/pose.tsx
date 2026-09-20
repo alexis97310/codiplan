@@ -346,6 +346,13 @@ export const PARAMETRE_AVERTISSEMENT = "avertissement";
 function urlDeRechargement(avertissements: readonly CleTraduction[]): string {
   const url = new URL(window.location.href);
   url.searchParams.delete(PARAMETRE_AVERTISSEMENT);
+  // `motif` AUSSI (revue Codex de la PR #267, 20/09/2026) : c'est le
+  // paramètre que `/planning` lit pour le bandeau ROUGE d'un refus de
+  // création (chantier CRÉA-1). Sans ce retrait, un refus affiché puis un
+  // dépôt ACCEPTÉ rechargeait la page avec `motif` encore dans l'URL
+  // courante — le bandeau rouge d'un refus déjà vu restait affiché à côté
+  // d'un dépôt qui, lui, vient de réussir.
+  url.searchParams.delete("motif");
   for (const cle of avertissements) {
     url.searchParams.append(PARAMETRE_AVERTISSEMENT, cle);
   }

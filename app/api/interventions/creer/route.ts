@@ -34,12 +34,15 @@ async function traiter(requete: Request): Promise<Response> {
     id: uuidv7(),
     client_id: lieu[0],
     site_id: lieu[1],
-    // AUCUNE MACHINE À LA CRÉATION, et ce n'est pas un raccourci : l'écran de
-    // création n'en propose pas, le dépannage à l'aveugle étant le cas
-    // ordinaire. RG-INT-01 ne l'exige qu'avant de DÉMARRER, et c'est la base
-    // qui le tient — un formulaire qui l'exigerait ici refuserait
-    // d'enregistrer un appel.
-    machine_ids: [],
+    // LA MACHINE N'EST PLUS FIGÉE À VIDE (chantier INT-MACHINE 2, 20/09/2026).
+    // *Elle reste FACULTATIVE, et ce n'est pas un raccourci* : le dépannage à
+    // l'aveugle — on sait qu'un compresseur est en panne, pas lequel — reste
+    // le cas ordinaire, et RG-INT-01 n'exige une machine qu'avant de
+    // DÉMARRER, contrôle tenu en base par un déclencheur. Ce qui change est
+    // que l'écran PROPOSE désormais les machines du site choisi
+    // (`components/interventions/site-et-machines.tsx`) : quand on les
+    // connaît déjà, rien n'empêche plus de les dire tout de suite.
+    machine_ids: formulaire.getAll("machine_ids"),
     type: champ(formulaire, "type"),
     priorite: champ(formulaire, "priorite") ?? "p3",
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? "temps_passe",
