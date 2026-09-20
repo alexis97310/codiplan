@@ -4,6 +4,7 @@ import {
   ancienNombreEnAttente,
   detailEnAttenteDePiece,
   detailInterventionsDuJour,
+  etatVgpAPrevoir,
   interventionsDuJour,
   nonAffecteesAujourdHui,
   techniciensIndisponibles,
@@ -115,5 +116,18 @@ describe("les techniciens indisponibles se comptent par PERSONNE", () => {
 
   it("une liste vide rend zéro, jamais une exception", () => {
     expect(techniciensIndisponibles([])).toBe(0);
+  });
+});
+
+describe("« VGP à prévoir » distingue le zéro mesuré du registre vierge (lot AV-14)", () => {
+  it("LE CAS QUI DOIT RESTER VERT : au moins une vérification enregistrée → le compte se lit tel quel, même à zéro", () => {
+    expect(etatVgpAPrevoir(true, 0)).toEqual({ calcule: true, valeur: 0 });
+    expect(etatVgpAPrevoir(true, 6)).toEqual({ calcule: true, valeur: 6 });
+  });
+
+  it("AUCUNE vérification jamais enregistrée → non calculé, quel que soit le compte reçu", () => {
+    // `compterAPrevoir` ne peut rendre que 0 dans ce cas (voir sa propre
+    // note), mais la fonction ne le suppose pas : elle obéit au drapeau.
+    expect(etatVgpAPrevoir(false, 0)).toEqual({ calcule: false });
   });
 });

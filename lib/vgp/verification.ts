@@ -177,6 +177,31 @@ export async function dernieresInformations(
 }
 
 /**
+ * LE REGISTRE A-T-IL DÉJÀ REÇU NE SERAIT-CE QU'UNE VÉRIFICATION (lot AV-14,
+ * 19/09/2026) ?
+ *
+ * **Pourquoi cette question, distincte de `dernieresInformations`** :
+ * `compterAPrevoir` (`lib/vgp/registre.ts`) rend 0 aussi bien quand rien n'est
+ * dû dans l'horizon que quand AUCUNE machine n'a jamais été contrôlée — deux
+ * situations que rien ne distingue dans le seul chiffre. La première est une
+ * bonne nouvelle mesurée ; la seconde dit que le registre n'a encore rien à
+ * mesurer, ce qui n'est pas la même chose (doctrine §3, « nommer les refus » —
+ * même famille que `taux_occupation_non_calcule`). Une existence, jamais un
+ * compte : la question n'a besoin que d'une ligne.
+ */
+export async function auMoinsUneVerificationEnregistree(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<boolean> {
+  const ligne = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.vgpVerification.findFirst({ select: { id: true } }),
+    client,
+  );
+  return ligne !== null;
+}
+
+/**
  * LES RAPPORTS D'UNE MACHINE — le fil de ce qu'on nous a dit (L9-09).
  *
  * *Un compte portail retrouve les rapports de SES machines, et rien d'autre* :

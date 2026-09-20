@@ -2052,14 +2052,33 @@ export const fr = {
   // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
   // eux-mêmes n'existent pas encore sous une forme consolidée* — la
   // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).
+  //
+  // « Non calculé » est GÉNÉRIQUE depuis le lot AV-14 (19/09/2026) : la même
+  // clé sert désormais aussi la tuile « VGP à prévoir » ci-dessous, quand le
+  // registre n'a encore reçu aucune vérification — la doctrine du dépôt est
+  // de nommer les refus UNE fois, jamais une troisième forme par tuile.
+  // Le motif est raccourci ce même lot : la phrase complète étirait toute la
+  // rangée de quatre tuiles à sa hauteur (D125 fixe leur ORDRE et leur
+  // nombre — dashboard() de la maquette —, jamais la longueur d'un texte).
   "tableau_de_bord.kpi_taux_occupation": "Taux d'occupation",
-  "tableau_de_bord.taux_occupation_non_calcule": "Non calculé",
+  "tableau_de_bord.non_calcule": "Non calculé",
   "tableau_de_bord.taux_occupation_motif":
-    "Consolider plusieurs techniciens en un seul taux n'est pas une règle tranchée par le chapitre 10 (R2-13).",
+    "Pas de règle de consolidation (R2-13).",
   "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
   "tableau_de_bord.vgp_a_prevoir_detail": "Dans les 30 prochains jours",
+  // LE REGISTRE N'A JAMAIS RIEN REÇU (lot AV-14) — distinct de « rien n'est dû
+  // dans l'horizon » : voir `auMoinsUneVerificationEnregistree`
+  // (lib/vgp/verification.ts) et `etatVgpAPrevoir` (./presentation.ts).
+  "tableau_de_bord.vgp_a_prevoir_motif_non_calcule":
+    "Aucune vérification VGP n'est encore enregistrée.",
 
-  // ── LES TROIS AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─
+  // ── DEUX AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─────
+  //
+  // Un troisième — « Clients sans code externe » — a quitté ce bandeau le
+  // 19/09/2026 (lot AV-14) : un problème de qualité de données n'est pas une
+  // alerte du matin, et `/clients` porte déjà la même lecture pour sa propre
+  // carte (`titreSansCode`, `compterSansCodeExterne`).
+  "tableau_de_bord.indicateurs_complementaires_titre": "Autres indicateurs",
   "tableau_de_bord.kpi_demandes_ouvertes":
     "Demandes en attente de qualification",
   "tableau_de_bord.lien_demandes": "Qualifier une demande →",

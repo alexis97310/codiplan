@@ -121,6 +121,31 @@ export function techniciensIndisponibles(
 }
 
 /**
+ * LA TUILE « VGP À PRÉVOIR » MENT PAR OMISSION QUAND LE REGISTRE EST VIERGE
+ * (lot AV-14, 19/09/2026).
+ *
+ * `compterAPrevoir` (`lib/vgp/registre.ts`) rend 0 dans DEUX situations que le
+ * chiffre seul ne distingue pas : rien n'est dû dans l'horizon (une mesure
+ * réelle, une bonne nouvelle), ou AUCUNE machine n'a jamais reçu de
+ * vérification (le registre n'a encore rien à mesurer — `sans_information`,
+ * `lib/vgp/information.ts`, est déjà une valeur à part entière pour la même
+ * raison). La seconde se traite comme `taux_occupation_non_calcule` : un
+ * texte nommé, jamais un zéro qui se lit comme une mesure.
+ */
+export type EtatVgpAPrevoir =
+  | { readonly calcule: true; readonly valeur: number }
+  | { readonly calcule: false };
+
+export function etatVgpAPrevoir(
+  auMoinsUneVerificationEnregistree: boolean,
+  compte: number,
+): EtatVgpAPrevoir {
+  return auMoinsUneVerificationEnregistree
+    ? { calcule: true, valeur: compte }
+    : { calcule: false };
+}
+
+/**
  * ── « PRIORITÉS OPÉRATIONNELLES » (D125) ─────────────────────────────────
  *
  * `priorityItems()` de la maquette affiche quatre entrées de démonstration,
