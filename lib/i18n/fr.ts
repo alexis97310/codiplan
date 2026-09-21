@@ -1742,6 +1742,48 @@ export const fr = {
   "parametres.pas.refus_plage_courte":
     "Ce pas dépasse la plus courte plage de ce calendrier : le planning ne proposerait aucun créneau sur cette plage. Allonger la plage d'abord, ou choisir un pas plus court.",
   "parametres.regler_horaires": "Régler les horaires",
+
+  // ── LA CRÉATION ET LA MODIFICATION D'UN ÉTABLISSEMENT (AGENCE-1) ─────────
+  //
+  // « Agence » ne s'écrit qu'à `lib/i18n/vocabulaire.ts` (L0-11) : ces textes
+  // composent `mot("agence")` à leur point d'usage, ou lui préfèrent
+  // « établissement » — la même convention que `parametres.aucune_agence` et
+  // `calendrier.retour`, gardée par `tests/unit/i18n/vocabulaire-impose.test.ts`.
+  "agence.creer": "Nouvel établissement",
+  "agence.retour": "← Tous les établissements",
+  "agence.aide_calendrier_vide":
+    "Le calendrier créé avec cet établissement ne portera aucune plage : il sera fermé tous les jours tant que ses horaires n'auront pas été réglés, juste après la création.",
+  "agence.code": "Code",
+  "agence.code.aide":
+    "Repère unique dans la société, utilisé notamment par les imports du référentiel pour désigner cet établissement.",
+  "agence.territoire": "Territoire",
+  "agence.territoire.exemple": "NC",
+  "agence.territoire.aide":
+    "Code ISO 3166-1 alpha-2 des jours fériés — indépendant du fuseau horaire, jamais déduit de lui. « NC » pour la Nouvelle-Calédonie, « FR » pour la France.",
+  "agence.fuseau_horaire": "Fuseau horaire",
+  // Aucun identifiant IANA réel n'est écrit ici — voir
+  // `tests/unit/calendar/sans-fuseau-en-dur.test.ts` : la plateforme ne
+  // connaît aucun territoire par défaut, et « Continent/Ville » n'est un
+  // repère de FORMAT que pour qui saisit, jamais une donnée pour le code.
+  "agence.fuseau_horaire.exemple": "Continent/Ville",
+  "agence.fuseau_horaire.aide":
+    "Identifiant IANA (« Continent/Ville »). Facultatif : laissé vide, il reprend celui de la société.",
+  "agence.action.creer": "Créer",
+  "agence.action.modifier": "Enregistrer",
+  "agence.creee":
+    "L'établissement a été créé. Son calendrier ne porte encore aucune plage : réglez ses horaires ci-dessous pour qu'il ouvre.",
+  "agence.modifiee": "Les modifications ont été enregistrées.",
+  "agence.modifier.titre": "Modifier un établissement",
+  "agence.lien_calendrier_aide": "Les horaires se règlent à part :",
+  "agence.actif": "Actif",
+  "agence.colonne_actions": "Actions",
+  "agence.refus.saisie":
+    "Cette saisie n'est pas valide : vérifiez les champs remplis, notamment le territoire (deux lettres).",
+  "agence.refus.code_pris":
+    "Ce code est déjà utilisé dans cette société — choisissez-en un autre.",
+  "agence.refus.introuvable":
+    "Cet établissement n'est pas lisible sous la société active.",
+
   // ── LES BLOCAGES D'AGENDA (R3-14) ────────────────────────────────────────
   //
   // AUCUNE NATURE, AUCUN MOTIF, AUCUN ÉTAT N'EST NOMMÉ ICI, et c'est le sujet du

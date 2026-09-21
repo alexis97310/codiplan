@@ -47,10 +47,10 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * Tout `page.tsx` sous `app/(back-office)/` y entre — même raison que
  * `ecransOrphelins` : *une liste d'admis oublie, par construction, l'écran
- * que personne n'y a ajouté.* Les segments dynamiques (`[id]`,
- * `[calendrier]`) ont besoin d'un identifiant réel, et `[id]` désigne tour à
- * tour une machine, un client, un site, une intervention… jamais la même
- * chose : `RESOLVEURS` fournit donc un résolveur PAR ROUTE, pas par nom de
+ * que personne n'y a ajouté.* Les segments dynamiques (`[id]`) ont besoin d'un
+ * identifiant réel, et `[id]` désigne tour à tour une machine, un client, un
+ * site, une intervention, un calendrier, une agence… jamais la même chose :
+ * `RESOLVEURS` fournit donc un résolveur PAR ROUTE, pas par nom de
  * segment, et il est FERMÉ DANS LES DEUX SENS contre les routes dynamiques
  * que le dépôt porte réellement — une route dynamique sans résolveur, ou un
  * résolveur pour une route disparue, fait échouer la préparation plutôt que
@@ -133,9 +133,24 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
-  "/parametres/agences/[calendrier]": async (prisma, societeId) =>
+  // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js exige
+  // un seul nom de segment dynamique par position dans l'arborescence, et
+  // `/parametres/agences/[id]/modifier` (ajoutée par le même lot) partage
+  // cette position. La valeur résolue reste un identifiant de CALENDRIER,
+  // comme avant ce renommage.
+  "/parametres/agences/[id]": async (prisma, societeId) =>
     (
       await prisma.calendrier.findFirst({
+        where: { societe_id: societeId },
+        select: { id: true },
+      })
+    )?.id ?? null,
+  // AGENCE-1 — la valeur résolue est ici un identifiant d'AGENCE, jamais de
+  // calendrier : les deux routes partagent le nom `[id]` sans partager
+  // l'entité qu'il désigne, ce que Next.js permet et que ce fichier documente.
+  "/parametres/agences/[id]/modifier": async (prisma, societeId) =>
+    (
+      await prisma.agence.findFirst({
         where: { societe_id: societeId },
         select: { id: true },
       })

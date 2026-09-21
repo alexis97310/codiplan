@@ -56,7 +56,7 @@ export default async function PageCalendrier({
   params,
   searchParams,
 }: {
-  params: Promise<{ calendrier: string }>;
+  params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await obtenirSession(await headers());
@@ -67,7 +67,11 @@ export default async function PageCalendrier({
     redirect("/arrivee");
   }
 
-  const { calendrier: calendrierId } = await params;
+  // Le paramètre se nomme `id`, jamais `calendrier` : Next.js exige UN SEUL
+  // nom de segment dynamique par position dans l'arborescence, et
+  // `/parametres/agences/[id]/modifier` (AGENCE-1) partage cette position.
+  // La valeur reste un identifiant de CALENDRIER, comme avant ce renommage.
+  const { id: calendrierId } = await params;
   const motif = (await searchParams).motif;
 
   const vue = await avecContexteApplicatif(session.contexte, async (tx) => {
