@@ -3,10 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  tousLesResultats,
-  type OptionClient,
-} from "@/components/parc/formulaire-machine";
+import { type OptionClient } from "@/components/parc/formulaire-machine";
+import { tousLesResultats } from "@/components/parc/pagination";
 import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_CLIENTS } from "@/lib/clients/saisie";
 import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
 
@@ -28,11 +26,12 @@ import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
  *
  * ## CE QUE CE FICHIER MESURE
  *
- * 1. `tousLesResultats` (`components/parc/formulaire-machine.tsx`) — la
- *    fonction RÉELLE, importée telle quelle, jamais une réimplémentation —
- *    enchaîne les pages d'une recherche bornée jusqu'à épuisement, sur le
- *    compte EXACT mesuré ci-dessus (576, 246) et sur des cas limites autour
- *    de la borne.
+ * 1. `tousLesResultats` (`components/parc/pagination.ts` depuis PARC-TER,
+ *    21/09/2026 — elle vivait dans `components/parc/formulaire-machine.tsx`,
+ *    voir §3 ci-dessous) — la fonction RÉELLE, importée telle quelle, jamais
+ *    une réimplémentation — enchaîne les pages d'une recherche bornée
+ *    jusqu'à épuisement, sur le compte EXACT mesuré ci-dessus (576, 246) et
+ *    sur des cas limites autour de la borne.
  * 2. Le paragraphe 3 REJOUE LA FAUTE : un appel unique borné à
  *    `LIMITE_RECHERCHE_MAXIMALE` — exactement ce que `/parc/nouvelle`
  *    faisait avant ce lot — masque une partie du référentiel mesuré ; ce même
@@ -42,8 +41,15 @@ import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
  *    elle-même sous ce projet Vitest (elle exige une session, une base, un
  *    rendu React Server Component — voir `tests/unit/ui/lot-parc.test.ts`,
  *    même limite déjà mesurée) : le SOURCE réel de la page appelle
- *    `tousLesResultats` pour les DEUX listes, et son commentaire ne justifie
- *    plus le plafond par une volumétrie fausse.
+ *    `tousLesResultats` pour les DEUX listes, son commentaire ne justifie
+ *    plus le plafond par une volumétrie fausse, et `tousLesResultats` ne vit
+ *    plus dans le module `"use client"` du formulaire — PARC-TER (21/09/2026)
+ *    a mesuré que ce premier logement rendait `/parc/nouvelle` à 500 une
+ *    deuxième fois (une exportation de module client devient une référence
+ *    client pour un composant serveur qui l'importe, appelée ou non comme du
+ *    JSX). `tests/unit/gardiens/frontiere-serveur-client.test.ts` tient
+ *    cette frontière pour tout le dépôt ; ce fichier ne tient plus que le
+ *    cas de cet écran.
  */
 
 const RACINE = process.cwd();
@@ -155,10 +161,18 @@ describe("LA FAUTE REJOUÉE — un appel unique borné masque le référentiel m
 describe("la page réelle appelle `tousLesResultats` pour les DEUX listes, et son commentaire ne ment plus", () => {
   const PAGE = reel("app/(back-office)/parc/nouvelle/page.tsx");
   const FORMULAIRE = reel("components/parc/formulaire-machine.tsx");
+  const PAGINATION = reel("components/parc/pagination.ts");
 
-  it("`tousLesResultats` est défini et exporté par le formulaire, pas par la page (contrat de route Next.js)", () => {
-    expect(FORMULAIRE).toContain("export async function tousLesResultats");
+  it('`tousLesResultats` est définie et exportée par le fichier NEUTRE — jamais par la page (contrat de route Next.js) ni par le formulaire (`"use client"`, PARC-TER)', () => {
+    expect(PAGINATION).toContain("export async function tousLesResultats");
+    // La directive n'est une frontière que sur la PREMIÈRE ligne — le
+    // fichier en parle en prose plus bas, ce qui n'en fait pas un module
+    // client.
+    expect(PAGINATION.trimStart().split(/\r?\n/, 1)[0]).not.toBe(
+      '"use client";',
+    );
     expect(PAGE).not.toContain("async function tousLesResultats");
+    expect(FORMULAIRE).not.toContain("async function tousLesResultats");
   });
 
   it("le client ET le site passent par `tousLesResultats` — aucun appel direct résiduel à `limite`/`page: 1`", () => {
