@@ -21,9 +21,11 @@ import {
   COMPTES_PORTAIL,
   DEVISES,
   FAMILLES_MATERIEL_DEMONSTRATION,
+  FORFAITS_DEMONSTRATION,
   HABILITATIONS_AMORCAGE,
   INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION,
   INTERVENTIONS_DEMONSTRATION,
+  LOTS_IMPORT_DEMONSTRATION,
   LUNDI_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
@@ -609,16 +611,14 @@ async function seed(): Promise<void> {
         // de la société ouvre à chacune une plage qui ne peut pas rencontrer
         // celle de sa voisine.
         //
-        // **LES DATES SONT FIXES, DEPUIS SEMIS-1 (21/09/2026)** — un lundi
-        // écrit en dur, `LUNDI_DEMONSTRATION` (`prisma/seed-data.ts`), à la
-        // place du lundi de « la semaine courante » lu à chaque semis. Ce
-        // dernier semblait éviter qu'une démonstration datée se périme (§9 du
-        // 21/08 sur les fériés) ; mesuré le 20/09/2026, il l'a au contraire
-        // provoquée — le semis n'ayant pas tourné depuis la semaine du 14/09,
-        // ce qu'il avait écrit comme « la semaine courante » a cessé de
-        // l'être dès que le calendrier réel est passé à la semaine suivante.
-        // La décision et sa limite assumée sont documentées à la définition
-        // de `LUNDI_DEMONSTRATION`.
+        // **LES DATES SONT DE NOUVEAU RELATIVES, DEPUIS SEMIS-2 (21/09/2026)**
+        // — `LUNDI_DEMONSTRATION` (`prisma/seed-data.ts`) est le lundi de la
+        // semaine où CE semis tourne, dans le fuseau nommé de CODIMA-NC. Un
+        // lundi ÉCRIT EN DUR l'a brièvement remplacé le même jour (SEMIS-1) ;
+        // mesuré l'après-midi même sur sept semaines de production, un lundi
+        // fixe se périme lui aussi, une fois pour toutes plutôt qu'à chaque
+        // semis manqué. La décision, son revirement et sa limite assumée sont
+        // documentés à la définition de `LUNDI_DEMONSTRATION`.
         const lundi = LUNDI_DEMONSTRATION;
         const interventions = INTERVENTIONS_DEMONSTRATION.map(
           (modele, index) => {
@@ -1296,12 +1296,13 @@ async function seed(): Promise<void> {
   // intervention déjà présente — un verrou de cycle de vie refuse de toucher
   // une ligne close (D84) — donc la date et le créneau posés à la création ne
   // savent pas encore quel technicien affecter : les identités naissent après
-  // les interventions. Cette passe recalcule la date depuis
-  // `LUNDI_DEMONSTRATION` (SEMIS-1) EXACTEMENT comme la création l'a fait, et
-  // y ajoute le technicien — un replacement idempotent, jamais un
-  // rafraîchissement vers « aujourd'hui » : ce dernier est précisément ce qui
-  // a vidé l'écran de démonstration, mesuré le 20/09/2026 (voir
-  // `LUNDI_DEMONSTRATION`, `prisma/seed-data.ts`).
+  // les interventions. Cette passe recalcule la date depuis LA MÊME VALEUR de
+  // `LUNDI_DEMONSTRATION` que la création a lue plus haut dans CETTE exécution
+  // du semis (SEMIS-2) — le module n'est chargé qu'une fois, la constante est
+  // donc figée pour tout le processus — et y ajoute le technicien. *Ce n'est
+  // pas une seconde lecture d'« aujourd'hui » qui pourrait diverger de la
+  // première* : les deux passes partagent le même lundi, calculé une seule
+  // fois (voir `LUNDI_DEMONSTRATION`, `prisma/seed-data.ts`).
   //
   // La passe ne touche donc QUE les interventions non terminales — celles que
   // le verrou laisse modifier. Les closes gardent leur date, ce qui est juste :
@@ -1522,6 +1523,100 @@ async function seed(): Promise<void> {
       DELAIS_SEED,
     );
     etape(`${societe.code} — interventions replacées : ${affectees}`);
+  }
+
+  // ── 10. LE FORFAIT ET LE LOT D'IMPORT DE DÉMONSTRATION (SEMIS-2, #266) ──
+  //
+  // Deux écrans n'avaient AUCUNE ligne au semis — `/parametres/forfaits/[id]`
+  // et `/imports/[id]` — et `tests/e2e/tous-les-ecrans-rendent.spec.ts` les
+  // `test.skip` faute de donnée. Une ligne minimale de chaque, sur CODIMA-NC
+  // (la société du compte `admin_societe` que ce fichier ouvre), leur en
+  // donne une. Voir `FORFAITS_DEMONSTRATION` et `LOTS_IMPORT_DEMONSTRATION`,
+  // `prisma/seed-data.ts`, pour ce qu'elles portent et pourquoi elles ne
+  // participent pas à la transaction cloisonnée ci-dessus.
+  etape("forfait et lot d'import de démonstration");
+  {
+    const societeNC = societeParCode("CODIMA-NC");
+    const rangSocieteNC =
+      SOCIETES.findIndex((societe) => societe.code === "CODIMA-NC") + 1;
+
+    for (const forfait of FORFAITS_DEMONSTRATION) {
+      const forfaitId = identifiantParc("forfait", rangSocieteNC, forfait.rang);
+      await avecSociete(
+        prisma,
+        societeNC.id,
+        (tx) =>
+          tx.forfait.upsert({
+            where: { id: forfaitId },
+            update: {
+              code: forfait.code,
+              libelle: forfait.libelle,
+              type: forfait.type,
+              rang: forfait.rangApplication,
+              montant_mineur: forfait.montant_mineur,
+              cumulable_temps: forfait.cumulable_temps,
+            },
+            create: {
+              id: forfaitId,
+              societe_id: societeNC.id,
+              code: forfait.code,
+              libelle: forfait.libelle,
+              type: forfait.type,
+              rang: forfait.rangApplication,
+              montant_mineur: forfait.montant_mineur,
+              devise_code: societeNC.devise_code,
+              // SANS CONDITION D'APPLICATION — voir la note de tête de
+              // `FORFAITS_DEMONSTRATION` : omis plutôt que `[]`, exactement
+              // comme `lib/tarification/depot-forfaits.ts` le fait pour une
+              // saisie sans zone ni type (la base refuse `'{}'`, `NULL` seul
+              // est accepté).
+              famille_id: null,
+              cumulable_temps: forfait.cumulable_temps,
+            },
+          }),
+        DELAIS_SEED,
+      );
+    }
+
+    for (const lot of LOTS_IMPORT_DEMONSTRATION) {
+      const importeur = await avecDesignationAuth(
+        prisma,
+      ).utilisateur.findUnique({
+        where: { email: lot.utilisateur_email },
+        select: { id: true },
+      });
+      if (importeur === null) {
+        throw new Error(
+          `Lot d'import de démonstration ${lot.rang} : identité ` +
+            `${lot.utilisateur_email} introuvable — elle doit être ouverte ` +
+            "par UTILISATEURS_INTERNES avant cette étape.",
+        );
+      }
+      const lotId = identifiantParc("import_lot", rangSocieteNC, lot.rang);
+      await avecSociete(
+        prisma,
+        societeNC.id,
+        (tx) =>
+          tx.importLot.upsert({
+            where: { id: lotId },
+            update: {
+              type_import: lot.type_import,
+              version_modele: lot.version_modele,
+              nom_fichier: lot.nom_fichier,
+              utilisateur_id: importeur.id,
+            },
+            create: {
+              id: lotId,
+              societe_id: societeNC.id,
+              type_import: lot.type_import,
+              version_modele: lot.version_modele,
+              utilisateur_id: importeur.id,
+              nom_fichier: lot.nom_fichier,
+            },
+          }),
+        DELAIS_SEED,
+      );
+    }
   }
 
   etape("terminé");
