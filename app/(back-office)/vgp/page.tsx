@@ -7,7 +7,13 @@ import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
 import { libelleEcheance } from "@/lib/vgp/libelles";
@@ -187,7 +193,12 @@ export default async function PageRegistreVgp() {
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = maintenant(fuseau).instant;
+  // LA CIVILE, JAMAIS L'INSTANT (DATES-1, même faute que `compterAPrevoir`
+  // avant sa réparation au tableau de bord) : `prochaineEcheance` et
+  // `derniereInformation` sont des `@db.Date`, posées à minuit UTC. Comparer
+  // l'heure qu'il est à minuit UTC fait tomber une échéance du JOUR MÊME sous
+  // zéro dès que l'horloge dépasse minuit UTC — 11 h du matin à Nouméa.
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   // DEUX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : ni l'une ni
   // l'autre ne dépend du résultat de l'autre, toutes deux ne dépendent que du

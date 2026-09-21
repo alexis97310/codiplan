@@ -14,6 +14,7 @@ import {
 } from "@/lib/absences/ecran";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  instantDuJour,
   jourDe,
   jourSuivant,
   maintenant,
@@ -453,7 +454,6 @@ function ChampJour({
  */
 const JOURS_DE_PASSE = 30;
 const JOURS_A_VENIR = 90;
-const MS_PAR_JOUR = 86_400_000;
 
 /**
  * Le fuseau quand la société n'en déclare pas.
@@ -492,10 +492,14 @@ function lundiLu(
 }
 
 function fenetreAffichee(fuseau: string): { du: Date; au: Date } {
-  const instant = maintenant(fuseau).instant.getTime();
+  // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : `lireLesAbsences` compare `du`
+  // et `au` à `Absence.du`/`Absence.au`, deux `@db.Date` posées à minuit UTC.
+  // Borner par arithmétique de millisecondes sur l'instant décalait la
+  // fenêtre d'un cran sous UTC+11 ; `instantDuJour` reste sur des jours civils.
+  const jour = jourDe(maintenant(fuseau).local);
   return {
-    du: new Date(instant - JOURS_DE_PASSE * MS_PAR_JOUR),
-    au: new Date(instant + JOURS_A_VENIR * MS_PAR_JOUR),
+    du: instantDuJour(jour, -JOURS_DE_PASSE),
+    au: instantDuJour(jour, JOURS_A_VENIR),
   };
 }
 

@@ -16,7 +16,13 @@ import { QrCode } from "@/components/ui/qr-code";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile, maintenant, schemaFuseau } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   documentsDeLaMachine,
@@ -109,7 +115,9 @@ export default async function PageMachine({
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = maintenant(fuseau).instant;
+  // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : `informationDeLaMachine` compare
+  // à `date_verification`, une `@db.Date` posée à minuit UTC.
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const historique = await historiqueDeLaMachine(contexte, machine.id);
   const annuaire = await avecContexteApplicatif(contexte, (tx) =>

@@ -1780,7 +1780,7 @@ export type LigneEnAttenteDePiece = {
   readonly dateDispoPrevue: Date;
   /** Jours ENTIERS écoulés depuis la suspension, dans le fuseau de l'agence. */
   readonly ancienneteJours: number;
-  /** La date de disponibilité est-elle DÉPASSÉE à l'instant fourni ? */
+  /** La date de disponibilité est-elle DÉPASSÉE au jour civil fourni ? */
   readonly horizonDepasse: boolean;
 };
 
@@ -1792,7 +1792,16 @@ export type LigneEnAttenteDePiece = {
  * lu ici, il rendrait un scénario vert parce que l'horloge a bougé. L'appelant,
  * qui connaît le fuseau de l'agence, le fournit.
  *
- * **L'ordre est celui de l'ANCIENNETÉ**, de la plus vieille à la plus récente :
+ * **DEUX PARAMÈTRES DATÉS, ET ILS NE SE CONFONDENT PAS (DATES-1).**
+ * `maintenant` est un INSTANT : `ancienneteJours` mesure des jours ENTIERS
+ * réellement écoulés depuis `suspendue_le` (un `timestamptz`), et le tronquer
+ * à minuit sous-compterait jusqu'à un jour entier. `aujourdHui` est une date
+ * CIVILE (l'instant courant, ramené à minuit UTC dans le fuseau de
+ * l'appelant) : `date_dispo_prevue` est une `@db.Date`, et la comparer à
+ * l'instant brut faisait tomber `horizonDepasse` à `true` dès que l'horloge
+ * dépassait minuit UTC — une pièce due AUJOURD'HUI se voyait déjà en retard.
+ *
+ * **L'ORDRE est celui de l'ANCIENNETÉ**, de la plus vieille à la plus récente :
  * *c'est la question que la file pose* — qui attend depuis le plus longtemps.
  *
  * Aucun filtre de société n'est écrit ici : on lit sous le contexte cloisonné,
@@ -1802,6 +1811,7 @@ export type LigneEnAttenteDePiece = {
 export async function enAttenteDePiece(
   contexte: ContexteSession,
   maintenant: Date,
+  aujourdHui: Date,
   client?: PrismaClient,
 ): Promise<readonly LigneEnAttenteDePiece[]> {
   return avecContexteApplicatif(
@@ -1830,7 +1840,7 @@ export async function enAttenteDePiece(
             dateDispoPrevue: ligne.date_dispo_prevue,
             ancienneteJours: joursEcoules(ligne.suspendue_le, maintenant),
             horizonDepasse:
-              ligne.date_dispo_prevue.getTime() < maintenant.getTime(),
+              ligne.date_dispo_prevue.getTime() < aujourdHui.getTime(),
           },
         ];
       });
