@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import {
   FormulaireMachine,
+  tousLesResultats,
   type OptionClient,
   type OptionModele,
   type OptionSite,
@@ -26,10 +27,34 @@ import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
  * besoin — modèles (groupés par famille), clients, sites — et rien de plus :
  * la décision reste dans `lib/machines/depot.ts` (`creerMachine`).
  *
- * **Les trois listes sont PLAFONNÉES, jamais paginées** — même raisonnement
- * que `resumerLeParcFiltre` : un sélecteur n'est pas une liste de recherche,
- * et la volumétrie du chapitre 11.3 (200 à 500 clients actifs à trois ans)
- * tient sous les plafonds existants.
+ * **LES DEUX SÉLECTEURS MONTRENT LE RÉFÉRENTIEL ENTIER, JAMAIS UNE PAGE**
+ * (lot SELECT-1, 21/09/2026).
+ *
+ * *Faux jusqu'ici : ce commentaire justifiait un plafond de 200 fiches par
+ * « la volumétrie du chapitre 11.3, 200 à 500 clients actifs à trois ans ».
+ * Mesuré contre la base — locale, le proxy de ce bac à sable bloquant la base
+ * hébergée (§9, la mesure prime la supposition) : une société en porte déjà
+ * 576, bien au-delà des 500 supposés, et 200 d'entre eux disparaissaient du
+ * sélecteur sans le moindre message — créer une machine pour l'un des 376
+ * clients restants était tout simplement IMPOSSIBLE. RG-PAR-07 ne dit nulle
+ * part qu'un client peut être hors de portée de la fiche machine ; le plafond
+ * était un défaut, pas une règle de gestion.*
+ *
+ * `rechercherClients` et `rechercherSites` restent bornés à
+ * `LIMITE_RECHERCHE_MAXIMALE` **par requête** — le garde-fou contre une seule
+ * requête qui ramènerait tout le référentiel d'un coup depuis Nouméa reste
+ * entier, c'est la raison de sa présence à L1-01/L1-02. `tousLesResultats`
+ * (ci-dessous) enchaîne les pages jusqu'à épuisement : un sélecteur n'est pas
+ * une liste de recherche paginée à l'écran comme `/clients` ou `/sites`
+ * (AT-07) — il n'a pas de page suivante à proposer, il doit montrer CE QUI
+ * EXISTE, quel qu'en soit le nombre.
+ *
+ * `tousLesResultats` — la boucle qui enchaîne les pages — vit dans
+ * `components/parc/formulaire-machine.tsx` et non ici : Next.js refuse toute
+ * exportation d'un fichier `page.tsx` étrangère à son contrat de route
+ * (mesuré au build : « "tousLesResultats" is not a valid Page export
+ * field »), et une fonction non exportée ne serait éprouvable que par lecture
+ * du source. Elle vit dans le fichier du formulaire qu'elle alimente.
  */
 export default async function PageNouvelleMachine({
   searchParams,
@@ -48,20 +73,28 @@ export default async function PageNouvelleMachine({
   const [familles, modelesBruts, clientsBruts, sitesBruts] = await Promise.all([
     listerLesFamilles(contexte),
     listerLesModeles(contexte),
-    rechercherClients(contexte, {
-      texte: null,
-      etat: "actifs",
-      limite: LIMITE_CLIENTS,
-      page: 1,
-    }),
-    rechercherSites(contexte, {
-      client_id: null,
-      zone_geo: null,
-      texte: null,
-      actifs_seulement: true,
-      limite: LIMITE_SITES,
-      page: 1,
-    }),
+    tousLesResultats(
+      (page) =>
+        rechercherClients(contexte, {
+          texte: null,
+          etat: "actifs",
+          limite: LIMITE_CLIENTS,
+          page,
+        }),
+      LIMITE_CLIENTS,
+    ),
+    tousLesResultats(
+      (page) =>
+        rechercherSites(contexte, {
+          client_id: null,
+          zone_geo: null,
+          texte: null,
+          actifs_seulement: true,
+          limite: LIMITE_SITES,
+          page,
+        }),
+      LIMITE_SITES,
+    ),
   ]);
 
   const libelleFamille = new Map(
