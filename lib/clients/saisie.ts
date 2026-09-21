@@ -129,13 +129,19 @@ export const schemaModificationClient = z
 export type ModificationClient = z.output<typeof schemaModificationClient>;
 
 /**
- * Nombre maximal de fiches rendues par une recherche.
+ * Nombre maximal de fiches rendues PAR REQUÊTE.
  *
- * La volumétrie du chapitre 11.3 est de 200 à 500 clients actifs à trois ans :
- * la borne n'est donc pas une pagination — elle n'a rien à paginer — mais un
- * garde-fou contre une requête qui ramènerait tout le référentiel d'un coup
- * depuis Nouméa. Elle est explicite plutôt que laissée au défaut de personne :
- * c'est la leçon du 23/08 sur les délais.
+ * **Ce n'est plus un plafond sur ce qu'on peut voir, et ça l'a été à tort**
+ * (lot SELECT-1, 21/09/2026). La volumétrie du chapitre 11.3 — 200 à 500
+ * clients actifs à trois ans — annonçait ce nombre comme un maximum ; mesuré
+ * contre une base réelle, une société en porte déjà 576. La borne reste :
+ * c'est un garde-fou contre une requête qui ramènerait tout le référentiel
+ * d'un coup depuis Nouméa (leçon du 23/08 sur les délais), et `/clients` comme
+ * `/sites` s'en servent depuis AT-07 comme taille de PAGE, avec `compterClients`
+ * / `compterSites` pour paginer le total réel. Un appelant qui doit montrer
+ * le référentiel ENTIER — un sélecteur, jamais une liste de recherche —
+ * enchaîne les pages jusqu'à épuisement plutôt que de s'arrêter à la première
+ * (`tousLesResultats`, `app/(back-office)/parc/nouvelle/page.tsx`).
  */
 export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
 export const LIMITE_RECHERCHE_MAXIMALE = 200;
