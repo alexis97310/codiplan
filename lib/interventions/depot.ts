@@ -282,10 +282,37 @@ export async function creerIntervention(
       // politique rend zéro et l'on refuse ici plutôt que de buter plus bas.
       const site = await tx.site.findFirst({
         where: { id: saisie.site_id, client_id: saisie.client_id },
-        select: { id: true, agence_id: true, zone_geo: true },
+        select: {
+          id: true,
+          agence_id: true,
+          zone_geo: true,
+          client: { select: { actif: true } },
+        },
       });
       if (site === null) {
         return { accepte: false, cle: "intervention.refus.lieu_inconnu" };
+      }
+      // ── RG-PLA-08 À LA CRÉATION (PLANNING-1, 22/09/2026) ─────────────────
+      //
+      // **Le client inactif est REFUSÉ ici, et non seulement caché de la
+      // liste.** SEMIS-2 (#269) a retiré son site de `/interventions/nouvelle`
+      // ; mais une liste d'écran n'est pas une règle, et un `site_id` posté
+      // directement faisait naître une intervention que RG-PLA-08 (D129)
+      // masque ensuite du planning ET du registre par défaut — sans qu'aucun
+      // message ne le dise. *Deux chemins qui écrivent la même colonne et ne
+      // se soumettent pas au même contrôle ne tiennent pas la même règle*
+      // (§9, 01/09) — la faute déjà réparée pour l'ouverture (R2-19).
+      //
+      // Le motif est NOMMÉ, jamais « lieu inconnu » : le lieu existe, il se
+      // voit sur la fiche du client (D129), et un refus qui accuserait le
+      // périmètre enverrait chercher la cause au mauvais endroit. Même colonne
+      // que `filtreClientActif` (plus bas), jamais une autre lecture de ce
+      // qu'« inactif » veut dire.
+      //
+      // **Le SITE n'est pas jugé** : RG-PLA-08 ne porte que sur `client.actif`,
+      // et la question du site reste ouverte (D129, §8).
+      if (!site.client.actif) {
+        return { accepte: false, cle: "intervention.refus.client_inactif" };
       }
       if (site.agence_id === null) {
         return {

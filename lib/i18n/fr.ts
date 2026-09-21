@@ -920,6 +920,13 @@ export const fr = {
     "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
   "intervention.refus.lieu_sans_rattachement":
     "Ce lieu n'est rattaché à aucun établissement. Le rattachement de l'intervention en est déduit : renseignez-le d'abord.",
+  // RG-PLA-08 À LA CRÉATION (PLANNING-1, 22/09/2026). Le motif NOMME le
+  // client inactif plutôt que d'accuser le périmètre : le lieu existe, il se
+  // voit sur la fiche du client (D129), et « lieu inconnu » enverrait chercher
+  // la cause au mauvais endroit. Ce qu'il DIT ensuite est ce que la règle
+  // implique — une intervention qui ne paraîtrait nulle part.
+  "intervention.refus.client_inactif":
+    "Ce client est inactif : une intervention créée chez lui n'apparaîtrait ni sur le planning ni dans le registre. La création est refusée.",
   // RG-PLA-06 (L3-04). **Le motif ne nomme ni la personne ni la période**, et
   // ce n'est pas de la pudeur : un refus est un canal d'information soumis au
   // cloisonnement comme une requête (D50). Qui planifie voit l'absence sur
