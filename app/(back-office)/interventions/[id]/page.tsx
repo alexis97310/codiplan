@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
+import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -30,7 +31,7 @@ import {
   accesAuxMontants,
   type AccesAuxMontants,
 } from "@/lib/interventions/montants-visibles";
-import { quiTravaille } from "@/lib/interventions/personnes";
+import { optionsDAffectation } from "@/lib/interventions/personnes";
 import { libellesDesMachines, machinesDesSites } from "@/lib/machines/depot";
 import { formatMoney } from "@/lib/money";
 
@@ -169,12 +170,38 @@ export default async function PageIntervention({
     ligne.technicien_id,
     annuaire,
   );
-  const optionsTechniciens = techniciensActifs
-    .map((technicien) => ({
-      valeur: technicien.utilisateur_id,
-      libelle: quiTravaille(technicien.utilisateur_id, annuaire),
-    }))
-    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+  // ── « AFFECTER » DIT LE BLOCAGE AVANT LE CHOIX (PLANNING-1, RG-PLA-06,
+  // 22/09/2026). *Mesuré* : la liste était nue, le refus n'arrivait qu'au
+  // dépôt, après la tentative. Les blocages sont lus À LA DATE de
+  // l'intervention — la seule que ce formulaire engage —, sous le contexte
+  // cloisonné (forme « interne », D94, même lecture que `/absences`). La
+  // borne SQL est le jour ; le critère est `absenceCouvrant`, dans
+  // `optionsDAffectation`, et lui seul (§9, 01/09).
+  //
+  // « DÉPLACER » garde la liste NUE : sa date se saisit dans le même
+  // formulaire, et un suffixe « à cette date » y parlerait d'une date que
+  // l'utilisateur est en train de changer — une affirmation sur un état
+  // qu'on n'a pas observé (§9, 07/09).
+  const blocagesALaDate =
+    proposerUneListeDeTechniciens && ligne.date_planifiee !== null
+      ? await absencesDeLaPeriode(
+          session.contexte,
+          ligne.date_planifiee,
+          ligne.date_planifiee,
+        )
+      : [];
+  const optionsAffectation = optionsDAffectation(
+    techniciensActifs,
+    annuaire,
+    blocagesALaDate,
+    ligne.date_planifiee,
+  );
+  const optionsTechniciens = optionsDAffectation(
+    techniciensActifs,
+    annuaire,
+    [],
+    null,
+  );
   // « AFFECTER » N'A QU'UN CHAMP, ET C'EST CELUI QUI FUYAIT : un rôle sans
   // `qualifier_affecter` verrait un bouton dont le seul champ est vide —
   // *un champ pré-rempli qu'on ne peut pas remplir est un affichage déguisé
@@ -375,7 +402,7 @@ export default async function PageIntervention({
             <Saisie
               nom="technicien_id"
               libelle={t("intervention.technicien")}
-              options={optionsTechniciens}
+              options={optionsAffectation}
               libelleOptionVide={t("intervention.aucun_technicien")}
               valeurParDefaut={ligne.technicien_id ?? undefined}
             />
@@ -766,7 +793,16 @@ function Saisie({
    * l'appelant, déjà résolue sous le contexte cloisonné (§9, 01/09 : ce
    * composant ne lit ni base ni politique).
    */
-  options?: readonly { readonly valeur: string; readonly libelle: string }[];
+  options?: readonly {
+    readonly valeur: string;
+    readonly libelle: string;
+    /**
+     * L'option DIT que l'agenda est bloqué (PLANNING-1, RG-PLA-06) — elle
+     * reste sélectionnable, le dépôt tranche. `data-agenda-bloque` est ce
+     * qu'un scénario interroge, jamais le texte du libellé.
+     */
+    readonly bloque?: boolean;
+  }[];
   /** L'option vide du `<select>`, quand `options` est fourni et qu'elle a un sens (ex. « Aucun technicien affecté »). */
   libelleOptionVide?: string;
 }) {
@@ -783,7 +819,11 @@ function Saisie({
             <option value="">{libelleOptionVide}</option>
           )}
           {options.map((option) => (
-            <option key={option.valeur} value={option.valeur}>
+            <option
+              key={option.valeur}
+              value={option.valeur}
+              {...(option.bloque === true ? { "data-agenda-bloque": "" } : {})}
+            >
               {option.libelle}
             </option>
           ))}

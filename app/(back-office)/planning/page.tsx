@@ -11,6 +11,7 @@ import {
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
@@ -304,7 +305,19 @@ export default async function PagePlanning({
   // elle aussi — ni l'une ni l'autre du résultat de l'autre. Elles restaient
   // pourtant en série, un aller-retour attendu pour rien pendant que l'autre
   // courait déjà.
-  const [annuaire, charges] = await Promise.all([
+  //
+  // ── ET LES BLOCAGES D'AGENDA DE LA FENÊTRE (PLANNING-1, RG-PLA-06) ──────
+  //
+  // *Mesuré le 22/09/2026* : la case d'un technicien absent se dessinait
+  // comme une case libre, et RG-PLA-06 ne refusait qu'au dépôt, APRÈS la
+  // tentative. L'absence est une donnée connue d'avance ; elle est lue ici,
+  // sous le contexte cloisonné — la forme d'`absence` est « interne » (D94),
+  // c'est la même lecture que `/absences` et que le tableau de bord —, et
+  // donnée aux deux vues, qui la posent sur la case ou la colonne par
+  // `absenceCouvrant`, le critère même du refus (§9, 01/09). La borne haute
+  // est le DERNIER JOUR AFFICHÉ, compris : `fenetre.au` est exclusive et
+  // `absencesDeLaPeriode` compare des jours civils, bornes comprises.
+  const [annuaire, charges, absences] = await Promise.all([
     avecContexteApplicatif(contexte, (tx) =>
       annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
     ),
@@ -314,6 +327,11 @@ export default async function PagePlanning({
       vue === "jour"
         ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
         : fenetreEnJours,
+    ),
+    absencesDeLaPeriode(
+      contexte,
+      fenetre.du,
+      instantDuJour(fenetreEnJours.au, -1),
     ),
   ]);
 
@@ -548,6 +566,7 @@ export default async function PagePlanning({
                   pourJournee,
                   minutesDe,
                   pourTechniciens,
+                  absences,
                 )}
                 annuaire={annuaire}
                 jourAffiche={jourAffiche}
@@ -561,6 +580,7 @@ export default async function PagePlanning({
                   pourGrille,
                   (id) => nomSeul(id, annuaire),
                   pourTechniciens,
+                  absences,
                 )}
                 annuaire={annuaire}
                 chargeDe={chargeParTechnicien}
@@ -707,11 +727,17 @@ function VueSemaine({
                       // déplace des jours, jamais des durées.
                       pasMinutes: 0,
                     }}
-                    className={`border-app-bord border-r border-b p-1.5 align-top ${
-                      cellule.ouverte === false ? "trame-fermee" : ""
-                    }`}
+                    className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule)}`}
                     style={{ height: "78px" }}
                   >
+                    {/*
+                      LE BLOCAGE D'AGENDA SE LIT DANS LA CASE, AVANT LE GESTE
+                      (PLANNING-1, RG-PLA-06). La pastille est celle de
+                      `/absences` — même mot, même violet (D124, D128). La
+                      case reste une cible de dépôt : c'est toujours le dépôt
+                      qui refuse, et la légende le dit.
+                    */}
+                    {cellule.bloquee ? <PastilleAgendaBloque /> : null}
                     {cellule.lignes.map((intervention) => (
                       <BlocPosable
                         key={intervention.id}
@@ -832,20 +858,31 @@ function ListeSemaine({
                 lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
               />
             </div>
-            {ligne.total === 0 ? (
+            {/*
+              UN JOUR BLOQUÉ A UNE LIGNE, MÊME VIDE (PLANNING-1, RG-PLA-06) :
+              la liste ne montre que ce qui porte quelque chose, et un agenda
+              bloqué EST quelque chose — c'est l'information qu'on cherche
+              avant d'affecter. « Sans intervention » ne s'écrit donc que si
+              la semaine est vide ET sans blocage.
+            */}
+            {ligne.total === 0 &&
+            ligne.cases.every((cellule) => !cellule.bloquee) ? (
               <p className="text-app-encre-faible mt-2 text-[12px] italic">
                 {t("planning.technicien_sans_intervention")}
               </p>
             ) : (
               <ul className="mt-2 flex flex-col gap-2">
                 {ligne.cases
-                  .filter((cellule) => cellule.lignes.length > 0)
+                  .filter(
+                    (cellule) => cellule.lignes.length > 0 || cellule.bloquee,
+                  )
                   .map((cellule) => (
                     <li key={cleJour(cellule.jour)}>
                       <p className="text-app-encre-faible text-[10.5px] font-bold tracking-wide uppercase">
                         {enTeteDeJour(cellule.jour)}
                       </p>
                       <div className="mt-1 flex flex-col gap-1">
+                        {cellule.bloquee ? <PastilleAgendaBloque /> : null}
                         {/*
                         PAS DE `BlocPosable` ICI, ET C'EST DÉLIBÉRÉ.
 
@@ -944,6 +981,9 @@ function VueJour({
                   <span className="text-app-encre-faible block text-[10.5px] font-normal">
                     {ouTravaille(colonne.agences.map((a) => a.libelle))}
                   </span>
+                  {/* LA COLONNE LE DIT EN TÊTE, et chaque cellule le répète
+                      par son aplat : un blocage se lit sans chercher. */}
+                  {colonne.bloquee ? <PastilleAgendaBloque /> : null}
                 </th>
               ))}
             </tr>
@@ -1058,6 +1098,13 @@ function VueJour({
           />
           {t("planning.jour_hors_ouverture")}
         </li>
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-violet-fond border-app-violet-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          {t("planning.legende.agenda_bloque")}
+        </li>
       </ul>
       <HorsGrille journee={journee} annuaire={annuaire} />
     </section>
@@ -1077,15 +1124,62 @@ function VueJour({
  * libres. Une intervention de deux heures paraissait en durer trente minutes,
  * sur l'écran même dont l'objet est de montrer ce qui est pris.*
  */
-function classeDeCellule(etat: "occupe" | "libre" | "hors_ouverture"): string {
+function classeDeCellule(
+  etat: "occupe" | "libre" | "hors_ouverture" | "bloque",
+): string {
   if (etat === "hors_ouverture") return "bg-app-gris-fond";
+  // L'AGENDA BLOQUÉ porte le violet de `/absences` (D124, D128) — jamais la
+  // hachure, qui ne veut dire qu'une chose : « ce jour n'est pas ouvert ».
+  if (etat === "bloque") return "bg-app-violet-fond";
   return "bg-app-surface";
 }
+
+/**
+ * L'aplat d'une CASE de la vue semaine. **Le blocage d'agenda prime sur la
+ * trame du jour fermé** : sur un jour où la personne n'est pas là, que
+ * l'agence ouvre ou non ne dit plus rien à qui cherche où poser. La hachure
+ * garde son sens unique — « ce jour n'est pas ouvert » — là où elle reste.
+ */
+function classeDeCase(cellule: {
+  readonly ouverte: boolean | null;
+  readonly bloquee: boolean;
+}): string {
+  if (cellule.bloquee) return "bg-app-violet-fond";
+  if (cellule.ouverte === false) return "trame-fermee";
+  return "";
+}
+
+/**
+ * LA PASTILLE « AGENDA BLOQUÉ » — celle de `/absences`, au mot et à la couleur
+ * près (D124, D128) : *une chose, un mot, une couleur.* `data-agenda-bloque`
+ * est ce qu'un scénario interroge — jamais la couleur, jamais le texte.
+ */
+function PastilleAgendaBloque() {
+  return (
+    <span
+      data-agenda-bloque
+      className="bg-app-violet-fond text-app-violet-encre border-app-violet-bord mb-1 block rounded-md border px-1.5 py-0.5 text-[10.5px] font-semibold"
+    >
+      {t("planning.agenda_bloque")}
+    </span>
+  );
+}
+
+/**
+ * L'ENTRÉE DE LÉGENDE DU BLOCAGE D'AGENDA (PLANNING-1) — ajoutée ICI et non à
+ * `LEGENDE_PLANNING` : cette liste-là recopie les six familles de couleur de
+ * la maquette dans son ordre (D95), et le blocage n'est pas une famille de
+ * STATUT — c'est un état de la CASE, au violet de `/absences` (D124, D128).
+ */
+const ENTREE_LEGENDE_AGENDA_BLOQUE = {
+  cle: "planning.legende.agenda_bloque",
+  classes: "bg-app-violet-fond border-app-violet-bord",
+} as const;
 
 function Legende() {
   return (
     <ul className="text-app-encre-faible flex flex-wrap items-center gap-4 px-4 py-3 text-[11.5px]">
-      {LEGENDE_PLANNING.map((entree) => (
+      {[...LEGENDE_PLANNING, ENTREE_LEGENDE_AGENDA_BLOQUE].map((entree) => (
         <li key={entree.cle} className="flex items-center gap-1.5">
           <span
             aria-hidden

@@ -1,4 +1,6 @@
+import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
 import type { Annuaire } from "@/lib/auth/annuaire";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 
 /**
@@ -115,4 +117,71 @@ export function nomSeul(
 ): string | null {
   const designation = annuaire(technicienId);
   return designation.etat === "nom" ? designation.nom : null;
+}
+
+/** Une option du sélecteur « Affecter » — et ce qu'elle DIT avant le choix. */
+export type OptionDAffectation = {
+  readonly valeur: string;
+  readonly libelle: string;
+  /** L'agenda de cette personne est bloqué à la date de l'intervention (RG-PLA-06). */
+  readonly bloque: boolean;
+};
+
+/**
+ * LES OPTIONS DU SÉLECTEUR « AFFECTER » — et le blocage se lit DANS l'option
+ * (PLANNING-1, RG-PLA-06, 22/09/2026).
+ *
+ * ## Le défaut mesuré
+ *
+ * RG-PLA-06 refuse l'affectation d'un technicien dont l'agenda est bloqué —
+ * `verdictALaPose`, puis le déclencheur —, mais seulement APRÈS la tentative :
+ * la fiche proposait la liste nue, le planificateur choisissait, se faisait
+ * refuser, recommençait. *L'absence est une donnée connue d'avance* : elle se
+ * dit ici, dans le libellé, avant le choix.
+ *
+ * ## Ce qu'elle dit, et ce qu'elle ne fait pas
+ *
+ * Le critère est celui du refus — `absenceCouvrant`, `lib/absences/periode.ts`
+ * — et lui seul (§9, 01/09). **L'option reste sélectionnable** : la règle ne
+ * change pas, c'est toujours le dépôt qui refuse ; la retirer de la liste
+ * ferait disparaître une personne au lieu de dire pourquoi elle ne convient
+ * pas, et un refus qui explique est un renseignement (§9, 20/08).
+ *
+ * **Le suffixe porte la DATE** — « agenda bloqué le 24/09/2026 », par
+ * `dateCivile`, la forme de `date_planifiee` (`@db.Date`, minuit UTC) — parce
+ * que la fiche ne l'affiche nulle part ailleurs : « à cette date » y
+ * flotterait sans référent.
+ *
+ * **Une intervention SANS date ne peut rien affirmer** : aucun suffixe, jamais
+ * « disponible » — la réserve absolue de `planning.technicien_sans_intervention`
+ * (§9, 07/09). Le tri est par NOM, sans le suffixe : « D. Guérin — agenda
+ * bloqué… » se range comme « D. Guérin ».
+ */
+export function optionsDAffectation(
+  techniciens: readonly { readonly utilisateur_id: string }[],
+  annuaire: Annuaire,
+  absences: readonly AbsenceDeclaree[],
+  dateIntervention: Date | null,
+): readonly OptionDAffectation[] {
+  return techniciens
+    .map((technicien) => {
+      const nom = quiTravaille(technicien.utilisateur_id, annuaire);
+      const bloque =
+        dateIntervention !== null &&
+        absenceCouvrant(
+          absences,
+          technicien.utilisateur_id,
+          dateIntervention,
+        ) !== null;
+      return { valeur: technicien.utilisateur_id, nom, bloque };
+    })
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
+    .map(({ valeur, nom, bloque }) => ({
+      valeur,
+      libelle:
+        bloque && dateIntervention !== null
+          ? `${nom} — ${t("intervention.technicien_agenda_bloque_le")} ${dateCivile(dateIntervention)}`
+          : nom,
+      bloque,
+    }));
 }

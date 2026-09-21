@@ -936,6 +936,13 @@ export const fr = {
     "Ce blocage n'existe pas, ou il n'est pas dans votre périmètre.",
   "intervention.refus.absence":
     "L'agenda de ce technicien est bloqué à cette date. Le créneau est refusé.",
+  // LE SÉLECTEUR LE DIT AVANT LE CHOIX (PLANNING-1, RG-PLA-06, 22/09/2026) —
+  // suffixe d'une option du sélecteur « Affecter » de la fiche, SUIVI de la
+  // date de l'intervention (`dateCivile`) : la fiche ne l'affiche nulle part
+  // ailleurs, et « à cette date » y flotterait sans référent. Le refus
+  // ci-dessus reste : l'option est proposée, elle renseigne, et c'est
+  // toujours le dépôt qui tranche.
+  "intervention.technicien_agenda_bloque_le": "agenda bloqué le",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
   // Extension de la revue Codex de la PR #267 (20/09/2026) : le refus d'un
@@ -2278,6 +2285,15 @@ export const fr = {
   "planning.jour_occupe": "Occupé",
   "planning.jour_libre": "Libre",
   "planning.jour_hors_ouverture": "Hors ouverture",
+  // LE BLOCAGE D'AGENDA SE VOIT AVANT LE GESTE (PLANNING-1, RG-PLA-06,
+  // 22/09/2026). *Mesuré* : la case d'un technicien absent se dessinait comme
+  // une case libre, et le refus n'arrivait qu'au dépôt, après la tentative.
+  // Le mot est celui de `/absences` (`absences.pastille_bloque`), sur la même
+  // pastille violette (D124, D128) : une chose, un mot, une couleur. La case
+  // reste une cible — c'est toujours le dépôt qui refuse —, et la légende le
+  // dit plutôt que de le laisser découvrir.
+  "planning.agenda_bloque": "Agenda bloqué",
+  "planning.legende.agenda_bloque": "Agenda bloqué — le dépôt sera refusé",
   // CE QUE LA VUE JOUR NE PEUT PAS DESSINER, ET QU'ELLE DIT (12/09/2026).
   // *Une intervention qui ne peut pas être dessinée doit être DITE, jamais
   // effacée* : trois disparitions silencieuses vivaient dans cet écran, et un

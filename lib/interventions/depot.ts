@@ -596,6 +596,36 @@ export async function affecterTechnicien(
         return { accepte: false, cle: "intervention.refus.habilitation" };
       }
 
+      // ── RG-PLA-06 SUR LA TROISIÈME VOIE (PLANNING-1, 22/09/2026) ────────
+      //
+      // *Une règle tenue par un chemin sur deux n'est pas tenue* — c'est ce
+      // que `verdictALaPose` écrit de la pose et du déplacement, et il y
+      // avait un TROISIÈME chemin qui écrit `technicien_id` sur une ligne
+      // datée : celui-ci. Le déclencheur `intervention_pas_sur_blocage_agenda`
+      // refusait bien — la règle tenait en base —, mais par une exception
+      // `23514`, et l'écran n'avait rien à afficher d'autre qu'une erreur.
+      // *Ce contrôle-ci EXPLIQUE ; le déclencheur GARDE.* Même critère que
+      // `verdictALaPose` : `absenceCouvrant`, et lui seul (§9, 01/09). Une
+      // intervention SANS date n'a rien à juger — elle est dans la file.
+      const blocage =
+        ligne.date_planifiee === null
+          ? null
+          : absenceCouvrant(
+              await tx.absence.findMany({
+                where: {
+                  utilisateur_id: technicienId,
+                  du: { lte: ligne.date_planifiee },
+                  au: { gte: ligne.date_planifiee },
+                },
+                select: { id: true, utilisateur_id: true, du: true, au: true },
+              }),
+              technicienId,
+              ligne.date_planifiee,
+            );
+      if (blocage !== null) {
+        return { accepte: false, cle: "intervention.refus.absence" };
+      }
+
       const misAJour = await tx.intervention.update({
         where: { id: interventionId },
         data: { technicien_id: technicienId },
@@ -782,7 +812,10 @@ async function verdictALaPose(
   // *« Une absence validée bloque le créneau. »* Elle bloque à la POSE comme au
   // DÉPLACEMENT, pour la raison qui a fait écrire le troisième : **ces deux
   // chemins écrivent tous deux `technicien_id` et une date**, et une règle
-  // tenue par un chemin sur deux n'est pas tenue.
+  // tenue par un chemin sur deux n'est pas tenue. **Et depuis PLANNING-1
+  // (22/09/2026), à l'AFFECTATION aussi** — `affecterTechnicien` écrit
+  // `technicien_id` sur une ligne déjà datée, et ne portait que le refus du
+  // déclencheur, muet pour l'écran.
   //
   // **TOUTE ligne bloque depuis R3-14** : le circuit d'approbation a été retiré
   // avec le statut — *CODIPLAN n'est pas un outil de gestion des ressources

@@ -1,4 +1,5 @@
-import { cleJour, type JourLocal } from "@/lib/calendar/fuseau";
+import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
+import { cleJour, instantDuJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { jourSemaineIso } from "@/lib/calendar/semaine";
 
 /**
@@ -69,6 +70,26 @@ import { jourSemaineIso } from "@/lib/calendar/semaine";
  * (la file non affectée, une personne posée sans être au référentiel). Une
  * ligne semée par le référentiel et jamais rejointe par une intervention
  * reste dans la grille, VIDE : `total` vaut 0, aucune case n'a de ligne.
+ *
+ * ## LA CASE SAIT SI L'AGENDA EST BLOQUÉ (PLANNING-1, RG-PLA-06, 22/09/2026)
+ *
+ * *« Une absence validée bloque le créneau. »* Le dépôt le REFUSAIT déjà —
+ * `verdictALaPose`, et le déclencheur `intervention_pas_sur_blocage_agenda` —,
+ * mais seulement APRÈS la tentative : la grille dessinait la case d'un
+ * technicien absent comme une case libre, le planificateur y déposait, se
+ * faisait refuser, recommençait. L'absence est une donnée connue d'avance ;
+ * elle se lit ici, dans la case, avant le geste.
+ *
+ * **Le critère est celui du refus, et lui seul** : `absenceCouvrant`
+ * (`lib/absences/periode.ts`), bornes comprises — jamais une seconde lecture
+ * de « ce jour est-il bloqué » écrite ici, qui divergerait de la première en
+ * silence (§9, 01/09). La règle ne change pas : la case bloquée reste une
+ * cible de dépôt, et c'est toujours le dépôt qui refuse. Ce que la case
+ * gagne est de le DIRE avant.
+ *
+ * Une case bloquée GARDE ce qu'elle porte : une intervention clôturée a eu
+ * lieu (I5), et poser un blocage après coup ne l'efface pas. La file
+ * d'attente n'appartient à personne, donc jamais bloquée.
  */
 
 /** Le minimum qu'une intervention doit porter pour entrer dans la grille. */
@@ -102,6 +123,12 @@ export type CaseDeGrille<T extends Posable> = {
    * n'a de calendrier connu.
    */
   readonly ouverte: boolean | null;
+  /**
+   * L'agenda de cette personne est-il BLOQUÉ ce jour-là (RG-PLA-06) ? Décidé
+   * par `absenceCouvrant`, jamais ici. `false` pour la file d'attente, et
+   * `false` quand aucun blocage n'est fourni — le défaut affirme le moins.
+   */
+  readonly bloquee: boolean;
   readonly lignes: readonly T[];
 };
 
@@ -147,6 +174,7 @@ export function construireGrille<T extends Posable>(
   agences: readonly AgenceDeGrille[],
   libelleDe: (technicienId: string) => string | null = () => null,
   techniciens: readonly TechnicienDeGrille[] = [],
+  absences: readonly AbsenceDeclaree[] = [],
 ): readonly LigneDeGrille<T>[] {
   const clesDesJours = new Set(jours.map(cleJour));
   const parAgence = new Map(agences.map((a) => [a.id, a]));
@@ -200,6 +228,12 @@ export function construireGrille<T extends Posable>(
     const cases = jours.map((jour) => ({
       jour,
       ouverte: ouvertePour(siennes, jour),
+      // `instantDuJour` rend minuit UTC, la forme même de `date_planifiee`
+      // (`@db.Date`) que `absenceCouvrant` compare au jour civil des bornes.
+      bloquee:
+        groupe.technicienId !== null &&
+        absenceCouvrant(absences, groupe.technicienId, instantDuJour(jour)) !==
+          null,
       lignes: (groupe.par.get(cleJour(jour)) ?? []) as readonly T[],
     }));
 

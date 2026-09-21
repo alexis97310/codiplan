@@ -1,4 +1,5 @@
-import type { JourLocal } from "@/lib/calendar/fuseau";
+import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
+import { instantDuJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { jourSemaineIso } from "@/lib/calendar/semaine";
 
 /**
@@ -16,11 +17,23 @@ import { jourSemaineIso } from "@/lib/calendar/semaine";
  * qui n'est pas mesuré n'est pas tenu*, et « on voit bien les trous » est une
  * impression, pas une observation.
  *
- * ## Trois états par cellule, et JAMAIS deux
+ * ## Quatre états par cellule, et JAMAIS deux
  *
  * **OCCUPÉ** — une intervention couvre ce créneau. **LIBRE** — l'agence ouvre
  * et personne n'est posé. **HORS OUVERTURE** — l'agence de cette colonne
- * n'ouvre pas à cette heure-là.
+ * n'ouvre pas à cette heure-là. **BLOQUÉ** — l'agenda de cette personne est
+ * bloqué ce jour-là (RG-PLA-06 ; PLANNING-1, 22/09/2026).
+ *
+ * *Le quatrième état a été ajouté après mesure* : la colonne d'un technicien
+ * absent dessinait seize créneaux LIBRES et les COMPTAIT parmi les trous — sur
+ * l'écran dont l'objet déclaré est de montrer les trous —, et le refus
+ * n'arrivait qu'au dépôt, après le geste. *« Une absence validée bloque le
+ * créneau »* : un créneau bloqué n'est pas un trou, il ne se compte pas. Le
+ * critère est celui du refus, `absenceCouvrant` (`lib/absences/periode.ts`),
+ * et lui seul (§9, 01/09). Une cellule OCCUPÉE d'une colonne bloquée reste
+ * occupée — une clôturée a eu lieu (I5) — ; toutes les autres sont BLOQUÉES,
+ * l'heure d'ouverture n'ayant plus rien à dire sur un jour où la personne
+ * n'est pas là.
  *
  * Le troisième n'est pas un détail de confort : sans lui, 07:00 chez une agence
  * qui ouvre à 09:00 se lirait comme un trou à remplir. *Un écran qui invente
@@ -77,7 +90,7 @@ export type Occupante = {
   readonly duree_estimee_min: number | null;
 };
 
-export type EtatDeCellule = "occupe" | "libre" | "hors_ouverture";
+export type EtatDeCellule = "occupe" | "libre" | "hors_ouverture" | "bloque";
 
 /** Une intervention posée dans une cellule, et sa place dans son propre bloc. */
 export type BlocDeCellule<T> = {
@@ -123,6 +136,12 @@ export type CelluleDeJournee<T> = {
 export type ColonneDeJournee<T> = {
   readonly technicienId: string | null;
   readonly agences: readonly AgenceDeJournee[];
+  /**
+   * L'agenda de cette personne est-il BLOQUÉ ce jour-là (RG-PLA-06) ? Décidé
+   * par `absenceCouvrant`, jamais ici. `false` pour la file d'attente, et
+   * `false` quand aucun blocage n'est fourni — le défaut affirme le moins.
+   */
+  readonly bloquee: boolean;
   readonly cellules: readonly CelluleDeJournee<T>[];
   /** Combien de créneaux cette personne a de libres, ce jour-là. */
   readonly creneauxLibres: number;
@@ -184,6 +203,7 @@ export function construireJournee<T extends Occupante>(
   agences: readonly AgenceDeJournee[],
   minutesDe: (instant: Date, agenceId: string) => number,
   techniciens: readonly TechnicienDeJournee[] = [],
+  absences: readonly AbsenceDeclaree[] = [],
 ): Journee<T> {
   const iso = jourSemaineIso(jour);
   const parAgence = new Map(agences.map((a) => [a.id, a]));
@@ -235,12 +255,27 @@ export function construireJournee<T extends Occupante>(
         .filter((a): a is AgenceDeJournee => a !== undefined)
         .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
 
+      // `instantDuJour` rend minuit UTC, la forme même de `date_planifiee`
+      // (`@db.Date`) que `absenceCouvrant` compare au jour civil des bornes.
+      const bloquee =
+        groupe.technicienId !== null &&
+        absenceCouvrant(absences, groupe.technicienId, instantDuJour(jour)) !==
+          null;
       const cellules = axe.map((debut) =>
-        cellule(debut, pasMinutes, iso, siennes, groupe.lignes, minutesDe),
+        cellule(
+          debut,
+          pasMinutes,
+          iso,
+          siennes,
+          groupe.lignes,
+          minutesDe,
+          bloquee,
+        ),
       );
       return {
         technicienId: groupe.technicienId,
         agences: siennes,
+        bloquee,
         cellules,
         creneauxLibres: cellules.filter((c) => c.etat === "libre").length,
         horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
@@ -332,6 +367,7 @@ function cellule<T extends Occupante>(
   agences: readonly AgenceDeJournee[],
   lignes: readonly T[],
   minutesDe: (instant: Date, agenceId: string) => number,
+  bloquee: boolean,
 ): CelluleDeJournee<T> {
   // `filter`, et non `find` : voir `CelluleDeJournee.occupations`. La grille
   // hebdomadaire les empile toutes depuis toujours, et c'est l'écart entre les
@@ -344,6 +380,11 @@ function cellule<T extends Occupante>(
     }));
   if (occupations.length > 0) {
     return { debutMinutes: debut, etat: "occupe", occupations };
+  }
+  // BLOQUÉ prime sur libre ET sur hors ouverture : sur un jour où la personne
+  // n'est pas là, l'heure d'ouverture ne dit plus rien — voir l'entête.
+  if (bloquee) {
+    return { debutMinutes: debut, etat: "bloque", occupations: [] };
   }
   const ouvert = agences.some(
     (a) =>
