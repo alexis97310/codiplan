@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
@@ -20,6 +21,15 @@ import { mot } from "@/lib/i18n/vocabulaire";
  * **Aucune comparaison de société n'est écrite ici** : `lireAgence` lit sous
  * le contexte cloisonné, et un établissement hors périmètre rend `null`,
  * exactement comme un identifiant inconnu (D35, D50).
+ *
+ * **Un identifiant mal formé est un refus, jamais une panne** (DÉFAUT 2,
+ * revue de #275) : un segment comme `pas-un-uuid` atteindrait `lireAgence`
+ * tel quel, qui l'envoie dans un `WHERE "id" = $1::uuid` — PostgreSQL refuse
+ * de le caster et lève, 500 au lieu d'un `notFound()`. Même correction que
+ * `app/api/parametres/agences/[id]/modifier/route.ts` (et, avant lui,
+ * `app/api/sites/[id]/modifier/route.ts`, mesuré le 11/09/2026) : le contrôle
+ * de forme précède la lecture, et un identifiant mal formé rend LA MÊME chose
+ * qu'un identifiant inconnu — les distinguer ferait un oracle (D35, D50).
  *
  * **Le calendrier ne se règle pas ici** — voir l'en-tête de la consigne
  * AGENCE-1 : le réglage des horaires existe déjà
@@ -42,6 +52,9 @@ export default async function PageModifierAgence({
   }
 
   const { id } = await params;
+  if (!z.uuid().safeParse(id).success) {
+    notFound();
+  }
   const agence = await lireAgence(session.contexte, id);
   if (agence === null) {
     notFound();

@@ -484,4 +484,10 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Même raison que `creerAgenceDans` : appelée INTRA-module par `modifierAgence`, qu'`app/api/parametres/agences/[id]/modifier/route.ts` atteint. Se retire si un import de sites en vient à corriger des agences.",
   },
+  {
+    module: "lib/agences/depot.ts",
+    fonction: "motifDeLErreur",
+    motif:
+      "Exportée par la revue de #275 (DÉFAUT 1) pour être éprouvée SANS base — ce bac à sable ne joint ni PostgreSQL ni Docker, et cette fonction est le seul moyen d'y fabriquer l'erreur qu'un déclencheur lève réellement (`tests/unit/agences/depot.test.ts`). Appelée INTRA-module par `creerAgence` et `modifierAgence`, tous deux atteints. Se retire si un second module de dépôt vient à la réutiliser.",
+  },
 ];

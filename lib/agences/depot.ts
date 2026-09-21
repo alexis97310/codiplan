@@ -77,7 +77,13 @@ export type MotifRefusAgence =
   /** `(societe_id, code)` — sur l'agence ou sur le calendrier créé pour elle. */
   | "code_pris"
   /** Hors périmètre — il n'est JAMAIS dit si elle existe ailleurs (D50). */
-  | "introuvable";
+  | "introuvable"
+  /**
+   * Le verrou de D49 : le territoire ne change pas tant que des écarts de
+   * calendrier (`calendrier_ferie`) subsistent, désignés selon l'ANCIEN
+   * territoire — voir `motifDeLErreur` ci-dessous.
+   */
+  | "territoire_ecarts";
 
 export type ResultatAgence =
   | { readonly accepte: true; readonly fiche: FicheAgence }
@@ -86,7 +92,39 @@ export type ResultatAgence =
 const VIOLATION_UNICITE = "P2002";
 const ENREGISTREMENT_ABSENT = "P2025";
 
-function motifDeLErreur(erreur: unknown): MotifRefusAgence | null {
+/**
+ * Traduit un refus de la base en motif.
+ *
+ * **Le verrou de territoire n'est PAS un `PrismaClientKnownRequestError`.**
+ * `agence_territoire_verrou_ecarts` (`prisma/migrations/20260823130000_
+ * territoire_du_ferie_reference/migration.sql`, fonction posée aux lignes
+ * 231-269) est un déclencheur `BEFORE UPDATE` qui lève un `RAISE EXCEPTION`
+ * SANS code SQLSTATE explicite — Prisma ne le reconnaît donc dans AUCUN de
+ * ses codes `P20xx` et le remonte comme une erreur générique, exactement la
+ * mesure que documente `lib/calendar/depot.ts` pour les déclencheurs de
+ * `calendrier_plage`. Le contrôle `instanceof Prisma.
+ * PrismaClientKnownRequestError` ne peut donc PAS être la première porte : il
+ * laisserait ce refus traverser tel quel jusqu'à l'appelant (mesuré — revue de
+ * #275, DÉFAUT 1 : un 500 générique là où c'est un conflit métier ordinaire).
+ *
+ * Le message de la migration ne nomme pas la fonction qui l'a levé — un
+ * `RAISE EXCEPTION 'texte', …` n'ajoute PAS le nom du déclencheur, à la
+ * différence d'une violation de `CHECK` où PostgreSQL cite lui-même le nom de
+ * la contrainte. Le repère est donc un extrait STABLE et distinctif du texte
+ * de la migration elle-même (« écart(s) de calendrier subsistent »), lu comme
+ * `lib/calendar/depot.ts` le fait pour ses propres déclencheurs.
+ *
+ * **Exportée pour être éprouvée SANS base** (`tests/unit/agences/depot.test.ts`) :
+ * ce module n'a pas d'autre moyen ici de fabriquer l'erreur qu'un déclencheur
+ * lève réellement, et `tests/isolation/ecriture-agences.test.ts` l'éprouve en
+ * plus contre une vraie base quand une en porte une.
+ */
+export function motifDeLErreur(erreur: unknown): MotifRefusAgence | null {
+  const texte = erreur instanceof Error ? erreur.message : String(erreur);
+  if (texte.includes("écart(s) de calendrier subsistent")) {
+    return "territoire_ecarts";
+  }
+
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) {
     return null;
   }

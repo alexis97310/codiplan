@@ -1783,6 +1783,8 @@ export const fr = {
     "Ce code est déjà utilisé dans cette société — choisissez-en un autre.",
   "agence.refus.introuvable":
     "Cet établissement n'est pas lisible sous la société active.",
+  "agence.refus.territoire_ecarts":
+    "Ce territoire ne peut pas changer : des écarts de calendrier (jours fériés travaillés ou ponts) subsistent pour l'ancien territoire. Traitez-les d'abord, puis recommencez.",
 
   // ── LES BLOCAGES D'AGENDA (R3-14) ────────────────────────────────────────
   //

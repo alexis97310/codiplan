@@ -249,3 +249,37 @@ for (const route of ROUTES) {
     ).toBe(chemin);
   });
 }
+
+/**
+ * UN SEGMENT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (AGENCE-1, DÉFAUT 2 —
+ * revue Codex de #275).
+ *
+ * ## Pourquoi ce n'est PAS une extension de la boucle ci-dessus
+ *
+ * La boucle `for (const route of ROUTES)` n'ouvre CHAQUE écran qu'avec un
+ * identifiant RÉEL, résolu par `RESOLVEURS` — c'est tout son objet, écrit en
+ * tête de ce fichier. La généraliser à un identifiant MALFORMÉ pour chaque
+ * route dynamique du dépôt ferait rougir cette suite sur des écrans qu'AGENCE-1
+ * ne touche pas : mesuré à la relecture, aucun des `RESOLVEURS` existants
+ * (`/parc/[id]`, `/clients/[id]`, `/sites/[id]`, `/interventions/[id]`…) ne
+ * valide la forme de son identifiant avant de lire sa fiche — le même défaut,
+ * ailleurs, non corrigé par ce lot. En faire une exigence générale ouvrirait
+ * un chantier qui déborde AGENCE-1 ; ce scénario reste donc SCOPÉ à la seule
+ * route que ce lot corrige.
+ *
+ * Ce scénario n'a pas pu être exécuté dans ce lot — le bac à sable ne joint ni
+ * PostgreSQL ni Docker (voir la proposition #275) — mais il documente le
+ * comportement attendu pour la prochaine exécution réelle de `pnpm
+ * test:e2e`.
+ */
+test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[id]/modifier)", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  const reponse = await page.goto("/parametres/agences/pas-un-uuid/modifier");
+  expect(reponse, "aucune réponse rendue").not.toBeNull();
+  expect(
+    reponse!.status(),
+    `a répondu ${reponse!.status()} au lieu de 404`,
+  ).toBe(404);
+});
