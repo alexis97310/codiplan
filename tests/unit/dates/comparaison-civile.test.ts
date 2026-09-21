@@ -93,17 +93,19 @@ const REPERTOIRES = [
  * son propre `horizonDepasse` : les deux besoins ne se confondent plus dans un
  * seul paramètre.
  */
-const EXEMPTIONS: readonly { readonly fichier: string; readonly motif: string }[] =
-  [
-    {
-      fichier: "lib/interventions/depot.ts",
-      motif: "maintenant(fuseauDeLAgence(agence)).instant",
-    },
-    {
-      fichier: "app/(back-office)/tableau-de-bord/page.tsx",
-      motif: "const { instant, local } = maintenant(fuseau);",
-    },
-  ];
+const EXEMPTIONS: readonly {
+  readonly fichier: string;
+  readonly motif: string;
+}[] = [
+  {
+    fichier: "lib/interventions/depot.ts",
+    motif: "maintenant(fuseauDeLAgence(agence)).instant",
+  },
+  {
+    fichier: "app/(back-office)/tableau-de-bord/page.tsx",
+    motif: "const { instant, local } = maintenant(fuseau);",
+  },
+];
 
 /** L'idiome sûr : relire l'instant DANS son fuseau, exactement `.local`. */
 function estIdiomeSurLocal(ligne: string): boolean {
@@ -115,7 +117,8 @@ const MOTIF_PROPRIETE =
   /maintenant\s*\((?:[^()]|\([^()]*\))*\)\s*\.\s*instant\b/;
 
 /** `const { instant, … } = maintenant(...)` — la même faute, déstructurée. */
-const MOTIF_DESTRUCTURATION = /\{[^{}]*\binstant\b[^{}]*\}\s*=\s*maintenant\s*\(/;
+const MOTIF_DESTRUCTURATION =
+  /\{[^{}]*\binstant\b[^{}]*\}\s*=\s*maintenant\s*\(/;
 
 function ligneSuspecte(ligne: string): boolean {
   if (estIdiomeSurLocal(ligne)) {
