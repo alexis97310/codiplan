@@ -90,6 +90,8 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/plages/ajouter/route.ts": "parametrer_societe",
   "app/api/parametres/plages/[id]/modifier/route.ts": "parametrer_societe",
   "app/api/parametres/plages/[id]/supprimer/route.ts": "parametrer_societe",
+  "app/api/parametres/agences/creer/route.ts": "parametrer_societe",
+  "app/api/parametres/agences/[id]/modifier/route.ts": "parametrer_societe",
   "app/api/parametres/pas-creneau/route.ts": "parametrer_societe",
   "app/api/parametres/trajet-zone/route.ts": "parametrer_societe",
   // « Saisir un rapport ».
@@ -238,7 +240,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(43);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(45);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

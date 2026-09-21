@@ -47,10 +47,10 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * Tout `page.tsx` sous `app/(back-office)/` y entre — même raison que
  * `ecransOrphelins` : *une liste d'admis oublie, par construction, l'écran
- * que personne n'y a ajouté.* Les segments dynamiques (`[id]`,
- * `[calendrier]`) ont besoin d'un identifiant réel, et `[id]` désigne tour à
- * tour une machine, un client, un site, une intervention… jamais la même
- * chose : `RESOLVEURS` fournit donc un résolveur PAR ROUTE, pas par nom de
+ * que personne n'y a ajouté.* Les segments dynamiques (`[id]`) ont besoin d'un
+ * identifiant réel, et `[id]` désigne tour à tour une machine, un client, un
+ * site, une intervention, un calendrier, une agence… jamais la même chose :
+ * `RESOLVEURS` fournit donc un résolveur PAR ROUTE, pas par nom de
  * segment, et il est FERMÉ DANS LES DEUX SENS contre les routes dynamiques
  * que le dépôt porte réellement — une route dynamique sans résolveur, ou un
  * résolveur pour une route disparue, fait échouer la préparation plutôt que
@@ -133,9 +133,24 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
-  "/parametres/agences/[calendrier]": async (prisma, societeId) =>
+  // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js exige
+  // un seul nom de segment dynamique par position dans l'arborescence, et
+  // `/parametres/agences/[id]/modifier` (ajoutée par le même lot) partage
+  // cette position. La valeur résolue reste un identifiant de CALENDRIER,
+  // comme avant ce renommage.
+  "/parametres/agences/[id]": async (prisma, societeId) =>
     (
       await prisma.calendrier.findFirst({
+        where: { societe_id: societeId },
+        select: { id: true },
+      })
+    )?.id ?? null,
+  // AGENCE-1 — la valeur résolue est ici un identifiant d'AGENCE, jamais de
+  // calendrier : les deux routes partagent le nom `[id]` sans partager
+  // l'entité qu'il désigne, ce que Next.js permet et que ce fichier documente.
+  "/parametres/agences/[id]/modifier": async (prisma, societeId) =>
+    (
+      await prisma.agence.findFirst({
         where: { societe_id: societeId },
         select: { id: true },
       })
@@ -234,3 +249,37 @@ for (const route of ROUTES) {
     ).toBe(chemin);
   });
 }
+
+/**
+ * UN SEGMENT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (AGENCE-1, DÉFAUT 2 —
+ * revue Codex de #275).
+ *
+ * ## Pourquoi ce n'est PAS une extension de la boucle ci-dessus
+ *
+ * La boucle `for (const route of ROUTES)` n'ouvre CHAQUE écran qu'avec un
+ * identifiant RÉEL, résolu par `RESOLVEURS` — c'est tout son objet, écrit en
+ * tête de ce fichier. La généraliser à un identifiant MALFORMÉ pour chaque
+ * route dynamique du dépôt ferait rougir cette suite sur des écrans qu'AGENCE-1
+ * ne touche pas : mesuré à la relecture, aucun des `RESOLVEURS` existants
+ * (`/parc/[id]`, `/clients/[id]`, `/sites/[id]`, `/interventions/[id]`…) ne
+ * valide la forme de son identifiant avant de lire sa fiche — le même défaut,
+ * ailleurs, non corrigé par ce lot. En faire une exigence générale ouvrirait
+ * un chantier qui déborde AGENCE-1 ; ce scénario reste donc SCOPÉ à la seule
+ * route que ce lot corrige.
+ *
+ * Ce scénario n'a pas pu être exécuté dans ce lot — le bac à sable ne joint ni
+ * PostgreSQL ni Docker (voir la proposition #275) — mais il documente le
+ * comportement attendu pour la prochaine exécution réelle de `pnpm
+ * test:e2e`.
+ */
+test("un identifiant mal formé rend 404, jamais 500 (/parametres/agences/[id]/modifier)", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
+  const reponse = await page.goto("/parametres/agences/pas-un-uuid/modifier");
+  expect(reponse, "aucune réponse rendue").not.toBeNull();
+  expect(
+    reponse!.status(),
+    `a répondu ${reponse!.status()} au lieu de 404`,
+  ).toBe(404);
+});

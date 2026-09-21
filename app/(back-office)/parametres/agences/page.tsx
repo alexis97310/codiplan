@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -116,6 +117,7 @@ export default async function PageParametresAgences({
       droite: true,
     },
     { cle: "pas", libelle: t("parametres.colonne_pas"), largeur: "230px" },
+    { cle: "actions", libelle: t("agence.colonne_actions"), largeur: "90px" },
   ];
 
   return (
@@ -123,6 +125,11 @@ export default async function PageParametresAgences({
       chemin="/parametres/agences"
       titre={t("parametres.titre")}
       sousTitre={t("parametres.sous_titre")}
+      actions={
+        <LienPrimaire href="/parametres/agences/nouvelle">
+          {t("agence.creer")}
+        </LienPrimaire>
+      }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
@@ -143,6 +150,7 @@ export default async function PageParametresAgences({
           {reglages.map(({ agence, parametrage, exceptions }) => (
             <LigneAgence
               key={agence.id}
+              id={agence.id}
               libelle={agence.libelle}
               parametrage={parametrage}
               exceptions={exceptions}
@@ -160,16 +168,33 @@ export default async function PageParametresAgences({
 }
 
 function LigneAgence({
+  id,
   libelle,
   parametrage,
   exceptions,
   colonnes,
 }: {
+  readonly id: string;
   readonly libelle: string;
   readonly parametrage: Parametrage | null;
   readonly exceptions: number;
   readonly colonnes: number;
 }) {
+  // LE LIEN VERS LA FICHE DE MODIFICATION (AGENCE-1) — partagé par les deux
+  // branches ci-dessous : un établissement sans calendrier reste modifiable,
+  // c'est même par cette fiche qu'on corrige un rattachement resté vide sur
+  // une ligne du semis antérieure à ce lot.
+  const modifier = (
+    <Cellule>
+      <Link
+        href={`/parametres/agences/${id}/modifier`}
+        className={CLASSES_LIEN}
+      >
+        {t("agence.action.modifier")}
+      </Link>
+    </Cellule>
+  );
+
   if (parametrage === null) {
     // « Sans calendrier » n'est pas une ligne vide : c'est un état qui se DIT,
     // et qui interdit toute pose (I7). La ligne le nomme plutôt que d'afficher
@@ -178,11 +203,12 @@ function LigneAgence({
       <tr>
         <Cellule fort>{libelle}</Cellule>
         <td
-          colSpan={colonnes - 1}
+          colSpan={colonnes - 2}
           className="border-app-bord text-app-rouge-encre border-b px-4 py-[11px]"
         >
           {t("parametres.sans_calendrier")}
         </td>
+        {modifier}
       </tr>
     );
   }
@@ -248,6 +274,7 @@ function LigneAgence({
           </Button>
         </form>
       </Cellule>
+      {modifier}
     </tr>
   );
 }

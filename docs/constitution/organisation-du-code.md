@@ -214,6 +214,21 @@ lib/
               il ne CRÉE pas l'intervention : le lien vit sur
               `intervention.demande_id`, la colonne n'existe pas encore, et une
               transformation que rien ne peut relire est pire qu'une absente
+  agences/    LE CHEMIN D'ÉCRITURE D'UNE AGENCE (AGENCE-1) — saisie Zod, dépôt
+              cloisonné ; il n'en existait AUCUN hors du semis, et sur une base
+              de PRODUCTION neuve (sans semis, par construction — I9), aucune
+              agence ne pouvait naître
+              une agence SANS calendrier n'ouvre jamais (I7) : `creerAgenceDans`
+              écrit les DEUX lignes dans la MÊME transaction, calendrier
+              d'abord — même ordre que le semis
+              le calendrier neuf ne porte AUCUNE plage, et PARTAGE le code de
+              l'agence plutôt que d'en recevoir un propre : les deux unicités
+              `(societe_id, code)` mordent sur la MÊME valeur, si bien qu'un
+              refus se lit comme UN SEUL motif quelle que soit la table qui a
+              mordu — pas de `lib/calendriers/` séparé pour trois lignes qui
+              n'ont qu'un seul appelant
+              `code` n'est PAS modifiable : c'est la clé qu'un import résout et
+              qu'un humain nomme au téléphone
   sites/      référentiel des sites d'intervention (L1-02) — saisie Zod, dépôt
               cloisonné, zones géographiques de D23
               `libellesDesSites` (L3-16) résout client et rattachement APRÈS la

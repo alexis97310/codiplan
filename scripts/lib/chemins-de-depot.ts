@@ -470,4 +470,24 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "L'application d'un lot d'équipements écrivait ses créations une ligne à la fois par ce chemin, son SEUL appelant : aucun écran de création manuelle d'un équipement n'existe, seul l'import en crée. Elle écrit désormais en un `createMany` via `creerMachinesEnLot`. Se retire le jour où un écran de création manuelle l'appelle.",
   },
+  // ── AGENCE-1 (21/09/2026) — DEUX VARIANTES « Dans », EXTRAITES POUR R6-01,
+  // SANS SECOND APPELANT AUJOURD'HUI ───────────────────────────────────────
+  {
+    module: "lib/agences/depot.ts",
+    fonction: "creerAgenceDans",
+    motif:
+      "Extraite pour R6-01 — écrit dans une transaction que l'appelant tient, comme `creerSiteDans` — mais appelée INTRA-module seulement, par `creerAgence`, qu'`app/api/parametres/agences/creer/route.ts` atteint. Ce gardien ne trace pas un appel interne au même fichier de dépôt (`chemin !== depot`). Se retire si un import de sites en vient à créer des agences.",
+  },
+  {
+    module: "lib/agences/depot.ts",
+    fonction: "modifierAgenceDans",
+    motif:
+      "Même raison que `creerAgenceDans` : appelée INTRA-module par `modifierAgence`, qu'`app/api/parametres/agences/[id]/modifier/route.ts` atteint. Se retire si un import de sites en vient à corriger des agences.",
+  },
+  {
+    module: "lib/agences/depot.ts",
+    fonction: "motifDeLErreur",
+    motif:
+      "Exportée par la revue de #275 (DÉFAUT 1) pour être éprouvée SANS base — ce bac à sable ne joint ni PostgreSQL ni Docker, et cette fonction est le seul moyen d'y fabriquer l'erreur qu'un déclencheur lève réellement (`tests/unit/agences/depot.test.ts`). Appelée INTRA-module par `creerAgence` et `modifierAgence`, tous deux atteints. Se retire si un second module de dépôt vient à la réutiliser.",
+  },
 ];

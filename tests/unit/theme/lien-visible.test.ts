@@ -142,7 +142,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // Les deux écrans d'horaires y sont entrés le 14/09/2026 avec R3-13 : le
       // tableau des établissements mène à la fiche d'un calendrier, et la fiche
       // revient au tableau.
-      "app/(back-office)/parametres/agences/[calendrier]/page.tsx",
+      // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js
+      // exige un seul nom de segment dynamique par position, et
+      // `/parametres/agences/[id]/modifier` partage cette position.
+      "app/(back-office)/parametres/agences/[id]/page.tsx",
       "app/(back-office)/parametres/agences/page.tsx",
       // LE RÉFÉRENTIEL MATÉRIEL y est entré le 16/09/2026 avec AT-04 : le
       // décompte de modèles d'une famille mène à leur table, plus bas sur le
