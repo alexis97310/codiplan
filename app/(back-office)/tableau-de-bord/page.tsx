@@ -160,7 +160,10 @@ export default async function PageTableauDeBord({
     auMoinsUneVerification,
   ] = await Promise.all([
     listerPlanning(contexte, debutDuJour, finDuJour),
-    enAttenteDePiece(contexte, instant),
+    // DEUX PARAMÈTRES DATÉS (DATES-1) : `instant` réel pour `ancienneteJours`
+    // (des jours ENTIERS écoulés), `debutDuJour` — la civile — pour
+    // `horizonDepasse`, comparée à `date_dispo_prevue` (`@db.Date`).
+    enAttenteDePiece(contexte, instant, debutDuJour),
     // LA CIVILE, JAMAIS L'INSTANT (L0-08) : `prochaineEcheance` est une
     // `@db.Date` posée à minuit UTC. Lui comparer `instant` (l'heure qu'il
     // est) fait tomber une échéance du JOUR MÊME sous zéro dès que l'horloge

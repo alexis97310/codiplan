@@ -22,7 +22,13 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
-import { maintenant, schemaFuseau, dateCivile } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -122,7 +128,9 @@ export default async function PageParc({
     }),
   );
   const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  const aujourdHui = maintenant(fuseau).instant;
+  // LA CIVILE, JAMAIS L'INSTANT (DATES-1) : `resumerLeParc` compare
+  // `garantie_fin`, une `@db.Date` posée à minuit UTC, à cet instant.
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const params = await searchParams;
   const criteres = schemaRechercheParc.safeParse({

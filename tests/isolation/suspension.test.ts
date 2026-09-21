@@ -16,6 +16,23 @@ import {
 } from "./setup/fixtures";
 
 /**
+ * Le jour civil d'un instant, à minuit UTC — la même forme qu'une `@db.Date`
+ * (DATES-1). `enAttenteDePiece` reçoit désormais ce repère SÉPARÉMENT de
+ * l'instant réel : ce fichier n'a pas de fuseau d'agence sous la main, et
+ * n'en a pas besoin — les scénarios ci-dessous n'approchent jamais une
+ * frontière de jour à quelques heures près.
+ */
+function jourCivilUTC(instant: Date): Date {
+  return new Date(
+    Date.UTC(
+      instant.getUTCFullYear(),
+      instant.getUTCMonth(),
+      instant.getUTCDate(),
+    ),
+  );
+}
+
+/**
  * LA SUSPENSION, ET LA FILE « EN ATTENTE DE PIÈCE » (L2-10, RG-INT-06).
  *
  * **Ce fichier confronte le module et la base.** `cycle-de-vie.ts` explique le
@@ -295,7 +312,12 @@ describe("la file « en attente de pièce » et son ancienneté", () => {
       vieille,
     );
 
-    const file = await enAttenteDePiece(SESSION, maintenant, clientApp());
+    const file = await enAttenteDePiece(
+      SESSION,
+      maintenant,
+      jourCivilUTC(maintenant),
+      clientApp(),
+    );
     const ids = file.map((l) => l.ligne.id);
 
     // *Une suspension qui n'attend pas de pièce n'est pas dans cette file* :
@@ -338,10 +360,20 @@ describe("la file « en attente de pièce » et son ancienneté", () => {
     const maintenant = new Date();
     const dansDixJours = new Date(maintenant.getTime() + 10 * 86400000);
     const [tot] = (
-      await enAttenteDePiece(SESSION, maintenant, clientApp())
+      await enAttenteDePiece(
+        SESSION,
+        maintenant,
+        jourCivilUTC(maintenant),
+        clientApp(),
+      )
     ).filter((l) => l.ligne.id === id);
     const [tard] = (
-      await enAttenteDePiece(SESSION, dansDixJours, clientApp())
+      await enAttenteDePiece(
+        SESSION,
+        dansDixJours,
+        jourCivilUTC(dansDixJours),
+        clientApp(),
+      )
     ).filter((l) => l.ligne.id === id);
 
     expect(tard!.ancienneteJours - tot!.ancienneteJours).toBe(10);
