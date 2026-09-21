@@ -208,10 +208,16 @@ export const schemaModificationSite = z
 export type ModificationSite = z.output<typeof schemaModificationSite>;
 
 /**
- * Bornes de la recherche. Même raisonnement qu'à L1-01 : la volumétrie du
- * chapitre 11.3 ne demande aucune pagination, mais une requête qui ramènerait
- * tout le référentiel d'un coup depuis Nouméa se paie en latence. La borne est
- * explicite plutôt que laissée au défaut de personne (leçon du 23/08).
+ * Bornes de la recherche — un maximum PAR REQUÊTE, jamais sur ce qu'on peut
+ * voir (même correction qu'à L1-01, lot SELECT-1, 21/09/2026 : « la
+ * volumétrie du chapitre 11.3 ne demande aucune pagination » était faux, la
+ * société CODIMA-NC portant déjà 576 clients et plus de 200 sites mesurés
+ * contre une base réelle). La borne reste : une requête qui ramènerait tout
+ * le référentiel d'un coup depuis Nouméa se paie en latence (leçon du 23/08),
+ * et `/sites` s'en sert depuis AT-07 comme taille de PAGE, avec `compterSites`
+ * pour paginer le total réel. Un sélecteur qui doit montrer le référentiel
+ * ENTIER enchaîne les pages jusqu'à épuisement plutôt que de s'arrêter à la
+ * première (`tousLesResultats`, `app/(back-office)/parc/nouvelle/page.tsx`).
  */
 export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
 export const LIMITE_RECHERCHE_MAXIMALE = 200;

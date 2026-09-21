@@ -38,7 +38,42 @@ import {
  * contourne pas cette limite : en modification, les quatre champs
  * s'affichent en LECTURE SEULE, dans l'ordre de D126 (famille, marque,
  * référence), et ne sont jamais soumis comme des champs modifiables.
+ *
+ * ## `tousLesResultats` — UN SÉLECTEUR MONTRE LE RÉFÉRENTIEL ENTIER (lot
+ * SELECT-1, 21/09/2026)
+ *
+ * Mesuré contre une base réelle (locale — le proxy de ce bac à sable bloque
+ * la base hébergée) : une société porte déjà 576 clients, et le sélecteur de
+ * `/parc/nouvelle` s'arrêtait à 200, `LIMITE_RECHERCHE_MAXIMALE` de
+ * `lib/clients/saisie.ts` et `lib/sites/saisie.ts`. Créer une machine pour
+ * l'un des 376 clients restants était impossible — aucun message, la fiche
+ * disparaissait simplement du sélecteur.
+ *
+ * Cette fonction vit ICI et non dans `app/(back-office)/parc/nouvelle/page.tsx`,
+ * qui l'appelle : Next.js refuse toute exportation d'un `page.tsx` étrangère à
+ * son contrat de route (mesuré au build). Elle enchaîne les pages d'une
+ * recherche bornée — `rechercherClients` ou `rechercherSites`, déjà appliqués
+ * au contexte et aux critères — jusqu'à ce qu'un lot revienne plus court que
+ * `tailleDePage` : exactement le critère que `skip`/`take` de Prisma
+ * produisent déjà côté dépôt, jamais une seconde lecture du total. La borne
+ * `LIMITE_RECHERCHE_MAXIMALE` reste entière comme garde-fou PAR REQUÊTE —
+ * contre une seule requête qui ramènerait tout le référentiel d'un coup
+ * depuis Nouméa —, ce n'est que la première page qui ne suffit plus à un
+ * sélecteur.
  */
+export async function tousLesResultats<T>(
+  page: (numero: number) => Promise<readonly T[]>,
+  tailleDePage: number,
+): Promise<T[]> {
+  const resultats: T[] = [];
+  for (let numero = 1; ; numero += 1) {
+    const lot = await page(numero);
+    resultats.push(...lot);
+    if (lot.length < tailleDePage) {
+      return resultats;
+    }
+  }
+}
 
 export type OptionModele = {
   readonly id: string;
