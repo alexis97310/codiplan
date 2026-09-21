@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 import { ECARTS_MAQUETTE } from "@/lib/navigation/entrees";
 import { LARGEUR_UTILE_PX } from "@/lib/theme/apparence";
+import { FORFAITS_DEMONSTRATION } from "@/prisma/seed-data";
 
 import { FORFAITS_SCENE, SCENE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -111,11 +112,19 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
   // *Le catalogue de démonstration naît VIDE (L1-06), et sans les deux forfaits
   // que la scène pose, cet écran n'afficherait AUCUN tableau : sa reprise
   // d'apparence serait restée « écrite mais jamais vue ».*
+  //
+  // **Le compte attendu se DÉRIVE, il ne se fige pas.** Depuis SEMIS-2 (#269),
+  // le SEMIS lui-même pose désormais une ligne de démonstration
+  // (`FORFAITS_DEMONSTRATION`, pour que `/parametres/forfaits/[id]` cesse
+  // d'être sauté faute de donnée) — la base d'épreuve porte donc CETTE ligne
+  // EN PLUS des deux que la scène ajoute. Un total figé à 2 redeviendrait faux
+  // à chaque ligne que l'un ou l'autre pose ensuite (§9, 11/09) ; additionner
+  // les deux sources reste vrai quel que soit leur nombre.
   const entete = page.locator("main thead th").first();
   await expect(entete).toHaveCSS("text-transform", "uppercase");
   await expect(entete).toHaveCSS("font-size", "10.5px");
   await expect(page.locator("main tbody tr")).toHaveCount(
-    FORFAITS_SCENE.length,
+    FORFAITS_SCENE.length + FORFAITS_DEMONSTRATION.length,
   );
 });
 
