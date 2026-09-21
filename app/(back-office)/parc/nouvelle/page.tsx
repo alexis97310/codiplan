@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import {
   FormulaireMachine,
-  tousLesResultats,
   type OptionClient,
   type OptionModele,
   type OptionSite,
 } from "@/components/parc/formulaire-machine";
+import { tousLesResultats } from "@/components/parc/pagination";
 import { obtenirSession } from "@/lib/auth/session";
 import { rechercherClients } from "@/lib/clients/depot";
 import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_CLIENTS } from "@/lib/clients/saisie";
@@ -50,11 +50,18 @@ import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
  * EXISTE, quel qu'en soit le nombre.
  *
  * `tousLesResultats` — la boucle qui enchaîne les pages — vit dans
- * `components/parc/formulaire-machine.tsx` et non ici : Next.js refuse toute
- * exportation d'un fichier `page.tsx` étrangère à son contrat de route
- * (mesuré au build : « "tousLesResultats" is not a valid Page export
- * field »), et une fonction non exportée ne serait éprouvable que par lecture
- * du source. Elle vit dans le fichier du formulaire qu'elle alimente.
+ * `components/parc/pagination.ts`, ni ici ni dans
+ * `components/parc/formulaire-machine.tsx` (PARC-TER, 21/09/2026). Cette page
+ * ne peut pas la porter : Next.js refuse toute exportation d'un fichier
+ * `page.tsx` étrangère à son contrat de route (mesuré au build :
+ * « "tousLesResultats" is not a valid Page export field »). Le formulaire ne
+ * le pouvait pas davantage : il commence par `"use client"`, et toute
+ * exportation d'un module client devient une référence client pour qui
+ * l'importe — un composant serveur qui l'APPELLE, plutôt que de la rendre en
+ * JSX, échoue au rendu (mesuré : 500, la même panne que celle que ce ticket
+ * corrige, une deuxième fois sur le même écran). `components/parc/pagination.ts`
+ * n'est NI l'un ni l'autre : une fonction serveur ordinaire, sans frontière à
+ * franchir.
  */
 export default async function PageNouvelleMachine({
   searchParams,
