@@ -2032,6 +2032,13 @@ export const fr = {
   // de continuer à nommer un écran qu'elle a quitté.
   "nav.deconnexion": "Se déconnecter",
 
+  // LE BANDEAU MOBILE (COQUE-375, arbitrage du directeur d'exploitation) —
+  // sous 901px, la colonne sort de l'écran et ce bouton la fait revenir.
+  // Un seul libellé, jamais deux : « ouvrir » et « fermer » sont le MÊME
+  // geste sur le même bouton, et son état s'entend par `aria-expanded`,
+  // pas par un second mot.
+  "nav.ouvrir_le_menu": "Ouvrir le menu",
+
   // ── LA BARRE LATÉRALE, TROIS DOMAINES (D121, N-07) ────────────────────
   //
   // `docs/maquette/codiplan-maquette-complete.html` dessine une colonne

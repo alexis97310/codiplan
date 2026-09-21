@@ -1,4 +1,8 @@
 import { LargeurUtile } from "@/components/mise-en-page/largeur-utile";
+import {
+  BandeauMobile,
+  FournisseurNavigationMobile,
+} from "@/components/navigation/bandeau-mobile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
@@ -25,6 +29,11 @@ import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
  * **DEPUIS D121, LA BARRE EST UNE COLONNE** : voir le commentaire équivalent
  * de `(back-office)/layout.tsx` pour le motif — même mise en page flexible,
  * seule la liste d'entrées diffère.
+ *
+ * **SOUS 901 PX, ELLE SORT DE L'ÉCRAN COMME CELLE DU BACK-OFFICE (COQUE-375)**
+ * — même défaut mesuré (272 px sur 375, les deux coques appelant la même
+ * `BarreDeNavigation`), même remède : voir le commentaire équivalent de
+ * `(back-office)/layout.tsx` pour le motif du `FournisseurNavigationMobile`.
  */
 export default async function MiseEnPagePortail({
   children,
@@ -32,16 +41,19 @@ export default async function MiseEnPagePortail({
   const { theme, initiales } = await chromeDeLaRequete();
 
   return (
-    <div className="flex min-h-dvh">
-      <BarreDeNavigation
-        theme={theme}
-        initiales={initiales}
-        entrees={ENTREES_PORTAIL}
-        accueil="/portail"
-      />
-      <div className="min-w-0 flex-1">
-        <LargeurUtile>{children}</LargeurUtile>
+    <FournisseurNavigationMobile>
+      <div className="flex min-h-dvh">
+        <BarreDeNavigation
+          theme={theme}
+          initiales={initiales}
+          entrees={ENTREES_PORTAIL}
+          accueil="/portail"
+        />
+        <div className="min-w-0 flex-1">
+          <BandeauMobile />
+          <LargeurUtile>{children}</LargeurUtile>
+        </div>
       </div>
-    </div>
+    </FournisseurNavigationMobile>
   );
 }
