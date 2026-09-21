@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
 import { t } from "@/lib/i18n/fr";
 import {
@@ -115,6 +116,7 @@ export function BarreDeNavigation({
   readonly accueil: string;
 }) {
   const actif = entreeActive(usePathname() ?? "", entrees)?.cle ?? null;
+  const { ouvert, fermer } = useNavigationMobile();
 
   if (entrees.length === 0) {
     return (
@@ -127,50 +129,89 @@ export function BarreDeNavigation({
   }
 
   return (
-    // `h-dvh` + `sticky top-0`, PAS `h-full` (N-08, 18/09/2026) — mesuré sur
-    // les captures de N-08 : la colonne s'arrêtait à 747 px dans une fenêtre
-    // de 900, laissant 153 px de fond de page sous elle, sur un écran à
-    // contenu COURT (un écran long masquait le défaut). `h-full` résout un
-    // pourcentage contre le parent flex, dont la hauteur n'a qu'un PLANCHER
-    // (`min-h-dvh`, jamais `height`) — un pourcentage contre une hauteur
-    // `auto` ne résout à rien, et `height:100%` désactive au passage le
-    // `align-items:stretch` du parent qui aurait sinon suffi. `h-dvh` fixe
-    // une hauteur absolue, indépendante du parent ; `sticky top-0` reprend
-    // `.sidebar{position:sticky;top:0;height:100vh}` de
-    // `docs/maquette/codiplan-maquette-complete.html`, la même source que
-    // D121 pour la FORME de cette colonne — et le même geste que le
-    // `<header>` du terrain, juste en dessous, applique déjà pour lui-même.
-    <aside className="bg-app-chrome-fond sticky top-0 flex h-dvh w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5">
-      <Marque accueil={accueil} />
-      <nav aria-label={t("nav.libelle")} className="mt-2 flex flex-col">
-        {entrees.map((entree) =>
-          estGroupe(entree) ? (
-            <Domaine key={entree.cle} entree={entree} cleActive={actif} />
-          ) : (
-            <Entree
-              key={entree.cle}
-              entree={entree}
-              allumee={entree.cle === actif}
-            />
-          ),
-        )}
-      </nav>
+    <>
       {/*
+        LE VOILE (COQUE-375) — sous 901 px seulement, et seulement quand le
+        tiroir est ouvert : un clic dessus le referme, comme sur n'importe
+        quel tiroir. `min-[901px]:hidden` est une garde défensive contre un
+        redimensionnement qui laisserait `ouvert` vrai en franchissant le
+        seuil sans navigation entre-temps — l'override desktop de l'aside,
+        ci-dessous, ignore de toute façon cet état.
+      */}
+      {ouvert ? (
+        <div
+          aria-hidden
+          data-bloc="voile-navigation"
+          onClick={fermer}
+          // `bg-app-chrome-fond/60` — AUCUNE COULEUR NOUVELLE (§9) : le même
+          // jeton que le fond de la colonne elle-même, jamais un `black`
+          // littéral que `tests/unit/theme/sans-couleur-en-dur.test.ts`
+          // refuserait (L0-09 — la charte est une donnée de la société).
+          className="bg-app-chrome-fond/60 fixed inset-0 z-30 min-[901px]:hidden"
+        />
+      ) : null}
+      {/*
+        `h-dvh`, PAS `h-full` (N-08, 18/09/2026) — mesuré sur les captures de
+        N-08 : la colonne s'arrêtait à 747 px dans une fenêtre de 900,
+        laissant 153 px de fond de page sous elle, sur un écran à contenu
+        COURT (un écran long masquait le défaut). `h-full` résout un
+        pourcentage contre le parent flex, dont la hauteur n'a qu'un PLANCHER
+        (`min-h-dvh`, jamais `height`) — un pourcentage contre une hauteur
+        `auto` ne résout à rien, et `height:100%` désactive au passage le
+        `align-items:stretch` du parent qui aurait sinon suffi. `h-dvh` fixe
+        une hauteur absolue, indépendante du parent.
+
+        `sticky top-0`, DÈS 901 PX SEULEMENT (COQUE-375, 21/09/2026) — reprend
+        `.sidebar{position:sticky;top:0;height:100vh}` de
+        `docs/maquette/codiplan-maquette-complete.html`, la même source que
+        D121 pour la FORME de cette colonne, et le même geste que le
+        `<header>` du terrain applique déjà pour lui-même. **En dessous de ce
+        seuil — celui déjà éprouvé par `components/ui/maitre-detail.tsx`,
+        jamais un second inventé —, la colonne SORT DE L'ÉCRAN** : mesuré au
+        navigateur sur le site en ligne à 375 px, elle y occupait 272 px sur
+        une fenêtre de 375, ne laissant que 63 px de contenu utile. `hidden`
+        la retire du flux (rien à réserver dans la ligne flexible du
+        segment) ; `ouvert` la ramène en recouvrement (`fixed`, `z-40`,
+        au-dessus du voile ci-dessus) plutôt qu'en colonne, exactement l'état
+        que `BandeauMobile` déclenche.
+      */}
+      <aside
+        id="colonne-navigation"
+        className={`bg-app-chrome-fond h-dvh w-[272px] shrink-0 flex-col overflow-y-auto px-3 py-5 min-[901px]:sticky min-[901px]:top-0 min-[901px]:left-auto min-[901px]:flex ${
+          ouvert ? "fixed top-0 left-0 z-40 flex" : "hidden"
+        }`}
+      >
+        <Marque accueil={accueil} />
+        <nav aria-label={t("nav.libelle")} className="mt-2 flex flex-col">
+          {entrees.map((entree) =>
+            estGroupe(entree) ? (
+              <Domaine key={entree.cle} entree={entree} cleActive={actif} />
+            ) : (
+              <Entree
+                key={entree.cle}
+                entree={entree}
+                allumee={entree.cle === actif}
+              />
+            ),
+          )}
+        </nav>
+        {/*
         `mt-auto` ancre le pied en bas de la colonne, quelle que soit la
         hauteur de la liste au-dessus — une seule entrée pour le portail
         (D97), quatorze pour le back-office. Le terrain, lui, ne passe plus
         jamais par ici : `entrees` y est toujours vide (R5-01).
       */}
-      <div className="border-app-chrome-bordure mt-auto flex flex-col gap-3 border-t pt-4">
-        <BandeauSociete theme={theme} />
-        {initiales === null ? null : (
-          <div className="flex items-center justify-between gap-2">
-            <Deconnexion />
-            <Avatar initiales={initiales} />
-          </div>
-        )}
-      </div>
-    </aside>
+        <div className="border-app-chrome-bordure mt-auto flex flex-col gap-3 border-t pt-4">
+          <BandeauSociete theme={theme} />
+          {initiales === null ? null : (
+            <div className="flex items-center justify-between gap-2">
+              <Deconnexion />
+              <Avatar initiales={initiales} />
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
 
