@@ -65,8 +65,20 @@ export default async function PageNouvelleIntervention({
     session.contexte.role !== null &&
     peut(session.contexte.role, "qualifier_affecter");
 
+  // LE SITE D'UN CLIENT INACTIF N'EST PAS PROPOSÉ ICI (RG-PLA-08, D129 ;
+  // audité le 21/09/2026, lot SEMIS-2). *Mesuré en production* : la liste
+  // montrait « Ancien client — Ancien chantier (démonstration, inactif) »,
+  // alors que RG-PLA-08 masque déjà ce client du planning — une intervention
+  // s'y créait donc sans jamais pouvoir apparaître nulle part. Même critère
+  // que le planning applique sans aucune case pour le lever
+  // (`filtreClientActif(false)`, `lib/interventions/depot.ts`) : `client:
+  // { actif: true }`, jamais une seconde lecture de `client.actif` qui
+  // diverge de la première en silence (§9, 01/09). Le SITE n'est pas
+  // concerné — RG-PLA-08 ne tranche que sur le client, et un site inactif
+  // d'un client actif reste proposé.
   const lieux = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
+      where: { client: { actif: true } },
       select: {
         id: true,
         libelle: true,

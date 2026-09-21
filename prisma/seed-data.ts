@@ -1,7 +1,18 @@
 import { Role } from "@/lib/auth/roles";
-import { anneeCourante, cleJour, type JourLocal } from "@/lib/calendar/fuseau";
+import {
+  anneeCourante,
+  cleJour,
+  maintenant,
+  type Fuseau,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { cleJourAdossePaques } from "@/lib/calendar/paques";
-import { DIMANCHE, LUNDI, SAMEDI } from "@/lib/calendar/semaine";
+import {
+  DIMANCHE,
+  LUNDI,
+  SAMEDI,
+  lundiDeLaSemaine,
+} from "@/lib/calendar/semaine";
 import type {
   AssujettissementVgp,
   CriticiteMachine,
@@ -9,6 +20,7 @@ import type {
   PrioriteIntervention,
   StatutIntervention,
   StatutMachine,
+  TypeForfait,
   TypeIntervention,
 } from "@prisma/client";
 
@@ -1332,67 +1344,103 @@ export type InterventionDemoSeed = {
 };
 
 /**
- * LE LUNDI DE RÉFÉRENCE DE LA DÉMONSTRATION — FIXE, ET C'EST UNE DÉCISION
- * D'EXPLOITATION (SEMIS-1, 21/09/2026, Alexis Plouvier, directeur
+ * LE FUSEAU DE RÉFÉRENCE DU SEMIS DE DÉMONSTRATION — NOMMÉ, JAMAIS IMPLICITE
+ * (SEMIS-2, 21/09/2026).
+ *
+ * Celui de CODIMA-NC (`Pacific/Noumea`, UTC+11) : c'est la société que la
+ * démonstration met en avant, et c'est elle que l'exploitation a mesurée vide
+ * un lundi matin (constat du 21/09/2026). CODIMA-EU partage le même jeu de
+ * lignes (SEMIS-1) sans partager ce fuseau — chaque créneau garde le sien à
+ * l'écriture (`instantDuCreneau(jour, …, societe.fuseau_horaire)`,
+ * `prisma/seed.ts`) ; seul le LUNDI DE RÉFÉRENCE, commun aux deux sociétés,
+ * doit choisir UN fuseau pour dire « aujourd'hui ». Le laisser implicite —
+ * l'horloge du poste qui lance `pnpm db:seed`, ou celle de l'exécuteur CI —
+ * est exactement la faute que L0-08 interdit ailleurs dans le dépôt ;
+ * `prisma/seed-data.ts` en est exempté (`sans-fuseau-en-dur.test.ts`), pas
+ * dispensé de la nommer.
+ */
+const FUSEAU_DEMONSTRATION: Fuseau = CODIMA_NC.fuseau_horaire;
+
+/**
+ * LE LUNDI DE RÉFÉRENCE DE LA DÉMONSTRATION — DE NOUVEAU RELATIF, ET C'EST UN
+ * REVIREMENT ASSUMÉ (SEMIS-2, 21/09/2026, Alexis Plouvier, directeur
  * d'exploitation).
  *
- * **Il était calculé depuis `maintenant(fuseau)` — « le lundi de la semaine
- * courante » —, et c'est exactement ce qui a vidé l'écran de démonstration.**
- * Mesuré le 20/09/2026 : `/planning` s'ouvre sur la semaine 39 (21–26/09), les
- * dix-neuf interventions de démonstration sont toutes sur la semaine 38
- * (14–19/09) parce que le semis n'a pas tourné depuis, et les quatre
- * techniciens de la maquette y affichent « Sans intervention ». *Une date
- * relative qui n'est recalculée qu'au semis suivant n'est pas une date
- * fraîche : c'est une date absolue qui s'ignore comme telle* — le symptôme
- * exact que la note de tête d'`INTERVENTIONS_DEMONSTRATION` visait à éviter,
- * obtenu par le mécanisme même qu'elle avait choisi pour l'éviter.
+ * ## CE QUI AVAIT ÉTÉ DÉCIDÉ LE MATIN MÊME, ET POURQUOI ÇA A QUAND MÊME VIDÉ
+ * L'ÉCRAN
  *
- * **La décision, prise plutôt que rediscutée : PAS DE DATE RELATIVE.** Ce
- * lundi est un JOUR ÉCRIT EN DUR, à la place de
- * `lundiDeLaSemaine(maintenant(fuseau).local)`. `tests/unit/calendar/
- * sans-date-courante-implicite.test.ts` (le gardien n°3 du ticket L0-08)
- * l'aurait laissé passer — il ne traque que l'horloge SYSTÈME lue sans fuseau,
- * pas une valeur dérivée de `maintenant()` dans le semis — mais la faute
- * mesurée est la même famille : une donnée qui se périme parce qu'elle dépend
- * du jour où le code tourne.
+ * SEMIS-1, plus tôt le 21/09/2026, a remplacé ce calcul par un jour ÉCRIT EN
+ * DUR — `{ annee: 2026, mois: 9, jour: 14 }` — au motif qu'une date relative
+ * « recalculée qu'au semis suivant » se comporte comme une date absolue qui
+ * s'ignore comme telle. **C'est vrai, et ce n'était pas le bon remède** : un
+ * lundi figé ne se périme pas autrement, il se périme une fois pour toutes.
+ * Mesuré l'après-midi du même jour, en interrogeant sept semaines de
+ * production : la semaine du 14/09 est seule garnie, les six autres — dont
+ * celle que l'exploitation regardait — sont vides. *Un lundi fixe n'évite pas
+ * la panne que SEMIS-1 voulait corriger, il en repousse l'échéance d'une
+ * fenêtre.*
  *
- * **La LIMITE est assumée, pas cachée.** Un lundi fixe cesse de dépendre du
- * jour où le semis s'exécute ; il ne cesse pas de vieillir. Une fois le mois
- * couvert par `INTERVENTIONS_DEMONSTRATION` passé, l'écran de démonstration
- * redeviendra vide exactement comme le 20/09/2026, et il faudra re-semer une
- * nouvelle fenêtre de dates. C'est un choix de l'exploitation — mieux vaut un
- * mois de démonstration qui vieillit au jour près qu'un plan qui se déplace
- * tout seul et qu'on ne peut plus confronter à une capture d'écran — et non un
- * oubli : la prochaine session qui trouve cet écran vide ne découvre pas un
- * défaut, elle découvre l'échéance annoncée ici.
+ * ## LA RACINE, ET CE QUI LA DISTINGUE DE SEMIS-1
+ *
+ * SEMIS-1 diagnostiquait juste — « une date relative non rejouée devient
+ * absolue » — et en tirait la conclusion qui ne tient pas : le défaut n'est
+ * pas que la date soit CALCULÉE À CHAQUE SEMIS, c'est que le semis, lui, ne
+ * tourne PAS à chaque semaine. Un lundi relatif reste frais tant que
+ * `pnpm db:seed` rejoue ; un lundi fixe ne peut redevenir frais que par un
+ * nouveau commit qui en écrit un autre — c'est-à-dire jamais, sur une base de
+ * démonstration qu'on ne rouvre pas chaque semaine pour ça. Revenir au calcul
+ * relatif replace la fraîcheur là où elle peut vivre : dans l'EXÉCUTION du
+ * semis, pas dans le COMMIT qui l'a écrit.
+ *
+ * ## CE QUE ÇA NE CASSE PAS
+ *
+ * Les épreuves bout en bout ne lisent JAMAIS ce lundi : `tests/e2e/setup/
+ * scene.ts` écrit sa propre scène, avec ses propres identifiants FIXES et son
+ * propre lundi — relatif lui aussi, calculé dans un PROCESSUS SÉPARÉ
+ * (`reperesDeLaScene`) — précisément pour ne dépendre d'aucune donnée de
+ * démonstration (voir l'en-tête de `scene.ts`). *Le remède de SEMIS-1
+ * réparait une dépendance qui n'existait pas* : aucun scénario e2e ne vise une
+ * date dérivée d'`INTERVENTIONS_DEMONSTRATION`, et rouvrir le calcul relatif
+ * ici ne les rend donc pas moins reproductibles.
+ *
+ * ## LE FUSEAU EST NOMMÉ, PAS IMPLICITE
+ *
+ * `maintenant(FUSEAU_DEMONSTRATION)` — jamais `new Date()` ni l'horloge du
+ * poste qui lance le semis. *C'est exactement l'écart qui a fait rougir
+ * `glisser-deposer.spec.ts` par intermittence (mesuré le 20/09/2026, CI
+ * #817)* — un « lundi » lu sans fuseau explicite peut tomber un jour
+ * différent selon l'endroit où tourne le processus qui le calcule, et UTC+11
+ * est en avance sur UTC : un calcul qui lirait minuit UTC verrait encore
+ * dimanche à Nouméa. `lundiDeLaSemaine` prend un `JourLocal` — jamais un
+ * instant —, et c'est `maintenant(fuseau).local` qui fait ce passage, avec le
+ * fuseau nommé ci-dessus plutôt que deviné.
+ *
+ * ## LA LIMITE QUI DEMEURE
+ *
+ * `INTERVENTIONS_DEMONSTRATION` couvre de `LUNDI_DEMONSTRATION` - 5 jours à
+ * `LUNDI_DEMONSTRATION` + 18 jours (voir sa propre note de tête) — la semaine
+ * précédente, la semaine courante et les deux suivantes. Un semis qui n'a pas
+ * tourné depuis plus de deux semaines complètes retombe dans le défaut que
+ * SEMIS-1 avait mesuré. *Rejouer `pnpm db:seed` reste le geste qui maintient
+ * la démonstration fraîche* — ce commit ne le rend pas inutile, il le rend
+ * suffisant.
  */
-export const LUNDI_DEMONSTRATION: JourLocal = {
-  annee: 2026,
-  mois: 9,
-  jour: 14,
-};
+export const LUNDI_DEMONSTRATION: JourLocal = lundiDeLaSemaine(
+  maintenant(FUSEAU_DEMONSTRATION).local,
+);
 
 /**
  * Les interventions de démonstration (R2-12).
  *
- * ## LES DATES SONT FIXES, DEPUIS SEMIS-1 (21/09/2026)
+ * ## LES DATES SONT DE NOUVEAU RELATIVES, DEPUIS SEMIS-2 (21/09/2026)
  *
- * Elles étaient RELATIVES — posées par rapport au lundi de « la semaine
- * courante », recalculé à chaque semis — précisément pour éviter qu'une
- * démonstration datée se périme sans jamais être vide (§9 du 21/08 sur les
- * fériés, appliqué au jeu de démonstration). **C'est ce mécanisme-là qui a
- * produit la panne qu'il devait empêcher** : mesuré le 20/09/2026, le semis
- * n'avait pas tourné depuis la semaine du 14/09, si bien que « la semaine
- * courante » qu'il avait écrite en base (14–19/09) a cessé d'en être une dès
- * que le calendrier réel est passé à la semaine du 21 — l'écran s'est vidé
- * exactement comme une date absolue non rafraîchie. Une date relative qui
- * n'est recalculée qu'au semis suivant EST une date absolue, elle se contente
- * de le cacher.
- *
- * Elles sont donc posées par rapport à `LUNDI_DEMONSTRATION`, un jour ÉCRIT EN
- * DUR (2026-09-14) plutôt que lu dans le calendrier au moment du semis — la
- * décision et sa limite assumée sont documentées à sa définition, juste
- * au-dessus.
+ * Elles sont posées par rapport à `LUNDI_DEMONSTRATION`, recalculé à chaque
+ * semis depuis le lundi de la semaine où `pnpm db:seed` tourne — la décision,
+ * son revirement sur SEMIS-1 et sa limite assumée sont documentés à la
+ * définition de `LUNDI_DEMONSTRATION`, juste au-dessus. Ce fichier ne fixe que
+ * des ÉCARTS EN JOURS (`joursDepuisLundi`) : aucune date de calendrier n'y est
+ * écrite en dur, seule `LUNDI_DEMONSTRATION` l'est indirectement, et elle ne
+ * l'est plus.
  *
  * **Le passé reste au passé.** Les interventions terminales — clôturée,
  * annulée, terminée — sont placées la semaine d'avant `LUNDI_DEMONSTRATION` :
@@ -2338,12 +2386,19 @@ export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
  * collision qui avait laissé la seconde société sans aucune intervention ne se
  * rejoue pas ici* (§9, 10/09). La famille de l'identifiant — `7000` pour les
  * familles, `8000` pour les modèles, `9000` pour les machines, `a000` pour les
- * vérifications, `b000` pour les rattachements machine d'une intervention —
+ * vérifications, `b000` pour les rattachements machine d'une intervention,
+ * `c000` pour un forfait, `d000` pour un lot d'import (SEMIS-2, 21/09/2026) —
  * suit la convention du jeu de démonstration.
  */
 export function identifiantParc(
   famille:
-    "famille" | "modele" | "machine" | "verification" | "intervention_machine",
+    | "famille"
+    | "modele"
+    | "machine"
+    | "verification"
+    | "intervention_machine"
+    | "forfait"
+    | "import_lot",
   rangSociete: number,
   rang: number,
 ): string {
@@ -2353,7 +2408,97 @@ export function identifiantParc(
     machine: "9000",
     verification: "a000",
     intervention_machine: "b000",
+    forfait: "c000",
+    import_lot: "d000",
   } as const;
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;
 }
+
+/**
+ * UN FORFAIT DE DÉMONSTRATION — la seule ligne du catalogue (lot SEMIS-2,
+ * #266, 21/09/2026).
+ *
+ * ## POURQUOI IL NAÎT ICI ALORS QUE LE CATALOGUE NAÎT VIDE PAR AILLEURS
+ *
+ * `Forfait` (chapitre 11) naît vide par décision d'exploitation — les montants
+ * du catalogue lui appartiennent (L1-06). `tests/e2e/setup/scene.ts` en pose
+ * déjà deux (`FORFAITS_SCENE`), mais en FIXTURE D'ÉPREUVE, sur une base que le
+ * harnais recrée à chaque exécution : ils ne comptent pas pour le semis de
+ * démonstration, qui, lui, SURVIT. `/parametres/forfaits/[id]` n'avait donc
+ * AUCUNE ligne à montrer sur une base semée — mesuré par
+ * `tests/e2e/tous-les-ecrans-rendent.spec.ts`, qui `test.skip` l'écran faute
+ * de donnée (#266). **Une seule ligne, minimale**, comble ce trou sans décider
+ * à la place de l'exploitation ce qu'un catalogue réel doit porter : elle
+ * n'est pas un tarif à croire, elle est de quoi ouvrir la fiche.
+ *
+ * **Sans condition d'application** (`zone_geo`, `type_intervention`,
+ * `famille_id` tous `NULL`) — délibérément : une ligne de démonstration qui
+ * porterait une zone ou une famille inventerait une restriction que personne
+ * n'a demandée.
+ *
+ * ## ELLE NE PARTICIPE PAS À LA TRANSACTION CLOISONNÉE
+ *
+ * Écrite APRÈS elle, par son propre `avecSociete` (`prisma/seed.ts`) — comme
+ * `UTILISATEURS_INTERNES` et `COMPTES_PORTAIL` — pour ne pas rouvrir le budget
+ * d'allers-retours de `allersRetoursTransaction`
+ * (`tests/unit/seed/budget-du-semis.test.ts`) pour deux lignes qui n'y
+ * écrivent pas.
+ */
+export type ForfaitDemoSeed = {
+  readonly rang: number;
+  readonly code: string;
+  readonly libelle: string;
+  readonly type: TypeForfait;
+  /** `rang` au sens du catalogue (D86) — l'ordre d'application, jamais celui de la démonstration ci-dessus. */
+  readonly rangApplication: number;
+  readonly montant_mineur: bigint;
+  readonly cumulable_temps: boolean;
+};
+
+export const FORFAITS_DEMONSTRATION: readonly ForfaitDemoSeed[] = [
+  {
+    rang: 1,
+    code: "DEPL-DEMO",
+    libelle: "Déplacement (démonstration)",
+    type: "deplacement",
+    rangApplication: 1,
+    montant_mineur: BigInt(5_000),
+    cumulable_temps: false,
+  },
+];
+
+/**
+ * UN LOT D'IMPORT DE DÉMONSTRATION — la seule ligne du journal des
+ * chargements (lot SEMIS-2, #266, 21/09/2026).
+ *
+ * `/imports/[id]` avait, pour la même raison que `/parametres/forfaits/[id]`
+ * ci-dessus, AUCUNE ligne au semis : `prisma/seed.ts` ne pose ni forfait ni
+ * lot d'import, et `tests/e2e/tous-les-ecrans-rendent.spec.ts` `test.skip`
+ * les deux écrans faute de donnée. Un lot au statut `controle` (le défaut de
+ * `import_lot.statut`), sans aucune ligne rejetée : le rapport le plus simple
+ * que l'écran sache rendre, et rien qu'il faille annuler ensuite.
+ *
+ * `utilisateur_email` DÉSIGNE l'auteur plutôt qu'un identifiant écrit en dur :
+ * l'identité naît ailleurs (`UTILISATEURS_INTERNES`), et son `id` n'existe pas
+ * encore quand ce fichier est chargé — exactement la raison pour laquelle
+ * l'affectation des techniciens aux interventions attend, elle aussi, une
+ * seconde passe (`prisma/seed.ts`, § 9).
+ */
+export type LotImportDemoSeed = {
+  readonly rang: number;
+  readonly type_import: string;
+  readonly version_modele: number;
+  readonly nom_fichier: string;
+  readonly utilisateur_email: string;
+};
+
+export const LOTS_IMPORT_DEMONSTRATION: readonly LotImportDemoSeed[] = [
+  {
+    rang: 1,
+    type_import: "clients",
+    version_modele: 1,
+    nom_fichier: "clients-demonstration.xlsx",
+    utilisateur_email: "admin.societe@codima.test",
+  },
+];
