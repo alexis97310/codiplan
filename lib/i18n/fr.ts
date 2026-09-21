@@ -931,6 +931,11 @@ export const fr = {
     "L'agenda de ce technicien est bloqué à cette date. Le créneau est refusé.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
+  // Extension de la revue Codex de la PR #267 (20/09/2026) : le refus d'un
+  // rôle sans `qualifier_affecter`, sur la fiche — jamais un champ vide, un
+  // refus qui prend la place de toute l'action, comme pour un refus de statut.
+  "intervention.refus.qualification_requise":
+    "Votre rôle ne permet pas d'affecter un technicien à une intervention.",
   // RG-PLA-04, sa moitié BLOQUANTE et sa moitié qui AVERTIT (L3-02, D9, D73).
   //
   // *Le code de l'habilitation n'est pas dans ces phrases, et c'est voulu* : il
