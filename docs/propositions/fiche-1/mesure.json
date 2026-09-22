@@ -1,0 +1,16 @@
+{
+  "commit": "d6f702a0aea455fbc0abbeda7ef3e005297554d7",
+  "horodatage": "2026-09-22T08:08:16.408Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "fiches": {
+    "sans_technicien": {
+      "url": "/interventions/01a0c828-9617-7d43-8446-9541b08c4e99",
+      "technicien_rendu": "Aucun technicien affecté"
+    },
+    "affectee": {
+      "url": "/interventions/01a0c828-9f8a-74e2-9818-fa050321f111",
+      "technicien_rendu": "D. Guérin"
+    }
+  }
+}
