@@ -631,6 +631,17 @@ export const fr = {
   "imports.type.historique": "Historique des interventions",
   "imports.type.historique_detail":
     "Archive des interventions déjà faites, une ligne par document. Chacune naît clôturée, sans temps ni file d'attente ; le n° de série rattache à une machine existante, jamais n'en crée.",
+  // LES VÉRIFICATIONS RÉGLEMENTAIRES ET LEURS OBSERVATIONS (VGP-IMPORT). Le
+  // premier détail dit ce qu'un lecteur doit savoir AVANT de déposer 333 PV :
+  // la clé est le rang — un second dépôt recharge tout —, un PV sans machine
+  // attend au lieu d'être refusé, et l'origine vient du fichier (D114). Le
+  // second dit l'ORDRE et l'arbitrage 1 : aucune demande n'est créée.
+  "imports.type.vgp": "Vérifications périodiques (VGP)",
+  "imports.type.vgp_detail":
+    "Les procès-verbaux des organismes agréés, un par machine contrôlée. Chaque ligne est une vérification distincte : un second dépôt du même fichier la rechargerait — annulez le lot précédent avant. Sans machine identifiée, le PV est retenu en attente de rattachement, jamais refusé ni inventé. La colonne « Origine » porte un des quatre codes : rapport_organisme, rapport_transmis_client, vignette_constatee, declaration_client.",
+  "imports.type.vgp_observations": "Observations des vérifications (réserves)",
+  "imports.type.vgp_observations_detail":
+    "Les réserves relevées par l'organisme, chacune sous son procès-verbal. Importez et appliquez d'abord les vérifications : une référence de rapport inconnue est refusée. Aucune demande n'est créée — une observation importée est consultable, rien de plus.",
   "imports.type.complet": "Contrôle et application",
   "imports.type.controle_seul": "Contrôle seulement",
   "imports.type.controle_seul_motif":
@@ -746,6 +757,27 @@ export const fr = {
     "Le montant doit être un nombre entier de francs, sans décimale ni séparateur de milliers — par exemple 12500. Laissez la cellule vide si le montant n'est pas connu.",
   "imports.motif.montant_devise":
     "La colonne des montants est en XPF, et cette société ne tient pas ses comptes en XPF : un montant ne se convertit jamais à l'import. Laissez la cellule vide, ou importez sans montant.",
+  // L'ATTENTE DE RATTACHEMENT D'UN PV (VGP-IMPORT, arbitrage 3 du 22/09/2026).
+  // Quatre motifs, et chacun commence par dire qu'il n'est PAS un refus : le
+  // PV est retenu, et il rentrera par le fichier des rejets. *Le mot imposé
+  // n'est pas écrit ici* (D5, D47) : la colonne se désigne par ce qu'elle porte.
+  "imports.motif.a_rattacher_sans_serie":
+    "En attente de rattachement — la ligne ne nomme aucun n° de série (« sans », « ? », « illisible »). Le PV est conservé dans ce lot et dans le fichier des rejets : quand la machine sera identifiée, renseignez la cellule et redéposez.",
+  "imports.motif.a_rattacher_serie_inconnue":
+    "En attente de rattachement — aucune machine du parc ne porte ce n° de série. Le PV est conservé : créez ou corrigez la machine, ou corrigez la cellule, puis redéposez le fichier des rejets.",
+  "imports.motif.a_rattacher_serie_ambigue":
+    "En attente de rattachement — plusieurs machines du parc portent ce n° de série et rien ne les départage. Nommez le client dans la colonne qui le porte, ou levez le doublon dans le parc, puis redéposez.",
+  "imports.motif.a_rattacher_serie_autre_client":
+    "En attente de rattachement — ce n° de série existe, mais chez un autre client que celui que la ligne nomme. Corrigez la cellule qui le nomme, ou le parc, puis redéposez.",
+  // LES REFUS DU GABARIT DES OBSERVATIONS — et celui d'une origine inconnue.
+  "imports.motif.rapport_introuvable":
+    "Aucune vérification enregistrée ne porte cette référence de rapport. Importez d'abord le fichier des vérifications et appliquez-le ; les observations viennent après.",
+  "imports.motif.rapport_ambigu":
+    "Cette référence de rapport couvre plusieurs machines, et la ligne ne dit pas laquelle. Renseignez « Machine (n° de série) » sur cette ligne, puis redéposez.",
+  "imports.motif.observation_deja_reprise":
+    "Cette observation a déjà été reprise par un lot précédent — même rapport, même code. Il n'y a rien à corriger. Pour la reprendre autrement, annulez le lot qui l'a écrite.",
+  "imports.motif.origine_inconnue":
+    "La colonne « Origine » doit porter un des quatre codes : rapport_organisme, rapport_transmis_client, vignette_constatee ou declaration_client. La correction est dans le fichier.",
 
   // LE RATTACHEMENT DES MACHINES D'UN LOT D'HISTORIQUE — les trois rangs de
   // D127, comptés sur le rapport. *Aucun n'est un rejet* : une ligne non
@@ -773,6 +805,30 @@ export const fr = {
   "imports.rattachement.serie_ambigue":
     "Plusieurs machines de ce client portent ce n° de série : la ligne ne désigne rien de sûr.",
   "imports.rattachement.serie_autre_client":
+    "Ce n° de série existe, mais chez un autre client que celui de la ligne.",
+
+  // LE RATTACHEMENT D'UN LOT DE VGP (VGP-IMPORT) — trois comptes, et la liste
+  // de ce qui ATTEND. *Un PV en attente est compté parmi les rejets par la
+  // base, et à part ici* : les deux sont dits, aucun n'est caché.
+  "imports.vgp.titre": "Rattachement aux machines",
+  "imports.vgp.aide":
+    "Un PV sans machine identifiée est retenu en attente, avec son motif : il n'est ni perdu ni inventé. Il rentrera par le fichier des rejets, une fois la machine nommée.",
+  "imports.vgp.rattachees": "Rattachées",
+  "imports.vgp.rattachees_detail":
+    "entreront dans le registre, chacune sous sa machine",
+  "imports.vgp.en_attente": "En attente",
+  "imports.vgp.en_attente_detail":
+    "retenues sans machine, avec leur motif ci-dessous — la base les compte parmi les rejets",
+  "imports.vgp.autres_rejets": "Autres rejets",
+  "imports.vgp.autres_rejets_detail":
+    "une date, une origine ou une saisie que le fichier doit corriger",
+  "imports.vgp.aucune_attente": "Chaque PV a trouvé sa machine.",
+  "imports.vgp.attente.sans_serie": "Aucun n° de série sur la ligne.",
+  "imports.vgp.attente.serie_inconnue":
+    "Aucune machine du parc ne porte ce n° de série.",
+  "imports.vgp.attente.serie_ambigue":
+    "Plusieurs machines portent ce n° de série : rien ne les départage.",
+  "imports.vgp.attente.serie_autre_client":
     "Ce n° de série existe, mais chez un autre client que celui de la ligne.",
 
   // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états

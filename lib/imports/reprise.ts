@@ -208,7 +208,14 @@ export type Rattachement =
  */
 export function rattacherLaMachine(
   serie: string | undefined,
-  clientId: string,
+  /**
+   * `null` DEPUIS VGP-IMPORT : le gabarit des vérifications réglementaires ne
+   * nomme pas toujours son client — la colonne « Client / Site » n'y est
+   * qu'un contrôle de cohérence. Sans client, le rang 2 n'existe pas : la
+   * série désigne UNE machine ou elle est ambiguë. *Le rang 1 reste le même
+   * rang 1* — une fonction, jamais une seconde lecture (§9, 01/09).
+   */
+  clientId: string | null,
   machines: ParcMachines,
 ): Rattachement {
   const cle = cleDeRapprochement({ numeroSerie: serie, rang: 0 });
@@ -218,6 +225,12 @@ export function rattacherLaMachine(
   const candidats = machines.parSerie.get(cle.cle) ?? [];
   if (candidats.length === 0) {
     return { rang: 3, motif: "serie_inconnue", serie: cle.cle };
+  }
+  if (clientId === null) {
+    const seul = candidats[0];
+    return candidats.length === 1 && seul !== undefined
+      ? { rang: 1, machineId: seul.id }
+      : { rang: 3, motif: "serie_ambigue", serie: cle.cle };
   }
   const duClient = candidats.filter((c) => c.clientId === clientId);
   if (duClient.length === 1 && duClient[0] !== undefined) {

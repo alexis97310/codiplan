@@ -140,6 +140,25 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // site_indetermine) : jamais le motif générique.
     motifParentIntrouvable: null,
   },
+  {
+    // LES VÉRIFICATIONS RÉGLEMENTAIRES (VGP-IMPORT) — le neuvième gabarit.
+    cle: "vgp",
+    titre: "imports.type.vgp",
+    detail: "imports.type.vgp_detail",
+    complet: true,
+    // La machine ne refuse jamais : elle rend l'attente de rattachement, sous
+    // ses propres motifs. Jamais le motif générique.
+    motifParentIntrouvable: null,
+  },
+  {
+    // LEURS OBSERVATIONS (VGP-IMPORT) — le dixième, et son parent est un PV.
+    cle: "vgp_observations",
+    titre: "imports.type.vgp_observations",
+    detail: "imports.type.vgp_observations_detail",
+    complet: true,
+    // Le parent se nomme séparément (rapport_introuvable, rapport_ambigu).
+    motifParentIntrouvable: null,
+  },
 ];
 
 /** Le libellé d'un statut de lot — un CODE en base, une clé ici. */
@@ -213,6 +232,27 @@ export function cleDuMotif(motif: string, type?: string): CleTraduction | null {
       return "import.anomalie.date_hors_plage";
     case "date_avec_heure":
       return "import.anomalie.date_avec_heure";
+    // **LES MOTIFS DE LA VGP** (VGP-IMPORT). Les quatre premiers sont
+    // l'ATTENTE DE RATTACHEMENT — un PV retenu sans machine, pas une erreur —,
+    // et chaque libellé commence par le dire. Les trois suivants sont les
+    // vrais refus du gabarit des observations, et le dernier celui d'une
+    // origine que D114 ne connaît pas.
+    case "a_rattacher_sans_serie":
+      return "imports.motif.a_rattacher_sans_serie";
+    case "a_rattacher_serie_inconnue":
+      return "imports.motif.a_rattacher_serie_inconnue";
+    case "a_rattacher_serie_ambigue":
+      return "imports.motif.a_rattacher_serie_ambigue";
+    case "a_rattacher_serie_autre_client":
+      return "imports.motif.a_rattacher_serie_autre_client";
+    case "rapport_introuvable":
+      return "imports.motif.rapport_introuvable";
+    case "rapport_ambigu":
+      return "imports.motif.rapport_ambigu";
+    case "observation_deja_reprise":
+      return "imports.motif.observation_deja_reprise";
+    case "origine_inconnue":
+      return "imports.motif.origine_inconnue";
     default:
       return null;
   }

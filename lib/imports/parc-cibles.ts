@@ -1,4 +1,4 @@
-import { type PrismaClient } from "@prisma/client";
+import { type Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { type ParcConnu } from "@/lib/excel/controle";
@@ -307,14 +307,50 @@ export async function indexerLeParcHistorique(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<ParcCible> {
+  // Une même intervention peut être portée par PLUSIEURS lignes de lot — le
+  // même document redéposé et rejeté n'écrit rien, mais le cas d'une ligne
+  // par lot appliqué existe. La clé n'est ambiguë que si elle désigne DEUX
+  // interventions distinctes — c'est `lignesVivantesDuType` qui le tient.
+  return lignesVivantesDuType(
+    contexte,
+    "historique",
+    "intervention",
+    async (tx, ids) =>
+      (
+        await tx.intervention.findMany({
+          where: { id: { in: [...ids] } },
+          select: { id: true },
+        })
+      ).map((i) => i.id),
+    client,
+  );
+}
+
+/**
+ * LES LIGNES D'UN LOT ENCORE VIVANTES EN BASE — la forme de
+ * `indexerLeParcHistorique`, extraite pour que les observations VGP la lisent
+ * sans la recopier (VGP-IMPORT). *Une même intervention, ou une même
+ * observation, peut être portée par plusieurs lignes de lot ; la clé n'est
+ * ambiguë que si elle désigne deux fiches distinctes.*
+ */
+async function lignesVivantesDuType(
+  contexte: ContexteSession,
+  typeImport: string,
+  entite: string,
+  vivantes: (
+    tx: Prisma.TransactionClient,
+    ids: readonly string[],
+  ) => Promise<readonly string[]>,
+  client?: PrismaClient,
+): Promise<ParcCible> {
   const entrees = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const lignes = await tx.importLotLigne.findMany({
         where: {
-          entite: "intervention",
+          entite,
           entite_id: { not: null },
-          lot: { type_import: "historique" },
+          lot: { type_import: typeImport },
         },
         select: { cle: true, entite_id: true },
       });
@@ -323,34 +359,83 @@ export async function indexerLeParcHistorique(
           lignes.flatMap((l) => (l.entite_id === null ? [] : [l.entite_id])),
         ),
       ];
-      const vivantes = new Set(
-        ids.length === 0
-          ? []
-          : (
-              await tx.intervention.findMany({
-                where: { id: { in: ids } },
-                select: { id: true },
-              })
-            ).map((i) => i.id),
-      );
+      const encore = new Set(ids.length === 0 ? [] : await vivantes(tx, ids));
       return lignes.flatMap((l): (readonly [string, string])[] =>
-        l.cle === null || l.entite_id === null || !vivantes.has(l.entite_id)
+        l.cle === null || l.entite_id === null || !encore.has(l.entite_id)
           ? []
           : [[l.cle, l.entite_id]],
       );
     },
     client,
   );
-  // Une même intervention peut être portée par PLUSIEURS lignes de lot — le
-  // même document redéposé et rejeté n'écrit rien, mais le cas d'une ligne
-  // par lot appliqué existe. La clé n'est ambiguë que si elle désigne DEUX
-  // interventions distinctes.
   const parCle = new Map<string, Set<string>>();
   for (const [cle, id] of entrees) {
     parCle.set(cle, (parCle.get(cle) ?? new Set()).add(id));
   }
   return indexer(
     [...parCle].flatMap(([cle, ids]) => [...ids].map((id) => [cle, id])),
+  );
+}
+
+/**
+ * LA CIBLE DU GABARIT « VGP » EST VIDE, ET C'EST UNE DÉCISION ÉCRITE
+ * (VGP-IMPORT).
+ *
+ * *Mesuré le 22/09/2026 sur le classeur réel* : `Réf. rapport` n'est pas une
+ * clé — 56 références pour 333 lignes —, et `(référence, n° de série)` n'en
+ * est pas une non plus — 58 paires en double, `('315505382.1.R', '13120')`
+ * quatre fois. Le gabarit ne porte ni équipement ni localisation qui les
+ * départageraient. **La clé d'une vérification est donc le RANG de la ligne
+ * dans la feuille** (`LIGNE-<rang>`, la clé de dernier recours de
+ * `lib/excel/controle.ts`), et aucune fiche de la base ne peut être désignée
+ * par un rang de feuille : indexer les lignes des lots précédents ferait de
+ * la ligne 12 du second fichier une MODIFICATION de la ligne 12 du premier,
+ * qui n'est pas le même PV.
+ *
+ * **La conséquence est écrite, pas subie** : un second dépôt du même fichier
+ * recharge tout — 333 vérifications de plus —, et l'annulation du lot est le
+ * seul recours. Le détail du type le dit sur l'écran des imports, avant le
+ * dépôt. *Acceptable pour une archive qu'on importe une fois ; pas pour un
+ * référentiel* — et c'est pour cela qu'aucun autre gabarit ne fait de même.
+ *
+ * Le gardien de `types-dimport.test.ts` exige un index par type applicable,
+ * précisément pour qu'un oubli produise une erreur plutôt que des doublons :
+ * cet index existe pour porter la décision à l'endroit où il la cherche.
+ */
+export async function indexerLeParcVgp(): Promise<ParcCible> {
+  // Ni contexte ni base : il n'y a RIEN à lire, et le dire par la signature
+  // vaut mieux que deux paramètres ignorés.
+  return PARC_VIDE;
+}
+
+/**
+ * LES OBSERVATIONS DÉJÀ IMPORTÉES — la cible du gabarit « vgp_observations »
+ * (VGP-IMPORT ; RG-IMP-05).
+ *
+ * La clé — le couple (rapport, code) — ne vit sur aucune colonne de
+ * `vgp_observation` (mesuré : `libelle`, `intervention_id`, rien d'autre).
+ * **La seule trace du code est la ligne du lot qui l'a écrit** :
+ * `import_lot_ligne.cle` porte `OBSERVATION-<rapport>-<code>`, `entite_id`
+ * l'observation créée — la même maison que l'historique, pour la même
+ * raison. Et comme lui, l'index vérifie que l'observation EXISTE ENCORE : une
+ * annulation la supprime et laisse la ligne du lot en l'état.
+ */
+export async function indexerLeParcVgp_observations(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<ParcCible> {
+  return lignesVivantesDuType(
+    contexte,
+    "vgp_observations",
+    "vgp_observation",
+    async (tx, ids) =>
+      (
+        await tx.vgpObservation.findMany({
+          where: { id: { in: [...ids] } },
+          select: { id: true },
+        })
+      ).map((o) => o.id),
+    client,
   );
 }
 
@@ -379,6 +464,11 @@ export const INDEX_DE_CIBLE: Readonly<
   familles: indexerLeParcFamilles,
   equipements: indexerLeParcEquipements,
   historique: indexerLeParcHistorique,
+  // LES DEUX GABARITS DES VÉRIFICATIONS RÉGLEMENTAIRES (VGP-IMPORT) : le
+  // premier porte un index VIDE par décision écrite — voir `indexerLeParcVgp` —,
+  // le second retrouve ses observations par la ligne de lot qui les a écrites.
+  vgp: indexerLeParcVgp,
+  vgp_observations: indexerLeParcVgp_observations,
 };
 
 /**

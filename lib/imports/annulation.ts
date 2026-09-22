@@ -24,9 +24,11 @@ import {
   CHAMPS_CLIENTS,
   CHAMPS_MODELES,
   CHAMPS_PRESTATIONS,
+  COLONNES_VGP_OBSERVATIONS,
   preparerUnEquipement,
   preparerUneFamille,
   preparerUneReprise,
+  preparerUnPv,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
@@ -931,6 +933,126 @@ export async function annulerLeLotDeHistorique(
       return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
     }
     await tx.intervention.delete({ where: { id: ligne.entiteId } });
+    return { rang: ligne.rang, defaite: true };
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES VÉRIFICATIONS RÉGLEMENTAIRES ET LEURS OBSERVATIONS (VGP-IMPORT)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * L'ANNULATION D'UN LOT DE VGP — les vérifications qu'il a écrites, et elles
+ * seules, si rien ne les retient.
+ *
+ * ## « Intacte », reconstituée par la MÊME lecture que l'application
+ *
+ * `vgp_verification` n'a AUCUN chemin de modification dans le dépôt (mesuré
+ * le 22/09/2026 : `lib/vgp/verification.ts` crée et lit, rien n'écrit sur une
+ * ligne existante). La fiche est tenue pour intacte quand ses cinq colonnes
+ * écrites disent encore ce que la ligne du lot dit — machine, date,
+ * organisme, référence, origine —, lues par `preparerUnPv` contre le parc du
+ * moment, comme l'historique le fait. *Ce que cela coûte, écrit plutôt que
+ * tu* : une machine homonyme née depuis rend la série ambiguë, la ligne ne
+ * se reconstitue plus, et le PV — pourtant intact — est refusé
+ * `modifiee_depuis`. C'est le sens de défaillance qui ne détruit rien.
+ *
+ * ## Ce qui RETIENT une vérification
+ *
+ * Ses observations — celles d'un lot d'observations appliqué après, ou
+ * saisies à la main. **Jamais de suppression en cascade** (I6) : la ligne
+ * est refusée `referencee_depuis`, et le libellé dit l'ordre inverse de
+ * l'import — annulez d'abord le lot des observations.
+ */
+export async function annulerLeLotDeVgp(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatAnnulation> {
+  const parcs = await indexerLesParcs(contexte, client);
+
+  return annulerLesLignes(contexte, lotId, client, async (tx, ligne) => {
+    const fiche = await tx.vgpVerification.findUnique({
+      where: { id: ligne.entiteId },
+      select: {
+        machine_id: true,
+        date_verification: true,
+        organisme: true,
+        reference_rapport: true,
+        origine: true,
+      },
+    });
+    if (fiche === null) {
+      return { rang: ligne.rang, defaite: false, motif: "fiche_absente" };
+    }
+    if (ligne.action !== "creation") {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    const reconstitue = preparerUnPv(parcs, ligne.valeurs);
+    if (!reconstitue.prete) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    const ecrit = reconstitue.saisie;
+    const intacte =
+      fiche.machine_id === ecrit.machine_id &&
+      fiche.date_verification.getTime() === ecrit.date_verification.getTime() &&
+      fiche.organisme === ecrit.organisme &&
+      fiche.reference_rapport === ecrit.reference_rapport &&
+      fiche.origine === ecrit.origine;
+    if (!intacte) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    const observations = await tx.vgpObservation.count({
+      where: { verification_id: ligne.entiteId },
+    });
+    if (observations > 0) {
+      return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
+    }
+    await tx.vgpVerification.delete({ where: { id: ligne.entiteId } });
+    return { rang: ligne.rang, defaite: true };
+  });
+}
+
+/**
+ * L'ANNULATION D'UN LOT D'OBSERVATIONS — chacune si elle est intacte et
+ * qu'aucune intervention ne l'a prise en charge.
+ *
+ * **Ce qui la retient** : `intervention_id` renseigné — quelqu'un l'a
+ * PLANIFIÉE depuis (`planifierLObservation`), et une visite est peut-être
+ * déjà faite. *Le travail terrain n'est jamais perdu* (I5) : la ligne est
+ * refusée `referencee_depuis`, l'observation reste.
+ *
+ * « Intacte » : son libellé est encore celui de la ligne, et son parent est
+ * encore un PV qui existe — le libellé est la seule colonne écrite, et aucun
+ * chemin ne le modifie (mesuré).
+ */
+export async function annulerLeLotDeVgp_observations(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatAnnulation> {
+  return annulerLesLignes(contexte, lotId, client, async (tx, ligne) => {
+    const fiche = await tx.vgpObservation.findUnique({
+      where: { id: ligne.entiteId },
+      select: { libelle: true, intervention_id: true },
+    });
+    if (fiche === null) {
+      return { rang: ligne.rang, defaite: false, motif: "fiche_absente" };
+    }
+    if (ligne.action !== "creation") {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    const libelle =
+      ligne.valeurs[COLONNES_VGP_OBSERVATIONS.observation]?.trim();
+    if (libelle === undefined || fiche.libelle !== libelle) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    if (fiche.intervention_id !== null) {
+      return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
+    }
+    await tx.vgpObservation.delete({ where: { id: ligne.entiteId } });
     return { rang: ligne.rang, defaite: true };
   });
 }

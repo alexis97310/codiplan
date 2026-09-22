@@ -28,6 +28,10 @@ import { creerMachinesEnLot, modifierMachineDans } from "@/lib/machines/depot";
 import { schemaMachine, type SaisieMachine } from "@/lib/machines/saisie";
 import { creerInterventionsRepriseEnLot } from "@/lib/interventions/depot-reprise";
 import {
+  creerObservationsVgpEnLot,
+  creerVerificationsVgpEnLot,
+} from "@/lib/vgp/depot-import";
+import {
   creerPrestationsEnLot,
   modifierPrestationDans,
 } from "@/lib/prestations/depot";
@@ -47,12 +51,15 @@ import {
   preparerUnModele,
   preparerUnePrestation,
   preparerUneFamille,
+  preparerUneObservationVgp,
   preparerUneReprise,
+  preparerUnPv,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
 import { indexerLesParcs } from "./parcs";
 import { type LigneHistorique } from "./reprise";
+import { type LigneObservationVgp, type LignePv } from "./vgp";
 import { indexerLesAgences } from "./parc-agences";
 import { indexerLesFamilles } from "./parc-familles";
 import { indexerLeParcClients } from "./parc-clients";
@@ -1239,6 +1246,101 @@ export async function appliquerLeLotDeHistorique(
       // Inatteignable — aucune modification n'est préparée. Zéro ligne touchée
       // est le sens de défaillance que l'enveloppe traite déjà : la ligne est
       // laissée en l'état.
+      modifierUn: async () => 0,
+    },
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES VÉRIFICATIONS RÉGLEMENTAIRES ET LEURS OBSERVATIONS (VGP-IMPORT)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * L'APPLICATION D'UN LOT DE VGP — des créations seulement, sous leur machine.
+ *
+ * **Aucune modification n'est jamais préparée** : la clé est le rang, aucune
+ * ligne ne peut désigner une vérification existante (voir `indexerLeParcVgp`).
+ * Une ligne classée EN ATTENTE au contrôle est un `rejet` : elle n'est pas
+ * lue ici — l'enveloppe ne charge que les créations et les modifications —,
+ * et c'est ce qui la garde telle que le rapport l'a montrée (I6).
+ *
+ * `preparerUnPv` est rejouée contre le parc DU MOMENT : une machine que le
+ * contrôle avait trouvée et qu'un lot d'équipements a annulée depuis rend
+ * `prete: false`, et la ligne reste en l'état — *le parc a bougé, ce n'est
+ * pas une erreur du fichier.*
+ */
+export async function appliquerLeLotDeVgp(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatApplication> {
+  const parcs = await indexerLesParcs(contexte, client);
+
+  return appliquerLesLignes<LignePv, Record<string, unknown>>(
+    contexte,
+    lotId,
+    client,
+    {
+      entite: "vgp_verification",
+      champsComparaison: [],
+      preparerCreation: (ligne) => {
+        const prepare = preparerUnPv(parcs, ligne.valeurs);
+        if (!prepare.prete) return { prete: false };
+        return { prete: true, id: uuidv7(), donnees: prepare.saisie };
+      },
+      preparerModification: () => ({ prete: false }),
+      creerEnLot: (tx, societeId, lignes) =>
+        creerVerificationsVgpEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async () => new Map(),
+      modifierUn: async () => 0,
+    },
+  );
+}
+
+/**
+ * L'APPLICATION D'UN LOT D'OBSERVATIONS — chacune sous son PV, et aucune
+ * demande SAV (arbitrage 1 du 22/09/2026).
+ *
+ * **Le nom porte un tiret bas, et ce n'est pas une faute** : le gardien de
+ * `types-dimport.test.ts` DÉRIVE le type du nom de la fonction, par le motif
+ * `appliquerLeLotDe(\w+)` rabattu en minuscules — `Vgp_observations` rend
+ * `vgp_observations`, le type que la grammaire du marqueur admet. *C'est la
+ * même famille que l'élision non faite d'`Equipements`.*
+ */
+export async function appliquerLeLotDeVgp_observations(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatApplication> {
+  const parcs = await indexerLesParcs(contexte, client);
+
+  return appliquerLesLignes<LigneObservationVgp, Record<string, unknown>>(
+    contexte,
+    lotId,
+    client,
+    {
+      entite: "vgp_observation",
+      champsComparaison: [],
+      preparerCreation: (ligne) => {
+        const prepare = preparerUneObservationVgp(parcs, ligne.valeurs);
+        // Le PV parent a disparu — un lot de VGP annulé entre le contrôle et
+        // cette validation —, ou l'observation a été reprise par un AUTRE lot
+        // appliqué entre-temps. La ligne reste en l'état.
+        if (!prepare.prete) return { prete: false };
+        return { prete: true, id: uuidv7(), donnees: prepare.saisie };
+      },
+      preparerModification: () => ({ prete: false }),
+      creerEnLot: (tx, societeId, lignes) =>
+        creerObservationsVgpEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async () => new Map(),
       modifierUn: async () => 0,
     },
   );

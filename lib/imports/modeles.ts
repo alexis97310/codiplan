@@ -13,6 +13,7 @@ import {
 } from "@/lib/vgp/assujettissement";
 import {
   cleDeClient,
+  cleDeRapprochement,
   normaliserRaisonSociale,
 } from "@/lib/excel/rapprochement";
 
@@ -34,6 +35,7 @@ import {
   typeAnnonce,
 } from "@/lib/excel/format";
 import { schemaPrestation } from "@/lib/prestations/saisie";
+import { ORIGINES_VGP } from "@/lib/vgp/verification";
 
 import { type Devise, uniteParDevise } from "@/lib/money";
 
@@ -46,6 +48,20 @@ import {
   schemaLigneHistorique,
   type LigneHistorique,
 } from "./reprise";
+import {
+  cleDeLObservation,
+  cleDuRapport,
+  conformiteDeclaree,
+  type LigneObservationVgp,
+  type LignePv,
+  type MotifAttente,
+  type ParcVerificationsVgp,
+  rattacherLaMachineDuPv,
+  schemaLigneObservationVgp,
+  schemaLignePv,
+  serieNonRenseignee,
+  statutDeclare,
+} from "./vgp";
 
 /**
  * LES GABARITS D'IMPORT QUE CODIPLAN PUBLIE (L1-09a ; D31, RG-IMP-05).
@@ -1697,6 +1713,444 @@ export function modeleHistorique(parcs: ParcsDImport): ModeleDImport {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « VGP » — les vérifications réglementaires, PV par PV (VGP-IMPORT ; D88, D114)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE NEUVIÈME GABARIT, ET LE PREMIER DONT LA CLÉ EST LE RANG.
+ *
+ * ## Ce qui a été mesuré sur le classeur réel (22/09/2026), et ce que chaque mesure impose
+ *
+ * | Mesure | Ce qu'elle impose |
+ * |---|---|
+ * | 333 lignes, **56 `Réf. rapport` distinctes** — `315503594.1.R` en porte 44 | la référence n'est PAS une clé : elle réduirait 333 PV à 56 |
+ * | **58 paires `(référence, n° de série)` en double** — `('315505382.1.R', '13120')` 4 fois | le couple n'en est pas une non plus ; l'archive ne distingue pas deux vérins identiques |
+ * | ni colonne « équipement » ni « localisation » dans le gabarit | rien ne départage les doubles : **la clé est le RANG** (`LIGNE-<rang>`, voir `indexerLeParcVgp`) |
+ * | `Conforme` : 245 NON, 66 OUI, **22 « ? »** | trois valeurs, aucune forcée (`VALEURS_CONFORME`) |
+ * | n° de série jamais vide : `SANS`, `sans`, `Sans`, `?`, `Illisible` | une liste close de non-valeurs, insensible à la casse (`NON_VALEURS_SERIE_VGP`) |
+ * | dates en texte ISO dans le classeur d'origine | refusées `date_format` : le fichier remis est converti, la grammaire n'est pas assouplie |
+ *
+ * ## Ce que ce gabarit ÉCRIT, et ce qu'il ne peut pas écrire
+ *
+ * Il écrit une `vgp_verification` : machine, date, organisme, référence,
+ * origine. **Quatre colonnes n'ont aucune arrivée** — inspecteur, client/site,
+ * conforme, avis général — et vivent dans `import_lot_ligne.valeurs` : c'est
+ * écrit au schéma de la ligne (`lib/imports/vgp.ts`), pas tu.
+ *
+ * ## L'ORIGINE EST UNE COLONNE DU FICHIER, et c'est la seule décision que D114 laisse
+ *
+ * `vgp_verification.origine` est obligatoire et sans défaut : *une origine par
+ * défaut serait une valeur probante inventée*. Ce gabarit n'en choisit donc
+ * aucune pour les 333 lignes — il l'exige du fichier, par une colonne
+ * « Origine » aux quatre codes que le formulaire de saisie accepte déjà. Le
+ * fichier remis à Alexis ne la porte pas encore ; la grammaire le dira par
+ * son nom (`colonne_obligatoire_absente`), et une colonne remplie d'une seule
+ * valeur se pose en un geste. *C'est celui qui tient les rapports qui sait
+ * d'où ils viennent, pas ce fichier.*
+ *
+ * ## LA MACHINE — rattachée, ou EN ATTENTE, jamais inventée (arbitrage 3)
+ *
+ * Voir `MOTIFS_ATTENTE` dans `lib/imports/vgp.ts` : sans migration, un PV
+ * sans machine ne peut entrer que dans la ligne du lot, et il y entre sous un
+ * motif qui le compte à part et le rend rechargeable. *Ce que cela affirme de
+ * trop est écrit là-bas.*
+ */
+export const COLONNES_VGP = {
+  date: "Date de vérification",
+  organisme: "Organisme",
+  reference: "Réf. rapport",
+  inspecteur: "Inspecteur",
+  machine: "Machine (n° de série)",
+  clientSite: "Client / Site",
+  conforme: "Conforme",
+  avis: "Avis général",
+  origine: "Origine",
+} as const;
+
+/** Les colonnes recopiées TELLES QUELLES dans un champ du schéma de la ligne. */
+export const CHAMPS_VGP: Readonly<Record<string, string>> = {
+  [COLONNES_VGP.organisme]: "organisme",
+  [COLONNES_VGP.reference]: "reference_rapport",
+  [COLONNES_VGP.inspecteur]: "inspecteur",
+  [COLONNES_VGP.avis]: "avis_general",
+};
+
+/**
+ * Les champs du schéma de la ligne que le gabarit n'expose pas TELS QUELS —
+ * chacun avec la colonne qui le porte et la lecture qui le traduit.
+ */
+export const CHAMPS_VGP_ECARTES: Readonly<Record<string, string>> = {
+  date_verification:
+    "exposée par « Date de vérification », lue par `lireDate` — sérial de tableur ou JJ/MM/AAAA, rien d'autre (D31)",
+  machine_id:
+    "rapprochée depuis « Machine (n° de série) » par les rangs de D127 ; sans machine, la ligne entre EN ATTENTE de rattachement, jamais avec une machine inventée",
+  client_id:
+    "résolu depuis « Client / Site » par `cleDeClient` (RG-IMP-05) quand la cellule désigne un client connu ; un CONTRÔLE DE COHÉRENCE, jamais une clé ni un refus",
+  origine:
+    "exposée par « Origine », un des quatre codes de D114 — jamais une constante : une origine par défaut serait une valeur probante inventée",
+  conforme:
+    "exposée par « Conforme », rabattue en minuscules et confrontée aux trois valeurs mesurées — « ? » en est une",
+};
+
+/** Les motifs propres à ce gabarit — des CODES, les libellés sont au dictionnaire. */
+export const MOTIF_ORIGINE_INCONNUE = "origine_inconnue";
+
+export type PvALecrire =
+  | {
+      readonly prete: true;
+      readonly saisie: LignePv;
+      readonly rang: 1 | 2;
+    }
+  | {
+      /** EN ATTENTE : la ligne est retenue sous son motif, pas écrite. */
+      readonly prete: false;
+      readonly motif: MotifAttente;
+      readonly serie: string | null;
+    }
+  | {
+      readonly prete: false;
+      readonly motif: string;
+      readonly serie?: undefined;
+    };
+
+/**
+ * LE CLIENT QUE LA COLONNE « Client / Site » DÉSIGNE — ou personne.
+ *
+ * La colonne n'est qu'un contrôle de cohérence : elle n'est pas une clé, et
+ * ne pas la reconnaître n'est pas un refus. Elle est lue entière par la règle
+ * de RG-IMP-05 (code externe, à défaut raison sociale), puis — parce que son
+ * en-tête porte une barre — par ce qui précède la première barre. *Rien de
+ * plus tolérant* : une désignation qui ne répond à aucune des deux n'est pas
+ * devinée, elle est conservée dans la ligne et ne contrôle rien.
+ */
+function clientDeLaColonneClientSite(
+  clients: ParcClientsIndexe,
+  brut: string | undefined,
+): string | null {
+  const texte = brut?.trim();
+  if (texte === undefined || texte === "") return null;
+  const entier = clientDesignePar(clients, texte);
+  if (entier !== undefined) return entier;
+  const barre = texte.indexOf("/");
+  if (barre <= 0) return null;
+  return clientDesignePar(clients, texte.slice(0, barre)) ?? null;
+}
+
+/**
+ * CE QU'UNE LIGNE DE PV DÉSIGNE, RÉSOLU UNE SEULE FOIS — le contrôle,
+ * l'application, l'annulation et le rapport lisent la MÊME fonction (§9, 01/09).
+ *
+ * **L'ordre des refus est une décision, et il se lit** : la date d'abord —
+ * *rien ne mérite d'être corrigé sur une ligne dont la date ne se lit pas* —,
+ * puis l'origine, puis la machine, et le schéma en dernier. **La machine ne
+ * REFUSE jamais** : elle rend l'attente, avec son motif et ce que la cellule
+ * portait, pour que le rapport la compte à part.
+ */
+export function preparerUnPv(
+  parcs: ParcsDImport,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): PvALecrire {
+  const date = lireLaDate(valeurs[COLONNES_VGP.date]);
+  if (!date.ok) {
+    return { prete: false, motif: date.motif };
+  }
+
+  const origine = valeurs[COLONNES_VGP.origine]?.trim().toLowerCase();
+  if (
+    origine !== undefined &&
+    origine !== "" &&
+    !(ORIGINES_VGP as readonly string[]).includes(origine)
+  ) {
+    return { prete: false, motif: MOTIF_ORIGINE_INCONNUE };
+  }
+
+  const client = clientDeLaColonneClientSite(
+    parcs.clients,
+    valeurs[COLONNES_VGP.clientSite],
+  );
+  const rattachement = rattacherLaMachineDuPv(
+    valeurs[COLONNES_VGP.machine],
+    client,
+    parcs.machines,
+  );
+  if (!rattachement.rattache) {
+    return {
+      prete: false,
+      motif: rattachement.motif,
+      serie: rattachement.serie,
+    };
+  }
+
+  const conforme = conformiteDeclaree(valeurs[COLONNES_VGP.conforme]);
+  const saisie = schemaLignePv.safeParse({
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_VGP),
+    inspecteur: valeurs[COLONNES_VGP.inspecteur]?.trim() || null,
+    avis_general: valeurs[COLONNES_VGP.avis]?.trim() || null,
+    ...(date.date === null ? {} : { date_verification: date.date }),
+    machine_id: rattachement.machineId,
+    client_id: client,
+    ...(origine === undefined || origine === "" ? {} : { origine }),
+    ...(conforme === undefined ? {} : { conforme }),
+  });
+  return saisie.success
+    ? { prete: true, saisie: saisie.data, rang: rattachement.rang }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/**
+ * LE GABARIT « VGP » — le rang identifie, et c'est écrit (voir `indexerLeParcVgp`).
+ *
+ * **La référence et la machine sont identifiantes** — pour la NATURE de la
+ * ligne seulement : une ligne qui porte l'une ou l'autre est une DONNÉE,
+ * jamais un reste de gabarit compté en silence. La clé, elle, est le rang :
+ * `complet` vaut `false`, parce qu'elle est reconstituée.
+ */
+export function modeleVgp(parcs: ParcsDImport): ModeleDImport {
+  return {
+    type: "vgp",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_VGP.date, obligatoire: true },
+      { nom: COLONNES_VGP.organisme, obligatoire: true },
+      { nom: COLONNES_VGP.reference, obligatoire: true },
+      { nom: COLONNES_VGP.inspecteur, obligatoire: false },
+      // OBLIGATOIRE comme EN-TÊTE : une cellule qui ne désigne aucune machine
+      // n'est pas un refus, c'est l'attente de rattachement (arbitrage 3).
+      { nom: COLONNES_VGP.machine, obligatoire: true },
+      { nom: COLONNES_VGP.clientSite, obligatoire: false },
+      { nom: COLONNES_VGP.conforme, obligatoire: true },
+      { nom: COLONNES_VGP.avis, obligatoire: false },
+      { nom: COLONNES_VGP.origine, obligatoire: true },
+    ],
+    identifiantes: [COLONNES_VGP.reference, COLONNES_VGP.machine],
+    cle: (_valeurs, rang) => ({
+      forme: "rang",
+      cle: `LIGNE-${rang}`,
+      complet: false,
+    }),
+    valider: (valeurs) => {
+      const prepare = preparerUnPv(parcs, valeurs);
+      return prepare.prete ? null : prepare.motif;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « VGP_OBSERVATIONS » — les réserves, sous leur PV (VGP-IMPORT)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE DIXIÈME GABARIT, ET IL EXIGE QUE SON PARENT SOIT ÉCRIT.
+ *
+ * ## Le marqueur, et pourquoi il porte un tiret bas
+ *
+ * Le ticket le nomme `CODIPLAN-vgp-observations-v1`. **La grammaire du
+ * marqueur ne lit pas ce tiret** — `^CODIPLAN-([a-z0-9_]+)-v(\d+)$`, mesuré
+ * dans `lib/excel/format.ts` —, et l'assouplir n'est pas de ce lot (le
+ * ticket l'interdit pour les dates, la raison vaut ici). Le type est donc
+ * `vgp_observations`, le seul voisin que la grammaire admette.
+ *
+ * ## L'ORDRE D'IMPORT — le PV d'abord, APPLIQUÉ
+ *
+ * Une observation désigne son PV par « Réf. rapport », et le PV doit EXISTER
+ * dans le registre : le parent se lit dans `vgp_verification`
+ * (`indexerLesVerificationsVgp`), jamais dans un lot seulement contrôlé. Une
+ * référence inconnue est refusée `rapport_introuvable`, et le libellé dit
+ * l'ordre : importez les vérifications, appliquez-les, puis déposez ceci.
+ *
+ * ## UNE RÉFÉRENCE COUVRE UN PARC — et l'observation doit dire QUELLE machine
+ *
+ * *56 références pour 333 PV* : « Réf. rapport » désigne le plus souvent
+ * PLUSIEURS vérifications, une par machine, et `vgp_observation.verification_id`
+ * n'en désigne qu'une. Le ticket ne donne à l'observation aucune colonne de
+ * machine. **Rattacher au hasard — « la première » — poserait une réserve
+ * sur la fiche d'une machine qui n'est pas la sienne** : c'est ce que D88
+ * interdit de prétendre savoir. Ce gabarit expose donc une colonne
+ * FACULTATIVE « Machine (n° de série) » qui départage ; sans elle, une
+ * référence qui couvre plusieurs PV est refusée `rapport_ambigu`, avec son
+ * motif. *Ce que ce choix coûte est dit plutôt que caché* : sur l'archive
+ * réelle, la part des observations que ce refus touchera n'est pas mesurable
+ * d'ici — le fichier n'est pas dans le dépôt (I9).
+ * **Condition de réouverture, vérifiable :** une mesure du fichier des
+ * observations qui montre que chaque référence n'y désigne qu'un PV.
+ */
+export const COLONNES_VGP_OBSERVATIONS = {
+  code: "Code observation",
+  reference: "Réf. rapport",
+  machine: "Machine (n° de série)",
+  dateSignalement: "Date de 1er signalement",
+  observation: "Observation",
+  statut: "Statut",
+  documentReponse: "Document de réponse",
+  dateReponse: "Date de réponse",
+} as const;
+
+export const CHAMPS_VGP_OBSERVATIONS: Readonly<Record<string, string>> = {
+  [COLONNES_VGP_OBSERVATIONS.code]: "code",
+  [COLONNES_VGP_OBSERVATIONS.reference]: "reference_rapport",
+  [COLONNES_VGP_OBSERVATIONS.observation]: "libelle",
+  [COLONNES_VGP_OBSERVATIONS.documentReponse]: "document_reponse",
+};
+
+export const CHAMPS_VGP_OBSERVATIONS_ECARTES: Readonly<Record<string, string>> =
+  {
+    verification_id:
+      "résolu depuis « Réf. rapport » dans le registre — et depuis « Machine (n° de série) » quand le rapport couvre plusieurs machines",
+    date_signalement:
+      "exposée par « Date de 1er signalement », lue par `lireDate` (D31)",
+    date_reponse:
+      "exposée par « Date de réponse », lue par `lireDate` quand elle est renseignée — nulle sinon",
+    statut:
+      "exposé par « Statut », confronté aux trois valeurs mesurées — « chiffrée » n'est pas rabattue sur « non levée »",
+  };
+
+export const MOTIF_RAPPORT_INTROUVABLE = "rapport_introuvable";
+export const MOTIF_RAPPORT_AMBIGU = "rapport_ambigu";
+export const MOTIF_OBSERVATION_DEJA_REPRISE = "observation_deja_reprise";
+
+export type ObservationALecrire =
+  | { readonly prete: true; readonly saisie: LigneObservationVgp }
+  | { readonly prete: false; readonly motif: string };
+
+/**
+ * LE PV PARENT D'UNE OBSERVATION — un seul, ou le motif.
+ *
+ * La série de la ligne, quand elle est renseignée, est lue par la clé du parc
+ * (`cleDeRapprochement`) — la même que l'index des parents a posée sur chaque
+ * PV —, jamais par une comparaison de texte.
+ */
+function parentDeLObservation(
+  parcs: ParcsDImport,
+  reference: string,
+  serie: string | undefined,
+):
+  | { readonly ok: true; readonly id: string }
+  | { readonly ok: false; readonly motif: string } {
+  const candidats = parcs.verifications.parRapport.get(cleDuRapport(reference));
+  if (candidats === undefined || candidats.length === 0) {
+    return { ok: false, motif: MOTIF_RAPPORT_INTROUVABLE };
+  }
+  const retenus = serieNonRenseignee(serie)
+    ? candidats
+    : candidats.filter(
+        (c) =>
+          c.serie === cleDeRapprochement({ numeroSerie: serie, rang: 0 }).cle,
+      );
+  const seul = retenus[0];
+  return retenus.length === 1 && seul !== undefined
+    ? { ok: true, id: seul.id }
+    : { ok: false, motif: MOTIF_RAPPORT_AMBIGU };
+}
+
+/**
+ * CE QU'UNE LIGNE D'OBSERVATION DÉSIGNE, RÉSOLU UNE SEULE FOIS.
+ *
+ * **L'ordre des refus** : l'observation déjà reprise d'abord — *rien d'autre
+ * ne mérite d'être corrigé sur une ligne qui n'entrera pas* —, puis le
+ * parent, puis les deux dates, et le schéma en dernier.
+ */
+export function preparerUneObservationVgp(
+  parcs: ParcsDImport,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): ObservationALecrire {
+  const reference = valeurs[COLONNES_VGP_OBSERVATIONS.reference]?.trim();
+  const code = valeurs[COLONNES_VGP_OBSERVATIONS.code]?.trim();
+  if (
+    reference !== undefined &&
+    reference !== "" &&
+    code !== undefined &&
+    code !== "" &&
+    parcs.observations.fiches.has(cleDeLObservation(reference, code))
+  ) {
+    return { prete: false, motif: MOTIF_OBSERVATION_DEJA_REPRISE };
+  }
+  if (reference === undefined || reference === "") {
+    return { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+  }
+
+  const parent = parentDeLObservation(
+    parcs,
+    reference,
+    valeurs[COLONNES_VGP_OBSERVATIONS.machine],
+  );
+  if (!parent.ok) {
+    return { prete: false, motif: parent.motif };
+  }
+
+  const signalement = lireLaDate(
+    valeurs[COLONNES_VGP_OBSERVATIONS.dateSignalement],
+  );
+  if (!signalement.ok) {
+    return { prete: false, motif: signalement.motif };
+  }
+  const reponse = lireLaDate(valeurs[COLONNES_VGP_OBSERVATIONS.dateReponse]);
+  if (!reponse.ok) {
+    return { prete: false, motif: reponse.motif };
+  }
+
+  const statut = statutDeclare(valeurs[COLONNES_VGP_OBSERVATIONS.statut]);
+  const saisie = schemaLigneObservationVgp.safeParse({
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_VGP_OBSERVATIONS),
+    document_reponse:
+      valeurs[COLONNES_VGP_OBSERVATIONS.documentReponse]?.trim() || null,
+    verification_id: parent.id,
+    ...(signalement.date === null
+      ? {}
+      : { date_signalement: signalement.date }),
+    date_reponse: reponse.date,
+    ...(statut === undefined ? {} : { statut }),
+  });
+  return saisie.success
+    ? { prete: true, saisie: saisie.data }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/**
+ * LE GABARIT « VGP_OBSERVATIONS » — le couple (rapport, code) identifie.
+ */
+export function modeleVgp_observations(parcs: ParcsDImport): ModeleDImport {
+  return {
+    type: "vgp_observations",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_VGP_OBSERVATIONS.code, obligatoire: true },
+      { nom: COLONNES_VGP_OBSERVATIONS.reference, obligatoire: true },
+      { nom: COLONNES_VGP_OBSERVATIONS.machine, obligatoire: false },
+      { nom: COLONNES_VGP_OBSERVATIONS.dateSignalement, obligatoire: true },
+      { nom: COLONNES_VGP_OBSERVATIONS.observation, obligatoire: true },
+      { nom: COLONNES_VGP_OBSERVATIONS.statut, obligatoire: true },
+      { nom: COLONNES_VGP_OBSERVATIONS.documentReponse, obligatoire: false },
+      { nom: COLONNES_VGP_OBSERVATIONS.dateReponse, obligatoire: false },
+    ],
+    identifiantes: [
+      COLONNES_VGP_OBSERVATIONS.code,
+      COLONNES_VGP_OBSERVATIONS.reference,
+    ],
+    cle: (valeurs, rang) => {
+      const reference = valeurs[COLONNES_VGP_OBSERVATIONS.reference]?.trim();
+      const code = valeurs[COLONNES_VGP_OBSERVATIONS.code]?.trim();
+      if (
+        reference === undefined ||
+        reference === "" ||
+        code === undefined ||
+        code === ""
+      ) {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      return {
+        forme: "reference",
+        cle: cleDeLObservation(reference, code),
+        complet: false,
+      };
+    },
+    valider: (valeurs) => {
+      const prepare = preparerUneObservationVgp(parcs, valeurs);
+      return prepare.prete ? null : prepare.motif;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
  * LES GABARITS QUE CODIPLAN PUBLIE, ÉNUMÉRÉS UNE SEULE FOIS (R6-01)
  * ──────────────────────────────────────────────────────────────────────── */
 
@@ -1745,6 +2199,14 @@ export type ParcsDImport = {
   readonly machines: ParcMachines;
   readonly historique: ParcDesFiches;
   readonly devise: Devise;
+  /**
+   * CE QUE LES DEUX GABARITS DES VÉRIFICATIONS RÉGLEMENTAIRES DEMANDENT
+   * (VGP-IMPORT) : le registre par référence de rapport — les PARENTS d'une
+   * observation, tous les PV d'une référence —, et les observations déjà
+   * importées, pour que le couple (rapport, code) ne duplique rien.
+   */
+  readonly verifications: ParcVerificationsVgp;
+  readonly observations: ParcDesFiches;
 };
 
 /**
@@ -1761,7 +2223,7 @@ export type ParcDesFiches = {
 };
 
 /**
- * LES HUIT GABARITS, CONSTRUITS ENSEMBLE — sept référentiels, et l'historique.
+ * LES DIX GABARITS, CONSTRUITS ENSEMBLE — sept référentiels, l'historique, et les deux de la VGP.
  *
  * **Jusqu'à R6-01, aucune liste ne les réunissait** : la route de contrôle
  * nommait `MODELE_CLIENTS` et elle seule, si bien que les quatre autres
@@ -1783,6 +2245,8 @@ export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
     MODELE_FAMILLES,
     modeleEquipements(parcs.clients, parcs.sites, parcs.modeles),
     modeleHistorique(parcs),
+    modeleVgp(parcs),
+    modeleVgp_observations(parcs),
   ];
 }
 
@@ -1832,6 +2296,8 @@ export const TYPES_PUBLIES: readonly string[] = gabaritsPublies({
   // Aucune devise n'a été lue, et celle-ci le dit en LEVANT si on la lit :
   // un zéro écrit ici serait un nombre de décimales en dur (I3).
   devise: deviseNonLue(),
+  verifications: { parRapport: new Map() },
+  observations: { fiches: new Map() },
 }).map((modele) => modele.type);
 
 /**

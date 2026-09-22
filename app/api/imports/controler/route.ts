@@ -107,7 +107,7 @@ async function traiter(requete: Request): Promise<Response> {
   const marqueur = premiere.lignes[0]?.[0];
   const modele = gabaritDuMarqueur(marqueur, parcs);
   if (modele === null) {
-    // *Aucun des huit gabarits ne répond à ce marqueur.* Deux situations, et le
+    // *Aucun des dix gabarits ne répond à ce marqueur.* Deux situations, et le
     // lecteur n'a pas les mêmes gestes (REPRISE-HISTORIQUE, mesuré en
     // production le 22/09/2026) : un marqueur LISIBLE d'un type que cette
     // version ne publie pas — *rien à corriger, ce type n'est pas encore

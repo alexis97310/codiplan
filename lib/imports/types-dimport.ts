@@ -10,6 +10,8 @@ import {
   annulerLeLotDeModeles,
   annulerLeLotDePrestations,
   annulerLeLotDeSites,
+  annulerLeLotDeVgp,
+  annulerLeLotDeVgp_observations,
   type ResultatAnnulation,
 } from "./annulation";
 import {
@@ -20,6 +22,8 @@ import {
   appliquerLeLotDeModeles,
   appliquerLeLotDePrestations,
   appliquerLeLotDeSites,
+  appliquerLeLotDeVgp,
+  appliquerLeLotDeVgp_observations,
   type ResultatApplication,
 } from "./application";
 
@@ -120,6 +124,15 @@ export const APPLICATIONS: Readonly<Record<string, ApplicationDeLot>> = {
   historique: {
     appliquer: appliquerLeLotDeHistorique,
     annuler: annulerLeLotDeHistorique,
+  },
+  // LES VÉRIFICATIONS RÉGLEMENTAIRES ET LEURS OBSERVATIONS (VGP-IMPORT) : des
+  // créations seules, défaites en bloc — le PV d'abord à l'import, les
+  // observations d'abord à l'annulation. Le tiret bas du second est celui de
+  // la grammaire du marqueur (`[a-z0-9_]+`), que le gardien lit tel quel.
+  vgp: { appliquer: appliquerLeLotDeVgp, annuler: annulerLeLotDeVgp },
+  vgp_observations: {
+    appliquer: appliquerLeLotDeVgp_observations,
+    annuler: annulerLeLotDeVgp_observations,
   },
 };
 

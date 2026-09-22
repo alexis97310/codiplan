@@ -2,7 +2,9 @@ import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import type { Designation } from "@/lib/auth/annuaire";
 import type { Decomptes } from "@/lib/imports/depot";
 import type { ComptesParRang } from "@/lib/imports/rapport-historique";
+import type { ComptesDeRattachementVgp } from "@/lib/imports/rapport-vgp";
 import type { MotifNonRattachee } from "@/lib/imports/reprise";
+import type { MotifAttente } from "@/lib/imports/vgp";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 
 /**
@@ -172,5 +174,51 @@ export function cleDuMotifDeRattachement(
       return "imports.rattachement.serie_ambigue";
     case "serie_autre_client":
       return "imports.rattachement.serie_autre_client";
+  }
+}
+
+/**
+ * LES COMPTES DE RATTACHEMENT D'UN LOT DE VGP (VGP-IMPORT ; arbitrage 3).
+ *
+ * Trois lignes : ce qui entre sous sa machine, ce qui ATTEND — retenu, pas
+ * refusé —, et les vrais rejets. *Le total des trois explique chaque ligne de
+ * données du fichier.*
+ */
+export function lignesDeRattachementVgp(
+  comptes: ComptesDeRattachementVgp,
+): readonly LigneDeResultat[] {
+  return [
+    {
+      cle: "rattachees",
+      libelle: "imports.vgp.rattachees",
+      detail: "imports.vgp.rattachees_detail",
+      valeur: comptes.rattachees,
+    },
+    {
+      cle: "en_attente",
+      libelle: "imports.vgp.en_attente",
+      detail: "imports.vgp.en_attente_detail",
+      valeur: comptes.enAttente.length,
+    },
+    {
+      cle: "autres_rejets",
+      libelle: "imports.vgp.autres_rejets",
+      detail: "imports.vgp.autres_rejets_detail",
+      valeur: comptes.autresRejets,
+    },
+  ];
+}
+
+/** Le libellé COURT d'un motif d'attente — un CODE du gabarit, une clé ici. */
+export function cleDuMotifDAttente(motif: MotifAttente): CleTraduction {
+  switch (motif) {
+    case "a_rattacher_sans_serie":
+      return "imports.vgp.attente.sans_serie";
+    case "a_rattacher_serie_inconnue":
+      return "imports.vgp.attente.serie_inconnue";
+    case "a_rattacher_serie_ambigue":
+      return "imports.vgp.attente.serie_ambigue";
+    case "a_rattacher_serie_autre_client":
+      return "imports.vgp.attente.serie_autre_client";
   }
 }

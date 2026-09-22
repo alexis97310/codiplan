@@ -12,13 +12,17 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireLeLot } from "@/lib/imports/depot";
 import { indexerLesParcs } from "@/lib/imports/parcs";
 import { decompterLesRattachements } from "@/lib/imports/rapport-historique";
+import { decompterLesRattachementsVgp } from "@/lib/imports/rapport-vgp";
+import { COLONNES_VGP } from "@/lib/imports/modeles";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_TON } from "@/lib/theme/statuts";
 
 import {
+  cleDuMotifDAttente,
   cleDuMotifDeRattachement,
   coordonneesDuLot,
   lignesDeRattachement,
+  lignesDeRattachementVgp,
   lignesDeResultat,
 } from "../presentation";
 import { applicationDuType } from "@/lib/imports/types-dimport";
@@ -152,6 +156,23 @@ export default async function PageLotDImport({
           await indexerLesParcs(session.contexte),
         )
       : null;
+  // L'ATTENTE DE RATTACHEMENT D'UN LOT DE VGP (VGP-IMPORT, arbitrage 3). Ici
+  // rien n'est reconstitué : le motif est POSÉ sur la ligne au contrôle, et
+  // la section lit ce que le lot porte — sans parc. *Un PV en attente est un
+  // rejet dans la base et une attente pour l'humain* ; les deux sont vrais,
+  // et cette section est ce qui dit le second sans cacher le premier.
+  const attente =
+    lot.typeImport === "vgp"
+      ? decompterLesRattachementsVgp(
+          lot.lignes.map((ligne) => ({
+            rang: ligne.rang,
+            action: ligne.action,
+            rejetMotif: ligne.rejetMotif,
+            valeurs: ligne.valeurs as Record<string, string | undefined>,
+          })),
+          COLONNES_VGP.machine,
+        )
+      : null;
   const colonnesRattachement = [
     { cle: "ligne", libelle: t("imports.colonne_ligne"), largeur: "90px" },
     {
@@ -267,6 +288,56 @@ export default async function PageLotDImport({
                   </Cellule>
                   <Cellule mono>{ligne.serie}</Cellule>
                   <Cellule>{t(cleDuMotifDeRattachement(ligne.motif))}</Cellule>
+                </tr>
+              ))
+            )}
+          </Tableau>
+        </section>
+      )}
+
+      {attente === null ? null : (
+        <section
+          data-rattachements="vgp"
+          className="bg-app-surface border-app-bord rounded-lg border"
+        >
+          <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
+            <h2 className="text-[14px] font-bold">{t("imports.vgp.titre")}</h2>
+            <span className="text-app-encre-faible text-[11.5px]">
+              {t("imports.vgp.aide")}
+            </span>
+          </div>
+          <ul className="flex flex-col gap-2 px-4 py-3.5">
+            {lignesDeRattachementVgp(attente).map((entree) => (
+              <li
+                key={entree.cle}
+                data-attente={entree.cle}
+                className="flex flex-wrap items-baseline gap-3 text-[13px]"
+              >
+                <span className="w-[150px] font-semibold">
+                  {t(entree.libelle)}
+                </span>
+                <span className="w-[60px] text-right font-extrabold">
+                  {entree.valeur}
+                </span>
+                <span className="text-app-encre-faible text-[11.5px]">
+                  {t(entree.detail)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Tableau colonnes={colonnesRattachement} minimum="640px">
+            {attente.enAttente.length === 0 ? (
+              <LignePleine colonnes={colonnesRattachement.length}>
+                {t("imports.vgp.aucune_attente")}
+              </LignePleine>
+            ) : (
+              attente.enAttente.map((ligne) => (
+                <tr key={ligne.rang} data-en-attente={ligne.rang}>
+                  <Cellule droite mono>
+                    {ligne.rang}
+                  </Cellule>
+                  <Cellule mono>{ligne.serie}</Cellule>
+                  <Cellule>{t(cleDuMotifDAttente(ligne.motif))}</Cellule>
                 </tr>
               ))
             )}

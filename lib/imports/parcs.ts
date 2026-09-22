@@ -8,11 +8,13 @@ import {
   indexerLeParcHistorique,
   indexerLeParcModeles,
   indexerLeParcSites,
+  indexerLeParcVgp_observations,
 } from "./parc-cibles";
 import { indexerLeParcClients } from "./parc-clients";
 import { indexerLesFamilles } from "./parc-familles";
 import { indexerLesMachinesParSerie } from "./parc-machines";
 import { lireLaDeviseDeLaSociete } from "./parc-societe";
+import { indexerLesVerificationsVgp } from "./parc-vgp";
 
 /**
  * LES PARCS DONT LES GABARITS ONT BESOIN, LUS D'UN BLOC (REPRISE-HISTORIQUE).
@@ -28,6 +30,9 @@ import { lireLaDeviseDeLaSociete } from "./parc-societe";
  * Les lectures sont parallèles — chacune ouvre sa propre transaction
  * cloisonnée —, et le type n'est pas encore connu : les gabarits se
  * construisent AVANT que le marqueur ait choisi (`gabaritDuMarqueur`).
+ *
+ * *Dix index depuis VGP-IMPORT* : le registre par référence de rapport et les
+ * observations déjà importées s'ajoutent, pour les deux gabarits de la VGP.
  */
 export async function indexerLesParcs(
   contexte: ContexteSession,
@@ -42,6 +47,8 @@ export async function indexerLesParcs(
     machines,
     historique,
     devise,
+    verifications,
+    observations,
   ] = await Promise.all([
     indexerLeParcClients(contexte, client),
     indexerLesAgences(contexte, client),
@@ -51,6 +58,8 @@ export async function indexerLesParcs(
     indexerLesMachinesParSerie(contexte, client),
     indexerLeParcHistorique(contexte, client),
     lireLaDeviseDeLaSociete(contexte, client),
+    indexerLesVerificationsVgp(contexte, client),
+    indexerLeParcVgp_observations(contexte, client),
   ]);
   return {
     clients,
@@ -65,5 +74,7 @@ export async function indexerLesParcs(
     machines,
     historique,
     devise,
+    verifications,
+    observations,
   };
 }

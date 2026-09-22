@@ -142,6 +142,10 @@ function parcsFabriques(devise = XPF): ParcsDImport {
       ]),
     },
     devise,
+    // Les deux parcs de la VGP (VGP-IMPORT) : ce gabarit ne les lit pas, le
+    // type les exige pour qu'un oubli ne compile pas.
+    verifications: { parRapport: new Map() },
+    observations: { fiches: new Map() },
   };
 }
 
