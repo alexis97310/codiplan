@@ -171,10 +171,10 @@ Rien côté fonctionnalité : la pagination est bornée côté base, testée en 
 bout en bout, les captures AVANT/APRÈS existent pour les quatre situations demandées
 (fiche AVANT, fiche APRÈS, deuxième page, client sans intervention).
 
-`pnpm verify:full` n'a pas encore été rejoué EN ENTIER après le dernier correctif du
-spec bout en bout (la mesure `lignes_page_1` du `mesure.json`, cosmétique, sans effet sur
-une assertion) — à lancer avant de considérer le lot clos ; s'il rougit, la cause la plus
-probable est un défaut de contention entre `tests/e2e/historique-client.spec.ts` et un
-autre scénario qui partagerait, par erreur, l'un des identifiants `e2e00000-…-c9c1x`
-choisis pour ce lot (aucune collision trouvée à la relecture, mais non rejouée sous
-`fullyParallel` avec la suite complète).
+`pnpm verify:full` a été rejoué EN ENTIER après le dernier correctif du spec bout en bout
+et après `prettier --write` (trois fichiers reformatés, aucun changement de fond) : vert
+— `format:check`, `typecheck`, `lint`, `test` (2581), `test:isolation` (1135), `build`,
+`feries:horizon`, `audit:partitions`, `test:e2e` (155 passés, 3 sautés — des routes
+dynamiques déjà connues de `tous-les-ecrans-rendent.spec.ts`, sans lien avec ce lot),
+sous `fullyParallel` avec toute la suite. Aucune collision entre les identifiants
+`e2e00000-…-c9c1x` de ce lot et un autre scénario.
