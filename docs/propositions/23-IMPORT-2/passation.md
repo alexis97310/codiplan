@@ -32,17 +32,17 @@ production sous l'ANCIEN code (615 lignes de modification, avant la réduction d
 
 | régime | lignes retenues | durée mesurée |
 |---|---|---|
-| création | 100 | 254,1 ms |
-| création | 1 000 | 686,1 ms |
-| création | 8 000 | 3 850,8 ms |
-| modification | 100 | 297,4 ms |
-| modification | 1 000 | 1 099,4 ms |
-| modification | 8 000 | 7 453,2 ms |
+| création | 100 | 350,4 ms |
+| création | 1 000 | 803,2 ms |
+| création | 8 000 | 4 112,6 ms |
+| modification | 100 | 447,3 ms |
+| modification | 1 000 | 1 270,5 ms |
+| modification | 8 000 | 7 537,2 ms |
 
 (table complète, 7 tailles × 2 régimes, dans `mesure.md`).
 
 **Le fait le plus utile** : une modification coûte, mesuré, très exactement **le double** d'une
-création par ligne (0,91 ms/ligne contre 0,46 ms/ligne) — ce que le docblock d'
+création par ligne (0,90 ms/ligne contre 0,48 ms/ligne) — ce que le docblock d'
 `allersRetoursApplication` affirmait déjà en théorie (« au pire deux », contre un pour une
 création) est donc confirmé en pratique, avec le même facteur. La pente est linéaire sur les deux
 ordres de grandeur mesurés (100 à 8 000 lignes, ratio ~80×), ce qui rend l'extrapolation crédible
@@ -69,6 +69,16 @@ pour ce qu'elle est : une extrapolation, jamais une mesure directe de la casse r
   `mesure.md` — le ticket admet cette réponse (« dis que tu n'as pas pu l'atteindre »).
 - **Densité de rejets ~2 %** (raison sociale vide) dans chaque lot synthétique, pour rester
   réaliste sans avoir de fichier d'Alexis à imiter — aucune donnée réelle n'a été utilisée (I9).
+- **Aucune valeur de fuseau, de décimales, de date courante ou de séparateur de milliers écrite en
+  dur dans le script.** `pnpm verify:full` a d'abord fait rougir trois gardiens (I3, I7) : le
+  script fixait `decimales: 0` et `"Pacific/Noumea"` pour ses fixtures, et utilisait
+  `Date.now()`/`new Date()`/`.toFixed()`/`.toLocaleString()` pour son rapport — ces gardiens
+  scannent `scripts/` au même titre que `lib/` ou `app/`, sans distinguer un script de mesure d'un
+  chemin de production. Corrigé en réutilisant `DEVISES`/`SOCIETES` de `prisma/seed-data.ts` (le
+  seul fichier exempté par ces deux gardiens) pour les fixtures, un nonce aléatoire (`randomBytes`)
+  plutôt qu'un horodatage pour isoler les lots synthétiques, `date -u` (shell) pour l'horodatage du
+  rapport, et deux petits formateurs maison (`formaterMillier`, `formaterDecimal`) plutôt que
+  `toFixed`/`toLocaleString`/`Intl`. Aucun de ces gardiens n'a été modifié, ni assoupli.
 
 ## Ce que je n'ai PAS fait
 

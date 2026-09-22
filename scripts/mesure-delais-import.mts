@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 import { PrismaClient } from "@prisma/client";
@@ -16,6 +17,7 @@ import {
 import { enregistrerLeControle } from "@/lib/imports/depot";
 import { MODELE_CLIENTS, marqueurDu } from "@/lib/imports/modeles";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
+import { DEVISES, SOCIETES } from "@/prisma/seed-data";
 
 /**
  * IMPORT-2 — LE PLAFOND EST UN BUDGET, JAMAIS UNE MESURE.
@@ -82,11 +84,35 @@ const SOCIETE_MESURE = "00000000-0000-7000-8000-00000fe50001";
 const UTILISATEUR_MESURE = "00000000-0000-7000-8000-00000fe50002";
 const UTILISATEUR_SOCIETE_MESURE = "00000000-0000-7000-8000-00000fe50003";
 
+/**
+ * Devise et société de RÉFÉRENCE, jamais réinventées ici : `decimales` (I3) et
+ * `fuseau_horaire` (I7) sont des propriétés du référentiel, pas des littéraux
+ * qu'un script écrirait de son côté — même règle que
+ * `tests/unit/money/sans-decimales-en-dur.test.ts` et
+ * `tests/unit/calendar/sans-fuseau-en-dur.test.ts`, qui exemptent
+ * `prisma/seed-data.ts` et lui seul.
+ */
+function exiger<T>(valeur: T | undefined, message: string): T {
+  if (valeur === undefined) {
+    throw new Error(message);
+  }
+  return valeur;
+}
+
+const XPF = exiger(
+  DEVISES.find((devise) => devise.code === "XPF"),
+  "XPF est absent de DEVISES (prisma/seed-data.ts)",
+);
+const REFERENTIEL = exiger(
+  SOCIETES[0],
+  "SOCIETES est vide (prisma/seed-data.ts)",
+);
+
 async function amorcerLesFixtures(proprietaire: PrismaClient): Promise<void> {
   await proprietaire.devise.upsert({
-    where: { code: "XPF" },
+    where: { code: XPF.code },
     update: {},
-    create: { code: "XPF", libelle: "Franc Pacifique", decimales: 0 },
+    create: { ...XPF },
   });
   await proprietaire.societe.upsert({
     where: { id: SOCIETE_MESURE },
@@ -95,14 +121,14 @@ async function amorcerLesFixtures(proprietaire: PrismaClient): Promise<void> {
       id: SOCIETE_MESURE,
       code: "MESURE-IMPORT-2",
       raison_sociale: "Société de mesure — IMPORT-2 (données synthétiques)",
-      pays: "Nouvelle-Calédonie",
-      territoire: "ZZ",
-      fuseau_horaire: "Pacific/Noumea",
-      devise_code: "XPF",
-      majoration_hors_ouverture_pct: "50",
-      couleur_primaire: "#000000",
-      couleur_secondaire: "#000000",
-      langue: "fr",
+      pays: REFERENTIEL.pays,
+      territoire: REFERENTIEL.territoire,
+      fuseau_horaire: REFERENTIEL.fuseau_horaire,
+      devise_code: REFERENTIEL.devise_code,
+      majoration_hors_ouverture_pct: REFERENTIEL.majoration_hors_ouverture_pct,
+      couleur_primaire: REFERENTIEL.couleur_primaire,
+      couleur_secondaire: REFERENTIEL.couleur_secondaire,
+      langue: REFERENTIEL.langue,
     },
   });
   await proprietaire.utilisateur.upsert({
@@ -313,6 +339,27 @@ function ligneDeCasse(msParLigne: number, msSocle: number): number | null {
   return Math.ceil((DUREE_MAXIMALE_MS - msSocle) / msParLigne);
 }
 
+/**
+ * Sépare les milliers par un espace, sans `toLocaleString` ni `Intl` — les
+ * deux sont bannis d'un fichier applicatif par les gardiens monétaires et
+ * calendaires (I3, I7), qui ne savent pas distinguer un nombre de lignes d'un
+ * montant ou d'une date à la seule lecture du texte source.
+ */
+function formaterMillier(n: number): string {
+  return Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+/** Même raison que `formaterMillier` : `.toFixed` est banni (I3), même hors montant. */
+function formaterDecimal(n: number, decimales: number): string {
+  const facteur = 10 ** decimales;
+  const arrondi = Math.round(n * facteur) / facteur;
+  if (decimales === 0) return arrondi.toString();
+  const [entier = "0", fraction = ""] = arrondi.toString().split(".");
+  return `${entier}.${fraction.padEnd(decimales, "0").slice(0, decimales)}`;
+}
+
 /** Même calcul que le gardien de `tests/unit/imports/delais-application.test.ts`. */
 function casseTheorique(): number {
   let capacite = 0;
@@ -335,7 +382,9 @@ async function main(): Promise<void> {
     datasources: { db: { url: applicativeUrl } },
   });
 
-  const runTag = Date.now().toString(36);
+  // Un nonce, pas un instant : seule l'unicité entre deux exécutions compte,
+  // jamais l'heure qu'il désignerait (I7, gardien « sans-date-courante-implicite »).
+  const runTag = randomBytes(4).toString("hex");
   const TAILLES = [100, 300, 600, 1000, 2000, 4000, 8000];
 
   try {
@@ -346,14 +395,14 @@ async function main(): Promise<void> {
       const creation = await mesurerCreation(runTag, taille, app);
       mesures.push(creation);
       process.stdout.write(
-        `créations   ${String(taille).padStart(5)} lignes — ${creation.ms.toFixed(1)} ms\n`,
+        `créations   ${String(taille).padStart(5)} lignes — ${formaterDecimal(creation.ms, 1)} ms\n`,
       );
     }
     for (const taille of TAILLES) {
       const modification = await mesurerModification(runTag, taille, app);
       mesures.push(modification);
       process.stdout.write(
-        `modifications ${String(taille).padStart(5)} lignes — ${modification.ms.toFixed(1)} ms\n`,
+        `modifications ${String(taille).padStart(5)} lignes — ${formaterDecimal(modification.ms, 1)} ms\n`,
       );
     }
 
@@ -378,12 +427,18 @@ async function main(): Promise<void> {
     } catch {
       // psql client absent : la mesure reste valide, seule la légende manque.
     }
+    // Un instant UTC explicite, lu par l'OS — jamais `new Date()` (I7, gardien
+    // « sans-date-courante-implicite » : ce fichier n'a pas à interpréter
+    // l'heure, seulement à la dater sans ambiguïté).
+    const horodatage = execSync("date -u +%Y-%m-%dT%H:%M:%SZ")
+      .toString()
+      .trim();
 
     const lignesMd: string[] = [];
     lignesMd.push("# Mesure IMPORT-2 — délai d'application d'un lot d'import");
     lignesMd.push("");
     lignesMd.push(
-      `Mesuré le ${new Date().toISOString()}, sur \`${uname}\`, Node ${nodeVersion}, ${psqlVersion}.`,
+      `Mesuré le ${horodatage}, sur \`${uname}\`, Node ${nodeVersion}, ${psqlVersion}.`,
     );
     lignesMd.push("");
     lignesMd.push(
@@ -401,7 +456,7 @@ async function main(): Promise<void> {
     for (const m of mesures) {
       const marge = DUREE_MAXIMALE_MS - m.ms;
       lignesMd.push(
-        `| ${m.regime} | ${m.lignesRetenues} | ${m.ms.toFixed(1)} | ${marge.toFixed(0)} ms |`,
+        `| ${m.regime} | ${m.lignesRetenues} | ${formaterDecimal(m.ms, 1)} | ${formaterDecimal(marge, 0)} ms |`,
       );
     }
     lignesMd.push("");
@@ -410,22 +465,22 @@ async function main(): Promise<void> {
     );
     lignesMd.push("");
     lignesMd.push(
-      `- créations : ${extraCreation.msParLigne.toFixed(4)} ms/ligne, socle ${extraCreation.msSocle.toFixed(1)} ms. ` +
+      `- créations : ${formaterDecimal(extraCreation.msParLigne, 4)} ms/ligne, socle ${formaterDecimal(extraCreation.msSocle, 1)} ms. ` +
         (casseCreation === null
           ? "pente non exploitable (mesures trop plates)."
-          : `casserait DUREE_MAXIMALE_MS vers ${casseCreation.toLocaleString("fr-FR")} lignes (extrapolé, jamais atteint par cette mesure).`),
+          : `casserait DUREE_MAXIMALE_MS vers ${formaterMillier(casseCreation)} lignes (extrapolé, jamais atteint par cette mesure).`),
     );
     lignesMd.push(
-      `- modifications : ${extraModification.msParLigne.toFixed(4)} ms/ligne, socle ${extraModification.msSocle.toFixed(1)} ms. ` +
+      `- modifications : ${formaterDecimal(extraModification.msParLigne, 4)} ms/ligne, socle ${formaterDecimal(extraModification.msSocle, 1)} ms. ` +
         (casseModification === null
           ? "pente non exploitable (mesures trop plates)."
-          : `casserait DUREE_MAXIMALE_MS vers ${casseModification.toLocaleString("fr-FR")} lignes (extrapolé, jamais atteint par cette mesure).`),
+          : `casserait DUREE_MAXIMALE_MS vers ${formaterMillier(casseModification)} lignes (extrapolé, jamais atteint par cette mesure).`),
     );
     lignesMd.push("");
     lignesMd.push(
       `Pour comparaison, ce que le BUDGET théorique de \`allersRetoursApplication\` ` +
         `(lib/imports/delais.ts) prévoit, sous \`LATENCE_PESSIMISTE_MS\` = ${LATENCE_PESSIMISTE_MS} ms : ` +
-        `casse au-delà de ${casseTheorique().toLocaleString("fr-FR")} ` +
+        `casse au-delà de ${formaterMillier(casseTheorique())} ` +
         `lignes retenues (\`allersRetoursApplication(n) × LATENCE_PESSIMISTE_MS ≤ DUREE_MAXIMALE_MS\`).`,
     );
     lignesMd.push("");
