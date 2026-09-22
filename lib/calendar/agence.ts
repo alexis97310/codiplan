@@ -49,9 +49,11 @@ export type FenetreJours = { du: JourLocal; au: JourLocal };
  */
 export type CacheCalendrierAgence = Map<string, Calendrier | null>;
 
-function cleDuCache(
-  parametres: { societeId: string; agenceId: string; fenetre: FenetreJours },
-): string {
+function cleDuCache(parametres: {
+  societeId: string;
+  agenceId: string;
+  fenetre: FenetreJours;
+}): string {
   const { societeId, agenceId, fenetre } = parametres;
   return `${societeId}|${agenceId}|${cleJour(fenetre.du)}|${cleJour(fenetre.au)}`;
 }

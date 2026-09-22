@@ -184,7 +184,9 @@ describe("le dénominateur par technicien ne bouge pas, seul ou mêlé à ses vo
       FENETRE,
       clientApp(),
     );
-    const ligneSolo = solo.find((l) => l.technicienId === AVEC_CALENDRIER_PROPRE);
+    const ligneSolo = solo.find(
+      (l) => l.technicienId === AVEC_CALENDRIER_PROPRE,
+    );
     const ligneGroupe = groupe.find(
       (l) => l.technicienId === AVEC_CALENDRIER_PROPRE,
     );
