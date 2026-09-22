@@ -25,6 +25,13 @@ import {
  * silence qu'une base à jour, ce qui n'est pas la même chose. C'est la doctrine
  * des gardiens du lot 0 appliquée au temps.
  *
+ * **Et zéro territoire n'est plus un zéro FILTRÉ** (FERIES-1, 22/09/2026) :
+ * `agence` est cloisonnée et forcée, et ce contrôle la lisait sans identité
+ * exemptée — sous un rôle hébergé non superutilisateur, il aurait vu zéro et
+ * rougi « aucun territoire » sur une base qui en portait. `lireAgences` prend
+ * désormais l'identité exemptée, ou refuse en le disant : les deux rouges —
+ * base vide, base illisible — ne se ressemblent plus.
+ *
  * **Ce contrôle ne signale plus les agences sans territoire** : il n'en existe
  * plus. `agence.territoire` est NOT NULL depuis L0-09a (D48), et la garantie a
  * changé de nature — d'un rapport nocturne à une contrainte de base.

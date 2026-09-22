@@ -30,6 +30,18 @@ import {
  * pouvoir écrire dans `jour_ferie` — c'est-à-dire être le propriétaire ou un
  * rôle éditeur (D46).
  *
+ * **Et il doit pouvoir LIRE les agences par-dessus le cloisonnement** — être
+ * exempté des politiques (`SUPERUSER`, `BYPASSRLS`) ou membre d'un rôle qui
+ * l'est et lit les tables. `agence` porte `FORCE ROW LEVEL SECURITY` : un rôle
+ * qui n'a rien de tout cela voit ZÉRO agence, sans erreur. Jusqu'à FERIES-1
+ * (22/09/2026), ce script concluait alors « aucun territoire » sur une base qui
+ * en portait — mesuré sur la base de production. Il ne suppose plus le rôle :
+ * `lireAgences` le VÉRIFIE au premier geste et refuse en nommant le rôle, la
+ * base et la variable à alimenter (`scripts/lib/feries.ts`, où l'arbitrage est
+ * écrit ; mécanisme partagé avec l'inventaire, `scripts/lib/identite-exemptee.ts`).
+ * Le refus « Aucun territoire n'est rattaché à une agence » n'a donc plus
+ * qu'UNE cause : la table est réellement vide.
+ *
  * Idempotent : la clé naturelle est le couple (territoire, date).
  */
 
@@ -42,6 +54,9 @@ try {
   const agences = await lireAgences(prisma);
   const etats = await lireHorizons(prisma, agences);
 
+  // Zéro ici est un ZÉRO LU SOUS IDENTITÉ EXEMPTÉE : `lireAgences` aurait
+  // refusé plutôt que de rendre un zéro filtré. La table est vide, et il n'y a
+  // qu'une chose à faire — créer une agence dans l'application.
   if (etats.length === 0) {
     throw new Error(
       "Aucun territoire n'est rattaché à une agence : il n'y a rien à " +

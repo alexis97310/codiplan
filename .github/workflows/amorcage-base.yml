@@ -346,22 +346,28 @@ jobs:
       # `jour_ferie` exige le propriétaire ou un rôle éditeur (D46) — c'est
       # l'URL de migration du flux.
       #
-      # ── CE QUE CE BOUTON NE PEUT PAS ENCORE FAIRE SUR UNE BASE HÉBERGÉE ────
+      # ── CE QUE CE BOUTON NE POUVAIT PAS FAIRE SUR UNE BASE HÉBERGÉE — RÉPARÉ
+      # (FERIES-1, 22/09/2026) ────────────────────────────────────────────────
       # MESURÉ LE 22/09/2026, en rejouant la chaîne sur une base neuve migrée
       # par un propriétaire NON superutilisateur — le rôle de migration tel
-      # qu'un hébergeur le donne : avec UNE agence en base, le script refuse
+      # qu'un hébergeur le donne : avec UNE agence en base, le script refusait
       # « Aucun territoire n'est rattaché à une agence » ; la même base sous
-      # un superutilisateur ajoute 36 fériés. `agence` porte FORCE ROW LEVEL
-      # SECURITY et `lireAgences` (scripts/lib/feries.ts) la lit sans contexte
-      # ni identité exemptée : le propriétaire voit ZÉRO ligne et le script se
-      # croit sans agence — c'est le §9 du 07/09, mot pour mot. Le seul
-      # environnement où le défaut existe est celui que `verify:full` ne joue
-      # jamais (poste et CI : superutilisateur). La réparation est dans le
-      # script — lire les agences sous l'identité exemptée, comme
-      # scripts/inventaire.mts —, hors du territoire d'AMORCAGE-2 ; tant
-      # qu'elle n'est pas faite, ce bouton REFUSE sur l'hébergé même quand une
-      # agence existe, et le résumé le dit plutôt que d'envoyer créer une
-      # agence qui est déjà là.
+      # un superutilisateur ajoutait 36 fériés. `agence` porte FORCE ROW LEVEL
+      # SECURITY et `lireAgences` (scripts/lib/feries.ts) la lisait sans
+      # contexte ni identité exemptée : le propriétaire voyait ZÉRO ligne et
+      # le script se croyait sans agence — le §9 du 07/09, mot pour mot.
+      #
+      # DEPUIS FERIES-1, la lecture prend l'identité exemptée — le rôle
+      # connecté s'il l'est, sinon un rôle exempté dont il est membre, par
+      # SET LOCAL ROLE, EXACTEMENT comme scripts/inventaire.mts à chaque
+      # migration — et REFUSE de conclure à défaut, en nommant le rôle, la
+      # base et la variable. Ce flux n'a donc AUCUNE variable de plus : la
+      # même URL de migration qui permet l'inventaire permet cette lecture.
+      # Rejoué sous un propriétaire non superutilisateur membre d'un rôle
+      # BYPASSRLS : 36 fériés ajoutés. Sans aucune exemption accessible :
+      # « Lecture des agences pour l'horizon des fériés impossible : le rôle
+      # « … » sur la base « … » est soumis aux politiques de cloisonnement »
+      # — et jamais plus un faux « aucun territoire ».
       - name: Étendre l'horizon des jours fériés
         if: ${{ inputs.etendre_feries }}
         env:
@@ -398,5 +404,5 @@ jobs:
             cat /tmp/feries-expurge.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
             echo '```'
             echo
-            echo "« Aucun territoire n'est rattaché à une agence » a DEUX causes, et ce flux ne sait pas laquelle : aucune agence n'existe encore — en créer une dans l'application, puis rejouer ce seul geste — ou bien elle existe et le rôle de migration ne la voit pas (cloisonnement forcé sur « agence », mesuré le 22/09/2026 sur une base neuve, AMORCAGE-2) ; dans ce second cas, le script doit être réparé avant que ce bouton serve, et un terminal sous un rôle exempté reste le seul chemin."
+            echo "« Aucun territoire n'est rattaché à une agence » n'a qu'UNE cause depuis FERIES-1 (22/09/2026) : aucune agence n'existe encore — en créer une dans l'application, puis rejouer ce seul geste. Le cas où elle existe sans que le rôle la voie (cloisonnement forcé sur « agence ») ne se confond plus avec lui : le script refuse alors en nommant le rôle, la base et la variable à alimenter — « … est soumis aux politiques de cloisonnement » —, et le remède est un rôle de migration exempté des politiques ou membre d'un tel rôle, le même que l'inventaire exige à chaque migration."
           } >> "$GITHUB_STEP_SUMMARY"

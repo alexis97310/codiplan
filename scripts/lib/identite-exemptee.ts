@@ -24,6 +24,11 @@ import {
  * l'espace entre les deux, que personne n'habite* (§9, 01/09). Le code est
  * **déplacé, jamais dupliqué** : l'inventaire l'importe désormais d'ici.
  *
+ * Troisième appelant depuis FERIES-1 (22/09/2026) : `scripts/lib/feries.ts`,
+ * qui lit `agence` — cloisonnée, forcée — pour en tirer les TERRITOIRES. Sur la
+ * base hébergée, il voyait zéro agence et concluait « aucun territoire » ; il
+ * prend désormais l'identité ici, et refuse de conclure à défaut.
+ *
  * Purement lecture. Aucun `ALTER TABLE`, aucune levée de `FORCE`, aucune
  * écriture : les invariants ne sont assouplis à aucun moment, pas même le temps
  * d'une transaction. Le `SET LOCAL ROLE` ne modifie rien en base et meurt avec
@@ -32,9 +37,33 @@ import {
 
 type ContexteRole = { role: string; base: string; exempte: boolean };
 
+/**
+ * LE GESTE QUI PREND L'IDENTITÉ, pour que le refus parle de LUI.
+ *
+ * Le mécanisme est unique, ses appelants ne le sont plus : l'inventaire et le
+ * refus automatique lisent sous `MIGRATION_DATABASE_URL`, l'horizon des fériés
+ * sous `HORIZON_DATABASE_URL` (FERIES-1). Un refus qui dirait « Inventaire
+ * impossible » à qui étend les fériés, et l'enverrait alimenter une variable
+ * que son script ne lit pas, serait un diagnostic juste rendu inaudible par un
+ * remède faux (doctrine §6). Le geste se NOMME donc, et nomme sa variable.
+ */
+export type GesteExempte = {
+  /** Ce qui est refusé, au nominatif : « Inventaire », « Lecture des agences ». */
+  nom: string;
+  /** La variable d'environnement que le script lit — celle à alimenter. */
+  variable: string;
+};
+
+/** Le geste historique, celui des deux appelants d'avant FERIES-1. */
+export const GESTE_INVENTAIRE: GesteExempte = {
+  nom: "Inventaire",
+  variable: "MIGRATION_DATABASE_URL",
+};
+
 export function messageAucuneIdentiteExemptee(
   contexte: ContexteRole,
   exemptesSansLecture: readonly string[],
+  geste: GesteExempte = GESTE_INVENTAIRE,
 ): string {
   const cause =
     exemptesSansLecture.length > 0
@@ -44,26 +73,29 @@ export function messageAucuneIdentiteExemptee(
       : "Aucun rôle exempté (SUPERUSER ou BYPASSRLS) ne lui est accessible.";
 
   return (
-    `Inventaire impossible : le rôle « ${contexte.role} » sur la base ` +
+    `${geste.nom} impossible : le rôle « ${contexte.role} » sur la base ` +
     `« ${contexte.base} » est soumis aux politiques de cloisonnement.\n` +
     `${cause}\n` +
-    "Les quatre tables cloisonnées portent FORCE ROW LEVEL SECURITY : leur " +
-    "propriétaire y est soumis comme les autres. Un décompte pris malgré tout " +
-    "serait filtré, donc faux — cette étape refuse de le publier.\n" +
-    "Remède : alimenter MIGRATION_DATABASE_URL avec un rôle exempté des " +
+    "Les tables cloisonnées portent FORCE ROW LEVEL SECURITY : leur " +
+    "propriétaire y est soumis comme les autres. Une lecture prise malgré tout " +
+    "serait filtrée, donc fausse — cette étape refuse de conclure dessus.\n" +
+    `Remède : alimenter ${geste.variable} avec un rôle exempté des ` +
     "politiques ET habilité à lire les tables, ou membre d'un tel rôle. Voir " +
     "docs/decisions/2026-08-20-inventaire-et-controle-de-cloisonnement.md."
   );
 }
 
-export function messageDecompteFiltre(identite: IdentiteInventaire): string {
+export function messageDecompteFiltre(
+  identite: IdentiteInventaire,
+  geste: GesteExempte = GESTE_INVENTAIRE,
+): string {
   return (
-    `Inventaire impossible : PostgreSQL a refusé une lecture non filtrée sous ` +
+    `${geste.nom} impossible : PostgreSQL a refusé une lecture non filtrée sous ` +
     `l'identité « ${identite.identite_exemptee} » (rôle connecté ` +
     `« ${identite.role_connecte} », base « ${identite.base} »).\n` +
     "C'est le filet `row_security = off` qui a joué : cette identité est " +
-    "finalement soumise à au moins une politique, le décompte aurait donc été " +
-    "filtré. Aucun inventaire n'est publié."
+    "finalement soumise à au moins une politique, la lecture aurait donc été " +
+    "filtrée. Rien n'est publié, rien n'est conclu."
   );
 }
 
@@ -73,6 +105,7 @@ export function messageDecompteFiltre(identite: IdentiteInventaire): string {
  */
 export async function prendreIdentiteExemptee(
   tx: Prisma.TransactionClient,
+  geste: GesteExempte = GESTE_INVENTAIRE,
 ): Promise<IdentiteInventaire> {
   const contextes = await tx.$queryRawUnsafe<ContexteRole[]>(`
     SELECT
@@ -138,6 +171,7 @@ export async function prendreIdentiteExemptee(
       messageAucuneIdentiteExemptee(
         contexte,
         candidats.map((role) => role.role),
+        geste,
       ),
     );
   }
