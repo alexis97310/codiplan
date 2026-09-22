@@ -1,0 +1,23 @@
+{
+  "commit": "88e96297bb127a4fd1db041ffaf9787f8bbffde9",
+  "horodatage": "2026-09-22T09:08:52.130Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "ecrans": {
+    "tableau_de_bord": {
+      "tuile_vgp": "VGP À PRÉVOIR 1 1 échéance dépassée · 0 à venir sous 30 jours · 1 sans information"
+    },
+    "vgp": {
+      "depassee": {
+        "machine": "NUS-SPL-2022-0007",
+        "ton": "rouge",
+        "libelle": "Échéance dépassée"
+      },
+      "lointaine": {
+        "machine": "RAV-KPX-2019-0148",
+        "ton": "vert",
+        "libelle": "Information reçue"
+      }
+    }
+  }
+}

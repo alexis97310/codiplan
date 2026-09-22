@@ -1,0 +1,28 @@
+{
+  "commit": "d9c94462df24f4943742ea98adc9486b15483d74",
+  "horodatage": "2026-09-22T08:54:46.362Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "ecrans": {
+    "tableau_de_bord": {
+      "tuile_vgp": "VGP À PRÉVOIR 0 Dans les 30 prochains jours"
+    },
+    "vgp": {
+      "depassee": {
+        "machine": "NUS-SPL-2022-0007",
+        "ton": "vert",
+        "libelle": "Information reçue"
+      },
+      "lointaine": {
+        "machine": "RAV-KPX-2019-0148",
+        "ton": "vert",
+        "libelle": "Information reçue"
+      }
+    }
+  },
+  "horodatages": {
+    "tableau_de_bord": "2026-09-22T08:54:46.362Z",
+    "vgp": "2026-09-22T08:56:04.410Z"
+  },
+  "note": "Deux passages du spec sur le code d'AVANT le lot (d9c9446) : le premier rougit sur le tableau de bord et, en mode série, n'ouvre pas le registre ; le second (-g REGISTRE) rougit sur le registre. Les captures ont été prises avant les assertions."
+}
