@@ -24,8 +24,28 @@ import {
   cleMachineDepuis,
   type ModeleDImport,
 } from "@/lib/excel/controle";
-import { type Cellule, typeAnnonce } from "@/lib/excel/format";
+import {
+  analyserMarqueur,
+  codeDuMarqueur,
+  lireDate,
+  lireNombre,
+  type Cellule,
+  type CodeAnomalie,
+  typeAnnonce,
+} from "@/lib/excel/format";
 import { schemaPrestation } from "@/lib/prestations/saisie";
+
+import { type Devise, uniteParDevise } from "@/lib/money";
+
+import { type DetailDeSite } from "./parc-cibles";
+import { deviseNonLue } from "./parc-societe";
+import {
+  type ParcMachines,
+  type Rattachement,
+  rattacherLaMachine,
+  schemaLigneHistorique,
+  type LigneHistorique,
+} from "./reprise";
 
 /**
  * LES GABARITS D'IMPORT QUE CODIPLAN PUBLIE (L1-09a ; D31, RG-IMP-05).
@@ -436,6 +456,19 @@ export function cleDuModele(marque: string, reference: string): string {
 /** La clé d'une prestation : son code seul, que la base tient par un index. */
 export function cleDeLaPrestation(code: string): string {
   return `PRESTATION-${normaliserRaisonSociale(code)}`;
+}
+
+/**
+ * La clé d'une ligne d'historique : son N° DOCUMENT seul (REPRISE-HISTORIQUE).
+ *
+ * *1 996 valeurs distinctes sur 1 996 lignes, mesuré le 22/09/2026* : le numéro
+ * est une clé parce que l'outil tiers le garantit — et la base ne le porte
+ * nulle part, si bien que c'est `import_lot_ligne.cle` qui le tient
+ * (`indexerLeParcHistorique`). La normalisation est celle des autres clés :
+ * la GRAPHIE seulement, jamais le numéro.
+ */
+export function cleDuDocument(numero: string): string {
+  return `HISTORIQUE-${normaliserRaisonSociale(numero)}`;
 }
 
 /**
@@ -1103,21 +1136,26 @@ export const CHAMPS_EQUIPEMENTS_ECARTES: Readonly<Record<string, string>> = {
     "exposé par « Numéro de série », mais DÉRIVÉ de la clé de rapprochement (D6)",
   reference_interne:
     "exposé par « Référence interne », et lu par la même clé que le numéro de série",
-  // *Mesuré le 16/09/2026, dans `lib/excel/controle.ts` :* `texte()` lit
+  // *Mesuré le 16/09/2026, dans `lib/excel/controle.ts` :* `texte()` lisait
   // `cellule.texte` puis `cellule.nombre`, et une cellule de DATE ne porte ni
-  // l'un ni l'autre — elle porte `serie`. Le dictionnaire de ligne rend donc
-  // `undefined` pour toute date, **et aucun des cinq gabarits existants n'expose
-  // de colonne de date** : ce n'est pas un oubli de celui-ci, c'est une borne de
-  // la grammaire. *Exposer la colonne quand même ferait une case que le client
-  // remplit et que personne ne lit* — le pire des deux mondes.
-  // **Condition de levée, vérifiable :** le jour où le dictionnaire de ligne
-  // rendra une date.
+  // l'un ni l'autre — elle porte `serie`. Le dictionnaire de ligne rendait donc
+  // `undefined` pour toute date, et la condition de levée était écrite : *« le
+  // jour où le dictionnaire de ligne rendra une date »*.
+  //
+  // **CE JOUR EST ARRIVÉ le 22/09/2026** (REPRISE-HISTORIQUE) : le dictionnaire
+  // rend `JJ/MM/AAAA`, et le gabarit de l'historique lit une date. Ces trois
+  // colonnes restent ÉCARTÉES pour une autre raison, écrite plutôt que tue :
+  // les exposer demande de les LIRE (`lireDate`), de les ÉCRIRE
+  // (`schemaMachine` attend un `Date`) et de les COMPARER à l'annulation — un
+  // ticket du gabarit des équipements, pas de celui qui a levé la borne.
+  // **Condition de levée, vérifiable :** un ticket sur ce gabarit qui appelle
+  // `lireDate` sur ces trois colonnes et éprouve leur annulation.
   date_mise_en_service:
-    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
   date_vente:
-    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
   garantie_fin:
-    "le dictionnaire de ligne ne rend aucune date : `texte()` ne lit pas `serie` (mesuré)",
+    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
   // *Un nombre dont la signification dépend d'une autre colonne ne voyage
   // jamais seul* (D56), et une référence de facture sans sa date de vente ni sa
   // fin de garantie est exactement cela : une trace qu'on ne peut pas dater.
@@ -1326,6 +1364,339 @@ export function modeleEquipements(
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+ * LE GABARIT « HISTORIQUE » — l'archive SAV, reprise close (REPRISE-HISTORIQUE ; D127)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * LE HUITIÈME GABARIT, ET LE PREMIER QUI ÉCRIT UN FAIT PASSÉ.
+ *
+ * ## Ce qu'il est, mesuré et non supposé
+ *
+ * Sept gabarits publiaient des RÉFÉRENTIELS ; aucun ne portait l'historique
+ * des interventions, et l'exploitation avait **1 996 lignes d'archive SAV**
+ * prêtes, aux dix colonnes ci-dessous — mesurées sur le classeur réel le
+ * 22/09/2026, jamais supposées (I9 : le fichier n'entre pas au dépôt, le
+ * gabarit si). Ce qui a été mesuré, et ce que chaque mesure impose :
+ *
+ * | Mesure | Ce qu'elle impose |
+ * |---|---|
+ * | `N° document` : **1 996 distincts sur 1 996** | c'est la CLÉ ; un second dépôt du même fichier ne duplique rien |
+ * | 34 lignes sans code client, **toutes** avec une raison sociale | `cleDeClient` (RG-IMP-05) les sert entièrement — **aucune seconde règle** |
+ * | **1 496 sur 1 996** sans n° de série | la machine est FACULTATIVE, et « non rattachée » est une issue, jamais un rejet |
+ * | 1 965 FACTURE, 31 AVOIR | le type de document est un texte gardé tel quel — aucune liste close n'existe au schéma pour lui (doctrine §5) |
+ * | dates en texte ISO dans le classeur d'origine | REFUSÉES `date_format` : le fichier remis a été converti en vraies dates, la grammaire n'est pas assouplie |
+ *
+ * ## Ce que ce gabarit ÉCRIT, et ce qu'il ne peut pas écrire
+ *
+ * Il écrit une intervention `cloturee`, `facturee`, de type `curatif`, sans
+ * temps, avec sa date, son client, son site, son agence, son montant — et
+ * zéro ou une machine (`lib/imports/reprise.ts` porte les trois faits de
+ * l'arbitrage et le choix du type, avec leurs motifs). **Cinq colonnes n'ont
+ * aucune arrivée sur `intervention`** — type et n° de document, référence OR,
+ * technicien, objet — et vivent dans `import_lot_ligne.valeurs` : c'est écrit
+ * au schéma de la ligne, pas tu. *Une migration est un arbitrage.*
+ *
+ * ## LE SITE, quand la ligne ne le nomme pas — la seule règle que ce gabarit pose
+ *
+ * `intervention.site_id` est `NOT NULL` et la colonne « Site » est
+ * facultative, mesurée. Quand elle est vide : **si le client n'a qu'UN site,
+ * c'est lui** — le seul possible, le même raisonnement que le rang 2 de D127,
+ * *une conjonction qui n'en désigne qu'une* ; **s'il en a plusieurs, ou
+ * aucun, la ligne est REJETÉE** `site_indetermine` — elle ne dit pas où, et
+ * deviner attribuerait une visite à un lieu. Aucune ressemblance, aucun
+ * « site principal » : la base ne connaît pas cette notion.
+ * **Condition de réouverture, vérifiable :** une règle du chapitre 10 qui dit
+ * quel site une ligne d'archive sans site désigne.
+ */
+export const COLONNES_HISTORIQUE = {
+  date: "Date",
+  typeDocument: "Type de document",
+  numeroDocument: "N° document",
+  client: "Client (code ou raison sociale)",
+  site: "Site (libellé)",
+  machine: "Machine (n° de série)",
+  referenceOr: "Référence OR",
+  technicien: "Technicien",
+  objet: "Objet de l'intervention",
+  montant: "Montant HT (XPF)",
+} as const;
+
+/** Les colonnes recopiées TELLES QUELLES dans un champ du schéma de la ligne. */
+export const CHAMPS_HISTORIQUE: Readonly<Record<string, string>> = {
+  [COLONNES_HISTORIQUE.typeDocument]: "type_document",
+  [COLONNES_HISTORIQUE.numeroDocument]: "numero_document",
+  [COLONNES_HISTORIQUE.referenceOr]: "reference_or",
+  // **UN TEXTE, jamais une clé vers `technicien`** : les prénoms de l'archive
+  // ne sont pas des comptes de la plateforme.
+  [COLONNES_HISTORIQUE.technicien]: "technicien",
+  // Un texte libre, et il le RESTE : *aucun `TypeIntervention` ne se déduit
+  // d'un texte libre par ressemblance* (D127).
+  [COLONNES_HISTORIQUE.objet]: "objet",
+};
+
+/**
+ * Les champs du schéma de la ligne que le gabarit n'expose pas TELS QUELS —
+ * chacun avec la colonne qui le porte et la lecture qui le traduit.
+ */
+export const CHAMPS_HISTORIQUE_ECARTES: Readonly<Record<string, string>> = {
+  date: "exposée par « Date », lue par `lireDate` — sérial de tableur ou JJ/MM/AAAA, rien d'autre (D31)",
+  client_id:
+    "résolu depuis « Client (code ou raison sociale) », par `cleDeClient` (RG-IMP-05), jamais saisi (I10)",
+  site_id:
+    "résolu depuis « Site (libellé) » par le couple (client, libellé) ; à défaut, le SEUL site du client",
+  agence_id:
+    "déduite du site, jamais saisie (D56) — comme pour toute intervention",
+  machine_id:
+    "rapprochée depuis « Machine (n° de série) » par les trois rangs de D127 ; nulle au rang 3, jamais créée",
+  montant_ht:
+    "exposé par « Montant HT (XPF) », lu comme un nombre ENTIER dans l'unité de la devise (I3), jamais converti (I2)",
+  devise_code:
+    "celle de la société, posée avec le montant — la colonne est en XPF, et une autre devise refuse la colonne (I2)",
+};
+
+/** Les motifs propres à ce gabarit — des CODES, les libellés sont au dictionnaire. */
+export const MOTIF_SITE_INDETERMINE = "site_indetermine";
+export const MOTIF_DOCUMENT_DEJA_REPRIS = "document_deja_repris";
+export const MOTIF_MONTANT_ILLISIBLE = "montant_illisible";
+export const MOTIF_MONTANT_DEVISE = "montant_devise";
+
+export type RepriseALecrire =
+  | {
+      readonly prete: true;
+      readonly saisie: LigneHistorique;
+      readonly rattachement: Rattachement;
+    }
+  | { readonly prete: false; readonly motif: string };
+
+/**
+ * LE MONTANT, LU PAR LA GRAMMAIRE DES NOMBRES — et rien de plus tolérant.
+ *
+ * Le dictionnaire de ligne a effacé la différence entre une cellule
+ * NUMÉRIQUE (`12500`, rendue `"12500"`) et un texte : `lireNombre({ texte })`
+ * les lit toutes deux par la forme de D31 — virgule décimale, aucun
+ * séparateur de milliers —, et un entier de francs n'a ni l'une ni l'autre.
+ * *Ce qui ne se lit pas ainsi ne se devine pas.* Rend `null` pour une
+ * cellule vide, le montant en bigint sinon, ou le motif.
+ */
+function lireLeMontant(
+  brut: string | undefined,
+  devise: Devise,
+):
+  | { readonly ok: true; readonly montant: bigint | null }
+  | { readonly ok: false; readonly motif: string } {
+  const texte = brut?.trim();
+  if (texte === undefined || texte === "") {
+    return { ok: true, montant: null };
+  }
+  const lu = lireNombre({ texte });
+  if (!lu.ok) {
+    return { ok: false, motif: MOTIF_MONTANT_ILLISIBLE };
+  }
+  // I3 : jamais plus de décimales que la devise n'en admet. **Le calcul est
+  // celui de `lib/money`** — `uniteParDevise`, seul point du dépôt où la
+  // puissance de dix se calcule — et il se fait en entiers : les chiffres lus,
+  // portés à l'unité la plus fine, doivent tomber juste. `12,5` sous XPF ne
+  // tombe pas juste ; il n'est pas arrondi, il refuse.
+  const diviseur = BigInt(10) ** BigInt(lu.valeur.decimales);
+  const porte = lu.valeur.chiffres * uniteParDevise(devise);
+  if (porte % diviseur !== BigInt(0)) {
+    return { ok: false, motif: MOTIF_MONTANT_ILLISIBLE };
+  }
+  // La colonne est libellée en XPF ; une société qui tient ses comptes dans
+  // une autre devise ne peut pas la recevoir sans conversion — refusée (I2).
+  if (devise.code !== "XPF") {
+    return { ok: false, motif: MOTIF_MONTANT_DEVISE };
+  }
+  return { ok: true, montant: porte / diviseur };
+}
+
+/**
+ * LA DATE, RELUE PAR LA GRAMMAIRE depuis le texte que le dictionnaire rend.
+ *
+ * Le dictionnaire a rendu `JJ/MM/AAAA` pour une vraie date de tableur, et le
+ * texte brut pour tout le reste — l'ISO du classeur d'origine, une faute de
+ * frappe, un sérial fractionnaire. `lireDate` juge ; le CODE d'anomalie
+ * devient le motif de rejet de la ligne, et le dictionnaire le libelle.
+ */
+function lireLaDate(
+  brut: string | undefined,
+):
+  | { readonly ok: true; readonly date: Date | null }
+  | { readonly ok: false; readonly motif: CodeAnomalie } {
+  const texte = brut?.trim();
+  if (texte === undefined || texte === "") {
+    // L'absence est jugée par le schéma (`z.date()` refuse `undefined`), sous
+    // `saisie_refusee` — la correction est dans le fichier.
+    return { ok: true, date: null };
+  }
+  const lue = lireDate({ texte });
+  return lue.ok
+    ? { ok: true, date: lue.valeur }
+    : { ok: false, motif: lue.anomalie.code };
+}
+
+/**
+ * CE QU'UNE LIGNE D'HISTORIQUE DÉSIGNE, RÉSOLU UNE SEULE FOIS — le contrôle,
+ * l'application, l'annulation et le rapport lisent la MÊME fonction (§9, 01/09).
+ *
+ * **L'ordre des refus est une décision, et il se lit** : le document déjà
+ * repris d'abord — *rien d'autre ne mérite d'être corrigé sur une ligne qui
+ * n'entrera pas* —, puis le client, le site, la date, le montant, et le
+ * schéma en dernier. Chaque motif dit où corriger : le parc, le fichier, ou
+ * nulle part.
+ *
+ * **La machine ne refuse JAMAIS** : son rattachement est rendu à côté de la
+ * saisie, pour que le rapport le compte par rang.
+ */
+export function preparerUneReprise(
+  parcs: ParcsDImport,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): RepriseALecrire {
+  const numero = valeurs[COLONNES_HISTORIQUE.numeroDocument]?.trim();
+  if (
+    numero !== undefined &&
+    numero !== "" &&
+    parcs.historique.fiches.has(cleDuDocument(numero))
+  ) {
+    return { prete: false, motif: MOTIF_DOCUMENT_DEJA_REPRIS };
+  }
+
+  const client = clientDesignePar(
+    parcs.clients,
+    valeurs[COLONNES_HISTORIQUE.client],
+  );
+  if (client === undefined) {
+    return { prete: false, motif: MOTIF_CLIENT_INTROUVABLE };
+  }
+
+  const site = siteDeLaReprise(
+    parcs,
+    client,
+    valeurs[COLONNES_HISTORIQUE.site],
+  );
+  if (!site.ok) {
+    return { prete: false, motif: site.motif };
+  }
+
+  const date = lireLaDate(valeurs[COLONNES_HISTORIQUE.date]);
+  if (!date.ok) {
+    return { prete: false, motif: date.motif };
+  }
+
+  const montant = lireLeMontant(
+    valeurs[COLONNES_HISTORIQUE.montant],
+    parcs.devise,
+  );
+  if (!montant.ok) {
+    return { prete: false, motif: montant.motif };
+  }
+
+  const rattachement = rattacherLaMachine(
+    valeurs[COLONNES_HISTORIQUE.machine],
+    client,
+    parcs.machines,
+  );
+
+  const saisie = schemaLigneHistorique.safeParse({
+    ...saisieDepuisLaLigne(valeurs, CHAMPS_HISTORIQUE),
+    // `null` explicite pour les facultatifs vides : le schéma les porte
+    // `.nullable().default(null)`, et une clé absente y suffit aussi — mais
+    // les nommer rend la ligne lisible.
+    reference_or: valeurs[COLONNES_HISTORIQUE.referenceOr]?.trim() || null,
+    technicien: valeurs[COLONNES_HISTORIQUE.technicien]?.trim() || null,
+    // `undefined` quand la date manque : `z.date()` refuse, et c'est
+    // `saisie_refusee` — la correction est dans le fichier.
+    ...(date.date === null ? {} : { date: date.date }),
+    client_id: client,
+    site_id: site.siteId,
+    agence_id: site.agenceId,
+    machine_id: "machineId" in rattachement ? rattachement.machineId : null,
+    montant_ht: montant.montant,
+    devise_code: montant.montant === null ? null : parcs.devise.code,
+  });
+  return saisie.success
+    ? { prete: true, saisie: saisie.data, rattachement }
+    : { prete: false, motif: MOTIF_SAISIE_REFUSEE };
+}
+
+/** Le site d'une ligne d'historique — nommé, ou le seul du client. */
+function siteDeLaReprise(
+  parcs: ParcsDImport,
+  clientId: string,
+  libelle: string | undefined,
+):
+  | { readonly ok: true; readonly siteId: string; readonly agenceId: string }
+  | { readonly ok: false; readonly motif: string } {
+  const nomme = libelle?.trim();
+  if (nomme !== undefined && nomme !== "") {
+    const siteId = parcs.sites.fiches.get(cleDuSite(clientId, nomme));
+    const detail =
+      siteId === undefined ? undefined : parcs.sitesDetails.get(siteId);
+    return siteId === undefined || detail === undefined
+      ? { ok: false, motif: MOTIF_SITE_INTROUVABLE }
+      : { ok: true, siteId, agenceId: detail.agenceId };
+  }
+  const duClient = [...parcs.sitesDetails].filter(
+    ([, detail]) => detail.clientId === clientId,
+  );
+  const seul = duClient[0];
+  if (duClient.length !== 1 || seul === undefined) {
+    return { ok: false, motif: MOTIF_SITE_INDETERMINE };
+  }
+  return { ok: true, siteId: seul[0], agenceId: seul[1].agenceId };
+}
+
+/**
+ * LE GABARIT « HISTORIQUE » — le N° document identifie, et lui seul.
+ *
+ * **Le client et l'objet sont identifiants avec lui**, pour la raison des
+ * équipements : une ligne qui nomme un client et décrit un travail sans
+ * porter de numéro est une DONNÉE qui manque de sa clé — refusée
+ * bruyamment —, jamais un reste de gabarit compté en silence.
+ *
+ * **`complet` vaut `true`** (forme « serie ») : la clé est un vrai numéro,
+ * jamais reconstituée.
+ * Le rattachement de la machine n'y est pas encodé — *un drapeau ne porte pas
+ * trois rangs* —, il se lit par `preparerUneReprise`, comme le rapport le fait.
+ */
+export function modeleHistorique(parcs: ParcsDImport): ModeleDImport {
+  return {
+    type: "historique",
+    version: 1,
+    colonnes: [
+      { nom: COLONNES_HISTORIQUE.date, obligatoire: true },
+      { nom: COLONNES_HISTORIQUE.typeDocument, obligatoire: true },
+      { nom: COLONNES_HISTORIQUE.numeroDocument, obligatoire: true },
+      { nom: COLONNES_HISTORIQUE.client, obligatoire: true },
+      { nom: COLONNES_HISTORIQUE.site, obligatoire: false },
+      { nom: COLONNES_HISTORIQUE.machine, obligatoire: false },
+      { nom: COLONNES_HISTORIQUE.referenceOr, obligatoire: false },
+      { nom: COLONNES_HISTORIQUE.technicien, obligatoire: false },
+      { nom: COLONNES_HISTORIQUE.objet, obligatoire: true },
+      { nom: COLONNES_HISTORIQUE.montant, obligatoire: false },
+    ],
+    identifiantes: [
+      COLONNES_HISTORIQUE.numeroDocument,
+      COLONNES_HISTORIQUE.client,
+      COLONNES_HISTORIQUE.objet,
+    ],
+    cle: (valeurs, rang) => {
+      const numero = valeurs[COLONNES_HISTORIQUE.numeroDocument]?.trim();
+      if (numero === undefined || numero === "") {
+        return { forme: "rang", cle: `LIGNE-${rang}`, complet: false };
+      }
+      // La forme « serie » est celle d'une clé COMPLÈTE — le code externe d'un
+      // client la prend aussi (`cleDeClient`) : *ce qui identifie vraiment*.
+      return { forme: "serie", cle: cleDuDocument(numero), complet: true };
+    },
+    valider: (valeurs) => {
+      const prepare = preparerUneReprise(parcs, valeurs);
+      return prepare.prete ? null : prepare.motif;
+    },
+  };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
  * LES GABARITS QUE CODIPLAN PUBLIE, ÉNUMÉRÉS UNE SEULE FOIS (R6-01)
  * ──────────────────────────────────────────────────────────────────────── */
 
@@ -1360,6 +1731,20 @@ export type ParcsDImport = {
    */
   readonly sites: ParcDesFiches;
   readonly modeles: ParcDesFiches;
+  /**
+   * CE QUE LE GABARIT DE L'HISTORIQUE DEMANDE EN PLUS (REPRISE-HISTORIQUE).
+   *
+   * Les détails des sites — client et agence de chacun —, pour résoudre le
+   * SEUL site d'un client quand la ligne n'en nomme aucun ; les machines par
+   * série avec leur client, pour les trois rangs de D127 ; les documents déjà
+   * repris, pour que la clé ne duplique rien ; et la devise de la société,
+   * pour lire un montant sans le convertir (I2, I3). **Aucun n'a de défaut** :
+   * un parc oublié ferait de chaque document une création, en silence.
+   */
+  readonly sitesDetails: ReadonlyMap<string, DetailDeSite>;
+  readonly machines: ParcMachines;
+  readonly historique: ParcDesFiches;
+  readonly devise: Devise;
 };
 
 /**
@@ -1376,7 +1761,7 @@ export type ParcDesFiches = {
 };
 
 /**
- * LES SEPT GABARITS, CONSTRUITS ENSEMBLE.
+ * LES HUIT GABARITS, CONSTRUITS ENSEMBLE — sept référentiels, et l'historique.
  *
  * **Jusqu'à R6-01, aucune liste ne les réunissait** : la route de contrôle
  * nommait `MODELE_CLIENTS` et elle seule, si bien que les quatre autres
@@ -1397,6 +1782,7 @@ export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
     modelePrestations(parcs.familles),
     MODELE_FAMILLES,
     modeleEquipements(parcs.clients, parcs.sites, parcs.modeles),
+    modeleHistorique(parcs),
   ];
 }
 
@@ -1440,4 +1826,39 @@ export const TYPES_PUBLIES: readonly string[] = gabaritsPublies({
   familles: { parCode: new Map() },
   sites: { fiches: new Map() },
   modeles: { fiches: new Map() },
+  sitesDetails: new Map(),
+  machines: { parSerie: new Map() },
+  historique: { fiches: new Map() },
+  // Aucune devise n'a été lue, et celle-ci le dit en LEVANT si on la lit :
+  // un zéro écrit ici serait un nombre de décimales en dur (I3).
+  devise: deviseNonLue(),
 }).map((modele) => modele.type);
+
+/**
+ * LE REFUS D'UN MARQUEUR QU'AUCUN GABARIT NE LIT (REPRISE-HISTORIQUE).
+ *
+ * `gabaritDuMarqueur` rend `null` sans dire pourquoi, et la route rendait
+ * alors `marqueur_autre_type` — *« vérifiez le type d'import choisi »*. **Il
+ * n'y a aucun type à choisir** (D31 : le marqueur décide), et le message a
+ * fait chercher au mauvais endroit, mesuré en production le 22/09/2026 sur le
+ * fichier même que ce ticket rend lisible.
+ *
+ * Deux situations, deux gestes : un marqueur LISIBLE dont le type n'est
+ * publié par personne — *cette version ne sait pas encore l'importer, il n'y
+ * a rien à corriger* — rend le code NEUF, avec le type qu'il annonce ; une
+ * cellule qui n'est pas un marqueur lisible garde le refus que la GRAMMAIRE
+ * prononce (`analyserMarqueur`, contre un type vide qu'aucun fichier ne peut
+ * porter — les trois premiers états ne dépendent pas de l'attendu), et il
+ * n'est pas rejugé ici.
+ */
+export function refusSansGabarit(cellule: Cellule | undefined): {
+  readonly code: CodeAnomalie;
+  readonly type?: string;
+} {
+  const type = typeAnnonce(cellule);
+  if (type !== null) {
+    return { code: "marqueur_type_inconnu", type };
+  }
+  const marqueur = analyserMarqueur(cellule, { type: "", version: 1 });
+  return { code: codeDuMarqueur(marqueur) ?? "marqueur_illisible" };
+}

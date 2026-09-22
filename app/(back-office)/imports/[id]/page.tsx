@@ -10,10 +10,17 @@ import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { lireLeLot } from "@/lib/imports/depot";
+import { indexerLesParcs } from "@/lib/imports/parcs";
+import { decompterLesRattachements } from "@/lib/imports/rapport-historique";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_TON } from "@/lib/theme/statuts";
 
-import { coordonneesDuLot, lignesDeResultat } from "../presentation";
+import {
+  cleDuMotifDeRattachement,
+  coordonneesDuLot,
+  lignesDeRattachement,
+  lignesDeResultat,
+} from "../presentation";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
 import { cleDuMotif, cleDuStatut, tonDuMotif } from "../types";
@@ -125,6 +132,35 @@ export default async function PageLotDImport({
   ];
 
   const resultat = lignesDeResultat(lot.decomptes);
+
+  // LES COMPTES PAR RANG D'UN LOT D'HISTORIQUE (REPRISE-HISTORIQUE, D127). Ils
+  // ne sont pas en base — le rattachement n'est pas une action, et une ligne
+  // non rattachée ENTRE —, et ils se lisent par la fonction même que
+  // l'application appellera (`decompterLesRattachements`, qui appelle
+  // `preparerUneReprise`) : *ce n'est pas un recalcul, c'est la même lecture,
+  // faite au moment où l'humain regarde* — l'annulation reconstitue de la
+  // même façon. Les parcs ne sont lus que pour ce type : les sept autres
+  // n'ont rien à rattacher.
+  const rattachements =
+    lot.typeImport === "historique"
+      ? decompterLesRattachements(
+          lot.lignes.map((ligne) => ({
+            rang: ligne.rang,
+            action: ligne.action,
+            valeurs: ligne.valeurs as Record<string, string | undefined>,
+          })),
+          await indexerLesParcs(session.contexte),
+        )
+      : null;
+  const colonnesRattachement = [
+    { cle: "ligne", libelle: t("imports.colonne_ligne"), largeur: "90px" },
+    {
+      cle: "serie",
+      libelle: t("imports.rattachement.colonne_serie"),
+      largeur: "260px",
+    },
+    { cle: "motif", libelle: t("imports.colonne_motif") },
+  ];
   // **Le type est lu sur le LOT, jamais sur le fichier ni sur l'écran** : c'est
   // `import_lot.type_import`, que le contrôle y a posé. Et la réponse vient de
   // la MÊME table que celle que la route consulte — *deux lectures d'un même
@@ -185,6 +221,58 @@ export default async function PageLotDImport({
           ))}
         </ul>
       </section>
+
+      {rattachements === null ? null : (
+        <section
+          data-rattachements="historique"
+          className="bg-app-surface border-app-bord rounded-lg border"
+        >
+          <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">
+            <h2 className="text-[14px] font-bold">
+              {t("imports.rattachement_titre")}
+            </h2>
+            <span className="text-app-encre-faible text-[11.5px]">
+              {t("imports.rattachement_aide")}
+            </span>
+          </div>
+          <ul className="flex flex-col gap-2 px-4 py-3.5">
+            {lignesDeRattachement(rattachements).map((entree) => (
+              <li
+                key={entree.cle}
+                data-rattachement={entree.cle}
+                className="flex flex-wrap items-baseline gap-3 text-[13px]"
+              >
+                <span className="w-[150px] font-semibold">
+                  {t(entree.libelle)}
+                </span>
+                <span className="w-[60px] text-right font-extrabold">
+                  {entree.valeur}
+                </span>
+                <span className="text-app-encre-faible text-[11.5px]">
+                  {t(entree.detail)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Tableau colonnes={colonnesRattachement} minimum="640px">
+            {rattachements.nonRattachees.length === 0 ? (
+              <LignePleine colonnes={colonnesRattachement.length}>
+                {t("imports.rattachement.aucune")}
+              </LignePleine>
+            ) : (
+              rattachements.nonRattachees.map((ligne) => (
+                <tr key={ligne.rang} data-non-rattachee={ligne.rang}>
+                  <Cellule droite mono>
+                    {ligne.rang}
+                  </Cellule>
+                  <Cellule mono>{ligne.serie}</Cellule>
+                  <Cellule>{t(cleDuMotifDeRattachement(ligne.motif))}</Cellule>
+                </tr>
+              ))
+            )}
+          </Tableau>
+        </section>
+      )}
 
       <section className="bg-app-surface border-app-bord rounded-lg border">
         <div className="border-app-bord flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-3">

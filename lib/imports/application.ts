@@ -26,6 +26,7 @@ import {
 } from "@/lib/materiel/saisie";
 import { creerMachinesEnLot, modifierMachineDans } from "@/lib/machines/depot";
 import { schemaMachine, type SaisieMachine } from "@/lib/machines/saisie";
+import { creerInterventionsRepriseEnLot } from "@/lib/interventions/depot-reprise";
 import {
   creerPrestationsEnLot,
   modifierPrestationDans,
@@ -46,9 +47,12 @@ import {
   preparerUnModele,
   preparerUnePrestation,
   preparerUneFamille,
+  preparerUneReprise,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
+import { indexerLesParcs } from "./parcs";
+import { type LigneHistorique } from "./reprise";
 import { indexerLesAgences } from "./parc-agences";
 import { indexerLesFamilles } from "./parc-familles";
 import { indexerLeParcClients } from "./parc-clients";
@@ -1172,6 +1176,70 @@ export async function appliquerLeLotDeEquipements(
         return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
       },
       modifierUn: modifierMachineDans,
+    },
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * L'HISTORIQUE — l'archive SAV, reprise close (REPRISE-HISTORIQUE ; D127)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Applique un lot d'HISTORIQUE — des interventions CLOSES, jamais modifiées.
+ *
+ * **Il n'y a pas de MODIFICATION possible, et c'est la base qui le dit** :
+ * `intervention_cycle_de_vie` refuse tout `UPDATE` d'une intervention
+ * `cloturee` qui ne l'annule pas. Le contrôle le sait déjà — un document
+ * déjà repris est REJETÉ `document_deja_repris` (`preparerUneReprise`, en
+ * premier) —, si bien qu'aucune ligne « modification » n'atteint cette
+ * fonction. Si le parc en portait une quand même (deux lots contrôlés avant
+ * que l'un s'applique), `preparerModification` la laisse en l'état : *une
+ * fiche qu'on ne peut pas modifier n'est pas une fiche qu'on modifie un peu.*
+ *
+ * **Les parcs sont ceux de `indexerLesParcs`, la fonction même que la route
+ * a lue** — et `preparerUneReprise` la fonction même que le contrôle a
+ * appelée : le site résolu, la machine rattachée, le montant lu sont ceux que
+ * l'humain a validés, sauf si le parc a bougé depuis, auquel cas la ligne est
+ * laissée en l'état comme partout ailleurs dans ce fichier.
+ *
+ * `champsComparaison` est vide : rien n'est comparé puisque rien n'est
+ * modifié — une liste vide est une affirmation lisible, pas un oubli.
+ */
+export async function appliquerLeLotDeHistorique(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatApplication> {
+  const parcs = await indexerLesParcs(contexte, client);
+
+  return appliquerLesLignes<LigneHistorique, Record<string, unknown>>(
+    contexte,
+    lotId,
+    client,
+    {
+      entite: "intervention",
+      champsComparaison: [],
+      preparerCreation: (ligne) => {
+        const prepare = preparerUneReprise(parcs, ligne.valeurs);
+        // Le parc a bougé : le client ou le site n'existe plus, ou — cas
+        // propre à ce type — le document a été repris par un AUTRE lot
+        // appliqué entre le contrôle et cette validation. *Ce n'est pas une
+        // erreur du fichier*, et la ligne reste en l'état.
+        if (!prepare.prete) return { prete: false };
+        return { prete: true, id: uuidv7(), donnees: prepare.saisie };
+      },
+      preparerModification: () => ({ prete: false }),
+      creerEnLot: (tx, societeId, lignes) =>
+        creerInterventionsRepriseEnLot(
+          tx,
+          societeId,
+          lignes.map((l) => ({ id: l.id, saisie: l.donnees })),
+        ),
+      lireAvant: async () => new Map(),
+      // Inatteignable — aucune modification n'est préparée. Zéro ligne touchée
+      // est le sens de défaillance que l'enveloppe traite déjà : la ligne est
+      // laissée en l'état.
+      modifierUn: async () => 0,
     },
   );
 }

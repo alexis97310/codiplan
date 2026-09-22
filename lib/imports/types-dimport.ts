@@ -6,6 +6,7 @@ import {
   annulerLeLotDeClients,
   annulerLeLotDeEquipements,
   annulerLeLotDeFamilles,
+  annulerLeLotDeHistorique,
   annulerLeLotDeModeles,
   annulerLeLotDePrestations,
   annulerLeLotDeSites,
@@ -15,6 +16,7 @@ import {
   appliquerLeLotDeClients,
   appliquerLeLotDeEquipements,
   appliquerLeLotDeFamilles,
+  appliquerLeLotDeHistorique,
   appliquerLeLotDeModeles,
   appliquerLeLotDePrestations,
   appliquerLeLotDeSites,
@@ -112,6 +114,12 @@ export const APPLICATIONS: Readonly<Record<string, ApplicationDeLot>> = {
   equipements: {
     appliquer: appliquerLeLotDeEquipements,
     annuler: annulerLeLotDeEquipements,
+  },
+  // L'ARCHIVE SAV (REPRISE-HISTORIQUE) : des interventions closes, écrites
+  // une fois et défaites en bloc — jamais modifiées, la base l'interdit.
+  historique: {
+    appliquer: appliquerLeLotDeHistorique,
+    annuler: annulerLeLotDeHistorique,
   },
 };
 

@@ -3,6 +3,7 @@ import {
   analyserMarqueur,
   apparierColonnes,
   codeDuMarqueur,
+  lireDate,
   type Anomalie,
   type Appariement,
   type Cellule,
@@ -393,7 +394,38 @@ function texte(cellule: Cellule | undefined): string | undefined {
   // purement numérique — est une valeur, pas un vide. Le rendre sous sa forme
   // textuelle est la seule lecture possible ici ; la grammaire ne prétend pas
   // savoir si l'auteur voulait un nombre.
-  return cellule?.nombre === undefined ? undefined : String(cellule.nombre);
+  if (cellule?.nombre !== undefined) {
+    return String(cellule.nombre);
+  }
+  // **UNE DATE DU CLASSEUR REND LE TEXTE `JJ/MM/AAAA` DE D31** — depuis le
+  // 22/09/2026 (REPRISE-HISTORIQUE). *Mesuré avant ce jour* : `texte()` ne
+  // lisait pas `serie`, si bien qu'AUCUN gabarit ne pouvait exposer une colonne
+  // de date — `CHAMPS_EQUIPEMENTS_ECARTES` l'écrivait comme condition de levée.
+  // Le gabarit de l'historique SAV porte une date OBLIGATOIRE, et c'est lui qui
+  // lève la condition. La forme rendue est celle que D31 arrête, jamais le
+  // sérial : un gabarit relit ce texte par `lireDate`, la grammaire reste
+  // seule juge, et le fichier des rejets (RG-IMP-03) reste rechargeable.
+  //
+  // Le sérial 0 est une ABSENCE (mesuré le 10/09/2026, 171 cellules) et rend
+  // `undefined` comme une cellule vide. Un sérial que `lireDate` refuse —
+  // fractionnaire, antérieur au 1ᵉʳ mars 1900 — est rendu BRUT : le gabarit
+  // le refusera `date_format`, ce qui perd la nuance « avec heure » mais ne
+  // laisse rien passer. *Refuser sans nuance vaut mieux qu'arrondir.*
+  return cellule?.serie === undefined ? undefined : texteDUneDate(cellule);
+}
+
+/** Le texte `JJ/MM/AAAA` d'une cellule de date, ou ce que la grammaire en dit. */
+function texteDUneDate(cellule: Cellule): string | undefined {
+  const lue = lireDate(cellule);
+  if (!lue.ok) {
+    return lue.anomalie.code === "cellule_vide"
+      ? undefined
+      : String(cellule.serie);
+  }
+  const deux = (n: number): string => String(n).padStart(2, "0");
+  // En UTC, comme `lireDate` l'a construite : *passer par le fuseau de la
+  // machine décalerait le jour d'un cran d'un côté ou de l'autre du méridien.*
+  return `${deux(lue.valeur.getUTCDate())}/${deux(lue.valeur.getUTCMonth() + 1)}/${lue.valeur.getUTCFullYear()}`;
 }
 
 /** La ligne, en dictionnaire nom de colonne → texte. */

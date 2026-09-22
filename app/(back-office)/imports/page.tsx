@@ -96,6 +96,18 @@ export default async function PageImports({
 
   const params = await searchParams;
   const motif = params.motif;
+  // LE TYPE QU'UN MARQUEUR INCONNU ANNONCE (REPRISE-HISTORIQUE). Il vient de
+  // l'URL, comme le motif — et comme lui il est BORNÉ avant d'être rendu : la
+  // forme est celle que la grammaire du marqueur admet (`[a-z0-9_]+`), rien
+  // d'autre ne s'affiche. *Un lien forgé ne fait pas écrire n'importe quoi à
+  // la page.* Il n'accompagne qu'un seul motif : les autres n'annoncent rien.
+  const valeur = params.valeur;
+  const typeAnnonce =
+    motif === "import.anomalie.marqueur_type_inconnu" &&
+    typeof valeur === "string" &&
+    /^[a-z0-9_]{1,40}$/.test(valeur)
+      ? valeur
+      : null;
 
   const lots = await listerLesLots(session.contexte);
   // Le fuseau de la SOCIÉTÉ, jamais celui du serveur : `controle_le` est un
@@ -148,6 +160,12 @@ export default async function PageImports({
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
+          {typeAnnonce === null ? null : (
+            <>
+              {t("ponctuation.separateur")}
+              <code data-type-annonce={typeAnnonce}>{typeAnnonce}</code>
+            </>
+          )}
         </p>
       ) : null}
 

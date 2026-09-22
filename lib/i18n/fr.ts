@@ -509,6 +509,14 @@ export const fr = {
     "Le marqueur de format de ce fichier est abîmé. La première cellule doit contenir le marqueur du modèle, inchangé — retéléchargez le modèle et recopiez-y vos lignes.",
   "import.anomalie.marqueur_autre_type":
     "Ce fichier est un modèle CODIPLAN, mais pas celui de cet import. Vérifiez le type d'import choisi, ou téléchargez le modèle correspondant.",
+  // AJOUTÉ le 22/09/2026 (REPRISE-HISTORIQUE) — mesuré en production : un
+  // marqueur d'un type qu'AUCUN gabarit ne publiait recevait la phrase
+  // ci-dessus, et « vérifiez le type d'import choisi » envoyait chercher une
+  // case qui n'existe pas (D31 : le marqueur décide). Celle-ci dit l'autre
+  // chose — rien à corriger, ce type n'est pas encore importable — et l'écran
+  // fait suivre le type annoncé, en chasse fixe, après le séparateur.
+  "import.anomalie.marqueur_type_inconnu":
+    "Ce fichier est un modèle CODIPLAN, mais cette version de l'application ne sait pas encore importer le type qu'il annonce. Il n'y a rien à corriger dans le fichier ni dans le choix d'un type : il n'est pas encore pris en charge. Type annoncé par le marqueur",
   "import.anomalie.marqueur_version_anterieure":
     "Ce fichier suit une version antérieure du modèle. Téléchargez la version en cours et recopiez-y vos lignes : les colonnes ont changé depuis.",
   "import.anomalie.marqueur_version_posterieure":
@@ -617,6 +625,12 @@ export const fr = {
   // définition — « le lieu où elle est installée » —, jamais par le mot.
   "imports.type.equipements_detail":
     "Les machines elles-mêmes. Chacune désigne son modèle, son client et le lieu où elle est installée ; sans numéro de série lisible, la fiche entre à compléter.",
+  // L'ARCHIVE SAV (REPRISE-HISTORIQUE, D127). Le détail dit les trois faits
+  // de l'arbitrage — close, sans temps, sans machine créée — parce que c'est
+  // ce qu'un lecteur doit savoir AVANT de déposer 1 996 lignes.
+  "imports.type.historique": "Historique des interventions",
+  "imports.type.historique_detail":
+    "Archive des interventions déjà faites, une ligne par document. Chacune naît clôturée, sans temps ni file d'attente ; le n° de série rattache à une machine existante, jamais n'en crée.",
   "imports.type.complet": "Contrôle et application",
   "imports.type.controle_seul": "Contrôle seulement",
   "imports.type.controle_seul_motif":
@@ -720,6 +734,46 @@ export const fr = {
   // l'autre. La correction n'est donc pas au même endroit que « cle_ambigue ».
   "imports.motif.doublon_fichier":
     "Une autre ligne de ce même fichier désigne la même fiche : deux entrées ne peuvent pas être écrites pour une seule. La correction est dans le fichier — c'est ce doublon qu'il faut lever, avant même de consulter le parc.",
+  // LES MOTIFS PROPRES À L'HISTORIQUE (REPRISE-HISTORIQUE). Chacun dit où
+  // corriger — et le premier dit qu'il n'y a rien à corriger.
+  "imports.motif.document_deja_repris":
+    "Ce document a déjà été repris par un lot précédent : l'intervention existe, close, et un fait passé ne se réécrit pas. Il n'y a rien à corriger. Pour la reprendre autrement, annulez le lot qui l'a écrite.",
+  // *Le mot imposé n'est PAS écrit ici* (D5, D47) : la colonne se désigne par
+  // ce qu'elle porte — le lieu —, jamais par son en-tête.
+  "imports.motif.site_indetermine":
+    "Le client est reconnu, mais la ligne ne nomme aucun lieu et ce client en a plusieurs — ou aucun. La ligne ne peut pas dire où l'intervention a eu lieu : nommez le lieu dans la colonne qui le porte.",
+  "imports.motif.montant_illisible":
+    "Le montant doit être un nombre entier de francs, sans décimale ni séparateur de milliers — par exemple 12500. Laissez la cellule vide si le montant n'est pas connu.",
+  "imports.motif.montant_devise":
+    "La colonne des montants est en XPF, et cette société ne tient pas ses comptes en XPF : un montant ne se convertit jamais à l'import. Laissez la cellule vide, ou importez sans montant.",
+
+  // LE RATTACHEMENT DES MACHINES D'UN LOT D'HISTORIQUE — les trois rangs de
+  // D127, comptés sur le rapport. *Aucun n'est un rejet* : une ligne non
+  // rattachée entre quand même, et c'est tout le point (72 % mesurés).
+  "imports.rattachement_titre": "Rattachement aux machines",
+  "imports.rattachement_aide":
+    "Chaque ligne qui entrera est comptée une fois. Une ligne non rattachée entre sans machine : ce n'est pas un rejet.",
+  "imports.rattachement.sans_serie": "Sans n° de série",
+  "imports.rattachement.sans_serie_detail":
+    "l'intervention ne porte sur aucune machine nommée",
+  "imports.rattachement.rang1": "Rang 1",
+  "imports.rattachement.rang1_detail":
+    "le n° de série désigne une seule machine du parc, chez ce client",
+  "imports.rattachement.rang2": "Rang 2",
+  "imports.rattachement.rang2_detail":
+    "plusieurs machines portent ce n° de série, une seule chez ce client",
+  "imports.rattachement.rang3": "Non rattachées",
+  "imports.rattachement.rang3_detail":
+    "entrent sans machine, avec leur motif ci-dessous",
+  "imports.rattachement.colonne_serie": "N° de série lu",
+  "imports.rattachement.aucune":
+    "Toutes les lignes qui portent un n° de série ont trouvé leur machine.",
+  "imports.rattachement.serie_inconnue":
+    "Aucune machine du parc ne porte ce n° de série.",
+  "imports.rattachement.serie_ambigue":
+    "Plusieurs machines de ce client portent ce n° de série : la ligne ne désigne rien de sûr.",
+  "imports.rattachement.serie_autre_client":
+    "Ce n° de série existe, mais chez un autre client que celui de la ligne.",
 
   // LES REFUS DE L'ÉCRAN. Un téléversement qui n'aboutit pas, et les trois états
   // d'un lot qu'on ne peut plus toucher.

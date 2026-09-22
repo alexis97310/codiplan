@@ -1,6 +1,8 @@
 import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import type { Designation } from "@/lib/auth/annuaire";
 import type { Decomptes } from "@/lib/imports/depot";
+import type { ComptesParRang } from "@/lib/imports/rapport-historique";
+import type { MotifNonRattachee } from "@/lib/imports/reprise";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 
 /**
@@ -117,4 +119,58 @@ export function coordonneesDuLot(
   auteur: Designation,
 ): string {
   return `${instantLisible(instant, fuseau)}${t("ponctuation.separateur")}${nomDeLAuteur(auteur)}`;
+}
+
+/**
+ * LES QUATRE COMPTES DU RATTACHEMENT D'UN LOT D'HISTORIQUE, DANS L'ORDRE DES
+ * RANGS (REPRISE-HISTORIQUE ; D127).
+ *
+ * Même forme que `lignesDeResultat`, et pour la même raison : *le gardien des
+ * chaînes en dur lit un fichier qui porte du JSX et prend ses littéraux pour du
+ * texte visible* — un tableau de clés n'en est pas. Le quatrième compte est
+ * la LONGUEUR de la liste des non-rattachées : il ne peut pas diverger d'elle.
+ */
+export function lignesDeRattachement(
+  comptes: ComptesParRang,
+): readonly LigneDeResultat[] {
+  return [
+    {
+      cle: "sans_serie",
+      libelle: "imports.rattachement.sans_serie",
+      detail: "imports.rattachement.sans_serie_detail",
+      valeur: comptes.sansSerie,
+    },
+    {
+      cle: "rang1",
+      libelle: "imports.rattachement.rang1",
+      detail: "imports.rattachement.rang1_detail",
+      valeur: comptes.rang1,
+    },
+    {
+      cle: "rang2",
+      libelle: "imports.rattachement.rang2",
+      detail: "imports.rattachement.rang2_detail",
+      valeur: comptes.rang2,
+    },
+    {
+      cle: "rang3",
+      libelle: "imports.rattachement.rang3",
+      detail: "imports.rattachement.rang3_detail",
+      valeur: comptes.nonRattachees.length,
+    },
+  ];
+}
+
+/** Le libellé d'un motif de non-rattachement — un CODE du rapprochement, une clé ici. */
+export function cleDuMotifDeRattachement(
+  motif: MotifNonRattachee,
+): CleTraduction {
+  switch (motif) {
+    case "serie_inconnue":
+      return "imports.rattachement.serie_inconnue";
+    case "serie_ambigue":
+      return "imports.rattachement.serie_ambigue";
+    case "serie_autre_client":
+      return "imports.rattachement.serie_autre_client";
+  }
 }

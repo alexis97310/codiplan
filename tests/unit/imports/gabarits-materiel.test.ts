@@ -670,15 +670,17 @@ describe("les deux gabarits se lisent par la chaîne réelle", () => {
     expect(controle.lignes[0]?.rejetMotif).toBe(MOTIF_AMBIGUITE);
   });
 
-  it("LA BORNE MESURÉE : le dictionnaire de ligne ne rend AUCUNE date", () => {
-    // **C'est le motif écrit dans `CHAMPS_EQUIPEMENTS_ECARTES`**, et il est
-    // mesuré plutôt que déduit d'une lecture du code : une cellule de DATE
-    // porte `serie`, que `texte()` ne lit pas. *Exposer « Date de mise en
-    // service » ferait une case que le client remplit et que personne ne lit.*
-    //
-    // **Condition de levée, vérifiable** : le jour où ce scénario rougira,
-    // c'est que le dictionnaire de ligne rend une date — et les trois colonnes
-    // écartées redeviennent exposables.
+  it("LA BORNE LEVÉE : le dictionnaire de ligne rend une date, en JJ/MM/AAAA", () => {
+    // **Ce scénario a rougi le 22/09/2026, exactement comme sa condition de
+    // levée l'annonçait** : *« le jour où ce scénario rougira, c'est que le
+    // dictionnaire de ligne rend une date — et les trois colonnes écartées
+    // redeviennent exposables. »* C'est REPRISE-HISTORIQUE qui l'a levée —
+    // le gabarit de l'archive porte une date obligatoire —, et ce scénario
+    // mesure désormais l'état NOUVEAU plutôt que l'ancien : une cellule de
+    // DATE traverse `texte()` sous la forme que D31 arrête, jamais sous celle
+    // du sérial. Les trois colonnes des équipements restent écartées pour une
+    // AUTRE raison, écrite dans `CHAMPS_EQUIPEMENTS_ECARTES` — et le motif ne
+    // prétend plus que le dictionnaire ne rend rien.
     const modele = modeleEquipements(CLIENTS, SITES, MODELES);
     const controle = controlerFeuille(
       feuille(
@@ -729,10 +731,22 @@ describe("les deux gabarits se lisent par la chaîne réelle", () => {
     );
     expect(avecDate.lisible).toBe(true);
     if (!avecDate.lisible) return;
-    // **La cellule de date rend `undefined`** — elle n'est ni du texte, ni un
-    // nombre pour `texte()`.
+    // **La cellule de date rend le texte `JJ/MM/AAAA`** — le sérial 46000 est
+    // le 9 décembre 2025, lu en UTC comme `lireDate` le construit.
     expect(
       avecDate.lignes[0]?.valeurs[COLONNES_EQUIPEMENTS.referenceInterne],
-    ).toBeUndefined();
+    ).toBe("09/12/2025");
+    // Et les motifs des trois colonnes écartées ne disent plus l'ancienne
+    // borne : *une exemption dont la condition est levée doit rougir* (§9).
+    for (const champ of [
+      "date_mise_en_service",
+      "date_vente",
+      "garantie_fin",
+    ]) {
+      expect(CHAMPS_EQUIPEMENTS_ECARTES[champ]).not.toMatch(
+        /ne rend aucune date/,
+      );
+      expect(CHAMPS_EQUIPEMENTS_ECARTES[champ]).toMatch(/lisible depuis/);
+    }
   });
 });

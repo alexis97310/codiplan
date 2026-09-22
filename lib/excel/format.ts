@@ -45,6 +45,13 @@ export const ANOMALIES = [
   "marqueur_absent",
   "marqueur_illisible",
   "marqueur_autre_type",
+  // AJOUTÉ le 22/09/2026 (REPRISE-HISTORIQUE) : *mesuré en production*, un
+  // classeur dont le marqueur annonçait un type qu'AUCUN gabarit ne publiait
+  // recevait `marqueur_autre_type` — « vérifiez le type d'import choisi » —
+  // alors que D31 ne laisse rien choisir : le marqueur décide. Ce code-ci dit
+  // l'autre chose : *cette version ne sait pas encore importer ce type*, et
+  // il porte le type annoncé pour que le lecteur sache lequel.
+  "marqueur_type_inconnu",
   "marqueur_version_anterieure",
   "marqueur_version_posterieure",
   "entete_en_double",

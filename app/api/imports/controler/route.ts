@@ -7,16 +7,9 @@ import {
 import { controlerFeuille } from "@/lib/excel/controle";
 import { lireClasseur } from "@/lib/excel/classeur";
 import { enregistrerLeControle } from "@/lib/imports/depot";
-import { gabaritDuMarqueur } from "@/lib/imports/modeles";
-import { indexerLesAgences } from "@/lib/imports/parc-agences";
-import { indexerLesFamilles } from "@/lib/imports/parc-familles";
-import { indexerLeParcClients } from "@/lib/imports/parc-clients";
-import {
-  PARC_VIDE,
-  indexerLeParcCible,
-  indexerLeParcModeles,
-  indexerLeParcSites,
-} from "@/lib/imports/parc-cibles";
+import { gabaritDuMarqueur, refusSansGabarit } from "@/lib/imports/modeles";
+import { PARC_VIDE, indexerLeParcCible } from "@/lib/imports/parc-cibles";
+import { indexerLesParcs } from "@/lib/imports/parcs";
 
 import { champ } from "../../interventions/actions";
 
@@ -29,7 +22,7 @@ import { champ } from "../../interventions/actions";
  * écrirait dans la foulée du téléversement n'aurait jamais été validé par
  * personne.
  *
- * ## LE MARQUEUR CHOISIT LE GABARIT (R6-01 ; sept depuis R6-03)
+ * ## LE MARQUEUR CHOISIT LE GABARIT (R6-01 ; sept depuis R6-03, huit depuis REPRISE-HISTORIQUE)
  *
  * **Elle était câblée sur `MODELE_CLIENTS`**, et l'argument écrit ici était
  * juste le jour où il a été écrit : *« accepter un fichier de contacts
@@ -73,10 +66,14 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
-  const versLIndex = (cle: string): Response =>
+  const versLIndex = (cle: string, valeur?: string): Response =>
     new Response(null, {
       status: 303,
-      headers: { Location: `/imports?motif=${encodeURIComponent(cle)}` },
+      headers: {
+        Location:
+          `/imports?motif=${encodeURIComponent(cle)}` +
+          (valeur === undefined ? "" : `&valeur=${encodeURIComponent(valeur)}`),
+      },
     });
 
   const contexte = await exigerCapacite("importer_exporter");
@@ -102,33 +99,22 @@ async function traiter(requete: Request): Promise<Response> {
   }
 
   // Les parcs de PARENTS sont lus d'un bloc : ils servent à construire les
-  // gabarits, et le type n'est pas encore connu.
-  //
-  // **Les sites et les modèles répondent désormais aux DEUX questions** (R6-03) :
-  // ils sont la CIBLE de leur propre gabarit, et les PARENTS d'un équipement.
-  // *Les indexer une seconde fois ici sous un autre nom ferait deux lectures
-  // d'une même clé* (§9, 01/09).
-  const clients = await indexerLeParcClients(contexte);
-  const [agences, familles, sites, modeles] = await Promise.all([
-    indexerLesAgences(contexte),
-    indexerLesFamilles(contexte),
-    indexerLeParcSites(contexte),
-    indexerLeParcModeles(contexte),
-  ]);
+  // gabarits, et le type n'est pas encore connu. *La liste vit dans
+  // `lib/imports/parcs.ts`* (REPRISE-HISTORIQUE) — elle était recopiée ici et
+  // dans deux scénarios, et un neuvième index l'aurait fait diverger.
+  const parcs = await indexerLesParcs(contexte);
 
-  const modele = gabaritDuMarqueur(premiere.lignes[0]?.[0], {
-    clients,
-    agences,
-    familles,
-    sites,
-    modeles,
-  });
+  const marqueur = premiere.lignes[0]?.[0];
+  const modele = gabaritDuMarqueur(marqueur, parcs);
   if (modele === null) {
-    // *Aucun des cinq gabarits ne répond à ce marqueur.* Le refus est celui de
-    // la grammaire, et il n'en invente pas un second : `controlerFeuille`
-    // porterait le même — mais il lui faudrait un modèle à opposer, et c'est
-    // précisément ce qui manque.
-    return versLIndex("import.anomalie.marqueur_autre_type");
+    // *Aucun des huit gabarits ne répond à ce marqueur.* Deux situations, et le
+    // lecteur n'a pas les mêmes gestes (REPRISE-HISTORIQUE, mesuré en
+    // production le 22/09/2026) : un marqueur LISIBLE d'un type que cette
+    // version ne publie pas — *rien à corriger, ce type n'est pas encore
+    // importable*, et le type est NOMMÉ — ou une cellule qui n'est pas un
+    // marqueur, dont la grammaire dit déjà ce qui manque.
+    const refus = refusSansGabarit(marqueur);
+    return versLIndex(`import.anomalie.${refus.code}`, refus.type);
   }
 
   // **LE PARC DE LA CIBLE**, choisi par le type du gabarit — jamais l'index des

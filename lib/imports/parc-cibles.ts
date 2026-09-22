@@ -120,22 +120,52 @@ export type ParcCible = ParcConnu & {
   readonly fiches: ReadonlyMap<string, string>;
 };
 
+/**
+ * CE QU'UN SITE PORTE, VU PAR UN GABARIT QUI LE DÉSIGNE SANS LE NOMMER
+ * (REPRISE-HISTORIQUE).
+ *
+ * Une ligne d'historique peut ne nommer AUCUN site — la colonne est
+ * facultative, mesurée — alors que `intervention.site_id` et `agence_id` sont
+ * `NOT NULL`. Le gabarit résout alors le site par le CLIENT : quand il n'en a
+ * qu'un, c'est le seul possible ; quand il en a plusieurs, la ligne ne dit
+ * pas où. *L'agence est DÉDUITE du site (D56), jamais saisie* — elle voyage
+ * donc avec lui, et une seconde lecture de `site` pour la retrouver serait
+ * la divergence du §9 (01/09).
+ */
+export type DetailDeSite = {
+  readonly clientId: string;
+  readonly agenceId: string;
+};
+
+export type ParcSites = ParcCible & {
+  /** Chaque site de la société, par identifiant — client et agence compris. */
+  readonly details: ReadonlyMap<string, DetailDeSite>;
+};
+
 /** Les sites de la société active, indexés par la clé du gabarit « sites ». */
 export async function indexerLeParcSites(
   contexte: ContexteSession,
   client?: PrismaClient,
-): Promise<ParcCible> {
+): Promise<ParcSites> {
   const sites = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.site.findMany({
-        select: { id: true, client_id: true, libelle: true },
+        select: { id: true, client_id: true, agence_id: true, libelle: true },
       }),
     client,
   );
-  return indexer(
-    sites.map((site) => [cleDuSite(site.client_id, site.libelle), site.id]),
-  );
+  return {
+    ...indexer(
+      sites.map((site) => [cleDuSite(site.client_id, site.libelle), site.id]),
+    ),
+    details: new Map(
+      sites.map((site) => [
+        site.id,
+        { clientId: site.client_id, agenceId: site.agence_id },
+      ]),
+    ),
+  };
 }
 
 /** Les modèles de la société active, indexés par la clé du gabarit « modeles ». */
@@ -248,6 +278,83 @@ export async function indexerLeParcEquipements(
 }
 
 /**
+ * LES DOCUMENTS D'ARCHIVE DÉJÀ REPRIS — la cible du gabarit « historique »
+ * (REPRISE-HISTORIQUE ; RG-IMP-05).
+ *
+ * ## La clé ne vit sur AUCUNE colonne de `intervention`, et c'est mesuré
+ *
+ * Le N° document est la clé de la ligne — 1 996 valeurs distinctes sur 1 996
+ * lignes (22/09/2026) — et la table `intervention` ne porte ni référence
+ * externe, ni numéro de document (schéma, mesuré). **La seule trace du
+ * document est la ligne du lot qui l'a écrit** : `import_lot_ligne.cle` porte
+ * `HISTORIQUE-<n°>`, `entite_id` l'intervention créée. C'est donc là que
+ * l'index se lit — *« cette fiche existe-t-elle déjà PAR CE CHEMIN ? »*, et
+ * une intervention d'archive n'entre par aucun autre.
+ *
+ * ## Et il vérifie que l'intervention EXISTE ENCORE
+ *
+ * `entite_id` n'est pas une clé étrangère : une annulation supprime
+ * l'intervention et laisse la ligne du lot en l'état (elle est la trace).
+ * Indexer les lignes sans vérifier ferait refuser `document_deja_repris` un
+ * document qu'on vient précisément d'annuler pour le reprendre. *Une clé dont
+ * la fiche a disparu n'est plus une clé connue.*
+ *
+ * Deux interventions vivantes sous la même clé ne devraient pas exister —
+ * le contrôle rejette avant d'écrire —, mais si le parc en portait, la clé
+ * est AMBIGUË comme partout ailleurs, jamais « la première ».
+ */
+export async function indexerLeParcHistorique(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<ParcCible> {
+  const entrees = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const lignes = await tx.importLotLigne.findMany({
+        where: {
+          entite: "intervention",
+          entite_id: { not: null },
+          lot: { type_import: "historique" },
+        },
+        select: { cle: true, entite_id: true },
+      });
+      const ids = [
+        ...new Set(
+          lignes.flatMap((l) => (l.entite_id === null ? [] : [l.entite_id])),
+        ),
+      ];
+      const vivantes = new Set(
+        ids.length === 0
+          ? []
+          : (
+              await tx.intervention.findMany({
+                where: { id: { in: ids } },
+                select: { id: true },
+              })
+            ).map((i) => i.id),
+      );
+      return lignes.flatMap((l): (readonly [string, string])[] =>
+        l.cle === null || l.entite_id === null || !vivantes.has(l.entite_id)
+          ? []
+          : [[l.cle, l.entite_id]],
+      );
+    },
+    client,
+  );
+  // Une même intervention peut être portée par PLUSIEURS lignes de lot — le
+  // même document redéposé et rejeté n'écrit rien, mais le cas d'une ligne
+  // par lot appliqué existe. La clé n'est ambiguë que si elle désigne DEUX
+  // interventions distinctes.
+  const parCle = new Map<string, Set<string>>();
+  for (const [cle, id] of entrees) {
+    parCle.set(cle, (parCle.get(cle) ?? new Set()).add(id));
+  }
+  return indexer(
+    [...parCle].flatMap(([cle, ids]) => [...ids].map((id) => [cle, id])),
+  );
+}
+
+/**
  * LES TYPES QUI ONT UN INDEX DE CIBLE, ET CEUX QUI N'EN ONT PAS (R6-01).
  *
  * **Une seule maison, et elle est GARDÉE** : `tests/unit/imports/types-dimport.test.ts`
@@ -271,6 +378,7 @@ export const INDEX_DE_CIBLE: Readonly<
   prestations: indexerLeParcPrestations,
   familles: indexerLeParcFamilles,
   equipements: indexerLeParcEquipements,
+  historique: indexerLeParcHistorique,
 };
 
 /**

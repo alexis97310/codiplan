@@ -26,12 +26,15 @@ import {
   CHAMPS_PRESTATIONS,
   preparerUnEquipement,
   preparerUneFamille,
+  preparerUneReprise,
   preparerUnSite,
   saisieDepuisLaLigne,
 } from "./modeles";
 import { indexerLesAgences } from "./parc-agences";
 import { indexerLeParcClients } from "./parc-clients";
 import { indexerLeParcModeles, indexerLeParcSites } from "./parc-cibles";
+import { indexerLesParcs } from "./parcs";
+import { STATUT_REPRISE, TYPE_INTERVENTION_REPRISE } from "./reprise";
 
 /**
  * L'ANNULATION D'UN LOT — PARTIELLE ET SÛRE (L1-08j ; I6, RG-IMP-02, D15, D54).
@@ -817,6 +820,117 @@ export async function annulerLeLotDeEquipements(
         site_id: fiche.site_id,
       }),
     );
+    return { rang: ligne.rang, defaite: true };
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * L'HISTORIQUE — défaire une intervention reprise (REPRISE-HISTORIQUE ; D127)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * CE QUI RETIENT UNE INTERVENTION — les relations inverses du SCHÉMA qui
+ * REFUSENT la suppression.
+ *
+ * `segment_travail` (le compteur, `ON DELETE RESTRICT`) et `vgp_observation`
+ * (`intervention_id`, `RESTRICT`) : deux comptages. **`intervention_machine`
+ * n'en est pas un**, et c'est la seule `ON DELETE CASCADE` du dépôt — *une
+ * ligne de rattachement n'a aucun sens sans son intervention*, et c'est
+ * l'import lui-même qui l'a posée : la défaire avec l'intervention n'est pas
+ * une cascade sur le travail de quelqu'un d'autre, c'est défaire ce qu'on a
+ * écrit. Même limite que partout : Prisma n'expose pas ses relations inverses,
+ * la liste est tenue à la main, et `RESTRICT` reste la garantie finale.
+ */
+async function interventionEstReferencee(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+): Promise<boolean> {
+  const comptes = await Promise.all([
+    tx.segmentTravail.count({ where: { intervention_id: interventionId } }),
+    tx.vgpObservation.count({ where: { intervention_id: interventionId } }),
+  ]);
+  return comptes.reduce((a, b) => a + b, 0) > 0;
+}
+
+/**
+ * Annule un lot d'HISTORIQUE — supprime les interventions qu'il a créées, et
+ * rien d'autre : *il n'a jamais rien modifié*.
+ *
+ * ## « Modifiée depuis » se constate autrement ici — et pour une raison mesurée
+ *
+ * `porteEncore` compare TEXTE, ENTIER, BOOLÉEN et `NULL`, et refuse le reste
+ * (R6-03) : une DATE et un BIGINT n'y sont pas. Les colonnes écrites par cet
+ * import sont précisément une date et un montant en bigint. **La comparaison
+ * est donc écrite ici, colonne par colonne**, sur ce que l'import a écrit et
+ * lui seul — et le STATUT en fait partie : une intervention ANNULÉE depuis
+ * (`annulee` a la préséance sur `cloturee`, I5) n'est plus ce que l'import a
+ * écrit, quelqu'un a décidé quelque chose, et *défaire son travail serait pire
+ * que ne rien défaire.*
+ *
+ * Ce que l'import a écrit se RECONSTITUE par `preparerUneReprise`, la fonction
+ * même qui l'a produit — mais le document est désormais REPRIS, et cette
+ * fonction le refuserait `document_deja_repris`. **Le parc lui est donc passé
+ * SANS cet index** : *on reconstitue ce qu'on a écrit, on ne rejuge pas si
+ * on aurait dû l'écrire.*
+ */
+export async function annulerLeLotDeHistorique(
+  contexte: ContexteSession,
+  lotId: string,
+  client?: PrismaClient,
+): Promise<ResultatAnnulation> {
+  const parcs = await indexerLesParcs(contexte, client);
+  const sansLesDocuments = { ...parcs, historique: { fiches: new Map() } };
+
+  return annulerLesLignes(contexte, lotId, client, async (tx, ligne) => {
+    const fiche = await tx.intervention.findUnique({
+      where: { id: ligne.entiteId },
+      select: {
+        statut: true,
+        type: true,
+        client_id: true,
+        site_id: true,
+        agence_id: true,
+        date_planifiee: true,
+        montant_ht: true,
+        devise_code: true,
+      },
+    });
+    if (fiche === null) {
+      return { rang: ligne.rang, defaite: false, motif: "fiche_absente" };
+    }
+    // Aucune modification n'est jamais écrite par ce type : une ligne qui ne
+    // serait pas une création ne peut pas être ici, et si elle l'était, rien
+    // ne serait su de ce qu'elle a fait. *Refuser est la seule lecture qui ne
+    // détruit rien.*
+    if (ligne.action !== "creation") {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    const reconstitue = preparerUneReprise(sansLesDocuments, ligne.valeurs);
+    if (!reconstitue.prete) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+    const ecrit = reconstitue.saisie;
+    const intacte =
+      fiche.statut === STATUT_REPRISE &&
+      fiche.type === TYPE_INTERVENTION_REPRISE &&
+      fiche.client_id === ecrit.client_id &&
+      fiche.site_id === ecrit.site_id &&
+      fiche.agence_id === ecrit.agence_id &&
+      fiche.date_planifiee?.getTime() === ecrit.date.getTime() &&
+      fiche.montant_ht === ecrit.montant_ht &&
+      fiche.devise_code === ecrit.devise_code;
+    if (!intacte) {
+      return { rang: ligne.rang, defaite: false, motif: "modifiee_depuis" };
+    }
+
+    // **JAMAIS DE SUPPRESSION EN CASCADE sur le travail d'un autre** (I6) : un
+    // segment de compteur ou une observation VGP posés depuis retiennent la
+    // fiche, et c'est la LIGNE qui est refusée.
+    if (await interventionEstReferencee(tx, ligne.entiteId)) {
+      return { rang: ligne.rang, defaite: false, motif: "referencee_depuis" };
+    }
+    await tx.intervention.delete({ where: { id: ligne.entiteId } });
     return { rang: ligne.rang, defaite: true };
   });
 }

@@ -17,15 +17,8 @@ import {
   marqueurDu,
   type ParcsDImport,
 } from "@/lib/imports/modeles";
-import { indexerLesAgences } from "@/lib/imports/parc-agences";
-import { indexerLesFamilles } from "@/lib/imports/parc-familles";
-import { indexerLeParcClients } from "@/lib/imports/parc-clients";
-import {
-  PARC_VIDE,
-  indexerLeParcCible,
-  indexerLeParcModeles,
-  indexerLeParcSites,
-} from "@/lib/imports/parc-cibles";
+import { PARC_VIDE, indexerLeParcCible } from "@/lib/imports/parc-cibles";
+import { indexerLesParcs } from "@/lib/imports/parcs";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import { SOCIETE_A, SOCIETE_B, UTILISATEUR_INTERNE_A } from "./setup/fixtures";
@@ -82,14 +75,13 @@ const SESSION = {
 
 const SESSION_B = { ...SESSION, societeId: SOCIETE_B };
 
+/**
+ * Les parcs, lus par la fonction MÊME que la route appelle (REPRISE-HISTORIQUE) :
+ * ce helper recopiait la liste des index, et un neuvième l'aurait fait
+ * diverger de la route en silence.
+ */
 async function parcs(): Promise<ParcsDImport> {
-  return {
-    clients: await indexerLeParcClients(SESSION, clientApp()),
-    agences: await indexerLesAgences(SESSION, clientApp()),
-    familles: await indexerLesFamilles(SESSION, clientApp()),
-    sites: await indexerLeParcSites(SESSION, clientApp()),
-    modeles: await indexerLeParcModeles(SESSION, clientApp()),
-  };
+  return indexerLesParcs(SESSION, clientApp());
 }
 
 /**

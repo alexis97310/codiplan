@@ -130,6 +130,16 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // générique, et n'a donc pas besoin de cette clé.
     motifParentIntrouvable: null,
   },
+  {
+    // L'ARCHIVE SAV (REPRISE-HISTORIQUE, D127) — le huitième gabarit.
+    cle: "historique",
+    titre: "imports.type.historique",
+    detail: "imports.type.historique_detail",
+    complet: true,
+    // Ses parents se nomment séparément (client_introuvable, site_introuvable,
+    // site_indetermine) : jamais le motif générique.
+    motifParentIntrouvable: null,
+  },
 ];
 
 /** Le libellé d'un statut de lot — un CODE en base, une clé ici. */
@@ -185,6 +195,24 @@ export function cleDuMotif(motif: string, type?: string): CleTraduction | null {
       return "imports.motif.site_introuvable";
     case "modele_introuvable":
       return "imports.motif.modele_introuvable";
+    // **LES MOTIFS DE L'HISTORIQUE** (REPRISE-HISTORIQUE) : quatre propres au
+    // gabarit, et les CODES DE LA GRAMMAIRE DES DATES — `preparerUneReprise`
+    // rend tel quel ce que `lireDate` a dit, et le libellé est celui de
+    // l'anomalie, écrit une fois pour le rapport et pour la ligne.
+    case "document_deja_repris":
+      return "imports.motif.document_deja_repris";
+    case "site_indetermine":
+      return "imports.motif.site_indetermine";
+    case "montant_illisible":
+      return "imports.motif.montant_illisible";
+    case "montant_devise":
+      return "imports.motif.montant_devise";
+    case "date_format":
+      return "import.anomalie.date_format";
+    case "date_hors_plage":
+      return "import.anomalie.date_hors_plage";
+    case "date_avec_heure":
+      return "import.anomalie.date_avec_heure";
     default:
       return null;
   }
