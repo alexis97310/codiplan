@@ -137,9 +137,7 @@ test("un technicien ne peut pas créer de fiche client", async ({ page }) => {
  * chaîne entière (session, porte, dépôt) refuse donc avant même de juger un
  * périmètre.
  */
-test("un technicien ne peut pas annuler une intervention", async ({
-  page,
-}) => {
+test("un technicien ne peut pas annuler une intervention", async ({ page }) => {
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
@@ -157,7 +155,10 @@ test("un technicien ne peut pas annuler une intervention", async ({
 
     const reponse = await page.request.post(
       `/api/interventions/${intervention.id}/annuler`,
-      { form: { motif: "Annulation forgée par un technicien" }, maxRedirects: 0 },
+      {
+        form: { motif: "Annulation forgée par un technicien" },
+        maxRedirects: 0,
+      },
     );
 
     // Le même refus qu'une session absente — la porte ne dit pas pourquoi.

@@ -112,7 +112,10 @@ export function accesSurCetteIntervention(
   capacite: Capacite,
   technicienAffecte: string | null,
 ): boolean {
-  return dansLePerimetre(perimetreParPersonne(contexte, capacite), technicienAffecte);
+  return dansLePerimetre(
+    perimetreParPersonne(contexte, capacite),
+    technicienAffecte,
+  );
 }
 
 /**

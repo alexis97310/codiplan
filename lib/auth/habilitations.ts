@@ -121,7 +121,10 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   // SCOPÉ : le technicien ne clôture que SA PROPRE intervention affectée — la
   // porte laisse passer le ○ (`lib/auth/porte.ts`), le dépôt juge le
   // périmètre (`lib/interventions/depot.ts`, `perimetreParPersonne`).
-  cloturer_intervention: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
+  cloturer_intervention: {
+    complet: [ADMS, DIR, RM, RS, ADV],
+    restreint: [TEC],
+  },
   // D131 — absente du §5.2 : le bureau annule, le technicien jamais (une
   // annulation est une décision commerciale).
   annuler_intervention: { complet: [ADMS, DIR, RM, RS, ADV] },

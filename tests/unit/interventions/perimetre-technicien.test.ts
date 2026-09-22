@@ -154,7 +154,11 @@ describe("D131 — le périmètre d'UNE action, sur UNE intervention précise", 
       accesSurCetteIntervention(bureau, "cloturer_intervention", null),
     ).toBe(true);
     expect(
-      accesSurCetteIntervention(bureau, "cloturer_intervention", "n-importe-qui"),
+      accesSurCetteIntervention(
+        bureau,
+        "cloturer_intervention",
+        "n-importe-qui",
+      ),
     ).toBe(true);
 
     const client = contexteDe(Role.client);

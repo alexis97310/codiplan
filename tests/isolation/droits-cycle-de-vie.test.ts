@@ -118,14 +118,19 @@ async function etat(
 ): Promise<{ statut: string; technicien_id: string | null }> {
   const [ligne] = await clientOwner().$queryRawUnsafe<
     Array<{ statut: string; technicien_id: string | null }>
-  >(`SELECT "statut", "technicien_id" FROM "intervention" WHERE "id" = '${id}'`);
+  >(
+    `SELECT "statut", "technicien_id" FROM "intervention" WHERE "id" = '${id}'`,
+  );
   if (ligne === undefined) {
     throw new Error("intervention introuvable — le harnais est cassé");
   }
   return ligne;
 }
 
-async function relier(interventionId: string, machineId: string): Promise<void> {
+async function relier(
+  interventionId: string,
+  machineId: string,
+): Promise<void> {
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${interventionId}', '${machineId}', now())
@@ -349,7 +354,9 @@ describe("ENREGISTRER UNE VGP — restreint aux machines des interventions NON A
 
     await expect(enregistrer(MACHINE_A2)).rejects.toThrow();
 
-    const restantes = await clientOwner().$queryRawUnsafe<Array<{ id: string }>>(
+    const restantes = await clientOwner().$queryRawUnsafe<
+      Array<{ id: string }>
+    >(
       `SELECT "id" FROM "vgp_verification" WHERE "machine_id" = '${MACHINE_A2}'
          AND "date_verification" = DATE '2026-09-14'`,
     );
