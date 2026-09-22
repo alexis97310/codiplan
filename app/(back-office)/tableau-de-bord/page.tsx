@@ -67,12 +67,12 @@ const HORIZON_VGP_JOURS = 30;
  *
  * - **« Demandes en attente de qualification »** (`demandesOuvertes`) : ce
  *   que la file de qualification (lot 2, avant tout intervention) porte
- *   aujourd'hui. Depuis D128, la carte MÈNE quelque part — `/interventions/
- *   nouvelle`, l'écran réel où une demande devient une intervention planifiée
- *   ; aucune fiche par demande n'existe encore (pas de route `/demandes`), et
- *   la destination est donc l'écran qui la QUALIFIE, pas une fiche qui la
- *   MONTRE — la même distinction que `Carte.action` fait ailleurs (« mène »,
- *   jamais « crée »).
+ *   aujourd'hui. Depuis D128, la carte MÈNE quelque part ; depuis DEMANDES-1,
+ *   elle mène à `/demandes` — la file de qualification elle-même, plutôt qu'à
+ *   `/interventions/nouvelle` — parce que cette route et sa fiche existent
+ *   désormais. *Un chiffre sans chemin est la même faute que le zéro muet que
+ *   ce dépôt corrige ailleurs* : `/demandes` est maintenant le chemin réel où
+ *   une demande se qualifie, se clôt sans suite, ou se marque transformée.
  * - **« Techniciens indisponibles aujourd'hui »** (`absencesDeLaPeriode` +
  *   `techniciensIndisponibles`) : combien de personnes sont couvertes par un
  *   blocage d'agenda aujourd'hui — une lecture DIFFÉRENTE de celle
@@ -284,10 +284,7 @@ export default async function PageTableauDeBord({
             libelle={t("tableau_de_bord.kpi_demandes_ouvertes")}
             valeur={demandes.length}
           />
-          <Link
-            href="/interventions/nouvelle"
-            className={`text-[11.5px] ${CLASSES_LIEN}`}
-          >
+          <Link href="/demandes" className={`text-[11.5px] ${CLASSES_LIEN}`}>
             {t("tableau_de_bord.lien_demandes")}
           </Link>
         </div>

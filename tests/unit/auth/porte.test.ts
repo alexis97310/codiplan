@@ -60,6 +60,12 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/contacts/[id]/activite/route.ts": "gerer_client_site",
   // « Créer une demande ».
   "app/api/interventions/creer/route.ts": "creer_demande",
+  // DEMANDES-1 : la même capacité que la création d'une intervention —
+  // qualifier une demande, c'est décider qu'on va intervenir.
+  "app/api/demandes/[id]/accuser/route.ts": "creer_demande",
+  "app/api/demandes/[id]/qualifier/route.ts": "creer_demande",
+  "app/api/demandes/[id]/transformer/route.ts": "creer_demande",
+  "app/api/demandes/[id]/clore/route.ts": "creer_demande",
   // « Qualifier / affecter ». Rattacher une machine après coup (chantier
   // INT-MACHINE 2.2, 20/09/2026) qualifie l'intervention au même titre
   // qu'affecter un technicien — arbitrage de ce lot, voir la PR.
@@ -257,7 +263,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(54);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(58);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

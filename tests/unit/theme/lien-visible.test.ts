@@ -130,6 +130,11 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
     expect(porteurs.map((f) => f.chemin).sort()).toEqual([
       "app/(back-office)/clients/[id]/page.tsx",
       "app/(back-office)/clients/page.tsx",
+      // Les deux écrans de la FILE DE QUALIFICATION y sont entrés le
+      // 22/09/2026 avec DEMANDES-1 : la fiche mène au client et au site, la
+      // liste mène à la fiche.
+      "app/(back-office)/demandes/[id]/page.tsx",
+      "app/(back-office)/demandes/page.tsx",
       // Les deux écrans d'import y sont entrés le 14/09/2026 avec L1-11 : le
       // journal des chargements mène à un lot, et le lot revient aux imports.
       "app/(back-office)/imports/[id]/page.tsx",

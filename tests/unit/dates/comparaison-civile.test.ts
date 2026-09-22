@@ -84,6 +84,11 @@ const REPERTOIRES = [
  * comparer à une `@db.Date`. C'est un instant qui reste un instant jusqu'au
  * bout.
  *
+ * `app/(back-office)/demandes/[id]/page.tsx` (DEMANDES-1) rend l'instant pour
+ * MESURER des minutes ouvrées écoulées (`etatAccuse`, `chargerCalendrierAgence`)
+ * — jamais pour le comparer à une `@db.Date`. Même famille que
+ * `instantDeLAgence` ci-dessus : un instant qui reste un instant jusqu'au bout.
+ *
  * `app/(back-office)/tableau-de-bord/page.tsx` a besoin des DEUX lectures du
  * même appel à `maintenant` : `local` pour `debutDuJour`/`finDuJour` (les
  * bornes civiles du jour), et `instant` pour `enAttenteDePiece`, dont
@@ -104,6 +109,10 @@ const EXEMPTIONS: readonly {
   {
     fichier: "app/(back-office)/tableau-de-bord/page.tsx",
     motif: "const { instant, local } = maintenant(fuseau);",
+  },
+  {
+    fichier: "app/(back-office)/demandes/[id]/page.tsx",
+    motif: "maintenant(fuseauAgence).instant",
   },
 ];
 

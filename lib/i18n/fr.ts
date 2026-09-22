@@ -1299,6 +1299,8 @@ export const fr = {
   "demande.cloture.motif": "Motif de la clôture",
   "demande.cloture.explication":
     "Une demande close sans intervention garde son motif : c'est ce qui mesure le service rendu sans déplacement.",
+  "demande.cloture.motif_requis":
+    "Choisissez un motif de clôture : sans lui, la fermeture ne se distingue pas d'un oubli.",
 
   "demande.refus.introuvable":
     "Cette demande n'existe pas, ou elle n'est pas dans votre périmètre.",
@@ -1334,6 +1336,42 @@ export const fr = {
   "demande.motif.hors_perimetre": "Hors périmètre",
   "demande.motif.refus_client": "Refus du client",
   "demande.motif.doublon": "Doublon",
+
+  // ── LA FILE DE QUALIFICATION ET LA FICHE (DEMANDES-1) — les deux écrans
+  // que L2-06 nommait manquants restent manquants nulle part ailleurs : ce
+  // ticket les écrit, et se sert des clés ci-dessus sans en redéfinir le
+  // sens.
+  "demandes.sous_titre":
+    "Les demandes ouvertes, de la plus ancienne à la plus récente.",
+  "demandes.vide":
+    "Aucune demande en attente de qualification : la file est à jour.",
+  "demandes.retour": "← Toutes les demandes",
+  "demande.colonne_statut": "Statut",
+  "demande.colonne_deposee_le": "Déposée le",
+  "demande.sans_interlocuteur": "Aucun interlocuteur renseigné.",
+  "demande.sans_valeur": "—",
+  "demande.machine_arretee_oui": "Oui, à l'arrêt",
+  // « Transformer » pose SEULEMENT le statut — `marquerTransformee` ne crée
+  // aucune intervention (son propre en-tête le dit). Le lien mène au geste
+  // humain qui planifie réellement.
+  "demande.transformer.note":
+    "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez-la depuis le lien ci-dessous, avant ou après avoir marqué cette demande transformée.",
+  "demande.transformer.creer_intervention": "Créer l'intervention →",
+
+  // ── Fixtures de l'épreuve DEMANDES-1, au dictionnaire pour le gardien de
+  // L0-11 (même discipline que `contacts.e2e.*`) : un texte que l'épreuve
+  // fait ensuite lire à l'écran passe par ici, jamais par un littéral du
+  // fichier de scénario.
+  "demandes.e2e.description_ancienne":
+    "Fuite hydraulique constatée (épreuve DEMANDES-1)",
+  "demandes.e2e.description_recente":
+    "Bruit anormal au démarrage (épreuve DEMANDES-1)",
+  // Le même refus qu'ailleurs sur cette fiche — un rôle sans `creer_demande`
+  // (arbitrage du ticket : la même capacité que la création d'une
+  // intervention) voit ce motif à la place de CHAQUE action, jamais un
+  // formulaire qu'il ne peut pas soumettre.
+  "demande.refus.capacite_requise":
+    "Votre rôle ne permet pas d'agir sur cette demande.",
 
   // ── L'APPLICATION DU TECHNICIEN (R5-01, L3-08) ───────────────────────────
   "terrain.titre": "Ma journée",

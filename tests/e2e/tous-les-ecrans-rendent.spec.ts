@@ -172,6 +172,10 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
   // Aucune ligne au semis — voir l'en-tête, section « Ce qu'il ne couvre pas ».
   "/parametres/forfaits/[id]": async () => null,
   "/imports/[id]": async () => null,
+  // DEMANDES-1 : `prisma/seed.ts` ne pose aucune `demande` — même motif que
+  // les deux lignes ci-dessus. `tests/e2e/demandes.spec.ts` couvre la fiche
+  // avec ses propres fixtures, écrites et détruites par le scénario.
+  "/demandes/[id]": async () => null,
 };
 
 // Même identité que la mesure d'origine (« compte admin_societe »), et le
