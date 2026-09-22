@@ -304,7 +304,7 @@ test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 en rend douze, la page 2 ren
 
   mesure.fiches.page_un = {
     ...mesure.fiches.page_un,
-    lignes_page_1: await lignesPage1.count(),
+    lignes_page_1: referencesPage1.length,
     dates_page_1: datesPage1,
   };
   mesure.fiches.page_deux = {
@@ -325,7 +325,10 @@ test("UN CLIENT SANS AUCUNE INTERVENTION dit son absence — ni tableau vide, ni
 
   const bloc = page.locator('[data-bloc="historique-client"]');
   await expect(bloc).toBeVisible();
-  await expect(bloc.locator("tbody tr")).toHaveCount(0);
+  // Le tableau garde SA ligne pleine (le message d'absence occupe la place
+  // d'une ligne, comme sur `clients.fiche.sites_vide`) — c'est l'absence de
+  // toute RÉFÉRENCE d'intervention qui dit qu'il n'y a rien à montrer.
+  await expect(bloc.locator('a[href^="/interventions/"]')).toHaveCount(0);
   const texteDuBloc = await bloc.innerText();
   expect(texteDuBloc).toContain(
     dictionnaire["clients.fiche.interventions_vide"]!,
@@ -337,7 +340,7 @@ test("UN CLIENT SANS AUCUNE INTERVENTION dit son absence — ni tableau vide, ni
 
   mesure.fiches.sans_intervention = {
     ...mesure.fiches.sans_intervention,
-    lignes_rendues: await bloc.locator("tbody tr").count(),
+    lignes_rendues: await bloc.locator('a[href^="/interventions/"]').count(),
     absence_rendue: dictionnaire["clients.fiche.interventions_vide"],
   };
   await capturer(page, "client-sans-intervention");

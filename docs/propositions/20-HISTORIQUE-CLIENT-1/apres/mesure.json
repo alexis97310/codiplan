@@ -1,0 +1,39 @@
+{
+  "commit": "0f4b18fbaf2c0d160246fae05551c89f869f9c55",
+  "horodatage": "2026-09-22T16:24:44.969Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "fiches": {
+    "page_un": {
+      "url": "/clients/e2e00000-0000-7000-8000-0000000c9c13",
+      "interventions_en_base": 13,
+      "lignes_page_1": 12,
+      "dates_page_1": [
+        20220101,
+        20210101,
+        20200101,
+        20190101,
+        20180101,
+        20170101,
+        20160101,
+        20150101,
+        20140101,
+        20130101,
+        null,
+        null
+      ]
+    },
+    "page_deux": {
+      "url": "http://127.0.0.1:3100/clients/e2e00000-0000-7000-8000-0000000c9c13?page=2",
+      "lignes_page_2": 1,
+      "references_page_2": [
+        "Local-C9C110"
+      ]
+    },
+    "sans_intervention": {
+      "url": "/clients/e2e00000-0000-7000-8000-0000000c9c15",
+      "lignes_rendues": 0,
+      "absence_rendue": "Aucune intervention n'est enregistrée pour ce client."
+    }
+  }
+}
