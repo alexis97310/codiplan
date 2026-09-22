@@ -100,9 +100,18 @@ function estOrigineFiche(valeur: unknown): valeur is OrigineFiche {
   );
 }
 
+/** Le lien de retour — href et libellé COMPOSÉS ENSEMBLE, jamais lus
+ * séparément : un lien dont la voix dirait « à la machine » et la
+ * destination mènerait au planning serait une fiche qui ment sur elle-même
+ * (§9, 01/09 — deux lectures d'un même critère divergent en silence). */
+export type RetourFiche = { readonly href: string; readonly libelle: string };
+
 /**
- * L'HREF DU RETOUR — `planning` par défaut, comme avant ce ticket, quand
- * `depuis` est absent ou ne vaut rien de connu.
+ * LE RETOUR — `planning` par défaut, comme avant ce ticket, quand `depuis`
+ * est absent, ne vaut rien de connu, ou — cas de `machine` — désigne une
+ * machine qui n'est PAS rattachée à cette intervention : la destination
+ * retombe sur le planning, et le LIBELLÉ avec elle, jamais l'un sans
+ * l'autre.
  */
 export function retourFiche(
   parametres: {
@@ -115,20 +124,33 @@ export function retourFiche(
     readonly date_planifiee: Date | null;
     readonly machines: readonly { readonly machine_id: string }[];
   },
-): string {
+): RetourFiche {
+  const parPlanning: RetourFiche = {
+    href: retourPlanning(ligne.date_planifiee),
+    libelle: t("planning.retour_fleche"),
+  };
   const depuis = Array.isArray(parametres.depuis)
     ? parametres.depuis[0]
     : parametres.depuis;
   if (!estOrigineFiche(depuis)) {
-    return retourPlanning(ligne.date_planifiee);
+    return parPlanning;
   }
   switch (depuis) {
     case "interventions":
-      return "/interventions";
+      return {
+        href: "/interventions",
+        libelle: t("intervention.retour.interventions"),
+      };
     case "client":
-      return `/clients/${ligne.client_id}`;
+      return {
+        href: `/clients/${ligne.client_id}`,
+        libelle: t("intervention.retour.client"),
+      };
     case "site":
-      return `/sites/${ligne.site_id}`;
+      return {
+        href: `/sites/${ligne.site_id}`,
+        libelle: `${t("intervention.retour.site_prefixe")} ${motDansUnePhrase("site")}`,
+      };
     case "machine": {
       const depuisId = Array.isArray(parametres.depuisId)
         ? parametres.depuisId[0]
@@ -137,33 +159,14 @@ export function retourFiche(
         typeof depuisId === "string" &&
         ligne.machines.some((machine) => machine.machine_id === depuisId);
       return rattachee
-        ? `/parc/${depuisId}`
-        : retourPlanning(ligne.date_planifiee);
+        ? {
+            href: `/parc/${depuisId}`,
+            libelle: t("intervention.retour.machine"),
+          }
+        : parPlanning;
     }
     case "planning":
-      return retourPlanning(ligne.date_planifiee);
-  }
-}
-
-/** Le libellé du lien de retour, assorti à `retourFiche` ci-dessus. */
-export function libelleRetourFiche(
-  depuis: string | readonly string[] | undefined,
-): string {
-  const valeur = Array.isArray(depuis) ? depuis[0] : depuis;
-  if (!estOrigineFiche(valeur)) {
-    return t("planning.retour_fleche");
-  }
-  switch (valeur) {
-    case "interventions":
-      return t("intervention.retour.interventions");
-    case "client":
-      return t("intervention.retour.client");
-    case "site":
-      return `${t("intervention.retour.site_prefixe")} ${motDansUnePhrase("site")}`;
-    case "machine":
-      return t("intervention.retour.machine");
-    case "planning":
-      return t("planning.retour_fleche");
+      return parPlanning;
   }
 }
 

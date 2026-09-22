@@ -42,7 +42,6 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
   heureDuCreneau,
-  libelleRetourFiche,
   machinesIdentifiees,
   referenceAffichee,
   retourFiche,
@@ -143,6 +142,9 @@ export default async function PageIntervention({
       : heurePlanifiee === null
         ? dateCivile(ligne.date_planifiee)
         : `${dateCivile(ligne.date_planifiee)} ${heurePlanifiee}`;
+  // HREF ET LIBELLÉ COMPOSÉS ENSEMBLE (`retourFiche`, `../presentation.ts`) —
+  // jamais deux lectures séparées qui pourraient diverger.
+  const retour = retourFiche({ depuis, depuisId }, ligne);
   // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
@@ -326,10 +328,10 @@ export default async function PageIntervention({
             {t("intervention.bon.titre")}
           </Link>
           <Link
-            href={retourFiche({ depuis, depuisId }, ligne)}
+            href={retour.href}
             className="text-app-encre-faible text-[12.5px]"
           >
-            {libelleRetourFiche(depuis)}
+            {retour.libelle}
           </Link>
         </span>
       }
