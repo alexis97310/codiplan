@@ -87,8 +87,23 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * Le lien vers la fiche disait « Enregistrer » — il reprenait
  * `agence.action.modifier`, le bouton d'enregistrement de la fiche — et Alexis
  * a conclu qu'il n'y avait pas de lien. Il dit désormais « Modifier »
- * (`agence.modifier`), le mot de `/parametres/equipe`. L'en-tête « Actions »
- * de la colonne, lui, était déjà déclaré depuis AGENCE-1.
+ * (`agence.modifier`), le mot de `/parametres/equipe`.
+ *
+ * **L'en-tête « Actions », lui, était déclaré depuis AGENCE-1 — et INVISIBLE
+ * tout de même.** Mesuré à la prise de vue de ce lot, fenêtre de 1280 px :
+ * la colonne latérale prend 272 px, la page 20 px de gouttière de chaque
+ * côté, le tableau dispose de 966 px — et son minimum était de 1040. Le
+ * conteneur défile latéralement, sans que rien ne le dise : la dernière
+ * colonne, en-tête ET lien, est simplement hors du cadre. *Le DOM la porte,
+ * l'œil ne l'atteint pas* — c'est la ligne exacte qu'Alexis a lue. Le
+ * minimum est ramené à 960 px : c'est celui de la table des modèles de
+ * `/parametres/materiel`, et la maquette (`.plan table{min-width:920px}`)
+ * ne demande pas davantage. Cela ne suffisait pas — mesuré : la colonne
+ * restait à 94,5 % dans le cadre, parce que le formulaire du pas, champ et
+ * bouton côte à côte, fixe une largeur incompressible ; il passe donc en
+ * `flex-wrap` (voir la ligne). À 1700 px — la fenêtre de R2-05 — rien ne
+ * change ; à 1280, les huit colonnes tiennent dans le cadre, et le scénario
+ * `tests/e2e/agences-etat-visible.spec.ts` l'exige à cette largeur.
  */
 export default async function PageParametresAgences({
   searchParams,
@@ -165,7 +180,7 @@ export default async function PageParametresAgences({
       ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <Tableau colonnes={colonnes} minimum="1040px">
+        <Tableau colonnes={colonnes} minimum="960px">
           {reglages.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
               {t("parametres.aucune_agence")}
@@ -289,7 +304,12 @@ function LigneAgence({
         <form
           action="/api/parametres/pas-creneau"
           method="post"
-          className="flex items-center gap-2"
+          // `flex-wrap` (AGENCE-2) : à 1280 px, ce formulaire est ce qui fixe
+          // la largeur incompressible de la ligne — champ, écart et bouton
+          // côte à côte —, et c'est lui qui poussait la colonne des actions
+          // hors du cadre. Le bouton passe sous le champ quand la place
+          // manque, et reste à côté à 1700 px, la fenêtre de R2-05.
+          className="flex flex-wrap items-center gap-2"
         >
           <input
             type="hidden"

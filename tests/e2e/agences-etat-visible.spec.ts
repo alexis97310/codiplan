@@ -26,6 +26,13 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * que la dernière colonne portait un « Enregistrer » en bout de ligne, qui ne
  * dit pas où il mène. Alexis a conclu qu'il n'y avait pas de lien.
  *
+ * Et la colonne elle-même, en-tête « Actions » compris, était HORS DU CADRE
+ * à 1280 px : le tableau exigeait 1040 px de large dans un cadre qui en
+ * offre 966, et son conteneur défile latéralement sans le dire. `toBeVisible`
+ * ne le voit pas — une boîte non vide hors de l'écran est « visible » pour
+ * lui —, d'où `toBeInViewport` à cette largeur précise : c'est celle des
+ * captures exigées par le lot, et une largeur d'écran courante.
+ *
  * ## Pourquoi le geste est joué PAR LA FICHE, jamais posé en base
  *
  * C'est le geste d'Alexis, exactement : la désactivation passe par
@@ -119,22 +126,30 @@ test.beforeEach(async ({ page }) => {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 });
 
-test("LA COLONNE DES ACTIONS PORTE SON INTITULÉ, ET LE LIEN DIT OÙ IL MÈNE", async ({
+/** La largeur des captures du lot — et celle où le défaut a été vu. */
+const FENETRE = { width: 1280, height: 900 };
+
+test("LA COLONNE DES ACTIONS PORTE SON INTITULÉ, DANS LE CADRE À 1280 PX, ET LE LIEN DIT OÙ IL MÈNE", async ({
   page,
 }) => {
+  await page.setViewportSize(FENETRE);
   await page.goto("/parametres/agences");
   await expect(page.locator("main")).toBeVisible();
 
+  // Dans le CADRE, pas seulement dans le DOM : sans défilement latéral.
   await expect(
     page.getByRole("columnheader", { name: fr["agence.colonne_actions"] }),
-  ).toBeVisible();
+  ).toBeInViewport({ ratio: 1 });
 
   // Un lien « Modifier » par ligne — jamais le « Enregistrer » de la fiche.
   const lignes = page.locator("main tbody tr");
   await expect(lignes).toHaveCount(3);
-  await expect(
-    page.getByRole("link", { name: fr["agence.modifier"], exact: true }),
-  ).toHaveCount(3);
+  const liens = page.getByRole("link", {
+    name: fr["agence.modifier"],
+    exact: true,
+  });
+  await expect(liens).toHaveCount(3);
+  await expect(liens.first()).toBeInViewport({ ratio: 1 });
   await expect(
     page.getByRole("link", { name: fr["agence.action.modifier"], exact: true }),
   ).toHaveCount(0);
