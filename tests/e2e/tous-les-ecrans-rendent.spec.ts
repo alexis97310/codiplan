@@ -133,6 +133,13 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
+  "/interventions/[id]/bon": async (prisma, societeId) =>
+    (
+      await prisma.intervention.findFirst({
+        where: { societe_id: societeId },
+        select: { id: true },
+      })
+    )?.id ?? null,
   // Renommé `[calendrier]` → `[id]` par AGENCE-1 (21/09/2026) : Next.js exige
   // un seul nom de segment dynamique par position dans l'arborescence, et
   // `/parametres/agences/[id]/modifier` (ajoutée par le même lot) partage

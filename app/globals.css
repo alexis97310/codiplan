@@ -459,3 +459,29 @@
     box-shadow: none;
   }
 }
+
+/*
+ * L'IMPRESSION DU BON D'INTERVENTION (lot 16, BON-1) — MÊME MÉCANISME que
+ * `print-qr` ci-dessus, jamais une variante : une classe posée sur `<body>`
+ * par `ActionsBonIntervention` (`components/interventions/actions-bon.tsx`)
+ * avant `window.print()`, retirée par `afterprint`. `:has()` a déjà été
+ * mesurée et refusée pour ce même geste (voir le commentaire de `print-qr`),
+ * et rien ne dit que ce bon-ci échapperait à la même fragilité.
+ */
+@media print {
+  body.print-bon * {
+    visibility: hidden;
+  }
+  body.print-bon .zone-impression-bon,
+  body.print-bon .zone-impression-bon * {
+    visibility: visible;
+  }
+  body.print-bon .zone-impression-bon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+}

@@ -212,3 +212,41 @@ export function libelleFiltreAgence(): string {
 export function optionToutesLesAgences(): string {
   return `${t("interventions.filtre_toutes_prefixe")} ${motDansUnePhrase("agence", true)}`;
 }
+
+/**
+ * UN INSTANT, EN DATE ET HEURE LOCALES — pour le bon d'intervention (BON-1).
+ *
+ * *Un segment de travail est un INSTANT (`Timestamptz`), pas un jour
+ * (`@db.Date`)* : `dateCivile` lit les composantes UTC d'une colonne déjà
+ * posée à minuit UTC, ce qui n'est pas le cas ici — un aller commencé à
+ * 22 h 30 sous UTC+11 se lirait la veille en UTC. `versLocal`, dans le fuseau
+ * de l'AGENCE de l'intervention, est le seul passage qui ne se trompe pas de
+ * jour (L0-08).
+ */
+export function dateHeureLocale(instant: Date, fuseau: Fuseau): string {
+  const local = versLocal(instant, fuseau);
+  const jour = String(local.jour).padStart(2, "0");
+  const mois = String(local.mois).padStart(2, "0");
+  const heures = String(local.heures).padStart(2, "0");
+  const minutes = String(local.minutes).padStart(2, "0");
+  return `${jour}/${mois}/${local.annee} ${heures}:${minutes}`;
+}
+
+/**
+ * TROIS PHRASES DU BON D'INTERVENTION QUI COMPOSENT LE MOT IMPOSÉ (BON-1).
+ *
+ * *Le mot « site » ne s'écrit qu'aux entrées `vocabulaire.*`* (D5, D47,
+ * L0-11) : ces trois clés portent donc un PRÉFIXE, et c'est ici, jamais dans
+ * le dictionnaire, qu'il se complète avec `motDansUnePhrase("site")`.
+ */
+export function segmentsSurSiteTitre(): string {
+  return `${t("intervention.bon.segments_titre")} ${motDansUnePhrase("site")}`;
+}
+
+export function tempsTotalSurSiteLibelle(): string {
+  return `${t("intervention.bon.temps_total")} ${motDansUnePhrase("site")}`;
+}
+
+export function aucuneMachineSurLeSite(): string {
+  return `${t("intervention.bon.aucune_machine")} ${motDansUnePhrase("site")}.`;
+}

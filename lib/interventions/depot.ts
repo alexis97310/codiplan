@@ -172,7 +172,7 @@ function refus<T>(verdict: Verdict): Resultat<T> | null {
  * fuseau où on la lit. C'est le fuseau de l'agence de l'intervention, parce que
  * c'est lui qui décide de son calendrier de référence (I7).
  */
-async function instantDeLAgence(
+export async function instantDeLAgence(
   tx: Prisma.TransactionClient,
   agenceId: string,
 ): Promise<Date> {
@@ -990,7 +990,7 @@ export async function deplacerIntervention(
  * signifient la même chose pour le total**, et les distinguer ici ferait un
  * oracle sur ce que le contexte a le droit de lire (D50).
  */
-async function montantDuForfait(
+export async function montantDuForfait(
   tx: Prisma.TransactionClient,
   forfaitId: string | null,
 ): Promise<Montant | null> {
@@ -1401,7 +1401,7 @@ export async function ajouterMachineAIntervention(
  * différents. Le message est technique, et l'écran décide de ce qu'un humain
  * en lit.
  */
-function restrictionParPersonne(
+export function restrictionParPersonne(
   contexte: ContexteSession,
 ): { readonly technicien_id: string } | undefined {
   const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));

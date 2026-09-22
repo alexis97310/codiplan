@@ -1223,6 +1223,41 @@ export const fr = {
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 
+  // ── LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) ────────────────────
+  //
+  // Ce que la base porte déjà : l'en-tête société, la machine, les segments
+  // de travail, le taux en vigueur à la date, le forfait et le montant. Le
+  // reste — prestations, commentaire, suite à donner, photos, signature —
+  // arrive au lot 17 ; ce bon ne prétend pas les porter.
+  "intervention.bon.titre": "Bon d'intervention",
+  "intervention.bon.imprimer": "Imprimer le bon",
+  "intervention.bon.refus.acces":
+    "Votre rôle ne permet pas de consulter le bon de cette intervention.",
+  // « site » n'est pas écrit ici : le mot imposé se compose depuis
+  // `mot`/`motDansUnePhrase`, jamais en dur (D5, D47, L0-11) — voir
+  // `presentation.ts` du dossier des interventions pour les trois phrases qui
+  // le composent.
+  "intervention.bon.aucune_machine":
+    "Aucune machine n'est rattachée à cette intervention : elle porte sur l'ensemble du",
+  "intervention.bon.segments_titre": "Temps passé sur",
+  "intervention.bon.segment_arrivee": "Arrivée",
+  "intervention.bon.segment_depart": "Départ",
+  "intervention.bon.segment_duree": "Durée",
+  "intervention.bon.segment_technicien": "Technicien",
+  "intervention.bon.segment_en_cours": "en cours",
+  "intervention.bon.aucun_segment":
+    "Aucun segment de travail n'est enregistré pour cette intervention.",
+  "intervention.bon.temps_total": "Temps total sur",
+  "intervention.bon.valorisation_titre": "Valorisation",
+  // *Un taux qu'on ne peut plus reconstituer efface le total avec lui* : voir
+  // l'entête de `lib/interventions/bon.ts`. La phrase ne parle pas de
+  // clôture — contrairement à `intervention.refus.taux_absent` — puisqu'on
+  // est ici après coup, en train de consulter, jamais en train de clôturer.
+  "intervention.bon.taux_absent":
+    "Aucun taux horaire n'est en vigueur à la date de cette intervention : le montant ne peut pas être établi.",
+  "intervention.bon.a_venir":
+    "Les blocs suivants arrivent avec le lot 17 : prestations réalisées, commentaire du technicien, suite à donner, photos, signature du client.",
+
   // ── LA DEMANDE D'INTERVENTION (L2-06) ───────────────────────────────────
   //
   // Le point d'entrée du flux. Les refus nomment ce qui bloque et la marche à

@@ -248,12 +248,26 @@ export default async function PageIntervention({
         ligne.numero === null ? t("intervention.sans_numero") : undefined
       }
       actions={
-        <Link
-          href={retourPlanning(ligne.date_planifiee)}
-          className="text-app-encre-faible text-[12.5px]"
-        >
-          {t("planning.retour_fleche")}
-        </Link>
+        <span className="inline-flex items-center gap-3">
+          {/*
+            LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — un lien, pas un
+            bouton d'action : cette fiche ne décide de rien de plus, elle mène
+            à l'écran qui imprime. Sans lui, le bon existerait sans aucun
+            appelant (§9, la maladie que le portail a déjà soignée).
+          */}
+          <Link
+            href={`/interventions/${ligne.id}/bon`}
+            className={CLASSES_LIEN}
+          >
+            {t("intervention.bon.titre")}
+          </Link>
+          <Link
+            href={retourPlanning(ligne.date_planifiee)}
+            className="text-app-encre-faible text-[12.5px]"
+          >
+            {t("planning.retour_fleche")}
+          </Link>
+        </span>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
