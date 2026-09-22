@@ -1,0 +1,32 @@
+# FINS DE LIGNE — LF partout, et la règle VOYAGE avec le dépôt (PORTABILITE-1).
+#
+# Mesuré le 22/09/2026 : cloné sous Windows natif, Git for Windows applique
+# `core.autocrlf=true` par défaut, 724 fichiers sont sortis en CRLF et 70 des
+# 2 375 tests unitaires ont échoué — les gardiens qui découpent un fichier
+# ligne à ligne gardaient un retour chariot en fin de ligne et ne
+# reconnaissaient plus leurs motifs. Régler la configuration LOCALE a ramené
+# les échecs à 19 ; mais une configuration locale ne voyage pas, et le
+# prochain qui clone retrouverait les 724 fichiers. Ce fichier, lui, voyage :
+# Git le lit AVANT la configuration du poste, et la CI tourne sous Linux —
+# un checkout en CRLF n'a de sens nulle part.
+#
+# `text=auto` laisse Git reconnaître lui-même ce qui est du texte ; `eol=lf`
+# fixe la fin de ligne à l'extraction, quel que soit le système. Ce qui est
+# binaire est déclaré tel EN PLUS, pour ne dépendre d'aucune détection.
+* text=auto eol=lf
+
+# Binaires — jamais de conversion, jamais de diff textuel.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.xlsx  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.zip   binary
