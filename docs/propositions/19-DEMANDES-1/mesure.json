@@ -1,0 +1,24 @@
+{
+  "commit": "21c073424a458bf799944d72703407adb4edb9d6",
+  "horodatage": "2026-09-22T15:38:12.883Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "ecrans": {
+    "file_avec_demandes": {
+      "url": "/demandes",
+      "lignes": 2
+    },
+    "fiche_demande": {
+      "url": "/demandes/e2e00000-0000-7000-8000-00000000d1a2"
+    },
+    "fiche_close_sans_suite": {
+      "url": "/demandes/e2e00000-0000-7000-8000-00000000d1a3"
+    },
+    "file_vide": {
+      "url": "/demandes"
+    },
+    "tableau_de_bord": {
+      "url": "/tableau-de-bord"
+    }
+  }
+}
