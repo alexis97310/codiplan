@@ -125,3 +125,110 @@ test("un technicien ne peut pas créer de fiche client", async ({ page }) => {
     await client.$disconnect();
   }
 });
+
+/**
+ * D131 — LA PORTE POSÉE SUR « ANNULER », ÉPROUVÉE PAR LE MÊME MOYEN.
+ *
+ * Mesuré le 23/09/2026 sur `main` (`0ae8011`) : la route appelait
+ * `contexteCourant()`, qui ne lit aucun rôle — n'importe quel compte pouvait
+ * annuler n'importe quelle intervention, technicien compris. `annuler_intervention`
+ * ne porte AUCUN `○` (D131) : une annulation est une décision commerciale du
+ * bureau, jamais un geste terrain, quelle que soit l'intervention visée — la
+ * chaîne entière (session, porte, dépôt) refuse donc avant même de juger un
+ * périmètre.
+ */
+test("un technicien ne peut pas annuler une intervention", async ({
+  page,
+}) => {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+    const intervention = await client.intervention.findFirstOrThrow({
+      where: { societe_id: societe.id, statut: { not: "annulee" } },
+      select: { id: true, statut: true },
+    });
+
+    await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+
+    const reponse = await page.request.post(
+      `/api/interventions/${intervention.id}/annuler`,
+      { form: { motif: "Annulation forgée par un technicien" }, maxRedirects: 0 },
+    );
+
+    // Le même refus qu'une session absente — la porte ne dit pas pourquoi.
+    expect(reponse.status()).toBe(303);
+    expect(reponse.headers()["location"] ?? "").toContain("auth.refus");
+
+    // ET LE STATUT N'A PAS CHANGÉ.
+    const apres = await client.intervention.findUniqueOrThrow({
+      where: { id: intervention.id },
+      select: { statut: true },
+    });
+    expect(apres.statut).toBe(intervention.statut);
+  } finally {
+    await client.$disconnect();
+  }
+});
+
+/**
+ * D131 — LE ○ DE « CLÔTURER » EST SCOPÉ : le technicien réel, connecté par
+ * l'écran, est refusé sur l'intervention D'UN COLLÈGUE — jamais seulement
+ * mesuré sur une session fabriquée (`tests/unit/auth/porte.test.ts`) ni sur le
+ * dépôt appelé directement (`tests/isolation/droits-cycle-de-vie.test.ts`),
+ * mais par la CHAÎNE ENTIÈRE : session, porte, dépôt.
+ */
+test("un technicien ne peut pas clôturer l'intervention d'un collègue", async ({
+  page,
+}) => {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const technicien = await client.utilisateur.findFirstOrThrow({
+      where: { email: COMPTE_TECHNICIEN_EPREUVE },
+      select: { id: true },
+    });
+    const societe = await client.societe.findFirstOrThrow({
+      where: { code: "CODIMA-NC" },
+      select: { id: true },
+    });
+    // Une intervention affectée à QUELQU'UN D'AUTRE que le technicien de
+    // l'épreuve — ou à personne : les deux sont hors de SON périmètre.
+    const intervention = await client.intervention.findFirstOrThrow({
+      where: {
+        societe_id: societe.id,
+        statut: { notIn: ["annulee", "cloturee"] },
+        technicien_id: { not: technicien.id },
+      },
+      select: { id: true, statut: true },
+    });
+
+    await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+
+    const reponse = await page.request.post(
+      `/api/interventions/${intervention.id}/cloturer`,
+      { form: { temps_valide_min: "60" }, maxRedirects: 0 },
+    );
+
+    // Le refus est celui d'une intervention hors périmètre — le MÊME que
+    // « introuvable » (D35, D50) : distinguer les deux dirait à un technicien
+    // qu'une intervention d'un collègue existe.
+    expect(reponse.status()).toBe(303);
+    expect(reponse.headers()["location"] ?? "").toContain(
+      "intervention.refus.inconnue",
+    );
+
+    const apres = await client.intervention.findUniqueOrThrow({
+      where: { id: intervention.id },
+      select: { statut: true },
+    });
+    expect(apres.statut).toBe(intervention.statut);
+  } finally {
+    await client.$disconnect();
+  }
+});
