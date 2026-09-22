@@ -1,0 +1,56 @@
+{
+  "commit": "b5b773f597cdc26a6669df5630a8402e2f2e75e4",
+  "horodatage": "2026-09-22T03:16:00.422Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "agence_desactivee_le_temps_de_la_capture": "Dolbeau",
+  "geometrie": {
+    "fenetre": 1280,
+    "table_gauche": 293,
+    "table_droite": 1259,
+    "derniere_colonne_droite": 1259,
+    "defilement_lateral": 0
+  },
+  "entetes": [
+    "Agence",
+    "Calendrier",
+    "Jours travaillés",
+    "Horaires",
+    "Créneaux",
+    "Exceptions",
+    "Pas",
+    "Actions"
+  ],
+  "lignes": [
+    [
+      "DolbeauInactif",
+      "Nouméa — horaires de démonstration",
+      "lundi, mardi, mercredi, jeudi, vendredi, samedi",
+      "07:30–11:30, 13:00–17:00",
+      "07:30 → 16:30 (16)",
+      "Aucune exception enregistrée.",
+      "Pas des créneaux (minutes)Enregistrer le pas",
+      "Modifier"
+    ],
+    [
+      "DucosActif",
+      "Nouméa — horaires de démonstration",
+      "lundi, mardi, mercredi, jeudi, vendredi, samedi",
+      "07:30–11:30, 13:00–17:00",
+      "07:30 → 16:30 (16)",
+      "Aucune exception enregistrée.",
+      "Pas des créneaux (minutes)Enregistrer le pas",
+      "Modifier"
+    ],
+    [
+      "KonéActif",
+      "Koné — horaires de démonstration",
+      "lundi, mardi, mercredi, jeudi, vendredi",
+      "07:30–11:30, 13:00–17:00",
+      "07:30 → 16:30 (16)",
+      "Aucune exception enregistrée.",
+      "Pas des créneaux (minutes)Enregistrer le pas",
+      "Modifier"
+    ]
+  ]
+}
