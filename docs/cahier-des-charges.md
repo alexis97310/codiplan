@@ -275,6 +275,9 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 | Saisir un rapport | — | ● | — | ● | ● | — | ● | — |
 | Valider un rapport | — | ● | ● | ● | ● | — | — | — |
 | Clôturer une intervention | — | ● | ● | ● | ● | ● | ○ | — |
+| Annuler une intervention | — | ● | ● | ● | ● | ● | — | — |
+| Suspendre / reprendre une intervention | — | ● | ● | ● | ● | ● | ○ | — |
+| Enregistrer une vérification VGP | — | ● | ● | ● | ● | ● | ○ | — |
 | Créer / modifier un client ou un site | — | ● | ● | — | — | ● | — | — |
 | Créer / modifier un contrat | — | ● | ● | ● | — | ○ | — | — |
 | Créer / modifier une machine | — | ● | ● | ● | ● | ● | ● | — |
@@ -296,6 +299,8 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 **La colonne « Admin » est scindée en deux (D37).** Toutes les lignes de cette matrice sont de **portée société** — elles décrivent ce qui se fait *à l'intérieur* d'une société : elles reviennent donc à `admin_societe`, l'administrateur du client. La colonne « Admin plateforme » est vide à dessein, et c'est le principe du §22.5 rendu visible : **un salarié de l'éditeur n'a aucun accès par défaut aux données d'un client.** Les capacités de portée plateforme d'`admin_plateforme` sont énumérées au §22.5 et n'ont pas leur place ici.
 
 Rattacher cette colonne à `admin_plateforme`, comme le faisait la version précédente, revenait à faire passer par l'éditeur la création d'un compte chez un client : intenable dès la première vente.
+
+**Trois lignes ajoutées, et une rouverte (arbitrage Alexis, 23/09/2026, D131).** « Annuler une intervention », « Suspendre / reprendre une intervention » et « Enregistrer une vérification VGP » sont absentes du cahier des charges d'origine ; le `○` de « Clôturer une intervention » sur la colonne Technicien, retiré par l'arbitrage 3.17, est rétabli mais **scopé** : le technicien n'agit que sur une intervention (ou, pour la VGP, une machine) où IL est le technicien affecté — jamais celle d'un collègue, jamais une annulation. Le détail et le motif complet sont dans `docs/arbitrages.md` (D131).
 
 **Restrictions notables**
 

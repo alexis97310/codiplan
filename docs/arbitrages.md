@@ -4776,3 +4776,52 @@ Aucun dépôt ne change : `lib/clients/depot.ts` et `lib/sites/depot.ts` continu
 > Le jour où l'exploitation demande que `responsable_materiel` ou `responsable_sav` ouvre lui-même une fiche client ou site — ou qu'une distinction apparaisse entre le geste sur un client et celui sur un site —, cette page se rouvre plutôt que d'être contournée dans le code.
 
 **Règles amendées :** aucune.
+
+## D131 — QUI CLÔTURE, QUI ANNULE, QUI SUSPEND, QUI ENREGISTRE UNE VGP
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 23/09/2026, en réponse à ce que D130 laissait explicitement ouvert : « Rien sur `app/api/vgp/enregistrer/[id]` […] Rien sur `interventions/[id]/{cloturer,annuler,suspendre,reprendre}` ».*
+
+### CE QUI A ÉTÉ MESURÉ
+
+**Cinq routes qui ÉCRIVENT n'exigeaient aucune capacité**, mesuré le 23/09/2026 sur `main` (`0ae8011`), par `tests/unit/auth/porte.test.ts` (liste `EXEMPTIONS`) :
+
+    app/api/vgp/enregistrer/[id]/route.ts          « arbitrage en attente »
+    app/api/interventions/[id]/cloturer/route.ts   « arbitrage en attente »
+    app/api/interventions/[id]/annuler/route.ts    « arbitrage en attente »
+    app/api/interventions/[id]/suspendre/route.ts  « arbitrage en attente »
+    app/api/interventions/[id]/reprendre/route.ts  « arbitrage en attente »
+
+Chacune appelait `contexteCourant()` (session + société, AUCUN rôle) au lieu de `exigerCapacite(...)`. Conséquence en production : n'importe quel compte de la société, technicien compris, pouvait clôturer, annuler, suspendre ou reprendre n'importe quelle intervention — y compris celle d'un collègue — et enregistrer une VGP sur n'importe quelle machine.
+
+`lib/auth/habilitations.ts` portait déjà `cloturer_intervention: { complet: [ADMS, DIR, RM, RS, ADV] }` — sans aucun `○`, l'arbitrage 3.17 l'ayant retiré — mais aucune route ne l'exigeait, et aucune ligne ne disait annuler / suspendre / reprendre / enregistrer une VGP.
+
+### LA DÉCISION
+
+**« Le bureau » = exactement les rôles `admin_societe, direction, responsable_materiel, responsable_sav, adv`** (la ligne `complet` déjà portée par `cloturer_intervention`).
+
+| Geste | Bureau | Technicien |
+|---|---|---|
+| Clôturer | oui | oui, **seulement sur une intervention où IL est le technicien affecté** |
+| Annuler | oui | **non** |
+| Suspendre / reprendre | oui | oui, **seulement sur une intervention où IL est le technicien affecté** |
+| Enregistrer une VGP | oui | oui, **seulement sur une machine portée par une intervention non annulée où IL est le technicien affecté** |
+
+Client, rôles éditeur, `admin_plateforme` : **non** partout — comme aujourd'hui dans la matrice pour `cloturer_intervention`.
+
+**Ce qui change concrètement.** `cloturer_intervention` retrouve le `○` que l'arbitrage 3.17 lui avait retiré, mais SCOPÉ — ce que 3.17 ne pouvait pas dire, faute d'un mécanisme de périmètre par personne à l'époque (`lib/interventions/perimetre-technicien.ts` date du lot 2, postérieur). Trois capacités **absentes du §5.2** sont créées avec lui, arbitrées à l'identique : `annuler_intervention` (aucun `○`, une annulation étant une décision commerciale du bureau), `suspendre_reprendre_intervention` (même `○` scopé, la matrice ne distinguant pas les deux sens d'une même pause), `enregistrer_vgp` (même `○` scopé, sur les machines des interventions du technicien).
+
+**La porte ne juge jamais le périmètre** (`lib/auth/porte.ts`, `exigerCapacite` — « le niveau restreint est une restriction de PORTÉE que la porte ne juge pas, elle appartient au dépôt appelé ensuite ») : elle laisse passer le `○`. C'est le dépôt qui compare `ligne.technicien_id` à l'identité de la session — `perimetreParPersonne` et `accesSurCetteIntervention` dans `lib/interventions/perimetre-technicien.ts`, généralisés depuis `perimetreDuPlanning` plutôt que réécrits une seconde fois (§9, 01/09). Pour la VGP, faute d'un `technicien_id` sur la machine elle-même, le périmètre se lit par l'EXISTENCE d'une intervention non annulée qui la rattache au technicien (`lib/vgp/verification.ts`).
+
+**Un cas que le tableau ne tranche pas, pris au plus restrictif** (comme demandé) : une intervention non affectée (`technicien_id` nul) n'est le périmètre de PERSONNE en restreint — `dansLePerimetre` refuse `null` contre n'importe quel technicien, y compris celui qui l'aurait commencée avant d'en être retiré. Un technicien restreint ne peut donc agir que sur une intervention EXPLICITEMENT affectée à lui.
+
+**Le refus reprend le message existant.** Hors périmètre et intervention inexistante rendent la MÊME chose — `intervention.refus.inconnue`, qui portait déjà la phrase « elle n'est pas dans votre périmètre » avant ce lot — et pour la VGP, la même exception que « machine hors société » (`vgp.verifier.refus.introuvable`). Distinguer les deux dirait à un technicien qu'une intervention ou une machine d'un collègue existe (D35, D50).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS : c'est une question d'autorisation à l'intérieur d'une société déjà cloisonnée. La fiche intervention (`app/(back-office)/interventions/[id]/page.tsx`) cesse d'afficher un bloc d'action que le rôle courant ne peut pas accomplir SUR CETTE INTERVENTION, plutôt qu'un bouton menant à un refus — lu depuis la même matrice, jamais une seconde liste de rôles.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation distingue « suspendre » de « reprendre » (aujourd'hui une seule capacité, `suspendre_reprendre_intervention`), ou demande qu'un technicien retiré d'une intervention EN COURS garde la main dessus, cette page se rouvre plutôt que d'être contournée dans le code.
+
+**Règles amendées :** la ligne « Clôturer une intervention » du §5.2 (le `○` du technicien, retiré par l'arbitrage 3.17, est rétabli mais scopé) ; trois lignes ajoutées au §5.2, absentes du cahier des charges d'origine : « Annuler une intervention », « Suspendre / reprendre une intervention », « Enregistrer une vérification VGP ».
