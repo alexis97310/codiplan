@@ -204,3 +204,26 @@ export function allersRetoursApplication(nombreDeLignes: number): number {
   const HORS_LIGNES = 7;
   return HORS_LIGNES + PAR_LIGNE_AU_PIRE * nombreDeLignes;
 }
+
+/**
+ * CE QUE CE FICHIER APPELLE UN BUDGET, MESURÉ UNE FOIS (IMPORT-2, 23/09/2026).
+ *
+ * `scripts/mesure-delais-import.mts` rejoue `appliquerLeLotDeClients` en
+ * conditions réelles (rôle applicatif, base locale jetable) à plusieurs
+ * tailles, pour les deux régimes — créations et VRAIES modifications — et
+ * écrit le résultat dans `docs/propositions/23-IMPORT-2/mesure.md`. Ce que
+ * cette mesure montre, en local : le coût par ligne (~0,5 ms en création,
+ * ~0,9 ms en modification — le double, comme le docblock d'
+ * `allersRetoursApplication` l'affirme) est des CENTAINES de fois plus bas
+ * que `LATENCE_PESSIMISTE_MS` ne le budgète, si bien que la casse mesurée
+ * (extrapolée, jamais atteinte en local) se situe entre huit cent mille et un
+ * million et demi de lignes, contre 746 pour le budget théorique.
+ *
+ * **Ce que la mesure NE dit PAS** — écrit là plutôt que résumé ici, pour ne
+ * pas s'en tenir à une lecture optimiste hors de son contexte : elle tourne
+ * en local, jamais contre la base hébergée (Neon, latence réseau, mise en
+ * veille), et sur l'entité « clients », jamais sur « historique » ou « VGP »
+ * — les imports RÉELS d'Alexis, qui ne savent que créer. Le rapport entre les
+ * deux — combien de fois la latence réelle vers Neon dépasse la latence
+ * locale — reste à mesurer, pas à supposer.
+ */
