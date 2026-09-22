@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient, type StatutIntervention } from "@prisma/client";
 
+import { absenceCouvrant, type AbsenceDeclaree } from "../lib/absences/periode";
 import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
 import {
@@ -1387,7 +1388,18 @@ async function seed(): Promise<void> {
           ]),
         );
 
+        // LES BLOCAGES D'AGENDA DÉJÀ POSÉS — 28-SEMIS-3. Le semis n'en écrit
+        // aucun (`absence` compte ZÉRO ligne au premier semis, voir R3-14) ;
+        // une ligne ici vient toujours d'un écran, entre deux exécutions. Le
+        // déclencheur `intervention_pas_sur_blocage_agenda` refuse d'écrire
+        // un couple (technicien, date) qui tombe dessus — la passe doit donc
+        // le voir AVANT d'écrire, avec la même règle que l'écran (RG-PLA-06).
+        const absences: readonly AbsenceDeclaree[] = await tx.absence.findMany({
+          select: { id: true, utilisateur_id: true, du: true, au: true },
+        });
+
         let compte = 0;
+        let sautees = 0;
         const lignes = await tx.intervention.findMany({
           select: {
             id: true,
@@ -1421,6 +1433,29 @@ async function seed(): Promise<void> {
             trouve.modele.joursDepuisLundi === null
               ? null
               : jourSuivant(lundi, trouve.modele.joursDepuisLundi);
+
+          // LE SEMIS NE REMPLACE JAMAIS UNE INTERVENTION SUR UN AGENDA
+          // BLOQUÉ (28-SEMIS-3). Le technicien candidat peut avoir posé un
+          // blocage — depuis l'écran, entre deux exécutions — qui couvre
+          // justement le jour que cette passe s'apprête à lui donner :
+          // `intervention_pas_sur_blocage_agenda` le refuserait. La ligne est
+          // SAUTÉE, telle quelle, plutôt que réparée en lui cherchant un
+          // autre technicien : c'est la même décision que « agence sans
+          // équipe » deux lignes plus haut — une intervention arrive parfois
+          // avant qu'on sache qui ira, ou reste sans personne le temps qu'un
+          // blocage se lève.
+          const dateCandidate = jourEnDate(jour);
+          const technicienCandidatId =
+            courriel === undefined ? undefined : parCourriel.get(courriel);
+          if (
+            dateCandidate !== null &&
+            technicienCandidatId !== undefined &&
+            absenceCouvrant(absences, technicienCandidatId, dateCandidate) !==
+              null
+          ) {
+            sautees += 1;
+            continue;
+          }
 
           await tx.intervention.update({
             where: { id: ligne.id },
@@ -1518,11 +1553,14 @@ async function seed(): Promise<void> {
           });
           compte += 1;
         }
-        return compte;
+        return { compte, sautees };
       },
       DELAIS_SEED,
     );
-    etape(`${societe.code} — interventions replacées : ${affectees}`);
+    etape(
+      `${societe.code} — interventions replacées : ${affectees.compte}` +
+        ` — sautées pour blocage d'agenda : ${affectees.sautees}`,
+    );
   }
 
   // ── 10. LE FORFAIT ET LE LOT D'IMPORT DE DÉMONSTRATION (SEMIS-2, #266) ──
