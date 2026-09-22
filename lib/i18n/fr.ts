@@ -716,6 +716,14 @@ export const fr = {
   // docblock de `app/(back-office)/imports/[id]/page.tsx`.
   "imports.telecharger_rejets": "Télécharger les rejets",
 
+  // LA DURÉE DE L'APPLICATION (MESURE-1, 23/09/2026) — un fait mesuré, jamais
+  // `appliqueLe - controleLe` (voir `app/(back-office)/imports/presentation.ts`).
+  // Un lot qui reste `controle` n'a rien à mesurer : l'absence est NOMMÉE,
+  // jamais un zéro qui se lirait comme « instantané ».
+  "imports.duree_application_titre": "Durée de l'application",
+  "imports.duree_application_absente":
+    "non mesurée — ce lot n'a pas encore été appliqué",
+
   // **CE N'EST PAS UN REFUS, C'EST UN ÉTAT** (R6-01) : le fichier est correct,
   // le rapport est juste, et il n'y a rien à corriger. *Le dire comme une
   // erreur enverrait l'auteur du classeur chercher ce qu'il a mal rempli.*

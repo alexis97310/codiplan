@@ -124,6 +124,23 @@ export function coordonneesDuLot(
 }
 
 /**
+ * LA DURÉE DE L'APPLICATION, LISIBLE (MESURE-1, 23/09/2026).
+ *
+ * **`null` n'est pas zéro** : un lot resté `controle` n'a rien à mesurer, et
+ * le dit — jamais un zéro qui se lirait comme « instantané » (voir le
+ * docblock de `import_lot.duree_application_ms`, `prisma/schema.prisma`).
+ * Le nombre affiché est celui que l'application a mesuré, jamais
+ * `appliqueLe - controleLe`, qui porte le temps qu'un humain a passé à lire
+ * le rapport.
+ */
+export function dureeApplicationLisible(dureeApplicationMs: number | null): string {
+  if (dureeApplicationMs === null) {
+    return t("imports.duree_application_absente");
+  }
+  return `${dureeApplicationMs} ms`;
+}
+
+/**
  * LES QUATRE COMPTES DU RATTACHEMENT D'UN LOT D'HISTORIQUE, DANS L'ORDRE DES
  * RANGS (REPRISE-HISTORIQUE ; D127).
  *

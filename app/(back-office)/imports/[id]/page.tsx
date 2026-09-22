@@ -21,6 +21,7 @@ import {
   cleDuMotifDAttente,
   cleDuMotifDeRattachement,
   coordonneesDuLot,
+  dureeApplicationLisible,
   lignesDeRattachement,
   lignesDeRattachementVgp,
   lignesDeResultat,
@@ -207,6 +208,11 @@ export default async function PageLotDImport({
     >
       <p className="text-app-encre-faible text-[11.5px]">
         {coordonneesDuLot(lot.controleLe, fuseau, lot.auteur)}
+      </p>
+      <p data-duree-application className="text-app-encre-faible text-[11.5px]">
+        {t("imports.duree_application_titre")}
+        {t("ponctuation.separateur")}
+        {dureeApplicationLisible(lot.dureeApplicationMs)}
       </p>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (

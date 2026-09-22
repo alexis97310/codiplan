@@ -309,6 +309,15 @@ async function appliquerLesLignes<
     return await avecContexteApplicatif(
       contexte,
       async (tx) => {
+        // **LA DURÉE RÉELLEMENT MESURÉE DE LA TRANSACTION (MESURE-1,
+        // 23/09/2026)** — posée au tout début du travail, jamais avant
+        // `avecContexteApplicatif` : l'attente d'une connexion
+        // (`ATTENTE_CONNEXION_MS`) n'appartient pas à la transaction, et la
+        // compter mentirait sur ce qui dure. `process.hrtime.bigint()` est le
+        // même outil que `scripts/mesure-delais-import.mts` (IMPORT-2) a déjà
+        // employé pour chronométrer ce même chemin, hors production.
+        const debutTransaction = process.hrtime.bigint();
+
         const lot = await tx.importLot.findUnique({
           where: { id: lotId },
           select: {
@@ -438,6 +447,18 @@ async function appliquerLesLignes<
           modifications += 1;
         }
 
+        // **LA DURÉE S'ARRÊTE ICI**, juste avant l'écriture qui la porte :
+        // cette dernière écriture elle-même n'est jamais comptée dans ce
+        // qu'elle rapporte — inévitable, une mesure ne peut pas inclure
+        // l'instant où elle s'écrit. *Jamais zéro* (le schéma l'exige aussi,
+        // par contrainte) : une transaction réelle, fût-ce un seul
+        // aller-retour, ne dure jamais zéro milliseconde — `Math.max(1, …)`
+        // n'arrondit donc jamais vers le mensonge que zéro porterait.
+        const dureeApplicationMs = Math.max(
+          1,
+          Math.round(Number(process.hrtime.bigint() - debutTransaction) / 1e6),
+        );
+
         await tx.importLot.update({
           where: { id: lotId },
           data: {
@@ -450,6 +471,7 @@ async function appliquerLesLignes<
             // n'a pas de proposition à trahir : il vaut zéro tant que rien ne
             // l'a mesuré, et c'est l'application, seule, qui le mesure.
             lignes_inchangees: inchangees,
+            duree_application_ms: dureeApplicationMs,
           },
         });
 

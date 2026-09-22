@@ -227,3 +227,19 @@ export function allersRetoursApplication(nombreDeLignes: number): number {
  * deux — combien de fois la latence réelle vers Neon dépasse la latence
  * locale — reste à mesurer, pas à supposer.
  */
+
+/**
+ * DEPUIS LE 23/09/2026 (MESURE-1), CE BUDGET N'EST PLUS LA SEULE SOURCE.
+ *
+ * Le chemin qu'il budgète mesure désormais chaque application RÉELLE :
+ * `import_lot.duree_application_ms` (`prisma/schema.prisma`), écrite par
+ * `appliquerLesLignes` (`lib/imports/application.ts`) au chronomètre
+ * (`process.hrtime.bigint()`), du début du travail jusqu'à son `COMMIT`. Ce
+ * n'est toujours pas ce fichier qui change : `DUREE_MAXIMALE_MS`,
+ * `PLAFOND_PLATEFORME_S` et `LATENCE_PESSIMISTE_MS` restent les mêmes
+ * nombres — relever un plafond sur la foi d'une première mesure serait
+ * exactement la faute que le premier déploiement de ce chemin a déjà coûtée.
+ * *Ce que la mesure réelle donne, à qui veut confronter le budget à la
+ * production* : l'écran d'un lot (`app/(back-office)/imports/[id]/page.tsx`)
+ * montre sa durée, et le journal des chargements en accumule un par import.
+ */

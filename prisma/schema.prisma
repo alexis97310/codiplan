@@ -3039,6 +3039,24 @@ model ImportLot {
   applique_le DateTime?
   annule_le   DateTime?
 
+  /// AJOUTÉE le 23/09/2026 (MESURE-1) — la durée RÉELLEMENT mesurée de la
+  /// transaction d'application, du début du travail jusqu'à son `COMMIT`, en
+  /// millisecondes. **CE N'EST PAS `applique_le - controle_le`** : cet écart
+  /// contient le temps qu'un humain a passé à lire le rapport avant de
+  /// valider — un lot contrôlé à 9h et appliqué à 14h donnerait cinq heures,
+  /// pas une durée de transaction. Elle est mesurée par un chronomètre posé
+  /// au tout début de la transaction (`process.hrtime.bigint()`,
+  /// `lib/imports/application.ts`) et écrite une seule fois, dans la MÊME
+  /// écriture que `statut` et `applique_le`.
+  ///
+  /// NULLABLE, et **jamais zéro** : un lot qui reste `controle` n'a rien à
+  /// mesurer et porte l'ABSENCE, jamais zéro — zéro se lirait comme
+  /// « instantané », c'est-à-dire un mensonge (une transaction réelle ne dure
+  /// jamais zéro milliseconde). Même famille que `lignes_inchangees` sans son
+  /// défaut : celle-ci vaut zéro tant que rien ne l'a mesurée, celle-là ne
+  /// PEUT pas prendre cette valeur.
+  duree_application_ms Int?
+
   societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   lignes  ImportLotLigne[]
 

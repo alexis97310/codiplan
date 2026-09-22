@@ -236,6 +236,14 @@ export type LotEnListe = {
   readonly appliqueLe: Date | null;
   readonly annuleLe: Date | null;
   readonly decomptes: Decomptes;
+  /**
+   * AJOUTÉ le 23/09/2026 (MESURE-1) : la durée RÉELLEMENT mesurée de la
+   * transaction d'application, en millisecondes. **Jamais `appliqueLe -
+   * controleLe`** — voir le docblock de la colonne (`prisma/schema.prisma`) :
+   * cet écart-là contient le temps qu'un humain a passé à lire le rapport.
+   * `null` tant que le lot reste `controle` — jamais zéro.
+   */
+  readonly dureeApplicationMs: number | null;
 };
 
 /** Une ligne du rapport, telle que l'écran la montre. */
@@ -267,6 +275,7 @@ function enListe(
     lignes_gabarits: number;
     lignes_vides: number;
     lignes_inchangees: number;
+    duree_application_ms: number | null;
     utilisateur_id: string;
   },
   auteur: Designation,
@@ -281,6 +290,7 @@ function enListe(
     controleLe: lot.controle_le,
     appliqueLe: lot.applique_le,
     annuleLe: lot.annule_le,
+    dureeApplicationMs: lot.duree_application_ms,
     // Les décomptes viennent de la BASE, où le rapport les a posés — jamais
     // d'un second parcours des lignes. *Deux lectures d'un même critère
     // divergent en silence* (§9, 01/09), et ici la seconde serait affichée à
