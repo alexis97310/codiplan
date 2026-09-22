@@ -1,0 +1,20 @@
+Capturé le 23/09/2026 sur la même base jetable que verdict-publier.txt, après
+avoir retiré artificiellement la ligne de la dernière migration dans
+`_prisma_migrations` (`DELETE FROM _prisma_migrations WHERE migration_name =
+'20260923120000_duree_application_import_mesure_1';`) — pour simuler une base
+de production en retard d'une migration.
+
+Commande exacte :
+  DATABASE_URL='postgresql://postgres@127.0.0.1:5440/codiplan_portail' \
+    pnpm exec tsx scripts/portail-publication.mts; echo "CODE DE SORTIE : $?"
+
+Sortie, recopiée telle quelle :
+
+## Portail de publication (RELEASE-1)
+
+**bloquer** — 1 migration(s) manquante(s) en production. La première est `20260923120000_duree_application_import_mesure_1`.
+
+Geste : lancer le flux « DB migrate & seed », cible « production », purge décochée, puis republier.
+
+Pour publier malgré tout : poser `FORCER_PUBLICATION_MALGRE_RETARD=oui` sur ce déploiement.
+CODE DE SORTIE : 0

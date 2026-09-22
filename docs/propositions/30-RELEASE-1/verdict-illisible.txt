@@ -1,0 +1,27 @@
+Capturé le 23/09/2026 sur la même base jetable, AVANT toute migration
+(cluster tout juste créé, aucun `prisma migrate deploy` encore joué — donc la
+table `_prisma_migrations` elle-même n'existe pas encore).
+
+Non demandé explicitement par le ticket (qui ne nomme que « publier » et
+« bloquer »), mais conservé ici parce qu'il documente un cas réel mesuré, pas
+supposé — voir passation.md, § « ce que j'ai tranché » : sur une base VRAIMENT
+neuve, `scripts/migrations-appliquees.mts` ne distingue pas « table absente »
+de « base injoignable » (c'est écrit dans son propre docblock), et le portail
+hérite donc de cette même prudence en rendant « illisible » plutôt que
+« bloquer » à ce stade précis — les deux bloquent la publication de la même
+façon (code de sortie 0), seul le motif diffère.
+
+Commande exacte :
+  DATABASE_URL='postgresql://postgres@127.0.0.1:5440/codiplan_portail' \
+    pnpm exec tsx scripts/portail-publication.mts; echo "CODE DE SORTIE : $?"
+
+Sortie, recopiée telle quelle :
+
+## Portail de publication (RELEASE-1)
+
+**illisible** — L'état des migrations appliquées en production n'a pas pu être obtenu.
+
+Vérifier que la variable `DATABASE_URL` est posée pour l'environnement de production sur Vercel — ce n'est PAS le même secret que celui du flux GitHub « DB migrate ».
+
+Pour publier malgré tout : poser `FORCER_PUBLICATION_MALGRE_RETARD=oui` sur ce déploiement.
+CODE DE SORTIE : 0

@@ -1,0 +1,17 @@
+Capturé le 23/09/2026 en exécutant réellement scripts/portail-publication.mts
+contre une base PostgreSQL jetable locale (PostgreSQL 18, faute de PostgreSQL
+16 disponible sur le poste — voir passation.md), après un `prisma migrate
+deploy` complet.
+
+Commande exacte :
+  DATABASE_URL='postgresql://postgres@127.0.0.1:5440/codiplan_portail' \
+    pnpm exec tsx scripts/portail-publication.mts; echo "CODE DE SORTIE : $?"
+
+Sortie, recopiée telle quelle :
+
+## Portail de publication (RELEASE-1)
+
+**publier** — la base de production porte toutes les migrations que ce commit attend.
+
+Pour publier malgré tout : poser `FORCER_PUBLICATION_MALGRE_RETARD=oui` sur ce déploiement.
+CODE DE SORTIE : 1
