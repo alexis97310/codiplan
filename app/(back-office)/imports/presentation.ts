@@ -133,7 +133,9 @@ export function coordonneesDuLot(
  * `appliqueLe - controleLe`, qui porte le temps qu'un humain a passé à lire
  * le rapport.
  */
-export function dureeApplicationLisible(dureeApplicationMs: number | null): string {
+export function dureeApplicationLisible(
+  dureeApplicationMs: number | null,
+): string {
   if (dureeApplicationMs === null) {
     return t("imports.duree_application_absente");
   }

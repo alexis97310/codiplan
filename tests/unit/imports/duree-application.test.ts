@@ -41,10 +41,7 @@ describe("dureeApplicationLisible", () => {
   });
 });
 
-const PAGE = join(
-  process.cwd(),
-  "app/(back-office)/imports/[id]/page.tsx",
-);
+const PAGE = join(process.cwd(), "app/(back-office)/imports/[id]/page.tsx");
 
 function sourceDeLecran(): string {
   return readFileSync(PAGE, "utf8");
