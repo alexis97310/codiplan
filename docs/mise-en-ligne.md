@@ -149,7 +149,7 @@ Ni `prisma migrate deploy`, ni `pnpm db:seed`, ni aucune variante. Ce n'est pas 
 
 La base est chez Neon en **`ap-southeast-2` (Sydney)**. Depuis un exécuteur GitHub, chaque aller-retour coûte **environ 200 ms** — mesuré, c'est l'incident du 23/08/2026 et c'est ce qui a fait échouer le seed en P2028.
 
-**Choisir la région de l'hébergeur au plus près de Sydney.** Une page d'arrivée ordinaire enchaîne plusieurs allers-retours ; à 200 ms l'un, la même page rend en 50 ms ou en 1,5 s selon ce choix, sans qu'une ligne de code change. C'est la décision la plus structurante de cette mise en ligne, et elle se prend une fois.
+**La région des fonctions se déclare dans le dépôt, pas dans une console** (HEBERGEMENT-1, 23/09/2026) : `vercel.json` porte `"regions": ["syd1"]` — `syd1` EST `ap-southeast-2`, la correspondance Vercel exacte, vérifiée dans sa documentation, pas une approximation. Un réglage posé à la main dans un tableau de bord ne se relit pas et se perd au prochain projet ; celui-ci s'applique au prochain déploiement ordinaire, sans geste. Une page d'arrivée ordinaire enchaîne plusieurs allers-retours ; à 200 ms l'un, la même page rend en 50 ms ou en 1,5 s selon ce choix, sans qu'une ligne de code change. Un gardien le tient (`tests/unit/deploiement/region-vercel.test.ts`) : `vercel.json` absent, ou muet sur `regions`, ou portant une région qui n'est plus `syd1`, le fait rougir.
 
 ### Pooler ou hôte direct — le point à trancher, non mesuré
 
@@ -312,7 +312,7 @@ Rien de tout cela n'est exécuté par l'application ; tout est déployé comme s
 ## 6 — La procédure, dans l'ordre
 
 1. **Lire le 5.1 en entier avant de jouer le geste d'amorçage** — les deux encadrés surtout. Il n'est plus vrai que personne ne peut entrer : le geste existe. Ce qui reste à savoir tient en deux phrases. *Le jeton entre dans le journal du flux si la commande est jouée en CI, et il y est une clé vivante pendant une heure.* ~~*S'il expire, il n'y a aucune voie de retour.*~~ *S'il expire, `--reemettre` en rend un autre, tant que personne n'a choisi de mot de passe (10/09/2026).* Ne pas le déclencher sans être disponible pour l'utiliser dans l'heure — ou le jouer hors CI, auquel cas le journal n'existe pas.
-2. Choisir la région de l'hébergeur au plus près de **`ap-southeast-2`**.
+2. La région de l'hébergeur est déjà déclarée dans le dépôt (`vercel.json`, `"regions": ["syd1"]`, au plus près de **`ap-southeast-2`** — HEBERGEMENT-1) : rien à choisir ici, le prochain déploiement l'applique.
 3. Engendrer `BETTER_AUTH_SECRET` (≥ 32 octets aléatoires) et le déposer chez l'hébergeur **seulement**.
 4. **Ne PAS recopier le secret de dépôt `DATABASE_URL`** — il pointe la base de DÉMONSTRATION (§2). La variable `DATABASE_URL` de l'hébergeur porte la connexion de **votre base neuve**, rôle `codiplan_app`, avec le mot de passe que vous aurez posé à la main **AVANT le geste 4**, en créant le rôle depuis la console SQL (§1 — *corrigé le 22/09/2026, mesuré sur une vraie installation*). Puis déposer dans le DÉPÔT les deux secrets `PRODUCTION_MIGRATION_DATABASE_URL` et `PRODUCTION_DATABASE_URL`.
 5. Poser `BETTER_AUTH_URL` sur l'URL https attribuée, sans barre finale.
