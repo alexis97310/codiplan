@@ -40,7 +40,7 @@ import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
-  machinesAffichees,
+  machinesIdentifiees,
   referenceAffichee,
   retourPlanning,
   technicienAfficheSurLaFiche,
@@ -330,20 +330,28 @@ export default async function PageIntervention({
                 libelle={t("intervention.priorite")}
                 valeur={t(`priorite.${ligne.priorite}`)}
               />
+              {/*
+                LE CLIENT MÈNE À SA FICHE (LIENS-1). Même raisonnement que le
+                lien du site juste en dessous : un client hors périmètre ne
+                serait pas lu du tout (`fiche.client` resterait `null`), et le
+                lien mènerait au même refus que partout ailleurs (D35, D50).
+              */}
               <Ligne
                 libelle={t("intervention.client")}
                 valeur={fiche.client ?? TIRET}
+                lien={`/clients/${ligne.client_id}`}
               />
               {/*
                 LA MACHINE SUIT DIRECTEMENT LE CLIENT — même ordre que la
                 colonne du registre (D125/D128) : « machine » y suit
-                immédiatement « client ». Une ou plusieurs, jointes par une
-                virgule, ou le tiret quand aucune n'est rattachée (RG-INT-01 :
-                aucune machine ne signifie le site entier, jamais un oubli).
+                immédiatement « client ». Une ou plusieurs, chacune un LIEN
+                vers sa fiche (LIENS-1) — `machinesAffichees` reste la forme
+                CHAÎNE employée par la liste et le bon imprimable, que ce
+                bloc ne touche pas.
               */}
-              <Ligne
+              <LigneMachines
                 libelle={t("intervention.machine")}
-                valeur={machinesAffichees(ligne, libellesMachines)}
+                machines={machinesIdentifiees(ligne, libellesMachines)}
               />
               {/*
                 LE LIEU MÈNE À SA FICHE (L3-16). C'est ce lien qui donne un
@@ -822,6 +830,74 @@ function Ligne({
     </>
   );
 }
+
+/**
+ * LES MACHINES, CHACUNE UN LIEN — même paire dt/dd que `Ligne`, mais `Ligne`
+ * ne porte qu'UN `lien` : plusieurs machines veulent chacune le sien (LIENS-1).
+ *
+ * Une machine SANS libellé lu (hors périmètre, cas de bord) garde le signe
+ * d'absence, en texte — jamais un lien mort vers une fiche qu'on ne peut pas
+ * nommer.
+ */
+function LigneMachines({
+  libelle,
+  machines,
+}: {
+  libelle: string;
+  machines: readonly {
+    readonly machineId: string;
+    readonly libelle: string | null;
+  }[];
+}) {
+  return (
+    <>
+      <dt className="text-app-encre-faible text-[12px]">{libelle}</dt>
+      <dd className="font-semibold break-all">{contenuMachines(machines)}</dd>
+    </>
+  );
+}
+
+/**
+ * COMPOSÉ HORS DE L'ARBRE JSX DE `LigneMachines`, jamais dans son `return`
+ * — même geste que `machinesAffichees` (`../presentation.ts`) qui compose sa
+ * propre forme chaîne en dehors de tout JSX. Le signe d'absence et la
+ * virgule qui sépare deux machines sont un FAIT DE STRUCTURE, au même titre
+ * que le séparateur que ce fichier compose déjà pour la forme chaîne — pas
+ * un libellé métier qui changerait de mot d'une langue à l'autre.
+ */
+function contenuMachines(
+  machines: readonly {
+    readonly machineId: string;
+    readonly libelle: string | null;
+  }[],
+): React.ReactNode {
+  if (machines.length === 0) {
+    return TIRET;
+  }
+  const noeuds: React.ReactNode[] = [];
+  machines.forEach((machine, index) => {
+    if (index > 0) {
+      noeuds.push(SEPARATEUR_MACHINES);
+    }
+    noeuds.push(
+      machine.libelle === null ? (
+        TIRET
+      ) : (
+        <Link
+          key={machine.machineId}
+          href={`/parc/${machine.machineId}`}
+          className={CLASSES_LIEN}
+        >
+          {machine.libelle}
+        </Link>
+      ),
+    );
+  });
+  return noeuds;
+}
+
+/** Le séparateur entre deux machines de la même ligne — recopié de `machinesAffichees`. */
+const SEPARATEUR_MACHINES = ", ";
 
 function Saisie({
   nom,

@@ -277,13 +277,30 @@ export default async function PageMachine({
                   dt={t("machine.fiche.kv_annee_vente")}
                   dd={anneeDeVenteAffichee(machine)}
                 />
+                {/* LE CLIENT ET LE SITE MÈNENT À LEUR FICHE (LIENS-1) — les
+                    deux identifiants voyagent déjà sur `machine` (CHAMPS_PARC
+                    pour `client_id`, CHAMPS_FICHE pour `site_id`). */}
                 <KvLigne
                   dt={t("machine.fiche.kv_client")}
-                  dd={machine.client.raison_sociale}
+                  dd={
+                    <Link
+                      href={`/clients/${machine.client_id}`}
+                      className={CLASSES_LIEN}
+                    >
+                      {machine.client.raison_sociale}
+                    </Link>
+                  }
                 />
                 <KvLigne
                   dt={`${mot("site")} ${t("machine.fiche.kv_site_suffixe")}`}
-                  dd={lieuAffiche(machine)}
+                  dd={
+                    <Link
+                      href={`/sites/${machine.site_id}`}
+                      className={CLASSES_LIEN}
+                    >
+                      {lieuAffiche(machine)}
+                    </Link>
+                  }
                 />
                 <KvLigne
                   dt={`${mot("agence")} ${t("machine.fiche.kv_agence_suffixe")}`}
@@ -313,8 +330,11 @@ export default async function PageMachine({
             titre={t("machine.fiche.historique_titre")}
             action={
               <Button variant="outline" size="sm" asChild>
+                {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
+                    `/interventions/nouvelle` les lit et les présélectionne ;
+                    un paramètre hors périmètre y est ignoré en silence. */}
                 <Link
-                  href="/interventions/nouvelle"
+                  href={`/interventions/nouvelle?site=${machine.site_id}&machine=${machine.id}`}
                   data-bloc="historique-ajouter"
                 >
                   {t("machine.fiche.historique_ajouter")}

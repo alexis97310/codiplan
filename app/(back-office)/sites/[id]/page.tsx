@@ -135,7 +135,15 @@ export default async function PageSite({
     <Page
       chemin="/sites"
       titre={site.libelle}
-      sousTitre={libelles.clients.get(site.client_id) ?? ""}
+      // LE CLIENT MÈNE À SA FICHE (LIENS-1) — même raisonnement que les liens
+      // ajoutés ailleurs par ce ticket : `site.client_id` est déjà lu ici, et
+      // un client hors périmètre ne serait pas lu par `libellesDesSites` non
+      // plus (le lien mènerait alors au même refus que partout, D35, D50).
+      sousTitre={
+        <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+          {libelles.clients.get(site.client_id) ?? ""}
+        </Link>
+      }
       actions={
         <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
           {t("sites.retour")}

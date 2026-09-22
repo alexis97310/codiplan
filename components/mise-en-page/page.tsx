@@ -85,7 +85,12 @@ export function Page({
   /** La barre qui gouverne cet écran. `ENTREES` (back-office) par défaut ; le portail passe `ENTREES_PORTAIL`. */
   entrees?: readonly EntreeDeBarre[];
   titre: React.ReactNode;
-  sousTitre?: string;
+  /**
+   * LIENS-1 — un sous-titre PEUT être un lien (la fiche site mène à son
+   * client). `React.ReactNode` plutôt que `string` : tous les appelants
+   * existants passent déjà des chaînes, qui restent valides.
+   */
+  sousTitre?: React.ReactNode;
   /** Le bandeau de droite — un décompte, une action. Jamais un bouton de création (§2). */
   actions?: React.ReactNode;
   className?: string;

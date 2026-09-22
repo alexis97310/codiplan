@@ -50,7 +50,15 @@ export default async function PageNouvelleIntervention({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
+  // LE SITE ET LA MACHINE PRÉREMPLIS (LIENS-1, « + Intervention » depuis une
+  // fiche machine) — lus à côté de `motif`, jamais avant la lecture cloisonnée
+  // de `lieux`/`machines` ci-dessous : la validation contre CE périmètre est
+  // ce qui distingue un paramètre légitime d'un identifiant forgé.
+  const siteParam = typeof params.site === "string" ? params.site : undefined;
+  const machineParam =
+    typeof params.machine === "string" ? params.machine : undefined;
 
   // LE CHAMP TECHNICIEN N'EST PROPOSÉ QU'AUX RÔLES QUI PEUVENT AFFECTER
   // (revue Codex de la PR #267, 20/09/2026). *La liste était rendue à TOUTE
@@ -121,6 +129,23 @@ export default async function PageNouvelleIntervention({
       })
     : { techniciens: [], annuaire: null };
 
+  // UN PARAMÈTRE QUI NE CORRESPOND À RIEN DE LISIBLE EST IGNORÉ EN SILENCE
+  // (LIENS-1) — `lieux` et `machines` viennent d'être lus SOUS le contexte
+  // cloisonné : un `site` hors périmètre ou inexistant n'y figure pas, et le
+  // formulaire retombe alors sur son état par défaut (premier site, aucune
+  // machine cochée), jamais sur un message d'erreur ni un identifiant hors
+  // périmètre affiché.
+  const siteInitial =
+    siteParam !== undefined && lieux.some((lieu) => lieu.id === siteParam)
+      ? siteParam
+      : undefined;
+  const machineIdsInitiales =
+    machineParam !== undefined &&
+    siteInitial !== undefined &&
+    machines.some((m) => m.id === machineParam && m.siteId === siteInitial)
+      ? [machineParam]
+      : [];
+
   return (
     <Page
       chemin="/interventions/nouvelle"
@@ -168,6 +193,8 @@ export default async function PageNouvelleIntervention({
           libelleSite={mot("site")}
           libelleMachines={t("intervention.machine")}
           texteAucuneMachine={t("intervention.machine.aucune_au_site")}
+          siteInitial={siteInitial}
+          machineIdsInitiales={machineIdsInitiales}
         />
         <p className="text-app-encre-faible -mt-2 text-[11.5px]">
           {t("intervention.deduit_du_lieu")}

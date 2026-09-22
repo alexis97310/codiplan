@@ -169,6 +169,27 @@ export function machinesAffichees(
 }
 
 /**
+ * LES MÊMES MACHINES, IDENTIFIÉES — pour la fiche, qui mène chacune à sa fiche
+ * (LIENS-1). `machinesAffichees` ci-dessus reste la forme CHAÎNE, pour la
+ * liste et le bon imprimable, qui ne composent pas de lien : cette fonction
+ * n'y touche pas, elle répond à la même question sous une forme différente,
+ * que la fiche seule compose en liens.
+ *
+ * `libelle: null` — jamais filtré — quand l'identifiant n'a pas de libellé
+ * lu : la fiche affiche alors le signe d'absence, jamais un lien vers une
+ * machine qu'elle n'a pas les moyens de nommer.
+ */
+export function machinesIdentifiees(
+  ligne: { readonly machines: readonly { readonly machine_id: string }[] },
+  libellesMachines: ReadonlyMap<string, string>,
+): readonly { readonly machineId: string; readonly libelle: string | null }[] {
+  return ligne.machines.map((m) => ({
+    machineId: m.machine_id,
+    libelle: libellesMachines.get(m.machine_id) ?? null,
+  }));
+}
+
+/**
  * LE TECHNICIEN SUR LA FICHE — un NOM, jamais l'identifiant technique (D-04,
  * I10).
  *

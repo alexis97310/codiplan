@@ -51,14 +51,27 @@ export function ChampSiteEtMachines({
   libelleSite,
   libelleMachines,
   texteAucuneMachine,
+  siteInitial,
+  machineIdsInitiales = [],
 }: Readonly<{
   sites: readonly SiteOption[];
   machines: readonly MachineOption[];
   libelleSite: string;
   libelleMachines: string;
   texteAucuneMachine: string;
+  /**
+   * LE SITE PRÉSÉLECTIONNÉ (LIENS-1, « + Intervention » depuis une fiche
+   * machine). Déjà validé par l'appelant serveur contre `sites` — ce
+   * composant ne revérifie rien, il retombe sur le premier site si la valeur
+   * ne s'y trouve pas.
+   */
+  siteInitial?: string;
+  /** Les machines déjà cochées — validées de la même façon que `siteInitial`. */
+  machineIdsInitiales?: readonly string[];
 }>) {
-  const [siteId, setSiteId] = useState<string>(sites[0]?.id ?? "");
+  const [siteId, setSiteId] = useState<string>(
+    siteInitial ?? sites[0]?.id ?? "",
+  );
   const siteChoisi = sites.find((site) => site.id === siteId) ?? sites[0];
   const machinesDuSite = machines.filter((m) => m.siteId === siteId);
 
@@ -94,6 +107,7 @@ export function ChampSiteEtMachines({
           name="machine_ids"
           multiple
           size={Math.min(5, Math.max(3, machinesDuSite.length))}
+          defaultValue={[...machineIdsInitiales]}
           className="border-input bg-background rounded-md border px-3 py-2 font-normal"
         >
           {machinesDuSite.map((machine) => (
