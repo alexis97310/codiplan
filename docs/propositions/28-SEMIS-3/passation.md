@@ -171,9 +171,12 @@ démonstration porte des blocages actifs.
   (`tests/isolation/semis-affectation-agenda-bloque.test.ts`) fixe la forme
   d'écriture de la passe comme contrat — les trois scénarios passent contre
   `codiplan_test`, tout comme `pnpm test:isolation` dans son ensemble
-  (112 fichiers, 1143 tests). `pnpm verify:full` est lancé avant ce commit ;
-  son verdict complet est celui que la porte de sortie du ticket a laissé
-  passer.
+  (112 fichiers, 1143 tests). `pnpm verify:full` a été rejoué EN ENTIER
+  (format, typecheck, lint, test, test:isolation, build, feries:horizon,
+  audit:partitions, test:e2e) et rend `0` — journal complet des 155 scénarios
+  e2e verts (3 ignorés, préexistant) disponible dans cette session ; sa propre
+  préparation relance `pnpm db:seed`, qui affiche bien la ligne « sautées pour
+  blocage d'agenda : 0 » sur cette base neuve sans blocage.
 - Le défaut `42501` sur `tx.utilisateur.upsert()` sous un propriétaire non
   superutilisateur (voir « pièges » ci-dessus) mérite son propre ticket : il
   touche une étape bien plus tôt dans le semis que celle de ce lot, et sa
