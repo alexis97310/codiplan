@@ -8,6 +8,7 @@ import {
   TABLES_HORS_CLOISONNEMENT,
   decompteVide,
   ecartsInventaire,
+  socleAttendu,
   totaliser,
   type DecompteHorsCloisonnement,
   type DecompteParTable,
@@ -235,7 +236,23 @@ try {
 
   process.stdout.write(rapport(inventaire));
 
-  const ecarts = ecartsInventaire(inventaire);
+  // LE SOCLE ATTENDU SE LIT, IL NE SE DEVINE PAS (AMORCAGE-2). `CIBLE_RETENUE`
+  // est posée par le flux à l'étape qui décide de la cible — la même décision
+  // qui saute le seed sur « production ». Sur une production neuve, zéro
+  // société est un ÉTAT : la société vient du flux d'amorçage, pas du seed.
+  // Le rapport DIT quel socle il a exigé, pour qu'un lecteur du journal sache
+  // pourquoi zéro a passé — ou pourquoi il a rougi.
+  const socle = socleAttendu(process.env);
+  process.stdout.write(
+    socle === "amorcage"
+      ? "Socle attendu : AMORÇAGE (cible « production », seed sauté) — zéro " +
+          "société est un état légitime tant que le flux « Amorcer une base » " +
+          "n'a pas été joué.\n\n"
+      : "Socle attendu : SEED (démonstration, ou cible non renseignée) — au " +
+          "moins une société est exigée.\n\n",
+  );
+
+  const ecarts = ecartsInventaire(inventaire, socle);
   if (ecarts.length > 0) {
     throw new Error(
       ["Inventaire incohérent :", ...ecarts.map((e) => `  — ${e}`)].join("\n"),

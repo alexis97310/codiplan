@@ -14,6 +14,7 @@ import {
   ecartsTemoinLecture,
   ecartsTemoins,
   lireInventaire,
+  socleAttendu,
   totaliser,
   type Inventaire,
   type LigneInventaire,
@@ -190,22 +191,78 @@ describe("inventaire à plat", () => {
   });
 
   it("accepte un inventaire cohérent", () => {
-    expect(ecartsInventaire(inventaire())).toEqual([]);
+    expect(ecartsInventaire(inventaire(), "seed")).toEqual([]);
   });
 
-  it("refuse une base sans aucune société — le seed n'a rien produit", () => {
+  /**
+   * ── ZÉRO SOCIÉTÉ EST UN ÉCART OU UN ÉTAT, SELON CE QUE LE FLUX A FAIT AVANT
+   *    (AMORCAGE-2 — mesuré le 22/09/2026 à 11 h 50, sur une vraie base) ───
+   *
+   * Sur la base de PRODUCTION neuve d'Alexis, la migration avait réussi —
+   * toutes les tables, comptées à zéro — et le flux a rougi ici même :
+   * « aucune société en base : le seed n'a pas produit le socle attendu ».
+   * Or sur cette cible le seed est SAUTÉ par construction
+   * (`cible-de-migration.test.ts`), et la société n'existe qu'après le flux
+   * « Amorcer une base ». La note de mise en ligne le disait noir sur blanc ;
+   * c'est le code qui arrêtait la chaîne.
+   *
+   * Le socle attendu dépend donc de ce que le flux a fait avant, et le flux
+   * le SAIT : `CIBLE_RETENUE`, posée dans l'environnement par l'étape qui
+   * décide de la cible, et que personne ne lisait. Les deux sens sont
+   * éprouvés — refus sur la démonstration, où le seed vient de tourner ;
+   * acceptation sur la production, POUR SA PROPRE RAISON (§9, 11/09) — et
+   * le défaut d'un renseignement absent est le sens STRICT : un contrôle
+   * joué hors du flux exige le seed plutôt que de supposer une production.
+   */
+  it("refuse une base sans aucune société quand le seed vient de tourner — démonstration", () => {
     const ecarts = ecartsInventaire(
       inventaire({ societes: [], total: decompteVide() }),
+      "seed",
     );
     expect(ecarts.join("\n")).toContain("aucune société en base");
   });
 
+  it("ACCEPTE une base sans aucune société quand le seed a été sauté — production neuve", () => {
+    expect(
+      ecartsInventaire(
+        inventaire({ societes: [], total: decompteVide() }),
+        "amorcage",
+      ),
+    ).toEqual([]);
+  });
+
+  it("le socle « amorçage » ne relâche RIEN d'autre : un total faux reste un écart", () => {
+    // Le cas qui doit rougir pour sa propre raison : le socle décide du seul
+    // contrôle « zéro société », jamais de la cohérence du détail.
+    const fausse = inventaire();
+    const ecarts = ecartsInventaire(
+      { ...fausse, total: { ...fausse.total, agence: 99 } },
+      "amorcage",
+    );
+    expect(ecarts.join("\n")).toContain("« agence »");
+  });
+
+  describe("le socle attendu se LIT dans ce que le flux sait de sa cible", () => {
+    it("cible « production » : le seed est sauté, aucune société n'est attendue", () => {
+      expect(socleAttendu({ CIBLE_RETENUE: "production" })).toBe("amorcage");
+    });
+
+    it("cible « demonstration » : le seed vient de tourner, le socle est exigé", () => {
+      expect(socleAttendu({ CIBLE_RETENUE: "demonstration" })).toBe("seed");
+    });
+
+    it("renseignement ABSENT ou vide : le sens strict, jamais une production supposée", () => {
+      expect(socleAttendu({})).toBe("seed");
+      expect(socleAttendu({ CIBLE_RETENUE: "" })).toBe("seed");
+    });
+  });
+
   it("refuse un total qui ne correspond pas au détail", () => {
     const fausse = inventaire();
-    const ecarts = ecartsInventaire({
-      ...fausse,
-      total: { ...fausse.total, agence: 99 },
-    });
+    const ecarts = ecartsInventaire(
+      { ...fausse, total: { ...fausse.total, agence: 99 } },
+      "seed",
+    );
     expect(ecarts.join("\n")).toContain("« agence »");
   });
 
@@ -219,6 +276,7 @@ describe("inventaire à plat", () => {
           }),
         ],
       }),
+      "seed",
     );
     expect(ecarts.join("\n")).toContain("qui n'existe pas");
   });
@@ -353,6 +411,27 @@ describe("câblage du workflow", () => {
 
   it("ne conserve plus le décompte unique qu'elles remplacent", () => {
     expect(workflow).not.toContain("decompte-controle");
+  });
+
+  /**
+   * LE RENSEIGNEMENT EXISTE, ET IL PRÉCÈDE L'INVENTAIRE (AMORCAGE-2).
+   *
+   * Le flux pose `CIBLE_RETENUE` dans `$GITHUB_ENV` à l'étape qui décide de
+   * la cible ; toute étape suivante en hérite. C'est la seule source que
+   * l'inventaire lise pour savoir si le seed a été sauté — un drapeau de plus
+   * aurait été une seconde lecture du même critère (§9, 01/09). Les deux
+   * côtés sont éprouvés : le flux ÉCRIT la variable avant l'inventaire, et le
+   * script la LIT par `socleAttendu`.
+   */
+  it("l'inventaire lit la cible que le flux a retenue, posée AVANT lui", () => {
+    const pose = position('echo "CIBLE_RETENUE=$cible" >> "$GITHUB_ENV"');
+    expect(pose).toBeLessThan(position("- name: Inventaire à plat"));
+
+    const script = readFileSync(
+      join(process.cwd(), "scripts/inventaire.mts"),
+      "utf8",
+    );
+    expect(script).toContain("socleAttendu(process.env)");
   });
 
   /**

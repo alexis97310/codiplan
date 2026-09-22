@@ -132,16 +132,60 @@ export function totaliser(
 }
 
 /**
+ * Ce que la base DOIT porter quand l'inventaire est pris — et cela dépend de
+ * ce que le flux a fait juste avant (AMORCAGE-2, 22/09/2026).
+ *
+ *   — `"seed"` : le seed vient de tourner, il a écrit deux sociétés ; en
+ *     trouver zéro est un écart — c'est la démonstration.
+ *   — `"amorcage"` : le seed a été SAUTÉ ; la société n'existe qu'après le flux
+ *     « Amorcer une base », et zéro société est un ÉTAT légitime — c'est une
+ *     production neuve.
+ *
+ * **Mesuré le 22/09/2026 à 11 h 50 sur la base de production neuve d'Alexis :**
+ * la migration avait réussi, toutes les tables comptaient zéro, et l'inventaire
+ * a rougi sur « aucune société en base : le seed n'a pas produit le socle
+ * attendu ». La note de mise en ligne disait pourtant que l'inventaire n'y
+ * nommerait aucune société ; c'est le code qui contredisait le document, et le
+ * code qui arrêtait la chaîne.
+ */
+export type SocleAttendu = "seed" | "amorcage";
+
+/**
+ * Le socle attendu, LU dans ce que le flux sait de sa propre cible.
+ *
+ * Le flux « DB migrate & seed » décide de la cible une fois, et pose
+ * `CIBLE_RETENUE` dans l'environnement de toutes les étapes suivantes : c'est
+ * cette même décision qui saute le seed sur `production`. La lire ici plutôt
+ * que d'ajouter un drapeau évite deux lectures d'un même critère (§9, 01/09) —
+ * il n'y a qu'une cible, et un seul endroit où elle est écrite.
+ *
+ * **Le défaut est le sens STRICT.** Renseignement absent ou vide — un
+ * inventaire joué depuis un poste, hors du flux — vaut « seed » : on exige le
+ * socle plutôt que de supposer une production. Ce qui doit être reconnu
+ * nommément est la dérogation, jamais l'exigence.
+ */
+export function socleAttendu(
+  env: Readonly<Record<string, string | undefined>>,
+): SocleAttendu {
+  return env.CIBLE_RETENUE === "production" ? "amorcage" : "seed";
+}
+
+/**
  * Incohérences internes de l'inventaire, indépendamment de tout cloisonnement.
  *
- * L'inventaire doit être juste : une base vide, un total qui ne correspond pas
- * au détail, ou des lignes rattachées à une société inexistante sont des motifs
- * d'échec de l'étape 1 — pas des observations à publier telles quelles.
+ * L'inventaire doit être juste : un total qui ne correspond pas au détail, ou
+ * des lignes rattachées à une société inexistante sont des motifs d'échec de
+ * l'étape 1 — pas des observations à publier telles quelles. Une base sans
+ * société l'est aussi, **sauf quand le socle attendu est celui de l'amorçage**
+ * : voir `SocleAttendu`.
  */
-export function ecartsInventaire(inventaire: Inventaire): string[] {
+export function ecartsInventaire(
+  inventaire: Inventaire,
+  socle: SocleAttendu,
+): string[] {
   const ecarts: string[] = [];
 
-  if (inventaire.societes.length === 0) {
+  if (inventaire.societes.length === 0 && socle === "seed") {
     ecarts.push(
       "aucune société en base : le seed n'a pas produit le socle attendu.",
     );
