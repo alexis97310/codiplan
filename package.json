@@ -37,6 +37,7 @@
     "db:refus-si-reelles": "tsx scripts/refus-si-donnees-reelles.mts",
     "suspensions:denombrer": "tsx scripts/denombrer-suspensions.mts",
     "partitions:etendre": "tsx scripts/etendre-partitions.mts",
+    "sommaires:regenerer": "tsx scripts/regenerer-sommaires.mts",
     "verify": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build",
     "verify:full": "pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e"
   },

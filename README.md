@@ -4,6 +4,102 @@ Plateforme de gestion des plannings d'intervention de techniciens et du parc mac
 
 Contexte d'exploitation : Nouvelle-Calédonie — réseau mobile absent sur une partie du territoire, latence élevée vers l'hébergeur, monnaie sans décimale, fuseau UTC+11 sans changement d'heure.
 
+_Ce sommaire est RECALCULÉ, jamais saisi à la main : `pnpm sommaires:regenerer` le régénère depuis les titres ci-dessous, et `tests/unit/docs/readme-indexe.test.ts` le confronte au fichier réel dans les deux sens (DOC-2, 23/09/2026)._
+
+## Sommaire
+
+- Documentation
+- Démarrer
+- Commandes
+- Le verrou d'installation est une porte, lui aussi
+- Les migrations, rejouées contre une base qui a déjà vécu
+- Jours fériés — un horizon à entretenir
+- Le territoire d'une agence est obligatoire, et le chaînage l'exige
+- Changer le territoire d'une agence — la procédure
+- Thématisation par société — la lisibilité est calculée
+- Amorçage de la base hébergée — la latence est la contrainte
+- Journal d'audit — écrit par la base, en ajout seul
+- Le canal d'envoi de courriel — étroit, et bruyant quand il n'est pas là
+- Le destinataire n'est PAS l'identité (13/09/2026)
+- Veille de la base hébergée — le détectif, chaque nuit
+- Elle DIT D'OÙ VIENDRAIT UN ÉCART, au lieu de l'affirmer (R1-01)
+- Un contrôle interrompu ne rend JAMAIS un écart
+- Le taux horaire est historisé, et la table naît vide
+- La grammaire des imports, écrite avant la liaison au classeur
+- L'annulation est partielle et sûre, et une contrainte a été mise en défaut par elle
+- L'application n'applique QUE ce que le rapport a montré
+- L'ambiguïté est un fait du PARC, et elle devient un rejet
+- Ce qui rend une clé utilisable n'est pas sa forme, c'est ce que la base garantit d'elle
+- Un gabarit qui désigne un PARENT est une fonction du parc
+- Deux sortes de fichiers d'import, et les confondre bloquait les deux
+- Le rapprochement ne savait rapprocher que des MACHINES
+- Le lot d'import EXISTE DÈS LE CONTRÔLE, et il est fermé au portail
+- L'écran d'import, et la porte qui attendait le mauvais ticket
+- Le catalogue de forfaits, et l'axe qui dort
+- Familles et modèles — un mécanisme retiré plutôt qu'arbitré
+- Et pendant six jours, personne ne pouvait en créer une (L1-05b, 15/09/2026)
+- Le second facteur — son plancher, et l'issue de secours qu'il condamnait
+- La fiche machine — la TROISIÈME fixture s'efface, et le contrat est honoré
+- Le scan d'un QR — le jeton est un SECRET, et le chemin qui le résout
+- Le planning agissant — la table `intervention`, et sa forme de politique
+- L'application du technicien — et elle commence par un écran, pas par le hors-ligne
+- Le compteur du technicien — des segments, jamais un total
+- Les deux temps — et le compteur qui démarre l'intervention
+- Le socle PWA — et ce qu'un service worker n'a pas le droit de mettre en cache
+- ⚠️ Un cache est un stockage, et I1 ne s'arrête pas au serveur
+- Réseau d'abord, jamais cache d'abord
+- L'icône : la maquette est muette, et l'écart s'écrit avec sa mesure
+- Les couleurs ne sont pas écrites dans le manifeste
+- L'absence d'un technicien — et pourquoi aucun client ne la lit
+- Sa forme de politique est « interne », et c'est décidé à sa NAISSANCE
+- Une absence n'est plus qu'un BLOCAGE D'AGENDA (R3-14, 14/09/2026)
+- Qui bloque quel agenda — et la base le tient
+- Et l'effet rétroactif n'est pas empêché — il est DIT
+- Le QUATRIÈME contrôle à la pose, et la déplanification
+- Le technicien a enfin une agence — et une table auditée était inécrivable
+- `technicien_calendrier` était INÉCRIVABLE, et personne ne l'avait vu
+- Les temps de trajet par zone — un défaut qui se règle, jamais une constante
+- `iles` ne porte aucun nombre, et une seule source le tient
+- Et un écart d'habilitation est mesuré plutôt que tranché en passant
+- Le trajet entre dans la charge — la lecture C, et les deux autres chiffrées à côté
+- Trois décisions de forme, et chacune ferme une pente
+- Et une épreuve verte pour la mauvaise raison a été corrigée
+- Ce qui n'est pas connu est compté à part, et la prémisse est écrite
+- La file « en attente de pièce » — ce qui la désigne n'est pas un code
+- Le total hors taxes en était un faux — deux mesures
+- Une visite, plusieurs machines — et la fille suit son parent
+- La demande d'intervention — la seule table du lot 2 où un CLIENT écrit
+- Amorcer une base de PRODUCTION — deux gestes qui manquaient
+- La mise en ligne — une commande, une page, un geste
+- Et la sonde est OUVERTE après chaque fusion — une sonde que personne n'ouvre ne sonne pas
+- Le paramétrage par agence — parce qu'aucun calendrier n'est codé en dur
+- Le catalogue des prestations — une durée, jamais un tarif
+- Une couche écrite n'est pas une fonctionnalité — `pnpm chemins`
+- Les captures d'écran, et ce qu'elles ne prouvent pas
+- Le chapitre 11 nomme-t-il toute table qui existe ?
+- La neuvième forme de politique — « adhésion », et le sélecteur qui ne pouvait afficher que des UUID
+- Le déverrouillage d'un compte parvenu à l'ESCALADE — sans jamais ouvrir une lecture
+- Le geste d'ouverture du PREMIER compte — un cliquet, jamais une autorité qu'on s'accorde
+- La documentation des machines — le chemin d'accès au modèle passe par la machine
+- Le registre des VGP — CODIPLAN n'affirme jamais la conformité
+- La documentation d'une machine — l'union, et l'appelant qui manquait
+- Sécurité au niveau des lignes — deux preuves, et l'une a un angle mort
+- Et une troisième preuve : la FORME de la politique
+- Le contrat des fixtures d'isolation
+- Français — le dictionnaire est la source unique
+- Deux gardiens, et leurs limites
+- Les exemptions des gardiens s'adossent à quelque chose qui existe
+- Les règles de gestion et les arbitrages qui les amendent
+- Le backlog, un rang plus bas
+- Intégration continue
+- Le canal de l'alarme — fermé le 12/09, ROUVERT depuis, et l'alarme s'en est servie
+- Qui voit une nuit rouge — deux alarmes, et la seconde garde la première
+- ⚠️ ~~Avant de rendre ce dépôt public~~ CE DÉPÔT EST PUBLIC — et la règle des 60 jours s'applique donc
+- Organisation
+- État d'avancement
+
+---
+
 ## Documentation
 
 `CLAUDE.md` fait autorité sur le fonctionnement du dépôt. Depuis le 16/09/2026 (AT-05) il est un **noyau** — la hiérarchie des sources, la stack, les dix invariants en une ligne chacun, les commandes, la définition de « terminé » et les points d'arrêt —, et il **nomme** le reste, détaché dans [`docs/constitution/`](docs/constitution/) : le détail des invariants, l'organisation du code, la façon de travailler, et les erreurs à ne pas refaire. Le texte détaché n'a pas changé d'un mot et **garde le rang 1** ; un fichier que le noyau ne nommerait pas serait un fichier que personne n'ouvrirait, et `tests/unit/docs/constitution-indexee.test.ts` refuse les deux sens.

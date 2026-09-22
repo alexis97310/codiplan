@@ -15,44 +15,46 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
 **`(prévu)` marque ce qui n'existe pas encore.** L'arborescence dit deux choses de nature différente — ce qui EST et ce qui est PLANIFIÉ —, et sans cette marque le plan se fait passer pour un état. Elle rend les deux sens gardables : tout module non marqué doit exister, tout module qui existe doit être énuméré. Le jour où le module est écrit, la marque se retire avec le reste (`tests/unit/docs/organisation-du-code.test.ts`).
 
+_Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : `pnpm sommaires:regenerer` les régénère depuis l'arborescence ci-dessous, et `tests/unit/docs/constitution-indexee.test.ts` les confronte au fichier réel dans les deux sens (DOC-2, 23/09/2026)._
+
 ### Sommaire
 
-- `app/` — ligne 60
-- `lib/` — ligne 65
-- `lib/db/` — ligne 66
-- `lib/auth/` — ligne 112
-- `lib/absences/` — ligne 147
-- `lib/clients/` — ligne 203
-- `lib/habilitations/` — ligne 206
-- `lib/contacts/` — ligne 214
-- `lib/demandes/` — ligne 224
-- `lib/agences/` — ligne 258
-- `lib/sites/` — ligne 273
-- `lib/machines/` — ligne 303
-- `lib/interventions/` — ligne 354
-- `lib/materiel/` — ligne 528
-- `lib/tarification/` — ligne 561
-- `lib/navigation/` — ligne 657
-- `lib/money/` — ligne 693
-- `lib/courriel/` — ligne 695
-- `lib/compteurs/` — ligne 723
-- `lib/calendar/` — ligne 742
-- `lib/sync/` — ligne 768
-- `lib/documents/` — ligne 769
-- `lib/excel/` — ligne 795
-- `lib/imports/` — ligne 853
-- `lib/prestations/` — ligne 1005
-- `lib/portail/` — ligne 1024
-- `lib/pdf/` — ligne 1040
-- `lib/reporting/` — ligne 1041
-- `lib/vgp/` — ligne 1042
-- `lib/techniciens/` — ligne 1095
-- `lib/theme/` — ligne 1100
-- `lib/i18n/` — ligne 1135
-- `components/` — ligne 1138
-- `prisma/` — ligne 1139
-- `tests/` — ligne 1140
-- `docs/` — ligne 1159
+- `app/` — ligne 62
+- `lib/` — ligne 67
+- `lib/db/` — ligne 68
+- `lib/auth/` — ligne 114
+- `lib/absences/` — ligne 149
+- `lib/clients/` — ligne 205
+- `lib/habilitations/` — ligne 208
+- `lib/contacts/` — ligne 216
+- `lib/demandes/` — ligne 226
+- `lib/agences/` — ligne 260
+- `lib/sites/` — ligne 275
+- `lib/machines/` — ligne 305
+- `lib/interventions/` — ligne 356
+- `lib/materiel/` — ligne 530
+- `lib/tarification/` — ligne 563
+- `lib/navigation/` — ligne 659
+- `lib/money/` — ligne 695
+- `lib/courriel/` — ligne 697
+- `lib/compteurs/` — ligne 725
+- `lib/calendar/` — ligne 744
+- `lib/sync/` — ligne 770
+- `lib/documents/` — ligne 771
+- `lib/excel/` — ligne 797
+- `lib/imports/` — ligne 855
+- `lib/prestations/` — ligne 1007
+- `lib/portail/` — ligne 1026
+- `lib/pdf/` — ligne 1042
+- `lib/reporting/` — ligne 1043
+- `lib/vgp/` — ligne 1044
+- `lib/techniciens/` — ligne 1097
+- `lib/theme/` — ligne 1102
+- `lib/i18n/` — ligne 1137
+- `components/` — ligne 1140
+- `prisma/` — ligne 1141
+- `tests/` — ligne 1142
+- `docs/` — ligne 1161
 
 ---
 

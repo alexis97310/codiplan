@@ -3,6 +3,14 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  entreesDuSommaire,
+  FORME_LIGNE,
+  repertoiresAvecLigne,
+  SEUIL_LIGNES_SOMMAIRE,
+  titresDuCorps,
+} from "../../../scripts/lib/sommaires";
+
 /**
  * Gardien de l'INDEX de la constitution — AT-05, 16/09/2026.
  *
@@ -235,9 +243,14 @@ describe("ÉPREUVES — le gardien mord là où la faute se commettrait", () => 
  * `invariants.md` — même famille de gardien, un cran plus bas : la POPULATION
  * vient des deux côtés, et aucun des deux ne recopie l'autre à la main. Un
  * titre renommé — ou une ligne qui a bougé — d'un côté sans l'autre rougit.
+ *
+ * **DOC-2 (23/09/2026) a déplacé `titresDuCorps`, `entreesDuSommaire` et
+ * `repertoiresAvecLigne` dans `scripts/lib/sommaires.ts`** : le script de
+ * régénération (`scripts/regenerer-sommaires.mts`) en a besoin lui aussi, et
+ * les garder deux fois aurait recréé exactement le défaut que ce fichier
+ * dénonce plus haut — deux lectures d'un même critère qui divergent en
+ * silence. Ce gardien les IMPORTE désormais ; il ne les définit plus.
  */
-
-const SEUIL_LIGNES_SOMMAIRE = 250;
 
 /** Les fichiers de `docs/constitution/` que le seuil de navigabilité astreint. */
 export function fichiersATitrer(): string[] {
@@ -245,84 +258,6 @@ export function fichiersATitrer(): string[] {
     const lignes = readFileSync(join(RACINE, fichier), "utf8").split("\n");
     return lignes.length > SEUIL_LIGNES_SOMMAIRE;
   });
-}
-
-/** Bornes du sommaire : `[début des entrées, fin (le premier "---" qui suit))`. */
-function bornesDuSommaire(lignes: string[]): [number, number] | null {
-  const debut = lignes.findIndex((l) => l.trim() === "### Sommaire");
-  if (debut === -1) return null;
-  const fin = lignes.findIndex(
-    (l, idx) => idx > debut && l.trim() === "---",
-  );
-  return [debut + 1, fin === -1 ? lignes.length : fin];
-}
-
-/** Les titres de troisième et quatrième rang portés APRÈS le sommaire. */
-export function titresDuCorps(texte: string): string[] {
-  const lignes = texte.split("\n");
-  const bornes = bornesDuSommaire(lignes);
-  const debutCorps = bornes ? bornes[1] : 0;
-  return lignes
-    .slice(debutCorps)
-    .filter((l) => /^#{3,4} /.test(l))
-    .map((l) => l.replace(/^#{3,4} /, "").trim());
-}
-
-/** Les entrées `- texte` que le sommaire énonce, dans l'ordre où il les énonce. */
-export function entreesDuSommaire(texte: string): string[] {
-  const lignes = texte.split("\n");
-  const bornes = bornesDuSommaire(lignes);
-  if (!bornes) return [];
-  const [debut, fin] = bornes;
-  return lignes
-    .slice(debut, fin)
-    .filter((l) => l.startsWith("- "))
-    .map((l) => l.slice(2).trim());
-}
-
-/** Une entrée de sommaire par NUMÉRO DE LIGNE : `` `chemin/` — ligne N ``. */
-const FORME_LIGNE = /^(`[^`]+`) — ligne (\d+)$/;
-
-/**
- * Les répertoires du PREMIER bloc de code du fichier, avec la ligne (1-indexée,
- * dans le fichier ENTIER) où chacun commence — dérivés du texte, jamais tenus à
- * la main. Ne descend d'un niveau que sous `lib/`, seule branche où le §6 pose
- * un répertoire par ligne (les autres mêlent plusieurs entrées sur une ligne,
- * ou des fichiers sans `/`) — c'est la même limite que documente le parseur du
- * gardien voisin, pour la même raison.
- */
-export function repertoiresAvecLigne(
-  texte: string,
-): { chemin: string; ligne: number }[] {
-  const lignes = texte.split("\n");
-  const ouverture = lignes.findIndex((l) => l.trim() === "```");
-  if (ouverture === -1) return [];
-  const fermeture = lignes.findIndex(
-    (l, idx) => idx > ouverture && l.trim() === "```",
-  );
-  const bloc = lignes.slice(ouverture + 1, fermeture === -1 ? undefined : fermeture);
-
-  const resultats: { chemin: string; ligne: number }[] = [];
-  let dansLib = false;
-  bloc.forEach((ligne, idx) => {
-    const numero = ouverture + 2 + idx;
-    const sommet = /^([a-zA-Z][\w.-]*\/)/.exec(ligne);
-    if (sommet) {
-      const nom = sommet[1] ?? "";
-      resultats.push({ chemin: nom, ligne: numero });
-      dansLib = nom === "lib/";
-      return;
-    }
-    if (dansLib) {
-      const sousNiveau = /^ {2}([a-zA-Z][\w.-]*\/)/.exec(ligne);
-      if (sousNiveau) {
-        resultats.push({ chemin: `lib/${sousNiveau[1]}`, ligne: numero });
-      } else if (/^\S/.test(ligne)) {
-        dansLib = false;
-      }
-    }
-  });
-  return resultats;
 }
 
 describe("les fichiers longs de la constitution s'ouvrent à l'endroit utile (DOC-1)", () => {
@@ -433,18 +368,18 @@ describe("ÉPREUVE — le sommaire à LIGNES et l'arbre divergent (DOC-1)", () =
   }
 
   it("un numéro de ligne faussé au sommaire est vu dans les deux sens", () => {
-    const mutant = texte.replace("`lib/db/` — ligne 66", "`lib/db/` — ligne 67");
+    const mutant = texte.replace("`lib/db/` — ligne 68", "`lib/db/` — ligne 69");
     expect(mutant).not.toEqual(texte);
 
     const attendues = attenduesDe(mutant);
     const entrees = entreesDuSommaire(mutant);
     // Fantôme : le sommaire pointe vers une ligne que l'arbre ne tient pas.
     expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
-      "`lib/db/` — ligne 67",
+      "`lib/db/` — ligne 69",
     ]);
-    // Orphelin : la vraie ligne 66 n'a plus son entrée.
+    // Orphelin : la vraie ligne 68 n'a plus son entrée.
     expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
-      "`lib/db/` — ligne 66",
+      "`lib/db/` — ligne 68",
     ]);
   });
 
@@ -458,10 +393,10 @@ describe("ÉPREUVE — le sommaire à LIGNES et l'arbre divergent (DOC-1)", () =
     const attendues = attenduesDe(mutant);
     const entrees = entreesDuSommaire(mutant);
     expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
-      "`lib/auth/` — ligne 112",
+      "`lib/auth/` — ligne 114",
     ]);
     expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
-      "`lib/authx/` — ligne 112",
+      "`lib/authx/` — ligne 114",
     ]);
   });
 
