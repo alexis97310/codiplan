@@ -91,6 +91,7 @@ export {
   chargerCalendrierAgence,
   fuseauDeLAgence,
   type AgenceFuseau,
+  type CacheCalendrierAgence,
   type FenetreJours,
 } from "./agence";
 export {

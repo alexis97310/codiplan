@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 
-import { chargerCalendrierAgence, type FenetreJours } from "./agence";
+import {
+  chargerCalendrierAgence,
+  type CacheCalendrierAgence,
+  type FenetreJours,
+} from "./agence";
 import type { Calendrier } from "./calendrier";
 import type { Fuseau } from "./fuseau";
 
@@ -31,6 +35,11 @@ import type { Fuseau } from "./fuseau";
  * Rend `null`, jamais un calendrier vide. *« Inconnu » n'est pas « ouvert »*
  * (I7, RG-PLA-07) : un calendrier sans plage se lirait « fermé toute la
  * semaine », ce qui est une réponse — et fausse.
+ *
+ * **`cache`, optionnel** (PERF-2) : transmis tel quel à `chargerCalendrierAgence`,
+ * qui seule sait s'en servir. Cette fonction ne le lit ni ne le remplit
+ * elle-même — la règle de priorité reste tout entière ici, et le cache ne
+ * porte que le CHARGEMENT commun à l'agence, jamais un raccourci de la règle.
  */
 export async function chargerCalendrierDuTechnicien(
   tx: Prisma.TransactionClient,
@@ -38,9 +47,10 @@ export async function chargerCalendrierDuTechnicien(
     societeId: string;
     utilisateurId: string;
     fenetre: FenetreJours;
+    cache?: CacheCalendrierAgence;
   },
 ): Promise<Calendrier | null> {
-  const { societeId, utilisateurId, fenetre } = parametres;
+  const { societeId, utilisateurId, fenetre, cache } = parametres;
 
   // Le filtre société est explicite en plus de la politique RLS (CLAUDE.md
   // §5.6) : une requête qui ne le porterait que dans la base serait juste
@@ -53,11 +63,15 @@ export async function chargerCalendrierDuTechnicien(
     return null;
   }
 
-  const agence = await chargerCalendrierAgence(tx, {
-    societeId,
-    agenceId: technicien.agence_id,
-    fenetre,
-  });
+  const agence = await chargerCalendrierAgence(
+    tx,
+    {
+      societeId,
+      agenceId: technicien.agence_id,
+      fenetre,
+    },
+    cache,
+  );
   if (agence === null) {
     return null;
   }

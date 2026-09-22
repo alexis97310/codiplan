@@ -1,5 +1,8 @@
 import { periodesBloquees } from "@/lib/absences/periode";
-import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import {
+  chargerCalendrierAgence,
+  type CacheCalendrierAgence,
+} from "@/lib/calendar/agence";
 import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import { minutesOuvrees } from "@/lib/calendar/ouverture";
 import { minuit, versInstant, type JourLocal } from "@/lib/calendar/fuseau";
@@ -49,9 +52,19 @@ import {
  *
  * **La maille (technicien, agence) ne change pas pour autant**, et elle compte
  * plus qu'avant : le dénominateur dépend maintenant de la PERSONNE autant que
- * de l'agence, si bien que la mise en cache suit le couple et non l'agence
- * seule — *deux techniciens de la même agence peuvent avoir deux
+ * de l'agence, si bien que la mise en cache DU DÉNOMINATEUR suit le couple et
+ * non l'agence seule — *deux techniciens de la même agence peuvent avoir deux
  * dénominateurs.*
+ *
+ * **Mais le CHARGEMENT, lui, se sépare (PERF-2).** Ce que `chargerCalendrierAgence`
+ * lit — fériés du territoire, plages de l'agence — est identique pour tous les
+ * techniciens d'une même agence sur une même fenêtre ; seule l'exception
+ * propre, lue par `chargerCalendrierDuTechnicien`, varie d'un technicien à
+ * l'autre. Un `CacheCalendrierAgence`, créé une fois pour tout l'appel et
+ * jeté avec lui, est donc partagé entre tous les couples : les fériés et les
+ * horaires de l'agence ne sont lus qu'UNE FOIS, quel que soit le nombre de
+ * techniciens qu'elle compte. *Le résultat par couple ne bouge pas d'un
+ * chiffre — c'est le nombre de requêtes qui bouge.*
  *
  * ## LE TRAJET ENTRE DANS LE NUMÉRATEUR (L3-05a, D107)
  *
@@ -247,6 +260,11 @@ export async function occupationsDuPlanning(
       // samedi par exception n'a pas le même dénominateur que son voisin de la
       // même agence.* La clé du cache suit donc la maille du groupe.
       const ouvrablesParCle = new Map<string, number>();
+      // LE CHARGEMENT DE L'AGENCE, LUI, EST MUTUALISÉ (PERF-2) : fériés et
+      // horaires sont IDENTIQUES pour tous les techniciens d'une même agence
+      // sur cette fenêtre. Une seule instance pour tout l'appel — elle ne
+      // traverse jamais la transaction, et ne survit pas à cette fonction.
+      const cacheAgence: CacheCalendrierAgence = new Map();
       const jours = { du: minuit(fenetre.du), au: minuit(fenetre.au) };
 
       for (const { cle, lignes } of groupes.values()) {
@@ -274,12 +292,17 @@ export async function occupationsDuPlanning(
                   societeId,
                   utilisateurId: cle.technicienId,
                   fenetre: jours,
+                  cache: cacheAgence,
                 })) ??
-            (await chargerCalendrierAgence(tx, {
-              societeId,
-              agenceId: cle.agenceId,
-              fenetre: jours,
-            }));
+            (await chargerCalendrierAgence(
+              tx,
+              {
+                societeId,
+                agenceId: cle.agenceId,
+                fenetre: jours,
+              },
+              cacheAgence,
+            ));
           // Une agence sans calendrier n'a pas d'heures ouvrables CONNUES. Zéro
           // est ici le signal de l'absence, et `tauxOccupation` le rend en
           // `null` plutôt qu'en « 0 % ».

@@ -34,6 +34,29 @@ export function fuseauDeLAgence(agence: AgenceFuseau): Fuseau {
 export type FenetreJours = { du: JourLocal; au: JourLocal };
 
 /**
+ * CACHE DU CALENDRIER D'UNE AGENCE — mutualise ce qui est COMMUN à l'agence
+ * entre plusieurs appelants d'un même calcul (PERF-2, L3-01a).
+ *
+ * **Il vit le temps d'un calcul, jamais entre deux requêtes HTTP.** Une
+ * instance se crée au début d'un calcul et se jette à sa fin ; la garder plus
+ * longtemps servirait des horaires périmés après un réglage d'agence. Ce
+ * module ne le crée ni ne le referme — c'est à l'appelant qui partage un
+ * calendrier entre plusieurs lectures de le faire, `chargerCalendrierAgence`
+ * ne fait que s'en servir s'il en reçoit un.
+ *
+ * La clé porte la société, l'agence ET la fenêtre : un cache partagé par erreur
+ * entre deux fenêtres différentes rendrait le calendrier de l'une à l'autre.
+ */
+export type CacheCalendrierAgence = Map<string, Calendrier | null>;
+
+function cleDuCache(
+  parametres: { societeId: string; agenceId: string; fenetre: FenetreJours },
+): string {
+  const { societeId, agenceId, fenetre } = parametres;
+  return `${societeId}|${agenceId}|${cleJour(fenetre.du)}|${cleJour(fenetre.au)}`;
+}
+
+/**
  * Charge le calendrier d'ouverture d'une agence, jours particuliers compris.
  *
  * **L'ordre de lecture est celui de D46, complément 2** : le **fait public** du
@@ -66,8 +89,36 @@ export type FenetreJours = { du: JourLocal; au: JourLocal };
  * dessus et qu'une clé étrangère dont une colonne vaut NULL n'est pas
  * contrôlée. Une agence sans territoire n'existe plus en base ; il n'y a donc
  * plus rien à rattraper ici.
+ *
+ * **`cache`, optionnel** (PERF-2) : quand l'appelant en fournit un, une entrée
+ * déjà posée pour (société, agence, fenêtre) est rendue SANS requête, et un
+ * résultat neuf y est déposé avant de le rendre. Sans lui, le comportement est
+ * inchangé — chaque appel refait ses deux requêtes.
  */
 export async function chargerCalendrierAgence(
+  tx: Prisma.TransactionClient,
+  parametres: { societeId: string; agenceId: string; fenetre: FenetreJours },
+  cache?: CacheCalendrierAgence,
+): Promise<Calendrier | null> {
+  const { societeId, agenceId, fenetre } = parametres;
+
+  const cle = cleDuCache(parametres);
+  if (cache !== undefined && cache.has(cle)) {
+    return cache.get(cle) ?? null;
+  }
+
+  const resultat = await chargerCalendrierAgenceSansCache(tx, {
+    societeId,
+    agenceId,
+    fenetre,
+  });
+  if (cache !== undefined) {
+    cache.set(cle, resultat);
+  }
+  return resultat;
+}
+
+async function chargerCalendrierAgenceSansCache(
   tx: Prisma.TransactionClient,
   parametres: { societeId: string; agenceId: string; fenetre: FenetreJours },
 ): Promise<Calendrier | null> {
