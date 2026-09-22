@@ -121,12 +121,61 @@ pour ce qu'elle est : une extrapolation, jamais une mesure directe de la casse r
   `/usr/lib/postgresql/18/bin/pg_ctl -D /home/aplou/.codiplan-mesure-cluster/data stop` si plus
   besoin.
 - `scripts/mesure-delais-import.mts` est idempotent (upserts sur des identifiants fixes, préfixe
-  de code par horodatage pour chaque lot synthétique) — le relancer ne casse rien, mais chaque
-  relance AJOUTE des milliers de fiches « client » synthétiques à la société de mesure
+  de code par un nonce aléatoire pour chaque lot synthétique) — le relancer ne casse rien, mais
+  chaque relance AJOUTE des milliers de fiches « client » synthétiques à la société de mesure
   (`00000000-0000-7000-8000-00000fe50001`). Sans conséquence sur une base jetable.
+- **Seul PostgreSQL 18 est installé sur cette machine** (`/usr/lib/postgresql/18`), alors que
+  CLAUDE.md §2 impose la version 16. Voir « le conflit non résolu » ci-dessous : deux suites de
+  `test:isolation`, sans rapport avec ce ticket, échouent de façon déterministe et reproductible
+  sous cette version — probablement pour cette raison.
+
+## Le conflit non résolu
+
+**`pnpm test:isolation` (donc `pnpm verify` et `pnpm verify:full`) ne passe pas entièrement**, pour
+une raison SANS RAPPORT avec ce ticket. Deux fichiers échouent, à l'identique sur deux passages :
+
+- `tests/isolation/plancher-second-facteur.test.ts` — 4 échecs, tous de la même forme :
+  `verrouillages` attendu à 1, obtenu 0 (compteur de verrouillage du second facteur qui ne
+  s'incrémente pas).
+- `tests/isolation/valorisation-intervention.test.ts` — 2 échecs : le total HT d'une intervention
+  clôturée un « lundi 14 septembre 2026, 9 h–11 h à Nouméa », que le test attend ENTIÈREMENT dans
+  l'ouverture du calendrier (majoration nulle), sort avec une majoration de 50 % appliquée quand
+  même (30 500 au lieu de 21 500 ; 27 000 au lieu de 18 000 — l'écart est chaque fois exactement le
+  montant de la majoration).
+
+**Ce que j'ai vérifié avant d'écrire cette section** (la règle des deux rouges) :
+- Les deux fichiers échouent À L'IDENTIQUE sur deux passages successifs (mêmes valeurs, mêmes
+  lignes) — déterministe, pas un flake.
+- Aucun des deux fichiers ne référence `lib/imports/`, `lib/imports/delais.ts`,
+  `scripts/mesure-delais-import.mts` ni `prisma/seed-data.ts` — rien de ce que ce ticket a touché.
+- Le reste de `pnpm verify` est VERT : format, typecheck, lint, `pnpm test` (2 583 tests, 234
+  fichiers), `pnpm build`, et 1 132 des 1 138 scénarios de `test:isolation` (les 6 en échec sont les
+  deux fichiers ci-dessus).
+- Les deux domaines touchés — verrouillage du second facteur, calendrier d'ouverture d'une
+  société — n'ont AUCUN rapport entre eux, ce qui pointe vers une cause commune plus basse que le
+  code métier (l'horloge, le fuseau, ou PostgreSQL lui-même) plutôt que vers deux bugs
+  indépendants.
+
+**Mon hypothèse, non vérifiée** : la seule version de PostgreSQL installée sur cette machine est la
+18.6, alors que CLAUDE.md §2 impose la 16. Le calcul « ce créneau tombe-t-il dans l'ouverture du
+calendrier » et le compteur de verrouillage dépendent tous deux d'une lecture d'horloge ou d'un
+calcul de fuseau/jour-de-semaine côté base ; une différence de comportement entre PostgreSQL 16 et
+18 sur ce terrain n'est pas invraisemblable, mais je ne l'ai PAS confrontée à une base en version
+16 — je n'en ai trouvé aucune sur cette machine pour comparer.
+
+**Ce que je n'ai pas fait, et pourquoi je m'arrête là** : je n'ai pas cherché la cause dans
+`lib/interventions/`, `lib/auth/` ou les triggers PostgreSQL concernés — c'est un chantier
+d'investigation à part entière, sans rapport avec « mesurer un délai d'import », et CLAUDE.md
+demande de m'arrêter après deux échecs identiques plutôt que d'insister ou de contourner. Je n'ai
+pas non plus pu jouer `pnpm feries:horizon`, `pnpm audit:partitions` ni `pnpm test:e2e` (la suite
+`verify:full` s'arrête au premier échec, et `DATABASE_URL` n'est pas configuré dans cette session
+pour les deux premiers, qui visent une base « hébergée »-like plutôt que la base jetable).
 
 ## Ce qui reste à faire
 
+- **Investiguer le conflit non résolu ci-dessus** — `plancher-second-facteur.test.ts` et
+  `valorisation-intervention.test.ts`, sans rapport avec ce ticket. Installer PostgreSQL 16 sur
+  cette machine (ou trouver la vraie cause) pour confirmer ou écarter l'hypothèse.
 - Mesurer `historique` / `vgp` / `vgp_observations` directement — les imports RÉELS d'Alexis —
   avec leurs fixtures propres (client, site, agence, et pour VGP le rapprochement de machine par
   rang).
