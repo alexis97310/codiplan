@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -65,7 +65,11 @@ export function variablesDuHarnais(
     for (const trouve of source.matchAll(MOTIF_VARIABLE)) {
       const variable = trouve[1] ?? trouve[2] ?? trouve[3];
       trouves.push({
-        fichier: fichier.replace(process.cwd() + "/", ""),
+        // Le chemin sert de CLÉ — il est comparé aux exemptions et cité dans
+        // les écarts — donc en séparateurs POSIX quel que soit le système
+        // (PORTABILITE-1) : `join` rend `\` sous Windows, et « tests\isolation »
+        // n'aurait adossé aucune exemption.
+        fichier: relative(process.cwd(), fichier).split(sep).join("/"),
         variable,
       });
     }

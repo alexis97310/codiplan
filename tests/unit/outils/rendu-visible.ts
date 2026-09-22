@@ -1,4 +1,4 @@
-import { dirname, normalize } from "node:path";
+import { posix } from "node:path";
 
 import ts from "typescript";
 
@@ -135,15 +135,21 @@ export function accesseursDictionnaire(
   return { fonctions, objets };
 }
 
-/** Le chemin, relatif à la racine, que désigne un import — ou `null`. */
+/**
+ * Le chemin, relatif à la racine, que désigne un import — ou `null`.
+ *
+ * En arithmétique POSIX exprès, et pas celle du système : `chemin` vient de
+ * `fichiersSource`, qui l'écrit en `/`, et la cible est COMPARÉE à
+ * `lib/i18n`. Sous Windows, `normalize` de `node:path` rend `lib\i18n`, le
+ * dictionnaire n'est plus reconnu, et chaque `t("…")` du dépôt devient une
+ * chaîne en dur — mesuré le 22/09/2026 (PORTABILITE-1).
+ */
 function cibleDeLImport(chemin: string, specificateur: string): string | null {
   if (specificateur.startsWith("@/")) {
-    return normalize(specificateur.slice(2));
+    return posix.normalize(specificateur.slice(2));
   }
   if (specificateur.startsWith(".")) {
-    return normalize(`${dirname(chemin)}/${specificateur}`)
-      .split("\\")
-      .join("/");
+    return posix.normalize(`${posix.dirname(chemin)}/${specificateur}`);
   }
   return null;
 }

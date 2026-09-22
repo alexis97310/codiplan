@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { describe, expect, it, vi, afterEach } from "vitest";
 
@@ -236,6 +236,9 @@ describe("le module d'envoi ne porte aucun secret", () => {
     const connaissent = FICHIERS.filter((fichier) =>
       /api\.resend\.com/.test(readFileSync(fichier, "utf8")),
     );
-    expect(connaissent.map((f) => f.split("/").pop())).toEqual(["resend.ts"]);
+    // `basename`, jamais `split("/")` : le chemin vient de `join`, qui écrit
+    // `\` sous Windows — le nom du fichier n'y serait jamais isolé, et la
+    // comparaison rougirait sur un module sain (PORTABILITE-1, 22/09/2026).
+    expect(connaissent.map((f) => basename(f))).toEqual(["resend.ts"]);
   });
 });

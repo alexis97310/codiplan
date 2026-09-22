@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 /**
  * QUELLE FONCTION DE DÉPÔT UN HUMAIN PEUT-IL ATTEINDRE ? (R3-12)
@@ -51,6 +51,20 @@ import { dirname, join, relative, resolve } from "node:path";
  */
 const RACINE = resolve(process.cwd());
 
+/**
+ * Un chemin relatif à la racine, EN SÉPARATEURS POSIX quel que soit le système.
+ *
+ * Tout chemin de ce module est une CLÉ — comparé à `FONCTIONS_SANS_CHEMIN`,
+ * testé par `estModuleDeDepot`, préfixé par `app/` ou `lib/` — et une clé
+ * s'écrit d'une seule façon. `relative` rend `lib\sites\zones.ts` sous
+ * Windows ; mesuré le 22/09/2026 (PORTABILITE-1), le gardien y comparait
+ * `'lib\sites\zones.ts'` à `'lib/sites/zones.ts'` et rougissait sur un dépôt
+ * sain. `join` accepte les deux graphies : on ne normalise donc qu'à la sortie.
+ */
+function relatifPosix(chemin: string): string {
+  return relative(RACINE, chemin).split(sep).join("/");
+}
+
 /** Les répertoires où un chemin peut passer. `tests/` n'en est pas un. */
 const REPERTOIRES = ["app", "components", "lib"];
 
@@ -73,7 +87,7 @@ export function fichiersDuDepot(): readonly string[] {
   for (const repertoire of REPERTOIRES) {
     parcourir(join(RACINE, repertoire), trouves);
   }
-  return trouves.map((chemin) => relative(RACINE, chemin)).sort();
+  return trouves.map(relatifPosix).sort();
 }
 
 /** Le contenu d'un fichier du dépôt. */
@@ -93,7 +107,7 @@ export function resoudre(depuis: string, specification: string): string | null {
   const base = specification.startsWith("@/")
     ? specification.slice(2)
     : specification.startsWith(".")
-      ? relative(RACINE, resolve(RACINE, dirname(depuis), specification))
+      ? relatifPosix(resolve(RACINE, dirname(depuis), specification))
       : null;
   if (base === null) {
     return null;

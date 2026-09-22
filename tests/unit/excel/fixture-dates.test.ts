@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { lireDate } from "@/lib/excel/format";
+import { lireArchiveStricte } from "../../../scripts/lib/archive-zip";
 
 /**
  * LA FIXTURE DE DATES — fabriquée PAR RETRAIT d'un vrai classeur Excel.
@@ -67,12 +68,16 @@ const RELEVE = [
  * Lit la fixture avec `read-excel-file` dans un processus dont le `TZ` est
  * imposé. Le fuseau se fige au démarrage du processus : le changer dans le
  * processus courant ne déplacerait rien, et la mesure serait creuse.
+ *
+ * Le chemin entre dans le script par `JSON.stringify`, jamais recopié entre
+ * guillemets : sous Windows il porte des `\`, que le script lirait comme des
+ * échappements (PORTABILITE-1, 22/09/2026).
  */
 function lireSousFuseau(tz: string): Record<string, string> {
   const script = `
     const lire = require("read-excel-file/node");
     const col = (l) => l.split("").reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
-    lire("${FIXTURE}").then((feuilles) => {
+    lire(${JSON.stringify(FIXTURE)}).then((feuilles) => {
       const par = new Map(feuilles.map((f) => [f.sheet, f.data]));
       const cel = (f, ref) => {
         const m = /^([A-Z]+)(\\d+)$/.exec(ref);
@@ -96,6 +101,27 @@ function lireSousFuseau(tz: string): Record<string, string> {
   return JSON.parse(brut) as Record<string, string>;
 }
 
+/**
+ * LES PARTIES DE L'ARCHIVE, lues par le lecteur STRICT du dépôt.
+ *
+ * Elles l'étaient par le `zipfile` de Python, appelé en sous-processus — et
+ * `python3` n'existe pas sur un poste Windows où le dépôt vient d'être cloné
+ * (PORTABILITE-1, 22/09/2026). `lireArchiveStricte` lit par le répertoire
+ * central, comme `zipfile` le faisait, et il a le même témoin : ce fichier-ci,
+ * produit par Excel, que ce dépôt ne contrôle pas (§9, 14/09).
+ */
+const PARTIES = new Map(
+  lireArchiveStricte(readFileSync(FIXTURE)).map((entree) => [
+    entree.nom,
+    entree.contenu.toString("utf8"),
+  ]),
+);
+
+/** Le nombre d'occurrences d'un fragment dans un texte. */
+function compter(texte: string, fragment: string): number {
+  return texte.split(fragment).length - 1;
+}
+
 describe("la fixture est fidèle et ne porte aucune chaîne", () => {
   it("PREUVE DE CONFIDENTIALITÉ : plus une seule chaîne de caractères", () => {
     // *S'il ne reste pas une chaîne de caractères, il ne reste pas un nom de
@@ -108,24 +134,26 @@ describe("la fixture est fidèle et ne porte aucune chaîne", () => {
     // jusqu'au `</c>` suivant. Une paire survivait ensemble, et la seconde
     // moitié portait une chaîne. *Aucune relecture ne l'aurait vu ; ce test
     // l'a nommé.*
-    const octets = readFileSync(FIXTURE);
-    const zip = octets.toString("latin1");
-    // Le contenu est dégonflé : on décompresse par le même chemin que le
-    // lecteur, et l'on regarde le XML des feuilles.
-    const parties = execFileSync("python3", [
-      "-c",
-      `import zipfile,sys
-z=zipfile.ZipFile(sys.argv[1])
-xml="".join(z.read(i.filename).decode("utf8") for i in z.infolist() if i.filename.startswith("xl/worksheets/"))
-ss=z.read("xl/sharedStrings.xml").decode("utf8")
-sys.stdout.write(str(xml.count('t="s"'))+" "+str(xml.count('t="str"'))+" "+str(xml.count('t="inlineStr"'))+" "+str(ss.count("<si>"))+" "+str(len(z.namelist())))`,
-      FIXTURE,
-    ]).toString();
-    const [s, str, inline, si, parts] = parties.trim().split(" ").map(Number);
-    expect({ s, str, inline, si }).toEqual({ s: 0, str: 0, inline: 0, si: 0 });
+    const zip = readFileSync(FIXTURE).toString("latin1");
+    // Le contenu est dégonflé : on décompresse par le répertoire central, le
+    // chemin de tout lecteur, et l'on regarde le XML des feuilles.
+    const xml = [...PARTIES]
+      .filter(([nom]) => nom.startsWith("xl/worksheets/"))
+      .map(([, contenu]) => contenu)
+      .join("");
+    const ss = PARTIES.get("xl/sharedStrings.xml") ?? "";
+    expect({
+      s: compter(xml, 't="s"'),
+      str: compter(xml, 't="str"'),
+      inline: compter(xml, 't="inlineStr"'),
+      si: compter(ss, "<si>"),
+    }).toEqual({ s: 0, str: 0, inline: 0, si: 0 });
     // Témoin de non-vacuité : le fichier a bien été ouvert et il porte des
-    // parties. Zéro partie lue rendrait les quatre compteurs nuls aussi.
-    expect(parts).toBeGreaterThan(10);
+    // parties, dont des feuilles et la table des chaînes. Zéro partie lue
+    // rendrait les quatre compteurs nuls aussi.
+    expect(PARTIES.size).toBeGreaterThan(10);
+    expect(xml.length).toBeGreaterThan(1000);
+    expect(PARTIES.has("xl/sharedStrings.xml")).toBe(true);
     expect(zip.slice(0, 2)).toBe("PK");
   });
 
@@ -134,35 +162,24 @@ sys.stdout.write(str(xml.count('t="s"'))+" "+str(xml.count('t="str"'))+" "+str(x
     // `docProps/app.xml` atteste que le fichier vient d'Excel et non d'un
     // sérialiseur tiers. Sans lui, la fixture ne prouverait plus rien de ce
     // qu'elle est censée prouver.
-    const meta = execFileSync("python3", [
-      "-c",
-      `import zipfile,sys,re
-z=zipfile.ZipFile(sys.argv[1])
-app=z.read("docProps/app.xml").decode("utf8")
-st=z.read("xl/styles.xml").decode("utf8")
-wb=z.read("xl/workbook.xml").decode("utf8")
-noms=z.namelist()
-sys.stdout.write("|".join([
-  re.search(r"<Application>([^<]*)<",app).group(1),
-  re.search(r"<AppVersion>([^<]*)<",app).group(1),
-  str(len(re.findall(r'numFmtId="14"',st))),
-  str("date1904" in wb),
-  str("docProps/core.xml" in noms),
-  str("xl/calcChain.xml" in noms),
-]))`,
-      FIXTURE,
-    ]).toString();
-    const [application, version, formats14, date1904, core, calcChain] =
-      meta.split("|");
-    expect(application).toBe("Microsoft Excel");
-    expect(version).toBe("16.0300");
+    const app = PARTIES.get("docProps/app.xml") ?? "";
+    const styles = PARTIES.get("xl/styles.xml") ?? "";
+    const workbook = PARTIES.get("xl/workbook.xml") ?? "";
+    // Témoin : les trois parties existent — une absence rendrait `""`, et
+    // `""` ne contient pas `date1904` non plus.
+    expect(app.length).toBeGreaterThan(0);
+    expect(styles.length).toBeGreaterThan(0);
+    expect(workbook.length).toBeGreaterThan(0);
+
+    expect(/<Application>([^<]*)</.exec(app)?.[1]).toBe("Microsoft Excel");
+    expect(/<AppVersion>([^<]*)</.exec(app)?.[1]).toBe("16.0300");
     // Le calendrier 1900 : `date1904` ABSENT, donc origine au 1899-12-30.
-    expect(date1904).toBe("False");
+    expect(workbook.includes("date1904")).toBe(false);
     // Les formats de date survivent, en nombre.
-    expect(Number(formats14)).toBeGreaterThan(10);
+    expect(compter(styles, 'numFmtId="14"')).toBeGreaterThan(10);
     // Ce qui devait partir est parti.
-    expect(core).toBe("False");
-    expect(calcChain).toBe("False");
+    expect(PARTIES.has("docProps/core.xml")).toBe(false);
+    expect(PARTIES.has("xl/calcChain.xml")).toBe(false);
   });
 });
 

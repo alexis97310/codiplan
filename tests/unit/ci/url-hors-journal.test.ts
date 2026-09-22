@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -122,6 +122,102 @@ function commandesDe(etape: string): string {
     .join("\n");
 }
 
+/**
+ * PRONONCE une commande `s` de `sed -E` — en JavaScript, sans le binaire.
+ *
+ * **Pourquoi pas `sed` lui-même.** Ce gardien l'appelait par `execFileSync`,
+ * et il n'existe pas sous Windows : mesuré le 22/09/2026, `spawnSync sed
+ * ENOENT` sur un poste où le dépôt venait d'être cloné (PORTABILITE-1). Un
+ * gardien qui exige un binaire Unix ne garde rien sur la moitié des postes
+ * auxquels ce dépôt est destiné.
+ *
+ * **Ce qu'il traduit, et ce qu'il REFUSE.** Une commande `s<d>motif<d>rempl<d>
+ * drapeaux`, où le motif est une expression rationnelle étendue (ERE) : les
+ * classes POSIX `[:space:]` et voisines deviennent leur équivalent
+ * JavaScript, `&` et `\1` du remplacement deviennent `$&` et `$1`. Tout ce
+ * qu'il ne sait pas traduire à l'identique — un autre verbe que `s`, un
+ * drapeau autre que `g`/`i`, une classe inconnue, un échappement de lettre
+ * dont le sens diverge entre les deux moteurs — est un REFUS qui lève, jamais
+ * une traduction approchée : *une traduction approchée qui laisse passer le
+ * jeton fait rougir, ce qui se voit ; une qui le retire pour une autre raison
+ * que celle du flux fait passer, ce qui ne se voit pas.*
+ *
+ * **Et il porte son témoin d'indépendance** : là où `sed` est présent — en CI,
+ * qui est là où le flux s'exécute réellement —, sa sortie est confrontée à
+ * celle du binaire sur les expressions mêmes des deux flux (§9, 01/09 : la
+ * force vient d'une source qu'on ne contrôle pas).
+ */
+const CLASSES_POSIX: Readonly<Record<string, string>> = {
+  "[:space:]": "\\s",
+  "[:blank:]": " \\t",
+  "[:alnum:]": "A-Za-z0-9",
+  "[:alpha:]": "A-Za-z",
+  "[:digit:]": "0-9",
+  "[:upper:]": "A-Z",
+  "[:lower:]": "a-z",
+  "[:punct:]": "!-/:-@\\[-`{-~",
+};
+
+export function prononcerSed(commande: string, entree: string): string {
+  const verbe = commande[0];
+  const delimiteur = commande[1];
+  if (verbe !== "s" || delimiteur === undefined || delimiteur === "\\") {
+    throw new Error(`commande sed non prononçable : « ${commande} »`);
+  }
+  if (commande.includes(`\\${delimiteur}`)) {
+    throw new Error(
+      `délimiteur échappé dans la commande, non prononçable : « ${commande} »`,
+    );
+  }
+  const parties = commande.slice(2).split(delimiteur);
+  if (parties.length !== 3) {
+    throw new Error(
+      `commande sed non prononçable — attendu s${delimiteur}motif` +
+        `${delimiteur}remplacement${delimiteur}drapeaux : « ${commande} »`,
+    );
+  }
+  const [motif = "", remplacement = "", drapeaux = ""] = parties;
+  if (!/^[gi]*$/.test(drapeaux)) {
+    throw new Error(`drapeaux sed non prononçables : « ${drapeaux} »`);
+  }
+
+  let motifJs = motif;
+  for (const [classe, equivalent] of Object.entries(CLASSES_POSIX)) {
+    motifJs = motifJs.split(classe).join(equivalent);
+  }
+  if (/\[:[a-z]+:\]/.test(motifJs)) {
+    throw new Error(`classe POSIX inconnue dans le motif : « ${motif} »`);
+  }
+  // Un échappement de lettre n'a pas le même sens dans les deux moteurs (`\d`
+  // est une classe ici et la lettre « d » là) — sauf les six que GNU sed
+  // partage avec JavaScript. Le reste est refusé plutôt que deviné.
+  const lettreEchappee = /\\([A-Za-z])/.exec(motifJs);
+  if (lettreEchappee !== null && !/^[sSwWbB]$/.test(lettreEchappee[1] ?? "")) {
+    throw new Error(
+      `échappement non portable dans le motif : « \\${lettreEchappee[1]} »`,
+    );
+  }
+
+  // Le remplacement : `&` de sed est `$&` ici, `\1` est `$1`, et un `$`
+  // littéral s'écrit `$$`. Un `\` suivi d'autre chose qu'un chiffre, `&` ou
+  // `\` est refusé : `\n` ne veut pas dire la même chose des deux côtés.
+  const remplacementJs = remplacement.replace(
+    /\\(.)|&|\$/g,
+    (jeton: string, echappe: string | undefined) => {
+      if (jeton === "&") return "$&";
+      if (jeton === "$") return "$$";
+      if (echappe !== undefined && /^[0-9]$/.test(echappe))
+        return `$${echappe}`;
+      if (echappe === "&" || echappe === "\\") return echappe;
+      throw new Error(
+        `échappement non prononçable dans le remplacement : « \\${echappe} »`,
+      );
+    },
+  );
+
+  return entree.replace(new RegExp(motifJs, drapeaux), remplacementJs);
+}
+
 describe.each(FLUX)(
   "aucune URL n'atteint le journal ni le résumé — $fichier",
   (flux) => {
@@ -190,10 +286,7 @@ describe.each(FLUX)(
       // seraient égales, et la mesure serait creuse.
       expect(entree).toContain(jeton);
 
-      const sortie = execFileSync("sed", ["-E", expression ?? ""], {
-        input: entree,
-        encoding: "utf8",
-      });
+      const sortie = prononcerSed(expression ?? "", entree);
 
       expect(
         sortie.includes(jeton),
@@ -229,13 +322,107 @@ it("l'expurgation d'« Amorcer une base » retire une chaîne de connexion Postg
   const entree = `Error: P1001 — impossible de joindre postgresql://codiplan:motdepasse@${hote}/base?sslmode=require`;
   expect(entree).toContain(hote);
 
-  const sortie = execFileSync("sed", ["-E", expression ?? ""], {
-    input: entree,
-    encoding: "utf8",
-  });
+  const sortie = prononcerSed(expression ?? "", entree);
   expect(
     sortie.includes(hote),
     "l'expression laisse passer l'hébergeur : le message brut d'un pilote le nomme (D50)",
   ).toBe(false);
   expect(sortie).toContain("P1001");
+});
+
+/**
+ * LE PRONONCEUR EST ÉPROUVÉ, sinon il serait le trou du gardien.
+ *
+ * Il remplace un binaire par une traduction, et *une traduction se croit
+ * fidèle jusqu'à ce qu'on la confronte* (§9, 10/09 : deux erreurs identiques
+ * ne se contredisent jamais). Trois épreuves : ce qu'il rend sur des cas dont
+ * la sortie est écrite à la main ; ce qu'il REFUSE, parce qu'un refus qui lève
+ * vaut mieux qu'une approximation silencieuse ; et, là où `sed` existe, la
+ * confrontation au binaire lui-même sur les expressions RÉELLES des deux flux.
+ */
+describe("le prononceur de `sed -E` est éprouvé", () => {
+  it("traduit les classes POSIX, le `&` et les groupes comme sed les lit", () => {
+    expect(prononcerSed("s#a[[:space:]]+b#(&)#g", "a  b a\tb ab")).toBe(
+      "(a  b) (a\tb) ab",
+    );
+    expect(
+      prononcerSed("s/([[:digit:]]+)-([a-z]+)/\\2-\\1/", "12-ab 34-cd"),
+    ).toBe("ab-12 34-cd");
+    // Sans `g`, une seule occurrence ; avec `i`, la casse est ignorée.
+    expect(prononcerSed("s/x/y/", "xx")).toBe("yx");
+    expect(prononcerSed("s/x/y/gi", "xX")).toBe("yy");
+    // Un `$` littéral du remplacement reste un `$` : JavaScript lui donnerait
+    // un sens que sed n'a pas.
+    expect(prononcerSed("s/a/$1/", "a")).toBe("$1");
+  });
+
+  it("REFUSE ce qu'il ne sait pas traduire à l'identique, au lieu de deviner", () => {
+    const refus = [
+      "y/abc/xyz/", // un autre verbe que `s`
+      "s#a#b#p", // un drapeau qui change la sortie
+      "s#[[:xdigit:]]+#x#g", // une classe qu'il ne connaît pas
+      "s#\\d+#x#g", // `\d` : chiffre ici, lettre « d » pour sed
+      "s#a#b", // une commande tronquée
+      "s#a\\#b#c#", // le délimiteur échappé
+      "s#a#\\n#", // un échappement de remplacement au sens divergent
+    ];
+    for (const commande of refus) {
+      expect(() => prononcerSed(commande, "abc"), commande).toThrow();
+    }
+  });
+
+  it("LE CAS QUI DOIT ROUGIR POUR SA PROPRE RAISON : une expression trop étroite laisse passer", () => {
+    // Le gardien ne serait rien si le prononceur retirait le jeton pour une
+    // autre raison que l'expression. Ici l'expression du flux « premier compte »
+    // (`https?://`) est appliquée à une chaîne PostgreSQL : elle doit la laisser
+    // intacte, et c'est le sens qui fait rougir l'épreuve d'« Amorcer une base ».
+    const etroite = "s#https?://[^[:space:]]+#(URL RETIRÉE)#g";
+    const entree = "postgresql://codiplan:motdepasse@hote.exemple/base";
+    expect(prononcerSed(etroite, entree)).toBe(entree);
+  });
+
+  /**
+   * TÉMOIN D'INDÉPENDANCE — confronté au VRAI `sed` quand il est là.
+   *
+   * La CI tourne sous Linux, où les deux flux s'exécutent : c'est là que la
+   * confrontation compte, et là qu'elle joue toujours. Sur un poste sans
+   * `sed`, l'épreuve est SAUTÉE et le dit — elle ne passe pas au vert.
+   */
+  const sedDisponible = (() => {
+    try {
+      return spawnSync("sed", ["--version"]).error === undefined;
+    } catch {
+      return false;
+    }
+  })();
+
+  it.skipIf(!sedDisponible)(
+    "rend, sur les expressions réelles des deux flux, exactement ce que le binaire rend",
+    () => {
+      const entrees = [
+        "  https://codiplan.example.com/api/auth/reset-password/p9gpzGk106zEKx4mkx4YuN2G?callbackURL=%2Fpremier-acces\n  À transmettre hors bande.",
+        "Error: P1001 — impossible de joindre postgresql://codiplan:motdepasse@ep-exemple-123456.ap-southeast-2.exemple.tech/base?sslmode=require",
+        "deux http://a.b/c et https://d.e/f, et un ftp://g.h/i sur\nune seconde ligne sans URL",
+      ];
+      let confrontations = 0;
+      for (const flux of FLUX) {
+        const expression = texteDe(flux).match(/sed -E '([^']+)'/)?.[1] ?? "";
+        expect(expression).not.toBe("");
+        for (const entree of entrees) {
+          const binaire = spawnSync("sed", ["-E", expression], {
+            input: entree,
+            encoding: "utf8",
+          });
+          expect(binaire.status, binaire.stderr).toBe(0);
+          expect(
+            prononcerSed(expression, entree),
+            `${expression} ⟵ ${entree}`,
+          ).toBe(binaire.stdout);
+          confrontations += 1;
+        }
+      }
+      // Témoin de non-vacuité : deux flux, trois entrées.
+      expect(confrontations).toBe(6);
+    },
+  );
 });
