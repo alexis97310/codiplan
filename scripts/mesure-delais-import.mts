@@ -313,6 +313,18 @@ function ligneDeCasse(msParLigne: number, msSocle: number): number | null {
   return Math.ceil((DUREE_MAXIMALE_MS - msSocle) / msParLigne);
 }
 
+/** Même calcul que le gardien de `tests/unit/imports/delais-application.test.ts`. */
+function casseTheorique(): number {
+  let capacite = 0;
+  while (
+    allersRetoursApplication(capacite + 1) * LATENCE_PESSIMISTE_MS <=
+    DUREE_MAXIMALE_MS
+  ) {
+    capacite += 1;
+  }
+  return capacite;
+}
+
 async function main(): Promise<void> {
   const proprietaireUrl = urlProprietaire();
   const applicativeUrl = urlApplicative(proprietaireUrl);
@@ -413,8 +425,8 @@ async function main(): Promise<void> {
     lignesMd.push(
       `Pour comparaison, ce que le BUDGET théorique de \`allersRetoursApplication\` ` +
         `(lib/imports/delais.ts) prévoit, sous \`LATENCE_PESSIMISTE_MS\` = ${LATENCE_PESSIMISTE_MS} ms : ` +
-        `casse au-delà de ${Math.floor((DUREE_MAXIMALE_MS / LATENCE_PESSIMISTE_MS - 7) / 2).toLocaleString("fr-FR")} ` +
-        `lignes retenues (résolution de \`allersRetoursApplication(n) × LATENCE_PESSIMISTE_MS ≤ DUREE_MAXIMALE_MS\`).`,
+        `casse au-delà de ${casseTheorique().toLocaleString("fr-FR")} ` +
+        `lignes retenues (\`allersRetoursApplication(n) × LATENCE_PESSIMISTE_MS ≤ DUREE_MAXIMALE_MS\`).`,
     );
     lignesMd.push("");
     lignesMd.push("## Ce que cette mesure NE dit PAS");

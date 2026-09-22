@@ -32,17 +32,17 @@ production sous l'ANCIEN code (615 lignes de modification, avant la réduction d
 
 | régime | lignes retenues | durée mesurée |
 |---|---|---|
-| création | 100 | 90,8 ms |
-| création | 1 000 | 507,9 ms |
-| création | 8 000 | 3 859,2 ms |
-| modification | 100 | 160,9 ms |
-| modification | 1 000 | 1 052,6 ms |
-| modification | 8 000 | 7 455,1 ms |
+| création | 100 | 254,1 ms |
+| création | 1 000 | 686,1 ms |
+| création | 8 000 | 3 850,8 ms |
+| modification | 100 | 297,4 ms |
+| modification | 1 000 | 1 099,4 ms |
+| modification | 8 000 | 7 453,2 ms |
 
 (table complète, 7 tailles × 2 régimes, dans `mesure.md`).
 
 **Le fait le plus utile** : une modification coûte, mesuré, très exactement **le double** d'une
-création par ligne (0,92 ms/ligne contre 0,48 ms/ligne) — ce que le docblock d'
+création par ligne (0,91 ms/ligne contre 0,46 ms/ligne) — ce que le docblock d'
 `allersRetoursApplication` affirmait déjà en théorie (« au pire deux », contre un pour une
 création) est donc confirmé en pratique, avec le même facteur. La pente est linéaire sur les deux
 ordres de grandeur mesurés (100 à 8 000 lignes, ratio ~80×), ce qui rend l'extrapolation crédible
