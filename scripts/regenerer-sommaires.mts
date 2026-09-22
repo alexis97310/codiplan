@@ -46,7 +46,9 @@ function regenererParLigne(chemin: string): boolean {
   );
   const apres = regenererBlocSommaire(avant, entrees);
   if (apres === avant) {
-    process.stdout.write(`${chemin} : déjà à jour (${entrees.length} entrées).\n`);
+    process.stdout.write(
+      `${chemin} : déjà à jour (${entrees.length} entrées).\n`,
+    );
     return false;
   }
   writeFileSync(absolu, apres);
@@ -64,7 +66,9 @@ function regenererParTitre(
   const entrees = titresDuCorps(avant, marqueur, niveaux);
   const apres = regenererBlocSommaire(avant, entrees, marqueur);
   if (apres === avant) {
-    process.stdout.write(`${chemin} : déjà à jour (${entrees.length} entrées).\n`);
+    process.stdout.write(
+      `${chemin} : déjà à jour (${entrees.length} entrées).\n`,
+    );
     return false;
   }
   writeFileSync(absolu, apres);
@@ -80,8 +84,7 @@ void FORME_LIGNE;
 
 let changement = false;
 changement =
-  regenererParLigne("docs/constitution/organisation-du-code.md") ||
-  changement;
+  regenererParLigne("docs/constitution/organisation-du-code.md") || changement;
 changement =
   regenererParTitre("README.md", "## Sommaire", [2, 3]) || changement;
 

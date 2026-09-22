@@ -120,7 +120,9 @@ export function regenererBlocSommaire(
   const lignes = texte.split("\n");
   const bornes = bornesDuSommaire(lignes, marqueur);
   if (!bornes) {
-    throw new Error(`Aucun « ${marqueur} » trouvé dans le texte : rien à régénérer.`);
+    throw new Error(
+      `Aucun « ${marqueur} » trouvé dans le texte : rien à régénérer.`,
+    );
   }
   const [debut, fin] = bornes;
   const avant = lignes.slice(0, debut);
