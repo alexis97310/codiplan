@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { OptionsAgence } from "@/components/agences/options";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
@@ -139,7 +140,7 @@ export default async function PageInterventions({
     // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
     avecContexteApplicatif(contexte, (tx) =>
       tx.agence.findMany({
-        select: { id: true, libelle: true },
+        select: { id: true, libelle: true, code: true },
         orderBy: [{ libelle: "asc" }, { id: "asc" }],
       }),
     ),
@@ -246,11 +247,7 @@ export default async function PageInterventions({
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           >
             <option value="">{optionToutesLesAgences()}</option>
-            {agences.map((agence) => (
-              <option key={agence.id} value={agence.id}>
-                {agence.libelle}
-              </option>
-            ))}
+            <OptionsAgence agences={agences} />
           </select>
         </label>
         <label className="flex flex-col gap-1 text-[12px] font-semibold">

@@ -205,13 +205,15 @@ export async function listerLesTechniciens(
 export async function agencesDisponibles(
   contexte: ContexteSession,
   client?: PrismaClient,
-): Promise<readonly { readonly id: string; readonly libelle: string }[]> {
+): Promise<
+  readonly { readonly id: string; readonly libelle: string; readonly code: string }[]
+> {
   return avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.agence.findMany({
         where: { actif: true },
-        select: { id: true, libelle: true },
+        select: { id: true, libelle: true, code: true },
         orderBy: [{ libelle: "asc" }, { id: "asc" }],
       }),
     client,

@@ -151,7 +151,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // exige un seul nom de segment dynamique par position, et
       // `/parametres/agences/[id]/modifier` partage cette position.
       "app/(back-office)/parametres/agences/[id]/page.tsx",
-      "app/(back-office)/parametres/agences/page.tsx",
+      // `LigneAgence` — et le lien qu'elle porte — a déménagé de `page.tsx`
+      // vers `composants.tsx` avec AGENCE-CODE-1 (23/09/2026), pour rester
+      // importable par un test de rendu sans base ni navigateur (D-13).
+      "app/(back-office)/parametres/agences/composants.tsx",
       // LE RÉFÉRENTIEL MATÉRIEL y est entré le 16/09/2026 avec AT-04 : le
       // décompte de modèles d'une famille mène à leur table, plus bas sur le
       // même écran.

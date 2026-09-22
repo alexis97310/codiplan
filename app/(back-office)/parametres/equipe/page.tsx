@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -237,8 +238,6 @@ function colonnes() {
   ];
 }
 
-type Agence = { readonly id: string; readonly libelle: string };
-
 function SelectAgence({
   id,
   valeur,
@@ -246,7 +245,7 @@ function SelectAgence({
 }: {
   readonly id: string;
   readonly valeur?: string;
-  readonly agences: readonly Agence[];
+  readonly agences: readonly AgenceOption[];
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -263,11 +262,7 @@ function SelectAgence({
         <option value="" disabled>
           {t("equipe.choisir_rattachement")}
         </option>
-        {agences.map((agence) => (
-          <option key={agence.id} value={agence.id}>
-            {agence.libelle}
-          </option>
-        ))}
+        <OptionsAgence agences={agences} />
       </select>
     </div>
   );
@@ -307,7 +302,7 @@ function FormulaireCreation({
   agences,
   soumettre,
 }: {
-  readonly agences: readonly Agence[];
+  readonly agences: readonly AgenceOption[];
   readonly soumettre: string;
 }) {
   return (
@@ -339,7 +334,7 @@ function FormulaireModification({
   agences,
   technicien,
 }: {
-  readonly agences: readonly Agence[];
+  readonly agences: readonly AgenceOption[];
   readonly technicien: LigneTechnicien;
 }) {
   return (

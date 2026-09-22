@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
+import { OptionsAgence } from "@/components/agences/options";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
@@ -115,7 +116,7 @@ export default async function PageSite({
   // cela, l'exigence de D56 serait vraie et inatteignable depuis cet écran.
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.agence.findMany({
-      select: { id: true, libelle: true },
+      select: { id: true, libelle: true, code: true },
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
   );
@@ -198,11 +199,7 @@ export default async function PageSite({
               defaultValue={site.agence_id}
               className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
             >
-              {agences.map((agence) => (
-                <option key={agence.id} value={agence.id}>
-                  {agence.libelle}
-                </option>
-              ))}
+              <OptionsAgence agences={agences} />
             </select>
           </label>
           <Champ
