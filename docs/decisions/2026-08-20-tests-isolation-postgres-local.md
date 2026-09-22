@@ -124,3 +124,42 @@ PostgreSQL refuse de démarrer sous `root`, d'où le détour par le compte syst�
 `postgres` quand la session est privilégiée — et seulement dans ce cas ; sur un
 poste de développement où l'on n'est pas `root`, le cluster appartient au compte
 courant et aucun `su` n'est nécessaire.
+
+### Version épinglée et répertoire par défaut — *révisé le 23/09/2026, CLUSTER-1*
+
+Deux défauts, mesurés dans le même fichier le 23/09/2026.
+
+**Le script retenait la version PostgreSQL la plus élevée installée**, alors
+que `.github/workflows/ci.yml` épingle `postgres:16` (deux fois) et que le
+message d'erreur du script lui-même réclamait ce paquet-là — une contradiction
+à douze lignes d'écart. Ce qu'elle a coûté : le lot `23-IMPORT-2` (23/09,
+04h52) a perdu du temps à diagnostiquer deux échecs de `test:isolation` sans
+rapport avec son ticket, sur une machine ne portant que PostgreSQL 18. **La CI
+est la référence** — c'est elle qui décide si un lot est publié — et le script
+retient désormais exactement sa version, portée par le littéral
+`VERSION_CIBLE` : quand cette version n'est pas installée, il **refuse en le
+disant** (le paquet à installer, et `PGJ_BIN` pour forcer une autre version en
+connaissance de cause) plutôt que de se rabattre sur une autre en silence.
+`tests/unit/scripts/postgres-jetable-version.test.ts` lit `VERSION_CIBLE` et
+`ci.yml` pour garder les deux alignés.
+
+**Le répertoire par défaut, `/var/lib/postgresql/codiplan-test`, n'est
+écrivable que par `root` ou le compte système `postgres`.** Une session sous
+un compte ordinaire, sans `sudo`, échouait sur le `mkdir` avec un « Permission
+denied » qui ne disait rien. Le défaut est désormais
+`${TMPDIR:-/tmp}/codiplan-postgres-jetable/$PGJ_PORT` : écrivable sans
+privilège, et namespacé par port — condition posée par le chantier de la file
+parallèle (un `git worktree` + un cluster + un `PORT` par voie), pour que deux
+voies ne se marchent jamais dessus sans avoir à poser autre chose que
+`PGJ_PORT`.
+
+**Trouvé en corrigeant le second point, et non prévu par le premier constat** :
+un répertoire de données accessible sans `root` ne suffit pas. Le paquet
+PostgreSQL d'Ubuntu compile `/var/run/postgresql` comme
+`unix_socket_directories` par défaut — un répertoire que seul le groupe
+système `postgres` peut écrire. `pg_ctl` échouait donc quand même
+(`could not create lock file ".../.s.PGSQL.<port>.lock": Permission denied`),
+cette fois après un `initdb` réussi. Le script pose maintenant
+`unix_socket_directories` sur `$RACINE` lui-même au démarrage, pour que
+*tout* ce que le serveur écrit — données, journal, socket — reste sous un
+répertoire que la session possède.
