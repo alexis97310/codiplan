@@ -137,9 +137,7 @@ const SESSION: ContexteSession = {
 
 // ── Construction d'un classeur synthétique « clients » ──────────────────────
 
-function construireFeuille(
-  lignes: readonly (readonly string[])[],
-): FeuilleLue {
+function construireFeuille(lignes: readonly (readonly string[])[]): FeuilleLue {
   return {
     nom: "Clients",
     lignes: [
@@ -217,7 +215,11 @@ async function controlerEtEnregistrer(
 async function chronometrerApplication(
   lotId: string,
   client: PrismaClient,
-): Promise<{ readonly ms: number; readonly creations: number; readonly modifications: number }> {
+): Promise<{
+  readonly ms: number;
+  readonly creations: number;
+  readonly modifications: number;
+}> {
   const debut = process.hrtime.bigint();
   const resultat = await appliquerLeLotDeClients(SESSION, lotId, client);
   const fin = process.hrtime.bigint();
@@ -287,10 +289,13 @@ async function mesurerModification(
 
 // ── Extrapolation — PAS une mesure, une lecture de la pente mesurée ─────────
 
-function extrapoler(
-  mesures: readonly Mesure[],
-): { readonly msParLigne: number; readonly msSocle: number } {
-  const tries = [...mesures].sort((a, b) => a.lignesRetenues - b.lignesRetenues);
+function extrapoler(mesures: readonly Mesure[]): {
+  readonly msParLigne: number;
+  readonly msSocle: number;
+} {
+  const tries = [...mesures].sort(
+    (a, b) => a.lignesRetenues - b.lignesRetenues,
+  );
   const premiere = tries[0];
   const derniere = tries[tries.length - 1];
   if (!premiere || !derniere || premiere === derniere) {
@@ -388,7 +393,9 @@ async function main(): Promise<void> {
       );
     }
     lignesMd.push("");
-    lignesMd.push("## Pente mesurée, et extrapolation — PAS une mesure directe");
+    lignesMd.push(
+      "## Pente mesurée, et extrapolation — PAS une mesure directe",
+    );
     lignesMd.push("");
     lignesMd.push(
       `- créations : ${extraCreation.msParLigne.toFixed(4)} ms/ligne, socle ${extraCreation.msSocle.toFixed(1)} ms. ` +
@@ -445,7 +452,9 @@ async function main(): Promise<void> {
       "docs/propositions/23-IMPORT-2/mesure.md",
       lignesMd.join("\n") + "\n",
     );
-    process.stdout.write("\nÉcrit dans docs/propositions/23-IMPORT-2/mesure.md\n");
+    process.stdout.write(
+      "\nÉcrit dans docs/propositions/23-IMPORT-2/mesure.md\n",
+    );
   } finally {
     await proprietaire.$disconnect();
     await app.$disconnect();
