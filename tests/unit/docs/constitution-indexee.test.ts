@@ -202,3 +202,273 @@ describe("ÉPREUVES — le gardien mord là où la faute se commettrait", () => 
     expect(detail).not.toContain("### I1 — Cloisonnement multi-agence");
   });
 });
+
+/**
+ * Gardien de la NAVIGATION dans la constitution — DOC-1, 22/09/2026.
+ *
+ * **Ce qu'il fallait constater d'abord.** Le noyau prescrit « le §9
+ * intégralement », « le §6 intégralement » : deux fichiers de rang 1 sur trois
+ * n'ont AUCUN titre interne — deux, pour 386 et 1 125 lignes — si bien qu'une
+ * session qui cherche une règle précise n'a pas d'autre choix que de charger le
+ * fichier ENTIER. `invariants.md` montre la forme qui marche : 13 titres pour
+ * 219 lignes, et on l'ouvre à l'endroit utile.
+ *
+ * **Le seuil n'est pas inventé, il se lit sur l'état mesuré le 22/09/2026** :
+ * posé à 250 lignes, il laisse passer `invariants.md` (219) et les trois
+ * fichiers courts (24, 21, 17) SANS qu'on y touche, et il retient les deux
+ * fautifs (386 et 1 125) — c'est la marge la plus étroite qui obtient ce
+ * partage-là, pas un chiffre rond choisi après coup.
+ *
+ * **DEUX FORMES, PAS UNE, et la seconde est une contrainte découverte en
+ * écrivant ce ticket.** `erreurs-a-ne-pas-refaire.md` porte un titre `### `
+ * par entrée datée : rien ne s'y oppose, chaque entrée est un bloc de prose
+ * indépendant. `organisation-du-code.md` ne peut PAS recevoir de titres à
+ * l'intérieur de son arbre : `tests/unit/docs/organisation-du-code.test.ts`
+ * (hors territoire de ce ticket) lit l'arborescence en entier comme UN SEUL
+ * bloc de code — `/## 6\. Organisation du code[\s\S]*?```([\s\S]*?)```/` — et
+ * scinder ce bloc lui aurait fait perdre `lib/` dès le premier titre inséré.
+ * Son sommaire pointe donc par NUMÉRO DE LIGNE plutôt que par titre — la
+ * seule forme de renvoi qui ne touche pas au bloc.
+ *
+ * **Dans les deux formes, le SOMMAIRE et le CORPS sont deux écritures d'une
+ * même chose**, comme les dix invariants ci-dessus le sont entre le noyau et
+ * `invariants.md` — même famille de gardien, un cran plus bas : la POPULATION
+ * vient des deux côtés, et aucun des deux ne recopie l'autre à la main. Un
+ * titre renommé — ou une ligne qui a bougé — d'un côté sans l'autre rougit.
+ */
+
+const SEUIL_LIGNES_SOMMAIRE = 250;
+
+/** Les fichiers de `docs/constitution/` que le seuil de navigabilité astreint. */
+export function fichiersATitrer(): string[] {
+  return fichiersSurLeDisque().filter((fichier) => {
+    const lignes = readFileSync(join(RACINE, fichier), "utf8").split("\n");
+    return lignes.length > SEUIL_LIGNES_SOMMAIRE;
+  });
+}
+
+/** Bornes du sommaire : `[début des entrées, fin (le premier "---" qui suit))`. */
+function bornesDuSommaire(lignes: string[]): [number, number] | null {
+  const debut = lignes.findIndex((l) => l.trim() === "### Sommaire");
+  if (debut === -1) return null;
+  const fin = lignes.findIndex(
+    (l, idx) => idx > debut && l.trim() === "---",
+  );
+  return [debut + 1, fin === -1 ? lignes.length : fin];
+}
+
+/** Les titres de troisième et quatrième rang portés APRÈS le sommaire. */
+export function titresDuCorps(texte: string): string[] {
+  const lignes = texte.split("\n");
+  const bornes = bornesDuSommaire(lignes);
+  const debutCorps = bornes ? bornes[1] : 0;
+  return lignes
+    .slice(debutCorps)
+    .filter((l) => /^#{3,4} /.test(l))
+    .map((l) => l.replace(/^#{3,4} /, "").trim());
+}
+
+/** Les entrées `- texte` que le sommaire énonce, dans l'ordre où il les énonce. */
+export function entreesDuSommaire(texte: string): string[] {
+  const lignes = texte.split("\n");
+  const bornes = bornesDuSommaire(lignes);
+  if (!bornes) return [];
+  const [debut, fin] = bornes;
+  return lignes
+    .slice(debut, fin)
+    .filter((l) => l.startsWith("- "))
+    .map((l) => l.slice(2).trim());
+}
+
+/** Une entrée de sommaire par NUMÉRO DE LIGNE : `` `chemin/` — ligne N ``. */
+const FORME_LIGNE = /^(`[^`]+`) — ligne (\d+)$/;
+
+/**
+ * Les répertoires du PREMIER bloc de code du fichier, avec la ligne (1-indexée,
+ * dans le fichier ENTIER) où chacun commence — dérivés du texte, jamais tenus à
+ * la main. Ne descend d'un niveau que sous `lib/`, seule branche où le §6 pose
+ * un répertoire par ligne (les autres mêlent plusieurs entrées sur une ligne,
+ * ou des fichiers sans `/`) — c'est la même limite que documente le parseur du
+ * gardien voisin, pour la même raison.
+ */
+export function repertoiresAvecLigne(
+  texte: string,
+): { chemin: string; ligne: number }[] {
+  const lignes = texte.split("\n");
+  const ouverture = lignes.findIndex((l) => l.trim() === "```");
+  if (ouverture === -1) return [];
+  const fermeture = lignes.findIndex(
+    (l, idx) => idx > ouverture && l.trim() === "```",
+  );
+  const bloc = lignes.slice(ouverture + 1, fermeture === -1 ? undefined : fermeture);
+
+  const resultats: { chemin: string; ligne: number }[] = [];
+  let dansLib = false;
+  bloc.forEach((ligne, idx) => {
+    const numero = ouverture + 2 + idx;
+    const sommet = /^([a-zA-Z][\w.-]*\/)/.exec(ligne);
+    if (sommet) {
+      const nom = sommet[1] ?? "";
+      resultats.push({ chemin: nom, ligne: numero });
+      dansLib = nom === "lib/";
+      return;
+    }
+    if (dansLib) {
+      const sousNiveau = /^ {2}([a-zA-Z][\w.-]*\/)/.exec(ligne);
+      if (sousNiveau) {
+        resultats.push({ chemin: `lib/${sousNiveau[1]}`, ligne: numero });
+      } else if (/^\S/.test(ligne)) {
+        dansLib = false;
+      }
+    }
+  });
+  return resultats;
+}
+
+describe("les fichiers longs de la constitution s'ouvrent à l'endroit utile (DOC-1)", () => {
+  const cibles = fichiersATitrer();
+
+  it("la population n'est pas vide — sinon la règle ne s'exerce sur rien", () => {
+    expect(cibles.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("les fichiers déjà navigables ne sont pas requis de se restructurer", () => {
+    // invariants.md (219 lignes, 13 titres) et les trois fichiers courts
+    // passent SANS modification : c'est la condition posée au seuil lui-même.
+    for (const epargne of [
+      "docs/constitution/invariants.md",
+      "docs/constitution/comment-travailler.md",
+      "docs/constitution/sources.md",
+      "docs/constitution/stack.md",
+    ]) {
+      expect(cibles).not.toContain(epargne);
+    }
+  });
+
+  it.each(cibles)(
+    "%s porte un sommaire, et il s'accorde au corps dans les deux sens",
+    (fichier) => {
+      const texte = readFileSync(join(RACINE, fichier), "utf8");
+      expect(
+        texte,
+        `${fichier} dépasse ${SEUIL_LIGNES_SOMMAIRE} lignes sans « ### Sommaire »`,
+      ).toContain("### Sommaire");
+
+      const entrees = entreesDuSommaire(texte);
+      expect(entrees.length, `${fichier} : sommaire vide`).toBeGreaterThan(0);
+
+      // La FORME du sommaire décide comment on le confronte au corps — cf.
+      // le commentaire de ce gardien sur les deux formes et leur raison.
+      const parLigne = entrees.every((e) => FORME_LIGNE.test(e));
+
+      const attendues = parLigne
+        ? repertoiresAvecLigne(texte).map((r) => `\`${r.chemin}\` — ligne ${r.ligne}`)
+        : titresDuCorps(texte);
+      expect(
+        attendues.length,
+        `${fichier} : aucun titre ni répertoire trouvé dans le corps`,
+      ).toBeGreaterThan(0);
+
+      const orphelins = attendues.filter((a) => !entrees.includes(a));
+      expect(
+        orphelins,
+        `${fichier} : absents du sommaire — ${orphelins.join(" / ")}`,
+      ).toEqual([]);
+
+      const fantomes = entrees.filter((e) => !attendues.includes(e));
+      expect(
+        fantomes,
+        `${fichier} : le sommaire pointe dans le vide — ${fantomes.join(" / ")}`,
+      ).toEqual([]);
+    },
+  );
+});
+
+describe("ÉPREUVE — le sommaire à TITRES et le corps divergent (DOC-1)", () => {
+  const fichier = "docs/constitution/erreurs-a-ne-pas-refaire.md";
+  const texte = readFileSync(join(RACINE, fichier), "utf8");
+  const premierTitre = titresDuCorps(texte)[0] ?? "";
+
+  it("population non vide, sinon l'épreuve ne mettrait rien à l'échec", () => {
+    expect(premierTitre.length).toBeGreaterThan(0);
+  });
+
+  it("un titre retiré du corps est vu comme orphelin du sommaire", () => {
+    // On met en échec le VERROU visé, pas un voisin (§9, 24/08) : seule la
+    // ligne de titre disparaît, l'entrée elle-même reste intacte en dessous.
+    const mutant = texte.replace(`### ${premierTitre}\n\n`, "");
+    expect(mutant).not.toEqual(texte);
+
+    const titres = titresDuCorps(mutant);
+    const entrees = entreesDuSommaire(mutant);
+    expect(entrees.filter((e) => !titres.includes(e))).toEqual([premierTitre]);
+  });
+
+  it("une entrée ajoutée au sommaire sans titre réel est vue comme fantôme", () => {
+    const mutant = texte.replace(
+      "### Sommaire\n\n- ",
+      "### Sommaire\n\n- UN TITRE QUI N'EXISTE NULLE PART\n- ",
+    );
+    const titres = titresDuCorps(mutant);
+    const entrees = entreesDuSommaire(mutant);
+    expect(entrees.filter((e) => !titres.includes(e))).toEqual([
+      "UN TITRE QUI N'EXISTE NULLE PART",
+    ]);
+  });
+
+  it("ET IL RESTE VERT POUR SA PROPRE RAISON — sur le fichier réel, non modifié", () => {
+    const titres = titresDuCorps(texte);
+    const entrees = entreesDuSommaire(texte);
+    expect(titres.filter((t) => !entrees.includes(t))).toEqual([]);
+    expect(entrees.filter((e) => !titres.includes(e))).toEqual([]);
+  });
+});
+
+describe("ÉPREUVE — le sommaire à LIGNES et l'arbre divergent (DOC-1)", () => {
+  const fichier = "docs/constitution/organisation-du-code.md";
+  const texte = readFileSync(join(RACINE, fichier), "utf8");
+
+  function attenduesDe(t: string): string[] {
+    return repertoiresAvecLigne(t).map((r) => `\`${r.chemin}\` — ligne ${r.ligne}`);
+  }
+
+  it("un numéro de ligne faussé au sommaire est vu dans les deux sens", () => {
+    const mutant = texte.replace("`lib/db/` — ligne 66", "`lib/db/` — ligne 67");
+    expect(mutant).not.toEqual(texte);
+
+    const attendues = attenduesDe(mutant);
+    const entrees = entreesDuSommaire(mutant);
+    // Fantôme : le sommaire pointe vers une ligne que l'arbre ne tient pas.
+    expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
+      "`lib/db/` — ligne 67",
+    ]);
+    // Orphelin : la vraie ligne 66 n'a plus son entrée.
+    expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
+      "`lib/db/` — ligne 66",
+    ]);
+  });
+
+  it("un répertoire renommé dans l'arbre laisse son ancienne entrée fantôme", () => {
+    const mutant = texte.replace(
+      "  auth/       authentification",
+      "  authx/      authentification",
+    );
+    expect(mutant).not.toEqual(texte);
+
+    const attendues = attenduesDe(mutant);
+    const entrees = entreesDuSommaire(mutant);
+    expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
+      "`lib/auth/` — ligne 112",
+    ]);
+    expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
+      "`lib/authx/` — ligne 112",
+    ]);
+  });
+
+  it("ET IL RESTE VERT POUR SA PROPRE RAISON — sur le fichier réel, non modifié", () => {
+    const attendues = attenduesDe(texte);
+    const entrees = entreesDuSommaire(texte);
+    expect(attendues.filter((a) => !entrees.includes(a))).toEqual([]);
+    expect(entrees.filter((e) => !attendues.includes(e))).toEqual([]);
+  });
+});

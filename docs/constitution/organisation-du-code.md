@@ -15,6 +15,47 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
 **`(prévu)` marque ce qui n'existe pas encore.** L'arborescence dit deux choses de nature différente — ce qui EST et ce qui est PLANIFIÉ —, et sans cette marque le plan se fait passer pour un état. Elle rend les deux sens gardables : tout module non marqué doit exister, tout module qui existe doit être énuméré. Le jour où le module est écrit, la marque se retire avec le reste (`tests/unit/docs/organisation-du-code.test.ts`).
 
+### Sommaire
+
+- `app/` — ligne 60
+- `lib/` — ligne 65
+- `lib/db/` — ligne 66
+- `lib/auth/` — ligne 112
+- `lib/absences/` — ligne 147
+- `lib/clients/` — ligne 203
+- `lib/habilitations/` — ligne 206
+- `lib/contacts/` — ligne 214
+- `lib/demandes/` — ligne 224
+- `lib/agences/` — ligne 258
+- `lib/sites/` — ligne 273
+- `lib/machines/` — ligne 303
+- `lib/interventions/` — ligne 354
+- `lib/materiel/` — ligne 528
+- `lib/tarification/` — ligne 561
+- `lib/navigation/` — ligne 657
+- `lib/money/` — ligne 693
+- `lib/courriel/` — ligne 695
+- `lib/compteurs/` — ligne 723
+- `lib/calendar/` — ligne 742
+- `lib/sync/` — ligne 768
+- `lib/documents/` — ligne 769
+- `lib/excel/` — ligne 795
+- `lib/imports/` — ligne 853
+- `lib/prestations/` — ligne 1005
+- `lib/portail/` — ligne 1024
+- `lib/pdf/` — ligne 1040
+- `lib/reporting/` — ligne 1041
+- `lib/vgp/` — ligne 1042
+- `lib/techniciens/` — ligne 1095
+- `lib/theme/` — ligne 1100
+- `lib/i18n/` — ligne 1135
+- `components/` — ligne 1138
+- `prisma/` — ligne 1139
+- `tests/` — ligne 1140
+- `docs/` — ligne 1159
+
+---
+
 ```
 app/
   (sans-session)/ (back-office)/  (mobile)/  (portail)/  (editeur)/  api/

@@ -23,15 +23,17 @@ aurait rendues fausses **en silence**. Les § 6, 7 et 9 restent ci-dessous, comm
 
 | Fichier | Ce qu'il porte | Quand l'ouvrir |
 |---|---|---|
-| `docs/constitution/erreurs-a-ne-pas-refaire.md` | Le §9 **intégralement** | **Avant d'écrire un gardien** ; avant de croire qu'une réparation en est une ; avant d'affirmer un état sans l'avoir observé |
-| `docs/constitution/organisation-du-code.md` | Le §6 intégralement — l'arborescence | Avant de créer un module ou un fichier dans `lib/` ; pour chercher où une règle vit déjà |
+| `docs/constitution/erreurs-a-ne-pas-refaire.md` | Le §9 **intégralement** — 58 entrées datées, chacune sous son titre depuis DOC-1 ; le sommaire en tête retrouve une entrée déjà lue, il ne dispense d'aucune des 58 | **Avant d'écrire un gardien** ; avant de croire qu'une réparation en est une ; avant d'affirmer un état sans l'avoir observé |
+| `docs/constitution/organisation-du-code.md` | Le §6 — le paragraphe d'introduction (`(prévu)`) **intégralement**, puis, depuis DOC-1, la seule section du répertoire visé (`### \`app/\``, `#### \`lib/db/\``, …) | Avant de créer un module ou un fichier dans `lib/` : ouvrir le sommaire, puis sa section. Pour chercher où une règle vit déjà, le sommaire seul suffit souvent |
 | `docs/constitution/invariants.md` | Le §3 intégralement — listes closes, treize formes de politique RLS | Dès qu'on touche au cloisonnement, à une politique, au périmètre d'audit, à une liste close |
 | `docs/constitution/comment-travailler.md` | Le §7 intégralement | En ouvrant un ticket, et avant de toucher à `prisma/migrations/` |
 | `docs/constitution/stack.md` | Le §2 moins son tableau — SheetJS et Schedule-X barrés | Avant d'ajouter une dépendance ou de rouvrir un choix de bibliothèque |
 | `docs/constitution/sources.md` | Le §1 moins son tableau — les trois sources de rang 1, la maquette (D95) | Quand deux documents divergent ; avant de s'écarter de la maquette. **Depuis D124/D125** (`docs/arbitrages.md`, rang 1, prime sur ce texte détaché resté à l'état D95) : `codiplan-maquette-complete.html` fait foi sur les jetons de couleur, la typographie, le rayon et l'ombre (D124), et sur la disposition des quatorze écrans qu'elle dessine (D125) ; `CODIPLAN_Maquette.html` garde son autorité sur le reste. |
 
 Aucun n'est orphelin, aucun n'est absent de ce tableau : les deux sens sont refusés par
-`tests/unit/docs/constitution-indexee.test.ts`.
+`tests/unit/docs/constitution-indexee.test.ts`. Le même gardien tient, depuis DOC-1
+(22/09/2026), le sommaire des fichiers qui dépassent 250 lignes contre leurs propres
+titres — un titre sans entrée de sommaire, ou une entrée qui pointe dans le vide, rougit.
 
 ---
 

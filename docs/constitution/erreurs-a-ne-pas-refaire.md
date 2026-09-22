@@ -13,17 +13,115 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
 ## 9. Erreurs à ne pas refaire
 
+### Sommaire
+
+- 20/08/2026 — Une liste close se re-vérifie à chaque table créée, sinon elle devient fausse.
+- 19/08/2026 — Ne jamais écrire la même règle métier à deux endroits.
+- 19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.
+- 20/08/2026 — Ne jamais fermer une énumération avant d'avoir tranché à qui l'on vend.
+- 20/08/2026 — Un refus qui explique pourquoi est un renseignement.
+- 21/08/2026 — Une donnée datée se périme en silence ; il faut un gardien du TEMPS.
+- 21/08/2026 — Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.
+- 23/08/2026 — Le seed s'éprouve sur le chemin réel, pas seulement sur une base jetable.
+- 24/08/2026 — LA FORME ATTENDUE D'UN TEST DE REFUS : chaque refus a son jumeau qui retire réellement le verrou.
+- 24/08/2026 — Une action référentielle est une règle de gestion déguisée en modalité technique.
+- 23/08/2026 — Une colonne nullable posée « faute de défaut légitime » devient obligatoire au moment où une contrainte s'appuie dessus, et ce moment est le bon.
+- 26/08/2026 — UN GARDIEN QUI INSPECTE DU SQL S'ÉPROUVE SUR UNE LISTE FIXE DE FORMES ÉQUIVALENTES.
+- 30/08/2026 — UNE ÉCHÉANCE QUI TOMBE AU PIRE MOMENT EST UN REPORT DÉGUISÉ.
+- 30/08/2026 — Une PARTITION est une table : elle hérite des privilèges par défaut, pas des politiques du parent.
+- 30/08/2026 — LA VACUITÉ EST LE MODE DE DÉFAILLANCE DOMINANT DE CETTE MÉTHODE, PAS L'EXCEPTION.
+- 31/08/2026 — La preuve par LECTURE est la plus forte, et elle a un angle mort nommé : `FORCE`.
+- 30/08/2026 — Un contrôle PRÉVENTIF ne prouve pas qu'un problème ne s'est pas produit.
+- 31/08/2026 — UN `WHERE` QUI RECOUPE L'ASSERTION EST UN TROU : la POPULATION d'un gardien peut s'auto-sélectionner pour exclure le cas à attraper.
+- 31/08/2026 — LE SILENCE A EXACTEMENT LA FORME DU SUCCÈS : un garde-fou qui cesse de sonner ne le dit pas.
+- 31/08/2026 — UNE DÉCISION QUI PRESCRIT UNE RÉÉCRITURE AILLEURS QU'OÙ ELLE S'ÉCRIT N'EST PRISE QU'À MOITIÉ, ET LA MOITIÉ MANQUANTE A LA FORME DE LA MOITIÉ FAITE.
+- 01/09/2026 — L'INDÉPENDANCE D'UN GARDIEN NE VIENT PAS DE CE QU'IL RECOPIE, MAIS DES SOURCES QU'IL NE CONTRÔLE PAS.
+- 02/09/2026 — UNE PORTE QUI NE GARDE PAS CE QUE GARDE LA PORTE SUIVANTE PRODUIT DES VERTS SINCÈRES ET FAUX.
+- 01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.
+- 01/09/2026 — UNE BORNE SUR LE TEMPS OU LE RANG EST SOUVENT L'APPROXIMATION D'UN CRITÈRE QU'ON NE SAVAIT PAS MESURER. QUAND LE CRITÈRE DEVIENT MESURABLE, L'APPROXIMATION NE SE CUMULE PAS : ELLE SE RETIRE.
+- 06/09/2026 — UN CHIFFRE JUSTE, DANS UN RAPPORT VRAI, QUI FAIT CONCLURE FAUX : LE GARDIEN N'EST PAS CREUX, C'EST CE QU'IL RACONTE DE LUI-MÊME QUI L'EST.
+- 07/09/2026 — UN BLOC DE GARDE QUI LIT SOUS `FORCE` VOIT ZÉRO ET SE CROIT RASSURÉ — et le défaut n'existe QUE là où rien ne l'exerce.
+- 07/09/2026 — LA DIVERGENCE ENTRE DEUX CHEMINS EST UN INSTRUMENT, PAS UN INCONVÉNIENT.
+- 07/09/2026 — UN RÉSULTAT QUI VOUS SURPREND EN BIEN EST UN SOUPÇON SUR LA MESURE AVANT D'ÊTRE UN FAIT SUR LE MONDE.
+- 07/09/2026 — CONFIRMATION, sur son auteur, au ticket suivant : la règle des blocs de garde a payé son écriture en un jour.
+- 07/09/2026 — UN NOMBRE DONT LA SIGNIFICATION DÉPEND D'UNE AUTRE COLONNE NE DOIT JAMAIS VOYAGER SEUL.
+- 07/09/2026 — AFFIRMER UN ÉTAT OBSERVABLE AU LIEU DE L'OBSERVER. Ce n'est plus l'accident de l'un ou de l'autre : c'est une PENTE DU DISPOSITIF, et elle a quatre occurrences en quatre jours.
+- 08/09/2026 — DEUX REQUÊTES QUI RENDENT LE MÊME SQL PEUVENT AVOIR DES FORMES DIFFÉRENTES, ET C'EST LA FORME QUE LE CODE LIT.
+- 08/09/2026 — UN DÉFAUT INVISIBLE PARCE QUE CE QU'IL CASSE N'EXISTE PAS ENCORE.
+- 08/09/2026 — UNE RÉPARATION DONT ON N'A PAS ISOLÉ LA CAUSE N'EST PAS UNE RÉPARATION : C'EST UNE COÏNCIDENCE, ET LE JUMEAU EST CE QUI LE DIT.
+- 08/09/2026 — UNE EXPLICATION CAUSALE QUI N'A PAS ÉTÉ MISE EN ÉCHEC N'EST PAS UNE CAUSE : C'EST UNE HYPOTHÈSE BIEN RACONTÉE. Et la règle est SYMÉTRIQUE.
+- 08/09/2026 — UNE IMPOSSIBILITÉ AFFIRMÉE EST UN ÉTAT AFFIRMÉ AU LIEU D'ÊTRE OBSERVÉ, et elle coûte plus cher que les autres parce qu'elle CLÔT l'enquête.
+- 08/09/2026 — UN CLIQUET QUI CONDAMNE AUSSI L'ISSUE DE SECOURS N'EST PAS UN CLIQUET, C'EST UN ENFERMEMENT. Quand on ferme un verbe pour empêcher un RETRAIT, on regarde ce que ce verbe portait d'autre.
+- 08/09/2026 — POSTGRESQL APPLIQUE LES POLITIQUES DE `SELECT` AU `WHERE` D'UN `UPDATE` : un jumeau qui ne retire qu'une des deux moitiés mesure le refus du voisin.
+- 09/09/2026 — UNE GARANTIE ÉNONCÉE EN TERMES DE CE QU'IL FAUT FAIRE SE REFERME UN ÉTAGE PLUS BAS, ET LE GARDIEN RESTE VERT — IL A MÊME RAISON.
+- 09/09/2026 — UNE DURÉE EST UN ÉTAT, ET ELLE S'OBSERVE COMME LES AUTRES.
+- 09/09/2026 — DEUX CONTRATS SOUS UN MÊME NOM, DANS DEUX MODULES QU'UN MÊME FICHIER IMPORTE.
+- 11/09/2026 — TOUTES MES MISES EN ÉCHEC FAISAIENT ROUGIR LE GARDIEN ; AUCUNE NE VÉRIFIAIT QU'UN VERT ÉTAIT MÉRITÉ.
+- 11/09/2026 — UN GARDIEN DONT LE TAUX DE FAUSSES ALERTES CONDUIT À NE PLUS LE LIRE COÛTE PLUS QU'IL NE RAPPORTE. C'est É12 sous un autre costume, et il faut le nommer comme lui.
+- 10/09/2026 — UNE CORRECTION QUI BARRE LA LIGNE ENTIÈRE EMPORTE LA MOITIÉ VRAIE AVEC LA FAUSSE.
+- 09/09/2026 — UN DÉFAUT PEUT ÊTRE INVISIBLE À TOUTE ASSERTION ET ÉVIDENT SUR UNE IMAGE : la capture d'écran attrape ce qu'aucune règle n'a été FORMULÉE pour attraper.
+- 09/09/2026 — UNE AFFIRMATION DE RAPPORT PORTANT SUR UN ARTEFACT CONSTRUIT NOMME L'EMPREINTE DU COMMIT SUR `main` OÙ ELLE SE VÉRIFIE. Sans empreinte, elle n'est pas écrite.
+- 10/09/2026 — DEUX CÔTÉS D'UNE COMPARAISON PEUVENT PERDRE LA VUE ENSEMBLE, ET LEUR ACCORD DEVIENT ALORS MAXIMAL.
+- 13/09/2026 — UNE CONSIGNE MESURÉE FAUSSE SE REFUSE, ET LE REFUS SE MOTIVE.
+- 10/09/2026 — UNE CAUSE ÉCRITE DANS UN GABARIT SE RÉPÈTE À CHAQUE ALARME, ET ELLE N'A JAMAIS ÉTÉ MESURÉE UNE SEULE FOIS.
+- 11/09/2026 — LA PORTE ET LA PRODUCTION NE GARDENT PAS LE MÊME MONDE : `verify:full` tourne contre une base FRAÎCHEMENT MIGRÉE, la production contre une base migrée À UN AUTRE MOMENT.
+- 12/09/2026 — UNE ÉCONOMIE QUI RETIRE UN CONTRÔLE N'EST PAS UNE ÉCONOMIE, C'EST UNE DETTE DONT ON NE CONNAÎT PAS LE MONTANT.
+- 12/09/2026 — UNE RÈGLE ÉCRITE DANS UN DOCUMENT QUE PERSONNE NE RELIT AU BON MOMENT N'EST PAS UN GARDIEN : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie.
+- 12/09/2026 — J'AI ÉTENDU UNE ALARME SANS MESURER QU'ELLE AVAIT SONNÉ UNE SEULE FOIS.
+- 12/09/2026 — LE VERDICT LE PLUS GRAVE ÉTAIT LE VERDICT PAR DÉFAUT : un contrôle interrompu criait à la faute.
+- 14/09/2026 — UN LECTEUR TOLÉRANT REND UNE ÉPREUVE DE BOUT EN BOUT AVEUGLE À LA MALFORMATION DE SA PROPRE FIXTURE.
+- 14/09/2026 — L'EXCLUSION QU'UN GARDIEN S'AUTORISE EST LE SEUL ENDROIT PAR OÙ SA PROPRE FAUTE REVIENT.
+- 14/09/2026 — UN GARDIEN DE BASE PEUT BÂTIR SA POPULATION AVEC LE VERBE D'ÉCRITURE QUI LE SATISFAIT, ET LE VERBE DE LA PRODUCTION N'Y EST PAS.
+- 19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.
+
+---
+
+### 20/08/2026 — Une liste close se re-vérifie à chaque table créée, sinon elle devient fausse.
+
 - **20/08/2026 — Une liste close se re-vérifie à chaque table créée, sinon elle devient fausse.** `second_facteur` et `utilisateur` manquaient à D34, `parite` manquait à D4 : trois fois le même enchaînement — la liste est fermée, une décision ultérieure crée une table, personne ne revient la ranger. Une liste close qui a l'autorité d'une décision et le contenu d'un oubli est pire qu'une liste ouverte. Le gardien d'exhaustivité de D41 renverse la charge : il part du schéma, pas de la liste.
+
+### 19/08/2026 — Ne jamais écrire la même règle métier à deux endroits.
+
 - **19/08/2026 — Ne jamais écrire la même règle métier à deux endroits.** Le cahier des charges v1.2 formulait certaines règles trois fois avec des variantes, ce qui a produit 60 points d'ambiguïté. Le chapitre 10 est la source unique ; tout le reste y renvoie.
+
+### 19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.
+
 - **19/08/2026 — Ne jamais nommer une colonne d'après l'outil d'un seul client.** `code_winpro` est devenu `code_externe` : le produit est destiné à être vendu à des sociétés qui n'utilisent pas Winpro.
+
+### 20/08/2026 — Ne jamais fermer une énumération avant d'avoir tranché à qui l'on vend.
+
 - **20/08/2026 — Ne jamais fermer une énumération avant d'avoir tranché à qui l'on vend.** L'énumération des rôles a été arrêtée à neuf avant l'arbitrage « il faut prévoir de vendre la solution » ; il y manquait un administrateur au niveau société, si bien que créer un compte chez un client serait passé par l'éditeur. `admin_societe` est le dixième rôle (D37). Une énumération se ferme après la question « et chez le client ? », jamais avant.
+
+### 20/08/2026 — Un refus qui explique pourquoi est un renseignement.
+
 - **20/08/2026 — Un refus qui explique pourquoi est un renseignement.** « Compte inexistant », « mot de passe faux » et « compte sans habilitation » se répondaient différemment : cela suffisait à découvrir, depuis la seule page de mot de passe oublié, quels concurrents sont clients de la plateforme. Un seul message, un seul plancher de durée (D35).
+
+### 21/08/2026 — Une donnée datée se périme en silence ; il faut un gardien du TEMPS.
+
 - **21/08/2026 — Une donnée datée se périme en silence ; il faut un gardien du TEMPS.** Les jours fériés sont datés. Une table alimentée une fois cesse de connaître les fériés deux ans plus tard **sans jamais être vide** : elle est périmée, le planning propose des créneaux un 1ᵉʳ mai, et aucun décompte ne le signale — un décompte non nul ressemble beaucoup trop à des données justes. D'où trois pièces indissociables *(D46)* : un **horizon glissant** dans le seed (jamais une liste d'années écrite à la main), un **script versionné** pour l'étendre, et un **contrôle daté** dans `verify:full` qui échoue en nommant le territoire et sa dernière date connue. C'est le principe des listes closes appliqué au temps : une donnée qui se périme en silence vaut une liste close que personne ne surveille.
+
+### 21/08/2026 — Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.
+
 - **21/08/2026 — Un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé.** Les trois gardiens de L0-08 passaient tous leurs scénarios fabriqués. Mis à l'épreuve d'une violation réellement écrite dans le code puis retirée, l'un d'eux s'est révélé aveugle : l'interdiction d'appeler le calcul de Pâques depuis le métier ne reconnaissait que la forme lointaine de l'import (`lib/calendar/paques`) et laissait passer `./paques` — c'est-à-dire **la seule forme qu'un fichier voisin puisse écrire**. Un cas fabriqué prouve que le motif sait mordre ; seule une violation réelle prouve qu'il mord là où la faute se commet.
+
+### 23/08/2026 — Le seed s'éprouve sur le chemin réel, pas seulement sur une base jetable.
+
 - **23/08/2026 — Le seed s'éprouve sur le chemin réel, pas seulement sur une base jetable.** Le seed passait en 0,3 s en local et échouait en P2028 sur la base hébergée, au 28ᵉ aller-retour d'une transaction dont le délai valait 5 000 ms par défaut. Le code était identique des deux côtés ; **la seule variable était la latence** — une milliseconde en local, cent-quatre-vingt-dix vers Sydney, un facteur deux cents. Aucune suite du dépôt ne pouvait l'attraper : `test:isolation` vise un PostgreSQL jetable et local *par exigence*, et le seul chemin qui touche la base hébergée est déclenché à la main *par décision*. Le seul environnement où le défaut existe est donc le seul qui ne soit jamais exercé. Deux conséquences. **Un défaut de latence ne se mesure pas, il se calcule** : le gardien compte les allers-retours, les multiplie par une latence majorée, et échoue quand le produit dépasse le délai fixé (`tests/unit/seed-delais.test.ts`) — même mécanique que l'horizon des fériés. Et **un délai par défaut est une valeur de réseau local** : tout ce qui s'exécute contre la base hébergée dit ses délais, ou hérite d'un chiffre écrit pour une autre géographie. Voir `docs/decisions/2026-08-23-seed-transaction-latence-neon.md`.
+
+### 24/08/2026 — LA FORME ATTENDUE D'UN TEST DE REFUS : chaque refus a son jumeau qui retire réellement le verrou.
+
 - **24/08/2026 — LA FORME ATTENDUE D'UN TEST DE REFUS : chaque refus a son jumeau qui retire réellement le verrou.** Un test de refus prouve que le verrou mordait **le jour où on l'a écrit**. Rien ne dit qu'il mord **encore** : la contrainte a pu être desserrée, remplacée par une variante permissive, ou le test devenir vert pour une autre raison que la sienne. **Tout test qui prouve un refus s'accompagne donc d'un jumeau qui défait réellement le verrou** — retrait de la contrainte, du déclencheur, de la politique — **et montre que l'écriture fautive passe alors.** Le jumeau s'exécute dans une transaction annulée : le DDL est transactionnel en PostgreSQL, la contrainte revient au `ROLLBACK`, et le jumeau rejoue à chaque `pnpm verify` au lieu d'être une vérification faite une fois à la main. Trois exigences, et la troisième est celle qu'on oublie : le jumeau retire **le verrou visé**, pas un voisin ; il place le scénario dans la configuration où le défaut **réussit** plutôt que dans celle où il échoue autrement ; et l'assertion **nomme la contrainte**, sans quoi un refus venu d'ailleurs passe pour le bon. C'est éprouvé : le premier gardien de D49 était vert avec `ON UPDATE CASCADE` rétabli, parce qu'une autre clé échouait à sa place. Prolonge la leçon du 21/08 — un gardien vert sur un cas fabriqué n'est pas un gardien éprouvé — et la rend systématique.
+
+### 24/08/2026 — Une action référentielle est une règle de gestion déguisée en modalité technique.
+
 - **24/08/2026 — Une action référentielle est une règle de gestion déguisée en modalité technique.** `ON UPDATE CASCADE` n'avait été décidé par personne : c'est le défaut de Prisma, recopié dans une migration. Il répondait pourtant tout seul à une question qui appartient au métier — que devient un calendrier quand l'agence change de territoire ? Réponse mesurée en base : réécriture **silencieuse** quand l'agence n'a que des ponts, échec désignant la mauvaise table sinon. **Une valeur par défaut qui répond à une question qu'on n'a pas posée est une décision prise par personne** — même enchaînement que le délai de 5 000 ms écrit pour une autre géographie. Corollaire : **toute clé étrangère nouvelle dit ses DEUX actions, et les justifie.** `ON DELETE` était déjà regardé, supprimer étant visible ; `ON UPDATE` ne l'était pas, au motif que les identifiants ne changent jamais — vrai des identifiants techniques, faux de toute colonne métier qu'un chaînage fait entrer dans une clé. Voir `docs/decisions/2026-08-24-territoire-agence-sans-propagation.md` *(D49)*.
+
+### 23/08/2026 — Une colonne nullable posée « faute de défaut légitime » devient obligatoire au moment où une contrainte s'appuie dessus, et ce moment est le bon.
+
 - **23/08/2026 — Une colonne nullable posée « faute de défaut légitime » devient obligatoire au moment où une contrainte s'appuie dessus, et ce moment est le bon.** `agence.territoire` avait été laissée nullable à bon droit : il n'existe aucun défaut légitime, et un `DEFAULT 'NC'` aurait été un territoire codé en dur. Puis un chaînage de clés est venu s'appuyer dessus — et **une clé étrangère dont une colonne vaut NULL n'est pas contrôlée en PostgreSQL** (`MATCH SIMPLE`). Le verrou aurait été muet exactement là où la donnée manque, c'est-à-dire chez l'agence la moins bien paramétrée : un verrou qui s'ouvre tout seul sur les cas mal renseignés est pire qu'une absence de verrou, il donne le sentiment d'une garantie. Le corollaire, pour la suite : **poser une contrainte sur une colonne nullable, c'est poser une contrainte facultative.** La question n'est jamais « peut-on chaîner quand même » mais « rend-on la colonne obligatoire maintenant, ou renonce-t-on au chaînage ». Le coût ne sera jamais plus bas qu'au moment où la question se pose. Voir `docs/decisions/2026-08-23-territoire-du-ferie-reference.md` *(D48)*.
+
+### 26/08/2026 — UN GARDIEN QUI INSPECTE DU SQL S'ÉPROUVE SUR UNE LISTE FIXE DE FORMES ÉQUIVALENTES.
+
 - **26/08/2026 — UN GARDIEN QUI INSPECTE DU SQL S'ÉPROUVE SUR UNE LISTE FIXE DE FORMES ÉQUIVALENTES.** Troisième fois qu'un gardien est vérifié sur la forme *canonique* d'un défaut plutôt que sur celle qu'il prendrait *réellement* — l'import `./paques` du 21/08, le jumeau qui retire le bon verrou du 24/08. La parade cesse donc d'être une vigilance et devient une liste : **tout gardien qui lit du SQL est éprouvé sur les six formes ci-dessous, et son verdict sur chacune est une mesure consignée dans le ticket, pas une opinion.**
   1. **Graphie** — casse, espaces multiples, retour à la ligne entre deux mots-clés (`security\ndefiner`), identifiant entre guillemets ou nu, nom qualifié par un schéma, `CREATE OR REPLACE`.
   2. **Enveloppe d'exécution** — la faute écrite *à l'intérieur* d'un `DO $$ … $$`, d'un `EXECUTE '…'` ou d'un `EXECUTE format(…)`. Corollaire, et c'est le plus important : **le périmètre examiné ne retire jamais les chaînes littérales.** La seule coupure légitime est « documentation contre exécution » — `--` et `COMMENT ON … IS '…'` —, jamais « code contre chaîne ».
@@ -33,15 +131,33 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   6. **Ce qui reste hors de portée, et qui se dit dans le gardien** — l'assemblage délibéré (`'SECU' || 'RITY DEFINER'`, nom construit à l'exécution). Un gardien statique arrête la correction bien intentionnée, pas un contournement décidé ; l'écrire vaut mieux que laisser croire le contraire.
 
   *Mesuré sur le gardien `SECURITY DEFINER` de D50 : les formes 1 à 5 sont refusées — y compris `CREATE FUNCTION … SECURITY DEFINER` dans un bloc `DO`, y compris adossée à la note `COMMENT ON` du même fichier —, la forme 6 passe, et c'est la limite qu'il annonce lui-même.*
+
+### 30/08/2026 — UNE ÉCHÉANCE QUI TOMBE AU PIRE MOMENT EST UN REPORT DÉGUISÉ.
+
 - **30/08/2026 — UNE ÉCHÉANCE QUI TOMBE AU PIRE MOMENT EST UN REPORT DÉGUISÉ.** Le journal d'audit devait être partitionné pour que la conservation détache des périodes au lieu de supprimer des lignes. Deux voies : le faire tout de suite, ou inscrire un déclencheur — « avant que la première donnée de production réelle n'entre » — et le garder. Le déclencheur était pourtant **gardable** : le contrôle de cloisonnement énumère déjà les sociétés à chaque migration, il aurait suffi qu'il échoue dès qu'une société hors démonstration apparaît. L'argument qui a emporté la décision n'est donc pas l'oubli, c'est **le moment** : « avant la première donnée réelle » signifie le jour du provisionnement du premier client — c'est-à-dire le jour où l'on veut le moins jouer une migration qui réécrit toute la table, et où l'on sera le plus tenté de la repousser « après la mise en service ». **Une échéance qui se présente au moment le plus défavorable n'est pas une échéance, c'est un report.** Corollaire général, au-delà des partitions : quand une reprise est inévitable un jour, la question n'est pas « quel gardien la déclenchera » mais « à quel moment ce gardien sonnera » — et si la réponse est « au pire », faire la chose maintenant, où elle coûte 0,11 seconde plutôt que vingt. **Le meilleur moyen de ne pas payer une reprise est de n'avoir jamais à la faire.**
+
+### 30/08/2026 — Une PARTITION est une table : elle hérite des privilèges par défaut, pas des politiques du parent.
+
 - **30/08/2026 — Une PARTITION est une table : elle hérite des privilèges par défaut, pas des politiques du parent.** Mesuré avant d'être corrigé, et le résultat est brutal. `ALTER DEFAULT PRIVILEGES` accorde `SELECT, INSERT, UPDATE, DELETE` au rôle applicatif sur **toute table nouvelle** — une partition en est une, y compris celle qu'un script créera dans dix-huit mois. Et les politiques du parent ne s'appliquent **que si l'on interroge le parent** : nommer la partition les contourne. Sur la forme naïve, sous le rôle applicatif et le contexte de la société A : par le parent, 1 ligne vue — le cloisonnement tient ; **par la partition, 2 lignes vues dont celle d'une autre société, puis `UPDATE` les réécrit toutes et `DELETE` les efface.** Partitionner sans y penser aurait détruit I1 et l'ajout seul de I8 dans la table qui porte les valeurs avant/après de tout le métier. Deux conséquences. **Une garantie posée sur une table ne suit pas ses partitions : elle se repose sur chacune** — `REVOKE ALL` et `FORCE ROW LEVEL SECURITY` sans politique, le routage des lignes n'exigeant aucun privilège sur la partition (mesuré aussi). Et **la création d'une partition et son durcissement ne se séparent jamais** : une seule fonction, appelée par la migration comme par le script d'extension, sinon une partition naîtra un jour sans l'un des deux.
+
+### 30/08/2026 — LA VACUITÉ EST LE MODE DE DÉFAILLANCE DOMINANT DE CETTE MÉTHODE, PAS L'EXCEPTION.
+
 - **30/08/2026 — LA VACUITÉ EST LE MODE DE DÉFAILLANCE DOMINANT DE CETTE MÉTHODE, PAS L'EXCEPTION.** Le dépôt fabrique des gardiens ; il faut donc regarder en face **comment ils échouent**. Ils ne se trompent presque jamais de règle : **ils passent au vert sans avoir rien regardé.** Six fois maintenant, et l'énumération vaut mieux qu'un principe. *21/08* — le motif ne reconnaissait que `lib/calendar/paques` et laissait passer `./paques`, la seule forme qu'un fichier voisin puisse écrire. *24/08* — le jumeau retirait un verrou voisin, si bien qu'une autre clé échouait à la place de celle qu'on croyait éprouver. *26/08* — le gardien SQL n'était vérifié que sur la graphie canonique de la faute, d'où la liste des six formes. *30/08, trois fois dans le même ticket* — une épreuve jouée sur une base vide, dont l'`INSERT … SELECT` n'a inséré aucune ligne : contrôle vert, violation inexistante ; le contrôle permanent des privilèges du journal interrogeant le PARENT, vert sur une partition portant les quatre verbes et aucune RLS ; et un scénario ne lisant que `relforcerowsecurity`, qui serait resté vert sur une RLS inerte. **Dans les six cas, la règle était juste et l'observation était creuse.**
 
   **UN GARDIEN NE PEUT PAS SE GARDER LUI-MÊME, et c'est une propriété de la méthode, pas un défaut de son exécution.** Un gardien vacuous est vert : il ne produit aucun signal, par définition. Rien à l'intérieur du système ne peut donc le contredire — ni sa propre assertion, qui passe, ni la suite qui l'entoure, qui passe aussi. **Le seul instrument qui démasque une observation creuse est une question posée de l'EXTÉRIEUR** : « ce contrôle regarde-t-il le parent ou les partitions ? », « la violation a-t-elle réellement eu lieu ? », « cette assertion existe-t-elle ailleurs sous sa forme faible ? ». Corollaire pratique : après avoir écrit un gardien, ne pas se demander s'il est juste — il l'est presque toujours — mais **ce qu'il regarde**, et le vérifier en dehors de lui. La revue n'est pas un filet de sécurité facultatif de cette méthode : elle en est l'organe de mesure.
 
   **Ce qui rend un gardien non vacuous est un TÉMOIN, et il s'écrit exprès.** Une assertion qui prouve que le gardien a bien regardé quelque chose de réel, et qui échoue quand il n'a rien vu : zéro privilège observé est un échec (D38), zéro partition énumérée est un échec, zéro territoire contrôlé est un échec, le nombre de migrations parcourues est minoré, la catégorie « peuplée » est vérifiée. **Un décompte nul ressemble toujours à un sans-faute.** Corollaire de méthode : après avoir écrit l'épreuve d'une violation, **vérifier que la violation a bien eu lieu** — c'est la sonde « la partition peut-elle encore être créée ? » qui a démasqué l'épreuve creuse du 30/08, pas le contrôle lui-même.
+
+### 31/08/2026 — La preuve par LECTURE est la plus forte, et elle a un angle mort nommé : `FORCE`.
+
 - **31/08/2026 — La preuve par LECTURE est la plus forte, et elle a un angle mort nommé : `FORCE`.** Lire de vraies lignes sous de vrais rôles bat toute assertion sur un attribut — une RLS éteinte ne peut pas y survivre : `DISABLE ROW LEVEL SECURITY` sur `societe`, et le rôle applicatif voit aussitôt les deux sociétés sans contexte. **Mais `FORCE ROW LEVEL SECURITY` ne concerne QUE le propriétaire des tables**, si bien qu'une lecture faite sous le rôle applicatif — non propriétaire — ne peut pas le voir. Mesuré sur un propriétaire non superutilisateur : `FORCE` retiré, le rôle applicatif voit toujours **zéro** ligne sans contexte, et le propriétaire en voit **deux**. Le cloisonnement paraît intact, et les migrations, le seed et toute connexion de maintenance lisent alors toutes les sociétés. **Ce qui ne se prouve pas par la lecture doit se prouver par l'attribut** — c'est le seul endroit du dépôt où l'attribut est la seule preuve possible, et il se lit en DEUX drapeaux, jamais un. `scripts/lib/rls-declaree.ts` porte la règle, partagée par le contrôle de la base hébergée et par `tests/isolation/force-rls.test.ts`. *Corollaire de méthode, découvert en cherchant l'assertion faible ailleurs qu'où elle avait mordu :* le contrôle de la base hébergée n'inspectait **aucun** drapeau, et la liste du scénario d'isolation en couvrait **quatre tables sur huit** — chacune ajoutée par un ticket qui n'était pas revenu compléter la liste. D'où la clôture par le schéma plutôt que par une liste : toute table de `public` doit relever d'exactement une des trois catégories d'état RLS.
+
+### 30/08/2026 — Un contrôle PRÉVENTIF ne prouve pas qu'un problème ne s'est pas produit.
+
 - **30/08/2026 — Un contrôle PRÉVENTIF ne prouve pas qu'un problème ne s'est pas produit.** L'horizon des partitions dit qu'il reste de la place devant ; il ne dit rien de ce qui s'est déjà passé. Or si une partition a manqué, l'écriture a **réussi** — la partition par défaut l'a rattrapée — et il ne reste aucune trace ailleurs. D'où un second contrôle, **détectif** : la partition par défaut doit être vide, et une ligne qui s'y trouve est la seule preuve rétrospective qu'un mois a manqué. Le préventif protège du problème, le détectif prouve qu'il ne s'est pas produit ; ils sont indépendants dans les deux sens, et un test le montre. Même famille que le jumeau d'un test de refus (24/08) : **une garantie qu'on ne peut pas constater après coup est une intention, pas une garantie.**
+
+### 31/08/2026 — UN `WHERE` QUI RECOUPE L'ASSERTION EST UN TROU : la POPULATION d'un gardien peut s'auto-sélectionner pour exclure le cas à attraper.
+
 - **31/08/2026 — UN `WHERE` QUI RECOUPE L'ASSERTION EST UN TROU : la POPULATION d'un gardien peut s'auto-sélectionner pour exclure le cas à attraper.** Espèce distincte de la vacuité du 30/08, et il faut la nommer séparément parce que le symptôme est le même — un gardien vert — et la cause à l'opposé. Dans la vacuité, l'assertion ne regarde rien. **Ici l'assertion est juste, et elle est juste sur une population dont le cas fautif vient de sortir.**
 
   Mesuré sur le gardien des formes de politique RLS (R0-a), le jour de son écriture. Il sélectionnait les tables de la première catégorie de I1 par `societe_id NOT NULL`, et il devait faire respecter, entre autres, que la branche `OR societe_id IS NULL` reste inerte — c'est-à-dire que `societe_id` soit `NOT NULL`. **Retirer le `NOT NULL` ne faisait donc pas échouer le gardien : cela faisait sortir la table de son périmètre.** Le contrôle passait au vert **sur le geste même qu'il surveille**, et son propre jumeau — l'épreuve qui retire réellement le verrou — est la seule chose qui l'ait montré.
@@ -52,9 +168,15 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Et le témoin a changé de MAIN le 08/09/2026, parce que la règle avait cessé d'être appliquée le jour même où elle a été écrite.** Mesuré : neuf listes d'exemption existaient, **quatre sans aucun témoin** — les quatre créées après cette entrée. Aucune n'était orpheline ; ce qui manquait était ce qui le dirait quand elles le deviendraient. C'est la première entrée du §9 une catégorie plus haut — *une liste close se re-vérifie à chaque objet créé, sinon elle devient fausse* —, l'objet étant ici le **gardien** lui-même. Le témoin n'est donc plus tenu liste par liste mais par **un gardien unique qui DÉDUIT la population du dépôt** (`tests/unit/gardiens/exemptions-adossees.test.ts`) : une exemption écrite dans six mois y entre d'elle-même. Il couvre les **deux formes**, et la seconde est celle qu'on oubliait — un **préfixe de répertoire** doit désigner un répertoire qui existe **et qui contient encore un fichier** : un répertoire vidé exempte toujours, et n'exempte plus rien. Sa limite est annoncée : il reconnaît une exemption à son nom, donc une liste baptisée autrement ou calculée à l'exécution lui échappe — la forme 6 du 26/08, qu'aucun motif statique n'arrête.
 
+
+### 31/08/2026 — LE SILENCE A EXACTEMENT LA FORME DU SUCCÈS : un garde-fou qui cesse de sonner ne le dit pas.
+
 - **31/08/2026 — LE SILENCE A EXACTEMENT LA FORME DU SUCCÈS : un garde-fou qui cesse de sonner ne le dit pas.** Le couple préventif/détectif du 30/08 se rejoue sur les alarmes elles-mêmes, et c'est É12 qui l'a montré. Une **issue ouverte automatiquement sur échec nocturne** est le contrôle *détectif* : elle dit qu'une nuit a rougi, et elle le dit dans le dépôt plutôt que dans une boîte de courriel — mesuré le 31/08, la seule alarme existante partait vers la boîte même où deux échecs de « DB migrate & seed » du 20 août sont **restés non lus**. Mais une planification **désactivée** ne produit aucune exécution, donc aucun échec, donc **aucune issue** : le détectif est aveugle à sa propre disparition. D'où le **battement de cœur** — un contrôle qui échoue si la dernière exécution planifiée est trop ancienne. Les deux sont indépendants dans les deux sens, comme l'horizon des partitions et la partition par défaut. **Une alarme qui ne se surveille pas elle-même n'a que la fiabilité de son déclencheur**, et la panne la plus probable d'une alarme n'est pas de sonner à tort : c'est de se taire.
 
   *Corollaire de rangement, mesuré au même endroit :* la protection contre la désactivation automatique après 60 jours ne tient pas à la planification mais à un **attribut du dépôt** — la règle ne vise que les dépôts publics. Une garantie qui repose sur un attribut extérieur à la chose garantie **s'écrit là où l'on change cet attribut**, jamais seulement dans la décision qui l'a constatée.
+
+
+### 31/08/2026 — UNE DÉCISION QUI PRESCRIT UNE RÉÉCRITURE AILLEURS QU'OÙ ELLE S'ÉCRIT N'EST PRISE QU'À MOITIÉ, ET LA MOITIÉ MANQUANTE A LA FORME DE LA MOITIÉ FAITE.
 
 - **31/08/2026 — UNE DÉCISION QUI PRESCRIT UNE RÉÉCRITURE AILLEURS QU'OÙ ELLE S'ÉCRIT N'EST PRISE QU'À MOITIÉ, ET LA MOITIÉ MANQUANTE A LA FORME DE LA MOITIÉ FAITE.** Dix règles du chapitre 10 — source de rang 2, celle contre laquelle les tickets métier s'écrivent — avaient été réécrites par un arbitrage de rang 1 sans que le texte bouge : D6 sur RG-PAR-02, D9 sur RG-PLA-04, D15, D16, D22, D23, D25, D29, D30, D32 puis D52. Mesuré par le gardien de R0-b rejoué sur l'état d'avant le ticket : **treize écarts**, zéro paire câblée. Et le chapitre 10 se lisait parfaitement — c'est tout le problème. Une réécriture non appliquée ne laisse **aucune trace** : pas de contradiction visible, pas de test rouge, une règle qui a l'air d'une règle. **Même silence que celui du 31/08 sur les alarmes : la panne ne se signale pas, elle se tait.**
 
@@ -66,6 +188,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Corollaire sur les listes closes recopiées : voir l'entrée du 01/09 ci-dessous.*
 
+
+### 01/09/2026 — L'INDÉPENDANCE D'UN GARDIEN NE VIENT PAS DE CE QU'IL RECOPIE, MAIS DES SOURCES QU'IL NE CONTRÔLE PAS.
+
 - **01/09/2026 — L'INDÉPENDANCE D'UN GARDIEN NE VIENT PAS DE CE QU'IL RECOPIE, MAIS DES SOURCES QU'IL NE CONTRÔLE PAS.** Le périmètre d'audit de I8 était écrit **trois** fois : au CLAUDE.md, au README, et « en toutes lettres » dans son propre gardien. Cette troisième recopie était délibérée et argumentée — « un gardien qui tirerait son périmètre de la même source que les migrations ne vérifierait rien ; ici, c'est la constitution qui est confrontée au dépôt ». L'argument est juste sur la moitié qui compte et faux sur l'autre : **rien ne confrontait la recopie à la constitution.** Deux listes qui pouvaient diverger en silence, et la divergence serait née le jour d'une onzième table, du côté qu'on n'aurait pas mis à jour. Ce qui faisait la force de ce gardien n'était pas la recopie : c'est qu'il confronte la liste aux **migrations** et au **schéma**, deux sources qu'il ne contrôle pas et qui ne se plient pas à ce qu'il déclare. D53 range la liste dans une seule maison — `scripts/lib/perimetre-audit.ts` — que les trois documents citent sans la recopier : la force du gardien est intacte, la seconde liste a disparu.
 
   **Le test à faire passer à toute duplication qui se prétend un contrôle :** *qu'est-ce qui confronterait les deux copies ?* Si la réponse est « la relecture », ce n'est pas un contrôle, c'est un doublon — et c'est **une liste close recopiée « pour la lisibilité »**, dont la seconde copie devient fausse le jour où la première grandit, sans rougir.
@@ -74,11 +199,17 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Et le piège de la population s'y ferme par la STRUCTURE, non par un plancher.** Retirer une citation d'un ticket ne l'en fait pas sortir : l'empreinte porte sur l'**ensemble** des sources citées, en retirer une la fait changer — c'est un écart. Les retirer toutes laisse une estampille qui ne s'adosse plus à rien — écart aussi. Un chiffre plancher n'aurait été qu'une approximation ; ici la propriété se démontre. *(Même famille que le 01/09 sur les bornes : quand on sait mesurer, on ne garde pas l'approximation à côté.)*
 
+
+### 02/09/2026 — UNE PORTE QUI NE GARDE PAS CE QUE GARDE LA PORTE SUIVANTE PRODUIT DES VERTS SINCÈRES ET FAUX.
+
 - **02/09/2026 — UNE PORTE QUI NE GARDE PAS CE QUE GARDE LA PORTE SUIVANTE PRODUIT DES VERTS SINCÈRES ET FAUX.** `pnpm verify` est « la porte de sortie de chaque ticket » ; la CI, elle, jouait `format:check` dans une étape à part. Mesuré sur l'état exact que la CI a refusé : **`pnpm verify` sort en 0 et ne prononce jamais le mot « prettier »**. La session qui a annoncé « verify vert, 600 tests » ne s'était donc trompée sur rien — elle avait franchi une porte qui ne jugeait pas ce que la suivante juge. C'est la divergence du 01/09, appliquée non plus à deux lectures d'un critère mais **aux portes elles-mêmes**, et elle est plus insidieuse : ici, personne ne ment et le rapport est exact.
 
   **Le remède n'est pas d'ajouter l'étape manquante — c'est de rendre l'écart impossible.** `format:check` entre dans `verify` (l'incident), et un gardien exige que **toute commande jouée par un job de CI soit couverte, transitivement, par la porte correspondante** (la classe). Éprouvé sur la faute réelle, rejouée : `verify` amputé de `format:check` et l'étape rendue à la CI, le gardien rougit en nommant la commande orpheline.
 
   *Corollaire de rapport, qui vaut même quand les portes coïncident :* **on ne rapporte un vert que sur l'état effectivement poussé**, jamais sur celui d'avant la dernière retouche. Un vert mesuré à un instant et annoncé pour un autre est un vert inventé, quelle que soit la bonne foi.
+
+
+### 01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.
 
 - **01/09/2026 — DEUX LECTURES D'UN MÊME CRITÈRE DIVERGENT EN SILENCE, PARCE QU'AUCUNE DES DEUX NE PRÉTEND ÊTRE L'AUTRE.** Espèce distincte de la recopie ci-dessus, et il faut la nommer séparément parce que la parade y est différente. Dans la recopie, une même DONNÉE est écrite deux fois, et l'on sait quoi comparer. Ici, un même CRITÈRE est **implémenté** deux fois, par deux modules légitimes, chacun écrit pour son usage — et rien, dans le code, ne dit qu'ils parlent de la même chose. Les deux sont verts. Aucun ne ment. Ils ne disent simplement plus la même chose.
 
@@ -88,11 +219,17 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Corollaire, et c'est lui qu'il faut retenir avant d'écrire la deuxième lecture :** la seconde implémentation d'un critère n'est jamais gratuite. Soit on la remplace par un appel à la première — ce qui est presque toujours possible et presque toujours meilleur —, soit on écrit, dans le même geste, ce qui les confrontera. Ce qu'on ne fait pas, c'est les laisser vivre côte à côte en comptant sur la relecture : c'est exactement ce que le 31/08 disait des documents, et le code n'a pas de privilège.
 
+
+### 01/09/2026 — UNE BORNE SUR LE TEMPS OU LE RANG EST SOUVENT L'APPROXIMATION D'UN CRITÈRE QU'ON NE SAVAIT PAS MESURER. QUAND LE CRITÈRE DEVIENT MESURABLE, L'APPROXIMATION NE SE CUMULE PAS : ELLE SE RETIRE.
+
 - **01/09/2026 — UNE BORNE SUR LE TEMPS OU LE RANG EST SOUVENT L'APPROXIMATION D'UN CRITÈRE QU'ON NE SAVAIT PAS MESURER. QUAND LE CRITÈRE DEVIENT MESURABLE, L'APPROXIMATION NE SE CUMULE PAS : ELLE SE RETIRE.** RG-IMP-02 promettait une annulation d'import « pendant **24 heures** », et D15 ajoutait « seul le **dernier lot** est annulable ». Ni l'une ni l'autre ne mesurait quoi que ce soit — toutes deux pariaient sur la seule question qui compte : *cette annulation peut-elle encore faire des dégâts ?* Puis D15 a institué le critère qui la mesure vraiment, ligne par ligne : modifiée depuis, référencée depuis, refus motivé ; le reste est restauré. **Les deux bornes sont alors devenues du bruit défavorable** — elles refusent une annulation dont on peut prouver qu'elle est sans danger, et font perdre une journée à qui découvre son erreur le lendemain. D54 les supprime.
 
   **Et le critère mesuré traite MIEUX le cas qui avait motivé la borne** — c'est le test à faire avant de la garder « par prudence ». Sur deux imports qui se recouvrent, la règle du dernier lot refusait le premier **en entier**, y compris ses lignes que le second n'a jamais touchées ; le critère ligne à ligne refuse exactement les lignes touchées, avec leur motif, et laisse passer les autres. La borne était donc **à la fois plus permissive** dans un sens — elle autorisait l'annulation du dernier lot sans regarder ce qu'il avait écrasé — **et plus brutale** dans l'autre. Une approximation conservée à côté de sa mesure n'ajoute pas de sécurité : elle en retire, et elle masque le fait qu'on sait désormais répondre.
 
   *La question à poser à toute borne — un délai, un rang, un plafond, une fenêtre : quelle question ne savait-on pas poser le jour où on l'a écrite ? Si on sait la poser aujourd'hui, la borne n'est plus une garantie, c'est un vestige.*
+
+
+### 06/09/2026 — UN CHIFFRE JUSTE, DANS UN RAPPORT VRAI, QUI FAIT CONCLURE FAUX : LE GARDIEN N'EST PAS CREUX, C'EST CE QU'IL RACONTE DE LUI-MÊME QUI L'EST.
 
 - **06/09/2026 — UN CHIFFRE JUSTE, DANS UN RAPPORT VRAI, QUI FAIT CONCLURE FAUX : LE GARDIEN N'EST PAS CREUX, C'EST CE QU'IL RACONTE DE LUI-MÊME QUI L'EST.** Espèce nouvelle, et il faut la nommer à côté de la vacuité du 30/08 parce que le remède n'a rien à voir. Dans la vacuité, l'assertion ne regarde rien et le vert est faux. **Ici tout est juste** — la mesure, le verdict, le texte — et c'est le LECTEUR qui repart avec une conclusion fausse.
 
@@ -102,17 +239,26 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *La question à poser à chaque ligne qu'un contrôle imprime : si la faute que je surveille était commise à l'instant, cette ligne changerait-elle ? Si la réponse est non, elle n'a rien à faire dans la colonne des observations.* Et la parenté avec le 30/08 est exacte, un cran plus haut : un gardien ne peut pas se garder lui-même, et il ne peut pas davantage relire son propre rapport avec les yeux de celui qui n'a pas écrit le code.
 
+
+### 07/09/2026 — UN BLOC DE GARDE QUI LIT SOUS `FORCE` VOIT ZÉRO ET SE CROIT RASSURÉ — et le défaut n'existe QUE là où rien ne l'exerce.
+
 - **07/09/2026 — UN BLOC DE GARDE QUI LIT SOUS `FORCE` VOIT ZÉRO ET SE CROIT RASSURÉ — et le défaut n'existe QUE là où rien ne l'exerce.** Une migration qui refuse de s'appliquer sur un état inattendu commence par regarder cet état : `SELECT … FROM "agence" WHERE "territoire" IS NULL`, puis `RAISE EXCEPTION`. C'est le bon réflexe, et le dépôt en compte plusieurs. **Mais `FORCE ROW LEVEL SECURITY` s'applique au propriétaire**, donc à la migration : sans contexte société, elle ne voit AUCUNE ligne des tables cloisonnées. Le bloc trouve zéro, ne lève rien, et **ne se trompe pas — il ne regarde rien.** C'est la population auto-sélectionnée du 31/08 dans sa forme la plus coûteuse : le `WHERE` qui exclut les lignes n'est pas écrit par l'auteur, il est posé par la base.
 
   *Mesuré le 06/09, propriétaire non superutilisateur, deux lignes en table : `FORCE` actif → **0 ligne vue** ; `NO FORCE` → 2 ; superutilisateur → 2.* Et c'est la seconde moitié qui fait le piège : **en local, le rôle de migration est superutilisateur et contourne RLS.** Le bloc voit tout ici et rien sur la base hébergée — le seul environnement où le défaut existe est le seul qui ne soit jamais exercé, exactement comme le délai de transaction du 23/08.
 
   **La règle, et elle ne vise pas une réparation : tout bloc de garde qui lit une table sous `FORCE` doit rendre visible le mécanisme qui pourrait l'aveugler.** Lever le drapeau pour la durée du diagnostic et le rendre dans la même transaction ; et surtout **refuser de compter tant que la levée n'est pas constatée**. Le témoin porte sur le MÉCANISME, jamais sur un décompte — un décompte légitimement nul le rendrait muet, ce qui est précisément le cas qu'on veut distinguer. `scripts/lib/gardes-migration.ts` tient la règle et l'INVENTAIRE des migrations déjà appliquées qui la violent : une seule, `20260823130000`, avec deux blocs, immuable et sans reprise à faire — ce qu'elle perd est la lisibilité du refus, pas le refus, la contrainte qui suit échouant d'elle-même. **Un défaut connu et inventorié n'est pas le même objet qu'un défaut connu et unique.**
 
+
+### 07/09/2026 — LA DIVERGENCE ENTRE DEUX CHEMINS EST UN INSTRUMENT, PAS UN INCONVÉNIENT.
+
 - **07/09/2026 — LA DIVERGENCE ENTRE DEUX CHEMINS EST UN INSTRUMENT, PAS UN INCONVÉNIENT.** Le §9 nomme déjà la divergence comme un DÉFAUT — deux implémentations d'un même contrat, chacune verte, qui s'écartent en silence (01/09). Voici son autre face : **quand deux chemins qui devraient se ressembler ne se ressemblent pas, l'écart désigne l'endroit exact où une hypothèse est fausse.** C'est le seul instrument qui fonctionne sur un système dont on ne connaît pas la règle.
 
   Mesuré deux fois le 07/09, sur des objets sans rapport. **(1)** `signUpEmail` échouait sous une politique d'écriture, mais le SEED passait — même table, même politique, même rôle. La seule différence : le seed appelle `upsert`, qui porte un `where`, là où l'inscription appelle `create`, qui n'en a pas. L'écart a désigné la cause : **Prisma n'émet pas un `INSERT` nu mais un `INSERT … RETURNING`, et PostgreSQL soumet le `RETURNING` à la politique de LECTURE.** Une création refusait alors que son `WITH CHECK` l'autorisait, et aucun message ne le disait. **(2)** `TABLES_HORS_CLOISONNEMENT` contredisait la base, et **aucune suite locale ne pouvait l'attraper** — les témoins de l'inventaire exigent d'écrire puis de comparer, ce que `test:isolation` ne fait pas. Seul le contrôle de la base hébergée regardait là ; il a échoué exactement où il était seul à regarder, et c'est la définition d'un contrôle qui sert.
 
   **Corollaire de méthode.** Quand une épreuve échoue ici et passe là, ne cherchez pas d'abord laquelle a tort : cherchez **ce qui diffère entre les deux appels**, et faites-en varier une chose à la fois. Et corollaire de conception : **un contrôle qui n'échoue jamais là où les autres échouent déjà ne prouve rien.** Celui qui mérite d'exister est celui qui regarde où personne d'autre ne regarde.
+
+
+### 07/09/2026 — UN RÉSULTAT QUI VOUS SURPREND EN BIEN EST UN SOUPÇON SUR LA MESURE AVANT D'ÊTRE UN FAIT SUR LE MONDE.
 
 - **07/09/2026 — UN RÉSULTAT QUI VOUS SURPREND EN BIEN EST UN SOUPÇON SUR LA MESURE AVANT D'ÊTRE UN FAIT SUR LE MONDE.** Espèce à nommer séparément de la vacuité du 30/08, parce que le SIGNAL est différent — et c'est le seul signal qu'un gardien creux émette jamais.
 
@@ -122,15 +268,24 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **La parade devient une règle, pas une vigilance : toute mesure d'une politique porte un TÉMOIN PRÉALABLE.** Il constate que la politique est bien en vigueur — les **deux drapeaux** (`relrowsecurity` et `relforcerowsecurity`, jamais un seul, §9 du 31/08) — **et** qu'elle mord : zéro ligne sans contexte. Sans lui, une base reconstruite entre-temps rend un vert qui ne parle de rien. Le témoin porte sur le MÉCANISME, comme celui des blocs de garde : un décompte légitimement nul le rendrait muet.
 
+
+### 07/09/2026 — CONFIRMATION, sur son auteur, au ticket suivant : la règle des blocs de garde a payé son écriture en un jour.
+
 - **07/09/2026 — CONFIRMATION, sur son auteur, au ticket suivant : la règle des blocs de garde a payé son écriture en un jour.** L'entrée ci-dessus sur `FORCE ROW LEVEL SECURITY` a été écrite le 07/09 au ticket L1-02. Le lendemain, à L1-02b, la migration du périmètre lisait DEUX tables sous `FORCE` — l'habilitation et `site` — et son auteur n'avait levé le drapeau que sur la première. Sur la base hébergée, le bloc aurait vu **zéro site**, conclu que TOUS les périmètres étaient orphelins, et **refusé une migration parfaitement saine** ; en local, le rôle de migration étant superutilisateur, il n'aurait rien montré. C'est `tests/unit/db/gardes-migration.test.ts` qui a nommé `site`, pas la relecture et pas la base.
 
   **Ce qu'il faut en retenir n'est pas que la règle est juste — c'est le DÉLAI.** Une règle inscrite au §9 se vérifie d'ordinaire des mois plus tard, sur quelqu'un d'autre ; celle-ci a mordu en vingt-quatre heures, sur la personne qui venait de l'écrire. **Connaître une règle ne protège pas de l'enfreindre** : seul le gardien protège, et c'est l'argument pour en écrire un plutôt que de noter la leçon. Corollaire de méthode, à opposer à toute session qui proposerait « on fera attention » : l'auteur d'une règle est le premier à en avoir besoin.
+
+
+### 07/09/2026 — UN NOMBRE DONT LA SIGNIFICATION DÉPEND D'UNE AUTRE COLONNE NE DOIT JAMAIS VOYAGER SEUL.
 
 - **07/09/2026 — UN NOMBRE DONT LA SIGNIFICATION DÉPEND D'UNE AUTRE COLONNE NE DOIT JAMAIS VOYAGER SEUL.** `site.temps_trajet_min` valait « 45 » et ne disait pas d'où l'on part. La valeur était juste, la colonne bien nommée, la règle RG-PLA-05 exacte — et le nombre n'était interprétable que par quelqu'un qui connaissait déjà la réponse. Le jour où une quatrième agence ouvre, personne n'aurait su quelles valeurs revoir. **Ce n'est pas une donnée manquante, c'est une donnée dont le RÉFÉRENTIEL est implicite**, et l'implicite ne survit pas au départ de celui qui le portait.
 
   Trois conséquences, et la troisième est celle qu'on saute. **Écrire la dépendance** — `site.agence_id`, obligatoire. **L'écrire là où quelqu'un la lira**, ce qui veut dire à plusieurs endroits parce que les lecteurs diffèrent : la règle métier pour qui cherche le métier, le schéma pour qui lit le modèle, un `COMMENT ON COLUMN` pour qui ouvre une console sans ouvrir le dépôt, le déclencheur pour qui n'aura rien lu. Et **la TENIR** : un commentaire ne refuse rien. `site_trajet_suit_agence` refuse de changer le rattachement en laissant le nombre inchangé ; il n'exige pas qu'on mesure, il exige qu'on décide — fournir la nouvelle valeur, ou `NULL` pour revenir à l'estimation. Voir D56.
 
   *Corollaire sur les FORMULES DE TICKET :* le backlog disait « `temps_trajet_min` **par agence** », ce qui se lit « une valeur par couple ». L'exploitation voulait dire « depuis l'agence dont le site dépend ». Une formule qui admet deux lectures dont l'une double la table est une ambiguïté, pas un raccourci — et elle se corrige dans le backlog, pas seulement dans le code.
+
+
+### 07/09/2026 — AFFIRMER UN ÉTAT OBSERVABLE AU LIEU DE L'OBSERVER. Ce n'est plus l'accident de l'un ou de l'autre : c'est une PENTE DU DISPOSITIF, et elle a quatre occurrences en quatre jours.
 
 - **07/09/2026 — AFFIRMER UN ÉTAT OBSERVABLE AU LIEU DE L'OBSERVER. Ce n'est plus l'accident de l'un ou de l'autre : c'est une PENTE DU DISPOSITIF, et elle a quatre occurrences en quatre jours.** Espèce à nommer séparément de la vacuité du 30/08 et du vert surprenant du 07/09, parce que le défaut n'est pas dans un gardien : il est dans la CONVERSATION qui pilote les gardiens. Un état du dépôt, de la base ou de la CI est **observable en une commande** — un `cat`, un `SELECT`, un `EXPLAIN`, un appel d'API. Et c'est précisément parce qu'il est bon marché à observer qu'on ne l'observe pas : on l'énonce de mémoire, avec la forme grammaticale d'un fait.
 
@@ -147,11 +302,17 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **La règle, et elle est symétrique : quand l'un de nous énonce un état du dépôt, de la base ou de la CI comme un fait, l'autre le traite comme une HYPOTHÈSE à vérifier, et dit quand elle est fausse.** Elle vaut dans les deux sens, y compris de la session vers l'exploitation — c'est l'exploitation qui l'a demandée, et la première des quatre occurrences a été corrigée ainsi. Corollaire à l'écriture : **on n'écrit pas « c'est au dépôt » sans avoir rouvert le fichier dans le même geste**, et une mesure se rend avec ce qui l'a produite — la commande, la requête, le décompte — jamais seule. Ce que cette règle ne prétend pas : aucun gardien ne peut la tenir. Elle vit entre deux relectures, là où le §9 a déjà mis la revue *(30/08 — un gardien ne peut pas se garder lui-même)*.
 
+
+### 08/09/2026 — DEUX REQUÊTES QUI RENDENT LE MÊME SQL PEUVENT AVOIR DES FORMES DIFFÉRENTES, ET C'EST LA FORME QUE LE CODE LIT.
+
 - **08/09/2026 — DEUX REQUÊTES QUI RENDENT LE MÊME SQL PEUVENT AVOIR DES FORMES DIFFÉRENTES, ET C'EST LA FORME QUE LE CODE LIT.** Espèce voisine des six formes équivalentes du 26/08, mais prise par l'autre bout : là, un gardien lisait le SQL et ratait une graphie ; ici, du code lit une STRUCTURE d'appel, et le SQL — identique — ne laisse rien voir de ce qui a changé.
 
   Mesuré sur l'enveloppe de désignation de L1-02d. Elle lit la clé de désignation au premier niveau du `where` Prisma. L'adaptateur de Better Auth écrit `{ utilisateur_id: … }` quand il n'a qu'une condition, et `{ AND: [{…}, {…}] }` dès qu'il en compose plusieurs. **Le SQL rendu est le même** — `a = $1 AND b = $2` —, si bien que la trace des requêtes, qui avait servi à déduire toutes les clés, ne pouvait pas montrer la différence. La désignation partait vide, la politique refusait, et l'appelant lisait « **Invalid password** » : *un message juste sur une cause fausse*, le pire des symptômes puisqu'il envoie chercher ailleurs.
 
   **Ce qu'il faut en retenir : quand on déduit un contrat depuis une TRACE, on n'observe que ce que la trace conserve.** Une trace SQL perd la structure de l'appel, une trace d'appels perdrait le SQL. La parade n'est pas de tracer davantage : c'est de **faire varier l'entrée** — une condition, puis deux — et de regarder si le code lit encore ce qu'il croit lire. C'est le corollaire du 07/09 sur la divergence comme instrument : ici les deux chemins qui devaient se ressembler étaient *une* condition et *deux*.
+
+
+### 08/09/2026 — UN DÉFAUT INVISIBLE PARCE QUE CE QU'IL CASSE N'EXISTE PAS ENCORE.
 
 - **08/09/2026 — UN DÉFAUT INVISIBLE PARCE QUE CE QU'IL CASSE N'EXISTE PAS ENCORE.** L1-02c a cassé **toutes les pages authentifiées** : `obtenirSession` rendait `null` pour tout compte fraîchement connecté. Rien n'a rougi — ni `verify`, ni la CI, ni les 300 scénarios d'isolation. Non pas parce que les gardiens étaient mauvais : **parce qu'il n'y a pas encore de pages**, donc personne n'appelait cette chaîne.
 
@@ -161,6 +322,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Le critère qui désigne la chaîne à écrire :** un module dont aucun test ne franchit la FRONTIÈRE avec le suivant. Chaque maillon avait ses scénarios — l'ouverture, l'habilitation, les politiques — et le défaut vivait exactement dans le maillon que personne ne traversait, entre `signInEmail` et `obtenirSession`. *Une suite qui éprouve tous les maillons n'éprouve pas la chaîne.*
 
+
+### 08/09/2026 — UNE RÉPARATION DONT ON N'A PAS ISOLÉ LA CAUSE N'EST PAS UNE RÉPARATION : C'EST UNE COÏNCIDENCE, ET LE JUMEAU EST CE QUI LE DIT.
+
 - **08/09/2026 — UNE RÉPARATION DONT ON N'A PAS ISOLÉ LA CAUSE N'EST PAS UNE RÉPARATION : C'EST UNE COÏNCIDENCE, ET LE JUMEAU EST CE QUI LE DIT.** Espèce à nommer à côté du jumeau du 24/08, parce qu'elle prend l'outil par l'autre bout. Là, le jumeau prouvait qu'un verrou mordait. Ici, il a prouvé qu'un verrou **ne servait à rien**.
 
   Mesuré à L1-02d. `getSession` rendait `null` ; une branche a été ajoutée à `utilisateur_lecture` — « le jeton de session désigne aussi son identité » —, la chaîne s'est remise à fonctionner, et l'explication a été écrite partout : migration, arbitrage, constitution. **Le jumeau l'a démentie en une exécution** : branche retirée, toute la suite reste verte. La chaîne fonctionnait pour une autre raison, et la trace l'a confirmé — `getSession` émet DEUX opérations de client, l'identité s'y désignant par son propre identifiant.
@@ -169,9 +333,15 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Et quand la cause reste introuvable, on l'écrit.** ~~Ici elle l'est restée : l'isoler demanderait de rejouer l'ANCIEN code contre l'ANCIENNE base, et ni l'un ni l'autre n'existe plus ensemble.~~ **Cette phrase était fausse, et l'entrée du 08/09 ci-dessous dit comment** : la cause a été isolée à L1-02e, en vingt minutes. Ce qui garde la chaîne n'est pas pour autant une explication mais un APPELANT — et c'est plus solide, parce qu'un appelant attrape aussi les causes qu'on n'avait pas prévues.
 
+
+### 08/09/2026 — UNE EXPLICATION CAUSALE QUI N'A PAS ÉTÉ MISE EN ÉCHEC N'EST PAS UNE CAUSE : C'EST UNE HYPOTHÈSE BIEN RACONTÉE. Et la règle est SYMÉTRIQUE.
+
 - **08/09/2026 — UNE EXPLICATION CAUSALE QUI N'A PAS ÉTÉ MISE EN ÉCHEC N'EST PAS UNE CAUSE : C'EST UNE HYPOTHÈSE BIEN RACONTÉE. Et la règle est SYMÉTRIQUE.** L'entrée ci-dessus la posait du côté de celui qui écrit la réparation. L'exploitation l'a complétée du côté de celui qui la relit, en constatant sa propre faute : *« vous m'aviez donné une explication — le jeton de session désigne aussi son identité — et je l'ai acceptée. J'ai reçu une explication causale et je ne vous ai pas demandé de la faire tomber avant d'y croire. »*
 
   **Ce qui rend cette faute-là structurelle : une explication causale se juge sur sa VRAISEMBLANCE, et la vraisemblance est exactement ce que la rédaction fabrique.** Celle-ci était excellente — elle nommait un mécanisme réel de la bibliothèque, elle expliquait le symptôme, elle s'accordait au reste. Rien, dans le texte, ne la distinguait d'une cause. La seule chose qui les sépare est **une exécution** : retirer la réparation et regarder si le défaut revient. **Une explication non éprouvée ne se relit donc pas, elle se demande** — et la demande tient en une phrase : *« qu'avez-vous retiré pour voir le défaut revenir ? »*
+
+
+### 08/09/2026 — UNE IMPOSSIBILITÉ AFFIRMÉE EST UN ÉTAT AFFIRMÉ AU LIEU D'ÊTRE OBSERVÉ, et elle coûte plus cher que les autres parce qu'elle CLÔT l'enquête.
 
 - **08/09/2026 — UNE IMPOSSIBILITÉ AFFIRMÉE EST UN ÉTAT AFFIRMÉ AU LIEU D'ÊTRE OBSERVÉ, et elle coûte plus cher que les autres parce qu'elle CLÔT l'enquête.** D59 écrivait : « isoler la cause d'origine demanderait de rejouer l'ANCIEN code contre l'ANCIENNE base ; ni l'un ni l'autre n'existe plus ensemble. » La phrase est exacte dans ses termes et **fausse dans sa conclusion** : l'ancien code est dans l'historique, et l'ancienne base s'obtient en défaisant cinq `ALTER TABLE`, la migration fautive n'ayant touché que cinq tables. La passe a coûté **vingt minutes**, et la cause tient en une ligne — l'enveloppe de L1-02c lisait la forme `{ equals }` pour le courriel et l'identifiant nu, quand `getSession` relit l'identité sous `{ id: { equals: … } }`.
 
@@ -181,15 +351,24 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Corollaire sur le REJEU.** Il est plus souvent à portée qu'on ne le croit, et pour une raison mécanique : le dépôt garde tout le code, et une migration ne touche qu'une poignée d'objets — donc l'état d'avant se reconstruit en défaisant ce qu'elle a fait, pas en rebâtissant la base. Le rejeu est éprouvé quand il **REPRODUIT** le défaut ; sans cette reproduction, on ne mesure rien (§9, 30/08 — la violation a-t-elle bien eu lieu ?).
 
+
+### 08/09/2026 — UN CLIQUET QUI CONDAMNE AUSSI L'ISSUE DE SECOURS N'EST PAS UN CLIQUET, C'EST UN ENFERMEMENT. Quand on ferme un verbe pour empêcher un RETRAIT, on regarde ce que ce verbe portait d'autre.
+
 - **08/09/2026 — UN CLIQUET QUI CONDAMNE AUSSI L'ISSUE DE SECOURS N'EST PAS UN CLIQUET, C'EST UN ENFERMEMENT. Quand on ferme un verbe pour empêcher un RETRAIT, on regarde ce que ce verbe portait d'autre.** L1-02d avait retiré à `second_facteur` toute politique de suppression, et c'était juste : *un compte peut modifier ce qui parle de lui, jamais ce qui gouverne son accès* (D58). Mais la même famille d'écritures portait autre chose que le retrait — **la consommation d'un code de secours**, qui est un usage et non un désenrôlement. Mesuré à D64 : le code de secours était **validé**, puis l'écriture qui le consomme était refusée, et l'appelant recevait `409`. Ajouté au défi de second facteur qui ne se consommait pas non plus, cela donnait un compte enrôlé **sans aucune porte de sortie** — ni le code, ni le code de secours — alors que l'enrôlement était ouvert depuis la veille.
 
   **Ce qui rend cette faute générale, et non une distraction : le raisonnement portait sur une INTENTION (« interdire de retirer ») et la fermeture portait sur un VERBE (« aucun `DELETE`, aucun `UPDATE` non désigné »).** Un verbe est plus large qu'une intention, toujours ; l'écart entre les deux est exactement ce qu'on ne voit pas au moment où l'on ferme, parce qu'on relit son intention et non sa portée. Corollaire pratique, à faire avant de fermer un verbe : **énumérer ce que ce verbe fait aujourd'hui**, chemin par chemin, et non ce qu'on veut lui interdire. La trace des opérations réellement émises le donne en une exécution ; la relecture ne le donne jamais.
 
   *Parenté :* c'est la vacuité du 30/08 prise par l'autre bout. Là, un gardien ne regardait rien et passait au vert ; ici, une fermeture regarde plus large qu'elle ne croit et **casse en silence** — car un refus de RLS est zéro ligne, pas une erreur.
 
+
+### 08/09/2026 — POSTGRESQL APPLIQUE LES POLITIQUES DE `SELECT` AU `WHERE` D'UN `UPDATE` : un jumeau qui ne retire qu'une des deux moitiés mesure le refus du voisin.
+
 - **08/09/2026 — POSTGRESQL APPLIQUE LES POLITIQUES DE `SELECT` AU `WHERE` D'UN `UPDATE` : un jumeau qui ne retire qu'une des deux moitiés mesure le refus du voisin.** Mesuré à D64, sur le jumeau censé prouver que la clause d'appartenance de `second_facteur` mordait. La politique d'`UPDATE` retirée et remplacée par `USING (true)`, l'écriture sur la ligne d'autrui **échouait quand même** — zéro ligne. Ce n'est pas la politique d'écriture qui refusait : c'est celle de LECTURE, qui filtre les lignes que le `WHERE` peut atteindre.
 
   Deux conséquences, et la seconde est la plus utile. **La garantie est plus forte qu'annoncé** — l'appartenance est exigée deux fois, une fois pour trouver la ligne et une fois pour l'écrire —, et cela ne se savait pas avant de l'avoir mise en échec. Et **un jumeau qui « ne viole rien » n'est pas une bonne nouvelle** : c'est le signal qu'il ne vise pas le verrou qu'on croit. C'est la règle du 24/08 (« le jumeau retire LE verrou visé, pas un voisin ») rejouée dans le sens inverse — ici le voisin ne fait pas échouer à la place, il **réussit à refuser** à la place, ce qui ressemble à s'y méprendre à une garantie éprouvée.
+
+
+### 09/09/2026 — UNE GARANTIE ÉNONCÉE EN TERMES DE CE QU'IL FAUT FAIRE SE REFERME UN ÉTAGE PLUS BAS, ET LE GARDIEN RESTE VERT — IL A MÊME RAISON.
 
 - **09/09/2026 — UNE GARANTIE ÉNONCÉE EN TERMES DE CE QU'IL FAUT FAIRE SE REFERME UN ÉTAGE PLUS BAS, ET LE GARDIEN RESTE VERT — IL A MÊME RAISON.** Espèce à nommer à côté de la vacuité du 30/08, parce que le gardien **n'est pas creux** : il regarde ce qu'il a promis de regarder, il le trouve, et la garantie n'est pourtant pas là.
 
@@ -203,6 +382,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Parenté :* c'est la population auto-sélectionnée du 31/08 vue par la sortie plutôt que par l'entrée. Là, le `WHERE` faisait sortir l'objet fautif de la population ; ici, la FORMULATION fait sortir le cas fautif de ce qui est exigé.
 
+
+### 09/09/2026 — UNE DURÉE EST UN ÉTAT, ET ELLE S'OBSERVE COMME LES AUTRES.
+
 - **09/09/2026 — UNE DURÉE EST UN ÉTAT, ET ELLE S'OBSERVE COMME LES AUTRES.** Le §9 (07/09) dit qu'un état du dépôt, de la base ou de la CI s'observe plutôt qu'il ne s'affirme. **Une DURÉE en est un, et c'est le seul qu'on ne pense pas à mesurer** — parce qu'on croit la vivre.
 
   Mesuré sur moi-même, en clôture de la journée du 09/09. Un travail de CI paraissait bloqué : je l'ai annoncé « immobile depuis plus de quarante-cinq minutes », j'ai annulé le run, et j'ai écrit à l'exploitation qu'un exécuteur était en panne. **Cinq minutes s'étaient écoulées.** Le run jumeau, lancé sur le MÊME commit à la même seconde, s'est terminé en **success** en 4 min 14 s ; celui que j'ai annulé était sain, et sa reprise a mis 5 min 10 s.
@@ -213,6 +395,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **La règle : avant de qualifier quoi que ce soit de « lent », « bloqué », « trop long » ou « depuis N minutes », lire une horloge et donner les deux bornes.** Et le corollaire de rapport : un délai annoncé sans son point de départ mesuré est une impression, pas une observation — il ne s'écrit ni dans un registre, ni dans un message, ni dans un commentaire de PR.
 
+
+### 09/09/2026 — DEUX CONTRATS SOUS UN MÊME NOM, DANS DEUX MODULES QU'UN MÊME FICHIER IMPORTE.
+
 - **09/09/2026 — DEUX CONTRATS SOUS UN MÊME NOM, DANS DEUX MODULES QU'UN MÊME FICHIER IMPORTE.** Troisième de la famille ouverte le 01/09 — après « deux lectures d'un même critère » et « une liste close recopiée » —, et la plus discrète des trois, parce que **rien ne les confronte** : ni le typage, qui juge chaque appel séparément, ni la relecture, pour qui `avecSociete(…)` a l'air d'être `avecSociete`.
 
   Mesuré à L2-01. `tests/isolation/setup/db.ts` exportait `avecSociete` et `avecSocieteEtRole`, **exactement comme `lib/db/rls.ts`** — avec un argument de moins et un contrat différent. Un fichier qui importe des deux choisit sans le savoir : appeler celle du harnais avec les arguments de la production passe un **client Prisma** là où un identifiant est attendu, et Prisma **récurse sans fin** en tentant de le sérialiser. Le scénario échoue sur *« Maximum call stack size exceeded »* — **un message juste sur une cause fausse**, celui qui envoie chercher du côté de la base pendant vingt minutes.
@@ -220,6 +405,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   **Et le typecheck le DISAIT** : « Expected 2 arguments, but got 3 ». Il a été lu après. *Corollaire de méthode, qui vaut au-delà de ce cas : quand une erreur d'exécution est incompréhensible, `tsc` a souvent déjà répondu — et il coûte deux secondes.*
 
   **La parade n'est pas la vigilance : c'est que le nom ne puisse plus être le même.** Le harnais préfixe ses aides par `sous` — le contexte SOUS lequel un scénario s'exécute —, et `tests/unit/db/noms-du-harnais.test.ts` refuse tout emprunt futur, sa population venant des deux modules eux-mêmes. Sa limite est annoncée : il compare des noms **exportés**, et une ombre locale lui échappe — il en existe une, inoffensive, parce qu'une variable locale n'est jamais appelée à la place d'un import. *Ce qu'il arrête est l'ambiguïté à la FRONTIÈRE entre deux modules.*
+
+
+### 11/09/2026 — TOUTES MES MISES EN ÉCHEC FAISAIENT ROUGIR LE GARDIEN ; AUCUNE NE VÉRIFIAIT QU'UN VERT ÉTAIT MÉRITÉ.
 
 - **11/09/2026 — TOUTES MES MISES EN ÉCHEC FAISAIENT ROUGIR LE GARDIEN ; AUCUNE NE VÉRIFIAIT QU'UN VERT ÉTAIT MÉRITÉ.** Le §9 dit depuis le 30/08 qu'un gardien creux passe au vert sans rien regarder, et depuis le 24/08 qu'un refus se prouve par un jumeau. Voici ce que ces deux règles, appliquées à la lettre, laissent encore passer — et c'est arrivé la nuit même où elles ont été relues.
 
@@ -232,6 +420,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   *Parenté :* c'est le § du 30/08 pris par l'entrée plutôt que par la sortie. Là, on demandait *« la violation a-t-elle bien eu lieu ? »* ; ici on demande *« le succès a-t-il bien la cause que je crois ? »* — la question du 08/09 sur les réparations, appliquée aux gardiens.
 
   **Corollaire, mesuré la même nuit sur un autre gardien : QUAND UNE FAUTE A DEUX MOITIÉS, N'EN REJOUER QU'UNE NE VIOLE RIEN.** L'épreuve de `chaine-verification` prétendait rejouer l'incident du 02/09 en amputant la PORTE de `format:check`. Or la faute était double — *la CI joue `format:check` à part* **et** *`verify` ne le couvre pas* —, et la réparation de l'époque a retiré la première moitié : le job de CI ne nomme plus `format:check` du tout. **Amputer la porte ne produisait donc plus aucune violation**, et l'épreuve comparait deux ensembles au lieu de faire prononcer le contrôle. Elle rend désormais à la CI l'étape séparée qu'elle avait, et fait calculer le verdict par l'expression même du contrôle — refus sur la porte amputée, acceptation sur la porte saine. *Une réparation réussie efface la moitié de la faute qu'elle a corrigée ; l'épreuve qui la rejoue doit la remettre.*
+
+
+### 11/09/2026 — UN GARDIEN DONT LE TAUX DE FAUSSES ALERTES CONDUIT À NE PLUS LE LIRE COÛTE PLUS QU'IL NE RAPPORTE. C'est É12 sous un autre costume, et il faut le nommer comme lui.
 
 - **11/09/2026 — UN GARDIEN DONT LE TAUX DE FAUSSES ALERTES CONDUIT À NE PLUS LE LIRE COÛTE PLUS QU'IL NE RAPPORTE. C'est É12 sous un autre costume, et il faut le nommer comme lui.** É12 disait : *une alarme qui ne se surveille pas elle-même n'a que la fiabilité de son déclencheur, et sa panne la plus probable est de se taire.* Voici l'autre panne, symétrique, et elle ne se taira jamais — **elle criera si souvent que personne ne l'écoutera.** Les deux finissent au même endroit : un signal auquel plus rien ne répond.
 
@@ -247,7 +438,13 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   **Ce qu'il faut en retenir : une réparation qui rend le contrôle plus STRICT hérite de l'exigence de mesure, elle ne s'en dispense pas.** Un contrôle muet qu'on rend bavard change de panne, il n'en sort pas — et le bavard coûte plus cher à corriger, parce qu'il a l'air de fonctionner. *La question à poser à toute réparation d'un contrôle creux : « et maintenant, qu'est-ce qui le ferait crier à tort ? »* — elle ne se pose pas d'elle-même, parce qu'on vient de prouver qu'il était trop permissif.
 
+
+### 10/09/2026 — UNE CORRECTION QUI BARRE LA LIGNE ENTIÈRE EMPORTE LA MOITIÉ VRAIE AVEC LA FAUSSE.
+
 - **10/09/2026 — UNE CORRECTION QUI BARRE LA LIGNE ENTIÈRE EMPORTE LA MOITIÉ VRAIE AVEC LA FAUSSE.** À L2-01, le chapitre 11 disait de `reference_interne` « unique par société, porté par le QR ». La seconde moitié était fausse (le QR encode `qr_token`, I10) ; la ligne a été barrée **entière**, et « unique par société » — la propriété sur laquelle D6 s'appuie — est partie avec. Personne ne l'a vu : une ligne barrée a l'air d'une ligne traitée. *La correction vise un mot ; elle barre le mot, jamais la ligne.* Restaurée le 10/09.
+
+### 09/09/2026 — UN DÉFAUT PEUT ÊTRE INVISIBLE À TOUTE ASSERTION ET ÉVIDENT SUR UNE IMAGE : la capture d'écran attrape ce qu'aucune règle n'a été FORMULÉE pour attraper.
+
 - **09/09/2026 — UN DÉFAUT PEUT ÊTRE INVISIBLE À TOUTE ASSERTION ET ÉVIDENT SUR UNE IMAGE : la capture d'écran attrape ce qu'aucune règle n'a été FORMULÉE pour attraper.** Espèce à nommer à côté de la vacuité du 30/08, parce que le gardien n'est pas creux — **il n'existe pas**, et personne ne s'en est aperçu.
 
   Mesuré en photographiant le premier planning. Trois lignes portaient le badge **« À planifier »** et une **date au 14 septembre**, rangées dans la section des interventions **posées**. La règle de statut ne regardait que le `creneau_debut` ; une intervention datée sans heure restait donc dans la file d'attente. **Chaque moitié était juste** — le statut suivait sa règle, la section suivait la date — et *rien, dans le dépôt, ne formulait qu'elles doivent s'accorder.* Aucun scénario ne pouvait rougir : on n'écrit pas d'assertion sur un invariant qu'on n'a pas encore vu.
@@ -258,6 +455,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Corollaire, mesuré le même jour sur un autre objet :* **un seed idempotent suppose que toute ligne est réécrivable, et cette hypothèse devient fausse le jour où une table porte un verrou de cycle de vie.** L'`upsert` du seed a buté en `23514` sur les lignes `cloturee` et `annulee` qu'il venait de poser — *le verrou faisait son travail sur le premier chemin venu, y compris le nôtre.* Le seed ne réécrit donc plus : **il s'abstient**, ce qui est le bon sens de défaillance pour une donnée de démonstration.
 
+
+### 09/09/2026 — UNE AFFIRMATION DE RAPPORT PORTANT SUR UN ARTEFACT CONSTRUIT NOMME L'EMPREINTE DU COMMIT SUR `main` OÙ ELLE SE VÉRIFIE. Sans empreinte, elle n'est pas écrite.
+
 - **09/09/2026 — UNE AFFIRMATION DE RAPPORT PORTANT SUR UN ARTEFACT CONSTRUIT NOMME L'EMPREINTE DU COMMIT SUR `main` OÙ ELLE SE VÉRIFIE. Sans empreinte, elle n'est pas écrite.** Le §9 dit depuis le 07/09 qu'affirmer un état observable sans l'observer est une faute. Voici sa forme dans un RAPPORT — et le rapport est le pire endroit pour cette faute, parce qu'il est **relayé à quelqu'un qui ne peut pas vérifier**.
 
   Mesuré sur le rapport du 9 septembre au matin. Il portait « les six écrans affichent ». Quatre existaient, et aucun n'était un planning : `/planning`, `/clients`, `/techniciens` et `/premier-acces` rendaient **404**. L'affirmation n'était pas mensongère — elle était vraie **sur une branche non fusionnée**, et le rapport ne le disait pas. Le même rapport citait D80, D81 et D82 : trois arbitrages qui n'ont jamais été écrits nulle part.
@@ -265,6 +465,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   **Ce qui rend la faute structurelle : un artefact construit a un LIEU, et ce lieu est un commit.** Une branche, un répertoire de travail, une session ouverte sont des lieux qui n'existent que pour celui qui les regarde ; `main` est le seul lieu que le destinataire d'un rapport puisse ouvrir. **« Six écrans existent » sans empreinte est une assertion ; avec l'empreinte du commit sur `main`, c'est une mesure** — et la différence n'est pas la sincérité de celui qui écrit, elle est la possibilité pour l'autre de constater.
 
   **La règle, et elle est mécanique : toute ligne d'un rapport qui affirme l'existence, l'état ou le vert d'un artefact construit nomme l'empreinte du commit sur `main` où elle se vérifie.** Une chose vraie ailleurs que sur `main` se dit avec son lieu — « sur la branche X, non fusionnée » — ou ne se dit pas. Corollaire de rangement, du même bois que le 06/09 : *une ligne qui ne peut pas être ouverte par son lecteur n'est pas présentée à côté de celles qui le peuvent.*
+
+
+### 10/09/2026 — DEUX CÔTÉS D'UNE COMPARAISON PEUVENT PERDRE LA VUE ENSEMBLE, ET LEUR ACCORD DEVIENT ALORS MAXIMAL.
 
 - **10/09/2026 — DEUX CÔTÉS D'UNE COMPARAISON PEUVENT PERDRE LA VUE ENSEMBLE, ET LEUR ACCORD DEVIENT ALORS MAXIMAL.** Le §9 tient depuis le 01/09 le remède aux deux lectures d'un même critère : *les faire répondre l'une à côté de l'autre sur la population réelle.* Voici ce que ce remède ne couvre pas — et c'est le contrôle de la base hébergée, le seul qui la regarde, qui l'a montré.
 
@@ -276,7 +479,13 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Corollaire de rapport, et il vaut sans attendre la réparation :* une comparaison dont les deux côtés sont vides **sur une table** n'est ni un écart ni une preuve — `forfait` naît vide par décision. Elle est **nommée** et retranchée de ce que le rapport affirme. Ce qui a coûté deux jours n'est pas le zéro : c'est la phrase « exactement les lignes de chaque société sous son contexte », vraie de sept tables et imprimée pour vingt et une.
 
+
+### 13/09/2026 — UNE CONSIGNE MESURÉE FAUSSE SE REFUSE, ET LE REFUS SE MOTIVE.
+
 - **13/09/2026 — UNE CONSIGNE MESURÉE FAUSSE SE REFUSE, ET LE REFUS SE MOTIVE.** L'exploitation avait demandé que le lot 8 livre le stockage derrière une interface avec une implémentation locale. La réponse a été un refus : *c'eût été une interface sans appelant*, la maladie même que le portail venait de soigner — une politique juste que personne n'appelle, et qui dort jusqu'au jour où quelqu'un la découvre fausse. **L'exploitation a ratifié le refus et écrit que sa consigne était mauvaise.** La règle qui en sort n'est pas « discuter les consignes » : c'est que **la mesure prime sur l'origine de la demande**, et qu'un refus se paye en une phrase qui dit ce qui a été mesuré. Un refus sans motif est une désobéissance ; un refus motivé est le seul canal par lequel une consigne se corrige. *Corollaire, écrit le même jour : la numérotation des décisions appartient à celui qui les écrit — une consigne qui porte un numéro se lit pour son contenu, et le numéro se réattribue.*
+
+
+### 10/09/2026 — UNE CAUSE ÉCRITE DANS UN GABARIT SE RÉPÈTE À CHAQUE ALARME, ET ELLE N'A JAMAIS ÉTÉ MESURÉE UNE SEULE FOIS.
 
 - **10/09/2026 — UNE CAUSE ÉCRITE DANS UN GABARIT SE RÉPÈTE À CHAQUE ALARME, ET ELLE N'A JAMAIS ÉTÉ MESURÉE UNE SEULE FOIS.** Espèce à ranger à côté du chiffre attendu présenté parmi les observations (06/09) : le rapport ne se trompe pas de fait, il se trompe de **cause** — et il le fait avec l'aplomb d'une phrase préécrite.
 
@@ -285,6 +494,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   **Ce qui rend l'espèce plus coûteuse que l'affirmation ordinaire du 07/09 : elle est dans un GABARIT.** Une phrase dite une fois se corrige au premier regard ; une phrase préécrite se **réémet à chaque alarme**, avec la même assurance, longtemps après que son auteur a oublié l'avoir écrite. Et elle sera lue par quelqu'un qui n'a ni le contexte ni le dépôt sous les yeux — c'est même tout l'objet d'une alarme.
 
   **La règle : un gabarit d'alarme ne nomme une cause que si le contrôle qui le déclenche a MESURÉ cette cause.** Sinon il décrit ce qu'il a observé et **s'arrête là**. La question à poser à chaque phrase d'un gabarit : *quelle observation la rendrait fausse ?* Si la réponse est « aucune, elle est toujours imprimée », ce n'est pas un constat — c'est une opinion que le dispositif répète en votre nom. *Parenté exacte avec le 06/09, un cran plus haut : là, une ligne qui ne peut pas bouger sous une faute était présentée parmi les observations ; ici, c'est une CAUSE qui ne peut pas bouger.* La réparation est portée à la file (R1-01) plutôt que faite en passant : elle change ce que le dispositif de sécurité dit de lui-même, et cela ne se glisse pas dans un ticket d'automatisation.
+
+
+### 11/09/2026 — LA PORTE ET LA PRODUCTION NE GARDENT PAS LE MÊME MONDE : `verify:full` tourne contre une base FRAÎCHEMENT MIGRÉE, la production contre une base migrée À UN AUTRE MOMENT.
 
 - **11/09/2026 — LA PORTE ET LA PRODUCTION NE GARDENT PAS LE MÊME MONDE : `verify:full` tourne contre une base FRAÎCHEMENT MIGRÉE, la production contre une base migrée À UN AUTRE MOMENT.** Espèce à nommer à côté du 02/09 — *une porte qui ne garde pas ce que garde la porte suivante produit des verts sincères et faux* —, parce qu'elle en déplace le siège : là, ce qui différait entre les deux portes était la LISTE DES COMMANDES ; ici les commandes sont les mêmes, et c'est **l'ÉTAT DU MONDE contre lequel elles s'exécutent** qui diffère. Rien ne confronte les deux.
 
@@ -308,9 +520,15 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   2. **Une sonde que personne n'ouvre ne sonne pas.** `/sante` était juste-après-réparation et resterait muette : c'est un contrôle *à la demande*, et une panne se découvre quand quelqu'un regarde. D'où **R3-01** au backlog : une vérification **après déploiement**, qui ouvre la page en ligne *et un écran authentifié* — *une page de santé verte au-dessus d'un écran mort est exactement ce qui s'est produit.*
   3. **Et la liste de rattrapage a été écrite DE MÉMOIRE à sa première rédaction** — 18 noms inventés, 36 manquants, sur 47 répertoires réels. *C'est la faute même qu'on réparait, commise en la réparant* (§9, 07/09). Elle n'a coûté qu'une exécution **parce que la confrontation a été écrite AVANT la liste**. Corollaire : quand une recopie est inévitable, *écrire d'abord ce qui la confronte* — l'ordre inverse laisse la recopie être crue.
 
+
+### 12/09/2026 — UNE ÉCONOMIE QUI RETIRE UN CONTRÔLE N'EST PAS UNE ÉCONOMIE, C'EST UNE DETTE DONT ON NE CONNAÎT PAS LE MONTANT.
+
 - **12/09/2026 — UNE ÉCONOMIE QUI RETIRE UN CONTRÔLE N'EST PAS UNE ÉCONOMIE, C'EST UNE DETTE DONT ON NE CONNAÎT PAS LE MONTANT.** `paths-ignore` sur `docs/**` aurait économisé **une exécution sur vingt-neuf** et éteint les **six** gardiens qui lisent des documents — câblage des arbitrages, cohérence du backlog, modèle de données, organisation du code, unicité de la maquette, données du côté cloisonné — **sur les commits mêmes qu'ils existent pour juger.** Un commit qui ne touche que `docs/` est précisément celui que ces six-là gardent.
 
   *Cette entrée a été RÉDUITE le 12/09/2026, le jour où le dépôt est devenu public.* Elle portait en outre le décompte des minutes de septembre et la règle qui en découlait — *le coût d'un contrôle de CI est le coût de son JOB, jamais celui de sa commande*. **Un dépôt public ne compte plus ses minutes** : la prémisse est tombée, et une règle d'économie conservée sans sa prémisse est un vestige (§9, 01/09). *Ce qui reste ci-dessus n'a jamais dépendu du quota* — c'est une règle sur les CONTRÔLES, pas sur le prix.
+
+
+### 12/09/2026 — UNE RÈGLE ÉCRITE DANS UN DOCUMENT QUE PERSONNE NE RELIT AU BON MOMENT N'EST PAS UN GARDIEN : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie.
 
 - **12/09/2026 — UNE RÈGLE ÉCRITE DANS UN DOCUMENT QUE PERSONNE NE RELIT AU BON MOMENT N'EST PAS UN GARDIEN : elle en a exactement la forme, et elle ne produit aucun signal quand on l'oublie.** Espèce à nommer à côté du silence du 31/08 — *une alarme qui cesse de sonner ne le dit pas* —, parce qu'ici l'alarme n'a jamais été une alarme : c'était une PHRASE.
 
@@ -322,6 +540,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Corollaire sur la FORME du rappel, et il coûte une ligne à écrire :* un rappel qui dit « pense à migrer » n'est pas un geste, c'est un reproche. Celui-ci nomme le flux, le champ, la valeur de chaque champ, et la case à laisser décochée — la même exigence que D56 sur un nombre : *ce qui ne porte pas de quoi être exécuté sera interprété.*
 
+
+### 12/09/2026 — J'AI ÉTENDU UNE ALARME SANS MESURER QU'ELLE AVAIT SONNÉ UNE SEULE FOIS.
+
 - **12/09/2026 — J'AI ÉTENDU UNE ALARME SANS MESURER QU'ELLE AVAIT SONNÉ UNE SEULE FOIS.** Espèce à ranger à côté de l'état affirmé au lieu d'être observé (07/09), avec une aggravation : *l'état que je n'ai pas observé n'était pas une donnée, c'était le FONCTIONNEMENT d'un dispositif sur lequel je construisais.*
 
   R3-01 ajoute une troisième nature à l'alarme d'É12 — *« une base déployée en retard ouvre une issue dans le dépôt »* —, et le raisonnement était impeccable : É12 a été fermé le 31/08 par la phrase *« une issue rend la question du courriel sans objet : elle vit DANS le dépôt »*, mesurée ce jour-là contre deux échecs restés non lus dans une boîte. **Je l'ai reprise sans la vérifier.** *Mesuré à la première exécution réelle, le 12/09 à 05:59:13 UTC :* `gh` répond **« the 'alexis97310/codiplan' repository has disabled issues »**, `list_issues` rend **0 issue, total 0**, et `pulls/133` rend **404** — donc #133 était bien une issue, les issues ont existé, et elles sont désactivées. **Le canal de l'alarme était clos, et rien ne le disait.**
@@ -331,6 +552,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   **La règle : avant d'étendre un canal d'alerte, on lui demande une PREUVE DE VIE — pas une relecture de ce qu'il promet.** Une issue qu'il a ouverte, une ligne de son journal, un appel à blanc. *« Il est écrit qu'il ouvre une issue » n'est pas une observation*, et c'est exactement la phrase que j'ai crue.
 
   *Corollaire de conception, et c'est lui qui répare :* **un canal d'alerte écrit son contenu dans le canal le moins désactivable AVANT de tenter le plus utile.** Le corps part désormais dans le résumé d'exécution et en annotation — que rien ne peut éteindre —, puis l'issue est tentée, et son échec fait rougir en nommant le geste. Fermer le canal faisait jusque-là disparaître **le contenu en même temps que la sonnerie** : deux pertes pour une panne, et la seconde est celle qu'on ne soupçonne pas.
+
+
+### 12/09/2026 — LE VERDICT LE PLUS GRAVE ÉTAIT LE VERDICT PAR DÉFAUT : un contrôle interrompu criait à la faute.
 
 - **12/09/2026 — LE VERDICT LE PLUS GRAVE ÉTAIT LE VERDICT PAR DÉFAUT : un contrôle interrompu criait à la faute.** Espèce à nommer à côté de la vacuité du 30/08, parce que le signal est l'inverse et le remède aussi. Un gardien creux est **vert** et ne dit rien. Celui-ci est **rouge**, il dit beaucoup, et il n'a **rien regardé**.
 
@@ -348,6 +572,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   2. **Une piste proposée est une hypothèse, pas un point de départ.** La consigne nommait « DB resolve » — *« il marque une migration appliquée sans l'appliquer »*. Une commande l'a démentie : `--applied` n'est exposé nulle part, et la seule ligne exécutable est `--rolled-back`, qui rend la migration **rejouable**. *Chercher là où on nous dit de chercher coûte la journée que la mesure fait gagner.*
   3. **Et la branche voisine avait DÉJÀ été réparée, quatorze lignes plus haut.** Dans le même `if` de `ci.yml`, la branche « déploiement » porte en commentaire *« LE CORPS NE DÉCIDE PAS SI QUELQUE CHOSE A ÉTÉ CONSTATÉ — il le LIT »*, avec la citation du §9 du 10/09. La branche « veille » ne l'avait pas. *Une décision appliquée à une moitié laisse l'autre avec la forme de la moitié faite* (31/08) — et il n'y avait ici ni distance, ni délai, ni auteur différent : **un `elif`.**
 
+
+### 14/09/2026 — UN LECTEUR TOLÉRANT REND UNE ÉPREUVE DE BOUT EN BOUT AVEUGLE À LA MALFORMATION DE SA PROPRE FIXTURE.
+
 - **14/09/2026 — UN LECTEUR TOLÉRANT REND UNE ÉPREUVE DE BOUT EN BOUT AVEUGLE À LA MALFORMATION DE SA PROPRE FIXTURE.** Espèce à nommer à côté du 09/09 — *un défaut invisible à toute assertion et évident sur une image* —, parce que c'en est la forme BINAIRE : ici il n'y a pas d'image à regarder, il y a des octets, et personne ne les avait lus.
 
   *Mesuré le 14/09/2026 par l'exploitation, sur le classeur d'épreuve que L1-11 venait de fabriquer.* **L'en-tête du répertoire CENTRAL d'une archive ZIP n'a pas la disposition de l'en-tête LOCAL** : il porte une « version d'écriture » de deux octets que le local n'a pas, si bien que les drapeaux sont à l'offset 8 et la méthode à 10 — deux octets plus loin. La ligne du local avait été recopiée telle quelle. Résultat écrit dans le fichier : **méthode 0 (STORED) et drapeaux 8 au répertoire central, méthode 8 (DEFLATE) en local, et des octets réellement dégonflés.**
@@ -362,6 +589,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
 
   *Corollaire sur les structures binaires, et il vaut au-delà du ZIP :* **deux dispositions qui se ressemblent sont plus dangereuses que deux qui ne se ressemblent pas.** La recopie compile, s'exécute, et produit un fichier qu'un lecteur tolérant ouvre sans rien dire. La parade tient en une convention d'écriture — *chaque champ porte son offset en commentaire* — parce qu'un `writeUInt16LE(8, 8)` ne dit ni ce qu'il écrit ni où, et que les deux se lisent de la même façon.
 
+
+### 14/09/2026 — L'EXCLUSION QU'UN GARDIEN S'AUTORISE EST LE SEUL ENDROIT PAR OÙ SA PROPRE FAUTE REVIENT.
+
 - **14/09/2026 — L'EXCLUSION QU'UN GARDIEN S'AUTORISE EST LE SEUL ENDROIT PAR OÙ SA PROPRE FAUTE REVIENT.** Espèce à ranger à côté du 31/08 — *un `WHERE` qui recoupe l'assertion* —, prise du côté des **exclusions nommées** plutôt que des filtres : le trou n'est pas ce que le gardien sélectionne, c'est ce qu'il a écrit noir sur blanc qu'il ne regarderait pas.
 
   `tests/unit/chaine-verification.test.ts` existe depuis le 02/09 pour empêcher *une porte qui ne garde pas ce que garde la porte suivante*. Il exclut `install` nommément, et il dit pourquoi : *« elle prépare l'environnement, elle ne juge rien »*. **La phrase est fausse d'un cas, et c'est celui qui est arrivé.** La CI ne joue pas `pnpm install` : elle joue `pnpm install --frozen-lockfile`, qui **juge** l'accord de `package.json` et de `pnpm-lock.yaml` et REFUSE quand ils divergent.
@@ -371,6 +601,9 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   **Ce qui rend l'espèce distincte des filtres du 31/08 : une exclusion porte sa JUSTIFICATION, et la justification est ce qu'on relit au lieu de la mesurer.** Un `.filter()` muet se remarque ; une exclusion argumentée se lit comme une décision prise, et personne ne redemande si l'argument tient encore. Celui-ci ne tenait pas au moment même où il a été écrit — `--frozen-lockfile` était déjà dans dix jobs.
 
   **La règle : une étape qui peut FAIRE ÉCHOUER la CI juge quelque chose, quoi qu'en dise le mot qui la nomme.** La question à poser à toute exclusion : *cette étape peut-elle rougir ? Si oui, qu'est-ce qui garde ce qu'elle regarde ?* La parade n'est pas d'annuler l'exclusion — `install` n'est pas un script du dépôt et n'a rien à faire dans `verify` — **c'est de nommer qui garde ce qu'elle laisse passer** : `tests/unit/ci/lockfile-accorde.test.ts` confronte les deux fichiers directement, sur la population UNION des deux côtés. *Mesuré : il REFUSE le verrou tel qu'il a été commis en `f266d4c` — en nommant `read-excel-file` et les deux sections —, il ACCEPTE le régénéré, et son témoin reste vert dans les deux cas, si bien que le refus est un refus et non une lecture vide.*
+
+
+### 14/09/2026 — UN GARDIEN DE BASE PEUT BÂTIR SA POPULATION AVEC LE VERBE D'ÉCRITURE QUI LE SATISFAIT, ET LE VERBE DE LA PRODUCTION N'Y EST PAS.
 
 - **14/09/2026 — UN GARDIEN DE BASE PEUT BÂTIR SA POPULATION AVEC LE VERBE D'ÉCRITURE QUI LE SATISFAIT, ET LE VERBE DE LA PRODUCTION N'Y EST PAS.** Espèce à ranger à côté du 31/08 — *un `WHERE` qui recoupe l'assertion* —, déplacée du filtre vers **le choix du verbe** : ce n'est pas la ligne examinée qui manque, c'est la FAÇON de l'écrire.
 
@@ -383,5 +616,8 @@ des gardiens la lisent, et la renuméroter aurait été une réécriture.
   *Corollaire sur la question qu'il faut poser ensuite, et qui a été mesurée plutôt que supposée :* **combien d'autres déclencheurs réunissent les trois conditions — `BEFORE`, sur `INSERT`, et lisant la table qu'ils gardent ?** Population dérivée de `pg_trigger` sur une base réellement migrée, jamais du texte des migrations (§9 du 26/08, forme 3). Quatorze déclencheurs non-audit, **trois** se lèvent sur `INSERT`, et **un seul** les réunit toutes — celui-ci. Les deux autres signalés par le motif étaient des faux positifs que la LECTURE a démasqués : l'un lisait `calendrier` et le motif avait matché son propre message de refus, l'autre ne lit aucune table. *Un motif qui cherche un nom de table dans du `prosrc` trouve aussi les commentaires et les messages d'erreur.*
 
   *Et une affirmation de la consigne a été mesurée FAUSSE, ce qui est le seul moyen de ne pas la recopier :* elle annonçait qu'`AFTER` gagnerait un cas qu'un `BEFORE` manque — un `INSERT` multi-lignes posant deux plages qui se recouvrent entre elles —, les déclencheurs `BEFORE ROW` se levant avant qu'aucune ligne ne soit posée. **Sur PostgreSQL 16.13, `BEFORE ROW` voit les lignes déjà posées par la même commande** : le cas est refusé sous les deux formes, et il ne départage rien. Ce qui les départage est ailleurs, et c'est écrit dans `docs/decisions/2026-09-14-chevauchement-apres-ecriture.md`.
+
+
+### 19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.
 
 - **19/08/2026 — Le gardien `tests/isolation/` est PROVISOIRE depuis L0-02.** Il vérifie que le répertoire s'exécute, pas le cloisonnement. Un `test:isolation` vert ne signifie rien tant que L0-05 n'est pas livré. L0-05 REMPLACE ce test provisoire, il ne s'y ajoute pas.
