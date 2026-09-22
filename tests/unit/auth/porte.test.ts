@@ -102,6 +102,17 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/trajet-zone/route.ts": "parametrer_societe",
   // « Saisir un rapport ».
   "app/api/terrain/[id]/compteur/route.ts": "saisir_rapport",
+  // Le rapport de terrain (ticket 17-BON-2) : commentaire, suite à donner,
+  // prestations réalisées, photos, signature — même capacité que le
+  // compteur, même porte.
+  "app/api/terrain/[id]/rapport/route.ts": "saisir_rapport",
+  "app/api/terrain/[id]/prestations/route.ts": "saisir_rapport",
+  "app/api/terrain/[id]/photos/route.ts": "saisir_rapport",
+  "app/api/terrain/[id]/signature/route.ts": "saisir_rapport",
+  // Les octets d'un document (BON-2) : une LECTURE, protégée par la même
+  // capacité que le bon lui-même — pas une capacité neuve pour un octet
+  // qu'une lecture cloisonnée protège déjà.
+  "app/api/documents/[id]/octets/route.ts": "consulter_planning",
 };
 
 // ── LES ROUTES EXEMPTÉES, NOMMÉES AVEC LEUR MOTIF ───────────────────────────
@@ -246,7 +257,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(49);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(54);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

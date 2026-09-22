@@ -152,28 +152,30 @@ model Societe {
   langue                        String // documente une intention, non exploitée en V1 (D26)
   actif                         Boolean @default(true)
 
-  devise                Devise                    @relation(fields: [devise_code], references: [code])
-  agences               Agence[]
-  calendriers           Calendrier[]
-  utilisateur_societes  UtilisateurSociete[]
-  utilisateur_clients   UtilisateurClient[]
-  perimetres_portail    UtilisateurClientSite[]
-  contacts              Contact[]
-  habilitations         Habilitation[]
-  techniciens_habilites TechnicienHabilitation[]
-  sites_habilitations   SiteHabilitationRequise[]
-  clients               Client[]
-  sessions_actives      Session[]
-  sites                 Site[]
-  familles_materiel     FamilleMateriel[]
-  modeles_materiel      ModeleMateriel[]
-  taux_horaires         TauxHoraire[]
-  forfaits              Forfait[]
-  machines              Machine[]
-  prestations           Prestation[]
-  verifications_vgp     VgpVerification[]
-  observations_vgp      VgpObservation[]
-  campagnes_vgp         VgpCampagne[]
+  devise                  Devise                    @relation(fields: [devise_code], references: [code])
+  agences                 Agence[]
+  calendriers             Calendrier[]
+  utilisateur_societes    UtilisateurSociete[]
+  utilisateur_clients     UtilisateurClient[]
+  perimetres_portail      UtilisateurClientSite[]
+  contacts                Contact[]
+  habilitations           Habilitation[]
+  techniciens_habilites   TechnicienHabilitation[]
+  sites_habilitations     SiteHabilitationRequise[]
+  clients                 Client[]
+  sessions_actives        Session[]
+  sites                   Site[]
+  familles_materiel       FamilleMateriel[]
+  modeles_materiel        ModeleMateriel[]
+  taux_horaires           TauxHoraire[]
+  forfaits                Forfait[]
+  machines                Machine[]
+  prestations             Prestation[]
+  verifications_vgp       VgpVerification[]
+  observations_vgp        VgpObservation[]
+  campagnes_vgp           VgpCampagne[]
+  interventionPrestations InterventionPrestation[]
+  interventionSignatures  InterventionSignature[]
 
   @@map("societe")
 }
@@ -1574,9 +1576,18 @@ enum SourceCreationMachine {
 /// clause de société seule — un compte portail lirait les interventions des
 /// autres clients de sa propre société.
 model Intervention {
-  machines InterventionMachine[]
+  machines              InterventionMachine[]
   /// Ce que le compteur du technicien a mesuré (R5-02, D119).
-  segments SegmentTravail[]
+  segments              SegmentTravail[]
+  /// Les photos de l'intervention (BON-2) — des `Document` classe `client` ou
+  /// `interne` comme les autres, jamais une seconde table de fichiers.
+  documents             Document[]
+  /// Les prestations RÉALISÉES sur cette intervention (BON-2), distinctes du
+  /// catalogue `Prestation` qu'elles référencent.
+  prestations_realisees InterventionPrestation[]
+  /// La ou les signatures client (BON-2) — HISTORISÉES : une re-signature
+  /// AJOUTE une ligne, elle n'en réécrit jamais une.
+  signatures            InterventionSignature[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -1700,6 +1711,18 @@ model Intervention {
   /// pièce depuis > 30 j » du chapitre 16.1 devraient se lire dans le journal
   /// d'audit — *une trace n'est pas un index*.
   suspendue_le DateTime?
+
+  /// LE COMMENTAIRE DU TECHNICIEN (BON-2) — ce qui a été constaté ou fait,
+  /// dans ses mots. Saisi sur le TERRAIN, jamais au back-office (I4, I5) :
+  /// c'est lui qui est devant la machine et devant le client. `NULL` tant que
+  /// rien n'a été écrit — jamais une chaîne vide, qui se confondrait avec un
+  /// commentaire réellement vide.
+  commentaire_technicien String?
+
+  /// LA SUITE À DONNER (BON-2) — ce qu'il reste à faire, ou à surveiller,
+  /// entre deux visites. Même régime que `commentaire_technicien` : terrain
+  /// seul, `NULL` tant que rien n'a été écrit.
+  suite_a_donner String?
 
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
@@ -1921,6 +1944,92 @@ model InterventionMachine {
   @@unique([intervention_id, machine_id])
   @@index([societe_id, machine_id])
   @@map("intervention_machine")
+}
+
+/// LES PRESTATIONS RÉALISÉES SUR UNE INTERVENTION (BON-2, ticket 17-BON-2).
+///
+/// **Un simple rattachement, pas une ligne de facturation.** La question posée
+/// par le bon est « qu'est-ce qui a été fait », pas « combien de temps chaque
+/// prestation a-t-elle pris » — ce dernier existe déjà, agrégé, sur
+/// `segment_travail`/`intervention.temps_mesure_min`. Ajouter une durée PAR
+/// PRESTATION serait une donnée que rien ne demande encore et qui pourrait
+/// diverger du temps mesuré (§9, 01/09) : *une prestation porte une durée
+/// STANDARD dans son catalogue (`Prestation.duree_standard_min`), jamais un
+/// tarif (D109)*, et ce lot ne lui en invente pas une seconde, propre à
+/// l'intervention.
+///
+/// **Condition de réouverture, écrite plutôt que devinée** : le jour où une
+/// intervention doit facturer plusieurs prestations avec des durées propres et
+/// distinctes du temps mesuré global, cette table portera sa propre colonne de
+/// durée — et ce jour-là seulement.
+///
+/// Forme de politique « filiation » (D103, comme `intervention_machine`) :
+/// une fille est visible si son parent l'est. Aucune clause de société ni de
+/// visibilité sur `prestation` n'est ajoutée : c'est la clé étrangère
+/// composite qui empêche la ligne de dériver de leurs sociétés respectives.
+model InterventionPrestation {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+  prestation_id   String @db.Uuid
+
+  cree_le DateTime @default(now())
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `ON DELETE CASCADE`, comme `intervention_machine` : une ligne de
+  /// rattachement n'a aucun sens sans son intervention.
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  prestation   Prestation   @relation(fields: [societe_id, prestation_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// La même prestation ne se déclare pas deux fois réalisée sur la même
+  /// visite.
+  @@unique([intervention_id, prestation_id])
+  @@index([societe_id, prestation_id])
+  @@map("intervention_prestation")
+}
+
+/// LA SIGNATURE CLIENT (BON-2, ticket 17-BON-2) — une PREUVE, pas un réglage.
+///
+/// **HISTORISÉE, jamais réécrite** — le même principe que `taux_horaire`
+/// (RG-TAR-04) appliqué à une preuve plutôt qu'à un tarif : si le client
+/// re-signe, l'ancienne signature reste, datée, et une nouvelle ligne
+/// s'ajoute. *Une preuve qui se remplace en silence cesse d'en être une.*
+/// C'est une discipline du DÉPÔT (`lib/interventions/terrain-saisie.ts`
+/// n'expose aucune fonction de modification ou de suppression) **doublée par
+/// la base** : ni `UPDATE` ni `DELETE` ne sont accordés au rôle applicatif —
+/// même raisonnement que `journal_audit` (I8), transposé à une seule table
+/// plutôt qu'au journal entier.
+///
+/// **Ajouter une signature n'est jamais refusé par le statut de
+/// l'intervention** — pas même `cloturee` ou `annulee`. I5 garantit que le
+/// travail terrain n'est jamais perdu ; borner l'ajout par un statut lu au
+/// moment de l'écriture referait, sur une preuve, l'erreur qu'I5 interdit sur
+/// un segment de travail.
+///
+/// Forme de politique « filiation » (comme `intervention_prestation`) : une
+/// fille est visible si son parent l'est.
+model InterventionSignature {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+
+  /// L'image de la signature, encodée en `data:image/png;base64,...` — un
+  /// tracé de canevas, jamais un fichier : la signature n'a pas de nom, pas de
+  /// type MIME propre à discuter, et passer par `Document` pour un tracé de
+  /// quelques kilo-octets aurait fait porter à un module de fichiers une
+  /// donnée qui n'en est pas un.
+  image_base64 String
+
+  cree_le DateTime @default(now())
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, intervention_id])
+  @@map("intervention_signature")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se
@@ -2169,10 +2278,14 @@ model Prestation {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille FamilleMateriel? @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe      Societe                  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille      FamilleMateriel?         @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Les fois où cette prestation a été déclarée réalisée (BON-2).
+  realisations InterventionPrestation[]
 
   @@unique([societe_id, code])
+  /// Cible du chaînage composite que `intervention_prestation` pose (BON-2).
+  @@unique([societe_id, id])
   @@index([societe_id, famille_id])
   @@map("prestation")
 }
@@ -2686,7 +2799,8 @@ enum ClasseDocument {
   interne
 }
 
-/// LA DOCUMENTATION D'UNE MACHINE OU D'UN MODÈLE (lot 8, L8-01 à L8-06).
+/// LA DOCUMENTATION D'UNE MACHINE, D'UN MODÈLE OU D'UNE INTERVENTION (lot 8,
+/// L8-01 à L8-06 ; troisième cible ajoutée au ticket BON-2).
 ///
 /// Table métier de la PREMIÈRE catégorie de I1, de forme « héritage » (D93) :
 /// *un document est visible si sa CIBLE l'est, et la classe ne fait que
@@ -2697,20 +2811,24 @@ model Document {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
-  /// ── LA CIBLE : LE MODÈLE **OU** LA MACHINE, JAMAIS LES DEUX (L8-01) ──────
+  /// ── LA CIBLE : LE MODÈLE, LA MACHINE **OU** L'INTERVENTION, JAMAIS DEUX
+  /// (L8-01, étendue par BON-2) ──────────────────────────────────────────────
   ///
-  /// Deux colonnes nullables et la contrainte NOMMÉE `document_cible_unique` —
-  /// `num_nonnulls(modele_id, machine_id) = 1`. **C'est le SCHÉMA qui
-  /// l'interdit**, pas une validation applicative : la mesure de L2-04 reste
-  /// acquise et ne se refait pas — *une colonne `entite_id` avec deux clés
-  /// étrangères est un piège qui a l'air d'un verrou et rend la table
-  /// inutilisable.*
+  /// Trois colonnes nullables et la contrainte NOMMÉE `document_cible_unique`
+  /// — `num_nonnulls(modele_id, machine_id, intervention_id) = 1`. **C'est le
+  /// SCHÉMA qui l'interdit**, pas une validation applicative : la mesure de
+  /// L2-04 reste acquise et ne se refait pas — *une colonne `entite_id` avec
+  /// plusieurs clés étrangères est un piège qui a l'air d'un verrou et rend la
+  /// table inutilisable.*
   ///
-  /// Au MODÈLE : notice, fiche technique, manuel d'atelier — identiques pour
-  /// tous les exemplaires, corrigés une fois pour toutes. À la MACHINE :
-  /// certificat de conformité, procès-verbal de mise en service.
-  modele_id  String? @db.Uuid
-  machine_id String? @db.Uuid
+  /// Au MODÈLE : notice, fiche technique, manuel d'atelier. À la MACHINE :
+  /// certificat de conformité, procès-verbal de mise en service. À
+  /// L'INTERVENTION (BON-2) : les photos prises sur place — avant/après,
+  /// preuve d'un état constaté — qui ne concernent ni un modèle ni une
+  /// machine en particulier mais LA VISITE elle-même.
+  modele_id       String? @db.Uuid
+  machine_id      String? @db.Uuid
+  intervention_id String? @db.Uuid
 
   classe ClasseDocument
 
@@ -2744,9 +2862,10 @@ model Document {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  modele  ModeleMateriel? @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  machine Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe      Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modele       ModeleMateriel? @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine      Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention?   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   /// Les fichiers du bac qui ont produit cette fiche (L8-07).
   recus             DocumentRecu[]
@@ -2756,6 +2875,7 @@ model Document {
   @@unique([societe_id, id])
   @@index([societe_id, modele_id])
   @@index([societe_id, machine_id])
+  @@index([societe_id, intervention_id])
   @@index([societe_id, empreinte])
   @@map("document")
 }

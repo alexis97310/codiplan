@@ -1035,6 +1035,18 @@ dans la table `parite` ci-dessous.*
 
 *Les quatre tables `session`, `compte`, `verification` et `second_facteur` sont la **troisième catégorie de I1** — techniques d'authentification, sans aucun `societe_id`, cloisonnées par la forme « désignation » (D34, D59). `journal_acces` les rejoint par sa catégorie et s'en distingue par sa nature : c'est une **trace**, pas un matériau d'authentification.*
 
+#### Le rapport de terrain, ajouté le 22/09/2026 (ticket 17-BON-2)
+
+*BON-1 a livré le bon d'intervention imprimable avec ce que la base portait déjà, et a nommé cinq blocs sans les construire : prestations réalisées, commentaire du technicien, suite à donner, photos, signature du client. Ce ticket leur donne une place — et REMPLACE la forme spéculative décrite plus haut (`rapport`, `signature`, `photo`, `intervention_temps`, `intervention_piece` narratifs, chapitre 7) par ce qui existe réellement au schéma.*
+
+**intervention — LE COMMENTAIRE ET LA SUITE À DONNER** *(BON-2)*. Deux colonnes texte, nullables : `commentaire_technicien` et `suite_a_donner`. Saisies sur le TERRAIN, jamais au back-office (I4, I5) — c'est le technicien qui est devant la machine et devant le client. `NULL` tant que rien n'a été écrit, jamais une chaîne vide.
+
+**document — LA TROISIÈME CIBLE** *(BON-2)*. `intervention_id` rejoint `modele_id` et `machine_id` dans la contrainte `document_cible_unique` — `num_nonnulls(...) = 1`, toujours une cible et une seule. Les photos d'une intervention sont des `document` comme les autres, jamais une seconde table de fichiers ; la forme « héritage » (D93) s'étend à trois cibles, le principe ne change pas.
+
+**intervention_prestation** — `societe_id`, intervention, prestation. Un simple rattachement entre une visite et une ligne du catalogue `prestation` — pas une ligne de facturation : elle ne porte NI durée NI montant propres, le temps global restant celui de `segment_travail` et le tarif n'existant nulle part sur une prestation (D109). Forme « filiation » (D103), sur le modèle exact d'`intervention_machine`.
+
+**intervention_signature** — `societe_id`, intervention, image encodée (`data:image/png;base64,...`, un tracé de canevas, jamais un fichier). **HISTORISÉE comme `taux_horaire`** (RG-TAR-04) : une re-signature AJOUTE une ligne, elle n'en réécrit ni n'en efface aucune — `UPDATE` et `DELETE` sont retirés au rôle applicatif, comme sur `journal_audit` (I8). Aucun statut de l'intervention ne bloque l'ajout d'une signature, pas même `cloturee` ni `annulee` : I5 garantit que le travail terrain n'est jamais perdu. Forme « filiation ».
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

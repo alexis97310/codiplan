@@ -1220,12 +1220,12 @@ export const fr = {
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 
-  // ── LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) ────────────────────
+  // ── LE BON D'INTERVENTION IMPRIMABLE (lot 16 BON-1, complété par BON-2) ──
   //
-  // Ce que la base porte déjà : l'en-tête société, la machine, les segments
-  // de travail, le taux en vigueur à la date, le forfait et le montant. Le
-  // reste — prestations, commentaire, suite à donner, photos, signature —
-  // arrive au lot 17 ; ce bon ne prétend pas les porter.
+  // BON-1 rendait l'en-tête société, la machine, les segments de travail, le
+  // taux, le forfait et le montant. BON-2 ajoute les cinq blocs alors
+  // nommés : prestations réalisées, commentaire, suite à donner, photos,
+  // signature — chacun affichant l'ABSENCE plutôt qu'un bloc vide (§9).
   "intervention.bon.titre": "Bon d'intervention",
   "intervention.bon.imprimer": "Imprimer le bon",
   "intervention.bon.refus.acces":
@@ -1252,8 +1252,20 @@ export const fr = {
   // est ici après coup, en train de consulter, jamais en train de clôturer.
   "intervention.bon.taux_absent":
     "Aucun taux horaire n'est en vigueur à la date de cette intervention : le montant ne peut pas être établi.",
-  "intervention.bon.a_venir":
-    "Les blocs suivants arrivent avec le lot 17 : prestations réalisées, commentaire du technicien, suite à donner, photos, signature du client.",
+
+  // ── LES CINQ BLOCS DE BON-2 ──────────────────────────────────────────────
+  "intervention.bon.prestations_titre": "Prestations réalisées",
+  "intervention.bon.aucune_prestation":
+    "Aucune prestation n'a été déclarée réalisée.",
+  "intervention.bon.commentaire_titre": "Commentaire du technicien",
+  "intervention.bon.aucun_commentaire": "Aucun commentaire n'a été saisi.",
+  "intervention.bon.suite_titre": "Suite à donner",
+  "intervention.bon.aucune_suite": "Aucune suite à donner n'a été saisie.",
+  "intervention.bon.photos_titre": "Photos",
+  "intervention.bon.aucune_photo": "Aucune photo n'a été prise.",
+  "intervention.bon.signature_titre": "Signature du client",
+  "intervention.bon.aucune_signature": "Aucune signature n'a été recueillie.",
+  "intervention.bon.signature_le": "Signé le",
 
   // ── LA DEMANDE D'INTERVENTION (L2-06) ───────────────────────────────────
   //
@@ -1343,6 +1355,44 @@ export const fr = {
   "terrain.compteur.aller": "Ouvrir cette intervention",
   "terrain.heures": "h",
   "terrain.minutes": "min",
+
+  // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
+  "terrain.rapport.titre": "Rapport",
+  "terrain.rapport.commentaire_libelle": "Commentaire",
+  "terrain.rapport.commentaire_placeholder": "Ce qui a été constaté ou fait…",
+  "terrain.rapport.suite_libelle": "Suite à donner",
+  "terrain.rapport.suite_placeholder":
+    "Ce qu'il reste à faire ou à surveiller…",
+  "terrain.rapport.enregistrer": "Enregistrer le rapport",
+  "terrain.rapport.enregistre": "Rapport enregistré.",
+  "terrain.rapport.refus": "Le rapport n'a pas pu être enregistré. Réessayez.",
+
+  "terrain.prestations.titre": "Prestations réalisées",
+  "terrain.prestations.aucune":
+    "Aucune prestation n'est définie dans le catalogue de votre société.",
+  "terrain.prestations.enregistrer": "Enregistrer les prestations",
+  "terrain.prestations.enregistre": "Prestations enregistrées.",
+  "terrain.prestations.refus":
+    "Les prestations n'ont pas pu être enregistrées. Réessayez.",
+
+  "terrain.photos.titre": "Photos",
+  "terrain.photos.aucune": "Aucune photo n'a été prise.",
+  "terrain.photos.libelle": "Légende",
+  "terrain.photos.libelle_placeholder": "Avant intervention…",
+  "terrain.photos.ajouter": "Ajouter une photo",
+  "terrain.photos.refus": "La photo n'a pas pu être ajoutée. Réessayez.",
+  "terrain.photos.refus_type": "Seules les images sont acceptées (JPEG, PNG).",
+
+  "terrain.signature.titre": "Signature du client",
+  "terrain.signature.deja_signee":
+    "Une signature a déjà été recueillie. Une nouvelle signature s'ajoute à l'ancienne, qui reste conservée.",
+  "terrain.signature.effacer": "Effacer",
+  "terrain.signature.enregistrer": "Enregistrer la signature",
+  "terrain.signature.enregistre": "Signature enregistrée.",
+  "terrain.signature.refus":
+    "La signature n'a pas pu être enregistrée. Recommencez le tracé.",
+  "terrain.signature.vide":
+    "Rien n'a été tracé : signez dans le cadre avant d'enregistrer.",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":
@@ -2820,6 +2870,15 @@ export const fr = {
   // jamais vues par un utilisateur réel.
   "contacts.e2e.nom_du_client": "Donneuse d'ordre (épreuve)",
   "contacts.e2e.nom_du_site": "Contact du lieu (épreuve)",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/rapport-terrain.spec.ts)
+  //
+  // Même raison que `equipe.e2e.*` : le contenu qu'un technicien de l'épreuve
+  // saisit dans le rapport de terrain, puis relit sur le bon, est du texte
+  // affiché — le gardien de L0-11 l'exige donc ici, même s'il n'est jamais vu
+  // par un utilisateur réel.
+  "terrain.e2e.commentaire": "Filtre à air remplacé.",
+  "terrain.e2e.suite_a_donner": "Revoir le compresseur dans 3 mois.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

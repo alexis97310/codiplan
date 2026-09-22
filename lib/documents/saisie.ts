@@ -66,14 +66,17 @@ export type StatutDocumentRecu = (typeof STATUTS_DOCUMENT_RECU)[number];
 export const empreinteSha256 = z.string().regex(/^[0-9a-f]{64}$/);
 
 /**
- * LA CIBLE D'UN DOCUMENT — une somme, jamais deux champs facultatifs.
+ * LA CIBLE D'UN DOCUMENT — une somme, jamais des champs facultatifs.
  *
  * *Voir l'en-tête : c'est la forme que L2-04 a mesurée comme fonctionnelle, et
- * l'union discriminée en est la traduction au niveau du type.*
+ * l'union discriminée en est la traduction au niveau du type.* La troisième
+ * branche, `intervention`, rejoint les deux premières au ticket BON-2 — les
+ * photos d'une intervention sont des `Document` comme les autres.
  */
 export const cibleDocument = z.discriminatedUnion("cible", [
   z.object({ cible: z.literal("modele"), modele_id: z.uuid() }),
   z.object({ cible: z.literal("machine"), machine_id: z.uuid() }),
+  z.object({ cible: z.literal("intervention"), intervention_id: z.uuid() }),
 ]);
 export type CibleDocument = z.infer<typeof cibleDocument>;
 
@@ -81,10 +84,28 @@ export type CibleDocument = z.infer<typeof cibleDocument>;
 export function colonnesDeCible(cible: CibleDocument): {
   modele_id: string | null;
   machine_id: string | null;
+  intervention_id: string | null;
 } {
-  return cible.cible === "modele"
-    ? { modele_id: cible.modele_id, machine_id: null }
-    : { modele_id: null, machine_id: cible.machine_id };
+  switch (cible.cible) {
+    case "modele":
+      return {
+        modele_id: cible.modele_id,
+        machine_id: null,
+        intervention_id: null,
+      };
+    case "machine":
+      return {
+        modele_id: null,
+        machine_id: cible.machine_id,
+        intervention_id: null,
+      };
+    case "intervention":
+      return {
+        modele_id: null,
+        machine_id: null,
+        intervention_id: cible.intervention_id,
+      };
+  }
 }
 
 /** La fiche d'un document, telle qu'un appelant la compose. */

@@ -11,6 +11,7 @@ import {
   type SaisieDocument,
   type SaisieDocumentRecu,
 } from "./saisie";
+import { type ObjetStocke } from "./stockage";
 import { type Avancement } from "./propositions";
 
 /**
@@ -387,6 +388,128 @@ export async function documentsDeLaMachine(
     // pas*, et le scénario qui prouve le cloisonnement doit pouvoir emprunter
     // CE chemin contre la base jetable — sans quoi il éprouverait une variante
     // écrite pour lui, ce qui est exactement la divergence de L1-02b.
+    client,
+  );
+}
+
+/** Une photo d'intervention, telle que le bon la montre. */
+export type PhotoIntervention = {
+  readonly id: string;
+  readonly libelle: string;
+  readonly nom_fichier: string;
+  readonly classe: "client" | "interne";
+  readonly cree_le: Date;
+};
+
+/**
+ * DÉPOSE UNE PHOTO SUR UNE INTERVENTION (BON-2) — directement classée,
+ * jamais par le bac de réception.
+ *
+ * **Pourquoi pas `recevoir` puis `classer`** : le bac existe pour un fichier
+ * dont la cible est INCERTAINE à réception — un PDF scanné qu'il faut encore
+ * rapprocher d'un modèle ou d'une machine (L8-07). Une photo prise sur le
+ * terrain n'a AUCUNE ambiguïté : le technicien la prend DEPUIS l'écran de
+ * CETTE intervention. Faire transiter un geste sans ambiguïté par un circuit
+ * conçu pour en lever une ajouterait une étape que rien ne justifie.
+ *
+ * La cible n'est PAS reçue en `CibleDocument` : elle est TOUJOURS
+ * `intervention`, et c'est le paramètre `interventionId`, jamais un champ que
+ * l'appelant pourrait faire varier — la même discipline que
+ * `documentsDeLaMachine`, qui relit sa machine plutôt que de faire confiance
+ * à un modèle fourni (L1-02e).
+ */
+export async function deposerPhotoIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  saisie: {
+    readonly classe: "client" | "interne";
+    readonly libelle: string;
+    readonly nom_fichier: string;
+    readonly type_mime: string;
+    readonly objet: ObjetStocke;
+  },
+  client?: PrismaClient,
+): Promise<{ readonly id: string }> {
+  const societeId = exigerSocieteActive(contexte);
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.document.create({
+        data: {
+          id: uuidv7(),
+          societe_id: societeId,
+          intervention_id: interventionId,
+          classe: saisie.classe,
+          libelle: saisie.libelle,
+          nom_fichier: saisie.nom_fichier,
+          type_mime: saisie.type_mime,
+          taille_octets: BigInt(saisie.objet.tailleOctets),
+          empreinte: saisie.objet.empreinte,
+          objet_cle: saisie.objet.objetCle,
+        },
+        select: { id: true },
+      }),
+    client,
+  );
+}
+
+/**
+ * UN DOCUMENT PAR SON IDENTIFIANT, avec de quoi lire ses octets — jamais les
+ * octets eux-mêmes (L8-05). `null` s'il n'est pas visible.
+ */
+export async function lireDocument(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<{
+  readonly objet_cle: string;
+  readonly type_mime: string;
+  readonly nom_fichier: string;
+} | null> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.document.findFirst({
+        where: { id },
+        select: { objet_cle: true, type_mime: true, nom_fichier: true },
+      }),
+    client,
+  );
+}
+
+/**
+ * LES PHOTOS D'UNE INTERVENTION, dans l'ordre où elles ont été prises.
+ *
+ * `null` si l'intervention n'est pas visible — hors périmètre, hors société,
+ * ou inexistante (D35, D50) ; `[]` si elle l'est et ne porte aucune photo.
+ */
+export async function photosDeLIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<readonly PhotoIntervention[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findUnique({
+        where: { id: interventionId },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      return tx.document.findMany({
+        where: { intervention_id: interventionId },
+        select: {
+          id: true,
+          libelle: true,
+          nom_fichier: true,
+          classe: true,
+          cree_le: true,
+        },
+        orderBy: [{ cree_le: "asc" }, { id: "asc" }],
+      });
+    },
     client,
   );
 }

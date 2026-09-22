@@ -2,10 +2,12 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { SignatureTerrain } from "@/components/interventions/signature-terrain";
 import { Button } from "@/components/ui/button";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { lireFicheIntervention } from "@/lib/interventions/depot";
@@ -13,7 +15,13 @@ import {
   compteurEnCours,
   mesureDeLIntervention,
 } from "@/lib/interventions/depot-compteur";
+import {
+  derniereSignature,
+  lireRapportTexte,
+  prestationsRealisees,
+} from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { listerLesPrestations } from "@/lib/prestations/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
@@ -107,6 +115,29 @@ export default async function PageInterventionTerrain({
   const ligne = fiche.ligne;
   const statut = ligne.statut as StatutAffiche;
 
+  // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
+  //
+  // Cinq lectures indépendantes, comme `lireBonIntervention` : chacune tient
+  // sa propre politique de cloisonnement, et les mêler en une seule
+  // dupliquerait le critère de visibilité que chacune vérifie déjà.
+  const [
+    rapportTexte,
+    prestationsCatalogue,
+    prestationsFaites,
+    photos,
+    signature,
+  ] = await Promise.all([
+    lireRapportTexte(contexte, id),
+    listerLesPrestations(contexte),
+    prestationsRealisees(contexte, id),
+    photosDeLIntervention(contexte, id),
+    derniereSignature(contexte, id),
+  ]);
+  const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
+  const idsRealises = new Set(
+    (prestationsFaites ?? []).map((p) => p.prestation_id),
+  );
+
   return (
     <main className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
@@ -196,6 +227,141 @@ export default async function PageInterventionTerrain({
             </Link>
           </p>
         )}
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.rapport.titre")}
+        </h2>
+        <form
+          action={`/api/terrain/${id}/rapport`}
+          method="post"
+          className="flex flex-col gap-3"
+        >
+          <label className="flex flex-col gap-1">
+            <span className="text-[12.5px] font-medium">
+              {t("terrain.rapport.commentaire_libelle")}
+            </span>
+            <textarea
+              name="commentaire_technicien"
+              rows={3}
+              defaultValue={rapportTexte?.commentaire_technicien ?? ""}
+              placeholder={t("terrain.rapport.commentaire_placeholder")}
+              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[12.5px] font-medium">
+              {t("terrain.rapport.suite_libelle")}
+            </span>
+            <textarea
+              name="suite_a_donner"
+              rows={2}
+              defaultValue={rapportTexte?.suite_a_donner ?? ""}
+              placeholder={t("terrain.rapport.suite_placeholder")}
+              className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+            />
+          </label>
+          <Button type="submit" size="sm" className="self-start">
+            {t("terrain.rapport.enregistrer")}
+          </Button>
+        </form>
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.prestations.titre")}
+        </h2>
+        {prestationsActives.length === 0 ? (
+          <p className="text-app-encre-faible text-[12.5px]">
+            {t("terrain.prestations.aucune")}
+          </p>
+        ) : (
+          <form
+            action={`/api/terrain/${id}/prestations`}
+            method="post"
+            className="flex flex-col gap-2"
+          >
+            {prestationsActives.map((prestation) => (
+              <label
+                key={prestation.id}
+                className="flex items-center gap-2 text-[13px]"
+              >
+                <input
+                  type="checkbox"
+                  name="prestation_id"
+                  value={prestation.id}
+                  defaultChecked={idsRealises.has(prestation.id)}
+                />
+                {prestation.libelle}
+              </label>
+            ))}
+            <Button type="submit" size="sm" className="self-start">
+              {t("terrain.prestations.enregistrer")}
+            </Button>
+          </form>
+        )}
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.photos.titre")}
+        </h2>
+        {(photos ?? []).length === 0 ? (
+          <p className="text-app-encre-faible text-[12.5px]">
+            {t("terrain.photos.aucune")}
+          </p>
+        ) : (
+          <ul className="grid grid-cols-3 gap-2">
+            {(photos ?? []).map((photo) => (
+              <li key={photo.id} className="flex flex-col gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
+                <img
+                  src={`/api/documents/${photo.id}/octets`}
+                  alt={photo.libelle}
+                  className="border-app-bord aspect-square rounded border object-cover"
+                />
+                <span className="text-app-encre-faible truncate text-[10.5px]">
+                  {photo.libelle}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          action={`/api/terrain/${id}/photos`}
+          method="post"
+          encType="multipart/form-data"
+          className="flex flex-col gap-2"
+        >
+          <input
+            type="file"
+            name="fichier"
+            accept="image/*"
+            capture="environment"
+            required
+            className="text-[12.5px]"
+          />
+          <input
+            type="text"
+            name="libelle"
+            placeholder={t("terrain.photos.libelle_placeholder")}
+            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+          />
+          <Button type="submit" size="sm" className="self-start">
+            {t("terrain.photos.ajouter")}
+          </Button>
+        </form>
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+          {t("terrain.signature.titre")}
+        </h2>
+        <SignatureTerrain
+          action={`/api/terrain/${id}/signature`}
+          dejaSignee={signature !== null}
+        />
       </section>
     </main>
   );

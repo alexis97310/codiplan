@@ -103,14 +103,24 @@ describe("la CIBLE est une somme, et le type refuse l'état interdit", () => {
     expect(cibleDocument.safeParse({}).success).toBe(false);
   });
 
-  it("les colonnes rendues portent l'une OU l'autre, jamais les deux", () => {
+  it("les colonnes rendues portent l'une OU l'autre, jamais deux à la fois", () => {
     expect(colonnesDeCible({ cible: "modele", modele_id: "m" })).toEqual({
       modele_id: "m",
       machine_id: null,
+      intervention_id: null,
     });
     expect(colonnesDeCible({ cible: "machine", machine_id: "x" })).toEqual({
       modele_id: null,
       machine_id: "x",
+      intervention_id: null,
+    });
+    // La troisième cible (BON-2) : les photos d'une intervention.
+    expect(
+      colonnesDeCible({ cible: "intervention", intervention_id: "i" }),
+    ).toEqual({
+      modele_id: null,
+      machine_id: null,
+      intervention_id: "i",
     });
   });
 });

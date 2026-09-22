@@ -221,7 +221,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les trente-cinq tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les trente-sept tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -302,6 +302,14 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // naissance. « Quelle machine a été retirée de cette visite, et par qui »
       // est une question de litige autant qu'une question de planning.
       "intervention_machine",
+      // `intervention_prestation` et `intervention_signature` s'y ajoutent au
+      // ticket 17-BON-2, et par le même chemin : première catégorie de I1,
+      // donc auditées à leur naissance. « Quelle prestation a été déclarée
+      // réalisée, et retirée » est une question de litige ; la signature,
+      // elle, ne se modifie ni ne s'efface jamais (voir sa propre table) —
+      // l'audit n'en journalise donc que l'AJOUT, jamais une correction.
+      "intervention_prestation",
+      "intervention_signature",
       "machine",
       "modele_materiel",
       // `prestation` s'y ajoute au ticket L1-12, et par le même chemin : elle

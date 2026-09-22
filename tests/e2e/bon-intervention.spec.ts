@@ -62,6 +62,22 @@ test("la page du bon s'affiche et porte ses blocs", async ({ page }) => {
   // LE GESTE D'IMPRESSION.
   await expect(page.locator('[data-bloc="bon-imprimer"]')).toBeVisible();
 
-  // LES BLOCS DU LOT 17 SONT NOMMÉS, JAMAIS AFFICHÉS VIDES.
-  await expect(page.getByText(fr["intervention.bon.a_venir"])).toBeVisible();
+  // LES CINQ BLOCS DE BON-2 SONT NOMMÉS, JAMAIS AFFICHÉS VIDES — `obstacle`
+  // ne porte ni prestation, ni commentaire, ni suite à donner, ni photo, ni
+  // signature.
+  await expect(
+    page.getByText(fr["intervention.bon.aucune_prestation"]),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.bon.aucun_commentaire"]),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.bon.aucune_suite"]),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.bon.aucune_photo"]),
+  ).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.bon.aucune_signature"]),
+  ).toBeVisible();
 });

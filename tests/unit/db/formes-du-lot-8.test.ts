@@ -28,10 +28,14 @@ import {
  * succès dont on a vérifié la cause.
  */
 
-/** La clause réellement écrite en base sur `document` (migration du lot 8). */
+/**
+ * La clause réellement écrite en base sur `document` (migration du lot 8,
+ * troisième cible — l'intervention — ajoutée au ticket 17-BON-2).
+ */
 const CLAUSE_HERITAGE =
   `(EXISTS (SELECT 1 FROM machine WHERE (machine.id = document.machine_id)) ` +
-  `OR EXISTS (SELECT 1 FROM modele_materiel WHERE (modele_materiel.id = document.modele_id))) ` +
+  `OR EXISTS (SELECT 1 FROM modele_materiel WHERE (modele_materiel.id = document.modele_id)) ` +
+  `OR EXISTS (SELECT 1 FROM intervention WHERE (intervention.id = document.intervention_id))) ` +
   `AND ((classe = 'client'::"ClasseDocument") ` +
   `OR (NULLIF(current_setting('app.client_id'::text, true), ''::text) IS NULL))`;
 
@@ -67,9 +71,11 @@ describe("la liste close de la ONZIÈME forme — « héritage »", () => {
 
   it("elle porte l'entrée que D93 arbitre — témoin de non-vacuité", () => {
     expect(TABLES_HERITAGE.map((e) => e.table)).toEqual(["document"]);
-    // Et ses DEUX cibles : une seule ferait de la moitié des documents des
-    // lignes invisibles, en silence.
+    // Et ses TROIS cibles (la troisième, l'intervention, depuis 17-BON-2) :
+    // en omettre une ferait d'une part des documents des lignes invisibles,
+    // en silence.
     expect(TABLES_HERITAGE[0]?.cibles.map((c) => c.parent).sort()).toEqual([
+      "intervention",
       "machine",
       "modele_materiel",
     ]);
@@ -246,11 +252,11 @@ describe("la FORME est jugée sur la clause, et les deux sens sont éprouvés", 
   });
 
   it("une clause d'héritage amputée d'UNE cible est refusée, et la nomme", () => {
-    // La faute silencieuse : la moitié des documents — ceux du modèle —
-    // disparaît, et la liste se raccourcit sans que personne sache ce qui
-    // manque.
+    // La faute silencieuse : les documents du modèle disparaissent, et la
+    // liste se raccourcit sans que personne sache ce qui manque.
     const amputee =
-      `EXISTS (SELECT 1 FROM machine WHERE (machine.id = document.machine_id)) ` +
+      `(EXISTS (SELECT 1 FROM machine WHERE (machine.id = document.machine_id)) ` +
+      `OR EXISTS (SELECT 1 FROM intervention WHERE (intervention.id = document.intervention_id))) ` +
       `AND ((classe = 'client'::"ClasseDocument") ` +
       `OR (NULLIF(current_setting('app.client_id'::text, true), ''::text) IS NULL))`;
     const ecarts = ecartsPolitiques(
@@ -264,7 +270,8 @@ describe("la FORME est jugée sur la clause, et les deux sens sont éprouvés", 
   it("une clause d'héritage sans rétrécissement de classe est refusée", () => {
     const sansClasse =
       `EXISTS (SELECT 1 FROM machine WHERE (machine.id = document.machine_id)) ` +
-      `OR EXISTS (SELECT 1 FROM modele_materiel WHERE (modele_materiel.id = document.modele_id))`;
+      `OR EXISTS (SELECT 1 FROM modele_materiel WHERE (modele_materiel.id = document.modele_id)) ` +
+      `OR EXISTS (SELECT 1 FROM intervention WHERE (intervention.id = document.intervention_id))`;
     const ecarts = ecartsPolitiques(
       [colonne("document")],
       [politique("document", sansClasse)],

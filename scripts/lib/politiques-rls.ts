@@ -1821,6 +1821,12 @@ export const TABLES_HERITAGE = [
     cibles: [
       { parent: "machine", cle: "machine_id" },
       { parent: "modele_materiel", cle: "modele_id" },
+      // `intervention` REJOINT LES CIBLES au ticket 17-BON-2 — les photos
+      // d'une intervention sont des `document` comme les autres, jamais une
+      // seconde table de fichiers. Le principe ne change pas : la classe
+      // rétrécit toujours de la même façon, seule la liste des cibles
+      // s'allonge.
+      { parent: "intervention", cle: "intervention_id" },
     ],
     /** La colonne qui RÉTRÉCIT, et la valeur qui survit au portail. */
     classe: { colonne: "classe", ouverte: "client" },
@@ -2334,6 +2340,22 @@ export const TABLES_FILIATION = [
     parent: "vgp_verification",
     cle: "verification_id",
   },
+  // `intervention_prestation` et `intervention_signature` REJOIGNENT LA
+  // FILIATION au ticket 17-BON-2. Même raisonnement qu'`intervention_machine`
+  // (D103) : un rattachement (prestations réalisées) et une preuve
+  // (signature) sont chacun visibles si leur intervention l'est, et aucune
+  // clause de société n'y est ajoutée — la clé étrangère composite l'empêche
+  // déjà de dériver.
+  {
+    table: "intervention_prestation",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
+  {
+    table: "intervention_signature",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2343,6 +2365,9 @@ const FILIATION_ARBITREE = [
   // D114, 12/09/2026 — le registre des VGP.
   "vgp_verification",
   "vgp_observation",
+  // Ticket 17-BON-2, 22/09/2026 — le rapport de terrain.
+  "intervention_prestation",
+  "intervention_signature",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

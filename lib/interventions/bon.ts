@@ -5,6 +5,16 @@ import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import {
+  photosDeLIntervention,
+  type PhotoIntervention,
+} from "@/lib/documents/depot";
+import {
+  derniereSignature,
+  prestationsRealisees,
+  type PrestationRealisee,
+  type Signature,
+} from "@/lib/interventions/depot-rapport-terrain";
 import { montant, type Montant } from "@/lib/money";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 
@@ -93,6 +103,13 @@ export type BonIntervention = {
    * l'est : voir l'entête du module.
    */
   readonly montantTotal: Montant | null;
+
+  // ── LES CINQ BLOCS DE BON-2 — jamais `undefined`, une liste vide se lit ──
+  readonly prestationsRealisees: readonly PrestationRealisee[];
+  readonly commentaireTechnicien: string | null;
+  readonly suiteADonner: string | null;
+  readonly photos: readonly PhotoIntervention[];
+  readonly signature: Signature | null;
 };
 
 /**
@@ -107,13 +124,15 @@ export async function lireBonIntervention(
   id: string,
   connexion?: PrismaClient,
 ): Promise<BonIntervention | null> {
-  return avecContexteApplicatif(
+  const base = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
         where: { id, ...restrictionParPersonne(contexte) },
         select: {
           ...CHAMPS_LIGNE,
+          commentaire_technicien: true,
+          suite_a_donner: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -129,7 +148,15 @@ export async function lireBonIntervention(
       if (ligne === null) {
         return null;
       }
-      const { client, site, agence, forfait, ...brute } = ligne;
+      const {
+        client,
+        site,
+        agence,
+        forfait,
+        commentaire_technicien,
+        suite_a_donner,
+        ...brute
+      } = ligne;
 
       const societe = await tx.societe.findFirst({
         where: { id: contexte.societeId ?? "" },
@@ -208,10 +235,38 @@ export async function lireBonIntervention(
         // Voir l'entête du module : un taux qu'on ne peut plus reconstituer
         // efface le total, même s'il est encore écrit en base.
         montantTotal: taux === null ? null : montantStocke,
+        commentaireTechnicien: commentaire_technicien,
+        suiteADonner: suite_a_donner,
       };
     },
     connexion,
   );
+  if (base === null) {
+    return null;
+  }
+
+  // ── LES TROIS BLOCS RESTANTS DE BON-2, HORS DE LA TRANSACTION CI-DESSUS ──
+  //
+  // `prestationsRealisees`, `photosDeLIntervention` et `derniereSignature`
+  // ouvrent chacun LEUR PROPRE contexte applicatif (`avecContexteApplicatif`
+  // attend un `PrismaClient`, jamais le `Prisma.TransactionClient` déjà
+  // ouvert ci-dessus — les imbriquer romprait sur `tx.$transaction`, qui
+  // n'existe pas sur un client de transaction). Le coût est trois
+  // allers-retours de plus sur une page qui n'en fait qu'une poignée ; le
+  // réécrire en une seule transaction dupliquerait la lecture de
+  // l'intervention que chacune fait déjà pour son propre cloisonnement.
+  const [prestations, photos, signature] = await Promise.all([
+    prestationsRealisees(contexte, id, connexion),
+    photosDeLIntervention(contexte, id, connexion),
+    derniereSignature(contexte, id, connexion),
+  ]);
+
+  return {
+    ...base,
+    prestationsRealisees: prestations ?? [],
+    photos: photos ?? [],
+    signature,
+  };
 }
 
 /** Le nom d'un technicien sur un segment — le nom, jamais l'identifiant (I10). */

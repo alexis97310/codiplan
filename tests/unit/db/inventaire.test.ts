@@ -65,6 +65,8 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       import_lot_ligne: 0,
       intervention: 0,
       intervention_machine: 0,
+      intervention_prestation: 0,
+      intervention_signature: 0,
       demande: 0,
       absence: 0,
       technicien: 0,
@@ -112,6 +114,8 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         import_lot_ligne: 0,
         intervention: 0,
         intervention_machine: 0,
+        intervention_prestation: 0,
+        intervention_signature: 0,
         demande: 0,
         absence: 0,
         technicien: 0,
@@ -175,6 +179,10 @@ describe("inventaire à plat", () => {
       // L2-08a — même chemin, et c'est ce qui rend la dérivation utile : ni
       // cette liste ni le script n'ont eu à être tenus à la main.
       intervention_machine: 0,
+      // 17-BON-2 — même chemin : les deux tables sont entrées le jour
+      // où elles sont nées.
+      intervention_prestation: 0,
+      intervention_signature: 0,
       // L2-06 — même chemin : `demande` est entrée le jour où la table est née.
       demande: 0,
       // L3-01a — et c'est la table que trois `(prévu)` attendaient.

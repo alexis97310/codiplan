@@ -21,16 +21,17 @@ import {
 } from "../../presentation";
 
 /**
- * LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — CE QUE LA BASE PORTE
- * DÉJÀ, mis en page pour un A4.
+ * LE BON D'INTERVENTION IMPRIMABLE (lot 16 BON-1, complété par BON-2) — mis
+ * en page pour un A4.
  *
- * ## Ce lot ne livre que ce qui existe déjà
+ * ## LES CINQ BLOCS DE BON-2
  *
- * Pas de prestations, pas de commentaire, pas de suite à donner, pas de
- * photo, pas de signature : ce sont les blocs du lot 17, nommés plus bas
- * mais jamais affichés vides — *un bloc vide remis à un client se lit comme
- * un oubli, pas comme un « pas encore »* (§9, doctrine constante de ce
- * dépôt).
+ * Prestations réalisées, commentaire, suite à donner, photos, signature :
+ * chacun affiche son ABSENCE plutôt que de disparaître — *un bloc vide remis
+ * à un client se lit comme un oubli, pas comme un « pas encore »* (§9,
+ * doctrine constante de ce dépôt). Rien n'est recalculé ici : ce sont les
+ * lectures de `lireBonIntervention`, saisies depuis le terrain
+ * (`app/(mobile)/terrain/[id]`).
  *
  * ## La porte est celle du planning, jamais réécrite
  *
@@ -211,16 +212,106 @@ export default async function PageBonIntervention({
           )}
         </section>
 
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold">
+            {t("intervention.bon.prestations_titre")}
+          </h2>
+          {bon.prestationsRealisees.length === 0 ? (
+            <p className="text-app-encre-faible text-[12px]">
+              {t("intervention.bon.aucune_prestation")}
+            </p>
+          ) : (
+            <ul className="list-disc pl-4 text-[12.5px]">
+              {bon.prestationsRealisees.map((prestation) => (
+                <li key={prestation.id}>{prestation.libelle}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold">
+            {t("intervention.bon.commentaire_titre")}
+          </h2>
+          <p className="text-[12.5px] whitespace-pre-wrap">
+            {bon.commentaireTechnicien ?? (
+              <span className="text-app-encre-faible">
+                {t("intervention.bon.aucun_commentaire")}
+              </span>
+            )}
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold">
+            {t("intervention.bon.suite_titre")}
+          </h2>
+          <p className="text-[12.5px] whitespace-pre-wrap">
+            {bon.suiteADonner ?? (
+              <span className="text-app-encre-faible">
+                {t("intervention.bon.aucune_suite")}
+              </span>
+            )}
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold">
+            {t("intervention.bon.photos_titre")}
+          </h2>
+          {bon.photos.length === 0 ? (
+            <p className="text-app-encre-faible text-[12px]">
+              {t("intervention.bon.aucune_photo")}
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {bon.photos.map((photo) => (
+                <figure key={photo.id} className="flex flex-col gap-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
+                  <img
+                    src={`/api/documents/${photo.id}/octets`}
+                    alt={photo.libelle}
+                    className="border-app-bord aspect-square rounded border object-cover"
+                  />
+                  <figcaption className="text-app-encre-faible text-[10.5px]">
+                    {photo.libelle}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[13px] font-bold">
+            {t("intervention.bon.signature_titre")}
+          </h2>
+          {bon.signature === null ? (
+            <p className="text-app-encre-faible text-[12px]">
+              {t("intervention.bon.aucune_signature")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- tracé encodé en mémoire, jamais un fichier statique */}
+              <img
+                src={bon.signature.image_base64}
+                alt={t("intervention.bon.signature_titre")}
+                className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
+              />
+              <p className="text-app-encre-faible text-[10.5px]">
+                {t("intervention.bon.signature_le")}{" "}
+                {dateHeureLocale(bon.signature.cree_le, bon.fuseau)}
+              </p>
+            </div>
+          )}
+        </section>
+
         {bon.societe.mentionsLegales === null ? null : (
           <p className="text-app-encre-faible border-app-bord border-t pt-3 text-[10.5px]">
             {bon.societe.mentionsLegales}
           </p>
         )}
       </div>
-
-      <p className="border-app-bord-faible text-app-encre-faible rounded-md border border-dashed px-3 py-2 text-[11.5px] print:hidden">
-        {t("intervention.bon.a_venir")}
-      </p>
     </div>
   );
 }

@@ -117,4 +117,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260915010000_compteur_du_technicien_r5_02",
   "20260915060000_les_deux_temps_d120",
   "20260916120000_lignes_inchangees_import",
+  "20260922100000_rapport_terrain_bon_2",
 ];

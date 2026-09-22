@@ -28,6 +28,11 @@ next-env.d.ts
 *.log
 .vercel
 
+# stockage d'objets local (BON-2, lib/documents/stockage.ts) — dos-d'âne en
+# attendant les identifiants S3-compatibles de l'hébergeur (L0-09, L8-05).
+# Jamais versionné : I9 interdit toute photo réelle dans le dépôt.
+/.donnees-locales/
+
 # contrôle post-migration — inventaire produit par le workflow, jamais versionné
 /inventaire-controle.json
 
