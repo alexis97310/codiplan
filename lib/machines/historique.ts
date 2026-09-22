@@ -44,10 +44,64 @@ import {
  * départagent par l'ordre où elles ont été numérotées, qui est le seul ordre
  * stable dont on dispose.* Une intervention sans date planifiée — une demande
  * non encore posée — vient en tête : elle est ce qui reste à faire.
+ *
+ * **Elle ramène TOUT**, et c'est ce que la fiche (`/parc/[id]`) attend : un
+ * historique amputé y aurait la même forme qu'un historique complet. Un écran
+ * qui n'en montre que le début appelle `teteDeLHistorique` avec ce qu'il
+ * affiche (PARC-1).
  */
 export async function historiqueDeLaMachine(
   contexte: ContexteSession,
   machineId: string,
+  client?: PrismaClient,
+): Promise<readonly LigneIntervention[]> {
+  return lireLHistorique(contexte, machineId, undefined, client);
+}
+
+/**
+ * LA TÊTE DE L'HISTORIQUE — les `limite` lignes les plus récentes, et elles
+ * seules (PARC-1).
+ *
+ * L'aperçu de `/parc` montre trois événements. Il les obtenait en lisant
+ * l'historique entier puis en le tronquant : la requête ramenait quinze ans de
+ * lignes pour en garder trois, à chaque survol. **La limite est un ARGUMENT,
+ * jamais une constante cachée ici** — l'appelant sait combien il affiche, la
+ * requête ne le devine pas, et deux écrans qui n'en montrent pas le même
+ * nombre n'ont pas à partager un chiffre.
+ *
+ * *Même lecture que `historiqueDeLaMachine`* — même filtre, même ordre, bornée
+ * et rien d'autre : les lignes rendues sont les premières de l'historique
+ * complet, et `tests/isolation/historique-machine-borne.test.ts` le confronte.
+ *
+ * `limite` est un entier strictement positif, et c'est refusé avant toute
+ * requête : Prisma lit un `take` négatif comme « depuis la fin », ce qui
+ * rendrait les plus ANCIENNES sous le titre « derniers événements » sans
+ * qu'aucune ligne ne manque ni ne rougisse.
+ */
+export async function teteDeLHistorique(
+  contexte: ContexteSession,
+  machineId: string,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LigneIntervention[]> {
+  if (!Number.isInteger(limite) || limite <= 0) {
+    throw new Error(
+      `teteDeLHistorique : la limite doit être un entier strictement positif, reçu ${String(limite)}`,
+    );
+  }
+  return lireLHistorique(contexte, machineId, limite, client);
+}
+
+/**
+ * LA SEULE LECTURE, écrite une fois — deux requêtes d'un même critère
+ * divergent en silence (§9, 01/09), et « la machine, jamais le site » ne
+ * doit pas avoir à être juste deux fois. `limite` absente : pas de `take`,
+ * tout est rendu.
+ */
+async function lireLHistorique(
+  contexte: ContexteSession,
+  machineId: string,
+  limite: number | undefined,
   client?: PrismaClient,
 ): Promise<readonly LigneIntervention[]> {
   return avecContexteApplicatif(
@@ -65,6 +119,7 @@ export async function historiqueDeLaMachine(
         where: { machines: { some: { machine_id: machineId } } },
         select: CHAMPS_LIGNE,
         orderBy: [{ date_planifiee: "desc" }, { numero: "desc" }],
+        take: limite,
       }),
     client,
   );

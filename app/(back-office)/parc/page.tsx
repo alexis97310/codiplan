@@ -39,7 +39,7 @@ import {
   resumerLeParcFiltre,
   type LigneDeParc,
 } from "@/lib/machines/depot";
-import { historiqueDeLaMachine } from "@/lib/machines/historique";
+import { teteDeLHistorique } from "@/lib/machines/historique";
 import {
   LIMITE_RECHERCHE_PAR_DEFAUT,
   schemaRechercheParc,
@@ -97,15 +97,25 @@ import { decompte, hrefDeLaPage, libellePage } from "../presentation";
  * `ECARTS_MAQUETTE_ACTIONS_PARC`, aucun des deux ne menant à un écran qui
  * existe). Le décompte devient le détail du premier KPI.
  *
- * ## LA FRISE NE COMPOSE RIEN QUE `historiqueDeLaMachine` NE SACHE DÉJÀ DIRE
+ * ## LA FRISE NE COMPOSE RIEN QUE `teteDeLHistorique` NE SACHE DÉJÀ DIRE
  *
  * Elle porte les trois événements les plus récents de la machine
  * SÉLECTIONNÉE, et d'elle seule — jamais une boucle sur toute la page, qui
  * ferait un aller-retour par ligne rendue. Une machine sans intervention
  * rend son ÉTAT VIDE, jamais un événement inventé.
+ *
+ * **Et la requête ne ramène que ces trois-là** (PARC-1). Elle lisait
+ * l'historique entier puis le tronquait ; depuis que la base porte des
+ * archives, une machine qui a quinze ans de factures faisait traverser
+ * quinze ans de lignes au réseau pour en garder trois. La borne est passée
+ * à la lecture, et c'est CETTE page qui la nomme — elle sait ce qu'elle
+ * affiche, la requête ne le devine pas.
  */
 
 const ABSENT = "—";
+
+/** Les événements que la frise de l'aperçu affiche — et que la requête ramène. */
+const EVENEMENTS_DE_L_APERCU = 3;
 
 export default async function PageParc({
   searchParams,
@@ -185,7 +195,7 @@ export default async function PageParc({
   const historique =
     selection === undefined
       ? []
-      : (await historiqueDeLaMachine(contexte, selection.id)).slice(0, 3);
+      : await teteDeLHistorique(contexte, selection.id, EVENEMENTS_DE_L_APERCU);
 
   const q = typeof params.q === "string" ? params.q : undefined;
   const statutActif = criteres.success ? criteres.data.statut : "tous";
