@@ -1789,8 +1789,18 @@ export const fr = {
   "agence.modifiee": "Les modifications ont été enregistrées.",
   "agence.modifier.titre": "Modifier un établissement",
   "agence.lien_calendrier_aide": "Les horaires se règlent à part :",
+  // L'ÉTAT, DIT DANS LA LISTE (AGENCE-2). `agence.actif` sert deux fois — la
+  // case de la fiche ET la pastille de la liste —, comme `equipe.actif` sur
+  // /parametres/equipe : un même mot pour un même état, où qu'on le lise.
   "agence.actif": "Actif",
+  "agence.inactif": "Inactif",
   "agence.colonne_actions": "Actions",
+  // Le lien de la liste vers la fiche. PAS `agence.action.modifier` : cette
+  // clé-là est le bouton d'ENREGISTREMENT de la fiche, et la liste le
+  // reprenait tel quel — un « Enregistrer » en bout de ligne, qui ne dit pas
+  // où il mène, et qu'Alexis a lu comme « aucun lien » (mesuré le
+  // 22/09/2026 sur la base de production). Même mot que `equipe.modifier`.
+  "agence.modifier": "Modifier",
   "agence.refus.saisie":
     "Cette saisie n'est pas valide : vérifiez les champs remplis, notamment le territoire (deux lettres).",
   "agence.refus.code_pris":

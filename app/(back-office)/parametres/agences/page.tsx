@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -65,6 +66,29 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * ÉTABLISSEMENTS. Le vocabulaire imposé prime (D5, D47) : le titre de colonne
  * vient de `mot("agence")`. *La maquette fait foi sur la disposition et sur les
  * couleurs, jamais sur le vocabulaire.*
+ *
+ * ## AGENCE-2 — L'ÉTAT SE VOIT, ET LE LIEN DIT OÙ IL MÈNE
+ *
+ * **Mesuré le 22/09/2026 sur la base de production** : une agence désactivée
+ * par la fiche d'AGENCE-1 s'affichait ici à l'identique d'une agence active —
+ * `grep -nE "actif|inactif"` sur ce fichier ne rendait AUCUNE ligne, alors
+ * que le dépôt rend le champ et que la fiche l'expose. *Un écran qui ignore
+ * une donnée qu'il a sous la main empêche de vérifier le geste qu'on vient
+ * de faire.*
+ *
+ * La forme est celle que le produit emploie déjà pour dire cet état dans un
+ * tableau : la pastille de `/parametres/equipe` — `<Badge ton="vert">` Actif,
+ * `<Badge ton="gris">` Inactif —, la même que `/clients` pose à côté du nom.
+ * Elle est posée dans la cellule du NOM, pas en bout de ligne : c'est là
+ * qu'on lit au premier coup d'œil, et l'état accompagne ce qu'il qualifie.
+ * **La ligne inactive n'est PAS cachée** : il faut pouvoir la retrouver pour
+ * la réactiver, et c'est cette fiche-là qui le permet.
+ *
+ * Le lien vers la fiche disait « Enregistrer » — il reprenait
+ * `agence.action.modifier`, le bouton d'enregistrement de la fiche — et Alexis
+ * a conclu qu'il n'y avait pas de lien. Il dit désormais « Modifier »
+ * (`agence.modifier`), le mot de `/parametres/equipe`. L'en-tête « Actions »
+ * de la colonne, lui, était déjà déclaré depuis AGENCE-1.
  */
 export default async function PageParametresAgences({
   searchParams,
@@ -84,7 +108,7 @@ export default async function PageParametresAgences({
     session.contexte,
     async (tx) => {
       const agences = await tx.agence.findMany({
-        select: { id: true, libelle: true, calendrier_id: true },
+        select: { id: true, libelle: true, calendrier_id: true, actif: true },
         orderBy: { libelle: "asc" },
       });
       const exceptions = await tx.technicienCalendrier.findMany({
@@ -152,6 +176,7 @@ export default async function PageParametresAgences({
               key={agence.id}
               id={agence.id}
               libelle={agence.libelle}
+              actif={agence.actif}
               parametrage={parametrage}
               exceptions={exceptions}
               colonnes={colonnes.length}
@@ -170,12 +195,14 @@ export default async function PageParametresAgences({
 function LigneAgence({
   id,
   libelle,
+  actif,
   parametrage,
   exceptions,
   colonnes,
 }: {
   readonly id: string;
   readonly libelle: string;
+  readonly actif: boolean;
   readonly parametrage: Parametrage | null;
   readonly exceptions: number;
   readonly colonnes: number;
@@ -190,8 +217,23 @@ function LigneAgence({
         href={`/parametres/agences/${id}/modifier`}
         className={CLASSES_LIEN}
       >
-        {t("agence.action.modifier")}
+        {t("agence.modifier")}
       </Link>
+    </Cellule>
+  );
+
+  // LE NOM ET SON ÉTAT (AGENCE-2) — partagés par les deux branches eux aussi :
+  // une agence sans calendrier peut être désactivée comme une autre.
+  const nom = (
+    <Cellule fort>
+      <div className="flex flex-wrap items-center gap-2">
+        <span>{libelle}</span>
+        {actif ? (
+          <Badge ton="vert">{t("agence.actif")}</Badge>
+        ) : (
+          <Badge ton="gris">{t("agence.inactif")}</Badge>
+        )}
+      </div>
     </Cellule>
   );
 
@@ -201,7 +243,7 @@ function LigneAgence({
     // des tirets qu'on lirait comme « pas encore renseigné ».
     return (
       <tr>
-        <Cellule fort>{libelle}</Cellule>
+        {nom}
         <td
           colSpan={colonnes - 2}
           className="border-app-bord text-app-rouge-encre border-b px-4 py-[11px]"
@@ -220,7 +262,7 @@ function LigneAgence({
 
   return (
     <tr>
-      <Cellule fort>{libelle}</Cellule>
+      {nom}
       <Cellule>
         {/* LA PORTE DE L'ÉCRAN DE DÉTAIL (R3-13).
 
