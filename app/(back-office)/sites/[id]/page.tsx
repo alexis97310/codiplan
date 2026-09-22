@@ -8,6 +8,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { contactsDuSite } from "@/lib/contacts/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   exigencesDuSite,
@@ -24,6 +25,7 @@ import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
+import { BlocContacts } from "../../contacts/presentation";
 import { ouTiret } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
 import { libelleRattachement } from "../presentation";
@@ -74,6 +76,14 @@ import { libelleRattachement } from "../presentation";
  * CÔTÉ BASE (`dernieresInterventionsDuSite`, sur le modèle de PARC-1 — jamais
  * un `slice` après coup), et la borne est ÉCRITE à côté du tableau. Un lieu
  * sans aucune intervention dit son absence, comme le bloc des habilitations.
+ *
+ * ## LES INTERLOCUTEURS DU SITE (CONTACTS-1)
+ *
+ * `contactsDuSite` ne rend QUE les contacts rattachés à CE site — jamais ceux
+ * du client sans site, ni ceux d'un autre site du même client : la fiche
+ * client, elle, montre tous les interlocuteurs du client. La création fixe
+ * `site_id` à celui de cette fiche (champ caché) : depuis cet écran, on ne
+ * saisit jamais un contact « du client » par erreur.
  */
 
 /** Combien d'interventions la fiche montre. Une borne d'affichage, jamais un cloisonnement. */
@@ -113,6 +123,7 @@ export default async function PageSite({
   const habilitations = (await listerHabilitations(session.contexte)).filter(
     (habilitation) => habilitation.actif,
   );
+  const contacts = await contactsDuSite(session.contexte, site.id);
   const interventions = await dernieresInterventionsDuSite(
     session.contexte,
     site.id,
@@ -221,6 +232,18 @@ export default async function PageSite({
         siteId={site.id}
         exigences={exigences}
         habilitations={habilitations}
+      />
+
+      <BlocContacts
+        bloc="contacts-site"
+        titre={t("sites.fiche.contacts")}
+        texteVide={t("sites.fiche.contacts_vide")}
+        contacts={contacts}
+        clientId={site.client_id}
+        retour={`/sites/${site.id}`}
+        siteOptions={null}
+        siteFixe={site.id}
+        montrerRattachement={false}
       />
 
       <BlocInterventions

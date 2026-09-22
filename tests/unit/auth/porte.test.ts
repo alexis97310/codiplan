@@ -53,6 +53,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",
   "app/api/sites/creer/route.ts": "gerer_client_site",
   "app/api/sites/[id]/modifier/route.ts": "gerer_client_site",
+  // Un interlocuteur est un attribut du client, pas un objet à part
+  // (CONTACTS-1) : même capacité que les quatre routes ci-dessus.
+  "app/api/contacts/creer/route.ts": "gerer_client_site",
+  "app/api/contacts/[id]/modifier/route.ts": "gerer_client_site",
+  "app/api/contacts/[id]/activite/route.ts": "gerer_client_site",
   // « Créer une demande ».
   "app/api/interventions/creer/route.ts": "creer_demande",
   // « Qualifier / affecter ». Rattacher une machine après coup (chantier
@@ -241,7 +246,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(46);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(49);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

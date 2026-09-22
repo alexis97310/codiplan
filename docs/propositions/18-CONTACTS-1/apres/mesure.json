@@ -1,0 +1,22 @@
+{
+  "commit": "54fb8002399e63587b567f60e531023363d1d77d",
+  "horodatage": "2026-09-22T14:13:37.527Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "fiches": {
+    "client_avant": {
+      "url": "/clients/e2e00000-0000-7000-8000-0000000c17a0"
+    },
+    "client_apres": {
+      "url": "/clients/e2e00000-0000-7000-8000-0000000c17a0",
+      "lignes_rendues": 1
+    },
+    "site_avant": {
+      "url": "/sites/e2e00000-0000-7000-8000-00000000c17a"
+    },
+    "site_apres": {
+      "url": "/sites/e2e00000-0000-7000-8000-00000000c17a",
+      "lignes_rendues": 1
+    }
+  }
+}

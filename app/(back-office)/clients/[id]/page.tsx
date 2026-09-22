@@ -12,6 +12,7 @@ import {
   libelleCodeExterneDeLaSociete,
   lireClient,
 } from "@/lib/clients";
+import { contactsDuClient } from "@/lib/contacts/depot";
 import { dernieresInterventionsDuClient } from "@/lib/interventions/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -19,6 +20,7 @@ import { mot } from "@/lib/i18n/vocabulaire";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
+import { BlocContacts } from "../../contacts/presentation";
 import { ouTiret } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
 
@@ -32,16 +34,19 @@ import { referenceAffichee } from "../../interventions/presentation";
  * 14/09/2026. Les lieux d'intervention sont là pour la même raison que la
  * colonne de la liste : *ils disent où l'on intervient chez ce client.*
  *
- * ## LE BLOC « CONTACTS » NOMME SA PROPRE ABSENCE AU LIEU DE LA TAIRE
+ * ## LE BLOC « CONTACTS » (CONTACTS-1)
  *
  * `contact` existe en base depuis L1-03 — table, saisie Zod, dépôt, rôles et
- * canaux clos — et **aucun écran de l'application ne permet d'en saisir un** :
- * le module est l'un des neuf que R3-12 mesure comme sans chemin. Le bloc
- * n'affiche donc **ni un zéro, ni un blanc** : les deux se liraient comme des
- * mesures — « ce client n'a pas de contact » —, là où la vérité est *« nous
- * n'avons pas encore d'écran pour le dire »*. C'est la distinction de D88 sur
- * le registre des VGP, et la règle que le portail applique déjà à ses
- * emplacements tenus et dits vides.
+ * canaux clos —, et jusqu'à ce ticket aucun écran ne permettait d'en saisir
+ * un : le module était l'un des neuf que R3-12 mesurait comme sans chemin.
+ * `lib/contacts/depot.ts` ouvre les trois écritures (création, modification,
+ * bascule d'activité), et cette fiche montre TOUS les interlocuteurs du
+ * client — les siens propres (`site_id` nul) et ceux de ses sites — puisque
+ * *« qui appeler chez ce client »* ne se limite pas à un lieu. La fiche d'un
+ * site, elle, ne montre que les siens.
+ *
+ * Un client sans interlocuteur dit son absence (`clients.fiche.contacts_vide`),
+ * jamais un tableau vide (D88).
  *
  * ## AUCUNE SUPPRESSION SUR CET ÉCRAN, ET C'EST UNE DÉCISION
  *
@@ -100,6 +105,7 @@ export default async function PageClient({
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
   );
+  const contacts = await contactsDuClient(session.contexte, client.id);
   const interventions = await dernieresInterventionsDuClient(
     session.contexte,
     client.id,
@@ -278,14 +284,20 @@ export default async function PageClient({
         </Tableau>
       </section>
 
-      {/* LE BLOC QUI NOMME SON ABSENCE. Ni un zéro, ni un blanc : les deux se
-          liraient comme des mesures (D88). */}
-      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-4">
-        <h2 className="text-[15px] font-bold">{t("clients.fiche.contacts")}</h2>
-        <p className="text-app-encre-faible mt-1.5 text-[12.5px]">
-          {t("clients.fiche.contacts_sans_ecran")}
-        </p>
-      </section>
+      <BlocContacts
+        bloc="contacts-client"
+        titre={t("clients.fiche.contacts")}
+        texteVide={t("clients.fiche.contacts_vide")}
+        contacts={contacts}
+        clientId={client.id}
+        retour={`/clients/${client.id}`}
+        siteOptions={sites.map((site) => ({
+          id: site.id,
+          libelle: site.libelle,
+        }))}
+        siteFixe={null}
+        montrerRattachement
+      />
     </Page>
   );
 }

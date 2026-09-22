@@ -352,15 +352,12 @@ export const fr = {
   "clients.fiche.interventions": "Derni\u00e8res interventions",
   "clients.fiche.interventions_vide":
     "Aucune intervention n'est enregistr\u00e9e pour ce client.",
-  // LE BLOC « CONTACTS » NOMME SA PROPRE ABSENCE AU LIEU DE LA TAIRE.
-  //
-  // *Un zéro ou un blanc se liraient comme des mesures ; « aucun écran ne la
-  // sert encore » se lit comme un manque* (D88, et la règle du portail).
-  // Les contacts EXISTENT en base depuis L1-03 — table, saisie Zod, dépôt —
-  // et rien dans l'application ne permet d'en saisir un.
+  // LE BLOC « CONTACTS » (CONTACTS-1) — la fiche montre tous les
+  // interlocuteurs du client, qu'ils soient du client (`site_id` nul) ou d'un
+  // de ses sites. Le formulaire de création vit dans ce même bloc.
   "clients.fiche.contacts": "Contacts",
-  "clients.fiche.contacts_sans_ecran":
-    "Les interlocuteurs d'un client sont pr\u00e9vus et la donn\u00e9e existe, mais aucun \u00e9cran ne permet encore d'en saisir un. Ce bloc n'est donc ni vide ni \u00e0 z\u00e9ro\u00a0: il est sans information.",
+  "clients.fiche.contacts_vide":
+    "Aucun interlocuteur n'est enregistr\u00e9 pour ce client.",
   "clients.action.creer": "Cr\u00e9er la fiche",
   "clients.action.modifier": "Enregistrer",
   "clients.cree": "La fiche client est cr\u00e9\u00e9e.",
@@ -2773,6 +2770,56 @@ export const fr = {
   // vues par un utilisateur réel.
   "habilitations.e2e.code": "EPR-01",
   "habilitations.e2e.libelle": "Habilitation de l'épreuve",
+
+  // ── LES INTERLOCUTEURS D'UN CLIENT (CONTACTS-1) ────────────────────────────
+  //
+  // `lib/contacts/saisie.ts` (L1-03) clôt déjà les rôles et les canaux ;
+  // aucune de ces entrées ne recopie cette liste, elles la RENDENT depuis
+  // `ROLES_CONTACT` par `t(\`contact.role.${role}\`)`.
+  "contact.nom": "Nom",
+  "contact.fonction": "Fonction",
+  "contact.telephone": "Téléphone",
+  "contact.mobile": "Mobile",
+  "contact.email": "Courriel",
+  "contact.email.aide":
+    "Un seul canal de notification est servi aujourd'hui — le courriel — et il est donc demandé pour tout interlocuteur.",
+  "contact.roles": "Rôles",
+  "contact.role.donneur_ordre": "Donneur d'ordre",
+  "contact.role.signataire": "Signataire",
+  "contact.role.contact_technique": "Contact technique",
+  "contact.role.comptabilite": "Comptabilité",
+  "contact.rattachement": "Rattachement",
+  "contact.rattachement.client": "Contact du client (aucun lieu associé)",
+  "contact.actif": "Actif",
+  "contact.inactif": "Inactif",
+
+  "contacts.action.creer": "Ajouter un interlocuteur",
+  "contacts.action.modifier": "Enregistrer",
+  "contacts.action.activer": "Activer",
+  "contacts.action.desactiver": "Désactiver",
+  "contacts.cree": "L'interlocuteur est enregistré.",
+  "contacts.modifie": "L'interlocuteur est enregistré.",
+
+  "contacts.refus.saisie":
+    "Saisie invalide : vérifiez les champs du formulaire — un nom, au moins un rôle, et un courriel sont requis.",
+  "contacts.refus.client_hors_perimetre":
+    "Ce client n'appartient pas à la société active.",
+  "contacts.refus.site_hors_client": "Ce lieu n'appartient pas à ce client.",
+  "contacts.refus.introuvable":
+    "Aucun interlocuteur ne correspond à cette fiche.",
+
+  // Depuis la fiche d'un site (`/sites/[id]`).
+  "sites.fiche.contacts": "Interlocuteurs",
+  "sites.fiche.contacts_vide":
+    "Aucun interlocuteur n'est enregistré pour ce lieu.",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/contacts.spec.ts) ────
+  //
+  // Même raison que `habilitations.e2e.*` : le gardien de L0-11 fait passer
+  // par ici jusqu'au texte qu'un test de rendu attend, et ces valeurs ne sont
+  // jamais vues par un utilisateur réel.
+  "contacts.e2e.nom_du_client": "Donneuse d'ordre (épreuve)",
+  "contacts.e2e.nom_du_site": "Contact du lieu (épreuve)",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
