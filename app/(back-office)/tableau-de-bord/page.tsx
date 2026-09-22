@@ -27,6 +27,7 @@ import { referenceAffichee } from "../interventions/presentation";
 import {
   detailEnAttenteDePiece,
   detailInterventionsDuJour,
+  detailVgpAPrevoir,
   elementsFiltres,
   etatVgpAPrevoir,
   filtrePrioriteLu,
@@ -35,6 +36,7 @@ import {
   prioritesPieces,
   prioritesUrgentes,
   techniciensIndisponibles,
+  valeurVgpAPrevoir,
   type ElementPriorite,
 } from "./presentation";
 
@@ -105,6 +107,14 @@ const HORIZON_VGP_JOURS = 30;
  * `auMoinsUneVerificationEnregistree`, `lib/vgp/verification.ts`). La
  * seconde emprunte donc le même texte `Non calculé` que le taux d'occupation,
  * plutôt qu'une troisième forme.
+ *
+ * **ET ELLE MENTAIT SUR LE RETARD (VGP-2, 22/09/2026)** : mesuré sur
+ * d9c9446, une machine dont l'échéance était passée depuis huit mois ne
+ * comptait pas — `compterAPrevoir` écartait `< 0` —, et la tuile rendait
+ * « 0 » avec « Dans les 30 prochains jours ». La tuile dit désormais TROIS
+ * voies (`detailVgpAPrevoir`) : DÉPASSÉE, À VENIR sous `HORIZON_VGP_JOURS`,
+ * SANS INFORMATION — et son grand chiffre (`valeurVgpAPrevoir`) compte les
+ * dépassées avec les à venir. Même ordre, même nombre de tuiles (D125).
  *
  * ## « PRIORITÉS OPÉRATIONNELLES » — voir `./presentation.ts`
  *
@@ -249,12 +259,12 @@ export default async function PageTableauDeBord({
             libelle={t("tableau_de_bord.kpi_vgp_a_prevoir")}
             valeur={
               etatVgp.calcule
-                ? etatVgp.valeur
+                ? valeurVgpAPrevoir(etatVgp)
                 : t("tableau_de_bord.non_calcule")
             }
             detail={
               etatVgp.calcule
-                ? t("tableau_de_bord.vgp_a_prevoir_detail")
+                ? detailVgpAPrevoir(etatVgp, HORIZON_VGP_JOURS)
                 : t("tableau_de_bord.vgp_a_prevoir_motif_non_calcule")
             }
           />

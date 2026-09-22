@@ -186,16 +186,134 @@ function ligneDuRegistre(
 }
 
 /**
- * COMBIEN DE MACHINES ONT UNE ÉCHÉANCE DÉDUITE DANS L'HORIZON DONNÉ
- * (AV-10, tableau de bord, D125) — le KPI « VGP à prévoir » de `dashboard()`.
+ * ── LES DEUX VOIES DATÉES, ÉCRITES UNE FOIS (VGP-2) ────────────────────────
  *
- * **Elle ne compte QUE l'état `information_recue`.** Une machine
- * `sans_information` ou `hors_registre` n'a pas d'échéance déduite —
- * l'inventer pour la faire entrer dans le compte serait exactement la faute
- * que L9-05 interdit déjà (aucune durée qui ne vienne pas de la donnée
- * saisie). *Le compte est donc un plancher, jamais un inventaire complet du
- * parc* — le registre lui-même le dit déjà à sa façon (« sans information »
- * n'est jamais lu comme « à jour »).
+ * `joursAvantEcheance` est une SOUSTRACTION déjà faite par
+ * `etatDeLInformation`, sur une échéance DÉDUITE d'une périodicité saisie ;
+ * son signe dit si la date est passée. Ces deux prédicats ne font que LIRE ce
+ * signe — et ils sont écrits ici UNE fois, parce que `compterAPrevoir` (le
+ * tableau de bord), `resumerLeRegistre` (les KPI de `/vgp`) et le badge de
+ * chaque ligne du registre lisent tous le MÊME critère : trois écritures
+ * divergeraient en silence (§9, 01/09). Mesuré le 22/09/2026 : le compteur
+ * d'accueil écartait `< 0` quand le résumé du registre le comptait — le même
+ * retard, compté à un écran et tu à l'autre.
+ *
+ * **Aucun des deux n'est un verdict (D88).** « Dépassée » dit qu'une date
+ * déclarée est passée ; il ne dit ni « non conforme », ni « en retard » — la
+ * même distinction que `vgp.echeance.depassee` porte au dictionnaire.
+ *
+ * **Aucune tolérance** : une échéance est passée ou elle ne l'est pas. La
+ * seule borne est l'HORIZON de « à venir », et il est REÇU de l'appelant —
+ * jamais écrit ici (L9-05, gardé par `aucune-duree-en-dur.test.ts`).
+ *
+ * **La civile, jamais l'instant (DATES-1)** : `aujourdHui` est la civile du
+ * jour de la société (`instantDuJour(jourDe(local))`), posée à minuit UTC
+ * comme la colonne `@db.Date` dont l'échéance dérive. Une échéance du JOUR
+ * MÊME vaut donc 0 jour — À VENIR, jamais dépassée, y compris à 23 h 59 heure
+ * de Nouméa. C'est l'appelant qui le garantit ; ce fichier n'a pas d'horloge.
+ */
+export function echeanceDepassee(etat: EtatInformation): boolean {
+  return (
+    etat.etat === "information_recue" &&
+    etat.joursAvantEcheance !== null &&
+    etat.joursAvantEcheance < 0
+  );
+}
+
+/** L'échéance déduite tombe entre aujourd'hui (compris) et l'horizon (compris). */
+export function echeanceAVenirSous(
+  etat: EtatInformation,
+  horizonJours: number,
+): boolean {
+  return (
+    etat.etat === "information_recue" &&
+    etat.joursAvantEcheance !== null &&
+    etat.joursAvantEcheance >= 0 &&
+    etat.joursAvantEcheance <= horizonJours
+  );
+}
+
+/**
+ * LES TROIS VOIES DU COMPTE D'ACCUEIL (VGP-2) — et ce sont trois VALEURS
+ * NOMMÉES, jamais un seul chiffre.
+ *
+ * `depassees` et `aVenir` sont datées ; `sansInformation` ne l'est pas — on ne
+ * sait pas quand ces machines sont dues, et l'inventer serait une durée
+ * (L9-05). Ce qui n'y figure PAS, délibérément : les machines informées dont
+ * l'échéance est au-delà de l'horizon (rien à prévoir), et celles informées
+ * SANS rythme déclaré (rien à déduire — `vgp.echeance.sans_rythme`). Ni
+ * l'une ni l'autre n'est une quatrième voie : ce sont des machines dont le
+ * registre a quelque chose à dire, et pas l'accueil.
+ */
+export type CompteAPrevoir = {
+  /** Échéance déduite déjà passée — une date, jamais un verdict. */
+  readonly depassees: number;
+  /** Échéance déduite entre aujourd'hui et l'horizon, compris. */
+  readonly aVenir: number;
+  /** Soumises, et personne ne nous a jamais rien dit. */
+  readonly sansInformation: number;
+};
+
+/**
+ * La fonction PURE des deux voies datées — testée sans base, sur des lignes
+ * déjà lues (`tests/unit/vgp/voies-a-prevoir.test.ts`). Elle ne prend que
+ * `information` : ce qu'elle lit, jamais la ligne entière.
+ */
+export function compterLesEcheances(
+  lignes: readonly { readonly information: EtatInformation }[],
+  horizonJours: number,
+): Pick<CompteAPrevoir, "depassees" | "aVenir"> {
+  let depassees = 0;
+  let aVenir = 0;
+  for (const ligne of lignes) {
+    if (echeanceDepassee(ligne.information)) {
+      depassees += 1;
+    } else if (echeanceAVenirSous(ligne.information, horizonJours)) {
+      aVenir += 1;
+    }
+  }
+  return { depassees, aVenir };
+}
+
+/**
+ * LE PRÉDICAT « SOUMISE » DU `where` — la cascade de `resoudreAssujettissement`
+ * RETROUVÉE en SQL, jamais réécrite (lot PERF, point 2) : l'exception de la
+ * machine prime si elle est posée, sinon la famille décide. Écrit UNE fois
+ * pour les deux lectures de `compterAPrevoir` ; sa fidélité à la cascade est
+ * prouvée par énumération dans `tests/unit/perf/vgp-compter-a-prevoir.test.ts`
+ * et `tests/unit/vgp/voies-a-prevoir.test.ts`.
+ */
+const WHERE_SOUMISE: Prisma.MachineWhereInput = {
+  OR: [
+    { vgp_exception: ASSUJETTISSEMENT.soumis },
+    {
+      vgp_exception: null,
+      modele: {
+        famille: { assujettissement_vgp: ASSUJETTISSEMENT.soumis },
+      },
+    },
+  ],
+};
+
+/**
+ * CE QUE L'ACCUEIL COMPTE DU REGISTRE (AV-10, tableau de bord, D125 ; VGP-2)
+ * — le KPI « VGP à prévoir » de `dashboard()`, en TROIS voies.
+ *
+ * ## CE QUI A CHANGÉ LE 22/09/2026 (VGP-2), ET POURQUOI
+ *
+ * ~~Elle ne compte QUE l'état `information_recue`~~ et, jusqu'à ce lot,
+ * seulement les échéances `>= 0` : **une machine dont l'échéance était
+ * passée depuis six mois comptait ZÉRO** — le même zéro qu'un parc sans rien
+ * à prévoir. La doctrine du dépôt était pourtant écrite deux fois (AV-14 :
+ * *un texte nommé, jamais un zéro qui se lit comme une mesure* ;
+ * `information.ts` : `sans_information` est une valeur, jamais une absence).
+ * Le retard est le même défaut ; il devient une VOIE NOMMÉE, `depassees`.
+ *
+ * `sansInformation` est la troisième voie : les machines soumises dont
+ * personne n'a rien dit. Elle n'a pas de date, et elle n'en invente pas
+ * (L9-05) — mais l'accueil la NOMME, parce qu'un compte qui la tairait
+ * laisserait lire « rien à prévoir » d'un parc jamais vérifié (D88 : *un
+ * registre à moitié rempli ressemble à un registre complet*).
  *
  * **Aucune pagination** : contrairement à `listerLeRegistre`, ce compte porte
  * sur tout le parc cloisonné — un KPI qui ne compterait qu'une page tronquée
@@ -203,12 +321,12 @@ function ligneDuRegistre(
  * `rechercherLeParc`).
  *
  * ## LA LECTURE EST ÉTROITE, ET C'EST RETROUVER EN SQL CE QUE LE FILTRE
- *    REJETTE DÉJÀ EN MÉMOIRE (lot PERF, mesuré sur 4fead41)
+ *    REJETTE DÉJÀ EN MÉMOIRE (lot PERF, mesuré sur 4fead41 ; tenu par VGP-2)
  *
- * Cette fonction ne compte QUE l'état `information_recue` (voir ci-dessus) —
- * deux conditions NÉCESSAIRES en découlent, et ni l'une ni l'autre n'invente
- * de règle : elles REDISENT en `where` ce que `ligneDuRegistre` rejetterait
- * de toute façon en mémoire.
+ * Les deux voies DATÉES ne concernent que l'état `information_recue` — deux
+ * conditions NÉCESSAIRES en découlent, et ni l'une ni l'autre n'invente de
+ * règle : elles REDISENT en `where` ce que `ligneDuRegistre` rejetterait de
+ * toute façon en mémoire.
  *
  *   1. **Une machine sans aucune vérification reçue est `sans_information`,
  *      jamais `information_recue`** (`etatDeLInformation`) : le `where` se
@@ -216,60 +334,51 @@ function ligneDuRegistre(
  *      groupée que `listerLeRegistre` fait, jamais une seconde écriture du
  *      critère « a-t-on reçu quelque chose ? ».
  *   2. **Une machine dont l'assujettissement résolu n'est pas `soumis` est
- *      `hors_registre`**, jamais comptée — la MÊME cascade que
- *      `resoudreAssujettissement` : l'exception de la machine prime si elle
- *      est posée, sinon l'assujettissement de la famille décide. Rejouer
- *      cette cascade en `where` ne la réécrit pas ailleurs (§9, 01/09) :
- *      `ligneDuRegistre` reste l'UNIQUE endroit qui sait ce qu'« exception
- *      NULLE » et « soumis » veulent dire ensemble ; le `where` ne fait que
- *      retrouver son verdict pour les deux mêmes colonnes.
+ *      `hors_registre`**, jamais comptée — `WHERE_SOUMISE`, ci-dessus.
+ *
+ * **La voie SANS INFORMATION est un `count`, sans lecture des lignes** — et
+ * c'est le point 1 lu dans l'autre sens : une machine soumise qui n'est PAS
+ * dans `recues` est `sans_information` par la seule cascade, sans qu'aucune
+ * date n'entre dans le verdict. Il n'y a donc AUCUN calcul par ligne à
+ * préserver ici, seulement la cascade que `WHERE_SOUMISE` retrouve — prouvé
+ * pour chaque combinaison possible (`voies-a-prevoir.test.ts`).
  *
  * **Ce que ce filtre NE fait PAS** : il ne touche pas à la périodicité ni à
  * l'échéance — `ajouterMois` (le report de mois, avec son ajustement de fin
  * de mois) reste un calcul TypeScript, jamais traduit en SQL, précisément
- * parce qu'une traduction divergente mentirait en silence (voir la garde du
- * ticket qui a introduit cette lecture). Le filtre resserre la POPULATION
- * lue, jamais le calcul appliqué à chaque ligne restante — `machines.filter`
- * ci-dessous reste inchangé, ligne pour ligne.
+ * parce qu'une traduction divergente mentirait en silence. Le filtre
+ * resserre la POPULATION lue, jamais le calcul appliqué à chaque ligne
+ * restante — `compterLesEcheances` lit chaque ligne restante, l'une après
+ * l'autre, par les mêmes deux fonctions que le registre.
  */
 export async function compterAPrevoir(
   contexte: ContexteSession,
   aujourdHui: Date,
   horizonJours: number,
-): Promise<number> {
+): Promise<CompteAPrevoir> {
   const recues = await dernieresInformations(contexte);
   const machineIds = [...recues.keys()];
-  // AUCUNE MACHINE N'A JAMAIS ÉTÉ INFORMÉE : le compte est nul sans lire
-  // `machine` — voir le point 1 ci-dessus.
-  if (machineIds.length === 0) {
-    return 0;
-  }
-  const machines = await avecContexteApplicatif(contexte, (tx) =>
-    tx.machine.findMany({
-      select: CHAMPS_REGISTRE,
-      where: {
-        id: { in: machineIds },
-        OR: [
-          { vgp_exception: ASSUJETTISSEMENT.soumis },
-          {
-            vgp_exception: null,
-            modele: {
-              famille: { assujettissement_vgp: ASSUJETTISSEMENT.soumis },
-            },
-          },
-        ],
-      },
-    }),
+  const [informees, sansInformation] = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      Promise.all([
+        // AUCUNE MACHINE N'A JAMAIS ÉTÉ INFORMÉE : la liste est vide sans lire
+        // `machine` — voir le point 1 ci-dessus.
+        machineIds.length === 0
+          ? Promise.resolve([] as MachineDuRegistre[])
+          : tx.machine.findMany({
+              select: CHAMPS_REGISTRE,
+              where: { id: { in: machineIds }, ...WHERE_SOUMISE },
+            }),
+        tx.machine.count({
+          where: { id: { notIn: machineIds }, ...WHERE_SOUMISE },
+        }),
+      ]),
   );
-  return machines.filter((machine) => {
-    const ligne = ligneDuRegistre(machine, recues, aujourdHui);
-    return (
-      ligne.information.etat === "information_recue" &&
-      ligne.information.joursAvantEcheance !== null &&
-      ligne.information.joursAvantEcheance >= 0 &&
-      ligne.information.joursAvantEcheance <= horizonJours
-    );
-  }).length;
+  const lignes = informees.map((machine) =>
+    ligneDuRegistre(machine, recues, aujourdHui),
+  );
+  return { ...compterLesEcheances(lignes, horizonJours), sansInformation };
 }
 
 const CHAMPS_INFORMATION_MACHINE = {
@@ -417,26 +526,24 @@ export function resumerLeRegistre(
   lignes: readonly LigneDeRegistre[],
 ): ResumeDuRegistre {
   let echeanceAVenir = 0;
-  let echeanceDepassee = 0;
+  let depassees = 0;
   let informationRecue = 0;
   for (const ligne of lignes) {
     if (ligne.information.etat !== "information_recue") {
       continue;
     }
     informationRecue += 1;
-    const jours = ligne.information.joursAvantEcheance;
-    if (jours === null) {
-      continue;
-    }
-    if (jours < 0) {
-      echeanceDepassee += 1;
-    } else {
+    // LE MÊME PRÉDICAT QUE L'ACCUEIL (VGP-2) — `echeanceDepassee`, écrit une
+    // fois. Sans rythme déclaré, l'échéance est nulle : ni l'une ni l'autre.
+    if (echeanceDepassee(ligne.information)) {
+      depassees += 1;
+    } else if (ligne.information.joursAvantEcheance !== null) {
       echeanceAVenir += 1;
     }
   }
   return {
     echeanceAVenir,
-    echeanceDepassee,
+    echeanceDepassee: depassees,
     informationRecue,
     total: lignes.length,
   };

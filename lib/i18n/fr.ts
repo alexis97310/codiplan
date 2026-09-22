@@ -1637,6 +1637,12 @@ export const fr = {
   "vgp.information.hors_registre": "Hors registre",
   "vgp.information.sans_information": "Sans information",
   "vgp.information.recue": "Information reçue",
+  // LE BADGE DU RETARD (VGP-2, 22/09/2026) — une information reçue dont
+  // l'échéance déduite est PASSÉE. Mesuré sur d9c9446 : la ligne portait
+  // « Information reçue » en vert, le même badge qu'une machine à échéance
+  // lointaine. « Dépassée » dit qu'une date est passée, jamais « en retard »
+  // ni « non conforme » (D88) — le même mot que `vgp.echeance.depassee`.
+  "vgp.information.recue_echeance_depassee": "Échéance dépassée",
   "vgp.information.depuis_inconnu":
     "sans information, et sans date de mise en service pour dire depuis quand",
   // L'ÉCHÉANCE DÉDUITE (R3-11) — une DATE, jamais un verdict. « Dépassée »
@@ -2270,7 +2276,18 @@ export const fr = {
   "tableau_de_bord.taux_occupation_motif":
     "Pas de règle de consolidation (R2-13).",
   "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
-  "tableau_de_bord.vgp_a_prevoir_detail": "Dans les 30 prochains jours",
+  // LES TROIS VOIES DE LA TUILE (VGP-2, 22/09/2026) — DÉPASSÉE, À VENIR sous
+  // l'horizon, SANS INFORMATION. ~~« Dans les 30 prochains jours »~~ : ce seul
+  // détail, sous un « 0 », se lisait « rien à faire » sur une base dont une
+  // machine était dépassée depuis huit mois (mesuré sur d9c9446). L'horizon
+  // n'est plus écrit ici : il est COMPOSÉ depuis `HORIZON_VGP_JOURS` de la
+  // page, la seule à le fixer. Aucun mot ne dit « conforme » ni « en retard »
+  // (D88) — on dit ce qu'on sait d'une date, jamais ce que la machine vaut.
+  "tableau_de_bord.vgp_voie_depassee_une": "échéance dépassée",
+  "tableau_de_bord.vgp_voie_depassees": "échéances dépassées",
+  "tableau_de_bord.vgp_voie_a_venir_prefixe": "à venir sous",
+  "tableau_de_bord.vgp_voie_a_venir_suffixe": "jours",
+  "tableau_de_bord.vgp_voie_sans_information": "sans information",
   // LE REGISTRE N'A JAMAIS RIEN REÇU (lot AV-14) — distinct de « rien n'est dû
   // dans l'horizon » : voir `auMoinsUneVerificationEnregistree`
   // (lib/vgp/verification.ts) et `etatVgpAPrevoir` (./presentation.ts).

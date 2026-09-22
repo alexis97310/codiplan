@@ -23,6 +23,12 @@ import { etatDeLInformation } from "@/lib/vgp/information";
  * mémoire (`ligneDuRegistre`, `resoudreAssujettissement` + `etatDeLInformation`)
  * aurait comptée comme `information_recue`. C'est une preuve par
  * ÉNUMÉRATION EXHAUSTIVE des combinaisons possibles, pas un sondage.
+ *
+ * **Depuis VGP-2 (22/09/2026), `compterAPrevoir` rend TROIS voies** —
+ * dépassées, à venir, sans information — et non plus un entier. Rien ici n'a
+ * été modifié : `COMPTE_FIGE` (2) est la voie À VENIR de ce même parc, et le
+ * prédicat resserré est inchangé. L'extension aux trois voies vit dans
+ * `tests/unit/vgp/voies-a-prevoir.test.ts`, avec son motif.
  */
 
 const TOUTES_LES_VALEURS = [

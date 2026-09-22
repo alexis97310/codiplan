@@ -120,14 +120,24 @@ describe("les techniciens indisponibles se comptent par PERSONNE", () => {
 });
 
 describe("« VGP à prévoir » distingue le zéro mesuré du registre vierge (lot AV-14)", () => {
+  // LA FORME A CHANGÉ LE 22/09/2026 (VGP-2) : le compte n'est plus UN chiffre
+  // mais TROIS voies (dépassées, à venir, sans information) — voir
+  // `vgp-trois-voies.test.ts`. Ce que ce bloc garde n'a pas bougé : au moins
+  // une vérification → les comptes se lisent tels quels, même à zéro ; aucune
+  // → « non calculé », jamais un zéro.
+  const RIEN = { depassees: 0, aVenir: 0, sansInformation: 0 };
+
   it("LE CAS QUI DOIT RESTER VERT : au moins une vérification enregistrée → le compte se lit tel quel, même à zéro", () => {
-    expect(etatVgpAPrevoir(true, 0)).toEqual({ calcule: true, valeur: 0 });
-    expect(etatVgpAPrevoir(true, 6)).toEqual({ calcule: true, valeur: 6 });
+    expect(etatVgpAPrevoir(true, RIEN)).toEqual({ calcule: true, ...RIEN });
+    expect(
+      etatVgpAPrevoir(true, { depassees: 0, aVenir: 6, sansInformation: 0 }),
+    ).toEqual({ calcule: true, depassees: 0, aVenir: 6, sansInformation: 0 });
   });
 
   it("AUCUNE vérification jamais enregistrée → non calculé, quel que soit le compte reçu", () => {
-    // `compterAPrevoir` ne peut rendre que 0 dans ce cas (voir sa propre
-    // note), mais la fonction ne le suppose pas : elle obéit au drapeau.
-    expect(etatVgpAPrevoir(false, 0)).toEqual({ calcule: false });
+    // `compterAPrevoir` ne peut rendre que des voies datées nulles dans ce cas
+    // (voir sa propre note), mais la fonction ne le suppose pas : elle obéit
+    // au drapeau.
+    expect(etatVgpAPrevoir(false, RIEN)).toEqual({ calcule: false });
   });
 });

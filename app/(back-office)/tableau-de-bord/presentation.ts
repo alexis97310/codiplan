@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/fr";
+import { type CompteAPrevoir } from "@/lib/vgp/registre";
 
 /**
  * CE QUE LE TABLEAU DE BORD COMPOSE (AV-10).
@@ -122,27 +123,79 @@ export function techniciensIndisponibles(
 
 /**
  * LA TUILE « VGP À PRÉVOIR » MENT PAR OMISSION QUAND LE REGISTRE EST VIERGE
- * (lot AV-14, 19/09/2026).
+ * (lot AV-14, 19/09/2026) — ET ELLE MENTAIT DE LA MÊME FAÇON SUR LE RETARD
+ * (VGP-2, 22/09/2026).
  *
- * `compterAPrevoir` (`lib/vgp/registre.ts`) rend 0 dans DEUX situations que le
- * chiffre seul ne distingue pas : rien n'est dû dans l'horizon (une mesure
+ * `compterAPrevoir` (`lib/vgp/registre.ts`) rendait 0 dans DEUX situations que
+ * le chiffre seul ne distingue pas : rien n'est dû dans l'horizon (une mesure
  * réelle, une bonne nouvelle), ou AUCUNE machine n'a jamais reçu de
  * vérification (le registre n'a encore rien à mesurer — `sans_information`,
  * `lib/vgp/information.ts`, est déjà une valeur à part entière pour la même
  * raison). La seconde se traite comme `taux_occupation_non_calcule` : un
  * texte nommé, jamais un zéro qui se lit comme une mesure.
+ *
+ * **Mesuré le 22/09/2026 (d9c9446) : il y avait une TROISIÈME situation, et
+ * c'était la pire.** Une machine soumise dont l'échéance déduite était passée
+ * depuis huit mois comptait ZÉRO — le filtre `>= 0` l'écartait — et la tuile
+ * rendait « 0 — Dans les 30 prochains jours » : *le seul cas où l'outil doit
+ * crier est précisément celui où il se taisait.* Le retard est le même défaut
+ * qu'AV-14 a fermé pour le registre vierge, et il se ferme de la même façon :
+ * **une voie NOMMÉE, jamais un zéro, jamais un vert.** La tuile porte donc
+ * TROIS voies — DÉPASSÉE, À VENIR (sous l'horizon), SANS INFORMATION —, et
+ * aucune ne dit « conforme » ni « non conforme » (D88) : on dit ce qu'on SAIT
+ * de la date, jamais ce que la machine vaut.
+ *
+ * Ni l'ORDRE ni le NOMBRE des tuiles ne changent (D125) — seulement ce que
+ * celle-ci dit.
  */
 export type EtatVgpAPrevoir =
-  | { readonly calcule: true; readonly valeur: number }
-  | { readonly calcule: false };
+  ({ readonly calcule: true } & CompteAPrevoir) | { readonly calcule: false };
 
 export function etatVgpAPrevoir(
   auMoinsUneVerificationEnregistree: boolean,
-  compte: number,
+  compte: CompteAPrevoir,
 ): EtatVgpAPrevoir {
   return auMoinsUneVerificationEnregistree
-    ? { calcule: true, valeur: compte }
+    ? { calcule: true, ...compte }
     : { calcule: false };
+}
+
+/**
+ * LE GRAND CHIFFRE DE LA TUILE — les DÉPASSÉES avec les À VENIR : une
+ * échéance passée est à prévoir, et avant les autres. Les « sans
+ * information » n'y entrent pas : on ne sait pas quand elles sont dues, et
+ * les compter comme dues serait leur inventer une durée (L9-05). Elles sont
+ * nommées dans le détail, jamais tues.
+ */
+export function valeurVgpAPrevoir(compte: CompteAPrevoir): number {
+  return compte.depassees + compte.aVenir;
+}
+
+/**
+ * LE DÉTAIL SOUS LE CHIFFRE — les trois voies, TOUJOURS nommées, dans cet
+ * ordre : DÉPASSÉE (celle qui crie), À VENIR sous l'horizon REÇU (jamais
+ * écrit ici — c'est la page qui le fixe, et la maquette qui l'a dessiné),
+ * SANS INFORMATION.
+ *
+ * *Un détail qui affiche toujours quelque chose finit par ne plus se lire*
+ * (§9, 06/09) vaut pour un détail qui ne dit RIEN à zéro — « 0 non affectée ».
+ * Ici, « 0 échéance dépassée » dit quelque chose : que la voie existe et
+ * qu'on l'a mesurée. Un lecteur qui ne voit jamais ce mot ne saurait pas que
+ * la tuile le dirait le jour où il compte.
+ */
+export function detailVgpAPrevoir(
+  compte: CompteAPrevoir,
+  horizonJours: number,
+): string {
+  const depassees =
+    compte.depassees === 1
+      ? t("tableau_de_bord.vgp_voie_depassee_une")
+      : t("tableau_de_bord.vgp_voie_depassees");
+  return [
+    `${compte.depassees} ${depassees}`,
+    `${compte.aVenir} ${t("tableau_de_bord.vgp_voie_a_venir_prefixe")} ${horizonJours} ${t("tableau_de_bord.vgp_voie_a_venir_suffixe")}`,
+    `${compte.sansInformation} ${t("tableau_de_bord.vgp_voie_sans_information")}`,
+  ].join(" · ");
 }
 
 /**

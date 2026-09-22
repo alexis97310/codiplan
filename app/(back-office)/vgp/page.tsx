@@ -19,6 +19,7 @@ import { t } from "@/lib/i18n/fr";
 import { libelleEcheance } from "@/lib/vgp/libelles";
 import { type EtatInformation } from "@/lib/vgp/information";
 import {
+  echeanceDepassee,
   famillesADeterminer,
   listerLeRegistre,
   resumerLeRegistre,
@@ -48,6 +49,12 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * code donc l'ÉTAT DE L'INFORMATION — Hors registre / Sans information /
  * Information reçue —, jamais une conformité. C'est un ÉCART VOLONTAIRE à la
  * maquette, nommé ici et dans la proposition du lot, pas un oubli.
+ *
+ * **Depuis VGP-2 (22/09/2026), une information reçue dont l'échéance déduite
+ * est PASSÉE porte un badge distinct — « Échéance dépassée », ton rouge.**
+ * Ce n'est toujours pas un verdict : c'est une DATE passée, dite au même
+ * endroit que l'état, parce que le vert d'« Information reçue » se lisait
+ * comme « à jour » (voir `tonEtat`).
  *
  * ## LE BOUTON « + PLANIFIER UN CONTRÔLE » DE L'EN-TÊTE — ÉCART NOMMÉ
  *
@@ -133,10 +140,19 @@ function dernierControleAffiche(ligne: LigneDeRegistre): string {
 }
 
 /**
- * LE TON DU BADGE D'ÉTAT — dérivé des TROIS états de `information.ts`,
- * jamais d'un quatrième inventé. Aucun des trois ne dit ni conforme ni non
- * conforme (D88) : le ton n'est qu'un repère visuel sur ce qu'on SAIT, pas un
- * jugement sur ce que ça vaut.
+ * LE TON DU BADGE D'ÉTAT — dérivé des TROIS états de `information.ts`, ET DU
+ * SIGNE DE L'ÉCHÉANCE (VGP-2). Aucun ne dit ni conforme ni non conforme
+ * (D88) : le ton n'est qu'un repère visuel sur ce qu'on SAIT, pas un jugement
+ * sur ce que ça vaut.
+ *
+ * **Mesuré le 22/09/2026 (d9c9446) : le ton dérivait du seul `etat`.** Une
+ * machine dont l'échéance déduite était passée depuis huit mois est
+ * `information_recue` — elle portait donc le badge VERT, le même qu'une
+ * machine dont l'échéance est dans dix mois. La date était bien dans sa
+ * colonne, mais *le seul repère visuel de l'écran disait l'inverse de la
+ * réalité*. Le prédicat est `echeanceDepassee` de `lib/vgp/registre.ts` — le
+ * MÊME que l'accueil et que les KPI de cet écran lisent, jamais un `< 0`
+ * réécrit ici (§9, 01/09).
  */
 const TONS_ETAT: Record<EtatInformation["etat"], TonBadge> = {
   hors_registre: "gris",
@@ -144,15 +160,26 @@ const TONS_ETAT: Record<EtatInformation["etat"], TonBadge> = {
   information_recue: "vert",
 };
 
-/** Le libellé COURT du badge — une catégorie, jamais une phrase (D128). */
-function libelleEtatCourt(etat: EtatInformation["etat"]): string {
-  if (etat === "hors_registre") {
+function tonEtat(information: EtatInformation): TonBadge {
+  return echeanceDepassee(information) ? "rouge" : TONS_ETAT[information.etat];
+}
+
+/**
+ * Le libellé COURT du badge — une catégorie, jamais une phrase (D128). Quand
+ * l'échéance déduite est passée, le badge le DIT (VGP-2) : « Information
+ * reçue » seul se lisait comme « à jour », et c'est le registre à moitié
+ * rempli qui ressemble à un registre complet (D88).
+ */
+function libelleEtatCourt(information: EtatInformation): string {
+  if (information.etat === "hors_registre") {
     return t("vgp.information.hors_registre");
   }
-  if (etat === "sans_information") {
+  if (information.etat === "sans_information") {
     return t("vgp.information.sans_information");
   }
-  return t("vgp.information.recue");
+  return echeanceDepassee(information)
+    ? t("vgp.information.recue_echeance_depassee")
+    : t("vgp.information.recue");
 }
 
 /**
@@ -350,8 +377,8 @@ function LigneRegistre({ ligne }: { readonly ligne: LigneDeRegistre }) {
       <Cellule>{dernierControleAffiche(ligne)}</Cellule>
       <Cellule>{echeanceAffichee(ligne)}</Cellule>
       <Cellule>
-        <Badge ton={TONS_ETAT[ligne.information.etat]}>
-          {libelleEtatCourt(ligne.information.etat)}
+        <Badge ton={tonEtat(ligne.information)}>
+          {libelleEtatCourt(ligne.information)}
         </Badge>
         {depart === null ? null : (
           <span className="text-app-encre-faible mt-[3px] block text-[11.5px] break-words">
