@@ -2,10 +2,12 @@ import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { Button } from "@/components/ui/button";
+import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { obtenirSession } from "@/lib/auth/session";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   exigencesDuSite,
@@ -13,9 +15,17 @@ import {
   type LigneExigence,
 } from "@/lib/habilitations/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import {
+  dernieresInterventionsDuSite,
+  type LigneIntervention,
+} from "@/lib/interventions/depot";
 import { libellesDesSites, lireSite } from "@/lib/sites/depot";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
+import { ouTiret } from "../../presentation";
+import { referenceAffichee } from "../../interventions/presentation";
 import { libelleRattachement } from "../presentation";
 
 /**
@@ -54,7 +64,21 @@ import { libelleRattachement } from "../presentation";
  * l'affectation comme au déplacement. Mais rien ne pouvait déclarer ce qu'un
  * site EXIGE : cette fiche est le seul écran qui connaisse déjà le site
  * concerné, donc le seul endroit d'où la déclaration puisse partir.
+ *
+ * ## LES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1)
+ *
+ * *« Qu'est-ce qu'on a déjà fait chez ce client, à cet endroit ? »* — c'est la
+ * question qu'on se pose AVANT de planifier, et cette fiche n'y répondait pas :
+ * les 1751 interventions d'archive reprises le 22/09/2026 sont rattachées à
+ * des sites, et il fallait passer machine par machine. La lecture est BORNÉE
+ * CÔTÉ BASE (`dernieresInterventionsDuSite`, sur le modèle de PARC-1 — jamais
+ * un `slice` après coup), et la borne est ÉCRITE à côté du tableau. Un lieu
+ * sans aucune intervention dit son absence, comme le bloc des habilitations.
  */
+
+/** Combien d'interventions la fiche montre. Une borne d'affichage, jamais un cloisonnement. */
+const INTERVENTIONS_MONTREES = 12;
+
 export default async function PageSite({
   params,
   searchParams,
@@ -88,6 +112,11 @@ export default async function PageSite({
   const exigences = await exigencesDuSite(session.contexte, site.id);
   const habilitations = (await listerHabilitations(session.contexte)).filter(
     (habilitation) => habilitation.actif,
+  );
+  const interventions = await dernieresInterventionsDuSite(
+    session.contexte,
+    site.id,
+    INTERVENTIONS_MONTREES,
   );
 
   return (
@@ -192,6 +221,11 @@ export default async function PageSite({
         siteId={site.id}
         exigences={exigences}
         habilitations={habilitations}
+      />
+
+      <BlocInterventions
+        interventions={interventions}
+        borne={INTERVENTIONS_MONTREES}
       />
     </Page>
   );
@@ -334,4 +368,88 @@ function BlocExigences({
       )}
     </section>
   );
+}
+
+/**
+ * LES DERNIÈRES INTERVENTIONS DE CE SITE (HISTORIQUE-SITE-1).
+ *
+ * Les colonnes sont celles déjà servies pour une ligne de planning sur la
+ * fiche client — référence, date, type, statut —, moins le lieu : c'est le
+ * titre de cette page. **La borne est écrite**, avec son nombre, parce qu'un
+ * tableau qui s'arrête sans le dire se lit comme « c'est tout ». **Un site sans
+ * aucune intervention n'affiche pas un tableau vide** : il le dit, comme
+ * `habilitations.site.aucune` juste au-dessus (D88).
+ */
+function BlocInterventions({
+  interventions,
+  borne,
+}: {
+  readonly interventions: readonly LigneIntervention[];
+  readonly borne: number;
+}) {
+  const colonnes = [
+    {
+      cle: "reference",
+      libelle: t("intervention.reference"),
+      largeur: "160px",
+    },
+    { cle: "date", libelle: t("intervention.date"), largeur: "140px" },
+    { cle: "type", libelle: t("intervention.type") },
+    { cle: "statut", libelle: t("intervention.statut"), largeur: "170px" },
+  ];
+  return (
+    <section
+      data-bloc="historique-site"
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+    >
+      <div className="border-app-bord flex flex-col gap-0.5 border-b px-4 py-3">
+        <h2 className="text-[14px] font-bold">
+          {t("sites.fiche.interventions")}
+        </h2>
+        {interventions.length === 0 ? null : (
+          <p className="text-app-encre-faible text-[12px]">
+            {borneEcrite(borne)}
+          </p>
+        )}
+      </div>
+      {interventions.length === 0 ? (
+        <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
+          {t("sites.fiche.interventions_vide")}
+        </p>
+      ) : (
+        <Tableau colonnes={colonnes} minimum="640px">
+          {interventions.map((ligne) => (
+            <tr key={ligne.id}>
+              <Cellule mono>
+                <Link
+                  href={`/interventions/${ligne.id}`}
+                  className={CLASSES_LIEN}
+                >
+                  {referenceAffichee(ligne)}
+                </Link>
+              </Cellule>
+              <Cellule>
+                {ligne.date_planifiee === null
+                  ? ouTiret(null)
+                  : dateCivile(ligne.date_planifiee)}
+              </Cellule>
+              <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
+              <Cellule>
+                <span
+                  className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-[11px] font-bold`}
+                >
+                  {t(`statut.${ligne.statut}`)}
+                </span>
+              </Cellule>
+            </tr>
+          ))}
+        </Tableau>
+      )}
+    </section>
+  );
+}
+
+/** « Au plus 12 interventions, … » — le nombre est composé par l'écran, jamais écrit dans le dictionnaire. */
+function borneEcrite(borne: number): string {
+  return `${t("sites.fiche.interventions_borne_prefixe")} ${borne} ${t("sites.fiche.interventions_borne_suffixe")}`;
 }

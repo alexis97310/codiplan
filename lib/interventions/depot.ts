@@ -1974,6 +1974,70 @@ export async function dernieresInterventionsDuClient(
 }
 
 /**
+ * LES DERNIÈRES INTERVENTIONS D'UN SITE (fiche site, HISTORIQUE-SITE-1).
+ *
+ * *« Qu'est-ce qu'on a déjà fait chez ce client, à cet endroit ? »* — c'est la
+ * question qu'on se pose AVANT de planifier une intervention, et la fiche du
+ * site était muette : la base porte 1751 interventions d'archive reprises le
+ * 22/09/2026, rattachées à des sites, et l'écran où on les cherche n'en lisait
+ * aucune. C'est le lot qui transforme l'import en outil.
+ *
+ * **Même maison, même sélection que `dernieresInterventionsDuClient`**, et pour
+ * la même raison (§9, 01/09) : `CHAMPS_LIGNE` dit ce qu'est une ligne. Ni le
+ * client ni le site ne sont joints — la fiche les connaît déjà, ils sont son
+ * titre et son sous-titre.
+ *
+ * **Bornée CÔTÉ BASE, jamais par un `slice` après coup.** C'est la forme de
+ * `teteDeLHistorique` (PARC-1) : un `take` dans la requête, et une borne
+ * refusée avant toute requête si elle n'est pas un entier strictement positif
+ * — Prisma lit un `take` négatif comme « depuis la fin », ce qui rendrait les
+ * plus ANCIENNES sous le titre « dernières interventions » sans qu'aucune
+ * ligne ne manque ni ne rougisse.
+ *
+ * **Le même ordre que `listerInterventions`, `nulls: "last"` compris.** La
+ * récence par `date_planifiee`, puis l'`id` parce qu'un UUID v7 porte
+ * l'horodatage de création (I10) et que la file d'attente n'a pas de date ; et
+ * la file d'attente EN BAS, parce qu'un `ORDER BY date_planifiee DESC` nu la
+ * placerait en TÊTE sous PostgreSQL — la faute est mesurée et documentée
+ * ci-dessous, sur `listerInterventions`. Sur une lecture BORNÉE elle serait
+ * pire : douze lignes sans date rempliraient la borne et les vraies dernières
+ * ne seraient jamais rendues.
+ *
+ * **`limite` est une BORNE D'AFFICHAGE, jamais un cloisonnement**, et
+ * **`site_id` est un SUJET** : le cloisonnement est prononcé par la politique
+ * de forme « parc » (D84). Un site d'une autre société rend zéro ligne parce
+ * que la politique l'a décidé, pas parce que cette clause l'a filtré. L'écran
+ * ÉCRIT sa borne à côté du tableau plutôt que de laisser croire qu'il montre
+ * tout.
+ */
+export async function dernieresInterventionsDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  limite: number,
+  client?: PrismaClient,
+): Promise<readonly LigneIntervention[]> {
+  if (!Number.isInteger(limite) || limite <= 0) {
+    throw new Error(
+      `dernieresInterventionsDuSite : la limite doit être un entier strictement positif, reçu ${String(limite)}`,
+    );
+  }
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findMany({
+        where: { site_id: siteId },
+        select: CHAMPS_LIGNE,
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+        take: limite,
+      }),
+    client,
+  );
+}
+
+/**
  * LA LISTE DES INTERVENTIONS DE LA SOCIÉTÉ (écran `/interventions`, N-01).
  *
  * **Même sélection que `dernieresInterventionsDuClient`, mais PAS le même

@@ -436,6 +436,19 @@ export const fr = {
   // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
   "sites.colonne_trajet": "Trajet (min)",
   "sites.action.modifier": "Enregistrer",
+  // LA FICHE D'UN LIEU MONTRE SES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1).
+  //
+  // *« Qu'est-ce qu'on a déjà fait à cet endroit ? »* se demande avant de
+  // planifier ; la fiche était muette. La borne est ÉCRITE à côté du tableau
+  // — préfixe, nombre composé par l'écran, suffixe — plutôt que de laisser
+  // croire qu'il montre tout ; et un lieu sans aucune intervention DIT son
+  // absence, comme « habilitations.site.aucune » juste au-dessus (D88).
+  "sites.fiche.interventions": "Derni\u00e8res interventions",
+  "sites.fiche.interventions_borne_prefixe": "Au plus",
+  "sites.fiche.interventions_borne_suffixe":
+    "interventions, la plus r\u00e9cente en t\u00eate ; celles qui restent \u00e0 planifier en bas.",
+  "sites.fiche.interventions_vide":
+    "Aucune intervention n'est enregistr\u00e9e pour ce lieu.",
   "sites.action.creer": "Créer",
   "sites.retour": "← Tous les lieux",
   "sites.cree": "Le lieu a été créé.",

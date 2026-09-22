@@ -156,6 +156,9 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       "app/(back-office)/parc/[id]/page.tsx",
       "app/(back-office)/parc/page.tsx",
       "app/(back-office)/planning/page.tsx",
+      // LA FICHE D'UN SITE y entre le 22/09/2026 avec HISTORIQUE-SITE-1 : la
+      // référence de chacune de ses dernières interventions mène à sa fiche.
+      "app/(back-office)/sites/[id]/page.tsx",
       "app/(back-office)/sites/page.tsx",
       // LE TABLEAU DE BORD (AV-10) y entre le 16/09/2026 : la référence d'une
       // intervention du jour mène à sa fiche, comme au registre.
