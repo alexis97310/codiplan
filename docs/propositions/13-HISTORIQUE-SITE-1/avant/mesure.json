@@ -1,0 +1,27 @@
+{
+  "commit": "2aead992b6f8fd0e4a6c335a0bf10e25500ef836",
+  "largeur": 1280,
+  "hauteur": 900,
+  "fiches": {
+    "avec_historique": {
+      "url": "/sites/e2e00000-0000-7000-8000-00000000513a",
+      "interventions_en_base": 13
+    },
+    "sans_intervention": {
+      "url": "/sites/e2e00000-0000-7000-8000-00000000513e"
+    }
+  },
+  "passages": [
+    {
+      "horodatage": "2026-09-22T09:35:00.983Z",
+      "cible": "UN SITE À TREIZE INTERVENTIONS",
+      "resultat": "rouge — [data-bloc=\"historique-site\"] introuvable"
+    },
+    {
+      "horodatage": "2026-09-22T09:35:51.525Z",
+      "cible": "-g \"SANS AUCUNE\"",
+      "resultat": "rouge — [data-bloc=\"historique-site\"] introuvable"
+    }
+  ],
+  "etat_du_code": "2aead99 + les quatre fichiers de code du lot remis en stash le temps du passage ; tests/isolation/historique-site-borne.test.ts déplacé hors du dépôt (next build type-vérifie tests/)"
+}
