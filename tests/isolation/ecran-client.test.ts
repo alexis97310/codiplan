@@ -318,6 +318,7 @@ describe("les dernières interventions d'un client", () => {
       INTERNE_A,
       CLIENT_B1,
       20,
+      1,
       clientApp(),
     );
     expect(vues).toEqual([]);
@@ -336,6 +337,7 @@ describe("les dernières interventions d'un client", () => {
       INTERNE_A,
       CLIENT_A1,
       20,
+      1,
       clientApp(),
     );
     expect(vues.length).toBe(temoin!.n);
@@ -349,6 +351,7 @@ describe("les dernières interventions d'un client", () => {
       INTERNE_A,
       CLIENT_A1,
       1,
+      1,
       clientApp(),
     );
     expect(une.length).toBeLessThanOrEqual(1);
@@ -361,6 +364,7 @@ describe("les dernières interventions d'un client", () => {
       INTERNE_A,
       "aaaaaaaa-0000-7000-8000-00000000beef",
       20,
+      1,
       clientApp(),
     );
     expect(vues).toEqual([]);

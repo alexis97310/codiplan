@@ -1927,10 +1927,14 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
 }
 
 /**
- * LES DERNIÈRES INTERVENTIONS D'UN CLIENT (écran client, 14/09/2026).
+ * LES INTERVENTIONS D'UN CLIENT, PAGE PAR PAGE (écran client, 14/09/2026 —
+ * paginée depuis HISTORIQUE-CLIENT-1, 23/09/2026).
  *
  * *« C'est très exactement ce pour quoi un directeur d'exploitation ouvre une
- * fiche client. »* — l'arbitrage du 14/09/2026.
+ * fiche client. »* — l'arbitrage du 14/09/2026. La fiche montrait douze lignes
+ * et aucun moyen d'atteindre la treizième : la base porte 1751 interventions
+ * d'archive, et un client comme SPEEDY ou CALEBAM en porte plus qu'une page
+ * n'en montre — la pagination remplace la troncature muette.
  *
  * **Elle vit ICI et non dans `lib/clients/`**, et c'est la parade du §9
  * (01/09) : `CHAMPS_LIGNE` dit ce qu'est une ligne d'intervention, et une
@@ -1942,7 +1946,16 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
  * elle seule rangerait ces lignes-là dans un ordre que PostgreSQL choisit, ce
  * qui est exactement la faute de L3-03. L'`id` ferme donc l'ordre — un UUID v7
  * porte l'horodatage de création sur ses bits de poids fort (I10), et il est
- * total.
+ * total. **`nulls: "last"` referme le même point que sur `listerInterventions`
+ * (`lib/interventions/depot.ts`) : un `ORDER BY date_planifiee DESC` nu place
+ * les `NULL` en TÊTE sous PostgreSQL, ce qui aurait rempli chaque page de file
+ * d'attente et repoussé les vraies dernières interventions hors d'atteinte.**
+ *
+ * **`limite` borne la PAGE, `page` la déplace — toutes deux refusées avant
+ * toute requête si elles ne sont pas des entiers strictement positifs**,
+ * comme `dernieresInterventionsDuSite` : Prisma lit un `skip` négatif comme
+ * un décalage vers l'arrière, ce qui rendrait une page antérieure sous un
+ * numéro de page qui prétend avancer.
  *
  * **Le `client_id` n'est PAS un cloisonnement, c'est un SUJET.** Le
  * cloisonnement est prononcé par la politique de forme « parc » (D84) ; ce
@@ -1954,8 +1967,19 @@ export async function dernieresInterventionsDuClient(
   contexte: ContexteSession,
   clientId: string,
   limite: number,
+  page = 1,
   client?: PrismaClient,
 ): Promise<readonly LignePlanning[]> {
+  if (!Number.isInteger(limite) || limite <= 0) {
+    throw new Error(
+      `dernieresInterventionsDuClient : la limite doit être un entier strictement positif, reçu ${String(limite)}`,
+    );
+  }
+  if (!Number.isInteger(page) || page <= 0) {
+    throw new Error(
+      `dernieresInterventionsDuClient : la page doit être un entier strictement positif, reçu ${String(page)}`,
+    );
+  }
   return avecContexteApplicatif(
     contexte,
     (tx) =>
@@ -1966,9 +1990,35 @@ export async function dernieresInterventionsDuClient(
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
         },
-        orderBy: [{ date_planifiee: "desc" }, { id: "desc" }],
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+        skip: (page - 1) * limite,
         take: limite,
       }),
+    client,
+  );
+}
+
+/**
+ * LE TOTAL DES INTERVENTIONS D'UN CLIENT — le compte que pagine
+ * `dernieresInterventionsDuClient`, et rien d'autre (HISTORIQUE-CLIENT-1).
+ *
+ * **Même `where`, jamais un second critère** : un total qui compterait
+ * autrement que ce qu'il pagine est la faute nommée par le directeur
+ * d'exploitation le 16/09 sur `/clients` (AT-07) — « 50 clients » sous une
+ * liste qui en comptait 619. Ici comme là, `client_id` est un SUJET, pas un
+ * cloisonnement ; la politique de forme « parc » (D84) décide seule.
+ */
+export async function compterInterventionsDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => tx.intervention.count({ where: { client_id: clientId } }),
     client,
   );
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
@@ -13,7 +15,10 @@ import {
   lireClient,
 } from "@/lib/clients";
 import { contactsDuClient } from "@/lib/contacts/depot";
-import { dernieresInterventionsDuClient } from "@/lib/interventions/depot";
+import {
+  compterInterventionsDuClient,
+  dernieresInterventionsDuClient,
+} from "@/lib/interventions/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -21,7 +26,7 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { BlocContacts } from "../../contacts/presentation";
-import { ouTiret } from "../../presentation";
+import { decompte, hrefDeLaPage, libellePage, ouTiret } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
 
 /**
@@ -70,10 +75,36 @@ import { referenceAffichee } from "../../interventions/presentation";
  * `lireClient` lit sous le contexte cloisonné, et la forme « parc » décide. Une
  * fiche hors périmètre et une fiche inexistante rendent LA MÊME chose — les
  * distinguer ferait un oracle (D35, D50).
+ *
+ * ## L'HISTORIQUE DES INTERVENTIONS EST PAGINÉ, PAS TRONQUÉ (HISTORIQUE-CLIENT-1)
+ *
+ * *Constat du 23/09/2026* : la fiche montrait douze lignes et aucun moyen
+ * d'atteindre la treizième — la base porte 1751 interventions d'archive, et un
+ * client qui en porte des dizaines avait toute sa relation ancienne invisible.
+ * `page` vit dans l'URL, comme sur `/clients`, `/parc`, `/sites` et
+ * `/interventions` (AT-07) : `dernieresInterventionsDuClient` borne CHAQUE
+ * PAGE côté base (jamais un `slice` après coup, la faute que PARC-1 a
+ * corrigée), et `compterInterventionsDuClient` compte le total FILTRÉ sur le
+ * MÊME `where` — un total qui compterait autrement que ce qu'il pagine est la
+ * faute nommée par le directeur d'exploitation le 16/09 sur `/clients`.
+ *
+ * **Rediriger vers `/interventions` pré-filtré sur le client a été écarté** :
+ * mesuré le 23/09/2026, ce registre n'expose aucun filtre `client_id` — ni au
+ * schéma (`RechercheInterventions`), ni au `where` (`filtreDesInterventions`)
+ * — et il tait par défaut les clients INACTIFS (RG-PLA-08, D129), ce que la
+ * fiche d'un client inactif ne fait jamais. Ajouter ce filtre aurait débordé
+ * du territoire de ce ticket (`lib/interventions/saisie.ts`,
+ * `app/(back-office)/interventions/page.tsx`) pour un résultat qui aurait dû
+ * re-décider ce point. La pagination directe, elle, tient tout entière dans
+ * `lib/interventions/depot.ts` et cette page, avec le composant `Pagination`
+ * déjà partagé par les quatre écrans qui paginent.
  */
 
-/** Combien d'interventions la fiche montre. Une borne d'affichage. */
-const INTERVENTIONS_MONTREES = 12;
+/** Combien d'interventions une PAGE de la fiche montre. */
+const INTERVENTIONS_PAR_PAGE = 12;
+
+/** `page` — un entier d'au moins 1 ; toute valeur absente ou invalide retombe sur la première. */
+const schemaPage = z.coerce.number().int().min(1).catch(1);
 
 export default async function PageClient({
   params,
@@ -91,11 +122,15 @@ export default async function PageClient({
   }
 
   const { id } = await params;
-  const motif = (await searchParams).motif;
+  const paramsResolus = await searchParams;
+  const motif = paramsResolus.motif;
   const client = await lireClient(session.contexte, id);
   if (client === null) {
     notFound();
   }
+  const page = schemaPage.parse(
+    typeof paramsResolus.page === "string" ? paramsResolus.page : undefined,
+  );
 
   const libelleSociete = await libelleCodeExterneDeLaSociete(session.contexte);
   const sites = await avecContexteApplicatif(session.contexte, (tx) =>
@@ -106,10 +141,18 @@ export default async function PageClient({
     }),
   );
   const contacts = await contactsDuClient(session.contexte, client.id);
-  const interventions = await dernieresInterventionsDuClient(
-    session.contexte,
-    client.id,
-    INTERVENTIONS_MONTREES,
+  const [interventions, totalInterventions] = await Promise.all([
+    dernieresInterventionsDuClient(
+      session.contexte,
+      client.id,
+      INTERVENTIONS_PAR_PAGE,
+      page,
+    ),
+    compterInterventionsDuClient(session.contexte, client.id),
+  ]);
+  const totalPagesInterventions = Math.max(
+    1,
+    Math.ceil(totalInterventions / INTERVENTIONS_PAR_PAGE),
   );
 
   const colonnesSites = [
@@ -245,12 +288,15 @@ export default async function PageClient({
         </Tableau>
       </section>
 
-      <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
+      <section
+        data-bloc="historique-client"
+        className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+      >
         <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
           {t("clients.fiche.interventions")}
         </h2>
         <Tableau colonnes={colonnesInterventions} minimum="820px">
-          {interventions.length === 0 ? (
+          {totalInterventions === 0 ? (
             <LignePleine colonnes={colonnesInterventions.length}>
               {t("clients.fiche.interventions_vide")}
             </LignePleine>
@@ -282,6 +328,23 @@ export default async function PageClient({
             </tr>
           ))}
         </Tableau>
+        {totalInterventions === 0 ? null : (
+          <div className="border-app-bord border-t px-4 py-3">
+            <Pagination
+              page={page}
+              totalPages={totalPagesInterventions}
+              libelleResultats={decompte(
+                totalInterventions,
+                t("interventions.resultat_un"),
+                t("interventions.resultat"),
+              )}
+              libellePage={libellePage(page, totalPagesInterventions)}
+              libellePrecedent={t("pagination.precedent")}
+              libelleSuivant={t("pagination.suivant")}
+              hrefPage={(p) => hrefDeLaPage(`/clients/${client.id}`, {}, p)}
+            />
+          </div>
+        )}
       </section>
 
       <BlocContacts

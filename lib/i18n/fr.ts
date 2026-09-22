@@ -349,7 +349,7 @@ export const fr = {
   "clients.fiche.sites": "Lieux d'intervention",
   "clients.fiche.sites_vide":
     "Aucun lieu d'intervention n'est enregistr\u00e9 pour ce client.",
-  "clients.fiche.interventions": "Derni\u00e8res interventions",
+  "clients.fiche.interventions": "Historique des interventions",
   "clients.fiche.interventions_vide":
     "Aucune intervention n'est enregistr\u00e9e pour ce client.",
   // LE BLOC « CONTACTS » (CONTACTS-1) — la fiche montre tous les
