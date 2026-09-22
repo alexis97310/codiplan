@@ -29,8 +29,16 @@ describe("OptionsAgence (AGENCE-CODE-1)", () => {
       <select aria-label={mot("agence")}>
         <OptionsAgence
           agences={[
-            { id: "11111111-1111-7111-8111-111111111111", libelle: "Ducos", code: "DUCOS" },
-            { id: "22222222-2222-7222-8222-222222222222", libelle: "Ducos", code: "DUCOS-2" },
+            {
+              id: "11111111-1111-7111-8111-111111111111",
+              libelle: "Ducos",
+              code: "DUCOS",
+            },
+            {
+              id: "22222222-2222-7222-8222-222222222222",
+              libelle: "Ducos",
+              code: "DUCOS-2",
+            },
           ]}
         />
       </select>,

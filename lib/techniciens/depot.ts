@@ -206,7 +206,11 @@ export async function agencesDisponibles(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<
-  readonly { readonly id: string; readonly libelle: string; readonly code: string }[]
+  readonly {
+    readonly id: string;
+    readonly libelle: string;
+    readonly code: string;
+  }[]
 > {
   return avecContexteApplicatif(
     contexte,
