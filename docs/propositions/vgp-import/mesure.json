@@ -1,0 +1,67 @@
+{
+  "commit": "4726c66cc7701a597d09995aee2860ccb07d8158",
+  "horodatage": "2026-09-22T04:58:06.967Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "pv": {
+    "resultat": {
+      "creations": "1",
+      "modifications": "0",
+      "inchangees": "0",
+      "rejets": "3",
+      "gabarits": "0",
+      "vides": "0"
+    },
+    "attente": {
+      "rattachees": "1",
+      "en_attente": "2",
+      "autres_rejets": "1"
+    },
+    "en_attente": [
+      [
+        "4",
+        "SANS",
+        "Aucun n° de série sur la ligne."
+      ],
+      [
+        "5",
+        "ZZ-EPREUVE-INCONNUE",
+        "Aucune machine du parc ne porte ce n° de série."
+      ]
+    ],
+    "rejets": [
+      [
+        "4",
+        "LIGNE-4",
+        "En attente de rattachement — la ligne ne nomme aucun n° de série (« sans », « ? », « illisible »). Le PV est conservé dans ce lot et dans le fichier des rejets : quand la machine sera identifiée, renseignez la cellule et redéposez."
+      ],
+      [
+        "5",
+        "LIGNE-5",
+        "En attente de rattachement — aucune machine du parc ne porte ce n° de série. Le PV est conservé : créez ou corrigez la machine, ou corrigez la cellule, puis redéposez le fichier des rejets."
+      ],
+      [
+        "6",
+        "LIGNE-6",
+        "La colonne « Origine » doit porter un des quatre codes : rapport_organisme, rapport_transmis_client, vignette_constatee ou declaration_client. La correction est dans le fichier."
+      ]
+    ]
+  },
+  "observations": {
+    "resultat": {
+      "creations": "2",
+      "modifications": "0",
+      "inchangees": "0",
+      "rejets": "1",
+      "gabarits": "0",
+      "vides": "0"
+    },
+    "rejets": [
+      [
+        "5",
+        "OBSERVATION-epr rapport fantome-obs epr 3",
+        "Aucune vérification enregistrée ne porte cette référence de rapport. Importez d'abord le fichier des vérifications et appliquez-le ; les observations viennent après."
+      ]
+    ]
+  }
+}
