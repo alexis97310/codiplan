@@ -3,13 +3,16 @@
 Travail commité **sur `main` en local**, sans proposition ni branche distante
 (processus du 22/09/2026) : `9f2b6c7` (défaut A) puis `340772e` (défaut B).
 
-Captures prises **sur `340772e`** — empreinte lue par `git rev-parse HEAD` au
-moment de la prise, jamais de mémoire — le **2026-09-22 à 00:02 UTC**
-(11:02 à Nouméa), lu à l'horloge, contre le serveur de production compilé
+Captures prises **sur `3c7f98d`** — empreinte lue par `git rev-parse HEAD` au
+moment de la prise, jamais de mémoire ; le code applicatif y est celui de
+`340772e`, seule la fixture du scénario e2e a bougé depuis (voir « Ce que le
+premier `verify:full` a rougi ») — le **2026-09-22 à 00:11 UTC** (11:11 à
+Nouméa), lu à l'horloge, contre le serveur de production compilé
 (`next start`) sur la base d'épreuve locale de `pnpm test:e2e` : migrations,
 semis de `prisma/seed.ts`, scène de `tests/e2e/setup/scene.ts`, et le blocage
-d'agenda que `tests/e2e/blocage-agenda-visible.spec.ts` écrit. Aucune donnée
-de la base hébergée (I9). Largeur 1280 px, fenêtre 900 px de haut.
+d'agenda que `tests/e2e/blocage-agenda-visible.spec.ts` écrit — T. Wamytan,
+jeudi 31/12/2026, quatorze semaines devant. Aucune donnée de la base
+hébergée (I9). Largeur 1280 px, fenêtre 900 px de haut.
 
 `mesure.json` est la sortie brute du script de prise de vue : empreinte,
 horodatage, et le texte des options telles que la page les a rendues.
@@ -85,7 +88,9 @@ colonne d'un technicien absent comptait seize créneaux LIBRES parmi les trous.
 Puis **4 échecs** sur le sélecteur (`optionsDAffectation is not a function`).
 **17/17** avec.
 
-`tests/e2e/blocage-agenda-visible.spec.ts` — **4/4**, cinq exécutions.
+`tests/e2e/blocage-agenda-visible.spec.ts` — **4/4**, cinq exécutions seul,
+puis **12/12** joué avec `ecrans-largeur-utile.spec.ts` après le déplacement
+de sa fixture (ci-dessous).
 
 ### Ce qui a changé, sans changer la règle
 
@@ -98,11 +103,12 @@ Le dépôt refuse toujours (RG-PLA-06). Le critère est celui du refus,
   légende dit *« Agenda bloqué — le dépôt sera refusé »*. La case reste une
   cible de dépôt : c'est le dépôt qui tranche.
 - **Vue jour** (`planning-jour-agenda-bloque--1280.png`) : la pastille en tête
-  de colonne, toutes les cellules non occupées en violet, et **« 55 créneaux
-  libres »** — la colonne bloquée n'en compte aucun. Quatrième état de cellule,
-  `bloque`, qui prime sur libre et sur hors ouverture.
+  de colonne, toutes les cellules non occupées en violet, et **« 64 créneaux
+  libres »** — quatre colonnes libres de 16 créneaux, la colonne bloquée n'en
+  compte aucun. Quatrième état de cellule, `bloque`, qui prime sur libre et
+  sur hors ouverture.
 - **Fiche, « Affecter »** (`fiche-selecteur-affecter--1280.png`) : *« T. Wamytan
-  — agenda bloqué le 24/09/2026 »*. L'option reste proposée. « Déplacer » garde
+  — agenda bloqué le 31/12/2026 »*. L'option reste proposée. « Déplacer » garde
   la liste nue : sa date se saisit dans le même formulaire.
 
 ### Trouvé en chemin, même famille
@@ -115,6 +121,20 @@ une exception `23514`, jamais par un motif nommé. Mesuré par
 (`PrismaClientUnknownRequestError … 23514`) et 2 témoins verts** sans la
 correction, **4/4** avec. Il rend désormais `intervention.refus.absence`,
 comme les deux autres voies.
+
+## Ce que le premier `verify:full` a rougi, et la réparation
+
+Premier passage (`2026-09-22 00:03 → 00:08 UTC`) : format, typecheck, lint,
+2432 unitaires, 1061 d'isolation, build, fériés, partitions verts ; **e2e 116
+verts, 2 sautés nommés, 1 rouge** —
+`ecrans-largeur-utile.spec.ts › la colonne latérale descend jusqu'en bas de
+la fenêtre, même sur un écran COURT` : *« /absences n'est plus un écran
+court », 918 px pour 900 attendus.* Cause : ma fixture posait le blocage dans
+la **semaine courante**, et `/absences` (fenêtre −30 / +90 jours) gagnait une
+ligne et une pastille — une fixture qui déborde sur un écran qu'elle
+n'éprouve pas. Réparation : le blocage est posé **quatorze semaines devant**,
+hors de cette fenêtre ; le planning s'y rend par `?semaine=` explicite. Le
+scénario existant n'a pas été touché.
 
 ## Ce que je n'ai pas fait
 

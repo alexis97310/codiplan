@@ -1,17 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
-import { dateCivile } from "@/lib/calendar/fuseau";
+import { dateCivile, jourSuivant, type JourLocal } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  cleDeJour,
-  jourDeLaScene,
-  MERCREDI,
-  type ReperesDeScene,
-} from "./setup/scene";
+import { cleDeJour, MERCREDI, type ReperesDeScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -38,7 +33,7 @@ import { ouvrirUneSession } from "./setup/session";
  * blocages sous le contexte cloisonné, les donne aux rangements, et rende la
  * pastille là où la case est. C'est la frontière que ce fichier traverse.
  *
- * ## La scène : Wamytan, JEUDI
+ * ## La scène : Wamytan, JEUDI, QUATORZE SEMAINES PLUS LOIN
  *
  * Le blocage est posé sur `wamytan@codima.test` (Dolbeau), un JEUDI — une
  * personne et un jour que les scénarios du glisser-déposer ne visent pas
@@ -48,6 +43,17 @@ import { ouvrirUneSession } from "./setup/session";
  * qu'aucune session n'existe, et ce que les scénarios mesurent passe ensuite
  * entièrement par le rôle applicatif et par les politiques.
  *
+ * **Et il est posé HORS de la fenêtre de `/absences`** (−30 / +90 jours,
+ * `JOURS_A_VENIR` de `app/(back-office)/absences/page.tsx`). *Mesuré le
+ * 22/09/2026, au premier `verify:full`* : posé dans la semaine courante, il
+ * donnait à `/absences` une ligne de tableau et une pastille, et
+ * `tests/e2e/ecrans-largeur-utile.spec.ts` — qui exige cet écran COURT
+ * comme témoin de sa mesure — rougissait à 918 px. Une fixture qui déborde
+ * sur un écran qu'elle n'éprouve pas est une fixture mal posée ; le
+ * planning, lui, se rend à n'importe quelle semaine par `?semaine=`. Le
+ * jour où `/absences` élargirait sa fenêtre au-delà de quatorze semaines,
+ * c'est ce scénario-là qui le dirait, et c'est ici qu'il faudrait reculer.
+ *
  * Le TÉMOIN, à chaque assertion : la même personne la VEILLE (mercredi), et
  * une autre personne le MÊME jour — sans eux, une page qui marquerait tout
  * passerait pour juste (§9, 11/09).
@@ -55,17 +61,27 @@ import { ouvrirUneSession } from "./setup/session";
 
 /** Jeudi — le rang depuis le lundi, comme `MARDI`, `MERCREDI` et `SAMEDI`. */
 const JEUDI = 3;
+/** Au-delà des 90 jours que `/absences` affiche — voir l'en-tête. */
+const SEMAINES_DE_DECALAGE = 14;
 
 const BLOCAGE_WAMYTAN = "01a0e2e0-0000-7000-8000-0000000000ab";
 /** Une intervention DATÉE du jeudi, sans technicien : la fiche qui affecte. */
 const INTERVENTION_DU_JEUDI = "01a0e2e0-0000-7000-8000-0000000000ac";
 
 let reperes: ReperesDeScene;
+/** Le lundi de la semaine visée — `reperes.lundi` décalé, jamais lui. */
+let lundiVise: JourLocal;
 let wamytan: string;
 let dateDuJeudi: Date;
 
+/** Le jour d'un rang depuis le lundi VISÉ — le pendant de `jourDeLaScene`. */
+function jourVise(rang: number): JourLocal {
+  return jourSuivant(lundiVise, rang);
+}
+
 test.beforeAll(async () => {
   reperes = await reperesDeLaScene();
+  lundiVise = jourSuivant(reperes.lundi, 7 * SEMAINES_DE_DECALAGE);
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
@@ -76,7 +92,7 @@ test.beforeAll(async () => {
         select: { id: true },
       })
     ).id;
-    const jeudi = jourDeLaScene(reperes, JEUDI);
+    const jeudi = jourVise(JEUDI);
     dateDuJeudi = new Date(Date.UTC(jeudi.annee, jeudi.mois - 1, jeudi.jour));
 
     // `INSERT … ON CONFLICT DO NOTHING`, et non `delete` puis `create` comme
@@ -146,14 +162,14 @@ function caseDeSemaine(
   rang: number,
 ) {
   return page.locator(
-    `[data-depot-jour="${cleDeJour(jourDeLaScene(reperes, rang))}"][data-depot-technicien="${technicienId}"]`,
+    `[data-depot-jour="${cleDeJour(jourVise(rang))}"][data-depot-technicien="${technicienId}"]`,
   );
 }
 
 test("la VUE SEMAINE marque la case du jeudi de Wamytan — et elle seule", async ({
   page,
 }) => {
-  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`);
+  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(lundiVise)}`);
 
   const bloquee = caseDeSemaine(page, wamytan, JEUDI);
   await expect(bloquee).toBeAttached();
@@ -182,7 +198,7 @@ test("la VUE SEMAINE marque la case du jeudi de Wamytan — et elle seule", asyn
 test("la VUE JOUR marque la colonne de Wamytan en tête, le jeudi", async ({
   page,
 }) => {
-  const jeudi = cleDeJour(jourDeLaScene(reperes, JEUDI));
+  const jeudi = cleDeJour(jourVise(JEUDI));
   await page.goto(`/planning?vue=jour&jour=${jeudi}`);
 
   // La pastille est dans l'EN-TÊTE de la colonne — un `<th>` — et il n'y en
@@ -216,9 +232,7 @@ test("la VUE JOUR marque la colonne de Wamytan en tête, le jeudi", async ({
   ).toHaveCount(0);
 
   // LE TÉMOIN — la veille, la même vue ne porte AUCUNE pastille.
-  await page.goto(
-    `/planning?vue=jour&jour=${cleDeJour(jourDeLaScene(reperes, MERCREDI))}`,
-  );
+  await page.goto(`/planning?vue=jour&jour=${cleDeJour(jourVise(MERCREDI))}`);
   await expect(page.locator("th [data-agenda-bloque]")).toHaveCount(0);
 });
 

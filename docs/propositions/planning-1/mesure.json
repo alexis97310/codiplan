@@ -1,19 +1,19 @@
 {
-  "empreinte": "340772e03f422363ff4c13e3e79994d9b85f5fd2",
-  "horodatage": "2026-09-22T00:02:19.947Z",
-  "lundi": "2026-09-21",
-  "jeudi": "2026-09-24",
-  "nbSites": 3,
+  "empreinte": "3c7f98d485a3373244787a8b73386bd32698821e",
+  "horodatage": "2026-09-22T00:11:15.014Z",
+  "semaine": "2026-12-28",
+  "jeudi": "2026-12-31",
   "optionsSite": [
     "Atelier Ducos — Atelier principal",
     "Atelier Ducos — Dépôt de brousse",
     "Garage du Nord — Garage de Koné"
   ],
+  "trous": "64 créneaux libres · pas de 30 min",
   "optionsAffecter": [
     "Aucun technicien affecté",
     "D. Guérin",
     "J. Lefèvre",
     "M. Poigoune",
-    "T. Wamytan — agenda bloqué le 24/09/2026"
+    "T. Wamytan — agenda bloqué le 31/12/2026"
   ]
 }
