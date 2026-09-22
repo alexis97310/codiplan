@@ -119,6 +119,20 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // capacité que le bon lui-même — pas une capacité neuve pour un octet
   // qu'une lecture cloisonnée protège déjà.
   "app/api/documents/[id]/octets/route.ts": "consulter_planning",
+  // D131 (23/09/2026, DROITS-1) — les cinq routes qui ÉCRIVAIENT sans aucune
+  // capacité exigée (mesure du 23/09, ticket DROITS-1) : n'importe quel
+  // compte de la société, technicien compris, pouvait clôturer, annuler,
+  // suspendre, reprendre ou enregistrer une VGP sur l'intervention ou la
+  // machine d'un collègue. Le ○ du technicien passe la porte ; le dépôt
+  // appelé ensuite juge le PÉRIMÈTRE (SES interventions affectées) — la
+  // porte ne le juge jamais (voir `lib/auth/porte.ts`).
+  "app/api/interventions/[id]/cloturer/route.ts": "cloturer_intervention",
+  "app/api/interventions/[id]/annuler/route.ts": "annuler_intervention",
+  "app/api/interventions/[id]/suspendre/route.ts":
+    "suspendre_reprendre_intervention",
+  "app/api/interventions/[id]/reprendre/route.ts":
+    "suspendre_reprendre_intervention",
+  "app/api/vgp/enregistrer/[id]/route.ts": "enregistrer_vgp",
 };
 
 // ── LES ROUTES EXEMPTÉES, NOMMÉES AVEC LEUR MOTIF ───────────────────────────
@@ -126,34 +140,6 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
 type Exemption = { readonly chemin: string; readonly motif: string };
 
 const EXEMPTIONS: readonly Exemption[] = [
-  {
-    chemin: "app/api/vgp/enregistrer/[id]/route.ts",
-    motif:
-      "aucune ligne « enregistrer une VGP » au §5.2 — arbitrage en attente",
-  },
-  // Les lignes « Clôturer une intervention » / « Valider un rapport » ne
-  // disent rien de « suspendre » ni de « reprendre » ; leur rattacher une
-  // capacité serait, là aussi, inventer une règle non écrite.
-  {
-    chemin: "app/api/interventions/[id]/cloturer/route.ts",
-    motif:
-      "la matrice ne distingue pas clôturer/suspendre/reprendre — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/interventions/[id]/annuler/route.ts",
-    motif:
-      "la matrice ne distingue pas clôturer/suspendre/reprendre — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/interventions/[id]/suspendre/route.ts",
-    motif:
-      "la matrice ne distingue pas clôturer/suspendre/reprendre — arbitrage en attente",
-  },
-  {
-    chemin: "app/api/interventions/[id]/reprendre/route.ts",
-    motif:
-      "la matrice ne distingue pas clôturer/suspendre/reprendre — arbitrage en attente",
-  },
   // Les routes qui PRÉCÈDENT une société active et un rôle : la matrice
   // n'a rien à en dire, exactement comme les mises en page qui précèdent la
   // session (`tests/unit/auth/chrome.test.ts`).
@@ -263,7 +249,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(58);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(63);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

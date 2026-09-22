@@ -43,6 +43,10 @@ const CAPACITES_SOCIETE: readonly Capacite[] = [
   "saisir_rapport",
   "valider_rapport",
   "cloturer_intervention",
+  // D131 (23/09/2026, DROITS-1) — absentes du §5.2, arbitrées avec « clôturer ».
+  "annuler_intervention",
+  "suspendre_reprendre_intervention",
+  "enregistrer_vgp",
   "gerer_contrat",
   "gerer_machine",
   "gerer_client_site",
@@ -216,15 +220,24 @@ const SCENARIOS: readonly Scenario[] = [
       "gerer_machine",
       "creer_demande",
       "consulter_planning",
+      // D131 (23/09/2026, DROITS-1) — rétablit le ○ que l'arbitrage 3.17
+      // avait retiré, mais SCOPÉ à SA PROPRE intervention affectée : `peut`
+      // rend `true` pour un ○ (le périmètre est jugé par le dépôt, jamais
+      // par la matrice — voir `perimetre-technicien.test.ts`).
+      "cloturer_intervention",
+      "suspendre_reprendre_intervention",
+      // D131 — absente du §5.2, même ○ scopé aux interventions du technicien.
+      "enregistrer_vgp",
     ],
     nePeutPas: [
       // « Il ne voit aucun montant de vente : il saisit des temps et des
       // pièces » (§5.2).
       "voir_montants_vente",
       "modifier_planning",
-      // Arbitrage 3.17 — le technicien ne clôture pas.
-      "cloturer_intervention",
       "valider_rapport",
+      // D131 — le technicien n'annule jamais : une décision commerciale du
+      // bureau, aucun ○.
+      "annuler_intervention",
       // D130 — même raison que le responsable matériel et le responsable SAV.
       "gerer_client_site",
     ],
@@ -293,6 +306,16 @@ describe("degrés d'accès", () => {
   it("le technicien n'a qu'un accès restreint au parc (RG-DRO-02, D22)", () => {
     expect(niveau(Role.technicien, "consulter_parc_complet")).toBe("restreint");
     expect(niveau(Role.adv, "consulter_parc_complet")).toBe("complet");
+  });
+
+  it("D131 — le technicien est restreint sur clôturer/suspendre-reprendre/VGP, jamais sur annuler", () => {
+    expect(niveau(Role.technicien, "cloturer_intervention")).toBe("restreint");
+    expect(niveau(Role.technicien, "suspendre_reprendre_intervention")).toBe(
+      "restreint",
+    );
+    expect(niveau(Role.technicien, "enregistrer_vgp")).toBe("restreint");
+    expect(niveau(Role.technicien, "annuler_intervention")).toBe("aucun");
+    expect(niveau(Role.adv, "annuler_intervention")).toBe("complet");
   });
 
   it("aucune capacité n'est refusée à tout le monde", () => {

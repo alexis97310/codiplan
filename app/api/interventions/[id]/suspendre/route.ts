@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { suspendreIntervention } from "@/lib/interventions/depot";
 import { schemaSuspension } from "@/lib/interventions/saisie";
 
-import { champ, contexteCourant, versLaFiche } from "../../actions";
+import { champ, versLaFiche } from "../../actions";
 
 /**
  * SUSPENDRE — avec un motif obligatoire, et l'attente de pièce si c'en est une
@@ -15,13 +17,25 @@ import { champ, contexteCourant, versLaFiche } from "../../actions";
  * L'instant de la suspension n'est PAS saisi : il est daté par le serveur, dans
  * le fuseau de l'agence. *Le laisser saisir permettrait de rajeunir une
  * attente, et l'ancienneté est ce que la file mesure.*
+ *
+ * **D131 (23/09/2026, DROITS-1).** `suspendre_reprendre_intervention` — même
+ * capacité que « reprendre » : la matrice ne distingue pas les deux sens
+ * d'une même pause. Le ○ du technicien passe la porte ; `suspendreIntervention`
+ * juge s'IL est le technicien affecté.
  */
 export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
+): Promise<Response> {
   const { id } = await params;
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("suspendre_reprendre_intervention");
   if (contexte === null) {
     return versLaFiche(id, "auth.refus");
   }

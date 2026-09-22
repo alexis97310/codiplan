@@ -1,7 +1,7 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { saisieVerificationRecue } from "@/lib/vgp/saisie-verification";
 import { enregistrerVerification } from "@/lib/vgp/verification";
-
-import { contexteCourant } from "../../../interventions/actions";
 
 /**
  * ENREGISTRER UNE VÉRIFICATION VGP — LE SEUL CHEMIN D'ÉCRITURE (D114, R2-13).
@@ -15,10 +15,22 @@ import { contexteCourant } from "../../../interventions/actions";
  * Aucun champ de document n'est lu ici : le formulaire n'en porte pas
  * (aucun sélecteur de document n'existe encore à réutiliser ailleurs dans le
  * dépôt). `schemaVerificationVgp` le défaut déjà à `null`.
+ *
+ * **D131 (23/09/2026, DROITS-1).** `exigerCapacite` remplace `contexteCourant()` :
+ * `enregistrer_vgp` était absente du §5.2, arbitrée avec « clôturer ». Le ○
+ * du technicien passe la porte ; `enregistrerVerification` juge en base si la
+ * machine est portée par une de SES interventions non annulées.
  */
 export async function POST(
   requete: Request,
   { params }: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(requete, params));
+}
+
+async function traiter(
+  requete: Request,
+  params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
   const vers = (cle: string): Response =>
@@ -29,7 +41,7 @@ export async function POST(
       },
     });
 
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("enregistrer_vgp");
   if (contexte === null) {
     return vers("auth.refus");
   }

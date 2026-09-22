@@ -11,13 +11,23 @@ import { Role } from "./roles";
  * sociétés, y sont ajoutés d'après le tableau du §22.5. **Le §5.2 fait foi :
  * aucun rôle n'est recopié ailleurs.**
  *
- * **Trois corrections d'arbitrage** sont appliquées à la matrice d'origine, la
+ * **Quatre corrections d'arbitrage** sont appliquées à la matrice d'origine, la
  * note d'arbitrage primant sur le cahier des charges (D1) :
  *   - 3.17 — le technicien ne clôture pas : « il termine, le responsable valide
- *     et clôture ». Le `○` de la ligne « clôturer » devient « aucun ».
+ *     et clôture ». Le `○` de la ligne « clôturer » devenait « aucun ».
  *   - 3.8 — aucun montant sur le portail client en V1 : « le `○` de la matrice
  *     devient `—` » sur la ligne « voir les montants de vente ».
  *   - D37 — la colonne « Admin » est SCINDÉE, voir ci-dessous.
+ *   - D131 (arbitrage Alexis, 23/09/2026, ticket DROITS-1) — RÉTABLIT le `○`
+ *     que 3.17 avait retiré, mais SCOPÉ : le technicien clôture, suspend et
+ *     reprend SES PROPRES interventions, jamais celles d'un collègue (le
+ *     dépôt juge le périmètre, la porte ne le juge pas — voir
+ *     `lib/auth/porte.ts`). Il n'annule jamais. Trois lignes ABSENTES du §5.2
+ *     sont ajoutées par le même arbitrage : « annuler une intervention »,
+ *     « suspendre / reprendre une intervention », « enregistrer une
+ *     vérification VGP » — la troisième restreinte de la même façon, sur les
+ *     machines des interventions du technicien. Le tableau complet et son
+ *     motif vivent dans `docs/arbitrages.md` (D131).
  *
  * **La colonne « Admin » n'est plus celle d'`admin_plateforme` (D37).** Elle
  * l'était, et c'était l'erreur : créer un compte chez un client passait alors
@@ -54,6 +64,11 @@ export const CAPACITES = [
   "saisir_rapport",
   "valider_rapport",
   "cloturer_intervention",
+  // D131 (23/09/2026, DROITS-1) — absentes du §5.2, arbitrées avec
+  // « clôturer une intervention » plutôt que devinées séparément.
+  "annuler_intervention",
+  "suspendre_reprendre_intervention",
+  "enregistrer_vgp",
   "gerer_contrat",
   "gerer_machine",
   "gerer_client_site",
@@ -102,8 +117,23 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   qualifier_affecter: { complet: [ADMS, DIR, RM, RS, ADV] },
   saisir_rapport: { complet: [ADMS, RM, RS, TEC] },
   valider_rapport: { complet: [ADMS, DIR, RM, RS] },
-  // Arbitrage 3.17 : le technicien ne clôture pas — le ○ d'origine est retiré.
-  cloturer_intervention: { complet: [ADMS, DIR, RM, RS, ADV] },
+  // D131 (23/09/2026) rétablit le ○ que l'arbitrage 3.17 avait retiré, mais
+  // SCOPÉ : le technicien ne clôture que SA PROPRE intervention affectée — la
+  // porte laisse passer le ○ (`lib/auth/porte.ts`), le dépôt juge le
+  // périmètre (`lib/interventions/depot.ts`, `perimetreParPersonne`).
+  cloturer_intervention: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
+  // D131 — absente du §5.2 : le bureau annule, le technicien jamais (une
+  // annulation est une décision commerciale).
+  annuler_intervention: { complet: [ADMS, DIR, RM, RS, ADV] },
+  // D131 — absente du §5.2, même périmètre scopé que « clôturer ».
+  suspendre_reprendre_intervention: {
+    complet: [ADMS, DIR, RM, RS, ADV],
+    restreint: [TEC],
+  },
+  // D131 — absente du §5.2 : le technicien n'enregistre une VGP que sur une
+  // machine portée par une de SES interventions non annulées (le dépôt le
+  // vérifie en base, la porte ne le juge pas).
+  enregistrer_vgp: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
   gerer_contrat: { complet: [ADMS, DIR, RM], restreint: [ADV] },
   gerer_machine: { complet: [ADMS, DIR, RM, RS, ADV, TEC] },
   // D130 : la fiche client et la fiche site sont du référentiel commercial,

@@ -1,7 +1,9 @@
+import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { exigerCapacite } from "@/lib/auth/porte";
 import { reprendreIntervention } from "@/lib/interventions/depot";
 import { schemaReprise } from "@/lib/interventions/saisie";
 
-import { contexteCourant, versLaFiche } from "../../actions";
+import { versLaFiche } from "../../actions";
 
 /**
  * REPRENDRE une intervention suspendue (L2-10).
@@ -9,13 +11,20 @@ import { contexteCourant, versLaFiche } from "../../actions";
  * **Aucune saisie** : le statut retrouvé se déduit du CRÉNEAU, et le motif
  * comme la référence sont effacés par la base — *les remettre à `null` ici
  * serait une seconde lecture d'un critère que les contraintes portent déjà.*
+ *
+ * **D131 (23/09/2026, DROITS-1).** Même capacité que « suspendre » — voir
+ * cette route.
  */
 export async function POST(
   _requete: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return dansUnEchangeAuth(() => traiter(params));
+}
+
+async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const { id } = await params;
-  const contexte = await contexteCourant();
+  const contexte = await exigerCapacite("suspendre_reprendre_intervention");
   if (contexte === null) {
     return versLaFiche(id, "auth.refus");
   }

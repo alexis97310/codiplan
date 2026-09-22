@@ -1,9 +1,14 @@
 import { type OrigineInformationVgp, type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
-import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import {
+  exigerContexteActif,
+  exigerSocieteActive,
+  type ContexteSession,
+} from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { perimetreParPersonne } from "@/lib/interventions/perimetre-technicien";
 
 /**
  * CE QU'ON NOUS A DIT D'UNE VÉRIFICATION PÉRIODIQUE (L9-09 ; D88, D114).
@@ -114,6 +119,34 @@ export async function enregistrerVerification(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
+      // D131 (23/09/2026, DROITS-1) : un technicien restreint (○) n'enregistre
+      // une VGP que sur une machine portée par une de SES interventions NON
+      // ANNULÉES. *Absente du §5.2* — arbitrée avec « clôturer ». La même
+      // exception que « machine hors société » (voir le `catch` de la route)
+      // fait le refus : distinguer les deux renseignerait un technicien sur
+      // l'existence d'une machine hors de son périmètre (D50).
+      const perimetre = perimetreParPersonne(
+        exigerContexteActif(contexte),
+        "enregistrer_vgp",
+      );
+      if (perimetre.acces === "restreint") {
+        const rattachee = await tx.interventionMachine.findFirst({
+          where: {
+            machine_id: saisie.machine_id,
+            intervention: {
+              technicien_id: perimetre.technicienId,
+              statut: { not: "annulee" },
+            },
+          },
+          select: { id: true },
+        });
+        if (rattachee === null) {
+          throw new Error(
+            "Machine hors du périmètre du technicien : aucune intervention " +
+              "non annulée ne la lui rattache.",
+          );
+        }
+      }
       await tx.vgpVerification.create({
         data: {
           id,

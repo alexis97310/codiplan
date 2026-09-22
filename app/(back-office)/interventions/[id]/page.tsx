@@ -6,6 +6,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
+import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
@@ -32,6 +33,7 @@ import {
   type AccesAuxMontants,
 } from "@/lib/interventions/montants-visibles";
 import { optionsDAffectation } from "@/lib/interventions/personnes";
+import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 import { libellesDesMachines, machinesDesSites } from "@/lib/machines/depot";
 import { formatMoney } from "@/lib/money";
 
@@ -134,6 +136,42 @@ export default async function PageIntervention({
   const peutModifierLePlanning =
     session.contexte.role !== null &&
     peut(session.contexte.role, "modifier_planning");
+  // ── D131 (23/09/2026, DROITS-1) — LE BLOC QUI NE S'AFFICHE PAS ──────────
+  //
+  // *Un bloc que le rôle courant ne peut pas accomplir ne s'affiche pas*,
+  // plutôt qu'un bouton qui mène à un refus — c'est la consigne du ticket, et
+  // elle change le RÉGIME de ces trois blocs par rapport aux autres : un
+  // refus de STATUT (intervention clôturée, par exemple) continue de
+  // s'afficher en oxyde à la place de l'action ; un refus de CAPACITÉ ou de
+  // PÉRIMÈTRE fait disparaître le bloc entier — la même distinction que
+  // « Affecter » applique déjà à `qualification_requise`.
+  //
+  // Lu depuis la matrice (`accesSurCetteIntervention`, qui compose `niveau`
+  // et le technicien affecté de CETTE ligne), jamais une seconde liste de
+  // rôles écrite ici.
+  const contexteActif: ContexteActif | null =
+    session.contexte.role === null ? null : (session.contexte as ContexteActif);
+  const peutClore =
+    contexteActif !== null &&
+    accesSurCetteIntervention(
+      contexteActif,
+      "cloturer_intervention",
+      ligne.technicien_id,
+    );
+  const peutSuspendreOuReprendre =
+    contexteActif !== null &&
+    accesSurCetteIntervention(
+      contexteActif,
+      "suspendre_reprendre_intervention",
+      ligne.technicien_id,
+    );
+  const peutAnnulerCetteIntervention =
+    contexteActif !== null &&
+    accesSurCetteIntervention(
+      contexteActif,
+      "annuler_intervention",
+      ligne.technicien_id,
+    );
   // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
   // L'USAGE — jamais par défaut : c'est la lecture, pas seulement le rendu,
   // qui fuyait (même raisonnement qu'à la création).
@@ -477,27 +515,29 @@ export default async function PageIntervention({
           {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) : le champ
               de l'action est pré-rempli depuis le mesuré, et une garde qui juge
               ce qu'elle vient d'écrire ne juge rien. */}
-          <Action
-            titre={t("intervention.action.cloturer")}
-            verdict={peutCloturer(statut, ligne.temps_mesure_min)}
-            action={`/api/interventions/${ligne.id}/cloturer`}
-            note={t("intervention.cloture.explication")}
-          >
-            {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120). Le champ
-                arrive PRÉ-REMPLI avec ce que le compteur a compté : par défaut
-                le temps validé égale le temps mesuré, et il n'en diffère que
-                si quelqu'un l'a corrigé — on saura alors qui et quand. */}
-            <Saisie
-              nom="temps_valide_min"
-              type="number"
-              libelle={t("intervention.cloture.temps_valide")}
-              valeurParDefaut={
-                ligne.temps_mesure_min === null
-                  ? undefined
-                  : String(ligne.temps_mesure_min)
-              }
-            />
-          </Action>
+          {peutClore ? (
+            <Action
+              titre={t("intervention.action.cloturer")}
+              verdict={peutCloturer(statut, ligne.temps_mesure_min)}
+              action={`/api/interventions/${ligne.id}/cloturer`}
+              note={t("intervention.cloture.explication")}
+            >
+              {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120). Le champ
+                  arrive PRÉ-REMPLI avec ce que le compteur a compté : par défaut
+                  le temps validé égale le temps mesuré, et il n'en diffère que
+                  si quelqu'un l'a corrigé — on saura alors qui et quand. */}
+              <Saisie
+                nom="temps_valide_min"
+                type="number"
+                libelle={t("intervention.cloture.temps_valide")}
+                valeurParDefaut={
+                  ligne.temps_mesure_min === null
+                    ? undefined
+                    : String(ligne.temps_mesure_min)
+                }
+              />
+            </Action>
+          ) : null}
 
           {/*
         LA SUSPENSION ET SA REPRISE (L2-10, RG-INT-06).
@@ -510,7 +550,7 @@ export default async function PageIntervention({
         La référence de pièce et sa date sont dans le MÊME formulaire, parce
         qu'elles se saisissent ensemble ou pas du tout.
       */}
-          {statut === "suspendue" ? (
+          {!peutSuspendreOuReprendre ? null : statut === "suspendue" ? (
             <Action
               titre={t("intervention.action.reprendre")}
               verdict={peutReprendre(statut)}
@@ -539,14 +579,19 @@ export default async function PageIntervention({
             </Action>
           )}
 
-          <Action
-            titre={t("intervention.action.annuler")}
-            verdict={peutAnnuler(statut)}
-            action={`/api/interventions/${ligne.id}/annuler`}
-            note={t("intervention.annulation.obligatoire")}
-          >
-            <Saisie nom="motif" libelle={t("intervention.annulation.motif")} />
-          </Action>
+          {peutAnnulerCetteIntervention ? (
+            <Action
+              titre={t("intervention.action.annuler")}
+              verdict={peutAnnuler(statut)}
+              action={`/api/interventions/${ligne.id}/annuler`}
+              note={t("intervention.annulation.obligatoire")}
+            >
+              <Saisie
+                nom="motif"
+                libelle={t("intervention.annulation.motif")}
+              />
+            </Action>
+          ) : null}
         </aside>
       </div>
     </Page>

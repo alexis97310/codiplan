@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { niveau } from "@/lib/auth/habilitations";
 import { Role, ROLES } from "@/lib/auth/roles";
 import {
+  accesSurCetteIntervention,
+  dansLePerimetre,
   filtreDuPerimetre,
   motifRefusPlanning,
   perimetreDuPlanning,
+  perimetreParPersonne,
 } from "@/lib/interventions/perimetre-technicien";
 
 /**
@@ -87,5 +90,80 @@ describe("le périmètre du planning suit la matrice, et rien d'autre", () => {
     expect(
       motifRefusPlanning({ acces: "restreint", technicienId: "x" }),
     ).toBeNull();
+  });
+});
+
+/**
+ * D131 (23/09/2026, DROITS-1) — `perimetreParPersonne` généralise
+ * `perimetreDuPlanning` à n'importe quelle capacité, et `dansLePerimetre` /
+ * `accesSurCetteIntervention` jugent une intervention PRÉCISE, pas une liste.
+ */
+describe("D131 — le périmètre d'UNE action, sur UNE intervention précise", () => {
+  it("`perimetreDuPlanning` reste `perimetreParPersonne` appliquée à consulter_planning", () => {
+    for (const role of ROLES) {
+      expect(perimetreDuPlanning(contexteDe(role))).toEqual(
+        perimetreParPersonne(contexteDe(role), "consulter_planning"),
+      );
+    }
+  });
+
+  it("un accès complet agit sur N'IMPORTE QUELLE intervention, affectée ou non", () => {
+    expect(dansLePerimetre({ acces: "complet" }, null)).toBe(true);
+    expect(dansLePerimetre({ acces: "complet" }, "un-autre-id")).toBe(true);
+  });
+
+  it("un accès nul n'agit sur AUCUNE intervention", () => {
+    expect(dansLePerimetre({ acces: "aucun" }, CONTEXTE.utilisateurId)).toBe(
+      false,
+    );
+  });
+
+  it("un accès restreint n'agit que sur SA PROPRE intervention affectée", () => {
+    const perimetre = {
+      acces: "restreint" as const,
+      technicienId: CONTEXTE.utilisateurId,
+    };
+    expect(dansLePerimetre(perimetre, CONTEXTE.utilisateurId)).toBe(true);
+    expect(dansLePerimetre(perimetre, "un-collegue")).toBe(false);
+    // Une intervention NON AFFECTÉE n'est le périmètre de personne — pas
+    // même de son restreint : `null !== technicienId` est toujours vrai.
+    expect(dansLePerimetre(perimetre, null)).toBe(false);
+  });
+
+  it("`accesSurCetteIntervention` — le technicien clôture SA sienne, pas celle d'un collègue", () => {
+    const contexte = contexteDe(Role.technicien);
+    expect(
+      accesSurCetteIntervention(
+        contexte,
+        "cloturer_intervention",
+        contexte.utilisateurId,
+      ),
+    ).toBe(true);
+    expect(
+      accesSurCetteIntervention(
+        contexte,
+        "cloturer_intervention",
+        "un-collegue",
+      ),
+    ).toBe(false);
+  });
+
+  it("`accesSurCetteIntervention` — le bureau agit sur toutes, le client sur aucune", () => {
+    const bureau = contexteDe(Role.adv);
+    expect(
+      accesSurCetteIntervention(bureau, "cloturer_intervention", null),
+    ).toBe(true);
+    expect(
+      accesSurCetteIntervention(bureau, "cloturer_intervention", "n-importe-qui"),
+    ).toBe(true);
+
+    const client = contexteDe(Role.client);
+    expect(
+      accesSurCetteIntervention(
+        client,
+        "cloturer_intervention",
+        client.utilisateurId,
+      ),
+    ).toBe(false);
   });
 });

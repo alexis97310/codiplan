@@ -1,4 +1,4 @@
-import { niveau } from "@/lib/auth/habilitations";
+import { niveau, type Capacite } from "@/lib/auth/habilitations";
 import { type ContexteActif } from "@/lib/auth/contexte";
 
 /**
@@ -50,17 +50,23 @@ export type PerimetrePlanning =
   | { readonly acces: "aucun" };
 
 /**
- * Le périmètre que ce contexte ouvre sur le planning.
+ * Le périmètre que ce contexte ouvre sur UNE CAPACITÉ donnée — généralisé le
+ * 23/09/2026 (D131, DROITS-1) : le même « trois verdicts, jamais un booléen »
+ * gouverne « clôturer », « suspendre / reprendre » et « enregistrer une VGP »,
+ * pas seulement « consulter le planning ». *Deux lectures d'un même critère
+ * divergent en silence* (§9, 01/09) — une seconde fonction qui refaisait ce
+ * switch pour une autre capacité en aurait été une.
  *
  * La personne restreinte est l'identité de la session et jamais une valeur
  * reçue de l'extérieur : *une désignation se dérive d'un contexte authentifié*
  * (L1-02e). Un écran qui passerait un identifiant de technicien choisirait qui
  * il regarde.
  */
-export function perimetreDuPlanning(
+export function perimetreParPersonne(
   contexte: ContexteActif,
+  capacite: Capacite,
 ): PerimetrePlanning {
-  switch (niveau(contexte.role, "consulter_planning")) {
+  switch (niveau(contexte.role, capacite)) {
     case "complet":
       return { acces: "complet" };
     case "restreint":
@@ -68,6 +74,45 @@ export function perimetreDuPlanning(
     case "aucun":
       return { acces: "aucun" };
   }
+}
+
+/** Le périmètre que ce contexte ouvre sur le planning — `consulter_planning`, et lui seul. */
+export function perimetreDuPlanning(
+  contexte: ContexteActif,
+): PerimetrePlanning {
+  return perimetreParPersonne(contexte, "consulter_planning");
+}
+
+/**
+ * CE CONTEXTE AGIT-IL SUR CETTE INTERVENTION, POUR CETTE CAPACITÉ (D131) ?
+ *
+ * Un accès complet agit toujours ; un accès nul n'agit jamais ; un accès
+ * restreint n'agit que si LUI-MÊME est le technicien affecté. *Une
+ * intervention non affectée (`null`) n'est le périmètre de personne* — un
+ * technicien restreint ne peut pas agir sur une intervention que personne
+ * n'a encore prise, `null !== technicienId` étant toujours vrai.
+ */
+export function dansLePerimetre(
+  perimetre: PerimetrePlanning,
+  technicienAffecte: string | null,
+): boolean {
+  switch (perimetre.acces) {
+    case "complet":
+      return true;
+    case "restreint":
+      return technicienAffecte === perimetre.technicienId;
+    case "aucun":
+      return false;
+  }
+}
+
+/** Compose les deux : le verdict direct, sans manipuler `PerimetrePlanning`. */
+export function accesSurCetteIntervention(
+  contexte: ContexteActif,
+  capacite: Capacite,
+  technicienAffecte: string | null,
+): boolean {
+  return dansLePerimetre(perimetreParPersonne(contexte, capacite), technicienAffecte);
 }
 
 /**

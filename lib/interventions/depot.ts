@@ -37,6 +37,7 @@ import {
 } from "@/lib/tarification/valorisation";
 
 import {
+  accesSurCetteIntervention,
   filtreDuPerimetre,
   motifRefusPlanning,
   perimetreDuPlanning,
@@ -1180,6 +1181,20 @@ export async function cloturerIntervention(
       if (ligne === null) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
+      // D131 (23/09/2026, DROITS-1) : un technicien restreint (○) ne clôture
+      // que SA PROPRE intervention affectée. Même clé que « introuvable » —
+      // *hors périmètre et inexistante rendent la même chose* (D35, D50) :
+      // distinguer les deux dirait à un technicien qu'une intervention d'un
+      // collègue existe.
+      if (
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "cloturer_intervention",
+          ligne.technicien_id,
+        )
+      ) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
       const barriere = refus<ResultatCloture>(
         peutCloturer(
           ligne.statut as StatutIntervention,
@@ -1751,9 +1766,24 @@ export async function suspendreIntervention(
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
         where: { id: saisie.intervention_id },
-        select: { id: true, statut: true, agence_id: true },
+        select: {
+          id: true,
+          statut: true,
+          agence_id: true,
+          technicien_id: true,
+        },
       });
       if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // D131 — même périmètre scopé que « clôturer » (voir cette fonction).
+      if (
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "suspendre_reprendre_intervention",
+          ligne.technicien_id,
+        )
+      ) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
       const barriere = refus<LigneIntervention>(
@@ -1808,9 +1838,20 @@ export async function reprendreIntervention(
           statut: true,
           date_planifiee: true,
           creneau_debut: true,
+          technicien_id: true,
         },
       });
       if (ligne === null) {
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // D131 — même périmètre scopé que « clôturer » (voir cette fonction).
+      if (
+        !accesSurCetteIntervention(
+          exigerContexteActif(contexte),
+          "suspendre_reprendre_intervention",
+          ligne.technicien_id,
+        )
+      ) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
       const barriere = refus<LigneIntervention>(
