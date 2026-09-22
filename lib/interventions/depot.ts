@@ -1583,6 +1583,12 @@ export async function lireFicheIntervention(
     decimales: number;
     symbole: string | null;
   } | null;
+  /**
+   * LE FUSEAU DE L'AGENCE (FICHE-INTERVENTION-1) — pour lire l'HEURE du
+   * créneau comme le planning la lit déjà (`heureDuCreneau`,
+   * `../presentation.ts`) : jamais celui de l'appareil (L0-08).
+   */
+  readonly fuseau: Fuseau;
   readonly valorisation: ValorisationAffichee | null;
   /**
    * RG-PLA-04 SUR LE TECHNICIEN ACTUELLEMENT AFFECTÉ (L3-02, D73).
@@ -1607,7 +1613,13 @@ export async function lireFicheIntervention(
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
-          agence: { select: { libelle: true } },
+          agence: {
+            select: {
+              libelle: true,
+              fuseau_horaire: true,
+              societe: { select: { fuseau_horaire: true } },
+            },
+          },
           forfait: { select: { libelle: true } },
           devise: { select: { code: true, decimales: true, symbole: true } },
         },
@@ -1681,6 +1693,7 @@ export async function lireFicheIntervention(
         rattachement: agence.libelle,
         forfait: forfait?.libelle ?? null,
         devise,
+        fuseau: fuseauDeLAgence(agence),
         valorisation,
         habilitations,
       };

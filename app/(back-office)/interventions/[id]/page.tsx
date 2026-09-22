@@ -13,6 +13,7 @@ import { dateCivile } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
+  estFige,
   peutAffecter,
   peutAnnuler,
   peutCloturer,
@@ -40,9 +41,11 @@ import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
+  heureDuCreneau,
+  libelleRetourFiche,
   machinesIdentifiees,
   referenceAffichee,
-  retourPlanning,
+  retourFiche,
   technicienAfficheSurLaFiche,
 } from "../presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -107,7 +110,12 @@ export default async function PageIntervention({
   }
 
   const { id } = await params;
-  const motif = (await searchParams).motif;
+  const parametres = await searchParams;
+  const motif = parametres.motif;
+  // D'OÙ ON ARRIVE (FICHE-INTERVENTION-1) — une liste FERMÉE, jamais une URL
+  // libre : voir `retourFiche` dans `../presentation.ts`.
+  const depuis = parametres.depuis;
+  const depuisId = parametres.depuis_id;
   const fiche = await lireFicheIntervention(session.contexte, id);
   if (fiche === null) {
     // Hors périmètre et inexistante rendent LA MÊME chose : les distinguer
@@ -117,6 +125,24 @@ export default async function PageIntervention({
 
   const ligne = fiche.ligne;
   const statut = ligne.statut as StatutIntervention;
+  // FIGÉE — annulée ou clôturée (`estFige`, `lib/interventions/cycle-de-vie.ts`) :
+  // le panneau « Actions » ne rend alors QUE ce qui reste possible (D131,
+  // 29-DROITS-1), jamais un bloc dont le verdict refuse.
+  const figee = estFige(statut);
+  // LA DATE ET L'HEURE PLANIFIÉES, DANS L'EN-TÊTE (FICHE-INTERVENTION-1) —
+  // *l'information n°1 d'un planificateur qui ouvre cette fiche*, mesurée
+  // absente de l'identification le 23/09/2026. `date_planifiee` est un jour
+  // CIVIL (`dateCivile`, jamais de fuseau) ; l'heure, si le créneau en porte
+  // une, est lue dans le fuseau de l'AGENCE — `heureDuCreneau`, la MÊME
+  // fonction que le planning (§9, 01/09 : jamais une seconde lecture).
+  // Aucune date : l'absence se NOMME, elle ne se tait jamais derrière un tiret.
+  const heurePlanifiee = heureDuCreneau(ligne, fiche.fuseau);
+  const datePlanifieeAffichee =
+    ligne.date_planifiee === null
+      ? t("statut.a_planifier")
+      : heurePlanifiee === null
+        ? dateCivile(ligne.date_planifiee)
+        : `${dateCivile(ligne.date_planifiee)} ${heurePlanifiee}`;
   // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
@@ -300,10 +326,10 @@ export default async function PageIntervention({
             {t("intervention.bon.titre")}
           </Link>
           <Link
-            href={retourPlanning(ligne.date_planifiee)}
+            href={retourFiche({ depuis, depuisId }, ligne)}
             className="text-app-encre-faible text-[12.5px]"
           >
-            {t("planning.retour_fleche")}
+            {libelleRetourFiche(depuis)}
           </Link>
         </span>
       }
@@ -322,6 +348,10 @@ export default async function PageIntervention({
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
             <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+              <Ligne
+                libelle={t("intervention.date")}
+                valeur={datePlanifieeAffichee}
+              />
               <Ligne
                 libelle={t("intervention.type")}
                 valeur={t(`type_intervention.${ligne.type}`)}
@@ -375,10 +405,14 @@ export default async function PageIntervention({
                 valeur={fiche.rattachement ?? TIRET}
                 note={t("intervention.deduit_du_lieu")}
               />
+              {/*
+                LA NOTE « DÉDUIT DU LIEU » NE SE RÉPÈTE PAS (FICHE-INTERVENTION-1)
+                — mesurée deux fois sur cette fiche, l'une sous « agence » juste
+                au-dessus, l'autre ici : un même fait ne s'affirme qu'une fois.
+              */}
               <Ligne
                 libelle={t("intervention.forfait_deplacement")}
                 valeur={fiche.forfait ?? TIRET}
-                note={t("intervention.deduit_du_lieu")}
               />
               <Ligne
                 libelle={t("intervention.technicien")}
@@ -408,41 +442,49 @@ export default async function PageIntervention({
             arrive plus tard. La liste ne propose que les machines DU SITE de
             cette intervention (voir `ajouterMachineAIntervention`, qui tient
             la même règle côté serveur contre un formulaire forgé).
+
+            FIGÉE, CE BLOC NE SE RESSAIE PLUS (FICHE-INTERVENTION-1) — mesuré
+            le 23/09/2026 : une intervention clôturée proposait encore les
+            ~30 machines du site, alors que rien de ce que ce formulaire pose
+            n'a plus lieu d'être une fois l'intervention figée. `estFige` est
+            la même lecture que les cinq actions du panneau ci-contre.
           */}
-          <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-            <h2 className="text-[13px] font-bold">
-              {t("intervention.machine.ajouter_titre")}
-            </h2>
-            {machinesDuSite.length === 0 ? (
-              <p className="text-app-encre-faible text-[12px]">
-                {t("intervention.machine.aucune_au_site")}
-              </p>
-            ) : (
-              <form
-                action={`/api/interventions/${ligne.id}/machine`}
-                method="post"
-                className="flex flex-col gap-3"
-              >
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  {t("intervention.machine")}
-                  <select
-                    name="machine_id"
-                    required
-                    className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-                  >
-                    {machinesDuSite.map((machine) => (
-                      <option key={machine.id} value={machine.id}>
-                        {machine.libelle}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button type="submit" variant="outline" size="sm">
-                  {t("intervention.machine.ajouter_action")}
-                </Button>
-              </form>
-            )}
-          </section>
+          {figee ? null : (
+            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+              <h2 className="text-[13px] font-bold">
+                {t("intervention.machine.ajouter_titre")}
+              </h2>
+              {machinesDuSite.length === 0 ? (
+                <p className="text-app-encre-faible text-[12px]">
+                  {t("intervention.machine.aucune_au_site")}
+                </p>
+              ) : (
+                <form
+                  action={`/api/interventions/${ligne.id}/machine`}
+                  method="post"
+                  className="flex flex-col gap-3"
+                >
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    {t("intervention.machine")}
+                    <select
+                      name="machine_id"
+                      required
+                      className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                    >
+                      {machinesDuSite.map((machine) => (
+                        <option key={machine.id} value={machine.id}>
+                          {machine.libelle}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button type="submit" variant="outline" size="sm">
+                    {t("intervention.machine.ajouter_action")}
+                  </Button>
+                </form>
+              )}
+            </section>
+          )}
 
           {fiche.valorisation !== null && fiche.devise !== null ? (
             <Valorisation
@@ -454,152 +496,215 @@ export default async function PageIntervention({
         </div>
 
         <aside className="flex flex-col gap-4">
-          <Action
-            titre={t("intervention.action.affecter")}
-            verdict={verdictAffecter}
-            action={`/api/interventions/${ligne.id}/affecter`}
-          >
-            <Saisie
-              nom="technicien_id"
-              libelle={t("intervention.technicien")}
-              options={optionsAffectation}
-              libelleOptionVide={t("intervention.aucun_technicien")}
-              valeurParDefaut={ligne.technicien_id ?? undefined}
-            />
-          </Action>
-
           {/*
-        LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
+            LE PANNEAU « ACTIONS » (FICHE-INTERVENTION-1) — un seul
+            regroupement, plutôt que jusqu'à cinq blocs empilés à la file
+            (mesuré : sept sur une intervention planifiée, le 23/09/2026,
+            maquette R2-08 lue et non approchée sur ce point).
 
-        *Une fonction qui n'existe qu'à la souris exclut le tactile et le
-        clavier.* Ce formulaire fait exactement ce que le glisser-déposer du
-        planning fait, aux mêmes refus près : chaque bloc du planning est un
-        lien vers cette fiche, atteignable à la tabulation.
+            FIGÉE, LE RÉGIME CHANGE (D131, 29-DROITS-1) : *aucun bloc dont
+            le verdict est un refus ne se rend* — le motif d'un refus DE
+            STATUT, sur une intervention clôturée ou annulée, est TOUJOURS
+            le même pour les quatre autres actions ; une ligne UNIQUE le dit,
+            reprise des clés existantes (`intervention.refus.cloturee_figee`,
+            `intervention.refus.annulee_figee`) plutôt qu'une phrase écrite
+            une seconde fois. Ce que le rôle peut encore faire — annuler une
+            clôturée, si D131 le lui accorde — reste un bloc plein, jamais
+            une ligne.
 
-        L'heure se saisit en HEURE LOCALE, comme sur le planning : l'instant
-        demande le fuseau de l'établissement, et c'est le dépôt qui le résout.
-      */}
-          <Action
-            titre={t("intervention.action.deplacer")}
-            verdict={peutDeplacer(statut)}
-            action={`/api/interventions/${ligne.id}/deplacer`}
-            note={t("intervention.deplacement.explication")}
-          >
-            <Saisie
-              nom="date_planifiee"
-              type="date"
-              libelle={t("intervention.date")}
-            />
-            <Saisie
-              nom="heure_debut"
-              type="time"
-              libelle={t("intervention.deplacement.heure")}
-            />
-            <Saisie
-              nom="duree_min"
-              type="number"
-              libelle={t("intervention.deplacement.duree")}
-            />
-            {/*
-              SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER (extension de
-              la revue Codex, 20/09/2026) : « Déplacer » restait déjà
-              accessible, avant ce chantier, à un rôle sans `modifier_planning`
-              — la route le refuse au SUBMIT, comme toujours. Ce que ce
-              chantier ajoutait était la LISTE NOMINATIVE ; c'est elle, et
-              elle seule, qui se retire ici. Date, heure et durée gardent le
-              comportement PRÉEXISTANT, hors du périmètre de cette revue.
+            NON FIGÉE, RIEN NE CHANGE : chaque refus continue de s'afficher
+            À LA PLACE de l'action, avec sa raison écrite — c'est ce que
+            `tests/e2e/intervention-technicien-select.spec.ts` et
+            `tests/e2e/blocage-agenda-visible.spec.ts` éprouvent déjà, et ce
+            régime-là n'est pas celui que ce ticket change.
+          */}
+          <section className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-3.5">
+            <h2 className="text-[13px] font-bold">
+              {t("intervention.actions.titre")}
+            </h2>
+
+            {figee ? (
+              <>
+                <p className="text-app-encre-faible text-[12.5px]">
+                  {t(
+                    statut === "cloturee"
+                      ? "intervention.refus.cloturee_figee"
+                      : "intervention.refus.annulee_figee",
+                  )}
+                </p>
+                {peutAnnulerCetteIntervention &&
+                !peutAnnuler(statut).refuse ? (
+                  <Action
+                    titre={t("intervention.action.annuler")}
+                    verdict={peutAnnuler(statut)}
+                    action={`/api/interventions/${ligne.id}/annuler`}
+                    note={t("intervention.annulation.obligatoire")}
+                  >
+                    <Saisie
+                      nom="motif"
+                      libelle={t("intervention.annulation.motif")}
+                    />
+                  </Action>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Action
+                  titre={t("intervention.action.affecter")}
+                  verdict={verdictAffecter}
+                  action={`/api/interventions/${ligne.id}/affecter`}
+                >
+                  <Saisie
+                    nom="technicien_id"
+                    libelle={t("intervention.technicien")}
+                    options={optionsAffectation}
+                    libelleOptionVide={t("intervention.aucun_technicien")}
+                    valeurParDefaut={ligne.technicien_id ?? undefined}
+                  />
+                </Action>
+
+                {/*
+              LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
+
+              *Une fonction qui n'existe qu'à la souris exclut le tactile et
+              le clavier.* Ce formulaire fait exactement ce que le
+              glisser-déposer du planning fait, aux mêmes refus près : chaque
+              bloc du planning est un lien vers cette fiche, atteignable à la
+              tabulation.
+
+              L'heure se saisit en HEURE LOCALE, comme sur le planning :
+              l'instant demande le fuseau de l'établissement, et c'est le
+              dépôt qui le résout.
             */}
-            {peutModifierLePlanning ? (
-              <Saisie
-                nom="technicien_id"
-                libelle={t("intervention.technicien")}
-                options={optionsTechniciens}
-                libelleOptionVide={t("intervention.aucun_technicien")}
-                valeurParDefaut={ligne.technicien_id ?? undefined}
-              />
-            ) : null}
-          </Action>
+                <Action
+                  titre={t("intervention.action.deplacer")}
+                  verdict={peutDeplacer(statut)}
+                  action={`/api/interventions/${ligne.id}/deplacer`}
+                  note={t("intervention.deplacement.explication")}
+                >
+                  <Saisie
+                    nom="date_planifiee"
+                    type="date"
+                    libelle={t("intervention.date")}
+                  />
+                  <Saisie
+                    nom="heure_debut"
+                    type="time"
+                    libelle={t("intervention.deplacement.heure")}
+                  />
+                  <Saisie
+                    nom="duree_min"
+                    type="number"
+                    libelle={t("intervention.deplacement.duree")}
+                  />
+                  {/*
+                    SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
+                    (extension de la revue Codex, 20/09/2026) : « Déplacer »
+                    restait déjà accessible, avant ce chantier, à un rôle
+                    sans `modifier_planning` — la route le refuse au SUBMIT,
+                    comme toujours. Ce que ce chantier ajoutait était la
+                    LISTE NOMINATIVE ; c'est elle, et elle seule, qui se
+                    retire ici. Date, heure et durée gardent le comportement
+                    PRÉEXISTANT, hors du périmètre de cette revue.
+                  */}
+                  {peutModifierLePlanning ? (
+                    <Saisie
+                      nom="technicien_id"
+                      libelle={t("intervention.technicien")}
+                      options={optionsTechniciens}
+                      libelleOptionVide={t("intervention.aucun_technicien")}
+                      valeurParDefaut={ligne.technicien_id ?? undefined}
+                    />
+                  ) : null}
+                </Action>
 
-          {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) : le champ
-              de l'action est pré-rempli depuis le mesuré, et une garde qui juge
-              ce qu'elle vient d'écrire ne juge rien. */}
-          {peutClore ? (
-            <Action
-              titre={t("intervention.action.cloturer")}
-              verdict={peutCloturer(statut, ligne.temps_mesure_min)}
-              action={`/api/interventions/${ligne.id}/cloturer`}
-              note={t("intervention.cloture.explication")}
-            >
-              {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120). Le champ
-                  arrive PRÉ-REMPLI avec ce que le compteur a compté : par défaut
-                  le temps validé égale le temps mesuré, et il n'en diffère que
-                  si quelqu'un l'a corrigé — on saura alors qui et quand. */}
-              <Saisie
-                nom="temps_valide_min"
-                type="number"
-                libelle={t("intervention.cloture.temps_valide")}
-                valeurParDefaut={
-                  ligne.temps_mesure_min === null
-                    ? undefined
-                    : String(ligne.temps_mesure_min)
-                }
-              />
-            </Action>
-          ) : null}
+                {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) :
+                    le champ de l'action est pré-rempli depuis le mesuré, et
+                    une garde qui juge ce qu'elle vient d'écrire ne juge
+                    rien. */}
+                {peutClore ? (
+                  <Action
+                    titre={t("intervention.action.cloturer")}
+                    verdict={peutCloturer(statut, ligne.temps_mesure_min)}
+                    action={`/api/interventions/${ligne.id}/cloturer`}
+                    note={t("intervention.cloture.explication")}
+                  >
+                    {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120).
+                        Le champ arrive PRÉ-REMPLI avec ce que le compteur a
+                        compté : par défaut le temps validé égale le temps
+                        mesuré, et il n'en diffère que si quelqu'un l'a
+                        corrigé — on saura alors qui et quand. */}
+                    <Saisie
+                      nom="temps_valide_min"
+                      type="number"
+                      libelle={t("intervention.cloture.temps_valide")}
+                      valeurParDefaut={
+                        ligne.temps_mesure_min === null
+                          ? undefined
+                          : String(ligne.temps_mesure_min)
+                      }
+                    />
+                  </Action>
+                ) : null}
 
-          {/*
-        LA SUSPENSION ET SA REPRISE (L2-10, RG-INT-06).
+                {/*
+              LA SUSPENSION ET SA REPRISE (L2-10, RG-INT-06).
 
-        *Une seule des deux s'offre à la fois*, et ce n'est pas une commodité
-        d'affichage : le verdict de chacune refuse l'état de l'autre, et un
-        refus prend la place de l'action avec sa raison — jamais un bouton
-        grisé, qui laisse croire qu'il suffirait d'insister.
+              *Une seule des deux s'offre à la fois*, et ce n'est pas une
+              commodité d'affichage : le verdict de chacune refuse l'état de
+              l'autre, et un refus prend la place de l'action avec sa
+              raison — jamais un bouton grisé, qui laisse croire qu'il
+              suffirait d'insister.
 
-        La référence de pièce et sa date sont dans le MÊME formulaire, parce
-        qu'elles se saisissent ensemble ou pas du tout.
-      */}
-          {!peutSuspendreOuReprendre ? null : statut === "suspendue" ? (
-            <Action
-              titre={t("intervention.action.reprendre")}
-              verdict={peutReprendre(statut)}
-              action={`/api/interventions/${ligne.id}/reprendre`}
-            />
-          ) : (
-            <Action
-              titre={t("intervention.action.suspendre")}
-              verdict={peutSuspendre(statut, "—")}
-              action={`/api/interventions/${ligne.id}/suspendre`}
-              note={t("intervention.suspension.piece_aide")}
-            >
-              <Saisie
-                nom="motif"
-                libelle={t("intervention.suspension.motif")}
-              />
-              <Saisie
-                nom="piece_attendue_ref"
-                libelle={t("intervention.suspension.piece")}
-              />
-              <Saisie
-                nom="date_dispo_prevue"
-                type="date"
-                libelle={t("intervention.suspension.date_dispo")}
-              />
-            </Action>
-          )}
+              La référence de pièce et sa date sont dans le MÊME formulaire,
+              parce qu'elles se saisissent ensemble ou pas du tout.
+            */}
+                {!peutSuspendreOuReprendre ? null : statut ===
+                  "suspendue" ? (
+                  <Action
+                    titre={t("intervention.action.reprendre")}
+                    verdict={peutReprendre(statut)}
+                    action={`/api/interventions/${ligne.id}/reprendre`}
+                  />
+                ) : (
+                  <Action
+                    titre={t("intervention.action.suspendre")}
+                    verdict={peutSuspendre(statut, "—")}
+                    action={`/api/interventions/${ligne.id}/suspendre`}
+                    note={t("intervention.suspension.piece_aide")}
+                  >
+                    <Saisie
+                      nom="motif"
+                      libelle={t("intervention.suspension.motif")}
+                    />
+                    <Saisie
+                      nom="piece_attendue_ref"
+                      libelle={t("intervention.suspension.piece")}
+                    />
+                    <Saisie
+                      nom="date_dispo_prevue"
+                      type="date"
+                      libelle={t("intervention.suspension.date_dispo")}
+                    />
+                  </Action>
+                )}
 
-          {peutAnnulerCetteIntervention ? (
-            <Action
-              titre={t("intervention.action.annuler")}
-              verdict={peutAnnuler(statut)}
-              action={`/api/interventions/${ligne.id}/annuler`}
-              note={t("intervention.annulation.obligatoire")}
-            >
-              <Saisie
-                nom="motif"
-                libelle={t("intervention.annulation.motif")}
-              />
-            </Action>
-          ) : null}
+                {peutAnnulerCetteIntervention ? (
+                  <Action
+                    titre={t("intervention.action.annuler")}
+                    verdict={peutAnnuler(statut)}
+                    action={`/api/interventions/${ligne.id}/annuler`}
+                    note={t("intervention.annulation.obligatoire")}
+                  >
+                    <Saisie
+                      nom="motif"
+                      libelle={t("intervention.annulation.motif")}
+                    />
+                  </Action>
+                ) : null}
+              </>
+            )}
+          </section>
         </aside>
       </div>
     </Page>

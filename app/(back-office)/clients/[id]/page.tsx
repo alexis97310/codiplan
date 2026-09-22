@@ -310,7 +310,7 @@ export default async function PageClient({
             <tr key={ligne.id}>
               <Cellule mono>
                 <Link
-                  href={`/interventions/${ligne.id}`}
+                  href={`/interventions/${ligne.id}?depuis=client`}
                   className={CLASSES_LIEN}
                 >
                   {referenceAffichee(ligne)}

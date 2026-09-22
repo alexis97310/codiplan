@@ -67,6 +67,105 @@ export function retourPlanning(datePlanifiee: Date | null): string {
 }
 
 /**
+ * ── LE RETOUR MÈNE À L'ÉCRAN D'ORIGINE (FICHE-INTERVENTION-1) ────────────────
+ *
+ * *Mesuré le 23/09/2026 : le retour de la fiche était TOUJOURS
+ * « Retour au planning », même en arrivant d'une fiche client, site ou
+ * machine, ou de la liste des interventions.* Les écrans qui mènent à cette
+ * fiche portent désormais `?depuis=…`, une valeur d'une LISTE FERMÉE — jamais
+ * une URL libre reçue en clair : une redirection ouverte se forge (D50), un
+ * mot d'une liste fermée ne se détourne pas.
+ *
+ * **`machine` est le seul cas qui porte un second paramètre**, `depuisId` :
+ * une intervention peut porter PLUSIEURS machines (I1 ne le borne pas), la
+ * fiche ne sait donc pas SEULE laquelle a ouvert le lien. Il n'est accepté
+ * que s'il désigne une machine RÉELLEMENT rattachée à cette intervention —
+ * jamais recopié tel quel vers le lien rendu.
+ */
+const VALEURS_DEPUIS = [
+  "planning",
+  "interventions",
+  "client",
+  "site",
+  "machine",
+] as const;
+
+/** D'où on arrive sur la fiche — une liste fermée, jamais une URL libre. */
+export type OrigineFiche = (typeof VALEURS_DEPUIS)[number];
+
+function estOrigineFiche(valeur: unknown): valeur is OrigineFiche {
+  return (
+    typeof valeur === "string" &&
+    (VALEURS_DEPUIS as readonly string[]).includes(valeur)
+  );
+}
+
+/**
+ * L'HREF DU RETOUR — `planning` par défaut, comme avant ce ticket, quand
+ * `depuis` est absent ou ne vaut rien de connu.
+ */
+export function retourFiche(
+  parametres: {
+    readonly depuis: string | readonly string[] | undefined;
+    readonly depuisId: string | readonly string[] | undefined;
+  },
+  ligne: {
+    readonly client_id: string;
+    readonly site_id: string;
+    readonly date_planifiee: Date | null;
+    readonly machines: readonly { readonly machine_id: string }[];
+  },
+): string {
+  const depuis = Array.isArray(parametres.depuis)
+    ? parametres.depuis[0]
+    : parametres.depuis;
+  if (!estOrigineFiche(depuis)) {
+    return retourPlanning(ligne.date_planifiee);
+  }
+  switch (depuis) {
+    case "interventions":
+      return "/interventions";
+    case "client":
+      return `/clients/${ligne.client_id}`;
+    case "site":
+      return `/sites/${ligne.site_id}`;
+    case "machine": {
+      const depuisId = Array.isArray(parametres.depuisId)
+        ? parametres.depuisId[0]
+        : parametres.depuisId;
+      const rattachee =
+        typeof depuisId === "string" &&
+        ligne.machines.some((machine) => machine.machine_id === depuisId);
+      return rattachee ? `/parc/${depuisId}` : retourPlanning(ligne.date_planifiee);
+    }
+    case "planning":
+      return retourPlanning(ligne.date_planifiee);
+  }
+}
+
+/** Le libellé du lien de retour, assorti à `retourFiche` ci-dessus. */
+export function libelleRetourFiche(
+  depuis: string | readonly string[] | undefined,
+): string {
+  const valeur = Array.isArray(depuis) ? depuis[0] : depuis;
+  if (!estOrigineFiche(valeur)) {
+    return t("planning.retour_fleche");
+  }
+  switch (valeur) {
+    case "interventions":
+      return t("intervention.retour.interventions");
+    case "client":
+      return t("intervention.retour.client");
+    case "site":
+      return `${t("intervention.retour.site_prefixe")} ${motDansUnePhrase("site")}`;
+    case "machine":
+      return t("intervention.retour.machine");
+    case "planning":
+      return t("planning.retour_fleche");
+  }
+}
+
+/**
  * ── CE QU'UN BLOC D'INTERVENTION DIT, ET CE QU'IL DISAIT ─────────────────────
  *
  * La maquette fait foi sur la disposition (D95), et elle écrit

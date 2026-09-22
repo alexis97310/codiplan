@@ -450,7 +450,7 @@ function BlocInterventions({
             <tr key={ligne.id}>
               <Cellule mono>
                 <Link
-                  href={`/interventions/${ligne.id}`}
+                  href={`/interventions/${ligne.id}?depuis=site`}
                   className={CLASSES_LIEN}
                 >
                   {referenceAffichee(ligne)}

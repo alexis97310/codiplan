@@ -243,7 +243,9 @@ export default async function PageMachine({
               </div>
               {interventionOuverte === undefined ? null : (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/interventions/${interventionOuverte.id}`}>
+                  <Link
+                    href={`/interventions/${interventionOuverte.id}?depuis=machine&depuis_id=${machine.id}`}
+                  >
                     {t("machine.alerte.voir_intervention")}
                   </Link>
                 </Button>
@@ -354,6 +356,7 @@ export default async function PageMachine({
                     key={ligne.id}
                     ligne={ligne}
                     annuaire={annuaire}
+                    machineId={machine.id}
                   />
                 ))}
               </Tableau>
@@ -437,15 +440,21 @@ function LigneDocument({ document }: { readonly document: DocumentDeMachine }) {
 function LigneHistorique({
   ligne,
   annuaire,
+  machineId,
 }: {
   readonly ligne: LigneIntervention;
   readonly annuaire: Annuaire;
+  /** Pour le retour de la fiche ouverte (FICHE-INTERVENTION-1) — `?depuis_id`. */
+  readonly machineId: string;
 }) {
   return (
     <tr>
       <Cellule>{dateAffichee(ligne.date_planifiee)}</Cellule>
       <Cellule mono>
-        <Link href={`/interventions/${ligne.id}`} className={CLASSES_LIEN}>
+        <Link
+          href={`/interventions/${ligne.id}?depuis=machine&depuis_id=${machineId}`}
+          className={CLASSES_LIEN}
+        >
           {referenceAffichee(ligne)}
         </Link>
       </Cellule>

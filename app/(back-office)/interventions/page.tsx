@@ -473,7 +473,10 @@ function LigneIntervention({
   return (
     <tr>
       <Cellule mono fort>
-        <Link href={`/interventions/${ligne.id}`} className={CLASSES_LIEN}>
+        <Link
+          href={`/interventions/${ligne.id}?depuis=interventions`}
+          className={CLASSES_LIEN}
+        >
           {referenceAffichee(ligne)}
         </Link>
       </Cellule>

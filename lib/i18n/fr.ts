@@ -1103,8 +1103,21 @@ export const fr = {
   "intervention.duree_estimee": "Durée estimée",
   "intervention.mode_valorisation": "Mode de valorisation",
   "intervention.forfait_deplacement": "Forfait de déplacement",
-  "intervention.sans_numero":
-    "Le numéro est attribué par le serveur à la première synchronisation.",
+  // FICHE-INTERVENTION-1, 23/09/2026 — REFORMULÉ : la phrase disait au
+  // planificateur COMMENT le numéro s'attribue, jamais ce qu'il en pense
+  // aujourd'hui. « Numéro provisoire » se lit sans jargon ; le mécanisme
+  // reste écrit une fois, au chapitre 10, pas répété sur chaque fiche.
+  "intervention.sans_numero": "Numéro provisoire",
+  // LE PANNEAU QUI REGROUPE LES CINQ ACTIONS (FICHE-INTERVENTION-1) — un seul
+  // titre, plutôt qu'un titre répété par bloc empilé.
+  "intervention.actions.titre": "Actions",
+  // LE RETOUR MÈNE À L'ÉCRAN D'ORIGINE (FICHE-INTERVENTION-1) — `retourFiche`
+  // et `libelleRetourFiche` de `../presentation.ts` composent ces clés selon
+  // `?depuis=`. « planning » réutilise `planning.retour_fleche`, déjà écrite.
+  "intervention.retour.interventions": "← Retour aux interventions",
+  "intervention.retour.client": "← Retour au client",
+  "intervention.retour.site_prefixe": "← Retour au",
+  "intervention.retour.machine": "← Retour à la machine",
 
   "intervention.action.affecter": "Affecter un technicien",
   "intervention.action.deplacer": "Déplacer",
