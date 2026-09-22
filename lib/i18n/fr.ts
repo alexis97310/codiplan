@@ -1433,6 +1433,40 @@ export const fr = {
   "forfaits.explication_rang":
     "Le plus petit rang l'emporte. Deux forfaits de même nature ne peuvent pas partager un rang : la base le refuse, pour que deux interventions identiques ne se facturent jamais différemment selon l'ordre où les forfaits ont été saisis.",
 
+  // ── LA SUCCESSION D'UN TAUX HORAIRE (TAUX-1) ────────────────────────────
+  //
+  // Le taux horaire n'avait qu'un seul chemin d'écriture — le geste de mise
+  // en service, qui refuse dès qu'une société porte déjà un taux. Un tarif
+  // qui change (hausse, correction) n'avait nulle part où aller.
+  "taux_horaire.titre": "Taux horaire",
+  "taux_horaire.sous_titre":
+    "Le taux horaire de main-d'œuvre, et son historique. Un taux ne se modifie jamais : il se succède, à une date d'effet, sans changer aucune intervention déjà valorisée.",
+  "taux_horaire.historique_date_effet": "Date d'effet",
+  "taux_horaire.historique_montant": "Montant",
+  "taux_horaire.historique_statut": "Statut",
+  "taux_horaire.en_vigueur": "En vigueur aujourd'hui",
+  "taux_horaire.vide":
+    "Aucun taux horaire n'est encore réglé. Aucune intervention ne peut être valorisée tant qu'aucun n'existe.",
+  "taux_horaire.poser": "Poser un nouveau taux",
+  "taux_horaire.champ.montant": "Montant, en unités mineures",
+  "taux_horaire.champ.date_effet": "Date d'effet",
+  "taux_horaire.continuer": "Continuer",
+  "taux_horaire.confirmer.titre": "Confirmer le nouveau taux",
+  "taux_horaire.confirmer.explication":
+    "Ce taux s'appliquera à compter de la date d'effet indiquée, à toute intervention valorisée à partir de ce jour. Il ne change aucune intervention déjà valorisée.",
+  "taux_horaire.confirmer.montant": "Montant",
+  "taux_horaire.confirmer.date_effet": "Date d'effet",
+  "taux_horaire.confirmer.confirmer": "Confirmer et enregistrer",
+  "taux_horaire.confirmer.annuler": "Annuler",
+  "taux_horaire.refus.saisie":
+    "La saisie est refusée : vérifier le montant (entier strictement positif, en unités mineures) et la date d'effet (AAAA-MM-JJ).",
+  "taux_horaire.refus.montant_invalide":
+    "Le montant doit être strictement positif : un taux à zéro se lirait « gratuit ».",
+  "taux_horaire.refus.date_deja_utilisee":
+    "Un taux porte déjà cette date d'effet. Deux taux ne peuvent pas partager le même jour : choisir une autre date d'effet.",
+  "taux_horaire.refus.societe_introuvable":
+    "Cette société est introuvable : le taux ne peut pas être posé.",
+
   // ── Le paramétrage d'ouverture (lot 2, I7) ────────────────────────────────
   //
   // « Agence » et « site » ne s'écrivent pas ici : le code nomme la notion.
@@ -2070,6 +2104,9 @@ export const fr = {
   "parametres.index_trajets_titre": "Temps de trajet par zone",
   "parametres.index_trajets_resume":
     "Le temps de route depuis l'établissement, par zone géographique. Des valeurs de référence s'appliquent tant que la société n'a rien réglé — un réglage retiré rend la main à la référence, jamais à zéro.",
+  "parametres.index_taux_horaire_titre": "Taux horaire",
+  "parametres.index_taux_horaire_resume":
+    "Le taux horaire de main-d'œuvre et son historique. Un changement de taux ne modifie jamais les interventions déjà valorisées.",
   "parametres.index_forfaits_titre": "Forfaits applicables",
   "parametres.index_forfaits_resume":
     "Le catalogue des forfaits et leur ordre de priorité. Un forfait s'ajoute toujours aux heures ; il ne les remplace pas.",

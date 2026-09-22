@@ -70,7 +70,8 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
   "app/api/imports/[id]/annuler/route.ts": "importer_exporter",
   "app/api/imports/[id]/rejets/route.ts": "importer_exporter",
-  // « Paramétrer une société » — dix-sept routes de `parametres/`.
+  // « Paramétrer une société » — dix-huit routes de `parametres/`.
+  "app/api/parametres/taux-horaire/creer/route.ts": "parametrer_societe",
   "app/api/parametres/forfaits/creer/route.ts": "parametrer_societe",
   "app/api/parametres/forfaits/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/forfaits/[id]/modifier/route.ts": "parametrer_societe",
@@ -240,7 +241,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(45);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(46);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

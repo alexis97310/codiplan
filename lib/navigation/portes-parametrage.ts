@@ -56,6 +56,18 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     resume: "parametres.index_forfaits_resume",
   },
   {
+    // LA DIXIÈME PORTE (TAUX-1, 22/09/2026). `taux_horaire` n'avait qu'un
+    // seul chemin d'écriture — le geste de mise en service, atteint par un
+    // flux GitHub — et aucun écran. *Un tarif qui évolue et qu'on ne peut
+    // pas changer n'est pas un réglage manquant : c'est une impasse.*
+    //
+    // **Elle ne porte aucun décompte**, comme les autres portes de cette
+    // liste.
+    chemin: "/parametres/taux-horaire",
+    titre: "parametres.index_taux_horaire_titre",
+    resume: "parametres.index_taux_horaire_resume",
+  },
+  {
     // « Sites d'intervention » n'était PAS orphelin — on l'atteint depuis le
     // lieu d'une intervention, puis depuis la fiche du site. *Un chemin qui
     // existe dans le code n'est pas un chemin qu'un humain trouve*, et c'est la
