@@ -136,7 +136,9 @@ export function retourFiche(
       const rattachee =
         typeof depuisId === "string" &&
         ligne.machines.some((machine) => machine.machine_id === depuisId);
-      return rattachee ? `/parc/${depuisId}` : retourPlanning(ligne.date_planifiee);
+      return rattachee
+        ? `/parc/${depuisId}`
+        : retourPlanning(ligne.date_planifiee);
     }
     case "planning":
       return retourPlanning(ligne.date_planifiee);

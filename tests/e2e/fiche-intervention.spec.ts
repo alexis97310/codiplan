@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { heureDuCreneau } from "@/app/(back-office)/interventions/presentation";
 import { fr } from "@/lib/i18n";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
@@ -54,6 +55,9 @@ let siteId: string;
 let clientId: string;
 let machineDuSiteId: string;
 let autreMachineId: string;
+/** L'heure du créneau de `FICHE_DATEE`, MESURÉE par la même fonction que
+ * l'écran (`heureDuCreneau`) — jamais une chaîne écrite en dur (L0-11). */
+let heureAttendue: string;
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -68,7 +72,11 @@ test.beforeAll(async () => {
     });
     ducosId = ducos.id;
     const site = await client.site.findFirstOrThrow({
-      where: { societe_id: societeId, agence_id: ducosId, client: { actif: true } },
+      where: {
+        societe_id: societeId,
+        agence_id: ducosId,
+        client: { actif: true },
+      },
       select: { id: true, client_id: true },
       orderBy: { libelle: "asc" },
     });
@@ -96,6 +104,16 @@ test.beforeAll(async () => {
     // un INSTANT UTC (L0-08). 08:00 à Nouméa (UTC+11, sans heure d'été) est
     // donc 21:00 UTC la VEILLE du jour civil.
     const creneauDebut = new Date(jour.getTime() + (8 - 11) * 3_600_000);
+    // L'HEURE ATTENDUE, MESURÉE PAR LA MÊME FONCTION QUE L'ÉCRAN — jamais
+    // « 08:00 » recopié en dur dans le scénario (L0-11).
+    const heure = heureDuCreneau(
+      { creneau_debut: creneauDebut },
+      reperes.fuseau,
+    );
+    if (heure === null) {
+      throw new Error("le créneau posé devrait produire une heure lisible");
+    }
+    heureAttendue = heure;
 
     // FICHE DATÉE — un créneau à 08:00 locale.
     await client.$executeRawUnsafe(
@@ -186,8 +204,9 @@ test("la date et l'heure planifiées sont dans l'en-tête, et l'absence se nomme
   const ligneDate = page.locator("dt", { hasText: fr["intervention.date"] });
   await expect(ligneDate).toBeVisible();
   const valeur = ligneDate.locator("xpath=following-sibling::dd[1]");
-  // 08:00 locale (Pacific/Noumea, UTC+11) — le créneau posé pour ce jour.
-  await expect(valeur).toContainText("08:00");
+  // L'heure locale (Pacific/Noumea, UTC+11) du créneau posé pour ce jour,
+  // MESURÉE dans `beforeAll` par `heureDuCreneau` — jamais recopiée en dur.
+  await expect(valeur).toContainText(heureAttendue);
 
   await page.goto(`/interventions/${FICHE_SANS_DATE}`);
   await expect(
@@ -199,9 +218,7 @@ test("le sous-titre ne cite plus le mécanisme d'attribution du numéro", async 
   page,
 }) => {
   await page.goto(`/interventions/${FICHE_DATEE}`);
-  await expect(
-    page.getByText(fr["intervention.sans_numero"]),
-  ).toBeVisible();
+  await expect(page.getByText(fr["intervention.sans_numero"])).toBeVisible();
 });
 
 test("sur une intervention CLÔTURÉE, aucun bloc refusé ne s'affiche — seule l'annulation reste possible", async ({
@@ -264,9 +281,10 @@ test("le retour mène à l'écran d'origine que `depuis` désigne, et au plannin
   ).toHaveAttribute("href", `/clients/${clientId}`);
 
   await page.goto(`/interventions/${FICHE_DATEE}?depuis=site`);
-  const libelleRetourSite = `${fr["intervention.retour.site_prefixe"]} ${motDansUnePhrase("site")}`;
   await expect(
-    page.getByRole("link", { name: libelleRetourSite }),
+    page.getByRole("link", {
+      name: `${fr["intervention.retour.site_prefixe"]} ${motDansUnePhrase("site")}`,
+    }),
   ).toHaveAttribute("href", `/sites/${siteId}`);
 
   // LA MACHINE VALIDE — rattachée à CETTE intervention.

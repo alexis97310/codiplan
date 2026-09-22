@@ -532,8 +532,7 @@ export default async function PageIntervention({
                       : "intervention.refus.annulee_figee",
                   )}
                 </p>
-                {peutAnnulerCetteIntervention &&
-                !peutAnnuler(statut).refuse ? (
+                {peutAnnulerCetteIntervention && !peutAnnuler(statut).refuse ? (
                   <Action
                     titre={t("intervention.action.annuler")}
                     verdict={peutAnnuler(statut)}
@@ -659,8 +658,7 @@ export default async function PageIntervention({
               La référence de pièce et sa date sont dans le MÊME formulaire,
               parce qu'elles se saisissent ensemble ou pas du tout.
             */}
-                {!peutSuspendreOuReprendre ? null : statut ===
-                  "suspendue" ? (
+                {!peutSuspendreOuReprendre ? null : statut === "suspendue" ? (
                   <Action
                     titre={t("intervention.action.reprendre")}
                     verdict={peutReprendre(statut)}
