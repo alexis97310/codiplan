@@ -26,7 +26,12 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { BlocContacts } from "../../contacts/presentation";
-import { decompte, hrefDeLaPage, libellePage, ouTiret } from "../../presentation";
+import {
+  decompte,
+  hrefDeLaPage,
+  libellePage,
+  ouTiret,
+} from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
 
 /**

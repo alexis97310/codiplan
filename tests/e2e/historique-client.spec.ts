@@ -128,7 +128,9 @@ test.beforeAll(async () => {
     // `delete` puis `create` : une scène repart d'un état connu.
     await client.intervention.deleteMany({
       where: {
-        id: { in: Array.from({ length: EN_BASE }, (_, r) => idIntervention(r)) },
+        id: {
+          in: Array.from({ length: EN_BASE }, (_, r) => idIntervention(r)),
+        },
       },
     });
     await client.site.deleteMany({ where: { id: SITE_AVEC_HISTORIQUE } });
@@ -139,7 +141,8 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_AVEC_HISTORIQUE,
         societe_id: societe.id,
-        raison_sociale: "Client à treize interventions (épreuve HISTORIQUE-CLIENT-1)",
+        raison_sociale:
+          "Client à treize interventions (épreuve HISTORIQUE-CLIENT-1)",
       },
     });
     await client.site.create({
@@ -208,7 +211,9 @@ test.afterAll(async () => {
   try {
     await client.intervention.deleteMany({
       where: {
-        id: { in: Array.from({ length: EN_BASE }, (_, r) => idIntervention(r)) },
+        id: {
+          in: Array.from({ length: EN_BASE }, (_, r) => idIntervention(r)),
+        },
       },
     });
     await client.site.deleteMany({ where: { id: SITE_AVEC_HISTORIQUE } });
@@ -320,7 +325,9 @@ test("UN CLIENT SANS AUCUNE INTERVENTION dit son absence — ni tableau vide, ni
 }) => {
   await page.goto(`/clients/${CLIENT_SANS_INTERVENTION}`);
   await expect(page.locator("main")).toBeVisible();
-  mesure.fiches.sans_intervention = { url: `/clients/${CLIENT_SANS_INTERVENTION}` };
+  mesure.fiches.sans_intervention = {
+    url: `/clients/${CLIENT_SANS_INTERVENTION}`,
+  };
   await capturer(page, "client-sans-intervention");
 
   const bloc = page.locator('[data-bloc="historique-client"]');

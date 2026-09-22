@@ -7,7 +7,12 @@ import {
 } from "@/lib/interventions/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
-import { AGENCE_A, SOCIETE_A, SOCIETE_B, UTILISATEUR_INTERNE_A } from "./setup/fixtures";
+import {
+  AGENCE_A,
+  SOCIETE_A,
+  SOCIETE_B,
+  UTILISATEUR_INTERNE_A,
+} from "./setup/fixtures";
 
 /**
  * LA FICHE D'UN CLIENT S'ARRÊTAIT À DOUZE INTERVENTIONS, SUR 1751
@@ -175,13 +180,17 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
       clientApp(),
     );
     expect(page2).toHaveLength(BORNE);
-    expect(page2.map((l) => l.id)).toEqual(ORDRE_ATTENDU.slice(BORNE, 2 * BORNE));
+    expect(page2.map((l) => l.id)).toEqual(
+      ORDRE_ATTENDU.slice(BORNE, 2 * BORNE),
+    );
     // Aucun id de la page 1 ne réapparaît sur la page 2.
     const idsPage1 = new Set(page1.map((l) => l.id));
     expect(page2.some((l) => idsPage1.has(l.id))).toBe(false);
     // La dernière ligne de la page 1 précède immédiatement la première de la
     // page 2 dans l'ordre attendu — aucun rang sauté.
-    const rangDernierePage1 = ORDRE_ATTENDU.indexOf(page1[page1.length - 1]!.id);
+    const rangDernierePage1 = ORDRE_ATTENDU.indexOf(
+      page1[page1.length - 1]!.id,
+    );
     const rangPremierePage2 = ORDRE_ATTENDU.indexOf(page2[0]!.id);
     expect(rangPremierePage2).toBe(rangDernierePage1 + 1);
   });
@@ -198,7 +207,9 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
       clientApp(),
     );
     // 15 lignes, borne 4 : la dernière page (page 4) porte les 3 restantes.
-    expect(derniere).toHaveLength(NOMBRE_D_INTERVENTIONS % derniereBorne || derniereBorne);
+    expect(derniere).toHaveLength(
+      NOMBRE_D_INTERVENTIONS % derniereBorne || derniereBorne,
+    );
     // Les trois SANS DATE ferment la dernière page — jamais mêlées aux datées.
     expect(derniere.every((l) => l.date_planifiee === null)).toBe(true);
   });
@@ -222,7 +233,11 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
     );
     expect(uneSeulePage.length).toBe(1);
     expect(
-      await compterInterventionsDuClient(SESSION, CLIENT_HISTORIQUE, clientApp()),
+      await compterInterventionsDuClient(
+        SESSION,
+        CLIENT_HISTORIQUE,
+        clientApp(),
+      ),
     ).toBe(total);
   });
 
@@ -237,7 +252,11 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
     );
     expect(vues).toEqual([]);
     expect(
-      await compterInterventionsDuClient(SESSION_B, CLIENT_HISTORIQUE, clientApp()),
+      await compterInterventionsDuClient(
+        SESSION_B,
+        CLIENT_HISTORIQUE,
+        clientApp(),
+      ),
     ).toBe(0);
   });
 
