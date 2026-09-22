@@ -60,6 +60,24 @@ const FLUX: readonly Flux[] = [
     brute: "/tmp/societe.txt",
     expurge: "/tmp/societe-expurge.txt",
   },
+  // Les deux gestes ajoutés le 22/09/2026 (AMORCAGE-2) appellent des scripts
+  // qui relancent tels quels ce qu'ils ne reconnaissent pas — la faute a la
+  // même forme, et la population la suit plutôt que de la laisser au premier
+  // ticket venu.
+  {
+    fichier: "amorcage-base.yml",
+    ouverture: "Poser le premier taux horaire",
+    resume: "Reporter le taux horaire posé",
+    brute: "/tmp/taux.txt",
+    expurge: "/tmp/taux-expurge.txt",
+  },
+  {
+    fichier: "amorcage-base.yml",
+    ouverture: "Étendre l'horizon des jours fériés",
+    resume: "Reporter l'horizon des fériés",
+    brute: "/tmp/feries.txt",
+    expurge: "/tmp/feries-expurge.txt",
+  },
 ];
 
 function texteDe(flux: Flux): string {
@@ -421,8 +439,10 @@ describe("le prononceur de `sed -E` est éprouvé", () => {
           confrontations += 1;
         }
       }
-      // Témoin de non-vacuité : deux flux, trois entrées.
-      expect(confrontations).toBe(6);
+      // Témoin de non-vacuité : chaque étape de la population, sur chaque
+      // entrée — DÉRIVÉ, depuis que la population a grandi (AMORCAGE-2).
+      expect(FLUX.length).toBeGreaterThan(0);
+      expect(confrontations).toBe(FLUX.length * entrees.length);
     },
   );
 });

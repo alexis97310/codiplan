@@ -13,6 +13,13 @@ name: Amorcer une base (référentiels et première société)
 # d'identité ne partagent ni leurs défaillances, ni leurs cliquets — c'est la
 # raison qui a séparé le taux horaire de l'amorçage (décision du 09/09).
 #
+# DEUX GESTES DE PLUS DEPUIS LE 22/09/2026 (AMORCAGE-2), chacun sous sa case :
+# le PREMIER TAUX HORAIRE et l'HORIZON DES JOURS FÉRIÉS. Leurs scripts
+# existaient et n'avaient aucun flux — un `grep` sur ce répertoire ne rendait
+# rien —, donc exigeaient un terminal branché sur la base de production. Un
+# acheteur de CODIPLAN n'en aura pas. Un gardien exige désormais que toute
+# case déclarée ici ait son étape (tests/unit/ci/gestes-amorcage.test.ts).
+#
 # IMPÉRATIF, comme partout ici : aucun déclenchement automatique.
 on:
   workflow_dispatch:
@@ -80,6 +87,35 @@ on:
         type: string
         required: false
         default: ""
+      # ── DEUX GESTES DE PLUS, AJOUTÉS LE 22/09/2026 (AMORCAGE-2) ──────────
+      # Ils existaient en scripts et n'avaient AUCUN flux : un terminal branché
+      # sur la base de production était exigé, et un acheteur de CODIPLAN n'en
+      # aura pas. Chacun sous sa propre case, dans la forme des deux premiers.
+      poser_taux:
+        description: "Poser le PREMIER taux horaire d'une société — exige « societe » et « montant »"
+        type: boolean
+        required: false
+        default: false
+      societe:
+        description: "Identifiant (UUID) de la société, rendu par le geste d'ouverture — pour le taux"
+        type: string
+        required: false
+        default: ""
+      montant:
+        description: "Taux horaire HT, ENTIER dans l'unité la plus fine de la devise de la société (7000 = 7 000 XPF, 6500 = 65,00 EUR) — aucune valeur par défaut : c'est un prix"
+        type: string
+        required: false
+        default: ""
+      date_effet:
+        description: "Date d'effet du taux, AAAA-MM-JJ — vide : le jour du geste, dans le fuseau de la société"
+        type: string
+        required: false
+        default: ""
+      etendre_feries:
+        description: "Étendre l'horizon des jours fériés, par TERRITOIRE depuis les agences (D46) — exige qu'une agence existe"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: amorcage-base
@@ -202,4 +238,165 @@ jobs:
             echo '```'
             echo
             echo "Reportez l'identifiant dans le flux **Ouvrir le PREMIER compte**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── LE PREMIER TAUX HORAIRE (AMORCAGE-2, 22/09/2026) ──────────────────
+      #
+      # `scripts/taux-initial.mts` existait depuis le 10/09 et n'avait AUCUN
+      # flux : il exigeait un terminal branché sur la base de production. Le
+      # geste reste SÉPARÉ de l'ouverture de la société — un problème de tarif
+      # ne doit pas bloquer le seul chemin d'entrée dans le produit (décision
+      # du 09/09) —, d'où sa propre case, et une société NOMMÉE par son
+      # identifiant plutôt que devinée : une seule société en base ne veut pas
+      # dire « celle-là ».
+      #
+      # LE TAUX EST UN PRIX. Il se reçoit en argument, il n'a AUCUNE valeur par
+      # défaut, et l'étape refuse un montant vide AVANT d'appeler le script — le
+      # script refuserait aussi, mais en parlant d'un entier, pas d'un prix
+      # (CLAUDE.md §8, même règle que la majoration ci-dessus). Le montant est
+      # un ENTIER dans l'unité la plus fine de la devise de la société (I3), et
+      # le script le RÉPÈTE formaté : relire cette ligne dans le résumé, une
+      # erreur d'échelle se voit là avant d'être facturée.
+      - name: Poser le premier taux horaire
+        if: ${{ inputs.poser_taux }}
+        env:
+          TAUX_INITIAL_CONFIRME: "oui"
+          SOCIETE: ${{ inputs.societe }}
+          MONTANT: ${{ inputs.montant }}
+          DATE_EFFET: ${{ inputs.date_effet }}
+        run: |
+          set -uo pipefail
+          if [ -z "$SOCIETE" ]; then
+            echo "::error::Le champ « societe » est vide. Le taux se pose sur une société NOMMÉE par son identifiant — celui que le geste d'ouverture a rendu."
+            exit 1
+          fi
+          if [ -z "$MONTANT" ]; then
+            echo "::error::Le champ « montant » est vide. Un taux horaire est un PRIX : il n'a aucune valeur par défaut, et ce flux n'en invente pas (CLAUDE.md §8)."
+            exit 1
+          fi
+          # `--date` n'est passé que s'il est renseigné : le script prend alors
+          # le jour du geste dans le fuseau de la société, et c'est SA règle.
+          date_argument=()
+          if [ -n "$DATE_EFFET" ]; then
+            date_argument=(--date "$DATE_EFFET")
+          fi
+
+          # MÊME FORME QUE « Ouvrir la première société » : la sortie va dans
+          # un fichier, jamais dans le journal. Ce que ce geste imprime
+          # volontairement n'est pas un secret — un taux formaté. Ce qu'il peut
+          # imprimer SANS L'AVOIR VOULU en est un : le script relance toute
+          # erreur qu'il ne reconnaît pas, et le message brut d'un pilote nomme
+          # l'hébergeur et la région (D50).
+          code=0
+          pnpm exec tsx scripts/taux-initial.mts \
+            --societe "$SOCIETE" --montant "$MONTANT" "${date_argument[@]}" \
+            > /tmp/taux.txt 2>&1 || code=$?
+
+          # PREMIÈRE BARRIÈRE — le masque, posé AVANT tout rendu.
+          grep -oE '[a-z0-9+.-]+://[^[:space:]]+' /tmp/taux.txt > /tmp/urls-taux.txt || true
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            echo "::add-mask::$url"
+          done < /tmp/urls-taux.txt
+
+          # SECONDE BARRIÈRE — le retrait, qui garde même quand le masque ne
+          # reconnaît pas la chaîne.
+          sed -E 's#[a-z0-9+.-]+://[^[:space:]]+#(URL RETIRÉE DU JOURNAL)#g' \
+            /tmp/taux.txt > /tmp/taux-expurge.txt
+          cat /tmp/taux-expurge.txt
+          exit $code
+
+      # Le résumé a la même visibilité que le journal : il reçoit l'EXPURGÉ.
+      # Le taux FORMATÉ y est ce qu'il faut relire : le script refuse ensuite
+      # de rejouer, et une erreur d'échelle se corrige par le chemin ordinaire.
+      - name: Reporter le taux horaire posé
+        if: ${{ always() && inputs.poser_taux }}
+        run: |
+          {
+            echo "## Premier taux horaire"
+            echo
+            echo '```'
+            cat /tmp/taux-expurge.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
+            echo '```'
+            echo
+            echo "Relire le taux FORMATÉ ci-dessus : le geste ne se rejoue pas, une erreur d'échelle passe par le chemin ordinaire."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── L'HORIZON DES JOURS FÉRIÉS (AMORCAGE-2, 22/09/2026) ───────────────
+      #
+      # `pnpm feries:etendre` existait depuis L0-08 et n'avait AUCUN flux. Sans
+      # lui, une table de fériés alimentée une fois se périme en silence et le
+      # planning propose des créneaux un 1ᵉʳ mai (§9, 21/08 ; D46).
+      #
+      # L'ORDRE COMPTE, et l'étape est la DERNIÈRE pour cela : les fériés se
+      # posent par TERRITOIRE, et le territoire est lu sur les AGENCES — jamais
+      # deviné, jamais passé en argument. Or une agence appartient à une
+      # société, et se crée dans l'application une fois le premier compte
+      # ouvert : sur une base neuve, ce geste se joue donc lors d'une
+      # exécution ULTÉRIEURE, après la première agence. Tant qu'aucune agence
+      # n'existe, le SCRIPT refuse en le nommant — « Aucun territoire n'est
+      # rattaché à une agence » — et l'étape rougit avec cette phrase ; elle
+      # n'invente pas de territoire à sa place. Rejouable sans dommage : la clé
+      # naturelle est (territoire, date), et aucune ligne existante n'est
+      # touchée.
+      #
+      # La base est visée DÉLIBÉRÉMENT par HORIZON_DATABASE_URL, première
+      # variable que la lecture regarde : « un contrôle d'exploitation se
+      # demande, il ne s'attrape pas » (scripts/lib/feries.ts). L'écriture dans
+      # `jour_ferie` exige le propriétaire ou un rôle éditeur (D46) — c'est
+      # l'URL de migration du flux.
+      #
+      # ── CE QUE CE BOUTON NE PEUT PAS ENCORE FAIRE SUR UNE BASE HÉBERGÉE ────
+      # MESURÉ LE 22/09/2026, en rejouant la chaîne sur une base neuve migrée
+      # par un propriétaire NON superutilisateur — le rôle de migration tel
+      # qu'un hébergeur le donne : avec UNE agence en base, le script refuse
+      # « Aucun territoire n'est rattaché à une agence » ; la même base sous
+      # un superutilisateur ajoute 36 fériés. `agence` porte FORCE ROW LEVEL
+      # SECURITY et `lireAgences` (scripts/lib/feries.ts) la lit sans contexte
+      # ni identité exemptée : le propriétaire voit ZÉRO ligne et le script se
+      # croit sans agence — c'est le §9 du 07/09, mot pour mot. Le seul
+      # environnement où le défaut existe est celui que `verify:full` ne joue
+      # jamais (poste et CI : superutilisateur). La réparation est dans le
+      # script — lire les agences sous l'identité exemptée, comme
+      # scripts/inventaire.mts —, hors du territoire d'AMORCAGE-2 ; tant
+      # qu'elle n'est pas faite, ce bouton REFUSE sur l'hébergé même quand une
+      # agence existe, et le résumé le dit plutôt que d'envoyer créer une
+      # agence qui est déjà là.
+      - name: Étendre l'horizon des jours fériés
+        if: ${{ inputs.etendre_feries }}
+        env:
+          HORIZON_DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          set -uo pipefail
+          # MÊME FORME QUE « Ouvrir la première société » : sortie dans un
+          # fichier, masque, puis retrait — le script relance les erreurs de
+          # pilote telles quelles, et elles nomment l'hébergeur (D50).
+          code=0
+          pnpm feries:etendre > /tmp/feries.txt 2>&1 || code=$?
+
+          grep -oE '[a-z0-9+.-]+://[^[:space:]]+' /tmp/feries.txt > /tmp/urls-feries.txt || true
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            echo "::add-mask::$url"
+          done < /tmp/urls-feries.txt
+
+          sed -E 's#[a-z0-9+.-]+://[^[:space:]]+#(URL RETIRÉE DU JOURNAL)#g' \
+            /tmp/feries.txt > /tmp/feries-expurge.txt
+          cat /tmp/feries-expurge.txt
+          exit $code
+
+      # L'horizon AVANT et APRÈS, territoire par territoire, tel que le script
+      # l'imprime — et le refus « aucun territoire » s'il n'y avait pas encore
+      # d'agence, pour que le lecteur sache que c'est l'ORDRE, pas la base.
+      - name: Reporter l'horizon des fériés
+        if: ${{ always() && inputs.etendre_feries }}
+        run: |
+          {
+            echo "## Horizon des jours fériés"
+            echo
+            echo '```'
+            cat /tmp/feries-expurge.txt 2>/dev/null || echo "(aucune sortie : le geste a été refusé, voir le journal)"
+            echo '```'
+            echo
+            echo "« Aucun territoire n'est rattaché à une agence » a DEUX causes, et ce flux ne sait pas laquelle : aucune agence n'existe encore — en créer une dans l'application, puis rejouer ce seul geste — ou bien elle existe et le rôle de migration ne la voit pas (cloisonnement forcé sur « agence », mesuré le 22/09/2026 sur une base neuve, AMORCAGE-2) ; dans ce second cas, le script doit être réparé avant que ce bouton serve, et un terminal sous un rôle exempté reste le seul chemin."
           } >> "$GITHUB_STEP_SUMMARY"
