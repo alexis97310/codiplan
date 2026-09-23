@@ -124,6 +124,22 @@ export const SCENE = {
   obstacle: "01a0e2e0-0000-7000-8000-000000000003",
   /** Ducos, MÊME technicien, MARDI 13:00–14:00 — celle qui viendra chevaucher. */
   chevauchante: "01a0e2e0-0000-7000-8000-000000000004",
+  /**
+   * Ducos, MÊME technicien, MARDI 14:00–15:00 — dédiée au redimensionnement.
+   *
+   * *Mesurée le 23/09/2026 : le scénario de redimensionnement ALLONGEAIT
+   * `chevauchante` (13:00–14:00 → 13:00–14:30) sans jamais la ramener à sa
+   * durée d'origine — une mutation PERMANENTE d'une fixture que d'autres
+   * fichiers lisent pour la durée affichée d'une carte
+   * (`planning-largeur-et-carte.spec.ts`). Sous `fullyParallel`, ce fichier
+   * tourne en même temps que les autres : un fichier qui lit la durée de
+   * `chevauchante` AVANT le redimensionnement et l'affiche APRÈS voit une
+   * durée qui ne correspond plus à ce qu'il a lu — panne reproduite deux fois
+   * à l'identique par `pnpm verify:full` (« attendu 1 h 00, reçu 1 h 30 »).
+   * Une fixture dédiée, jamais lue ailleurs, ferme la fenêtre : `chevauchante`
+   * ne bouge plus jamais après son écriture initiale.
+   */
+  redimensionnable: "01a0e2e0-0000-7000-8000-000000000005",
 } as const;
 
 export type ReperesDeScene = {
@@ -276,6 +292,14 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         technicien: reperes.technicienDucos,
         rang: MARDI,
         debut: 13 * 60,
+        duree: 60,
+      },
+      {
+        id: SCENE.redimensionnable,
+        lieu: ducos,
+        technicien: reperes.technicienDucos,
+        rang: MARDI,
+        debut: 14 * 60,
         duree: 60,
       },
     ];

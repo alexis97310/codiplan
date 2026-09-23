@@ -325,22 +325,26 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
   // R2-12 et R2-19.
   await allerAuPlanning(page, MARDI);
 
-  const debut = 13 * 60;
-  const apres = 14 * 60;
+  // `redimensionnable`, jamais `chevauchante` : ce scénario ALLONGE
+  // l'intervention, et la garde allongée — une mutation qu'aucun autre
+  // fichier ne doit jamais observer (voir le commentaire de
+  // `SCENE.redimensionnable`, `tests/e2e/setup/scene.ts`).
+  const debut = 14 * 60;
+  const apres = 15 * 60;
 
-  // TÉMOIN : l'intervention dure une heure, donc la case de 14 h ne lui
+  // TÉMOIN : l'intervention dure une heure, donc la case de 15 h ne lui
   // appartient pas. *Sans lui, un allongement vers une case déjà occupée par
   // elle passerait pour un succès.*
   await expect(
-    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+    occupe(page, reperes.technicienDucos, debut, SCENE.redimensionnable),
   ).toBeVisible();
   await expect(
-    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+    occupe(page, reperes.technicienDucos, apres, SCENE.redimensionnable),
   ).toHaveCount(0);
 
   await glisser(
     page,
-    poignee(page, SCENE.chevauchante),
+    poignee(page, SCENE.redimensionnable),
     caseDHeure(page, reperes.technicienDucos, apres),
   );
 
@@ -356,19 +360,19 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
   // `{"accepte":true}` quand on lui en laissait le temps.
   //
   // Une assertion d'écran réessaie ; une navigation, non. On attend donc que
-  // l'écran se soit relu du serveur — ce qui prouve au passage que la case de
-  // 14 h lui appartient — AVANT de recharger pour interroger la base.
+  // l'écran se soit relu du serveur — ce qui prouve au passage que la case
+  // visée lui appartient — AVANT de recharger pour interroger la base.
   await expect(
-    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+    occupe(page, reperes.technicienDucos, apres, SCENE.redimensionnable),
   ).toBeVisible();
 
   // Et la BASE l'a gardé, ce que seul un rechargement complet peut dire.
   await allerAuPlanning(page, MARDI);
   await expect(
-    occupe(page, reperes.technicienDucos, apres, SCENE.chevauchante),
+    occupe(page, reperes.technicienDucos, apres, SCENE.redimensionnable),
   ).toBeVisible();
   await expect(
-    occupe(page, reperes.technicienDucos, debut, SCENE.chevauchante),
+    occupe(page, reperes.technicienDucos, debut, SCENE.redimensionnable),
   ).toBeVisible();
 });
 
