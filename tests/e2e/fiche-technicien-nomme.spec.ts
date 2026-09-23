@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
@@ -133,7 +134,13 @@ async function planifierAvecTechnicien(
     .locator('select[name="technicien_id"]')
     .selectOption(valeur ?? "");
   const reperes = await reperesDeLaScene();
-  const mardi = jourDeLaScene(reperes, MARDI);
+  // TRENTE-CINQ JOURS PLUS LOIN, ET C'EST UNE MESURE (PARCOURS-1) — le mardi
+  // ordinaire, et son +21 jours (`intervention-technicien-select.spec.ts`),
+  // et son +63 jours (`parcours-creer-puis-planifier.spec.ts`) portent déjà
+  // des rendez-vous d'autres scénarios de ce dépôt qui visent le même
+  // premier technicien réel ; +35 reste un mardi (multiple de 7) et n'entre
+  // en collision avec aucun des trois.
+  const mardi = jourSuivant(jourDeLaScene(reperes, MARDI), 35);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
