@@ -60,9 +60,36 @@ export async function glisser(
   // hors fenêtre n'est pas une erreur pour la souris : c'est un geste qui n'a
   // pas lieu, et qui ne dit rien** — le scénario échouait alors sur l'absence
   // de refus, c'est-à-dire en accusant la règle au lieu du geste.
+  //
+  // UN SEUL DÉFILEMENT, VERS LE MILIEU DES DEUX — jamais deux appels
+  // successifs à `scrollIntoViewIfNeeded`. Mesuré le 23/09/2026
+  // (PARCOURS-1-REPRISE) : amener la CIBLE à l'écran, puis la SOURCE,
+  // ressort la cible de l'écran quand les deux sont loin l'une de l'autre —
+  // la case visée se retrouvait à `y:-146.6`, strictement hors fenêtre, la
+  // source (la file d'attente) ayant grossi avec chaque scénario du dépôt
+  // qui pose une intervention à planifier sans la planifier ensuite. Un
+  // défilement UNIQUE vers le MILIEU des deux centres donne aux deux la
+  // même chance d'être visibles ensemble.
   await cible.scrollIntoViewIfNeeded();
-  await source.scrollIntoViewIfNeeded();
   const fenetre = page.viewportSize() ?? { width: 1280, height: 720 };
+  const avantSource = await source.boundingBox();
+  const avantCible = await cible.boundingBox();
+  if (avantSource === null || avantCible === null) {
+    throw new Error(
+      "Le glissé vise un élément sans boîte : la source ou la case n'est pas " +
+        "dans la page, et le scénario mesurerait un geste qui n'a pas eu lieu.",
+    );
+  }
+  const milieu =
+    (avantSource.y +
+      avantSource.height / 2 +
+      (avantCible.y + avantCible.height / 2)) /
+    2;
+  const decalage = milieu - fenetre.height / 2;
+  if (Math.abs(decalage) > 1) {
+    await page.evaluate((dy) => window.scrollBy(0, dy), decalage);
+  }
+
   const depart = await source.boundingBox();
   const arrivee = await cible.boundingBox();
   if (depart === null || arrivee === null) {
