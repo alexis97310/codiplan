@@ -1,7 +1,11 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
-import { compterSites, rechercherSites } from "@/lib/sites/depot";
+import {
+  compterSites,
+  equipementsParSite,
+  rechercherSites,
+} from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -10,6 +14,7 @@ import {
   PORTAIL_A_CLIENT,
   SITE_A1_S1,
   SITE_A1_S2,
+  SITE_A2_S1,
   SITE_B1_S1,
   SOCIETE_A,
   SOCIETE_B,
@@ -116,5 +121,64 @@ describe("compterSites compte le total FILTRÉ, jamais le compte de la page", ()
     expect(page1.length).toBe(1);
     expect(page2.length).toBe(1);
     expect(page2[0]!.id).not.toBe(page1[0]!.id);
+  });
+});
+
+/**
+ * LE COMPTE D'ÉQUIPEMENTS, LE MASQUAGE PAR DÉFAUT, ET LA RECHERCHE PAR CLIENT
+ * (LISTES-1, 23/09/2026).
+ *
+ * `SITE_A1_S1` porte `MACHINE_A1` ; `SITE_A2_S1` (client A2) n'en porte
+ * aucune — le cas exact que la demande d'Alexis nomme.
+ */
+describe("equipementsParSite, le masquage par défaut et la recherche par client (LISTES-1)", () => {
+  it("compte les équipements de CHAQUE site, zéro compris", async () => {
+    const comptes = await equipementsParSite(
+      INTERNE_A,
+      [{ id: SITE_A1_S1 }, { id: SITE_A2_S1 }],
+      clientApp(),
+    );
+    expect(comptes.get(SITE_A1_S1)).toBe(1);
+    expect(comptes.get(SITE_A2_S1) ?? 0).toBe(0);
+  });
+
+  it("un compte de PORTAIL ne compte que ce qu'il a le droit de voir (D10, D22)", async () => {
+    // PORTAIL_A1 est restreint à SITE_A1_S1 — un site hors périmètre rend
+    // `0`, jamais une fuite d'un compte appartenant à un site qu'il ne peut
+    // pas lire.
+    const comptes = await equipementsParSite(
+      PORTAIL_A1,
+      [{ id: SITE_A1_S1 }, { id: SITE_A2_S1 }],
+      clientApp(),
+    );
+    expect(comptes.get(SITE_A1_S1)).toBe(1);
+    expect(comptes.get(SITE_A2_S1) ?? 0).toBe(0);
+  });
+
+  it("par défaut, un site sans équipement est masqué de la recherche", async () => {
+    const parDefaut = schemaRechercheSite.parse({
+      inclure_sans_equipement: false,
+    });
+    const fiches = await rechercherSites(INTERNE_A, parDefaut, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(SITE_A1_S1);
+    expect(ids).not.toContain(SITE_A2_S1);
+  });
+
+  it("la case levée réaffiche les sites sans équipement", async () => {
+    const tous = schemaRechercheSite.parse({ inclure_sans_equipement: true });
+    const fiches = await rechercherSites(INTERNE_A, tous, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(SITE_A1_S1);
+    expect(ids).toContain(SITE_A2_S1);
+  });
+
+  it("trouve un site par la raison sociale de son CLIENT", async () => {
+    const criteres = schemaRechercheSite.parse({ texte: "Client A1" });
+    const fiches = await rechercherSites(INTERNE_A, criteres, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(SITE_A1_S1);
+    expect(ids).toContain(SITE_A1_S2);
+    expect(ids).not.toContain(SITE_B1_S1);
   });
 });

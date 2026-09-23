@@ -4,6 +4,7 @@ import { Role } from "@/lib/auth/roles";
 import {
   compterClients,
   compterSansCodeExterne,
+  equipementsParClient,
   rechercherClients,
   sitesParClient,
 } from "@/lib/clients/depot";
@@ -382,5 +383,70 @@ describe("les dernières interventions d'un client", () => {
       CLIENT_A2,
     );
     expect(temoin!.n).toBe(2);
+  });
+});
+
+/**
+ * LE COMPTE D'ÉQUIPEMENTS ET LE MASQUAGE PAR DÉFAUT (LISTES-1, 23/09/2026).
+ *
+ * `CLIENT_A1` porte `MACHINE_A1` et `MACHINE_A2` (deux) ; `CLIENT_A2` n'en
+ * porte aucune — c'est le cas exact que la demande d'Alexis nomme : *« si le
+ * client n'a pas d'équipement enregistré, il faut le filtrer ».*
+ */
+describe("equipementsParClient et le masquage par défaut (LISTES-1)", () => {
+  it("compte les équipements de CHAQUE client, zéro compris", async () => {
+    const comptes = await equipementsParClient(
+      INTERNE_A,
+      [{ id: CLIENT_A1 }, { id: CLIENT_A2 }],
+      clientApp(),
+    );
+    // MACHINE_A1, MACHINE_A2 ET MACHINE_A3 appartiennent toutes à CLIENT_A1
+    // (D93 : MACHINE_A3 est « d'ailleurs » par son SITE, pas par son client).
+    expect(comptes.get(CLIENT_A1)).toBe(3);
+    // Un client sans machine rend soit `0`, soit une absence de clé — jamais
+    // une exception : `equipementsParSite`/`Client` suivent la même règle que
+    // `sitesParClient` sur ce point.
+    expect(comptes.get(CLIENT_A2) ?? 0).toBe(0);
+  });
+
+  it("un compte de PORTAIL ne compte que ce qu'il a le droit de voir (D10, D22)", async () => {
+    const comptes = await equipementsParClient(
+      PORTAIL_A1,
+      [{ id: CLIENT_A1 }],
+      clientApp(),
+    );
+    // PORTAIL_A1 est restreint à SITE_A1_S1 : seule MACHINE_A1 y est posée,
+    // MACHINE_A2 vit sur SITE_A1_S2, hors de son périmètre.
+    expect(comptes.get(CLIENT_A1)).toBe(1);
+  });
+
+  it("par défaut, un client sans équipement est masqué de la recherche", async () => {
+    const parDefaut = schemaRechercheClient.parse({
+      inclure_sans_equipement: false,
+    });
+    const fiches = await rechercherClients(INTERNE_A, parDefaut, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(CLIENT_A1);
+    expect(ids).not.toContain(CLIENT_A2);
+  });
+
+  it("la case levée réaffiche les clients sans équipement", async () => {
+    const tous = schemaRechercheClient.parse({
+      inclure_sans_equipement: true,
+    });
+    const fiches = await rechercherClients(INTERNE_A, tous, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(CLIENT_A1);
+    expect(ids).toContain(CLIENT_A2);
+  });
+
+  it("le compteur masqué et la recherche masquée comptent la MÊME chose", async () => {
+    const parDefaut = schemaRechercheClient.parse({
+      inclure_sans_equipement: false,
+    });
+    const total = await compterClients(INTERNE_A, parDefaut, clientApp());
+    const fiches = await rechercherClients(INTERNE_A, parDefaut, clientApp());
+    expect(fiches.length).toBeLessThanOrEqual(total);
+    expect(fiches.map((f) => f.id)).not.toContain(CLIENT_A2);
   });
 });

@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { Role } from "@/lib/auth/roles";
 import {
   compterLeParc,
+  optionsDeFiltreDuParc,
   rechercherLeParc,
   resumerLeParcFiltre,
 } from "@/lib/machines/depot";
@@ -11,11 +12,16 @@ import { schemaRechercheParc } from "@/lib/machines/saisie";
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   CLIENT_A1,
+  CLIENT_A2,
+  FAMILLE_A,
+  FAMILLE_A_AILLEURS,
   MACHINE_A1,
   MACHINE_A2,
   MACHINE_A3,
   MACHINE_B1,
   PORTAIL_A_CLIENT,
+  SITE_A1_S1,
+  SITE_A1_S2,
   SOCIETE_A,
   SOCIETE_B,
   UTILISATEUR_INTERNE_A,
@@ -157,5 +163,86 @@ describe("resumerLeParcFiltre suit la MÊME recherche que la liste (AT-07)", () 
     );
     expect(filtre.total).toBe(1);
     expect(filtre.total).toBeLessThan(tout.total);
+  });
+});
+
+/**
+ * LES TROIS FILTRES COMBINABLES DE LISTES-1 (23/09/2026) — client, site,
+ * famille, aux côtés du statut déjà éprouvé plus haut.
+ */
+describe("les trois filtres combinables du parc (LISTES-1)", () => {
+  it("filtre par client", async () => {
+    const criteres = schemaRechercheParc.parse({ client_id: CLIENT_A1 });
+    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(MACHINE_A1);
+    expect(ids).toContain(MACHINE_A2);
+    expect(ids).not.toContain(MACHINE_B1);
+  });
+
+  it("filtre par site", async () => {
+    const criteres = schemaRechercheParc.parse({ site_id: SITE_A1_S1 });
+    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toEqual([MACHINE_A1]);
+  });
+
+  it("filtre par famille", async () => {
+    const criteres = schemaRechercheParc.parse({ famille_id: FAMILLE_A });
+    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    const ids = fiches.map((f) => f.id);
+    expect(ids).toContain(MACHINE_A1);
+    expect(ids).toContain(MACHINE_A2);
+    // MACHINE_A3 suit MODELE_A_AILLEURS, d'une AUTRE famille (D93).
+    expect(ids).not.toContain(MACHINE_A3);
+  });
+
+  it("les trois filtres SE COMBINENT — client ET site ET famille", async () => {
+    const criteres = schemaRechercheParc.parse({
+      client_id: CLIENT_A1,
+      site_id: SITE_A1_S2,
+      famille_id: FAMILLE_A_AILLEURS,
+    });
+    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    // MACHINE_A3 est le SEUL exemplaire qui satisfait les trois critères à
+    // la fois — MACHINE_A2 est sur le même site mais une autre famille.
+    expect(fiches.map((f) => f.id)).toEqual([MACHINE_A3]);
+  });
+
+  it("un site d'une AUTRE société ne filtre rien qui existe (aucune fuite)", async () => {
+    const criteres = schemaRechercheParc.parse({ client_id: CLIENT_A2 });
+    const fiches = await rechercherLeParc(INTERNE_A, criteres, clientApp());
+    // CLIENT_A2 n'a aucune machine dans le jeu de fixtures.
+    expect(fiches).toEqual([]);
+  });
+});
+
+/**
+ * LES OPTIONS DES TROIS FILTRES — jamais le référentiel entier, et
+ * CLOISONNÉES comme le reste (D10, D22, D93).
+ */
+describe("optionsDeFiltreDuParc (LISTES-1)", () => {
+  it("ne propose que les clients, sites et familles qui ont au moins une machine", async () => {
+    const options = await optionsDeFiltreDuParc(INTERNE_A, clientApp());
+    const clientIds = options.clients.map((c) => c.id);
+    expect(clientIds).toContain(CLIENT_A1);
+    // CLIENT_A2 n'a aucune machine : il n'a rien à faire dans ce filtre.
+    expect(clientIds).not.toContain(CLIENT_A2);
+    const familleIds = options.familles.map((f) => f.id);
+    expect(familleIds).toContain(FAMILLE_A);
+    expect(familleIds).toContain(FAMILLE_A_AILLEURS);
+  });
+
+  it("un compte de PORTAIL restreint à UN site n'y voit QUE ce que son périmètre lui montre (D93)", async () => {
+    const options = await optionsDeFiltreDuParc(PORTAIL_A1, clientApp());
+    // MACHINE_A3 (FAMILLE_A_AILLEURS) vit sur SITE_A1_S2, hors du périmètre
+    // du compte portail restreint à SITE_A1_S1 — c'est le jumeau nommé par
+    // D93 : « ni la notice, ni son existence, ni un compteur à zéro qui la
+    // trahirait ».
+    const familleIds = options.familles.map((f) => f.id);
+    expect(familleIds).toContain(FAMILLE_A);
+    expect(familleIds).not.toContain(FAMILLE_A_AILLEURS);
+    const siteIds = options.sites.map((s) => s.id);
+    expect(siteIds).toEqual([SITE_A1_S1]);
   });
 });
