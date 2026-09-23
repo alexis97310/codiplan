@@ -132,6 +132,10 @@ export default async function PageInterventions({
       typeof params.inclure_clients_inactifs === "string"
         ? params.inclure_clients_inactifs
         : undefined,
+    sans_duree_a_venir:
+      typeof params.sans_duree_a_venir === "string"
+        ? params.sans_duree_a_venir
+        : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -223,6 +227,20 @@ export default async function PageInterventions({
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
+        </p>
+      ) : null}
+
+      {/*
+        LE FILTRE POSÉ PAR LE LIEN DE LA TUILE (AFFICHAGE-MATERIEL-1) — un
+        état qui ne vient d'aucune case du formulaire ci-dessous ne doit pas
+        rester muet à l'écran, sinon la liste semble filtrée sans raison.
+      */}
+      {criteres.success && criteres.data.sans_duree_a_venir ? (
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {t("interventions.filtre_sans_duree_a_venir")}
         </p>
       ) : null}
 

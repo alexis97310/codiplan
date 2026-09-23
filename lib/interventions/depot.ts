@@ -9,9 +9,11 @@ import type { Calendrier } from "@/lib/calendar/calendrier";
 import {
   MINUTES_PAR_JOUR,
   instantAMinutes,
+  instantDuJour,
   jourDe,
   jourSuivant,
   maintenant,
+  schemaFuseau,
   versLocal,
   type Fuseau,
   type JourLocal,
@@ -1545,8 +1547,9 @@ export async function listerPlanning(
 }
 
 /**
- * COMBIEN D'INTERVENTIONS PLANIFIÉES N'ONT AUCUNE DURÉE PRÉVUE (TABLEAU-1,
- * 23/09/2026) — un compte, pas une alerte de conformité.
+ * COMBIEN D'INTERVENTIONS À VENIR N'ONT AUCUNE DURÉE PRÉVUE (TABLEAU-1,
+ * 23/09/2026 ; corrigé le même jour, AFFICHAGE-MATERIEL-1) — un compte, pas
+ * une alerte de conformité.
  *
  * Alexis a décidé le 23/09/2026 que la durée deviendra obligatoire ; ce
  * chiffre mesure combien de fiches en manquent aujourd'hui, avant que la
@@ -1554,13 +1557,25 @@ export async function listerPlanning(
  * colonne `duree_estimee_min` existe déjà, nullable — ce compte ne fait que
  * la lire.
  *
- * **« Planifiée » = une DATE est posée** (`date_planifiee` non nulle) : une
- * fiche encore « à planifier » n'a pas de durée à lui reprocher, elle n'a
- * encore rien. Aucune borne de période : une charge passée ou future est
- * faussée de la même façon tant que la colonne reste nulle.
+ * **MESURÉ EN PRODUCTION LE 23/09/2026 À 13H05, APRÈS 34-TABLEAU-1 : la tuile
+ * affichait 1755** — presque tout l'historique repris, des interventions
+ * CLÔTURÉES de 2021 à 2026, sans durée saisie parce que le terrain ne l'a
+ * jamais exigée avant cette décision. *Le premier critère — « une date est
+ * posée » — comptait le PASSÉ figé avec l'À VENIR à compléter*, deux choses
+ * que rien ne distinguait.
+ *
+ * **Le critère retenu est désormais double** :
+ *   - **NON TERMINALE** — ni `terminee`, ni `cloturee`, ni `annulee` : un
+ *     travail déjà fait ou abandonné n'a plus de durée à faire compléter ;
+ *   - **datée d'AUJOURD'HUI OU PLUS TARD, OU SANS DATE** — `debutDuJour` est
+ *     la borne CIVILE que l'appelant lit dans le fuseau de la société (L0-08,
+ *     comme `compterAPrevoir` juste au-dessus) ; une fiche encore « à
+ *     planifier » (`date_planifiee` nulle) reste comptée, puisqu'elle
+ *     manquera de durée le jour où elle sera posée.
  */
 export async function compterInterventionsSansDuree(
   contexte: ContexteSession,
+  debutDuJour: Date,
   client?: PrismaClient,
 ): Promise<number> {
   return avecContexteApplicatif(
@@ -1569,12 +1584,44 @@ export async function compterInterventionsSansDuree(
       tx.intervention.count({
         where: {
           ...filtreClientActif(false),
-          date_planifiee: { not: null },
-          duree_estimee_min: null,
+          ...criteresSansDureeAVenir(debutDuJour),
         },
       }),
     client,
   );
+}
+
+/**
+ * LE CRITÈRE PARTAGÉ — la tuile du tableau de bord ET le lien qu'elle pose
+ * vers le registre lisent la MÊME chose (§9, 01/09 : deux lectures d'un même
+ * critère divergent en silence). Non terminale, sans durée, et à venir ou
+ * sans date — voir la note de tête de `compterInterventionsSansDuree`.
+ */
+function criteresSansDureeAVenir(
+  debutDuJour: Date,
+): Prisma.InterventionWhereInput {
+  return {
+    statut: { notIn: ["terminee", "cloturee", "annulee"] },
+    duree_estimee_min: null,
+    OR: [{ date_planifiee: null }, { date_planifiee: { gte: debutDuJour } }],
+  };
+}
+
+/**
+ * LA CIVILE D'AUJOURD'HUI DANS LE FUSEAU DE LA SOCIÉTÉ (L0-08) — lue depuis
+ * la même transaction que le filtre qu'elle borne, jamais depuis l'horloge de
+ * l'appareil.
+ */
+async function debutDuJourSociete(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteSession,
+): Promise<Date> {
+  const societe = await tx.societe.findFirst({
+    where: { id: exigerContexteActif(contexte).societeId },
+    select: { fuseau_horaire: true },
+  });
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  return instantDuJour(jourDe(maintenant(fuseau).local));
 }
 
 /**
@@ -2271,6 +2318,7 @@ function numeroDeReference(texte: string): number | null {
 
 function filtreDesInterventions(
   criteres: RechercheInterventions,
+  debutDuJour: Date | null = null,
 ): Prisma.InterventionWhereInput {
   const filtreTexte: Prisma.InterventionWhereInput =
     criteres.texte === null
@@ -2314,6 +2362,12 @@ function filtreDesInterventions(
             ...(criteres.au === null ? {} : { lte: criteres.au }),
           },
         }),
+    // LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » (AFFICHAGE-MATERIEL-1)
+    // — le MÊME critère que `compterInterventionsSansDuree`, jamais une
+    // seconde forme (§9, 01/09).
+    ...(criteres.sans_duree_a_venir && debutDuJour !== null
+      ? criteresSansDureeAVenir(debutDuJour)
+      : {}),
   };
 }
 
@@ -2324,9 +2378,12 @@ export async function listerInterventions(
 ): Promise<readonly LignePlanning[]> {
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.intervention.findMany({
-        where: filtreDesInterventions(criteres),
+    async (tx) => {
+      const debutDuJour = criteres.sans_duree_a_venir
+        ? await debutDuJourSociete(tx, contexte)
+        : null;
+      return tx.intervention.findMany({
+        where: filtreDesInterventions(criteres, debutDuJour),
         select: {
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
@@ -2338,7 +2395,8 @@ export async function listerInterventions(
         ],
         skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
         take: LIMITE_RECHERCHE_PAR_DEFAUT,
-      }),
+      });
+    },
     client,
   );
 }
@@ -2354,7 +2412,14 @@ export async function compterInterventions(
 ): Promise<number> {
   return avecContexteApplicatif(
     contexte,
-    (tx) => tx.intervention.count({ where: filtreDesInterventions(criteres) }),
+    async (tx) => {
+      const debutDuJour = criteres.sans_duree_a_venir
+        ? await debutDuJourSociete(tx, contexte)
+        : null;
+      return tx.intervention.count({
+        where: filtreDesInterventions(criteres, debutDuJour),
+      });
+    },
     client,
   );
 }

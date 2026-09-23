@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Role } from "@/lib/auth/roles";
 import {
   compterInterventions,
+  compterInterventionsSansDuree,
   listerInterventions,
 } from "@/lib/interventions/depot";
 import {
@@ -275,5 +276,132 @@ describe("la référence dans la recherche — `numero` borné, `Local-` jamais 
       await listerInterventions(INTERNE_A, criteres, clientApp())
     ).map((ligne) => ligne.id);
     expect(ids).not.toContain(INTERVENTION_DEDIEE);
+  });
+});
+
+/**
+ * LE COMPTE ET LE FILTRE « SANS DURÉE, À VENIR » (AFFICHAGE-MATERIEL-1,
+ * 23/09/2026) — sur la vraie table, sous la politique de forme « parc ».
+ *
+ * *Mesuré en production le 23/09/2026 à 13h05 : la tuile affichait 1755,
+ * presque tout l'historique clôturé.* Quatre fiches, DÉDIÉES, jamais une
+ * ligne du semis dont le statut ou la date bougerait d'un scénario à
+ * l'autre : seule celle qui devrait compter porte les trois conditions à la
+ * fois — non terminale, sans durée, datée d'aujourd'hui ou plus tard, ou
+ * sans date.
+ */
+describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFICHAGE-MATERIEL-1)", () => {
+  const A_VENIR_SANS_DUREE = "aaaaaaaa-0000-7000-8000-00000000af08";
+  const PASSEE_CLOTUREE_SANS_DUREE = "aaaaaaaa-0000-7000-8000-00000000af09";
+  const FILE_ATTENTE_SANS_DUREE = "aaaaaaaa-0000-7000-8000-00000000af0a";
+  const A_VENIR_AVEC_DUREE = "aaaaaaaa-0000-7000-8000-00000000af0b";
+  const DATE_LOIN_DANS_LE_FUTUR = "2099-06-01";
+  const DATE_LOIN_DANS_LE_PASSE = "2000-01-01";
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'planifiee', NULL, $6::date, NULL, now())
+       ON CONFLICT ("id") DO NOTHING`,
+      A_VENIR_SANS_DUREE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      DATE_LOIN_DANS_LE_FUTUR,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'cloturee', NULL, $6::date, NULL, now())
+       ON CONFLICT ("id") DO NOTHING`,
+      PASSEE_CLOTUREE_SANS_DUREE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      DATE_LOIN_DANS_LE_PASSE,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'a_planifier', NULL, NULL, now())
+       ON CONFLICT ("id") DO NOTHING`,
+      FILE_ATTENTE_SANS_DUREE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'planifiee', NULL, $6::date, 45, now())
+       ON CONFLICT ("id") DO NOTHING`,
+      A_VENIR_AVEC_DUREE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      DATE_LOIN_DANS_LE_FUTUR,
+    );
+  });
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "id" = ANY($1::uuid[])`,
+      [
+        A_VENIR_SANS_DUREE,
+        PASSEE_CLOTUREE_SANS_DUREE,
+        FILE_ATTENTE_SANS_DUREE,
+        A_VENIR_AVEC_DUREE,
+      ],
+    );
+  });
+
+  it("compterInterventionsSansDuree compte l'à-venir et la file d'attente, jamais le passé clôturé ni ce qui a sa durée", async () => {
+    const compte = await compterInterventionsSansDuree(
+      INTERNE_A,
+      new Date(),
+      clientApp(),
+    );
+    // TÉMOIN — sur la vraie table, comptée avec le SQL le plus littéral qui
+    // soit, pour ne pas mesurer la fonction avec elle-même.
+    const [temoin] = await clientOwner().$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM "intervention"
+       WHERE "societe_id" = $1::uuid
+         AND "statut" NOT IN ('terminee', 'cloturee', 'annulee')
+         AND "duree_estimee_min" IS NULL
+         AND ("date_planifiee" IS NULL OR "date_planifiee" >= now())`,
+      SOCIETE_A,
+    );
+    expect(compte).toBe(temoin!.n);
+    expect(compte).toBeGreaterThanOrEqual(2);
+  });
+
+  it("le lien de la tuile (`sans_duree_a_venir`) retrouve exactement les mêmes fiches", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      sans_duree_a_venir: "1",
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((l) => l.id);
+    expect(ids).toContain(A_VENIR_SANS_DUREE);
+    expect(ids).toContain(FILE_ATTENTE_SANS_DUREE);
+    expect(ids).not.toContain(PASSEE_CLOTUREE_SANS_DUREE);
+    expect(ids).not.toContain(A_VENIR_AVEC_DUREE);
+
+    expect(
+      await compterInterventions(INTERNE_A, criteres, clientApp()),
+    ).toBe(ids.length);
+  });
+
+  it("sans le paramètre, le filtre ne s'applique pas — le témoin qui doit rester vert", async () => {
+    const ids = (
+      await listerInterventions(INTERNE_A, TOUT, clientApp())
+    ).map((l) => l.id);
+    expect(ids).toContain(PASSEE_CLOTUREE_SANS_DUREE);
+    expect(ids).toContain(A_VENIR_AVEC_DUREE);
   });
 });

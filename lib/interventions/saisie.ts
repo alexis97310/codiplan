@@ -357,6 +357,17 @@ export const schemaRechercheInterventions = z
       (valeur) => valeur === "on",
       z.boolean(),
     ),
+    /**
+     * LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » DU TABLEAU DE BORD
+     * (AFFICHAGE-MATERIEL-1, 23/09/2026) — un paramètre d'URL, jamais une case
+     * du formulaire : cette vue n'est pas un filtre qu'on compose à la main,
+     * c'est un lien qui pose exactement le critère de la tuile
+     * (`compterInterventionsSansDuree`, `lib/interventions/depot.ts`).
+     */
+    sans_duree_a_venir: z.preprocess(
+      (valeur) => valeur === "1",
+      z.boolean(),
+    ),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict()

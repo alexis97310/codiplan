@@ -217,9 +217,10 @@ export default async function PageTableauDeBord({
     // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot AV-14) — une existence, jamais
     // un résultat des cinq lectures ci-dessus, jamais lue par elles.
     auMoinsUneVerificationEnregistree(contexte),
-    // INDÉPENDANTE ELLE AUSSI (TABLEAU-1) — aucune borne de période, voir
-    // `compterInterventionsSansDuree`.
-    compterInterventionsSansDuree(contexte),
+    // `debutDuJour` BORNE DÉSORMAIS LA POPULATION (AFFICHAGE-MATERIEL-1,
+    // 23/09/2026) — voir la note de tête de `compterInterventionsSansDuree` :
+    // sans cette borne, la tuile comptait tout l'historique clôturé.
+    compterInterventionsSansDuree(contexte, debutDuJour),
   ]);
   const etatVgp = etatVgpAPrevoir(auMoinsUneVerification, vgpAPrevoir);
 
@@ -403,8 +404,14 @@ export default async function PageTableauDeBord({
                 libelle={t("tableau_de_bord.kpi_interventions_sans_duree")}
                 valeur={interventionsSansDuree}
               />
+              {/*
+                LE LIEN MÈNE À LA LISTE FILTRÉE SUR LE MÊME CRITÈRE QUE LA
+                TUILE (AFFICHAGE-MATERIEL-1, 23/09/2026) — jamais le registre
+                nu : `sans_duree_a_venir=1` pose le MÊME critère que
+                `compterInterventionsSansDuree` (§9, 01/09).
+              */}
               <Link
-                href="/interventions"
+                href="/interventions?sans_duree_a_venir=1"
                 className={`text-[11.5px] ${CLASSES_LIEN}`}
               >
                 {t("tableau_de_bord.lien_interventions_sans_duree")}

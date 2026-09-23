@@ -926,6 +926,11 @@ export const fr = {
   "interventions.filtre_toutes_prefixe": "Toutes les",
   "interventions.filtre_type_tous": "Tous les types",
   "interventions.filtre_statut_tous": "Tous les statuts",
+  // LE FILTRE POSÉ PAR LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE »
+  // (AFFICHAGE-MATERIEL-1, 23/09/2026) — même critère que la tuile,
+  // `criteresSansDureeAVenir` (`lib/interventions/depot.ts`).
+  "interventions.filtre_sans_duree_a_venir":
+    "Filtre actif : interventions à venir, sans durée prévue.",
   // ── LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) ──────────
   // `interventions()` de la maquette en pose trois ; voir `kpiDuRegistre`
   // (`app/(back-office)/interventions/page.tsx`) pour ce que chacun compte
