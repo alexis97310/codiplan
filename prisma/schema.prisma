@@ -787,6 +787,16 @@ model Site {
   /// jour où on voudra s'en servir.
   temps_trajet_min Int?
   actif            Boolean  @default(true)
+  /// Sous contrat de maintenance (CONTRAT-SITE-1, arbitrage du 23/09/2026) —
+  /// une case, et rien de plus : le vrai module Contrats (chapitre 7/M3,
+  /// `docs/maquette/…/contrats()`) reste reporté. Aucune date, aucune
+  /// référence, aucun montant : cette colonne dit seulement si le site EST
+  /// couvert, jamais depuis quand ni jusqu'à quand.
+  ///
+  /// `false` par défaut, et TOUS les sites démarrent à `false` — y compris
+  /// ceux déjà en production : c'est Alexis qui coche, cette migration ne
+  /// décide pour personne.
+  sous_contrat     Boolean  @default(false)
 
   /// Les DEUX actions sont dites (CLAUDE.md §9, 24/08), et refusent toutes deux
   /// plutôt que de propager. `Restrict` en suppression : effacer une société

@@ -431,6 +431,10 @@ export const fr = {
   "site.temps_trajet_min.aide":
     "Sert au calcul de charge et aux tournées, jamais à la facturation : le déplacement se facture par forfait de zone. Laisser vide pour utiliser l'estimation par zone géographique.",
   "site.actif": "Actif",
+  // CONTRAT-SITE-1 — la case du formulaire de modification. Le vrai module
+  // Contrats reste reporté (arbitrage du 23/09/2026) : cette case ne porte
+  // aucune date, aucune référence, aucun montant.
+  "site.sous_contrat": "Sous contrat de maintenance",
   "site.recherche.vide": "Aucun résultat ne correspond à cette recherche.",
   // ── L'ÉCRAN (L3-16) ───────────────────────────────────────────────────────
   // Comme partout, le mot imposé ne s'écrit PAS ici : le titre de l'écran se
@@ -458,6 +462,10 @@ export const fr = {
   "sites.habilitations_un": "habilitation",
   "sites.habilitations_plusieurs": "habilitations",
   "sites.filtre_equipement": "Afficher aussi les lieux sans équipement",
+  // CONTRAT-SITE-1 — la case du filtre de `/sites`, et le libellé de la
+  // pastille jaune (ton orange, PASTILLES-1) qui l'accompagne sur la carte.
+  "sites.filtre_contrat": "Sous contrat uniquement",
+  "sites.contrat": "Contrat",
   "sites.action.modifier": "Enregistrer",
   // LA FICHE D'UN LIEU MONTRE SES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1).
   //

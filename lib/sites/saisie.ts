@@ -175,6 +175,11 @@ export const schemaModificationSite = z
     horaires: horaires.optional(),
     temps_trajet_min: tempsTrajet.optional(),
     actif: z.boolean().optional(),
+    /**
+     * Sous contrat de maintenance (CONTRAT-SITE-1). Une case, rien de plus —
+     * voir le commentaire de la colonne en base pour ce qu'elle NE porte pas.
+     */
+    sous_contrat: z.boolean().optional(),
   })
   .strict()
   .superRefine((saisie, contexte) => {
@@ -248,6 +253,14 @@ export const schemaRechercheSite = z
      * `false` par défaut, depuis l'état de sa case à cocher.
      */
     inclure_sans_equipement: z.boolean().default(true),
+    /**
+     * CONTRAT-SITE-1 — « une case Sous contrat uniquement, à côté de la case
+     * d'équipement, qui se compose avec les filtres existants ». `false` par
+     * défaut, MÊME contrat que `inclure_sans_equipement` : un appelant qui
+     * ignore ce champ (le sélecteur de `sites/nouveau`, `parc/nouvelle`) ne
+     * doit pas voir sa liste rétrécir sans l'avoir demandé.
+     */
+    sous_contrat_seulement: z.boolean().default(false),
     limite: z
       .number()
       .int()

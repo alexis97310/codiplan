@@ -59,6 +59,8 @@ export type FicheSite = {
    */
   temps_trajet_min: number | null;
   actif: boolean;
+  /** Sous contrat de maintenance (CONTRAT-SITE-1) — une case, rien de plus. */
+  sous_contrat: boolean;
 };
 
 /** Colonnes rendues. `societe_id` n'en est pas : l'appelant est déjà dans sa société. */
@@ -78,6 +80,7 @@ const CHAMPS_FICHE = {
   horaires: true,
   temps_trajet_min: true,
   actif: true,
+  sous_contrat: true,
 } as const;
 
 /**
@@ -341,6 +344,10 @@ export async function supprimerSite(
  * enregistré** (LISTES-1) — `machines: { some: {} }` est une clause de
  * RELATION, elle ne recompare aucune société : elle porte sur les machines
  * DÉJÀ lues sous le contexte cloisonné de la relation `site.machines`.
+ *
+ * **`sous_contrat_seulement: true` filtre sur la colonne `sous_contrat`
+ * elle-même** (CONTRAT-SITE-1) — pas une clause de relation, une simple
+ * comparaison sur `site`, qui se compose avec les critères ci-dessus.
  */
 function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
   const filtreTexte: Prisma.SiteWhereInput =
@@ -377,6 +384,7 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
     ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
     ...(criteres.actifs_seulement ? { actif: true } : {}),
     ...(criteres.inclure_sans_equipement ? {} : { machines: { some: {} } }),
+    ...(criteres.sous_contrat_seulement ? { sous_contrat: true } : {}),
   };
 }
 

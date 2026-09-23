@@ -26,6 +26,7 @@ import { resoudreTempsTrajet, type Trajet } from "@/lib/sites/trajet-zone";
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
   agenceDuSite,
+  compteurContrat,
   compteurEquipements,
   compteurHabilitations,
   ouTiret,
@@ -130,6 +131,9 @@ export default async function PageSites({
   // case COCHÉE envoie `1`, une case DÉCOCHÉE n'envoie RIEN : son absence est
   // donc le défaut « masquer », exactement ce que la demande décrit.
   const avecSansEquipement = params.sans_equipement === "1";
+  // LA CASE « Sous contrat uniquement » (CONTRAT-SITE-1) — même contrat que
+  // la case ci-dessus : cochée envoie `1`, décochée n'envoie rien.
+  const sousContratSeulement = params.sous_contrat === "1";
   // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
   // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
   // `limite` retombe sur son défaut (50) — la taille d'une PAGE, jamais celle
@@ -138,6 +142,7 @@ export default async function PageSites({
     texte: typeof params.q === "string" ? params.q : "",
     client_id: typeof params.client === "string" ? params.client : null,
     inclure_sans_equipement: avecSansEquipement,
+    sous_contrat_seulement: sousContratSeulement,
     page: typeof params.page === "string" ? params.page : undefined,
   });
   // `sites` ET `totalFiltre` SONT INDÉPENDANTS (lot PERF, mesuré sur
@@ -210,6 +215,15 @@ export default async function PageSites({
           />
           {t("sites.filtre_equipement")}
         </label>
+        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+          <input
+            type="checkbox"
+            name="sous_contrat"
+            value="1"
+            defaultChecked={sousContratSeulement}
+          />
+          {t("sites.filtre_contrat")}
+        </label>
         <button
           type="submit"
           className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
@@ -260,6 +274,7 @@ export default async function PageSites({
               client:
                 typeof params.client === "string" ? params.client : undefined,
               sans_equipement: avecSansEquipement ? "1" : undefined,
+              sous_contrat: sousContratSeulement ? "1" : undefined,
             },
             page,
           )
@@ -286,6 +301,7 @@ function CarteSite({
 }) {
   const rattachement = agenceDuSite(agence);
   const habilitations = compteurHabilitations(nombreHabilitations);
+  const contrat = compteurContrat(site.sous_contrat);
   const lignes: React.ReactNode[] = [
     // LE CLIENT MÈNE À SA FICHE (14/09/2026) — le second des deux chemins
     // tranchés ce jour-là, conservé tel quel : *le geste change, le
@@ -328,12 +344,13 @@ function CarteSite({
         )
       }
       lignes={lignes}
-      // Ordre PASTILLES-1 : équipements (rouge), habilitations (vert),
-      // trajet (gris) — la pastille verte s'omet quand aucune habilitation
-      // n'est exigée (compteurHabilitations rend `null`).
+      // Ordre CONTRAT-SITE-1 : équipements (rouge), habilitations (vert),
+      // contrat (jaune/orange), trajet (gris) — les pastilles habilitations et
+      // contrat s'omettent quand elles n'ont rien à dire (`null`).
       compteurs={[
         compteurEquipements(nombreEquipements),
         ...(habilitations === null ? [] : [habilitations]),
+        ...(contrat === null ? [] : [contrat]),
         trajetAffiche(trajet),
       ]}
     />

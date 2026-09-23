@@ -100,6 +100,18 @@ async function traiter(
           : Number(valeur)
         : valeur;
   }
+  // **`sous_contrat` N'EST PAS DANS LA BOUCLE CI-DESSUS, et c'est délibéré**
+  // (CONTRAT-SITE-1) — une case à cocher DÉCOCHÉE n'apparaît jamais dans
+  // `FormData`, alors que pour tout autre champ de `CHAMPS`, l'absence
+  // signifie « ne touche pas à cette colonne ». La fiche pose donc un champ
+  // CACHÉ de même nom, valeur `0`, TOUJOURS présent quand la case l'est : la
+  // requête porte alors `["0"]` décochée, `["0","1"]` cochée, et jamais
+  // l'absence totale qui se lirait « ne touche pas ». Un appelant qui ignore
+  // ce champ — un test qui ne le pose pas, un import futur — ne touche donc
+  // pas la colonne, exactement comme les autres champs de `CHAMPS`.
+  if (formulaire.has("sous_contrat")) {
+    brut.sous_contrat = formulaire.getAll("sous_contrat").includes("1");
+  }
 
   const saisie = schemaModificationSite.safeParse(brut);
   if (!saisie.success) {

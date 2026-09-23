@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
@@ -11,6 +12,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import type { ContexteSession } from "@/lib/auth/contexte";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { contactsDuSite } from "@/lib/contacts/depot";
@@ -160,6 +162,14 @@ export default async function PageSite({
     site.id,
     INTERVENTIONS_MONTREES,
   );
+  // CONTRAT-SITE-1 — la MÊME capacité que le reste de la modification du site,
+  // lue depuis la matrice (`peut(role, capacité)`), jamais une comparaison de
+  // rôle inventée ici : un rôle qui ne peut pas modifier la fiche ne voit pas
+  // la case active, exactement comme `peutQualifierAffecter` le fait déjà sur
+  // la fiche intervention.
+  const peutModifierSite =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_client_site");
 
   return (
     <Page
@@ -187,6 +197,17 @@ export default async function PageSite({
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
+        </p>
+      ) : null}
+
+      {/* L'ÉTAT EN LECTURE (CONTRAT-SITE-1) — visible de TOUT rôle qui
+          atteint la fiche, à la différence de la case ci-dessous : « Sous
+          contrat de maintenance » quand c'est vrai, RIEN quand ce ne l'est
+          pas — jamais un « Non » ou un tiret sous un fait qui n'a rien à
+          dire. */}
+      {site.sous_contrat ? (
+        <p className="text-[12.5px]">
+          <Badge ton="orange">{t("site.sous_contrat")}</Badge>
         </p>
       ) : null}
 
@@ -257,6 +278,29 @@ export default async function PageSite({
           libelle={t("site.consignes_acces")}
           valeur={site.consignes_acces ?? ""}
         />
+
+        {/* LA CASE ACTIVE (CONTRAT-SITE-1) — n'existe dans le formulaire que
+            pour un rôle qui peut modifier la fiche : `peutModifierSite` lit
+            la MÊME capacité que la route POST. Un rôle sans elle ne voit donc
+            jamais une case qu'il ne pourrait pas soumettre. */}
+        {peutModifierSite ? (
+          <label className="flex items-center gap-1.5 text-[12.5px] font-medium">
+            {/* LA SENTINELLE DÉCOCHÉE — une case à cocher DÉCOCHÉE n'envoie
+                RIEN dans `FormData`, à la différence de tout autre champ de
+                ce formulaire. Sans ce champ caché, décocher la case et
+                enregistrer laisserait `sous_contrat` absent de la requête,
+                et la route le lirait comme « ne touche pas à cette colonne »
+                — exactement l'inverse du geste posé. */}
+            <input type="hidden" name="sous_contrat" value="0" />
+            <input
+              type="checkbox"
+              name="sous_contrat"
+              value="1"
+              defaultChecked={site.sous_contrat}
+            />
+            {t("site.sous_contrat")}
+          </label>
+        ) : null}
 
         <div>
           <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>

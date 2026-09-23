@@ -107,6 +107,9 @@ export default async function PageNouvelleMachine({
           actifs_seulement: true,
           // LISTES-1 : même raison que pour `rechercherClients` ci-dessus.
           inclure_sans_equipement: true,
+          // CONTRAT-SITE-1 : même raison — ce sélecteur propose TOUT site
+          // actif, contrat ou non.
+          sous_contrat_seulement: false,
           limite: LIMITE_SITES,
           page,
         }),

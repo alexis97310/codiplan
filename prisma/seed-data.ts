@@ -218,6 +218,14 @@ export type SiteSeed = {
   /** Fait foi sur l'estimation par zone quand il est renseigné (D23, RG-PLA-05). */
   temps_trajet_min: number | null;
   actif: boolean;
+  /**
+   * Sous contrat de maintenance (CONTRAT-SITE-1). FACULTATIF, à la différence
+   * des autres champs : tous les sites démarrent DÉCOCHÉS en production (I9),
+   * et l'ABSENCE ici laisse `seed.ts` omettre la colonne de son écriture —
+   * le défaut de `@default(false)` du schéma s'applique alors, sans qu'il
+   * faille revisiter les sept sites déjà décrits par ce fichier.
+   */
+  sous_contrat?: boolean;
 };
 
 export type ClientSeed = {
@@ -711,6 +719,24 @@ const CLIENTS_NC: ClientSeed[] = [
         // où tous les sites en portent un n'éprouverait jamais cette branche.
         temps_trajet_min: null,
         actif: true,
+      },
+      {
+        // CONTRAT-SITE-1 — un troisième site chez le même client, SOUS
+        // CONTRAT DE MAINTENANCE : la pastille jaune (ton orange) et la case
+        // cochée ont besoin d'un site réel pour être visibles au jeu de
+        // démonstration, comme les captures du lot le montrent.
+        id: "0192f0a0-4000-7000-8000-000000000005",
+        agence_code: "DUCOS",
+        libelle: "Atelier sous contrat (démonstration)",
+        commune: "Nouméa",
+        zone_geo: "grand_noumea",
+        latitude: -22.27,
+        longitude: 166.4381,
+        consignes_acces: null,
+        horaires: null,
+        temps_trajet_min: 20,
+        actif: true,
+        sous_contrat: true,
       },
     ],
   },

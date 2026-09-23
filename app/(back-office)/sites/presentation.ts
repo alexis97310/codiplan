@@ -138,6 +138,31 @@ export function compteurHabilitations(nombre: number): {
 }
 
 /**
+ * LA PASTILLE « CONTRAT » DE LA CARTE (CONTRAT-SITE-1, 23/09/2026) — jaune,
+ * demandée par Alexis le soir même de PASTILLES-1. Aucun ton jaune n'existe
+ * dans `TonBadge` : `orange` est le plus proche des cinq tons, et c'est celui
+ * que la demande elle-même autorise à défaut de jaune.
+ *
+ * `null` quand le site n'est PAS sous contrat — même contrat que
+ * `compteurHabilitations` juste au-dessus : une pastille qui n'a rien à dire
+ * ne s'affiche pas.
+ */
+export function compteurContrat(sousContrat: boolean): {
+  readonly valeur: string;
+  readonly libelle: string;
+  readonly ton: TonBadge;
+} | null {
+  if (!sousContrat) {
+    return null;
+  }
+  return {
+    valeur: "✓",
+    libelle: t("sites.contrat"),
+    ton: "orange",
+  };
+}
+
+/**
  * L'ABSENCE — RÉ-EXPORTÉE depuis le module commun du back-office, où elle a
  * déménagé le 14/09/2026 quand l'écran client en a eu besoin. Importée
  * ci-dessus pour l'usage interne de `trajetAffiche`, et re-exportée ici pour
