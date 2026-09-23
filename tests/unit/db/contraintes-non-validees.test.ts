@@ -155,9 +155,15 @@ describe("la liste déclarée", () => {
    * entrée dont le rattrapage est « aucun, et c'est l'état juste » : elle ne
    * se validera que le jour où plus aucune intervention d'avant D120 ne
    * subsiste.
+   *
+   * Puis **3** le 23/09/2026 (`intervention_planifiee_a_sa_duree`,
+   * PARCOURS-1, arbitrage Alexis) : des interventions déjà planifiées
+   * portent une date et un technicien sans durée — le champ était facultatif
+   * avant ce lot —, et personne ne peut inventer la durée qu'elles n'ont pas
+   * eue. Le rattrapage se saisit à la main, ligne par ligne.
    */
-  it("compte EXACTEMENT deux entrées — toute addition ou tout retrait rouvre ce fichier", () => {
-    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(2);
+  it("compte EXACTEMENT trois entrées — toute addition ou tout retrait rouvre ce fichier", () => {
+    expect(CONTRAINTES_NON_VALIDEES).toHaveLength(3);
   });
 
   it("LE PLAFOND, lui, ne bouge pas : quatre est un arbitrage, pas une mise à jour", () => {

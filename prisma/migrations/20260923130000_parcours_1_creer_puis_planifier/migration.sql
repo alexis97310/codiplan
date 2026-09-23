@@ -70,11 +70,29 @@ ALTER TABLE "intervention"
 -- l'enfreignent, cette migration ÉCHOUE en les nommant — elle n'en supprime
 -- aucune, et le rattrapage appartient à l'exploitation, pas à une migration
 -- automatique qui choisirait pour elle laquelle des deux machines garder.
+--
+-- **LE DRAPEAU EST LEVÉ POUR LA DURÉE DU CONTRÔLE, RENDU DANS LA MÊME
+-- TRANSACTION** (gardien `tests/unit/db/gardes-de-migration.test.ts`, même
+-- famille que le rattrapage de R3-02). Le rôle de migration est propriétaire :
+-- sans lever `FORCE ROW LEVEL SECURITY`, cette lecture verrait ZÉRO ligne sur
+-- la base hébergée et ne refuserait jamais rien — elle ne se tromperait pas,
+-- elle ne regarderait rien. La levée est CONSTATÉE avant d'agir, jamais
+-- supposée.
+ALTER TABLE "intervention_machine" NO FORCE ROW LEVEL SECURITY;
+
 DO $$
 DECLARE
+  levee                boolean;
   nombre_interventions int;
   liste_interventions  text;
 BEGIN
+  SELECT NOT relforcerowsecurity INTO levee
+    FROM pg_class WHERE relname = 'intervention_machine';
+  IF NOT COALESCE(levee, false) THEN
+    RAISE EXCEPTION
+      'PARCOURS-1 ne peut pas contrôler l''unicité de la machine : FORCE ROW LEVEL SECURITY est toujours actif sur « intervention_machine », si bien que cette lecture verrait zéro ligne — elle ne réparerait rien et ne refuserait rien, tout en paraissant faire les deux. La migration s''arrête plutôt que de passer à l''aveugle.';
+  END IF;
+
   SELECT count(*), string_agg(intervention_id::text, ', ')
     INTO nombre_interventions, liste_interventions
   FROM (
@@ -94,6 +112,8 @@ BEGIN
       nombre_interventions, liste_interventions;
   END IF;
 END $$;
+
+ALTER TABLE "intervention_machine" FORCE ROW LEVEL SECURITY;
 
 ALTER TABLE "intervention_machine"
   ADD CONSTRAINT "intervention_machine_intervention_id_key" UNIQUE ("intervention_id");

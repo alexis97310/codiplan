@@ -119,4 +119,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260916120000_lignes_inchangees_import",
   "20260922100000_rapport_terrain_bon_2",
   "20260923120000_duree_application_import_mesure_1",
+  "20260923130000_parcours_1_creer_puis_planifier",
 ];
