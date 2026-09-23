@@ -131,9 +131,13 @@ test("la colonne « Technicien » et les commandes de semaine restent visibles q
   await page.setViewportSize({ width: 1280, height: 900 });
   await allerALaSemaineDeLaScene(page);
 
-  const entete = page.locator("th", { hasText: fr["planning.colonne_technicien"] });
+  const entete = page.locator("th", {
+    hasText: fr["planning.colonne_technicien"],
+  });
   await expect(entete).toBeVisible();
-  const avantScroll = await entete.evaluate((e) => e.getBoundingClientRect().left);
+  const avantScroll = await entete.evaluate(
+    (e) => e.getBoundingClientRect().left,
+  );
 
   const conteneur = page.locator(".overflow-x-auto").first();
   const scrollReel = await conteneur.evaluate((element) => {
@@ -145,7 +149,9 @@ test("la colonne « Technicien » et les commandes de semaine restent visibles q
   expect(scrollReel).toBeGreaterThan(0);
 
   await expect(entete).toBeVisible();
-  const apresScroll = await entete.evaluate((e) => e.getBoundingClientRect().left);
+  const apresScroll = await entete.evaluate(
+    (e) => e.getBoundingClientRect().left,
+  );
   // Sticky : la position de la colonne ne bouge PAS pendant le défilement.
   expect(apresScroll).toBe(avantScroll);
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { dureeCarteAffichee, siteDeLaCarte } from "@/app/(back-office)/planning/carte";
+import {
+  dureeCarteAffichee,
+  siteDeLaCarte,
+} from "@/app/(back-office)/planning/carte";
 
 /**
  * CE QU'UNE CARTE DE PLANNING DIT EN PLUS DE L'HEURE ET DU CLIENT (PLANNING-2).
