@@ -68,6 +68,7 @@ export function ChampSiteEtMachines({
   libelleSite,
   libelleMachines,
   texteAucuneMachine,
+  libelleAucuneMachineChoisie,
   libelleContact,
   libelleAucunContact,
   siteInitial,
@@ -79,6 +80,8 @@ export function ChampSiteEtMachines({
   libelleSite: string;
   libelleMachines: string;
   texteAucuneMachine: string;
+  /** L'option vide du sélecteur — « on n'en choisit aucune », pas « il n'y en a pas ». */
+  libelleAucuneMachineChoisie: string;
   /** Absent = pas de champ contact (ce lot ne s'en sert que d'un formulaire). */
   libelleContact?: string;
   libelleAucunContact?: string;
@@ -129,13 +132,19 @@ export function ChampSiteEtMachines({
 
       <label className="flex flex-col gap-1.5 text-sm font-medium">
         {libelleMachines}
+        {/*
+          UN SEUL `<select>`, PLUS `multiple` (PARCOURS-1) — le champ reste
+          nommé `machine_ids` : `FormData.getAll` y trouve zéro ou un
+          identifiant, exactement ce que `schemaCreation.machine_ids`
+          attend. L'option vide, en tête, est le cas ordinaire (dépannage à
+          l'aveugle).
+        */}
         <select
           name="machine_ids"
-          multiple
-          size={Math.min(5, Math.max(3, machinesDuSite.length))}
-          defaultValue={[...machineIdsInitiales]}
+          defaultValue={machineIdsInitiales[0] ?? ""}
           className="border-input bg-background rounded-md border px-3 py-2 font-normal"
         >
+          <option value="">{libelleAucuneMachineChoisie}</option>
           {machinesDuSite.map((machine) => (
             <option key={machine.id} value={machine.id}>
               {machine.libelle}
@@ -148,6 +157,24 @@ export function ChampSiteEtMachines({
           {texteAucuneMachine}
         </p>
       ) : null}
+
+      {libelleContact === undefined ? null : (
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          {libelleContact}
+          <select
+            name="contact_id"
+            defaultValue=""
+            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+          >
+            <option value="">{libelleAucunContact}</option>
+            {contactsDuLieu.map((contact) => (
+              <option key={contact.id} value={contact.id}>
+                {contact.libelle}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </>
   );
 }

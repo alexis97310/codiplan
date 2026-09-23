@@ -1064,6 +1064,11 @@ export const fr = {
     "Aucune machine n'est déclarée pour ce lieu d'intervention.",
   "intervention.machine.ajouter_titre": "Ajouter une machine",
   "intervention.machine.ajouter_action": "Ajouter",
+  // L'OPTION VIDE DU SÉLECTEUR DE MACHINE (PARCOURS-1) — distincte de
+  // `intervention.machine.aucune_au_site`, qui dit qu'AUCUNE machine
+  // n'existe pour ce lieu : celle-ci dit qu'on n'en choisit AUCUNE, ce qui
+  // reste le cas ordinaire même quand le site en propose.
+  "intervention.machine.aucune_choisie": "Aucune machine (dépannage à l'aveugle)",
   // ── Les notions IMPOSÉES ne s'écrivent pas ici ───────────────────────────
   //
   // « agence » et « site » se définissent une seule fois, dans les entrées
@@ -1149,9 +1154,37 @@ export const fr = {
 
   "intervention.action.affecter": "Affecter un technicien",
   "intervention.action.deplacer": "Déplacer",
+  "intervention.action.planifier": "Planifier",
   "intervention.action.cloturer": "Clôturer",
   "intervention.action.annuler": "Annuler l'intervention",
   "intervention.action.creer": "Créer",
+
+  // ── LA CRÉATION, EN DEUX GESTES (PARCOURS-1, 23/09/2026, arbitrage Alexis) ──
+  //
+  // *« Lors de la création d'intervention, on ne peut pas décider ni de la
+  // date d'intervention, ni du technicien affecté : il doit y avoir un ordre
+  // précis — Créer demande d'intervention → Planifier et qualifier
+  // l'intervention. »* CRÉER ne porte plus ni date ni technicien ; PLANIFIER
+  // exige les quatre valeurs — date, heure, durée, technicien — ensemble.
+  "intervention.panne_signalee": "Panne signalée / travail demandé",
+  "intervention.contact_sur_place": "Contact sur place",
+  "intervention.aucun_contact": "Aucun contact désigné",
+  "intervention.reference_client": "Référence client / n° de bon de commande",
+  "intervention.refus.panne_manquante":
+    "La panne signalée ou le travail demandé est obligatoire.",
+  "intervention.planification.explication":
+    "Les quatre valeurs — date, heure, durée prévue et technicien — se donnent ensemble : une intervention ne passe au planning qu'avec les quatre.",
+  "intervention.refus.planification_date_manquante":
+    "La date est obligatoire pour planifier cette intervention.",
+  "intervention.refus.planification_duree_manquante":
+    "L'heure de début et la durée prévue sont obligatoires pour planifier cette intervention.",
+  "intervention.refus.planification_technicien_manquant":
+    "Le technicien est obligatoire pour planifier cette intervention.",
+  // UNE MACHINE AU PLUS (PARCOURS-1) — « Ajouter une machine » refuse une
+  // SECONDE machine, nommée avant même la contrainte de base, dont le
+  // message serait technique.
+  "intervention.refus.machine_deja_presente":
+    "Cette intervention porte déjà une machine. Une intervention ne peut pas en porter deux.",
 
   "intervention.cloture.temps_mesure": "Temps mesuré par le compteur",
   "intervention.cloture.temps_valide": "Temps validé (minutes)",

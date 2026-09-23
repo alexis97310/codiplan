@@ -319,6 +319,16 @@ export default async function PageIntervention({
   const verdictAffecter: Verdict = peutQualifierAffecter
     ? peutAffecter(statut)
     : { refuse: true, cle: "intervention.refus.qualification_requise" };
+  // « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) — le bloc UNIQUE
+  // qui remplace « Affecter » et « Déplacer » tant que le statut est
+  // `a_planifier`. **Même capacité que « Déplacer »** — `modifier_planning`,
+  // celle que `/api/interventions/[id]/deplacer` exige déjà côté serveur
+  // (D131 : « planifier = qualifier_affecter / modifier_planning tels qu'ils
+  // sont ») : ce bloc POSTE sur cette route, sous `peutPlanifier`, jamais un
+  // troisième chemin.
+  const verdictPlanifier: Verdict = peutModifierLePlanning
+    ? peutDeplacer(statut)
+    : { refuse: true, cle: "intervention.refus.qualification_requise" };
   // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
   // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
   // formulaire de création, où le site se choisit APRÈS le chargement de la
@@ -485,6 +495,25 @@ export default async function PageIntervention({
                 libelle={t("intervention.mode_valorisation")}
                 valeur={t(`mode_valorisation.${ligne.mode_valorisation}`)}
               />
+              {/*
+                LA PANNE SIGNALÉE, LE CONTACT SUR PLACE ET LA RÉFÉRENCE
+                CLIENT (PARCOURS-1, 23/09/2026) — saisis une seule fois, à la
+                création. `NULL` sur une intervention née avant ce lot :
+                l'absence se nomme par le TIRET, comme partout ailleurs sur
+                cette fiche, jamais par une ligne qui disparaît.
+              */}
+              <Ligne
+                libelle={t("intervention.panne_signalee")}
+                valeur={ligne.description ?? TIRET}
+              />
+              <Ligne
+                libelle={t("intervention.contact_sur_place")}
+                valeur={fiche.contact ?? TIRET}
+              />
+              <Ligne
+                libelle={t("intervention.reference_client")}
+                valeur={ligne.reference_client ?? TIRET}
+              />
               {ligne.motif_annulation !== null ? (
                 <Ligne
                   libelle={t("intervention.annulation.motif")}
@@ -511,8 +540,14 @@ export default async function PageIntervention({
             ~30 machines du site, alors que rien de ce que ce formulaire pose
             n'a plus lieu d'être une fois l'intervention figée. `estFige` est
             la même lecture que les cinq actions du panneau ci-contre.
+
+            NI QUAND UNE MACHINE EST DÉJÀ LÀ (PARCOURS-1, 23/09/2026, arbitrage
+            Alexis) — mesuré : ce bloc restait offert même sur une intervention
+            qui en portait déjà une, alors qu'« une intervention ne peut pas
+            avoir 2 machines ». `ligne.machines`, la même lecture que
+            `LigneMachines` juste au-dessus, jamais un second compte.
           */}
-          {figee ? null : (
+          {figee || ligne.machines.length > 0 ? null : (
             <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
               <h2 className="text-[13px] font-bold">
                 {t("intervention.machine.ajouter_titre")}
@@ -611,21 +646,69 @@ export default async function PageIntervention({
               </>
             ) : (
               <>
-                <Action
-                  titre={t("intervention.action.affecter")}
-                  verdict={verdictAffecter}
-                  action={`/api/interventions/${ligne.id}/affecter`}
-                >
-                  <Saisie
-                    nom="technicien_id"
-                    libelle={t("intervention.technicien")}
-                    options={optionsAffectation}
-                    libelleOptionVide={t("intervention.aucun_technicien")}
-                    valeurParDefaut={ligne.technicien_id ?? undefined}
-                  />
-                </Action>
+                {statut === "a_planifier" ? (
+                  <>
+                    {/*
+                  « PLANIFIER » (PARCOURS-1, 23/09/2026, arbitrage Alexis) —
+                  UN SEUL bloc, quatre champs OBLIGATOIRES ensemble, tant que
+                  le statut est `a_planifier`. Il remplace « Affecter » et
+                  « Déplacer » pour ce statut-là : *« une intervention ne
+                  peut pas passer au statut planifié/affecté sans ces quatre
+                  valeurs. »* Même route que « Déplacer » — `.../deplacer`,
+                  sous `peutPlanifier` — et même glisser-déposer du planning :
+                  aucun des trois chemins ne peut plus poser une planification
+                  à moitié (R2-19, « même route, même décision »).
+                */}
+                    <Action
+                      titre={t("intervention.action.planifier")}
+                      verdict={verdictPlanifier}
+                      action={`/api/interventions/${ligne.id}/deplacer`}
+                      note={t("intervention.planification.explication")}
+                    >
+                      <Saisie
+                        nom="date_planifiee"
+                        type="date"
+                        libelle={t("intervention.date")}
+                        obligatoire
+                      />
+                      <Saisie
+                        nom="heure_debut"
+                        type="time"
+                        libelle={t("intervention.deplacement.heure")}
+                        obligatoire
+                      />
+                      <Saisie
+                        nom="duree_min"
+                        type="number"
+                        libelle={t("intervention.deplacement.duree")}
+                        obligatoire
+                      />
+                      <Saisie
+                        nom="technicien_id"
+                        libelle={t("intervention.technicien")}
+                        options={optionsAffectation}
+                        libelleOptionVide={t("intervention.aucun_technicien")}
+                        obligatoire
+                      />
+                    </Action>
+                  </>
+                ) : (
+                  <>
+                    <Action
+                      titre={t("intervention.action.affecter")}
+                      verdict={verdictAffecter}
+                      action={`/api/interventions/${ligne.id}/affecter`}
+                    >
+                      <Saisie
+                        nom="technicien_id"
+                        libelle={t("intervention.technicien")}
+                        options={optionsAffectation}
+                        libelleOptionVide={t("intervention.aucun_technicien")}
+                        valeurParDefaut={ligne.technicien_id ?? undefined}
+                      />
+                    </Action>
 
-                {/*
+                    {/*
               LA VOIE SANS GLISSÉ (R2-19) — même route, même décision.
 
               *Une fonction qui n'existe qu'à la souris exclut le tactile et
@@ -638,28 +721,28 @@ export default async function PageIntervention({
               l'instant demande le fuseau de l'établissement, et c'est le
               dépôt qui le résout.
             */}
-                <Action
-                  titre={t("intervention.action.deplacer")}
-                  verdict={peutDeplacer(statut)}
-                  action={`/api/interventions/${ligne.id}/deplacer`}
-                  note={t("intervention.deplacement.explication")}
-                >
-                  <Saisie
-                    nom="date_planifiee"
-                    type="date"
-                    libelle={t("intervention.date")}
-                  />
-                  <Saisie
-                    nom="heure_debut"
-                    type="time"
-                    libelle={t("intervention.deplacement.heure")}
-                  />
-                  <Saisie
-                    nom="duree_min"
-                    type="number"
-                    libelle={t("intervention.deplacement.duree")}
-                  />
-                  {/*
+                    <Action
+                      titre={t("intervention.action.deplacer")}
+                      verdict={peutDeplacer(statut)}
+                      action={`/api/interventions/${ligne.id}/deplacer`}
+                      note={t("intervention.deplacement.explication")}
+                    >
+                      <Saisie
+                        nom="date_planifiee"
+                        type="date"
+                        libelle={t("intervention.date")}
+                      />
+                      <Saisie
+                        nom="heure_debut"
+                        type="time"
+                        libelle={t("intervention.deplacement.heure")}
+                      />
+                      <Saisie
+                        nom="duree_min"
+                        type="number"
+                        libelle={t("intervention.deplacement.duree")}
+                      />
+                      {/*
                     SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
                     (extension de la revue Codex, 20/09/2026) : « Déplacer »
                     restait déjà accessible, avant ce chantier, à un rôle
@@ -669,16 +752,18 @@ export default async function PageIntervention({
                     retire ici. Date, heure et durée gardent le comportement
                     PRÉEXISTANT, hors du périmètre de cette revue.
                   */}
-                  {peutModifierLePlanning ? (
-                    <Saisie
-                      nom="technicien_id"
-                      libelle={t("intervention.technicien")}
-                      options={optionsTechniciens}
-                      libelleOptionVide={t("intervention.aucun_technicien")}
-                      valeurParDefaut={ligne.technicien_id ?? undefined}
-                    />
-                  ) : null}
-                </Action>
+                      {peutModifierLePlanning ? (
+                        <Saisie
+                          nom="technicien_id"
+                          libelle={t("intervention.technicien")}
+                          options={optionsTechniciens}
+                          libelleOptionVide={t("intervention.aucun_technicien")}
+                          valeurParDefaut={ligne.technicien_id ?? undefined}
+                        />
+                      ) : null}
+                    </Action>
+                  </>
+                )}
 
                 {/* LA GARDE JUGE LE TEMPS MESURÉ, jamais le validé (D120) :
                     le champ de l'action est pré-rempli depuis le mesuré, et
@@ -1072,10 +1157,17 @@ function Saisie({
   valeurParDefaut,
   options,
   libelleOptionVide,
+  obligatoire,
 }: {
   nom: string;
   libelle: string;
   type?: "text" | "number" | "date" | "time";
+  /**
+   * `required` (PARCOURS-1) — un repère CÔTÉ CLIENT, jamais la garantie :
+   * `deplacerIntervention` (`peutPlanifier`) refuse toujours sans le champ,
+   * `required` ne fait qu'éviter l'aller-retour au serveur pour le dire.
+   */
+  obligatoire?: boolean;
   /**
    * La valeur PRÉ-REMPLIE, quand il y en a une à proposer (D120).
    *
@@ -1114,6 +1206,7 @@ function Saisie({
         <select
           name={nom}
           defaultValue={valeurParDefaut ?? ""}
+          required={obligatoire}
           className="border-input bg-background rounded-md border px-3 py-2 font-normal"
         >
           {libelleOptionVide === undefined ? null : (
@@ -1139,6 +1232,7 @@ function Saisie({
         name={nom}
         type={type}
         defaultValue={valeurParDefaut}
+        required={obligatoire}
         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
       />
     </label>

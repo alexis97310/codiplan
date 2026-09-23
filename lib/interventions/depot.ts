@@ -1630,6 +1630,8 @@ export async function lireFicheIntervention(
   readonly lieu: string | null;
   readonly rattachement: string | null;
   readonly forfait: string | null;
+  /** LE CONTACT SUR PLACE (PARCOURS-1) — `null` quand aucun n'est désigné. */
+  readonly contact: string | null;
   readonly devise: {
     code: string;
     decimales: number;
@@ -1674,12 +1676,14 @@ export async function lireFicheIntervention(
           },
           forfait: { select: { libelle: true } },
           devise: { select: { code: true, decimales: true, symbole: true } },
+          contact: { select: { nom: true } },
         },
       });
       if (ligne === null) {
         return null;
       }
-      const { client, site, agence, forfait, devise, ...brute } = ligne;
+      const { client, site, agence, forfait, devise, contact, ...brute } =
+        ligne;
 
       // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
       // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
@@ -1744,6 +1748,7 @@ export async function lireFicheIntervention(
         lieu: site.libelle,
         rattachement: agence.libelle,
         forfait: forfait?.libelle ?? null,
+        contact: contact?.nom ?? null,
         devise,
         fuseau: fuseauDeLAgence(agence),
         valorisation,

@@ -8,16 +8,15 @@ import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import {
   ChampSiteEtMachines,
+  type ContactOption,
   type MachineOption,
   type SiteOption,
 } from "@/components/interventions/site-et-machines";
-import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
-import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { contactsDuClient } from "@/lib/contacts/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { quiTravaille } from "@/lib/interventions/personnes";
 import {
   PRIORITES,
   TYPES_INTERVENTION,
@@ -29,7 +28,8 @@ import { comparerAlphanumerique } from "@/lib/tri/collation";
 export const metadata: Metadata = { title: t("planning.creer") };
 
 /**
- * CRÉER UNE INTERVENTION DEPUIS LE PLANNING (lot 2, D84).
+ * CRÉER UNE DEMANDE D'INTERVENTION (lot 2, D84 ; PARCOURS-1, 23/09/2026,
+ * arbitrage Alexis).
  *
  * ## Ce que l'écran ne demande PAS, et pourquoi il vaut mieux qu'il ne demande
  * pas
@@ -39,6 +39,14 @@ export const metadata: Metadata = { title: t("planning.creer") };
  * l'autre par sa zone (D23, RG-TAR-06). Les faire saisir donnerait à
  * l'utilisateur le pouvoir de contredire la donnée, et donnerait au dépôt deux
  * lectures d'un même critère.
+ *
+ * **NI LA DATE, NI LE TECHNICIEN, DEPUIS PARCOURS-1** — ni un et l'autre ne
+ * sont plus des champs de CET écran : *« lors de la création d'intervention,
+ * on ne peut pas décider ni de la date d'intervention, ni du technicien
+ * affecté : il doit y avoir un ordre précis — Créer demande d'intervention →
+ * Planifier et qualifier l'intervention. »* (Alexis, 23/09/2026) C'est la
+ * fiche, une fois l'intervention créée, qui porte le geste PLANIFIER — les
+ * deux, avec l'heure et la durée, ensemble.
  *
  * La liste des lieux est celle du périmètre de l'appelant : elle est lue SOUS
  * le contexte cloisonné, et un compte portail restreint n'y voit que les siens.
@@ -64,19 +72,6 @@ export default async function PageNouvelleIntervention({
   const siteParam = typeof params.site === "string" ? params.site : undefined;
   const machineParam =
     typeof params.machine === "string" ? params.machine : undefined;
-
-  // LE CHAMP TECHNICIEN N'EST PROPOSÉ QU'AUX RÔLES QUI PEUVENT AFFECTER
-  // (revue Codex de la PR #267, 20/09/2026). *La liste était rendue à TOUTE
-  // session de société active — un technicien (accès restreint,
-  // `consulter_planning` en `○`) y voyait la liste NOMINATIVE de ses
-  // collègues, et un compte portail (`creer_demande` inclut `CLI`) pouvait la
-  // voir et soumettre un `technicien_id`.* Le critère se LIT de la matrice
-  // (`peut(role, "qualifier_affecter")`), exactement comme
-  // `accesAuxMontants` le fait pour la valorisation — jamais une comparaison
-  // de rôle écrite ici, qui divergerait de la matrice en silence (§9, 01/09).
-  const peutAffecterUnTechnicien =
-    session.contexte.role !== null &&
-    peut(session.contexte.role, "qualifier_affecter");
 
   // LE SITE D'UN CLIENT INACTIF N'EST PAS PROPOSÉ ICI (RG-PLA-08, D129 ;
   // audité le 21/09/2026, lot SEMIS-2). *Mesuré en production* : la liste
@@ -130,30 +125,18 @@ export default async function PageNouvelleIntervention({
     session.contexte,
     lieux.map((lieu) => lieu.id),
   );
-  // LES TECHNICIENS PROPOSABLES (chantier TECH-1) — actifs seulement : un
-  // technicien qui a quitté l'entreprise ne s'affecte pas à une intervention
-  // qui n'existe pas encore (voir la note de tête sur la nouvelle saisie).
-  //
-  // **AUCUNE LECTURE quand le rôle ne peut pas affecter** : ce n'est pas
-  // seulement le CHAMP qui se cache, c'est la LISTE NOMINATIVE qui n'est
-  // jamais demandée à l'annuaire — la fuite que la revue Codex a mesurée
-  // partait d'ici, pas seulement du rendu.
-  const { techniciens, annuaire } = peutAffecterUnTechnicien
-    ? await avecContexteApplicatif(session.contexte, async (tx) => {
-        const techniciensActifs = await tx.technicien.findMany({
-          where: { actif: true },
-          select: { utilisateur_id: true },
-          orderBy: { utilisateur_id: "asc" },
-        });
-        return {
-          techniciens: techniciensActifs,
-          annuaire: await annuaireDesPersonnes(
-            tx,
-            techniciensActifs.map((technicien) => technicien.utilisateur_id),
-          ),
-        };
-      })
-    : { techniciens: [], annuaire: null };
+  // LES CONTACTS DES CLIENTS PROPOSÉS (PARCOURS-1) — « contact sur place »,
+  // facultatif. Un seul appel par CLIENT distinct (pas par site : un contact
+  // sans site est un contact du client tout entier, `contactsDuClient` lit
+  // déjà les deux) — les lieux répètent souvent le même client.
+  const clientsDistincts = [...new Set(lieux.map((lieu) => lieu.client_id))];
+  const contacts = (
+    await Promise.all(
+      clientsDistincts.map((clientId) =>
+        contactsDuClient(session.contexte, clientId),
+      ),
+    )
+  ).flat();
 
   // UN PARAMÈTRE QUI NE CORRESPOND À RIEN DE LISIBLE EST IGNORÉ EN SILENCE
   // (LIENS-1) — `lieux` et `machines` viennent d'être lus SOUS le contexte
@@ -216,9 +199,18 @@ export default async function PageNouvelleIntervention({
             siteId: machine.siteId,
             libelle: machine.libelle,
           }))}
+          contacts={contacts.map((contact): ContactOption => ({
+            id: contact.id,
+            clientId: contact.client_id,
+            siteId: contact.site_id,
+            libelle: contact.nom,
+          }))}
           libelleSite={mot("site")}
           libelleMachines={t("intervention.machine")}
           texteAucuneMachine={t("intervention.machine.aucune_au_site")}
+          libelleAucuneMachineChoisie={t("intervention.machine.aucune_choisie")}
+          libelleContact={t("intervention.contact_sur_place")}
+          libelleAucunContact={t("intervention.aucun_contact")}
           siteInitial={siteInitial}
           machineIdsInitiales={machineIdsInitiales}
         />
@@ -247,41 +239,30 @@ export default async function PageNouvelleIntervention({
           defaut="temps_passe"
         />
 
+        {/*
+          LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ — OBLIGATOIRE (PARCOURS-1).
+          *Ni la date ni le technicien ne sont plus des champs de cet écran* :
+          voir la note de tête. Le geste PLANIFIER, sur la fiche, les pose
+          ensuite, tous les quatre ensemble.
+        */}
         <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("intervention.date")}
-          <input
-            name="date_planifiee"
-            type="date"
+          {t("intervention.panne_signalee")}
+          <textarea
+            name="description"
+            required
+            rows={4}
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
           />
         </label>
-        {/*
-          LE CHAMP EST ABSENT DU FORMULAIRE — jamais désactivé — quand le
-          rôle n'a pas `qualifier_affecter` : `technicien_id` est optionnel
-          dans `schemaCreation`, et son absence dans le `FormData` ne change
-          rien d'autre que « personne n'est désigné à la création », exactement
-          le cas ordinaire du dépannage à l'aveugle.
-        */}
-        {peutAffecterUnTechnicien && annuaire !== null ? (
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            {t("intervention.technicien")}
-            <select
-              name="technicien_id"
-              defaultValue=""
-              className="border-input bg-background rounded-md border px-3 py-2 font-normal"
-            >
-              <option value="">{t("intervention.aucun_technicien")}</option>
-              {techniciens.map((technicien) => (
-                <option
-                  key={technicien.utilisateur_id}
-                  value={technicien.utilisateur_id}
-                >
-                  {quiTravaille(technicien.utilisateur_id, annuaire)}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          {t("intervention.reference_client")}
+          <input
+            name="reference_client"
+            type="text"
+            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+          />
+        </label>
 
         <Button type="submit">{t("intervention.action.creer")}</Button>
       </form>
