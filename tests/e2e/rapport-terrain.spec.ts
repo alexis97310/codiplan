@@ -2,10 +2,12 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
+import { urlAdministration } from "./setup/base";
 import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
@@ -153,6 +155,28 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
 test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste absent", async ({
   page,
 }) => {
+  // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
+  // 23/09/2026) — `obstacle` ET `chevauchante` naissent `planifiee`
+  // (`scene.ts`), et rien avant ce test ne les fait avancer : ce sont des
+  // saisies terrain, pas des transitions de statut. Ce test est le DERNIER de
+  // ce fichier SÉRIEL sur ces deux interventions (voir la note de tête) ; les
+  // faire passer à `terminee` ici est le geste réaliste qui les précéderait
+  // dans l'exploitation. `chevauchante` reste « jamais touchée » au sens qui
+  // compte pour ce test — aucun commentaire, aucune suite, aucune photo,
+  // aucune signature — seul son STATUT change, pour que son bon reste
+  // atteignable et que ce test puisse encore prouver qu'il ne montre rien.
+  const admin = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await admin.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'terminee'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
+      [SCENE.obstacle, SCENE.chevauchante],
+    );
+  } finally {
+    await admin.$disconnect();
+  }
+
   await ouvrirUneSession(page);
 
   await page.goto(`/interventions/${SCENE.obstacle}/bon`);

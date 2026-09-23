@@ -133,10 +133,16 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
+  // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
+  // 23/09/2026, `peutGenererLeBon`, `lib/interventions/cycle-de-vie.ts`) — la
+  // première intervention de la société, prise au hasard, n'est presque
+  // jamais `terminee`/`cloturee` : ce résolveur visait une route qui
+  // redirigerait vers la fiche, jamais un `200`. Il cherche désormais
+  // spécifiquement une fiche dont le bon EXISTE.
   "/interventions/[id]/bon": async (prisma, societeId) =>
     (
       await prisma.intervention.findFirst({
-        where: { societe_id: societeId },
+        where: { societe_id: societeId, statut: { in: ["terminee", "cloturee"] } },
         select: { id: true },
       })
     )?.id ?? null,
