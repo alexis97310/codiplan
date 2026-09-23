@@ -2,8 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
-import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
-import { ouvrirUneSession } from "./setup/session";
+import {
+  COMPTE_ADMIN_SOCIETE_EPREUVE,
+  COMPTE_TECHNICIEN_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+} from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * « APP TECHNICIEN » NE MENT PLUS (chantier NAV-1, 20/09/2026).
@@ -26,10 +30,20 @@ import { ouvrirUneSession } from "./setup/session";
  * 3. Pour le rôle À QUI le module est destiné — le technicien —, le même
  *    lien, depuis la MÊME barre, mène réellement à sa journée.
  *
- * **La barre N'EST PAS un contrôle d'accès** (voir l'entête de
- * `lib/navigation/entrees.ts`) : ce fichier ne construit AUCUNE logique
- * conditionnelle par rôle dans la barre elle-même — les deux scénarios
- * cliquent le MÊME lien, et c'est `/terrain` qui décide de la suite.
+ * ## AMENDÉ PAR D132 (23/09/2026, VISUEL-1)
+ *
+ * **La barre N'EST TOUJOURS PAS un contrôle d'accès** — `/terrain` refuse
+ * seule, et aucune logique de droit n'est construite ICI. Mais D132 amende la
+ * doctrine « jamais masquée » : la barre du back-office filtre désormais ses
+ * entrées par CAPACITÉ (`lib/navigation/entrees.ts`, `entreesAffichables`),
+ * et « App technicien » exige `saisir_rapport`. **`adv` — le compte de
+ * `ouvrirUneSession`, utilisé ici depuis le premier jour de ce fichier — n'a
+ * PAS cette capacité** (`lib/auth/habilitations.ts`, `MATRICE`) : mesuré en
+ * rejouant ce fichier après D132, le lien avait disparu pour ce compte, et
+ * les deux premiers scénarios rougissaient pour la MEILLEURE raison —
+ * `admin_societe`, qui a `saisir_rapport` ET l'accès complet que ces deux
+ * scénarios veulent éprouver, le remplace ci-dessous. Le quatrième scénario,
+ * neuf, mesure explicitement ce que `adv` a perdu.
  */
 
 async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
@@ -45,7 +59,7 @@ async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
 test("le lien « App technicien » existe, et pointe sur /terrain", async ({
   page,
 }) => {
-  await ouvrirUneSession(page);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/planning");
   const lien = page.getByRole("link", { name: fr["nav.app_technicien"] });
   await expect(lien).toBeVisible();
@@ -55,11 +69,22 @@ test("le lien « App technicien » existe, et pointe sur /terrain", async ({
 test("un rôle à ACCÈS COMPLET qui clique le lien est renvoyé au planning — confirmé, pas réimplémenté", async ({
   page,
 }) => {
-  await ouvrirUneSession(page);
+  await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
   await page.goto("/planning");
   await page.getByRole("link", { name: fr["nav.app_technicien"] }).click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/planning$/);
+});
+
+test("un rôle SANS `saisir_rapport` (adv) ne voit plus l'entrée du tout — D132", async ({
+  page,
+}) => {
+  await ouvrirUneSession(page);
+  await page.goto("/planning");
+  await expect(
+    page.getByRole("link", { name: fr["nav.app_technicien"] }),
+  ).toBeHidden();
+  await expect(page.getByText(fr["nav.app_technicien"])).toBeHidden();
 });
 
 test("le TECHNICIEN, depuis la MÊME barre, arrive réellement sur sa journée", async ({
