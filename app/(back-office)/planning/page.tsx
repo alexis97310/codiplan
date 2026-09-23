@@ -79,6 +79,7 @@ import {
   referenceAffichee,
 } from "../interventions/presentation";
 import { decompte } from "../presentation";
+import { dureeCarteAffichee, siteDeLaCarte } from "./carte";
 import { Statistiques } from "./statistiques";
 
 /**
@@ -557,7 +558,23 @@ export default async function PagePlanning({
             </section>
           </aside>
 
-          <div className="order-1 lg:order-2">
+          {/*
+            `min-w-0` CONTRE LE DÉBORDEMENT DE TOUTE LA PAGE (PLANNING-2).
+
+            *Mesuré le 23/09/2026 en production, 1280 × 900* :
+            `document.documentElement.scrollWidth` valait 1520 pour un
+            `clientWidth` de 1280 — jeudi et vendredi coupés, une barre de
+            défilement sur la PAGE ENTIÈRE. Un item de grille CSS a une
+            largeur minimale automatique de `auto`, c'est-à-dire le
+            min-content de son contenu : celui-ci descend jusqu'à la table
+            `min-w-[920px]` de `VueSemaine`, PLUS LOIN que le conteneur
+            `overflow-x-auto` (l.677 ci-dessous) qui existe exprès pour
+            absorber ce débordement — l'item de grille s'élargissait à la
+            place de le laisser défiler. `min-w-0` REND à ce conteneur le
+            travail qu'il faisait déjà pour `VueJour` (même parent, même
+            piste `1fr`).
+          */}
+          <div className="order-1 min-w-0 lg:order-2">
             {vue === "jour" ? (
               <VueJour
                 journee={construireJournee(
@@ -611,6 +628,35 @@ export default async function PagePlanning({
 }
 
 type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
+
+/**
+ * LE SITE ET LA DURÉE D'UNE CARTE (PLANNING-2) — PARTAGÉS entre la grille et
+ * la liste téléphone, pour que les deux ne divergent jamais sur ce qu'elles
+ * disent (§9, 01/09 : deux lectures d'un même critère divergent en silence).
+ *
+ * La durée ne s'affiche PAS quand elle est inconnue — `dureeCarteAffichee`
+ * rend alors `null`, et rien n'est écrit : un zéro se lirait comme une
+ * mesure, et l'alerte « sans durée saisie » existe déjà dans le panneau de
+ * charge (`Statistiques`) — cette carte ne la duplique pas.
+ */
+function DetailsDeLaCarte({ ligne }: { readonly ligne: Ligne }) {
+  const duree = dureeCarteAffichee(dureeDe(ligne));
+  return (
+    <>
+      <span
+        className="text-app-encre-faible block truncate text-[10.5px]"
+        title={siteDeLaCarte(ligne.site)}
+      >
+        {siteDeLaCarte(ligne.site)}
+      </span>
+      {duree === null ? null : (
+        <span className="text-app-encre-faible block text-[10.5px]">
+          {duree}
+        </span>
+      )}
+    </>
+  );
+}
 
 /* ───────────────────────────── LA VUE SEMAINE ──────────────────────────── */
 
@@ -671,7 +717,13 @@ function VueSemaine({
           </colgroup>
           <thead>
             <tr>
-              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase">
+              {/*
+                STICKY (PLANNING-2) : la colonne « Technicien » reste visible
+                quand la grille défile horizontalement sous son propre
+                `overflow-x-auto` — un `z-index` au-dessus des cellules de
+                jour, qui la recouvriraient sinon en défilant SOUS elle.
+              */}
+              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase">
                 {t("planning.colonne_technicien")}
               </th>
               {jours.map((jour) => (
@@ -697,7 +749,7 @@ function VueSemaine({
             ) : null}
             {grille.map((ligne) => (
               <tr key={ligne.technicienId ?? "-"}>
-                <td className="bg-app-surface-creuse border-app-bord border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
+                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
                   {quiTravaille(ligne.technicienId, annuaire)}
                   <span
                     data-maquette-bloc="nom-technicien-agence"
@@ -755,14 +807,38 @@ function VueSemaine({
                             2 col. ». Le bloc rendait une référence interne, le
                             client ET le site — trois écarts, et `creneau_debut`
                             était lu depuis toujours sans jamais être affiché.
+
+                            LE SITE ET LA DURÉE S'Y AJOUTENT (PLANNING-2) :
+                            *mesuré le 23/09/2026, une carte se lisait « SIDAPS
+                            / Curatif » sans heure saisie — deux interventions
+                            du même jour chez le même client étaient
+                            indiscernables.* `DetailsDeLaCarte` les ajoute,
+                            partagée avec `ListeSemaine` pour que les deux
+                            vues ne divergent jamais sur ce qu'elles disent.
+
+                            TRONQUÉ AVEC `title`, JAMAIS UNE CASE QUI GRANDIT :
+                            la case garde sa hauteur de 78 px (§ CasePosable
+                            ci-dessus) quel que soit le nombre de caractères.
                           */}
-                          <span className="block font-bold">
+                          <span
+                            className="block truncate font-bold"
+                            title={enTeteDuBloc(
+                              intervention,
+                              fuseauPour(intervention.agence_id),
+                            )}
+                          >
                             {enTeteDuBloc(
                               intervention,
                               fuseauPour(intervention.agence_id),
                             )}
                           </span>
-                          {objetDuBloc(intervention)}
+                          <span
+                            className="block truncate"
+                            title={objetDuBloc(intervention)}
+                          >
+                            {objetDuBloc(intervention)}
+                          </span>
+                          <DetailsDeLaCarte ligne={intervention} />
                         </Link>
                       </BlocPosable>
                     ))}
@@ -900,15 +976,33 @@ function ListeSemaine({
                           <Link
                             key={intervention.id}
                             href={`/interventions/${intervention.id}`}
+                            // `data-carte-liste`, et jamais `data-bloc` — le
+                            // commentaire ci-dessus explique pourquoi cette
+                            // liste ne porte pas le repère du glisser-déposer.
+                            // Cette marque-ci n'en est pas une cible : elle
+                            // n'identifie la carte que pour une épreuve.
+                            data-carte-liste={intervention.id}
                             className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
                           >
-                            <span className="block font-bold">
+                            <span
+                              className="block truncate font-bold"
+                              title={enTeteDuBloc(
+                                intervention,
+                                fuseauPour(intervention.agence_id),
+                              )}
+                            >
                               {enTeteDuBloc(
                                 intervention,
                                 fuseauPour(intervention.agence_id),
                               )}
                             </span>
-                            {objetDuBloc(intervention)}
+                            <span
+                              className="block truncate"
+                              title={objetDuBloc(intervention)}
+                            >
+                              {objetDuBloc(intervention)}
+                            </span>
+                            <DetailsDeLaCarte ligne={intervention} />
                           </Link>
                         ))}
                       </div>
