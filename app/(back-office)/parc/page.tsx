@@ -153,10 +153,24 @@ export default async function PageParc({
     texte: typeof params.q === "string" ? params.q : "",
     statut: typeof params.statut === "string" ? params.statut : undefined,
     // LES TROIS FILTRES COMBINABLES DE LISTES-1 (23/09/2026) — dans l'URL,
-    // comme `statut` l'est déjà.
-    client_id: typeof params.client === "string" ? params.client : null,
-    site_id: typeof params.site === "string" ? params.site : null,
-    famille_id: typeof params.famille === "string" ? params.famille : null,
+    // comme `statut` l'est déjà. **La chaîne VIDE compte comme absente** :
+    // l'option « Tous les … » du `<select>` porte `value=""`, et un
+    // formulaire soumet CE champ même non touché — un `z.uuid()` refuse une
+    // chaîne vide, et sans ce garde le premier filtre choisi ferait échouer
+    // `safeParse` en silence, rendant zéro ligne pour une raison que rien à
+    // l'écran n'explique (mesuré par le scénario de bout en bout de ce ticket).
+    client_id:
+      typeof params.client === "string" && params.client.length > 0
+        ? params.client
+        : null,
+    site_id:
+      typeof params.site === "string" && params.site.length > 0
+        ? params.site
+        : null,
+    famille_id:
+      typeof params.famille === "string" && params.famille.length > 0
+        ? params.famille
+        : null,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
