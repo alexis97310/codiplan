@@ -142,7 +142,10 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
   "/interventions/[id]/bon": async (prisma, societeId) =>
     (
       await prisma.intervention.findFirst({
-        where: { societe_id: societeId, statut: { in: ["terminee", "cloturee"] } },
+        where: {
+          societe_id: societeId,
+          statut: { in: ["terminee", "cloturee"] },
+        },
         select: { id: true },
       })
     )?.id ?? null,

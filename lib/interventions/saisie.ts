@@ -364,10 +364,7 @@ export const schemaRechercheInterventions = z
      * c'est un lien qui pose exactement le critère de la tuile
      * (`compterInterventionsSansDuree`, `lib/interventions/depot.ts`).
      */
-    sans_duree_a_venir: z.preprocess(
-      (valeur) => valeur === "1",
-      z.boolean(),
-    ),
+    sans_duree_a_venir: z.preprocess((valeur) => valeur === "1", z.boolean()),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict()

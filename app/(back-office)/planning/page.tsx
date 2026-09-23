@@ -62,7 +62,10 @@ import {
   quiTravaille,
 } from "@/lib/interventions/personnes";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
-import { donneesMaterielDesMachines, type DonneesMateriel } from "@/lib/machines/depot";
+import {
+  donneesMaterielDesMachines,
+  type DonneesMateriel,
+} from "@/lib/machines/depot";
 import {
   CLASSES_BLOC,
   CLASSES_STATUT,
@@ -1645,9 +1648,7 @@ function SansHeureVide({
   }
   return (
     <section className="border-app-bord border-t px-4 py-3">
-      <h3 className="text-[12px] font-bold">
-        {t("planning.jour_sans_heure")}
-      </h3>
+      <h3 className="text-[12px] font-bold">{t("planning.jour_sans_heure")}</h3>
       <ul className="mt-2 flex flex-col gap-1">
         {colonnesAvecSansHeure.flatMap((colonne) =>
           colonne.sansHeure.map((ligne) => (
@@ -1661,7 +1662,10 @@ function SansHeureVide({
               <span className="text-app-encre-faible">
                 {ligneTechnicienSansHeure(colonne.technicienId, annuaire)}
               </span>
-              <DetailsDeLaCarte ligne={ligne} donneesMateriel={donneesMateriel} />
+              <DetailsDeLaCarte
+                ligne={ligne}
+                donneesMateriel={donneesMateriel}
+              />
             </li>
           )),
         )}

@@ -39,7 +39,10 @@ import {
 } from "@/lib/interventions/montants-visibles";
 import { optionsDAffectation } from "@/lib/interventions/personnes";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
-import { donneesMaterielDesMachines, machinesDesSites } from "@/lib/machines/depot";
+import {
+  donneesMaterielDesMachines,
+  machinesDesSites,
+} from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 

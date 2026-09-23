@@ -392,15 +392,15 @@ describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFI
     expect(ids).not.toContain(PASSEE_CLOTUREE_SANS_DUREE);
     expect(ids).not.toContain(A_VENIR_AVEC_DUREE);
 
-    expect(
-      await compterInterventions(INTERNE_A, criteres, clientApp()),
-    ).toBe(ids.length);
+    expect(await compterInterventions(INTERNE_A, criteres, clientApp())).toBe(
+      ids.length,
+    );
   });
 
   it("sans le paramètre, le filtre ne s'applique pas — le témoin qui doit rester vert", async () => {
-    const ids = (
-      await listerInterventions(INTERNE_A, TOUT, clientApp())
-    ).map((l) => l.id);
+    const ids = (await listerInterventions(INTERNE_A, TOUT, clientApp())).map(
+      (l) => l.id,
+    );
     expect(ids).toContain(PASSEE_CLOTUREE_SANS_DUREE);
     expect(ids).toContain(A_VENIR_AVEC_DUREE);
   });

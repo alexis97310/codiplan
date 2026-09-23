@@ -72,7 +72,11 @@ test.beforeAll(async () => {
         id: true,
         numero_serie: true,
         modele: {
-          select: { marque: true, reference: true, famille: { select: { libelle: true } } },
+          select: {
+            marque: true,
+            reference: true,
+            famille: { select: { libelle: true } },
+          },
         },
       },
     });
@@ -154,9 +158,7 @@ test("la carte de planning (vue semaine) dit le matériel, famille et n° de sé
   page,
 }) => {
   const reperes = await reperesDeLaScene();
-  await page.goto(
-    `/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`,
-  );
+  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(reperes.lundi)}`);
   const carte = page.locator(`[data-bloc="${AVEC_MACHINE}"]`);
   await expect(carte).toBeVisible();
   await expect(carte).toContainText(familleAttendue);
@@ -176,9 +178,7 @@ test("la vue jour place l'intervention SANS HEURE dans la colonne de son technic
     '[data-maquette-bloc="ligne-jour-sans-heure"]',
   );
   await expect(ligneSansHeure).toBeVisible();
-  await expect(ligneSansHeure).toContainText(
-    fr["planning.jour_sans_heure"],
-  );
+  await expect(ligneSansHeure).toContainText(fr["planning.jour_sans_heure"]);
   await expect(
     ligneSansHeure.locator(`a[href="/interventions/${SCENE.deplacable}"]`),
   ).toBeVisible();
@@ -217,5 +217,7 @@ test("le bon se génère sur une intervention TERMINÉE, avec le lien proposé d
   await expect(lienBon).toBeVisible();
   await lienBon.click();
   await expect(page).toHaveURL(`/interventions/${AVEC_MACHINE}/bon`);
-  await expect(page.getByText(fr["intervention.bon.titre"]).first()).toBeVisible();
+  await expect(
+    page.getByText(fr["intervention.bon.titre"]).first(),
+  ).toBeVisible();
 });
