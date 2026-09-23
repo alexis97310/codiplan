@@ -26,6 +26,16 @@ import { ouvrirUneSession } from "./setup/session";
  * prochain ticket de démonstration n'est pas une épreuve.
  */
 
+// SÉRIE, ET C'EST DÉLIBÉRÉ : `beforeAll` DÉTRUIT puis RECRÉE ses fixtures (le
+// même geste que `scene.ts`, ici tenu par le fichier et non par un montage
+// global) — sous `fullyParallel`, deux tests de CE fichier peuvent tomber sur
+// deux WORKERS distincts, et `beforeAll` tourne alors UNE FOIS PAR WORKER :
+// deux écritures concurrentes sur le MÊME identifiant fixe se sont mesurées
+// en `23505` (clé déjà existante). La série ramène ce fichier à un seul
+// worker, comme `planning-largeur-et-carte.spec.ts` qui, lui, ne fait que LIRE
+// dans son `beforeAll` et n'a jamais eu besoin de cette garde.
+test.describe.configure({ mode: "serial" });
+
 /** Ducos, technicien de Ducos, MARDI 10:30–11:00 — libre entre l'obstacle
  * (08:00–10:00) et la chevauchante (13:00–14:00), une machine affectée. */
 const AVEC_MACHINE = "01a0f100-0000-7000-8000-000000000001";
@@ -91,7 +101,8 @@ test.beforeAll(async () => {
            "creneau_debut", "creneau_fin", "duree_estimee_min",
            "mode_valorisation", "devise_code", "modifie_le")
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-                 'curatif', 'p3', $7, $8::date, $9::timestamptz, $10::timestamptz,
+                 'curatif', 'p3', $7::"StatutIntervention", $8::date,
+                 $9::timestamptz, $10::timestamptz,
                  30, 'temps_passe', 'XPF', now())`,
         id,
         societeId,
