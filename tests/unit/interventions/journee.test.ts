@@ -366,20 +366,21 @@ describe("une journée entièrement libre a quand même sa colonne", () => {
  * celle dont le créneau tombe hors de l'axe. *Un planning qui perd une ligne
  * fait poser quelqu'un sur un créneau déjà pris.*
  */
-describe("les interventions non dessinables sont nommées", () => {
-  it("SANS CRÉNEAU — elle appartient au jour, à aucune heure", () => {
+describe("les interventions non dessinables dans l'axe sont nommées", () => {
+  it("SANS CRÉNEAU — elle appartient au jour, à aucune heure, et se dessine DANS la colonne (AFFICHAGE-MATERIEL-1)", () => {
+    // *Mesuré le 23/09/2026 en production : reléguée SOUS toute la grille,
+    // elle se lisait comme absente.* Elle n'entre plus dans `horsGrille` — la
+    // colonne la porte elle-même, par `sansHeure`.
     const j = construireJournee(
       [pose({ id: "muette", creneau_debut: null, creneau_fin: null })],
       LUNDI,
       [NOUMEA],
       minutesDe,
     );
-    expect(j.horsGrille).toBe(1);
-    expect(j.colonnes[0].horsGrille).toEqual([
-      {
-        ligne: expect.objectContaining({ id: "muette" }),
-        motif: "sans_creneau",
-      },
+    expect(j.horsGrille).toBe(0);
+    expect(j.colonnes[0].horsGrille).toEqual([]);
+    expect(j.colonnes[0].sansHeure).toEqual([
+      expect.objectContaining({ id: "muette" }),
     ]);
   });
 

@@ -1262,6 +1262,13 @@ export const fr = {
   "intervention.bon.imprimer": "Imprimer le bon",
   "intervention.bon.refus.acces":
     "Votre rôle ne permet pas de consulter le bon de cette intervention.",
+  // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
+  // 23/09/2026) — *mesuré en production le 23/09/2026 : le lien « Bon
+  // d'intervention » était proposé sur une intervention encore `planifiee`.*
+  // `terminee` et `cloturee` sont les deux seuls statuts où le terrain a dit
+  // avoir fini (`peutGenererLeBon`, `lib/interventions/cycle-de-vie.ts`).
+  "intervention.bon.refus.non_terminee":
+    "Le bon sera disponible une fois l'intervention terminée.",
   // « site » n'est pas écrit ici : le mot imposé se compose depuis
   // `mot`/`motDansUnePhrase`, jamais en dur (D5, D47, L0-11) — voir
   // `presentation.ts` du dossier des interventions pour les trois phrases qui
@@ -1976,6 +1983,12 @@ export const fr = {
   "machine.champ.reference": "Référence",
   "machine.champ.modele": "Modèle",
   "machine.champ.numero_serie": "N° de série",
+  // LE LIBELLÉ COMPLET D'UN MATÉRIEL (AFFICHAGE-MATERIEL-1) — « Pont 2
+  // colonnes Cascos 13442 S/N 10044 » : cette abréviation est le seul mot
+  // qui sépare la référence du numéro de série dans `libelleMaterielComplet`
+  // (`lib/machines/presentation.ts`), partagée par la carte de planning et
+  // la fiche intervention.
+  "machine.numero_serie_abrege": "S/N",
   "machine.champ.numero_serie_aide":
     "Plaque illisible ou absente : saisissez SN-INCONNU-<référence interne> (RG-PAR-02).",
   "machine.champ.client": "Client",
@@ -2651,15 +2664,26 @@ export const fr = {
   // dit plutôt que de le laisser découvrir.
   "planning.agenda_bloque": "Agenda bloqué",
   "planning.legende.agenda_bloque": "Agenda bloqué — le dépôt sera refusé",
-  // CE QUE LA VUE JOUR NE PEUT PAS DESSINER, ET QU'ELLE DIT (12/09/2026).
-  // *Une intervention qui ne peut pas être dessinée doit être DITE, jamais
-  // effacée* : trois disparitions silencieuses vivaient dans cet écran, et un
-  // planning qui perd une ligne fait poser quelqu'un sur un créneau déjà pris.
+  // CE QUE LA VUE JOUR NE PEUT PAS DESSINER DANS L'AXE, ET QU'ELLE DIT
+  // (12/09/2026). *Une intervention qui ne peut pas être dessinée doit être
+  // DITE, jamais effacée* : trois disparitions silencieuses vivaient dans cet
+  // écran, et un planning qui perd une ligne fait poser quelqu'un sur un
+  // créneau déjà pris.
   "planning.jour_hors_grille": "Non placées sur la grille",
   "planning.jour_hors_grille_aide":
     "Elles sont bien de ce jour ; l'axe des heures ne peut pas les montrer.",
-  "planning.jour_hors_grille_sans_creneau": "sans heure saisie",
   "planning.jour_hors_grille_hors_axe": "hors des heures d'ouverture",
+  // LA LIGNE « SANS HEURE », EN TÊTE DE LA VUE JOUR (AFFICHAGE-MATERIEL-1,
+  // 23/09/2026). *Mesuré en production le 23/09/2026 : quatre interventions du
+  // jour, reléguées SOUS la grille, se lisaient comme absentes pour
+  // l'exploitant.* Elles entrent désormais dans la colonne de leur
+  // technicien, jamais seulement en dessous.
+  "planning.jour_sans_heure": "Journée — heure non fixée",
+  // LE MATÉRIEL D'UNE CARTE DE PLANNING, QUAND AUCUNE MACHINE N'EST AFFECTÉE
+  // (AFFICHAGE-MATERIEL-1) — RG-INT-01 autorise le dépannage à l'aveugle,
+  // sans machine connue : ce n'est pas une donnée manquante, et le mot le dit
+  // plutôt qu'un tiret muet.
+  "planning.materiel_non_precise": "Matériel non précisé",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",

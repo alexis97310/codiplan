@@ -118,11 +118,13 @@ function vuesEnSemaine(lignes: readonly Ligne[]): Set<string> {
 
 /**
  * Les identifiants que la vue JOUR REND COMPTE DE — dessinés dans une cellule,
- * ou nommément écartés.
+ * dans la ligne « sans heure » de la colonne, ou nommément écartés.
  *
  * *C'est la définition qui porte la règle* : « dessiné » seul ferait exiger
  * d'une vue horaire qu'elle place une ligne sans heure, ce qui lui ferait
- * inventer un créneau. Ce qu'on exige est qu'elle ne les PERDE pas.
+ * inventer un créneau. Ce qu'on exige est qu'elle ne les PERDE pas. Depuis
+ * AFFICHAGE-MATERIEL-1, une ligne sans heure est comptée par `sansHeure`, pas
+ * par `horsGrille` — elle se dessine désormais DANS la colonne.
  */
 function vuesEnJour(lignes: readonly Ligne[]): Set<string> {
   const journee = construireJournee(lignes, LUNDI, [DUCOS_JOUR], minutesDe);
@@ -131,6 +133,7 @@ function vuesEnJour(lignes: readonly Ligne[]): Set<string> {
     for (const cellule of colonne.cellules) {
       for (const { ligne } of cellule.occupations) vues.add(ligne.id);
     }
+    for (const sansHeure of colonne.sansHeure) vues.add(sansHeure.id);
     for (const ecartee of colonne.horsGrille) vues.add(ecartee.ligne.id);
   }
   return vues;

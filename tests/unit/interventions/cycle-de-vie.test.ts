@@ -7,6 +7,7 @@ import {
   peutCloturer,
   peutDemarrerLeCompteur,
   peutDeplacer,
+  peutGenererLeBon,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
 
@@ -129,6 +130,38 @@ describe("démarrer le compteur (D120)", () => {
     expect(cloturee.refuse && cloturee.cle).toBe(
       "intervention.refus.deja_cloturee",
     );
+  });
+});
+
+/**
+ * LE BON D'INTERVENTION N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
+ * 23/09/2026).
+ *
+ * *Mesuré en production le 23/09/2026 : le lien « Bon d'intervention » était
+ * proposé, et l'URL du bon le rendait, sur une intervention encore
+ * `planifiee`.* Exactement deux statuts l'autorisent — jamais un troisième.
+ */
+describe("générer le bon d'intervention", () => {
+  it("passe sur TERMINÉE et sur CLÔTURÉE, les deux seuls statuts autorisés", () => {
+    expect(peutGenererLeBon("terminee").refuse).toBe(false);
+    expect(peutGenererLeBon("cloturee").refuse).toBe(false);
+  });
+
+  it("refuse tout autre statut, avec le motif qui l'explique", () => {
+    for (const statut of [
+      "a_planifier",
+      "planifiee",
+      "affectee",
+      "en_cours",
+      "suspendue",
+      "annulee",
+    ] as const) {
+      const verdict = peutGenererLeBon(statut);
+      expect(verdict.refuse, statut).toBe(true);
+      expect(verdict.refuse && verdict.cle).toBe(
+        "intervention.bon.refus.non_terminee",
+      );
+    }
   });
 });
 

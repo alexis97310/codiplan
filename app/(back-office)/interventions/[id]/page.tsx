@@ -21,6 +21,7 @@ import {
   peutAnnuler,
   peutCloturer,
   peutDeplacer,
+  peutGenererLeBon,
   peutReprendre,
   peutSuspendre,
   type Verdict,
@@ -38,7 +39,8 @@ import {
 } from "@/lib/interventions/montants-visibles";
 import { optionsDAffectation } from "@/lib/interventions/personnes";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
-import { libellesDesMachines, machinesDesSites } from "@/lib/machines/depot";
+import { donneesMaterielDesMachines, machinesDesSites } from "@/lib/machines/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
@@ -323,13 +325,24 @@ export default async function PageIntervention({
   ]);
   // LE OU LES MACHINES DE L'INTERVENTION (audit du 19/09/2026) — GAP COMBLÉ :
   // cette fiche ne portait aucun champ machine, alors que `CHAMPS_LIGNE` lit
-  // déjà `ligne.machines` et que `/interventions` les affiche depuis le
-  // 18/09/2026. `libellesDesMachines` et `machinesAffichees` sont les MÊMES
-  // fonctions que la liste (`../presentation.ts`) : une seule écriture de
-  // « quelles machines, avec quel mot pour zéro », jamais une troisième forme.
-  const libellesMachines = await libellesDesMachines(
+  // déjà `ligne.machines`.
+  //
+  // **LA FAMILLE Y MANQUAIT ENCORE** (AFFICHAGE-MATERIEL-1, 23/09/2026) :
+  // *mesuré en production le 23/09/2026, « il manque la famille sur la page
+  // intervention »* — la fiche lisait `marque référence` (`libellesDesMachines`,
+  // la forme du registre et du bon imprimable), jamais la famille ni le
+  // numéro de série. `libelleMaterielComplet` (`lib/machines/presentation.ts`)
+  // compose désormais la même forme complète que la carte de planning — une
+  // seule écriture du critère, jamais une troisième forme (§9, 01/09).
+  const donneesMaterielFiche = await donneesMaterielDesMachines(
     session.contexte,
     ligne.machines.map((m) => m.machine_id),
+  );
+  const libellesMachines = new Map(
+    [...donneesMaterielFiche].map(([machineId, donnees]) => [
+      machineId,
+      libelleMaterielComplet(donnees),
+    ]),
   );
 
   return (
@@ -357,13 +370,21 @@ export default async function PageIntervention({
             bouton d'action : cette fiche ne décide de rien de plus, elle mène
             à l'écran qui imprime. Sans lui, le bon existerait sans aucun
             appelant (§9, la maladie que le portail a déjà soignée).
+
+            PROPOSÉ SEULEMENT SI LE BON PEUT SE GÉNÉRER (AFFICHAGE-MATERIEL-1,
+            23/09/2026). *Mesuré en production le 23/09/2026 : le lien restait
+            offert sur une intervention encore `planifiee`.* `peutGenererLeBon`
+            est le MÊME verdict que la page du bon applique elle-même : deux
+            lectures d'un même critère ne doivent jamais diverger (§9, 01/09).
           */}
-          <Link
-            href={`/interventions/${ligne.id}/bon`}
-            className={CLASSES_LIEN}
-          >
-            {t("intervention.bon.titre")}
-          </Link>
+          {peutGenererLeBon(statut).refuse ? null : (
+            <Link
+              href={`/interventions/${ligne.id}/bon`}
+              className={CLASSES_LIEN}
+            >
+              {t("intervention.bon.titre")}
+            </Link>
+          )}
           <Link
             href={retour.href}
             className="text-app-encre-faible text-[12.5px]"

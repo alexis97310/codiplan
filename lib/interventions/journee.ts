@@ -100,16 +100,22 @@ export type BlocDeCellule<T> = {
 };
 
 /**
- * POURQUOI UNE INTERVENTION N'EST PAS DESSINÉE — et jamais pourquoi elle est
- * absente : elle ne l'est plus.
+ * POURQUOI UNE INTERVENTION N'EST PAS DESSINÉE DANS L'AXE — et jamais pourquoi
+ * elle est absente : elle ne l'est plus.
  *
- * `sans_creneau` — datée, sans heure. Elle appartient au JOUR et à aucune
- * heure ; lui en donner une lui donnerait un créneau que personne n'a saisi.
  * `hors_axe` — un créneau posé avant l'ouverture ou après la fermeture des
  * agences présentes. L'axe ne va pas jusque-là, et l'étirer ferait apparaître
  * des heures libres qu'aucune agence n'ouvre.
+ *
+ * **`sans_creneau` a quitté cette liste (AFFICHAGE-MATERIEL-1, 23/09/2026)** :
+ * une intervention datée sans heure appartient au JOUR de son technicien, et
+ * elle se dessine désormais DANS sa colonne — `ColonneDeJournee.sansHeure`,
+ * une ligne « Journée — heure non fixée » posée en tête de grille — jamais
+ * plus SEULEMENT sous elle. *Mesuré le 23/09/2026 en production : quatre
+ * interventions du jour, reléguées sous la grille, se lisaient comme
+ * absentes.*
  */
-export type MotifHorsGrille = "sans_creneau" | "hors_axe";
+export type MotifHorsGrille = "hors_axe";
 
 export type LigneHorsGrille<T> = {
   readonly ligne: T;
@@ -146,11 +152,21 @@ export type ColonneDeJournee<T> = {
   /** Combien de créneaux cette personne a de libres, ce jour-là. */
   readonly creneauxLibres: number;
   /**
-   * Ce que cette colonne NE PEUT PAS dessiner, et qu'elle DIT.
+   * LES INTERVENTIONS DE CETTE PERSONNE, CE JOUR-LÀ, SANS HEURE SAISIE.
+   *
+   * Elles appartiennent au JOUR, à aucun créneau : l'axe ne peut pas les
+   * dessiner sans inventer une heure que personne n'a saisie. **Elles restent
+   * pourtant DANS la colonne** — une ligne « Journée — heure non fixée » en
+   * tête de grille, jamais reléguée hors d'elle (AFFICHAGE-MATERIEL-1).
+   */
+  readonly sansHeure: readonly T[];
+  /**
+   * Ce que cette colonne NE PEUT PAS dessiner DANS L'AXE, et qu'elle DIT.
    *
    * *Une intervention qui ne peut pas être dessinée doit être dite, jamais
-   * effacée* : sans cette liste, une ligne datée sans heure et une ligne posée
-   * hors des heures d'ouverture sortaient de l'écran en silence.
+   * effacée* : sans cette liste, une ligne posée hors des heures d'ouverture
+   * sortait de l'écran en silence. La ligne SANS HEURE n'y entre plus depuis
+   * AFFICHAGE-MATERIEL-1 — voir `sansHeure` ci-dessus.
    */
   readonly horsGrille: readonly LigneHorsGrille<T>[];
 };
@@ -278,6 +294,7 @@ export function construireJournee<T extends Occupante>(
         bloquee,
         cellules,
         creneauxLibres: cellules.filter((c) => c.etat === "libre").length,
+        sansHeure: groupe.lignes.filter((l) => l.creneau_debut === null),
         horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
       };
     })
@@ -333,13 +350,15 @@ function construireAxe(
 }
 
 /**
- * CE QUE LA COLONNE NE PEUT PAS DESSINER, avec son motif.
+ * CE QUE LA COLONNE NE PEUT PAS DESSINER DANS L'AXE, avec son motif.
  *
- * La population est l'ENSEMBLE des lignes de la colonne, et l'appartenance à
- * l'axe est une ASSERTION — jamais un critère de sélection. *Sélectionner « les
- * lignes qui ont un créneau dans l'axe » ferait sortir de la population très
- * exactement les lignes que cette fonction existe pour nommer* (§9, 31/08 : un
- * `WHERE` qui recoupe l'assertion est un trou).
+ * La population est l'ENSEMBLE des lignes AVEC un créneau — celles sans
+ * créneau sont retenues par `sansHeure`, jamais par cette fonction depuis
+ * AFFICHAGE-MATERIEL-1 — et l'appartenance à l'axe est une ASSERTION, jamais
+ * un critère de sélection. *Sélectionner « les lignes qui ont un créneau dans
+ * l'axe » ferait sortir de la population très exactement les lignes que
+ * cette fonction existe pour nommer* (§9, 31/08 : un `WHERE` qui recoupe
+ * l'assertion est un trou).
  */
 function horsGrille<T extends Occupante>(
   lignes: readonly T[],
@@ -350,7 +369,6 @@ function horsGrille<T extends Occupante>(
   const rendues: LigneHorsGrille<T>[] = [];
   for (const ligne of lignes) {
     if (ligne.creneau_debut === null) {
-      rendues.push({ ligne, motif: "sans_creneau" });
       continue;
     }
     if (!axe.some((debut) => couvre(ligne, debut, pas, minutesDe))) {

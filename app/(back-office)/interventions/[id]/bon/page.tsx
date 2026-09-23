@@ -8,6 +8,7 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
+import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
 import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
@@ -109,6 +110,16 @@ export default async function PageBonIntervention({
   }
 
   const statut = bon.ligne.statut as StatutIntervention;
+  // ── LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1) ──────
+  //
+  // *Mesuré en production le 23/09/2026 : le lien était proposé et l'URL
+  // rendait le bon sur une intervention encore `planifiee`.* Même mécanisme
+  // que le refus d'accès ci-dessus — une redirection vers la fiche, avec le
+  // motif en bannière — jamais un bon à moitié vide, jamais une erreur.
+  const verdictBon = peutGenererLeBon(statut);
+  if (verdictBon.refuse) {
+    redirect(`/interventions/${id}?motif=${verdictBon.cle}`);
+  }
   const montants = accesAuxMontants(contexte.role);
   const libellesMachines = await libellesDesMachines(
     contexte,

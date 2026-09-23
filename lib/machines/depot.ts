@@ -493,6 +493,71 @@ export async function libellesDesMachines(
 }
 
 /**
+ * LES DONNÉES BRUTES D'UN ENSEMBLE DE MACHINES — famille, marque, référence,
+ * numéro de série (AFFICHAGE-MATERIEL-1, 23/09/2026).
+ *
+ * *Mesuré en production le 23/09/2026 : une carte de planning se lisait
+ * « SIDAPS / Curatif », sans dire QUEL matériel — et la fiche d'intervention
+ * ne portait ni famille ni numéro de série.* Alexis les nomme tous les deux :
+ * « Pont 2 colonnes Cascos 13442 S/N 10044 ».
+ *
+ * **Cette fonction ne COMPOSE aucun libellé** — à la différence de
+ * `libellesDesMachines` ci-dessus, dont la forme `marque référence` sert
+ * déjà le registre et le bon imprimable, et que cette fonction ne remplace
+ * pas. Composer « S/N » est un mot qu'un humain lit : il n'a rien à faire
+ * dans ce module, qui ne lit ni dictionnaire ni écran (L0-11) — c'est
+ * `lib/machines/presentation.ts` qui compose, sur les champs qu'ici on lit.
+ */
+export type DonneesMateriel = {
+  readonly familleLibelle: string;
+  readonly marque: string;
+  readonly reference: string;
+  readonly numeroSerie: string;
+};
+
+export async function donneesMaterielDesMachines(
+  contexte: ContexteSession,
+  machineIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, DonneesMateriel>> {
+  const ids = [...new Set(machineIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const machines = await tx.machine.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          numero_serie: true,
+          modele: {
+            select: {
+              marque: true,
+              reference: true,
+              famille: { select: { libelle: true } },
+            },
+          },
+        },
+      });
+      return new Map(
+        machines.map((machine) => [
+          machine.id,
+          {
+            familleLibelle: machine.modele.famille.libelle,
+            marque: machine.modele.marque,
+            reference: machine.modele.reference,
+            numeroSerie: machine.numero_serie,
+          },
+        ]),
+      );
+    },
+    client,
+  );
+}
+
+/**
  * LES MACHINES D'UN ENSEMBLE DE SITES, PAR SITE — pour un formulaire qui
  * propose « les machines DE CE SITE », jamais le parc entier (chantier
  * INT-MACHINE 2, 20/09/2026).

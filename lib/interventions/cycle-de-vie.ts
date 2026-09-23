@@ -191,6 +191,24 @@ export function peutAnnuler(statut: StatutIntervention): Verdict {
 }
 
 /**
+ * Peut-on GÉNÉRER LE BON D'INTERVENTION imprimable ? (AFFICHAGE-MATERIEL-1,
+ * 23/09/2026)
+ *
+ * *Mesuré en production le 23/09/2026 : le lien « Bon d'intervention » était
+ * proposé sur une intervention encore `planifiee`, et l'URL du bon la rendait
+ * quand même — un bon récapitulant un travail que le terrain n'a pas encore
+ * fait.* Le bon existe pour RENDRE COMPTE d'un travail fait : `terminee` et
+ * `cloturee` sont les DEUX SEULS statuts où le terrain a dit avoir fini —
+ * jamais un troisième inventé ici.
+ */
+export function peutGenererLeBon(statut: StatutIntervention): Verdict {
+  if (statut === "terminee" || statut === "cloturee") {
+    return PERMIS;
+  }
+  return { refuse: true, cle: "intervention.bon.refus.non_terminee" };
+}
+
+/**
  * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *
  * **« À planifier » veut dire « sans date », et rien d'autre.** L'annexe D en

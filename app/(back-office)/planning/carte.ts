@@ -1,5 +1,7 @@
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import type { DonneesMateriel } from "@/lib/machines/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
 /**
  * CE QU'UNE CARTE DE PLANNING DIT EN PLUS DE L'HEURE ET DU CLIENT (PLANNING-2).
@@ -15,6 +17,35 @@ import { mot } from "@/lib/i18n/vocabulaire";
 /** Le libellé du site — même convention que `lieuDeLaLigne` (page.tsx). */
 export function siteDeLaCarte(site: { readonly libelle: string }): string {
   return `${mot("site")} ${site.libelle}`;
+}
+
+/**
+ * LE MATÉRIEL D'UNE CARTE — famille, marque, référence, numéro de série
+ * (AFFICHAGE-MATERIEL-1, 23/09/2026).
+ *
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * Curatif » sans dire QUEL matériel.* Une intervention sans machine affectée
+ * n'est pas une donnée manquante — RG-INT-01 autorise le dépannage à
+ * l'aveugle —, et le mot le dit plutôt qu'un tiret muet. **Plusieurs
+ * machines** se joignent par une virgule, comme `machinesAffichees`
+ * (`../interventions/presentation.ts`) le fait déjà pour le registre : ni
+ * l'une ni l'autre ne borne leur nombre (chapitre 11.3).
+ */
+export function materielDeLaCarte(
+  ligne: { readonly machines: readonly { readonly machine_id: string }[] },
+  donneesMateriel: ReadonlyMap<string, DonneesMateriel>,
+): string {
+  if (ligne.machines.length === 0) {
+    return t("planning.materiel_non_precise");
+  }
+  return ligne.machines
+    .map((m) => {
+      const donnees = donneesMateriel.get(m.machine_id);
+      return donnees === undefined
+        ? t("planning.materiel_non_precise")
+        : libelleMaterielComplet(donnees);
+    })
+    .join(", ");
 }
 
 /**

@@ -62,6 +62,7 @@ import {
   quiTravaille,
 } from "@/lib/interventions/personnes";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import { donneesMaterielDesMachines, type DonneesMateriel } from "@/lib/machines/depot";
 import {
   CLASSES_BLOC,
   CLASSES_STATUT,
@@ -81,7 +82,7 @@ import {
   referenceAffichee,
 } from "../interventions/presentation";
 import { decompte } from "../presentation";
-import { dureeCarteAffichee, siteDeLaCarte } from "./carte";
+import { dureeCarteAffichee, materielDeLaCarte, siteDeLaCarte } from "./carte";
 import { Statistiques } from "./statistiques";
 
 export const metadata: Metadata = { title: t("planning.titre") };
@@ -322,7 +323,7 @@ export default async function PagePlanning({
   // `absenceCouvrant`, le critère même du refus (§9, 01/09). La borne haute
   // est le DERNIER JOUR AFFICHÉ, compris : `fenetre.au` est exclusive et
   // `absencesDeLaPeriode` compare des jours civils, bornes comprises.
-  const [annuaire, charges, absences] = await Promise.all([
+  const [annuaire, charges, absences, donneesMateriel] = await Promise.all([
     avecContexteApplicatif(contexte, (tx) =>
       annuaireDesPersonnes(tx, personnesANommer(lignes, pourTechniciens)),
     ),
@@ -337,6 +338,14 @@ export default async function PagePlanning({
       contexte,
       fenetre.du,
       instantDuJour(fenetreEnJours.au, -1),
+    ),
+    // LE MATÉRIEL DES CARTES (AFFICHAGE-MATERIEL-1) — les machines des
+    // interventions AFFICHÉES seulement, jamais celles de la file d'attente
+    // (lue à part, `attente`) : cette lecture ne dépend que d'`affichees`,
+    // comme `charges`, et ni l'une ni l'autre du résultat de l'autre.
+    donneesMaterielDesMachines(
+      contexte,
+      affichees.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
     ),
   ]);
 
@@ -591,6 +600,7 @@ export default async function PagePlanning({
                 )}
                 annuaire={annuaire}
                 jourAffiche={jourAffiche}
+                donneesMateriel={donneesMateriel}
               />
             ) : (
               <VueSemaine
@@ -608,6 +618,7 @@ export default async function PagePlanning({
                 fuseauPour={(agenceId) =>
                   schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
                 }
+                donneesMateriel={donneesMateriel}
               />
             )}
           </div>
@@ -634,17 +645,30 @@ export default async function PagePlanning({
 type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
 
 /**
- * LE SITE ET LA DURÉE D'UNE CARTE (PLANNING-2) — PARTAGÉS entre la grille et
- * la liste téléphone, pour que les deux ne divergent jamais sur ce qu'elles
- * disent (§9, 01/09 : deux lectures d'un même critère divergent en silence).
+ * LE SITE, LE MATÉRIEL ET LA DURÉE D'UNE CARTE (PLANNING-2 ; matériel ajouté
+ * par AFFICHAGE-MATERIEL-1) — PARTAGÉS entre les trois rendus de carte (grille
+ * semaine, grille jour, liste téléphone), pour que les trois ne divergent
+ * jamais sur ce qu'ils disent (§9, 01/09 : deux lectures d'un même critère
+ * divergent en silence).
+ *
+ * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
+ * Curatif » — ni le site, ni le matériel, ni la durée.* Le matériel est
+ * TRONQUÉ avec `title` complet, exactement comme le site juste au-dessus.
  *
  * La durée ne s'affiche PAS quand elle est inconnue — `dureeCarteAffichee`
  * rend alors `null`, et rien n'est écrit : un zéro se lirait comme une
  * mesure, et l'alerte « sans durée saisie » existe déjà dans le panneau de
  * charge (`Statistiques`) — cette carte ne la duplique pas.
  */
-function DetailsDeLaCarte({ ligne }: { readonly ligne: Ligne }) {
+function DetailsDeLaCarte({
+  ligne,
+  donneesMateriel,
+}: {
+  readonly ligne: Ligne;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+}) {
   const duree = dureeCarteAffichee(dureeDe(ligne));
+  const materiel = materielDeLaCarte(ligne, donneesMateriel);
   return (
     <>
       <span
@@ -652,6 +676,12 @@ function DetailsDeLaCarte({ ligne }: { readonly ligne: Ligne }) {
         title={siteDeLaCarte(ligne.site)}
       >
         {siteDeLaCarte(ligne.site)}
+      </span>
+      <span
+        className="text-app-encre-faible block truncate text-[10.5px]"
+        title={materiel}
+      >
+        {materiel}
       </span>
       {duree === null ? null : (
         <span className="text-app-encre-faible block text-[10.5px]">
@@ -670,10 +700,12 @@ function VueSemaine({
   annuaire,
   chargeDe,
   fuseauPour,
+  donneesMateriel,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /**
    * LA CHARGE DE CHAQUE PERSONNE, par identifiant (D111).
    *
@@ -842,7 +874,10 @@ function VueSemaine({
                           >
                             {objetDuBloc(intervention)}
                           </span>
-                          <DetailsDeLaCarte ligne={intervention} />
+                          <DetailsDeLaCarte
+                            ligne={intervention}
+                            donneesMateriel={donneesMateriel}
+                          />
                         </Link>
                       </BlocPosable>
                     ))}
@@ -858,6 +893,7 @@ function VueSemaine({
         annuaire={annuaire}
         chargeDe={chargeDe}
         fuseauPour={fuseauPour}
+        donneesMateriel={donneesMateriel}
       />
       <Legende />
     </section>
@@ -887,11 +923,13 @@ function ListeSemaine({
   annuaire,
   chargeDe,
   fuseauPour,
+  donneesMateriel,
 }: {
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
   readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   readonly fuseauPour: (agenceId: string) => Fuseau;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
 }) {
   if (grille.length === 0) {
     return (
@@ -1006,7 +1044,10 @@ function ListeSemaine({
                             >
                               {objetDuBloc(intervention)}
                             </span>
-                            <DetailsDeLaCarte ligne={intervention} />
+                            <DetailsDeLaCarte
+                              ligne={intervention}
+                              donneesMateriel={donneesMateriel}
+                            />
                           </Link>
                         ))}
                       </div>
@@ -1027,10 +1068,12 @@ function VueJour({
   journee,
   annuaire,
   jourAffiche,
+  donneesMateriel,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
   readonly jourAffiche: JourLocal;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -1045,6 +1088,16 @@ function VueJour({
         <p className="text-app-encre-faible px-4 py-6 text-[13px]">
           {t("planning.jour_vide")}
         </p>
+        {/*
+          SANS AXE, IL N'Y A PAS DE GRILLE — mais une intervention SANS HEURE
+          n'a jamais eu besoin d'un axe pour se dessiner (AFFICHAGE-MATERIEL-1) :
+          elle appartient au jour de sa colonne, pas à une heure de son axe.
+        */}
+        <SansHeureVide
+          journee={journee}
+          annuaire={annuaire}
+          donneesMateriel={donneesMateriel}
+        />
         <HorsGrille journee={journee} annuaire={annuaire} />
       </section>
     );
@@ -1087,6 +1140,54 @@ function VueJour({
             </tr>
           </thead>
           <tbody>
+            {/*
+              LA LIGNE « JOURNÉE — HEURE NON FIXÉE », EN TÊTE, AVANT 07:00
+              (AFFICHAGE-MATERIEL-1, 23/09/2026).
+
+              *Mesuré le 23/09/2026 en production : quatre interventions du
+              jour, sans heure saisie, étaient reléguées SOUS toute la grille
+              — un bloc que rien ne distinguait d'une absence.* Elles entrent
+              désormais DANS la colonne de leur technicien, jamais seulement
+              en dessous : c'est ce que `ColonneDeJournee.sansHeure`
+              (`lib/interventions/journee.ts`) porte, et que cette ligne seule
+              dessine — l'axe, lui, ne peut toujours pas inventer une heure
+              que personne n'a saisie.
+
+              N'apparaît QUE si au moins une colonne a quelque chose à y
+              montrer : une ligne vide à chaque jour serait un bruit constant
+              sur l'écran dont l'objet est de montrer les trous, pas d'en
+              ajouter.
+            */}
+            {journee.colonnes.some((c) => c.sansHeure.length > 0) ? (
+              <tr data-maquette-bloc="ligne-jour-sans-heure">
+                <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-r border-b px-2 py-1 text-left align-top text-[10.5px] font-semibold">
+                  {t("planning.jour_sans_heure")}
+                </th>
+                {journee.colonnes.map((colonne) => (
+                  <td
+                    key={colonne.technicienId ?? "-"}
+                    className="border-app-bord bg-app-surface-creuse border-r border-b p-1 align-top"
+                  >
+                    {colonne.sansHeure.map((ligne) => (
+                      <Link
+                        key={ligne.id}
+                        href={`/interventions/${ligne.id}`}
+                        className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[ligne.statut]}`}
+                      >
+                        <span className="block font-bold">
+                          {referenceAffichee(ligne)}
+                        </span>
+                        {ligne.client.raison_sociale}
+                        <DetailsDeLaCarte
+                          ligne={ligne}
+                          donneesMateriel={donneesMateriel}
+                        />
+                      </Link>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ) : null}
             {journee.axe.map((debut, rang) => (
               <tr key={debut}>
                 <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-r border-b px-2 py-1 text-left align-top text-[11px] font-semibold">
@@ -1129,6 +1230,10 @@ function VueJour({
                                         {referenceAffichee(occupation)}
                                       </span>
                                       {occupation.client.raison_sociale}
+                                      <DetailsDeLaCarte
+                                        ligne={occupation}
+                                        donneesMateriel={donneesMateriel}
+                                      />
                                     </>
                                   ) : null}
                                 </Link>
@@ -1517,13 +1622,64 @@ function enTeteDeJour(jour: JourLocal): string {
  * se voie tout de suite.
  */
 /**
- * CE QUE LA GRILLE NE PEUT PAS DESSINER, ET QU'ELLE DIT (12/09/2026).
+ * LES INTERVENTIONS SANS HEURE, QUAND IL N'Y A PAS D'AXE POUR LES PORTER
+ * (AFFICHAGE-MATERIEL-1) — le repli de la ligne « Journée — heure non fixée »
+ * pour le cas où aucune agence présente n'a de calendrier connu : il n'y a
+ * alors ni table ni colonne où poser cette ligne, mais l'intervention reste
+ * du jour, et elle se dit ici, groupée par technicien.
+ */
+function SansHeureVide({
+  journee,
+  annuaire,
+  donneesMateriel,
+}: {
+  readonly journee: Journee<Ligne>;
+  readonly annuaire: Annuaire;
+  readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+}) {
+  const colonnesAvecSansHeure = journee.colonnes.filter(
+    (c) => c.sansHeure.length > 0,
+  );
+  if (colonnesAvecSansHeure.length === 0) {
+    return null;
+  }
+  return (
+    <section className="border-app-bord border-t px-4 py-3">
+      <h3 className="text-[12px] font-bold">
+        {t("planning.jour_sans_heure")}
+      </h3>
+      <ul className="mt-2 flex flex-col gap-1">
+        {colonnesAvecSansHeure.flatMap((colonne) =>
+          colonne.sansHeure.map((ligne) => (
+            <li key={ligne.id} className="text-[12px]">
+              <Link
+                href={`/interventions/${ligne.id}`}
+                className={`font-bold ${CLASSES_LIEN}`}
+              >
+                {referenceAffichee(ligne)}
+              </Link>
+              <span className="text-app-encre-faible">
+                {ligneTechnicienSansHeure(colonne.technicienId, annuaire)}
+              </span>
+              <DetailsDeLaCarte ligne={ligne} donneesMateriel={donneesMateriel} />
+            </li>
+          )),
+        )}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * CE QUE LA GRILLE NE PEUT PAS DESSINER DANS L'AXE, ET QU'ELLE DIT
+ * (12/09/2026).
  *
- * Trois disparitions silencieuses vivaient dans cette vue : la seconde d'un
- * chevauchement (réparée dans la cellule), l'intervention datée SANS HEURE, et
- * celle dont le créneau tombe hors de l'axe. *Les deux dernières ne peuvent pas
- * être placées sans inventer une heure que personne n'a saisie ; elles sont
- * donc NOMMÉES, jamais effacées.*
+ * Une seule disparition silencieuse vit encore ici : le créneau posé hors de
+ * l'axe. *Elle ne peut pas être placée sans inventer une heure que personne
+ * n'a saisie ; elle est donc NOMMÉE, jamais effacée.* L'intervention datée
+ * SANS HEURE n'y entre plus depuis AFFICHAGE-MATERIEL-1 — elle se dessine
+ * dans la colonne (`sansHeure`, ci-dessus) ; la seconde d'un chevauchement est
+ * réparée dans la cellule.
  *
  * Le bloc n'apparaît pas quand il n'y a rien à dire : *un « 0 » à cet endroit
  * se lirait comme une mesure*, et il n'y en a pas à faire.
@@ -1569,22 +1725,33 @@ function HorsGrille({
 }
 
 /**
+ * LE TECHNICIEN D'UNE LIGNE « SANS HEURE » — composé HORS du JSX (L0-11),
+ * comme `ligneHorsGrille` juste en dessous : le séparateur est un littéral.
+ */
+function ligneTechnicienSansHeure(
+  technicienId: string | null,
+  annuaire: Annuaire,
+): string {
+  return ` — ${quiTravaille(technicienId, annuaire)}`;
+}
+
+/**
  * La ligne entière — composée HORS du JSX, où un littéral n'est pas admis
  * (L0-11), et le séparateur en est un.
+ *
+ * Un seul motif reste possible depuis AFFICHAGE-MATERIEL-1 — `hors_axe` — et
+ * le paramètre garde son type `MotifHorsGrille` plutôt qu'une chaîne : un
+ * futur second motif ne pourra pas se glisser ici en silence.
  */
 function ligneHorsGrille(
   technicienId: string | null,
   motif: MotifHorsGrille,
   annuaire: Annuaire,
 ): string {
-  return ` — ${quiTravaille(technicienId, annuaire)} — ${motifHorsGrille(motif)}`;
-}
-
-/** Le libellé d'un motif — au dictionnaire, jamais dans la balise (L0-11). */
-function motifHorsGrille(motif: MotifHorsGrille): string {
-  return motif === "sans_creneau"
-    ? t("planning.jour_hors_grille_sans_creneau")
-    : t("planning.jour_hors_grille_hors_axe");
+  const libelle: Record<MotifHorsGrille, string> = {
+    hors_axe: t("planning.jour_hors_grille_hors_axe"),
+  };
+  return ` — ${quiTravaille(technicienId, annuaire)} — ${libelle[motif]}`;
 }
 
 function resumeDesTrous(libres: number, pasMinutes: number): string {
