@@ -6,6 +6,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
+import { reperesDeLaScene } from "./setup/reperes";
+import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -38,6 +40,13 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * `CAPTURES_FICHE_1=<dossier>` fait écrire les deux captures à 1280 px et
  * `mesure.json` — empreinte du commit, horodatage, ce que chaque fiche a rendu.
+ *
+ * **ADAPTÉ PAR PARCOURS-1 (23/09/2026, arbitrage Alexis)** : la création ne
+ * porte plus de technicien — *« ni la date, ni le technicien affecté »* ne se
+ * décident plus à la création. Le cas « AFFECTÉE » nomme donc désormais le
+ * technicien par le geste PLANIFIER, sur la fiche, une fois l'intervention
+ * créée — la fiche affiche alors le même nom, par le même chemin de lecture
+ * (`technicienAfficheSurLaFiche`) qu'avant ce lot.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -83,33 +92,57 @@ function valeurTechnicien(page: Page) {
     .locator("xpath=following-sibling::dd[1]");
 }
 
-/** Crée une intervention sur le premier site ; `technicien` : l'index d'option, ou aucun. */
-async function creerUneIntervention(
-  page: Page,
-  technicien: { readonly option: number } | null,
-): Promise<string | null> {
+/** Crée une intervention sur le premier site — NI date, NI technicien (PARCOURS-1). */
+async function creerUneIntervention(page: Page): Promise<void> {
   await page.goto("/interventions/nouvelle");
   const optionsSite = page.locator('select[name="site"] option');
   await expect(optionsSite.first()).toBeAttached();
   const valeurSite = await optionsSite.first().getAttribute("value");
   await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
-
-  let nom: string | null = null;
-  if (technicien !== null) {
-    const options = page.locator('select[name="technicien_id"] option');
-    await expect(options.nth(technicien.option)).toBeAttached();
-    nom = ((await options.nth(technicien.option).textContent()) ?? "").trim();
-    const valeur = await options.nth(technicien.option).getAttribute("value");
-    await page
-      .locator('select[name="technicien_id"]')
-      .selectOption(valeur ?? "");
-  }
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — fiche-technicien-nomme");
 
   await page
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+}
+
+/**
+ * PLANIFIE l'intervention actuellement ouverte avec le technicien d'index
+ * `option` du bloc « Planifier » (PARCOURS-1) — date, heure et durée sont
+ * posées à des valeurs plausibles, exigées ensemble avec le technicien.
+ * Rend le NOM affiché par l'option choisie, tel que la liste le nommerait.
+ */
+async function planifierAvecTechnicien(
+  page: Page,
+  option: number,
+): Promise<string> {
+  const formulaire = page.locator("form", {
+    has: page.getByRole("heading", {
+      name: fr["intervention.action.planifier"],
+    }),
+  });
+  const options = formulaire.locator('select[name="technicien_id"] option');
+  await expect(options.nth(option)).toBeAttached();
+  const nom = ((await options.nth(option).textContent()) ?? "").trim();
+  const valeur = await options.nth(option).getAttribute("value");
+  await formulaire
+    .locator('select[name="technicien_id"]')
+    .selectOption(valeur ?? "");
+  const reperes = await reperesDeLaScene();
+  const mardi = jourDeLaScene(reperes, MARDI);
+  await formulaire
+    .locator('input[name="date_planifiee"]')
+    .fill(cleDeJour(mardi));
+  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="duree_min"]').fill("60");
+  await formulaire
+    .getByRole("button", { name: fr["intervention.action.planifier"] })
+    .click();
+  await page.waitForLoadState("networkidle");
   return nom;
 }
 
@@ -121,7 +154,7 @@ test.beforeEach(async ({ page }) => {
 test("SANS technicien : la fiche dit l'absence, et aucun identifiant n'est rendu", async ({
   page,
 }) => {
-  await creerUneIntervention(page, null);
+  await creerUneIntervention(page);
 
   const valeur = valeurTechnicien(page);
   await expect(valeur).toHaveText(fr["intervention.aucun_technicien"]);
@@ -139,9 +172,10 @@ test("SANS technicien : la fiche dit l'absence, et aucun identifiant n'est rendu
 test("AFFECTÉE : la fiche nomme la personne comme la liste la nomme — le nom, jamais la clé", async ({
   page,
 }) => {
+  await creerUneIntervention(page);
   // La PREMIÈRE option est « Aucun technicien affecté » ; la SECONDE est le
   // premier technicien réel du semis — celui que la liste nommerait.
-  const nom = await creerUneIntervention(page, { option: 1 });
+  const nom = await planifierAvecTechnicien(page, 1);
   expect(nom).not.toBeNull();
   expect(nom ?? "").not.toMatch(UUID);
   expect((nom ?? "").length).toBeGreaterThan(0);

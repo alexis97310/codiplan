@@ -133,12 +133,18 @@ test.beforeAll(async () => {
       select: { id: true, client_id: true },
       orderBy: { libelle: "asc" },
     });
+    // `planifiee`, PAS `a_planifier` (PARCOURS-1, 23/09/2026) — une fiche
+    // `a_planifier` rend désormais le bloc « Planifier » unique, qui remplace
+    // « Affecter » ET « Déplacer ». Ce scénario éprouve les DEUX formulaires
+    // séparément, donc une intervention déjà DATÉE comme le serait toute
+    // intervention réellement planifiée — la seule différence avec avant est
+    // le nom du statut, la date et la durée étaient déjà posées.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "agence_id", "client_id", "site_id",
          "type", "priorite", "statut", "date_planifiee", "duree_estimee_min",
          "mode_valorisation", "devise_code", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'p3',
-               'a_planifier', $6::date, 60, 'temps_passe', 'XPF', now())
+               'planifiee', $6::date, 60, 'temps_passe', 'XPF', now())
        ON CONFLICT DO NOTHING`,
       INTERVENTION_DU_JEUDI,
       reperes.societeId,

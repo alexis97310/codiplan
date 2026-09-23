@@ -9,26 +9,30 @@ import { SAMEDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
- * LE REFUS À LA CRÉATION D'UNE INTERVENTION UN JOUR D'AGENCE FERMÉE
- * (chantier CRÉA-1, 20/09/2026).
+ * LE REFUS À LA PLANIFICATION D'UNE INTERVENTION UN JOUR D'AGENCE FERMÉE
+ * (chantier CRÉA-1, 20/09/2026 ; déplacé de la CRÉATION à la PLANIFICATION
+ * par PARCOURS-1, 23/09/2026, arbitrage Alexis).
  *
- * ## Le défaut que ce fichier mesure
+ * ## Le défaut que ce fichier mesurait, et pourquoi il a changé de forme
  *
- * `deplacerIntervention` refuse déjà un jour d'agence fermée
- * (`verdictALaPose` → `verdictOuverture`) ; `creerIntervention` ne le
- * faisait PAS — une intervention pouvait NAÎTRE un samedi fermé par le
- * formulaire de création, sans qu'aucun contrôle ne s'y oppose, et **sans
- * qu'aucun écran ne le dise** : `/planning` ne lisait jamais le paramètre
- * `motif` que `versLePlanning` pose pourtant déjà après un refus.
+ * `deplacerIntervention` refuse un jour d'agence fermée
+ * (`verdictALaPose` → `verdictOuverture`) ; ce contrôle vivait aussi dans
+ * `creerIntervention`, parce que la création pouvait alors porter une date.
+ * **Depuis PARCOURS-1, la création ne porte plus jamais de date** — *« lors de
+ * la création d'intervention, on ne peut pas décider ni de la date, ni du
+ * technicien »* — et c'est le geste PLANIFIER, sur la fiche, qui pose la date
+ * pour de bon. Le contrôle d'ouverture n'a donc plus rien à juger à la
+ * création ; il reste entier là où la date arrive réellement.
+ *
+ * Ce fichier mesure désormais la MÊME règle, au POINT où elle s'applique
+ * réellement : une intervention créée sans date, puis PLANIFIÉE sur un samedi
+ * fermé, est refusée — avec la même clé qu'avant.
  *
  * ## Pourquoi Koné, pourquoi le samedi
  *
- * **Koné ferme le samedi, Ducos l'ouvre** (`tests/e2e/setup/scene.ts`) :
- * c'est le jour fermé le plus simple à cibler sans dépendre d'un jour férié
- * calculé. La scène de planning n'a besoin d'être écrite pour rien de plus
- * que son site et son agence, déjà posés par le semis lui-même — ce fichier
- * ne réutilise donc pas `ecrireLaScene`, et lit directement l'agence et le
- * site de Koné, comme `tests/e2e/setup/scene.ts` le fait pour lui-même.
+ * **Koné ferme le samedi, Ducos l'ouvre** (`tests/e2e/setup/scene.ts`) : c'est
+ * le jour fermé le plus simple à cibler sans dépendre d'un jour férié
+ * calculé.
  */
 
 async function siteDeKone(): Promise<{
@@ -59,7 +63,7 @@ async function siteDeKone(): Promise<{
   }
 }
 
-async function compterInterventions(
+async function compterInterventionsPlanifieesLe(
   societeId: string,
   siteId: string,
   jour: Date,
@@ -80,7 +84,20 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("créer une intervention un SAMEDI à KONÉ (fermé) est refusé, et /planning le dit", async ({
+test("créer une intervention à KONÉ ne demande plus de date — le formulaire n'en porte aucune", async ({
+  page,
+}) => {
+  const { siteId, clientId } = await siteDeKone();
+  await page.goto("/interventions/nouvelle");
+  await page
+    .locator('select[name="site"]')
+    .selectOption(`${clientId}:${siteId}`);
+  // NI DATE, NI TECHNICIEN (PARCOURS-1) — les deux champs n'existent plus.
+  await expect(page.locator('input[name="date_planifiee"]')).toHaveCount(0);
+  await expect(page.locator('[name="technicien_id"]')).toHaveCount(0);
+});
+
+test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la fiche le dit", async ({
   page,
 }) => {
   const { siteId, clientId, societeId } = await siteDeKone();
@@ -90,40 +107,63 @@ test("créer une intervention un SAMEDI à KONÉ (fermé) est refusé, et /plann
     Date.UTC(samedi.annee, samedi.mois - 1, samedi.jour),
   );
 
-  const avant = await compterInterventions(societeId, siteId, samediUtc);
+  const avant = await compterInterventionsPlanifieesLe(
+    societeId,
+    siteId,
+    samediUtc,
+  );
 
+  // ── 1. CRÉER — sans date, sans technicien (PARCOURS-1) ──────────────────
   await page.goto("/interventions/nouvelle");
   await page
     .locator('select[name="site"]')
     .selectOption(`${clientId}:${siteId}`);
-  await page.locator('input[name="date_planifiee"]').fill(cleDeJour(samedi));
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — jour fermé");
   await page
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
 
-  // LE REFUS ARRIVE SUR /planning, AVEC SA CLÉ (versLePlanning) — jamais un
-  // succès déguisé en silence.
+  // ── 2. PLANIFIER — sur le samedi fermé, avec les quatre valeurs ─────────
+  const formulaire = page.locator("form", {
+    has: page.getByRole("heading", {
+      name: fr["intervention.action.planifier"],
+    }),
+  });
+  await formulaire
+    .locator('input[name="date_planifiee"]')
+    .fill(cleDeJour(samedi));
+  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="duree_min"]').fill("60");
+  const options = formulaire.locator(
+    'select[name="technicien_id"] option:not([value=""])',
+  );
+  const technicien = await options.first().getAttribute("value");
+  await formulaire
+    .locator('select[name="technicien_id"]')
+    .selectOption(technicien ?? "");
+  await formulaire
+    .getByRole("button", { name: fr["intervention.action.planifier"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+
+  // LE REFUS ARRIVE SUR LA FICHE, AVEC SA CLÉ — jamais un succès déguisé en
+  // silence.
   await expect(page).toHaveURL(
-    /\/planning\?motif=intervention\.refus\.jour_ferme/,
+    /\/interventions\/[0-9a-f-]+\?motif=intervention\.refus\.jour_ferme/,
   );
-  const bandeau = page.locator("[data-refus-creation]");
-  await expect(bandeau).toBeVisible();
-  await expect(bandeau).toHaveAttribute(
-    "data-refus-creation",
-    "intervention.refus.jour_ferme",
-  );
-  await expect(bandeau).toHaveText(fr["intervention.refus.jour_ferme"]);
-  // `role="alert"` — un refus INTERROMPT, il ne se contente pas d'informer
-  // (à la différence de l'avertissement orange, `role="status"`). Vérifié SUR
-  // LE BANDEAU LUI-MÊME plutôt que par `getByRole("alert")` sur toute la
-  // page : Next.js pose son propre annonceur de route avec `role="alert"`
-  // (`#__next-route-announcer__`), et viser le rôle seul viserait deux
-  // éléments (mesuré : violation du mode strict).
-  await expect(bandeau).toHaveAttribute("role", "alert");
+  const bandeau = page.getByRole("status");
+  await expect(bandeau).toContainText(fr["intervention.refus.jour_ferme"]);
 
-  // AUCUNE INTERVENTION N'A ÉTÉ CRÉÉE — le refus est réel, pas seulement
-  // affiché.
-  const apres = await compterInterventions(societeId, siteId, samediUtc);
+  // AUCUNE INTERVENTION N'A ÉTÉ PLANIFIÉE CE JOUR-LÀ — le refus est réel, pas
+  // seulement affiché.
+  const apres = await compterInterventionsPlanifieesLe(
+    societeId,
+    siteId,
+    samediUtc,
+  );
   expect(apres).toBe(avant);
 });

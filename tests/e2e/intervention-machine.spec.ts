@@ -120,6 +120,9 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
   );
   await expect(optionMachine).toBeAttached();
   await page.locator('select[name="machine_ids"]').selectOption([machine.id]);
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — machine à la création");
 
   await page
     .getByRole("button", { name: fr["intervention.action.creer"] })
@@ -147,6 +150,9 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
   await page
     .locator('select[name="site"]')
     .selectOption(`${clientId}:${siteId}`);
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — machine après coup");
   await page
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();

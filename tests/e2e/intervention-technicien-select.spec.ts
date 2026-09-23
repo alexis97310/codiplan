@@ -4,8 +4,67 @@ import { expect, test, type Page } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import { reperesDeLaScene } from "./setup/reperes";
+import {
+  COMPTE_TECHNICIEN_EPREUVE,
+  MARDI,
+  MOT_DE_PASSE_EPREUVE,
+  cleDeJour,
+  jourDeLaScene,
+} from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
+
+/** Crée une intervention sans technicien ni date — le geste CRÉER (PARCOURS-1). */
+async function creerUneIntervention(page: Page): Promise<void> {
+  await page.goto("/interventions/nouvelle");
+  const optionsSite = page.locator('select[name="site"] option');
+  await expect(optionsSite.first()).toBeAttached();
+  const valeurSite = await optionsSite.first().getAttribute("value");
+  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Épreuve — sélecteur technicien");
+  await page
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+}
+
+/**
+ * PLANIFIE l'intervention ouverte avec le technicien d'option `option`, date
+ * et durée plausibles — le geste PLANIFIER (PARCOURS-1), qui exige les
+ * quatre valeurs ensemble. Rend le NOM affiché par l'option choisie.
+ */
+async function planifierAvecTechnicien(
+  page: Page,
+  option: number,
+): Promise<string> {
+  const formulaire = page.locator("form", {
+    has: page.getByRole("heading", {
+      name: fr["intervention.action.planifier"],
+    }),
+  });
+  const options = formulaire.locator('select[name="technicien_id"] option');
+  await expect(options.nth(option)).toBeAttached();
+  const nom = ((await options.nth(option).textContent()) ?? "").trim();
+  const valeur = await options.nth(option).getAttribute("value");
+  await formulaire
+    .locator('select[name="technicien_id"]')
+    .selectOption(valeur ?? "");
+  const reperes = await reperesDeLaScene();
+  const mardi = jourDeLaScene(reperes, MARDI);
+  await formulaire
+    .locator('input[name="date_planifiee"]')
+    .fill(cleDeJour(mardi));
+  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="duree_min"]').fill("60");
+  await formulaire
+    .getByRole("button", { name: fr["intervention.action.planifier"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  return nom;
+}
 
 /**
  * LE CHAMP TECHNICIEN, DE L'INPUT NU AU SÉLECTEUR DE NOMS (chantier TECH-1,
@@ -46,6 +105,16 @@ import { ouvrirUneSession } from "./setup/session";
  * refus de statut. « Déplacer » garde trois champs utiles sans technicien
  * (date, heure, durée) : seul CE champ disparaît pour un rôle sans
  * `modifier_planning`.
+ *
+ * ## ADAPTÉ PAR PARCOURS-1 (23/09/2026, arbitrage Alexis)
+ *
+ * La création ne porte plus AUCUN technicien — *« ni la date, ni le
+ * technicien affecté »* ne se décident plus à la création. Le technicien se
+ * nomme désormais par le geste PLANIFIER, sur la fiche d'une intervention
+ * `a_planifier`, qui remplace « Affecter » ET « Déplacer » pour ce statut-là
+ * et exige les quatre valeurs ensemble. « Affecter » seul réapparaît une fois
+ * l'intervention planifiée — c'est lui qui RÉAFFECTE, pas qui affecte la
+ * première fois.
  */
 
 async function utilisateurIdDuTechnicienDeLEpreuve(): Promise<string> {
@@ -77,66 +146,39 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("la CRÉATION affiche des NOMS de technicien, et affecter fonctionne", async ({
+test("PLANIFIER affiche des NOMS de technicien, et affecte", async ({
   page,
 }) => {
-  await page.goto("/interventions/nouvelle");
-
-  const selectTechnicien = page.locator('select[name="technicien_id"]');
-  const options = selectTechnicien.locator("option");
-  // La PREMIÈRE option est « Aucun technicien affecté » ; la SECONDE est le
-  // premier technicien réel — il en existe au moins un dans le semis.
-  await expect(options.nth(1)).toBeAttached();
-  const nomTechnicien = ((await options.nth(1).textContent()) ?? "").trim();
+  await creerUneIntervention(page);
+  const nomTechnicien = await planifierAvecTechnicien(page, 1);
   expect(nomTechnicien.length).toBeGreaterThan(0);
   // Ce n'est PAS un identifiant technique (UUID) — c'est très exactement le
-  // défaut que ce chantier corrige.
+  // défaut que le chantier TECH-1 corrigeait, et que PLANIFIER hérite.
   expect(nomTechnicien).not.toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i);
-  const valeurTechnicien = await options.nth(1).getAttribute("value");
-  expect(valeurTechnicien).toBeTruthy();
 
-  const optionsSite = page.locator('select[name="site"] option');
-  await expect(optionsSite.first()).toBeAttached();
-  const valeurSite = await optionsSite.first().getAttribute("value");
-  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
-  await selectTechnicien.selectOption(valeurTechnicien ?? "");
-
-  await page
-    .getByRole("button", { name: fr["intervention.action.creer"] })
-    .click();
-  await page.waitForLoadState("networkidle");
-
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
   // La fiche affiche le MÊME nom — jamais l'identifiant.
-  // Scopé au `<dd>` de la fiche — les `<select>` « Affecter » et
-  // « Déplacer » portent tous deux une `<option selected>` avec le MÊME
-  // nom une fois le technicien affecté, et `getByText` seul violerait le
-  // mode strict (plusieurs éléments correspondent au texte).
   await expect(
     page.locator("dd").filter({ hasText: nomTechnicien }),
   ).toBeVisible();
 });
 
-test("le sélecteur « Affecter » de la FICHE liste des NOMS et affecte", async ({
+test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée, par des NOMS", async ({
   page,
 }) => {
-  // Une intervention SANS technicien, d'abord — la file d'attente ordinaire.
-  await page.goto("/interventions/nouvelle");
-  const optionsSite = page.locator('select[name="site"] option');
-  await expect(optionsSite.first()).toBeAttached();
-  const valeurSite = await optionsSite.first().getAttribute("value");
-  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
-  await page
-    .getByRole("button", { name: fr["intervention.action.creer"] })
-    .click();
-  await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  // Une intervention PLANIFIÉE d'abord — « Affecter » ne réapparaît qu'une
+  // fois sortie de `a_planifier` (PARCOURS-1) : c'est PLANIFIER qui nomme la
+  // première fois.
+  await creerUneIntervention(page);
+  await planifierAvecTechnicien(page, 1);
 
   const formulaireAffecter = page.locator('form[action$="/affecter"]');
   await expect(formulaireAffecter).toBeVisible();
   const options = formulaireAffecter.locator(
     'select[name="technicien_id"] option',
   );
+  // La PREMIÈRE option réelle (au-delà de l'option vide) — le même
+  // technicien qui vient d'être planifié : ce scénario prouve que « Affecter »
+  // liste des NOMS et affecte, pas que la personne change.
   await expect(options.nth(1)).toBeAttached();
   const nomTechnicien = ((await options.nth(1).textContent()) ?? "").trim();
   expect(nomTechnicien.length).toBeGreaterThan(0);
@@ -160,7 +202,7 @@ test("le sélecteur « Affecter » de la FICHE liste des NOMS et affecte", async
   ).toBeVisible();
 });
 
-test("un TECHNICIEN n'a ni le champ ni la liste nominative de ses collègues sur la création", async ({
+test("la création n'a PLUS AUCUN champ technicien, pour AUCUN rôle (PARCOURS-1)", async ({
   page,
 }) => {
   // La session ADV du `beforeEach` est écartée : `/connexion` redirige tout
@@ -175,8 +217,10 @@ test("un TECHNICIEN n'a ni le champ ni la liste nominative de ses collègues sur
     page.getByRole("button", { name: fr["intervention.action.creer"] }),
   ).toBeVisible();
 
-  // AUCUN champ technicien — ni le `<select>`, ni le vieux `<input>` que ce
-  // chantier remplace.
+  // AUCUN champ technicien — depuis PARCOURS-1, ce n'est plus une distinction
+  // de rôle (`qualifier_affecter`) : PERSONNE ne décide du technicien à la
+  // création, quel que soit son rôle. Le geste PLANIFIER, sur la fiche, est
+  // désormais le seul endroit qui pose ce champ.
   await expect(page.locator('[name="technicien_id"]')).toHaveCount(0);
 });
 
@@ -185,18 +229,28 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
 }) => {
   const utilisateurIdTechnicien = await utilisateurIdDuTechnicienDeLEpreuve();
 
-  // Créée par l'ADV du `beforeEach`, DIRECTEMENT affectée à ce technicien —
-  // sinon sa fiche lui serait invisible (périmètre restreint, R5-01).
-  await page.goto("/interventions/nouvelle");
-  const optionsSite = page.locator('select[name="site"] option');
-  await expect(optionsSite.first()).toBeAttached();
-  const valeurSite = await optionsSite.first().getAttribute("value");
-  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
-  await page
+  // Créée par l'ADV du `beforeEach`, puis PLANIFIÉE et affectée à CE
+  // technicien précisément (PARCOURS-1 : le geste unique qui pose la date,
+  // l'heure, la durée et le technicien ensemble) — sinon sa fiche lui serait
+  // invisible (périmètre restreint, R5-01).
+  await creerUneIntervention(page);
+  const formulaire = page.locator("form", {
+    has: page.getByRole("heading", {
+      name: fr["intervention.action.planifier"],
+    }),
+  });
+  await formulaire
     .locator('select[name="technicien_id"]')
     .selectOption(utilisateurIdTechnicien);
-  await page
-    .getByRole("button", { name: fr["intervention.action.creer"] })
+  const reperes = await reperesDeLaScene();
+  const mardi = jourDeLaScene(reperes, MARDI);
+  await formulaire
+    .locator('input[name="date_planifiee"]')
+    .fill(cleDeJour(mardi));
+  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="duree_min"]').fill("60");
+  await formulaire
+    .getByRole("button", { name: fr["intervention.action.planifier"] })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(page).toHaveURL(/\/interventions\/([0-9a-f-]+)$/);
