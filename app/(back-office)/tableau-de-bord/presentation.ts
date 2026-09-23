@@ -250,6 +250,28 @@ export type InterventionPriorisable = {
 };
 
 /**
+ * L'ORDRE DE PRÉSÉANCE DES QUATRE PRIORITÉS (TABLEAU-1, 23/09/2026) — P1
+ * avant P2, avant P3, avant P4. Écrit UNE fois, pour les deux listes qui en
+ * ont besoin : `prioritesUrgentes` et `prioritesAPlanifier` lisent le champ
+ * `priorite` déjà porté par l'intervention, jamais un second calcul.
+ *
+ * `Array.prototype.sort` est STABLE (ES2019) : à priorité égale, l'ordre déjà
+ * lu (la date, via `listerPlanning` — urgence puis ancienneté) est conservé
+ * sans qu'il faille le relire ici.
+ */
+const RANG_PRIORITE: Record<string, number> = { p1: 0, p2: 1, p3: 2, p4: 3 };
+
+function triParPrioritePuisDate<T extends { readonly priorite: string }>(
+  lignes: readonly T[],
+): readonly T[] {
+  return [...lignes].sort(
+    (a, b) =>
+      (RANG_PRIORITE[a.priorite] ?? RANG_PRIORITE.p4) -
+      (RANG_PRIORITE[b.priorite] ?? RANG_PRIORITE.p4),
+  );
+}
+
+/**
  * LES URGENCES DU JOUR — `priorite === "p1"`, parmi les lignes déjà lues
  * pour le premier KPI.
  */
@@ -298,19 +320,32 @@ export function prioritesPieces(
 }
 
 /**
- * LE RANG D'UN ÉLÉMENT « À PLANIFIER » — un RANG DE POSITION (« 01 », « 02 »
- * …), comme `priorityItems()` de la maquette (`rank:"03"`, `rank:"01"`),
- * JAMAIS la référence de l'intervention : `Local-<6 caractères>` (I10)
- * déborderait le badge de 39×39 px que la maquette dessine pour un code de
- * deux ou trois signes. La référence reste lisible, dans le détail.
+ * LE RANG D'UN ÉLÉMENT « À PLANIFIER » — LA PRIORITÉ, PAS UNE POSITION
+ * (TABLEAU-1, 23/09/2026).
+ *
+ * ~~Un RANG DE POSITION (« 01 », « 02 » …), comme `priorityItems()` de la
+ * maquette (`rank:"03"`, `rank:"01"`)~~ : mesuré le 23/09/2026, une fiche
+ * **P1 — critique** s'affichait « 01 Intervention à planifier », un badge
+ * identique à celui d'une fiche P4 en dixième position — rien ne disait
+ * qu'elle était urgente. Le rang porte désormais la priorité elle-même
+ * (`P1`, `P2`…), la MÊME lecture que `prioritesUrgentes` en fait déjà pour
+ * ses propres lignes — jamais un second vocabulaire pour la même donnée.
+ * *`Local-<6 caractères>` (I10) débordait le badge de 39×39 px* : la
+ * référence de l'intervention reste donc dans le détail, jamais dans le
+ * rang.
+ *
+ * **Triée P1 > P2 > P3 > P4, puis date** (`triParPrioritePuisDate`) : une
+ * urgence doit remonter en tête de la liste, pas seulement porter une
+ * étiquette — sans ce tri explicite, l'ordre dépendrait de celui,
+ * incidentel, que l'appelant a lu ailleurs.
  */
 export function prioritesAPlanifier(
-  lignes: readonly InterventionPriorisable[],
+  lignes: readonly (InterventionPriorisable & { readonly priorite: string })[],
   reference: (ligne: { id: string; numero: number | null }) => string,
 ): readonly ElementPriorite[] {
-  return lignes.map((ligne, index) => ({
+  return triParPrioritePuisDate(lignes).map((ligne) => ({
     type: "planning" as const,
-    rang: String(index + 1).padStart(2, "0"),
+    rang: ligne.priorite.toUpperCase(),
     titre: t("tableau_de_bord.priorite_a_planifier_titre"),
     detail: `${reference(ligne)} · ${ligne.client.raison_sociale}`,
     href: `/interventions/${ligne.id}`,

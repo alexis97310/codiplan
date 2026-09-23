@@ -111,6 +111,35 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  */
 const LIGNES_AFFICHEES = 200;
 
+/**
+ * LE PLAFOND DU RÉSUMÉ (KPI), PAS DE L'AFFICHAGE (TABLEAU-1, 23/09/2026) —
+ * voir le docblock de `listerLeRegistre` (`lib/vgp/registre.ts`), et même
+ * genre de compromis qu'AT-07 pour `/parc` (`LIMITE_RECHERCHE_MAXIMALE`,
+ * `lib/machines/saisie.ts`) : une borne de SÉCURITÉ contre un parc qui
+ * compterait des milliers de machines, pas un calcul du tout — *un parc
+ * au-delà verrait son résumé approximatif plutôt que faux de façon
+ * imprévisible*, et c'est un écart documenté, pas un défaut caché.
+ */
+const LIGNES_RESUME_MAXIMALES = 2000;
+
+/**
+ * LE FILTRE `?etat=depassees` — une LECTURE DE PARAMÈTRE, rien de plus
+ * (TABLEAU-1, 23/09/2026). La tuile « VGP à prévoir » du tableau de bord
+ * ouvre ce lien plutôt que `/vgp` nu : un chiffre sans chemin vers ce qu'il
+ * compte est la même faute que le zéro muet que ce dépôt corrige ailleurs.
+ * Aucune AUTRE valeur n'est reconnue — un paramètre qui ne vaut pas
+ * `depassees` laisse le registre tel quel, jamais une erreur.
+ */
+const ETATS_FILTRE = ["depassees"] as const;
+type EtatFiltre = (typeof ETATS_FILTRE)[number] | "tous";
+
+function etatFiltreLu(valeur: string | string[] | undefined): EtatFiltre {
+  return typeof valeur === "string" &&
+    (ETATS_FILTRE as readonly string[]).includes(valeur)
+    ? (valeur as EtatFiltre)
+    : "tous";
+}
+
 /** Le tiret cadratin d'une valeur absente — un SIGNE, jamais une phrase. */
 const ABSENT = "—";
 
@@ -200,7 +229,11 @@ function departSousLigne(ligne: LigneDeRegistre): string | null {
     : `${t("vgp.etat_ligne.depuis_le")} ${dateCivile(info.depuis)}`;
 }
 
-export default async function PageRegistreVgp() {
+export default async function PageRegistreVgp({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await obtenirSession(await headers());
   if (session === null) {
     redirect("/connexion");
@@ -230,18 +263,34 @@ export default async function PageRegistreVgp() {
   // DEUX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) : ni l'une ni
   // l'autre ne dépend du résultat de l'autre, toutes deux ne dépendent que du
   // contexte cloisonné.
-  const [lignes, indetermines] = await Promise.all([
-    listerLeRegistre(contexte, aujourdHui, LIGNES_AFFICHEES),
+  const [toutesLesLignes, indetermines] = await Promise.all([
+    // `LIGNES_RESUME_MAXIMALES`, PAS `LIGNES_AFFICHEES` (TABLEAU-1) : voir le
+    // docblock de `LIGNES_RESUME_MAXIMALES` dans `lib/vgp/registre.ts`. Une
+    // SEULE lecture — l'affichage n'en garde que les premières lignes,
+    // jamais une seconde requête plafonnée séparément.
+    listerLeRegistre(contexte, aujourdHui, LIGNES_RESUME_MAXIMALES),
     famillesADeterminer(contexte),
   ]);
-  // LE MÊME TABLEAU QUE CELUI RENDU, jamais une seconde lecture plafonnée
-  // différemment (voir l'en-tête de `resumerLeRegistre`) : ce registre n'est
-  // pas paginé, contrairement au parc.
-  const resume = resumerLeRegistre(lignes);
+  // LE RÉSUMÉ PORTE SUR TOUT CE QUI A ÉTÉ LU, jamais sur ce qui est rendu :
+  // c'est exactement l'écart qui sous-comptait le KPI face à la tuile du
+  // tableau de bord (`compterAPrevoir`, qui ne plafonne rien).
+  const resume = resumerLeRegistre(toutesLesLignes);
   const machinesADeterminer = indetermines.reduce(
     (total, famille) => total + famille.machines,
     0,
   );
+
+  const params = await searchParams;
+  const filtre = etatFiltreLu(params.etat);
+  // LE FILTRE NE BORNE QUE L'AFFICHAGE, jamais le résumé ci-dessus : les
+  // quatre KPI continuent de compter TOUT le registre, filtre ou non — la
+  // même règle que `/tableau-de-bord` applique déjà à ses propres priorités
+  // (`elementsFiltres`, appliqué en DERNIER, sur la liste déjà composée).
+  const lignesFiltrees =
+    filtre === "depassees"
+      ? toutesLesLignes.filter((ligne) => echeanceDepassee(ligne.information))
+      : toutesLesLignes;
+  const lignes = lignesFiltrees.slice(0, LIGNES_AFFICHEES);
 
   const colonnes = [
     { cle: "machine", libelle: t("vgp.colonne_machine"), largeur: "160px" },
@@ -332,6 +381,17 @@ export default async function PageRegistreVgp() {
       <p className="text-app-encre-faible max-w-[80ch] text-[11.5px]">
         {t("vgp.information.ce_que_le_silence_dit")}
       </p>
+
+      {filtre === "depassees" ? (
+        <p data-bloc="filtre-actif" className="text-[11.5px]">
+          <span className="text-app-encre-faible">
+            {t("vgp.filtre_depassees_actif")}
+          </span>{" "}
+          <Link href="/vgp" className={CLASSES_LIEN}>
+            {t("vgp.filtre_retirer")}
+          </Link>
+        </p>
+      ) : null}
 
       <section
         data-bloc="tableau-registre"

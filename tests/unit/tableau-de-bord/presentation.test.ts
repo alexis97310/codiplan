@@ -7,6 +7,7 @@ import {
   etatVgpAPrevoir,
   interventionsDuJour,
   nonAffecteesAujourdHui,
+  prioritesAPlanifier,
   techniciensIndisponibles,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
@@ -116,6 +117,59 @@ describe("les techniciens indisponibles se comptent par PERSONNE", () => {
 
   it("une liste vide rend zéro, jamais une exception", () => {
     expect(techniciensIndisponibles([])).toBe(0);
+  });
+});
+
+describe("« Priorités opérationnelles » : une P1 à planifier se lit comme urgente (TABLEAU-1)", () => {
+  const REFERENCE = (ligne: { id: string; numero: number | null }) =>
+    `Local-${ligne.id}`;
+
+  it("le rang PORTE la priorité, jamais une position (« 01 »)", () => {
+    // *Mesuré le 23/09/2026 : une fiche P1 — critique s'affichait « 01
+    // Intervention à planifier », indiscernable d'une P4 en dixième
+    // position.*
+    const lignes = [
+      {
+        id: "a",
+        numero: 1,
+        priorite: "p1",
+        client: { raison_sociale: "CALEBAM" },
+      },
+    ];
+    const elements = prioritesAPlanifier(lignes, REFERENCE);
+    expect(elements[0]?.rang).toBe("P1");
+  });
+
+  it("TRI P1 > P2 > P3 > P4 — une P1 remonte en tête, même arrivée en dernier", () => {
+    const lignes = [
+      { id: "p4", numero: 1, priorite: "p4", client: { raison_sociale: "A" } },
+      { id: "p2", numero: 2, priorite: "p2", client: { raison_sociale: "B" } },
+      { id: "p1", numero: 3, priorite: "p1", client: { raison_sociale: "C" } },
+    ];
+    const elements = prioritesAPlanifier(lignes, REFERENCE);
+    expect(elements.map((e) => e.rang)).toEqual(["P1", "P2", "P4"]);
+  });
+
+  it("À PRIORITÉ ÉGALE, l'ordre reçu (déjà daté par `listerPlanning`) est conservé — tri STABLE", () => {
+    const lignes = [
+      {
+        id: "ancienne",
+        numero: 1,
+        priorite: "p2",
+        client: { raison_sociale: "Ancienne" },
+      },
+      {
+        id: "recente",
+        numero: 2,
+        priorite: "p2",
+        client: { raison_sociale: "Récente" },
+      },
+    ];
+    const elements = prioritesAPlanifier(lignes, REFERENCE);
+    expect(elements.map((e) => e.href)).toEqual([
+      "/interventions/ancienne",
+      "/interventions/recente",
+    ]);
   });
 });
 

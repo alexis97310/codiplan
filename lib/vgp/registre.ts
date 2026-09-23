@@ -102,6 +102,20 @@ const CHAMPS_REGISTRE = {
  *
  * `limite` borne ce qui est RENDU, jamais ce qui est cloisonné — la même borne
  * d'affichage que `listerLeParc`, et pour la même raison.
+ *
+ * **CETTE BORNE NE DOIT JAMAIS SERVIR AUSSI AU RÉSUMÉ (KPI)** — même faute
+ * que corrigée pour `/parc` (AT-07, `LIMITE_RECHERCHE_MAXIMALE` de
+ * `lib/machines/saisie.ts`). Mesuré le 23/09/2026 en production (TABLEAU-1) :
+ * `/vgp` composait `resumerLeRegistre` à partir des lignes déjà bornées pour
+ * L'AFFICHAGE de la table, et une société dont le parc dépassait cette borne
+ * voyait son KPI « en retard » sous-compté par rapport à la tuile du tableau
+ * de bord (`compterAPrevoir`, qui lit tout le parc cloisonné, sans aucun
+ * plafond). L'appelant doit donc lire cette fonction avec un plafond
+ * généreux pour son RÉSUMÉ, et ne prendre que les premières lignes du
+ * résultat pour son AFFICHAGE — jamais l'inverse. Aucune constante n'est
+ * posée ICI : ce plafond n'est pas une règle de ce module, c'est un choix de
+ * lecture de son appelant (voir `LIGNES_RESUME_MAXIMALES`,
+ * `app/(back-office)/vgp/page.tsx`).
  */
 export async function listerLeRegistre(
   contexte: ContexteSession,

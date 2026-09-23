@@ -1545,6 +1545,39 @@ export async function listerPlanning(
 }
 
 /**
+ * COMBIEN D'INTERVENTIONS PLANIFIÉES N'ONT AUCUNE DURÉE PRÉVUE (TABLEAU-1,
+ * 23/09/2026) — un compte, pas une alerte de conformité.
+ *
+ * Alexis a décidé le 23/09/2026 que la durée deviendra obligatoire ; ce
+ * chiffre mesure combien de fiches en manquent aujourd'hui, avant que la
+ * règle n'existe. **Aucune migration, aucune contrainte posée ici** : la
+ * colonne `duree_estimee_min` existe déjà, nullable — ce compte ne fait que
+ * la lire.
+ *
+ * **« Planifiée » = une DATE est posée** (`date_planifiee` non nulle) : une
+ * fiche encore « à planifier » n'a pas de durée à lui reprocher, elle n'a
+ * encore rien. Aucune borne de période : une charge passée ou future est
+ * faussée de la même façon tant que la colonne reste nulle.
+ */
+export async function compterInterventionsSansDuree(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.count({
+        where: {
+          ...filtreClientActif(false),
+          date_planifiee: { not: null },
+          duree_estimee_min: null,
+        },
+      }),
+    client,
+  );
+}
+
+/**
  * LA FICHE COMPLÈTE — libellés lus, et décomposition de D83 sous les yeux.
  *
  * Deux choses que la ligne brute ne porte pas, et que l'écran ne doit pas

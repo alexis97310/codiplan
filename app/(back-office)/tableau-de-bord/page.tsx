@@ -17,7 +17,11 @@ import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
 import { t } from "@/lib/i18n/fr";
-import { enAttenteDePiece, listerPlanning } from "@/lib/interventions/depot";
+import {
+  compterInterventionsSansDuree,
+  enAttenteDePiece,
+  listerPlanning,
+} from "@/lib/interventions/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { compterAPrevoir } from "@/lib/vgp/registre";
 import { auMoinsUneVerificationEnregistree } from "@/lib/vgp/verification";
@@ -93,12 +97,16 @@ const HORIZON_VGP_JOURS = 30;
  * statistiques.ts` rend un taux PAR TECHNICIEN, déjà appelé par `/planning` ;
  * agréger plusieurs techniciens et plusieurs calendriers d'agence en UN SEUL
  * taux n'est écrit nulle part au chapitre 10. La carte l'affiche donc
- * `Non calculé`, avec son motif — jamais un zéro, jamais un tiret : les deux
- * se liraient comme une mesure (doctrine §3). Le motif est resté long tant
- * qu'aucune autre tuile ne portait le même texte ; mesuré en ligne le
- * 19/09/2026, il étirait à lui seul la rangée de quatre tuiles à sa hauteur —
- * raccourci ce même lot, sans toucher à L'ORDRE ni au NOMBRE des tuiles que
- * `dashboard()` fixe (D125).
+ * `Non calculé` — jamais un zéro, jamais un tiret : les deux se liraient
+ * comme une mesure (doctrine §3).
+ *
+ * **LE MOTIF « R2-13 » A QUITTÉ L'ÉCRAN LE 23/09/2026 (TABLEAU-1)** : mesuré
+ * en ligne, une référence de ticket interne dans une tuile lue par un
+ * opérateur — deux zones inertes nommées au même constat, avec la carte
+ * « Activité récente » ci-dessous. La tuile GARDE sa place et son nombre
+ * (D125, l'ORDRE et le NOMBRE des quatre tuiles ne bougent pas) mais mène
+ * maintenant quelque part : un lien vers `/planning`, où le taux PAR
+ * TECHNICIEN — la seule maille que ce dépôt sait calculer — est déjà affiché.
  *
  * **« VGP à prévoir » PEUT MENTIR PAR OMISSION DE LA MÊME FAÇON (lot
  * AV-14)** : `compterAPrevoir` rend 0 aussi bien quand rien n'est dû dans
@@ -116,22 +124,40 @@ const HORIZON_VGP_JOURS = 30;
  * SANS INFORMATION — et son grand chiffre (`valeurVgpAPrevoir`) compte les
  * dépassées avec les à venir. Même ordre, même nombre de tuiles (D125).
  *
+ * **ET ELLE NE DISAIT PAS LA MÊME CHOSE QUE LE REGISTRE (TABLEAU-1,
+ * 23/09/2026)** : mesuré en production le 23/09 — 81 échéances dépassées
+ * ici, 78 sur `/vgp`. `compterAPrevoir` lit tout le parc cloisonné, sans
+ * plafond ; `/vgp` composait son résumé à partir des lignes déjà bornées
+ * pour son AFFICHAGE (200), même faute qu'AT-07 avait fermée pour `/parc`.
+ * Réparé côté registre (`lib/vgp/registre.ts`, `LIGNES_RESUME_MAXIMALES`) :
+ * les deux comptent désormais tout le même parc. La tuile OUVRE maintenant
+ * `/vgp?etat=depassees` — un chiffre sans chemin vers ce qu'il compte est la
+ * même faute que le zéro muet corrigé ailleurs.
+ *
  * ## « PRIORITÉS OPÉRATIONNELLES » — voir `./presentation.ts`
  *
  * Les quatre lignes de démonstration de `priorityItems()` n'ont pas de
  * contrepartie exacte ; ce que la carte affiche vient de trois lectures
  * réelles déjà écrites, composées par `prioritesUrgentes`, `prioritesPieces`
- * et `prioritesAPlanifier`.
+ * et `prioritesAPlanifier`. **Chaque élément porte sa PRIORITÉ depuis le
+ * 23/09/2026 (TABLEAU-1)** : mesuré en ligne, une fiche P1 — critique
+ * s'affichait « 01 Intervention à planifier », indiscernable d'une P4 — voir
+ * `prioritesAPlanifier`.
  *
- * ## « ACTIVITÉ RÉCENTE » N'A AUCUNE SOURCE, ET C'EST NOMMÉ DANS LA CARTE
+ * ## « ACTIVITÉ RÉCENTE » N'AVAIT AUCUNE SOURCE — REMPLACÉE LE 23/09/2026
+ *    (TABLEAU-1) PAR UNE VRAIE MESURE
  *
  * `journal_audit` (I8) trace les écritures, pour l'audit — *« lue par
- * personne aujourd'hui »* est déjà l'état d'une table voisine du même
- * périmètre (`journal_acces`, `docs/arbitrages.md`). En composer un fil
- * lisible par un opérateur (« Compteur démarré par J. Lefèvre ») demanderait
- * une interprétation du journal qu'aucun ticket n'a encore écrite : la carte
- * reste dans la disposition, avec l'écart au lieu d'un fil inventé (D125,
- * « une donnée que le dépôt ne sait pas produire »).
+ * personne aujourd'hui »* était déjà l'état d'une table voisine du même
+ * périmètre (`journal_acces`, `docs/arbitrages.md`), et la carte le disait en
+ * toutes lettres plutôt que d'inventer un fil. **Le marqueur `data-bloc=
+ * "activite"` reste** (D125 : l'ORDRE et le NOMBRE des blocs de cette
+ * disposition ne bougent pas, gardé par `tests/unit/ui/lot-a1-a4.test.ts`),
+ * mais son CONTENU change : la carte affiche désormais le compte
+ * d'interventions PLANIFIÉES sans durée prévue (`compterInterventionsSansDuree`,
+ * `lib/interventions/depot.ts`) — une donnée réelle, qui fausse la charge
+ * tant qu'elle n'est pas saisie, et que la durée obligatoire (décision
+ * d'Alexis du 23/09/2026) va bientôt fermer.
  */
 export default async function PageTableauDeBord({
   searchParams,
@@ -168,6 +194,7 @@ export default async function PageTableauDeBord({
     demandes,
     absencesDuJour,
     auMoinsUneVerification,
+    interventionsSansDuree,
   ] = await Promise.all([
     listerPlanning(contexte, debutDuJour, finDuJour),
     // DEUX PARAMÈTRES DATÉS (DATES-1) : `instant` réel pour `ancienneteJours`
@@ -186,6 +213,9 @@ export default async function PageTableauDeBord({
     // INDÉPENDANTE DE TOUT CE QUI PRÉCÈDE (lot AV-14) — une existence, jamais
     // un résultat des cinq lectures ci-dessus, jamais lue par elles.
     auMoinsUneVerificationEnregistree(contexte),
+    // INDÉPENDANTE ELLE AUSSI (TABLEAU-1) — aucune borne de période, voir
+    // `compterInterventionsSansDuree`.
+    compterInterventionsSansDuree(contexte),
   ]);
   const etatVgp = etatVgpAPrevoir(auMoinsUneVerification, vgpAPrevoir);
 
@@ -237,13 +267,15 @@ export default async function PageTableauDeBord({
             detail={detailInterventionsDuJour(lignesDuJour)}
           />
         </div>
-        <div data-bloc="kpi-occupation">
+        <div data-bloc="kpi-occupation" className="flex flex-col gap-1.5">
           <Kpi
             ton="vert"
             libelle={t("tableau_de_bord.kpi_taux_occupation")}
             valeur={t("tableau_de_bord.non_calcule")}
-            detail={t("tableau_de_bord.taux_occupation_motif")}
           />
+          <Link href="/planning" className={`text-[11.5px] ${CLASSES_LIEN}`}>
+            {t("tableau_de_bord.lien_charge_planning")}
+          </Link>
         </div>
         <div data-bloc="kpi-bloques">
           <Kpi
@@ -253,7 +285,7 @@ export default async function PageTableauDeBord({
             detail={detailEnAttenteDePiece(enAttente)}
           />
         </div>
-        <div data-bloc="kpi-vgp">
+        <div data-bloc="kpi-vgp" className="flex flex-col gap-1.5">
           <Kpi
             ton="rouge"
             libelle={t("tableau_de_bord.kpi_vgp_a_prevoir")}
@@ -268,6 +300,12 @@ export default async function PageTableauDeBord({
                 : t("tableau_de_bord.vgp_a_prevoir_motif_non_calcule")
             }
           />
+          <Link
+            href="/vgp?etat=depassees"
+            className={`text-[11.5px] ${CLASSES_LIEN}`}
+          >
+            {t("tableau_de_bord.lien_vgp_a_prevoir")}
+          </Link>
         </div>
       </div>
 
@@ -354,10 +392,20 @@ export default async function PageTableauDeBord({
         </section>
 
         <section data-bloc="activite" className="contents">
-          <Carte titre={t("tableau_de_bord.activite_titre")}>
-            <p className="text-app-encre-faible px-[16px] py-[15px] text-[12.5px]">
-              {t("tableau_de_bord.activite_ecart")}
-            </p>
+          <Carte titre={t("tableau_de_bord.interventions_sans_duree_titre")}>
+            <div className="flex flex-col gap-1.5 px-[16px] py-[15px]">
+              <Kpi
+                ton="orange"
+                libelle={t("tableau_de_bord.kpi_interventions_sans_duree")}
+                valeur={interventionsSansDuree}
+              />
+              <Link
+                href="/interventions"
+                className={`text-[11.5px] ${CLASSES_LIEN}`}
+              >
+                {t("tableau_de_bord.lien_interventions_sans_duree")}
+              </Link>
+            </div>
           </Carte>
         </section>
       </div>

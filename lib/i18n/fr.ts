@@ -1781,6 +1781,11 @@ export const fr = {
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
   "vgp.borne":
     "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance viennent avec la campagne dat\u00e9e (L9-08).",
+  // LE FILTRE `?etat=depassees` (TABLEAU-1, 23/09/2026) \u2014 que la tuile du
+  // tableau de bord ouvre plut\u00f4t que le registre nu.
+  "vgp.filtre_depassees_actif":
+    "Filtr\u00e9 sur les \u00e9ch\u00e9ances d\u00e9pass\u00e9es.",
+  "vgp.filtre_retirer": "Voir tout le registre",
   // \u2500\u2500 LES QUATRE KPI DU BANDEAU (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // La maquette \u00e9crit \u00ab Conformes \u00bb au troisi\u00e8me \u2014 CODIPLAN n'affirme jamais
   // la conformit\u00e9 (L9-02, D88, D114) : le compte ici est celui des machines
@@ -2459,13 +2464,14 @@ export const fr = {
   // clé sert désormais aussi la tuile « VGP à prévoir » ci-dessous, quand le
   // registre n'a encore reçu aucune vérification — la doctrine du dépôt est
   // de nommer les refus UNE fois, jamais une troisième forme par tuile.
-  // Le motif est raccourci ce même lot : la phrase complète étirait toute la
-  // rangée de quatre tuiles à sa hauteur (D125 fixe leur ORDRE et leur
-  // nombre — dashboard() de la maquette —, jamais la longueur d'un texte).
+  //
+  // LE MOTIF « R2-13 » A QUITTÉ LA TUILE LE 23/09/2026 (TABLEAU-1) : une
+  // référence de ticket interne, lue par un opérateur, sans aucune valeur
+  // pour lui. Remplacé par un lien vers `/planning`, où le taux PAR
+  // TECHNICIEN est déjà affiché.
   "tableau_de_bord.kpi_taux_occupation": "Taux d'occupation",
   "tableau_de_bord.non_calcule": "Non calculé",
-  "tableau_de_bord.taux_occupation_motif":
-    "Pas de règle de consolidation (R2-13).",
+  "tableau_de_bord.lien_charge_planning": "Voir la charge sur le planning →",
   "tableau_de_bord.kpi_vgp_a_prevoir": "VGP à prévoir",
   // LES TROIS VOIES DE LA TUILE (VGP-2, 22/09/2026) — DÉPASSÉE, À VENIR sous
   // l'horizon, SANS INFORMATION. ~~« Dans les 30 prochains jours »~~ : ce seul
@@ -2484,6 +2490,9 @@ export const fr = {
   // (lib/vgp/verification.ts) et `etatVgpAPrevoir` (./presentation.ts).
   "tableau_de_bord.vgp_a_prevoir_motif_non_calcule":
     "Aucune vérification VGP n'est encore enregistrée.",
+  // LA TUILE OUVRE LE REGISTRE, FILTRÉ (TABLEAU-1, 23/09/2026) — un chiffre
+  // sans chemin vers ce qu'il compte est la même faute que le zéro muet.
+  "tableau_de_bord.lien_vgp_a_prevoir": "Voir les échéances dépassées →",
 
   // ── DEUX AJOUTS VOLONTAIRES, SANS ÉQUIVALENT DANS LA MAQUETTE (D128) ─────
   //
@@ -2512,9 +2521,14 @@ export const fr = {
   "tableau_de_bord.priorite_a_planifier_titre": "Intervention à planifier",
   "tableau_de_bord.priorite_demande_titre": "Demande à qualifier",
 
-  "tableau_de_bord.activite_titre": "Activité récente",
-  "tableau_de_bord.activite_ecart":
-    "Aucune activité n'est encore rejouée ici : rien dans CODIPLAN ne résume aujourd'hui, pour un opérateur, ce que le journal de traçabilité (I8) a enregistré.",
+  // LA CARTE « ACTIVITÉ RÉCENTE » EST REMPLACÉE LE 23/09/2026 (TABLEAU-1) —
+  // le marqueur `data-bloc="activite"` reste (D125), son contenu devient une
+  // mesure réelle : combien d'interventions déjà planifiées n'ont encore
+  // aucune durée prévue, faussant la charge tant que la saisie manque.
+  "tableau_de_bord.interventions_sans_duree_titre": "Interventions sans durée",
+  "tableau_de_bord.kpi_interventions_sans_duree":
+    "Planifiées sans durée prévue",
+  "tableau_de_bord.lien_interventions_sans_duree": "Voir les interventions →",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────
   "planning.colonne_technicien": "Technicien",
