@@ -299,6 +299,23 @@ describe("saisie d'un site (L1-02)", () => {
         false,
       );
     });
+
+    describe("sous contrat de maintenance (CONTRAT-SITE-1)", () => {
+      it("accepte de cocher et de décocher", () => {
+        expect(
+          schemaModificationSite.parse({ sous_contrat: true }).sous_contrat,
+        ).toBe(true);
+        expect(
+          schemaModificationSite.parse({ sous_contrat: false }).sous_contrat,
+        ).toBe(false);
+      });
+
+      it("laisse passer une modification qui ne touche PAS au contrat", () => {
+        expect(
+          schemaModificationSite.parse({ commune: "Bourail" }).sous_contrat,
+        ).toBeUndefined();
+      });
+    });
   });
 
   describe("recherche", () => {
@@ -367,6 +384,17 @@ describe("saisie d'un site (L1-02)", () => {
       expect(
         schemaRechercheSite.safeParse({ zone_geo: "koumac" }).success,
       ).toBe(false);
+    });
+
+    it("« sous contrat uniquement » vaut faux par défaut (CONTRAT-SITE-1)", () => {
+      // Même contrat que `inclure_sans_equipement` : un appelant qui ignore ce
+      // champ (`sites/nouveau`, `parc/nouvelle`) ne doit pas voir sa liste
+      // rétrécir sans l'avoir demandé.
+      expect(schemaRechercheSite.parse({}).sous_contrat_seulement).toBe(false);
+      expect(
+        schemaRechercheSite.parse({ sous_contrat_seulement: true })
+          .sous_contrat_seulement,
+      ).toBe(true);
     });
   });
 });

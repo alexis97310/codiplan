@@ -1,15 +1,18 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   compterSites,
+  creerSiteDans,
   equipementsParSite,
   rechercherSites,
 } from "@/lib/sites/depot";
-import { schemaRechercheSite } from "@/lib/sites/saisie";
+import { schemaCreationSite, schemaRechercheSite } from "@/lib/sites/saisie";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
+  AGENCE_A,
   CLIENT_A1,
   PORTAIL_A_CLIENT,
   SITE_A1_S1,
@@ -180,5 +183,73 @@ describe("equipementsParSite, le masquage par défaut et la recherche par client
     expect(ids).toContain(SITE_A1_S1);
     expect(ids).toContain(SITE_A1_S2);
     expect(ids).not.toContain(SITE_B1_S1);
+  });
+});
+
+/**
+ * `sous_contrat_seulement` (CONTRAT-SITE-1) — une comparaison DIRECTE sur
+ * `site`, et non une clause de relation comme `inclure_sans_equipement`
+ * ci-dessus, mais qui doit se COMPOSER avec le même filtre.
+ *
+ * **Un site POSÉ PAR LE SCÉNARIO, retiré en fin de test** — la leçon de
+ * PASTILLES-1 (`tests/isolation/pastilles-habilitations.test.ts`) : un
+ * scénario qui compte pose SON site, jamais une fixture partagée que
+ * d'autres fichiers pourraient déjà avoir marquée.
+ */
+describe("sous_contrat_seulement (CONTRAT-SITE-1)", () => {
+  it("filtre sur la colonne, et se compose avec les autres critères", async () => {
+    // `creerSite`/`modifierSite` n'acceptent pas de `client` : ils passent
+    // par le rôle applicatif réel (`DATABASE_URL`), que le harnais
+    // d'isolation ne pose pas. `creerSiteDans`, elle, prend la transaction
+    // en paramètre — le même chemin que `rechercherSites(…, clientApp())`
+    // ci-dessus emprunte déjà pour LIRE.
+    const fiche = await avecContexteApplicatif(
+      INTERNE_A,
+      (tx) =>
+        creerSiteDans(
+          tx,
+          SOCIETE_A,
+          schemaCreationSite.parse({
+            client_id: CLIENT_A1,
+            agence_id: AGENCE_A,
+            libelle: "Site CONTRAT-SITE-1 (éprouve le filtre)",
+          }),
+        ),
+      clientApp(),
+    );
+    // `false` par défaut, sans que la saisie de création l'ait mentionné :
+    // c'est le défaut de la colonne en base qui répond, pas un défaut Zod.
+    expect(fiche.sous_contrat).toBe(false);
+    try {
+      await avecContexteApplicatif(
+        INTERNE_A,
+        (tx) =>
+          tx.site.update({
+            where: { id: fiche.id },
+            data: { sous_contrat: true },
+          }),
+        clientApp(),
+      );
+
+      const filtres = schemaRechercheSite.parse({
+        sous_contrat_seulement: true,
+      });
+      const fiches = await rechercherSites(INTERNE_A, filtres, clientApp());
+      const ids = fiches.map((f) => f.id);
+      expect(ids).toContain(fiche.id);
+      // SITE_A1_S1 n'est PAS sous contrat : le filtre l'écarte, sans quoi il
+      // rendrait la liste entière au lieu de filtrer quoi que ce soit.
+      expect(ids).not.toContain(SITE_A1_S1);
+
+      const sansFiltre = schemaRechercheSite.parse({});
+      const toutes = await rechercherSites(INTERNE_A, sansFiltre, clientApp());
+      expect(toutes.map((f) => f.id)).toContain(SITE_A1_S1);
+    } finally {
+      await avecContexteApplicatif(
+        INTERNE_A,
+        (tx) => tx.site.delete({ where: { id: fiche.id } }),
+        clientApp(),
+      );
+    }
   });
 });
