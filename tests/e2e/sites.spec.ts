@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fr, mot } from "@/lib/i18n";
 
-import { ouvrirUneSession } from "./setup/session";
+import { COMPTE_TECHNICIEN_EPREUVE } from "./setup/scene";
+import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
  * L'ÉCRAN « SITES » (L3-16, D75, D56).
@@ -149,4 +150,111 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
   await expect(
     page.getByRole("link", { name: fr["sites.retour"] }),
   ).toBeVisible();
+});
+
+/**
+ * CONTRAT-SITE-1 — la case « sous contrat de maintenance ».
+ *
+ * Trois choses, dans le MÊME scénario, dans cet ordre : cocher/décocher
+ * PERSISTE (le formulaire envoie un champ caché `sous_contrat=0` à côté de la
+ * case — voir `app/api/sites/[id]/modifier/route.ts` — pour que décocher ne
+ * se lise pas comme « ne touche pas à cette colonne ») ; l'état en LECTURE
+ * (un `<p>`, distinct du `<label>` du formulaire) suit ; la pastille jaune
+ * de la CARTE ne s'affiche que quand la case est cochée.
+ */
+test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'apparaît que si cochée (CONTRAT-SITE-1)", async ({
+  page,
+}) => {
+  // Un site DÉDIÉ, créé par ce scénario — jamais « le premier de la liste » :
+  // ce pourrait être le site fictif sous contrat du jeu de démonstration
+  // (`prisma/seed-data.ts`), et le décocher ici fausserait le scénario du
+  // filtre qui suit.
+  await page.goto("/sites/nouveau");
+  await page.locator('select[name="client_id"]').selectOption({ index: 1 });
+  await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
+  await page
+    .locator('input[name="libelle"]')
+    // Le libellé ÉVITE le mot « contrat » : `getByText` fait une recherche en
+    // sous-chaîne insensible à la casse, et « CONTRAT-SITE-1 » collisionnerait
+    // avec la pastille « Contrat » cherchée plus bas.
+    .fill("Site e2e du lot 41 (persistance)");
+  await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
+  await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
+  const href = new URL(page.url()).pathname;
+
+  const case_ = page.getByLabel(fr["site.sous_contrat"]);
+  await expect(case_).not.toBeChecked();
+  // Rien en lecture tant que la case n'a jamais été cochée.
+  await expect(
+    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+  ).toHaveCount(0);
+
+  await case_.check();
+  await page.getByRole("button", { name: fr["sites.action.modifier"] }).click();
+  // Le succès ajoute `?motif=sites.modifie` — une sous-chaîne de l'URL, pas
+  // l'URL exacte.
+  await expect(page).toHaveURL(new RegExp(`${href}(\\?|$)`));
+  await expect(page.getByLabel(fr["site.sous_contrat"])).toBeChecked();
+  await expect(
+    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+  ).toBeVisible();
+
+  // `?sans_equipement=1` : ce site fraîchement créé n'a aucun équipement, et
+  // la liste masque ces sites-là par défaut (LISTES-1) — sans quoi la carte
+  // elle-même serait absente, pour une raison qui n'a rien à voir avec ce
+  // scénario.
+  await page.goto("/sites?sans_equipement=1");
+  const carte = page.locator(`article:has(a[href="${href}"])`);
+  await expect(
+    carte.getByText(fr["sites.contrat"], { exact: true }),
+  ).toBeVisible();
+
+  // Décocher persiste tout autant — le champ caché en fait foi.
+  await page.goto(href);
+  await page.getByLabel(fr["site.sous_contrat"]).uncheck();
+  await page.getByRole("button", { name: fr["sites.action.modifier"] }).click();
+  await expect(page.getByLabel(fr["site.sous_contrat"])).not.toBeChecked();
+  await expect(
+    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+  ).toHaveCount(0);
+
+  await page.goto("/sites?sans_equipement=1");
+  await expect(
+    carte.getByText(fr["sites.contrat"], { exact: true }),
+  ).toHaveCount(0);
+});
+
+test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async ({
+  page,
+}) => {
+  // Le site fictif du jeu d'essai (`prisma/seed-data.ts`) reste le SEUL sous
+  // contrat une fois le scénario ci-dessus revenu à son état de départ. Il ne
+  // porte aucun équipement : `sans_equipement=1` compose avec le filtre de
+  // contrat, exactement ce que la demande décrit.
+  await page.goto("/sites?sous_contrat=1&sans_equipement=1");
+  const cartes = page.locator("article");
+  await expect(cartes.first()).toBeVisible();
+  const total = await cartes.count();
+  for (let i = 0; i < total; i++) {
+    await expect(
+      cartes.nth(i).getByText(fr["sites.contrat"], { exact: true }),
+    ).toBeVisible();
+  }
+});
+
+test("un rôle SANS la capacité de modifier le site ne voit pas la case ACTIVE (CONTRAT-SITE-1)", async ({
+  page,
+}) => {
+  // La MÊME capacité que la route POST (`gerer_client_site`) — un technicien
+  // ne l'a pas (§5.2). La fiche reste lisible : seule la case du formulaire
+  // disparaît.
+  const href = await premierSite(page);
+  // La session ADV ouverte par `beforeEach` doit d'abord se FERMER : visiter
+  // `/connexion` alors qu'une session est déjà active en détourne, et le
+  // second `ouvrirLaSessionSensible` n'atteindrait jamais son formulaire.
+  await page.getByRole("button", { name: fr["nav.deconnexion"] }).click();
+  await expect(page).toHaveURL(/\/connexion/);
+  await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  await page.goto(href);
+  await expect(page.getByLabel(fr["site.sous_contrat"])).toHaveCount(0);
 });
