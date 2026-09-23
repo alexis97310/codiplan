@@ -449,7 +449,7 @@ export const fr = {
   "sites.colonne_trajet_estimation": "Trajet estimé (min)",
   "sites.equipements_un": "équipement",
   "sites.equipements_plusieurs": "équipements",
-  "sites.filtre_equipement": "Afficher aussi les sites sans équipement",
+  "sites.filtre_equipement": "Afficher aussi les lieux sans équipement",
   "sites.action.modifier": "Enregistrer",
   // LA FICHE D'UN LIEU MONTRE SES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1).
   //

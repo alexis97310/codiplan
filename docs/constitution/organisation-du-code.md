@@ -19,42 +19,43 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 62
-- `lib/` — ligne 67
-- `lib/db/` — ligne 68
-- `lib/auth/` — ligne 114
-- `lib/absences/` — ligne 149
-- `lib/clients/` — ligne 205
-- `lib/habilitations/` — ligne 208
-- `lib/contacts/` — ligne 216
-- `lib/demandes/` — ligne 226
-- `lib/agences/` — ligne 260
-- `lib/sites/` — ligne 275
-- `lib/machines/` — ligne 305
-- `lib/interventions/` — ligne 356
-- `lib/materiel/` — ligne 530
-- `lib/tarification/` — ligne 563
-- `lib/navigation/` — ligne 659
-- `lib/money/` — ligne 695
-- `lib/courriel/` — ligne 697
-- `lib/compteurs/` — ligne 725
-- `lib/calendar/` — ligne 744
-- `lib/sync/` — ligne 770
-- `lib/documents/` — ligne 771
-- `lib/excel/` — ligne 797
-- `lib/imports/` — ligne 855
-- `lib/prestations/` — ligne 1007
-- `lib/portail/` — ligne 1026
-- `lib/pdf/` — ligne 1042
-- `lib/reporting/` — ligne 1043
-- `lib/vgp/` — ligne 1044
-- `lib/techniciens/` — ligne 1097
-- `lib/theme/` — ligne 1102
-- `lib/i18n/` — ligne 1137
-- `components/` — ligne 1140
-- `prisma/` — ligne 1141
-- `tests/` — ligne 1142
-- `docs/` — ligne 1161
+- `app/` — ligne 63
+- `lib/` — ligne 68
+- `lib/db/` — ligne 69
+- `lib/auth/` — ligne 115
+- `lib/absences/` — ligne 150
+- `lib/clients/` — ligne 206
+- `lib/habilitations/` — ligne 209
+- `lib/contacts/` — ligne 217
+- `lib/demandes/` — ligne 227
+- `lib/agences/` — ligne 261
+- `lib/sites/` — ligne 276
+- `lib/machines/` — ligne 306
+- `lib/interventions/` — ligne 357
+- `lib/materiel/` — ligne 531
+- `lib/tarification/` — ligne 564
+- `lib/navigation/` — ligne 660
+- `lib/money/` — ligne 696
+- `lib/courriel/` — ligne 698
+- `lib/compteurs/` — ligne 726
+- `lib/calendar/` — ligne 745
+- `lib/sync/` — ligne 771
+- `lib/documents/` — ligne 772
+- `lib/excel/` — ligne 798
+- `lib/imports/` — ligne 856
+- `lib/prestations/` — ligne 1008
+- `lib/portail/` — ligne 1027
+- `lib/pdf/` — ligne 1043
+- `lib/reporting/` — ligne 1044
+- `lib/vgp/` — ligne 1045
+- `lib/techniciens/` — ligne 1098
+- `lib/theme/` — ligne 1103
+- `lib/i18n/` — ligne 1138
+- `lib/tri/` — ligne 1141
+- `components/` — ligne 1146
+- `prisma/` — ligne 1147
+- `tests/` — ligne 1148
+- `docs/` — ligne 1167
 
 ---
 
@@ -1137,6 +1138,11 @@ lib/
   i18n/       dictionnaire fr.ts — SEUL endroit où une chaîne visible s'écrit
               vocabulaire.ts : agence et site, définis une fois avec leur
               distinction (D5, D47) ; le code nomme la notion, pas le mot
+  tri/        LE TRI ALPHANUMÉRIQUE DES LISTES DE RÉFÉRENTIEL (LISTES-1,
+              23/09/2026) — un seul `Intl.Collator`, jamais un `ORDER BY`
+              la base hébergée trie les majuscules d'abord, une collation
+              mesurée à `psql` et que ce dépôt n'a ni les moyens de constater
+              à distance ni le droit de changer sans migration (§8)
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/
