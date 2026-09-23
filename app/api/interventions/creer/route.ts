@@ -46,7 +46,13 @@ async function traiter(requete: Request): Promise<Response> {
     // base par un déclencheur. `schemaCreation.machine_ids` refuse un second
     // identifiant ; `<select>` (non `multiple` depuis ce lot) n'en soumet de
     // toute façon jamais plus d'un.
-    machine_ids: formulaire.getAll("machine_ids"),
+    //
+    // **L'OPTION VIDE SE FILTRE ICI** — mesuré : un `<select>` simple, à la
+    // différence d'un `multiple` dont rien n'est coché, soumet TOUJOURS une
+    // valeur, y compris celle de son option « aucune machine » (`value=""`).
+    // Sans ce filtre, `machine_ids` valait `[""]`, `uuid()` la refusait, et
+    // TOUTE création sans machine tombait dans le refus générique.
+    machine_ids: formulaire.getAll("machine_ids").filter((v) => v !== ""),
     type: champ(formulaire, "type"),
     priorite: champ(formulaire, "priorite") ?? "p3",
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? "temps_passe",

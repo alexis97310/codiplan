@@ -918,6 +918,22 @@ export async function deplacerIntervention(
           date_planifiee: saisie.date_planifiee,
           creneau_debut: demande.creneauDebut,
           creneau_fin: demande.creneauFin,
+          // `duree_estimee_min` SUIT LE CRÉNEAU (PARCOURS-1, 23/09/2026) —
+          // *mesuré* : ce dépôt calculait déjà `creneau_fin` depuis
+          // `saisie.duree_min` sans jamais l'écrire dans cette colonne, que
+          // `intervention_planifiee_a_sa_duree` exige désormais dès que le
+          // statut devient `planifiee`/`affectee`. Les deux portent la MÊME
+          // durée ; ne pas l'écrire ici la laisserait `NULL` malgré un
+          // créneau complet, et la contrainte refuserait une planification
+          // pourtant valide.
+          //
+          // **`undefined`, jamais `null`, quand AUCUNE durée n'est soumise**
+          // — un déplacement qui ne touche QUE le technicien (le formulaire
+          // « Déplacer » d'une intervention déjà planifiée, date/heure/durée
+          // laissées vides) ne doit pas EFFACER la durée déjà posée : Prisma
+          // ignore une colonne dont la valeur est `undefined`, il écrirait
+          // `NULL` pour `null`.
+          duree_estimee_min: saisie.duree_min ?? undefined,
           technicien_id: saisie.technicien_id,
           // Le déplacement REND une intervention à la file d'attente quand on
           // lui retire sa date, et l'en sort quand on lui en donne une. Il ne

@@ -157,7 +157,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
-  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="heure_debut"]').fill("11:00");
   await formulaire.evaluate((form) => {
     for (const nom of ["duree_min", "technicien_id"]) {
       const champ = form.querySelector(`[name="${nom}"]`);
@@ -184,7 +184,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await formulaireComplet
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
-  await formulaireComplet.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaireComplet.locator('input[name="heure_debut"]').fill("11:00");
   await formulaireComplet.locator('input[name="duree_min"]').fill("60");
   const options = formulaireComplet.locator(
     'select[name="technicien_id"] option:not([value=""])',

@@ -2319,18 +2319,26 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
  * demande DEUX, pour éprouver le pluriel que `machinesAffichees`
  * (`app/(back-office)/interventions/presentation.ts`) joint par une virgule.
  */
+/**
+ * **PLAFONNÉ À UNE MACHINE PAR INTERVENTION DEPUIS PARCOURS-1** (23/09/2026,
+ * arbitrage Alexis : « une intervention ne peut pas avoir 2 machines »).
+ * `nombreMachines` valait 2 pour les rangs 17 et 23 — la colonne au pluriel
+ * de la fiche et du registre restait alors éprouvée par LA LISTE, jamais par
+ * la donnée de démonstration elle-même. `intervention_machine` porte
+ * désormais `@@unique([intervention_id])`, et un semis qui en proposerait
+ * deux échouerait sur la contrainte qu'il enfreint.
+ */
 export const INTERVENTIONS_AVEC_MACHINES_DEMONSTRATION: readonly {
   readonly interventionRang: number;
   readonly nombreMachines: number;
 }[] = [
   { interventionRang: 2, nombreMachines: 1 },
-  { interventionRang: 17, nombreMachines: 2 },
-  // Les mêmes cas, rejoués sur les semaines ajoutées par SEMIS-1 : rang 21
-  // (index 20, Ducos) reçoit une seule machine, rang 23 (index 22, Garage de
-  // Koné) en reçoit deux — la colonne « Machine » et son pluriel restent
-  // éprouvés au-delà de la seule semaine du 14–19/09.
+  { interventionRang: 17, nombreMachines: 1 },
+  // Le même cas, rejoué sur les semaines ajoutées par SEMIS-1 : rang 21
+  // (index 20, Ducos) et rang 23 (index 22, Garage de Koné) reçoivent chacun
+  // une machine.
   { interventionRang: 21, nombreMachines: 1 },
-  { interventionRang: 23, nombreMachines: 2 },
+  { interventionRang: 23, nombreMachines: 1 },
 ];
 
 /**

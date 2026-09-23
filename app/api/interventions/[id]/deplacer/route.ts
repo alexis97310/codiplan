@@ -88,6 +88,22 @@ async function traiter(
     const surLaDuree = saisie.error.issues.some((probleme) =>
       probleme.path.includes("duree_min"),
     );
+    // ── PLANIFIER, PAS SEULEMENT REDIMENSIONNER (PARCOURS-1) ────────────
+    //
+    // *`duree === null` distingue les DEUX chemins qui échouent sur la même
+    // colonne, et ils ne sont pas la même faute.* Le redimensionnement
+    // envoie TOUJOURS un nombre — `pose.tsx` calcule `cible.minutes +
+    // cible.pasMinutes - main.debutMinutes!`, jamais une chaîne vide — et
+    // n'échoue que si ce nombre n'est pas strictement positif : c'est la
+    // poignée tirée au-dessus du début, et « duree_invalide » le dit bien.
+    // Le formulaire « Planifier », lui, laisse le CHAMP VIDE quand on
+    // l'oublie : `champ()` rend alors `null`, jamais un nombre invalide.
+    // *Mesuré le 23/09/2026 : sans cette distinction, oublier la durée sur
+    // « Planifier » affichait « tirez la poignée », un texte qui ne
+    // s'applique qu'au glissé.*
+    if (surLaDuree && heure !== null && duree === null) {
+      return repondre("intervention.refus.planification_duree_manquante");
+    }
     return repondre(
       surLaDuree
         ? "intervention.refus.duree_invalide"
