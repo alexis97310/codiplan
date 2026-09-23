@@ -1068,7 +1068,8 @@ export const fr = {
   // `intervention.machine.aucune_au_site`, qui dit qu'AUCUNE machine
   // n'existe pour ce lieu : celle-ci dit qu'on n'en choisit AUCUNE, ce qui
   // reste le cas ordinaire même quand le site en propose.
-  "intervention.machine.aucune_choisie": "Aucune machine (dépannage à l'aveugle)",
+  "intervention.machine.aucune_choisie":
+    "Aucune machine (dépannage à l'aveugle)",
   // ── Les notions IMPOSÉES ne s'écrivent pas ici ───────────────────────────
   //
   // « agence » et « site » se définissent une seule fois, dans les entrées

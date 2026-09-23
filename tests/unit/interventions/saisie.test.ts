@@ -27,7 +27,8 @@ describe("schemaCreation — ni date, ni technicien, ni durée", () => {
   });
 
   it("REFUSE une `description` absente — la panne est OBLIGATOIRE", () => {
-    const { description: _description, ...sansDescription } = BASE;
+    const sansDescription: Record<string, unknown> = { ...BASE };
+    delete sansDescription.description;
     const resultat = schemaCreation.safeParse(sansDescription);
     expect(resultat.success).toBe(false);
   });

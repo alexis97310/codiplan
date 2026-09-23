@@ -263,12 +263,21 @@ export function peutPlanifier(
     return PERMIS;
   }
   if (datePlanifiee === null) {
-    return { refuse: true, cle: "intervention.refus.planification_date_manquante" };
+    return {
+      refuse: true,
+      cle: "intervention.refus.planification_date_manquante",
+    };
   }
   if (debutMinutes === null || dureeMin === null) {
-    return { refuse: true, cle: "intervention.refus.planification_duree_manquante" };
+    return {
+      refuse: true,
+      cle: "intervention.refus.planification_duree_manquante",
+    };
   }
-  return { refuse: true, cle: "intervention.refus.planification_technicien_manquant" };
+  return {
+    refuse: true,
+    cle: "intervention.refus.planification_technicien_manquant",
+  };
 }
 
 /**

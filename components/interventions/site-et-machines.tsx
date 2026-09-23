@@ -29,7 +29,7 @@ import { useState } from "react";
  * les machines du site choisi, jamais le parc entier (arbitrage par défaut de
  * ce lot, voir la description de la PR). **Au plus une** depuis PARCOURS-1
  * (23/09/2026, arbitrage Alexis : « une intervention ne peut pas avoir 2
- * machines ») — un `<select>` simple, plus `multiple`. Le choix reste
+ * machines ») — un `<select>` simple, sans `multiple`. Le choix reste
  * facultatif : aucune machine sélectionnée est le cas ordinaire à la création
  * (dépannage à l'aveugle, voir `schemaCreation`).
  *
@@ -101,7 +101,9 @@ export function ChampSiteEtMachines({
   const siteChoisi = sites.find((site) => site.id === siteId) ?? sites[0];
   const machinesDuSite = machines.filter((m) => m.siteId === siteId);
   const contactsDuLieu = contacts.filter(
-    (c) => c.clientId === siteChoisi?.clientId && (c.siteId === null || c.siteId === siteId),
+    (c) =>
+      c.clientId === siteChoisi?.clientId &&
+      (c.siteId === null || c.siteId === siteId),
   );
 
   return (

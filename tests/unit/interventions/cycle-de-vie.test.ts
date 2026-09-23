@@ -221,9 +221,9 @@ describe("peutPlanifier — les quatre valeurs vont ensemble, ou pas du tout", (
       "annulee",
     ] as const) {
       expect(peutPlanifier(statut, RIEN).refuse).toBe(false);
-      expect(
-        peutPlanifier(statut, { ...RIEN, technicienId: "x" }).refuse,
-      ).toBe(false);
+      expect(peutPlanifier(statut, { ...RIEN, technicienId: "x" }).refuse).toBe(
+        false,
+      );
     }
   });
 
