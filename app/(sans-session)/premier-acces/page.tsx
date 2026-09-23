@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
+
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("premier_acces.titre") };
 
 /**
  * PREMIER ACCÈS — L'ÉCRAN OÙ L'ON CHOISIT SON MOT DE PASSE (D65).

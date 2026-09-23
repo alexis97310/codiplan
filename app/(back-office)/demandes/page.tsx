@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,6 +20,8 @@ import {
   parLaPlusAncienne,
   tonDuStatutDemande,
 } from "./presentation";
+
+export const metadata: Metadata = { title: t("demande.titre") };
 
 /**
  * LA FILE DE QUALIFICATION (DEMANDES-1, sur L2-06).

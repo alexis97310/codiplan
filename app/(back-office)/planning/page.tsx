@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
@@ -81,6 +83,8 @@ import {
 import { decompte } from "../presentation";
 import { dureeCarteAffichee, siteDeLaCarte } from "./carte";
 import { Statistiques } from "./statistiques";
+
+export const metadata: Metadata = { title: t("planning.titre") };
 
 /**
  * LE PLANNING — deux vues sur la même donnée (lot 2, D84 ; D95 ; 11/09/2026).

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 
 import { identiteDeChrome } from "@/lib/auth/chrome";
+import type { Role } from "@/lib/auth/roles";
 import { initialesDuNom } from "@/lib/navigation/initiales";
 import { themeDuContexte } from "@/lib/theme/session";
 import type { ThemeSociete } from "@/lib/theme/theme";
@@ -46,6 +47,14 @@ export type ChromeDeLaRequete = {
   readonly initiales: string | null;
   /** La charte de la société active, ou le thème neutre. */
   readonly theme: ThemeSociete;
+  /**
+   * Le rôle de la personne connectée, ou `null` si personne ne l'est. AJOUTÉ
+   * POUR VISUEL-1 (23/09/2026, D132) : la barre du back-office filtre
+   * désormais ses entrées par capacité, et une entrée de menu n'est PAS un
+   * droit — ce module continue de ne rien accorder, il expose seulement de
+   * quoi peindre la bonne liste.
+   */
+  readonly role: Role | null;
 };
 
 /**
@@ -57,5 +66,6 @@ export const chromeDeLaRequete = cache(async (): Promise<ChromeDeLaRequete> => {
   return {
     initiales: initialesDuNom(session?.nom),
     theme: await themeDuContexte(session?.contexte ?? null),
+    role: session?.contexte.role ?? null,
   };
 });

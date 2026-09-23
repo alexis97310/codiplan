@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,6 +9,8 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+
+export const metadata: Metadata = { title: t("agence.creer") };
 
 /**
  * LA CRÉATION D'UNE AGENCE, ET DE SON CALENDRIER D'OUVERTURE (AGENCE-1).

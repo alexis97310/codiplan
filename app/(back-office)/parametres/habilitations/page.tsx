@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -10,6 +12,8 @@ import {
   type LigneHabilitation,
 } from "@/lib/habilitations/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("habilitations.titre") };
 
 /**
  * LE RÉFÉRENTIEL DES HABILITATIONS (ÉQUIPE-2 ; D9, D60).

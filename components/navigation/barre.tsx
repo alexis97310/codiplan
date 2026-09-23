@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 
 import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
+import type { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import {
   entreeActive,
+  entreesAffichables,
   estGroupe,
   type EntreeDeBarre,
   type EntreeNavigation,
@@ -95,6 +97,7 @@ export function BarreDeNavigation({
   theme,
   initiales,
   entrees,
+  role,
   accueil,
 }: {
   readonly theme: ThemeSociete;
@@ -110,15 +113,29 @@ export function BarreDeNavigation({
    */
   readonly entrees: readonly EntreeDeBarre[];
   /**
+   * LE RÔLE DE LA PERSONNE CONNECTÉE — D132 (23/09/2026, VISUEL-1), passé par
+   * `chromeDeLaRequete`. `entreesAffichables` (`lib/navigation/entrees.ts`)
+   * en tire ce qui reste : les entrées inertes tombent toujours, les entrées
+   * dont ce rôle n'a pas la capacité tombent quand `role` est fourni.
+   *
+   * **Optionnel, et c'est délibéré** : un appelant qui ne le passe pas
+   * (aujourd'hui, le portail et le terrain, dont les listes ne portent ni
+   * entrée inerte ni entrée hors de portée de leur seul rôle) garde le
+   * comportement d'avant D132 — seul le filtre des entrées inertes reste
+   * actif, inconditionnellement.
+   */
+  readonly role?: Role | null;
+  /**
    * Où mène la marque. Elle n'est pas décorative : c'est le point de retour,
    * et il diffère par segment.
    */
   readonly accueil: string;
 }) {
-  const actif = entreeActive(usePathname() ?? "", entrees)?.cle ?? null;
+  const entreesVisibles = entreesAffichables(entrees, role);
+  const actif = entreeActive(usePathname() ?? "", entreesVisibles)?.cle ?? null;
   const { ouvert, fermer } = useNavigationMobile();
 
-  if (entrees.length === 0) {
+  if (entreesVisibles.length === 0) {
     return (
       <BarreHorizontaleVide
         theme={theme}
@@ -183,7 +200,7 @@ export function BarreDeNavigation({
       >
         <Marque accueil={accueil} />
         <nav aria-label={t("nav.libelle")} className="mt-2 flex flex-col">
-          {entrees.map((entree) =>
+          {entreesVisibles.map((entree) =>
             estGroupe(entree) ? (
               <Domaine key={entree.cle} entree={entree} cleActive={actif} />
             ) : (

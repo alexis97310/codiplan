@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -47,6 +49,8 @@ import {
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+
+export const metadata: Metadata = { title: t("parc.titre") };
 
 /**
  * L'ÉCRAN « PARC MACHINES » — MAÎTRE-DÉTAIL (N-10, D125 ; R2-21, AT-04, I10).

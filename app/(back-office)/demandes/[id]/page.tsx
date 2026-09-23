@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -38,6 +40,8 @@ import {
   instantLisible,
   tonDuStatutDemande,
 } from "../presentation";
+
+export const metadata: Metadata = { title: t("demande.titre") };
 
 /**
  * LA FICHE D'UNE DEMANDE (DEMANDES-1) — et les quatre actions.

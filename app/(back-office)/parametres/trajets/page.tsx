@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -15,6 +17,8 @@ import {
 } from "@/lib/sites/trajet-zone";
 
 import { decompte } from "../../presentation";
+
+export const metadata: Metadata = { title: t("trajets.titre") };
 
 /**
  * L'ÉCRAN DE RÉGLAGE DES TEMPS DE TRAJET PAR ZONE (R3-03, D107).

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -39,6 +41,8 @@ import {
   semaineAffichee,
   versDateCivile,
 } from "./presentation";
+
+export const metadata: Metadata = { title: t("absences.titre") };
 
 /**
  * L'ÉCRAN DES BLOCAGES D'AGENDA (R3-14, RG-PLA-06).

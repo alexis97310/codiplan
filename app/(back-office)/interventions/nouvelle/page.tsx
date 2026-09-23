@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -22,6 +24,8 @@ import {
   MODES_VALORISATION,
 } from "@/lib/interventions/saisie";
 import { machinesDesSites } from "@/lib/machines/depot";
+
+export const metadata: Metadata = { title: t("planning.creer") };
 
 /**
  * CRÉER UNE INTERVENTION DEPUIS LE PLANNING (lot 2, D84).

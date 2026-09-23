@@ -11,7 +11,14 @@ import { variablesCss } from "@/lib/theme/variables";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: t("app.nom"),
+  // GABARIT DE TITRE — VISUEL-1 (23/09/2026). *Mesuré en production le 23/09 :
+  // `document.title` valait « CODIPLAN » sur /planning, /interventions,
+  // /clients, /parc et une fiche intervention — cinq onglets identiques,
+  // aucun moyen de s'y retrouver.* `template` compose « <titre de l'écran> —
+  // CODIPLAN » pour toute page qui pose son propre `metadata.title` (ou
+  // `generateMetadata`) ; `default` sert les seuls écrans qui n'en posent
+  // aucun, dont la racine « / ».
+  title: { template: t("app.gabarit_titre"), default: t("app.nom") },
   description: t("app.description"),
   // La couleur de la barre du système sur mobile. Elle vient du manifeste, et
   // de lui seul : *deux endroits où l'on écrit la couleur du produit finissent

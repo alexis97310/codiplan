@@ -43,7 +43,7 @@ import { ENTREES } from "@/lib/navigation/entrees";
 export default async function MiseEnPageBackOffice({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const { theme, initiales } = await chromeDeLaRequete();
+  const { theme, initiales, role } = await chromeDeLaRequete();
 
   return (
     <FournisseurNavigationMobile>
@@ -52,6 +52,7 @@ export default async function MiseEnPageBackOffice({
           theme={theme}
           initiales={initiales}
           entrees={ENTREES}
+          role={role}
           accueil="/planning"
         />
         <div className="min-w-0 flex-1">

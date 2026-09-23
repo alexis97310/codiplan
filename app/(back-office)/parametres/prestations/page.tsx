@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -11,6 +13,8 @@ import {
   type LignePrestation,
 } from "@/lib/prestations/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("prestations.titre") };
 
 /**
  * LE CATALOGUE DES PRESTATIONS (R3-15 ; D109, D113, L1-12).

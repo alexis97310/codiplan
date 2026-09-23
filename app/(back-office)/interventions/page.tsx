@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -48,6 +50,8 @@ import {
   optionToutesLesAgences,
   referenceAffichee,
 } from "./presentation";
+
+export const metadata: Metadata = { title: t("interventions.titre") };
 
 /**
  * L'ÉCRAN « INTERVENTIONS » — le REGISTRE, canonique (N-01, 16/09/2026).

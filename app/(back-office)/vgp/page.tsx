@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -26,6 +28,8 @@ import {
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+
+export const metadata: Metadata = { title: t("vgp.titre") };
 
 /**
  * LE REGISTRE DES VÉRIFICATIONS PÉRIODIQUES (L9-02, L9-03 ; D88, D125, D128).

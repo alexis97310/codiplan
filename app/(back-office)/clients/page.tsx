@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -37,6 +39,8 @@ import {
   referentClient,
   titreSansCode,
 } from "./presentation";
+
+export const metadata: Metadata = { title: t("client.titre") };
 
 /**
  * L'ÉCRAN « CLIENTS » — la liste et la recherche (14/09/2026, ticket L1-01

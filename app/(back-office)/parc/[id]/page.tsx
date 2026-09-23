@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
@@ -88,12 +91,41 @@ import { referenceAffichee } from "../../interventions/presentation";
 
 const ABSENT = "—";
 
+/**
+ * MÉMOÏSÉE PAR REQUÊTE (VISUEL-1, 23/09/2026) — voir le même commentaire sur
+ * `lireClientCache` dans `app/(back-office)/clients/[id]/page.tsx`.
+ */
+const lireMachineCache = cache(lireMachine);
+
+/** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/**
+ * LE TITRE D'ONGLET PORTE LE NOM DE LA MACHINE (VISUEL-1) — `bannerTitre`,
+ * plus bas dans ce fichier, est la MÊME fonction que la bannière de l'écran
+ * affiche déjà (marque + référence du modèle) : aucune seconde forme de nom
+ * n'est inventée pour l'onglet.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("machine.fiche.titre") };
+  }
+  const { id } = await params;
+  const machine = await lireMachineCache(session.contexte, id);
+  return { title: machine === null ? t("machine.fiche.titre") : bannerTitre(machine) };
+}
+
 export default async function PageMachine({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -103,7 +135,7 @@ export default async function PageMachine({
   const contexte = session.contexte;
 
   const { id } = await params;
-  const machine = await lireMachine(contexte, id);
+  const machine = await lireMachineCache(contexte, id);
   if (machine === null) {
     notFound();
   }

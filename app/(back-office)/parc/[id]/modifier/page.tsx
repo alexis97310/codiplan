@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -7,6 +9,8 @@ import { FormulaireMachine } from "@/components/parc/formulaire-machine";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
+
+export const metadata: Metadata = { title: t("machine.modifier.titre") };
 
 /**
  * CORRIGER UNE FICHE MACHINE (AT-07 bis — R6-03).

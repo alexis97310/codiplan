@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
@@ -20,6 +22,8 @@ import { schemaRechercheSite } from "@/lib/sites/saisie";
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import { agenceDuSite, ouTiret } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+
+export const metadata: Metadata = { title: mot("site", true) };
 
 /**
  * L'ÉCRAN « SITES » (L3-16, D75).

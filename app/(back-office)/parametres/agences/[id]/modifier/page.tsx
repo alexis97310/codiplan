@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -9,6 +11,8 @@ import { obtenirSession } from "@/lib/auth/session";
 import { lireAgence } from "@/lib/agences/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+
+export const metadata: Metadata = { title: t("agence.modifier.titre") };
 
 /**
  * MODIFIER UNE AGENCE (AGENCE-1).

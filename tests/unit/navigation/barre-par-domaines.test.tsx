@@ -105,14 +105,17 @@ describe("le domaine « Paramètres »", () => {
     ).toHaveAttribute("href", "/terrain");
   });
 
-  it("ses deux entrées encore inertes restent inertes — pas de lien, le motif au survol", () => {
+  // DEPUIS D132 (23/09/2026, VISUEL-1) : une entrée inerte n'est plus rendue
+  // DU TOUT, même sous sa forme éteinte — l'amendement de la doctrine
+  // « jamais absente », écrit dans `lib/navigation/entrees.ts` au-dessus de
+  // `entreesAffichables`. Mesuré en production le 23/09 : « Contrats » et
+  // « Console éditeur » n'ouvraient rien pour AUCUN rôle, et rester visibles
+  // n'aidait plus personne.
+  it("ses deux entrées encore inertes ont disparu — ni lien, ni texte éteint", () => {
     rendreLaBarre();
     for (const cle of ["nav.contrats", "nav.console_editeur"] as const) {
       expect(screen.queryByRole("link", { name: fr[cle] })).toBeNull();
-      expect(screen.getByText(fr[cle])).toHaveAttribute(
-        "title",
-        fr["nav.a_venir"],
-      );
+      expect(screen.queryByText(fr[cle])).toBeNull();
     }
   });
 });

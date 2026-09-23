@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,6 +23,8 @@ import { listerPlanning, type LignePlanning } from "@/lib/interventions/depot";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
+
+export const metadata: Metadata = { title: t("terrain.titre") };
 
 /**
  * LA JOURNÉE DU TECHNICIEN — le premier écran de l'application de terrain

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -11,6 +13,8 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
 import { LigneAgence } from "./composants";
+
+export const metadata: Metadata = { title: t("parametres.titre") };
 
 /**
  * L'ÉCRAN DE RÉGLAGE DES HORAIRES (lot 2, I7 ; repris en tableau par R2-05).

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -30,6 +32,8 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
 import { estExpiree } from "./presentation";
+
+export const metadata: Metadata = { title: t("equipe.titre") };
 
 /**
  * L'ÉQUIPE — créer, modifier et désactiver un technicien (ÉQUIPE-1).

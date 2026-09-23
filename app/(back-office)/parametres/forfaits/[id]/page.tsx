@@ -1,10 +1,14 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
 import { obtenirSession } from "@/lib/auth/session";
+import type { ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 
@@ -31,6 +35,51 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
  * d'activité — elle retire du CHOIX sans toucher au passé — et aucun bouton de
  * suppression n'existe nulle part.
  */
+
+/**
+ * LA MÊME LECTURE, FACTORISÉE POUR ÊTRE MÉMOÏSÉE (VISUEL-1, 23/09/2026) —
+ * cette fiche n'a pas de dépôt dédié comme `lireClient` ou `lireSite`, sa
+ * requête vivait directement dans le composant. `cache()` exige une fonction
+ * stable, appelée à l'identique par `generateMetadata` et par la page.
+ */
+const lireForfaitCache = cache(
+  async (contexte: ContexteSession, id: string) =>
+    avecContexteApplicatif(contexte, (tx) =>
+      tx.forfait.findFirst({
+        where: { id },
+        select: {
+          id: true,
+          code: true,
+          libelle: true,
+          type: true,
+          rang: true,
+          montant_mineur: true,
+          zone_geo: true,
+          cumulable_temps: true,
+          actif: true,
+        },
+      }),
+    ),
+);
+
+/** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/** LE TITRE D'ONGLET PORTE LE NOM DU FORFAIT (VISUEL-1). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("forfaits.titre") };
+  }
+  const { id } = await params;
+  const forfait = await lireForfaitCache(session.contexte, id);
+  return { title: forfait?.libelle ?? t("forfaits.titre") };
+}
+
 export default async function PageForfait({
   params,
   searchParams,
@@ -38,7 +87,7 @@ export default async function PageForfait({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -49,22 +98,7 @@ export default async function PageForfait({
   const { id } = await params;
   const motif = (await searchParams).motif;
 
-  const forfait = await avecContexteApplicatif(session.contexte, (tx) =>
-    tx.forfait.findFirst({
-      where: { id },
-      select: {
-        id: true,
-        code: true,
-        libelle: true,
-        type: true,
-        rang: true,
-        montant_mineur: true,
-        zone_geo: true,
-        cumulable_temps: true,
-        actif: true,
-      },
-    }),
-  );
+  const forfait = await lireForfaitCache(session.contexte, id);
   if (forfait === null) {
     notFound();
   }

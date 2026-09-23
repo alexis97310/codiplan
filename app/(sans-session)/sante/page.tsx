@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
+
 import { lireSante, type Decompte, type Reponse } from "@/lib/db/sante";
 import { t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("sante.titre") };
 
 /**
  * LA PAGE DE SANTÉ — sans compte, à la charte, et elle ne tombe jamais.

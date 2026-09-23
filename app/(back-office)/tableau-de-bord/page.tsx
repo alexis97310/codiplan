@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -45,6 +47,8 @@ import {
 } from "./presentation";
 
 const HORIZON_VGP_JOURS = 30;
+
+export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
 
 /**
  * LE TABLEAU DE BORD (AV-10, réécrit sous D125) — le premier écran de la

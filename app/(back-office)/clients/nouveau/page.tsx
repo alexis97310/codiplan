@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,6 +12,8 @@ import {
   libelleCodeExterneDeLaSociete,
 } from "@/lib/clients";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("clients.nouveau.titre") };
 
 /**
  * CRÉER UNE FICHE CLIENT (14/09/2026, L1-01 rouvert par R3-12).

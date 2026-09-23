@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -16,6 +18,8 @@ import {
   type LigneModele,
 } from "@/lib/materiel/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+
+export const metadata: Metadata = { title: t("materiel.titre") };
 
 /**
  * LE RÉFÉRENTIEL MATÉRIEL (L1-05b, AT-04 ; L1-05, D4 amendé, D6).

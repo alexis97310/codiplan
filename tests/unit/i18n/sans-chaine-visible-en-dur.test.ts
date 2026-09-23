@@ -280,7 +280,16 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         'variant="outline"',
         'variant="outline" title="Documentation"',
       ],
-      ["app/layout.tsx", 'title: t("app.nom")', 'title: "CODIPLAN"'],
+      [
+        // ANCRE MISE À JOUR (VISUEL-1, 23/09/2026) : `title` porte désormais
+        // un gabarit — `{ template, default }` — plutôt qu'une chaîne
+        // directe, depuis que chaque écran pose son propre titre d'onglet.
+        // Même greffe, au même endroit : `default` reste la valeur que ce
+        // fichier pose quand aucun écran n'en choisit une.
+        "app/layout.tsx",
+        'default: t("app.nom")',
+        'default: "CODIPLAN"',
+      ],
       [
         "components/theme/bandeau-societe.tsx",
         "{theme.nom}",

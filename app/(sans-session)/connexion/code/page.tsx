@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("connexion.code") };
 
 /**
  * PRÉSENTATION DU SECOND FACTEUR À LA CONNEXION (ticket L1-02f).

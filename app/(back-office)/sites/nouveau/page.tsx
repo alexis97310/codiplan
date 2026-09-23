@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
@@ -13,6 +15,8 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 
 import { libelleRattachement } from "../presentation";
+
+export const metadata: Metadata = { title: t("sites.creer") };
 
 /**
  * LA CRÉATION D'UN LIEU D'INTERVENTION (L3-16, D75).

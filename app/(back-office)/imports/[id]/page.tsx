@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -29,6 +31,8 @@ import {
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
 import { cleDuMotif, cleDuStatut, tonDuMotif } from "../types";
+
+export const metadata: Metadata = { title: t("imports.lot_titre") };
 
 /**
  * LE RAPPORT D'UN LOT — LA PREMIÈRE MOITIÉ DE I6, PUIS LA SECONDE (L1-11).

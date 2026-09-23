@@ -46,6 +46,12 @@ export const fr = {
   "app.nom": "CODIPLAN",
   "app.description":
     "Gestion des plannings d'intervention et du parc machines.",
+  // LE GABARIT DU TITRE D'ONGLET (VISUEL-1, 23/09/2026) — `%s` est le
+  // marqueur que Next.js remplace par le titre de CHAQUE écran
+  // (`app/layout.tsx`, `metadata.title.template`). Une chaîne entière plutôt
+  // que « — » seul : la ponctuation autour du gabarit est un texte lu à
+  // l'écran (l'onglet du navigateur) comme n'importe quel autre.
+  "app.gabarit_titre": "%s — CODIPLAN",
   // LE GLYPHE DE LA LOUPE (N-12) — `components/ui/barre-de-filtres.tsx`,
   // partagé par `/parc` et `/clients`. Décoratif (`aria-hidden`), mais un
   // caractère RENDU à l'écran reste un texte que L0-11 fait passer par ici :
@@ -594,10 +600,15 @@ export const fr = {
   // CORRIGÉ le 16/09/2026 : la dépendance d'écriture manquante a été le motif
   // jusqu'à l'adoption de `write-excel-file` (RG-IMP-03, voir le fichier des
   // rejets) — la répéter ici mentirait désormais. Ce qui reste dû est de
-  // produire les sept modèles eux-mêmes (L1-09), pas la dépendance qu'ils
+  // produire les sept modèles eux-mêmes, pas la dépendance qu'ils
   // demandaient.
+  //
+  // RÉÉCRIT le 23/09/2026 (VISUEL-1) : la phrase nommait un ticket interne
+  // (« L1-09 ») sans aucune valeur pour la personne qui la lit à l'écran —
+  // fuite mesurée en production. Le motif utile pour un exploitant est qu'il
+  // n'y a rien à faire de son côté, et que ce n'est pas oublié.
   "imports.modele_indisponible_motif":
-    "Indisponible : produire les modèles eux-mêmes reste à écrire (L1-09). La bibliothèque d'écriture .xlsx qu'ils demandaient est en place depuis le fichier des rejets (RG-IMP-03).",
+    "Le modèle à télécharger n'est pas encore disponible pour ce type d'import.",
 
   // LES TYPES, ET CE QU'ON PEUT EN FAIRE AUJOURD'HUI. *Un écran qui accepterait
   // un fichier de contacts en montrerait le rapport et ne saurait rien en
@@ -1779,8 +1790,10 @@ export const fr = {
   "vgp.origine_saisie.declaration_client": "Déclaration du client",
   "vgp.vide":
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
+  // R\u00c9\u00c9CRIT le 23/09/2026 (VISUEL-1) : la r\u00e9f\u00e9rence de ticket entre
+  // parenth\u00e8ses ne disait rien \u00e0 l'exploitant qui la lisait \u00e0 l'\u00e9cran.
   "vgp.borne":
-    "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance viennent avec la campagne dat\u00e9e (L9-08).",
+    "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance ne sont pas encore disponibles.",
   // LE FILTRE `?etat=depassees` (TABLEAU-1, 23/09/2026) \u2014 que la tuile du
   // tableau de bord ouvre plut\u00f4t que le registre nu.
   "vgp.filtre_depassees_actif":
@@ -1932,7 +1945,7 @@ export const fr = {
   "machine.documents.vide":
     "Aucun document n'est rattach\u00e9 \u00e0 cette machine ni \u00e0 son mod\u00e8le.",
   "machine.documents.sans_octets":
-    "Les fiches sont en base ; les octets attendent le stockage d'objets, qui n'a pas encore d'appelant (L8-05).",
+    "Le téléchargement des fichiers n'est pas encore disponible ; les documents listés ci-dessus sont bien enregistrés.",
   // ── CRÉER ET CORRIGER UNE MACHINE (AT-07 bis, 18/09/2026) ────────────────
   //
   // Le parc était MONTRÉ, jamais GÉRÉ : aucune route n'écrivait une fiche
@@ -2172,8 +2185,10 @@ export const fr = {
     "sans technicien disponible aujourd'hui.",
   "absences.kpi_demandes_a_valider": "Demandes à valider",
   "absences.kpi_demandes_a_valider_valeur": "Sans objet",
+  // RÉÉCRIT le 23/09/2026 (VISUEL-1) : la référence de ticket entre
+  // parenthèses ne disait rien à l'exploitant qui la lisait à l'écran.
   "absences.kpi_demandes_a_valider_motif":
-    "Le blocage est immédiat (R3-14) : il n'existe aucune file de validation à afficher.",
+    "Le blocage est immédiat : il n'existe aucune file de validation à afficher.",
   "absences.calendrier_precedente": "‹",
   "absences.calendrier_aujourdhui": "Aujourd'hui",
   "absences.calendrier_suivante": "›",

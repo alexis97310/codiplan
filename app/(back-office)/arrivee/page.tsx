@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -15,6 +17,8 @@ import {
 } from "@/lib/interventions/perimetre-technicien";
 
 import { Choix } from "./composants";
+
+export const metadata: Metadata = { title: t("arrivee.titre") };
 
 /**
  * PAGE D'ARRIVÉE (ticket L1-02f) — qui vous êtes, pour quelle société.

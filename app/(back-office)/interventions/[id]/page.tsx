@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
@@ -93,6 +96,40 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * (RG-INT-01 : aucune machine rattachée signifie le site entier, jamais un
  * oubli d'écran).
  */
+
+/**
+ * MÉMOÏSÉES PAR REQUÊTE (VISUEL-1, 23/09/2026) — voir le même commentaire sur
+ * `lireClientCache` dans `app/(back-office)/clients/[id]/page.tsx`. La
+ * session est mémoïsée pour la même raison : sans elle, `contexte` serait un
+ * objet différent à chaque appel de `obtenirSession`, et `lireFicheCache` ne
+ * dédoublonnerait rien.
+ */
+const lireFicheCache = cache(lireFicheIntervention);
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/**
+ * LE TITRE D'ONGLET PORTE LA RÉFÉRENCE DE L'INTERVENTION (VISUEL-1) — la
+ * MÊME forme que le `<h1>` affiche déjà, `referenceAffichee(ligne)`.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("intervention.titre") };
+  }
+  const { id } = await params;
+  const fiche = await lireFicheCache(session.contexte, id);
+  if (fiche === null) {
+    return { title: t("intervention.titre") };
+  }
+  return {
+    title: `${t("intervention.titre")} ${referenceAffichee(fiche.ligne)}`,
+  };
+}
+
 export default async function PageIntervention({
   params,
   searchParams,
@@ -100,7 +137,7 @@ export default async function PageIntervention({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -115,7 +152,7 @@ export default async function PageIntervention({
   // libre : voir `retourFiche` dans `../presentation.ts`.
   const depuis = parametres.depuis;
   const depuisId = parametres.depuis_id;
-  const fiche = await lireFicheIntervention(session.contexte, id);
+  const fiche = await lireFicheCache(session.contexte, id);
   if (fiche === null) {
     // Hors périmètre et inexistante rendent LA MÊME chose : les distinguer
     // ferait un oracle (D35, D50).

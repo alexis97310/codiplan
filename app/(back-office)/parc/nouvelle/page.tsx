@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,6 +19,8 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { listerLesFamilles, listerLesModeles } from "@/lib/materiel/depot";
 import { rechercherSites } from "@/lib/sites/depot";
 import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
+
+export const metadata: Metadata = { title: t("machine.nouvelle.titre") };
 
 /**
  * CRÉER UNE FICHE MACHINE (AT-07 bis — R6-03, blocage n°1 du domaine).

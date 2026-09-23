@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
+
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("connexion.titre") };
 
 /**
  * PAGE DE CONNEXION (ticket L1-02f) — le premier écran du produit.

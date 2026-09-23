@@ -1,3 +1,5 @@
+import { peut, type Capacite } from "@/lib/auth/habilitations";
+import type { Role } from "@/lib/auth/roles";
 import type { CleTraduction } from "@/lib/i18n/fr";
 
 /**
@@ -39,6 +41,19 @@ import type { CleTraduction } from "@/lib/i18n/fr";
  * portail n'a aucune ligne dans `utilisateur_societe` (D10), et la route le
  * refuse. Le jour où la barre sera servie par rôle, ce sera une décision, pas
  * un effet de bord.*
+ *
+ * **CE JOUR EST ARRIVÉ, ET C'EST UNE DÉCISION — D132 (23/09/2026, VISUEL-1).**
+ * Mesuré en production le 23/09 sur un compte `admin_societe` : « Portail
+ * client » mène à une page « réservée aux clients », « Console éditeur » est
+ * inerte. La barre RESTE un catalogue, jamais un contrôle — la politique de
+ * cloisonnement et le garde de la route refusent toujours, indépendamment de
+ * ce qui s'affiche ici —, mais un exploitant qui ne peut RIEN faire d'une
+ * destination n'a plus besoin de la voir pour l'apprendre : `peutPleinement`
+ * ou `peut` n'ouvrent jamais rien de plus, ils décident seulement ce que
+ * `entreesAffichables` ci-dessous laisse passer. Et une entrée INERTE — la
+ * moitié de ce paragraphe, `chemin: null` — n'a plus jamais sa place devant un
+ * exploitant : voir `entreesAffichables`, et `docs/arbitrages.md` (D132) pour
+ * le motif complet et sa condition de réouverture.
  *
  * ## Et ce que cette barre N'EST PAS non plus : celle du portail
  *
@@ -426,4 +441,89 @@ export function groupeDe(
     }
   }
   return null;
+}
+
+/**
+ * LA CAPACITÉ QUI OUVRE CHAQUE DESTINATION — D132 (23/09/2026, VISUEL-1).
+ *
+ * **Une seule liste, jamais une seconde matrice de rôles.** Elle nomme une
+ * CAPACITÉ de `lib/auth/habilitations.ts`, jamais un rôle : c'est la matrice
+ * du §5.2 qui décide qui a cette capacité, ici comme partout ailleurs — écrire
+ * les rôles une seconde fois serait la faute que ce fichier refuse déjà pour
+ * le vocabulaire imposé.
+ *
+ * **Absente d'ici, une destination reste visible à quiconque a un rôle.**
+ * C'est le cas de `nav.contrats` et `nav.console_editeur` : toutes deux INERTES
+ * (`chemin: null`), `entreesAffichables` les retire avant même de consulter
+ * cette table — une capacité pour une destination qui n'existe pas encore
+ * n'aurait aucun sens à choisir.
+ *
+ * Le choix de CHAQUE ligne, en une phrase : la capacité qui gouverne l'ÉCRAN
+ * que la destination ouvre, jamais une action qu'on y accomplit accessoirement
+ * — `nav.parc_machines` et `nav.vgp` lisent tous deux `consulter_parc_complet`
+ * (la vue), pas `gerer_machine` ni `enregistrer_vgp` (l'écriture, réservée à
+ * l'écran lui-même). `nav.portail_client` lit `consulter_parc_propre` — la
+ * seule ligne de la matrice qui appartienne au rôle `client` — précisément
+ * parce que c'est la fuite mesurée le 23/09 : un compte interne n'a jamais
+ * cette capacité, l'entrée disparaît donc pour lui, sans qu'aucun rôle ne soit
+ * nommé ici.
+ */
+const CAPACITE_REQUISE: Partial<Record<CleTraduction, Capacite>> = {
+  "nav.tableau_de_bord": "consulter_planning",
+  "nav.planning": "consulter_planning",
+  "nav.interventions": "consulter_planning",
+  "nav.absences": "consulter_planning",
+  "nav.clients": "gerer_client_site",
+  "vocabulaire.site.pluriel": "gerer_client_site",
+  "nav.parc_machines": "consulter_parc_complet",
+  "nav.vgp": "consulter_parc_complet",
+  "nav.portail_client": "consulter_parc_propre",
+  "nav.societes_tarifs": "parametrer_societe",
+  "nav.imports_excel": "importer_exporter",
+  "nav.app_technicien": "saisir_rapport",
+};
+
+/**
+ * LES ENTRÉES QU'UN RÔLE PEUT RÉELLEMENT VOIR — D132.
+ *
+ * Deux filtres, indépendants l'un de l'autre :
+ *   1. INERTE (`chemin: null`) — retirée TOUJOURS, quel que soit `role`, y
+ *      compris `undefined`. Ce n'est pas une question de droit, c'est que
+ *      l'écran n'existe pas encore.
+ *   2. CAPACITÉ — retirée seulement quand `role` est connu (`Role` ou `null`,
+ *      jamais `undefined`) ET que `CAPACITE_REQUISE` nomme une capacité que ce
+ *      rôle n'a pas. `role === undefined` désactive ce second filtre : les
+ *      barres du portail et du terrain, dont les appelants ne passent aucun
+ *      rôle, gardent leur comportement d'avant D132.
+ *
+ * Un groupe dont tous les enfants tombent disparaît avec eux — un titre de
+ * domaine sans rien dessous n'a rien à surtitrer.
+ */
+export function entreesAffichables(
+  entrees: readonly EntreeDeBarre[],
+  role: Role | null | undefined,
+): readonly EntreeDeBarre[] {
+  const visible = (entree: EntreeNavigation): boolean => {
+    if (entree.chemin === null) {
+      return false;
+    }
+    if (role === undefined) {
+      return true;
+    }
+    const capacite = CAPACITE_REQUISE[entree.cle];
+    return capacite === undefined || (role !== null && peut(role, capacite));
+  };
+
+  const resultat: EntreeDeBarre[] = [];
+  for (const entree of entrees) {
+    if (estGroupe(entree)) {
+      const enfants = entree.enfants.filter(visible);
+      if (enfants.length > 0) {
+        resultat.push({ cle: entree.cle, enfants });
+      }
+    } else if (visible(entree)) {
+      resultat.push(entree);
+    }
+  }
+  return resultat;
 }

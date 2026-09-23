@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
@@ -6,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
+import type { ContexteSession } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { contactsDuSite } from "@/lib/contacts/depot";
@@ -90,6 +94,32 @@ import { libelleRattachement } from "../presentation";
 /** Combien d'interventions la fiche montre. Une borne d'affichage, jamais un cloisonnement. */
 const INTERVENTIONS_MONTREES = 12;
 
+/**
+ * MÉMOÏSÉE PAR REQUÊTE (VISUEL-1, 23/09/2026) — voir le même commentaire sur
+ * `lireClientCache` dans `app/(back-office)/clients/[id]/page.tsx`.
+ */
+const lireSiteCache = cache((contexte: ContexteSession, id: string) =>
+  lireSite(contexte, id),
+);
+
+/** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/** LE TITRE D'ONGLET PORTE LE NOM DU LIEU (VISUEL-1) — voir `clients/[id]`. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("vocabulaire.site.pluriel") };
+  }
+  const { id } = await params;
+  const site = await lireSiteCache(session.contexte, id);
+  return { title: site?.libelle ?? t("vocabulaire.site.pluriel") };
+}
+
 export default async function PageSite({
   params,
   searchParams,
@@ -97,7 +127,7 @@ export default async function PageSite({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -107,7 +137,7 @@ export default async function PageSite({
 
   const { id } = await params;
   const motif = (await searchParams).motif;
-  const site = await lireSite(session.contexte, id);
+  const site = await lireSiteCache(session.contexte, id);
   if (site === null) {
     notFound();
   }

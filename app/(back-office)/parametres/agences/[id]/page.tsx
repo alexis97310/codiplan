@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
@@ -52,6 +55,37 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  * semaine dernière. *Rien n'est matérialisé, donc l'effet rétroactif n'est pas
  * empêchable ici — et le travail est de le DIRE là où le réglage se fait.*
  */
+
+/** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/**
+ * LE TITRE D'ONGLET PORTE LE NOM DU CALENDRIER (VISUEL-1) — UNE LECTURE
+ * BORNÉE, jamais la transaction complète de la page (plages, agences) : ce
+ * que l'onglet affiche n'a besoin que du libellé, `titreDuCalendrier`
+ * appliquant la même mise en forme que le `<h1>`.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("parametres.titre") };
+  }
+  const { id: calendrierId } = await params;
+  const parametrage = await avecContexteApplicatif(session.contexte, (tx) =>
+    lireParametrage(tx, calendrierId),
+  );
+  return {
+    title:
+      parametrage === null
+        ? t("parametres.titre")
+        : titreDuCalendrier(parametrage.libelle),
+  };
+}
+
 export default async function PageCalendrier({
   params,
   searchParams,
@@ -59,7 +93,7 @@ export default async function PageCalendrier({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }

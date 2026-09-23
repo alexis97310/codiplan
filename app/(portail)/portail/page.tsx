@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -17,6 +19,8 @@ import {
   siteDeLaMachine,
   titreDesSites,
 } from "./presentation";
+
+export const metadata: Metadata = { title: t("portail.titre") };
 
 /**
  * LE PORTAIL CLIENT — CONSULTATION SEULE (ticket L2-12, D92).

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,6 +9,8 @@ import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
 import { famillesADeterminer } from "@/lib/vgp/registre";
+
+export const metadata: Metadata = { title: t("vgp.indetermines.titre") };
 
 /**
  * LES FAMILLES « À DÉTERMINER » — LA MOITIÉ DÉTECTIVE DE L9-03 (D88 §3).

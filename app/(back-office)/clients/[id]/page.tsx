@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
@@ -111,6 +114,44 @@ const INTERVENTIONS_PAR_PAGE = 12;
 /** `page` — un entier d'au moins 1 ; toute valeur absente ou invalide retombe sur la première. */
 const schemaPage = z.coerce.number().int().min(1).catch(1);
 
+/**
+ * MÉMOÏSÉE PAR REQUÊTE (VISUEL-1, 23/09/2026) — `generateMetadata` et la page
+ * elle-même lisent tous deux la même fiche ; `cache()` de React fait que Next
+ * ne l'interroge qu'une fois par rendu, exactement comme `chromeDeLaRequete`
+ * (`lib/navigation/chrome.ts`) le fait déjà pour la session.
+ */
+const lireClientCache = cache(lireClient);
+
+/**
+ * MÊME MÉMOÏSATION, POUR LA SESSION ELLE-MÊME — sans elle, `lireClientCache`
+ * ne dédoublonnerait rien : `generateMetadata` et la page appelleraient
+ * chacun `obtenirSession` séparément, et `contexte` serait un objet DIFFÉRENT
+ * à chaque appel, ce qui casse la mémoïsation par égalité d'arguments de
+ * `cache()`.
+ */
+const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/**
+ * LE TITRE D'ONGLET PORTE LE NOM DU CLIENT (VISUEL-1) — *mesuré en
+ * production le 23/09 : `document.title` valait « CODIPLAN » sur une fiche
+ * client comme sur toutes les autres.* Une fiche inexistante ou hors
+ * périmètre retombe sur le titre générique de la liste : `generateMetadata`
+ * ne doit jamais lever, et `notFound()` reste le geste de la page elle-même.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const session = await sessionCache();
+  if (session === null || session.contexte.societeId === null) {
+    return { title: t("client.titre") };
+  }
+  const { id } = await params;
+  const client = await lireClientCache(session.contexte, id);
+  return { title: client?.raison_sociale ?? t("client.titre") };
+}
+
 export default async function PageClient({
   params,
   searchParams,
@@ -118,7 +159,7 @@ export default async function PageClient({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await obtenirSession(await headers());
+  const session = await sessionCache();
   if (session === null) {
     redirect("/connexion");
   }
@@ -129,7 +170,7 @@ export default async function PageClient({
   const { id } = await params;
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
-  const client = await lireClient(session.contexte, id);
+  const client = await lireClientCache(session.contexte, id);
   if (client === null) {
     notFound();
   }

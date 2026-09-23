@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -5,6 +7,8 @@ import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
+
+export const metadata: Metadata = { title: t("parametres.societe_titre") };
 
 /**
  * L'ÉCRAN « CHARTE DE LA SOCIÉTÉ » (N-02, arbitrage du 16/09/2026).

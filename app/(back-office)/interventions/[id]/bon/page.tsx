@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
+
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
 import { exigerCapacite } from "@/lib/auth/porte";
@@ -57,18 +60,48 @@ import {
  * remplace par cette seule absence, jamais par un montant qu'on ne peut plus
  * justifier.
  */
+
+/**
+ * MÉMOÏSÉES PAR REQUÊTE (VISUEL-1, 23/09/2026) — voir le même commentaire sur
+ * `lireClientCache` dans `app/(back-office)/clients/[id]/page.tsx`. Ici c'est
+ * `exigerCapacite` elle-même qui est mémoïsée : un seul argument stable
+ * (`"consulter_planning"`), donc une seule lecture de session par rendu.
+ */
+const exigerCapaciteCache = cache(exigerCapacite);
+const lireBonCache = cache(lireBonIntervention);
+
+/** LE TITRE D'ONGLET PORTE LA RÉFÉRENCE DE L'INTERVENTION (VISUEL-1). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const contexte = await exigerCapaciteCache("consulter_planning");
+  if (contexte === null) {
+    return { title: t("intervention.bon.titre") };
+  }
+  const { id } = await params;
+  const bon = await lireBonCache(contexte, id);
+  if (bon === null) {
+    return { title: t("intervention.bon.titre") };
+  }
+  return {
+    title: `${t("intervention.bon.titre")} ${referenceAffichee(bon.ligne)}`,
+  };
+}
+
 export default async function PageBonIntervention({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const contexte = await exigerCapacite("consulter_planning");
+  const contexte = await exigerCapaciteCache("consulter_planning");
   if (contexte === null) {
     redirect(`/interventions/${id}?motif=intervention.bon.refus.acces`);
   }
 
-  const bon = await lireBonIntervention(contexte, id);
+  const bon = await lireBonCache(contexte, id);
   if (bon === null) {
     // Hors périmètre et inexistante rendent LA MÊME chose (D35, D50) — même
     // traitement que la fiche.

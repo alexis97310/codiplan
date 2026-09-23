@@ -4825,3 +4825,37 @@ Aucune migration, aucune politique RLS : c'est une question d'autorisation à l'
 > Le jour où l'exploitation distingue « suspendre » de « reprendre » (aujourd'hui une seule capacité, `suspendre_reprendre_intervention`), ou demande qu'un technicien retiré d'une intervention EN COURS garde la main dessus, cette page se rouvre plutôt que d'être contournée dans le code.
 
 **Règles amendées :** la ligne « Clôturer une intervention » du §5.2 (le `○` du technicien, retiré par l'arbitrage 3.17, est rétabli mais scopé) ; trois lignes ajoutées au §5.2, absentes du cahier des charges d'origine : « Annuler une intervention », « Suspendre / reprendre une intervention », « Enregistrer une vérification VGP ».
+
+## D132 — LA BARRE DU BACK-OFFICE NE MONTRE PLUS CE QU'ON NE PEUT PAS OUVRIR
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 23/09/2026, ticket VISUEL-1, en réponse à l'audit Codex du même jour sur un compte `admin_societe`.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `main`, en production, avec un compte `admin_societe` :
+
+- « Contrats » et « Console éditeur » sont rendues, visiblement éteintes — c'est le comportement voulu par `lib/navigation/entrees.ts` depuis sa naissance : *« une entrée dont l'écran n'existe pas est INERTE, jamais absente »*. Mesuré : ni l'une ni l'autre ne s'ouvre pour AUCUN rôle existant, y compris celui qui administre toute la société.
+- « Portail client » est un lien qui fonctionne — il mène à `/portail` — et rend une page « réservée aux clients » pour un compte interne : la route refuse, comme `lib/navigation/entrees.ts` le documente déjà et l'assume (*« un compte interne ne peut pas l'ouvrir »*).
+- « App technicien » redirige silencieusement un rôle à accès complet vers `/planning`, sans qu'aucun texte ne dise pourquoi le clic n'a pas mené là où l'entrée l'annonçait.
+
+Trois symptômes, une seule cause : la barre a été conçue comme un CATALOGUE de ce que le produit contient, jamais comme une liste de ce qu'un exploitant PEUT faire — un choix assumé et écrit trois fois dans `lib/navigation/entrees.ts` (« Ce n'est pas un contrôle d'accès »). Le catalogue reste honnête sur ce que le produit est ; il devient trompeur au moment où quelqu'un clique.
+
+### LA DÉCISION
+
+**La doctrine « une entrée inerte n'est jamais absente » est AMENDÉE, pour la seule barre du back-office.** Elle continue de valoir pour la LISTE `ENTREES` elle-même — `docs/maquette/codiplan-maquette-complete.html` fait toujours foi sur les quatorze destinations et leur ordre (D121), et le gardien `tests/unit/navigation/entrees.test.ts` continue de les confronter telles quelles. Ce qui change est le RENDU : une entrée inerte (`chemin: null`) n'est plus affichée à l'exploitant, quel que soit son rôle. « Contrats » et « Console éditeur » disparaissent donc de la colonne jusqu'à ce que leur lot (4 et 7 respectivement) les rende réelles — à ce moment-là, `chemin` cesse d'être `null` et elles réapparaissent d'elles-mêmes, sans qu'aucune ligne de ce mécanisme ne bouge.
+
+**En plus de cela, la barre du back-office filtre désormais ses entrées réelles par CAPACITÉ du rôle courant.** `lib/navigation/entrees.ts` porte une table, `CAPACITE_REQUISE`, qui associe à certaines destinations la capacité de `lib/auth/habilitations.ts` (§5.2) qui les gouverne — jamais un rôle nommé en dur, jamais une seconde matrice. « Portail client » exige `consulter_parc_propre`, la seule ligne de la matrice qui appartienne au rôle `client` : un compte interne, qui ne l'a jamais, ne la voit plus. « App technicien » exige `saisir_rapport` : un rôle qui ne l'a pas ne voit plus une entrée qui le renverrait ailleurs sans explication.
+
+**Ce n'est toujours PAS un contrôle d'accès, et ça ne le devient pas.** La politique de cloisonnement et le garde de chaque route continuent de trancher seuls ce qu'une requête a le droit de faire ; masquer une entrée ne retire ni n'accorde rien — ça retire seulement une INVITATION à cliquer sur ce qui refusera de toute façon. Si la matrice change demain, c'est elle qui fait bouger la barre : il n'y a qu'une seule lecture du critère.
+
+**Conséquence pour `admin_societe` (le rôle mesuré) :** il garde toutes les destinations pour lesquelles il a une capacité — Tableau de bord, Planning, Interventions, Absences, Clients, Sites, Parc machines, VGP, Sociétés & tarifs, Imports Excel, App technicien (il a `saisir_rapport`) — et perd « Portail client » (pas de `consulter_parc_propre`), « Contrats » et « Console éditeur » (inertes).
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune route, aucune politique RLS, aucune ligne de `lib/auth/habilitations.ts` : la matrice du §5.2 n'est pas amendée, elle est seulement LUE une fois de plus, par un nouvel appelant. `ENTREES`, `ENTREES_PORTAIL` et `ENTREES_TERRAIN` restent inchangées — ce sont des données, confrontées à la maquette ; seul ce qu'un rendu du back-office en tire peut désormais varier.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une entrée aujourd'hui masquée (« Contrats », « Console éditeur ») livre son écran, `chemin` cesse d'être `null` dans `lib/navigation/entrees.ts` et elle réapparaît sans qu'aucune ligne de ce mécanisme ne bouge — rien à rouvrir ici. Le jour où l'exploitation veut qu'un rôle PRÉVISUALISE une destination qu'il ne peut pas utiliser (par exemple un `admin_societe` qui voudrait voir « Portail client » sans pouvoir l'ouvrir), cette page se rouvre plutôt que d'être contournée dans le code.
+
+**Règles amendées :** aucune règle du chapitre 10. La doctrine de `lib/navigation/entrees.ts` (« une entrée inerte n'est jamais absente ») est amendée pour le seul rendu de la barre du back-office, comme écrit ci-dessus.

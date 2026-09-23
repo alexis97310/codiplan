@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -5,6 +7,8 @@ import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { preparationDeLUrl } from "@/lib/auth/enrolement";
 import { t } from "@/lib/i18n/fr";
+
+export const metadata: Metadata = { title: t("enrolement.titre") };
 
 /**
  * PARCOURS D'ENRÔLEMENT DU SECOND FACTEUR (ticket L1-02f, décision D58).

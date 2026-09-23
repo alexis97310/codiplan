@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -24,6 +26,8 @@ import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { listerLesPrestations } from "@/lib/prestations/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
+
+export const metadata: Metadata = { title: t("terrain.titre") };
 
 /**
  * UNE INTERVENTION, VUE DU TERRAIN — et son compteur (R5-01, R5-02, D119).

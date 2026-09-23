@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,6 +16,8 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { instantLisible, nomDeLAuteur } from "./presentation";
 import { cleDuStatut, titreDuType, TYPES_DIMPORT } from "./types";
+
+export const metadata: Metadata = { title: t("imports.titre") };
 
 /**
  * L'ÉCRAN « IMPORTS EXCEL » (L1-11 ; I6, RG-IMP-01 à 05, D31, D54, D90, D100).

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -16,6 +18,8 @@ import {
   TYPES_FORFAIT,
   type TypeForfait,
 } from "@/lib/tarification/forfaits";
+
+export const metadata: Metadata = { title: t("forfaits.titre") };
 
 /**
  * L'ÉCRAN QUI MONTRE, POUR UNE ZONE DONNÉE, QUELS FORFAITS S'APPLIQUENT ET
