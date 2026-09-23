@@ -63,6 +63,10 @@ function squelette(id: string) {
     agence_id: AGENCE_A,
     type: "curatif" as const,
     statut: "planifiee" as const,
+    // `duree_estimee_min` EST POSÉE (PARCOURS-1, 23/09/2026) —
+    // `intervention_planifiee_a_sa_duree` l'exige désormais pour
+    // `planifiee`, fixtures comprises.
+    duree_estimee_min: 60,
   };
 }
 

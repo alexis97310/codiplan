@@ -100,9 +100,11 @@ beforeAll(async () => {
   );
   for (let rang = 0; rang < NOMBRE_D_INTERVENTIONS; rang += 1) {
     await clientOwner().$executeRawUnsafe(
+      // `duree_estimee_min` EST POSÉE (PARCOURS-1, 23/09/2026) quand le rang
+      // est `planifiee` — `intervention_planifiee_a_sa_duree` l'exige.
       `INSERT INTO "intervention"
-         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "modifie_le")
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', $7::"StatutIntervention", NULL, $6::date, now())
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', $7::"StatutIntervention", NULL, $6::date, $8::int, now())
        ON CONFLICT ("id") DO NOTHING`,
       idIntervention(rang),
       SOCIETE_A,
@@ -114,6 +116,7 @@ beforeAll(async () => {
       // dans le futur est planifiée. Le statut suit la date, comme en
       // exploitation.
       dateDuRang(rang) === null ? "a_planifier" : "planifiee",
+      dateDuRang(rang) === null ? null : 60,
     );
   }
 });

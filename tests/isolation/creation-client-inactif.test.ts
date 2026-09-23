@@ -110,6 +110,7 @@ function saisie(clientId: string, siteId: string) {
     client_id: clientId,
     site_id: siteId,
     type: "curatif",
+    description: "Panne épreuve",
   });
 }
 

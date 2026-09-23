@@ -166,6 +166,13 @@ afterAll(fermerClients);
 
 describe("la chaîne : planning → sites → cascade → charge", () => {
   it("une journée à UN site compte l'aller ET le retour", async () => {
+    // LES MINUTES ENGAGÉES SE MESURENT EN DELTA, PAS EN ABSOLU (PARCOURS-1,
+    // 23/09/2026) — `minutesEngagees` porte TOUT le travail non terminé du
+    // technicien, y compris la file d'attente SANS DATE (`INTERVENTION_A1`,
+    // fixture partagée) : `beforeEach` ne la purge pas, sa date étant
+    // `NULL` et non comprise entre `JOUR` et `JOUR_SUIVANT`. Un delta reste
+    // vrai quelle que soit la durée que cette fixture partagée porte.
+    const avant = await charge();
     await poser({
       site: SITE_A1_S1,
       client: CLIENT_A1,
@@ -178,7 +185,7 @@ describe("la chaîne : planning → sites → cascade → charge", () => {
     expect(mesure.journees).toBe(1);
     expect(mesure.journeesSansTrajet).toBe(0);
     // TÉMOIN : le temps d'intervention est compté À PART, et non absorbé.
-    expect(mesure.engagees).toBe(60);
+    expect(mesure.engagees - avant.engagees).toBe(60);
   });
 
   it("une journée à DEUX sites compte UN aller et UN retour, jamais deux", async () => {
@@ -358,6 +365,10 @@ describe("la cascade traverse la chaîne — défaut, puis réglage de la socié
 
 describe("la FILE D'ATTENTE n'a pas de trajet", () => {
   it("une intervention non datée ne compte ni minute ni journée inconnue", async () => {
+    // DELTA, PAS ABSOLU — voir la note du scénario voisin : la fixture
+    // partagée `INTERVENTION_A1`, elle aussi sans date, contribue déjà aux
+    // minutes engagées de ce même technicien.
+    const avant = await charge();
     const id = uuidv7();
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
@@ -379,6 +390,6 @@ describe("la FILE D'ATTENTE n'a pas de trajet", () => {
     expect(mesure.trajetMin).toBe(0);
     expect(mesure.journees).toBe(0);
     expect(mesure.journeesSansTrajet).toBe(0);
-    expect(mesure.engagees).toBe(45);
+    expect(mesure.engagees - avant.engagees).toBe(45);
   });
 });

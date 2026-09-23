@@ -84,12 +84,17 @@ export async function planifierLObservation(
         return { refus: "observation_deja_planifiee" };
       }
 
+      // LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ (PARCOURS-1, 23/09/2026) —
+      // OBLIGATOIRE depuis l'arbitrage du 23/09/2026, et ce module n'a rien
+      // qu'on lui ait DIT : il compose le texte depuis le libellé de
+      // l'observation, la seule chose que L9-10 lui donne à dire.
       const saisie = schemaCreation.parse({
         id: interventionId,
         client_id: demande.clientId,
         site_id: demande.siteId,
         machine_ids: [demande.machineId],
         type: "controle_reglementaire",
+        description: `Observation VGP : ${observation.libelle}`,
       });
       const pose = await creerIntervention(contexte, saisie, client);
       if (!pose.accepte) {

@@ -363,7 +363,7 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
           `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
            VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${MACHINE_A3}', now())`,
         ),
-      ).rejects.toThrow(/intervention_machine_intervention_id_key/);
+      ).rejects.toThrow(/Key \(intervention_id\)=.*already exists/);
     });
   });
 
