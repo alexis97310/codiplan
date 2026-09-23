@@ -84,7 +84,9 @@ describe("aucune référence de ticket ou d'invariant dans le glossaire (VISUEL-
 
   it("aucune valeur du glossaire ne porte une référence interne, hors exemption nommée", () => {
     const fautives = Object.entries(fr)
-      .filter(([cle, valeur]) => porteUneReference(valeur) && !(cle in EXEMPTIONS))
+      .filter(
+        ([cle, valeur]) => porteUneReference(valeur) && !(cle in EXEMPTIONS),
+      )
       .map(([cle, valeur]) => `${cle} → ${valeur}`);
     expect(fautives).toEqual([]);
   });

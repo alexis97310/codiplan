@@ -42,24 +42,23 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
  * requête vivait directement dans le composant. `cache()` exige une fonction
  * stable, appelée à l'identique par `generateMetadata` et par la page.
  */
-const lireForfaitCache = cache(
-  async (contexte: ContexteSession, id: string) =>
-    avecContexteApplicatif(contexte, (tx) =>
-      tx.forfait.findFirst({
-        where: { id },
-        select: {
-          id: true,
-          code: true,
-          libelle: true,
-          type: true,
-          rang: true,
-          montant_mineur: true,
-          zone_geo: true,
-          cumulable_temps: true,
-          actif: true,
-        },
-      }),
-    ),
+const lireForfaitCache = cache(async (contexte: ContexteSession, id: string) =>
+  avecContexteApplicatif(contexte, (tx) =>
+    tx.forfait.findFirst({
+      where: { id },
+      select: {
+        id: true,
+        code: true,
+        libelle: true,
+        type: true,
+        rang: true,
+        montant_mineur: true,
+        zone_geo: true,
+        cumulable_temps: true,
+        actif: true,
+      },
+    }),
+  ),
 );
 
 /** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */

@@ -117,7 +117,9 @@ export async function generateMetadata({
   }
   const { id } = await params;
   const machine = await lireMachineCache(session.contexte, id);
-  return { title: machine === null ? t("machine.fiche.titre") : bannerTitre(machine) };
+  return {
+    title: machine === null ? t("machine.fiche.titre") : bannerTitre(machine),
+  };
 }
 
 export default async function PageMachine({
