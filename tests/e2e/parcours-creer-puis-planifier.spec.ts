@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -213,8 +214,19 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
 test("le glisser-déposer d'une carte « à planifier » n'est pas un contournement", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   const { siteId, clientId } = await siteDeDucos();
   const reperes = await reperesDeLaScene();
+  // NEUF SEMAINES PLUS LOIN, ET C'EST UNE MESURE — le MARDI ordinaire porte
+  // déjà les rendez-vous posés par le scénario voisin de ce même fichier
+  // (« PLANIFIER refuse... », 11:00), et `intervention-technicien-select.
+  // spec.ts` réserve pour les siens le mardi +21 jours (même raisonnement,
+  // même fichier voisin) : la case grandit avec ce qu'elle contient, et une
+  // case gonflée par d'autres blocs peut déborder du haut de la page une fois
+  // défilée vers la carte source, plus haut. +63 jours reste un mardi
+  // (multiple de 7), ouvert comme le premier, mais VIDE de tout scénario de
+  // ce dépôt.
+  const mardi = jourSuivant(jourDeLaScene(reperes, MARDI), 63);
 
   // Une intervention À PLANIFIER, créée par le formulaire.
   await page.goto("/interventions/nouvelle");
@@ -231,16 +243,25 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
   const id = new URL(page.url()).pathname.split("/").pop();
 
   // LA VUE SEMAINE NE PORTE NI HEURE NI DURÉE — un dépôt là-dessus ne peut
-  // donc jamais réunir les quatre valeurs que PLANIFIER exige.
-  await page.goto("/planning");
+  // donc jamais réunir les quatre valeurs que PLANIFIER exige. LA CASE VISÉE
+  // EST CELLE DU MARDI, DE LA PREMIÈRE PERSONNE DE LA GRILLE — peu importe
+  // laquelle, seule la règle est en jeu ; viser la première ligne la garde
+  // proche du haut de page quel que soit le nombre d'interventions déjà
+  // posées par d'autres scénarios (§9, 01/09 : un scénario ne doit pas
+  // dépendre d'une position que la donnée déplace).
+  // LA SEMAINE VISÉE EST CELLE DU MARDI LOINTAIN, PAS LA SEMAINE COURANTE —
+  // sans `?semaine=`, `/planning` affiche la semaine d'aujourd'hui, où la
+  // case du mardi lointain n'existe pas.
+  const lundiVise = jourSuivant(mardi, -1);
+  await page.goto(`/planning?vue=semaine&semaine=${cleDeJour(lundiVise)}`);
   const carte = page.locator(`[data-bloc="${id}"]`);
   await expect(carte).toBeVisible();
-  const caseCible = page.locator(
-    `td[data-depot-technicien="${reperes.technicienDucos}"]`,
-  );
-  await expect(caseCible.first()).toBeAttached();
+  const caseCible = page
+    .locator(`td[data-depot-jour="${cleDeJour(mardi)}"][data-depot-technicien]`)
+    .first();
+  await expect(caseCible).toBeAttached();
 
-  await glisser(page, carte, caseCible.first());
+  await glisser(page, carte, caseCible);
 
   // LE REFUS S'AFFICHE — la carte reste dans la file d'attente, jamais
   // silencieusement « planifiée » à moitié.

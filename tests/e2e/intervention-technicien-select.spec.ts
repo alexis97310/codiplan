@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -13,6 +14,17 @@ import {
   jourDeLaScene,
 } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
+
+/**
+ * TROIS SEMAINES PLUS LOIN, ET C'EST UNE MESURE (PARCOURS-1) — le MARDI
+ * ordinaire (`jourDeLaScene`) porte déjà les rendez-vous du semis pour
+ * plusieurs techniciens ; +21 jours reste un mardi (multiple de 7), ouvert
+ * comme le premier, mais hors de portée du semis et des autres scénarios de
+ * ce fichier qui visent tous le même technicien.
+ */
+function mardiLoin(reperes: Awaited<ReturnType<typeof reperesDeLaScene>>) {
+  return jourSuivant(jourDeLaScene(reperes, MARDI), 21);
+}
 
 /** Crée une intervention sans technicien ni date — le geste CRÉER (PARCOURS-1). */
 async function creerUneIntervention(page: Page): Promise<void> {
@@ -39,6 +51,12 @@ async function creerUneIntervention(page: Page): Promise<void> {
 async function planifierAvecTechnicien(
   page: Page,
   option: number,
+  // UNE HEURE DISTINCTE PAR APPELANT (PARCOURS-1) — chaque scénario de ce
+  // fichier crée SA PROPRE intervention, mais tous visent le même technicien
+  // (« la seconde option ») et le même jour (MARDI) : sans heures
+  // distinctes, le second appel chevaucherait le premier et RG-PLA
+  // refuserait un chevauchement réel, jamais une maladresse d'épreuve.
+  heure: string,
 ): Promise<string> {
   const formulaire = page.locator("form", {
     has: page.getByRole("heading", {
@@ -53,11 +71,11 @@ async function planifierAvecTechnicien(
     .locator('select[name="technicien_id"]')
     .selectOption(valeur ?? "");
   const reperes = await reperesDeLaScene();
-  const mardi = jourDeLaScene(reperes, MARDI);
+  const mardi = mardiLoin(reperes);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
-  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="heure_debut"]').fill(heure);
   await formulaire.locator('input[name="duree_min"]').fill("60");
   await formulaire
     .getByRole("button", { name: fr["intervention.action.planifier"] })
@@ -150,7 +168,7 @@ test("PLANIFIER affiche des NOMS de technicien, et affecte", async ({
   page,
 }) => {
   await creerUneIntervention(page);
-  const nomTechnicien = await planifierAvecTechnicien(page, 1);
+  const nomTechnicien = await planifierAvecTechnicien(page, 1, "08:00");
   expect(nomTechnicien.length).toBeGreaterThan(0);
   // Ce n'est PAS un identifiant technique (UUID) — c'est très exactement le
   // défaut que le chantier TECH-1 corrigeait, et que PLANIFIER hérite.
@@ -169,7 +187,7 @@ test("le sélecteur « Affecter » RÉAFFECTE une intervention déjà planifiée
   // fois sortie de `a_planifier` (PARCOURS-1) : c'est PLANIFIER qui nomme la
   // première fois.
   await creerUneIntervention(page);
-  await planifierAvecTechnicien(page, 1);
+  await planifierAvecTechnicien(page, 1, "13:00");
 
   const formulaireAffecter = page.locator('form[action$="/affecter"]');
   await expect(formulaireAffecter).toBeVisible();
@@ -243,11 +261,11 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
     .locator('select[name="technicien_id"]')
     .selectOption(utilisateurIdTechnicien);
   const reperes = await reperesDeLaScene();
-  const mardi = jourDeLaScene(reperes, MARDI);
+  const mardi = mardiLoin(reperes);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
-  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="heure_debut"]').fill("15:00");
   await formulaire.locator('input[name="duree_min"]').fill("60");
   await formulaire
     .getByRole("button", { name: fr["intervention.action.planifier"] })

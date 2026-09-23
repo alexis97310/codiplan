@@ -137,7 +137,7 @@ async function planifierAvecTechnicien(
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
-  await formulaire.locator('input[name="heure_debut"]').fill("09:00");
+  await formulaire.locator('input[name="heure_debut"]').fill("10:00");
   await formulaire.locator('input[name="duree_min"]').fill("60");
   await formulaire
     .getByRole("button", { name: fr["intervention.action.planifier"] })
