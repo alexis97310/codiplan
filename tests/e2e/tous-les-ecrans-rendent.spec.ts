@@ -178,6 +178,55 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
   "/demandes/[id]": async () => null,
 };
 
+type ResolveurDeNom = (
+  prisma: PrismaClient,
+  id: string,
+) => Promise<string | null>;
+
+/**
+ * LE NOM ATTENDU DANS LE TITRE D'ONGLET — VISUEL-1 (23/09/2026), sur les
+ * quatre fiches que le ticket nomme explicitement (client, site, machine,
+ * intervention). Une lecture INDÉPENDANTE de celle que chaque page calcule
+ * pour son propre `<title>` : voir le commentaire au point d'appel.
+ */
+const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
+  "/clients/[id]": async (prisma, id) =>
+    (
+      await prisma.client.findUnique({
+        where: { id },
+        select: { raison_sociale: true },
+      })
+    )?.raison_sociale ?? null,
+  "/sites/[id]": async (prisma, id) =>
+    (
+      await prisma.site.findUnique({
+        where: { id },
+        select: { libelle: true },
+      })
+    )?.libelle ?? null,
+  "/parc/[id]": async (prisma, id) => {
+    const machine = await prisma.machine.findUnique({
+      where: { id },
+      select: { modele: { select: { marque: true, reference: true } } },
+    });
+    return machine === null
+      ? null
+      : `${machine.modele.marque} ${machine.modele.reference}`;
+  },
+  "/interventions/[id]": async (prisma, id) => {
+    const intervention = await prisma.intervention.findUnique({
+      where: { id },
+      select: { numero: true },
+    });
+    if (intervention === null) {
+      return null;
+    }
+    return intervention.numero !== null
+      ? `INT-${String(intervention.numero).padStart(5, "0")}`
+      : `Local-${id.replaceAll("-", "").slice(-6).toUpperCase()}`;
+  },
+};
+
 // Même identité que la mesure d'origine (« compte admin_societe »), et le
 // seul moyen d'ouvrir CHAQUE écran du back-office : `adv` (le compte courant
 // des autres scénarios) n'a pas nécessairement la matrice complète.
@@ -228,6 +277,7 @@ test("les résolveurs de segments dynamiques couvrent EXACTEMENT les routes dyna
 for (const route of ROUTES) {
   test(`${route} rend 200`, async ({ page }) => {
     let chemin = route;
+    let idResolu: string | null = null;
     if (route.includes("[")) {
       const resoudre = RESOLVEURS[route];
       if (resoudre === undefined) {
@@ -236,15 +286,15 @@ for (const route of ROUTES) {
         // ordre (`fullyParallel`).
         throw new Error(`Aucun résolveur enregistré pour ${route}.`);
       }
-      const id = await resoudre(prisma, societeId);
+      idResolu = await resoudre(prisma, societeId);
       test.skip(
-        id === null,
+        idResolu === null,
         `aucune ligne du semis (société CODIMA-NC) ne porte ${route} — voir l'en-tête de ce fichier`,
       );
-      if (id === null) {
+      if (idResolu === null) {
         return;
       }
-      chemin = route.replace(/\[[^\]]+\]/, id);
+      chemin = route.replace(/\[[^\]]+\]/, idResolu);
     }
 
     await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
@@ -258,6 +308,36 @@ for (const route of ROUTES) {
       new URL(page.url()).pathname,
       `${chemin} a fini sur ${new URL(page.url()).pathname} — une redirection masquerait un 200 qui ne prouve rien`,
     ).toBe(chemin);
+
+    // VISUEL-1 (23/09/2026) — CHAQUE ONGLET DIT OÙ L'ON EST. *Mesuré en
+    // production le 23/09 : `document.title` valait « CODIPLAN » sur
+    // /planning, /interventions, /clients, /parc et une fiche intervention —
+    // cinq onglets identiques, aucun moyen de s'y retrouver.*
+    const titre = await page.title();
+    expect(titre, `${chemin} — document.title vaut « ${titre} »`).not.toBe(
+      "CODIPLAN",
+    );
+    expect(
+      titre.endsWith(" — CODIPLAN"),
+      `${chemin} — document.title « ${titre} » ne se termine pas par « — CODIPLAN »`,
+    ).toBe(true);
+
+    // Les quatre fiches nomment leur objet dans le titre, pas seulement dans
+    // l'écran — `NOMS_ATTENDUS` lit la même table que le résolveur, sous une
+    // forme volontairement INDÉPENDANTE de celle que chaque page calcule :
+    // une épreuve qui recopierait `bannerTitre` ou `referenceAffichee`
+    // n'éprouverait que sa propre copie.
+    const nomAttendu = NOMS_ATTENDUS[route];
+    if (nomAttendu !== undefined && idResolu !== null) {
+      const nom = await nomAttendu(prisma, idResolu);
+      expect(nom, `${chemin} — aucun nom résolu pour cette fiche`).not.toBe(
+        null,
+      );
+      expect(
+        titre.includes(nom as string),
+        `${chemin} — document.title « ${titre} » ne porte pas le nom « ${nom} »`,
+      ).toBe(true);
+    }
   });
 }
 
