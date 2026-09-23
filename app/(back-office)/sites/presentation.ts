@@ -1,3 +1,4 @@
+import type { TonBadge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { Trajet } from "@/lib/sites/trajet-zone";
@@ -55,13 +56,21 @@ export function agenceDuSite(agence: string | null): string | null {
  * jamais sous le même libellé). Un site sans zone, ou dont la zone n'admet
  * aucune estimation (Îles, D107), rend un tiret sous le libellé ordinaire —
  * il n'y a alors ni mesure ni estimation à distinguer.
+ *
+ * TON FIXE — gris (PASTILLES-1) : Alexis n'a nommé aucune couleur pour ce
+ * compteur, le neutre des cinq tons de `TonBadge`.
  */
 export function trajetAffiche(trajet: Trajet): {
   readonly valeur: string;
   readonly libelle: string;
+  readonly ton: TonBadge;
 } {
   if (trajet.minutes === null) {
-    return { valeur: ouTiret(null), libelle: t("sites.colonne_trajet") };
+    return {
+      valeur: ouTiret(null),
+      libelle: t("sites.colonne_trajet"),
+      ton: "gris",
+    };
   }
   return {
     valeur: String(trajet.minutes),
@@ -69,6 +78,7 @@ export function trajetAffiche(trajet: Trajet): {
       trajet.origine === "site"
         ? t("sites.colonne_trajet")
         : t("sites.colonne_trajet_estimation"),
+    ton: "gris",
   };
 }
 
@@ -79,10 +89,15 @@ export function trajetAffiche(trajet: Trajet): {
  * que celle qui filtre la liste par défaut (`equipementsParSite`), et les
  * deux doivent rester la même pour qu'un site affiché à « 0 » ne soit jamais
  * aussi un site que le filtre aurait dû masquer.
+ *
+ * TON FIXE — rouge (PASTILLES-1), la même couleur que `compteurEquipements`
+ * de l'écran client : une même notion garde le même ton partout où elle
+ * apparaît.
  */
 export function compteurEquipements(nombre: number): {
   readonly valeur: number;
   readonly libelle: string;
+  readonly ton: TonBadge;
 } {
   return {
     valeur: nombre,
@@ -90,6 +105,35 @@ export function compteurEquipements(nombre: number): {
       nombre === 1
         ? t("sites.equipements_un")
         : t("sites.equipements_plusieurs"),
+    ton: "rouge",
+  };
+}
+
+/**
+ * LE COMPTEUR D'HABILITATIONS EXIGÉES DE LA CARTE (PASTILLES-1, ajout du
+ * 23/09 au soir) — *« une pastille verte lorsqu'il y a besoin d'au moins une
+ * habilitation »*. Compte les lignes de `SiteHabilitationRequise`, bloquantes
+ * ou non.
+ *
+ * `null` pour ZÉRO — jamais un compteur à zéro : la demande dit « lorsqu'il y
+ * a besoin », pas « le nombre requis, même nul » ; l'appelant omet alors la
+ * pastille, comme `referentClient` omet déjà une ligne absente.
+ */
+export function compteurHabilitations(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+  readonly ton: TonBadge;
+} | null {
+  if (nombre === 0) {
+    return null;
+  }
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("sites.habilitations_un")
+        : t("sites.habilitations_plusieurs"),
+    ton: "vert",
   };
 }
 

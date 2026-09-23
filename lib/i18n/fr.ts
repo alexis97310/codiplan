@@ -350,8 +350,11 @@ export const fr = {
     "Toutes les fiches de cette recherche portent un code de rapprochement.",
   // LA CARTE CLIENT (D123, N-08) — *elle dit où l'on intervient chez ce
   // client, et c'est la question qu'on se pose en ouvrant la liste.*
-  "clients.sites_un": "lieu",
-  "clients.sites_plusieurs": "lieux",
+  // PASTILLES-1 (23/09/2026) : le libellé « lieu »/« lieux » de ce compteur
+  // est devenu « site »/« sites » (demande d'Alexis) — un MOT IMPOSÉ (§3,
+  // D5/D47, `tests/unit/i18n/vocabulaire-impose.test.ts`), qui ne s'écrit
+  // qu'une fois sous `vocabulaire.site` : `compteurSites` le compose
+  // désormais par `motDansUnePhrase("site", …)`, ces deux clés ont disparu.
   // LISTES-1 (23/09/2026) — même notion, au mot près, que « sites.equipements_un ».
   "clients.equipements_un": "équipement",
   "clients.equipements_plusieurs": "équipements",
@@ -449,6 +452,11 @@ export const fr = {
   "sites.colonne_trajet_estimation": "Trajet estimé (min)",
   "sites.equipements_un": "équipement",
   "sites.equipements_plusieurs": "équipements",
+  // LA PASTILLE VERTE « habilitation requise » (PASTILLES-1, ajout d'Alexis le
+  // 23/09 au soir) — ZÉRO ligne de `SiteHabilitationRequise` n'affiche aucune
+  // pastille ; ces deux clés ne servent qu'à partir de un.
+  "sites.habilitations_un": "habilitation",
+  "sites.habilitations_plusieurs": "habilitations",
   "sites.filtre_equipement": "Afficher aussi les lieux sans équipement",
   "sites.action.modifier": "Enregistrer",
   // LA FICHE D'UN LIEU MONTRE SES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1).

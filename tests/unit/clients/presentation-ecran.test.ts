@@ -7,6 +7,7 @@ import {
   titreSansCode,
 } from "../../../app/(back-office)/clients/presentation";
 import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
  * CE QUE L'ÉCRAN CLIENT COMPOSE (14/09/2026, L1-01 rouvert par R3-12).
@@ -93,22 +94,30 @@ describe("la seconde ligne de la carte — le commercial référent (D123)", () 
   });
 });
 
-describe("le compteur de lieux de la bande entity-meta (D123)", () => {
-  it("accorde le singulier et le pluriel", () => {
+describe("le compteur de sites de la bande entity-meta (D123, PASTILLES-1)", () => {
+  it("accorde le singulier et le pluriel — le mot IMPOSÉ, composé, jamais écrit ici", () => {
     expect(compteurSites({ nombre: 1, communes: [] })).toEqual({
       valeur: 1,
-      libelle: t("clients.sites_un"),
+      libelle: motDansUnePhrase("site"),
+      ton: "bleu",
     });
     expect(compteurSites({ nombre: 4, communes: [] })).toEqual({
       valeur: 4,
-      libelle: t("clients.sites_plusieurs"),
+      libelle: motDansUnePhrase("site", true),
+      ton: "bleu",
     });
   });
 
   it("rend zéro — jamais une carte amorcée qui échoue — pour un client sans entrée", () => {
     expect(compteurSites(undefined)).toEqual({
       valeur: 0,
-      libelle: t("clients.sites_plusieurs"),
+      libelle: motDansUnePhrase("site", true),
+      ton: "bleu",
     });
+  });
+
+  it("le ton est FIXE — bleu, jamais choisi par la page qui affiche la carte", () => {
+    expect(compteurSites({ nombre: 1, communes: [] }).ton).toBe("bleu");
+    expect(compteurSites({ nombre: 4, communes: [] }).ton).toBe("bleu");
   });
 });

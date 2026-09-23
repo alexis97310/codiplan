@@ -14,6 +14,7 @@ import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
   compterSites,
   equipementsParSite,
+  habilitationsRequisesParSite,
   libellesDesSites,
   lireCatalogueTrajets,
   rechercherSites,
@@ -26,6 +27,7 @@ import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
   agenceDuSite,
   compteurEquipements,
+  compteurHabilitations,
   ouTiret,
   trajetAffiche,
 } from "./presentation";
@@ -151,11 +153,13 @@ export default async function PageSites({
       ? compterSites(session.contexte, criteres.data)
       : Promise.resolve(0),
   ]);
-  const [libelles, equipements, catalogueTrajets] = await Promise.all([
-    libellesDesSites(session.contexte, sites),
-    equipementsParSite(session.contexte, sites),
-    lireCatalogueTrajets(session.contexte),
-  ]);
+  const [libelles, equipements, habilitationsRequises, catalogueTrajets] =
+    await Promise.all([
+      libellesDesSites(session.contexte, sites),
+      equipementsParSite(session.contexte, sites),
+      habilitationsRequisesParSite(session.contexte, sites),
+      lireCatalogueTrajets(session.contexte),
+    ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
@@ -227,6 +231,7 @@ export default async function PageSites({
               client={libelles.clients.get(site.client_id) ?? null}
               agence={libelles.agences.get(site.agence_id) ?? null}
               nombreEquipements={equipements.get(site.id) ?? 0}
+              nombreHabilitations={habilitationsRequises.get(site.id) ?? 0}
               trajet={resoudreTempsTrajet(site, catalogueTrajets)}
             />
           ))}
@@ -269,15 +274,18 @@ function CarteSite({
   client,
   agence,
   nombreEquipements,
+  nombreHabilitations,
   trajet,
 }: {
   readonly site: FicheSite;
   readonly client: string | null;
   readonly agence: string | null;
   readonly nombreEquipements: number;
+  readonly nombreHabilitations: number;
   readonly trajet: Trajet;
 }) {
   const rattachement = agenceDuSite(agence);
+  const habilitations = compteurHabilitations(nombreHabilitations);
   const lignes: React.ReactNode[] = [
     // LE CLIENT MÈNE À SA FICHE (14/09/2026) — le second des deux chemins
     // tranchés ce jour-là, conservé tel quel : *le geste change, le
@@ -320,9 +328,13 @@ function CarteSite({
         )
       }
       lignes={lignes}
+      // Ordre PASTILLES-1 : équipements (rouge), habilitations (vert),
+      // trajet (gris) — la pastille verte s'omet quand aucune habilitation
+      // n'est exigée (compteurHabilitations rend `null`).
       compteurs={[
-        trajetAffiche(trajet),
         compteurEquipements(nombreEquipements),
+        ...(habilitations === null ? [] : [habilitations]),
+        trajetAffiche(trajet),
       ]}
     />
   );

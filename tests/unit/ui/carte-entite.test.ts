@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createElement } from "react";
 
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+
+import { CarteEntite } from "@/components/ui/carte-entite";
 
 /**
  * LA CARTE D'ENTITÉ EST CONFRONTÉE À `codiplan-maquette-complete.html`,
@@ -154,5 +158,54 @@ describe("CarteEntite — .entity-card, .entity-card h3, .entity-card p, .entity
 
     expect(MAQUETTE).toContain("@media(max-width:900px)");
     expect(CARTE_ENTITE).toContain("max-[900px]:grid-cols-1");
+  });
+});
+
+/**
+ * LES PASTILLES DE COMPTEUR (PASTILLES-1, 23/09/2026) — un `ton` facultatif
+ * par compteur, jamais un choix de la carte elle-même.
+ */
+describe("CarteEntite — compteurs avec ou sans ton (PASTILLES-1)", () => {
+  it("sans ton, le rendu reste celui d'avant : .entity-meta b/span, aucune pastille", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [{ valeur: 3, libelle: "équipements" }],
+      }),
+    );
+    const bloc = container.querySelector("b");
+    expect(bloc?.className).toContain("block");
+    expect(bloc?.className).not.toContain("rounded-full");
+    expect(container.querySelector(".rounded-full")).toBeNull();
+  });
+
+  it("avec un ton, le compteur se rend en pastille : classe du ton, chiffre en gras", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [{ valeur: 1, libelle: "site", ton: "bleu" }],
+      }),
+    );
+    const pastille = container.querySelector(".rounded-full");
+    expect(pastille).not.toBeNull();
+    expect(pastille?.className).toContain("bg-app-bleu-fond");
+    expect(pastille?.className).toContain("text-app-bleu-encre");
+    const chiffre = pastille?.querySelector("b");
+    expect(chiffre?.className).toContain("font-bold");
+    expect(chiffre?.textContent).toBe("1");
+  });
+
+  it("la rangée de compteurs est centrée", () => {
+    const { container } = render(
+      createElement(CarteEntite, {
+        titre: "Titre",
+        lignes: [],
+        compteurs: [{ valeur: 1, libelle: "site", ton: "bleu" }],
+      }),
+    );
+    const rangee = container.querySelector(".rounded-full")?.parentElement;
+    expect(rangee?.className).toContain("justify-center");
   });
 });

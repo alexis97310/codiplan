@@ -537,6 +537,36 @@ export async function equipementsParSite(
 }
 
 /**
+ * COMBIEN D'HABILITATIONS SONT EXIGÉES SUR CHACUN DE CES SITES (PASTILLES-1).
+ *
+ * Compte TOUTE ligne de `site_habilitation_requise`, bloquante ou non — la
+ * demande d'Alexis ne distingue pas les deux pour la pastille, seul
+ * `RG-PLA-04` (l'affectation) le fait. Même construction que
+ * `equipementsParSite` juste au-dessus : un `groupBy` par lot, jamais une
+ * requête par carte.
+ */
+export async function habilitationsRequisesParSite(
+  contexte: ContexteSession,
+  sites: readonly { readonly id: string }[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, number>> {
+  if (sites.length === 0) {
+    return new Map();
+  }
+  const comptes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.siteHabilitationRequise.groupBy({
+        by: ["site_id"],
+        where: { site_id: { in: sites.map((site) => site.id) } },
+        _count: { _all: true },
+      }),
+    client,
+  );
+  return new Map(comptes.map((compte) => [compte.site_id, compte._count._all]));
+}
+
+/**
  * LE CATALOGUE DES TEMPS DE TRAJET PAR ZONE — lecture (R3-03, D107).
  *
  * **Aucune comparaison de société n'est écrite ici**, pas plus qu'ailleurs dans

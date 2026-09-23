@@ -1,3 +1,4 @@
+import { CLASSES_TON, type TonBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
@@ -64,10 +65,20 @@ export function CarteEntite({
   badge?: React.ReactNode;
   /** Les lignes muettes de la carte — `.entity-card p`, dans l'ordre donné. */
   lignes: readonly React.ReactNode[];
-  /** La bande de compteurs — `.entity-meta`. Vide : aucune bande n'est rendue. */
+  /**
+   * La bande de compteurs — `.entity-meta`. Vide : aucune bande n'est rendue.
+   *
+   * `ton` est FACULTATIF (PASTILLES-1) : présent, le compteur se rend en
+   * pastille colorée (fond et encre de `Badge`, `components/ui/badge.tsx`) ;
+   * absent, il garde le rendu `.entity-meta b`/`span` d'avant, à l'identique.
+   * Le ton se DÉCIDE à l'appelant (`compteurSites`, `compteurEquipements`,
+   * `trajetAffiche`, …), jamais choisi ici — la même règle que `Badge`
+   * applique déjà à un ton de statut.
+   */
   compteurs: readonly {
     readonly valeur: React.ReactNode;
     readonly libelle: string;
+    readonly ton?: TonBadge;
   }[];
   className?: string;
 }>) {
@@ -91,15 +102,28 @@ export function CarteEntite({
         </p>
       ))}
       {compteurs.length === 0 ? null : (
-        <div className="border-app-bord mt-[14px] flex gap-[13px] border-t pt-[13px]">
-          {compteurs.map((compteur, index) => (
-            <div key={index}>
-              <b className="block font-bold">{compteur.valeur}</b>
-              <span className="text-app-encre-faible text-[11px]">
-                {compteur.libelle}
-              </span>
-            </div>
-          ))}
+        <div className="border-app-bord mt-[14px] flex flex-wrap justify-center gap-[13px] border-t pt-[13px]">
+          {compteurs.map((compteur, index) =>
+            compteur.ton === undefined ? (
+              <div key={index}>
+                <b className="block font-bold">{compteur.valeur}</b>
+                <span className="text-app-encre-faible text-[11px]">
+                  {compteur.libelle}
+                </span>
+              </div>
+            ) : (
+              <div
+                key={index}
+                className={cn(
+                  "inline-flex items-center gap-[6px] rounded-full px-[12px] py-[4px]",
+                  CLASSES_TON[compteur.ton],
+                )}
+              >
+                <b className="text-[16px] font-bold">{compteur.valeur}</b>
+                <span className="text-[12px]">{compteur.libelle}</span>
+              </div>
+            ),
+          )}
         </div>
       )}
     </article>

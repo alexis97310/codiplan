@@ -1,6 +1,8 @@
+import type { TonBadge } from "@/components/ui/badge";
 import { libelleCodeExterne } from "@/lib/clients/code-externe";
 import type { SitesDUnClient } from "@/lib/clients/depot";
 import { t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 import { ouTiret } from "../presentation";
 
@@ -80,16 +82,26 @@ export function referentClient(
   return `${t("client.commercial_referent")}${t("ponctuation.separateur")}${commercialReferent}`;
 }
 
-/** Le compteur de lieux d'intervention de la bande `entity-meta` (D123). */
+/**
+ * Le compteur de sites d'intervention de la bande `entity-meta` (D123).
+ *
+ * TON FIXE — bleu, partout où ce compteur apparaît (PASTILLES-1) : la couleur
+ * est portée ICI, jamais choisie par la page qui l'affiche.
+ *
+ * **Le libellé se COMPOSE, il ne s'écrit pas** (PASTILLES-1) : « site » est un
+ * mot imposé (§3, D5/D47) qui ne s'écrit qu'une fois, sous `vocabulaire.site` —
+ * `motDansUnePhrase` le lit en minuscule, la forme d'un libellé de compteur.
+ */
 export function compteurSites(sites: SitesDUnClient | undefined): {
   readonly valeur: number;
   readonly libelle: string;
+  readonly ton: TonBadge;
 } {
   const nombre = sites?.nombre ?? 0;
   return {
     valeur: nombre,
-    libelle:
-      nombre === 1 ? t("clients.sites_un") : t("clients.sites_plusieurs"),
+    libelle: motDansUnePhrase("site", nombre !== 1),
+    ton: "bleu",
   };
 }
 
@@ -99,10 +111,13 @@ export function compteurSites(sites: SitesDUnClient | undefined): {
  * demandait le nombre d'équipements enregistrés. Compte TOUT équipement,
  * quel que soit son statut — la même notion, au mot près, que celle qui
  * filtre la liste par défaut (`equipementsParClient`, `lib/clients/depot.ts`).
+ *
+ * TON FIXE — rouge (PASTILLES-1), au même titre que `compteurSites` ci-dessus.
  */
 export function compteurEquipements(nombre: number): {
   readonly valeur: number;
   readonly libelle: string;
+  readonly ton: TonBadge;
 } {
   return {
     valeur: nombre,
@@ -110,5 +125,6 @@ export function compteurEquipements(nombre: number): {
       nombre === 1
         ? t("clients.equipements_un")
         : t("clients.equipements_plusieurs"),
+    ton: "rouge",
   };
 }

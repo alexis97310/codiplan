@@ -28,7 +28,13 @@ import { cn } from "@/lib/utils";
  */
 export type TonBadge = "bleu" | "rouge" | "vert" | "orange" | "gris";
 
-const CLASSES_TON: Record<TonBadge, string> = {
+/**
+ * Exportée pour `CarteEntite` (PASTILLES-1) : une pastille de compteur peint
+ * un ton dans une géométrie DIFFÉRENTE de `.b` (chiffre agrandi, forme
+ * `rounded-full`) — recopier ces cinq couples aurait été la même faute que
+ * réécrire une couleur (§9, 01/09).
+ */
+export const CLASSES_TON: Record<TonBadge, string> = {
   bleu: "bg-app-bleu-fond text-app-bleu-encre",
   rouge: "bg-app-rouge-fond text-app-rouge-encre",
   vert: "bg-app-vert-fond text-app-vert-encre",
