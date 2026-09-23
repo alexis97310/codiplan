@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import {
   type CreationClient,
@@ -329,29 +330,67 @@ function filtreDeRecherche(criteres: RechercheClient): Prisma.ClientWhereInput {
   const filtreEtat: Prisma.ClientWhereInput =
     criteres.etat === "tous" ? {} : { actif: criteres.etat === "actifs" };
 
+  // LISTES-1 (23/09/2026) — `machines: { some: {} }` masque les fiches sans
+  // aucun équipement enregistré, par défaut ; voir la note de
+  // `RechercheClient.inclure_sans_equipement`. Une clause de RELATION, qui ne
+  // recompare aucune société.
+  const filtreEquipement: Prisma.ClientWhereInput =
+    criteres.inclure_sans_equipement ? {} : { machines: { some: {} } };
+
   return {
     ...filtreTexte,
     ...filtreEtat,
+    ...filtreEquipement,
   };
 }
 
+/**
+ * Recherche — une PAGE (AT-07).
+ *
+ * **L'ORDRE N'EST PLUS POSÉ PAR `ORDER BY` (LISTES-1, 23/09/2026)** — même
+ * raison, mot pour mot, qu'à `rechercherSites` : la collation de la base
+ * hébergée n'est pas celle que `lib/tri/collation.ts` garantit, et ce dépôt
+ * n'a pas le droit de la changer (§8). Une lecture étroite (`id`+
+ * `raison_sociale`) fixe l'ordre de TOUTE la recherche filtrée, puis seule la
+ * page demandée est relue avec `CHAMPS_FICHE`.
+ */
 export async function rechercherClients(
   contexte: ContexteSession,
   criteres: RechercheClient,
   client?: PrismaClient,
 ): Promise<FicheClient[]> {
-  return avecContexteApplicatif(
+  const where = filtreDeRecherche(criteres);
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.client.findMany({ where, select: { id: true, raison_sociale: true } }),
+    client,
+  );
+  const ordonnees = trierAlphanumeriquement(
+    lignes,
+    (ligne) => ligne.raison_sociale,
+    (ligne) => ligne.id,
+  );
+  const debut = (criteres.page - 1) * criteres.limite;
+  const idsDeLaPage = ordonnees
+    .slice(debut, debut + criteres.limite)
+    .map((ligne) => ligne.id);
+  if (idsDeLaPage.length === 0) {
+    return [];
+  }
+  const fiches = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.client.findMany({
-        where: filtreDeRecherche(criteres),
-        orderBy: [{ raison_sociale: "asc" }, { id: "asc" }],
-        skip: (criteres.page - 1) * criteres.limite,
-        take: criteres.limite,
+        where: { id: { in: idsDeLaPage } },
         select: CHAMPS_FICHE,
       }),
     client,
   );
+  const parId = new Map(fiches.map((fiche) => [fiche.id, fiche]));
+  return idsDeLaPage
+    .map((id) => parId.get(id))
+    .filter((fiche): fiche is FicheClient => fiche !== undefined);
 }
 
 /**
@@ -473,6 +512,36 @@ export async function sitesParClient(
       id,
       { nombre, communes: [...communes].sort((a, b) => a.localeCompare(b)) },
     ]),
+  );
+}
+
+/**
+ * COMBIEN D'ÉQUIPEMENTS SONT ENREGISTRÉS CHEZ CHACUN DE CES CLIENTS
+ * (LISTES-1) — même raison, même forme que `equipementsParSite` de
+ * `lib/sites/depot.ts` : le compte sert l'affichage de la carte ET le filtre
+ * par défaut de `filtreDeRecherche`, qui doit compter EXACTEMENT la même
+ * chose.
+ */
+export async function equipementsParClient(
+  contexte: ContexteSession,
+  clients: readonly { readonly id: string }[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, number>> {
+  if (clients.length === 0) {
+    return new Map();
+  }
+  const comptes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.groupBy({
+        by: ["client_id"],
+        where: { client_id: { in: clients.map((c) => c.id) } },
+        _count: { _all: true },
+      }),
+    client,
+  );
+  return new Map(
+    comptes.map((compte) => [compte.client_id, compte._count._all]),
   );
 }
 

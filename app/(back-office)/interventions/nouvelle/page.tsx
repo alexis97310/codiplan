@@ -24,6 +24,7 @@ import {
   MODES_VALORISATION,
 } from "@/lib/interventions/saisie";
 import { machinesDesSites } from "@/lib/machines/depot";
+import { comparerAlphanumerique } from "@/lib/tri/collation";
 
 export const metadata: Metadata = { title: t("planning.creer") };
 
@@ -88,7 +89,7 @@ export default async function PageNouvelleIntervention({
   // diverge de la première en silence (§9, 01/09). Le SITE n'est pas
   // concerné — RG-PLA-08 ne tranche que sur le client, et un site inactif
   // d'un client actif reste proposé.
-  const lieux = await avecContexteApplicatif(session.contexte, (tx) =>
+  const lieuxBruts = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
       where: { client: { actif: true } },
       select: {
@@ -97,10 +98,31 @@ export default async function PageNouvelleIntervention({
         client_id: true,
         client: { select: { raison_sociale: true } },
       },
-      orderBy: { libelle: "asc" },
       take: 200,
     }),
   );
+  // TRIÉE ET GROUPÉE PAR CLIENT (LISTES-1, 23/09/2026) — la sélection
+  // déroulante mesurée en production (139 lignes, « non triée de façon
+  // cohérente ») se lisait par le libellé du SITE seul, si bien que deux
+  // sites du même client n'étaient jamais voisins dans la liste. Le tri par
+  // client d'abord — `lib/tri/collation.ts`, insensible à la casse et aux
+  // accents — les rend contigus ; le libellé complet (« CLIENT — site »,
+  // `libelleDuLieu` ci-dessous) porte déjà le nom du client, si bien que ce
+  // regroupement se lit sans `<optgroup>`. Un tri EN JAVASCRIPT et non un
+  // second `ORDER BY` : la liste est déjà bornée à 200 lignes, une seule
+  // lecture, donc aucun coût de pagination à préserver (voir la note de
+  // `lib/sites/depot.ts` pour la raison de fond).
+  const lieux = [...lieuxBruts].sort((a, b) => {
+    const parClient = comparerAlphanumerique(
+      a.client.raison_sociale,
+      b.client.raison_sociale,
+    );
+    if (parClient !== 0) {
+      return parClient;
+    }
+    const parSite = comparerAlphanumerique(a.libelle, b.libelle);
+    return parSite !== 0 ? parSite : a.id.localeCompare(b.id);
+  });
   // LES MACHINES DES SITES PROPOSÉS (chantier INT-MACHINE 2.1) — bornées aux
   // sites déjà lus ci-dessus, jamais le parc entier : le composant client ne
   // filtre QUE dans ce qu'il reçoit.

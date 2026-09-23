@@ -1,5 +1,8 @@
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import type { Trajet } from "@/lib/sites/trajet-zone";
+
+import { ouTiret } from "../presentation";
 
 /**
  * CE QUE LES ÉCRANS « SITES » COMPOSENT, et qu'ils ne peuvent pas composer
@@ -46,10 +49,55 @@ export function agenceDuSite(agence: string | null): string | null {
 }
 
 /**
- * L'ABSENCE — ré-exportée depuis le module commun du back-office, où elle a
- * déménagé le 14/09/2026 quand l'écran client en a eu besoin.
- *
- * *Une ré-export plutôt qu'une recopie* : les appelants de cet écran ne changent
- * pas, et il n'existe toujours qu'une seule écriture de ce qu'est une absence.
+ * LE COMPTEUR DE TRAJET DE LA CARTE (LISTES-1) — la valeur mesurée sur le
+ * site fait foi ; sinon, le défaut par zone s'affiche, mais ÉTIQUETÉ comme
+ * une estimation (D56 : un nombre dont l'origine change de sens ne voyage
+ * jamais sous le même libellé). Un site sans zone, ou dont la zone n'admet
+ * aucune estimation (Îles, D107), rend un tiret sous le libellé ordinaire —
+ * il n'y a alors ni mesure ni estimation à distinguer.
  */
-export { ouTiret } from "../presentation";
+export function trajetAffiche(trajet: Trajet): {
+  readonly valeur: string;
+  readonly libelle: string;
+} {
+  if (trajet.minutes === null) {
+    return { valeur: ouTiret(null), libelle: t("sites.colonne_trajet") };
+  }
+  return {
+    valeur: String(trajet.minutes),
+    libelle:
+      trajet.origine === "site"
+        ? t("sites.colonne_trajet")
+        : t("sites.colonne_trajet_estimation"),
+  };
+}
+
+/**
+ * LE COMPTEUR D'ÉQUIPEMENTS DE LA CARTE (LISTES-1) — *« il faut le temps de
+ * trajet + le nombre d'équipement enregistré »*. Compte TOUT équipement
+ * enregistré, quel que soit son statut : c'est la même notion, au mot près,
+ * que celle qui filtre la liste par défaut (`equipementsParSite`), et les
+ * deux doivent rester la même pour qu'un site affiché à « 0 » ne soit jamais
+ * aussi un site que le filtre aurait dû masquer.
+ */
+export function compteurEquipements(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1 ? t("sites.equipements_un") : t("sites.equipements_plusieurs"),
+  };
+}
+
+/**
+ * L'ABSENCE — RÉ-EXPORTÉE depuis le module commun du back-office, où elle a
+ * déménagé le 14/09/2026 quand l'écran client en a eu besoin. Importée
+ * ci-dessus pour l'usage interne de `trajetAffiche`, et re-exportée ici pour
+ * que les appelants existants de cet écran n'aient rien à changer.
+ *
+ * *Une ré-export plutôt qu'une recopie* : il n'existe toujours qu'une seule
+ * écriture de ce qu'est une absence.
+ */
+export { ouTiret };

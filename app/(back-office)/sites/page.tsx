@@ -13,14 +13,17 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
   compterSites,
+  equipementsParSite,
   libellesDesSites,
+  lireCatalogueTrajets,
   rechercherSites,
   type FicheSite,
 } from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
+import { resoudreTempsTrajet, type Trajet } from "@/lib/sites/trajet-zone";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
-import { agenceDuSite, ouTiret } from "./presentation";
+import { agenceDuSite, compteurEquipements, ouTiret, trajetAffiche } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 export const metadata: Metadata = { title: mot("site", true) };
@@ -65,9 +68,24 @@ export const metadata: Metadata = { title: mot("site", true) };
  * dans le tableau. Et le libellé le dit encore autrement : c'est une donnée de
  * **planification**, jamais de facturation (D74).
  *
- * **Aucun compte de machines par site n'est ajouté** : `D123` nomme ce
- * manque plutôt que d'inventer une requête — aucune fonction de dépôt ne
- * compte aujourd'hui les machines d'un site.
+ * **LE COMPTE D'ÉQUIPEMENTS PAR SITE EXISTE DEPUIS LISTES-1** (23/09/2026) —
+ * `D123` en nommait l'absence comme un manque plutôt que d'inventer une
+ * requête ; `equipementsParSite` (`lib/sites/depot.ts`) le comble, à la
+ * demande directe d'Alexis en production. Le même compte sert AUSSI le
+ * filtre par défaut de la liste : un site sans aucun équipement enregistré
+ * est masqué, une case le réaffiche.
+ *
+ * **LE TRAJET AFFICHÉ N'EST PLUS LA SEULE VALEUR SAISIE** (LISTES-1) — la
+ * cascade de `resoudreTempsTrajet` (`lib/sites/trajet-zone.ts`) s'applique
+ * désormais ici : à défaut de mesure, le défaut par zone s'affiche,
+ * ÉTIQUETÉ comme une estimation plutôt que confondu avec une mesure.
+ *
+ * **LA RECHERCHE PORTE AUSSI SUR LE CLIENT** (LISTES-1) — un lieu se désigne
+ * souvent par le nom de qui l'occupe, pas seulement par son propre libellé.
+ *
+ * **L'ORDRE EST ALPHANUMÉRIQUE, calculé par `lib/tri/collation.ts`** — voir
+ * ce fichier pour la mesure qui justifie de ne PAS s'en remettre à
+ * `ORDER BY`.
  *
  * ## Le cloisonnement n'est pas écrit ici
  *
@@ -101,6 +119,10 @@ export default async function PageSites({
 
   const params = await searchParams;
   const motif = params.motif;
+  // LA CASE « Afficher aussi les sites sans équipement » (LISTES-1) — une
+  // case COCHÉE envoie `1`, une case DÉCOCHÉE n'envoie RIEN : son absence est
+  // donc le défaut « masquer », exactement ce que la demande décrit.
+  const avecSansEquipement = params.sans_equipement === "1";
   // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
   // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
   // `limite` retombe sur son défaut (50) — la taille d'une PAGE, jamais celle
@@ -108,12 +130,14 @@ export default async function PageSites({
   const criteres = schemaRechercheSite.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     client_id: typeof params.client === "string" ? params.client : null,
+    inclure_sans_equipement: avecSansEquipement,
     page: typeof params.page === "string" ? params.page : undefined,
   });
   // `sites` ET `totalFiltre` SONT INDÉPENDANTS (lot PERF, mesuré sur
   // 4fead41) : les deux ne portent que sur `criteres`, la MÊME
   // `filtreDeRecherche` — jamais une seconde lecture divergente (AT-07).
-  // `libelles`, lui, dépend du résultat de `sites` et reste donc APRÈS.
+  // `libelles`, le catalogue de trajets et les comptes d'équipements
+  // dépendent du résultat de `sites` et restent donc APRÈS.
   const [sites, totalFiltre] = await Promise.all([
     criteres.success
       ? rechercherSites(session.contexte, criteres.data)
@@ -122,7 +146,11 @@ export default async function PageSites({
       ? compterSites(session.contexte, criteres.data)
       : Promise.resolve(0),
   ]);
-  const libelles = await libellesDesSites(session.contexte, sites);
+  const [libelles, equipements, catalogueTrajets] = await Promise.all([
+    libellesDesSites(session.contexte, sites),
+    equipementsParSite(session.contexte, sites),
+    lireCatalogueTrajets(session.contexte),
+  ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
@@ -161,6 +189,18 @@ export default async function PageSites({
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           />
         </label>
+        {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
+            où » — la case vit dans l'URL, jamais dans un état de composant
+            (même contrat que le reste de cette recherche). */}
+        <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
+          <input
+            type="checkbox"
+            name="sans_equipement"
+            value="1"
+            defaultChecked={avecSansEquipement}
+          />
+          {t("sites.filtre_equipement")}
+        </label>
         <button
           type="submit"
           className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
@@ -181,6 +221,8 @@ export default async function PageSites({
               site={site}
               client={libelles.clients.get(site.client_id) ?? null}
               agence={libelles.agences.get(site.agence_id) ?? null}
+              nombreEquipements={equipements.get(site.id) ?? 0}
+              trajet={resoudreTempsTrajet(site, catalogueTrajets)}
             />
           ))}
         </GrilleCartesEntites>
@@ -207,6 +249,7 @@ export default async function PageSites({
               q: typeof params.q === "string" ? params.q : undefined,
               client:
                 typeof params.client === "string" ? params.client : undefined,
+              sans_equipement: avecSansEquipement ? "1" : undefined,
             },
             page,
           )
@@ -220,10 +263,14 @@ function CarteSite({
   site,
   client,
   agence,
+  nombreEquipements,
+  trajet,
 }: {
   readonly site: FicheSite;
   readonly client: string | null;
   readonly agence: string | null;
+  readonly nombreEquipements: number;
+  readonly trajet: Trajet;
 }) {
   const rattachement = agenceDuSite(agence);
   const lignes: React.ReactNode[] = [
@@ -268,12 +315,7 @@ function CarteSite({
         )
       }
       lignes={lignes}
-      compteurs={[
-        {
-          valeur: ouTiret(site.temps_trajet_min),
-          libelle: t("sites.colonne_trajet"),
-        },
-      ]}
+      compteurs={[trajetAffiche(trajet), compteurEquipements(nombreEquipements)]}
     />
   );
 }

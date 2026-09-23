@@ -4,6 +4,8 @@ import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
+
 import {
   type CreationSite,
   type ModificationSite,
@@ -324,13 +326,21 @@ export async function supprimerSite(
 /**
  * CE QUE LA RECHERCHE RETIENT — écrit UNE FOIS, et partagé (AT-07).
  *
- * Le texte est cherché dans le libellé ET dans la commune : ce sont les deux
- * façons dont un lieu se désigne au téléphone — deux colonnes VISIBLES du
- * tableau. **Deux appelants la lisent** : `rechercherSites` (la page) et
- * `compterSites` (le total de la pagination), exactement comme
+ * Le texte est cherché dans le libellé, la commune, ET depuis LISTES-1
+ * (23/09/2026) dans la raison sociale du CLIENT — trois façons dont un lieu se
+ * désigne au téléphone : *« la liste des sites est imbuvable, difficile d'y
+ * faire une recherche »*, et chercher un site par le nom de son client est la
+ * façon la plus fréquente de le retrouver quand son propre libellé ne dit rien
+ * (« Atelier », « Entrepôt »…). **Deux appelants la lisent** : `rechercherSites`
+ * (la page) et `compterSites` (le total de la pagination), exactement comme
  * `filtreDeRecherche` de `lib/clients/depot.ts` sert la liste et son
  * compteur — la seconde implémentation d'un critère n'est jamais gratuite
  * (§9, 01/09).
+ *
+ * **`inclure_sans_equipement: false` filtre les sites sans aucun équipement
+ * enregistré** (LISTES-1) — `machines: { some: {} }` est une clause de
+ * RELATION, elle ne recompare aucune société : elle porte sur les machines
+ * DÉJÀ lues sous le contexte cloisonné de la relation `site.machines`.
  */
 function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
   const filtreTexte: Prisma.SiteWhereInput =
@@ -350,6 +360,14 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
                 mode: Prisma.QueryMode.insensitive,
               },
             },
+            {
+              client: {
+                raison_sociale: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
           ],
         };
 
@@ -358,33 +376,60 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
     ...(criteres.client_id === null ? {} : { client_id: criteres.client_id }),
     ...(criteres.zone_geo === null ? {} : { zone_geo: criteres.zone_geo }),
     ...(criteres.actifs_seulement ? { actif: true } : {}),
+    ...(criteres.inclure_sans_equipement ? {} : { machines: { some: {} } }),
   };
 }
 
 /**
  * Recherche — une PAGE, désormais (AT-07).
  *
- * `skip`/`take` sont posés ICI, dans le dépôt : jamais un tableau entier
- * chargé puis découpé par le composant. Les fiches sont rendues par libellé,
- * ce qui est l'ordre d'une liste lue par un humain.
+ * **L'ORDRE N'EST PLUS POSÉ PAR `ORDER BY` (LISTES-1, 23/09/2026).** Mesuré
+ * en production : la base hébergée classe « AVIS SLAP LOCATOIN » avant
+ * « Anse Vata », les majuscules d'abord — une collation d'octets que ce dépôt
+ * ne peut ni mesurer à distance ni changer sans migration (§8). L'ordre
+ * alphanumérique demandé (`lib/tri/collation.ts`) est donc calculé ICI, sur
+ * les IDENTIFIANTS de TOUTE la recherche filtrée — une lecture étroite,
+ * `id`+`libelle` seulement, jamais les fiches complètes — puis SEULE la page
+ * demandée est relue avec `CHAMPS_FICHE`. Deux requêtes remplacent une seule,
+ * mais aucune ne charge le référentiel entier en mémoire : la première ne
+ * porte que deux colonnes, la seconde est bornée à `criteres.limite`.
  */
 export async function rechercherSites(
   contexte: ContexteSession,
   criteres: RechercheSite,
   client?: PrismaClient,
 ): Promise<FicheSite[]> {
-  return avecContexteApplicatif(
+  const where = filtreDeRecherche(criteres);
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.site.findMany({ where, select: { id: true, libelle: true } }),
+    client,
+  );
+  const ordonnees = trierAlphanumeriquement(
+    lignes,
+    (ligne) => ligne.libelle,
+    (ligne) => ligne.id,
+  );
+  const debut = (criteres.page - 1) * criteres.limite;
+  const idsDeLaPage = ordonnees
+    .slice(debut, debut + criteres.limite)
+    .map((ligne) => ligne.id);
+  if (idsDeLaPage.length === 0) {
+    return [];
+  }
+  const fiches = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.site.findMany({
-        where: filtreDeRecherche(criteres),
-        orderBy: [{ libelle: "asc" }, { id: "asc" }],
-        skip: (criteres.page - 1) * criteres.limite,
-        take: criteres.limite,
+        where: { id: { in: idsDeLaPage } },
         select: CHAMPS_FICHE,
       }),
     client,
   );
+  const parId = new Map(fiches.map((fiche) => [fiche.id, fiche]));
+  return idsDeLaPage
+    .map((id) => parId.get(id))
+    .filter((fiche): fiche is FicheSite => fiche !== undefined);
 }
 
 /**
@@ -453,6 +498,42 @@ export async function libellesDesSites(
     },
     client,
   );
+}
+
+/**
+ * COMBIEN D'ÉQUIPEMENTS SONT ENREGISTRÉS SUR CHACUN DE CES SITES (LISTES-1).
+ *
+ * *« Il faut le temps de trajet + le nombre d'équipement enregistré »*, et
+ * *« si le site n'a pas d'équipement enregistré, il faut le filtrer »* — le
+ * compte sert les DEUX : l'affichage de la carte, et le filtre par défaut de
+ * `filtreDeRecherche`, qui doit compter EXACTEMENT ce que cette fonction
+ * compte, sans quoi un site masqué par défaut afficherait pourtant « 0 » à
+ * qui lève le masquage — ou l'inverse.
+ *
+ * `groupBy` plutôt qu'un `findMany` regroupé en mémoire (le choix de
+ * `sitesParClient`, juste au-dessus) : ici on ne veut qu'un NOMBRE par site,
+ * jamais une colonne supplémentaire, et l'agrégat se fait en base — même
+ * discipline que `compterSites` : jamais tout le parc chargé pour un compte.
+ */
+export async function equipementsParSite(
+  contexte: ContexteSession,
+  sites: readonly { readonly id: string }[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, number>> {
+  if (sites.length === 0) {
+    return new Map();
+  }
+  const comptes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.groupBy({
+        by: ["site_id"],
+        where: { site_id: { in: sites.map((site) => site.id) } },
+        _count: { _all: true },
+      }),
+    client,
+  );
+  return new Map(comptes.map((compte) => [compte.site_id, compte._count._all]));
 }
 
 /**

@@ -170,6 +170,16 @@ export const schemaRechercheClient = z
       .nullable()
       .default(null),
     etat: z.enum(["tous", "actifs", "inactifs"]).default("tous"),
+    /**
+     * LISTES-1 (23/09/2026, Alexis) — un client sans aucun équipement
+     * enregistré est masqué par défaut. `true` lève le masquage.
+     *
+     * Défaut `true` (aucun masquage) pour la même raison qu'à
+     * `lib/sites/saisie.ts` : `parc/nouvelle` peuple un sélecteur du
+     * référentiel entier et ne doit pas voir sa liste rétrécir sans l'avoir
+     * demandé. Seul l'écran `/clients` fournit `false` par défaut.
+     */
+    inclure_sans_equipement: z.boolean().default(true),
     limite: z
       .number()
       .int()

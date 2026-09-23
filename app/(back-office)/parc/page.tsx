@@ -36,6 +36,7 @@ import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   compterLeParc,
+  optionsDeFiltreDuParc,
   rechercherLeParc,
   resumerLeParc,
   resumerLeParcFiltre,
@@ -47,6 +48,7 @@ import {
   schemaRechercheParc,
 } from "@/lib/machines/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 
@@ -150,6 +152,11 @@ export default async function PageParc({
   const criteres = schemaRechercheParc.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     statut: typeof params.statut === "string" ? params.statut : undefined,
+    // LES TROIS FILTRES COMBINABLES DE LISTES-1 (23/09/2026) — dans l'URL,
+    // comme `statut` l'est déjà.
+    client_id: typeof params.client === "string" ? params.client : null,
+    site_id: typeof params.site === "string" ? params.site : null,
+    famille_id: typeof params.famille === "string" ? params.famille : null,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -175,17 +182,26 @@ export default async function PageParc({
   const totalGeneralPromesse = compterLeParc(contexte, {
     texte: null,
     statut: "tous",
+    client_id: null,
+    site_id: null,
+    famille_id: null,
     page: 1,
   });
+  // LES OPTIONS DES TROIS FILTRES (LISTES-1) — indépendantes de `criteres` :
+  // elles listent ce qui EXISTE dans le parc, jamais ce que la recherche en
+  // cours a retenu, sans quoi choisir un filtre rétrécirait les autres listes
+  // déroulantes à chaque clic.
+  const optionsPromesse = optionsDeFiltreDuParc(contexte);
   // LE TOTAL DE LA PAGINATION, RÉUTILISÉ COMME VALEUR DU PREMIER KPI (voir la
   // note de tête) — la MÊME `filtreDuParc` que la liste et que le résumé.
   const totalFiltre = criteres.success
     ? await compterLeParc(contexte, criteres.data)
     : 0;
-  const [lignes, resume, totalGeneral] = await Promise.all([
+  const [lignes, resume, totalGeneral, options] = await Promise.all([
     lignesPromesse,
     resumePromesse,
     totalGeneralPromesse,
+    optionsPromesse,
   ]);
   const totalPages = Math.max(
     1,
@@ -203,6 +219,15 @@ export default async function PageParc({
 
   const q = typeof params.q === "string" ? params.q : undefined;
   const statutActif = criteres.success ? criteres.data.statut : "tous";
+  const clientActif = criteres.success ? criteres.data.client_id : null;
+  const siteActif = criteres.success ? criteres.data.site_id : null;
+  const familleActive = criteres.success ? criteres.data.famille_id : null;
+  const clientsTries = trierAlphanumeriquement(options.clients, (c) => c.libelle);
+  const sitesTries = trierAlphanumeriquement(options.sites, (s) => s.libelle);
+  const famillesTriees = trierAlphanumeriquement(
+    options.familles,
+    (f) => f.libelle,
+  );
 
   return (
     <Page
@@ -246,6 +271,57 @@ export default async function PageParc({
                     {t("statut_machine.en_panne")}
                   </option>
                   <option value="arretee">{t("statut_machine.arretee")}</option>
+                </select>
+                {/* LISTES-1 (23/09/2026) — trois filtres COMBINABLES avec
+                    celui du statut, chacun dans l'URL. Les options sont
+                    triées par `lib/tri/collation.ts` (LISTES-1). */}
+                <label className="sr-only" htmlFor="client">
+                  {t("parc.filtre_client.libelle")}
+                </label>
+                <select
+                  id="client"
+                  name="client"
+                  defaultValue={clientActif ?? ""}
+                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
+                >
+                  <option value="">{t("parc.filtre_client.tous")}</option>
+                  {clientsTries.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.libelle}
+                    </option>
+                  ))}
+                </select>
+                <label className="sr-only" htmlFor="site">
+                  {mot("site")}
+                </label>
+                <select
+                  id="site"
+                  name="site"
+                  defaultValue={siteActif ?? ""}
+                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
+                >
+                  <option value="">{t("parc.filtre_site.tous")}</option>
+                  {sitesTries.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.libelle}
+                    </option>
+                  ))}
+                </select>
+                <label className="sr-only" htmlFor="famille">
+                  {t("parc.famille")}
+                </label>
+                <select
+                  id="famille"
+                  name="famille"
+                  defaultValue={familleActive ?? ""}
+                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
+                >
+                  <option value="">{t("parc.filtre_famille.tous")}</option>
+                  {famillesTriees.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.libelle}
+                    </option>
+                  ))}
                 </select>
               </span>
             }
@@ -308,6 +384,9 @@ export default async function PageParc({
                   href={hrefDeLaLigne(
                     q,
                     statutActif,
+                    clientActif,
+                    siteActif,
+                    familleActive,
                     criteres.success ? criteres.data.page : 1,
                     machine.id,
                   )}
@@ -419,7 +498,13 @@ export default async function PageParc({
         hrefPage={(page) =>
           hrefDeLaPage(
             "/parc",
-            { q, statut: statutActif === "tous" ? undefined : statutActif },
+            {
+              q,
+              statut: statutActif === "tous" ? undefined : statutActif,
+              client: clientActif ?? undefined,
+              site: siteActif ?? undefined,
+              famille: familleActive ?? undefined,
+            },
             page,
           )
         }
@@ -431,14 +516,19 @@ export default async function PageParc({
 /**
  * L'URL D'UNE LIGNE DU MAÎTRE-DÉTAIL — les critères actifs, PLUS le
  * paramètre `machine` (N-10). Même base que `hrefDeLaPage`
- * (`../presentation.ts`), à laquelle ce ticket ajoute un cinquième
+ * (`../presentation.ts`), à laquelle ce ticket ajoute un sixième
  * paramètre : aucune des deux fonctions n'est réécrite en dupliquant
  * l'autre, celle-ci compose directement sur `URLSearchParams`, la même
- * brique que `hrefDeLaPage` emploie déjà.
+ * brique que `hrefDeLaPage` emploie déjà. LISTES-1 (23/09/2026) y ajoute les
+ * trois filtres combinables — client, site, famille — pour que cliquer une
+ * ligne ne perde jamais le filtre actif.
  */
 function hrefDeLaLigne(
   q: string | undefined,
   statut: string,
+  clientId: string | null,
+  siteId: string | null,
+  familleId: string | null,
   page: number,
   machineId: string,
 ): string {
@@ -448,6 +538,15 @@ function hrefDeLaLigne(
   }
   if (statut !== "tous") {
     recherche.set("statut", statut);
+  }
+  if (clientId !== null) {
+    recherche.set("client", clientId);
+  }
+  if (siteId !== null) {
+    recherche.set("site", siteId);
+  }
+  if (familleId !== null) {
+    recherche.set("famille", familleId);
   }
   recherche.set("page", String(page));
   recherche.set("machine", machineId);

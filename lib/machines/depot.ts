@@ -275,7 +275,72 @@ function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
   const filtreStatut: Prisma.MachineWhereInput =
     criteres.statut === "tous" ? {} : { statut: criteres.statut };
 
-  return { ...filtreTexte, ...filtreStatut };
+  // LES TROIS FILTRES COMBINABLES DE LISTES-1 (23/09/2026) — client, site,
+  // famille. `client_id` et `site_id` sont des colonnes directes de
+  // `machine` ; `famille_id` ne l'est pas (D6 : la famille se lit par le
+  // modèle), d'où la clause imbriquée.
+  const filtreClient: Prisma.MachineWhereInput =
+    criteres.client_id === null ? {} : { client_id: criteres.client_id };
+  const filtreSite: Prisma.MachineWhereInput =
+    criteres.site_id === null ? {} : { site_id: criteres.site_id };
+  const filtreFamille: Prisma.MachineWhereInput =
+    criteres.famille_id === null
+      ? {}
+      : { modele: { famille_id: criteres.famille_id } };
+
+  return {
+    ...filtreTexte,
+    ...filtreStatut,
+    ...filtreClient,
+    ...filtreSite,
+    ...filtreFamille,
+  };
+}
+
+/** Une option de filtre — un identifiant technique, un libellé lisible. */
+export type OptionFiltreParc = { readonly id: string; readonly libelle: string };
+
+/**
+ * LES OPTIONS DES TROIS FILTRES COMBINABLES DE LISTES-1 — jamais le
+ * référentiel entier : seuls les clients, sites et familles qui possèdent au
+ * moins une machine dans le périmètre visible ont un sens à proposer ici,
+ * exactement comme un filtre ne montre jamais une valeur qui rendrait zéro
+ * résultat de façon certaine. `machines: { some: {} }` est une clause de
+ * RELATION — elle ne recompare aucune société, elle porte sur des machines
+ * déjà lues sous le contexte cloisonné.
+ */
+export async function optionsDeFiltreDuParc(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<{
+  readonly clients: readonly OptionFiltreParc[];
+  readonly sites: readonly OptionFiltreParc[];
+  readonly familles: readonly OptionFiltreParc[];
+}> {
+  const [clients, sites, familles] = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      Promise.all([
+        tx.client.findMany({
+          where: { machines: { some: {} } },
+          select: { id: true, raison_sociale: true },
+        }),
+        tx.site.findMany({
+          where: { machines: { some: {} } },
+          select: { id: true, libelle: true },
+        }),
+        tx.familleMateriel.findMany({
+          where: { modeles: { some: { machines: { some: {} } } } },
+          select: { id: true, libelle: true },
+        }),
+      ]),
+    client,
+  );
+  return {
+    clients: clients.map((c) => ({ id: c.id, libelle: c.raison_sociale })),
+    sites: sites.map((s) => ({ id: s.id, libelle: s.libelle })),
+    familles,
+  };
 }
 
 /**

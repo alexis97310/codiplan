@@ -237,6 +237,17 @@ export const schemaRechercheSite = z
       .nullable()
       .default(null),
     actifs_seulement: z.boolean().default(false),
+    /**
+     * LISTES-1 (23/09/2026, Alexis) — un site sans aucun équipement enregistré
+     * est masqué par défaut. `true` lève le masquage.
+     *
+     * **Le défaut vaut `true` (aucun masquage), et c'est délibéré** : un
+     * appelant qui ignore ce champ — `sites/nouveau` et `parc/nouvelle`, qui
+     * peuplent un SÉLECTEUR du référentiel entier — ne doit pas voir sa liste
+     * rétrécir sans l'avoir demandé. Seul l'écran `/sites` calcule et fournit
+     * `false` par défaut, depuis l'état de sa case à cocher.
+     */
+    inclure_sans_equipement: z.boolean().default(true),
     limite: z
       .number()
       .int()

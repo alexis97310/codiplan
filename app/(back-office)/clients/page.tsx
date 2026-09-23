@@ -19,15 +19,16 @@ import {
   type FicheClient,
   type SitesDUnClient,
 } from "@/lib/clients";
-// `compterClients` est importé DIRECTEMENT depuis le dépôt, et non depuis le
-// barrel ci-dessus (AT-07) : `scripts/lib/chemins-de-depot.ts` (R3-12) trace
-// les chemins fonction par fonction en résolvant chaque spécification
-// d'import vers UN fichier — un barrel s'y résout en `lib/clients/index.ts`,
-// jamais en `lib/clients/depot.ts`, si bien qu'un import par le barrel
-// laisserait cette fonction orpheline aux yeux du gardien alors qu'elle a un
-// appelant réel. `compterSansCodeExterne` et `libelleCodeExterneDeLaSociete`
-// suivent déjà ce chemin direct ailleurs (`tableau-de-bord/page.tsx`).
-import { compterClients } from "@/lib/clients/depot";
+// `compterClients` ET `equipementsParClient` SONT IMPORTÉES DIRECTEMENT DEPUIS
+// LE DÉPÔT, et non depuis le barrel ci-dessus (AT-07) : `scripts/lib/chemins-
+// de-depot.ts` (R3-12) trace les chemins fonction par fonction en résolvant
+// chaque spécification d'import vers UN fichier — un barrel s'y résout en
+// `lib/clients/index.ts`, jamais en `lib/clients/depot.ts`, si bien qu'un
+// import par le barrel laisserait ces fonctions orphelines aux yeux du
+// gardien alors qu'elles ont un appelant réel. `compterSansCodeExterne` et
+// `libelleCodeExterneDeLaSociete` suivent déjà ce chemin direct ailleurs
+// (`tableau-de-bord/page.tsx`).
+import { compterClients, equipementsParClient } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -35,6 +36,7 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
   codeEtCommune,
+  compteurEquipements,
   compteurSites,
   referentClient,
   titreSansCode,
@@ -130,6 +132,9 @@ export default async function PageClients({
 
   const params = await searchParams;
   const motif = params.motif;
+  // LA CASE « Afficher aussi les clients sans équipement » (LISTES-1) — même
+  // contrat que `/sites` : absente, la case dit « masquer ».
+  const avecSansEquipement = params.sans_equipement === "1";
   // LA RECHERCHE PASSE PAR ZOD, comme toute entrée serveur (§2) : une chaîne
   // d'URL est une entrée, et `safeParse` la refuse plutôt que de la croire.
   // `limite` n'est PLUS forcée à 200 : elle retombe sur son défaut (50), la
@@ -137,6 +142,7 @@ export default async function PageClients({
   const criteres = schemaRechercheClient.safeParse({
     texte: typeof params.q === "string" ? params.q : "",
     etat: typeof params.etat === "string" ? params.etat : undefined,
+    inclure_sans_equipement: avecSansEquipement,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
@@ -165,7 +171,10 @@ export default async function PageClients({
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
-  const sites = await sitesParClient(session.contexte, clients);
+  const [sites, equipements] = await Promise.all([
+    sitesParClient(session.contexte, clients),
+    equipementsParClient(session.contexte, clients),
+  ]);
 
   return (
     <Page
@@ -232,6 +241,17 @@ export default async function PageClients({
               <option value="actifs">{t("clients.filtre.actifs")}</option>
               <option value="inactifs">{t("clients.filtre.inactifs")}</option>
             </select>
+            {/* LISTES-1 : « garder un champ pour pouvoir les afficher au cas
+                où » — même contrat que `/sites`. */}
+            <label className="flex items-center gap-1.5 text-[12.5px] font-medium">
+              <input
+                type="checkbox"
+                name="sans_equipement"
+                value="1"
+                defaultChecked={avecSansEquipement}
+              />
+              {t("clients.filtre_equipement")}
+            </label>
           </>
         }
       />
@@ -247,6 +267,7 @@ export default async function PageClients({
               key={client.id}
               client={client}
               sites={sites.get(client.id)}
+              nombreEquipements={equipements.get(client.id) ?? 0}
             />
           ))}
         </GrilleCartesEntites>
@@ -275,6 +296,7 @@ export default async function PageClients({
                 typeof params.etat === "string" && params.etat !== "tous"
                   ? params.etat
                   : undefined,
+              sans_equipement: avecSansEquipement ? "1" : undefined,
             },
             page,
           )
@@ -287,9 +309,11 @@ export default async function PageClients({
 function CarteClient({
   client,
   sites,
+  nombreEquipements,
 }: {
   readonly client: FicheClient;
   readonly sites: SitesDUnClient | undefined;
+  readonly nombreEquipements: number;
 }) {
   const referent = referentClient(client.commercial_referent);
   return (
@@ -311,7 +335,7 @@ function CarteClient({
           ? [codeEtCommune(client.code_externe, sites)]
           : [codeEtCommune(client.code_externe, sites), referent]
       }
-      compteurs={[compteurSites(sites)]}
+      compteurs={[compteurSites(sites), compteurEquipements(nombreEquipements)]}
     />
   );
 }

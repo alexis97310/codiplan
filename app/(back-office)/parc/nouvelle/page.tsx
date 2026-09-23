@@ -89,6 +89,10 @@ export default async function PageNouvelleMachine({
         rechercherClients(contexte, {
           texte: null,
           etat: "actifs",
+          // LISTES-1 : ce sélecteur doit proposer TOUT client actif, y
+          // compris celui pour qui on est en train de créer la toute
+          // première machine.
+          inclure_sans_equipement: true,
           limite: LIMITE_CLIENTS,
           page,
         }),
@@ -101,6 +105,8 @@ export default async function PageNouvelleMachine({
           zone_geo: null,
           texte: null,
           actifs_seulement: true,
+          // LISTES-1 : même raison que pour `rechercherClients` ci-dessus.
+          inclure_sans_equipement: true,
           limite: LIMITE_SITES,
           page,
         }),

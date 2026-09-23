@@ -92,3 +92,23 @@ export function compteurSites(sites: SitesDUnClient | undefined): {
       nombre === 1 ? t("clients.sites_un") : t("clients.sites_plusieurs"),
   };
 }
+
+/**
+ * LE COMPTEUR D'ÉQUIPEMENTS DE LA CARTE (LISTES-1, 23/09/2026) — *« page
+ * clients : même remarques que pour la liste sites »*, et la liste des sites
+ * demandait le nombre d'équipements enregistrés. Compte TOUT équipement,
+ * quel que soit son statut — la même notion, au mot près, que celle qui
+ * filtre la liste par défaut (`equipementsParClient`, `lib/clients/depot.ts`).
+ */
+export function compteurEquipements(nombre: number): {
+  readonly valeur: number;
+  readonly libelle: string;
+} {
+  return {
+    valeur: nombre,
+    libelle:
+      nombre === 1
+        ? t("clients.equipements_un")
+        : t("clients.equipements_plusieurs"),
+  };
+}

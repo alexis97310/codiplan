@@ -326,6 +326,8 @@ export const fr = {
   "clients.filtre.tous": "Tous les clients",
   "clients.filtre.actifs": "Actifs",
   "clients.filtre.inactifs": "Inactifs",
+  // LISTES-1 (23/09/2026) — même contrat que « sites.filtre_equipement ».
+  "clients.filtre_equipement": "Afficher aussi les clients sans équipement",
   "clients.inactif": "inactive",
   "clients.retour": "\u2190 Tous les clients",
   // LE SEUL COMPTEUR, et il nomme un geste. Les trois autres qu'une maquette
@@ -350,6 +352,9 @@ export const fr = {
   // client, et c'est la question qu'on se pose en ouvrant la liste.*
   "clients.sites_un": "lieu",
   "clients.sites_plusieurs": "lieux",
+  // LISTES-1 (23/09/2026) — même notion, au mot près, que « sites.equipements_un ».
+  "clients.equipements_un": "équipement",
+  "clients.equipements_plusieurs": "équipements",
   // LA FICHE
   "clients.fiche.identite": "Identit\u00e9",
   "clients.fiche.sites": "Lieux d'intervention",
@@ -430,7 +435,7 @@ export const fr = {
   // rattachement depuis `mot("agence")`.
   "sites.sous_titre":
     "Les lieux d'intervention de vos clients, leur rattachement et leur temps de trajet.",
-  "sites.recherche": "Libellé ou commune",
+  "sites.recherche": "Libellé, commune ou client",
   "sites.rechercher": "Rechercher",
   "sites.creer": "Nouveau lieu",
   "sites.inactif": "Inactif",
@@ -438,6 +443,13 @@ export const fr = {
   // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
   // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
   "sites.colonne_trajet": "Trajet (min)",
+  // LISTES-1 : la valeur affichée n'est PAS celle saisie sur le site — c'est
+  // le défaut par zone (`lib/sites/trajet-zone.ts`). Le libellé le dit, pour
+  // que personne ne croie lire une mesure.
+  "sites.colonne_trajet_estimation": "Trajet estimé (min)",
+  "sites.equipements_un": "équipement",
+  "sites.equipements_plusieurs": "équipements",
+  "sites.filtre_equipement": "Afficher aussi les sites sans équipement",
   "sites.action.modifier": "Enregistrer",
   // LA FICHE D'UN LIEU MONTRE SES DERNIÈRES INTERVENTIONS (HISTORIQUE-SITE-1).
   //
@@ -1690,6 +1702,15 @@ export const fr = {
   "parc.recherche_action": "Rechercher",
   "parc.filtre_statut.libelle": "Filtrer par statut",
   "parc.filtre_statut.tous": "Tous les statuts",
+  // LISTES-1 (23/09/2026) — trois filtres COMBINABLES de plus, à la demande
+  // d'Alexis : « il faudrait des filtres : clients, sites, famille, statut ».
+  // Le mot imposé ne s'écrit PAS ici pour « site » : « parc.filtre_client.libelle »
+  // et « parc.filtre_client.tous » nomment le CLIENT, jamais le site, qui se
+  // compose depuis `mot("site")`.
+  "parc.filtre_client.libelle": "Filtrer par client",
+  "parc.filtre_client.tous": "Tous les clients",
+  "parc.filtre_site.tous": "Tous les lieux",
+  "parc.filtre_famille.tous": "Toutes les familles",
   "parc.reinitialiser": "Réinitialiser",
   "parc.total": "machines",
   // LE SINGULIER EST UNE CLÉ, jamais un « s » retranché : « 1 fiches à

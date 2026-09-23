@@ -211,6 +211,16 @@ export const schemaRechercheParc = z
       .nullable()
       .default(null),
     statut: z.enum(FILTRES_STATUT_PARC).default("tous"),
+    /**
+     * LES TROIS FILTRES COMBINABLES DE LISTES-1 (23/09/2026) — *« page parc :
+     * la liste est plutôt lisible, mais il faudrait des filtres : clients,
+     * sites, famille, statut »*. `statut` existait déjà (D125) ; ces trois-ci
+     * s'y ajoutent, sous la MÊME forme — un identifiant technique, jamais un
+     * libellé, pour ne rien recomparer qui ne soit déjà cloisonné en base.
+     */
+    client_id: z.uuid().nullable().default(null),
+    site_id: z.uuid().nullable().default(null),
+    famille_id: z.uuid().nullable().default(null),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict();
