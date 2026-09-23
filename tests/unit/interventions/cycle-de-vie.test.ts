@@ -8,6 +8,7 @@ import {
   peutDemarrerLeCompteur,
   peutDeplacer,
   peutGenererLeBon,
+  peutPlanifier,
   statutALaCreation,
 } from "@/lib/interventions/cycle-de-vie";
 
@@ -186,5 +187,96 @@ describe("le statut à la création est DÉDUIT de la pose", () => {
   it("avec un créneau : planifiée", () => {
     expect(statutALaCreation(null, jour)).toBe("planifiee");
     expect(statutALaCreation(jour, jour)).toBe("planifiee");
+  });
+});
+
+/**
+ * PEUT-ON PLANIFIER ? (PARCOURS-1, 23/09/2026, arbitrage Alexis)
+ *
+ * *« Une intervention ne peut pas passer au statut planifié/affecté sans »*
+ * date, heure, durée prévue ET technicien — les quatre à la fois.
+ */
+describe("peutPlanifier — les quatre valeurs vont ensemble, ou pas du tout", () => {
+  const TOUT = {
+    datePlanifiee: new Date("2026-09-24"),
+    debutMinutes: 480,
+    dureeMin: 60,
+    technicienId: "un-technicien",
+  };
+  const RIEN = {
+    datePlanifiee: null,
+    debutMinutes: null,
+    dureeMin: null,
+    technicienId: null,
+  };
+
+  it("une intervention déjà planifiée n'est JAMAIS jugée — un déplacement partiel reste permis", () => {
+    for (const statut of [
+      "planifiee",
+      "affectee",
+      "en_cours",
+      "suspendue",
+      "terminee",
+      "cloturee",
+      "annulee",
+    ] as const) {
+      expect(peutPlanifier(statut, RIEN).refuse).toBe(false);
+      expect(
+        peutPlanifier(statut, { ...RIEN, technicienId: "x" }).refuse,
+      ).toBe(false);
+    }
+  });
+
+  it("`a_planifier`, RIEN donné : permis — ce n'est pas une planification, rien ne bouge", () => {
+    expect(peutPlanifier("a_planifier", RIEN).refuse).toBe(false);
+  });
+
+  it("`a_planifier`, les QUATRE données : permis", () => {
+    expect(peutPlanifier("a_planifier", TOUT).refuse).toBe(false);
+  });
+
+  it("`a_planifier`, la date manque : refusé et nommé", () => {
+    const verdict = peutPlanifier("a_planifier", {
+      ...TOUT,
+      datePlanifiee: null,
+    });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planification_date_manquante",
+    );
+  });
+
+  it("`a_planifier`, l'heure manque : refusé, nommé « durée manquante »", () => {
+    const verdict = peutPlanifier("a_planifier", {
+      ...TOUT,
+      debutMinutes: null,
+    });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planification_duree_manquante",
+    );
+  });
+
+  it("`a_planifier`, la durée manque : refusé, nommé « durée manquante »", () => {
+    const verdict = peutPlanifier("a_planifier", { ...TOUT, dureeMin: null });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planification_duree_manquante",
+    );
+  });
+
+  it("`a_planifier`, le technicien manque : refusé et nommé", () => {
+    const verdict = peutPlanifier("a_planifier", {
+      ...TOUT,
+      technicienId: null,
+    });
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planification_technicien_manquant",
+    );
+  });
+
+  it("`a_planifier`, technicien SEUL — le contournement que ce verdict ferme", () => {
+    const verdict = peutPlanifier("a_planifier", {
+      ...RIEN,
+      technicienId: "x",
+    });
+    expect(verdict.refuse).toBe(true);
   });
 });

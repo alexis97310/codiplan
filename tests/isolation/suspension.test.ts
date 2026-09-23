@@ -68,9 +68,9 @@ async function jetable(): Promise<string> {
   jetables.push(id);
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","date_planifiee","modifie_le")
+       "type","statut","date_planifiee","duree_estimee_min","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            'curatif', 'planifiee', DATE '2026-09-14', now()
+            'curatif', 'planifiee', DATE '2026-09-14', 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;

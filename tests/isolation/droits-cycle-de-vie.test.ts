@@ -96,10 +96,10 @@ async function jetable(
   jetables.push(id);
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","date_planifiee","technicien_id","modifie_le")
+       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif', 'planifiee', DATE '2026-09-14',
-            ${technicienId === null ? "NULL" : `'${technicienId}'`}, now()
+            ${technicienId === null ? "NULL" : `'${technicienId}'`}, 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   if (statut === "suspendue") {

@@ -94,8 +94,8 @@ async function interventionJetable(statut = "planifiee"): Promise<string> {
         ? `, "motif_annulation" = 'épreuve', "annulee_le" = now()`
         : "";
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","modifie_le")
-     VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now())`,
+    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","modifie_le")
+     VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, now())`,
   );
   if (statut !== "planifiee") {
     await clientOwner().$executeRawUnsafe(
@@ -167,8 +167,8 @@ describe("le temps mesuré ne se saisit pas", () => {
     jetables.push(id);
     await expect(
       clientOwner().$executeRawUnsafe(
-        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","temps_mesure_min","modifie_le")
-         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 45, now())`,
+        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","temps_mesure_min","modifie_le")
+         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, 45, now())`,
       ),
     ).rejects.toThrow(/seule source du temps/i);
   });
@@ -178,8 +178,8 @@ describe("le temps mesuré ne se saisit pas", () => {
     await segmentFerme(id, DEBUT, 3600);
     await expect(
       clientOwner().$executeRawUnsafe(
-        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","modifie_le")
-         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now())
+        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","modifie_le")
+         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, now())
          ON CONFLICT ("id") DO UPDATE SET "temps_mesure_min" = 999`,
       ),
     ).rejects.toThrow(/seule source du temps/i);
@@ -273,16 +273,16 @@ describe("la traçabilité de la validation", () => {
     jetables.push(id);
     await expect(
       clientOwner().$executeRawUnsafe(
-        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","temps_valide_par","modifie_le")
-         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', '${TECHNICIEN}', now())`,
+        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","temps_valide_par","modifie_le")
+         VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, '${TECHNICIEN}', now())`,
       ),
     ).rejects.toThrow(/intervention_validation_tracee/);
 
     const autre = await interventionJetable();
     await expect(
       clientOwner().$executeRawUnsafe(
-        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","modifie_le")
-         VALUES ('${autre}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', now())
+        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id","type","statut","duree_estimee_min","modifie_le")
+         VALUES ('${autre}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}', 'curatif', 'planifiee', 60, now())
          ON CONFLICT ("id") DO UPDATE SET "temps_valide_le" = now()`,
       ),
     ).rejects.toThrow(/intervention_validation_tracee/);

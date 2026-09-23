@@ -24,15 +24,35 @@ import { z } from "zod";
  * à la première synchronisation (I10). Personne ne l'attribue aujourd'hui, et
  * l'inventer ici poserait une règle que personne n'a décidée.
  *
- * **Le statut** — une intervention naît `a_planifier`, ou `planifiee` si un
- * créneau est donné. Le laisser saisir permettrait de créer une intervention
- * déjà clôturée.
+ * **Le statut** — une intervention naît TOUJOURS `a_planifier` depuis
+ * PARCOURS-1 (23/09/2026, arbitrage Alexis). Le laisser saisir permettrait de
+ * créer une intervention déjà clôturée.
  *
- * ## Les machines sont un TABLEAU depuis L2-08a
+ * ## Les machines sont un TABLEAU depuis L2-08a, PLAFONNÉ À UNE DEPUIS PARCOURS-1
  *
- * `machine_id` a disparu, de la saisie comme du schéma : une visite couvre
- * plusieurs matériels (chapitre 7/M3), et garder une colonne « pour la
- * principale » aurait fait deux écritures d'un même fait (§9, 01/09).
+ * `machine_id` a disparu, de la saisie comme du schéma, au profit d'un
+ * tableau qui pouvait en couvrir plusieurs (chapitre 7/M3). **L'arbitrage du
+ * 23/09/2026 referme ce choix : « une intervention ne peut pas avoir 2
+ * machines. »** Le tableau reste — il porte toujours zéro ou une machine,
+ * jamais un scalaire nullable qui aurait fallu réécrire ailleurs —, mais
+ * `.max(1)` en refuse désormais un second. `intervention_machine` porte la
+ * même règle en base (`@@unique([intervention_id])`) : la saisie refuse tôt,
+ * la base refuse toujours.
+ *
+ * ## CE QUI A QUITTÉ LA CRÉATION POUR LA PLANIFICATION (PARCOURS-1, 23/09/2026)
+ *
+ * *« Lors de la création d'intervention, on ne peut pas décider ni de la date
+ * d'intervention, ni du technicien affecté : il doit y avoir un ordre précis —
+ * Créer demande d'intervention → Planifier et qualifier l'intervention. »*
+ * (Alexis, 23/09/2026)
+ *
+ * `date_planifiee`, `creneau_debut`, `creneau_fin`, `duree_estimee_min` et
+ * `technicien_id` ne sont donc plus des champs de CE schéma : ils ne se
+ * saisissent qu'au geste de PLANIFICATION, tenu par `schemaDeplacement`
+ * ci-dessous, et les quatre s'y donnent ENSEMBLE ou pas du tout
+ * (`peutPlanifier`, `lib/interventions/cycle-de-vie.ts`). Une création ne
+ * porte donc plus jamais de créneau, et `creerIntervention` ne calcule plus
+ * aucun statut : il est TOUJOURS `a_planifier`.
  */
 
 /** Les neuf natures du chapitre 11.2. */
@@ -87,46 +107,47 @@ export const schemaCreation = z
     client_id: uuid,
     site_id: uuid,
     /**
-     * LES MACHINES, au pluriel depuis L2-08a — une visite peut en couvrir
-     * plusieurs (chapitre 7/M3).
+     * LA MACHINE, AU PLUS UNE (PARCOURS-1, 23/09/2026, arbitrage Alexis).
      *
-     * **Le tableau VIDE est le cas ordinaire à la création**, et non un oubli :
-     * le dépannage à l'aveugle sait qu'un compresseur est en panne, pas lequel.
-     * RG-INT-01 n'exige la machine qu'**avant de démarrer**, et c'est la base
-     * qui le tient — pas cette saisie, qui refuserait alors d'enregistrer un
-     * appel.
+     * **Le tableau VIDE reste le cas ordinaire à la création**, et non un
+     * oubli : le dépannage à l'aveugle sait qu'un compresseur est en panne,
+     * pas lequel. RG-INT-01 n'exige la machine qu'**avant de démarrer**, et
+     * c'est la base qui le tient — pas cette saisie, qui refuserait alors
+     * d'enregistrer un appel.
      *
      * Les doublons sont retirés ICI plutôt que laissés buter sur l'index
      * unique : *une même machine nommée deux fois dans un formulaire est une
-     * maladresse de saisie, pas une faute à refuser.*
+     * maladresse de saisie, pas une faute à refuser.* `.max(1)`, lui, refuse
+     * une VRAIE seconde machine — c'est la règle nouvelle, pas une maladresse.
      */
     machine_ids: z
       .array(uuid)
       .default([])
-      .transform((ids) => [...new Set(ids)]),
+      .transform((ids) => [...new Set(ids)])
+      .pipe(z.array(uuid).max(1)),
     type: z.enum(TYPES_INTERVENTION),
     priorite: z.enum(PRIORITES).default("p3"),
     mode_valorisation: z.enum(MODES_VALORISATION).default("temps_passe"),
-    date_planifiee: z.date().nullable().default(null),
-    creneau_debut: z.date().nullable().default(null),
-    creneau_fin: z.date().nullable().default(null),
-    duree_estimee_min: z.number().int().positive().nullable().default(null),
-    technicien_id: uuid.nullable().default(null),
+    /**
+     * LA PANNE SIGNALÉE OU LE TRAVAIL DEMANDÉ (PARCOURS-1) — OBLIGATOIRE :
+     * *« panne signalée / travail demandé (texte obligatoire) »* (Alexis,
+     * 23/09/2026). Même rôle que `demande.description` (L2-06), sur la table
+     * voisine : une intervention créée directement, hors du module demandes,
+     * porte la même exigence que celle qui en descend.
+     */
+    description: z.string().trim().min(1).max(4000),
+    /** LE CONTACT SUR PLACE (PARCOURS-1) — facultatif, comme `demande.contact_id`. */
+    contact_id: uuid.nullable().default(null),
+    /** LA RÉFÉRENCE CLIENT / LE N° DE BON DE COMMANDE (PARCOURS-1) — facultatif. */
+    reference_client: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .nullable()
+      .default(null),
   })
-  .refine(
-    (v) =>
-      v.creneau_debut === null ||
-      v.creneau_fin === null ||
-      v.creneau_fin > v.creneau_debut,
-    {
-      message: "La fin du créneau doit suivre son début.",
-      path: ["creneau_fin"],
-    },
-  )
-  .refine((v) => (v.creneau_debut === null) === (v.creneau_fin === null), {
-    message: "Un créneau se donne en entier : un début et une fin, ou aucun.",
-    path: ["creneau_fin"],
-  });
+  .strict();
 
 export type Creation = z.infer<typeof schemaCreation>;
 

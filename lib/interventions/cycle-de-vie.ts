@@ -209,6 +209,69 @@ export function peutGenererLeBon(statut: StatutIntervention): Verdict {
 }
 
 /**
+ * PEUT-ON POSER CE CRÉNEAU SUR UNE INTERVENTION ENCORE « À PLANIFIER » ?
+ * (PARCOURS-1, 23/09/2026, arbitrage Alexis)
+ *
+ * > *« Planifier et qualifier l'intervention » exige la date, l'heure de
+ * > début, la DURÉE PRÉVUE (obligatoire) et le technicien — les quatre à la
+ * > fois. Une intervention ne peut pas passer au statut planifié/affecté sans
+ * > ces quatre valeurs.*
+ *
+ * **Ne juge qu'une intervention `a_planifier`.** Une intervention déjà
+ * planifiée n'est pas concernée : la replanifier partiellement — changer
+ * seulement l'heure, ou seulement le technicien — reste un DÉPLACEMENT
+ * ordinaire, pas une planification initiale ; les quatre valeurs qu'exige ce
+ * verdict ont déjà été données une première fois pour qu'elle quitte la file.
+ *
+ * **Tout ou rien** : si AUCUNE des quatre n'est donnée, il n'y a rien à
+ * planifier — ce n'est pas un refus, c'est un déplacement qui ne déplace
+ * rien. Si AU MOINS UNE est donnée sans les trois autres, c'est la moitié
+ * d'une planification, et c'est refusé en nommant ce qui manque — jamais un
+ * message générique, pour que l'écran comme le glisser-déposer du planning
+ * disent EXACTEMENT quoi ajouter (même exigence que RG-PLA-04, L3-02).
+ *
+ * C'est ce verdict, et lui seul, qui ferme le trou que le glisser-déposer
+ * ouvrait : il pose une date et parfois un technicien sur la ligne d'une
+ * personne, SANS heure ni durée en vue semaine. Le déploiement de ce
+ * verdict dans `deplacerIntervention` refuse alors ce dépôt-là comme il
+ * refuse un formulaire incomplet — MÊME route, MÊME décision (R2-19).
+ */
+export function peutPlanifier(
+  statut: StatutIntervention,
+  valeurs: {
+    readonly datePlanifiee: unknown;
+    readonly debutMinutes: unknown;
+    readonly dureeMin: unknown;
+    readonly technicienId: unknown;
+  },
+): Verdict {
+  if (statut !== "a_planifier") {
+    return PERMIS;
+  }
+  const { datePlanifiee, debutMinutes, dureeMin, technicienId } = valeurs;
+  const toutesPresentes =
+    datePlanifiee !== null &&
+    debutMinutes !== null &&
+    dureeMin !== null &&
+    technicienId !== null;
+  const uneSeulePresente =
+    datePlanifiee !== null ||
+    debutMinutes !== null ||
+    dureeMin !== null ||
+    technicienId !== null;
+  if (!uneSeulePresente || toutesPresentes) {
+    return PERMIS;
+  }
+  if (datePlanifiee === null) {
+    return { refuse: true, cle: "intervention.refus.planification_date_manquante" };
+  }
+  if (debutMinutes === null || dureeMin === null) {
+    return { refuse: true, cle: "intervention.refus.planification_duree_manquante" };
+  }
+  return { refuse: true, cle: "intervention.refus.planification_technicien_manquant" };
+}
+
+/**
  * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *
  * **« À planifier » veut dire « sans date », et rien d'autre.** L'annexe D en

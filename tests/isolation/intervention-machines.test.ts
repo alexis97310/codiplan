@@ -13,6 +13,7 @@ import {
   INTERVENTION_A2,
   INTERVENTION_B1,
   MACHINE_A1,
+  MACHINE_A3,
   SITE_A1_S1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
@@ -60,9 +61,9 @@ async function surUneInterventionJetable(
   const id = uuidv7();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-       "agence_id", "type", "statut", "modifie_le")
+       "agence_id", "type", "statut", "duree_estimee_min", "modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            '${type}'::"TypeIntervention", 'planifiee', now()
+            '${type}'::"TypeIntervention", 'planifiee', 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   try {
@@ -280,11 +281,9 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
           type: "preventif_contrat",
           priorite: "p3",
           mode_valorisation: "temps_passe",
-          date_planifiee: null,
-          creneau_debut: null,
-          creneau_fin: null,
-          duree_estimee_min: null,
-          technicien_id: null,
+          description: "Panne épreuve",
+          contact_id: null,
+          reference_client: null,
         },
         clientApp(),
       );
@@ -321,6 +320,7 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
       site_id: SITE_A1_S1,
       machine_ids: [MACHINE_A1, MACHINE_A1],
       type: "preventif_contrat",
+      description: "Panne épreuve",
     });
     expect(saisie.machine_ids).toHaveLength(1);
 
@@ -332,6 +332,39 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
         `DELETE FROM "intervention" WHERE "id" = '${id}'`,
       );
     }
+  });
+
+  /**
+   * UNE INTERVENTION NE PEUT PAS AVOIR 2 MACHINES (PARCOURS-1, 23/09/2026,
+   * arbitrage Alexis) — DEUX verrous, et ils ne recouvrent pas le même
+   * défaut : la SAISIE refuse tôt, un scénario forgé qui la contournerait
+   * bute sur la BASE.
+   */
+  it("`schemaCreation` REFUSE deux machines DISTINCTES — jamais un dédoublonnage qui les ferait passer", () => {
+    const saisie = schemaCreation.safeParse({
+      id: uuidv7(),
+      client_id: CLIENT_A1,
+      site_id: SITE_A1_S1,
+      machine_ids: [MACHINE_A1, MACHINE_A3],
+      type: "preventif_contrat",
+      description: "Panne épreuve",
+    });
+    expect(saisie.success).toBe(false);
+  });
+
+  it("la base REFUSE une seconde machine sur une intervention qui en a déjà une (@@unique([intervention_id]))", async () => {
+    await surUneInterventionJetable("curatif", async (id) => {
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
+         VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${MACHINE_A1}', now())`,
+      );
+      await expect(
+        clientOwner().$executeRawUnsafe(
+          `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
+           VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${MACHINE_A3}', now())`,
+        ),
+      ).rejects.toThrow(/intervention_machine_intervention_id_key/);
+    });
   });
 
   it("l'index REFUSE un vrai doublon — le dédoublonnage n'est pas la seule garantie", async () => {

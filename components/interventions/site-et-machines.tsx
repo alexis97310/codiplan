@@ -27,10 +27,18 @@ import { useState } from "react";
  *
  * Une machine d'un AUTRE site n'est jamais proposée — la liste ne montre que
  * les machines du site choisi, jamais le parc entier (arbitrage par défaut de
- * ce lot, voir la description de la PR). Le choix reste facultatif : aucune
- * machine sélectionnée est le cas ordinaire à la création (dépannage à
- * l'aveugle, voir `schemaCreation`), et ce composant ne rend `required` sur
- * rien.
+ * ce lot, voir la description de la PR). **Au plus une** depuis PARCOURS-1
+ * (23/09/2026, arbitrage Alexis : « une intervention ne peut pas avoir 2
+ * machines ») — un `<select>` simple, plus `multiple`. Le choix reste
+ * facultatif : aucune machine sélectionnée est le cas ordinaire à la création
+ * (dépannage à l'aveugle, voir `schemaCreation`).
+ *
+ * **LE CONTACT SUR PLACE (PARCOURS-1) SUIT LA MÊME LOGIQUE QUE LA MACHINE** —
+ * c'est pour cela qu'il vit ici plutôt que dans un composant séparé : filtrer
+ * par site choisi exige le même état `siteId`, tenu côté client, et un second
+ * composant le dupliquerait (§9, 01/09). Un contact du CLIENT (`site_id`
+ * nul) reste proposé quel que soit le site choisi ; un contact d'un AUTRE
+ * site du même client ne l'est pas.
  */
 
 export type SiteOption = {
@@ -45,20 +53,35 @@ export type MachineOption = {
   readonly libelle: string;
 };
 
+export type ContactOption = {
+  readonly id: string;
+  readonly clientId: string;
+  /** `null` = contact du client, proposé quel que soit le site choisi. */
+  readonly siteId: string | null;
+  readonly libelle: string;
+};
+
 export function ChampSiteEtMachines({
   sites,
   machines,
+  contacts = [],
   libelleSite,
   libelleMachines,
   texteAucuneMachine,
+  libelleContact,
+  libelleAucunContact,
   siteInitial,
   machineIdsInitiales = [],
 }: Readonly<{
   sites: readonly SiteOption[];
   machines: readonly MachineOption[];
+  contacts?: readonly ContactOption[];
   libelleSite: string;
   libelleMachines: string;
   texteAucuneMachine: string;
+  /** Absent = pas de champ contact (ce lot ne s'en sert que d'un formulaire). */
+  libelleContact?: string;
+  libelleAucunContact?: string;
   /**
    * LE SITE PRÉSÉLECTIONNÉ (LIENS-1, « + Intervention » depuis une fiche
    * machine). Déjà validé par l'appelant serveur contre `sites` — ce
@@ -74,6 +97,9 @@ export function ChampSiteEtMachines({
   );
   const siteChoisi = sites.find((site) => site.id === siteId) ?? sites[0];
   const machinesDuSite = machines.filter((m) => m.siteId === siteId);
+  const contactsDuLieu = contacts.filter(
+    (c) => c.clientId === siteChoisi?.clientId && (c.siteId === null || c.siteId === siteId),
+  );
 
   return (
     <>

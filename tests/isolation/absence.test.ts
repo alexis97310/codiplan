@@ -114,9 +114,9 @@ beforeEach(async () => {
   interventionId = uuidv7();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-       "agence_id", "type", "statut", "modifie_le")
+       "agence_id", "type", "statut", "duree_estimee_min", "modifie_le")
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-             'planifiee', now())`,
+             'planifiee', 60, now())`,
     interventionId,
     SOCIETE_A,
     CLIENT_A1,

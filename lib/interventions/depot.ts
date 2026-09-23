@@ -5,7 +5,6 @@ import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
 } from "@/lib/calendar/agence";
-import type { Calendrier } from "@/lib/calendar/calendrier";
 import {
   MINUTES_PAR_JOUR,
   instantAMinutes,
@@ -49,6 +48,7 @@ import {
   peutAnnuler,
   peutCloturer,
   peutDeplacer,
+  peutPlanifier,
   peutReprendre,
   peutSuspendre,
   statutALaCreation,
@@ -99,6 +99,13 @@ export const CHAMPS_LIGNE = {
   client_id: true,
   site_id: true,
   agence_id: true,
+  /// LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ, LE CONTACT SUR PLACE ET LA
+  /// RÉFÉRENCE CLIENT (PARCOURS-1, 23/09/2026) — saisis une seule fois, à la
+  /// création, jamais reécrits ensuite : ce lot n'ouvre aucun geste de
+  /// modification pour ces trois champs.
+  description: true,
+  contact_id: true,
+  reference_client: true,
   mode_valorisation: true,
   forfait_deplacement_id: true,
   /**
@@ -198,80 +205,23 @@ export async function instantDeLAgence(
 }
 
 /**
- * LE CALENDRIER D'OUVERTURE D'UNE AGENCE POUR UN JOUR VISÉ, JOURS PARTICULIERS
- * COMPRIS — factorisée pour la création, qui en a désormais besoin comme le
- * déplacement (`verdictALaPose`, ci-dessous).
+ * CRÉER une intervention — UNE DEMANDE, au sens du parcours (PARCOURS-1,
+ * 23/09/2026, arbitrage Alexis) : client, site, au plus une machine, nature,
+ * priorité, panne signalée. **Ni date, ni créneau, ni technicien** — ce
+ * geste-ci ne les saisit plus, `schemaCreation` ne les porte plus, et
+ * `PLANIFIER` (`deplacerIntervention`, sous `peutPlanifier`) est le seul geste
+ * qui les pose, tous ensemble.
  *
- * **`chargerCalendrierAgence`, et non plus `lireParametrage`** (revue Codex de
- * la PR #267, 20/09/2026) : voir l'entête de `verdictOuverture` dans
- * `pose.ts` pour le défaut que ce changement répare — un férié chômé ou un
- * pont d'agence n'était pas vu par le contrôle d'ouverture, ici comme au
- * déplacement.
+ * Deux choses restent DÉDUITES et jamais saisies : l'agence (du site) et le
+ * forfait de déplacement (de la zone du site). Le statut, lui, n'est plus
+ * DÉDUIT — il n'y a plus rien à déduire : une création est TOUJOURS
+ * `a_planifier`.
  *
- * La FENÊTRE est le jour visé, bordée d'un jour de chaque côté (D46) : un
- * créneau proche de minuit peut déborder sur le jour UTC voisin. `null` sans
- * appeler la base quand `demande` ne vise aucun jour (retrait du planning) —
- * `verdictOuverture` rend alors son verdict sans avoir besoin d'un calendrier.
- */
-async function calendrierDeLAgence(
-  tx: Prisma.TransactionClient,
-  societeId: string,
-  agenceId: string,
-  demande: PoseDemandee,
-): Promise<Calendrier | null> {
-  const agence = await tx.agence.findFirst({
-    where: { id: agenceId },
-    select: {
-      fuseau_horaire: true,
-      societe: { select: { fuseau_horaire: true } },
-    },
-  });
-  if (agence === null) {
-    // Impossible en pratique : la clé étrangère de `site.agence_id` garantit
-    // l'agence dans la même société (même raisonnement qu'`instantDeLAgence`).
-    throw new Error(
-      `Agence ${agenceId} illisible sous le contexte courant : son ` +
-        "calendrier ne peut pas être lu sans elle.",
-    );
-  }
-  const fuseau = fuseauDeLAgence(agence);
-  const jourVise =
-    demande.datePlanifiee ??
-    (demande.creneauDebut === null
-      ? null
-      : versLocal(demande.creneauDebut, fuseau));
-  if (jourVise === null) {
-    return null;
-  }
-  return chargerCalendrierAgence(tx, {
-    societeId,
-    agenceId,
-    fenetre: { du: jourSuivant(jourVise, -1), au: jourSuivant(jourVise, 1) },
-  });
-}
-
-/**
- * LA POSE DEMANDÉE À LA CRÉATION — même forme que `demandeDeDeplacement`
- * (`PoseDemandee`), mais SANS conversion de minutes locales : `schemaCreation`
- * valide déjà `creneau_debut`/`creneau_fin` comme des INSTANTS (`z.date()`),
- * là où le déplacement part de minutes locales qu'il faut résoudre sous le
- * fuseau de l'agence. Seul `date_planifiee` — un `@db.Date`, minuit UTC — se
- * relit en `JourLocal`, par `jourStocke`, la même lecture que le déplacement.
- */
-function demandeDeCreation(saisie: Creation): PoseDemandee {
-  return {
-    datePlanifiee: jourStocke(saisie.date_planifiee),
-    creneauDebut: saisie.creneau_debut,
-    creneauFin: saisie.creneau_fin,
-    technicienId: saisie.technicien_id,
-  };
-}
-
-/**
- * CRÉER une intervention depuis le planning.
- *
- * Trois choses sont DÉDUITES et jamais saisies : l'agence (du site), le forfait
- * de déplacement (de la zone du site), et le statut (du créneau).
+ * **Le contrôle d'ouverture du calendrier a quitté ce geste avec la date**
+ * qu'il jugeait (R2-19 le posait ici justement parce qu'une création pouvait
+ * porter un jour) : une création sans date n'a plus rien à confronter à un
+ * calendrier. `verdictOuverture` reste le contrôle de la POSE, dans
+ * `deplacerIntervention`, où la date arrive désormais pour de bon.
  */
 export async function creerIntervention(
   contexte: ContexteSession,
@@ -324,38 +274,6 @@ export async function creerIntervention(
         };
       }
 
-      // ── LE CONTRÔLE D'OUVERTURE, COMME À LA POSE (R2-19) ────────────────
-      //
-      // **Il manquait, et c'est le ticket** : `deplacerIntervention` refuse
-      // déjà un jour d'agence fermée par `verdictALaPose` → `verdictOuverture`,
-      // mais une intervention pouvait NAÎTRE un jour férié ou hors ouverture
-      // par le formulaire de création, qui n'appelait ce contrôle nulle part.
-      // *Deux chemins qui écrivent la même colonne (`date_planifiee`) et ne se
-      // soumettent pas au même contrôle ne tiennent pas la même règle* (§9,
-      // 01/09) — exactement la faute déjà réparée pour RG-PLA-04 entre
-      // l'affectation et le déplacement.
-      //
-      // **Le périmètre s'arrête ICI, et c'est délibéré** (voir la description
-      // du lot) : seul `verdictOuverture` est branché — agence sans
-      // calendrier, jour fermé, hors ouverture. Les trois AUTRES contrôles de
-      // `verdictALaPose` — RG-PLA-04 (habilitation), RG-PLA-06 (absence),
-      // chevauchement — ne sont PAS demandés pour la création, où aucun
-      // technicien n'est en général encore affecté ; l'un d'eux peut manquer
-      // aussi (une création AVEC technicien et créneau pourrait chevaucher une
-      // autre ligne du même technicien), mais l'élargir ici sortirait du
-      // périmètre arrêté pour ce lot.
-      const demandeCreation = demandeDeCreation(saisie);
-      const calendrier = await calendrierDeLAgence(
-        tx,
-        contexte.societeId ?? "",
-        site.agence_id,
-        demandeCreation,
-      );
-      const ouverture = verdictOuverture(calendrier, demandeCreation);
-      if (ouverture.refuse) {
-        return { accepte: false, cle: ouverture.cle };
-      }
-
       // LES MACHINES DOIVENT APPARTENIR AU SITE CHOISI (revue Codex de la PR
       // #267, 20/09/2026). *Seule la forme UUID était validée par
       // `schemaCreation` — rien ne garantissait qu'une machine appartienne au
@@ -389,15 +307,12 @@ export async function creerIntervention(
           agence_id: site.agence_id,
           type: saisie.type,
           priorite: saisie.priorite,
-          statut: statutALaCreation(
-            saisie.date_planifiee,
-            saisie.creneau_debut,
-          ),
-          date_planifiee: saisie.date_planifiee,
-          creneau_debut: saisie.creneau_debut,
-          creneau_fin: saisie.creneau_fin,
-          duree_estimee_min: saisie.duree_estimee_min,
-          technicien_id: saisie.technicien_id,
+          // TOUJOURS `a_planifier` (PARCOURS-1) : plus rien n'est DÉDUIT ici,
+          // parce qu'il n'y a plus de créneau dont le déduire.
+          statut: "a_planifier",
+          description: saisie.description,
+          contact_id: saisie.contact_id,
+          reference_client: saisie.reference_client,
           mode_valorisation: saisie.mode_valorisation,
           forfait_deplacement_id: forfaitId,
         },
@@ -577,6 +492,8 @@ export async function affecterTechnicien(
           site_id: true,
           agence_id: true,
           date_planifiee: true,
+          creneau_debut: true,
+          duree_estimee_min: true,
         },
       });
       if (ligne === null) {
@@ -587,6 +504,24 @@ export async function affecterTechnicien(
       );
       if (barriere !== null) {
         return barriere;
+      }
+      // ── PLANIFIER SE FAIT EN UNE FOIS, PAS EN MORCEAUX (PARCOURS-1) ──────
+      //
+      // Affecter un technicien SEUL à une intervention encore `a_planifier`
+      // laisserait le technicien engagé sur un créneau qui n'existe pas —
+      // exactement le contournement que `peutPlanifier` existe pour fermer,
+      // et ce dépôt écrit `technicien_id` comme `deplacerIntervention` : la
+      // même règle doit y tenir (§9, 01/09).
+      const barrierePlanification = refus<LigneIntervention>(
+        peutPlanifier(ligne.statut as StatutIntervention, {
+          datePlanifiee: ligne.date_planifiee,
+          debutMinutes: ligne.creneau_debut,
+          dureeMin: ligne.duree_estimee_min,
+          technicienId: technicienId,
+        }),
+      );
+      if (barrierePlanification !== null) {
+        return barrierePlanification;
       }
 
       const verdict = await verdictHabilitationSous(
@@ -933,6 +868,28 @@ export async function deplacerIntervention(
       );
       if (barriere !== null) {
         return barriere;
+      }
+
+      // ── PLANIFIER EXIGE LES QUATRE VALEURS ENSEMBLE (PARCOURS-1) ────────
+      //
+      // *C'est ICI, sous le contexte cloisonné, et PAS seulement à l'écran* —
+      // même raison que les trois contrôles juste en dessous : le glisser-
+      // déposer du planning passe par CETTE fonction, exactement comme le
+      // formulaire « Planifier » de la fiche (R2-19, même route, même
+      // décision). Une intervention encore `a_planifier` qu'on dépose sur un
+      // jour de la vue semaine — sans heure, sans durée, parfois sans
+      // technicien — ne doit PAS silencieusement devenir `planifiee` à
+      // moitié : c'est exactement le contournement que `peutPlanifier` ferme.
+      const barrierePlanification = refus<LigneIntervention>(
+        peutPlanifier(ligne.statut as StatutIntervention, {
+          datePlanifiee: saisie.date_planifiee,
+          debutMinutes: saisie.debut_minutes,
+          dureeMin: saisie.duree_min,
+          technicienId: saisie.technicien_id,
+        }),
+      );
+      if (barrierePlanification !== null) {
+        return barrierePlanification;
       }
 
       // ── LES TROIS CONTRÔLES À LA POSE (R2-19 ; RG-PLA-04 depuis L3-02) ──────
@@ -1338,11 +1295,13 @@ export async function annulerIntervention(
  * ce contrôle tient la même règle CÔTÉ SERVEUR, contre un formulaire forgé qui
  * soumettrait l'identifiant d'une machine d'un autre site.
  *
- * **Plusieurs machines restent possibles** — `intervention_machine` n'interdit
- * que le DOUBLON (`@@unique([intervention_id, machine_id])`), jamais la
- * pluralité (chapitre 7/M3) — et un second appel sur une machine déjà liée est
- * un NO-OP accepté plutôt qu'un refus : reposer deux fois la même question ne
- * change rien à la réponse.
+ * **UNE SEULE MACHINE AU PLUS, DEPUIS PARCOURS-1 (23/09/2026, arbitrage
+ * Alexis).** ~~Plusieurs machines restaient possibles~~ — `intervention_machine`
+ * porte désormais `@@unique([intervention_id])` en plus de son doublon. Un
+ * second appel sur la MÊME machine déjà liée reste un NO-OP accepté :
+ * reposer deux fois la même question ne change rien à la réponse. Un appel
+ * sur une AUTRE machine, lui, est REFUSÉ — nommé, avant même d'atteindre la
+ * contrainte, dont le message serait technique.
  *
  * **L'ÉCRITURE EST ATOMIQUE** (revue Codex de la PR #267, 20/09/2026) :
  * `createMany` avec `skipDuplicates` — un `INSERT ... ON CONFLICT DO NOTHING`
@@ -1382,6 +1341,19 @@ export async function ajouterMachineAIntervention(
       });
       if (machine === null) {
         return { accepte: false, cle: "intervention.refus.machine_invalide" };
+      }
+      // UNE MACHINE AU PLUS (PARCOURS-1) — voir l'entête. Une AUTRE machine
+      // déjà liée refuse ; la MÊME redescend au NO-OP du `skipDuplicates`
+      // ci-dessous.
+      const dejaLiee = await tx.interventionMachine.findFirst({
+        where: { intervention_id: interventionId },
+        select: { machine_id: true },
+      });
+      if (dejaLiee !== null && dejaLiee.machine_id !== machineId) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.machine_deja_presente",
+        };
       }
       await tx.interventionMachine.createMany({
         data: [

@@ -299,10 +299,17 @@ describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFI
   const DATE_LOIN_DANS_LE_PASSE = "2000-01-01";
 
   beforeAll(async () => {
+    // `en_cours`, PAS `planifiee` (PARCOURS-1, 23/09/2026) — depuis
+    // `intervention_planifiee_a_sa_duree`, `planifiee`/`affectee` exigent
+    // désormais leur durée, et une intervention SANS durée ne peut plus
+    // naître dans l'un des deux. Le critère mesuré ici (non terminale, sans
+    // durée, à venir ou sans date) ne porte sur AUCUN statut précis —
+    // `en_cours` le prouve aussi bien que `planifiee` le prouvait avant
+    // cette contrainte.
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'planifiee', NULL, $6::date, NULL, now())
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'en_cours', NULL, $6::date, NULL, now())
        ON CONFLICT ("id") DO NOTHING`,
       A_VENIR_SANS_DUREE,
       SOCIETE_A,

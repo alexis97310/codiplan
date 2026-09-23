@@ -134,6 +134,21 @@ export const CONTRAINTES_NON_VALIDEES: readonly NonValideeDeclaree[] = [
       "conservation, ou jamais. Elle reste alors NOT VALID, et c'est l'état " +
       "juste.",
   },
+  {
+    table: "intervention",
+    contrainte: "intervention_planifiee_a_sa_duree",
+    motif:
+      "PARCOURS-1, arbitrage Alexis du 23/09/2026 : une intervention ne " +
+      "passe au statut planifié/affecté sans sa durée prévue. Des " +
+      "interventions ANTÉRIEURES à ce lot portent déjà une date et un " +
+      "technicien sans durée — le champ était facultatif avant lui — et " +
+      "personne ne peut inventer la durée qu'elles n'ont pas eue.",
+    rattrapage:
+      "Renseigner la durée prévue des interventions déjà planifiées qui en " +
+      "sont dépourvues — à la main, ligne par ligne, personne d'autre ne " +
+      "connaissant la durée qu'elles auraient dû porter —, puis VALIDATE " +
+      "CONSTRAINT et retirer cette entrée.",
+  },
 ] as const;
 
 function cle(table: string, contrainte: string): string {

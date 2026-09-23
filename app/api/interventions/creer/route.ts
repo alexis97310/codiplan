@@ -7,7 +7,8 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { champ, versLaFiche, versLePlanning } from "../actions";
 
 /**
- * CRÉER UNE INTERVENTION (lot 2, D84).
+ * CRÉER UNE INTERVENTION — UNE DEMANDE (lot 2, D84 ; PARCOURS-1, 23/09/2026,
+ * arbitrage Alexis).
  *
  * Le lieu arrive sous la forme `client:site` — un seul champ pour un couple qui
  * ne se dissocie jamais. Le faire saisir en deux listes laisserait choisir un
@@ -16,6 +17,11 @@ import { champ, versLaFiche, versLePlanning } from "../actions";
  *
  * L'identifiant est un UUID v7 attribué ICI (I10) : c'est la même règle qui
  * permettra à l'application mobile d'en générer un hors ligne.
+ *
+ * **NI DATE, NI TECHNICIEN** — ce formulaire ne les poste plus, `schemaCreation`
+ * ne les porte plus : *« lors de la création d'intervention, on ne peut pas
+ * décider ni de la date d'intervention, ni du technicien affecté »* (Alexis,
+ * 23/09/2026). C'est `PLANIFIER`, sur la fiche, qui les pose — tous ensemble.
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() => traiter(requete));
@@ -28,34 +34,38 @@ async function traiter(requete: Request): Promise<Response> {
   }
   const formulaire = await requete.formData();
   const lieu = (champ(formulaire, "site") ?? "").split(":");
-  const date = champ(formulaire, "date_planifiee");
 
   const saisie = schemaCreation.safeParse({
     id: uuidv7(),
     client_id: lieu[0],
     site_id: lieu[1],
-    // LA MACHINE N'EST PLUS FIGÉE À VIDE (chantier INT-MACHINE 2, 20/09/2026).
-    // *Elle reste FACULTATIVE, et ce n'est pas un raccourci* : le dépannage à
-    // l'aveugle — on sait qu'un compresseur est en panne, pas lequel — reste
-    // le cas ordinaire, et RG-INT-01 n'exige une machine qu'avant de
-    // DÉMARRER, contrôle tenu en base par un déclencheur. Ce qui change est
-    // que l'écran PROPOSE désormais les machines du site choisi
-    // (`components/interventions/site-et-machines.tsx`) : quand on les
-    // connaît déjà, rien n'empêche plus de les dire tout de suite.
+    // AU PLUS UNE MACHINE (PARCOURS-1) — le champ reste FACULTATIF, et ce
+    // n'est pas un raccourci : le dépannage à l'aveugle — on sait qu'un
+    // compresseur est en panne, pas lequel — reste le cas ordinaire, et
+    // RG-INT-01 n'exige une machine qu'avant de DÉMARRER, contrôle tenu en
+    // base par un déclencheur. `schemaCreation.machine_ids` refuse un second
+    // identifiant ; `<select>` (non `multiple` depuis ce lot) n'en soumet de
+    // toute façon jamais plus d'un.
     machine_ids: formulaire.getAll("machine_ids"),
     type: champ(formulaire, "type"),
     priorite: champ(formulaire, "priorite") ?? "p3",
     mode_valorisation: champ(formulaire, "mode_valorisation") ?? "temps_passe",
-    // Un jour lu en UTC, jamais par un `Date` local : UTC+11 décale le jour
-    // d'un cran, et une intervention du 1er se rangerait au 31.
-    date_planifiee: date === null ? null : new Date(`${date}T00:00:00.000Z`),
-    creneau_debut: null,
-    creneau_fin: null,
-    duree_estimee_min: null,
-    technicien_id: champ(formulaire, "technicien_id"),
+    description: champ(formulaire, "description"),
+    contact_id: champ(formulaire, "contact_id"),
+    reference_client: champ(formulaire, "reference_client"),
   });
   if (!saisie.success) {
-    return versLePlanning("intervention.refus.lieu_inconnu");
+    // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la panne signalée est le champ
+    // le plus probable d'un oubli, et « lieu inconnu » pour tout enverrait
+    // chercher au mauvais endroit.
+    const surLaDescription = saisie.error.issues.some((probleme) =>
+      probleme.path.includes("description"),
+    );
+    return versLePlanning(
+      surLaDescription
+        ? "intervention.refus.panne_manquante"
+        : "intervention.refus.lieu_inconnu",
+    );
   }
 
   const resultat = await creerIntervention(contexte, saisie.data);

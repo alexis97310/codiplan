@@ -207,9 +207,9 @@ describe("la file d'attente à planifier", () => {
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
          "agence_id", "type", "statut", "priorite", "date_planifiee",
-         "modifie_le")
+         "duree_estimee_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'planifiee', 'p4', DATE '2026-09-15', now())`,
+               'planifiee', 'p4', DATE '2026-09-15', 60, now())`,
       basse,
       SOCIETE_A,
       CLIENT_A1,
@@ -253,9 +253,9 @@ describe("la fenêtre du planning ne déborde pas d'un jour", () => {
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
          "agence_id", "type", "statut", "priorite", "date_planifiee",
-         "cree_le", "modifie_le")
+         "duree_estimee_min", "cree_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'planifiee', 'p3', $6::date, now(), now())`,
+               'planifiee', 'p3', $6::date, 60, now(), now())`,
       id,
       SOCIETE_A,
       CLIENT_A1,

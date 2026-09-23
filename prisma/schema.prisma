@@ -1320,7 +1320,8 @@ model JournalAudit {
 ///
 /// Politique de forme « parc », avec la DISJONCTION que cette nullité impose.
 model Contact {
-  demandes Demande[]
+  demandes      Demande[]
+  interventions Intervention[]
 
   id         String  @id @db.Uuid
   societe_id String  @db.Uuid
@@ -1608,6 +1609,22 @@ model Intervention {
   /// DÉDUITE du site, jamais saisie (D56 : le site porte son rattachement).
   agence_id String @db.Uuid
 
+  /// LA PANNE SIGNALÉE OU LE TRAVAIL DEMANDÉ (PARCOURS-1, 23/09/2026,
+  /// arbitrage Alexis). Texte OBLIGATOIRE à la création — tenu par
+  /// `schemaCreation`, jamais par une contrainte de base : les interventions
+  /// nées avant ce lot n'ont rien à y écrire, et personne ne peut composer
+  /// leur panne à leur place (même famille que D104).
+  description String?
+
+  /// LE CONTACT SUR PLACE (PARCOURS-1) — facultatif, même table que
+  /// `demande.contact_id`. `Restrict` en suppression : un contact dont une
+  /// intervention dépend ne s'efface pas.
+  contact_id String? @db.Uuid
+
+  /// LA RÉFÉRENCE CLIENT OU LE N° DE BON DE COMMANDE (PARCOURS-1) — texte
+  /// libre, facultatif : le chapitre 10 ne pose aucune forme à ce jour.
+  reference_client String?
+
   type     TypeIntervention
   priorite PrioriteIntervention @default(p3)
   statut   StatutIntervention   @default(a_planifier)
@@ -1731,6 +1748,11 @@ model Intervention {
   client           Client           @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   site             Site             @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   agence           Agence           @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Chaîné sur le CLIENT, pas seulement sur la société — même forme que
+  /// `demande.contact_id` : un contact d'un autre client ne peut pas être
+  /// désigné. `contact_id` nullable, `MATCH SIMPLE` : « pas de contact » est
+  /// le seul état que la nullité produit (§9, 23/08).
+  contact          Contact?         @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
   forfait          Forfait?         @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   devise           Devise?          @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
   observations_vgp VgpObservation[]
@@ -1942,6 +1964,11 @@ model InterventionMachine {
   /// deux checklists pour un seul matériel, et personne ne saurait laquelle
   /// fait foi.
   @@unique([intervention_id, machine_id])
+  /// UNE INTERVENTION NE PORTE QU'UNE MACHINE AU PLUS (PARCOURS-1, 23/09/2026,
+  /// arbitrage Alexis). Posée VALIDÉE, et non `NOT VALID` : la migration qui
+  /// l'ajoute vérifie d'abord qu'aucune ligne existante ne l'enfreint, et
+  /// ÉCHOUE plutôt que de laisser un trou — voir la migration pour le motif.
+  @@unique([intervention_id])
   @@index([societe_id, machine_id])
   @@map("intervention_machine")
 }
