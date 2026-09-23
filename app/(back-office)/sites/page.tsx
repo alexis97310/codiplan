@@ -23,7 +23,12 @@ import { schemaRechercheSite } from "@/lib/sites/saisie";
 import { resoudreTempsTrajet, type Trajet } from "@/lib/sites/trajet-zone";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
-import { agenceDuSite, compteurEquipements, ouTiret, trajetAffiche } from "./presentation";
+import {
+  agenceDuSite,
+  compteurEquipements,
+  ouTiret,
+  trajetAffiche,
+} from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 export const metadata: Metadata = { title: mot("site", true) };
@@ -315,7 +320,10 @@ function CarteSite({
         )
       }
       lignes={lignes}
-      compteurs={[trajetAffiche(trajet), compteurEquipements(nombreEquipements)]}
+      compteurs={[
+        trajetAffiche(trajet),
+        compteurEquipements(nombreEquipements),
+      ]}
     />
   );
 }

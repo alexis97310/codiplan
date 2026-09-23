@@ -80,9 +80,7 @@ test("/parc — les trois filtres combinables (client, site, famille) vivent dan
   const valeurClient = await optionClient.getAttribute("value");
   expect(valeurClient).not.toBeNull();
   await selectClient.selectOption(valeurClient!);
-  await page
-    .getByRole("button", { name: fr["parc.recherche_action"] })
-    .click();
+  await page.getByRole("button", { name: fr["parc.recherche_action"] }).click();
   await expect(page).toHaveURL(new RegExp(`client=${valeurClient}`));
   // Choisir un client ne perd pas la page 1 — la liste doit rester lisible.
   await expect(page.locator('[data-bloc="maitre-detail"]')).toBeVisible();

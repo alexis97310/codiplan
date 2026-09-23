@@ -141,7 +141,13 @@ test("LE RAPPORT PRÉCÈDE TOUTE ÉCRITURE, et la validation est un SECOND geste
   await expect(page.getByText(fr["imports.applique"])).toBeVisible();
 
   // ET LA FICHE EXISTE MAINTENANT, atteinte par l'écran des clients.
-  await page.goto("/clients");
+  //
+  // `?sans_equipement=1` (LISTES-1, 23/09/2026) : un client importé n'a
+  // encore AUCUNE machine rattachée, et la liste masque désormais par défaut
+  // les fiches sans équipement — la case qui lève ce masquage est donc
+  // nécessaire ici, sans quoi ce témoin confondrait « la fiche n'existe pas »
+  // et « la fiche existe mais n'a pas encore de parc ».
+  await page.goto("/clients?sans_equipement=1");
   await expect(page.getByText(RAISON_INVENTEE).first()).toBeVisible();
 
   // ── L'ANNULATION DÉFAIT CE QU'ELLE PEUT ───────────────────────────────────
@@ -151,7 +157,10 @@ test("LE RAPPORT PRÉCÈDE TOUTE ÉCRITURE, et la validation est un SECOND geste
   // référence les fiches créées, donc tout se défait.
   await expect(page.getByText(fr["imports.annule"])).toBeVisible();
 
-  await page.goto("/clients");
+  // `?sans_equipement=1` encore ici : sans elle, une fiche qui aurait
+  // SURVÉCU à l'annulation resterait masquée faute d'équipement, et ce
+  // témoin ne prouverait plus rien.
+  await page.goto("/clients?sans_equipement=1");
   await expect(page.getByText(RAISON_INVENTEE)).toHaveCount(0);
 });
 

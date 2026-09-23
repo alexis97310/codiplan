@@ -87,7 +87,9 @@ export function compteurEquipements(nombre: number): {
   return {
     valeur: nombre,
     libelle:
-      nombre === 1 ? t("sites.equipements_un") : t("sites.equipements_plusieurs"),
+      nombre === 1
+        ? t("sites.equipements_un")
+        : t("sites.equipements_plusieurs"),
   };
 }
 

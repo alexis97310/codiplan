@@ -236,7 +236,10 @@ export default async function PageParc({
   const clientActif = criteres.success ? criteres.data.client_id : null;
   const siteActif = criteres.success ? criteres.data.site_id : null;
   const familleActive = criteres.success ? criteres.data.famille_id : null;
-  const clientsTries = trierAlphanumeriquement(options.clients, (c) => c.libelle);
+  const clientsTries = trierAlphanumeriquement(
+    options.clients,
+    (c) => c.libelle,
+  );
   const sitesTries = trierAlphanumeriquement(options.sites, (s) => s.libelle);
   const famillesTriees = trierAlphanumeriquement(
     options.familles,

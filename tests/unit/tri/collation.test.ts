@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { comparerAlphanumerique, trierAlphanumeriquement } from "@/lib/tri/collation";
+import {
+  comparerAlphanumerique,
+  trierAlphanumeriquement,
+} from "@/lib/tri/collation";
 
 /**
  * LE TRI ALPHANUMÉRIQUE DES LISTES DE RÉFÉRENTIEL (LISTES-1, 23/09/2026).
@@ -32,7 +35,11 @@ describe("comparerAlphanumerique", () => {
 
 describe("trierAlphanumeriquement", () => {
   it("trie une liste d'objets par une clé textuelle", () => {
-    const items = [{ libelle: "Koné" }, { libelle: "Dolbeau" }, { libelle: "Ducos" }];
+    const items = [
+      { libelle: "Koné" },
+      { libelle: "Dolbeau" },
+      { libelle: "Ducos" },
+    ];
     expect(trierAlphanumeriquement(items, (i) => i.libelle)).toEqual([
       { libelle: "Dolbeau" },
       { libelle: "Ducos" },

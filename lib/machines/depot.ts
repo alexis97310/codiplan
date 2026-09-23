@@ -298,7 +298,10 @@ function filtreDuParc(criteres: RechercheParc): Prisma.MachineWhereInput {
 }
 
 /** Une option de filtre — un identifiant technique, un libellé lisible. */
-export type OptionFiltreParc = { readonly id: string; readonly libelle: string };
+export type OptionFiltreParc = {
+  readonly id: string;
+  readonly libelle: string;
+};
 
 /**
  * LES OPTIONS DES TROIS FILTRES COMBINABLES DE LISTES-1 — jamais le
