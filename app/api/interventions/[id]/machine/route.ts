@@ -2,7 +2,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { ajouterMachineAIntervention } from "@/lib/interventions/depot";
 
-import { champ, versLaFiche } from "../../actions";
+import { avecFilet, champ, versLaFiche } from "../../actions";
 
 /**
  * RATTACHER UNE MACHINE APRÈS COUP (chantier INT-MACHINE 2.2, 20/09/2026).
@@ -30,15 +30,21 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("qualifier_affecter");
-  if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
-  }
-  const formulaire = await requete.formData();
-  const machineId = champ(formulaire, "machine_id");
-  if (machineId === null) {
-    return versLaFiche(id, "intervention.refus.machine_invalide");
-  }
-  const resultat = await ajouterMachineAIntervention(contexte, id, machineId);
-  return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+  return avecFilet(id, "machine", async () => {
+    const contexte = await exigerCapacite("qualifier_affecter");
+    if (contexte === null) {
+      return versLaFiche(id, "auth.refus");
+    }
+    const formulaire = await requete.formData();
+    const machineId = champ(formulaire, "machine_id");
+    if (machineId === null) {
+      return versLaFiche(id, "intervention.refus.machine_invalide");
+    }
+    const resultat = await ajouterMachineAIntervention(
+      contexte,
+      id,
+      machineId,
+    );
+    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+  });
 }

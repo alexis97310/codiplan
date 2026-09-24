@@ -3,7 +3,7 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { enregistrerNoteInterne } from "@/lib/interventions/depot";
 import { schemaNoteInterne } from "@/lib/interventions/saisie";
 
-import { champ, versLaFiche } from "../../actions";
+import { avecFilet, champ, versLaFiche } from "../../actions";
 
 /**
  * LA NOTE INTERNE (50-INTERVENTIONS-2) — visible et modifiable par les rôles
@@ -33,21 +33,23 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("modifier_planning");
-  if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
-  }
-  const formulaire = await requete.formData();
-  const saisie = schemaNoteInterne.safeParse({
-    intervention_id: id,
-    note_interne: champ(formulaire, "note_interne") ?? "",
+  return avecFilet(id, "note-interne", async () => {
+    const contexte = await exigerCapacite("modifier_planning");
+    if (contexte === null) {
+      return versLaFiche(id, "auth.refus");
+    }
+    const formulaire = await requete.formData();
+    const saisie = schemaNoteInterne.safeParse({
+      intervention_id: id,
+      note_interne: champ(formulaire, "note_interne") ?? "",
+    });
+    if (!saisie.success) {
+      return versLaFiche(id, "intervention.refus.inconnue");
+    }
+    const resultat = await enregistrerNoteInterne(contexte, saisie.data);
+    return versLaFiche(
+      id,
+      resultat === null ? "intervention.refus.inconnue" : undefined,
+    );
   });
-  if (!saisie.success) {
-    return versLaFiche(id, "intervention.refus.inconnue");
-  }
-  const resultat = await enregistrerNoteInterne(contexte, saisie.data);
-  return versLaFiche(
-    id,
-    resultat === null ? "intervention.refus.inconnue" : undefined,
-  );
 }

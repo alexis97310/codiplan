@@ -3,7 +3,7 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { reprendreIntervention } from "@/lib/interventions/depot";
 import { schemaReprise } from "@/lib/interventions/saisie";
 
-import { versLaFiche } from "../../actions";
+import { avecFilet, versLaFiche } from "../../actions";
 
 /**
  * REPRENDRE une intervention suspendue (L2-10).
@@ -24,14 +24,16 @@ export async function POST(
 
 async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("suspendre_reprendre_intervention");
-  if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
-  }
-  const saisie = schemaReprise.safeParse({ intervention_id: id });
-  if (!saisie.success) {
-    return versLaFiche(id, "intervention.refus.inconnue");
-  }
-  const resultat = await reprendreIntervention(contexte, saisie.data);
-  return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+  return avecFilet(id, "reprendre", async () => {
+    const contexte = await exigerCapacite("suspendre_reprendre_intervention");
+    if (contexte === null) {
+      return versLaFiche(id, "auth.refus");
+    }
+    const saisie = schemaReprise.safeParse({ intervention_id: id });
+    if (!saisie.success) {
+      return versLaFiche(id, "intervention.refus.inconnue");
+    }
+    const resultat = await reprendreIntervention(contexte, saisie.data);
+    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+  });
 }

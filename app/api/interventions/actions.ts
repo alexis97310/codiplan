@@ -74,3 +74,36 @@ export function champ(formulaire: FormData, nom: string): string | null {
   }
   return valeur.trim();
 }
+
+/**
+ * LE FILET (74-FORMULAIRES-3, SAV-02) — une panne pendant une action de la
+ * fiche ramène à la fiche avec un message, jamais une page d'erreur brute.
+ *
+ * Une exception de REDIRECTION Next (`redirect()`, `notFound()`) porte un
+ * `digest` commençant par `NEXT_` : ce n'est pas une panne, c'est le mécanisme
+ * de navigation lui-même, et elle doit continuer sa route sans être avalée.
+ * Toute autre erreur est journalisée — jamais le contenu du formulaire, qui
+ * peut porter une donnée client — puis ramène à la fiche.
+ */
+export async function avecFilet(
+  id: string,
+  route: string,
+  action: () => Promise<Response>,
+): Promise<Response> {
+  try {
+    return await action();
+  } catch (erreur) {
+    const digest =
+      erreur !== null &&
+      typeof erreur === "object" &&
+      "digest" in erreur &&
+      typeof erreur.digest === "string"
+        ? erreur.digest
+        : undefined;
+    if (digest !== undefined && digest.startsWith("NEXT_")) {
+      throw erreur;
+    }
+    console.error(`intervention ${route} (${id})`, erreur);
+    return versLaFiche(id, "intervention.refus.erreur_serveur");
+  }
+}

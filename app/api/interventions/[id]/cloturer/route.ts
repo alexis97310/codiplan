@@ -3,7 +3,7 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { cloturerIntervention } from "@/lib/interventions/depot";
 import { schemaCloture } from "@/lib/interventions/saisie";
 
-import { champ, versLaFiche } from "../../actions";
+import { avecFilet, champ, versLaFiche } from "../../actions";
 
 /**
  * CLÔTURER — saisir le temps réel, et voir l'arrondi et le plancher s'appliquer
@@ -31,20 +31,22 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("cloturer_intervention");
-  if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
-  }
-  const formulaire = await requete.formData();
-  const saisie = schemaCloture.safeParse({
-    intervention_id: id,
-    temps_valide_min: Number(
-      champ(formulaire, "temps_valide_min") ?? Number.NaN,
-    ),
+  return avecFilet(id, "cloturer", async () => {
+    const contexte = await exigerCapacite("cloturer_intervention");
+    if (contexte === null) {
+      return versLaFiche(id, "auth.refus");
+    }
+    const formulaire = await requete.formData();
+    const saisie = schemaCloture.safeParse({
+      intervention_id: id,
+      temps_valide_min: Number(
+        champ(formulaire, "temps_valide_min") ?? Number.NaN,
+      ),
+    });
+    if (!saisie.success) {
+      return versLaFiche(id, "intervention.refus.temps_manquant");
+    }
+    const resultat = await cloturerIntervention(contexte, saisie.data);
+    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
   });
-  if (!saisie.success) {
-    return versLaFiche(id, "intervention.refus.temps_manquant");
-  }
-  const resultat = await cloturerIntervention(contexte, saisie.data);
-  return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
 }

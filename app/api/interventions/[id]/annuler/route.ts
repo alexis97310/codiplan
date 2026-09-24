@@ -3,7 +3,7 @@ import { exigerCapacite } from "@/lib/auth/porte";
 import { annulerIntervention } from "@/lib/interventions/depot";
 import { schemaAnnulation } from "@/lib/interventions/saisie";
 
-import { champ, versLaFiche } from "../../actions";
+import { avecFilet, champ, versLaFiche } from "../../actions";
 
 /**
  * ANNULER — avec un motif obligatoire.
@@ -29,18 +29,20 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("annuler_intervention");
-  if (contexte === null) {
-    return versLaFiche(id, "auth.refus");
-  }
-  const formulaire = await requete.formData();
-  const saisie = schemaAnnulation.safeParse({
-    intervention_id: id,
-    motif: champ(formulaire, "motif") ?? "",
+  return avecFilet(id, "annuler", async () => {
+    const contexte = await exigerCapacite("annuler_intervention");
+    if (contexte === null) {
+      return versLaFiche(id, "auth.refus");
+    }
+    const formulaire = await requete.formData();
+    const saisie = schemaAnnulation.safeParse({
+      intervention_id: id,
+      motif: champ(formulaire, "motif") ?? "",
+    });
+    if (!saisie.success) {
+      return versLaFiche(id, "intervention.annulation.obligatoire");
+    }
+    const resultat = await annulerIntervention(contexte, saisie.data);
+    return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
   });
-  if (!saisie.success) {
-    return versLaFiche(id, "intervention.annulation.obligatoire");
-  }
-  const resultat = await annulerIntervention(contexte, saisie.data);
-  return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
 }
