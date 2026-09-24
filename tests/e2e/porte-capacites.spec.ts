@@ -2,8 +2,76 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { urlAdministration } from "./setup/base";
+import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
+
+/**
+ * SES DEUX PROPRES INTERVENTIONS, ET POURQUOI (51-STABILITE-1, 24/09/2026).
+ *
+ * Les deux scénarios plus bas qui posent une écriture REFUSÉE (« annuler »,
+ * « clôturer l'intervention d'un collègue ») visaient, avant ce lot,
+ * `client.intervention.findFirstOrThrow` — UNE INTERVENTION ARBITRAIRE de
+ * toute la société. Sous `fullyParallel`, cette ligne pouvait être une
+ * fixture qu'un AUTRE fichier fait avancer concurremment (`rapport-terrain.
+ * spec.ts` la fait passer à `terminee`, `glisser-deposer.spec.ts` la
+ * déplace…) : la comparaison AVANT/APRÈS de ce fichier-ci mesurait alors le
+ * geste d'un autre fichier, pas le refus qu'il éprouve lui-même — mesuré
+ * flaky (`porte-capacites.spec.ts`, constat du 24/09/2026, 20h15).
+ *
+ * Chacun des deux scénarios pose donc SA PROPRE ligne, à un identifiant
+ * fixe, que rien d'autre ne lit ni ne modifie.
+ */
+const INTERVENTION_A_ANNULER = "01a0f400-0000-7000-8000-000000000001";
+const INTERVENTION_DU_COLLEGUE = "01a0f400-0000-7000-8000-000000000002";
+
+test.beforeAll(async () => {
+  const reperes = await reperesDeLaScene();
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    const ducos = await client.agence.findFirstOrThrow({
+      where: { societe_id: reperes.societeId, code: "DUCOS" },
+      select: { id: true },
+    });
+    const site = await client.site.findFirstOrThrow({
+      where: { societe_id: reperes.societeId, agence_id: ducos.id },
+      select: { id: true, client_id: true },
+      orderBy: { libelle: "asc" },
+    });
+    for (const [id, technicienId] of [
+      [INTERVENTION_A_ANNULER, reperes.technicienDucos],
+      // LE COLLÈGUE — un technicien RÉEL, mais jamais celui de l'épreuve
+      // (`COMPTE_TECHNICIEN_EPREUVE` = `technicienDucos`).
+      [INTERVENTION_DU_COLLEGUE, reperes.technicienKone],
+    ] as const) {
+      await client.$executeRawUnsafe(
+        `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
+        id,
+      );
+      await client.intervention.deleteMany({ where: { id } });
+      await client.intervention.create({
+        data: {
+          id,
+          societe_id: reperes.societeId,
+          agence_id: ducos.id,
+          client_id: site.client_id,
+          site_id: site.id,
+          technicien_id: technicienId,
+          type: "curatif",
+          priorite: "p3",
+          statut: "planifiee",
+          date_planifiee: new Date(),
+          mode_valorisation: "temps_passe",
+          devise_code: "XPF",
+        },
+      });
+    }
+  } finally {
+    await client.$disconnect();
+  }
+});
 
 /**
  * D-12 — LA PORTE, ÉPROUVÉE PAR LE CAS QUI A MOTIVÉ LE TICKET.
@@ -150,19 +218,10 @@ test("un technicien ne peut pas annuler une intervention", async ({ page }) => {
     datasources: { db: { url: urlAdministration() } },
   });
   try {
-    const societe = await client.societe.findFirstOrThrow({
-      where: { code: "CODIMA-NC" },
-      select: { id: true },
-    });
-    const intervention = await client.intervention.findFirstOrThrow({
-      where: { societe_id: societe.id, statut: { not: "annulee" } },
-      select: { id: true, statut: true },
-    });
-
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
 
     const reponse = await page.request.post(
-      `/api/interventions/${intervention.id}/annuler`,
+      `/api/interventions/${INTERVENTION_A_ANNULER}/annuler`,
       {
         form: { motif: "Annulation forgée par un technicien" },
         maxRedirects: 0,
@@ -175,10 +234,10 @@ test("un technicien ne peut pas annuler une intervention", async ({ page }) => {
 
     // ET LE STATUT N'A PAS CHANGÉ.
     const apres = await client.intervention.findUniqueOrThrow({
-      where: { id: intervention.id },
+      where: { id: INTERVENTION_A_ANNULER },
       select: { statut: true },
     });
-    expect(apres.statut).toBe(intervention.statut);
+    expect(apres.statut).toBe("planifiee");
   } finally {
     await client.$disconnect();
   }
@@ -198,29 +257,12 @@ test("un technicien ne peut pas clôturer l'intervention d'un collègue", async 
     datasources: { db: { url: urlAdministration() } },
   });
   try {
-    const technicien = await client.utilisateur.findFirstOrThrow({
-      where: { email: COMPTE_TECHNICIEN_EPREUVE },
-      select: { id: true },
-    });
-    const societe = await client.societe.findFirstOrThrow({
-      where: { code: "CODIMA-NC" },
-      select: { id: true },
-    });
-    // Une intervention affectée à QUELQU'UN D'AUTRE que le technicien de
-    // l'épreuve — ou à personne : les deux sont hors de SON périmètre.
-    const intervention = await client.intervention.findFirstOrThrow({
-      where: {
-        societe_id: societe.id,
-        statut: { notIn: ["annulee", "cloturee"] },
-        technicien_id: { not: technicien.id },
-      },
-      select: { id: true, statut: true },
-    });
-
+    // `INTERVENTION_DU_COLLEGUE` — affectée à `technicienKone`, jamais au
+    // technicien de l'épreuve (`technicienDucos`) : hors de SON périmètre.
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
 
     const reponse = await page.request.post(
-      `/api/interventions/${intervention.id}/cloturer`,
+      `/api/interventions/${INTERVENTION_DU_COLLEGUE}/cloturer`,
       { form: { temps_valide_min: "60" }, maxRedirects: 0 },
     );
 
@@ -233,10 +275,10 @@ test("un technicien ne peut pas clôturer l'intervention d'un collègue", async 
     );
 
     const apres = await client.intervention.findUniqueOrThrow({
-      where: { id: intervention.id },
+      where: { id: INTERVENTION_DU_COLLEGUE },
       select: { statut: true },
     });
-    expect(apres.statut).toBe(intervention.statut);
+    expect(apres.statut).toBe("planifiee");
   } finally {
     await client.$disconnect();
   }

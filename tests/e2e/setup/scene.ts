@@ -140,6 +140,54 @@ export const SCENE = {
    * ne bouge plus jamais après son écriture initiale.
    */
   redimensionnable: "01a0e2e0-0000-7000-8000-000000000005",
+  /**
+   * Ducos, MÊME technicien, MERCREDI 08:00–10:00 — dédiée au rapport de
+   * terrain COMPLET (`rapport-terrain.spec.ts`, 51-STABILITE-1).
+   *
+   * *Mesuré le 24/09/2026 : ce fichier saisissait commentaire, suite à
+   * donner, photo et signature sur `obstacle`, puis le faisait passer à
+   * `terminee` avec `chevauchante` — deux fixtures que SIX autres fichiers
+   * lisent ou déplacent concurremment sous `fullyParallel`
+   * (`planning-largeur-et-carte.spec.ts` entre autres, dont la carte cesse
+   * d'être « planifiée » sous ses yeux).* Une saisie terrain est un geste
+   * PERMANENT ; elle n'a plus sa place sur une fixture que d'autres lisent.
+   */
+  rapportTravaillee: "01a0e2e0-0000-7000-8000-000000000006",
+  /**
+   * Ducos, MÊME technicien, MERCREDI 10:00–11:00 — dédiée au rapport de
+   * terrain, JAMAIS TOUCHÉE (`rapport-terrain.spec.ts`) : seul son statut
+   * passe à `terminee`, pour prouver que son bon ne montre aucun des cinq
+   * blocs — le pendant vide de `rapportTravaillee`.
+   */
+  rapportVierge: "01a0e2e0-0000-7000-8000-000000000007",
+  /**
+   * Ducos, MÊME technicien, MERCREDI 11:00–12:00 — dédiée au COMPTEUR de
+   * `terrain.spec.ts` (démarrer/pause).
+   *
+   * *Mesurée le 24/09/2026 : ce scénario démarrait puis mettait en pause le
+   * compteur sur `obstacle` — un geste qui ÉCRIT `segment_travail` et
+   * recalcule `temps_mesure_min`, sur la fixture précisément dédiée à porter
+   * un compte FERMÉ de 120 minutes pour `montants-par-role.spec.ts` et
+   * `ecrans-largeur-utile.spec.ts`.*
+   */
+  compteurA: "01a0e2e0-0000-7000-8000-000000000008",
+  /**
+   * Ducos, MÊME technicien, MERCREDI 12:00–13:00 — la SECONDE intervention
+   * de `terrain.spec.ts`, celle qui prouve que le compteur refuse de tourner
+   * ailleurs pendant que `compteurA` est ouvert.
+   */
+  compteurB: "01a0e2e0-0000-7000-8000-000000000009",
+  /**
+   * Koné, MÊME technicien que `deplacable`, MARDI, sans créneau — dédiée au
+   * SEUL scénario de `glisser-deposer.spec.ts` qui déplace réellement un
+   * bloc et garde le résultat (« un déplacement accepté »).
+   *
+   * *Mesuré le 24/09/2026 : ce scénario déplaçait `deplacable` de MARDI à
+   * MERCREDI et l'y laissait — `affichage-materiel.spec.ts` lit, lui,
+   * `deplacable` À SA PLACE D'ORIGINE (MARDI, sans heure) pour prouver que
+   * la vue jour la porte en tête de grille.*
+   */
+  glissable: "01a0e2e0-0000-7000-8000-00000000000a",
 } as const;
 
 export type ReperesDeScene = {
@@ -301,6 +349,46 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         rang: MARDI,
         debut: 14 * 60,
         duree: 60,
+      },
+      {
+        id: SCENE.rapportTravaillee,
+        lieu: ducos,
+        technicien: reperes.technicienDucos,
+        rang: MERCREDI,
+        debut: 8 * 60,
+        duree: 120,
+      },
+      {
+        id: SCENE.rapportVierge,
+        lieu: ducos,
+        technicien: reperes.technicienDucos,
+        rang: MERCREDI,
+        debut: 10 * 60,
+        duree: 60,
+      },
+      {
+        id: SCENE.compteurA,
+        lieu: ducos,
+        technicien: reperes.technicienDucos,
+        rang: MERCREDI,
+        debut: 11 * 60,
+        duree: 60,
+      },
+      {
+        id: SCENE.compteurB,
+        lieu: ducos,
+        technicien: reperes.technicienDucos,
+        rang: MERCREDI,
+        debut: 12 * 60,
+        duree: 60,
+      },
+      {
+        id: SCENE.glissable,
+        lieu: kone,
+        technicien: reperes.technicienKone,
+        rang: MARDI,
+        debut: null,
+        duree: 120,
       },
     ];
 

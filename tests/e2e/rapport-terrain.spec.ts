@@ -24,7 +24,7 @@ import { ouvrirUneSession } from "./setup/session";
  * correctement les cinq blocs. Il ne peut pas prouver qu'un TECHNICIEN peut
  * réellement les saisir depuis l'écran, ni qu'un rôle interne les retrouve
  * ensuite sur le bon — c'est le geste complet que ce fichier joue, sur
- * `SCENE.obstacle`.
+ * `SCENE.rapportTravaillee`.
  *
  * ## SÉRIEL, ET POURQUOI
  *
@@ -71,7 +71,7 @@ test("le commentaire et la suite à donner s'enregistrent et se relisent", async
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);
-  await page.goto(`/terrain/${SCENE.obstacle}`);
+  await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
   await page
     .getByLabel(fr["terrain.rapport.commentaire_libelle"])
@@ -83,7 +83,9 @@ test("le commentaire et la suite à donner s'enregistrent et se relisent", async
     .getByRole("button", { name: fr["terrain.rapport.enregistrer"] })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.obstacle}$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
+  );
   await expect(
     page.getByLabel(fr["terrain.rapport.commentaire_libelle"]),
   ).toHaveValue(COMMENTAIRE_EPREUVE);
@@ -96,13 +98,13 @@ test("une prestation absente du catalogue se nomme, jamais un bloc muet", async 
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);
-  await page.goto(`/terrain/${SCENE.obstacle}`);
+  await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
   await expect(page.getByText(fr["terrain.prestations.aucune"])).toBeVisible();
 });
 
 test("une photo se dépose et s'affiche", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
-  await page.goto(`/terrain/${SCENE.obstacle}`);
+  await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
   await page
     .locator('input[type="file"]')
@@ -111,14 +113,16 @@ test("une photo se dépose et s'affiche", async ({ page }) => {
     .getByRole("button", { name: fr["terrain.photos.ajouter"] })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.obstacle}$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
+  );
   await expect(page.getByText(fr["terrain.photos.aucune"])).toHaveCount(0);
   await expect(page.locator("img[alt='photo-epreuve.png']")).toBeVisible();
 });
 
 test("une signature se trace et s'enregistre", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
-  await page.goto(`/terrain/${SCENE.obstacle}`);
+  await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
   // Les événements sont DISPATCHÉS DIRECTEMENT dans la page plutôt que
   // simulés au niveau du système : un tracé de canevas n'a besoin que des
@@ -146,7 +150,9 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
     .getByRole("button", { name: fr["terrain.signature.enregistrer"] })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.obstacle}$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
+  );
   await expect(
     page.getByText(fr["terrain.signature.deja_signee"]),
   ).toBeVisible();
@@ -156,12 +162,12 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
   page,
 }) => {
   // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
-  // 23/09/2026) — `obstacle` ET `chevauchante` naissent `planifiee`
+  // 23/09/2026) — `rapportTravaillee` ET `rapportVierge` naissent `planifiee`
   // (`scene.ts`), et rien avant ce test ne les fait avancer : ce sont des
   // saisies terrain, pas des transitions de statut. Ce test est le DERNIER de
   // ce fichier SÉRIEL sur ces deux interventions (voir la note de tête) ; les
   // faire passer à `terminee` ici est le geste réaliste qui les précéderait
-  // dans l'exploitation. `chevauchante` reste « jamais touchée » au sens qui
+  // dans l'exploitation. `rapportVierge` reste « jamais touchée » au sens qui
   // compte pour ce test — aucun commentaire, aucune suite, aucune photo,
   // aucune signature — seul son STATUT change, pour que son bon reste
   // atteignable et que ce test puisse encore prouver qu'il ne montre rien.
@@ -171,7 +177,7 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
   try {
     await admin.$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
-      [SCENE.obstacle, SCENE.chevauchante],
+      [SCENE.rapportTravaillee, SCENE.rapportVierge],
     );
   } finally {
     await admin.$disconnect();
@@ -179,7 +185,7 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
 
   await ouvrirUneSession(page);
 
-  await page.goto(`/interventions/${SCENE.obstacle}/bon`);
+  await page.goto(`/interventions/${SCENE.rapportTravaillee}/bon`);
   await expect(page.getByText(COMMENTAIRE_EPREUVE)).toBeVisible();
   await expect(page.getByText(SUITE_EPREUVE)).toBeVisible();
   await expect(
@@ -190,9 +196,9 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
     page.getByText(fr["intervention.bon.aucune_signature"]),
   ).toHaveCount(0);
 
-  // `chevauchante` — MÊME intervention, jamais touchée par ce fichier : les
+  // `rapportVierge` — MÊME intervention, jamais touchée par ce fichier : les
   // cinq absences sont nommées, aucun bloc n'est muet.
-  await page.goto(`/interventions/${SCENE.chevauchante}/bon`);
+  await page.goto(`/interventions/${SCENE.rapportVierge}/bon`);
   await expect(
     page.getByText(fr["intervention.bon.aucune_prestation"]),
   ).toBeVisible();

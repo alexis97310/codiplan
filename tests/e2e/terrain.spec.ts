@@ -79,7 +79,7 @@ test("un technicien n'atteint PAS le planning du back-office par son URL", async
 test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async ({
   page,
 }) => {
-  await page.goto(`/terrain/${SCENE.obstacle}`);
+  await page.goto(`/terrain/${SCENE.compteurA}`);
   await expect(
     page.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
   ).toBeVisible();
@@ -88,7 +88,7 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
   await page
     .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.obstacle}$`));
+  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.compteurA}$`));
   await expect(page.getByText(fr["terrain.compteur.tourne"])).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.compteur.pause"] }),
@@ -99,7 +99,7 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
   // Le refus PREND LA PLACE de l'action, avec sa raison et un lien vers le
   // compteur qui tourne — jamais un bouton grisé, et jamais un départ que la
   // base refuserait.
-  await page.goto(`/terrain/${SCENE.chevauchante}`);
+  await page.goto(`/terrain/${SCENE.compteurB}`);
   await expect(page.getByText(fr["terrain.compteur.ailleurs"])).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
@@ -107,7 +107,7 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
 
   // Le lien du refus MÈNE au compteur qui tourne.
   await page.getByRole("link", { name: fr["terrain.compteur.aller"] }).click();
-  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.obstacle}$`));
+  await expect(page).toHaveURL(new RegExp(`/terrain/${SCENE.compteurA}$`));
 
   // ── METTRE EN PAUSE, et l'autre intervention redevient démarrable ────────
   await page
@@ -115,7 +115,7 @@ test("le compteur démarre, se met en pause, et ne se dédouble JAMAIS", async (
     .click();
   await expect(page.getByText(fr["terrain.compteur.tourne"])).toHaveCount(0);
 
-  await page.goto(`/terrain/${SCENE.chevauchante}`);
+  await page.goto(`/terrain/${SCENE.compteurB}`);
   await expect(
     page.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
   ).toBeVisible();

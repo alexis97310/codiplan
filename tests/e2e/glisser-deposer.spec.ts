@@ -139,6 +139,12 @@ async function allerAuPlanning(page: Page, jourRang?: number): Promise<void> {
 test("un déplacement accepté change de jour, et la base le garde", async ({
   page,
 }) => {
+  // `SCENE.glissable`, jamais `deplacable` : ce scénario DÉPLACE réellement
+  // un bloc et le laisse à sa nouvelle place — une mutation permanente
+  // qu'`affichage-materiel.spec.ts` ne doit jamais observer, lui qui lit
+  // `deplacable` À SA PLACE D'ORIGINE pour prouver que la vue jour porte une
+  // intervention sans heure en tête de grille (mesuré le 24/09/2026,
+  // 51-STABILITE-1 — voir le commentaire de `SCENE.glissable`).
   await allerAuPlanning(page);
 
   const origine = caseDeSemaine(page, reperes.technicienKone, MARDI);
@@ -146,23 +152,19 @@ test("un déplacement accepté change de jour, et la base le garde", async ({
   // Témoin : le bloc est bien là où la scène l'a mis. Sans lui, un déplacement
   // vers une case où il se trouvait déjà passerait pour un succès.
   await expect(
-    origine.locator(`[data-bloc="${SCENE.deplacable}"]`),
+    origine.locator(`[data-bloc="${SCENE.glissable}"]`),
   ).toBeVisible();
 
-  await glisser(page, bloc(page, SCENE.deplacable), cible);
+  await glisser(page, bloc(page, SCENE.glissable), cible);
 
-  await expect(
-    cible.locator(`[data-bloc="${SCENE.deplacable}"]`),
-  ).toBeVisible();
-  await expect(
-    origine.locator(`[data-bloc="${SCENE.deplacable}"]`),
-  ).toHaveCount(0);
+  await expect(cible.locator(`[data-bloc="${SCENE.glissable}"]`)).toBeVisible();
+  await expect(origine.locator(`[data-bloc="${SCENE.glissable}"]`)).toHaveCount(
+    0,
+  );
 
   // Et la BASE l'a gardé : un rechargement complet, pas un état d'écran.
   await allerAuPlanning(page);
-  await expect(
-    cible.locator(`[data-bloc="${SCENE.deplacable}"]`),
-  ).toBeVisible();
+  await expect(cible.locator(`[data-bloc="${SCENE.glissable}"]`)).toBeVisible();
 });
 
 /* ── 2. UN REFUS POUR JOUR FERMÉ ─────────────────────────────────────────── */
