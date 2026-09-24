@@ -339,10 +339,7 @@ export function construireJournee<T extends Occupante>(
     horsGrille: colonnes.reduce((n, c) => n + c.horsGrille.length, 0),
     aCaler: {
       nombre: colonnes.reduce((n, c) => n + c.aCaler.nombre, 0),
-      minutesConnues: colonnes.reduce(
-        (n, c) => n + c.aCaler.minutesConnues,
-        0,
-      ),
+      minutesConnues: colonnes.reduce((n, c) => n + c.aCaler.minutesConnues, 0),
       sansDuree: colonnes.reduce((n, c) => n + c.aCaler.sansDuree, 0),
     },
   };

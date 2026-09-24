@@ -200,9 +200,9 @@ test("une visite sans heure se lit « à caler », jamais « libre »", async ({
   await page.goto(`/planning?vue=jour&jour=${cleJour(jourVise)}`);
   await expect(page.locator("main")).toBeVisible();
 
-  const resume = page.locator(
-    "section[data-maquette-bloc='vue-jour'] p",
-  ).first();
+  const resume = page
+    .locator("section[data-maquette-bloc='vue-jour'] p")
+    .first();
   await expect(resume).toBeVisible();
   // « 1 visite à caler (3 h 00) » — jamais à la place du compte de trous,
   // toujours à côté (le « · » qui les sépare).
