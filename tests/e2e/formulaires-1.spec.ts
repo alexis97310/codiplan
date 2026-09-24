@@ -206,11 +206,18 @@ test("un clic sur « Créer » mène à la fiche de l'intervention créée", asy
  * UN DOUBLE CLIC RÉEL SUR LE BOUTON — le filet visuel de `BoutonCreer` se
  * désactive sur l'évènement `submit` DU FORMULAIRE, jamais dans le `onClick`
  * du bouton (voir sa note de tête) : le premier clic part donc bel et bien,
- * et un second clic tiré presque simultanément (`force: true`, pour ne pas
- * attendre que Playwright constate lui-même le bouton désactivé) ne pose
- * jamais de seconde intervention — l'`id` tiré au rendu et relu sous contexte
- * cloisonné (`interventionDejaCreee`) protège le fond, ce filet n'est qu'un
- * confort visuel.
+ * et un second clic tiré presque simultanément ne pose jamais de seconde
+ * intervention — l'`id` tiré au rendu et relu sous contexte cloisonné
+ * (`interventionDejaCreee`) protège le fond, ce filet n'est qu'un confort
+ * visuel.
+ *
+ * `dispatchEvent` plutôt que `click()` sur les deux tirs : une fois le
+ * premier clic parti, le bouton se désactive légitimement, et le pipeline
+ * d'actionabilité de Playwright (qui attend qu'un élément soit « enabled »
+ * avant de cliquer, puis qu'il redevienne stable après navigation) tourne
+ * alors indéfiniment sur un bouton qui ne redeviendra jamais actionnable —
+ * mesuré : timeout de 30 s. `dispatchEvent` pose l'évènement DOM directement,
+ * sans ce pipeline, exactement ce qu'un double clic physique déclenche.
  */
 test("un double clic réel sur « Créer » mène à la fiche, sans en créer deux", async ({
   page,
@@ -223,8 +230,11 @@ test("un double clic réel sur « Créer » mène à la fiche, sans en créer de
   const bouton = page.getByRole("button", {
     name: fr["intervention.action.creer"],
   });
-  await Promise.all([bouton.click(), bouton.click({ force: true })]);
-  await page.waitForLoadState("networkidle");
+  await Promise.all([
+    bouton.dispatchEvent("click"),
+    bouton.dispatchEvent("click"),
+  ]);
+  await page.waitForURL(/\/interventions\/[0-9a-f-]+$/);
   await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
 
   const client = admin();
