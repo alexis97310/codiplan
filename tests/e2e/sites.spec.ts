@@ -1,7 +1,9 @@
+import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { fr, mot } from "@/lib/i18n";
 
+import { urlAdministration } from "./setup/base";
 import { COMPTE_TECHNICIEN_EPREUVE } from "./setup/scene";
 import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
@@ -166,63 +168,97 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
 test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'apparaît que si cochée (CONTRAT-SITE-1)", async ({
   page,
 }) => {
+  // Un JETON UNIQUE par exécution (STABILITE-3) — la liste `/sites` est
+  // PAGINÉE, et d'autres scènes (`selecteurs-1.spec.ts` en pose 210,
+  // préfixés `SEL1-`) créent des sites EN PARALLÈLE pendant ce scénario. Un
+  // libellé fixe pouvait tomber hors de la première page selon le tri et la
+  // charge du moment ; le jeton sert de critère `q` pour que la recherche ne
+  // ramène JAMAIS que ce site-ci, quelle que soit la taille de la liste.
+  const jeton = `STAB3-${crypto.randomUUID().slice(0, 8)}`;
+  // Le libellé ÉVITE le mot « contrat » : `getByText` fait une recherche en
+  // sous-chaîne insensible à la casse, et « CONTRAT-SITE-1 » collisionnerait
+  // avec la pastille « Contrat » cherchée plus bas.
+  const libelle = `Site e2e ${jeton} (persistance)`;
   // Un site DÉDIÉ, créé par ce scénario — jamais « le premier de la liste » :
   // ce pourrait être le site fictif sous contrat du jeu de démonstration
   // (`prisma/seed-data.ts`), et le décocher ici fausserait le scénario du
-  // filtre qui suit.
-  await page.goto("/sites/nouveau");
-  await choisirPremierResultat(page, "client_id");
-  await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
-  await page
-    .locator('input[name="libelle"]')
-    // Le libellé ÉVITE le mot « contrat » : `getByText` fait une recherche en
-    // sous-chaîne insensible à la casse, et « CONTRAT-SITE-1 » collisionnerait
-    // avec la pastille « Contrat » cherchée plus bas.
-    .fill("Site e2e du lot 41 (persistance)");
-  await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
-  await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
-  const href = new URL(page.url()).pathname;
+  // filtre qui suit. SUPPRIMÉ en fin de scénario par l'administration de
+  // l'épreuve : aucune trace ne doit survivre à ce test précis.
+  let href: string | null = null;
+  try {
+    await page.goto("/sites/nouveau");
+    await choisirPremierResultat(page, "client_id");
+    await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
+    await page.locator('input[name="libelle"]').fill(libelle);
+    await page
+      .getByRole("button", { name: fr["sites.action.creer"] })
+      .click();
+    await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
+    href = new URL(page.url()).pathname;
 
-  const case_ = page.getByLabel(fr["site.sous_contrat"]);
-  await expect(case_).not.toBeChecked();
-  // Rien en lecture tant que la case n'a jamais été cochée.
-  await expect(
-    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-  ).toHaveCount(0);
+    const case_ = page.getByLabel(fr["site.sous_contrat"]);
+    await expect(case_).not.toBeChecked();
+    // Rien en lecture tant que la case n'a jamais été cochée.
+    await expect(
+      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+    ).toHaveCount(0);
 
-  await case_.check();
-  await page.getByRole("button", { name: fr["sites.action.modifier"] }).click();
-  // Le succès ajoute `?motif=sites.modifie` — une sous-chaîne de l'URL, pas
-  // l'URL exacte.
-  await expect(page).toHaveURL(new RegExp(`${href}(\\?|$)`));
-  await expect(page.getByLabel(fr["site.sous_contrat"])).toBeChecked();
-  await expect(
-    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-  ).toBeVisible();
+    await case_.check();
+    await page
+      .getByRole("button", { name: fr["sites.action.modifier"] })
+      .click();
+    // Le succès ajoute `?motif=sites.modifie` — une sous-chaîne de l'URL, pas
+    // l'URL exacte.
+    await expect(page).toHaveURL(new RegExp(`${href}(\\?|$)`));
+    await expect(page.getByLabel(fr["site.sous_contrat"])).toBeChecked();
+    await expect(
+      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+    ).toBeVisible();
 
-  // `?sans_equipement=1` : ce site fraîchement créé n'a aucun équipement, et
-  // la liste masque ces sites-là par défaut (LISTES-1) — sans quoi la carte
-  // elle-même serait absente, pour une raison qui n'a rien à voir avec ce
-  // scénario.
-  await page.goto("/sites?sans_equipement=1");
-  const carte = page.locator(`article:has(a[href="${href}"])`);
-  await expect(
-    carte.getByText(fr["sites.contrat"], { exact: true }),
-  ).toBeVisible();
+    // `?sans_equipement=1` : ce site fraîchement créé n'a aucun équipement, et
+    // la liste masque ces sites-là par défaut (LISTES-1) — sans quoi la carte
+    // elle-même serait absente, pour une raison qui n'a rien à voir avec ce
+    // scénario. `q=<jeton>` (STABILITE-3) : la carte est alors la SEULE que
+    // la liste rend, jamais reléguée sur une page que ce scénario ne visite
+    // pas.
+    await page.goto(
+      `/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`,
+    );
+    const carte = page.locator(`article:has(a[href="${href}"])`);
+    await expect(
+      carte.getByText(fr["sites.contrat"], { exact: true }),
+    ).toBeVisible();
 
-  // Décocher persiste tout autant — le champ caché en fait foi.
-  await page.goto(href);
-  await page.getByLabel(fr["site.sous_contrat"]).uncheck();
-  await page.getByRole("button", { name: fr["sites.action.modifier"] }).click();
-  await expect(page.getByLabel(fr["site.sous_contrat"])).not.toBeChecked();
-  await expect(
-    page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
-  ).toHaveCount(0);
+    // Décocher persiste tout autant — le champ caché en fait foi.
+    await page.goto(href);
+    await page.getByLabel(fr["site.sous_contrat"]).uncheck();
+    await page
+      .getByRole("button", { name: fr["sites.action.modifier"] })
+      .click();
+    await expect(page.getByLabel(fr["site.sous_contrat"])).not.toBeChecked();
+    await expect(
+      page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
+    ).toHaveCount(0);
 
-  await page.goto("/sites?sans_equipement=1");
-  await expect(
-    carte.getByText(fr["sites.contrat"], { exact: true }),
-  ).toHaveCount(0);
+    await page.goto(
+      `/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`,
+    );
+    await expect(
+      carte.getByText(fr["sites.contrat"], { exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    if (href !== null) {
+      const idSite = href.replace("/sites/", "");
+      const admin = new PrismaClient({
+        datasources: { db: { url: urlAdministration() } },
+      });
+      try {
+        await admin.site.deleteMany({ where: { id: idSite } });
+      } finally {
+        await admin.$disconnect();
+      }
+    }
+  }
 });
 
 test("le filtre « Sous contrat uniquement » compose (CONTRAT-SITE-1)", async ({
