@@ -74,7 +74,8 @@ export default async function PageNouvelleMachine({
       ? null
       : await lireSite(session.contexte, siteParam);
   const siteInitial =
-    siteInitialFiche !== null && siteInitialFiche.client_id === clientInitial?.id
+    siteInitialFiche !== null &&
+    siteInitialFiche.client_id === clientInitial?.id
       ? siteInitialFiche
       : null;
 
