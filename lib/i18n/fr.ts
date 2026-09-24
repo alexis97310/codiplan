@@ -1157,6 +1157,15 @@ export const fr = {
   // ci-dessus reste : l'option est proposée, elle renseigne, et c'est
   // toujours le dépôt qui tranche.
   "intervention.technicien_agenda_bloque_le": "agenda bloqué le",
+  // « PLANIFIER » ET « DÉPLACER » LE DISENT AUSSI, AVANT L'ENVOI
+  // (66-PLANNING-4, SAV-05) — même suffixe que ci-dessus, posé cette fois
+  // par un composant client qui recalcule les options au changement de la
+  // date choisie, puisque ces deux formulaires saisissent la date au lieu de
+  // la porter déjà (`intervention.date`, `Saisie`). La fenêtre est bornée :
+  // sans borne, une absence lointaine resterait invisible jusqu'à ce qu'on
+  // en approche la date, et rien ne le dirait.
+  "intervention.disponibilite_technicien.fenetre":
+    "Le blocage d'agenda n'est signalé ici que pour une date dans les 90 prochains jours.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
   // Extension de la revue Codex de la PR #267 (20/09/2026) : le refus d'un

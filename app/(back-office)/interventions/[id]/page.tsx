@@ -12,7 +12,13 @@ import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile, type Fuseau } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  type Fuseau,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
@@ -66,6 +72,7 @@ import {
   technicienAfficheSurLaFiche,
   type EvenementChronologie,
 } from "../presentation";
+import { DisponibiliteTechnicien } from "./disponibilite-technicien";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 /**
@@ -122,6 +129,15 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
  */
 const lireFicheCache = cache(lireFicheIntervention);
 const sessionCache = cache(async () => obtenirSession(await headers()));
+
+/**
+ * LA FENÊTRE DE `DisponibiliteTechnicien` (66-PLANNING-4, SAV-05) — ce n'est
+ * pas une règle métier, c'est la portée d'un avertissement d'écran, au même
+ * titre que `JOURS_A_VENIR` de `app/(back-office)/absences/page.tsx` qu'elle
+ * reprend en valeur sans partager son nom : les deux bornent des choses
+ * différentes (l'une une LISTE affichée, l'autre une AFFIRMATION avant envoi).
+ */
+const JOURS_DISPONIBILITE_TECHNICIEN = 90;
 
 /**
  * LE TITRE D'ONGLET PORTE LA RÉFÉRENCE DE L'INTERVENTION (VISUEL-1) — la
@@ -337,6 +353,53 @@ export default async function PageIntervention({
     [],
     null,
   );
+  // ── « PLANIFIER » ET « DÉPLACER » LE DISENT AUSSI, AVANT L'ENVOI
+  // (66-PLANNING-4, SAV-05) ────────────────────────────────────────────────
+  //
+  // Ces deux formulaires saisissent la date DANS le même envoi : contrairement
+  // à « Affecter », leur sélecteur technicien ne peut pas être marqué au rendu
+  // serveur — `optionsDAffectation` ne connaît pas encore la date choisie.
+  // `DisponibiliteTechnicien`, un composant client, la recalcule au
+  // changement de champ, sur ces MÊMES absences : un aller simple vers le
+  // client, jamais une seconde écriture de la règle (§9, 01/09) — le refus
+  // reste entièrement au dépôt et au déclencheur.
+  //
+  // Aucun sélecteur technicien à annoter sans `peutModifierLePlanning`, et
+  // une fiche figée n'affiche plus aucun des deux formulaires : la lecture
+  // serait un aller pour rien.
+  const fenetreDisponibiliteTechnicien =
+    peutModifierLePlanning && !figee
+      ? {
+          du: instantDuJour(jourDe(maintenant(fiche.fuseau).local)),
+          au: instantDuJour(
+            jourDe(maintenant(fiche.fuseau).local),
+            JOURS_DISPONIBILITE_TECHNICIEN,
+          ),
+        }
+      : null;
+  const absencesFenetreDisponibilite =
+    fenetreDisponibiliteTechnicien === null
+      ? []
+      : await absencesDeLaPeriode(
+          session.contexte,
+          fenetreDisponibiliteTechnicien.du,
+          fenetreDisponibiliteTechnicien.au,
+        );
+  const disponibiliteTechnicien =
+    fenetreDisponibiliteTechnicien === null
+      ? null
+      : {
+          absences: absencesFenetreDisponibilite.map((absence) => ({
+            id: absence.id,
+            utilisateurId: absence.utilisateur_id,
+            du: absence.du.toISOString(),
+            au: absence.au.toISOString(),
+          })),
+          fenetre: {
+            du: fenetreDisponibiliteTechnicien.du.toISOString(),
+            au: fenetreDisponibiliteTechnicien.au.toISOString(),
+          },
+        };
   // « AFFECTER » N'A QU'UN CHAMP, ET C'EST CELUI QUI FUYAIT : un rôle sans
   // `qualifier_affecter` verrait un bouton dont le seul champ est vide —
   // *un champ pré-rempli qu'on ne peut pas remplir est un affichage déguisé
@@ -755,6 +818,19 @@ export default async function PageIntervention({
                         libelle={t("intervention.date")}
                         obligatoire
                       />
+                      {/*
+                    LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
+                    SAV-05) — cette date n'existe pas encore côté serveur au
+                    moment du rendu, contrairement à celle qu'« Affecter »
+                    lit déjà sur la ligne : `DisponibiliteTechnicien` la
+                    recalcule au changement de champ, sur les MÊMES absences
+                    que le dépôt refuserait — jamais une seconde règle.
+                  */}
+                      {disponibiliteTechnicien === null ? null : (
+                        <p className="text-app-encre-faible text-[11px]">
+                          {t("intervention.disponibilite_technicien.fenetre")}
+                        </p>
+                      )}
                       <Saisie
                         nom="heure_debut"
                         type="time"
@@ -774,6 +850,12 @@ export default async function PageIntervention({
                         libelleOptionVide={t("intervention.aucun_technicien")}
                         obligatoire
                       />
+                      {disponibiliteTechnicien === null ? null : (
+                        <DisponibiliteTechnicien
+                          absences={disponibiliteTechnicien.absences}
+                          fenetre={disponibiliteTechnicien.fenetre}
+                        />
+                      )}
                     </Action>
                   </>
                 ) : (
@@ -816,6 +898,18 @@ export default async function PageIntervention({
                         type="date"
                         libelle={t("intervention.date")}
                       />
+                      {/*
+                    LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
+                    SAV-05) — voir le même commentaire sur « Planifier »
+                    ci-dessus. Cette note ne se rend que si le sélecteur
+                    technicien existe : sans lui, elle parlerait d'un champ
+                    absent.
+                  */}
+                      {disponibiliteTechnicien === null ? null : (
+                        <p className="text-app-encre-faible text-[11px]">
+                          {t("intervention.disponibilite_technicien.fenetre")}
+                        </p>
+                      )}
                       <Saisie
                         nom="heure_debut"
                         type="time"
@@ -845,6 +939,12 @@ export default async function PageIntervention({
                           valeurParDefaut={ligne.technicien_id ?? undefined}
                         />
                       ) : null}
+                      {disponibiliteTechnicien === null ? null : (
+                        <DisponibiliteTechnicien
+                          absences={disponibiliteTechnicien.absences}
+                          fenetre={disponibiliteTechnicien.fenetre}
+                        />
+                      )}
                     </Action>
                   </>
                 )}
