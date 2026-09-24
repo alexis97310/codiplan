@@ -76,6 +76,12 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/interventions/[id]/deplacer/route.ts": "modifier_planning",
   "app/api/absences/declarer/route.ts": "modifier_planning",
   "app/api/absences/lever/route.ts": "modifier_planning",
+  // La note interne (50-INTERVENTIONS-2) — même capacité que « Déplacer » /
+  // « Planifier » sur cette même fiche : aucune ne compte le rôle terrain
+  // (`TEC`), à la différence de `consulter_planning` qui l'accorde en
+  // « restreint ». La réutiliser évite d'ouvrir, par une requête forgée, une
+  // écriture que le technicien ne voit jamais à l'écran.
+  "app/api/interventions/[id]/note-interne/route.ts": "modifier_planning",
   // « Importer / exporter en masse ».
   "app/api/imports/controler/route.ts": "importer_exporter",
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
@@ -275,7 +281,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
   });
 
   it("le compte des routes gardées est celui annoncé dans la proposition", () => {
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(63);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(64);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
