@@ -244,7 +244,7 @@ describe("l'extraction, éprouvée sur du texte fabriqué", () => {
   });
 });
 
-describe("tout `beforeAll` qui écrit sans idempotence déclare la série", () => {
+describe("tout `beforeAll` qui écrit en base déclare la série, sauf exemption nommée", () => {
   it("la population des fichiers e2e n'est pas vide", () => {
     expect(FICHIERS_EPREUVE.length).toBeGreaterThan(10);
   });
