@@ -3087,6 +3087,18 @@ export const fr = {
   // par un utilisateur réel.
   "terrain.e2e.commentaire": "Filtre à air remplacé.",
   "terrain.e2e.suite_a_donner": "Revoir le compresseur dans 3 mois.",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/avertissements-1.spec.ts)
+  //
+  // Même raison que `contacts.e2e.*` et `terrain.e2e.*` : sa PROPRE scène,
+  // créée et supprimée par l'épreuve, préfixée `AV1-` pour se distinguer du
+  // semis (`docs/propositions/47-AVERTISSEMENTS-1`).
+  "avertissements.e2e.client": "AV1 — Client avec donneur d'ordre",
+  "avertissements.e2e.site": "AV1 — Site avec donneur d'ordre",
+  "avertissements.e2e.contact_donneur_ordre": "AV1 — Donneuse d'ordre",
+  "avertissements.e2e.client_sans_contact": "AV1 — Client sans donneur d'ordre",
+  "avertissements.e2e.site_sans_contact": "AV1 — Site sans donneur d'ordre",
+  "avertissements.e2e.panne": "AV1 — Panne signalée pour l'épreuve.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

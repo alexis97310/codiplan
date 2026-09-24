@@ -1,6 +1,15 @@
 import { randomBytes } from "node:crypto";
+import { join } from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
+
+import { FICHIER_COURRIELS_CAPTURES } from "./tests/e2e/setup/courriel-captures";
+
+// `__dirname` — CE FICHIER EST COMPILÉ EN COMMONJS PAR PLAYWRIGHT (mesuré :
+// `import.meta.url` y casse le chargement, « exports is not defined in ES
+// module scope » — le transform interne de Playwright, à la différence de
+// `vitest.config.mts` et `prisma.config.ts`, ne le prend pas en charge).
+const RACINE = __dirname;
 
 const PORT = Number(process.env.PORT ?? 3100);
 /** Exportée : `tests/e2e/setup/global.ts` en a besoin pour son propre navigateur. */
@@ -36,6 +45,18 @@ function environnementDuServeur(): Record<string, string> {
     BETTER_AUTH_SECRET:
       process.env.BETTER_AUTH_SECRET ?? randomBytes(32).toString("hex"),
     BETTER_AUTH_URL: BASE_URL,
+    // ── LE CANAL COURRIEL, DOUBLÉ (AVERTISSEMENTS-1, 24/09/2026) ────────────
+    //
+    // Une clé qui ne vaut rien chez un vrai prestataire — `--require` charge
+    // `tests/e2e/setup/double-courriel.cjs` AVANT le serveur, qui intercepte
+    // les seuls appels vers `api.resend.com` et rend un succès fabriqué.
+    // Sans ces deux variables, `configurationCourriel` refuserait tout envoi
+    // (canal non configuré) et `tests/e2e/avertissements-1.spec.ts` ne
+    // pourrait jamais mesurer le cas « parti ».
+    COURRIEL_API_CLE: "e2e-cle-sans-valeur",
+    COURRIEL_EXPEDITEUR: "codiplan@e2e.test",
+    E2E_COURRIELS_CAPTURES: FICHIER_COURRIELS_CAPTURES,
+    NODE_OPTIONS: `--require ${join(RACINE, "tests/e2e/setup/double-courriel.cjs")}`,
   };
 }
 
