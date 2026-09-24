@@ -177,7 +177,11 @@ test("la recherche par S/N retrouve exactement l'intervention de la machine A, j
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await expect(
     page.getByText(
-      decompte(1, fr["interventions.resultat_un"], fr["interventions.resultat"]),
+      decompte(
+        1,
+        fr["interventions.resultat_un"],
+        fr["interventions.resultat"],
+      ),
       { exact: true },
     ),
   ).toBeVisible();
