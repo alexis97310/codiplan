@@ -28,14 +28,18 @@ import { fichiersSource, sansCommentaires } from "./outils/fichiers-source";
  *
  * Il lit STATIQUEMENT chaque `tests/e2e/*.spec.ts` :
  *
- *   (a) tout fichier dont le `beforeAll` contient une écriture NON
- *       IDEMPOTENTE (un `.create(`/`.createMany(`/`.upsert(` Prisma, ou un
- *       `$executeRawUnsafe` dont le texte porte `INSERT INTO` sans
- *       `ON CONFLICT` dans le MÊME appel) doit déclarer
+ *   (a) tout fichier dont le `beforeAll` ÉCRIT en base (un `.create(`,
+ *       `.createMany(`, `.update(`, `.updateMany(`, `.upsert(`, `.delete(`,
+ *       `.deleteMany(` Prisma, ou un `$executeRawUnsafe` dont le texte
+ *       porte `INSERT INTO`, `UPDATE` ou `DELETE FROM`) doit déclarer
  *       `test.describe.configure({ mode: "serial" })` — sinon deux workers
- *       peuvent rejouer ce `beforeAll` en même temps sur le même identifiant
- *       fixe. Une écriture `INSERT … ON CONFLICT DO NOTHING` (ou
- *       `DO UPDATE`) survit à un rejeu concurrent : elle n'exige rien.
+ *       peuvent rejouer ce `beforeAll` en même temps sur le même
+ *       identifiant fixe. **Aucune exception implicite** : un
+ *       `INSERT … ON CONFLICT DO NOTHING` reste une écriture, et le
+ *       gardien l'exige aussi — un fichier qui a délibérément choisi cette
+ *       forme plutôt que la série (`blocage-agenda-visible.spec.ts`,
+ *       `fiche-intervention.spec.ts`) porte une exemption NOMMÉE ci-dessous,
+ *       avec son motif.
  *   (b) aucun fichier ne pose une date par `CURRENT_DATE` — le jour civil
  *       du SERVEUR PostgreSQL, jamais celui d'un fuseau nommé, et donc
  *       jamais celui qu'un écran (`/terrain`, `/planning`) affiche « pour
@@ -65,11 +69,34 @@ const FICHIERS_EPREUVE = fichiersSource([DOSSIER_E2E], [".ts"])
   }));
 
 /**
- * Aucune exemption connue aujourd'hui : chaque `beforeAll` qui écrit sans
- * série a été corrigé (54-STABILITE-2), et le seul `CURRENT_DATE` du dépôt
- * a été remplacé par une date calculée dans le fuseau de la société.
+ * Ces deux fichiers écrivent en base dans leur `beforeAll` sans déclarer la
+ * série — un choix délibéré et documenté dans leur propre en-tête : chaque
+ * écriture y est un `INSERT … ON CONFLICT DO NOTHING`, qui survit à deux
+ * workers concurrents (le gagnant importe peu, la base repart neuve à
+ * chaque exécution) là où `deleteMany` puis `create` s'y ferait la course.
  */
-const EXEMPTIONS_SERIE: readonly { chemin: string; motif: string }[] = [];
+const EXEMPTIONS_SERIE: readonly { chemin: string; motif: string }[] = [
+  {
+    chemin: "tests/e2e/blocage-agenda-visible.spec.ts",
+    motif:
+      "toutes ses écritures sont des INSERT ... ON CONFLICT DO NOTHING " +
+      "(voir son propre en-tête) : idempotentes sous deux workers " +
+      "concurrents, la série n'est pas nécessaire.",
+  },
+  {
+    chemin: "tests/e2e/fiche-intervention.spec.ts",
+    motif:
+      "toutes ses écritures sont des INSERT ... ON CONFLICT DO NOTHING : " +
+      "idempotentes sous deux workers concurrents, la série n'est pas " +
+      "nécessaire.",
+  },
+];
+
+/**
+ * Aucune exemption connue aujourd'hui : le seul `CURRENT_DATE` du dépôt a
+ * été remplacé par une date calculée dans le fuseau de la société
+ * (54-STABILITE-2).
+ */
 const EXEMPTIONS_CURRENT_DATE: readonly { chemin: string; motif: string }[] =
   [];
 
@@ -118,18 +145,18 @@ function appelsExecuteRawUnsafe(source: string): string[] {
   return appels;
 }
 
-/**
- * Un `beforeAll` écrit-il de façon NON IDEMPOTENTE — c'est-à-dire qu'un
- * rejeu concurrent, sur le même identifiant, peut heurter une contrainte
- * d'unicité ?
- */
-function ecritSansIdempotence(blocBeforeAll: string): boolean {
-  if (/\.\s*(create|createMany|upsert)\s*\(/.test(blocBeforeAll)) {
+/** Un `beforeAll` écrit-il en base — au sens large, sans distinguer les
+ * formes idempotentes des autres (c'est le rôle des exemptions nommées). */
+function ecritEnBase(blocBeforeAll: string): boolean {
+  if (
+    /\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/.test(
+      blocBeforeAll,
+    )
+  ) {
     return true;
   }
-  return appelsExecuteRawUnsafe(blocBeforeAll).some(
-    (appel) =>
-      /\bINSERT\s+INTO\b/i.test(appel) && !/\bON\s+CONFLICT\b/i.test(appel),
+  return appelsExecuteRawUnsafe(blocBeforeAll).some((appel) =>
+    /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b/i.test(appel),
   );
 }
 
@@ -143,43 +170,43 @@ function declareSerie(source: string): boolean {
 const CURRENT_DATE = /\bCURRENT_DATE\b/i;
 
 describe("l'extraction, éprouvée sur du texte fabriqué", () => {
-  it("un `.create(` sans ON CONFLICT est une écriture non idempotente", () => {
+  it("un `.create(` Prisma est une écriture en base", () => {
     expect(
-      ecritSansIdempotence(
+      ecritEnBase(
         `await client.intervention.deleteMany({ where: { id } });
          await client.intervention.create({ data: { id } });`,
       ),
     ).toBe(true);
   });
 
-  it("un `INSERT … ON CONFLICT DO NOTHING` n'exige rien", () => {
+  it("un `INSERT … ON CONFLICT DO NOTHING` reste une écriture en base", () => {
     expect(
-      ecritSansIdempotence(
+      ecritEnBase(
         `await client.$executeRawUnsafe(
            \`INSERT INTO "absence" ("id") VALUES ($1::uuid) ON CONFLICT DO NOTHING\`,
            BLOCAGE,
          );`,
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("un `INSERT … ON CONFLICT (id) DO UPDATE` n'exige rien", () => {
+  it("un `INSERT … ON CONFLICT (id) DO UPDATE` reste une écriture en base", () => {
     expect(
-      ecritSansIdempotence(
+      ecritEnBase(
         `await client.$executeRawUnsafe(
            \`INSERT INTO "intervention" ("id") VALUES ($1::uuid)
             ON CONFLICT ("id") DO UPDATE SET "id" = EXCLUDED."id"\`,
            id,
          );`,
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("un `INSERT` brut sans ON CONFLICT est une écriture non idempotente", () => {
+  it("un `DELETE FROM` brut est une écriture en base", () => {
     expect(
-      ecritSansIdempotence(
+      ecritEnBase(
         `await client.$executeRawUnsafe(
-           \`INSERT INTO "intervention" ("id") VALUES ($1::uuid)\`,
+           \`DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid\`,
            id,
          );`,
       ),
@@ -187,8 +214,13 @@ describe("l'extraction, éprouvée sur du texte fabriqué", () => {
   });
 
   it("un `beforeAll` qui ne fait QUE lire n'écrit rien", () => {
+    expect(ecritEnBase(`const reperes = await reperesDeLaScene();`)).toBe(
+      false,
+    );
     expect(
-      ecritSansIdempotence(`const reperes = await reperesDeLaScene();`),
+      ecritEnBase(
+        `const machine = await client.machine.findFirstOrThrow({ where: { societe_id } });`,
+      ),
     ).toBe(false);
   });
 
@@ -219,35 +251,37 @@ describe("tout `beforeAll` qui écrit sans idempotence déclare la série", () =
 
   it("au moins un fichier réel exige la série — sinon la règle serait aveugle", () => {
     const exigent = FICHIERS_EPREUVE.filter((fichier) =>
-      blocsBeforeAll(fichier.source).some(ecritSansIdempotence),
+      blocsBeforeAll(fichier.source).some(ecritEnBase),
     );
     expect(exigent.length).toBeGreaterThan(0);
   });
 
   for (const fichier of FICHIERS_EPREUVE) {
-    const exigeLaSerie = blocsBeforeAll(fichier.source).some(
-      ecritSansIdempotence,
-    );
+    const exigeLaSerie = blocsBeforeAll(fichier.source).some(ecritEnBase);
     if (!exigeLaSerie) {
       continue;
     }
-    it(`${fichier.chemin} déclare test.describe.configure({ mode: "serial" })`, () => {
-      const exemption = EXEMPTIONS_SERIE.find(
-        (e) => e.chemin === fichier.chemin,
-      );
-      if (exemption !== undefined) {
-        return;
-      }
-      expect(
-        declareSerie(fichier.source),
-        `${fichier.chemin} écrit une fixture à identifiant fixe sans ` +
-          `idempotence dans son beforeAll, sans déclarer la série : sous ` +
-          `fullyParallel, deux workers peuvent rejouer ce beforeAll en même ` +
-          `temps sur la même ligne. Ajouter ` +
-          `test.describe.configure({ mode: "serial" }), ou rendre ` +
-          `l'écriture idempotente (ON CONFLICT ... DO NOTHING / DO UPDATE).`,
-      ).toBe(true);
-    });
+    const exemption = EXEMPTIONS_SERIE.find((e) => e.chemin === fichier.chemin);
+    it(
+      exemption === undefined
+        ? `${fichier.chemin} déclare test.describe.configure({ mode: "serial" })`
+        : `${fichier.chemin} est exempté de la série (${exemption.motif})`,
+      () => {
+        if (exemption !== undefined) {
+          expect(true).toBe(true);
+          return;
+        }
+        expect(
+          declareSerie(fichier.source),
+          `${fichier.chemin} écrit en base dans son beforeAll sans déclarer ` +
+            `la série : sous fullyParallel, deux workers peuvent rejouer ce ` +
+            `beforeAll en même temps sur la même ligne. Ajouter ` +
+            `test.describe.configure({ mode: "serial" }), ou documenter une ` +
+            `exemption nommée si l'écriture est déjà idempotente ` +
+            `(ON CONFLICT ... DO NOTHING).`,
+        ).toBe(true);
+      },
+    );
   }
 
   it("chaque exemption de série nomme un fichier qui existe et que la règle flaguerait sans elle", () => {
@@ -263,7 +297,7 @@ describe("tout `beforeAll` qui écrit sans idempotence déclare la série", () =
         continue;
       }
       const exigeraitLaSerie = blocsBeforeAll(fichier.source).some(
-        ecritSansIdempotence,
+        ecritEnBase,
       );
       expect(
         exigeraitLaSerie,
