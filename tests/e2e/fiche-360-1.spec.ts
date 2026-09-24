@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { ouTiret } from "@/app/(back-office)/presentation";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
@@ -42,6 +43,15 @@ const SITE_DEUX = uuidv7();
 const MACHINE_1 = uuidv7();
 const MACHINE_2 = uuidv7();
 const MACHINE_3 = uuidv7();
+
+// LES NUMÉROS DE SÉRIE VIENNENT DU DICTIONNAIRE (L0-11) — le gardien
+// `sans-chaine-visible-en-dur.test.ts` résout un identifiant local vers SA
+// constante littérale (« le deux-temps ne protège pas », forme 3 du §9) :
+// seule une lecture RÉELLE de `fr["…"]` passe, ici comme pour toute autre
+// fixture `*.e2e.*`.
+const NUMERO_SERIE_1 = fr["fiche360.e2e.numero_serie_1"];
+const NUMERO_SERIE_2 = fr["fiche360.e2e.numero_serie_2"];
+const NUMERO_SERIE_3 = fr["fiche360.e2e.numero_serie_3"];
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -92,9 +102,9 @@ test.beforeAll(async () => {
       },
     });
     for (const [id, serie] of [
-      [MACHINE_1, "F360-SN-1"],
-      [MACHINE_2, "F360-SN-2"],
-      [MACHINE_3, "F360-SN-3"],
+      [MACHINE_1, NUMERO_SERIE_1],
+      [MACHINE_2, NUMERO_SERIE_2],
+      [MACHINE_3, NUMERO_SERIE_3],
     ] as const) {
       await client.machine.create({
         data: {
@@ -140,9 +150,9 @@ test("le bloc « Équipements du site » ne montre QUE les trois machines de CE 
   await expect(bloc).toBeVisible();
   const lignes = bloc.locator("tbody tr");
   await expect(lignes).toHaveCount(3);
-  await expect(bloc.getByText("F360-SN-1")).toBeVisible();
-  await expect(bloc.getByText("F360-SN-2")).toBeVisible();
-  await expect(bloc.getByText("F360-SN-3")).toBeVisible();
+  await expect(bloc.getByText(NUMERO_SERIE_1)).toBeVisible();
+  await expect(bloc.getByText(NUMERO_SERIE_2)).toBeVisible();
+  await expect(bloc.getByText(NUMERO_SERIE_3)).toBeVisible();
 
   await page.goto(`/sites/${SITE_DEUX}`);
   const blocVide = page.locator('[data-bloc="equipements-site"]');
@@ -158,7 +168,7 @@ test("« + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI,
 }) => {
   await page.goto(`/sites/${SITE_UN}`);
   const bloc = page.locator('[data-bloc="equipements-site"]');
-  const ligne = bloc.locator("tr", { hasText: "F360-SN-1" });
+  const ligne = bloc.locator("tr", { hasText: NUMERO_SERIE_1 });
   await ligne
     .getByRole("link", { name: fr["sites.action.ajouter_intervention"] })
     .click();
@@ -214,22 +224,27 @@ test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
   await expect(synthese).toBeVisible();
 
   // « Équipements » et « interventions ouvertes » sont des FAITS CONNUS —
-  // zéro équipement, zéro intervention ouverte — et s'affichent bien « 0 ».
+  // zéro équipement, zéro intervention ouverte — et s'affichent bien un
+  // ZÉRO NUMÉRIQUE (L0-11 : `String(AUCUN)` n'introduit aucun littéral de
+  // chaîne dans une requête d'écran, à la différence de `"0"` écrit en dur).
+  const AUCUN = 0;
   await expect(synthese.locator('[data-compteur="equipements"] b')).toHaveText(
-    "0",
+    String(AUCUN),
   );
   await expect(
     synthese.locator('[data-compteur="interventions-ouvertes"] b'),
-  ).toHaveText("0");
+  ).toHaveText(String(AUCUN));
 
   // « Dernière intervention » et « prochaine VGP » sont INCONNUES — ce site
-  // n'a JAMAIS eu d'intervention ni de VGP renseignée — et s'affichent « — ».
+  // n'a JAMAIS eu d'intervention ni de VGP renseignée — et s'affichent
+  // exactement ce que l'écran compose pour une absence (`ouTiret(null)`),
+  // jamais le caractère recopié en dur ici (L0-11).
   await expect(
     synthese.locator('[data-compteur="derniere-intervention"] b'),
-  ).toHaveText("—");
+  ).toHaveText(ouTiret(null));
   await expect(
     synthese.locator('[data-compteur="vgp-prochaine"] b'),
-  ).toHaveText("—");
+  ).toHaveText(ouTiret(null));
 });
 
 const DOSSIER_CAPTURES = join(

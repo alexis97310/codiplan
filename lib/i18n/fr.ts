@@ -3153,6 +3153,9 @@ export const fr = {
   "fiche360.e2e.client": "F360 — Client de la fiche 360",
   "fiche360.e2e.site_un": "F360 — Lieu avec équipements",
   "fiche360.e2e.site_deux": "F360 — Lieu sans équipement de ce lot",
+  "fiche360.e2e.numero_serie_1": "F360-SN-1",
+  "fiche360.e2e.numero_serie_2": "F360-SN-2",
+  "fiche360.e2e.numero_serie_3": "F360-SN-3",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
