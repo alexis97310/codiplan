@@ -302,6 +302,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // naissance. « Quelle machine a été retirée de cette visite, et par qui »
       // est une question de litige autant qu'une question de planning.
       "intervention_machine",
+      // `intervention_pause` s'y ajoute au ticket 50-INTERVENTIONS-2, et par
+      // le même chemin : première catégorie de I1, donc auditée à sa
+      // naissance. « Qui a ouvert cette pause, qui l'a fermée, et quand » est
+      // la question même d'un litige sur une intervention arrêtée.
+      "intervention_pause",
       // `intervention_prestation` et `intervention_signature` s'y ajoutent au
       // ticket 17-BON-2, et par le même chemin : première catégorie de I1,
       // donc auditées à leur naissance. « Quelle prestation a été déclarée

@@ -122,4 +122,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260923130000_parcours_1_creer_puis_planifier",
   "20260923140000_contrat_site_1",
   "20260924170000_avertissements_1",
+  "20260924180000_interventions_2",
 ];

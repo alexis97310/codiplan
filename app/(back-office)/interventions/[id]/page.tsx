@@ -12,7 +12,7 @@ import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import { dateCivile, type Fuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
@@ -28,8 +28,16 @@ import {
 } from "@/lib/interventions/cycle-de-vie";
 import {
   lireFicheIntervention,
+  pausesDeLIntervention,
+  segmentsDeLIntervention,
+  type PauseAffichee,
+  type SegmentAffiche,
   type ValorisationAffichee,
 } from "@/lib/interventions/depot";
+import {
+  derniereSignature,
+  prestationsRealisees,
+} from "@/lib/interventions/depot-rapport-terrain";
 import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -49,11 +57,14 @@ import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
+  chronologieDeLaFiche,
+  dateHeureLocale,
   heureDuCreneau,
   machinesIdentifiees,
   referenceAffichee,
   retourFiche,
   technicienAfficheSurLaFiche,
+  type EvenementChronologie,
 } from "../presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
@@ -280,8 +291,16 @@ export default async function PageIntervention({
     annuaireDesPersonnes(tx, [
       ...techniciensActifs.map((technicien) => technicien.utilisateur_id),
       ...(ligne.technicien_id === null ? [] : [ligne.technicien_id]),
+      ...(fiche.tempsValidePar === null ? [] : [fiche.tempsValidePar]),
     ]),
   );
+  const nomValidateur = ((): string | null => {
+    if (fiche.tempsValidePar === null) {
+      return null;
+    }
+    const designation = annuaire(fiche.tempsValidePar);
+    return designation.etat === "nom" ? designation.nom : "—";
+  })();
   const nomTechnicien = technicienAfficheSurLaFiche(
     ligne.technicien_id,
     annuaire,
@@ -365,6 +384,26 @@ export default async function PageIntervention({
       libelleMaterielComplet(donnees),
     ]),
   );
+
+  // ── LES DONNÉES RÉELLES (50-INTERVENTIONS-2) — trois lectures indépendantes,
+  // chacune sous SON PROPRE contexte applicatif : même raisonnement que
+  // `lireBonIntervention` (`lib/interventions/bon.ts`), qui ouvre les siennes
+  // hors de la transaction de `lireFicheIntervention` pour la même raison —
+  // `avecContexteApplicatif` attend un `PrismaClient`, jamais un
+  // `Prisma.TransactionClient` déjà ouvert.
+  const [segments, pauses, prestationsRealiseesFiche, signatureFiche] =
+    await Promise.all([
+      segmentsDeLIntervention(session.contexte, ligne.id),
+      pausesDeLIntervention(session.contexte, ligne.id),
+      prestationsRealisees(session.contexte, ligne.id),
+      derniereSignature(session.contexte, ligne.id),
+    ]);
+  const chronologie = chronologieDeLaFiche({
+    creeLe: fiche.creeLe,
+    pauses: (pauses ?? []).map((p) => ({ debut: p.debut, fin: p.fin })),
+    clotureeLe: fiche.clotureeLe,
+    annuleeLe: fiche.annuleeLe,
+  });
 
   return (
     <Page
@@ -608,6 +647,32 @@ export default async function PageIntervention({
               valorisation={fiche.valorisation}
               devise={fiche.devise}
               montants={montants}
+            />
+          ) : null}
+
+          <Realisation
+            segments={segments ?? []}
+            tempsMesureMin={ligne.temps_mesure_min}
+            tempsValideMin={ligne.temps_valide_min}
+            tempsValidePar={nomValidateur}
+            tempsValideLe={fiche.tempsValideLe}
+            prestations={prestationsRealiseesFiche ?? []}
+            commentaireTechnicien={fiche.commentaireTechnicien}
+            suiteADonner={fiche.suiteADonner}
+            signature={signatureFiche}
+            clotureeLe={fiche.clotureeLe}
+            fuseau={fiche.fuseau}
+          />
+
+          <Pauses pauses={pauses ?? []} fuseau={fiche.fuseau} />
+
+          <Chronologie evenements={chronologie} fuseau={fiche.fuseau} />
+
+          {peutModifierLePlanning ? (
+            <NoteInterne
+              interventionId={ligne.id}
+              note={fiche.noteInterne}
+              modifiable={!figee}
             />
           ) : null}
         </div>
@@ -1062,6 +1127,305 @@ function minutes(total: number): string {
   const heures = Math.floor(total / 60);
   const reste = String(total % 60).padStart(2, "0");
   return heures === 0 ? `${reste} min` : `${heures} h ${reste}`;
+}
+
+// Composés hors du JSX (même geste que `FLECHE`/`DEUX_POINTS` de
+// `parametres/agences/[id]/page.tsx`) : `react/jsx-no-literals` refuse un
+// texte de ponctuation écrit à même l'arbre, et une ligne composée en dehors
+// se relit d'un bloc plutôt qu'en morceaux entrecoupés d'expressions.
+const FLECHE = " → ";
+const DEUX_POINTS = " : ";
+
+/** Une ligne du bloc « Segments de travail » de la Réalisation. */
+function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
+  const fin =
+    segment.fin === null
+      ? t("intervention.realisation.en_cours")
+      : dateHeureLocale(segment.fin, fuseau);
+  const duree = segment.minutes === null ? "" : ` (${minutes(segment.minutes)})`;
+  return `${segment.technicien}${t("ponctuation.separateur")}${dateHeureLocale(segment.debut, fuseau)}${FLECHE}${fin}${duree}`;
+}
+
+/** La période d'une pause, avec sa durée si elle est fermée. */
+function lignePausePeriode(pause: PauseAffichee, fuseau: Fuseau): string {
+  const fin =
+    pause.fin === null
+      ? t("intervention.pauses.en_cours")
+      : dateHeureLocale(pause.fin, fuseau);
+  const dureeMin =
+    pause.fin === null
+      ? null
+      : Math.floor((pause.fin.getTime() - pause.debut.getTime()) / 60_000);
+  const duree = dureeMin === null ? "" : ` (${minutes(dureeMin)})`;
+  return `${dateHeureLocale(pause.debut, fuseau)}${FLECHE}${fin}${duree}`;
+}
+
+function lignePauseMotif(pause: PauseAffichee): string {
+  return `${t("intervention.pauses.motif")}${DEUX_POINTS}${pause.motif}`;
+}
+
+/** N'est rendue QUE quand `pieceAttendueRef` n'est pas `null` (voir l'appelant). */
+function lignePausePiece(pause: PauseAffichee): string {
+  const base = `${t("intervention.pauses.piece")}${DEUX_POINTS}${pause.pieceAttendueRef ?? TIRET}`;
+  if (pause.dateDispoPrevue === null) {
+    return base;
+  }
+  return `${base}${t("ponctuation.separateur")}${t("intervention.pauses.dispo_prevue")} ${dateCivile(pause.dateDispoPrevue)}`;
+}
+
+function lignePauseAuteurs(pause: PauseAffichee): string {
+  const ouverture = `${t("intervention.pauses.ouverte_par")} ${pause.ouvertPar ?? TIRET}`;
+  if (pause.fin === null) {
+    return ouverture;
+  }
+  return `${ouverture}${t("ponctuation.separateur")}${t("intervention.pauses.fermee_par")} ${pause.fermeePar ?? TIRET}`;
+}
+
+/**
+ * LA RÉALISATION (50-INTERVENTIONS-2) — les données RÉELLES de la visite,
+ * sous les yeux : les segments du compteur, les deux temps (D120) et qui a
+ * validé, les prestations réalisées, les mots du technicien, la signature, la
+ * clôture. Rien n'est saisi ici — cette section ne fait que MONTRER ce que le
+ * terrain et la clôture ont déjà écrit ailleurs.
+ */
+function Realisation({
+  segments,
+  tempsMesureMin,
+  tempsValideMin,
+  tempsValidePar,
+  tempsValideLe,
+  prestations,
+  commentaireTechnicien,
+  suiteADonner,
+  signature,
+  clotureeLe,
+  fuseau,
+}: {
+  segments: readonly SegmentAffiche[];
+  tempsMesureMin: number | null;
+  tempsValideMin: number | null;
+  tempsValidePar: string | null;
+  tempsValideLe: Date | null;
+  prestations: readonly { readonly id: string; readonly libelle: string }[];
+  commentaireTechnicien: string | null;
+  suiteADonner: string | null;
+  signature: { readonly cree_le: Date } | null;
+  clotureeLe: Date | null;
+  fuseau: Fuseau;
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[13px] font-bold">
+        {t("intervention.realisation.titre")}
+      </h2>
+
+      <h3 className="text-app-encre-faible text-[12px] font-semibold">
+        {t("intervention.realisation.segments_titre")}
+      </h3>
+      {segments.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("intervention.realisation.aucun_segment")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1 text-[12.5px]">
+          {segments.map((segment, index) => (
+            // Aucun identifiant propre au segment n'est lu ici (voir `SegmentAffiche`).
+            <li key={index}>{ligneSegment(segment, fuseau)}</li>
+          ))}
+        </ul>
+      )}
+
+      <dl className="grid grid-cols-[160px_1fr] gap-x-3 gap-y-2 text-[13px]">
+        <Ligne
+          libelle={t("intervention.realisation.temps_mesure")}
+          valeur={tempsMesureMin === null ? TIRET : minutes(tempsMesureMin)}
+        />
+        <Ligne
+          libelle={t("intervention.realisation.temps_valide")}
+          valeur={tempsValideMin === null ? TIRET : minutes(tempsValideMin)}
+        />
+        {tempsValidePar === null ? null : (
+          <Ligne
+            libelle={t("intervention.realisation.valide_par")}
+            valeur={tempsValidePar}
+          />
+        )}
+        {tempsValideLe === null ? null : (
+          <Ligne
+            libelle={t("intervention.realisation.valide_le")}
+            valeur={dateHeureLocale(tempsValideLe, fuseau)}
+          />
+        )}
+      </dl>
+
+      <h3 className="text-app-encre-faible text-[12px] font-semibold">
+        {t("intervention.realisation.prestations_titre")}
+      </h3>
+      {prestations.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("intervention.realisation.aucune_prestation")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1 text-[12.5px]">
+          {prestations.map((prestation) => (
+            <li key={prestation.id}>{prestation.libelle}</li>
+          ))}
+        </ul>
+      )}
+
+      <dl className="grid grid-cols-[160px_1fr] gap-x-3 gap-y-2 text-[13px]">
+        <Ligne
+          libelle={t("intervention.realisation.commentaire_technicien")}
+          valeur={commentaireTechnicien ?? TIRET}
+        />
+        <Ligne
+          libelle={t("intervention.realisation.suite_a_donner")}
+          valeur={suiteADonner ?? TIRET}
+        />
+        <Ligne
+          libelle={t("intervention.realisation.signature")}
+          valeur={
+            signature === null
+              ? t("intervention.realisation.aucune_signature")
+              : `${t("intervention.realisation.signee_le")} ${dateHeureLocale(signature.cree_le, fuseau)}`
+          }
+        />
+        {clotureeLe === null ? null : (
+          <Ligne
+            libelle={t("intervention.realisation.cloturee_le")}
+            valeur={dateHeureLocale(clotureeLe, fuseau)}
+          />
+        )}
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * LES PAUSES (50-INTERVENTIONS-2, SAV-09) — TOUT l'historique, la plus
+ * RÉCENTE en tête (`pausesDeLIntervention`, `lib/interventions/depot.ts`) :
+ * deux pauses successives (pièce X, puis pièce Y) restent TOUTES DEUX
+ * lisibles, avec leur durée chacune — ce que les quatre colonnes réécrites de
+ * `intervention` ne pouvaient pas montrer.
+ */
+function Pauses({
+  pauses,
+  fuseau,
+}: {
+  pauses: readonly PauseAffichee[];
+  fuseau: Fuseau;
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[13px] font-bold">{t("intervention.pauses.titre")}</h2>
+      {pauses.length === 0 ? (
+        <p className="text-app-encre-faible text-[12px]">
+          {t("intervention.pauses.aucune")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {pauses.map((pause) => (
+            <li
+              key={pause.id}
+              className="border-app-bord flex flex-col gap-1 border-b pb-3 text-[12.5px] last:border-b-0 last:pb-0"
+            >
+              <p className="font-semibold">{lignePausePeriode(pause, fuseau)}</p>
+              <p>{lignePauseMotif(pause)}</p>
+              {pause.pieceAttendueRef === null ? null : (
+                <p>{lignePausePiece(pause)}</p>
+              )}
+              <p className="text-app-encre-faible">{lignePauseAuteurs(pause)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * LA CHRONOLOGIE (50-INTERVENTIONS-2) — depuis les FAITS DATÉS, jamais le
+ * journal d'audit : voir `chronologieDeLaFiche`, `../presentation.ts`, pour
+ * le choix et sa raison.
+ */
+function Chronologie({
+  evenements,
+  fuseau,
+}: {
+  evenements: readonly EvenementChronologie[];
+  fuseau: Fuseau;
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[13px] font-bold">
+        {t("intervention.chronologie.titre")}
+      </h2>
+      <ol className="flex flex-col gap-1.5 text-[12.5px]">
+        {evenements.map((evenement, index) => (
+          // Un évènement composé n'a pas d'identifiant propre ; l'ordre affiché est celui du tableau lui-même.
+          <li key={index}>
+            <span className="text-app-encre-faible">
+              {dateHeureLocale(evenement.instant, fuseau)}
+            </span>
+            {t("ponctuation.separateur")}
+            {t(evenement.cle)}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * LA NOTE INTERNE (50-INTERVENTIONS-2) — visible et modifiable par les rôles
+ * BACK-OFFICE seulement. Régime INVERSE de `commentaire_technicien`/
+ * `suite_a_donner` : cette section n'existe QUE sur cette fiche, jamais sur
+ * `/terrain`, le bon imprimable, le portail ou un courriel.
+ *
+ * FIGÉE, elle reste LISIBLE mais perd son formulaire — même régime que le
+ * reste de la fiche (le déclencheur `intervention_cycle_de_vie` refuserait de
+ * toute façon l'écriture).
+ */
+function NoteInterne({
+  interventionId,
+  note,
+  modifiable,
+}: {
+  interventionId: string;
+  note: string | null;
+  modifiable: boolean;
+}) {
+  return (
+    <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <h2 className="text-[13px] font-bold">
+        {t("intervention.note_interne.titre")}
+      </h2>
+      <p className="text-app-encre-faible text-[11.5px]">
+        {t("intervention.note_interne.aide")}
+      </p>
+      {modifiable ? (
+        <form
+          action={`/api/interventions/${interventionId}/note-interne`}
+          method="post"
+          className="flex flex-col gap-3"
+        >
+          <textarea
+            name="note_interne"
+            defaultValue={note ?? ""}
+            rows={4}
+            className="border-input bg-background rounded-md border px-3 py-2 text-[12.5px]"
+          />
+          <Button type="submit" variant="outline" size="sm">
+            {t("intervention.note_interne.enregistrer")}
+          </Button>
+        </form>
+      ) : (
+        <p className="text-[12.5px]">
+          {note ?? t("intervention.note_interne.aucune")}
+        </p>
+      )}
+    </section>
+  );
 }
 
 function Ligne({

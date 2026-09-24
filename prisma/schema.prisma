@@ -176,6 +176,7 @@ model Societe {
   campagnes_vgp           VgpCampagne[]
   interventionPrestations InterventionPrestation[]
   interventionSignatures  InterventionSignature[]
+  interventionPauses      InterventionPause[]
 
   @@map("societe")
 }
@@ -1599,6 +1600,12 @@ model Intervention {
   /// La ou les signatures client (BON-2) — HISTORISÉES : une re-signature
   /// AJOUTE une ligne, elle n'en réécrit jamais une.
   signatures            InterventionSignature[]
+  /// L'HISTORIQUE DES PAUSES (50-INTERVENTIONS-2, SAV-09) — voir
+  /// `InterventionPause` : une ligne par suspension, jamais réécrite. Distinct
+  /// des colonnes `motif_suspension`/`piece_attendue_ref`/`date_dispo_prevue`/
+  /// `suspendue_le` ci-dessous, qui restent l'ÉTAT COURANT lu par d'autres
+  /// écrans (le terrain, notamment).
+  pauses                InterventionPause[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -1750,6 +1757,13 @@ model Intervention {
   /// entre deux visites. Même régime que `commentaire_technicien` : terrain
   /// seul, `NULL` tant que rien n'a été écrit.
   suite_a_donner String?
+
+  /// LA NOTE INTERNE (50-INTERVENTIONS-2) — visible et modifiable par les
+  /// rôles BACK-OFFICE seulement. **Régime INVERSE de
+  /// `commentaire_technicien`/`suite_a_donner`** : jamais sur le terrain, le
+  /// bon imprimable, le portail ni un courriel. `NULL` tant que rien n'a été
+  /// écrit.
+  note_interne String?
 
   /// LE BADGE « NOUVEAU », côté technicien (AVERTISSEMENTS-1, 24/09/2026).
   /// `NULL` tant que le technicien AFFECTÉ n'a pas ouvert sa fiche terrain —
@@ -2079,6 +2093,68 @@ model InterventionSignature {
   @@unique([societe_id, id])
   @@index([societe_id, intervention_id])
   @@map("intervention_signature")
+}
+
+/// L'HISTORIQUE DES PAUSES D'UNE INTERVENTION (50-INTERVENTIONS-2, SAV-09).
+///
+/// **Ce que `intervention.motif_suspension` / `piece_attendue_ref` /
+/// `date_dispo_prevue` / `suspendue_le` ne peuvent pas dire** : ces quatre
+/// colonnes sont RÉÉCRITES à chaque suspension (L2-10) — la seconde efface la
+/// première, et deux pauses successives (pièce en commande, puis une seconde)
+/// ne restent pas lisibles. Cette table ne réécrit JAMAIS une ligne : une
+/// suspension OUVRE une ligne (`fin` NULL), une reprise la FERME (`fin`
+/// posée) — jamais l'inverse.
+///
+/// **Les colonnes existantes de `intervention` restent** — lues par d'autres
+/// écrans (le terrain, notamment) — et continuent d'être écrites dans la
+/// MÊME transaction que cette table, par `suspendreIntervention`/
+/// `reprendreIntervention` : les deux couples décrivent le MÊME événement,
+/// jamais l'un sans l'autre. Cette table est l'HISTORIQUE, pas un
+/// remplacement.
+///
+/// Forme de politique « filiation » (D103), sur le modèle exact
+/// d'`intervention_prestation` : une fille est visible si son parent l'est.
+///
+/// `ouvert_par` et `fermee_par` sont NULLABLES — et c'est délibéré. La
+/// REPRISE DE DONNÉES de la migration qui crée cette table ne connaît
+/// l'auteur d'AUCUNE suspension déjà en base : aucune colonne ne l'a jamais
+/// porté, et inventer une valeur serait la faute que le §8 du `CLAUDE.md`
+/// interdit — ne jamais inventer une valeur par défaut. Toute pause née après
+/// ce lot les porte.
+model InterventionPause {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+
+  /// L'instant d'OUVERTURE — daté dans le fuseau de l'agence (L0-08), comme
+  /// `intervention.suspendue_le`, jamais saisi.
+  debut DateTime @db.Timestamptz(3)
+  /// `NULL` = la pause est en cours. Jamais « on ne sait pas » : la base
+  /// n'autorise qu'UNE pause ouverte par intervention (index partiel).
+  fin DateTime? @db.Timestamptz(3)
+
+  motif String
+
+  /// L'ATTENTE DE PIÈCE — même régime que `intervention.piece_attendue_ref`
+  /// (RG-INT-06) : la référence et la date de disponibilité voyagent
+  /// ENSEMBLE, ou pas du tout.
+  piece_attendue_ref String?
+  date_dispo_prevue  DateTime? @db.Date
+
+  ouvert_par String? @db.Uuid
+  fermee_par String? @db.Uuid
+
+  cree_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `ON DELETE CASCADE`, comme `intervention_prestation` : une ligne
+  /// d'historique n'a aucun sens sans son intervention.
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, intervention_id, debut])
+  @@map("intervention_pause")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se

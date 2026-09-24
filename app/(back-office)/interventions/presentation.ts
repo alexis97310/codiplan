@@ -7,7 +7,7 @@ import {
   type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { t } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
 
@@ -355,6 +355,76 @@ export function dateHeureLocale(instant: Date, fuseau: Fuseau): string {
   const heures = String(local.heures).padStart(2, "0");
   const minutes = String(local.minutes).padStart(2, "0");
   return `${jour}/${mois}/${local.annee} ${heures}:${minutes}`;
+}
+
+/** Un évènement de la chronologie — un libellé (clé du dictionnaire) et son instant. */
+export type EvenementChronologie = {
+  readonly cle: CleTraduction;
+  readonly instant: Date;
+};
+
+/**
+ * LA CHRONOLOGIE DE LA FICHE (50-INTERVENTIONS-2) — depuis les FAITS DATÉS de
+ * l'intervention, **jamais depuis `journal_audit`**.
+ *
+ * *Choix nommé, comme le ticket le demande.* La politique de lecture du
+ * journal (`app_peut_consulter_journal_audit`, migration
+ * `20260829120000_journal_audit`) ne l'ouvre qu'à `admin_societe` et
+ * `direction` — une chronologie qui en dépendrait serait vide pour tout autre
+ * rôle consultant cette même fiche, l'ADV compris. C'est exactement le défaut
+ * que D88 nomme ailleurs : une section vide se lit comme « rien ne s'est
+ * passé », pas comme « vous n'y avez pas droit ».
+ *
+ * **« Planification » et « déplacement » n'y figurent PAS.** Aucune colonne
+ * ne date le changement lui-même — seul l'état COURANT (`date_planifiee`) est
+ * connu, jamais l'instant où il a été posé ou modifié. Une date approchée
+ * serait une date inventée, la même faute que le §9 (20/08) interdit déjà sur
+ * `suspendue_le` : *on ne fabrique pas l'âge d'un fait.* Ce que cette
+ * chronologie montre, elle le montre avec certitude ; ce qu'elle ne peut pas
+ * dater, elle ne l'affirme pas.
+ *
+ * Triée du plus ANCIEN au plus RÉCENT — une chronologie se lit dans l'ordre
+ * où les faits ont eu lieu.
+ */
+export function chronologieDeLaFiche(fiche: {
+  readonly creeLe: Date;
+  readonly pauses: readonly {
+    readonly debut: Date;
+    readonly fin: Date | null;
+  }[];
+  readonly clotureeLe: Date | null;
+  readonly annuleeLe: Date | null;
+}): readonly EvenementChronologie[] {
+  const evenements: EvenementChronologie[] = [
+    { cle: "intervention.chronologie.creation", instant: fiche.creeLe },
+  ];
+  for (const pause of fiche.pauses) {
+    evenements.push({
+      cle: "intervention.chronologie.suspension",
+      instant: pause.debut,
+    });
+    if (pause.fin !== null) {
+      evenements.push({
+        cle: "intervention.chronologie.reprise",
+        instant: pause.fin,
+      });
+    }
+  }
+  if (fiche.clotureeLe !== null) {
+    evenements.push({
+      cle: "intervention.chronologie.cloture",
+      instant: fiche.clotureeLe,
+    });
+  }
+  if (fiche.annuleeLe !== null) {
+    evenements.push({
+      cle: "intervention.chronologie.annulation",
+      instant: fiche.annuleeLe,
+    });
+  }
+  return [...evenements].sort(
+    (a, b) => a.instant.getTime() - b.instant.getTime(),
+  );
 }
 
 /**

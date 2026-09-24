@@ -2356,6 +2356,16 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `intervention_pause` REJOINT LA FILIATION au ticket 50-INTERVENTIONS-2,
+  // 24/09/2026. Même raisonnement qu'`intervention_prestation` : l'HISTORIQUE
+  // des suspensions est visible si l'intervention l'est, et aucune clause de
+  // société n'y est ajoutée — la clé étrangère composite l'empêche déjà de
+  // dériver.
+  {
+    table: "intervention_pause",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2368,6 +2378,8 @@ const FILIATION_ARBITREE = [
   // Ticket 17-BON-2, 22/09/2026 — le rapport de terrain.
   "intervention_prestation",
   "intervention_signature",
+  // Ticket 50-INTERVENTIONS-2, 24/09/2026 — l'historique des pauses.
+  "intervention_pause",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

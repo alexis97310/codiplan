@@ -1046,11 +1046,15 @@ dans la table `parite` ci-dessous.*
 
 **intervention — LE COMMENTAIRE ET LA SUITE À DONNER** *(BON-2)*. Deux colonnes texte, nullables : `commentaire_technicien` et `suite_a_donner`. Saisies sur le TERRAIN, jamais au back-office (I4, I5) — c'est le technicien qui est devant la machine et devant le client. `NULL` tant que rien n'a été écrit, jamais une chaîne vide.
 
+**intervention — LA NOTE INTERNE** *(50-INTERVENTIONS-2)*. `note_interne`, texte nullable. Régime INVERSE des deux colonnes précédentes : visible et modifiable par les rôles BACK-OFFICE seulement, jamais sur le terrain, le bon imprimable, le portail ni un courriel.
+
 **document — LA TROISIÈME CIBLE** *(BON-2)*. `intervention_id` rejoint `modele_id` et `machine_id` dans la contrainte `document_cible_unique` — `num_nonnulls(...) = 1`, toujours une cible et une seule. Les photos d'une intervention sont des `document` comme les autres, jamais une seconde table de fichiers ; la forme « héritage » (D93) s'étend à trois cibles, le principe ne change pas.
 
 **intervention_prestation** — `societe_id`, intervention, prestation. Un simple rattachement entre une visite et une ligne du catalogue `prestation` — pas une ligne de facturation : elle ne porte NI durée NI montant propres, le temps global restant celui de `segment_travail` et le tarif n'existant nulle part sur une prestation (D109). Forme « filiation » (D103), sur le modèle exact d'`intervention_machine`.
 
 **intervention_signature** — `societe_id`, intervention, image encodée (`data:image/png;base64,...`, un tracé de canevas, jamais un fichier). **HISTORISÉE comme `taux_horaire`** (RG-TAR-04) : une re-signature AJOUTE une ligne, elle n'en réécrit ni n'en efface aucune — `UPDATE` et `DELETE` sont retirés au rôle applicatif, comme sur `journal_audit` (I8). Aucun statut de l'intervention ne bloque l'ajout d'une signature, pas même `cloturee` ni `annulee` : I5 garantit que le travail terrain n'est jamais perdu. Forme « filiation ».
+
+**intervention_pause** — `societe_id`, intervention, début, fin (nullable), motif, référence de pièce attendue et date de disponibilité (nullables, ensemble), qui l'a ouverte et qui l'a fermée (50-INTERVENTIONS-2). L'HISTORIQUE des suspensions : contrairement aux colonnes `intervention.motif_suspension`/`piece_attendue_ref`/`date_dispo_prevue`/`suspendue_le`, réécrites à chaque suspension, cette table ne réécrit jamais une ligne — une suspension OUVRE une ligne, une reprise la FERME. Forme « filiation », sur le modèle exact d'`intervention_prestation`.
 
 ### 11.3 Volumétrie estimée à 3 ans
 

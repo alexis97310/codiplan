@@ -1,6 +1,11 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
+import {
+  exigerContexteActif,
+  exigerSocieteActive,
+  type ContexteSession,
+} from "@/lib/auth/contexte";
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
@@ -66,6 +71,7 @@ import {
   type Creation,
   type Deplacement,
   type EtatAvantPlanification,
+  type NoteInterne,
   type RechercheInterventions,
   type Reprise,
   type StatutIntervention,
@@ -1724,6 +1730,16 @@ export async function lireFicheIntervention(
    * technicien qu'on affiche.
    */
   readonly habilitations: VerdictAffectation | null;
+  /** LA NOTE INTERNE (50-INTERVENTIONS-2) — back-office seulement, voir la colonne. */
+  readonly noteInterne: string | null;
+  readonly clotureeLe: Date | null;
+  readonly annuleeLe: Date | null;
+  readonly creeLe: Date;
+  /** QUI a validé le temps, et QUAND (D120) — voir la colonne. */
+  readonly tempsValidePar: string | null;
+  readonly tempsValideLe: Date | null;
+  readonly commentaireTechnicien: string | null;
+  readonly suiteADonner: string | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -1732,6 +1748,14 @@ export async function lireFicheIntervention(
         where: { id, ...restrictionParPersonne(contexte) },
         select: {
           ...CHAMPS_LIGNE,
+          note_interne: true,
+          cloturee_le: true,
+          annulee_le: true,
+          cree_le: true,
+          temps_valide_par: true,
+          temps_valide_le: true,
+          commentaire_technicien: true,
+          suite_a_donner: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -1749,8 +1773,23 @@ export async function lireFicheIntervention(
       if (ligne === null) {
         return null;
       }
-      const { client, site, agence, forfait, devise, contact, ...brute } =
-        ligne;
+      const {
+        client,
+        site,
+        agence,
+        forfait,
+        devise,
+        contact,
+        note_interne,
+        cloturee_le,
+        annulee_le,
+        cree_le,
+        temps_valide_par,
+        temps_valide_le,
+        commentaire_technicien,
+        suite_a_donner,
+        ...brute
+      } = ligne;
 
       // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
       // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
@@ -1820,6 +1859,14 @@ export async function lireFicheIntervention(
         fuseau: fuseauDeLAgence(agence),
         valorisation,
         habilitations,
+        noteInterne: note_interne,
+        clotureeLe: cloturee_le,
+        annuleeLe: annulee_le,
+        creeLe: cree_le,
+        tempsValidePar: temps_valide_par,
+        tempsValideLe: temps_valide_le,
+        commentaireTechnicien: commentaire_technicien,
+        suiteADonner: suite_a_donner,
       };
     },
     connexion,
@@ -1896,6 +1943,178 @@ export async function marquerVuParTechnicien(
   );
 }
 
+/** Le nom d'une personne citée sur la fiche — jamais l'identifiant (I10). */
+function nomDeLaPersonne(
+  utilisateurId: string | null,
+  annuaire: Annuaire,
+): string | null {
+  if (utilisateurId === null) {
+    return null;
+  }
+  const designation = annuaire(utilisateurId);
+  return designation.etat === "nom" ? designation.nom : "—";
+}
+
+/** Un segment de travail, prêt pour l'affichage — même forme que `SegmentBonAffiche`. */
+export type SegmentAffiche = {
+  readonly debut: Date;
+  readonly fin: Date | null;
+  /** `null` quand le segment tourne encore. */
+  readonly minutes: number | null;
+  readonly technicien: string;
+};
+
+/**
+ * LES SEGMENTS DE TRAVAIL D'UNE INTERVENTION (50-INTERVENTIONS-2) — la
+ * RÉALISATION, sous les yeux. `null` si l'intervention n'est pas visible.
+ */
+export async function segmentsDeLIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<readonly SegmentAffiche[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      const segments = await tx.segmentTravail.findMany({
+        where: { intervention_id: interventionId },
+        select: { utilisateur_id: true, debut: true, fin: true },
+        orderBy: [{ debut: "asc" }, { id: "asc" }],
+      });
+      const annuaire = await annuaireDesPersonnes(
+        tx,
+        segments.map((s) => s.utilisateur_id),
+      );
+      return segments.map((s) => ({
+        debut: s.debut,
+        fin: s.fin,
+        minutes:
+          s.fin === null
+            ? null
+            : Math.floor((s.fin.getTime() - s.debut.getTime()) / 60_000),
+        technicien: nomDeLaPersonne(s.utilisateur_id, annuaire) ?? "—",
+      }));
+    },
+    client,
+  );
+}
+
+/** Une pause, prête pour l'affichage — la plus récente en tête (appelant). */
+export type PauseAffichee = {
+  readonly id: string;
+  readonly debut: Date;
+  /** `null` : la pause est en cours. */
+  readonly fin: Date | null;
+  readonly motif: string;
+  readonly pieceAttendueRef: string | null;
+  readonly dateDispoPrevue: Date | null;
+  /** `null` : née avant ce lot, l'auteur n'est pas connu (voir le modèle). */
+  readonly ouvertPar: string | null;
+  readonly fermeePar: string | null;
+};
+
+/**
+ * L'HISTORIQUE DES PAUSES D'UNE INTERVENTION (50-INTERVENTIONS-2), la plus
+ * récente en tête. `null` si l'intervention n'est pas visible.
+ */
+export async function pausesDeLIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<readonly PauseAffichee[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      const pauses = await tx.interventionPause.findMany({
+        where: { intervention_id: interventionId },
+        select: {
+          id: true,
+          debut: true,
+          fin: true,
+          motif: true,
+          piece_attendue_ref: true,
+          date_dispo_prevue: true,
+          ouvert_par: true,
+          fermee_par: true,
+        },
+        orderBy: [{ debut: "desc" }, { id: "desc" }],
+      });
+      const identites = [
+        ...new Set(
+          pauses.flatMap((p) =>
+            [p.ouvert_par, p.fermee_par].filter(
+              (v): v is string => v !== null,
+            ),
+          ),
+        ),
+      ];
+      const annuaire = await annuaireDesPersonnes(tx, identites);
+      return pauses.map((p) => ({
+        id: p.id,
+        debut: p.debut,
+        fin: p.fin,
+        motif: p.motif,
+        pieceAttendueRef: p.piece_attendue_ref,
+        dateDispoPrevue: p.date_dispo_prevue,
+        ouvertPar: nomDeLaPersonne(p.ouvert_par, annuaire),
+        fermeePar: nomDeLaPersonne(p.fermee_par, annuaire),
+      }));
+    },
+    client,
+  );
+}
+
+/**
+ * ENREGISTRE LA NOTE INTERNE (50-INTERVENTIONS-2) — visible et modifiable par
+ * les rôles back-office seulement : cette fonction vit dans le dépôt
+ * BACK-OFFICE, jamais dans `depot-rapport-terrain.ts`. `null` si
+ * l'intervention n'est pas visible (D35, D50).
+ *
+ * Aucun statut ne se vérifie ici au-delà de ce que le déclencheur
+ * `intervention_cycle_de_vie` refuse déjà : une intervention clôturée ou
+ * annulée ne se modifie plus, note interne comprise — même régime que le
+ * reste de la fiche.
+ */
+export async function enregistrerNoteInterne(
+  contexte: ContexteSession,
+  saisie: NoteInterne,
+  client?: PrismaClient,
+): Promise<{ readonly id: string } | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: saisie.intervention_id },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      const ecrite = await tx.intervention.update({
+        where: { id: saisie.intervention_id },
+        data: { note_interne: saisie.note_interne },
+        select: { id: true },
+      });
+      return ecrite;
+    },
+    client,
+  );
+}
+
 /**
  * Une intervention, par son identifiant, AVEC SA DEVISE. `null` si hors
  * périmètre.
@@ -1940,6 +2159,13 @@ export async function lireIntervention(
  * L'instant est daté dans le fuseau de l'agence (L0-08) : *le laisser saisir
  * permettrait de rajeunir une attente, et l'ancienneté est précisément ce que
  * la file mesure.*
+ *
+ * **OUVRE AUSSI UNE LIGNE `intervention_pause`** (50-INTERVENTIONS-2), dans
+ * la MÊME transaction que le changement de statut : les deux couples décrivent
+ * le même événement, jamais l'un sans l'autre. Les quatre colonnes de
+ * `intervention` restent écrites — d'autres écrans les lisent —, la table
+ * neuve porte l'HISTORIQUE que ces colonnes, réécrites à chaque suspension, ne
+ * peuvent pas garder.
  */
 export async function suspendreIntervention(
   contexte: ContexteSession,
@@ -1978,6 +2204,7 @@ export async function suspendreIntervention(
         return barriere;
       }
 
+      const instant = await instantDeLAgence(tx, ligne.agence_id);
       const misAJour = await tx.intervention.update({
         where: { id: saisie.intervention_id },
         data: {
@@ -1985,9 +2212,21 @@ export async function suspendreIntervention(
           motif_suspension: saisie.motif,
           piece_attendue_ref: saisie.piece_attendue_ref,
           date_dispo_prevue: saisie.date_dispo_prevue,
-          suspendue_le: await instantDeLAgence(tx, ligne.agence_id),
+          suspendue_le: instant,
         },
         select: CHAMPS_LIGNE,
+      });
+      await tx.interventionPause.create({
+        data: {
+          id: uuidv7(),
+          societe_id: exigerSocieteActive(contexte),
+          intervention_id: saisie.intervention_id,
+          debut: instant,
+          motif: saisie.motif,
+          piece_attendue_ref: saisie.piece_attendue_ref,
+          date_dispo_prevue: saisie.date_dispo_prevue,
+          ouvert_par: contexte.utilisateurId,
+        },
       });
       return { accepte: true, fiche: misAJour };
     },
@@ -2007,6 +2246,11 @@ export async function suspendreIntervention(
  * `intervention_sortie_de_suspension` s'en charge, parce que les contraintes de
  * la base l'exigent et que les remettre à `null` ici serait une seconde lecture
  * du même critère.
+ *
+ * **FERME LA PAUSE OUVERTE** (50-INTERVENTIONS-2), dans la même transaction —
+ * voir `suspendreIntervention`. Il ne peut en exister qu'une (l'index partiel
+ * de la migration le garantit) ; sa présence est un invariant de ce module,
+ * pas un cas à traiter en silence.
  */
 export async function reprendreIntervention(
   contexte: ContexteSession,
@@ -2024,6 +2268,7 @@ export async function reprendreIntervention(
           date_planifiee: true,
           creneau_debut: true,
           technicien_id: true,
+          agence_id: true,
         },
       });
       if (ligne === null) {
@@ -2052,6 +2297,27 @@ export async function reprendreIntervention(
           statut: statutALaCreation(ligne.date_planifiee, ligne.creneau_debut),
         },
         select: CHAMPS_LIGNE,
+      });
+      const ouverte = await tx.interventionPause.findFirst({
+        where: { intervention_id: saisie.intervention_id, fin: null },
+        select: { id: true },
+      });
+      if (ouverte === null) {
+        // Impossible en pratique : `peutReprendre` n'accepte que depuis
+        // `suspendue`, et toute entrée dans cet état — la reprise de données
+        // de la migration l'a garanti pour les lignes anciennes — ouvre une
+        // pause. Une absence ici dirait que l'invariant a déjà été rompu.
+        throw new Error(
+          `Intervention ${saisie.intervention_id} suspendue sans pause ` +
+            "ouverte : l'invariant « une suspension ouvre une pause » est rompu.",
+        );
+      }
+      await tx.interventionPause.update({
+        where: { id: ouverte.id },
+        data: {
+          fin: await instantDeLAgence(tx, ligne.agence_id),
+          fermee_par: contexte.utilisateurId,
+        },
       });
       return { accepte: true, fiche: misAJour };
     },

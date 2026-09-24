@@ -314,6 +314,28 @@ export const schemaReprise = z.object({ intervention_id: uuid }).strict();
 export type Reprise = z.infer<typeof schemaReprise>;
 
 /**
+ * LA NOTE INTERNE (50-INTERVENTIONS-2) — texte libre, jamais obligatoire.
+ *
+ * Une case vide REMET À `null`, jamais à une chaîne vide (§9, même régime que
+ * `commentaire_technicien`) : un champ vidé par le rôle back-office EFFACE la
+ * note, il ne laisse pas une chaîne vide indiscernable d'une note « vide ».
+ */
+export const schemaNoteInterne = z
+  .object({
+    intervention_id: uuid,
+    note_interne: z
+      .string()
+      .trim()
+      .max(4000)
+      .transform((valeur) => (valeur.length === 0 ? null : valeur))
+      .nullable()
+      .default(null),
+  })
+  .strict();
+
+export type NoteInterne = z.infer<typeof schemaNoteInterne>;
+
+/**
  * LA RECHERCHE DU REGISTRE (AT-07 ; étendue AT-07 bis, 18/09/2026) — les
  * quatre filtres que la maquette annonce pour cet écran (« Filtres : agence
  * · type · statut · période », `docs/maquette/CODIPLAN_Maquette.html`,

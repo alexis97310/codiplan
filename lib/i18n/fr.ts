@@ -1343,6 +1343,58 @@ export const fr = {
   "intervention.refus.taux_absent":
     "Aucun taux horaire n'est en vigueur à cette date. Renseignez le tarif avant de clôturer : facturer à zéro serait pire que refuser.",
 
+  // ── LA RÉALISATION — DONNÉES RÉELLES DE LA FICHE (50-INTERVENTIONS-2) ────
+  "intervention.realisation.titre": "Réalisation",
+  "intervention.realisation.segments_titre": "Segments de travail",
+  "intervention.realisation.aucun_segment":
+    "Aucun segment de travail enregistré : le compteur n'a pas encore tourné.",
+  "intervention.realisation.en_cours": "En cours",
+  "intervention.realisation.temps_mesure": "Temps mesuré par le compteur",
+  "intervention.realisation.temps_valide": "Temps validé",
+  "intervention.realisation.valide_par": "Validé par",
+  "intervention.realisation.valide_le": "Validé le",
+  "intervention.realisation.prestations_titre": "Prestations réalisées",
+  "intervention.realisation.aucune_prestation":
+    "Aucune prestation déclarée réalisée.",
+  "intervention.realisation.commentaire_technicien":
+    "Commentaire du technicien",
+  "intervention.realisation.suite_a_donner": "Suite à donner",
+  "intervention.realisation.signature": "Signature du client",
+  "intervention.realisation.signee_le": "Signée le",
+  "intervention.realisation.aucune_signature": "Aucune signature",
+  "intervention.realisation.cloturee_le": "Clôturée le",
+
+  // ── LES PAUSES — L'HISTORIQUE, LA PLUS RÉCENTE EN TÊTE (50-INTERVENTIONS-2) ──
+  "intervention.pauses.titre": "Pauses",
+  "intervention.pauses.aucune": "Aucune pause enregistrée.",
+  "intervention.pauses.en_cours": "En cours",
+  "intervention.pauses.duree": "Durée",
+  "intervention.pauses.motif": "Motif",
+  "intervention.pauses.ouverte_par": "Ouverte par",
+  "intervention.pauses.fermee_par": "Fermée par",
+  "intervention.pauses.piece": "Pièce attendue",
+  "intervention.pauses.dispo_prevue": "Disponibilité prévue",
+
+  // ── LA CHRONOLOGIE — depuis les faits datés, jamais le journal d'audit
+  // (50-INTERVENTIONS-2 : voir `chronologieDeLaFiche`, la lecture n'est pas
+  // ouverte à tous les rôles qui consultent cette fiche) ────────────────────
+  "intervention.chronologie.titre": "Chronologie",
+  "intervention.chronologie.creation": "Créée",
+  "intervention.chronologie.suspension": "Suspendue",
+  "intervention.chronologie.reprise": "Reprise",
+  "intervention.chronologie.cloture": "Clôturée",
+  "intervention.chronologie.annulation": "Annulée",
+
+  // ── LA NOTE INTERNE — BACK-OFFICE SEULEMENT (50-INTERVENTIONS-2) ─────────
+  //
+  // Régime INVERSE de `commentaire_technicien`/`suite_a_donner` : jamais sur
+  // le terrain, le bon, le portail ou un courriel.
+  "intervention.note_interne.titre": "Note interne",
+  "intervention.note_interne.aide":
+    "Visible et modifiable en interne seulement — jamais sur le terrain, le bon, le portail ou un courriel.",
+  "intervention.note_interne.aucune": "Aucune note interne.",
+  "intervention.note_interne.enregistrer": "Enregistrer la note",
+
   // ── LE BON D'INTERVENTION IMPRIMABLE (lot 16 BON-1, complété par BON-2) ──
   //
   // BON-1 rendait l'en-tête société, la machine, les segments de travail, le
