@@ -1,5 +1,8 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -227,4 +230,30 @@ test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
   await expect(
     synthese.locator('[data-compteur="vgp-prochaine"] b'),
   ).toHaveText("—");
+});
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/48-FICHE-360-1/captures",
+);
+
+/** Les deux largeurs demandées par le ticket, mobile puis bureau. */
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+      fullPage: true,
+    });
+  }
+}
+
+test("captures — la fiche site et la fiche client, 375 et 1280 px", async ({
+  page,
+}) => {
+  await page.goto(`/sites/${SITE_UN}`);
+  await capturer(page, "fiche-site");
+  await page.goto(`/clients/${CLIENT_F360}`);
+  await capturer(page, "fiche-client");
 });
