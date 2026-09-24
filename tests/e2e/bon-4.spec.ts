@@ -9,10 +9,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  COMPTE_TECHNICIEN_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
-} from "./setup/scene";
+import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 
 /**
  * 76-BON-4 — LA SIGNATURE DU CLIENT PORTE LE NOM ET LA QUALITÉ DU SIGNATAIRE
@@ -199,11 +196,17 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
 
   await page.goto(`/interventions/${INTERVENTION_BON4}/bon`);
   await expect(
-    page.getByText(
-      `${fr["intervention.bon.signe_par"]} ${fr["bon4.e2e.signataire_nom"]} (${fr["bon4.e2e.signataire_qualite"]}) ${fr["intervention.bon.le"]}`,
-      { exact: false },
-    ),
+    page.getByText(texteSigneParAttendu(), { exact: false }),
   ).toBeVisible();
 
   await capturer(page, "bon-signature", 1280);
 });
+
+/**
+ * « Signé par NOM (QUALITÉ) le » — la MÊME composition que `ligneSignature`
+ * de `bon/page.tsx` (76-BON-4), reconstruite ici depuis le dictionnaire pour
+ * ne dépendre d'aucun export de la page.
+ */
+function texteSigneParAttendu(): string {
+  return `${fr["intervention.bon.signe_par"]} ${fr["bon4.e2e.signataire_nom"]} (${fr["bon4.e2e.signataire_qualite"]}) ${fr["intervention.bon.le"]}`;
+}
