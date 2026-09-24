@@ -44,7 +44,17 @@ import { ouvrirUneSession } from "./setup/session";
  * pas porter l'un de ces deux statuts. `en_cours` en est libre — c'est aussi
  * le cas réel visé par SAV-05, un technicien qui a commencé et dont la durée
  * n'est pas encore saisie.
+ *
+ * ## SÉRIE (STABILITE-2, 25/09/2026)
+ *
+ * `beforeAll` fait un `deleteMany` puis un `create` sur `INTERVENTION_ID`,
+ * un identifiant fixe : sous `fullyParallel` sans
+ * `test.describe.configure({ mode: "serial" })`, deux workers rejoueraient
+ * ce `beforeAll` en même temps et se feraient la course sur la même ligne
+ * (`tests/unit/e2e-mise-en-scene.test.ts`, même défaut que
+ * `porte-capacites.spec.ts`).
  */
+test.describe.configure({ mode: "serial" });
 
 const JOUR_SANS_COLLISION = () =>
   jourSuivant(jourDeLaScene(reperesGlobal, MARDI), 91);
