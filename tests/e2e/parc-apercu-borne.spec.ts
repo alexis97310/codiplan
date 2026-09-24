@@ -33,6 +33,14 @@ import { ouvrirUneSession } from "./setup/session";
  * d'attente, et l'ordre « du plus récent au plus ancien » est sans ambiguïté.
  */
 
+// SÉRIE — `beforeAll` détruit puis recrée sa fixture sur des identifiants
+// fixes (STABILITE-2, 25/09/2026) : sous `fullyParallel` sans
+// `test.describe.configure`, `beforeAll` tourne une fois PAR WORKER, et
+// deux `deleteMany`/`create` concurrents sur la même ligne se font la
+// course (`Unique constraint failed on the fields: (id)` — même défaut que
+// `porte-capacites.spec.ts`, mesuré le même jour).
+test.describe.configure({ mode: "serial" });
+
 const FENETRE = { width: 1280, height: 900 };
 const DOSSIER_CAPTURES = process.env.CAPTURES_PARC_1 ?? "";
 const ANNEES = 15;

@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { jourSuivant, type JourLocal } from "@/lib/calendar/fuseau";
+import {
+  instantDuJour,
+  jourDe,
+  jourSuivant,
+  maintenant,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -134,18 +140,23 @@ test.beforeAll(async () => {
       },
     });
 
-    // LE BADGE SE MESURE SUR LA JOURNÉE DU TECHNICIEN, DONC AUJOURD'HUI —
-    // posée directement, sans passer par l'écran : ce que ce scénario éprouve
-    // est l'effacement du badge, pas la planification elle-même (déjà jouée
-    // par les scénarios 1 à 3). Une heure inhabituelle (05:00) pour ne
-    // percuter aucune autre épreuve du même technicien.
+    // LE BADGE SE MESURE SUR LA JOURNÉE DU TECHNICIEN, DONC AUJOURD'HUI DANS
+    // LE FUSEAU DE LA SOCIÉTÉ (STABILITE-2, 25/09/2026) — posée directement,
+    // sans passer par l'écran : ce que ce scénario éprouve est l'effacement
+    // du badge, pas la planification elle-même (déjà jouée par les
+    // scénarios 1 à 3). `CURRENT_DATE` est le jour civil UTC de PostgreSQL,
+    // pas celui de Nouméa (UTC+11) : entre 00h00 et 11h00 heure locale,
+    // `/terrain` (qui lit `instantDuJour(jourDe(maintenant(fuseau).local))`)
+    // montre la journée de la VEILLE au sens UTC, et la carte du badge
+    // n'apparaissait plus. Même règle ici que sur l'écran.
+    const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "statut", "technicien_id", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'planifiee', $6::uuid, CURRENT_DATE, now(), now() + interval '1 hour',
+               'planifiee', $6::uuid, $7::date, now(), now() + interval '1 hour',
                60, now())`,
       INTERVENTION_BADGE,
       societeId,
@@ -153,6 +164,7 @@ test.beforeAll(async () => {
       SITE_AVEC,
       agenceDucosId,
       technicienId,
+      instantDuJour(aujourdHui),
     );
 
     if (existsSync(FICHIER_COURRIELS_CAPTURES)) {

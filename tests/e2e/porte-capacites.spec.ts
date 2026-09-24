@@ -21,7 +21,22 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * Chacun des deux scénarios pose donc SA PROPRE ligne, à un identifiant
  * fixe, que rien d'autre ne lit ni ne modifie.
+ *
+ * ## SÉRIE, ET IDEMPOTENT (STABILITE-2, 25/09/2026)
+ *
+ * Mesuré le 25/09/2026, deux nuits de suite : sous `fullyParallel` sans
+ * `test.describe.configure`, `beforeAll` tourne une fois PAR WORKER qui
+ * reçoit un test de ce fichier — deux workers exécutaient concurremment
+ * `deleteMany` puis `create` sur le MÊME identifiant fixe, et le second
+ * `create` heurtait la ligne que l'autre venait de poser
+ * (`Unique constraint failed on the fields: (id)`). La série (le même
+ * modèle qu'`avertissements-1.spec.ts`, `contacts.spec.ts`,
+ * `fiche-360-1.spec.ts`…) ramène ce fichier à un seul worker ; l'écriture
+ * elle-même devient un `INSERT … ON CONFLICT ("id") DO UPDATE`, pour
+ * qu'un rejeu du même identifiant ne casse jamais rien, série ou pas.
  */
+test.describe.configure({ mode: "serial" });
+
 const INTERVENTION_A_ANNULER = "01a0f400-0000-7000-8000-000000000001";
 const INTERVENTION_DU_COLLEGUE = "01a0f400-0000-7000-8000-000000000002";
 
@@ -50,26 +65,37 @@ test.beforeAll(async () => {
         `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
         id,
       );
-      await client.intervention.deleteMany({ where: { id } });
-      await client.intervention.create({
-        data: {
-          id,
-          societe_id: reperes.societeId,
-          agence_id: ducos.id,
-          client_id: site.client_id,
-          site_id: site.id,
-          technicien_id: technicienId,
-          type: "curatif",
-          priorite: "p3",
-          statut: "planifiee",
-          date_planifiee: new Date(),
-          // `intervention_planifiee_a_sa_duree` (PARCOURS-1, 23/09/2026) :
-          // `planifiee` exige une durée prévue.
-          duree_estimee_min: 60,
-          mode_valorisation: "temps_passe",
-          devise_code: "XPF",
-        },
-      });
+      // `intervention_planifiee_a_sa_duree` (PARCOURS-1, 23/09/2026) :
+      // `planifiee` exige une durée prévue.
+      await client.$executeRawUnsafe(
+        `INSERT INTO "intervention"
+           ("id", "societe_id", "agence_id", "client_id", "site_id",
+            "technicien_id", "type", "priorite", "statut", "date_planifiee",
+            "duree_estimee_min", "mode_valorisation", "devise_code", "modifie_le")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
+                 'curatif', 'p3', 'planifiee'::"StatutIntervention", now()::date,
+                 60, 'temps_passe', 'XPF', now())
+         ON CONFLICT ("id") DO UPDATE SET
+           "societe_id" = EXCLUDED."societe_id",
+           "agence_id" = EXCLUDED."agence_id",
+           "client_id" = EXCLUDED."client_id",
+           "site_id" = EXCLUDED."site_id",
+           "technicien_id" = EXCLUDED."technicien_id",
+           "type" = EXCLUDED."type",
+           "priorite" = EXCLUDED."priorite",
+           "statut" = EXCLUDED."statut",
+           "date_planifiee" = EXCLUDED."date_planifiee",
+           "duree_estimee_min" = EXCLUDED."duree_estimee_min",
+           "mode_valorisation" = EXCLUDED."mode_valorisation",
+           "devise_code" = EXCLUDED."devise_code",
+           "modifie_le" = now()`,
+        id,
+        reperes.societeId,
+        ducos.id,
+        site.client_id,
+        site.id,
+        technicienId,
+      );
     }
   } finally {
     await client.$disconnect();

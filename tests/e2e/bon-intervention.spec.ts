@@ -35,7 +35,17 @@ import { ouvrirUneSession } from "./setup/session";
  * `tests/e2e/setup/scene.ts` existe pour éviter. Ce fichier pose donc SA
  * PROPRE ligne, à un identifiant fixe, avec le même compteur fermé de 120
  * minutes et le même taux en vigueur que `scene.ts` donne à `obstacle`.
+ *
+ * ## SÉRIE — `beforeAll` détruit puis recrée sa fixture (STABILITE-2, 25/09/2026)
+ *
+ * Le même geste que `scene.ts` sur un identifiant fixe : sous
+ * `fullyParallel` sans `test.describe.configure`, `beforeAll` tourne une
+ * fois PAR WORKER, et deux `deleteMany`/insertions concurrentes sur la même
+ * ligne se font la course (`Unique constraint failed on the fields: (id)`
+ * — même défaut que `porte-capacites.spec.ts`, mesuré le même jour).
  */
+test.describe.configure({ mode: "serial" });
+
 const FICHE_BON_TERMINEE = "01a0f200-0000-7000-8000-000000000001";
 
 test.beforeAll(async () => {
