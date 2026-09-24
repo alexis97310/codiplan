@@ -260,6 +260,10 @@ test("« Planifier » dit l'agenda bloqué du technicien avant l'envoi", async (
     page.getByText(fr["intervention.disponibilite_technicien.fenetre"]),
   ).toBeVisible();
 
+  // LA CAPTURE MONTRE LA MENTION, PAS SEULEMENT SA PRÉSENCE DANS LE DOM —
+  // le sélecteur choisit ce technicien pour que son libellé, suffixé, soit
+  // ce qu'un œil lit sur le champ fermé.
+  await selectTechnicien.selectOption(utilisateurPl4);
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({
