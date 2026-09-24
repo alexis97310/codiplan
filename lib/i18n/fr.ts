@@ -982,6 +982,19 @@ export const fr = {
   "interventions.filtre_inclure_clients_inactifs":
     "Inclure les clients inactifs",
 
+  // ── LES ONGLETS DU REGISTRE (52-REGISTRE-1, SAV-07) ──────────────────────
+  // « Toutes » rend le comportement d'avant ce ticket ; les six autres
+  // portent chacun un critère écrit dans `criteresVue`
+  // (`lib/interventions/depot.ts`), jamais une seconde lecture divergente.
+  "interventions.vue.toutes": "Toutes",
+  "interventions.vue.a_planifier": "À planifier",
+  "interventions.vue.aujourdhui": "Aujourd'hui",
+  "interventions.vue.en_cours": "En cours",
+  "interventions.vue.bloquees": "Bloquées",
+  "interventions.vue.a_controler": "À contrôler",
+  "interventions.vue.historique": "Historique",
+  "interventions.vue.aria": "Vues du registre",
+
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
   // **JAMAIS LE POURCENTAGE SEUL**, et c'est une demande d'exploitation avant
