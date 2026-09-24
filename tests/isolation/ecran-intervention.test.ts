@@ -476,7 +476,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'a_planifier',NULL,NULL,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'a_planifier',NULL,NULL,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_A_PLANIFIER,
       SOCIETE_A,
@@ -490,7 +490,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       // sa durée prévue.
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","duree_estimee_min","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'planifiee',NULL,$7::date,60,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'planifiee',NULL,$7::date,60,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_AUJOURDHUI,
       SOCIETE_A,
@@ -503,7 +503,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'en_cours',NULL,$7::date,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'en_cours',NULL,$7::date,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_EN_COURS,
       SOCIETE_A,
@@ -518,7 +518,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       // (RG-INT-06, L2-10) : une suspension exige les deux.
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","motif_suspension","suspendue_le","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'suspendue',NULL,$7::date,'Attente de pièce (épreuve REGISTRE-1)',now(),now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'suspendue',NULL,$7::date,'Attente de pièce (épreuve REGISTRE-1)',now(),now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_BLOQUEE,
       SOCIETE_A,
@@ -531,7 +531,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'terminee',NULL,$7::date,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'terminee',NULL,$7::date,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_A_CONTROLER,
       SOCIETE_A,
@@ -544,7 +544,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'cloturee',NULL,$7::date,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'cloturee',NULL,$7::date,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_HISTORIQUE_CLOTUREE,
       SOCIETE_A,
@@ -557,7 +557,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'annulee',NULL,$7::date,now())
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'annulee',NULL,$7::date,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_HISTORIQUE_ANNULEE,
       SOCIETE_A,
