@@ -2757,12 +2757,17 @@ function numeroDeReference(texte: string): number | null {
  * fournie : `listerInterventions`/`compterInterventions` ne la calculent que
  * lorsque cette vue est active — même économie que `sans_duree_a_venir`.
  *
- * **EXPORTÉE POUR SA SEULE ÉPREUVE**, `tests/unit/interventions/registre-vues.test.ts` :
- * `filtreDesInterventions` reste privée, éprouvée par la recherche entière
- * sous la vraie table (`tests/isolation/ecran-intervention.test.ts`) — le
- * critère de l'onglet, lui, est pur et se vérifie sans base.
+ * **PRIVÉE, comme `filtreDesInterventions` qui la compose** : ni l'une ni
+ * l'autre n'a d'appelant hors de ce fichier, et R3-12
+ * (`tests/unit/gardiens/chemins-de-depot.test.ts`) refuse qu'une fonction de
+ * dépôt EXPORTÉE reste sans chemin depuis `app/` — l'exporter pour sa seule
+ * épreuve serait exactement l'exception que ce gardien existe pour refuser.
+ * Son critère est donc éprouvé là où il est ATTEINT : sous la vraie table,
+ * par `tests/isolation/ecran-intervention.test.ts`, à travers
+ * `listerInterventions`/`compterInterventions`/`compterParVue` — les trois
+ * réellement exportées et réellement appelées depuis `/interventions`.
  */
-export function criteresVue(
+function criteresVue(
   vue: VueRegistre | null,
   aujourdhui: { readonly debut: Date; readonly fin: Date } | null,
 ): Prisma.InterventionWhereInput {

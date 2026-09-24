@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
+import { instantDuJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
 import {
   compterInterventions,
   compterInterventionsSansDuree,
+  compterParVue,
   listerInterventions,
 } from "@/lib/interventions/depot";
 import {
@@ -17,6 +19,7 @@ import {
   AGENCE_A,
   AGENCE_B,
   CLIENT_A1,
+  FUSEAU_SOCIETE_A,
   INTERVENTION_A1,
   INTERVENTION_A2,
   INTERVENTION_B1,
@@ -410,5 +413,232 @@ describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFI
     );
     expect(ids).toContain(PASSEE_CLOTUREE_SANS_DUREE);
     expect(ids).toContain(A_VENIR_AVEC_DUREE);
+  });
+});
+
+/**
+ * LES ONGLETS DU REGISTRE, SUR LA VRAIE TABLE (52-REGISTRE-1).
+ *
+ * `criteresVue` (`lib/interventions/depot.ts`) n'est pas exportée — voir la
+ * note de tête de `tests/unit/interventions/registre-vues.test.ts`, qui
+ * éprouve la seule part pure (`schemaRechercheInterventions`). Son critère
+ * est donc éprouvé ICI, à travers les trois fonctions RÉELLEMENT exportées et
+ * appelées depuis `/interventions` : `listerInterventions`,
+ * `compterInterventions`, `compterParVue`.
+ *
+ * **SEPT FICHES, D'UN TYPE ABSENT DE LA SOCIÉTÉ A** — même témoin que « un
+ * type qu'AUCUNE fiche de la société ne porte » ci-dessus : un type que rien
+ * d'autre ne produit sur `SOCIETE_A` rend `compterParVue`, filtré sur ce type
+ * exact, indépendant de ce que d'autres scénarios du même run écrivent en
+ * parallèle sur la même société. Une par onglet, sauf « historique », qui en
+ * porte DEUX — `cloturee` ET `annulee` — pour éprouver le `OR`.
+ */
+describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", () => {
+  const REG_A_PLANIFIER = "aaaaaaaa-0000-7000-8000-00000000af20";
+  const REG_AUJOURDHUI = "aaaaaaaa-0000-7000-8000-00000000af21";
+  const REG_EN_COURS = "aaaaaaaa-0000-7000-8000-00000000af22";
+  const REG_BLOQUEE = "aaaaaaaa-0000-7000-8000-00000000af23";
+  const REG_A_CONTROLER = "aaaaaaaa-0000-7000-8000-00000000af24";
+  const REG_HISTORIQUE_CLOTUREE = "aaaaaaaa-0000-7000-8000-00000000af25";
+  const REG_HISTORIQUE_ANNULEE = "aaaaaaaa-0000-7000-8000-00000000af26";
+  const TOUTES_LES_FICHES_REG = [
+    REG_A_PLANIFIER,
+    REG_AUJOURDHUI,
+    REG_EN_COURS,
+    REG_BLOQUEE,
+    REG_A_CONTROLER,
+    REG_HISTORIQUE_CLOTUREE,
+    REG_HISTORIQUE_ANNULEE,
+  ];
+  // Loin dans le passé — hors du jour civil courant, quel que soit le fuseau.
+  const DATE_HORS_AUJOURDHUI = "2000-01-01";
+  const AUJOURD_HUI = instantDuJour(jourDe(maintenant(FUSEAU_SOCIETE_A).local))
+    .toISOString()
+    .slice(0, 10);
+
+  let typeAbsent: (typeof TYPES_INTERVENTION)[number];
+
+  beforeAll(async () => {
+    const presents = await clientOwner().$queryRawUnsafe<{ type: string }[]>(
+      `SELECT DISTINCT type FROM "intervention" WHERE societe_id = $1::uuid`,
+      SOCIETE_A,
+    );
+    const typesPresents = new Set(presents.map((p) => p.type));
+    const trouve = TYPES_INTERVENTION.find(
+      (type) => !typesPresents.has(type),
+    );
+    expect(
+      trouve,
+      "tous les types sont présents sur la société A : aucun témoin d'absence n'est possible",
+    ).toBeDefined();
+    typeAbsent = trouve as (typeof TYPES_INTERVENTION)[number];
+
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'a_planifier',NULL,NULL,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_A_PLANIFIER,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+    );
+    await clientOwner().$executeRawUnsafe(
+      // `intervention_planifiee_a_sa_duree` (PARCOURS-1) : `planifiee` exige
+      // sa durée prévue.
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","duree_estimee_min","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'planifiee',NULL,$7::date,60,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_AUJOURDHUI,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      AUJOURD_HUI,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'en_cours',NULL,$7::date,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_EN_COURS,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DATE_HORS_AUJOURDHUI,
+    );
+    await clientOwner().$executeRawUnsafe(
+      // `intervention_suspension_a_son_motif` et `intervention_suspension_a_sa_date`
+      // (RG-INT-06, L2-10) : une suspension exige les deux.
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","motif_suspension","suspendue_le","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'suspendue',NULL,$7::date,'Attente de pièce (épreuve REGISTRE-1)',now(),now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_BLOQUEE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DATE_HORS_AUJOURDHUI,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'terminee',NULL,$7::date,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_A_CONTROLER,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DATE_HORS_AUJOURDHUI,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'cloturee',NULL,$7::date,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_HISTORIQUE_CLOTUREE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DATE_HORS_AUJOURDHUI,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6,'annulee',NULL,$7::date,now())
+       ON CONFLICT ("id") DO NOTHING`,
+      REG_HISTORIQUE_ANNULEE,
+      SOCIETE_A,
+      CLIENT_A1,
+      SITE_A1_S1,
+      AGENCE_A,
+      typeAbsent,
+      DATE_HORS_AUJOURDHUI,
+    );
+  });
+
+  afterAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "id" = ANY($1::uuid[])`,
+      TOUTES_LES_FICHES_REG,
+    );
+  });
+
+  it("chaque onglet à statut retrouve SA fiche, et elle seule", async () => {
+    for (const [vue, attendu] of [
+      ["a_planifier", REG_A_PLANIFIER],
+      ["aujourdhui", REG_AUJOURDHUI],
+      ["en_cours", REG_EN_COURS],
+      ["bloquees", REG_BLOQUEE],
+      ["a_controler", REG_A_CONTROLER],
+    ] as const) {
+      const criteres = schemaRechercheInterventions.parse({
+        type: typeAbsent,
+        vue,
+      });
+      const ids = (
+        await listerInterventions(INTERNE_A, criteres, clientApp())
+      ).map((l) => l.id);
+      expect(ids).toEqual([attendu]);
+      expect(
+        await compterInterventions(INTERNE_A, criteres, clientApp()),
+      ).toBe(1);
+    }
+  });
+
+  it("« historique » regroupe LES DEUX fins de cycle — `cloturee` ET `annulee`", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      type: typeAbsent,
+      vue: "historique",
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((l) => l.id);
+    expect(new Set(ids)).toEqual(
+      new Set([REG_HISTORIQUE_CLOTUREE, REG_HISTORIQUE_ANNULEE]),
+    );
+    expect(await compterInterventions(INTERNE_A, criteres, clientApp())).toBe(
+      2,
+    );
+  });
+
+  it("compterParVue — un compte EXACT par onglet, « Toutes » en somme des sept", async () => {
+    const comptes = await compterParVue(
+      INTERNE_A,
+      schemaRechercheInterventions.parse({ type: typeAbsent }),
+      clientApp(),
+    );
+    expect(comptes).toEqual({
+      toutes: 7,
+      a_planifier: 1,
+      aujourdhui: 1,
+      en_cours: 1,
+      bloquees: 1,
+      a_controler: 1,
+      historique: 2,
+    });
+  });
+
+  it("une vue INCONNUE — déjà ramenée à `null` par le schéma — ne filtre rien, le comportement d'avant ce ticket", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      type: typeAbsent,
+      vue: "n-importe-quoi",
+    });
+    const ids = (
+      await listerInterventions(INTERNE_A, criteres, clientApp())
+    ).map((l) => l.id);
+    expect(new Set(ids)).toEqual(new Set(TOUTES_LES_FICHES_REG));
   });
 });
