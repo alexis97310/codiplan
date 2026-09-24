@@ -2863,6 +2863,18 @@ function filtreDesInterventions(
           const numero = numeroDeReference(criteres.texte);
           return numero === null ? [] : [{ numero }];
         })(),
+        {
+          machines: {
+            some: {
+              machine: {
+                numero_serie: {
+                  contains: criteres.texte,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          },
+        },
       ],
     });
   }

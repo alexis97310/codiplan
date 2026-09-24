@@ -950,14 +950,16 @@ export const fr = {
   "interventions.vide": "Aucune intervention enregistrée.",
   // ── LA RECHERCHE, LES FILTRES ET LA PAGINATION (AT-07, 17/09/2026) ───────
   // Les quatre filtres que la maquette annonce pour cet écran : agence, type,
-  // statut, période. Le texte cherche sur le client et le lieu — les
-  // colonnes VISIBLES qui identifient une ligne. Le LIBELLÉ n'annonce pas la
-  // référence (AT-07 bis, 18/09/2026) : seule sa moitié « `numero` » se
-  // cherche (voir `numeroDeReference`, `lib/interventions/depot.ts`), et
-  // `numero` vaut `null` pour toute intervention avant la synchronisation
-  // (lot 3) — l'annoncer promettrait, pour la référence RÉELLEMENT affichée
-  // aujourd'hui (`Local-XXXXXX`), une recherche qui ne trouve rien.
-  "interventions.recherche": "Client ou lieu",
+  // statut, période. Le texte cherche sur le client, le lieu et le numéro de
+  // série de la machine (67-REGISTRE-3, SAV-07) — les colonnes VISIBLES qui
+  // identifient une ligne, plus le repère par lequel le SAV raisonne. Le
+  // LIBELLÉ n'annonce pas la référence (AT-07 bis, 18/09/2026) : seule sa
+  // moitié « `numero` » se cherche (voir `numeroDeReference`,
+  // `lib/interventions/depot.ts`), et `numero` vaut `null` pour toute
+  // intervention avant la synchronisation (lot 3) — l'annoncer promettrait,
+  // pour la référence RÉELLEMENT affichée aujourd'hui (`Local-XXXXXX`), une
+  // recherche qui ne trouve rien.
+  "interventions.recherche": "Client, lieu ou numéro de série",
   "interventions.rechercher": "Rechercher",
   "interventions.filtre_toutes_prefixe": "Toutes les",
   "interventions.filtre_type_tous": "Tous les types",
@@ -3316,6 +3318,16 @@ export const fr = {
   "formulaires2.e2e.numero_serie": "FRM2-SN-1",
   "formulaires2.e2e.panne": "FRM2 — Panne signalée pour l'épreuve.",
   "formulaires2.e2e.reference_client": "FRM2-ref",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-3.spec.ts)
+  //
+  // Même discipline que `registre2.e2e.*` : sa PROPRE scène, créée et
+  // supprimée par l'épreuve, préfixée `REG3-` pour se distinguer du semis et
+  // de toute autre scène du même run (`docs/propositions/67-REGISTRE-3`).
+  "registre3.e2e.client": "REG3 — Client de l'épreuve",
+  "registre3.e2e.site": "REG3 — Lieu de l'épreuve",
+  "registre3.e2e.numero_serie_a": "REG3-SN-A",
+  "registre3.e2e.numero_serie_b": "REG3-SN-B",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
