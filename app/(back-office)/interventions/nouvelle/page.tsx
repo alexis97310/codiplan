@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
-import { Button } from "@/components/ui/button";
 import { ChampSiteEtMachines } from "@/components/interventions/site-et-machines";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -19,6 +18,9 @@ import { lireClient } from "@/lib/clients/depot";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite } from "@/lib/sites/depot";
+import { uuidv7 } from "@/lib/db/uuid";
+
+import { BoutonCreer } from "./bouton-creer";
 
 export const metadata: Metadata = { title: t("planning.creer") };
 
@@ -71,6 +73,16 @@ function valeurAutorisee(
  * RG-PLA-08) et `/api/recherche/site/[id]` UNE FOIS le site choisi. Cette
  * page ne lit plus que ce qu'il faut pour résoudre `?site=`/`?machine=`
  * (LIENS-1) — un site, jamais 200.
+ *
+ * ## L'`id` SE TIRE AU RENDU, PAS À LA RÉCEPTION (55-FORMULAIRES-1, SAV-02)
+ *
+ * Un `<input type="hidden">` porte désormais l'identifiant de l'intervention
+ * à naître, tiré UNE FOIS quand la page se rend. Un double clic sur « Créer »
+ * soumet donc deux fois LE MÊME `id` : la route (`/api/interventions/creer`)
+ * le relit sous le contexte cloisonné avant d'écrire, et la seconde
+ * soumission ne crée rien — elle redirige vers la fiche que la première a
+ * déjà créée. `BoutonCreer` (local à cet écran) ajoute un filet visuel : le
+ * bouton se désactive dès le premier clic.
  */
 export default async function PageNouvelleIntervention({
   searchParams,
@@ -165,6 +177,12 @@ export default async function PageNouvelleIntervention({
       ? params.reference_client
       : undefined;
 
+  // TIRÉ ICI, UNE SEULE FOIS PAR RENDU (55-FORMULAIRES-1) — la route relit cet
+  // `id` sous le contexte cloisonné avant d'écrire : un double clic soumet
+  // deux fois le même formulaire, donc deux fois le même `id`, et la seconde
+  // soumission ne crée rien.
+  const idIntervention = uuidv7();
+
   return (
     <Page
       chemin="/interventions/nouvelle"
@@ -198,6 +216,7 @@ export default async function PageNouvelleIntervention({
         method="post"
         className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
       >
+        <input type="hidden" name="id" value={idIntervention} />
         <ChampSiteEtMachines
           libelleSite={mot("site")}
           libelleMachines={t("intervention.machine")}
@@ -265,7 +284,7 @@ export default async function PageNouvelleIntervention({
           />
         </label>
 
-        <Button type="submit">{t("intervention.action.creer")}</Button>
+        <BoutonCreer>{t("intervention.action.creer")}</BoutonCreer>
       </form>
     </Page>
   );
