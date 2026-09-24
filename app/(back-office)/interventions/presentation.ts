@@ -10,6 +10,9 @@ import {
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
+import { VUES_REGISTRE, type VueRegistre } from "@/lib/interventions/saisie";
+
+import { hrefDeLaPage } from "../presentation";
 
 /**
  * CE QUE LE PLANNING AFFICHE — et qui n'est ni une règle métier, ni une couleur.
@@ -336,6 +339,55 @@ export function libelleFiltreAgence(): string {
 /** L'option par défaut du filtre « agence » — aucune agence choisie. */
 export function optionToutesLesAgences(): string {
   return `${t("interventions.filtre_toutes_prefixe")} ${motDansUnePhrase("agence", true)}`;
+}
+
+/**
+ * ── LES ONGLETS DU REGISTRE (52-REGISTRE-1) ──────────────────────────────
+ *
+ * « Toutes » (`vue === null`) en tête, puis les six vues nommées, dans
+ * l'ordre où le ticket les énumère — celui où un exploitant les cherche :
+ * ce qui reste à planifier, aujourd'hui, ce qui roule, ce qui est bloqué, ce
+ * qui reste à contrôler, l'historique.
+ */
+export const ONGLETS_REGISTRE: readonly (VueRegistre | null)[] = [
+  null,
+  ...VUES_REGISTRE,
+];
+
+/** La clé du dictionnaire pour le libellé d'un onglet. */
+export function libelleCleOnglet(vue: VueRegistre | null): CleTraduction {
+  return vue === null ? "interventions.vue.toutes" : `interventions.vue.${vue}`;
+}
+
+/**
+ * LE LIBELLÉ D'UN ONGLET AVEC SON COMPTE — « À planifier (3) ».
+ *
+ * Composé ICI, jamais dans le JSX de l'écran (AT-07, même raison que
+ * `decompte`/`libellePage` de `../presentation`) : le gardien des chaînes
+ * visibles (L0-11) refuse un littéral — même la seule ponctuation d'un
+ * compte — posé nu dans un conteneur JSX.
+ */
+export function libelleOngletAvecCompte(
+  vue: VueRegistre | null,
+  compte: number,
+): string {
+  return `${t(libelleCleOnglet(vue))} (${compte})`;
+}
+
+/**
+ * L'URL D'UN ONGLET — les AUTRES filtres actifs préservés, `vue` posé (ou
+ * retiré pour « Toutes »), et la page toujours remise à 1 : changer d'onglet
+ * est une nouvelle recherche, pas une page suivante de l'ancienne.
+ */
+export function hrefOnglet(
+  parametresActifs: Readonly<Record<string, string | undefined>>,
+  vue: VueRegistre | null,
+): string {
+  return hrefDeLaPage(
+    "/interventions",
+    { ...parametresActifs, vue: vue ?? undefined },
+    1,
+  );
 }
 
 /**

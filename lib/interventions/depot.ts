@@ -76,6 +76,7 @@ import {
   type Reprise,
   type StatutIntervention,
   type Suspension,
+  type VueRegistre,
 } from "./saisie";
 
 /**
@@ -1670,6 +1671,17 @@ async function debutDuJourSociete(
 }
 
 /**
+ * LA BORNE HAUTE, EXCLUSIVE, DU MÊME JOUR CIVIL — le lendemain à minuit UTC
+ * (52-REGISTRE-1). `debutDuJour` est déjà l'instant UTC d'un jour civil posé
+ * par `instantDuJour` ; lui ajouter exactement 24 h en millisecondes retombe
+ * sur le minuit UTC suivant, sans repasser par un fuseau — cette arithmétique
+ * ne porte que sur une représentation UTC, jamais sur une heure locale.
+ */
+function finDuJour(debutDuJour: Date): Date {
+  return new Date(debutDuJour.getTime() + 24 * 60 * 60 * 1000);
+}
+
+/**
  * LA FICHE COMPLÈTE — libellés lus, et décomposition de D83 sous les yeux.
  *
  * Deux choses que la ligne brute ne porte pas, et que l'écran ne doit pas
@@ -2737,59 +2749,130 @@ function numeroDeReference(texte: string): number | null {
   return valeur <= NUMERO_MAXIMUM ? valeur : null;
 }
 
+/**
+ * L'ONGLET, EN CRITÈRE PRISMA (52-REGISTRE-1) — `null` hors de la liste
+ * fermée signifie « aucun onglet », jamais « aucune ligne ».
+ *
+ * `aujourdhui` rend `{}` quand `aujourdhui` (la borne du jour) n'est pas
+ * fournie : `listerInterventions`/`compterInterventions` ne la calculent que
+ * lorsque cette vue est active — même économie que `sans_duree_a_venir`.
+ *
+ * **PRIVÉE, comme `filtreDesInterventions` qui la compose** : ni l'une ni
+ * l'autre n'a d'appelant hors de ce fichier, et R3-12
+ * (`tests/unit/gardiens/chemins-de-depot.test.ts`) refuse qu'une fonction de
+ * dépôt EXPORTÉE reste sans chemin depuis `app/` — l'exporter pour sa seule
+ * épreuve serait exactement l'exception que ce gardien existe pour refuser.
+ * Son critère est donc éprouvé là où il est ATTEINT : sous la vraie table,
+ * par `tests/isolation/ecran-intervention.test.ts`, à travers
+ * `listerInterventions`/`compterInterventions`/`compterParVue` — les trois
+ * réellement exportées et réellement appelées depuis `/interventions`.
+ */
+function criteresVue(
+  vue: VueRegistre | null,
+  aujourdhui: { readonly debut: Date; readonly fin: Date } | null,
+): Prisma.InterventionWhereInput {
+  switch (vue) {
+    case null:
+      return {};
+    case "a_planifier":
+      return { statut: "a_planifier" };
+    case "aujourdhui":
+      return aujourdhui === null
+        ? {}
+        : { date_planifiee: { gte: aujourdhui.debut, lt: aujourdhui.fin } };
+    case "en_cours":
+      return { statut: "en_cours" };
+    case "bloquees":
+      return { statut: "suspendue" };
+    case "a_controler":
+      return { statut: "terminee" };
+    case "historique":
+      return { statut: { in: ["cloturee", "annulee"] } };
+  }
+}
+
+/**
+ * LE CRITÈRE DU REGISTRE — un `AND` de fragments INDÉPENDANTS, jamais un
+ * objet à plat (52-REGISTRE-1).
+ *
+ * **Pourquoi ce changement de forme** : `vue` et le filtre `statut` du
+ * formulaire portent tous deux, potentiellement, une clé `statut` — et
+ * `vue`/`sans_duree_a_venir` peuvent tous deux porter `date_planifiee`. Un
+ * objet à plat où chaque fragment s'étale par `...` ferait du DERNIER
+ * fragment écrit le seul qui compte : le filtre du formulaire disparaîtrait
+ * SANS AVERTISSEMENT dès qu'un onglet serait actif — exactement le défaut que
+ * le §9 (01/09) nomme, « deux lectures d'un même critère divergent en
+ * silence ». Un `AND` compose les fragments plutôt que de les superposer :
+ * deux conditions contradictoires sur `statut` rendent alors zéro ligne, au
+ * lieu que l'une masque l'autre.
+ */
 function filtreDesInterventions(
   criteres: RechercheInterventions,
   debutDuJour: Date | null = null,
 ): Prisma.InterventionWhereInput {
-  const filtreTexte: Prisma.InterventionWhereInput =
-    criteres.texte === null
-      ? {}
-      : {
-          OR: [
-            {
-              client: {
-                raison_sociale: {
-                  contains: criteres.texte,
-                  mode: Prisma.QueryMode.insensitive,
-                },
-              },
-            },
-            {
-              site: {
-                libelle: {
-                  contains: criteres.texte,
-                  mode: Prisma.QueryMode.insensitive,
-                },
-              },
-            },
-            ...(() => {
-              const numero = numeroDeReference(criteres.texte);
-              return numero === null ? [] : [{ numero }];
-            })(),
-          ],
-        };
+  const fragments: Prisma.InterventionWhereInput[] = [];
 
-  return {
-    ...filtreTexte,
-    ...filtreClientActif(criteres.inclure_clients_inactifs),
-    ...(criteres.agence_id === null ? {} : { agence_id: criteres.agence_id }),
-    ...(criteres.type === null ? {} : { type: criteres.type }),
-    ...(criteres.statut === null ? {} : { statut: criteres.statut }),
-    ...(criteres.du === null && criteres.au === null
-      ? {}
-      : {
-          date_planifiee: {
-            ...(criteres.du === null ? {} : { gte: criteres.du }),
-            ...(criteres.au === null ? {} : { lte: criteres.au }),
+  if (criteres.texte !== null) {
+    fragments.push({
+      OR: [
+        {
+          client: {
+            raison_sociale: {
+              contains: criteres.texte,
+              mode: Prisma.QueryMode.insensitive,
+            },
           },
-        }),
-    // LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » (AFFICHAGE-MATERIEL-1)
-    // — le MÊME critère que `compterInterventionsSansDuree`, jamais une
-    // seconde forme (§9, 01/09).
-    ...(criteres.sans_duree_a_venir && debutDuJour !== null
-      ? criteresSansDureeAVenir(debutDuJour)
-      : {}),
-  };
+        },
+        {
+          site: {
+            libelle: {
+              contains: criteres.texte,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        },
+        ...(() => {
+          const numero = numeroDeReference(criteres.texte);
+          return numero === null ? [] : [{ numero }];
+        })(),
+      ],
+    });
+  }
+  fragments.push(filtreClientActif(criteres.inclure_clients_inactifs));
+  if (criteres.agence_id !== null) {
+    fragments.push({ agence_id: criteres.agence_id });
+  }
+  if (criteres.type !== null) {
+    fragments.push({ type: criteres.type });
+  }
+  if (criteres.statut !== null) {
+    fragments.push({ statut: criteres.statut });
+  }
+  if (criteres.du !== null || criteres.au !== null) {
+    fragments.push({
+      date_planifiee: {
+        ...(criteres.du === null ? {} : { gte: criteres.du }),
+        ...(criteres.au === null ? {} : { lte: criteres.au }),
+      },
+    });
+  }
+  // LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE » (AFFICHAGE-MATERIEL-1)
+  // — le MÊME critère que `compterInterventionsSansDuree`, jamais une
+  // seconde forme (§9, 01/09).
+  if (criteres.sans_duree_a_venir && debutDuJour !== null) {
+    fragments.push(criteresSansDureeAVenir(debutDuJour));
+  }
+  const vueFragment = criteresVue(
+    criteres.vue,
+    debutDuJour === null
+      ? null
+      : { debut: debutDuJour, fin: finDuJour(debutDuJour) },
+  );
+  if (Object.keys(vueFragment).length > 0) {
+    fragments.push(vueFragment);
+  }
+
+  return fragments.length === 0 ? {} : { AND: fragments };
 }
 
 export async function listerInterventions(
@@ -2800,9 +2883,10 @@ export async function listerInterventions(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      const debutDuJour = criteres.sans_duree_a_venir
-        ? await debutDuJourSociete(tx, contexte)
-        : null;
+      const debutDuJour =
+        criteres.sans_duree_a_venir || criteres.vue === "aujourdhui"
+          ? await debutDuJourSociete(tx, contexte)
+          : null;
       return tx.intervention.findMany({
         where: filtreDesInterventions(criteres, debutDuJour),
         select: {
@@ -2834,12 +2918,88 @@ export async function compterInterventions(
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
-      const debutDuJour = criteres.sans_duree_a_venir
-        ? await debutDuJourSociete(tx, contexte)
-        : null;
+      const debutDuJour =
+        criteres.sans_duree_a_venir || criteres.vue === "aujourdhui"
+          ? await debutDuJourSociete(tx, contexte)
+          : null;
       return tx.intervention.count({
         where: filtreDesInterventions(criteres, debutDuJour),
       });
+    },
+    client,
+  );
+}
+
+/**
+ * LE COMPTEUR DE CHAQUE ONGLET — LES MÊMES AUTRES FILTRES QUE LA LISTE,
+ * L'ONGLET LUI-MÊME EXCLU (52-REGISTRE-1).
+ *
+ * Le registre pose SIX onglets et un septième, « Toutes » — `vue === null` —
+ * qui rend le comportement d'avant ce ticket. Chacun doit porter un compte
+ * qui dit EXACTEMENT ce qu'il liste, calculé avec le même `filtreDesInterventions`
+ * que `listerInterventions`/`compterInterventions`, moins l'onglet actif : un
+ * compte qui appliquerait l'onglet SÉLECTIONNÉ à tous les onglets montrerait
+ * le même chiffre partout.
+ *
+ * **AU PLUS DEUX REQUÊTES AGRÉGÉES**, jamais une par onglet : un `groupBy`
+ * sur `statut` couvre `a_planifier`, `en_cours`, `bloquees`, `a_controler` et
+ * `historique` d'un coup — et « Toutes » s'en déduit, par la SOMME des
+ * groupes, sans troisième requête — un `count` séparé couvre `aujourdhui`,
+ * qui ne porte sur aucun statut.
+ */
+export type ComptesRegistre = {
+  readonly toutes: number;
+  readonly a_planifier: number;
+  readonly aujourdhui: number;
+  readonly en_cours: number;
+  readonly bloquees: number;
+  readonly a_controler: number;
+  readonly historique: number;
+};
+
+export async function compterParVue(
+  contexte: ContexteSession,
+  criteres: RechercheInterventions,
+  client?: PrismaClient,
+): Promise<ComptesRegistre> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const debutDuJour = await debutDuJourSociete(tx, contexte);
+      const baseFiltre = filtreDesInterventions(
+        { ...criteres, vue: null },
+        debutDuJour,
+      );
+
+      const [parStatut, aujourdhui] = await Promise.all([
+        tx.intervention.groupBy({
+          by: ["statut"],
+          where: baseFiltre,
+          _count: { _all: true },
+        }),
+        tx.intervention.count({
+          where: {
+            ...baseFiltre,
+            date_planifiee: { gte: debutDuJour, lt: finDuJour(debutDuJour) },
+          },
+        }),
+      ]);
+
+      const compteStatut = (statut: StatutIntervention): number =>
+        parStatut.find((ligne) => ligne.statut === statut)?._count._all ?? 0;
+
+      return {
+        toutes: parStatut.reduce(
+          (somme, ligne) => somme + ligne._count._all,
+          0,
+        ),
+        a_planifier: compteStatut("a_planifier"),
+        aujourdhui,
+        en_cours: compteStatut("en_cours"),
+        bloquees: compteStatut("suspendue"),
+        a_controler: compteStatut("terminee"),
+        historique: compteStatut("cloturee") + compteStatut("annulee"),
+      };
     },
     client,
   );

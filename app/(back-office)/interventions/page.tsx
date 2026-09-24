@@ -28,7 +28,9 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   compterInterventions,
+  compterParVue,
   listerInterventions,
+  type ComptesRegistre,
   type LignePlanning,
 } from "@/lib/interventions/depot";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
@@ -45,8 +47,11 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
+  hrefOnglet,
   libelleFiltreAgence,
+  libelleOngletAvecCompte,
   machinesAffichees,
+  ONGLETS_REGISTRE,
   optionToutesLesAgences,
   referenceAffichee,
 } from "./presentation";
@@ -105,6 +110,21 @@ export const metadata: Metadata = { title: t("interventions.titre") };
  * lecture d'un même critère, et c'est celle qui vieillit sans rougir.
  */
 
+/**
+ * LE REPLI QUAND LA RECHERCHE EST INVALIDE — tous les onglets à zéro plutôt
+ * qu'une lecture en base sur des critères que le schéma a déjà refusés
+ * (52-REGISTRE-1, même repli que `lignes`/`totalFiltre` juste au-dessus).
+ */
+const COMPTES_VUE_VIDES: ComptesRegistre = {
+  toutes: 0,
+  a_planifier: 0,
+  aujourdhui: 0,
+  en_cours: 0,
+  bloquees: 0,
+  a_controler: 0,
+  historique: 0,
+};
+
 export default async function PageInterventions({
   searchParams,
 }: {
@@ -136,14 +156,15 @@ export default async function PageInterventions({
       typeof params.sans_duree_a_venir === "string"
         ? params.sans_duree_a_venir
         : undefined,
+    vue: typeof params.vue === "string" ? params.vue : undefined,
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  // QUATRE LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41) — aucune ne
-  // dépend du résultat d'une autre. `annuaire` et `libellesMachines`, eux,
-  // dépendent des LIGNES rendues et restent dans un second `Promise.all`,
-  // après celui-ci.
-  const [agences, lignes, totalFiltre, kpi] = await Promise.all([
+  // CINQ LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
+  // 52-REGISTRE-1) — aucune ne dépend du résultat d'une autre. `annuaire` et
+  // `libellesMachines`, eux, dépendent des LIGNES rendues et restent dans un
+  // second `Promise.all`, après celui-ci.
+  const [agences, lignes, totalFiltre, kpi, comptesVue] = await Promise.all([
     // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
     // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
     avecContexteApplicatif(contexte, (tx) =>
@@ -161,11 +182,39 @@ export default async function PageInterventions({
       ? compterInterventions(contexte, criteres.data)
       : Promise.resolve(0),
     kpiDuRegistre(contexte),
+    // LE COMPTEUR DE CHAQUE ONGLET (52-REGISTRE-1) — les mêmes AUTRES
+    // filtres que la liste ci-dessus, l'onglet actif exclu par
+    // `compterParVue` lui-même.
+    criteres.success
+      ? compterParVue(contexte, criteres.data)
+      : Promise.resolve(COMPTES_VUE_VIDES),
   ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
   );
+  // LES FILTRES ACTIFS, COMPOSÉS UNE SEULE FOIS (52-REGISTRE-1) — servent à
+  // la fois la pagination et les onglets ci-dessous : deux lectures de ces
+  // mêmes paramètres divergeraient en silence (§9, 01/09). `vue` PORTE LE
+  // CRITÈRE ANALYSÉ, comme `inclure_clients_inactifs` juste en dessous —
+  // jamais le paramètre brut, qu'une valeur inconnue aurait laissé passer
+  // tel quel vers la page suivante.
+  const parametresActifs = {
+    q: typeof params.q === "string" ? params.q : undefined,
+    agence: typeof params.agence === "string" ? params.agence : undefined,
+    type: typeof params.type === "string" ? params.type : undefined,
+    statut: typeof params.statut === "string" ? params.statut : undefined,
+    du: typeof params.du === "string" ? params.du : undefined,
+    au: typeof params.au === "string" ? params.au : undefined,
+    inclure_clients_inactifs:
+      criteres.success && criteres.data.inclure_clients_inactifs
+        ? "on"
+        : undefined,
+    vue:
+      criteres.success && criteres.data.vue !== null
+        ? criteres.data.vue
+        : undefined,
+  };
   // L'UNION des identités que CETTE liste doit nommer est celle des LIGNES
   // rendues, et rien d'autre : à la différence de la vue jour du planning,
   // aucune colonne ne provient d'un référentiel vide à remplir.
@@ -369,6 +418,33 @@ export default async function PageInterventions({
         />
       </div>
 
+      {/* LES ONGLETS DU REGISTRE (52-REGISTRE-1) — « Toutes » puis les six
+          vues nommées ; chacun porte le compte EXACT de ce qu'il liste
+          (`comptesVue`, la MÊME `filtreDesInterventions` que le tableau). */}
+      <nav
+        aria-label={t("interventions.vue.aria")}
+        data-nav="onglets-registre"
+        className="flex flex-wrap gap-2"
+      >
+        {ONGLETS_REGISTRE.map((vue) => {
+          const actif = criteres.success && criteres.data.vue === vue;
+          return (
+            <Link
+              key={vue ?? "toutes"}
+              href={hrefOnglet(parametresActifs, vue)}
+              aria-current={actif ? "page" : undefined}
+              className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold ${
+                actif
+                  ? "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre"
+                  : "border-app-bord bg-app-surface"
+              }`}
+            >
+              {libelleOngletAvecCompte(vue, comptesVue[vue ?? "toutes"])}
+            </Link>
+          );
+        })}
+      </nav>
+
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="920px">
           {lignes.length === 0 ? (
@@ -402,28 +478,7 @@ export default async function PageInterventions({
         libellePrecedent={t("pagination.precedent")}
         libelleSuivant={t("pagination.suivant")}
         hrefPage={(page) =>
-          hrefDeLaPage(
-            "/interventions",
-            {
-              q: typeof params.q === "string" ? params.q : undefined,
-              agence:
-                typeof params.agence === "string" ? params.agence : undefined,
-              type: typeof params.type === "string" ? params.type : undefined,
-              statut:
-                typeof params.statut === "string" ? params.statut : undefined,
-              du: typeof params.du === "string" ? params.du : undefined,
-              au: typeof params.au === "string" ? params.au : undefined,
-              // LE CRITÈRE ANALYSÉ, PAS LE PARAMÈTRE BRUT — même raison que
-              // la case à cocher ci-dessus : reporter un `?…=autre-chose`
-              // tel quel d'une page à l'autre propagerait une valeur que le
-              // schéma ne lit pourtant jamais comme « coché ».
-              inclure_clients_inactifs:
-                criteres.success && criteres.data.inclure_clients_inactifs
-                  ? "on"
-                  : undefined,
-            },
-            page,
-          )
+          hrefDeLaPage("/interventions", parametresActifs, page)
         }
       />
     </Page>

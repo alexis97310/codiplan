@@ -87,6 +87,28 @@ export const STATUTS_INTERVENTION = [
 export type StatutIntervention = (typeof STATUTS_INTERVENTION)[number];
 
 /**
+ * LES SIX VUES DU REGISTRE (52-REGISTRE-1, SAV-07).
+ *
+ * Sans elles, voir « ce qui est bloqué » ou « ce qui est terminé et reste à
+ * contrôler » demande de connaître le nom technique du statut. Chaque vue est
+ * un ONGLET au-dessus du tableau, jamais un cinquième filtre du formulaire :
+ * `a_planifier`, `en_cours`, `bloquees` et `a_controler` sont chacune UN
+ * statut (`STATUTS_INTERVENTION` ci-dessus) ; `historique` en regroupe deux —
+ * `cloturee` et `annulee`, les deux fins de cycle ; `aujourdhui` seule ne
+ * porte sur aucun statut, mais sur `date_planifiee`, dans le jour civil
+ * courant de la société (L0-08).
+ */
+export const VUES_REGISTRE = [
+  "a_planifier",
+  "aujourdhui",
+  "en_cours",
+  "bloquees",
+  "a_controler",
+  "historique",
+] as const;
+export type VueRegistre = (typeof VUES_REGISTRE)[number];
+
+/**
  * L'ÉTAT LU AVANT UNE ÉCRITURE QUI PEUT PLANIFIER OU DÉPLACER
  * (AVERTISSEMENTS-1, 24/09/2026).
  *
@@ -426,6 +448,22 @@ export const schemaRechercheInterventions = z
      * (`compterInterventionsSansDuree`, `lib/interventions/depot.ts`).
      */
     sans_duree_a_venir: z.preprocess((valeur) => valeur === "1", z.boolean()),
+    /**
+     * L'ONGLET ACTIF DU REGISTRE (52-REGISTRE-1) — une VALEUR INCONNUE
+     * RETOMBE À « AUCUNE VUE », JAMAIS UNE ERREUR : contrairement aux autres
+     * filtres de ce schéma (`type`, `statut`), qui viennent d'un `<select>`
+     * fermé côté navigateur, `vue` arrive nue depuis un lien — un favori
+     * périmé ou une URL tapée à la main ne doit pas faire échouer toute la
+     * recherche, seulement rendre l'onglet par défaut.
+     */
+    vue: z.preprocess(
+      (valeur) =>
+        typeof valeur === "string" &&
+        (VUES_REGISTRE as readonly string[]).includes(valeur)
+          ? valeur
+          : null,
+      z.enum(VUES_REGISTRE).nullable(),
+    ),
     page: z.coerce.number().int().min(1).default(1),
   })
   .strict()
