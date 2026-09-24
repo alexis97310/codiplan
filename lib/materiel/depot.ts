@@ -6,7 +6,11 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { type SaisieAssujettissementFamille } from "@/lib/vgp/assujettissement";
 
-import type { SaisieFamilleMateriel, SaisieModeleMateriel } from "./saisie";
+import type {
+  RechercheModele,
+  SaisieFamilleMateriel,
+  SaisieModeleMateriel,
+} from "./saisie";
 
 /**
  * LE CHEMIN D'ÉCRITURE DU RÉFÉRENTIEL MATÉRIEL (L1-05b).
@@ -240,6 +244,111 @@ export async function listerLesModeles(
         select: CHAMPS_MODELE,
         orderBy: [{ marque: "asc" }, { reference: "asc" }, { id: "asc" }],
       }),
+    client,
+  );
+}
+
+/** Un modèle tel que le sélecteur de recherche le rend — avec sa famille. */
+export type OptionModele = {
+  readonly id: string;
+  readonly marque: string;
+  readonly reference: string;
+  readonly familleLibelle: string;
+};
+
+/**
+ * LE `where` DE LA RECHERCHE DE MODÈLES (SELECTEURS-1) — écrit une seule fois,
+ * lu par `rechercherModeles` et `compterModeles`, même discipline que
+ * `filtreDeRecherche` de `lib/clients/depot.ts` (§9, 01/09).
+ *
+ * Seuls les modèles ACTIFS sont proposés : un sélecteur de CRÉATION ne doit
+ * jamais présenter un choix que la bascule d'activité a retiré du choix.
+ */
+function filtreDeRechercheModele(
+  criteres: RechercheModele,
+): Prisma.ModeleMaterielWhereInput {
+  const filtreTexte: Prisma.ModeleMaterielWhereInput =
+    criteres.texte === null
+      ? {}
+      : {
+          OR: [
+            {
+              marque: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              reference: {
+                contains: criteres.texte,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
+        };
+  return {
+    ...filtreTexte,
+    actif: true,
+    ...(criteres.famille_id === null ? {} : { famille_id: criteres.famille_id }),
+  };
+}
+
+/**
+ * RECHERCHE DE MODÈLES — une PAGE, avec leur famille (SELECTEURS-1,
+ * 24/09/2026).
+ *
+ * **À la différence de `rechercherClients`/`rechercherSites`, l'ordre reste
+ * posé par `ORDER BY`** : la leçon de LISTES-1 sur la collation de la base
+ * hébergée portait sur des libellés SAISIS par un humain (nom de client,
+ * libellé de site) — une marque et une référence de matériel le sont aussi,
+ * mais aucune mesure en production n'a montré ici le même défaut, et ajouter
+ * la double lecture sans une telle mesure serait inventer un correctif à un
+ * problème non constaté.
+ */
+export async function rechercherModeles(
+  contexte: ContexteSession,
+  criteres: RechercheModele,
+  client?: PrismaClient,
+): Promise<readonly OptionModele[]> {
+  const where = filtreDeRechercheModele(criteres);
+  const modeles = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.modeleMateriel.findMany({
+        where,
+        select: {
+          id: true,
+          marque: true,
+          reference: true,
+          famille: { select: { libelle: true } },
+        },
+        orderBy: [{ marque: "asc" }, { reference: "asc" }, { id: "asc" }],
+        skip: (criteres.page - 1) * criteres.limite,
+        take: criteres.limite,
+      }),
+    client,
+  );
+  return modeles.map((modele) => ({
+    id: modele.id,
+    marque: modele.marque,
+    reference: modele.reference,
+    familleLibelle: modele.famille.libelle,
+  }));
+}
+
+/**
+ * COMBIEN DE MODÈLES CORRESPONDENT À LA RECHERCHE — jamais le compte de la
+ * page. La MÊME `filtreDeRechercheModele` que `rechercherModeles`.
+ */
+export async function compterModeles(
+  contexte: ContexteSession,
+  criteres: RechercheModele,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.modeleMateriel.count({ where: filtreDeRechercheModele(criteres) }),
     client,
   );
 }

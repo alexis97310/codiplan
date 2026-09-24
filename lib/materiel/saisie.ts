@@ -73,3 +73,37 @@ export const schemaModeleMateriel = z.object({
 });
 
 export type SaisieModeleMateriel = z.infer<typeof schemaModeleMateriel>;
+
+/**
+ * BORNES DE LA RECHERCHE DE MODÈLES (SELECTEURS-1, 24/09/2026) — même
+ * contrat que `LIMITE_RECHERCHE_PAR_DEFAUT`/`MAXIMALE` de `lib/clients/saisie.ts`
+ * et `lib/sites/saisie.ts` : un maximum PAR REQUÊTE, jamais sur ce qu'on peut
+ * voir.
+ */
+export const LIMITE_RECHERCHE_MODELE_PAR_DEFAUT = 20;
+export const LIMITE_RECHERCHE_MODELE_MAXIMALE = 200;
+
+/**
+ * Critères de recherche d'un modèle — le sélecteur de `/parc/nouvelle`
+ * (SELECTEURS-1). `texte` cherche dans la marque ET la référence, les deux
+ * façons dont un modèle se désigne.
+ */
+export const schemaRechercheModele = z
+  .object({
+    texte: z
+      .string()
+      .trim()
+      .transform((valeur) => (valeur.length === 0 ? null : valeur))
+      .nullable()
+      .default(null),
+    famille_id: z.uuid().nullable().default(null),
+    limite: z
+      .number()
+      .int()
+      .min(1)
+      .max(LIMITE_RECHERCHE_MODELE_MAXIMALE)
+      .default(LIMITE_RECHERCHE_MODELE_PAR_DEFAUT),
+    page: z.coerce.number().int().min(1).default(1),
+  })
+  .strict();
+export type RechercheModele = z.output<typeof schemaRechercheModele>;

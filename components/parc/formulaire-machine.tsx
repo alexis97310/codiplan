@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { SelecteurRecherche } from "@/components/ui/selecteur-recherche";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -39,38 +40,20 @@ import {
  * s'affichent en LECTURE SEULE, dans l'ordre de D126 (famille, marque,
  * référence), et ne sont jamais soumis comme des champs modifiables.
  *
- * ## `tousLesResultats` N'EST PLUS ICI (PARC-TER, 21/09/2026)
+ * ## `tousLesResultats` A DISPARU (SELECTEURS-1, 24/09/2026)
  *
- * Le lot SELECT-1 l'avait posée dans ce fichier pour une raison juste — un
- * `page.tsx` refuse toute exportation étrangère à son contrat de route — sans
- * voir la seconde moitié du problème : **ce fichier commence par
- * `"use client"`**, et toute exportation d'un module client devient une
- * référence client quand un composant serveur l'importe, qu'elle rende du
- * JSX ou non. `app/(back-office)/parc/nouvelle/page.tsx` appelait
- * `tousLesResultats` comme une fonction ordinaire — jamais comme un élément à
- * rendre —, et ce second franchissement de la même frontière a fait tomber le
- * même écran une deuxième fois. Elle vit maintenant dans
- * `components/parc/pagination.ts`, NEUTRE — ni `page.tsx`, ni module client —
- * dont l'en-tête porte le détail. `FormulaireMachine` reste ici : c'est un
- * composant, il se rend en JSX, la frontière le porte sans le rompre.
+ * Le lot PARC-TER (21/09/2026) l'avait déplacée hors de ce fichier
+ * `"use client"` vers `components/parc/pagination.ts`, NEUTRE, en expliquant
+ * pourquoi une exportation d'un module client devient une référence client
+ * même pour une fonction qui ne rend aucun JSX (panne mesurée deux fois).
+ * **SELECTEURS-1 retire son seul appelant** : `app/(back-office)/parc/nouvelle/page.tsx`
+ * ne charge plus le référentiel entier des clients/sites pour peupler ce
+ * formulaire — les trois champs ci-dessous (client, site, modèle) cherchent
+ * maintenant sur le SERVEUR par `SelecteurRecherche`
+ * (`components/ui/selecteur-recherche.tsx`), 20 résultats à la fois. Sans
+ * appelant nulle part, `tousLesResultats` et `components/parc/pagination.ts`
+ * sont retirés plutôt que laissés sans raison d'être.
  */
-export type OptionModele = {
-  readonly id: string;
-  readonly marque: string;
-  readonly reference: string;
-  readonly familleLibelle: string;
-};
-
-export type OptionClient = {
-  readonly id: string;
-  readonly raisonSociale: string;
-};
-
-export type OptionSite = {
-  readonly id: string;
-  readonly libelle: string;
-  readonly clientId: string;
-};
 
 /**
  * CE QUE LA ROUTE REND, INTERPRÉTÉ EN QUATRE ISSUES QUI NE SE CONFONDENT PAS
@@ -153,9 +136,6 @@ type Props = {
    * franchit, lui, à chaque requête réelle.
    */
   readonly motifSucces: CleTraduction;
-  readonly modeles: readonly OptionModele[];
-  readonly clients: readonly OptionClient[];
-  readonly sites: readonly OptionSite[];
   readonly motifInitial?: CleTraduction;
   readonly valeurs: ValeursEditables;
 } & (
@@ -173,11 +153,6 @@ export function FormulaireMachine(props: Props) {
   // rien déclencher.
   const enVol = useRef(false);
   const [clientChoisi, setClientChoisi] = useState<string>("");
-
-  const sitesDuClient =
-    props.mode === "creation"
-      ? props.sites.filter((site) => site.clientId === clientChoisi)
-      : [];
 
   async function envoyer(evenement: React.FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
@@ -242,7 +217,14 @@ export function FormulaireMachine(props: Props) {
       {props.mode === "modification" ? (
         <ChampsLectureSeule lectureSeule={props.lectureSeule} />
       ) : (
-        <SelectionModele modeles={props.modeles} />
+        <SelecteurRecherche
+          nom="modele_id"
+          url="/api/recherche/modeles"
+          libelle={t("machine.champ.modele")}
+          libelleAucunResultat={t("selecteur.aucun_resultat")}
+          libelleVoirPlus={t("selecteur.voir_plus")}
+          obligatoire
+        />
       )}
 
       <Champ
@@ -255,54 +237,30 @@ export function FormulaireMachine(props: Props) {
 
       {props.mode === "creation" ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
-            {t("machine.champ.client")}
-            <select
-              name="client_id"
-              required
-              value={clientChoisi}
-              onChange={(evenement) => setClientChoisi(evenement.target.value)}
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
-            >
-              <option value="" disabled>
-                {t("machine.champ.client")}
-              </option>
-              {props.clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.raisonSociale}
-                </option>
-              ))}
-            </select>
-            {props.clients.length > 0 ? null : (
-              <span className="text-app-encre-faible text-[11px] font-normal">
-                {t("machine.champ.aucun_client")}
-              </span>
-            )}
-          </label>
-          <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
-            {mot("site")}
-            <select
-              name="site_id"
-              required
-              disabled={clientChoisi === ""}
-              defaultValue=""
-              className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal disabled:opacity-50"
-            >
-              <option value="" disabled>
-                {mot("site")}
-              </option>
-              {sitesDuClient.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.libelle}
-                </option>
-              ))}
-            </select>
-            {clientChoisi !== "" && sitesDuClient.length === 0 ? (
-              <span className="text-app-encre-faible text-[11px] font-normal">
-                {t("machine.champ.aucun_site")}
-              </span>
-            ) : null}
-          </label>
+          <SelecteurRecherche
+            nom="client_id"
+            url="/api/recherche/clients"
+            libelle={t("machine.champ.client")}
+            libelleAucunResultat={t("selecteur.aucun_resultat")}
+            libelleVoirPlus={t("selecteur.voir_plus")}
+            obligatoire
+            onChoix={(option) => setClientChoisi(option?.id ?? "")}
+          />
+          {/* REMONTÉ (`key`) À CHAQUE CHANGEMENT DE CLIENT — un sélecteur de
+              site qui garderait sa sélection après un changement de client
+              afficherait le site d'un AUTRE client (voir la note de
+              `SelecteurRecherche` sur `parametres`). */}
+          <SelecteurRecherche
+            key={clientChoisi}
+            nom="site_id"
+            url="/api/recherche/sites"
+            parametres={{ client: clientChoisi }}
+            libelle={mot("site")}
+            libelleAucunResultat={t("selecteur.aucun_resultat")}
+            libelleVoirPlus={t("selecteur.voir_plus")}
+            obligatoire
+            disabled={clientChoisi === ""}
+          />
         </div>
       ) : (
         <>
@@ -441,52 +399,6 @@ function LigneLectureSeule({ dt, dd }: Readonly<{ dt: string; dd: string }>) {
       <dd className="font-semibold">{dd}</dd>
     </>
   );
-}
-
-/** LE SÉLECTEUR DE MODÈLE — groupé par famille (RG-PAR-07, D126). */
-function SelectionModele({
-  modeles,
-}: Readonly<{ modeles: readonly OptionModele[] }>) {
-  const parFamille = new Map<string, OptionModele[]>();
-  for (const modele of modeles) {
-    const groupe = parFamille.get(modele.familleLibelle) ?? [];
-    groupe.push(modele);
-    parFamille.set(modele.familleLibelle, groupe);
-  }
-  return (
-    <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
-      {t("machine.champ.modele")}
-      <select
-        name="modele_id"
-        required
-        defaultValue=""
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
-      >
-        <option value="" disabled>
-          {t("machine.champ.modele")}
-        </option>
-        {[...parFamille.entries()].map(([famille, options]) => (
-          <optgroup key={famille} label={famille}>
-            {options.map((modele) => (
-              <option key={modele.id} value={modele.id}>
-                {libelleModele(modele)}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      {modeles.length > 0 ? null : (
-        <span className="text-app-encre-faible text-[11px] font-normal">
-          {t("machine.champ.aucun_modele")}
-        </span>
-      )}
-    </label>
-  );
-}
-
-/** « Marque — Référence » — recopié de `titreDeLaLigne` (`/parc`), même retenue. */
-function libelleModele(modele: OptionModele): string {
-  return `${modele.marque} — ${modele.reference}`;
 }
 
 function Champ({

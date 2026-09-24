@@ -58,6 +58,14 @@ export const fr = {
   // le gardien des chaînes visibles ne sait pas distinguer un glyphe d'un
   // mot, et n'a pas à le savoir (même raison que `parc.symbole_machine`).
   "recherche.loupe": "⌕",
+  // LE SÉLECTEUR DE RECHERCHE SERVEUR (SELECTEURS-1, 24/09/2026) —
+  // `components/ui/selecteur-recherche.tsx`, partagé par les sélecteurs de
+  // client, de site et de modèle sur `/sites/nouveau`, `/interventions/nouvelle`
+  // et `/parc/nouvelle`. Deux clés génériques plutôt qu'une par domaine : le
+  // texte ne varie pas d'un sélecteur à l'autre, seul le libellé du CHAMP le
+  // distingue (`t("site.client")`, `mot("site")`, `t("machine.champ.modele")`).
+  "selecteur.aucun_resultat": "Aucun résultat.",
+  "selecteur.voir_plus": "Voir plus",
   "accueil.titre": "CODIPLAN",
   "accueil.accroche":
     "Plannings d'intervention et parc machines — Nouvelle-Calédonie.",

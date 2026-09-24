@@ -138,10 +138,12 @@ export type ModificationClient = z.output<typeof schemaModificationClient>;
  * c'est un garde-fou contre une requête qui ramènerait tout le référentiel
  * d'un coup depuis Nouméa (leçon du 23/08 sur les délais), et `/clients` comme
  * `/sites` s'en servent depuis AT-07 comme taille de PAGE, avec `compterClients`
- * / `compterSites` pour paginer le total réel. Un appelant qui doit montrer
- * le référentiel ENTIER — un sélecteur, jamais une liste de recherche —
- * enchaîne les pages jusqu'à épuisement plutôt que de s'arrêter à la première
- * (`tousLesResultats`, `app/(back-office)/parc/nouvelle/page.tsx`).
+ * / `compterSites` pour paginer le total réel. **Un sélecteur qui doit
+ * proposer le référentiel entier ne l'enchaîne plus page par page depuis
+ * SELECTEURS-1 (24/09/2026)** — `tousLesResultats` a disparu avec son seul
+ * appelant, `app/(back-office)/parc/nouvelle/page.tsx` : un sélecteur
+ * cherche désormais sur le SERVEUR, par `/api/recherche/clients`
+ * (`components/ui/selecteur-recherche.tsx`), 20 résultats à la fois.
  */
 export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
 export const LIMITE_RECHERCHE_MAXIMALE = 200;

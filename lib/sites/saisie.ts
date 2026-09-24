@@ -220,9 +220,11 @@ export type ModificationSite = z.output<typeof schemaModificationSite>;
  * contre une base réelle). La borne reste : une requête qui ramènerait tout
  * le référentiel d'un coup depuis Nouméa se paie en latence (leçon du 23/08),
  * et `/sites` s'en sert depuis AT-07 comme taille de PAGE, avec `compterSites`
- * pour paginer le total réel. Un sélecteur qui doit montrer le référentiel
- * ENTIER enchaîne les pages jusqu'à épuisement plutôt que de s'arrêter à la
- * première (`tousLesResultats`, `app/(back-office)/parc/nouvelle/page.tsx`).
+ * pour paginer le total réel. **Un sélecteur qui doit proposer le référentiel
+ * entier ne l'enchaîne plus page par page depuis SELECTEURS-1 (24/09/2026)**
+ * — voir la note jumelle de `lib/clients/saisie.ts` : `tousLesResultats` a
+ * disparu avec son seul appelant, remplacé par une recherche SERVEUR
+ * (`/api/recherche/sites`).
  */
 export const LIMITE_RECHERCHE_PAR_DEFAUT = 50;
 export const LIMITE_RECHERCHE_MAXIMALE = 200;
@@ -261,6 +263,21 @@ export const schemaRechercheSite = z
      * doit pas voir sa liste rétrécir sans l'avoir demandé.
      */
     sous_contrat_seulement: z.boolean().default(false),
+    /**
+     * SELECTEURS-1 (24/09/2026) — le site d'un client INACTIF n'est pas
+     * proposé, sur demande explicite d'un appelant. `null` par défaut : le
+     * critère ne se compose PAS avec `filtreDeRecherche` tant que personne ne
+     * le demande, exactement la même règle que les deux champs ci-dessus.
+     *
+     * **Même critère que RG-PLA-08, écrit une seule fois.** Avant ce champ,
+     * `app/(back-office)/interventions/nouvelle/page.tsx` posait `client: {
+     * actif: true }` directement sur `tx.site.findMany` — une SECONDE lecture
+     * du même critère que `filtreClientActif(false)` de
+     * `lib/interventions/depot.ts` applique déjà au planning (§9, 01/09).
+     * L'écran nomme maintenant le même critère par ce champ, `rechercherSites`
+     * l'applique une fois pour tous ses appelants.
+     */
+    client_actif: z.boolean().nullable().default(null),
     limite: z
       .number()
       .int()

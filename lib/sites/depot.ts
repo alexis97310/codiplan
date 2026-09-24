@@ -385,6 +385,7 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
     ...(criteres.actifs_seulement ? { actif: true } : {}),
     ...(criteres.inclure_sans_equipement ? {} : { machines: { some: {} } }),
     ...(criteres.sous_contrat_seulement ? { sous_contrat: true } : {}),
+    ...(criteres.client_actif === true ? { client: { actif: true } } : {}),
   };
 }
 

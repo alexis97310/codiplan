@@ -7,9 +7,9 @@ import { ActionPrimaire } from "@/components/ui/action-primaire";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { SelecteurRecherche } from "@/components/ui/selecteur-recherche";
 import { obtenirSession } from "@/lib/auth/session";
-import { rechercherClients } from "@/lib/clients/depot";
-import { schemaRechercheClient } from "@/lib/clients/saisie";
+import { lireClient } from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
@@ -29,6 +29,14 @@ export const metadata: Metadata = { title: t("sites.creer") };
  * temps de trajet »* (D56). Les deux listes déroulantes n'ont donc **aucune
  * option présélectionnée**.
  *
+ * ## Le client est cherché, pas chargé d'un bloc (SELECTEURS-1)
+ *
+ * Une société en porte déjà 576 : le `<select>` d'avant ce lot était rempli
+ * par `rechercherClients` sous sa limite par défaut, si bien que le 51e
+ * client ne pouvait recevoir aucun site depuis cet écran (SAV-17). Le champ
+ * client interroge maintenant `/api/recherche/clients`, cloisonnée comme
+ * toute lecture d'ici.
+ *
  * ## Les listes sont lues SOUS le contexte cloisonné
  *
  * Un compte ne peut proposer que ce qu'il a le droit de lire, et aucune
@@ -46,12 +54,20 @@ export default async function PageNouveauSite({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
 
-  const clients = await rechercherClients(
-    session.contexte,
-    schemaRechercheClient.parse({}),
-  );
+  // LE CLIENT PRÉREMPLI (LIENS-1, « + Site » depuis une fiche client) —
+  // résolu SOUS le contexte cloisonné : un identifiant hors périmètre ou
+  // inexistant rend `null`, et le champ retombe sur son état vide plutôt que
+  // d'afficher un identifiant qu'on ne sait pas nommer.
+  const clientParam =
+    typeof params.client === "string" ? params.client : undefined;
+  const clientInitial =
+    clientParam === undefined
+      ? null
+      : await lireClient(session.contexte, clientParam);
+
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.agence.findMany({
       select: { id: true, libelle: true, code: true },
@@ -84,23 +100,20 @@ export default async function PageNouveauSite({
         action="/api/sites/creer"
         className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
-        {/* AUCUNE OPTION PRÉSÉLECTIONNÉE sur ces deux listes. Voir l'entête. */}
-        <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
-          {t("site.client")}
-          <select
-            name="client_id"
-            required
-            defaultValue=""
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
-          >
-            <option value="" disabled />
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.raison_sociale}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* AUCUNE OPTION PRÉSÉLECTIONNÉE sur le rattachement. Voir l'entête. */}
+        <SelecteurRecherche
+          nom="client_id"
+          url="/api/recherche/clients"
+          libelle={t("site.client")}
+          libelleAucunResultat={t("selecteur.aucun_resultat")}
+          libelleVoirPlus={t("selecteur.voir_plus")}
+          obligatoire
+          valeurInitiale={
+            clientInitial === null
+              ? undefined
+              : { id: clientInitial.id, libelle: clientInitial.raison_sociale }
+          }
+        />
 
         <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
           {libelleRattachement()}

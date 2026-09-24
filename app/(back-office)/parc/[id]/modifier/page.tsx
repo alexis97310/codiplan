@@ -66,9 +66,6 @@ export default async function PageModifierMachine({
         mode="modification"
         action={`/api/machines/${machine.id}/modifier`}
         motifSucces="machine.modifiee"
-        modeles={[]}
-        clients={[]}
-        sites={[]}
         motifInitial={motifInitial}
         lectureSeule={{
           modeleId: machine.modele_id,
