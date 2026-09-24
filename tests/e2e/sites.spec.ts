@@ -190,9 +190,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     await choisirPremierResultat(page, "client_id");
     await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
     await page.locator('input[name="libelle"]').fill(libelle);
-    await page
-      .getByRole("button", { name: fr["sites.action.creer"] })
-      .click();
+    await page.getByRole("button", { name: fr["sites.action.creer"] }).click();
     await expect(page).toHaveURL(/\/sites\/[0-9a-f-]{36}/);
     href = new URL(page.url()).pathname;
 
@@ -221,9 +219,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
     // scénario. `q=<jeton>` (STABILITE-3) : la carte est alors la SEULE que
     // la liste rend, jamais reléguée sur une page que ce scénario ne visite
     // pas.
-    await page.goto(
-      `/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`,
-    );
+    await page.goto(`/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`);
     const carte = page.locator(`article:has(a[href="${href}"])`);
     await expect(
       carte.getByText(fr["sites.contrat"], { exact: true }),
@@ -240,9 +236,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
       page.locator("p").filter({ hasText: fr["site.sous_contrat"] }),
     ).toHaveCount(0);
 
-    await page.goto(
-      `/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`,
-    );
+    await page.goto(`/sites?sans_equipement=1&q=${encodeURIComponent(jeton)}`);
     await expect(
       carte.getByText(fr["sites.contrat"], { exact: true }),
     ).toHaveCount(0);

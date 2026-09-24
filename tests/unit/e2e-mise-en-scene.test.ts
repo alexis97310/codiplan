@@ -198,7 +198,8 @@ function estLitteralFixe(argument: string): boolean {
   const premier = argument[0];
   const dernier = argument[argument.length - 1];
   return (
-    premier === dernier && (premier === '"' || premier === "'" || premier === "`")
+    premier === dernier &&
+    (premier === '"' || premier === "'" || premier === "`")
   );
 }
 
@@ -276,7 +277,7 @@ describe("l'extraction, éprouvée sur du texte fabriqué", () => {
     expect(CURRENT_DATE.test(`VALUES ($1::uuid, now()::date)`)).toBe(false);
   });
 
-  it("un `.fill(...)` sur `input[name=\"libelle\"]` est extrait, guillemets et variable compris", () => {
+  it('un `.fill(...)` sur `input[name="libelle"]` est extrait, guillemets et variable compris', () => {
     expect(
       appelsFillLibelle(
         `await page.locator('input[name="libelle"]').fill("fixe");`,
@@ -427,7 +428,7 @@ describe("sites.spec.ts ne fige pas le libellé d'un site forgé (STABILITE-3)",
     expect(fichier).toBeDefined();
   });
 
-  it("au moins un `.fill()` sur `input[name=\"libelle\"]` existe dans ce fichier — sinon la règle est aveugle", () => {
+  it('au moins un `.fill()` sur `input[name="libelle"]` existe dans ce fichier — sinon la règle est aveugle', () => {
     if (fichier === undefined) return;
     expect(appelsFillLibelle(fichier.source).length).toBeGreaterThan(0);
   });
