@@ -289,7 +289,9 @@ function filtreDeRechercheModele(
   return {
     ...filtreTexte,
     actif: true,
-    ...(criteres.famille_id === null ? {} : { famille_id: criteres.famille_id }),
+    ...(criteres.famille_id === null
+      ? {}
+      : { famille_id: criteres.famille_id }),
   };
 }
 

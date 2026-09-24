@@ -180,6 +180,32 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "résolution d'un scan gouvernée par le périmètre technicien (D22, L2-02), pas par la matrice de capacités",
   },
+  // SELECTEURS-1 (24/09/2026) — quatre routes de LECTURE SEULE, cloisonnées
+  // par le contexte (`avecContexteApplicatif`), qui peuplent un sélecteur
+  // sur des écrans (`/sites/nouveau`, `/interventions/nouvelle`,
+  // `/parc/nouvelle`) qui n'exigent eux-mêmes aucune capacité au-delà d'une
+  // société active — même posture que ces écrans, jamais une capacité
+  // neuve pour une lecture qu'ils affichaient déjà en clair.
+  {
+    chemin: "app/api/recherche/clients/route.ts",
+    motif:
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que /sites/nouveau, /interventions/nouvelle, /parc/nouvelle, qui n'exigent aucune capacité au-delà d'une société active",
+  },
+  {
+    chemin: "app/api/recherche/sites/route.ts",
+    motif:
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+  },
+  {
+    chemin: "app/api/recherche/modeles/route.ts",
+    motif:
+      "recherche en lecture seule, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+  },
+  {
+    chemin: "app/api/recherche/site/[id]/route.ts",
+    motif:
+      "lecture des machines/contacts d'UN site, cloisonnée par le contexte — même posture que les écrans qui l'appellent",
+  },
 ];
 
 const sansCommentaires = (source: string): string =>

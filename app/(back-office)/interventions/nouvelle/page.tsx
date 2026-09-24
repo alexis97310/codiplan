@@ -88,9 +88,14 @@ export default async function PageNouvelleIntervention({
   // posé une seule fois par `rechercherSites` (`lib/sites/depot.ts`) : `client:
   // { actif: true }`, jamais une seconde lecture qui diverge en silence
   // (§9, 01/09).
-  const siteBrut = siteParam === undefined ? null : await lireSite(session.contexte, siteParam);
+  const siteBrut =
+    siteParam === undefined
+      ? null
+      : await lireSite(session.contexte, siteParam);
   const clientDuSite =
-    siteBrut === null ? null : await lireClient(session.contexte, siteBrut.client_id);
+    siteBrut === null
+      ? null
+      : await lireClient(session.contexte, siteBrut.client_id);
   const siteInitial =
     siteBrut === null || clientDuSite === null || !clientDuSite.actif
       ? undefined

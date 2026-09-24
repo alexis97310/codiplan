@@ -400,12 +400,12 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "R3-15 a livré le catalogue en une page : la liste et les formulaires y tiennent, et aucune fiche isolée n'existe. Se retire le jour où une fiche de prestation est écrite, ou la fonction avec elle.",
   },
-  {
-    module: "lib/clients/depot.ts",
-    fonction: "lireClient",
-    motif:
-      "La fiche d'un client lit par `dernieresInterventionsDuClient` et par la requête de sa page ; cette lecture-ci a été posée par L1-01 avant que la fiche existe. Se retire avec elle, ou le jour où la fiche l'appelle.",
-  },
+  // `lireClient` a QUITTÉ cette liste le 24/09/2026 (SELECTEURS-1) : elle a un
+  // appelant réel depuis `app/(back-office)/sites/nouveau/page.tsx`
+  // (préremplissage `?client=`, LIENS-1) et
+  // `app/(back-office)/interventions/nouvelle/page.tsx` (résolution du client
+  // du site présélectionné, `?site=`) — le motif écrit ici, « avant que la
+  // fiche existe », ne tient plus.
   // `sitesParClient` a QUITTÉ cette liste le 17/09/2026 (AT-07) : elle avait un
   // appelant réel depuis le 14/09 — la liste des clients affiche déjà ses
   // sites —, mais `app/(back-office)/clients/page.tsx` n'importait alors

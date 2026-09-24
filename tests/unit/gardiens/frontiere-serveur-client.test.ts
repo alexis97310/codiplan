@@ -395,20 +395,14 @@ describe("le dépôt réel", () => {
     ).toEqual([]);
   });
 
-  it("`tousLesResultats` vit dans le fichier NEUTRE, et ni la page ni le formulaire ne l'appellent plus par-dessus la frontière (PARC-TER)", () => {
-    const pagination = readFileSync(
-      join(RACINE, "components", "parc", "pagination.ts"),
-      "utf8",
-    );
-    expect(estModuleClient(pagination)).toBe(false);
-    expect(pagination).toContain("export async function tousLesResultats");
-
-    const page = readFileSync(
-      join(RACINE, "app", "(back-office)", "parc", "nouvelle", "page.tsx"),
-      "utf8",
-    );
-    expect(page).toContain(
-      'import { tousLesResultats } from "@/components/parc/pagination"',
-    );
-  });
+  // L'ÉPREUVE NOMMÉE « `tousLesResultats` vit dans le fichier NEUTRE… » A
+  // QUITTÉ CE FICHIER LE 24/09/2026 (SELECTEURS-1) — `tousLesResultats` a
+  // perdu son seul appelant, `app/(back-office)/parc/nouvelle/page.tsx`, qui
+  // ne charge plus le référentiel client/site d'un bloc mais le cherche sur
+  // le serveur (`SelecteurRecherche`, `/api/recherche/*`). Sans appelant,
+  // `components/parc/pagination.ts` a été retiré plutôt que laissé sans
+  // raison d'être — voir la note de `components/parc/formulaire-machine.tsx`.
+  // La CLASSE de défaut que cette épreuve gardait reste gardée : le scénario
+  // « le dépôt réel » ci-dessus balaye tout `app/`/`components/`/`lib/` et
+  // rougirait sur n'importe quelle réapparition, pas seulement sur celle-ci.
 });

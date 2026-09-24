@@ -110,11 +110,7 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
     [],
   );
 
-  async function chercher(
-    q: string,
-    pageDemandee: number,
-    remplacer: boolean,
-  ) {
+  async function chercher(q: string, pageDemandee: number, remplacer: boolean) {
     const jeton = ++jetonRequete.current;
     const params = new URLSearchParams({
       q,
@@ -132,9 +128,9 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
     if (jeton !== jetonRequete.current || !reponse.ok) {
       return;
     }
-    const corps = (await reponse.json().catch(() => null)) as
-      | ReponseRecherche<TOption>
-      | null;
+    const corps = (await reponse
+      .json()
+      .catch(() => null)) as ReponseRecherche<TOption> | null;
     if (corps === null || jeton !== jetonRequete.current) {
       return;
     }

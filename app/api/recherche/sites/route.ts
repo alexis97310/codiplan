@@ -1,6 +1,10 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { obtenirSession } from "@/lib/auth/session";
-import { libellesDesSites, compterSites, rechercherSites } from "@/lib/sites/depot";
+import {
+  libellesDesSites,
+  compterSites,
+  rechercherSites,
+} from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 
 /**
@@ -30,7 +34,8 @@ async function traiter(requete: Request): Promise<Response> {
     actifs_seulement: true,
     inclure_sans_equipement: true,
     sous_contrat_seulement: false,
-    client_actif: url.searchParams.get("clientActif") === "1" ? true : undefined,
+    client_actif:
+      url.searchParams.get("clientActif") === "1" ? true : undefined,
     limite: 20,
     page: url.searchParams.get("page") ?? undefined,
   });
