@@ -389,6 +389,31 @@ export const schemaRechercheInterventions = z
     type: filtreOuVide(TYPES_INTERVENTION).default(null),
     statut: filtreOuVide(STATUTS_INTERVENTION).default(null),
     /**
+     * LE FILTRE TECHNICIEN (57-REGISTRE-2) — « Tous » (absent), « Non
+     * affectées » (`"aucun"`, sur `technicien_id IS NULL`), ou un technicien
+     * précis (son `id`, un UUID — pas de forme littérale « ce n'est pas un
+     * UUID » possible avec `z.uuid()`, d'où la validation manuelle ci-dessous).
+     *
+     * **Une valeur invalide retombe à `null` (aucun filtre), jamais une
+     * erreur** : contrairement à `agence_id` ci-dessus, dont un UUID malformé
+     * fait échouer TOUT le schéma (`criteres.success` devient faux, et la
+     * page entière se vide) — un comportement existant que ce ticket ne
+     * touche pas, mais qu'il ne reproduit pas non plus ici, sur consigne
+     * explicite du ticket.
+     */
+    technicien: z
+      .preprocess(
+        (valeur) => {
+          if (valeur === "aucun") return "aucun";
+          return typeof valeur === "string" &&
+            z.uuid().safeParse(valeur).success
+            ? valeur
+            : null;
+        },
+        z.union([z.literal("aucun"), z.uuid()]).nullable(),
+      )
+      .default(null),
+    /**
      * LA PÉRIODE — bornes sur `date_planifiee`. Une intervention encore en
      * file d'attente n'a pas de date : un filtre de période l'exclut donc
      * naturellement, ce qui est le comportement attendu de ce filtre-là.

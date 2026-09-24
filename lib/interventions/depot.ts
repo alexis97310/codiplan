@@ -2775,6 +2775,15 @@ function filtreDesInterventions(
     ...(criteres.agence_id === null ? {} : { agence_id: criteres.agence_id }),
     ...(criteres.type === null ? {} : { type: criteres.type }),
     ...(criteres.statut === null ? {} : { statut: criteres.statut }),
+    // LE FILTRE TECHNICIEN (57-REGISTRE-2) — « aucun » se lit sur
+    // `technicien_id IS NULL`, la même colonne que celle qui décide déjà du
+    // libellé « non affectée » à l'affichage (`quiTravaille`).
+    ...(criteres.technicien === null
+      ? {}
+      : {
+          technicien_id:
+            criteres.technicien === "aucun" ? null : criteres.technicien,
+        }),
     ...(criteres.du === null && criteres.au === null
       ? {}
       : {

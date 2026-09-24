@@ -981,6 +981,10 @@ export const fr = {
   // registre, sans quoi son historique deviendrait inatteignable ici.
   "interventions.filtre_inclure_clients_inactifs":
     "Inclure les clients inactifs",
+  // LE FILTRE TECHNICIEN (57-REGISTRE-2) — « qu'a-t-il sur les bras ? », la
+  // question la plus courante du bureau, qui n'avait pas de réponse ici.
+  "interventions.filtre_technicien_tous": "Tous les techniciens",
+  "interventions.filtre_technicien_non_affectees": "Non affectées",
 
   // ── LES STATISTIQUES PAR TECHNICIEN (10/09/2026) ─────────────────────────
   //
