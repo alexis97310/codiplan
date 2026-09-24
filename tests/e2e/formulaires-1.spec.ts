@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
+import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -42,6 +43,8 @@ const CLIENT_FRM1 = uuidv7();
 const SITE_FRM1 = uuidv7();
 const LIBELLE_SITE = "FRM1-site";
 const PANNE = "FRM1-panne";
+const PANNE_CLIC = "FRM1-panne-clic";
+const PANNE_DOUBLE_CLIC = "FRM1-panne-double-clic";
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -82,7 +85,9 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
-    await client.intervention.deleteMany({ where: { description: PANNE } });
+    await client.intervention.deleteMany({
+      where: { description: { in: [PANNE, PANNE_CLIC, PANNE_DOUBLE_CLIC] } },
+    });
     await client.site.deleteMany({ where: { id: SITE_FRM1 } });
     await client.client.deleteMany({ where: { id: CLIENT_FRM1 } });
   } finally {
@@ -159,5 +164,76 @@ test("un double clic sur « Créer l'intervention » ne crée qu'une seule inter
       ),
       fullPage: true,
     });
+  }
+});
+
+/**
+ * 61-FORMULAIRES-1-REPRISE (SAV-02) — UN VRAI CLIC PART TOUJOURS.
+ *
+ * L'épreuve ci-dessus soumet directement via `page.request.post` : elle ne
+ * passe jamais par le bouton, et n'aurait donc rien vu du défaut de
+ * 55-FORMULAIRES-1 (`disabled` posé dans le `onClick` du bouton, qui annulait
+ * la soumission native du FORMULAIRE — 12 épreuves recalées le 25/09, toutes
+ * bloquées sur `/interventions/nouvelle`). Celle-ci clique réellement sur
+ * « Créer » et vérifie que la navigation part.
+ */
+test("un clic sur « Créer » mène à la fiche de l'intervention créée", async ({
+  page,
+}) => {
+  await ouvrirUneSession(page);
+  await page.goto("/interventions/nouvelle");
+  await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await page.locator('textarea[name="description"]').fill(PANNE_CLIC);
+
+  await page
+    .getByRole("button", { name: fr["intervention.action.creer"] })
+    .click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+
+  const client = admin();
+  try {
+    const compte = await client.intervention.count({
+      where: { description: PANNE_CLIC },
+    });
+    expect(compte).toBe(1);
+  } finally {
+    await client.$disconnect();
+  }
+});
+
+/**
+ * UN DOUBLE CLIC RÉEL SUR LE BOUTON — le filet visuel de `BoutonCreer` se
+ * désactive sur l'évènement `submit` DU FORMULAIRE, jamais dans le `onClick`
+ * du bouton (voir sa note de tête) : le premier clic part donc bel et bien,
+ * et un second clic tiré presque simultanément (`force: true`, pour ne pas
+ * attendre que Playwright constate lui-même le bouton désactivé) ne pose
+ * jamais de seconde intervention — l'`id` tiré au rendu et relu sous contexte
+ * cloisonné (`interventionDejaCreee`) protège le fond, ce filet n'est qu'un
+ * confort visuel.
+ */
+test("un double clic réel sur « Créer » mène à la fiche, sans en créer deux", async ({
+  page,
+}) => {
+  await ouvrirUneSession(page);
+  await page.goto("/interventions/nouvelle");
+  await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await page.locator('textarea[name="description"]').fill(PANNE_DOUBLE_CLIC);
+
+  const bouton = page.getByRole("button", {
+    name: fr["intervention.action.creer"],
+  });
+  await Promise.all([bouton.click(), bouton.click({ force: true })]);
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+
+  const client = admin();
+  try {
+    const compte = await client.intervention.count({
+      where: { description: PANNE_DOUBLE_CLIC },
+    });
+    expect(compte).toBe(1);
+  } finally {
+    await client.$disconnect();
   }
 });
