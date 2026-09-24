@@ -1488,6 +1488,17 @@ export const fr = {
   "intervention.bon.aucune_signature": "Aucune signature n'a été recueillie.",
   "intervention.bon.signature_le": "Signé le",
 
+  // ── L'IDENTIFICATION COMPLÈTE (BON-3, 25/09/2026) ───────────────────────
+  //
+  // Date, nature, adresse, machine(s) avec leur numéro de série : le constat
+  // du ticket — un bon qui ne dit ni quand, ni pour quoi, ni sur quelle
+  // machine précise. Les autres libellés de ce bloc sont ceux déjà écrits
+  // pour la fiche (`intervention.date`, `intervention.type`,
+  // `intervention.panne_signalee`, `intervention.contact_sur_place`,
+  // `intervention.reference_client`, `site.adresse`) — jamais une seconde
+  // écriture d'un même mot.
+  "intervention.bon.numero_serie": "N° série",
+
   // ── LA DEMANDE D'INTERVENTION (L2-06) ───────────────────────────────────
   //
   // Le point d'entrée du flux. Les refus nomment ce qui bloque et la marche à
@@ -3328,6 +3339,18 @@ export const fr = {
   "registre3.e2e.site": "REG3 — Lieu de l'épreuve",
   "registre3.e2e.numero_serie_a": "REG3-SN-A",
   "registre3.e2e.numero_serie_b": "REG3-SN-B",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/bon-3.spec.ts)
+  //
+  // Même discipline que `registre3.e2e.*` : sa PROPRE scène, créée et
+  // supprimée par l'épreuve, préfixée `BON3-` pour se distinguer du semis et
+  // de toute autre scène du même run (`docs/propositions/69-BON-3`).
+  "bon3.e2e.client": "BON3 — Client de l'épreuve",
+  "bon3.e2e.site": "BON3 — Lieu de l'épreuve",
+  "bon3.e2e.rue": "BON3 — 1 rue de l'Épreuve",
+  "bon3.e2e.commune": "Nouméa",
+  "bon3.e2e.numero_serie": "BON3-SN-1",
+  "bon3.e2e.panne": "BON3 fuite verin",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

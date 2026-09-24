@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
@@ -9,6 +9,7 @@ import {
   photosDeLIntervention,
   type PhotoIntervention,
 } from "@/lib/documents/depot";
+import { t } from "@/lib/i18n/fr";
 import {
   derniereSignature,
   prestationsRealisees,
@@ -73,7 +74,21 @@ export type BonIntervention = {
   readonly ligne: LigneIntervention;
   readonly client: string | null;
   readonly site: string | null;
+  /** L'adresse du site, mise en une ligne — `null` : ni adresse ni commune. */
+  readonly adresseSite: string | null;
+  /** Le contact sur place (PARCOURS-1) — `null` : aucun n'est désigné. */
+  readonly contact: string | null;
   readonly agence: string | null;
+  /**
+   * LES MACHINES IDENTIFIÉES DU BON (BON-3) — `marque référence — N° série
+   * XXX`, à la différence de `libellesDesMachines` (`lib/machines/depot.ts`),
+   * qui ne rend jamais le numéro de série (plusieurs exemplaires du même
+   * modèle y resteraient indiscernables). *Un bon remis au client identifie
+   * la machine précise sur laquelle le technicien est intervenu* — c'est
+   * l'objet même de ce lot, et une seconde lecture de « quelles machines »
+   * qui omettrait le numéro de série y manquerait.
+   */
+  readonly machinesIdentifiees: readonly string[];
   readonly forfaitLibelle: string | null;
   readonly fuseau: Fuseau;
   /**
@@ -134,7 +149,7 @@ export async function lireBonIntervention(
           commentaire_technicien: true,
           suite_a_donner: true,
           client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true } },
+          site: { select: { libelle: true, adresse: true, commune: true } },
           agence: {
             select: {
               libelle: true,
@@ -143,6 +158,7 @@ export async function lireBonIntervention(
             },
           },
           forfait: { select: { libelle: true } },
+          contact: { select: { nom: true } },
         },
       });
       if (ligne === null) {
@@ -153,6 +169,7 @@ export async function lireBonIntervention(
         site,
         agence,
         forfait,
+        contact,
         commentaire_technicien,
         suite_a_donner,
         ...brute
@@ -216,11 +233,39 @@ export async function lireBonIntervention(
           ? null
           : montant(brute.montant_ht, brute.devise_code);
 
+      // ── LES MACHINES IDENTIFIÉES (BON-3) — lues dans CETTE requête, jamais
+      // par `libellesDesMachines` (`lib/machines/depot.ts`), qui répond à une
+      // autre question et n'a pas à changer pour celle-ci.
+      const machineIds = [...new Set(brute.machines.map((m) => m.machine_id))];
+      const machinesBrutes =
+        machineIds.length === 0
+          ? []
+          : await tx.machine.findMany({
+              where: { id: { in: machineIds } },
+              select: {
+                id: true,
+                numero_serie: true,
+                modele: { select: { marque: true, reference: true } },
+              },
+            });
+      const libellesIdentifies = new Map(
+        machinesBrutes.map((m) => [
+          m.id,
+          `${m.modele.marque} ${m.modele.reference} — ${t("intervention.bon.numero_serie")} ${m.numero_serie}`,
+        ]),
+      );
+      const machinesIdentifiees = brute.machines
+        .map((m) => libellesIdentifies.get(m.machine_id))
+        .filter((libelle): libelle is string => libelle !== undefined);
+
       return {
         ligne: brute,
         client: client.raison_sociale,
         site: site.libelle,
+        adresseSite: formatAdresseSite(site.adresse, site.commune),
+        contact: contact?.nom ?? null,
         agence: agence.libelle,
+        machinesIdentifiees,
         forfaitLibelle: forfait?.libelle ?? null,
         fuseau,
         societe: {
@@ -273,4 +318,41 @@ export async function lireBonIntervention(
 function nomDuSegment(utilisateurId: string, annuaire: Annuaire): string {
   const designation = annuaire(utilisateurId);
   return designation.etat === "nom" ? designation.nom : "—";
+}
+
+/**
+ * L'ADRESSE D'UN SITE, MISE EN UNE LIGNE (BON-3).
+ *
+ * La rue vient de `site.adresse` — même convention que `agence.adresse` et
+ * `client.adresse_facturation` (une clé `rue`, libre pour le reste : le
+ * chapitre 11.2 ne fixe aucune forme à une adresse calédonienne). La commune
+ * vient de la colonne dédiée, `site.commune`, jamais du JSON : c'est elle que
+ * le chapitre 11.2 nomme séparément.
+ *
+ * `null` seulement quand NI l'une NI l'autre n'est renseignée — jamais une
+ * ligne vide sur un bon remis au client, et jamais `undefined`.
+ */
+export function formatAdresseSite(
+  adresse: Prisma.JsonValue | null,
+  commune: string | null,
+): string | null {
+  const rue = ruePlate(adresse);
+  const partieCommune =
+    commune !== null && commune.trim().length > 0 ? commune.trim() : null;
+  if (rue === null) {
+    return partieCommune;
+  }
+  return partieCommune === null ? rue : `${rue}, ${partieCommune}`;
+}
+
+function ruePlate(adresse: Prisma.JsonValue | null): string | null {
+  if (
+    adresse === null ||
+    typeof adresse !== "object" ||
+    Array.isArray(adresse)
+  ) {
+    return null;
+  }
+  const rue = (adresse as Record<string, Prisma.JsonValue>).rue;
+  return typeof rue === "string" && rue.trim().length > 0 ? rue.trim() : null;
 }

@@ -5,20 +5,21 @@ import { cache } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
 import { exigerCapacite } from "@/lib/auth/porte";
+import { dateCivile } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { accesAuxMontants } from "@/lib/interventions/montants-visibles";
 import type { StatutIntervention } from "@/lib/interventions/saisie";
-import { libellesDesMachines } from "@/lib/machines/depot";
 import { formatMoney } from "@/lib/money";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
   aucuneMachineSurLeSite,
   dateHeureLocale,
-  machinesAffichees,
+  heureDuCreneau,
+  objetDuBloc,
   referenceAffichee,
   segmentsSurSiteTitre,
   tempsTotalSurSiteLibelle,
@@ -121,12 +122,19 @@ export default async function PageBonIntervention({
     redirect(`/interventions/${id}?motif=${verdictBon.cle}`);
   }
   const montants = accesAuxMontants(contexte.role);
-  const libellesMachines = await libellesDesMachines(
-    contexte,
-    bon.ligne.machines.map((m) => m.machine_id),
-  );
-  const machines = machinesAffichees(bon.ligne, libellesMachines);
-  const aucuneMachine = bon.ligne.machines.length === 0;
+  const aucuneMachine = bon.machinesIdentifiees.length === 0;
+  // LA DATE ET L'HEURE PLANIFIÉES (BON-3) — même composition que la fiche
+  // (`FICHE-INTERVENTION-1`) : `date_planifiee` est un jour CIVIL
+  // (`dateCivile`), l'heure, si le créneau en porte une, est lue dans le
+  // fuseau de l'AGENCE (`heureDuCreneau`) — jamais une seconde lecture qui
+  // pourrait diverger (§9, 01/09).
+  const heurePlanifiee = heureDuCreneau(bon.ligne, bon.fuseau);
+  const datePlanifieeAffichee =
+    bon.ligne.date_planifiee === null
+      ? t("statut.a_planifier")
+      : heurePlanifiee === null
+        ? dateCivile(bon.ligne.date_planifiee)
+        : `${dateCivile(bon.ligne.date_planifiee)} ${heurePlanifiee}`;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -151,14 +159,39 @@ export default async function PageBonIntervention({
 
         <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
           <Ligne
+            libelle={t("intervention.date")}
+            valeur={datePlanifieeAffichee}
+          />
+          <Ligne
+            libelle={t("intervention.type")}
+            valeur={objetDuBloc(bon.ligne)}
+          />
+          <Ligne
             libelle={t("intervention.client")}
             valeur={bon.client ?? "—"}
           />
           <Ligne libelle={mot("site")} valeur={bon.site ?? "—"} />
+          <Ligne libelle={t("site.adresse")} valeur={bon.adresseSite ?? "—"} />
           <Ligne libelle={mot("agence")} valeur={bon.agence ?? "—"} />
           <Ligne
             libelle={t("intervention.machine")}
-            valeur={aucuneMachine ? aucuneMachineSurLeSite() : machines}
+            valeur={
+              aucuneMachine
+                ? aucuneMachineSurLeSite()
+                : bon.machinesIdentifiees.join(", ")
+            }
+          />
+          <Ligne
+            libelle={t("intervention.panne_signalee")}
+            valeur={bon.ligne.description ?? "—"}
+          />
+          <Ligne
+            libelle={t("intervention.contact_sur_place")}
+            valeur={bon.contact ?? "—"}
+          />
+          <Ligne
+            libelle={t("intervention.reference_client")}
+            valeur={bon.ligne.reference_client ?? "—"}
           />
         </dl>
 
