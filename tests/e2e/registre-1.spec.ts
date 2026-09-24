@@ -42,6 +42,14 @@ import { ouvrirUneSession } from "./setup/session";
  * parallèle.
  */
 
+// SÉRIEL — `beforeAll`/`afterAll` de PLAYWRIGHT s'exécutent UNE FOIS PAR
+// WORKER, pas une fois pour le fichier : sous `fullyParallel`, plusieurs
+// workers auraient chacun écrit ET effacé la même scène en même temps,
+// mesuré ici par une collision d'identifiant (« Unique constraint failed »)
+// et une contrainte étrangère violée par un effacement concurrent — même
+// piège que `historique-client.spec.ts`.
+test.describe.configure({ mode: "serial" });
+
 const dictionnaire = fr as Record<string, string>;
 
 const CLIENT_REG1 = "52000000-0000-7000-8000-0000000000c1";
@@ -263,7 +271,9 @@ for (const { vue, interventionId, statutBadge } of ONGLETS) {
     // ponctuation écrite en dur dans une requête d'écran (L0-11) : « (1) »
     // n'est du texte attendu par personne, c'est un test de rendu qui lirait
     // une chaîne hors du dictionnaire.
-    const ongletActif = page.locator('a[aria-current="page"]');
+    const ongletActif = page.locator(
+      'nav[data-nav="onglets-registre"] a[aria-current="page"]',
+    );
     const texteOnglet = (await ongletActif.innerText()).trim();
     expect(texteOnglet).toContain(dictionnaire[`interventions.vue.${vue}`]!);
     const compteAffiche = /\((\d+)\)\s*$/.exec(texteOnglet)?.[1];

@@ -423,6 +423,7 @@ export default async function PageInterventions({
           (`comptesVue`, la MÊME `filtreDesInterventions` que le tableau). */}
       <nav
         aria-label={t("interventions.vue.aria")}
+        data-nav="onglets-registre"
         className="flex flex-wrap gap-2"
       >
         {ONGLETS_REGISTRE.map((vue) => {
