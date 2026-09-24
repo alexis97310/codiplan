@@ -46,5 +46,8 @@ async function traiter(
     return versLaFiche(id, "intervention.refus.inconnue");
   }
   const resultat = await enregistrerNoteInterne(contexte, saisie.data);
-  return versLaFiche(id, resultat === null ? "intervention.refus.inconnue" : undefined);
+  return versLaFiche(
+    id,
+    resultat === null ? "intervention.refus.inconnue" : undefined,
+  );
 }

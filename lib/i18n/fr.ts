@@ -3160,6 +3160,15 @@ export const fr = {
   "avertissements.e2e.site_sans_contact": "AV1 — Lieu sans donneur d'ordre",
   "avertissements.e2e.panne": "AV1 — Panne signalée pour l'épreuve.",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/interventions-2.spec.ts)
+  //
+  // Même raison que `avertissements.e2e.*` : sa PROPRE scène, créée et
+  // supprimée par l'épreuve, préfixée `INT2-` pour se distinguer du semis
+  // (`docs/propositions/50-INTERVENTIONS-2`).
+  "interventions2.e2e.client": "INT2 — Client de l'épreuve",
+  "interventions2.e2e.site": "INT2 — Lieu de l'épreuve",
+  "interventions2.e2e.panne": "INT2 — Panne signalée pour l'épreuve.",
+
   // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
   "navigation.fil_ariane": "Fil d'Ariane",
   "fil_ariane.clients": "Clients",

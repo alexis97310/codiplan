@@ -1142,7 +1142,8 @@ function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
     segment.fin === null
       ? t("intervention.realisation.en_cours")
       : dateHeureLocale(segment.fin, fuseau);
-  const duree = segment.minutes === null ? "" : ` (${minutes(segment.minutes)})`;
+  const duree =
+    segment.minutes === null ? "" : ` (${minutes(segment.minutes)})`;
   return `${segment.technicien}${t("ponctuation.separateur")}${dateHeureLocale(segment.debut, fuseau)}${FLECHE}${fin}${duree}`;
 }
 
@@ -1317,7 +1318,9 @@ function Pauses({
 }) {
   return (
     <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-      <h2 className="text-[13px] font-bold">{t("intervention.pauses.titre")}</h2>
+      <h2 className="text-[13px] font-bold">
+        {t("intervention.pauses.titre")}
+      </h2>
       {pauses.length === 0 ? (
         <p className="text-app-encre-faible text-[12px]">
           {t("intervention.pauses.aucune")}
@@ -1329,12 +1332,16 @@ function Pauses({
               key={pause.id}
               className="border-app-bord flex flex-col gap-1 border-b pb-3 text-[12.5px] last:border-b-0 last:pb-0"
             >
-              <p className="font-semibold">{lignePausePeriode(pause, fuseau)}</p>
+              <p className="font-semibold">
+                {lignePausePeriode(pause, fuseau)}
+              </p>
               <p>{lignePauseMotif(pause)}</p>
               {pause.pieceAttendueRef === null ? null : (
                 <p>{lignePausePiece(pause)}</p>
               )}
-              <p className="text-app-encre-faible">{lignePauseAuteurs(pause)}</p>
+              <p className="text-app-encre-faible">
+                {lignePauseAuteurs(pause)}
+              </p>
             </li>
           ))}
         </ul>

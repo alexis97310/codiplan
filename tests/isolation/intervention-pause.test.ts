@@ -256,9 +256,8 @@ describe("la note interne — back-office seulement, invisible ailleurs par cons
       { intervention_id: id, note_interne: "Jamais sur le terrain." },
       clientApp(),
     );
-    const { lireRapportTexte } = await import(
-      "@/lib/interventions/depot-rapport-terrain"
-    );
+    const { lireRapportTexte } =
+      await import("@/lib/interventions/depot-rapport-terrain");
     const rapport = await lireRapportTexte(SESSION_A, id, clientApp());
     expect(rapport).not.toBeNull();
     expect(Object.keys(rapport ?? {})).not.toContain("note_interne");

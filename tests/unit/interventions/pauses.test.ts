@@ -42,9 +42,7 @@ describe("chronologieDeLaFiche : ouvrir produit un évènement, fermer en ajoute
   it("une pause ENCORE OUVERTE ne produit QUE l'évènement d'ouverture — jamais une fermeture inventée", () => {
     const evenements = chronologieDeLaFiche({
       creeLe,
-      pauses: [
-        { debut: new Date("2026-09-02T09:00:00.000Z"), fin: null },
-      ],
+      pauses: [{ debut: new Date("2026-09-02T09:00:00.000Z"), fin: null }],
       clotureeLe: null,
       annuleeLe: null,
     });

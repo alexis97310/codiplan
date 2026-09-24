@@ -2056,9 +2056,7 @@ export async function pausesDeLIntervention(
       const identites = [
         ...new Set(
           pauses.flatMap((p) =>
-            [p.ouvert_par, p.fermee_par].filter(
-              (v): v is string => v !== null,
-            ),
+            [p.ouvert_par, p.fermee_par].filter((v): v is string => v !== null),
           ),
         ),
       ];
