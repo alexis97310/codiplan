@@ -2376,6 +2376,16 @@ export const fr = {
   "absences.calendrier_suivante": "›",
   "absences.pastille_bloque": "Bloqué",
   "absences.pastille_separateur": "·",
+
+  // ── L'APERÇU AVANT LA POSE (SAV-12, 59-ABSENCES-2) ────────────────────────
+  //
+  // Avant de bloquer un agenda, l'écran annonce ce que la pose va rendre à la
+  // file — les mêmes interventions, jamais un décompte recalculé à l'affichage.
+  "absences.apercu_action": "Voir l'impact",
+  "absences.apercu_prefixe": "Cette absence rendra",
+  "absences.apercu_suffixe_une": "intervention à la file :",
+  "absences.apercu_suffixe": "interventions à la file :",
+  "absences.apercu_aucune": "Aucune intervention touchée.",
   "absence.refus.saisie":
     "Un blocage se pose avec une personne, une date de début et une date de fin, la seconde après la première.",
   "absence.refus.pour_autrui":

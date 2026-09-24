@@ -1,4 +1,4 @@
-import { type PrismaClient } from "@prisma/client";
+import { type Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -109,6 +109,91 @@ export type ResultatBlocage = {
 };
 
 /**
+ * LES INTERVENTIONS POSÉES SUR LA PÉRIODE D'UN BLOCAGE, ET CELLES QU'IL
+ * RENDRAIT À LA FILE — LA SEULE LECTURE, appelée par `declarerAbsence` ET
+ * `apercuAbsence`.
+ *
+ * **Factorisée pour qu'un aperçu et une pose ne puissent jamais diverger** :
+ * les deux appellent ce même `findMany` et ce même `interventionsADeplanifier`
+ * — jamais une copie qui vieillirait seule (§9, 01/09).
+ *
+ * La borne SQL sert l'index ; *le jour exact est tranché par la RÈGLE*, et par
+ * elle seule (§9, 01/09).
+ */
+async function interventionsPoseesSurLaPeriode(
+  tx: Prisma.TransactionClient,
+  saisie: {
+    readonly utilisateur_id: string;
+    readonly du: Date;
+    readonly au: Date;
+  },
+): Promise<{
+  readonly posees: readonly {
+    readonly id: string;
+    readonly technicien_id: string | null;
+    readonly date_planifiee: Date | null;
+    readonly statut: string;
+    readonly agence_id: string;
+  }[];
+  readonly aRendre: readonly string[];
+}> {
+  const posees = await tx.intervention.findMany({
+    where: {
+      technicien_id: saisie.utilisateur_id,
+      date_planifiee: { gte: saisie.du, lte: saisie.au },
+    },
+    select: {
+      id: true,
+      technicien_id: true,
+      date_planifiee: true,
+      statut: true,
+      // L'AGENCE DE L'INTERVENTION, jamais celle de l'absent (D106, D112) :
+      // ce qui se rompt est le service rendu QUELQUE PART, et « quelque
+      // part » est l'endroit où l'intervention devait avoir lieu.
+      agence_id: true,
+    },
+  });
+  const aRendre = interventionsADeplanifier(posees, {
+    id: "",
+    utilisateur_id: saisie.utilisateur_id,
+    du: saisie.du,
+    au: saisie.au,
+  } satisfies AbsenceDeclaree);
+  return { posees, aRendre };
+}
+
+/**
+ * L'APERÇU D'UN BLOCAGE — CE QU'IL RENDRAIT À LA FILE, RIEN N'EST ÉCRIT
+ * (SAV-12).
+ *
+ * Avant de poser, l'écran doit pouvoir montrer l'impact. Cette lecture appelle
+ * EXACTEMENT le même critère que `declarerAbsence` — voir
+ * `interventionsPoseesSurLaPeriode`, la seule fonction que les deux appellent
+ * — pour que l'aperçu et la pose ne puissent jamais désigner deux listes
+ * différentes.
+ *
+ * **Rendues, et non comptées** : même raison que `ResultatBlocage.deplanifiees`.
+ */
+export async function apercuAbsence(
+  contexte: ContexteSession,
+  saisie: {
+    readonly utilisateur_id: string;
+    readonly du: Date;
+    readonly au: Date;
+  },
+  client?: PrismaClient,
+): Promise<readonly string[]> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const { aRendre } = await interventionsPoseesSurLaPeriode(tx, saisie);
+      return aRendre;
+    },
+    client,
+  );
+}
+
+/**
  * POSER un blocage d'agenda — et déplanifier, dans la MÊME transaction.
  *
  * **Il n'y a pas de second geste**, et c'est ce que R3-14 a tranché : le
@@ -127,31 +212,10 @@ export async function declarerAbsence(
       // ── LA DÉPLANIFICATION D'ABORD, et l'ordre est INDIFFÉRENT — MESURÉ.
       // Voir l'entête : la raison qu'on écrirait spontanément est fausse, et
       // elle a été mise en échec plutôt que relue.
-      //
-      // La borne SQL sert l'index ; *le jour exact est tranché par la RÈGLE*,
-      // et par elle seule (§9, 01/09).
-      const posees = await tx.intervention.findMany({
-        where: {
-          technicien_id: saisie.utilisateur_id,
-          date_planifiee: { gte: saisie.du, lte: saisie.au },
-        },
-        select: {
-          id: true,
-          technicien_id: true,
-          date_planifiee: true,
-          statut: true,
-          // L'AGENCE DE L'INTERVENTION, jamais celle de l'absent (D106, D112) :
-          // ce qui se rompt est le service rendu QUELQUE PART, et « quelque
-          // part » est l'endroit où l'intervention devait avoir lieu.
-          agence_id: true,
-        },
-      });
-      const aRendre = interventionsADeplanifier(posees, {
-        id: "",
-        utilisateur_id: saisie.utilisateur_id,
-        du: saisie.du,
-        au: saisie.au,
-      } satisfies AbsenceDeclaree);
+      const { posees, aRendre } = await interventionsPoseesSurLaPeriode(
+        tx,
+        saisie,
+      );
 
       if (aRendre.length > 0) {
         await tx.intervention.updateMany({

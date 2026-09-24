@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { apercuAbsence } from "@/lib/absences/depot";
 import {
   lireLesAbsences,
   nommerLesAgences,
@@ -38,6 +39,7 @@ import {
   libelleMoisAnnee,
   libelleRuptureAucune,
   pastillesDuJour,
+  saisieApercuDepuisUrl,
   semaineAffichee,
   versDateCivile,
 } from "./presentation";
@@ -137,6 +139,15 @@ export default async function PageAbsences({
   const motif = parametres.motif;
   const rendues = identifiants(lu(parametres.rendues));
   const rompues = identifiants(lu(parametres.rompues));
+  const apercuSaisie = saisieApercuDepuisUrl(parametres);
+  // UN APPEL DE PLUS, SÉQUENTIEL, JAMAIS IMBRIQUÉ : `apercuAbsence` ouvre sa
+  // PROPRE transaction cloisonnée — le même principe que les multiples appels
+  // de `tableau-de-bord/page.tsx`. L'imbriquer dans le `avecContexteApplicatif`
+  // ci-dessous ouvrirait une seconde transaction À L'INTÉRIEUR de la première.
+  const apercu =
+    apercuSaisie === null
+      ? null
+      : await apercuAbsence(session.contexte, apercuSaisie);
 
   const vue = await avecContexteApplicatif(session.contexte, async (tx) => {
     // L'HEURE SE LIT AVEC UN FUSEAU, jamais nue (L0-08) : sous UTC+11 le jour
@@ -176,6 +187,11 @@ export default async function PageAbsences({
         tx,
         rupture.map((r) => r.agenceId),
       ),
+      // NOMMÉES DANS LA MÊME TRANSACTION QUE `rendues`/`rompues` — même
+      // principe : `apercuAbsence` a dit LESQUELLES, cette lecture dit
+      // comment elles s'appellent, et rien de plus.
+      interventionsApercu:
+        apercu === null ? null : await nommerLesInterventions(tx, apercu),
     };
   });
 
@@ -303,10 +319,11 @@ export default async function PageAbsences({
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         <h2 className="text-[14px] font-bold">{t("absences.declarer")}</h2>
         <form
-          action="/api/absences/declarer"
-          method="post"
+          action="/absences"
+          method="get"
           className="flex flex-wrap items-end gap-2"
         >
+          <input type="hidden" name="apercu" value="1" />
           <div className="flex flex-col gap-1">
             <label
               htmlFor="absence-personne"
@@ -317,6 +334,7 @@ export default async function PageAbsences({
             <select
               id="absence-personne"
               name="utilisateur_id"
+              defaultValue={apercuSaisie?.utilisateur_id}
               className="border-app-bord bg-app-surface min-w-52 rounded-md border px-2 py-1 text-[12.5px]"
             >
               {vue.declarables.map((personne) => (
@@ -329,12 +347,64 @@ export default async function PageAbsences({
               ))}
             </select>
           </div>
-          <ChampJour id="absence-du" nom="du" libelle={t("absences.du")} />
-          <ChampJour id="absence-au" nom="au" libelle={t("absences.au")} />
+          <ChampJour
+            id="absence-du"
+            nom="du"
+            libelle={t("absences.du")}
+            valeur={
+              apercuSaisie === null
+                ? undefined
+                : versChaineJourInput(apercuSaisie.du)
+            }
+          />
+          <ChampJour
+            id="absence-au"
+            nom="au"
+            libelle={t("absences.au")}
+            valeur={
+              apercuSaisie === null
+                ? undefined
+                : versChaineJourInput(apercuSaisie.au)
+            }
+          />
           <Button type="submit" variant="outline" size="sm">
-            {t("absences.declarer_action")}
+            {t("absences.apercu_action")}
           </Button>
         </form>
+
+        {apercuSaisie !== null && vue.interventionsApercu !== null ? (
+          <section
+            role="status"
+            className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          >
+            <p>{libelleApercu(vue.interventionsApercu)}</p>
+            <form
+              action="/api/absences/declarer"
+              method="post"
+              className="flex"
+            >
+              <input
+                type="hidden"
+                name="utilisateur_id"
+                value={apercuSaisie.utilisateur_id}
+              />
+              <input
+                type="hidden"
+                name="du"
+                value={versChaineJourInput(apercuSaisie.du)}
+              />
+              <input
+                type="hidden"
+                name="au"
+                value={versChaineJourInput(apercuSaisie.au)}
+              />
+              <Button type="submit" variant="outline" size="sm">
+                {t("absences.declarer_action")}
+              </Button>
+            </form>
+          </section>
+        ) : null}
+
         <p className="text-app-encre-faible text-[11.5px]">
           {t("absences.immediat")}
         </p>
@@ -429,10 +499,13 @@ function ChampJour({
   id,
   nom,
   libelle,
+  valeur,
 }: {
   readonly id: string;
   readonly nom: string;
   readonly libelle: string;
+  /** Préremplit le champ après un aperçu — la saisie reste sous les yeux (SAV-12). */
+  readonly valeur?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -443,6 +516,7 @@ function ChampJour({
         id={id}
         name={nom}
         type="date"
+        defaultValue={valeur}
         className="border-app-bord bg-app-surface rounded-md border px-2 py-1 text-[12.5px]"
       />
     </div>
@@ -519,6 +593,7 @@ function lu(valeur: string | string[] | undefined): string | undefined {
 const SEPARATEUR = ", ";
 const TIRET = " → ";
 const BARRE = "/";
+const TIRET_ISO = "-";
 
 /**
  * Une journée civile, écrite à la main plutôt que par la locale.
@@ -545,6 +620,20 @@ function periode(du: Date, au: Date): string {
   return `${jourEcrit(du)}${TIRET}${jourEcrit(au)}`;
 }
 
+/**
+ * `du`/`au` EN CHAÎNE ISO (`AAAA-MM-JJ`), pour préremplir un `<input
+ * type="date">` ou porter un champ caché — jamais la forme d'affichage
+ * `jourEcrit` (SAV-12).
+ *
+ * `toISOString` reste en UTC quel que soit le fuseau de la machine qui rend la
+ * page (L0-08) : sûr pour une colonne `@db.Date`, posée à minuit UTC.
+ */
+function versChaineJourInput(journee: Date): string {
+  const jourNum = String(journee.getUTCDate()).padStart(2, "0");
+  const moisNum = String(journee.getUTCMonth() + 1).padStart(2, "0");
+  return `${journee.getUTCFullYear()}${TIRET_ISO}${moisNum}${TIRET_ISO}${jourNum}`;
+}
+
 function listeDesInterventions(
   interventions: readonly {
     readonly id: string;
@@ -556,6 +645,29 @@ function listeDesInterventions(
   // qui nomment la même intervention de deux façons obligent à deviner qu'il
   // s'agit de la même (§9, 01/09).
   return interventions.map(referenceAffichee).join(SEPARATEUR);
+}
+
+/**
+ * LE MESSAGE DE L'APERÇU — « Cette absence rendra N intervention(s) à la
+ * file : … » ou « Aucune intervention touchée » (SAV-12).
+ *
+ * Composé HORS du JSX, comme `periode` et `listeDesInterventions` juste
+ * au-dessus (L0-11).
+ */
+function libelleApercu(
+  interventions: readonly {
+    readonly id: string;
+    readonly numero: number | null;
+  }[],
+): string {
+  if (interventions.length === 0) {
+    return t("absences.apercu_aucune");
+  }
+  const suffixe =
+    interventions.length === 1
+      ? t("absences.apercu_suffixe_une")
+      : t("absences.apercu_suffixe");
+  return `${t("absences.apercu_prefixe")} ${interventions.length} ${suffixe} ${listeDesInterventions(interventions)}`;
 }
 
 function listeDesAgences(

@@ -1,4 +1,8 @@
 import { type Annuaire } from "@/lib/auth/annuaire";
+import {
+  schemaCreationAbsence,
+  type CreationAbsence,
+} from "@/lib/absences/saisie";
 import { cleJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { jourSemaineIso, joursDeLaSemaine } from "@/lib/calendar/semaine";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -184,4 +188,48 @@ export function libelleRuptureAucune(): string {
 /** Le lien de navigation d'une semaine — le même principe que `/planning`. */
 export function hrefSemaine(lundi: JourLocal): string {
   return `/absences?semaine=${cleJour(lundi)}`;
+}
+
+/**
+ * LA SAISIE DE L'APERÇU, LUE DEPUIS L'URL DU FORMULAIRE « VOIR L'IMPACT »
+ * (`?apercu=1&utilisateur_id=…&du=…&au=…`, SAV-12).
+ *
+ * Validée par le MÊME schéma que la pose (`schemaCreationAbsence`, exporté par
+ * `lib/absences/saisie.ts`) : un aperçu qui accepterait une saisie que la pose
+ * refuserait mentirait sur ce qui va se passer. Une saisie absente ou illisible
+ * rend `null` plutôt qu'une valeur devinée (L1-02f) — l'écran retombe alors sur
+ * le formulaire nu, sans aperçu.
+ */
+const JOUR_CIVIL_URL = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
+
+function jourCivilDepuisUrl(brut: string | undefined): Date | null {
+  if (brut === undefined || !JOUR_CIVIL_URL.test(brut)) {
+    return null;
+  }
+  const jour = new Date(`${brut}T00:00:00.000Z`);
+  return Number.isNaN(jour.getTime()) ? null : jour;
+}
+
+export function saisieApercuDepuisUrl(
+  parametres: Record<string, string | string[] | undefined>,
+): CreationAbsence | null {
+  if (parametres.apercu !== "1") {
+    return null;
+  }
+  const utilisateurId = parametres.utilisateur_id;
+  const du = jourCivilDepuisUrl(
+    typeof parametres.du === "string" ? parametres.du : undefined,
+  );
+  const au = jourCivilDepuisUrl(
+    typeof parametres.au === "string" ? parametres.au : undefined,
+  );
+  if (typeof utilisateurId !== "string" || du === null || au === null) {
+    return null;
+  }
+  const saisie = schemaCreationAbsence.safeParse({
+    utilisateur_id: utilisateurId,
+    du,
+    au,
+  });
+  return saisie.success ? saisie.data : null;
 }
