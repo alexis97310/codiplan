@@ -48,8 +48,8 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 import {
   hrefOnglet,
-  libelleCleOnglet,
   libelleFiltreAgence,
+  libelleOngletAvecCompte,
   machinesAffichees,
   ONGLETS_REGISTRE,
   optionToutesLesAgences,
@@ -438,7 +438,7 @@ export default async function PageInterventions({
                   : "border-app-bord bg-app-surface"
               }`}
             >
-              {t(libelleCleOnglet(vue))} ({comptesVue[vue ?? "toutes"]})
+              {libelleOngletAvecCompte(vue, comptesVue[vue ?? "toutes"])}
             </Link>
           );
         })}

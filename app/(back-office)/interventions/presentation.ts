@@ -360,6 +360,21 @@ export function libelleCleOnglet(vue: VueRegistre | null): CleTraduction {
 }
 
 /**
+ * LE LIBELLÉ D'UN ONGLET AVEC SON COMPTE — « À planifier (3) ».
+ *
+ * Composé ICI, jamais dans le JSX de l'écran (AT-07, même raison que
+ * `decompte`/`libellePage` de `../presentation`) : le gardien des chaînes
+ * visibles (L0-11) refuse un littéral — même la seule ponctuation d'un
+ * compte — posé nu dans un conteneur JSX.
+ */
+export function libelleOngletAvecCompte(
+  vue: VueRegistre | null,
+  compte: number,
+): string {
+  return `${t(libelleCleOnglet(vue))} (${compte})`;
+}
+
+/**
  * L'URL D'UN ONGLET — les AUTRES filtres actifs préservés, `vue` posé (ou
  * retiré pour « Toutes »), et la page toujours remise à 1 : changer d'onglet
  * est une nouvelle recherche, pas une page suivante de l'ancienne.
