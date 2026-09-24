@@ -182,6 +182,25 @@ async function capturer(page: Page, nom: string): Promise<void> {
   });
 }
 
+/**
+ * 64-REGISTRE-2-REPRISE — le filtre technicien composait déjà avec `vue`
+ * (52-REGISTRE-1) dans `filtreDesInterventions`, mais rien ne le montrait à
+ * l'écran : capture dédiée, dans le dossier de cette reprise.
+ */
+const DOSSIER_CAPTURES_REPRISE = join(
+  process.cwd(),
+  "docs/propositions/64-REGISTRE-2-REPRISE/captures",
+);
+
+async function capturerReprise(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES_REPRISE, { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES_REPRISE, `${nom}-1280.png`),
+    fullPage: true,
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
@@ -262,4 +281,23 @@ test("le sélecteur propose les deux techniciens forgés, nommés", async ({
     select.locator("option", { hasText: fr["registre2.e2e.technicien_b"] }),
   ).toHaveCount(1);
   await capturer(page, "filtre-technicien-aucun");
+});
+
+test("64-REGISTRE-2-REPRISE — le filtre technicien compose avec l'onglet « à planifier »", async ({
+  page,
+}) => {
+  // Les trois interventions de la scène sont posées « a_planifier » — le
+  // filtre technicien ne retire ici que l'INTERVENTION_NON_AFFECTEE, l'onglet
+  // ne devant en retirer aucune : les deux critères composent dans le MÊME
+  // `filtreDesInterventions` (lib/interventions/depot.ts), jamais deux
+  // lectures séparées.
+  await page.goto("/interventions?q=REG2-&technicien=aucun&vue=a_planifier");
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+  await expect(page.locator('select[name="technicien"]')).toHaveValue(
+    "aucun",
+  );
+  await expect(page.locator('[aria-current="page"]')).toContainText(
+    fr["interventions.vue.a_planifier"],
+  );
+  await capturerReprise(page, "filtre-technicien-aucun-vue-a-planifier");
 });
