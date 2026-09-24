@@ -1,0 +1,17 @@
+{
+  "commit": "6c3db2f1c8132e5397486047a4e8721c8b63db4c",
+  "horodatage": "2026-09-24T22:29:13.615Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "ecrans": {
+    "fiche_demande_avant": {
+      "url": "/demandes/e2e00000-0000-7000-8000-00000000d2a5"
+    },
+    "formulaire_prerempli": {
+      "url": "/interventions/nouvelle?demande=e2e00000-0000-7000-8000-00000000d2a5"
+    },
+    "fiche_demande_apres": {
+      "url": "/demandes/e2e00000-0000-7000-8000-00000000d2a5"
+    }
+  }
+}
