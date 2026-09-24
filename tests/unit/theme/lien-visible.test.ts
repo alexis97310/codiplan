@@ -178,6 +178,10 @@ describe("LE DOMICILE — un seul habillage, et il est employé", () => {
       // ne se regardent que sur un téléphone.
       "app/(mobile)/terrain/[id]/page.tsx",
       "app/(mobile)/terrain/page.tsx",
+      // LE FIL D'ARIANE PARTAGÉ (FICHE-360-1, 24/09/2026) y entre avec le
+      // lien vers chaque ancêtre — `Clients › <client> › <site>` — que les
+      // fiches client et site posent désormais au-dessus du titre.
+      "components/mise-en-page/page.tsx",
       // LA PAGINATION PARTAGÉE (AT-07, 17/09/2026) y entre avec les liens
       // « page précédente »/« page suivante » des quatre écrans qui paginent
       // désormais — clients, parc, sites, interventions.

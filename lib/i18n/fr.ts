@@ -3109,11 +3109,15 @@ export const fr = {
   //
   // Un compteur INCONNU (aucun fait en base pour le dire) s'écrit « — »,
   // jamais 0 — la même règle que `ouTiret` applique déjà ailleurs (D88).
-  "clients.fiche.synthese.sites_actifs": "Sites actifs",
+  // AUCUNE valeur ci-dessous n'écrit « site »/« agence » en clair (D5, D47,
+  // L0-11) : « lieu(x) » reprend la paraphrase déjà retenue par
+  // `clients.fiche.sites` et `sites.fiche.contacts_vide` ; le mot lui-même,
+  // quand un libellé en a réellement besoin, se compose depuis `mot("site")`
+  // dans l'écran, jamais ici.
+  "clients.fiche.synthese.sites_actifs": "Lieux d'intervention actifs",
   "clients.fiche.synthese.equipements": "Équipements",
   "clients.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
   "clients.fiche.synthese.derniere_intervention": "Dernière intervention",
-  "clients.action.ajouter_site": "+ Site",
   "clients.action.ajouter_intervention": "+ Intervention",
   "clients.fiche.sites.equipements": "Équipements",
 
@@ -3125,8 +3129,9 @@ export const fr = {
   "sites.action.ajouter_machine": "+ Machine",
 
   // ── LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1) ───────────────────────
-  "sites.fiche.equipements": "Équipements du site",
-  "sites.fiche.equipements_vide": "Aucun équipement enregistré sur ce site.",
+  "sites.fiche.equipements": "Équipements enregistrés",
+  "sites.fiche.equipements_vide":
+    "Aucun équipement n'est enregistré pour ce lieu.",
   "sites.fiche.equipements.colonne_famille": "Famille",
   "sites.fiche.equipements.colonne_materiel": "Marque / référence",
   "sites.fiche.equipements.colonne_serie": "N° de série",
@@ -3135,13 +3140,19 @@ export const fr = {
   "sites.fiche.equipement_resultat_un": "équipement",
   "sites.fiche.equipement_resultat": "équipements",
 
+  // « + AGENCE/SITE », COMPOSÉ AVEC LE MOT IMPOSÉ (FICHE-360-1) — seul le
+  // signe s'écrit ici, jamais le mot : `{t("action.ajouter")} {mot("site")}`
+  // dans l'écran (D5, D47, L0-11).
+  "action.ajouter": "+",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-360-1.spec.ts)
   //
   // Sa PROPRE scène, créée et supprimée par l'épreuve, préfixée `F360-` pour
-  // se distinguer du semis — même discipline que `avertissements.e2e.*`.
+  // se distinguer du semis — même discipline que `avertissements.e2e.*`, et
+  // « Lieu » plutôt que « Site » pour la même raison que `avertissements.e2e.site`.
   "fiche360.e2e.client": "F360 — Client de la fiche 360",
-  "fiche360.e2e.site_un": "F360 — Site avec équipements",
-  "fiche360.e2e.site_deux": "F360 — Site sans équipement de ce lot",
+  "fiche360.e2e.site_un": "F360 — Lieu avec équipements",
+  "fiche360.e2e.site_deux": "F360 — Lieu sans équipement de ce lot",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

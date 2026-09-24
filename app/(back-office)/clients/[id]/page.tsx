@@ -299,7 +299,7 @@ export default async function PageClient({
         <>
           {peutGererSite ? (
             <LienPrimaire href={`/sites/nouveau?client=${client.id}`}>
-              {t("clients.action.ajouter_site")}
+              {t("action.ajouter")} {mot("site")}
             </LienPrimaire>
           ) : null}
           {peutCreerIntervention ? (
