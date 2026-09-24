@@ -8,6 +8,7 @@ import { urlAdministration } from "./setup/base";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
+import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -38,6 +39,7 @@ test.describe.configure({ mode: "serial" });
 async function siteDeDucos(ordre: "asc" | "desc" = "asc"): Promise<{
   readonly siteId: string;
   readonly clientId: string;
+  readonly siteLibelle: string;
 }> {
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
@@ -57,10 +59,14 @@ async function siteDeDucos(ordre: "asc" | "desc" = "asc"): Promise<{
         agence_id: agence.id,
         client: { actif: true },
       },
-      select: { id: true, client_id: true },
+      select: { id: true, client_id: true, libelle: true },
       orderBy: { libelle: ordre },
     });
-    return { siteId: site.id, clientId: site.client_id };
+    return {
+      siteId: site.id,
+      clientId: site.client_id,
+      siteLibelle: site.libelle,
+    };
   } finally {
     await client.$disconnect();
   }
@@ -81,7 +87,7 @@ test.beforeEach(async ({ page }) => {
 test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu et la panne", async ({
   page,
 }) => {
-  const { siteId, clientId } = await siteDeDucos();
+  const { siteLibelle } = await siteDeDucos();
   await page.goto("/interventions/nouvelle");
 
   // LES CHAMPS RETIRÉS N'EXISTENT PLUS DU TOUT (PARCOURS-1).
@@ -91,9 +97,7 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
 
   // LA PANNE EST OBLIGATOIRE : soumettre sans elle est refusé par le
   // navigateur lui-même (`required`), et par le serveur si on le contourne.
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   const panne = page.locator('textarea[name="description"]');
   await expect(panne).toHaveAttribute("required", "");
 
@@ -128,11 +132,9 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   // ce MÊME site, sous `fullyParallel`, avant de la retirer. L'ordre DESCENDANT
   // vise le second site Ducos (« Atelier sous contrat (démonstration) »),
   // qu'aucun autre scénario du dépôt ne touche.
-  const { siteId, clientId } = await siteDeDucos("desc");
+  const { siteLibelle } = await siteDeDucos("desc");
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — planifier");
@@ -240,7 +242,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  const { siteId, clientId } = await siteDeDucos();
+  const { siteLibelle } = await siteDeDucos();
   const reperes = await reperesDeLaScene();
   // NEUF SEMAINES PLUS LOIN, ET C'EST UNE MESURE — le MARDI ordinaire porte
   // déjà les rendez-vous posés par le scénario voisin de ce même fichier
@@ -255,9 +257,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
 
   // Une intervention À PLANIFIER, créée par le formulaire.
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — glisser-déposer");

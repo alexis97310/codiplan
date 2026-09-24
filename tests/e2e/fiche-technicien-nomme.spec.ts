@@ -8,6 +8,7 @@ import { jourSuivant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
+import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -96,10 +97,7 @@ function valeurTechnicien(page: Page) {
 /** Crée une intervention sur le premier site — NI date, NI technicien (PARCOURS-1). */
 async function creerUneIntervention(page: Page): Promise<void> {
   await page.goto("/interventions/nouvelle");
-  const optionsSite = page.locator('select[name="site"] option');
-  await expect(optionsSite.first()).toBeAttached();
-  const valeurSite = await optionsSite.first().getAttribute("value");
-  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
+  await choisirPremierResultat(page, "site");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — fiche-technicien-nomme");

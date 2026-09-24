@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fr, mot } from "@/lib/i18n";
 
 import { COMPTE_TECHNICIEN_EPREUVE } from "./setup/scene";
+import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { ouvrirLaSessionSensible, ouvrirUneSession } from "./setup/session";
 
 /**
@@ -170,7 +171,7 @@ test("la case ACTIVE persiste, l'état en lecture suit, et la pastille n'appara�
   // (`prisma/seed-data.ts`), et le décocher ici fausserait le scénario du
   // filtre qui suit.
   await page.goto("/sites/nouveau");
-  await page.locator('select[name="client_id"]').selectOption({ index: 1 });
+  await choisirPremierResultat(page, "client_id");
   await page.locator('select[name="agence_id"]').selectOption({ index: 1 });
   await page
     .locator('input[name="libelle"]')

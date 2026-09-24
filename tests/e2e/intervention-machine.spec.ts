@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -38,6 +39,7 @@ type MachineDeSite = {
 async function siteAvecLePlusDeMachines(): Promise<{
   readonly siteId: string;
   readonly clientId: string;
+  readonly siteLibelle: string;
   readonly machines: readonly MachineDeSite[];
 }> {
   const client = new PrismaClient({
@@ -94,7 +96,11 @@ async function siteAvecLePlusDeMachines(): Promise<{
         "aucune machine dans le semis : ce scénario ne peut rien choisir",
       );
     }
-    return meilleur;
+    const site = await client.site.findUniqueOrThrow({
+      where: { id: meilleur.siteId },
+      select: { libelle: true },
+    });
+    return { ...meilleur, siteLibelle: site.libelle };
   } finally {
     await client.$disconnect();
   }
@@ -107,13 +113,11 @@ test.beforeEach(async ({ page }) => {
 test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", async ({
   page,
 }) => {
-  const { siteId, clientId, machines } = await siteAvecLePlusDeMachines();
+  const { siteLibelle, machines } = await siteAvecLePlusDeMachines();
   const machine = machines[0];
 
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
 
   const optionMachine = page.locator(
     `select[name="machine_ids"] option[value="${machine.id}"]`,
@@ -141,15 +145,13 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
 test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", async ({
   page,
 }) => {
-  const { siteId, clientId, machines } = await siteAvecLePlusDeMachines();
+  const { siteLibelle, machines } = await siteAvecLePlusDeMachines();
   const machine = machines[0];
 
   // UNE INTERVENTION SANS MACHINE, d'abord — le cas ordinaire du dépannage à
   // l'aveugle (voir `schemaCreation`).
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine après coup");

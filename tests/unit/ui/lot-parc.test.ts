@@ -8,9 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FormulaireMachine,
   interpreterReponseMachine,
-  type OptionClient,
-  type OptionModele,
-  type OptionSite,
 } from "@/components/parc/formulaire-machine";
 import { fr } from "@/lib/i18n/fr";
 
@@ -49,21 +46,6 @@ function reel(chemin: string): string {
   return readFileSync(join(RACINE, chemin), "utf8");
 }
 
-const MODELES: readonly OptionModele[] = [
-  {
-    id: "modele-1",
-    marque: "Komatsu",
-    reference: "PC200",
-    familleLibelle: "Pelles",
-  },
-];
-const CLIENTS: readonly OptionClient[] = [
-  { id: "client-1", raisonSociale: "SARL Test" },
-];
-const SITES: readonly OptionSite[] = [
-  { id: "site-1", libelle: "Site A", clientId: "client-1" },
-];
-
 const VALEURS_VIDES = {
   numeroSerie: "",
   referenceInterne: "",
@@ -81,9 +63,6 @@ function formulaireDeCreation() {
       mode: "creation",
       action: "/api/machines/creer",
       motifSucces: "machine.creee",
-      modeles: MODELES,
-      clients: CLIENTS,
-      sites: SITES,
       valeurs: VALEURS_VIDES,
     }),
   );
@@ -324,9 +303,6 @@ describe("le mode modification ne rend ni le modèle, ni le client, ni le site, 
         mode: "modification",
         action: "/api/machines/machine-1/modifier",
         motifSucces: "machine.modifiee",
-        modeles: [],
-        clients: [],
-        sites: [],
         valeurs: { ...VALEURS_VIDES, numeroSerie: "SN-001" },
         lectureSeule: LECTURE_SEULE_MACHINE_1,
       }),

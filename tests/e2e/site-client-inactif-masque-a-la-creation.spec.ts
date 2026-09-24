@@ -21,10 +21,12 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * `tests/isolation/client-inactif-masque.test.ts` prouve que `listerPlanning`
  * et `listerInterventions` (`lib/interventions/depot.ts`) écartent le client
- * inactif. Il ne prouve rien de `/interventions/nouvelle` : cette route lit sa
- * propre liste de sites, dans son propre fichier, et c'est exactement là que
- * le filtre manquait — une seconde lecture d'un même critère (`client.actif`)
- * qui avait divergé de la première en silence (§9, 01/09). Ce fichier éprouve
+ * inactif. Il ne prouve rien de `/interventions/nouvelle` : cet écran cherche
+ * son site par `/api/recherche/sites?clientActif=1` (SELECTEURS-1,
+ * 24/09/2026), qui pose `client_actif: true` sur `rechercherSites` — c'est
+ * exactement là que le filtre vivait, avant SELECTEURS-1, comme une SECONDE
+ * lecture du même critère (`client.actif`) posée en dur sur cet écran, qui
+ * avait divergé de la première en silence (§9, 01/09). Ce fichier éprouve
  * donc L'ÉCRAN de création, pas le dépôt du planning.
  *
  * ## LE TÉMOIN
@@ -62,14 +64,25 @@ test("le site d'un client inactif n'apparaît pas dans la liste des lieux de la 
 
   await page.goto("/interventions/nouvelle");
 
+  // ON CHERCHE PAR LE NOM DU CLIENT INACTIF — exactement ce que la mesure en
+  // production montrait (« Ancien client — Ancien chantier »).
+  const champ = page.locator('[data-selecteur="site"] input[type="text"]');
+  await champ.click();
+  await champ.fill(clientInactif.raison_sociale);
+  await page.waitForLoadState("networkidle");
+
   await expect(
-    page.locator(
-      `select[name="site"] option[value="${clientInactif.id}:${siteInactif.id}"]`,
-    ),
+    page
+      .locator('[data-selecteur="site"] li[role="option"]')
+      .filter({ hasText: siteInactif.libelle }),
   ).toHaveCount(0);
 
-  // TÉMOIN : la liste n'est pas vide pour autant — le filtre écarte le
-  // client inactif, il ne vide pas la liste entière (§9, 30/08 : un gardien
-  // qui rendrait vert sur rien ne prouve rien).
-  await expect(page.locator('select[name="site"] option')).not.toHaveCount(0);
+  // TÉMOIN : la recherche n'est pas structurellement vide — le filtre écarte
+  // le client inactif, il ne vide pas la liste entière (§9, 30/08 : un
+  // gardien qui rendrait vert sur rien ne prouve rien).
+  await champ.fill("");
+  await page.waitForLoadState("networkidle");
+  await expect(
+    page.locator('[data-selecteur="site"] li[role="option"]'),
+  ).not.toHaveCount(0);
 });

@@ -5,20 +5,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
-import {
-  FormulaireMachine,
-  type OptionClient,
-  type OptionModele,
-  type OptionSite,
-} from "@/components/parc/formulaire-machine";
-import { tousLesResultats } from "@/components/parc/pagination";
+import { FormulaireMachine } from "@/components/parc/formulaire-machine";
 import { obtenirSession } from "@/lib/auth/session";
-import { rechercherClients } from "@/lib/clients/depot";
-import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_CLIENTS } from "@/lib/clients/saisie";
+import { lireClient } from "@/lib/clients/depot";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
-import { listerLesFamilles, listerLesModeles } from "@/lib/materiel/depot";
-import { rechercherSites } from "@/lib/sites/depot";
-import { LIMITE_RECHERCHE_MAXIMALE as LIMITE_SITES } from "@/lib/sites/saisie";
+import { lireSite } from "@/lib/sites/depot";
 
 export const metadata: Metadata = { title: t("machine.nouvelle.titre") };
 
@@ -27,45 +18,24 @@ export const metadata: Metadata = { title: t("machine.nouvelle.titre") };
  *
  * *Le parc ne se remplissait que par le semis et l'import* — aucune route
  * n'appelait `creerMachineDans` depuis un écran. `FormulaireMachine` porte la
- * saisie et la règle D-06 ; cette page porte les TROIS listes dont il a
- * besoin — modèles (groupés par famille), clients, sites — et rien de plus :
- * la décision reste dans `lib/machines/depot.ts` (`creerMachine`).
+ * saisie et la règle D-06 ; cette page ne porte plus rien de plus que le
+ * mode, l'action et les valeurs par défaut du formulaire.
  *
- * **LES DEUX SÉLECTEURS MONTRENT LE RÉFÉRENTIEL ENTIER, JAMAIS UNE PAGE**
- * (lot SELECT-1, 21/09/2026).
+ * ## LES TROIS SÉLECTEURS CHERCHENT SUR LE SERVEUR (SELECTEURS-1, 24/09/2026)
  *
- * *Faux jusqu'ici : ce commentaire justifiait un plafond de 200 fiches par
- * « la volumétrie du chapitre 11.3, 200 à 500 clients actifs à trois ans ».
- * Mesuré contre la base — locale, le proxy de ce bac à sable bloquant la base
- * hébergée (§9, la mesure prime la supposition) : une société en porte déjà
- * 576, bien au-delà des 500 supposés, et 200 d'entre eux disparaissaient du
- * sélecteur sans le moindre message — créer une machine pour l'un des 376
- * clients restants était tout simplement IMPOSSIBLE. RG-PAR-07 ne dit nulle
- * part qu'un client peut être hors de portée de la fiche machine ; le plafond
- * était un défaut, pas une règle de gestion.*
+ * Cette page chargeait AVANT ce lot le référentiel ENTIER des modèles, des
+ * clients et des sites — les deux derniers par `tousLesResultats`, qui
+ * enchaînait les pages de `rechercherClients`/`rechercherSites` jusqu'à
+ * épuisement (lot SELECT-1, 21/09/2026, lui-même réparant un plafond de 200
+ * fiches qui rendait 376 clients sur 576 hors de portée de cet écran). *Juste
+ * mais lourd* : le premier rendu attendait trois lectures complètes du
+ * référentiel avant d'afficher trois `<select>` de plusieurs centaines de
+ * lignes, impossibles à parcourir à l'œil au-delà de quelques centaines.
  *
- * `rechercherClients` et `rechercherSites` restent bornés à
- * `LIMITE_RECHERCHE_MAXIMALE` **par requête** — le garde-fou contre une seule
- * requête qui ramènerait tout le référentiel d'un coup depuis Nouméa reste
- * entier, c'est la raison de sa présence à L1-01/L1-02. `tousLesResultats`
- * (ci-dessous) enchaîne les pages jusqu'à épuisement : un sélecteur n'est pas
- * une liste de recherche paginée à l'écran comme `/clients` ou `/sites`
- * (AT-07) — il n'a pas de page suivante à proposer, il doit montrer CE QUI
- * EXISTE, quel qu'en soit le nombre.
- *
- * `tousLesResultats` — la boucle qui enchaîne les pages — vit dans
- * `components/parc/pagination.ts`, ni ici ni dans
- * `components/parc/formulaire-machine.tsx` (PARC-TER, 21/09/2026). Cette page
- * ne peut pas la porter : Next.js refuse toute exportation d'un fichier
- * `page.tsx` étrangère à son contrat de route (mesuré au build :
- * « "tousLesResultats" is not a valid Page export field »). Le formulaire ne
- * le pouvait pas davantage : il commence par `"use client"`, et toute
- * exportation d'un module client devient une référence client pour qui
- * l'importe — un composant serveur qui l'APPELLE, plutôt que de la rendre en
- * JSX, échoue au rendu (mesuré : 500, la même panne que celle que ce ticket
- * corrige, une deuxième fois sur le même écran). `components/parc/pagination.ts`
- * n'est NI l'un ni l'autre : une fonction serveur ordinaire, sans frontière à
- * franchir.
+ * `FormulaireMachine` cherche maintenant client, site et modèle par
+ * `SelecteurRecherche` (`components/ui/selecteur-recherche.tsx`), qui
+ * interroge `/api/recherche/*` — 20 résultats à la fois, cloisonnés comme
+ * toute lecture. Cette page n'a donc plus aucun référentiel à lire d'avance.
  */
 export default async function PageNouvelleMachine({
   searchParams,
@@ -79,65 +49,6 @@ export default async function PageNouvelleMachine({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const contexte = session.contexte;
-
-  const [familles, modelesBruts, clientsBruts, sitesBruts] = await Promise.all([
-    listerLesFamilles(contexte),
-    listerLesModeles(contexte),
-    tousLesResultats(
-      (page) =>
-        rechercherClients(contexte, {
-          texte: null,
-          etat: "actifs",
-          // LISTES-1 : ce sélecteur doit proposer TOUT client actif, y
-          // compris celui pour qui on est en train de créer la toute
-          // première machine.
-          inclure_sans_equipement: true,
-          limite: LIMITE_CLIENTS,
-          page,
-        }),
-      LIMITE_CLIENTS,
-    ),
-    tousLesResultats(
-      (page) =>
-        rechercherSites(contexte, {
-          client_id: null,
-          zone_geo: null,
-          texte: null,
-          actifs_seulement: true,
-          // LISTES-1 : même raison que pour `rechercherClients` ci-dessus.
-          inclure_sans_equipement: true,
-          // CONTRAT-SITE-1 : même raison — ce sélecteur propose TOUT site
-          // actif, contrat ou non.
-          sous_contrat_seulement: false,
-          limite: LIMITE_SITES,
-          page,
-        }),
-      LIMITE_SITES,
-    ),
-  ]);
-
-  const libelleFamille = new Map(
-    familles.map((famille) => [famille.id, famille.libelle]),
-  );
-  const modeles: OptionModele[] = modelesBruts
-    .filter((modele) => modele.actif)
-    .map((modele) => ({
-      id: modele.id,
-      marque: modele.marque,
-      reference: modele.reference,
-      familleLibelle:
-        libelleFamille.get(modele.famille_id) ?? t("parc.a_completer"),
-    }));
-  const clients: OptionClient[] = clientsBruts.map((cl) => ({
-    id: cl.id,
-    raisonSociale: cl.raison_sociale,
-  }));
-  const sites: OptionSite[] = sitesBruts.map((site) => ({
-    id: site.id,
-    libelle: site.libelle,
-    clientId: site.client_id,
-  }));
 
   const params = await searchParams;
   const motif = params.motif;
@@ -145,23 +56,27 @@ export default async function PageNouvelleMachine({
     typeof motif === "string" && estCleTraduction(motif) ? motif : undefined;
 
   // PRÉREMPLISSAGE PAR L'URL (FICHE-360-1, `/parc/nouvelle?client=&site=`,
-  // même forme que LIENS-1 sur `/interventions/nouvelle`) — validé contre le
-  // périmètre déjà lu SOUS LE CONTEXTE (`clients`, `sites` ci-dessus) : un
-  // identifiant hors périmètre retombe en silence sur le champ vide, jamais
-  // un message ni une valeur d'une autre société.
+  // même forme que LIENS-1 sur `/interventions/nouvelle`) — résolu SOUS LE
+  // CONTEXTE cloisonné (SELECTEURS-1 : `SelecteurRecherche` cherche sur le
+  // serveur, il n'y a plus de référentiel local à comparer) : un identifiant
+  // hors périmètre ou inexistant rend `null`, jamais un message ni une
+  // valeur d'une autre société. Le site n'est retenu que s'il appartient au
+  // client résolu.
   const clientParam =
     typeof params.client === "string" ? params.client : undefined;
   const siteParam = typeof params.site === "string" ? params.site : undefined;
   const clientInitial =
-    clientParam !== undefined && clients.some((c) => c.id === clientParam)
-      ? clientParam
-      : undefined;
+    clientParam === undefined
+      ? null
+      : await lireClient(session.contexte, clientParam);
+  const siteInitialFiche =
+    siteParam === undefined || clientInitial === null
+      ? null
+      : await lireSite(session.contexte, siteParam);
   const siteInitial =
-    siteParam !== undefined &&
-    clientInitial !== undefined &&
-    sites.some((s) => s.id === siteParam && s.clientId === clientInitial)
-      ? siteParam
-      : undefined;
+    siteInitialFiche !== null && siteInitialFiche.client_id === clientInitial?.id
+      ? siteInitialFiche
+      : null;
 
   return (
     <Page
@@ -178,12 +93,17 @@ export default async function PageNouvelleMachine({
         mode="creation"
         action="/api/machines/creer"
         motifSucces="machine.creee"
-        modeles={modeles}
-        clients={clients}
-        sites={sites}
         motifInitial={motifInitial}
-        clientInitial={clientInitial}
-        siteInitial={siteInitial}
+        clientInitial={
+          clientInitial === null
+            ? undefined
+            : { id: clientInitial.id, libelle: clientInitial.raison_sociale }
+        }
+        siteInitial={
+          siteInitial === null
+            ? undefined
+            : { id: siteInitial.id, libelle: siteInitial.libelle }
+        }
         valeurs={{
           numeroSerie: "",
           referenceInterne: "",

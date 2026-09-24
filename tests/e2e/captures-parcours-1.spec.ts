@@ -6,6 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fr } from "@/lib/i18n";
 
 import { reperesDeLaScene } from "./setup/reperes";
+import { choisirPremierResultat } from "./setup/selecteur-recherche";
 import { MARDI, cleDeJour, jourDeLaScene } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
@@ -45,10 +46,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
   page,
 }) => {
   await page.goto("/interventions/nouvelle");
-  const optionsSite = page.locator('select[name="site"] option');
-  await expect(optionsSite.first()).toBeAttached();
-  const valeurSite = await optionsSite.first().getAttribute("value");
-  await page.locator('select[name="site"]').selectOption(valeurSite ?? "");
+  await choisirPremierResultat(page, "site");
   await page
     .locator('textarea[name="description"]')
     .fill("Compresseur en panne — capture 38-PARCOURS-1");
