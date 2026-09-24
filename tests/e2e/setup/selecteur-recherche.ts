@@ -68,3 +68,54 @@ export async function choisirResultatParTexte(
 export function valeurChamp(portee: Page | Locator, nom: string): Locator {
   return champ(portee, nom).locator('input[type="hidden"]');
 }
+
+/**
+ * Ouvre le sélecteur `nom`, cherche `texte`, et enchaîne « Voir plus »
+ * jusqu'à ce que le résultat `libelleAttendu` apparaisse — la preuve qu'un
+ * référentiel de PLUS de 20 lignes reste atteignable (SELECTEURS-1).
+ *
+ * Attend le réseau après CHAQUE clic : le bouton ferme sur la valeur de
+ * `page` au moment du rendu, et deux clics tirés sans attendre le
+ * re-rendu React redemanderaient la MÊME page plutôt que d'avancer.
+ */
+export async function choisirResultatEnPaginant(
+  page: Page,
+  nom: string,
+  texte: string,
+  libelleAttendu: string | RegExp,
+  libelleVoirPlus: string,
+  clicsMaximum = 20,
+): Promise<void> {
+  const bloc = champ(page, nom);
+  const saisie = bloc.locator('input[type="text"]');
+  const resultat = bloc
+    .locator('ul[role="listbox"] li[role="option"]')
+    .filter({ hasText: libelleAttendu });
+  const boutonVoirPlus = bloc.getByRole("button", { name: libelleVoirPlus });
+
+  // LE FOCUS DÉCLENCHE UNE PREMIÈRE REQUÊTE IMMÉDIATE (non filtrée) ; LA
+  // FRAPPE EN DÉCLENCHE UNE SECONDE, 250 ms PLUS TARD (débounce du
+  // composant). `waitForLoadState("networkidle")` juste après `fill()`
+  // peut se résoudre AVANT que cette seconde requête ne parte — la mesure a
+  // montré la boucle « Voir plus » cliquer sur une liste encore non filtrée,
+  // remplacée sous elle. On attend donc la réponse PRÉCISE de la requête
+  // filtrée, jamais une absence générique de trafic réseau.
+  const motif = `q=${encodeURIComponent(texte)}`;
+  await saisie.click();
+  await Promise.all([
+    page.waitForResponse((reponse) => reponse.url().includes(motif)),
+    saisie.fill(texte),
+  ]);
+
+  for (let clic = 0; clic < clicsMaximum; clic += 1) {
+    if ((await resultat.count()) > 0) break;
+    if (!(await boutonVoirPlus.isVisible())) break;
+    await Promise.all([
+      page.waitForResponse((reponse) => reponse.url().includes(motif)),
+      boutonVoirPlus.click(),
+    ]);
+  }
+
+  await expect(resultat.first()).toBeVisible();
+  await resultat.first().click();
+}
