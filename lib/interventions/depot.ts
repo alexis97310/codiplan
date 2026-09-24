@@ -2756,8 +2756,13 @@ function numeroDeReference(texte: string): number | null {
  * `aujourdhui` rend `{}` quand `aujourdhui` (la borne du jour) n'est pas
  * fournie : `listerInterventions`/`compterInterventions` ne la calculent que
  * lorsque cette vue est active — même économie que `sans_duree_a_venir`.
+ *
+ * **EXPORTÉE POUR SA SEULE ÉPREUVE**, `tests/unit/interventions/registre-vues.test.ts` :
+ * `filtreDesInterventions` reste privée, éprouvée par la recherche entière
+ * sous la vraie table (`tests/isolation/ecran-intervention.test.ts`) — le
+ * critère de l'onglet, lui, est pur et se vérifie sans base.
  */
-function criteresVue(
+export function criteresVue(
   vue: VueRegistre | null,
   aujourdhui: { readonly debut: Date; readonly fin: Date } | null,
 ): Prisma.InterventionWhereInput {
