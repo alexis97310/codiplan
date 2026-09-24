@@ -104,8 +104,16 @@ test("un technicien ne peut pas créer de fiche client", async ({ page }) => {
       select: { id: true },
     });
 
+    // Compte la fiche forgée par SON nom, pas toutes les fiches de la
+    // société — une scène e2e parallèle qui crée des clients (fullyParallel)
+    // ferait sinon rougir ce test sans rapport avec ce qu'il éprouve.
     const compte = () =>
-      client.client.count({ where: { societe_id: societe.id } });
+      client.client.count({
+        where: {
+          societe_id: societe.id,
+          raison_sociale: "Fiche forgée par un technicien",
+        },
+      });
     const avant = await compte();
 
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);

@@ -3099,6 +3099,48 @@ export const fr = {
   "avertissements.e2e.client_sans_contact": "AV1 — Client sans donneur d'ordre",
   "avertissements.e2e.site_sans_contact": "AV1 — Lieu sans donneur d'ordre",
   "avertissements.e2e.panne": "AV1 — Panne signalée pour l'épreuve.",
+
+  // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
+  "navigation.fil_ariane": "Fil d'Ariane",
+  "fil_ariane.clients": "Clients",
+
+  // ── LA SYNTHÈSE EN TÊTE, LES ACTIONS EN CONTEXTE (FICHE-360-1) ──────────
+  //
+  // Un compteur INCONNU (aucun fait en base pour le dire) s'écrit « — »,
+  // jamais 0 — la même règle que `ouTiret` applique déjà ailleurs (D88).
+  "clients.fiche.synthese.sites_actifs": "Sites actifs",
+  "clients.fiche.synthese.equipements": "Équipements",
+  "clients.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
+  "clients.fiche.synthese.derniere_intervention": "Dernière intervention",
+  "clients.action.ajouter_site": "+ Site",
+  "clients.action.ajouter_intervention": "+ Intervention",
+  "clients.fiche.sites.equipements": "Équipements",
+
+  "sites.fiche.synthese.equipements": "Équipements",
+  "sites.fiche.synthese.interventions_ouvertes": "Interventions ouvertes",
+  "sites.fiche.synthese.derniere_intervention": "Dernière intervention",
+  "sites.fiche.synthese.vgp_prochaine": "Prochaine VGP due",
+  "sites.action.ajouter_intervention": "+ Intervention",
+  "sites.action.ajouter_machine": "+ Machine",
+
+  // ── LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1) ───────────────────────
+  "sites.fiche.equipements": "Équipements du site",
+  "sites.fiche.equipements_vide": "Aucun équipement enregistré sur ce site.",
+  "sites.fiche.equipements.colonne_famille": "Famille",
+  "sites.fiche.equipements.colonne_materiel": "Marque / référence",
+  "sites.fiche.equipements.colonne_serie": "N° de série",
+  "sites.fiche.equipements.colonne_statut": "Statut",
+  "sites.fiche.equipements.colonne_action": "Action",
+  "sites.fiche.equipement_resultat_un": "équipement",
+  "sites.fiche.equipement_resultat": "équipements",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-360-1.spec.ts)
+  //
+  // Sa PROPRE scène, créée et supprimée par l'épreuve, préfixée `F360-` pour
+  // se distinguer du semis — même discipline que `avertissements.e2e.*`.
+  "fiche360.e2e.client": "F360 — Client de la fiche 360",
+  "fiche360.e2e.site_un": "F360 — Site avec équipements",
+  "fiche360.e2e.site_deux": "F360 — Site sans équipement de ce lot",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

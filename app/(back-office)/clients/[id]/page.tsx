@@ -7,9 +7,11 @@ import { cache } from "react";
 import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
-import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import {
@@ -21,7 +23,11 @@ import { contactsDuClient } from "@/lib/contacts/depot";
 import {
   compterInterventionsDuClient,
   dernieresInterventionsDuClient,
+  interventionsOuvertesDuClient,
+  type LignePlanning,
 } from "@/lib/interventions/depot";
+import { nombreEquipementsActifsDuClient } from "@/lib/machines/depot";
+import { equipementsParSite } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -36,6 +42,7 @@ import {
   ouTiret,
 } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
+import { compteurContrat, compteurEquipements } from "../../sites/presentation";
 
 /**
  * LA FICHE D'UN CLIENT (14/09/2026, L1-01 rouvert par R3-12).
@@ -182,7 +189,16 @@ export default async function PageClient({
   const sites = await avecContexteApplicatif(session.contexte, (tx) =>
     tx.site.findMany({
       where: { client_id: client.id },
-      select: { id: true, libelle: true, commune: true, actif: true },
+      select: {
+        id: true,
+        libelle: true,
+        commune: true,
+        actif: true,
+        // CONTRAT-SITE-1 (badge réutilisé, FICHE-360-1) et LISTES-1
+        // (équipements par site) — les deux pastilles déjà écrites par
+        // `app/(back-office)/sites/presentation.ts`, jamais redessinées ici.
+        sous_contrat: true,
+      },
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
   );
@@ -201,9 +217,51 @@ export default async function PageClient({
     Math.ceil(totalInterventions / INTERVENTIONS_PAR_PAGE),
   );
 
+  // LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base.
+  // « Dernière intervention » est une lecture À PART, bornée à UNE ligne,
+  // jamais `interventions[0]` : celui-ci suit `page`, et la treizième page
+  // afficherait alors la treizième plus récente comme si c'était la
+  // dernière — la même faute qu'HISTORIQUE-CLIENT-1 a corrigée pour le
+  // tableau lui-même.
+  const [equipementsParSiteMap, interventionsOuvertes, derniereInterventionListe] =
+    await Promise.all([
+      equipementsParSite(session.contexte, sites),
+      interventionsOuvertesDuClient(session.contexte, client.id),
+      dernieresInterventionsDuClient(session.contexte, client.id, 1, 1),
+    ]);
+  const equipementsActifs = await nombreEquipementsActifsDuClient(
+    session.contexte,
+    client.id,
+  );
+  const derniereIntervention = derniereInterventionListe[0] ?? null;
+  const sitesActifs = sites.filter((site) => site.actif).length;
+
+  // « DONNEUR D'ORDRE » EN TÊTE (FICHE-360-1) — `roles` porte plusieurs
+  // rôles à la fois (L1-03), et un `sort` par booléen reste STABLE (moteur
+  // V8) : l'ordre relatif des autres contacts n'est jamais perturbé.
+  const contactsTries = [...contacts].sort(
+    (a, b) =>
+      Number(b.roles.includes("donneur_ordre")) -
+      Number(a.roles.includes("donneur_ordre")),
+  );
+
+  // LES ACTIONS EN CONTEXTE (FICHE-360-1) — visibles selon les MÊMES
+  // capacités que les routes qu'elles ouvrent.
+  const peutGererSite =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_client_site");
+  const peutCreerIntervention =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "creer_demande");
+
   const colonnesSites = [
     { cle: "libelle", libelle: t("site.libelle") },
     { cle: "commune", libelle: t("site.commune"), largeur: "200px" },
+    {
+      cle: "equipements",
+      libelle: t("clients.fiche.sites.equipements"),
+      largeur: "160px",
+    },
   ];
   const colonnesInterventions = [
     {
@@ -227,11 +285,35 @@ export default async function PageClient({
     <Page
       chemin="/clients"
       titre={client.raison_sociale}
+      // FIL D'ARIANE (FICHE-360-1) — `Clients › <client>` ; l'écran courant
+      // n'est jamais un lien, voir `components/mise-en-page/page.tsx`.
+      filAriane={[
+        { libelle: t("fil_ariane.clients"), href: "/clients" },
+        { libelle: client.raison_sociale },
+      ]}
       sousTitre={ouTiret(client.code_externe)}
       actions={
-        <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
-          {t("clients.retour")}
-        </Link>
+        <>
+          {peutGererSite ? (
+            <LienPrimaire href={`/sites/nouveau?client=${client.id}`}>
+              {t("clients.action.ajouter_site")}
+            </LienPrimaire>
+          ) : null}
+          {peutCreerIntervention ? (
+            // LIEN SIMPLE, PAS PRÉREMPLI (FICHE-360-1) — CHOIX EXPLICITE :
+            // `ChampSiteEtMachines` (`interventions/nouvelle`) organise la
+            // saisie autour du SITE, jamais du client ; le client s'y déduit
+            // du site choisi. Préremplir depuis ici demanderait un second
+            // mécanisme de prérempissage (par client plutôt que par site),
+            // hors du périmètre de ce ticket — voir la passation.
+            <LienPrimaire href="/interventions/nouvelle">
+              {t("clients.action.ajouter_intervention")}
+            </LienPrimaire>
+          ) : null}
+          <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
+            {t("clients.retour")}
+          </Link>
+        </>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
@@ -243,6 +325,13 @@ export default async function PageClient({
           {t(motif)}
         </p>
       ) : null}
+
+      <BlocSyntheseClient
+        sitesActifs={sitesActifs}
+        equipements={equipementsActifs}
+        interventionsOuvertes={interventionsOuvertes}
+        derniereIntervention={derniereIntervention}
+      />
 
       <form
         method="post"
@@ -316,21 +405,41 @@ export default async function PageClient({
               {t("clients.fiche.sites_vide")}
             </LignePleine>
           ) : null}
-          {sites.map((site) => (
-            <tr key={site.id}>
-              <Cellule fort>
-                <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
-                  {site.libelle}
-                </Link>
-                {site.actif ? null : (
-                  <span className="text-app-encre-faible block text-[10.5px]">
-                    {t("sites.inactif")}
-                  </span>
-                )}
-              </Cellule>
-              <Cellule>{ouTiret(site.commune)}</Cellule>
-            </tr>
-          ))}
+          {sites.map((site) => {
+            // LES PASTILLES DE 40-PASTILLES-1/CONTRAT-SITE-1, RÉUTILISÉES
+            // (FICHE-360-1) — même donnée, même ton, jamais redessinées :
+            // `compteurEquipements`/`compteurContrat` de
+            // `app/(back-office)/sites/presentation.ts`.
+            const compteEquip = compteurEquipements(
+              equipementsParSiteMap.get(site.id) ?? 0,
+            );
+            const compteContrat = compteurContrat(site.sous_contrat);
+            return (
+              <tr key={site.id}>
+                <Cellule fort>
+                  <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
+                    {site.libelle}
+                  </Link>
+                  {site.actif ? null : (
+                    <span className="text-app-encre-faible block text-[10.5px]">
+                      {t("sites.inactif")}
+                    </span>
+                  )}
+                  {compteContrat === null ? null : (
+                    <Badge ton={compteContrat.ton}>
+                      {compteContrat.libelle}
+                    </Badge>
+                  )}
+                </Cellule>
+                <Cellule>{ouTiret(site.commune)}</Cellule>
+                <Cellule>
+                  <Badge ton={compteEquip.ton}>
+                    {compteEquip.valeur} {compteEquip.libelle}
+                  </Badge>
+                </Cellule>
+              </tr>
+            );
+          })}
         </Tableau>
       </section>
 
@@ -397,7 +506,7 @@ export default async function PageClient({
         bloc="contacts-client"
         titre={t("clients.fiche.contacts")}
         texteVide={t("clients.fiche.contacts_vide")}
-        contacts={contacts}
+        contacts={contactsTries}
         clientId={client.id}
         retour={`/clients/${client.id}`}
         siteOptions={sites.map((site) => ({
@@ -425,5 +534,70 @@ function Champ({
         className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
       />
     </label>
+  );
+}
+
+/**
+ * LA SYNTHÈSE EN TÊTE (FICHE-360-1) — même forme que `BlocSyntheseSite`
+ * (`app/(back-office)/sites/[id]/page.tsx`), jamais une seconde écriture
+ * de sa mise en page : uniquement des faits déjà en base, un compteur
+ * inconnu s'écrit « — », jamais 0 (D88). `data-compteur` donne une prise
+ * stable à une épreuve de bout en bout.
+ */
+function BlocSyntheseClient({
+  sitesActifs,
+  equipements,
+  interventionsOuvertes,
+  derniereIntervention,
+}: Readonly<{
+  sitesActifs: number;
+  equipements: number;
+  interventionsOuvertes: number;
+  derniereIntervention: LignePlanning | null;
+}>) {
+  return (
+    <div
+      data-bloc="synthese-client"
+      className="bg-app-surface border-app-bord flex flex-wrap gap-6 rounded-lg border px-4 py-3.5"
+    >
+      <div data-compteur="sites-actifs">
+        <b className="block text-[16px] font-bold">{sitesActifs}</b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("clients.fiche.synthese.sites_actifs")}
+        </span>
+      </div>
+      <div data-compteur="equipements">
+        <b className="block text-[16px] font-bold">{equipements}</b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("clients.fiche.synthese.equipements")}
+        </span>
+      </div>
+      <div data-compteur="interventions-ouvertes">
+        <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("clients.fiche.synthese.interventions_ouvertes")}
+        </span>
+      </div>
+      <div data-compteur="derniere-intervention">
+        <b className="block text-[16px] font-bold">
+          {derniereIntervention === null ? (
+            ouTiret(null)
+          ) : (
+            <Link
+              href={`/interventions/${derniereIntervention.id}?depuis=client`}
+              className={CLASSES_LIEN}
+            >
+              {derniereIntervention.date_planifiee === null
+                ? ouTiret(null)
+                : dateCivile(derniereIntervention.date_planifiee)}{" "}
+              · {t(`type_intervention.${derniereIntervention.type}`)}
+            </Link>
+          )}
+        </b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("clients.fiche.synthese.derniere_intervention")}
+        </span>
+      </div>
+    </div>
   );
 }

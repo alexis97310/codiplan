@@ -46,7 +46,8 @@ export default async function PageNouveauSite({
   if (session.contexte.societeId === null) {
     redirect("/arrivee");
   }
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
 
   const clients = await rechercherClients(
     session.contexte,
@@ -58,6 +59,16 @@ export default async function PageNouveauSite({
       orderBy: [{ libelle: "asc" }, { id: "asc" }],
     }),
   );
+
+  // PRÉREMPLISSAGE PAR L'URL (FICHE-360-1, `/sites/nouveau?client=`, même
+  // forme que LIENS-1) — validé contre `clients`, déjà lu SOUS LE CONTEXTE :
+  // un identifiant hors périmètre retombe en silence sur le champ vide.
+  const clientParam =
+    typeof params.client === "string" ? params.client : undefined;
+  const clientInitial =
+    clientParam !== undefined && clients.some((c) => c.id === clientParam)
+      ? clientParam
+      : undefined;
 
   return (
     <Page
@@ -84,13 +95,16 @@ export default async function PageNouveauSite({
         action="/api/sites/creer"
         className="bg-app-surface border-app-bord flex flex-col gap-4 rounded-lg border px-4 py-4"
       >
-        {/* AUCUNE OPTION PRÉSÉLECTIONNÉE sur ces deux listes. Voir l'entête. */}
+        {/* LE RATTACHEMENT N'A AUCUNE OPTION PRÉSÉLECTIONNÉE — voir l'entête,
+            c'est D56. Le CLIENT, lui, PEUT l'être depuis FICHE-360-1
+            (`?client=`) : ce n'est pas le champ que D56 protège — prérempli
+            depuis la fiche client, il ne décide de rien sur le trajet. */}
         <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
           {t("site.client")}
           <select
             name="client_id"
             required
-            defaultValue=""
+            defaultValue={clientInitial ?? ""}
             className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
           >
             <option value="" disabled />

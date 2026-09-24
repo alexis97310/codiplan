@@ -159,7 +159,16 @@ type Props = {
   readonly motifInitial?: CleTraduction;
   readonly valeurs: ValeursEditables;
 } & (
-  | { readonly mode: "creation" }
+  | {
+      readonly mode: "creation";
+      /**
+       * PRÉREMPLISSAGE PAR L'URL (FICHE-360-1, sur le modèle de LIENS-1) —
+       * `app/(back-office)/parc/nouvelle/page.tsx` les valide contre le
+       * périmètre déjà lu ; ce composant ne revalide rien, il amorce l'état.
+       */
+      readonly clientInitial?: string;
+      readonly siteInitial?: string;
+    }
   | { readonly mode: "modification"; readonly lectureSeule: LectureSeule }
 );
 
@@ -172,7 +181,10 @@ export function FormulaireMachine(props: Props) {
   // l'état d'affichage — un second clic avant le premier rendu React ne doit
   // rien déclencher.
   const enVol = useRef(false);
-  const [clientChoisi, setClientChoisi] = useState<string>("");
+  const [clientChoisi, setClientChoisi] = useState<string>(
+    props.mode === "creation" ? (props.clientInitial ?? "") : "",
+  );
+  const siteInitial = props.mode === "creation" ? props.siteInitial : undefined;
 
   const sitesDuClient =
     props.mode === "creation"
@@ -285,7 +297,7 @@ export function FormulaireMachine(props: Props) {
               name="site_id"
               required
               disabled={clientChoisi === ""}
-              defaultValue=""
+              defaultValue={siteInitial ?? ""}
               className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal disabled:opacity-50"
             >
               <option value="" disabled>

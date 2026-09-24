@@ -4,6 +4,8 @@ import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { comparerAlphanumerique } from "@/lib/tri/collation";
+
 import { engendrerJetonQr } from "./qr";
 import {
   LIMITE_RECHERCHE_MAXIMALE,
@@ -621,6 +623,126 @@ export async function donneesMaterielDesMachines(
         ]),
       );
     },
+    client,
+  );
+}
+
+/** Combien de lignes le bloc « Équipements du site » de la fiche montre par page (FICHE-360-1). */
+export const EQUIPEMENTS_PAR_PAGE_SITE = 50;
+
+/** Une ligne du bloc « Équipements du site » de la fiche (FICHE-360-1). */
+export type LigneEquipementSite = {
+  readonly id: string;
+  readonly familleLibelle: string;
+  readonly marque: string;
+  readonly reference: string;
+  readonly numeroSerie: string;
+  readonly statut: string;
+};
+
+/**
+ * LES MACHINES ACTIVES D'UN SITE, PAGE PAR PAGE (FICHE-360-1).
+ *
+ * *« Depuis un site on ne voit pas ses machines »* — le constat qui ouvre le
+ * ticket. « Actives » reprend `STATUTS_HORS_PARC_ACTIF` : une machine
+ * remplacée, ferraillée ou fusionnée n'est plus physiquement sur ce site, la
+ * montrer ferait croire à un parc qui n'existe plus (même critère que
+ * `resumerLeParc.actives`, jamais une seconde écriture, §9 du 01/09).
+ *
+ * **Bornée à UN SITE**, jamais le parc entier : à cette échelle, charger les
+ * lignes complètes pour les trier en JavaScript (`lib/tri/collation.ts`, la
+ * collation de la base hébergée ne peut pas être mesurée à distance, voir
+ * l'en-tête du fichier) reste raisonnable — à la différence de
+ * `rechercherSites`, qui doit trier tout le référentiel et se limite pour
+ * cela à une lecture étroite en deux passes.
+ *
+ * `site_id` est un SUJET, pas un cloisonnement : la politique de forme
+ * « parc » décide seule (D84) — un site d'une autre société rend zéro ligne
+ * parce que la politique l'a filtré, jamais parce que cette clause l'a fait.
+ */
+export async function equipementsActifsDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  page: number,
+  client?: PrismaClient,
+): Promise<{
+  readonly lignes: readonly LigneEquipementSite[];
+  readonly total: number;
+}> {
+  const where: Prisma.MachineWhereInput = {
+    site_id: siteId,
+    statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+  };
+  const [total, machines] = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      Promise.all([
+        tx.machine.count({ where }),
+        tx.machine.findMany({
+          where,
+          select: {
+            id: true,
+            numero_serie: true,
+            statut: true,
+            modele: {
+              select: {
+                marque: true,
+                reference: true,
+                famille: { select: { libelle: true } },
+              },
+            },
+          },
+        }),
+      ]),
+    client,
+  );
+  const lignes: LigneEquipementSite[] = machines.map((machine) => ({
+    id: machine.id,
+    familleLibelle: machine.modele.famille.libelle,
+    marque: machine.modele.marque,
+    reference: machine.modele.reference,
+    numeroSerie: machine.numero_serie,
+    statut: machine.statut,
+  }));
+  // FAMILLE, MARQUE, RÉFÉRENCE, N° DE SÉRIE — l'ordre demandé (FICHE-360-1),
+  // départagé de proche en proche plutôt que composé en une seule clé : une
+  // clé composite mélangerait les niveaux dans la comparaison numérique de
+  // `comparerAlphanumerique` (« numeric: true »), ce que ce fichier
+  // n'accepte nulle part ailleurs.
+  const ordonnees = [...lignes].sort(
+    (a, b) =>
+      comparerAlphanumerique(a.familleLibelle, b.familleLibelle) ||
+      comparerAlphanumerique(a.marque, b.marque) ||
+      comparerAlphanumerique(a.reference, b.reference) ||
+      comparerAlphanumerique(a.numeroSerie, b.numeroSerie),
+  );
+  const debut = (page - 1) * EQUIPEMENTS_PAR_PAGE_SITE;
+  return {
+    lignes: ordonnees.slice(debut, debut + EQUIPEMENTS_PAR_PAGE_SITE),
+    total,
+  };
+}
+
+/**
+ * COMBIEN D'ÉQUIPEMENTS ACTIFS POUR CE CLIENT, TOUS SITES CONFONDUS
+ * (FICHE-360-1) — la synthèse en tête de la fiche client. Même critère
+ * « actif » que `equipementsActifsDuSite` (`STATUTS_HORS_PARC_ACTIF`), un
+ * SEUL `count` agrégé, jamais une boucle par site.
+ */
+export async function nombreEquipementsActifsDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.count({
+        where: {
+          client_id: clientId,
+          statut: { notIn: [...STATUTS_HORS_PARC_ACTIF] },
+        },
+      }),
     client,
   );
 }

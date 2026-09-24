@@ -3,18 +3,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
-import { ActionPrimaire } from "@/components/ui/action-primaire";
-import { Badge } from "@/components/ui/badge";
+import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
+import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, Tableau } from "@/components/ui/tableau";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
+import { z } from "zod";
+
 import type { ContexteSession } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
-import { dateCivile } from "@/lib/calendar/fuseau";
+import {
+  dateCivile,
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
 import { contactsDuSite } from "@/lib/contacts/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
@@ -25,15 +33,29 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   dernieresInterventionsDuSite,
+  interventionsOuvertesDuSite,
   type LigneIntervention,
 } from "@/lib/interventions/depot";
+import {
+  equipementsActifsDuSite,
+  EQUIPEMENTS_PAR_PAGE_SITE,
+  type LigneEquipementSite,
+} from "@/lib/machines/depot";
 import { libellesDesSites, lireSite } from "@/lib/sites/depot";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { prochaineEcheanceDuSite } from "@/lib/vgp/registre";
+
+import { Pagination } from "@/components/ui/pagination";
 
 import { BlocContacts } from "../../contacts/presentation";
-import { ouTiret } from "../../presentation";
+import {
+  decompte,
+  hrefDeLaPage,
+  libellePage,
+  ouTiret,
+} from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
 import { libelleRattachement } from "../presentation";
 
@@ -96,6 +118,9 @@ import { libelleRattachement } from "../presentation";
 /** Combien d'interventions la fiche montre. Une borne d'affichage, jamais un cloisonnement. */
 const INTERVENTIONS_MONTREES = 12;
 
+/** `page` du bloc « Équipements du site » — un entier d'au moins 1, comme sur `/clients/[id]`. */
+const schemaPage = z.coerce.number().int().min(1).catch(1);
+
 /**
  * MÉMOÏSÉE PAR REQUÊTE (VISUEL-1, 23/09/2026) — voir le même commentaire sur
  * `lireClientCache` dans `app/(back-office)/clients/[id]/page.tsx`.
@@ -138,11 +163,17 @@ export default async function PageSite({
   }
 
   const { id } = await params;
-  const motif = (await searchParams).motif;
+  const paramsResolus = await searchParams;
+  const motif = paramsResolus.motif;
   const site = await lireSiteCache(session.contexte, id);
   if (site === null) {
     notFound();
   }
+  // `page` — LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1), la seule
+  // pagination de cette fiche.
+  const page = schemaPage.parse(
+    typeof paramsResolus.page === "string" ? paramsResolus.page : undefined,
+  );
   const libelles = await libellesDesSites(session.contexte, [site]);
   // Les agences de la société, pour que le rattachement soit MODIFIABLE : sans
   // cela, l'exigence de D56 serait vraie et inatteignable depuis cet écran.
@@ -162,6 +193,38 @@ export default async function PageSite({
     site.id,
     INTERVENTIONS_MONTREES,
   );
+
+  // LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base :
+  // équipements du site, interventions ouvertes, dernière intervention (déjà
+  // lue ci-dessus, `interventions[0]`, triée « la plus récente en premier »),
+  // et la prochaine échéance VGP SI le registre la connaît déjà.
+  const equipements = await equipementsActifsDuSite(
+    session.contexte,
+    site.id,
+    page,
+  );
+  const interventionsOuvertes = await interventionsOuvertesDuSite(
+    session.contexte,
+    site.id,
+  );
+  // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) — même lecture que
+  // `/vgp` : l'échéance déduite est une `@db.Date`, posée à minuit UTC, et la
+  // comparer à l'instant plutôt qu'à la civile du jour ferait tomber une
+  // échéance du jour même sous zéro dès que l'horloge dépasse minuit UTC.
+  const societe = await avecContexteApplicatif(session.contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: session.contexte.societeId as string },
+      select: { fuseau_horaire: true },
+    }),
+  );
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
+  const prochaineVgp = await prochaineEcheanceDuSite(
+    session.contexte,
+    site.id,
+    aujourdHui,
+  );
+
   // CONTRAT-SITE-1 — la MÊME capacité que le reste de la modification du site,
   // lue depuis la matrice (`peut(role, capacité)`), jamais une comparaison de
   // rôle inventée ici : un rôle qui ne peut pas modifier la fiche ne voit pas
@@ -170,11 +233,32 @@ export default async function PageSite({
   const peutModifierSite =
     session.contexte.role !== null &&
     peut(session.contexte.role, "gerer_client_site");
+  // LES ACTIONS EN CONTEXTE (FICHE-360-1) — visibles selon les MÊMES
+  // capacités que les routes qu'elles ouvrent (`exigerCapacite` de
+  // `app/api/interventions/creer/route.ts` et `app/api/machines/creer/route.ts`).
+  const peutCreerIntervention =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "creer_demande");
+  const peutGererMachine =
+    session.contexte.role !== null && peut(session.contexte.role, "gerer_machine");
 
   return (
     <Page
       chemin="/sites"
       titre={site.libelle}
+      // FIL D'ARIANE (FICHE-360-1) — `Clients › <client> › <site>`. Le
+      // client hors périmètre n'aurait pas de libellé (`libellesDesSites` lit
+      // sous le même contexte cloisonné), mais un site lu ici a déjà un
+      // client lisible par construction (clé étrangère `(societe_id,
+      // client_id)`, voir `lib/sites/depot.ts`).
+      filAriane={[
+        { libelle: t("fil_ariane.clients"), href: "/clients" },
+        {
+          libelle: libelles.clients.get(site.client_id) ?? "",
+          href: `/clients/${site.client_id}`,
+        },
+        { libelle: site.libelle },
+      ]}
       // LE CLIENT MÈNE À SA FICHE (LIENS-1) — même raisonnement que les liens
       // ajoutés ailleurs par ce ticket : `site.client_id` est déjà lu ici, et
       // un client hors périmètre ne serait pas lu par `libellesDesSites` non
@@ -185,9 +269,23 @@ export default async function PageSite({
         </Link>
       }
       actions={
-        <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
-          {t("sites.retour")}
-        </Link>
+        <>
+          {peutCreerIntervention ? (
+            <LienPrimaire href={`/interventions/nouvelle?site=${site.id}`}>
+              {t("sites.action.ajouter_intervention")}
+            </LienPrimaire>
+          ) : null}
+          {peutGererMachine ? (
+            <LienPrimaire
+              href={`/parc/nouvelle?client=${site.client_id}&site=${site.id}`}
+            >
+              {t("sites.action.ajouter_machine")}
+            </LienPrimaire>
+          ) : null}
+          <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
+            {t("sites.retour")}
+          </Link>
+        </>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
@@ -200,6 +298,13 @@ export default async function PageSite({
         </p>
       ) : null}
 
+      <BlocSyntheseSite
+        equipements={equipements.total}
+        interventionsOuvertes={interventionsOuvertes}
+        derniereIntervention={interventions[0] ?? null}
+        prochaineVgp={prochaineVgp}
+      />
+
       {/* L'ÉTAT EN LECTURE (CONTRAT-SITE-1) — visible de TOUT rôle qui
           atteint la fiche, à la différence de la case ci-dessous : « Sous
           contrat de maintenance » quand c'est vrai, RIEN quand ce ne l'est
@@ -210,6 +315,37 @@ export default async function PageSite({
           <Badge ton="orange">{t("site.sous_contrat")}</Badge>
         </p>
       ) : null}
+
+      <BlocEquipements
+        equipements={equipements.lignes}
+        total={equipements.total}
+        page={page}
+        siteId={site.id}
+        peutCreerIntervention={peutCreerIntervention}
+      />
+
+      <BlocExigences
+        siteId={site.id}
+        exigences={exigences}
+        habilitations={habilitations}
+      />
+
+      <BlocContacts
+        bloc="contacts-site"
+        titre={t("sites.fiche.contacts")}
+        texteVide={t("sites.fiche.contacts_vide")}
+        contacts={contacts}
+        clientId={site.client_id}
+        retour={`/sites/${site.id}`}
+        siteOptions={null}
+        siteFixe={site.id}
+        montrerRattachement={false}
+      />
+
+      <BlocInterventions
+        interventions={interventions}
+        borne={INTERVENTIONS_MONTREES}
+      />
 
       <form
         method="post"
@@ -306,29 +442,6 @@ export default async function PageSite({
           <ActionPrimaire>{t("sites.action.modifier")}</ActionPrimaire>
         </div>
       </form>
-
-      <BlocExigences
-        siteId={site.id}
-        exigences={exigences}
-        habilitations={habilitations}
-      />
-
-      <BlocContacts
-        bloc="contacts-site"
-        titre={t("sites.fiche.contacts")}
-        texteVide={t("sites.fiche.contacts_vide")}
-        contacts={contacts}
-        clientId={site.client_id}
-        retour={`/sites/${site.id}`}
-        siteOptions={null}
-        siteFixe={site.id}
-        montrerRattachement={false}
-      />
-
-      <BlocInterventions
-        interventions={interventions}
-        borne={INTERVENTIONS_MONTREES}
-      />
     </Page>
   );
 }
@@ -358,6 +471,191 @@ function Champ({
         </span>
       )}
     </label>
+  );
+}
+
+/**
+ * LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base ;
+ * un compteur inconnu s'écrit « — », jamais 0 (le même principe que
+ * `ouTiret`, D88). `data-compteur` donne une prise stable à une épreuve de
+ * bout en bout, comme `CarteEntite` le fait déjà pour les cartes de liste.
+ */
+function BlocSyntheseSite({
+  equipements,
+  interventionsOuvertes,
+  derniereIntervention,
+  prochaineVgp,
+}: Readonly<{
+  equipements: number;
+  interventionsOuvertes: number;
+  derniereIntervention: LigneIntervention | null;
+  prochaineVgp: Date | null;
+}>) {
+  return (
+    <div
+      data-bloc="synthese-site"
+      className="bg-app-surface border-app-bord flex flex-wrap gap-6 rounded-lg border px-4 py-3.5"
+    >
+      <div data-compteur="equipements">
+        <b className="block text-[16px] font-bold">{equipements}</b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("sites.fiche.synthese.equipements")}
+        </span>
+      </div>
+      <div data-compteur="interventions-ouvertes">
+        <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("sites.fiche.synthese.interventions_ouvertes")}
+        </span>
+      </div>
+      <div data-compteur="derniere-intervention">
+        <b className="block text-[16px] font-bold">
+          {derniereIntervention === null ? (
+            ouTiret(null)
+          ) : (
+            <Link
+              href={`/interventions/${derniereIntervention.id}?depuis=site`}
+              className={CLASSES_LIEN}
+            >
+              {derniereIntervention.date_planifiee === null
+                ? ouTiret(null)
+                : dateCivile(derniereIntervention.date_planifiee)}{" "}
+              · {t(`type_intervention.${derniereIntervention.type}`)}
+            </Link>
+          )}
+        </b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("sites.fiche.synthese.derniere_intervention")}
+        </span>
+      </div>
+      <div data-compteur="vgp-prochaine">
+        <b className="block text-[16px] font-bold">
+          {prochaineVgp === null ? ouTiret(null) : dateCivile(prochaineVgp)}
+        </b>
+        <span className="text-app-encre-faible text-[11px]">
+          {t("sites.fiche.synthese.vgp_prochaine")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * LES TONS DE STATUT D'UNE MACHINE — recopiés de `TONS_STATUT`
+ * (`app/(back-office)/parc/[id]/page.tsx`), jamais une seconde palette : les
+ * trois statuts ACTIFS (`equipementsActifsDuSite` exclut les trois autres)
+ * gardent le même ton qu'ailleurs dans le parc.
+ */
+const TON_STATUT_MACHINE: Record<string, TonBadge> = {
+  en_service: "vert",
+  en_panne: "rouge",
+  arretee: "orange",
+  remplacee: "gris",
+  ferraillee: "gris",
+  fusionnee: "gris",
+};
+
+/** Recopié de `statutAffiche` (`/parc`) — même dictionnaire, même repli. */
+function statutMachineAffiche(statut: string): string {
+  const cle = `statut_machine.${statut}`;
+  return estCleTraduction(cle) ? t(cle) : statut;
+}
+
+/**
+ * LES ÉQUIPEMENTS DU SITE (FICHE-360-1) — le constat qui ouvre le ticket :
+ * *« depuis un site on ne voit pas ses machines »*. Seules les machines
+ * ACTIVES (`equipementsActifsDuSite`, `lib/machines/depot.ts`) ; une ligne
+ * mène à sa fiche et propose « + Intervention », déjà préremplie SITE ET
+ * MACHINE (LIENS-1). Paginé à 50 — `EQUIPEMENTS_PAR_PAGE_SITE` — avec le
+ * total écrit, comme `BlocInterventions` juste en dessous.
+ */
+function BlocEquipements({
+  equipements,
+  total,
+  page,
+  siteId,
+  peutCreerIntervention,
+}: Readonly<{
+  equipements: readonly LigneEquipementSite[];
+  total: number;
+  page: number;
+  siteId: string;
+  peutCreerIntervention: boolean;
+}>) {
+  const colonnes = [
+    { cle: "famille", libelle: t("sites.fiche.equipements.colonne_famille") },
+    {
+      cle: "materiel",
+      libelle: t("sites.fiche.equipements.colonne_materiel"),
+    },
+    { cle: "serie", libelle: t("sites.fiche.equipements.colonne_serie") },
+    { cle: "statut", libelle: t("sites.fiche.equipements.colonne_statut") },
+    { cle: "action", libelle: t("sites.fiche.equipements.colonne_action") },
+  ];
+  const totalPages = Math.max(
+    1,
+    Math.ceil(total / EQUIPEMENTS_PAR_PAGE_SITE),
+  );
+  return (
+    <section
+      data-bloc="equipements-site"
+      className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
+    >
+      <h2 className="border-app-bord border-b px-4 py-3 text-[14px] font-bold">
+        {t("sites.fiche.equipements")}
+      </h2>
+      {equipements.length === 0 ? (
+        <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
+          {t("sites.fiche.equipements_vide")}
+        </p>
+      ) : (
+        <Tableau colonnes={colonnes} minimum="720px">
+          {equipements.map((machine) => (
+            <tr key={machine.id}>
+              <Cellule>{machine.familleLibelle}</Cellule>
+              <Cellule fort>
+                <Link href={`/parc/${machine.id}`} className={CLASSES_LIEN}>
+                  {machine.marque} {machine.reference}
+                </Link>
+              </Cellule>
+              <Cellule mono>{machine.numeroSerie}</Cellule>
+              <Cellule>
+                <Badge ton={TON_STATUT_MACHINE[machine.statut] ?? "gris"}>
+                  {statutMachineAffiche(machine.statut)}
+                </Badge>
+              </Cellule>
+              <Cellule>
+                {peutCreerIntervention ? (
+                  <Link
+                    href={`/interventions/nouvelle?site=${siteId}&machine=${machine.id}`}
+                    className={CLASSES_LIEN}
+                  >
+                    {t("sites.action.ajouter_intervention")}
+                  </Link>
+                ) : null}
+              </Cellule>
+            </tr>
+          ))}
+        </Tableau>
+      )}
+      {total === 0 ? null : (
+        <div className="border-app-bord border-t px-4 py-3">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            libelleResultats={decompte(
+              total,
+              t("sites.fiche.equipement_resultat_un"),
+              t("sites.fiche.equipement_resultat"),
+            )}
+            libellePage={libellePage(page, totalPages)}
+            libellePrecedent={t("pagination.precedent")}
+            libelleSuivant={t("pagination.suivant")}
+            hrefPage={(p) => hrefDeLaPage(`/sites/${siteId}`, {}, p)}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 

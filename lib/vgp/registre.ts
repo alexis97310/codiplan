@@ -226,6 +226,49 @@ function ligneDuRegistre(
  * MÊME vaut donc 0 jour — À VENIR, jamais dépassée, y compris à 23 h 59 heure
  * de Nouméa. C'est l'appelant qui le garantit ; ce fichier n'a pas d'horloge.
  */
+/**
+ * LA PROCHAINE ÉCHÉANCE VGP D'UN SITE, SI LE REGISTRE LA CONNAÎT DÉJÀ
+ * (FICHE-360-1).
+ *
+ * La synthèse en tête de la fiche site ne rend AUCUN verdict — même règle
+ * que tout ce fichier (D88) : `null` veut dire « rien à en dire aujourd'hui »
+ * (aucune machine, aucune information reçue, ou aucune périodicité connue) et
+ * s'écrit « — », jamais une date au jugé et jamais 0.
+ *
+ * **`ligneDuRegistre` n'est PAS recopiée** — la cascade d'assujettissement et
+ * d'échéance ne s'écrit qu'une fois dans ce fichier (§9, 01/09) ; cette
+ * fonction ne fait que la rejouer sur les machines d'UN site plutôt que sur
+ * toute la société, puis retient la plus proche parmi celles reçues.
+ */
+export async function prochaineEcheanceDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  aujourdHui: Date,
+  client?: PrismaClient,
+): Promise<Date | null> {
+  const recues = await dernieresInformations(contexte, client);
+  const machines = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.machine.findMany({
+        where: { site_id: siteId },
+        select: CHAMPS_REGISTRE,
+      }),
+    client,
+  );
+  const echeances = machines
+    .map((machine) => ligneDuRegistre(machine, recues, aujourdHui).information)
+    .filter(
+      (info): info is Extract<EtatInformation, { etat: "information_recue" }> =>
+        info.etat === "information_recue",
+    )
+    .map((info) => info.prochaineEcheance)
+    .filter((date): date is Date => date !== null);
+  return echeances.length === 0
+    ? null
+    : echeances.reduce((min, date) => (date < min ? date : min));
+}
+
 export function echeanceDepassee(etat: EtatInformation): boolean {
   return (
     etat.etat === "information_recue" &&

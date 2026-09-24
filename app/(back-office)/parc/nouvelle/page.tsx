@@ -139,9 +139,29 @@ export default async function PageNouvelleMachine({
     clientId: site.client_id,
   }));
 
-  const motif = (await searchParams).motif;
+  const params = await searchParams;
+  const motif = params.motif;
   const motifInitial: CleTraduction | undefined =
     typeof motif === "string" && estCleTraduction(motif) ? motif : undefined;
+
+  // PRÉREMPLISSAGE PAR L'URL (FICHE-360-1, `/parc/nouvelle?client=&site=`,
+  // même forme que LIENS-1 sur `/interventions/nouvelle`) — validé contre le
+  // périmètre déjà lu SOUS LE CONTEXTE (`clients`, `sites` ci-dessus) : un
+  // identifiant hors périmètre retombe en silence sur le champ vide, jamais
+  // un message ni une valeur d'une autre société.
+  const clientParam =
+    typeof params.client === "string" ? params.client : undefined;
+  const siteParam = typeof params.site === "string" ? params.site : undefined;
+  const clientInitial =
+    clientParam !== undefined && clients.some((c) => c.id === clientParam)
+      ? clientParam
+      : undefined;
+  const siteInitial =
+    siteParam !== undefined &&
+    clientInitial !== undefined &&
+    sites.some((s) => s.id === siteParam && s.clientId === clientInitial)
+      ? siteParam
+      : undefined;
 
   return (
     <Page
@@ -162,6 +182,8 @@ export default async function PageNouvelleMachine({
         clients={clients}
         sites={sites}
         motifInitial={motifInitial}
+        clientInitial={clientInitial}
+        siteInitial={siteInitial}
         valeurs={{
           numeroSerie: "",
           referenceInterne: "",

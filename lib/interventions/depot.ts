@@ -2250,6 +2250,71 @@ export async function compterInterventionsDuClient(
 }
 
 /**
+ * LES STATUTS « FERMÉS », ÉCRITS UNE FOIS (FICHE-360-1).
+ *
+ * Aucune règle de gestion ne nomme « ouverte »/« fermée » — ce n'est qu'un
+ * compteur d'affichage, sur la synthèse en tête des fiches client et site,
+ * jamais une décision qui change ce qu'un client paie ou une préséance de
+ * synchronisation (I5, `docs/cahier-des-charges.md` chapitre 10). Le
+ * regroupement retenu suit celui déjà écrit dans `prisma/schema.prisma` pour
+ * I5 : `annulee`, `cloturee`, `terminee` sont les trois états qui ferment le
+ * cycle de vie d'une intervention ; les cinq autres (`a_planifier`,
+ * `planifiee`, `affectee`, `en_cours`, `suspendue`) restent « ouvertes ».
+ * **Condition de réouverture** : si le chapitre 10 ou `docs/arbitrages.md`
+ * nomme un jour ce regroupement autrement, cette constante s'aligne dessus.
+ */
+const STATUTS_INTERVENTION_FERMES: readonly StatutIntervention[] = [
+  "terminee",
+  "cloturee",
+  "annulee",
+];
+
+/**
+ * COMBIEN D'INTERVENTIONS OUVERTES POUR CE CLIENT (FICHE-360-1) — la synthèse
+ * en tête de la fiche, jamais une seconde écriture du critère de pagination
+ * (`compterInterventionsDuClient`, qui compte TOUT, ouvert ou non).
+ *
+ * `clientId` est un SUJET, pas un cloisonnement : la politique de forme
+ * « parc » décide seule (D84), comme partout ailleurs dans ce fichier.
+ */
+export async function interventionsOuvertesDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.count({
+        where: {
+          client_id: clientId,
+          statut: { notIn: STATUTS_INTERVENTION_FERMES },
+        },
+      }),
+    client,
+  );
+}
+
+/** LE MÊME COMPTE, POUR UN SITE (FICHE-360-1) — même raison, même forme. */
+export async function interventionsOuvertesDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  client?: PrismaClient,
+): Promise<number> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.count({
+        where: {
+          site_id: siteId,
+          statut: { notIn: STATUTS_INTERVENTION_FERMES },
+        },
+      }),
+    client,
+  );
+}
+
+/**
  * LES DERNIÈRES INTERVENTIONS D'UN SITE (fiche site, HISTORIQUE-SITE-1).
  *
  * *« Qu'est-ce qu'on a déjà fait chez ce client, à cet endroit ? »* — c'est la
