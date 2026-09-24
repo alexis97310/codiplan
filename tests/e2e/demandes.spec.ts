@@ -203,7 +203,15 @@ test("LA FILE montre les deux demandes, la plus ANCIENNE en tête malgré une ur
   await page.goto("/demandes");
   await expect(page.locator("main")).toBeVisible();
 
-  const lignes = page.locator("tr[data-demande]");
+  // SCOPÉ AUX DEUX DEMANDES DE CE FICHIER (mesuré le 25/09/2026,
+  // 73-DEMANDES-2-REPRISE) : `tr[data-demande]` seul compte TOUTE la file de
+  // CODIMA-NC, faussé sous parallélisme par la scène — légitime — de
+  // `demandes-2.spec.ts`, qui y pose aussi une demande ouverte (même famille
+  // que `porte-capacites.spec.ts`, mémoire du poste). Le filtre ne retient
+  // que nos deux identifiants ; l'ordre lu reste celui du DOM.
+  const lignes = page.locator(
+    `tr[data-demande="${DEMANDE_ANCIENNE}"], tr[data-demande="${DEMANDE_RECENTE}"]`,
+  );
   await expect(lignes).toHaveCount(2);
   // `demandesOuvertes` ordonnerait la RÉCENTE (p1) en tête ; l'écran doit la
   // remettre à sa place — la preuve que `parLaPlusAncienne` a bien re-trié.
