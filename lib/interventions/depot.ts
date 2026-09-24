@@ -227,6 +227,34 @@ export async function instantDeLAgence(
 }
 
 /**
+ * UNE INTERVENTION DÉJÀ CRÉÉE SOUS CET IDENTIFIANT — LECTURE D'EXISTENCE
+ * SEULE (55-FORMULAIRES-1, SAV-02).
+ *
+ * Sert à rendre `POST /api/interventions/creer` idempotent sous un double
+ * clic : le formulaire pose un `id` au rendu, et la seconde soumission le
+ * rejoue. Lue SOUS LE CONTEXTE CLOISONNÉ (I1) : un `id` d'une AUTRE société
+ * ne révèle rien, il rend `null` — exactement comme un `id` inconnu. C'est à
+ * l'appelant de ne jamais afficher la fiche d'autrui sur la foi de ce `null`.
+ */
+export async function interventionDejaCreee(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<string | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const trouvee = await tx.intervention.findFirst({
+        where: { id },
+        select: { id: true },
+      });
+      return trouvee?.id ?? null;
+    },
+    client,
+  );
+}
+
+/**
  * CRÉER une intervention — UNE DEMANDE, au sens du parcours (PARCOURS-1,
  * 23/09/2026, arbitrage Alexis) : client, site, au plus une machine, nature,
  * priorité, panne signalée. **Ni date, ni créneau, ni technicien** — ce
