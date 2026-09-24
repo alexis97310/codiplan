@@ -46,6 +46,63 @@ function pointVisible(
   return { x: (gauche + droite) / 2, y: (haut + bas) / 2 };
 }
 
+/**
+ * AGRANDIT LA FENÊTRE POUR QU'ELLE CONTIENNE LES DEUX BOÎTES ENTIÈRES, sans
+ * aucun défilement — ou renvoie `false` si la page ne s'y prête pas
+ * (63-STABILITE-4).
+ *
+ * *Mesuré le 25/09/2026 : une file d'attente que d'autres scènes du dépôt
+ * font grandir en parallèle peut séparer une carte de la case qu'elle vise
+ * de PLUS d'une fenêtre entière — aucun défilement unique, si généreuse
+ * soit la fenêtre choisie, ne les réunit alors.* Défiler PENDANT le glissé
+ * a été essayé et mesuré INOPÉRANT : une fois le glissé HTML5 natif engagé
+ * (après `mouse.down`), Chromium ignore `window.scrollBy` — la position
+ * mesurée après quatre-vingts tentatives était identique à la première,
+ * PAS d'un seul pixel de mieux. Le glissé, une fois commencé, ne tolère
+ * aucun défilement : la fenêtre doit donc déjà contenir les deux boîtes
+ * AVANT `mouse.down`, jamais après.
+ *
+ * Une fenêtre de test n'est pas un écran physique : rien n'empêche de la
+ * rendre aussi haute que la page l'exige, LE TEMPS DE CE GLISSÉ SEUL — la
+ * fonction appelante restaure la taille d'origine ensuite.
+ */
+async function agrandirPourContenirLesDeux(
+  page: Page,
+  source: Locator,
+  cible: Locator,
+  fenetreOrigine: { width: number; height: number },
+): Promise<boolean> {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const [avantSource, avantCible] = await Promise.all([
+    source.boundingBox(),
+    cible.boundingBox(),
+  ]);
+  if (avantSource === null || avantCible === null) {
+    return false;
+  }
+  const haut = Math.min(avantSource.y, avantCible.y);
+  const bas = Math.max(
+    avantSource.y + avantSource.height,
+    avantCible.y + avantCible.height,
+  );
+  // MARGE, PAS PRÉCISION : `pointVisible` exige 4 px de boîte visible de
+  // chaque côté, une hauteur pile ajustée y échouerait par arrondi.
+  const hauteurRequise = Math.ceil(bas - haut) + 40;
+  // BORNÉE, MÊME ICI : un test dont la scène a dérivé au point de réclamer
+  // une fenêtre de plusieurs centaines de milliers de pixels ne prouve
+  // plus rien qu'un défilement borné n'aurait déjà refusé plus proprement.
+  const PLAFOND = 60_000;
+  if (hauteurRequise > PLAFOND) {
+    return false;
+  }
+  await page.setViewportSize({
+    width: fenetreOrigine.width,
+    height: Math.max(hauteurRequise, fenetreOrigine.height),
+  });
+  await page.evaluate((dy) => window.scrollBy(0, dy), haut - 20);
+  return true;
+}
+
 export async function glisser(
   page: Page,
   source: Locator,
@@ -70,8 +127,9 @@ export async function glisser(
   // qui pose une intervention à planifier sans la planifier ensuite. Un
   // défilement UNIQUE vers le MILIEU des deux centres donne aux deux la
   // même chance d'être visibles ensemble.
+  const fenetreOrigine = page.viewportSize() ?? { width: 1280, height: 720 };
   await cible.scrollIntoViewIfNeeded();
-  const fenetre = page.viewportSize() ?? { width: 1280, height: 720 };
+  let fenetre = fenetreOrigine;
   const avantSource = await source.boundingBox();
   const avantCible = await cible.boundingBox();
   if (avantSource === null || avantCible === null) {
@@ -90,8 +148,37 @@ export async function glisser(
     await page.evaluate((dy) => window.scrollBy(0, dy), decalage);
   }
 
-  const depart = await source.boundingBox();
-  const arrivee = await cible.boundingBox();
+  let depart = await source.boundingBox();
+  let arrivee = await cible.boundingBox();
+  if (depart === null || arrivee === null) {
+    throw new Error(
+      "Le glissé vise un élément sans boîte : la source ou la case n'est pas " +
+        "dans la page, et le scénario mesurerait un geste qui n'a pas eu lieu.",
+    );
+  }
+  let fenetreAgrandie = false;
+  if (
+    pointVisible(depart, fenetre) === null ||
+    pointVisible(arrivee, fenetre) === null
+  ) {
+    // LE DÉFILEMENT UNIQUE NE SUFFIT PAS (63-STABILITE-4) : la source et la
+    // case sont séparées de plus d'une fenêtre entière — mesuré sur une file
+    // d'attente que d'autres scènes du dépôt font grandir en parallèle.
+    // Défiler PENDANT le glissé a été essayé et mesuré inopérant sur un
+    // glissé HTML5 natif engagé (voir `agrandirPourContenirLesDeux`) : la
+    // fenêtre doit donc déjà contenir les deux boîtes AVANT `mouse.down`.
+    fenetreAgrandie = await agrandirPourContenirLesDeux(
+      page,
+      source,
+      cible,
+      fenetreOrigine,
+    );
+    if (fenetreAgrandie) {
+      fenetre = page.viewportSize() ?? fenetreOrigine;
+      depart = await source.boundingBox();
+      arrivee = await cible.boundingBox();
+    }
+  }
   if (depart === null || arrivee === null) {
     throw new Error(
       "Le glissé vise un élément sans boîte : la source ou la case n'est pas " +
@@ -101,6 +188,9 @@ export async function glisser(
   const prise = pointVisible(depart, fenetre);
   const pose = pointVisible(arrivee, fenetre);
   if (prise === null || pose === null) {
+    if (fenetreAgrandie) {
+      await page.setViewportSize(fenetreOrigine);
+    }
     // Un ÉCHEC BRUYANT plutôt qu'un geste muet : sans cela, le scénario
     // accuserait la règle métier de ne pas avoir refusé.
     throw new Error(
@@ -110,12 +200,21 @@ export async function glisser(
     );
   }
 
-  await page.mouse.move(prise.x, prise.y);
-  await page.mouse.down();
-  // Les mouvements découpés ne sont pas une précaution : Chromium n'engage un
-  // glissé qu'après un déplacement franchissant son seuil, puis n'accepte un
-  // dépôt qu'après au moins un `dragover` sur la cible.
-  await page.mouse.move(pose.x, pose.y, { steps: 20 });
-  await page.mouse.move(pose.x + 2, pose.y + 2, { steps: 10 });
-  await page.mouse.up();
+  try {
+    await page.mouse.move(prise.x, prise.y);
+    await page.mouse.down();
+    // Les mouvements découpés ne sont pas une précaution : Chromium n'engage
+    // un glissé qu'après un déplacement franchissant son seuil, puis
+    // n'accepte un dépôt qu'après au moins un `dragover` sur la cible.
+    await page.mouse.move(pose.x, pose.y, { steps: 20 });
+    await page.mouse.move(pose.x + 2, pose.y + 2, { steps: 10 });
+    await page.mouse.up();
+  } finally {
+    // LA FENÊTRE AGRANDIE NE SURVIT PAS À CE GLISSÉ : un scénario qui
+    // capture un écran ou vérifie une position APRÈS l'appel ne doit rien
+    // voir d'autre que la fenêtre qu'il avait lui-même choisie.
+    if (fenetreAgrandie) {
+      await page.setViewportSize(fenetreOrigine);
+    }
+  }
 }
