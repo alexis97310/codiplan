@@ -186,6 +186,14 @@ export const schemaCreation = z
       .max(200)
       .nullable()
       .default(null),
+    /**
+     * LA DEMANDE D'ORIGINE (68-DEMANDES-2, SAV-11) — facultative : une
+     * intervention peut toujours naître directement. Quand elle est donnée,
+     * `creerIntervention` (`lib/interventions/depot.ts`) exige qu'elle
+     * désigne une demande de la MÊME société et du MÊME site que
+     * l'intervention à naître — la forme, elle, ne juge que l'UUID.
+     */
+    demande_id: uuid.nullable().default(null),
   })
   .strict();
 

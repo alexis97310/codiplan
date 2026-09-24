@@ -1132,6 +1132,10 @@ export const fr = {
   // qui les entoure, et le composant compose.
   "intervention.deduit_du_lieu":
     "Déduit du lieu d'intervention — cela ne se saisit pas.",
+  // 68-DEMANDES-2 — affiché sur `/interventions/nouvelle` seulement quand
+  // l'écran a été ouvert depuis la fiche d'une demande.
+  "intervention.depuis_demande":
+    "Préremplie depuis une demande d'intervention.",
   "intervention.refus.lieu_inconnu":
     "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
   "intervention.refus.lieu_sans_rattachement":
@@ -1342,6 +1346,11 @@ export const fr = {
   // saisit sur ce qui existe ailleurs.
   "intervention.refus.machine_invalide":
     "Cette machine n'appartient pas au lieu de l'intervention, ou elle n'est pas dans votre périmètre.",
+  // 68-DEMANDES-2 — même discipline que le refus machine ci-dessus : une
+  // demande d'une autre société est invisible (I1) et rend le même refus
+  // qu'une demande d'un autre site, sans distinguer les deux cas (D50).
+  "intervention.refus.demande_invalide":
+    "Cette demande n'appartient pas au lieu de l'intervention, ou elle n'est pas dans votre périmètre.",
   // LES DEUX REFUS TECHNIQUES (D-06, 17/09/2026) — distincts, parce que la
   // marche à suivre ne l'est pas : l'un se réessaie, l'autre demande de
   // regarder ailleurs qu'à l'écran. Ni l'un ni l'autre ne compte ni ne nomme
@@ -1574,10 +1583,17 @@ export const fr = {
   "demande.machine_arretee_oui": "Oui, à l'arrêt",
   // « Transformer » pose SEULEMENT le statut — `marquerTransformee` ne crée
   // aucune intervention (son propre en-tête le dit). Le lien mène au geste
-  // humain qui planifie réellement.
+  // humain qui planifie réellement, DEPUIS 68-DEMANDES-2 en portant le lien :
+  // `/interventions/nouvelle?demande=<id>` préremplit l'écran et garde
+  // `intervention.demande_id` une fois créée.
   "demande.transformer.note":
     "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez-la depuis le lien ci-dessous, avant ou après avoir marqué cette demande transformée.",
-  "demande.transformer.creer_intervention": "Créer l'intervention →",
+  "demande.transformer.creer_intervention":
+    "Créer une intervention depuis cette demande →",
+  // 68-DEMANDES-2 — la liste des interventions nées de cette demande.
+  "demande.interventions_issues.titre": "Interventions issues de cette demande",
+  "demande.interventions_issues.aucune":
+    "Aucune intervention n'est encore née de cette demande.",
 
   // ── Fixtures de l'épreuve DEMANDES-1, au dictionnaire pour le gardien de
   // L0-11 (même discipline que `contacts.e2e.*`) : un texte que l'épreuve
@@ -1587,6 +1603,9 @@ export const fr = {
     "Fuite hydraulique constatée (épreuve DEMANDES-1)",
   "demandes.e2e.description_recente":
     "Bruit anormal au démarrage (épreuve DEMANDES-1)",
+  // Fixture de l'épreuve DEMANDES-2, même discipline.
+  "demandes.e2e.description_dem2":
+    "Compresseur arrêté sur alarme (épreuve DEMANDES-2)",
   // Le même refus qu'ailleurs sur cette fiche — un rôle sans `creer_demande`
   // (arbitrage du ticket : la même capacité que la création d'une
   // intervention) voit ce motif à la place de CHAQUE action, jamais un

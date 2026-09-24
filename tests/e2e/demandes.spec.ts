@@ -137,12 +137,15 @@ test.beforeAll(async () => {
     const troisJours = new Date(maintenant.getTime() - 3 * 24 * 60 * 60 * 1000);
     const uneHeure = new Date(maintenant.getTime() - 60 * 60 * 1000);
 
-    // TÉMOIN — zéro demande au départ dans TOUTE la société de l'épreuve :
-    // aucun autre chemin du dépôt ne pose de `demande` aujourd'hui (mesuré le
-    // 22/09/2026), et la file lue par `/demandes` est bornée à cette société
-    // — la file est donc VIDE avant ce scénario, pas seulement pour ce client.
+    // TÉMOIN — zéro demande au départ POUR CE CLIENT (mesuré le 25/09/2026,
+    // 68-DEMANDES-2) : compter TOUTE la société, comme avant ce lot, se fait
+    // fausser par la scène — légitime — de `demandes-2.spec.ts`, qui pose
+    // aussi une `demande` dans CODIMA-NC et tourne en parallèle (mémoire du
+    // poste, même famille que `porte-capacites.spec.ts:107`). `CLIENT_DEMANDES`
+    // est fraîchement créé juste au-dessus : aucune fixture ne peut y avoir
+    // posé de demande avant nous.
     expect(
-      await client.demande.count({ where: { societe_id: societe.id } }),
+      await client.demande.count({ where: { client_id: CLIENT_DEMANDES } }),
     ).toBe(0);
 
     await client.demande.create({

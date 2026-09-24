@@ -1642,6 +1642,14 @@ model Intervention {
   /// libre, facultatif : le chapitre 10 ne pose aucune forme à ce jour.
   reference_client String?
 
+  /// LA DEMANDE DONT CETTE INTERVENTION EST NÉE (68-DEMANDES-2, SAV-11).
+  /// Facultative : une intervention peut naître directement, sans être passée
+  /// par une demande. **Une demande peut donner PLUSIEURS interventions**
+  /// (décision 4, une intervention = une machine) — ce lien vit donc ICI,
+  /// sur l'intervention, jamais l'inverse, exactement comme le chapitre 11 le
+  /// pose et comme `Demande` le dit dans son propre en-tête.
+  demande_id String? @db.Uuid
+
   type     TypeIntervention
   priorite PrioriteIntervention @default(p3)
   statut   StatutIntervention   @default(a_planifier)
@@ -1792,6 +1800,10 @@ model Intervention {
   forfait          Forfait?         @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   devise           Devise?          @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
   observations_vgp VgpObservation[]
+  /// LA DEMANDE D'ORIGINE (68-DEMANDES-2). `Restrict` en suppression, comme
+  /// tous les autres liens de cette table : une demande dont une intervention
+  /// dépend ne s'efface pas.
+  demande          Demande?         @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
   @@unique([societe_id, numero])
@@ -1799,6 +1811,7 @@ model Intervention {
   @@index([societe_id, technicien_id, date_planifiee])
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
+  @@index([societe_id, demande_id])
   @@map("intervention")
 }
 
@@ -1948,6 +1961,11 @@ model Demande {
   /// deux autres colonnes étant NOT NULL : « pas de contact » est le seul état
   /// que la nullité produit, jamais une ligne à moitié vérifiée.
   contact Contact? @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Les interventions NÉES de cette demande (68-DEMANDES-2) — zéro, une, ou
+  /// plusieurs : une demande peut donner plusieurs interventions (décision 4,
+  /// une intervention = une machine). Le lien vit sur `intervention.demande_id`
+  /// ; ce champ n'est que sa face inverse, jamais une seconde écriture.
+  interventions Intervention[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, numero])

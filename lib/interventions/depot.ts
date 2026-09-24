@@ -343,6 +343,23 @@ export async function creerIntervention(
         }
       }
 
+      // LA DEMANDE D'ORIGINE (68-DEMANDES-2) — lue SOUS LE MÊME CONTEXTE
+      // CLOISONNÉ : une demande d'une AUTRE société y est invisible (I1), et
+      // rend donc `null` exactement comme une demande inexistante — les deux
+      // cas se refusent pareil (D50). Le SITE, lui, se compare : une demande
+      // de la même société mais d'un AUTRE site n'a pas sa place sur cette
+      // intervention, et le motif le nomme plutôt que de laisser croire à un
+      // simple « demande introuvable ».
+      if (saisie.demande_id !== null) {
+        const demande = await tx.demande.findFirst({
+          where: { id: saisie.demande_id },
+          select: { site_id: true },
+        });
+        if (demande === null || demande.site_id !== site.id) {
+          return { accepte: false, cle: "intervention.refus.demande_invalide" };
+        }
+      }
+
       const forfaitId = await forfaitDeDeplacement(
         tx,
         site.zone_geo,
@@ -364,6 +381,7 @@ export async function creerIntervention(
           description: saisie.description,
           contact_id: saisie.contact_id,
           reference_client: saisie.reference_client,
+          demande_id: saisie.demande_id,
           mode_valorisation: saisie.mode_valorisation,
           forfait_deplacement_id: forfaitId,
         },
