@@ -35,7 +35,9 @@ import { ouvrirUneSession } from "./setup/session";
 
 test.describe.configure({ mode: "serial" });
 
-async function siteDeDucos(): Promise<{
+async function siteDeDucos(
+  ordre: "asc" | "desc" = "asc",
+): Promise<{
   readonly siteId: string;
   readonly clientId: string;
 }> {
@@ -58,7 +60,7 @@ async function siteDeDucos(): Promise<{
         client: { actif: true },
       },
       select: { id: true, client_id: true },
-      orderBy: { libelle: "asc" },
+      orderBy: { libelle: ordre },
     });
     return { siteId: site.id, clientId: site.client_id };
   } finally {
@@ -118,7 +120,17 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
 test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte complet", async ({
   page,
 }) => {
-  const { siteId, clientId } = await siteDeDucos();
+  // SA PROPRE SCÈNE, LE SITE (REPRISE-3, mesuré) — `siteDeDucos()` en ordre
+  // ASCENDANT rend le PREMIER site visible de tout l'écran `/sites`, exactement
+  // celui que `premierLieu()` (`tests/e2e/habilitations.spec.ts`) ouvre pour
+  // EXIGER puis RETIRER une habilitation. Mesuré en tête de cette REPRISE : la
+  // planification refusait avec « Ce technicien ne détient pas les
+  // habilitations exigées ici » — le technicien pris (`options.first()`) ne
+  // détenait pas l'habilitation qu'`habilitations.spec.ts` venait de poser sur
+  // ce MÊME site, sous `fullyParallel`, avant de la retirer. L'ordre DESCENDANT
+  // vise le second site Ducos (« Atelier sous contrat (démonstration) »),
+  // qu'aucun autre scénario du dépôt ne touche.
+  const { siteId, clientId } = await siteDeDucos("desc");
   await page.goto("/interventions/nouvelle");
   await page
     .locator('select[name="site"]')
@@ -154,17 +166,15 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   // manquent — contourner le `required` du navigateur pour éprouver le
   // REFUS DU SERVEUR, pas seulement l'ergonomie du formulaire.
   //
-  // SA PROPRE SCÈNE (REPRISE-3) — mesuré INSTABLE : le MARDI ordinaire, à
-  // 11:00, est aussi celui que `captures-parcours-1.spec.ts` (09:00) et
-  // surtout `affichage-materiel.spec.ts` écrivent en SQL brut pour le
-  // technicien de Ducos (10:30-11:00, jointif à notre propre créneau). Sous
-  // `fullyParallel`, l'ordre entre fichiers n'est pas garanti : ce dépôt
-  // partagé pouvait exister ou non au moment où ce scénario planifiait,
-  // produisant tantôt un conflit d'agenda, tantôt aucun — exactement le
-  // « recu 1 » intermittent constaté. +49 jours (multiple de 7, donc encore
-  // un mardi) reste à l'écart des décalages déjà pris par les fichiers
-  // voisins (0, +21, +35, +63 — voir plus bas dans ce même fichier) : aucun
-  // autre scénario du dépôt n'y écrit.
+  // SA PROPRE SCÈNE, LA DATE (REPRISE-3) — mesure secondaire, par prudence :
+  // le MARDI ordinaire est aussi celui que `captures-parcours-1.spec.ts`
+  // (09:00) écrit sur le même site Ducos. +49 jours (multiple de 7, donc
+  // encore un mardi) reste à l'écart des décalages déjà pris par les
+  // fichiers voisins (0, +21, +35, +63 — voir plus bas dans ce même
+  // fichier). La cause RÉELLE, mesurée, de l'instabilité était le SITE
+  // partagé (voir le commentaire au-dessus de `siteDeDucos("desc")`),
+  // pas la date — mais un site ISOLÉ à une date qui ne l'est pas resterait
+  // fragile au premier fichier qui s'y ajouterait.
   const reperes = await reperesDeLaScene();
   const mardi = jourSuivant(jourDeLaScene(reperes, MARDI), 49);
   await formulaire
