@@ -191,8 +191,14 @@ test("le 60e client SEL1- est trouvable et reçoit un site depuis /sites/nouveau
     new URL(page.url()).pathname.split("/").pop() ?? null;
   expect(idSiteCreeParLeScenario1).not.toBeNull();
 
-  // La fiche du site nomme bien le 60e client, par un lien vers sa fiche.
-  await expect(page.getByRole("link", { name: cible })).toBeVisible();
+  // La fiche du site nomme bien le 60e client, par un lien vers sa fiche —
+  // dans le SOUS-TITRE (`<header>`, LIENS-1), pas dans le fil d'Ariane
+  // (FICHE-360-1, `<nav>`) : les deux portent le même libellé depuis la
+  // fusion des deux lots, et un sélecteur non scopé serait ambigu (deux
+  // liens, aucun rapport avec ce que ce scénario éprouve).
+  await expect(
+    page.locator("header").getByRole("link", { name: cible }),
+  ).toBeVisible();
 });
 
 test("le 210e site SEL1- est trouvable et reçoit une intervention, avec sa machine proposée", async ({
