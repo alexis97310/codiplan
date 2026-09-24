@@ -92,6 +92,30 @@ export type Occupante = {
 
 export type EtatDeCellule = "occupe" | "libre" | "hors_ouverture" | "bloque";
 
+/**
+ * CE QUE LES VISITES SANS HEURE PÈSENT SUR LA JOURNÉE — et que
+ * `creneauxLibres` ne dit pas (75-PLANNING-5, SAV-06).
+ *
+ * *Mesuré sur `main` le 25/09/2026 : une journée où un technicien porte une
+ * visite sans heure de trois heures affichait « 16 créneaux libres » — le
+ * même compte qu'une journée réellement vide, parce que `sansHeure` ne
+ * retire aucun créneau de l'axe.* Le chef d'atelier lisait « libre » et
+ * ajoutait du travail sur une journée déjà engagée.
+ *
+ * `creneauxLibres` reste inchangé à dessein : on n'invente pas où caser une
+ * visite sans heure. `aCaler` est une mesure SÉPARÉE, à lire À CÔTÉ du
+ * compte de trous, jamais à sa place.
+ *
+ * `sansDuree` compte les visites dont `duree_estimee_min` est nul — elles
+ * n'ajoutent RIEN à `minutesConnues` : un zéro écrit se lirait comme une
+ * mesure, et il n'y en a pas à faire.
+ */
+export type ACaler = {
+  readonly nombre: number;
+  readonly minutesConnues: number;
+  readonly sansDuree: number;
+};
+
 /** Une intervention posée dans une cellule, et sa place dans son propre bloc. */
 export type BlocDeCellule<T> = {
   readonly ligne: T;
@@ -160,6 +184,8 @@ export type ColonneDeJournee<T> = {
    * tête de grille, jamais reléguée hors d'elle (AFFICHAGE-MATERIEL-1).
    */
   readonly sansHeure: readonly T[];
+  /** Ce que `sansHeure` pèse sur cette colonne — voir `ACaler` ci-dessus. */
+  readonly aCaler: ACaler;
   /**
    * Ce que cette colonne NE PEUT PAS dessiner DANS L'AXE, et qu'elle DIT.
    *
@@ -181,6 +207,8 @@ export type Journee<T> = {
   readonly creneauxLibres: number;
   /** Le total des interventions non dessinables — jamais un zéro tu. */
   readonly horsGrille: number;
+  /** Ce que `sansHeure` pèse sur la journée entière — somme des colonnes. */
+  readonly aCaler: ACaler;
 };
 
 /**
@@ -288,13 +316,15 @@ export function construireJournee<T extends Occupante>(
           bloquee,
         ),
       );
+      const sansHeure = groupe.lignes.filter((l) => l.creneau_debut === null);
       return {
         technicienId: groupe.technicienId,
         agences: siennes,
         bloquee,
         cellules,
         creneauxLibres: cellules.filter((c) => c.etat === "libre").length,
-        sansHeure: groupe.lignes.filter((l) => l.creneau_debut === null),
+        sansHeure,
+        aCaler: aCalerDe(sansHeure),
         horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
       };
     })
@@ -307,7 +337,29 @@ export function construireJournee<T extends Occupante>(
     colonnes,
     creneauxLibres: colonnes.reduce((n, c) => n + c.creneauxLibres, 0),
     horsGrille: colonnes.reduce((n, c) => n + c.horsGrille.length, 0),
+    aCaler: {
+      nombre: colonnes.reduce((n, c) => n + c.aCaler.nombre, 0),
+      minutesConnues: colonnes.reduce(
+        (n, c) => n + c.aCaler.minutesConnues,
+        0,
+      ),
+      sansDuree: colonnes.reduce((n, c) => n + c.aCaler.sansDuree, 0),
+    },
   };
+}
+
+/** Ce que les visites sans heure d'une colonne pèsent — voir `ACaler`. */
+function aCalerDe<T extends Occupante>(sansHeure: readonly T[]): ACaler {
+  let minutesConnues = 0;
+  let sansDuree = 0;
+  for (const ligne of sansHeure) {
+    if (ligne.duree_estimee_min === null) {
+      sansDuree += 1;
+    } else {
+      minutesConnues += ligne.duree_estimee_min;
+    }
+  }
+  return { nombre: sansHeure.length, minutesConnues, sansDuree };
 }
 
 /**

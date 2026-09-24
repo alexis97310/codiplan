@@ -2922,6 +2922,16 @@ export const fr = {
   // l'exploitant.* Elles entrent désormais dans la colonne de leur
   // technicien, jamais seulement en dessous.
   "planning.jour_sans_heure": "Journée — heure non fixée",
+  // CE QUE LES VISITES SANS HEURE PÈSENT SUR LA JOURNÉE (75-PLANNING-5,
+  // SAV-06, 25/09/2026). *Mesuré sur `main` le 25/09/2026 : une journée
+  // portant une visite sans heure de trois heures se lisait « 16 créneaux
+  // libres », le même compte qu'une journée vide.* Accordé via `decompte()`
+  // comme `planning.creneaux_libres` juste au-dessus. « sans durée » et « à
+  // caler » (pastille de colonne) sont invariants au pluriel en français.
+  "planning.a_caler_visite_une": "visite à caler",
+  "planning.a_caler_visites": "visites à caler",
+  "planning.a_caler_sans_duree": "sans durée",
+  "planning.a_caler_pastille": "à caler",
   // LE MATÉRIEL D'UNE CARTE DE PLANNING, QUAND AUCUNE MACHINE N'EST AFFECTÉE
   // (AFFICHAGE-MATERIEL-1) — RG-INT-01 autorise le dépannage à l'aveugle,
   // sans machine connue : ce n'est pas une donnée manquante, et le mot le dit

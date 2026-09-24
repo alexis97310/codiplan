@@ -50,6 +50,7 @@ import {
 } from "@/lib/interventions/grille";
 import {
   construireJournee,
+  type ACaler,
   type AgenceDeJournee,
   type Journee,
   type MotifHorsGrille,
@@ -1111,7 +1112,11 @@ function VueJour({
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-[12.5px]">
-        {resumeDesTrous(journee.creneauxLibres, journee.pasMinutes)}
+        {resumeDesTrous(
+          journee.creneauxLibres,
+          journee.pasMinutes,
+          journee.aCaler,
+        )}
       </p>
       <div className="overflow-x-auto">
         <table className="w-full table-fixed border-separate border-spacing-0 text-[12px]">
@@ -1138,6 +1143,9 @@ function VueJour({
                   {/* LA COLONNE LE DIT EN TÊTE, et chaque cellule le répète
                       par son aplat : un blocage se lit sans chercher. */}
                   {colonne.bloquee ? <PastilleAgendaBloque /> : null}
+                  {colonne.aCaler.nombre > 0 ? (
+                    <PastilleACaler nombre={colonne.aCaler.nombre} />
+                  ) : null}
                 </th>
               ))}
             </tr>
@@ -1367,6 +1375,29 @@ function PastilleAgendaBloque() {
       className="bg-app-violet-fond text-app-violet-encre border-app-violet-bord mb-1 block rounded-md border px-1.5 py-0.5 text-[10.5px] font-semibold"
     >
       {t("planning.agenda_bloque")}
+    </span>
+  );
+}
+
+/**
+ * « N à caler », EN TÊTE DE COLONNE (75-PLANNING-5, SAV-06) — le pendant, par
+ * personne, de `resumeACaler` : le résumé de la journée dit combien de
+ * visites sans heure pèsent au total, cette pastille dit COMBIEN sur CETTE
+ * colonne, sans qu'il faille compter les blocs de la ligne « Journée — heure
+ * non fixée ».
+ *
+ * L'orange, jamais le violet du blocage d'agenda : les deux ne disent pas la
+ * même chose — un agenda bloqué REFUSE le dépôt, une visite à caler l'attend
+ * seulement — et une même couleur pour les deux ferait perdre la distinction
+ * que `classeDeCellule` tient déjà entre `bloque` et le reste.
+ */
+function PastilleACaler({ nombre }: { readonly nombre: number }) {
+  return (
+    <span
+      data-a-caler
+      className="bg-app-orange-fond text-app-orange-encre border-app-orange-bord mb-1 block rounded-md border px-1.5 py-0.5 text-[10.5px] font-semibold"
+    >
+      {nombre} {t("planning.a_caler_pastille")}
     </span>
   );
 }
@@ -1758,8 +1789,43 @@ function ligneHorsGrille(
   return ` — ${quiTravaille(technicienId, annuaire)} — ${libelle[motif]}`;
 }
 
-function resumeDesTrous(libres: number, pasMinutes: number): string {
-  return `${decompte(libres, t("planning.creneau_libre_un"), t("planning.creneaux_libres"))} · ${t("planning.pas")} ${pasMinutes} min`;
+function resumeDesTrous(
+  libres: number,
+  pasMinutes: number,
+  aCaler: ACaler,
+): string {
+  const base = `${decompte(libres, t("planning.creneau_libre_un"), t("planning.creneaux_libres"))} · ${t("planning.pas")} ${pasMinutes} min`;
+  const trousACaler = resumeACaler(aCaler);
+  return trousACaler === null ? base : `${base} · ${trousACaler}`;
+}
+
+/**
+ * « 2 visites à caler (3 h 30) » — jamais à la place du compte de trous,
+ * toujours À CÔTÉ (voir `ACaler`, `lib/interventions/journee.ts`).
+ *
+ * Le parenthésage se compose de ce qui est CONNU (`minutesConnues`, via
+ * `dureeCarteAffichee`) et de ce qui ne l'est PAS (`sansDuree`) — l'un des
+ * deux peut manquer, jamais les deux à la fois puisque `aCaler.nombre > 0`
+ * l'exige.
+ */
+function resumeACaler(aCaler: ACaler): string | null {
+  if (aCaler.nombre === 0) {
+    return null;
+  }
+  const visites = decompte(
+    aCaler.nombre,
+    t("planning.a_caler_visite_une"),
+    t("planning.a_caler_visites"),
+  );
+  const duree = dureeCarteAffichee(aCaler.minutesConnues);
+  const sansDuree =
+    aCaler.sansDuree > 0
+      ? `${aCaler.sansDuree} ${t("planning.a_caler_sans_duree")}`
+      : null;
+  const parenthese = [duree, sansDuree]
+    .filter((v): v is string => v !== null)
+    .join(" + ");
+  return parenthese.length === 0 ? visites : `${visites} (${parenthese})`;
 }
 
 /**
