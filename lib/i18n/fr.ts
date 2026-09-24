@@ -3386,6 +3386,13 @@ export const fr = {
   "bon3.e2e.commune": "Nouméa",
   "bon3.e2e.numero_serie": "BON3-SN-1",
   "bon3.e2e.panne": "BON3 fuite verin",
+
+  // Même discipline — sa PROPRE scène, préfixée `BON4-`
+  // (`docs/propositions/76-BON-4`).
+  "bon4.e2e.client": "BON4 — Client de l'épreuve",
+  "bon4.e2e.site": "BON4 — Lieu de l'épreuve",
+  "bon4.e2e.signataire_nom": "BON4 Jean Dupont",
+  "bon4.e2e.signataire_qualite": "Chef d'atelier",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
