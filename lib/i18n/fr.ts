@@ -1075,6 +1075,17 @@ export const fr = {
     "sans durée saisie — elles comptent dans le nombre, et pour zéro minute dans le taux",
   "statistiques.sans_duree_un":
     "sans durée saisie — elle compte dans le nombre, et pour zéro minute dans le taux",
+  // ── LA CHARGE INCOMPLÈTE (53-PLANNING-3, SAV-05, 25/09/2026) ─────────────
+  //
+  // Un taux calculé sur des interventions SANS DURÉE reste un chiffre juste
+  // qui fait conclure faux : un technicien sans aucune durée saisie
+  // s'affichait « 0 % » et paraissait libre. Dès que `sansDuree > 0`, la
+  // ligne n'affiche donc PLUS de taux du tout — ni le nombre, ni « pas de
+  // calendrier » — et dit l'incomplétude à sa place (§9, 06/09 — un chiffre
+  // juste qui fait conclure faux).
+  "statistiques.charge_incomplete": "Charge incomplète",
+  "statistiques.au_moins": "au moins",
+  "statistiques.charge_incomplete_lien": "Voir les interventions sans durée →",
 
   "intervention.titre": "Intervention",
   "intervention.reference": "Référence",
