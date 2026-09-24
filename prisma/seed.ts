@@ -605,6 +605,7 @@ async function seed(): Promise<void> {
           clientId,
           ouvert,
           agenceId: identifiantsAgences.get(site.agence_code),
+          demoCle: site.demoCle,
         }));
         // **L'IDENTIFIANT EST DÉRIVÉ DE LA SOCIÉTÉ** *(10/09/2026)*. Il était
         // fixe : la première société prenait les six, la seconde les trouvait
@@ -894,6 +895,24 @@ async function seed(): Promise<void> {
         // capture*, où l'arbitre du projet lit une contradiction avant de lire
         // un parc. Le jeu de démonstration doit se lire d'un coup d'œil.
         const lieuxOuverts = sitesEcrits.filter((lieu) => lieu.ouvert);
+        // **CHAQUE MACHINE VISE UN LIEU PAR SA CLÉ (`siteCle`), JAMAIS PAR UNE
+        // POSITION** (CONTRAT-SITE-1-SEMIS-STABLE, 24/09/2026). L'ancien code
+        // tirait `lieuxOuverts[machine.siteRang % lieuxOuverts.length]` — un
+        // site inséré n'importe où dans `sites` (CONTRAT-SITE-1 en a ajouté un
+        // AU MILIEU des sites du client « Atelier Ducos ») décalait alors
+        // l'index de tout ce qui suivait, et une machine attendue chez un
+        // client changeait de client sans qu'aucune ligne de ce fichier ne
+        // bouge. La clé ne dépend ni de la position ni du nombre de sites : un
+        // site sans clé (comme « Atelier sous contrat ») n'accueille aucune
+        // machine, et n'en décale aucune autre.
+        const lieuxParCle = new Map(
+          lieuxOuverts
+            .filter(
+              (lieu): lieu is typeof lieu & { demoCle: string } =>
+                lieu.demoCle !== undefined,
+            )
+            .map((lieu) => [lieu.demoCle, lieu]),
+        );
         const identifiantsMachines = new Map<number, string>();
         // LE CLIENT DE CHAQUE MACHINE, pour la même raison que
         // `clientIdParInterventionRang` ci-dessus. Le MODÈLE l'accompagne :
@@ -905,12 +924,13 @@ async function seed(): Promise<void> {
         const clientIdParMachineRang = new Map<number, string>();
         const modeleRangParMachineRang = new Map<number, number>();
         for (const machine of MACHINES_DEMONSTRATION) {
-          const lieu = lieuxOuverts[machine.siteRang % lieuxOuverts.length];
+          const lieu = lieuxParCle.get(machine.siteCle);
           const modeleId = identifiantsModeles.get(machine.modeleRang);
           if (lieu === undefined || modeleId === undefined) {
             throw new Error(
               `Machine ${machine.numeroSerie} : lieu ou modèle absent du jeu ` +
-                "de démonstration. Une machine porte QUATRE champs " +
+                `de démonstration (clé « ${machine.siteCle} » introuvable ` +
+                "parmi les sites ouverts). Une machine porte QUATRE champs " +
                 "obligatoires — modèle, client, site, numéro de série (D6).",
             );
           }

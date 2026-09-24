@@ -226,6 +226,21 @@ export type SiteSeed = {
    * faille revisiter les sept sites déjà décrits par ce fichier.
    */
   sous_contrat?: boolean;
+  /**
+   * LE RÔLE de ce site dans le semis des MACHINES de démonstration
+   * (CONTRAT-SITE-1-SEMIS-STABLE, 24/09/2026) — un CODE EXPLICITE, jamais une
+   * position dans `sites`. `MACHINES_DEMONSTRATION` épingle chaque machine à
+   * une clé, jamais à un rang : un site inséré entre deux autres (comme
+   * « Atelier sous contrat », plus bas) ne décale plus rien, puisqu'il ne
+   * PORTE aucune clé tant qu'on ne lui en donne pas une.
+   *
+   * La MÊME clé désigne le même rôle chez CODIMA-NC et chez CODIMA-EU — par
+   * exemple `"site_du_client_2"` est « Garage de Koné » d'un côté et
+   * « Usine de Saint-Étienne » de l'autre — ce qui permet à
+   * `MACHINES_DEMONSTRATION`, écrite une seule fois, de s'appliquer aux deux
+   * sociétés. FACULTATIF : un site sans clé n'accueille aucune machine.
+   */
+  demoCle?: string;
 };
 
 export type ClientSeed = {
@@ -696,6 +711,7 @@ const CLIENTS_NC: ClientSeed[] = [
         ]),
         temps_trajet_min: 25,
         actif: true,
+        demoCle: "premier_site_du_client_1",
       },
       {
         id: "0192f0a0-4000-7000-8000-000000000002",
@@ -719,6 +735,7 @@ const CLIENTS_NC: ClientSeed[] = [
         // où tous les sites en portent un n'éprouverait jamais cette branche.
         temps_trajet_min: null,
         actif: true,
+        demoCle: "second_site_du_client_1",
       },
       {
         // CONTRAT-SITE-1 — un troisième site chez le même client, SOUS
@@ -765,6 +782,7 @@ const CLIENTS_NC: ClientSeed[] = [
         horaires: null,
         temps_trajet_min: 180,
         actif: true,
+        demoCle: "site_du_client_2",
       },
     ],
   },
@@ -840,6 +858,7 @@ const CLIENTS_EU: ClientSeed[] = [
         horaires: null,
         temps_trajet_min: 40,
         actif: true,
+        demoCle: "premier_site_du_client_1",
       },
       {
         id: "0192f0a0-4000-7000-8000-000000000012",
@@ -853,6 +872,7 @@ const CLIENTS_EU: ClientSeed[] = [
         horaires: null,
         temps_trajet_min: 25,
         actif: true,
+        demoCle: "second_site_du_client_1",
       },
     ],
   },
@@ -888,6 +908,7 @@ const CLIENTS_EU: ClientSeed[] = [
         horaires: null,
         temps_trajet_min: 65,
         actif: true,
+        demoCle: "site_du_client_2",
       },
     ],
   },
@@ -2193,8 +2214,14 @@ export const MODELES_MATERIEL_DEMONSTRATION: readonly ModeleMaterielSeed[] = [
 export type MachineSeed = {
   readonly rang: number;
   readonly modeleRang: number;
-  /** Le site est désigné par son RANG dans la liste des sites de la société. */
-  readonly siteRang: number;
+  /**
+   * Le site est désigné par la clé `demoCle` qu'il porte (voir `SiteSeed`),
+   * JAMAIS par un rang dans un tableau qui peut se décaler — c'est
+   * exactement la fragilité mesurée et corrigée par CONTRAT-SITE-1-SEMIS-
+   * STABLE (24/09/2026) : un site inséré entre deux autres glissait chaque
+   * machine qui le suivait sur le mauvais lieu.
+   */
+  readonly siteCle: string;
   readonly numeroSerie: string;
   readonly referenceInterne: string | null;
   readonly localisation: string | null;
@@ -2213,7 +2240,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 1,
     modeleRang: 1,
-    siteRang: 0,
+    siteCle: "premier_site_du_client_1",
     numeroSerie: "RAV-KPX-2019-0148",
     referenceInterne: "PONT-1",
     localisation: "Travée A",
@@ -2225,7 +2252,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 2,
     modeleRang: 1,
-    siteRang: 1,
+    siteCle: "second_site_du_client_1",
     // LA FICHE INCOMPLÈTE DE D6 : le numéro est illisible, et il se saisit
     // `SN-INCONNU-<référence>` avec `complet = false` — *jamais `NULL`, deux
     // `NULL` étant distincts pour un index unique.* Elle remonte en tête du
@@ -2241,7 +2268,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 3,
     modeleRang: 2,
-    siteRang: 2,
+    siteCle: "site_du_client_2",
     numeroSerie: "NUS-SPL-2022-0007",
     referenceInterne: "PONT-3",
     localisation: "Atelier poids lourds",
@@ -2253,7 +2280,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 4,
     modeleRang: 3,
-    siteRang: 3,
+    siteCle: "premier_site_du_client_1",
     numeroSerie: "AC-GA11-2021-3310",
     referenceInterne: "COMP-1",
     localisation: "Local technique",
@@ -2265,7 +2292,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 5,
     modeleRang: 4,
-    siteRang: 0,
+    siteCle: "premier_site_du_client_1",
     numeroSerie: "FCM-V400-0092",
     referenceInterne: null,
     localisation: "Servante d'atelier",
@@ -2277,7 +2304,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 6,
     modeleRang: 5,
-    siteRang: 1,
+    siteCle: "second_site_du_client_1",
     numeroSerie: "TRA-X200-0455",
     referenceInterne: null,
     localisation: null,
@@ -2289,7 +2316,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 7,
     modeleRang: 1,
-    siteRang: 2,
+    siteCle: "site_du_client_2",
     numeroSerie: "RAV-KPX-2016-0031",
     referenceInterne: "PONT-4",
     localisation: "Travée B",
@@ -2308,7 +2335,7 @@ export const MACHINES_DEMONSTRATION: readonly MachineSeed[] = [
   {
     rang: 8,
     modeleRang: 3,
-    siteRang: 3,
+    siteCle: "premier_site_du_client_1",
     numeroSerie: "AC-GA11-2018-1177",
     referenceInterne: "COMP-2",
     localisation: null,
