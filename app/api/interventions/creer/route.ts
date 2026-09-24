@@ -109,6 +109,11 @@ async function traiter(requete: Request): Promise<Response> {
     description: champ(formulaire, "description"),
     contact_id: champ(formulaire, "contact_id"),
     reference_client: champ(formulaire, "reference_client"),
+    // LA DEMANDE D'ORIGINE (68-DEMANDES-2) — un champ caché posé par
+    // `/interventions/nouvelle` seulement quand l'écran a été ouvert depuis
+    // la fiche d'une demande (`?demande=<id>`). Absent, `champ()` rend `null`
+    // et `schemaCreation` retombe sur son défaut.
+    demande_id: champ(formulaire, "demande_id"),
   });
   if (!saisie.success) {
     // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la panne signalée est le champ

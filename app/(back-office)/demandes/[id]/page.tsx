@@ -30,11 +30,14 @@ import {
 } from "@/lib/demandes/cycle-de-vie";
 import { CHAMPS_DEMANDE } from "@/lib/demandes/depot";
 import { MOTIFS_CLOTURE, type StatutDemande } from "@/lib/demandes/saisie";
+import type { StatutIntervention } from "@/lib/interventions/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
+import { referenceAffichee } from "../../interventions/presentation";
 import {
   cleEtatAccuse,
   instantLisible,
@@ -65,11 +68,17 @@ export const metadata: Metadata = { title: t("demande.titre") };
  *
  * ## « TRANSFORMER » NE CRÉE PAS L'INTERVENTION
  *
- * `marquerTransformee` le dit dans son propre en-tête : la colonne
- * `intervention.demande_id` n'existe pas encore au chapitre 11. Cette action
- * pose donc SEULEMENT le statut et son verrou ; le geste de planifier reste
- * séparé, sur `/interventions/nouvelle` — un lien y mène, la note le dit.
- * *Ce qui manque est nommé plutôt que simulé* (voir la passation du lot).
+ * `marquerTransformee` le dit dans son propre en-tête : cette action pose
+ * SEULEMENT le statut et son verrou ; le geste de planifier reste séparé, sur
+ * `/interventions/nouvelle?demande=<id>` — un lien y mène, la note le dit.
+ *
+ * ## LE LIEN GARDÉ (68-DEMANDES-2, SAV-11)
+ *
+ * `intervention.demande_id` existe depuis ce lot : le lien ci-dessus
+ * préremplit l'écran de création, et la liste « Interventions issues de
+ * cette demande » ci-dessous lit ce que `creerIntervention` y a écrit — lue
+ * directement ici, comme `client`/`site`/`agence`/`contact` plus haut, une
+ * lecture par `demande_id` seul n'ayant sa place dans aucun dépôt existant.
  */
 export default async function PageDemande({
   params,
@@ -139,6 +148,17 @@ export default async function PageDemande({
       ? new Map<string, string>()
       : await libellesDesMachines(contexte, [demande.machine_id]);
   const fuseauSociete = lireFuseau(societe?.fuseau_horaire);
+
+  // LES INTERVENTIONS ISSUES DE CETTE DEMANDE (68-DEMANDES-2) — lues SOUS LE
+  // MÊME CONTEXTE CLOISONNÉ : la forme « parc » d'`intervention` filtre déjà,
+  // rien à recomparer ici.
+  const interventionsIssues = await avecContexteApplicatif(contexte, (tx) =>
+    tx.intervention.findMany({
+      where: { demande_id: demande.id },
+      select: { id: true, numero: true, statut: true },
+      orderBy: { cree_le: "asc" },
+    }),
+  );
 
   // L'ÉTAT DE L'ACCUSÉ DE RÉCEPTION (D13) — la fenêtre couvre exactement le
   // temps déjà écoulé, du dépôt à maintenant : ni plus (2028 n'a que faire
@@ -285,6 +305,43 @@ export default async function PageDemande({
                 : t(cleEtatAccuse(etatAccuseDeCetteDemande))}
             </p>
           </section>
+
+          <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+            <h2 className="text-[13px] font-bold">
+              {t("demande.interventions_issues.titre")}
+            </h2>
+            {interventionsIssues.length === 0 ? (
+              <p className="text-app-encre-faible text-[12.5px]">
+                {t("demande.interventions_issues.aucune")}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {interventionsIssues.map((intervention) => (
+                  <li
+                    key={intervention.id}
+                    data-intervention-issue={intervention.id}
+                    className="flex items-center gap-2 text-[13px]"
+                  >
+                    <Link
+                      href={`/interventions/${intervention.id}`}
+                      className={CLASSES_LIEN}
+                    >
+                      {referenceAffichee(intervention)}
+                    </Link>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        CLASSES_STATUT[
+                          intervention.statut as StatutIntervention
+                        ]
+                      }`}
+                    >
+                      {t(`statut.${intervention.statut}`)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
 
         <aside data-bloc="demande-actions" className="flex flex-col gap-4">
@@ -308,7 +365,10 @@ export default async function PageDemande({
             action={`/api/demandes/${demande.id}/transformer`}
             note={t("demande.transformer.note")}
           >
-            <Link href="/interventions/nouvelle" className={CLASSES_LIEN}>
+            <Link
+              href={`/interventions/nouvelle?demande=${demande.id}`}
+              className={CLASSES_LIEN}
+            >
               {t("demande.transformer.creer_intervention")}
             </Link>
           </Action>

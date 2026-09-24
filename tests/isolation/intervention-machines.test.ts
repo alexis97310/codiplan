@@ -284,6 +284,7 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
           description: "Panne épreuve",
           contact_id: null,
           reference_client: null,
+          demande_id: null,
         },
         clientApp(),
       );

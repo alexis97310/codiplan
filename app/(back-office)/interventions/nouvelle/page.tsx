@@ -16,6 +16,7 @@ import {
 } from "@/lib/interventions/saisie";
 import { lireClient } from "@/lib/clients/depot";
 import { contactsDuClient } from "@/lib/contacts/depot";
+import { lireDemandePourCreation } from "@/lib/demandes/depot";
 import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite } from "@/lib/sites/depot";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -83,6 +84,19 @@ function valeurAutorisee(
  * soumission ne crée rien — elle redirige vers la fiche que la première a
  * déjà créée. `BoutonCreer` (local à cet écran) ajoute un filet visuel : le
  * bouton se désactive dès le premier clic.
+ *
+ * ## `?demande=<id>` PRÉREMPLIT DEPUIS UNE DEMANDE (68-DEMANDES-2, SAV-11)
+ *
+ * Le lien « Créer une intervention depuis cette demande » de la fiche d'une
+ * demande (`/demandes/[id]`) mène ici avec ce paramètre. Lu SOUS LE MÊME
+ * CONTEXTE CLOISONNÉ que `?site=`/`?machine=` — `lireDemandePourCreation`
+ * rend `null` pour une demande hors périmètre ou inexistante, et le
+ * paramètre est alors ignoré en silence, exactement comme un `?site=` forgé
+ * (LIENS-1). Quand elle résout, elle prime sur `?site=`/`?machine=`/
+ * `?contact_id=` pour préremplir le lieu, la machine, le contact,
+ * l'urgence et la panne, et son `id` voyage en champ caché
+ * (`demande_id`) : c'est ce que `creerIntervention`
+ * (`lib/interventions/depot.ts`) vérifie et écrit.
  */
 export default async function PageNouvelleIntervention({
   searchParams,
@@ -98,13 +112,26 @@ export default async function PageNouvelleIntervention({
   }
   const params = await searchParams;
   const motif = params.motif;
+
+  // LA DEMANDE D'ORIGINE (68-DEMANDES-2) — résolue AVANT le site et la
+  // machine ci-dessous, dont elle prime les paramètres quand elle résout.
+  const demandeParam =
+    typeof params.demande === "string" ? params.demande : undefined;
+  const demandeBrute =
+    demandeParam === undefined
+      ? null
+      : await lireDemandePourCreation(session.contexte, demandeParam);
+
   // LE SITE ET LA MACHINE PRÉREMPLIS (LIENS-1, « + Intervention » depuis une
   // fiche machine) — résolus SOUS le contexte cloisonné ci-dessous : la
   // validation contre CE périmètre est ce qui distingue un paramètre
   // légitime d'un identifiant forgé.
-  const siteParam = typeof params.site === "string" ? params.site : undefined;
+  const siteParam =
+    typeof params.site === "string" ? params.site : demandeBrute?.site_id;
   const machineParam =
-    typeof params.machine === "string" ? params.machine : undefined;
+    typeof params.machine === "string"
+      ? params.machine
+      : (demandeBrute?.machine_id ?? undefined);
 
   // UN PARAMÈTRE QUI NE CORRESPOND À RIEN DE LISIBLE EST IGNORÉ EN SILENCE
   // (LIENS-1) — `lireSite` lit SOUS le contexte cloisonné : un site hors
@@ -149,7 +176,9 @@ export default async function PageNouvelleIntervention({
   // (le sien, ou celui du client quand il n'est rattaché à aucun site — même
   // filtre qu'`/api/recherche/site/[id]`), sinon il est ignoré en silence.
   const contactParam =
-    typeof params.contact_id === "string" ? params.contact_id : undefined;
+    typeof params.contact_id === "string"
+      ? params.contact_id
+      : (demandeBrute?.contact_id ?? undefined);
   const contactsDuSiteInitial =
     siteInitial === undefined || clientDuSite === null
       ? []
@@ -169,9 +198,13 @@ export default async function PageNouvelleIntervention({
   // sont vérifiés contre leur liste close ; la panne et la référence sont du
   // texte libre, rendu tel quel (React échappe déjà tout affichage).
   const typeInitial = valeurAutorisee(params.type, TYPES_INTERVENTION);
-  const prioriteInitiale = valeurAutorisee(params.priorite, PRIORITES);
+  const prioriteInitiale =
+    valeurAutorisee(params.priorite, PRIORITES) ??
+    (demandeBrute === null ? undefined : demandeBrute.urgence);
   const descriptionInitiale =
-    typeof params.description === "string" ? params.description : undefined;
+    typeof params.description === "string"
+      ? params.description
+      : (demandeBrute?.description ?? undefined);
   const referenceClientInitiale =
     typeof params.reference_client === "string"
       ? params.reference_client
@@ -217,6 +250,14 @@ export default async function PageNouvelleIntervention({
         className="bg-app-surface border-app-bord flex max-w-[640px] flex-col gap-4 rounded-lg border px-4 py-4"
       >
         <input type="hidden" name="id" value={idIntervention} />
+        {demandeBrute === null ? null : (
+          <>
+            <input type="hidden" name="demande_id" value={demandeBrute.id} />
+            <p className="text-app-encre-faible text-[11.5px]">
+              {t("intervention.depuis_demande")}
+            </p>
+          </>
+        )}
         <ChampSiteEtMachines
           libelleSite={mot("site")}
           libelleMachines={t("intervention.machine")}

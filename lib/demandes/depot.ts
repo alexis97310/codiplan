@@ -365,3 +365,42 @@ export async function demandesOuvertes(
     client,
   );
 }
+
+/** Ce qu'`/interventions/nouvelle` lit pour préremplir depuis une demande (68-DEMANDES-2). */
+export const CHAMPS_DEMANDE_POUR_CREATION = {
+  id: true,
+  client_id: true,
+  site_id: true,
+  machine_id: true,
+  contact_id: true,
+  description: true,
+  urgence: true,
+} as const;
+
+export type DemandePourCreation = Prisma.DemandeGetPayload<{
+  select: typeof CHAMPS_DEMANDE_POUR_CREATION;
+}>;
+
+/**
+ * LIRE UNE DEMANDE POUR PRÉREMPLIR UNE CRÉATION D'INTERVENTION (68-DEMANDES-2).
+ *
+ * Lue SOUS le contexte cloisonné, comme toute lecture de ce module : hors
+ * périmètre ou inexistante rendent la MÊME chose, `null` — les distinguer
+ * ferait un oracle (D35, D50). C'est ce `null` que l'écran traite comme un
+ * paramètre ignoré en silence (LIENS-1), jamais comme une erreur.
+ */
+export async function lireDemandePourCreation(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<DemandePourCreation | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) =>
+      tx.demande.findFirst({
+        where: { id },
+        select: CHAMPS_DEMANDE_POUR_CREATION,
+      }),
+    client,
+  );
+}
