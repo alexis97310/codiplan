@@ -169,6 +169,39 @@ function declareSerie(source: string): boolean {
 
 const CURRENT_DATE = /\bCURRENT_DATE\b/i;
 
+/**
+ * Les arguments des appels `.fill(...)` sur le champ `libelle`, dans
+ * `tests/e2e/sites.spec.ts` — DEUX PARENTHÈSES, jamais plus : ce fichier n'en
+ * porte qu'un aujourd'hui (STABILITE-3), et une extraction plus permissive
+ * (parenthèses imbriquées, appels chaînés) n'a pas de cas réel à couvrir.
+ */
+function appelsFillLibelle(source: string): string[] {
+  const motif = /input\[name="libelle"\]'\)\s*\.\s*fill\(([^)]*)\)/g;
+  return Array.from(source.matchAll(motif), (m) => m[1].trim());
+}
+
+/**
+ * Un argument est une CHAÎNE FIXE quand il commence et finit par le même
+ * guillemet et ne porte aucune interpolation (`${`) — exactement le défaut
+ * mesuré le 25/09/2026 (STABILITE-3) : `.fill("Site e2e du lot 41
+ * (persistance)")` crée le MÊME libellé à chaque exécution, et deux
+ * exécutions concurrentes rendent alors deux sites indistinguables sur la
+ * liste `/sites` partagée.
+ *
+ * Un argument qui référence une variable (`.fill(libelle)`) n'est PAS
+ * reconnu comme fixe — cette fonction ne remonte pas jusqu'à la déclaration
+ * de la variable, seulement jusqu'à l'appel : c'est la limite assumée d'un
+ * gardien qui reste simple.
+ */
+function estLitteralFixe(argument: string): boolean {
+  if (argument.includes("${")) return false;
+  const premier = argument[0];
+  const dernier = argument[argument.length - 1];
+  return (
+    premier === dernier && (premier === '"' || premier === "'" || premier === "`")
+  );
+}
+
 describe("l'extraction, éprouvée sur du texte fabriqué", () => {
   it("un `.create(` Prisma est une écriture en base", () => {
     expect(
@@ -241,6 +274,28 @@ describe("l'extraction, éprouvée sur du texte fabriqué", () => {
     expect(CURRENT_DATE.test(`VALUES ($1::uuid, CURRENT_DATE)`)).toBe(true);
     expect(CURRENT_DATE.test(`VALUES ($1::uuid, current_date)`)).toBe(true);
     expect(CURRENT_DATE.test(`VALUES ($1::uuid, now()::date)`)).toBe(false);
+  });
+
+  it("un `.fill(...)` sur `input[name=\"libelle\"]` est extrait, guillemets et variable compris", () => {
+    expect(
+      appelsFillLibelle(
+        `await page.locator('input[name="libelle"]').fill("fixe");`,
+      ),
+    ).toEqual(['"fixe"']);
+    expect(
+      appelsFillLibelle(
+        `await page.locator('input[name="libelle"]').fill(libelle);`,
+      ),
+    ).toEqual(["libelle"]);
+    expect(appelsFillLibelle(`await page.goto("/sites");`)).toEqual([]);
+  });
+
+  it("une chaîne fixe est reconnue, une variable ou un gabarit interpolé ne l'est pas", () => {
+    expect(estLitteralFixe('"Site e2e du lot 41 (persistance)"')).toBe(true);
+    expect(estLitteralFixe("'Site e2e du lot 41 (persistance)'")).toBe(true);
+    expect(estLitteralFixe("`Site e2e du lot 41 (persistance)`")).toBe(true);
+    expect(estLitteralFixe("libelle")).toBe(false);
+    expect(estLitteralFixe("`Site e2e ${jeton} (persistance)`")).toBe(false);
   });
 });
 
@@ -344,5 +399,51 @@ describe("aucune date posée par CURRENT_DATE dans tests/e2e", () => {
         `exemption inutile : ${exemption.chemin} ne contient plus CURRENT_DATE`,
       ).toBe(true);
     }
+  });
+});
+
+/**
+ * GARDIEN DU LOT 62-STABILITE-3 — `sites.spec.ts` NE FIGE PLUS LE LIBELLÉ
+ * D'UN SITE FORGÉ.
+ *
+ * Mesuré le 25/09/2026 : le scénario CONTRAT-SITE-1 créait un site au
+ * libellé FIXE (« Site e2e du lot 41 (persistance) »), puis le cherchait sur
+ * `/sites?sans_equipement=1` — une liste PAGINÉE que d'autres scènes
+ * peuplent en parallèle (`selecteurs-1.spec.ts` y pose 210 sites). Un
+ * libellé fixe rend deux exécutions indistinguables l'une de l'autre, mais
+ * ce n'est pas ce qui faisait rougir l'épreuve : c'est que RIEN dans le
+ * libellé ne permettait de la retrouver par une recherche, seul moyen fiable
+ * d'ignorer la pagination. Ce gardien reste au ras du défaut réellement
+ * mesuré — un littéral figé passé à `.fill()` — et ne prétend pas vérifier
+ * qu'une variable est bien composée d'une valeur qui varie par exécution :
+ * ce serait suivre le fil des déclarations, et la règle ne s'écrirait plus
+ * simplement.
+ */
+describe("sites.spec.ts ne fige pas le libellé d'un site forgé (STABILITE-3)", () => {
+  const CHEMIN_SITES_SPEC = "tests/e2e/sites.spec.ts";
+  const fichier = FICHIERS_EPREUVE.find((f) => f.chemin === CHEMIN_SITES_SPEC);
+
+  it(`${CHEMIN_SITES_SPEC} existe toujours — sinon cette règle est aveugle`, () => {
+    expect(fichier).toBeDefined();
+  });
+
+  it("au moins un `.fill()` sur `input[name=\"libelle\"]` existe dans ce fichier — sinon la règle est aveugle", () => {
+    if (fichier === undefined) return;
+    expect(appelsFillLibelle(fichier.source).length).toBeGreaterThan(0);
+  });
+
+  it("aucun de ces appels ne passe une chaîne fixe", () => {
+    if (fichier === undefined) return;
+    const fautifs = appelsFillLibelle(fichier.source).filter(estLitteralFixe);
+    expect(
+      fautifs,
+      `${CHEMIN_SITES_SPEC} fige le libellé d'un site à une chaîne fixe : ` +
+        "deux exécutions concurrentes créeraient alors le même site, et " +
+        "rien ne permettrait de retrouver sa carte sur la liste `/sites` " +
+        "partagée et paginée sans dépendre de l'ordre ou de la charge du " +
+        "moment. Composer le libellé avec une valeur qui varie à chaque " +
+        "exécution (par exemple crypto.randomUUID()), et filtrer la liste " +
+        "par cette valeur (`?q=`) plutôt que de compter sur la pagination.",
+    ).toEqual([]);
   });
 });
