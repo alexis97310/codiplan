@@ -16,6 +16,7 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "./setup/scene";
+import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -237,9 +238,14 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
 }) => {
   await ouvrirUneSession(page);
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${CLIENT_AVEC}:${SITE_AVEC}`);
+  // LE SITE CHERCHE SUR LE SERVEUR (SELECTEURS-1) — la mise en scène change,
+  // l'assertion (le bandeau « parti ») ne change pas.
+  await choisirResultatParTexte(
+    page,
+    "site",
+    fr["avertissements.e2e.site"],
+    fr["avertissements.e2e.site"],
+  );
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);
@@ -322,9 +328,12 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
 }) => {
   await ouvrirUneSession(page);
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${CLIENT_SANS}:${SITE_SANS}`);
+  await choisirResultatParTexte(
+    page,
+    "site",
+    fr["avertissements.e2e.site_sans_contact"],
+    fr["avertissements.e2e.site_sans_contact"],
+  );
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);

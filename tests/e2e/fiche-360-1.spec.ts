@@ -10,6 +10,7 @@ import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
 
 import { urlAdministration } from "./setup/base";
+import { valeurChamp } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -178,8 +179,11 @@ test("« + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI,
   expect(url.searchParams.get("site")).toBe(SITE_UN);
   expect(url.searchParams.get("machine")).toBe(MACHINE_1);
 
-  const siteSelect = page.locator('select[name="site"]');
-  await expect(siteSelect).toHaveValue(new RegExp(`:${SITE_UN}$`));
+  // LE SITE CHERCHE SUR LE SERVEUR (SELECTEURS-1) — la valeur soumise vit
+  // dans le champ CACHÉ posé par `SelecteurRecherche`, plus dans un `<select>`.
+  await expect(valeurChamp(page, "site")).toHaveValue(
+    new RegExp(`:${SITE_UN}$`),
+  );
   const machineSelect = page.locator('select[name="machine_ids"]');
   const optionCochee = machineSelect.locator("option:checked");
   await expect(optionCochee).toHaveCount(1);
@@ -214,8 +218,9 @@ test("« + Site » depuis la fiche client arrive PRÉREMPLI sur le client", asyn
   const url = new URL(page.url());
   expect(url.searchParams.get("client")).toBe(CLIENT_F360);
 
-  const clientSelect = page.locator('select[name="client_id"]');
-  await expect(clientSelect).toHaveValue(CLIENT_F360);
+  // LE CLIENT CHERCHE SUR LE SERVEUR (SELECTEURS-1) — la valeur soumise vit
+  // dans le champ CACHÉ posé par `SelecteurRecherche`, plus dans un `<select>`.
+  await expect(valeurChamp(page, "client_id")).toHaveValue(CLIENT_F360);
 });
 
 test("un compteur INCONNU s'affiche « — », jamais 0", async ({ page }) => {
