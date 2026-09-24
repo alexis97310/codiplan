@@ -464,9 +464,7 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
       SOCIETE_A,
     );
     const typesPresents = new Set(presents.map((p) => p.type));
-    const trouve = TYPES_INTERVENTION.find(
-      (type) => !typesPresents.has(type),
-    );
+    const trouve = TYPES_INTERVENTION.find((type) => !typesPresents.has(type));
     expect(
       trouve,
       "tous les types sont présents sur la société A : aucun témoin d'absence n'est possible",
@@ -592,9 +590,9 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
         await listerInterventions(INTERNE_A, criteres, clientApp())
       ).map((l) => l.id);
       expect(ids).toEqual([attendu]);
-      expect(
-        await compterInterventions(INTERNE_A, criteres, clientApp()),
-      ).toBe(1);
+      expect(await compterInterventions(INTERNE_A, criteres, clientApp())).toBe(
+        1,
+      );
     }
   });
 

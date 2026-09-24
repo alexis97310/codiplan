@@ -51,8 +51,9 @@ describe("schemaRechercheInterventions — la vue", () => {
 
   it("une valeur qui n'est pas une chaîne (tableau, nombre…) retombe à `null`, jamais une erreur", () => {
     expect(
-      schemaRechercheInterventions.safeParse({ vue: ["a_planifier", "en_cours"] })
-        .success,
+      schemaRechercheInterventions.safeParse({
+        vue: ["a_planifier", "en_cours"],
+      }).success,
     ).toBe(true);
     expect(
       schemaRechercheInterventions.parse({ vue: ["a_planifier", "en_cours"] })

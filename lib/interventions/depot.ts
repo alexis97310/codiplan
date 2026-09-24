@@ -2989,7 +2989,10 @@ export async function compterParVue(
         parStatut.find((ligne) => ligne.statut === statut)?._count._all ?? 0;
 
       return {
-        toutes: parStatut.reduce((somme, ligne) => somme + ligne._count._all, 0),
+        toutes: parStatut.reduce(
+          (somme, ligne) => somme + ligne._count._all,
+          0,
+        ),
         a_planifier: compteStatut("a_planifier"),
         aujourdhui,
         en_cours: compteStatut("en_cours"),
