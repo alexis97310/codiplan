@@ -63,6 +63,9 @@ test.beforeAll(async () => {
           priorite: "p3",
           statut: "planifiee",
           date_planifiee: new Date(),
+          // `intervention_planifiee_a_sa_duree` (PARCOURS-1, 23/09/2026) :
+          // `planifiee` exige une durée prévue.
+          duree_estimee_min: 60,
           mode_valorisation: "temps_passe",
           devise_code: "XPF",
         },
