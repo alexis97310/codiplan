@@ -26,8 +26,16 @@ test("/sites — chaque carte affiche un compteur d'équipements, et la case du 
   await page.goto("/sites");
   const premiereCarte = page.locator("article").first();
   await expect(premiereCarte).toBeVisible();
-  // La bande de compteurs porte le trajet ET les équipements — deux `<b>`.
-  await expect(premiereCarte.locator("b")).toHaveCount(2);
+  // La bande de compteurs porte le trajet ET les équipements — visés par leur
+  // `data-compteur`, jamais par un compte total de `<b>` : la première carte
+  // peut aussi porter la pastille contrat (CONTRAT-SITE-1), facultative, et
+  // un compte total serait faux dès qu'elle s'affiche.
+  await expect(
+    premiereCarte.locator('[data-compteur="equipements"] b'),
+  ).toBeVisible();
+  await expect(
+    premiereCarte.locator('[data-compteur="trajet"] b'),
+  ).toBeVisible();
 
   // La case est DÉCOCHÉE par défaut — absente de l'URL initiale.
   const case_ = page.getByRole("checkbox", {

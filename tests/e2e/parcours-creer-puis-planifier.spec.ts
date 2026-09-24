@@ -153,8 +153,20 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   // ── REFUS : la date et l'heure sont données, la durée et le technicien
   // manquent — contourner le `required` du navigateur pour éprouver le
   // REFUS DU SERVEUR, pas seulement l'ergonomie du formulaire.
+  //
+  // SA PROPRE SCÈNE (REPRISE-3) — mesuré INSTABLE : le MARDI ordinaire, à
+  // 11:00, est aussi celui que `captures-parcours-1.spec.ts` (09:00) et
+  // surtout `affichage-materiel.spec.ts` écrivent en SQL brut pour le
+  // technicien de Ducos (10:30-11:00, jointif à notre propre créneau). Sous
+  // `fullyParallel`, l'ordre entre fichiers n'est pas garanti : ce dépôt
+  // partagé pouvait exister ou non au moment où ce scénario planifiait,
+  // produisant tantôt un conflit d'agenda, tantôt aucun — exactement le
+  // « recu 1 » intermittent constaté. +49 jours (multiple de 7, donc encore
+  // un mardi) reste à l'écart des décalages déjà pris par les fichiers
+  // voisins (0, +21, +35, +63 — voir plus bas dans ce même fichier) : aucun
+  // autre scénario du dépôt n'y écrit.
   const reperes = await reperesDeLaScene();
-  const mardi = jourDeLaScene(reperes, MARDI);
+  const mardi = jourSuivant(jourDeLaScene(reperes, MARDI), 49);
   await formulaire
     .locator('input[name="date_planifiee"]')
     .fill(cleDeJour(mardi));
@@ -198,13 +210,18 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   await formulaireComplet
     .getByRole("button", { name: fr["intervention.action.planifier"] })
     .click();
-  await page.waitForLoadState("networkidle");
+  // LE SIGNAL DE FIN RÉEL (REPRISE-3) — `networkidle` seul ne garantit pas
+  // que le rafraîchissement serveur a atteint le DOM : l'apparition du
+  // formulaire « Affecter » EST la preuve que la planification a réussi et
+  // que l'écran a fini de se redessiner. On l'attend avant d'affirmer la
+  // disparition du formulaire « Planifier », plutôt que de les vérifier dans
+  // le même instant.
+  await expect(page.locator('form[action$="/affecter"]')).toBeVisible();
 
   const id = new URL(page.url()).pathname.split("/").pop();
   // LE STATUT N'EST PLUS « À PLANIFIER », et le bloc « Planifier » a disparu
   // au profit d'« Affecter »/« Déplacer ».
   await expect(formulairePlanifier(page)).toHaveCount(0);
-  await expect(page.locator('form[action$="/affecter"]')).toBeVisible();
 
   // ELLE PARAÎT DANS LA GRILLE DE LA VUE JOUR, au jour planifié.
   await page.goto(`/planning?vue=jour&jour=${cleDeJour(mardi)}`);

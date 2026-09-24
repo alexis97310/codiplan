@@ -347,11 +347,15 @@ function CarteSite({
       // Ordre CONTRAT-SITE-1 : équipements (rouge), habilitations (vert),
       // contrat (jaune/orange), trajet (gris) — les pastilles habilitations et
       // contrat s'omettent quand elles n'ont rien à dire (`null`).
+      // `id` sur équipements et trajet (REPRISE-3) : les deux seuls compteurs
+      // FIXES de la carte, la prise stable qu'un scénario de bout en bout vise
+      // plutôt qu'un compte total de `<b>`, faux dès que la pastille contrat
+      // s'ajoute.
       compteurs={[
-        compteurEquipements(nombreEquipements),
+        { ...compteurEquipements(nombreEquipements), id: "equipements" },
         ...(habilitations === null ? [] : [habilitations]),
         ...(contrat === null ? [] : [contrat]),
-        trajetAffiche(trajet),
+        { ...trajetAffiche(trajet), id: "trajet" },
       ]}
     />
   );

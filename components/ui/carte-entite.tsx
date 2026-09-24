@@ -74,11 +74,18 @@ export function CarteEntite({
    * Le ton se DÉCIDE à l'appelant (`compteurSites`, `compteurEquipements`,
    * `trajetAffiche`, …), jamais choisi ici — la même règle que `Badge`
    * applique déjà à un ton de statut.
+   *
+   * `id` est FACULTATIF (CONTRAT-SITE-1-REPRISE-3) : posé, il se rend en
+   * `data-compteur` sur le conteneur — une prise stable pour un scénario de
+   * bout en bout qui vise UN compteur précis, plutôt que de compter tous les
+   * `<b>` de la carte, faux dès qu'une pastille facultative (habilitations,
+   * contrat) s'ajoute ou s'omet selon la fiche.
    */
   compteurs: readonly {
     readonly valeur: React.ReactNode;
     readonly libelle: string;
     readonly ton?: TonBadge;
+    readonly id?: string;
   }[];
   className?: string;
 }>) {
@@ -105,7 +112,7 @@ export function CarteEntite({
         <div className="border-app-bord mt-[14px] flex flex-wrap justify-center gap-[13px] border-t pt-[13px]">
           {compteurs.map((compteur, index) =>
             compteur.ton === undefined ? (
-              <div key={index}>
+              <div key={index} data-compteur={compteur.id}>
                 <b className="block font-bold">{compteur.valeur}</b>
                 <span className="text-app-encre-faible text-[11px]">
                   {compteur.libelle}
@@ -114,6 +121,7 @@ export function CarteEntite({
             ) : (
               <div
                 key={index}
+                data-compteur={compteur.id}
                 className={cn(
                   "inline-flex items-center gap-[6px] rounded-full px-[12px] py-[4px]",
                   CLASSES_TON[compteur.ton],
