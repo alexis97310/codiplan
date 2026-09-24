@@ -3176,6 +3176,16 @@ export const fr = {
   "interventions2.e2e.piece_y": "Y-1",
   "interventions2.e2e.note": "INT2 — note interne, jamais côté terrain.",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-2.spec.ts)
+  //
+  // Même raison que `interventions2.e2e.*` : sa PROPRE scène, créée et
+  // supprimée par l'épreuve, préfixée `REG2-` pour se distinguer du semis
+  // (`docs/propositions/57-REGISTRE-2`).
+  "registre2.e2e.client": "REG2 — Client de l'épreuve",
+  "registre2.e2e.site": "REG2 — Lieu de l'épreuve",
+  "registre2.e2e.technicien_a": "REG2 — Technicien A",
+  "registre2.e2e.technicien_b": "REG2 — Technicien B",
+
   // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
   "navigation.fil_ariane": "Fil d'Ariane",
   "fil_ariane.clients": "Clients",
