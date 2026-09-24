@@ -1088,6 +1088,17 @@ export const fr = {
     "sans durée saisie — elles comptent dans le nombre, et pour zéro minute dans le taux",
   "statistiques.sans_duree_un":
     "sans durée saisie — elle compte dans le nombre, et pour zéro minute dans le taux",
+  // ── LA CHARGE INCOMPLÈTE (53-PLANNING-3, SAV-05, 25/09/2026) ─────────────
+  //
+  // Un taux calculé sur des interventions SANS DURÉE reste un chiffre juste
+  // qui fait conclure faux : un technicien sans aucune durée saisie
+  // s'affichait « 0 % » et paraissait libre. Dès que `sansDuree > 0`, la
+  // ligne n'affiche donc PLUS de taux du tout — ni le nombre, ni « pas de
+  // calendrier » — et dit l'incomplétude à sa place (§9, 06/09 — un chiffre
+  // juste qui fait conclure faux).
+  "statistiques.charge_incomplete": "Charge incomplète",
+  "statistiques.au_moins": "au moins",
+  "statistiques.charge_incomplete_lien": "Voir les interventions sans durée →",
 
   "intervention.titre": "Intervention",
   "intervention.reference": "Référence",
@@ -2869,6 +2880,13 @@ export const fr = {
   "planning.legende.suspendue": "Suspendue / absence",
   "planning.legende.interne": "Atelier / interne",
   "planning.legende.ferme": "Jour non ouvert",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/planning-3.spec.ts) ──
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // jusqu'au nom du technicien forgé qu'un test de rendu recherche à l'écran
+  // — cette valeur n'est jamais vue par un utilisateur réel.
+  "planning.e2e.nom_technicien": "PL3-Témoin",
 
   // Les jours abrégés — l'en-tête d'une colonne de la grille, « Lun 17 ».
   "jour.court.1": "Lun",

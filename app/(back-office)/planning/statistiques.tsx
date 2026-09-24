@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { Annuaire } from "@/lib/auth/annuaire";
 import { t } from "@/lib/i18n/fr";
 import { quiTravaille } from "@/lib/interventions/personnes";
@@ -173,6 +175,32 @@ function combienSansDuree(occupation: OccupationTechnicien): string {
   return `${occupation.sansDuree} ${mot}`;
 }
 
+/**
+ * LES HEURES ENGAGÉES, quand le nombre ne peut être qu'un PLANCHER (SAV-05).
+ *
+ * Dès que `sansDuree > 0`, `minutesEngagees` ne compte plus la charge réelle du
+ * technicien : les interventions sans durée saisie y comptent pour zéro. Le
+ * chiffre affiché reste juste, mais il cesse d'être TOUT ce qui est engagé —
+ * d'où le « au moins » plutôt que la mention nue.
+ */
+function heuresEngageesAuMoins(occupation: OccupationTechnicien): string {
+  return `${t("statistiques.au_moins")} ${enHeure(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}`;
+}
+
+/**
+ * LA CHARGE INCOMPLÈTE — ce qui remplace le taux dès que `sansDuree > 0`
+ * (53-PLANNING-3, SAV-05).
+ *
+ * *Un chiffre juste qui fait conclure faux* (§9, 06/09) : un technicien dont
+ * les interventions n'ont pas de durée s'affichait « 0 % » et paraissait
+ * libre. Le taux n'est donc plus calculé pour lui, et cette ligne le dit — le
+ * nombre d'interventions sans durée vient de `combienSansDuree`, jamais d'une
+ * seconde formulation du même compte.
+ */
+function chargeIncomplete(occupation: OccupationTechnicien): string {
+  return `${t("statistiques.charge_incomplete")}${t("ponctuation.separateur")}${combienSansDuree(occupation)}`;
+}
+
 function Entete({
   ligne,
   annuaire,
@@ -229,12 +257,22 @@ function Barre({ occupation }: { occupation: OccupationTechnicien }) {
  */
 function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
   const taux = tauxOccupation(occupation);
+  // LE TAUX NE S'AFFICHE PLUS QUAND LA CHARGE EST INCOMPLÈTE (SAV-05) : un
+  // chiffre juste — « 0 % » sur des interventions sans durée — fait conclure
+  // faux. Le nombre engagé lui-même devient un PLANCHER, jamais un total.
+  const incomplete = occupation.sansDuree > 0;
   return (
     <div className="text-muted-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
-      <span>{heuresEngagees(occupation)}</span>
+      <span>
+        {incomplete
+          ? heuresEngageesAuMoins(occupation)
+          : heuresEngagees(occupation)}
+      </span>
       <span>{heuresDeTrajet(occupation)}</span>
       <span>{heuresOuvrables(occupation)}</span>
-      {taux === null ? (
+      {incomplete ? (
+        <span className="text-foreground">{chargeIncomplete(occupation)}</span>
+      ) : taux === null ? (
         <span>{t("statistiques.sans_calendrier")}</span>
       ) : (
         <span className="text-foreground">
@@ -250,8 +288,10 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
       {taux !== null && taux > TAUX_PLEIN ? (
         <span>{t("statistiques.taux_au_dela")}</span>
       ) : null}
-      {occupation.sansDuree > 0 ? (
-        <span>{combienSansDuree(occupation)}</span>
+      {incomplete ? (
+        <Link href="/interventions?sans_duree_a_venir=1" className="underline">
+          {t("statistiques.charge_incomplete_lien")}
+        </Link>
       ) : null}
       {occupation.trajet.journeesSansTrajet > 0 ? (
         <span>{combienDeJourneesSansTrajet(occupation)}</span>
