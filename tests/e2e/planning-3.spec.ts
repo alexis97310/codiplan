@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { Role } from "@/lib/auth/roles";
 import { instantDuJour, jourSuivant } from "@/lib/calendar/fuseau";
+import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
@@ -51,7 +53,10 @@ const UTILISATEUR_SOCIETE_ID = "01a3f000-0000-7000-8000-0000000000f2";
 const TECHNICIEN_ID = "01a3f000-0000-7000-8000-0000000000f3";
 const INTERVENTION_ID = "01a3f000-0000-7000-8000-0000000000f4";
 const EMAIL_TECHNICIEN = "pl3-temoin@codima.test";
-const NOM_TECHNICIEN = "PL3-Témoin";
+// Passe par le dictionnaire comme `equipe.e2e.nom` (L0-11) : cette scène
+// n'est jamais vue par un utilisateur réel, mais la requête d'écran qui la
+// cherche en est une comme une autre.
+const NOM_TECHNICIEN = fr["planning.e2e.nom_technicien"];
 
 test.beforeAll(async () => {
   reperesGlobal = await reperesDeLaScene();
@@ -87,7 +92,7 @@ test.beforeAll(async () => {
         id: UTILISATEUR_SOCIETE_ID,
         utilisateur_id: UTILISATEUR_ID,
         societe_id: reperesGlobal.societeId,
-        role: "technicien",
+        role: Role.technicien,
       },
     });
     await client.technicien.upsert({

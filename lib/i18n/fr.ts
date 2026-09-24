@@ -2858,6 +2858,13 @@ export const fr = {
   "planning.legende.interne": "Atelier / interne",
   "planning.legende.ferme": "Jour non ouvert",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/planning-3.spec.ts) ──
+  //
+  // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici
+  // jusqu'au nom du technicien forgé qu'un test de rendu recherche à l'écran
+  // — cette valeur n'est jamais vue par un utilisateur réel.
+  "planning.e2e.nom_technicien": "PL3-Témoin",
+
   // Les jours abrégés — l'en-tête d'une colonne de la grille, « Lun 17 ».
   "jour.court.1": "Lun",
   "jour.court.2": "Mar",
