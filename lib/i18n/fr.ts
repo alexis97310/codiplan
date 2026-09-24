@@ -3168,6 +3168,9 @@ export const fr = {
   "interventions2.e2e.client": "INT2 — Client de l'épreuve",
   "interventions2.e2e.site": "INT2 — Lieu de l'épreuve",
   "interventions2.e2e.panne": "INT2 — Panne signalée pour l'épreuve.",
+  "interventions2.e2e.piece_x": "X-1",
+  "interventions2.e2e.piece_y": "Y-1",
+  "interventions2.e2e.note": "INT2 — note interne, jamais côté terrain.",
 
   // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
   "navigation.fil_ariane": "Fil d'Ariane",

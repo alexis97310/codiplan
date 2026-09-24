@@ -181,7 +181,9 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await formSuspendre1
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce X");
-  await formSuspendre1.locator('input[name="piece_attendue_ref"]').fill("X-1");
+  await formSuspendre1
+    .locator('input[name="piece_attendue_ref"]')
+    .fill(fr["interventions2.e2e.piece_x"]);
   await formSuspendre1
     .locator('input[name="date_dispo_prevue"]')
     .fill("2026-10-15");
@@ -208,7 +210,9 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await formSuspendre2
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce Y");
-  await formSuspendre2.locator('input[name="piece_attendue_ref"]').fill("Y-1");
+  await formSuspendre2
+    .locator('input[name="piece_attendue_ref"]')
+    .fill(fr["interventions2.e2e.piece_y"]);
   await formSuspendre2
     .locator('input[name="date_dispo_prevue"]')
     .fill("2026-10-20");
@@ -219,8 +223,8 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
 
   // LES DEUX PAUSES SONT LISIBLES — SAV-09, ce que les quatre colonnes
   // réécrites de `intervention` ne pouvaient pas montrer.
-  await expect(page.getByText("X-1")).toBeVisible();
-  await expect(page.getByText("Y-1")).toBeVisible();
+  await expect(page.getByText(fr["interventions2.e2e.piece_x"])).toBeVisible();
+  await expect(page.getByText(fr["interventions2.e2e.piece_y"])).toBeVisible();
   await capturer(page, "fiche-en-pause-deux-pauses");
 });
 
@@ -253,13 +257,13 @@ test("la note interne saisie n'apparaît PAS sur la fiche terrain du technicien"
   );
   await formNote
     .locator('textarea[name="note_interne"]')
-    .fill("INT2 — note interne, jamais côté terrain.");
+    .fill(fr["interventions2.e2e.note"]);
   await formNote
     .getByRole("button", { name: fr["intervention.note_interne.enregistrer"] })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(formNote.locator('textarea[name="note_interne"]')).toHaveValue(
-    "INT2 — note interne, jamais côté terrain.",
+    fr["interventions2.e2e.note"],
   );
 
   // AFFECTATION DIRECTE — ce scénario n'éprouve pas la voie d'affectation
@@ -288,9 +292,7 @@ test("la note interne saisie n'apparaît PAS sur la fiche terrain du technicien"
   await expect(page).toHaveURL(/\/arrivee/);
 
   await page.goto(`/terrain/${interventionPausesId}`);
-  await expect(
-    page.getByText("INT2 — note interne, jamais côté terrain."),
-  ).toHaveCount(0);
+  await expect(page.getByText(fr["interventions2.e2e.note"])).toHaveCount(0);
   await expect(
     page.getByText(fr["intervention.note_interne.titre"]),
   ).toHaveCount(0);
