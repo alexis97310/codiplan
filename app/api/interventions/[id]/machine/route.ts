@@ -40,11 +40,7 @@ async function traiter(
     if (machineId === null) {
       return versLaFiche(id, "intervention.refus.machine_invalide");
     }
-    const resultat = await ajouterMachineAIntervention(
-      contexte,
-      id,
-      machineId,
-    );
+    const resultat = await ajouterMachineAIntervention(contexte, id, machineId);
     return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
   });
 }
