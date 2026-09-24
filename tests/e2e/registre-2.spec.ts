@@ -189,7 +189,11 @@ test.beforeEach(async ({ page }) => {
 test("le filtre technicien A retrouve exactement ses deux interventions, jamais la troisième", async ({
   page,
 }) => {
-  await page.goto(`/interventions?q=REG2-&technicien=${TECHNICIEN_A}`);
+  // LE FILTRE ATTEND `utilisateur_id` (la valeur des options du `<select>`,
+  // et ce que `intervention.technicien_id` porte réellement) — PAS l'`id`
+  // PROPRE de la ligne `technicien`, une seconde clé que le schéma distingue
+  // exprès (voir `Technicien.id` dans `prisma/schema.prisma`).
+  await page.goto(`/interventions?q=REG2-&technicien=${UTILISATEUR_A}`);
   await expect(page.locator("table tbody tr")).toHaveCount(2);
   const lignesClient = page.getByRole("cell", {
     name: fr["registre2.e2e.client"],
@@ -229,7 +233,7 @@ test("« Non affectées » retrouve exactement l'intervention sans technicien", 
 test("le filtre technicien B rend une liste vide — l'état vide s'affiche", async ({
   page,
 }) => {
-  await page.goto(`/interventions?q=REG2-&technicien=${TECHNICIEN_B}`);
+  await page.goto(`/interventions?q=REG2-&technicien=${UTILISATEUR_B}`);
   await expect(page.getByText(fr["interventions.vide"])).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
   await expect(
