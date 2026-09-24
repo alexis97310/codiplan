@@ -216,6 +216,11 @@ async function poserLAbsence(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/absences\?rendues=/);
 }
 
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/65-ABSENCES-3/captures",
+);
+
 test("le bandeau « rendues à la file » porte un lien par intervention, et un lien vers le registre", async ({
   page,
 }) => {
@@ -251,39 +256,22 @@ test("le bandeau « rendues à la file » porte un lien par intervention, et un 
   // une référence par intervention rendue).
   await expect(bandeau.getByRole("link")).toHaveCount(3);
 
-  // CLIQUER LA PREMIÈRE RÉFÉRENCE OUVRE LA FICHE DE CETTE INTERVENTION,
-  // À STATUT « À PLANIFIER » — c'est là qu'« Affecter » existe déjà.
-  await lienA.click();
-  await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(`/interventions/${interventionA}`);
-  await expect(
-    page.getByText(reference(interventionA), { exact: false }),
-  ).toBeVisible();
-  await expect(
-    page.getByText(fr["statut.a_planifier"], { exact: false }),
-  ).toBeVisible();
-});
-
-const DOSSIER_CAPTURES = join(
-  process.cwd(),
-  "docs/propositions/65-ABSENCES-3/captures",
-);
-
-test("capture — le bandeau « rendues à la file » avec ses liens", async ({
-  page,
-}) => {
-  await poserLAbsence(page);
-  const bandeau = page.getByRole("status").filter({
-    hasText: fr["absences.rendues_titre"],
-  });
-  await expect(
-    bandeau.getByRole("link", { name: reference(interventionA) }),
-  ).toBeVisible();
-
+  // LA CAPTURE, AVANT DE QUITTER LA PAGE — une seconde pose sur la même
+  // période ne rendrait plus rien (les deux interventions sont déjà
+  // reparties en file), donc jamais une seconde scène pour la même preuve.
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({
     path: join(DOSSIER_CAPTURES, "bandeau-rendues-liens-1280.png"),
     fullPage: true,
   });
+
+  // CLIQUER LA PREMIÈRE RÉFÉRENCE OUVRE LA FICHE DE CETTE INTERVENTION,
+  // À STATUT « À PLANIFIER » — c'est là qu'« Affecter » existe déjà.
+  await lienA.click();
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(`/interventions/${interventionA}`);
+  const titreFiche = page.getByRole("heading", { level: 1 });
+  await expect(titreFiche).toContainText(reference(interventionA));
+  await expect(titreFiche).toContainText(fr["statut.a_planifier"]);
 });
