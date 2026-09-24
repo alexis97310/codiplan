@@ -35,9 +35,7 @@ import { ouvrirUneSession } from "./setup/session";
 
 test.describe.configure({ mode: "serial" });
 
-async function siteDeDucos(
-  ordre: "asc" | "desc" = "asc",
-): Promise<{
+async function siteDeDucos(ordre: "asc" | "desc" = "asc"): Promise<{
   readonly siteId: string;
   readonly clientId: string;
 }> {
