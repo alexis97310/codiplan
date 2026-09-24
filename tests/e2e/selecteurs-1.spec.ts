@@ -131,29 +131,24 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   try {
-    if (idInterventionCreeParLeScenario2 !== null) {
-      await clientAcces.intervention.delete({
-        where: { id: idInterventionCreeParLeScenario2 },
-      });
-    }
-    if (idMachineCreeParLeScenario3 !== null) {
-      await clientAcces.machine.delete({
-        where: { id: idMachineCreeParLeScenario3 },
-      });
-    }
-    await clientAcces.machine.delete({ where: { id: MACHINE_SEL1_ATTACHEE } });
+    // PAR RELATION, PAS PAR IDENTIFIANT SUIVI — plus robuste : une machine
+    // ou une intervention créée par un chemin qu'un identifiant capturé
+    // n'aurait pas suivi (rejeu, double soumission sous charge) reste quand
+    // même rattrapée, puisqu'elle désigne forcément UN de NOS modèles ou UN
+    // de NOS sites.
+    const tousLesSites = Array.from({ length: NOMBRE_SITES }, (_, i) =>
+      idSite(i + 1),
+    );
     if (idSiteCreeParLeScenario1 !== null) {
-      await clientAcces.site.delete({
-        where: { id: idSiteCreeParLeScenario1 },
-      });
+      tousLesSites.push(idSiteCreeParLeScenario1);
     }
-    await clientAcces.site.deleteMany({
-      where: {
-        id: {
-          in: Array.from({ length: NOMBRE_SITES }, (_, i) => idSite(i + 1)),
-        },
-      },
+    await clientAcces.intervention.deleteMany({
+      where: { site_id: { in: tousLesSites } },
     });
+    await clientAcces.machine.deleteMany({
+      where: { modele_id: MODELE_SEL1 },
+    });
+    await clientAcces.site.deleteMany({ where: { id: { in: tousLesSites } } });
     await clientAcces.modeleMateriel.delete({ where: { id: MODELE_SEL1 } });
     await clientAcces.familleMateriel.delete({ where: { id: FAMILLE_SEL1 } });
     await clientAcces.client.deleteMany({
