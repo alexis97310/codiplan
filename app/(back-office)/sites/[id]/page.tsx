@@ -240,7 +240,8 @@ export default async function PageSite({
     session.contexte.role !== null &&
     peut(session.contexte.role, "creer_demande");
   const peutGererMachine =
-    session.contexte.role !== null && peut(session.contexte.role, "gerer_machine");
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "gerer_machine");
 
   return (
     <Page
@@ -519,8 +520,9 @@ function BlocSyntheseSite({
             >
               {derniereIntervention.date_planifiee === null
                 ? ouTiret(null)
-                : dateCivile(derniereIntervention.date_planifiee)}{" "}
-              · {t(`type_intervention.${derniereIntervention.type}`)}
+                : dateCivile(derniereIntervention.date_planifiee)}
+              {t("ponctuation.point_median")}
+              {t(`type_intervention.${derniereIntervention.type}`)}
             </Link>
           )}
         </b>
@@ -592,10 +594,7 @@ function BlocEquipements({
     { cle: "statut", libelle: t("sites.fiche.equipements.colonne_statut") },
     { cle: "action", libelle: t("sites.fiche.equipements.colonne_action") },
   ];
-  const totalPages = Math.max(
-    1,
-    Math.ceil(total / EQUIPEMENTS_PAR_PAGE_SITE),
-  );
+  const totalPages = Math.max(1, Math.ceil(total / EQUIPEMENTS_PAR_PAGE_SITE));
   return (
     <section
       data-bloc="equipements-site"

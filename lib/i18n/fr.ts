@@ -3103,6 +3103,7 @@ export const fr = {
   // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
   "navigation.fil_ariane": "Fil d'Ariane",
   "fil_ariane.clients": "Clients",
+  "fil_ariane.separateur": "›",
 
   // ── LA SYNTHÈSE EN TÊTE, LES ACTIONS EN CONTEXTE (FICHE-360-1) ──────────
   //

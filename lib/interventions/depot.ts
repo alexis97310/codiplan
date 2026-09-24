@@ -2288,7 +2288,7 @@ export async function interventionsOuvertesDuClient(
       tx.intervention.count({
         where: {
           client_id: clientId,
-          statut: { notIn: STATUTS_INTERVENTION_FERMES },
+          statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
         },
       }),
     client,
@@ -2307,7 +2307,7 @@ export async function interventionsOuvertesDuSite(
       tx.intervention.count({
         where: {
           site_id: siteId,
-          statut: { notIn: STATUTS_INTERVENTION_FERMES },
+          statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
         },
       }),
     client,

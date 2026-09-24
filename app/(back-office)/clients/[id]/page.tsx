@@ -223,12 +223,15 @@ export default async function PageClient({
   // afficherait alors la treizième plus récente comme si c'était la
   // dernière — la même faute qu'HISTORIQUE-CLIENT-1 a corrigée pour le
   // tableau lui-même.
-  const [equipementsParSiteMap, interventionsOuvertes, derniereInterventionListe] =
-    await Promise.all([
-      equipementsParSite(session.contexte, sites),
-      interventionsOuvertesDuClient(session.contexte, client.id),
-      dernieresInterventionsDuClient(session.contexte, client.id, 1, 1),
-    ]);
+  const [
+    equipementsParSiteMap,
+    interventionsOuvertes,
+    derniereInterventionListe,
+  ] = await Promise.all([
+    equipementsParSite(session.contexte, sites),
+    interventionsOuvertesDuClient(session.contexte, client.id),
+    dernieresInterventionsDuClient(session.contexte, client.id, 1, 1),
+  ]);
   const equipementsActifs = await nombreEquipementsActifsDuClient(
     session.contexte,
     client.id,
@@ -589,8 +592,9 @@ function BlocSyntheseClient({
             >
               {derniereIntervention.date_planifiee === null
                 ? ouTiret(null)
-                : dateCivile(derniereIntervention.date_planifiee)}{" "}
-              · {t(`type_intervention.${derniereIntervention.type}`)}
+                : dateCivile(derniereIntervention.date_planifiee)}
+              {t("ponctuation.point_median")}
+              {t(`type_intervention.${derniereIntervention.type}`)}
             </Link>
           )}
         </b>

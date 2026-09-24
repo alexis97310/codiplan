@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient, type StatutMachine } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -105,7 +105,7 @@ export type LigneDeParc = Prisma.MachineGetPayload<{
  * Les trois autres — `en_service`, `en_panne`, `arretee` — désignent une
  * machine toujours physiquement présente chez un client.
  */
-const STATUTS_HORS_PARC_ACTIF = new Set([
+const STATUTS_HORS_PARC_ACTIF = new Set<StatutMachine>([
   "remplacee",
   "ferraillee",
   "fusionnee",

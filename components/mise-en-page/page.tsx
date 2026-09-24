@@ -121,7 +121,9 @@ export function Page({
         >
           {filAriane.map((entree, index) => (
             <span key={index} className="flex items-center gap-1">
-              {index === 0 ? null : <span aria-hidden="true">›</span>}
+              {index === 0 ? null : (
+                <span aria-hidden="true">{t("fil_ariane.separateur")}</span>
+              )}
               {entree.href === undefined ? (
                 <span aria-current="page">{entree.libelle}</span>
               ) : (
