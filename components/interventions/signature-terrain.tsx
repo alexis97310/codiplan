@@ -25,6 +25,7 @@ export function SignatureTerrain({
   readonly dejaSignee: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nomRef = useRef<HTMLInputElement>(null);
   const enCours = useRef(false);
   const [aTrace, setATrace] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -92,6 +93,11 @@ export function SignatureTerrain({
       setErreur(t("terrain.signature.vide"));
       return;
     }
+    if ((nomRef.current?.value ?? "").trim().length === 0) {
+      evenement.preventDefault();
+      setErreur(t("terrain.signature.nom_manquant"));
+      return;
+    }
     const champ = evenement.currentTarget.elements.namedItem("image_base64");
     if (champ instanceof HTMLInputElement) {
       champ.value = canvas.toDataURL("image/png");
@@ -111,6 +117,30 @@ export function SignatureTerrain({
           {t("terrain.signature.deja_signee")}
         </p>
       ) : null}
+      <label className="flex flex-col gap-1">
+        <span className="text-[12.5px] font-medium">
+          {t("terrain.signature.nom_libelle")}
+        </span>
+        <input
+          ref={nomRef}
+          type="text"
+          name="signataire_nom"
+          required
+          maxLength={120}
+          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[12.5px] font-medium">
+          {t("terrain.signature.qualite_libelle")}
+        </span>
+        <input
+          type="text"
+          name="signataire_qualite"
+          maxLength={80}
+          className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-[13px]"
+        />
+      </label>
       <canvas
         ref={canvasRef}
         width={320}

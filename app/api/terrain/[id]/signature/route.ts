@@ -7,6 +7,8 @@ import {
 } from "@/lib/interventions/depot-rapport-terrain";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
+import { champ } from "../../../interventions/actions";
+
 /**
  * `POST /api/terrain/{id}/signature` — AJOUTE une signature (17-BON-2).
  *
@@ -49,9 +51,15 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   const formulaire = await requete.formData();
   const analyse = schemaSignature.safeParse({
     image_base64: formulaire.get("image_base64"),
+    signataire_nom: champ(formulaire, "signataire_nom"),
+    signataire_qualite: champ(formulaire, "signataire_qualite"),
   });
   if (!analyse.success) {
-    return versLeTerrain(id, "terrain.signature.vide");
+    const motif =
+      champ(formulaire, "signataire_nom") === null
+        ? "terrain.signature.nom_manquant"
+        : "terrain.signature.vide";
+    return versLeTerrain(id, motif);
   }
 
   const ecrite = await enregistrerSignature(contexte, id, analyse.data);

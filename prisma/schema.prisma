@@ -2103,6 +2103,14 @@ model InterventionSignature {
   /// donnée qui n'en est pas un.
   image_base64 String
 
+  /// QUI a signé pour le client — absent des signatures antérieures à BON-4
+  /// (76-BON-4, SAV-10), nullable pour ne rien inventer sur ce qui est déjà en
+  /// base. Obligatoire pour toute NOUVELLE signature (voir `schemaSignature`).
+  signataire_nom String? @db.Text
+
+  /// Facultative — un signataire n'a pas toujours de qualité à décliner.
+  signataire_qualite String? @db.Text
+
   cree_le DateTime @default(now())
 
   societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)

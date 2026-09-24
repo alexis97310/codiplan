@@ -1496,6 +1496,8 @@ export const fr = {
   "intervention.bon.signature_titre": "Signature du client",
   "intervention.bon.aucune_signature": "Aucune signature n'a été recueillie.",
   "intervention.bon.signature_le": "Signé le",
+  "intervention.bon.signe_par": "Signé par",
+  "intervention.bon.le": "le",
 
   // ── L'IDENTIFICATION COMPLÈTE (BON-3, 25/09/2026) ───────────────────────
   //
@@ -1686,6 +1688,10 @@ export const fr = {
     "La signature n'a pas pu être enregistrée. Recommencez le tracé.",
   "terrain.signature.vide":
     "Rien n'a été tracé : signez dans le cadre avant d'enregistrer.",
+  "terrain.signature.nom_manquant":
+    "Le nom du signataire est requis pour enregistrer la signature.",
+  "terrain.signature.nom_libelle": "Nom du signataire",
+  "terrain.signature.qualite_libelle": "Qualité (ex. chef d'atelier)",
   "compteur.refus.deja_en_cours":
     "Un compteur tourne déjà. Mettez-le en pause avant d'en démarrer un autre.",
   "compteur.refus.aucun_en_cours":

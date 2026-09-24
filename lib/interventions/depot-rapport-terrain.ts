@@ -213,7 +213,16 @@ export async function prestationsRealisees(
 // LA SIGNATURE — HISTORISÉE, JAMAIS RÉÉCRITE (voir le modèle Prisma)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Un tracé de canevas PNG, encodé en data URI — jamais un fichier. */
+/**
+ * Un tracé de canevas PNG, encodé en data URI — jamais un fichier — accompagné
+ * du NOM et de la QUALITÉ du signataire (76-BON-4, SAV-10) : un bon signé ne
+ * dit pas seulement QU'il a été signé, mais QUI a signé pour le client.
+ *
+ * `signataire_nom` est OBLIGATOIRE pour toute nouvelle signature ; les
+ * signatures antérieures à BON-4 n'en portent pas, et ce n'est pas rattrapé
+ * (voir le modèle `InterventionSignature`). `signataire_qualite` reste
+ * facultative — un signataire n'a pas toujours de qualité à décliner.
+ */
 export const schemaSignature = z.object({
   image_base64: z
     .string()
@@ -221,6 +230,8 @@ export const schemaSignature = z.object({
       /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/,
       "signature attendue en PNG encodé (data:image/png;base64,...)",
     ),
+  signataire_nom: z.string().trim().min(1).max(120),
+  signataire_qualite: z.string().trim().max(80).nullable().optional(),
 });
 export type SaisieSignature = z.infer<typeof schemaSignature>;
 
@@ -228,6 +239,8 @@ export type Signature = {
   readonly id: string;
   readonly image_base64: string;
   readonly cree_le: Date;
+  readonly signataire_nom: string | null;
+  readonly signataire_qualite: string | null;
 };
 
 /**
@@ -258,6 +271,8 @@ export async function enregistrerSignature(
           societe_id: societeId,
           intervention_id: interventionId,
           image_base64: saisie.image_base64,
+          signataire_nom: saisie.signataire_nom,
+          signataire_qualite: saisie.signataire_qualite ?? null,
         },
         select: { id: true },
       });
@@ -281,7 +296,13 @@ export async function derniereSignature(
     (tx) =>
       tx.interventionSignature.findFirst({
         where: { intervention_id: interventionId },
-        select: { id: true, image_base64: true, cree_le: true },
+        select: {
+          id: true,
+          image_base64: true,
+          cree_le: true,
+          signataire_nom: true,
+          signataire_qualite: true,
+        },
         orderBy: [{ cree_le: "desc" }, { id: "desc" }],
       }),
     client,

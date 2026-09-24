@@ -376,8 +376,11 @@ export default async function PageBonIntervention({
                 className="border-app-bord h-[80px] w-[180px] rounded border object-contain"
               />
               <p className="text-app-encre-faible text-[10.5px]">
-                {t("intervention.bon.signature_le")}{" "}
-                {dateHeureLocale(bon.signature.cree_le, bon.fuseau)}
+                {ligneSignature(
+                  bon.signature.signataire_nom,
+                  bon.signature.signataire_qualite,
+                  dateHeureLocale(bon.signature.cree_le, bon.fuseau),
+                )}
               </p>
             </div>
           )}
@@ -397,6 +400,23 @@ function minutes(total: number): string {
   const heures = Math.floor(total / 60);
   const reste = String(total % 60).padStart(2, "0");
   return heures === 0 ? `${reste} min` : `${heures} h ${reste}`;
+}
+
+/**
+ * « Signé par NOM (QUALITÉ) le DATE » — ou « Signé le DATE » pour une
+ * signature antérieure à BON-4 (76-BON-4, SAV-10), qui ne porte pas de nom.
+ * Une qualité absente retire ses parenthèses, elle ne les vide jamais.
+ */
+function ligneSignature(
+  nom: string | null,
+  qualite: string | null,
+  date: string,
+): string {
+  if (nom === null) {
+    return `${t("intervention.bon.signature_le")} ${date}`;
+  }
+  const suffixeQualite = qualite === null ? "" : ` (${qualite})`;
+  return `${t("intervention.bon.signe_par")} ${nom}${suffixeQualite} ${t("intervention.bon.le")} ${date}`;
 }
 
 function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
