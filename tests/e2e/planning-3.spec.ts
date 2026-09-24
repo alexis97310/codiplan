@@ -1,5 +1,8 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { Role } from "@/lib/auth/roles";
 import { instantDuJour, jourSuivant } from "@/lib/calendar/fuseau";
@@ -182,4 +185,21 @@ test("une charge sans durée dit « incomplète », jamais « 0 % »", async ({
   expect(texte).toContain("Charge incomplète");
   expect(texte).not.toContain("0 %");
   expect(texte).not.toContain("Taux");
+
+  await capturer(page, "charge-incomplete");
 });
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/60-PLANNING-3-REPRISE/captures",
+);
+
+/** Une seule largeur, 1280 px : la reprise ne re-photographie que le poste de travail. */
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-1280.png`),
+    fullPage: true,
+  });
+}
