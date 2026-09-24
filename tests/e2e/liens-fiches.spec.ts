@@ -79,8 +79,14 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   expect(siteAttendu).not.toBeNull();
   expect(machineAttendue).not.toBeNull();
 
-  const siteSelect = page.locator('select[name="site"]');
-  await expect(siteSelect).toHaveValue(new RegExp(`:${siteAttendu}$`));
+  // LE SITE ARRIVE PRÉREMPLI — champ CACHÉ posé par `SelecteurRecherche`
+  // (SELECTEURS-1), plus un `<select>` : `versValeurChamp` compose
+  // `client_id:site_id`, exactement ce que `/api/interventions/creer`
+  // attend.
+  const siteValeurCachee = page.locator(
+    '[data-selecteur="site"] input[type="hidden"]',
+  );
+  await expect(siteValeurCachee).toHaveValue(new RegExp(`:${siteAttendu}$`));
 
   const machineSelect = page.locator('select[name="machine_ids"]');
   const optionCochee = machineSelect.locator("option:checked");
@@ -97,7 +103,7 @@ test("« + Intervention » depuis une fiche machine arrive PRÉREMPLI, et un sit
   );
   expect(reponse?.status()).toBe(200);
   await expect(page.locator('[role="status"]')).toHaveCount(0);
-  await expect(page.locator('select[name="site"]')).toBeVisible();
+  await expect(page.locator('[data-selecteur="site"]')).toBeVisible();
 });
 
 test("depuis /interventions, le client et la machine de la fiche mènent à leur fiche", async ({

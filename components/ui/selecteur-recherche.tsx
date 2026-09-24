@@ -195,7 +195,10 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
   const peutVoirPlus = resultats.length < total;
 
   return (
-    <label className="relative flex flex-col gap-1 text-[12.5px] font-semibold">
+    <label
+      data-selecteur={nom}
+      className="relative flex flex-col gap-1 text-[12.5px] font-semibold"
+    >
       {libelle}
       <input
         type="hidden"

@@ -6,6 +6,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { SAMEDI, cleDeJour, jourDeLaScene } from "./setup/scene";
+import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -38,6 +39,7 @@ import { ouvrirUneSession } from "./setup/session";
 async function siteDeKone(): Promise<{
   readonly siteId: string;
   readonly clientId: string;
+  readonly siteLibelle: string;
   readonly societeId: string;
 }> {
   const client = new PrismaClient({
@@ -54,10 +56,15 @@ async function siteDeKone(): Promise<{
     });
     const site = await client.site.findFirstOrThrow({
       where: { societe_id: societe.id, agence_id: agence.id },
-      select: { id: true, client_id: true },
+      select: { id: true, client_id: true, libelle: true },
       orderBy: { libelle: "asc" },
     });
-    return { siteId: site.id, clientId: site.client_id, societeId: societe.id };
+    return {
+      siteId: site.id,
+      clientId: site.client_id,
+      siteLibelle: site.libelle,
+      societeId: societe.id,
+    };
   } finally {
     await client.$disconnect();
   }
@@ -87,11 +94,9 @@ test.beforeEach(async ({ page }) => {
 test("créer une intervention à KONÉ ne demande plus de date — le formulaire n'en porte aucune", async ({
   page,
 }) => {
-  const { siteId, clientId } = await siteDeKone();
+  const { siteLibelle } = await siteDeKone();
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   // NI DATE, NI TECHNICIEN (PARCOURS-1) — les deux champs n'existent plus.
   await expect(page.locator('input[name="date_planifiee"]')).toHaveCount(0);
   await expect(page.locator('[name="technicien_id"]')).toHaveCount(0);
@@ -100,7 +105,7 @@ test("créer une intervention à KONÉ ne demande plus de date — le formulaire
 test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la fiche le dit", async ({
   page,
 }) => {
-  const { siteId, clientId, societeId } = await siteDeKone();
+  const { siteId, siteLibelle, societeId } = await siteDeKone();
   const reperes = await reperesDeLaScene();
   const samedi = jourDeLaScene(reperes, SAMEDI);
   const samediUtc = new Date(
@@ -115,9 +120,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
 
   // ── 1. CRÉER — sans date, sans technicien (PARCOURS-1) ──────────────────
   await page.goto("/interventions/nouvelle");
-  await page
-    .locator('select[name="site"]')
-    .selectOption(`${clientId}:${siteId}`);
+  await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — jour fermé");
