@@ -301,7 +301,14 @@ export default async function PageAbsences({
           className="border-app-bord bg-app-surface flex flex-col gap-1.5 rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           <p className="font-bold">{t("absences.rendues_titre")}</p>
-          <p>{listeDesInterventions(vue.interventionsRendues)}</p>
+          <p>
+            <Link href="/interventions?vue=a_planifier" className="underline">
+              {t("absences.rendues_lien_registre")}
+            </Link>
+          </p>
+          <p>
+            <ListeLiensInterventions interventions={vue.interventionsRendues} />
+          </p>
         </section>
       ) : null}
 
@@ -377,7 +384,17 @@ export default async function PageAbsences({
             role="status"
             className="border-app-bord bg-app-surface flex flex-col gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px]"
           >
-            <p>{libelleApercu(vue.interventionsApercu)}</p>
+            <p>
+              {libelleApercuAnnonce(vue.interventionsApercu.length)}
+              {vue.interventionsApercu.length > 0 ? (
+                <>
+                  {" "}
+                  <ListeLiensInterventions
+                    interventions={vue.interventionsApercu}
+                  />
+                </>
+              ) : null}
+            </p>
             <form
               action="/api/absences/declarer"
               method="post"
@@ -634,40 +651,59 @@ function versChaineJourInput(journee: Date): string {
   return `${journee.getUTCFullYear()}${TIRET_ISO}${moisNum}${TIRET_ISO}${jourNum}`;
 }
 
-function listeDesInterventions(
-  interventions: readonly {
+/**
+ * CHAQUE RÉFÉRENCE UN LIEN VERS SA FICHE (65-ABSENCES-3, SAV-12) — pour
+ * reposer sans redemander au registre, à la main, ce qu'une absence a rendu
+ * ou va rendre à la file. `Affecter` existe déjà sur `/interventions/{id}`.
+ *
+ * *Tant que le numéro est nul, l'interface affiche `Local-<6 caractères>`*
+ * (I10). La forme est celle du planning, LUE et non recopiée : deux écrans
+ * qui nomment la même intervention de deux façons obligent à deviner qu'il
+ * s'agit de la même (§9, 01/09). Le séparateur se compose DANS le JSX,
+ * `Link` par `Link` — la discipline « hors du JSX » d'`agences`/`periode`
+ * ne s'applique pas ici, puisqu'aucune chaîne composée à l'avance ne peut
+ * porter un `Link`.
+ */
+function ListeLiensInterventions({
+  interventions,
+}: {
+  readonly interventions: readonly {
     readonly id: string;
     readonly numero: number | null;
-  }[],
-): string {
-  // *Tant que le numéro est nul, l'interface affiche `Local-<6 caractères>`*
-  // (I10). La forme est celle du planning, LUE et non recopiée : deux écrans
-  // qui nomment la même intervention de deux façons obligent à deviner qu'il
-  // s'agit de la même (§9, 01/09).
-  return interventions.map(referenceAffichee).join(SEPARATEUR);
+  }[];
+}) {
+  return (
+    <>
+      {interventions.map((intervention, index) => (
+        <span key={intervention.id}>
+          {index === 0 ? null : t("absences.reference_separateur")}
+          <Link
+            href={`/interventions/${intervention.id}`}
+            className="underline"
+          >
+            {referenceAffichee(intervention)}
+          </Link>
+        </span>
+      ))}
+    </>
+  );
 }
 
 /**
- * LE MESSAGE DE L'APERÇU — « Cette absence rendra N intervention(s) à la
- * file : … » ou « Aucune intervention touchée » (SAV-12).
- *
- * Composé HORS du JSX, comme `periode` et `listeDesInterventions` juste
- * au-dessus (L0-11).
+ * L'ANNONCE DE L'APERÇU — « Cette absence rendra N intervention(s) à la
+ * file : » ou « Aucune intervention touchée » (SAV-12). La liste qui suit
+ * n'est plus composée ici : elle est rendue à part par
+ * `ListeLiensInterventions`, chaque référence devenue un lien (65-ABSENCES-3).
  */
-function libelleApercu(
-  interventions: readonly {
-    readonly id: string;
-    readonly numero: number | null;
-  }[],
-): string {
-  if (interventions.length === 0) {
+function libelleApercuAnnonce(compte: number): string {
+  if (compte === 0) {
     return t("absences.apercu_aucune");
   }
   const suffixe =
-    interventions.length === 1
+    compte === 1
       ? t("absences.apercu_suffixe_une")
       : t("absences.apercu_suffixe");
-  return `${t("absences.apercu_prefixe")} ${interventions.length} ${suffixe} ${listeDesInterventions(interventions)}`;
+  return `${t("absences.apercu_prefixe")} ${compte} ${suffixe}`;
 }
 
 function listeDesAgences(

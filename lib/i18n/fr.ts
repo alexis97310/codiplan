@@ -2366,6 +2366,14 @@ export const fr = {
   "absences.levee_explication":
     "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles ne savent plus où elles étaient, et c'est au planificateur de les reposer.",
   "absences.rendues_titre": "Interventions rendues à la file à planifier",
+  // ── 65-ABSENCES-3 : LES RÉFÉRENCES DEVIENNENT DES LIENS (SAV-12) ──────────
+  //
+  // Même texte qu'avant (D26) : ce que la pose et l'aperçu rendaient déjà,
+  // chaque référence est désormais un lien vers sa fiche — le séparateur qui
+  // les joint est ici pour la même raison que `absences.pastille_separateur`,
+  // puisqu'il est composé DANS le JSX (Link par Link), jamais hors de lui.
+  "absences.rendues_lien_registre": "Voir dans le registre",
+  "absences.reference_separateur": ", ",
   "absences.rupture_titre": "Rupture de service",
   "absences.rupture_explication":
     "Ces établissements n'ont plus qu'un seul technicien actif : aucun créneau n'est proposé à la place, et c'est délibéré — le planificateur sait ce que le système ne saura jamais.",
