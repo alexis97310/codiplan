@@ -16,10 +16,27 @@ import {
   MODES_VALORISATION,
 } from "@/lib/interventions/saisie";
 import { lireClient } from "@/lib/clients/depot";
+import { contactsDuClient } from "@/lib/contacts/depot";
 import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite } from "@/lib/sites/depot";
 
 export const metadata: Metadata = { title: t("planning.creer") };
+
+/**
+ * UN PARAMÈTRE D'URL VALIDÉ CONTRE UNE LISTE CLOSE (56-FORMULAIRES-2) — le
+ * retour au formulaire après un refus de saisie (`versLeFormulaire`,
+ * `app/api/interventions/creer/route.ts`) peut porter n'importe quel texte :
+ * `type` et `priorité` ne préremplissent leur `<select>` que si la valeur
+ * appartient encore à la liste, jamais une erreur pour le reste (LIENS-1).
+ */
+function valeurAutorisee(
+  valeur: string | string[] | undefined,
+  valeurs: readonly string[],
+): string | undefined {
+  return typeof valeur === "string" && valeurs.includes(valeur)
+    ? valeur
+    : undefined;
+}
 
 /**
  * CRÉER UNE DEMANDE D'INTERVENTION (lot 2, D84 ; PARCOURS-1, 23/09/2026,
@@ -115,6 +132,39 @@ export default async function PageNouvelleIntervention({
       ? machineParam
       : undefined;
 
+  // LE CONTACT SUR PLACE PRÉREMPLI (56-FORMULAIRES-2) — même discipline que
+  // la machine ci-dessus : le contact doit appartenir au SITE présélectionné
+  // (le sien, ou celui du client quand il n'est rattaché à aucun site — même
+  // filtre qu'`/api/recherche/site/[id]`), sinon il est ignoré en silence.
+  const contactParam =
+    typeof params.contact_id === "string" ? params.contact_id : undefined;
+  const contactsDuSiteInitial =
+    siteInitial === undefined || clientDuSite === null
+      ? []
+      : (await contactsDuClient(session.contexte, clientDuSite.id)).filter(
+          (contact) =>
+            contact.site_id === null || contact.site_id === siteInitial.id,
+        );
+  const contactIdInitiale =
+    contactParam !== undefined &&
+    contactsDuSiteInitial.some((contact) => contact.id === contactParam)
+      ? contactParam
+      : undefined;
+
+  // LE TYPE, LA PRIORITÉ, LA PANNE ET LA RÉFÉRENCE CLIENT PRÉREMPLIS
+  // (56-FORMULAIRES-2) — ce que `versLeFormulaire` renvoie après un refus de
+  // SAISIE (`app/api/interventions/creer/route.ts`). `type` et `priorite`
+  // sont vérifiés contre leur liste close ; la panne et la référence sont du
+  // texte libre, rendu tel quel (React échappe déjà tout affichage).
+  const typeInitial = valeurAutorisee(params.type, TYPES_INTERVENTION);
+  const prioriteInitiale = valeurAutorisee(params.priorite, PRIORITES);
+  const descriptionInitiale =
+    typeof params.description === "string" ? params.description : undefined;
+  const referenceClientInitiale =
+    typeof params.reference_client === "string"
+      ? params.reference_client
+      : undefined;
+
   return (
     <Page
       chemin="/interventions/nouvelle"
@@ -159,6 +209,7 @@ export default async function PageNouvelleIntervention({
           libelleVoirPlusSite={t("selecteur.voir_plus")}
           siteInitial={siteInitial}
           machineIdInitiale={machineIdInitiale}
+          contactIdInitiale={contactIdInitiale}
         />
         <p className="text-app-encre-faible -mt-2 text-[11.5px]">
           {t("intervention.deduit_du_lieu")}
@@ -169,6 +220,7 @@ export default async function PageNouvelleIntervention({
           libelle={t("intervention.type")}
           valeurs={TYPES_INTERVENTION}
           prefixe="type_intervention"
+          valeurInitiale={typeInitial}
         />
         <Choix
           nom="priorite"
@@ -176,6 +228,7 @@ export default async function PageNouvelleIntervention({
           valeurs={PRIORITES}
           prefixe="priorite"
           defaut="p3"
+          valeurInitiale={prioriteInitiale}
         />
         <Choix
           nom="mode_valorisation"
@@ -197,6 +250,7 @@ export default async function PageNouvelleIntervention({
             name="description"
             required
             rows={4}
+            defaultValue={descriptionInitiale}
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
           />
         </label>
@@ -206,6 +260,7 @@ export default async function PageNouvelleIntervention({
           <input
             name="reference_client"
             type="text"
+            defaultValue={referenceClientInitiale}
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
           />
         </label>
@@ -222,19 +277,22 @@ function Choix({
   valeurs,
   prefixe,
   defaut,
+  valeurInitiale,
 }: {
   nom: string;
   libelle: string;
   valeurs: readonly string[];
   prefixe: string;
   defaut?: string;
+  /** Reprise après un refus de saisie (56-FORMULAIRES-2) — prime sur `defaut`. */
+  valeurInitiale?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
       {libelle}
       <select
         name={nom}
-        defaultValue={defaut}
+        defaultValue={valeurInitiale ?? defaut}
         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
       >
         {valeurs.map((valeur) => {

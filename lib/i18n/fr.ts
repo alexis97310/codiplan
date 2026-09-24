@@ -3228,6 +3228,17 @@ export const fr = {
   "fiche360.e2e.numero_serie_1": "F360-SN-1",
   "fiche360.e2e.numero_serie_2": "F360-SN-2",
   "fiche360.e2e.numero_serie_3": "F360-SN-3",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/formulaires-2.spec.ts)
+  //
+  // Même discipline que `fiche360.e2e.*` : sa PROPRE scène, créée et supprimée
+  // par l'épreuve, préfixée `FRM2-` pour se distinguer du semis
+  // (`docs/propositions/56-FORMULAIRES-2`).
+  "formulaires2.e2e.client": "FRM2 — Client de l'épreuve",
+  "formulaires2.e2e.site": "FRM2 — Lieu de l'épreuve",
+  "formulaires2.e2e.numero_serie": "FRM2-SN-1",
+  "formulaires2.e2e.panne": "FRM2 — Panne signalée pour l'épreuve.",
+  "formulaires2.e2e.reference_client": "FRM2-ref",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

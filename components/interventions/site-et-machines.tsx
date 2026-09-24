@@ -56,6 +56,7 @@ export function ChampSiteEtMachines({
   libelleVoirPlusSite,
   siteInitial,
   machineIdInitiale,
+  contactIdInitiale,
 }: Readonly<{
   libelleSite: string;
   libelleMachines: string;
@@ -73,10 +74,17 @@ export function ChampSiteEtMachines({
   siteInitial?: OptionSite;
   /** La machine déjà cochée — validée de la même façon que `siteInitial`. */
   machineIdInitiale?: string;
+  /**
+   * LE CONTACT DÉJÀ CHOISI (56-FORMULAIRES-2, retour après un refus de
+   * saisie) — validé de la même façon que `machineIdInitiale` : appartenir au
+   * SITE présélectionné, sinon ignoré.
+   */
+  contactIdInitiale?: string;
 }>) {
   const [siteId, setSiteId] = useState<string>(siteInitial?.id ?? "");
   const [auSite, setAuSite] = useState<OptionAuSite>(VIDE);
   const [machineChoisie, setMachineChoisie] = useState<string>("");
+  const [contactChoisi, setContactChoisi] = useState<string>("");
 
   useEffect(() => {
     if (siteId === "") {
@@ -122,6 +130,25 @@ export function ChampSiteEtMachines({
       return "";
     });
   }, [auSite, siteId, siteInitial, machineIdInitiale]);
+
+  useEffect(() => {
+    setContactChoisi((precedent) => {
+      if (auSite.contacts.some((contact) => contact.id === precedent)) {
+        return precedent;
+      }
+      // Même garde que pour la machine : la présélection ne rejoue jamais
+      // sur un site autre que celui pour lequel elle a été résolue.
+      if (
+        siteId !== "" &&
+        siteId === siteInitial?.id &&
+        contactIdInitiale !== undefined &&
+        auSite.contacts.some((contact) => contact.id === contactIdInitiale)
+      ) {
+        return contactIdInitiale;
+      }
+      return "";
+    });
+  }, [auSite, siteId, siteInitial, contactIdInitiale]);
 
   return (
     <>
@@ -172,7 +199,8 @@ export function ChampSiteEtMachines({
           {libelleContact}
           <select
             name="contact_id"
-            defaultValue=""
+            value={contactChoisi}
+            onChange={(evenement) => setContactChoisi(evenement.target.value)}
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
           >
             <option value="">{libelleAucunContact}</option>

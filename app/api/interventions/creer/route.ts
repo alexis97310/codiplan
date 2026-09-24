@@ -5,6 +5,7 @@ import { schemaCreation } from "@/lib/interventions/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { champ, versLaFiche, versLePlanning } from "../actions";
+import { versLeFormulaire } from "./formulaire";
 
 /**
  * CRÉER UNE INTERVENTION — UNE DEMANDE (lot 2, D84 ; PARCOURS-1, 23/09/2026,
@@ -34,6 +35,20 @@ async function traiter(requete: Request): Promise<Response> {
   }
   const formulaire = await requete.formData();
   const lieu = (champ(formulaire, "site") ?? "").split(":");
+  // CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation (56-FORMULAIRES-2)
+  // — c'est ce qui part vers `versLeFormulaire` si `schemaCreation` ou
+  // `creerIntervention` refusent : la page `nouvelle` ignore en silence tout
+  // champ inconnu ou hors liste (LIENS-1), donc une valeur invalide ici ne
+  // fait jamais une erreur, seulement un champ vide au retour.
+  const champsResoumis = {
+    site: lieu[1],
+    machine: champ(formulaire, "machine_ids") ?? undefined,
+    type: champ(formulaire, "type") ?? undefined,
+    priorite: champ(formulaire, "priorite") ?? undefined,
+    description: champ(formulaire, "description") ?? undefined,
+    reference_client: champ(formulaire, "reference_client") ?? undefined,
+    contact_id: champ(formulaire, "contact_id") ?? undefined,
+  };
 
   const saisie = schemaCreation.safeParse({
     id: uuidv7(),
@@ -67,16 +82,17 @@ async function traiter(requete: Request): Promise<Response> {
     const surLaDescription = saisie.error.issues.some((probleme) =>
       probleme.path.includes("description"),
     );
-    return versLePlanning(
+    return versLeFormulaire(
       surLaDescription
         ? "intervention.refus.panne_manquante"
         : "intervention.refus.lieu_inconnu",
+      champsResoumis,
     );
   }
 
   const resultat = await creerIntervention(contexte, saisie.data);
   if (!resultat.accepte) {
-    return versLePlanning(resultat.cle);
+    return versLeFormulaire(resultat.cle, champsResoumis);
   }
   return versLaFiche(resultat.fiche.id);
 }
