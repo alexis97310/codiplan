@@ -1,0 +1,45 @@
+{
+  "commit": "851f00deb64d8f0278447258fc1da14ee464d8ff",
+  "horodatage": "2026-09-24T03:49:49.084Z",
+  "largeur": 1280,
+  "hauteur": 900,
+  "resultat": {
+    "creations": "4",
+    "modifications": "0",
+    "inchangees": "0",
+    "rejets": "2",
+    "gabarits": "0",
+    "vides": "0"
+  },
+  "rattachements": {
+    "sans_serie": "1",
+    "rang1": "1",
+    "rang2": "0",
+    "rang3": "2"
+  },
+  "non_rattachees": [
+    [
+      "6",
+      "ZZ-EPREUVE-INCONNUE",
+      "Aucune machine du parc ne porte ce n° de série."
+    ],
+    [
+      "8",
+      "NUS-SPL-2022-0007",
+      "Ce n° de série existe, mais chez un autre client que celui de la ligne."
+    ]
+  ],
+  "rejets": [
+    [
+      "5",
+      "HISTORIQUE-f epr 0003",
+      "Le client est reconnu, mais la ligne ne nomme aucun lieu et ce client en a plusieurs — ou aucun. La ligne ne peut pas dire où l'intervention a eu lieu : nommez le lieu dans la colonne qui le porte."
+    ],
+    [
+      "7",
+      "HISTORIQUE-a epr 0001",
+      "Aucun client ne répond à cette colonne : ni ce code externe, ni cette raison sociale. La correction est dans le fichier des clients, ou dans la cellule qui le nomme."
+    ]
+  ],
+  "type_inconnu": "inventaire"
+}
