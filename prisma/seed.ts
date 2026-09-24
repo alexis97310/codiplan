@@ -551,7 +551,12 @@ async function seed(): Promise<void> {
         etape(`${societe.code} — sites de démonstration : ${sites.length}`);
 
         for (const { site, clientId } of sites) {
-          const { id: siteId, horaires, agence_code, ...champsSite } = site;
+          const { id: siteId, horaires, agence_code, ...resteSite } = site;
+          // `demoCle` NE SE POSE PAS EN BASE : il n'épingle que le semis des
+          // machines (voir plus bas), la table `site` ne le connaît pas — la
+          // variable exclut le champ du reste sans jamais s'en servir.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { demoCle: _demoCle, ...champsSite } = resteSite;
           const agenceId = identifiantsAgences.get(agence_code);
           if (agenceId === undefined) {
             throw new Error(
