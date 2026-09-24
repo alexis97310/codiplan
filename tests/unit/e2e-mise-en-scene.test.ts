@@ -224,7 +224,7 @@ describe("l'extraction, éprouvée sur du texte fabriqué", () => {
     ).toBe(false);
   });
 
-  it("`test.describe.configure({ mode: \"serial\" })` est détecté, guillemets simples compris", () => {
+  it('`test.describe.configure({ mode: "serial" })` est détecté, guillemets simples compris', () => {
     expect(declareSerie(`test.describe.configure({ mode: "serial" });`)).toBe(
       true,
     );
@@ -296,9 +296,7 @@ describe("tout `beforeAll` qui écrit sans idempotence déclare la série", () =
       if (fichier === undefined) {
         continue;
       }
-      const exigeraitLaSerie = blocsBeforeAll(fichier.source).some(
-        ecritEnBase,
-      );
+      const exigeraitLaSerie = blocsBeforeAll(fichier.source).some(ecritEnBase);
       expect(
         exigeraitLaSerie,
         `exemption inutile : ${exemption.chemin} ne serait pas flagué sans elle`,
