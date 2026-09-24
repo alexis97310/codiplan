@@ -293,9 +293,7 @@ test("64-REGISTRE-2-REPRISE — le filtre technicien compose avec l'onglet « à
   // lectures séparées.
   await page.goto("/interventions?q=REG2-&technicien=aucun&vue=a_planifier");
   await expect(page.locator("table tbody tr")).toHaveCount(1);
-  await expect(page.locator('select[name="technicien"]')).toHaveValue(
-    "aucun",
-  );
+  await expect(page.locator('select[name="technicien"]')).toHaveValue("aucun");
   await expect(page.locator('[aria-current="page"]')).toContainText(
     fr["interventions.vue.a_planifier"],
   );
