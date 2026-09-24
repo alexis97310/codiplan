@@ -391,6 +391,25 @@ export function hrefOnglet(
 }
 
 /**
+ * LES OPTIONS DU FILTRE « TECHNICIEN » (57-REGISTRE-2) — les techniciens
+ * ACTIFS de la société, nommés par le même `quiTravaille` que la colonne
+ * « Technicien » de ce registre (jamais une seconde lecture du nom, §9,
+ * 01/09). « Tous » et « Non affectées » sont deux options FIXES, composées à
+ * part dans l'écran : elles ne désignent personne dans l'annuaire.
+ */
+export function optionsFiltreTechnicien(
+  techniciens: readonly { readonly utilisateur_id: string }[],
+  annuaire: Annuaire,
+): readonly { readonly valeur: string; readonly libelle: string }[] {
+  return techniciens
+    .map((technicien) => ({
+      valeur: technicien.utilisateur_id,
+      libelle: quiTravaille(technicien.utilisateur_id, annuaire),
+    }))
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+}
+
+/**
  * UN INSTANT, EN DATE ET HEURE LOCALES — pour le bon d'intervention (BON-1).
  *
  * *Un segment de travail est un INSTANT (`Timestamptz`), pas un jour

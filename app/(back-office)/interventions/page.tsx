@@ -52,6 +52,7 @@ import {
   libelleOngletAvecCompte,
   machinesAffichees,
   ONGLETS_REGISTRE,
+  optionsFiltreTechnicien,
   optionToutesLesAgences,
   referenceAffichee,
 } from "./presentation";
@@ -86,8 +87,13 @@ export const metadata: Metadata = { title: t("interventions.titre") };
  * forme `Local-XXXXXX` de la référence reste un ÉCART NOMMÉ (voir la note de
  * tête de `numeroDeReference`) : `id` est `@db.Uuid`, et son filtre Prisma
  * ne sait pas comparer une sous-chaîne sans SQL brut, que le stack imposé
- * interdit hors migrations. Les quatre filtres sont ceux que la maquette
- * annonce : agence, type, statut, période — et eux seuls.
+ * interdit hors migrations. Les quatre premiers filtres sont ceux que la
+ * maquette annonce : agence, type, statut, période. Le CINQUIÈME, technicien
+ * (57-REGISTRE-2), n'y figure pas — il répond à la question la plus courante
+ * du bureau, « qu'a-t-il sur les bras ? », restée sans réponse sur ce
+ * registre jusque-là ; « Non affectées » y porte les interventions sans
+ * technicien, sur la même colonne que le libellé de repli de la colonne
+ * « Technicien » (`quiTravaille`).
  *
  * ## LE CLIENT INACTIF SORT DE CETTE LISTE, ET LA CASE LE FAIT REVENIR (RG-PLA-08, D129)
  *
@@ -148,6 +154,7 @@ export default async function PageInterventions({
     statut: typeof params.statut === "string" ? params.statut : "",
     du: typeof params.du === "string" ? params.du : "",
     au: typeof params.au === "string" ? params.au : "",
+    technicien: typeof params.technicien === "string" ? params.technicien : "",
     inclure_clients_inactifs:
       typeof params.inclure_clients_inactifs === "string"
         ? params.inclure_clients_inactifs
@@ -160,35 +167,47 @@ export default async function PageInterventions({
     page: typeof params.page === "string" ? params.page : undefined,
   });
 
-  // CINQ LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
-  // 52-REGISTRE-1) — aucune ne dépend du résultat d'une autre. `annuaire` et
-  // `libellesMachines`, eux, dépendent des LIGNES rendues et restent dans un
-  // second `Promise.all`, après celui-ci.
-  const [agences, lignes, totalFiltre, kpi, comptesVue] = await Promise.all([
-    // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
-    // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
-    avecContexteApplicatif(contexte, (tx) =>
-      tx.agence.findMany({
-        select: { id: true, libelle: true, code: true },
-        orderBy: [{ libelle: "asc" }, { id: "asc" }],
-      }),
-    ),
-    criteres.success
-      ? listerInterventions(contexte, criteres.data)
-      : Promise.resolve([]),
-    // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
-    // liste, jamais une seconde lecture divergente du critère (AT-07).
-    criteres.success
-      ? compterInterventions(contexte, criteres.data)
-      : Promise.resolve(0),
-    kpiDuRegistre(contexte),
-    // LE COMPTEUR DE CHAQUE ONGLET (52-REGISTRE-1) — les mêmes AUTRES
-    // filtres que la liste ci-dessus, l'onglet actif exclu par
-    // `compterParVue` lui-même.
-    criteres.success
-      ? compterParVue(contexte, criteres.data)
-      : Promise.resolve(COMPTES_VUE_VIDES),
-  ]);
+  // SIX LECTURES INDÉPENDANTES (lot PERF, mesuré sur 4fead41 ; étendu
+  // 52-REGISTRE-1, puis 57-REGISTRE-2) — aucune ne dépend du résultat d'une
+  // autre. `annuaire` et `libellesMachines`, eux, dépendent des LIGNES
+  // rendues et restent dans un second `Promise.all`, après celui-ci.
+  const [agences, techniciensActifs, lignes, totalFiltre, kpi, comptesVue] =
+    await Promise.all([
+      // LES AGENCES DU FILTRE — sous le contexte cloisonné, comme
+      // `sites/nouveau/page.tsx` le fait déjà pour son propre sélecteur.
+      avecContexteApplicatif(contexte, (tx) =>
+        tx.agence.findMany({
+          select: { id: true, libelle: true, code: true },
+          orderBy: [{ libelle: "asc" }, { id: "asc" }],
+        }),
+      ),
+      // LES TECHNICIENS DU FILTRE (57-REGISTRE-2) — seuls les ACTIFS sont
+      // proposés, même règle que `/interventions/nouvelle` et la fiche : un
+      // technicien inactif n'entre pas dans une liste PROPOSÉE à une nouvelle
+      // saisie, même si son historique reste consultable ailleurs.
+      avecContexteApplicatif(contexte, (tx) =>
+        tx.technicien.findMany({
+          where: { actif: true },
+          select: { utilisateur_id: true },
+          orderBy: { utilisateur_id: "asc" },
+        }),
+      ),
+      criteres.success
+        ? listerInterventions(contexte, criteres.data)
+        : Promise.resolve([]),
+      // LE TOTAL DE LA PAGINATION — la MÊME `filtreDesInterventions` que la
+      // liste, jamais une seconde lecture divergente du critère (AT-07).
+      criteres.success
+        ? compterInterventions(contexte, criteres.data)
+        : Promise.resolve(0),
+      kpiDuRegistre(contexte),
+      // LE COMPTEUR DE CHAQUE ONGLET (52-REGISTRE-1) — les mêmes AUTRES
+      // filtres que la liste ci-dessus, l'onglet actif exclu par
+      // `compterParVue` lui-même.
+      criteres.success
+        ? compterParVue(contexte, criteres.data)
+        : Promise.resolve(COMPTES_VUE_VIDES),
+    ]);
   const totalPages = Math.max(
     1,
     Math.ceil(totalFiltre / LIMITE_RECHERCHE_PAR_DEFAUT),
@@ -206,6 +225,8 @@ export default async function PageInterventions({
     statut: typeof params.statut === "string" ? params.statut : undefined,
     du: typeof params.du === "string" ? params.du : undefined,
     au: typeof params.au === "string" ? params.au : undefined,
+    technicien:
+      typeof params.technicien === "string" ? params.technicien : undefined,
     inclure_clients_inactifs:
       criteres.success && criteres.data.inclure_clients_inactifs
         ? "on"
@@ -223,8 +244,21 @@ export default async function PageInterventions({
   // dépendent tous deux de `lignes` ci-dessus — d'où ce second `Promise.all`,
   // jamais fondu dans le premier.
   const [annuaire, libellesMachines] = await Promise.all([
+    // L'ANNUAIRE PORTE AUSSI LES TECHNICIENS ACTIFS (57-REGISTRE-2), pour le
+    // `<select>` du filtre — un technicien dont aucune intervention n'est
+    // encore posée n'a sinon aucun nom à proposer (même raisonnement que
+    // `personnesANommer` pour la vue jour du planning : la population à
+    // nommer est celle des COLONNES, pas seulement celle des lignes).
     avecContexteApplicatif(contexte, (tx) =>
-      annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
+      annuaireDesPersonnes(
+        tx,
+        personnesANommer(
+          lignes,
+          techniciensActifs.map((technicien) => ({
+            id: technicien.utilisateur_id,
+          })),
+        ),
+      ),
     ),
     // LES LIBELLÉS DE MACHINE — lus une seconde fois, sur les identifiants
     // que les lignes rendues portent déjà (même principe que l'annuaire
@@ -351,6 +385,34 @@ export default async function PageInterventions({
                 {t(`statut.${statut}`)}
               </option>
             ))}
+          </select>
+        </label>
+        {/* LE FILTRE TECHNICIEN (57-REGISTRE-2) — « qu'a-t-il sur les
+            bras ? », la question la plus courante du bureau, sans réponse
+            avant ce ticket. `"aucun"` porte les interventions sans
+            affectation, comme `filtreDesInterventions` le lit. */}
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("intervention.technicien")}
+          <select
+            name="technicien"
+            defaultValue={
+              typeof params.technicien === "string" ? params.technicien : ""
+            }
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          >
+            <option value="">
+              {t("interventions.filtre_technicien_tous")}
+            </option>
+            <option value="aucun">
+              {t("interventions.filtre_technicien_non_affectees")}
+            </option>
+            {optionsFiltreTechnicien(techniciensActifs, annuaire).map(
+              (option) => (
+                <option key={option.valeur} value={option.valeur}>
+                  {option.libelle}
+                </option>
+              ),
+            )}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-[12px] font-semibold">

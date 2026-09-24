@@ -2876,6 +2876,15 @@ function filtreDesInterventions(
   if (criteres.statut !== null) {
     fragments.push({ statut: criteres.statut });
   }
+  // LE FILTRE TECHNICIEN (57-REGISTRE-2) — « aucun » se lit sur
+  // `technicien_id IS NULL`, la même colonne que celle qui décide déjà du
+  // libellé « non affectée » à l'affichage (`quiTravaille`).
+  if (criteres.technicien !== null) {
+    fragments.push({
+      technicien_id:
+        criteres.technicien === "aucun" ? null : criteres.technicien,
+    });
+  }
   if (criteres.du !== null || criteres.au !== null) {
     fragments.push({
       date_planifiee: {
