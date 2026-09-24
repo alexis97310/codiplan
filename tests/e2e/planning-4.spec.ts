@@ -252,8 +252,13 @@ test("« Planifier » dit l'agenda bloqué du technicien avant l'envoi", async (
   // de champ, sans qu'aucun formulaire n'ait été soumis.
   await champDate.fill(cleJour(jourBloque));
   await expect(optionTechnicien).toHaveAttribute("data-agenda-bloque", "");
+  // Le séparateur entre le nom et le suffixe n'est pas du dictionnaire
+  // (`disponibilite-technicien.tsx` le compose) : cette regex n'ancre que la
+  // fin, comme `blocage-agenda-visible.spec.ts` le fait déjà pour « Affecter ».
   await expect(optionTechnicien).toHaveText(
-    `${libelleInitial} — ${fr["intervention.technicien_agenda_bloque_le"]} ${dateCivile(instantDuJour(jourBloque))}`,
+    new RegExp(
+      `${fr["intervention.technicien_agenda_bloque_le"]} ${dateCivile(instantDuJour(jourBloque))}$`,
+    ),
   );
   // La note qui borne l'affirmation à 90 jours est visible sous le champ.
   await expect(
@@ -302,7 +307,9 @@ test("« Déplacer » dit l'agenda bloqué du technicien avant l'envoi", async (
   await champDate.fill(cleJour(jourBloque));
   await expect(optionTechnicien).toHaveAttribute("data-agenda-bloque", "");
   await expect(optionTechnicien).toHaveText(
-    `${libelleInitial} — ${fr["intervention.technicien_agenda_bloque_le"]} ${dateCivile(instantDuJour(jourBloque))}`,
+    new RegExp(
+      `${fr["intervention.technicien_agenda_bloque_le"]} ${dateCivile(instantDuJour(jourBloque))}$`,
+    ),
   );
 
   await champDate.fill(cleJour(jourLibre));

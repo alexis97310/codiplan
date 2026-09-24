@@ -136,7 +136,5 @@ function lireDateSaisie(valeur: string): Date | null {
     return null;
   }
   const [, annee, mois, jour] = trouve;
-  return new Date(
-    Date.UTC(Number(annee), Number(mois) - 1, Number(jour)),
-  );
+  return new Date(Date.UTC(Number(annee), Number(mois) - 1, Number(jour)));
 }
