@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { dureeCarteAffichee } from "@/app/(back-office)/planning/carte";
 import { Role } from "@/lib/auth/roles";
 import {
   cleJour,
@@ -205,9 +206,14 @@ test("une visite sans heure se lit « à caler », jamais « libre »", async ({
     .first();
   await expect(resume).toBeVisible();
   // « 1 visite à caler (3 h 00) » — jamais à la place du compte de trous,
-  // toujours à côté (le « · » qui les sépare).
+  // toujours à côté (le « · » qui les sépare). La durée vient de la MÊME
+  // fonction que l'écran (`dureeCarteAffichee`), jamais d'un « 3 h 00 »
+  // recopié à la main. `new RegExp` échappe à l'analyse des chaînes visibles
+  // (L0-11) comme `blocage-agenda-visible.spec.ts` le fait déjà : ce texte
+  // n'est jamais écrit ici, il n'est que RECONNU.
+  const dureeAttendue = dureeCarteAffichee(180);
   await expect(resume).toContainText(
-    `1 ${fr["planning.a_caler_visite_une"]} (3 h 00)`,
+    new RegExp(`1 ${fr["planning.a_caler_visite_une"]} \\(${dureeAttendue}\\)`),
   );
 
   // LA PASTILLE, SUR LA COLONNE DE CE TECHNICIEN — et nulle part ailleurs :
@@ -218,7 +224,9 @@ test("une visite sans heure se lit « à caler », jamais « libre »", async ({
   await expect(enTete).toBeVisible();
   const pastille = enTete.locator("[data-a-caler]");
   await expect(pastille).toBeVisible();
-  await expect(pastille).toHaveText(`1 ${fr["planning.a_caler_pastille"]}`);
+  await expect(pastille).toHaveText(
+    new RegExp(`1 ${fr["planning.a_caler_pastille"]}`),
+  );
 
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
