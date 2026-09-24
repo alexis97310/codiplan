@@ -1,3 +1,7 @@
+import {
+  avertirApresPlanification,
+  clesAvertissementCourriel,
+} from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { deplacerIntervention } from "@/lib/interventions/depot";
@@ -56,7 +60,7 @@ async function traiter(
           // page (L1-02f). Absent plutôt que vide quand il n'y a rien à dire.
           avertissements: avertissements ?? null,
         })
-      : versLaFiche(id, cle);
+      : versLaFiche(id, cle, avertissements);
 
   const contexte = await exigerCapacite("modifier_planning");
   if (contexte === null) {
@@ -111,14 +115,32 @@ async function traiter(
     );
   }
   const resultat = await deplacerIntervention(contexte, saisie.data);
-  // **LA REDIRECTION N'EN PORTE AUCUN, ET C'EST ÉCRIT PLUTÔT QUE TU.** La fiche
-  // relit le verdict d'habilitation en base à chaque rendu, avec les codes et
-  // les dates que ce canal ne peut pas porter : l'avertissement y est déjà, et
-  // plus complet. Le glisser-déposer, lui, ne quitte pas le planning — c'est
-  // pour lui que ces clés existent.
+  // **L'AVERTISSEMENT D'HABILITATION NE VOYAGE PAS PAR ICI.** La fiche relit
+  // ce verdict-là en base à chaque rendu, avec les codes et les dates que ce
+  // canal ne peut pas porter : il y est déjà, et plus complet.
+  //
+  // **L'AVERTISSEMENT DE COURRIEL, LUI, LE DOIT** (AVERTISSEMENTS-1) — rien en
+  // base ne garde le compte-rendu d'un envoi, qui est un fait EXPÉDIÉ, pas un
+  // état qui se relit. `avertirApresPlanification` s'appelle APRÈS que cette
+  // transaction a validé, jamais dans `deplacerIntervention` : un courriel ne
+  // doit ni retarder ni annuler l'écriture qu'il annonce.
+  const compteRenduCourriel =
+    resultat.accepte && resultat.etatAvant !== undefined
+      ? await avertirApresPlanification(contexte, id, resultat.etatAvant)
+      : null;
+  const avertissementsReunis = resultat.accepte
+    ? [
+        ...(resultat.avertissements ?? []),
+        ...(compteRenduCourriel === null
+          ? []
+          : clesAvertissementCourriel(compteRenduCourriel)),
+      ]
+    : [];
   return repondre(
     resultat.accepte ? undefined : resultat.cle,
-    resultat.accepte ? resultat.avertissements : undefined,
+    resultat.accepte && avertissementsReunis.length > 0
+      ? avertissementsReunis
+      : undefined,
   );
 }
 

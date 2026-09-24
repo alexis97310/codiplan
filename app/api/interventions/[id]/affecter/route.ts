@@ -1,3 +1,7 @@
+import {
+  avertirApresPlanification,
+  clesAvertissementCourriel,
+} from "@/lib/avertissements/planification";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { affecterTechnicien } from "@/lib/interventions/depot";
@@ -34,5 +38,21 @@ async function traiter(
     return versLaFiche(id, "intervention.refus.habilitation");
   }
   const resultat = await affecterTechnicien(contexte, id, technicien);
-  return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
+  // AVERTISSEMENTS-1 : le courriel part APRÈS que la transaction a validé,
+  // jamais dans `affecterTechnicien` — même raison que pour le déplacement.
+  const compteRenduCourriel =
+    resultat.accepte && resultat.etatAvant !== undefined
+      ? await avertirApresPlanification(contexte, id, resultat.etatAvant)
+      : null;
+  const avertissements =
+    compteRenduCourriel === null
+      ? undefined
+      : clesAvertissementCourriel(compteRenduCourriel);
+  return versLaFiche(
+    id,
+    resultat.accepte ? undefined : resultat.cle,
+    avertissements !== undefined && avertissements.length > 0
+      ? avertissements
+      : undefined,
+  );
 }

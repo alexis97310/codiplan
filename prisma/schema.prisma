@@ -1751,6 +1751,18 @@ model Intervention {
   /// seul, `NULL` tant que rien n'a été écrit.
   suite_a_donner String?
 
+  /// LE BADGE « NOUVEAU », côté technicien (AVERTISSEMENTS-1, 24/09/2026).
+  /// `NULL` tant que le technicien AFFECTÉ n'a pas ouvert sa fiche terrain —
+  /// c'est alors, et alors seulement, que `/terrain/[id]` la pose à `now()`.
+  /// Une ouverture par un autre rôle (l'ADV, sur `/interventions/[id]`) ne la
+  /// touche pas : le badge dit ce que LE TECHNICIEN a vu, rien d'autre.
+  ///
+  /// Repasse à `NULL` à CHAQUE (RÉ)AFFECTATION d'un technicien — par
+  /// `deplacerIntervention` ou `affecterTechnicien` — pour que le badge
+  /// reflète toujours l'affectation courante et non une lecture faite par un
+  /// technicien qui n'est plus celui d'aujourd'hui.
+  vue_technicien_le DateTime? @db.Timestamptz(3)
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 

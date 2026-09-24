@@ -299,11 +299,6 @@ export const MODULES_SANS_CHEMIN: readonly {
       "Un relevé se saisit sur le terrain (L2-03) : il suppose l'application technicien du lot 3, et rien d'autre ne le produit.",
   },
   {
-    module: "lib/courriel",
-    motif:
-      "Le canal d'envoi est appelé par un SCRIPT — l'amorçage du premier compte —, jamais par un écran. *Un chemin qui passe par une commande d'exploitation est un chemin*, et il n'entre pas dans cette mesure, qui part de `app/`. Ouvert par la première notification déclenchée depuis un écran.",
-  },
-  {
     module: "lib/reporting",
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
@@ -311,12 +306,14 @@ export const MODULES_SANS_CHEMIN: readonly {
 ];
 
 /**
- * **La mesure du 14/09/2026 en nommait NEUF**, et il n'en reste que quatre : la
+ * **La mesure du 14/09/2026 en nommait NEUF**, et il n'en reste que trois : la
  * liste n'a pas été corrigée, *le dépôt a bougé entre-temps.* `contacts`,
  * `excel`, `materiel` et `prestations` ont reçu un chemin avec l'écran d'import
  * (L1-11), les écrans clients (L1-01 rouvert) et le catalogue (R3-15) ;
- * `imports` aussi. **C'est exactement ce qu'un contrôle mesuré apporte sur une
- * liste écrite à la main : elle vieillit, et il ne vieillit pas.**
+ * `imports` aussi. `courriel` en est sorti le 24/09/2026 (AVERTISSEMENTS-1) :
+ * la première notification déclenchée depuis un écran, exactement ce que le
+ * motif retiré annonçait. **C'est exactement ce qu'un contrôle mesuré apporte
+ * sur une liste écrite à la main : elle vieillit, et il ne vieillit pas.**
  */
 
 /** Une exemption : une fonction sans chemin, et la raison écrite. */

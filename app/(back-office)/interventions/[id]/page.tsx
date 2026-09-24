@@ -153,6 +153,14 @@ export default async function PageIntervention({
   const { id } = await params;
   const parametres = await searchParams;
   const motif = parametres.motif;
+  // LE COMPTE-RENDU DES COURRIELS DE PLANIFICATION (AVERTISSEMENTS-1) — des
+  // CLÉS, filtrées comme `motif` : une réponse forgée ne doit pas pouvoir
+  // faire écrire n'importe quoi à la page (L1-02f). Même mécanisme que la
+  // vue planning (`PARAMETRE_AVERTISSEMENT`, `components/planning/pose.tsx`).
+  const avertissementsAffiches = [parametres.avertissement ?? []]
+    .flat()
+    .filter((valeur): valeur is string => typeof valeur === "string")
+    .filter(estCleTraduction);
   // D'OÙ ON ARRIVE (FICHE-INTERVENTION-1) — une liste FERMÉE, jamais une URL
   // libre : voir `retourFiche` dans `../presentation.ts`.
   const depuis = parametres.depuis;
@@ -415,6 +423,17 @@ export default async function PageIntervention({
           {t(motif)}
         </p>
       ) : null}
+
+      {avertissementsAffiches.map((cle) => (
+        <p
+          key={cle}
+          data-avertissement={cle}
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {t(cle)}
+        </p>
+      ))}
 
       {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">

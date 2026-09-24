@@ -203,10 +203,20 @@ function Carte({
           <span className="text-[15px] font-bold tabular-nums">
             {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
           </span>
-          <span
-            className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-[11px] font-semibold`}
-          >
-            {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
+          <span className="flex items-center gap-1.5">
+            {/* LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — tant que la fiche
+              n'a pas été ouverte par CE technicien ; voir
+              `marquerVuParTechnicien`, appelée par `/terrain/[id]`. */}
+            {ligne.vue_technicien_le === null ? (
+              <span className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-full border px-2 py-0.5 text-[11px] font-semibold">
+                {t("terrain.badge_nouveau")}
+              </span>
+            ) : null}
+            <span
+              className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-[11px] font-semibold`}
+            >
+              {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
+            </span>
           </span>
         </div>
         <p className="text-[14px] font-semibold">

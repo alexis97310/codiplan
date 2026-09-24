@@ -1143,6 +1143,22 @@ export const fr = {
     "Ce technicien détient toutes les habilitations exigées ici.",
   "intervention.avertissement.habilitation":
     "Ce technicien ne détient pas toutes les exigences NON bloquantes de ce lieu. L'affectation est acceptée ; le détail est sur la fiche.",
+  // ── LE COMPTE-RENDU DES COURRIELS DE PLANIFICATION (AVERTISSEMENTS-1) ──────
+  //
+  // Des CLÉS, jamais le motif technique d'`envoyerCourriel` — ce canal
+  // traverse une redirection HTTP, donc une URL, donc un lien qui peut être
+  // forgé (L1-02f, D50). La planification elle-même reste faite dans tous
+  // les cas : ces phrases informent, elles n'interrompent rien.
+  "intervention.avertissement.courriel_client_parti":
+    "Le client a été prévenu par courriel.",
+  "intervention.avertissement.courriel_client_non_parti":
+    "Le courriel au client n'a pas pu être envoyé. La planification est faite quand même.",
+  "intervention.avertissement.courriel_client_sans_destinataire":
+    "Aucun donneur d'ordre avec une adresse électronique n'a été trouvé pour ce client : aucun courriel ne lui a été envoyé. La planification est faite quand même.",
+  "intervention.avertissement.courriel_technicien_parti":
+    "Le technicien a été prévenu par courriel.",
+  "intervention.avertissement.courriel_technicien_non_parti":
+    "Le courriel au technicien n'a pas pu être envoyé. La planification est faite quand même.",
   "intervention.type": "Nature",
   "intervention.priorite": "Priorité",
   "intervention.statut": "Statut",
@@ -1483,6 +1499,10 @@ export const fr = {
   "terrain.titre": "Ma journée",
   "terrain.aujourdhui": "Aujourd'hui",
   "terrain.sans_date": "Affectées, sans date",
+  // LE BADGE « NOUVEAU » (AVERTISSEMENTS-1) — posé tant que
+  // `intervention.vue_technicien_le` est nul ; s'efface à l'ouverture de la
+  // fiche par le technicien affecté, et par lui seul.
+  "terrain.badge_nouveau": "Nouveau",
   "terrain.rien_aujourdhui": "Aucune intervention.",
   "terrain.sans_creneau": "Sans horaire",
   "terrain.retour": "← Retour à ma journée",

@@ -19,43 +19,44 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 63
-- `lib/` — ligne 68
-- `lib/db/` — ligne 69
-- `lib/auth/` — ligne 115
-- `lib/absences/` — ligne 150
-- `lib/clients/` — ligne 206
-- `lib/habilitations/` — ligne 209
-- `lib/contacts/` — ligne 217
-- `lib/demandes/` — ligne 227
-- `lib/agences/` — ligne 261
-- `lib/sites/` — ligne 276
-- `lib/machines/` — ligne 306
-- `lib/interventions/` — ligne 357
-- `lib/materiel/` — ligne 531
-- `lib/tarification/` — ligne 564
-- `lib/navigation/` — ligne 660
-- `lib/money/` — ligne 696
-- `lib/courriel/` — ligne 698
-- `lib/compteurs/` — ligne 726
-- `lib/calendar/` — ligne 745
-- `lib/sync/` — ligne 771
-- `lib/documents/` — ligne 772
-- `lib/excel/` — ligne 798
-- `lib/imports/` — ligne 856
-- `lib/prestations/` — ligne 1008
-- `lib/portail/` — ligne 1027
-- `lib/pdf/` — ligne 1043
-- `lib/reporting/` — ligne 1044
-- `lib/vgp/` — ligne 1045
-- `lib/techniciens/` — ligne 1098
-- `lib/theme/` — ligne 1103
-- `lib/i18n/` — ligne 1138
-- `lib/tri/` — ligne 1141
-- `components/` — ligne 1146
-- `prisma/` — ligne 1147
-- `tests/` — ligne 1148
-- `docs/` — ligne 1167
+- `app/` — ligne 64
+- `lib/` — ligne 69
+- `lib/db/` — ligne 70
+- `lib/auth/` — ligne 116
+- `lib/absences/` — ligne 151
+- `lib/clients/` — ligne 207
+- `lib/habilitations/` — ligne 210
+- `lib/contacts/` — ligne 218
+- `lib/demandes/` — ligne 228
+- `lib/agences/` — ligne 262
+- `lib/sites/` — ligne 277
+- `lib/machines/` — ligne 307
+- `lib/interventions/` — ligne 358
+- `lib/materiel/` — ligne 532
+- `lib/tarification/` — ligne 565
+- `lib/navigation/` — ligne 661
+- `lib/money/` — ligne 697
+- `lib/courriel/` — ligne 699
+- `lib/avertissements/` — ligne 727
+- `lib/compteurs/` — ligne 740
+- `lib/calendar/` — ligne 759
+- `lib/sync/` — ligne 785
+- `lib/documents/` — ligne 786
+- `lib/excel/` — ligne 812
+- `lib/imports/` — ligne 870
+- `lib/prestations/` — ligne 1022
+- `lib/portail/` — ligne 1041
+- `lib/pdf/` — ligne 1057
+- `lib/reporting/` — ligne 1058
+- `lib/vgp/` — ligne 1059
+- `lib/techniciens/` — ligne 1112
+- `lib/theme/` — ligne 1117
+- `lib/i18n/` — ligne 1152
+- `lib/tri/` — ligne 1155
+- `components/` — ligne 1160
+- `prisma/` — ligne 1161
+- `tests/` — ligne 1162
+- `docs/` — ligne 1181
 
 ---
 
@@ -723,6 +724,19 @@ lib/
               il ne porte NI mot de passe, NI identifiant de société, NI nom de
               base : un courriel se transfère et s'imprime, tout ce qu'il porte
               est durable et hors de notre portée
+  avertissements/ LA PLANIFICATION PRÉVIENT, PAS LA CRÉATION (AVERTISSEMENTS-1,
+              24/09/2026)
+              planification.ts : `destinataireClient` — le donneur d'ordre du
+              SITE, à défaut celui du CLIENT (`site_id` nul) ; départage
+              STABLE par nom puis id, jamais par l'ordre de lecture en base
+              LE COMPTE-RENDU VOYAGE PAR DES CLÉS, JAMAIS PAR DU TEXTE — même
+              raison que `clesDAvertissement` (RG-PLA-04) : la redirection
+              après un POST est une URL, donc un lien qui peut être forgé
+              (L1-02f, D50) ; le motif technique d'`envoyerCourriel` n'y
+              voyage jamais
+              se déclenche APRÈS que `deplacerIntervention` ou
+              `affecterTechnicien` a validé, jamais dedans : un courriel ne
+              doit ni retarder ni annuler une planification
   compteurs/  LES RELEVÉS, RÉORDONNÉS PAR LE TERRAIN (L2-03, question 3.12)
               regression.ts : l'ordre d'arrivée n'est PAS l'ordre des faits —
               un relevé fait à 8 h sans réseau arrive après un relevé de 10 h,

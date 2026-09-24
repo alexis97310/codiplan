@@ -86,6 +86,24 @@ export const STATUTS_INTERVENTION = [
 ] as const;
 export type StatutIntervention = (typeof STATUTS_INTERVENTION)[number];
 
+/**
+ * L'ÉTAT LU AVANT UNE ÉCRITURE QUI PEUT PLANIFIER OU DÉPLACER
+ * (AVERTISSEMENTS-1, 24/09/2026).
+ *
+ * `deplacerIntervention` et `affecterTechnicien` le portent dans leur
+ * `Resultat` accepté : c'est en le comparant à l'état ACTUEL, relu après coup,
+ * que `avertirApresPlanification` (`lib/avertissements/planification.ts`)
+ * décide qui prévenir. Défini ici, et non dans `depot.ts` ni dans le module
+ * d'avertissement, pour que ni l'un ni l'autre n'ait à importer le second —
+ * les deux lisent déjà ce fichier.
+ */
+export type EtatAvantPlanification = {
+  readonly statut: StatutIntervention;
+  readonly technicienId: string | null;
+  readonly datePlanifiee: Date | null;
+  readonly creneauDebut: Date | null;
+};
+
 /** Les trois modes de RG-TAR-05. */
 export const MODES_VALORISATION = [
   "forfait",

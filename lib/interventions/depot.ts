@@ -65,6 +65,7 @@ import {
   type Cloture,
   type Creation,
   type Deplacement,
+  type EtatAvantPlanification,
   type RechercheInterventions,
   type Reprise,
   type StatutIntervention,
@@ -137,6 +138,12 @@ export const CHAMPS_LIGNE = {
    * autorisée à rendre, sans qu'aucun filtre soit réécrit ici.
    */
   machines: { select: { machine_id: true } },
+  /**
+   * LE BADGE « NOUVEAU » CÔTÉ TECHNICIEN (AVERTISSEMENTS-1). `null` tant que
+   * le technicien affecté n'a pas ouvert sa fiche terrain — voir
+   * `marquerVuParTechnicien`, plus bas, et le commentaire de la colonne.
+   */
+  vue_technicien_le: true,
 } as const;
 
 export type LigneIntervention = Prisma.InterventionGetPayload<{
@@ -162,6 +169,15 @@ export type Resultat<T> =
        * laisse un écran décider lequel des deux il affiche.*
        */
       readonly avertissements?: readonly string[];
+      /**
+       * L'ÉTAT D'AVANT, POUR QUI DOIT SAVOIR CE QUI A CHANGÉ
+       * (AVERTISSEMENTS-1). Seuls `deplacerIntervention` et
+       * `affecterTechnicien` le posent : les autres écritures de ce dépôt
+       * n'ont personne à en prévenir. La route l'utilise APRÈS que cette
+       * transaction a validé, pour appeler `avertirApresPlanification` — un
+       * courriel ne doit ni retarder ni annuler l'écriture qu'il annonce.
+       */
+      readonly etatAvant?: EtatAvantPlanification;
     }
   | {
       readonly accepte: false;
@@ -494,6 +510,7 @@ export async function affecterTechnicien(
           date_planifiee: true,
           creneau_debut: true,
           duree_estimee_min: true,
+          technicien_id: true,
         },
       });
       if (ligne === null) {
@@ -566,13 +583,27 @@ export async function affecterTechnicien(
 
       const misAJour = await tx.intervention.update({
         where: { id: interventionId },
-        data: { technicien_id: technicienId },
+        data: {
+          technicien_id: technicienId,
+          // LE BADGE REPART À ZÉRO À CHAQUE (RÉ)AFFECTATION (AVERTISSEMENTS-1)
+          // — sauf s'il s'agit du MÊME technicien qu'avant : un rappel de
+          // l'action sur la même personne ne doit pas effacer une lecture
+          // déjà faite.
+          vue_technicien_le:
+            ligne.technicien_id === technicienId ? undefined : null,
+        },
         select: CHAMPS_LIGNE,
       });
       return {
         accepte: true,
         fiche: misAJour,
         avertissements: clesDAvertissement(verdict),
+        etatAvant: {
+          statut: ligne.statut as StatutIntervention,
+          technicienId: ligne.technicien_id,
+          datePlanifiee: ligne.date_planifiee,
+          creneauDebut: ligne.creneau_debut,
+        },
       };
     },
     client,
@@ -858,7 +889,15 @@ export async function deplacerIntervention(
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
         where: { id: saisie.intervention_id },
-        select: { id: true, statut: true, agence_id: true, site_id: true },
+        select: {
+          id: true,
+          statut: true,
+          agence_id: true,
+          site_id: true,
+          technicien_id: true,
+          date_planifiee: true,
+          creneau_debut: true,
+        },
       });
       if (ligne === null) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
@@ -944,6 +983,12 @@ export async function deplacerIntervention(
             saisie.date_planifiee,
             demande.creneauDebut,
           ),
+          // LE BADGE REPART À ZÉRO À CHAQUE (RÉ)AFFECTATION (AVERTISSEMENTS-1)
+          // — jamais sur un déplacement qui laisse le même technicien : un
+          // glissé qui ne fait que redater ne doit pas effacer une lecture
+          // déjà faite par la même personne.
+          vue_technicien_le:
+            ligne.technicien_id === saisie.technicien_id ? undefined : null,
         },
         select: CHAMPS_LIGNE,
       });
@@ -951,6 +996,12 @@ export async function deplacerIntervention(
         accepte: true,
         fiche: misAJour,
         avertissements: pose.avertissements,
+        etatAvant: {
+          statut: ligne.statut as StatutIntervention,
+          technicienId: ligne.technicien_id,
+          datePlanifiee: ligne.date_planifiee,
+          creneauDebut: ligne.creneau_debut,
+        },
       };
     },
     client,
@@ -1796,6 +1847,54 @@ export type ValorisationAffichee = {
   readonly totalHT: Montant | null;
   readonly motifTotalInconnu: string | null;
 };
+
+/**
+ * LE BADGE « NOUVEAU » S'EFFACE ICI, ET NULLE PART AILLEURS
+ * (AVERTISSEMENTS-1, 24/09/2026) — appelée par `/terrain/[id]` quand la fiche
+ * terrain s'ouvre, JAMAIS par la fiche back-office (`/interventions/[id]`) :
+ * *le badge dit ce que LE TECHNICIEN a vu, pas ce que l'ADV a regardé.*
+ *
+ * Le `where` porte `technicien_id: contexte.utilisateurId` en plus de
+ * l'identifiant : une défense en profondeur, redondante avec
+ * `restrictionParPersonne` qui a déjà filtré la fiche que l'appelant a pu
+ * lire — mais une fonction qui ÉCRIT ne doit pas dépendre d'un filtre posé
+ * ailleurs pour rester correcte si un jour elle est appelée d'un autre écran.
+ * `updateMany` plutôt que `update` : zéro ligne touchée n'est pas une erreur,
+ * ni pour une fiche déjà vue, ni pour un rôle qui n'est pas le technicien
+ * affecté.
+ */
+export async function marquerVuParTechnicien(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<void> {
+  await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ligne = await tx.intervention.findFirst({
+        where: {
+          id: interventionId,
+          technicien_id: contexte.utilisateurId,
+          vue_technicien_le: null,
+        },
+        select: { id: true, agence_id: true },
+      });
+      if (ligne === null) {
+        return;
+      }
+      // L'INSTANT VIENT DU FUSEAU DE L'AGENCE (L0-08), jamais de l'appareil :
+      // un `new Date()` ici daterait le badge de l'heure du TÉLÉPHONE du
+      // technicien, qui peut porter n'importe quel fuseau en déplacement.
+      await tx.intervention.update({
+        where: { id: ligne.id },
+        data: {
+          vue_technicien_le: await instantDeLAgence(tx, ligne.agence_id),
+        },
+      });
+    },
+    client,
+  );
+}
 
 /**
  * Une intervention, par son identifiant, AVEC SA DEVISE. `null` si hors

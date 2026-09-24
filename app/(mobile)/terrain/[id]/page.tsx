@@ -12,7 +12,10 @@ import { dateCivile } from "@/lib/calendar/fuseau";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { lireFicheIntervention } from "@/lib/interventions/depot";
+import {
+  lireFicheIntervention,
+  marquerVuParTechnicien,
+} from "@/lib/interventions/depot";
 import {
   compteurEnCours,
   mesureDeLIntervention,
@@ -109,6 +112,16 @@ export default async function PageInterventionTerrain({
   if (fiche === null) {
     notFound();
   }
+
+  // LE BADGE « NOUVEAU » S'EFFACE ICI (AVERTISSEMENTS-1) — cette page n'est
+  // atteignable, par construction (`perimetre.acces === "restreint"`
+  // ci-dessus), que par le technicien dont c'est le périmètre : la fiche
+  // vient d'ailleurs d'être lue SOUS `restrictionParPersonne`, donc c'est
+  // FORCÉMENT le technicien affecté qui la regarde. `marquerVuParTechnicien`
+  // re-vérifie quand même l'identité dans son propre `where` (défense en
+  // profondeur), et ne pose l'instant qu'une seule fois — `vue_technicien_le`
+  // reste celui de la PREMIÈRE ouverture.
+  await marquerVuParTechnicien(contexte, id);
 
   const mesure = await mesureDeLIntervention(contexte, id);
   const enCours = await compteurEnCours(contexte);

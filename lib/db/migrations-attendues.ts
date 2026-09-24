@@ -121,4 +121,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20260923120000_duree_application_import_mesure_1",
   "20260923130000_parcours_1_creer_puis_planifier",
   "20260923140000_contrat_site_1",
+  "20260924170000_avertissements_1",
 ];

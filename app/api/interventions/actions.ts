@@ -16,9 +16,27 @@ import type { ContexteSession } from "@/lib/auth/contexte";
  * à la page en forgeant un lien (L1-02f).
  */
 
-/** Redirige après un POST — 303, pour que le navigateur suive en GET. */
-export function versLaFiche(id: string, cle?: string): Response {
-  const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;
+/**
+ * Redirige après un POST — 303, pour que le navigateur suive en GET.
+ *
+ * `avertissements` porte des CLÉS de dictionnaire, jamais du texte — même
+ * discipline que `motif` (L1-02f) : sans ce filtre, une réponse forgée ferait
+ * écrire n'importe quoi à la page. C'est ce canal qu'AVERTISSEMENTS-1
+ * emploie pour dire si le courriel de planification est parti.
+ */
+export function versLaFiche(
+  id: string,
+  cle?: string,
+  avertissements?: readonly string[],
+): Response {
+  const parametres = new URLSearchParams();
+  if (cle !== undefined) {
+    parametres.set("motif", cle);
+  }
+  for (const avertissement of avertissements ?? []) {
+    parametres.append("avertissement", avertissement);
+  }
+  const suffixe = parametres.size === 0 ? "" : `?${parametres.toString()}`;
   return new Response(null, {
     status: 303,
     headers: { Location: `/interventions/${id}${suffixe}` },
