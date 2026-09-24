@@ -3094,10 +3094,10 @@ export const fr = {
   // créée et supprimée par l'épreuve, préfixée `AV1-` pour se distinguer du
   // semis (`docs/propositions/47-AVERTISSEMENTS-1`).
   "avertissements.e2e.client": "AV1 — Client avec donneur d'ordre",
-  "avertissements.e2e.site": "AV1 — Site avec donneur d'ordre",
+  "avertissements.e2e.site": "AV1 — Lieu avec donneur d'ordre",
   "avertissements.e2e.contact_donneur_ordre": "AV1 — Donneuse d'ordre",
   "avertissements.e2e.client_sans_contact": "AV1 — Client sans donneur d'ordre",
-  "avertissements.e2e.site_sans_contact": "AV1 — Site sans donneur d'ordre",
+  "avertissements.e2e.site_sans_contact": "AV1 — Lieu sans donneur d'ordre",
   "avertissements.e2e.panne": "AV1 — Panne signalée pour l'épreuve.",
 } as const;
 

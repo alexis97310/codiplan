@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
@@ -181,6 +182,23 @@ test.afterAll(async () => {
   }
 });
 
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/47-AVERTISSEMENTS-1/captures",
+);
+
+/** Les deux largeurs demandées par le ticket, mobile puis bureau. */
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  for (const largeur of [375, 1280]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    await page.screenshot({
+      path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+      fullPage: true,
+    });
+  }
+}
+
 function formulaire(page: Page, titre: string): Locator {
   return page.locator("form", {
     has: page.getByRole("heading", { name: titre }),
@@ -251,6 +269,7 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
   await expect(
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
   ).toBeVisible();
+  await capturer(page, "bandeau-parti");
 
   // TÉMOIN — le double a réellement intercepté DEUX envois, pas zéro : sans
   // lui, un bandeau « parti » qui ne partirait de rien passerait pour juste.
@@ -285,6 +304,8 @@ test("déplacer une intervention déjà planifiée : les deux courriels disent �
       '[data-avertissement="intervention.avertissement.courriel_technicien_parti"]',
     ),
   ).toBeVisible();
+
+  await capturer(page, "bandeau-deplacement");
 
   const captures = courrielsCaptures() as { text?: string }[];
   const nouvelles = captures.slice(avant);
@@ -331,6 +352,7 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
   await expect(
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
   ).toBeVisible();
+  await capturer(page, "bandeau-sans-destinataire");
 });
 
 test("le badge « Nouveau » se voit, puis s'efface à l'ouverture par le technicien affecté", async ({
@@ -347,6 +369,7 @@ test("le badge « Nouveau » se voit, puis s'efface à l'ouverture par le techni
   await page.goto("/terrain");
   const carte = page.locator(`a[href="/terrain/${INTERVENTION_BADGE}"]`);
   await expect(carte).toContainText(fr["terrain.badge_nouveau"]);
+  await capturer(page, "badge-nouveau-avant");
 
   await carte.click();
   await expect(page).toHaveURL(`/terrain/${INTERVENTION_BADGE}`);
@@ -354,4 +377,5 @@ test("le badge « Nouveau » se voit, puis s'efface à l'ouverture par le techni
   await page.goto("/terrain");
   const carteApres = page.locator(`a[href="/terrain/${INTERVENTION_BADGE}"]`);
   await expect(carteApres).not.toContainText(fr["terrain.badge_nouveau"]);
+  await capturer(page, "badge-nouveau-apres");
 });

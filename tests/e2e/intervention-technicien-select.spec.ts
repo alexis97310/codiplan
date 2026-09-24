@@ -271,7 +271,10 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
     .getByRole("button", { name: fr["intervention.action.planifier"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/([0-9a-f-]+)$/);
+  // `?avertissement=…` PEUT SUIVRE (AVERTISSEMENTS-1) : la planification
+  // prévient désormais le client et le technicien, et ce compte-rendu voyage
+  // par ce même paramètre — sans rapport avec ce que CE scénario éprouve.
+  await expect(page).toHaveURL(/\/interventions\/([0-9a-f-]+)(\?.*)?$/);
   const idIntervention = new URL(page.url()).pathname.split("/").pop();
 
   await page.context().clearCookies();
