@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -138,7 +139,15 @@ export default async function PageBonIntervention({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <ActionsBonIntervention />
+      <div className="flex items-center justify-between gap-4 print:hidden">
+        <Link
+          href={`/interventions/${id}`}
+          className="text-app-marque text-[13px] font-semibold"
+        >
+          {t("intervention.bon.retour_fiche")} {referenceAffichee(bon.ligne)}
+        </Link>
+        <ActionsBonIntervention />
+      </div>
 
       <div className="zone-impression-bon bg-app-surface border-app-bord flex flex-col gap-5 rounded-lg border p-6 text-[13px]">
         <header className="border-app-bord flex items-start justify-between gap-4 border-b pb-3">
@@ -195,7 +204,9 @@ export default async function PageBonIntervention({
           />
         </dl>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.segments.length === 0 ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">{segmentsSurSiteTitre()}</h2>
           {bon.segments.length === 0 ? (
             <p className="text-app-encre-faible text-[12px]">
@@ -254,12 +265,16 @@ export default async function PageBonIntervention({
           )}
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${!montants.montre ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.valorisation_titre")}
           </h2>
           {!montants.montre ? (
-            <p className="text-app-oxyde text-[12.5px]">{t(montants.cle)}</p>
+            <p className="text-app-oxyde text-[12.5px] print:hidden">
+              {t(montants.cle)}
+            </p>
           ) : bon.taux === null ? (
             <p className="text-app-oxyde text-[12.5px]">
               {t("intervention.bon.taux_absent")}
@@ -289,7 +304,9 @@ export default async function PageBonIntervention({
           )}
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.prestationsRealisees.length === 0 ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.prestations_titre")}
           </h2>
@@ -306,7 +323,9 @@ export default async function PageBonIntervention({
           )}
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.commentaireTechnicien === null ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.commentaire_titre")}
           </h2>
@@ -319,7 +338,9 @@ export default async function PageBonIntervention({
           </p>
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.suiteADonner === null ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.suite_titre")}
           </h2>
@@ -332,7 +353,9 @@ export default async function PageBonIntervention({
           </p>
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.photos.length === 0 ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.photos_titre")}
           </h2>
@@ -359,7 +382,9 @@ export default async function PageBonIntervention({
           )}
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section
+          className={`flex flex-col gap-2 ${bon.signature === null ? "print:hidden" : ""}`}
+        >
           <h2 className="text-[13px] font-bold">
             {t("intervention.bon.signature_titre")}
           </h2>

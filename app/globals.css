@@ -469,6 +469,10 @@
  * et rien ne dit que ce bon-ci échapperait à la même fragilité.
  */
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
   body.print-bon * {
     visibility: hidden;
   }
@@ -483,5 +487,11 @@
     width: 100%;
     border: 0;
     box-shadow: none;
+    font-size: 11pt;
+  }
+  body.print-bon .zone-impression-bon section,
+  body.print-bon .zone-impression-bon header,
+  body.print-bon .zone-impression-bon dl {
+    break-inside: avoid;
   }
 }

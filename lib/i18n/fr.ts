@@ -1455,6 +1455,7 @@ export const fr = {
   // nommés : prestations réalisées, commentaire, suite à donner, photos,
   // signature — chacun affichant l'ABSENCE plutôt qu'un bloc vide (§9).
   "intervention.bon.titre": "Bon d'intervention",
+  "intervention.bon.retour_fiche": "← Fiche",
   "intervention.bon.imprimer": "Imprimer le bon",
   "intervention.bon.refus.acces":
     "Votre rôle ne permet pas de consulter le bon de cette intervention.",
@@ -3423,6 +3424,13 @@ export const fr = {
   // 79-LIENS-3`).
   "liens3.e2e.client": "LIE3-Client de l'épreuve",
   "liens3.e2e.site": "LIE3-Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/bon-5.spec.ts)
+  //
+  // Même discipline que `bon4.e2e.*` : sa PROPRE scène, préfixée `BON5-`
+  // (`docs/propositions/83-BON-5`).
+  "bon5.e2e.client": "BON5 — Client de l'épreuve",
+  "bon5.e2e.site": "BON5 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
