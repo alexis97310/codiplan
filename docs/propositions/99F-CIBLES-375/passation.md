@@ -100,6 +100,18 @@ Les classes de cible tactile sont donc posées localement, à côté de
   fichiers e2e sont 21/35/49/63/91/92 — un prochain ticket doit choisir un
   autre multiple de 7.
 
+## `CI=1 pnpm verify:full`
+
+Quatre passages complets. Le premier (avant l'ajout des captures dans le
+spec) était vert : 294 passés, 3 sautés, 0 échec. Les deux suivants ont fait
+rougir `tests/e2e/glisser-deposer.spec.ts` — un test en échec, un autre
+« flaky » —, avec le même nom que la flakiness déjà documentée par
+`99D-ABSENCES-1/passation.md` et `99E-EVITEMENT/passation.md`, sans rapport
+avec ce lot : `glisser-deposer.spec.ts` lancé seul (`--workers=1`) est passé
+8/8. Un quatrième passage complet est repassé au vert : **294 passés, 3
+sautés, 0 échec**. Aucun fichier de ce lot n'est importé par le planning de
+glisser-déposer.
+
 ## Ce qui reste à faire
 
 - Les onglets Semaine/Jour et les boutons de déplacement de semaine/jour
