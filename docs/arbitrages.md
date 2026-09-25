@@ -4859,3 +4859,33 @@ Aucune route, aucune politique RLS, aucune ligne de `lib/auth/habilitations.ts` 
 > Le jour où une entrée aujourd'hui masquée (« Contrats », « Console éditeur ») livre son écran, `chemin` cesse d'être `null` dans `lib/navigation/entrees.ts` et elle réapparaît sans qu'aucune ligne de ce mécanisme ne bouge — rien à rouvrir ici. Le jour où l'exploitation veut qu'un rôle PRÉVISUALISE une destination qu'il ne peut pas utiliser (par exemple un `admin_societe` qui voudrait voir « Portail client » sans pouvoir l'ouvrir), cette page se rouvre plutôt que d'être contournée dans le code.
 
 **Règles amendées :** aucune règle du chapitre 10. La doctrine de `lib/navigation/entrees.ts` (« une entrée inerte n'est jamais absente ») est amendée pour le seul rendu de la barre du back-office, comme écrit ci-dessus.
+
+## D133 — « DEMANDES » ENTRE DANS LE MENU, MALGRÉ D121 : UN ÉCART NOMMÉ, PAS UNE DÉRIVE
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 25/09/2026 à 14h25, ticket 89-DEMANDES-3, en réponse à l'audit d'ergonomie du même jour (constats 3 et 6).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`lib/demandes/depot.ts` porte tout le cycle de vie d'une demande depuis le 14/09/2026 (L2-06), et `/demandes` (la file de qualification) existe depuis DEMANDES-1. Mesuré le 25/09 : cette page n'est atteignable que par un seul lien, « Demandes en attente de qualification » sur le tableau de bord — aucune entrée de la colonne latérale n'y mène, et rien ne s'y allume quand on l'a ouverte. L'audit d'ergonomie du 25/09 le nomme deux fois (constats 3 et 6) : un exploitant qui quitte le tableau de bord perd le chemin vers sa propre file de qualification.
+
+### LA DÉCISION
+
+**« Demandes » entre dans la colonne Exploitation, entre Planning et Interventions — malgré D121.** D121 fait foi, lettre pour lettre, sur les quatorze destinations de `docs/maquette/codiplan-maquette-complete.html`, et cette maquette ne dessine aucune entrée « Demandes ». Alexis a tranché en connaissance de cette contradiction : *« ajouter Demandes au menu malgré D121 »*. **C'est un ÉCART NOMMÉ, jamais une dérive silencieuse** — écrit à trois endroits qui doivent rester d'accord :
+
+1. `lib/navigation/entrees.ts` porte désormais `ECARTS_HORS_MAQUETTE`, une liste close symétrique de `ECARTS_MAQUETTE` (qui allait dans l'autre sens — une entrée de la maquette omise par le code). Elle nomme les entrées que le CODE ajoute sans que la MAQUETTE les dessine. Un seul élément aujourd'hui : `nav.demandes`.
+2. `tests/unit/navigation/entrees.test.ts` retire ces clés de `feuilles(ENTREES)` avant de confronter le reste à la maquette — la maquette reste mesurée à QUATORZE destinations, `feuilles(ENTREES)` en porte QUINZE, et l'écart entre les deux nombres est ce tableau, jamais un compte assoupli.
+3. Cette décision.
+
+**Visibilité par rôle** : « Demandes » ne porte aucune ligne dans `CAPACITE_REQUISE` — comme `/demandes` lui-même, qui n'est gardé aujourd'hui par aucune capacité (seule une session et une société sont exigées). Une destination absente de cette table reste visible à quiconque a un rôle, la même lecture que les autres entrées de la barre (D132).
+
+**En prime, `/demandes` porte désormais un accès direct à la création** : « Créer une intervention » en en-tête, même style et même position qu'au registre (`/interventions`), gardé par `creer_demande` — la même capacité qui gouverne déjà ce lien sur les fiches client et site.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune règle du chapitre 10, aucune ligne de `lib/auth/habilitations.ts`. `docs/maquette/codiplan-maquette-complete.html` n'est pas modifiée et reste la source des quatorze destinations qu'elle dessine — D121 n'est pas remplacée, elle est amendée d'un écart nommé, comme D132 l'avait déjà été pour le rendu par capacité.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une maquette redessinée porte une entrée « Demandes » à cette même place, `ECARTS_HORS_MAQUETTE` se vide et le gardien de `entrees.test.ts` retrouve sa forme d'avant D133 — rien à trancher, seulement à constater. Le jour où l'exploitation veut retirer cette entrée, c'est cette décision qui se rouvre, jamais un simple retrait de ligne dans `entrees.ts`.
+
+**Règles amendées :** aucune règle du chapitre 10. D121 est amendée d'un écart nommé, comme décrit ci-dessus.

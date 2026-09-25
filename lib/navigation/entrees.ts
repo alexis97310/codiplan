@@ -226,6 +226,40 @@ export const ECARTS_MAQUETTE: ReadonlyArray<{
 }> = [];
 
 /**
+ * LES DESTINATIONS AJOUTÉES AU MENU SANS L'ÊTRE À LA MAQUETTE — liste close,
+ * dans L'AUTRE SENS que `ECARTS_MAQUETTE` : celle-ci porte ce que la maquette
+ * dessine et que le code omet ; celle-là porte ce que le code ajoute sans que
+ * la maquette le dessine.
+ *
+ * **Un seul élément aujourd'hui : ÉCART NOMMÉ D-MENU-DEMANDES (D133,
+ * 25/09/2026).** `docs/maquette/codiplan-maquette-complete.html` ne dessine
+ * aucune entrée « Demandes » — D121 fait pourtant foi sur les quatorze
+ * destinations de sa colonne, lettre pour lettre. Alexis a tranché malgré
+ * cela, le 25/09/2026 à 14h25 (ticket 89-DEMANDES-3) : *« ajouter Demandes au
+ * menu malgré D121 »*. Le motif est l'audit d'ergonomie du 25/09 (constats 3
+ * et 6) — `/demandes` n'était atteignable que par un lien du tableau de bord,
+ * jamais depuis le menu.
+ *
+ * **Ce n'est jamais une dérive silencieuse.** `entrees.test.ts` retire les
+ * clés de cette liste avant de confronter `feuilles(ENTREES)` à la maquette
+ * — la maquette reste à quatorze, le code passe à quinze, et l'écart entre
+ * les deux nombres est CE tableau, jamais un chiffre changé sans témoin.
+ */
+export const ECARTS_HORS_MAQUETTE: ReadonlyArray<{
+  readonly cle: CleTraduction;
+  readonly motif: string;
+}> = [
+  {
+    cle: "nav.demandes",
+    motif:
+      "ÉCART NOMMÉ D-MENU-DEMANDES (D133, docs/arbitrages.md) — décidé par " +
+      "Alexis le 25/09/2026 : la maquette n'a pas d'entrée Demandes ; " +
+      "l'audit d'ergonomie du 25/09 (constats 3, 6) montre que la page est " +
+      "introuvable sans elle.",
+  },
+];
+
+/**
  * LES QUATORZE DESTINATIONS, SUR TROIS DOMAINES FIXES (D121, 17/09/2026).
  *
  * *Motif de la forme : `docs/maquette/codiplan-maquette-complete.html` est la
@@ -246,15 +280,22 @@ export const ECARTS_MAQUETTE: ReadonlyArray<{
  *   le chantier NAV-1, 20/09/2026 : `/terrain`), et les deux entrées encore
  *   inertes — Contrats, Console éditeur.
  *
+ * **Quinze depuis D133, pas quatorze.** « Demandes », entre Planning et
+ * Interventions, est l'unique ÉCART NOMMÉ à la maquette — voir
+ * `ECARTS_HORS_MAQUETTE` ci-dessus. La maquette elle-même reste à quatorze ;
+ * c'est `feuilles(ENTREES)` qui en porte une de plus, et le gardien la
+ * retire par son nom avant de comparer, jamais en relâchant le compte.
+ *
  * **Quatre destinations nouvelles** — Clients, Sites, VGP, Absences —
  * n'avaient encore aucune porte dans la barre : ce sont des écrans déjà
  * vivants (voir la table mesurée de D121, « CE QUE LES QUATRE ÉCARTS
  * DEVIENNENT »), atteints jusqu'ici par rebond ou pas du tout.
  *
  * **Liste close** : `tests/unit/navigation/entrees.test.ts` confronte les
- * QUATORZE destinations, une fois les groupes ouverts (`feuilles`), et les
- * TROIS titres de domaine, à `docs/maquette/codiplan-maquette-complete.html`
- * — la LISTE et l'ORDRE, lettre pour lettre (D121).
+ * QUATORZE destinations DE LA MAQUETTE, une fois `ECARTS_HORS_MAQUETTE`
+ * retirée de `feuilles(ENTREES)`, et les TROIS titres de domaine, à
+ * `docs/maquette/codiplan-maquette-complete.html` — la LISTE et l'ORDRE,
+ * lettre pour lettre (D121, amendé par D133 pour le seul écart nommé).
  */
 export const ENTREES: readonly EntreeDeBarre[] = [
   {
@@ -262,6 +303,12 @@ export const ENTREES: readonly EntreeDeBarre[] = [
     enfants: [
       { cle: "nav.tableau_de_bord", chemin: "/tableau-de-bord" },
       { cle: "nav.planning", chemin: "/planning" },
+      // ÉCART NOMMÉ D-MENU-DEMANDES (D133, 25/09/2026, ticket
+      // 89-DEMANDES-3) — voir ECARTS_HORS_MAQUETTE ci-dessus pour le motif
+      // complet. La maquette ne dessine pas cette entrée ; elle est visible
+      // à quiconque a un rôle, comme `/demandes` lui-même aujourd'hui (aucune
+      // ligne dans CAPACITE_REQUISE, plus bas).
+      { cle: "nav.demandes", chemin: "/demandes" },
       { cle: "nav.interventions", chemin: "/interventions" },
       { cle: "nav.absences", chemin: "/absences" },
     ],
