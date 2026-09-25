@@ -208,6 +208,9 @@ test("un identifiant de famille inconnu est ignoré en silence : liste complète
   await expect(
     page.getByRole("link", { name: fr["materiel.tout_afficher"] }),
   ).toHaveCount(0);
-  const html = await page.content();
-  expect(html).not.toContain(idInconnu);
+  // `page.content()` porterait aussi le flux d'hydratation de Next.js, qui
+  // sérialise l'URL de la requête — un artefact technique, jamais un texte
+  // qu'une personne lit. `innerText` ne rend que ce qui s'affiche.
+  const texteVisible = await page.locator("body").innerText();
+  expect(texteVisible).not.toContain(idInconnu);
 });
