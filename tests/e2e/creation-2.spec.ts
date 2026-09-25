@@ -167,7 +167,9 @@ test("Machine et Contact restent désactivés tant qu'aucun lieu n'est choisi, p
   // ── AVANT LE CHOIX DU LIEU (constat 7) ──────────────────────────────────
   await expect(champSite).toContainText(libelleChampObligatoire(mot("site")));
   await expect(champSite).toContainText(aideRechercheSite());
-  await expect(page.locator("form")).toContainText(agenceDeduiteDuSite());
+  await expect(
+    page.locator('form[action="/api/interventions/creer"]'),
+  ).toContainText(agenceDeduiteDuSite());
 
   await expect(selectMachine).toBeDisabled();
   await expect(selectMachine.locator("option")).toHaveText([
