@@ -165,8 +165,8 @@ async function idDeLaPremiereFiche(page: Page): Promise<string> {
     .locator('a[href^="/interventions/"]')
     .getAttribute("href");
   expect(href).not.toBeNull();
-  const id = new URL(href as string, "http://localhost")
-    .pathname.split("/")
+  const id = new URL(href as string, "http://localhost").pathname
+    .split("/")
     .pop();
   expect(id).not.toBeUndefined();
   return id as string;
