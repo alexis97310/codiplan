@@ -123,9 +123,29 @@ test("vue jour : la page ne déborde pas horizontalement à 1280px", async ({
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
 });
 
-/* ── 2. LA COLONNE « TECHNICIEN » RESTE VISIBLE AU DÉFILEMENT ───────────── */
+/* ── 2. LA COLONNE « TECHNICIEN » RESTE VISIBLE, SANS DÉFILEMENT (82-PLANNING-6) ── */
 
-test("la colonne « Technicien » et les commandes de semaine restent visibles quand la grille défile horizontalement", async ({
+/**
+ * CE TEST A CHANGÉ DE NATURE LE 25/09/2026 (82-PLANNING-6, constats 10/11).
+ *
+ * Il forçait un défilement RÉEL du conteneur (`scrollLeft = scrollWidth`,
+ * avec un témoin `scrollReel > 0` qui aurait fait échouer l'épreuve si le
+ * conteneur n'avait rien à défiler) pour prouver que la colonne « Technicien »
+ * restait fixe PENDANT ce défilement — le tableau portait alors
+ * `min-w-[920px]` dans un conteneur plus étroit (662 px à 1280, mesuré), donc
+ * défilait forcément. 82-PLANNING-6 retire ce `min-w` : la grille ne déborde
+ * plus à cette largeur, et le témoin ne peut plus être vrai — il n'y a plus
+ * rien à défiler pour que `scrollLeft` y prenne appui. La classe `sticky`
+ * reste posée dans `page.tsx` comme un plancher de sécurité pour une largeur
+ * plus étroite que celle-ci, mais rien ici ne l'exerce plus.
+ *
+ * L'épreuve vérifie désormais directement ce que 82-PLANNING-6 garantit : le
+ * conteneur ne déborde plus, et la colonne « Technicien » est visible sans
+ * qu'aucun geste de défilement ne soit nécessaire pour l'obtenir. Voir
+ * `tests/e2e/planning-6.spec.ts` pour l'épreuve dédiée à ce lot (le jour
+ * courant, le bouton « Aujourd'hui »).
+ */
+test("la colonne « Technicien » et les commandes de semaine restent visibles, sans qu'un défilement horizontal soit nécessaire", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -135,28 +155,16 @@ test("la colonne « Technicien » et les commandes de semaine restent visibles q
     hasText: fr["planning.colonne_technicien"],
   });
   await expect(entete).toBeVisible();
-  const avantScroll = await entete.evaluate(
-    (e) => e.getBoundingClientRect().left,
-  );
 
   const conteneur = page.locator(".overflow-x-auto").first();
-  const scrollReel = await conteneur.evaluate((element) => {
-    element.scrollLeft = element.scrollWidth;
-    return element.scrollLeft;
-  });
-  // Témoin : sans un défilement RÉEL du conteneur, « la position ne bouge
-  // pas » serait vrai pour n'importe quelle colonne, sticky ou non.
-  expect(scrollReel).toBeGreaterThan(0);
+  const { scrollWidth, clientWidth } = await conteneur.evaluate((element) => ({
+    scrollWidth: element.scrollWidth,
+    clientWidth: element.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
 
-  await expect(entete).toBeVisible();
-  const apresScroll = await entete.evaluate(
-    (e) => e.getBoundingClientRect().left,
-  );
-  // Sticky : la position de la colonne ne bouge PAS pendant le défilement.
-  expect(apresScroll).toBe(avantScroll);
-
-  // Les commandes de semaine — hors du conteneur qui défile — restent là où
-  // elles étaient.
+  // Les commandes de semaine — hors du conteneur — restent là où elles
+  // étaient.
   await expect(
     page.getByRole("link", { name: fr["planning.semaine_avant"] }),
   ).toBeVisible();

@@ -2833,6 +2833,9 @@ export const fr = {
   "planning.au": "au",
   "planning.semaine_avant": "← Semaine précédente",
   "planning.semaine_apres": "Semaine suivante →",
+  // Entre les deux — ABSENT sur la semaine courante (82-PLANNING-6,
+  // 25/09/2026, constat 10/11) : voir `Deplacement` dans `page.tsx`.
+  "planning.aujourdhui": "Aujourd’hui",
   "planning.semaine_vide": "Aucune intervention posée sur cette semaine.",
   "planning.file_vide": "Rien n'attend d'être posé.",
   // ── LOT A2 (D125, D128) — LA BANNIÈRE ABSENTE ET LE BADGE DE LA FILE ────

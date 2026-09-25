@@ -264,6 +264,11 @@ export default async function PagePlanning({
     jourDemande(parametres.semaine, cadre.fuseau, true),
   ).slice(0, 6);
   const jourAffiche = jourDemande(parametres.jour, cadre.fuseau, false);
+  // LE JOUR COURANT, UNE SEULE FOIS (82-PLANNING-6, 25/09/2026) — dans le
+  // fuseau de la SOCIÉTÉ, comme `jourDemande` ci-dessus quand aucun paramètre
+  // ne fixe le jour : deux lectures d'un même critère divergent en silence
+  // (§9, 01/09), et il ne doit exister qu'un seul « aujourd'hui » sur l'écran.
+  const aujourdhui = maintenant(cadre.fuseau).local;
 
   // ── LA FENÊTRE EST EN JOURS, ET SA BORNE HAUTE EST EXCLUSIVE ─────────────
   //
@@ -408,7 +413,12 @@ export default async function PagePlanning({
       actions={
         <>
           <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
-          <Deplacement vue={vue} jour={jourAffiche} semaine={jours[0]} />
+          <Deplacement
+            vue={vue}
+            jour={jourAffiche}
+            semaine={jours[0]}
+            aujourdhui={aujourdhui}
+          />
           <span data-maquette-bloc="bouton-primaire-intervention">
             <LienPrimaire href="/interventions/nouvelle">
               {t("planning.creer")}
@@ -623,6 +633,7 @@ export default async function PagePlanning({
                   schemaFuseau.parse(fuseauDe.get(agenceId) ?? cadre.fuseau)
                 }
                 donneesMateriel={donneesMateriel}
+                aujourdhui={aujourdhui}
               />
             )}
           </div>
@@ -705,11 +716,19 @@ function VueSemaine({
   chargeDe,
   fuseauPour,
   donneesMateriel,
+  aujourdhui,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  /**
+   * LE JOUR COURANT (82-PLANNING-6, 25/09/2026) — dans le fuseau de la
+   * société, calculé UNE FOIS par la page (`aujourdhui`, `page.tsx`) : la
+   * colonne du jour ne lit jamais l'heure de l'appareil (piège UTC connu,
+   * L0-08).
+   */
+  readonly aujourdhui: JourLocal;
   /**
    * LA CHARGE DE CHAQUE PERSONNE, par identifiant (D111).
    *
@@ -742,11 +761,28 @@ function VueSemaine({
         elle n'a été pensée que pour un poste de travail ; en dessous de `lg`,
         c'est donc `ListeSemaine`, une liste par personne, qui prend le relais.
       */}
-      <div className="hidden overflow-x-auto lg:block">
+      <div
+        data-conteneur-tableau-semaine
+        className="hidden overflow-x-auto lg:block"
+      >
         <table
           data-maquette-bloc="tableau-charge-semaine"
-          className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-[13px]"
+          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
         >
+          {/*
+            COLONNES FLUIDES, ET AUCUNE AUTRE (82-PLANNING-6, 25/09/2026,
+            constats 10/11) — `min-w-[920px]` obligeait ce tableau à un
+            débordement INTERNE dès que son conteneur passait sous 920 px,
+            mesuré à 662 px à 1280 et 822 px à 1440 (menu latéral ouvert) :
+            vendredi et samedi restaient hors cadre aux deux largeurs, sans
+            qu'aucun repère de défilement ne le dise. Retirer ce seul
+            `min-w` suffit : la colonne « Technicien » garde exactement les
+            170 px de la maquette (D95, `LARGEUR_COLONNE_TECHNICIEN_PX`,
+            inchangés), et `table-fixed` partage TOUJOURS le reste à parts
+            égales entre les six colonnes de jour, quelle que soit la largeur
+            réelle du conteneur — y compris la largeur gagnée à 1440 px, qui
+            ne servait à rien tant que le tableau restait figé à 920 px.
+          */}
           <colgroup>
             {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
                 écrite dans un écran est une largeur par écran (D95). */}
@@ -759,21 +795,33 @@ function VueSemaine({
             <tr>
               {/*
                 STICKY (PLANNING-2) : la colonne « Technicien » reste visible
-                quand la grille défile horizontalement sous son propre
-                `overflow-x-auto` — un `z-index` au-dessus des cellules de
-                jour, qui la recouvriraient sinon en défilant SOUS elle.
+                si la grille devait défiler horizontalement — un plancher de
+                sécurité qui ne s'active plus aux largeurs de ce lot, mais
+                qu'une largeur plus étroite que celle-ci pourrait encore
+                exercer.
               */}
               <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase">
                 {t("planning.colonne_technicien")}
               </th>
-              {jours.map((jour) => (
-                <th
-                  key={cleJour(jour)}
-                  className="bg-app-surface-creuse border-app-bord text-app-encre-faible border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase"
-                >
-                  {enTeteDeJour(jour)}
-                </th>
-              ))}
+              {jours.map((jour) => {
+                const estAuj = estAujourdHui(jour, aujourdhui);
+                return (
+                  <th
+                    key={cleJour(jour)}
+                    // LE JOUR COURANT (82-PLANNING-6) — `data-aujourdhui`
+                    // n'existe que sur SA colonne : jamais une valeur, un
+                    // repère.
+                    data-aujourdhui={estAuj ? "" : undefined}
+                    className={`border-app-bord border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase ${
+                      estAuj
+                        ? "bg-app-marque/10 text-app-marque"
+                        : "bg-app-surface-creuse text-app-encre-faible"
+                    }`}
+                  >
+                    {enTeteDeJour(jour)}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -819,7 +867,7 @@ function VueSemaine({
                       // déplace des jours, jamais des durées.
                       pasMinutes: 0,
                     }}
-                    className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule)}`}
+                    className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule, estAujourdHui(cellule.jour, aujourdhui))}`}
                     style={{ height: "78px" }}
                   >
                     {/*
@@ -1350,17 +1398,31 @@ function classeDeCellule(
 
 /**
  * L'aplat d'une CASE de la vue semaine. **Le blocage d'agenda prime sur la
- * trame du jour fermé** : sur un jour où la personne n'est pas là, que
- * l'agence ouvre ou non ne dit plus rien à qui cherche où poser. La hachure
- * garde son sens unique — « ce jour n'est pas ouvert » — là où elle reste.
+ * trame du jour fermé**, qui prime elle-même sur la teinte du jour courant
+ * (82-PLANNING-6) : sur un jour où la personne n'est pas là, ou que l'agence
+ * n'ouvre pas, savoir que c'est AUJOURD'HUI ne dit plus rien à qui cherche où
+ * poser. La hachure garde son sens unique — « ce jour n'est pas ouvert » — là
+ * où elle reste.
  */
-function classeDeCase(cellule: {
-  readonly ouverte: boolean | null;
-  readonly bloquee: boolean;
-}): string {
+function classeDeCase(
+  cellule: {
+    readonly ouverte: boolean | null;
+    readonly bloquee: boolean;
+  },
+  estAujourdhui: boolean,
+): string {
   if (cellule.bloquee) return "bg-app-violet-fond";
   if (cellule.ouverte === false) return "trame-fermee";
-  return "";
+  return estAujourdhui ? "bg-app-marque/5" : "";
+}
+
+/**
+ * LE JOUR COURANT — comparé par sa CLÉ (`cleJour`), jamais par ses champs un à
+ * un : c'est la même égalité que partout ailleurs dans cet écran (grille,
+ * cases, URL de navigation).
+ */
+function estAujourdHui(jour: JourLocal, aujourdhui: JourLocal): boolean {
+  return cleJour(jour) === cleJour(aujourdhui);
 }
 
 /**
@@ -1460,7 +1522,6 @@ function Onglets({
       <Link
         href={`/planning?vue=jour&jour=${cleJour(jour)}`}
         aria-current={vue === "jour" ? "page" : undefined}
-        aria-label={t("planning.vue_jour")}
         className={
           vue === "jour"
             ? `${classes} bg-app-marque text-app-marque-encre`
@@ -1468,11 +1529,16 @@ function Onglets({
         }
       >
         {/*
-          LA MAQUETTE NOMME L'ONGLET JOUR PAR LE JOUR RÉEL (« Mercredi »),
-          jamais par le mot générique « Jour » (audit du 19/09, coût Faible :
-          « réutiliser `libelleJour` déjà disponible dans le fichier »).
+          « JOUR », PAS LE NOM DU JOUR (audit du 25/09/2026, constat 13,
+          82-PLANNING-6) — REVIENT sur le choix du 19/09 (« réutiliser
+          `libelleJour` ») : cet onglet est une BASCULE entre deux VUES, comme
+          son voisin « Semaine », qui ne nomme pas non plus la semaine
+          affichée. Le nom du jour réel se lit déjà dans le sous-titre de la
+          page (`libelleJour`, l.406) une fois la vue jour ouverte ; le
+          répéter ici faisait de l'onglet un second sous-titre, jamais choisi
+          comme tel.
         */}
-        <span className="capitalize">{nomDuJourAffiche(jour)}</span>
+        {t("planning.vue_jour")}
       </Link>
     </div>
   );
@@ -1482,10 +1548,17 @@ function Deplacement({
   vue,
   jour,
   semaine,
+  aujourdhui,
 }: {
   readonly vue: "semaine" | "jour";
   readonly jour: JourLocal;
   readonly semaine: JourLocal;
+  /**
+   * LE JOUR COURANT — n'existe QUE pour poser le bouton « Aujourd'hui » de la
+   * vue SEMAINE (82-PLANNING-6, 25/09/2026, constat 10/11). La vue jour n'y
+   * touche pas : elle est hors territoire de ce lot.
+   */
+  readonly aujourdhui: JourLocal;
 }) {
   const pas = vue === "jour" ? 1 : 7;
   const depart = vue === "jour" ? jour : semaine;
@@ -1497,11 +1570,25 @@ function Deplacement({
   };
   const classes =
     "border-app-bord text-app-encre-faible rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+  // ABSENT SUR LA SEMAINE COURANTE (choix du ticket, plutôt que désactivé) :
+  // même discipline que les avertissements de l'écran, qui ne s'affichent que
+  // lorsqu'il y a quelque chose à dire — un bouton qui ramènerait là où l'on
+  // est déjà n'a rien à faire.
+  const semaineCourante =
+    cleJour(semaine) === cleJour(lundiDeLaSemaine(aujourdhui));
   return (
     <div className="flex items-center gap-2">
       <Link href={lien(-pas)} className={classes}>
         {t(vue === "jour" ? "planning.jour_avant" : "planning.semaine_avant")}
       </Link>
+      {vue === "semaine" && !semaineCourante ? (
+        <Link
+          href={`/planning?vue=semaine&semaine=${cleJour(lundiDeLaSemaine(aujourdhui))}`}
+          className={classes}
+        >
+          {t("planning.aujourdhui")}
+        </Link>
+      ) : null}
       <Link href={lien(pas)} className={classes}>
         {t(vue === "jour" ? "planning.jour_apres" : "planning.semaine_apres")}
       </Link>
@@ -1569,12 +1656,6 @@ function libelleJour(jour: JourLocal): string {
   const cle = `jour.${jourSemaineIso(jour)}`;
   const nom = estCleTraduction(cle) ? t(cle) : "";
   return `${nom} ${jour.jour}/${String(jour.mois).padStart(2, "0")}/${jour.annee}`.trim();
-}
-
-/** Le seul nom du jour, sans la date — l'onglet « Jour » de la bascule. */
-function nomDuJourAffiche(jour: JourLocal): string {
-  const cle = `jour.${jourSemaineIso(jour)}`;
-  return estCleTraduction(cle) ? t(cle) : t("planning.vue_jour");
 }
 
 /** Le titre de la bannière — le mot « agence » vient de `motDansUnePhrase` (§3). */
