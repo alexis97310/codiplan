@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
+import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
@@ -783,6 +784,20 @@ export default async function PageIntervention({
                     verdict={peutAnnuler(statut)}
                     action={`/api/interventions/${ligne.id}/annuler`}
                     note={t("intervention.annulation.obligatoire")}
+                    bouton={
+                      <BoutonAnnuler
+                        libelle={t("intervention.action.annuler")}
+                        confirmationAvant={t(
+                          "intervention.annulation.confirmation_avant",
+                        )}
+                        reference={referenceAffichee(ligne)}
+                        confirmationApres={t(
+                          "intervention.annulation.confirmation_apres",
+                        )}
+                        boutonConfirmer={t("intervention.annulation.confirmer")}
+                        boutonRevenir={t("intervention.annulation.revenir")}
+                      />
+                    }
                   >
                     <Saisie
                       nom="motif"
@@ -1025,6 +1040,20 @@ export default async function PageIntervention({
                     verdict={peutAnnuler(statut)}
                     action={`/api/interventions/${ligne.id}/annuler`}
                     note={t("intervention.annulation.obligatoire")}
+                    bouton={
+                      <BoutonAnnuler
+                        libelle={t("intervention.action.annuler")}
+                        confirmationAvant={t(
+                          "intervention.annulation.confirmation_avant",
+                        )}
+                        reference={referenceAffichee(ligne)}
+                        confirmationApres={t(
+                          "intervention.annulation.confirmation_apres",
+                        )}
+                        boutonConfirmer={t("intervention.annulation.confirmer")}
+                        boutonRevenir={t("intervention.annulation.revenir")}
+                      />
+                    }
                   >
                     <Saisie
                       nom="motif"
@@ -1741,6 +1770,7 @@ function Action({
   verdict,
   action,
   note,
+  bouton,
   children,
 }: {
   titre: string;
@@ -1753,6 +1783,14 @@ function Action({
    * champ n'est pas une action incomplète.*
    */
   children?: React.ReactNode;
+  /**
+   * LE BOUTON DE REMPLACEMENT (84-FICHE-ANNULER) — `annuler` est la seule
+   * action dont le bouton n'est ni « outline » ni soumis d'un clic : fournir
+   * `bouton` remplace SEULEMENT son rendu, jamais le `<form>` qui le porte
+   * (même route, même méthode, même filet serveur). Les autres actions ne
+   * passent pas cette prop et gardent le bouton par défaut ci-dessous.
+   */
+  bouton?: React.ReactNode;
 }) {
   if (verdict.refuse) {
     const cle = verdict.cle;
@@ -1776,9 +1814,11 @@ function Action({
         <p className="text-app-encre-faible text-[11.5px]">{note}</p>
       )}
       {children}
-      <Button type="submit" variant="outline" size="sm">
-        {titre}
-      </Button>
+      {bouton ?? (
+        <Button type="submit" variant="outline" size="sm">
+          {titre}
+        </Button>
+      )}
     </form>
   );
 }

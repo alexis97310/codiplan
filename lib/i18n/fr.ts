@@ -1320,6 +1320,20 @@ export const fr = {
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":
     "Le motif est obligatoire. Une annulation n'efface rien : elle se justifie.",
+  // ── LA CONFIRMATION AVANT ANNULATION (84-FICHE-ANNULER) ──────────────────
+  // Le message se compose en trois morceaux — `{avant} {reference} {apres}` —
+  // parce que la référence n'est pas une chaîne à traduire (elle vient de
+  // `referenceAffichee`, une donnée), la même forme que `intervention.titre`
+  // suivi de la référence dans le `<h1>` de cette fiche.
+  "intervention.annulation.confirmation_avant": "Annuler",
+  "intervention.annulation.confirmation_apres":
+    "? L'intervention restera tracée comme annulée.",
+  "intervention.annulation.confirmer": "Confirmer l'annulation",
+  // « Revenir », jamais « Annuler » : ce bouton ferme la confirmation d'UNE
+  // annulation, réutiliser le même mot que l'action elle-même y sèmerait la
+  // confusion (contrairement à `taux_horaire.confirmer.annuler`, où aucune
+  // annulation n'est en jeu).
+  "intervention.annulation.revenir": "Revenir",
 
   // ── LES REFUS À LA POSE (R2-19) — chacun NOMME son motif ────────────────
   //
@@ -3431,6 +3445,14 @@ export const fr = {
   // (`docs/propositions/83-BON-5`).
   "bon5.e2e.client": "BON5 — Client de l'épreuve",
   "bon5.e2e.site": "BON5 — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-annuler.spec.ts)
+  //
+  // Même discipline que `bon5.e2e.*` : sa PROPRE scène, préfixée `ANN1-`
+  // (`docs/propositions/84-FICHE-ANNULER`).
+  "annuler1.e2e.client": "ANN1 — Client de l'épreuve",
+  "annuler1.e2e.site": "ANN1 — Lieu de l'épreuve",
+  "annuler1.e2e.motif": "ANN1 — motif de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
