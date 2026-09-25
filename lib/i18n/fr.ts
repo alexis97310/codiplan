@@ -3399,6 +3399,15 @@ export const fr = {
   "bon4.e2e.site": "BON4 — Lieu de l'épreuve",
   "bon4.e2e.signataire_nom": "BON4 Jean Dupont",
   "bon4.e2e.signataire_qualite": "Chef d'atelier",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/liens-3.spec.ts)
+  //
+  // Sa PROPRE scène, préfixée `LIE3-`, COLLÉE sans espace (comme
+  // `liens2.e2e.*`) : `q=LIE3-` doit rester une sous-chaîne littérale de
+  // `raison_sociale`, que `filtreDuParc` compare (`docs/propositions/
+  // 79-LIENS-3`).
+  "liens3.e2e.client": "LIE3-Client de l'épreuve",
+  "liens3.e2e.site": "LIE3-Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
