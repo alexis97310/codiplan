@@ -3496,6 +3496,18 @@ export const fr = {
   "annuler1.e2e.client": "ANN1 — Client de l'épreuve",
   "annuler1.e2e.site": "ANN1 — Lieu de l'épreuve",
   "annuler1.e2e.motif": "ANN1 — motif de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/parc-sites.spec.ts)
+  //
+  // Même discipline que `annuler1.e2e.*` : sa PROPRE scène, préfixée `PSI-`,
+  // créée et supprimée par l'épreuve (`docs/propositions/85-PARC-SITES`).
+  // `client_a` et `client_b` sont deux clients DISTINCTS ; `site` est le
+  // libellé PARTAGÉ des deux sites de l'épreuve — c'est le doublon qui prouve
+  // que le filtre du parc et les cartes de `/sites` se distinguent par le
+  // client, jamais par le seul libellé du site.
+  "parcsites.e2e.client_a": "PSI-A — Client de l'épreuve",
+  "parcsites.e2e.client_b": "PSI-B — Client de l'épreuve",
+  "parcsites.e2e.site": "PSI-Noumea — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

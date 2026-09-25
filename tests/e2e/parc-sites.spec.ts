@@ -35,9 +35,11 @@ import { ouvrirUneSession } from "./setup/session";
 test.describe.configure({ mode: "serial" });
 
 const PREFIXE = "PSI-";
-const CLIENT_A = `${PREFIXE}A`;
-const CLIENT_B = `${PREFIXE}B`;
-const SITE_LIBELLE = `${PREFIXE}Noumea`;
+const SCENE_PSI = {
+  clientA: fr["parcsites.e2e.client_a"],
+  clientB: fr["parcsites.e2e.client_b"],
+  site: fr["parcsites.e2e.site"],
+} as const;
 
 let admin: PrismaClient;
 let clientAId: string;
@@ -66,7 +68,7 @@ test.beforeAll(async () => {
       data: {
         id: randomUUID(),
         societe_id: societe.id,
-        raison_sociale: CLIENT_A,
+        raison_sociale: SCENE_PSI.clientA,
         actif: true,
       },
     }),
@@ -74,7 +76,7 @@ test.beforeAll(async () => {
       data: {
         id: randomUUID(),
         societe_id: societe.id,
-        raison_sociale: CLIENT_B,
+        raison_sociale: SCENE_PSI.clientB,
         actif: true,
       },
     }),
@@ -89,7 +91,7 @@ test.beforeAll(async () => {
         societe_id: societe.id,
         client_id: clientAId,
         agence_id: agence.id,
-        libelle: SITE_LIBELLE,
+        libelle: SCENE_PSI.site,
       },
     }),
     admin.site.create({
@@ -98,7 +100,7 @@ test.beforeAll(async () => {
         societe_id: societe.id,
         client_id: clientBId,
         agence_id: agence.id,
-        libelle: SITE_LIBELLE,
+        libelle: SCENE_PSI.site,
       },
     }),
   ]);
@@ -179,39 +181,43 @@ test("le filtre Site du parc distingue deux sites au même libellé par leur cli
     .locator('select[name="site"] option')
     .allTextContents();
   const separateur = fr["ponctuation.separateur"];
-  expect(options).toContain(`${CLIENT_A}${separateur}${SITE_LIBELLE}`);
-  expect(options).toContain(`${CLIENT_B}${separateur}${SITE_LIBELLE}`);
+  expect(options).toContain(
+    `${SCENE_PSI.clientA}${separateur}${SCENE_PSI.site}`,
+  );
+  expect(options).toContain(
+    `${SCENE_PSI.clientB}${separateur}${SCENE_PSI.site}`,
+  );
 
   // La valeur envoyée reste l'identifiant du SITE, jamais le libellé composé.
   await expect(
     page.locator(`select[name="site"] option[value="${siteAId}"]`),
-  ).toHaveText(`${CLIENT_A}${separateur}${SITE_LIBELLE}`);
+  ).toHaveText(`${SCENE_PSI.clientA}${separateur}${SCENE_PSI.site}`);
   await expect(
     page.locator(`select[name="site"] option[value="${siteBId}"]`),
-  ).toHaveText(`${CLIENT_B}${separateur}${SITE_LIBELLE}`);
+  ).toHaveText(`${SCENE_PSI.clientB}${separateur}${SCENE_PSI.site}`);
 });
 
 test("/sites titre les deux cartes par leur client, pas par le libellé partagé du site", async ({
   page,
 }) => {
-  await page.goto(`/sites?q=${encodeURIComponent(SITE_LIBELLE)}`);
+  await page.goto(`/sites?q=${encodeURIComponent(SCENE_PSI.site)}`);
   const carteA = page.locator(`article:has(a[href="/sites/${siteAId}"])`);
   const carteB = page.locator(`article:has(a[href="/sites/${siteBId}"])`);
   await expect(carteA).toBeVisible();
   await expect(carteB).toBeVisible();
 
   await expect(
-    carteA.getByRole("link", { name: CLIENT_A, exact: true }),
+    carteA.getByRole("link", { name: SCENE_PSI.clientA, exact: true }),
   ).toBeVisible();
   await expect(
-    carteB.getByRole("link", { name: CLIENT_B, exact: true }),
+    carteB.getByRole("link", { name: SCENE_PSI.clientB, exact: true }),
   ).toBeVisible();
 
   // Le libellé du site reste lisible, en sous-titre, avec la commune.
   await expect(
-    carteA.getByRole("link", { name: SITE_LIBELLE, exact: true }),
+    carteA.getByRole("link", { name: SCENE_PSI.site, exact: true }),
   ).toBeVisible();
   await expect(
-    carteB.getByRole("link", { name: SITE_LIBELLE, exact: true }),
+    carteB.getByRole("link", { name: SCENE_PSI.site, exact: true }),
   ).toBeVisible();
 });
