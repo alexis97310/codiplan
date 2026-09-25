@@ -3613,6 +3613,19 @@ export const fr = {
   // (`docs/propositions/93-FICHE-ACTIONS`).
   "actionprincipale.e2e.client": "ACT93 — Client de l'épreuve",
   "actionprincipale.e2e.site": "ACT93 — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/parc-tri.spec.ts)
+  //
+  // Même discipline que `actionprincipale.e2e.*` : sa PROPRE scène, préfixée
+  // `PTRI-`, créée et supprimée par l'épreuve (`docs/propositions/
+  // 99C-PARC-TRI`). `client_a` et `client_z` bornent l'alphabet exprès — la
+  // preuve que le tri du parc part du CLIENT (99C-PARC-TRI, audit du 25/09,
+  // constat 29) tient à ce que « A… » précède « Z… », quelle que soit la
+  // collation de la base qui répond.
+  "parctri.e2e.client_a": "PTRI-A — Client de l'épreuve",
+  "parctri.e2e.client_z": "PTRI-Z — Client de l'épreuve",
+  "parctri.e2e.site_a": "PTRI-A — Lieu de l'épreuve",
+  "parctri.e2e.site_z": "PTRI-Z — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

@@ -279,116 +279,140 @@ export default async function PageParc({
         </LienPrimaire>
       }
     >
-      <div data-bloc="toolbar" className="flex flex-wrap items-center gap-2">
-        <div data-bloc="recherche" className="contents">
-          <BarreDeFiltres
-            action="/parc"
-            parametre="q"
-            valeur={q}
-            libelleChamp={t("parc.recherche_champ")}
-            libelleBouton={t("parc.recherche_action")}
-            enfants={
-              <span data-bloc="filtre-statut" className="contents">
-                <label className="sr-only" htmlFor="statut">
-                  {t("parc.filtre_statut.libelle")}
-                </label>
-                <select
-                  id="statut"
-                  name="statut"
-                  defaultValue={statutActif}
-                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
-                >
-                  <option value="tous">{t("parc.filtre_statut.tous")}</option>
-                  <option value="en_service">
-                    {t("statut_machine.en_service")}
-                  </option>
-                  <option value="en_panne">
-                    {t("statut_machine.en_panne")}
-                  </option>
-                  <option value="arretee">{t("statut_machine.arretee")}</option>
-                </select>
-                {/* LISTES-1 (23/09/2026) — trois filtres COMBINABLES avec
-                    celui du statut, chacun dans l'URL. Les options sont
-                    triées par `lib/tri/collation.ts` (LISTES-1). */}
-                <label className="sr-only" htmlFor="client">
-                  {t("parc.filtre_client.libelle")}
-                </label>
-                <select
-                  id="client"
-                  name="client"
-                  defaultValue={clientActif ?? ""}
-                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
-                >
-                  <option value="">{t("parc.filtre_client.tous")}</option>
-                  {clientsTries.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.libelle}
+      {/* 99C-PARC-TRI (26/09/2026) — TOOLBAR ET KPI COMPACTS, dans UN SEUL
+          bloc plutôt que deux séparés par le `gap-5` de `Page` (`gap-2`
+          ci-dessous) : l'audit d'ergonomie du 25/09 (constat 30) mesure une
+          liste réduite à une bande sous trois cartes KPI, à 1280×800. La
+          largeur FIXE des quatre filtres (`w-[…px] truncate`, contre une
+          largeur naturelle qui suit le plus long libellé — mesurée jusqu'à
+          284 px pour le filtre Site) tient désormais la barre entière sur UNE
+          SEULE ligne, « Réinitialiser » compris (déplacé dans `enfants`, donc
+          dans le MÊME flux que les filtres, pour partager leur ligne au lieu
+          d'en ouvrir une troisième à lui seul) — un libellé plus long que la
+          largeur choisie se coupe avec une ellipse (`truncate`), jamais au
+          milieu d'un mot. Chaque px compte pour tenir les 480 px de liste
+          visible (mesuré ci-dessous) : ce `gap-2` (8 px), plus serré que le
+          `gap-5` (20 px) de `Page`, remplace la SEULE respiration entre la
+          barre et les KPI qui reste sous ce contrôle de cette page. */}
+      <div className="flex flex-col gap-2">
+        <div data-bloc="toolbar" className="flex flex-wrap items-center gap-2">
+          <div data-bloc="recherche" className="contents">
+            <BarreDeFiltres
+              action="/parc"
+              parametre="q"
+              valeur={q}
+              libelleChamp={t("parc.recherche_champ")}
+              libelleBouton={t("parc.recherche_action")}
+              enfants={
+                <span data-bloc="filtre-statut" className="contents">
+                  <label className="sr-only" htmlFor="statut">
+                    {t("parc.filtre_statut.libelle")}
+                  </label>
+                  <select
+                    id="statut"
+                    name="statut"
+                    defaultValue={statutActif}
+                    className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                  >
+                    <option value="tous">{t("parc.filtre_statut.tous")}</option>
+                    <option value="en_service">
+                      {t("statut_machine.en_service")}
                     </option>
-                  ))}
-                </select>
-                <label className="sr-only" htmlFor="site">
-                  {mot("site")}
-                </label>
-                <select
-                  id="site"
-                  name="site"
-                  defaultValue={siteActif ?? ""}
-                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
-                >
-                  <option value="">{t("parc.filtre_site.tous")}</option>
-                  {sitesTries.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {libelleClientSite(option.client, option.libelle)}
+                    <option value="en_panne">
+                      {t("statut_machine.en_panne")}
                     </option>
-                  ))}
-                </select>
-                <label className="sr-only" htmlFor="famille">
-                  {t("parc.famille")}
-                </label>
-                <select
-                  id="famille"
-                  name="famille"
-                  defaultValue={familleActive ?? ""}
-                  className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-3"
-                >
-                  <option value="">{t("parc.filtre_famille.tous")}</option>
-                  {famillesTriees.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.libelle}
+                    <option value="arretee">
+                      {t("statut_machine.arretee")}
                     </option>
-                  ))}
-                </select>
-              </span>
-            }
-          />
+                  </select>
+                  {/* LISTES-1 (23/09/2026) — trois filtres COMBINABLES avec
+                      celui du statut, chacun dans l'URL. Les options sont
+                      triées par `lib/tri/collation.ts` (LISTES-1). */}
+                  <label className="sr-only" htmlFor="client">
+                    {t("parc.filtre_client.libelle")}
+                  </label>
+                  <select
+                    id="client"
+                    name="client"
+                    defaultValue={clientActif ?? ""}
+                    className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                  >
+                    <option value="">{t("parc.filtre_client.tous")}</option>
+                    {clientsTries.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.libelle}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="sr-only" htmlFor="site">
+                    {mot("site")}
+                  </label>
+                  <select
+                    id="site"
+                    name="site"
+                    defaultValue={siteActif ?? ""}
+                    className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                  >
+                    <option value="">{t("parc.filtre_site.tous")}</option>
+                    {sitesTries.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {libelleClientSite(option.client, option.libelle)}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="sr-only" htmlFor="famille">
+                    {t("parc.famille")}
+                  </label>
+                  <select
+                    id="famille"
+                    name="famille"
+                    defaultValue={familleActive ?? ""}
+                    className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                  >
+                    <option value="">{t("parc.filtre_famille.tous")}</option>
+                    {famillesTriees.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.libelle}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    data-bloc="reinitialiser"
+                  >
+                    <Link href="/parc">{t("parc.reinitialiser")}</Link>
+                  </Button>
+                </span>
+              }
+            />
+          </div>
         </div>
-        <Button variant="outline" size="sm" asChild data-bloc="reinitialiser">
-          <Link href="/parc">{t("parc.reinitialiser")}</Link>
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div data-bloc="kpi-affichees">
-          <Kpi
-            libelle={t("parc.kpi_affichees")}
-            valeur={totalFiltre}
-            detail={detailAffichees(totalGeneral, resume.incompletes)}
-          />
-        </div>
-        <div data-bloc="kpi-garantie">
-          <Kpi
-            ton="orange"
-            libelle={t("parc.kpi_garantie")}
-            valeur={resume.garantieExpirant90j}
-          />
-        </div>
-        <div data-bloc="kpi-en-panne">
-          <Kpi
-            ton="rouge"
-            libelle={t("parc.kpi_en_panne")}
-            valeur={resume.enPanneOuArretees}
-            detail={detailEnPanne(resume)}
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div data-bloc="kpi-affichees">
+            <Kpi
+              libelle={t("parc.kpi_affichees")}
+              valeur={totalFiltre}
+              detail={detailAffichees(totalGeneral, resume.incompletes)}
+            />
+          </div>
+          <div data-bloc="kpi-garantie">
+            <Kpi
+              ton="orange"
+              libelle={t("parc.kpi_garantie")}
+              valeur={resume.garantieExpirant90j}
+            />
+          </div>
+          <div data-bloc="kpi-en-panne">
+            <Kpi
+              ton="rouge"
+              libelle={t("parc.kpi_en_panne")}
+              valeur={resume.enPanneOuArretees}
+              detail={detailEnPanne(resume)}
+            />
+          </div>
         </div>
       </div>
 

@@ -380,6 +380,22 @@ export async function optionsDeFiltreDuParc(
  * `skip`/`take` sont posés ICI, dans le dépôt : jamais un tableau entier
  * chargé puis découpé par le composant, sinon la base rend toujours tout le
  * parc filtré et la pagination n'a rien gagné.
+ *
+ * ## L'ORDRE À L'INTÉRIEUR DE CHAQUE GROUPE (99C-PARC-TRI, 26/09/2026)
+ *
+ * L'audit d'ergonomie du 25/09 (constat 29) mesure un parc qui mélange les
+ * clients : à `complet` égal, les fiches ne se départageaient jusqu'ici QUE
+ * par `numero` puis `numero_serie`, deux identifiants qui ne disent rien de
+ * QUI possède la machine. Un ADV qui cherche le parc d'un client donné devait
+ * parcourir la liste entière au lieu de trouver ses machines groupées.
+ *
+ * L'ordre devient donc : client (raison sociale), puis désignation du modèle
+ * (marque, puis référence — les deux champs que `titreDeLaLigne` affiche déjà
+ * comme titre de la ligne), puis n° de série pour départager deux machines du
+ * même modèle chez le même client. **Le tri se fait EN BASE, par `orderBy`
+ * sur les relations `client` et `modele`** — jamais en mémoire : la page lit
+ * `skip`/`take`, et un tri posé après la lecture ne trierait qu'UNE page à la
+ * fois, laissant les pages suivantes dans le désordre.
  */
 export async function rechercherLeParc(
   contexte: ContexteSession,
@@ -394,10 +410,13 @@ export async function rechercherLeParc(
         where: filtreDuParc(criteres),
         // Les fiches INCOMPLÈTES d'abord : ce sont celles qui demandent un
         // geste, et un parc trié par date les enterrerait sous les fiches
-        // saines.
+        // saines. Cette règle RESTE (voir la note de tête) — l'audit 29 ne la
+        // remet pas en cause, il porte sur l'ordre À L'INTÉRIEUR du groupe.
         orderBy: [
           { complet: "asc" },
-          { numero: "desc" },
+          { client: { raison_sociale: "asc" } },
+          { modele: { marque: "asc" } },
+          { modele: { reference: "asc" } },
           { numero_serie: "asc" },
         ],
         skip: (criteres.page - 1) * LIMITE_RECHERCHE_PAR_DEFAUT,
