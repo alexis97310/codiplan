@@ -548,7 +548,7 @@ export default async function PageIntervention({
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4">
           <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-            <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
               <Ligne
                 libelle={t("intervention.date")}
                 valeur={datePlanifieeAffichee}
@@ -695,7 +695,7 @@ export default async function PageIntervention({
                     <select
                       name="machine_id"
                       required
-                      className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+                      className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
                     >
                       {machinesDuSite.map((machine) => (
                         <option key={machine.id} value={machine.id}>
@@ -1192,7 +1192,7 @@ function Valorisation({
           <p className="text-app-encre-faible text-[11.5px]">
             {t("intervention.cloture.explication")}
           </p>
-          <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
             <Ligne
               libelle={t("intervention.cloture.temps_valide")}
               valeur={minutes(valorisation.minutesReelles)}
@@ -1371,7 +1371,7 @@ function Realisation({
         </ul>
       )}
 
-      <dl className="grid grid-cols-[160px_1fr] gap-x-3 gap-y-2 text-[13px]">
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] sm:grid-cols-[160px_1fr]">
         <Ligne
           libelle={t("intervention.realisation.temps_mesure")}
           valeur={tempsMesureMin === null ? TIRET : minutes(tempsMesureMin)}
@@ -1409,7 +1409,7 @@ function Realisation({
         </ul>
       )}
 
-      <dl className="grid grid-cols-[160px_1fr] gap-x-3 gap-y-2 text-[13px]">
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] sm:grid-cols-[160px_1fr]">
         <Ligne
           libelle={t("intervention.realisation.commentaire_technicien")}
           valeur={commentaireTechnicien ?? TIRET}
@@ -1732,7 +1732,7 @@ function Saisie({
           name={nom}
           defaultValue={valeurParDefaut ?? ""}
           required={obligatoire}
-          className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+          className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
         >
           {libelleOptionVide === undefined ? null : (
             <option value="">{libelleOptionVide}</option>
@@ -1758,7 +1758,7 @@ function Saisie({
         type={type}
         defaultValue={valeurParDefaut}
         required={obligatoire}
-        className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+        className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
       />
     </label>
   );
