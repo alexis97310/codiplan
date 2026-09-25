@@ -1,4 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
@@ -7,6 +10,30 @@ import {
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
 } from "./setup/scene";
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/99A-ARRIVEE/captures",
+);
+
+/**
+ * Capture le point d'entrée où la connexion mène DÉSORMAIS directement,
+ * plutôt que « Vous êtes connecté ». Aucune image AVANT : la redirection est
+ * un fait serveur, pas un rendu — c'est l'URL et le titre affiché qui la
+ * prouvent (ci-dessous), et l'image documente l'état après le lot.
+ */
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: largeur, height: 900 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+    fullPage: true,
+  });
+}
 
 /**
  * `/arrivee` S'EFFACE QUAND IL N'Y A QU'UNE SOCIÉTÉ (99A-ARRIVEE, sur
@@ -50,6 +77,8 @@ test("compte ADV (une société) : la connexion mène directement au planning", 
   // décide, pas un hasard de la connexion.
   await page.goto("/arrivee");
   await expect(page).toHaveURL(/\/planning/);
+
+  await capturer(page, "planning-apres-connexion-directe", 1280);
 });
 
 test("compte technicien (une société, accès restreint) : la connexion mène directement au terrain", async ({
@@ -70,4 +99,6 @@ test("compte technicien (une société, accès restreint) : la connexion mène d
 
   await page.goto("/arrivee");
   await expect(page).toHaveURL(/\/terrain$/);
+
+  await capturer(page, "terrain-apres-connexion-directe", 390);
 });

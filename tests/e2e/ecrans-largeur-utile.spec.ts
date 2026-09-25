@@ -174,6 +174,15 @@ test("les écrans sans session ne défilent pas pour rien", async ({ page }) => 
   // d'un cadre portant 88 px de gouttière verticale — document de 1088 px dans
   // une fenêtre de 1000, c'est-à-dire une page de connexion qui défile de 88 px
   // pour rien.*
+  //
+  // Retouché par 99A-ARRIVEE : ce scénario promet « sans session » mais
+  // héritait, sans l'effacer, de la session ADV du `beforeEach` du fichier —
+  // sans conséquence tant que `/connexion` redirigeait un compte déjà
+  // authentifié vers le petit écran `/arrivee`. Depuis que `/arrivee`
+  // redirige elle-même vers `/planning` pour ce compte à une seule société
+  // (une page bien plus grande), l'omission cesse d'être sans conséquence :
+  // la session est désormais effacée pour de bon.
+  await page.context().clearCookies();
   for (const chemin of ["/sante", "/connexion"]) {
     await page.goto(chemin);
     const document_ = await page.evaluate(() => document.body.scrollHeight);

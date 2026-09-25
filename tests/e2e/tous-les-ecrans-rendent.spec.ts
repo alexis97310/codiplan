@@ -236,6 +236,22 @@ const NOMS_ATTENDUS: Readonly<Record<string, ResolveurDeNom>> = {
   },
 };
 
+/**
+ * ROUTES QUI REDIRIGENT DÉLIBÉRÉMENT, ET LEUR SEULE DESTINATION CONNUE
+ * (99A-ARRIVEE).
+ *
+ * Fermée à une entrée. `/arrivee` ne redirige QUE pour un compte rattaché à
+ * une seule société (audit d'ergonomie du 25/09/2026, constat 2) — c'est
+ * précisément l'identité de ce fichier, `COMPTE_ADMIN_SOCIETE_EPREUVE`
+ * (`admin_societe`, accès complet au planning), donc `/planning`
+ * (`app/(back-office)/arrivee/decision.ts`, `pointEntreeRole`). Toute AUTRE
+ * route qui se mettrait à rediriger reste un défaut que la boucle ci-dessous
+ * continue de refuser — cette liste ne s'ouvre pas par réflexe.
+ */
+const REDIRECTS_CONNUS: Readonly<Record<string, string>> = {
+  "/arrivee": "/planning",
+};
+
 // Même identité que la mesure d'origine (« compte admin_societe »), et le
 // seul moyen d'ouvrir CHAQUE écran du back-office : `adv` (le compte courant
 // des autres scénarios) n'a pas nécessairement la matrice complète.
@@ -313,10 +329,11 @@ for (const route of ROUTES) {
       reponse!.status(),
       `${chemin} a répondu ${reponse!.status()} au lieu de 200`,
     ).toBe(200);
+    const destinationAttendue = REDIRECTS_CONNUS[route] ?? chemin;
     expect(
       new URL(page.url()).pathname,
       `${chemin} a fini sur ${new URL(page.url()).pathname} — une redirection masquerait un 200 qui ne prouve rien`,
-    ).toBe(chemin);
+    ).toBe(destinationAttendue);
 
     // VISUEL-1 (23/09/2026) — CHAQUE ONGLET DIT OÙ L'ON EST. *Mesuré en
     // production le 23/09 : `document.title` valait « CODIPLAN » sur
