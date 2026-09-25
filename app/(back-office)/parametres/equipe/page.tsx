@@ -158,9 +158,7 @@ export default async function PageEquipe({
             href={lienInterventionsAVenir(avertissementTechnicienId)}
             className="font-semibold underline"
           >
-            {decompteInterventionsAVenir(avertissementNombre)}
-            {TIRET}
-            {t("equipe.interventions_a_venir.lien")}
+            {libelleLienInterventionsAVenir(avertissementNombre)}
           </a>
         </p>
       ) : null}
@@ -308,6 +306,16 @@ function lienInterventionsAVenir(utilisateurId: string): string {
   return `/interventions?technicien=${utilisateurId}`;
 }
 
+/** Le texte du lien de l'avertissement de désactivation — décompte puis appel à l'action. */
+function libelleLienInterventionsAVenir(nombre: number): string {
+  return `${decompteInterventionsAVenir(nombre)}${TIRET}${t("equipe.interventions_a_venir.lien")}`;
+}
+
+/** La note qui suit le lien, dans la fiche de modification. */
+function noteInterventionsAVenir(): string {
+  return `${TIRET}${t("equipe.interventions_a_venir.note")}`;
+}
+
 function colonnes() {
   return [
     { cle: "nom", libelle: t("equipe.nom") },
@@ -444,8 +452,7 @@ function FormulaireModification({
           >
             {decompteInterventionsAVenir(interventionsAVenir)}
           </a>
-          {TIRET}
-          {t("equipe.interventions_a_venir.note")}
+          {noteInterventionsAVenir()}
         </p>
       ) : null}
     </form>
