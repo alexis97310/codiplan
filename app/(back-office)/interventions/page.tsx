@@ -584,7 +584,11 @@ export default async function PageInterventions({
       ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
-        <Tableau colonnes={colonnes} minimum="920px">
+        <Tableau
+          colonnes={colonnes}
+          minimum="920px"
+          libelle={t("interventions.titre")}
+        >
           {lignes.length === 0 ? (
             <LignePleine colonnes={colonnes.length}>
               {t("interventions.vide")}

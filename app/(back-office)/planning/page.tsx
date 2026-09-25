@@ -767,6 +767,7 @@ function VueSemaine({
       >
         <table
           data-maquette-bloc="tableau-charge-semaine"
+          aria-label={t("planning.titre")}
           className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
         >
           {/*
@@ -1167,7 +1168,10 @@ function VueJour({
         )}
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-separate border-spacing-0 text-[12px]">
+        <table
+          aria-label={t("planning.titre")}
+          className="w-full table-fixed border-separate border-spacing-0 text-[12px]"
+        >
           <colgroup>
             <col style={{ width: "78px" }} />
             {journee.colonnes.map((colonne) => (

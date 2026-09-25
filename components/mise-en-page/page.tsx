@@ -113,7 +113,15 @@ export function Page({
 }>) {
   const domaineCle = chemin === undefined ? null : groupeDe(chemin, entrees);
   return (
-    <main className={cn("flex flex-col gap-5", className)}>
+    // `id` + `tabIndex={-1}` : cible du lien d'évitement posé par la coque
+    // du back-office (`app/(back-office)/layout.tsx`) — un lien qui pointe
+    // vers un `id` inatteignable au clavier déplacerait le focus visuel sans
+    // déplacer le focus réel.
+    <main
+      id="contenu"
+      tabIndex={-1}
+      className={cn("flex flex-col gap-5", className)}
+    >
       {filAriane === undefined || filAriane.length === 0 ? null : (
         <nav
           aria-label={t("navigation.fil_ariane")}

@@ -45,17 +45,26 @@ export function Tableau({
   colonnes,
   children,
   minimum,
+  libelle,
 }: Readonly<{
   colonnes: readonly Colonne[];
   children: React.ReactNode;
   /** Largeur minimale avant défilement horizontal, si l'écran en a besoin. */
   minimum?: string;
+  /**
+   * LE NOM ACCESSIBLE DU TABLEAU (99E-EVITEMENT, audit du 25/09, constat 39)
+   * — `aria-label`, absent tant qu'un appelant ne le passe pas : ce
+   * composant sert des dizaines d'écrans, et seuls ceux que l'audit nomme
+   * (le registre, la grille du planning) le passent aujourd'hui.
+   */
+  libelle?: string;
 }>) {
   return (
     // Le défilement horizontal est BORNÉ à ce conteneur : le corps de la page
     // ne défile jamais latéralement.
     <div className="overflow-x-auto">
       <table
+        aria-label={libelle}
         className="w-full border-collapse text-[13px]"
         style={minimum === undefined ? undefined : { minWidth: minimum }}
       >

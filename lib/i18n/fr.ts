@@ -3451,6 +3451,9 @@ export const fr = {
   "registre2.e2e.technicien_a": "REG2- Technicien A",
   "registre2.e2e.technicien_b": "REG2- Technicien B",
 
+  // ── LE LIEN D'ÉVITEMENT (99E-EVITEMENT, audit du 25/09, constat 39) ─────
+  "navigation.aller_au_contenu": "Aller au contenu",
+
   // ── LE FIL D'ARIANE (FICHE-360-1) ───────────────────────────────────────
   "navigation.fil_ariane": "Fil d'Ariane",
   "fil_ariane.clients": "Clients",

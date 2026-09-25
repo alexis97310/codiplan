@@ -4,6 +4,7 @@ import {
   FournisseurNavigationMobile,
 } from "@/components/navigation/bandeau-mobile";
 import { BarreDeNavigation } from "@/components/navigation/barre";
+import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES } from "@/lib/navigation/entrees";
 
@@ -47,6 +48,19 @@ export default async function MiseEnPageBackOffice({
 
   return (
     <FournisseurNavigationMobile>
+      {/*
+        LE LIEN D'ÉVITEMENT (99E-EVITEMENT, audit du 25/09, constat 39) —
+        PREMIER élément focalisable de la coque, avant la barre de
+        navigation : masqué (`sr-only`) tant qu'il n'a pas le focus, visible
+        dès qu'un clavier l'atteint (`focus:not-sr-only`). Il cible le
+        `<main id="contenu">` posé par `components/mise-en-page/page.tsx`.
+      */}
+      <a
+        href="#contenu"
+        className="focus:bg-app-surface focus:text-app-marque sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:border focus:border-app-bord focus:px-4 focus:py-2 focus:text-[13px] focus:underline"
+      >
+        {t("navigation.aller_au_contenu")}
+      </a>
       <div className="flex min-h-dvh">
         <BarreDeNavigation
           theme={theme}
