@@ -988,6 +988,22 @@ export const fr = {
   "interventions.filtre_technicien_tous": "Tous les techniciens",
   "interventions.filtre_technicien_non_affectees": "Non affectées",
 
+  // ── LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5) ──────────────────────────
+  // Mesuré le 25/09/2026 (audit d'ergonomie, constats 17 et 18) : après une
+  // recherche, rien ne rappelait le critère appliqué, et les trois KPI du
+  // bandeau restaient muets sur le fait qu'ils portent sur TOUT le registre,
+  // jamais sur la recherche en cours. Chaque puce se retire seule, sans
+  // toucher aux autres critères actifs.
+  "interventions.puce_recherche": "Recherche",
+  "interventions.puce_periode": "Période",
+  "interventions.puce_periode_jusqua": "au",
+  "interventions.puce_sans_duree": "Sans durée prévue",
+  "interventions.puce_retirer": "Retirer ce filtre",
+  "interventions.puce_tout_effacer": "Tout effacer",
+  "interventions.puce_signe_retrait": "✕",
+  "interventions.puce_bandeau_aria": "Filtres actifs",
+  "interventions.kpi_detail_filtre_actif": "sur tout le registre",
+
   // ── LES ONGLETS DU REGISTRE (52-REGISTRE-1, SAV-07) ──────────────────────
   // « Toutes » rend le comportement d'avant ce ticket ; les six autres
   // portent chacun un critère écrit dans `criteresVue`
@@ -1058,6 +1074,11 @@ export const fr = {
   // d'après son premier appelant devient fausse au second*, et la pente
   // suivante est d'en écrire une deuxième qui dit la même chose.
   "ponctuation.separateur": " — ",
+  // LES DEUX-POINTS D'UNE PUCE « LIBELLÉ : VALEUR » (88-REGISTRE-5) — la
+  // même raison que `ponctuation.separateur` juste au-dessus : composée à
+  // part pour que les puces de filtres actifs du registre n'écrivent jamais
+  // le signe elles-mêmes.
+  "ponctuation.deux_points": " : ",
   // LE POINT MÉDIAN — mesuré dans `docs/maquette/codiplan-maquette-complete.html`
   // (N-08, 18/09/2026) : « CLI-000184 · Nouméa », jamais un tiret cadratin.
   // **Ce n'est pas le même signe que `ponctuation.separateur` pour la même
@@ -3326,6 +3347,19 @@ export const fr = {
   // trait d'union romprait la sous-chaîne que `filtreDesInterventions` compare.
   "liens2.e2e.client": "LIE2-Client de l'épreuve",
   "liens2.e2e.site": "LIE2-Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-5.spec.ts)
+  //
+  // Même raison que `liens2.e2e.*` juste au-dessus : sa PROPRE scène,
+  // préfixée `RG5-`, créée et supprimée par l'épreuve. `client_cible` seul
+  // porte `texte_recherche` en sous-chaîne — `client_autre`, bien que
+  // préfixé `RG5-` comme le reste de la scène, ne le porte pas : c'est ce qui
+  // prouve que la puce et le compte affiché tiennent à la recherche, jamais
+  // au préfixe de la scène tout entière.
+  "registre5.e2e.texte_recherche": "RG5-cible",
+  "registre5.e2e.client_cible": "RG5-cible — Client de l'épreuve",
+  "registre5.e2e.client_autre": "RG5-Autre — Client de l'épreuve",
+  "registre5.e2e.site": "RG5-Lieu de l'épreuve",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-2.spec.ts)
   //

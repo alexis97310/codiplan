@@ -46,7 +46,9 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+import { LigneCliquable } from "./ligne-cliquable";
 import {
+  hrefEffacerLesFiltres,
   hrefOnglet,
   libelleFiltreAgence,
   libelleOngletAvecCompte,
@@ -54,6 +56,7 @@ import {
   ONGLETS_REGISTRE,
   optionsFiltreTechnicien,
   optionToutesLesAgences,
+  puceFiltresActifs,
   referenceAffichee,
   retourActuelDuRegistre,
 } from "./presentation";
@@ -275,6 +278,21 @@ export default async function PageInterventions({
   // chaque lien de ligne, rejoué par `retourVersRegistre` depuis la fiche.
   const retourRegistre = retourActuelDuRegistre(params);
 
+  // LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5) — une SUPERPOSITION de
+  // `parametresActifs` : `sans_duree_a_venir` n'y figure pas (il ne survit
+  // pas à un changement d'onglet ni de page, un comportement déjà là que ce
+  // ticket ne touche pas), mais une puce qui le retire doit conserver les
+  // AUTRES critères actifs — d'où cette seconde composition, réservée aux
+  // puces et à « Tout effacer ».
+  const parametresPuces = {
+    ...parametresActifs,
+    sans_duree_a_venir:
+      criteres.success && criteres.data.sans_duree_a_venir ? "1" : undefined,
+  };
+  const puces = criteres.success
+    ? puceFiltresActifs(criteres.data, parametresPuces, agences, annuaire)
+    : [];
+
   const colonnes = [
     {
       cle: "reference",
@@ -467,21 +485,41 @@ export default async function PageInterventions({
       {/* LES TROIS KPI DU BANDEAU — GAP COMBLÉ (audit du 18/09/2026) :
           interventions() de la maquette en pose trois, absents de cet écran.
           Voir `kpiDuRegistre` pour ce que chacun compte RÉELLEMENT — jamais
-          les valeurs illustratives de la maquette. */}
+          les valeurs illustratives de la maquette.
+          LE DÉTAIL « SUR TOUT LE REGISTRE » (88-REGISTRE-5, constat 18) —
+          rendu SEULEMENT quand un filtre est actif : ces trois nombres ne
+          bougent JAMAIS avec la recherche (voir `kpiDuRegistre`), et un
+          exploitant qui vient de filtrer doit pouvoir le lire, pas le
+          deviner. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kpi
           libelle={t("interventions.kpi_semaine")}
           valeur={kpi.planifieesCetteSemaine}
+          detail={
+            puces.length > 0
+              ? t("interventions.kpi_detail_filtre_actif")
+              : undefined
+          }
         />
         <Kpi
           ton="vert"
           libelle={t("interventions.kpi_en_cours")}
           valeur={kpi.enCours}
+          detail={
+            puces.length > 0
+              ? t("interventions.kpi_detail_filtre_actif")
+              : undefined
+          }
         />
         <Kpi
           ton="orange"
           libelle={t("interventions.kpi_en_attente")}
           valeur={kpi.enAttente}
+          detail={
+            puces.length > 0
+              ? t("interventions.kpi_detail_filtre_actif")
+              : undefined
+          }
         />
       </div>
 
@@ -511,6 +549,39 @@ export default async function PageInterventions({
           );
         })}
       </nav>
+
+      {/* LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5, constat 17) — AUCUNE
+          puce quand rien n'est filtré ; chacune retire SON SEUL critère,
+          les autres survivent. */}
+      {puces.length > 0 ? (
+        <div
+          aria-label={t("interventions.puce_bandeau_aria")}
+          className="flex flex-wrap items-center gap-2"
+        >
+          {puces.map((puce) => (
+            <span
+              key={puce.cle}
+              data-puce={puce.cle}
+              className="border-app-bord bg-app-surface-creuse inline-flex items-center gap-1.5 rounded-full border py-1 pr-2 pl-3 text-[12px] font-semibold"
+            >
+              {puce.libelle}
+              <Link
+                href={puce.href}
+                aria-label={t("interventions.puce_retirer")}
+                className="text-app-encre-faible hover:text-app-encre"
+              >
+                {t("interventions.puce_signe_retrait")}
+              </Link>
+            </span>
+          ))}
+          <Link
+            href={hrefEffacerLesFiltres(parametresPuces)}
+            className={CLASSES_LIEN}
+          >
+            {t("interventions.puce_tout_effacer")}
+          </Link>
+        </div>
+      ) : null}
 
       <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
         <Tableau colonnes={colonnes} minimum="920px">
@@ -622,9 +693,9 @@ function LigneIntervention({
       ? `/interventions/${ligne.id}?depuis=interventions`
       : `/interventions/${ligne.id}?depuis=interventions&retour=${encodeURIComponent(retourRegistre)}`;
   return (
-    <tr>
+    <LigneCliquable href={hrefFiche}>
       <Cellule mono fort>
-        <Link href={hrefFiche} className={CLASSES_LIEN}>
+        <Link href={hrefFiche} className={`${CLASSES_LIEN} whitespace-nowrap`}>
           {referenceAffichee(ligne)}
         </Link>
       </Cellule>
@@ -649,7 +720,7 @@ function LigneIntervention({
           {t(`statut.${ligne.statut}`)}
         </span>
       </Cellule>
-    </tr>
+    </LigneCliquable>
   );
 }
 

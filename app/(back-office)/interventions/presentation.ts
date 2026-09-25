@@ -1,8 +1,10 @@
 import { type TypeIntervention } from "@prisma/client";
 
+import { libelleAgenceAvecCode } from "@/lib/agences/presentation";
 import type { Annuaire } from "@/lib/auth/annuaire";
 import {
   cleJour,
+  dateCivile,
   versLocal,
   type Fuseau,
   type JourLocal,
@@ -10,7 +12,11 @@ import {
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
-import { VUES_REGISTRE, type VueRegistre } from "@/lib/interventions/saisie";
+import {
+  VUES_REGISTRE,
+  type RechercheInterventions,
+  type VueRegistre,
+} from "@/lib/interventions/saisie";
 
 import { hrefDeLaPage } from "../presentation";
 
@@ -496,6 +502,135 @@ export function optionsFiltreTechnicien(
       libelle: quiTravaille(technicien.utilisateur_id, annuaire),
     }))
     .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
+}
+
+/**
+ * ── LES PUCES DE FILTRES ACTIFS (88-REGISTRE-5) ──────────────────────────
+ *
+ * *Mesuré le 25/09/2026 (audit d'ergonomie, constats 17 et 18) : après une
+ * recherche, RIEN ne rappelait le critère appliqué, ni ne permettait de
+ * l'effacer autrement qu'en rouvrant le formulaire.* Une puce par critère
+ * RÉELLEMENT appliqué — jamais un paramètre brut : une recherche invalide
+ * (`criteres.success === false`) n'en pose aucune, puisqu'aucun filtre n'a
+ * RÉELLEMENT atteint la lecture en base.
+ *
+ * `du`/`au` partagent une seule puce, « Période » — les deux bornes d'un
+ * même critère, retirées ensemble, jamais deux puces qui pourraient se
+ * retirer l'une sans l'autre et laisser une période à moitié posée.
+ */
+export type PuceFiltre = {
+  readonly cle: string;
+  readonly libelle: string;
+  readonly href: string;
+};
+
+export function puceFiltresActifs(
+  criteres: RechercheInterventions,
+  parametresPuces: Readonly<Record<string, string | undefined>>,
+  agences: readonly {
+    readonly id: string;
+    readonly libelle: string;
+    readonly code: string;
+  }[],
+  annuaire: Annuaire,
+): readonly PuceFiltre[] {
+  const deuxPoints = t("ponctuation.deux_points");
+  const sansCritere = (cles: readonly string[]): string =>
+    hrefDeLaPage(
+      "/interventions",
+      {
+        ...parametresPuces,
+        ...Object.fromEntries(cles.map((cle) => [cle, undefined])),
+      },
+      1,
+    );
+
+  const puces: PuceFiltre[] = [];
+
+  if (criteres.texte !== null) {
+    puces.push({
+      cle: "q",
+      libelle: `${t("interventions.puce_recherche")}${deuxPoints}${criteres.texte}`,
+      href: sansCritere(["q"]),
+    });
+  }
+  if (criteres.agence_id !== null) {
+    const agence = agences.find(
+      (candidate) => candidate.id === criteres.agence_id,
+    );
+    if (agence !== undefined) {
+      puces.push({
+        cle: "agence",
+        libelle: `${mot("agence")}${deuxPoints}${libelleAgenceAvecCode(agence.libelle, agence.code)}`,
+        href: sansCritere(["agence"]),
+      });
+    }
+  }
+  if (criteres.type !== null) {
+    puces.push({
+      cle: "type",
+      libelle: `${t("intervention.type")}${deuxPoints}${t(`type_intervention.${criteres.type}`)}`,
+      href: sansCritere(["type"]),
+    });
+  }
+  if (criteres.statut !== null) {
+    puces.push({
+      cle: "statut",
+      libelle: `${t("intervention.statut")}${deuxPoints}${t(`statut.${criteres.statut}`)}`,
+      href: sansCritere(["statut"]),
+    });
+  }
+  const { du, au } = criteres;
+  if (du !== null && au !== null) {
+    puces.push({
+      cle: "periode",
+      libelle: `${t("interventions.puce_periode")}${deuxPoints}${dateCivile(du)} ${t("interventions.puce_periode_jusqua")} ${dateCivile(au)}`,
+      href: sansCritere(["du", "au"]),
+    });
+  } else if (du !== null) {
+    puces.push({
+      cle: "periode",
+      libelle: `${t("interventions.filtre_periode_du")} ${dateCivile(du)}`,
+      href: sansCritere(["du", "au"]),
+    });
+  } else if (au !== null) {
+    puces.push({
+      cle: "periode",
+      libelle: `${t("interventions.filtre_periode_au")} ${dateCivile(au)}`,
+      href: sansCritere(["du", "au"]),
+    });
+  }
+  if (criteres.technicien !== null) {
+    const libelleTechnicien =
+      criteres.technicien === "aucun"
+        ? t("interventions.filtre_technicien_non_affectees")
+        : quiTravaille(criteres.technicien, annuaire);
+    puces.push({
+      cle: "technicien",
+      libelle: `${t("intervention.technicien")}${deuxPoints}${libelleTechnicien}`,
+      href: sansCritere(["technicien"]),
+    });
+  }
+  if (criteres.sans_duree_a_venir) {
+    puces.push({
+      cle: "sans_duree_a_venir",
+      libelle: t("interventions.puce_sans_duree"),
+      href: sansCritere(["sans_duree_a_venir"]),
+    });
+  }
+  return puces;
+}
+
+/**
+ * « TOUT EFFACER » — reprend l'onglet (`vue`) tel quel, retire tout le
+ * reste. L'onglet est une NAVIGATION (les tabs au-dessus du tableau), pas un
+ * filtre du formulaire : l'effacer ici surprendrait qui vient de cliquer
+ * « Bloquées » puis « Tout effacer » sur une recherche posée par-dessus.
+ */
+export function hrefEffacerLesFiltres(
+  parametresPuces: Readonly<Record<string, string | undefined>>,
+): string {
+  return hrefDeLaPage("/interventions", { vue: parametresPuces.vue }, 1);
 }
 
 /**
