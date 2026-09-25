@@ -30,6 +30,8 @@ import { ouvrirUneSession } from "./setup/session";
  * un `<details>` fermé, dont le `<summary>` porte son titre et que le clic
  * ouvre.
  */
+test.describe.configure({ mode: "serial" });
+
 const CLIENT_ACT93 = uuidv7();
 const SITE_ACT93 = uuidv7();
 const INTERVENTION_ACT93 = uuidv7();
