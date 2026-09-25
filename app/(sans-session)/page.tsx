@@ -1,21 +1,25 @@
-import { Button } from "@/components/ui/button";
-import { t } from "@/lib/i18n/fr";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function PageAccueil() {
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6">
-      <h1 className="text-4xl font-semibold tracking-tight">
-        {t("accueil.titre")}
-      </h1>
-      <p className="text-muted-foreground text-lg">{t("accueil.accroche")}</p>
-      <p className="text-muted-foreground text-sm">{t("accueil.socle")}</p>
-      <div>
-        <Button asChild variant="outline">
-          <a href="https://github.com/alexis97310/codiplan/tree/main/docs">
-            {t("accueil.action")}
-          </a>
-        </Button>
-      </div>
-    </main>
-  );
+import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
+
+/**
+ * LA RACINE DU SITE (99-ACCUEIL-1) — ne s'affiche jamais, redirige toujours.
+ *
+ * Sans session → `/connexion`. Avec session → `/arrivee`, qui décide seule de
+ * la suite (enrôlement, société active…) : aucune règle de rôle ou de société
+ * n'est dupliquée ici.
+ *
+ * `etatArriveeOuAnonyme`, jamais `etatArrivee` : cet écran PRÉCÈDE la session
+ * (R2-16, `app/(sans-session)`) et ne doit jamais lever — une configuration
+ * d'authentification absente doit tout de même mener au formulaire.
+ */
+export default async function PageAccueil() {
+  const entetes = await headers();
+  const etat = await etatArriveeOuAnonyme(entetes);
+
+  if (etat.issue === "anonyme") {
+    redirect("/connexion");
+  }
+  redirect("/arrivee");
 }

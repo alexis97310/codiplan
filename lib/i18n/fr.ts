@@ -66,11 +66,6 @@ export const fr = {
   // distingue (`t("site.client")`, `mot("site")`, `t("machine.champ.modele")`).
   "selecteur.aucun_resultat": "Aucun résultat.",
   "selecteur.voir_plus": "Voir plus",
-  "accueil.titre": "CODIPLAN",
-  "accueil.accroche":
-    "Plannings d'intervention et parc machines — Nouvelle-Calédonie.",
-  "accueil.socle": "Socle technique en place. Aucune fonctionnalité métier.",
-  "accueil.action": "Consulter la documentation",
   // Thématisation par société (L0-09). Le NOM de la société n'est jamais une
   // chaîne du dictionnaire : c'est une donnée, lue en base. Seuls les libellés
   // qui qualifient le thème vivent ici.

@@ -178,7 +178,7 @@ test("les écrans sans session ne défilent pas pour rien", async ({ page }) => 
   // d'un cadre portant 88 px de gouttière verticale — document de 1088 px dans
   // une fenêtre de 1000, c'est-à-dire une page de connexion qui défile de 88 px
   // pour rien.*
-  for (const chemin of ["/", "/sante", "/connexion"]) {
+  for (const chemin of ["/sante", "/connexion"]) {
     await page.goto(chemin);
     const document_ = await page.evaluate(() => document.body.scrollHeight);
     expect(document_, `${chemin} déborde la fenêtre`).toBeLessThanOrEqual(

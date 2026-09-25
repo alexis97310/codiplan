@@ -26,6 +26,5 @@ describe("dictionnaire français", () => {
 
   it("expose le nom du produit tel qu'il doit s'afficher", () => {
     expect(t("app.nom")).toBe("CODIPLAN");
-    expect(t("accueil.titre")).toBe("CODIPLAN");
   });
 });

@@ -18,13 +18,7 @@ import { fr } from "@/lib/i18n";
  * faire sans session ouverte ; le scénario éprouve ce que Next rend vraiment,
  * ce qu'aucune lecture de fichier ne prouve.
  */
-const SANS_SESSION = [
-  "/",
-  "/sante",
-  "/connexion",
-  "/enrolement",
-  "/premier-acces",
-];
+const SANS_SESSION = ["/sante", "/connexion", "/enrolement", "/premier-acces"];
 
 for (const chemin of SANS_SESSION) {
   test(`aucune barre de navigation sur ${chemin}`, async ({ page }) => {

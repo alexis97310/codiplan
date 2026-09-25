@@ -269,16 +269,16 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
     // vraiment : une page, un composant, la mise en page qui porte les
     // métadonnées, et les deux tests de rendu. Jamais dans un fichier fabriqué.
     const greffes: ReadonlyArray<[string, string, string]> = [
-      ["app/(sans-session)/page.tsx", '{t("accueil.titre")}', "CODIPLAN"],
+      ["app/(sans-session)/sante/page.tsx", '{t("sante.titre")}', "CODIPLAN"],
       [
-        "app/(sans-session)/page.tsx",
-        '{t("accueil.action")}',
+        "app/(sans-session)/sante/page.tsx",
+        '{t("sante.sous_titre")}',
         '{"Consulter la documentation"}',
       ],
       [
-        "app/(sans-session)/page.tsx",
-        'variant="outline"',
-        'variant="outline" title="Documentation"',
+        "app/(sans-session)/sante/page.tsx",
+        'role="status"',
+        'role="status" title="Documentation"',
       ],
       [
         // ANCRE MISE À JOUR (VISUEL-1, 23/09/2026) : `title` porte désormais
@@ -310,11 +310,11 @@ describe("le gardien éprouvé sur les six formes équivalentes (§9)", () => {
         'className="text-[12.5px] font-bold tracking-tight" aria-label="Nom de la société"',
       ],
       [
-        "tests/unit/accueil.test.tsx",
-        'name: fr["accueil.titre"]',
+        "tests/unit/app/etats-partages.test.tsx",
+        'name: fr["etat.introuvable.titre"]',
         'name: "CODIPLAN"',
       ],
-      ["tests/e2e/accueil.spec.ts", 'fr["accueil.titre"]', '"CODIPLAN"'],
+      ["tests/e2e/deconnexion.spec.ts", 'fr["theme.societe"]', '"CODIPLAN"'],
     ];
 
     for (const [chemin, avant, apres] of greffes) {
