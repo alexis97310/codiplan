@@ -14,7 +14,7 @@ import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
- * 91-VGP-4-REPRISE — LE REGISTRE COMMENCE PAR CE QUI EST EN RETARD.
+ * 96-VGP-4-REPRISE-2 — LE REGISTRE COMMENCE PAR CE QUI EST EN RETARD.
  *
  * ## L'ARBITRAGE ÉPROUVÉ ICI (25/09/2026)
  *
@@ -27,20 +27,31 @@ import { ouvrirUneSession } from "./setup/session";
  * — le même critère non borné que chaque KPI compte déjà
  * (`trierParUrgence`, `echeanceEstAVenir`, `lib/vgp/registre.ts`).
  *
+ * ## LA LEÇON DE `91-VGP-4-REPRISE` — RECALÉE DEUX FOIS
+ *
+ * La première version de cette épreuve forgeait DEUX échéances dépassées
+ * dans la société PARTAGÉE (`CODIMA-NC`) pour prouver « la plus ancienne en
+ * tête ». `fullyParallel` fait tourner `tests/e2e/vgp-retard-visible.spec.ts`
+ * en même temps : sa tuile « VGP à prévoir » attend « 1 échéance dépassée »
+ * (le semis n'en porte qu'UNE, `NUS-SPL-2022-0007`) et en lisait TROIS.
+ *
+ * **Cette version ne forge donc AUCUNE échéance dépassée.** La preuve
+ * « la plus ancienne dépassée en tête » s'appuie sur la dépassée que le
+ * semis porte déjà — lue ici, jamais modifiée. Ce que cette épreuve forge —
+ * une échéance à venir, une recherche `q` — porte une échéance à PLUS de
+ * trente jours, hors de l'horizon de la tuile (`HORIZON_VGP_JOURS`,
+ * `app/(back-office)/tableau-de-bord/page.tsx`), pour ne changer AUCUN
+ * compte lu par une autre épreuve dans la société partagée.
+ *
  * ## SA PROPRE SCÈNE, PRÉFIXÉE `VGP4-`
  *
  * Créée en `beforeAll`, supprimée en `afterAll` — AUCUNE ligne n'est ajoutée
- * au semis, même discipline que `tests/e2e/registre-3.spec.ts`. Une famille et
- * un modèle DÉDIÉS (assujettis, périodicité douze mois) plutôt que ceux du
- * semis, pour que les dates de vérification restent les SEULES variables : un
- * client, un site, quatre machines — une dépassée depuis PRÈS DE QUINZE ANS
- * (`derniereInformation` fixée à une date absolue, bien plus ancienne que
- * n'importe quelle donnée de démonstration ou d'une autre épreuve : c'est ce
- * qui garantit qu'elle reste la PLUS ancienne, quoi que le semis ou une
- * épreuve voisine écrivent), une dépassée depuis peu, une à échéance proche,
- * et une sans aucune information reçue.
+ * au semis, même discipline que `tests/e2e/registre-3.spec.ts`. Une famille
+ * et un modèle DÉDIÉS (assujettis, périodicité douze mois) plutôt que ceux
+ * du semis : un client, un site, deux machines — une à échéance lointaine
+ * (bien au-delà de trente jours), et une sans aucune information reçue.
  *
- * Les dates RELATIVES (`depasseeRecente`, `aVenir`) sont calculées depuis
+ * La date RELATIVE de l'échéance à venir est calculée depuis
  * `ajouterMois(new Date(), …)`, la même fonction que `lib/vgp/information.ts`
  * — jamais une durée réécrite ici (L9-05 ne porte que sur `lib/vgp/`, mais la
  * discipline vaut partout : une seule écriture du calcul).
@@ -58,27 +69,30 @@ const CLIENT_VGP4 = uuidv7();
 const SITE_VGP4 = uuidv7();
 const FAMILLE_VGP4 = uuidv7();
 const MODELE_VGP4 = uuidv7();
-const MACHINE_DEPASSEE_ANCIENNE = uuidv7();
-const MACHINE_DEPASSEE_RECENTE = uuidv7();
 const MACHINE_A_VENIR = uuidv7();
 const MACHINE_SANS_INFORMATION = uuidv7();
-const VERIFICATION_DEPASSEE_ANCIENNE = uuidv7();
-const VERIFICATION_DEPASSEE_RECENTE = uuidv7();
 const VERIFICATION_A_VENIR = uuidv7();
 
-const SN_DEPASSEE_ANCIENNE = fr["vgp4.e2e.numero_serie_depassee_ancienne"];
-const SN_DEPASSEE_RECENTE = fr["vgp4.e2e.numero_serie_depassee_recente"];
 const SN_A_VENIR = fr["vgp4.e2e.numero_serie_a_venir"];
 const SN_SANS_INFORMATION = fr["vgp4.e2e.numero_serie_sans_information"];
 
+/**
+ * La dépassée que le SEMIS porte déjà (`prisma/seed-data.ts`,
+ * `VERIFICATIONS_VGP_DEMONSTRATION`, rang 2) — lue ici, jamais modifiée, et
+ * jamais créée ni supprimée par cette épreuve. C'est la SEULE échéance
+ * dépassée de la société `CODIMA-NC` : `tests/e2e/vgp-retard-visible.spec.ts`
+ * en attend exactement une à l'accueil.
+ */
+const MACHINE_DEPASSEE_DU_SEMIS = "NUS-SPL-2022-0007";
+
 const PERIODICITE_MOIS = 12;
-// Absolue, et délibérément ANCIENNE (voir l'en-tête) : garantit la place de
-// tête quelle que soit la date d'exécution de l'épreuve.
-const DATE_VERIFICATION_ANCIENNE = new Date("2010-01-15T00:00:00Z");
-// Relatives à AUJOURD'HUI, comme `prisma/seed.ts` le fait pour ses propres
-// vérifications de démonstration.
-const DATE_VERIFICATION_RECENTE = ajouterMois(new Date(), -13);
-const DATE_VERIFICATION_A_VENIR = ajouterMois(new Date(), -11);
+// Relative à AUJOURD'HUI, comme `prisma/seed.ts` le fait pour ses propres
+// vérifications de démonstration. Vérifiée il y a six mois, avec une
+// périodicité de douze mois, l'échéance tombe dans six mois — bien au-delà
+// des trente jours de `HORIZON_VGP_JOURS` : elle n'entre ni dans la tuile
+// « dépassées », ni dans la tuile « à venir sous 30 jours » du tableau de
+// bord.
+const DATE_VERIFICATION_A_VENIR = ajouterMois(new Date(), -6);
 
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
@@ -130,8 +144,6 @@ test.beforeAll(async () => {
     });
 
     for (const [machineId, serie] of [
-      [MACHINE_DEPASSEE_ANCIENNE, SN_DEPASSEE_ANCIENNE],
-      [MACHINE_DEPASSEE_RECENTE, SN_DEPASSEE_RECENTE],
       [MACHINE_A_VENIR, SN_A_VENIR],
       [MACHINE_SANS_INFORMATION, SN_SANS_INFORMATION],
     ] as const) {
@@ -148,30 +160,16 @@ test.beforeAll(async () => {
       });
     }
 
-    for (const [verificationId, machineId, date] of [
-      [
-        VERIFICATION_DEPASSEE_ANCIENNE,
-        MACHINE_DEPASSEE_ANCIENNE,
-        DATE_VERIFICATION_ANCIENNE,
-      ],
-      [
-        VERIFICATION_DEPASSEE_RECENTE,
-        MACHINE_DEPASSEE_RECENTE,
-        DATE_VERIFICATION_RECENTE,
-      ],
-      [VERIFICATION_A_VENIR, MACHINE_A_VENIR, DATE_VERIFICATION_A_VENIR],
-    ] as const) {
-      await client.vgpVerification.create({
-        data: {
-          id: verificationId,
-          societe_id: societeId,
-          machine_id: machineId,
-          date_verification: date,
-          organisme: "Organisme d'épreuve VGP-4",
-          origine: "rapport_organisme",
-        },
-      });
-    }
+    await client.vgpVerification.create({
+      data: {
+        id: VERIFICATION_A_VENIR,
+        societe_id: societeId,
+        machine_id: MACHINE_A_VENIR,
+        date_verification: DATE_VERIFICATION_A_VENIR,
+        organisme: "Organisme d'épreuve VGP-4",
+        origine: "rapport_organisme",
+      },
+    });
     // MACHINE_SANS_INFORMATION n'a AUCUNE ligne `vgpVerification` : c'est
     // exactement le cas `sans_information` que le registre doit dire.
   } finally {
@@ -183,27 +181,10 @@ test.afterAll(async () => {
   const client = admin();
   try {
     await client.vgpVerification.deleteMany({
-      where: {
-        id: {
-          in: [
-            VERIFICATION_DEPASSEE_ANCIENNE,
-            VERIFICATION_DEPASSEE_RECENTE,
-            VERIFICATION_A_VENIR,
-          ],
-        },
-      },
+      where: { id: VERIFICATION_A_VENIR },
     });
     await client.machine.deleteMany({
-      where: {
-        id: {
-          in: [
-            MACHINE_DEPASSEE_ANCIENNE,
-            MACHINE_DEPASSEE_RECENTE,
-            MACHINE_A_VENIR,
-            MACHINE_SANS_INFORMATION,
-          ],
-        },
-      },
+      where: { id: { in: [MACHINE_A_VENIR, MACHINE_SANS_INFORMATION] } },
     });
     await client.modeleMateriel.deleteMany({ where: { id: MODELE_VGP4 } });
     await client.familleMateriel.deleteMany({ where: { id: FAMILLE_VGP4 } });
@@ -216,7 +197,7 @@ test.afterAll(async () => {
 
 const DOSSIER_CAPTURES = join(
   process.cwd(),
-  "docs/propositions/91-VGP-4-REPRISE/captures",
+  "docs/propositions/96-VGP-4-REPRISE-2/captures",
 );
 
 async function capturer(page: Page, nom: string): Promise<void> {
@@ -232,7 +213,7 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
-test("le KPI « Échéances dépassées » filtre le registre, et la plus ancienne dépassée vient en tête", async ({
+test("le KPI « Échéances dépassées » filtre le registre sur la seule dépassée du semis, en tête", async ({
   page,
 }) => {
   await page.goto("/vgp");
@@ -255,17 +236,19 @@ test("le KPI « Échéances dépassées » filtre le registre, et la plus ancien
     expect(libelle.trim()).toBe(fr["vgp.information.recue_echeance_depassee"]);
   }
 
-  // Les deux machines dépassées de la scène sont dans la liste ; les deux
-  // autres — à venir, sans information — n'y sont PAS.
-  await expect(page.getByText(SN_DEPASSEE_ANCIENNE)).toBeVisible();
-  await expect(page.getByText(SN_DEPASSEE_RECENTE)).toBeVisible();
+  // Les deux machines de cette scène n'ont AUCUNE échéance dépassée — ni
+  // l'une ni l'autre n'apparaît dans ce filtre.
   await expect(page.getByText(SN_A_VENIR)).toHaveCount(0);
   await expect(page.getByText(SN_SANS_INFORMATION)).toHaveCount(0);
 
-  // LA PLUS ANCIENNE DÉPASSÉE EN TÊTE (l'arbitrage du 25/09/2026) : la
-  // machine vérifiée en 2010 est, de très loin, la plus ancienne dépassée de
-  // toute la base — semis et autres épreuves compris.
-  await expect(lignes.first()).toContainText(SN_DEPASSEE_ANCIENNE);
+  // LA SEULE DÉPASSÉE DE LA SOCIÉTÉ EST CELLE DU SEMIS (lue, jamais
+  // modifiée) : elle est donc, nécessairement, en tête — l'arbitrage du
+  // 25/09/2026 sur le tri par urgence.
+  await expect(
+    lignes.filter({ hasText: MACHINE_DEPASSEE_DU_SEMIS }),
+  ).toHaveCount(1);
+  await expect(lignes).toHaveCount(1);
+  await expect(lignes.first()).toContainText(MACHINE_DEPASSEE_DU_SEMIS);
 
   await capturer(page, "registre-filtre-depassees");
 });
@@ -276,23 +259,17 @@ test("la recherche « q » filtre le registre par numéro de série, désignatio
   // PAR NUMÉRO DE SÉRIE — une seule ligne, celle de la machine « à venir ».
   await page.goto(`/vgp?q=${encodeURIComponent(SN_A_VENIR)}`);
   await expect(page.getByText(SN_A_VENIR)).toBeVisible();
-  await expect(page.getByText(SN_DEPASSEE_ANCIENNE)).toHaveCount(0);
   await expect(page.getByText(SN_SANS_INFORMATION)).toHaveCount(0);
   await capturer(page, "recherche-numero-serie");
 
-  // PAR CLIENT — les QUATRE machines de la scène, aucune autre.
+  // PAR CLIENT — les DEUX machines de la scène, aucune autre.
   await page.goto(`/vgp?q=${encodeURIComponent(fr["vgp4.e2e.client"])}`);
-  for (const serie of [
-    SN_DEPASSEE_ANCIENNE,
-    SN_DEPASSEE_RECENTE,
-    SN_A_VENIR,
-    SN_SANS_INFORMATION,
-  ]) {
+  for (const serie of [SN_A_VENIR, SN_SANS_INFORMATION]) {
     await expect(page.getByText(serie)).toBeVisible();
   }
-  await expect(page.locator("table tbody tr")).toHaveCount(4);
+  await expect(page.locator("table tbody tr")).toHaveCount(2);
 
-  // PAR DÉSIGNATION (le modèle) — le même jeu de quatre machines.
+  // PAR DÉSIGNATION (le modèle) — le même jeu de deux machines.
   await page.goto(`/vgp?q=${encodeURIComponent(fr["vgp4.e2e.modele"])}`);
-  await expect(page.locator("table tbody tr")).toHaveCount(4);
+  await expect(page.locator("table tbody tr")).toHaveCount(2);
 });

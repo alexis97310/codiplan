@@ -3559,20 +3559,24 @@ export const fr = {
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/vgp-4.spec.ts)
   //
   // Même discipline que `parcsites.e2e.*` : sa PROPRE scène, préfixée `VGP4-`,
-  // créée et supprimée par l'épreuve (`docs/propositions/91-VGP-4-REPRISE`).
+  // créée et supprimée par l'épreuve (`docs/propositions/96-VGP-4-REPRISE-2`).
   // Une famille et un modèle dédiés — plutôt que ceux du semis — pour fixer
-  // la périodicité et son texte SANS toucher au jeu de démonstration : quatre
-  // machines, dont les dates de vérification sont posées à distance connue
-  // d'aujourd'hui pour éprouver le tri par urgence sans jamais écrire de
-  // délai dans le code (L9-05, §8 du CLAUDE.md — la donnée est de la scène,
-  // jamais une règle).
+  // la périodicité et son texte SANS toucher au jeu de démonstration.
+  //
+  // AUCUNE des deux machines forgées ici ne porte d'échéance DÉPASSÉE : la
+  // scène ne compte QUE deux voies déjà neutres pour le tableau de bord — une
+  // échéance à venir posée à PLUS de trente jours (hors de l'horizon de la
+  // tuile « VGP à prévoir »), et une machine sans aucune information reçue.
+  // La preuve « la plus ancienne dépassée en tête » s'appuie sur la seule
+  // échéance dépassée que le SEMIS porte déjà (`NUS-SPL-2022-0007`,
+  // `prisma/seed-data.ts`), lue et jamais modifiée — 96-VGP-4-REPRISE-2 tire
+  // la leçon de 91-VGP-4-REPRISE, recalée deux fois pour avoir forgé deux
+  // échéances dépassées qui faussaient la tuile du tableau de bord partagée.
   "vgp4.e2e.client": "VGP4 — Client de l'épreuve",
   "vgp4.e2e.site": "VGP4 — Lieu de l'épreuve",
   "vgp4.e2e.famille": "VGP4 — Famille de l'épreuve",
   "vgp4.e2e.modele": "VGP4-MODELE",
   "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
-  "vgp4.e2e.numero_serie_depassee_ancienne": "VGP4-SN-DEPASSEE-ANCIENNE",
-  "vgp4.e2e.numero_serie_depassee_recente": "VGP4-SN-DEPASSEE-RECENTE",
   "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
   "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
 } as const;
