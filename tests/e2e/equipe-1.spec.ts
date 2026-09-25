@@ -237,13 +237,11 @@ test("DÉSACTIVER CE TECHNICIEN, ALORS QU'IL A ENCORE 2 INTERVENTIONS À VENIR, 
   );
 
   // Et le technicien est bien désormais inactif, masqué par défaut — le
-  // reste du comportement de `Technicien.actif` n'a pas changé.
+  // reste du comportement de `Technicien.actif` n'a pas changé. Le badge
+  // vit dans la LIGNE du tableau, pas dans le `<details>` de modification.
   await page.goto("/parametres/equipe?etat=tous");
   await expect(
-    page
-      .locator("details")
-      .filter({ hasText: NOM })
-      .getByText(fr["equipe.inactif"]),
+    page.locator("tr").filter({ hasText: NOM }).getByText(fr["equipe.inactif"]),
   ).toBeVisible();
 });
 
