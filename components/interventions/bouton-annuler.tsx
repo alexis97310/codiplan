@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 
 /**
  * LE BOUTON « ANNULER L'INTERVENTION » (84-FICHE-ANNULER) — danger, désactivé
@@ -12,18 +12,17 @@ import { Button } from "@/components/ui/button";
  * même convention que `ChampSiteEtMachines` (`site-et-machines.tsx`) : c'est
  * la fiche, composant serveur, qui appelle `t(...)`.
  *
- * **Le formulaire reste un POST natif** (`Action`, dans la fiche) : ce bouton
- * est `type="button"`, jamais `type="submit"` — la soumission ne part QUE
- * depuis le bouton de confirmation, par `form.requestSubmit()`. Le piège de
- * 55-FORMULAIRES-1 / 61-FORMULAIRES-1-REPRISE (désactiver un bouton `submit`
- * dans son propre `onClick`, ce qui annule la soumission qu'il porte) ne
- * s'applique donc pas ici : ce bouton ne soumet jamais lui-même, et sa
- * désactivation vient d'un écouteur posé sur le champ motif, jamais sur son
+ * La mécanique de confirmation (dialogue, `form.requestSubmit()`) vit dans
+ * `BoutonAvecConfirmation` (`components/ui/bouton-confirmation.tsx`, extrait
+ * d'ici pour 99D-ABSENCES-1) — ce fichier ne garde que ce qui est SPÉCIFIQUE
+ * à l'annulation : la désactivation tant que le motif est vide. Le motif est
+ * lu sur le champ `motif` DU MÊME formulaire (rendu par `Saisie`), écouté sur
+ * l'évènement `input` — jamais recopié dans une prop, le champ reste la
+ * seule source. Le piège de 55-FORMULAIRES-1 / 61-FORMULAIRES-1-REPRISE
+ * (désactiver un bouton `submit` dans son propre `onClick`, ce qui annule la
+ * soumission qu'il porte) ne s'applique pas ici : le bouton visible est
+ * `type="button"`, et sa désactivation vient de cet écouteur, jamais de son
  * propre clic.
- *
- * Le motif est lu sur le champ `motif` DU MÊME formulaire (rendu par
- * `Saisie`), écouté sur l'évènement `input` — jamais recopié dans une prop,
- * le champ reste la seule source.
  */
 export function BoutonAnnuler({
   libelle,
@@ -41,9 +40,7 @@ export function BoutonAnnuler({
   boutonRevenir: string;
 }) {
   const boutonRef = useRef<HTMLButtonElement>(null);
-  const dialogueRef = useRef<HTMLDialogElement>(null);
   const [motifRempli, setMotifRempli] = useState(false);
-  const [dialogueOuvert, setDialogueOuvert] = useState(false);
 
   useEffect(() => {
     const formulaire = boutonRef.current?.form ?? null;
@@ -60,61 +57,19 @@ export function BoutonAnnuler({
     return () => motif.removeEventListener("input", surSaisie);
   }, []);
 
-  useEffect(() => {
-    const dialogue = dialogueRef.current;
-    if (dialogue === null) {
-      return;
-    }
-    if (dialogueOuvert) {
-      dialogue.showModal();
-    } else if (dialogue.open) {
-      dialogue.close();
-    }
-  }, [dialogueOuvert]);
-
   return (
-    <>
-      <Button
-        ref={boutonRef}
-        type="button"
-        variant="destructive"
-        size="sm"
-        disabled={!motifRempli}
-        onClick={() => setDialogueOuvert(true)}
-      >
-        {libelle}
-      </Button>
-      <dialog
-        ref={dialogueRef}
-        onClose={() => setDialogueOuvert(false)}
-        aria-labelledby="confirmation-annulation"
-        className="bg-app-surface border-app-bord m-auto max-w-sm rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
-      >
-        <p id="confirmation-annulation" className="text-[13px]">
+    <BoutonAvecConfirmation
+      ref={boutonRef}
+      libelle={libelle}
+      variant="destructive"
+      disabled={!motifRempli}
+      texteConfirmation={
+        <>
           {confirmationAvant} {reference} {confirmationApres}
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setDialogueOuvert(false)}
-          >
-            {boutonRevenir}
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              setDialogueOuvert(false);
-              boutonRef.current?.form?.requestSubmit();
-            }}
-          >
-            {boutonConfirmer}
-          </Button>
-        </div>
-      </dialog>
-    </>
+        </>
+      }
+      boutonConfirmer={boutonConfirmer}
+      boutonRevenir={boutonRevenir}
+    />
   );
 }

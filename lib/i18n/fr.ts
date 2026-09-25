@@ -2503,6 +2503,18 @@ export const fr = {
     "Un blocage posé sur une semaine passée change le taux d'occupation de cette semaine-là, y compris s'il a déjà été lu. Le taux dit toujours le mieux qu'on sait, jamais ce qu'on savait.",
   "absences.levee_explication":
     "Lever un blocage libère les jours à venir. Il ne rend pas leur créneau aux interventions déjà reparties en file : elles ne savent plus où elles étaient, et c'est au planificateur de les reposer.",
+  // ── LA CONFIRMATION AVANT LEVÉE (99D-ABSENCES-1) ──────────────────────────
+  //
+  // Même mécanique que `intervention.annulation.*` (`BoutonAvecConfirmation`,
+  // `components/ui/bouton-confirmation.tsx`) : le message se compose en trois
+  // morceaux — `{avant} {sujet} {apres}` — parce que le sujet (personne et
+  // période) n'est pas une chaîne à traduire, il vient de `quiTravaille` et de
+  // `periode`, deux données.
+  "absences.levee_confirmation_avant": "Lever le blocage de",
+  "absences.levee_confirmation_apres":
+    "? Les interventions déjà reparties en file ne retrouveront pas leur créneau.",
+  "absences.levee_confirmer": "Confirmer la levée",
+  "absences.levee_revenir": "Revenir",
   "absences.rendues_titre": "Interventions rendues à la file à planifier",
   // ── 65-ABSENCES-3 : LES RÉFÉRENCES DEVIENNENT DES LIENS (SAV-12) ──────────
   //

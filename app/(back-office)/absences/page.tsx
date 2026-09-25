@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
@@ -98,7 +99,10 @@ export const metadata: Metadata = { title: t("absences.titre") };
  * - **Le TITRE reste « Blocages d'agenda ».** C'est un choix de VOCABULAIRE
  *   (D122), pas de disposition — et un choix délibéré de R3-14 pour ne pas
  *   laisser croire à un outil de congés. La maquette écrit « Absences » ;
- *   `absences.titre` ne bouge pas.
+ *   `absences.titre` ne bouge pas. **L'audit d'ergonomie du 25/09/2026
+ *   (constat 36) redemande cet alignement avec `nav.absences` — refusé pour
+ *   la même raison, arbitrage porté en fin de `docs/backlog.md`
+ *   (99D-ABSENCES-1) plutôt que tranché en session.**
  * - **Le formulaire de déclaration, le tableau des blocages et les deux
  *   bandeaux (interventions rendues, rupture de service au moment de la
  *   pose) restent.** `absences()` ne les dessine pas, mais ce sont des
@@ -442,7 +446,13 @@ export default async function PageAbsences({
               </Cellule>
               <Cellule>{periode(absence.du, absence.au)}</Cellule>
               <Cellule>
-                <FormulaireLevee absenceId={absence.id} />
+                <FormulaireLevee
+                  absenceId={absence.id}
+                  sujet={sujetLevee(
+                    quiTravaille(absence.utilisateur_id, vue.annuaire),
+                    periode(absence.du, absence.au),
+                  )}
+                />
               </Cellule>
             </tr>
           ))}
@@ -498,18 +508,46 @@ function COLONNES() {
  * LEVER UN BLOCAGE — la seule action possible sur une ligne existante.
  *
  * *Il n'y a rien à « trancher »* : la ligne bloque dès qu'elle existe. Ce
- * formulaire la supprime, et ce qu'il ne fait pas est dit à côté du tableau —
- * lever ne rend pas leurs créneaux aux interventions déjà rendues à la file.
+ * formulaire la supprime, et ce qu'il ne fait pas est dit à côté du
+ * tableau — lever ne rend pas leurs créneaux aux interventions déjà rendues
+ * à la file. **Depuis 99D-ABSENCES-1, ce que ça ne fait pas est aussi dit
+ * dans la confirmation elle-même** (constat 37 de l'audit du 25/09/2026),
+ * avec la même mécanique que `BoutonAnnuler` sur la fiche d'intervention
+ * (lot 84) — un dialogue natif, jamais une soumission au premier clic.
  */
-function FormulaireLevee({ absenceId }: { readonly absenceId: string }) {
+function FormulaireLevee({
+  absenceId,
+  sujet,
+}: {
+  readonly absenceId: string;
+  readonly sujet: string;
+}) {
   return (
     <form action="/api/absences/lever" method="post">
       <input type="hidden" name="absence_id" value={absenceId} />
-      <Button type="submit" variant="outline" size="sm">
-        {t("absences.lever")}
-      </Button>
+      <BoutonAvecConfirmation
+        libelle={t("absences.lever")}
+        variant="outline"
+        texteConfirmation={
+          <>
+            {t("absences.levee_confirmation_avant")} {sujet}{" "}
+            {t("absences.levee_confirmation_apres")}
+          </>
+        }
+        boutonConfirmer={t("absences.levee_confirmer")}
+        boutonRevenir={t("absences.levee_revenir")}
+      />
     </form>
   );
+}
+
+/**
+ * Le sujet de la confirmation de levée — une personne et sa période, jamais
+ * composé dans le JSX (même discipline que `periode`/`listeDesAgences`
+ * ci-dessous, L0-11).
+ */
+function sujetLevee(personne: string, periodeTexte: string): string {
+  return `${personne}${SEPARATEUR}${periodeTexte}`;
 }
 
 function ChampJour({

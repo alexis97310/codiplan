@@ -2269,3 +2269,35 @@ Il ne tranche pas. **Il refuse en revanche de laisser la règle vivre sans que s
 **CE QUI RESTE OUVERT, et qui n'est pas à moi :** faut-il garder les entrées inertes une fois qu'elles sont rangées en sections — *une section entièrement inerte est un dossier vide, et un dossier vide se remarque plus qu'un mot grisé* ? Et « Paramètres » remplace-t-il « Sociétés & tarifs », ou s'y ajoute-t-il — *le second libellé dit que la SOCIÉTÉ s'y règle, pas seulement l'application* ?
 **LA BARRE DU PORTAIL NE BOUGE PAS**, et ce n'est pas un oubli : *un client qui lirait « Contrats » ou « Paramètres » au-dessus de son espace apprendrait l'existence d'un outil qui n'est pas le sien.*
 *Acceptation :* la structure est arrêtée devant l'image avant toute ligne de code ; les trois gardiens confrontent des **destinations** et restent exacts ; une capture à 1280 **et** à 390 px accompagne la livraison, et la seconde montre le panneau ouvert ; `pnpm chemins` ne perd aucun écran atteint.
+
+---
+
+**99D-ABSENCES-2 — LE TITRE DE L'ÉCRAN DES BLOCAGES D'AGENDA DOIT-IL DEVENIR « ABSENCES » ? [arbitrage] [D122] [D128] [26/09/2026]**
+*File :* BLOQUÉ — arbitrage d'Alexis : ce vocabulaire a déjà été tranché par lui le 14/09/2026, et une session ne le retranche pas seule.
+
+## La question
+
+Un audit d'ergonomie demande que le titre affiché en haut de l'écran des blocages d'agenda reprenne le mot « Absences » du menu, au lieu de « Blocages d'agenda ». Faut-il suivre cette demande, ou la refuser au nom de la décision qui a choisi « Blocages d'agenda » précisément pour ne pas ressembler à un outil de gestion des congés ?
+
+## Ce que j'ai mesuré
+
+*Le 26/09/2026, sur le ticket 99D-ABSENCES-1.*
+
+- `lib/i18n/fr.ts` porte `"absences.titre": "Blocages d'agenda"` pendant que `"nav.absences": "Absences"` nomme l'entrée de menu qui y mène — deux mots pour un même écran.
+- Le docblock de `app/(back-office)/absences/page.tsx` (avant ce ticket, déjà écrit le 19/09/2026) dit noir sur blanc : *« Le TITRE reste « Blocages d'agenda ». C'est un choix de VOCABULAIRE (D122), pas de disposition — et un choix délibéré de R3-14 pour ne pas laisser croire à un outil de congés. »*
+- L'arbitrage d'Alexis du 14/09/2026 sur R3-14 (`docs/backlog.md`, ticket R3-14) écrit : *« CODIPLAN N'EST PAS UN OUTIL DE GESTION DES RESSOURCES HUMAINES, ET IL N'Y A PLUS DE MODULE D'ABSENCE. Il ne reste qu'un blocage d'agenda. »* — c'est la même personne qui a choisi le mot, et la raison est écrite : le mot « absence » suggère un motif (congé, arrêt) que cet écran s'interdit précisément d'afficher.
+- L'audit d'ergonomie du 25/09/2026 (constat 36, cité par le ticket 99D-ABSENCES-1) mesure la même divergence entre le titre et le menu, sans mentionner ni D122 ni D128 ni l'arbitrage du 14/09 — je n'ai trouvé aucune trace qu'il les ait reconsidérés en connaissance de cause.
+
+## Les issues possibles
+
+| | Ce qu'elle coûte | Ce qu'elle interdit |
+|---|---|---|
+| **A — Garder « Blocages d'agenda »** | rien à construire ; l'écart entre le libellé du menu et le titre de l'écran demeure, et un exploitant qui clique sur « Absences » peut se demander un instant s'il s'est trompé de page | rien de nouveau — c'est l'état actuel, celui que R3-14 a choisi en connaissance de cause |
+| **B — Renommer le titre en « Absences »** | un changement de valeur sur une clé déjà large (`absences.titre`), et une relecture du docblock qui l'explique | rouvre, en silence, la décision du 14/09/2026 — un futur lecteur du docblock ne saura plus pourquoi deux mots existent, ni si le second est un oubli ou un choix |
+| **C — Renommer, et écrire dans `docs/arbitrages.md` qu'Alexis lève la réserve du 14/09/2026 en connaissance de cause** | le même travail que B, plus une décision écrite avec sa condition de réouverture | rien, si c'est bien la volonté d'Alexis — mais c'est à lui de le dire, pas à une session de le déduire d'un audit qui ne cite pas la décision qu'il contredit |
+
+*Recommandation : C si Alexis confirme avoir voulu revenir sur son propre arbitrage du 14/09 en écrivant l'audit du 25/09 — sinon A. Ce n'est pas un choix de code, c'est un choix de ce que le produit a le droit de laisser croire à quelqu'un qui le regarde.*
+
+## En attendant
+
+**Rien d'autre n'est bloqué.** Le reste de 99D-ABSENCES-1 (la confirmation avant de lever un blocage) est livré sans attendre cette décision. Le titre de l'écran reste « Blocages d'agenda » ; `absences.titre` n'est pas renommé.
