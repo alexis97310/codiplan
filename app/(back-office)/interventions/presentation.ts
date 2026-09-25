@@ -110,6 +110,94 @@ function estOrigineFiche(valeur: unknown): valeur is OrigineFiche {
 export type RetourFiche = { readonly href: string; readonly libelle: string };
 
 /**
+ * ── LE RETOUR AU REGISTRE REJOINT LA LISTE TELLE QU'ON L'AVAIT LAISSÉE
+ * (78-LIENS-2) ────────────────────────────────────────────────────────────
+ *
+ * *Mesuré sur main le 25/09/2026 : `case "interventions"` rendait
+ * `/interventions` nu — la vue, la recherche, les filtres et la page étaient
+ * PERDUS à chaque fiche ouverte depuis le registre.* Le lien de ligne du
+ * registre porte désormais `retour=<la requête active, encodée>`, et cette
+ * fonction la REJOUE — jamais recopiée telle quelle : `retour` arrive dans
+ * l'URL d'une fiche, exactement comme `depuis` (D50, redirection ouverte), et
+ * se filtre contre la MÊME liste fermée que le registre lit déjà
+ * (`parametresActifs`, `page.tsx`) plutôt que d'en tenir une seconde qui
+ * pourrait diverger en silence (§9, 01/09).
+ *
+ * Rejetée EN BLOC — retour à `/interventions` nu — dès que la valeur brute
+ * porte `://`, `//` ou `:` : aucune des clés connues ne porte ce caractère
+ * dans une valeur légitime (dates sans heure, UUID sans deux-points, entiers,
+ * texte de recherche), donc sa présence ne peut être qu'un schéma d'URL
+ * détourné (`javascript:`, `//hôte-étranger`, `https://…`).
+ */
+
+/**
+ * LA LISTE FERMÉE DES PARAMÈTRES QUE LE RETOUR PORTE — EXPORTÉE pour que le
+ * lien de ligne du registre (`page.tsx`) compose `retour=` sur EXACTEMENT
+ * cette liste, jamais une seconde liste tenue à la main qui pourrait
+ * diverger en silence de celle que `retourVersRegistre` relit plus bas (§9,
+ * 01/09).
+ */
+export const PARAMETRES_RETOUR_REGISTRE = [
+  "vue",
+  "q",
+  "technicien",
+  "agence",
+  "type",
+  "statut",
+  "du",
+  "au",
+  "sans_duree_a_venir",
+  "page",
+] as const;
+
+/** Une valeur de retour plus longue que ceci n'est pas un filtre plausible. */
+const LONGUEUR_MAXIMALE_VALEUR_RETOUR = 200;
+
+/**
+ * LA REQUÊTE ACTIVE DU REGISTRE, ENCODÉE — composée sur le lien de chaque
+ * ligne (`page.tsx`), pour que `retourVersRegistre` ci-dessous la rejoue
+ * depuis la fiche. Prend les valeurs BRUTES de la requête en cours, jamais
+ * les critères déjà analysés (`RechercheInterventions`) : `du`/`au` y
+ * seraient des `Date`, que réencoder ferait diverger du format
+ * `<input type="date">` que le formulaire relit au retour.
+ */
+export function retourActuelDuRegistre(
+  params: Readonly<Record<string, string | readonly string[] | undefined>>,
+): string {
+  const requete = new URLSearchParams();
+  for (const cle of PARAMETRES_RETOUR_REGISTRE) {
+    const valeur = params[cle];
+    const premiere = Array.isArray(valeur) ? valeur[0] : valeur;
+    if (typeof premiere === "string" && premiere.length > 0) {
+      requete.set(cle, premiere);
+    }
+  }
+  return requete.toString();
+}
+
+export function retourVersRegistre(
+  retour: string | readonly string[] | undefined,
+): string {
+  const brut = Array.isArray(retour) ? retour[0] : retour;
+  if (typeof brut !== "string" || brut.length === 0) {
+    return "/interventions";
+  }
+  if (brut.includes("://") || brut.includes("//") || brut.includes(":")) {
+    return "/interventions";
+  }
+  const recus = new URLSearchParams(brut);
+  const conserves = new URLSearchParams();
+  for (const cle of PARAMETRES_RETOUR_REGISTRE) {
+    const valeur = recus.get(cle);
+    if (valeur !== null && valeur.length <= LONGUEUR_MAXIMALE_VALEUR_RETOUR) {
+      conserves.set(cle, valeur);
+    }
+  }
+  const requete = conserves.toString();
+  return requete.length === 0 ? "/interventions" : `/interventions?${requete}`;
+}
+
+/**
  * LE RETOUR — `planning` par défaut, comme avant ce ticket, quand `depuis`
  * est absent, ne vaut rien de connu, ou — cas de `machine` — désigne une
  * machine qui n'est PAS rattachée à cette intervention : la destination
@@ -120,6 +208,7 @@ export function retourFiche(
   parametres: {
     readonly depuis: string | readonly string[] | undefined;
     readonly depuisId: string | readonly string[] | undefined;
+    readonly retour: string | readonly string[] | undefined;
   },
   ligne: {
     readonly client_id: string;
@@ -141,7 +230,7 @@ export function retourFiche(
   switch (depuis) {
     case "interventions":
       return {
-        href: "/interventions",
+        href: retourVersRegistre(parametres.retour),
         libelle: t("intervention.retour.interventions"),
       };
     case "client":
