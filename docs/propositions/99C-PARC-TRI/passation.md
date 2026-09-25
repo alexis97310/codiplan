@@ -190,7 +190,9 @@ ne fasse retomber la barre sur deux lignes et perde le gain.
 
 ## Ce qui reste à faire
 
-Rien de bloquant pour ce ticket : les quatre étapes demandées sont faites,
-`pnpm test` et l'e2e concerné sont verts, la passation est à jour.
-`CI=1 pnpm verify:full` reste à faire tourner en entier avant la remise
-finale (voir le dernier message de cette session).
+Rien de bloquant pour ce ticket : les quatre étapes demandées sont faites.
+`CI=1 pnpm verify:full` a tourné en entier après le commit du code :
+format, typecheck, lint, tests unitaires (267 fichiers, 2869 tests),
+`test:isolation` (14 tests), build, `feries:horizon`, `audit:partitions`
+et `test:e2e` (290 épreuves — 287 passées, 3 ignorées, 0 échec) sont tous
+verts, sans retouche.
