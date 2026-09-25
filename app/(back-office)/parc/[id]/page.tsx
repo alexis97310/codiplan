@@ -44,6 +44,7 @@ import { libelleEcheance } from "@/lib/vgp/libelles";
 import { informationDeLaMachine } from "@/lib/vgp/registre";
 
 import { referenceAffichee } from "../../interventions/presentation";
+import { retourVersParc } from "../presentation";
 
 /**
  * LA FICHE MACHINE, À L'IDENTIQUE DE `machinePage()` (N-11, D125, D126).
@@ -124,8 +125,10 @@ export async function generateMetadata({
 
 export default async function PageMachine({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await sessionCache();
   if (session === null) {
@@ -141,6 +144,11 @@ export default async function PageMachine({
   if (machine === null) {
     notFound();
   }
+
+  // LE PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — voir `retourVersParc`,
+  // `../presentation.ts`, pour le filtrage.
+  const { retour } = await searchParams;
+  const hrefRetourParc = retourVersParc(retour);
 
   const societe = await avecContexteApplicatif(contexte, (tx) =>
     tx.societe.findFirst({
@@ -213,7 +221,10 @@ export default async function PageMachine({
       sousTitre={sousTitreFiche(machine)}
       actions={
         <>
-          <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
+          <Link
+            href={hrefRetourParc}
+            className="text-app-encre-faible text-[12.5px]"
+          >
             {t("machine.retour")}
           </Link>
           {/* « Modifier » — GAP COMBLÉ (AT-07 bis, 18/09/2026) : la route

@@ -52,6 +52,8 @@ import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
 
+import { retourActuelDuParc } from "./presentation";
+
 export const metadata: Metadata = { title: t("parc.titre") };
 
 /**
@@ -245,6 +247,9 @@ export default async function PageParc({
     options.familles,
     (f) => f.libelle,
   );
+  // LE RETOUR AU PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — porté par le
+  // lien « Fiche complète », rejoué par `retourVersParc` depuis la fiche.
+  const retourParc = retourActuelDuParc(params);
 
   return (
     <Page
@@ -433,7 +438,7 @@ export default async function PageParc({
                   }
                   action={
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/parc/${selection.id}`}>
+                      <Link href={hrefFicheComplete(selection.id, retourParc)}>
                         {t("parc.fiche_complete")}
                       </Link>
                     </Button>
@@ -568,6 +573,18 @@ function hrefDeLaLigne(
   recherche.set("page", String(page));
   recherche.set("machine", machineId);
   return `/parc?${recherche.toString()}`;
+}
+
+/**
+ * L'URL DE LA FICHE COMPLÈTE — la requête active du parc, encodée dans
+ * `retour`, pour que `retourVersParc` (`[id]/page.tsx`) la rejoue au clic
+ * sur « Retour » (79-LIENS-3). Sans requête active (retour vide), le lien
+ * reste nu — comportement inchangé.
+ */
+function hrefFicheComplete(machineId: string, retourParc: string): string {
+  return retourParc.length === 0
+    ? `/parc/${machineId}`
+    : `/parc/${machineId}?retour=${encodeURIComponent(retourParc)}`;
 }
 
 /** Le détail du premier KPI — le décompte qui vivait dans l'en-tête (§1). */
