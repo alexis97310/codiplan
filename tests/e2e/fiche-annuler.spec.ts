@@ -176,7 +176,9 @@ test("un motif saisi puis une confirmation refusée ne change rien", async ({
   // RIEN N'A ÉTÉ ENVOYÉ — ni la page (toujours la fiche, non rechargée), ni
   // la base : le statut reste `planifiee`.
   await expect(page).toHaveURL(`/interventions/${INTERVENTION_ANN1}`);
-  await expect(page.getByText(fr["statut.planifiee"])).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.planifiee"]),
+  ).toBeVisible();
 
   const client = admin();
   try {
@@ -208,7 +210,9 @@ test("une confirmation acceptée annule l'intervention avec son motif", async ({
     .getByRole("button", { name: fr["intervention.annulation.confirmer"] })
     .click();
 
-  await expect(page.getByText(fr["statut.annulee"])).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1 }).getByText(fr["statut.annulee"]),
+  ).toBeVisible();
   await expect(page.getByText(fr["annuler1.e2e.motif"])).toBeVisible();
 
   const client = admin();

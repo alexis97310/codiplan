@@ -88,7 +88,7 @@ export function BoutonAnnuler({
         ref={dialogueRef}
         onClose={() => setDialogueOuvert(false)}
         aria-labelledby="confirmation-annulation"
-        className="bg-app-surface border-app-bord max-w-sm rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
+        className="bg-app-surface border-app-bord m-auto max-w-sm rounded-lg border p-4 shadow-lg backdrop:bg-app-encre/40"
       >
         <p id="confirmation-annulation" className="text-[13px]">
           {confirmationAvant} {reference} {confirmationApres}
