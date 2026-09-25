@@ -56,13 +56,14 @@ export function Choix({
               <span className="text-[13px] font-bold">
                 {nomAffiche(societe)}
               </span>
-              {/* Le rôle s'affiche tel que l'énumération le porte, comme le
-                  fait déjà la ligne « Rôle » ci-dessus : la constitution range
-                  un nom de rôle du côté de ce qu'une MACHINE lit, et lui
-                  inventer dix libellés serait une décision de dictionnaire
-                  qu'aucun ticket n'a prise. */}
+              {/* Le rôle affiché est son LIBELLÉ (`role.<valeur>`,
+                  `lib/i18n/fr.ts`), pas le nom brut de l'énumération — décision
+                  de 99A-ARRIVEE, sur constat d'audit d'ergonomie : un compte
+                  lisait « admin_societe » là où la ligne « Rôle » ci-dessus
+                  faisait la même chose. Le NOM technique, lui, reste hors du
+                  dictionnaire (L0-11) — seul son libellé y entre. */}
               <span className="text-app-encre-faible text-[11.5px]">
-                {societe.role}
+                {t(`role.${societe.role}`)}
               </span>
               {societe.societeId === active ? (
                 <span className="text-app-encre-faible ml-auto text-[11.5px]">

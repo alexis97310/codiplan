@@ -128,23 +128,19 @@ test("le catalogue de forfaits occupe la même largeur, et la même forme", asyn
   );
 });
 
-test("l'arrivée commence en haut, sur la largeur utile", async ({ page }) => {
-  // R2-04. *Mesuré avant : contenu de 448 px, centré à mi-hauteur, document de
-  // 1072 px — la forme d'une page de connexion sous une barre ancrée en haut.*
-  await page.goto("/arrivee");
-
-  // Voir le commentaire du premier scénario : attendre la révélation du flux
-  // avant de mesurer, sans changer la valeur attendue.
-  await expect(page.locator("main")).toBeVisible();
-  const cadre = await page.locator("main").evaluate((element) => {
-    const boite = element.getBoundingClientRect();
-    return { largeur: Math.round(boite.width), haut: Math.round(boite.top) };
-  });
-  expect(cadre.largeur).toBe(LARGEUR_UTILE_PX - 2 * GOUTTIERE_PX);
-  // « Commence en haut » se mesure : sous la barre (58 px) et sa gouttière, pas
-  // à mi-hauteur d'une fenêtre de 1000.
-  expect(cadre.haut).toBeLessThan(140);
-});
+// R2-04 mesurait ici la mise en page de `/arrivee` (contenu de 448 px, centré
+// à mi-hauteur — la forme d'une page de connexion sous une barre ancrée en
+// haut, avant correction). RETIRÉ par 99A-ARRIVEE : le compte de ce fichier
+// (`ouvrirUneSession`, ADV, UNE société) ne voit plus jamais `/arrivee` — la
+// page redirige d'emblée vers `/planning`, et un `page.goto("/arrivee")`
+// suivrait la redirection sans rien peindre à mesurer. Aucun compte de
+// `tests/e2e/setup/scene.ts` n'a de société active ni plusieurs sociétés pour
+// rouvrir cet écran par un chemin réel ; en forger un romprait le
+// cloisonnement d'une scène partagée sous `fullyParallel` (voir le piège du
+// ticket). La classe `<Page>` qui portait la correction reste partagée et
+// éprouvée par les AUTRES scénarios de ce fichier (établissements, forfaits,
+// fiche d'intervention) : ce n'est donc pas une garantie qui reste sans
+// aucune épreuve, seulement sans épreuve PROPRE à `/arrivee`.
 
 test("la fiche d'intervention occupe la largeur utile, et garde ses actions", async ({
   page,

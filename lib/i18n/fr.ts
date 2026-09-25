@@ -279,6 +279,26 @@ export const fr = {
   // et le compte ne comprendrait pas pourquoi il ne peut pas y aller.
   "arrivee.choix.sans_nom": "Société sans nom lisible",
 
+  // ── LIBELLÉS DE RÔLE (99A-ARRIVEE, sur constat d'audit d'ergonomie) ──────
+  //
+  // `/arrivee` affichait le nom brut de l'énumération (« admin_societe ») là
+  // où un compte lit son rôle — le nom TECHNIQUE reste hors du dictionnaire
+  // (L0-11, « le nom d'un rôle ... » plus haut), mais son LIBELLÉ, lui, est
+  // ce qu'un humain lit à l'écran. Une clé par valeur de `Role`
+  // (`lib/auth/roles.ts`), reprise mot pour mot du §5 du cahier des charges
+  // (§5.1 pour les personas, §5.2 et §22.5 pour les rôles qui n'y en ont pas) :
+  // aucun libellé n'est inventé.
+  "role.admin_plateforme": "Administrateur de plateforme",
+  "role.editeur_commercial": "Administration commerciale éditeur",
+  "role.editeur_support": "Support éditeur",
+  "role.admin_societe": "Administrateur de société",
+  "role.direction": "Direction",
+  "role.responsable_materiel": "Responsable matériel",
+  "role.responsable_sav": "Responsable SAV",
+  "role.adv": "ADV",
+  "role.technicien": "Technicien",
+  "role.client": "Client",
+
   // ── Référentiel client (ticket L1-01) ─────────────────────────────────────
   // Ce que le PRODUIT dit. Ce qu'une SOCIÉTÉ dit est une donnée, lue en base :
   // `societe.libelle_code_externe` remplace « client.code_externe » ci-dessous

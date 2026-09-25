@@ -43,22 +43,27 @@ async function ouvrirLaSessionDuTerrain(page: Page): Promise<void> {
     .getByLabel(fr["connexion.mot_de_passe"])
     .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  await expect(page).toHaveURL(/\/arrivee/);
+  // Retouché par 99A-ARRIVEE : ce compte n'a qu'UNE société, donc `/arrivee`
+  // ne s'y arrête plus — elle redirige d'emblée au terrain.
+  await expect(page).toHaveURL(/\/terrain$/);
 }
 
 test.beforeEach(async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
 });
 
-test("l'arrivée mène au TERRAIN, jamais au planning du back-office", async ({
+test("l'arrivée mène directement au TERRAIN, jamais au planning du back-office", async ({
   page,
 }) => {
-  // *Une porte se pose dans le même geste que la pièce* : sans ce lien, l'écran
-  // du terrain n'aurait aucun appelant, et c'est la maladie que ce dépôt a déjà
-  // payée trois fois (D61, D67, D92).
-  const entree = page.getByRole("link", { name: fr["arrivee.entrer.terrain"] });
-  await expect(entree).toBeVisible();
-  await entree.click();
+  // *Une porte se pose dans le même geste que la pièce* : sans cette
+  // redirection, l'écran du terrain n'aurait aucun appelant, et c'est la
+  // maladie que ce dépôt a déjà payée trois fois (D61, D67, D92).
+  //
+  // Retouché par 99A-ARRIVEE : la connexion elle-même y mène déjà (voir
+  // `ouvrirLaSessionDuTerrain` ci-dessus) — ce scénario le confirme aussi
+  // pour une visite DIRECTE de `/arrivee`, preuve que c'est la page qui
+  // redirige, et non un hasard de la connexion.
+  await page.goto("/arrivee");
   await expect(page).toHaveURL(/\/terrain$/);
   await expect(
     page.getByRole("heading", { name: fr["terrain.titre"] }),

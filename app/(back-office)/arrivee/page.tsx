@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { Page } from "@/components/mise-en-page/page";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { estContexteActif } from "@/lib/auth/contexte";
-import { estRolePortail, type Role } from "@/lib/auth/roles";
+import { type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { societesDuCompte } from "@/lib/auth/societe-active";
 import { t } from "@/lib/i18n/fr";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/interventions/perimetre-technicien";
 
 import { Choix } from "./composants";
+import { destinationSiSocieteUnique, pointEntreeRole } from "./decision";
 
 export const metadata: Metadata = { title: t("arrivee.titre") };
 
@@ -87,6 +88,26 @@ export default async function PageArrivee() {
   const societeActive =
     etat.issue === "arrivee" ? (session?.contexte.societeId ?? null) : null;
 
+  // UNE SEULE SOCIÉTÉ, ET RIEN DE PLUS À CHOISIR (audit d'ergonomie du
+  // 25/09/2026, constat 2) : l'écran ne DIT plus « vous êtes connecté », il
+  // MÈNE — la même décision que `Entree` rend plus bas, lue depuis la même
+  // fonction pour que les deux ne divergent jamais. Zéro ou plusieurs
+  // sociétés laissent la page telle quelle, sélecteur compris.
+  if (
+    etat.issue === "arrivee" &&
+    session !== null &&
+    estContexteActif(session.contexte)
+  ) {
+    const destination = destinationSiSocieteUnique(
+      societes.length,
+      session.contexte.role,
+      perimetreDuPlanning(session.contexte),
+    );
+    if (destination !== null) {
+      redirect(destination);
+    }
+  }
+
   return (
     <Page
       chemin="/arrivee"
@@ -156,6 +177,10 @@ export default async function PageArrivee() {
  * deux fois une politique posée que rien n'appelait (D61, D67) et une fois un
  * écran vers lequel rien ne menait (D92) : *la porte se pose dans le même
  * ticket que la pièce.*
+ *
+ * **La décision vit dans `./decision.ts`** depuis 99A-ARRIVEE : c'est la même
+ * fonction, `pointEntreeRole`, que la redirection d'une société unique lit
+ * plus haut dans `PageArrivee`.
  */
 function Entree({
   role,
@@ -167,12 +192,13 @@ function Entree({
   if (role === null) {
     return null;
   }
-  if (estRolePortail(role)) {
+  const destination = pointEntreeRole(role, perimetre);
+  if (destination === "/portail") {
     return (
       <LienPrimaire href="/portail">{t("arrivee.entrer.portail")}</LienPrimaire>
     );
   }
-  if (perimetre?.acces === "restreint") {
+  if (destination === "/terrain") {
     return (
       <LienPrimaire href="/terrain">{t("arrivee.entrer.terrain")}</LienPrimaire>
     );
@@ -182,10 +208,28 @@ function Entree({
   );
 }
 
-function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
+function Ligne({
+  libelle,
+  valeur,
+  libelleClasse = "text-app-encre-faible",
+}: {
+  libelle: string;
+  valeur: string;
+  /**
+   * Couleur du `<dt>` — dérivée du fond qui la porte (audit d'ergonomie du
+   * 25/09/2026, constat 2). `text-app-encre-faible` mesure 2,06:1 sur le
+   * bloc `bg-societe-primaire` : ce gris est calé sur la surface neutre de
+   * l'application, jamais sur une couleur de société, dont la clarté varie
+   * d'un client à l'autre. `text-societe-primaire-encre`, elle, est
+   * GARANTIE ≥ 4,5:1 sur ce fond précis — c'est `encreLisible`
+   * (`lib/theme/contraste.ts`) qui la calcule, jamais un hexadécimal choisi
+   * à l'œil.
+   */
+  libelleClasse?: string;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-app-encre-faible">{libelle}</dt>
+      <dt className={libelleClasse}>{libelle}</dt>
       <dd className="font-medium">{valeur}</dd>
     </div>
   );
@@ -194,8 +238,16 @@ function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
 function Societe({ arrivee }: { arrivee: Arrivee }) {
   return (
     <dl className="bg-societe-primaire text-societe-primaire-encre flex flex-col gap-3 rounded-lg px-4 py-3.5 text-[13px]">
-      <Ligne libelle={t("arrivee.societe")} valeur={arrivee.societe ?? ""} />
-      <Ligne libelle={t("arrivee.role")} valeur={arrivee.role ?? ""} />
+      <Ligne
+        libelle={t("arrivee.societe")}
+        valeur={arrivee.societe ?? ""}
+        libelleClasse="text-societe-primaire-encre"
+      />
+      <Ligne
+        libelle={t("arrivee.role")}
+        valeur={arrivee.role !== null ? t(`role.${arrivee.role}`) : ""}
+        libelleClasse="text-societe-primaire-encre"
+      />
     </dl>
   );
 }

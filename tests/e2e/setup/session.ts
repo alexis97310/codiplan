@@ -14,6 +14,13 @@ import { COMPTE_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./scene";
  * *Un harnais qui poserait un cookie fabriqué mesurerait le planning et rien
  * d'autre*, et le premier défaut de session lui échapperait — c'est exactement
  * ce qui est arrivé à L1-02c le 08/09/2026.
+ *
+ * **Retouché par 99A-ARRIVEE** : le compte de l'épreuve n'est habilité que sur
+ * UNE société, et `/arrivee` ne s'arrête plus dessus pour la montrer — elle
+ * redirige d'emblée vers le point d'entrée du rôle (`adv` → `/planning`, sans
+ * second facteur). L'écran d'arrivée reste éprouvé pour lui-même par
+ * `tests/unit/app/arrivee-decision.test.ts` et par les scénarios qui ouvrent
+ * un compte à plusieurs sociétés.
  */
 export async function ouvrirUneSession(page: Page): Promise<void> {
   await page.goto("/connexion");
@@ -22,9 +29,7 @@ export async function ouvrirUneSession(page: Page): Promise<void> {
     .getByLabel(fr["connexion.mot_de_passe"])
     .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  // Le compte de l'épreuve n'est habilité que sur UNE société : l'arrivée la
-  // pose et ne propose aucun sélecteur.
-  await expect(page).toHaveURL(/\/arrivee/);
+  await expect(page).toHaveURL(/\/planning/);
 }
 
 /**
@@ -176,6 +181,14 @@ async function activerLeSecondFacteur(
  * Si l'identité est DÉJÀ activée — par `tests/e2e/setup/global.ts`, ou par un
  * appel précédent dans ce même processus — l'enrôlement est sauté et la clé
  * vient de `process.env` (voir l'en-tête du module).
+ *
+ * **Retouché par 99A-ARRIVEE** : les trois identités qu'on ouvre ici
+ * (`adv`, `admin_societe`, `technicien`) n'ont chacune qu'UNE société, si bien
+ * que `/arrivee` ne s'y arrête plus — elle redirige. La destination diffère
+ * selon le rôle (`/planning` pour les deux premières, `/terrain` pour la
+ * troisième), donc l'assertion vise n'importe laquelle des trois portes
+ * plutôt qu'une seule, sans quoi ce helper générique se serait mis à connaître
+ * le rôle de son appelant.
  */
 export async function ouvrirLaSessionSensible(
   page: Page,
@@ -191,5 +204,5 @@ export async function ouvrirLaSessionSensible(
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
   }
-  await expect(page).toHaveURL(/\/arrivee/);
+  await expect(page).toHaveURL(/\/(planning|terrain|portail)/);
 }

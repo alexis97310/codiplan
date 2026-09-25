@@ -394,7 +394,9 @@ test("le badge « Nouveau » se voit, puis s'efface à l'ouverture par le techni
     .getByLabel(fr["connexion.mot_de_passe"])
     .fill(MOT_DE_PASSE_EPREUVE);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
-  await expect(page).toHaveURL(/\/arrivee/);
+  // Retouché par 99A-ARRIVEE : ce compte n'a qu'UNE société, donc `/arrivee`
+  // redirige d'emblée au terrain plutôt que de s'y arrêter.
+  await expect(page).toHaveURL(/\/terrain$/);
 
   await page.goto("/terrain");
   const carte = page.locator(`a[href="/terrain/${INTERVENTION_BADGE}"]`);
