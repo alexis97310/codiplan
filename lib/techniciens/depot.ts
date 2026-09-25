@@ -7,6 +7,12 @@ import {
 } from "@/lib/auth/lecture-identite";
 import { Role } from "@/lib/auth/roles";
 import {
+  instantDuJour,
+  jourDe,
+  maintenant,
+  schemaFuseau,
+} from "@/lib/calendar/fuseau";
+import {
   avecContexteApplicatif,
   garantirRoleApplicatif,
   prisma,
@@ -222,6 +228,77 @@ export async function agencesDisponibles(
       }),
     client,
   );
+}
+
+/** Le compte de chaque technicien vers son nombre d'interventions à venir. */
+export type ComptesInterventionsAVenir = ReadonlyMap<string, number>;
+
+/**
+ * LES INTERVENTIONS À VENIR DE CHAQUE TECHNICIEN (ÉQUIPE-1, SAV-24).
+ *
+ * « À venir » = affectée à ce technicien, planifiée aujourd'hui (jour civil de
+ * l'agence, L0-08) ou plus tard, et dont le statut n'est ni `terminee`, ni
+ * `cloturee`, ni `annulee` — même exclusion que `criteresSansDureeAVenir` de
+ * `lib/interventions/depot.ts`, réécrite ici plutôt qu'importée : ce dépôt
+ * n'a pas vocation à dépendre du dépôt des interventions, et le territoire de
+ * ce lot ne l'ouvre pas.
+ *
+ * UNE SEULE requête groupée pour toute la liste — jamais une par technicien
+ * (`groupBy`, puis une carte pré-remplie à zéro : l'ABSENCE d'une ligne dans
+ * le résultat groupé est une mesure à zéro, pas une absence de mesure, même
+ * raisonnement que `lib/absences/depot.ts`).
+ */
+export async function compterInterventionsAVenirParTechnicien(
+  contexte: ContexteSession,
+  utilisateurIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ComptesInterventionsAVenir> {
+  if (utilisateurIds.length === 0) {
+    return new Map();
+  }
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const debutDuJour = await debutDuJourSociete(tx, contexte);
+      const groupes = await tx.intervention.groupBy({
+        by: ["technicien_id"],
+        where: {
+          technicien_id: { in: [...utilisateurIds] },
+          statut: { notIn: ["terminee", "cloturee", "annulee"] },
+          date_planifiee: { gte: debutDuJour },
+        },
+        _count: { _all: true },
+      });
+      const comptes = new Map<string, number>(
+        utilisateurIds.map((id) => [id, 0]),
+      );
+      for (const groupe of groupes) {
+        if (groupe.technicien_id !== null) {
+          comptes.set(groupe.technicien_id, groupe._count._all);
+        }
+      }
+      return comptes;
+    },
+    client,
+  );
+}
+
+/**
+ * LA CIVILE D'AUJOURD'HUI DANS LE FUSEAU DE LA SOCIÉTÉ (L0-08) — lue depuis
+ * la même transaction que le filtre qu'elle borne, jamais depuis l'horloge de
+ * l'appareil. Même forme que `debutDuJourSociete` de
+ * `lib/interventions/depot.ts`.
+ */
+async function debutDuJourSociete(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteSession,
+): Promise<Date> {
+  const societe = await tx.societe.findFirst({
+    where: { id: exigerSocieteActive(contexte) },
+    select: { fuseau_horaire: true },
+  });
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  return instantDuJour(jourDe(maintenant(fuseau).local));
 }
 
 /**

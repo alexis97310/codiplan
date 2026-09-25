@@ -25,6 +25,7 @@ import {
 } from "@/lib/habilitations/depot";
 import {
   agencesDisponibles,
+  compterInterventionsAVenirParTechnicien,
   listerLesTechniciens,
   type LigneTechnicien,
 } from "@/lib/techniciens/depot";
@@ -84,6 +85,28 @@ export default async function PageEquipe({
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
 
+  const comptesAVenir = await compterInterventionsAVenirParTechnicien(
+    session.contexte,
+    affiches.map((technicien) => technicien.utilisateurId),
+  );
+
+  // L'AVERTISSEMENT POSÉ APRÈS UNE DÉSACTIVATION (SAV-24) — le motif seul ne
+  // suffit pas à porter N et le lien : `technicien` et `n` l'accompagnent
+  // dans la même redirection (`app/api/techniciens/[id]/modifier/route.ts`).
+  // Un identifiant hors société ou un nombre invalide reste invisible, jamais
+  // une erreur — même discipline que le filtre de famille de `/parametres/materiel`.
+  const avertissementTechnicienId =
+    typeof params.technicien === "string" ? params.technicien : undefined;
+  const avertissementNombre =
+    typeof params.n === "string" ? Number(params.n) : undefined;
+  const avertissementDesactivation =
+    motif === "equipe.avertissement.desactivation_a_venir" &&
+    avertissementTechnicienId !== undefined &&
+    techniciens.some((t) => t.utilisateurId === avertissementTechnicienId) &&
+    avertissementNombre !== undefined &&
+    Number.isInteger(avertissementNombre) &&
+    avertissementNombre > 0;
+
   const habilitations = await listerHabilitations(session.contexte);
   const habilitationsActives = habilitations.filter((h) => h.actif);
   const habilitationsParTechnicien = await habilitationsDesTechniciens(
@@ -112,12 +135,33 @@ export default async function PageEquipe({
       titre={t("equipe.titre")}
       sousTitre={t("equipe.sous_titre")}
     >
-      {typeof motif === "string" && estCleTraduction(motif) ? (
+      {typeof motif === "string" &&
+      estCleTraduction(motif) &&
+      !avertissementDesactivation ? (
         <p
           role="status"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
           {t(motif)}
+        </p>
+      ) : null}
+
+      {avertissementDesactivation &&
+      avertissementTechnicienId !== undefined &&
+      avertissementNombre !== undefined ? (
+        <p
+          role="status"
+          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-wrap items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          <span>{t("equipe.avertissement.desactivation_a_venir")}</span>
+          <a
+            href={lienInterventionsAVenir(avertissementTechnicienId)}
+            className="font-semibold underline"
+          >
+            {decompteInterventionsAVenir(avertissementNombre)}
+            {TIRET}
+            {t("equipe.interventions_a_venir.lien")}
+          </a>
         </p>
       ) : null}
 
@@ -192,7 +236,13 @@ export default async function PageEquipe({
             {titreDeModification(technicien.nom)}
           </summary>
           <div id={ancreModification(technicien.utilisateurId)}>
-            <FormulaireModification agences={agences} technicien={technicien} />
+            <FormulaireModification
+              agences={agences}
+              technicien={technicien}
+              interventionsAVenir={
+                comptesAVenir.get(technicien.utilisateurId) ?? 0
+              }
+            />
 
             <BlocHabilitations
               technicien={technicien}
@@ -231,6 +281,31 @@ function ancreModification(utilisateurId: string): string {
 /** « Agence de rattachement » — le mot imposé, composé hors du JSX (L0-11). */
 function libelleAgence(): string {
   return `${mot("agence")} ${t("equipe.agence_suffixe")}`;
+}
+
+/**
+ * « N intervention(s) à venir » — composée hors du JSX, même discipline que
+ * `decompteModeles` de `/parametres/materiel` : aucun nombre n'est écrit au
+ * dictionnaire (D26), seul l'accord singulier/pluriel y vit.
+ */
+function decompteInterventionsAVenir(nombre: number): string {
+  return `${nombre} ${
+    nombre === 1
+      ? t("equipe.interventions_a_venir.compte_un")
+      : t("equipe.interventions_a_venir.compte")
+  }`;
+}
+
+/**
+ * LE LIEN VERS LE REGISTRE, FILTRÉ SUR CE TECHNICIEN — sans `vue` : aucune des
+ * six vues existantes (`lib/interventions/saisie.ts`) ne porte « aujourd'hui
+ * ou plus tard, hors terminée/clôturée/annulée » — `aujourdhui` s'arrête à ce
+ * jour, les autres portent un statut. « Toutes » (l'absence de `vue`) est le
+ * seul sur-ensemble sûr : il ne peut jamais masquer une intervention que le
+ * compte a comptée.
+ */
+function lienInterventionsAVenir(utilisateurId: string): string {
+  return `/interventions?technicien=${utilisateurId}`;
 }
 
 function colonnes() {
@@ -337,9 +412,11 @@ function FormulaireCreation({
 function FormulaireModification({
   agences,
   technicien,
+  interventionsAVenir,
 }: {
   readonly agences: readonly AgenceOption[];
   readonly technicien: LigneTechnicien;
+  readonly interventionsAVenir: number;
 }) {
   return (
     <form
@@ -359,6 +436,18 @@ function FormulaireModification({
       <Button type="submit" variant="outline" size="sm">
         {t("equipe.enregistrer")}
       </Button>
+      {interventionsAVenir > 0 ? (
+        <p className="text-app-encre-faible basis-full text-[11.5px]">
+          <a
+            href={lienInterventionsAVenir(technicien.utilisateurId)}
+            className="text-app-marque font-semibold underline"
+          >
+            {decompteInterventionsAVenir(interventionsAVenir)}
+          </a>
+          {TIRET}
+          {t("equipe.interventions_a_venir.note")}
+        </p>
+      ) : null}
     </form>
   );
 }

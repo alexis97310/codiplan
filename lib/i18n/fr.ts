@@ -3116,6 +3116,17 @@ export const fr = {
   "equipe.e2e.courriel": "technicien.epreuve@codima.test",
   "equipe.e2e.nom_doublon": "Doublon tenté",
   "equipe.refus.introuvable": "Aucun technicien ne correspond à cette fiche.",
+  // ── LES INTERVENTIONS À VENIR D'UN TECHNICIEN (ÉQUIPE-1, SAV-24) ──────────
+  //
+  // Le nombre lui-même n'est jamais ici (D26 : aucune valeur numérique dans
+  // le dictionnaire) — composé au point d'usage, même discipline que
+  // `materiel.modeles_compte` / `materiel.modeles_compte_un`.
+  "equipe.interventions_a_venir.compte": "interventions à venir",
+  "equipe.interventions_a_venir.compte_un": "intervention à venir",
+  "equipe.interventions_a_venir.note": "à réaffecter si vous le désactivez",
+  "equipe.interventions_a_venir.lien": "Voir dans le registre",
+  "equipe.avertissement.desactivation_a_venir":
+    "Ce technicien désactivé a encore des interventions à venir qui lui sont affectées.",
   // AJOUTÉE EN FIN DE FICHIER (lot PERF, 19/09/2026) — un autre lot y écrit
   // en même temps. La colonne « État » de `/vgp` répétait le motif complet
   // (régime · origine · rythme, jusqu'à cinq lignes une fois enveloppé) sur
