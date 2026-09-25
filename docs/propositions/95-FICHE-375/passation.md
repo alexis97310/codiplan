@@ -55,8 +55,12 @@ n'a pas bougé.
 - `pnpm exec playwright test tests/e2e/fiche-375.spec.ts` (2 tests) : **2/2
   passés**, ~45 s.
 - `pnpm test` (unitaires) : **2844 tests passés** sur 264 fichiers.
-- `pnpm verify:full` en entier, en un seul appel, au premier plan (`CI=1`) :
-  voir la suite de cette passation — lancé après ce commit.
+- `pnpm verify:full` en entier, en un seul appel, au premier plan (`CI=1`),
+  lancé après ce commit : **vert de bout en bout** — format, typecheck,
+  lint, 2844 tests unitaires, 1239 tests d'isolation, build de production,
+  `feries:horizon`, `audit:partitions`, et les 279 épreuves e2e (276
+  passés, 3 skips préexistants et nommés, hors de ce lot) — dont les deux
+  de `fiche-375.spec.ts`.
 
 ## Ce que j'ai tranché, et pourquoi
 
