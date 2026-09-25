@@ -93,10 +93,23 @@ export default async function PageMateriel({
     redirect("/arrivee");
   }
   const motif = (await searchParams).motif;
+  const familleParam = (await searchParams).famille;
 
   const familles = await listerLesFamilles(session.contexte);
   const modeles = await listerLesModeles(session.contexte);
   const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
+
+  // Un identifiant inconnu ou hors périmètre reste invisible : `familles` est
+  // déjà filtrée par la session, donc l'absence ici couvre les deux cas d'un
+  // seul geste (jamais d'erreur, jamais l'identifiant affiché).
+  const familleActive =
+    typeof familleParam === "string"
+      ? familles.find((f) => f.id === familleParam)
+      : undefined;
+  const modelesAffiches =
+    familleActive === undefined
+      ? modeles
+      : modeles.filter((m) => m.famille_id === familleActive.id);
 
   return (
     <Page
@@ -142,7 +155,10 @@ export default async function PageMateriel({
                 <RegimeVgp famille={famille} />
               </Cellule>
               <Cellule droite>
-                <a href="#modeles" className={CLASSES_LIEN}>
+                <a
+                  href={`/parametres/materiel?famille=${famille.id}#modeles`}
+                  className={CLASSES_LIEN}
+                >
                   {decompteModeles(famille._count.modeles)}
                 </a>
               </Cellule>
@@ -196,16 +212,32 @@ export default async function PageMateriel({
         </div>
       </Carte>
 
-      <Carte titre={t("materiel.modeles")} id="modeles" className="scroll-mt-4">
+      <Carte
+        titre={
+          familleActive === undefined
+            ? t("materiel.modeles")
+            : titreFamilleFiltree(familleActive.libelle)
+        }
+        action={
+          familleActive === undefined
+            ? undefined
+            : {
+                libelle: t("materiel.tout_afficher"),
+                href: "/parametres/materiel#modeles",
+              }
+        }
+        id="modeles"
+        className="scroll-mt-4"
+      >
         <Tableau colonnes={colonnesModeles()} minimum="960px">
-          {modeles.length === 0 ? (
+          {modelesAffiches.length === 0 ? (
             <LignePleine colonnes={5}>
               {familles.length === 0
                 ? t("materiel.modele_sans_famille")
                 : t("materiel.aucun_modele")}
             </LignePleine>
           ) : null}
-          {modeles.map((modele) => (
+          {modelesAffiches.map((modele) => (
             <tr key={modele.id}>
               <Cellule fort>{modele.marque}</Cellule>
               <Cellule>{modele.reference}</Cellule>
@@ -225,7 +257,7 @@ export default async function PageMateriel({
         </Tableau>
       </Carte>
 
-      {modeles.map((modele) => (
+      {modelesAffiches.map((modele) => (
         <Carte
           key={modele.id}
           titre={titreDe(t("materiel.modifier_modele"), designation(modele))}
@@ -256,6 +288,7 @@ const SEPARATEUR = " / ";
 const JOURS = " j";
 const COMPTEUR = " h";
 const NOUVEAU = "nouveau";
+const DEUX_POINTS = " : ";
 
 /**
  * La composition est faite HORS du JSX — un littéral n'y est pas admis, fût-il
@@ -267,6 +300,11 @@ function titreDe(prefixe: string, suffixe: string): string {
 
 function designation(modele: LigneModele): string {
   return `${modele.marque}${ESPACE}${modele.reference}`;
+}
+
+/** Le titre de la carte des modèles quand elle est filtrée sur une famille. */
+function titreFamilleFiltree(libelleFamille: string): string {
+  return `${t("materiel.famille")}${DEUX_POINTS}${libelleFamille}`;
 }
 
 function colonnesFamilles() {

@@ -2583,6 +2583,7 @@ export const fr = {
   // même valeur divergerait au premier renommage (§9, 01/09).
   "materiel.colonne_regime": "Régime VGP",
   "materiel.colonne_modeles": "Modèles",
+  "materiel.tout_afficher": "Tout afficher",
   "materiel.vgp_mois": "mois",
   "materiel.modeles_compte": "modèles",
   "materiel.modeles_compte_un": "modèle",
