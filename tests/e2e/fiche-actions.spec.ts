@@ -129,7 +129,9 @@ test("« Planifier » est ouvert et plein ; « Suspendre » est replié et s'ouv
 
   // ── « PLANIFIER » : OUVERT, BOUTON PLEIN ────────────────────────────────
   const formPlanifier = page.locator("form", {
-    has: page.getByRole("heading", { name: fr["intervention.action.planifier"] }),
+    has: page.getByRole("heading", {
+      name: fr["intervention.action.planifier"],
+    }),
   });
   await expect(formPlanifier).toBeVisible();
   const boutonPlanifier = formPlanifier.getByRole("button", {

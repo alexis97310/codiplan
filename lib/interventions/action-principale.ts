@@ -13,11 +13,7 @@ import type { StatutIntervention } from "./saisie";
  * base.
  */
 export type ActionPrincipale =
-  | "planifier"
-  | "affecter"
-  | "reprendre"
-  | "cloturer"
-  | null;
+  "planifier" | "affecter" | "reprendre" | "cloturer" | null;
 
 const PAR_STATUT: Readonly<Record<StatutIntervention, ActionPrincipale>> = {
   a_planifier: "planifier",

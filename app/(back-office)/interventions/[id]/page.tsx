@@ -1863,11 +1863,7 @@ function Action({
       <summary className="cursor-pointer text-[13px] font-bold">
         {titre}
       </summary>
-      <form
-        action={action}
-        method="post"
-        className="mt-3 flex flex-col gap-3"
-      >
+      <form action={action} method="post" className="mt-3 flex flex-col gap-3">
         {champs}
       </form>
     </details>
