@@ -174,7 +174,11 @@ test("la recherche pose une puce retirable, qui n'annonce que ce seul critère",
   expect(urlRetirer.searchParams.has("q")).toBe(false);
 
   await retirer.click();
-  await expect(page).toHaveURL(/\/interventions(?:\?.*)?$/);
+  // ATTENTE EXPLICITE DE LA NAVIGATION — un motif qui accepterait aussi
+  // l'ANCIENNE URL (`?q=…` compris) passerait avant que le clic n'ait rien
+  // changé : c'est l'absence du paramètre qui doit être attendue, pas
+  // seulement la forme générale de l'URL.
+  await page.waitForURL((url) => !url.searchParams.has("q"));
   const urlApres = new URL(page.url());
   expect(urlApres.searchParams.has("q")).toBe(false);
 });
