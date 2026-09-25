@@ -106,7 +106,7 @@ test.afterAll(async () => {
 
 const DOSSIER_CAPTURES = join(
   process.cwd(),
-  "docs/propositions/78-LIENS-2/captures",
+  "docs/propositions/86-LIENS-2-REPRISE/captures",
 );
 
 async function capturer(page: Page, nom: string): Promise<void> {
