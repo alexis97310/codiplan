@@ -402,6 +402,13 @@ function filtreDeRecherche(criteres: RechercheSite): Prisma.SiteWhereInput {
  * demandée est relue avec `CHAMPS_FICHE`. Deux requêtes remplacent une seule,
  * mais aucune ne charge le référentiel entier en mémoire : la première ne
  * porte que deux colonnes, la seconde est bornée à `criteres.limite`.
+ *
+ * **TRIÉ PAR CLIENT PUIS SITE (85-PARC-SITES, 25/09/2026)** — la carte titre
+ * désormais le client (voir `CarteSite` de `sites/page.tsx`) ; un tri qui
+ * resterait posé sur le seul libellé du site mélangerait les clients à
+ * l'écran alors même que la carte les groupe visuellement. La raison sociale
+ * s'AJOUTE à cette même lecture étroite — toujours UNE requête, jamais une
+ * par site.
  */
 export async function rechercherSites(
   contexte: ContexteSession,
@@ -411,13 +418,21 @@ export async function rechercherSites(
   const where = filtreDeRecherche(criteres);
   const lignes = await avecContexteApplicatif(
     contexte,
-    (tx) => tx.site.findMany({ where, select: { id: true, libelle: true } }),
+    (tx) =>
+      tx.site.findMany({
+        where,
+        select: {
+          id: true,
+          libelle: true,
+          client: { select: { raison_sociale: true } },
+        },
+      }),
     client,
   );
   const ordonnees = trierAlphanumeriquement(
     lignes,
+    (ligne) => ligne.client.raison_sociale,
     (ligne) => ligne.libelle,
-    (ligne) => ligne.id,
   );
   const debut = (criteres.page - 1) * criteres.limite;
   const idsDeLaPage = ordonnees

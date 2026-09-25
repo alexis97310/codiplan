@@ -303,20 +303,15 @@ function CarteSite({
   const habilitations = compteurHabilitations(nombreHabilitations);
   const contrat = compteurContrat(site.sous_contrat);
   const lignes: React.ReactNode[] = [
-    // LE CLIENT MÈNE À SA FICHE (14/09/2026) — le second des deux chemins
-    // tranchés ce jour-là, conservé tel quel : *le geste change, le
-    // comportement reste* (D123). Le libellé peut manquer (la politique a
-    // refusé, ou le client n'est pas dans le périmètre) ; on ne fabrique
-    // alors AUCUN lien, parce qu'un lien vers une fiche qu'on ne peut pas
-    // lire rendrait un 404 là où il faut lire une absence.
+    // LE SITE MÈNE À SA PROPRE FICHE (85-PARC-SITES) — le titre de la carte
+    // porte désormais le CLIENT (voir `titre` ci-dessous), si bien que le lien
+    // vers `/sites/{id}` migre ici : *le geste change, le comportement
+    // reste* (D123), et aucun champ ne disparaît, il change seulement de
+    // ligne.
     <>
-      {client === null ? (
-        ouTiret(null)
-      ) : (
-        <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
-          {client}
-        </Link>
-      )}
+      <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
+        {site.libelle}
+      </Link>
       {site.commune === null ? null : (
         <>
           {t("ponctuation.separateur")}
@@ -332,9 +327,21 @@ function CarteSite({
   return (
     <CarteEntite
       titre={
-        <Link href={`/sites/${site.id}`} className={CLASSES_LIEN}>
-          {site.libelle}
-        </Link>
+        // LE CLIENT MÈNE À SA FICHE (14/09/2026) — même lien qu'avant,
+        // simplement déplacé sur le titre depuis 85-PARC-SITES : un titre de
+        // carte « Nouméa » ne distinguait aucun des six sites mesurés sous ce
+        // même libellé le 25/09, quand le client, lui, les distingue. Le
+        // libellé peut manquer (la politique a refusé, ou le client n'est
+        // pas dans le périmètre) ; on ne fabrique alors AUCUN lien, parce
+        // qu'un lien vers une fiche qu'on ne peut pas lire rendrait un 404 là
+        // où il faut lire une absence.
+        client === null ? (
+          ouTiret(null)
+        ) : (
+          <Link href={`/clients/${site.client_id}`} className={CLASSES_LIEN}>
+            {client}
+          </Link>
+        )
       }
       badge={
         site.actif ? null : (
