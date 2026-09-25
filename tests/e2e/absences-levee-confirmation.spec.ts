@@ -1,5 +1,8 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -130,6 +133,20 @@ test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
 
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/99D-ABSENCES-1/captures",
+);
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.setViewportSize({ width: 1280, height: 1200 });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-1280.png`),
+    fullPage: true,
+  });
+}
+
 test("lever un blocage demande une confirmation, et annuler la laisse en place", async ({
   page,
 }) => {
@@ -137,6 +154,7 @@ test("lever un blocage demande une confirmation, et annuler la laisse en place",
 
   const boutonLever = page.getByRole("button", { name: fr["absences.lever"] });
   await expect(boutonLever).toHaveCount(1);
+  await capturer(page, "avant-lever");
   await boutonLever.click();
 
   // LE DIALOGUE — dit ce que la levée NE fait pas.
@@ -144,6 +162,7 @@ test("lever un blocage demande une confirmation, et annuler la laisse en place",
   await expect(dialogue).toBeVisible();
   await expect(dialogue).toContainText(fr["absences.levee_confirmation_avant"]);
   await expect(dialogue).toContainText(fr["absences.levee_confirmation_apres"]);
+  await capturer(page, "confirmation-ouverte");
 
   // REVENIR — le dialogue se ferme, la ligne reste, le bouton aussi.
   await dialogue
