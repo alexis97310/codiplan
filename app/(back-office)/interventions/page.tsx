@@ -55,6 +55,7 @@ import {
   optionsFiltreTechnicien,
   optionToutesLesAgences,
   referenceAffichee,
+  retourActuelDuRegistre,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("interventions.titre") };
@@ -269,6 +270,10 @@ export default async function PageInterventions({
       lignes.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
     ),
   ]);
+
+  // LE RETOUR AU REGISTRE TEL QU'ON L'AVAIT LAISSÉ (78-LIENS-2) — porté par
+  // chaque lien de ligne, rejoué par `retourVersRegistre` depuis la fiche.
+  const retourRegistre = retourActuelDuRegistre(params);
 
   const colonnes = [
     {
@@ -520,6 +525,7 @@ export default async function PageInterventions({
               ligne={ligne}
               annuaire={annuaire}
               libellesMachines={libellesMachines}
+              retourRegistre={retourRegistre}
             />
           ))}
         </Tableau>
@@ -604,18 +610,21 @@ function LigneIntervention({
   ligne,
   annuaire,
   libellesMachines,
+  retourRegistre,
 }: {
   readonly ligne: LignePlanning;
   readonly annuaire: Annuaire;
   readonly libellesMachines: ReadonlyMap<string, string>;
+  readonly retourRegistre: string;
 }) {
+  const hrefFiche =
+    retourRegistre.length === 0
+      ? `/interventions/${ligne.id}?depuis=interventions`
+      : `/interventions/${ligne.id}?depuis=interventions&retour=${encodeURIComponent(retourRegistre)}`;
   return (
     <tr>
       <Cellule mono fort>
-        <Link
-          href={`/interventions/${ligne.id}?depuis=interventions`}
-          className={CLASSES_LIEN}
-        >
+        <Link href={hrefFiche} className={CLASSES_LIEN}>
           {referenceAffichee(ligne)}
         </Link>
       </Cellule>

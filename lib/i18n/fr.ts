@@ -3318,6 +3318,15 @@ export const fr = {
   "interventions2.e2e.piece_y": "Y-1",
   "interventions2.e2e.note": "INT2 — note interne, jamais côté terrain.",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/liens-2.spec.ts)
+  //
+  // Même raison que `interventions2.e2e.*` : sa PROPRE scène, créée et
+  // supprimée par l'épreuve. Le préfixe est collé SANS espace, `LIE2-`, parce
+  // que c'est ce même texte que l'épreuve pose dans `q=` : un espace avant le
+  // trait d'union romprait la sous-chaîne que `filtreDesInterventions` compare.
+  "liens2.e2e.client": "LIE2-Client de l'épreuve",
+  "liens2.e2e.site": "LIE2-Lieu de l'épreuve",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/registre-2.spec.ts)
   //
   // Même raison que `interventions2.e2e.*` : sa PROPRE scène, créée et

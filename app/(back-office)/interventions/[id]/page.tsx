@@ -193,6 +193,9 @@ export default async function PageIntervention({
   // libre : voir `retourFiche` dans `../presentation.ts`.
   const depuis = parametres.depuis;
   const depuisId = parametres.depuis_id;
+  // LE REGISTRE TEL QU'ON L'AVAIT LAISSÉ (78-LIENS-2) — voir
+  // `retourVersRegistre`, `../presentation.ts`, pour le filtrage.
+  const retourRegistre = parametres.retour;
   const fiche = await lireFicheCache(session.contexte, id);
   if (fiche === null) {
     // Hors périmètre et inexistante rendent LA MÊME chose : les distinguer
@@ -222,7 +225,10 @@ export default async function PageIntervention({
         : `${dateCivile(ligne.date_planifiee)} ${heurePlanifiee}`;
   // HREF ET LIBELLÉ COMPOSÉS ENSEMBLE (`retourFiche`, `../presentation.ts`) —
   // jamais deux lectures séparées qui pourraient diverger.
-  const retour = retourFiche({ depuis, depuisId }, ligne);
+  const retour = retourFiche(
+    { depuis, depuisId, retour: retourRegistre },
+    ligne,
+  );
   // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
