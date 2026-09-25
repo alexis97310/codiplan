@@ -40,8 +40,12 @@ import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
 import { historiqueDeLaMachine } from "@/lib/machines/historique";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
-import { libelleEcheance } from "@/lib/vgp/libelles";
-import { informationDeLaMachine } from "@/lib/vgp/registre";
+import { libelleEcheance, libelleEtatCourt, tonEtat } from "@/lib/vgp/libelles";
+import {
+  echeanceDepassee,
+  echeanceEstAVenir,
+  informationDeLaMachine,
+} from "@/lib/vgp/registre";
 
 import { referenceAffichee } from "../../interventions/presentation";
 import { retourVersParc } from "../presentation";
@@ -221,9 +225,12 @@ export default async function PageMachine({
       sousTitre={sousTitreFiche(machine)}
       actions={
         <>
+          {/* ZONE CLIQUABLE >= 32 PX (99B-FICHE-MACHINE, audit du 25/09/2026,
+              constat 31) — mesurée à ~18 px avant ce ticket, même correction
+              que `CLASSES_LIEN_TUILE` du tableau de bord (98-TABLEAU-2). */}
           <Link
             href={hrefRetourParc}
-            className="text-app-encre-faible text-[12.5px]"
+            className="text-app-encre-faible inline-flex min-h-[32px] items-center text-[13px]"
           >
             {t("machine.retour")}
           </Link>
@@ -366,7 +373,7 @@ export default async function PageMachine({
                 />
                 <KvLigne
                   dt={t("machine.fiche.kv_vgp")}
-                  dd={prochaineVgpAffichee(information)}
+                  dd={vgpAffichee(machine, information)}
                 />
               </Kv>
             </DetailBody>
@@ -583,14 +590,46 @@ function anneeDeVenteAffichee(machine: FicheMachine): string {
  * deux autres états (hors registre, sans information), que N-11 rend par
  * « à déterminer » plutôt que par le tiret des autres écrans — la fiche parle
  * d'une DÉCISION à prendre, pas d'une absence de champ.
+ *
+ * **99B-FICHE-MACHINE (audit d'ergonomie du 25/09/2026, constat 31)** : cette
+ * phrase s'affichait seule, en texte noir, sans ton ni lien — une machine
+ * dépassée depuis 177 jours se lisait comme n'importe quelle autre ligne du
+ * `dl.kv`. `tonEtat` et `libelleEtatCourt` sont ceux de `/vgp`
+ * (`lib/vgp/libelles.ts`, déplacés par ce ticket pour être partagés) : le
+ * même badge, au même ton, aux deux écrans — jamais une seconde lecture du
+ * même critère (§9, 01/09). Le lien d'enregistrement ne paraît que lorsque
+ * l'échéance est CONNUE (dépassée ou à venir) : « à déterminer » et « aucun
+ * rythme déclaré » n'ont rien à enregistrer contre.
  */
-function prochaineVgpAffichee(
+function vgpAffichee(
+  machine: FicheMachine,
   information: Awaited<ReturnType<typeof informationDeLaMachine>>,
-): string {
+): React.ReactNode {
   if (information === null) {
     return t("machine.fiche.vgp_a_determiner");
   }
-  return libelleEcheance(information) ?? t("machine.fiche.vgp_a_determiner");
+  return (
+    <>
+      <span className="mt-[3px] block font-sans">
+        <Badge ton={tonEtat(information)}>
+          {libelleEtatCourt(information)}
+        </Badge>
+      </span>
+      <span className="mt-[3px] block font-sans">
+        {libelleEcheance(information) ?? t("machine.fiche.vgp_a_determiner")}
+      </span>
+      {echeanceDepassee(information) || echeanceEstAVenir(information) ? (
+        <span className="mt-[3px] block font-sans">
+          <Link
+            href={`/vgp/enregistrer/${machine.id}`}
+            className={CLASSES_LIEN}
+          >
+            {t("machine.fiche.vgp_enregistrer")}
+          </Link>
+        </span>
+      ) : null}
+    </>
+  );
 }
 
 /** Le signe d'absence, résolu par un APPEL plutôt que par la constante nue (L0-11). */

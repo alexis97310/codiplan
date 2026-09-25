@@ -1,7 +1,9 @@
+import { type TonBadge } from "@/components/ui/badge";
 import { dateCivile } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 
 import { type EtatInformation } from "./information";
+import { echeanceDepassee } from "./registre";
 
 /**
  * CE QU'UN ÉCRAN A LE DROIT DE DIRE D'UNE MACHINE (L9-02, D88).
@@ -95,4 +97,43 @@ export function libelleEcheance(etat: EtatInformation): string | null {
     return `${t("vgp.echeance.depassee")} — ${date} (${joursDepasses} ${unite})`;
   }
   return `${t("vgp.echeance.declaree")} — ${date}`;
+}
+
+/**
+ * LE TON DU BADGE D'ÉTAT — dérivé des TROIS états de `information.ts`, ET DU
+ * SIGNE DE L'ÉCHÉANCE (VGP-2). Aucun ne dit ni conforme ni non conforme
+ * (D88) : le ton n'est qu'un repère visuel sur ce qu'on SAIT, pas un jugement
+ * sur ce que ça vaut.
+ *
+ * DÉPLACÉ ICI depuis `app/(back-office)/vgp/page.tsx` (99B-FICHE-MACHINE) —
+ * la fiche machine (`/parc/[id]`) doit le lire au même titre que le registre :
+ * *le même repère visuel aux deux écrans, jamais une seconde lecture du même
+ * critère* (§9, 01/09). Comportement inchangé, `/vgp` l'importe désormais.
+ */
+export const TONS_ETAT: Record<EtatInformation["etat"], TonBadge> = {
+  hors_registre: "gris",
+  sans_information: "orange",
+  information_recue: "vert",
+};
+
+export function tonEtat(information: EtatInformation): TonBadge {
+  return echeanceDepassee(information) ? "rouge" : TONS_ETAT[information.etat];
+}
+
+/**
+ * Le libellé COURT du badge — une catégorie, jamais une phrase (D128). Quand
+ * l'échéance déduite est passée, le badge le DIT (VGP-2) : « Information
+ * reçue » seul se lisait comme « à jour ». DÉPLACÉ avec `tonEtat` ci-dessus,
+ * pour la même raison.
+ */
+export function libelleEtatCourt(information: EtatInformation): string {
+  if (information.etat === "hors_registre") {
+    return t("vgp.information.hors_registre");
+  }
+  if (information.etat === "sans_information") {
+    return t("vgp.information.sans_information");
+  }
+  return echeanceDepassee(information)
+    ? t("vgp.information.recue_echeance_depassee")
+    : t("vgp.information.recue");
 }

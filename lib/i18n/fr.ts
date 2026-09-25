@@ -2239,6 +2239,7 @@ export const fr = {
   "machine.fiche.kv_contrat": "Contrat",
   "machine.fiche.kv_vgp": "Prochaine VGP",
   "machine.fiche.vgp_a_determiner": "\u00c0 d\u00e9terminer",
+  "machine.fiche.vgp_enregistrer": "Enregistrer la v\u00e9rification",
   "machine.fiche.a_completer": "\u00c0 compl\u00e9ter",
   "machine.fiche.historique_titre": "Historique des interventions",
   "machine.fiche.historique_ajouter": "+ Intervention",
