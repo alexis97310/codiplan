@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -56,6 +59,18 @@ test.describe.configure({ mode: "serial" });
 const SOCIETE_CODE = "CODIMA-NC";
 const FENETRE = { width: 1280, height: 900 };
 
+/** `CAPTURES_TABLEAU_2=<dossier>` écrit l'écran, pour `docs/propositions/`. */
+const DOSSIER_CAPTURES = process.env.CAPTURES_TABLEAU_2 ?? "";
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  if (DOSSIER_CAPTURES === "") return;
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-1280.png`),
+    fullPage: true,
+  });
+}
+
 let aujourdHui: JourLocal;
 let cleAujourdHui: string;
 let cleLundiCourant: string;
@@ -109,6 +124,7 @@ test("« Interventions aujourd'hui » ouvre la vue jour du planning, au jour mê
     `/planning?vue=jour&jour=${cleAujourdHui}`,
   );
   await verifierZoneCliquable(page, lien);
+  await capturer(page, "tableau-de-bord");
 
   await lien.click();
   await page.waitForURL(`/planning?vue=jour&jour=${cleAujourdHui}`);
