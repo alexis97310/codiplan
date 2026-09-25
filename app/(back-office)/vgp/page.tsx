@@ -22,9 +22,12 @@ import { libelleEcheance } from "@/lib/vgp/libelles";
 import { type EtatInformation } from "@/lib/vgp/information";
 import {
   echeanceDepassee,
+  echeanceEstAVenir,
   famillesADeterminer,
   listerLeRegistre,
+  rechercheCorrespond,
   resumerLeRegistre,
+  trierParUrgence,
   type LigneDeRegistre,
 } from "@/lib/vgp/registre";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -112,6 +115,25 @@ export const metadata: Metadata = { title: t("vgp.titre") };
  * La barre est une liste CLOSE confrontée à la maquette (D95/D118), et la
  * maquette n'y porte aucune entrée « VGP ». Le registre se rejoint donc par un
  * LIEN depuis le parc.
+ *
+ * ## VGP-4 (25/09/2026) — UN ORDRE, PAS UNE FENÊTRE DE JOURS ; ÉCART NOMMÉ
+ *
+ * `codiplan-maquette-complete.html` écrit « à faire sous 30 jours » sur le
+ * premier KPI — un délai que rien, ni le chapitre 10 ni `docs/arbitrages.md`,
+ * n'a réglé, et l'inventer serait la faute que §8 du CLAUDE.md interdit (voir
+ * déjà « AUCUNE FENÊTRE DE JOURS N'EST INVENTÉE ICI » dans
+ * `lib/vgp/registre.ts`). L'arbitrage du 25/09/2026 tranche : aucune fenêtre,
+ * un ORDRE à la place — `trierParUrgence` classe les lignes dépassées (la
+ * plus ancienne en tête) puis à venir (la plus proche en tête), sans aucun
+ * seuil. **« Sous 30 jours » de la maquette n'est donc PAS repris**, ni comme
+ * fenêtre ni comme libellé : c'est un écart nommé, pas un oubli. Les deux KPI
+ * datés — « Échéances à venir » et « Échéances dépassées » — mènent chacun à
+ * `?etat=a_venir` et `?etat=depassees`, le même critère non borné que le KPI
+ * compte déjà ; les deux autres KPI (« Informations reçues », « À
+ * déterminer ») restent inertes. La recherche `q` porte sur le numéro de
+ * série, la désignation (le modèle) et le client — les trois colonnes qui
+ * identifient déjà une ligne du registre (`rechercheCorrespond`,
+ * `lib/vgp/registre.ts`).
  */
 const LIGNES_AFFICHEES = 200;
 
@@ -127,14 +149,17 @@ const LIGNES_AFFICHEES = 200;
 const LIGNES_RESUME_MAXIMALES = 2000;
 
 /**
- * LE FILTRE `?etat=depassees` — une LECTURE DE PARAMÈTRE, rien de plus
- * (TABLEAU-1, 23/09/2026). La tuile « VGP à prévoir » du tableau de bord
- * ouvre ce lien plutôt que `/vgp` nu : un chiffre sans chemin vers ce qu'il
- * compte est la même faute que le zéro muet que ce dépôt corrige ailleurs.
- * Aucune AUTRE valeur n'est reconnue — un paramètre qui ne vaut pas
- * `depassees` laisse le registre tel quel, jamais une erreur.
+ * LE FILTRE `?etat=` — une LECTURE DE PARAMÈTRE, rien de plus (TABLEAU-1,
+ * 23/09/2026 ; étendu VGP-4, 25/09/2026). La tuile « VGP à prévoir » du
+ * tableau de bord ouvre `?etat=depassees` plutôt que `/vgp` nu : un chiffre
+ * sans chemin vers ce qu'il compte est la même faute que le zéro muet que ce
+ * dépôt corrige ailleurs. `a_venir` fait de même pour le KPI « Échéances à
+ * venir » de cet écran — le MÊME critère non borné que le KPI compte déjà
+ * (`echeanceEstAVenir`, `lib/vgp/registre.ts`). Aucune AUTRE valeur n'est
+ * reconnue — un paramètre qui ne vaut ni l'un ni l'autre laisse le registre
+ * tel quel, jamais une erreur.
  */
-const ETATS_FILTRE = ["depassees"] as const;
+const ETATS_FILTRE = ["depassees", "a_venir"] as const;
 type EtatFiltre = (typeof ETATS_FILTRE)[number] | "tous";
 
 function etatFiltreLu(valeur: string | string[] | undefined): EtatFiltre {
@@ -286,15 +311,28 @@ export default async function PageRegistreVgp({
 
   const params = await searchParams;
   const filtre = etatFiltreLu(params.etat);
+  const recherche = typeof params.q === "string" ? params.q : "";
   // LE FILTRE NE BORNE QUE L'AFFICHAGE, jamais le résumé ci-dessus : les
   // quatre KPI continuent de compter TOUT le registre, filtre ou non — la
   // même règle que `/tableau-de-bord` applique déjà à ses propres priorités
   // (`elementsFiltres`, appliqué en DERNIER, sur la liste déjà composée).
-  const lignesFiltrees =
+  const lignesFiltreesParEtat =
     filtre === "depassees"
       ? toutesLesLignes.filter((ligne) => echeanceDepassee(ligne.information))
-      : toutesLesLignes;
-  const lignes = lignesFiltrees.slice(0, LIGNES_AFFICHEES);
+      : filtre === "a_venir"
+        ? toutesLesLignes.filter((ligne) =>
+            echeanceEstAVenir(ligne.information),
+          )
+        : toutesLesLignes;
+  const lignesFiltrees = lignesFiltreesParEtat.filter((ligne) =>
+    rechercheCorrespond(ligne, recherche),
+  );
+  // LE TRI PAR URGENCE (VGP-4) — dépassées les plus anciennes d'abord, puis
+  // les échéances à venir les plus proches ; voir `trierParUrgence`
+  // (lib/vgp/registre.ts). Appliqué APRÈS les filtres, jamais avant : trier
+  // puis borner à `LIGNES_AFFICHEES` donne les lignes les plus urgentes de CE
+  // QUI EST FILTRÉ, pas les `LIGNES_AFFICHEES` premières lues puis triées.
+  const lignes = trierParUrgence(lignesFiltrees).slice(0, LIGNES_AFFICHEES);
 
   const colonnes = [
     { cle: "machine", libelle: t("vgp.colonne_machine"), largeur: "160px" },
@@ -330,21 +368,35 @@ export default async function PageRegistreVgp({
         test.ts, qui nomme cet écart.
       */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div data-bloc="kpi-sous-30-jours">
+        <div data-bloc="kpi-sous-30-jours" className="flex flex-col gap-1.5">
           <Kpi
             ton="orange"
             libelle={t("vgp.kpi_echeance_a_venir")}
             valeur={resume.echeanceAVenir}
             detail={t("vgp.kpi_echeance_a_venir_detail")}
           />
+          {/* LE MÊME CRITÈRE NON BORNÉ QUE LE KPI COMPTE (VGP-4) — voir
+              `echeanceEstAVenir`, lib/vgp/registre.ts. */}
+          <Link
+            href="/vgp?etat=a_venir"
+            className={`text-[11.5px] ${CLASSES_LIEN}`}
+          >
+            {t("vgp.lien_kpi_a_venir")}
+          </Link>
         </div>
-        <div data-bloc="kpi-en-retard">
+        <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
           <Kpi
             ton="rouge"
             libelle={t("vgp.kpi_en_retard")}
             valeur={resume.echeanceDepassee}
             detail={t("vgp.kpi_en_retard_detail")}
           />
+          <Link
+            href="/vgp?etat=depassees"
+            className={`text-[11.5px] ${CLASSES_LIEN}`}
+          >
+            {t("vgp.lien_kpi_en_retard")}
+          </Link>
         </div>
         <div data-bloc="kpi-informations-recues">
           <Kpi
@@ -386,16 +438,49 @@ export default async function PageRegistreVgp({
         {t("vgp.information.ce_que_le_silence_dit")}
       </p>
 
-      {filtre === "depassees" ? (
+      {/* LA RECHERCHE EST UN FORMULAIRE `GET` (VGP-4, 25/09/2026) — même
+          contrat que `/sites` et `/parc` : elle s'écrit dans l'URL, donc elle
+          se partage et se recharge, sans état client à tenir. Le filtre
+          `etat` en cours, s'il y en a un, est porté par un champ CACHÉ : une
+          recherche lancée depuis `?etat=depassees` ne doit pas le perdre. */}
+      <form
+        method="get"
+        className="bg-app-surface border-app-bord flex flex-wrap items-end gap-3 rounded-lg border px-4 py-3.5"
+      >
+        {filtre === "tous" ? null : (
+          <input type="hidden" name="etat" value={filtre} />
+        )}
+        <label className="flex flex-col gap-1 text-[12px] font-semibold">
+          {t("vgp.recherche")}
+          <input
+            type="search"
+            name="q"
+            defaultValue={recherche}
+            className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal"
+          />
+        </label>
+        <button
+          type="submit"
+          className="border-app-bord rounded-md border px-4 py-2 text-[13px] font-bold"
+        >
+          {t("vgp.rechercher")}
+        </button>
+      </form>
+
+      {filtre === "tous" ? null : (
         <p data-bloc="filtre-actif" className="text-[11.5px]">
           <span className="text-app-encre-faible">
-            {t("vgp.filtre_depassees_actif")}
+            {t(
+              filtre === "depassees"
+                ? "vgp.filtre_depassees_actif"
+                : "vgp.filtre_a_venir_actif",
+            )}
           </span>{" "}
           <Link href="/vgp" className={CLASSES_LIEN}>
             {t("vgp.filtre_retirer")}
           </Link>
         </p>
-      ) : null}
+      )}
 
       <section
         data-bloc="tableau-registre"

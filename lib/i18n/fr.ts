@@ -2069,15 +2069,29 @@ export const fr = {
   "vgp.origine_saisie.declaration_client": "Déclaration du client",
   "vgp.vide":
     "Aucune machine n'est enregistr\u00e9e pour cette soci\u00e9t\u00e9.",
-  // R\u00c9\u00c9CRIT le 23/09/2026 (VISUEL-1) : la r\u00e9f\u00e9rence de ticket entre
-  // parenth\u00e8ses ne disait rien \u00e0 l'exploitant qui la lisait \u00e0 l'\u00e9cran.
+  // R\u00c9\u00c9CRIT le 25/09/2026 (VGP-4) : la recherche et le filtre par
+  // \u00e9ch\u00e9ance sont d\u00e9sormais disponibles \u2014 voir le tri par urgence
+  // (`trierParUrgence`, lib/vgp/registre.ts) et le champ `q` ci-dessous.
   "vgp.borne":
-    "Les premi\u00e8res fiches du parc. La recherche et le filtre par \u00e9ch\u00e9ance ne sont pas encore disponibles.",
+    "Les premi\u00e8res lignes du registre, tri\u00e9es par urgence \u2014 les \u00e9ch\u00e9ances d\u00e9pass\u00e9es les plus anciennes en t\u00eate, puis les \u00e9ch\u00e9ances \u00e0 venir les plus proches.",
   // LE FILTRE `?etat=depassees` (TABLEAU-1, 23/09/2026) \u2014 que la tuile du
   // tableau de bord ouvre plut\u00f4t que le registre nu.
   "vgp.filtre_depassees_actif":
     "Filtr\u00e9 sur les \u00e9ch\u00e9ances d\u00e9pass\u00e9es.",
+  // LE FILTRE `?etat=a_venir` (VGP-4, 25/09/2026) \u2014 le m\u00eame crit\u00e8re, SANS
+  // BORNE, que le KPI \u00ab \u00c9ch\u00e9ances \u00e0 venir \u00bb compte d\u00e9j\u00e0 (aucune fen\u00eatre
+  // de jours invent\u00e9e, voir lib/vgp/registre.ts).
+  "vgp.filtre_a_venir_actif":
+    "Filtr\u00e9 sur les \u00e9ch\u00e9ances \u00e0 venir.",
   "vgp.filtre_retirer": "Voir tout le registre",
+  // LES DEUX LIENS DES KPI DAT\u00c9S (VGP-4, 25/09/2026) \u2014 m\u00eame forme que
+  // `tableau_de_bord.lien_vgp_a_prevoir` : \u00ab Voir X \u2192 \u00bb, sous le KPI.
+  "vgp.lien_kpi_a_venir": "Voir les \u00e9ch\u00e9ances \u00e0 venir \u2192",
+  "vgp.lien_kpi_en_retard": "Voir les \u00e9ch\u00e9ances d\u00e9pass\u00e9es \u2192",
+  // LA RECHERCHE (VGP-4, 25/09/2026) \u2014 n\u00b0 de s\u00e9rie, d\u00e9signation (mod\u00e8le)
+  // ou client ; les trois colonnes que la ligne du registre identifie d\u00e9j\u00e0.
+  "vgp.recherche": "Num\u00e9ro de s\u00e9rie, d\u00e9signation ou client",
+  "vgp.rechercher": "Rechercher",
   // \u2500\u2500 LES QUATRE KPI DU BANDEAU (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // La maquette \u00e9crit \u00ab Conformes \u00bb au troisi\u00e8me \u2014 CODIPLAN n'affirme jamais
   // la conformit\u00e9 (L9-02, D88, D114) : le compte ici est celui des machines
@@ -3508,6 +3522,26 @@ export const fr = {
   "parcsites.e2e.client_a": "PSI-A — Client de l'épreuve",
   "parcsites.e2e.client_b": "PSI-B — Client de l'épreuve",
   "parcsites.e2e.site": "PSI-Noumea — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/vgp-4.spec.ts)
+  //
+  // Même discipline que `parcsites.e2e.*` : sa PROPRE scène, préfixée `VGP4-`,
+  // créée et supprimée par l'épreuve (`docs/propositions/91-VGP-4-REPRISE`).
+  // Une famille et un modèle dédiés — plutôt que ceux du semis — pour fixer
+  // la périodicité et son texte SANS toucher au jeu de démonstration : quatre
+  // machines, dont les dates de vérification sont posées à distance connue
+  // d'aujourd'hui pour éprouver le tri par urgence sans jamais écrire de
+  // délai dans le code (L9-05, §8 du CLAUDE.md — la donnée est de la scène,
+  // jamais une règle).
+  "vgp4.e2e.client": "VGP4 — Client de l'épreuve",
+  "vgp4.e2e.site": "VGP4 — Lieu de l'épreuve",
+  "vgp4.e2e.famille": "VGP4 — Famille de l'épreuve",
+  "vgp4.e2e.modele": "VGP4-MODELE",
+  "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
+  "vgp4.e2e.numero_serie_depassee_ancienne": "VGP4-SN-DEPASSEE-ANCIENNE",
+  "vgp4.e2e.numero_serie_depassee_recente": "VGP4-SN-DEPASSEE-RECENTE",
+  "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
+  "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

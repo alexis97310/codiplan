@@ -291,6 +291,23 @@ export function echeanceAVenirSous(
 }
 
 /**
+ * LA VOIE « À VENIR », SANS BORNE (VGP-4, 25/09/2026) — le même critère que
+ * `resumerLeRegistre` compte déjà pour son propre KPI, extrait ici pour que
+ * le filtre `?etat=a_venir` de `/vgp` lise EXACTEMENT ce que le KPI compte,
+ * jamais une seconde écriture du critère (§9, 01/09). Contrairement à
+ * `echeanceAVenirSous`, aucun horizon n'est reçu : c'est délibéré — l'arbitrage
+ * du 25/09/2026 retient un ORDRE d'affichage plutôt qu'une fenêtre de jours
+ * (voir `trierParUrgence`, plus bas).
+ */
+export function echeanceEstAVenir(etat: EtatInformation): boolean {
+  return (
+    etat.etat === "information_recue" &&
+    !echeanceDepassee(etat) &&
+    etat.joursAvantEcheance !== null
+  );
+}
+
+/**
  * LES TROIS VOIES DU COMPTE D'ACCUEIL (VGP-2) — et ce sont trois VALEURS
  * NOMMÉES, jamais un seul chiffre.
  *
@@ -594,7 +611,7 @@ export function resumerLeRegistre(
     // fois. Sans rythme déclaré, l'échéance est nulle : ni l'une ni l'autre.
     if (echeanceDepassee(ligne.information)) {
       depassees += 1;
-    } else if (ligne.information.joursAvantEcheance !== null) {
+    } else if (echeanceEstAVenir(ligne.information)) {
       echeanceAVenir += 1;
     }
   }
@@ -604,6 +621,63 @@ export function resumerLeRegistre(
     informationRecue,
     total: lignes.length,
   };
+}
+
+/**
+ * LE TRI D'AFFICHAGE DU REGISTRE (VGP-4, 25/09/2026) — l'arbitrage retient un
+ * ORDRE plutôt qu'une fenêtre de jours : ce que la maquette bornait à
+ * « à faire sous 30 jours » se lit désormais dans le CLASSEMENT des lignes,
+ * jamais dans un seuil inventé (§8 du CLAUDE.md, L9-05).
+ *
+ * Palier 1 — dépassées, la plus ANCIENNE en tête ; palier 2 — à venir, la
+ * plus PROCHE en tête ; palier 3 — le reste (hors registre, sans information,
+ * ou information reçue sans rythme déclaré), dans son ordre d'arrivée.
+ * `joursAvantEcheance` est négatif dans le premier palier, positif ou nul
+ * dans le second : les TRIER sur cette seule clé, croissante, produit les
+ * deux paliers dans l'ordre voulu sans qu'il faille les distinguer. Le tri
+ * est STABLE (`Array.prototype.sort`) : le troisième palier garde l'ordre
+ * que `listerLeRegistre` a lu.
+ */
+export function trierParUrgence(
+  lignes: readonly LigneDeRegistre[],
+): readonly LigneDeRegistre[] {
+  return [...lignes].sort((a, b) => {
+    const joursA = joursAvantEcheanceOuAbsent(a);
+    const joursB = joursAvantEcheanceOuAbsent(b);
+    if (joursA === null) {
+      return joursB === null ? 0 : 1;
+    }
+    if (joursB === null) {
+      return -1;
+    }
+    return joursA - joursB;
+  });
+}
+
+function joursAvantEcheanceOuAbsent(ligne: LigneDeRegistre): number | null {
+  return ligne.information.etat === "information_recue"
+    ? ligne.information.joursAvantEcheance
+    : null;
+}
+
+/**
+ * LA RECHERCHE DU REGISTRE (VGP-4, 25/09/2026) — n° de série, désignation
+ * (le modèle) ou client : les trois colonnes qui identifient déjà une machine
+ * sur chaque ligne du registre. Composée ICI, une seule fois, pour que l'écran
+ * ne réécrive pas son propre critère (§9, 01/09). Une recherche vide
+ * correspond à tout — c'est l'absence de filtre, jamais un résultat vide.
+ */
+export function rechercheCorrespond(
+  ligne: LigneDeRegistre,
+  recherche: string,
+): boolean {
+  const cible = recherche.trim().toLocaleLowerCase("fr");
+  if (cible === "") {
+    return true;
+  }
+  return [ligne.numero_serie, ligne.modele, ligne.client].some((valeur) =>
+    valeur.toLocaleLowerCase("fr").includes(cible),
+  );
 }
 
 /** Une famille que personne n'a encore examinée — la moitié détective de L9-03. */
