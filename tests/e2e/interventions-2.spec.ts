@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -137,6 +137,20 @@ async function capturer(page: Page, nom: string): Promise<void> {
   }
 }
 
+/**
+ * « SUSPENDRE » N'EST L'ACTION PRINCIPALE D'AUCUN STATUT
+ * (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
+ * d'abord ouvrir son `<summary>` pour atteindre motif, pièce et date, puis
+ * cibler le `<form>` qu'il porte plutôt qu'un `<h2>` qui a quitté ce bloc.
+ */
+function detailsSuspendre(page: Page): Locator {
+  return page.locator("details", {
+    has: page.locator("summary", {
+      hasText: fr["intervention.action.suspendre"],
+    }),
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
@@ -173,11 +187,9 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await page.goto(`/interventions/${interventionPausesId}`);
 
   // ── PREMIÈRE PAUSE — pièce X ──────────────────────────────────────────
-  const formSuspendre1 = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.suspendre"],
-    }),
-  });
+  const suspendreDetails1 = detailsSuspendre(page);
+  await suspendreDetails1.locator("summary").click();
+  const formSuspendre1 = suspendreDetails1.locator("form");
   await formSuspendre1
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce X");
@@ -202,11 +214,9 @@ test("suspendre (pièce X), reprendre, suspendre (pièce Y) — les DEUX pauses 
   await page.waitForLoadState("networkidle");
 
   // ── SECONDE PAUSE — pièce Y ────────────────────────────────────────────
-  const formSuspendre2 = page.locator("form", {
-    has: page.getByRole("heading", {
-      name: fr["intervention.action.suspendre"],
-    }),
-  });
+  const suspendreDetails2 = detailsSuspendre(page);
+  await suspendreDetails2.locator("summary").click();
+  const formSuspendre2 = suspendreDetails2.locator("form");
   await formSuspendre2
     .locator('input[name="motif"]')
     .fill("INT2 — attente de la pièce Y");

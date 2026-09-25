@@ -22,6 +22,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
+import { actionPrincipale } from "@/lib/interventions/action-principale";
 import {
   estFige,
   peutAffecter,
@@ -209,6 +210,10 @@ export default async function PageIntervention({
   // le panneau « Actions » ne rend alors QUE ce qui reste possible (D131,
   // 29-DROITS-1), jamais un bloc dont le verdict refuse.
   const figee = estFige(statut);
+  // LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19) — la seule action
+  // que ce statut désigne comme suivante ; les autres se replient dans le
+  // panneau « Actions » ci-dessous.
+  const principale = actionPrincipale(statut);
   // LA DATE ET L'HEURE PLANIFIÉES, DANS L'EN-TÊTE (FICHE-INTERVENTION-1) —
   // *l'information n°1 d'un planificateur qui ouvre cette fiche*, mesurée
   // absente de l'identification le 23/09/2026. `date_planifiee` est un jour
@@ -832,6 +837,7 @@ export default async function PageIntervention({
                       verdict={verdictPlanifier}
                       action={`/api/interventions/${ligne.id}/deplacer`}
                       note={t("intervention.planification.explication")}
+                      principale={principale === "planifier"}
                     >
                       <Saisie
                         nom="date_planifiee"
@@ -885,6 +891,7 @@ export default async function PageIntervention({
                       titre={t("intervention.action.affecter")}
                       verdict={verdictAffecter}
                       action={`/api/interventions/${ligne.id}/affecter`}
+                      principale={principale === "affecter"}
                     >
                       <Saisie
                         nom="technicien_id"
@@ -980,6 +987,7 @@ export default async function PageIntervention({
                     verdict={peutCloturer(statut, ligne.temps_mesure_min)}
                     action={`/api/interventions/${ligne.id}/cloturer`}
                     note={t("intervention.cloture.explication")}
+                    principale={principale === "cloturer"}
                   >
                     {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120).
                         Le champ arrive PRÉ-REMPLI avec ce que le compteur a
@@ -1016,6 +1024,7 @@ export default async function PageIntervention({
                     titre={t("intervention.action.reprendre")}
                     verdict={peutReprendre(statut)}
                     action={`/api/interventions/${ligne.id}/reprendre`}
+                    principale={principale === "reprendre"}
                   />
                 ) : (
                   <Action
@@ -1778,6 +1787,7 @@ function Action({
   note,
   bouton,
   children,
+  principale = false,
 }: {
   titre: string;
   verdict: { refuse: boolean; cle?: string };
@@ -1797,6 +1807,13 @@ function Action({
    * passent pas cette prop et gardent le bouton par défaut ci-dessous.
    */
   bouton?: React.ReactNode;
+  /**
+   * LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19) — `principale`
+   * ouvre le bloc et lui donne le bouton plein ; les autres se replient dans
+   * un `<details>` natif dont le `<summary>` porte le titre. Un refus
+   * (ci-dessous) ignore cette prop : il s'affiche toujours tel quel.
+   */
+  principale?: boolean;
 }) {
   if (verdict.refuse) {
     const cle = verdict.cle;
@@ -1809,22 +1826,50 @@ function Action({
       </section>
     );
   }
-  return (
-    <form
-      action={action}
-      method="post"
-      className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
-    >
-      <h2 className="text-[13px] font-bold">{titre}</h2>
+
+  const champs = (
+    <>
       {note === undefined ? null : (
         <p className="text-app-encre-faible text-[11.5px]">{note}</p>
       )}
       {children}
       {bouton ?? (
-        <Button type="submit" variant="outline" size="sm">
+        <Button
+          type="submit"
+          variant={principale ? "default" : "outline"}
+          size="sm"
+        >
           {titre}
         </Button>
       )}
-    </form>
+    </>
+  );
+
+  if (principale) {
+    return (
+      <form
+        action={action}
+        method="post"
+        className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
+      >
+        <h2 className="text-[13px] font-bold">{titre}</h2>
+        {champs}
+      </form>
+    );
+  }
+
+  return (
+    <details className="bg-app-surface border-app-bord rounded-lg border px-4 py-3">
+      <summary className="cursor-pointer text-[13px] font-bold">
+        {titre}
+      </summary>
+      <form
+        action={action}
+        method="post"
+        className="mt-3 flex flex-col gap-3"
+      >
+        {champs}
+      </form>
+    </details>
   );
 }

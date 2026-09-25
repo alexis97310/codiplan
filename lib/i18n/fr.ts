@@ -3537,6 +3537,14 @@ export const fr = {
   // porte le nom de son client, mesuré en production sous la forme
   // « AUTOPOINT DUCOS — AUTOPOINT DUCOS ».
   "creation2.e2e.client_et_lieu": "CREA2 — Client et lieu au même nom",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-actions.spec.ts)
+  //
+  // Même discipline que `creation2.e2e.*` : sa PROPRE scène, préfixée
+  // `ACT93-`, créée et supprimée par l'épreuve
+  // (`docs/propositions/93-FICHE-ACTIONS`).
+  "actionprincipale.e2e.client": "ACT93 — Client de l'épreuve",
+  "actionprincipale.e2e.site": "ACT93 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
