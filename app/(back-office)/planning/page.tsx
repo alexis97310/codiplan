@@ -475,8 +475,18 @@ export default async function PagePlanning({
         fait de planning : elle rend des interventions à la file et elle
         retranche des heures au dénominateur du taux affiché plus bas.
       */}
-      <p className="text-[11.5px]">
-        <Link href="/absences" className={CLASSES_LIEN}>
+      {/*
+        LA CIBLE TACTILE (audit d'ergonomie du 25/09/2026, constat 40,
+        99F-CIBLES-375) — mesurée à 14 px de haut sur un téléphone, contre
+        44 px recommandés. `min-h-11` porte la zone cliquable ; `sm:` efface
+        les trois classes ajoutées et rend l'apparence bureau, inchangée
+        (mesurée à 14 px, avant comme après, `tests/e2e/planning-cibles-375.spec.ts`).
+      */}
+      <p className="text-[13px] sm:text-[11.5px]">
+        <Link
+          href="/absences"
+          className={`${CLASSES_LIEN} inline-flex min-h-11 items-center sm:inline sm:min-h-0`}
+        >
           {t("absences.titre")}
         </Link>
       </p>

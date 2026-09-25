@@ -289,7 +289,14 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
         <span>{t("statistiques.taux_au_dela")}</span>
       ) : null}
       {incomplete ? (
-        <Link href="/interventions?sans_duree_a_venir=1" className="underline">
+        // LA CIBLE TACTILE (audit d'ergonomie du 25/09/2026, constat 40,
+        // 99F-CIBLES-375) — mesurée à 16 px de haut sur un téléphone, contre
+        // 44 px recommandés. `sm:` efface les classes ajoutées : l'apparence
+        // bureau ne change pas.
+        <Link
+          href="/interventions?sans_duree_a_venir=1"
+          className="inline-flex min-h-11 items-center text-[13px] underline sm:inline sm:min-h-0 sm:text-xs"
+        >
           {t("statistiques.charge_incomplete_lien")}
         </Link>
       ) : null}
