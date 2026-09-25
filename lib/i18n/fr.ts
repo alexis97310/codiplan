@@ -1210,6 +1210,11 @@ export const fr = {
     "Le technicien a été prévenu par courriel.",
   "intervention.avertissement.courriel_technicien_non_parti":
     "Le courriel au technicien n'a pas pu être envoyé. La planification est faite quand même.",
+  // ── LA RÉAFFECTATION PRÉVIENT AUSSI L'ANCIEN TECHNICIEN (AVERTISSEMENTS-2) ──
+  "intervention.avertissement.courriel_ancien_technicien_parti":
+    "L'ancien technicien a été prévenu par courriel que cette intervention ne lui est plus affectée.",
+  "intervention.avertissement.courriel_ancien_technicien_non_parti":
+    "Le courriel à l'ancien technicien n'a pas pu être envoyé. La réaffectation est faite quand même.",
   "intervention.type": "Nature",
   "intervention.priorite": "Priorité",
   "intervention.statut": "Statut",

@@ -194,6 +194,27 @@ export function corpsPourTechnicien(
   return [entete, "", ...lignesCommunes(detail, nouveau), "", lien].join("\n");
 }
 
+export function sujetPourAncienTechnicien(): string {
+  return "CODIPLAN — Intervention retirée de votre planning";
+}
+
+/**
+ * Le corps du courriel à l'ANCIEN technicien d'une réaffectation
+ * (AVERTISSEMENTS-2). `ancien` porte le créneau tel qu'IL le connaissait —
+ * pas le nouveau, qui n'est plus le sien. Ni lien `/terrain`, ni nom du
+ * nouveau technicien : cette intervention ne lui appartient plus.
+ */
+export function corpsPourAncienTechnicien(
+  detail: DetailPourCourriel,
+  ancien: CreneauLisible,
+): string {
+  return [
+    "Cette intervention ne vous est plus affectée :",
+    "",
+    ...lignesCommunes(detail, ancien),
+  ].join("\n");
+}
+
 // ── L'ORCHESTRATION ─────────────────────────────────────────────────────────
 
 export type EtatEnvoiAvertissement =
@@ -202,13 +223,21 @@ export type EtatEnvoiAvertissement =
   | { readonly type: "sans_destinataire" };
 
 /**
- * `null` sur un des deux bords : cet événement ne concerne pas ce
- * destinataire — un changement de technicien seul ne prévient pas le client,
- * et l'ancien technicien d'une réaffectation ne reçoit plus rien ici.
+ * `null` (ou absent) sur un bord : cet événement ne concerne pas ce
+ * destinataire — un changement de technicien seul ne prévient pas le client.
+ *
+ * `ancienTechnicien` (AVERTISSEMENTS-2, 25/09/2026) est OPTIONNEL — les
+ * comptes-rendus composés avant ce ticket n'en portent aucun, et ce n'est pas
+ * la même chose qu'un `null` explicite à traiter en plus. Absent ou `null` :
+ * même lecture, « rien à dire ». Renseigné seulement quand le technicien
+ * change ET qu'il y en avait un avant : première planification
+ * (`avant.technicienId === null`) ou simple déplacement (même technicien) ne
+ * le renseignent jamais.
  */
 export type CompteRenduAvertissement = {
   readonly client: EtatEnvoiAvertissement | null;
   readonly technicien: EtatEnvoiAvertissement | null;
+  readonly ancienTechnicien?: EtatEnvoiAvertissement | null;
 };
 
 function jourLisible(date: Date): string {
@@ -396,7 +425,30 @@ export async function avertirApresPlanification(
               ancien,
             );
 
-      return { client, technicien };
+      // ── L'ANCIEN TECHNICIEN D'UNE RÉAFFECTATION (AVERTISSEMENTS-2) ───────
+      //
+      // Son créneau à LUI, jamais le nouveau : ce que `ancien` porte plus
+      // haut dépend d'un DÉPLACEMENT, pas d'un changement de technicien, et
+      // vaut `null` dans la réaffectation pure que ce ticket couvre.
+      const ancienCreneauPourAncienTechnicien = creneauLisible(
+        avant.datePlanifiee,
+        avant.creneauDebut,
+        fuseau,
+      );
+      const ancienTechnicien =
+        technicienChange &&
+        avant.technicienId !== null &&
+        ancienCreneauPourAncienTechnicien !== null
+          ? await envoyerAlAncienTechnicien(
+              tx,
+              environnement,
+              avant.technicienId,
+              detail,
+              ancienCreneauPourAncienTechnicien,
+            )
+          : null;
+
+      return { client, technicien, ancienTechnicien };
     },
     connexion,
   );
@@ -473,6 +525,33 @@ async function envoyerAuTechnicien(
     : { type: "non_parti", motif: envoi.motif };
 }
 
+async function envoyerAlAncienTechnicien(
+  tx: Prisma.TransactionClient,
+  environnement: Record<string, string | undefined>,
+  technicienId: string,
+  detail: DetailPourCourriel,
+  ancien: CreneauLisible,
+): Promise<EtatEnvoiAvertissement> {
+  const technicien = await tx.utilisateur.findFirst({
+    where: { id: technicienId },
+    select: { email: true },
+  });
+  if (technicien === null) {
+    return { type: "sans_destinataire" };
+  }
+  const envoi = await envoyerCourriel(
+    {
+      destinataire: technicien.email,
+      sujet: sujetPourAncienTechnicien(),
+      texte: corpsPourAncienTechnicien(detail, ancien),
+    },
+    environnement,
+  );
+  return envoi.parti
+    ? { type: "parti" }
+    : { type: "non_parti", motif: envoi.motif };
+}
+
 // ── LE COMPTE-RENDU, RENDU À L'ÉCRAN — DES CLÉS, JAMAIS DU TEXTE ───────────
 
 /**
@@ -499,6 +578,16 @@ export function clesAvertissementCourriel(
       compteRendu.technicien.type === "parti"
         ? "intervention.avertissement.courriel_technicien_parti"
         : "intervention.avertissement.courriel_technicien_non_parti",
+    );
+  }
+  if (
+    compteRendu.ancienTechnicien !== null &&
+    compteRendu.ancienTechnicien !== undefined
+  ) {
+    cles.push(
+      compteRendu.ancienTechnicien.type === "parti"
+        ? "intervention.avertissement.courriel_ancien_technicien_parti"
+        : "intervention.avertissement.courriel_ancien_technicien_non_parti",
     );
   }
   return cles;
