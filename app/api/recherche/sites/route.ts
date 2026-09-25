@@ -1,3 +1,4 @@
+import { libelleClientSite } from "@/app/(back-office)/presentation";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -20,6 +21,12 @@ import { schemaRechercheSite } from "@/lib/sites/saisie";
  * `libellesDesSites` — la même fonction que `/sites` utilise déjà pour
  * résoudre les raisons sociales d'une page de résultats, jamais une seconde
  * jointure écrite à part.
+ *
+ * DEPUIS 92-CREATION-2 (audit d'ergonomie du 25/09/2026, constat 7) : la
+ * composition passe par `libelleClientSite` (85-PARC-SITES) plutôt qu'une
+ * concaténation locale — un site qui porte le nom de son client ne se répète
+ * plus deux fois dans la liste proposée (« AUTOPOINT DUCOS — AUTOPOINT
+ * DUCOS »), même règle que `/parc` applique déjà à son filtre.
  */
 async function traiter(requete: Request): Promise<Response> {
   const session = await obtenirSession(requete.headers);
@@ -53,7 +60,10 @@ async function traiter(requete: Request): Promise<Response> {
   return Response.json({
     resultats: resultats.map((site) => ({
       id: site.id,
-      libelle: `${clients.get(site.client_id) ?? ""} — ${site.libelle}`,
+      libelle: libelleClientSite(
+        clients.get(site.client_id) ?? "",
+        site.libelle,
+      ),
       // `interventions/nouvelle` compose `client_id:site_id` à partir de ce
       // champ (`app/api/interventions/creer/route.ts` attend ce couple sur un
       // seul champ) ; `/parc/nouvelle` l'ignore et soumet `id` seul. La route

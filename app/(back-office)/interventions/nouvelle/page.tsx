@@ -21,6 +21,14 @@ import { machinesDesSites } from "@/lib/machines/depot";
 import { lireSite } from "@/lib/sites/depot";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { libelleClientSite } from "../../presentation";
+import {
+  agenceDeduiteDuSite,
+  aideRechercheSite,
+  libelleChampObligatoire,
+  libelleChoisirLeLieuDabord,
+} from "../presentation";
+
 import { BoutonCreer } from "./bouton-creer";
 
 export const metadata: Metadata = { title: t("planning.creer") };
@@ -157,7 +165,10 @@ export default async function PageNouvelleIntervention({
       ? undefined
       : {
           id: siteBrut.id,
-          libelle: `${clientDuSite.raison_sociale} — ${siteBrut.libelle}`,
+          libelle: libelleClientSite(
+            clientDuSite.raison_sociale,
+            siteBrut.libelle,
+          ),
           clientId: clientDuSite.id,
         };
 
@@ -259,7 +270,7 @@ export default async function PageNouvelleIntervention({
           </>
         )}
         <ChampSiteEtMachines
-          libelleSite={mot("site")}
+          libelleSite={libelleChampObligatoire(mot("site"))}
           libelleMachines={t("intervention.machine")}
           texteAucuneMachine={t("intervention.machine.aucune_au_site")}
           libelleAucuneMachineChoisie={t("intervention.machine.aucune_choisie")}
@@ -267,13 +278,13 @@ export default async function PageNouvelleIntervention({
           libelleAucunContact={t("intervention.aucun_contact")}
           libelleAucunResultatSite={t("selecteur.aucun_resultat")}
           libelleVoirPlusSite={t("selecteur.voir_plus")}
+          aideSite={aideRechercheSite()}
+          libelleChoisirSiteDabord={libelleChoisirLeLieuDabord()}
+          texteAgenceDeduite={agenceDeduiteDuSite()}
           siteInitial={siteInitial}
           machineIdInitiale={machineIdInitiale}
           contactIdInitiale={contactIdInitiale}
         />
-        <p className="text-app-encre-faible -mt-2 text-[11.5px]">
-          {t("intervention.deduit_du_lieu")}
-        </p>
 
         <Choix
           nom="type"
@@ -281,6 +292,7 @@ export default async function PageNouvelleIntervention({
           valeurs={TYPES_INTERVENTION}
           prefixe="type_intervention"
           valeurInitiale={typeInitial}
+          obligatoire
         />
         <Choix
           nom="priorite"
@@ -305,10 +317,11 @@ export default async function PageNouvelleIntervention({
           ensuite, tous les quatre ensemble.
         */}
         <label className="flex flex-col gap-1.5 text-sm font-medium">
-          {t("intervention.panne_signalee")}
+          {libelleChampObligatoire(t("intervention.panne_signalee"))}
           <textarea
             name="description"
             required
+            aria-required="true"
             rows={4}
             defaultValue={descriptionInitiale}
             className="border-input bg-background rounded-md border px-3 py-2 font-normal"
@@ -338,6 +351,7 @@ function Choix({
   prefixe,
   defaut,
   valeurInitiale,
+  obligatoire = false,
 }: {
   nom: string;
   libelle: string;
@@ -346,13 +360,18 @@ function Choix({
   defaut?: string;
   /** Reprise après un refus de saisie (56-FORMULAIRES-2) — prime sur `defaut`. */
   valeurInitiale?: string;
+  /** Marque le champ (92-CREATION-2) — n'ajoute aucune règle de validation :
+   * chaque liste porte déjà une valeur par défaut, le champ n'est donc
+   * jamais réellement vide. */
+  obligatoire?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
-      {libelle}
+      {obligatoire ? libelleChampObligatoire(libelle) : libelle}
       <select
         name={nom}
         defaultValue={valeurInitiale ?? defaut}
+        aria-required={obligatoire ? "true" : undefined}
         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
       >
         {valeurs.map((valeur) => {

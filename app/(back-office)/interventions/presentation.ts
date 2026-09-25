@@ -740,3 +740,35 @@ export function tempsTotalSurSiteLibelle(): string {
 export function aucuneMachineSurLeSite(): string {
   return `${t("intervention.bon.aucune_machine")} ${motDansUnePhrase("site")}.`;
 }
+
+/**
+ * QUATRE TEXTES DE `/interventions/nouvelle` (92-CREATION-2, audit
+ * d'ergonomie du 25/09/2026, constats 7 et 8) — même raison que
+ * `segmentsSurSiteTitre` ci-dessus : le mot imposé ne s'écrit qu'ici, jamais
+ * dans le dictionnaire ni dans l'écran.
+ */
+
+/** Un libellé de champ, marqué obligatoire — Site, Nature, la panne signalée. */
+export function libelleChampObligatoire(libelleChamp: string): string {
+  return `${libelleChamp} ${t("intervention.creation.obligatoire_suffixe")}`;
+}
+
+/** « Choisissez d'abord un site » — l'option vide de Machine et de Contact
+ * tant qu'aucun site n'est choisi. */
+export function libelleChoisirLeLieuDabord(): string {
+  return `${t("intervention.creation.choisir_lieu_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/** L'aide sous le champ Site — ce qu'on peut y taper. */
+export function aideRechercheSite(): string {
+  return `${t("intervention.creation.aide_recherche_prefixe")} ${motDansUnePhrase("site")} ${t("intervention.creation.aide_recherche_suffixe")}`;
+}
+
+/**
+ * LA NOTE SOUS LE CHAMP SITE — reformulée pour dire ce qui se déduit de quoi
+ * (constat 8) : l'agence n'est plus « déduite du lieu d'intervention », elle
+ * l'est du SITE choisi juste au-dessus (D56).
+ */
+export function agenceDeduiteDuSite(): string {
+  return `${t("intervention.creation.agence_deduite_prefixe")} ${motDansUnePhrase("site")} ${t("intervention.creation.agence_deduite_milieu")}${motDansUnePhrase("agence")} ${t("intervention.creation.agence_deduite_suffixe")}`;
+}

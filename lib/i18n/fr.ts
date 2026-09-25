@@ -1279,6 +1279,25 @@ export const fr = {
   "intervention.panne_signalee": "Panne signalée / travail demandé",
   "intervention.contact_sur_place": "Contact sur place",
   "intervention.aucun_contact": "Aucun contact désigné",
+  // ── CE QUE L'AUDIT D'ERGONOMIE DU 25/09/2026 A MESURÉ SUR CET ÉCRAN (92-
+  // CREATION-2, constats 7 et 8) — aucun champ obligatoire n'était signalé, et
+  // Machine/Contact affichaient « Aucune machine »/« Aucun contact » avant même
+  // qu'un lieu soit choisi, sans dire pourquoi. Chaque clé ci-dessous porte un
+  // FRAGMENT autour du mot imposé « site » (D5, D47, L0-11) : la composition
+  // vit dans `app/(back-office)/interventions/presentation.ts`, jamais ici,
+  // exactement comme `segmentsSurSiteTitre` le fait déjà pour le bon
+  // d'intervention.
+  "intervention.creation.obligatoire_suffixe": "(obligatoire)",
+  "intervention.creation.choisir_lieu_prefixe": "Choisissez d'abord un",
+  "intervention.creation.aide_recherche_prefixe": "Tapez un client, un",
+  "intervention.creation.aide_recherche_suffixe": "ou une commune",
+  // Reformulation de la note affichée sous le champ Site — elle disait avant
+  // « Déduit du lieu d'intervention », sans dire de QUOI : `intervention.
+  // deduit_du_lieu` reste inchangée, elle sert encore la fiche et la demande
+  // (`interventions/[id]`, `demandes/[id]`), hors du périmètre de ce ticket.
+  "intervention.creation.agence_deduite_prefixe": "Le",
+  "intervention.creation.agence_deduite_milieu": "choisi détermine l'",
+  "intervention.creation.agence_deduite_suffixe": "— cela ne se saisit pas.",
   "intervention.reference_client": "Référence client / n° de bon de commande",
   "intervention.refus.panne_manquante":
     "La panne signalée ou le travail demandé est obligatoire.",
@@ -3508,6 +3527,16 @@ export const fr = {
   "parcsites.e2e.client_a": "PSI-A — Client de l'épreuve",
   "parcsites.e2e.client_b": "PSI-B — Client de l'épreuve",
   "parcsites.e2e.site": "PSI-Noumea — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/creation-2.spec.ts)
+  //
+  // Même discipline que `parcsites.e2e.*` : sa PROPRE scène, préfixée
+  // `CREA2-`, créée et supprimée par l'épreuve (`docs/propositions/
+  // 92-CREATION-2`). UNE SEULE clé, reprise pour le client ET pour son lieu :
+  // c'est le cas exact du constat 7 de l'audit du 25/09/2026 — un lieu qui
+  // porte le nom de son client, mesuré en production sous la forme
+  // « AUTOPOINT DUCOS — AUTOPOINT DUCOS ».
+  "creation2.e2e.client_et_lieu": "CREA2 — Client et lieu au même nom",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
