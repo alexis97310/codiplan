@@ -248,7 +248,8 @@ test("le KPI « Échéances dépassées » filtre le registre sur la seule dépa
     lignes.filter({ hasText: MACHINE_DEPASSEE_DU_SEMIS }),
   ).toHaveCount(1);
   await expect(lignes).toHaveCount(1);
-  await expect(lignes.first()).toContainText(MACHINE_DEPASSEE_DU_SEMIS);
+  const texteDeLaPremiereLigne = await lignes.first().innerText();
+  expect(texteDeLaPremiereLigne).toContain(MACHINE_DEPASSEE_DU_SEMIS);
 
   await capturer(page, "registre-filtre-depassees");
 });
