@@ -64,6 +64,7 @@ test("le registre des interventions expose son nom accessible", async ({
   await expect(
     page.getByRole("table", { name: fr["interventions.titre"] }),
   ).toBeVisible();
+  await capturer(page, "registre-nom-accessible-1280");
 });
 
 test("la grille du planning expose son nom accessible", async ({ page }) => {
@@ -71,4 +72,5 @@ test("la grille du planning expose son nom accessible", async ({ page }) => {
   await expect(
     page.getByRole("table", { name: fr["planning.titre"] }),
   ).toBeVisible();
+  await capturer(page, "planning-nom-accessible-1280");
 });
