@@ -114,6 +114,32 @@ describe("chronologieDeLaFiche : ouvrir produit un évènement, fermer en ajoute
     // en tête : le tri ne présuppose rien sur l'ordre d'arrivée des faits.
     expect(evenements[0]?.cle).toBe("intervention.chronologie.suspension");
   });
+
+  it("cas normal — aucun fait daté n'est antérieur à `creeLe` : l'évènement reste « Créée »", () => {
+    const evenements = chronologieDeLaFiche({
+      creeLe,
+      pauses: [],
+      clotureeLe: new Date("2026-09-10T09:00:00.000Z"),
+      annuleeLe: null,
+    });
+    expect(evenements.map((e) => e.cle)).toEqual([
+      "intervention.chronologie.creation",
+      "intervention.chronologie.cloture",
+    ]);
+  });
+
+  it("fiche REPRISE D'UN IMPORT (audit du 25/09, constat 22) — la clôture précède `creeLe`, l'évènement de création se nomme « enregistrement » et reste DERNIER dans la liste", () => {
+    const evenements = chronologieDeLaFiche({
+      creeLe: new Date("2026-09-22T08:00:00.000Z"),
+      pauses: [],
+      clotureeLe: new Date("2026-08-19T09:00:00.000Z"),
+      annuleeLe: null,
+    });
+    expect(evenements.map((e) => e.cle)).toEqual([
+      "intervention.chronologie.cloture",
+      "intervention.chronologie.enregistrement",
+    ]);
+  });
 });
 
 describe("la note interne : une case vide REMET à null (§9, même régime que commentaire_technicien)", () => {

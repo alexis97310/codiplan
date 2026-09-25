@@ -690,19 +690,20 @@ export function chronologieDeLaFiche(fiche: {
   readonly clotureeLe: Date | null;
   readonly annuleeLe: Date | null;
 }): readonly EvenementChronologie[] {
-  const evenements: EvenementChronologie[] = [
-    { cle: "intervention.chronologie.creation", instant: fiche.creeLe },
-  ];
+  const autresInstants: Date[] = [];
+  const evenements: EvenementChronologie[] = [];
   for (const pause of fiche.pauses) {
     evenements.push({
       cle: "intervention.chronologie.suspension",
       instant: pause.debut,
     });
+    autresInstants.push(pause.debut);
     if (pause.fin !== null) {
       evenements.push({
         cle: "intervention.chronologie.reprise",
         instant: pause.fin,
       });
+      autresInstants.push(pause.fin);
     }
   }
   if (fiche.clotureeLe !== null) {
@@ -710,13 +711,27 @@ export function chronologieDeLaFiche(fiche: {
       cle: "intervention.chronologie.cloture",
       instant: fiche.clotureeLe,
     });
+    autresInstants.push(fiche.clotureeLe);
   }
   if (fiche.annuleeLe !== null) {
     evenements.push({
       cle: "intervention.chronologie.annulation",
       instant: fiche.annuleeLe,
     });
+    autresInstants.push(fiche.annuleeLe);
   }
+  // Fiche REPRISE d'un import (audit du 25/09, constat 22) : un fait daté
+  // précède `creeLe`, l'instant d'enregistrement de la ligne. « Créée » y
+  // mentirait — l'évènement se nomme alors pour ce qu'il est.
+  const repriseDunImport = autresInstants.some(
+    (instant) => instant.getTime() < fiche.creeLe.getTime(),
+  );
+  evenements.push({
+    cle: repriseDunImport
+      ? "intervention.chronologie.enregistrement"
+      : "intervention.chronologie.creation",
+    instant: fiche.creeLe,
+  });
   return [...evenements].sort(
     (a, b) => a.instant.getTime() - b.instant.getTime(),
   );

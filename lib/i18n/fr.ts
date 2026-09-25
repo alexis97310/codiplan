@@ -1502,6 +1502,7 @@ export const fr = {
   // ouverte à tous les rôles qui consultent cette fiche) ────────────────────
   "intervention.chronologie.titre": "Chronologie",
   "intervention.chronologie.creation": "Créée",
+  "intervention.chronologie.enregistrement": "Enregistrée dans CODIPLAN",
   "intervention.chronologie.suspension": "Suspendue",
   "intervention.chronologie.reprise": "Reprise",
   "intervention.chronologie.cloture": "Clôturée",
