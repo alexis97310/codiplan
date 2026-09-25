@@ -10,11 +10,13 @@ import { Kpi } from "@/components/ui/kpi";
 import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  cleJour,
   instantDuJour,
   jourDe,
   maintenant,
   schemaFuseau,
 } from "@/lib/calendar/fuseau";
+import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { demandesOuvertes } from "@/lib/demandes/depot";
@@ -47,6 +49,16 @@ import {
 } from "./presentation";
 
 const HORIZON_VGP_JOURS = 30;
+
+/**
+ * LE LIEN SOUS UNE TUILE (98-TABLEAU-2) — 13 px, et une zone cliquable d'au
+ * moins 32 px de haut. L'audit d'ergonomie du 25/09/2026 (constat 4) mesurait
+ * 11,5 px et ~17 px sur les liens déjà posés (`lien_charge_planning`,
+ * `lien_vgp_a_prevoir`, `lien_demandes`, `lien_interventions_sans_duree`) : ce
+ * ticket les corrige EN MÊME TEMPS qu'il pose les deux liens neufs, plutôt que
+ * de laisser deux tailles cohabiter sur le même écran.
+ */
+const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;
 
 export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
 
@@ -265,12 +277,22 @@ export default async function PageTableauDeBord({
         data-bloc="kpi-grille"
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <div data-bloc="kpi-interventions">
+        <div data-bloc="kpi-interventions" className="flex flex-col gap-1.5">
           <Kpi
             libelle={t("tableau_de_bord.kpi_interventions_jour")}
             valeur={lignesDuJour.length}
             detail={detailInterventionsDuJour(lignesDuJour)}
           />
+          {/* LA VUE JOUR DU PLANNING, AU JOUR MÊME (98-TABLEAU-2) — même
+              forme que `retourPlanning` (`../interventions/presentation.ts`) :
+              `vue=jour&jour=<cléJour>`, jamais une URL reconstruite ici avec
+              un vocabulaire différent. */}
+          <Link
+            href={`/planning?vue=jour&jour=${cleJour(jour)}`}
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("tableau_de_bord.lien_interventions_jour")}
+          </Link>
         </div>
         <div data-bloc="kpi-occupation" className="flex flex-col gap-1.5">
           <Kpi
@@ -278,7 +300,7 @@ export default async function PageTableauDeBord({
             libelle={t("tableau_de_bord.kpi_taux_occupation")}
             valeur={t("tableau_de_bord.non_calcule")}
           />
-          <Link href="/planning" className={`text-[11.5px] ${CLASSES_LIEN}`}>
+          <Link href="/planning" className={CLASSES_LIEN_TUILE}>
             {t("tableau_de_bord.lien_charge_planning")}
           </Link>
         </div>
@@ -289,6 +311,17 @@ export default async function PageTableauDeBord({
             valeur={enAttente.length}
             detail={detailEnAttenteDePiece(enAttente)}
           />
+          {/* AUCUN LIEN ICI, ET C'EST MESURÉ (98-TABLEAU-2) — `enAttente`
+              vient d'`enAttenteDePiece` (`piece_attendue_ref: { not: null }`),
+              une file plus ÉTROITE que l'onglet « Bloquées » du registre
+              (`statut === "suspendue"`, `criteresVue`,
+              `lib/interventions/depot.ts`) : RG-INT-06 permet une suspension
+              SANS attente de pièce (un motif seul suffit,
+              `lib/interventions/saisie.ts`). Aucun filtre de
+              `schemaRechercheInterventions` ne porte `piece_attendue_ref` :
+              `/interventions` ne sait donc rendre EXACTEMENT cette liste, et
+              un lien vers une liste plus large que le compte affiché serait
+              la faute que ce ticket interdit. Voir la passation. */}
         </div>
         <div data-bloc="kpi-vgp" className="flex flex-col gap-1.5">
           <Kpi
@@ -305,10 +338,7 @@ export default async function PageTableauDeBord({
                 : t("tableau_de_bord.vgp_a_prevoir_motif_non_calcule")
             }
           />
-          <Link
-            href="/vgp?etat=depassees"
-            className={`text-[11.5px] ${CLASSES_LIEN}`}
-          >
+          <Link href="/vgp?etat=depassees" className={CLASSES_LIEN_TUILE}>
             {t("tableau_de_bord.lien_vgp_a_prevoir")}
           </Link>
         </div>
@@ -327,15 +357,31 @@ export default async function PageTableauDeBord({
             libelle={t("tableau_de_bord.kpi_demandes_ouvertes")}
             valeur={demandes.length}
           />
-          <Link href="/demandes" className={`text-[11.5px] ${CLASSES_LIEN}`}>
+          <Link href="/demandes" className={CLASSES_LIEN_TUILE}>
             {t("tableau_de_bord.lien_demandes")}
           </Link>
         </div>
-        <Kpi
-          ton="orange"
-          libelle={t("tableau_de_bord.kpi_absences_jour")}
-          valeur={techniciensIndisponibles(absencesDuJour)}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Kpi
+            ton="orange"
+            libelle={t("tableau_de_bord.kpi_absences_jour")}
+            valeur={techniciensIndisponibles(absencesDuJour)}
+          />
+          {/* `/absences` NE PREND QU'UNE SEMAINE (`?semaine=<lundi>`), jamais
+              un jour seul (98-TABLEAU-2) — son calendrier dessine sept
+              colonnes, pas une. `semaine` VISE la semaine qui contient
+              AUJOURD'HUI, la même que le calcul de la tuile
+              (`techniciensIndisponibles(absencesDuJour)`, borné à `debutDuJour`
+              plus haut) : le paramètre est explicite plutôt que de compter sur
+              le repli par défaut de l'écran, qui recalculerait la même chose
+              en silence. */}
+          <Link
+            href={`/absences?semaine=${cleJour(lundiDeLaSemaine(jour))}`}
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("tableau_de_bord.lien_absences_jour")}
+          </Link>
+        </div>
       </div>
 
       <div
@@ -412,7 +458,7 @@ export default async function PageTableauDeBord({
               */}
               <Link
                 href="/interventions?sans_duree_a_venir=1"
-                className={`text-[11.5px] ${CLASSES_LIEN}`}
+                className={CLASSES_LIEN_TUILE}
               >
                 {t("tableau_de_bord.lien_interventions_sans_duree")}
               </Link>

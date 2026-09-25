@@ -2807,6 +2807,11 @@ export const fr = {
     "Les décisions et alertes du jour, sans remplacer le planning.",
   "tableau_de_bord.ouvrir_planning": "Ouvrir le planning",
   "tableau_de_bord.kpi_interventions_jour": "Interventions aujourd'hui",
+  // LA TUILE OUVRE LA VUE JOUR DU PLANNING, AU JOUR MÊME (98-TABLEAU-2) —
+  // même faute que les tuiles déjà réparées : un chiffre sans chemin vers ce
+  // qu'il compte.
+  "tableau_de_bord.lien_interventions_jour":
+    "Voir la journée sur le planning →",
   "tableau_de_bord.non_affectee_une": "non affectée",
   "tableau_de_bord.non_affectees": "non affectées",
   "tableau_de_bord.kpi_dossiers_bloques": "Dossiers bloqués",
@@ -2861,6 +2866,11 @@ export const fr = {
     "Demandes en attente de qualification",
   "tableau_de_bord.lien_demandes": "Qualifier une demande →",
   "tableau_de_bord.kpi_absences_jour": "Techniciens indisponibles aujourd'hui",
+  // LA TUILE OUVRE LES BLOCAGES D'AGENDA, SUR LA SEMAINE QUI CONTIENT
+  // AUJOURD'HUI (98-TABLEAU-2) — `/absences` n'affiche qu'une semaine, jamais
+  // un jour seul.
+  "tableau_de_bord.lien_absences_jour":
+    "Voir la semaine dans les blocages d'agenda →",
 
   "tableau_de_bord.priorites_titre": "Priorités opérationnelles",
   "tableau_de_bord.priorites_filtre_libelle": "Filtrer les priorités",
