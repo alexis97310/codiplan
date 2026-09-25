@@ -287,7 +287,17 @@ test("sur la FICHE d'un technicien, « Affecter » est refusé en entier et « D
   ).toBeVisible();
 
   // « DÉPLACER » reste utilisable — date, heure, durée —, mais SANS le champ
-  // technicien ni sa liste nominative.
+  // technicien ni sa liste nominative. Il n'est l'action PRINCIPALE d'aucun
+  // statut (93-FICHE-ACTIONS, constat 19) : replié dans un `<details>`, son
+  // `<summary>` s'ouvre avant que le `<form>` ne devienne visible.
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.deplacer"],
+      }),
+    })
+    .locator("summary")
+    .click();
   const formulaireDeplacer = page.locator('form[action$="/deplacer"]');
   await expect(formulaireDeplacer).toBeVisible();
   await expect(

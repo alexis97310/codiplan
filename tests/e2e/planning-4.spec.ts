@@ -289,6 +289,18 @@ test("« Déplacer » dit l'agenda bloqué du technicien avant l'envoi", async (
   await page.goto(`/interventions/${interventionADeplacer}`);
   await page.waitForLoadState("networkidle");
 
+  // « Déplacer » n'est l'action PRINCIPALE d'aucun statut
+  // (93-FICHE-ACTIONS, constat 19) : replié dans un `<details>`, son
+  // `<summary>` s'ouvre avant que ses champs ne deviennent visibles.
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.deplacer"],
+      }),
+    })
+    .locator("summary")
+    .click();
+
   // « Affecter » est le premier sélecteur, « Déplacer » le second — même
   // convention que `blocage-agenda-visible.spec.ts`.
   const selectTechnicien = page.locator('select[name="technicien_id"]').nth(1);
