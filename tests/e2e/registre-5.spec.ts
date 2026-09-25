@@ -41,6 +41,18 @@ const SITE_AUTRE = uuidv7();
 const INTERVENTION_CIBLE = uuidv7();
 const INTERVENTION_AUTRE = uuidv7();
 
+// SUFFIXE UNIQUE PAR EXÉCUTION — une exécution précédente dont l'`afterAll`
+// n'a pas joué laisse une ligne « RG5-cible » en base ; sans ce suffixe, la
+// recherche du texte fixe la retrouve et double le compte attendu à 1.
+const SUFFIXE_EXECUTION = uuidv7();
+const TEXTE_RECHERCHE = `${fr["registre5.e2e.texte_recherche"]}-${SUFFIXE_EXECUTION}`;
+const CLIENT_CIBLE_RAISON = fr["registre5.e2e.client_cible"].replace(
+  fr["registre5.e2e.texte_recherche"],
+  TEXTE_RECHERCHE,
+);
+const CLIENT_AUTRE_RAISON = `${fr["registre5.e2e.client_autre"]}-${SUFFIXE_EXECUTION}`;
+const SITE_LIBELLE = `${fr["registre5.e2e.site"]}-${SUFFIXE_EXECUTION}`;
+
 function admin(): PrismaClient {
   return new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
@@ -62,7 +74,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_CIBLE,
         societe_id: societeId,
-        raison_sociale: fr["registre5.e2e.client_cible"],
+        raison_sociale: CLIENT_CIBLE_RAISON,
         actif: true,
       },
     });
@@ -70,7 +82,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_AUTRE,
         societe_id: societeId,
-        raison_sociale: fr["registre5.e2e.client_autre"],
+        raison_sociale: CLIENT_AUTRE_RAISON,
         actif: true,
       },
     });
@@ -80,7 +92,7 @@ test.beforeAll(async () => {
         societe_id: societeId,
         client_id: CLIENT_CIBLE,
         agence_id: agence.id,
-        libelle: fr["registre5.e2e.site"],
+        libelle: SITE_LIBELLE,
       },
     });
     await client.site.create({
@@ -89,7 +101,7 @@ test.beforeAll(async () => {
         societe_id: societeId,
         client_id: CLIENT_AUTRE,
         agence_id: agence.id,
-        libelle: fr["registre5.e2e.site"],
+        libelle: SITE_LIBELLE,
       },
     });
 
@@ -153,14 +165,12 @@ test.beforeEach(async ({ page }) => {
 test("la recherche pose une puce retirable, qui n'annonce que ce seul critère", async ({
   page,
 }) => {
-  await page.goto(
-    `/interventions?q=${encodeURIComponent(fr["registre5.e2e.texte_recherche"])}`,
-  );
+  await page.goto(`/interventions?q=${encodeURIComponent(TEXTE_RECHERCHE)}`);
   // TÉMOIN — la scène est comptée « large » ailleurs (piège connu du
   // ticket) : sans cette ligne exacte, ce scénario ne prouve rien.
   await expect(page.locator("table tbody tr")).toHaveCount(1);
 
-  const puceRecherche = `${fr["interventions.puce_recherche"]}${fr["ponctuation.deux_points"]}${fr["registre5.e2e.texte_recherche"]}`;
+  const puceRecherche = `${fr["interventions.puce_recherche"]}${fr["ponctuation.deux_points"]}${TEXTE_RECHERCHE}`;
   const puce = page.locator('[data-puce="q"]');
   await expect(puce).toBeVisible();
   await expect(puce).toContainText(puceRecherche);
@@ -186,9 +196,7 @@ test("la recherche pose une puce retirable, qui n'annonce que ce seul critère",
 test("cliquer la cellule CLIENT de la ligne ouvre la fiche, comme la référence", async ({
   page,
 }) => {
-  await page.goto(
-    `/interventions?q=${encodeURIComponent(fr["registre5.e2e.texte_recherche"])}`,
-  );
+  await page.goto(`/interventions?q=${encodeURIComponent(TEXTE_RECHERCHE)}`);
   const ligne = page.locator("table tbody tr").first();
   await expect(ligne).toBeVisible();
 
@@ -201,7 +209,7 @@ test("cliquer la cellule CLIENT de la ligne ouvre la fiche, comme la référence
     .pop();
   expect(idFiche).not.toBeUndefined();
 
-  await ligne.getByText(fr["registre5.e2e.client_cible"]).click();
+  await ligne.getByText(CLIENT_CIBLE_RAISON).click();
   await expect(page).toHaveURL(
     new RegExp(`/interventions/${idFiche}(?:\\?.*)?$`),
   );
