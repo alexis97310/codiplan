@@ -71,6 +71,26 @@ export function libellePage(page: number, totalPages: number): string {
 }
 
 /**
+ * « Client — Site », le libellé composé partagé par le filtre du parc et par
+ * la liste des sites (85-PARC-SITES, 25/09/2026) — un site se désigne par qui
+ * l'occupe avant de se désigner par son propre nom : l'audit d'ergonomie du
+ * 25/09 mesure « Nouméa » six fois dans le même filtre, sans moyen de savoir
+ * lequel choisir.
+ *
+ * Repli sur le nom du client SEUL quand le libellé du site lui est identique
+ * une fois rogné (constat 7 du même audit) : répéter deux fois la même chaîne
+ * n'ajoute aucune information.
+ */
+export function libelleClientSite(client: string, site: string): string {
+  const clientRogne = client.trim();
+  const siteRogne = site.trim();
+  if (siteRogne === clientRogne) {
+    return clientRogne;
+  }
+  return `${clientRogne}${t("ponctuation.separateur")}${siteRogne}`;
+}
+
+/**
  * L'URL D'UNE AUTRE PAGE DE LA MÊME RECHERCHE — l'état vit dans l'URL, jamais
  * dans un composant (AT-07).
  *

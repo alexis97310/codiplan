@@ -50,7 +50,12 @@ import {
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 
-import { decompte, hrefDeLaPage, libellePage } from "../presentation";
+import {
+  decompte,
+  hrefDeLaPage,
+  libelleClientSite,
+  libellePage,
+} from "../presentation";
 
 import { retourActuelDuParc } from "./presentation";
 
@@ -242,7 +247,15 @@ export default async function PageParc({
     options.clients,
     (c) => c.libelle,
   );
-  const sitesTries = trierAlphanumeriquement(options.sites, (s) => s.libelle);
+  // TRIÉES PAR CLIENT PUIS SITE (85-PARC-SITES) — le filtre se lit désormais
+  // « Client — Site » (voir `sitesTries.map` plus bas), et un ordre posé sur
+  // le seul libellé du site aurait mélangé les clients dans le menu déroulant
+  // pendant que l'affichage les groupe visuellement.
+  const sitesTries = trierAlphanumeriquement(
+    options.sites,
+    (s) => s.client,
+    (s) => s.libelle,
+  );
   const famillesTriees = trierAlphanumeriquement(
     options.familles,
     (f) => f.libelle,
@@ -325,7 +338,7 @@ export default async function PageParc({
                   <option value="">{t("parc.filtre_site.tous")}</option>
                   {sitesTries.map((option) => (
                     <option key={option.id} value={option.id}>
-                      {option.libelle}
+                      {libelleClientSite(option.client, option.libelle)}
                     </option>
                   ))}
                 </select>

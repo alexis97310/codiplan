@@ -306,6 +306,19 @@ export type OptionFiltreParc = {
 };
 
 /**
+ * Une option du filtre Site — le libellé du site ET la raison sociale du
+ * client qui l'occupe (85-PARC-SITES) : deux sites du même libellé chez deux
+ * clients différents (« Nouméa », mesuré six fois le 25/09/2026 dans ce même
+ * filtre) ne se distinguent que par qui les occupe. La composition en
+ * « Client — Site » se fait à l'affichage, par `libelleClientSite`
+ * (`app/(back-office)/presentation.ts`) — jamais ici, un dépôt ne composant
+ * aucun texte visible (L0-11).
+ */
+export type OptionFiltreSiteDuParc = OptionFiltreParc & {
+  readonly client: string;
+};
+
+/**
  * LES OPTIONS DES TROIS FILTRES COMBINABLES DE LISTES-1 — jamais le
  * référentiel entier : seuls les clients, sites et familles qui possèdent au
  * moins une machine dans le périmètre visible ont un sens à proposer ici,
@@ -319,7 +332,7 @@ export async function optionsDeFiltreDuParc(
   client?: PrismaClient,
 ): Promise<{
   readonly clients: readonly OptionFiltreParc[];
-  readonly sites: readonly OptionFiltreParc[];
+  readonly sites: readonly OptionFiltreSiteDuParc[];
   readonly familles: readonly OptionFiltreParc[];
 }> {
   const [clients, sites, familles] = await avecContexteApplicatif(
@@ -332,7 +345,16 @@ export async function optionsDeFiltreDuParc(
         }),
         tx.site.findMany({
           where: { machines: { some: {} } },
-          select: { id: true, libelle: true },
+          // La raison sociale du client S'AJOUTE à cette lecture déjà faite
+          // (85-PARC-SITES) — UNE requête, jamais une par site : la même
+          // forme que `client_id` porté par `CHAMPS_FICHE` de `lib/sites/
+          // depot.ts`, ici en nom plutôt qu'en identifiant puisqu'aucune
+          // seconde lecture ne vient le résoudre pour ce filtre.
+          select: {
+            id: true,
+            libelle: true,
+            client: { select: { raison_sociale: true } },
+          },
         }),
         tx.familleMateriel.findMany({
           where: { modeles: { some: { machines: { some: {} } } } },
@@ -343,7 +365,11 @@ export async function optionsDeFiltreDuParc(
   );
   return {
     clients: clients.map((c) => ({ id: c.id, libelle: c.raison_sociale })),
-    sites: sites.map((s) => ({ id: s.id, libelle: s.libelle })),
+    sites: sites.map((s) => ({
+      id: s.id,
+      libelle: s.libelle,
+      client: s.client.raison_sociale,
+    })),
     familles,
   };
 }
