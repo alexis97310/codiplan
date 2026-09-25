@@ -128,10 +128,27 @@ async function capturer(page: Page, nom: string): Promise<void> {
   });
 }
 
+/**
+ * « ANNULER » N'EST PLUS L'ACTION PRINCIPALE D'UNE FICHE `planifiee`
+ * (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
+ * d'abord ouvrir son `<summary>` pour atteindre le motif et le bouton.
+ */
+async function ouvrirAnnuler(page: Page): Promise<void> {
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.annuler"],
+      }),
+    })
+    .locator("summary")
+    .click();
+}
+
 test("le bouton « Annuler l'intervention » est désactivé tant qu'aucun motif n'est saisi", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ANN1}`);
+  await ouvrirAnnuler(page);
 
   const bouton = page.getByRole("button", {
     name: fr["intervention.action.annuler"],
@@ -144,6 +161,7 @@ test("un motif saisi puis une confirmation refusée ne change rien", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ANN1}`);
+  await ouvrirAnnuler(page);
 
   await page
     .getByLabel(fr["intervention.annulation.motif"])
@@ -197,6 +215,7 @@ test("une confirmation acceptée annule l'intervention avec son motif", async ({
   page,
 }) => {
   await page.goto(`/interventions/${INTERVENTION_ANN1}`);
+  await ouvrirAnnuler(page);
 
   await page
     .getByLabel(fr["intervention.annulation.motif"])
