@@ -2087,7 +2087,8 @@ export const fr = {
   // LES DEUX LIENS DES KPI DAT\u00c9S (VGP-4, 25/09/2026) \u2014 m\u00eame forme que
   // `tableau_de_bord.lien_vgp_a_prevoir` : \u00ab Voir X \u2192 \u00bb, sous le KPI.
   "vgp.lien_kpi_a_venir": "Voir les \u00e9ch\u00e9ances \u00e0 venir \u2192",
-  "vgp.lien_kpi_en_retard": "Voir les \u00e9ch\u00e9ances d\u00e9pass\u00e9es \u2192",
+  "vgp.lien_kpi_en_retard":
+    "Voir les \u00e9ch\u00e9ances d\u00e9pass\u00e9es \u2192",
   // LA RECHERCHE (VGP-4, 25/09/2026) \u2014 n\u00b0 de s\u00e9rie, d\u00e9signation (mod\u00e8le)
   // ou client ; les trois colonnes que la ligne du registre identifie d\u00e9j\u00e0.
   "vgp.recherche": "Num\u00e9ro de s\u00e9rie, d\u00e9signation ou client",

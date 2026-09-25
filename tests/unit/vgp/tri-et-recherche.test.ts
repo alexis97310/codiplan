@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { AssujettissementVgp } from "@prisma/client";
 
 import { ASSUJETTISSEMENT } from "@/lib/vgp/assujettissement";
-import { etatDeLInformation, type EtatInformation } from "@/lib/vgp/information";
+import {
+  etatDeLInformation,
+  type EtatInformation,
+} from "@/lib/vgp/information";
 import {
   rechercheCorrespond,
   trierParUrgence,
