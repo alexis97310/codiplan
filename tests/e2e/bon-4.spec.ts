@@ -85,6 +85,7 @@ test.beforeAll(async () => {
         type: "curatif",
         statut: "planifiee",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
+        duree_estimee_min: 60,
       },
     });
   } finally {

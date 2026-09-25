@@ -3257,6 +3257,7 @@ export const fr = {
   // par un utilisateur réel.
   "terrain.e2e.commentaire": "Filtre à air remplacé.",
   "terrain.e2e.suite_a_donner": "Revoir le compresseur dans 3 mois.",
+  "terrain.e2e.signataire_nom": "Épreuve — Signataire",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/avertissements-1.spec.ts)
   //

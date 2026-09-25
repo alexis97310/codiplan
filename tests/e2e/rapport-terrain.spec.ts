@@ -124,6 +124,13 @@ test("une signature se trace et s'enregistre", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
+  // LE NOM DU SIGNATAIRE — obligatoire depuis 76-BON-4 (SAV-10). La qualité
+  // reste facultative, et ce scénario ne l'éprouve pas : c'est le rôle de
+  // `tests/e2e/bon-4.spec.ts`.
+  await page
+    .getByLabel(fr["terrain.signature.nom_libelle"])
+    .fill(fr["terrain.e2e.signataire_nom"]);
+
   // Les événements sont DISPATCHÉS DIRECTEMENT dans la page plutôt que
   // simulés au niveau du système : un tracé de canevas n'a besoin que des
   // événements pointer eux-mêmes, et la simulation matérielle de Playwright
