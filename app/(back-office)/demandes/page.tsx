@@ -4,9 +4,11 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
 import { Page } from "@/components/mise-en-page/page";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -56,6 +58,14 @@ export const metadata: Metadata = { title: t("demande.titre") };
  * n'atteint cette route : le portail est hors périmètre de ce ticket (dépôt
  * exclu, D102 note déjà que la même lecture SERT le portail le jour où il
  * existe).
+ *
+ * ## L'ACCÈS DIRECT À LA CRÉATION (89-DEMANDES-3, 25/09/2026)
+ *
+ * « Créer une intervention », même style et même position qu'au registre
+ * (`/interventions`) : `LienPrimaire` vers `/interventions/nouvelle`, gardé
+ * par la MÊME capacité que les autres écrans qui posent ce lien
+ * (`clients/[id]`, `sites/[id]`) — `creer_demande`, jamais une seconde
+ * lecture du critère.
  */
 export default async function PageDemandes({
   searchParams,
@@ -72,6 +82,8 @@ export default async function PageDemandes({
   const contexte = session.contexte;
   const params = await searchParams;
   const motif = params.motif;
+  const peutCreerIntervention =
+    contexte.role !== null && peut(contexte.role, "creer_demande");
 
   const demandes = await demandesOuvertes(contexte);
   const file = parLaPlusAncienne(demandes);
@@ -130,6 +142,13 @@ export default async function PageDemandes({
       chemin="/demandes"
       titre={t("demande.titre")}
       sousTitre={t("demandes.sous_titre")}
+      actions={
+        peutCreerIntervention ? (
+          <LienPrimaire href="/interventions/nouvelle">
+            {t("planning.creer")}
+          </LienPrimaire>
+        ) : undefined
+      }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

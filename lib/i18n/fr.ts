@@ -2710,6 +2710,9 @@ export const fr = {
   "nav.a_venir": "Écran à venir",
   "nav.tableau_de_bord": "Tableau de bord",
   "nav.planning": "Planning",
+  // ÉCART NOMMÉ D-MENU-DEMANDES (D133, 25/09/2026) — voir
+  // `lib/navigation/entrees.ts`, `ECARTS_HORS_MAQUETTE`.
+  "nav.demandes": "Demandes",
   "nav.interventions": "Interventions",
   "nav.parc_machines": "Parc machines",
   "nav.contrats": "Contrats",

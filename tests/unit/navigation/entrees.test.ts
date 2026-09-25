@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { fr } from "@/lib/i18n/fr";
 import {
+  ECARTS_HORS_MAQUETTE,
   ECARTS_MAQUETTE,
   ENTREES,
   ENTREES_PORTAIL,
@@ -97,16 +98,29 @@ describe("la barre de navigation dit ce que la maquette dit (D121)", () => {
     // s'accordent parfaitement, et la comparaison porte sur rien.
     expect(destinationsDeLaMaquette().length).toBe(14);
     expect(domainesDeLaMaquette().length).toBe(3);
-    // TROIS domaines de premier niveau (D121) ; QUATORZE destinations une
-    // fois les groupes ouverts.
+    // TROIS domaines de premier niveau (D121) ; QUINZE destinations une fois
+    // les groupes ouverts — QUATORZE de la maquette plus l'unique écart nommé
+    // (D133, ECARTS_HORS_MAQUETTE, « Demandes »).
     expect(ENTREES.length).toBe(3);
-    expect(feuilles(ENTREES).length).toBe(14);
+    expect(feuilles(ENTREES).length).toBe(15);
   });
 
-  it("les DESTINATIONS s'accordent — la LISTE ET L'ORDRE (D121)", () => {
-    expect(feuilles(ENTREES).map((e) => fr[e.cle])).toEqual(
-      destinationsDeLaMaquette(),
-    );
+  it("le seul écart hors maquette est nommé, et c'est « Demandes » (D133)", () => {
+    // La forme close : un écart de plus, ou un écart différent, ferait
+    // rougir CETTE assertion — jamais le test de liste et d'ordre ci-dessous,
+    // qui se contenterait de retirer ce qu'on lui désigne.
+    expect(ECARTS_HORS_MAQUETTE.map((e) => e.cle)).toEqual(["nav.demandes"]);
+    for (const ecart of ECARTS_HORS_MAQUETTE) {
+      expect(ecart.motif, ecart.cle).toBeTruthy();
+    }
+  });
+
+  it("les DESTINATIONS s'accordent — la LISTE ET L'ORDRE, hors écart nommé (D121, D133)", () => {
+    const clesEcartees = new Set(ECARTS_HORS_MAQUETTE.map((e) => e.cle));
+    const destinationsDuCode = feuilles(ENTREES)
+      .filter((entree) => !clesEcartees.has(entree.cle))
+      .map((entree) => fr[entree.cle]);
+    expect(destinationsDuCode).toEqual(destinationsDeLaMaquette());
   });
 
   it("les TROIS DOMAINES s'accordent — la LISTE ET L'ORDRE (N-07)", () => {
