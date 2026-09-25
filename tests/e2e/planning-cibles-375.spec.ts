@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { Role } from "@/lib/auth/roles";
 import { instantDuJour, jourSuivant } from "@/lib/calendar/fuseau";
@@ -198,7 +200,22 @@ test("à 375 px, les deux liens d'action tiennent une zone cliquable d'au moins 
   const boiteCharge = await lienCharge.boundingBox();
   expect(boiteCharge).not.toBeNull();
   expect(boiteCharge!.height).toBeGreaterThanOrEqual(44);
+
+  await capturer(page, "cibles-tactiles-375");
 });
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/99F-CIBLES-375/captures",
+);
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}.png`),
+    fullPage: true,
+  });
+}
 
 test("à 1280 px, le lien des blocages d'agenda garde sa hauteur d'avant (14 px)", async ({
   page,
@@ -217,4 +234,6 @@ test("à 1280 px, le lien des blocages d'agenda garde sa hauteur d'avant (14 px)
   // absorbe l'arrondi du moteur de rendu, jamais un changement d'apparence.
   expect(boite!.height).toBeGreaterThanOrEqual(13);
   expect(boite!.height).toBeLessThanOrEqual(15);
+
+  await capturer(page, "cibles-tactiles-1280");
 });
