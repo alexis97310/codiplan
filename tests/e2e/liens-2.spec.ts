@@ -153,15 +153,30 @@ test("le retour depuis une fiche ouverte en page 2 rejoint la page 2 avec la rec
   await capturer(page, "registre-page-2-apres-retour");
 });
 
+/**
+ * L'IDENTIFIANT DE LA FICHE, LU DEPUIS LE `href` DE LA LIGNE — jamais depuis
+ * `page.url()` après un clic : la navigation Next.js est asynchrone, et lire
+ * l'URL trop tôt renverrait encore `/interventions` (mesuré : `idFiche`
+ * valait alors le mot « interventions », que Prisma refusait comme UUID).
+ */
+async function idDeLaPremiereFiche(page: Page): Promise<string> {
+  const ligne = page.locator("table tbody tr").first();
+  const href = await ligne
+    .locator('a[href^="/interventions/"]')
+    .getAttribute("href");
+  expect(href).not.toBeNull();
+  const id = new URL(href as string, "http://localhost")
+    .pathname.split("/")
+    .pop();
+  expect(id).not.toBeUndefined();
+  return id as string;
+}
+
 test("sans retour dans l'URL de la fiche, le lien mène au registre nu — comportement inchangé", async ({
   page,
 }) => {
   await page.goto("/interventions?q=LIE2-");
-  const ligne = page.locator("table tbody tr").first();
-  await ligne.locator('a[href^="/interventions/"]').click();
-
-  const url = new URL(page.url());
-  const idFiche = url.pathname.split("/").pop();
+  const idFiche = await idDeLaPremiereFiche(page);
   await page.goto(`/interventions/${idFiche}?depuis=interventions`);
 
   const retour = page.getByRole("link", {
@@ -175,10 +190,7 @@ test("un paramètre de retour forgé, hors liste fermée, ne mène jamais hors d
   page,
 }) => {
   await page.goto("/interventions?q=LIE2-");
-  const ligne = page.locator("table tbody tr").first();
-  await ligne.locator('a[href^="/interventions/"]').click();
-  const url = new URL(page.url());
-  const idFiche = url.pathname.split("/").pop();
+  const idFiche = await idDeLaPremiereFiche(page);
 
   await page.goto(
     `/interventions/${idFiche}?depuis=interventions&retour=${encodeURIComponent("https://exemple-etranger.test")}`,
