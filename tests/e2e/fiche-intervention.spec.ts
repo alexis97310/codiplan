@@ -239,6 +239,17 @@ test("sur une intervention CLÔTURÉE, aucun bloc refusé ne s'affiche — seule
 
   // LE RÔLE DE L'ÉPREUVE (`adv`) PEUT ANNULER (D131, matrice complète) : le
   // seul bloc qui reste POSSIBLE est un formulaire plein, pas une ligne.
+  // « Annuler » n'est l'action PRINCIPALE d'aucun statut (93-FICHE-ACTIONS,
+  // constat 19) : replié dans un `<details>`, il faut ouvrir son `<summary>`
+  // avant que son `<form>` ne devienne visible.
+  await page
+    .locator("details", {
+      has: page.locator("summary", {
+        hasText: fr["intervention.action.annuler"],
+      }),
+    })
+    .locator("summary")
+    .click();
   await expect(page.locator('form[action$="/annuler"]')).toBeVisible();
 });
 

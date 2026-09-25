@@ -3579,6 +3579,14 @@ export const fr = {
   "vgp4.e2e.reference_texte": "VGP4 — Texte d'épreuve",
   "vgp4.e2e.numero_serie_a_venir": "VGP4-SN-A-VENIR",
   "vgp4.e2e.numero_serie_sans_information": "VGP4-SN-SANS-INFO",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-actions.spec.ts)
+  //
+  // Même discipline que `creation2.e2e.*` : sa PROPRE scène, préfixée
+  // `ACT93-`, créée et supprimée par l'épreuve
+  // (`docs/propositions/93-FICHE-ACTIONS`).
+  "actionprincipale.e2e.client": "ACT93 — Client de l'épreuve",
+  "actionprincipale.e2e.site": "ACT93 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

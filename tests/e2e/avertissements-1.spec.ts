@@ -303,7 +303,16 @@ test("déplacer une intervention déjà planifiée : les deux courriels disent �
   const jour = jourSuivant(reperes.lundi, 91);
 
   const avant = courrielsCaptures().length;
-  const form = formulaire(page, fr["intervention.action.deplacer"]);
+  // « Déplacer » N'EST PLUS L'ACTION PRINCIPALE UNE FOIS PLANIFIÉE
+  // (93-FICHE-ACTIONS, constat 19) — replié dans un `<details>`, il faut
+  // d'abord ouvrir son `<summary>` avant d'atteindre ses champs.
+  const deplacerDetails = page.locator("details", {
+    has: page.locator("summary", {
+      hasText: fr["intervention.action.deplacer"],
+    }),
+  });
+  await deplacerDetails.locator("summary").click();
+  const form = deplacerDetails.locator("form");
   await form.locator('input[name="date_planifiee"]').fill(cleDeJour(jour));
   await form.locator('input[name="heure_debut"]').fill("13:00");
   await form.locator('input[name="duree_min"]').fill("60");
