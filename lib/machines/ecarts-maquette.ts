@@ -103,6 +103,16 @@ export const ECARTS_MAQUETTE_AJOUTS_PARC: readonly EcartMaquette[] = [
       "parc() ne le dessine pas ; c'est pourtant le seul appelant de /vgp " +
       "depuis cet écran (AT-04), et le retirer romprait ce chemin",
   },
+  {
+    libelle: "Intertitre de client dans la liste maître",
+    motif:
+      "parc() ne dessine aucun repère entre les lignes de `machine-list` ; " +
+      "décision d'Alexis (99Z-GR10-PARC, 26/09/2026) — un intertitre non " +
+      "cliquable à chaque changement de client, y compris pour un client " +
+      "présent dans les deux parties de la liste (complètes puis " +
+      "incomplètes depuis PARC-A). Le retirer effacerait le seul repère " +
+      "visuel du tri par client que 99C-PARC-TRI a posé.",
+  },
 ];
 
 /* ────────────────────────────────────────────────────────────────────────

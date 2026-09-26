@@ -91,3 +91,55 @@ export function retourVersParc(
   const requete = conserves.toString();
   return requete.length === 0 ? "/parc" : `/parc?${requete}`;
 }
+
+/**
+ * ── UN INTERTITRE PAR CLIENT, JAMAIS DEUX LIGNES CONSÉCUTIVES DU MÊME
+ * (99Z-GR10-PARC, décision B, 26/09/2026) ──────────────────────────────────
+ *
+ * Le tri du parc (`rechercherLeParc`, `lib/machines/depot.ts`) groupe déjà
+ * les lignes par client, PUIS par `complet` (99C-PARC-TRI, PARC-A) — mais
+ * rien ne le MONTRAIT : une longue liste de fiches sans repère visuel, un ADV
+ * qui cherche « où commence tel client » devait lire chaque ligne. Cette
+ * fonction ne trie rien — elle n'est correcte QUE parce que `lignes` lui
+ * arrive déjà groupée par client — elle se contente d'insérer un intertitre
+ * à chaque changement de `client_id`, y compris en tête de page.
+ *
+ * **Un client présent dans les deux parties (les complètes, puis les
+ * incomplètes, PARC-A) porte deux intertitres.** Ce n'est pas un cas
+ * particulier : entre les deux occurrences, `client_id` a changé au moins
+ * une fois (une autre lettre de l'alphabet s'est intercalée, ou le groupe des
+ * incomplètes a changé de client) — le simple compteur « client précédent »
+ * le redécouvre sans qu'on le lui dise.
+ */
+export type ElementDeListeDuParc<T> =
+  | {
+      readonly type: "intertitre";
+      readonly clientId: string;
+      readonly libelle: string;
+    }
+  | { readonly type: "ligne"; readonly machine: T };
+
+/** Ce que le regroupement exige d'une ligne — jamais toute `LigneDeParc`. */
+export type LigneAvecClient = {
+  readonly client_id: string;
+  readonly client: { readonly raison_sociale: string };
+};
+
+export function regrouperLeParcParClient<T extends LigneAvecClient>(
+  lignes: readonly T[],
+): readonly ElementDeListeDuParc<T>[] {
+  const elements: ElementDeListeDuParc<T>[] = [];
+  let clientPrecedent: string | null = null;
+  for (const machine of lignes) {
+    if (machine.client_id !== clientPrecedent) {
+      elements.push({
+        type: "intertitre",
+        clientId: machine.client_id,
+        libelle: machine.client.raison_sociale,
+      });
+      clientPrecedent = machine.client_id;
+    }
+    elements.push({ type: "ligne", machine });
+  }
+  return elements;
+}

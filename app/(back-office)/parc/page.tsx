@@ -57,7 +57,7 @@ import {
   libellePage,
 } from "../presentation";
 
-import { retourActuelDuParc } from "./presentation";
+import { regrouperLeParcParClient, retourActuelDuParc } from "./presentation";
 
 export const metadata: Metadata = { title: t("parc.titre") };
 
@@ -471,28 +471,38 @@ export default async function PageParc({
                 t("parc.total"),
               )}
             >
-              {lignes.map((machine) => (
-                <RangeeMaitreDetail
-                  key={machine.id}
-                  href={hrefDeLaLigne(
-                    q,
-                    statutActif,
-                    clientActif,
-                    siteActif,
-                    familleActive,
-                    criteres.success ? criteres.data.page : 1,
-                    machine.id,
-                  )}
-                  selectionnee={selection?.id === machine.id}
-                  titre={titreDeLaLigne(machine)}
-                  sousTitre={sousTitreDeLaLigne(machine)}
-                  badge={
-                    <Badge ton={TONS_STATUT[machine.statut]}>
-                      {statutAffiche(machine.statut)}
-                    </Badge>
-                  }
-                />
-              ))}
+              {regrouperLeParcParClient(lignes).map((element, index) =>
+                element.type === "intertitre" ? (
+                  <p
+                    key={`intertitre-${element.clientId}-${index}`}
+                    role="presentation"
+                    className="text-app-encre-faible bg-app-surface-creuse border-app-bord-faible border-b px-[16px] py-[6px] text-[11px] font-extrabold uppercase"
+                  >
+                    {element.libelle}
+                  </p>
+                ) : (
+                  <RangeeMaitreDetail
+                    key={element.machine.id}
+                    href={hrefDeLaLigne(
+                      q,
+                      statutActif,
+                      clientActif,
+                      siteActif,
+                      familleActive,
+                      criteres.success ? criteres.data.page : 1,
+                      element.machine.id,
+                    )}
+                    selectionnee={selection?.id === element.machine.id}
+                    titre={titreDeLaLigne(element.machine)}
+                    sousTitre={sousTitreDeLaLigne(element.machine)}
+                    badge={
+                      <Badge ton={TONS_STATUT[element.machine.statut]}>
+                        {statutAffiche(element.machine.statut)}
+                      </Badge>
+                    }
+                  />
+                ),
+              )}
             </CarteListe>
           }
           apercu={
