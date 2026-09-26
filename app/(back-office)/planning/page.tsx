@@ -979,7 +979,7 @@ function VueSemaine({
                             tronquées sur une seule ligne, avec leur `title`.
                           */}
                           <span
-                            className="line-clamp-2 block font-bold break-words"
+                            className="line-clamp-2 font-bold break-words"
                             title={enTeteDuBloc(
                               intervention,
                               fuseauPour(intervention.agence_id),
