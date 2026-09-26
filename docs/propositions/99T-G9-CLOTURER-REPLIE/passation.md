@@ -1,5 +1,7 @@
 # 99T-G9-CLOTURER-REPLIE — passation
 
+Reprise après redémarrage du PC le 26/09 : travail déjà commité, vérifié, rien refait.
+
 ## Ce que j'ai changé
 
 - `lib/interventions/action-principale.ts` : `blocCloturerReplie({ statut, verdict })`,
