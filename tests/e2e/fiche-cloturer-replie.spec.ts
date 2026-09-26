@@ -179,7 +179,7 @@ test("fiche « terminée » sans temps mesuré : « Clôturer » reste déplié,
     page.getByRole("heading", { level: 1 }).getByText(fr["statut.terminee"]),
   ).toBeVisible();
 
-  const sectionCloturer = page.locator("section", {
+  const sectionCloturer = page.locator("section.border-app-rouge-bord", {
     has: page.getByRole("heading", {
       level: 2,
       name: fr["intervention.action.cloturer"],
