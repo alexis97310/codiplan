@@ -4,10 +4,12 @@ import {
   type ColonneAResumer,
   dureeCarteAffichee,
   materielDeLaCarte,
+  panneOuNatureDeLaCarte,
   resumeDesTechniciens,
   siteDeLaCarte,
 } from "@/app/(back-office)/planning/carte";
 import type { Annuaire, Designation } from "@/lib/auth/annuaire";
+import { t } from "@/lib/i18n/fr";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 
 /**
@@ -21,6 +23,30 @@ import type { DonneesMateriel } from "@/lib/machines/depot";
 describe("siteDeLaCarte", () => {
   it("compose le mot imposé et le libellé du site", () => {
     expect(siteDeLaCarte({ libelle: "Boulari" })).toBe("Site Boulari");
+  });
+});
+
+/**
+ * LA CARTE DE LA FILE TITRÉE PAR LE CLIENT (99X-GR8-FILE, audit GR du
+ * 26/09/2026, constat G2) — cette fonction ne porte que la sous-ligne : le
+ * titre (`ligne.client.raison_sociale`) et le numéro provisoire
+ * (`referenceAffichee`) sont déjà des champs ou des fonctions éprouvés
+ * ailleurs, composés directement par l'écran.
+ */
+describe("panneOuNatureDeLaCarte", () => {
+  it("rend la panne signalée quand elle est saisie", () => {
+    expect(
+      panneOuNatureDeLaCarte({
+        description: "Compresseur arrêté",
+        type: "curatif",
+      }),
+    ).toBe("Compresseur arrêté");
+  });
+
+  it("retombe sur la nature quand la panne n'a pas été saisie (colonne nullable, avant PARCOURS-1)", () => {
+    expect(panneOuNatureDeLaCarte({ description: null, type: "curatif" })).toBe(
+      t("type_intervention.curatif"),
+    );
   });
 });
 

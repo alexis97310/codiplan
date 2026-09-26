@@ -1,3 +1,5 @@
+import { type TypeIntervention } from "@prisma/client";
+
 import type { Annuaire } from "@/lib/auth/annuaire";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -5,6 +7,7 @@ import { nomSeul } from "@/lib/interventions/personnes";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
+import { objetDuBloc } from "../interventions/presentation";
 import { decompte } from "../presentation";
 
 /**
@@ -27,6 +30,32 @@ import { decompte } from "../presentation";
 /** Le libellé du site — même convention que `lieuDeLaLigne` (page.tsx). */
 export function siteDeLaCarte(site: { readonly libelle: string }): string {
   return `${mot("site")} ${site.libelle}`;
+}
+
+/**
+ * LA CARTE DE LA FILE « À PLANIFIER » TITRÉE PAR LE CLIENT, JAMAIS PAR LE
+ * SEUL NUMÉRO (99X-GR8-FILE, audit GR du 26/09/2026, constat G2).
+ *
+ * *Mesuré à l'audit : une carte se lisait « Local-000001 », le client rejeté
+ * en sous-ligne grise — un numéro provisoire ne dit rien au planificateur qui
+ * cherche son dossier.* La maquette titre par le client et sous-titre par la
+ * nature (`<h4>Garage de Magenta</h4><p>Entretien pont · 2 h</p>`,
+ * maquette-complete).
+ *
+ * **La panne signalée prime sur la nature** : c'est ce que le client a dit
+ * avoir, pas la catégorie administrative de l'intervention. Même choix de
+ * repli que `panneOuNature` (`../tableau-de-bord/presentation.ts`, GR7,
+ * 27/09/2026), REPRIS ICI plutôt que partagé — les deux écrans composent une
+ * carte différente autour du même repli, et ce lot ne touche pas
+ * `/tableau-de-bord`. `null` pour toute intervention créée avant PARCOURS-1
+ * (23/09/2026, colonne nullable) : `objetDuBloc` (`../interventions/presentation.ts`)
+ * comble alors le vide, jamais un tiret muet.
+ */
+export function panneOuNatureDeLaCarte(ligne: {
+  readonly description: string | null;
+  readonly type: TypeIntervention;
+}): string {
+  return ligne.description ?? objetDuBloc(ligne);
 }
 
 /**

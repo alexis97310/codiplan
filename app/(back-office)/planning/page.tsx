@@ -90,6 +90,7 @@ import { decompte } from "../presentation";
 import {
   dureeCarteAffichee,
   materielDeLaCarte,
+  panneOuNatureDeLaCarte,
   resumeDesTechniciens,
   siteDeLaCarte,
 } from "./carte";
@@ -608,15 +609,25 @@ export default async function PagePlanning({
                       className="border-app-bord block rounded-lg border px-3 py-2.5"
                     >
                       <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
-                        {referenceAffichee(ligne)}
+                        <span className="min-w-0 flex-1 truncate">
+                          {ligne.client.raison_sociale}
+                        </span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
                         >
                           {t(`priorite.${ligne.priorite}`)}
                         </span>
                       </span>
-                      <span className="text-app-encre-faible block text-[12px]">
-                        {lieuDeLaLigne(ligne)}
+                      <span
+                        className="text-app-encre-faible block truncate text-[12px]"
+                        title={panneOuNatureDeLaCarte(ligne)}
+                      >
+                        {panneOuNatureDeLaCarte(ligne)}
+                      </span>
+                      <span className="text-app-encre-faible block truncate text-[10.5px]">
+                        {siteDeLaCarte(ligne.site)}
+                        {t("ponctuation.point_median")}
+                        {referenceAffichee(ligne)}
                       </span>
                     </Link>
                   </BlocPosable>
@@ -2029,10 +2040,6 @@ function TauxDUneAgence({
         : `${compact.pourcent}${t("statistiques.pourcent")}`}
     </span>
   );
-}
-
-function lieuDeLaLigne(ligne: Ligne): string {
-  return `${ligne.client.raison_sociale} · ${mot("site")} ${ligne.site.libelle}`;
 }
 
 /**
