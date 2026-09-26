@@ -2419,6 +2419,14 @@ export type LigneEnAttenteDePiece = {
  * Aucun filtre de société n'est écrit ici : on lit sous le contexte cloisonné,
  * la forme « parc » décide, et une comparaison au-dessus serait une seconde
  * lecture du même critère.
+ *
+ * **LE CLIENT INACTIF EN SORT, SANS EXCEPTION (99V-GR6-TUILES)** — même
+ * `filtreClientActif` que `listerPlanning`, jamais une seconde forme du même
+ * critère. Cette file n'a qu'un seul appelant, la tuile « Dossiers bloqués »
+ * du tableau de bord, dont le compte principal vient désormais de
+ * `compterParVue` (l'onglet « Bloquées », client actif compris) : le détail
+ * qu'elle affiche doit compter sous le MÊME filtre, sous peine d'annoncer un
+ * sous-total plus grand que le total qui le contient.
  */
 export async function enAttenteDePiece(
   contexte: ContexteSession,
@@ -2430,7 +2438,10 @@ export async function enAttenteDePiece(
     contexte,
     async (tx) => {
       const lignes = await tx.intervention.findMany({
-        where: { piece_attendue_ref: { not: null } },
+        where: {
+          piece_attendue_ref: { not: null },
+          ...filtreClientActif(false),
+        },
         orderBy: [{ suspendue_le: "asc" }],
         select: CHAMPS_LIGNE,
       });

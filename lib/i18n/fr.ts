@@ -991,6 +991,12 @@ export const fr = {
   "interventions.kpi_semaine": "Planifiées cette semaine",
   "interventions.kpi_en_cours": "En cours",
   "interventions.kpi_en_attente": "En attente",
+  // LES DEUX TUILES MÈNENT À L'ONGLET QU'ELLES COMPTENT (99V-GR6-TUILES,
+  // audit du 26/09/2026, constat G7) — un lien NU, jamais composé avec les
+  // AUTRES filtres actifs (`hrefOnglet`) : la portée de ces trois KPI reste
+  // FIXE, quelle que soit la recherche en cours.
+  "interventions.lien_kpi_en_cours": "Voir les interventions en cours →",
+  "interventions.lien_kpi_en_attente": "Voir les dossiers bloqués →",
   "interventions.filtre_periode_du": "Depuis le",
   "interventions.filtre_periode_au": "Jusqu'au",
   // RG-PLA-08 (D129, 19/09/2026) : un client inactif ne s'affiche plus ici
@@ -2878,7 +2884,14 @@ export const fr = {
   "tableau_de_bord.non_affectees": "non affectées",
   "tableau_de_bord.kpi_dossiers_bloques": "Dossiers bloqués",
   "tableau_de_bord.en_attente_detail_prefixe": "dont",
-  "tableau_de_bord.en_attente_detail_suffixe": "depuis plus de 30 jours",
+  // LE DÉTAIL COMPTE UNE SOUS-POPULATION, PLUS « DEPUIS PLUS DE 30 JOURS »
+  // (99V-GR6-TUILES) — la tuile compte désormais TOUTES les suspendues,
+  // comme l'onglet « Bloquées » du registre ; ce détail nomme celles qui,
+  // parmi elles, attendent une pièce.
+  "tableau_de_bord.en_attente_detail_suffixe_piece": "en attente de pièce",
+  // LA TUILE OUVRE L'ONGLET « BLOQUÉES » DU REGISTRE (99V-GR6-TUILES) — le
+  // même chiffre, jamais une liste plus large que ce qu'elle compte.
+  "tableau_de_bord.lien_dossiers_bloques": "Voir les dossiers bloqués →",
   // *Un taux ne voyage jamais sans ses deux termes ; ici les deux termes
   // eux-mêmes n'existent pas encore sous une forme consolidée* — la
   // consolidation multi-agence n'est pas une règle du chapitre 10 (R2-13).

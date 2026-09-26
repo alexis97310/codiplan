@@ -24,9 +24,11 @@ import { demandesOuvertes } from "@/lib/demandes/depot";
 import { t } from "@/lib/i18n/fr";
 import {
   compterInterventionsSansDuree,
+  compterParVue,
   enAttenteDePiece,
   listerPlanning,
 } from "@/lib/interventions/depot";
+import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { tonDePriorite } from "@/lib/theme/priorites";
 import { compterAPrevoir } from "@/lib/vgp/registre";
@@ -51,6 +53,15 @@ import {
 } from "./presentation";
 
 const HORIZON_VGP_JOURS = 30;
+
+/**
+ * LA RECHERCHE VIDE (99V-GR6-TUILES) — le critère de l'onglet « Toutes »,
+ * client actif compris. Sert à interroger `compterParVue` pour un compte
+ * qui doit dire EXACTEMENT ce que l'onglet « Bloquées » du registre montre
+ * quand rien n'y est filtré, jamais une seconde forme du même critère
+ * (`filtreClientActif`, `lib/interventions/depot.ts`).
+ */
+const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
 
 /**
  * LE LIEN SOUS UNE TUILE (98-TABLEAU-2) — 13 px, et une zone cliquable d'au
@@ -208,6 +219,7 @@ export default async function PageTableauDeBord({
   const [
     lignesPlanning,
     enAttente,
+    comptesRegistre,
     vgpAPrevoir,
     demandes,
     absencesDuJour,
@@ -219,6 +231,11 @@ export default async function PageTableauDeBord({
     // (des jours ENTIERS écoulés), `debutDuJour` — la civile — pour
     // `horizonDepasse`, comparée à `date_dispo_prevue` (`@db.Date`).
     enAttenteDePiece(contexte, instant, debutDuJour),
+    // LE TOTAL DE LA TUILE « DOSSIERS BLOQUÉS » (99V-GR6-TUILES) — TOUTES les
+    // suspendues, le même critère que l'onglet « Bloquées » du registre :
+    // `enAttente` ci-dessus n'en est qu'un DÉTAIL, la file plus étroite des
+    // seules pièces attendues.
+    compterParVue(contexte, CRITERES_REGISTRE_VIDE),
     // LA CIVILE, JAMAIS L'INSTANT (L0-08) : `prochaineEcheance` est une
     // `@db.Date` posée à minuit UTC. Lui comparer `instant` (l'heure qu'il
     // est) fait tomber une échéance du JOUR MÊME sous zéro dès que l'horloge
@@ -306,24 +323,30 @@ export default async function PageTableauDeBord({
             {t("tableau_de_bord.lien_charge_planning")}
           </Link>
         </div>
-        <div data-bloc="kpi-bloques">
+        <div data-bloc="kpi-bloques" className="flex flex-col gap-1.5">
           <Kpi
             ton="orange"
             libelle={t("tableau_de_bord.kpi_dossiers_bloques")}
-            valeur={enAttente.length}
+            valeur={comptesRegistre.bloquees}
             detail={detailEnAttenteDePiece(enAttente)}
           />
-          {/* AUCUN LIEN ICI, ET C'EST MESURÉ (98-TABLEAU-2) — `enAttente`
-              vient d'`enAttenteDePiece` (`piece_attendue_ref: { not: null }`),
-              une file plus ÉTROITE que l'onglet « Bloquées » du registre
-              (`statut === "suspendue"`, `criteresVue`,
-              `lib/interventions/depot.ts`) : RG-INT-06 permet une suspension
-              SANS attente de pièce (un motif seul suffit,
-              `lib/interventions/saisie.ts`). Aucun filtre de
-              `schemaRechercheInterventions` ne porte `piece_attendue_ref` :
-              `/interventions` ne sait donc rendre EXACTEMENT cette liste, et
-              un lien vers une liste plus large que le compte affiché serait
-              la faute que ce ticket interdit. Voir la passation. */}
+          {/* LA TUILE MÈNE MAINTENANT À L'ONGLET QU'ELLE COMPTE
+              (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — jusqu'ici
+              AUCUN LIEN, mesuré et documenté (98-TABLEAU-2), parce que le
+              total venait d'`enAttenteDePiece` (`piece_attendue_ref`), une
+              file plus ÉTROITE que l'onglet « Bloquées » (`statut ===
+              "suspendue"`, RG-INT-06 permettant une suspension sans attente
+              de pièce). Le total de CETTE tuile vient désormais de
+              `compterParVue`, le MÊME critère que l'onglet — un lien vers une
+              liste plus large que le compte affiché aurait été la faute que
+              98-TABLEAU-2 interdisait ; ce n'en est plus une. Voir la
+              passation. */}
+          <Link
+            href="/interventions?vue=bloquees"
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("tableau_de_bord.lien_dossiers_bloques")}
+          </Link>
         </div>
         <div data-bloc="kpi-vgp" className="flex flex-col gap-1.5">
           <Kpi

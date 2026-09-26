@@ -135,6 +135,20 @@ const COMPTES_VUE_VIDES: ComptesRegistre = {
   historique: 0,
 };
 
+/**
+ * LA RECHERCHE VIDE (99V-GR6-TUILES) — le critère de l'onglet « Toutes »,
+ * client actif compris. `kpiDuRegistre` l'utilise pour que ses deux KPI
+ * « En cours » et « En attente » comptent exactement ce que l'onglet
+ * correspondant montre quand rien n'y est filtré, jamais une seconde forme
+ * du même critère (`filtreClientActif`, `lib/interventions/depot.ts`).
+ */
+const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
+
+/** Le lien sous une tuile du bandeau (99V-GR6-TUILES) — même forme que
+ * `CLASSES_LIEN_TUILE` du tableau de bord (98-TABLEAU-2) : 13 px de texte,
+ * une zone cliquable d'au moins 32 px de haut. */
+const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;
+
 export default async function PageInterventions({
   searchParams,
 }: {
@@ -490,7 +504,12 @@ export default async function PageInterventions({
           rendu SEULEMENT quand un filtre est actif : ces trois nombres ne
           bougent JAMAIS avec la recherche (voir `kpiDuRegistre`), et un
           exploitant qui vient de filtrer doit pouvoir le lire, pas le
-          deviner. */}
+          deviner.
+          « EN COURS » ET « EN ATTENTE » MÈNENT MAINTENANT À L'ONGLET QU'ELLES
+          COMPTENT (99V-GR6-TUILES, audit du 26/09/2026, constat G7) — un lien
+          NU (`?vue=en_cours`, `?vue=bloquees`), jamais `hrefOnglet` : la
+          portée de ces trois KPI reste FIXE, elle ne compose pas avec les
+          AUTRES filtres actifs. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kpi
           libelle={t("interventions.kpi_semaine")}
@@ -501,26 +520,42 @@ export default async function PageInterventions({
               : undefined
           }
         />
-        <Kpi
-          ton="vert"
-          libelle={t("interventions.kpi_en_cours")}
-          valeur={kpi.enCours}
-          detail={
-            puces.length > 0
-              ? t("interventions.kpi_detail_filtre_actif")
-              : undefined
-          }
-        />
-        <Kpi
-          ton="orange"
-          libelle={t("interventions.kpi_en_attente")}
-          valeur={kpi.enAttente}
-          detail={
-            puces.length > 0
-              ? t("interventions.kpi_detail_filtre_actif")
-              : undefined
-          }
-        />
+        <div data-bloc="kpi-en-cours" className="flex flex-col gap-1.5">
+          <Kpi
+            ton="vert"
+            libelle={t("interventions.kpi_en_cours")}
+            valeur={kpi.enCours}
+            detail={
+              puces.length > 0
+                ? t("interventions.kpi_detail_filtre_actif")
+                : undefined
+            }
+          />
+          <Link
+            href="/interventions?vue=en_cours"
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("interventions.lien_kpi_en_cours")}
+          </Link>
+        </div>
+        <div data-bloc="kpi-en-attente" className="flex flex-col gap-1.5">
+          <Kpi
+            ton="orange"
+            libelle={t("interventions.kpi_en_attente")}
+            valeur={kpi.enAttente}
+            detail={
+              puces.length > 0
+                ? t("interventions.kpi_detail_filtre_actif")
+                : undefined
+            }
+          />
+          <Link
+            href="/interventions?vue=bloquees"
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("interventions.lien_kpi_en_attente")}
+          </Link>
+        </div>
       </div>
 
       {/* LES ONGLETS DU REGISTRE (52-REGISTRE-1) — « Toutes » puis les six
@@ -648,6 +683,17 @@ export default async function PageInterventions({
  *   `STATUTS_INTERVENTION`.
  * - « En attente » : `statut = "suspendue"` — RG-INT-06, la file d'attente
  *   de pièce.
+ *
+ * **« EN COURS » ET « EN ATTENTE » COMPTENT DÉSORMAIS SOUS LE MÊME CRITÈRE
+ * QUE LEUR ONGLET (99V-GR6-TUILES, audit du 26/09/2026, constat G7)** — un
+ * client inactif sortait de l'onglet (`filtreClientActif`,
+ * `lib/interventions/depot.ts`) mais restait compté ici : la tuile et
+ * l'onglet qu'elle nomme désormais (voir le lien posé sous chacune) disaient
+ * deux nombres différents. `compterParVue`, sur la RECHERCHE VIDE
+ * (`CRITERES_REGISTRE_VIDE`), porte déjà ce critère — le réutiliser ici
+ * évite une seconde lecture du même critère (gardien R3-12,
+ * `tests/unit/gardiens/chemins-de-depot.test.ts`) plutôt que d'écrire
+ * `client: { actif: true }` une deuxième fois.
  */
 async function kpiDuRegistre(contexte: ContexteSession): Promise<{
   readonly planifieesCetteSemaine: number;
@@ -669,16 +715,19 @@ async function kpiDuRegistre(contexte: ContexteSession): Promise<{
   // tout entier et la semaine compterait un jour de trop.
   const finSemaine = instantDuJour(lundi, 7);
 
-  return avecContexteApplicatif(contexte, async (tx) => {
-    const [planifieesCetteSemaine, enCours, enAttente] = await Promise.all([
+  const [planifieesCetteSemaine, comptesVueVides] = await Promise.all([
+    avecContexteApplicatif(contexte, (tx) =>
       tx.intervention.count({
         where: { date_planifiee: { gte: debutSemaine, lt: finSemaine } },
       }),
-      tx.intervention.count({ where: { statut: "en_cours" } }),
-      tx.intervention.count({ where: { statut: "suspendue" } }),
-    ]);
-    return { planifieesCetteSemaine, enCours, enAttente };
-  });
+    ),
+    compterParVue(contexte, CRITERES_REGISTRE_VIDE),
+  ]);
+  return {
+    planifieesCetteSemaine,
+    enCours: comptesVueVides.en_cours,
+    enAttente: comptesVueVides.bloquees,
+  };
 }
 
 function LigneIntervention({

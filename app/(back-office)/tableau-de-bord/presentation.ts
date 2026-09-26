@@ -23,24 +23,10 @@ export type LignePlanifiable = {
   readonly technicien_id: string | null;
 };
 
-/** Le minimum qu'une fiche « en attente de pièce » porte pour son ancienneté. */
-export type FicheEnAttente = {
-  readonly ancienneteJours: number;
-};
-
 /** Le minimum qu'un blocage d'agenda porte pour désigner une personne. */
 export type BlocageDAgenda = {
   readonly utilisateur_id: string;
 };
-
-/**
- * LE SEUIL DE L'ANCIENNETÉ « DEPUIS PLUS DE 30 JOURS » — la maquette l'écrit
- * en toutes lettres (« dont 4 depuis plus de 30 jours »), et ce n'est pas un
- * délai métier du chapitre 10 : c'est une lecture d'écran, au même titre que
- * les fenêtres de `/absences`. Elle est nommée pour ne pas se lire comme une
- * règle de gestion qu'elle n'est pas.
- */
-export const SEUIL_ANCIENNETE_JOURS = 30;
 
 /**
  * LES LIGNES DU JOUR — `listerPlanning` rend AUSSI toute la file d'attente
@@ -89,26 +75,25 @@ export function detailInterventionsDuJour(
   return `${nonAffectees} ${unite}`;
 }
 
-/** Combien de fiches « en attente de pièce » dépassent le seuil d'ancienneté. */
-export function ancienNombreEnAttente(
-  lignes: readonly FicheEnAttente[],
-): number {
-  return lignes.filter(
-    (ligne) => ligne.ancienneteJours > SEUIL_ANCIENNETE_JOURS,
-  ).length;
-}
-
+/**
+ * LE DÉTAIL SOUS LA TUILE « DOSSIERS BLOQUÉS » (99V-GR6-TUILES, audit du
+ * 26/09/2026, constat G7) — « dont N en attente de pièce », une
+ * SOUS-POPULATION du total que la tuile affiche désormais (`compterParVue`,
+ * l'onglet « Bloquées »), jamais un second total : `lignes` vient
+ * d'`enAttenteDePiece`, déjà filtrée sous le MÊME critère client actif que ce
+ * total. Absente plutôt qu'à zéro, même règle que `detailInterventionsDuJour`
+ * (§9, 06/09).
+ */
 export function detailEnAttenteDePiece(
-  lignes: readonly FicheEnAttente[],
+  lignes: readonly unknown[],
 ): string | undefined {
-  const anciennes = ancienNombreEnAttente(lignes);
-  if (anciennes === 0) {
+  if (lignes.length === 0) {
     return undefined;
   }
   return [
     t("tableau_de_bord.en_attente_detail_prefixe"),
-    String(anciennes),
-    t("tableau_de_bord.en_attente_detail_suffixe"),
+    String(lignes.length),
+    t("tableau_de_bord.en_attente_detail_suffixe_piece"),
   ].join(" ");
 }
 

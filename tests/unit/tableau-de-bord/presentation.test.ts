@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ancienNombreEnAttente,
   detailEnAttenteDePiece,
   detailInterventionsDuJour,
   etatVgpAPrevoir,
@@ -82,24 +81,23 @@ describe("le détail « non affectée(s) » sous le KPI du jour", () => {
   });
 });
 
-describe("l'ancienneté « en attente de pièce »", () => {
-  it("compte STRICTEMENT au-delà du seuil, pas à l'égalité", () => {
-    // *Le seuil est écrit une fois* (SEUIL_ANCIENNETE_JOURS = 30) : une fiche
-    // à exactement 30 jours n'est pas encore « depuis plus de 30 jours ».
-    const lignes = [{ ancienneteJours: 30 }, { ancienneteJours: 31 }];
-    expect(ancienNombreEnAttente(lignes)).toBe(1);
+describe("le détail « en attente de pièce » sous la tuile « Dossiers bloqués » (99V-GR6-TUILES)", () => {
+  it("est ABSENT quand la file est vide — même règle que le détail « non affectée(s) » (§9, 06/09)", () => {
+    expect(detailEnAttenteDePiece([])).toBeUndefined();
   });
 
-  it("le détail est ABSENT quand rien ne dépasse le seuil", () => {
-    const lignes = [{ ancienneteJours: 2 }, { ancienneteJours: 30 }];
-    expect(detailEnAttenteDePiece(lignes)).toBeUndefined();
-  });
-
-  it("le détail NOMME le compte et le seuil, comme la maquette l'écrit", () => {
-    const lignes = [{ ancienneteJours: 45 }, { ancienneteJours: 3 }];
+  it("NOMME le compte de la file reçue, quel qu'il soit — une SOUS-POPULATION du total de la tuile, jamais un second total", () => {
+    const lignes = [{}, {}, {}];
     const detail = detailEnAttenteDePiece(lignes);
+    expect(detail).toContain("3");
+    expect(detail).toContain(
+      t("tableau_de_bord.en_attente_detail_suffixe_piece"),
+    );
+  });
+
+  it("LE CAS QUI DOIT RESTER VERT : une seule fiche s'écrit aussi « 1 »", () => {
+    const detail = detailEnAttenteDePiece([{}]);
     expect(detail).toContain("1");
-    expect(detail).toContain(t("tableau_de_bord.en_attente_detail_suffixe"));
   });
 });
 

@@ -95,10 +95,25 @@ describe("le registre des interventions montre la priorité et les machines (aud
   });
 
   it("les trois KPI comptent un FAIT RÉEL, jamais les valeurs illustratives de la maquette (27, 2, 5)", () => {
-    expect(SOURCE).toContain('statut: "en_cours"');
-    expect(SOURCE).toContain('statut: "suspendue"');
     expect(SOURCE).toContain(
       "date_planifiee: { gte: debutSemaine, lt: finSemaine }",
     );
+    // « En cours » et « En attente » RÉUTILISENT `compterParVue`
+    // (99V-GR6-TUILES) plutôt qu'un second `client: { actif: true } }`
+    // littéral : le même critère que l'onglet qu'elles nomment, jamais une
+    // seconde lecture (gardien R3-12).
+    expect(SOURCE).toContain("compterParVue(contexte, CRITERES_REGISTRE_VIDE)");
+    expect(SOURCE).toContain("enCours: comptesVueVides.en_cours");
+    expect(SOURCE).toContain("enAttente: comptesVueVides.bloquees");
+  });
+
+  it("« En cours » et « En attente » mènent à l'onglet qu'elles comptent, sans les autres filtres (99V-GR6-TUILES)", () => {
+    // Un lien NU — une chaîne littérale, jamais `hrefOnglet(parametresActifs,
+    // ...)` : la portée de ces KPI reste FIXE, indépendante des filtres
+    // actifs, à la différence des onglets de navigation plus bas.
+    expect(SOURCE).toContain('href="/interventions?vue=en_cours"');
+    expect(SOURCE).toContain('href="/interventions?vue=bloquees"');
+    expect(SOURCE).toContain("interventions.lien_kpi_en_cours");
+    expect(SOURCE).toContain("interventions.lien_kpi_en_attente");
   });
 });

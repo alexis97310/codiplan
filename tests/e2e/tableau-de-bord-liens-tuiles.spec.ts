@@ -35,14 +35,16 @@ import { ouvrirUneSession } from "./setup/session";
  * 2. La tuile « Techniciens indisponibles » ouvre les blocages d'agenda, sur
  *    la semaine qui contient aujourd'hui — `/absences` n'affichant qu'une
  *    semaine, jamais un jour seul.
- * 3. « Dossiers bloqués » ne porte AUCUN lien — mesuré et documenté au code
- *    (voir le commentaire au-dessus de la tuile, `tableau-de-bord/page.tsx`) :
- *    `enAttenteDePiece` (`piece_attendue_ref` non nul) est plus étroit que
- *    l'onglet « Bloquées » du registre (`statut === "suspendue"`, qui admet
- *    une suspension sans attente de pièce). Ce fichier éprouve l'ABSENCE, pas
- *    seulement l'ajout : un lien qui réapparaîtrait demain vers une liste plus
- *    large que le compte serait la même faute que celle qui a fait ouvrir ce
- *    ticket.
+ * 3. « Dossiers bloqués » PORTE DÉSORMAIS UN LIEN (99V-GR6-TUILES, audit du
+ *    26/09/2026, constat G7) — son ABSENCE, mesurée par 98-TABLEAU-2, tenait à
+ *    ce que le total de la tuile venait d'`enAttenteDePiece`
+ *    (`piece_attendue_ref` non nul), plus étroit que l'onglet « Bloquées » du
+ *    registre (`statut === "suspendue"`, qui admet une suspension sans
+ *    attente de pièce) : un lien aurait ouvert une liste plus large que le
+ *    compte affiché. Le total de la tuile vient maintenant de `compterParVue`,
+ *    le MÊME critère que l'onglet — ce fichier éprouve que les deux nombres,
+ *    lus dans le même passage, sont ÉGAUX, et que le lien ouvre bien cet
+ *    onglet.
  * 4. Tous les liens de tuile — anciens et neufs — tiennent 13 px de texte et
  *    une zone cliquable d'au moins 32 px de haut.
  *
@@ -150,12 +152,41 @@ test("« Techniciens indisponibles » ouvre les blocages d'agenda, sur la semain
   await expect(page.locator('[data-bloc="calendrier"]')).toBeVisible();
 });
 
-test("« Dossiers bloqués » ne porte toujours aucun lien — mesuré, pas oublié", async ({
+/** Le premier nombre isolé sur sa propre ligne, dans un texte rendu multi-lignes. */
+function premierNombreIsole(texte: string): number | null {
+  const correspondance = /\n(\d+)\n/.exec(`\n${texte}\n`);
+  return correspondance === null ? null : Number(correspondance[1]);
+}
+
+test("« Dossiers bloqués » compte EXACTEMENT ce que l'onglet « Bloquées » du registre montre, et y mène", async ({
   page,
 }) => {
   const tuile = page.locator('[data-bloc="kpi-bloques"]');
   await expect(tuile).toBeVisible();
-  await expect(tuile.locator("a")).toHaveCount(0);
+
+  const lien = tuile.getByRole("link", {
+    name: fr["tableau_de_bord.lien_dossiers_bloques"],
+  });
+  await expect(lien).toHaveAttribute("href", "/interventions?vue=bloquees");
+  await verifierZoneCliquable(page, lien);
+
+  // LA VALEUR DE LA TUILE, LUE DANS LE RENDU — jamais un nombre absolu
+  // (fullyParallel) : elle est comparée, deux lignes plus bas, à l'onglet
+  // qu'elle nomme, lu dans le MÊME passage.
+  const valeurTuile = premierNombreIsole(await tuile.innerText());
+  expect(valeurTuile).not.toBeNull();
+
+  await lien.click();
+  await page.waitForURL("/interventions?vue=bloquees");
+  const ongletActif = page.locator(
+    'nav[data-nav="onglets-registre"] a[aria-current="page"]',
+  );
+  const texteOnglet = (await ongletActif.innerText()).trim();
+  expect(texteOnglet).toContain(fr["interventions.vue.bloquees"]);
+  const compteOnglet = /\((\d+)\)\s*$/.exec(texteOnglet)?.[1];
+  expect(compteOnglet).not.toBeUndefined();
+
+  expect(valeurTuile).toBe(Number(compteOnglet));
 });
 
 test("les liens déjà posés tiennent aussi 13 px et 32 px de haut", async ({
