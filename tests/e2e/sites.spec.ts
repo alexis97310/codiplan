@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  libelleNouveauSite,
+  libelleRetourSites,
+} from "@/app/(back-office)/sites/presentation";
 import { fr, mot } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -49,7 +53,7 @@ async function premierSite(page: Page): Promise<string> {
   await page.goto("/sites");
   const lien = page
     .locator('a[href^="/sites/"]')
-    .filter({ hasNotText: fr["sites.creer"] })
+    .filter({ hasNotText: libelleNouveauSite() })
     .first();
   await expect(lien).toBeVisible();
   const href = await lien.getAttribute("href");
@@ -151,7 +155,7 @@ test("L'ÉCRAN A UN APPELANT — on y arrive par le LIEU d'une intervention", as
   // La fiche porte le retour vers la liste : un écran sans sortie est une
   // impasse, et c'est le coût que « pas de barre du tout » ferait payer.
   await expect(
-    page.getByRole("link", { name: fr["sites.retour"] }),
+    page.getByRole("link", { name: libelleRetourSites() }),
   ).toBeVisible();
 });
 

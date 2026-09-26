@@ -57,7 +57,14 @@ import {
   ouTiret,
 } from "../../presentation";
 import { referenceAffichee } from "../../interventions/presentation";
-import { libelleRattachement } from "../presentation";
+import {
+  libelleRattachement,
+  libelleRetourSites,
+  libelleSiteCree,
+  videContactsSite,
+  videEquipementsSite,
+  videInterventionsSite,
+} from "../presentation";
 
 /**
  * LA FICHE D'UN LIEU D'INTERVENTION (L3-16, D75).
@@ -284,12 +291,24 @@ export default async function PageSite({
             </LienPrimaire>
           ) : null}
           <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
-            {t("sites.retour")}
+            {libelleRetourSites()}
           </Link>
         </>
       }
     >
-      {typeof motif === "string" && estCleTraduction(motif) ? (
+      {/* « sites.cree » (GR12c) — le SEUL motif de cet écran dont le
+          libellé porte le mot imposé ; il ne peut donc pas s'écrire en clair
+          au dictionnaire (§3, D5/D47) et se compose ici, avant de retomber
+          sur le rendu générique de tout autre motif. */}
+      {motif === "sites.cree" ? (
+        <p
+          role="status"
+          data-motif={motif}
+          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
+        >
+          {libelleSiteCree()}
+        </p>
+      ) : typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
           data-motif={motif}
@@ -334,7 +353,7 @@ export default async function PageSite({
       <BlocContacts
         bloc="contacts-site"
         titre={t("sites.fiche.contacts")}
-        texteVide={t("sites.fiche.contacts_vide")}
+        texteVide={videContactsSite()}
         contacts={contacts}
         clientId={site.client_id}
         retour={`/sites/${site.id}`}
@@ -605,7 +624,7 @@ function BlocEquipements({
       </h2>
       {equipements.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
-          {t("sites.fiche.equipements_vide")}
+          {videEquipementsSite()}
         </p>
       ) : (
         <Tableau colonnes={colonnes} minimum="720px">
@@ -813,7 +832,7 @@ function BlocInterventions({
       </div>
       {interventions.length === 0 ? (
         <p className="text-app-encre-faible px-4 py-3 text-[12.5px]">
-          {t("sites.fiche.interventions_vide")}
+          {videInterventionsSite()}
         </p>
       ) : (
         <Tableau colonnes={colonnes} minimum="640px">

@@ -14,9 +14,13 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 
-import { libelleRattachement } from "../presentation";
+import {
+  libelleNouveauSite,
+  libelleRattachement,
+  libelleRetourSites,
+} from "../presentation";
 
-export const metadata: Metadata = { title: t("sites.creer") };
+export const metadata: Metadata = { title: libelleNouveauSite() };
 
 /**
  * LA CRÉATION D'UN LIEU D'INTERVENTION (L3-16, D75).
@@ -79,10 +83,10 @@ export default async function PageNouveauSite({
   return (
     <Page
       chemin="/sites"
-      titre={t("sites.creer")}
+      titre={libelleNouveauSite()}
       actions={
         <Link href="/sites" className="text-app-encre-faible text-[12.5px]">
-          {t("sites.retour")}
+          {libelleRetourSites()}
         </Link>
       }
     >

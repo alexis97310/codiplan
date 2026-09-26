@@ -463,11 +463,21 @@ export const fr = {
   // Comme partout, le mot imposé ne s'écrit PAS ici : le titre de l'écran se
   // compose depuis `mot("site.pluriel")`, et le libellé de colonne du
   // rattachement depuis `mot("agence")`.
-  "sites.sous_titre":
-    "Les lieux d'intervention de vos clients, leur rattachement et leur temps de trajet.",
+  //
+  // GR12c (audit du 26/09/2026, constat G15) — « lieu » cédait la place à
+  // « site » sur cet écran et les deux autres (`/sites/[id]`,
+  // `/sites/nouveau`) ; les clés qui portaient le mot en clair sont
+  // découpées en PRÉFIXE/SUFFIXE, sur le même modèle que
+  // `sites.fiche.interventions_borne_prefixe`/`_suffixe` ci-dessous, pour que
+  // `app/(back-office)/sites/presentation.ts` les recompose autour de
+  // `mot("site")`/`motDansUnePhrase("site")` — le mot imposé ne s'écrit
+  // toujours qu'à un seul endroit (§3, D5/D47).
+  "sites.sous_titre_prefixe": "Les",
+  "sites.sous_titre_suffixe":
+    "d'intervention de vos clients, leur rattachement et leur temps de trajet.",
   "sites.recherche": "Libellé, commune ou client",
   "sites.rechercher": "Rechercher",
-  "sites.creer": "Nouveau lieu",
+  "sites.creer_prefixe": "Nouveau",
   "sites.inactif": "Inactif",
   // Le libellé COURT de la colonne. Le libellé complet — celui qui dit d'où
   // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
@@ -484,13 +494,12 @@ export const fr = {
   // pastille ; ces deux clés ne servent qu'à partir de un.
   "sites.habilitations_un": "habilitation",
   "sites.habilitations_plusieurs": "habilitations",
-  "sites.filtre_equipement": "Afficher aussi les lieux sans équipement",
-  // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, audit du 26/09/2026,
-  // constat G15) — posée quand la case ci-dessus n'est PAS cochée et qu'au
-  // moins un site est masqué : « N site(s) sans équipement masqué(s) ·
-  // Afficher ». Le mot imposé compose depuis `mot`/`motDansUnePhrase`
-  // (`app/(back-office)/sites/presentation.ts`, `phraseSitesMasques`) ; ces
-  // deux clés ne portent que la suite, accordée sur le même nombre.
+  "sites.filtre_equipement_prefixe": "Afficher aussi les",
+  "sites.filtre_equipement_suffixe": "sans équipement",
+  // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, constat G15) — posée
+  // quand la case ci-dessus n'est PAS cochée et qu'au moins un site est
+  // masqué : « N sites sans équipement masqués · Afficher ». Le nombre et le
+  // mot composent comme `decompte` le fait déjà pour le total filtré ;
   // « Afficher » est le texte du LIEN qui coche la case, jamais une phrase à
   // lui seul.
   "sites.masques_suffixe_un": "sans équipement masqué",
@@ -512,11 +521,12 @@ export const fr = {
   "sites.fiche.interventions_borne_prefixe": "Au plus",
   "sites.fiche.interventions_borne_suffixe":
     "interventions, la plus r\u00e9cente en t\u00eate ; celles qui restent \u00e0 planifier en bas.",
-  "sites.fiche.interventions_vide":
-    "Aucune intervention n'est enregistr\u00e9e pour ce lieu.",
+  "sites.fiche.interventions_vide_prefixe":
+    "Aucune intervention n'est enregistr\u00e9e pour ce",
   "sites.action.creer": "Créer",
-  "sites.retour": "← Tous les lieux",
-  "sites.cree": "Le lieu a été créé.",
+  "sites.retour_prefixe": "← Tous les",
+  "sites.cree_prefixe": "Le",
+  "sites.cree_suffixe": "a été créé.",
   "sites.modifie": "Les modifications ont été enregistrées.",
   // Les six zones de D23. Leurs libellés sont des NOMS DE LIEUX de
   // Nouvelle-Calédonie : ils vivent au dictionnaire parce qu'un humain les lit,
@@ -3448,8 +3458,8 @@ export const fr = {
 
   // Depuis la fiche d'un site (`/sites/[id]`).
   "sites.fiche.contacts": "Interlocuteurs",
-  "sites.fiche.contacts_vide":
-    "Aucun interlocuteur n'est enregistré pour ce lieu.",
+  "sites.fiche.contacts_vide_prefixe":
+    "Aucun interlocuteur n'est enregistré pour ce",
 
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/contacts.spec.ts) ────
   //
@@ -3563,8 +3573,8 @@ export const fr = {
 
   // ── LE BLOC « ÉQUIPEMENTS DU SITE » (FICHE-360-1) ───────────────────────
   "sites.fiche.equipements": "Équipements enregistrés",
-  "sites.fiche.equipements_vide":
-    "Aucun équipement n'est enregistré pour ce lieu.",
+  "sites.fiche.equipements_vide_prefixe":
+    "Aucun équipement n'est enregistré pour ce",
   "sites.fiche.equipements.colonne_famille": "Famille",
   "sites.fiche.equipements.colonne_materiel": "Marque / référence",
   "sites.fiche.equipements.colonne_serie": "N° de série",

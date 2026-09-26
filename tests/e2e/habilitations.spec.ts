@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { libelleNouveauSite } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
@@ -198,7 +199,7 @@ async function premierLieu(page: Page): Promise<string> {
   await page.goto("/sites");
   const lien = page
     .locator('a[href^="/sites/"]')
-    .filter({ hasNotText: fr["sites.creer"] })
+    .filter({ hasNotText: libelleNouveauSite() })
     .first();
   await expect(lien).toBeVisible();
   const href = await lien.getAttribute("href");

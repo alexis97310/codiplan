@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
 import { ouTiret } from "@/app/(back-office)/presentation";
+import { videEquipementsSite } from "@/app/(back-office)/sites/presentation";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import { engendrerJetonQr } from "@/lib/machines/qr";
@@ -159,9 +160,7 @@ test("le bloc « Équipements du site » ne montre QUE les trois machines de CE 
   const blocVide = page.locator('[data-bloc="equipements-site"]');
   await expect(blocVide).toBeVisible();
   await expect(blocVide.locator("tbody tr")).toHaveCount(0);
-  await expect(
-    blocVide.getByText(fr["sites.fiche.equipements_vide"]),
-  ).toBeVisible();
+  await expect(blocVide.getByText(videEquipementsSite())).toBeVisible();
 });
 
 test("« + Intervention » d'une machine du bloc équipements arrive PRÉREMPLI, site ET machine", async ({

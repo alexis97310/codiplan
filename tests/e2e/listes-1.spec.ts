@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { libelleFiltreEquipement } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { ouvrirUneSession } from "./setup/session";
@@ -39,7 +40,7 @@ test("/sites — chaque carte affiche un compteur d'équipements, et la case du 
 
   // La case est DÉCOCHÉE par défaut — absente de l'URL initiale.
   const case_ = page.getByRole("checkbox", {
-    name: fr["sites.filtre_equipement"],
+    name: libelleFiltreEquipement(),
   });
   await expect(case_).toBeVisible();
   await expect(case_).not.toBeChecked();

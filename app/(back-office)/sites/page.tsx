@@ -30,8 +30,11 @@ import {
   compteurEquipements,
   compteurHabilitations,
   libelleAfficherSitesMasques,
+  libelleFiltreEquipement,
+  libelleNouveauSite,
   ouTiret,
   phraseSitesMasques,
+  sousTitreSites,
   trajetAffiche,
 } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -208,9 +211,11 @@ export default async function PageSites({
     <Page
       chemin="/sites"
       titre={mot("site", true)}
-      sousTitre={t("sites.sous_titre")}
+      sousTitre={sousTitreSites()}
       actions={
-        <LienPrimaire href="/sites/nouveau">{t("sites.creer")}</LienPrimaire>
+        <LienPrimaire href="/sites/nouveau">
+          {libelleNouveauSite()}
+        </LienPrimaire>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
@@ -247,7 +252,7 @@ export default async function PageSites({
             value="1"
             defaultChecked={avecSansEquipement}
           />
-          {t("sites.filtre_equipement")}
+          {libelleFiltreEquipement()}
         </label>
         <label className="flex items-center gap-1.5 self-end pb-2 text-[12.5px] font-medium">
           <input

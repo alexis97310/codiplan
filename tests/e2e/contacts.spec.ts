@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { videContactsSite } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -229,9 +230,7 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
 
   const bloc = page.locator('[data-bloc="contacts-site"]');
   await expect(bloc).toBeVisible();
-  await expect(
-    bloc.getByText(dictionnaire["sites.fiche.contacts_vide"]!),
-  ).toBeVisible();
+  await expect(bloc.getByText(videContactsSite())).toBeVisible();
 
   await capturer(page, "site-sans-contact");
 
@@ -246,9 +245,7 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
 
   await expect(page).toHaveURL(/\/sites\//);
   const blocApres = page.locator('[data-bloc="contacts-site"]');
-  await expect(
-    blocApres.getByText(dictionnaire["sites.fiche.contacts_vide"]!),
-  ).toHaveCount(0);
+  await expect(blocApres.getByText(videContactsSite())).toHaveCount(0);
   const ligne = blocApres.locator("li[data-contact]");
   await expect(ligne).toHaveCount(1);
   await expect(ligne).toContainText(NOM_CONTACT_DU_SITE);
@@ -268,8 +265,6 @@ test("LA FICHE SITE crée un interlocuteur rattaché À CE SITE, visible aussi s
   // JAMAIS sous L'AUTRE site du même client.
   await page.goto(`/sites/${SITE_SANS_CONTACT}`);
   const blocAutreSite = page.locator('[data-bloc="contacts-site"]');
-  await expect(blocAutreSite).toContainText(
-    dictionnaire["sites.fiche.contacts_vide"]!,
-  );
+  await expect(blocAutreSite).toContainText(videContactsSite());
   await expect(blocAutreSite.locator("li[data-contact]")).toHaveCount(0);
 });

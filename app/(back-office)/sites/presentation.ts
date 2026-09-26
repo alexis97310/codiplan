@@ -192,3 +192,52 @@ export function phraseSitesMasques(nombre: number): string {
 export function libelleAfficherSitesMasques(): string {
   return t("sites.masques_afficher");
 }
+
+/**
+ * « LE MOT SITE PARTOUT » (GR12c, audit du 26/09/2026, constat G15) — les
+ * trois écrans de ce module disaient « lieu », le synonyme choisi avant que
+ * D5/D47 n'imposent le vocabulaire. Chaque libellé ci-dessous compose son
+ * PRÉFIXE/SUFFIXE (`lib/i18n/fr.ts`) autour de `mot("site")`/
+ * `motDansUnePhrase("site")` — le mot lui-même ne s'écrit qu'à l'endroit que
+ * `lib/i18n/vocabulaire.ts` lui réserve.
+ */
+
+/** « Les sites d'intervention de vos clients, leur rattachement… » */
+export function sousTitreSites(): string {
+  return `${t("sites.sous_titre_prefixe")} ${motDansUnePhrase("site", true)} ${t("sites.sous_titre_suffixe")}`;
+}
+
+/** « Nouveau site » — le bouton de création, et le titre de l'écran qui le porte. */
+export function libelleNouveauSite(): string {
+  return `${t("sites.creer_prefixe")} ${motDansUnePhrase("site")}`;
+}
+
+/** « Afficher aussi les sites sans équipement » — la case du filtre. */
+export function libelleFiltreEquipement(): string {
+  return `${t("sites.filtre_equipement_prefixe")} ${motDansUnePhrase("site", true)} ${t("sites.filtre_equipement_suffixe")}`;
+}
+
+/** « ← Tous les sites » — le lien de retour vers la liste. */
+export function libelleRetourSites(): string {
+  return `${t("sites.retour_prefixe")} ${motDansUnePhrase("site", true)}`;
+}
+
+/** « Le site a été créé. » — le message posé après la création (`?motif=`). */
+export function libelleSiteCree(): string {
+  return `${t("sites.cree_prefixe")} ${motDansUnePhrase("site")} ${t("sites.cree_suffixe")}`;
+}
+
+/** « Aucun interlocuteur n'est enregistré pour ce site. » */
+export function videContactsSite(): string {
+  return `${t("sites.fiche.contacts_vide_prefixe")} ${motDansUnePhrase("site")}.`;
+}
+
+/** « Aucun équipement n'est enregistré pour ce site. » */
+export function videEquipementsSite(): string {
+  return `${t("sites.fiche.equipements_vide_prefixe")} ${motDansUnePhrase("site")}.`;
+}
+
+/** « Aucune intervention n'est enregistrée pour ce site. » */
+export function videInterventionsSite(): string {
+  return `${t("sites.fiche.interventions_vide_prefixe")} ${motDansUnePhrase("site")}.`;
+}

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { videInterventionsSite } from "@/app/(back-office)/sites/presentation";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -290,9 +291,7 @@ test("UN SITE À TREIZE INTERVENTIONS : la fiche en rend DOUZE, la plus récente
   const texteDuBloc = await bloc.innerText();
   expect(texteDuBloc).toContain(dictionnaire["sites.fiche.interventions"]!);
   expect(texteDuBloc).toContain(String(INTERVENTIONS_MONTREES));
-  expect(texteDuBloc).not.toContain(
-    dictionnaire["sites.fiche.interventions_vide"]!,
-  );
+  expect(texteDuBloc).not.toContain(videInterventionsSite());
 
   mesure.fiches.avec_historique = {
     ...mesure.fiches.avec_historique,
@@ -314,14 +313,12 @@ test("UN SITE SANS AUCUNE INTERVENTION dit son absence — ni tableau vide, ni z
   await expect(bloc).toBeVisible();
   await expect(bloc.locator("tbody tr")).toHaveCount(0);
   const texteDuBloc = await bloc.innerText();
-  expect(texteDuBloc).toContain(
-    dictionnaire["sites.fiche.interventions_vide"]!,
-  );
+  expect(texteDuBloc).toContain(videInterventionsSite());
 
   mesure.fiches.sans_intervention = {
     ...mesure.fiches.sans_intervention,
     lignes_rendues: await bloc.locator("tbody tr").count(),
-    absence_rendue: dictionnaire["sites.fiche.interventions_vide"],
+    absence_rendue: videInterventionsSite(),
   };
   await capturer(page, "site-sans-intervention");
 });
