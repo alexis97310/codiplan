@@ -1,11 +1,33 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { uuidv7 } from "@/lib/db/uuid";
 import { engendrerJetonQr } from "@/lib/machines/qr";
 
 import { urlAdministration } from "./setup/base";
 import { ouvrirUneSession } from "./setup/session";
+
+/**
+ * `CAPTURES_GR11_CLIENT_MACHINE=<dossier>` fait écrire les captures
+ * AVANT/APRÈS de la fiche client, à 1280 et 375 px, dans ce dossier.
+ */
+const DOSSIER_CAPTURES = process.env.CAPTURES_GR11_CLIENT_MACHINE ?? "";
+
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
+  if (DOSSIER_CAPTURES === "") return;
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
+    fullPage: true,
+  });
+}
 
 /**
  * 9AA-GR11-CLIENT-MACHINE — LA MACHINE DE CHAQUE INTERVENTION, DANS
@@ -137,11 +159,21 @@ test.beforeEach(async ({ page }) => {
 test("LA LIGNE DE L'HISTORIQUE PORTE UN LIEN VERS LA FICHE DE SA MACHINE, AVEC SON NUMÉRO DE SÉRIE", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/clients/${CLIENT}`);
   await expect(page.locator("main")).toBeVisible();
 
   const bloc = page.locator('[data-bloc="historique-client"]');
   await expect(bloc).toBeVisible();
+  // LES CAPTURES PRÉCÈDENT LES ASSERTIONS QUI ROUGISSENT SUR L'ANCIEN CODE :
+  // sur `main` avant ce lot, le bloc existe déjà — seule la colonne « Machine »
+  // manque — et l'image AVANT doit exister malgré l'échec qui suit.
+  await capturer(page, "fiche-client", 1280);
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(bloc).toBeVisible();
+  await capturer(page, "fiche-client", 375);
 
   const ligne = bloc.locator("tbody tr").first();
   const lienMachine = ligne.locator(`a[href="/parc/${MACHINE}"]`);
