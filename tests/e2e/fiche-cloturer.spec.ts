@@ -84,8 +84,23 @@ test.beforeAll(async () => {
         statut: "terminee",
         date_planifiee: new Date("2026-09-24T00:00:00Z"),
         duree_estimee_min: 60,
-        temps_mesure_min: 90,
       },
+    });
+    // LE SEGMENT D'ABORD, LA SOMME ENSUITE — le déclencheur
+    // `intervention_temps_mesure_est_celui_du_compteur` vérifie que
+    // `temps_mesure_min` est la somme des segments FERMÉS déjà présents ;
+    // l'écrire avant qu'aucun segment n'existe le refuserait (même ordre que
+    // `tests/e2e/bon-intervention.spec.ts`).
+    await client.$executeRawUnsafe(
+      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, now() - interval '90 minutes', now(), now())`,
+      reperes.societeId,
+      INTERVENTION_ERGO3,
+      reperes.technicienDucos,
+    );
+    await client.intervention.update({
+      where: { id: INTERVENTION_ERGO3 },
+      data: { temps_mesure_min: 90 },
     });
   } finally {
     await client.$disconnect();
@@ -95,8 +110,12 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
-    // CASCADE efface l'intervention avec elle-même — aucun segment, aucune
-    // pause n'ont été posés par cette scène.
+    // LE SEGMENT D'ABORD : `segment_travail.intervention` est `onDelete:
+    // Restrict` (schema.prisma) — supprimer l'intervention avant lui échoue.
+    await client.$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
+      INTERVENTION_ERGO3,
+    );
     await client.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
       CLIENT_ERGO3,
@@ -142,8 +161,8 @@ test("l'aide « ce temps ne se corrige plus » est visible sous le champ", async
     page.getByText(fr["intervention.cloture.aide_figee"]),
   ).toBeVisible();
 
-  await capturer(page, "bloc-cloturer-avant", 1280);
-  await capturer(page, "bloc-cloturer-avant", 375);
+  await capturer(page, "bloc-cloturer-apres", 1280);
+  await capturer(page, "bloc-cloturer-apres", 375);
 });
 
 test("« Clôturer » ouvre le dialogue avec la durée, et « Revenir » ne change rien", async ({
@@ -156,7 +175,10 @@ test("« Clôturer » ouvre le dialogue avec la durée, et « Revenir » ne chan
   });
   await bouton.click();
 
-  const dialogue = page.locator("dialog");
+  // `[open]` : la fiche `terminee` porte AUSSI le dialogue de `BoutonAnnuler`,
+  // présent dans le DOM mais fermé — `dialog` seul les compterait tous les
+  // deux.
+  const dialogue = page.locator("dialog[open]");
   await expect(dialogue).toBeVisible();
   await expect(dialogue.getByText(texteConfirmationCloture(90))).toBeVisible();
 
@@ -197,7 +219,7 @@ test("une confirmation acceptée clôture l'intervention avec le temps validé",
     .getByRole("button", { name: fr["intervention.action.cloturer"] })
     .click();
 
-  await expect(page.locator("dialog")).toBeVisible();
+  await expect(page.locator("dialog[open]")).toBeVisible();
   await page
     .getByRole("button", { name: fr["intervention.cloture.confirmer"] })
     .click();
