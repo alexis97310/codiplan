@@ -1621,7 +1621,10 @@ export const fr = {
 
   "demande.action.accuser": "Accuser réception",
   "demande.action.qualifier": "Qualifier",
-  "demande.action.transformer": "Transformer en intervention",
+  // 99Q-GR2-DEMANDE, constat G4 : « Transformer en intervention » se lisait
+  // comme le geste qui CRÉE l'intervention, alors qu'il ne fait que poser le
+  // statut (`marquerTransformee` ne change pas). Le libellé le dit lui-même.
+  "demande.action.marquer_transformee": "Marquer comme transformée",
   "demande.action.clore": "Clore sans suite",
 
   "demande.cloture.motif": "Motif de la clôture",
@@ -1679,15 +1682,27 @@ export const fr = {
   "demande.sans_interlocuteur": "Aucun interlocuteur renseigné.",
   "demande.sans_valeur": "—",
   "demande.machine_arretee_oui": "Oui, à l'arrêt",
-  // « Transformer » pose SEULEMENT le statut — `marquerTransformee` ne crée
-  // aucune intervention (son propre en-tête le dit). Le lien mène au geste
-  // humain qui planifie réellement, DEPUIS 68-DEMANDES-2 en portant le lien :
+  // « Marquer comme transformée » pose SEULEMENT le statut —
+  // `marquerTransformee` ne crée aucune intervention (son propre en-tête le
+  // dit). Le bouton de création, lui, mène au geste humain qui planifie
+  // réellement, DEPUIS 68-DEMANDES-2 en portant le lien :
   // `/interventions/nouvelle?demande=<id>` préremplit l'écran et garde
-  // `intervention.demande_id` une fois créée.
+  // `intervention.demande_id` une fois créée. Depuis 99Q-GR2-DEMANDE (constat
+  // G4) ce bouton est remonté en tête des actions — la note dit « ci-dessus »,
+  // plus « ci-dessous ».
   "demande.transformer.note":
-    "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez-la depuis le lien ci-dessous, avant ou après avoir marqué cette demande transformée.",
+    "Cette action marque la demande transformée ; elle ne crée pas l'intervention. Créez-la depuis le bouton ci-dessus, avant ou après avoir marqué cette demande transformée.",
+  // Sans flèche : ce texte porte maintenant le bouton primaire de l'écran, qui
+  // n'en porte jamais (`components/ui/action-primaire.tsx`).
   "demande.transformer.creer_intervention":
-    "Créer une intervention depuis cette demande →",
+    "Créer une intervention depuis cette demande",
+  // La confirmation ne s'affiche que si AUCUNE intervention n'est encore issue
+  // de cette demande (99Q-GR2-DEMANDE) : marquer transformée retirerait alors
+  // la demande de la file sans qu'aucune intervention n'existe.
+  "demande.transformer.confirmation":
+    "Aucune intervention n'est née de cette demande. La marquer transformée la retire de la liste.",
+  "demande.transformer.confirmer": "Confirmer",
+  "demande.transformer.revenir": "Revenir",
   // 68-DEMANDES-2 — la liste des interventions nées de cette demande.
   "demande.interventions_issues.titre": "Interventions issues de cette demande",
   "demande.interventions_issues.aucune":

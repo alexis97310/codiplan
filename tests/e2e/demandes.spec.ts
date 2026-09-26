@@ -258,8 +258,17 @@ test("LE CYCLE COMPLET : accuser, qualifier, transformer — chaque geste par la
     page.getByText(dictionnaire["demande.statut.qualifiee"], { exact: true }),
   ).toBeVisible();
 
+  // AUCUNE INTERVENTION N'EST ISSUE DE CETTE DEMANDE : « Marquer comme
+  // transformée » passe par la confirmation (99Q-GR2-DEMANDE).
   await page
-    .getByRole("button", { name: dictionnaire["demande.action.transformer"] })
+    .getByRole("button", {
+      name: dictionnaire["demande.action.marquer_transformee"],
+    })
+    .click();
+  await page
+    .getByRole("button", {
+      name: dictionnaire["demande.transformer.confirmer"],
+    })
     .click();
   await page.waitForLoadState("networkidle");
   await expect(

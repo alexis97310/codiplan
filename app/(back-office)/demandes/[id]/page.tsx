@@ -5,7 +5,9 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { LienPrimaire } from "@/components/ui/action-primaire";
 import { Badge } from "@/components/ui/badge";
+import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
 import { Button } from "@/components/ui/button";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -66,11 +68,15 @@ export const metadata: Metadata = { title: t("demande.titre") };
  * tient le même refus en base (voir `tests/isolation/demande.test.ts`). Cet
  * écran DIT ce que la base ferait ; il ne le décide pas.
  *
- * ## « TRANSFORMER » NE CRÉE PAS L'INTERVENTION
+ * ## « MARQUER COMME TRANSFORMÉE » NE CRÉE PAS L'INTERVENTION
  *
  * `marquerTransformee` le dit dans son propre en-tête : cette action pose
  * SEULEMENT le statut et son verrou ; le geste de planifier reste séparé, sur
- * `/interventions/nouvelle?demande=<id>` — un lien y mène, la note le dit.
+ * `/interventions/nouvelle?demande=<id>` — le bouton primaire en tête du bloc
+ * d'actions y mène, la note le dit. Renommé depuis 99Q-GR2-DEMANDE (audit GR
+ * du 26/09, constat G4) : l'ancien bouton « Transformer en intervention »
+ * portait le nom de la tâche que l'utilisateur voulait faire — créer
+ * l'intervention — sans la faire.
  *
  * ## LE LIEN GARDÉ (68-DEMANDES-2, SAV-11)
  *
@@ -197,6 +203,12 @@ export default async function PageDemande({
     refuse: true,
     cle: "demande.refus.capacite_requise",
   };
+  // MÊME VERDICT pour le bouton primaire de création (en tête du bloc) et
+  // pour l'action « Marquer comme transformée » — un seul calcul, jamais deux
+  // lectures d'un même critère qui pourraient diverger en silence (§9).
+  const verdictTransformer: Verdict = peutAgir
+    ? peutTransformer(statut)
+    : refusCapacite;
 
   return (
     <Page
@@ -345,6 +357,14 @@ export default async function PageDemande({
         </div>
 
         <aside data-bloc="demande-actions" className="flex flex-col gap-4">
+          {verdictTransformer.refuse ? null : (
+            <LienPrimaire
+              href={`/interventions/nouvelle?demande=${demande.id}`}
+            >
+              {t("demande.transformer.creer_intervention")}
+            </LienPrimaire>
+          )}
+
           <Action
             titre={t("demande.action.accuser")}
             verdict={
@@ -360,18 +380,22 @@ export default async function PageDemande({
           />
 
           <Action
-            titre={t("demande.action.transformer")}
-            verdict={peutAgir ? peutTransformer(statut) : refusCapacite}
+            titre={t("demande.action.marquer_transformee")}
+            verdict={verdictTransformer}
             action={`/api/demandes/${demande.id}/transformer`}
             note={t("demande.transformer.note")}
-          >
-            <Link
-              href={`/interventions/nouvelle?demande=${demande.id}`}
-              className={CLASSES_LIEN}
-            >
-              {t("demande.transformer.creer_intervention")}
-            </Link>
-          </Action>
+            boutonPersonnalise={
+              interventionsIssues.length === 0 ? (
+                <BoutonAvecConfirmation
+                  libelle={t("demande.action.marquer_transformee")}
+                  variant="outline"
+                  texteConfirmation={t("demande.transformer.confirmation")}
+                  boutonConfirmer={t("demande.transformer.confirmer")}
+                  boutonRevenir={t("demande.transformer.revenir")}
+                />
+              ) : undefined
+            }
+          />
 
           <Action
             titre={t("demande.action.clore")}
@@ -445,12 +469,16 @@ function Action({
   action,
   note,
   children,
+  boutonPersonnalise,
 }: {
   titre: string;
   verdict: Verdict;
   action: string;
   note?: string;
   children?: React.ReactNode;
+  /** Remplace le bouton de soumission par défaut — pour une confirmation
+   * préalable (voir « Marquer comme transformée », 99Q-GR2-DEMANDE). */
+  boutonPersonnalise?: React.ReactNode;
 }) {
   if (verdict.refuse) {
     return (
@@ -473,9 +501,11 @@ function Action({
         <p className="text-app-encre-faible text-[11.5px]">{note}</p>
       )}
       {children}
-      <Button type="submit" variant="outline" size="sm">
-        {titre}
-      </Button>
+      {boutonPersonnalise ?? (
+        <Button type="submit" variant="outline" size="sm">
+          {titre}
+        </Button>
+      )}
     </form>
   );
 }
