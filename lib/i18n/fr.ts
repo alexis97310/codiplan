@@ -3697,6 +3697,15 @@ export const fr = {
   "parctri.e2e.site_a": "PTRI-A — Lieu de l'épreuve",
   "parctri.e2e.site_z": "PTRI-Z — Lieu de l'épreuve",
 
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (99Z-GR10-PARC, décision A) ──────
+  //
+  // Même discipline que `parctri.e2e.*` juste au-dessus : sa PROPRE scène,
+  // préfixée `PARCA-`, créée et supprimée par l'épreuve. Une machine complète
+  // et une machine incomplète, isolées par `q=` — la preuve que l'incomplète
+  // vient APRÈS la complète (décision d'Alexis, 26/09/2026).
+  "parcincomplet.e2e.client": "PARCA — Client de l'épreuve",
+  "parcincomplet.e2e.site": "PARCA — Lieu de l'épreuve",
+
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-cloturer.spec.ts)
   //
   // Même discipline que `parctri.e2e.*` : sa PROPRE scène, préfixée `ERGO3-`,

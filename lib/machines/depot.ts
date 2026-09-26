@@ -396,6 +396,15 @@ export async function optionsDeFiltreDuParc(
  * sur les relations `client` et `modele`** — jamais en mémoire : la page lit
  * `skip`/`take`, et un tri posé après la lecture ne trierait qu'UNE page à la
  * fois, laissant les pages suivantes dans le désordre.
+ *
+ * ## LES FICHES INCOMPLÈTES PASSENT EN FIN (décision d'Alexis, 26/09/2026)
+ *
+ * Ce groupe portait jusqu'ici les incomplètes EN TÊTE — une règle qui ne
+ * vivait qu'en commentaire (R2-21), absente de `docs/arbitrages.md`, et
+ * qu'aucun test n'imposait. Alexis, 26/09/2026, à propos du même audit :
+ * les fiches incomplètes vont désormais EN FIN de liste plutôt qu'en tête —
+ * un parc s'ouvre d'abord sur ce qui est exploitable, l'exception attend en
+ * bas plutôt que d'enterrer les fiches saines sous elle.
  */
 export async function rechercherLeParc(
   contexte: ContexteSession,
@@ -408,12 +417,11 @@ export async function rechercherLeParc(
       tx.machine.findMany({
         select: CHAMPS_PARC,
         where: filtreDuParc(criteres),
-        // Les fiches INCOMPLÈTES d'abord : ce sont celles qui demandent un
-        // geste, et un parc trié par date les enterrerait sous les fiches
-        // saines. Cette règle RESTE (voir la note de tête) — l'audit 29 ne la
-        // remet pas en cause, il porte sur l'ordre À L'INTÉRIEUR du groupe.
+        // Les fiches INCOMPLÈTES en dernier (décision d'Alexis, 26/09/2026,
+        // voir la note de tête) — ce sont l'exception, et un parc qui s'ouvre
+        // dessus enterrerait les fiches exploitables sous elle.
         orderBy: [
-          { complet: "asc" },
+          { complet: "desc" },
           { client: { raison_sociale: "asc" } },
           { modele: { marque: "asc" } },
           { modele: { reference: "asc" } },
