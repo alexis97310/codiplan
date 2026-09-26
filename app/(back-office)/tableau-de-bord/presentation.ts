@@ -239,6 +239,8 @@ export function filtrePrioriteLu(
 export type ElementPriorite = {
   readonly type: Exclude<FiltrePriorite, "tous">;
   readonly rang: string;
+  /** Absent quand `rang` n'est pas une priorité (ex. l'ancienneté en jours d'une pièce attendue). */
+  readonly priorite?: string;
   readonly titre: string;
   readonly detail: string;
   readonly href: string;
@@ -320,6 +322,7 @@ export function prioritesUrgentes(
     .map((ligne) => ({
       type: "urgent" as const,
       rang: ligne.priorite.toUpperCase(),
+      priorite: ligne.priorite,
       titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
       detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
       href: `/interventions/${ligne.id}`,
@@ -380,6 +383,7 @@ export function prioritesAPlanifier(
   return triParPrioritePuisDate(lignes).map((ligne) => ({
     type: "planning" as const,
     rang: ligne.priorite.toUpperCase(),
+    priorite: ligne.priorite,
     titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
     detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
     href: `/interventions/${ligne.id}`,

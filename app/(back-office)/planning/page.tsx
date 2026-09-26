@@ -68,11 +68,8 @@ import {
   donneesMaterielDesMachines,
   type DonneesMateriel,
 } from "@/lib/machines/depot";
-import {
-  CLASSES_BLOC,
-  CLASSES_STATUT,
-  LEGENDE_PLANNING,
-} from "@/lib/theme/statuts";
+import { tonDePriorite } from "@/lib/theme/priorites";
+import { CLASSES_BLOC, LEGENDE_PLANNING } from "@/lib/theme/statuts";
 
 import {
   BlocPosable,
@@ -619,11 +616,9 @@ export default async function PagePlanning({
                         <span className="min-w-0 flex-1 truncate">
                           {ligne.client.raison_sociale}
                         </span>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[ligne.statut]}`}
-                        >
+                        <Badge ton={tonDePriorite(ligne.priorite)}>
                           {t(`priorite.${ligne.priorite}`)}
-                        </span>
+                        </Badge>
                       </span>
                       <span
                         className="text-app-encre-faible block truncate text-[12px]"

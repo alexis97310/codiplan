@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { LienPrimaire } from "@/components/ui/action-primaire";
+import { CLASSES_TON } from "@/components/ui/badge";
 import { Carte } from "@/components/ui/carte";
 import { Kpi } from "@/components/ui/kpi";
 import { Page } from "@/components/mise-en-page/page";
@@ -27,6 +28,7 @@ import {
   listerPlanning,
 } from "@/lib/interventions/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { tonDePriorite } from "@/lib/theme/priorites";
 import { compterAPrevoir } from "@/lib/vgp/registre";
 import { auMoinsUneVerificationEnregistree } from "@/lib/vgp/verification";
 
@@ -471,9 +473,15 @@ export default async function PageTableauDeBord({
 }
 
 function ElementDePriorite({ element }: { readonly element: ElementPriorite }) {
+  const classesTon =
+    element.priorite === undefined
+      ? "bg-app-rouge-fond text-app-rouge-encre"
+      : CLASSES_TON[tonDePriorite(element.priorite)];
   return (
     <article className="border-app-bord flex items-center gap-[13px] border-b px-[17px] py-[15px] last:border-b-0">
-      <div className="bg-app-rouge-fond text-app-rouge-encre flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-black">
+      <div
+        className={`flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-black ${classesTon}`}
+      >
         {element.rang}
       </div>
       <div className="min-w-0 flex-1">

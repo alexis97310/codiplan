@@ -126,8 +126,8 @@ describe("le gardien de composition — /interventions contre interventions() (l
     );
   });
 
-  it("BLOC 4 — la priorité est un badge coloré, jamais un texte nu (déjà comblé, #236)", () => {
-    expect(PAGE).toContain("TONS_PRIORITE[ligne.priorite]");
+  it("BLOC 4 — la priorité est un badge coloré, jamais un texte nu (déjà comblé, #236 ; fonction partagée depuis GR5)", () => {
+    expect(PAGE).toContain("tonDePriorite(ligne.priorite)");
     expect(PAGE).toContain('t("intervention.priorite")');
   });
 

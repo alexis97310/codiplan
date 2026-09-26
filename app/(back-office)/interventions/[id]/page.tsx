@@ -8,6 +8,7 @@ import { cache } from "react";
 import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
 import { BoutonCloturer } from "@/components/interventions/bouton-cloturer";
 import { Page } from "@/components/mise-en-page/page";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
@@ -66,6 +67,7 @@ import {
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 
+import { tonDePriorite } from "@/lib/theme/priorites";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
@@ -568,7 +570,11 @@ export default async function PageIntervention({
               />
               <Ligne
                 libelle={t("intervention.priorite")}
-                valeur={t(`priorite.${ligne.priorite}`)}
+                valeur={
+                  <Badge ton={tonDePriorite(ligne.priorite)}>
+                    {t(`priorite.${ligne.priorite}`)}
+                  </Badge>
+                }
               />
               {/*
                 LE CLIENT MÈNE À SA FICHE (LIENS-1). Même raisonnement que le
@@ -1612,7 +1618,7 @@ function Ligne({
   lien,
 }: {
   libelle: string;
-  valeur: string;
+  valeur: React.ReactNode;
   note?: string;
   /** Vers où la valeur mène, quand elle mène quelque part. */
   lien?: string;

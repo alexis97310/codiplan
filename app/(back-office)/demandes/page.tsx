@@ -16,6 +16,7 @@ import { demandesOuvertes } from "@/lib/demandes/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { tonDePriorite } from "@/lib/theme/priorites";
 
 import {
   instantLisible,
@@ -187,7 +188,11 @@ export default async function PageDemandes({
                       t("demande.sans_valeur")}
                   </Link>
                 </Cellule>
-                <Cellule>{t(`priorite.${demande.urgence}`)}</Cellule>
+                <Cellule>
+                  <Badge ton={tonDePriorite(demande.urgence)}>
+                    {t(`priorite.${demande.urgence}`)}
+                  </Badge>
+                </Cellule>
                 <Cellule>
                   <Link
                     href={`/demandes/${demande.id}`}

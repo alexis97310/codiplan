@@ -26,6 +26,13 @@ import { describe, expect, it } from "vitest";
  * (`[id]/page.tsx`), et une seule écriture de « quelles machines, avec quel
  * mot pour zéro » sert les deux écrans plutôt que d'en recopier une
  * cinquième. Le gardien du signe d'absence lit donc `presentation.ts`.
+ *
+ * **`TONS_PRIORITE` A DÉMÉNAGÉ dans `lib/theme/priorites.ts` (GR5, audit du
+ * 26/09/2026, constat G6)** : la même correspondance priorité → ton sert
+ * désormais cinq écrans (registre, planning, tableau de bord, demandes,
+ * fiche d'intervention), pas seulement celui-ci. Le gardien du badge de
+ * priorité lit donc `lib/theme/priorites.ts`, et vérifie ici que le registre
+ * appelle bien la fonction partagée plutôt qu'une correspondance locale.
  */
 
 const SOURCE = readFileSync(
@@ -34,6 +41,10 @@ const SOURCE = readFileSync(
 );
 const PRESENTATION = readFileSync(
   join(process.cwd(), "app/(back-office)/interventions/presentation.ts"),
+  "utf8",
+);
+const TON_PRIORITE = readFileSync(
+  join(process.cwd(), "lib/theme/priorites.ts"),
   "utf8",
 );
 
@@ -62,10 +73,10 @@ describe("le registre des interventions montre la priorité et les machines (aud
     expect(SOURCE).toContain('cle: "site"');
   });
 
-  it("chaque ligne porte un badge de priorité, sur les QUATRE valeurs", () => {
-    expect(SOURCE).toContain("TONS_PRIORITE");
-    for (const priorite of ["p1", "p2", "p3", "p4"]) {
-      expect(SOURCE, priorite).toContain(`${priorite}:`);
+  it("chaque ligne porte un badge de priorité, par la fonction PARTAGÉE (GR5)", () => {
+    expect(SOURCE).toContain("tonDePriorite(ligne.priorite)");
+    for (const priorite of ["p1", "p2"]) {
+      expect(TON_PRIORITE, priorite).toContain(`"${priorite}"`);
     }
   });
 

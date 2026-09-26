@@ -37,6 +37,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { tonDePriorite } from "@/lib/theme/priorites";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../../interventions/presentation";
@@ -268,7 +269,11 @@ export default async function PageDemande({
               />
               <Ligne
                 libelle={t("demande.urgence")}
-                valeur={t(`priorite.${demande.urgence}`)}
+                valeur={
+                  <Badge ton={tonDePriorite(demande.urgence)}>
+                    {t(`priorite.${demande.urgence}`)}
+                  </Badge>
+                }
               />
               <Ligne
                 libelle={t("demande.description")}
@@ -434,7 +439,7 @@ function Ligne({
   lien,
 }: {
   libelle: string;
-  valeur: string;
+  valeur: React.ReactNode;
   note?: string;
   lien?: string;
 }) {

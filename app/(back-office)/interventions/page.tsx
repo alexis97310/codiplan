@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence } from "@/components/agences/options";
 import { LienPrimaire } from "@/components/ui/action-primaire";
-import { Badge, type TonBadge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Kpi } from "@/components/ui/kpi";
 import { Pagination } from "@/components/ui/pagination";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -39,10 +39,10 @@ import {
   schemaRechercheInterventions,
   STATUTS_INTERVENTION,
   TYPES_INTERVENTION,
-  type Priorite,
 } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
+import { tonDePriorite } from "@/lib/theme/priorites";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { decompte, hrefDeLaPage, libellePage } from "../presentation";
@@ -713,7 +713,7 @@ function LigneIntervention({
           : dateCivile(ligne.date_planifiee)}
       </Cellule>
       <Cellule>
-        <Badge ton={TONS_PRIORITE[ligne.priorite]}>
+        <Badge ton={tonDePriorite(ligne.priorite)}>
           {t(`priorite.${ligne.priorite}`)}
         </Badge>
       </Cellule>
@@ -727,18 +727,6 @@ function LigneIntervention({
     </LigneCliquable>
   );
 }
-
-/**
- * LE TON DE LA PRIORITÉ — dérivé de l'exemple de la maquette
- * (`interventions()`, badge P1 en rouge) pour les deux bornes ; les deux
- * intermédiaires prennent l'orange et le gris, un jugement écrit comme tel.
- */
-const TONS_PRIORITE: Record<Priorite, TonBadge> = {
-  p1: "rouge",
-  p2: "orange",
-  p3: "gris",
-  p4: "gris",
-};
 
 /**
  * LE TECHNICIEN AFFECTÉ — `quiTravaille` distingue déjà le refus légitime du
