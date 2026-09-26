@@ -434,8 +434,16 @@ test("la poignée ALLONGE une intervention, et la base le garde", async ({
   // SA PROPRE intervention — jamais `SCENE.redimensionnable` : ce scénario
   // ALLONGE l'intervention et la garde allongée, une mutation permanente
   // qu'aucune fixture partagée ne peut supporter deux fois.
-  const debut = 14 * 60;
-  const apres = 15 * 60;
+  //
+  // 15:00–16:00, PAS 14:00–15:00 : `SCENE.redimensionnable` occupe encore
+  // 14:00–15:00 (jamais effacée, jamais mutée par ce fichier — d'autres
+  // fichiers la lisent). *Mesuré le 27/09/2026 : posée à 14:00–15:00 et
+  // ALLONGÉE jusqu'à 15:00–16:00, la fixture propre à ce scénario chevauche
+  // alors systématiquement `SCENE.redimensionnable`* — un refus de
+  // chevauchement au lieu du succès attendu, sur CHAQUE exécution. 15:00–17:00
+  // reste libre dans la plage d'ouverture de Ducos l'après-midi (13:00–17:00).
+  const debut = 15 * 60;
+  const apres = 16 * 60;
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "DUCOS",
     technicienId: reperes.technicienDucos,
