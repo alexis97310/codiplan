@@ -963,12 +963,23 @@ function VueSemaine({
                             partagée avec `ListeSemaine` pour que les deux
                             vues ne divergent jamais sur ce qu'elles disent.
 
-                            TRONQUÉ AVEC `title`, JAMAIS UNE CASE QUI GRANDIT :
-                            la case garde sa hauteur de 78 px (§ CasePosable
-                            ci-dessus) quel que soit le nombre de caractères.
+                            LA LIGNE HEURE + CLIENT S'ENROULE SUR DEUX LIGNES
+                            AU PLUS (décision d'Alexis du 26/09/2026, audit
+                            GR9, constat G1) : `line-clamp-2 break-words`,
+                            `title` conservé. *Mesuré à 1280 px : la colonne
+                            jour fait ~80 px, la ligne de tête tronquée à une
+                            ligne ne montrait ni l'heure ni le client, et deux
+                            cartes du même client étaient indiscernables.*
+                            ÉCART NOMMÉ à la règle « jamais une case qui
+                            grandit » (ci-dessus, § CasePosable) — la case
+                            l'admet pour cette seule ligne, `height: "78px"`
+                            sur un `<td>` HTML se comportant comme un
+                            MINIMUM, jamais une coupe. Les autres lignes du
+                            bloc (nature, `DetailsDeLaCarte`) restent
+                            tronquées sur une seule ligne, avec leur `title`.
                           */}
                           <span
-                            className="block truncate font-bold"
+                            className="line-clamp-2 block font-bold break-words"
                             title={enTeteDuBloc(
                               intervention,
                               fuseauPour(intervention.agence_id),
