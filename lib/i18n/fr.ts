@@ -3004,6 +3004,21 @@ export const fr = {
   // exactement la même chose que le dépôt (`components/planning/pose.tsx`).
   "planning.liste_lecture_seule":
     "Pour réaffecter une intervention, ouvrez sa fiche.",
+  // `glisser_pour_reaffecter` — 99J-PLANNING-GLISSER, constat 15 de l'audit
+  // d'ergonomie du 25/09/2026 (partie restante). Texte de la maquette qui
+  // fait foi, `docs/maquette/CODIPLAN_Maquette.html` l.~261 (D95), composée
+  // après la date par « · » — le séparateur est PORTÉ PAR LA CLÉ, jamais
+  // écrit à côté dans le JSX (`react/jsx-no-literals`, même patron que
+  // `planning.jour_avant` qui porte sa propre flèche). MÊME FAMILLE QUE
+  // `liste_lecture_seule` juste au-dessus, en miroir : là-bas, le geste
+  // n'existe pas et l'écran le dit ; ici, le geste EXISTE (grille dès `lg`,
+  // `BlocPosable`/`CasePosable`) et l'écran restait muet — un défaut
+  // symétrique, la même famille D-06 vue de l'autre côté. Affichée seulement
+  // au rôle qui détient `modifier_planning` : en dessous de `lg` la grille
+  // cède la place à la liste lecture seule, et un rôle sans la capacité
+  // verrait un geste qui se montre possible et que la route refuse en
+  // silence au dépôt.
+  "planning.glisser_pour_reaffecter": "· Glisser-déposer pour réaffecter",
   // La légende de la maquette, six entrées, dans son ordre. Elle NOMME des
   // familles de couleur, pas des statuts un à un : huit statuts, cinq
   // familles, et c'est la maquette qui groupe (voir `lib/theme/statuts.ts`).

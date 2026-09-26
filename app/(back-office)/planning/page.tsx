@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
+import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
@@ -134,6 +135,15 @@ export default async function PagePlanning({
     redirect("/arrivee");
   }
   const contexte = session.contexte;
+  // LE DROIT DE DÉPLACER (99J-PLANNING-GLISSER) — même capacité que la route
+  // `/api/interventions/[id]/deplacer` exige déjà côté serveur
+  // (`exigerCapacite("modifier_planning")`), même patron que la fiche
+  // d'intervention (`app/(back-office)/interventions/[id]/page.tsx`). Sert
+  // uniquement à annoncer le geste dans le sous-titre — la grille elle-même
+  // reste rendue à tout rôle qui voit le planning (`pose.tsx`, hors
+  // périmètre de ce ticket).
+  const peutModifierLePlanning =
+    contexte.role !== null && peut(contexte.role, "modifier_planning");
   // ── LE RÉFÉRENTIEL DES TECHNICIENS SUIT LE MÊME PÉRIMÈTRE QUE LES LIGNES
   // (R5-01, mesuré et corrigé le 17/09/2026).
   //
@@ -408,7 +418,22 @@ export default async function PagePlanning({
       chemin="/planning"
       titre={t("planning.titre")}
       sousTitre={
-        vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)
+        <>
+          {vue === "jour" ? libelleJour(jourAffiche) : libelleSemaine(jours)}
+          {/*
+            LA MENTION DE LA MAQUETTE (D95, 99J-PLANNING-GLISSER) — visible
+            SEULEMENT là où le geste existe : la grille, à partir de `lg`
+            (`hidden lg:inline`, symétrique du `lg:hidden` qui montre la liste
+            lecture seule en dessous), et seulement au rôle qui détient
+            `modifier_planning`. Sous `lg`, ou sans le droit, l'écran ne
+            montrerait un geste qu'il refuserait ensuite en silence — D-06.
+          */}
+          {peutModifierLePlanning ? (
+            <span data-mention-glisser-reaffecter className="hidden lg:inline">
+              {t("planning.glisser_pour_reaffecter")}
+            </span>
+          ) : null}
+        </>
       }
       actions={
         <>
