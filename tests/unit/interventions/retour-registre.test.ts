@@ -29,6 +29,7 @@ const LIGNE_SANS_MACHINE = {
   site_id: "site-1",
   date_planifiee: null,
   machines: [],
+  demande_id: null,
 };
 
 describe("retourVersRegistre — rejoue la requête, jamais une URL libre", () => {

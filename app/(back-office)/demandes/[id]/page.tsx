@@ -323,7 +323,7 @@ export default async function PageDemande({
                     className="flex items-center gap-2 text-[13px]"
                   >
                     <Link
-                      href={`/interventions/${intervention.id}`}
+                      href={`/interventions/${intervention.id}?depuis=demande&depuis_id=${demande.id}`}
                       className={CLASSES_LIEN}
                     >
                       {referenceAffichee(intervention)}

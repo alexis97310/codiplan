@@ -245,11 +245,11 @@ test("le bandeau « rendues à la file » porte un lien par intervention, et un 
   const lienB = bandeau.getByRole("link", { name: reference(interventionB) });
   await expect(lienA).toHaveAttribute(
     "href",
-    `/interventions/${interventionA}`,
+    `/interventions/${interventionA}?depuis=absences`,
   );
   await expect(lienB).toHaveAttribute(
     "href",
-    `/interventions/${interventionB}`,
+    `/interventions/${interventionB}?depuis=absences`,
   );
 
   // Le bandeau ne porte AUCUN autre lien que ces trois-là (le registre, et
@@ -270,7 +270,9 @@ test("le bandeau « rendues à la file » porte un lien par intervention, et un 
   // À STATUT « À PLANIFIER » — c'est là qu'« Affecter » existe déjà.
   await lienA.click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(`/interventions/${interventionA}`);
+  await expect(page).toHaveURL(
+    `/interventions/${interventionA}?depuis=absences`,
+  );
   const titreFiche = page.getByRole("heading", { level: 1 });
   await expect(titreFiche).toContainText(reference(interventionA));
   await expect(titreFiche).toContainText(fr["statut.a_planifier"]);

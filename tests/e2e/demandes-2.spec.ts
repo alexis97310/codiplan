@@ -261,7 +261,9 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
   await expect(ligne).toBeVisible();
   await expect(ligne).toContainText(dictionnaire["statut.a_planifier"]);
   await ligne.getByRole("link").click();
-  await expect(page).toHaveURL(`/interventions/${interventionCreeeId}`);
+  await expect(page).toHaveURL(
+    `/interventions/${interventionCreeeId}?depuis=demande&depuis_id=${DEMANDE_DEM2}`,
+  );
 
   mesure.ecrans.fiche_demande_apres = { url: `/demandes/${DEMANDE_DEM2}` };
   await page.goto(`/demandes/${DEMANDE_DEM2}`);

@@ -1276,6 +1276,8 @@ export const fr = {
   "intervention.retour.client": "← Retour au client",
   "intervention.retour.site_prefixe": "← Retour au",
   "intervention.retour.machine": "← Retour à la machine",
+  "intervention.retour.demande": "← Retour à la demande",
+  "intervention.retour.absences_prefixe": "← Retour aux",
 
   "intervention.action.affecter": "Affecter un technicien",
   "intervention.action.deplacer": "Déplacer",

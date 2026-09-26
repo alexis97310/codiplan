@@ -114,6 +114,10 @@ export const CHAMPS_LIGNE = {
   description: true,
   contact_id: true,
   reference_client: true,
+  /// LA DEMANDE D'ORIGINE (99I-RETOUR-FICHE) — `null` pour une intervention
+  /// créée hors parcours de demande. Sert le lien de retour de la fiche
+  /// (`retourFiche`, `../presentation.ts`), jamais une règle de gestion.
+  demande_id: true,
   mode_valorisation: true,
   forfait_deplacement_id: true,
   /**

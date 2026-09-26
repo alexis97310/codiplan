@@ -85,11 +85,18 @@ export function retourPlanning(datePlanifiee: Date | null): string {
  * une URL libre reçue en clair : une redirection ouverte se forge (D50), un
  * mot d'une liste fermée ne se détourne pas.
  *
- * **`machine` est le seul cas qui porte un second paramètre**, `depuisId` :
- * une intervention peut porter PLUSIEURS machines (I1 ne le borne pas), la
- * fiche ne sait donc pas SEULE laquelle a ouvert le lien. Il n'est accepté
- * que s'il désigne une machine RÉELLEMENT rattachée à cette intervention —
- * jamais recopié tel quel vers le lien rendu.
+ * **`machine` et `demande` portent un second paramètre**, `depuisId` : une
+ * intervention peut porter PLUSIEURS machines (I1 ne le borne pas), la fiche
+ * ne sait donc pas SEULE laquelle a ouvert le lien — et une demande n'est
+ * qu'une COLONNE (`demande_id`), pas une clé qui se vérifierait seule. Dans
+ * les deux cas, il n'est accepté que s'il désigne quelque chose RÉELLEMENT
+ * rattaché à cette intervention — jamais recopié tel quel vers le lien rendu.
+ *
+ * *99I-RETOUR-FICHE, audit d'ergonomie du 25/09/2026, constat 21 (2e
+ * moitié) : les deux écrans qui ouvrent cette fiche depuis une demande
+ * (`/demandes/{id}`) ou depuis les absences (`/absences`) ne posaient AUCUN
+ * `depuis` — le retour y affichait donc « Retour au planning », faux dans
+ * les deux cas.*
  */
 const VALEURS_DEPUIS = [
   "planning",
@@ -97,6 +104,8 @@ const VALEURS_DEPUIS = [
   "client",
   "site",
   "machine",
+  "demande",
+  "absences",
 ] as const;
 
 /** D'où on arrive sur la fiche — une liste fermée, jamais une URL libre. */
@@ -221,6 +230,7 @@ export function retourFiche(
     readonly site_id: string;
     readonly date_planifiee: Date | null;
     readonly machines: readonly { readonly machine_id: string }[];
+    readonly demande_id: string | null;
   },
 ): RetourFiche {
   const parPlanning: RetourFiche = {
@@ -263,9 +273,37 @@ export function retourFiche(
           }
         : parPlanning;
     }
+    case "demande": {
+      const depuisId = Array.isArray(parametres.depuisId)
+        ? parametres.depuisId[0]
+        : parametres.depuisId;
+      const rattachee =
+        typeof depuisId === "string" && depuisId === ligne.demande_id;
+      return rattachee
+        ? {
+            href: `/demandes/${depuisId}`,
+            libelle: t("intervention.retour.demande"),
+          }
+        : parPlanning;
+    }
+    case "absences":
+      return {
+        href: "/absences",
+        libelle: `${t("intervention.retour.absences_prefixe")} ${decapitalisee(t("absences.titre"))}`,
+      };
     case "planning":
       return parPlanning;
   }
+}
+
+/**
+ * MÊME DÉCAPITALISATION QUE `motDansUnePhrase` (`lib/i18n/vocabulaire.ts`),
+ * mais pour un TITRE D'ÉCRAN plutôt qu'un mot imposé : ce lien-ci glisse le
+ * titre de la page des absences au milieu d'une phrase, et sa capitale
+ * d'écran y serait une faute de français.
+ */
+function decapitalisee(texte: string): string {
+  return texte.charAt(0).toLocaleLowerCase("fr") + texte.slice(1);
 }
 
 /**

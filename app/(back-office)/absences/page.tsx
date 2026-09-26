@@ -716,7 +716,7 @@ function ListeLiensInterventions({
         <span key={intervention.id}>
           {index === 0 ? null : t("absences.reference_separateur")}
           <Link
-            href={`/interventions/${intervention.id}`}
+            href={`/interventions/${intervention.id}?depuis=absences`}
             className="underline"
           >
             {referenceAffichee(intervention)}
