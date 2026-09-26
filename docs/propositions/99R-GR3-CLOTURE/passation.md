@@ -124,3 +124,5 @@
 
 Rien d'identifié dans le périmètre de ce ticket : `pnpm verify:full` est vert
 en entier (307 passés, 3 ignorés, zéro échec), captures et passation commitées.
+
+Reprise après redémarrage du PC le 26/09 : travail déjà commité, vérifié, rien refait.
