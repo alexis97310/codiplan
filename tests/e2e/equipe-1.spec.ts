@@ -222,12 +222,15 @@ test("DÉSACTIVER CE TECHNICIEN, ALORS QU'IL A ENCORE 2 INTERVENTIONS À VENIR, 
     page.getByText(fr["equipe.avertissement.desactivation_a_venir"]),
   ).toBeVisible();
 
-  const lienAvertissement = page.locator("a", { hasText: DEUX_A_VENIR });
-  await expect(lienAvertissement).toBeVisible();
-  await expect(lienAvertissement).toHaveAttribute(
-    "href",
-    `/interventions?technicien=${technicienId}`,
+  // `hasText` seul recoupe aussi le compteur d'un AUTRE technicien du semis
+  // qui affiche, ce jour-là, le même texte « 2 … à venir » (mesuré le
+  // 27/09/2026, `strict mode violation`) : le HREF exact isole le lien de CE
+  // technicien, dans l'avertissement.
+  const lienAvertissement = page.locator(
+    `a[href="/interventions?technicien=${technicienId}"]`,
+    { hasText: DEUX_A_VENIR },
   );
+  await expect(lienAvertissement).toBeVisible();
 
   await capturer(page, "avertissement-desactivation");
 
