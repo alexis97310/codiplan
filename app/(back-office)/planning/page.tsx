@@ -572,7 +572,14 @@ export default async function PagePlanning({
         <div className="grid items-start gap-4 lg:grid-cols-[290px_1fr]">
           <aside
             data-maquette-bloc="carte-a-affecter"
-            className="order-2 flex flex-col gap-4 lg:order-1"
+            // `min-w-0` MÊME RAISON QUE L'AUTRE COLONNE DE LA GRILLE, PLUS
+            // BAS (PLANNING-2) : les cartes de la file tronquent désormais
+            // client/panne/site (99X-GR8-FILE) — un span `truncate` est un
+            // texte SANS RETOUR À LA LIGNE, et sans ce `min-w-0` sa longueur
+            // ENTIÈRE redevient la taille minimale de cette colonne de
+            // grille, qui pousse alors la page hors de l'écran (mesuré à
+            // 390px : 425px de large pour un écran de 390).
+            className="order-2 min-w-0 flex flex-col gap-4 lg:order-1"
           >
             <section className="bg-app-surface border-app-bord rounded-lg border">
               <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
