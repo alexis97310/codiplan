@@ -7,7 +7,6 @@ import { nomSeul } from "@/lib/interventions/personnes";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
-import { objetDuBloc } from "../interventions/presentation";
 import { decompte } from "../presentation";
 
 /**
@@ -45,17 +44,18 @@ export function siteDeLaCarte(site: { readonly libelle: string }): string {
  * **La panne signalée prime sur la nature** : c'est ce que le client a dit
  * avoir, pas la catégorie administrative de l'intervention. Même choix de
  * repli que `panneOuNature` (`../tableau-de-bord/presentation.ts`, GR7,
- * 27/09/2026), REPRIS ICI plutôt que partagé — les deux écrans composent une
- * carte différente autour du même repli, et ce lot ne touche pas
- * `/tableau-de-bord`. `null` pour toute intervention créée avant PARCOURS-1
- * (23/09/2026, colonne nullable) : `objetDuBloc` (`../interventions/presentation.ts`)
- * comble alors le vide, jamais un tiret muet.
+ * 27/09/2026) — REPRIS ICI, jamais importé : les modules `presentation.ts`
+ * de deux écrans restent testables sans dépendance croisée entre eux, même
+ * principe que celui qui a fait écrire `panneOuNature` plutôt qu'importer
+ * `objetDuBloc` (`../interventions/presentation.ts`). `null` pour toute
+ * intervention créée avant PARCOURS-1 (23/09/2026, colonne nullable) : la
+ * nature comble alors le vide, jamais un tiret muet.
  */
 export function panneOuNatureDeLaCarte(ligne: {
   readonly description: string | null;
   readonly type: TypeIntervention;
 }): string {
-  return ligne.description ?? objetDuBloc(ligne);
+  return ligne.description ?? t(`type_intervention.${ligne.type}`);
 }
 
 /**
