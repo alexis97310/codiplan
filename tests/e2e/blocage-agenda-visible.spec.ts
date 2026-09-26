@@ -267,8 +267,18 @@ test("le sélecteur « Affecter » de la fiche DIT le blocage avant le choix", a
     `option[value="${reperes.technicienDucos}"]`,
   );
   await expect(optionGuerin).not.toHaveAttribute("data-agenda-bloque", "");
-  // … et « Déplacer », dont la date se saisit dans le formulaire, ne dit rien
-  // « à cette date » — il n'a pas de date à laquelle le dire.
+  // … et « Déplacer » porte désormais un champ date PRÉ-REMPLI avec celle
+  // déjà inscrite sur l'intervention (99S-GR4-DEPLACER, au lieu d'un champ
+  // vide) — mesuré ici par sa valeur. Le sélecteur, lui, reste NU : cette
+  // fiche est délibérément datée à QUATORZE SEMAINES (voir l'en-tête), hors
+  // de la fenêtre de 90 jours que `DisponibiliteTechnicien` couvre
+  // (`JOURS_DISPONIBILITE_TECHNICIEN`,
+  // `app/(back-office)/interventions/[id]/page.tsx`) — la même réserve que
+  // documente `disponibilite-technicien.tsx` : une date hors de la fenêtre
+  // transmise ne porte AUCUNE mention, ni bloquée ni disponible.
+  await expect(page.locator('input[name="date_planifiee"]')).toHaveValue(
+    cleDeJour(jourVise(JEUDI)),
+  );
   const deplacer = page.locator('select[name="technicien_id"]').nth(1);
   await expect(deplacer.locator("option[data-agenda-bloque]")).toHaveCount(0);
 });

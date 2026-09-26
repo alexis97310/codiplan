@@ -926,6 +926,9 @@ export default async function PageIntervention({
                         nom="date_planifiee"
                         type="date"
                         libelle={t("intervention.date")}
+                        valeurParDefaut={ligne.date_planifiee
+                          ?.toISOString()
+                          .slice(0, 10)}
                       />
                       {/*
                     LE BLOCAGE D'AGENDA, DIT AVANT L'ENVOI (66-PLANNING-4,
@@ -943,11 +946,13 @@ export default async function PageIntervention({
                         nom="heure_debut"
                         type="time"
                         libelle={t("intervention.deplacement.heure")}
+                        valeurParDefaut={heurePlanifiee ?? undefined}
                       />
                       <Saisie
                         nom="duree_min"
                         type="number"
                         libelle={t("intervention.deplacement.duree")}
+                        valeurParDefaut={ligne.duree_estimee_min?.toString()}
                       />
                       {/*
                     SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
