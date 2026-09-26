@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   codeEtCommune,
+  compteurEquipements as compteurEquipementsClient,
   compteurSites,
   referentClient,
   titreSansCode,
 } from "../../../app/(back-office)/clients/presentation";
+import { compteurEquipements as compteurEquipementsSite } from "../../../app/(back-office)/sites/presentation";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
@@ -119,5 +121,28 @@ describe("le compteur de sites de la bande entity-meta (D123, PASTILLES-1)", () 
   it("le ton est FIXE — bleu, jamais choisi par la page qui affiche la carte", () => {
     expect(compteurSites({ nombre: 1, communes: [] }).ton).toBe("bleu");
     expect(compteurSites({ nombre: 4, communes: [] }).ton).toBe("bleu");
+  });
+});
+
+describe("le compteur d'équipements — GRIS partout (décision d'Alexis 26/09, remplace le rouge de PASTILLES-1)", () => {
+  it.each([0, 1, 7])(
+    "les DEUX fonctions (client, site) rendent gris — %i équipement(s)",
+    (nombre) => {
+      expect(compteurEquipementsClient(nombre).ton).toBe("gris");
+      expect(compteurEquipementsSite(nombre).ton).toBe("gris");
+    },
+  );
+
+  it("LE CAS QUI DOIT ROUGIR SANS LE CORRECTIF : le ton n'est plus rouge", () => {
+    expect(compteurEquipementsClient(3).ton).not.toBe("rouge");
+    expect(compteurEquipementsSite(3).ton).not.toBe("rouge");
+  });
+
+  it("une même notion garde le même ton PARTOUT — client et site s'accordent", () => {
+    for (const nombre of [0, 1, 7]) {
+      expect(compteurEquipementsClient(nombre).ton).toBe(
+        compteurEquipementsSite(nombre).ton,
+      );
+    }
   });
 });

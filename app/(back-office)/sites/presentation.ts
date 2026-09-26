@@ -90,9 +90,9 @@ export function trajetAffiche(trajet: Trajet): {
  * deux doivent rester la même pour qu'un site affiché à « 0 » ne soit jamais
  * aussi un site que le filtre aurait dû masquer.
  *
- * TON FIXE — rouge (PASTILLES-1), la même couleur que `compteurEquipements`
- * de l'écran client : une même notion garde le même ton partout où elle
- * apparaît.
+ * TON FIXE — gris (décision d'Alexis 26/09, remplace le rouge de
+ * PASTILLES-1 : le rouge est réservé à ce qui demande une action) ; même ton
+ * dans les deux fonctions.
  */
 export function compteurEquipements(nombre: number): {
   readonly valeur: number;
@@ -105,7 +105,7 @@ export function compteurEquipements(nombre: number): {
       nombre === 1
         ? t("sites.equipements_un")
         : t("sites.equipements_plusieurs"),
-    ton: "rouge",
+    ton: "gris",
   };
 }
 

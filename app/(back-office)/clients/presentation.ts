@@ -112,7 +112,9 @@ export function compteurSites(sites: SitesDUnClient | undefined): {
  * quel que soit son statut — la même notion, au mot près, que celle qui
  * filtre la liste par défaut (`equipementsParClient`, `lib/clients/depot.ts`).
  *
- * TON FIXE — rouge (PASTILLES-1), au même titre que `compteurSites` ci-dessus.
+ * TON FIXE — gris (décision d'Alexis 26/09, remplace le rouge de
+ * PASTILLES-1 : le rouge est réservé à ce qui demande une action) ; même ton
+ * dans les deux fonctions.
  */
 export function compteurEquipements(nombre: number): {
   readonly valeur: number;
@@ -125,6 +127,6 @@ export function compteurEquipements(nombre: number): {
       nombre === 1
         ? t("clients.equipements_un")
         : t("clients.equipements_plusieurs"),
-    ton: "rouge",
+    ton: "gris",
   };
 }
