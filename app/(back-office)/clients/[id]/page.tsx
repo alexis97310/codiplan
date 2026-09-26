@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { cache } from "react";
+import { cache, type ReactNode } from "react";
 import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
@@ -26,7 +26,11 @@ import {
   interventionsOuvertesDuClient,
   type LignePlanning,
 } from "@/lib/interventions/depot";
-import { nombreEquipementsActifsDuClient } from "@/lib/machines/depot";
+import {
+  donneesMaterielDesMachines,
+  nombreEquipementsActifsDuClient,
+} from "@/lib/machines/depot";
+import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { equipementsParSite } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -41,7 +45,10 @@ import {
   libellePage,
   ouTiret,
 } from "../../presentation";
-import { referenceAffichee } from "../../interventions/presentation";
+import {
+  machinesIdentifiees,
+  referenceAffichee,
+} from "../../interventions/presentation";
 import { compteurContrat, compteurEquipements } from "../../sites/presentation";
 
 /**
@@ -227,11 +234,27 @@ export default async function PageClient({
     equipementsParSiteMap,
     interventionsOuvertes,
     derniereInterventionListe,
+    donneesMaterielHistorique,
   ] = await Promise.all([
     equipementsParSite(session.contexte, sites),
     interventionsOuvertesDuClient(session.contexte, client.id),
     dernieresInterventionsDuClient(session.contexte, client.id, 1, 1),
+    // LA MACHINE DE CHAQUE INTERVENTION DE LA PAGE COURANTE
+    // (GR11-CLIENT-MACHINE, audit G14 du 26/09/2026) — UNE lecture groupée
+    // sur les machines des lignes AFFICHÉES, jamais une requête par ligne ;
+    // même critère de libellé que la fiche intervention et la carte de
+    // planning (`libelleMaterielComplet`, §9 01/09).
+    donneesMaterielDesMachines(
+      session.contexte,
+      interventions.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
+    ),
   ]);
+  const libellesMachinesHistorique = new Map(
+    [...donneesMaterielHistorique].map(([machineId, donnees]) => [
+      machineId,
+      libelleMaterielComplet(donnees),
+    ]),
+  );
   const equipementsActifs = await nombreEquipementsActifsDuClient(
     session.contexte,
     client.id,
@@ -281,6 +304,11 @@ export default async function PageClient({
     // juste, leur RENCONTRE est fausse, et aucune assertion n'était formulée
     // pour l'attraper.* `mot("site")` se définit une fois (D5, D47).
     { cle: "site", libelle: mot("site") },
+    {
+      cle: "machine",
+      libelle: t("intervention.machine"),
+      largeur: "220px",
+    },
     { cle: "statut", libelle: t("intervention.statut"), largeur: "150px" },
   ];
 
@@ -453,7 +481,7 @@ export default async function PageClient({
         <h2 className="border-app-bord border-b px-4 py-3 text-[15px] font-bold">
           {t("clients.fiche.interventions")}
         </h2>
-        <Tableau colonnes={colonnesInterventions} minimum="820px">
+        <Tableau colonnes={colonnesInterventions} minimum="1000px">
           {totalInterventions === 0 ? (
             <LignePleine colonnes={colonnesInterventions.length}>
               {t("clients.fiche.interventions_vide")}
@@ -476,6 +504,9 @@ export default async function PageClient({
               </Cellule>
               <Cellule>{t(`type_intervention.${ligne.type}`)}</Cellule>
               <Cellule>{ligne.site.libelle}</Cellule>
+              <Cellule>
+                {contenuMachinesHistorique(ligne, libellesMachinesHistorique)}
+              </Cellule>
               <Cellule>
                 <span
                   className={`${CLASSES_STATUT[ligne.statut]} rounded px-1.5 py-0.5 text-[11px] font-bold`}
@@ -521,6 +552,45 @@ export default async function PageClient({
       />
     </Page>
   );
+}
+
+/**
+ * LA OU LES MACHINES D'UNE LIGNE D'HISTORIQUE, EN LIENS (GR11-CLIENT-MACHINE)
+ * — même forme que `contenuMachines` (`interventions/[id]/page.tsx`) : une
+ * intervention sans machine rend le signe d'absence, jamais une ligne muette ;
+ * plusieurs machines se séparent par une virgule, et chacune mène à
+ * `/parc/<id>`. `machinesIdentifiees` (`../../interventions/presentation.ts`)
+ * répond « `null` » quand un identifiant n'a pas de libellé lu — l'absence se
+ * rend alors elle aussi par le signe, jamais par un lien vers rien.
+ */
+function contenuMachinesHistorique(
+  ligne: LignePlanning,
+  libellesMachines: ReadonlyMap<string, string>,
+): ReactNode {
+  const machines = machinesIdentifiees(ligne, libellesMachines);
+  if (machines.length === 0) {
+    return ouTiret(null);
+  }
+  const noeuds: ReactNode[] = [];
+  machines.forEach((machine, index) => {
+    if (index > 0) {
+      noeuds.push(", ");
+    }
+    noeuds.push(
+      machine.libelle === null ? (
+        ouTiret(null)
+      ) : (
+        <Link
+          key={machine.machineId}
+          href={`/parc/${machine.machineId}`}
+          className={CLASSES_LIEN}
+        >
+          {machine.libelle}
+        </Link>
+      ),
+    );
+  });
+  return noeuds;
 }
 
 function Champ({
