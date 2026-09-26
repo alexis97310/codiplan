@@ -140,6 +140,17 @@ test("soumettre sans nature est refusé par un motif dédié, et ne crée rien",
     await page.goto("/interventions/nouvelle");
     await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
     await page.locator('textarea[name="description"]').fill(PANNE);
+
+    // LA NATURE RESTE VIDE, exprès — c'est le refus SERVEUR qu'on éprouve,
+    // pas seulement celui du navigateur. `required` est retiré pour
+    // atteindre `/api/interventions/creer` (même geste que
+    // `formulaires-2.spec.ts` sur la panne).
+    await page
+      .locator('form[action="/api/interventions/creer"]')
+      .evaluate((form) => {
+        form.querySelector('[name="type"]')?.removeAttribute("required");
+      });
+
     await page
       .getByRole("button", { name: fr["intervention.action.creer"] })
       .click();
