@@ -8,6 +8,7 @@ import { chromium, type Browser, type Page } from "@playwright/test";
 
 import { CHEMIN_EPREUVE } from "./lib/classeur-epreuve";
 import { SURFACE_DECRAN } from "./lib/surface-decran";
+import { verdictDuTemoin } from "./lib/verdict-temoin";
 
 /**
  * LES CAPTURES D'ÉCRAN, PRISES PAR UN SCRIPT PLUTÔT QU'À LA MAIN.
@@ -76,6 +77,24 @@ const MOT_DE_PASSE_PORTAIL = process.env.MOT_DE_PASSE_PORTAIL ?? "";
  */
 const COURRIEL_TERRAIN = process.env.COURRIEL_TERRAIN ?? "";
 const MOT_DE_PASSE_TERRAIN = process.env.MOT_DE_PASSE_TERRAIN ?? "";
+
+/**
+ * LE COMPTE MULTI-SOCIÉTÉ — une QUATRIÈME identité, dédiée à la seule passe
+ * `sans-societe` (99O-CAPTURES-TEMOIN, constat C-A2).
+ *
+ * **Elle ne peut pas être `COURRIEL`.** `arrivee-sans-societe` exige un compte
+ * habilité sur AU MOINS DEUX sociétés — sans quoi la connexion active la seule
+ * habilitation (D35) et le sélecteur d'aucune société n'existe jamais. Rien ne
+ * garantit que `COURRIEL`, choisi pour le reste de la prise, en soit un : le
+ * confondre a produit deux images identiques à l'octet près (`cmp`), l'écran
+ * « aucune société active » montrant en réalité une société active.
+ *
+ * Sans ces deux variables, la passe `sans-societe` est REFUSÉE avec un motif
+ * écrit — jamais un repli silencieux sur `COURRIEL`, qui reproduirait le
+ * défaut mesuré.
+ */
+const COURRIEL_MULTI = process.env.COURRIEL_MULTI ?? "";
+const MOT_DE_PASSE_MULTI = process.env.MOT_DE_PASSE_MULTI ?? "";
 
 /**
  * La clé retenue lors de l'activation, pour la durée de la prise de vue.
@@ -254,10 +273,15 @@ const ECRANS: readonly Ecran[] = [
     passe: "sans-societe",
     refusConnu:
       "Cette image exige un compte habilité sur AU MOINS DEUX sociétés — sur " +
-      "la démonstration, `direction@codima.test`. Avec un compte mono-société, " +
-      "la connexion active la seule habilitation (D35) et le sélecteur ne " +
-      "s'affiche pas : le refus est alors juste, et il dit que COURRIEL " +
-      "désigne le mauvais compte.",
+      "la démonstration, `direction@codima.test` — et se connecte sous " +
+      "`COURRIEL_MULTI` / `MOT_DE_PASSE_MULTI`, une identité DÉDIÉE et " +
+      "distincte de `COURRIEL` (99O, constat C-A2) : les confondre a déjà " +
+      "produit deux images identiques à l'octet près, l'écran « aucune " +
+      "société active » montrant en réalité une société active. Sans ces " +
+      "deux variables, le refus le dit. Avec un compte mono-société, la " +
+      "connexion active la seule habilitation (D35) et le sélecteur ne " +
+      "s'affiche jamais : le refus est alors juste, et il dit que " +
+      "COURRIEL_MULTI désigne le mauvais compte.",
   },
   {
     nom: "planning",
@@ -744,12 +768,21 @@ function empreinte(): { court: string; long: string } {
  *
  * La clé est lue SUR L'ÉCRAN, là où un humain la lirait ; le code à six
  * chiffres est calculé avec la même bibliothèque que la vérification.
+ *
+ * **Elle REND la clé plutôt que d'écrire `cleActivee` elle-même** (99O) : la
+ * passe `sans-societe` active un second facteur sur une identité DISTINCTE de
+ * `COURRIEL`, et écrire la clé partagée l'aurait écrasée — la reconnexion de
+ * `COURRIEL` aurait alors calculé son code sur le secret du mauvais compte.
+ * Chaque appelant décide s'il retient la clé rendue.
  */
-async function activerSecondFacteur(page: Page): Promise<void> {
+async function activerSecondFacteur(
+  page: Page,
+  motDePasse: string,
+): Promise<string> {
   if (!page.url().includes("/enrolement")) {
-    return;
+    return "";
   }
-  await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
+  await page.fill('input[name="motDePasse"]', motDePasse);
   await page.click('button[type="submit"]');
   await page.waitForLoadState("networkidle");
 
@@ -769,10 +802,10 @@ async function activerSecondFacteur(page: Page): Promise<void> {
         "et aucun code ne peut être calculé.",
     );
   }
-  cleActivee = cle;
   await page.fill('input[name="code"]', await codeCourant(cle));
   await page.click('button[type="submit"]');
   await page.waitForLoadState("networkidle");
+  return cle;
 }
 
 /**
@@ -823,7 +856,23 @@ function base32VersBrut(base32: string): string {
   return brut;
 }
 
-async function seConnecter(page: Page, choisir = true): Promise<void> {
+/**
+ * UNE CONNEXION COMPLÈTE, SOUS UNE IDENTITÉ QUELCONQUE.
+ *
+ * **Extraite de `seConnecter` (99O)** pour que la passe `sans-societe` puisse
+ * s'y appuyer sous une identité DISTINCTE de `COURRIEL`, sans partager son
+ * secret de second facteur : `secretConnu` et la clé rendue par
+ * `activerSecondFacteur` sont propres à CET appel, jamais à la variable
+ * partagée `cleActivee` — la confondre ferait calculer le code de reconnexion
+ * d'un compte sur le secret de l'autre.
+ */
+async function seConnecterAvec(
+  page: Page,
+  identite: { readonly email: string; readonly motDePasse: string },
+  choisir: boolean,
+  secretConnu: string,
+): Promise<{ readonly secretActive: string }> {
+  let secretActive = secretConnu;
   // **DEUX TOURS, ET LE SECOND N'EST PAS UNE PRÉCAUTION.** L'application
   // DÉCONNECTE volontairement après l'activation d'un second facteur — la
   // session d'avant ne vaut plus, ce qui est le bon geste. Un script qui ne
@@ -834,19 +883,21 @@ async function seConnecter(page: Page, choisir = true): Promise<void> {
     // Les champs sont désignés par leur `name`, qui est ce que le formulaire
     // ENVOIE : un libellé se traduit, se reformule, et changerait ce script
     // sans que la fonctionnalité bouge.
-    await page.fill('input[name="email"]', COURRIEL);
-    await page.fill('input[name="motDePasse"]', MOT_DE_PASSE);
+    await page.fill('input[name="email"]', identite.email);
+    await page.fill('input[name="motDePasse"]', identite.motDePasse);
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 
     // Le défi de second facteur, quand le compte est déjà enrôlé.
-    const secret = SECRET_TOTP === "" ? cleActivee : SECRET_TOTP;
-    if (page.url().includes("/connexion/code") && secret !== "") {
-      await page.fill('input[name="code"]', await codeCourant(secret));
+    if (page.url().includes("/connexion/code") && secretActive !== "") {
+      await page.fill('input[name="code"]', await codeCourant(secretActive));
       await page.click('button[type="submit"]');
       await page.waitForLoadState("networkidle");
     }
-    await activerSecondFacteur(page);
+    const cleRevelee = await activerSecondFacteur(page, identite.motDePasse);
+    if (cleRevelee !== "") {
+      secretActive = cleRevelee;
+    }
 
     if (!page.url().includes("/connexion")) {
       // **LE CHOIX EST UNE OPTION, PAS UNE ÉTAPE** (13/09/2026). La passe
@@ -856,13 +907,14 @@ async function seConnecter(page: Page, choisir = true): Promise<void> {
       if (choisir) {
         await choisirUneSociete(page);
       }
-      return;
+      return { secretActive };
     }
   }
 
   const url = page.url();
   throw new Error(
-    `La connexion n'a pas abouti : la page est restée sur ${url}. ` +
+    `La connexion n'a pas abouti pour ${identite.email} : la page est ` +
+      `restée sur ${url}. ` +
       (url.includes("/connexion/code")
         ? "Le compte porte DÉJÀ un second facteur et la clé n'est pas connue " +
           "de cette prise de vue : repasser `SECRET_TOTP`, ou repartir d'une " +
@@ -871,6 +923,17 @@ async function seConnecter(page: Page, choisir = true): Promise<void> {
       "Aucune capture authentifiée ne sera prise — mieux vaut aucune image " +
       "qu'une page de connexion rangée sous le nom d'un autre écran.",
   );
+}
+
+async function seConnecter(page: Page, choisir = true): Promise<void> {
+  const secretConnu = SECRET_TOTP === "" ? cleActivee : SECRET_TOTP;
+  const { secretActive } = await seConnecterAvec(
+    page,
+    { email: COURRIEL, motDePasse: MOT_DE_PASSE },
+    choisir,
+    secretConnu,
+  );
+  cleActivee = secretActive;
 }
 
 async function photographier(
@@ -910,19 +973,25 @@ async function photographier(
   // nomme : un défaut invisible à toute assertion et évident sur une image.
   //
   // `innerText` ne rend que le texte RENDU : les `<script>` en sortent.
+  //
+  // Le verdict lui-même est une fonction PURE (`verdictDuTemoin`,
+  // `./lib/verdict-temoin`) — extraite au 99O après qu'un même témoin,
+  // « Choisir la société », se soit trouvé sur DEUX écrans distincts
+  // (`arrivee` et `arrivee-sans-societe`) sans qu'aucune assertion ne le
+  // distingue.
   const corps = await page.locator("body").innerText();
-  if (!corps.toLowerCase().includes(ecran.temoin.toLowerCase())) {
+  const verdict = verdictDuTemoin({
+    corps,
+    cheminAtteint: new URL(page.url()).pathname,
+    ecran,
+  });
+  if (verdict.verdict === "refuse") {
     // **LE REFUS DIT CE QU'IL A VU À LA PLACE.** Un refus qui n'énonce que
     // l'attendu envoie chercher du côté de l'écran, alors que la cause est
     // presque toujours ailleurs — une redirection, une session qui n'a pas
     // pris, un écran renommé. *L'URL atteinte et les premiers mots rendus
     // coûtent une ligne et désignent la cause au lieu de la faire deviner.*
-    const vu = corps.replace(/\s+/g, " ").trim().slice(0, 120);
-    throw new Error(
-      `« ${ecran.nom} » ne porte pas son témoin « ${ecran.temoin} » : ce n'est ` +
-        "pas l'écran attendu, et la capture est refusée. " +
-        `Atteint : ${page.url()} — vu : « ${vu} »`,
-    );
+    throw new Error(verdict.motif);
   }
 
   await page.screenshot({
@@ -1062,14 +1131,35 @@ async function photographierSousEtat(
 }
 
 /**
- * Une connexion COMPLÈTE, mais SANS choisir de société.
+ * Une connexion COMPLÈTE sous l'identité MULTI-SOCIÉTÉ dédiée, SANS choisir
+ * de société.
  *
  * *Elle n'omet rien d'autre* : le second facteur s'active, le défi se passe.
  * Ce qui est retenu est le dernier geste, celui qu'un humain fait à l'écran —
  * et c'est précisément l'écran qu'on photographie.
+ *
+ * **`COURRIEL_MULTI`, jamais `COURRIEL`** (99O, constat C-A2) : rien ne
+ * garantit que l'identité choisie pour le reste de la prise soit habilitée
+ * sur au moins deux sociétés, et un compte mono-société active sa seule
+ * habilitation à la connexion (D35) sans jamais rencontrer ce sélecteur.
+ * Sans `COURRIEL_MULTI` / `MOT_DE_PASSE_MULTI`, la passe est REFUSÉE avec un
+ * motif écrit plutôt que de retomber en silence sur `COURRIEL`.
  */
 async function connexionSansSociete(page: Page): Promise<void> {
-  await seConnecter(page, false);
+  if (COURRIEL_MULTI === "" || MOT_DE_PASSE_MULTI === "") {
+    throw new Error(
+      "aucun COURRIEL_MULTI / MOT_DE_PASSE_MULTI fourni : la passe « sans-" +
+        "societe » exige une identité MULTI-SOCIÉTÉ dédiée, indépendante de " +
+        "COURRIEL — un compte mono-société active sa seule habilitation à la " +
+        "connexion (D35) et ne rencontre jamais ce sélecteur.",
+    );
+  }
+  await seConnecterAvec(
+    page,
+    { email: COURRIEL_MULTI, motDePasse: MOT_DE_PASSE_MULTI },
+    false,
+    "",
+  );
 }
 
 /** Une connexion NUE : ni défi — le compte n'en a pas encore —, ni activation. */
@@ -1442,6 +1532,7 @@ function redigerReadme(
     "# 4. La prise de vue.",
     "BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \\",
     "  COURRIEL_PORTAIL=… MOT_DE_PASSE_PORTAIL=… \\",
+    "  COURRIEL_MULTI=direction@codima.test MOT_DE_PASSE_MULTI=… \\",
     "  pnpm exec tsx scripts/captures.mts",
     "```",
     "",
@@ -1452,6 +1543,8 @@ function redigerReadme(
     "**Si `DATABASE_URL` porte le rôle propriétaire, le serveur de production ne le dit PAS.** `garantirRoleApplicatif` refuse — à bon droit — et ferme le client dans la foulée, pour que le refus soit un vrai refus de se connecter. Le message juste est émis **une fois**, puis noyé sous des dizaines d'`Engine is not yet connected` qui n'ont plus rien à voir avec la cause. *Mesuré le 10/09/2026 : 48 de ces lignes pour un seul refus lisible, et la conclusion qu'on en tire spontanément est que l'hébergeur réclame le moteur Prisma.* En `next dev`, le même refus s'affiche en clair : **quand le serveur de production devient incompréhensible, le relancer en développement coûte deux minutes et nomme la cause.**",
     "",
     "`COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.",
+    "",
+    "`COURRIEL_MULTI` désigne une **troisième identité, habilitée sur AU MOINS DEUX sociétés** — sur la base jetable de démonstration, `direction@codima.test`, dont le mot de passe se pose comme celui de `COURRIEL` (étape 3, `scripts/amorcage-premier-compte.mts --reemettre`). Elle sert à la SEULE image « aucune société active » : rien ne garantit que `COURRIEL`, choisi pour le reste de la prise, soit multi-société, et les confondre a déjà produit deux images identiques à l'octet près (99O, constat C-A2). Sans elle, cette seule image est refusée et le refus le dit — jamais un repli silencieux sur `COURRIEL`.",
     "",
     ...sectionSurface(commit),
     "## Ce que le script REFUSE de photographier",
