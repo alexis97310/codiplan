@@ -294,8 +294,8 @@ export default async function PageParc({
           visible (mesuré ci-dessous) : ce `gap-2` (8 px), plus serré que le
           `gap-5` (20 px) de `Page`, remplace la SEULE respiration entre la
           barre et les KPI qui reste sous ce contrôle de cette page. */}
-      <div className="flex flex-col gap-2">
-        <div data-bloc="toolbar" className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-0">
+        <div data-bloc="toolbar" className="flex flex-wrap items-end gap-2">
           <div data-bloc="recherche" className="contents">
             <BarreDeFiltres
               action="/parc"
@@ -305,77 +305,111 @@ export default async function PageParc({
               libelleBouton={t("parc.recherche_action")}
               enfants={
                 <span data-bloc="filtre-statut" className="contents">
-                  <label className="sr-only" htmlFor="statut">
-                    {t("parc.filtre_statut.libelle")}
-                  </label>
-                  <select
-                    id="statut"
-                    name="statut"
-                    defaultValue={statutActif}
-                    className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
-                  >
-                    <option value="tous">{t("parc.filtre_statut.tous")}</option>
-                    <option value="en_service">
-                      {t("statut_machine.en_service")}
-                    </option>
-                    <option value="en_panne">
-                      {t("statut_machine.en_panne")}
-                    </option>
-                    <option value="arretee">
-                      {t("statut_machine.arretee")}
-                    </option>
-                  </select>
+                  {/* GR10 (27/09/2026, audit GR du 26/09, constat G13) — les
+                      QUATRE libellés étaient `sr-only` : un ADV qui n'a pas
+                      encore choisi de statut/client/site/famille lisait
+                      quatre champs muets, chacun devinable seulement par
+                      essai. Chaque libellé devient un TEXTE VISIBLE, minuscule
+                      et posé AU-DESSUS de son champ — `leading-none`, sans
+                      marge, pour que l'ajout ne fasse PAS déborder la barre
+                      sous les 480 px de liste visible mesurés par 99C
+                      (constat 30, `parc-tri.spec.ts`) : le `gap-2` vertical
+                      entre la barre et les KPI, seule respiration sous le
+                      contrôle de cette page (voir la note plus haut), passe à
+                      zéro pour compenser. Les `id` ne bougent pas. */}
+                  <span className="flex flex-col gap-0">
+                    <label
+                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      htmlFor="statut"
+                    >
+                      {t("parc.filtre_statut.libelle")}
+                    </label>
+                    <select
+                      id="statut"
+                      name="statut"
+                      defaultValue={statutActif}
+                      className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                    >
+                      <option value="tous">
+                        {t("parc.filtre_statut.tous")}
+                      </option>
+                      <option value="en_service">
+                        {t("statut_machine.en_service")}
+                      </option>
+                      <option value="en_panne">
+                        {t("statut_machine.en_panne")}
+                      </option>
+                      <option value="arretee">
+                        {t("statut_machine.arretee")}
+                      </option>
+                    </select>
+                  </span>
                   {/* LISTES-1 (23/09/2026) — trois filtres COMBINABLES avec
                       celui du statut, chacun dans l'URL. Les options sont
                       triées par `lib/tri/collation.ts` (LISTES-1). */}
-                  <label className="sr-only" htmlFor="client">
-                    {t("parc.filtre_client.libelle")}
-                  </label>
-                  <select
-                    id="client"
-                    name="client"
-                    defaultValue={clientActif ?? ""}
-                    className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
-                  >
-                    <option value="">{t("parc.filtre_client.tous")}</option>
-                    {clientsTries.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.libelle}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="sr-only" htmlFor="site">
-                    {mot("site")}
-                  </label>
-                  <select
-                    id="site"
-                    name="site"
-                    defaultValue={siteActif ?? ""}
-                    className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
-                  >
-                    <option value="">{t("parc.filtre_site.tous")}</option>
-                    {sitesTries.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {libelleClientSite(option.client, option.libelle)}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="sr-only" htmlFor="famille">
-                    {t("parc.famille")}
-                  </label>
-                  <select
-                    id="famille"
-                    name="famille"
-                    defaultValue={familleActive ?? ""}
-                    className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
-                  >
-                    <option value="">{t("parc.filtre_famille.tous")}</option>
-                    {famillesTriees.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.libelle}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="flex flex-col gap-0">
+                    <label
+                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      htmlFor="client"
+                    >
+                      {t("parc.filtre_client.libelle")}
+                    </label>
+                    <select
+                      id="client"
+                      name="client"
+                      defaultValue={clientActif ?? ""}
+                      className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                    >
+                      <option value="">{t("parc.filtre_client.tous")}</option>
+                      {clientsTries.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.libelle}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                  <span className="flex flex-col gap-0">
+                    <label
+                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      htmlFor="site"
+                    >
+                      {mot("site")}
+                    </label>
+                    <select
+                      id="site"
+                      name="site"
+                      defaultValue={siteActif ?? ""}
+                      className="border-app-bord bg-app-surface h-[40px] w-[105px] truncate rounded-[9px] border px-3"
+                    >
+                      <option value="">{t("parc.filtre_site.tous")}</option>
+                      {sitesTries.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {libelleClientSite(option.client, option.libelle)}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                  <span className="flex flex-col gap-0">
+                    <label
+                      className="text-app-encre-faible text-[9px] leading-[8px] font-bold uppercase"
+                      htmlFor="famille"
+                    >
+                      {t("parc.famille")}
+                    </label>
+                    <select
+                      id="famille"
+                      name="famille"
+                      defaultValue={familleActive ?? ""}
+                      className="border-app-bord bg-app-surface h-[40px] w-[100px] truncate rounded-[9px] border px-3"
+                    >
+                      <option value="">{t("parc.filtre_famille.tous")}</option>
+                      {famillesTriees.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.libelle}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
