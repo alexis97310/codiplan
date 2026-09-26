@@ -54,16 +54,12 @@
   neuf, 3 épreuves) : vert, joué deux fois de suite (une fois pendant la
   mise au point du sélecteur de dialogue, une fois après correction) —
   aucun flake mesuré.
-- `CI=1 pnpm verify:full`, joué EN ENTIER avant la correction du sélecteur de
-  dialogue : 304 passés, 1 seul échec — le mien (`fiche-cloturer.spec.ts`,
-  détaillé ci-dessous sous « ce que j'ai tranché ») — zéro échec étranger au
-  lot. **Non rejoué en entier après la correction** faute de temps dans la
-  limite de 150 minutes : la suite ciblée (`fiche-cloturer.spec.ts` seul,
-  deux fois) et les quatre commandes de `verify` (format/typecheck/lint/test)
-  sont vertes, mais je n'ai pas de second passage `verify:full` COMPLET à
-  citer après le correctif du sélecteur — c'est une hypothèse forte, pas une
-  mesure de bout en bout redonnée. La file de nuit le rejouera et ne
-  publiera que si c'est vert.
+- `CI=1 pnpm verify:full`, joué EN ENTIER DEUX FOIS :
+  - avant la correction du sélecteur de dialogue : 304 passés, 1 seul échec
+    — le mien (`fiche-cloturer.spec.ts`, détaillé ci-dessous sous « ce que
+    j'ai tranché ») — zéro échec étranger au lot.
+  - après la correction (`dialog[open]`) et le commit des captures : **307
+    passés, 3 ignorés (`skip` du dépôt, pas les miens), zéro échec.**
 
 ## Ce que j'ai tranché, et pourquoi
 
@@ -98,8 +94,6 @@
   conforme aux interdits du ticket.
 - Le repli du bloc « Clôturer » avant l'état « Terminée » (mentionné comme
   hors périmètre par le ticket) : non touché.
-- Un second `CI=1 pnpm verify:full` complet après la correction du sélecteur
-  de dialogue (voir « ce que j'ai mesuré ») : non rejoué, faute de temps.
 
 ## Pièges pour la session suivante
 
@@ -128,6 +122,5 @@
 
 ## Ce qui reste à faire
 
-- Rejouer `CI=1 pnpm verify:full` en entier une dernière fois pour confirmer
-  qu'aucune régression n'est apparue après la correction du sélecteur de
-  dialogue (voir « ce que je n'ai PAS fait »).
+Rien d'identifié dans le périmètre de ce ticket : `pnpm verify:full` est vert
+en entier (307 passés, 3 ignorés, zéro échec), captures et passation commitées.
