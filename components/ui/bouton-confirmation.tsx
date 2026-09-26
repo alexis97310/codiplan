@@ -16,12 +16,19 @@ import type { VariantProps } from "class-variance-authority";
  * fichier : lui seul écoute le champ `motif` pour se désactiver, une
  * mécanique spécifique à l'annulation que ce composant générique n'a pas à
  * connaître.
+ *
+ * `dialogueActif` (99R-GR3-CLOTURE) — quand `false`, le clic soumet le
+ * formulaire DIRECTEMENT, sans ouvrir le dialogue : la clôture ne peut pas
+ * proposer « Clôturer avec … validées ? » quand le champ ne porte pas un
+ * nombre de minutes exploitable, et le clic doit alors se comporter comme
+ * un bouton `submit` ordinaire — le serveur refuse comme aujourd'hui.
  */
 export function BoutonAvecConfirmation({
   ref,
   libelle,
   variant,
   disabled = false,
+  dialogueActif = true,
   texteConfirmation,
   boutonConfirmer,
   boutonRevenir,
@@ -30,6 +37,7 @@ export function BoutonAvecConfirmation({
   libelle: string;
   variant: VariantProps<typeof buttonVariants>["variant"];
   disabled?: boolean;
+  dialogueActif?: boolean;
   texteConfirmation: ReactNode;
   boutonConfirmer: string;
   boutonRevenir: string;
@@ -66,7 +74,13 @@ export function BoutonAvecConfirmation({
         variant={variant}
         size="sm"
         disabled={disabled}
-        onClick={() => setDialogueOuvert(true)}
+        onClick={() => {
+          if (!dialogueActif) {
+            boutonInterneRef.current?.form?.requestSubmit();
+            return;
+          }
+          setDialogueOuvert(true);
+        }}
       >
         {libelle}
       </Button>

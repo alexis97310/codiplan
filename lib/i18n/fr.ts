@@ -1380,6 +1380,15 @@ export const fr = {
     "Le forfait et la main-d'œuvre ne sont pas dans la même monnaie. Aucun total n'est calculé : une conversion ici fausserait le montant.",
   "intervention.cloture.explication":
     "Le temps est arrondi au quart d'heure supérieur, puis relevé à une heure minimum. Les deux s'appliquent une seule fois, sur l'intervention entière.",
+  "intervention.cloture.aide_figee":
+    "Après clôture, ce temps ne se corrige plus.",
+  // ── LA CONFIRMATION AVANT CLÔTURE (99R-GR3-CLOTURE) ───────────────────────
+  // Même composition en trois morceaux que `intervention.annulation.*` —
+  // `{avant} {duree} {apres}` —, la durée venant de `dureeCarteAffichee`
+  // plutôt que d'une traduction : ce n'est pas un texte, c'est une mesure.
+  "intervention.cloture.confirmation_avant": "Clôturer avec",
+  "intervention.cloture.confirmation_apres": "validées ?",
+  "intervention.cloture.confirmer": "Confirmer la clôture",
 
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":
@@ -3689,6 +3698,13 @@ export const fr = {
   "parctri.e2e.client_z": "PTRI-Z — Client de l'épreuve",
   "parctri.e2e.site_a": "PTRI-A — Lieu de l'épreuve",
   "parctri.e2e.site_z": "PTRI-Z — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-cloturer.spec.ts)
+  //
+  // Même discipline que `parctri.e2e.*` : sa PROPRE scène, préfixée `ERGO3-`,
+  // créée et supprimée par l'épreuve (`docs/propositions/99R-GR3-CLOTURE`).
+  "ergo3.e2e.client": "ERGO3 — Client de l'épreuve",
+  "ergo3.e2e.site": "ERGO3 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

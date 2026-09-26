@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
+import { BoutonCloturer } from "@/components/interventions/bouton-cloturer";
 import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
@@ -988,6 +989,16 @@ export default async function PageIntervention({
                     action={`/api/interventions/${ligne.id}/cloturer`}
                     note={t("intervention.cloture.explication")}
                     principale={principale === "cloturer"}
+                    bouton={
+                      <BoutonCloturer
+                        libelle={t("intervention.action.cloturer")}
+                        variant={
+                          principale === "cloturer" ? "default" : "outline"
+                        }
+                        boutonConfirmer={t("intervention.cloture.confirmer")}
+                        boutonRevenir={t("intervention.annulation.revenir")}
+                      />
+                    }
                   >
                     {/* CE N'EST PLUS UNE SAISIE, C'EST UNE VALIDATION (D120).
                         Le champ arrive PRÉ-REMPLI avec ce que le compteur a
@@ -1004,6 +1015,9 @@ export default async function PageIntervention({
                           : String(ligne.temps_mesure_min)
                       }
                     />
+                    <p className="text-app-encre-faible text-[11.5px]">
+                      {t("intervention.cloture.aide_figee")}
+                    </p>
                   </Action>
                 ) : null}
 
