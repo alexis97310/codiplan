@@ -23,7 +23,10 @@ import {
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
-import { actionPrincipale } from "@/lib/interventions/action-principale";
+import {
+  actionPrincipale,
+  blocCloturerReplie,
+} from "@/lib/interventions/action-principale";
 import {
   estFige,
   peutAffecter,
@@ -994,6 +997,10 @@ export default async function PageIntervention({
                     action={`/api/interventions/${ligne.id}/cloturer`}
                     note={t("intervention.cloture.explication")}
                     principale={principale === "cloturer"}
+                    replie={blocCloturerReplie({
+                      statut,
+                      verdict: peutCloturer(statut, ligne.temps_mesure_min),
+                    })}
                     bouton={
                       <BoutonCloturer
                         libelle={t("intervention.action.cloturer")}
@@ -1798,6 +1805,12 @@ function Saisie({
  * *Le refus s'affiche à la place, en oxyde, avec sa raison écrite.* Un bouton
  * désactivé laisse croire qu'il suffirait d'insister ; un refus qui prend la
  * place de l'action dit ce qui bloque et pourquoi.
+ *
+ * **Exception (99T-G9-CLOTURER-REPLIE, 26/09/2026, décision d'Alexis) :** le
+ * refus « temps non mesuré » du bloc Clôturer, hors intervention `terminee`,
+ * se replie NEUTRE au lieu de s'afficher déplié en oxyde — vu sur chaque
+ * fiche non terminée, ce refus rouge n'attirait plus l'œil. `replie` porte
+ * cette seule exception ; tout autre refus garde le régime ci-dessus.
  */
 function Action({
   titre,
@@ -1807,6 +1820,7 @@ function Action({
   bouton,
   children,
   principale = false,
+  replie = false,
 }: {
   titre: string;
   verdict: { refuse: boolean; cle?: string };
@@ -1830,18 +1844,34 @@ function Action({
    * LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19) — `principale`
    * ouvre le bloc et lui donne le bouton plein ; les autres se replient dans
    * un `<details>` natif dont le `<summary>` porte le titre. Un refus
-   * (ci-dessous) ignore cette prop : il s'affiche toujours tel quel.
+   * (ci-dessous) ignore cette prop et s'affiche toujours tel quel — SAUF si
+   * `replie` le replie (99T-G9-CLOTURER-REPLIE), seule exception au régime.
    */
   principale?: boolean;
+  /**
+   * LE REFUS SE REPLIE-T-IL ? (99T-G9-CLOTURER-REPLIE) — porté par
+   * `lib/interventions/action-principale.ts#blocCloturerReplie`, jamais
+   * calculé ici. Sans effet quand `verdict` n'est pas un refus.
+   */
+  replie?: boolean;
 }) {
   if (verdict.refuse) {
     const cle = verdict.cle;
+    const raison = cle !== undefined && estCleTraduction(cle) ? t(cle) : "";
+    if (replie) {
+      return (
+        <details className="bg-app-surface border-app-bord rounded-lg border px-4 py-3">
+          <summary className="cursor-pointer text-[13px] font-bold">
+            {titre}
+          </summary>
+          <p className="text-app-rouge-encre mt-3 text-[12.5px]">{raison}</p>
+        </details>
+      );
+    }
     return (
       <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
         <h2 className="text-[13px] font-bold">{titre}</h2>
-        <p className="text-app-rouge-encre text-[12.5px]">
-          {cle !== undefined && estCleTraduction(cle) ? t(cle) : ""}
-        </p>
+        <p className="text-app-rouge-encre text-[12.5px]">{raison}</p>
       </section>
     );
   }

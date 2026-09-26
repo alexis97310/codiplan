@@ -4242,6 +4242,10 @@ Les interventions déjà clôturées gardent leur valeur sous le nouveau nom —
 
 > **Le jour où une intervention doit se clôturer sans qu'aucun compteur ait tourné** — un dépannage téléphonique facturé, une reprise dont le technicien a oublié de démarrer. *C'est le seul événement qui puisse remettre en cause « le compteur est la seule source », et il se constate sur une intervention réelle.*
 
+### AMENDEMENT 26/09/2026 (décision d'Alexis, audit G9)
+
+**Le refus « aucun temps mesuré » se replie, hors intervention `terminee`.** L'audit d'ergonomie du 26/09/2026 (constat G9) a mesuré qu'affiché déplié, en oxyde, sur CHAQUE fiche non terminée, ce refus n'attirait plus l'œil — à force de le voir partout, on ne le remarquait nulle part. Il ne reste déplié que sur l'intervention `terminee`, la seule où « Clôturer » EST l'action principale et où le refus a un sens à signaler tout de suite ; ailleurs il se replie comme les actions non principales, neutre tant qu'il n'est pas ouvert. Le refus lui-même — sa raison, sa condition — ne change pas : seul son affichage se replie.
+
 ---
 
 ## D121 — Le double menu de domaine, sous la forme d'une BARRE LATÉRALE : D118 CONSTATE sa propre condition remplie

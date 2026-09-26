@@ -3705,6 +3705,15 @@ export const fr = {
   // créée et supprimée par l'épreuve (`docs/propositions/99R-GR3-CLOTURE`).
   "ergo3.e2e.client": "ERGO3 — Client de l'épreuve",
   "ergo3.e2e.site": "ERGO3 — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  //    (tests/e2e/fiche-cloturer-replie.spec.ts)
+  //
+  // Même discipline que `ergo3.e2e.*` : sa PROPRE scène, préfixée `G9-`,
+  // créée et supprimée par l'épreuve (`docs/propositions/
+  // 99T-G9-CLOTURER-REPLIE`).
+  "bloccloturereplie.e2e.client": "G9 — Client de l'épreuve",
+  "bloccloturereplie.e2e.site": "G9 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
