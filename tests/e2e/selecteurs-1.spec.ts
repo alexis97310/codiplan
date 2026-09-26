@@ -225,6 +225,7 @@ test("le 210e site SEL1- est trouvable et reçoit une intervention, avec sa mach
     .locator('select[name="machine_ids"]')
     .selectOption([MACHINE_SEL1_ATTACHEE]);
 
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve SELECTEURS-1 — 210e site");

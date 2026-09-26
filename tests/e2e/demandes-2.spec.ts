@@ -245,6 +245,14 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
   };
   await capturer(page, "formulaire-prerempli");
 
+  // LA NATURE N'EST PAS PRÉREMPLIE DEPUIS LA DEMANDE (99P-GR1-NATURE, D'après
+  // l'audit du 26/09) — une demande ne porte pas de nature d'intervention, et
+  // le `<select>` ouvre désormais sur une option vide plutôt que la première
+  // de la liste. La choisir explicitement fait partie de la MISE EN SCÈNE,
+  // l'assertion de préremplissage ci-dessus (lieu, machine, panne, urgence)
+  // ne change pas.
+  await page.locator('select[name="type"]').selectOption("curatif");
+
   await page
     .getByRole("button", { name: dictionnaire["intervention.action.creer"] })
     .click();

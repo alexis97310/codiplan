@@ -293,6 +293,7 @@ export default async function PageNouvelleIntervention({
           prefixe="type_intervention"
           valeurInitiale={typeInitial}
           obligatoire
+          optionVide={t("intervention.creation.choisir_nature")}
         />
         <Choix
           nom="priorite"
@@ -352,6 +353,7 @@ function Choix({
   defaut,
   valeurInitiale,
   obligatoire = false,
+  optionVide,
 }: {
   nom: string;
   libelle: string;
@@ -360,20 +362,38 @@ function Choix({
   defaut?: string;
   /** Reprise après un refus de saisie (56-FORMULAIRES-2) — prime sur `defaut`. */
   valeurInitiale?: string;
-  /** Marque le champ (92-CREATION-2) — n'ajoute aucune règle de validation :
-   * chaque liste porte déjà une valeur par défaut, le champ n'est donc
-   * jamais réellement vide. */
+  /** Marque le champ (92-CREATION-2). Seul un champ qui porte aussi
+   * `optionVide` (99P-GR1-NATURE) est réellement vide au rendu, donc
+   * réellement obligatoire au sens du navigateur : `priorite` et
+   * `mode_valorisation` portent déjà une valeur par défaut, `obligatoire`
+   * n'y ajoute qu'un repère visuel. */
   obligatoire?: boolean;
+  /**
+   * UNE PREMIÈRE OPTION VIDE, NON SÉLECTIONNABLE (99P-GR1-NATURE) — sélectionnée
+   * par défaut tant qu'aucune `valeurInitiale` ne prime, elle force un choix
+   * explicite. Sans elle, un `<select>` simple retient TOUJOURS sa première
+   * valeur : un appel curatif partait en « Préventif sous contrat » (audit du
+   * 26/09, constat B1), sans que personne n'ait rien choisi.
+   */
+  optionVide?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
       {obligatoire ? libelleChampObligatoire(libelle) : libelle}
       <select
         name={nom}
-        defaultValue={valeurInitiale ?? defaut}
+        defaultValue={
+          valeurInitiale ?? (optionVide === undefined ? defaut : "")
+        }
+        required={optionVide !== undefined}
         aria-required={obligatoire ? "true" : undefined}
         className="border-input bg-background rounded-md border px-3 py-2 font-normal"
       >
+        {optionVide === undefined ? null : (
+          <option value="" disabled>
+            {optionVide}
+          </option>
+        )}
         {valeurs.map((valeur) => {
           const cle = `${prefixe}.${valeur}`;
           return (

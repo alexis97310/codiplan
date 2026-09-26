@@ -124,6 +124,7 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
   );
   await expect(optionMachine).toBeAttached();
   await page.locator('select[name="machine_ids"]').selectOption([machine.id]);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine à la création");
@@ -152,6 +153,7 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
   // l'aveugle (voir `schemaCreation`).
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — machine après coup");

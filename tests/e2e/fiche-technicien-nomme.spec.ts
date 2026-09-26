@@ -98,6 +98,7 @@ function valeurTechnicien(page: Page) {
 async function creerUneIntervention(page: Page): Promise<void> {
   await page.goto("/interventions/nouvelle");
   await choisirPremierResultat(page, "site");
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — fiche-technicien-nomme");

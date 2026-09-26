@@ -47,6 +47,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
 }) => {
   await page.goto("/interventions/nouvelle");
   await choisirPremierResultat(page, "site");
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Compresseur en panne — capture 38-PARCOURS-1");

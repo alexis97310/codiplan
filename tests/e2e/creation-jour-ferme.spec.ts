@@ -121,6 +121,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
   // ── 1. CRÉER — sans date, sans technicien (PARCOURS-1) ──────────────────
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — jour fermé");

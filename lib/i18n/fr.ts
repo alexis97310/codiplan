@@ -1316,6 +1316,13 @@ export const fr = {
   "intervention.creation.agence_deduite_milieu": "choisi détermine l'",
   "intervention.creation.agence_deduite_suffixe": "— cela ne se saisit pas.",
   "intervention.reference_client": "Référence client / n° de bon de commande",
+  // L'OPTION VIDE DU SÉLECTEUR DE NATURE (99P-GR1-NATURE) — avant ce lot, le
+  // `<select>` n'avait pas d'option vide et le navigateur retenait toujours
+  // la première nature de la liste (« Préventif sous contrat »), y compris
+  // pour un appel curatif. Même modèle que `equipe.choisir_rattachement`.
+  "intervention.creation.choisir_nature": "Sélectionner une nature",
+  "intervention.refus.nature_manquante":
+    "Choisissez la nature de l'intervention.",
   "intervention.refus.panne_manquante":
     "La panne signalée ou le travail demandé est obligatoire.",
   "intervention.planification.explication":

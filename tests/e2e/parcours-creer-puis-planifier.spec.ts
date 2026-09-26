@@ -98,6 +98,7 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
   // LA PANNE EST OBLIGATOIRE : soumettre sans elle est refusé par le
   // navigateur lui-même (`required`), et par le serveur si on le contourne.
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
   const panne = page.locator('textarea[name="description"]');
   await expect(panne).toHaveAttribute("required", "");
 
@@ -135,6 +136,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
   const { siteLibelle } = await siteDeDucos("desc");
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — planifier");
@@ -258,6 +260,7 @@ test("le glisser-déposer d'une carte « à planifier » n'est pas un contournem
   // Une intervention À PLANIFIER, créée par le formulaire.
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", siteLibelle, siteLibelle);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve PARCOURS-1 — glisser-déposer");

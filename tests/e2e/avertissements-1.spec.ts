@@ -258,6 +258,7 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
     fr["avertissements.e2e.site"],
     fr["avertissements.e2e.site"],
   );
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);
@@ -355,6 +356,7 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
     fr["avertissements.e2e.site_sans_contact"],
     fr["avertissements.e2e.site_sans_contact"],
   );
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["avertissements.e2e.panne"]);

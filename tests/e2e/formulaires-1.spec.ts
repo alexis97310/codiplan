@@ -106,6 +106,7 @@ test("un double clic sur « Créer l'intervention » ne crée qu'une seule inter
   await ouvrirUneSession(page);
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill(PANNE);
 
   mkdirSync(DOSSIER_CAPTURES, { recursive: true });
@@ -183,6 +184,7 @@ test("un clic sur « Créer » mène à la fiche de l'intervention créée", asy
   await ouvrirUneSession(page);
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill(PANNE_CLIC);
 
   await page
@@ -225,6 +227,7 @@ test("un double clic réel sur « Créer » mène à la fiche, sans en créer de
   await ouvrirUneSession(page);
   await page.goto("/interventions/nouvelle");
   await choisirResultatParTexte(page, "site", LIBELLE_SITE, LIBELLE_SITE);
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page.locator('textarea[name="description"]').fill(PANNE_DOUBLE_CLIC);
 
   const bouton = page.getByRole("button", {

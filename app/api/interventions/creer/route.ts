@@ -116,16 +116,23 @@ async function traiter(requete: Request): Promise<Response> {
     demande_id: champ(formulaire, "demande_id"),
   });
   if (!saisie.success) {
-    // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la panne signalée est le champ
-    // le plus probable d'un oubli, et « lieu inconnu » pour tout enverrait
+    // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la nature absente et la panne
+    // signalée sont les deux oublis les plus probables — le `<select>` de la
+    // nature porte désormais une option vide (99P-GR1-NATURE) plutôt qu'une
+    // valeur par défaut trompeuse —, et « lieu inconnu » pour tout enverrait
     // chercher au mauvais endroit.
+    const surLeType = saisie.error.issues.some((probleme) =>
+      probleme.path.includes("type"),
+    );
     const surLaDescription = saisie.error.issues.some((probleme) =>
       probleme.path.includes("description"),
     );
     return versLeFormulaire(
-      surLaDescription
-        ? "intervention.refus.panne_manquante"
-        : "intervention.refus.lieu_inconnu",
+      surLeType
+        ? "intervention.refus.nature_manquante"
+        : surLaDescription
+          ? "intervention.refus.panne_manquante"
+          : "intervention.refus.lieu_inconnu",
       champsResoumis,
     );
   }

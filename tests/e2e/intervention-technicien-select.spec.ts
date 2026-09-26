@@ -31,6 +31,7 @@ function mardiLoin(reperes: Awaited<ReturnType<typeof reperesDeLaScene>>) {
 async function creerUneIntervention(page: Page): Promise<void> {
   await page.goto("/interventions/nouvelle");
   await choisirPremierResultat(page, "site");
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill("Épreuve — sélecteur technicien");

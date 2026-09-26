@@ -165,6 +165,7 @@ test("créer l'intervention de l'épreuve — fiche à planifier", async ({
     fr["interventions2.e2e.site"],
     fr["interventions2.e2e.site"],
   );
+  await page.locator('select[name="type"]').selectOption("curatif");
   await page
     .locator('textarea[name="description"]')
     .fill(fr["interventions2.e2e.panne"]);
