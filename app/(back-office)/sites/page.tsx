@@ -29,7 +29,9 @@ import {
   compteurContrat,
   compteurEquipements,
   compteurHabilitations,
+  libelleAfficherSitesMasques,
   ouTiret,
+  phraseSitesMasques,
   trajetAffiche,
 } from "./presentation";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -150,14 +152,29 @@ export default async function PageSites({
   // `filtreDeRecherche` — jamais une seconde lecture divergente (AT-07).
   // `libelles`, le catalogue de trajets et les comptes d'équipements
   // dépendent du résultat de `sites` et restent donc APRÈS.
-  const [sites, totalFiltre] = await Promise.all([
+  // LE TROISIÈME COMPTE (GR12b, audit du 26/09/2026, constat G15) —
+  // INDÉPENDANT au même titre que `totalFiltre`, sur les MÊMES critères,
+  // seule `inclure_sans_equipement` forcée à `true` : c'est ce que
+  // compterait la liste si la case n'était jamais posée. Inutile — et jamais
+  // lancé — quand la case est DÉJÀ cochée : il vaudrait alors `totalFiltre`
+  // lui-même.
+  const [sites, totalFiltre, totalAvecSansEquipement] = await Promise.all([
     criteres.success
       ? rechercherSites(session.contexte, criteres.data)
       : Promise.resolve([]),
     criteres.success
       ? compterSites(session.contexte, criteres.data)
       : Promise.resolve(0),
+    criteres.success && !avecSansEquipement
+      ? compterSites(session.contexte, {
+          ...criteres.data,
+          inclure_sans_equipement: true,
+        })
+      : Promise.resolve(0),
   ]);
+  const nombreSitesMasques = avecSansEquipement
+    ? 0
+    : totalAvecSansEquipement - totalFiltre;
   const [libelles, equipements, habilitationsRequises, catalogueTrajets] =
     await Promise.all([
       libellesDesSites(session.contexte, sites),
@@ -169,6 +186,23 @@ export default async function PageSites({
     1,
     Math.ceil(totalFiltre / (criteres.success ? criteres.data.limite : 1)),
   );
+  // LE LIEN « Afficher » DE LA PHRASE DE RAPPEL (GR12b) — même recherche,
+  // `sans_equipement=1` en plus ; jamais de `page`, exactement ce que la
+  // soumission du formulaire ci-dessous ferait déjà pour toute autre case.
+  const hrefAfficherSitesMasques = (() => {
+    const recherche = new URLSearchParams();
+    if (typeof params.q === "string" && params.q.length > 0) {
+      recherche.set("q", params.q);
+    }
+    if (typeof params.client === "string" && params.client.length > 0) {
+      recherche.set("client", params.client);
+    }
+    if (sousContratSeulement) {
+      recherche.set("sous_contrat", "1");
+    }
+    recherche.set("sans_equipement", "1");
+    return `/sites?${recherche.toString()}`;
+  })();
 
   return (
     <Page
@@ -231,6 +265,16 @@ export default async function PageSites({
           {t("sites.rechercher")}
         </button>
       </form>
+
+      {nombreSitesMasques > 0 ? (
+        <p className="text-app-encre-faible text-[12.5px]">
+          {phraseSitesMasques(nombreSitesMasques)}
+          {t("ponctuation.point_median")}
+          <Link href={hrefAfficherSitesMasques} className={CLASSES_LIEN}>
+            {libelleAfficherSitesMasques()}
+          </Link>
+        </p>
+      ) : null}
 
       {sites.length === 0 ? (
         <p className="text-app-encre-faible text-[13px]">

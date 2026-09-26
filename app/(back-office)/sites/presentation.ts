@@ -1,9 +1,9 @@
 import type { TonBadge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { Trajet } from "@/lib/sites/trajet-zone";
 
-import { ouTiret } from "../presentation";
+import { decompte, ouTiret } from "../presentation";
 
 /**
  * CE QUE LES ÉCRANS « SITES » COMPOSENT, et qu'ils ne peuvent pas composer
@@ -172,3 +172,23 @@ export function compteurContrat(sousContrat: boolean): {
  * écriture de ce qu'est une absence.
  */
 export { ouTiret };
+
+/**
+ * « N site(s) sans équipement masqué(s) » (GR12b, audit du 26/09/2026,
+ * constat G15) — le rappel posé sous les filtres de `/sites` quand la case
+ * « Afficher aussi… » n'est PAS cochée. Compose comme `decompte` le fait déjà
+ * pour le total filtré, avec l'accord du mot imposé ET du participe
+ * « masqué » sur le MÊME nombre.
+ */
+export function phraseSitesMasques(nombre: number): string {
+  return decompte(
+    nombre,
+    `${motDansUnePhrase("site")} ${t("sites.masques_suffixe_un")}`,
+    `${motDansUnePhrase("site", true)} ${t("sites.masques_suffixe_plusieurs")}`,
+  );
+}
+
+/** « Afficher » — le texte du lien qui lève le masquage. */
+export function libelleAfficherSitesMasques(): string {
+  return t("sites.masques_afficher");
+}

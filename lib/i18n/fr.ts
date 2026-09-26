@@ -485,6 +485,17 @@ export const fr = {
   "sites.habilitations_un": "habilitation",
   "sites.habilitations_plusieurs": "habilitations",
   "sites.filtre_equipement": "Afficher aussi les lieux sans équipement",
+  // LA PHRASE DE RAPPEL, SOUS LES FILTRES (GR12b, audit du 26/09/2026,
+  // constat G15) — posée quand la case ci-dessus n'est PAS cochée et qu'au
+  // moins un site est masqué : « N site(s) sans équipement masqué(s) ·
+  // Afficher ». Le mot imposé compose depuis `mot`/`motDansUnePhrase`
+  // (`app/(back-office)/sites/presentation.ts`, `phraseSitesMasques`) ; ces
+  // deux clés ne portent que la suite, accordée sur le même nombre.
+  // « Afficher » est le texte du LIEN qui coche la case, jamais une phrase à
+  // lui seul.
+  "sites.masques_suffixe_un": "sans équipement masqué",
+  "sites.masques_suffixe_plusieurs": "sans équipement masqués",
+  "sites.masques_afficher": "Afficher",
   // CONTRAT-SITE-1 — la case du filtre de `/sites`, et le libellé de la
   // pastille jaune (ton orange, PASTILLES-1) qui l'accompagne sur la carte.
   "sites.filtre_contrat": "Sous contrat uniquement",
@@ -3734,6 +3745,16 @@ export const fr = {
   // 99T-G9-CLOTURER-REPLIE`).
   "bloccloturereplie.e2e.client": "G9 — Client de l'épreuve",
   "bloccloturereplie.e2e.site": "G9 — Lieu de l'épreuve",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/gr12-sites.spec.ts)
+  //
+  // Même discipline que `bloccloturereplie.e2e.*` : sa PROPRE scène, préfixée
+  // `ERGO12`, créée et supprimée par l'épreuve (GR12b, `docs/propositions/
+  // 9AB-GR12-SITES`). Un client, deux sites — l'un porte une machine (compté,
+  // jamais masqué), l'autre n'en porte aucune (masqué par défaut, LISTES-1).
+  "gr12sites.e2e.client": "ERGO12 — Client de l'épreuve",
+  "gr12sites.e2e.site_avec_equipement": "ERGO12 — Lieu avec équipement",
+  "gr12sites.e2e.site_sans_equipement": "ERGO12 — Lieu sans équipement",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
