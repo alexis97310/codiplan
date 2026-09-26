@@ -1,3 +1,5 @@
+import { type TypeIntervention } from "@prisma/client";
+
 import { t } from "@/lib/i18n/fr";
 import { type CompteAPrevoir } from "@/lib/vgp/registre";
 
@@ -242,12 +244,40 @@ export type ElementPriorite = {
   readonly href: string;
 };
 
-/** Le minimum qu'une intervention porte pour entrer dans la liste. */
+/**
+ * Le minimum qu'une intervention porte pour entrer dans la liste.
+ *
+ * `description` ET `type` (GR7, 27/09/2026) : le titre nomme la PANNE
+ * signalée, à défaut la NATURE — jamais le seul numéro suivi du client, qui
+ * ne dit rien de ce qu'il y a à faire (audit GR, constat G8, 26/09/2026).
+ * `site`, pour la même raison : la référence seule ne dit pas OÙ.
+ */
 export type InterventionPriorisable = {
   readonly id: string;
   readonly numero: number | null;
+  readonly description: string | null;
+  readonly type: TypeIntervention;
   readonly client: { readonly raison_sociale: string };
+  readonly site: { readonly libelle: string };
 };
+
+/**
+ * LA PANNE SIGNALÉE, À DÉFAUT LA NATURE (GR7, 27/09/2026) — jamais le seul
+ * numéro : « Local-000011 · Atelier Ducos » ne dit rien de ce qui amène le
+ * technicien, quand la maquette écrit « Compresseur arrêté — Lagon
+ * Maintenance » (`codiplan-maquette-complete.html`). `description` porte le
+ * texte saisi une seule fois à la création (`intervention.description`,
+ * PARCOURS-1) ; `null` retombe sur la nature déjà nommée par
+ * `type_intervention.*`, la même clé que `objetDuBloc`
+ * (`../interventions/presentation.ts`) lit pour le planning — jamais un
+ * second vocabulaire pour la même donnée.
+ */
+function panneOuNature(ligne: {
+  readonly description: string | null;
+  readonly type: TypeIntervention;
+}): string {
+  return ligne.description ?? t(`type_intervention.${ligne.type}`);
+}
 
 /**
  * L'ORDRE DE PRÉSÉANCE DES QUATRE PRIORITÉS (TABLEAU-1, 23/09/2026) — P1
@@ -274,6 +304,10 @@ function triParPrioritePuisDate<T extends { readonly priorite: string }>(
 /**
  * LES URGENCES DU JOUR — `priorite === "p1"`, parmi les lignes déjà lues
  * pour le premier KPI.
+ *
+ * Titre et sous-ligne intervertis le 27/09/2026 (GR7, audit G8) : le titre
+ * nomme désormais la panne (à défaut la nature) et le client — `panneOuNature`
+ * ci-dessus —, le détail porte la référence et le site, jamais l'inverse.
  */
 export function prioritesUrgentes(
   lignesDuJour: readonly (InterventionPriorisable & {
@@ -286,8 +320,8 @@ export function prioritesUrgentes(
     .map((ligne) => ({
       type: "urgent" as const,
       rang: ligne.priorite.toUpperCase(),
-      titre: t("tableau_de_bord.priorite_urgent_titre"),
-      detail: `${reference(ligne)} · ${ligne.client.raison_sociale}`,
+      titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
+      detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
       href: `/interventions/${ligne.id}`,
     }));
 }
@@ -346,8 +380,8 @@ export function prioritesAPlanifier(
   return triParPrioritePuisDate(lignes).map((ligne) => ({
     type: "planning" as const,
     rang: ligne.priorite.toUpperCase(),
-    titre: t("tableau_de_bord.priorite_a_planifier_titre"),
-    detail: `${reference(ligne)} · ${ligne.client.raison_sociale}`,
+    titre: `${panneOuNature(ligne)}${t("ponctuation.separateur")}${ligne.client.raison_sociale}`,
+    detail: `${reference(ligne)}${t("ponctuation.point_median")}${ligne.site.libelle}`,
     href: `/interventions/${ligne.id}`,
   }));
 }

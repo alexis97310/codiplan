@@ -2943,10 +2943,8 @@ export const fr = {
   "tableau_de_bord.priorites_filtrer_action": "Filtrer",
   "tableau_de_bord.priorites_vide": "Aucune priorité dans ce filtre.",
   "tableau_de_bord.priorites_ouvrir": "Ouvrir",
-  "tableau_de_bord.priorite_urgent_titre": "Intervention urgente",
   "tableau_de_bord.priorite_piece_titre": "Pièce attendue",
   "tableau_de_bord.priorite_piece_detail_suffixe": "j d'attente",
-  "tableau_de_bord.priorite_a_planifier_titre": "Intervention à planifier",
   "tableau_de_bord.priorite_demande_titre": "Demande à qualifier",
 
   // LA CARTE « ACTIVITÉ RÉCENTE » EST REMPLACÉE LE 23/09/2026 (TABLEAU-1) —

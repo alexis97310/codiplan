@@ -476,8 +476,13 @@ function ElementDePriorite({ element }: { readonly element: ElementPriorite }) {
       <div className="bg-app-rouge-fond text-app-rouge-encre flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-black">
         {element.rang}
       </div>
-      <div className="flex-1">
-        <h3 className="text-[14px] font-bold">{element.titre}</h3>
+      <div className="min-w-0 flex-1">
+        {/* TRONQUÉ PROPREMENT, INFOBULLE AVEC LE TEXTE ENTIER (GR7,
+            27/09/2026) — même geste que `siteDeLaCarte`/`materielDeLaCarte`
+            sur `/planning` : la panne signalée n'a pas de longueur bornée. */}
+        <h3 className="truncate text-[14px] font-bold" title={element.titre}>
+          {element.titre}
+        </h3>
         <p className="text-app-encre-faible text-[12px]">{element.detail}</p>
       </div>
       <Link

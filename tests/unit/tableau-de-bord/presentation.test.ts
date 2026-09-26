@@ -8,6 +8,7 @@ import {
   interventionsDuJour,
   nonAffecteesAujourdHui,
   prioritesAPlanifier,
+  prioritesUrgentes,
   techniciensIndisponibles,
 } from "../../../app/(back-office)/tableau-de-bord/presentation";
 import { t } from "@/lib/i18n/fr";
@@ -123,6 +124,7 @@ describe("les techniciens indisponibles se comptent par PERSONNE", () => {
 describe("« Priorités opérationnelles » : une P1 à planifier se lit comme urgente (TABLEAU-1)", () => {
   const REFERENCE = (ligne: { id: string; numero: number | null }) =>
     `Local-${ligne.id}`;
+  const SITE = { libelle: "Atelier Ducos" };
 
   it("le rang PORTE la priorité, jamais une position (« 01 »)", () => {
     // *Mesuré le 23/09/2026 : une fiche P1 — critique s'affichait « 01
@@ -133,7 +135,10 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
         id: "a",
         numero: 1,
         priorite: "p1",
+        description: null,
+        type: "curatif" as const,
         client: { raison_sociale: "CALEBAM" },
+        site: SITE,
       },
     ];
     const elements = prioritesAPlanifier(lignes, REFERENCE);
@@ -142,9 +147,33 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
 
   it("TRI P1 > P2 > P3 > P4 — une P1 remonte en tête, même arrivée en dernier", () => {
     const lignes = [
-      { id: "p4", numero: 1, priorite: "p4", client: { raison_sociale: "A" } },
-      { id: "p2", numero: 2, priorite: "p2", client: { raison_sociale: "B" } },
-      { id: "p1", numero: 3, priorite: "p1", client: { raison_sociale: "C" } },
+      {
+        id: "p4",
+        numero: 1,
+        priorite: "p4",
+        description: null,
+        type: "curatif" as const,
+        client: { raison_sociale: "A" },
+        site: SITE,
+      },
+      {
+        id: "p2",
+        numero: 2,
+        priorite: "p2",
+        description: null,
+        type: "curatif" as const,
+        client: { raison_sociale: "B" },
+        site: SITE,
+      },
+      {
+        id: "p1",
+        numero: 3,
+        priorite: "p1",
+        description: null,
+        type: "curatif" as const,
+        client: { raison_sociale: "C" },
+        site: SITE,
+      },
     ];
     const elements = prioritesAPlanifier(lignes, REFERENCE);
     expect(elements.map((e) => e.rang)).toEqual(["P1", "P2", "P4"]);
@@ -156,13 +185,19 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
         id: "ancienne",
         numero: 1,
         priorite: "p2",
+        description: null,
+        type: "curatif" as const,
         client: { raison_sociale: "Ancienne" },
+        site: SITE,
       },
       {
         id: "recente",
         numero: 2,
         priorite: "p2",
+        description: null,
+        type: "curatif" as const,
         client: { raison_sociale: "Récente" },
+        site: SITE,
       },
     ];
     const elements = prioritesAPlanifier(lignes, REFERENCE);
@@ -170,6 +205,73 @@ describe("« Priorités opérationnelles » : une P1 à planifier se lit comme u
       "/interventions/ancienne",
       "/interventions/recente",
     ]);
+  });
+});
+
+describe("« Priorités opérationnelles » : le titre nomme la panne, jamais le seul numéro (GR7, audit G8)", () => {
+  const REFERENCE = (ligne: { id: string; numero: number | null }) =>
+    `INT-${ligne.numero}`;
+  const SITE = { libelle: "Atelier Ducos" };
+  const CLIENT = { raison_sociale: "Lagon Maintenance" };
+
+  it("AVEC une panne signalée : le titre est « panne — client »", () => {
+    const lignes = [
+      {
+        id: "a",
+        numero: 11,
+        priorite: "p1",
+        description: "Compresseur arrêté",
+        type: "curatif" as const,
+        client: CLIENT,
+        site: SITE,
+      },
+    ];
+    const [element] = prioritesUrgentes(lignes, REFERENCE);
+    expect(element?.titre).toBe(
+      `Compresseur arrêté${t("ponctuation.separateur")}Lagon Maintenance`,
+    );
+    expect(element?.detail).toBe(
+      `INT-11${t("ponctuation.point_median")}Atelier Ducos`,
+    );
+  });
+
+  it("SANS panne signalée : le titre retombe sur la NATURE, jamais un titre vide", () => {
+    const lignes = [
+      {
+        id: "b",
+        numero: 12,
+        priorite: "p1",
+        description: null,
+        type: "curatif" as const,
+        client: CLIENT,
+        site: SITE,
+      },
+    ];
+    const [element] = prioritesUrgentes(lignes, REFERENCE);
+    expect(element?.titre).toBe(
+      `${t("type_intervention.curatif")}${t("ponctuation.separateur")}Lagon Maintenance`,
+    );
+  });
+
+  it("« à planifier » compose le même titre et la même sous-ligne", () => {
+    const lignes = [
+      {
+        id: "c",
+        numero: 13,
+        priorite: "p3",
+        description: "Fuite d'huile",
+        type: "curatif" as const,
+        client: CLIENT,
+        site: SITE,
+      },
+    ];
+    const [element] = prioritesAPlanifier(lignes, REFERENCE);
+    expect(element?.titre).toBe(
+      `Fuite d'huile${t("ponctuation.separateur")}Lagon Maintenance`,
+    );
+    expect(element?.detail).toBe(
+      `INT-13${t("ponctuation.point_median")}Atelier Ducos`,
+    );
   });
 });
 
