@@ -87,7 +87,12 @@ import {
   referenceAffichee,
 } from "../interventions/presentation";
 import { decompte } from "../presentation";
-import { dureeCarteAffichee, materielDeLaCarte, siteDeLaCarte } from "./carte";
+import {
+  dureeCarteAffichee,
+  materielDeLaCarte,
+  resumeDesTechniciens,
+  siteDeLaCarte,
+} from "./carte";
 import { Statistiques } from "./statistiques";
 
 export const metadata: Metadata = { title: t("planning.titre") };
@@ -1196,12 +1201,38 @@ function VueJour({
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
       <p className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-[12.5px]">
-        {resumeDesTrous(
-          journee.creneauxLibres,
-          journee.pasMinutes,
-          journee.aCaler,
-        )}
+        {resumeEnTeteDeJournee(journee, annuaire)}
       </p>
+      <ul className="border-app-bord text-app-encre-faible flex flex-wrap items-center gap-4 border-b px-4 py-3 text-[11.5px]">
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-bleu-fond border-app-bleu-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          {t("planning.jour_occupe")}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-surface border-app-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          {t("planning.jour_libre")}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-gris-fond border-app-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          {t("planning.jour_hors_ouverture")}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="bg-app-violet-fond border-app-violet-bord inline-block h-3 w-3 rounded-[3px] border"
+          />
+          {t("planning.legende.agenda_bloque")}
+        </li>
+      </ul>
       <div className="overflow-x-auto">
         <table
           aria-label={t("planning.titre")}
@@ -1377,36 +1408,6 @@ function VueJour({
           </tbody>
         </table>
       </div>
-      <ul className="text-app-encre-faible flex flex-wrap items-center gap-4 px-4 py-3 text-[11.5px]">
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-bleu-fond border-app-bleu-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_occupe")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-surface border-app-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_libre")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-gris-fond border-app-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.jour_hors_ouverture")}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="bg-app-violet-fond border-app-violet-bord inline-block h-3 w-3 rounded-[3px] border"
-          />
-          {t("planning.legende.agenda_bloque")}
-        </li>
-      </ul>
       <HorsGrille journee={journee} annuaire={annuaire} />
     </section>
   );
@@ -1917,6 +1918,25 @@ function resumeDesTrous(
   const base = `${decompte(libres, t("planning.creneau_libre_un"), t("planning.creneaux_libres"))} · ${t("planning.pas")} ${pasMinutes} min`;
   const trousACaler = resumeACaler(aCaler);
   return trousACaler === null ? base : `${base} · ${trousACaler}`;
+}
+
+/**
+ * L'EN-TÊTE COMPLET DE LA VUE JOUR (99G-PLANNING-JOUR) — qui est là, qui est
+ * bloqué, PUIS le résumé des trous. `resumeDesTechniciens` s'AJOUTE devant
+ * `resumeDesTrous`, elle ne le remplace jamais (`docs/backlog.md`, R2-14 :
+ * *« Le compte des créneaux libres est donc affiché à l'écran »*).
+ */
+function resumeEnTeteDeJournee(
+  journee: Journee<Ligne>,
+  annuaire: Annuaire,
+): string {
+  const qui = resumeDesTechniciens(journee.colonnes, annuaire);
+  const trous = resumeDesTrous(
+    journee.creneauxLibres,
+    journee.pasMinutes,
+    journee.aCaler,
+  );
+  return `${qui} · ${trous}`;
 }
 
 /**

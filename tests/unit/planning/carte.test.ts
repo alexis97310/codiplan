@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type ColonneAResumer,
   dureeCarteAffichee,
   materielDeLaCarte,
+  resumeDesTechniciens,
   siteDeLaCarte,
 } from "@/app/(back-office)/planning/carte";
+import type { Annuaire, Designation } from "@/lib/auth/annuaire";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 
 /**
@@ -87,6 +90,82 @@ describe("materielDeLaCarte", () => {
       ),
     ).toBe(
       "Pont Elevateur RAVAGLIOLI RAV4401.4 S/N 00106, Cric Cascos 13442 S/N 10044",
+    );
+  });
+});
+
+/**
+ * QUI EST LÀ, ET QUI EST BLOQUÉ (99G-PLANNING-JOUR, audit du 25/09/2026,
+ * constat 14). L'annuaire est un simple dictionnaire, comme celui des
+ * gardiens d'isolation — aucun contexte cloisonné à lever pour cette
+ * fonction pure.
+ */
+describe("resumeDesTechniciens", () => {
+  const annuaire =
+    (designations: Record<string, Designation>): Annuaire =>
+    (id) =>
+      designations[id] ?? { etat: "non_demandee" };
+
+  it("0 technicien, aucune colonne : pas de mention de blocage", () => {
+    const colonnes: readonly ColonneAResumer[] = [];
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 techniciens");
+  });
+
+  it("la colonne SANS technicien ne compte pas comme un technicien", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: null, bloquee: false },
+    ];
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("0 techniciens");
+  });
+
+  it("1 technicien, accordé au singulier — 0 bloqué : pas de mention", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: "t1", bloquee: false },
+    ];
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("1 technicien");
+  });
+
+  it("plusieurs techniciens, 0 bloqué : pas de mention", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: "t1", bloquee: false },
+      { technicienId: "t2", bloquee: false },
+    ];
+    expect(resumeDesTechniciens(colonnes, annuaire({}))).toBe("2 techniciens");
+  });
+
+  it("1 bloqué : le compte au singulier ET le nom, tiré de l'annuaire", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: "t1", bloquee: true },
+      { technicienId: "t2", bloquee: false },
+    ];
+    const desLettres = annuaire({ t1: { etat: "nom", nom: "Cédric" } });
+    expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
+      "2 techniciens · 1 agenda bloqué (Cédric)",
+    );
+  });
+
+  it("plusieurs bloqués : le compte au pluriel, les noms joints par une virgule", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: "t1", bloquee: true },
+      { technicienId: "t2", bloquee: true },
+      { technicienId: "t3", bloquee: false },
+    ];
+    const desLettres = annuaire({
+      t1: { etat: "nom", nom: "Cédric" },
+      t2: { etat: "nom", nom: "Awa" },
+    });
+    expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
+      "3 techniciens · 2 agendas bloqués (Cédric, Awa)",
+    );
+  });
+
+  it("un nom refusé par le cloisonnement est tu, jamais inventé — le compte reste vrai", () => {
+    const colonnes: readonly ColonneAResumer[] = [
+      { technicienId: "t1", bloquee: true },
+    ];
+    const desLettres = annuaire({ t1: { etat: "refusee" } });
+    expect(resumeDesTechniciens(colonnes, desLettres)).toBe(
+      "1 technicien · 1 agenda bloqué",
     );
   });
 });

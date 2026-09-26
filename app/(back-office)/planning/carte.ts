@@ -1,17 +1,27 @@
+import type { Annuaire } from "@/lib/auth/annuaire";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import { nomSeul } from "@/lib/interventions/personnes";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
+import { decompte } from "../presentation";
+
 /**
- * CE QU'UNE CARTE DE PLANNING DIT EN PLUS DE L'HEURE ET DU CLIENT (PLANNING-2).
+ * CE QUE LA VUE JOUR DIT, EN PLUS DE LA GRILLE ELLE-MÊME (PLANNING-2 ;
+ * résumé d'en-tête ajouté par 99G-PLANNING-JOUR, 26/09/2026).
  *
  * *Mesuré le 23/09/2026 en production : une carte se lisait « SIDAPS /
  * Curatif », sans heure saisie — deux interventions du même jour chez le même
  * client étaient indiscernables, et rien ne disait le SITE ni la DURÉE.*
  *
- * Séparé de `page.tsx` pour que ces deux fonctions PURES s'éprouvent seules
- * (`tests/unit/planning/carte.test.ts`), sans lever de contexte cloisonné.
+ * Séparé de `page.tsx` pour que ces fonctions PURES s'éprouvent seules
+ * (`tests/unit/planning/carte.test.ts`), sans lever de contexte cloisonné —
+ * `resumeDesTechniciens` en profite au même titre que les trois fonctions de
+ * carte, bien qu'elle résume l'EN-TÊTE de la vue et non une carte : aucune
+ * seconde maison pour « une fonction pure de la vue jour, testable seule »
+ * n'existait, et en ouvrir une aurait été une seconde écriture du même motif
+ * (§9, 01/09).
  */
 
 /** Le libellé du site — même convention que `lieuDeLaLigne` (page.tsx). */
@@ -66,4 +76,60 @@ export function dureeCarteAffichee(minutes: number): string | null {
     return `${reste} ${t("terrain.minutes")}`;
   }
   return `${heures} ${t("terrain.heures")} ${String(reste).padStart(2, "0")}`;
+}
+
+/** Le minimum qu'une colonne de la vue jour porte pour se résumer. */
+export type ColonneAResumer = {
+  readonly technicienId: string | null;
+  readonly bloquee: boolean;
+};
+
+/**
+ * QUI EST LÀ, ET QUI EST BLOQUÉ, EN TÊTE DE LA VUE JOUR (99G-PLANNING-JOUR,
+ * audit d'ergonomie du 25/09/2026, constat 14).
+ *
+ * *Mesuré le 25/09/2026, à 1280 px : l'en-tête disait « 56 créneaux libres »
+ * sans dire QUI travaille ce jour-là ni QUI est injoignable — la légende qui
+ * le disait était à ~1 480 px du haut, sous la grille entière.*
+ *
+ * **La colonne sans technicien (`technicienId` nul) ne compte pas** : ce
+ * n'est personne à nommer (voir `quiTravaille`), et la compter aurait fait
+ * dire « 5 techniciens » quand 4 seulement sont des personnes.
+ *
+ * **Le compte de blocages ne remplace jamais le compte de créneaux libres**
+ * (`docs/backlog.md`, ticket R2-14) : cette fonction ne rend QUE la partie
+ * « qui », le résumé des trous restant celui de `resumeDesTrous` (page.tsx),
+ * composé À CÔTÉ, jamais à sa place.
+ *
+ * Un nom manquant (`nomSeul` rend `null` — refus ou anomalie du cloisonnement)
+ * est tu plutôt qu'inventé : le compte reste vrai, la parenthèse se réduit
+ * aux noms qu'on a le droit de dire.
+ */
+export function resumeDesTechniciens(
+  colonnes: readonly ColonneAResumer[],
+  annuaire: Annuaire,
+): string {
+  const techniciens = colonnes.filter(
+    (colonne): colonne is ColonneAResumer & { technicienId: string } =>
+      colonne.technicienId !== null,
+  );
+  const base = decompte(
+    techniciens.length,
+    t("planning.resume_technicien_un"),
+    t("planning.resume_techniciens"),
+  );
+  const bloques = techniciens.filter((colonne) => colonne.bloquee);
+  if (bloques.length === 0) {
+    return base;
+  }
+  const compte = decompte(
+    bloques.length,
+    t("planning.resume_agenda_bloque_un"),
+    t("planning.resume_agendas_bloques"),
+  );
+  const noms = bloques
+    .map((colonne) => nomSeul(colonne.technicienId, annuaire))
+    .filter((nom): nom is string => nom !== null);
+  const parenthese = noms.length > 0 ? ` (${noms.join(", ")})` : "";
+  return `${base} · ${compte}${parenthese}`;
 }

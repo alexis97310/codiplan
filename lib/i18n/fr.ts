@@ -3051,6 +3051,14 @@ export const fr = {
   // dit plutôt que de le laisser découvrir.
   "planning.agenda_bloque": "Agenda bloqué",
   "planning.legende.agenda_bloque": "Agenda bloqué — le dépôt sera refusé",
+  // L'EN-TÊTE DE LA VUE JOUR DIT D'ABORD QUI EST LÀ ET QUI EST BLOQUÉ
+  // (99G-PLANNING-JOUR, audit d'ergonomie du 25/09/2026, constat 14). Accordé
+  // via `decompte()`, comme `planning.creneaux_libres` : jamais de « s »
+  // retranché (AT-07).
+  "planning.resume_technicien_un": "technicien",
+  "planning.resume_techniciens": "techniciens",
+  "planning.resume_agenda_bloque_un": "agenda bloqué",
+  "planning.resume_agendas_bloques": "agendas bloqués",
   // CE QUE LA VUE JOUR NE PEUT PAS DESSINER DANS L'AXE, ET QU'ELLE DIT
   // (12/09/2026). *Une intervention qui ne peut pas être dessinée doit être
   // DITE, jamais effacée* : trois disparitions silencieuses vivaient dans cet
