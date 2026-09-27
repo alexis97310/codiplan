@@ -177,15 +177,21 @@ export default async function PageMateriel({
         REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
         `/parametres/equipe` (voir son commentaire) : le formulaire de
         modification est le geste rare, le tableau au-dessus est ce qu'on lit
-        d'abord.
+        d'abord. Le TITRE reste un `<h2>` — DANS le `<summary>`, ce que le
+        standard autorise explicitement à la place du texte nu — pour ne pas
+        retirer un niveau de titre à une page qui en portait un pour chaque
+        formulaire (`80-VISUEL-2`, `tests/e2e/visuel-2.spec.ts`, filtre les
+        formulaires « Modifier le modèle » par leur `<h2>`).
       */}
       {familles.map((famille) => (
         <details
           key={famille.id}
           className="bg-app-surface border-app-bord rounded-lg border"
         >
-          <summary className="cursor-pointer px-[16px] py-[14px] text-[14px] font-bold">
-            {titreDe(t("materiel.modifier_famille"), famille.code)}
+          <summary className="cursor-pointer px-[16px] py-[14px]">
+            <h2 className="inline text-[14px] font-bold">
+              {titreDe(t("materiel.modifier_famille"), famille.code)}
+            </h2>
           </summary>
           <div className="p-4 pt-0">
             <FormulaireFamille
@@ -271,8 +277,10 @@ export default async function PageMateriel({
           key={modele.id}
           className="bg-app-surface border-app-bord rounded-lg border"
         >
-          <summary className="cursor-pointer px-[16px] py-[14px] text-[14px] font-bold">
-            {titreDe(t("materiel.modifier_modele"), designation(modele))}
+          <summary className="cursor-pointer px-[16px] py-[14px]">
+            <h2 className="inline text-[14px] font-bold">
+              {titreDe(t("materiel.modifier_modele"), designation(modele))}
+            </h2>
           </summary>
           <div className="p-4 pt-0">
             <FormulaireModele
