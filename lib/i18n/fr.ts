@@ -1368,7 +1368,9 @@ export const fr = {
     "Cette intervention porte déjà une machine. Une intervention ne peut pas en porter deux.",
 
   "intervention.cloture.temps_mesure": "Temps mesuré par le compteur",
-  "intervention.cloture.temps_valide": "Temps validé (minutes)",
+  "intervention.cloture.temps_valide": "Temps validé",
+  "intervention.cloture.temps_valide_saisie":
+    "Temps validé (en minutes — ex. 90 = 1 h 30)",
   "intervention.cloture.sans_compteur": "Aucun compteur n'a tourné",
   "intervention.cloture.arrondi": "Arrondi au quart d'heure supérieur",
   "intervention.cloture.plancher": "Plancher d'une heure appliqué",

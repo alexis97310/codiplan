@@ -1059,7 +1059,7 @@ export default async function PageIntervention({
                     <Saisie
                       nom="temps_valide_min"
                       type="number"
-                      libelle={t("intervention.cloture.temps_valide")}
+                      libelle={t("intervention.cloture.temps_valide_saisie")}
                       valeurParDefaut={
                         ligne.temps_mesure_min === null
                           ? undefined

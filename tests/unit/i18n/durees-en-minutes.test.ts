@@ -13,6 +13,7 @@ const CLES_SAISIE_EN_MINUTES = [
   "intervention.deplacement.duree",
   "prestations.duree_minutes",
   "site.temps_trajet_min",
+  "intervention.cloture.temps_valide_saisie",
 ] as const;
 
 describe("libellés de saisie en minutes", () => {
@@ -24,4 +25,8 @@ describe("libellés de saisie en minutes", () => {
       expect(libelle).toContain(`ex. 90 = ${enDuree(90)}`);
     },
   );
+
+  it("« intervention.cloture.temps_valide » est un libellé d'AFFICHAGE, sans unité en dur", () => {
+    expect(fr["intervention.cloture.temps_valide"]).not.toContain("minutes");
+  });
 });

@@ -155,7 +155,7 @@ test("l'aide « ce temps ne se corrige plus » est visible sous le champ", async
   await page.goto(`/interventions/${INTERVENTION_ERGO3}`);
 
   await expect(
-    page.getByLabel(fr["intervention.cloture.temps_valide"]),
+    page.getByLabel(fr["intervention.cloture.temps_valide_saisie"]),
   ).toHaveValue("90");
   await expect(
     page.getByText(fr["intervention.cloture.aide_figee"]),
