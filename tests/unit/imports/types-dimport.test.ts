@@ -7,12 +7,17 @@ import {
   TYPES_DIMPORT,
   cleDuMotif,
   cleDuStatut,
+  detailDuRejet,
   ligneImporterApres,
   titreDuType,
   tonDuMotif,
 } from "../../../app/(back-office)/imports/types";
-import { estCleTraduction } from "@/lib/i18n/fr";
-import { TYPES_PUBLIES } from "@/lib/imports/modeles";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
+import {
+  COLONNES_CLIENTS,
+  MOTIF_SAISIE_REFUSEE,
+  TYPES_PUBLIES,
+} from "@/lib/imports/modeles";
 import { INDEX_DE_CIBLE } from "@/lib/imports/parc-cibles";
 import { APPLICATIONS, SANS_APPLICATION } from "@/lib/imports/types-dimport";
 
@@ -368,5 +373,36 @@ describe("la table des applications ne peut pas oublier un type", () => {
     // lâche l'attraperait et déclarerait un type « lignes » qui n'existe pas.
     expect(typesDuVerbe("appliquer").has("lignes")).toBe(false);
     expect(typesDuVerbe("annuler").has("lignes")).toBe(false);
+  });
+});
+
+describe("detailDuRejet compose la colonne et la valeur, JAMAIS dans le JSX (GR15b)", () => {
+  it("un rejet saisie_refusee sur les clients rend « Colonne « ... » : vide »", () => {
+    const detail = detailDuRejet("clients", MOTIF_SAISIE_REFUSEE, {
+      [COLONNES_CLIENTS.raisonSociale]: "   ",
+    });
+    expect(detail).toBe(
+      `${t("imports.motif.detail_prefixe")}${COLONNES_CLIENTS.raisonSociale}${t("imports.motif.detail_milieu")}${t("imports.motif.valeur_vide")}`,
+    );
+  });
+
+  it("un autre motif que saisie_refusee ne rend aucun détail", () => {
+    expect(detailDuRejet("clients", "parent_introuvable", {})).toBeNull();
+  });
+
+  it("aucun rejet (motif null) ne rend aucun détail", () => {
+    expect(detailDuRejet("clients", null, {})).toBeNull();
+  });
+
+  it("un type absent de DETAIL_DE_SAISIE ne rend aucun détail", () => {
+    expect(detailDuRejet("historique", MOTIF_SAISIE_REFUSEE, {})).toBeNull();
+  });
+
+  it("une ligne que la saisie accepte ne rend aucun détail", () => {
+    expect(
+      detailDuRejet("clients", MOTIF_SAISIE_REFUSEE, {
+        [COLONNES_CLIENTS.raisonSociale]: "Garage Dupont",
+      }),
+    ).toBeNull();
   });
 });

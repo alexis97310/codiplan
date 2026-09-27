@@ -827,6 +827,13 @@ export const fr = {
   // corrigent pas au même endroit : l'une dans le FICHIER, l'autre dans le PARC.
   "imports.motif.saisie_refusee":
     "Cette ligne ne passe pas la saisie : une valeur manque ou n'est pas au format attendu. La correction est dans le fichier.",
+  // LE DÉTAIL D'UNE SAISIE REFUSÉE (9AK-GR15-MOTIF-REJET, gain GR15b) — la
+  // colonne et la valeur en cause, composées par `detailDuRejet`
+  // (`app/(back-office)/imports/types.ts`), JAMAIS dans le JSX. Le code du
+  // motif ne change pas : ceci s'affiche À CÔTÉ, pas à sa place.
+  "imports.motif.detail_prefixe": "Colonne « ",
+  "imports.motif.detail_milieu": " » : ",
+  "imports.motif.valeur_vide": "vide",
   "imports.motif.parent_introuvable":
     "La fiche que cette ligne désigne n'existe pas dans le parc. La correction est dans le parc, ou dans la colonne qui le nomme.",
   "imports.motif.cle_ambigue":

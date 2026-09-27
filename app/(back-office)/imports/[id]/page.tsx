@@ -30,7 +30,7 @@ import {
 } from "../presentation";
 import { applicationDuType } from "@/lib/imports/types-dimport";
 
-import { cleDuMotif, cleDuStatut, tonDuMotif } from "../types";
+import { cleDuMotif, cleDuStatut, detailDuRejet, tonDuMotif } from "../types";
 
 export const metadata: Metadata = { title: t("imports.lot_titre") };
 
@@ -378,6 +378,11 @@ export default async function PageLotDImport({
                 ligne.rejetMotif === null
                   ? null
                   : cleDuMotif(ligne.rejetMotif, lot.typeImport);
+              const detail = detailDuRejet(
+                lot.typeImport,
+                ligne.rejetMotif,
+                ligne.valeurs as Record<string, string | undefined>,
+              );
               return (
                 <tr key={ligne.rang} data-rang={ligne.rang}>
                   <Cellule droite mono>
@@ -391,6 +396,17 @@ export default async function PageLotDImport({
                       à un humain (L0-11), et l'effacer perdrait la cause. */}
                   <Cellule mono={cleMotif === null}>
                     {cleMotif === null ? (ligne.rejetMotif ?? "") : t(cleMotif)}
+                    {detail === null ? null : (
+                      <>
+                        <br />
+                        <span
+                          data-detail-rejet
+                          className="text-app-encre-faible"
+                        >
+                          {detail}
+                        </span>
+                      </>
+                    )}
                   </Cellule>
                 </tr>
               );

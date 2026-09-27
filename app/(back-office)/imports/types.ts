@@ -1,5 +1,10 @@
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
+import {
+  colonneEnCause,
+  DETAIL_DE_SAISIE,
+  MOTIF_SAISIE_REFUSEE,
+} from "@/lib/imports/modeles";
 import { type TonMessage } from "@/lib/theme/statuts";
 
 /**
@@ -284,6 +289,36 @@ export function cleDuMotif(motif: string, type?: string): CleTraduction | null {
     default:
       return null;
   }
+}
+
+/**
+ * LE DÉTAIL D'UNE SAISIE REFUSÉE — la colonne et la valeur en cause, RELUES
+ * depuis `ligne.valeurs` (9AK-GR15-MOTIF-REJET, gain GR15b).
+ *
+ * **Ce n'est pas un recalcul, c'est la même lecture** que le contrôle — voir
+ * le commentaire de `colonneEnCause` — et rien n'est stocké : la ligne brute
+ * est DÉJÀ en base, ce détail n'ajoute qu'une composition à l'affichage.
+ *
+ * `null` pour tout motif autre que `saisie_refusee`, et pour les types
+ * absents de `DETAIL_DE_SAISIE` — l'historique, la VGP, ses observations et le
+ * second schéma des familles mélangent colonnes brutes et valeurs calculées,
+ * mesuré non établi.
+ */
+export function detailDuRejet(
+  typeImport: string,
+  rejetMotif: string | null,
+  valeurs: Readonly<Record<string, string | undefined>>,
+): string | null {
+  if (rejetMotif !== MOTIF_SAISIE_REFUSEE) return null;
+  const detail = DETAIL_DE_SAISIE[typeImport];
+  if (detail === undefined) return null;
+
+  const trouve = colonneEnCause(valeurs, detail.champs, detail.schema);
+  if (trouve === null) return null;
+
+  const valeur =
+    trouve.valeur === "" ? t("imports.motif.valeur_vide") : trouve.valeur;
+  return `${t("imports.motif.detail_prefixe")}${trouve.colonne}${t("imports.motif.detail_milieu")}${valeur}`;
 }
 
 /**
