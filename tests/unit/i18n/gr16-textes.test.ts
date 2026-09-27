@@ -34,3 +34,13 @@ describe("GR16 — imports.appliquer_aide", () => {
     );
   });
 });
+
+describe("GR16 — « Afficher la clé »", () => {
+  it("aucune valeur enrolement.* ne contient « révél »", () => {
+    for (const [cle, valeur] of Object.entries(fr)) {
+      if (cle.startsWith("enrolement.")) {
+        expect(valeur.toLowerCase(), `la clé ${cle}`).not.toContain("révél");
+      }
+    }
+  });
+});
