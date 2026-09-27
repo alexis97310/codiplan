@@ -3233,7 +3233,7 @@ export const fr = {
   // ── La page de santé, sans compte (mise en ligne) ─────────────────────────
   "sante.titre": "État de l'installation",
   "sante.sous_titre":
-    "Quatre questions, quatre réponses. Cette page ne demande aucun compte et ne montre jamais d'adresse, de nom de base ni d'identifiant.",
+    "Cette page ne demande aucun compte et ne montre jamais d'adresse, de nom de base ni d'identifiant.",
   "sante.base": "La base de données répond",
   "sante.role": "Le rôle de connexion est le bon",
   "sante.role_explication":
