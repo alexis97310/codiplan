@@ -162,7 +162,10 @@ export default async function PageTauxHoraire({
         {analyseConfirmation?.success === true && devise !== null ? (
           <Confirmation saisie={analyseConfirmation.data} devise={devise} />
         ) : (
-          <FormulaireTaux action="/api/parametres/taux-horaire/creer" />
+          <FormulaireTaux
+            action="/api/parametres/taux-horaire/creer"
+            devise={devise}
+          />
         )}
       </section>
     </Page>

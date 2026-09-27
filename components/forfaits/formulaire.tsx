@@ -1,6 +1,8 @@
 import { t } from "@/lib/i18n/fr";
+import type { Devise } from "@/lib/money";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
 import { TYPES_FORFAIT } from "@/lib/tarification/forfaits";
+import { libelleDuMontant } from "@/lib/tarification/libelle-montant";
 
 /**
  * LE FORMULAIRE D'UN FORFAIT — écrit UNE fois, rendu deux (R2-20).
@@ -29,6 +31,7 @@ import { TYPES_FORFAIT } from "@/lib/tarification/forfaits";
 export function FormulaireForfait({
   action,
   defauts,
+  devise,
 }: {
   readonly action: string;
   readonly defauts?: {
@@ -41,6 +44,8 @@ export function FormulaireForfait({
     readonly cumulable_temps: boolean;
     readonly actif: boolean;
   };
+  /** Non lue : le champ garde son ancien libellé (voir libelle-montant.ts). */
+  readonly devise?: Devise | null;
 }) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
@@ -99,7 +104,7 @@ export function FormulaireForfait({
         />
       </label>
       <label className={etiquette}>
-        {t("forfaits.champ.montant")}
+        {devise ? libelleDuMontant(devise) : t("forfaits.champ.montant")}
         <input
           name="montant_mineur"
           type="number"

@@ -1,4 +1,6 @@
 import { t } from "@/lib/i18n/fr";
+import type { Devise } from "@/lib/money";
+import { libelleDuMontant } from "@/lib/tarification/libelle-montant";
 
 /**
  * LE FORMULAIRE DE SAISIE D'UNE SUCCESSION DE TAUX (TAUX-1).
@@ -7,7 +9,14 @@ import { t } from "@/lib/i18n/fr";
  * route qui le reçoit renvoie vers l'écran de confirmation, qui seul mène à
  * l'écriture — voir `app/api/parametres/taux-horaire/creer/route.ts`.
  */
-export function FormulaireTaux({ action }: { readonly action: string }) {
+export function FormulaireTaux({
+  action,
+  devise,
+}: {
+  readonly action: string;
+  /** Non lue : le champ garde son ancien libellé (voir libelle-montant.ts). */
+  readonly devise?: Devise | null;
+}) {
   const champ =
     "border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-normal";
   const etiquette = "flex flex-col gap-1 text-[12.5px] font-semibold";
@@ -19,7 +28,7 @@ export function FormulaireTaux({ action }: { readonly action: string }) {
       className="bg-app-surface border-app-bord grid gap-4 rounded-lg border px-4 py-4 sm:grid-cols-2"
     >
       <label className={etiquette}>
-        {t("taux_horaire.champ.montant")}
+        {devise ? libelleDuMontant(devise) : t("taux_horaire.champ.montant")}
         <input
           name="montant_mineur"
           type="number"

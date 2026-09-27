@@ -61,6 +61,20 @@ const lireForfaitCache = cache(async (contexte: ContexteSession, id: string) =>
   ),
 );
 
+/**
+ * LA DEVISE DE LA SOCIÉTÉ — même lecture que `forfaits/page.tsx`, pour que le
+ * libellé du champ « Montant » s'adapte ici aussi (audit GR, M2).
+ */
+const lireDeviseCache = cache(async (contexte: ContexteSession) =>
+  avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      select: {
+        devise: { select: { code: true, decimales: true, symbole: true } },
+      },
+    }),
+  ),
+);
+
 /** MÊME MÉMOÏSATION, POUR LA SESSION — voir `clients/[id]/page.tsx`. */
 const sessionCache = cache(async () => obtenirSession(await headers()));
 
@@ -101,6 +115,8 @@ export default async function PageForfait({
   if (forfait === null) {
     notFound();
   }
+  const societe = await lireDeviseCache(session.contexte);
+  const devise = societe?.devise ?? null;
 
   return (
     <Page
@@ -127,6 +143,7 @@ export default async function PageForfait({
 
       <FormulaireForfait
         action={`/api/parametres/forfaits/${forfait.id}/modifier`}
+        devise={devise}
         defauts={{
           code: forfait.code,
           libelle: forfait.libelle,

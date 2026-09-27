@@ -1884,6 +1884,14 @@ export const fr = {
   "mode_valorisation.temps_passe": "Temps passé",
   "mode_valorisation.forfait_plus_heures": "Forfait plus heures",
 
+  // ── Le libellé du champ « Montant », selon la devise (audit GR, M2) ───────
+  //
+  // La saisie reste un entier d'unités mineures (I3) ; seul le libellé
+  // s'adapte — voir lib/tarification/libelle-montant.ts.
+  "tarification.montant_prefixe": "Montant (",
+  "tarification.montant_suffixe": ")",
+  "tarification.montant_exemple_centimes": "Montant en centimes — ex. 1 250 = ",
+
   // ── Les zones géographiques (D23) et le catalogue de forfaits (D86) ───────
   //
   // Les six zones sont closes dans `lib/sites/zones.ts` ; ce sont leurs

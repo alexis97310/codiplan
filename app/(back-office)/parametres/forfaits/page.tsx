@@ -180,7 +180,10 @@ export default async function PageForfaits({
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[14px] font-bold">{t("forfaits.creer")}</h2>
-        <FormulaireForfait action="/api/parametres/forfaits/creer" />
+        <FormulaireForfait
+          action="/api/parametres/forfaits/creer"
+          devise={devise}
+        />
         <p className="text-app-encre-faible text-[11.5px]">
           {t("forfaits.desactiver_explication")}
         </p>
