@@ -54,3 +54,11 @@ describe("GR16 — fiche machine : aucun code de règle à l'écran", () => {
     }
   });
 });
+
+describe("GR16 — refus sur une intervention clôturée", () => {
+  it("nomme ce qui est figé et ce qui reste possible", () => {
+    expect(t("intervention.refus.cloturee_figee")).toBe(
+      "Clôturée : contenu et temps validé sont figés. Seule l'annulation reste possible.",
+    );
+  });
+});

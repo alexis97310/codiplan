@@ -1499,7 +1499,7 @@ export const fr = {
   "intervention.refus.annulee_figee":
     "Cette intervention est annulée : elle ne se modifie plus. Une annulation n'efface rien et ne se défait pas.",
   "intervention.refus.cloturee_figee":
-    "Cette intervention est clôturée : elle ne se modifie plus sans trace. Seule son annulation reste possible.",
+    "Clôturée : contenu et temps validé sont figés. Seule l'annulation reste possible.",
   "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
   "intervention.refus.deja_annulee": "Cette intervention est déjà annulée.",
   "intervention.refus.temps_manquant":
