@@ -1925,7 +1925,7 @@ export const fr = {
   "forfaits.creer": "Ajouter un forfait",
   "forfaits.modifier": "Modifier",
   "forfaits.enregistrer": "Enregistrer",
-  "forfaits.retour": "‹ Retour au catalogue",
+  "forfaits.retour": "← Retour au catalogue",
   "forfaits.champ.code": "Code",
   "forfaits.champ.libelle": "Libellé",
   "forfaits.champ.type": "Type",
@@ -2172,7 +2172,7 @@ export const fr = {
   // depuis le lien du numéro de série, dans la colonne « Machine ».
   "vgp.action_enregistrer": "Enregistrer",
   "vgp.verifier.titre": "Enregistrer une vérification",
-  "vgp.verifier.retour": "‹ Retour au registre",
+  "vgp.verifier.retour": "← Retour au registre",
   "vgp.verifier.champ.date_verification": "Date de la vérification",
   "vgp.verifier.champ.organisme": "Organisme",
   "vgp.verifier.champ.reference_rapport": "Référence du rapport",
@@ -2308,7 +2308,7 @@ export const fr = {
   "vgp.indetermines.lien_une": "famille reste \u00e0 d\u00e9terminer \u2192",
   "vgp.indetermines.aucune":
     "Toutes les familles ont \u00e9t\u00e9 examin\u00e9es. Une famille cr\u00e9\u00e9e demain reviendra dans cette liste.",
-  "vgp.indetermines.retour": "\u2039 Retour au registre",
+  "vgp.indetermines.retour": "\u2190 Retour au registre",
   "vgp.indetermines.colonne_famille": "Famille",
   "vgp.indetermines.colonne_machines":
     "Machines en attente de la d\u00e9cision",
@@ -2318,7 +2318,7 @@ export const fr = {
   // document de modèle se corrige une fois pour toutes, un document de machine
   // n'existe que là.* Un écran qui les mêlerait ferait supprimer une notice de
   // gamme en croyant nettoyer un exemplaire.
-  "machine.retour": "\u2039 Retour au parc",
+  "machine.retour": "\u2190 Retour au parc",
   // \u2500\u2500 LA FICHE MACHINE, \u00c0 L'IDENTIQUE DE machinePage() (N-11, D125, D126) \u2500\u2500
   "machine.fiche.titre": "Fiche machine",
   "machine.fiche.sous_titre_separateur": "\u00b7",
@@ -2386,11 +2386,11 @@ export const fr = {
   "machine.nouvelle.titre": "Nouvelle machine",
   "machine.nouvelle.sous_titre":
     "Les quatre champs suivis de « (obligatoire) » sont requis ; le reste se complète plus tard.",
-  "machine.nouvelle.retour": "‹ Retour au parc",
+  "machine.nouvelle.retour": "← Retour au parc",
   "machine.modifier.titre": "Corriger la fiche",
   "machine.modifier.sous_titre":
     "Le modèle, le client, le lieu d'intervention et le statut ne se corrigent pas ici : voir la fiche pour ces gestes.",
-  "machine.modifier.retour": "‹ Retour à la fiche",
+  "machine.modifier.retour": "← Retour à la fiche",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
   // raison que `modifierMachineDans` : le modèle porte l'unicité de la
   // fiche, et le déménagement (client, site) est un geste daté qu'aucun
