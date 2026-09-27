@@ -736,6 +736,9 @@ export const fr = {
   "imports.type.vgp_observations": "Observations des vérifications (réserves)",
   "imports.type.vgp_observations_detail":
     "Les réserves relevées par l'organisme, chacune sous son procès-verbal. Importez et appliquez d'abord les vérifications : une référence de rapport inconnue est refusée. Aucune demande n'est créée — une observation importée est consultable, rien de plus.",
+  // À IMPORTER APRÈS (GR15) — le rappel de l'ordre des dépendances mesurées
+  // dans `lib/imports/modeles.ts`, sous chaque type qui en désigne un.
+  "imports.type.importer_apres": "À importer après :",
   "imports.type.complet": "Contrôle et application",
   "imports.type.controle_seul": "Contrôle seulement",
   "imports.type.controle_seul_motif":
@@ -1131,6 +1134,11 @@ export const fr = {
   // sous une seule clé ferait dire à l'une ce qu'elle n'a jamais montré pour
   // l'autre.
   "ponctuation.point_median": " · ",
+  // LA VIRGULE D'UNE LISTE DE TITRES (GR15) — jointure entre plusieurs types
+  // préalables sur la ligne « À importer après ». Ni `separateur` (un couple
+  // libellé — valeur) ni `point_median` (identifiant · lieu) ne conviennent :
+  // ceux-ci relient deux éléments d'une paire, jamais N éléments d'une liste.
+  "ponctuation.virgule": ", ",
   // ── LE TRAJET ENTRE DANS LA FORMULE (L3-05a, D107, RG-PLA-05) ───────────
   //
   // La formule nommait DEUX termes quand le numérateur en porte désormais deux

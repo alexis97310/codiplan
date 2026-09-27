@@ -67,6 +67,12 @@ export type TypeDImport = {
    * nomment déjà les leurs.*
    */
   readonly motifParentIntrouvable: CleTraduction | null;
+  /**
+   * LES TYPES QU'IL FAUT AVOIR IMPORTÉS AVANT CELUI-CI — mesuré le 27/09/2026
+   * en lisant `gabaritsPublies` (`lib/imports/modeles.ts` l.2238-2250) et les
+   * fonctions qu'elle appelle. Vide pour une racine (clients, familles).
+   */
+  readonly importerApres: readonly string[];
 };
 
 export const TYPES_DIMPORT: readonly TypeDImport[] = [
@@ -77,6 +83,7 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     complet: true,
     // Racine : un client ne désigne aucun parent.
     motifParentIntrouvable: null,
+    importerApres: [],
   },
   {
     cle: "contacts",
@@ -84,6 +91,8 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     detail: "imports.type.contacts_detail",
     complet: false,
     motifParentIntrouvable: "imports.motif.client_introuvable",
+    // modeleContacts(parcs.clients), lib/imports/modeles.ts l.2241.
+    importerApres: ["clients"],
   },
   {
     cle: "sites",
@@ -97,6 +106,9 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // Le CLIENT — c'est celui des deux parents que la production a mesuré ;
     // voir la limite annoncée au-dessus de `motifParentIntrouvable`.
     motifParentIntrouvable: "imports.motif.client_introuvable",
+    // modeleSites(parcs.clients, parcs.agences), l.2242 ; l.596-601. Les
+    // agences sont un paramètre de société, pas un type d'import : absentes.
+    importerApres: ["clients"],
   },
   {
     cle: "modeles",
@@ -104,6 +116,8 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     detail: "imports.type.modeles_detail",
     complet: true,
     motifParentIntrouvable: "imports.motif.famille_introuvable",
+    // modeleModeles(parcs.familles), l.2243.
+    importerApres: ["familles"],
   },
   {
     cle: "prestations",
@@ -111,6 +125,8 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     detail: "imports.type.prestations_detail",
     complet: true,
     motifParentIntrouvable: "imports.motif.famille_introuvable",
+    // modelePrestations(parcs.familles), l.2244.
+    importerApres: ["familles"],
   },
   {
     cle: "familles",
@@ -119,6 +135,7 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     complet: true,
     // Racine du matériel (R6-03) : une famille ne désigne aucun parent.
     motifParentIntrouvable: null,
+    importerApres: [],
   },
   {
     cle: "equipements",
@@ -129,6 +146,8 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // site_introuvable, modele_introuvable) : ce type n'émet jamais le motif
     // générique, et n'a donc pas besoin de cette clé.
     motifParentIntrouvable: null,
+    // modeleEquipements(parcs.clients, parcs.sites, parcs.modeles), l.2246.
+    importerApres: ["clients", "sites", "modeles"],
   },
   {
     // L'ARCHIVE SAV (REPRISE-HISTORIQUE, D127) — le huitième gabarit.
@@ -139,6 +158,10 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // Ses parents se nomment séparément (client_introuvable, site_introuvable,
     // site_indetermine) : jamais le motif générique.
     motifParentIntrouvable: null,
+    // Clients (l.1580-1586, rejet client_introuvable), sites (siteDeLaReprise
+    // l.1588-1592 → l.1648-1661, rejet site_introuvable/site_indetermine),
+    // équipements (parcs.machines l.1610-1614 : rattachement).
+    importerApres: ["clients", "sites", "equipements"],
   },
   {
     // LES VÉRIFICATIONS RÉGLEMENTAIRES (VGP-IMPORT) — le neuvième gabarit.
@@ -149,6 +172,9 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     // La machine ne refuse jamais : elle rend l'attente de rattachement, sous
     // ses propres motifs. Jamais le motif générique.
     motifParentIntrouvable: null,
+    // parcs.clients (l.1867-1870) et parcs.machines (l.1871-1875 : sans
+    // machine, le PV est retenu en attente).
+    importerApres: ["clients", "equipements"],
   },
   {
     // LEURS OBSERVATIONS (VGP-IMPORT) — le dixième, et son parent est un PV.
@@ -158,6 +184,8 @@ export const TYPES_DIMPORT: readonly TypeDImport[] = [
     complet: true,
     // Le parent se nomme séparément (rapport_introuvable, rapport_ambigu).
     motifParentIntrouvable: null,
+    // parcs.verifications.parRapport, l.2029.
+    importerApres: ["vgp"],
   },
 ];
 
@@ -291,4 +319,20 @@ export function titreDuType(type: TypeDImport): string {
   // Le type garantit qu'un titre existe quand aucune notion n'est nommée : les
   // deux ne peuvent pas manquer ensemble sans que TypeScript le dise.
   return type.titre === null ? "" : t(type.titre);
+}
+
+/**
+ * LA LIGNE « À IMPORTER APRÈS », quand ce type en désigne au moins un.
+ *
+ * `null` pour une racine (clients, familles) : rien à dire de plus que ce que
+ * `detail` dit déjà. Les titres des préalables se composent par `titreDuType`
+ * — jamais un mot imposé écrit en clair ici.
+ */
+export function ligneImporterApres(type: TypeDImport): string | null {
+  if (type.importerApres.length === 0) return null;
+  const titres = type.importerApres.map((cle) => {
+    const prealable = TYPES_DIMPORT.find((candidat) => candidat.cle === cle);
+    return prealable === undefined ? cle : titreDuType(prealable);
+  });
+  return `${t("imports.type.importer_apres")} ${titres.join(t("ponctuation.virgule"))}`;
 }

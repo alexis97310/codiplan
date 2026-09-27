@@ -7,6 +7,8 @@ import {
   TYPES_DIMPORT,
   cleDuMotif,
   cleDuStatut,
+  ligneImporterApres,
+  titreDuType,
   tonDuMotif,
 } from "../../../app/(back-office)/imports/types";
 import { estCleTraduction } from "@/lib/i18n/fr";
@@ -197,6 +199,94 @@ describe("le TON d'un bandeau se déduit de la clé (point 1 de la session du 16
     expect(tonDuMotif("auth.refus")).toBe("refus");
     expect(tonDuMotif("imports.refus.lot_introuvable")).toBe("refus");
     expect(tonDuMotif("imports.refus.lot_deja_applique")).toBe("refus");
+  });
+});
+
+/**
+ * « À IMPORTER APRÈS » (GR15, constat G16) — mesuré le 27/09/2026 en lisant
+ * `gabaritsPublies` (`lib/imports/modeles.ts` l.2238-2250) et les fonctions
+ * qu'elle appelle. La table ci-dessous n'est pas dérivée, elle est ÉCRITE ici
+ * comme attendu et confrontée à `TYPES_DIMPORT` — la mesure elle-même vit dans
+ * la description du ticket, pas dans une seconde lecture automatique des
+ * sources de `lib/imports/`.
+ */
+describe("« importerApres » dit les dépendances mesurées, sans cycle", () => {
+  const ATTENDU: Record<string, readonly string[]> = {
+    clients: [],
+    familles: [],
+    contacts: ["clients"],
+    sites: ["clients"],
+    modeles: ["familles"],
+    prestations: ["familles"],
+    equipements: ["clients", "sites", "modeles"],
+    historique: ["clients", "sites", "equipements"],
+    vgp: ["clients", "equipements"],
+    vgp_observations: ["vgp"],
+  };
+
+  it("vaut exactement la table mesurée", () => {
+    const table = Object.fromEntries(
+      TYPES_DIMPORT.map((type) => [type.cle, type.importerApres]),
+    );
+    expect(table).toEqual(ATTENDU);
+  });
+
+  it("chaque clé de « importerApres » existe dans TYPES_DIMPORT", () => {
+    const clesConnues = new Set(TYPES_DIMPORT.map((type) => type.cle));
+    for (const type of TYPES_DIMPORT) {
+      for (const prealable of type.importerApres) {
+        expect(clesConnues.has(prealable)).toBe(true);
+      }
+    }
+  });
+
+  it("ne contient aucun cycle", () => {
+    const parCle = new Map(TYPES_DIMPORT.map((type) => [type.cle, type]));
+    function atteintDepuis(
+      cle: string,
+      cible: string,
+      vus: Set<string>,
+    ): boolean {
+      if (vus.has(cle)) return false;
+      vus.add(cle);
+      const prealables = parCle.get(cle)?.importerApres ?? [];
+      if (prealables.includes(cible)) return true;
+      return prealables.some((prealable) =>
+        atteintDepuis(prealable, cible, vus),
+      );
+    }
+    for (const type of TYPES_DIMPORT) {
+      expect(atteintDepuis(type.cle, type.cle, new Set())).toBe(false);
+    }
+  });
+
+  it("rend `null` pour les racines — clients et familles", () => {
+    const clients = TYPES_DIMPORT.find((type) => type.cle === "clients");
+    const familles = TYPES_DIMPORT.find((type) => type.cle === "familles");
+    expect(clients).toBeDefined();
+    expect(familles).toBeDefined();
+    expect(ligneImporterApres(clients!)).toBeNull();
+    expect(ligneImporterApres(familles!)).toBeNull();
+  });
+
+  it("contient le titre des clients pour les sites", () => {
+    const sites = TYPES_DIMPORT.find((type) => type.cle === "sites")!;
+    const clients = TYPES_DIMPORT.find((type) => type.cle === "clients")!;
+    const ligne = ligneImporterApres(sites);
+    expect(ligne).not.toBeNull();
+    expect(ligne).toContain(titreDuType(clients));
+  });
+
+  it("contient les titres composés des clients, des sites et des modèles pour les équipements", () => {
+    const equipements = TYPES_DIMPORT.find(
+      (type) => type.cle === "equipements",
+    )!;
+    const ligne = ligneImporterApres(equipements);
+    expect(ligne).not.toBeNull();
+    for (const cle of ["clients", "sites", "modeles"]) {
+      const prealable = TYPES_DIMPORT.find((type) => type.cle === cle)!;
+      expect(ligne).toContain(titreDuType(prealable));
+    }
   });
 });
 
