@@ -65,7 +65,6 @@ export default async function PageNouveauClient({
     <Page
       chemin="/clients"
       titre={t("clients.nouveau.titre")}
-      sousTitre={t("clients.nouveau.sous_titre")}
       actions={
         <Link href="/clients" className="text-app-encre-faible text-[12.5px]">
           {t("clients.retour")}

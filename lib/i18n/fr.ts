@@ -413,8 +413,6 @@ export const fr = {
   "clients.etat.aide":
     "Une fiche ne se supprime pas depuis cet \u00e9cran\u00a0: ce qui la r\u00e9f\u00e9rence la retient, et la voie ordinaire est de la rendre inactive.",
   "clients.nouveau.titre": "Nouveau client",
-  "clients.nouveau.sous_titre":
-    "La soci\u00e9t\u00e9 vient de la session et n'est jamais une saisie. L'adresse de facturation n'est pas demand\u00e9e ici\u00a0: sa forme n'est fix\u00e9e nulle part, et une adresse cal\u00e9donienne n'a pas celle d'une adresse m\u00e9tropolitaine.",
 
   // ── Référentiel des sites d'intervention (ticket L1-02) ───────────────────
   //
