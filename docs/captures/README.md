@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `bbf7e3c43416311d6b572879e67dbac56c5521e3` (`bbf7e3c`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-18 01:22 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `ad4feee9c1eedd48c8cf6da7b88b50e4cd338688` (`ad4feee`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-09-27 21:17 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -48,6 +48,7 @@ AMORCAGE_PREMIER_COMPTE_CONFIRME=oui pnpm exec tsx \
 # 4. La prise de vue.
 BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
   COURRIEL_PORTAIL=… MOT_DE_PASSE_PORTAIL=… \
+  COURRIEL_MULTI=direction@codima.test MOT_DE_PASSE_MULTI=… \
   pnpm exec tsx scripts/captures.mts
 ```
 
@@ -59,6 +60,8 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 
 `COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.
 
+`COURRIEL_MULTI` désigne une **troisième identité, habilitée sur AU MOINS DEUX sociétés** — sur la base jetable de démonstration, `direction@codima.test`, dont le mot de passe se pose comme celui de `COURRIEL` (étape 3, `scripts/amorcage-premier-compte.mts --reemettre`). Elle sert à la SEULE image « aucune société active » : rien ne garantit que `COURRIEL`, choisi pour le reste de la prise, soit multi-société, et les confondre a déjà produit deux images identiques à l'octet près (99O, constat C-A2). Sans elle, cette seule image est refusée et le refus le dit — jamais un repli silencieux sur `COURRIEL`.
+
 ## Comment savoir si un écran a changé depuis cette prise
 
 **Une commande, et elle rend un ÉTAT — jamais un silence :**
@@ -67,7 +70,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `bbf7e3c` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `ad4feee` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -91,14 +94,31 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
 - `portail--clair--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `terrain-intervention--clair--1280.png : Error: la journée du technicien de démonstration est vide aujourd'hui : il n'y a aucune intervention à détailler, et la capture est refusée plutôt que prise sur une autre page.
+- `terrain--clair--1280.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
+  Cet écran demande un compte TECHNICIEN — `COURRIEL_TERRAIN` et `MOT_DE_PASSE_TERRAIN` —, et la raison est l'inverse de celle du portail : le compte qui sert au reste de la prise de vue a un accès COMPLET au planning, et `/terrain` le renvoie au back-office. Ce compte-là est CONNECTABLE, lui : un technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait lui émettre un lien de premier accès.`
+- `terrain--clair--390.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
+  Cet écran demande un compte TECHNICIEN — `COURRIEL_TERRAIN` et `MOT_DE_PASSE_TERRAIN` —, et la raison est l'inverse de celle du portail : le compte qui sert au reste de la prise de vue a un accès COMPLET au planning, et `/terrain` le renvoie au back-office. Ce compte-là est CONNECTABLE, lui : un technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait lui émettre un lien de premier accès.`
+- `terrain-intervention--clair--1280.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
   Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
-- `terrain-intervention--clair--390.png : Error: la journée du technicien de démonstration est vide aujourd'hui : il n'y a aucune intervention à détailler, et la capture est refusée plutôt que prise sur une autre page.
+- `terrain-intervention--clair--390.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
   Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
-- `intervention-detail--clair--1280.png : Error: le planning ne porte aucun lien d'intervention : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
-  Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
-- `intervention-detail--clair--390.png : Error: le planning ne porte aucun lien d'intervention : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
-  Cet écran n'existe que si le planning porte au moins une intervention. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `arrivee--clair--1280.png : Error: « arrivee » devait atteindre /arrivee et a atteint /planning : ce n'est pas l'écran attendu, et la capture est refusée.`
+- `arrivee--clair--390.png : Error: « arrivee » ne porte pas son témoin « société » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /planning — vu : « Aller au contenu Planning des interventions EXPLOITATION Planning des interventions Semaine 40 — du 28 au 3/10/2026 Crée »`
+- `client-detail--clair--1280.png : Error: « client-detail » ne porte pas son témoin « Dernières interventions » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /clients/0192f0a0-1000-7000-8000-000000000001 — vu : « Aller au contenu CODIPLAN SAV EXPLOITATION Tableau de bord Planning Demandes Interventions Absences CLIENTS & PARC Clien »
+  Cet écran n'existe que si le référentiel porte au moins un client. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `client-detail--clair--390.png : Error: « client-detail » ne porte pas son témoin « Dernières interventions » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /clients/0192f0a0-1000-7000-8000-000000000001 — vu : « Aller au contenu Atelier Ducos Clients › Atelier Ducos CLIENTS & PARC Atelier Ducos DEMO-001 + Site + Intervention ← Tou »
+  Cet écran n'existe que si le référentiel porte au moins un client. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+
+### Retirées à cette prise
+
+Ces images ne correspondent plus à aucun écran photographié. **Elles sont supprimées plutôt que laissées** : une image que le README ne décrit plus se relit quand même comme une preuve de ce que l'application affiche.
+
+- `arrivee--clair--1280.png`
+- `arrivee--clair--390.png`
+- `client-detail--clair--1280.png`
+- `client-detail--clair--390.png`
+- `terrain--clair--1280.png`
+- `terrain--clair--390.png`
 
 ## Les images
 
@@ -118,8 +138,6 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | `enrolement--clair--390.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, téléphone. |
 | `arrivee-sans-societe--clair--1280.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, poste de travail. |
 | `arrivee-sans-societe--clair--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
-| `terrain--clair--1280.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, poste de travail. |
-| `terrain--clair--390.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, téléphone. |
 | `connexion-code--clair--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
 | `connexion-code--clair--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
 | `accueil--clair--1280.png` | La page d'accueil. — thème clair, poste de travail. |
@@ -130,26 +148,28 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | `premier-acces--clair--390.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, téléphone. |
 | `sante--clair--1280.png` | L'état de l'installation, **sans compte**. — thème clair, poste de travail. |
 | `sante--clair--390.png` | L'état de l'installation, **sans compte**. — thème clair, téléphone. |
-| `arrivee--clair--1280.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, poste de travail. |
-| `arrivee--clair--390.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, téléphone. |
 | `planning--clair--1280.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, poste de travail. |
 | `planning--clair--390.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, téléphone. |
 | `planning-jour--clair--1280.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, poste de travail. |
 | `planning-jour--clair--390.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, téléphone. |
+| `tableau-de-bord--clair--1280.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, poste de travail. |
+| `tableau-de-bord--clair--390.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, téléphone. |
+| `interventions--clair--1280.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, poste de travail. |
+| `interventions--clair--390.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, téléphone. |
 | `imports-rapport--clair--1280.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, poste de travail. |
 | `imports-rapport--clair--390.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, téléphone. |
 | `imports--clair--1280.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, poste de travail. |
 | `imports--clair--390.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, téléphone. |
 | `intervention-creation--clair--1280.png` | La création d'une intervention depuis le planning. — thème clair, poste de travail. |
 | `intervention-creation--clair--390.png` | La création d'une intervention depuis le planning. — thème clair, téléphone. |
+| `intervention-detail--clair--1280.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, poste de travail. |
+| `intervention-detail--clair--390.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, téléphone. |
 | `parc--clair--1280.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, poste de travail. |
 | `parc--clair--390.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, téléphone. |
 | `clients--clair--1280.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, poste de travail. |
 | `clients--clair--390.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, téléphone. |
 | `client-creation--clair--1280.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, poste de travail. |
 | `client-creation--clair--390.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, téléphone. |
-| `client-detail--clair--1280.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, poste de travail. |
-| `client-detail--clair--390.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, téléphone. |
 | `absences--clair--1280.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, poste de travail. |
 | `absences--clair--390.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, téléphone. |
 | `sites--clair--1280.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, poste de travail. |
