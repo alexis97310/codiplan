@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { LienPrimaire } from "@/components/ui/action-primaire";
 import { LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -165,9 +166,12 @@ export default async function PageParametresAgences({
       titre={t("parametres.titre")}
       sousTitre={t("parametres.sous_titre")}
       actions={
-        <LienPrimaire href="/parametres/agences/nouvelle">
-          {t("agence.creer")}
-        </LienPrimaire>
+        <>
+          <RetourParametres />
+          <LienPrimaire href="/parametres/agences/nouvelle">
+            {t("agence.creer")}
+          </LienPrimaire>
+        </>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (

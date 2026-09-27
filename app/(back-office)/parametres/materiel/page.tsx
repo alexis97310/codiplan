@@ -9,6 +9,7 @@ import { Carte } from "@/components/ui/carte";
 import { Champ } from "@/components/ui/champ";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
@@ -116,6 +117,7 @@ export default async function PageMateriel({
       chemin="/parametres/materiel"
       titre={t("materiel.titre")}
       sousTitre={t("materiel.sous_titre")}
+      actions={<RetourParametres />}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

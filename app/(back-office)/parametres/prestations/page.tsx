@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -94,6 +95,7 @@ export default async function PagePrestations({
       chemin="/parametres/prestations"
       titre={t("prestations.titre")}
       sousTitre={t("prestations.sous_titre")}
+      actions={<RetourParametres />}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

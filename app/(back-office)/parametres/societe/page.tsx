@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
@@ -60,6 +61,7 @@ export default async function PageParametresSociete() {
       chemin="/parametres/societe"
       titre={t("parametres.societe_titre")}
       sousTitre={t("parametres.societe_sous_titre")}
+      actions={<RetourParametres />}
     >
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
         {/* LA MÊME FORME que la pastille retirée de la barre — même jetons,

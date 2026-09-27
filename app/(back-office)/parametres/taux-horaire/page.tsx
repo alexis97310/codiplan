@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { FormulaireTaux } from "@/components/taux-horaire/formulaire";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
@@ -141,6 +142,7 @@ export default async function PageTauxHoraire({
       chemin="/parametres/taux-horaire"
       titre={t("taux_horaire.titre")}
       sousTitre={t("taux_horaire.sous_titre")}
+      actions={<RetourParametres />}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
@@ -134,6 +135,7 @@ export default async function PageEquipe({
       chemin="/parametres/equipe"
       titre={t("equipe.titre")}
       sousTitre={t("equipe.sous_titre")}
+      actions={<RetourParametres />}
     >
       {typeof motif === "string" &&
       estCleTraduction(motif) &&

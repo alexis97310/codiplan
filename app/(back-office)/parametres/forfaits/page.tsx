@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
 import { FormulaireForfait } from "@/components/forfaits/formulaire";
+import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -125,28 +126,31 @@ export default async function PageForfaits({
       titre={t("forfaits.titre")}
       sousTitre={t("forfaits.sous_titre")}
       actions={
-        <form method="get" className="flex flex-wrap items-center gap-2">
-          <label className="text-app-encre-faible text-[12px] font-semibold">
-            {t("forfaits.zone")}
-          </label>
-          <select
-            name="zone"
-            defaultValue={zone ?? undefined}
-            className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
-          >
-            {ZONES_GEOGRAPHIQUES.map((valeur) => (
-              <option key={valeur} value={valeur}>
-                {libelleZone(valeur)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-semibold"
-          >
-            {t("forfaits.voir")}
-          </button>
-        </form>
+        <>
+          <RetourParametres />
+          <form method="get" className="flex flex-wrap items-center gap-2">
+            <label className="text-app-encre-faible text-[12px] font-semibold">
+              {t("forfaits.zone")}
+            </label>
+            <select
+              name="zone"
+              defaultValue={zone ?? undefined}
+              className="border-app-bord bg-app-surface rounded-md border px-2.5 py-1.5 text-[12.5px]"
+            >
+              {ZONES_GEOGRAPHIQUES.map((valeur) => (
+                <option key={valeur} value={valeur}>
+                  {libelleZone(valeur)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="border-app-bord rounded-md border px-3 py-1.5 text-[12.5px] font-semibold"
+            >
+              {t("forfaits.voir")}
+            </button>
+          </form>
+        </>
       }
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (

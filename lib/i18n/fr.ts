@@ -2711,6 +2711,9 @@ export const fr = {
   "parametres.index_titre": "Sociétés & tarifs",
   "parametres.index_sous_titre":
     "Les réglages de la société : ce qui décide des créneaux qu'on propose, du temps qu'on compte pour s'y rendre et de ce qu'on facture.",
+  // LE RETOUR DES NEUF SOUS-PAGES VERS CETTE PAGE (CG1, audit du 26/09/2026,
+  // constat C-G2). « ← » et pas « ‹ » : CG2 impose ce glyphe pour tout retour.
+  "parametres.retour": "← Sociétés & tarifs",
   // LA HUITIÈME PORTE (N-02, 16/09/2026). Elle n'existait nulle part : la
   // pastille « Charte de la société » / « Thème neutre » occupait la barre en
   // permanence pour répondre à une question qu'on ne pose qu'à la mise en
