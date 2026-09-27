@@ -1,4 +1,5 @@
 import type { TonBadge } from "@/components/ui/badge";
+import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import type { Trajet } from "@/lib/sites/trajet-zone";
@@ -73,7 +74,7 @@ export function trajetAffiche(trajet: Trajet): {
     };
   }
   return {
-    valeur: String(trajet.minutes),
+    valeur: enDuree(trajet.minutes),
     libelle:
       trajet.origine === "site"
         ? t("sites.colonne_trajet")

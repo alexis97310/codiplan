@@ -482,11 +482,11 @@ export const fr = {
   // Le libellé COURT de la colonne. Le libellé complet — celui qui dit d'où
   // l'on part — vit dans « site.temps_trajet_min », et la fiche l'emploie.
   // *Une colonne ne peut pas porter une phrase ; la fiche, si.*
-  "sites.colonne_trajet": "Trajet (min)",
+  "sites.colonne_trajet": "Trajet",
   // LISTES-1 : la valeur affichée n'est PAS celle saisie sur le site — c'est
   // le défaut par zone (`lib/sites/trajet-zone.ts`). Le libellé le dit, pour
   // que personne ne croie lire une mesure.
-  "sites.colonne_trajet_estimation": "Trajet estimé (min)",
+  "sites.colonne_trajet_estimation": "Trajet estimé",
   "sites.equipements_un": "équipement",
   "sites.equipements_plusieurs": "équipements",
   // LA PASTILLE VERTE « habilitation requise » (PASTILLES-1, ajout d'Alexis le
