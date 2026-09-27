@@ -85,3 +85,11 @@ describe("GR16 — « (obligatoire) » sur les champs requis", () => {
     );
   });
 });
+
+describe("GR16 — prestations : la checklist en une phrase", () => {
+  it("dit ce qui manque, en une phrase courte", () => {
+    expect(t("prestations.sans_checklist")).toBe(
+      "La checklist type arrivera plus tard.",
+    );
+  });
+});

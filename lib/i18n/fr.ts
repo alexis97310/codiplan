@@ -2673,8 +2673,7 @@ export const fr = {
   "prestations.aucune": "Le catalogue est vide.",
   "prestations.sans_montant":
     "Une prestation ne porte pas de tarif. Le prix se lit au taux horaire en vigueur à la date de l'intervention, ou au forfait qui s'applique — deux endroits qui porteraient un prix, ce serait une préséance à inventer et une facture qu'on ne saurait plus expliquer.",
-  "prestations.sans_checklist":
-    "La checklist type ne se saisit pas encore : personne n'a dit ce qu'elle porte — une liste d'étapes, un texte, un modèle à désigner. L'inventer ici la figerait pour toutes les sociétés.",
+  "prestations.sans_checklist": "La checklist type arrivera plus tard.",
   "prestations.refus.saisie":
     "Une prestation se saisit avec un code et un libellé. La durée est facultative ; si elle est donnée, elle est en minutes entières et supérieure à zéro.",
   "prestations.refus.code_pris":

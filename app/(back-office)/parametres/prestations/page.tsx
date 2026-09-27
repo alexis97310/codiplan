@@ -61,6 +61,10 @@ export const metadata: Metadata = { title: t("prestations.titre") };
  * et une colonne de tableur en fait une chaîne où l'ordre se devine et où le
  * séparateur est un choix que personne n'a fait.
  *
+ * *Décision d'Alexis, 27/09/2026 : phrase raccourcie.* L'écran continue de
+ * dire, en une phrase, que la checklist type ne se saisit pas — le
+ * raisonnement ci-dessus, lui, reste ici plutôt qu'à l'écran.
+ *
  * ## Aucune SUPPRESSION, et c'est le raisonnement des forfaits
  *
  * Une intervention désignera sa prestation, et *une facture émise sous une
