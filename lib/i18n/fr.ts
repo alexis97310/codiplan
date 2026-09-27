@@ -225,7 +225,7 @@ export const fr = {
   "enrolement.accroche":
     "Votre rôle exige un second facteur d'authentification. Cette étape est obligatoire et ne se fait qu'une fois.",
   "enrolement.definitif":
-    "Un second facteur s'active ; il ne se retire pas. Seul un administrateur de la plateforme peut le révoquer, sur demande.",
+    "Une fois activé, ce code vous sera demandé à chaque connexion ; il ne se désactive pas. Téléphone perdu : prévenez l'administrateur de la plateforme.",
   "enrolement.mot_de_passe":
     "Confirmez votre mot de passe pour afficher la clé",
   "enrolement.reveler": "Afficher la clé",

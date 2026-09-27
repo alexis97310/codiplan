@@ -93,3 +93,9 @@ describe("GR16 — prestations : la checklist en une phrase", () => {
     );
   });
 });
+
+describe("GR16 — enrôlement : clair et définitif", () => {
+  it("dit que le second facteur ne se désactive pas", () => {
+    expect(t("enrolement.definitif")).toContain("ne se désactive pas");
+  });
+});
