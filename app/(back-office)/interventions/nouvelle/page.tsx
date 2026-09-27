@@ -26,12 +26,17 @@ import { libelleClientSite } from "../../presentation";
 import {
   agenceDeduiteDuSite,
   aideRechercheSite,
+  champEnCause,
   libelleChoisirLeLieuDabord,
 } from "../presentation";
 
 import { BoutonCreer } from "./bouton-creer";
 
 export const metadata: Metadata = { title: t("planning.creer") };
+
+/** L'`id` du bandeau de refus — cible d'`aria-describedby` du champ en cause
+ * (GR17-M14). */
+const ID_MESSAGE_REFUS = "message-refus";
 
 /**
  * UN PARAMÈTRE D'URL VALIDÉ CONTRE UNE LISTE CLOSE (56-FORMULAIRES-2) — le
@@ -120,6 +125,13 @@ export default async function PageNouvelleIntervention({
   }
   const params = await searchParams;
   const motif = params.motif;
+  // LE CHAMP EN CAUSE DE CE REFUS (GR17-M14) — `null` pour un refus qui ne
+  // désigne aucun champ avec certitude (le repli « lieu inconnu »), ou
+  // simplement l'absence de refus.
+  const champFautif =
+    typeof motif === "string" && estCleTraduction(motif)
+      ? champEnCause(motif)
+      : null;
 
   // LA DEMANDE D'ORIGINE (68-DEMANDES-2) — résolue AVANT le site et la
   // machine ci-dessous, dont elle prime les paramètres quand elle résout.
@@ -239,6 +251,7 @@ export default async function PageNouvelleIntervention({
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
+          id={ID_MESSAGE_REFUS}
           role="status"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-[12.5px]"
         >
@@ -294,6 +307,7 @@ export default async function PageNouvelleIntervention({
           valeurInitiale={typeInitial}
           obligatoire
           optionVide={t("intervention.creation.choisir_nature")}
+          enCause={champFautif === "type"}
         />
         <Choix
           nom="priorite"
@@ -323,9 +337,18 @@ export default async function PageNouvelleIntervention({
             name="description"
             required
             aria-required="true"
+            aria-invalid={champFautif === "description" ? "true" : undefined}
+            aria-describedby={
+              champFautif === "description" ? ID_MESSAGE_REFUS : undefined
+            }
+            autoFocus={champFautif === "description"}
             rows={4}
             defaultValue={descriptionInitiale}
-            className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+            className={`bg-background rounded-md border px-3 py-2 font-normal ${
+              champFautif === "description"
+                ? "border-app-rouge-bord"
+                : "border-input"
+            }`}
           />
         </label>
 
@@ -354,6 +377,7 @@ function Choix({
   valeurInitiale,
   obligatoire = false,
   optionVide,
+  enCause = false,
 }: {
   nom: string;
   libelle: string;
@@ -376,6 +400,9 @@ function Choix({
    * 26/09, constat B1), sans que personne n'ait rien choisi.
    */
   optionVide?: string;
+  /** Ce champ est celui que le dernier refus de saisie désigne (GR17-M14,
+   * `champEnCause`) — encadré, décrit par le bandeau, et focalisé. */
+  enCause?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -387,7 +414,12 @@ function Choix({
         }
         required={optionVide !== undefined}
         aria-required={obligatoire ? "true" : undefined}
-        className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+        aria-invalid={enCause ? "true" : undefined}
+        aria-describedby={enCause ? ID_MESSAGE_REFUS : undefined}
+        autoFocus={enCause}
+        className={`bg-background rounded-md border px-3 py-2 font-normal ${
+          enCause ? "border-app-rouge-bord" : "border-input"
+        }`}
       >
         {optionVide === undefined ? null : (
           <option value="" disabled>

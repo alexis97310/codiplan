@@ -30,6 +30,28 @@ import { hrefDeLaPage } from "../presentation";
  */
 
 /**
+ * LE CHAMP EN CAUSE D'UN REFUS DE SAISIE (GR17-M14, audit GR du 26/09,
+ * constats M14) — pour encadrer et focaliser CE champ sur
+ * `/interventions/nouvelle`, plutôt que de laisser le bandeau seul porter la
+ * raison.
+ *
+ * Seuls deux motifs désignent un champ avec CERTITUDE : `type` pour la
+ * nature manquante, `description` pour la panne manquante.
+ * `intervention.refus.lieu_inconnu` est un REPLI qui couvre « tout le
+ * reste » (`app/api/interventions/creer/route.ts`) — jamais le champ Site à
+ * coup sûr — et rend `null`, comme tout motif qui n'est ni l'un ni l'autre.
+ */
+export function champEnCause(motif: string): "type" | "description" | null {
+  if (motif === "intervention.refus.nature_manquante") {
+    return "type";
+  }
+  if (motif === "intervention.refus.panne_manquante") {
+    return "description";
+  }
+  return null;
+}
+
+/**
  * LA RÉFÉRENCE AFFICHÉE — `numero`, ou `Local-<6 caractères>` tant qu'il est nul
  * (I10).
  *
