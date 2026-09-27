@@ -8,6 +8,7 @@ import {
   type OptionRecherche,
 } from "@/components/ui/selecteur-recherche";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
+import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   CRITICITES_MACHINE,
@@ -235,7 +236,7 @@ export function FormulaireMachine(props: Props) {
         <SelecteurRecherche
           nom="modele_id"
           url="/api/recherche/modeles"
-          libelle={t("machine.champ.modele")}
+          libelle={libelleChampObligatoire(t("machine.champ.modele"))}
           libelleAucunResultat={t("selecteur.aucun_resultat")}
           libelleVoirPlus={t("selecteur.voir_plus")}
           obligatoire
@@ -255,7 +256,7 @@ export function FormulaireMachine(props: Props) {
           <SelecteurRecherche
             nom="client_id"
             url="/api/recherche/clients"
-            libelle={t("machine.champ.client")}
+            libelle={libelleChampObligatoire(t("machine.champ.client"))}
             libelleAucunResultat={t("selecteur.aucun_resultat")}
             libelleVoirPlus={t("selecteur.voir_plus")}
             obligatoire
@@ -271,7 +272,7 @@ export function FormulaireMachine(props: Props) {
             nom="site_id"
             url="/api/recherche/sites"
             parametres={{ client: clientChoisi }}
-            libelle={mot("site")}
+            libelle={libelleChampObligatoire(mot("site"))}
             libelleAucunResultat={t("selecteur.aucun_resultat")}
             libelleVoirPlus={t("selecteur.voir_plus")}
             obligatoire
@@ -435,7 +436,7 @@ function Champ({
 }>) {
   return (
     <label className="flex flex-col gap-1 text-[12.5px] font-semibold">
-      {libelle}
+      {obligatoire === true ? libelleChampObligatoire(libelle) : libelle}
       <input
         name={nom}
         type={type}

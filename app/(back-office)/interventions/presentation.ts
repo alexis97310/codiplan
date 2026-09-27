@@ -801,16 +801,15 @@ export function deduiteDuSite(): string {
 }
 
 /**
- * QUATRE TEXTES DE `/interventions/nouvelle` (92-CREATION-2, audit
+ * TROIS TEXTES DE `/interventions/nouvelle` (92-CREATION-2, audit
  * d'ergonomie du 25/09/2026, constats 7 et 8) — même raison que
  * `segmentsSurSiteTitre` ci-dessus : le mot imposé ne s'écrit qu'ici, jamais
  * dans le dictionnaire ni dans l'écran.
+ *
+ * `libelleChampObligatoire` a déménagé vers `lib/i18n/obligatoire.ts`
+ * (GR16i, 27/09/2026) : elle ne compose aucun mot imposé, et la fiche
+ * machine devait pouvoir l'appeler sans dépendre de ce module.
  */
-
-/** Un libellé de champ, marqué obligatoire — Site, Nature, la panne signalée. */
-export function libelleChampObligatoire(libelleChamp: string): string {
-  return `${libelleChamp} ${t("intervention.creation.obligatoire_suffixe")}`;
-}
 
 /** « Choisissez d'abord un site » — l'option vide de Machine et de Contact
  * tant qu'aucun site n'est choisi. */

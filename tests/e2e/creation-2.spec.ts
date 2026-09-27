@@ -8,10 +8,10 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   agenceDeduiteDuSite,
   aideRechercheSite,
-  libelleChampObligatoire,
   libelleChoisirLeLieuDabord,
 } from "@/app/(back-office)/interventions/presentation";
 import { fr, mot } from "@/lib/i18n";
+import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 
 import { urlAdministration } from "./setup/base";
 import { ouvrirUneSession } from "./setup/session";

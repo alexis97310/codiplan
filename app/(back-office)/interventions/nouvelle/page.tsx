@@ -8,6 +8,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { ChampSiteEtMachines } from "@/components/interventions/site-et-machines";
 import { obtenirSession } from "@/lib/auth/session";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
   PRIORITES,
@@ -25,7 +26,6 @@ import { libelleClientSite } from "../../presentation";
 import {
   agenceDeduiteDuSite,
   aideRechercheSite,
-  libelleChampObligatoire,
   libelleChoisirLeLieuDabord,
 } from "../presentation";
 

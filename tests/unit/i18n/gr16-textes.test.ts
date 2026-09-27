@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { deduiteDuSite } from "@/app/(back-office)/interventions/presentation";
 import { estCleTraduction, fr, t } from "@/lib/i18n/fr";
+import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
@@ -74,5 +75,13 @@ describe("GR16 — « Déduite du site »", () => {
   it("la clé intervention.deduit_du_lieu n'existe plus", () => {
     expect(estCleTraduction("intervention.deduit_du_lieu")).toBe(false);
     expect(Object.keys(fr)).not.toContain("intervention.deduit_du_lieu");
+  });
+});
+
+describe("GR16 — « (obligatoire) » sur les champs requis", () => {
+  it("libelleChampObligatoire reprend le suffixe déjà en usage", () => {
+    expect(libelleChampObligatoire("N° de série")).toBe(
+      `N° de série ${t("intervention.creation.obligatoire_suffixe")}`,
+    );
   });
 });
