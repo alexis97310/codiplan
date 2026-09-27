@@ -7,6 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { Button } from "@/components/ui/button";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
+import { enDuree } from "@/lib/calendar/duree";
 import {
   famillesVisables,
   listerLesPrestations,
@@ -339,7 +340,5 @@ function Champ({
 function dureeAffichee(prestation: LignePrestation): string {
   return prestation.duree_standard_min === null
     ? t("prestations.duree_non_estimee")
-    : `${prestation.duree_standard_min}${MINUTES}`;
+    : enDuree(prestation.duree_standard_min);
 }
-
-const MINUTES = " min";
