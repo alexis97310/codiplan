@@ -30,7 +30,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("l'en-tête de /vgp ne porte plus de lien vers /parc", async ({ page }) => {
-  const enTete = page.locator("header").first();
+  // `header` désigne ici CELUI de `Page` (titre + sous-titre + actions),
+  // jamais le bandeau mobile de `components/navigation/bandeau-mobile.tsx` —
+  // un second `<header>`, masqué à 1280 px, mais présent dans le DOM.
+  const enTete = page
+    .locator("header")
+    .filter({ has: page.getByRole("heading", { level: 1 }) });
   await expect(enTete).toBeVisible();
   await expect(enTete.locator('a[href="/parc"]')).toHaveCount(0);
 });
