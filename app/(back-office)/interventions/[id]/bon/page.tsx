@@ -7,6 +7,7 @@ import { cache } from "react";
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { lireBonIntervention } from "@/lib/interventions/bon";
@@ -249,7 +250,7 @@ export default async function PageBonIntervention({
                       <td className="py-1">
                         {segment.minutes === null
                           ? t("intervention.bon.segment_en_cours")
-                          : minutes(segment.minutes)}
+                          : enDuree(segment.minutes)}
                       </td>
                     </tr>
                   ))}
@@ -258,7 +259,7 @@ export default async function PageBonIntervention({
               <dl className="grid grid-cols-[132px_1fr] gap-x-3 gap-y-2.5">
                 <Ligne
                   libelle={tempsTotalSurSiteLibelle()}
-                  valeur={minutes(bon.minutesTotal)}
+                  valeur={enDuree(bon.minutesTotal)}
                 />
               </dl>
             </>
@@ -419,12 +420,6 @@ export default async function PageBonIntervention({
       </div>
     </div>
   );
-}
-
-function minutes(total: number): string {
-  const heures = Math.floor(total / 60);
-  const reste = String(total % 60).padStart(2, "0");
-  return heures === 0 ? `${reste} min` : `${heures} h ${reste}`;
 }
 
 /**

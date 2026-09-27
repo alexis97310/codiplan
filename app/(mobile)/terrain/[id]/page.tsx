@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -205,8 +206,13 @@ export default async function PageInterventionTerrain({
           {t("terrain.compteur")}
         </h2>
 
+        {/*
+          `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret
+          (D88 appliqué à une durée) : un tiret dirait « on ne sait pas », ici
+          on sait, et la réponse est zéro.
+        */}
         <p className="text-[28px] font-extrabold tabular-nums">
-          {enHeuresEtMinutes(mesure.minutes)}
+          {enDuree(mesure.minutes)}
         </p>
         <p className="text-app-encre-faible text-[12px]">
           {t("terrain.compteur.ferme")}
@@ -388,21 +394,6 @@ export default async function PageInterventionTerrain({
 function libelleDuType(type: string): string {
   const cle = `type_intervention.${type}`;
   return estCleTraduction(cle) ? t(cle) : type;
-}
-
-/**
- * `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret.
- *
- * *Un tiret dirait « on ne sait pas »* ; ici on sait, et la réponse est zéro.
- * C'est la distinction que D88 fait sur les VGP, appliquée à une durée.
- */
-function enHeuresEtMinutes(minutes: number): string {
-  const heures = Math.floor(minutes / 60);
-  const reste = minutes % 60;
-  if (heures === 0) {
-    return `${reste} ${t("terrain.minutes")}`;
-  }
-  return `${heures} ${t("terrain.heures")} ${String(reste).padStart(2, "0")}`;
 }
 
 function Ligne({

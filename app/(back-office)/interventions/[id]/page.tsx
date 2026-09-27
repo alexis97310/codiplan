@@ -22,6 +22,7 @@ import {
   maintenant,
   type Fuseau,
 } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import type { VerdictAffectation } from "@/lib/habilitations/affectation";
 import {
@@ -1269,16 +1270,16 @@ function Valorisation({
           <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 text-[13px] sm:grid-cols-[132px_1fr]">
             <Ligne
               libelle={t("intervention.cloture.temps_valide")}
-              valeur={minutes(valorisation.minutesReelles)}
+              valeur={enDuree(valorisation.minutesReelles)}
             />
             <Ligne
               libelle={t("intervention.cloture.arrondi")}
-              valeur={minutes(valorisation.minutesArrondies)}
+              valeur={enDuree(valorisation.minutesArrondies)}
             />
             {valorisation.plancherApplique ? (
               <Ligne
                 libelle={t("intervention.cloture.plancher")}
-                valeur={minutes(valorisation.minutesFacturees)}
+                valeur={enDuree(valorisation.minutesFacturees)}
               />
             ) : null}
             <Ligne
@@ -1331,13 +1332,6 @@ function Valorisation({
   );
 }
 
-/** Des minutes en heures et minutes — `75` se lit « 1 h 15 », jamais « 75 ». */
-function minutes(total: number): string {
-  const heures = Math.floor(total / 60);
-  const reste = String(total % 60).padStart(2, "0");
-  return heures === 0 ? `${reste} min` : `${heures} h ${reste}`;
-}
-
 // Composés hors du JSX (même geste que `FLECHE`/`DEUX_POINTS` de
 // `parametres/agences/[id]/page.tsx`) : `react/jsx-no-literals` refuse un
 // texte de ponctuation écrit à même l'arbre, et une ligne composée en dehors
@@ -1352,7 +1346,7 @@ function ligneSegment(segment: SegmentAffiche, fuseau: Fuseau): string {
       ? t("intervention.realisation.en_cours")
       : dateHeureLocale(segment.fin, fuseau);
   const duree =
-    segment.minutes === null ? "" : ` (${minutes(segment.minutes)})`;
+    segment.minutes === null ? "" : ` (${enDuree(segment.minutes)})`;
   return `${segment.technicien}${t("ponctuation.separateur")}${dateHeureLocale(segment.debut, fuseau)}${FLECHE}${fin}${duree}`;
 }
 
@@ -1366,7 +1360,7 @@ function lignePausePeriode(pause: PauseAffichee, fuseau: Fuseau): string {
     pause.fin === null
       ? null
       : Math.floor((pause.fin.getTime() - pause.debut.getTime()) / 60_000);
-  const duree = dureeMin === null ? "" : ` (${minutes(dureeMin)})`;
+  const duree = dureeMin === null ? "" : ` (${enDuree(dureeMin)})`;
   return `${dateHeureLocale(pause.debut, fuseau)}${FLECHE}${fin}${duree}`;
 }
 
@@ -1448,11 +1442,11 @@ function Realisation({
       <dl className="grid grid-cols-1 gap-x-3 gap-y-2 text-[13px] sm:grid-cols-[160px_1fr]">
         <Ligne
           libelle={t("intervention.realisation.temps_mesure")}
-          valeur={tempsMesureMin === null ? TIRET : minutes(tempsMesureMin)}
+          valeur={tempsMesureMin === null ? TIRET : enDuree(tempsMesureMin)}
         />
         <Ligne
           libelle={t("intervention.realisation.temps_valide")}
-          valeur={tempsValideMin === null ? TIRET : minutes(tempsValideMin)}
+          valeur={tempsValideMin === null ? TIRET : enDuree(tempsValideMin)}
         />
         {tempsValidePar === null ? null : (
           <Ligne
