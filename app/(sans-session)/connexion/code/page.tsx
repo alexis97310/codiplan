@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { headers } from "next/headers";
 
+import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { t } from "@/lib/i18n/fr";
 
@@ -24,19 +25,22 @@ export default async function PageCodeSecondFacteur({
   await headers();
   const motif = (await searchParams).motif;
   return (
-    <Formulaire
-      action="/api/session/code"
-      titre={t("connexion.code")}
-      accroche={t("connexion.code.accroche")}
-      valider={t("connexion.code.valider")}
-    >
-      <Message motif={typeof motif === "string" ? motif : undefined} />
-      <Champ
-        nom="code"
-        type="text"
-        libelle={t("connexion.code")}
-        motif="[0-9]{6}"
-      />
-    </Formulaire>
+    <>
+      <MarqueClaire accueil="/" />
+      <Formulaire
+        action="/api/session/code"
+        titre={t("connexion.code")}
+        accroche={t("connexion.code.accroche")}
+        valider={t("connexion.code.valider")}
+      >
+        <Message motif={typeof motif === "string" ? motif : undefined} />
+        <Champ
+          nom="code"
+          type="text"
+          libelle={t("connexion.code")}
+          motif="[0-9]{6}"
+        />
+      </Formulaire>
+    </>
   );
 }

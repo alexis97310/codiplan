@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { preparationDeLUrl } from "@/lib/auth/enrolement";
@@ -45,63 +46,69 @@ export default async function PageEnrolement({
 
   if (cle === "") {
     return (
-      <Formulaire
-        action="/api/session/enrolement"
-        titre={t("enrolement.titre")}
-        accroche={t("enrolement.accroche")}
-        valider={t("enrolement.reveler")}
-      >
-        <Message motif={motif === "" ? undefined : motif} />
-        <p className="text-muted-foreground text-sm">
-          {t("enrolement.definitif")}
-        </p>
-        <input type="hidden" name="etape" value="preparer" />
-        <Champ
-          nom="motDePasse"
-          type="password"
-          libelle={t("enrolement.mot_de_passe")}
-        />
-      </Formulaire>
+      <>
+        <MarqueClaire accueil="/" />
+        <Formulaire
+          action="/api/session/enrolement"
+          titre={t("enrolement.titre")}
+          accroche={t("enrolement.accroche")}
+          valider={t("enrolement.reveler")}
+        >
+          <Message motif={motif === "" ? undefined : motif} />
+          <p className="text-muted-foreground text-sm">
+            {t("enrolement.definitif")}
+          </p>
+          <input type="hidden" name="etape" value="preparer" />
+          <Champ
+            nom="motDePasse"
+            type="password"
+            libelle={t("enrolement.mot_de_passe")}
+          />
+        </Formulaire>
+      </>
     );
   }
 
   return (
-    <Formulaire
-      action="/api/session/enrolement"
-      titre={t("enrolement.titre")}
-      accroche={t("enrolement.cle.aide")}
-      valider={t("enrolement.confirmer")}
-    >
-      <Message motif={motif === "" ? undefined : motif} />
+    <>
+      <MarqueClaire accueil="/" />
+      <Formulaire
+        action="/api/session/enrolement"
+        titre={t("enrolement.titre")}
+        accroche={t("enrolement.cle.aide")}
+        valider={t("enrolement.confirmer")}
+      >
+        <Message motif={motif === "" ? undefined : motif} />
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">{t("enrolement.cle")}</span>
-        <code className="bg-muted rounded-md px-3 py-2 font-mono text-sm break-all">
-          {cle}
-        </code>
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">{t("enrolement.cle")}</span>
+          <code className="bg-muted rounded-md px-3 py-2 font-mono text-sm break-all">
+            {cle}
+          </code>
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">
-          {t("enrolement.codes_secours")}
-        </span>
-        <p className="text-muted-foreground text-sm">
-          {t("enrolement.codes_secours.aide")}
-        </p>
-        <ul className="bg-muted grid grid-cols-2 gap-1 rounded-md px-3 py-2 font-mono text-sm">
-          {codesSecours.map((code) => (
-            <li key={code}>{code}</li>
-          ))}
-        </ul>
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">
+            {t("enrolement.codes_secours")}
+          </span>
+          <p className="text-muted-foreground text-sm">
+            {t("enrolement.codes_secours.aide")}
+          </p>
+          <ul className="bg-muted grid grid-cols-2 gap-1 rounded-md px-3 py-2 font-mono text-sm">
+            {codesSecours.map((code) => (
+              <li key={code}>{code}</li>
+            ))}
+          </ul>
+        </div>
 
-      <input type="hidden" name="etape" value="confirmer" />
-      <Champ
-        nom="code"
-        type="text"
-        libelle={t("enrolement.code")}
-        motif="[0-9]{6}"
-      />
-    </Formulaire>
+        <input type="hidden" name="etape" value="confirmer" />
+        <Champ
+          nom="code"
+          type="text"
+          libelle={t("enrolement.code")}
+          motif="[0-9]{6}"
+        />
+      </Formulaire>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
+import { MarqueClaire } from "@/components/navigation/marque";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
 import type { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
@@ -293,26 +294,6 @@ function BarreHorizontaleVide({
         )}
       </div>
     </header>
-  );
-}
-
-function MarqueClaire({ accueil }: { readonly accueil: string }) {
-  return (
-    <Link href={accueil} className="flex flex-shrink-0 items-center gap-2.5">
-      <span
-        aria-hidden
-        className="border-b-app-accent h-0 w-0 border-r-[11px] border-b-[19px] border-l-[11px] border-r-transparent border-l-transparent"
-      />
-      <span className="leading-tight">
-        <span className="text-[18px] font-extrabold tracking-tight">
-          {t("nav.marque_debut")}
-          <span className="text-app-marque">{t("nav.marque_fin")}</span>
-        </span>
-        <span className="text-app-encre-faible block text-[9px] font-bold tracking-[1.5px]">
-          {t("nav.marque_metier")}
-        </span>
-      </span>
-    </Link>
   );
 }
 

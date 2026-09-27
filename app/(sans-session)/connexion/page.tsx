@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { etatArriveeOuAnonyme } from "@/lib/auth/arrivee";
 import { t } from "@/lib/i18n/fr";
@@ -36,19 +37,22 @@ export default async function PageConnexion({
 
   const motif = (await searchParams).motif;
   return (
-    <Formulaire
-      action="/api/session/connexion"
-      titre={t("connexion.titre")}
-      accroche={t("connexion.accroche")}
-      valider={t("connexion.valider")}
-    >
-      <Message motif={typeof motif === "string" ? motif : undefined} />
-      <Champ nom="email" type="email" libelle={t("connexion.email")} />
-      <Champ
-        nom="motDePasse"
-        type="password"
-        libelle={t("connexion.mot_de_passe")}
-      />
-    </Formulaire>
+    <>
+      <MarqueClaire accueil="/" />
+      <Formulaire
+        action="/api/session/connexion"
+        titre={t("connexion.titre")}
+        accroche={t("connexion.accroche")}
+        valider={t("connexion.valider")}
+      >
+        <Message motif={typeof motif === "string" ? motif : undefined} />
+        <Champ nom="email" type="email" libelle={t("connexion.email")} />
+        <Champ
+          nom="motDePasse"
+          type="password"
+          libelle={t("connexion.mot_de_passe")}
+        />
+      </Formulaire>
+    </>
   );
 }

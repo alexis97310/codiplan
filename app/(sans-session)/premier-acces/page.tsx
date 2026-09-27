@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { MarqueClaire } from "@/components/navigation/marque";
 import { Champ, Formulaire, Message } from "@/components/session/formulaire";
 import { t } from "@/lib/i18n/fr";
 
@@ -48,38 +49,44 @@ export default async function PagePremierAcces({
 
   if (typeof jeton !== "string" || jeton.trim() === "") {
     return (
-      <Formulaire
-        action="/connexion"
-        titre={t("premier_acces.titre")}
-        accroche={t("premier_acces.accroche")}
-        valider={t("connexion.valider")}
-      >
-        <Message motif="premier_acces.sans_jeton" />
-      </Formulaire>
+      <>
+        <MarqueClaire accueil="/" />
+        <Formulaire
+          action="/connexion"
+          titre={t("premier_acces.titre")}
+          accroche={t("premier_acces.accroche")}
+          valider={t("connexion.valider")}
+        >
+          <Message motif="premier_acces.sans_jeton" />
+        </Formulaire>
+      </>
     );
   }
 
   return (
-    <Formulaire
-      action="/api/session/premier-acces"
-      titre={t("premier_acces.titre")}
-      accroche={t("premier_acces.accroche")}
-      valider={t("premier_acces.valider")}
-    >
-      <Message motif={typeof motif === "string" ? motif : undefined} />
-      {/* Le jeton repasse tel quel : il vient de la bibliothèque, il n'est ni
-          réécrit ni interprété ici. */}
-      <input type="hidden" name="jeton" value={jeton} />
-      <Champ
-        nom="motDePasse"
-        type="password"
-        libelle={t("premier_acces.mot_de_passe")}
-      />
-      <Champ
-        nom="confirmation"
-        type="password"
-        libelle={t("premier_acces.confirmation")}
-      />
-    </Formulaire>
+    <>
+      <MarqueClaire accueil="/" />
+      <Formulaire
+        action="/api/session/premier-acces"
+        titre={t("premier_acces.titre")}
+        accroche={t("premier_acces.accroche")}
+        valider={t("premier_acces.valider")}
+      >
+        <Message motif={typeof motif === "string" ? motif : undefined} />
+        {/* Le jeton repasse tel quel : il vient de la bibliothèque, il n'est
+            ni réécrit ni interprété ici. */}
+        <input type="hidden" name="jeton" value={jeton} />
+        <Champ
+          nom="motDePasse"
+          type="password"
+          libelle={t("premier_acces.mot_de_passe")}
+        />
+        <Champ
+          nom="confirmation"
+          type="password"
+          libelle={t("premier_acces.confirmation")}
+        />
+      </Formulaire>
+    </>
   );
 }
