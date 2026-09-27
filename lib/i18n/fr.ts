@@ -1008,7 +1008,7 @@ export const fr = {
   "interventions.recherche": "Client, lieu ou numéro de série",
   "interventions.rechercher": "Rechercher",
   "interventions.filtre_toutes_prefixe": "Toutes les",
-  "interventions.filtre_type_tous": "Tous les types",
+  "interventions.filtre_type_tous": "Toutes les natures",
   "interventions.filtre_statut_tous": "Tous les statuts",
   // LE FILTRE POSÉ PAR LE LIEN DE LA TUILE « INTERVENTIONS SANS DURÉE »
   // (AFFICHAGE-MATERIEL-1, 23/09/2026) — même critère que la tuile,
@@ -2336,7 +2336,7 @@ export const fr = {
   "machine.fiche.historique_ajouter": "+ Intervention",
   "machine.fiche.historique_colonne_date": "Date",
   "machine.fiche.historique_colonne_intervention": "Intervention",
-  "machine.fiche.historique_colonne_type": "Type",
+  "machine.fiche.historique_colonne_type": "Nature",
   "machine.fiche.historique_colonne_technicien": "Technicien",
   "machine.fiche.historique_colonne_resultat": "R\u00e9sultat",
   "machine.fiche.historique_vide":
