@@ -308,16 +308,7 @@ export default async function PageRegistreVgp({
   ];
 
   return (
-    <Page
-      chemin="/vgp"
-      titre={t("vgp.titre")}
-      sousTitre={t("vgp.sous_titre")}
-      actions={
-        <Link href="/parc" className="text-app-encre-faible text-[12.5px]">
-          {t("vgp.retour")}
-        </Link>
-      }
-    >
+    <Page chemin="/vgp" titre={t("vgp.titre")} sousTitre={t("vgp.sous_titre")}>
       {/*
         LES QUATRE KPI DE `vgp()` (D125) — le troisième est un ÉCART VOLONTAIRE
         de CONTENU : voir l'en-tête de ce fichier et tests/unit/ui/lot-a5-a7.
@@ -380,7 +371,7 @@ export default async function PageRegistreVgp({
       */}
       <Link
         href="/vgp/a-determiner"
-        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px] font-bold"
+        className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3.5 py-2.5 text-[12.5px] font-bold underline underline-offset-2"
       >
         {indetermines.length}{" "}
         {t(

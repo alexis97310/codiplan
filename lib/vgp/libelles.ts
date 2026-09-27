@@ -94,7 +94,11 @@ export function libelleEcheance(etat: EtatInformation): string | null {
     // de `app/` (§6).
     const unite =
       joursDepasses === 1 ? t("vgp.echeance.jour_un") : t("vgp.echeance.jours");
-    return `${t("vgp.echeance.depassee")} — ${date} (${joursDepasses} ${unite})`;
+    // SANS PRÉFIXE (GR17-M9) : le badge d'état porte déjà « Échéance
+    // dépassée » (`vgp.information.recue_echeance_depassee`,
+    // `libelleEtatCourt` ci-dessous) — la répéter ici doublait la même
+    // information dans deux colonnes du même registre.
+    return `${date} (${joursDepasses} ${unite})`;
   }
   return `${t("vgp.echeance.declaree")} — ${date}`;
 }

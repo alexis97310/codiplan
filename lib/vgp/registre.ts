@@ -214,7 +214,8 @@ function ligneDuRegistre(
  *
  * **Aucun des deux n'est un verdict (D88).** « Dépassée » dit qu'une date
  * déclarée est passée ; il ne dit ni « non conforme », ni « en retard » — la
- * même distinction que `vgp.echeance.depassee` porte au dictionnaire.
+ * même distinction que `vgp.information.recue_echeance_depassee` porte au
+ * dictionnaire.
  *
  * **Aucune tolérance** : une échéance est passée ou elle ne l'est pas. La
  * seule borne est l'HORIZON de « à venir », et il est REÇU de l'appelant —
@@ -573,8 +574,8 @@ export async function informationDeLaMachine(
  * Les deux comptes lisent `joursAvantEcheance`, une SOUSTRACTION déjà faite
  * par `etatDeLInformation` sur une date DÉCLARÉE (périodicité saisie). Dire
  * qu'une échéance est dépassée n'est pas dire qu'une machine est en faute —
- * exactement la même distinction que `vgp.echeance.depassee` porte déjà dans
- * le dictionnaire.
+ * exactement la même distinction que `vgp.information.recue_echeance_depassee`
+ * porte déjà dans le dictionnaire.
  */
 export type ResumeDuRegistre = {
   /** Échéance déclarée, connue et pas encore passée — aucune fenêtre de jours. */

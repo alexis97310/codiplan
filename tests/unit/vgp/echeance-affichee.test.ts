@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fr } from "@/lib/i18n";
+import { fr, t } from "@/lib/i18n";
 import { type EtatInformation } from "@/lib/vgp/information";
 import { libelleEcheance } from "@/lib/vgp/libelles";
 
@@ -54,6 +54,11 @@ describe("l'échéance déduite devient du texte à un seul endroit", () => {
     expect(texte).not.toBe(
       libelleEcheance({ ...etat, joursAvantEcheance: 30 }),
     );
+    // LE MOT « DÉPASSÉE » NE SE RÉPÈTE PLUS DANS CETTE COLONNE (GR17-M9) : le
+    // badge d'état le porte déjà (`vgp.information.recue_echeance_depassee`,
+    // lu par le registre à côté) — la colonne Échéance dit désormais la date
+    // et l'écart, jamais le même mot deux fois sur la même ligne.
+    expect(texte).not.toContain(t("vgp.information.recue_echeance_depassee"));
   });
 
   it("UN SEUL JOUR DE RETARD s'accorde au singulier (lot AV-14) — jamais « 1 jours »", () => {

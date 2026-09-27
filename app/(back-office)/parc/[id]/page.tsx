@@ -585,7 +585,8 @@ function anneeDeVenteAffichee(machine: FicheMachine): string {
 
 /**
  * LA PROCHAINE VGP — `libelleEcheance` rend déjà la phrase complète
- * (« Prochaine échéance — … », « Échéance dépassée — … », « Aucun rythme
+ * (« Prochaine échéance — … », « … (n jours) » pour une échéance dépassée —
+ * le mot « dépassée » reste au seul badge, GR17-M9 —, « Aucun rythme
  * déclaré ») pour les machines soumises et renseignées ; `null` couvre les
  * deux autres états (hors registre, sans information), que N-11 rend par
  * « à déterminer » plutôt que par le tiret des autres écrans — la fiche parle

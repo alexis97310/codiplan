@@ -2151,7 +2151,6 @@ export const fr = {
   "vgp.titre": "Registre des v\u00e9rifications p\u00e9riodiques",
   "vgp.sous_titre":
     "Ce qu'on nous a dit, et quand on nous l'a dit. CODIPLAN n'affirme jamais la conformit\u00e9 : les v\u00e9rifications sont command\u00e9es par les clients, et leur r\u00e9sultat n'arrive ici que si on nous le transmet.",
-  "vgp.retour": "\u2039 Retour au parc",
   "vgp.lien_depuis_parc": "Registre des v\u00e9rifications p\u00e9riodiques",
   // \u2500\u2500 LES SIX COLONNES DU TABLEAU, \u00c0 L'IDENTIQUE DE vgp() (D125) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Machine, Client, Dernier contr\u00f4le, \u00c9ch\u00e9ance, \u00c9tat, Action \u2014 la famille et
@@ -2266,7 +2265,9 @@ export const fr = {
   // l'échéance déduite est PASSÉE. Mesuré sur d9c9446 : la ligne portait
   // « Information reçue » en vert, le même badge qu'une machine à échéance
   // lointaine. « Dépassée » dit qu'une date est passée, jamais « en retard »
-  // ni « non conforme » (D88) — le même mot que `vgp.echeance.depassee`.
+  // ni « non conforme » (D88) — désormais le seul endroit du dictionnaire où
+  // « dépassée » se lit à propos d'une échéance (GR17-M9, la colonne
+  // Échéance ne le redit plus, voir `libelleEcheance`, lib/vgp/libelles.ts).
   "vgp.information.recue_echeance_depassee": "Échéance dépassée",
   "vgp.information.depuis_inconnu":
     "sans information, et sans date de mise en service pour dire depuis quand",
@@ -2275,7 +2276,6 @@ export const fr = {
   // « en règle » — CODIPLAN n'affirme jamais la conformité (D88).
   "vgp.colonne_echeance": "Échéance déduite",
   "vgp.echeance.declaree": "Prochaine échéance",
-  "vgp.echeance.depassee": "Échéance dépassée",
   // Accordé au nombre réel (lot AV-14, 19/09/2026) — « (1 jours) » était l'un
   // des cinq pluriels invariants mesurés à demeure.
   "vgp.echeance.jour_un": "jour",
@@ -2296,11 +2296,11 @@ export const fr = {
   "vgp.indetermines.titre": "Familles \u00e0 d\u00e9terminer",
   "vgp.indetermines.sous_titre":
     "Une famille na\u00eet \u00ab \u00e0 d\u00e9terminer \u00bb : une case d\u00e9coch\u00e9e serait indiscernable d'une famille que personne n'a examin\u00e9e, et un pont \u00e9l\u00e9vateur sortirait du registre en silence.",
-  "vgp.indetermines.lien": "familles restent \u00e0 d\u00e9terminer",
+  "vgp.indetermines.lien": "familles restent \u00e0 d\u00e9terminer \u2192",
   // LE SINGULIER EST UNE CLÉ — « 1 familles restent à déterminer » a été lu
   // sur une image le 13/09/2026, comme « 1 fiches à compléter » du parc : le
   // cas n'existe que sur un parc qui en porte EXACTEMENT une.
-  "vgp.indetermines.lien_une": "famille reste \u00e0 d\u00e9terminer",
+  "vgp.indetermines.lien_une": "famille reste \u00e0 d\u00e9terminer \u2192",
   "vgp.indetermines.aucune":
     "Toutes les familles ont \u00e9t\u00e9 examin\u00e9es. Une famille cr\u00e9\u00e9e demain reviendra dans cette liste.",
   "vgp.indetermines.retour": "\u2039 Retour au registre",
