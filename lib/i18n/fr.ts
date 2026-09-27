@@ -3765,6 +3765,14 @@ export const fr = {
   "gr12sites.e2e.client": "ERGO12 — Client de l'épreuve",
   "gr12sites.e2e.site_avec_equipement": "ERGO12 — Lieu avec équipement",
   "gr12sites.e2e.site_sans_equipement": "ERGO12 — Lieu sans équipement",
+
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/fiche-telephone.spec.ts)
+  //
+  // Même discipline que `gr12sites.e2e.*` : sa PROPRE scène, préfixée
+  // `ERGO13`, créée et supprimée par l'épreuve (9AD-GR13-FICHE-TELEPHONE,
+  // `docs/propositions/9AD-GR13-FICHE-TELEPHONE`).
+  "gr13telephone.e2e.client": "ERGO13 — Client de l'épreuve",
+  "gr13telephone.e2e.lieu": "ERGO13 — Lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

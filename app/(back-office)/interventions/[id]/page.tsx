@@ -295,6 +295,17 @@ export default async function PageIntervention({
       "annuler_intervention",
       ligne.technicien_id,
     );
+  // LE LIEN MOBILE VERS L'ACTION PRINCIPALE (9AD-GR13-FICHE-TELEPHONE) —
+  // `principale` seul ne suffit pas : « reprendre » et « clôturer » ne
+  // rendent leur bloc que si `peutSuspendreOuReprendre` / `peutClore`
+  // l'autorisent (sinon le bloc est ABSENT, et l'ancre qu'il porterait
+  // n'existe pas). « planifier » et « affecter » rendent toujours leur bloc
+  // (refusé ou non) dès que ce statut leur donne la main.
+  const principaleRendue =
+    principale === "planifier" ||
+    principale === "affecter" ||
+    (principale === "reprendre" && peutSuspendreOuReprendre) ||
+    (principale === "cloturer" && peutClore);
   // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
   // L'USAGE — jamais par défaut : c'est la lecture, pas seulement le rendu,
   // qui fuyait (même raisonnement qu'à la création).
@@ -555,6 +566,23 @@ export default async function PageIntervention({
           {t(cle)}
         </p>
       ))}
+
+      {/*
+        L'ACTION PRINCIPALE, JUSTE SOUS LE TITRE, SUR TÉLÉPHONE
+        (9AD-GR13-FICHE-TELEPHONE, décision d'Alexis du 26/09/2026) — sous
+        901 px, le panneau « Actions » de l'aside passe SOUS tout le reste du
+        contenu ; l'action qui fait avancer l'intervention en devient loin.
+        Un lien, jamais un second formulaire (le formulaire réel reste unique,
+        dans l'aside) : il mène par ancre au bloc `Action` principal.
+      */}
+      {principale !== null && principaleRendue ? (
+        <a
+          href={`#action-${principale}`}
+          className={`${CLASSES_LIEN} mb-4 block text-[13px] font-semibold min-[901px]:hidden`}
+        >
+          {t(`intervention.action.${principale}`)}
+        </a>
+      ) : null}
 
       {/* `.mach` de la maquette : deux colonnes, 1fr et 300 px. */}
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
@@ -844,6 +872,7 @@ export default async function PageIntervention({
                   à moitié (R2-19, « même route, même décision »).
                 */}
                     <Action
+                      id="action-planifier"
                       titre={t("intervention.action.planifier")}
                       verdict={verdictPlanifier}
                       action={`/api/interventions/${ligne.id}/deplacer`}
@@ -899,6 +928,7 @@ export default async function PageIntervention({
                 ) : (
                   <>
                     <Action
+                      id="action-affecter"
                       titre={t("intervention.action.affecter")}
                       verdict={verdictAffecter}
                       action={`/api/interventions/${ligne.id}/affecter`}
@@ -999,6 +1029,7 @@ export default async function PageIntervention({
                     rien. */}
                 {peutClore ? (
                   <Action
+                    id="action-cloturer"
                     titre={t("intervention.action.cloturer")}
                     verdict={peutCloturer(statut, ligne.temps_mesure_min)}
                     action={`/api/interventions/${ligne.id}/cloturer`}
@@ -1054,6 +1085,7 @@ export default async function PageIntervention({
             */}
                 {!peutSuspendreOuReprendre ? null : statut === "suspendue" ? (
                   <Action
+                    id="action-reprendre"
                     titre={t("intervention.action.reprendre")}
                     verdict={peutReprendre(statut)}
                     action={`/api/interventions/${ligne.id}/reprendre`}
@@ -1818,6 +1850,13 @@ function Saisie({
  * se replie NEUTRE au lieu de s'afficher déplié en oxyde — vu sur chaque
  * fiche non terminée, ce refus rouge n'attirait plus l'œil. `replie` porte
  * cette seule exception ; tout autre refus garde le régime ci-dessus.
+ *
+ * **Amendement (9AD-GR13-FICHE-TELEPHONE, 27/09/2026, décision d'Alexis du
+ * 26/09) :** « un seul regroupement des actions » reste vrai — ce panneau ne
+ * se scinde pas —, mais sur téléphone l'action PRINCIPALE se signale en plus
+ * juste sous le titre de la fiche, par un lien qui mène à l'ancre posée ici
+ * (`id`). L'écart est nommé : la maquette (R2-08) ne prévoyait qu'une colonne
+ * latérale, jamais un second repère au-dessus.
  */
 function Action({
   titre,
@@ -1828,11 +1867,18 @@ function Action({
   children,
   principale = false,
   replie = false,
+  id,
 }: {
   titre: string;
   verdict: { refuse: boolean; cle?: string };
   action: string;
   note?: string;
+  /**
+   * L'ANCRE DU BLOC (9AD-GR13-FICHE-TELEPHONE) — stable, posée sur le
+   * conteneur qu'il s'agisse d'un refus, d'un bloc plein ou d'un `<details>`
+   * replié. Seul le lien mobile de la fiche s'en sert.
+   */
+  id?: string;
   /**
    * FACULTATIF depuis L2-10 : la reprise ne saisit rien — le statut retrouvé se
    * déduit du créneau, et le motif est effacé par la base. *Une action sans
@@ -1867,7 +1913,10 @@ function Action({
     const raison = cle !== undefined && estCleTraduction(cle) ? t(cle) : "";
     if (replie) {
       return (
-        <details className="bg-app-surface border-app-bord rounded-lg border px-4 py-3">
+        <details
+          id={id}
+          className="bg-app-surface border-app-bord rounded-lg border px-4 py-3"
+        >
           <summary className="cursor-pointer text-[13px] font-bold">
             {titre}
           </summary>
@@ -1876,7 +1925,10 @@ function Action({
       );
     }
     return (
-      <section className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3">
+      <section
+        id={id}
+        className="border-app-rouge-bord bg-app-rouge-fond flex flex-col gap-1 rounded-lg border px-4 py-3"
+      >
         <h2 className="text-[13px] font-bold">{titre}</h2>
         <p className="text-app-rouge-encre text-[12.5px]">{raison}</p>
       </section>
@@ -1904,6 +1956,7 @@ function Action({
   if (principale) {
     return (
       <form
+        id={id}
         action={action}
         method="post"
         className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3"
@@ -1915,7 +1968,10 @@ function Action({
   }
 
   return (
-    <details className="bg-app-surface border-app-bord rounded-lg border px-4 py-3">
+    <details
+      id={id}
+      className="bg-app-surface border-app-bord rounded-lg border px-4 py-3"
+    >
       <summary className="cursor-pointer text-[13px] font-bold">
         {titre}
       </summary>
