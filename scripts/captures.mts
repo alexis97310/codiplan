@@ -7,6 +7,7 @@ import { maintenant } from "@/lib/calendar/fuseau";
 import { chromium, type Browser, type Page } from "@playwright/test";
 
 import { CHEMIN_EPREUVE } from "./lib/classeur-epreuve";
+import { ECRANS_EXPLOITATION } from "./lib/ecrans-exploitation";
 import { SURFACE_DECRAN } from "./lib/surface-decran";
 import { verdictDuTemoin } from "./lib/verdict-temoin";
 
@@ -309,6 +310,10 @@ const ECRANS: readonly Ecran[] = [
     authentifie: true,
     temoin: "Planning",
   },
+  // Deux écrans d'exploitation déclarés à la prise de vue (CG9, constat C-A3
+  // de l'audit du 26/09/2026) : leurs témoins sont les sous-titres, seuls à
+  // n'être rendus que par leur propre écran — la barre porte déjà leurs titres.
+  ...ECRANS_EXPLOITATION,
   {
     // LE RAPPORT, et son chemin se DÉCOUVRE : une base semée ne porte aucun
     // lot, et l'identifiant change à chaque exécution.
