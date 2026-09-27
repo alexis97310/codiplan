@@ -448,7 +448,8 @@ export const fr = {
   // Et il dit D'OÙ L'ON PART (D56) : un nombre dont la signification dépend
   // d'une autre colonne ne voyage jamais seul, pas même à l'écran. Le mot
   // imposé n'y est pas écrit — voir « site.rattachement » ci-dessus.
-  "site.temps_trajet_min": "Temps de trajet depuis le rattachement (minutes)",
+  "site.temps_trajet_min":
+    "Temps de trajet depuis le rattachement (en minutes — ex. 90 = 1 h 30)",
   // D74 : c'est une donnée de PLANIFICATION. L'aide le dit à celui qui saisit,
   // pour que personne ne croie renseigner un temps facturable.
   "site.temps_trajet_min.aide":
@@ -1443,7 +1444,7 @@ export const fr = {
   // destinataire n'a pas le droit de lire (D50).
   "intervention.deplacement.heure":
     "Heure de début (laisser vide pour une journée sans heure)",
-  "intervention.deplacement.duree": "Durée en minutes",
+  "intervention.deplacement.duree": "Durée (en minutes — ex. 90 = 1 h 30)",
   "intervention.deplacement.explication":
     "Même effet que le glisser-déposer du planning, et mêmes refus. L'heure se donne dans l'heure locale du lieu d'intervention.",
   "intervention.refus.jour_ferme":
@@ -2642,7 +2643,7 @@ export const fr = {
   "prestations.sans_famille": "Aucune famille",
   "prestations.famille_inconnue": "Famille non lisible",
   "prestations.duree": "Durée standard",
-  "prestations.duree_minutes": "Durée (minutes)",
+  "prestations.duree_minutes": "Durée (en minutes — ex. 90 = 1 h 30)",
   // « NON ESTIMÉE » ET « ZÉRO » NE SE CORRIGENT PAS AU MÊME ENDROIT : zéro
   // dirait « instantané », et la base le refuse pour cette raison exacte. La
   // troisième fois que ce dépôt sépare « je ne sais pas » de « la valeur vaut
