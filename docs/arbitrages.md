@@ -4893,3 +4893,35 @@ Aucune migration, aucune règle du chapitre 10, aucune ligne de `lib/auth/habili
 > Le jour où une maquette redessinée porte une entrée « Demandes » à cette même place, `ECARTS_HORS_MAQUETTE` se vide et le gardien de `entrees.test.ts` retrouve sa forme d'avant D133 — rien à trancher, seulement à constater. Le jour où l'exploitation veut retirer cette entrée, c'est cette décision qui se rouvre, jamais un simple retrait de ligne dans `entrees.ts`.
 
 **Règles amendées :** aucune règle du chapitre 10. D121 est amendée d'un écart nommé, comme décrit ci-dessus.
+
+## D134 — UNE AGENCE INACTIVE SORT DES CHOIX, PAS DE L'HISTOIRE
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 26/09/2026, lot AGENCE-ACTIVE, ticket 9AY-AA-1.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Depuis AGENCE-2, la liste `/parametres/agences` distingue une agence active d'une agence inactive, mais rien en amont ne s'en souciait : `agencesDisponibles` (`lib/techniciens/depot.ts`) proposait déjà les agences actives seulement pour le rattachement d'un technicien, tandis que `/sites/nouveau` et `/sites/[id]` (`tx.agence.findMany` sans filtre) proposaient TOUTES les agences, actives ou non, dans leur menu de rattachement. Aucun lecteur commun n'existait : le critère « proposable » était écrit une fois, partiellement, à un seul endroit.
+
+### LA DÉCISION
+
+**Une agence inactive sort des CHOIX et des FILTRES ; elle reste dans Paramètres > Agences et sur les fiches qui la portent déjà.** Même principe que D129 pour le client inactif — désactiver un établissement dit qu'on n'y affecte plus rien de nouveau, jamais qu'il n'a pas existé.
+
+Traduit en un lecteur unique, `agencesProposables` (`lib/agences/proposables.ts`), qui filtre `actif = true`, PLUS l'agence que l'appelant demande explicitement de garder (`{ garder: id }`) même si elle est inactive — marquée `inactive: true` dans son résultat. `agencesDisponibles` et les deux pages de site l'appellent désormais tous les trois ; c'est le seul endroit qui écrit le critère.
+
+**Ce qui reste PROPOSÉ malgré l'inactivité, et pourquoi :** une fiche qui porte DÉJÀ le rattachement (`/sites/[id]`, via `garder: site.agence_id`) — sans quoi le menu perdrait son option, le navigateur retomberait sur la première agence de la liste, et « Enregistrer » un tout autre champ changerait le rattachement du site sans que personne ne l'ait demandé. C'est la même prudence que D56 pour le temps de trajet : *un champ ne doit jamais changer de valeur parce qu'un autre a été modifié*.
+
+**Ce qui est GARDÉ, non touché par cette décision :**
+- **Paramètres > Agences** — la liste continue de montrer toutes les agences, actives et inactives, avec leur badge d'état (AGENCE-2) : c'est l'écran où l'on RÈGLE l'état, pas un menu de choix.
+- **Les fiches existantes** — un technicien ou un site déjà rattaché à une agence désactivée garde son rattachement affiché, exactement comme un client inactif garde ses sites (D129).
+- **La charge et le planning** — les interventions et la charge déjà posées sur une agence désactivée restent lisibles ; cette décision ne filtre aucune lecture de planification, seulement des MENUS DE CHOIX.
+- **L'import** — la résolution d'une agence par son code, à l'import Excel (`lib/imports/modeles.ts`), n'est pas filtrée par `actif` : un import réattache des données historiques, il ne propose pas un choix à l'écran.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS, aucune règle du chapitre 10. `lib/agences/depot.ts` (le chemin d'écriture d'une agence) n'est pas modifié.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation veut qu'un menu de rattachement propose EXPLICITEMENT une agence inactive sans qu'aucune fiche ne la garde déjà (par exemple pour corriger une erreur de saisie ancienne), cette page se rouvre plutôt que d'ajouter un contournement à `agencesProposables`.
+
+**Règles amendées :** aucune.
