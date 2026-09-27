@@ -14,6 +14,7 @@ import {
 } from "@/lib/interventions/statistiques";
 import type { LigneOccupation } from "@/lib/interventions/occupation";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { Badge } from "@/components/ui/badge";
 import type { StatutIntervention } from "@prisma/client";
 
 /**
@@ -279,6 +280,13 @@ function Chiffres({ occupation }: { occupation: OccupationTechnicien }) {
           {tauxEtFormule(taux, tauxArrondiAZeroMaisNonNul(occupation))}
         </span>
       )}
+      {/* LA PASTILLE ROUGE (9AW-GR17-SURCHARGE-MARQUE, décision d'Alexis du
+          27/09/2026) — un signal qui se voit AVANT que la phrase ci-dessous
+          ne soit lue. Elle ne remplace pas la phrase : D56 exige toujours le
+          taux avec ses termes, jamais un pictogramme seul. */}
+      {taux !== null && TAUX_PLEIN < taux ? (
+        <Badge ton="rouge">{t("statistiques.surcharge")}</Badge>
+      ) : null}
       {/* LE DÉPASSEMENT SE DIT LÀ OÙ LE CHIFFRE S'AFFICHE, et nulle part
           ailleurs (14/09/2026). La décision — *le taux se dit, il ne se
           plafonne pas* — vivait dans le commentaire de

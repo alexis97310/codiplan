@@ -1120,6 +1120,11 @@ export const fr = {
   // (§9, 11/09).
   "statistiques.taux_au_dela":
     "au-del\u00e0 de 100\u00a0%\u00a0: la charge d\u00e9passe les heures d'ouverture de l'\u00e9tablissement. Ce n'est pas une erreur de calcul.",
+  // LA PASTILLE À CÔTÉ DU DÉPASSEMENT (9AW-GR17-SURCHARGE-MARQUE, décision
+  // d'Alexis du 27/09/2026) : le dépassement se DIT toujours par
+  // `statistiques.taux_au_dela`, ci-dessus — cette clé ne le remplace pas,
+  // elle attire l'œil sur la ligne avant que la phrase ne soit lue.
+  "statistiques.surcharge": "Surchargé",
   // LE SÉPARATEUR N'APPARTIENT À AUCUN ÉCRAN — il s'appelait
   // `statistiques.separateur`, et la fiche d'intervention en a eu besoin le
   // jour où elle a affiché « CACES — bloquante » (L3-02). *Une clé nommée
