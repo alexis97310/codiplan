@@ -173,19 +173,28 @@ export default async function PageMateriel({
         </Tableau>
       </Carte>
 
+      {/*
+        REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
+        `/parametres/equipe` (voir son commentaire) : le formulaire de
+        modification est le geste rare, le tableau au-dessus est ce qu'on lit
+        d'abord.
+      */}
       {familles.map((famille) => (
-        <Carte
+        <details
           key={famille.id}
-          titre={titreDe(t("materiel.modifier_famille"), famille.code)}
+          className="bg-app-surface border-app-bord rounded-lg border"
         >
-          <div className="p-4">
+          <summary className="cursor-pointer px-[16px] py-[14px] text-[14px] font-bold">
+            {titreDe(t("materiel.modifier_famille"), famille.code)}
+          </summary>
+          <div className="p-4 pt-0">
             <FormulaireFamille
               action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
               soumettre={t("materiel.enregistrer")}
               valeurs={famille}
             />
           </div>
-        </Carte>
+        </details>
       ))}
 
       {/* ── LES MODÈLES ──────────────────────────────────────────────────── */}
@@ -258,11 +267,14 @@ export default async function PageMateriel({
       </Carte>
 
       {modelesAffiches.map((modele) => (
-        <Carte
+        <details
           key={modele.id}
-          titre={titreDe(t("materiel.modifier_modele"), designation(modele))}
+          className="bg-app-surface border-app-bord rounded-lg border"
         >
-          <div className="p-4">
+          <summary className="cursor-pointer px-[16px] py-[14px] text-[14px] font-bold">
+            {titreDe(t("materiel.modifier_modele"), designation(modele))}
+          </summary>
+          <div className="p-4 pt-0">
             <FormulaireModele
               action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
               familles={familles}
@@ -270,7 +282,7 @@ export default async function PageMateriel({
               valeurs={modele}
             />
           </div>
-        </Carte>
+        </details>
       ))}
 
       <p className="text-app-encre-faible text-[11.5px]">
