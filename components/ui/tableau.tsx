@@ -30,7 +30,15 @@
  * planning, qui a sa propre grille agissante, ne passe pas par ici : *sa
  * structure porte les cases de dépôt du glisser-déposer*, et l'unifier
  * casserait un mécanisme pour gagner une ressemblance.
+ *
+ * ## L'indice de défilement (9AS-CG3, 28/09/2026)
+ *
+ * Le conteneur qui défile est un `CadreDefilant` (`components/ui/
+ * cadre-defilant.tsx`), pas un `<div className="overflow-x-auto">` nu : il
+ * pose un voile dégradé sur le bord où il reste du contenu à découvrir.
  */
+
+import { CadreDefilant } from "./cadre-defilant";
 
 /** Une colonne : son libellé, et si elle s'aligne à droite (les montants). */
 export type Colonne = {
@@ -61,8 +69,11 @@ export function Tableau({
 }>) {
   return (
     // Le défilement horizontal est BORNÉ à ce conteneur : le corps de la page
-    // ne défile jamais latéralement.
-    <div className="overflow-x-auto">
+    // ne défile jamais latéralement. `CadreDefilant` y ajoute l'indice de
+    // défilement (9AS-CG3) sans changer cette classe, lue par ailleurs
+    // (`tests/e2e/planning-largeur-et-carte.spec.ts:159`, un écran étranger
+    // à `Tableau`).
+    <CadreDefilant className="overflow-x-auto">
       <table
         aria-label={libelle}
         className="w-full border-collapse text-[13px]"
@@ -90,7 +101,7 @@ export function Tableau({
         </thead>
         <tbody>{children}</tbody>
       </table>
-    </div>
+    </CadreDefilant>
   );
 }
 
