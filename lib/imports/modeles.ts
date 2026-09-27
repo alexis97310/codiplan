@@ -1380,6 +1380,80 @@ export function modeleEquipements(
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+ * LA COLONNE EN CAUSE D'UNE SAISIE REFUSÉE (9AK-GR15-MOTIF-REJET)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** Ce que `colonneEnCause` demande à un schéma — jamais tout Zod. */
+type SchemaDeSaisie = {
+  safeParse: (valeur: unknown) =>
+    | { success: true }
+    | {
+        success: false;
+        error: { issues: readonly { path: readonly PropertyKey[] }[] };
+      };
+};
+
+/**
+ * LA COLONNE ET LA VALEUR QU'UNE SAISIE REFUSÉE MET EN CAUSE — sans rien
+ * stocker (G16, gain GR15b).
+ *
+ * **Elle rejoue `schema.safeParse(saisieDepuisLaLigne(valeurs, champs))`, la
+ * MÊME lecture que `validerContre` et les `preparer*`** — jamais une seconde
+ * règle : une seconde lecture d'un même critère diverge en silence (§9,
+ * 01/09).
+ *
+ * **Un parent résolu (`client_id`, `roles`, …) n'est jamais dans `champs`** :
+ * son issue ne correspond à aucune colonne, et elle est donc IGNORÉE au
+ * profit de la première issue qui en désigne une. Une ligne dont la seule
+ * faute est un parent introuvable rend `null` — ce n'est pas son rôle, c'est
+ * celui de `MOTIF_PARENT_INTROUVABLE` et de ses trois motifs propres.
+ */
+export function colonneEnCause(
+  valeurs: Readonly<Record<string, string | undefined>>,
+  champs: Readonly<Record<string, string>>,
+  schema: SchemaDeSaisie,
+): { colonne: string; valeur: string } | null {
+  const resultat = schema.safeParse(saisieDepuisLaLigne(valeurs, champs));
+  if (resultat.success) return null;
+
+  const colonneDuChamp = new Map(
+    Object.entries(champs).map(([colonne, champ]) => [champ, colonne]),
+  );
+  for (const probleme of resultat.error.issues) {
+    const champ = probleme.path[0];
+    if (typeof champ !== "string") continue;
+    const colonne = colonneDuChamp.get(champ);
+    if (colonne !== undefined) {
+      return { colonne, valeur: valeurs[colonne]?.trim() ?? "" };
+    }
+  }
+  return null;
+}
+
+/**
+ * LES SEPT TYPES POUR LESQUELS LA SAISIE NE MÉLANGE PAS COLONNES BRUTES ET
+ * VALEURS CALCULÉES (dates, montants, origine) — et rien de plus.
+ *
+ * *L'historique, la VGP, les observations VGP et le second schéma des
+ * familles restent HORS de cette table* : mesuré non établi, écrit plutôt
+ * que deviné (voir le constat du ticket). Ils gardent le motif seul.
+ */
+export const DETAIL_DE_SAISIE: Readonly<
+  Record<
+    string,
+    { champs: Readonly<Record<string, string>>; schema: SchemaDeSaisie }
+  >
+> = {
+  clients: { champs: CHAMPS_CLIENTS, schema: schemaCreationClient },
+  contacts: { champs: CHAMPS_CONTACTS, schema: schemaCreationContact },
+  sites: { champs: CHAMPS_SITES, schema: schemaCreationSite },
+  modeles: { champs: CHAMPS_MODELES, schema: schemaModeleMateriel },
+  prestations: { champs: CHAMPS_PRESTATIONS, schema: schemaPrestation },
+  familles: { champs: CHAMPS_FAMILLES, schema: schemaFamilleMateriel },
+  equipements: { champs: CHAMPS_EQUIPEMENTS, schema: schemaMachine },
+};
+
+/* ────────────────────────────────────────────────────────────────────────
  * LE GABARIT « HISTORIQUE » — l'archive SAV, reprise close (REPRISE-HISTORIQUE ; D127)
  * ──────────────────────────────────────────────────────────────────────── */
 
