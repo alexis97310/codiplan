@@ -1208,8 +1208,7 @@ export const fr = {
   // `vocabulaire.*` (D5, D47, L0-11). Le code nomme la NOTION — `mot("site")`,
   // `mot("agence")` — et jamais le mot ; les clés ci-dessous portent donc ce
   // qui les entoure, et le composant compose.
-  "intervention.deduit_du_lieu":
-    "Déduit du lieu d'intervention — cela ne se saisit pas.",
+  "intervention.deduite_du_prefixe": "Déduite du",
   // 68-DEMANDES-2 — affiché sur `/interventions/nouvelle` seulement quand
   // l'écran a été ouvert depuis la fiche d'une demande.
   "intervention.depuis_demande":
@@ -1351,9 +1350,11 @@ export const fr = {
   "intervention.creation.aide_recherche_prefixe": "Tapez un client, un",
   "intervention.creation.aide_recherche_suffixe": "ou une commune",
   // Reformulation de la note affichée sous le champ Site — elle disait avant
-  // « Déduit du lieu d'intervention », sans dire de QUOI : `intervention.
-  // deduit_du_lieu` reste inchangée, elle sert encore la fiche et la demande
-  // (`interventions/[id]`, `demandes/[id]`), hors du périmètre de ce ticket.
+  // « Déduit du lieu d'intervention », sans dire de QUOI. GR16h (26/09/2026)
+  // a repris ce même raisonnement sur la fiche et la demande
+  // (`interventions/[id]`, `demandes/[id]`) : `intervention.deduit_du_lieu`
+  // a laissé place à `intervention.deduite_du_prefixe`, composée avec
+  // `motDansUnePhrase("site")` par `deduiteDuSite()`.
   "intervention.creation.agence_deduite_prefixe": "Le",
   "intervention.creation.agence_deduite_milieu": "choisi détermine l'",
   "intervention.creation.agence_deduite_suffixe": "— cela ne se saisit pas.",

@@ -74,6 +74,7 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import {
   chronologieDeLaFiche,
   dateHeureLocale,
+  deduiteDuSite,
   heureDuCreneau,
   machinesIdentifiees,
   referenceAffichee,
@@ -649,7 +650,7 @@ export default async function PageIntervention({
               <Ligne
                 libelle={mot("agence")}
                 valeur={fiche.rattachement ?? TIRET}
-                note={t("intervention.deduit_du_lieu")}
+                note={deduiteDuSite()}
               />
               {/*
                 LA NOTE « DÉDUIT DU LIEU » NE SE RÉPÈTE PAS (FICHE-INTERVENTION-1)

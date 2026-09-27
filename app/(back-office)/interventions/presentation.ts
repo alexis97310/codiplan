@@ -794,6 +794,12 @@ export function aucuneMachineSurLeSite(): string {
   return `${t("intervention.bon.aucune_machine")} ${motDansUnePhrase("site")}.`;
 }
 
+/** La note sous le champ Site de la fiche et de la demande — « Déduite du
+ * site. » (GR16h). Même raisonnement que les trois fonctions ci-dessus. */
+export function deduiteDuSite(): string {
+  return `${t("intervention.deduite_du_prefixe")} ${motDansUnePhrase("site")}.`;
+}
+
 /**
  * QUATRE TEXTES DE `/interventions/nouvelle` (92-CREATION-2, audit
  * d'ergonomie du 25/09/2026, constats 7 et 8) — même raison que

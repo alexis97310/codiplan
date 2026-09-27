@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { deduiteDuSite } from "@/app/(back-office)/interventions/presentation";
 import { estCleTraduction, fr, t } from "@/lib/i18n/fr";
+import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 
 /**
  * GR16 (audit d'ergonomie du 26/09/2026, constat G18) — neuf textes
@@ -60,5 +62,17 @@ describe("GR16 — refus sur une intervention clôturée", () => {
     expect(t("intervention.refus.cloturee_figee")).toBe(
       "Clôturée : contenu et temps validé sont figés. Seule l'annulation reste possible.",
     );
+  });
+});
+
+describe("GR16 — « Déduite du site »", () => {
+  it("compose le mot imposé, jamais écrit en dur", () => {
+    expect(deduiteDuSite()).toContain(motDansUnePhrase("site"));
+    expect(deduiteDuSite()).toBe("Déduite du site.");
+  });
+
+  it("la clé intervention.deduit_du_lieu n'existe plus", () => {
+    expect(estCleTraduction("intervention.deduit_du_lieu")).toBe(false);
+    expect(Object.keys(fr)).not.toContain("intervention.deduit_du_lieu");
   });
 });

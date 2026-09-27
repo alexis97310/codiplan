@@ -40,7 +40,10 @@ import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { tonDePriorite } from "@/lib/theme/priorites";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
-import { referenceAffichee } from "../../interventions/presentation";
+import {
+  deduiteDuSite,
+  referenceAffichee,
+} from "../../interventions/presentation";
 import {
   cleEtatAccuse,
   instantLisible,
@@ -255,7 +258,7 @@ export default async function PageDemande({
               <Ligne
                 libelle={mot("agence")}
                 valeur={agence?.libelle ?? TIRET}
-                note={t("intervention.deduit_du_lieu")}
+                note={deduiteDuSite()}
               />
               {demande.machine_id === null ? null : (
                 <Ligne
