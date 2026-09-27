@@ -69,7 +69,8 @@ import { libelleMaterielComplet } from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 
 import { tonDePriorite } from "@/lib/theme/priorites";
-import { CLASSES_STATUT } from "@/lib/theme/statuts";
+import { CLASSES_STATUT, CLASSES_TON } from "@/lib/theme/statuts";
+import { tonDeLAvertissement } from "@/lib/avertissements/ton";
 
 import {
   chronologieDeLaFiche,
@@ -563,7 +564,7 @@ export default async function PageIntervention({
           key={cle}
           data-avertissement={cle}
           role="status"
-          className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+          className={`mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
         >
           {t(cle)}
         </p>

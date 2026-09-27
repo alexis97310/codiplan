@@ -69,14 +69,14 @@ import {
   type DonneesMateriel,
 } from "@/lib/machines/depot";
 import { tonDePriorite } from "@/lib/theme/priorites";
-import { CLASSES_BLOC, LEGENDE_PLANNING } from "@/lib/theme/statuts";
-
 import {
-  BlocPosable,
-  CasePosable,
-  PARAMETRE_AVERTISSEMENT,
-  Posable,
-} from "@/components/planning/pose";
+  CLASSES_BLOC,
+  CLASSES_TON,
+  LEGENDE_PLANNING,
+} from "@/lib/theme/statuts";
+import { tonDeLAvertissement } from "@/lib/avertissements/ton";
+
+import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
 
 import {
   enTeteDuBloc,
@@ -174,8 +174,19 @@ export default async function PagePlanning({
   // par un état client qu'un rechargement effacerait avant qu'on le lise.
   // Même filtre que le refus de la fiche (L1-02f) : une clé inconnue ne
   // s'affiche pas — une réponse forgée ne ferait écrire n'importe quoi ici.
-  const avertissementsAffiches = [parametres[PARAMETRE_AVERTISSEMENT] ?? []]
+  //
+  // **LA CLÉ EST LITTÉRALE, PAS `PARAMETRE_AVERTISSEMENT` (GR17-M13, bogue
+  // trouvé en écrivant ce lot)** — mesuré : cette constante, exportée par
+  // `pose.tsx` (`"use client"`), est `undefined` une fois lue depuis CE
+  // composant SERVEUR. La frontière client/serveur de Next.js ne transmet
+  // que les références de composant à travers un import ainsi marqué, pas
+  // une constante ordinaire — le bandeau ne s'affichait donc JAMAIS ici,
+  // quelle que soit l'URL. La fiche d'intervention lisait déjà la même clé en
+  // toutes lettres (`../interventions/[id]/page.tsx`) ; ce fichier fait
+  // désormais pareil, pour la même raison.
+  const avertissementsAffiches = [parametres.avertissement ?? []]
     .flat()
+    .filter((valeur): valeur is string => typeof valeur === "string")
     .filter(estCleTraduction);
   // LE REFUS DE LA CRÉATION, LU DEPUIS L'URL (chantier CRÉA-1, 20/09/2026).
   //
@@ -558,7 +569,7 @@ export default async function PagePlanning({
             // ignorer les alertes.
             data-avertissement={cle}
             role="status"
-            className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px]"
+            className={`mb-4 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON[tonDeLAvertissement(cle)]}`}
           >
             {t(cle)}
           </p>
