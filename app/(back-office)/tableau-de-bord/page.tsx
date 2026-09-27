@@ -73,6 +73,25 @@ const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
  */
 const CLASSES_LIEN_TUILE = `inline-flex min-h-[32px] items-center text-[13px] ${CLASSES_LIEN}`;
 
+/**
+ * « NON CALCULÉ », EN TEXTE COURANT (GR17-M8, audit du 26/09/2026, constat M8)
+ * — mesuré dans le gros chiffre des tuiles au même corps que le taux ou le
+ * compte qu'il remplace, ce qui le fait lire comme une mesure. Reprend la
+ * taille et la graisse du texte de détail de la tuile (`text-[11px]`, poids
+ * normal), jamais une nouvelle valeur : le motif reste inchangé, seule sa
+ * typographie se distingue du chiffre.
+ */
+function nonCalcule(): React.ReactNode {
+  return (
+    <span
+      data-non-calcule=""
+      className="text-app-encre-faible text-[11px] font-normal"
+    >
+      {t("tableau_de_bord.non_calcule")}
+    </span>
+  );
+}
+
 export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
 
 /**
@@ -317,7 +336,7 @@ export default async function PageTableauDeBord({
           <Kpi
             ton="vert"
             libelle={t("tableau_de_bord.kpi_taux_occupation")}
-            valeur={t("tableau_de_bord.non_calcule")}
+            valeur={nonCalcule()}
           />
           <Link href="/planning" className={CLASSES_LIEN_TUILE}>
             {t("tableau_de_bord.lien_charge_planning")}
@@ -352,11 +371,7 @@ export default async function PageTableauDeBord({
           <Kpi
             ton="rouge"
             libelle={t("tableau_de_bord.kpi_vgp_a_prevoir")}
-            valeur={
-              etatVgp.calcule
-                ? valeurVgpAPrevoir(etatVgp)
-                : t("tableau_de_bord.non_calcule")
-            }
+            valeur={etatVgp.calcule ? valeurVgpAPrevoir(etatVgp) : nonCalcule()}
             detail={
               etatVgp.calcule
                 ? detailVgpAPrevoir(etatVgp, HORIZON_VGP_JOURS)
