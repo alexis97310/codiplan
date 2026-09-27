@@ -793,7 +793,7 @@ export const fr = {
   "imports.cle_absente": "aucune",
   "imports.appliquer": "Appliquer l'import",
   "imports.appliquer_aide":
-    "Écrit en base exactement les lignes montrées ci-dessus, et rien d'autre.",
+    "Importe les lignes nouvelles et modifiées ; les rejets ne sont pas importés.",
   "imports.annuler": "Annuler ce lot",
   "imports.annuler_aide":
     "Défait ce qui peut l'être. Une fiche modifiée ou référencée depuis est refusée avec son motif, et rien n'est supprimé en cascade.",

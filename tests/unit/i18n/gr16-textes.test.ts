@@ -26,3 +26,11 @@ describe("GR16 — absences.sous_titre", () => {
     expect(t("absences.sous_titre")).not.toContain("médecine");
   });
 });
+
+describe("GR16 — imports.appliquer_aide", () => {
+  it("dit ce que fait « Appliquer »", () => {
+    expect(t("imports.appliquer_aide")).toBe(
+      "Importe les lignes nouvelles et modifiées ; les rejets ne sont pas importés.",
+    );
+  });
+});
