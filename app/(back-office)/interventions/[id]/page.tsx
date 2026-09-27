@@ -495,6 +495,7 @@ export default async function PageIntervention({
             {t("intervention.titre")} {referenceAffichee(ligne)}
           </span>
           <span
+            data-hors-bandeau=""
             className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${CLASSES_STATUT[statut]}`}
           >
             {t(`statut.${statut}`)}

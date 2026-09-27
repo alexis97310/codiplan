@@ -11,6 +11,8 @@ import {
 
 import { t } from "@/lib/i18n/fr";
 
+import { titreDuBandeau } from "./titre-du-bandeau";
+
 /**
  * LE DÉCLENCHEUR MOBILE DE LA COLONNE (COQUE-375) — arbitrage du directeur
  * d'exploitation rendu le 21/09/2026, mesuré au navigateur sur le site en
@@ -110,6 +112,14 @@ export function FournisseurNavigationMobile({
  * document dès qu'il paraît — le rendu en flux le dépose parfois APRÈS la
  * première peinture (voir le commentaire de `tests/e2e/ecrans-largeur-utile.spec.ts`
  * sur ce point).
+ *
+ * ## LA PASTILLE DE STATUT N'EN FAIT PAS PARTIE (9AD-GR13-FICHE-TELEPHONE)
+ *
+ * Un `<h1>` peut porter, en plus du titre, une pastille collée (ex. la fiche
+ * intervention, `intervention.titre` + `statut.*`) — marquée
+ * `data-hors-bandeau` par l'écran qui la pose. `titreDuBandeau` la retire
+ * avant lecture ; sans ce filtre le bandeau afficherait « Intervention
+ * I-000123Terminée », les deux morceaux collés sans espace.
  */
 export function BandeauMobile() {
   const { ouvert, ouvrir } = useNavigationMobile();
@@ -118,7 +128,8 @@ export function BandeauMobile() {
 
   useEffect(() => {
     const lireLeTitre = () => {
-      setTitre(document.querySelector("main h1")?.textContent?.trim() ?? "");
+      const h1 = document.querySelector("main h1");
+      setTitre(h1 === null ? "" : titreDuBandeau(h1));
     };
     lireLeTitre();
     const observateur = new MutationObserver(lireLeTitre);
