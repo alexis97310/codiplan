@@ -2366,7 +2366,7 @@ export const fr = {
   "parc.action.nouvelle": "+ Machine",
   "machine.nouvelle.titre": "Nouvelle machine",
   "machine.nouvelle.sous_titre":
-    "Les quatre champs marqués d'un astérisque sont obligatoires (RG-PAR-02) ; le reste se complète plus tard.",
+    "Les quatre champs marqués d'un astérisque sont obligatoires ; le reste se complète plus tard.",
   "machine.nouvelle.retour": "‹ Retour au parc",
   "machine.modifier.titre": "Corriger la fiche",
   "machine.modifier.sous_titre":
@@ -2389,7 +2389,7 @@ export const fr = {
   // la fiche intervention.
   "machine.numero_serie_abrege": "S/N",
   "machine.champ.numero_serie_aide":
-    "Plaque illisible ou absente : saisissez SN-INCONNU-<référence interne> (RG-PAR-02).",
+    "Plaque illisible ou absente : saisissez SN-INCONNU-<référence interne>.",
   "machine.champ.client": "Client",
   "machine.champ.reference_interne": "Référence interne",
   "machine.champ.localisation": "Localisation",

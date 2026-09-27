@@ -44,3 +44,13 @@ describe("GR16 — « Afficher la clé »", () => {
     }
   });
 });
+
+describe("GR16 — fiche machine : aucun code de règle à l'écran", () => {
+  it("aucune valeur machine.* ne contient « RG-PAR »", () => {
+    for (const [cle, valeur] of Object.entries(fr)) {
+      if (cle.startsWith("machine.")) {
+        expect(valeur, `la clé ${cle}`).not.toContain("RG-PAR");
+      }
+    }
+  });
+});
