@@ -2557,7 +2557,7 @@ export const fr = {
   // même objet, ce que le §3 refuse pour « agence » et « site ».
   "absences.titre": "Blocages d'agenda",
   "absences.sous_titre":
-    "Qui n'est pas disponible, et quand. Un blocage dit une personne et une période, et rien d'autre : ce n'est pas un oubli, c'est une décision — la nature d'une indisponibilité regarde la médecine du travail, pas le planning.",
+    "Qui n'est pas disponible, et quand. Le motif ne se saisit pas ici.",
   "absences.declarer": "Bloquer un agenda",
   "absences.declarer_action": "Bloquer",
   "absences.personne": "Personne",

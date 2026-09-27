@@ -20,3 +20,9 @@ describe("GR16 — demande.sans_numero", () => {
     expect(t("demande.sans_numero")).toBe(t("intervention.sans_numero"));
   });
 });
+
+describe("GR16 — absences.sous_titre", () => {
+  it("dit une consigne, pas une justification", () => {
+    expect(t("absences.sous_titre")).not.toContain("médecine");
+  });
+});
