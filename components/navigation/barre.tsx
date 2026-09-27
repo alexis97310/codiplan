@@ -341,7 +341,7 @@ function AvatarClaire({ initiales }: { readonly initiales: string }) {
 }
 
 const CLASSES_TITRE_DOMAINE =
-  "text-app-chrome-encre-faible mt-3 mb-1 px-2 text-[11px] font-extrabold tracking-[0.08em] uppercase first:mt-0";
+  "text-app-chrome-encre-faible mb-1 px-2 text-[11px] font-extrabold tracking-[0.08em] uppercase";
 
 const CLASSES_ENTREE =
   "block w-full rounded-md px-2.5 py-2 text-left text-[13px] font-semibold";
@@ -362,7 +362,12 @@ function Domaine({
   readonly cleActive: string | null;
 }) {
   return (
-    <div>
+    // `mt-3 first:mt-0` vit sur CETTE enveloppe, pas sur le titre : un titre
+    // est TOUJOURS le premier enfant de sa propre enveloppe, donc
+    // `first:mt-0` posé sur lui annulait `mt-3` pour chaque domaine, y
+    // compris ceux qui suivent un autre (GR17-M3). L'enveloppe, elle, n'est
+    // première que pour le tout premier domaine de la colonne.
+    <div className="mt-3 first:mt-0">
       <div className={CLASSES_TITRE_DOMAINE}>{t(entree.cle)}</div>
       {entree.enfants.map((enfant) => (
         <Entree
