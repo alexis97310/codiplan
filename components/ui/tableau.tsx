@@ -110,16 +110,25 @@ export function Cellule({
   droite,
   mono,
   fort,
+  etendue,
   children,
 }: Readonly<{
   droite?: boolean;
   /** Les codes se lisent en chasse fixe — la maquette le fait pour eux. */
   mono?: boolean;
   fort?: boolean;
+  /**
+   * LE NOMBRE DE COLONNES COUVERTES (9AT-CG6, audit C-G7) — `colSpan`,
+   * absent tant qu'un appelant ne le passe pas : une cellule qui porte un
+   * motif valable pour plusieurs colonnes le dit une fois, sur toute leur
+   * largeur, plutôt que de le répéter dans chacune.
+   */
+  etendue?: number;
   children: React.ReactNode;
 }>) {
   return (
     <td
+      colSpan={etendue}
       className={`border-app-bord border-b px-4 py-[11px] align-top ${
         droite === true ? "text-right" : "text-left"
       } ${mono === true ? "font-mono text-[12px]" : ""} ${

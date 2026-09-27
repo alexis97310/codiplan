@@ -149,6 +149,24 @@ export default async function PageParametresTrajets({
 }
 
 function LigneZone({ ligne }: { readonly ligne: LigneCatalogue }) {
+  if (ligne.defaut.nature === "sans_estimation") {
+    return (
+      <tr>
+        <Cellule fort>{libelleZone(ligne.zone)}</Cellule>
+        <Cellule droite>{referenceAffichee(ligne)}</Cellule>
+        <Cellule droite>
+          {ligne.reglee === null
+            ? t("trajets.non_reglee")
+            : duree(ligne.reglee)}
+        </Cellule>
+        <Cellule etendue={2}>
+          <span className="text-app-encre-faible text-[12px]">
+            {t(ligne.defaut.motif)}
+          </span>
+        </Cellule>
+      </tr>
+    );
+  }
   return (
     <tr>
       <Cellule fort>{libelleZone(ligne.zone)}</Cellule>
@@ -165,19 +183,22 @@ function LigneZone({ ligne }: { readonly ligne: LigneCatalogue }) {
 }
 
 /**
- * Le formulaire, ou la phrase — jamais un champ grisé.
+ * Le formulaire de réglage — jamais un champ grisé.
  *
- * *Un champ qu'on ne peut pas remplir se lit « pas encore rempli ».* Sur une
- * zone sans estimation, l'écran écrit ce que D107 a décidé, et le serveur
- * refuserait de toute façon l'écriture : les deux lisent la même source.
+ * *Un champ qu'on ne peut pas remplir se lit « pas encore rempli ».* Depuis
+ * 9AT-CG6 (audit C-G7, 28/09/2026), `LigneZone` n'appelle plus ce composant
+ * pour une zone sans estimation : la phrase de D107 vivait ici ET dans
+ * `appliqueAffiche`, doublée sur la même ligne (constat de l'audit captures du
+ * 26/09) ; elle vit désormais une seule fois, dans une cellule qui couvre les
+ * colonnes « Ce qui s'applique » et « Régler ». `Reglage` ne reçoit donc plus
+ * que des zones qui admettent une estimation — le repli `null` ci-dessous
+ * n'existe que pour porter cette garantie au compilateur (`ligne.defaut.
+ * minutes` n'existe pas sur la variante `sans_estimation`) ; il ne se rend
+ * jamais, `LigneZone` n'appelant plus ce composant dans ce cas.
  */
 function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
   if (ligne.defaut.nature === "sans_estimation") {
-    return (
-      <span className="text-app-encre-faible text-[12px]">
-        {t(ligne.defaut.motif)}
-      </span>
-    );
+    return null;
   }
   return (
     <form
@@ -231,18 +252,18 @@ function referenceAffichee(ligne: LigneCatalogue): string {
 }
 
 /**
- * Ce qui s'applique, AVEC SON ORIGINE — et l'absence dit son motif.
+ * Ce qui s'applique, AVEC SON ORIGINE — pour une zone qui admet une
+ * estimation.
  *
- * Les deux motifs ne se corrigent pas au même endroit : `sans_estimation` se
- * corrige site par site (D107), et cette ligne-là est la seule de l'écran qui
- * n'attend rien de l'écran.
+ * Depuis 9AT-CG6 (audit C-G7, 28/09/2026), `LigneZone` n'appelle plus cette
+ * fonction pour une zone `sans_estimation` : sa phrase (D107) vivait ici ET
+ * dans `Reglage`, doublée sur la même ligne. Elle vit désormais une seule
+ * fois, dans une cellule à part — voir `LigneZone`.
  */
 function appliqueAffiche(ligne: LigneCatalogue): string {
   const applique = ligne.applique;
   if (applique.minutes === null) {
-    return ligne.defaut.nature === "sans_estimation"
-      ? t(ligne.defaut.motif)
-      : ABSENT;
+    return ABSENT;
   }
   const origine =
     applique.origine === "societe"
