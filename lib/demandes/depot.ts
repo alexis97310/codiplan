@@ -133,13 +133,24 @@ export async function deposerDemande(
       // et l'on refuse ici plutôt que de buter plus bas sur une clé étrangère.
       const site = await tx.site.findFirst({
         where: { id: saisie.site_id, client_id: saisie.client_id },
-        select: { id: true, agence_id: true },
+        select: {
+          id: true,
+          agence_id: true,
+          agence: { select: { actif: true } },
+        },
       });
       if (site === null) {
         return { accepte: false, cle: "demande.refus.lieu_inconnu" };
       }
       if (site.agence_id === null) {
         return { accepte: false, cle: "demande.refus.lieu_sans_rattachement" };
+      }
+      // AGENCE-ACTIVE (9AZ-AA-6, décision d'Alexis du 26/09/2026) : même
+      // refus qu'à `creerIntervention` (`lib/interventions/depot.ts`), pour
+      // la même raison — `site.agence` est non nulle ici, `agence_id` venant
+      // d'être vérifié non nul et la clé étrangère garantissant la ligne.
+      if (site.agence?.actif === false) {
+        return { accepte: false, cle: "demande.refus.agence_inactive" };
       }
 
       const depose = await instantDeLAgence(tx, site.agence_id);

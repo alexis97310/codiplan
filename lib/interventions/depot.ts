@@ -295,6 +295,7 @@ export async function creerIntervention(
           agence_id: true,
           zone_geo: true,
           client: { select: { actif: true } },
+          agence: { select: { actif: true } },
         },
       });
       if (site === null) {
@@ -326,6 +327,17 @@ export async function creerIntervention(
         return {
           accepte: false,
           cle: "intervention.refus.lieu_sans_rattachement",
+        };
+      }
+      // AGENCE-ACTIVE (9AZ-AA-6, decision d'Alexis du 26/09/2026) : une
+      // intervention ne nait plus sur un site rattache a une agence inactive
+      // — rattacher d'abord le site a une agence active. `site.agence` est
+      // NON NULLE ici : `agence_id` vient d'etre verifie non nul, et la cle
+      // etrangere garantit la ligne.
+      if (site.agence?.actif === false) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.agence_inactive",
         };
       }
 

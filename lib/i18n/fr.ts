@@ -1237,6 +1237,12 @@ export const fr = {
   // implique — une intervention qui ne paraîtrait nulle part.
   "intervention.refus.client_inactif":
     "Ce client est inactif : une intervention créée chez lui n'apparaîtrait ni sur le planning ni dans le registre. La création est refusée.",
+  // AGENCE-ACTIVE (9AZ-AA-6, décision d'Alexis du 26/09/2026) — même famille
+  // que ci-dessus : le lieu existe, c'est son ÉTABLISSEMENT de rattachement
+  // qui est inactif. Le mot imposé ne s'écrit qu'au vocabulaire (§9, D5/D47) :
+  // « lieu » et « établissement » le désignent ici sans le nommer.
+  "intervention.refus.agence_inactive":
+    "Ce lieu est rattaché à un établissement inactif : rattachez-le d'abord à un établissement actif.",
   // RG-PLA-06 (L3-04). **Le motif ne nomme ni la personne ni la période**, et
   // ce n'est pas de la pudeur : un refus est un canal d'information soumis au
   // cloisonnement comme une requête (D50). Qui planifie voit l'absence sur
@@ -1710,6 +1716,11 @@ export const fr = {
     "Ce lieu n'existe pas pour ce client, ou il n'est pas dans votre périmètre.",
   "demande.refus.lieu_sans_rattachement":
     "Ce lieu n'est rattaché à aucun établissement. Le délai d'accusé de réception se compte sur ses heures ouvrées : renseignez le rattachement d'abord.",
+  // AGENCE-ACTIVE (9AZ-AA-6, décision d'Alexis du 26/09/2026) — même famille
+  // que `intervention.refus.agence_inactive` : le mot imposé ne s'écrit
+  // qu'au vocabulaire (§9, D5/D47), « lieu » et « établissement » suffisent.
+  "demande.refus.agence_inactive":
+    "Ce lieu est rattaché à un établissement inactif : rattachez-le d'abord à un établissement actif.",
   "demande.refus.agence_sans_calendrier":
     "Les horaires de l'établissement dont dépend ce lieu ne sont pas réglés. Sans eux, le délai de réponse n'a pas de point de départ.",
   "demande.refus.deja_qualifiee": "Cette demande est déjà qualifiée.",
