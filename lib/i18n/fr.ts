@@ -1660,8 +1660,7 @@ export const fr = {
   "demande.machine_arretee": "Machine à l'arrêt",
   "demande.date_souhaitee": "Date souhaitée",
   "demande.contact": "Interlocuteur",
-  "demande.sans_numero":
-    "Le numéro est attribué par le serveur à la première synchronisation.",
+  "demande.sans_numero": "Numéro provisoire",
 
   "demande.accuse.titre": "Accusé de réception",
   "demande.accuse.repondu_dans_le_standard": "Répondu dans les temps",
