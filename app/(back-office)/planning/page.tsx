@@ -439,22 +439,34 @@ export default async function PagePlanning({
         </>
       }
       actions={
-        <>
-          <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
-          <Deplacement
-            vue={vue}
-            jour={jourAffiche}
-            semaine={jours[0]}
-            aujourdhui={aujourdhui}
-          />
-          <span data-maquette-bloc="bouton-primaire-intervention">
-            <LienPrimaire href="/interventions/nouvelle">
-              {t("planning.creer")}
-            </LienPrimaire>
-          </span>
-        </>
+        <span data-maquette-bloc="bouton-primaire-intervention">
+          <LienPrimaire href="/interventions/nouvelle">
+            {t("planning.creer")}
+          </LienPrimaire>
+        </span>
       }
     >
+      {/*
+        LES ONGLETS ET LE DÉPLACEMENT, EN PROPRE RANGÉE SOUS L'EN-TÊTE
+        (GR17-M6, audit GR du 26/09/2026, constat M6).
+
+        Le gabarit partagé `Page` (`components/mise-en-page/page.tsx`) ne pose
+        qu'UN SEUL bloc d'actions, à côté du titre : quand ce bloc ne tient
+        plus, il passe ENTIER sous le titre, bouton primaire compris —
+        mesuré, ce bouton se retrouvait ainsi hors de vue en haut à droite.
+        Seul `data-maquette-bloc="bouton-primaire-intervention"` reste dans
+        `actions` ; la bascule Semaine/Jour et le déplacement de période
+        deviennent une rangée à part, qui ne dispute plus au bouton sa place.
+      */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Onglets vue={vue} jour={jourAffiche} semaine={jours[0]} />
+        <Deplacement
+          vue={vue}
+          jour={jourAffiche}
+          semaine={jours[0]}
+          aujourdhui={aujourdhui}
+        />
+      </div>
       {/*
         LA BANNIÈRE « CALENDRIERS D'AGENCE RESPECTÉS » (D125, D128, LOT A2).
 
