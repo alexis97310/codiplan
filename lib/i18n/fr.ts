@@ -554,6 +554,14 @@ export const fr = {
     "Une valeur saisie n'est pas acceptable. Vérifiez les champs numériques et les longueurs.",
   "site.refus.agence_hors_societe":
     "Ce rattachement n'existe pas dans votre société.",
+  // AGENCE-ACTIVE (9AZ-AA-2) — une agence inactive ne se propose plus dans le
+  // menu (D134) ; ce refus tient la porte côté serveur pour un `agence_id`
+  // posté directement. Le MAINTIEN du rattachement déjà posé, même inactif,
+  // n'atteint jamais ce refus (voir `modifierSite`, `lib/sites/depot.ts`).
+  // Le mot imposé ne s'écrit qu'au vocabulaire (§9, D5/D47) : « rattachement »
+  // le désigne ici sans le nommer.
+  "site.refus.agence_inactive":
+    "Ce rattachement est inactif : choisissez-en un actif.",
   // Le refus de D56, rendu à l'écran. Il dit la marche à suivre, comme celui de
   // la base — et il ne nomme ni l'ancien rattachement ni le nouveau : un refus a
   // le droit d'être lisible, jamais d'être informatif (D50).

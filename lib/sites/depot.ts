@@ -96,6 +96,7 @@ const CHAMPS_FICHE = {
 export type MotifRefusSite =
   | "client_hors_perimetre"
   | "agence_hors_societe"
+  | "agence_inactive"
   | "trajet_a_revoir"
   | "fiche_introuvable";
 
@@ -148,17 +149,41 @@ function motifDeLErreur(erreur: unknown): MotifRefusSite | null {
  * dupliquerait en TypeScript un contrôle que la clé étrangère composite
  * `(societe_id, client_id)` tient déjà, sans fenêtre. Le refus de la base est
  * traduit en motif ; il n'est pas prévenu.
+ *
+ * **L'agence, elle, EST vérifiée par une lecture préalable** (AGENCE-ACTIVE,
+ * 9AZ-AA-2) : une agence inactive n'est pas un rattachement hors société — la
+ * clé étrangère la laisse passer —, elle est un choix que D134 ferme aux
+ * créations neuves. Rien ne la garde en base ; ce contrôle-ci est le seul.
+ * **L'import (`creerSitesEnLot`, `lib/imports/application.ts`) ne passe pas
+ * par ici** : une agence redevenue inactive après l'archive qu'on importe
+ * reste un rattachement valide pour un fait passé.
  */
 export async function creerSite(
   contexte: ContexteSession,
   saisie: CreationSite,
+  client?: PrismaClient,
 ): Promise<ResultatEcriture> {
   try {
     const societeId = exigerSocieteActive(contexte);
-    const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      creerSiteDans(tx, societeId, saisie),
+    const resultat = await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        const agence = await tx.agence.findFirst({
+          where: { id: saisie.agence_id },
+          select: { actif: true },
+        });
+        if (agence !== null && !agence.actif) {
+          return {
+            accepte: false as const,
+            motif: "agence_inactive" as const,
+          };
+        }
+        const fiche = await creerSiteDans(tx, societeId, saisie);
+        return { accepte: true as const, fiche };
+      },
+      client,
     );
-    return { accepte: true, fiche };
+    return resultat;
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {
@@ -243,21 +268,52 @@ export async function lireSite(
  * sites d'un compte portail — lève `P2025`, rendu en « introuvable ». Le refus
  * ne dit pas si elle existe ailleurs : un message est un canal d'information,
  * soumis au cloisonnement comme une requête (D50).
+ *
+ * **Un passage VERS une agence inactive est refusé** (AGENCE-ACTIVE, 9AZ-AA-2)
+ * — mais seulement s'il change réellement le rattachement : le MAINTIEN de
+ * l'agence déjà posée, même inactive, reste accepté (D134, même précédent que
+ * pour le menu de `/sites/[id]`). C'est pourquoi la fiche actuelle est relue
+ * ici avant `modifierSiteDans` : sans elle, on ne saurait pas distinguer
+ * « rattacher à » de « garder ».
  */
 export async function modifierSite(
   contexte: ContexteSession,
   id: string,
   saisie: ModificationSite,
+  client?: PrismaClient,
 ): Promise<ResultatEcriture> {
   // `undefined` signifie « ne touche pas à cette colonne », `null` signifie
   // « efface-la ». Prisma distingue les deux par `Prisma.DbNull`, et les
   // confondre effacerait une adresse à chaque modification qui ne la mentionne
   // pas — c'est le défaut trouvé par un test à L1-01.
   try {
-    const fiche = await avecContexteApplicatif(contexte, (tx) =>
-      modifierSiteDans(tx, id, saisie),
+    const resultat = await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        if (saisie.agence_id !== undefined) {
+          const site = await tx.site.findFirst({
+            where: { id },
+            select: { agence_id: true },
+          });
+          if (site !== null && site.agence_id !== saisie.agence_id) {
+            const agence = await tx.agence.findFirst({
+              where: { id: saisie.agence_id },
+              select: { actif: true },
+            });
+            if (agence !== null && !agence.actif) {
+              return {
+                accepte: false as const,
+                motif: "agence_inactive" as const,
+              };
+            }
+          }
+        }
+        const fiche = await modifierSiteDans(tx, id, saisie);
+        return { accepte: true as const, fiche };
+      },
+      client,
     );
-    return { accepte: true, fiche };
+    return resultat;
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {
