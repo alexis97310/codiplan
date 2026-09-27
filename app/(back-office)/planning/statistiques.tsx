@@ -4,7 +4,7 @@ import type { Annuaire } from "@/lib/auth/annuaire";
 import { t } from "@/lib/i18n/fr";
 import { quiTravaille } from "@/lib/interventions/personnes";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { enHeure } from "@/lib/calendar/parametrage";
+import { enDuree } from "@/lib/calendar/duree";
 import {
   partDuSegment,
   TAUX_PLEIN,
@@ -117,15 +117,15 @@ function infobulleDuSegment(
   statut: StatutIntervention,
   minutes: number,
 ): string {
-  return `${t(`statut.${statut}`)}${t("ponctuation.separateur")}${enHeure(minutes)}`;
+  return `${t(`statut.${statut}`)}${t("ponctuation.separateur")}${enDuree(minutes)}`;
 }
 
 function heuresEngagees(occupation: OccupationTechnicien): string {
-  return `${enHeure(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}`;
+  return `${enDuree(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}`;
 }
 
 function heuresOuvrables(occupation: OccupationTechnicien): string {
-  return `${enHeure(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`;
+  return `${enDuree(occupation.minutesOuvrables)} ${t("statistiques.heures_ouvrables")}`;
 }
 
 /**
@@ -136,7 +136,7 @@ function heuresOuvrables(occupation: OccupationTechnicien): string {
  * refaire le calcul.
  */
 function heuresDeTrajet(occupation: OccupationTechnicien): string {
-  return `${enHeure(occupation.trajet.minutes)} ${t("statistiques.heures_trajet")}`;
+  return `${enDuree(occupation.trajet.minutes)} ${t("statistiques.heures_trajet")}`;
 }
 
 /**
@@ -184,7 +184,7 @@ function combienSansDuree(occupation: OccupationTechnicien): string {
  * d'où le « au moins » plutôt que la mention nue.
  */
 function heuresEngageesAuMoins(occupation: OccupationTechnicien): string {
-  return `${t("statistiques.au_moins")} ${enHeure(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}`;
+  return `${t("statistiques.au_moins")} ${enDuree(occupation.minutesEngagees)} ${t("statistiques.heures_engagees")}`;
 }
 
 /**
