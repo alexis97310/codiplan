@@ -1,3 +1,4 @@
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { t } from "@/lib/i18n/fr";
 import type { Devise } from "@/lib/money";
 import { ZONES_GEOGRAPHIQUES } from "@/lib/sites/zones";
@@ -131,22 +132,18 @@ export function FormulaireForfait({
           ))}
         </select>
       </label>
-      <label className="flex items-center gap-2 text-[12.5px] font-semibold">
-        <input
-          name="cumulable_temps"
-          type="checkbox"
-          defaultChecked={defauts?.cumulable_temps ?? false}
-        />
-        {t("forfaits.champ.cumulable")}
-      </label>
-      <label className="flex items-center gap-2 text-[12.5px] font-semibold">
-        <input
-          name="actif"
-          type="checkbox"
-          defaultChecked={defauts?.actif ?? true}
-        />
-        {t("forfaits.champ.actif")}
-      </label>
+      <CaseACocher
+        name="cumulable_temps"
+        defaultChecked={defauts?.cumulable_temps ?? false}
+        libelle={t("forfaits.champ.cumulable")}
+        className="flex items-center gap-2 text-[12.5px] font-semibold"
+      />
+      <CaseACocher
+        name="actif"
+        defaultChecked={defauts?.actif ?? true}
+        libelle={t("forfaits.champ.actif")}
+        className="flex items-center gap-2 text-[12.5px] font-semibold"
+      />
       <div className="sm:col-span-2">
         <button
           type="submit"

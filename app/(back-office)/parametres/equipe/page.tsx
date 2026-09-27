@@ -8,6 +8,7 @@ import { OptionsAgence, type AgenceOption } from "@/components/agences/options";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -408,10 +409,12 @@ function FormulaireCreation({
         type="email"
       />
       <SelectAgence id="nouveau-agence" agences={agences} />
-      <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-        <input type="checkbox" name="actif" defaultChecked />
-        {t("equipe.actif")}
-      </label>
+      <CaseACocher
+        name="actif"
+        defaultChecked
+        libelle={t("equipe.actif")}
+        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+      />
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
       </Button>
@@ -439,10 +442,12 @@ function FormulaireModification({
         valeur={technicien.agenceId}
         agences={agences}
       />
-      <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-        <input type="checkbox" name="actif" defaultChecked={technicien.actif} />
-        {t("equipe.actif")}
-      </label>
+      <CaseACocher
+        name="actif"
+        defaultChecked={technicien.actif}
+        libelle={t("equipe.actif")}
+        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+      />
       <Button type="submit" variant="outline" size="sm">
         {t("equipe.enregistrer")}
       </Button>

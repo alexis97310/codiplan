@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carte } from "@/components/ui/carte";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Champ } from "@/components/ui/champ";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { Page } from "@/components/mise-en-page/page";
@@ -594,9 +595,11 @@ function texteOuVide(valeur: number | null | undefined): string | undefined {
 
 function CaseActive({ defaut }: { readonly defaut: boolean }) {
   return (
-    <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-      <input type="checkbox" name="actif" defaultChecked={defaut} />
-      {t("materiel.active")}
-    </label>
+    <CaseACocher
+      name="actif"
+      defaultChecked={defaut}
+      libelle={t("materiel.active")}
+      className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+    />
   );
 }

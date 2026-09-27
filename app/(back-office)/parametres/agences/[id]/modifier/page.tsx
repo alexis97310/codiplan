@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { Page } from "@/components/mise-en-page/page";
 import { ActionPrimaire } from "@/components/ui/action-primaire";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireAgence } from "@/lib/agences/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -150,15 +151,13 @@ export default async function PageModifierAgence({
           </span>
         </label>
 
-        <label className="flex items-center gap-2 text-[12.5px] font-semibold">
-          <input
-            type="checkbox"
-            name="actif"
-            value="true"
-            defaultChecked={agence.actif}
-          />
-          {t("agence.actif")}
-        </label>
+        <CaseACocher
+          name="actif"
+          value="true"
+          defaultChecked={agence.actif}
+          libelle={t("agence.actif")}
+          className="flex items-center gap-2 text-[12.5px] font-semibold"
+        />
 
         <div>
           <ActionPrimaire>{t("agence.action.modifier")}</ActionPrimaire>

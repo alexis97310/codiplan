@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
@@ -287,14 +288,12 @@ function FormulairePrestation({
         }
         nombre
       />
-      <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-        <input
-          type="checkbox"
-          name="actif"
-          defaultChecked={valeurs?.actif ?? true}
-        />
-        {t("prestations.active")}
-      </label>
+      <CaseACocher
+        name="actif"
+        defaultChecked={valeurs?.actif ?? true}
+        libelle={t("prestations.active")}
+        className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+      />
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
       </Button>

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { RetourParametres } from "@/components/navigation/retour-parametres";
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -254,10 +255,12 @@ function FormulaireHabilitation({
         nombre
       />
       {modification ? (
-        <label className="flex items-center gap-1.5 pb-1 text-[12.5px]">
-          <input type="checkbox" name="actif" defaultChecked={valeurs.actif} />
-          {t("habilitations.active")}
-        </label>
+        <CaseACocher
+          name="actif"
+          defaultChecked={valeurs.actif}
+          libelle={t("habilitations.active")}
+          className="flex items-center gap-1.5 pb-1 text-[12.5px]"
+        />
       ) : null}
       <Button type="submit" variant="outline" size="sm">
         {soumettre}
