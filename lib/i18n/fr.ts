@@ -2547,6 +2547,10 @@ export const fr = {
   // /parametres/equipe : un même mot pour un même état, où qu'on le lise.
   "agence.actif": "Actif",
   "agence.inactif": "Inactif",
+  // AGENCE-ACTIVE (9AY-AA-1) — un menu de rattachement ne propose plus une
+  // agence inactive, SAUF celle que la fiche ouverte porte déjà (D129 pour
+  // les agences) : cette mention dit pourquoi son option reste là.
+  "agence.option.inactive": "(inactive)",
   "agence.colonne_actions": "Actions",
   // Le lien de la liste vers la fiche. PAS `agence.action.modifier` : cette
   // clé-là est le bouton d'ENREGISTREMENT de la fiche, et la liste le

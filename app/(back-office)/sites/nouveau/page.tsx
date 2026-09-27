@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { SelecteurRecherche } from "@/components/ui/selecteur-recherche";
+import { agencesProposables } from "@/lib/agences/proposables";
 import { obtenirSession } from "@/lib/auth/session";
 import { lireClient } from "@/lib/clients/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -73,11 +74,11 @@ export default async function PageNouveauSite({
       ? null
       : await lireClient(session.contexte, clientParam);
 
+  // AGENCE-ACTIVE (9AY-AA-1) : une agence inactive ne se propose plus pour
+  // un site NEUF — il n'y a encore aucun rattachement à garder ici, à la
+  // différence de `/sites/[id]`.
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
-    tx.agence.findMany({
-      select: { id: true, libelle: true, code: true },
-      orderBy: [{ libelle: "asc" }, { id: "asc" }],
-    }),
+    agencesProposables(tx),
   );
 
   return (

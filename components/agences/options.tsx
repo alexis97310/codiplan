@@ -1,9 +1,12 @@
 import { libelleAgenceAvecCode } from "@/lib/agences/presentation";
+import { t } from "@/lib/i18n/fr";
 
 export type AgenceOption = {
   readonly id: string;
   readonly libelle: string;
   readonly code: string;
+  /** Gardée inactive dans ce menu (AGENCE-ACTIVE) — voir `lib/agences/proposables.ts`. */
+  readonly inactive?: boolean;
 };
 
 /**
@@ -16,6 +19,10 @@ export type AgenceOption = {
  * qu'un menu qui l'oublierait se voie au premier `grep`, pas au premier
  * incident. Voir `lib/agences/presentation.ts` pour la raison de la
  * composition elle-même.
+ *
+ * `inactive` est FACULTATIF et n'affecte que la mention affichée (AGENCE-
+ * ACTIVE) : les appelants qui ne connaissent que des agences actives — la
+ * plupart — n'ont rien à changer.
  */
 export function OptionsAgence({
   agences,
@@ -27,6 +34,7 @@ export function OptionsAgence({
       {agences.map((agence) => (
         <option key={agence.id} value={agence.id}>
           {libelleAgenceAvecCode(agence.libelle, agence.code)}
+          {agence.inactive === true ? ` ${t("agence.option.inactive")}` : ""}
         </option>
       ))}
     </>

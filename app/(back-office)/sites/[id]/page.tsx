@@ -13,6 +13,7 @@ import { cache } from "react";
 
 import { z } from "zod";
 
+import { agencesProposables } from "@/lib/agences/proposables";
 import type { ContexteSession } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -184,11 +185,12 @@ export default async function PageSite({
   const libelles = await libellesDesSites(session.contexte, [site]);
   // Les agences de la société, pour que le rattachement soit MODIFIABLE : sans
   // cela, l'exigence de D56 serait vraie et inatteignable depuis cet écran.
+  // AGENCE-ACTIVE (9AY-AA-1) — `garder` protège le rattachement DÉJÀ posé :
+  // sans lui, une agence inactive disparaîtrait du menu, le navigateur
+  // retomberait sur la première option, et « Enregistrer » un autre champ
+  // changerait le rattachement du site sans que personne ne l'ait demandé.
   const agences = await avecContexteApplicatif(session.contexte, (tx) =>
-    tx.agence.findMany({
-      select: { id: true, libelle: true, code: true },
-      orderBy: [{ libelle: "asc" }, { id: "asc" }],
-    }),
+    agencesProposables(tx, { garder: site.agence_id }),
   );
   const exigences = await exigencesDuSite(session.contexte, site.id);
   const habilitations = (await listerHabilitations(session.contexte)).filter(

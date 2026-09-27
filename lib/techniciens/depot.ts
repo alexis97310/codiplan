@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
+import { agencesProposables } from "@/lib/agences/proposables";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import {
   avecDesignationAuth,
@@ -220,12 +221,10 @@ export async function agencesDisponibles(
 > {
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.agence.findMany({
-        where: { actif: true },
-        select: { id: true, libelle: true, code: true },
-        orderBy: [{ libelle: "asc" }, { id: "asc" }],
-      }),
+    async (tx) => {
+      const agences = await agencesProposables(tx);
+      return agences.map(({ id, libelle, code }) => ({ id, libelle, code }));
+    },
     client,
   );
 }
