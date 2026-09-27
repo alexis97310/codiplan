@@ -14,6 +14,7 @@ const CLES_SAISIE_EN_MINUTES = [
   "prestations.duree_minutes",
   "site.temps_trajet_min",
   "intervention.cloture.temps_valide_saisie",
+  "trajets.champ_minutes",
 ] as const;
 
 describe("libellés de saisie en minutes", () => {

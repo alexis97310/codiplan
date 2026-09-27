@@ -2794,10 +2794,14 @@ export const fr = {
   "trajets.colonne_action": "Régler",
   // `trajets.minute_une` sert `duree()` via `decompte()` (lot AV-14,
   // 19/09/2026) : « (1 minutes) » était l'un des cinq pluriels invariants
-  // mesurés à demeure. `trajets.minutes` reste seul dans `etiquetteChamp()`,
-  // une étiquette d'unité sans nombre attaché, jamais un compte.
+  // mesurés à demeure — une étiquette de compte, jamais celle d'un champ.
+  // `trajets.minutes` reste seul dans cet usage-là. `etiquetteChamp()`, elle,
+  // lit `trajets.champ_minutes` (GR14, 9AI) : le champ n'a aucune unité
+  // visible (l'étiquette est `sr-only`), donc son seul lecteur d'écran doit
+  // entendre l'unité ET l'exemple, comme les autres champs saisis en minutes.
   "trajets.minute_une": "minute",
   "trajets.minutes": "minutes",
+  "trajets.champ_minutes": "en minutes — ex. 90 = 1 h 30",
   "trajets.non_reglee": "Non réglée",
   "trajets.origine_societe": "réglage de la société",
   "trajets.origine_defaut": "valeur de référence",

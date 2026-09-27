@@ -218,7 +218,7 @@ function Reglage({ ligne }: { readonly ligne: LigneCatalogue }) {
 
 /** L'étiquette lue par un lecteur d'écran — la zone, puis l'unité. */
 function etiquetteChamp(ligne: LigneCatalogue): string {
-  return `${libelleZone(ligne.zone)} — ${t("trajets.minutes")}`;
+  return `${libelleZone(ligne.zone)} — ${t("trajets.champ_minutes")}`;
 }
 
 /** La valeur de référence de D107, ou la phrase quand il n'y en a pas. */
