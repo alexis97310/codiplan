@@ -15,7 +15,12 @@ import { listerLesLots, PLAFOND_LISTE } from "@/lib/imports/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { instantLisible, nomDeLAuteur } from "./presentation";
-import { cleDuStatut, titreDuType, TYPES_DIMPORT } from "./types";
+import {
+  cleDuStatut,
+  ligneImporterApres,
+  titreDuType,
+  TYPES_DIMPORT,
+} from "./types";
 
 export const metadata: Metadata = { title: t("imports.titre") };
 
@@ -240,6 +245,14 @@ export default async function PageImports({
                   <span className="text-app-encre-faible text-[11.5px]">
                     {t(type.detail)}
                   </span>
+                  {ligneImporterApres(type) !== null && (
+                    <span
+                      data-importer-apres
+                      className="text-app-encre-faible text-[11.5px]"
+                    >
+                      {ligneImporterApres(type)}
+                    </span>
+                  )}
                 </span>
                 <span
                   className="text-[11.5px] font-semibold"
