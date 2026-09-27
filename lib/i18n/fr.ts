@@ -1656,6 +1656,11 @@ export const fr = {
   // droit de lire (D50) — « introuvable » couvre la demande qui n'existe pas et
   // celle qui est hors périmètre, et les distinguer ferait un oracle.
   "demande.titre": "Demandes",
+  // Le titre de LA FICHE d'une demande, distinct de celui de la LISTE
+  // ci-dessus (GR17-M5, audit GR du 26/09, constat M5) — composé avec le nom
+  // du client par `titreFiche` (`app/(back-office)/demandes/presentation.ts`),
+  // jamais ici : cette clé ne porte que le mot seul.
+  "demande.fiche.titre": "Demande",
   "demande.source": "Origine",
   "demande.urgence": "Urgence",
   "demande.description": "Symptôme décrit",

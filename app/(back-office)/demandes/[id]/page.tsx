@@ -47,6 +47,7 @@ import {
 import {
   cleEtatAccuse,
   instantLisible,
+  titreFiche,
   tonDuStatutDemande,
 } from "../presentation";
 
@@ -219,7 +220,7 @@ export default async function PageDemande({
       chemin="/demandes"
       titre={
         <span className="inline-flex flex-wrap items-center gap-3">
-          <span>{t("demande.titre")}</span>
+          <span>{titreFiche(client)}</span>
           <Badge ton={tonDuStatutDemande(statut)}>
             {t(`demande.statut.${statut}`)}
           </Badge>

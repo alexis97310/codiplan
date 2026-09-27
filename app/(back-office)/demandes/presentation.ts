@@ -3,7 +3,7 @@ import { versLocal, type Fuseau } from "@/lib/calendar/fuseau";
 import type { EtatAccuse } from "@/lib/demandes/accuse";
 import { type LigneDemande } from "@/lib/demandes/depot";
 import type { StatutDemande } from "@/lib/demandes/saisie";
-import type { CleTraduction } from "@/lib/i18n/fr";
+import { t, type CleTraduction } from "@/lib/i18n/fr";
 
 /**
  * CE QUE LA FILE ET LA FICHE AFFICHENT — pur, sans lecture de base (DEMANDES-1).
@@ -33,6 +33,26 @@ export function parLaPlusAncienne(
   return [...demandes].sort(
     (a, b) => a.depose_le.getTime() - b.depose_le.getTime(),
   );
+}
+
+/**
+ * LE TITRE DE LA FICHE — « Demande — <raison sociale> », ou « Demande » seul
+ * quand le client n'a pas pu être lu (GR17-M5, audit GR du 26/09, constat
+ * M5).
+ *
+ * *Mesuré sur main : la fiche portait le PLURIEL de la liste (`demande.titre`,
+ * « Demandes ») — juste au singulier ne suffirait pas non plus, une fiche
+ * parmi des centaines gagne à nommer SON client.* `demande.titre` reste
+ * inchangé : il sert encore la liste et le `<title>` de l'onglet (§9, 01/09 —
+ * deux écrans, une seule clé de LISTE, jamais recomposée ici).
+ */
+export function titreFiche(
+  client: { readonly raison_sociale: string } | null,
+): string {
+  if (client === null) {
+    return t("demande.fiche.titre");
+  }
+  return `${t("demande.fiche.titre")}${t("ponctuation.separateur")}${client.raison_sociale}`;
 }
 
 /** Le ton de la pastille de statut — une lecture d'apparence, jamais une règle. */
