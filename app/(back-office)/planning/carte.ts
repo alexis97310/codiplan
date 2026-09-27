@@ -1,6 +1,7 @@
 import { type TypeIntervention } from "@prisma/client";
 
 import type { Annuaire } from "@/lib/auth/annuaire";
+import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { nomSeul } from "@/lib/interventions/personnes";
@@ -99,12 +100,7 @@ export function dureeCarteAffichee(minutes: number): string | null {
   if (minutes <= 0) {
     return null;
   }
-  const heures = Math.floor(minutes / 60);
-  const reste = minutes % 60;
-  if (heures === 0) {
-    return `${reste} ${t("terrain.minutes")}`;
-  }
-  return `${heures} ${t("terrain.heures")} ${String(reste).padStart(2, "0")}`;
+  return enDuree(minutes);
 }
 
 /** Le minimum qu'une colonne de la vue jour porte pour se résumer. */
