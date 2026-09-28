@@ -41,11 +41,18 @@ import type { CibleDeDepot, EnMain } from "@/components/planning/pose";
  *   `peutPlanifier`) : ils n'apparaissent donc qu'une fois une heure choisie,
  *   dans le panneau « Contrôles » — jamais reconstruits plus tôt.
  *
- * ## Le jour ne se choisit pas ici
+ * ## Le jour ne se choisit pas ici — SAUF depuis la fiche (PG-B3-TROUVER-CRENEAU-FICHE)
  *
- * *Pré-rempli* par la case sur laquelle la carte a été déposée, ou par le
- * jour du jour depuis le bouton « Poser » (`Posable.ouvrirPose`) — jamais un
- * sélecteur : le ticket ne demande des puces que pour la durée et l'heure.
+ * Depuis le planning, `jour` est *pré-rempli* par la case sur laquelle la
+ * carte a été déposée, ou par le jour du jour depuis le bouton « Poser »
+ * (`Posable.ouvrirPose`) — jamais un sélecteur : le ticket d'origine ne
+ * demandait des puces que pour la durée et l'heure.
+ *
+ * Depuis la FICHE d'intervention, il n'y a ni case ni glissé pour fixer le
+ * jour : `jourChoisissable` fait alors apparaître un champ date, à la place
+ * du texte fixe — le planning ne le demande jamais et garde son comportement
+ * exact. `jour` reste la valeur de DÉPART dans les deux cas ; seul l'appelant
+ * décide si elle peut changer.
  */
 
 const DUREES_PROPOSEES = [30, 60, 90, 120, 180, 240] as const;
@@ -58,6 +65,7 @@ export function FenetrePose({
   dureeMinInitiale,
   technicienIdInitial,
   jour,
+  jourChoisissable = false,
   fuseau,
   techniciens,
   onFermer,
@@ -67,8 +75,16 @@ export function FenetrePose({
   libelle: string;
   dureeMinInitiale: number | null;
   technicienIdInitial: string | null;
-  /** `AAAA-MM-JJ`, toujours résolu par l'appelant (`Posable.ouvrirPose`). */
+  /** `AAAA-MM-JJ`, toujours résolu par l'appelant (`Posable.ouvrirPose`) — la valeur de DÉPART, voir `jourChoisissable`. */
   jour: string;
+  /**
+   * `true` depuis la fiche d'intervention (PG-B3) : un champ date remplace le
+   * texte fixe, et `jour` n'est plus alors qu'un point de départ. Le planning
+   * ne passe jamais cette prop — il connaît toujours le jour par la case ou
+   * par le bouton « Poser », et son comportement reste exactement celui
+   * d'avant.
+   */
+  jourChoisissable?: boolean;
   fuseau: Fuseau;
   techniciens: readonly { readonly id: string; readonly nom: string }[];
   onFermer: () => void;
@@ -77,6 +93,7 @@ export function FenetrePose({
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
 
+  const [jourChoisi, setJourChoisi] = useState(jour);
   const [technicienId, setTechnicienId] = useState(
     technicienIdInitial ?? techniciens[0]?.id ?? "",
   );
@@ -123,7 +140,7 @@ export function FenetrePose({
     setRechercheEnCours(true);
     const parametres = new URLSearchParams({
       technicien: technicienId,
-      date: jour,
+      date: jourChoisi,
       duree: String(dureeMin),
     });
     fetch(`/api/interventions/${interventionId}/verdict-pose?${parametres}`)
@@ -141,7 +158,7 @@ export function FenetrePose({
         }
         const parametresSonde = new URLSearchParams({
           technicien: technicienId,
-          date: jour,
+          date: jourChoisi,
           duree: "1",
         });
         const reponseSonde = await fetch(
@@ -163,7 +180,7 @@ export function FenetrePose({
     return () => {
       annule = true;
     };
-  }, [technicienId, dureeMin, jour, interventionId]);
+  }, [technicienId, dureeMin, jourChoisi, interventionId]);
 
   // ── LES VERDICTS — technicien, jour, heure ET durée ENSEMBLE ──────────────
   useEffect(() => {
@@ -174,7 +191,7 @@ export function FenetrePose({
     let annule = false;
     const parametres = new URLSearchParams({
       technicien: technicienId,
-      date: jour,
+      date: jourChoisi,
       heure: String(heureMinutes),
       duree: String(dureeMin),
     });
@@ -189,7 +206,12 @@ export function FenetrePose({
     return () => {
       annule = true;
     };
-  }, [technicienId, dureeMin, heureMinutes, jour, interventionId]);
+  }, [technicienId, dureeMin, heureMinutes, jourChoisi, interventionId]);
+
+  function choisirJour(valeur: string) {
+    setJourChoisi(valeur);
+    setHeureMinutes(null);
+  }
 
   function choisirDuree(valeur: number) {
     setDureeAutreActive(false);
@@ -240,7 +262,7 @@ export function FenetrePose({
       fuseau: null,
     };
     const cible: CibleDeDepot = {
-      jour,
+      jour: jourChoisi,
       technicienId,
       minutes: heureMinutes,
       pasMinutes: 0,
@@ -256,7 +278,7 @@ export function FenetrePose({
     <dialog
       ref={dialogueRef}
       data-fenetre-pose={interventionId}
-      data-jour={jour}
+      data-jour={jourChoisi}
       data-technicien={technicienId}
       onClose={fermer}
       aria-labelledby={idTitre}
@@ -309,11 +331,29 @@ export function FenetrePose({
           </p>
         </div>
 
-        <p className="text-app-encre-faible text-[11.5px]">
-          {t("planning.pose.date")}
-          {t("ponctuation.deux_points")}
-          {dateCivile(new Date(`${jour}T00:00:00.000Z`))}
-        </p>
+        {jourChoisissable ? (
+          <div>
+            <label
+              htmlFor={`${idTitre}-jour`}
+              className="text-app-encre-faible block text-[11px] font-semibold"
+            >
+              {t("planning.pose.date")}
+            </label>
+            <input
+              id={`${idTitre}-jour`}
+              type="date"
+              value={jourChoisi}
+              onChange={(evenement) => choisirJour(evenement.target.value)}
+              className="border-app-bord mt-1 min-h-11 w-full rounded-md border px-2 text-[12.5px] sm:min-h-0 sm:py-1.5"
+            />
+          </div>
+        ) : (
+          <p className="text-app-encre-faible text-[11.5px]">
+            {t("planning.pose.date")}
+            {t("ponctuation.deux_points")}
+            {dateCivile(new Date(`${jourChoisi}T00:00:00.000Z`))}
+          </p>
+        )}
 
         <fieldset>
           <legend className="text-app-encre-faible text-[11px] font-semibold">

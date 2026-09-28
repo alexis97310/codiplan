@@ -233,6 +233,59 @@ export type IssueDepot =
   | { readonly issue: "erreur_serveur" }
   | { readonly issue: "connexion_interrompue" };
 
+/**
+ * L'ÉCRITURE ELLE-MÊME — POST `.../deplacer`, sous la même garde
+ * (`peutDeplacer`/`peutPlanifier`) qu'un dépôt direct ou qu'un « Planifier ».
+ *
+ * Extraite de `Posable.deposer` (PG-B3-TROUVER-CRENEAU-FICHE) pour que la
+ * fenêtre ouverte depuis la fiche (`components/interventions/trouver-creneau.tsx`)
+ * appelle la MÊME route par la MÊME fonction — jamais une seconde écriture du
+ * même geste (§9, 01/09). Fonction pure côté appelant : elle ne décide rien de
+ * ce qu'il faut afficher, elle rend l'issue et rien de plus.
+ */
+export async function posterDeplacement(
+  main: EnMain,
+  cible: CibleDeDepot,
+): Promise<IssueDepot> {
+  const corps = new FormData();
+  corps.set("date_planifiee", cible.jour);
+  if (cible.technicienId !== null) {
+    corps.set("technicien_id", cible.technicienId);
+  }
+  if (cible.minutes !== null) {
+    // DEUX GESTES, UNE SEULE ROUTE (L3-01b) — voir le docblock d'origine sur
+    // `deposer` : déplacer conserve la durée, redimensionner change la fin.
+    const redimensionne = main.bord === "fin" && main.debutMinutes !== null;
+    const debut = redimensionne ? main.debutMinutes! : cible.minutes;
+    const duree = redimensionne
+      ? cible.minutes + cible.pasMinutes - main.debutMinutes!
+      : main.dureeMin;
+    corps.set("heure_debut", String(debut));
+    // UNE DURÉE INCONNUE NE PART PAS EN `0` (PG-A3a) : voir le docblock
+    // d'origine — le champ est ABSENT plutôt qu'un zéro inventé.
+    if (duree !== null) {
+      corps.set("duree_min", String(duree));
+    }
+  } else if (main.debutMinutes !== null && main.dureeMin !== null) {
+    // VUE SEMAINE : UN DÉPLACEMENT GARDE L'HEURE ET LA DURÉE (PG-A7) — voir
+    // le docblock d'origine.
+    corps.set("heure_debut", String(main.debutMinutes));
+    corps.set("duree_min", String(main.dureeMin));
+  }
+  try {
+    const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
+      method: "POST",
+      body: corps,
+      headers: { accept: "application/json" },
+    });
+    const rendu: unknown = await reponse.json().catch(() => null);
+    return interpreterReponseDepot({ ok: reponse.ok, corps: rendu });
+  } catch {
+    // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête annulée.
+    return { issue: "connexion_interrompue" };
+  }
+}
+
 export function interpreterReponseDepot(
   resultat: { readonly ok: boolean; readonly corps: unknown } | null,
 ): IssueDepot {
@@ -330,73 +383,13 @@ export function Posable({
     if (enVol.current.has(main.id)) {
       return;
     }
-    const corps = new FormData();
-    corps.set("date_planifiee", cible.jour);
-    if (cible.technicienId !== null) {
-      corps.set("technicien_id", cible.technicienId);
-    }
-    if (cible.minutes !== null) {
-      // DEUX GESTES, UNE SEULE ROUTE (L3-01b).
-      //
-      // **Déplacer** conserve la durée et change le début — *déplacer une
-      // intervention n'est pas la redimensionner.* **Redimensionner** garde
-      // le début et fait de la case visée la DERNIÈRE occupée : la durée
-      // court jusqu'à la fin de ce pas, si bien que relâcher sur la case de
-      // départ laisse exactement un pas — jamais zéro.
-      const redimensionne = main.bord === "fin" && main.debutMinutes !== null;
-      const debut = redimensionne ? main.debutMinutes! : cible.minutes;
-      const duree = redimensionne
-        ? cible.minutes + cible.pasMinutes - main.debutMinutes!
-        : main.dureeMin;
-      corps.set("heure_debut", String(debut));
-      // **UNE DURÉE INCONNUE NE PART PAS EN `0`** (PG-A3a, bug 2 de l'audit du
-      // 27/09/2026) : `duree_min=0` échouait `positive()` et affichait « tirez
-      // la poignée » à qui n'a rien tiré. Le champ est ABSENT plutôt qu'un
-      // zéro inventé — la route lit alors une durée manquante, ce qu'elle est.
-      if (duree !== null) {
-        corps.set("duree_min", String(duree));
-      }
-    } else if (main.debutMinutes !== null && main.dureeMin !== null) {
-      // ── VUE SEMAINE : UN DÉPLACEMENT GARDE L'HEURE ET LA DURÉE (PG-A7,
-      // décision QG-4 d'Alexis du 27/09/2026) ──────────────────────────────
-      //
-      // Une case de la grille Semaine ne porte pas de minutes
-      // (`cible.minutes === null`) : ce n'est pas elle qui décide de l'heure,
-      // c'est la carte qu'on dépose, si elle en connaît déjà une. Sans cette
-      // branche, ni `heure_debut` ni `duree_min` ne partaient — la route
-      // traite alors les deux comme un créneau qu'on RETIRE, et une
-      // intervention planifiée à 08:00, déplacée d'un jour à l'autre, perdait
-      // son heure et sa durée sans que personne ne l'ait décidé.
-      //
-      // `main.debutMinutes` n'est ici jamais posé par la poignée de
-      // redimensionnement — elle n'existe pas en vue Semaine (`page.tsx` ne
-      // la passe qu'aux cartes de la vue Jour) — donc `main.bord` vaut
-      // toujours `"bloc"` : aucun risque de confondre ce déplacement avec un
-      // redimensionnement.
-      corps.set("heure_debut", String(main.debutMinutes));
-      corps.set("duree_min", String(main.dureeMin));
-    }
     enVol.current.add(main.id);
     void (async () => {
-      let issue: IssueDepot;
-      try {
-        const reponse = await fetch(`/api/interventions/${main.id}/deplacer`, {
-          method: "POST",
-          body: corps,
-          headers: { accept: "application/json" },
-        });
-        const rendu: unknown = await reponse.json().catch(() => null);
-        issue = interpreterReponseDepot({ ok: reponse.ok, corps: rendu });
-      } catch {
-        // Le `fetch` a REJETÉ — coupure réseau, délai dépassé, requête
-        // annulée. Sans ce `catch`, ce rejet partait non intercepté et
-        // l'écran restait tel quel : un TROISIÈME silence, que
-        // `interpreterReponseDepot` ne peut pas nommer puisqu'il ne reçoit
-        // jamais d'appel dans ce cas.
-        issue = { issue: "connexion_interrompue" };
-      } finally {
-        enVol.current.delete(main.id);
-      }
+      // L'ÉCRITURE ELLE-MÊME vit dans `posterDeplacement` (PG-B3), partagée
+      // avec `components/interventions/trouver-creneau.tsx` — même route,
+      // même garde, jamais une seconde écriture du même geste.
+      const issue = await posterDeplacement(main, cible);
+      enVol.current.delete(main.id);
       switch (issue.issue) {
         case "enregistre":
           // LA BASE A ACCEPTÉ : L'ÉCRAN SE RELIT DU SERVEUR, PAR UN

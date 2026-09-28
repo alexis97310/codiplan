@@ -7,6 +7,7 @@ import { cache } from "react";
 
 import { BoutonAnnuler } from "@/components/interventions/bouton-annuler";
 import { BoutonCloturer } from "@/components/interventions/bouton-cloturer";
+import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
 import {
+  cleJour,
   dateCivile,
   instantDuJour,
   jourDe,
@@ -381,6 +383,24 @@ export default async function PageIntervention({
     [],
     null,
   );
+  // « TROUVER UN CRÉNEAU » DEPUIS LA FICHE (PG-B3-TROUVER-CRENEAU-FICHE) — LA
+  // MÊME FENÊTRE que le planning (`components/planning/fenetre-pose.tsx`,
+  // import, aucune copie), pré-remplie de ce que la fiche connaît déjà.
+  //
+  // Le jour de départ n'est PAS une valeur métier : c'est la date de
+  // l'intervention si elle en a une, sinon le jour courant de la société —
+  // un simple repère d'affichage, modifiable dans la fenêtre
+  // (`jourChoisissable`). `optionsTechniciens` porte déjà le nom nu, sans
+  // suffixe d'agenda bloqué (aucune date connue à ce stade) : exactement la
+  // forme `{id, nom}` que `FenetrePose` attend.
+  const jourInitialCreneau =
+    ligne.date_planifiee !== null
+      ? ligne.date_planifiee.toISOString().slice(0, 10)
+      : cleJour(jourDe(maintenant(fiche.fuseau).local));
+  const techniciensPourCreneau = optionsTechniciens.map((option) => ({
+    id: option.valeur,
+    nom: option.libelle,
+  }));
   // ── « PLANIFIER » ET « DÉPLACER » LE DISENT AUSSI, AVANT L'ENVOI
   // (66-PLANNING-4, SAV-05) ────────────────────────────────────────────────
   //
@@ -877,6 +897,18 @@ export default async function PageIntervention({
                       action={`/api/interventions/${ligne.id}/deplacer`}
                       note={t("intervention.planification.explication")}
                       principale={principale === "planifier"}
+                      saisieManuelle
+                      enTete={
+                        <TrouverCreneau
+                          interventionId={ligne.id}
+                          libelle={referenceAffichee(ligne)}
+                          dureeMinInitiale={ligne.duree_estimee_min}
+                          technicienIdInitial={ligne.technicien_id}
+                          jourInitial={jourInitialCreneau}
+                          fuseau={fiche.fuseau}
+                          techniciens={techniciensPourCreneau}
+                        />
+                      }
                     >
                       <Saisie
                         nom="date_planifiee"
@@ -961,6 +993,18 @@ export default async function PageIntervention({
                       verdict={peutDeplacer(statut)}
                       action={`/api/interventions/${ligne.id}/deplacer`}
                       note={t("intervention.deplacement.explication")}
+                      saisieManuelle
+                      enTete={
+                        <TrouverCreneau
+                          interventionId={ligne.id}
+                          libelle={referenceAffichee(ligne)}
+                          dureeMinInitiale={ligne.duree_estimee_min}
+                          technicienIdInitial={ligne.technicien_id}
+                          jourInitial={jourInitialCreneau}
+                          fuseau={fiche.fuseau}
+                          techniciens={techniciensPourCreneau}
+                        />
+                      }
                     >
                       <Saisie
                         nom="date_planifiee"
@@ -1880,6 +1924,8 @@ function Action({
   principale = false,
   replie = false,
   id,
+  enTete,
+  saisieManuelle = false,
 }: {
   titre: string;
   verdict: { refuse: boolean; cle?: string };
@@ -1919,6 +1965,18 @@ function Action({
    * calculé ici. Sans effet quand `verdict` n'est pas un refus.
    */
   replie?: boolean;
+  /**
+   * UN RACCOURCI AU-DESSUS DES CHAMPS (PG-B3-TROUVER-CRENEAU-FICHE) — jamais
+   * rendu sur un refus (le bloc refusé ne montre que sa raison). Aujourd'hui
+   * seuls « Planifier » et « Déplacer » le fournissent (`TrouverCreneau`).
+   */
+  enTete?: React.ReactNode;
+  /**
+   * LES CHAMPS PASSENT SOUS « SAISIR À LA MAIN » (PG-B3-TROUVER-CRENEAU-FICHE)
+   * — un `<details>` de plus, pour le clavier et le repli, une fois qu'`enTete`
+   * offre un raccourci plus rapide. Sans effet quand `enTete` est absent.
+   */
+  saisieManuelle?: boolean;
 }) {
   if (verdict.refuse) {
     const cle = verdict.cle;
@@ -1947,11 +2005,8 @@ function Action({
     );
   }
 
-  const champs = (
+  const champsDeSaisie = (
     <>
-      {note === undefined ? null : (
-        <p className="text-app-encre-faible text-[11.5px]">{note}</p>
-      )}
       {children}
       {bouton ?? (
         <Button
@@ -1961,6 +2016,25 @@ function Action({
         >
           {titre}
         </Button>
+      )}
+    </>
+  );
+
+  const champs = (
+    <>
+      {enTete}
+      {note === undefined ? null : (
+        <p className="text-app-encre-faible text-[11.5px]">{note}</p>
+      )}
+      {saisieManuelle ? (
+        <details>
+          <summary className="text-app-encre-faible cursor-pointer text-[11.5px] font-semibold">
+            {t("intervention.action.saisir_a_la_main")}
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">{champsDeSaisie}</div>
+        </details>
+      ) : (
+        champsDeSaisie
       )}
     </>
   );

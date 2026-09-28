@@ -1365,6 +1365,10 @@ export const fr = {
   "intervention.action.cloturer": "Clôturer",
   "intervention.action.annuler": "Annuler l'intervention",
   "intervention.action.creer": "Créer",
+  // « TROUVER UN CRÉNEAU » DEPUIS LA FICHE (PG-B3-TROUVER-CRENEAU-FICHE) —
+  // ouvre la même fenêtre que le planning, voir `FenetrePose`.
+  "intervention.action.trouver_creneau": "Trouver un créneau",
+  "intervention.action.saisir_a_la_main": "Saisir à la main",
 
   // ── LA CRÉATION, EN DEUX GESTES (PARCOURS-1, 23/09/2026, arbitrage Alexis) ──
   //
