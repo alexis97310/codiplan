@@ -4925,3 +4925,29 @@ Aucune migration, aucune politique RLS, aucune règle du chapitre 10. `lib/agenc
 > Le jour où l'exploitation veut qu'un menu de rattachement propose EXPLICITEMENT une agence inactive sans qu'aucune fiche ne la garde déjà (par exemple pour corriger une erreur de saisie ancienne), cette page se rouvre plutôt que d'ajouter un contournement à `agencesProposables`.
 
 **Règles amendées :** aucune.
+
+## D135 — UNE INTERVENTION PLANIFIÉE GARDE UNE HEURE (QG-4)
+
+*Rendu par Alexis Plouvier, directeur d'exploitation, le 27/09/2026, lot PG-A3b, ticket 9BEA-REPRISE-A3B (`docs/propositions/planning-gmao/decisions-2026-09-27.md`, question QG-4).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+PARCOURS-1 (23/09/2026, arbitrage Alexis) exige les quatre valeurs — date, heure, durée, technicien — ensemble pour la PREMIÈRE planification d'une intervention (`peutPlanifier`, `lib/interventions/cycle-de-vie.ts`), mais ne juge qu'une intervention encore `a_planifier`. Une intervention déjà `planifiee` ou `affectee` pouvait ensuite, par un simple déplacement, perdre son heure et sa durée tout en gardant sa date : le formulaire « Déplacer » de la fiche le permettait explicitement (« Heure de début — laisser vide pour une journée sans heure »), et rien côté serveur ne le refusait — `statutApresDeplacement` (`lib/interventions/depot.ts`) laissait la ligne `planifiee`, avec une date mais sans créneau.
+
+### LA DÉCISION
+
+**Non : une intervention qui reste `planifiee` ou `affectee` garde son heure ET sa durée.** Tant que la date d'une telle intervention n'est pas vidée par le déplacement, l'heure de début (et donc la durée, liées en entier par `schemaDeplacement`) restent obligatoires. **Tout vider — date, heure, durée — reste permis : c'est la remettre dans la file d'attente (`a_planifier`), pas la laisser à moitié posée.**
+
+Traduit par un nouveau verdict, `peutGarderHeure` (`lib/interventions/cycle-de-vie.ts`), amendement de PARCOURS-1 sur ce seul point : il juge le statut ACTUEL de la ligne (`planifiee`/`affectee`) et les valeurs DEMANDÉES par le déplacement — jamais la première planification, que `peutPlanifier` continue de juger seul. Branché dans `jugerPose` (`lib/interventions/depot.ts`, extraite pour PG-B1), il est donc vu à la fois par l'écriture (`deplacerIntervention`) et par la lecture (route `GET .../verdict-pose`) — une seule source, jamais deux lectures d'un même critère.
+
+Le libellé du champ perd sa parenthèse (« Heure de début », plus « laisser vide pour une journée sans heure ») dans les deux blocs de la fiche — « Planifier » comme « Déplacer » — et le bloc « Déplacer » gagne une note : *« Pour remettre l'intervention dans la file, videz la date, l'heure et la durée. »*
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix. La PREMIÈRE planification (`peutPlanifier`, statut `a_planifier`) est inchangée. `peutEcrireSansDuree` (PG-A4, garde des cinq lignes grand-père sans durée) reste en place, pour les appelants qui ne passent pas par un déplacement complet (`affecterTechnicien`, `enregistrerNoteInterne`, `marquerVuParTechnicien`).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation redemande une « journée sans heure » pour une intervention déjà planifiée — par exemple pour bloquer une date sans encore savoir l'heure exacte — cette page se rouvre plutôt que de contourner `peutGarderHeure`.
+
+**Règles amendées :** PARCOURS-1 (23/09/2026), sur le seul point de la « journée sans heure » au déplacement d'une intervention déjà planifiée/affectée ; la première planification reste inchangée.

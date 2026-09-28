@@ -996,6 +996,15 @@ export default async function PageIntervention({
                         min={1}
                       />
                       {/*
+                    LA SEULE SORTIE VERS LA FILE (QG-4, 27/09/2026) — tant
+                    que la date reste donnée, l'heure et la durée restent
+                    obligatoires (`peutGarderHeure`) ; cette note dit l'unique
+                    façon de s'en défaire.
+                  */}
+                      <p className="text-app-encre-faible text-[11px]">
+                        {t("intervention.deplacement.vider_pour_la_file")}
+                      </p>
+                      {/*
                     SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
                     (extension de la revue Codex, 20/09/2026) : « Déplacer »
                     restait déjà accessible, avant ce chantier, à un rôle

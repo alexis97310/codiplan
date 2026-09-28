@@ -235,6 +235,15 @@ export function peutGenererLeBon(statut: StatutIntervention): Verdict {
  * personne, SANS heure ni durée en vue semaine. Le déploiement de ce
  * verdict dans `deplacerIntervention` refuse alors ce dépôt-là comme il
  * refuse un formulaire incomplet — MÊME route, MÊME décision (R2-19).
+ *
+ * **AMENDEMENT QG-4 (décision d'Alexis, 27/09/2026) — sur ce seul point.**
+ * Ce verdict ne juge qu'une intervention encore `a_planifier`, à dessein :
+ * la PREMIÈRE planification exige les quatre valeurs ensemble, mais une
+ * intervention déjà `planifiee`/`affectee` pouvait ensuite, par un simple
+ * déplacement, perdre son heure et sa durée tout en gardant sa date — une
+ * « journée sans heure » à mi-chemin. QG-4 referme cette voie-là sans
+ * toucher à celle-ci : voir `peutGarderHeure`, juste en dessous, qui juge
+ * ce cas précis et lui seul.
  */
 export function peutPlanifier(
   statut: StatutIntervention,
@@ -278,6 +287,40 @@ export function peutPlanifier(
     refuse: true,
     cle: "intervention.refus.planification_technicien_manquant",
   };
+}
+
+/**
+ * UNE INTERVENTION DÉJÀ PLANIFIÉE OU AFFECTÉE GARDE SON HEURE (décision QG-4
+ * d'Alexis, 27/09/2026 —
+ * `docs/propositions/planning-gmao/decisions-2026-09-27.md`).
+ *
+ * > *« Non : heure (et durée) obligatoires pour une intervention qui reste
+ * > planifiée ; tout vider = remettre dans la file. »*
+ *
+ * **Juge le statut ACTUEL de la ligne**, pas l'état après écriture : pour ce
+ * cas précis les deux coïncident toujours (`statutApresDeplacement` ne
+ * change un statut `planifiee`/`affectee` que si la date ET le créneau sont
+ * TOUS DEUX vidés — exactement le cas que ce verdict laisse passer).
+ *
+ * **Ne juge que `debutMinutesDemande`** : `schemaDeplacement` (`saisie.ts`)
+ * lie déjà l'heure et la durée en entier — l'une ne se donne jamais sans
+ * l'autre —, juger les deux séparément dirait deux fois le même fait.
+ *
+ * **Tout vider reste permis** : si la date elle-même est vidée, l'intervention
+ * retourne à la file (`a_planifier`), ce n'est pas un demi-état.
+ */
+export function peutGarderHeure(
+  statutActuel: StatutIntervention,
+  datePlanifieeDemandee: unknown,
+  debutMinutesDemande: unknown,
+): Verdict {
+  if (statutActuel !== "planifiee" && statutActuel !== "affectee") {
+    return PERMIS;
+  }
+  if (datePlanifieeDemandee === null || debutMinutesDemande !== null) {
+    return PERMIS;
+  }
+  return { refuse: true, cle: "intervention.refus.heure_obligatoire" };
 }
 
 /**

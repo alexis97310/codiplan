@@ -8,6 +8,7 @@ import {
   peutDemarrerLeCompteur,
   peutDeplacer,
   peutEcrireSansDuree,
+  peutGarderHeure,
   peutGenererLeBon,
   peutPlanifier,
   statutALaCreation,
@@ -279,6 +280,54 @@ describe("peutPlanifier — les quatre valeurs vont ensemble, ou pas du tout", (
       technicienId: "x",
     });
     expect(verdict.refuse).toBe(true);
+  });
+});
+
+/**
+ * PEUT-ON GARDER L'HEURE ? (décision QG-4 d'Alexis, 27/09/2026)
+ *
+ * Une intervention déjà `planifiee`/`affectee` ne peut plus perdre son heure
+ * en gardant sa date. Tout vider — date comprise — reste permis : c'est la
+ * remettre dans la file.
+ */
+describe("peutGarderHeure — une planifiée/affectée garde son heure (QG-4)", () => {
+  const DATE = new Date("2026-09-24");
+
+  it("refuse une PLANIFIÉE dont la date reste donnée mais l'heure se vide", () => {
+    const verdict = peutGarderHeure("planifiee", DATE, null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.heure_obligatoire",
+    );
+  });
+
+  it("refuse une AFFECTÉE dont la date reste donnée mais l'heure se vide", () => {
+    const verdict = peutGarderHeure("affectee", DATE, null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.heure_obligatoire",
+    );
+  });
+
+  it("permet une PLANIFIÉE ou une AFFECTÉE qui garde sa date ET son heure", () => {
+    expect(peutGarderHeure("planifiee", DATE, 480).refuse).toBe(false);
+    expect(peutGarderHeure("affectee", DATE, 480).refuse).toBe(false);
+  });
+
+  it("permet de tout vider — la remettre dans la file", () => {
+    expect(peutGarderHeure("planifiee", null, null).refuse).toBe(false);
+    expect(peutGarderHeure("affectee", null, null).refuse).toBe(false);
+  });
+
+  it("ne juge pas les autres statuts", () => {
+    for (const statut of [
+      "a_planifier",
+      "en_cours",
+      "suspendue",
+      "terminee",
+      "cloturee",
+      "annulee",
+    ] as const) {
+      expect(peutGarderHeure(statut, DATE, null).refuse, statut).toBe(false);
+    }
   });
 });
 

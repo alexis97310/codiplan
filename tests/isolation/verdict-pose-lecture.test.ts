@@ -53,6 +53,18 @@ import {
  * contrainte va de toute façon faire. Ce cas est donc éprouvé par un appel
  * direct à `jugerPose`, avec une ligne SYNTHÉTIQUE (jamais écrite) — la seule
  * façon de l'atteindre sans écrire une donnée que PostgreSQL refuserait.
+ *
+ * ## QG-4 (27/09/2026) DÉPLACE LA FRONTIÈRE DE `peutEcrireSansDuree` DANS
+ * `jugerPose`
+ *
+ * `peutGarderHeure` (PG-A3b) s'exécute AVANT `peutEcrireSansDuree` dans
+ * `jugerPose`, sur la saisie brute plutôt que sur l'état après écriture :
+ * toute PLANIFIÉE dont la date reste donnée et l'heure se vide est désormais
+ * refusée là, avant même d'atteindre la garde PG-A4. Le seul chemin qui
+ * atteint encore `peutEcrireSansDuree` DANS `jugerPose` est une AFFECTÉE
+ * grand-père dont TOUT est vidé (date comprise) : `statutApresDeplacement`
+ * ne la remet pas dans la file (contrairement à une PLANIFIÉE), donc elle
+ * reste `affectee` sans durée, et PG-A4 la bloque encore.
  */
 
 afterAll(fermerClients);
@@ -319,13 +331,17 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     });
   });
 
-  it("PLANIFIÉE SANS DURÉE — jugée sur une ligne synthétique, jamais écrite (voir l'entête)", async () => {
-    // Cette ligne n'est JAMAIS insérée : `intervention_planifiee_a_sa_duree`
-    // (NOT VALID depuis PG-A4) refuse toute NOUVELLE ligne qui entrerait dans
-    // cet état, et il n'existe donc aucune façon légitime de la fabriquer ici
-    // pour la confronter à une écriture réelle. `jugerPose` ne lit ni n'écrit
-    // la table `intervention` pour la ligne qu'on lui passe — elle n'est
-    // qu'un objet TypeScript — donc rien n'est violé en le lui soumettant.
+  // PLANIFIÉE, DATE GARDÉE, HEURE VIDÉE — QG-4 (27/09/2026) refuse ce dépôt
+  // AVANT que `peutEcrireSansDuree` (PG-A4) n'ait la moindre chance de le
+  // juger : `peutGarderHeure` (`cycle-de-vie.ts`) s'exécute plus tôt dans
+  // `jugerPose`, sur la saisie brute plutôt que sur l'état après écriture.
+  // Avant ce lot, ce même cas passait — c'était la « journée sans heure »
+  // que QG-4 referme ; le motif attendu change donc de
+  // `planifiee_sans_duree` à `heure_obligatoire`. Ligne SYNTHÉTIQUE, jamais
+  // insérée : voir l'entête, ce n'est pas propre à QG-4, mais à
+  // `duree_estimee_min: null` sur une ligne que la contrainte NOT VALID
+  // refuserait à la création.
+  it("PLANIFIÉE, DATE GARDÉE, HEURE VIDÉE — refusée par QG-4, jamais par PG-A4 (ligne synthétique)", async () => {
     const ligneSynthetique = {
       id: uuidv7(),
       statut: "planifiee",
@@ -350,7 +366,75 @@ describe("PG-B1 — le verdict de lecture égale l'issue de l'écriture", () => 
     );
     expect(jugement.verdict).toEqual({
       refuse: true,
+      cle: "intervention.refus.heure_obligatoire",
+    });
+  });
+
+  // AFFECTÉE, TOUT VIDÉ — le seul chemin qui atteint encore
+  // `peutEcrireSansDuree` DANS `jugerPose` après QG-4 : `peutGarderHeure` ne
+  // juge que la date GARDÉE ; ici la date est vidée elle aussi, donc permise
+  // par `peutGarderHeure`, et c'est `statutApresDeplacement` qui laisse une
+  // AFFECTÉE affectée (elle seule, contrairement à une PLANIFIÉE qui
+  // retombe `a_planifier` — voir `depot.ts`) — sans durée, la ligne
+  // grand-père reste bloquée par PG-A4, pas remise dans la file. Ligne
+  // SYNTHÉTIQUE pour la même raison que ci-dessus.
+  it("AFFECTÉE sans durée, TOUT VIDÉ — bloquée par PG-A4, pas remise dans la file (ligne synthétique)", async () => {
+    const ligneSynthetique = {
+      id: uuidv7(),
+      statut: "affectee",
+      agence_id: AGENCE_A,
+      site_id: SITE_A1_S1,
+      duree_estimee_min: null,
+    };
+    const saisie = schemaDeplacement.parse({
+      intervention_id: ligneSynthetique.id,
+      date_planifiee: null,
+      debut_minutes: null,
+      duree_min: null,
+      technicien_id: null,
+    });
+    const jugement = await avecContexteApplicatif(
+      SESSION,
+      (tx) => jugerPose(tx, SESSION, ligneSynthetique, saisie),
+      clientApp(),
+    );
+    expect(jugement.verdict).toEqual({
+      refuse: true,
       cle: "intervention.refus.planifiee_sans_duree",
     });
+  });
+
+  // DATE GARDÉE, HEURE ET DURÉE VIDÉES sur une PLANIFIÉE réelle (QG-4) — le
+  // pendant, écrit, du premier cas synthétique ci-dessus : une intervention
+  // normalement planifiée, avec sa durée, ne peut plus perdre son heure par
+  // un déplacement qui garde la date.
+  it("DATE GARDÉE, HEURE ET DURÉE VIDÉES sur une PLANIFIÉE — refusée, nommée (QG-4)", async () => {
+    const id = await creerVoisinePosee(DEBUT_MINUTES, DUREE_MIN);
+    const { ecriture } = await comparer(
+      deplacement(id, { debut_minutes: null, duree_min: null }),
+    );
+    expect(ecriture).toEqual({
+      accepte: false,
+      cle: "intervention.refus.heure_obligatoire",
+    });
+  });
+
+  // TOUT VIDÉ sur une PLANIFIÉE réelle — la remettre dans la file reste
+  // permis (QG-4) : ce n'est pas un demi-état, c'est la sortie voulue.
+  it("TOUT VIDÉ (date, heure, durée) sur une PLANIFIÉE — remise dans la file, permise (QG-4)", async () => {
+    const id = await creerVoisinePosee(DEBUT_MINUTES, DUREE_MIN);
+    const { ecriture } = await comparer(
+      deplacement(id, {
+        date_planifiee: null,
+        debut_minutes: null,
+        duree_min: null,
+      }),
+    );
+    expect(ecriture.accepte).toBe(true);
+    const ligne = await clientOwner().intervention.findFirstOrThrow({
+      where: { id },
+      select: { statut: true },
+    });
+    expect(ligne.statut).toBe("a_planifier");
   });
 });

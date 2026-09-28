@@ -1411,9 +1411,12 @@ export const fr = {
     "La date est obligatoire pour planifier cette intervention.",
   "intervention.refus.planification_duree_manquante":
     "L'heure de début et la durée prévue sont obligatoires pour planifier cette intervention.",
-  // Le pendant : une durée posée sans heure (déplacement, glisser-déposer
-  // d'une carte sans durée connue) — un créneau se donne en entier, jamais
-  // une durée seule (QG-4, 27/09/2026).
+  // DEUX GARDES DISTINCTES RENDENT LE MÊME MESSAGE (QG-4, 27/09/2026) : le
+  // refine de `schemaDeplacement` — une durée posée sans heure, un créneau
+  // se donne en entier — ET `peutGarderHeure` (`cycle-de-vie.ts`), qui
+  // refuse qu'une intervention déjà planifiée/affectée perde son heure tout
+  // en gardant sa date. Le motif est le même de l'autre côté de l'écran :
+  // l'heure manque.
   "intervention.refus.heure_obligatoire": "L'heure de début est obligatoire.",
   "intervention.refus.planification_technicien_manquant":
     "Le technicien est obligatoire pour planifier cette intervention.",
@@ -1508,11 +1511,16 @@ export const fr = {
   // confiance à l'écran* (exploitation, 11/09/2026). Ces quatre messages disent
   // ce qui bloque et la marche à suivre ; aucun ne COMPTE ni ne NOMME ce que son
   // destinataire n'a pas le droit de lire (D50).
-  "intervention.deplacement.heure":
-    "Heure de début (laisser vide pour une journée sans heure)",
+  "intervention.deplacement.heure": "Heure de début",
   "intervention.deplacement.duree": "Durée (en minutes — ex. 90 = 1 h 30)",
   "intervention.deplacement.explication":
     "Même effet que le glisser-déposer du planning, et mêmes refus. L'heure se donne dans l'heure locale du lieu d'intervention.",
+  // QG-4 (27/09/2026) : une planifiée/affectée garde désormais son heure —
+  // la seule sortie vers la file est de tout vider, et cette note le dit là
+  // où la parenthèse « laisser vide pour une journée sans heure » le disait
+  // avant, à l'envers.
+  "intervention.deplacement.vider_pour_la_file":
+    "Pour remettre l'intervention dans la file, videz la date, l'heure et la durée.",
   "intervention.refus.jour_ferme":
     "Le calendrier qui décide pour cette intervention n'ouvre pas ce jour-là. La ligne du planning montre l'union des calendriers du technicien : c'est un repère, pas un droit de poser.",
   "intervention.refus.hors_ouverture":

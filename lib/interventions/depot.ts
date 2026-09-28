@@ -54,6 +54,7 @@ import {
   peutCloturer,
   peutDeplacer,
   peutEcrireSansDuree,
+  peutGarderHeure,
   peutPlanifier,
   peutReprendre,
   peutSuspendre,
@@ -1028,6 +1029,23 @@ export async function jugerPose(
       demande: null,
       statutApres: null,
     };
+  }
+
+  // ── UNE PLANIFIÉE/AFFECTÉE GARDE SON HEURE (QG-4, 27/09/2026) ───────────
+  //
+  // Même logique que `peutPlanifier` juste au-dessus, sur les valeurs
+  // DEMANDÉES plutôt que sur un état déjà écrit : une intervention qui reste
+  // `planifiee`/`affectee` (sa date n'est pas vidée) ne peut plus perdre son
+  // heure par un déplacement. Tout vider reste permis — c'est la remettre
+  // dans la file, jugé par `peutPlanifier`/`statutApresDeplacement`, jamais
+  // par ce verdict-ci.
+  const barriereHeure = peutGarderHeure(
+    ligne.statut as StatutIntervention,
+    saisie.date_planifiee,
+    saisie.debut_minutes,
+  );
+  if (barriereHeure.refuse) {
+    return { verdict: barriereHeure, demande: null, statutApres: null };
   }
 
   // ── LES TROIS CONTRÔLES À LA POSE (R2-19 ; RG-PLA-04 depuis L3-02) ──────
