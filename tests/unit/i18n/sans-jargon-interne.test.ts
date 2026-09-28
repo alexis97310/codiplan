@@ -68,6 +68,15 @@ function porteUneReference(texte: string): boolean {
 const EXEMPTIONS: Readonly<Record<string, string>> = {
   "planning.legende.en_cours":
     "« P1 » est l'étiquette de priorité affichée dans la légende du planning, jamais une référence de ticket — elle ferme la phrase par construction (« En cours / P1 »).",
+  // LA PUCE DE PRIORITÉ DE LA CARTE DE LA GRILLE SEMAINE (PG-C3-CARTES-
+  // COLONNES, 28/09/2026) — même étiquette de priorité que ci-dessus, réduite
+  // au sigle seul parce que la carte n'a que 150 px : ni un ticket ni un
+  // invariant, la même famille de mot que « P1 — critique » (`priorite.p1`),
+  // qui n'est pas non plus exemptée parce que « critique » ferme sa phrase.
+  "planning.priorite_puce.p1":
+    "« P1 » est l'étiquette de priorité affichée sur la carte de la grille semaine, jamais une référence de ticket — la carte n'a que 150 px, et la forme longue (« P1 — critique ») ne mesure pas cet écart.",
+  "planning.priorite_puce.p2":
+    "Même raison que « planning.priorite_puce.p1 » juste au-dessus, pour la seconde priorité que la maquette donne une puce (P2, `.b-p2`).",
 };
 
 describe("aucune référence de ticket ou d'invariant dans le glossaire (VISUEL-1)", () => {

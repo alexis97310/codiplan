@@ -1,6 +1,7 @@
 import { type TypeIntervention } from "@prisma/client";
 
 import type { Annuaire } from "@/lib/auth/annuaire";
+import type { Fuseau } from "@/lib/calendar/fuseau";
 import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -8,6 +9,7 @@ import { nomSeul } from "@/lib/interventions/personnes";
 import type { DonneesMateriel } from "@/lib/machines/depot";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
 
+import { heureDuCreneau } from "../interventions/presentation";
 import { decompte } from "../presentation";
 
 /**
@@ -30,6 +32,42 @@ import { decompte } from "../presentation";
 /** Le libellé du site — même convention que `lieuDeLaLigne` (page.tsx). */
 export function siteDeLaCarte(site: { readonly libelle: string }): string {
   return `${mot("site")} ${site.libelle}`;
+}
+
+/**
+ * LE TIRET DU CRÉNEAU — exporté pour que `creneauDeLaCarte` n'ait qu'une
+ * écriture, et pour qu'un scénario compose sa requête d'écran depuis cette
+ * constante plutôt que depuis une chaîne recopiée (gardien
+ * `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`, L0-11 : ce caractère
+ * n'est pas un mot du dictionnaire — une date/heure n'y passe pas — mais un
+ * test de rendu qui l'attend recopie ici, jamais un littéral).
+ */
+export const TIRET_CRENEAU = "–";
+
+/**
+ * LE CRÉNEAU D'UNE CARTE DE LA GRILLE SEMAINE — « 08:00–09:30 », jamais
+ * l'heure de début seule (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026,
+ * carte normalisée sur `.event` de la maquette).
+ *
+ * `null` sans heure de début connue — la file d'attente n'en a pas, et rien
+ * n'invente une heure ici. Sans fin connue, l'intervalle retombe sur l'heure
+ * de début seule : `heureDuCreneau` (`../interventions/presentation.ts`) est
+ * réutilisée deux fois plutôt que recopiée, la même fonction pure qui sert déjà
+ * `resumeDuCreneau` sur la fiche.
+ */
+export function creneauDeLaCarte(
+  ligne: {
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+  },
+  fuseau: Fuseau,
+): string | null {
+  const debut = heureDuCreneau(ligne, fuseau);
+  if (debut === null) {
+    return null;
+  }
+  const fin = heureDuCreneau({ creneau_debut: ligne.creneau_fin }, fuseau);
+  return fin === null ? debut : `${debut}${TIRET_CRENEAU}${fin}`;
 }
 
 /**

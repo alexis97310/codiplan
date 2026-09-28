@@ -3,17 +3,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Page } from "@/components/mise-en-page/page";
 import { LienPrimaire } from "@/components/ui/action-primaire";
-import { Badge } from "@/components/ui/badge";
-import { type LigneOccupation } from "@/lib/interventions/occupation";
-import { tauxCompact } from "@/lib/interventions/statistiques";
+import {
+  Badge,
+  CLASSES_TON as CLASSES_TON_PRIORITE,
+} from "@/components/ui/badge";
+import { CadreDefilant } from "@/components/ui/cadre-defilant";
 import {
   CLASSES_LIEN,
+  LARGEUR_COLONNE_JOUR_FERME_PX,
+  LARGEUR_COLONNE_JOUR_OUVERT_PX,
   LARGEUR_COLONNE_TECHNICIEN_PX,
 } from "@/lib/theme/apparence";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
+import { periodesBloquees } from "@/lib/absences/periode";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { exigerContexteActif } from "@/lib/auth/contexte";
 import { peut } from "@/lib/auth/habilitations";
@@ -24,8 +29,10 @@ import {
   jourDe,
   jourSuivant,
   maintenant,
+  minuit,
   minutesDepuisMinuit,
   schemaFuseau,
+  versInstant,
   versLocal,
   type Fuseau,
   type JourLocal,
@@ -34,12 +41,13 @@ import {
   chargerCalendrierAgence,
   type CacheCalendrierAgence,
 } from "@/lib/calendar/agence";
+import { chargerCalendrierDuTechnicien } from "@/lib/calendar/technicien";
 import {
   jourParticulier,
   plagesDuJourSemaine,
   type Calendrier,
 } from "@/lib/calendar/calendrier";
-import { estJourOuvre } from "@/lib/calendar/ouverture";
+import { estJourOuvre, minutesOuvrees } from "@/lib/calendar/ouverture";
 import {
   enHeure,
   joursTravailles,
@@ -69,13 +77,21 @@ import {
   type MotifHorsGrille,
   type TechnicienDeJournee,
 } from "@/lib/interventions/journee";
-import { occupationsDuPlanning } from "@/lib/interventions/occupation";
+import {
+  occupationsDuPlanning,
+  type LigneOccupation,
+} from "@/lib/interventions/occupation";
 import {
   nomSeul,
   personnesANommer,
   quiTravaille,
 } from "@/lib/interventions/personnes";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
+import {
+  occupationTechnicien,
+  tauxCompact,
+} from "@/lib/interventions/statistiques";
+import { SANS_TRAJET } from "@/lib/interventions/trajet";
 import {
   donneesMaterielDesMachines,
   type DonneesMateriel,
@@ -94,6 +110,7 @@ import {
   CasePosable,
   Posable,
 } from "@/components/planning/pose";
+import { EchapPleinEcran } from "./plein-ecran";
 
 import {
   enTeteDuBloc,
@@ -102,6 +119,7 @@ import {
 } from "../interventions/presentation";
 import { decompte } from "../presentation";
 import {
+  creneauDeLaCarte,
   dureeCarteAffichee,
   materielDeLaCarte,
   panneOuNatureDeLaCarte,
@@ -192,6 +210,12 @@ export default async function PagePlanning({
   // autre valeur retombe sur le défaut plutôt que de faire échouer la page
   // (L1-02f, un paramètre d'URL vient de l'extérieur).
   const afficherAnnulees = parametres.annulees === "1";
+  // LE « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026) —
+  // dans l'URL, comme `vue` et `annulees` juste au-dessus : même discipline,
+  // même raison (L1-02f, un paramètre d'URL vient de l'extérieur, et une
+  // valeur illisible retombe sur l'état initial plutôt que de faire échouer
+  // la page).
+  const pleinEcran = parametres.pleinEcran === "1";
   // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
   // l'URL du rechargement complet que `Posable` déclenche désormais, jamais
   // par un état client qu'un rechargement effacerait avant qu'on le lise.
@@ -516,6 +540,102 @@ export default async function PagePlanning({
     chargeParTechnicien.set(charge.technicienId, deja);
   }
 
+  // ── LE TECHNICIEN ACTIF SANS AUCUNE INTERVENTION CETTE SEMAINE, 0 % COMPRIS
+  // (PG-C4-CHARGE) ─────────────────────────────────────────────────────────
+  //
+  // *Mesuré sur main le 27/09/2026 (audit I-4) : un technicien actif dont
+  // aucune intervention n'est affichée cette semaine n'a NI pourcentage NI
+  // ligne dans la colonne « Technicien » — `occupationsDuPlanning` regroupe
+  // ses lignes par (technicien, agence) EN PARTANT DES INTERVENTIONS, et un
+  // technicien sans intervention n'ouvre aucun groupe.* Ce n'est pas une
+  // formule fausse : `occupationTechnicien(id, [], ouvrables, SANS_TRAJET)`
+  // rend déjà 0 % pour zéro intervention (`tests/unit/interventions/
+  // statistiques.test.ts`). C'est un groupe qui n'existe simplement pas.
+  //
+  // **CE BLOC N'EST PAS UNE SECONDE FORMULE** — territoire de ce ticket : ni
+  // `lib/interventions/occupation.ts` ni `lib/interventions/statistiques.ts`.
+  // Il appelle EXACTEMENT les fonctions que `occupationsDuPlanning` appelle
+  // pour calculer le dénominateur d'un groupe (`chargerCalendrierDuTechnicien`,
+  // son repli `chargerCalendrierAgence`, `minutesOuvrees`, `periodesBloquees`),
+  // puis compose le résultat avec `occupationTechnicien`, la même fonction
+  // pure — jamais une réécriture indépendante qui pourrait diverger en
+  // silence (§9, 01/09). `charges` et le panneau de charge (`<Statistiques>`
+  // plus bas) NE VOIENT PAS ces entrées : elles n'existent que dans CETTE
+  // carte, pour la colonne compacte — le panneau reste la mesure officielle,
+  // dérivée des seules interventions réelles.
+  const techniciensSansCharge = cadre.techniciens.filter(
+    (technicien) => !chargeParTechnicien.has(technicien.utilisateur_id),
+  );
+  if (techniciensSansCharge.length > 0 && contexte.societeId !== null) {
+    const societeId = contexte.societeId;
+    const jourMinuit = {
+      du: minuit(fenetreEnJours.du),
+      au: minuit(fenetreEnJours.au),
+    };
+    const libelleAgence = new Map(
+      cadre.detaillees.map(({ agence }) => [agence.id, agence.libelle]),
+    );
+    await avecContexteApplicatif(contexte, async (tx) => {
+      const cacheAgence: CacheCalendrierAgence = new Map();
+      for (const technicien of techniciensSansCharge) {
+        const calendrier =
+          (await chargerCalendrierDuTechnicien(tx, {
+            societeId,
+            utilisateurId: technicien.utilisateur_id,
+            fenetre: jourMinuit,
+            cache: cacheAgence,
+          })) ??
+          (await chargerCalendrierAgence(
+            tx,
+            {
+              societeId,
+              agenceId: technicien.agence_id,
+              fenetre: jourMinuit,
+            },
+            cacheAgence,
+          ));
+        const debut =
+          calendrier === null
+            ? null
+            : versInstant(jourMinuit.du, calendrier.fuseau);
+        const fin =
+          calendrier === null
+            ? null
+            : versInstant(jourMinuit.au, calendrier.fuseau);
+        const brut =
+          calendrier === null || debut === null || fin === null
+            ? 0
+            : minutesOuvrees(calendrier, debut, fin);
+        const absentes =
+          calendrier === null || debut === null || fin === null
+            ? 0
+            : periodesBloquees(absences, technicien.utilisateur_id, {
+                du: debut,
+                au: fin,
+              }).reduce(
+                (total, periode) =>
+                  total + minutesOuvrees(calendrier, periode.du, periode.au),
+                0,
+              );
+        const ouvrables = Math.max(0, brut - absentes);
+        chargeParTechnicien.set(technicien.utilisateur_id, [
+          {
+            technicienId: technicien.utilisateur_id,
+            agenceId: technicien.agence_id,
+            agenceLibelle:
+              libelleAgence.get(technicien.agence_id) ?? technicien.agence_id,
+            occupation: occupationTechnicien(
+              technicien.utilisateur_id,
+              [],
+              ouvrables,
+              SANS_TRAJET,
+            ),
+          },
+        ]);
+      }
+    });
+  }
+
   // LE FUSEAU EST CELUI DE L'AGENCE, et la société n'est que le repli — c'est
   // `fuseauDeLAgence` qui décide à l'ÉCRITURE (`lib/interventions/depot.ts`),
   // et deux lectures d'un même critère divergent en silence. Une agence sans
@@ -608,6 +728,20 @@ export default async function PagePlanning({
           semaine={jours[0]}
           afficherAnnulees={afficherAnnulees}
         />
+        {/*
+          « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du
+          27/09/2026) — seule la vue SEMAINE en a besoin (c'est sa grille que
+          150 px de colonne minimum resserre), mais le bouton reste dans la
+          même rangée que le reste des commandes de période plutôt que
+          d'apparaître et disparaître d'un endroit à l'autre selon la vue.
+        */}
+        {vue === "semaine" ? (
+          <BasculerPleinEcran
+            semaine={jours[0]}
+            afficherAnnulees={afficherAnnulees}
+            pleinEcran={pleinEcran}
+          />
+        ) : null}
       </div>
       {/*
         LA BANNIÈRE « CALENDRIERS D'AGENCE RESPECTÉS » (D125, D128, LOT A2).
@@ -723,98 +857,117 @@ export default async function PagePlanning({
           l'ordre VISUEL de l'ordre du DOM : le planning reste lu en premier
           par un lecteur d'écran et par un clavier, sur toutes les largeurs.
         */}
-        <div className="grid items-start gap-4 lg:grid-cols-[290px_1fr]">
-          <aside
-            data-maquette-bloc="carte-a-affecter"
-            // `min-w-0` MÊME RAISON QUE L'AUTRE COLONNE DE LA GRILLE, PLUS
-            // BAS (PLANNING-2) : les cartes de la file tronquent désormais
-            // client/panne/site (99X-GR8-FILE) — un span `truncate` est un
-            // texte SANS RETOUR À LA LIGNE, et sans ce `min-w-0` sa longueur
-            // ENTIÈRE redevient la taille minimale de cette colonne de
-            // grille, qui pousse alors la page hors de l'écran (mesuré à
-            // 390px : 425px de large pour un écran de 390).
-            className="order-2 min-w-0 flex flex-col gap-4 lg:order-1"
-          >
-            <section className="bg-app-surface border-app-bord rounded-lg border">
-              <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
-                {t("planning.file_attente")}
-                <span data-maquette-bloc="badge-a-affecter">
-                  <Badge ton="orange">
-                    {decompte(
-                      attente.length,
-                      t("planning.file_attente_dossier_un"),
-                      t("planning.file_attente_dossiers"),
-                    )}
-                  </Badge>
-                </span>
-              </h2>
-              <div
-                data-maquette-bloc="cartes-dossier-file"
-                className="flex flex-col gap-2 p-4"
-              >
-                {attente.length === 0 ? (
-                  <p className="text-app-encre-faible text-[12px]">
-                    {t("planning.file_vide")}
-                  </p>
-                ) : null}
-                {attente.map((ligne) => {
-                  const fuseauDeLaLigne = fuseauParAgence.get(ligne.agence_id);
-                  return (
-                    // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
-                    // la case ne donne qu'un jour et un technicien, jamais
-                    // une heure sûre. Sans fuseau connu pour l'agence de
-                    // l'intervention (agence sans calendrier, cas déjà
-                    // dégradé ailleurs), la carte garde l'ancien
-                    // comportement plutôt que d'ouvrir une fenêtre qui ne
-                    // saurait pas afficher d'heure locale.
-                    <BlocPosable
-                      key={ligne.id}
-                      interventionId={ligne.id}
-                      dureeMin={dureeDe(ligne)}
-                      depuisFile={fuseauDeLaLigne !== undefined}
-                      libelle={libellePourFenetrePose(ligne)}
-                      fuseau={fuseauDeLaLigne ?? null}
-                    >
-                      <Link
-                        href={`/interventions/${ligne.id}`}
-                        className="border-app-bord block rounded-lg border px-3 py-2.5"
-                      >
-                        <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
-                          <span className="min-w-0 flex-1 truncate">
-                            {ligne.client.raison_sociale}
-                          </span>
-                          <Badge ton={tonDePriorite(ligne.priorite)}>
-                            {t(`priorite.${ligne.priorite}`)}
-                          </Badge>
-                        </span>
-                        <span
-                          className="text-app-encre-faible block truncate text-[12px]"
-                          title={panneOuNatureDeLaCarte(ligne)}
-                        >
-                          {panneOuNatureDeLaCarte(ligne)}
-                        </span>
-                        <span className="text-app-encre-faible block truncate text-[10.5px]">
-                          {siteDeLaCarte(ligne.site)}
-                          {t("ponctuation.point_median")}
-                          {referenceAffichee(ligne)}
-                        </span>
-                      </Link>
-                      {fuseauDeLaLigne === undefined ? null : (
-                        <div className="mt-1.5">
-                          <BoutonPoser
-                            interventionId={ligne.id}
-                            dureeMin={dureeDe(ligne)}
-                            libelle={libellePourFenetrePose(ligne)}
-                            fuseau={fuseauDeLaLigne}
-                          />
-                        </div>
+        {/*
+          « PLEIN ÉCRAN » REPLIE CETTE COLONNE ENTIÈRE (PG-C3-CARTES-
+          COLONNES) : `lg:grid-cols-1` rend à la grille les 290 px + la
+          gouttière que la file d'attente lui prenait. `EchapPleinEcran`
+          n'est monté que dans cet état — un écouteur clavier posé en
+          permanence sur un écran qui ne l'utilise pas serait du travail pour
+          rien.
+        */}
+        {pleinEcran ? (
+          <EchapPleinEcran
+            href={hrefSansPleinEcran(jours[0], afficherAnnulees)}
+          />
+        ) : null}
+        <div
+          className={`grid items-start gap-4 ${pleinEcran ? "" : "lg:grid-cols-[290px_1fr]"}`}
+        >
+          {pleinEcran ? null : (
+            <aside
+              data-maquette-bloc="carte-a-affecter"
+              // `min-w-0` MÊME RAISON QUE L'AUTRE COLONNE DE LA GRILLE, PLUS
+              // BAS (PLANNING-2) : les cartes de la file tronquent désormais
+              // client/panne/site (99X-GR8-FILE) — un span `truncate` est un
+              // texte SANS RETOUR À LA LIGNE, et sans ce `min-w-0` sa longueur
+              // ENTIÈRE redevient la taille minimale de cette colonne de
+              // grille, qui pousse alors la page hors de l'écran (mesuré à
+              // 390px : 425px de large pour un écran de 390).
+              className="order-2 min-w-0 flex flex-col gap-4 lg:order-1"
+            >
+              <section className="bg-app-surface border-app-bord rounded-lg border">
+                <h2 className="border-app-bord flex items-center justify-between border-b px-4 py-3.5 text-[14px] font-bold">
+                  {t("planning.file_attente")}
+                  <span data-maquette-bloc="badge-a-affecter">
+                    <Badge ton="orange">
+                      {decompte(
+                        attente.length,
+                        t("planning.file_attente_dossier_un"),
+                        t("planning.file_attente_dossiers"),
                       )}
-                    </BlocPosable>
-                  );
-                })}
-              </div>
-            </section>
-          </aside>
+                    </Badge>
+                  </span>
+                </h2>
+                <div
+                  data-maquette-bloc="cartes-dossier-file"
+                  className="flex flex-col gap-2 p-4"
+                >
+                  {attente.length === 0 ? (
+                    <p className="text-app-encre-faible text-[12px]">
+                      {t("planning.file_vide")}
+                    </p>
+                  ) : null}
+                  {attente.map((ligne) => {
+                    const fuseauDeLaLigne = fuseauParAgence.get(
+                      ligne.agence_id,
+                    );
+                    return (
+                      // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
+                      // la case ne donne qu'un jour et un technicien, jamais
+                      // une heure sûre. Sans fuseau connu pour l'agence de
+                      // l'intervention (agence sans calendrier, cas déjà
+                      // dégradé ailleurs), la carte garde l'ancien
+                      // comportement plutôt que d'ouvrir une fenêtre qui ne
+                      // saurait pas afficher d'heure locale.
+                      <BlocPosable
+                        key={ligne.id}
+                        interventionId={ligne.id}
+                        dureeMin={dureeDe(ligne)}
+                        depuisFile={fuseauDeLaLigne !== undefined}
+                        libelle={libellePourFenetrePose(ligne)}
+                        fuseau={fuseauDeLaLigne ?? null}
+                      >
+                        <Link
+                          href={`/interventions/${ligne.id}`}
+                          className="border-app-bord block rounded-lg border px-3 py-2.5"
+                        >
+                          <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                            <span className="min-w-0 flex-1 truncate">
+                              {ligne.client.raison_sociale}
+                            </span>
+                            <Badge ton={tonDePriorite(ligne.priorite)}>
+                              {t(`priorite.${ligne.priorite}`)}
+                            </Badge>
+                          </span>
+                          <span
+                            className="text-app-encre-faible block truncate text-[12px]"
+                            title={panneOuNatureDeLaCarte(ligne)}
+                          >
+                            {panneOuNatureDeLaCarte(ligne)}
+                          </span>
+                          <span className="text-app-encre-faible block truncate text-[10.5px]">
+                            {siteDeLaCarte(ligne.site)}
+                            {t("ponctuation.point_median")}
+                            {referenceAffichee(ligne)}
+                          </span>
+                        </Link>
+                        {fuseauDeLaLigne === undefined ? null : (
+                          <div className="mt-1.5">
+                            <BoutonPoser
+                              interventionId={ligne.id}
+                              dureeMin={dureeDe(ligne)}
+                              libelle={libellePourFenetrePose(ligne)}
+                              fuseau={fuseauDeLaLigne}
+                            />
+                          </div>
+                        )}
+                      </BlocPosable>
+                    );
+                  })}
+                </div>
+              </section>
+            </aside>
+          )}
 
           {/*
             `min-w-0` CONTRE LE DÉBORDEMENT DE TOUTE LA PAGE (PLANNING-2).
@@ -907,6 +1060,58 @@ const CONTOUR_EN_RETARD =
   "outline outline-2 outline-dashed outline-app-rouge-bord outline-offset-1";
 
 /**
+ * L'EN-TÊTE DE LA CARTE DE LA GRILLE SEMAINE — heure DE FIN comprise
+ * (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026, `.event` de la
+ * maquette). Même forme que `enTeteDuBloc` (`../interventions/
+ * presentation.ts`, toujours utilisée par la liste téléphone et la vue jour,
+ * hors territoire de ce ticket) : l'heure d'abord, le client ensuite, le
+ * client seul si aucune heure n'est posée — seule la SOURCE de l'heure
+ * change, `creneauDeLaCarte` plutôt que `heureDuCreneau` seule.
+ */
+function enTeteDeLaCarteSemaine(
+  ligne: {
+    creneau_debut: Date | null;
+    creneau_fin: Date | null;
+    client: { raison_sociale: string };
+  },
+  fuseau: Fuseau,
+): string {
+  const creneau = creneauDeLaCarte(ligne, fuseau);
+  return creneau === null
+    ? ligne.client.raison_sociale
+    : `${creneau} ${ligne.client.raison_sociale}`;
+}
+
+/**
+ * LA PUCE DE PRIORITÉ — P1/P2 SEULEMENT (PG-C3-CARTES-COLONNES, décision
+ * QG-1 du 27/09/2026, `.b-p1`/`.b-p2` de la maquette).
+ *
+ * **P3 et P4 n'ont pas de puce** : `tonDePriorite` leur donne déjà le gris
+ * « rien à signaler » (GR5, audit du 26/09/2026, constat G6) — une puce grise
+ * sur CHAQUE carte serait un bruit constant sur un écran qui en montre des
+ * dizaines, pour ne rien dire de plus que son absence.
+ *
+ * Le TEXTE de la puce (`planning.priorite_puce.p1`/`.p2`) est court par
+ * construction — la carte mesure 150 px, pas plus —, et `aria-label` porte la
+ * même phrase que la file d'attente (`priorite.p1`/`.p2`, « P1 — critique ») :
+ * un lecteur d'écran ne doit pas apprendre moins qu'un œil qui voit la
+ * couleur.
+ */
+function PucePriorite({ priorite }: { readonly priorite: string }) {
+  if (priorite !== "p1" && priorite !== "p2") {
+    return null;
+  }
+  return (
+    <span
+      aria-label={t(`priorite.${priorite}`)}
+      className={`shrink-0 rounded-full px-1 text-[9px] font-bold ${CLASSES_TON_PRIORITE[tonDePriorite(priorite)]}`}
+    >
+      {t(`planning.priorite_puce.${priorite}`)}
+    </span>
+  );
+}
+
+/**
  * LE SITE, LE MATÉRIEL ET LA DURÉE D'UNE CARTE (PLANNING-2 ; matériel ajouté
  * par AFFICHAGE-MATERIEL-1) — PARTAGÉS entre les trois rendus de carte (grille
  * semaine, grille jour, liste téléphone), pour que les trois ne divergent
@@ -933,10 +1138,18 @@ function DetailsDeLaCarte({
   ligne,
   donneesMateriel,
   enRetard,
+  masquerMateriel = false,
 }: {
   readonly ligne: Ligne;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   readonly enRetard: boolean;
+  /**
+   * LA CARTE NORMALISÉE DE LA GRILLE SEMAINE (PG-C3-CARTES-COLONNES) montre
+   * déjà le matériel FONDU dans sa ligne « nature · machine » — le répéter
+   * ici doublerait l'information. Facultatif : les autres cartes (vue jour,
+   * liste téléphone) n'y touchent pas et gardent leur ligne matériel dédiée.
+   */
+  readonly masquerMateriel?: boolean;
 }) {
   const duree = dureeCarteAffichee(dureeDe(ligne) ?? 0);
   const materiel = materielDeLaCarte(ligne, donneesMateriel);
@@ -948,12 +1161,14 @@ function DetailsDeLaCarte({
       >
         {siteDeLaCarte(ligne.site)}
       </span>
-      <span
-        className="text-app-encre-faible block truncate text-[10.5px]"
-        title={materiel}
-      >
-        {materiel}
-      </span>
+      {masquerMateriel ? null : (
+        <span
+          className="text-app-encre-faible block truncate text-[10.5px]"
+          title={materiel}
+        >
+          {materiel}
+        </span>
+      )}
       {duree === null ? null : (
         <span className="text-app-encre-faible block text-[10.5px]">
           {duree}
@@ -1022,14 +1237,14 @@ function VueSemaine({
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
-  // ── LE FÉRIÉ DE CHAQUE JOUR DE LA SEMAINE, POUR LE SURVOL (PG-B4) ────────
-  //
-  // Une seule lecture par JOUR — jamais par case — `etatFerieDuJour` ne
-  // dépend pas du technicien. Même fonction que l'en-tête de colonne,
-  // au-dessus : deux lectures d'un même critère plutôt qu'une troisième
-  // écrite ailleurs (§9, 01/09).
+  // LE FÉRIÉ DE CHAQUE JOUR, UNE SEULE FOIS — lu par la largeur de la colonne
+  // (`<colgroup>`, PG-C3-CARTES-COLONNES), par son en-tête (`<thead>`) et par
+  // le survol de chaque case (`survol.ferie`, PG-B4) : trois lectures du même
+  // critère divergeraient en silence (§9, 01/09) si l'une changeait sans les
+  // autres.
+  const etatsFeries = jours.map((jour) => etatFerieDuJour(agences, jour));
   const ferieParJour = new Map(
-    jours.map((jour) => [cleJour(jour), etatFerieDuJour(agences, jour).ferme]),
+    jours.map((jour, index) => [cleJour(jour), etatsFeries[index].ferme]),
   );
 
   return (
@@ -1044,221 +1259,235 @@ function VueSemaine({
         elle n'a été pensée que pour un poste de travail ; en dessous de `lg`,
         c'est donc `ListeSemaine`, une liste par personne, qui prend le relais.
       */}
-      <div
-        data-conteneur-tableau-semaine
-        className="hidden overflow-x-auto lg:block"
-      >
-        <table
-          data-maquette-bloc="tableau-charge-semaine"
-          aria-label={t("planning.titre")}
-          className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
-        >
-          {/*
-            COLONNES FLUIDES, ET AUCUNE AUTRE (82-PLANNING-6, 25/09/2026,
-            constats 10/11) — `min-w-[920px]` obligeait ce tableau à un
-            débordement INTERNE dès que son conteneur passait sous 920 px,
-            mesuré à 662 px à 1280 et 822 px à 1440 (menu latéral ouvert) :
-            vendredi et samedi restaient hors cadre aux deux largeurs, sans
-            qu'aucun repère de défilement ne le dise. Retirer ce seul
-            `min-w` suffit : la colonne « Technicien » garde exactement les
-            170 px de la maquette (D95, `LARGEUR_COLONNE_TECHNICIEN_PX`,
-            inchangés), et `table-fixed` partage TOUJOURS le reste à parts
-            égales entre les six colonnes de jour, quelle que soit la largeur
-            réelle du conteneur — y compris la largeur gagnée à 1440 px, qui
-            ne servait à rien tant que le tableau restait figé à 920 px.
-          */}
-          <colgroup>
-            {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
+      {/*
+        LA COLONNE DE JOUR TIENT SA LARGEUR, LA GRILLE DÉFILE PLUTÔT QUE DE
+        L'ÉCRASER (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026 — REVIENT
+        sur 82-PLANNING-6, 25/09/2026, constats 10/11).
+
+        82-PLANNING-6 avait retiré `min-w-[920px]` pour que les six colonnes
+        de jour tiennent sans défilement à 1280 et 1440 px — au prix d'une
+        colonne mesurée à 79 px, une carte à 11 px de contenu utile (audit du
+        27/09/2026, I-2) : illisible. QG-1 arbitre l'inverse, et c'est ce
+        `etatsFeries`/`<colgroup>` qui le pose : `LARGEUR_COLONNE_JOUR_OUVERT_PX`
+        (150 px) pour un jour ouvert, `LARGEUR_COLONNE_JOUR_FERME_PX` (36 px,
+        rien à y montrer qu'une trame et un libellé court) pour un férié ou un
+        pont. `LARGEUR_COLONNE_TECHNICIEN_PX` ne bouge pas (170 px, D95).
+
+        `table-layout: fixed` rend le tableau à `max(largeur du conteneur,
+        somme des colonnes)` (CSS 2.1, §17.5.2) : à 1280/1440 px, la somme
+        dépasse le conteneur disponible et le tableau DÉBORDE de lui — c'est
+        exactement ce que `CadreDefilant` (`components/ui/cadre-defilant.tsx`,
+        réutilisé, jamais copié) existe pour montrer, avec son indice de
+        défilement (`data-defile-droite`/`data-defile-gauche`) plutôt que
+        l'ancien débordement muet que 82-PLANNING-6 avait corrigé. Sur un
+        conteneur plus large que la somme (peu de jours fermés, grand écran),
+        l'espace surplus se distribue sur les colonnes — les 150 px restent un
+        PLANCHER, jamais un plafond.
+      */}
+      <div data-conteneur-tableau-semaine className="hidden lg:block">
+        <CadreDefilant className="overflow-x-auto">
+          <table
+            data-maquette-bloc="tableau-charge-semaine"
+            aria-label={t("planning.titre")}
+            className="w-full table-fixed border-separate border-spacing-0 text-[13px]"
+          >
+            <colgroup>
+              {/* La largeur vient de `lib/theme/apparence.ts` : une largeur
                 écrite dans un écran est une largeur par écran (D95). */}
-            <col style={{ width: `${LARGEUR_COLONNE_TECHNICIEN_PX}px` }} />
-            {jours.map((jour) => (
-              <col key={cleJour(jour)} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr>
-              {/*
-                STICKY (PLANNING-2) : la colonne « Technicien » reste visible
-                si la grille devait défiler horizontalement — un plancher de
-                sécurité qui ne s'active plus aux largeurs de ce lot, mais
-                qu'une largeur plus étroite que celle-ci pourrait encore
-                exercer.
-              */}
-              <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase">
-                {t("planning.colonne_technicien")}
-              </th>
-              {jours.map((jour) => {
-                const estAuj = estAujourdHui(jour, aujourdhui);
-                const ferie = etatFerieDuJour(agences, jour);
-                return (
-                  <th
-                    key={cleJour(jour)}
-                    // LE JOUR COURANT (82-PLANNING-6) — `data-aujourdhui`
-                    // n'existe que sur SA colonne : jamais une valeur, un
-                    // repère.
-                    data-aujourdhui={estAuj ? "" : undefined}
-                    // LE FÉRIÉ OU LE PONT SUR UN JOUR ORDINAIREMENT TRAVAILLÉ
-                    // (PG-A1-FERIES-GRILLE, bug 5 de l'audit du 27/09) —
-                    // `data-jour-ferie` n'existe que sur SA colonne, même
-                    // patron que `data-aujourdhui`.
-                    data-jour-ferie={ferie.ferme ? "" : undefined}
-                    title={ferie.libelle ?? undefined}
-                    className={`border-app-bord border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase ${
-                      ferie.ferme
-                        ? "trame-fermee"
-                        : estAuj
-                          ? "bg-app-marque/10 text-app-marque"
-                          : "bg-app-surface-creuse text-app-encre-faible"
-                    }`}
-                  >
-                    {enTeteDeJour(jour)}
-                    {ferie.ferme ? (
-                      <span className="block normal-case">
-                        {t("planning.jour_ferie")}
-                      </span>
-                    ) : null}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {grille.length === 0 ? (
+              <col style={{ width: `${LARGEUR_COLONNE_TECHNICIEN_PX}px` }} />
+              {jours.map((jour, index) => (
+                <col
+                  key={cleJour(jour)}
+                  style={{
+                    width: `${
+                      etatsFeries[index].ferme
+                        ? LARGEUR_COLONNE_JOUR_FERME_PX
+                        : LARGEUR_COLONNE_JOUR_OUVERT_PX
+                    }px`,
+                  }}
+                />
+              ))}
+            </colgroup>
+            <thead>
               <tr>
-                <td
-                  colSpan={jours.length + 1}
-                  className="text-app-encre-faible px-3.5 py-6"
-                >
-                  {t("planning.semaine_vide")}
-                </td>
+                {/*
+                STICKY (PLANNING-2) : la colonne « Technicien » reste visible
+                pendant que la grille défile — le plancher de sécurité qu'elle
+                a toujours été, exercé de nouveau depuis QG-1.
+              */}
+                <th className="bg-app-surface-creuse border-app-bord text-app-encre-faible sticky left-0 z-10 border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase">
+                  {t("planning.colonne_technicien")}
+                </th>
+                {jours.map((jour, index) => {
+                  const estAuj = estAujourdHui(jour, aujourdhui);
+                  const ferie = etatsFeries[index];
+                  return (
+                    <th
+                      key={cleJour(jour)}
+                      // LE JOUR COURANT (82-PLANNING-6) — `data-aujourdhui`
+                      // n'existe que sur SA colonne : jamais une valeur, un
+                      // repère.
+                      data-aujourdhui={estAuj ? "" : undefined}
+                      // LE FÉRIÉ OU LE PONT SUR UN JOUR ORDINAIREMENT TRAVAILLÉ
+                      // (PG-A1-FERIES-GRILLE, bug 5 de l'audit du 27/09) —
+                      // `data-jour-ferie` n'existe que sur SA colonne, même
+                      // patron que `data-aujourdhui`.
+                      data-jour-ferie={ferie.ferme ? "" : undefined}
+                      title={ferie.libelle ?? undefined}
+                      className={`border-app-bord border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase ${
+                        ferie.ferme
+                          ? "trame-fermee"
+                          : estAuj
+                            ? "bg-app-marque/10 text-app-marque"
+                            : "bg-app-surface-creuse text-app-encre-faible"
+                      }`}
+                    >
+                      {enTeteDeJour(jour)}
+                      {ferie.ferme ? (
+                        <span className="block normal-case">
+                          {t("planning.jour_ferie")}
+                        </span>
+                      ) : null}
+                    </th>
+                  );
+                })}
               </tr>
-            ) : null}
-            {grille.map((ligne) => (
-              <tr key={ligne.technicienId ?? "-"}>
-                <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
-                  {quiTravaille(ligne.technicienId, annuaire)}
-                  <span
-                    data-maquette-bloc="nom-technicien-agence"
-                    className="text-app-encre-faible block text-[10.5px] font-normal"
+            </thead>
+            <tbody>
+              {grille.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={jours.length + 1}
+                    className="text-app-encre-faible px-3.5 py-6"
                   >
-                    {ouTravaille(ligne.agences.map((a) => a.libelle))}
-                  </span>
-                  {/*
+                    {t("planning.semaine_vide")}
+                  </td>
+                </tr>
+              ) : null}
+              {grille.map((ligne) => (
+                <tr key={ligne.technicienId ?? "-"}>
+                  <td className="bg-app-surface-creuse border-app-bord sticky left-0 z-[1] border-r border-b px-3.5 py-2.5 align-top text-[12.5px] font-bold">
+                    {quiTravaille(ligne.technicienId, annuaire)}
+                    <span
+                      data-maquette-bloc="nom-technicien-agence"
+                      className="text-app-encre-faible block text-[10.5px] font-normal"
+                    >
+                      {ouTravaille(ligne.agences.map((a) => a.libelle))}
+                    </span>
+                    {/*
                     LE TAUX COMPACT (D111) : le pourcentage SEUL, sans le nom de
                     l'agence. *Un technicien n'a qu'une agence de rattachement,
                     donc jamais deux taux* — le chiffre ne peut pas être lu de
                     travers, et la colonne est trop étroite pour porter la
                     formule. Le panneau de charge, lui, la porte toujours.
                   */}
-                  <TauxCompactAffiche
-                    lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
-                  />
-                </td>
-                {ligne.cases.map((cellule) => (
-                  <CasePosable
-                    key={cleJour(cellule.jour)}
-                    cible={{
-                      jour: cleJour(cellule.jour),
-                      technicienId: ligne.technicienId,
-                      minutes: null,
-                      // La vue SEMAINE n'a pas d'heure, donc pas de pas : elle
-                      // déplace des jours, jamais des durées.
-                      pasMinutes: 0,
-                      survol: {
-                        bloquee: cellule.bloquee,
-                        ouverte: cellule.ouverte,
-                        ferie: ferieParJour.get(cleJour(cellule.jour)) ?? false,
-                      },
-                    }}
-                    className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule, estAujourdHui(cellule.jour, aujourdhui))}`}
-                    style={{ height: "78px" }}
-                  >
-                    {/*
+                    <TauxCompactAffiche
+                      lignes={chargeDe.get(ligne.technicienId ?? "") ?? []}
+                    />
+                  </td>
+                  {ligne.cases.map((cellule) => (
+                    <CasePosable
+                      key={cleJour(cellule.jour)}
+                      cible={{
+                        jour: cleJour(cellule.jour),
+                        technicienId: ligne.technicienId,
+                        minutes: null,
+                        // La vue SEMAINE n'a pas d'heure, donc pas de pas : elle
+                        // déplace des jours, jamais des durées.
+                        pasMinutes: 0,
+                        survol: {
+                          bloquee: cellule.bloquee,
+                          ouverte: cellule.ouverte,
+                          ferie:
+                            ferieParJour.get(cleJour(cellule.jour)) ?? false,
+                        },
+                      }}
+                      className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule, estAujourdHui(cellule.jour, aujourdhui))}`}
+                      style={{ height: "78px" }}
+                    >
+                      {/*
                       LE BLOCAGE D'AGENDA SE LIT DANS LA CASE, AVANT LE GESTE
                       (PLANNING-1, RG-PLA-06). La pastille est celle de
                       `/absences` — même mot, même violet (D124, D128). La
                       case reste une cible de dépôt : c'est toujours le dépôt
                       qui refuse, et la légende le dit.
                     */}
-                    {cellule.bloquee ? <PastilleAgendaBloque /> : null}
-                    {cellule.lignes.map((intervention) => (
-                      <BlocPosable
-                        key={intervention.id}
-                        interventionId={intervention.id}
-                        dureeMin={dureeDe(intervention)}
-                        debutMinutes={debutMinutesDe(
-                          intervention,
-                          fuseauPour(intervention.agence_id),
-                        )}
-                        avecRedimensionnement={false}
-                      >
-                        <Link
-                          href={`/interventions/${intervention.id}`}
-                          data-maquette-bloc="bloc-intervention-case"
-                          className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                      {cellule.bloquee ? <PastilleAgendaBloque /> : null}
+                      {cellule.lignes.map((intervention) => (
+                        <BlocPosable
+                          key={intervention.id}
+                          interventionId={intervention.id}
+                          dureeMin={dureeDe(intervention)}
+                          debutMinutes={debutMinutesDe(
+                            intervention,
+                            fuseauPour(intervention.agence_id),
+                          )}
+                          avecRedimensionnement={false}
                         >
-                          {/*
-                            LA MAQUETTE FAIT FOI SUR LA DISPOSITION (D95) :
-                            « 08:00 Garage Boulari » puis « Préventif — pont
-                            2 col. ». Le bloc rendait une référence interne, le
-                            client ET le site — trois écarts, et `creneau_debut`
-                            était lu depuis toujours sans jamais être affiché.
+                          <Link
+                            href={`/interventions/${intervention.id}`}
+                            data-maquette-bloc="bloc-intervention-case"
+                            className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
+                          >
+                            {/*
+                            LA CARTE NORMALISÉE (PG-C3-CARTES-COLONNES,
+                            décision QG-1 du 27/09/2026, `.event` de la
+                            maquette) : heure–fin plutôt que la seule heure de
+                            début (`creneauDeLaCarte`, `carte.ts`), client sur
+                            deux lignes au plus (inchangé, décision d'Alexis du
+                            26/09/2026, audit GR9, constat G1), puis
+                            « nature · machine » FONDUES sur une ligne — la
+                            colonne mesure désormais 150 px au minimum, contre
+                            ~80 px avant ce ticket, et n'a plus besoin de deux
+                            lignes séparées pour les porter.
 
-                            LE SITE ET LA DURÉE S'Y AJOUTENT (PLANNING-2) :
-                            *mesuré le 23/09/2026, une carte se lisait « SIDAPS
-                            / Curatif » sans heure saisie — deux interventions
-                            du même jour chez le même client étaient
-                            indiscernables.* `DetailsDeLaCarte` les ajoute,
-                            partagée avec `ListeSemaine` pour que les deux
-                            vues ne divergent jamais sur ce qu'elles disent.
-
-                            LA LIGNE HEURE + CLIENT S'ENROULE SUR DEUX LIGNES
-                            AU PLUS (décision d'Alexis du 26/09/2026, audit
-                            GR9, constat G1) : `line-clamp-2 break-words`,
-                            `title` conservé. *Mesuré à 1280 px : la colonne
-                            jour fait ~80 px, la ligne de tête tronquée à une
-                            ligne ne montrait ni l'heure ni le client, et deux
-                            cartes du même client étaient indiscernables.*
-                            ÉCART NOMMÉ à la règle « jamais une case qui
-                            grandit » (ci-dessus, § CasePosable) — la case
-                            l'admet pour cette seule ligne, `height: "78px"`
-                            sur un `<td>` HTML se comportant comme un
-                            MINIMUM, jamais une coupe. Les autres lignes du
-                            bloc (nature, `DetailsDeLaCarte`) restent
-                            tronquées sur une seule ligne, avec leur `title`.
+                            LA COMMUNE N'Y EST PAS : `site.commune` n'est pas
+                            lu par `listerPlanning` (`lib/interventions/
+                            depot.ts`), hors du territoire de ce ticket — la
+                            carte garde le SITE (`DetailsDeLaCarte`), déjà
+                            affiché avant ce lot, plutôt qu'un champ vide.
+                            Écrit dans la passation plutôt que fait à moitié
+                            en silence.
                           */}
-                          <span
-                            className="line-clamp-2 font-bold break-words"
-                            title={enTeteDuBloc(
-                              intervention,
-                              fuseauPour(intervention.agence_id),
-                            )}
-                          >
-                            {enTeteDuBloc(
-                              intervention,
-                              fuseauPour(intervention.agence_id),
-                            )}
-                          </span>
-                          <span
-                            className="block truncate"
-                            title={objetDuBloc(intervention)}
-                          >
-                            {objetDuBloc(intervention)}
-                          </span>
-                          <DetailsDeLaCarte
-                            ligne={intervention}
-                            donneesMateriel={donneesMateriel}
-                            enRetard={enRetardDe(intervention)}
-                          />
-                        </Link>
-                      </BlocPosable>
-                    ))}
-                  </CasePosable>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                            <span className="flex items-start justify-between gap-1">
+                              <span
+                                className="line-clamp-2 min-w-0 flex-1 font-bold break-words"
+                                title={enTeteDeLaCarteSemaine(
+                                  intervention,
+                                  fuseauPour(intervention.agence_id),
+                                )}
+                              >
+                                {enTeteDeLaCarteSemaine(
+                                  intervention,
+                                  fuseauPour(intervention.agence_id),
+                                )}
+                              </span>
+                              <PucePriorite priorite={intervention.priorite} />
+                            </span>
+                            <span
+                              className="block truncate"
+                              title={`${objetDuBloc(intervention)}${t("ponctuation.point_median")}${materielDeLaCarte(intervention, donneesMateriel)}`}
+                            >
+                              {objetDuBloc(intervention)}
+                              {t("ponctuation.point_median")}
+                              {materielDeLaCarte(intervention, donneesMateriel)}
+                            </span>
+                            <DetailsDeLaCarte
+                              ligne={intervention}
+                              donneesMateriel={donneesMateriel}
+                              enRetard={enRetardDe(intervention)}
+                              masquerMateriel
+                            />
+                          </Link>
+                        </BlocPosable>
+                      ))}
+                    </CasePosable>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CadreDefilant>
       </div>
       <ListeSemaine
         grille={grille}
@@ -2005,6 +2234,55 @@ function ToggleAnnulees({
   );
 }
 
+/**
+ * L'URL DE LA VUE SEMAINE, SANS `pleinEcran` — celle où Échap et le bouton
+ * ramènent (PG-C3-CARTES-COLONNES). Une seule écriture pour les deux : la
+ * dupliquer dans `EchapPleinEcran` (un COMPOSANT CLIENT, qui ne peut pas
+ * appeler cette fonction serveur) aurait fait deux lectures du même critère
+ * (§9, 01/09) — elle est donc calculée ICI, une fois, et transmise en `href`.
+ */
+function hrefSansPleinEcran(
+  semaine: JourLocal,
+  afficherAnnulees: boolean,
+): string {
+  const base = `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
+  return afficherAnnulees ? `${base}&annulees=1` : base;
+}
+
+/**
+ * « PLEIN ÉCRAN » — replie la colonne « À planifier » pour rendre sa largeur
+ * à la grille (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026). Même
+ * patron que `ToggleAnnulees` juste au-dessus : un `<Link>`, `aria-pressed`,
+ * l'état dans l'URL.
+ */
+function BasculerPleinEcran({
+  semaine,
+  afficherAnnulees,
+  pleinEcran,
+}: {
+  readonly semaine: JourLocal;
+  readonly afficherAnnulees: boolean;
+  readonly pleinEcran: boolean;
+}) {
+  const base = hrefSansPleinEcran(semaine, afficherAnnulees);
+  const href = pleinEcran ? base : `${base}&pleinEcran=1`;
+  const classes =
+    "border-app-bord rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+  return (
+    <Link
+      href={href}
+      aria-pressed={pleinEcran}
+      className={
+        pleinEcran
+          ? `${classes} bg-app-marque text-app-marque-encre`
+          : `${classes} text-app-encre-faible`
+      }
+    >
+      {t(pleinEcran ? "planning.quitter_plein_ecran" : "planning.plein_ecran")}
+    </Link>
+  );
+}
+
 /* ──────────────────────────── LES COMPOSITIONS ─────────────────────────── */
 
 /**
@@ -2315,6 +2593,25 @@ function TauxCompactAffiche({
   );
 }
 
+/**
+ * LE TAUX COMPACT, ÉTENDU DE DEUX ÉTATS (PG-C4-CHARGE, 28/09/2026) — SANS
+ * TOUCHER À `tauxCompact` (`lib/interventions/statistiques.ts`, hors
+ * territoire de ce ticket, formule inchangée D107/D111).
+ *
+ * **« — », JAMAIS « taux inconnu » AFFICHÉ EN CLAIR, pour l'état
+ * `sans_calendrier`** : « 0 % » ne doit jamais se lire pour un dénominateur
+ * inconnu (même règle que `statistiques.sans_calendrier` au panneau complet,
+ * D56) — le signe est court parce que la colonne l'est, `aria-label` et
+ * `title` portent la phrase entière pour qui ne voit pas la couleur ni la
+ * position.
+ *
+ * **« ≥ N % », quand `sansDuree > 0`** : au moins une intervention de la
+ * semaine du technicien n'a pas de durée saisie, et le nombre engagé n'est
+ * alors qu'un PLANCHER — même raison que `heuresEngageesAuMoins` au panneau
+ * complet (SAV-05), reprise ici pour la colonne compacte. Le chiffre BRUT
+ * vient de `compact` (voir plus bas pourquoi jamais d'un second appel) ;
+ * `sansDuree` vient de `ligne.occupation`, jamais recalculé.
+ */
 function TauxDUneAgence({
   ligne,
   nommerLAgence,
@@ -2328,10 +2625,32 @@ function TauxDUneAgence({
     return (
       <span
         title={t("statistiques.taux_compact_sans_calendrier.aide")}
+        aria-label={`${ou}${t("statistiques.taux_compact_sans_calendrier")}`}
         className="text-app-encre-faible block text-[10.5px] font-normal italic"
       >
         {ou}
-        {t("statistiques.taux_compact_sans_calendrier")}
+        {t("statistiques.taux_compact_inconnu")}
+      </span>
+    );
+  }
+  const incomplet = ligne.occupation.sansDuree > 0;
+  if (incomplet) {
+    // LE CHIFFRE BRUT VIENT DE `compact`, JAMAIS D'UN SECOND APPEL À LA
+    // FONCTION PURE QUI CALCULE LE TAUX — un gardien statique
+    // (`tests/unit/interventions/occupation-affichee.test.ts`) refuse qu'un
+    // composant l'appelle par son nom sans porter aussi les deux termes et la
+    // formule (D56) : la colonne compacte en est exemptée par construction
+    // (D111, un technicien n'a qu'une agence), mais seulement tant qu'elle
+    // passe par `tauxCompact` plutôt que par la fonction nue.
+    const brut = compact.etat === "chiffre" ? compact.pourcent : 0;
+    return (
+      <span
+        title={t("statistiques.charge_incomplete")}
+        className="text-app-encre-faible block text-[11px] font-bold"
+      >
+        {ou}
+        {t("statistiques.taux_compact_au_moins_signe")} {brut}
+        {t("statistiques.pourcent")}
       </span>
     );
   }

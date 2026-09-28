@@ -75,14 +75,24 @@ export function Statistiques({
     return null;
   }
 
+  // REPLIABLE, OUVERT PAR DÉFAUT (PG-C4-CHARGE, 28/09/2026) — `<details>`
+  // natif plutôt qu'un composant client : le repli est un pur état d'affichage,
+  // et le navigateur le porte déjà sans qu'aucun JavaScript n'ait à s'en
+  // charger. Les DEUX termes, la formule (D111) et la phrase du trajet (D107)
+  // restent entiers à l'intérieur — ce ticket replie le panneau, il ne
+  // retranche rien de ce qu'il dit une fois ouvert.
   return (
-    <section className="flex flex-col gap-3">
-      <div>
-        <h2 className="text-lg font-medium">{t("statistiques.titre")}</h2>
-        <p className="text-muted-foreground text-sm">
-          {t("statistiques.sous_titre")}
-        </p>
-      </div>
+    <details className="flex flex-col gap-3" open>
+      <summary className="marker:text-muted-foreground cursor-pointer">
+        <div className="inline-block align-top">
+          <h2 className="inline text-lg font-medium">
+            {t("statistiques.titre")}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {t("statistiques.sous_titre")}
+          </p>
+        </div>
+      </summary>
       <p className="text-muted-foreground text-xs">
         {t("statistiques.trajet_lecture")}
       </p>
@@ -98,7 +108,7 @@ export function Statistiques({
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 

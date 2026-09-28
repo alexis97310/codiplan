@@ -13,23 +13,36 @@ import { reperesDeLaScene } from "./setup/reperes";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
- * 82-PLANNING-6 — LA SEMAINE ENTIÈRE ET LE JOUR COURANT VISIBLES À 1280 ET
- * 1440 PX, SANS DÉFILEMENT.
+ * 82-PLANNING-6 — LE JOUR COURANT DÉSIGNÉ DANS LA GRILLE, ET UN RETOUR
+ * RAPIDE À LA SEMAINE COURANTE.
  *
- * ## Ce qui a été mesuré le 25/09/2026 (audit, constats 10 et 11, « Bloquant »)
+ * ## RÉÉCRIT LE 28/09/2026 (PG-C3-CARTES-COLONNES, décision QG-1 du
+ * 27/09/2026) — le titre d'origine, « sans défilement », ne tient plus
  *
- * Le tableau de la vue SEMAINE portait `min-w-[920px]` dans un conteneur de
- * 805 px (mesure de production) — 662 px et 822 px, mesurés dans ce dépôt à
- * 1280 et 1440 px, menu latéral ouvert : vendredi et samedi restaient hors
- * cadre aux deux largeurs, sans le moindre indice de défilement. Aucune
- * colonne ne distinguait le jour courant, et rien ne ramenait à la semaine
- * d'aujourd'hui depuis une autre semaine.
+ * 82-PLANNING-6 (25/09/2026, constats 10/11) avait retiré `min-w-[920px]`
+ * pour que les six colonnes de jour tiennent SANS défiler à 1280 et 1440 px
+ * — au prix d'une colonne mesurée à 79 px, une carte à 11 px de contenu utile
+ * (audit du 27/09/2026, I-2) : illisible. **QG-1 arbitre l'inverse** : une
+ * colonne de jour ouvert mesure 150 px au MINIMUM (`LARGEUR_COLONNE_JOUR_
+ * OUVERT_PX`, `lib/theme/apparence.ts`), quitte à ce que la grille déborde et
+ * défile — avec un indice de défilement visible
+ * (`components/ui/cadre-defilant.tsx`) plutôt que le débordement muet que
+ * 82-PLANNING-6 avait corrigé. Les deux décisions ne peuvent pas être vraies
+ * en même temps ; la plus récente prime (§1).
+ *
+ * Ce que ce fichier éprouvait déjà — largeur des colonnes, indice de
+ * défilement — a migré vers `tests/e2e/planning-largeur-et-carte.spec.ts`
+ * (adapté par le même ticket), qui porte déjà la scène de semaine partagée.
+ * Ce qui RESTE ici, propre à ce fichier : le jour courant est DÉSIGNÉ dans la
+ * grille (`data-aujourdhui`), et le bouton « Aujourd'hui » y ramène —
+ * qu'il faille défiler jusqu'à sa colonne ou non n'est plus ce que ce
+ * fichier juge.
  *
  * ## Ce que ce fichier éprouve
  *
- * Aucune donnée n'est créée : ces trois épreuves ne lisent que la STRUCTURE
- * de l'écran (largeur du conteneur, position de l'en-tête, présence d'un
- * lien), jamais le contenu du semis.
+ * Aucune donnée n'est créée : ces épreuves ne lisent que la STRUCTURE de
+ * l'écran (présence d'un attribut, présence d'un lien), jamais le contenu du
+ * semis.
  *
  * ## Étape 0 — le jour CIVIL de la société, jamais celui de l'appareil (27/09/2026)
  *
@@ -80,7 +93,7 @@ const LARGEURS = [
 ];
 
 for (const { largeur, hauteur } of LARGEURS) {
-  test(`vue semaine : tous les jours tiennent dans le conteneur du tableau, sans défilement, à ${largeur}px`, async ({
+  test(`vue semaine : le jour courant est désigné dans la grille, à ${largeur}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: largeur, height: hauteur });
@@ -88,15 +101,9 @@ for (const { largeur, hauteur } of LARGEURS) {
 
     const conteneur = page.locator("[data-conteneur-tableau-semaine]");
     await expect(conteneur).toBeVisible();
-    const { scrollWidth, clientWidth } = await conteneur.evaluate(
-      (element) => ({
-        scrollWidth: element.scrollWidth,
-        clientWidth: element.clientWidth,
-      }),
-    );
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
 
-    // ── LE JOUR COURANT EST DÉSIGNÉ, ET SON EN-TÊTE EST VISIBLE EN ENTIER ──
+    // ── LE JOUR COURANT EST DÉSIGNÉ — DANS LE DOM, PAS FORCÉMENT DANS LA
+    // FENÊTRE DE DÉFILEMENT INITIALE (QG-1, la grille peut désormais défiler).
     // Sauf le dimanche : la grille n'a que six colonnes (lundi → samedi), et
     // aucune ne porte alors `data-aujourdhui` (voir le commentaire d'en-tête).
     const entete = page.locator("[data-aujourdhui]");
@@ -104,15 +111,7 @@ for (const { largeur, hauteur } of LARGEURS) {
       await expect(entete).toHaveCount(0);
       return;
     }
-    await expect(entete).toBeVisible();
-    const boite = await entete.boundingBox();
-    expect(boite).not.toBeNull();
-    if (boite !== null) {
-      expect(boite.x).toBeGreaterThanOrEqual(0);
-      expect(boite.y).toBeGreaterThanOrEqual(0);
-      expect(boite.x + boite.width).toBeLessThanOrEqual(largeur + 1);
-      expect(boite.y + boite.height).toBeLessThanOrEqual(hauteur + 1);
-    }
+    await expect(entete).toHaveCount(1);
   });
 }
 

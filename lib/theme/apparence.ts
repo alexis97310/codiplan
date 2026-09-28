@@ -165,6 +165,27 @@ export const LARGEUR_UTILE_PX = 1400;
 export const LARGEUR_COLONNE_TECHNICIEN_PX = 170;
 
 /**
+ * LES COLONNES DE JOUR DU PLANNING (SEMAINE) — 150 px minimum quand le jour
+ * est ouvert, 36 px quand il est fermé pour toutes les agences (férié, pont)
+ * — décision QG-1 d'Alexis, 27/09/2026.
+ *
+ * **CECI REVIENT SUR 82-PLANNING-6** (25/09/2026), qui avait retiré tout
+ * `min-w` pour que les six colonnes tiennent sans défilement à 1280 et
+ * 1440 px : la largeur alors mesurée — 79 px — rendait une carte illisible
+ * (11 px de contenu utile, mesure de l'audit du 27/09/2026, I-2). QG-1
+ * arbitre l'inverse : une colonne lisible, quitte à défiler horizontalement,
+ * avec un INDICE DE DÉFILEMENT visible (`components/ui/cadre-defilant.tsx`)
+ * plutôt que l'ancien débordement muet que 82-PLANNING-6 avait précisément
+ * corrigé. Les deux décisions ne peuvent pas être vraies en même temps ; QG-1
+ * est la plus récente et prime (§1).
+ *
+ * Le jour FERMÉ n'a rien à montrer qu'une trame et un libellé court : 36 px
+ * lui suffit, et c'est ce qui laisse le plus de place aux jours ouverts.
+ */
+export const LARGEUR_COLONNE_JOUR_OUVERT_PX = 150;
+export const LARGEUR_COLONNE_JOUR_FERME_PX = 36;
+
+/**
  * LE LIEN, VISIBLE AU REPOS — et pas seulement au survol (14/09/2026).
  *
  * ## Ce qui a été mesuré

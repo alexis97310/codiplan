@@ -1118,6 +1118,16 @@ export const fr = {
   "statistiques.taux_compact_sans_calendrier": "taux inconnu",
   "statistiques.taux_compact_sans_calendrier.aide":
     "Aucun calendrier n'est r\u00e9gl\u00e9 pour son \u00e9tablissement : le taux n'a pas de d\u00e9nominateur. Ce n'est pas z\u00e9ro pour cent.",
+  // LE SIGNE AFFICH\u00c9 DE L'\u00c9TAT \u00ab SANS CALENDRIER \u00bb (PG-C4-CHARGE,
+  // 28/09/2026) \u2014 la colonne \u00ab Technicien \u00bb est trop \u00e9troite pour \u00ab taux
+  // inconnu \u00bb en toutes lettres ; `aria-label` et `title` portent la phrase
+  // compl\u00e8te pour qui ne voit ni la position ni l'italique.
+  "statistiques.taux_compact_inconnu": "\u2014",
+  // LE SIGNE \u00ab AU MOINS \u00bb DE LA COLONNE COMPACTE (PG-C4-CHARGE, 28/09/2026) \u2014
+  // m\u00eame raison que `statistiques.au_moins` au panneau complet (SAV-05) :
+  // d\u00e8s qu'une intervention de la semaine n'a pas de dur\u00e9e saisie, le nombre
+  // engag\u00e9 n'est plus qu'un plancher.
+  "statistiques.taux_compact_au_moins_signe": "\u2265",
   "statistiques.pourcent": "\u00a0%",
   // ── AU-DELÀ DE 100 %, ET C'EST LE SEUL CAS QUI DEMANDE UNE ACTION ────────
   //
@@ -3211,6 +3221,15 @@ export const fr = {
   // LE FILTRE DES ANNULÉES (PG-A8-ANNULEES-MASQUEES, 28/09/2026) — masquées
   // par défaut (annexe D du cahier des charges), ce bouton les remontre.
   "planning.afficher_annulees": "Afficher les annulées",
+  // « PLEIN ÉCRAN » (PG-C3-CARTES-COLONNES, décision QG-1 du 27/09/2026) —
+  // replie la colonne « À planifier » pour rendre sa largeur à la grille.
+  "planning.plein_ecran": "Plein écran",
+  "planning.quitter_plein_ecran": "Quitter le plein écran",
+  // LA PUCE DE PRIORITÉ DE LA CARTE (PG-C3-CARTES-COLONNES) — le sigle SEUL,
+  // la carte n'ayant pas la largeur de « P1 — critique » (`priorite.p1`) ;
+  // `aria-label` porte la phrase complète (`PucePriorite`, `page.tsx`).
+  "planning.priorite_puce.p1": "P1",
+  "planning.priorite_puce.p2": "P2",
   "planning.colonne_heure": "Heure",
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
   // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux
