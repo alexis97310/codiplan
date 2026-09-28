@@ -74,6 +74,7 @@ import {
   type Deplacement,
   type EtatAvantPlanification,
   type NoteInterne,
+  type Priorite,
   type RechercheInterventions,
   type Reprise,
   type StatutIntervention,
@@ -162,6 +163,97 @@ export const CHAMPS_LIGNE = {
 export type LigneIntervention = Prisma.InterventionGetPayload<{
   select: typeof CHAMPS_LIGNE;
 }>;
+
+/** Le rang de chaque priorité, dans l'ordre du chapitre 10 — p1 la plus urgente. */
+const RANG_PRIORITE: Readonly<Record<Priorite, number>> = {
+  p1: 0,
+  p2: 1,
+  p3: 2,
+  p4: 3,
+};
+
+/**
+ * Ce qu'il faut d'une ligne pour la ranger dans l'historique d'un client ou
+ * d'un site (TP-A1) — un sous-ensemble de `CHAMPS_LIGNE`, jamais une seconde
+ * sélection : `dernieresInterventionsDuSite`/`dernieresInterventionsDuClient`
+ * en tiennent l'ordre en SQL sans le sélectionner (`cree_le` n'entre dans
+ * aucune des deux `select`), un test peut construire cette forme directement.
+ */
+export type LigneHistoriqueTriable = {
+  readonly id: string;
+  readonly statut: StatutIntervention;
+  readonly priorite: Priorite;
+  readonly date_planifiee: Date | null;
+  readonly cree_le: Date;
+};
+
+/**
+ * L'ORDRE DE L'HISTORIQUE D'UN CLIENT OU D'UN SITE (TP-A1-HISTORIQUES-CLIENT-SITE
+ * — décision d'Alexis du 28/09/2026, ~20h10 NC, prise sur l'audit du 28/09,
+ * CS29/CS9). *Le pilote a demandé « On inverse ? », la réponse a été « Oui, en
+ * tête ».*
+ *
+ * **REVIENT sur le choix écrit avant ce lot** — « la file d'attente EN BAS »,
+ * qui documentait `dernieresInterventionsDuSite`/`dernieresInterventionsDuClient`
+ * jusqu'ici.
+ *
+ * **D'ABORD LES OUVERTES SANS DATE** — celles qui restent à planifier, dont le
+ * `statut` est hors `STATUTS_INTERVENTION_FERMES` — rangées par URGENCE
+ * (`priorite`, p1 d'abord, le même rang que `listerPlanning`) puis par
+ * ANCIENNETÉ (`cree_le` CROISSANT, puis `id` croissant : la plus ancienne en
+ * attente passe devant, même ordre que `listerPlanning`).
+ *
+ * **ENSUITE TOUT LE RESTE**, par `date_planifiee` DÉCROISSANTE puis `id`
+ * décroissant. Les sans date FERMÉES (`annulee`, `cloturee`, `terminee`)
+ * ferment ce second groupe — à la même place qu'avant ce lot.
+ *
+ * **Le piège reste celui d'HISTORIQUE-SITE-1, et il est resté vrai** : un
+ * `ORDER BY date_planifiee DESC` nu remplirait la borne de lignes SANS DATE
+ * FERMÉES aussi bien que d'ouvertes — PostgreSQL met tout `NULL` en tête. Ce
+ * comparateur ne met en tête que les OUVERTES sans date ; une fermée qui n'a
+ * simplement jamais eu de date reste dans le second groupe, en dernier rang.
+ *
+ * **Une seule écriture de la règle.** Les lectures bornées ou paginées
+ * (`dernieresInterventionsDuSite`, `dernieresInterventionsDuClient`) la
+ * tiennent en DEUX requêtes SQL — la tête, puis le reste — jamais une seconde
+ * règle écrite à part : les tests confrontent leur résultat à CE comparateur,
+ * appliqué à la scène entière.
+ */
+export function comparerHistorique(
+  a: LigneHistoriqueTriable,
+  b: LigneHistoriqueTriable,
+): number {
+  const aEnTete = estEnTeteDHistorique(a);
+  const bEnTete = estEnTeteDHistorique(b);
+  if (aEnTete !== bEnTete) {
+    return aEnTete ? -1 : 1;
+  }
+  if (aEnTete) {
+    const ecartPriorite = RANG_PRIORITE[a.priorite] - RANG_PRIORITE[b.priorite];
+    if (ecartPriorite !== 0) {
+      return ecartPriorite;
+    }
+    const ecartAnciennete = a.cree_le.getTime() - b.cree_le.getTime();
+    if (ecartAnciennete !== 0) {
+      return ecartAnciennete;
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  }
+  const tempsA = a.date_planifiee?.getTime() ?? Number.NEGATIVE_INFINITY;
+  const tempsB = b.date_planifiee?.getTime() ?? Number.NEGATIVE_INFINITY;
+  if (tempsA !== tempsB) {
+    return tempsB - tempsA;
+  }
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+}
+
+/** Une OUVERTE sans date — celle que `comparerHistorique` met en tête. */
+function estEnTeteDHistorique(ligne: LigneHistoriqueTriable): boolean {
+  return (
+    ligne.date_planifiee === null &&
+    !STATUTS_INTERVENTION_FERMES.includes(ligne.statut)
+  );
+}
 
 /** Un refus rendu à l'appelant, avec la clé qui l'explique à l'écran. */
 export type Resultat<T> =
@@ -2708,6 +2800,37 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
   );
 }
 
+/** La sélection commune aux deux groupes de `dernieresInterventionsDuClient`. */
+const SELECTION_LIGNE_PLANNING = {
+  ...CHAMPS_LIGNE,
+  client: { select: { raison_sociale: true } },
+  site: { select: { libelle: true } },
+} as const;
+
+/**
+ * LE GROUPE DE TÊTE — les OUVERTES sans date d'un client, dans l'ordre de
+ * `comparerHistorique` (urgence puis ancienneté). Partagé par la page (où il
+ * peut suffire à lui seul) et par le compte qui décide où `skip` retombe.
+ */
+function ouLeClientAttend(clientId: string): Prisma.InterventionWhereInput {
+  return {
+    client_id: clientId,
+    date_planifiee: null,
+    statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+  };
+}
+
+/** LE RESTE — tout ce qui a une date, ou n'en a pas mais est fermé. */
+function ouLeClientARepondu(clientId: string): Prisma.InterventionWhereInput {
+  return {
+    client_id: clientId,
+    OR: [
+      { date_planifiee: { not: null } },
+      { statut: { in: [...STATUTS_INTERVENTION_FERMES] } },
+    ],
+  };
+}
+
 /**
  * LES INTERVENTIONS D'UN CLIENT, PAGE PAR PAGE (écran client, 14/09/2026 —
  * paginée depuis HISTORIQUE-CLIENT-1, 23/09/2026).
@@ -2723,15 +2846,18 @@ function joursEcoules(depuis: Date, jusqua: Date): number {
  * seconde sélection écrite dans le module client aurait divergé de celle-ci au
  * premier champ ajouté — sans que rien ne les confronte.
  *
- * **L'ordre est celui de la RÉCENCE, et son critère est écrit plutôt que
- * supposé.** `date_planifiee` est nulle sur toute la file d'attente : trier par
- * elle seule rangerait ces lignes-là dans un ordre que PostgreSQL choisit, ce
- * qui est exactement la faute de L3-03. L'`id` ferme donc l'ordre — un UUID v7
- * porte l'horodatage de création sur ses bits de poids fort (I10), et il est
- * total. **`nulls: "last"` referme le même point que sur `listerInterventions`
- * (`lib/interventions/depot.ts`) : un `ORDER BY date_planifiee DESC` nu place
- * les `NULL` en TÊTE sous PostgreSQL, ce qui aurait rempli chaque page de file
- * d'attente et repoussé les vraies dernières interventions hors d'atteinte.**
+ * **L'ORDRE EST CELUI DE `comparerHistorique` (TP-A1, décision d'Alexis du
+ * 28/09/2026, CS29/CS9) — LES OUVERTES SANS DATE EN TÊTE**, plus l'appelant
+ * qui la porte. Ce lot REVIENT sur le choix précédent (« la file d'attente EN
+ * BAS ») : voir le docblock de `comparerHistorique` pour la règle entière et
+ * le piège qu'elle referme (un `ORDER BY date_planifiee DESC` nu remplirait la
+ * page de lignes SANS DATE FERMÉES aussi bien que d'ouvertes).
+ *
+ * **Tenue en DEUX requêtes, jamais une deuxième écriture de la règle** :
+ * `ouLeClientAttend` (le groupe de tête) et `ouLeClientARepondu` (le reste),
+ * chacune triée SQL dans l'ordre que documente `comparerHistorique`. `skip`
+ * traverse d'abord le compte du groupe de tête — connu par un `count` — puis,
+ * seulement une fois ce groupe épuisé, avance dans le second.
  *
  * **`limite` borne la PAGE, `page` la déplace — toutes deux refusées avant
  * toute requête si elles ne sont pas des entiers strictement positifs**,
@@ -2762,22 +2888,75 @@ export async function dernieresInterventionsDuClient(
       `dernieresInterventionsDuClient : la page doit être un entier strictement positif, reçu ${String(page)}`,
     );
   }
+  const skip = (page - 1) * limite;
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.intervention.findMany({
-        where: { client_id: clientId },
-        select: {
-          ...CHAMPS_LIGNE,
-          client: { select: { raison_sociale: true } },
-          site: { select: { libelle: true } },
-        },
+    async (tx) => {
+      const compteEnTete = await tx.intervention.count({
+        where: ouLeClientAttend(clientId),
+      });
+      if (skip < compteEnTete) {
+        const enTete = await tx.intervention.findMany({
+          where: ouLeClientAttend(clientId),
+          select: SELECTION_LIGNE_PLANNING,
+          orderBy: [{ priorite: "asc" }, { cree_le: "asc" }, { id: "asc" }],
+          skip,
+          take: limite,
+        });
+        const restant = limite - enTete.length;
+        if (restant <= 0) {
+          return enTete;
+        }
+        const reste = await tx.intervention.findMany({
+          where: ouLeClientARepondu(clientId),
+          select: SELECTION_LIGNE_PLANNING,
+          orderBy: [
+            { date_planifiee: { sort: "desc", nulls: "last" } },
+            { id: "desc" },
+          ],
+          take: restant,
+        });
+        return [...enTete, ...reste];
+      }
+      return tx.intervention.findMany({
+        where: ouLeClientARepondu(clientId),
+        select: SELECTION_LIGNE_PLANNING,
         orderBy: [
           { date_planifiee: { sort: "desc", nulls: "last" } },
           { id: "desc" },
         ],
-        skip: (page - 1) * limite,
+        skip: skip - compteEnTete,
         take: limite,
+      });
+    },
+    client,
+  );
+}
+
+/**
+ * LA DERNIÈRE INTERVENTION DATÉE D'UN CLIENT (tuile de synthèse, FICHE-360-1,
+ * revu TP-A1) — **l'ordre d'AVANT ce lot**, jamais celui de
+ * `comparerHistorique` : la tuile montre ce qui a été fait ou est planifié en
+ * dernier, pas la première ligne à traiter. Une lecture À PART, bornée à UNE
+ * ligne, pour la même raison qu'avant TP-A1 (voir l'historique du fichier) —
+ * `dernieresInterventionsDuClient(…, 1, 1)` suivrait désormais l'ouverte sans
+ * date la plus urgente, jamais la dernière intervention réelle.
+ */
+export async function derniereInterventionDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<LignePlanning | null> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.intervention.findFirst({
+        where: { client_id: clientId },
+        select: SELECTION_LIGNE_PLANNING,
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
       }),
     client,
   );
@@ -2871,6 +3050,28 @@ export async function interventionsOuvertesDuSite(
 }
 
 /**
+ * LE GROUPE DE TÊTE — les OUVERTES sans date d'un site — et LE RESTE, mêmes
+ * critères que `ouLeClientAttend`/`ouLeClientARepondu`, sur `site_id`.
+ */
+function ouLeSiteAttend(siteId: string): Prisma.InterventionWhereInput {
+  return {
+    site_id: siteId,
+    date_planifiee: null,
+    statut: { notIn: [...STATUTS_INTERVENTION_FERMES] },
+  };
+}
+
+function ouLeSiteARepondu(siteId: string): Prisma.InterventionWhereInput {
+  return {
+    site_id: siteId,
+    OR: [
+      { date_planifiee: { not: null } },
+      { statut: { in: [...STATUTS_INTERVENTION_FERMES] } },
+    ],
+  };
+}
+
+/**
  * LES DERNIÈRES INTERVENTIONS D'UN SITE (fiche site, HISTORIQUE-SITE-1).
  *
  * *« Qu'est-ce qu'on a déjà fait chez ce client, à cet endroit ? »* — c'est la
@@ -2891,14 +3092,16 @@ export async function interventionsOuvertesDuSite(
  * plus ANCIENNES sous le titre « dernières interventions » sans qu'aucune
  * ligne ne manque ni ne rougisse.
  *
- * **Le même ordre que `listerInterventions`, `nulls: "last"` compris.** La
- * récence par `date_planifiee`, puis l'`id` parce qu'un UUID v7 porte
- * l'horodatage de création (I10) et que la file d'attente n'a pas de date ; et
- * la file d'attente EN BAS, parce qu'un `ORDER BY date_planifiee DESC` nu la
- * placerait en TÊTE sous PostgreSQL — la faute est mesurée et documentée
- * ci-dessous, sur `listerInterventions`. Sur une lecture BORNÉE elle serait
- * pire : douze lignes sans date rempliraient la borne et les vraies dernières
- * ne seraient jamais rendues.
+ * **L'ORDRE EST CELUI DE `comparerHistorique` (TP-A1, décision d'Alexis du
+ * 28/09/2026, CS29/CS9) — LES OUVERTES SANS DATE EN TÊTE**, jamais « la file
+ * d'attente EN BAS » comme ce docblock le disait avant ce lot : le pilote a
+ * demandé « On inverse ? », la réponse a été « Oui, en tête ». Tenue en DEUX
+ * requêtes — `ouLeSiteAttend` (la tête, triée par urgence puis ancienneté),
+ * puis `ouLeSiteARepondu` (le reste, triée par récence) — jamais une seconde
+ * écriture de la règle : voir le docblock de `comparerHistorique` pour la
+ * règle entière et le piège qu'elle referme (un `ORDER BY date_planifiee DESC`
+ * nu remplirait la borne de lignes SANS DATE FERMÉES aussi bien que
+ * d'ouvertes — PostgreSQL les met toutes en tête).
  *
  * **`limite` est une BORNE D'AFFICHAGE, jamais un cloisonnement**, et
  * **`site_id` est un SUJET** : le cloisonnement est prononcé par la politique
@@ -2920,15 +3123,55 @@ export async function dernieresInterventionsDuSite(
   }
   return avecContexteApplicatif(
     contexte,
+    async (tx) => {
+      const enTete = await tx.intervention.findMany({
+        where: ouLeSiteAttend(siteId),
+        select: CHAMPS_LIGNE,
+        orderBy: [{ priorite: "asc" }, { cree_le: "asc" }, { id: "asc" }],
+        take: limite,
+      });
+      const restant = limite - enTete.length;
+      if (restant <= 0) {
+        return enTete;
+      }
+      const reste = await tx.intervention.findMany({
+        where: ouLeSiteARepondu(siteId),
+        select: CHAMPS_LIGNE,
+        orderBy: [
+          { date_planifiee: { sort: "desc", nulls: "last" } },
+          { id: "desc" },
+        ],
+        take: restant,
+      });
+      return [...enTete, ...reste];
+    },
+    client,
+  );
+}
+
+/**
+ * LA DERNIÈRE INTERVENTION DATÉE D'UN SITE (tuile de synthèse, FICHE-360-1,
+ * revu TP-A1) — **l'ordre d'AVANT ce lot**, jamais celui de
+ * `comparerHistorique` : voir `derniereInterventionDuClient`, même raison,
+ * même forme. Avant TP-A1 la fiche lisait `interventions[0]` pour cette
+ * tuile ; ce n'est plus vrai depuis que `dernieresInterventionsDuSite` met les
+ * ouvertes sans date en tête.
+ */
+export async function derniereInterventionDuSite(
+  contexte: ContexteSession,
+  siteId: string,
+  client?: PrismaClient,
+): Promise<LigneIntervention | null> {
+  return avecContexteApplicatif(
+    contexte,
     (tx) =>
-      tx.intervention.findMany({
+      tx.intervention.findFirst({
         where: { site_id: siteId },
         select: CHAMPS_LIGNE,
         orderBy: [
           { date_planifiee: { sort: "desc", nulls: "last" } },
           { id: "desc" },
         ],
-        take: limite,
       }),
     client,
   );

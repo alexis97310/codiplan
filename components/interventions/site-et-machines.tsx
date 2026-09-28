@@ -72,6 +72,7 @@ export function ChampSiteEtMachines({
   siteInitial,
   machineIdInitiale,
   contactIdInitiale,
+  clientFiltre,
 }: Readonly<{
   libelleSite: string;
   libelleMachines: string;
@@ -105,6 +106,14 @@ export function ChampSiteEtMachines({
    * SITE présélectionné, sinon ignoré.
    */
   contactIdInitiale?: string;
+  /**
+   * BORNE LA RECHERCHE DE SITE À UN SEUL CLIENT (TP-A1, `?client=` sur
+   * `interventions/nouvelle`) — déjà validé par l'appelant serveur
+   * (`lireClient` sous le contexte cloisonné), comme `siteInitial`. La route
+   * `/api/recherche/sites` accepte déjà `client` ; ce lot ne fait que le lui
+   * passer.
+   */
+  clientFiltre?: string;
 }>) {
   const [siteId, setSiteId] = useState<string>(siteInitial?.id ?? "");
   const [auSite, setAuSite] = useState<OptionAuSite>(VIDE);
@@ -180,7 +189,11 @@ export function ChampSiteEtMachines({
       <SelecteurRecherche<OptionSite>
         nom="site"
         url="/api/recherche/sites"
-        parametres={{ clientActif: "1" }}
+        parametres={
+          clientFiltre === undefined
+            ? { clientActif: "1" }
+            : { clientActif: "1", client: clientFiltre }
+        }
         libelle={libelleSite}
         aide={aideSite}
         libelleAucunResultat={libelleAucunResultatSite}

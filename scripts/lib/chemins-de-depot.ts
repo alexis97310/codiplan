@@ -488,4 +488,11 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Exportée par la revue de #275 (DÉFAUT 1) pour être éprouvée SANS base — ce bac à sable ne joint ni PostgreSQL ni Docker, et cette fonction est le seul moyen d'y fabriquer l'erreur qu'un déclencheur lève réellement (`tests/unit/agences/depot.test.ts`). Appelée INTRA-module par `creerAgence` et `modifierAgence`, tous deux atteints. Se retire si un second module de dépôt vient à la réutiliser.",
   },
+  // ── TP-A1-HISTORIQUES-CLIENT-SITE (28/09/2026) ───────────────────────────
+  {
+    module: "lib/interventions/depot.ts",
+    fonction: "comparerHistorique",
+    motif:
+      "L'ORDRE de l'historique d'un client ou d'un site (décision d'Alexis du 28/09/2026, CS29/CS9) est écrit UNE fois ici, mais `dernieresInterventionsDuSite`/`dernieresInterventionsDuClient` le TIENNENT en SQL (deux requêtes, tête puis reste), jamais en le rappelant : aucun écran n'invoque donc ce comparateur. Il existe pour que les tests confrontent le résultat SQL à CETTE règle plutôt qu'une seconde écriture divergente (`tests/unit/interventions/comparer-historique.test.ts`). Se retire si une lecture en vient à trier en mémoire plutôt qu'en SQL.",
+  },
 ];

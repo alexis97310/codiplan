@@ -519,8 +519,10 @@ export const fr = {
   // absence, comme « habilitations.site.aucune » juste au-dessus (D88).
   "sites.fiche.interventions": "Derni\u00e8res interventions",
   "sites.fiche.interventions_borne_prefixe": "Au plus",
+  // ORDRE INVERS\u00c9 (TP-A1, d\u00e9cision d'Alexis du 28/09/2026, CS29/CS9) : les
+  // interventions \u00e0 traiter sans date passent en t\u00eate, avant la r\u00e9cence.
   "sites.fiche.interventions_borne_suffixe":
-    "interventions, la plus r\u00e9cente en t\u00eate ; celles qui restent \u00e0 planifier en bas.",
+    "interventions, celles qui restent \u00e0 planifier en t\u00eate ; la plus r\u00e9cente ensuite.",
   "sites.fiche.interventions_vide_prefixe":
     "Aucune intervention n'est enregistr\u00e9e pour ce",
   "sites.action.creer": "Créer",

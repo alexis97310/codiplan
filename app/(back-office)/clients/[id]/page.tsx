@@ -23,6 +23,7 @@ import { contactsDuClient } from "@/lib/contacts/depot";
 import {
   compterInterventionsDuClient,
   dernieresInterventionsDuClient,
+  derniereInterventionDuClient,
   interventionsOuvertesDuClient,
   type LignePlanning,
 } from "@/lib/interventions/depot";
@@ -229,16 +230,20 @@ export default async function PageClient({
   // jamais `interventions[0]` : celui-ci suit `page`, et la treizième page
   // afficherait alors la treizième plus récente comme si c'était la
   // dernière — la même faute qu'HISTORIQUE-CLIENT-1 a corrigée pour le
-  // tableau lui-même.
+  // tableau lui-même. DEPUIS TP-A1, elle n'est plus non plus
+  // `dernieresInterventionsDuClient(…, 1, 1)` : cette lecture suit désormais
+  // l'ordre de `comparerHistorique` (les ouvertes sans date en tête) et
+  // rendrait la plus urgente à planifier, jamais la dernière intervention
+  // réelle — `derniereInterventionDuClient` garde l'ordre d'avant ce lot.
   const [
     equipementsParSiteMap,
     interventionsOuvertes,
-    derniereInterventionListe,
+    derniereIntervention,
     donneesMaterielHistorique,
   ] = await Promise.all([
     equipementsParSite(session.contexte, sites),
     interventionsOuvertesDuClient(session.contexte, client.id),
-    dernieresInterventionsDuClient(session.contexte, client.id, 1, 1),
+    derniereInterventionDuClient(session.contexte, client.id),
     // LA MACHINE DE CHAQUE INTERVENTION DE LA PAGE COURANTE
     // (GR11-CLIENT-MACHINE, audit G14 du 26/09/2026) — UNE lecture groupée
     // sur les machines des lignes AFFICHÉES, jamais une requête par ligne ;
@@ -259,7 +264,6 @@ export default async function PageClient({
     session.contexte,
     client.id,
   );
-  const derniereIntervention = derniereInterventionListe[0] ?? null;
   const sitesActifs = sites.filter((site) => site.actif).length;
 
   // « DONNEUR D'ORDRE » EN TÊTE (FICHE-360-1) — `roles` porte plusieurs
@@ -331,13 +335,11 @@ export default async function PageClient({
             </LienPrimaire>
           ) : null}
           {peutCreerIntervention ? (
-            // LIEN SIMPLE, PAS PRÉREMPLI (FICHE-360-1) — CHOIX EXPLICITE :
-            // `ChampSiteEtMachines` (`interventions/nouvelle`) organise la
-            // saisie autour du SITE, jamais du client ; le client s'y déduit
-            // du site choisi. Préremplir depuis ici demanderait un second
-            // mécanisme de prérempissage (par client plutôt que par site),
-            // hors du périmètre de ce ticket — voir la passation.
-            <LienPrimaire href="/interventions/nouvelle">
+            // PRÉREMPLI PAR CLIENT DEPUIS TP-A1 (audit du 28/09, IN-04) —
+            // `?client=` fait chercher le site DANS ce client
+            // (`ChampSiteEtMachines`) et présélectionne son site UNIQUE s'il
+            // n'en a qu'un actif (`app/(back-office)/interventions/nouvelle/page.tsx`).
+            <LienPrimaire href={`/interventions/nouvelle?client=${client.id}`}>
               {t("clients.action.ajouter_intervention")}
             </LienPrimaire>
           ) : null}
@@ -360,6 +362,7 @@ export default async function PageClient({
       <BlocSyntheseClient
         sitesActifs={sitesActifs}
         equipements={equipementsActifs}
+        clientId={client.id}
         interventionsOuvertes={interventionsOuvertes}
         derniereIntervention={derniereIntervention}
       />
@@ -475,6 +478,7 @@ export default async function PageClient({
       </section>
 
       <section
+        id="historique-client"
         data-bloc="historique-client"
         className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
       >
@@ -620,11 +624,13 @@ function Champ({
 function BlocSyntheseClient({
   sitesActifs,
   equipements,
+  clientId,
   interventionsOuvertes,
   derniereIntervention,
 }: Readonly<{
   sitesActifs: number;
   equipements: number;
+  clientId: string;
   interventionsOuvertes: number;
   derniereIntervention: LignePlanning | null;
 }>) {
@@ -639,14 +645,22 @@ function BlocSyntheseClient({
           {t("clients.fiche.synthese.sites_actifs")}
         </span>
       </div>
+      {/* TUILES CLIQUABLES (TP-A1) — « Équipements » mène au parc filtré sur
+          ce client (`/parc` accepte déjà `?client=`) ; « Interventions
+          ouvertes » mène à l'ancre du tableau plus bas, PAGE 1, jamais vers
+          `/interventions` : le registre n'a pas de filtre par client. */}
       <div data-compteur="equipements">
-        <b className="block text-[16px] font-bold">{equipements}</b>
+        <Link href={`/parc?client=${clientId}`} className={CLASSES_LIEN}>
+          <b className="block text-[16px] font-bold">{equipements}</b>
+        </Link>
         <span className="text-app-encre-faible text-[11px]">
           {t("clients.fiche.synthese.equipements")}
         </span>
       </div>
       <div data-compteur="interventions-ouvertes">
-        <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        <Link href="#historique-client" className={CLASSES_LIEN}>
+          <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        </Link>
         <span className="text-app-encre-faible text-[11px]">
           {t("clients.fiche.synthese.interventions_ouvertes")}
         </span>

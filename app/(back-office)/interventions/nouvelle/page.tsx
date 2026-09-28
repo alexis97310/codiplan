@@ -19,7 +19,8 @@ import { lireClient } from "@/lib/clients/depot";
 import { contactsDuClient } from "@/lib/contacts/depot";
 import { lireDemandePourCreation } from "@/lib/demandes/depot";
 import { machinesDesSites } from "@/lib/machines/depot";
-import { lireSite } from "@/lib/sites/depot";
+import { lireSite, rechercherSites } from "@/lib/sites/depot";
+import { schemaRechercheSite } from "@/lib/sites/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { libelleClientSite } from "../../presentation";
@@ -110,6 +111,17 @@ function valeurAutorisee(
  * l'urgence et la panne, et son `id` voyage en champ caché
  * (`demande_id`) : c'est ce que `creerIntervention`
  * (`lib/interventions/depot.ts`) vérifie et écrit.
+ *
+ * ## `?client=<id>` BORNE LA RECHERCHE DE SITE (TP-A1-HISTORIQUES-CLIENT-SITE,
+ * audit du 28/09/2026, IN-04)
+ *
+ * Le lien « + Intervention » de la fiche client (`clients/[id]/page.tsx`)
+ * mène ici avec ce paramètre. `?site=`/`?demande=` gardent la priorité déjà
+ * écrite plus haut : `?client=` ne joue que si aucun des deux n'a résolu de
+ * site. `ChampSiteEtMachines` reçoit alors ce client et n'y propose plus que
+ * SES sites (`/api/recherche/sites?client=`, déjà accepté avant ce lot) ; et
+ * si ce client ne porte qu'UN site actif, il arrive présélectionné — même
+ * forme que `siteInitial`.
  */
 export default async function PageNouvelleIntervention({
   searchParams,
@@ -172,17 +184,63 @@ export default async function PageNouvelleIntervention({
     siteBrut === null
       ? null
       : await lireClient(session.contexte, siteBrut.client_id);
+
+  // `?client=` (TP-A1-HISTORIQUES-CLIENT-SITE, audit du 28/09, IN-04) —
+  // depuis la fiche client (« + Intervention »). Ne joue AUCUN rôle si
+  // `?site=`/`?demande=` a déjà résolu un site : ces deux paramètres gardent
+  // la priorité déjà écrite ci-dessus. Un client hors périmètre, inexistant
+  // ou inactif est ignoré en silence, exactement comme un `?site=` forgé
+  // (LIENS-1) — `lireClient` lit déjà sous le contexte cloisonné.
+  const clientParam =
+    typeof params.client === "string" ? params.client : undefined;
+  const clientCible =
+    clientParam === undefined
+      ? null
+      : await lireClient(session.contexte, clientParam);
+  const clientFiltre =
+    clientCible !== null && clientCible.actif ? clientCible : undefined;
+
+  // UN SEUL SITE ACTIF CHEZ CE CLIENT ARRIVE PRÉSÉLECTIONNÉ (TP-A1) — même
+  // forme que `siteInitial` ci-dessous. Zéro ou plusieurs sites ne
+  // préremplissent rien : la recherche reste ouverte, bornée à ce client par
+  // `clientFiltre` (`ChampSiteEtMachines`). Ignorée si `?site=`/`?demande=` a
+  // déjà résolu un site (`siteBrut !== null`).
+  const sitesActifsDuClientCible =
+    siteBrut === null && clientFiltre !== undefined
+      ? await rechercherSites(
+          session.contexte,
+          schemaRechercheSite.parse({
+            client_id: clientFiltre.id,
+            actifs_seulement: true,
+            limite: 2,
+          }),
+        )
+      : [];
+  const siteUniqueDuClient =
+    sitesActifsDuClientCible.length === 1
+      ? sitesActifsDuClientCible[0]
+      : undefined;
+
   const siteInitial =
-    siteBrut === null || clientDuSite === null || !clientDuSite.actif
-      ? undefined
-      : {
+    siteBrut !== null && clientDuSite !== null && clientDuSite.actif
+      ? {
           id: siteBrut.id,
           libelle: libelleClientSite(
             clientDuSite.raison_sociale,
             siteBrut.libelle,
           ),
           clientId: clientDuSite.id,
-        };
+        }
+      : siteUniqueDuClient !== undefined && clientFiltre !== undefined
+        ? {
+            id: siteUniqueDuClient.id,
+            libelle: libelleClientSite(
+              clientFiltre.raison_sociale,
+              siteUniqueDuClient.libelle,
+            ),
+            clientId: clientFiltre.id,
+          }
+        : undefined;
 
   const machinesDuSiteInitial =
     siteInitial === undefined
@@ -297,6 +355,7 @@ export default async function PageNouvelleIntervention({
           siteInitial={siteInitial}
           machineIdInitiale={machineIdInitiale}
           contactIdInitiale={contactIdInitiale}
+          clientFiltre={clientFiltre?.id}
         />
 
         <Choix

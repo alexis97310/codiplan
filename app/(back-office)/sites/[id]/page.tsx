@@ -34,6 +34,7 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   dernieresInterventionsDuSite,
+  derniereInterventionDuSite,
   interventionsOuvertesDuSite,
   type LigneIntervention,
 } from "@/lib/interventions/depot";
@@ -204,15 +205,22 @@ export default async function PageSite({
   );
 
   // LA SYNTHÈSE EN TÊTE (FICHE-360-1) — uniquement des faits déjà en base :
-  // équipements du site, interventions ouvertes, dernière intervention (déjà
-  // lue ci-dessus, `interventions[0]`, triée « la plus récente en premier »),
-  // et la prochaine échéance VGP SI le registre la connaît déjà.
+  // équipements du site, interventions ouvertes, dernière intervention DATÉE
+  // (TP-A1 : une lecture À PART, `derniereInterventionDuSite`, jamais
+  // `interventions[0]` depuis que les ouvertes sans date passent en tête de
+  // l'historique — cette tuile continue de montrer ce qui a été fait ou est
+  // planifié en dernier), et la prochaine échéance VGP SI le registre la
+  // connaît déjà.
   const equipements = await equipementsActifsDuSite(
     session.contexte,
     site.id,
     page,
   );
   const interventionsOuvertes = await interventionsOuvertesDuSite(
+    session.contexte,
+    site.id,
+  );
+  const derniereIntervention = await derniereInterventionDuSite(
     session.contexte,
     site.id,
   );
@@ -322,8 +330,9 @@ export default async function PageSite({
 
       <BlocSyntheseSite
         equipements={equipements.total}
+        siteId={site.id}
         interventionsOuvertes={interventionsOuvertes}
-        derniereIntervention={interventions[0] ?? null}
+        derniereIntervention={derniereIntervention}
         prochaineVgp={prochaineVgp}
       />
 
@@ -504,11 +513,13 @@ function Champ({
  */
 function BlocSyntheseSite({
   equipements,
+  siteId,
   interventionsOuvertes,
   derniereIntervention,
   prochaineVgp,
 }: Readonly<{
   equipements: number;
+  siteId: string;
   interventionsOuvertes: number;
   derniereIntervention: LigneIntervention | null;
   prochaineVgp: Date | null;
@@ -518,14 +529,23 @@ function BlocSyntheseSite({
       data-bloc="synthese-site"
       className="bg-app-surface border-app-bord flex flex-wrap gap-6 rounded-lg border px-4 py-3.5"
     >
+      {/* TUILES CLIQUABLES (TP-A1) — « Équipements » mène au parc filtré sur
+          ce site (`/parc` accepte déjà `?site=`, rien à y ajouter) ;
+          « Interventions ouvertes » mène à l'ancre du tableau plus bas sur
+          la MÊME fiche, jamais vers `/interventions` : le registre n'a pas
+          de filtre par site. */}
       <div data-compteur="equipements">
-        <b className="block text-[16px] font-bold">{equipements}</b>
+        <Link href={`/parc?site=${siteId}`} className={CLASSES_LIEN}>
+          <b className="block text-[16px] font-bold">{equipements}</b>
+        </Link>
         <span className="text-app-encre-faible text-[11px]">
           {t("sites.fiche.synthese.equipements")}
         </span>
       </div>
       <div data-compteur="interventions-ouvertes">
-        <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        <Link href="#historique-site" className={CLASSES_LIEN}>
+          <b className="block text-[16px] font-bold">{interventionsOuvertes}</b>
+        </Link>
         <span className="text-app-encre-faible text-[11px]">
           {t("sites.fiche.synthese.interventions_ouvertes")}
         </span>
@@ -819,6 +839,7 @@ function BlocInterventions({
   ];
   return (
     <section
+      id="historique-site"
       data-bloc="historique-site"
       className="bg-app-surface border-app-bord overflow-hidden rounded-lg border"
     >
