@@ -3061,6 +3061,11 @@ export const fr = {
   // un jour seul.
   "tableau_de_bord.lien_absences_jour":
     "Voir la semaine dans les blocages d'agenda →",
+  // « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU, bug 8 de l'audit d'ergonomie du
+  // 27/09/2026) — TROISIÈME ajout volontaire de ce bloc (D128), même critère
+  // que l'onglet « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE).
+  "tableau_de_bord.kpi_en_retard": "Interventions en retard",
+  "tableau_de_bord.lien_en_retard": "Voir les interventions en retard →",
 
   "tableau_de_bord.priorites_titre": "Priorités opérationnelles",
   "tableau_de_bord.priorites_filtre_libelle": "Filtrer les priorités",

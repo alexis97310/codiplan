@@ -131,6 +131,17 @@ export const metadata: Metadata = { title: t("tableau_de_bord.titre") };
  *   qu'`/absences` fait pour sa propre semaine (§9, 01/09 : même critère,
  *   deux moments, jamais recalculé à la place de l'original).
  *
+ * **UN TROISIÈME AJOUT VOLONTAIRE REJOINT CE BLOC (PG-C1b-EN-RETARD-TABLEAU,
+ * bug 8 de l'audit d'ergonomie du 27/09/2026, §4.1, CA-5)** — les
+ * « Priorités opérationnelles » listaient les P1 du jour, les pièces
+ * attendues et la file à planifier, mais jamais une intervention planifiée
+ * dont la date est déjà passée sans qu'aucun travail n'ait commencé.
+ * - **« Interventions en retard »** (`comptesRegistre.en_retard`, lu par le
+ *   même `compterParVue` que « Dossiers bloqués » plus haut) : le MÊME
+ *   critère que `enRetard` (`lib/interventions/retard.ts`) et que l'onglet
+ *   « En retard » du registre (PG-C1c-EN-RETARD-REGISTRE) — jamais une
+ *   troisième lecture du même critère (§9, 01/09).
+ *
  * **« Clients sans code externe » A QUITTÉ CE BANDEAU le 19/09/2026 (lot
  * AV-14)** — mesuré en ligne comme le plus gros chiffre de tout l'écran,
  * devant les deux tuiles qui appellent réellement un geste du jour. Un
@@ -391,7 +402,7 @@ export default async function PageTableauDeBord({
       <h2 className="text-app-encre-faible text-[11px] font-bold tracking-[0.6px] uppercase">
         {t("tableau_de_bord.indicateurs_complementaires_titre")}
       </h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Kpi
             libelle={t("tableau_de_bord.kpi_demandes_ouvertes")}
@@ -420,6 +431,28 @@ export default async function PageTableauDeBord({
             className={CLASSES_LIEN_TUILE}
           >
             {t("tableau_de_bord.lien_absences_jour")}
+          </Link>
+        </div>
+        {/* « EN RETARD » (PG-C1b-EN-RETARD-TABLEAU, bug 8 de l'audit
+            d'ergonomie du 27/09/2026, §4.1, CA-5) — TROISIÈME AJOUT
+            VOLONTAIRE de ce bloc (D128), même titre que les deux tuiles
+            au-dessus. Le compte vient de `comptesRegistre.en_retard`
+            (`compterParVue`, déjà lu plus haut pour « Dossiers bloqués ») —
+            le MÊME critère que l'onglet « En retard » du registre
+            (PG-C1c-EN-RETARD-REGISTRE), jamais une seconde lecture (§9,
+            01/09). À 0, la tuile affiche « 0 » : c'est une bonne nouvelle,
+            pas l'absence d'une mesure. */}
+        <div data-bloc="kpi-en-retard" className="flex flex-col gap-1.5">
+          <Kpi
+            ton="rouge"
+            libelle={t("tableau_de_bord.kpi_en_retard")}
+            valeur={comptesRegistre.en_retard}
+          />
+          <Link
+            href="/interventions?vue=en_retard"
+            className={CLASSES_LIEN_TUILE}
+          >
+            {t("tableau_de_bord.lien_en_retard")}
           </Link>
         </div>
       </div>
