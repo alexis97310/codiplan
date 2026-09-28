@@ -130,7 +130,7 @@ test("planifier une intervention un SAMEDI à KONÉ (fermé) est refusé, et la 
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   // ── 2. PLANIFIER — sur le samedi fermé, avec les quatre valeurs ─────────
   const formulaire = page.locator("form", {

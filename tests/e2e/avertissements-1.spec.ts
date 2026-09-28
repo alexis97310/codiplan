@@ -268,7 +268,7 @@ test("planifier avec un donneur d'ordre du site : le bandeau dit « parti »", a
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   interventionPrincipaleId =
     new URL(page.url()).pathname.split("/").pop() ?? "";
 
@@ -367,7 +367,7 @@ test("sans donneur d'ordre : avertissement affiché, planification quand même f
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   const reperes = await reperesDeLaScene();
   const jour = jourSuivant(reperes.lundi, 92);

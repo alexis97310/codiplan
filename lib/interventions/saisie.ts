@@ -205,6 +205,16 @@ export const schemaCreation = z
      * l'intervention à naître — la forme, elle, ne juge que l'UUID.
      */
     demande_id: uuid.nullable().default(null),
+    /**
+     * LA DURÉE PRÉVUE (PG-B6-DUREE-A-LA-CREATION, audit du 27/09/2026 §4.3,
+     * décision QG-12 d'Alexis : des choix rapides, AUCUNE VALEUR PAR DÉFAUT) —
+     * FACULTATIVE, écrite telle quelle dans `duree_estimee_min` par
+     * `creerIntervention`. **Elle ne pose ni date, ni heure, ni technicien**
+     * (PARCOURS-1 tient toujours) : une carte de la file sans créneau, mais
+     * dont la durée est désormais connue, se pose en vue Jour sans qu'il
+     * faille d'abord la deviner (bug 2 de l'audit).
+     */
+    duree_min: z.number().int().positive().nullable().default(null),
   })
   .strict();
 

@@ -173,7 +173,7 @@ test("créer l'intervention de l'épreuve — fiche à planifier", async ({
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   interventionPausesId = new URL(page.url()).pathname.split("/").pop() ?? "";
 
   await expect(

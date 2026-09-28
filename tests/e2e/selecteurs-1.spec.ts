@@ -233,7 +233,7 @@ test("le 210e site SEL1- est trouvable et reçoit une intervention, avec sa mach
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
 
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   idInterventionCreeParLeScenario2 =
     new URL(page.url()).pathname.split("/").pop() ?? null;
   expect(idInterventionCreeParLeScenario2).not.toBeNull();

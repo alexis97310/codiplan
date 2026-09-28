@@ -285,6 +285,7 @@ describe("le dépôt écrit les machines dans la MÊME transaction", () => {
           contact_id: null,
           reference_client: null,
           demande_id: null,
+          duree_min: null,
         },
         clientApp(),
       );

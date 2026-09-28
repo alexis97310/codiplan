@@ -35,6 +35,7 @@ export function TrouverCreneau({
   jourInitial,
   fuseau,
   techniciens,
+  libelleBouton = "intervention.action.trouver_creneau",
 }: Readonly<{
   interventionId: string;
   libelle: string;
@@ -44,6 +45,13 @@ export function TrouverCreneau({
   jourInitial: string;
   fuseau: Fuseau;
   techniciens: readonly { readonly id: string; readonly nom: string }[];
+  /**
+   * LE TEXTE DU BOUTON (PG-B6-DUREE-A-LA-CREATION) — même mécanisme, un
+   * habillage différent : le bandeau « Intervention créée » de la fiche
+   * l'ouvre sous « Planifier maintenant », jamais une seconde ouverture
+   * écrite à part.
+   */
+  libelleBouton?: CleTraduction;
 }>) {
   const [ouverte, setOuverte] = useState(false);
   const [refus, setRefus] = useState<CleTraduction | null>(null);
@@ -77,7 +85,7 @@ export function TrouverCreneau({
         }}
         className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
       >
-        {t("intervention.action.trouver_creneau")}
+        {t(libelleBouton)}
       </button>
       {refus === null ? null : (
         <p

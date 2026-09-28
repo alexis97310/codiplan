@@ -133,7 +133,9 @@ test("un double clic sur « Créer l'intervention » ne crée qu'une seule inter
   });
   expect(premiere.status()).toBe(303);
   const emplacement = premiere.headers()["location"] ?? "";
-  expect(emplacement).toMatch(/^\/interventions\/[0-9a-f-]+$/);
+  // `?cree=1` (PG-B6-DUREE-A-LA-CREATION) — le bandeau « Planifier
+  // maintenant / Laisser dans la file » de la fiche fraîchement créée.
+  expect(emplacement).toMatch(/^\/interventions\/[0-9a-f-]+\?cree=1$/);
 
   // LA SECONDE SOUMISSION, MÊMES CHAMPS, MÊME `id` — ne crée rien, et mène à
   // LA MÊME fiche.
@@ -191,7 +193,7 @@ test("un clic sur « Créer » mène à la fiche de l'intervention créée", asy
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   const client = admin();
   try {
@@ -237,8 +239,8 @@ test("un double clic réel sur « Créer » mène à la fiche, sans en créer de
     bouton.dispatchEvent("click"),
     bouton.dispatchEvent("click"),
   ]);
-  await page.waitForURL(/\/interventions\/[0-9a-f-]+$/);
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await page.waitForURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   const client = admin();
   try {

@@ -32,6 +32,7 @@ import {
 } from "../presentation";
 
 import { BoutonCreer } from "./bouton-creer";
+import { ChampDureePrevue } from "./champ-duree";
 
 export const metadata: Metadata = { title: t("planning.creer") };
 
@@ -290,6 +291,14 @@ export default async function PageNouvelleIntervention({
     typeof params.reference_client === "string"
       ? params.reference_client
       : undefined;
+  // LA DURÉE PRÉVUE PRÉREMPLIE (PG-B6-DUREE-A-LA-CREATION) — même discipline
+  // que `type`/`priorite` ci-dessus : une valeur qui ne se lit pas comme un
+  // entier strictement positif retombe à `null`, jamais une erreur.
+  const dureeMinInitiale = (() => {
+    const brut =
+      typeof params.duree_min === "string" ? Number(params.duree_min) : NaN;
+    return Number.isInteger(brut) && brut > 0 ? brut : null;
+  })();
 
   // TIRÉ ICI, UNE SEULE FOIS PAR RENDU (55-FORMULAIRES-1) — la route relit cet
   // `id` sous le contexte cloisonné avant d'écrire : un double clic soumet
@@ -383,6 +392,8 @@ export default async function PageNouvelleIntervention({
           prefixe="mode_valorisation"
           defaut="temps_passe"
         />
+
+        <ChampDureePrevue valeurInitiale={dureeMinInitiale} />
 
         {/*
           LA PANNE SIGNALÉE / LE TRAVAIL DEMANDÉ — OBLIGATOIRE (PARCOURS-1).

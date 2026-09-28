@@ -40,7 +40,7 @@ async function creerUneIntervention(page: Page): Promise<void> {
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 }
 
 /**

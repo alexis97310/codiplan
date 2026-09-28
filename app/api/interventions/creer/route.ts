@@ -10,7 +10,7 @@ import {
 import { schemaCreation } from "@/lib/interventions/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import { champ, versLaFiche, versLePlanning } from "../actions";
+import { champ, versLePlanning } from "../actions";
 import { versLeFormulaire } from "./formulaire";
 
 /**
@@ -72,6 +72,7 @@ async function traiter(requete: Request): Promise<Response> {
     description: champ(formulaire, "description") ?? undefined,
     reference_client: champ(formulaire, "reference_client") ?? undefined,
     contact_id: champ(formulaire, "contact_id") ?? undefined,
+    duree_min: champ(formulaire, "duree_min") ?? undefined,
   };
 
   const idPropose = champ(formulaire, "id");
@@ -82,7 +83,7 @@ async function traiter(requete: Request): Promise<Response> {
 
   const existante = await interventionDejaCreee(contexte, id);
   if (existante !== null) {
-    return versLaFiche(existante);
+    return versLaFicheApresCreation(existante);
   }
 
   const saisie = schemaCreation.safeParse({
@@ -114,6 +115,14 @@ async function traiter(requete: Request): Promise<Response> {
     // la fiche d'une demande (`?demande=<id>`). Absent, `champ()` rend `null`
     // et `schemaCreation` retombe sur son défaut.
     demande_id: champ(formulaire, "demande_id"),
+    // LA DURÉE PRÉVUE (PG-B6-DUREE-A-LA-CREATION) — FACULTATIVE. Un formulaire
+    // POST ne porte que des chaînes ; `duree_min` arrive donc en texte, converti
+    // ici (même discipline que `schemaDeplacement` côté `.../deplacer`) avant
+    // que le schéma ne juge l'entier lui-même.
+    duree_min: (() => {
+      const brut = champ(formulaire, "duree_min");
+      return brut === null ? null : Number(brut);
+    })(),
   });
   if (!saisie.success) {
     // LE REFUS NOMME CE QUI CLOCHE (L3-01b) : la nature absente et la panne
@@ -157,5 +166,23 @@ async function traiter(requete: Request): Promise<Response> {
   if (!resultat.accepte) {
     return versLeFormulaire(resultat.cle, champsResoumis);
   }
-  return versLaFiche(resultat.fiche.id);
+  return versLaFicheApresCreation(resultat.fiche.id);
+}
+
+/**
+ * VERS LA FICHE, APRÈS UNE CRÉATION (PG-B6-DUREE-A-LA-CREATION) — jamais
+ * `versLaFiche` (`../actions`) directement : ce paramètre-ci n'a de sens
+ * qu'ICI, à la sortie de CE geste, et `versLaFiche` sert aussi `/deplacer` et
+ * les autres actions de la fiche, qui n'ont rien À PROPOSER de plus après
+ * coup. `?cree=1` fait apparaître le bandeau « Planifier maintenant / Laisser
+ * dans la file » (`app/(back-office)/interventions/[id]/page.tsx`) — une
+ * simple navigation vers la même fiche SANS ce paramètre (le bouton
+ * « Laisser dans la file ») l'efface, sans qu'aucune requête n'ait à le
+ * faire disparaître.
+ */
+function versLaFicheApresCreation(id: string): Response {
+  return new Response(null, {
+    status: 303,
+    headers: { Location: `/interventions/${id}?cree=1` },
+  });
 }

@@ -202,6 +202,12 @@ export default async function PageIntervention({
     .flat()
     .filter((valeur): valeur is string => typeof valeur === "string")
     .filter(estCleTraduction);
+  // LE BANDEAU « INTERVENTION CRÉÉE » (PG-B6-DUREE-A-LA-CREATION) — posé par
+  // `versLaFicheApresCreation` (`app/api/interventions/creer/route.ts`),
+  // jamais par un autre geste : une simple navigation vers cette même fiche
+  // SANS ce paramètre (le bouton « Laisser dans la file » du bandeau lui-même)
+  // l'efface, sans qu'aucune requête n'ait à le faire.
+  const vientDetreCree = parametres.cree === "1";
   // D'OÙ ON ARRIVE (FICHE-INTERVENTION-1) — une liste FERMÉE, jamais une URL
   // libre : voir `retourFiche` dans `../presentation.ts`.
   const depuis = parametres.depuis;
@@ -585,6 +591,34 @@ export default async function PageIntervention({
           {t(cle)}
         </p>
       ))}
+
+      {!vientDetreCree || statut !== "a_planifier" ? null : (
+        <div
+          data-banniere-creation
+          role="status"
+          className={`mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5 text-[12.5px] ${CLASSES_TON.succes}`}
+        >
+          <span>{t("intervention.creation.bandeau_cree")}</span>
+          <span className="flex flex-wrap gap-2">
+            <TrouverCreneau
+              interventionId={ligne.id}
+              libelle={referenceAffichee(ligne)}
+              dureeMinInitiale={ligne.duree_estimee_min}
+              technicienIdInitial={ligne.technicien_id}
+              jourInitial={jourInitialCreneau}
+              fuseau={fiche.fuseau}
+              techniciens={techniciensPourCreneau}
+              libelleBouton="intervention.creation.planifier_maintenant"
+            />
+            <Link
+              href={`/interventions/${ligne.id}`}
+              className="border-app-bord text-app-encre-faible hover:bg-app-fond flex min-h-11 items-center rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
+            >
+              {t("intervention.creation.laisser_dans_la_file")}
+            </Link>
+          </span>
+        </div>
+      )}
 
       {/*
         L'ACTION PRINCIPALE, JUSTE SOUS LE TITRE, SUR TÉLÉPHONE

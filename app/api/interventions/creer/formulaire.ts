@@ -30,6 +30,7 @@ export function versLeFormulaire(
     description?: string;
     reference_client?: string;
     contact_id?: string;
+    duree_min?: string;
   }>,
 ): Response {
   const parametres = new URLSearchParams({ motif: cle });
@@ -41,6 +42,10 @@ export function versLeFormulaire(
     description: champs.description?.slice(0, LIMITE_DESCRIPTION_URL),
     reference_client: champs.reference_client,
     contact_id: champs.contact_id,
+    // LA DURÉE PRÉVUE (PG-B6-DUREE-A-LA-CREATION) — reprise au même titre que
+    // les autres champs : un refus de saisie ne doit pas faire retaper une
+    // durée déjà choisie.
+    duree_min: champs.duree_min,
   };
   for (const [nom, valeur] of Object.entries(valeurs)) {
     if (valeur !== undefined) {

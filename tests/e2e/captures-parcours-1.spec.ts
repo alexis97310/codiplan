@@ -56,7 +56,7 @@ test("capture — la fiche d'une intervention à planifier (bloc Planifier), le 
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   await capturer(page, "interventions-id-a-planifier");
 
   const reperes = await reperesDeLaScene();

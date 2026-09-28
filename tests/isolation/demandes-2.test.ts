@@ -73,6 +73,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
           contact_id: null,
           reference_client: null,
           demande_id: DEMANDE_A1,
+          duree_min: null,
         },
         clientApp(),
       );
@@ -108,6 +109,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
         reference_client: null,
         // DEMANDE_A2 est du site A1_S2, jamais A1_S1 (fixture, `global.ts`).
         demande_id: DEMANDE_A2,
+        duree_min: null,
       },
       clientApp(),
     );
@@ -142,6 +144,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
         contact_id: null,
         reference_client: null,
         demande_id: DEMANDE_B1,
+        duree_min: null,
       },
       clientApp(),
     );
@@ -176,6 +179,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
           contact_id: null,
           reference_client: null,
           demande_id: null,
+          duree_min: null,
         },
         clientApp(),
       );

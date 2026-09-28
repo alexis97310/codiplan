@@ -1423,6 +1423,23 @@ export const fr = {
   // la première nature de la liste (« Préventif sous contrat »), y compris
   // pour un appel curatif. Même modèle que `equipe.choisir_rattachement`.
   "intervention.creation.choisir_nature": "Sélectionner une nature",
+  // ── APRÈS « CRÉER » : DEUX CHOIX (PG-B6-DUREE-A-LA-CREATION, décision
+  // QG-12 d'Alexis du 27/09/2026) — le bandeau de la fiche fraîchement créée,
+  // tant que son statut reste `a_planifier`. « Planifier maintenant » réemploie
+  // `TrouverCreneau` (jamais une seconde ouverture de `FenetrePose` écrite à
+  // part) ; « Laisser dans la file » ne fait rien de plus que revenir à la
+  // même fiche sans le paramètre qui affiche ce bandeau — c'est déjà tout le
+  // comportement d'avant ce ticket.
+  "intervention.creation.bandeau_cree": "Intervention créée.",
+  "intervention.creation.planifier_maintenant": "Planifier maintenant",
+  "intervention.creation.laisser_dans_la_file": "Laisser dans la file",
+  // LA DURÉE PRÉVUE, À LA CRÉATION (PG-B6-DUREE-A-LA-CREATION,
+  // `ChampDureePrevue`) — FACULTATIVE, sans aucune valeur par défaut (QG-12,
+  // 27/09/2026, arbitrage Alexis), contrairement à `priorite`/`mode_valorisation`
+  // qui portent déjà une valeur choisie. Ni obligatoire ni marquée comme
+  // telle, même convention que `intervention.reference_client` juste
+  // au-dessus, un champ libre sans étiquette particulière.
+  "intervention.creation.duree_prevue": "Durée prévue",
   "intervention.refus.nature_manquante":
     "Choisissez la nature de l'intervention.",
   "intervention.refus.panne_manquante":

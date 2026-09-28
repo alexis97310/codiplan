@@ -108,7 +108,7 @@ test("CRÉER ne demande ni date, ni heure, ni technicien — seulement le lieu e
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   // LE STATUT RÉSULTANT EST « À PLANIFIER », et la fiche le dit.
   await expect(
@@ -145,7 +145,7 @@ test("PLANIFIER refuse sans les quatre valeurs, nomme ce qui manque, et accepte 
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
 
   const formulaire = formulairePlanifier(page);
   await expect(formulaire).toBeVisible();

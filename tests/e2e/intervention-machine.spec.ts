@@ -134,7 +134,7 @@ test("choisir une machine À LA CRÉATION la fait apparaître sur la fiche", asy
     .click();
   await page.waitForLoadState("networkidle");
 
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   // Scopé au `<dd>` de la fiche — le MÊME libellé apparaît aussi dans le
   // `<option>` du mini-formulaire « Ajouter une machine » juste en dessous
   // (chantier 2.2), et `getByText` seul violerait le mode strict.
@@ -161,7 +161,7 @@ test("ajouter une machine APRÈS COUP depuis la fiche la fait apparaître", asyn
     .getByRole("button", { name: fr["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   // Le `<dd>` « Machine » porte le TIRET, pas le libellé — même scope que
   // l'assertion positive ci-dessous, pour la même raison (`<option>` du
   // mini-formulaire).

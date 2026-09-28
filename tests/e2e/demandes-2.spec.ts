@@ -257,7 +257,7 @@ test("depuis la fiche de la demande, « Créer une intervention » arrive prére
     .getByRole("button", { name: dictionnaire["intervention.action.creer"] })
     .click();
   await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/interventions\/[0-9a-f-]+(\?cree=1)?$/);
   interventionCreeeId = new URL(page.url()).pathname.split("/").pop() ?? "";
   expect(interventionCreeeId).toMatch(/^[0-9a-f-]{36}$/);
 

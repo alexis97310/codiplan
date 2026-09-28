@@ -494,6 +494,11 @@ export async function creerIntervention(
           demande_id: saisie.demande_id,
           mode_valorisation: saisie.mode_valorisation,
           forfait_deplacement_id: forfaitId,
+          // LA DURÉE PRÉVUE (PG-B6-DUREE-A-LA-CREATION) — écrite TELLE QUELLE,
+          // jamais recalculée ni contrainte : `schemaCreation.duree_min` est
+          // déjà positive ou `null`. Aucune date ni heure n'accompagne ce
+          // champ (PARCOURS-1 tient toujours).
+          duree_estimee_min: saisie.duree_min,
         },
         select: CHAMPS_LIGNE,
       });
