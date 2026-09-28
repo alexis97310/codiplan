@@ -88,7 +88,12 @@ import {
 } from "@/lib/theme/statuts";
 import { tonDeLAvertissement } from "@/lib/avertissements/ton";
 
-import { BlocPosable, CasePosable, Posable } from "@/components/planning/pose";
+import {
+  BlocPosable,
+  BoutonPoser,
+  CasePosable,
+  Posable,
+} from "@/components/planning/pose";
 
 import {
   enTeteDuBloc,
@@ -356,6 +361,17 @@ export default async function PagePlanning({
     agenceIds: [t.agence_id],
   }));
 
+  // ── LE FUSEAU DE CHAQUE AGENCE (PG-B2-FENETRE-POSE) ─────────────────────
+  //
+  // `FenetrePose` affiche les créneaux de PG-B1 en heure LOCALE : le fuseau
+  // vient de l'agence DE L'INTERVENTION, jamais d'une constante — même
+  // principe que `verdictALaPose`, qui juge sous ce même fuseau (I7).
+  const fuseauParAgence = new Map(
+    cadre.detaillees
+      .filter(({ calendrier }) => calendrier !== null)
+      .map(({ agence, calendrier }) => [agence.id, calendrier!.fuseau]),
+  );
+
   // POUR LA SEULE BANNIÈRE (AGENCE-ACTIVE, AA-5) — jamais pour `pourGrille`
   // ni `pourJournee`, qui restent l'index de consultation COMPLET, agences
   // actives ou non, dont `lib/interventions/grille.ts` a besoin pour ouvrir
@@ -457,6 +473,18 @@ export default async function PagePlanning({
       affichees.flatMap((ligne) => ligne.machines.map((m) => m.machine_id)),
     ),
   ]);
+
+  // ── LES TECHNICIENS DU BOUTON « POSER » (PG-B2-FENETRE-POSE) ────────────
+  //
+  // Le dépôt d'une carte de la file connaît le technicien de la CASE ; le
+  // bouton « Poser » (clavier, téléphone) n'en connaît aucun — cette liste
+  // lui sert de premier choix, et reste modifiable dans la fenêtre.
+  const techniciensPourPose = cadre.techniciens
+    .map((technicien) => ({
+      id: technicien.utilisateur_id,
+      nom: quiTravaille(technicien.utilisateur_id, annuaire),
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 
   // LA COLONNE ET LE PANNEAU LISENT LA MÊME MESURE (D111). `charges` vient
   // d'`affichees`, le jeu unique de `lib/interventions/affichage.ts` : la
@@ -645,7 +673,10 @@ export default async function PagePlanning({
         </Link>
       </p>
 
-      <Posable>
+      <Posable
+        techniciens={techniciensPourPose}
+        aujourdhui={cleJour(aujourdhui)}
+      >
         {/*
           LE REFUS DE CRÉATION — ROUGE, `role="alert"`, exactement le patron
           de `Posable` (`components/planning/pose.tsx:300-324`) : un refus
@@ -726,40 +757,61 @@ export default async function PagePlanning({
                     {t("planning.file_vide")}
                   </p>
                 ) : null}
-                {attente.map((ligne) => (
-                  // GLISSER DEPUIS LA FILE VAUT AFFECTATION — c'est l'usage
-                  // principal : le dépôt donne à la fois un jour et une personne.
-                  <BlocPosable
-                    key={ligne.id}
-                    interventionId={ligne.id}
-                    dureeMin={dureeDe(ligne)}
-                  >
-                    <Link
-                      href={`/interventions/${ligne.id}`}
-                      className="border-app-bord block rounded-lg border px-3 py-2.5"
+                {attente.map((ligne) => {
+                  const fuseauDeLaLigne = fuseauParAgence.get(ligne.agence_id);
+                  return (
+                    // GLISSER DEPUIS LA FILE OUVRE `FenetrePose` (PG-B2) —
+                    // la case ne donne qu'un jour et un technicien, jamais
+                    // une heure sûre. Sans fuseau connu pour l'agence de
+                    // l'intervention (agence sans calendrier, cas déjà
+                    // dégradé ailleurs), la carte garde l'ancien
+                    // comportement plutôt que d'ouvrir une fenêtre qui ne
+                    // saurait pas afficher d'heure locale.
+                    <BlocPosable
+                      key={ligne.id}
+                      interventionId={ligne.id}
+                      dureeMin={dureeDe(ligne)}
+                      depuisFile={fuseauDeLaLigne !== undefined}
+                      libelle={libellePourFenetrePose(ligne)}
+                      fuseau={fuseauDeLaLigne ?? null}
                     >
-                      <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
-                        <span className="min-w-0 flex-1 truncate">
-                          {ligne.client.raison_sociale}
-                        </span>
-                        <Badge ton={tonDePriorite(ligne.priorite)}>
-                          {t(`priorite.${ligne.priorite}`)}
-                        </Badge>
-                      </span>
-                      <span
-                        className="text-app-encre-faible block truncate text-[12px]"
-                        title={panneOuNatureDeLaCarte(ligne)}
+                      <Link
+                        href={`/interventions/${ligne.id}`}
+                        className="border-app-bord block rounded-lg border px-3 py-2.5"
                       >
-                        {panneOuNatureDeLaCarte(ligne)}
-                      </span>
-                      <span className="text-app-encre-faible block truncate text-[10.5px]">
-                        {siteDeLaCarte(ligne.site)}
-                        {t("ponctuation.point_median")}
-                        {referenceAffichee(ligne)}
-                      </span>
-                    </Link>
-                  </BlocPosable>
-                ))}
+                        <span className="flex items-center justify-between gap-2 text-[12.5px] font-bold">
+                          <span className="min-w-0 flex-1 truncate">
+                            {ligne.client.raison_sociale}
+                          </span>
+                          <Badge ton={tonDePriorite(ligne.priorite)}>
+                            {t(`priorite.${ligne.priorite}`)}
+                          </Badge>
+                        </span>
+                        <span
+                          className="text-app-encre-faible block truncate text-[12px]"
+                          title={panneOuNatureDeLaCarte(ligne)}
+                        >
+                          {panneOuNatureDeLaCarte(ligne)}
+                        </span>
+                        <span className="text-app-encre-faible block truncate text-[10.5px]">
+                          {siteDeLaCarte(ligne.site)}
+                          {t("ponctuation.point_median")}
+                          {referenceAffichee(ligne)}
+                        </span>
+                      </Link>
+                      {fuseauDeLaLigne === undefined ? null : (
+                        <div className="mt-1.5">
+                          <BoutonPoser
+                            interventionId={ligne.id}
+                            dureeMin={dureeDe(ligne)}
+                            libelle={libellePourFenetrePose(ligne)}
+                            fuseau={fuseauDeLaLigne}
+                          />
+                        </div>
+                      )}
+                    </BlocPosable>
+                  );
+                })}
               </div>
             </section>
           </aside>
@@ -970,6 +1022,16 @@ function VueSemaine({
   /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
   readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
+  // ── LE FÉRIÉ DE CHAQUE JOUR DE LA SEMAINE, POUR LE SURVOL (PG-B4) ────────
+  //
+  // Une seule lecture par JOUR — jamais par case — `etatFerieDuJour` ne
+  // dépend pas du technicien. Même fonction que l'en-tête de colonne,
+  // au-dessus : deux lectures d'un même critère plutôt qu'une troisième
+  // écrite ailleurs (§9, 01/09).
+  const ferieParJour = new Map(
+    jours.map((jour) => [cleJour(jour), etatFerieDuJour(agences, jour).ferme]),
+  );
+
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
       {/*
@@ -1102,6 +1164,11 @@ function VueSemaine({
                       // La vue SEMAINE n'a pas d'heure, donc pas de pas : elle
                       // déplace des jours, jamais des durées.
                       pasMinutes: 0,
+                      survol: {
+                        bloquee: cellule.bloquee,
+                        ouverte: cellule.ouverte,
+                        ferie: ferieParJour.get(cleJour(cellule.jour)) ?? false,
+                      },
                     }}
                     className={`border-app-bord border-r border-b p-1.5 align-top ${classeDeCase(cellule, estAujourdHui(cellule.jour, aujourdhui))}`}
                     style={{ height: "78px" }}
@@ -1556,6 +1623,17 @@ function VueJour({
                         // Le pas vient de la VUE, réglé au plus fin des agences
                         // présentes — jamais d'une constante écrite ici.
                         pasMinutes: journee.pasMinutes,
+                        survol: {
+                          bloquee: cellule.etat === "bloque",
+                          // La vue Jour ne distingue pas le FÉRIÉ nommé de la
+                          // fermeture hebdomadaire ordinaire à l'échelle d'une
+                          // HEURE (`hors_ouverture` est par créneau, jamais par
+                          // jour entier) : les deux se rangent sous « agence
+                          // fermée » ici, seule la vue Semaine porte le nom du
+                          // férié (`lib/interventions/survol.ts`).
+                          ouverte: cellule.etat !== "hors_ouverture",
+                          ferie: false,
+                        },
                       }}
                       className={`border-app-bord border-r border-b p-0 align-top ${classeDeCellule(cellule.etat)}`}
                       style={{ height: "26px" }}
@@ -2313,6 +2391,15 @@ function dureeDe(ligne: Ligne): number | null {
     );
   }
   return ligne.duree_estimee_min;
+}
+
+/** Le titre de `FenetrePose` — « client · panne ou nature · priorité » (PG-B2). */
+function libellePourFenetrePose(ligne: Ligne): string {
+  return [
+    ligne.client.raison_sociale,
+    panneOuNatureDeLaCarte(ligne),
+    t(`priorite.${ligne.priorite}`),
+  ].join(t("ponctuation.point_median"));
 }
 
 /**

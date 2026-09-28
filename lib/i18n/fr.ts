@@ -3277,6 +3277,54 @@ export const fr = {
   "planning.legende.interne": "Atelier / interne",
   "planning.legende.ferme": "Jour non ouvert",
 
+  // ── LA FENÊTRE DE POSE (PG-B2-FENETRE-POSE, spécification §3.10) ─────────
+  //
+  // Le dépôt d'une carte de la file n'écrit plus rien directement — voir
+  // `components/planning/fenetre-pose.tsx` : la fenêtre confirme technicien,
+  // durée et heure AVANT que « Planifier » n'appelle la même route que le
+  // glisser-déposer direct.
+  "planning.pose.titre": "Poser",
+  "planning.pose.bouton_poser": "Poser…",
+  "planning.pose.technicien": "Technicien",
+  "planning.pose.technicien_choisir_duree":
+    "Choisissez une durée pour voir sa disponibilité.",
+  "planning.pose.technicien_absent": "Absent ce jour-là",
+  "planning.pose.technicien_libre": "Libre",
+  "planning.pose.technicien_aucun_creneau": "Aucun créneau de cette durée",
+  "planning.pose.chargement": "Vérification…",
+  "planning.pose.date": "Date",
+  "planning.pose.duree": "Durée",
+  "planning.pose.duree_30": "30 min",
+  "planning.pose.duree_60": "1 h",
+  "planning.pose.duree_90": "1 h 30",
+  "planning.pose.duree_120": "2 h",
+  "planning.pose.duree_180": "3 h",
+  "planning.pose.duree_240": "4 h",
+  "planning.pose.duree_autre": "Autre",
+  "planning.pose.duree_autre_libelle": "Durée en minutes",
+  "planning.pose.heure": "Heure de début",
+  "planning.pose.heure_autre": "Autre heure",
+  "planning.pose.heure_aucun_creneau":
+    "Aucun créneau libre pour cette durée, ce jour-là.",
+  "planning.pose.controles": "Contrôles",
+  "planning.pose.controles_ok": "Aucun blocage — vous pouvez planifier.",
+  "planning.pose.controles_attente":
+    "Choisissez une durée et une heure pour voir les contrôles.",
+  "planning.pose.confirmer": "Planifier",
+  "planning.pose.annuler": "Annuler",
+
+  // ── LE SURVOL D'UNE CASE PENDANT LE GLISSER-DÉPOSER (PG-B4-SURVOL-CASES,
+  // spécification §3.11) — les quatre motifs de `lib/interventions/survol.ts`,
+  // affichés EN CLAIR sur la case (pas seulement une couleur) et annoncés par
+  // l'unique région `aria-live` de `Posable`.
+  "planning.survol.absent": "Absent",
+  "planning.survol.ferie": "Férié",
+  // « Agence » se définit une fois sous `vocabulaire.agence` et se compose
+  // depuis `mot("agence")`, jamais écrit ici en toutes lettres (même règle
+  // que `intervention.creation.agence_deduite_*`, plus haut dans ce fichier).
+  "planning.survol.agence_fermee_suffixe": "fermée",
+  "planning.survol.habilitation_manquante": "Habilitation manquante",
+
   // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/planning-3.spec.ts) ──
   //
   // Même raison que `equipe.e2e.*` : le gardien de L0-11 fait passer par ici

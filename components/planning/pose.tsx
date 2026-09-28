@@ -9,6 +9,16 @@ import {
 } from "react";
 
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
+import { mot } from "@/lib/i18n/vocabulaire";
+import {
+  etatDeLaCase,
+  type CarteSurvolee,
+  type CaseSurvolee,
+  type EtatDeSurvol,
+  type MotifRefusSurvol,
+} from "@/lib/interventions/survol";
+
+import { FenetrePose } from "@/components/planning/fenetre-pose";
 
 /**
  * LE GLISSER-DÉPOSER DU PLANNING (R2-19).
@@ -81,7 +91,7 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
  * lot de rendu, et un état posé au premier ne serait pas encore lu au second.
  * *Mesuré le 11/09/2026 : avec un état React, le dépôt ne postait rien.*
  */
-type EnMain = {
+export type EnMain = {
   readonly id: string;
   /** `null` quand l'intervention n'a ni créneau posé ni durée estimée. */
   readonly dureeMin: number | null;
@@ -96,6 +106,20 @@ type EnMain = {
   readonly bord: "bloc" | "fin";
   /** Minutes locales du DÉBUT, connues seulement quand on tire le bord bas. */
   readonly debutMinutes: number | null;
+  /**
+   * VIENT-ELLE DE LA FILE « À PLANIFIER » ? (PG-B2-FENETRE-POSE).
+   *
+   * *Une carte de la file n'a ni heure ni parfois de durée sûre : la poser
+   * sur une case Semaine ou Jour n'écrit plus rien directement* — la case
+   * ouvre `FenetrePose`, pré-remplie du technicien et du jour visés, et
+   * c'est « Planifier » qui appelle la route. Une carte DÉJÀ planifiée
+   * (`depuisFile: false`) garde le déplacement direct (PG-A7).
+   */
+  readonly depuisFile: boolean;
+  /** Le titre affiché par `FenetrePose` — composé une fois, à l'engagement du glissé. */
+  readonly libelle: string | null;
+  /** Le fuseau de l'AGENCE DE L'INTERVENTION (jamais celui du technicien visé). */
+  readonly fuseau: string | null;
 };
 
 /** Le type MIME du glissé. Nommé, pour qu'un glissé étranger ne soit pas lu. */
@@ -103,6 +127,39 @@ const FORMAT = "application/x-codiplan-intervention";
 
 type Depot = {
   readonly deposer: (main: EnMain, cible: CibleDeDepot) => void;
+  readonly ouvrirPose: (demande: DemandeDOuverture) => void;
+  /**
+   * LA CARTE EN COURS DE GLISSÉ (PG-B4-SURVOL-CASES) — posée par
+   * `BlocPosable` à `dragstart`, effacée à `dragend`. `CasePosable` la lit
+   * pour juger son propre survol ; `null` hors glissé.
+   *
+   * *Pourquoi pas `dataTransfer.getData()` pendant le survol* : le navigateur
+   * refuse de le rendre avant `drop` (seuls les TYPES du glissé sont lisibles
+   * à `dragover`, jamais les VALEURS) — une restriction du standard, pas un
+   * oubli d'implémentation. `BlocPosable` connaît déjà la carte en props ; la
+   * faire aussi transiter par ce state évite d'attendre un `drop` pour la
+   * lire une seconde fois.
+   */
+  readonly carteEnGlisse: CarteSurvolee | null;
+  readonly commencerGlisse: (carte: CarteSurvolee) => void;
+  readonly terminerGlisse: () => void;
+  /** Le motif du survol EN COURS, pour l'unique région `aria-live` de `Posable`. */
+  readonly signalerSurvol: (etat: EtatDeSurvol | null) => void;
+};
+
+/**
+ * CE QU'IL FAUT POUR OUVRIR `FenetrePose` — depuis un dépôt (jour et
+ * technicien connus) ou depuis le bouton « Poser » d'une carte de la file
+ * (aucun des deux, comblés par `Posable` avec le jour du jour et le premier
+ * technicien de la liste).
+ */
+export type DemandeDOuverture = {
+  readonly interventionId: string;
+  readonly libelle: string;
+  readonly dureeMinInitiale: number | null;
+  readonly technicienIdInitial: string | null;
+  readonly jourInitial: string | null;
+  readonly fuseau: string;
 };
 
 /** Ce qu'une case de dépôt sait d'elle-même. */
@@ -133,6 +190,12 @@ export type CibleDeDepot = {
    * et sa fin est `minutes + pasMinutes`.
    */
   readonly pasMinutes: number;
+  /**
+   * CE QUE CETTE CASE PORTE DÉJÀ, POUR LE SURVOL (PG-B4-SURVOL-CASES) — les
+   * mêmes données qui la dessinent déjà (absence, ouverture, férié), jamais
+   * une requête. Voir `lib/interventions/survol.ts`.
+   */
+  readonly survol: CaseSurvolee;
 };
 
 /**
@@ -222,8 +285,33 @@ function useDepot(): Depot {
  * Le cadre : il tient l'intervention en cours de glissé, poste le déplacement,
  * et affiche le refus.
  */
-export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
+export function Posable({
+  techniciens,
+  aujourdhui,
+  children,
+}: Readonly<{
+  /** Les techniciens du périmètre, triés par nom — pour le sélecteur du bouton « Poser ». */
+  techniciens: readonly { readonly id: string; readonly nom: string }[];
+  /** Le jour du jour, `AAAA-MM-JJ`, dans le fuseau de la société — défaut du bouton « Poser ». */
+  aujourdhui: string;
+  children: React.ReactNode;
+}>) {
   const [motif, setMotif] = useState<CleTraduction | null>(null);
+  const [poseOuverte, setPoseOuverte] = useState<DemandeDOuverture | null>(
+    null,
+  );
+  const [carteEnGlisse, setCarteEnGlisse] = useState<CarteSurvolee | null>(
+    null,
+  );
+  const [survolAnnonce, setSurvolAnnonce] = useState<EtatDeSurvol | null>(null);
+  const commencerGlisse = useCallback(
+    (carte: CarteSurvolee) => setCarteEnGlisse(carte),
+    [],
+  );
+  const terminerGlisse = useCallback(() => {
+    setCarteEnGlisse(null);
+    setSurvolAnnonce(null);
+  }, []);
 
   /**
    * LES DÉPÔTS EN VOL, PAR INTERVENTION (D-06, 17/09/2026).
@@ -334,8 +422,27 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
     })();
   }, []);
 
+  const ouvrirPose = useCallback(
+    (demande: DemandeDOuverture) => {
+      setPoseOuverte({
+        ...demande,
+        jourInitial: demande.jourInitial ?? aujourdhui,
+      });
+    },
+    [aujourdhui],
+  );
+
   return (
-    <Contexte.Provider value={{ deposer }}>
+    <Contexte.Provider
+      value={{
+        deposer,
+        ouvrirPose,
+        carteEnGlisse,
+        commencerGlisse,
+        terminerGlisse,
+        signalerSurvol: setSurvolAnnonce,
+      }}
+    >
       {motif === null ? null : (
         <p
           // `role="alert"` pour le lecteur d'écran, `data-refus` pour les
@@ -347,6 +454,31 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
         >
           {t(motif)}
         </p>
+      )}
+      {/*
+        UNE SEULE RÉGION `aria-live` POUR TOUTES LES CASES (PG-B4) — jamais
+        une par case : deux régions qui s'annoncent au même instant se
+        chevaucheraient pour un lecteur d'écran, et laquelle a bougé le
+        curseur en dernier ne se devine pas depuis le DOM seul.
+      */}
+      <p aria-live="polite" className="sr-only">
+        {survolAnnonce !== null && !survolAnnonce.possible
+          ? libelleMotifSurvol(survolAnnonce.motif)
+          : ""}
+      </p>
+      {poseOuverte === null ? null : (
+        <FenetrePose
+          interventionId={poseOuverte.interventionId}
+          libelle={poseOuverte.libelle}
+          dureeMinInitiale={poseOuverte.dureeMinInitiale}
+          technicienIdInitial={poseOuverte.technicienIdInitial}
+          // `jourInitial` est toujours résolu par `ouvrirPose` ci-dessus.
+          jour={poseOuverte.jourInitial as string}
+          fuseau={poseOuverte.fuseau}
+          techniciens={techniciens}
+          onFermer={() => setPoseOuverte(null)}
+          onConfirmer={deposer}
+        />
       )}
       {children}
     </Contexte.Provider>
@@ -405,6 +537,9 @@ export function BlocPosable({
   dureeMin,
   debutMinutes,
   avecRedimensionnement = true,
+  depuisFile = false,
+  libelle = null,
+  fuseau = null,
   className,
   children,
 }: Readonly<{
@@ -427,9 +562,17 @@ export function BlocPosable({
    * conserver l'heure au déplacement.
    */
   avecRedimensionnement?: boolean;
+  /** `true` pour une carte de la file « À planifier » (PG-B2). Voir `EnMain.depuisFile`. */
+  depuisFile?: boolean;
+  /** Le titre de `FenetrePose`, requis quand `depuisFile` est vrai. */
+  libelle?: string | null;
+  /** Le fuseau de l'agence de l'intervention, requis quand `depuisFile` est vrai. */
+  fuseau?: string | null;
   className?: string;
   children: React.ReactNode;
 }>) {
+  const { commencerGlisse, terminerGlisse } = useDepot();
+
   const engager = (bord: "bloc" | "fin") => (evenement: React.DragEvent) => {
     evenement.dataTransfer.setData(
       FORMAT,
@@ -438,12 +581,19 @@ export function BlocPosable({
         dureeMin,
         bord,
         debutMinutes: debutMinutes ?? null,
+        depuisFile,
+        libelle,
+        fuseau,
       }),
     );
     // `text/plain` en plus : certains navigateurs n'engagent pas un glissé
     // dont aucun format standard n'est renseigné.
     evenement.dataTransfer.setData("text/plain", interventionId);
     evenement.dataTransfer.effectAllowed = "move";
+    // POUR LE SURVOL (PG-B4) — voir l'entête de `Depot.carteEnGlisse` :
+    // `dataTransfer` ne se relit pas à `dragover`, donc la carte voyage par
+    // ce state, posé ICI où ses props sont déjà en main.
+    commencerGlisse({ interventionId, dureeMin });
   };
 
   return (
@@ -451,6 +601,7 @@ export function BlocPosable({
       data-bloc={interventionId}
       draggable
       onDragStart={engager("bloc")}
+      onDragEnd={terminerGlisse}
       className={`relative cursor-grab active:cursor-grabbing ${className ?? ""}`}
     >
       {children}
@@ -492,6 +643,47 @@ export function BlocPosable({
   );
 }
 
+/**
+ * LE RACCOURCI CLAVIER ET TÉLÉPHONE DE `FenetrePose` (PG-B2-FENETRE-POSE).
+ *
+ * *Une fonction qui n'existe qu'au glissé exclut le clavier et le tactile*
+ * (même principe que la poignée de redimensionnement, plus haut) : ce bouton
+ * ouvre EXACTEMENT la même fenêtre qu'un dépôt, sans jour ni technicien
+ * pré-remplis — `Posable.ouvrirPose` leur donne alors le jour du jour et le
+ * premier technicien de la liste.
+ */
+export function BoutonPoser({
+  interventionId,
+  dureeMin,
+  libelle,
+  fuseau,
+}: Readonly<{
+  interventionId: string;
+  dureeMin: number | null;
+  libelle: string;
+  fuseau: string;
+}>) {
+  const { ouvrirPose } = useDepot();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        ouvrirPose({
+          interventionId,
+          libelle,
+          dureeMinInitiale: dureeMin,
+          technicienIdInitial: null,
+          jourInitial: null,
+          fuseau,
+        })
+      }
+      className="border-app-bord text-app-encre-faible hover:bg-app-fond min-h-11 rounded-md border px-2.5 text-[11.5px] font-semibold sm:min-h-0 sm:py-1"
+    >
+      {t("planning.pose.bouton_poser")}
+    </button>
+  );
+}
+
 /** UNE CASE QUI ACCEPTE UN DÉPÔT. */
 export function CasePosable({
   cible,
@@ -504,35 +696,114 @@ export function CasePosable({
   style?: React.CSSProperties;
   children: React.ReactNode;
 }>) {
-  const { deposer } = useDepot();
-  const [survolee, setSurvolee] = useState(false);
+  const { deposer, ouvrirPose, carteEnGlisse, signalerSurvol } = useDepot();
+  const [etatSurvol, setEtatSurvol] = useState<EtatDeSurvol | null>(null);
   return (
     <td
       data-depot-jour={cible.jour}
       data-depot-technicien={cible.technicienId ?? ""}
       {...(cible.minutes === null ? {} : { "data-depot-heure": cible.minutes })}
+      {...(etatSurvol === null
+        ? {}
+        : {
+            "data-survol": etatSurvol.possible ? "possible" : etatSurvol.motif,
+          })}
       onDragOver={(evenement) => {
         // Sans `preventDefault`, le navigateur refuse le dépôt : c'est ce qui
         // distingue une case qui accepte d'une case qui regarde passer.
         evenement.preventDefault();
         evenement.dataTransfer.dropEffect = "move";
-        setSurvolee(true);
+        // PG-B4-SURVOL-CASES — un INDICE tiré des données déjà chargées,
+        // jamais une requête ; voir `lib/interventions/survol.ts`. Recalculé
+        // à chaque `dragover` : React ne réémet l'état QUE s'il change (même
+        // motif -> même référence de rendu), donc aucun coût observable à le
+        // reposer à chaque pixel survolé.
+        const etat =
+          carteEnGlisse === null
+            ? null
+            : etatDeLaCase(carteEnGlisse, cible.survol, {
+                // Les habilitations d'un site ne sont pas chargées par la
+                // page du planning aujourd'hui — voir le docblock de
+                // `etatDeLaCase` : un DONT-KNOW n'invente pas de refus.
+                habilitationManquante: null,
+              });
+        setEtatSurvol(etat);
+        signalerSurvol(etat);
       }}
-      onDragLeave={() => setSurvolee(false)}
+      onDragLeave={() => {
+        setEtatSurvol(null);
+        signalerSurvol(null);
+      }}
       onDrop={(evenement) => {
         evenement.preventDefault();
-        setSurvolee(false);
+        setEtatSurvol(null);
+        signalerSurvol(null);
         const main = lireLaMain(evenement.dataTransfer);
-        if (main !== null) {
-          deposer(main, cible);
+        if (main === null) {
+          return;
         }
+        if (main.depuisFile) {
+          // UNE CARTE DE LA FILE N'ÉCRIT JAMAIS DIRECTEMENT (PG-B2) : la case
+          // ne connaît qu'un jour et un technicien, jamais une heure sûre —
+          // `FenetrePose` les complète avant d'appeler la même route.
+          //
+          // Sans fuseau lisible, le glissé n'est pas celui de `BlocPosable`
+          // (qui le fournit toujours pour une carte de la file) : un contenu
+          // illisible n'écrit rien, même famille que `lireLaMain` plus bas.
+          if (main.fuseau !== null) {
+            ouvrirPose({
+              interventionId: main.id,
+              libelle: main.libelle ?? "",
+              dureeMinInitiale: main.dureeMin,
+              technicienIdInitial: cible.technicienId,
+              jourInitial: cible.jour,
+              fuseau: main.fuseau,
+            });
+          }
+          return;
+        }
+        deposer(main, cible);
       }}
-      className={`${className ?? ""} ${survolee ? "outline-app-marque outline-2 -outline-offset-2" : ""}`}
+      className={`relative ${className ?? ""} ${classeDeSurvol(etatSurvol)}`}
       style={style}
     >
       {children}
+      {etatSurvol === null || etatSurvol.possible ? null : (
+        // LE MOTIF EN CLAIR, PAS SEULEMENT LA COULEUR (accessibilité, PG-B4)
+        // — `aria-hidden` : la même information est déjà ANNONCÉE par
+        // l'unique région `aria-live` de `Posable`, l'annoncer deux fois
+        // ferait entendre deux fois la même phrase à un lecteur d'écran.
+        <span
+          aria-hidden="true"
+          className="bg-app-rouge-fond text-app-rouge-encre pointer-events-none absolute inset-x-0.5 bottom-0.5 z-10 truncate rounded px-1 text-[9.5px] font-semibold"
+        >
+          {libelleMotifSurvol(etatSurvol.motif)}
+        </span>
+      )}
     </td>
   );
+}
+
+/**
+ * LE MOTIF EN CLAIR — « Agence » vient de `mot("agence")`, jamais écrit en
+ * dur (vocabulaire imposé, §9) : c'est le seul des quatre motifs qui porte
+ * ce mot.
+ */
+function libelleMotifSurvol(motif: MotifRefusSurvol): string {
+  if (motif === "agence_fermee") {
+    return `${mot("agence")} ${t("planning.survol.agence_fermee_suffixe")}`;
+  }
+  return t(`planning.survol.${motif}`);
+}
+
+/** Les jetons EXISTANTS de la palette — succès, refus — jamais une couleur neuve (PG-B4). */
+function classeDeSurvol(etat: EtatDeSurvol | null): string {
+  if (etat === null) {
+    return "";
+  }
+  return etat.possible
+    ? "outline-app-vert-bord outline-2 -outline-offset-2"
+    : "outline-app-rouge-bord outline-2 -outline-offset-2";
 }
 
 /**
@@ -590,6 +861,18 @@ function lireLaMain(donnees: DataTransfer): EnMain | null {
         debutMinutes:
           "debutMinutes" in brut && typeof brut.debutMinutes === "number"
             ? brut.debutMinutes
+            : null,
+        // **Le défaut est `false`** : un glissé étranger ou antérieur à
+        // PG-B2 (sans ce champ) se déplace comme avant, jamais comme une
+        // carte de la file qu'on n'a pas demandée.
+        depuisFile: "depuisFile" in brut && brut.depuisFile === true,
+        libelle:
+          "libelle" in brut && typeof brut.libelle === "string"
+            ? brut.libelle
+            : null,
+        fuseau:
+          "fuseau" in brut && typeof brut.fuseau === "string"
+            ? brut.fuseau
             : null,
       };
     }

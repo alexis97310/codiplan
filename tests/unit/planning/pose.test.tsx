@@ -51,11 +51,14 @@ beforeEach(() => {
   });
 });
 
+const SURVOL_NEUTRE = { bloquee: false, ouverte: true, ferie: false };
+
 const CIBLE: CibleDeDepot = {
   jour: "2026-09-16",
   technicienId: "tech-1",
   minutes: null,
   pasMinutes: 30,
+  survol: SURVOL_NEUTRE,
 };
 
 /** Le corps porté par un glissé, tel que `lireLaMain` sait le lire. */
@@ -67,7 +70,11 @@ function dataTransferDe(
   return {
     getData: (format: string) =>
       format === "application/x-codiplan-intervention" ? charge : "",
-  } as DataTransfer;
+    // `setData` : requis par `BlocPosable.engager` à `dragstart` (PG-B4, la
+    // carte survolée s'y engage aussi) — jamais lu par le survol lui-même,
+    // qui passe par `Depot.carteEnGlisse`, pas par `dataTransfer`.
+    setData: () => {},
+  } as unknown as DataTransfer;
 }
 
 /** Une case d'HEURE, vue Jour — `minutes` n'y est jamais `null`. */
@@ -76,11 +83,12 @@ const CIBLE_JOUR: CibleDeDepot = {
   technicienId: "tech-1",
   minutes: 480,
   pasMinutes: 30,
+  survol: SURVOL_NEUTRE,
 };
 
 function sceneJour() {
   return render(
-    <Posable>
+    <Posable techniciens={[]} aujourdhui="2026-09-16">
       <table>
         <tbody>
           <tr>
@@ -112,7 +120,7 @@ function laCaseDHeure(container: HTMLElement): Element {
 
 function scene() {
   return render(
-    <Posable>
+    <Posable techniciens={[]} aujourdhui="2026-09-16">
       <table>
         <tbody>
           <tr>
@@ -399,5 +407,154 @@ describe("UNE CARTE SANS DURÉE CONNUE, DÉPOSÉE SUR UNE HEURE (PG-A3a, bug 2 d
     const corps = fetchSimule.mock.calls[0]?.[1]?.body as FormData;
     expect(corps.get("heure_debut")).toBe("480");
     expect(corps.has("duree_min")).toBe(false);
+  });
+});
+
+/** Le corps porté par une carte de la file « À planifier » (PG-B2). */
+function dataTransferDeFile(interventionId: string): DataTransfer {
+  const charge = JSON.stringify({
+    id: interventionId,
+    dureeMin: 60,
+    depuisFile: true,
+    libelle: "Client Témoin · Panne · Urgent",
+    fuseau: "Pacific/Noumea",
+  });
+  return {
+    getData: (format: string) =>
+      format === "application/x-codiplan-intervention" ? charge : "",
+  } as DataTransfer;
+}
+
+describe("UNE CARTE DE LA FILE, DÉPOSÉE (PG-B2-FENETRE-POSE)", () => {
+  it("n'écrit rien avant « Planifier » : elle ouvre `FenetrePose`, pré-remplie du jour et du technicien de la case", async () => {
+    // `FenetrePose` LIT `verdict-pose` (PG-B1) dès l'ouverture — ce que le
+    // ticket interdit, c'est une ÉCRITURE (`.../deplacer`) avant le clic.
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ creneaux: [], verdicts: [] }),
+    });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = scene();
+
+    fireEvent.drop(laCase(container), {
+      dataTransfer: dataTransferDeFile("int-1"),
+    });
+
+    const fenetre = container.ownerDocument.querySelector(
+      '[data-fenetre-pose="int-1"]',
+    );
+    expect(fenetre).not.toBeNull();
+    expect(fenetre?.getAttribute("data-jour")).toBe(CIBLE.jour);
+    expect(fenetre?.getAttribute("data-technicien")).toBe(CIBLE.technicienId);
+
+    await waitFor(() => expect(fetchSimule).toHaveBeenCalled());
+    const urlsAppelees = fetchSimule.mock.calls.map((appel) =>
+      String(appel[0]),
+    );
+    expect(urlsAppelees.every((url) => url.includes("verdict-pose"))).toBe(
+      true,
+    );
+    expect(urlsAppelees.some((url) => url.includes("/deplacer"))).toBe(false);
+  });
+
+  it("garde le déplacement DIRECT pour une carte déjà planifiée (PG-A7, inchangé)", async () => {
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: null }),
+    });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = scene();
+
+    fireEvent.drop(laCase(container), {
+      dataTransfer: dataTransferDe("int-1"),
+    });
+
+    await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(1));
+    expect(
+      container.ownerDocument.querySelector("[data-fenetre-pose]"),
+    ).toBeNull();
+  });
+});
+
+describe("LE SURVOL D'UNE CASE PENDANT LE GLISSÉ (PG-B4-SURVOL-CASES)", () => {
+  const CIBLE_BLOQUEE: CibleDeDepot = {
+    ...CIBLE,
+    survol: { bloquee: true, ouverte: true, ferie: false },
+  };
+  const CIBLE_OUVERTE: CibleDeDepot = {
+    ...CIBLE,
+    survol: { bloquee: false, ouverte: true, ferie: false },
+  };
+
+  function sceneSurvol(cible: CibleDeDepot) {
+    return render(
+      <Posable techniciens={[]} aujourdhui="2026-09-16">
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                <BlocPosable interventionId="int-1" dureeMin={60}>
+                  <span aria-hidden />
+                </BlocPosable>
+              </td>
+              <CasePosable cible={cible}>
+                <span aria-hidden />
+              </CasePosable>
+            </tr>
+          </tbody>
+        </table>
+      </Posable>,
+    );
+  }
+
+  it("annonce « Absent » et marque la case, survolée pendant un glissé, sur une case bloquée", () => {
+    const { container } = sceneSurvol(CIBLE_BLOQUEE);
+    const source = container.querySelector('[data-bloc="int-1"]');
+    const case_ = laCase(container);
+    if (source === null) throw new Error("le bloc n'a pas été rendu");
+
+    fireEvent.dragStart(source, { dataTransfer: dataTransferDe("int-1") });
+    fireEvent.dragOver(case_, { dataTransfer: dataTransferDe("int-1") });
+
+    expect(case_.getAttribute("data-survol")).toBe("absent");
+    // « Absent » apparaît DEUX FOIS : le motif visible sur la case, et
+    // l'unique région `aria-live` de `Posable` — jamais l'annoncer une
+    // seule fois priverait l'un des deux publics (voir/entendre).
+    expect(screen.getAllByText(fr["planning.survol.absent"])).toHaveLength(2);
+  });
+
+  it("ne marque RIEN sur une case ouverte et libre", () => {
+    const { container } = sceneSurvol(CIBLE_OUVERTE);
+    const source = container.querySelector('[data-bloc="int-1"]');
+    const case_ = laCase(container);
+    if (source === null) throw new Error("le bloc n'a pas été rendu");
+
+    fireEvent.dragStart(source, { dataTransfer: dataTransferDe("int-1") });
+    fireEvent.dragOver(case_, { dataTransfer: dataTransferDe("int-1") });
+
+    expect(case_.getAttribute("data-survol")).toBe("possible");
+    expect(screen.queryByText(fr["planning.survol.absent"])).toBeNull();
+  });
+
+  it("efface la marque et l'annonce au départ du survol (`dragleave`)", () => {
+    const { container } = sceneSurvol(CIBLE_BLOQUEE);
+    const source = container.querySelector('[data-bloc="int-1"]');
+    const case_ = laCase(container);
+    if (source === null) throw new Error("le bloc n'a pas été rendu");
+
+    fireEvent.dragStart(source, { dataTransfer: dataTransferDe("int-1") });
+    fireEvent.dragOver(case_, { dataTransfer: dataTransferDe("int-1") });
+    expect(case_.getAttribute("data-survol")).toBe("absent");
+
+    fireEvent.dragLeave(case_);
+    expect(case_.getAttribute("data-survol")).toBeNull();
+    expect(screen.queryByText(fr["planning.survol.absent"])).toBeNull();
+  });
+
+  it("aucun indice tant qu'aucun glissé n'est en cours (pas de `dragstart` observé)", () => {
+    const { container } = sceneSurvol(CIBLE_BLOQUEE);
+    const case_ = laCase(container);
+    fireEvent.dragOver(case_, { dataTransfer: dataTransferDe("int-1") });
+    expect(case_.getAttribute("data-survol")).toBeNull();
   });
 });
