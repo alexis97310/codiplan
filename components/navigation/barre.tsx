@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { useNavigationMobile } from "@/components/navigation/bandeau-mobile";
 import { MarqueClaire } from "@/components/navigation/marque";
@@ -135,6 +135,22 @@ export function BarreDeNavigation({
   const entreesVisibles = entreesAffichables(entrees, role);
   const actif = entreeActive(usePathname() ?? "", entreesVisibles)?.cle ?? null;
   const { ouvert, fermer } = useNavigationMobile();
+  // « PLEIN ÉCRAN » DU PLANNING REPLIE AUSSI CETTE COLONNE (9BJA-REPRISE-9BJ,
+  // point 4a — le ticket 9BJ ne repliait que la colonne « À planifier »,
+  // territoire de `app/(back-office)/planning/page.tsx` seul, et avait écrit
+  // dans sa passation que la barre PARTAGÉE en restait hors territoire).
+  // Lu ICI, par ce SEUL composant, via `useSearchParams` — jamais passé par
+  // `app/(back-office)/layout.tsx` : un layout ne reçoit pas les paramètres
+  // de recherche de la page qu'il enrobe (ils rendraient tout le segment
+  // dynamique), et le gardien `tests/unit/app/barre-par-segment.test.ts` exige
+  // que ce fichier appelle `<BarreDeNavigation entrees={ENTREES} …/>` sans
+  // rien y ajouter. Le paramètre n'existe que sur `/planning` ; ailleurs,
+  // `get("pleinEcran")` rend `null`, et la colonne se comporte comme avant.
+  const pleinEcranDuPlanning = useSearchParams().get("pleinEcran") === "1";
+
+  if (pleinEcranDuPlanning) {
+    return null;
+  }
 
   if (entreesVisibles.length === 0) {
     return (

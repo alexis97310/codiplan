@@ -288,3 +288,29 @@ test("« Plein écran » replie la colonne « À planifier », et Échap la rend
   await expect(carteAAffecter).toBeVisible();
   await expect(page).not.toHaveURL(/pleinEcran=1/);
 });
+
+/**
+ * 9BJA-REPRISE-9BJ, POINT 4a — « Plein écran » replie AUSSI la barre de
+ * navigation globale. 9BJ (PG-C3) avait délibérément laissé cette barre hors
+ * territoire (chrome PARTAGÉ par tout le back-office) ; ce ticket l'étend au
+ * SEUL composant qui la porte, `components/navigation/barre.tsx`.
+ */
+test("« Plein écran » replie aussi la barre de navigation globale", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await allerALaSemaineDeLaScene(page);
+
+  const colonneNavigation = page.locator("#colonne-navigation");
+  await expect(colonneNavigation).toBeVisible();
+
+  const bouton = page.getByRole("link", {
+    name: fr["planning.plein_ecran"],
+  });
+  await bouton.click();
+  await expect(page.locator("main")).toBeVisible();
+  await expect(colonneNavigation).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await expect(colonneNavigation).toBeVisible();
+});
