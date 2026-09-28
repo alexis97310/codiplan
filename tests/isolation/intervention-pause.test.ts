@@ -235,7 +235,7 @@ describe("la note interne — back-office seulement, invisible ailleurs par cons
       { intervention_id: id, note_interne: "À rappeler demain matin." },
       clientApp(),
     );
-    expect(resultat).not.toBeNull();
+    expect(resultat.accepte).toBe(true);
 
     const [ligne] = await clientOwner().$queryRawUnsafe<
       Array<{ note_interne: string | null }>

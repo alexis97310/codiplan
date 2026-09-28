@@ -281,6 +281,42 @@ export function peutPlanifier(
 }
 
 /**
+ * PEUT-ON ÉCRIRE CETTE LIGNE, TELLE QU'ELLE SERA APRÈS L'ÉCRITURE ? (audit
+ * d'ergonomie du 27/09/2026, bug 4 ; PG-A4-SANS-DUREE-AVANT-ECRITURE)
+ *
+ * **La contrainte `intervention_planifiee_a_sa_duree` est `NOT VALID`** —
+ * PostgreSQL ne l'a pas vérifiée sur l'existant, mais il la vérifie sur
+ * TOUTE ligne réécrite, même quand l'écriture ne touche ni le statut ni la
+ * durée. *Mesuré en production le 27/09/2026 : cinq interventions
+ * `planifiee` sans durée, posées avant que la contrainte n'existe — et
+ * chacune d'elles fait échouer, par 23514, le PROCHAIN geste qui la touche*
+ * (affecter un technicien, noter une remarque interne, ou l'ouverture même
+ * de la fiche terrain qui pose `vue_technicien_le`).
+ *
+ * **Ce verdict juge l'ÉTAT APRÈS ÉCRITURE, jamais l'état avant.** Un
+ * appelant qui ne change ni le statut ni la durée doit quand même passer les
+ * valeurs qu'IL S'APPRÊTE À ÉCRIRE — d'où deux paramètres nommés « après » :
+ * juger l'avant laisserait passer une écriture qui perpétue une ligne
+ * bloquée.
+ *
+ * *Ce qu'il NE fait PAS : retirer la ligne du planning reste permis.* Une
+ * ligne qui redevient `a_planifier` (date et créneau vidés) n'est ni
+ * `planifiee` ni `affectee` : ce verdict ne la concerne pas.
+ */
+export function peutEcrireSansDuree(
+  statutApres: StatutIntervention,
+  dureeApresMin: number | null,
+): Verdict {
+  if (
+    (statutApres === "planifiee" || statutApres === "affectee") &&
+    dureeApresMin === null
+  ) {
+    return { refuse: true, cle: "intervention.refus.planifiee_sans_duree" };
+  }
+  return PERMIS;
+}
+
+/**
  * Le statut qu'une création prend, DÉDUIT de la POSE et jamais saisi.
  *
  * **« À planifier » veut dire « sans date », et rien d'autre.** L'annexe D en

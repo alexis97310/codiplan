@@ -53,6 +53,7 @@ import {
   peutAnnuler,
   peutCloturer,
   peutDeplacer,
+  peutEcrireSansDuree,
   peutPlanifier,
   peutReprendre,
   peutSuspendre,
@@ -650,6 +651,19 @@ export async function affecterTechnicien(
         return { accepte: false, cle: "intervention.refus.absence" };
       }
 
+      // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
+      // d'ergonomie du 27/09/2026) — affecter ne change ni le statut ni la
+      // durée : l'état APRÈS écriture est celui déjà sur la ligne.
+      const barriereDuree = refus<LigneIntervention>(
+        peutEcrireSansDuree(
+          ligne.statut as StatutIntervention,
+          ligne.duree_estimee_min,
+        ),
+      );
+      if (barriereDuree !== null) {
+        return barriereDuree;
+      }
+
       const misAJour = await tx.intervention.update({
         where: { id: interventionId },
         data: {
@@ -966,6 +980,7 @@ export async function deplacerIntervention(
           technicien_id: true,
           date_planifiee: true,
           creneau_debut: true,
+          duree_estimee_min: true,
         },
       });
       if (ligne === null) {
@@ -1020,6 +1035,30 @@ export async function deplacerIntervention(
       }
       const demande = pose.demande;
 
+      // Le déplacement REND une intervention à la file d'attente quand on lui
+      // retire sa date, et l'en sort quand on lui en donne une. Il ne touche
+      // à aucun autre statut : déplacer une intervention `en_cours` ne la
+      // replanifie pas, elle est en cours.
+      const statutApres = statutApresDeplacement(
+        ligne.statut as StatutIntervention,
+        saisie.date_planifiee,
+        demande.creneauDebut,
+      );
+      // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
+      // d'ergonomie du 27/09/2026) — jugée sur l'ÉTAT APRÈS ÉCRITURE : la
+      // durée qui sera réellement posée est celle-ci `saisie.duree_min`
+      // quand elle est soumise, sinon celle déjà sur la ligne (Prisma
+      // ignorera la colonne, voir plus bas).
+      const barriereDuree = refus<LigneIntervention>(
+        peutEcrireSansDuree(
+          statutApres,
+          saisie.duree_min ?? ligne.duree_estimee_min,
+        ),
+      );
+      if (barriereDuree !== null) {
+        return barriereDuree;
+      }
+
       const misAJour = await tx.intervention.update({
         where: { id: saisie.intervention_id },
         data: {
@@ -1043,15 +1082,7 @@ export async function deplacerIntervention(
           // `NULL` pour `null`.
           duree_estimee_min: saisie.duree_min ?? undefined,
           technicien_id: saisie.technicien_id,
-          // Le déplacement REND une intervention à la file d'attente quand on
-          // lui retire sa date, et l'en sort quand on lui en donne une. Il ne
-          // touche à aucun autre statut : déplacer une intervention `en_cours`
-          // ne la replanifie pas, elle est en cours.
-          statut: statutApresDeplacement(
-            ligne.statut as StatutIntervention,
-            saisie.date_planifiee,
-            demande.creneauDebut,
-          ),
+          statut: statutApres,
           // LE BADGE REPART À ZÉRO À CHAQUE (RÉ)AFFECTATION (AVERTISSEMENTS-1)
           // — jamais sur un déplacement qui laisse le même technicien : un
           // glissé qui ne fait que redater ne doit pas effacer une lecture
@@ -2027,9 +2058,29 @@ export async function marquerVuParTechnicien(
           technicien_id: contexte.utilisateurId,
           vue_technicien_le: null,
         },
-        select: { id: true, agence_id: true },
+        select: {
+          id: true,
+          agence_id: true,
+          statut: true,
+          duree_estimee_min: true,
+        },
       });
       if (ligne === null) {
+        return;
+      }
+      // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
+      // d'ergonomie du 27/09/2026) — une ligne `planifiee`/`affectee` sans
+      // durée, posée avant que la contrainte n'existe, refuserait cette
+      // écriture. On N'ÉCRIT PAS, et on NE LÈVE PAS : le « vu » n'est qu'un
+      // repère d'affichage, jamais une action que le technicien demande, et
+      // l'ouverture de sa fiche ne doit pas échouer pour lui. Il s'écrira
+      // quand la ligne aura sa durée.
+      if (
+        peutEcrireSansDuree(
+          ligne.statut as StatutIntervention,
+          ligne.duree_estimee_min,
+        ).refuse
+      ) {
         return;
       }
       // L'INSTANT VIENT DU FUSEAU DE L'AGENCE (L0-08), jamais de l'appareil :
@@ -2194,23 +2245,35 @@ export async function enregistrerNoteInterne(
   contexte: ContexteSession,
   saisie: NoteInterne,
   client?: PrismaClient,
-): Promise<{ readonly id: string } | null> {
+): Promise<Resultat<{ readonly id: string }>> {
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: saisie.intervention_id },
-        select: { id: true },
+        select: { id: true, statut: true, duree_estimee_min: true },
       });
       if (intervention === null) {
-        return null;
+        return { accepte: false, cle: "intervention.refus.inconnue" };
+      }
+      // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
+      // d'ergonomie du 27/09/2026) — la note n'écrit ni le statut ni la
+      // durée : l'état APRÈS écriture est celui déjà sur la ligne.
+      const barriereDuree = refus<{ readonly id: string }>(
+        peutEcrireSansDuree(
+          intervention.statut as StatutIntervention,
+          intervention.duree_estimee_min,
+        ),
+      );
+      if (barriereDuree !== null) {
+        return barriereDuree;
       }
       const ecrite = await tx.intervention.update({
         where: { id: saisie.intervention_id },
         data: { note_interne: saisie.note_interne },
         select: { id: true },
       });
-      return ecrite;
+      return { accepte: true, fiche: ecrite };
     },
     client,
   );

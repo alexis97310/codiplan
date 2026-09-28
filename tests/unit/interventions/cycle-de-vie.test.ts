@@ -7,6 +7,7 @@ import {
   peutCloturer,
   peutDemarrerLeCompteur,
   peutDeplacer,
+  peutEcrireSansDuree,
   peutGenererLeBon,
   peutPlanifier,
   statutALaCreation,
@@ -278,5 +279,46 @@ describe("peutPlanifier — les quatre valeurs vont ensemble, ou pas du tout", (
       technicienId: "x",
     });
     expect(verdict.refuse).toBe(true);
+  });
+});
+
+/**
+ * PEUT-ON ÉCRIRE CETTE LIGNE ? (audit d'ergonomie du 27/09/2026, bug 4)
+ *
+ * `intervention_planifiee_a_sa_duree` (`NOT VALID`) refuse toute ligne
+ * réécrite — pas seulement créée — dont le statut après écriture est
+ * `planifiee`/`affectee` sans durée. Ce verdict le dit AVANT l'écriture.
+ */
+describe("peutEcrireSansDuree — la garde qui précède le 23514 de production", () => {
+  it("refuse une ligne PLANIFIÉE sans durée", () => {
+    const verdict = peutEcrireSansDuree("planifiee", null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planifiee_sans_duree",
+    );
+  });
+
+  it("refuse une ligne AFFECTÉE sans durée", () => {
+    const verdict = peutEcrireSansDuree("affectee", null);
+    expect(verdict.refuse && verdict.cle).toBe(
+      "intervention.refus.planifiee_sans_duree",
+    );
+  });
+
+  it("passe une PLANIFIÉE ou une AFFECTÉE qui porte sa durée", () => {
+    expect(peutEcrireSansDuree("planifiee", 60).refuse).toBe(false);
+    expect(peutEcrireSansDuree("affectee", 60).refuse).toBe(false);
+  });
+
+  it("ne juge pas les autres statuts — retirer du planning reste permis", () => {
+    for (const statut of [
+      "a_planifier",
+      "en_cours",
+      "suspendue",
+      "terminee",
+      "cloturee",
+      "annulee",
+    ] as const) {
+      expect(peutEcrireSansDuree(statut, null).refuse, statut).toBe(false);
+    }
   });
 });

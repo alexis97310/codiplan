@@ -1408,6 +1408,14 @@ export const fr = {
     "L'heure de début et la durée prévue sont obligatoires pour planifier cette intervention.",
   "intervention.refus.planification_technicien_manquant":
     "Le technicien est obligatoire pour planifier cette intervention.",
+  // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (audit d'ergonomie du
+  // 27/09/2026, bug 4 ; PG-A4-SANS-DUREE-AVANT-ECRITURE) — `duree_estimee_min`
+  // manque sur une ligne posée avant que `intervention_planifiee_a_sa_duree`
+  // n'existe ; TOUTE écriture sur elle (affecter, note interne, le « vu »
+  // terrain) échouait par une contrainte muette à l'écran. Ce message se
+  // rend À LA PLACE de cette exception, jamais après elle.
+  "intervention.refus.planifiee_sans_duree":
+    "Cette intervention planifiée n'a pas de durée prévue : complétez-la — Déplacer, avec heure et durée.",
   // UNE MACHINE AU PLUS (PARCOURS-1) — « Ajouter une machine » refuse une
   // SECONDE machine, nommée avant même la contrainte de base, dont le
   // message serait technique.
