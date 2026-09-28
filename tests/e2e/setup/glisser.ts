@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test";
+import type { ElementHandle, Locator, Page } from "@playwright/test";
 
 /**
  * GLISSER UN BLOC SUR UNE CASE — à la SOURIS, jamais par des événements forgés.
@@ -47,6 +47,66 @@ function pointVisible(
 }
 
 /**
+ * LE POINT VISÉ ATTEINT-IL VRAIMENT L'ÉLÉMENT ?
+ *
+ * `pointVisible` ne juge que les BORDS DE LA FENÊTRE — il ne sait rien de la
+ * colonne « Technicien », `sticky left-0` (PLANNING-2), qui reste PLAQUÉE au
+ * bord gauche du cadre défilant quelle que soit sa position de défilement
+ * (PG-C3-CARTES-COLONNES, colonnes de jour à 150 px minimum). *Mesuré le
+ * 29/09/2026 : une source jugée « visible » par `pointVisible` (son centre
+ * tombait à `x:665`, dans les bornes de la fenêtre) était en réalité
+ * ENTIÈREMENT RECOUVERTE par cette colonne sticky (qui occupe `x:599` à
+ * `x:769`) — `cible.scrollIntoViewIfNeeded()` avait fait défiler le cadre
+ * assez loin pour amener la case visée à l'écran, mais pas assez peu pour
+ * laisser la source hors de la colonne. Aucun `dragstart` ne partait : la
+ * souris posait sa prise sur un tout autre élément, et aucune exception ne
+ * le disait puisque `pointVisible` ne voit que la fenêtre.* Cette fonction
+ * interroge le DOM directement, comme un vrai clic le ferait :
+ * `elementFromPoint` doit résoudre l'élément LUI-MÊME, ou l'un de ses
+ * descendants (une carte posée dedans compte).
+ */
+async function pointAtteint(
+  element: Locator,
+  x: number,
+  y: number,
+): Promise<boolean> {
+  return element.evaluate(
+    (noeud, [px, py]) => {
+      const trouve = document.elementFromPoint(px, py);
+      return trouve !== null && (trouve === noeud || noeud.contains(trouve));
+    },
+    [x, y] as const,
+  );
+}
+
+/**
+ * LE CADRE DÉFILANT HORIZONTALEMENT LE PLUS PROCHE DE LA CIBLE (`overflow-x`,
+ * `CadreDefilant` — `components/ui/cadre-defilant.tsx`), ou `null` si la
+ * cible n'en a aucun (vue Jour, sans colonnes de largeur fixe). Cherché par
+ * le DOM, jamais par un sélecteur d'écran : ce fichier ne doit rien savoir de
+ * la vue Semaine en particulier.
+ */
+async function conteneurDefilantDe(
+  cible: Locator,
+): Promise<ElementHandle<HTMLElement> | null> {
+  const handle = await cible.evaluateHandle((element) => {
+    let noeud: HTMLElement | null = (element as HTMLElement).parentElement;
+    while (noeud !== null) {
+      const style = getComputedStyle(noeud);
+      if (
+        (style.overflowX === "auto" || style.overflowX === "scroll") &&
+        noeud.scrollWidth > noeud.clientWidth + 1
+      ) {
+        return noeud;
+      }
+      noeud = noeud.parentElement;
+    }
+    return null;
+  });
+  return handle.asElement() as ElementHandle<HTMLElement> | null;
+}
+
+/**
  * AGRANDIT LA FENÊTRE POUR QU'ELLE CONTIENNE LES DEUX BOÎTES ENTIÈRES, sans
  * aucun défilement — ou renvoie `false` si la page ne s'y prête pas
  * (63-STABILITE-4).
@@ -62,8 +122,20 @@ function pointVisible(
  * aucun défilement : la fenêtre doit donc déjà contenir les deux boîtes
  * AVANT `mouse.down`, jamais après.
  *
+ * **LA LARGEUR ENTRE AUSSI DEPUIS PG-C3-CARTES-COLONNES** (29/09/2026) : les
+ * colonnes de jour à 150 px minimum (QG-1) font défiler la grille Semaine
+ * horizontalement dans `CadreDefilant`, et la colonne « Technicien »,
+ * `sticky left-0`, RECOUVRE alors ce qu'il reste défilé derrière elle dès
+ * que la source et la cible sont trop loin l'une de l'autre pour tenir
+ * ensemble. Élargir la fenêtre pour supprimer le débordement du cadre
+ * RÉSOUT le problème à la racine plutôt que de le contourner pendant le
+ * glissé : *mesuré le 29/09/2026, à 2200 px de large, un cadre dont le
+ * contenu naturel mesure 1070 px ne déborde plus du tout — source et cible,
+ * même à quatre colonnes d'écart, tiennent ensemble sans que l'une recouvre
+ * l'autre.*
+ *
  * Une fenêtre de test n'est pas un écran physique : rien n'empêche de la
- * rendre aussi haute que la page l'exige, LE TEMPS DE CE GLISSÉ SEUL — la
+ * rendre aussi grande que la page l'exige, LE TEMPS DE CE GLISSÉ SEUL — la
  * fonction appelante restaure la taille d'origine ensuite.
  */
 async function agrandirPourContenirLesDeux(
@@ -73,6 +145,21 @@ async function agrandirPourContenirLesDeux(
   fenetreOrigine: { width: number; height: number },
 ): Promise<boolean> {
   await page.evaluate(() => window.scrollTo(0, 0));
+
+  // LARGEUR : le débordement du cadre défilant de la cible, mesuré avant
+  // tout redimensionnement — jamais la position des boîtes, qui dépend déjà
+  // de la largeur EN COURS de la fenêtre.
+  const conteneur = await conteneurDefilantDe(cible);
+  let largeurRequise = fenetreOrigine.width;
+  if (conteneur !== null) {
+    const debordement = await conteneur.evaluate(
+      (el) => el.scrollWidth - el.clientWidth,
+    );
+    if (debordement > 1) {
+      largeurRequise = fenetreOrigine.width + debordement + 40;
+    }
+  }
+
   const [avantSource, avantCible] = await Promise.all([
     source.boundingBox(),
     cible.boundingBox(),
@@ -92,13 +179,21 @@ async function agrandirPourContenirLesDeux(
   // une fenêtre de plusieurs centaines de milliers de pixels ne prouve
   // plus rien qu'un défilement borné n'aurait déjà refusé plus proprement.
   const PLAFOND = 60_000;
-  if (hauteurRequise > PLAFOND) {
+  if (hauteurRequise > PLAFOND || largeurRequise > PLAFOND) {
     return false;
   }
   await page.setViewportSize({
-    width: fenetreOrigine.width,
+    width: Math.max(largeurRequise, fenetreOrigine.width),
     height: Math.max(hauteurRequise, fenetreOrigine.height),
   });
+  // LE CADRE NE DÉBORDE PLUS (largeur élargie exprès) : le ramener à
+  // `scrollLeft: 0` retire le décalage que le premier `scrollIntoViewIfNeeded`
+  // avait pu lui poser avant l'agrandissement.
+  if (conteneur !== null) {
+    await conteneur.evaluate((el) => {
+      el.scrollLeft = 0;
+    });
+  }
   await page.evaluate((dy) => window.scrollBy(0, dy), haut - 20);
   return true;
 }
@@ -156,17 +251,28 @@ export async function glisser(
         "dans la page, et le scénario mesurerait un geste qui n'a pas eu lieu.",
     );
   }
+
+  // « VISIBLE » NE SUFFIT PAS (voir `pointAtteint`) : même quand les deux
+  // boîtes tombent dans les bornes de la fenêtre, l'une peut recouvrir
+  // l'autre derrière la colonne « Technicien » sticky. Le seul juge fiable
+  // est le DOM lui-même, au point que la souris viserait.
+  let prise = pointVisible(depart, fenetre);
+  let pose = pointVisible(arrivee, fenetre);
+  let atteignable =
+    prise !== null &&
+    pose !== null &&
+    (await pointAtteint(source, prise.x, prise.y)) &&
+    (await pointAtteint(cible, pose.x, pose.y));
+
   let fenetreAgrandie = false;
-  if (
-    pointVisible(depart, fenetre) === null ||
-    pointVisible(arrivee, fenetre) === null
-  ) {
-    // LE DÉFILEMENT UNIQUE NE SUFFIT PAS (63-STABILITE-4) : la source et la
-    // case sont séparées de plus d'une fenêtre entière — mesuré sur une file
-    // d'attente que d'autres scènes du dépôt font grandir en parallèle.
-    // Défiler PENDANT le glissé a été essayé et mesuré inopérant sur un
-    // glissé HTML5 natif engagé (voir `agrandirPourContenirLesDeux`) : la
-    // fenêtre doit donc déjà contenir les deux boîtes AVANT `mouse.down`.
+  if (!atteignable) {
+    // LE DÉFILEMENT UNIQUE NE SUFFIT PAS (63-STABILITE-4, puis
+    // PG-C3-CARTES-COLONNES) : la source et la case sont séparées de plus
+    // d'une fenêtre entière, OU l'une recouvre l'autre derrière la colonne
+    // « Technicien » sticky. Défiler PENDANT le glissé a été essayé et
+    // mesuré inopérant sur un glissé HTML5 natif engagé (voir
+    // `agrandirPourContenirLesDeux`) : la fenêtre doit donc déjà contenir
+    // les deux boîtes AVANT `mouse.down`.
     fenetreAgrandie = await agrandirPourContenirLesDeux(
       page,
       source,
@@ -177,26 +283,37 @@ export async function glisser(
       fenetre = page.viewportSize() ?? fenetreOrigine;
       depart = await source.boundingBox();
       arrivee = await cible.boundingBox();
+      if (depart !== null && arrivee !== null) {
+        prise = pointVisible(depart, fenetre);
+        pose = pointVisible(arrivee, fenetre);
+        atteignable =
+          prise !== null &&
+          pose !== null &&
+          (await pointAtteint(source, prise.x, prise.y)) &&
+          (await pointAtteint(cible, pose.x, pose.y));
+      }
     }
   }
-  if (depart === null || arrivee === null) {
+
+  if (depart === null || arrivee === null || prise === null || pose === null) {
+    if (fenetreAgrandie) {
+      await page.setViewportSize(fenetreOrigine);
+    }
     throw new Error(
       "Le glissé vise un élément sans boîte : la source ou la case n'est pas " +
         "dans la page, et le scénario mesurerait un geste qui n'a pas eu lieu.",
     );
   }
-  const prise = pointVisible(depart, fenetre);
-  const pose = pointVisible(arrivee, fenetre);
-  if (prise === null || pose === null) {
+  if (!atteignable) {
     if (fenetreAgrandie) {
       await page.setViewportSize(fenetreOrigine);
     }
     // Un ÉCHEC BRUYANT plutôt qu'un geste muet : sans cela, le scénario
     // accuserait la règle métier de ne pas avoir refusé.
     throw new Error(
-      "Le glissé ne trouve aucun point visible sur la source ou sur la case : " +
-        `source ${JSON.stringify(depart)}, case ${JSON.stringify(arrivee)}, ` +
-        `fenêtre ${JSON.stringify(fenetre)}.`,
+      "Le glissé ne trouve aucun point qui atteigne réellement la source ET " +
+        `la case, même après agrandissement : source ${JSON.stringify(depart)}, ` +
+        `case ${JSON.stringify(arrivee)}, fenêtre ${JSON.stringify(fenetre)}.`,
     );
   }
 
