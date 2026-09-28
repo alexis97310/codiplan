@@ -1,6 +1,7 @@
 import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { instantDuJour, type JourLocal } from "@/lib/calendar/fuseau";
-import { jourSemaineIso } from "@/lib/calendar/semaine";
+import { plagesDuJour } from "@/lib/calendar/ouverture";
 
 /**
  * LA VUE JOUR — les heures en lignes, les personnes en colonnes (11/09/2026).
@@ -62,22 +63,18 @@ import { jourSemaineIso } from "@/lib/calendar/semaine";
  * n'est jamais écrit ici (I7).
  */
 
-/** Une plage d'ouverture, en minutes locales depuis minuit. */
-export type PlageDeJournee = {
-  readonly debutMinutes: number;
-  readonly finMinutes: number;
-};
-
-/** Ce qu'une agence apporte à la vue jour : ses heures et son pas. */
+/** Ce qu'une agence apporte à la vue jour : son calendrier et son pas. */
 export type AgenceDeJournee = {
   readonly id: string;
   readonly libelle: string;
-  /** Les plages du calendrier, tous jours de semaine confondus. */
-  readonly plages: readonly (PlageDeJournee & {
-    readonly jourSemaine: number;
-  })[];
+  /**
+   * Le calendrier COMPLET de l'agence — fériés, ponts et exceptions compris
+   * (PG-A1-FERIES-GRILLE) : les plages d'un jour précis se lisent avec
+   * `plagesDuJour(calendrier, jour)`, jamais avec son seul jour de semaine.
+   * `null` veut dire « inconnu », jamais « fermé ».
+   */
+  readonly calendrier: Calendrier | null;
   readonly pasCreneauMinutes: number;
-  readonly calendrierConnu: boolean;
 };
 
 /** Le minimum qu'une intervention doit porter pour entrer dans la journée. */
@@ -249,7 +246,6 @@ export function construireJournee<T extends Occupante>(
   techniciens: readonly TechnicienDeJournee[] = [],
   absences: readonly AbsenceDeclaree[] = [],
 ): Journee<T> {
-  const iso = jourSemaineIso(jour);
   const parAgence = new Map(agences.map((a) => [a.id, a]));
 
   // ── LES COLONNES, ET D'OÙ ELLES VIENNENT ────────────────────────────────
@@ -284,13 +280,13 @@ export function construireJournee<T extends Occupante>(
   }
 
   const presentes = agencesPresentes(groupes.values(), agences);
-  const ouvertes = presentes.filter((a) => a.calendrierConnu);
+  const ouvertes = presentes.filter((a) => a.calendrier !== null);
 
   const pasMinutes = Math.min(
     ...ouvertes.map((a) => a.pasCreneauMinutes),
     Number.POSITIVE_INFINITY,
   );
-  const axe = construireAxe(ouvertes, iso, pasMinutes);
+  const axe = construireAxe(ouvertes, jour, pasMinutes);
 
   const colonnes: ColonneDeJournee<T>[] = [...groupes.values()]
     .map((groupe) => {
@@ -309,7 +305,7 @@ export function construireJournee<T extends Occupante>(
         cellule(
           debut,
           pasMinutes,
-          iso,
+          jour,
           siennes,
           groupe.lignes,
           minutesDe,
@@ -380,19 +376,26 @@ function agencesPresentes(
   return agences.filter((a) => vues.has(a.id));
 }
 
-/** L'axe : l'union des plages, découpée au pas le plus fin. */
+/**
+ * L'axe : l'union des plages DE CE JOUR PRÉCIS, découpée au pas le plus fin.
+ *
+ * **Les plages viennent de `plagesDuJour`, importée, jamais recopiée**
+ * (PG-A1-FERIES-GRILLE, CA-1) : un férié chômé n'a AUCUNE plage, et un férié
+ * travaillé retrouve celles de son jour de semaine — c'est `plagesDuJour` qui
+ * tranche, jamais un jour de semaine relu ici.
+ */
 function construireAxe(
   agences: readonly AgenceDeJournee[],
-  iso: number,
+  jour: JourLocal,
   pasMinutes: number,
 ): number[] {
   if (!Number.isFinite(pasMinutes) || pasMinutes <= 0) return [];
   const bornes = agences.flatMap((a) =>
-    a.plages.filter((p) => p.jourSemaine === iso),
+    a.calendrier === null ? [] : plagesDuJour(a.calendrier, jour),
   );
   if (bornes.length === 0) return [];
-  const debut = Math.min(...bornes.map((p) => p.debutMinutes));
-  const fin = Math.max(...bornes.map((p) => p.finMinutes));
+  const debut = Math.min(...bornes.map((p) => p.debut_minutes));
+  const fin = Math.max(...bornes.map((p) => p.fin_minutes));
   const axe: number[] = [];
   for (let m = debut; m + pasMinutes <= fin; m += pasMinutes) axe.push(m);
   return axe;
@@ -430,7 +433,7 @@ function horsGrille<T extends Occupante>(
 function cellule<T extends Occupante>(
   debut: number,
   pas: number,
-  iso: number,
+  jour: JourLocal,
   agences: readonly AgenceDeJournee[],
   lignes: readonly T[],
   minutesDe: (instant: Date, agenceId: string) => number,
@@ -455,12 +458,9 @@ function cellule<T extends Occupante>(
   }
   const ouvert = agences.some(
     (a) =>
-      a.calendrierConnu &&
-      a.plages.some(
-        (p) =>
-          p.jourSemaine === iso &&
-          debut >= p.debutMinutes &&
-          debut + pas <= p.finMinutes,
+      a.calendrier !== null &&
+      plagesDuJour(a.calendrier, jour).some(
+        (p) => debut >= p.debut_minutes && debut + pas <= p.fin_minutes,
       ),
   );
   return {

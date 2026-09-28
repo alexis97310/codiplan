@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import {
   construireJournee,
@@ -20,15 +21,22 @@ import {
 
 const LUNDI: JourLocal = { annee: 2026, mois: 8, jour: 17 };
 
+const CALENDRIER_NOUMEA: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5, 6].flatMap((jour_semaine) => [
+    { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+    { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
+  ]),
+  jours_particuliers: [],
+};
+
 const NOUMEA: AgenceDeJournee = {
   id: "ag-ducos",
   libelle: "Ducos",
-  plages: [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
-  ]),
+  calendrier: CALENDRIER_NOUMEA,
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 
 function instant(jour: JourLocal, minutes: number): Date {

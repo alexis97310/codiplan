@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Calendrier, PlageOuverture } from "@/lib/calendar/calendrier";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import {
   construireJournee,
@@ -25,32 +26,44 @@ const LUNDI: JourLocal = { annee: 2026, mois: 8, jour: 17 };
 /** Samedi 22 — Ducos ouvre, Koné non. */
 const SAMEDI: JourLocal = { annee: 2026, mois: 8, jour: 22 };
 
+/** Un calendrier de test minimal — les plages hebdomadaires données. */
+function calendrierDeTest(plages: readonly PlageOuverture[]): Calendrier {
+  return {
+    code: "test",
+    fuseau: "Pacific/Noumea",
+    territoire: "NC",
+    plages,
+    jours_particuliers: [],
+  };
+}
+
 const NOUMEA: AgenceDeJournee = {
   id: "ag-ducos",
   libelle: "Ducos",
-  plages: [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
-  ]),
+  calendrier: calendrierDeTest(
+    [1, 2, 3, 4, 5, 6].flatMap((jour_semaine) => [
+      { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+      { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
+    ]),
+  ),
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 const SIEGE: AgenceDeJournee = {
   id: "ag-siege",
   libelle: "Siège",
-  plages: [1, 2, 3, 4, 5].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 540, finMinutes: 750 },
-    { jourSemaine, debutMinutes: 840, finMinutes: 1080 },
-  ]),
+  calendrier: calendrierDeTest(
+    [1, 2, 3, 4, 5].flatMap((jour_semaine) => [
+      { jour_semaine, debut_minutes: 540, fin_minutes: 750 },
+      { jour_semaine, debut_minutes: 840, fin_minutes: 1080 },
+    ]),
+  ),
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 const SANS_CALENDRIER: AgenceDeJournee = {
   id: "ag-muette",
   libelle: "Agence muette",
-  plages: [],
+  calendrier: null,
   pasCreneauMinutes: 0,
-  calendrierConnu: false,
 };
 
 /** Un instant d'un jour donné, à `minutes` minutes locales — en UTC pour le test. */

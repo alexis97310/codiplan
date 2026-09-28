@@ -30,6 +30,16 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import {
+  chargerCalendrierAgence,
+  type CacheCalendrierAgence,
+} from "@/lib/calendar/agence";
+import {
+  jourParticulier,
+  plagesDuJourSemaine,
+  type Calendrier,
+} from "@/lib/calendar/calendrier";
+import { estJourOuvre } from "@/lib/calendar/ouverture";
+import {
   enHeure,
   joursTravailles,
   lireParametrage,
@@ -211,6 +221,35 @@ export default async function PagePlanning({
       where: { id: contexte.societeId as string },
       select: { fuseau_horaire: true },
     });
+    const fuseau = societe?.fuseau_horaire ?? "UTC";
+
+    // ── LA FENÊTRE DE JOURS EST CALCULÉE ICI, AVANT LES AGENCES
+    // (PG-A1-FERIES-GRILLE, 28/09/2026) ──────────────────────────────────
+    //
+    // `chargerCalendrierAgence`, plus bas, a besoin de la fenêtre affichée
+    // pour charger les jours particuliers (fériés, ponts, exceptions) qui la
+    // couvrent : elle ne peut donc plus se calculer APRÈS cette lecture,
+    // comme elle le faisait quand seul `lireParametrage` (plages
+    // hebdomadaires seules) servait la grille et la vue jour.
+    const jours = joursDeLaSemaine(
+      jourDemande(parametres.semaine, fuseau, true),
+    ).slice(0, 6);
+    const jourAffiche = jourDemande(parametres.jour, fuseau, false);
+    // ── LA FENÊTRE EST EN JOURS, ET SA BORNE HAUTE EST EXCLUSIVE ───────────
+    //
+    // `date_planifiee` est un `@db.Date` : la borner à minuit UTC est JUSTE
+    // pour l'appartenance au jour, et c'est pour cela que `instantDuJour`
+    // existe. *Ce qui était faux était d'employer LES MÊMES BORNES comme des
+    // INSTANTS pour le dénominateur du panneau de charge* — sous UTC+11,
+    // « vendredi 00:00 UTC » est « vendredi 11 h à Nouméa ». La conversion en
+    // instants descend désormais dans `occupationsDuPlanning`, où le fuseau
+    // de chaque calendrier est connu ; ici, on ne manipule plus que des
+    // JOURS.
+    const fenetreEnJours =
+      vue === "jour"
+        ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
+        : { du: jours[0], au: jourSuivant(jours[jours.length - 1]) };
+
     // `actif` est LU (select), jamais FILTRÉ (where) — voir l'en-tête plus
     // bas, à l'endroit où il sert : `pourGrille` et `pourJournee` sont des
     // index de consultation pour les interventions encore posées d'une
@@ -225,13 +264,32 @@ export default async function PagePlanning({
       },
       orderBy: { libelle: "asc" },
     });
+    // LE CACHE DU CALENDRIER (PERF-2, `lib/calendar/agence.ts`) — mutualisé
+    // entre les agences de CETTE page, jamais entre deux requêtes HTTP.
+    const cacheCalendriers: CacheCalendrierAgence = new Map();
     const detaillees = await Promise.all(
       agences.map(async (agence) => {
         const parametrage =
           agence.calendrier_id === null
             ? null
             : await lireParametrage(tx, agence.calendrier_id);
-        return { agence, parametrage };
+        // LE CALENDRIER COMPLET DE L'AGENCE (PG-A1-FERIES-GRILLE, CA-1) —
+        // fériés, ponts et exceptions compris, jamais seulement les plages
+        // hebdomadaires que `parametrage` porte : c'est lui, et lui seul, qui
+        // décide de l'ouverture d'un jour à la grille et à la vue jour,
+        // exactement la lecture que la pose emploie déjà
+        // (`chargerCalendrierAgence`, commentaire de
+        // `lib/interventions/depot.ts:780` : « ET NON `lireParametrage` »).
+        const calendrier = await chargerCalendrierAgence(
+          tx,
+          {
+            societeId: contexte.societeId as string,
+            agenceId: agence.id,
+            fenetre: fenetreEnJours,
+          },
+          cacheCalendriers,
+        );
+        return { agence, parametrage, calendrier };
       }),
     );
     // ── LE RÉFÉRENTIEL DES PERSONNES — c'est lui qui donne ses colonnes à la
@@ -261,27 +319,28 @@ export default async function PagePlanning({
       select: { utilisateur_id: true, agence_id: true },
     });
     return {
-      fuseau: societe?.fuseau_horaire ?? "UTC",
+      fuseau,
+      jours,
+      jourAffiche,
+      fenetreEnJours,
       detaillees,
       techniciens,
     };
   });
 
   const pourGrille: AgenceDeGrille[] = cadre.detaillees.map(
-    ({ agence, parametrage }) => ({
+    ({ agence, calendrier }) => ({
       id: agence.id,
       libelle: agence.libelle,
-      joursOuverts: parametrage === null ? [] : joursTravailles(parametrage),
-      calendrierConnu: parametrage !== null,
+      calendrier,
     }),
   );
   const pourJournee: AgenceDeJournee[] = cadre.detaillees.map(
-    ({ agence, parametrage }) => ({
+    ({ agence, parametrage, calendrier }) => ({
       id: agence.id,
       libelle: agence.libelle,
-      plages: parametrage?.plages ?? [],
+      calendrier,
       pasCreneauMinutes: parametrage?.pasCreneauMinutes ?? 0,
-      calendrierConnu: parametrage !== null,
     }),
   );
 
@@ -302,29 +361,15 @@ export default async function PagePlanning({
     actif: agence.actif,
   }));
 
-  const jours = joursDeLaSemaine(
-    jourDemande(parametres.semaine, cadre.fuseau, true),
-  ).slice(0, 6);
-  const jourAffiche = jourDemande(parametres.jour, cadre.fuseau, false);
+  const jours = cadre.jours;
+  const jourAffiche = cadre.jourAffiche;
   // LE JOUR COURANT, UNE SEULE FOIS (82-PLANNING-6, 25/09/2026) — dans le
   // fuseau de la SOCIÉTÉ, comme `jourDemande` ci-dessus quand aucun paramètre
   // ne fixe le jour : deux lectures d'un même critère divergent en silence
   // (§9, 01/09), et il ne doit exister qu'un seul « aujourd'hui » sur l'écran.
   const aujourdhui = maintenant(cadre.fuseau).local;
 
-  // ── LA FENÊTRE EST EN JOURS, ET SA BORNE HAUTE EST EXCLUSIVE ─────────────
-  //
-  // `date_planifiee` est un `@db.Date` : la borner à minuit UTC est JUSTE pour
-  // l'appartenance au jour, et c'est pour cela que `instantDuJour` existe.
-  // *Ce qui était faux était d'employer LES MÊMES BORNES comme des INSTANTS
-  // pour le dénominateur du panneau de charge* — sous UTC+11, « vendredi 00:00
-  // UTC » est « vendredi 11 h à Nouméa ». La conversion en instants descend
-  // désormais dans `occupationsDuPlanning`, où le fuseau de chaque calendrier
-  // est connu ; ici, on ne manipule plus que des JOURS.
-  const fenetreEnJours =
-    vue === "jour"
-      ? { du: jourAffiche, au: jourSuivant(jourAffiche) }
-      : { du: jours[0], au: jourSuivant(jours[jours.length - 1]) };
+  const fenetreEnJours = cadre.fenetreEnJours;
   const fenetre = {
     du: instantDuJour(fenetreEnJours.du),
     au: instantDuJour(fenetreEnJours.au),
@@ -721,6 +766,7 @@ export default async function PagePlanning({
                   pourTechniciens,
                   absences,
                 )}
+                agences={pourGrille}
                 annuaire={annuaire}
                 chargeDe={chargeParTechnicien}
                 fuseauPour={(agenceId) =>
@@ -806,6 +852,7 @@ function DetailsDeLaCarte({
 function VueSemaine({
   jours,
   grille,
+  agences,
   annuaire,
   chargeDe,
   fuseauPour,
@@ -814,6 +861,14 @@ function VueSemaine({
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
+  /**
+   * LES AGENCES DE LA GRILLE — pour l'EN-TÊTE de colonne (PG-A1-FERIES-
+   * GRILLE, 28/09/2026) : elle seule sait si un jour est fermé par un férié
+   * ou un pont alors que son jour de semaine est ordinairement travaillé.
+   * Même jeu que `construireGrille(..., pourGrille, ...)`, jamais une
+   * seconde lecture.
+   */
+  readonly agences: readonly AgenceDeGrille[];
   readonly annuaire: Annuaire;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
   /**
@@ -900,6 +955,7 @@ function VueSemaine({
               </th>
               {jours.map((jour) => {
                 const estAuj = estAujourdHui(jour, aujourdhui);
+                const ferie = etatFerieDuJour(agences, jour);
                 return (
                   <th
                     key={cleJour(jour)}
@@ -907,13 +963,26 @@ function VueSemaine({
                     // n'existe que sur SA colonne : jamais une valeur, un
                     // repère.
                     data-aujourdhui={estAuj ? "" : undefined}
+                    // LE FÉRIÉ OU LE PONT SUR UN JOUR ORDINAIREMENT TRAVAILLÉ
+                    // (PG-A1-FERIES-GRILLE, bug 5 de l'audit du 27/09) —
+                    // `data-jour-ferie` n'existe que sur SA colonne, même
+                    // patron que `data-aujourdhui`.
+                    data-jour-ferie={ferie.ferme ? "" : undefined}
+                    title={ferie.libelle ?? undefined}
                     className={`border-app-bord border-b px-3.5 py-2.5 text-left text-[10.5px] font-bold tracking-wider uppercase ${
-                      estAuj
-                        ? "bg-app-marque/10 text-app-marque"
-                        : "bg-app-surface-creuse text-app-encre-faible"
+                      ferie.ferme
+                        ? "trame-fermee"
+                        : estAuj
+                          ? "bg-app-marque/10 text-app-marque"
+                          : "bg-app-surface-creuse text-app-encre-faible"
                     }`}
                   >
                     {enTeteDeJour(jour)}
+                    {ferie.ferme ? (
+                      <span className="block normal-case">
+                        {t("planning.jour_ferie")}
+                      </span>
+                    ) : null}
                   </th>
                 );
               })}
@@ -1519,6 +1588,36 @@ function classeDeCase(
   if (cellule.bloquee) return "bg-app-violet-fond";
   if (cellule.ouverte === false) return "trame-fermee";
   return estAujourdhui ? "bg-app-marque/5" : "";
+}
+
+/**
+ * L'EN-TÊTE DIT LE FÉRIÉ OU LE PONT, PAS LE SIMPLE JOUR DE REPOS
+ * (PG-A1-FERIES-GRILLE, bug 5 de l'audit d'ergonomie du 27/09/2026).
+ *
+ * *Mesuré en production le jeudi 24/09/2026 (« Fête de la citoyenneté ») :
+ * aucune agence ne l'ouvrait, et l'en-tête restait muet.* La mention ne
+ * paraît QUE quand le jour est fermé pour toutes les agences dont le jour de
+ * semaine est ORDINAIREMENT travaillé — un dimanche fermé partout n'a rien
+ * d'exceptionnel, et n'a droit à aucune mention. Un férié TRAVAILLÉ
+ * (RG-PLA-02) reste ouvert, sans mention : `estJourOuvre` en décide déjà.
+ */
+function etatFerieDuJour(
+  agences: readonly AgenceDeGrille[],
+  jour: JourLocal,
+): { readonly ferme: boolean; readonly libelle: string | null } {
+  const iso = jourSemaineIso(jour);
+  const ordinairement = agences.filter(
+    (a): a is AgenceDeGrille & { calendrier: Calendrier } =>
+      a.calendrier !== null &&
+      plagesDuJourSemaine(a.calendrier, iso).length > 0,
+  );
+  if (ordinairement.length === 0) return { ferme: false, libelle: null };
+  const toutesFermees = ordinairement.every(
+    (a) => !estJourOuvre(a.calendrier, jour),
+  );
+  if (!toutesFermees) return { ferme: false, libelle: null };
+  const particulier = jourParticulier(ordinairement[0].calendrier, jour);
+  return { ferme: true, libelle: particulier?.libelle ?? null };
 }
 
 /**

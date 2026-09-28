@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { joursDeLaSemaine, lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import {
   construireGrille,
@@ -42,11 +43,22 @@ const SEMAINE = joursDeLaSemaine(
 ).slice(0, 6);
 const LUNDI = SEMAINE[0];
 
+const CALENDRIER_DUCOS: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5, 6].map((jour_semaine) => ({
+    jour_semaine,
+    debut_minutes: 450,
+    fin_minutes: 1020,
+  })),
+  jours_particuliers: [],
+};
+
 const DUCOS: AgenceDeGrille = {
   id: "ag-ducos",
   libelle: "Ducos",
-  joursOuverts: [1, 2, 3, 4, 5, 6],
-  calendrierConnu: true,
+  calendrier: CALENDRIER_DUCOS,
 };
 
 const OCCUPE = "11111111-1111-7111-8111-111111111111";

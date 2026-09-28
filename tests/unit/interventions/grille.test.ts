@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { cleJour } from "@/lib/calendar/fuseau";
 import { joursDeLaSemaine, lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import {
@@ -25,23 +26,35 @@ const SEMAINE = joursDeLaSemaine(
 const LUNDI = SEMAINE[0];
 const SAMEDI = SEMAINE[5];
 
+/** Un calendrier de test minimal — les jours ISO donnés, sans jour particulier. */
+function calendrierDeTest(joursOuverts: readonly number[]): Calendrier {
+  return {
+    code: "test",
+    fuseau: "Pacific/Noumea",
+    territoire: "NC",
+    plages: joursOuverts.map((jour_semaine) => ({
+      jour_semaine,
+      debut_minutes: 450,
+      fin_minutes: 1020,
+    })),
+    jours_particuliers: [],
+  };
+}
+
 const DUCOS: AgenceDeGrille = {
   id: "ag-ducos",
   libelle: "Ducos",
-  joursOuverts: [1, 2, 3, 4, 5, 6],
-  calendrierConnu: true,
+  calendrier: calendrierDeTest([1, 2, 3, 4, 5, 6]),
 };
 const KONE: AgenceDeGrille = {
   id: "ag-kone",
   libelle: "Koné",
-  joursOuverts: [1, 2, 3, 4, 5],
-  calendrierConnu: true,
+  calendrier: calendrierDeTest([1, 2, 3, 4, 5]),
 };
 const SANS_CALENDRIER: AgenceDeGrille = {
   id: "ag-muette",
   libelle: "Agence muette",
-  joursOuverts: [],
-  calendrierConnu: false,
+  calendrier: null,
 };
 
 function jour(j: { annee: number; mois: number; jour: number }): Date {

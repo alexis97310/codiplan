@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import {
   construireGrille,
@@ -51,22 +52,28 @@ import {
 /** Lundi 17 août 2026 — la semaine de la maquette. */
 const LUNDI: JourLocal = { annee: 2026, mois: 8, jour: 17 };
 
+const CALENDRIER_DUCOS: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5, 6].flatMap((jour_semaine) => [
+    { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+    { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
+  ]),
+  jours_particuliers: [],
+};
+
 const DUCOS_JOUR: AgenceDeJournee = {
   id: "ag-ducos",
   libelle: "Ducos",
-  plages: [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
-  ]),
+  calendrier: CALENDRIER_DUCOS,
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 
 const DUCOS_GRILLE: AgenceDeGrille = {
   id: "ag-ducos",
   libelle: "Ducos",
-  joursOuverts: [1, 2, 3, 4, 5, 6],
-  calendrierConnu: true,
+  calendrier: CALENDRIER_DUCOS,
 };
 
 /** `date_planifiee` est un `@db.Date` : Prisma la rend à MINUIT UTC. */

@@ -1,6 +1,7 @@
 import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { cleJour, instantDuJour, type JourLocal } from "@/lib/calendar/fuseau";
-import { jourSemaineIso } from "@/lib/calendar/semaine";
+import { estJourOuvre } from "@/lib/calendar/ouverture";
 
 /**
  * LA GRILLE DU PLANNING — une ligne par PERSONNE, les jours en colonnes
@@ -100,19 +101,20 @@ export type Posable = {
   readonly date_planifiee: Date | null;
 };
 
-/** Ce qu'une agence apporte à la grille : son nom, et ses jours d'ouverture. */
+/** Ce qu'une agence apporte à la grille : son nom, et son calendrier. */
 export type AgenceDeGrille = {
   readonly id: string;
   readonly libelle: string;
   /**
-   * Jours ISO ouverts (1 = lundi). **Vide veut dire « inconnu », jamais
-   * « fermé »** : une agence sans calendrier n'a pas d'ouverture CONNUE, et
-   * grisée partout elle se lirait comme une agence fermée toute la semaine.
-   * C'est la même distinction que `tauxOccupation`, qui rend `null` plutôt que
-   * 0 % quand le dénominateur manque.
+   * Le calendrier COMPLET de l'agence — fériés, ponts et exceptions compris
+   * (PG-A1-FERIES-GRILLE) : c'est lui, et lui seul, qui décide de l'ouverture
+   * d'un jour, jamais une liste de jours de semaine recopiée à côté. `null`
+   * veut dire « inconnu », jamais « fermé » : une agence sans calendrier
+   * grisée partout se lirait comme une agence fermée toute la semaine. C'est
+   * la même distinction que `tauxOccupation`, qui rend `null` plutôt que 0 %
+   * quand le dénominateur manque.
    */
-  readonly joursOuverts: readonly number[];
-  readonly calendrierConnu: boolean;
+  readonly calendrier: Calendrier | null;
 };
 
 export type CaseDeGrille<T extends Posable> = {
@@ -255,15 +257,22 @@ export function construireGrille<T extends Posable>(
  * L'ordre des trois cas n'est pas indifférent : « inconnu » ne doit jamais
  * l'emporter sur un « ouvert » connu, sinon une agence sans calendrier
  * éteindrait la semaine d'une personne qui travaille ailleurs.
+ *
+ * **Le critère est `estJourOuvre`, importé, jamais recopié** (PG-A1-FERIES-
+ * GRILLE, CA-1) : un jour est ouvert pour une agence si et seulement si son
+ * calendrier COMPLET — fériés, ponts et exceptions compris — le dit, jamais
+ * seulement son jour de semaine.
  */
 function ouvertePour(
   agences: readonly AgenceDeGrille[],
   jour: JourLocal,
 ): boolean | null {
-  const connues = agences.filter((a) => a.calendrierConnu);
+  const connues = agences.filter(
+    (a): a is AgenceDeGrille & { calendrier: Calendrier } =>
+      a.calendrier !== null,
+  );
   if (connues.length === 0) return null;
-  const iso = jourSemaineIso(jour);
-  return connues.some((a) => a.joursOuverts.includes(iso));
+  return connues.some((a) => estJourOuvre(a.calendrier, jour));
 }
 
 /** Le jour LOCAL d'une date planifiée. */

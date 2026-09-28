@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AbsenceDeclaree } from "@/lib/absences/periode";
 import type { Annuaire } from "@/lib/auth/annuaire";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import { dateCivile, type JourLocal } from "@/lib/calendar/fuseau";
 import { t } from "@/lib/i18n/fr";
 import { joursDeLaSemaine, lundiDeLaSemaine } from "@/lib/calendar/semaine";
@@ -54,11 +55,22 @@ const MARDI = SEMAINE[1];
 const MERCREDI = SEMAINE[2];
 const JEUDI = SEMAINE[3];
 
+const CALENDRIER_DUCOS: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5, 6].map((jour_semaine) => ({
+    jour_semaine,
+    debut_minutes: 450,
+    fin_minutes: 1020,
+  })),
+  jours_particuliers: [],
+};
+
 const DUCOS: AgenceDeGrille = {
   id: "ag-ducos",
   libelle: "Ducos",
-  joursOuverts: [1, 2, 3, 4, 5, 6],
-  calendrierConnu: true,
+  calendrier: CALENDRIER_DUCOS,
 };
 
 function jour(j: JourLocal): Date {
@@ -164,15 +176,22 @@ describe("la VUE SEMAINE — chaque case sait si l'agenda est bloqué", () => {
 
 /* ────────────────────────────── LA VUE JOUR ────────────────────────────── */
 
+const CALENDRIER_NOUMEA: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5, 6].flatMap((jour_semaine) => [
+    { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+    { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
+  ]),
+  jours_particuliers: [],
+};
+
 const NOUMEA: AgenceDeJournee = {
   id: "ag-ducos",
   libelle: "Ducos",
-  plages: [1, 2, 3, 4, 5, 6].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
-  ]),
+  calendrier: CALENDRIER_NOUMEA,
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 
 function instant(j: JourLocal, minutes: number): Date {

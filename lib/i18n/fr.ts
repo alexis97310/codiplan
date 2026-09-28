@@ -3169,6 +3169,10 @@ export const fr = {
   "planning.jour_occupe": "Occupé",
   "planning.jour_libre": "Libre",
   "planning.jour_hors_ouverture": "Hors ouverture",
+  // L'EN-TÊTE DE LA GRILLE SEMAINE DIT LE FÉRIÉ (PG-A1-FERIES-GRILLE,
+  // 28/09/2026) — un jour fermé par un férié ou un pont alors que son jour de
+  // semaine est ordinairement travaillé, jamais un simple jour de repos.
+  "planning.jour_ferie": "férié",
   // LE BLOCAGE D'AGENDA SE VOIT AVANT LE GESTE (PLANNING-1, RG-PLA-06,
   // 22/09/2026). *Mesuré* : la case d'un technicien absent se dessinait comme
   // une case libre, et le refus n'arrivait qu'au dépôt, après la tentative.

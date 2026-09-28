@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import type { Calendrier } from "@/lib/calendar/calendrier";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { t } from "@/lib/i18n/fr";
@@ -53,15 +54,22 @@ import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 
 const LUNDI: JourLocal = { annee: 2026, mois: 9, jour: 14 };
 
+const CALENDRIER_DUCOS: Calendrier = {
+  code: "test",
+  fuseau: "Pacific/Noumea",
+  territoire: "NC",
+  plages: [1, 2, 3, 4, 5].flatMap((jour_semaine) => [
+    { jour_semaine, debut_minutes: 450, fin_minutes: 690 },
+    { jour_semaine, debut_minutes: 780, fin_minutes: 1020 },
+  ]),
+  jours_particuliers: [],
+};
+
 const DUCOS: AgenceDeJournee = {
   id: "ag-ducos",
   libelle: "Ducos",
-  plages: [1, 2, 3, 4, 5].flatMap((jourSemaine) => [
-    { jourSemaine, debutMinutes: 450, finMinutes: 690 },
-    { jourSemaine, debutMinutes: 780, finMinutes: 1020 },
-  ]),
+  calendrier: CALENDRIER_DUCOS,
   pasCreneauMinutes: 30,
-  calendrierConnu: true,
 };
 
 /** Deux identités du référentiel — l'une occupée ce lundi, l'autre libre. */
