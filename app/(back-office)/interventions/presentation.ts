@@ -9,6 +9,7 @@ import {
   type Fuseau,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { quiTravaille } from "@/lib/interventions/personnes";
@@ -361,6 +362,82 @@ export function heureDuCreneau(
   }
   const local = versLocal(ligne.creneau_debut, fuseau);
   return `${String(local.heures).padStart(2, "0")}:${String(local.minutes).padStart(2, "0")}`;
+}
+
+const SEPARATEUR_RESUME = " · ";
+const TIRET_CRENEAU = "–";
+
+/**
+ * LE JOUR ABRÉGÉ D'UN JOUR CIVIL, SANS FUSEAU — comme `dateCivile`
+ * (`date_planifiee` est une colonne `@db.Date`, un jour civil stocké à minuit
+ * UTC ; le lire dans un fuseau le déplacerait d'un cran sous UTC+11, la même
+ * réserve que celle qui vit sur `dateCivile`).
+ *
+ * Distinct de `jour.court.N` (`fr.ts`) — capitalisé, sans point, réservé aux
+ * en-têtes de colonne du planning et des absences : la même valeur écrite
+ * dans une autre casse serait un second vocabulaire pour le même jour.
+ */
+function jourAbregeDuJourCivil(date: Date): CleTraduction {
+  switch (date.getUTCDay()) {
+    case 0:
+      return "intervention.resume.jour_abrege.dimanche";
+    case 1:
+      return "intervention.resume.jour_abrege.lundi";
+    case 2:
+      return "intervention.resume.jour_abrege.mardi";
+    case 3:
+      return "intervention.resume.jour_abrege.mercredi";
+    case 4:
+      return "intervention.resume.jour_abrege.jeudi";
+    case 5:
+      return "intervention.resume.jour_abrege.vendredi";
+    default:
+      return "intervention.resume.jour_abrege.samedi";
+  }
+}
+
+/** « jeu. 25/09 » — le jour abrégé et le jour civil, sans l'année. */
+function jourEtDateAbregee(date: Date): string {
+  const jour = String(date.getUTCDate()).padStart(2, "0");
+  const mois = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${t(jourAbregeDuJourCivil(date))} ${jour}/${mois}`;
+}
+
+/**
+ * LE CRÉNEAU ET SA DURÉE, DANS LE RÉSUMÉ DE LA FICHE (PG-A5-FICHE-CRENEAU,
+ * audit d'ergonomie du 27/09/2026, §4.4) — *l'information n°1 d'un
+ * planificateur qui ouvre cette fiche* affichait une date et une heure, jamais
+ * la durée, alors qu'elle est obligatoire pour planifier (contrainte
+ * `intervention_planifiee_a_sa_duree`).
+ *
+ * L'heure de fin est celle que porte déjà `creneau_fin` — la même colonne que
+ * la pose écrit aux côtés de `creneau_debut` (`lib/interventions/depot.ts`),
+ * jamais recalculée ici à partir de la durée (§9, 01/09 : une seconde lecture
+ * d'un même fait diverge en silence).
+ */
+export function resumeDuCreneau(
+  ligne: {
+    readonly date_planifiee: Date | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+    readonly duree_estimee_min: number | null;
+  },
+  fuseau: Fuseau,
+): string {
+  if (ligne.date_planifiee === null) {
+    return t("statut.a_planifier");
+  }
+  const jourEtDate = jourEtDateAbregee(ligne.date_planifiee);
+  const debut = heureDuCreneau(ligne, fuseau);
+  if (debut === null) {
+    return `${jourEtDate}${SEPARATEUR_RESUME}${t("intervention.resume.heure_non_fixee")}`;
+  }
+  if (ligne.duree_estimee_min === null) {
+    return `${jourEtDate}${SEPARATEUR_RESUME}${debut}${SEPARATEUR_RESUME}${t("intervention.resume.duree_non_renseignee")}`;
+  }
+  const fin = heureDuCreneau({ creneau_debut: ligne.creneau_fin }, fuseau);
+  const intervalle = fin === null ? debut : `${debut}${TIRET_CRENEAU}${fin}`;
+  return `${jourEtDate}${SEPARATEUR_RESUME}${intervalle} (${enDuree(ligne.duree_estimee_min)})`;
 }
 
 /**

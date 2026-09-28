@@ -79,6 +79,7 @@ import {
   heureDuCreneau,
   machinesIdentifiees,
   referenceAffichee,
+  resumeDuCreneau,
   retourFiche,
   technicienAfficheSurLaFiche,
   type EvenementChronologie,
@@ -231,12 +232,7 @@ export default async function PageIntervention({
   // fonction que le planning (§9, 01/09 : jamais une seconde lecture).
   // Aucune date : l'absence se NOMME, elle ne se tait jamais derrière un tiret.
   const heurePlanifiee = heureDuCreneau(ligne, fiche.fuseau);
-  const datePlanifieeAffichee =
-    ligne.date_planifiee === null
-      ? t("statut.a_planifier")
-      : heurePlanifiee === null
-        ? dateCivile(ligne.date_planifiee)
-        : `${dateCivile(ligne.date_planifiee)} ${heurePlanifiee}`;
+  const datePlanifieeAffichee = resumeDuCreneau(ligne, fiche.fuseau);
   // HREF ET LIBELLÉ COMPOSÉS ENSEMBLE (`retourFiche`, `../presentation.ts`) —
   // jamais deux lectures séparées qui pourraient diverger.
   const retour = retourFiche(

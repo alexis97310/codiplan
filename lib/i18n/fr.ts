@@ -1315,6 +1315,19 @@ export const fr = {
   "intervention.priorite": "Priorité",
   "intervention.statut": "Statut",
   "intervention.date": "Date planifiée",
+  // LE CRÉNEAU ET SA DURÉE, DANS LE RÉSUMÉ DE LA FICHE (PG-A5-FICHE-CRENEAU,
+  // audit d'ergonomie du 27/09/2026, §4.4) — sept clés pour le jour abrégé
+  // (jamais le mot complet de `jour.N`, qui sert les en-têtes de colonne), et
+  // les deux absences que le résumé peut rencontrer.
+  "intervention.resume.jour_abrege.dimanche": "dim.",
+  "intervention.resume.jour_abrege.lundi": "lun.",
+  "intervention.resume.jour_abrege.mardi": "mar.",
+  "intervention.resume.jour_abrege.mercredi": "mer.",
+  "intervention.resume.jour_abrege.jeudi": "jeu.",
+  "intervention.resume.jour_abrege.vendredi": "ven.",
+  "intervention.resume.jour_abrege.samedi": "sam.",
+  "intervention.resume.heure_non_fixee": "heure non fixée",
+  "intervention.resume.duree_non_renseignee": "durée non renseignée",
   "intervention.creneau": "Créneau",
   "intervention.technicien": "Technicien",
   "intervention.aucun_technicien": "Aucun technicien affecté",
