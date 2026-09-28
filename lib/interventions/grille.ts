@@ -288,9 +288,23 @@ function jourDeLInstant(instant: Date): JourLocal {
   };
 }
 
-function comparerLignes<T extends Posable>(
-  a: LigneDeGrille<T>,
-  b: LigneDeGrille<T>,
+/**
+ * L'ORDRE UNIQUE DES TECHNICIENS — par libellé, « Non affectées » en tête
+ * (PG-A2-ORDRE-TECHNICIENS, 28/09/2026).
+ *
+ * *C'est la file qu'on regarde en premier quand on ouvre un planning* : les
+ * interventions non affectées (`technicienId === null`) passent donc toujours
+ * avant les personnes, quel que soit leur libellé. Les personnes ensuite, par
+ * libellé si l'appelant en fournit un, par identifiant sinon.
+ *
+ * **Exportée pour que la vue Jour l'importe** (`journee.ts`) au lieu de trier
+ * sur l'identifiant technique : deux vues qui trient différemment font
+ * apparaître la même équipe dans un ordre différent d'un écran à l'autre,
+ * mesuré le 27/09/2026 (audit d'ergonomie, bug 6).
+ */
+export function comparerLignes(
+  a: { readonly technicienId: string | null },
+  b: { readonly technicienId: string | null },
   libelleDe: (technicienId: string) => string | null,
 ): number {
   if (a.technicienId === null && b.technicienId !== null) return -1;

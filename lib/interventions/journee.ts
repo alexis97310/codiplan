@@ -2,6 +2,7 @@ import { absenceCouvrant, type AbsenceDeclaree } from "@/lib/absences/periode";
 import type { Calendrier } from "@/lib/calendar/calendrier";
 import { instantDuJour, type JourLocal } from "@/lib/calendar/fuseau";
 import { plagesDuJour } from "@/lib/calendar/ouverture";
+import { comparerLignes } from "./grille";
 
 /**
  * LA VUE JOUR — les heures en lignes, les personnes en colonnes (11/09/2026).
@@ -245,6 +246,11 @@ export function construireJournee<T extends Occupante>(
   minutesDe: (instant: Date, agenceId: string) => number,
   techniciens: readonly TechnicienDeJournee[] = [],
   absences: readonly AbsenceDeclaree[] = [],
+  // L'ORDRE UNIQUE DES TECHNICIENS (PG-A2-ORDRE-TECHNICIENS, 28/09/2026) :
+  // même comparateur que la grille Semaine (`comparerLignes`), jamais une
+  // seconde règle de tri qui diverge en silence (§9, 01/09) — voir son
+  // docblock dans `grille.ts`.
+  libelleDe: (technicienId: string) => string | null = () => null,
 ): Journee<T> {
   const parAgence = new Map(agences.map((a) => [a.id, a]));
 
@@ -324,7 +330,7 @@ export function construireJournee<T extends Occupante>(
         horsGrille: horsGrille(groupe.lignes, axe, pasMinutes, minutesDe),
       };
     })
-    .sort(comparerColonnes);
+    .sort((a, b) => comparerLignes(a, b, libelleDe));
 
   return {
     jour,
@@ -494,13 +500,4 @@ function couvre<T extends Occupante>(
       ? minutesDe(ligne.creneau_fin, ligne.agence_id)
       : d + (ligne.duree_estimee_min ?? pas);
   return debut < f && debut + pas > d;
-}
-
-function comparerColonnes<T>(
-  a: ColonneDeJournee<T>,
-  b: ColonneDeJournee<T>,
-): number {
-  if (a.technicienId === null && b.technicienId !== null) return -1;
-  if (a.technicienId !== null && b.technicienId === null) return 1;
-  return (a.technicienId ?? "").localeCompare(b.technicienId ?? "");
 }

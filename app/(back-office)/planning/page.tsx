@@ -750,6 +750,7 @@ export default async function PagePlanning({
                   minutesDe,
                   pourTechniciens,
                   absences,
+                  (id) => nomSeul(id, annuaire),
                 )}
                 annuaire={annuaire}
                 jourAffiche={jourAffiche}
