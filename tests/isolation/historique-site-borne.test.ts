@@ -14,8 +14,18 @@ import {
 } from "./setup/fixtures";
 
 /**
- * LES DERNIÈRES INTERVENTIONS D'UN SITE — bornées CÔTÉ BASE, la plus récente
- * en tête, la file d'attente en bas (HISTORIQUE-SITE-1).
+ * LES DERNIÈRES INTERVENTIONS D'UN SITE — bornées CÔTÉ BASE, LES OUVERTES
+ * SANS DATE EN TÊTE, la plus récente ensuite (HISTORIQUE-SITE-1, ordre
+ * INVERSÉ par 9BL-TP-A1-HISTORIQUES-CLIENT-SITE — décision d'Alexis du
+ * 28/09/2026, ~20h10 NC, audit du 28/09, CS29/CS9).
+ *
+ * **Ce fichier REVIENT sur l'ordre qu'il affirmait avant ce lot** (« la file
+ * d'attente EN BAS ») : le pilote a demandé « On inverse ? », la réponse a
+ * été « Oui, en tête ». Les trois lignes sans date de cette scène sont toutes
+ * `a_planifier` (ouvertes) et de MÊME priorité (`p3`, le défaut) : elles ne
+ * mesurent donc que l'ancienneté au sein du groupe de tête — l'urgence est
+ * mesurée séparément par `historique-priorite-tpa1.test.ts`, avec des
+ * priorités différentes et un cas FERMÉ sans date.
  *
  * ## Ce que ce fichier compte, et que l'écran ne peut pas prouver
  *
@@ -28,14 +38,14 @@ import {
  * ## Trois propriétés, mesurées séparément
  *
  * 1. **La borne tronque** — sur un site à quinze interventions, une lecture
- *    bornée à cinq rend cinq lignes, et ce sont les cinq PLUS RÉCENTES.
- * 2. **La file d'attente est EN BAS.** Trois des quinze n'ont pas de date : un
- *    `ORDER BY date_planifiee DESC` nu les mettrait en TÊTE sous PostgreSQL
- *    (mesuré sur `/interventions`, `lib/interventions/depot.ts`). Une lecture
- *    bornée qui commettrait cette faute rendrait la file d'attente SOUS le
- *    titre « dernières interventions » et masquerait les vraies dernières —
- *    sans qu'aucune ligne ne manque ni ne rougisse. La borne et l'ordre se
- *    mesurent donc ENSEMBLE.
+ *    bornée à cinq rend cinq lignes.
+ * 2. **LA FILE D'ATTENTE OUVRE LA LISTE.** Trois des quinze n'ont pas de
+ *    date, toutes OUVERTES : elles passent EN TÊTE, triées par ancienneté
+ *    (`cree_le` croissant, puis `id` croissant — l'ordre d'insertion ici,
+ *    puisque les rangs croissent avec le temps). Le piège reste celui
+ *    d'avant ce lot, à l'envers : un `ORDER BY date_planifiee DESC` nu
+ *    remplirait la borne de lignes SANS DATE FERMÉES aussi bien que
+ *    d'ouvertes — voir `comparerHistorique`, `lib/interventions/depot.ts`.
  * 3. **`site_id` est un SUJET, pas un cloisonnement** : un site d'une autre
  *    société rend zéro parce que la politique de forme « parc » (D84) l'a
  *    décidé, et le témoin montre d'abord que ses lignes existent.
@@ -76,16 +86,14 @@ function dateDuRang(rang: number): string | null {
 }
 
 /**
- * L'ORDRE ATTENDU, écrit depuis la scène et non depuis la requête : les datées
- * du rang le plus haut (la date la plus récente) au plus bas, puis les sans
- * date par `id` décroissant — c'est-à-dire, ici aussi, du rang le plus haut au
- * plus bas.
+ * L'ORDRE ATTENDU, écrit depuis la scène et non depuis la requête : les trois
+ * OUVERTES sans date d'abord, par `id` CROISSANT (même priorité `p3`, donc
+ * l'ancienneté décide — `cree_le` croît avec le rang, comme l'`id`), puis les
+ * datées du rang le plus haut (la date la plus récente) au plus bas.
  */
 const ORDRE_ATTENDU: readonly string[] = [
+  ...Array.from({ length: SANS_DATE }, (_, r) => idIntervention(DATEES + r)),
   ...Array.from({ length: DATEES }, (_, r) => idIntervention(DATEES - 1 - r)),
-  ...Array.from({ length: SANS_DATE }, (_, r) =>
-    idIntervention(NOMBRE_D_INTERVENTIONS - 1 - r),
-  ),
 ];
 
 beforeAll(async () => {
@@ -166,7 +174,7 @@ describe("les dernières interventions d'un site (HISTORIQUE-SITE-1)", () => {
     expect(tete.every((ligne) => ligne.site_id === SITE_HISTORIQUE)).toBe(true);
   });
 
-  it("les cinq sont les cinq PLUS RÉCENTES, du plus récent au plus ancien — jamais la file d'attente", async () => {
+  it("LES CINQ COMMENCENT PAR LA FILE D'ATTENTE (TP-A1, CS29/CS9) — les trois sans date, PUIS les deux plus récentes", async () => {
     await temoinDeLaScene();
     const tete = await dernieresInterventionsDuSite(
       SESSION,
@@ -175,14 +183,20 @@ describe("les dernières interventions d'un site (HISTORIQUE-SITE-1)", () => {
       clientApp(),
     );
     expect(tete.map((l) => l.id)).toEqual(ORDRE_ATTENDU.slice(0, BORNE));
-    // Et « la plus récente d'abord » se lit sur les dates elles-mêmes.
-    expect(tete[0]?.date_planifiee?.toISOString().slice(0, 10)).toBe(
+    // Les trois premières sont sans date, les deux suivantes datées — et la
+    // plus récente des deux se lit sur la date elle-même.
+    expect(
+      tete.slice(0, SANS_DATE).every((l) => l.date_planifiee === null),
+    ).toBe(true);
+    expect(tete.slice(SANS_DATE).every((l) => l.date_planifiee !== null)).toBe(
+      true,
+    );
+    expect(tete[SANS_DATE]?.date_planifiee?.toISOString().slice(0, 10)).toBe(
       dateDuRang(DATEES - 1),
     );
-    expect(tete.every((l) => l.date_planifiee !== null)).toBe(true);
   });
 
-  it("LA FILE D'ATTENTE EST EN BAS — sur une lecture qui couvre tout, les sans date ferment la liste, triées par id décroissant", async () => {
+  it("LA FILE D'ATTENTE OUVRE LA LISTE (TP-A1, CS29/CS9) — sur une lecture qui couvre tout, les sans date passent EN TÊTE, triées par id croissant", async () => {
     await temoinDeLaScene();
     const tout = await dernieresInterventionsDuSite(
       SESSION,
@@ -192,12 +206,17 @@ describe("les dernières interventions d'un site (HISTORIQUE-SITE-1)", () => {
     );
     expect(tout).toHaveLength(NOMBRE_D_INTERVENTIONS);
     expect(tout.map((l) => l.id)).toEqual(ORDRE_ATTENDU);
-    // Aucune ligne datée ne suit une ligne sans date.
-    const premiereSansDate = tout.findIndex((l) => l.date_planifiee === null);
-    expect(premiereSansDate).toBe(DATEES);
+    // Aucune ligne sans date ne suit une ligne datée.
+    const derniereSansDate = tout.findLastIndex(
+      (l) => l.date_planifiee === null,
+    );
+    expect(derniereSansDate).toBe(SANS_DATE - 1);
     expect(
-      tout.slice(premiereSansDate).every((l) => l.date_planifiee === null),
+      tout.slice(0, SANS_DATE).every((l) => l.date_planifiee === null),
     ).toBe(true);
+    expect(tout.slice(SANS_DATE).every((l) => l.date_planifiee !== null)).toBe(
+      true,
+    );
   });
 
   it("un site d'une AUTRE société rend zéro ligne — la POLITIQUE décide, pas le site_id", async () => {

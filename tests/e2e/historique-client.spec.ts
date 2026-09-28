@@ -26,8 +26,12 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * Il prouve que l'écran RENDU permet d'ATTEINDRE la treizième intervention —
  * en page 2, par le lien « page suivante » — et qu'un client sans aucune
- * intervention DIT son absence au lieu de rendre un tableau vide (D88). Il ne
- * prouve PAS que la lecture est bornée CÔTÉ BASE — c'est
+ * intervention DIT son absence au lieu de rendre un tableau vide (D88).
+ * **L'ORDRE EST INVERSÉ** depuis 9BL-TP-A1-HISTORIQUES-CLIENT-SITE (décision
+ * d'Alexis du 28/09/2026, ~20h10 NC, CS29/CS9) : les OUVERTES sans date
+ * OUVRENT désormais la PAGE 1, et la treizième intervention que la page 2
+ * porte est la plus ANCIENNE datée, jamais une sans date. Il ne prouve PAS
+ * que la lecture est bornée CÔTÉ BASE — c'est
  * `tests/isolation/historique-client-pagination.test.ts` qui compte ce que
  * chaque page ramène.
  *
@@ -237,7 +241,7 @@ function rangDeLaDate(texte: string): number | null {
   return Number(`${m[3]}${m[2]}${m[1]}`);
 }
 
-test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 en rend douze, la page 2 rend la treizième — atteignable, sans doublon", async ({
+test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 OUVRE sur la file d'attente, la page 2 rend la plus ANCIENNE — atteignable, sans doublon (TP-A1, CS29/CS9)", async ({
   page,
 }) => {
   await page.goto(`/clients/${CLIENT_AVEC_HISTORIQUE}`);
@@ -263,15 +267,16 @@ test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 en rend douze, la page 2 ren
     .allInnerTexts();
   expect(new Set(referencesPage1).size).toBe(INTERVENTIONS_PAR_PAGE);
 
-  // LA PLUS RÉCENTE EN TÊTE : dix datées puis deux « — » sur trois — la
-  // treizième (sans date) est celle que la PAGE a repoussée, jamais une
-  // datée.
+  // LA FILE D'ATTENTE OUVRE LA PAGE 1 (TP-A1, CS29/CS9) : trois « — »,
+  // ensuite neuf datées du plus récent au plus ancien — la treizième (la
+  // plus ANCIENNE datée) est celle que la PAGE a repoussée, jamais une sans
+  // date.
   const datesPage1 = (
     await lignesPage1.locator("td:nth-child(2)").allInnerTexts()
   ).map(rangDeLaDate);
-  const premiereSansDatePage1 = datesPage1.findIndex((d) => d === null);
-  expect(premiereSansDatePage1).toBe(DATEES);
-  const dateesPage1 = datesPage1.slice(0, premiereSansDatePage1) as number[];
+  expect(datesPage1.slice(0, SANS_DATE).every((d) => d === null)).toBe(true);
+  const dateesPage1 = datesPage1.slice(SANS_DATE) as number[];
+  expect(dateesPage1).toHaveLength(INTERVENTIONS_PAR_PAGE - SANS_DATE);
   expect(dateesPage1[0]).toBe(Number(`${PREMIERE_ANNEE + DATEES - 1}0101`));
   for (let i = 1; i < dateesPage1.length; i += 1) {
     expect(dateesPage1[i]!).toBeLessThan(dateesPage1[i - 1]!);
@@ -305,7 +310,9 @@ test("UN CLIENT À TREIZE INTERVENTIONS : la page 1 en rend douze, la page 2 ren
   const datesPage2 = (
     await lignesPage2.locator("td:nth-child(2)").allInnerTexts()
   ).map(rangDeLaDate);
-  expect(datesPage2.every((d) => d === null)).toBe(true);
+  // La page 2 porte la PLUS ANCIENNE datée (2013), jamais une sans date —
+  // les trois sans date sont déjà rendues en page 1.
+  expect(datesPage2).toEqual([Number(`${PREMIERE_ANNEE}0101`)]);
 
   mesure.fiches.page_un = {
     ...mesure.fiches.page_un,

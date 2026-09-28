@@ -18,6 +18,14 @@ import {
  * LA FICHE D'UN CLIENT S'ARRÊTAIT À DOUZE INTERVENTIONS, SUR 1751
  * (HISTORIQUE-CLIENT-1, mesuré le 23/09/2026).
  *
+ * **ORDRE INVERSÉ par 9BL-TP-A1-HISTORIQUES-CLIENT-SITE** — décision
+ * d'Alexis du 28/09/2026, ~20h10 NC, audit du 28/09, CS29/CS9 : les OUVERTES
+ * sans date passent désormais EN TÊTE de la PAGE 1, jamais en dernière page.
+ * Ce fichier REVIENT sur l'ordre qu'il affirmait avant ce lot (« la file
+ * d'attente ferme la dernière page »). Ses trois lignes sans date sont toutes
+ * `a_planifier` et de même priorité (`p3`) — l'urgence entre les deux groupes
+ * est mesurée séparément par `historique-priorite-tpa1.test.ts`.
+ *
  * ## Le constat que ce fichier fait ROUGIR sur `main`
  *
  * `dernieresInterventionsDuClient` prenait `(contexte, clientId, limite,
@@ -71,14 +79,13 @@ function dateDuRang(rang: number): string | null {
 }
 
 /**
- * L'ORDRE ATTENDU : les datées du rang le plus haut (le plus récent) au plus
- * bas, puis les sans date par `id` décroissant.
+ * L'ORDRE ATTENDU : les trois OUVERTES sans date d'abord, par `id` croissant
+ * (même priorité, donc l'ancienneté décide), puis les datées du rang le plus
+ * haut (le plus récent) au plus bas.
  */
 const ORDRE_ATTENDU: readonly string[] = [
+  ...Array.from({ length: SANS_DATE }, (_, r) => idIntervention(DATEES + r)),
   ...Array.from({ length: DATEES }, (_, r) => idIntervention(DATEES - 1 - r)),
-  ...Array.from({ length: SANS_DATE }, (_, r) =>
-    idIntervention(NOMBRE_D_INTERVENTIONS - 1 - r),
-  ),
 ];
 
 beforeAll(async () => {
@@ -150,7 +157,7 @@ async function temoinDeLaScene(): Promise<void> {
 }
 
 describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", () => {
-  it("PAGE 1 : rend exactement la borne, les plus récentes d'abord", async () => {
+  it("PAGE 1 : rend exactement la borne, LA FILE D'ATTENTE EN TÊTE (TP-A1, CS29/CS9)", async () => {
     await temoinDeLaScene();
     const page1 = await dernieresInterventionsDuClient(
       SESSION,
@@ -198,10 +205,17 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
     expect(rangPremierePage2).toBe(rangDernierePage1 + 1);
   });
 
-  it("LA DERNIÈRE PAGE PORTE LE RESTE, et la FILE D'ATTENTE FERME la dernière page", async () => {
+  it("LA PREMIÈRE PAGE OUVRE SUR LA FILE D'ATTENTE, LA DERNIÈRE PORTE LES PLUS ANCIENNES (TP-A1, CS29/CS9)", async () => {
     await temoinDeLaScene();
     const derniereBorne = 4;
     const totalPages = Math.ceil(NOMBRE_D_INTERVENTIONS / derniereBorne);
+    const premiere = await dernieresInterventionsDuClient(
+      SESSION,
+      CLIENT_HISTORIQUE,
+      derniereBorne,
+      1,
+      clientApp(),
+    );
     const derniere = await dernieresInterventionsDuClient(
       SESSION,
       CLIENT_HISTORIQUE,
@@ -213,8 +227,15 @@ describe("la pagination des interventions d'un client (HISTORIQUE-CLIENT-1)", ()
     expect(derniere).toHaveLength(
       NOMBRE_D_INTERVENTIONS % derniereBorne || derniereBorne,
     );
-    // Les trois SANS DATE ferment la dernière page — jamais mêlées aux datées.
-    expect(derniere.every((l) => l.date_planifiee === null)).toBe(true);
+    // Les trois SANS DATE ouvrent la PREMIÈRE page — jamais la dernière.
+    expect(
+      premiere.slice(0, SANS_DATE).every((l) => l.date_planifiee === null),
+    ).toBe(true);
+    expect(derniere.every((l) => l.date_planifiee !== null)).toBe(true);
+    // Et ce sont bien les trois PLUS ANCIENNES qui ferment la dernière page.
+    expect(derniere.map((l) => l.id)).toEqual(
+      ORDRE_ATTENDU.slice(NOMBRE_D_INTERVENTIONS - 3),
+    );
   });
 
   it("compterInterventionsDuClient compte le total, JAMAIS le compte d'une page", async () => {

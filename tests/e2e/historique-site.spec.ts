@@ -24,12 +24,14 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * ## Ce que ce scénario prouve, et ce qu'il ne prouve pas
  *
- * Il prouve que l'écran RENDU porte le bloc, avec ses lignes, la plus récente
- * en tête et la file d'attente en bas ; et qu'un site sans aucune intervention
- * DIT son absence au lieu de rendre un tableau vide (D88). Il ne prouve PAS que
- * la requête ne ramène que ce qu'elle affiche — c'est
- * `tests/isolation/historique-site-borne.test.ts` qui compte ce que la lecture
- * rend.
+ * Il prouve que l'écran RENDU porte le bloc, avec ses lignes, LA FILE
+ * D'ATTENTE EN TÊTE et la plus récente ensuite (ordre INVERSÉ par
+ * 9BL-TP-A1-HISTORIQUES-CLIENT-SITE — décision d'Alexis du 28/09/2026,
+ * ~20h10 NC, audit du 28/09, CS29/CS9 : « On inverse ? » → « Oui, en tête »)
+ * ; et qu'un site sans aucune intervention DIT son absence au lieu de rendre
+ * un tableau vide (D88). Il ne prouve PAS que la requête ne ramène que ce
+ * qu'elle affiche — c'est `tests/isolation/historique-site-borne.test.ts`
+ * qui compte ce que la lecture rend.
  *
  * **Sur `main` avant le lot, il rougit parce que le bloc n'existe pas** — le
  * premier `expect` ne trouve pas `[data-bloc="historique-site"]` —, et pour
@@ -39,10 +41,11 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * **Un site posé exprès, avec ses propres interventions** — treize : dix
  * DATÉES, une par an de 2013 à 2022 (des dates passées et distinctes, hors de
- * toute semaine de planning), terminées ; et trois SANS DATE, à planifier.
- * Treize est PLUS que la borne de douze : l'écran doit tronquer, et la
- * troncature se voit — dix lignes datées du plus récent au plus ancien, puis
- * DEUX « — » sur trois, la treizième n'étant pas rendue.
+ * toute semaine de planning), terminées ; et trois SANS DATE, à planifier
+ * (OUVERTES). Treize est PLUS que la borne de douze : l'écran doit tronquer,
+ * et la troncature se voit — les trois sans date OUVRENT désormais la liste,
+ * puis neuf datées du plus récent au plus ancien ; c'est la PLUS ANCIENNE
+ * datée (2013) que la borne coupe, jamais une sans date.
  *
  * *Pourquoi pas le site le plus chargé du semis* : c'est ce que la première
  * écriture faisait, et elle a rougi dans la suite complète — un autre spec,
@@ -244,7 +247,7 @@ function rangDeLaDate(texte: string): number | null {
   return Number(`${m[3]}${m[2]}${m[1]}`);
 }
 
-test("UN SITE À TREIZE INTERVENTIONS : la fiche en rend DOUZE, la plus récente en tête, la file d'attente en bas, la borne écrite", async ({
+test("UN SITE À TREIZE INTERVENTIONS : la fiche en rend DOUZE, la file d'attente en tête, la plus récente ensuite, la borne écrite (TP-A1, CS29/CS9)", async ({
   page,
 }) => {
   await page.goto(`/sites/${SITE_AVEC_HISTORIQUE}`);
@@ -269,22 +272,22 @@ test("UN SITE À TREIZE INTERVENTIONS : la fiche en rend DOUZE, la plus récente
     lignes.first().locator('a[href^="/interventions/"]'),
   ).toBeVisible();
 
-  // LA PLUS RÉCENTE EN TÊTE, et la FILE D'ATTENTE EN BAS — lu sur les dates
-  // rendues, jamais supposé : une ligne sans date n'a pas de ligne datée
-  // sous elle, et deux lignes datées vont du plus récent au plus ancien.
+  // LA FILE D'ATTENTE EN TÊTE, et la PLUS RÉCENTE ensuite (TP-A1, CS29/CS9)
+  // — lu sur les dates rendues, jamais supposé : les trois premières lignes
+  // n'ont pas de date, puis les datées vont du plus récent au plus ancien.
   const dates = (await lignes.locator("td:nth-child(2)").allInnerTexts()).map(
     rangDeLaDate,
   );
-  // Dix datées puis deux « — » : la treizième (sans date) est celle que la
-  // borne a coupée — jamais une datée.
-  const premiereSansDate = dates.findIndex((d) => d === null);
-  expect(premiereSansDate).toBe(DATEES);
-  expect(dates.slice(premiereSansDate).every((d) => d === null)).toBe(true);
-  const datees = dates.slice(0, premiereSansDate) as number[];
+  expect(dates.slice(0, SANS_DATE).every((d) => d === null)).toBe(true);
+  // Neuf datées sur dix rendues : c'est la PLUS ANCIENNE (2013) que la borne
+  // a coupée — jamais une sans date, jamais la plus récente.
+  const datees = dates.slice(SANS_DATE) as number[];
+  expect(datees).toHaveLength(INTERVENTIONS_MONTREES - SANS_DATE);
   expect(datees[0]).toBe(Number(`${PREMIERE_ANNEE + DATEES - 1}0101`));
   for (let i = 1; i < datees.length; i += 1) {
     expect(datees[i]!).toBeLessThan(datees[i - 1]!);
   }
+  expect(dates).not.toContain(Number(`${PREMIERE_ANNEE}0101`));
 
   // LA BORNE EST ÉCRITE à côté du tableau, avec son nombre : l'écran ne
   // laisse pas croire qu'il montre tout.
