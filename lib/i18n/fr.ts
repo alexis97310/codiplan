@@ -3172,6 +3172,9 @@ export const fr = {
   // colonnes du même référentiel, et il n'y a plus d'écart à annoncer.
   "planning.jour_avant": "← Jour précédent",
   "planning.jour_apres": "Jour suivant →",
+  // LE FILTRE DES ANNULÉES (PG-A8-ANNULEES-MASQUEES, 28/09/2026) — masquées
+  // par défaut (annexe D du cahier des charges), ce bouton les remontre.
+  "planning.afficher_annulees": "Afficher les annulées",
   "planning.colonne_heure": "Heure",
   "planning.jour_vide": "Aucune intervention posée ce jour-là.",
   // Accordé via `decompte()` depuis le lot AV-14 (19/09/2026) — « 1 créneaux

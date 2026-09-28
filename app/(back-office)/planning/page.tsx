@@ -180,6 +180,11 @@ export default async function PagePlanning({
   const perimetre = perimetreDuPlanning(exigerContexteActif(contexte));
   const parametres = await searchParams;
   const vue = parametres.vue === "jour" ? "jour" : "semaine";
+  // LES ANNULÉES SONT MASQUÉES PAR DÉFAUT (PG-A8-ANNULEES-MASQUEES) — seule
+  // `"1"` les remontre, comme `vue` ci-dessus n'accepte que `"jour"` : toute
+  // autre valeur retombe sur le défaut plutôt que de faire échouer la page
+  // (L1-02f, un paramètre d'URL vient de l'extérieur).
+  const afficherAnnulees = parametres.annulees === "1";
   // LES AVERTISSEMENTS D'UN DÉPÔT ACCEPTÉ (N+1, 17/09/2026) — portés par
   // l'URL du rechargement complet que `Posable` déclenche désormais, jamais
   // par un état client qu'un rechargement effacerait avant qu'on le lise.
@@ -375,7 +380,13 @@ export default async function PagePlanning({
     au: instantDuJour(fenetreEnJours.au),
   };
 
-  const lignes = await listerPlanning(contexte, fenetre.du, fenetre.au);
+  const lignes = await listerPlanning(
+    contexte,
+    fenetre.du,
+    fenetre.au,
+    undefined,
+    { inclureAnnulees: afficherAnnulees },
+  );
   // ── LA POPULATION À NOMMER EST CELLE DES COLONNES, PAS CELLE DES LIGNES ──
   //
   // Elle ne venait que des interventions, et la vue jour tire ses colonnes du
@@ -539,6 +550,12 @@ export default async function PagePlanning({
           jour={jourAffiche}
           semaine={jours[0]}
           aujourdhui={aujourdhui}
+        />
+        <ToggleAnnulees
+          vue={vue}
+          jour={jourAffiche}
+          semaine={jours[0]}
+          afficherAnnulees={afficherAnnulees}
         />
       </div>
       {/*
@@ -1798,6 +1815,44 @@ function Deplacement({
         {t(vue === "jour" ? "planning.jour_apres" : "planning.semaine_apres")}
       </Link>
     </div>
+  );
+}
+
+/**
+ * LE FILTRE DES ANNULÉES (PG-A8-ANNULEES-MASQUEES) — un lien qui bascule
+ * `?annulees=1`, en préservant la vue et la période affichées : jamais un
+ * `<form>` séparé, qui perdrait `vue`/`jour`/`semaine` au premier envoi.
+ */
+function ToggleAnnulees({
+  vue,
+  jour,
+  semaine,
+  afficherAnnulees,
+}: {
+  readonly vue: "semaine" | "jour";
+  readonly jour: JourLocal;
+  readonly semaine: JourLocal;
+  readonly afficherAnnulees: boolean;
+}) {
+  const base =
+    vue === "jour"
+      ? `/planning?vue=jour&jour=${cleJour(jour)}`
+      : `/planning?vue=semaine&semaine=${cleJour(semaine)}`;
+  const href = afficherAnnulees ? base : `${base}&annulees=1`;
+  const classes =
+    "border-app-bord rounded-md border px-2.5 py-2 text-[12.5px] font-semibold";
+  return (
+    <Link
+      href={href}
+      aria-pressed={afficherAnnulees}
+      className={
+        afficherAnnulees
+          ? `${classes} bg-app-marque text-app-marque-encre`
+          : `${classes} text-app-encre-faible`
+      }
+    >
+      {t("planning.afficher_annulees")}
+    </Link>
   );
 }
 

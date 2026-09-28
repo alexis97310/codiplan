@@ -1568,6 +1568,33 @@ export type LignePlanning = LigneIntervention & {
 };
 
 /**
+ * LES ANNULÉES SONT MASQUÉES DU PLANNING, PAR DÉFAUT (PG-A8-ANNULEES-MASQUEES,
+ * audit d'ergonomie du 27/09/2026, I-17 ; annexe D du cahier des charges,
+ * `docs/cahier-des-charges.md:1735` : « Annulée — gris barré — masqué par
+ * défaut »).
+ *
+ * *Mesuré sur `main` : `listerPlanning` ne filtrait sur AUCUN statut — une
+ * annulée sans date restait dans la file d'attente (barrée), une annulée
+ * datée restait sur la grille.*
+ *
+ * **`true` par défaut**, pas `false` : les DEUX AUTRES appelants de
+ * `listerPlanning` (`/terrain`, `/tableau-de-bord`) n'ont pas connaissance de
+ * ce paramètre et doivent continuer de voir exactement ce qu'ils voyaient —
+ * seul `/planning` (`app/(back-office)/planning/page.tsx`) passe
+ * `inclureAnnulees` explicitement, selon son propre paramètre d'URL.
+ */
+function filtreStatutAnnulee(
+  inclureAnnulees: boolean,
+): Prisma.InterventionWhereInput {
+  return inclureAnnulees ? {} : { statut: { not: "annulee" } };
+}
+
+/** Les options facultatives de `listerPlanning` — voir `filtreStatutAnnulee`. */
+export type OptionsListerPlanning = {
+  readonly inclureAnnulees?: boolean;
+};
+
+/**
  * Le planning d'une période — tout ce qui est visible dans le périmètre.
  *
  * Les libellés voyagent avec les lignes : une liste d'UUID n'est pas un
@@ -1579,6 +1606,7 @@ export async function listerPlanning(
   du: Date,
   au: Date,
   client?: PrismaClient,
+  options?: OptionsListerPlanning,
 ): Promise<readonly LignePlanning[]> {
   const restriction = restrictionParPersonne(contexte);
   return avecContexteApplicatif(
@@ -1592,6 +1620,7 @@ export async function listerPlanning(
           // n'offre aucune case pour le revoir — voir `filtreClientActif`,
           // qui documente la règle et sa borne (le SITE n'est pas concerné).
           ...filtreClientActif(false),
+          ...filtreStatutAnnulee(options?.inclureAnnulees ?? true),
           OR: [
             // `lt` ET NON `lte` — la borne haute est EXCLUSIVE (12/09/2026).
             // L'appelant passe le lendemain à minuit ; avec `lte`, la journée
