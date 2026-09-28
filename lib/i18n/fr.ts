@@ -3372,6 +3372,14 @@ export const fr = {
     "Cette personne est déjà membre de la société active.",
   "equipe.refus.agence_hors_societe":
     "Le rattachement choisi n'appartient pas à la société active.",
+  // AGENCE-ACTIVE (AA-3) — une agence inactive ne se propose plus dans le
+  // menu de modification d'un technicien (voir `lib/agences/proposables.ts`) ;
+  // ce refus tient la porte côté serveur pour un `agence_id` posté
+  // directement. Même texte que `site.refus.agence_inactive` — même piège,
+  // même refus. Le MAINTIEN du rattachement déjà posé, même inactif,
+  // n'atteint jamais ce refus (voir `modifierTechnicien`, `lib/techniciens/depot.ts`).
+  "equipe.refus.agence_inactive":
+    "Ce rattachement est inactif : choisissez-en un actif.",
   // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/equipe.spec.ts) ─────
   //
   // Le gardien de L0-11 fait passer par ici jusqu'au texte qu'un test de

@@ -27,6 +27,7 @@ import {
 } from "@/lib/habilitations/depot";
 import {
   agencesDisponibles,
+  agencesProposablesPourTechnicien,
   compterInterventionsAVenirParTechnicien,
   listerLesTechniciens,
   type LigneTechnicien,
@@ -86,6 +87,27 @@ export default async function PageEquipe({
   const affiches = montrerInactifs
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
+
+  // LE MENU DE MODIFICATION DE CHAQUE TECHNICIEN, PAS LA LISTE PARTAGÉE
+  // (AGENCE-ACTIVE, AA-3) — `agences` (ci-dessus) ne porte que les agences
+  // ACTIVES : une fiche déjà rattachée à une agence désactivée après coup
+  // perdrait son option, et « Enregistrer » un tout autre champ ferait
+  // déraper le rattachement vers la première option du menu. Même piège,
+  // même parade que `/sites/[id]`.
+  const agencesParTechnicien = new Map(
+    await Promise.all(
+      affiches.map(
+        async (technicien) =>
+          [
+            technicien.utilisateurId,
+            await agencesProposablesPourTechnicien(
+              session.contexte,
+              technicien.agenceId,
+            ),
+          ] as const,
+      ),
+    ),
+  );
 
   const comptesAVenir = await compterInterventionsAVenirParTechnicien(
     session.contexte,
@@ -238,7 +260,9 @@ export default async function PageEquipe({
           </summary>
           <div id={ancreModification(technicien.utilisateurId)}>
             <FormulaireModification
-              agences={agences}
+              agences={
+                agencesParTechnicien.get(technicien.utilisateurId) ?? agences
+              }
               technicien={technicien}
               interventionsAVenir={
                 comptesAVenir.get(technicien.utilisateurId) ?? 0

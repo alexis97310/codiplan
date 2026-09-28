@@ -85,6 +85,10 @@ function fabriquerClientFactice(options: {
   readonly utilisateurExistant?: { readonly id: string } | null;
   readonly echecUtilisateurSociete?: unknown;
   readonly echecTechnicien?: unknown;
+  /** L'agence visée par la saisie — active par défaut (AGENCE-ACTIVE, AA-3). */
+  readonly agence?: { readonly actif: boolean } | null;
+  /** Le rattachement ACTUEL, relu avant une modification — absent par défaut. */
+  readonly technicienActuel?: { readonly agence_id: string } | null;
 }): { readonly client: PrismaClient; readonly appels: Appels } {
   const appels: Appels = {
     utilisateurCree: [],
@@ -124,7 +128,12 @@ function fabriquerClientFactice(options: {
         return { id: data.id };
       },
     },
+    agence: {
+      findFirst: async () =>
+        options.agence === undefined ? { actif: true } : options.agence,
+    },
     technicien: {
+      findFirst: async () => options.technicienActuel ?? null,
       create: async ({ data }: { data: { id: string } }) => {
         if (options.echecTechnicien !== undefined) {
           throw options.echecTechnicien;
@@ -312,6 +321,41 @@ describe("un courriel déjà pris rattache, il ne duplique jamais (gardien)", ()
   });
 });
 
+describe("créer un technicien — refus d'une agence inactive (AGENCE-ACTIVE, AA-3)", () => {
+  it("refuse le rattachement à une agence inactive — le rattachement n'est pas écrit", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      agence: { actif: false },
+    });
+
+    const resultat = await creerTechnicien(
+      CONTEXTE_ADMIN,
+      SAISIE_VALIDE,
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: false, motif: "agence_inactive" });
+    // L'identité a pu être créée (elle est désignée et neuve, comme pour tout
+    // refus de la seconde transaction) ; ce qui la suit ne l'est pas.
+    expect(appels.utilisateurSocieteCree).toHaveLength(0);
+    expect(appels.technicienCree).toHaveLength(0);
+  });
+
+  it("accepte le rattachement à une agence active", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      agence: { actif: true },
+    });
+
+    const resultat = await creerTechnicien(
+      CONTEXTE_ADMIN,
+      SAISIE_VALIDE,
+      client,
+    );
+
+    expect(resultat.accepte).toBe(true);
+    expect(appels.technicienCree).toHaveLength(1);
+  });
+});
+
 describe("modifier un technicien — l'agence et l'activité, rien d'autre", () => {
   it("écrit exactement `agence_id` et `actif`", async () => {
     const { client, appels } = fabriquerClientFactice({});
@@ -327,5 +371,41 @@ describe("modifier un technicien — l'agence et l'activité, rien d'autre", () 
     expect(appels.technicienModifie).toEqual([
       { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: false },
     ]);
+  });
+
+  it("refuse le PASSAGE vers une agence inactive différente de l'actuelle (AGENCE-ACTIVE, AA-3)", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: { agence_id: "0192f0a0-0000-7000-8000-0000000000dp" },
+      agence: { actif: false },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: true },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: false, motif: "agence_inactive" });
+    expect(appels.technicienModifie).toHaveLength(0);
+  });
+
+  it("accepte le MAINTIEN de l'agence actuelle, même devenue inactive", async () => {
+    // `technicienActuel.agence_id` est LE MÊME que celui de la saisie : le
+    // contrôle d'inactivité ne se déclenche que si le rattachement CHANGE.
+    const { client, appels } = fabriquerClientFactice({
+      technicienActuel: { agence_id: "0192f0a0-0000-7000-8000-0000000000ag" },
+      agence: { actif: false },
+    });
+
+    const resultat = await modifierTechnicien(
+      CONTEXTE_ADMIN,
+      "0192f0a0-0000-7000-8000-0000000000te",
+      { agence_id: "0192f0a0-0000-7000-8000-0000000000ag", actif: true },
+      client,
+    );
+
+    expect(resultat).toEqual({ accepte: true });
+    expect(appels.technicienModifie).toHaveLength(1);
   });
 });

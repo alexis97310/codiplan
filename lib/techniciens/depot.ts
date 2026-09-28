@@ -1,6 +1,9 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { agencesProposables } from "@/lib/agences/proposables";
+import {
+  agencesProposables,
+  type AgenceProposable,
+} from "@/lib/agences/proposables";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import {
   avecDesignationAuth,
@@ -113,6 +116,13 @@ export type MotifRefusTechnicien =
   | "deja_membre"
   /** L'agence n'appartient pas à la société active, ou n'existe pas. */
   | "agence_hors_societe"
+  /**
+   * L'agence existe et appartient à la société, mais elle est inactive
+   * (AGENCE-ACTIVE, AA-3) — même précédent que `MotifRefusSite` de
+   * `lib/sites/depot.ts`. Le MAINTIEN d'un rattachement déjà posé, même
+   * devenu inactif, n'atteint jamais ce refus (voir `modifierTechnicien`).
+   */
+  | "agence_inactive"
   /** Hors périmètre — jamais dit si le technicien existe ailleurs (D50). */
   | "introuvable";
 
@@ -225,6 +235,27 @@ export async function agencesDisponibles(
       const agences = await agencesProposables(tx);
       return agences.map(({ id, libelle, code }) => ({ id, libelle, code }));
     },
+    client,
+  );
+}
+
+/**
+ * LES AGENCES PROPOSABLES POUR LE RATTACHEMENT ACTUEL D'UN TECHNICIEN
+ * (AGENCE-ACTIVE, AA-3) — la sienne reste sélectionnable même redevenue
+ * inactive, marquée `inactive: true`. Même précédent, et même piège fermé,
+ * que `/sites/[id]` (voir l'en-tête de `lib/agences/proposables.ts`) :
+ * `agencesDisponibles` ne suffit pas ici, une ligne DE CE TECHNICIEN
+ * disparaîtrait de son propre menu de modification si son agence a été
+ * désactivée après coup.
+ */
+export async function agencesProposablesPourTechnicien(
+  contexte: ContexteSession,
+  agenceActuelleId: string,
+  client?: PrismaClient,
+): Promise<readonly AgenceProposable[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) => agencesProposables(tx, { garder: agenceActuelleId }),
     client,
   );
 }
@@ -348,13 +379,37 @@ export async function creerTechnicien(
     utilisateurId = cree.id;
   }
 
-  // ── 2 et 3. L'HABILITATION ET LE RATTACHEMENT, ENSEMBLE ──────────────────
+  // ── 2 et 3. L'AGENCE VÉRIFIÉE, PUIS L'HABILITATION ET LE RATTACHEMENT,
+  // ENSEMBLE (AGENCE-ACTIVE, AA-3) ─────────────────────────────────────────
+  //
+  // Le contrôle vit DANS la même transaction que l'écriture, jamais avant :
+  // une lecture séparée laisserait une fenêtre où l'agence change entre les
+  // deux — même raisonnement que `creerSite` (`lib/sites/depot.ts`). Le refus
+  // laisse alors l'identité déjà posée à l'étape 1 seule, sans société ni
+  // rattachement — la même gêne d'exploitation, jamais une ouverture, déjà
+  // décrite en tête de module pour tout refus sur cette seconde transaction.
   try {
-    await avecContexteApplicatif(
+    const resultat = await avecContexteApplicatif(
       contexte,
-      (tx) => habiliterEtRattacherDans(tx, societeId, utilisateurId, saisie),
+      async (tx) => {
+        const agence = await tx.agence.findFirst({
+          where: { id: saisie.agence_id },
+          select: { actif: true },
+        });
+        if (agence !== null && !agence.actif) {
+          return {
+            accepte: false as const,
+            motif: "agence_inactive" as const,
+          };
+        }
+        await habiliterEtRattacherDans(tx, societeId, utilisateurId, saisie);
+        return { accepte: true as const };
+      },
       client,
     );
+    if (!resultat.accepte) {
+      return resultat;
+    }
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {
@@ -402,6 +457,13 @@ async function habiliterEtRattacherDans(
  * `updateMany` plutôt que `update` : zéro ligne touchée n'est pas une erreur
  * technique, c'est soit un identifiant hors société (RLS refuse en
  * silence), soit un identifiant qui n'est pas celui d'un technicien.
+ *
+ * **Un passage VERS une agence inactive est refusé** (AGENCE-ACTIVE, AA-3)
+ * — mais seulement s'il change réellement le rattachement : le MAINTIEN de
+ * l'agence déjà posée, même inactive, reste accepté (même précédent que
+ * `modifierSite`, `lib/sites/depot.ts`). La fiche actuelle est donc relue
+ * ici avant l'écriture : sans elle, on ne saurait pas distinguer
+ * « rattacher à » de « garder ».
  */
 export async function modifierTechnicien(
   contexte: ContexteSession,
@@ -410,18 +472,36 @@ export async function modifierTechnicien(
   client?: PrismaClient,
 ): Promise<ResultatModificationTechnicien> {
   try {
-    const touchees = await avecContexteApplicatif(
+    const resultat = await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.technicien.updateMany({
+      async (tx) => {
+        const technicien = await tx.technicien.findFirst({
+          where: { utilisateur_id: utilisateurId },
+          select: { agence_id: true },
+        });
+        if (technicien !== null && technicien.agence_id !== saisie.agence_id) {
+          const agence = await tx.agence.findFirst({
+            where: { id: saisie.agence_id },
+            select: { actif: true },
+          });
+          if (agence !== null && !agence.actif) {
+            return {
+              accepte: false as const,
+              motif: "agence_inactive" as const,
+            };
+          }
+        }
+        const touchees = await tx.technicien.updateMany({
           where: { utilisateur_id: utilisateurId },
           data: { agence_id: saisie.agence_id, actif: saisie.actif },
-        }),
+        });
+        return touchees.count === 0
+          ? { accepte: false as const, motif: "introuvable" as const }
+          : { accepte: true as const };
+      },
       client,
     );
-    return touchees.count === 0
-      ? { accepte: false, motif: "introuvable" }
-      : { accepte: true };
+    return resultat;
   } catch (erreur: unknown) {
     const motif = motifDeLErreur(erreur);
     if (motif === null) {
