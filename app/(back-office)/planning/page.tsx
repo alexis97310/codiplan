@@ -21,6 +21,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import {
   cleJour,
   instantDuJour,
+  jourDe,
   jourSuivant,
   maintenant,
   minutesDepuisMinuit,
@@ -55,6 +56,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { listerPlanning } from "@/lib/interventions/depot";
 import { fileDAttente, lignesAffichees } from "@/lib/interventions/affichage";
+import { enRetard } from "@/lib/interventions/retard";
 import {
   construireGrille,
   type AgenceDeGrille,
@@ -501,6 +503,27 @@ export default async function PagePlanning({
       versLocal(instant, fuseauDe.get(agenceId) ?? cadre.fuseau),
     );
 
+  // « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — LE JOUR CIVIL « AUJOURD'HUI »
+  // PAR AGENCE, MÊME REPLI QUE `fuseauDe` : une agence sans fuseau propre
+  // retombe sur celui de la société, jamais sur celui de l'appareil (I7,
+  // L0-08). `enRetard` (`lib/interventions/retard.ts`) reste une fonction
+  // pure ; c'est ici, et une seule fois, que « aujourd'hui » se lit.
+  const aujourdhuiParAgence = new Map<string, JourLocal>(
+    cadre.detaillees.map(({ agence }) => [
+      agence.id,
+      jourDe(maintenant(fuseauDe.get(agence.id) ?? cadre.fuseau).local),
+    ]),
+  );
+  const enRetardDe = (ligne: Ligne): boolean =>
+    enRetard(
+      {
+        statut: ligne.statut,
+        datePlanifiee: ligne.date_planifiee,
+        aDesSegments: ligne.aDesSegments,
+      },
+      aujourdhuiParAgence.get(ligne.agence_id) ?? jourDe(aujourdhui),
+    );
+
   return (
     <Page
       chemin="/planning"
@@ -772,6 +795,7 @@ export default async function PagePlanning({
                 annuaire={annuaire}
                 jourAffiche={jourAffiche}
                 donneesMateriel={donneesMateriel}
+                enRetardDe={enRetardDe}
               />
             ) : (
               <VueSemaine
@@ -792,6 +816,7 @@ export default async function PagePlanning({
                 }
                 donneesMateriel={donneesMateriel}
                 aujourdhui={aujourdhui}
+                enRetardDe={enRetardDe}
               />
             )}
           </div>
@@ -818,6 +843,18 @@ export default async function PagePlanning({
 type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
 
 /**
+ * LE CONTOUR D'UNE CARTE EN RETARD (PG-C1a-EN-RETARD-PLANNING) — un `outline`,
+ * jamais un `border` : la couleur du statut occupe déjà `border-*`
+ * (`CLASSES_BLOC`), et une seconde classe sur la MÊME propriété gagnerait ou
+ * perdrait selon l'ordre de génération du CSS, pas selon l'ordre du JSX.
+ * `outline` est une couche séparée, qui ne dispute donc rien à `CLASSES_BLOC`.
+ * Le jeton est `app-rouge-bord`, DÉJÀ utilisé (`en_cours` dans `CLASSES_BLOC`,
+ * le ton `refus` de `CLASSES_TON`) — aucune couleur neuve (CLAUDE.md §6).
+ */
+const CONTOUR_EN_RETARD =
+  "outline outline-2 outline-dashed outline-app-rouge-bord outline-offset-1";
+
+/**
  * LE SITE, LE MATÉRIEL ET LA DURÉE D'UNE CARTE (PLANNING-2 ; matériel ajouté
  * par AFFICHAGE-MATERIEL-1) — PARTAGÉS entre les trois rendus de carte (grille
  * semaine, grille jour, liste téléphone), pour que les trois ne divergent
@@ -832,13 +869,22 @@ type Ligne = Awaited<ReturnType<typeof listerPlanning>>[number];
  * rend alors `null`, et rien n'est écrit : un zéro se lirait comme une
  * mesure, et l'alerte « sans durée saisie » existe déjà dans le panneau de
  * charge (`Statistiques`) — cette carte ne la duplique pas.
+ *
+ * **LA MENTION « EN RETARD » (PG-C1a-EN-RETARD-PLANNING, bug 8 de l'audit
+ * d'ergonomie du 27/09/2026)** — en TEXTE, jamais seulement dans une couleur
+ * de contour : un contour pointillé seul ne se lit pas au lecteur d'écran, ni
+ * sur une capture en niveaux de gris. `enRetard` est calculé une seule fois,
+ * par la page (`enRetardDe`), et transmis ici tout fait — cette fonction ne
+ * lit ni la base ni l'horloge.
  */
 function DetailsDeLaCarte({
   ligne,
   donneesMateriel,
+  enRetard,
 }: {
   readonly ligne: Ligne;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  readonly enRetard: boolean;
 }) {
   const duree = dureeCarteAffichee(dureeDe(ligne) ?? 0);
   const materiel = materielDeLaCarte(ligne, donneesMateriel);
@@ -861,6 +907,11 @@ function DetailsDeLaCarte({
           {duree}
         </span>
       )}
+      {enRetard ? (
+        <span className="text-app-rouge-encre block text-[10.5px] font-bold">
+          {t("planning.en_retard")}
+        </span>
+      ) : null}
     </>
   );
 }
@@ -876,6 +927,7 @@ function VueSemaine({
   fuseauPour,
   donneesMateriel,
   aujourdhui,
+  enRetardDe,
 }: {
   readonly jours: readonly JourLocal[];
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
@@ -915,6 +967,8 @@ function VueSemaine({
    * métropolitaine.
    */
   readonly fuseauPour: (agenceId: string) => Fuseau;
+  /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
+  readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
   return (
     <section className="bg-app-surface border-app-bord overflow-hidden rounded-lg border">
@@ -1074,7 +1128,7 @@ function VueSemaine({
                         <Link
                           href={`/interventions/${intervention.id}`}
                           data-maquette-bloc="bloc-intervention-case"
-                          className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                          className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-1 text-[11px] leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                         >
                           {/*
                             LA MAQUETTE FAIT FOI SUR LA DISPOSITION (D95) :
@@ -1127,6 +1181,7 @@ function VueSemaine({
                           <DetailsDeLaCarte
                             ligne={intervention}
                             donneesMateriel={donneesMateriel}
+                            enRetard={enRetardDe(intervention)}
                           />
                         </Link>
                       </BlocPosable>
@@ -1144,6 +1199,7 @@ function VueSemaine({
         chargeDe={chargeDe}
         fuseauPour={fuseauPour}
         donneesMateriel={donneesMateriel}
+        enRetardDe={enRetardDe}
       />
       <Legende />
     </section>
@@ -1174,12 +1230,15 @@ function ListeSemaine({
   chargeDe,
   fuseauPour,
   donneesMateriel,
+  enRetardDe,
 }: {
   readonly grille: ReturnType<typeof construireGrille<Ligne>>;
   readonly annuaire: Annuaire;
   readonly chargeDe: ReadonlyMap<string, readonly LigneOccupation[]>;
   readonly fuseauPour: (agenceId: string) => Fuseau;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
+  readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
   if (grille.length === 0) {
     return (
@@ -1274,7 +1333,7 @@ function ListeSemaine({
                             // Cette marque-ci n'en est pas une cible : elle
                             // n'identifie la carte que pour une épreuve.
                             data-carte-liste={intervention.id}
-                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}`}
+                            className={`block rounded-[5px] border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug ${CLASSES_BLOC[intervention.statut]}${enRetardDe(intervention) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                           >
                             <span
                               className="block truncate font-bold"
@@ -1297,6 +1356,7 @@ function ListeSemaine({
                             <DetailsDeLaCarte
                               ligne={intervention}
                               donneesMateriel={donneesMateriel}
+                              enRetard={enRetardDe(intervention)}
                             />
                           </Link>
                         ))}
@@ -1319,11 +1379,14 @@ function VueJour({
   annuaire,
   jourAffiche,
   donneesMateriel,
+  enRetardDe,
 }: {
   readonly journee: ReturnType<typeof construireJournee<Ligne>>;
   readonly annuaire: Annuaire;
   readonly jourAffiche: JourLocal;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
+  readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
   // L'ÉTAT VIDE N'AVALE PLUS CE QUI N'EST PAS DESSINABLE. Sans axe — aucune
   // agence n'a de calendrier — il n'y a pas de grille à montrer ; il peut
@@ -1347,6 +1410,7 @@ function VueJour({
           journee={journee}
           annuaire={annuaire}
           donneesMateriel={donneesMateriel}
+          enRetardDe={enRetardDe}
         />
         <HorsGrille journee={journee} annuaire={annuaire} />
       </section>
@@ -1458,7 +1522,7 @@ function VueJour({
                       <Link
                         key={ligne.id}
                         href={`/interventions/${ligne.id}`}
-                        className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[ligne.statut]}`}
+                        className={`mb-1 block rounded-[5px] border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[ligne.statut]}${enRetardDe(ligne) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                       >
                         <span className="block font-bold">
                           {referenceAffichee(ligne)}
@@ -1467,6 +1531,7 @@ function VueJour({
                         <DetailsDeLaCarte
                           ligne={ligne}
                           donneesMateriel={donneesMateriel}
+                          enRetard={enRetardDe(ligne)}
                         />
                       </Link>
                     ))}
@@ -1508,7 +1573,7 @@ function VueJour({
                               const lien = (
                                 <Link
                                   href={`/interventions/${occupation.id}`}
-                                  className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}`}
+                                  className={`block h-full border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight ${CLASSES_BLOC[occupation.statut]}${enRetardDe(occupation) ? ` ${CONTOUR_EN_RETARD}` : ""}`}
                                 >
                                   {debutDeBloc ? (
                                     <>
@@ -1519,6 +1584,7 @@ function VueJour({
                                       <DetailsDeLaCarte
                                         ligne={occupation}
                                         donneesMateriel={donneesMateriel}
+                                        enRetard={enRetardDe(occupation)}
                                       />
                                     </>
                                   ) : null}
@@ -1953,10 +2019,13 @@ function SansHeureVide({
   journee,
   annuaire,
   donneesMateriel,
+  enRetardDe,
 }: {
   readonly journee: Journee<Ligne>;
   readonly annuaire: Annuaire;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
+  /** « EN RETARD » (PG-C1a-EN-RETARD-PLANNING) — voir `page.tsx`, `enRetardDe`. */
+  readonly enRetardDe: (ligne: Ligne) => boolean;
 }) {
   const colonnesAvecSansHeure = journee.colonnes.filter(
     (c) => c.sansHeure.length > 0,
@@ -1983,6 +2052,7 @@ function SansHeureVide({
               <DetailsDeLaCarte
                 ligne={ligne}
                 donneesMateriel={donneesMateriel}
+                enRetard={enRetardDe(ligne)}
               />
             </li>
           )),

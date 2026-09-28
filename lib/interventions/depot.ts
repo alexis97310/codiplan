@@ -1723,12 +1723,12 @@ export async function listerPlanning(
   au: Date,
   client?: PrismaClient,
   options?: OptionsListerPlanning,
-): Promise<readonly LignePlanning[]> {
+): Promise<readonly (LignePlanning & { readonly aDesSegments: boolean })[]> {
   const restriction = restrictionParPersonne(contexte);
   return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.intervention.findMany({
+    async (tx) => {
+      const lignes = await tx.intervention.findMany({
         where: {
           ...restriction,
           // LE CLIENT INACTIF SORT DU PLANNING, SANS EXCEPTION (RG-PLA-08,
@@ -1793,8 +1793,20 @@ export async function listerPlanning(
           ...CHAMPS_LIGNE,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
+          // LE SEUL BESOIN DE CETTE LECTURE EST « EN RETARD »
+          // (PG-C1a-EN-RETARD-PLANNING) : le statut seul ne dit pas « jamais
+          // commencée » — une reprise (L2-10) retombe `planifiee` même après
+          // du travail réel (`statutALaCreation`, `cycle-de-vie.ts`). Compter
+          // n'ajoute AUCUNE ligne à la population déjà décidée par `where` :
+          // seul le nombre de colonnes lues grandit.
+          _count: { select: { segments: true } },
         },
-      }),
+      });
+      return lignes.map(({ _count, ...ligne }) => ({
+        ...ligne,
+        aDesSegments: _count.segments > 0,
+      }));
+    },
     client,
   );
 }

@@ -3248,6 +3248,10 @@ export const fr = {
   // sans machine connue : ce n'est pas une donnée manquante, et le mot le dit
   // plutôt qu'un tiret muet.
   "planning.materiel_non_precise": "Matériel non précisé",
+  // « EN RETARD » (PG-C1a-EN-RETARD-PLANNING, bug 8 de l'audit d'ergonomie du
+  // 27/09/2026) — la mention TEXTE d'une carte planifiée/affectée, datée d'un
+  // jour déjà passé, sans aucun segment de travail commencé.
+  "planning.en_retard": "En retard",
   "planning.legende.planifiee": "Planifiée",
   "planning.legende.en_cours": "En cours / P1",
   "planning.legende.terminee": "Terminée",
