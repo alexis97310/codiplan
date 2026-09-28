@@ -955,6 +955,141 @@ function dateVisee(demande: PoseDemandee, fuseau: Fuseau): Date | null {
 }
 
 /**
+ * CE QU'UNE LIGNE DOIT PORTER POUR QUE `jugerPose` LA JUGE — le sous-ensemble
+ * exact dont les contrôles se servent, jamais la ligne entière : un appelant
+ * qui n'a lu que ces colonnes (la route de lecture, PG-B1) n'a pas à en lire
+ * de plus pour obtenir le même verdict.
+ */
+type LigneAJuger = {
+  readonly id: string;
+  readonly statut: string;
+  readonly agence_id: string;
+  readonly site_id: string;
+  readonly duree_estimee_min: number | null;
+};
+
+/** Ce que `jugerPose` rend — la même forme que `verdictALaPose`, à qui elle délègue. */
+export type JugementPose = {
+  readonly verdict: Verdict;
+  readonly demande: PoseDemandee | null;
+  readonly statutApres: StatutIntervention | null;
+  readonly avertissements?: readonly string[];
+};
+
+/**
+ * LE JUGEMENT D'UNE POSE, SANS RIEN ÉCRIRE — extrait de `deplacerIntervention`
+ * pour PG-B1 : la route `verdict-pose` (lecture seule) et le dépôt (écriture)
+ * appellent CETTE fonction, jamais chacun la sienne. *Un verdict recopié
+ * plutôt qu'appelé diverge en silence dès que l'un des deux chemins change*
+ * (§9, 01/09) — exactement la faute que RG-PLA-04 a déjà coûtée une fois sur
+ * ce même dépôt.
+ *
+ * Enchaîne, dans l'ordre où `deplacerIntervention` les jugeait déjà :
+ * `peutDeplacer` (le statut permet-il un déplacement ?), `peutPlanifier` (les
+ * quatre valeurs vont-elles ensemble ?), `verdictALaPose` (ouverture,
+ * habilitations, absence, chevauchement), puis `peutEcrireSansDuree` sur
+ * l'état APRÈS écriture — la garde du 27/09/2026 (PG-A4). Chaque étape qui
+ * refuse arrête la suite, exactement comme avant l'extraction : le
+ * comportement de l'écriture est inchangé, seul l'appelant a changé.
+ */
+export async function jugerPose(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteSession,
+  ligne: LigneAJuger,
+  saisie: Deplacement,
+): Promise<JugementPose> {
+  const barriereDeplacement = peutDeplacer(ligne.statut as StatutIntervention);
+  if (barriereDeplacement.refuse) {
+    return { verdict: barriereDeplacement, demande: null, statutApres: null };
+  }
+
+  // ── PLANIFIER EXIGE LES QUATRE VALEURS ENSEMBLE (PARCOURS-1) ────────
+  //
+  // *C'est ICI, sous le contexte cloisonné, et PAS seulement à l'écran* —
+  // même raison que les trois contrôles juste en dessous : le glisser-
+  // déposer du planning passe par CETTE fonction, exactement comme le
+  // formulaire « Planifier » de la fiche (R2-19, même route, même
+  // décision). Une intervention encore `a_planifier` qu'on dépose sur un
+  // jour de la vue semaine — sans heure, sans durée, parfois sans
+  // technicien — ne doit PAS silencieusement devenir `planifiee` à
+  // moitié : c'est exactement le contournement que `peutPlanifier` ferme.
+  const barrierePlanification = peutPlanifier(
+    ligne.statut as StatutIntervention,
+    {
+      datePlanifiee: saisie.date_planifiee,
+      debutMinutes: saisie.debut_minutes,
+      dureeMin: saisie.duree_min,
+      technicienId: saisie.technicien_id,
+    },
+  );
+  if (barrierePlanification.refuse) {
+    return {
+      verdict: barrierePlanification,
+      demande: null,
+      statutApres: null,
+    };
+  }
+
+  // ── LES TROIS CONTRÔLES À LA POSE (R2-19 ; RG-PLA-04 depuis L3-02) ──────
+  //
+  // Ils sont ICI, sous le contexte cloisonné, et PAS seulement à l'écran :
+  // *une action refusée à l'écran mais acceptée par la base est un trou.*
+  // Les règles elles-mêmes vivent dans `pose.ts` et dans
+  // `lib/habilitations/affectation.ts`, qui ne lisent rien.
+  const pose = await verdictALaPose(
+    tx,
+    contexte.societeId ?? "",
+    ligne.id,
+    ligne.agence_id,
+    ligne.site_id,
+    saisie,
+  );
+  if (pose.verdict.refuse || pose.demande === null) {
+    return {
+      verdict: pose.verdict,
+      demande: pose.demande,
+      statutApres: null,
+      avertissements: pose.avertissements,
+    };
+  }
+  const demande = pose.demande;
+
+  // Le déplacement REND une intervention à la file d'attente quand on lui
+  // retire sa date, et l'en sort quand on lui en donne une. Il ne touche
+  // à aucun autre statut : déplacer une intervention `en_cours` ne la
+  // replanifie pas, elle est en cours.
+  const statutApres = statutApresDeplacement(
+    ligne.statut as StatutIntervention,
+    saisie.date_planifiee,
+    demande.creneauDebut,
+  );
+  // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
+  // d'ergonomie du 27/09/2026) — jugée sur l'ÉTAT APRÈS ÉCRITURE : la
+  // durée qui sera réellement posée est celle-ci `saisie.duree_min`
+  // quand elle est soumise, sinon celle déjà sur la ligne (Prisma
+  // ignorera la colonne, voir plus bas).
+  const barriereDuree = peutEcrireSansDuree(
+    statutApres,
+    saisie.duree_min ?? ligne.duree_estimee_min,
+  );
+  if (barriereDuree.refuse) {
+    return {
+      verdict: barriereDuree,
+      demande,
+      statutApres,
+      avertissements: pose.avertissements,
+    };
+  }
+
+  return {
+    verdict: { refuse: false },
+    demande,
+    statutApres,
+    avertissements: pose.avertissements,
+  };
+}
+
+/**
  * DÉPLACER — changer de créneau, changer de technicien, ou les deux.
  *
  * Le journal du déplacement — qui, quand, d'où vers où — n'est pas écrit ici :
@@ -986,78 +1121,28 @@ export async function deplacerIntervention(
       if (ligne === null) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
-      const barriere = refus<LigneIntervention>(
-        peutDeplacer(ligne.statut as StatutIntervention),
-      );
-      if (barriere !== null) {
-        return barriere;
-      }
 
-      // ── PLANIFIER EXIGE LES QUATRE VALEURS ENSEMBLE (PARCOURS-1) ────────
+      // ── LE JUGEMENT, PARTAGÉ AVEC LA LECTURE (PG-B1) ────────────────────
       //
-      // *C'est ICI, sous le contexte cloisonné, et PAS seulement à l'écran* —
-      // même raison que les trois contrôles juste en dessous : le glisser-
-      // déposer du planning passe par CETTE fonction, exactement comme le
-      // formulaire « Planifier » de la fiche (R2-19, même route, même
-      // décision). Une intervention encore `a_planifier` qu'on dépose sur un
-      // jour de la vue semaine — sans heure, sans durée, parfois sans
-      // technicien — ne doit PAS silencieusement devenir `planifiee` à
-      // moitié : c'est exactement le contournement que `peutPlanifier` ferme.
-      const barrierePlanification = refus<LigneIntervention>(
-        peutPlanifier(ligne.statut as StatutIntervention, {
-          datePlanifiee: saisie.date_planifiee,
-          debutMinutes: saisie.debut_minutes,
-          dureeMin: saisie.duree_min,
-          technicienId: saisie.technicien_id,
-        }),
-      );
-      if (barrierePlanification !== null) {
-        return barrierePlanification;
+      // `jugerPose` porte ce que ce dépôt jugeait ici même avant l'extraction
+      // — `peutDeplacer`, `peutPlanifier`, `verdictALaPose`,
+      // `peutEcrireSansDuree` — et la route `verdict-pose` l'appelle à
+      // l'identique, sans rien écrire.
+      const jugement = await jugerPose(tx, contexte, ligne, saisie);
+      const refusJugement = refus<LigneIntervention>(jugement.verdict);
+      if (refusJugement !== null || jugement.demande === null) {
+        return (
+          refusJugement ?? {
+            accepte: false,
+            cle: "intervention.refus.inconnue",
+          }
+        );
       }
-
-      // ── LES TROIS CONTRÔLES À LA POSE (R2-19 ; RG-PLA-04 depuis L3-02) ──────
-      //
-      // Ils sont ICI, sous le contexte cloisonné, et PAS seulement à l'écran :
-      // *une action refusée à l'écran mais acceptée par la base est un trou.*
-      // Les règles elles-mêmes vivent dans `pose.ts` et dans
-      // `lib/habilitations/affectation.ts`, qui ne lisent rien.
-      const pose = await verdictALaPose(
-        tx,
-        contexte.societeId ?? "",
-        ligne.id,
-        ligne.agence_id,
-        ligne.site_id,
-        saisie,
-      );
-      const posee = refus<LigneIntervention>(pose.verdict);
-      if (posee !== null || pose.demande === null) {
-        return posee ?? { accepte: false, cle: "intervention.refus.inconnue" };
-      }
-      const demande = pose.demande;
-
-      // Le déplacement REND une intervention à la file d'attente quand on lui
-      // retire sa date, et l'en sort quand on lui en donne une. Il ne touche
-      // à aucun autre statut : déplacer une intervention `en_cours` ne la
-      // replanifie pas, elle est en cours.
-      const statutApres = statutApresDeplacement(
-        ligne.statut as StatutIntervention,
-        saisie.date_planifiee,
-        demande.creneauDebut,
-      );
-      // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
-      // d'ergonomie du 27/09/2026) — jugée sur l'ÉTAT APRÈS ÉCRITURE : la
-      // durée qui sera réellement posée est celle-ci `saisie.duree_min`
-      // quand elle est soumise, sinon celle déjà sur la ligne (Prisma
-      // ignorera la colonne, voir plus bas).
-      const barriereDuree = refus<LigneIntervention>(
-        peutEcrireSansDuree(
-          statutApres,
-          saisie.duree_min ?? ligne.duree_estimee_min,
-        ),
-      );
-      if (barriereDuree !== null) {
-        return barriereDuree;
-      }
+      const demande = jugement.demande;
+      // `statutApres` ne peut être `null` ici : `jugerPose` ne pose
+      // `demande` que dans la branche où elle pose aussi `statutApres` —
+      // jamais l'un sans l'autre (voir son corps).
+      const statutApres = jugement.statutApres as StatutIntervention;
 
       const misAJour = await tx.intervention.update({
         where: { id: saisie.intervention_id },
@@ -1095,7 +1180,7 @@ export async function deplacerIntervention(
       return {
         accepte: true,
         fiche: misAJour,
-        avertissements: pose.avertissements,
+        avertissements: jugement.avertissements,
         etatAvant: {
           statut: ligne.statut as StatutIntervention,
           technicienId: ligne.technicien_id,
