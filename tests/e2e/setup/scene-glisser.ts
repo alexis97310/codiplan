@@ -57,7 +57,17 @@ export type PoseGlisser = {
   readonly technicienId: string;
   /** Rang depuis le lundi de la scène — voir `MARDI`/`MERCREDI`/`SAMEDI`. */
   readonly rang: number;
-  /** `null` : sans créneau, posée en file d'attente — comme l'ancien `SCENE.glissable`. */
+  /**
+   * `null` : `planifiee` mais SANS créneau — comme l'ancien `SCENE.glissable`.
+   *
+   * **Depuis QG-4 (27/09/2026, PG-A3b-HEURE-OBLIGATOIRE), plus aucun
+   * scénario de ce fichier ne la déplace en la gardant sans créneau** : une
+   * intervention `planifiee` garde désormais son heure au déplacement, et un
+   * dépôt qui viserait un autre jour sans heure serait refusé
+   * (`intervention.refus.heure_obligatoire`) avant même de juger le
+   * calendrier ou le chevauchement — ce que ce fichier n'éprouve pas. `null`
+   * reste utile pour poser une ligne qu'on n'a PAS l'intention de déplacer.
+   */
   readonly debut: number | null;
   readonly duree: number;
 };

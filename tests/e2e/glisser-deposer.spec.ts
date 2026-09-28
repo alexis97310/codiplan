@@ -158,14 +158,18 @@ async function allerAuPlanning(page: Page, jourRang?: number): Promise<void> {
 test("un déplacement accepté change de jour, et la base le garde", async ({
   page,
 }) => {
-  // SA PROPRE intervention, MARDI, sans créneau — jamais `SCENE.glissable` :
+  // SA PROPRE intervention, MARDI, AVEC créneau — jamais `SCENE.glissable` :
   // ce scénario DÉPLACE réellement un bloc et le laisse à sa nouvelle place,
   // une mutation qu'aucune fixture partagée ne peut supporter deux fois.
+  // Un créneau EXISTANT, et non `null`, depuis QG-4 (27/09/2026,
+  // PG-A3b-HEURE-OBLIGATOIRE) : une intervention `planifiee` GARDE
+  // désormais son heure au déplacement — `pose.tsx` (PG-A7) ne la renvoie
+  // que si la carte en connaît déjà une.
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "KONE",
     technicienId: reperes.technicienKone,
     rang: MARDI,
-    debut: null,
+    debut: 8 * 60,
     duree: 120,
   });
   try {
@@ -198,11 +202,15 @@ test("un dépôt hors du calendrier de l'agence visée est refusé, et le motif 
 }) => {
   // Koné ferme le samedi ; Ducos l'ouvre. La ligne d'une personne affiche
   // l'UNION de ses agences — un repère, jamais un droit de poser.
+  //
+  // Un créneau EXISTANT (QG-4, PG-A3b-HEURE-OBLIGATOIRE) : sans lui, le
+  // dépôt refuserait avant même de juger le calendrier — voir le commentaire
+  // du scénario 1.
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "KONE",
     technicienId: reperes.technicienKone,
     rang: MERCREDI,
-    debut: null,
+    debut: 8 * 60,
     duree: 120,
   });
   try {
