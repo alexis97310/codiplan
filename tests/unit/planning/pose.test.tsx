@@ -59,12 +59,55 @@ const CIBLE: CibleDeDepot = {
 };
 
 /** Le corps porté par un glissé, tel que `lireLaMain` sait le lire. */
-function dataTransferDe(interventionId: string): DataTransfer {
-  const charge = JSON.stringify({ id: interventionId, dureeMin: 60 });
+function dataTransferDe(
+  interventionId: string,
+  dureeMin: number | null = 60,
+): DataTransfer {
+  const charge = JSON.stringify({ id: interventionId, dureeMin });
   return {
     getData: (format: string) =>
       format === "application/x-codiplan-intervention" ? charge : "",
   } as DataTransfer;
+}
+
+/** Une case d'HEURE, vue Jour — `minutes` n'y est jamais `null`. */
+const CIBLE_JOUR: CibleDeDepot = {
+  jour: "2026-09-16",
+  technicienId: "tech-1",
+  minutes: 480,
+  pasMinutes: 30,
+};
+
+function sceneJour() {
+  return render(
+    <Posable>
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <BlocPosable interventionId="int-1" dureeMin={null}>
+                <span aria-hidden />
+              </BlocPosable>
+            </td>
+            <CasePosable cible={CIBLE_JOUR}>
+              <span aria-hidden />
+            </CasePosable>
+          </tr>
+        </tbody>
+      </table>
+    </Posable>,
+  );
+}
+
+/** La case d'heure, seule dans `sceneJour`. */
+function laCaseDHeure(container: HTMLElement): Element {
+  const element = container.querySelector(
+    '[data-depot-heure="480"][data-depot-technicien="tech-1"]',
+  );
+  if (element === null) {
+    throw new Error("la case d'heure n'a pas été rendue");
+  }
+  return element;
 }
 
 function scene() {
@@ -331,5 +374,30 @@ describe("UN GESTE RÉPÉTÉ EST BLOQUÉ PENDANT LA DEMANDE", () => {
     // toujours.
     fireEvent.drop(case_, { dataTransfer: dataTransferDe("int-1") });
     await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("UNE CARTE SANS DURÉE CONNUE, DÉPOSÉE SUR UNE HEURE (PG-A3a, bug 2 de l'audit du 27/09/2026)", () => {
+  it("ne poste jamais `duree_min=0` — le champ est ABSENT, jamais un zéro inventé", async () => {
+    // *Le défaut mesuré sur `main` avant ce ticket* : `dureeDe` (page du
+    // planning) rendait `?? 0` pour une intervention sans créneau ni durée
+    // estimée, et ce zéro voyageait jusqu'à la route comme un `duree_min`
+    // INVALIDE — Zod le refuse (`positive()`), et le message affiché était
+    // « tirez la poignée », qui ne s'applique qu'au redimensionnement.
+    const fetchSimule = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ accepte: true, cle: null, avertissements: null }),
+    });
+    vi.stubGlobal("fetch", fetchSimule);
+    const { container } = sceneJour();
+
+    fireEvent.drop(laCaseDHeure(container), {
+      dataTransfer: dataTransferDe("int-1", null),
+    });
+
+    await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(1));
+    const corps = fetchSimule.mock.calls[0]?.[1]?.body as FormData;
+    expect(corps.get("heure_debut")).toBe("480");
+    expect(corps.has("duree_min")).toBe(false);
   });
 });

@@ -93,21 +93,32 @@ async function traiter(
       const surLaDuree = saisie.error.issues.some((probleme) =>
         probleme.path.includes("duree_min"),
       );
-      // ── PLANIFIER, PAS SEULEMENT REDIMENSIONNER (PARCOURS-1) ────────────
+      // ── TROIS FAÇONS DE MANQUER LE MÊME CRÉNEAU (PARCOURS-1, PG-A3a) ─────
       //
-      // *`duree === null` distingue les DEUX chemins qui échouent sur la même
-      // colonne, et ils ne sont pas la même faute.* Le redimensionnement
-      // envoie TOUJOURS un nombre — `pose.tsx` calcule `cible.minutes +
-      // cible.pasMinutes - main.debutMinutes!`, jamais une chaîne vide — et
-      // n'échoue que si ce nombre n'est pas strictement positif : c'est la
-      // poignée tirée au-dessus du début, et « duree_invalide » le dit bien.
-      // Le formulaire « Planifier », lui, laisse le CHAMP VIDE quand on
-      // l'oublie : `champ()` rend alors `null`, jamais un nombre invalide.
-      // *Mesuré le 23/09/2026 : sans cette distinction, oublier la durée sur
-      // « Planifier » affichait « tirez la poignée », un texte qui ne
-      // s'applique qu'au glissé.*
+      // Le refine « une heure et une durée, ou rien » (`saisie.ts`) échoue sur
+      // `duree_min` dans LES DEUX SENS, et ce n'est pas la même faute :
+      //
+      // - `heure !== null && duree === null` — une carte SANS durée connue
+      //   déposée sur le planning (`pose.tsx` n'envoie alors aucun
+      //   `duree_min`), ou le champ « Durée » laissé vide sur « Planifier ».
+      //   C'est la durée qui manque.
+      // - `heure === null && duree !== null` — le formulaire « Déplacer » de
+      //   la fiche pré-remplit la durée d'une intervention déjà planifiée
+      //   (99S) ; vider SEULEMENT l'heure laisse une durée orpheline. Un
+      //   créneau se donne en entier (QG-4, 27/09/2026) : c'est l'heure qui
+      //   manque, pas la durée.
+      //
+      // **`intervention.refus.duree_invalide` ne reste que pour le
+      // redimensionnement** — le seul chemin qui envoie TOUJOURS un nombre
+      // (`pose.tsx` calcule `cible.minutes + cible.pasMinutes -
+      // main.debutMinutes!`, jamais une chaîne vide) et n'échoue que si ce
+      // nombre n'est pas strictement positif : la poignée tirée au-dessus du
+      // début du bloc.
       if (surLaDuree && heure !== null && duree === null) {
         return repondre("intervention.refus.planification_duree_manquante");
+      }
+      if (surLaDuree && heure === null && duree !== null) {
+        return repondre("intervention.refus.heure_obligatoire");
       }
       return repondre(
         surLaDuree

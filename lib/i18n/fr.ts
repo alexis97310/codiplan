@@ -1195,7 +1195,7 @@ export const fr = {
   // juste qui fait conclure faux).
   "statistiques.charge_incomplete": "Charge incomplète",
   "statistiques.au_moins": "au moins",
-  "statistiques.charge_incomplete_lien": "Voir les interventions sans durée →",
+  "statistiques.charge_incomplete_lien": "Voir celles à venir, sans durée →",
 
   "intervention.titre": "Intervention",
   "intervention.reference": "Référence",
@@ -1406,6 +1406,10 @@ export const fr = {
     "La date est obligatoire pour planifier cette intervention.",
   "intervention.refus.planification_duree_manquante":
     "L'heure de début et la durée prévue sont obligatoires pour planifier cette intervention.",
+  // Le pendant : une durée posée sans heure (déplacement, glisser-déposer
+  // d'une carte sans durée connue) — un créneau se donne en entier, jamais
+  // une durée seule (QG-4, 27/09/2026).
+  "intervention.refus.heure_obligatoire": "L'heure de début est obligatoire.",
   "intervention.refus.planification_technicien_manquant":
     "Le technicien est obligatoire pour planifier cette intervention.",
   // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (audit d'ergonomie du
@@ -3072,7 +3076,7 @@ export const fr = {
   // aucune durée prévue, faussant la charge tant que la saisie manque.
   "tableau_de_bord.interventions_sans_duree_titre": "Interventions sans durée",
   "tableau_de_bord.kpi_interventions_sans_duree":
-    "Planifiées sans durée prévue",
+    "Sans durée prévue — à planifier ou à venir",
   "tableau_de_bord.lien_interventions_sans_duree": "Voir les interventions →",
 
   // ── LA GRILLE DU PLANNING (D95) ──────────────────────────────────────────

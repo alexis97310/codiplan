@@ -840,7 +840,7 @@ function DetailsDeLaCarte({
   readonly ligne: Ligne;
   readonly donneesMateriel: ReadonlyMap<string, DonneesMateriel>;
 }) {
-  const duree = dureeCarteAffichee(dureeDe(ligne));
+  const duree = dureeCarteAffichee(dureeDe(ligne) ?? 0);
   const materiel = materielDeLaCarte(ligne, donneesMateriel);
   return (
     <>
@@ -1065,6 +1065,11 @@ function VueSemaine({
                         key={intervention.id}
                         interventionId={intervention.id}
                         dureeMin={dureeDe(intervention)}
+                        debutMinutes={debutMinutesDe(
+                          intervention,
+                          fuseauPour(intervention.agence_id),
+                        )}
+                        avecRedimensionnement={false}
                       >
                         <Link
                           href={`/interventions/${intervention.id}`}
@@ -2222,16 +2227,36 @@ function ouTravaille(libelles: readonly string[]): string {
  * LA DURÉE D'UNE INTERVENTION, pour la conserver au déplacement.
  *
  * Le créneau posé d'abord — c'est la durée RÉELLEMENT réservée —, l'estimation
- * ensuite, et jamais un chiffre écrit ici : *une valeur par défaut qui répond à
- * une question qu'on n'a pas posée est une décision prise par personne* (§9,
- * 24/08). Une intervention sans l'un ni l'autre ne se déplace pas à l'heure :
- * elle se déplace au jour, et la vue semaine est faite pour cela.
+ * ensuite, et `null` quand NI L'UN NI L'AUTRE n'existe : *une valeur par
+ * défaut qui répond à une question qu'on n'a pas posée est une décision prise
+ * par personne* (§9, 24/08). Un `0` inventé ici partirait comme un
+ * `duree_min=0` au dépôt (PG-A3a, bug 2 de l'audit du 27/09) — Zod le refuse
+ * (`positive()`), et le refus se lit alors « tirez la poignée », un texte qui
+ * ne s'applique qu'au redimensionnement. `pose.tsx` doit pouvoir DISTINGUER
+ * une durée connue de zéro minute d'une durée absente, et seul `null` le lui
+ * permet.
  */
-function dureeDe(ligne: Ligne): number {
+function dureeDe(ligne: Ligne): number | null {
   if (ligne.creneau_debut !== null && ligne.creneau_fin !== null) {
     return Math.round(
       (ligne.creneau_fin.getTime() - ligne.creneau_debut.getTime()) / 60_000,
     );
   }
-  return ligne.duree_estimee_min ?? 0;
+  return ligne.duree_estimee_min;
+}
+
+/**
+ * LE DÉBUT D'UNE INTERVENTION, en minutes locales — pour le CONSERVER au
+ * déplacement en vue Semaine (PG-A7, 28/09/2026, décision QG-4 d'Alexis du
+ * 27/09 : une intervention planifiée garde une heure).
+ *
+ * `null` sans créneau posé : une intervention qui n'a jamais eu d'heure n'en
+ * invente pas une en voyageant d'un jour à l'autre — ce cas garde le
+ * comportement d'avant ce ticket (elle se déplace au jour, sans heure).
+ */
+function debutMinutesDe(ligne: Ligne, fuseau: Fuseau): number | null {
+  if (ligne.creneau_debut === null) {
+    return null;
+  }
+  return minutesDepuisMinuit(versLocal(ligne.creneau_debut, fuseau));
 }

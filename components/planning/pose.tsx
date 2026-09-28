@@ -83,7 +83,8 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
  */
 type EnMain = {
   readonly id: string;
-  readonly dureeMin: number;
+  /** `null` quand l'intervention n'a ni créneau posé ni durée estimée. */
+  readonly dureeMin: number | null;
   /**
    * Le BORD saisi (L3-01b). `"bloc"` déplace l'intervention en conservant sa
    * durée ; `"fin"` la REDIMENSIONNE en laissant son début où il est.
@@ -260,7 +261,32 @@ export function Posable({ children }: Readonly<{ children: React.ReactNode }>) {
         ? cible.minutes + cible.pasMinutes - main.debutMinutes!
         : main.dureeMin;
       corps.set("heure_debut", String(debut));
-      corps.set("duree_min", String(duree));
+      // **UNE DURÉE INCONNUE NE PART PAS EN `0`** (PG-A3a, bug 2 de l'audit du
+      // 27/09/2026) : `duree_min=0` échouait `positive()` et affichait « tirez
+      // la poignée » à qui n'a rien tiré. Le champ est ABSENT plutôt qu'un
+      // zéro inventé — la route lit alors une durée manquante, ce qu'elle est.
+      if (duree !== null) {
+        corps.set("duree_min", String(duree));
+      }
+    } else if (main.debutMinutes !== null && main.dureeMin !== null) {
+      // ── VUE SEMAINE : UN DÉPLACEMENT GARDE L'HEURE ET LA DURÉE (PG-A7,
+      // décision QG-4 d'Alexis du 27/09/2026) ──────────────────────────────
+      //
+      // Une case de la grille Semaine ne porte pas de minutes
+      // (`cible.minutes === null`) : ce n'est pas elle qui décide de l'heure,
+      // c'est la carte qu'on dépose, si elle en connaît déjà une. Sans cette
+      // branche, ni `heure_debut` ni `duree_min` ne partaient — la route
+      // traite alors les deux comme un créneau qu'on RETIRE, et une
+      // intervention planifiée à 08:00, déplacée d'un jour à l'autre, perdait
+      // son heure et sa durée sans que personne ne l'ait décidé.
+      //
+      // `main.debutMinutes` n'est ici jamais posé par la poignée de
+      // redimensionnement — elle n'existe pas en vue Semaine (`page.tsx` ne
+      // la passe qu'aux cartes de la vue Jour) — donc `main.bord` vaut
+      // toujours `"bloc"` : aucun risque de confondre ce déplacement avec un
+      // redimensionnement.
+      corps.set("heure_debut", String(main.debutMinutes));
+      corps.set("duree_min", String(main.dureeMin));
     }
     enVol.current.add(main.id);
     void (async () => {
@@ -378,19 +404,29 @@ export function BlocPosable({
   interventionId,
   dureeMin,
   debutMinutes,
+  avecRedimensionnement = true,
   className,
   children,
 }: Readonly<{
   interventionId: string;
-  /** Conservée au déplacement. Voir `deposer`. */
-  dureeMin: number;
+  /** Conservée au déplacement. Voir `deposer`. `null` si elle est inconnue. */
+  dureeMin: number | null;
   /**
-   * Minutes locales du début. **Sans elle, pas de poignée** : redimensionner,
-   * c'est laisser le début où il est, et on ne laisse pas où il est ce qu'on ne
-   * connaît pas. Une vue qui n'a pas d'heure — la file d'attente — n'en passe
-   * pas, et la poignée n'apparaît pas.
+   * Minutes locales du début, quand la carte en connaît une — SERT À DEUX
+   * CHOSES DISTINCTES : poser la poignée de redimensionnement (vue Jour), et
+   * CONSERVER l'heure au déplacement en vue Semaine (PG-A7, 28/09/2026), où
+   * elle voyage sans jamais poser de poignée. `avecRedimensionnement` sépare
+   * les deux : la valeur part toujours dans le glissé, la poignée non.
    */
   debutMinutes?: number | null;
+  /**
+   * `false` en vue Semaine (PG-A7) : redimensionner n'a de sens que là où une
+   * case connaît des MINUTES (vue Jour) — `cible.minutes` y est toujours
+   * `null`, et calculer une fin de redimensionnement dessus n'aurait aucun
+   * sens. Ne retire QUE la poignée ; `debutMinutes` continue de voyager pour
+   * conserver l'heure au déplacement.
+   */
+  avecRedimensionnement?: boolean;
   className?: string;
   children: React.ReactNode;
 }>) {
@@ -432,7 +468,9 @@ export function BlocPosable({
         gagnerait — *un geste qui dépend de l'ordre des gestionnaires est une
         décision prise par personne.*
       */}
-      {debutMinutes === null || debutMinutes === undefined ? null : (
+      {!avecRedimensionnement ||
+      debutMinutes === null ||
+      debutMinutes === undefined ? null : (
         <span
           data-poignee={interventionId}
           draggable
@@ -536,7 +574,7 @@ function lireLaMain(donnees: DataTransfer): EnMain | null {
       "id" in brut &&
       typeof brut.id === "string" &&
       "dureeMin" in brut &&
-      typeof brut.dureeMin === "number"
+      (typeof brut.dureeMin === "number" || brut.dureeMin === null)
     ) {
       return {
         id: brut.id,

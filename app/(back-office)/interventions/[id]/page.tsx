@@ -908,6 +908,7 @@ export default async function PageIntervention({
                         type="number"
                         libelle={t("intervention.deplacement.duree")}
                         obligatoire
+                        min={1}
                       />
                       <Saisie
                         nom="technicien_id"
@@ -992,6 +993,7 @@ export default async function PageIntervention({
                         type="number"
                         libelle={t("intervention.deplacement.duree")}
                         valeurParDefaut={ligne.duree_estimee_min?.toString()}
+                        min={1}
                       />
                       {/*
                     SEUL CE CHAMP DISPARAÎT, PAS LE FORMULAIRE ENTIER
@@ -1749,10 +1751,18 @@ function Saisie({
   options,
   libelleOptionVide,
   obligatoire,
+  min,
 }: {
   nom: string;
   libelle: string;
   type?: "text" | "number" | "date" | "time";
+  /**
+   * Le PLANCHER du navigateur, pour `type="number"` seulement (PG-A3a). Un
+   * repère CÔTÉ CLIENT, jamais la garantie : la saisie serveur (`positive()`,
+   * `lib/interventions/saisie.ts`) refuse toujours une durée nulle ou
+   * négative, `min` ne fait qu'éviter l'aller-retour pour le dire.
+   */
+  min?: number;
   /**
    * `required` (PARCOURS-1) — un repère CÔTÉ CLIENT, jamais la garantie :
    * `deplacerIntervention` (`peutPlanifier`) refuse toujours sans le champ,
@@ -1824,6 +1834,7 @@ function Saisie({
         type={type}
         defaultValue={valeurParDefaut}
         required={obligatoire}
+        min={min}
         className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
       />
     </label>
