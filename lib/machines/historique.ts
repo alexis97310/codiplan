@@ -118,6 +118,7 @@ async function lireLHistorique(
         // la machine.
         where: { machines: { some: { machine_id: machineId } } },
         select: CHAMPS_LIGNE,
+        // ordre conservé en attente de la confirmation d'Alexis (PV-15, audit du 28/09)
         orderBy: [{ date_planifiee: "desc" }, { numero: "desc" }],
         take: limite,
       }),
